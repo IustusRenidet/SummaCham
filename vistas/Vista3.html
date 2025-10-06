@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Financiero - Presupuestos 2025</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <!-- Custom CSS -->
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .header-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .nav-tabs .nav-link {
+            border-radius: 10px 10px 0 0;
+            font-weight: 500;
+            color: #6c757d;
+        }
+        .nav-tabs .nav-link.active {
+            background-color: #007bff;
+            color: white;
+            border-color: #007bff #007bff #dee2e6;
+        }
+        .tab-content {
+            background: white;
+            border-radius: 0 0 10px 10px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+        .city-selector {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .table-container {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            margin-top: 20px;
+        }
+        .summary-table {
+            font-size: 0.85rem;
+        }
+        .summary-table th {
+            background-color: #e9ecef;
+            border: none;
+            font-weight: 600;
+            color: #495057;
+            text-align: center;
+            white-space: nowrap;
+            padding: 8px 4px;
+        }
+        .summary-table td {
+            border-color: #dee2e6;
+            vertical-align: middle;
+            text-align: center;
+            padding: 4px;
+            white-space: nowrap;
+        }
+        .summary-table .descripcion {
+            text-align: left;
+            font-weight: bold;
+        }
+        .summary-table .section-header {
+            background-color: #f8f9fa;
+            font-weight: bold;
+            color: #6c757d;
+            text-align: left;
+            padding: 10px;
+            border-left: 4px solid #007bff;
+            font-size: 1rem;
+        }
+        .positive {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .negative {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .neutral {
+            color: #ffc107;
+            font-weight: bold;
+        }
+        .btn-city {
+            border-radius: 25px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        .btn-city.active {
+            background-color: #007bff;
+            border-color: #007bff;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,123,255,0.3);
+        }
+        .btn-action {
+            border-radius: 8px;
+            font-weight: 500;
+            margin-right: 10px;
+            transition: all 0.3s ease;
+        }
+        .btn-action:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .accounts-table th {
+            background-color: #e9ecef;
+            border: none;
+            font-weight: 600;
+            color: #495057;
+            text-align: center;
+        }
+        .accounts-table td {
+            border-color: #dee2e6;
+            vertical-align: middle;
+            text-align: center;
+        }
+        .accounts-table .cuenta {
+            text-align: left;
+            font-weight: bold;
+        }
+        .accounts-table .descripcion {
+            text-align: left;
+            font-style: italic;
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .period-selector {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid py-4">
+        <!-- Header -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card header-card fade-in">
+                    <div class="card-body text-center">
+                        <h1 class="card-title mb-0">Dashboard Financiero - Presupuestos 2025</h1>
+                        <p class="card-text">Gestión de Gastos y Presupuestos Corporativos</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <ul class="nav nav-tabs" id="myTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="resumen-tab" data-bs-toggle="tab" data-bs-target="#resumen" type="button" role="tab">Resumen GDL</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="presupuestos-tab" data-bs-toggle="tab" data-bs-target="#presupuestos" type="button" role="tab">Presupuestos</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="summary-tab" data-bs-toggle="tab" data-bs-target="#summary" type="button" role="tab">Summary</button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="myTabContent">
+            <!-- Tab 1: Resumen GDL -->
+            <div class="tab-pane fade show active" id="resumen" role="tabpanel">
+                <div class="py-3">
+                    <!-- City Selector -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="city-selector fade-in">
+                                <h5 class="text-center mb-3">Seleccionar Ciudad</h5>
+                                <div class="d-flex justify-content-center gap-2 flex-wrap">
+                                    <button class="btn btn-outline-primary btn-city active" data-city="cdmx">CDMX</button>
+                                    <button class="btn btn-outline-primary btn-city" data-city="guadalajara">Guadalajara</button>
+                                    <button class="btn btn-outline-primary btn-city" data-city="monterrey">Monterrey</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Table Container -->
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="table-container" id="tableContainer">
+                                <!-- Table will be dynamically loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 2: Presupuestos -->
+            <div class="tab-pane fade" id="presupuestos" role="tabpanel">
+                <div class="py-3">
+                    <!-- Accounts Table -->
+                    <div class="table-responsive">
+                        <table class="table table-hover accounts-table mb-4">
+                            <thead>
+                                <tr>
+                                    <th scope="col" class="cuenta">Cuenta</th>
+                                    <th scope="col" class="descripcion">Descripción</th>
+                                    <th scope="col">Enero</th>
+                                    <th scope="col">Febrero</th>
+                                    <th scope="col">Marzo</th>
+                                    <th scope="col">Abril</th>
+                                    <th scope="col">Mayo</th>
+                                    <th scope="col">Junio</th>
+                                    <th scope="col">Julio</th>
+                                    <th scope="col">Agosto</th>
+                                    <th scope="col">Septiembre</th>
+                                    <th scope="col">Octubre</th>
+                                    <th scope="col">Noviembre</th>
+                                    <th scope="col">Diciembre</th>
+                                    <th scope="col">Anual</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="cuenta">100-000-000</td>
+                                    <td class="descripcion">Activo corriente</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                </tr>
+                                <tr>
+                                    <td class="cuenta">101-000-000</td>
+                                    <td class="descripcion">Caja</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                </tr>
+                                <tr>
+                                    <td class="cuenta">102-000-000</td>
+                                    <td class="descripcion">Bancos</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="d-flex justify-content-end gap-2">
+                        <button class="btn btn-success btn-action">Guardar</button>
+                        <button class="btn btn-primary btn-action">Cargar</button>
+                        <button class="btn btn-warning btn-action">Autorizar</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 3: Summary -->
+            <div class="tab-pane fade" id="summary" role="tabpanel">
+                <div class="py-3">
+                    <!-- Period Selector -->
+                    <div class="period-selector fade-in">
+                        <h5 class="mb-3">Selección del Periodo: 2022 ENERO</h5>
+                    </div>
+
+                    <!-- Summary Table -->
+                    <div class="table-responsive">
+                        <table class="table table-hover summary-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th colspan="5">2022</th>
+                                    <th colspan="5">2021 YTD</th>
+                                </tr>
+                                <tr>
+                                    <th>Actual</th>
+                                    <th>vs Plan</th>
+                                    <th>vs 2018</th>
+                                    <th>%</th>
+                                    <th>%</th>
+                                    <th>Actual</th>
+                                    <th>vs Plan</th>
+                                    <th>vs 2018</th>
+                                    <th>%</th>
+                                    <th>%</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- INCOME Section -->
+                                <tr>
+                                    <td colspan="10" class="section-header">INCOME</td>
+                                </tr>
+                                <tr>
+                                    <td class="descripcion">Membership</td>
+                                    <td>541,254</td>
+                                    <td>267,200</td>
+                                    <td>209,752</td>
+                                    <td class="positive">20%</td>
+                                    <td class="positive">24%</td>
+                                    <td>541,254</td>
+                                    <td>267,200</td>
+                                    <td>209,752</td>
+                                    <td class="positive">20%</td>
+                                    <td class="positive">24%</td>
+                                </tr>
+                                <tr>
+                                    <td class="descripcion">Membership</td>
+                                    <td>90,000</td>
+                                    <td>27,910</td>
+                                    <td>18,383</td>
+                                    <td class="positive">3%</td>
+                                    <td class="positive">5%</td>
+                                    <td>90,342</td>
+                                    <td>27,910</td>
+                                    <td>18,450</td>
+                                    <td class="positive">3%</td>
+                                    <td class="positive">5%</td>
+                                </tr>
+                                <tr>
+                                    <td class="descripcion">Events</td>
+                                    <td>59,042</td>
+                                    <td>21,950</td>
+                                    <td>108,914</td>
+                                    <td class="positive">13%</td>
+                                    <td class="positive">28%</td>
+                                    <td>29,046</td>
+                                    <td>21,950</td>
+                                    <td>40,841</td>
+                                    <td class="positive">13%</td>
+                                    <td class="positive">28%</td>
+                                </tr>
+                                <tr>
+                                    <td class="descripcion">Committees</td>
+                                    <td>29,062</td>
+                                    <td>19,500</td>
+                                    <td>51,000</td>
+                                    <td class="positive">0%</td>
+                                    <td class="positive">0%</td>
+                                    <td>0</td>
+                                    <td>27,000</td>
+                                    <td>125,000</td>
+                                    <td class="positive">0%</td>
+                                    <td class="positive">0%</td>
+                                </tr>
+                                <tr>
+                                    <td class="descripcion">Services to Members</td>
+                                    <td>158,400</td>
+                                    <td>111,630</td>
+                                    <td>160,000</td>
+                                    <td class="positive">14%</td>
+                                    <td class="positive">97%</td>
+                                    <td>158,400</td>
+                                    <td>111,630</td>
+                                    <td>160,000</td>
+                                    <td class="positive">14%</td>
+                                    <td class="positive">97%</td>
+                                </tr>
+                                <tr>
+                                    <td class="descripcion">Guadalajara Income</td>
+                                    <td>0</td>
+                                    <td>57,935</td>
+                                    <td>494,168</td>
+                                    <td class="positive">0%</td>
+                                    <td class="positive">0%</td>
+                                    <td>0</td>
+                                    <td>57,935</td>
+                                    <td>494,168</td>
+                                    <td class="positive">0%</td>
+                                    <td class="positive">0%</td>
+                                </tr>
+                                <tr>
+                                    <td class="descripcion">Monterrey Income</td>
+                                    <td>0</td>
+                                    <td>115,687</td>
+                                    <td>195,078</td>
+                                    <td class="positive">0%</td>
+                                    <td class="positive">0%</td>
+                                    <td>0</td>
+                                    <td>115,687</td>
+                                    <td>195,078</td>
+                                    <td class="positive">0%</td>
+                                    <td class="positive">0%</td>
+                                </tr>
+                                <tr>
+                                    <td class="descripcion">CONSOLIDATED INCOME</td>
+                                    <td class="positive">541,754</td>
+                                    <td>1,164,607</td>
+                                    <td>1,618,763</td>
+                                    <td class="positive">34%</td>
+                                    <td class="positive">18%</td>
+                                    <td class="positive">541,754</td>
+                                    <td>1,164,607</td>
+                                    <td>1,618,763</td>
+                                    <td class="positive">34%</td>
+                                    <td class="positive">18%</td>
+                                </tr>
+                                <!-- EXPENSES Section -->
+                                <tr>
+                                    <td colspan="10" class="section-header">EXPENSES</td>
+                                </tr>
+                                <tr>
+                                    <td class="descripcion">Membership</td>
+                                    <td>347,571</td>
+                                    <td>429,670</td>
+                                    <td>336,188</td>
+                                    <td class="negative">12%</td>
+                                    <td class="positive">35%</td>
+                                    <td>347,571</td>
+                                    <td>429,670</td>
+                                    <td>336,188</td>
+                                    <td class="negative">12%</td>
+                                    <td class="positive">35%</td>
+                                </tr>
+                                <tr>
+                                    <td class="descripcion">Events</td>
+                                    <td>287,350</td>
+                                    <td>46,420</td>
+                                    <td>3,000</td>
+                                    <td class="positive">6%</td>
+                                    <td class="positive">0%</td>
+                                    <td>287,350</td>
+                                    <td>46,420</td>
+                                    <td>3,000</td>
+                                    <td class="positive">6%</td>
+                                    <td class="positive">0%</td>
+                                </tr>
+                                <tr>
+                                    <td class="descripcion">Committees</td>
+                                    <td>30,164</td>
+                                    <td>0</td>
+                                    <td>225,047</td>
+                                    <td class="positive">0%</td>
+                                    <td class="negative">16%</td>
+                                    <td>30,164</td>
+                                    <td>0</td>
+                                    <td>225,047</td>
+                                    <td class="positive">0%</td>
+                                    <td class="negative">16%</td>
+                                </tr>
+                                <tr>
+                                    <td class="descripcion">Services to Members</td>
+                                    <td>110,736</td>
+                                    <td>120,210</td>
+                                    <td>113,450</td>
+                                    <td class="negative">8%</td>
+                                    <td class="positive">95%</td>
+                                    <td>110,736</td>
+                                    <td>120,210</td>
+                                    <td>113,450</td>
+                                    <td class="negative">8%</td>
+                                    <td class="positive">95%</td>
+                                </tr>
+                                <tr>
+                                    <td class="descripcion">Gastos administrativos</td>
+                                    <td>97,381</td>
+                                    <td>58,170</td>
+                                    <td>47,833</td>
+                                    <td class="negative">17%</td>
+                                    <td class="negative">26%</td>
+                                    <td>97,381</td>
+                                    <td>58,170</td>
+                                    <td>47,833</td>
+                                    <td class="negative">17%</td>
+                                    <td class="negative">26%</td>
+                                </tr>
+                                <tr>
+                                    <td class="descripcion">Gastos de nomina</td>
+                                    <td>179,173</td>
+                                    <td>250,800</td>
+                                    <td>155,368</td>
+                                    <td class="negative">70%</td>
+                                    <td class="negative">112%</td>
+                                    <td>179,173</td>
+                                    <td>250,800</td>
+                                    <td>155,368</td>
+                                    <td class="negative">70%</td>
+                                    <td class="negative">112%</td>
+                                </tr>
+                                <tr>
+                                    <td class="descripcion">Guadalajara Expenses</td>
+                                    <td>0</td>
+                                    <td>590,107</td>
+                                    <td>679,138</td>
+                                    <td class="positive">0%</td>
+                                    <td class="positive">0%</td>
+                                    <td>0</td>
+                                    <td>590,107</td>
+                                    <td>679,138</td>
+                                    <td class="positive">0%</td>
+                                    <td class="positive">0%</td>
+                                </tr>
+                                <tr>
+                                    <td class="descripcion">Monterrey Expenses</td>
+                                    <td>16</td>
+                                    <td>360,855</td>
+                                    <td>1,054,941</td>
+                                    <td class="positive">0%</td>
+                                    <td class="negative">98%</td>
+                                    <td>16</td>
+                                    <td>360,855</td>
+                                    <td>1,054,941</td>
+                                    <td class="positive">0%</td>
+                                    <td class="negative">98%</td>
+                                </tr>
+                                <tr>
+                                    <td class="descripcion">CONSOLIDATED EXPENSES</td>
+                                    <td class="negative">3,167,454</td>
+                                    <td>4,734,16</td>
+                                    <td>4,049,70</td>
+                                    <td class="negative">66%</td>
+                                    <td class="negative">78%</td>
+                                    <td class="negative">3,167,454</td>
+                                    <td>4,734,16</td>
+                                    <td>4,049,70</td>
+                                    <td class="negative">66%</td>
+                                    <td class="negative">78%</td>
+                                </tr>
+                                <!-- OPERATING RESULTS Section -->
+                                <tr>
+                                    <td colspan="10" class="section-header">OPERATING RESULTS</td>
+                                </tr>
+                                <tr>
+                                    <td class="descripcion">OPERATING RESULTS GUADALAJARA</td>
+                                    <td class="negative">-262,07</td>
+                                    <td>-458,390</td>
+                                    <td>-128,532</td>
+                                    <td class="negative">15%</td>
+                                    <td class="negative">20%</td>
+                                    <td class="negative">-262,07</td>
+                                    <td>-458,390</td>
+                                    <td>-128,532</td>
+                                    <td class="negative">15%</td>
+                                    <td class="negative">20%</td>
+                                </tr>
+                                <tr>
+                                    <td class="descripcion">OPERATING RESULTS MONTERREY</td>
+                                    <td class="negative">-2,6203</td>
+                                    <td>445,746</td>
+                                    <td>430,865</td>
+                                    <td class="positive">89%</td>
+                                    <td class="positive">610%</td>
+                                    <td class="negative">-2,6203</td>
+                                    <td>445,746</td>
+                                    <td>430,865</td>
+                                    <td class="positive">89%</td>
+                                    <td class="positive">610%</td>
+                                </tr>
+                                <tr>
+                                    <td class="descripcion">CONSOLIDATED OPERATING RESULTS</td>
+                                    <td class="negative">(2,626,03)</td>
+                                    <td>(445,746)</td>
+                                    <td>(430,865)</td>
+                                    <td class="positive">89%</td>
+                                    <td class="positive">610%</td>
+                                    <td class="negative">(2,626,03)</td>
+                                    <td>(445,746)</td>
+                                    <td>(430,865)</td>
+                                    <td class="positive">89%</td>
+                                    <td class="positive">610%</td>
+                                </tr>
+                                <!-- OTHER INCOME Section -->
+                                <tr>
+                                    <td colspan="10" class="section-header">OTHER INCOME</td>
+                                </tr>
+                                <tr>
+                                    <td class="descripcion">Mexico Other Income</td>
+                                    <td>0,14</td>
+                                    <td>166,500</td>
+                                    <td>492,765</td>
+                                    <td class="positive">0%</td>
+                                    <td class="positive">17%</td>
+                                    <td>0,14</td>
+                                    <td>166,500</td>
+                                    <td>492,765</td>
+                                    <td class="positive">0%</td>
+                                    <td class="positive">17%</td>
+                                </tr>
+                                <tr>
+                                    <td class="descripcion">Guadalajara Other Income</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                    <td>17,781</td>
+                                    <td class="positive">0%</td>
+                                    <td class="positive">0%</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                    <td>17,781</td>
+                                    <td class="positive">0%</td>
+                                    <td class="positive">0%</td>
+                                </tr>
+                                <tr>
+                                    <td class="descripcion">Monterrey Other Income</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                    <td class="positive">0%</td>
+                                    <td class="positive">0%</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                    <td class="positive">0%</td>
+                                    <td class="positive">0%</td>
+                                </tr>
+                                <!-- NET RESULTS Section -->
+                                <tr>
+                                    <td colspan="10" class="section-header">NET RESULTS</td>
+                                </tr>
+                                <tr>
+                                    <td class="descripcion">NET RESULTS MEXICO</td>
+                                    <td class="negative">(2,626,03)</td>
+                                    <td>(279,079)</td>
+                                    <td>641,86</td>
+                                    <td class="positive">91%</td>
+                                    <td class="negative">-0,91%</td>
+                                    <td class="negative">(2,626,03)</td>
+                                    <td>(279,079)</td>
+                                    <td>641,86</td>
+                                    <td class="positive">91%</td>
+                                    <td class="negative">-0,91%</td>
+                                </tr>
+                                <tr>
+                                    <td class="descripcion">NET RESULTS GUADALAJARA</td>
+                                    <td class="negative">15,000</td>
+                                    <td>0,7</td>
+                                    <td>47,206</td>
+                                    <td class="positive">4%</td>
+                                    <td class="positive">18%</td>
+                                    <td class="negative">15,000</td>
+                                    <td>0,7</td>
+                                    <td>47,206</td>
+                                    <td class="positive">4%</td>
+                                    <td class="positive">18%</td>
+                                </tr>
+                                <tr>
+                                    <td class="descripcion">CONSOLIDATED NET RESULTS</td>
+                                    <td class="negative">(2,626,03)</td>
+                                    <td>(279,079)</td>
+                                    <td>641,86</td>
+                                    <td class="positive">91%</td>
+                                    <td class="negative">-0,91%</td>
+                                    <td class="negative">(2,626,03)</td>
+                                    <td>(279,079)</td>
+                                    <td>641,86</td>
+                                    <td class="positive">91%</td>
+                                    <td class="negative">-0,91%</td>
+                                </tr>
+                                <!-- Totals Row -->
+                                <tr>
+                                    <td colspan="5" class="bg-warning text-dark fw-bold">3,500</td>
+                                    <td colspan="5" class="bg-warning text-dark fw-bold">15,000</td>
+                                </tr>
+                                <tr>
+                                    <td class="negative">-(462,744)</td>
+                                    <td>328,514</td>
+                                    <td>338,418</td>
+                                    <td class="positive"></td>
+                                    <td class="positive"></td>
+                                    <td class="negative">18,7266</td>
+                                    <td>-279,80</td>
+                                    <td>478,185</td>
+                                    <td class="positive"></td>
+                                    <td class="positive"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <!-- Custom JS for Resumen Tab -->
+    <script>
+        // Sample data for each city (based on provided table for CDMX; placeholders for others)
+        const cityData = {
+            cdmx: {
+                income: [
+                    { label: 'Ingresos', real2025: 742942, ppto2025: 795000, real2024: 678264, var2024real: '10%', var2025ppto: '-4%' },
+                    { label: 'Eventos', real2025: 468673, ppto2025: 945000, real2024: 538300, var2024real: '3%', var2025ppto: '-50%' },
+                    { label: 'Comités', real2025: 49392, ppto2025: 943800, real2024: 272150, var2024real: '81%', var2025ppto: '-48%' }
+                ],
+                expenses: [
+                    { label: 'Membresía', real2025: 261569, ppto2025: 404258, real2024: 291669, var2024real: '10%', var2025ppto: '-35%' },
+                    { label: 'Eventos', real2025: 336152, ppto2025: 756048, real2024: 179496, var2024real: '152%', var2025ppto: '-56%' },
+                    { label: 'Servicios a Miembros', real2025: 269801, ppto2025: 235941, real2024: 188979, var2024real: '43%', var2025ppto: '19%' },
+                    { label: 'Gastos Administrativos', real2025: 1317579, ppto2025: 1356835, real2024: 1738980, var2024real: '36%', var2025ppto: '-1%' },
+                    { label: 'Gastos Corporativos', real2025: 2316266, ppto2025: 2587056, real2024: 2509877, var2024real: '4%', var2025ppto: '-1%' }
+                ],
+                operating: [
+                    { label: 'RESULTADO OPERATIVO', real2025: 372891, ppto2025: 763343, real2024: 442092, var2024real: '184%', var2025ppto: '-51%' },
+                    { label: 'Other Entity', real2025: 348129, ppto2025: '-', real2024: 212235, var2024real: '164%', var2025ppto: '0%' }
+                ]
+            },
+            guadalajara: {
+                // Placeholder data - similar structure, adjusted values for demo
+                income: [
+                    { label: 'Ingresos', real2025: 650000, ppto2025: 700000, real2024: 600000, var2024real: '8%', var2025ppto: '-7%' },
+                    { label: 'Eventos', real2025: 400000, ppto2025: 800000, real2024: 500000, var2024real: '-20%', var2025ppto: '-50%' },
+                    { label: 'Comités', real2025: 45000, ppto2025: 900000, real2024: 250000, var2024real: '80%', var2025ppto: '-95%' }
+                ],
+                expenses: [
+                    { label: 'Membresía', real2025: 250000, ppto2025: 380000, real2024: 280000, var2024real: '-11%', var2025ppto: '-34%' },
+                    { label: 'Eventos', real2025: 300000, ppto2025: 700000, real2024: 160000, var2024real: '88%', var2025ppto: '-57%' },
+                    { label: 'Servicios a Miembros', real2025: 260000, ppto2025: 220000, real2024: 180000, var2024real: '44%', var2025ppto: '18%' },
+                    { label: 'Gastos Administrativos', real2025: 1200000, ppto2025: 1300000, real2024: 1600000, var2024real: '-25%', var2025ppto: '-8%' },
+                    { label: 'Gastos Corporativos', real2025: 2200000, ppto2025: 2400000, real2024: 2300000, var2024real: '-4%', var2025ppto: '-8%' }
+                ],
+                operating: [
+                    { label: 'RESULTADO OPERATIVO', real2025: 350000, ppto2025: 700000, real2024: 400000, var2024real: '-13%', var2025ppto: '-50%' },
+                    { label: 'Other Entity', real2025: 300000, ppto2025: '-', real2024: 200000, var2024real: '50%', var2025ppto: '0%' }
+                ]
+            },
+            monterrey: {
+                // Placeholder data - similar structure, adjusted values for demo
+                income: [
+                    { label: 'Ingresos', real2025: 700000, ppto2025: 780000, real2024: 680000, var2024real: '3%', var2025ppto: '-10%' },
+                    { label: 'Eventos', real2025: 450000, ppto2025: 900000, real2024: 520000, var2024real: '-13%', var2025ppto: '-50%' },
+                    { label: 'Comités', real2025: 50000, ppto2025: 950000, real2024: 260000, var2024real: '92%', var2025ppto: '-95%' }
+                ],
+                expenses: [
+                    { label: 'Membresía', real2025: 270000, ppto2025: 410000, real2024: 300000, var2024real: '-10%', var2025ppto: '-34%' },
+                    { label: 'Eventos', real2025: 320000, ppto2025: 750000, real2024: 170000, var2024real: '88%', var2025ppto: '-57%' },
+                    { label: 'Servicios a Miembros', real2025: 280000, ppto2025: 240000, real2024: 190000, var2024real: '47%', var2025ppto: '17%' },
+                    { label: 'Gastos Administrativos', real2025: 1250000, ppto2025: 1320000, real2024: 1650000, var2024real: '-24%', var2025ppto: '-5%' },
+                    { label: 'Gastos Corporativos', real2025: 2250000, ppto2025: 2450000, real2024: 2350000, var2024real: '-4%', var2025ppto: '-8%' }
+                ],
+                operating: [
+                    { label: 'RESULTADO OPERATIVO', real2025: 360000, ppto2025: 720000, real2024: 410000, var2024real: '-12%', var2025ppto: '-50%' },
+                    { label: 'Other Entity', real2025: 320000, ppto2025: '-', real2024: 210000, var2024real: '52%', var2025ppto: '0%' }
+                ]
+            }
+        };
+
+        // Function to render table for Resumen tab
+        function renderTable(city) {
+            const data = cityData[city];
+            let tableHtml = `
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th scope="col" class="text-center">Capítulo GDL</th>
+                                <th scope="col" class="text-center">Real 2025</th>
+                                <th scope="col" class="text-center">Ppto. 2025</th>
+                                <th scope="col" class="text-center">Real 2024</th>
+                                <th scope="col" class="text-center">Var. 2024/Real 2025</th>
+                                <th scope="col" class="text-center">Var. 2025/Ppto. 2025</th>
+                                <th scope="col" class="text-center">Porcentaje Gtos. Corporativos</th>
+                            </tr>
+                        </thead>
+                        <tbody>`;
+
+            // Income Section
+            tableHtml += `<tr class="section-header"><td colspan="7">INGRESOS</td></tr>`;
+            data.income.forEach(row => {
+                tableHtml += `
+                    <tr>
+                        <td>${row.label}</td>
+                        <td class="text-end">${row.real2025.toLocaleString()}</td>
+                        <td class="text-end">${row.ppto2025.toLocaleString()}</td>
+                        <td class="text-end">${row.real2024.toLocaleString()}</td>
+                        <td class="${row.var2024real.includes('-') ? 'negative' : 'positive'} text-end">${row.var2024real}</td>
+                        <td class="${row.var2025ppto.includes('-') ? 'negative' : 'positive'} text-end">${row.var2025ppto}</td>
+                        <td class="text-center">2025: CDMX - 53% GDL - 16% VMT - 31%</td>
+                    </tr>`;
+            });
+
+            // Expenses Section
+            tableHtml += `<tr class="section-header"><td colspan="7">GASTOS</td></tr>`;
+            data.expenses.forEach(row => {
+                tableHtml += `
+                    <tr>
+                        <td>${row.label}</td>
+                        <td class="text-end">${row.real2025.toLocaleString()}</td>
+                        <td class="text-end">${row.ppto2025.toLocaleString()}</td>
+                        <td class="text-end">${row.real2024.toLocaleString()}</td>
+                        <td class="${row.var2024real.includes('-') ? 'negative' : 'positive'} text-end">${row.var2024real}</td>
+                        <td class="${row.var2025ppto.includes('-') ? 'negative' : 'positive'} text-end">${row.var2025ppto}</td>
+                        <td class="text-center">2025: CDMX - 53% GDL - 13% VMT - 32%</td>
+                    </tr>`;
+            });
+
+            // Operating Results Section
+            tableHtml += `<tr class="section-header"><td colspan="7">RESUMEN Gtos. Corporativos (P) DN Comités Eventos Dirección Gastos generales</td></tr>`;
+            data.operating.forEach(row => {
+                tableHtml += `
+                    <tr>
+                        <td><strong>${row.label}</strong></td>
+                        <td class="text-end"><strong>${row.real2025.toLocaleString()}</strong></td>
+                        <td class="text-end"><strong>${row.ppto2025.toLocaleString()}</strong></td>
+                        <td class="text-end"><strong>${row.real2024.toLocaleString()}</strong></td>
+                        <td class="${row.var2024real.includes('-') ? 'negative' : 'positive'} text-end"><strong>${row.var2024real}</strong></td>
+                        <td class="${row.var2025ppto.includes('-') ? 'negative' : 'positive'} text-end"><strong>${row.var2025ppto}</strong></td>
+                        <td class="text-center"></td>
+                    </tr>`;
+            });
+
+            tableHtml += `</tbody></table></div>`;
+            document.getElementById('tableContainer').innerHTML = tableHtml;
+        }
+
+        // Event listeners for city buttons
+        document.querySelectorAll('.btn-city').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.btn-city').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                const city = this.dataset.city;
+                renderTable(city);
+                // Add fade-in animation
+                document.getElementById('tableContainer').classList.add('fade-in');
+                setTimeout(() => document.getElementById('tableContainer').classList.remove('fade-in'), 500);
+            });
+        });
+
+        // Initial render for CDMX
+        renderTable('cdmx');
+    </script>
+</body>
+</html>
