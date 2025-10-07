@@ -1,22 +1,22 @@
 {
-  "name": "summacham",
+  "name": "PanelAMCHAM",
   "version": "1.0.0",
-  "description": "Dashboard financiero SummaCham empaquetado como app de escritorio portable.",
+  "description": "Dashboard financiero PanelAMCHAM empaquetado como app de escritorio portable.",
   "main": "main.js",
-  "author": "",
-  "license": "MIT",
+  "author": "Iustus Renidet & J02V4N",
+  "license": "",
   "scripts": {
     "start": "electron .",
     "pack": "electron-builder --dir",
     "dist": "electron-builder --win portable"
   },
   "devDependencies": {
-    "electron": "^31.3.0",
+    "electron": "^38.2.2",
     "electron-builder": "^25.1.8"
   },
   "build": {
     "appId": "com.summa.cham",
-    "productName": "SummaCham",
+    "productName": "PanelAMCHAM",
     "asar": true,
     "directories": {
       "output": "dist",
@@ -51,4 +51,3 @@
     }
   }
 }
-

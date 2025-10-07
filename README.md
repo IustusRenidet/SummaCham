@@ -1,6 +1,6 @@
 # SummaCham
 
-Aplicación de escritorio basada en Electron para visualizar paneles financieros de AmCham México.
+Aplicación de escritorio basada en Electron para visualizar paneles financieros de AmCham.
 
 ## Requisitos
 
