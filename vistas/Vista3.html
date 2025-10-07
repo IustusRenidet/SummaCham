@@ -17,32 +17,20 @@
             --color-texto: #1f2740;
         }
         body {
-            background: linear-gradient(200deg, rgba(92, 108, 255, 0.12), rgba(255, 126, 182, 0.08));
+            background-color: var(--color-fondo);
             font-family: 'Manrope', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             color: var(--color-texto);
             min-height: 100vh;
         }
         .hero-card {
-            background: radial-gradient(circle at top left, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.15)), linear-gradient(135deg, rgba(92, 108, 255, 0.95), rgba(255, 126, 182, 0.92));
-            border: none;
-            border-radius: 28px;
-            box-shadow: 0 32px 70px rgba(31, 39, 64, 0.18);
+            background: var(--color-primario);
+            border: 1px solid rgba(31, 39, 64, 0.1);
+            border-radius: 22px;
+            box-shadow: 0 4px 12px rgba(31, 39, 64, 0.12);
             color: #fff;
-            position: relative;
-            overflow: hidden;
-        }
-        .hero-card::after {
-            content: "";
-            position: absolute;
-            top: -80px;
-            right: -60px;
-            width: 210px;
-            height: 210px;
-            background: rgba(255, 255, 255, 0.22);
-            border-radius: 50%;
         }
         .hero-pill {
-            background-color: rgba(255, 255, 255, 0.28);
+            background-color: rgba(255, 255, 255, 0.18);
             display: inline-flex;
             gap: 0.5rem;
             align-items: center;
@@ -51,41 +39,38 @@
             font-weight: 600;
         }
         .nav-pills {
-            background: rgba(255, 255, 255, 0.72);
-            backdrop-filter: blur(6px);
-            border-radius: 18px;
-            padding: 0.5rem;
-            box-shadow: 0 16px 35px rgba(31, 39, 64, 0.08);
+            background: #fff;
+            border-radius: 14px;
+            padding: 0.25rem;
+            border: 1px solid rgba(31, 39, 64, 0.1);
+            box-shadow: none;
         }
         .nav-pills .nav-link {
-            border-radius: 14px;
+            border-radius: 10px;
             font-weight: 600;
-            color: #6c7899;
+            color: #4b5773;
         }
         .nav-pills .nav-link.active {
-            background: linear-gradient(135deg, rgba(92, 108, 255, 0.95), rgba(255, 126, 182, 0.9));
-            box-shadow: 0 16px 30px rgba(92, 108, 255, 0.25);
+            background: var(--color-acento);
+            box-shadow: none;
+            color: #fff;
         }
         .selector-card,
         .panel-blanco,
         .table-card,
         .summary-card {
             background: #fff;
-            border-radius: 22px;
-            box-shadow: 0 18px 40px rgba(31, 39, 64, 0.08);
+            border-radius: 18px;
+            border: 1px solid rgba(31, 39, 64, 0.08);
+            box-shadow: none;
         }
         .selector-card .card-body,
         .panel-blanco .card-body {
             padding: 2rem;
         }
         .summary-card {
-            padding: 1.75rem;
+            padding: 1.5rem;
             height: 100%;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        .summary-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 28px 55px rgba(31, 39, 64, 0.12);
         }
         .summary-card small {
             text-transform: uppercase;
@@ -103,29 +88,27 @@
             font-weight: 600;
         }
         .btn-city {
-            border-radius: 16px;
+            border-radius: 14px;
             font-weight: 600;
             padding: 0.75rem 1.35rem;
-            border: 1px solid rgba(92, 108, 255, 0.28);
+            border: 1px solid rgba(92, 108, 255, 0.25);
             color: var(--color-texto);
-            background: rgba(92, 108, 255, 0.08);
-            transition: all 0.3s ease;
+            background: #eef0ff;
         }
         .btn-city.active {
-            background: linear-gradient(135deg, rgba(92, 108, 255, 0.95), rgba(255, 126, 182, 0.9));
+            background: var(--color-primario);
             color: #fff;
             border-color: transparent;
-            box-shadow: 0 16px 30px rgba(92, 108, 255, 0.25);
         }
         .btn-city:hover {
-            background: linear-gradient(135deg, rgba(92, 108, 255, 0.8), rgba(255, 126, 182, 0.75));
+            background: var(--color-acento);
             color: #fff;
         }
         .table-card {
             overflow: hidden;
         }
         .table-card thead {
-            background: linear-gradient(135deg, rgba(92, 108, 255, 0.12), rgba(255, 126, 182, 0.12));
+            background: #eef0ff;
         }
         .table-card thead th {
             border: none;
@@ -136,7 +119,7 @@
             padding: 0.9rem 0.75rem;
         }
         .accounts-table thead {
-            background: linear-gradient(135deg, rgba(92, 108, 255, 0.12), rgba(255, 126, 182, 0.12));
+            background: #eef0ff;
         }
         .accounts-table thead th {
             border: none;
@@ -155,13 +138,13 @@
             text-align: left;
         }
         .accounts-table tbody tr:hover {
-            background-color: rgba(92, 108, 255, 0.05);
+            background-color: #f5f6ff;
         }
         .table-card tbody tr:hover {
-            background-color: rgba(92, 108, 255, 0.05);
+            background-color: #f5f6ff;
         }
         .section-header-row td {
-            background-color: rgba(92, 108, 255, 0.1);
+            background-color: #e1e4fb;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.04em;
@@ -189,8 +172,8 @@
         .neutral { color: #ffc107; font-weight: 600; }
         .period-selector {
             background: #fff;
-            border-radius: 20px;
-            box-shadow: 0 16px 35px rgba(31, 39, 64, 0.08);
+            border-radius: 16px;
+            border: 1px solid rgba(31, 39, 64, 0.08);
             padding: 1.5rem;
         }
         .fade-in {
@@ -205,11 +188,8 @@
             font-weight: 600;
             padding: 0.65rem 1.5rem;
             border: none;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        .btn-action:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 24px rgba(31, 39, 64, 0.12);
+            background-color: var(--color-acento);
+            color: #fff;
         }
     </style>
 </head>
