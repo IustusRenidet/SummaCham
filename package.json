@@ -19,13 +19,13 @@
     "productName": "SummaCham",
     "asar": true,
     "directories": {
-      "buildResources": "build"
+      "buildResources": "icono"
     },
     "files": [
       "main.js",
       "vistas/**/*",
-      "build/icon.png",
-      "build/icon.ico",
+      "icono/icono.png",
+      "icono/icono.ico",
       "README.md"
     ],
     "win": {
@@ -37,11 +37,9 @@
           ]
         }
       ],
-      "icon": "build/icon.ico",
+      "icon": "icono/icono.ico",
       "signAndEditExecutable": false,
-      "publisherName": [
-        "Unsigned Build"
-      ]
+      "publisherName": []
     }
   }
 }

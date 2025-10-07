@@ -2,6 +2,8 @@ const { app, BrowserWindow } = require('electron');
 const path = require('path');
 
 const createWindow = () => {
+  const iconName = process.platform === 'win32' ? 'icono.ico' : 'icono.png';
+
   const mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
@@ -9,7 +11,7 @@ const createWindow = () => {
     minHeight: 720,
     backgroundColor: '#f3f6f1',
     autoHideMenuBar: true,
-    icon: path.join(__dirname, 'build', process.platform === 'win32' ? 'icon.ico' : 'icon.png')
+    icon: path.join(__dirname, 'icono', iconName)
   });
 
   mainWindow.loadFile(path.join(__dirname, 'vistas', 'Vista3.html'));
