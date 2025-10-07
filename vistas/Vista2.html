@@ -17,82 +17,54 @@
             --color-texto: #1f2a44;
         }
         body {
-            background: linear-gradient(180deg, rgba(106, 76, 255, 0.08) 0%, rgba(245, 247, 251, 1) 25%);
+            background-color: var(--color-fondo);
             font-family: 'Manrope', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             color: var(--color-texto);
             min-height: 100vh;
         }
         .hero-card {
-            background: radial-gradient(circle at top left, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0.15)), linear-gradient(135deg, rgba(106, 76, 255, 0.95), rgba(0, 194, 168, 0.9));
-            border-radius: 24px;
-            border: none;
-            box-shadow: 0 28px 60px rgba(31, 42, 68, 0.18);
+            background: var(--color-primario);
+            border-radius: 20px;
+            border: 1px solid rgba(31, 42, 68, 0.1);
+            box-shadow: 0 4px 12px rgba(31, 42, 68, 0.12);
             color: #fff;
-            overflow: hidden;
-            position: relative;
-        }
-        .hero-card::after {
-            content: "";
-            position: absolute;
-            width: 180px;
-            height: 180px;
-            background: rgba(255, 255, 255, 0.18);
-            border-radius: 50%;
-            top: -60px;
-            right: -60px;
-        }
-        .hero-card::before {
-            content: "";
-            position: absolute;
-            width: 140px;
-            height: 140px;
-            background: rgba(255, 255, 255, 0.12);
-            border-radius: 35% 65% 60% 40% / 55% 45% 55% 45%;
-            bottom: -40px;
-            left: -40px;
         }
         .hero-pill {
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
-            background-color: rgba(255, 255, 255, 0.25);
+            background-color: rgba(255, 255, 255, 0.16);
             padding: 0.5rem 1.25rem;
             border-radius: 999px;
             font-weight: 600;
         }
         .tabs-wrapper {
-            background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(6px);
-            border-radius: 16px;
-            padding: 0.5rem;
+            background: #fff;
+            border-radius: 12px;
+            padding: 0.25rem;
             display: inline-flex;
             gap: 0.25rem;
-            box-shadow: 0 16px 35px rgba(31, 42, 68, 0.08);
+            border: 1px solid rgba(31, 42, 68, 0.1);
+            box-shadow: none;
         }
         .tabs-wrapper .nav-link {
             border: none;
-            border-radius: 12px;
-            color: #627294;
+            border-radius: 10px;
+            color: #4b5773;
             font-weight: 600;
-            padding: 0.75rem 1.5rem;
-            transition: all 0.3s ease;
+            padding: 0.65rem 1.35rem;
         }
         .tabs-wrapper .nav-link.active {
-            background: linear-gradient(135deg, rgba(106, 76, 255, 0.95), rgba(0, 194, 168, 0.9));
+            background: var(--color-acento);
             color: #fff;
-            box-shadow: 0 12px 25px rgba(106, 76, 255, 0.25);
+            box-shadow: none;
         }
         .summary-card {
             background: #fff;
-            border-radius: 18px;
-            padding: 1.75rem;
-            box-shadow: 0 16px 35px rgba(31, 42, 68, 0.08);
+            border-radius: 16px;
+            padding: 1.5rem;
+            border: 1px solid rgba(31, 42, 68, 0.08);
             height: 100%;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        .summary-card:hover {
-            transform: translateY(-6px);
-            box-shadow: 0 24px 45px rgba(31, 42, 68, 0.12);
         }
         .summary-card small {
             letter-spacing: 0.05em;
@@ -111,33 +83,31 @@
         }
         .panel-blanco {
             background: #fff;
-            border-radius: 22px;
-            box-shadow: 0 20px 45px rgba(31, 42, 68, 0.09);
+            border-radius: 18px;
+            border: 1px solid rgba(31, 42, 68, 0.08);
         }
         .panel-blanco .card-body {
             padding: 2rem;
         }
         .btn-city {
-            border-radius: 16px;
+            border-radius: 14px;
             font-weight: 600;
             padding: 0.75rem 1.35rem;
-            border: 1px solid rgba(106, 76, 255, 0.3);
+            border: 1px solid rgba(106, 76, 255, 0.25);
             color: var(--color-texto);
-            background-color: rgba(106, 76, 255, 0.06);
-            transition: all 0.3s ease;
+            background-color: #f0f2fb;
         }
         .btn-city.active {
-            background: linear-gradient(135deg, rgba(106, 76, 255, 0.95), rgba(0, 194, 168, 0.9));
+            background: var(--color-primario);
             border-color: transparent;
             color: #fff;
-            box-shadow: 0 16px 30px rgba(106, 76, 255, 0.25);
         }
         .btn-city:hover {
-            background: linear-gradient(135deg, rgba(106, 76, 255, 0.8), rgba(0, 194, 168, 0.75));
+            background: var(--color-acento);
             color: #fff;
         }
         .accounts-table thead {
-            background: linear-gradient(135deg, rgba(106, 76, 255, 0.12), rgba(0, 194, 168, 0.12));
+            background: #eef1fb;
         }
         .accounts-table thead th {
             border: none;
@@ -163,9 +133,10 @@
         }
         .table-card {
             background: #fff;
-            border-radius: 20px;
+            border-radius: 16px;
             overflow: hidden;
-            box-shadow: 0 20px 45px rgba(31, 42, 68, 0.08);
+            border: 1px solid rgba(31, 42, 68, 0.08);
+            box-shadow: none;
         }
         .table-card thead th {
             border: none;
@@ -175,7 +146,7 @@
             letter-spacing: 0.05em;
         }
         .section-header-row td {
-            background-color: rgba(106, 76, 255, 0.08);
+            background-color: #e6e9f8;
             color: #4b5773;
             font-weight: 700;
             text-transform: uppercase;
@@ -198,10 +169,8 @@
             font-weight: 600;
             padding: 0.65rem 1.5rem;
             border: none;
-        }
-        .btn-action:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 24px rgba(31, 42, 68, 0.12);
+            background-color: var(--color-acento);
+            color: #fff;
         }
         .fade-in {
             animation: fadeIn 0.5s ease-in;
