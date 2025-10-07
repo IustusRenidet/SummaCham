@@ -1,0 +1,49 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Dependency directories
+node_modules/
+
+# Electron build output
+dist/
+out/
+release/
+
+# Build caches
+.cache/
+.electron/
+.electron-builder/
+
+# Optional IDE directories
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
+# Coverage
+coverage/
+
+# Env files
+.env*
+
+# Packaging artifacts
+*.asar
+*.tgz

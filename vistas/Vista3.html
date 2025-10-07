@@ -44,6 +44,38 @@
       font-weight:600;
       color:var(--color-text);
     }
+    .metrics-card{
+      border-radius:16px;
+      border:1px solid rgba(36,50,38,.08);
+      background:#ffffff;
+      box-shadow:0 12px 28px rgba(36,50,38,.14);
+    }
+    .metric-pill{
+      border-radius:14px;
+      background:rgba(47,111,78,.08);
+      border:1px solid rgba(47,111,78,.16);
+      padding:1rem 1.25rem;
+      height:100%;
+    }
+    .metric-pill h6{
+      font-weight:700;
+      color:var(--color-primary);
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      margin-bottom:.35rem;
+    }
+    .metric-pill p{
+      margin:0;
+      font-size:1.75rem;
+      font-weight:800;
+      color:var(--color-secondary);
+      font-variant-numeric:tabular-nums;
+    }
+    .metric-pill small{
+      display:block;
+      margin-top:.45rem;
+      color:#4f5d51;
+    }
     .table-card{
       background:#fff;
       border-radius:18px;
@@ -261,6 +293,40 @@
 
     <div class="row mb-4">
       <div class="col-12">
+        <div class="card metrics-card fade-in">
+          <div class="card-body">
+            <div class="row g-4 align-items-center">
+              <div class="col-md-4">
+                <label for="resumenAnio" class="form-label fw-semibold text-uppercase text-muted">Selecciona un año</label>
+                <select id="resumenAnio" class="form-select">
+                  <option value="2022">2022</option>
+                  <option value="2021">2021</option>
+                  <option value="2020">2020</option>
+                  <option value="2019">2019</option>
+                </select>
+              </div>
+              <div class="col-md-4">
+                <div class="metric-pill" id="saldoPill">
+                  <h6>Saldos</h6>
+                  <p id="saldoAnual">-</p>
+                  <small id="saldoDetalle">Valores expresados en millones de MXN</small>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="metric-pill" id="acumuladoPill">
+                  <h6>Acumulado</h6>
+                  <p id="acumuladoAnual">-</p>
+                  <small id="acumuladoDetalle">Valores expresados en millones de MXN</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row mb-4">
+      <div class="col-12">
         <div class="card filter-card fade-in">
           <div class="card-body">
             <form class="row g-3 align-items-end">
@@ -284,10 +350,10 @@
               <div class="col-sm-6 col-lg-3">
                 <label for="selectAnio" class="form-label">Ejercicio (año)</label>
                 <select id="selectAnio" class="form-select">
-                  <option>2022</option>
-                  <option>2021</option>
-                  <option>2020</option>
-                  <option>2019</option>
+                  <option value="2022">2022</option>
+                  <option value="2021">2021</option>
+                  <option value="2020">2020</option>
+                  <option value="2019">2019</option>
                 </select>
               </div>
               <div class="col-sm-12 col-lg-3">
@@ -1506,5 +1572,68 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const resumenAnual = {
+        2022: { saldos: 1.00, acumulado: 4 },
+        2021: { saldos: 5, acumulado: 32 },
+        2020: { saldos: 2, acumulado: 16 },
+        2019: null
+      };
+
+      const resumenSelect = document.getElementById('resumenAnio');
+      const filtroAnioSelect = document.getElementById('selectAnio');
+      const saldoAnual = document.getElementById('saldoAnual');
+      const acumuladoAnual = document.getElementById('acumuladoAnual');
+      const saldoDetalle = document.getElementById('saldoDetalle');
+      const acumuladoDetalle = document.getElementById('acumuladoDetalle');
+
+      const formatMillions = (valor) => `${valor.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} M`;
+
+      const mostrarSinDatos = (elementoTexto, detalleElemento) => {
+        elementoTexto.textContent = 'Sin datos';
+        detalleElemento.textContent = 'No se han cargado cifras para este año.';
+      };
+
+      const actualizarResumen = (anio) => {
+        const datos = resumenAnual[anio];
+
+        if (!datos) {
+          mostrarSinDatos(saldoAnual, saldoDetalle);
+          mostrarSinDatos(acumuladoAnual, acumuladoDetalle);
+          return;
+        }
+
+        saldoAnual.textContent = formatMillions(datos.saldos);
+        saldoDetalle.textContent = 'Saldos disponibles a la fecha (millones MXN).';
+        acumuladoAnual.textContent = formatMillions(datos.acumulado);
+        acumuladoDetalle.textContent = 'Acumulado anual reportado (millones MXN).';
+      };
+
+      resumenSelect.addEventListener('change', (event) => {
+        const { value } = event.target;
+        if (filtroAnioSelect) {
+          filtroAnioSelect.value = value;
+        }
+        actualizarResumen(value);
+      });
+
+      if (filtroAnioSelect) {
+        filtroAnioSelect.addEventListener('change', (event) => {
+          const { value } = event.target;
+          if (resumenSelect.value !== value) {
+            resumenSelect.value = value;
+          }
+          actualizarResumen(value);
+        });
+      }
+
+      const anioInicial = resumenSelect.value || '2022';
+      actualizarResumen(anioInicial);
+      if (filtroAnioSelect) {
+        filtroAnioSelect.value = anioInicial;
+      }
+    });
+  </script>
 </body>
 </html>
