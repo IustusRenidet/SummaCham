@@ -19,6 +19,7 @@
     "productName": "SummaCham",
     "asar": true,
     "directories": {
+      "output": "dist",
       "buildResources": "icono"
     },
     "files": [
@@ -27,6 +28,12 @@
       "icono/icono.png",
       "icono/icono.ico",
       "README.md"
+    ],
+    "extraResources": [
+      {
+        "from": "vistas",
+        "to": "resources/vistas"
+      }
     ],
     "win": {
       "target": [
@@ -39,7 +46,9 @@
       ],
       "icon": "icono/icono.ico",
       "signAndEditExecutable": false,
-      "publisherName": []
+      "publisherName": [],
+      "artifactName": "${productName}-portable-${version}-${arch}.${ext}"
     }
   }
 }
+

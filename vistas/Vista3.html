@@ -46,6 +46,31 @@
       font-weight:600;
       color:var(--color-text);
     }
+    .summary-card{
+      border-radius:18px;
+      border:1px solid rgba(36,50,38,.08);
+      background:linear-gradient(145deg,#ffffff 0%,#f6f9f3 50%,#eef3ea 100%);
+      box-shadow:0 14px 36px rgba(36,50,38,.14);
+    }
+    .summary-card .card-title{
+      font-weight:700;
+      color:var(--color-primary);
+      letter-spacing:.02em;
+    }
+    .summary-card .metric-label{
+      font-size:.75rem;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      color:var(--color-secondary);
+    }
+    .summary-card .metric-value{
+      font-size:2rem;
+      font-weight:800;
+      color:var(--color-text);
+    }
+    .summary-card .metric-value.small{
+      font-size:1.5rem;
+    }
     .table-card{
       background:#fff;
       border-radius:18px;
@@ -349,6 +374,35 @@
                 <button type="button" class="btn btn-outline-secondary w-100 fw-semibold">Restablecer</button>
               </div>
             </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row mb-4">
+      <div class="col-12 col-xl-7">
+        <div class="card summary-card fade-in" id="resumenAnualCard">
+          <div class="card-body">
+            <div class="d-flex flex-column flex-md-row gap-3 align-items-md-center justify-content-between">
+              <div>
+                <h5 class="card-title mb-1">Resumen financiero anual</h5>
+                <p class="mb-0 text-muted">Selecciona un año para consultar los saldos y acumulados al cierre del ejercicio.</p>
+              </div>
+              <div class="ms-md-auto w-100 w-md-auto" style="max-width:220px;">
+                <label for="summaryYearSelect" class="form-label fw-semibold">Ejercicio</label>
+                <select id="summaryYearSelect" class="form-select"></select>
+              </div>
+            </div>
+            <div class="row text-center mt-4 g-4">
+              <div class="col-12 col-md-6">
+                <p class="metric-label mb-1">Saldos</p>
+                <p class="metric-value mb-0" id="saldoValue">--</p>
+              </div>
+              <div class="col-12 col-md-6">
+                <p class="metric-label mb-1">Acumulados</p>
+                <p class="metric-value mb-0" id="acumuladoValue">--</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -1601,7 +1655,81 @@
       const zoomOutBtn = document.getElementById('zoomOut');
       const zoomResetBtn = document.getElementById('zoomReset');
       const zoomDisplay = document.getElementById('zoomDisplay');
-      
+      const resumenAnualCard = document.getElementById('resumenAnualCard');
+      const summaryYearSelect = document.getElementById('summaryYearSelect');
+      const saldoValue = document.getElementById('saldoValue');
+      const acumuladoValue = document.getElementById('acumuladoValue');
+      const filtroAnio = document.getElementById('selectAnio');
+
+      const resumenFinanciero = {
+        '2022': { saldo: 1.0, acumulado: 4 },
+        '2021': { saldo: 5, acumulado: 32 },
+        '2020': { saldo: 2, acumulado: 16 },
+        '2019': { saldo: 0, acumulado: 0 }
+      };
+
+      const formatoMXN = new Intl.NumberFormat('es-MX', {
+        style: 'currency',
+        currency: 'MXN',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+
+      function actualizarResumen(year) {
+        if (!saldoValue || !acumuladoValue) {
+          return;
+        }
+
+        const data = resumenFinanciero[year];
+        if (!data) {
+          saldoValue.textContent = 'N/D';
+          saldoValue.classList.add('small');
+          acumuladoValue.textContent = 'N/D';
+          acumuladoValue.classList.add('small');
+          return;
+        }
+
+        const saldoFormateado = formatoMXN.format(data.saldo);
+        const acumuladoFormateado = formatoMXN.format(data.acumulado);
+
+        saldoValue.textContent = saldoFormateado;
+        acumuladoValue.textContent = acumuladoFormateado;
+        saldoValue.classList.toggle('small', saldoFormateado.length > 12);
+        acumuladoValue.classList.toggle('small', acumuladoFormateado.length > 12);
+      }
+
+      if (resumenAnualCard && summaryYearSelect) {
+        const years = Object.keys(resumenFinanciero).sort((a, b) => parseInt(b, 10) - parseInt(a, 10));
+        years.forEach((year) => {
+          const option = document.createElement('option');
+          option.value = year;
+          option.textContent = year;
+          summaryYearSelect.appendChild(option);
+        });
+
+        const defaultYear = years[0];
+        summaryYearSelect.value = defaultYear;
+        actualizarResumen(defaultYear);
+
+        summaryYearSelect.addEventListener('change', (event) => {
+          const selectedYear = event.target.value;
+          actualizarResumen(selectedYear);
+          if (filtroAnio && filtroAnio.value !== selectedYear && resumenFinanciero[selectedYear]) {
+            filtroAnio.value = selectedYear;
+          }
+        });
+
+        if (filtroAnio) {
+          filtroAnio.addEventListener('change', (event) => {
+            const selectedYear = event.target.value;
+            if (resumenFinanciero[selectedYear]) {
+              summaryYearSelect.value = selectedYear;
+              actualizarResumen(selectedYear);
+            }
+          });
+        }
+      }
+
       let selectedCell = null;
       let currentZoom = 1;
       const zoomStep = 0.1;
@@ -1680,3 +1808,4 @@
   </script>
 </body>
 </html>
+
