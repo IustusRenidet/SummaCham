@@ -1,892 +1,1428 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel Integral - Reportes Históricos</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" integrity="sha384-L+3Ssn16vQLdCRER1q3P5/ppTHI34SmEwEvAqoCmGHpCr0gBifqtyYZziDnTIAV7" crossorigin="anonymous"></script>
-    <style>
-        :root {
-            --color-primario: #5c6cff;
-            --color-acento: #ff7eb6;
-            --color-fondo: #f3f5fb;
-            --color-texto: #1f2740;
-        }
-        body {
-            background-color: var(--color-fondo);
-            font-family: 'Manrope', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            color: var(--color-texto);
-            min-height: 100vh;
-        }
-        .hero-card {
-            background: var(--color-primario);
-            border: 1px solid rgba(31, 39, 64, 0.1);
-            border-radius: 22px;
-            box-shadow: 0 4px 12px rgba(31, 39, 64, 0.12);
-            color: #fff;
-        }
-        .hero-pill {
-            background-color: rgba(255, 255, 255, 0.18);
-            display: inline-flex;
-            gap: 0.5rem;
-            align-items: center;
-            padding: 0.55rem 1.3rem;
-            border-radius: 999px;
-            font-weight: 600;
-        }
-        .nav-pills {
-            background: #fff;
-            border-radius: 14px;
-            padding: 0.25rem;
-            border: 1px solid rgba(31, 39, 64, 0.1);
-            box-shadow: none;
-        }
-        .nav-pills .nav-link {
-            border-radius: 10px;
-            font-weight: 600;
-            color: #4b5773;
-        }
-        .nav-pills .nav-link.active {
-            background: var(--color-acento);
-            box-shadow: none;
-            color: #fff;
-        }
-        .selector-card,
-        .panel-blanco,
-        .table-card,
-        .summary-card {
-            background: #fff;
-            border-radius: 18px;
-            border: 1px solid rgba(31, 39, 64, 0.08);
-            box-shadow: none;
-        }
-        .selector-card .card-body,
-        .panel-blanco .card-body {
-            padding: 2rem;
-        }
-        .summary-card {
-            padding: 1.5rem;
-            height: 100%;
-        }
-        .summary-card small {
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: #7c86a6;
-            font-weight: 600;
-        }
-        .summary-card h3 {
-            font-size: clamp(1.4rem, 2.3vw, 2rem);
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-        }
-        .summary-card .badge {
-            border-radius: 999px;
-            font-weight: 600;
-        }
-        .btn-city {
-            border-radius: 14px;
-            font-weight: 600;
-            padding: 0.75rem 1.35rem;
-            border: 1px solid rgba(92, 108, 255, 0.25);
-            color: var(--color-texto);
-            background: #eef0ff;
-        }
-        .btn-city.active {
-            background: var(--color-primario);
-            color: #fff;
-            border-color: transparent;
-        }
-        .btn-city:hover {
-            background: var(--color-acento);
-            color: #fff;
-        }
-        .table-card {
-            overflow: hidden;
-        }
-        .table-card thead {
-            background: #eef0ff;
-        }
-        .table-card thead th {
-            border: none;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            font-size: 0.78rem;
-            color: #4b5773;
-            padding: 0.9rem 0.75rem;
-        }
-        .accounts-table thead {
-            background: #eef0ff;
-        }
-        .accounts-table thead th {
-            border: none;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            font-size: 0.75rem;
-            color: #4b5773;
-        }
-        .accounts-table td,
-        .accounts-table th {
-            vertical-align: middle;
-            text-align: center;
-        }
-        .accounts-table .cuenta,
-        .accounts-table .descripcion {
-            text-align: left;
-        }
-        .accounts-table tbody tr:hover {
-            background-color: #f5f6ff;
-        }
-        .table-card tbody tr:hover {
-            background-color: #f5f6ff;
-        }
-        .section-header-row td {
-            background-color: #e1e4fb;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-            color: #4b5773;
-        }
-        .summary-table {
-            font-size: 0.85rem;
-        }
-        .summary-table thead th {
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-        .summary-table td,
-        .summary-table th {
-            vertical-align: middle;
-            text-align: center;
-            white-space: nowrap;
-        }
-        .summary-table .descripcion {
-            text-align: left;
-            font-weight: 600;
-        }
-        .positive { color: #1aa374; font-weight: 600; }
-        .negative { color: #dc3c64; font-weight: 600; }
-        .neutral { color: #ffc107; font-weight: 600; }
-        .period-selector {
-            background: #fff;
-            border-radius: 16px;
-            border: 1px solid rgba(31, 39, 64, 0.08);
-            padding: 1.5rem;
-        }
-        .fade-in {
-            animation: fadeIn 0.5s ease-in;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .btn-action {
-            border-radius: 12px;
-            font-weight: 600;
-            padding: 0.65rem 1.5rem;
-            border: none;
-            background-color: var(--color-acento);
-            color: #fff;
-        }
-    </style>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Resumen E</title>
+
+  <!-- Bootstrap & Fonts -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --color-primary:#2f6f4e;
+      --color-secondary:#b87333;
+      --color-background:#f3f6f1;
+      --color-text:#243226;
+      --color-blue-highlight: #e3f2fd;
+      --color-gray-highlight: #f5f5f5;
+    }
+    body{
+      background:var(--color-background);
+      color:var(--color-text);
+      font-family:'Manrope','Segoe UI',Tahoma,Verdana,sans-serif;
+      min-height:100vh;
+      padding-top: 70px;
+    }
+    .header-card{
+      background:var(--color-primary);
+      color:#fff;
+      border-radius:16px;
+      border:1px solid rgba(36,50,38,.1);
+      box-shadow:0 4px 12px rgba(36,50,38,.12);
+    }
+    .table-card{
+      background:#fff;
+      border-radius:16px;
+      border:1px solid rgba(36,50,38,.1);
+      overflow:hidden;
+      width: 100%;
+    }
+    .table {
+      table-layout: auto;
+      width: 100%;
+    }
+    .table thead{
+      background:#e6ede8;
+    }
+    .table thead th{
+      border:none;
+      color:#3b513e;
+      text-transform:uppercase;
+      letter-spacing:.06em;
+      font-size:.8rem;
+      font-weight:700;
+      padding-top:1rem;
+      padding-bottom:1rem;
+      text-align:center;
+      border-bottom:2px solid #d1d7d4 !important;
+      min-width: 80px;
+    }
+    .table td, .table th{
+      vertical-align:middle;
+      font-size:.95rem;
+      border:1px solid #e6ede8;
+      padding:0.75rem 0.5rem;
+      word-wrap: break-word;
+    }
+    .table tbody tr:nth-child(odd) {
+      background-color: var(--color-blue-highlight);
+    }
+    .table tbody tr:nth-child(even) {
+      background-color: var(--color-gray-highlight);
+    }
+    .table tbody tr:hover {
+      background-color: rgba(47, 111, 78, 0.1) !important;
+    }
+    .section td{
+      background-color: var(--color-primary) !important;
+      color: #fff !important;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      font-size:.9rem;
+      padding-top:1.25rem !important;
+      padding-bottom:1.25rem !important;
+      font-weight:800 !important;
+      text-align:left;
+      border-left:3px solid var(--color-secondary) !important;
+      border-right:3px solid var(--color-secondary) !important;
+      position: relative;
+    }
+    .section td::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      background: var(--color-secondary);
+    }
+    .label-cell{
+      font-weight:700;
+      color:#3b513e;
+      text-align:left;
+      background-color:#f8f9fa !important;
+      border-left:2px solid #dee2e6 !important;
+    }
+    .label-cell strong {
+      color: var(--color-secondary);
+    }
+    .code-cell{
+      font-size:.75rem;
+      color:#6c757d;
+      font-family:monospace;
+      text-align:left;
+      background-color:#e9ecef !important;
+      border-top:2px solid #dee2e6 !important;
+      border-bottom:2px solid #dee2e6 !important;
+    }
+    .mono{
+      font-variant-numeric:tabular-nums;
+      font-feature-settings:"tnum";
+      text-align:right;
+      white-space:nowrap;
+      font-family:monospace;
+    }
+    .important {
+      font-weight: bold !important;
+      color: var(--color-primary) !important;
+    }
+    .fade-in{ animation:fadeIn .5s ease-in; }
+    @keyframes fadeIn{ from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:none} }
+
+    /* Encabezados “Y T D” por bloque */
+    .ytd-head{
+      background:#dfe7e2 !important;
+      font-weight:900 !important;
+      letter-spacing:.2em;
+      color:#2f3f31 !important;
+      text-align:center;
+      border-bottom:3px double #d1d7d4 !important;
+    }
+    .subhdr{
+      font-weight:800 !important;
+      background:#e6ede8;
+      border-bottom:2px solid #d1d7d4 !important;
+    }
+    .spacer{
+      height:1rem;
+      background: var(--color-background) !important;
+      border: none !important;
+      border-top: 2px dashed #dee2e6 !important;
+      border-bottom: 2px dashed #dee2e6 !important;
+    }
+    .spacer td {
+      border: none !important;
+      padding: 1rem 0 !important;
+      background: var(--color-background) !important;
+    }
+
+    /* Responsive: scroll horizontal cuidadoso */
+    .table-responsive{
+      overflow-x:auto;
+      border-radius: 8px;
+      width: 100%;
+    }
+    .table-responsive table {
+      margin-bottom: 0;
+      width: 100%;
+    }
+    /* Footer row styling */
+    .footer-row th, .footer-row td {
+      border-top: 2px solid var(--color-primary) !important;
+      font-weight: 600;
+    }
+    .footer-row .important {
+      color: var(--color-secondary) !important;
+    }
+    /* Resizable columns - simple CSS resize */
+    th, td {
+      resize: horizontal;
+      overflow: auto;
+    }
+  </style>
 </head>
 <body>
-    <div class="container py-4 py-lg-5">
-        <!-- Encabezado principal -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="card hero-card fade-in">
-                    <div class="card-body p-4 p-lg-5">
-                        <div class="d-flex flex-column flex-lg-row align-items-center justify-content-between gap-4">
-                            <div class="text-center text-lg-start">
-                                <div class="hero-pill mb-3">
-                                    <span class="badge text-bg-light text-dark rounded-pill">Histórico 2018 - 2025</span>
-                                    Inteligencia financiera consolidada
-                                </div>
-                                <h1 class="display-6 fw-bold mb-3">Panel integral de desempeño</h1>
-                                <p class="fs-5 mb-0">Analiza los resultados reales versus plan anual, compara periodos y descubre oportunidades clave para cada capítulo corporativo.</p>
-                            </div>
-                            <div class="text-center">
-                                <img src="https://cdn.jsdelivr.net/gh/alohe/illustrations@main/teamwork-analytics.svg" alt="Ilustración de métricas" class="img-fluid" style="max-width: 280px;">
-                            </div>
-                        </div>
-                    </div>
-                </div>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top shadow-sm">
+  <div class="container-fluid">
+    <a class="navbar-brand fw-bold color-primary" href="#">AmCham México</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+      <ul class="navbar-nav">
+        <li class="nav-item">
+          <a class="nav-link" href="vista1.html">Resumen</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="vista2.html">Presupuestos</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link active" aria-current="page" href="vista3.html">Resumen E</a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+  <div class="container py-4 py-lg-5">
+    <!-- Encabezado -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="card header-card fade-in">
+          <div class="card-body d-flex flex-column flex-lg-row align-items-center justify-content-between">
+            <div class="text-center text-lg-start">
+              <h2 class="fw-bold mb-2">AMERICAN CHAMBER OF COMMERCE OF MEXICO, A. C.</h2>
+              <p class="mb-0">STATEMENT OF OPERATIONS - ENERO 2022</p>
             </div>
+          </div>
         </div>
-
-        <!-- Navegación -->
-        <div class="d-flex justify-content-center mb-4">
-            <ul class="nav nav-pills" id="dashboardTabs" role="tablist">
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="resumen-tab" data-bs-toggle="tab" data-bs-target="#resumen" type="button" role="tab">Resumen GDL</button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="presupuestos-tab" data-bs-toggle="tab" data-bs-target="#presupuestos" type="button" role="tab">Presupuestos</button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="historicos-tab" data-bs-toggle="tab" data-bs-target="#historicos" type="button" role="tab">Históricos</button>
-                </li>
-            </ul>
-        </div>
-
-        <div class="tab-content" id="tabContent">
-            <!-- Pestaña: Resumen -->
-            <div class="tab-pane fade show active" id="resumen" role="tabpanel">
-                <div class="py-3">
-                    <div class="row g-4 mb-4" id="summaryCards">
-                        <!-- Tarjetas resumen -->
-                    </div>
-                    <div class="row g-4">
-                        <div class="col-lg-4">
-                            <div class="selector-card fade-in h-100">
-                                <div class="card-body">
-                                    <h5 class="fw-semibold mb-3">Selecciona una ciudad</h5>
-                                    <p class="text-muted">Explora rápidamente los indicadores clave de cada sede para priorizar decisiones.</p>
-                                    <div class="d-flex flex-wrap gap-2" id="cityButtons">
-                                        <button class="btn btn-city active" data-city="cdmx">CDMX</button>
-                                        <button class="btn btn-city" data-city="guadalajara">Guadalajara</button>
-                                        <button class="btn btn-city" data-city="monterrey">Monterrey</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-lg-8">
-                            <div class="panel-blanco fade-in h-100">
-                                <div class="card-body">
-                                    <div class="d-flex justify-content-between align-items-center mb-3">
-                                        <h5 class="fw-semibold mb-0">Evolución Real vs Presupuesto</h5>
-                                        <span class="badge text-bg-light text-primary-emphasis" id="chartBadge">CDMX</span>
-                                    </div>
-                                    <div style="height: 260px;">
-                                        <canvas id="performanceChart"></canvas>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="table-card mt-4 fade-in">
-                        <div class="table-responsive">
-                            <table class="table align-middle mb-0" id="financialTable">
-                                <thead>
-                                    <tr>
-                                        <th scope="col" class="text-center">Capítulo</th>
-                                        <th scope="col" class="text-center">Real 2025</th>
-                                        <th scope="col" class="text-center">Ppto. 2025</th>
-                                        <th scope="col" class="text-center">Real 2024</th>
-                                        <th scope="col" class="text-center">Var. 2024 vs 2025</th>
-                                        <th scope="col" class="text-center">Var. Real vs Ppto.</th>
-                                        <th scope="col" class="text-center">Participación corporativa</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <!-- Contenido dinámico -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Pestaña: Presupuestos -->
-            <div class="tab-pane fade" id="presupuestos" role="tabpanel">
-                <div class="py-3">
-                    <div class="panel-blanco fade-in mb-4">
-                        <div class="card-body">
-                            <h5 class="fw-semibold mb-3">Control presupuestal mensual</h5>
-                            <p class="text-muted mb-0">Actualiza cifras, sube respaldos y genera alertas inteligentes para mantener la disciplina financiera.</p>
-                        </div>
-                    </div>
-                    <div class="table-responsive mb-4">
-                        <table class="table table-hover accounts-table">
-                            <thead>
-                                <tr>
-                                    <th scope="col" class="cuenta">Cuenta</th>
-                                    <th scope="col" class="descripcion">Descripción</th>
-                                    <th scope="col">Enero</th>
-                                    <th scope="col">Febrero</th>
-                                    <th scope="col">Marzo</th>
-                                    <th scope="col">Abril</th>
-                                    <th scope="col">Mayo</th>
-                                    <th scope="col">Junio</th>
-                                    <th scope="col">Julio</th>
-                                    <th scope="col">Agosto</th>
-                                    <th scope="col">Septiembre</th>
-                                    <th scope="col">Octubre</th>
-                                    <th scope="col">Noviembre</th>
-                                    <th scope="col">Diciembre</th>
-                                    <th scope="col">Anual</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td class="cuenta">100-000-000</td>
-                                    <td class="descripcion">Activo corriente</td>
-                                    <td>0</td>
-                                    <td>0</td>
-                                    <td>0</td>
-                                    <td>0</td>
-                                    <td>0</td>
-                                    <td>0</td>
-                                    <td>0</td>
-                                    <td>0</td>
-                                    <td>0</td>
-                                    <td>0</td>
-                                    <td>0</td>
-                                    <td>0</td>
-                                    <td>0</td>
-                                </tr>
-                                <tr>
-                                    <td class="cuenta">101-000-000</td>
-                                    <td class="descripcion">Caja</td>
-                                    <td>0</td>
-                                    <td>0</td>
-                                    <td>0</td>
-                                    <td>0</td>
-                                    <td>0</td>
-                                    <td>0</td>
-                                    <td>0</td>
-                                    <td>0</td>
-                                    <td>0</td>
-                                    <td>0</td>
-                                    <td>0</td>
-                                    <td>0</td>
-                                    <td>0</td>
-                                </tr>
-                                <tr>
-                                    <td class="cuenta">102-000-000</td>
-                                    <td class="descripcion">Bancos</td>
-                                    <td>0</td>
-                                    <td>0</td>
-                                    <td>0</td>
-                                    <td>0</td>
-                                    <td>0</td>
-                                    <td>0</td>
-                                    <td>0</td>
-                                    <td>0</td>
-                                    <td>0</td>
-                                    <td>0</td>
-                                    <td>0</td>
-                                    <td>0</td>
-                                    <td>0</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="d-flex flex-wrap justify-content-end gap-2">
-                        <button class="btn btn-success btn-action">Guardar</button>
-                        <button class="btn btn-primary btn-action">Cargar</button>
-                        <button class="btn btn-warning btn-action text-white">Autorizar</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Pestaña: Históricos -->
-            <div class="tab-pane fade" id="historicos" role="tabpanel">
-                <div class="py-3">
-                    <div class="period-selector fade-in mb-4 text-center">
-                        <h5 class="fw-semibold mb-2">Selecciona el periodo</h5>
-                        <p class="text-muted mb-3">Filtra resultados históricos para comparar metas de largo plazo.</p>
-                        <div class="d-flex flex-wrap justify-content-center gap-2">
-                            <button class="btn btn-outline-primary rounded-pill">2022 - Enero</button>
-                            <button class="btn btn-outline-primary rounded-pill">2022 - Febrero</button>
-                            <button class="btn btn-outline-primary rounded-pill">2022 - Marzo</button>
-                        </div>
-                    </div>
-                    <div class="table-responsive table-card fade-in mb-4">
-                        <table class="table table-hover summary-table mb-0">
-                            <thead>
-                                <tr>
-                                    <th colspan="5">2022</th>
-                                    <th colspan="5">2021 YTD</th>
-                                </tr>
-                                <tr>
-                                    <th>Actual</th>
-                                    <th>vs Plan</th>
-                                    <th>vs 2018</th>
-                                    <th>%</th>
-                                    <th>%</th>
-                                    <th>Actual</th>
-                                    <th>vs Plan</th>
-                                    <th>vs 2018</th>
-                                    <th>%</th>
-                                    <th>%</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td colspan="10" class="section-header-row">Ingresos</td>
-                                </tr>
-                                <tr>
-                                    <td class="descripcion">Membership</td>
-                                    <td>541,254</td>
-                                    <td>267,200</td>
-                                    <td>209,752</td>
-                                    <td class="positive">20%</td>
-                                    <td class="positive">24%</td>
-                                    <td>541,254</td>
-                                    <td>267,200</td>
-                                    <td>209,752</td>
-                                    <td class="positive">20%</td>
-                                    <td class="positive">24%</td>
-                                </tr>
-                                <tr>
-                                    <td class="descripcion">Membership</td>
-                                    <td>90,000</td>
-                                    <td>27,910</td>
-                                    <td>18,383</td>
-                                    <td class="positive">3%</td>
-                                    <td class="positive">5%</td>
-                                    <td>90,342</td>
-                                    <td>27,910</td>
-                                    <td>18,450</td>
-                                    <td class="positive">3%</td>
-                                    <td class="positive">5%</td>
-                                </tr>
-                                <tr>
-                                    <td class="descripcion">Events</td>
-                                    <td>59,042</td>
-                                    <td>21,950</td>
-                                    <td>108,914</td>
-                                    <td class="positive">13%</td>
-                                    <td class="positive">28%</td>
-                                    <td>29,046</td>
-                                    <td>21,950</td>
-                                    <td>40,841</td>
-                                    <td class="positive">13%</td>
-                                    <td class="positive">28%</td>
-                                </tr>
-                                <tr>
-                                    <td class="descripcion">Committees</td>
-                                    <td>29,062</td>
-                                    <td>19,500</td>
-                                    <td>51,000</td>
-                                    <td class="neutral">0%</td>
-                                    <td class="neutral">0%</td>
-                                    <td>0</td>
-                                    <td>27,000</td>
-                                    <td>125,000</td>
-                                    <td class="neutral">0%</td>
-                                    <td class="neutral">0%</td>
-                                </tr>
-                                <tr>
-                                    <td class="descripcion">Services to Members</td>
-                                    <td>158,400</td>
-                                    <td>111,630</td>
-                                    <td>160,000</td>
-                                    <td class="positive">14%</td>
-                                    <td class="positive">97%</td>
-                                    <td>158,400</td>
-                                    <td>111,630</td>
-                                    <td>160,000</td>
-                                    <td class="positive">14%</td>
-                                    <td class="positive">97%</td>
-                                </tr>
-                                <tr>
-                                    <td class="descripcion">Guadalajara Income</td>
-                                    <td>0</td>
-                                    <td>0</td>
-                                    <td>0</td>
-                                    <td class="neutral">0%</td>
-                                    <td class="neutral">0%</td>
-                                    <td>0</td>
-                                    <td>0</td>
-                                    <td>0</td>
-                                    <td class="neutral">0%</td>
-                                    <td class="neutral">0%</td>
-                                </tr>
-                                <tr>
-                                    <td colspan="10" class="section-header-row">Gastos</td>
-                                </tr>
-                                <tr>
-                                    <td class="descripcion">Membership</td>
-                                    <td>313,698</td>
-                                    <td>350,087</td>
-                                    <td>311,666</td>
-                                    <td class="negative">-2%</td>
-                                    <td class="negative">-11%</td>
-                                    <td>253,906</td>
-                                    <td>396,400</td>
-                                    <td>330,498</td>
-                                    <td class="negative">-8%</td>
-                                    <td class="negative">-3%</td>
-                                </tr>
-                                <tr>
-                                    <td class="descripcion">Events</td>
-                                    <td>457,320</td>
-                                    <td>165,582</td>
-                                    <td>156,596</td>
-                                    <td class="positive">12%</td>
-                                    <td class="negative">-13%</td>
-                                    <td>209,748</td>
-                                    <td>161,087</td>
-                                    <td>126,321</td>
-                                    <td class="positive">16%</td>
-                                    <td class="negative">-14%</td>
-                                </tr>
-                                <tr>
-                                    <td class="descripcion">Committees</td>
-                                    <td>33,677</td>
-                                    <td>43,125</td>
-                                    <td>30,000</td>
-                                    <td class="negative">-11%</td>
-                                    <td class="negative">-4%</td>
-                                    <td>8,115</td>
-                                    <td>18,000</td>
-                                    <td>22,600</td>
-                                    <td class="negative">-8%</td>
-                                    <td class="negative">-1%</td>
-                                </tr>
-                                <tr>
-                                    <td class="descripcion">Services to Members</td>
-                                    <td>79,909</td>
-                                    <td>76,520</td>
-                                    <td>97,000</td>
-                                    <td class="negative">-7%</td>
-                                    <td class="positive">12%</td>
-                                    <td>79,909</td>
-                                    <td>76,520</td>
-                                    <td>97,000</td>
-                                    <td class="negative">-7%</td>
-                                    <td class="positive">12%</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="panel-blanco fade-in">
-                        <div class="card-body">
-                            <h5 class="fw-semibold mb-3">Resumen ejecutivo</h5>
-                            <div class="row g-4">
-                                <div class="col-md-6">
-                                    <div style="height: 240px;">
-                                        <canvas id="trendChart"></canvas>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <ul class="list-unstyled text-muted mb-0">
-                                        <li class="mb-3"><strong>📈 Tendencia:</strong> Los ingresos crecen sostenidamente, destacando el aporte de membresías.</li>
-                                        <li class="mb-3"><strong>🛡️ Resiliencia:</strong> Las variaciones negativas se concentran en gastos de eventos; se recomienda optimizar proveedores.</li>
-                                        <li class="mb-3"><strong>🧭 Dirección:</strong> Mantener seguimiento mensual para asegurar el cumplimiento del plan 2025.</li>
-                                        <li class="mb-0"><strong>💡 Insight:</strong> Potenciar alianzas regionales puede mejorar la participación de GDL y MTY.</li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+      </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
-    <script>
-        // Datos base para cada ciudad
-        const cityData = {
-            cdmx: {
-                nombre: 'CDMX',
-                income: [
-                    { etiqueta: 'Ingresos', real2025: 742942, ppto2025: 795000, real2024: 678264, var2024real: '10%', var2025ppto: '-4%' },
-                    { etiqueta: 'Eventos', real2025: 468673, ppto2025: 945000, real2024: 538300, var2024real: '3%', var2025ppto: '-50%' },
-                    { etiqueta: 'Comités', real2025: 49392, ppto2025: 943800, real2024: 272150, var2024real: '81%', var2025ppto: '-48%' }
-                ],
-                expenses: [
-                    { etiqueta: 'Membresía', real2025: 261569, ppto2025: 404258, real2024: 291669, var2024real: '10%', var2025ppto: '-35%' },
-                    { etiqueta: 'Eventos', real2025: 336152, ppto2025: 756048, real2024: 179496, var2024real: '152%', var2025ppto: '-56%' },
-                    { etiqueta: 'Servicios a Miembros', real2025: 269801, ppto2025: 235941, real2024: 188979, var2024real: '43%', var2025ppto: '19%' },
-                    { etiqueta: 'Gastos Administrativos', real2025: 1317579, ppto2025: 1356835, real2024: 1738980, var2024real: '-36%', var2025ppto: '-3%' },
-                    { etiqueta: 'Gastos Corporativos', real2025: 2316266, ppto2025: 2587056, real2024: 2509877, var2024real: '-4%', var2025ppto: '-10%' }
-                ],
-                operating: [
-                    { etiqueta: 'Resultado Operativo', real2025: 372891, ppto2025: 763343, real2024: 442092, var2024real: '-16%', var2025ppto: '-51%' },
-                    { etiqueta: 'Otros Capítulos', real2025: 348129, ppto2025: 0, real2024: 212235, var2024real: '64%', var2025ppto: '0%' }
-                ],
-                participacion: '2025: CDMX - 53% | GDL - 16% | MTY - 31%'
-            },
-            guadalajara: {
-                nombre: 'Guadalajara',
-                income: [
-                    { etiqueta: 'Ingresos', real2025: 650000, ppto2025: 700000, real2024: 600000, var2024real: '8%', var2025ppto: '-7%' },
-                    { etiqueta: 'Eventos', real2025: 400000, ppto2025: 800000, real2024: 500000, var2024real: '-20%', var2025ppto: '-50%' },
-                    { etiqueta: 'Comités', real2025: 45000, ppto2025: 900000, real2024: 250000, var2024real: '-82%', var2025ppto: '-95%' }
-                ],
-                expenses: [
-                    { etiqueta: 'Membresía', real2025: 250000, ppto2025: 380000, real2024: 280000, var2024real: '-11%', var2025ppto: '-34%' },
-                    { etiqueta: 'Eventos', real2025: 300000, ppto2025: 700000, real2024: 160000, var2024real: '88%', var2025ppto: '-57%' },
-                    { etiqueta: 'Servicios a Miembros', real2025: 260000, ppto2025: 220000, real2024: 180000, var2024real: '44%', var2025ppto: '18%' },
-                    { etiqueta: 'Gastos Administrativos', real2025: 1200000, ppto2025: 1300000, real2024: 1600000, var2024real: '-25%', var2025ppto: '-8%' },
-                    { etiqueta: 'Gastos Corporativos', real2025: 2200000, ppto2025: 2400000, real2024: 2300000, var2024real: '-4%', var2025ppto: '-8%' }
-                ],
-                operating: [
-                    { etiqueta: 'Resultado Operativo', real2025: 350000, ppto2025: 700000, real2024: 400000, var2024real: '-13%', var2025ppto: '-50%' },
-                    { etiqueta: 'Otros Capítulos', real2025: 300000, ppto2025: 0, real2024: 200000, var2024real: '50%', var2025ppto: '0%' }
-                ],
-                participacion: '2025: CDMX - 53% | GDL - 16% | MTY - 31%'
-            },
-            monterrey: {
-                nombre: 'Monterrey',
-                income: [
-                    { etiqueta: 'Ingresos', real2025: 700000, ppto2025: 780000, real2024: 680000, var2024real: '3%', var2025ppto: '-10%' },
-                    { etiqueta: 'Eventos', real2025: 450000, ppto2025: 900000, real2024: 520000, var2024real: '-13%', var2025ppto: '-50%' },
-                    { etiqueta: 'Comités', real2025: 50000, ppto2025: 950000, real2024: 260000, var2024real: '-81%', var2025ppto: '-95%' }
-                ],
-                expenses: [
-                    { etiqueta: 'Membresía', real2025: 270000, ppto2025: 410000, real2024: 300000, var2024real: '-10%', var2025ppto: '-34%' },
-                    { etiqueta: 'Eventos', real2025: 320000, ppto2025: 750000, real2024: 170000, var2024real: '88%', var2025ppto: '-57%' },
-                    { etiqueta: 'Servicios a Miembros', real2025: 280000, ppto2025: 240000, real2024: 190000, var2024real: '47%', var2025ppto: '17%' },
-                    { etiqueta: 'Gastos Administrativos', real2025: 1250000, ppto2025: 1320000, real2024: 1650000, var2024real: '-24%', var2025ppto: '-5%' },
-                    { etiqueta: 'Gastos Corporativos', real2025: 2250000, ppto2025: 2450000, real2024: 2350000, var2024real: '-4%', var2025ppto: '-8%' }
-                ],
-                operating: [
-                    { etiqueta: 'Resultado Operativo', real2025: 360000, ppto2025: 720000, real2024: 410000, var2024real: '-12%', var2025ppto: '-50%' },
-                    { etiqueta: 'Otros Capítulos', real2025: 320000, ppto2025: 0, real2024: 210000, var2024real: '52%', var2025ppto: '0%' }
-                ],
-                participacion: '2025: CDMX - 53% | GDL - 16% | MTY - 31%'
-            }
-        };
+    <!-- Tabla réplica -->
+    <div class="row">
+      <div class="col-12">
+        <div class="table-card fade-in">
+          <div class="table-responsive">
+            <table class="table align-middle mb-0">
+              <thead>
+                <tr>
+                  <th></th>
+                  <th></th>
+                  <th></th>
+                  <th></th>
+                  <th></th>
+                  <th></th>
+                  <th></th>
+                  <td colspan="1" class="ytd-head">Y&nbsp;T&nbsp;D</td>
+                </tr>
+                <tr class="subhdr">
+                  <th></th>
+                  <th>Actual</th>
+                  <th>Plan</th>
+                  <th>2021</th>
+                  <th>B/(W)%</th>
+                  <th></th>
+                  <th></th>
+                  <th>Actual</th>
+                  <th>Plan</th>
+                  <th>2021</th>
+                  <th>B/(W)%</th>
+                  <th></th>
+                </tr>
+                <tr class="subhdr">
+                  <th></th>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td>vs. Plan</td>
+                  <td>vs. 2018</td>
+                  <th></th>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td>vs. Plan</td>
+                  <td>vs. 2018</td>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- INCOME - CDMX -->
+                <tr>
+                  <th></th>
+                  <td class="mono">541,251.04</td>
+                  <td class="mono">2,637,429.00</td>
+                  <td class="mono">2,209,929.52</td>
+                  <td class="mono">20.52%</td>
+                  <td class="mono">24.49%</td>
+                  <td class="section"><span class="important">CDMX Income</span></td>
+                  <td class="mono">541,251.04</td>
+                  <td class="mono">2,637,429.00</td>
+                  <td class="mono">2,209,929.52</td>
+                  <td class="mono">20.52%</td>
+                  <td class="mono">24.49%</td>
+                </tr>
+                <tr>
+                  <th></th>
+                  <td class="mono">90,804.42</td>
+                  <td class="mono">2,279,201.00</td>
+                  <td class="mono">1,813,088.39</td>
+                  <td class="mono">3.98%</td>
+                  <td class="mono">5.01%</td>
+                  <td class="label-cell"><span class="important">Membership</span></td>
+                  <td class="mono">90,804.42</td>
+                  <td class="mono">2,279,201.00</td>
+                  <td class="mono">1,813,088.39</td>
+                  <td class="mono">3.98%</td>
+                  <td class="mono">5.01%</td>
+                </tr>
+                <tr>
+                  <th class="code-cell">401000000000000000001</th>
+                  <td class="mono">0.00</td>
+                  <td class="mono">2,148,125.00</td>
+                  <td class="mono">1,709,454.95</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                  <td class="label-cell">Cuotas Netas</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">2,148,125.00</td>
+                  <td class="mono">1,709,454.95</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                </tr>
+                <tr>
+                  <th class="code-cell">402000000000000000001</th>
+                  <td class="mono">40,500.00</td>
+                  <td class="mono">91,731.00</td>
+                  <td class="mono">61,550.00</td>
+                  <td class="mono">44.15%</td>
+                  <td class="mono">65.80%</td>
+                  <td class="label-cell">Ingresos socios nuevos</td>
+                  <td class="mono">40,500.00</td>
+                  <td class="mono">91,731.00</td>
+                  <td class="mono">61,550.00</td>
+                  <td class="mono">44.15%</td>
+                  <td class="mono">65.80%</td>
+                </tr>
+                <tr>
+                  <th class="code-cell">412000000000000000001</th>
+                  <td class="mono">50,304.42</td>
+                  <td class="mono">39,345.00</td>
+                  <td class="mono">42,083.44</td>
+                  <td class="mono">127.85%</td>
+                  <td class="mono">119.53%</td>
+                  <td class="label-cell"><span class="important">Economex</span></td>
+                  <td class="mono">50,304.42</td>
+                  <td class="mono">39,345.00</td>
+                  <td class="mono">42,083.44</td>
+                  <td class="mono">127.85%</td>
+                  <td class="mono">119.53%</td>
+                </tr>
+                <tr>
+                  <th></th>
+                  <td class="mono">292,046.62</td>
+                  <td class="mono">219,295.00</td>
+                  <td class="mono">108,941.13</td>
+                  <td class="mono">133.18%</td>
+                  <td class="mono">268.08%</td>
+                  <td class="section"><span class="important">Events</span></td>
+                  <td class="mono">292,046.62</td>
+                  <td class="mono">219,295.00</td>
+                  <td class="mono">108,941.13</td>
+                  <td class="mono">133.18%</td>
+                  <td class="mono">268.08%</td>
+                </tr>
+                <tr>
+                  <th class="code-cell">407000000000000000001</th>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                  <td class="label-cell">Eventos</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">100.83%</td>
+                </tr>
+                <tr>
+                  <th class="code-cell">408000000000000000001</th>
+                  <td class="mono">292,046.62</td>
+                  <td class="mono">219,295.00</td>
+                  <td class="mono">108,941.13</td>
+                  <td class="mono">133.18%</td>
+                  <td class="mono">268.08%</td>
+                  <td class="label-cell"><span class="important">Patrocinios</span></td>
+                  <td class="mono">292,046.62</td>
+                  <td class="mono">219,295.00</td>
+                  <td class="mono">108,941.13</td>
+                  <td class="mono">133.18%</td>
+                  <td class="mono">268.08%</td>
+                </tr>
+                <tr>
+                  <th></th>
+                  <td class="mono">0.00</td>
+                  <td class="mono">27,300.00</td>
+                  <td class="mono">125,000.00</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                  <td class="section"><span class="important">Committees</span></td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">27,300.00</td>
+                  <td class="mono">125,000.00</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                </tr>
+                <tr>
+                  <th class="code-cell">417000000000000000001</th>
+                  <td class="mono">0.00</td>
+                  <td class="mono">27,300.00</td>
+                  <td class="mono">125,000.00</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                  <td class="label-cell">Committees</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">27,300.00</td>
+                  <td class="mono">125,000.00</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                </tr>
+                <tr>
+                  <th class="code-cell">403000000000000000001</th>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                  <td class="label-cell">Patrocinios por Comites</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">100.00%</td>
+                </tr>
+                <tr>
+                  <th></th>
+                  <td class="mono">158,400.00</td>
+                  <td class="mono">111,633.00</td>
+                  <td class="mono">162,900.00</td>
+                  <td class="mono">141.89%</td>
+                  <td class="mono">97.24%</td>
+                  <td class="section"><span class="important">Services to Members</span></td>
+                  <td class="mono">158,400.00</td>
+                  <td class="mono">111,633.00</td>
+                  <td class="mono">162,900.00</td>
+                  <td class="mono">141.89%</td>
+                  <td class="mono">97.24%</td>
+                </tr>
+                <tr>
+                  <th class="code-cell">409000000000000000001</th>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                  <td class="label-cell">Venta Publicaciones</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">100.00%</td>
+                </tr>
+                <tr>
+                  <th class="code-cell">406000000000000000001</th>
+                  <td class="mono">158,400.00</td>
+                  <td class="mono">111,633.00</td>
+                  <td class="mono">162,900.00</td>
+                  <td class="mono">141.89%</td>
+                  <td class="mono">97.24%</td>
+                  <td class="label-cell"><span class="important">Bolsa de Trabajo</span></td>
+                  <td class="mono">158,400.00</td>
+                  <td class="mono">111,633.00</td>
+                  <td class="mono">162,900.00</td>
+                  <td class="mono">141.89%</td>
+                  <td class="mono">97.24%</td>
+                </tr>
+                <tr>
+                  <th></th>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                  <td class="label-cell">Publicidad</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                </tr>
+                <tr>
+                  <th></th>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                  <td class="label-cell">Visas</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                </tr>
+                <tr>
+                  <th></th>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                  <td class="label-cell">Información comercial</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                </tr>
+                <tr>
+                  <th></th>
+                  <td class="mono">0.00</td>
+                  <td class="mono">537,597.35</td>
+                  <td class="mono">491,446.18</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                  <td class="section"><span class="important">Guadalajara Income</span></td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">537,597.35</td>
+                  <td class="mono">491,446.18</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                </tr>
+                <tr>
+                  <th class="code-cell">450001000000000000002</th>
+                  <td class="mono">0.00</td>
+                  <td class="mono">537,597.35</td>
+                  <td class="mono">491,446.18</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                  <td class="label-cell">Guadalajara Income</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">537,597.35</td>
+                  <td class="mono">491,446.18</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                </tr>
+                <tr>
+                  <th></th>
+                  <td class="mono">0.00</td>
+                  <td class="mono">1,116,643.67</td>
+                  <td class="mono">918,507.83</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                  <td class="section"><span class="important">Monterrey Income</span></td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">1,116,643.67</td>
+                  <td class="mono">918,507.83</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                </tr>
+                <tr>
+                  <th class="code-cell">450002000000000000002</th>
+                  <td class="mono">0.00</td>
+                  <td class="mono">1,116,643.67</td>
+                  <td class="mono">918,507.83</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                  <td class="label-cell">Monterrey Income</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">1,116,643.67</td>
+                  <td class="mono">918,507.83</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                </tr>
+                <tr class="spacer"><td colspan="12">&nbsp;</td></tr>
+                <tr>
+                  <th></th>
+                  <td class="mono">541,251</td>
+                  <td class="mono">4,291,670</td>
+                  <td class="mono">3,619,884</td>
+                  <td class="mono">12.61%</td>
+                  <td class="mono">14.95%</td>
+                  <td class="section"><span class="important">CONSOLIDATED INCOME</span></td>
+                  <td class="mono">541,251</td>
+                  <td class="mono">4,291,670</td>
+                  <td class="mono">3,619,884</td>
+                  <td class="mono">12.61%</td>
+                  <td class="mono">14.95%</td>
+                </tr>
+                <!-- EXPENSES - CDMX -->
+                <tr>
+                  <th></th>
+                  <td class="mono">3,167,453.76</td>
+                  <td class="mono">2,787,007.00</td>
+                  <td class="mono">2,335,862.11</td>
+                  <td class="mono">113.65%</td>
+                  <td class="mono">135.60%</td>
+                  <td class="section"><span class="important">CDMX Expense</span></td>
+                  <td class="mono">3,167,453.76</td>
+                  <td class="mono">2,787,007.00</td>
+                  <td class="mono">2,335,862.11</td>
+                  <td class="mono">113.65%</td>
+                  <td class="mono">135.60%</td>
+                </tr>
+                <tr>
+                  <th></th>
+                  <td class="mono">28,735.09</td>
+                  <td class="mono">46,342.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">62.01%</td>
+                  <td class="mono">0.00%</td>
+                  <td class="label-cell"><span class="important">Membership</span></td>
+                  <td class="mono">28,735.09</td>
+                  <td class="mono">46,342.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">62.01%</td>
+                  <td class="mono">###############</td>
+                </tr>
+                <tr>
+                  <th></th>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                  <td class="label-cell">Portafolio Económico</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                </tr>
+                <tr>
+                  <th class="code-cell">705000000000000000001</th>
+                  <td class="mono">28,735.09</td>
+                  <td class="mono">46,342.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">62.01%</td>
+                  <td class="mono">0.00%</td>
+                  <td class="label-cell">Gastos Promoción</td>
+                  <td class="mono">28,735.09</td>
+                  <td class="mono">46,342.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">62.01%</td>
+                  <td class="mono">###############</td>
+                </tr>
+                <tr>
+                  <th></th>
+                  <td class="mono">30,016.48</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">22,050.47</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">136.13%</td>
+                  <td class="label-cell"><span class="important">Events</span></td>
+                  <td class="mono">30,016.48</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">22,050.47</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">136.13%</td>
+                </tr>
+                <tr>
+                  <th class="code-cell">701000000000000000001</th>
+                  <td class="mono">30,016.48</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">22,050.47</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">136.13%</td>
+                  <td class="label-cell">Costo Eventos</td>
+                  <td class="mono">30,016.48</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">22,050.47</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">136.13%</td>
+                </tr>
+                <tr>
+                  <th></th>
+                  <td class="mono">110,873.66</td>
+                  <td class="mono">129,012.00</td>
+                  <td class="mono">111,344.50</td>
+                  <td class="mono">85.94%</td>
+                  <td class="mono">99.58%</td>
+                  <td class="label-cell"><span class="important">Committees</span></td>
+                  <td class="mono">110,873.66</td>
+                  <td class="mono">129,012.00</td>
+                  <td class="mono">111,344.50</td>
+                  <td class="mono">85.94%</td>
+                  <td class="mono">99.58%</td>
+                </tr>
+                <tr>
+                  <th class="code-cell">702000000000000000001</th>
+                  <td class="mono">54,133.66</td>
+                  <td class="mono">73,012.00</td>
+                  <td class="mono">55,344.50</td>
+                  <td class="mono">74.14%</td>
+                  <td class="mono">97.81%</td>
+                  <td class="label-cell">Servicio a la membresia</td>
+                  <td class="mono">54,133.66</td>
+                  <td class="mono">73,012.00</td>
+                  <td class="mono">55,344.50</td>
+                  <td class="mono">74.14%</td>
+                  <td class="mono">97.81%</td>
+                </tr>
+                <tr>
+                  <th class="code-cell">704000000000000000001</th>
+                  <td class="mono">56,740.00</td>
+                  <td class="mono">56,000.00</td>
+                  <td class="mono">56,000.00</td>
+                  <td class="mono">101.32%</td>
+                  <td class="mono">101.32%</td>
+                  <td class="label-cell">Portafolio Económico</td>
+                  <td class="mono">56,740.00</td>
+                  <td class="mono">56,000.00</td>
+                  <td class="mono">56,000.00</td>
+                  <td class="mono">101.32%</td>
+                  <td class="mono">100.00%</td>
+                </tr>
+                <tr>
+                  <th></th>
+                  <td class="mono">97,938.17</td>
+                  <td class="mono">55,817.00</td>
+                  <td class="mono">47,333.33</td>
+                  <td class="mono">175.46%</td>
+                  <td class="mono">206.91%</td>
+                  <td class="label-cell"><span class="important">Services to Members</span></td>
+                  <td class="mono">97,938.17</td>
+                  <td class="mono">55,817.00</td>
+                  <td class="mono">47,333.33</td>
+                  <td class="mono">175.46%</td>
+                  <td class="mono">206.91%</td>
+                </tr>
+                <tr>
+                  <th class="code-cell">601000000000000000001</th>
+                  <td class="mono">97,938.17</td>
+                  <td class="mono">55,817.00</td>
+                  <td class="mono">47,333.33</td>
+                  <td class="mono">175.46%</td>
+                  <td class="mono">206.91%</td>
+                  <td class="label-cell">Costo directo de publicaciones</td>
+                  <td class="mono">97,938.17</td>
+                  <td class="mono">55,817.00</td>
+                  <td class="mono">47,333.33</td>
+                  <td class="mono">175.46%</td>
+                  <td class="mono">206.91%</td>
+                </tr>
+                <tr>
+                  <th></th>
+                  <td class="mono">175,819.59</td>
+                  <td class="mono">250,750.00</td>
+                  <td class="mono">156,354.68</td>
+                  <td class="mono">70.12%</td>
+                  <td class="mono">112.45%</td>
+                  <td class="label-cell"><span class="important">Gastos administrativos</span></td>
+                  <td class="mono">175,819.59</td>
+                  <td class="mono">250,750.00</td>
+                  <td class="mono">156,354.68</td>
+                  <td class="mono">70.12%</td>
+                  <td class="mono">112.45%</td>
+                </tr>
+                <tr>
+                  <th class="code-cell">801001000000000000002</th>
+                  <td class="mono">16,875.84</td>
+                  <td class="mono">32,342.00</td>
+                  <td class="mono">17,856.88</td>
+                  <td class="mono">52.18%</td>
+                  <td class="mono">94.51%</td>
+                  <td class="label-cell">Desarrollo de Negocios</td>
+                  <td class="mono">16,875.84</td>
+                  <td class="mono">32,342.00</td>
+                  <td class="mono">17,856.88</td>
+                  <td class="mono">52.18%</td>
+                  <td class="mono">94.51%</td>
+                </tr>
+                <tr>
+                  <th class="code-cell">801002000000000000002</th>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                  <td class="label-cell">Relaciones Externas</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">100.00%</td>
+                </tr>
+                <tr>
+                  <th class="code-cell">801003000000000000002</th>
+                  <td class="mono">13,911.83</td>
+                  <td class="mono">13,172.00</td>
+                  <td class="mono">1,609.00</td>
+                  <td class="mono">105.62%</td>
+                  <td class="mono">864.63%</td>
+                  <td class="label-cell">Servicios a las membresia</td>
+                  <td class="mono">13,911.83</td>
+                  <td class="mono">13,172.00</td>
+                  <td class="mono">1,609.00</td>
+                  <td class="mono">105.62%</td>
+                  <td class="mono">864.63%</td>
+                </tr>
+                <tr>
+                  <th class="code-cell">801004000000000000002</th>
+                  <td class="mono">22,252.84</td>
+                  <td class="mono">30,014.00</td>
+                  <td class="mono">18,214.57</td>
+                  <td class="mono">74.14%</td>
+                  <td class="mono">122.17%</td>
+                  <td class="label-cell"><span class="important">Vicepresidencia</span></td>
+                  <td class="mono">22,252.84</td>
+                  <td class="mono">30,014.00</td>
+                  <td class="mono">18,214.57</td>
+                  <td class="mono">74.14%</td>
+                  <td class="mono">122.17%</td>
+                </tr>
+                <tr>
+                  <th class="code-cell">801005000000000000002</th>
+                  <td class="mono">23,062.20</td>
+                  <td class="mono">24,485.00</td>
+                  <td class="mono">26,183.19</td>
+                  <td class="mono">94.19%</td>
+                  <td class="mono">88.08%</td>
+                  <td class="label-cell"><span class="important">Finanzas</span></td>
+                  <td class="mono">23,062.20</td>
+                  <td class="mono">24,485.00</td>
+                  <td class="mono">26,183.19</td>
+                  <td class="mono">94.19%</td>
+                  <td class="mono">88.08%</td>
+                </tr>
+                <tr>
+                  <th class="code-cell">801006000000000000002</th>
+                  <td class="mono">6,718.58</td>
+                  <td class="mono">8,034.00</td>
+                  <td class="mono">3,593.22</td>
+                  <td class="mono">83.63%</td>
+                  <td class="mono">186.98%</td>
+                  <td class="label-cell"><span class="important">Administración</span></td>
+                  <td class="mono">6,718.58</td>
+                  <td class="mono">8,034.00</td>
+                  <td class="mono">3,593.22</td>
+                  <td class="mono">83.63%</td>
+                  <td class="mono">186.98%</td>
+                </tr>
+                <tr>
+                  <th class="code-cell">801007000000000000002</th>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                  <td class="label-cell">Sistemas</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                </tr>
+                <tr>
+                  <th class="code-cell">801008000000000000002</th>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                  <td class="label-cell">Empleos</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                </tr>
+                <tr>
+                  <th class="code-cell">801009000000000000002</th>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                  <td class="label-cell">Servicios Generakes (Almacén)</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">100.00%</td>
+                </tr>
+                <tr>
+                  <th class="code-cell">801010000000000000002</th>
+                  <td class="mono">761.28</td>
+                  <td class="mono">4,726.00</td>
+                  <td class="mono">4,453.20</td>
+                  <td class="mono">16.11%</td>
+                  <td class="mono">17.10%</td>
+                  <td class="label-cell"><span class="important">Eventos</span></td>
+                  <td class="mono">761.28</td>
+                  <td class="mono">4,726.00</td>
+                  <td class="mono">4,453.20</td>
+                  <td class="mono">16.11%</td>
+                  <td class="mono">17%</td>
+                </tr>
+                <tr>
+                  <th class="code-cell">801011000000000000002</th>
+                  <td class="mono">14,411.83</td>
+                  <td class="mono">17,898.00</td>
+                  <td class="mono">22,070.65</td>
+                  <td class="mono">80.52%</td>
+                  <td class="mono">65.30%</td>
+                  <td class="label-cell">Comites</td>
+                  <td class="mono">14,411.83</td>
+                  <td class="mono">17,898.00</td>
+                  <td class="mono">22,070.65</td>
+                  <td class="mono">80.52%</td>
+                  <td class="mono">65.30%</td>
+                </tr>
+                <tr>
+                  <th class="code-cell">801012000000000000002</th>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                  <td class="label-cell">Renta de Salas</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">100.00%</td>
+                </tr>
+                <tr>
+                  <th class="code-cell">801013000000000000002</th>
+                  <td class="mono">77,825.19</td>
+                  <td class="mono">120,079.00</td>
+                  <td class="mono">62,373.97</td>
+                  <td class="mono">64.81%</td>
+                  <td class="mono">124.77%</td>
+                  <td class="label-cell"><span class="important">Comunicación</span></td>
+                  <td class="mono">77,825.19</td>
+                  <td class="mono">120,079.00</td>
+                  <td class="mono">62,373.97</td>
+                  <td class="mono">64.81%</td>
+                  <td class="mono">124.77%</td>
+                </tr>
+                <tr>
+                  <th></th>
+                  <td class="mono">783,462.06</td>
+                  <td class="mono">780,406.00</td>
+                  <td class="mono">437,188.72</td>
+                  <td class="mono">100.39%</td>
+                  <td class="mono">179.20%</td>
+                  <td class="section"><span class="important">Other</span></td>
+                  <td class="mono">783,462.06</td>
+                  <td class="mono">780,406.00</td>
+                  <td class="mono">437,188.72</td>
+                  <td class="mono">100.39%</td>
+                  <td class="mono">179.20%</td>
+                </tr>
+                <tr>
+                  <th class="code-cell">901000000000000000001</th>
+                  <td class="mono">783,462.06</td>
+                  <td class="mono">780,406.00</td>
+                  <td class="mono">437,188.72</td>
+                  <td class="mono">100.39%</td>
+                  <td class="mono">179.20%</td>
+                  <td class="label-cell"><span class="important">Gastos Generales</span></td>
+                  <td class="mono">783,462.06</td>
+                  <td class="mono">780,406.00</td>
+                  <td class="mono">437,188.72</td>
+                  <td class="mono">100.39%</td>
+                  <td class="mono">179.20%</td>
+                </tr>
+                <tr>
+                  <th></th>
+                  <td class="mono">1,940,608.71</td>
+                  <td class="mono">1,524,680.00</td>
+                  <td class="mono">1,561,590.41</td>
+                  <td class="mono">127.28%</td>
+                  <td class="mono">124.27%</td>
+                  <td class="section"><span class="important">Gastos de Nomina</span></td>
+                  <td class="mono">1,940,608.71</td>
+                  <td class="mono">1,524,680.00</td>
+                  <td class="mono">1,561,590.41</td>
+                  <td class="mono">127.28%</td>
+                  <td class="mono">124.27%</td>
+                </tr>
+                <tr>
+                  <th class="code-cell">513000000000000000001</th>
+                  <td class="mono">780,121.27</td>
+                  <td class="mono">283,128.00</td>
+                  <td class="mono">253,180.85</td>
+                  <td class="mono">275.54%</td>
+                  <td class="mono">308.13%</td>
+                  <td class="label-cell">Nomina Vicepresidencia</td>
+                  <td class="mono">780,121.27</td>
+                  <td class="mono">283,128.00</td>
+                  <td class="mono">253,180.85</td>
+                  <td class="mono">275.54%</td>
+                  <td class="mono">308.13%</td>
+                </tr>
+                <tr>
+                  <th class="code-cell">517000000000000000001</th>
+                  <td class="mono">415,456.17</td>
+                  <td class="mono">312,399.00</td>
+                  <td class="mono">349,748.02</td>
+                  <td class="mono">132.99%</td>
+                  <td class="mono">118.79%</td>
+                  <td class="label-cell">Nomina Desarrollo de Negocios</td>
+                  <td class="mono">415,456.17</td>
+                  <td class="mono">312,399.00</td>
+                  <td class="mono">349,748.02</td>
+                  <td class="mono">132.99%</td>
+                  <td class="mono">118.79%</td>
+                </tr>
+                <tr>
+                  <th class="code-cell">516000000000000000001</th>
+                  <td class="mono">217,338.51</td>
+                  <td class="mono">242,891.00</td>
+                  <td class="mono">226,025.19</td>
+                  <td class="mono">89.48%</td>
+                  <td class="mono">96.16%</td>
+                  <td class="label-cell">Nomina Comites y Relaciones Externas</td>
+                  <td class="mono">217,338.51</td>
+                  <td class="mono">242,891.00</td>
+                  <td class="mono">226,025.19</td>
+                  <td class="mono">89.48%</td>
+                  <td class="mono">96.16%</td>
+                </tr>
+                <tr>
+                  <th class="code-cell">519000000000000000001</th>
+                  <td class="mono">98,452.95</td>
+                  <td class="mono">97,087.00</td>
+                  <td class="mono">81,087.48</td>
+                  <td class="mono">101.41%</td>
+                  <td class="mono">121.42%</td>
+                  <td class="label-cell">Nomina Comunicación</td>
+                  <td class="mono">98,452.95</td>
+                  <td class="mono">97,087.00</td>
+                  <td class="mono">81,087.48</td>
+                  <td class="mono">101.41%</td>
+                  <td class="mono">121.42%</td>
+                </tr>
+                <tr>
+                  <th class="code-cell">515000000000000000001</th>
+                  <td class="mono">68,571.54</td>
+                  <td class="mono">76,070.00</td>
+                  <td class="mono">140,383.63</td>
+                  <td class="mono">90.14%</td>
+                  <td class="mono">48.85%</td>
+                  <td class="label-cell">Nomina Servicios a la Membresia</td>
+                  <td class="mono">68,571.54</td>
+                  <td class="mono">76,070.00</td>
+                  <td class="mono">140,383.63</td>
+                  <td class="mono">90.14%</td>
+                  <td class="mono">48.85%</td>
+                </tr>
+                <tr>
+                  <th class="code-cell">518000000000000000001</th>
+                  <td class="mono">108,776.40</td>
+                  <td class="mono">138,499.00</td>
+                  <td class="mono">149,120.49</td>
+                  <td class="mono">78.54%</td>
+                  <td class="mono">72.95%</td>
+                  <td class="label-cell">Nomina Eventos y Mercadotecnia</td>
+                  <td class="mono">108,776.40</td>
+                  <td class="mono">138,499.00</td>
+                  <td class="mono">149,120.49</td>
+                  <td class="mono">78.54%</td>
+                  <td class="mono">72.95%</td>
+                </tr>
+                <tr>
+                  <th class="code-cell">514000000000000000001</th>
+                  <td class="mono">251,891.87</td>
+                  <td class="mono">374,606.00</td>
+                  <td class="mono">362,044.75</td>
+                  <td class="mono">67.24%</td>
+                  <td class="mono">69.57%</td>
+                  <td class="label-cell">Nomina Administración y Fiananzas</td>
+                  <td class="mono">251,891.87</td>
+                  <td class="mono">374,606.00</td>
+                  <td class="mono">362,044.75</td>
+                  <td class="mono">67.24%</td>
+                  <td class="mono">69.57%</td>
+                </tr>
+                <tr>
+                  <th></th>
+                  <td class="mono">0.00</td>
+                  <td class="mono">590,110.74</td>
+                  <td class="mono">679,518.39</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                  <td class="section"><span class="important">Guadalajara Expense</span></td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">590,110.74</td>
+                  <td class="mono">679,518.39</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                </tr>
+                <tr>
+                  <th class="code-cell">950001002000000000003</th>
+                  <td class="mono">0.00</td>
+                  <td class="mono">590,110.74</td>
+                  <td class="mono">679,518.39</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                  <td class="label-cell">Gastos Guadalajara</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">590,110.74</td>
+                  <td class="mono">679,518.39</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                </tr>
+                <tr>
+                  <th></th>
+                  <td class="mono">0.00</td>
+                  <td class="mono">1,360,298.55</td>
+                  <td class="mono">1,034,589.41</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                  <td class="section"><span class="important">Monterrey Expense</span></td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">1,360,298.55</td>
+                  <td class="mono">1,034,589.41</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                </tr>
+                <tr>
+                  <th class="code-cell">950002002000000000003</th>
+                  <td class="mono">0.00</td>
+                  <td class="mono">1,360,298.55</td>
+                  <td class="mono">1,034,589.41</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                  <td class="label-cell">Gastos Monterrey</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">1,360,298.55</td>
+                  <td class="mono">1,034,589.41</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                </tr>
+                <tr class="spacer"><td colspan="12">&nbsp;</td></tr>
+                <tr>
+                  <th></th>
+                  <td class="mono">3,167,454</td>
+                  <td class="mono">4,737,416</td>
+                  <td class="mono">4,049,970</td>
+                  <td class="mono">66.86%</td>
+                  <td class="mono">78.21%</td>
+                  <td class="section"><span class="important">CONSOLIDATED EXPENSES</span></td>
+                  <td class="mono">3,167,454</td>
+                  <td class="mono">4,737,416</td>
+                  <td class="mono">4,049,970</td>
+                  <td class="mono">66.86%</td>
+                  <td class="mono">78.21%</td>
+                </tr>
+                <tr class="spacer"><td colspan="12">&nbsp;</td></tr>
+                <tr>
+                  <th></th>
+                  <td class="mono">-2,626,202.72</td>
+                  <td class="mono">-149,578.00</td>
+                  <td class="mono">-125,932.59</td>
+                  <td class="mono">1755.74%</td>
+                  <td class="mono">2085.40%</td>
+                  <td class="section"><span class="important">OPERATING RESULTS MEXICO</span></td>
+                  <td class="mono">-2,626,202.72</td>
+                  <td class="mono">-149,578.00</td>
+                  <td class="mono">-125,932.59</td>
+                  <td class="mono">1755.74%</td>
+                  <td class="mono">2085.40%</td>
+                </tr>
+                <tr>
+                  <th></th>
+                  <td class="mono">0.00</td>
+                  <td class="mono">-52,513.39</td>
+                  <td class="mono">-188,072.21</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                  <td class="section"><span class="important">OPERATING RESULTS GUADALAJARA</span></td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">-52,513.39</td>
+                  <td class="mono">-188,072.21</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                </tr>
+                <tr>
+                  <th></th>
+                  <td class="mono">0.00</td>
+                  <td class="mono">-243,654.88</td>
+                  <td class="mono">-116,081.58</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                  <td class="section"><span class="important">OPERATING RESULTS MONTERREY</span></td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">-243,654.88</td>
+                  <td class="mono">-116,081.58</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                </tr>
+                <tr class="spacer"><td colspan="12">&nbsp;</td></tr>
+                <tr>
+                  <th></th>
+                  <td class="mono">(2,626,203)</td>
+                  <td class="mono">(445,746)</td>
+                  <td class="mono">(430,086)</td>
+                  <td class="mono">589.17%</td>
+                  <td class="mono">610.62%</td>
+                  <td class="section"><span class="important">CONSOLIDATED OPERATING RESULTS</span></td>
+                  <td class="mono">(2,626,203)</td>
+                  <td class="mono">(445,746)</td>
+                  <td class="mono">(430,086)</td>
+                  <td class="mono">589.17%</td>
+                  <td class="mono">610.62%</td>
+                </tr>
+                <tr class="spacer"><td colspan="12">&nbsp;</td></tr>
+                <tr>
+                  <th></th>
+                  <td class="mono">0.14</td>
+                  <td class="mono">166,667.00</td>
+                  <td class="mono">494,272.65</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                  <td class="section"><span class="important">México Other Income</span></td>
+                  <td class="mono">0.14</td>
+                  <td class="mono">166,667.00</td>
+                  <td class="mono">494,272.65</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                </tr>
+                <tr>
+                  <th class="code-cell">413000000000000000001</th>
+                  <td class="mono">0.14</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.05</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">280.00%</td>
+                  <td class="label-cell">Otros Ingresos</td>
+                  <td class="mono">0.14</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.05</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">280.00%</td>
+                </tr>
+                <tr>
+                  <th class="code-cell">414000000000000000001</th>
+                  <td class="mono">0.00</td>
+                  <td class="mono">41,667.00</td>
+                  <td class="mono">73,340.67</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                  <td class="label-cell"><span class="important">Intereses Bancos</span></td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">41,667.00</td>
+                  <td class="mono">73,340.67</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                </tr>
+                <tr>
+                  <th class="code-cell">416000000000000000001</th>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">592,690.84</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                  <td class="label-cell">Utilidad Cambiaria Inversiones</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">592,690.84</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                </tr>
+                <tr>
+                  <th class="code-cell">418000000000000000001</th>
+                  <td class="mono">0.00</td>
+                  <td class="mono">125,000.00</td>
+                  <td class="mono">-171,758.91</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                  <td class="label-cell">Plusvalia/Minusvalia Portafolio Inversiones</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">125,000.00</td>
+                  <td class="mono">-171,758.91</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                </tr>
+                <tr class="spacer"><td colspan="12">&nbsp;</td></tr>
+                <tr class="spacer"><td colspan="12">&nbsp;</td></tr>
+                <tr>
+                  <th></th>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                  <td class="section"><span class="important">Guadalajara Other Income</span></td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                </tr>
+                <tr>
+                  <th></th>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td class="label-cell">Guadalajara Other Income</td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                </tr>
+                <tr>
+                  <th></th>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                  <td class="section"><span class="important">Monterrey Other Income</span></td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                </tr>
+                <tr>
+                  <th></th>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td class="label-cell">Monterrey Other Income</td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                </tr>
+                <tr class="spacer"><td colspan="12">&nbsp;</td></tr>
+                <tr>
+                  <th></th>
+                  <td class="mono">-2,626,202.58</td>
+                  <td class="mono">17,089.00</td>
+                  <td class="mono">368,340.06</td>
+                  <td class="mono">-15367.80%</td>
+                  <td class="mono">-712.98%</td>
+                  <td class="section"><span class="important">NET RESULTS MEXICO</span></td>
+                  <td class="mono">-2,626,202.58</td>
+                  <td class="mono">17,089.00</td>
+                  <td class="mono">368,340.06</td>
+                  <td class="mono">-15367.80%</td>
+                  <td class="mono">-712.98%</td>
+                </tr>
+                <tr>
+                  <th></th>
+                  <td class="mono">0.00</td>
+                  <td class="mono">-52,513.39</td>
+                  <td class="mono">-188,072.21</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                  <td class="section"><span class="important">NET RESULTS GUADALAJARA</span></td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">-52,513.39</td>
+                  <td class="mono">-188,072.21</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                </tr>
+                <tr>
+                  <th></th>
+                  <td class="mono">0.00</td>
+                  <td class="mono">-243,654.88</td>
+                  <td class="mono">-116,081.58</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                  <td class="section"><span class="important">NET RESULTS MONTERREY</span></td>
+                  <td class="mono">0.00</td>
+                  <td class="mono">-243,654.88</td>
+                  <td class="mono">-116,081.58</td>
+                  <td class="mono">0.00%</td>
+                  <td class="mono">0.00%</td>
+                </tr>
+                <tr class="spacer"><td colspan="12">&nbsp;</td></tr>
+                <tr>
+                  <th></th>
+                  <td class="mono">(2,626,203)</td>
+                  <td class="mono">(279,079)</td>
+                  <td class="mono">64,186</td>
+                  <td class="mono">941.02%</td>
+                  <td class="mono">-4091.53%</td>
+                  <td class="section"><span class="important">CONSOLIDATED NET RESULTS</span></td>
+                  <td class="mono">(2,626,203)</td>
+                  <td class="mono">(279,079)</td>
+                  <td class="mono">64,186</td>
+                  <td class="mono">941.02%</td>
+                  <td class="mono">-4091.53%</td>
+                </tr>
+                <tr class="spacer"><td colspan="12">&nbsp;</td></tr>
+                <tr class="spacer"><td colspan="12">&nbsp;</td></tr>
+                <!-- Pie suelto -->
+                <tr>
+                  <th class="label-cell"><span class="important">ER</span></th>
+                  <td class="mono">2,000,539</td>
+                  <td class="mono">-607,913</td>
+                  <td class="mono">3,448,678</td>
+                  <td class="spacer"></td>
+                  <td class="spacer"></td>
+                  <td class="spacer"></td>
+                  <td class="mono">15,500,054</td>
+                  <td class="mono">-0.37</td>
+                  <td class="mono">4,782,206</td>
+                  <td class="spacer"></td>
+                  <td class="spacer"></td>
+                </tr>
+                <tr>
+                  <td class="spacer"></td>
+                  <td class="mono">-4,626,741.94</td>
+                  <td class="mono">328,834.14</td>
+                  <td class="mono">3,384,492.18</td>
+                  <td class="spacer"></td>
+                  <td class="spacer"></td>
+                  <td class="spacer"></td>
+                  <td class="mono">-18,126,256.66</td>
+                  <td class="mono">-279,078.90</td>
+                  <td class="mono">-4,718,019.85</td>
+                  <td class="spacer"></td>
+                  <td class="spacer"></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-        const tableBody = document.querySelector('#financialTable tbody');
-        const summaryCards = document.getElementById('summaryCards');
-        const chartBadge = document.getElementById('chartBadge');
-        let performanceChart;
-        let trendChart;
-
-        // Función para formatear números con separadores de miles
-        const formatNumber = (value) => value.toLocaleString('es-MX');
-
-        // Función para obtener totales por ciudad
-        const getTotals = (data) => {
-            const totalIngresos = data.income.reduce((acc, item) => acc + item.real2025, 0);
-            const totalGastos = data.expenses.reduce((acc, item) => acc + item.real2025, 0);
-            const resultadoOperativo = data.operating.find(item => item.etiqueta === 'Resultado Operativo')?.real2025 ?? 0;
-            return { totalIngresos, totalGastos, resultadoOperativo };
-        };
-
-        // Función para identificar la clase de estilo según la variación
-        const variationClass = (value) => {
-            if (!value || value === '0%') return 'neutral';
-            return value.includes('-') ? 'negative' : 'positive';
-        };
-
-        // Función para generar las tarjetas resumen
-        const renderSummaryCards = (data) => {
-            const { totalIngresos, totalGastos, resultadoOperativo } = getTotals(data);
-            const margen = totalIngresos ? ((resultadoOperativo / totalIngresos) * 100).toFixed(1) : 0;
-            const cards = [
-                {
-                    titulo: 'Ingresos acumulados',
-                    valor: `$ ${formatNumber(totalIngresos)}`,
-                    variacion: 'Var. anual ' + data.income[0].var2024real
-                },
-                {
-                    titulo: 'Gastos acumulados',
-                    valor: `$ ${formatNumber(totalGastos)}`,
-                    variacion: 'Var. vs ppto. ' + data.expenses[0].var2025ppto
-                },
-                {
-                    titulo: 'Resultado operativo',
-                    valor: `$ ${formatNumber(resultadoOperativo)}`,
-                    variacion: `Margen ${margen}%`
-                }
-            ];
-
-            summaryCards.innerHTML = cards.map(card => `
-                <div class="col-md-4">
-                    <div class="summary-card">
-                        <small>${card.titulo}</small>
-                        <h3>${card.valor}</h3>
-                        <span class="badge text-bg-light text-primary-emphasis">${card.variacion}</span>
-                    </div>
-                </div>
-            `).join('');
-        };
-
-        // Función para renderizar la tabla
-        const renderTable = (cityKey) => {
-            const data = cityData[cityKey];
-            tableBody.innerHTML = '';
-
-            const secciones = [
-                { titulo: 'Ingresos', registros: data.income },
-                { titulo: 'Gastos', registros: data.expenses },
-                { titulo: 'Resumen Gtos. Corporativos (P) DN Comités Eventos Dirección Gastos generales', registros: data.operating }
-            ];
-
-            secciones.forEach(seccion => {
-                const headerRow = document.createElement('tr');
-                headerRow.classList.add('section-header-row');
-                headerRow.innerHTML = `<td colspan="7">${seccion.titulo}</td>`;
-                tableBody.appendChild(headerRow);
-
-                seccion.registros.forEach(registro => {
-                    const fila = document.createElement('tr');
-                    fila.innerHTML = `
-                        <td>${registro.etiqueta}</td>
-                        <td class="text-end">${formatNumber(registro.real2025)}</td>
-                        <td class="text-end">${registro.ppto2025 ? formatNumber(registro.ppto2025) : '-'}</td>
-                        <td class="text-end">${formatNumber(registro.real2024)}</td>
-                        <td class="text-end ${variationClass(registro.var2024real)}">${registro.var2024real}</td>
-                        <td class="text-end ${variationClass(registro.var2025ppto)}">${registro.var2025ppto}</td>
-                        <td class="text-center">${data.participacion}</td>
-                    `;
-                    tableBody.appendChild(fila);
-                });
-            });
-        };
-
-        // Función para generar gráfica de barras
-        const renderChart = (cityKey) => {
-            const data = cityData[cityKey];
-            const labels = data.income.map(item => item.etiqueta).concat(data.expenses.map(item => item.etiqueta));
-            const reales = data.income.map(item => item.real2025).concat(data.expenses.map(item => item.real2025));
-            const presupuestos = data.income.map(item => item.ppto2025).concat(data.expenses.map(item => item.ppto2025));
-
-            const ctx = document.getElementById('performanceChart');
-            if (performanceChart) {
-                performanceChart.destroy();
-            }
-
-            performanceChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels,
-                    datasets: [
-                        {
-                            label: 'Real 2025',
-                            data: reales,
-                            backgroundColor: 'rgba(92, 108, 255, 0.85)',
-                            borderRadius: 12,
-                            maxBarThickness: 38
-                        },
-                        {
-                            label: 'Presupuesto 2025',
-                            data: presupuestos,
-                            backgroundColor: 'rgba(255, 126, 182, 0.65)',
-                            borderRadius: 12,
-                            maxBarThickness: 38
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: {
-                            ticks: { color: '#6f7a93' },
-                            grid: { display: false }
-                        },
-                        y: {
-                            ticks: {
-                                color: '#6f7a93',
-                                callback: (value) => `$${value.toLocaleString('es-MX')}`
-                            },
-                            grid: { color: 'rgba(31, 39, 64, 0.08)' }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            labels: {
-                                color: '#425175',
-                                font: { weight: '600' }
-                            }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: (context) => `${context.dataset.label}: $${context.parsed.y.toLocaleString('es-MX')}`
-                            }
-                        }
-                    }
-                }
-            });
-        };
-
-        // Función para alimentar la gráfica histórica
-        const renderTrendChart = () => {
-            const ctx = document.getElementById('trendChart');
-            const labels = ['2018', '2019', '2020', '2021', '2022', '2023', '2024', '2025'];
-            const ingresos = [480000, 510000, 465000, 520000, 580000, 640000, 690000, 742942];
-            const gastos = [320000, 335000, 355000, 370000, 410000, 450000, 470000, 520000];
-
-            if (trendChart) {
-                trendChart.destroy();
-            }
-
-            trendChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels,
-                    datasets: [
-                        {
-                            label: 'Ingresos reales',
-                            data: ingresos,
-                            borderColor: 'rgba(92, 108, 255, 0.85)',
-                            backgroundColor: 'rgba(92, 108, 255, 0.15)',
-                            tension: 0.35,
-                            fill: true,
-                            borderWidth: 3
-                        },
-                        {
-                            label: 'Gastos reales',
-                            data: gastos,
-                            borderColor: 'rgba(255, 126, 182, 0.85)',
-                            backgroundColor: 'rgba(255, 126, 182, 0.15)',
-                            tension: 0.35,
-                            fill: true,
-                            borderWidth: 3
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            labels: {
-                                color: '#425175',
-                                font: { weight: '600' }
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            ticks: { color: '#6f7a93' },
-                            grid: { display: false }
-                        },
-                        y: {
-                            ticks: {
-                                color: '#6f7a93',
-                                callback: (value) => `$${value.toLocaleString('es-MX')}`
-                            },
-                            grid: { color: 'rgba(31, 39, 64, 0.08)' }
-                        }
-                    }
-                }
-            });
-        };
-
-        // Inicialización
-        const inicializar = (cityKey = 'cdmx') => {
-            const data = cityData[cityKey];
-            renderSummaryCards(data);
-            renderTable(cityKey);
-            renderChart(cityKey);
-            chartBadge.textContent = data.nombre;
-            renderTrendChart();
-        };
-
-        // Eventos para los botones de ciudad
-        document.querySelectorAll('.btn-city').forEach(boton => {
-            boton.addEventListener('click', () => {
-                document.querySelectorAll('.btn-city').forEach(btn => btn.classList.remove('active'));
-                boton.classList.add('active');
-                const ciudad = boton.dataset.city;
-                inicializar(ciudad);
-            });
-        });
-
-        inicializar();
-    </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

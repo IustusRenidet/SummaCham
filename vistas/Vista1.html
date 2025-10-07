@@ -1,216 +1,373 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chapter GDL - Actual vs Budget</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --color-primary: #2f6f4e;
-            --color-secondary: #b87333;
-            --color-background: #f3f6f1;
-            --color-text: #243226;
-        }
-        body {
-            background-color: var(--color-background);
-            font-family: 'Manrope', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            color: var(--color-text);
-            min-height: 100vh;
-        }
-        .header-card {
-            background: var(--color-primary);
-            border: 1px solid rgba(36, 50, 38, 0.1);
-            border-radius: 16px;
-            box-shadow: 0 4px 12px rgba(36, 50, 38, 0.12);
-            color: #fff;
-        }
-        .highlight-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            background-color: rgba(255, 255, 255, 0.12);
-            color: #fff;
-            padding: 0.5rem 1.25rem;
-            border-radius: 999px;
-            font-weight: 600;
-            font-size: 0.95rem;
-        }
-        .table-card {
-            background: #fff;
-            border-radius: 16px;
-            border: 1px solid rgba(36, 50, 38, 0.1);
-            box-shadow: none;
-            overflow: hidden;
-        }
-        .table thead {
-            background-color: #e6ede8;
-        }
-        .table thead th {
-            border: none;
-            font-weight: 600;
-            color: #3b513e;
-            text-transform: uppercase;
-            font-size: 0.8rem;
-            letter-spacing: 0.06em;
-            padding-top: 1rem;
-            padding-bottom: 1rem;
-        }
-        .table tbody tr {
-            transition: background-color 0.3s ease;
-        }
-        .table tbody tr:hover {
-            background-color: rgba(47, 111, 78, 0.05);
-        }
-        .section-header-row td {
-            background-color: rgba(184, 115, 51, 0.16);
-            color: #3b513e;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            font-size: 0.85rem;
-        }
-        .positive {
-            color: #2f6f4e;
-            font-weight: 600;
-        }
-        .negative {
-            color: #b87333;
-            font-weight: 600;
-        }
-        .neutral {
-            color: #8b8b8b;
-            font-weight: 600;
-        }
-        .fade-in {
-            animation: fadeIn 0.5s ease-in;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Resumen</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --color-primary: #2f6f4e;
+      --color-secondary: #b87333;
+      --color-background: #f3f6f1;
+      --color-text: #243226;
+    }
+    body {
+      background-color: var(--color-background);
+      font-family: 'Manrope', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: var(--color-text);
+      min-height: 100vh;
+      padding-top: 70px;
+    }
+    .header-card {
+      background: var(--color-primary);
+      border: 1px solid rgba(36, 50, 38, 0.1);
+      border-radius: 16px;
+      color: #fff;
+    }
+    .table-card {
+      background: #fff;
+      border-radius: 16px;
+      border: 1px solid rgba(36, 50, 38, 0.1);
+      overflow: hidden;
+    }
+    .table thead {
+      background-color: #e6ede8;
+    }
+    .table thead th {
+      border: none;
+      font-weight: 600;
+      color: #3b513e;
+      text-transform: uppercase;
+      font-size: 0.8rem;
+      letter-spacing: 0.06em;
+      padding-top: 1rem;
+      padding-bottom: 1rem;
+    }
+    .table tbody tr { transition: background-color 0.3s ease; }
+    .table tbody tr:hover { background-color: rgba(47, 111, 78, 0.05); }
+    .section-header-row {
+      background-color: rgba(184, 115, 51, 0.25);
+      font-weight: 800 !important;
+      border-left: 4px solid var(--color-secondary);
+    }
+    .section-header-row td {
+      color: var(--color-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 0.9rem;
+      padding-top: 1rem;
+      padding-bottom: 1rem;
+      font-family: 'Manrope', sans-serif;
+    }
+    .section-header-row td:first-child {
+      font-size: 1rem;
+      font-weight: 900;
+    }
+    .positive { color: #2f6f4e; font-weight: 600; }
+    .negative { color: #b87333; font-weight: 600; }
+    .neutral  { color: #8b8b8b; font-weight: 600; }
+
+    .fade-in { animation: fadeIn .5s ease-in; }
+    @keyframes fadeIn { from {opacity:0; transform: translateY(20px);} to {opacity:1; transform: translateY(0);} }
+
+    .city-pill {
+      background: rgba(255,255,255,.15);
+      border: 1px solid rgba(255,255,255,.25);
+      color: #fff;
+      padding: .4rem .75rem;
+      border-radius: 999px;
+      font-weight: 600;
+    }
+    .selector-wrapper {
+      gap: .75rem;
+    }
+    .pct-item.highlight strong, .pct-item.highlight span { color: var(--color-primary); }
+  </style>
 </head>
 <body>
-    <div class="container py-4 py-lg-5">
-        <!-- Encabezado -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="card header-card fade-in">
-                    <div class="card-body text-center text-lg-start">
-                        <div class="d-flex flex-column flex-lg-row align-items-center justify-content-between gap-3">
-                            <div>
-                                <div class="highlight-pill mb-3">
-                                    <span class="badge bg-light text-dark rounded-pill">2025</span>
-                                    Corporate financial summary - GDL chapter
-                                </div>
-                                <h1 class="fw-bold display-6 mb-3">Actual vs Budget Overview</h1>
-                                <p class="mb-0 fs-5">Key performance indicators for the Guadalajara chapter (GDL).</p>
-                            </div>
-                            <div class="text-center">
-                                <img src="https://cdn.jsdelivr.net/gh/alohe/illustrations@main/finance-dashboard.svg" alt="Panel financiero" class="img-fluid" style="max-width: 260px;">
-                            </div>
-                        </div>
-                    </div>
-                </div>
+     <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top shadow-sm">
+  <div class="container-fluid">
+    <a class="navbar-brand fw-bold color-primary" href="#">AmCham México</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+      <ul class="navbar-nav">
+        <li class="nav-item">
+          <a class="nav-link active" aria-current="page" href="vista1.html">Resumen</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="vista2.html">Presupuestos</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="vista3.html">Resumen E</a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+  <div class="container py-4 py-lg-5">
+    <!-- Encabezado -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="card header-card fade-in">
+          <div class="card-body d-flex flex-column flex-lg-row align-items-center justify-content-between">
+            <div class="text-center text-lg-start">
+              <h1 id="chapterTitle" class="fw-bold display-6 mb-2">Resumen</h1>
+              <p id="chapterSubtitle" class="mb-0 fs-5">Capítulo Guadalajara</p>
             </div>
-        </div>
-
-        <div class="row">
-            <div class="col-12">
-                <div class="table-card fade-in">
-                    <div class="table-responsive">
-                        <table class="table align-middle mb-0" id="financialTable">
-                            <thead>
-                                <tr>
-                                    <th scope="col" class="text-center">Chapter</th>
-                                    <th scope="col" class="text-center">Actual 2025</th>
-                                    <th scope="col" class="text-center">Budget 2025</th>
-                                    <th scope="col" class="text-center">Actual 2024</th>
-                                    <th scope="col" class="text-center">Variance 2024 vs 2025</th>
-                                    <th scope="col" class="text-center">Variance vs Budget</th>
-                                    <th scope="col" class="text-center">Corporate Allocation</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <!-- Contenido dinámico -->
-                            </tbody>
-                        </table>
-                    </div>
-                    <p class="text-muted small px-3 pb-3 mb-0">Abbreviations: CDMX (Mexico City), GDL (Guadalajara), MTY (Monterrey).</p>
-                </div>
+            <div class="mt-3 mt-lg-0 d-flex align-items-center selector-wrapper">
+              <label for="citySelect" class="me-2 fw-semibold">Ciudad:</label>
+              <select id="citySelect" class="form-select form-select-sm w-auto">
+                <option value="GDL" selected>GDL — Guadalajara</option>
+                <option value="CDMX">CDMX — Ciudad de México</option>
+                <option value="MTY">MTY — Monterrey</option>
+              </select>
+              <span class="city-pill ms-2" id="cityPill">GDL</span>
             </div>
+          </div>
         </div>
+      </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
-    <script>
-        const tableBody = document.querySelector('#financialTable tbody');
+    <!-- Porcentaje Gastos Corporativos -->
+<div class="row mb-4">
+  <div class="col-12">
+    <div class="card table-card fade-in">
+      <div class="card-body">
+        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between">
+          <h5 class="fw-bold mb-3 mb-md-0" style="color: var(--color-primary);">Porcentaje Gastos Corporativos</h5>
+          <div class="d-flex align-items-center gap-3">
+            <span class="fw-semibold">Años:</span>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input year-check" type="checkbox" id="year2024" value="2024" checked>
+              <label class="form-check-label" for="year2024">2024</label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input year-check" type="checkbox" id="year2025" value="2025" checked>
+              <label class="form-check-label" for="year2025">2025</label>
+            </div>
+          </div>
+        </div>
 
-        const chapterData = {
-            sections: [
-                {
-                    title: 'Income',
-                    rows: [
-                        { label: 'Membership', actual2025: 742942, budget2025: 798891, actual2024: 678264, varYoY: '10%', varBudget: '-7%' },
-                        { label: 'Events', actual2025: 468783, budget2025: 925169, actual2024: 538300, varYoY: '-13%', varBudget: '-49%' },
-                        { label: 'Committees', actual2025: 49392, budget2025: 337825, actual2024: 272150, varYoY: '-82%', varBudget: '-85%' },
-                        { label: 'Services to Members', actual2025: 278805, budget2025: 262680, actual2024: 212610, varYoY: '31%', varBudget: '6%' }
-                    ]
-                },
-                {
-                    title: 'Expenses',
-                    rows: [
-                        { label: 'Membership', actual2025: 261569, budget2025: 275460, actual2024: 291669, varYoY: '-10%', varBudget: '-5%' },
-                        { label: 'Events', actual2025: 336152, budget2025: 365717, actual2024: 179496, varYoY: '87%', varBudget: '-8%' },
-                        { label: 'Committees', actual2025: 275408, budget2025: 289686, actual2024: 202343, varYoY: '36%', varBudget: '-5%' },
-                        { label: 'Services to Members', actual2025: 269801, budget2025: 255983, actual2024: 188979, varYoY: '43%', varBudget: '5%' },
-                        { label: 'Administrative', actual2025: 1317579, budget2025: 1329831, actual2024: 1738980, varYoY: '-24%', varBudget: '-1%' },
-                        { label: 'Corporate Expenses', actual2025: 2316266, budget2025: 2025974, actual2024: 2509877, varYoY: '-8%', varBudget: '14%' }
-                    ]
-                },
-                {
-                    title: 'Operating Results',
-                    rows: [
-                        { label: 'Operating Results', actual2025: 372891, budget2025: 762343, actual2024: 442092, varYoY: '-16%', varBudget: '-51%' },
-                        { label: 'Member Centricity', actual2025: 348109, budget2025: 0, actual2024: 212235, varYoY: '64%', varBudget: '0%' },
-                        { label: 'Net Results', actual2025: 720902, budget2025: 762343, actual2024: 654327, varYoY: '10%', varBudget: '-5%' }
-                    ]
-                }
-            ],
-            allocation: '2025 Allocation: CDMX 53% | GDL 16% | MTY 31%'
-        };
+        <div id="pctContainer" class="row mt-3">
+          <!-- Tarjetas por año se inyectan aquí -->
+        </div>
 
-        const formatNumber = (value) => value.toLocaleString('en-US');
+        <small class="text-muted d-block mt-2">Tip: el porcentaje de la ciudad seleccionada se resalta. Puedes comparar uno o varios años.</small>
+      </div>
+    </div>
+  </div>
+</div>
 
-        const variationClass = (value) => {
-            if (!value || value === '0%') return 'neutral';
-            return value.includes('-') ? 'negative' : 'positive';
-        };
 
-        chapterData.sections.forEach(section => {
-            const rowHeader = document.createElement('tr');
-            rowHeader.classList.add('section-header-row');
-            rowHeader.innerHTML = `<td colspan="7">${section.title}</td>`;
-            tableBody.appendChild(rowHeader);
+    <!-- Tabla principal -->
+    <div class="row">
+      <div class="col-12">
+        <div class="table-card fade-in">
+          <div class="table-responsive">
+            <table class="table align-middle mb-0" id="mainTable">
+              <thead>
+                <tr>
+                  <th scope="col" class="text-start"></th>
+                  <th scope="col" class="text-end">Real 2025</th>
+                  <th scope="col" class="text-end">Ppto. 2025</th>
+                  <th scope="col" class="text-end">Real 2024</th>
+                  <th scope="col" class="text-end">Variación Real 2024 vs Real 2025</th>
+                  <th scope="col" class="text-end">Variación Ppto. 2025 vs Real 2025</th>
+                </tr>
+              </thead>
+              <tbody id="tableBody">
+                <!-- Filas inyectadas por JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-            section.rows.forEach(row => {
-                const tableRow = document.createElement('tr');
-                tableRow.innerHTML = `
-                    <td>${row.label}</td>
-                    <td class="text-end">${formatNumber(row.actual2025)}</td>
-                    <td class="text-end">${row.budget2025 ? formatNumber(row.budget2025) : '-'}</td>
-                    <td class="text-end">${formatNumber(row.actual2024)}</td>
-                    <td class="text-end ${variationClass(row.varYoY)}">${row.varYoY}</td>
-                    <td class="text-end ${variationClass(row.varBudget)}">${row.varBudget}</td>
-                    <td class="text-center">${chapterData.allocation}</td>
-                `;
-                tableBody.appendChild(tableRow);
-            });
-        });
-    </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+
+    const CITY_LABELS = {
+      CDMX: "Ciudad de México",
+      GDL: "Guadalajara",
+      MTY: "Monterrey"
+    };
+
+    // TODO: Reemplazar con datos reales por ciudad.
+    // Estructura: cada entrada representa una fila de la tabla.
+    // type: 'section' dibuja una fila de encabezado de sección.
+    // Para filas normales, usar keys: name, real2025, ppto2025, real2024, varReal, varPpto
+    const BASE_ROWS = [
+      { type: "section", name: "INCOME", real2025: "7,429,942", ppto2025: "7,988,991", real2024: "6,768,264", varReal: "10%", varPpto: "-7%" },
+      { name: "Membership",          real2025: "6,021,827", ppto2025: "5,769,308", real2024: "5,730,814", varReal: "5%",   varPpto: "4%"  },
+      { name: "Events",              real2025: "468,783",   ppto2025: "945,000",   real2024: "453,300",   varReal: "3%",   varPpto: "-50%" },
+      { name: "Committees",          real2025: "493,932",   ppto2025: "943,800",   real2024: "272,150",   varReal: "81%",  varPpto: "-48%" },
+      { name: "Services to Members", real2025: "445,400",   ppto2025: "330,882",   real2024: "312,000",   varReal: "43%",  varPpto: "35%"  },
+
+      { type: "section", name: "EXPENSE", real2025: "7,802,833", ppto2025: "8,751,333", real2024: "6,326,172", varReal: "23%", varPpto: "-11%" },
+      { name: "Membership",           real2025: "261,569",  ppto2025: "404,258",  real2024: "291,669", varReal: "-10%", varPpto: "-35%" },
+      { name: "Events",               real2025: "316,129",  ppto2025: "756,045",  real2024: "207,965", varReal: "52%",  varPpto: "-58%" },
+      { name: "Committees",           real2025: "436,752",  ppto2025: "485,280",  real2024: "174,406", varReal: "150%", varPpto: "-10%" },
+      { name: "Services to Members",  real2025: "269,801",  ppto2025: "225,941",  real2024: "188,297", varReal: "43%",  varPpto: "19%"  },
+      { name: "Gastos Administrativos", real2025: "1,078,577", ppto2025: "1,255,838", real2024: "773,980", varReal: "39%", varPpto: "-14%" },
+      { name: "Nómina",              real2025: "3,313,719", ppto2025: "3,336,915", real2024: "2,638,976", varReal: "26%", varPpto: "-1%"  },
+      { name: "Gastos Corporativos", real2025: "2,126,286", ppto2025: "2,287,056", real2024: "2,050,877", varReal: "4%",  varPpto: "-7%"  },
+
+      { type: "section", name: "OPERATING RESULTS", real2025: "-372,891", ppto2025: "-762,343", real2024: "442,092", varReal: "-184%", varPpto: "51%" },
+      { name: "Member Centricity",   real2025: "348,147",  ppto2025: "-",        real2024: "212,205", varReal: "64%",  varPpto: "0%"  },
+      { name: "Other",               real2025: "129",      ppto2025: "-",        real2024: "82,235",  varReal: "-100%", varPpto: "0%"  },
+
+      { type: "section", name: "NET RESULTS", real2025: "720,908", ppto2025: "762,343", real2024: "312,121", varReal: "-331%", varPpto: "-5%" }
+    ];
+
+    const DATASET = {
+      CDMX: BASE_ROWS,
+      GDL:  BASE_ROWS,
+      MTY:  BASE_ROWS
+    };
+
+    function getVarClass(val) {
+      // val como "10%", "-7%", "0%"
+      try {
+        const n = parseFloat(val.replace('%', ''));
+        if (isNaN(n)) return 'neutral';
+        if (n > 0) return 'positive';
+        if (n < 0) return 'negative';
+        return 'neutral';
+      } catch { return 'neutral'; }
+    }
+
+    function renderTable(city) {
+      const tbody = document.getElementById('tableBody');
+      tbody.innerHTML = '';
+
+      (DATASET[city] || []).forEach(row => {
+        if (row.type === 'section') {
+          const tr = document.createElement('tr');
+          tr.className = 'section-header-row';
+          tr.innerHTML = `
+            <td>${row.name}</td>
+            <td class="text-end">${row.real2025}</td>
+            <td class="text-end">${row.ppto2025}</td>
+            <td class="text-end">${row.real2024}</td>
+            <td class="text-end ${getVarClass(row.varReal)}">${row.varReal}</td>
+            <td class="text-end ${getVarClass(row.varPpto)}">${row.varPpto}</td>
+          `;
+          tbody.appendChild(tr);
+        } else {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${row.name}</td>
+            <td class="text-end">${row.real2025}</td>
+            <td class="text-end">${row.ppto2025}</td>
+            <td class="text-end">${row.real2024}</td>
+            <td class="text-end ${getVarClass(row.varReal)}">${row.varReal}</td>
+            <td class="text-end ${getVarClass(row.varPpto)}">${row.varPpto}</td>
+          `;
+          tbody.appendChild(tr);
+        }
+      });
+    }
+
+    function updateHeader(city) {
+      const subtitle = document.getElementById('chapterSubtitle');
+      const pill = document.getElementById('cityPill');
+      subtitle.textContent = `Capítulo ${CITY_LABELS[city] || city}`;
+      pill.textContent = city;
+      document.title = `Resumen – ${CITY_LABELS[city] || city}`;
+      document.getElementById('chapterTitle').textContent = 'Resumen';
+    }
+
+    function highlightPctCity(city) {
+      // Quita highlight previo
+      document.querySelectorAll('.pct-item').forEach(el => el.classList.remove('highlight'));
+      // Agrega a ambos años para la ciudad elegida
+      document.querySelectorAll(`.pct-item[data-city="${city}"]`).forEach(el => el.classList.add('highlight'));
+    }
+
+    // Init
+    const citySelect = document.getElementById('citySelect');
+    citySelect.addEventListener('change', (e) => {
+      const city = e.target.value;
+      renderTable(city);
+      updateHeader(city);
+      highlightPctCity(city);
+    });
+
+    // Render inicial (GDL)
+    renderTable('GDL');
+    updateHeader('GDL');
+    highlightPctCity('GDL');
+
+    // Porcentajes de Gastos Corporativos por año y ciudad
+const CORPORATE_EXPENSE_PCT = {
+  2024: { CDMX: 53, GDL: 16, MTY: 31 },
+  2025: { CDMX: 55, GDL: 13, MTY: 32 }
+};
+
+function selectedYears() {
+  const checks = Array.from(document.querySelectorAll('.year-check'));
+  return checks.filter(c => c.checked).map(c => c.value);
+}
+
+function renderPctCards() {
+  const container = document.getElementById('pctContainer');
+  const years = selectedYears();
+  container.innerHTML = '';
+
+  if (years.length === 0) {
+    container.innerHTML = `
+      <div class="col-12">
+        <div class="p-3 border rounded-3 bg-light text-muted">
+          Selecciona al menos un año para visualizar.
+        </div>
+      </div>`;
+    return;
+  }
+
+  years.forEach((year) => {
+    const data = CORPORATE_EXPENSE_PCT[year];
+    if (!data) return;
+    const col = document.createElement('div');
+    col.className = 'col-md-6 mb-3';
+    const bg = year === '2024' ? 'rgba(47, 111, 78, 0.05)' : 'rgba(184, 115, 51, 0.08)';
+    col.innerHTML = `
+      <div class="p-3 h-100" style="background-color: ${bg}; border-radius: 8px;">
+        <h6 class="fw-semibold mb-2">${year}</h6>
+        <div class="d-flex justify-content-between mb-1 pct-item" data-city="CDMX" data-year="${year}">
+          <span>CDMX</span><strong>${data.CDMX}%</strong>
+        </div>
+        <div class="d-flex justify-content-between mb-1 pct-item" data-city="GDL" data-year="${year}">
+          <span>GDL</span><strong>${data.GDL}%</strong>
+        </div>
+        <div class="d-flex justify-content-between pct-item" data-city="MTY" data-year="${year}">
+          <span>MTY</span><strong>${data.MTY}%</strong>
+        </div>
+      </div>
+    `;
+    container.appendChild(col);
+  });
+
+  highlightPctCity(document.getElementById('citySelect').value);
+}
+
+// Escucha cambios de año
+document.querySelectorAll('.year-check').forEach(chk => {
+  chk.addEventListener('change', renderPctCards);
+});
+
+// Render inicial
+renderPctCards();
+
+  </script>
+  
 </body>
 </html>
