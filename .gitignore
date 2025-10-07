@@ -1,6 +1,22 @@
-
 # Dependencias
 node_modules/
+
+# Variables de entorno y configuración local
+.env
+.env.*
+.npmrc
+.yarnrc*
+.pnpmfile.cjs
+
+# Cachés de herramientas
+.cache/
+.parcel-cache/
+.eslintcache
+/.npm/
+/.yarn/
+/.pnpm-store/
+/.turbo/
+/.vscode-test/
 
 # Construcciones y empaquetado
 /dist/
@@ -9,6 +25,18 @@ node_modules/
 /release/
 /dist-*/
 /electron-build/
+/*.tgz
+
+# Cobertura y reportes
+coverage/
+reports/
+
+# Artefactos temporales
+*.tmp
+*.temp
+*.bak
+*.orig
+~$*
 
 # Instaladores y ejecutables
 *.exe
@@ -21,6 +49,9 @@ node_modules/
 *.tgz
 *.pkg
 *.AppImage
+*.snap
+*.deb
+*.rpm
 
 # Recursos generados
 *.log
@@ -34,7 +65,9 @@ pnpm-debug.log*
 .DS_Store
 Thumbs.db
 
-# Herramientas de desarrollo
+# Historiales de editores y ajustes locales
+.history/
 .idea/
 .vscode/
+.fleet/
 
