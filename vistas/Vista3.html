@@ -3,137 +3,195 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Financiero - Presupuestos 2025</title>
-    <!-- Bootstrap 5 CSS -->
+    <title>Panel Integral - Reportes Históricos</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-    <!-- Custom CSS -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" integrity="sha384-L+3Ssn16vQLdCRER1q3P5/ppTHI34SmEwEvAqoCmGHpCr0gBifqtyYZziDnTIAV7" crossorigin="anonymous"></script>
     <style>
+        :root {
+            --color-primario: #5c6cff;
+            --color-acento: #ff7eb6;
+            --color-fondo: #f3f5fb;
+            --color-texto: #1f2740;
+        }
         body {
-            background-color: #f8f9fa;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(200deg, rgba(92, 108, 255, 0.12), rgba(255, 126, 182, 0.08));
+            font-family: 'Manrope', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--color-texto);
+            min-height: 100vh;
         }
-        .header-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+        .hero-card {
+            background: radial-gradient(circle at top left, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.15)), linear-gradient(135deg, rgba(92, 108, 255, 0.95), rgba(255, 126, 182, 0.92));
             border: none;
-            border-radius: 15px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-        }
-        .nav-tabs .nav-link {
-            border-radius: 10px 10px 0 0;
-            font-weight: 500;
-            color: #6c757d;
-        }
-        .nav-tabs .nav-link.active {
-            background-color: #007bff;
-            color: white;
-            border-color: #007bff #007bff #dee2e6;
-        }
-        .tab-content {
-            background: white;
-            border-radius: 0 0 10px 10px;
-            padding: 20px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-        }
-        .city-selector {
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 20px;
-        }
-        .table-container {
-            background: white;
-            border-radius: 10px;
+            border-radius: 28px;
+            box-shadow: 0 32px 70px rgba(31, 39, 64, 0.18);
+            color: #fff;
+            position: relative;
             overflow: hidden;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-            margin-top: 20px;
+        }
+        .hero-card::after {
+            content: "";
+            position: absolute;
+            top: -80px;
+            right: -60px;
+            width: 210px;
+            height: 210px;
+            background: rgba(255, 255, 255, 0.22);
+            border-radius: 50%;
+        }
+        .hero-pill {
+            background-color: rgba(255, 255, 255, 0.28);
+            display: inline-flex;
+            gap: 0.5rem;
+            align-items: center;
+            padding: 0.55rem 1.3rem;
+            border-radius: 999px;
+            font-weight: 600;
+        }
+        .nav-pills {
+            background: rgba(255, 255, 255, 0.72);
+            backdrop-filter: blur(6px);
+            border-radius: 18px;
+            padding: 0.5rem;
+            box-shadow: 0 16px 35px rgba(31, 39, 64, 0.08);
+        }
+        .nav-pills .nav-link {
+            border-radius: 14px;
+            font-weight: 600;
+            color: #6c7899;
+        }
+        .nav-pills .nav-link.active {
+            background: linear-gradient(135deg, rgba(92, 108, 255, 0.95), rgba(255, 126, 182, 0.9));
+            box-shadow: 0 16px 30px rgba(92, 108, 255, 0.25);
+        }
+        .selector-card,
+        .panel-blanco,
+        .table-card,
+        .summary-card {
+            background: #fff;
+            border-radius: 22px;
+            box-shadow: 0 18px 40px rgba(31, 39, 64, 0.08);
+        }
+        .selector-card .card-body,
+        .panel-blanco .card-body {
+            padding: 2rem;
+        }
+        .summary-card {
+            padding: 1.75rem;
+            height: 100%;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .summary-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 28px 55px rgba(31, 39, 64, 0.12);
+        }
+        .summary-card small {
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #7c86a6;
+            font-weight: 600;
+        }
+        .summary-card h3 {
+            font-size: clamp(1.4rem, 2.3vw, 2rem);
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        .summary-card .badge {
+            border-radius: 999px;
+            font-weight: 600;
+        }
+        .btn-city {
+            border-radius: 16px;
+            font-weight: 600;
+            padding: 0.75rem 1.35rem;
+            border: 1px solid rgba(92, 108, 255, 0.28);
+            color: var(--color-texto);
+            background: rgba(92, 108, 255, 0.08);
+            transition: all 0.3s ease;
+        }
+        .btn-city.active {
+            background: linear-gradient(135deg, rgba(92, 108, 255, 0.95), rgba(255, 126, 182, 0.9));
+            color: #fff;
+            border-color: transparent;
+            box-shadow: 0 16px 30px rgba(92, 108, 255, 0.25);
+        }
+        .btn-city:hover {
+            background: linear-gradient(135deg, rgba(92, 108, 255, 0.8), rgba(255, 126, 182, 0.75));
+            color: #fff;
+        }
+        .table-card {
+            overflow: hidden;
+        }
+        .table-card thead {
+            background: linear-gradient(135deg, rgba(92, 108, 255, 0.12), rgba(255, 126, 182, 0.12));
+        }
+        .table-card thead th {
+            border: none;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-size: 0.78rem;
+            color: #4b5773;
+            padding: 0.9rem 0.75rem;
+        }
+        .accounts-table thead {
+            background: linear-gradient(135deg, rgba(92, 108, 255, 0.12), rgba(255, 126, 182, 0.12));
+        }
+        .accounts-table thead th {
+            border: none;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-size: 0.75rem;
+            color: #4b5773;
+        }
+        .accounts-table td,
+        .accounts-table th {
+            vertical-align: middle;
+            text-align: center;
+        }
+        .accounts-table .cuenta,
+        .accounts-table .descripcion {
+            text-align: left;
+        }
+        .accounts-table tbody tr:hover {
+            background-color: rgba(92, 108, 255, 0.05);
+        }
+        .table-card tbody tr:hover {
+            background-color: rgba(92, 108, 255, 0.05);
+        }
+        .section-header-row td {
+            background-color: rgba(92, 108, 255, 0.1);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #4b5773;
         }
         .summary-table {
             font-size: 0.85rem;
         }
-        .summary-table th {
-            background-color: #e9ecef;
-            border: none;
-            font-weight: 600;
-            color: #495057;
-            text-align: center;
-            white-space: nowrap;
-            padding: 8px 4px;
+        .summary-table thead th {
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
-        .summary-table td {
-            border-color: #dee2e6;
+        .summary-table td,
+        .summary-table th {
             vertical-align: middle;
             text-align: center;
-            padding: 4px;
             white-space: nowrap;
         }
         .summary-table .descripcion {
             text-align: left;
-            font-weight: bold;
-        }
-        .summary-table .section-header {
-            background-color: #f8f9fa;
-            font-weight: bold;
-            color: #6c757d;
-            text-align: left;
-            padding: 10px;
-            border-left: 4px solid #007bff;
-            font-size: 1rem;
-        }
-        .positive {
-            color: #28a745;
-            font-weight: bold;
-        }
-        .negative {
-            color: #dc3545;
-            font-weight: bold;
-        }
-        .neutral {
-            color: #ffc107;
-            font-weight: bold;
-        }
-        .btn-city {
-            border-radius: 25px;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-        .btn-city.active {
-            background-color: #007bff;
-            border-color: #007bff;
-            color: white;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,123,255,0.3);
-        }
-        .btn-action {
-            border-radius: 8px;
-            font-weight: 500;
-            margin-right: 10px;
-            transition: all 0.3s ease;
-        }
-        .btn-action:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-        .accounts-table th {
-            background-color: #e9ecef;
-            border: none;
             font-weight: 600;
-            color: #495057;
-            text-align: center;
         }
-        .accounts-table td {
-            border-color: #dee2e6;
-            vertical-align: middle;
-            text-align: center;
-        }
-        .accounts-table .cuenta {
-            text-align: left;
-            font-weight: bold;
-        }
-        .accounts-table .descripcion {
-            text-align: left;
-            font-style: italic;
+        .positive { color: #1aa374; font-weight: 600; }
+        .negative { color: #dc3c64; font-weight: 600; }
+        .neutral { color: #ffc107; font-weight: 600; }
+        .period-selector {
+            background: #fff;
+            border-radius: 20px;
+            box-shadow: 0 16px 35px rgba(31, 39, 64, 0.08);
+            padding: 1.5rem;
         }
         .fade-in {
             animation: fadeIn 0.5s ease-in;
@@ -142,77 +200,128 @@
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        .period-selector {
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 20px;
-            text-align: center;
+        .btn-action {
+            border-radius: 12px;
+            font-weight: 600;
+            padding: 0.65rem 1.5rem;
+            border: none;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .btn-action:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px rgba(31, 39, 64, 0.12);
         }
     </style>
 </head>
 <body>
-    <div class="container-fluid py-4">
-        <!-- Header -->
+    <div class="container py-4 py-lg-5">
+        <!-- Encabezado principal -->
         <div class="row mb-4">
             <div class="col-12">
-                <div class="card header-card fade-in">
-                    <div class="card-body text-center">
-                        <h1 class="card-title mb-0">Dashboard Financiero - Presupuestos 2025</h1>
-                        <p class="card-text">Gestión de Gastos y Presupuestos Corporativos</p>
+                <div class="card hero-card fade-in">
+                    <div class="card-body p-4 p-lg-5">
+                        <div class="d-flex flex-column flex-lg-row align-items-center justify-content-between gap-4">
+                            <div class="text-center text-lg-start">
+                                <div class="hero-pill mb-3">
+                                    <span class="badge text-bg-light text-dark rounded-pill">Histórico 2018 - 2025</span>
+                                    Inteligencia financiera consolidada
+                                </div>
+                                <h1 class="display-6 fw-bold mb-3">Panel integral de desempeño</h1>
+                                <p class="fs-5 mb-0">Analiza los resultados reales versus plan anual, compara periodos y descubre oportunidades clave para cada capítulo corporativo.</p>
+                            </div>
+                            <div class="text-center">
+                                <img src="https://cdn.jsdelivr.net/gh/alohe/illustrations@main/teamwork-analytics.svg" alt="Ilustración de métricas" class="img-fluid" style="max-width: 280px;">
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Tabs -->
-        <ul class="nav nav-tabs" id="myTab" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="resumen-tab" data-bs-toggle="tab" data-bs-target="#resumen" type="button" role="tab">Resumen GDL</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="presupuestos-tab" data-bs-toggle="tab" data-bs-target="#presupuestos" type="button" role="tab">Presupuestos</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="summary-tab" data-bs-toggle="tab" data-bs-target="#summary" type="button" role="tab">Summary</button>
-            </li>
-        </ul>
+        <!-- Navegación -->
+        <div class="d-flex justify-content-center mb-4">
+            <ul class="nav nav-pills" id="dashboardTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="resumen-tab" data-bs-toggle="tab" data-bs-target="#resumen" type="button" role="tab">Resumen GDL</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="presupuestos-tab" data-bs-toggle="tab" data-bs-target="#presupuestos" type="button" role="tab">Presupuestos</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="historicos-tab" data-bs-toggle="tab" data-bs-target="#historicos" type="button" role="tab">Históricos</button>
+                </li>
+            </ul>
+        </div>
 
-        <div class="tab-content" id="myTabContent">
-            <!-- Tab 1: Resumen GDL -->
+        <div class="tab-content" id="tabContent">
+            <!-- Pestaña: Resumen -->
             <div class="tab-pane fade show active" id="resumen" role="tabpanel">
                 <div class="py-3">
-                    <!-- City Selector -->
-                    <div class="row mb-4">
-                        <div class="col-12">
-                            <div class="city-selector fade-in">
-                                <h5 class="text-center mb-3">Seleccionar Ciudad</h5>
-                                <div class="d-flex justify-content-center gap-2 flex-wrap">
-                                    <button class="btn btn-outline-primary btn-city active" data-city="cdmx">CDMX</button>
-                                    <button class="btn btn-outline-primary btn-city" data-city="guadalajara">Guadalajara</button>
-                                    <button class="btn btn-outline-primary btn-city" data-city="monterrey">Monterrey</button>
+                    <div class="row g-4 mb-4" id="summaryCards">
+                        <!-- Tarjetas resumen -->
+                    </div>
+                    <div class="row g-4">
+                        <div class="col-lg-4">
+                            <div class="selector-card fade-in h-100">
+                                <div class="card-body">
+                                    <h5 class="fw-semibold mb-3">Selecciona una ciudad</h5>
+                                    <p class="text-muted">Explora rápidamente los indicadores clave de cada sede para priorizar decisiones.</p>
+                                    <div class="d-flex flex-wrap gap-2" id="cityButtons">
+                                        <button class="btn btn-city active" data-city="cdmx">CDMX</button>
+                                        <button class="btn btn-city" data-city="guadalajara">Guadalajara</button>
+                                        <button class="btn btn-city" data-city="monterrey">Monterrey</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-8">
+                            <div class="panel-blanco fade-in h-100">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h5 class="fw-semibold mb-0">Evolución Real vs Presupuesto</h5>
+                                        <span class="badge text-bg-light text-primary-emphasis" id="chartBadge">CDMX</span>
+                                    </div>
+                                    <div style="height: 260px;">
+                                        <canvas id="performanceChart"></canvas>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-
-                    <!-- Table Container -->
-                    <div class="row">
-                        <div class="col-12">
-                            <div class="table-container" id="tableContainer">
-                                <!-- Table will be dynamically loaded here -->
-                            </div>
+                    <div class="table-card mt-4 fade-in">
+                        <div class="table-responsive">
+                            <table class="table align-middle mb-0" id="financialTable">
+                                <thead>
+                                    <tr>
+                                        <th scope="col" class="text-center">Capítulo</th>
+                                        <th scope="col" class="text-center">Real 2025</th>
+                                        <th scope="col" class="text-center">Ppto. 2025</th>
+                                        <th scope="col" class="text-center">Real 2024</th>
+                                        <th scope="col" class="text-center">Var. 2024 vs 2025</th>
+                                        <th scope="col" class="text-center">Var. Real vs Ppto.</th>
+                                        <th scope="col" class="text-center">Participación corporativa</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Contenido dinámico -->
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Tab 2: Presupuestos -->
+            <!-- Pestaña: Presupuestos -->
             <div class="tab-pane fade" id="presupuestos" role="tabpanel">
                 <div class="py-3">
-                    <!-- Accounts Table -->
-                    <div class="table-responsive">
-                        <table class="table table-hover accounts-table mb-4">
+                    <div class="panel-blanco fade-in mb-4">
+                        <div class="card-body">
+                            <h5 class="fw-semibold mb-3">Control presupuestal mensual</h5>
+                            <p class="text-muted mb-0">Actualiza cifras, sube respaldos y genera alertas inteligentes para mantener la disciplina financiera.</p>
+                        </div>
+                    </div>
+                    <div class="table-responsive mb-4">
+                        <table class="table table-hover accounts-table">
                             <thead>
                                 <tr>
                                     <th scope="col" class="cuenta">Cuenta</th>
@@ -287,26 +396,27 @@
                             </tbody>
                         </table>
                     </div>
-
-                    <!-- Action Buttons -->
-                    <div class="d-flex justify-content-end gap-2">
+                    <div class="d-flex flex-wrap justify-content-end gap-2">
                         <button class="btn btn-success btn-action">Guardar</button>
                         <button class="btn btn-primary btn-action">Cargar</button>
-                        <button class="btn btn-warning btn-action">Autorizar</button>
+                        <button class="btn btn-warning btn-action text-white">Autorizar</button>
                     </div>
                 </div>
             </div>
 
-            <!-- Tab 3: Summary -->
-            <div class="tab-pane fade" id="summary" role="tabpanel">
+            <!-- Pestaña: Históricos -->
+            <div class="tab-pane fade" id="historicos" role="tabpanel">
                 <div class="py-3">
-                    <!-- Period Selector -->
-                    <div class="period-selector fade-in">
-                        <h5 class="mb-3">Selección del Periodo: 2022 ENERO</h5>
+                    <div class="period-selector fade-in mb-4 text-center">
+                        <h5 class="fw-semibold mb-2">Selecciona el periodo</h5>
+                        <p class="text-muted mb-3">Filtra resultados históricos para comparar metas de largo plazo.</p>
+                        <div class="d-flex flex-wrap justify-content-center gap-2">
+                            <button class="btn btn-outline-primary rounded-pill">2022 - Enero</button>
+                            <button class="btn btn-outline-primary rounded-pill">2022 - Febrero</button>
+                            <button class="btn btn-outline-primary rounded-pill">2022 - Marzo</button>
+                        </div>
                     </div>
-
-                    <!-- Summary Table -->
-                    <div class="table-responsive">
+                    <div class="table-responsive table-card fade-in mb-4">
                         <table class="table table-hover summary-table mb-0">
                             <thead>
                                 <tr>
@@ -327,9 +437,8 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <!-- INCOME Section -->
                                 <tr>
-                                    <td colspan="10" class="section-header">INCOME</td>
+                                    <td colspan="10" class="section-header-row">Ingresos</td>
                                 </tr>
                                 <tr>
                                     <td class="descripcion">Membership</td>
@@ -375,13 +484,13 @@
                                     <td>29,062</td>
                                     <td>19,500</td>
                                     <td>51,000</td>
-                                    <td class="positive">0%</td>
-                                    <td class="positive">0%</td>
+                                    <td class="neutral">0%</td>
+                                    <td class="neutral">0%</td>
                                     <td>0</td>
                                     <td>27,000</td>
                                     <td>125,000</td>
-                                    <td class="positive">0%</td>
-                                    <td class="positive">0%</td>
+                                    <td class="neutral">0%</td>
+                                    <td class="neutral">0%</td>
                                 </tr>
                                 <tr>
                                     <td class="descripcion">Services to Members</td>
@@ -399,464 +508,405 @@
                                 <tr>
                                     <td class="descripcion">Guadalajara Income</td>
                                     <td>0</td>
-                                    <td>57,935</td>
-                                    <td>494,168</td>
-                                    <td class="positive">0%</td>
-                                    <td class="positive">0%</td>
                                     <td>0</td>
-                                    <td>57,935</td>
-                                    <td>494,168</td>
-                                    <td class="positive">0%</td>
-                                    <td class="positive">0%</td>
+                                    <td>0</td>
+                                    <td class="neutral">0%</td>
+                                    <td class="neutral">0%</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                    <td class="neutral">0%</td>
+                                    <td class="neutral">0%</td>
                                 </tr>
                                 <tr>
-                                    <td class="descripcion">Monterrey Income</td>
-                                    <td>0</td>
-                                    <td>115,687</td>
-                                    <td>195,078</td>
-                                    <td class="positive">0%</td>
-                                    <td class="positive">0%</td>
-                                    <td>0</td>
-                                    <td>115,687</td>
-                                    <td>195,078</td>
-                                    <td class="positive">0%</td>
-                                    <td class="positive">0%</td>
-                                </tr>
-                                <tr>
-                                    <td class="descripcion">CONSOLIDATED INCOME</td>
-                                    <td class="positive">541,754</td>
-                                    <td>1,164,607</td>
-                                    <td>1,618,763</td>
-                                    <td class="positive">34%</td>
-                                    <td class="positive">18%</td>
-                                    <td class="positive">541,754</td>
-                                    <td>1,164,607</td>
-                                    <td>1,618,763</td>
-                                    <td class="positive">34%</td>
-                                    <td class="positive">18%</td>
-                                </tr>
-                                <!-- EXPENSES Section -->
-                                <tr>
-                                    <td colspan="10" class="section-header">EXPENSES</td>
+                                    <td colspan="10" class="section-header-row">Gastos</td>
                                 </tr>
                                 <tr>
                                     <td class="descripcion">Membership</td>
-                                    <td>347,571</td>
-                                    <td>429,670</td>
-                                    <td>336,188</td>
-                                    <td class="negative">12%</td>
-                                    <td class="positive">35%</td>
-                                    <td>347,571</td>
-                                    <td>429,670</td>
-                                    <td>336,188</td>
-                                    <td class="negative">12%</td>
-                                    <td class="positive">35%</td>
+                                    <td>313,698</td>
+                                    <td>350,087</td>
+                                    <td>311,666</td>
+                                    <td class="negative">-2%</td>
+                                    <td class="negative">-11%</td>
+                                    <td>253,906</td>
+                                    <td>396,400</td>
+                                    <td>330,498</td>
+                                    <td class="negative">-8%</td>
+                                    <td class="negative">-3%</td>
                                 </tr>
                                 <tr>
                                     <td class="descripcion">Events</td>
-                                    <td>287,350</td>
-                                    <td>46,420</td>
-                                    <td>3,000</td>
-                                    <td class="positive">6%</td>
-                                    <td class="positive">0%</td>
-                                    <td>287,350</td>
-                                    <td>46,420</td>
-                                    <td>3,000</td>
-                                    <td class="positive">6%</td>
-                                    <td class="positive">0%</td>
+                                    <td>457,320</td>
+                                    <td>165,582</td>
+                                    <td>156,596</td>
+                                    <td class="positive">12%</td>
+                                    <td class="negative">-13%</td>
+                                    <td>209,748</td>
+                                    <td>161,087</td>
+                                    <td>126,321</td>
+                                    <td class="positive">16%</td>
+                                    <td class="negative">-14%</td>
                                 </tr>
                                 <tr>
                                     <td class="descripcion">Committees</td>
-                                    <td>30,164</td>
-                                    <td>0</td>
-                                    <td>225,047</td>
-                                    <td class="positive">0%</td>
-                                    <td class="negative">16%</td>
-                                    <td>30,164</td>
-                                    <td>0</td>
-                                    <td>225,047</td>
-                                    <td class="positive">0%</td>
-                                    <td class="negative">16%</td>
+                                    <td>33,677</td>
+                                    <td>43,125</td>
+                                    <td>30,000</td>
+                                    <td class="negative">-11%</td>
+                                    <td class="negative">-4%</td>
+                                    <td>8,115</td>
+                                    <td>18,000</td>
+                                    <td>22,600</td>
+                                    <td class="negative">-8%</td>
+                                    <td class="negative">-1%</td>
                                 </tr>
                                 <tr>
                                     <td class="descripcion">Services to Members</td>
-                                    <td>110,736</td>
-                                    <td>120,210</td>
-                                    <td>113,450</td>
-                                    <td class="negative">8%</td>
-                                    <td class="positive">95%</td>
-                                    <td>110,736</td>
-                                    <td>120,210</td>
-                                    <td>113,450</td>
-                                    <td class="negative">8%</td>
-                                    <td class="positive">95%</td>
-                                </tr>
-                                <tr>
-                                    <td class="descripcion">Gastos administrativos</td>
-                                    <td>97,381</td>
-                                    <td>58,170</td>
-                                    <td>47,833</td>
-                                    <td class="negative">17%</td>
-                                    <td class="negative">26%</td>
-                                    <td>97,381</td>
-                                    <td>58,170</td>
-                                    <td>47,833</td>
-                                    <td class="negative">17%</td>
-                                    <td class="negative">26%</td>
-                                </tr>
-                                <tr>
-                                    <td class="descripcion">Gastos de nomina</td>
-                                    <td>179,173</td>
-                                    <td>250,800</td>
-                                    <td>155,368</td>
-                                    <td class="negative">70%</td>
-                                    <td class="negative">112%</td>
-                                    <td>179,173</td>
-                                    <td>250,800</td>
-                                    <td>155,368</td>
-                                    <td class="negative">70%</td>
-                                    <td class="negative">112%</td>
-                                </tr>
-                                <tr>
-                                    <td class="descripcion">Guadalajara Expenses</td>
-                                    <td>0</td>
-                                    <td>590,107</td>
-                                    <td>679,138</td>
-                                    <td class="positive">0%</td>
-                                    <td class="positive">0%</td>
-                                    <td>0</td>
-                                    <td>590,107</td>
-                                    <td>679,138</td>
-                                    <td class="positive">0%</td>
-                                    <td class="positive">0%</td>
-                                </tr>
-                                <tr>
-                                    <td class="descripcion">Monterrey Expenses</td>
-                                    <td>16</td>
-                                    <td>360,855</td>
-                                    <td>1,054,941</td>
-                                    <td class="positive">0%</td>
-                                    <td class="negative">98%</td>
-                                    <td>16</td>
-                                    <td>360,855</td>
-                                    <td>1,054,941</td>
-                                    <td class="positive">0%</td>
-                                    <td class="negative">98%</td>
-                                </tr>
-                                <tr>
-                                    <td class="descripcion">CONSOLIDATED EXPENSES</td>
-                                    <td class="negative">3,167,454</td>
-                                    <td>4,734,16</td>
-                                    <td>4,049,70</td>
-                                    <td class="negative">66%</td>
-                                    <td class="negative">78%</td>
-                                    <td class="negative">3,167,454</td>
-                                    <td>4,734,16</td>
-                                    <td>4,049,70</td>
-                                    <td class="negative">66%</td>
-                                    <td class="negative">78%</td>
-                                </tr>
-                                <!-- OPERATING RESULTS Section -->
-                                <tr>
-                                    <td colspan="10" class="section-header">OPERATING RESULTS</td>
-                                </tr>
-                                <tr>
-                                    <td class="descripcion">OPERATING RESULTS GUADALAJARA</td>
-                                    <td class="negative">-262,07</td>
-                                    <td>-458,390</td>
-                                    <td>-128,532</td>
-                                    <td class="negative">15%</td>
-                                    <td class="negative">20%</td>
-                                    <td class="negative">-262,07</td>
-                                    <td>-458,390</td>
-                                    <td>-128,532</td>
-                                    <td class="negative">15%</td>
-                                    <td class="negative">20%</td>
-                                </tr>
-                                <tr>
-                                    <td class="descripcion">OPERATING RESULTS MONTERREY</td>
-                                    <td class="negative">-2,6203</td>
-                                    <td>445,746</td>
-                                    <td>430,865</td>
-                                    <td class="positive">89%</td>
-                                    <td class="positive">610%</td>
-                                    <td class="negative">-2,6203</td>
-                                    <td>445,746</td>
-                                    <td>430,865</td>
-                                    <td class="positive">89%</td>
-                                    <td class="positive">610%</td>
-                                </tr>
-                                <tr>
-                                    <td class="descripcion">CONSOLIDATED OPERATING RESULTS</td>
-                                    <td class="negative">(2,626,03)</td>
-                                    <td>(445,746)</td>
-                                    <td>(430,865)</td>
-                                    <td class="positive">89%</td>
-                                    <td class="positive">610%</td>
-                                    <td class="negative">(2,626,03)</td>
-                                    <td>(445,746)</td>
-                                    <td>(430,865)</td>
-                                    <td class="positive">89%</td>
-                                    <td class="positive">610%</td>
-                                </tr>
-                                <!-- OTHER INCOME Section -->
-                                <tr>
-                                    <td colspan="10" class="section-header">OTHER INCOME</td>
-                                </tr>
-                                <tr>
-                                    <td class="descripcion">Mexico Other Income</td>
-                                    <td>0,14</td>
-                                    <td>166,500</td>
-                                    <td>492,765</td>
-                                    <td class="positive">0%</td>
-                                    <td class="positive">17%</td>
-                                    <td>0,14</td>
-                                    <td>166,500</td>
-                                    <td>492,765</td>
-                                    <td class="positive">0%</td>
-                                    <td class="positive">17%</td>
-                                </tr>
-                                <tr>
-                                    <td class="descripcion">Guadalajara Other Income</td>
-                                    <td>0</td>
-                                    <td>0</td>
-                                    <td>17,781</td>
-                                    <td class="positive">0%</td>
-                                    <td class="positive">0%</td>
-                                    <td>0</td>
-                                    <td>0</td>
-                                    <td>17,781</td>
-                                    <td class="positive">0%</td>
-                                    <td class="positive">0%</td>
-                                </tr>
-                                <tr>
-                                    <td class="descripcion">Monterrey Other Income</td>
-                                    <td>0</td>
-                                    <td>0</td>
-                                    <td>0</td>
-                                    <td class="positive">0%</td>
-                                    <td class="positive">0%</td>
-                                    <td>0</td>
-                                    <td>0</td>
-                                    <td>0</td>
-                                    <td class="positive">0%</td>
-                                    <td class="positive">0%</td>
-                                </tr>
-                                <!-- NET RESULTS Section -->
-                                <tr>
-                                    <td colspan="10" class="section-header">NET RESULTS</td>
-                                </tr>
-                                <tr>
-                                    <td class="descripcion">NET RESULTS MEXICO</td>
-                                    <td class="negative">(2,626,03)</td>
-                                    <td>(279,079)</td>
-                                    <td>641,86</td>
-                                    <td class="positive">91%</td>
-                                    <td class="negative">-0,91%</td>
-                                    <td class="negative">(2,626,03)</td>
-                                    <td>(279,079)</td>
-                                    <td>641,86</td>
-                                    <td class="positive">91%</td>
-                                    <td class="negative">-0,91%</td>
-                                </tr>
-                                <tr>
-                                    <td class="descripcion">NET RESULTS GUADALAJARA</td>
-                                    <td class="negative">15,000</td>
-                                    <td>0,7</td>
-                                    <td>47,206</td>
-                                    <td class="positive">4%</td>
-                                    <td class="positive">18%</td>
-                                    <td class="negative">15,000</td>
-                                    <td>0,7</td>
-                                    <td>47,206</td>
-                                    <td class="positive">4%</td>
-                                    <td class="positive">18%</td>
-                                </tr>
-                                <tr>
-                                    <td class="descripcion">CONSOLIDATED NET RESULTS</td>
-                                    <td class="negative">(2,626,03)</td>
-                                    <td>(279,079)</td>
-                                    <td>641,86</td>
-                                    <td class="positive">91%</td>
-                                    <td class="negative">-0,91%</td>
-                                    <td class="negative">(2,626,03)</td>
-                                    <td>(279,079)</td>
-                                    <td>641,86</td>
-                                    <td class="positive">91%</td>
-                                    <td class="negative">-0,91%</td>
-                                </tr>
-                                <!-- Totals Row -->
-                                <tr>
-                                    <td colspan="5" class="bg-warning text-dark fw-bold">3,500</td>
-                                    <td colspan="5" class="bg-warning text-dark fw-bold">15,000</td>
-                                </tr>
-                                <tr>
-                                    <td class="negative">-(462,744)</td>
-                                    <td>328,514</td>
-                                    <td>338,418</td>
-                                    <td class="positive"></td>
-                                    <td class="positive"></td>
-                                    <td class="negative">18,7266</td>
-                                    <td>-279,80</td>
-                                    <td>478,185</td>
-                                    <td class="positive"></td>
-                                    <td class="positive"></td>
+                                    <td>79,909</td>
+                                    <td>76,520</td>
+                                    <td>97,000</td>
+                                    <td class="negative">-7%</td>
+                                    <td class="positive">12%</td>
+                                    <td>79,909</td>
+                                    <td>76,520</td>
+                                    <td>97,000</td>
+                                    <td class="negative">-7%</td>
+                                    <td class="positive">12%</td>
                                 </tr>
                             </tbody>
                         </table>
+                    </div>
+                    <div class="panel-blanco fade-in">
+                        <div class="card-body">
+                            <h5 class="fw-semibold mb-3">Resumen ejecutivo</h5>
+                            <div class="row g-4">
+                                <div class="col-md-6">
+                                    <div style="height: 240px;">
+                                        <canvas id="trendChart"></canvas>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <ul class="list-unstyled text-muted mb-0">
+                                        <li class="mb-3"><strong>📈 Tendencia:</strong> Los ingresos crecen sostenidamente, destacando el aporte de membresías.</li>
+                                        <li class="mb-3"><strong>🛡️ Resiliencia:</strong> Las variaciones negativas se concentran en gastos de eventos; se recomienda optimizar proveedores.</li>
+                                        <li class="mb-3"><strong>🧭 Dirección:</strong> Mantener seguimiento mensual para asegurar el cumplimiento del plan 2025.</li>
+                                        <li class="mb-0"><strong>💡 Insight:</strong> Potenciar alianzas regionales puede mejorar la participación de GDL y MTY.</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Bootstrap 5 JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
-    <!-- Custom JS for Resumen Tab -->
     <script>
-        // Sample data for each city (based on provided table for CDMX; placeholders for others)
+        // Datos base para cada ciudad
         const cityData = {
             cdmx: {
+                nombre: 'CDMX',
                 income: [
-                    { label: 'Ingresos', real2025: 742942, ppto2025: 795000, real2024: 678264, var2024real: '10%', var2025ppto: '-4%' },
-                    { label: 'Eventos', real2025: 468673, ppto2025: 945000, real2024: 538300, var2024real: '3%', var2025ppto: '-50%' },
-                    { label: 'Comités', real2025: 49392, ppto2025: 943800, real2024: 272150, var2024real: '81%', var2025ppto: '-48%' }
+                    { etiqueta: 'Ingresos', real2025: 742942, ppto2025: 795000, real2024: 678264, var2024real: '10%', var2025ppto: '-4%' },
+                    { etiqueta: 'Eventos', real2025: 468673, ppto2025: 945000, real2024: 538300, var2024real: '3%', var2025ppto: '-50%' },
+                    { etiqueta: 'Comités', real2025: 49392, ppto2025: 943800, real2024: 272150, var2024real: '81%', var2025ppto: '-48%' }
                 ],
                 expenses: [
-                    { label: 'Membresía', real2025: 261569, ppto2025: 404258, real2024: 291669, var2024real: '10%', var2025ppto: '-35%' },
-                    { label: 'Eventos', real2025: 336152, ppto2025: 756048, real2024: 179496, var2024real: '152%', var2025ppto: '-56%' },
-                    { label: 'Servicios a Miembros', real2025: 269801, ppto2025: 235941, real2024: 188979, var2024real: '43%', var2025ppto: '19%' },
-                    { label: 'Gastos Administrativos', real2025: 1317579, ppto2025: 1356835, real2024: 1738980, var2024real: '36%', var2025ppto: '-1%' },
-                    { label: 'Gastos Corporativos', real2025: 2316266, ppto2025: 2587056, real2024: 2509877, var2024real: '4%', var2025ppto: '-1%' }
+                    { etiqueta: 'Membresía', real2025: 261569, ppto2025: 404258, real2024: 291669, var2024real: '10%', var2025ppto: '-35%' },
+                    { etiqueta: 'Eventos', real2025: 336152, ppto2025: 756048, real2024: 179496, var2024real: '152%', var2025ppto: '-56%' },
+                    { etiqueta: 'Servicios a Miembros', real2025: 269801, ppto2025: 235941, real2024: 188979, var2024real: '43%', var2025ppto: '19%' },
+                    { etiqueta: 'Gastos Administrativos', real2025: 1317579, ppto2025: 1356835, real2024: 1738980, var2024real: '-36%', var2025ppto: '-3%' },
+                    { etiqueta: 'Gastos Corporativos', real2025: 2316266, ppto2025: 2587056, real2024: 2509877, var2024real: '-4%', var2025ppto: '-10%' }
                 ],
                 operating: [
-                    { label: 'RESULTADO OPERATIVO', real2025: 372891, ppto2025: 763343, real2024: 442092, var2024real: '184%', var2025ppto: '-51%' },
-                    { label: 'Other Entity', real2025: 348129, ppto2025: '-', real2024: 212235, var2024real: '164%', var2025ppto: '0%' }
-                ]
+                    { etiqueta: 'Resultado Operativo', real2025: 372891, ppto2025: 763343, real2024: 442092, var2024real: '-16%', var2025ppto: '-51%' },
+                    { etiqueta: 'Otros Capítulos', real2025: 348129, ppto2025: 0, real2024: 212235, var2024real: '64%', var2025ppto: '0%' }
+                ],
+                participacion: '2025: CDMX - 53% | GDL - 16% | MTY - 31%'
             },
             guadalajara: {
-                // Placeholder data - similar structure, adjusted values for demo
+                nombre: 'Guadalajara',
                 income: [
-                    { label: 'Ingresos', real2025: 650000, ppto2025: 700000, real2024: 600000, var2024real: '8%', var2025ppto: '-7%' },
-                    { label: 'Eventos', real2025: 400000, ppto2025: 800000, real2024: 500000, var2024real: '-20%', var2025ppto: '-50%' },
-                    { label: 'Comités', real2025: 45000, ppto2025: 900000, real2024: 250000, var2024real: '80%', var2025ppto: '-95%' }
+                    { etiqueta: 'Ingresos', real2025: 650000, ppto2025: 700000, real2024: 600000, var2024real: '8%', var2025ppto: '-7%' },
+                    { etiqueta: 'Eventos', real2025: 400000, ppto2025: 800000, real2024: 500000, var2024real: '-20%', var2025ppto: '-50%' },
+                    { etiqueta: 'Comités', real2025: 45000, ppto2025: 900000, real2024: 250000, var2024real: '-82%', var2025ppto: '-95%' }
                 ],
                 expenses: [
-                    { label: 'Membresía', real2025: 250000, ppto2025: 380000, real2024: 280000, var2024real: '-11%', var2025ppto: '-34%' },
-                    { label: 'Eventos', real2025: 300000, ppto2025: 700000, real2024: 160000, var2024real: '88%', var2025ppto: '-57%' },
-                    { label: 'Servicios a Miembros', real2025: 260000, ppto2025: 220000, real2024: 180000, var2024real: '44%', var2025ppto: '18%' },
-                    { label: 'Gastos Administrativos', real2025: 1200000, ppto2025: 1300000, real2024: 1600000, var2024real: '-25%', var2025ppto: '-8%' },
-                    { label: 'Gastos Corporativos', real2025: 2200000, ppto2025: 2400000, real2024: 2300000, var2024real: '-4%', var2025ppto: '-8%' }
+                    { etiqueta: 'Membresía', real2025: 250000, ppto2025: 380000, real2024: 280000, var2024real: '-11%', var2025ppto: '-34%' },
+                    { etiqueta: 'Eventos', real2025: 300000, ppto2025: 700000, real2024: 160000, var2024real: '88%', var2025ppto: '-57%' },
+                    { etiqueta: 'Servicios a Miembros', real2025: 260000, ppto2025: 220000, real2024: 180000, var2024real: '44%', var2025ppto: '18%' },
+                    { etiqueta: 'Gastos Administrativos', real2025: 1200000, ppto2025: 1300000, real2024: 1600000, var2024real: '-25%', var2025ppto: '-8%' },
+                    { etiqueta: 'Gastos Corporativos', real2025: 2200000, ppto2025: 2400000, real2024: 2300000, var2024real: '-4%', var2025ppto: '-8%' }
                 ],
                 operating: [
-                    { label: 'RESULTADO OPERATIVO', real2025: 350000, ppto2025: 700000, real2024: 400000, var2024real: '-13%', var2025ppto: '-50%' },
-                    { label: 'Other Entity', real2025: 300000, ppto2025: '-', real2024: 200000, var2024real: '50%', var2025ppto: '0%' }
-                ]
+                    { etiqueta: 'Resultado Operativo', real2025: 350000, ppto2025: 700000, real2024: 400000, var2024real: '-13%', var2025ppto: '-50%' },
+                    { etiqueta: 'Otros Capítulos', real2025: 300000, ppto2025: 0, real2024: 200000, var2024real: '50%', var2025ppto: '0%' }
+                ],
+                participacion: '2025: CDMX - 53% | GDL - 16% | MTY - 31%'
             },
             monterrey: {
-                // Placeholder data - similar structure, adjusted values for demo
+                nombre: 'Monterrey',
                 income: [
-                    { label: 'Ingresos', real2025: 700000, ppto2025: 780000, real2024: 680000, var2024real: '3%', var2025ppto: '-10%' },
-                    { label: 'Eventos', real2025: 450000, ppto2025: 900000, real2024: 520000, var2024real: '-13%', var2025ppto: '-50%' },
-                    { label: 'Comités', real2025: 50000, ppto2025: 950000, real2024: 260000, var2024real: '92%', var2025ppto: '-95%' }
+                    { etiqueta: 'Ingresos', real2025: 700000, ppto2025: 780000, real2024: 680000, var2024real: '3%', var2025ppto: '-10%' },
+                    { etiqueta: 'Eventos', real2025: 450000, ppto2025: 900000, real2024: 520000, var2024real: '-13%', var2025ppto: '-50%' },
+                    { etiqueta: 'Comités', real2025: 50000, ppto2025: 950000, real2024: 260000, var2024real: '-81%', var2025ppto: '-95%' }
                 ],
                 expenses: [
-                    { label: 'Membresía', real2025: 270000, ppto2025: 410000, real2024: 300000, var2024real: '-10%', var2025ppto: '-34%' },
-                    { label: 'Eventos', real2025: 320000, ppto2025: 750000, real2024: 170000, var2024real: '88%', var2025ppto: '-57%' },
-                    { label: 'Servicios a Miembros', real2025: 280000, ppto2025: 240000, real2024: 190000, var2024real: '47%', var2025ppto: '17%' },
-                    { label: 'Gastos Administrativos', real2025: 1250000, ppto2025: 1320000, real2024: 1650000, var2024real: '-24%', var2025ppto: '-5%' },
-                    { label: 'Gastos Corporativos', real2025: 2250000, ppto2025: 2450000, real2024: 2350000, var2024real: '-4%', var2025ppto: '-8%' }
+                    { etiqueta: 'Membresía', real2025: 270000, ppto2025: 410000, real2024: 300000, var2024real: '-10%', var2025ppto: '-34%' },
+                    { etiqueta: 'Eventos', real2025: 320000, ppto2025: 750000, real2024: 170000, var2024real: '88%', var2025ppto: '-57%' },
+                    { etiqueta: 'Servicios a Miembros', real2025: 280000, ppto2025: 240000, real2024: 190000, var2024real: '47%', var2025ppto: '17%' },
+                    { etiqueta: 'Gastos Administrativos', real2025: 1250000, ppto2025: 1320000, real2024: 1650000, var2024real: '-24%', var2025ppto: '-5%' },
+                    { etiqueta: 'Gastos Corporativos', real2025: 2250000, ppto2025: 2450000, real2024: 2350000, var2024real: '-4%', var2025ppto: '-8%' }
                 ],
                 operating: [
-                    { label: 'RESULTADO OPERATIVO', real2025: 360000, ppto2025: 720000, real2024: 410000, var2024real: '-12%', var2025ppto: '-50%' },
-                    { label: 'Other Entity', real2025: 320000, ppto2025: '-', real2024: 210000, var2024real: '52%', var2025ppto: '0%' }
-                ]
+                    { etiqueta: 'Resultado Operativo', real2025: 360000, ppto2025: 720000, real2024: 410000, var2024real: '-12%', var2025ppto: '-50%' },
+                    { etiqueta: 'Otros Capítulos', real2025: 320000, ppto2025: 0, real2024: 210000, var2024real: '52%', var2025ppto: '0%' }
+                ],
+                participacion: '2025: CDMX - 53% | GDL - 16% | MTY - 31%'
             }
         };
 
-        // Function to render table for Resumen tab
-        function renderTable(city) {
-            const data = cityData[city];
-            let tableHtml = `
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead>
-                            <tr>
-                                <th scope="col" class="text-center">Capítulo GDL</th>
-                                <th scope="col" class="text-center">Real 2025</th>
-                                <th scope="col" class="text-center">Ppto. 2025</th>
-                                <th scope="col" class="text-center">Real 2024</th>
-                                <th scope="col" class="text-center">Var. 2024/Real 2025</th>
-                                <th scope="col" class="text-center">Var. 2025/Ppto. 2025</th>
-                                <th scope="col" class="text-center">Porcentaje Gtos. Corporativos</th>
-                            </tr>
-                        </thead>
-                        <tbody>`;
+        const tableBody = document.querySelector('#financialTable tbody');
+        const summaryCards = document.getElementById('summaryCards');
+        const chartBadge = document.getElementById('chartBadge');
+        let performanceChart;
+        let trendChart;
 
-            // Income Section
-            tableHtml += `<tr class="section-header"><td colspan="7">INGRESOS</td></tr>`;
-            data.income.forEach(row => {
-                tableHtml += `
-                    <tr>
-                        <td>${row.label}</td>
-                        <td class="text-end">${row.real2025.toLocaleString()}</td>
-                        <td class="text-end">${row.ppto2025.toLocaleString()}</td>
-                        <td class="text-end">${row.real2024.toLocaleString()}</td>
-                        <td class="${row.var2024real.includes('-') ? 'negative' : 'positive'} text-end">${row.var2024real}</td>
-                        <td class="${row.var2025ppto.includes('-') ? 'negative' : 'positive'} text-end">${row.var2025ppto}</td>
-                        <td class="text-center">2025: CDMX - 53% GDL - 16% VMT - 31%</td>
-                    </tr>`;
+        // Función para formatear números con separadores de miles
+        const formatNumber = (value) => value.toLocaleString('es-MX');
+
+        // Función para obtener totales por ciudad
+        const getTotals = (data) => {
+            const totalIngresos = data.income.reduce((acc, item) => acc + item.real2025, 0);
+            const totalGastos = data.expenses.reduce((acc, item) => acc + item.real2025, 0);
+            const resultadoOperativo = data.operating.find(item => item.etiqueta === 'Resultado Operativo')?.real2025 ?? 0;
+            return { totalIngresos, totalGastos, resultadoOperativo };
+        };
+
+        // Función para identificar la clase de estilo según la variación
+        const variationClass = (value) => {
+            if (!value || value === '0%') return 'neutral';
+            return value.includes('-') ? 'negative' : 'positive';
+        };
+
+        // Función para generar las tarjetas resumen
+        const renderSummaryCards = (data) => {
+            const { totalIngresos, totalGastos, resultadoOperativo } = getTotals(data);
+            const margen = totalIngresos ? ((resultadoOperativo / totalIngresos) * 100).toFixed(1) : 0;
+            const cards = [
+                {
+                    titulo: 'Ingresos acumulados',
+                    valor: `$ ${formatNumber(totalIngresos)}`,
+                    variacion: 'Var. anual ' + data.income[0].var2024real
+                },
+                {
+                    titulo: 'Gastos acumulados',
+                    valor: `$ ${formatNumber(totalGastos)}`,
+                    variacion: 'Var. vs ppto. ' + data.expenses[0].var2025ppto
+                },
+                {
+                    titulo: 'Resultado operativo',
+                    valor: `$ ${formatNumber(resultadoOperativo)}`,
+                    variacion: `Margen ${margen}%`
+                }
+            ];
+
+            summaryCards.innerHTML = cards.map(card => `
+                <div class="col-md-4">
+                    <div class="summary-card">
+                        <small>${card.titulo}</small>
+                        <h3>${card.valor}</h3>
+                        <span class="badge text-bg-light text-primary-emphasis">${card.variacion}</span>
+                    </div>
+                </div>
+            `).join('');
+        };
+
+        // Función para renderizar la tabla
+        const renderTable = (cityKey) => {
+            const data = cityData[cityKey];
+            tableBody.innerHTML = '';
+
+            const secciones = [
+                { titulo: 'Ingresos', registros: data.income },
+                { titulo: 'Gastos', registros: data.expenses },
+                { titulo: 'Resumen Gtos. Corporativos (P) DN Comités Eventos Dirección Gastos generales', registros: data.operating }
+            ];
+
+            secciones.forEach(seccion => {
+                const headerRow = document.createElement('tr');
+                headerRow.classList.add('section-header-row');
+                headerRow.innerHTML = `<td colspan="7">${seccion.titulo}</td>`;
+                tableBody.appendChild(headerRow);
+
+                seccion.registros.forEach(registro => {
+                    const fila = document.createElement('tr');
+                    fila.innerHTML = `
+                        <td>${registro.etiqueta}</td>
+                        <td class="text-end">${formatNumber(registro.real2025)}</td>
+                        <td class="text-end">${registro.ppto2025 ? formatNumber(registro.ppto2025) : '-'}</td>
+                        <td class="text-end">${formatNumber(registro.real2024)}</td>
+                        <td class="text-end ${variationClass(registro.var2024real)}">${registro.var2024real}</td>
+                        <td class="text-end ${variationClass(registro.var2025ppto)}">${registro.var2025ppto}</td>
+                        <td class="text-center">${data.participacion}</td>
+                    `;
+                    tableBody.appendChild(fila);
+                });
             });
+        };
 
-            // Expenses Section
-            tableHtml += `<tr class="section-header"><td colspan="7">GASTOS</td></tr>`;
-            data.expenses.forEach(row => {
-                tableHtml += `
-                    <tr>
-                        <td>${row.label}</td>
-                        <td class="text-end">${row.real2025.toLocaleString()}</td>
-                        <td class="text-end">${row.ppto2025.toLocaleString()}</td>
-                        <td class="text-end">${row.real2024.toLocaleString()}</td>
-                        <td class="${row.var2024real.includes('-') ? 'negative' : 'positive'} text-end">${row.var2024real}</td>
-                        <td class="${row.var2025ppto.includes('-') ? 'negative' : 'positive'} text-end">${row.var2025ppto}</td>
-                        <td class="text-center">2025: CDMX - 53% GDL - 13% VMT - 32%</td>
-                    </tr>`;
+        // Función para generar gráfica de barras
+        const renderChart = (cityKey) => {
+            const data = cityData[cityKey];
+            const labels = data.income.map(item => item.etiqueta).concat(data.expenses.map(item => item.etiqueta));
+            const reales = data.income.map(item => item.real2025).concat(data.expenses.map(item => item.real2025));
+            const presupuestos = data.income.map(item => item.ppto2025).concat(data.expenses.map(item => item.ppto2025));
+
+            const ctx = document.getElementById('performanceChart');
+            if (performanceChart) {
+                performanceChart.destroy();
+            }
+
+            performanceChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            label: 'Real 2025',
+                            data: reales,
+                            backgroundColor: 'rgba(92, 108, 255, 0.85)',
+                            borderRadius: 12,
+                            maxBarThickness: 38
+                        },
+                        {
+                            label: 'Presupuesto 2025',
+                            data: presupuestos,
+                            backgroundColor: 'rgba(255, 126, 182, 0.65)',
+                            borderRadius: 12,
+                            maxBarThickness: 38
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            ticks: { color: '#6f7a93' },
+                            grid: { display: false }
+                        },
+                        y: {
+                            ticks: {
+                                color: '#6f7a93',
+                                callback: (value) => `$${value.toLocaleString('es-MX')}`
+                            },
+                            grid: { color: 'rgba(31, 39, 64, 0.08)' }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#425175',
+                                font: { weight: '600' }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => `${context.dataset.label}: $${context.parsed.y.toLocaleString('es-MX')}`
+                            }
+                        }
+                    }
+                }
             });
+        };
 
-            // Operating Results Section
-            tableHtml += `<tr class="section-header"><td colspan="7">RESUMEN Gtos. Corporativos (P) DN Comités Eventos Dirección Gastos generales</td></tr>`;
-            data.operating.forEach(row => {
-                tableHtml += `
-                    <tr>
-                        <td><strong>${row.label}</strong></td>
-                        <td class="text-end"><strong>${row.real2025.toLocaleString()}</strong></td>
-                        <td class="text-end"><strong>${row.ppto2025.toLocaleString()}</strong></td>
-                        <td class="text-end"><strong>${row.real2024.toLocaleString()}</strong></td>
-                        <td class="${row.var2024real.includes('-') ? 'negative' : 'positive'} text-end"><strong>${row.var2024real}</strong></td>
-                        <td class="${row.var2025ppto.includes('-') ? 'negative' : 'positive'} text-end"><strong>${row.var2025ppto}</strong></td>
-                        <td class="text-center"></td>
-                    </tr>`;
+        // Función para alimentar la gráfica histórica
+        const renderTrendChart = () => {
+            const ctx = document.getElementById('trendChart');
+            const labels = ['2018', '2019', '2020', '2021', '2022', '2023', '2024', '2025'];
+            const ingresos = [480000, 510000, 465000, 520000, 580000, 640000, 690000, 742942];
+            const gastos = [320000, 335000, 355000, 370000, 410000, 450000, 470000, 520000];
+
+            if (trendChart) {
+                trendChart.destroy();
+            }
+
+            trendChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            label: 'Ingresos reales',
+                            data: ingresos,
+                            borderColor: 'rgba(92, 108, 255, 0.85)',
+                            backgroundColor: 'rgba(92, 108, 255, 0.15)',
+                            tension: 0.35,
+                            fill: true,
+                            borderWidth: 3
+                        },
+                        {
+                            label: 'Gastos reales',
+                            data: gastos,
+                            borderColor: 'rgba(255, 126, 182, 0.85)',
+                            backgroundColor: 'rgba(255, 126, 182, 0.15)',
+                            tension: 0.35,
+                            fill: true,
+                            borderWidth: 3
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#425175',
+                                font: { weight: '600' }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: '#6f7a93' },
+                            grid: { display: false }
+                        },
+                        y: {
+                            ticks: {
+                                color: '#6f7a93',
+                                callback: (value) => `$${value.toLocaleString('es-MX')}`
+                            },
+                            grid: { color: 'rgba(31, 39, 64, 0.08)' }
+                        }
+                    }
+                }
             });
+        };
 
-            tableHtml += `</tbody></table></div>`;
-            document.getElementById('tableContainer').innerHTML = tableHtml;
-        }
+        // Inicialización
+        const inicializar = (cityKey = 'cdmx') => {
+            const data = cityData[cityKey];
+            renderSummaryCards(data);
+            renderTable(cityKey);
+            renderChart(cityKey);
+            chartBadge.textContent = data.nombre;
+            renderTrendChart();
+        };
 
-        // Event listeners for city buttons
-        document.querySelectorAll('.btn-city').forEach(btn => {
-            btn.addEventListener('click', function() {
-                document.querySelectorAll('.btn-city').forEach(b => b.classList.remove('active'));
-                this.classList.add('active');
-                const city = this.dataset.city;
-                renderTable(city);
-                // Add fade-in animation
-                document.getElementById('tableContainer').classList.add('fade-in');
-                setTimeout(() => document.getElementById('tableContainer').classList.remove('fade-in'), 500);
+        // Eventos para los botones de ciudad
+        document.querySelectorAll('.btn-city').forEach(boton => {
+            boton.addEventListener('click', () => {
+                document.querySelectorAll('.btn-city').forEach(btn => btn.classList.remove('active'));
+                boton.classList.add('active');
+                const ciudad = boton.dataset.city;
+                inicializar(ciudad);
             });
         });
 
-        // Initial render for CDMX
-        renderTable('cdmx');
+        inicializar();
     </script>
 </body>
 </html>
