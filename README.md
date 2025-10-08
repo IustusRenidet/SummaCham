@@ -32,7 +32,9 @@ El proyecto está configurado con **electron-builder** para generar un ejecutabl
    npm run dist
    ```
 
-   Esto crea el paquete en la carpeta `dist/` con un archivo `SummaCham-portable-<version>-x64.exe` listo para distribuirse sin instalación.
+   Esto crea el paquete en la carpeta `dist/` con un archivo `PanelAMCHAM-portable-<version>-x64.exe` listo para distribuirse sin instalación.
+
+   > 💡 En Linux y macOS se necesita tener instalados `wine`, `mono` y `icnsutils` para generar el ejecutable portable de Windows.
 
 3. Comparte el archivo portable generado. Los usuarios solo necesitan descargarlo y abrirlo.
 
