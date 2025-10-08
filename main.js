@@ -1,6 +1,10 @@
 const { app, BrowserWindow } = require('electron');
 const path = require('path');
 
+const resolveAssetPath = (...segments) => {
+  return path.join(app.getAppPath(), ...segments);
+};
+
 const createWindow = () => {
   const iconName = process.platform === 'win32' ? 'icono.ico' : 'icono.png';
 
@@ -11,10 +15,10 @@ const createWindow = () => {
     minHeight: 720,
     backgroundColor: '#f3f6f1',
     autoHideMenuBar: true,
-    icon: path.join(__dirname, 'icono', iconName)
+    icon: resolveAssetPath('icono', iconName)
   });
 
-  mainWindow.loadFile(path.join(__dirname, 'vistas', 'Vista3.html'));
+  mainWindow.loadFile(resolveAssetPath('vistas', 'Vista3.html'));
 };
 
 app.whenReady().then(() => {
