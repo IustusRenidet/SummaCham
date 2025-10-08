@@ -35,6 +35,11 @@
         "to": "resources/vistas"
       }
     ],
+    "portable": {
+      "artifactName": "${productName}-portable-${version}-${arch}.${ext}",
+      "useZip": false,
+      "requestExecutionLevel": "user"
+    },
     "win": {
       "target": [
         {
