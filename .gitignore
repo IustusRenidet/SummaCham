@@ -60,6 +60,7 @@ yarn-error.log*
 pnpm-debug.log*
 *.map
 *.asar
+src/db/datos/
 
 # Sistemas operativos
 .DS_Store
