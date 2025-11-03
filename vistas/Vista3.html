@@ -1806,6 +1806,586 @@
       });
     });
   </script>
+
+  <script>
+    // Sistema de identificadores tipo Excel y fórmulas
+    class ExcelTable {
+      constructor(tableId) {
+        this.table = document.getElementById(tableId);
+        this.cellMap = new Map(); // Mapa de ID -> celda
+        this.formulaMap = new Map(); // Mapa de ID -> fórmula
+        this.selectedCell = null;
+        this.init();
+      }
+
+      init() {
+        this.assignCellIds();
+        this.setupCellEditing();
+        this.setupFormulaBar();
+      }
+
+      // Asignar identificadores tipo Excel a cada celda
+      assignCellIds() {
+        const rows = this.table.querySelectorAll('tbody tr');
+        
+        rows.forEach((row, rowIndex) => {
+          const cells = row.querySelectorAll('td, th');
+          cells.forEach((cell, colIndex) => {
+            const cellId = this.getCellId(rowIndex, colIndex);
+            cell.setAttribute('data-cell-id', cellId);
+            cell.setAttribute('title', `Celda: ${cellId}`);
+            this.cellMap.set(cellId, cell);
+          });
+        });
+      }
+
+      // Convertir coordenadas numéricas a ID tipo Excel (0,0 -> A1)
+      getCellId(row, col) {
+        let columnName = '';
+        let tempCol = col;
+        
+        while (tempCol >= 0) {
+          columnName = String.fromCharCode(65 + (tempCol % 26)) + columnName;
+          tempCol = Math.floor(tempCol / 26) - 1;
+        }
+        
+        return columnName + (row + 1);
+      }
+
+      // Convertir ID tipo Excel a coordenadas numéricas (A1 -> {row: 0, col: 0})
+      parseCellId(cellId) {
+        const match = cellId.match(/^([A-Z]+)(\d+)$/);
+        if (!match) return null;
+        
+        const colStr = match[1];
+        const rowNum = parseInt(match[2]) - 1;
+        
+        let col = 0;
+        for (let i = 0; i < colStr.length; i++) {
+          col = col * 26 + (colStr.charCodeAt(i) - 64);
+        }
+        col -= 1;
+        
+        return { row: rowNum, col: col };
+      }
+
+      // Obtener valor de una celda por su ID
+      getCellValue(cellId) {
+        const cell = this.cellMap.get(cellId);
+        if (!cell) return 0;
+        
+        const text = cell.textContent.trim().replace(/^ƒ\s*/, '');
+        const cleaned = text.replace(/[$,()]/g, '').replace(/%/g, '');
+        const num = parseFloat(cleaned);
+        
+        return isNaN(num) ? 0 : num;
+      }
+
+      // Establecer valor en una celda
+      setCellValue(cellId, value) {
+        const cell = this.cellMap.get(cellId);
+        if (!cell) return;
+        
+        if (typeof value === 'number') {
+          cell.textContent = this.formatNumber(value);
+        } else {
+          cell.textContent = value;
+        }
+      }
+
+      // Formatear número con comas y decimales
+      formatNumber(num) {
+        return num.toLocaleString('en-US', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        });
+      }
+
+      // Parsear rango de celdas (A1:A10)
+      parseRange(range) {
+        const [start, end] = range.split(':');
+        const startCoords = this.parseCellId(start);
+        const endCoords = this.parseCellId(end);
+        
+        if (!startCoords || !endCoords) return [];
+        
+        const cells = [];
+        for (let row = startCoords.row; row <= endCoords.row; row++) {
+          for (let col = startCoords.col; col <= endCoords.col; col++) {
+            cells.push(this.getCellId(row, col));
+          }
+        }
+        return cells;
+      }
+
+      // Funciones de Excel
+      excelFunctions = {
+        SUM: (range) => {
+          const cells = this.parseRange(range);
+          return cells.reduce((sum, cellId) => sum + this.getCellValue(cellId), 0);
+        },
+        AVG: (range) => {
+          const cells = this.parseRange(range);
+          const sum = cells.reduce((sum, cellId) => sum + this.getCellValue(cellId), 0);
+          return cells.length > 0 ? sum / cells.length : 0;
+        },
+        MAX: (range) => {
+          const cells = this.parseRange(range);
+          return Math.max(...cells.map(cellId => this.getCellValue(cellId)));
+        },
+        MIN: (range) => {
+          const cells = this.parseRange(range);
+          return Math.min(...cells.map(cellId => this.getCellValue(cellId)));
+        },
+        COUNT: (range) => {
+          const cells = this.parseRange(range);
+          return cells.filter(cellId => this.getCellValue(cellId) !== 0).length;
+        }
+      };
+
+      // Establecer fórmula en una celda
+      setFormula(cellId, formula) {
+        this.formulaMap.set(cellId, formula);
+        const cell = this.cellMap.get(cellId);
+        if (cell) {
+          cell.setAttribute('data-formula', formula);
+          cell.classList.add('formula-cell');
+        }
+        this.calculateFormula(cellId);
+      }
+
+      // Calcular fórmula
+      calculateFormula(cellId) {
+        const formula = this.formulaMap.get(cellId);
+        if (!formula) return;
+
+        try {
+          let expression = formula;
+
+          // Procesar funciones de Excel
+          Object.keys(this.excelFunctions).forEach(funcName => {
+            const regex = new RegExp(`${funcName}\\(([A-Z0-9:]+)\\)`, 'gi');
+            expression = expression.replace(regex, (match, range) => {
+              return this.excelFunctions[funcName.toUpperCase()](range);
+            });
+          });
+
+          // Reemplazar referencias de celdas simples por sus valores
+          expression = expression.replace(/([A-Z]+\d+)(?!:)/g, (match) => {
+            return this.getCellValue(match);
+          });
+
+          // Evaluar expresión
+          const result = eval(expression);
+          this.setCellValue(cellId, result);
+        } catch (error) {
+          console.error(`Error en fórmula ${cellId}: ${formula}`, error);
+          const cell = this.cellMap.get(cellId);
+          if (cell) cell.textContent = '#ERROR';
+        }
+      }
+
+      // Recalcular todas las fórmulas
+      recalculateAll() {
+        this.formulaMap.forEach((formula, cellId) => {
+          this.calculateFormula(cellId);
+        });
+      }
+
+      // Configurar barra de fórmulas
+      setupFormulaBar() {
+        const formulaBar = document.getElementById('formulaBar');
+        const currentCellId = document.getElementById('currentCellId');
+        const applyFormula = document.getElementById('applyFormula');
+        const clearFormula = document.getElementById('clearFormula');
+
+        // Actualizar barra al seleccionar celda
+        this.table.addEventListener('click', (e) => {
+          const cell = e.target.closest('td');
+          if (!cell) return;
+
+          if (this.selectedCell) {
+            this.selectedCell.classList.remove('selected');
+          }
+
+          this.selectedCell = cell;
+          cell.classList.add('selected');
+
+          const cellId = cell.getAttribute('data-cell-id');
+          const formula = cell.getAttribute('data-formula');
+
+          currentCellId.textContent = cellId;
+          formulaBar.value = formula ? '=' + formula : cell.textContent.trim().replace(/^ƒ\s*/, '');
+        });
+
+        // Aplicar fórmula desde la barra
+        applyFormula.addEventListener('click', () => {
+          if (!this.selectedCell) return;
+
+          const cellId = this.selectedCell.getAttribute('data-cell-id');
+          const value = formulaBar.value.trim();
+
+          if (value.startsWith('=')) {
+            const formula = value.substring(1);
+            this.setFormula(cellId, formula);
+          } else {
+            this.formulaMap.delete(cellId);
+            this.selectedCell.removeAttribute('data-formula');
+            this.selectedCell.classList.remove('formula-cell');
+            this.selectedCell.textContent = value;
+          }
+
+          this.recalculateAll();
+        });
+
+        // Enter en la barra de fórmulas
+        formulaBar.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            applyFormula.click();
+          }
+        });
+
+        // Limpiar fórmula
+        clearFormula.addEventListener('click', () => {
+          if (!this.selectedCell) return;
+
+          const cellId = this.selectedCell.getAttribute('data-cell-id');
+          this.formulaMap.delete(cellId);
+          this.selectedCell.removeAttribute('data-formula');
+          this.selectedCell.classList.remove('formula-cell');
+          this.selectedCell.textContent = '0.00';
+          formulaBar.value = '0.00';
+
+          this.recalculateAll();
+        });
+      }
+
+      // Configurar edición de celdas
+      setupCellEditing() {
+        this.table.addEventListener('dblclick', (e) => {
+          const cell = e.target.closest('td');
+          if (!cell) return;
+
+          const cellId = cell.getAttribute('data-cell-id');
+          const formula = cell.getAttribute('data-formula') || '';
+          
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.value = formula ? '=' + formula : cell.textContent.trim().replace(/^ƒ\s*/, '');
+          input.style.width = '100%';
+          input.style.border = '2px solid #2f6f4e';
+          input.style.padding = '4px';
+          
+          cell.innerHTML = '';
+          cell.appendChild(input);
+          input.focus();
+          input.select();
+
+          const saveValue = () => {
+            const value = input.value.trim();
+            
+            if (value.startsWith('=')) {
+              const formula = value.substring(1);
+              this.setFormula(cellId, formula);
+            } else {
+              this.formulaMap.delete(cellId);
+              cell.removeAttribute('data-formula');
+              cell.classList.remove('formula-cell');
+              cell.textContent = value;
+            }
+            
+            this.recalculateAll();
+          };
+
+          input.addEventListener('blur', saveValue);
+          input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+              saveValue();
+            } else if (e.key === 'Escape') {
+              const originalValue = this.getCellValue(cellId);
+              cell.textContent = this.formatNumber(originalValue);
+            }
+          });
+        });
+      }
+
+      // Guardar fórmulas
+      saveFormulas() {
+        const formulasData = {};
+        this.formulaMap.forEach((formula, cellId) => {
+          formulasData[cellId] = formula;
+        });
+
+        const json = JSON.stringify(formulasData, null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'formulas_vista3.json';
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+
+      // Cargar fórmulas
+      loadFormulas(jsonData) {
+        try {
+          const formulasData = JSON.parse(jsonData);
+          Object.entries(formulasData).forEach(([cellId, formula]) => {
+            this.setFormula(cellId, formula);
+          });
+          this.recalculateAll();
+        } catch (error) {
+          console.error('Error al cargar fórmulas:', error);
+          alert('Error al cargar el archivo de fórmulas');
+        }
+      }
+    }
+
+    // Script para selección de celdas y zoom
+    document.addEventListener('DOMContentLoaded', function() {
+      const table = document.getElementById('mainTable');
+      const tableWrapper = document.getElementById('tableWrapper');
+      const zoomInBtn = document.getElementById('zoomIn');
+      const zoomOutBtn = document.getElementById('zoomOut');
+      const zoomResetBtn = document.getElementById('zoomReset');
+      const zoomDisplay = document.getElementById('zoomDisplay');
+      const resumenAnualCard = document.getElementById('resumenAnualCard');
+      const summaryYearSelect = document.getElementById('summaryYearSelect');
+      const saldoValue = document.getElementById('saldoValue');
+      const acumuladoValue = document.getElementById('acumuladoValue');
+      const filtroAnio = document.getElementById('selectAnio');
+
+      // Inicializar sistema Excel
+      const excelTable = new ExcelTable('mainTable');
+      
+      // Hacer disponible globalmente para debugging
+      window.excelTable = excelTable;
+
+      // Botones de guardar/cargar fórmulas
+      document.getElementById('saveFormulas').addEventListener('click', () => {
+        excelTable.saveFormulas();
+      });
+
+      document.getElementById('loadFormulas').addEventListener('click', () => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json';
+        input.onchange = (e) => {
+          const file = e.target.files[0];
+          if (file) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+              excelTable.loadFormulas(event.target.result);
+            };
+            reader.readAsText(file);
+          }
+        };
+        input.click();
+      });
+
+      const resumenFinanciero = {
+        '2022': { saldo: 1.0, acumulado: 4 },
+        '2021': { saldo: 5, acumulado: 32 },
+        '2020': { saldo: 2, acumulado: 16 },
+        '2019': { saldo: 0, acumulado: 0 }
+      };
+
+      const formatoMXN = new Intl.NumberFormat('es-MX', {
+        style: 'currency',
+        currency: 'MXN',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+
+      function actualizarResumen(year) {
+        if (!saldoValue || !acumuladoValue) {
+          return;
+        }
+
+        const data = resumenFinanciero[year];
+        if (!data) {
+          saldoValue.textContent = 'N/D';
+          saldoValue.classList.add('small');
+          acumuladoValue.textContent = 'N/D';
+          acumuladoValue.classList.add('small');
+          return;
+        }
+
+        const saldoFormateado = formatoMXN.format(data.saldo);
+        const acumuladoFormateado = formatoMXN.format(data.acumulado);
+
+        saldoValue.textContent = saldoFormateado;
+        acumuladoValue.textContent = acumuladoFormateado;
+        saldoValue.classList.toggle('small', saldoFormateado.length > 12);
+        acumuladoValue.classList.toggle('small', acumuladoFormateado.length > 12);
+      }
+
+      if (resumenAnualCard && summaryYearSelect) {
+        const years = Object.keys(resumenFinanciero).sort((a, b) => parseInt(b, 10) - parseInt(a, 10));
+        years.forEach((year) => {
+          const option = document.createElement('option');
+          option.value = year;
+          option.textContent = year;
+          summaryYearSelect.appendChild(option);
+        });
+
+        const defaultYear = years[0];
+        summaryYearSelect.value = defaultYear;
+        actualizarResumen(defaultYear);
+
+        summaryYearSelect.addEventListener('change', (event) => {
+          const selectedYear = event.target.value;
+          actualizarResumen(selectedYear);
+          if (filtroAnio && filtroAnio.value !== selectedYear && resumenFinanciero[selectedYear]) {
+            filtroAnio.value = selectedYear;
+          }
+        });
+
+        if (filtroAnio) {
+          filtroAnio.addEventListener('change', (event) => {
+            const selectedYear = event.target.value;
+            if (resumenFinanciero[selectedYear]) {
+              summaryYearSelect.value = selectedYear;
+              actualizarResumen(selectedYear);
+            }
+          });
+        }
+      }
+
+      let currentZoom = 1;
+      const zoomStep = 0.1;
+      const minZoom = 0.5;
+      const maxZoom = 2;
+
+      // Función para actualizar el zoom
+      function updateZoom(newZoom) {
+        currentZoom = Math.max(minZoom, Math.min(maxZoom, newZoom));
+        tableWrapper.style.transform = `scale(${currentZoom})`;
+        zoomDisplay.textContent = `${Math.round(currentZoom * 100)}%`;
+      }
+
+      // Eventos de zoom
+      zoomInBtn.addEventListener('click', () => {
+        updateZoom(currentZoom + zoomStep);
+      });
+
+      zoomOutBtn.addEventListener('click', () => {
+        updateZoom(currentZoom - zoomStep);
+      });
+
+      zoomResetBtn.addEventListener('click', () => {
+        updateZoom(1);
+      });
+
+      // Zoom con rueda del mouse (Ctrl + Scroll)
+      tableWrapper.addEventListener('wheel', (e) => {
+        if (e.ctrlKey) {
+          e.preventDefault();
+          const delta = e.deltaY > 0 ? -zoomStep : zoomStep;
+          updateZoom(currentZoom + delta);
+        }
+      });
+
+      // Deseleccionar al hacer click fuera de la tabla
+      document.addEventListener('click', function(e) {
+        if (!table.contains(e.target) && !document.getElementById('formulaBar').contains(e.target)) {
+          if (excelTable.selectedCell) {
+            excelTable.selectedCell.classList.remove('selected');
+            excelTable.selectedCell = null;
+            document.getElementById('currentCellId').textContent = '-';
+            document.getElementById('formulaBar').value = '';
+          }
+        }
+      });
+
+      // Prevenir selección de texto al hacer doble click
+      table.addEventListener('mousedown', function(e) {
+        if (e.detail > 1) {
+          e.preventDefault();
+        }
+      });
+
+      // Atajos de teclado
+      document.addEventListener('keydown', (e) => {
+        // Ctrl/Cmd + S para guardar fórmulas
+        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+          e.preventDefault();
+          excelTable.saveFormulas();
+        }
+
+        // Ctrl/Cmd + Z para recalcular todo
+        if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+          e.preventDefault();
+          excelTable.recalculateAll();
+        }
+
+        // Delete para limpiar celda seleccionada
+        if (e.key === 'Delete' && excelTable.selectedCell && !document.activeElement.matches('input')) {
+          e.preventDefault();
+          const cellId = excelTable.selectedCell.getAttribute('data-cell-id');
+          excelTable.formulaMap.delete(cellId);
+          excelTable.selectedCell.removeAttribute('data-formula');
+          excelTable.selectedCell.classList.remove('formula-cell');
+          excelTable.selectedCell.textContent = '0.00';
+          document.getElementById('formulaBar').value = '0.00';
+          excelTable.recalculateAll();
+        }
+
+        // F2 para editar celda seleccionada
+        if (e.key === 'F2' && excelTable.selectedCell) {
+          e.preventDefault();
+          const event = new MouseEvent('dblclick', {
+            bubbles: true,
+            cancelable: true,
+            view: window
+          });
+          excelTable.selectedCell.dispatchEvent(event);
+        }
+
+        // Navegación con flechas
+        if (excelTable.selectedCell && !document.activeElement.matches('input')) {
+          const cellId = excelTable.selectedCell.getAttribute('data-cell-id');
+          const coords = excelTable.parseCellId(cellId);
+          let newCoords = null;
+
+          if (e.key === 'ArrowUp' && coords.row > 0) {
+            newCoords = { row: coords.row - 1, col: coords.col };
+          } else if (e.key === 'ArrowDown') {
+            newCoords = { row: coords.row + 1, col: coords.col };
+          } else if (e.key === 'ArrowLeft' && coords.col > 0) {
+            newCoords = { row: coords.row, col: coords.col - 1 };
+          } else if (e.key === 'ArrowRight') {
+            newCoords = { row: coords.row, col: coords.col + 1 };
+          }
+
+          if (newCoords) {
+            e.preventDefault();
+            const newCellId = excelTable.getCellId(newCoords.row, newCoords.col);
+            const newCell = excelTable.cellMap.get(newCellId);
+            if (newCell) {
+              newCell.click();
+              newCell.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+          }
+        }
+      });
+
+      // Mostrar mensaje de bienvenida en consola
+      console.log('%c📊 Sistema de Fórmulas Excel Activado', 'color: #2f6f4e; font-size: 16px; font-weight: bold;');
+      console.log('%cAtallos de teclado:', 'color: #b87333; font-weight: bold;');
+      console.log('  Ctrl+S: Guardar fórmulas');
+      console.log('  Ctrl+Z: Recalcular todo');
+      console.log('  Delete: Limpiar celda');
+      console.log('  F2: Editar celda');
+      console.log('  Flechas: Navegar entre celdas');
+      console.log('%cFunciones disponibles:', 'color: #b87333; font-weight: bold;');
+      console.log('  SUM(A1:A10), AVG(B1:B5), MAX(C1:C10), MIN(D1:D5), COUNT(E1:E10)');
+      console.log('%cEjemplos de uso:', 'color: #b87333; font-weight: bold;');
+      console.log('  excelTable.setFormula("F10", "SUM(B10:E10)")');
+      console.log('  excelTable.setFormula("G10", "AVG(C1:C20)")');
+      console.log('  excelTable.getCellValue("A5")');
+    });
+  </script>
 </body>
 </html>
 

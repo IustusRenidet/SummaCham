@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+}
+
+
+function syncPermissionEnabling(){
+EMPRESAS.forEach((emp, idx)=>{
+const enabled = document.getElementById(`emp${idx+1}`).checked;
+document.querySelectorAll(`#permAccordion #acc-${emp.key}-col .perm-check`).forEach(cb=>{
+cb.disabled = !enabled;
+if(!enabled) cb.checked = false;
+});
+});
+}
+
+
+function collectFormData(){
+const empresasSel = EMPRESAS.filter((e,idx)=>document.getElementById(`emp${idx+1}`).checked).map(e=>e.key);
+const permisos = {};
+EMPRESAS.forEach(emp=>{
+permisos[emp.key] = {};
+VISTAS.forEach(v=>{
+permisos[emp.key][v] = {};
+ACCIONES.forEach(a=>{
+const id = `${emp.key}_${v}_${a}`.replace(/\s+/g,'_');
+const el = document.getElementById(id);
+permisos[emp.key][v][a] = !!(el && el.checked);
+});
+});
+});
+return {
+nombre: document.getElementById('nombre').value.trim(),
+primer_apellido: document.getElementById('ap1').value.trim(),
+segundo_apellido: document.getElementById('ap2').value.trim(),
+usuario: document.getElementById('usuario').value.trim(),
+correo: document.getElementById('correo').value.trim(),
+empresas: empresasSel,
+permisos,
+generales: {
+agregar: document.getElementById('perm_agregar').checked,
+modificar: document.getElementById('perm_modificar').checked,
+eliminar: document.getElementById('perm_eliminar').checked,
+}
+};
+}
+
+
+document.addEventListener('DOMContentLoaded',()=>{
+renderPermAccordion();
+document.querySelectorAll('.company-check').forEach(cb=>cb.addEventListener('change', syncPermissionEnabling));
+syncPermissionEnabling();
+
+
+document.getElementById('previewJson').addEventListener('click',()=>{
+const json = JSON.stringify(collectFormData(), null, 2);
+document.getElementById('jsonPreview').textContent = json;
+new bootstrap.Modal(document.getElementById('jsonModal')).show();
+});
+
+
+document.getElementById('createUserForm').addEventListener('submit',(e)=>{
+e.preventDefault();
+const data = collectFormData();
+if(!data.nombre || !data.primer_apellido || !data.usuario || !data.correo){
+alert('Completa los campos obligatorios.');
+return;
+}
+alert('Usuario guardado (simulado).');
+window.location.href = 'usuarios.html';
+});
+});
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>
