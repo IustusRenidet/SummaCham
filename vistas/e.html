@@ -1591,8 +1591,14 @@
     </div>
   </div>
 
+  <script src="js/sesion.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script>
+    const sesion = Sesion.requerirSesion();
+    if (!sesion) {
+      throw new Error('Redireccionando al inicio de sesión.');
+    }
+
     // Script para selección de celdas y zoom
     document.addEventListener('DOMContentLoaded', function() {
       const table = document.getElementById('mainTable');
