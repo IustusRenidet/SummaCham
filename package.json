@@ -54,5 +54,13 @@
       "publisherName": [],
       "artifactName": "${productName}-portable-${version}-${arch}.${ext}"
     }
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^12.4.1",
+    "express": "^5.1.0",
+    "helmet": "^8.1.0",
+    "joi": "^18.0.1",
+    "node-firebird": "^1.1.9"
   }
 }

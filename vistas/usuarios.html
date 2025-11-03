@@ -1,135 +1,324 @@
+<!DOCTYPE html>
 <html lang="es">
 
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Iniciar sesión</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap"
-        rel="stylesheet">
-    <style>
-        body {
-            background: #f3f6f1;
-            font-family: 'Manrope';
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .login-card {
-            background: #fff;
-            border-radius: 16px;
-            box-shadow: 0 10px 25px rgba(36, 50, 38, .12);
-            max-width: 480px;
-            width: 100%;
-        }
-
-        .form-label.required::after {
-            content: " *";
-            color: #c0392b;
-        }
-
-        .btn-primary {
-            background: #2f6f4e;
-            border-color: #2f6f4e
-        }
-
-        .btn-primary:hover {
-            background: #265f43;
-            border-color: #265f43
-        }
-    </style>
-</head>
-<div class="row g-4">
-    <div class="col-12">
-        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mb-3">
-            <h3 class="fw-bold mb-0 text-success">Administrar usuarios</h3>
-            <a class="btn btn-primary" href="crear_usuario.html">Agregar usuario</a>
-        </div>
-    </div>
-
-
-    <div class="col-12">
-        <div class="card panel-card p-4">
-            <input type="search" id="userSearch" class="form-control mb-3"
-                placeholder="Buscar por nombre, usuario o correo...">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle" id="usersTable">
-                    <thead>
-                        <tr>
-                            <th>Nombre</th>
-                            <th>Usuario</th>
-                            <th>Correo</th>
-                            <th>Empresas</th>
-                            <th>Rol</th>
-                            <th class="text-end">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-</div>
-</div>
-
-
-<script>
-    const EMPRESAS = [
-        { key: 'empresa1', label: 'Empresa 1', dot: 'dot-1' },
-        { key: 'empresa2', label: 'Empresa 2', dot: 'dot-2' },
-        { key: 'empresa3', label: 'Empresa 3', dot: 'dot-3' },
-        { key: 'empresa4', label: 'Empresa 4', dot: 'dot-4' },
-    ];
-    const users = []; // se llenará dinámicamente desde el backend o después de crear nuevos usuarios
-
-
-    function renderUsersTable(filter = '') {
-        const tbody = document.querySelector('#usersTable tbody');
-        tbody.innerHTML = '';
-        const q = filter.trim().toLowerCase();
-        const list = users.filter(u => !q || [u.nombre, u.usuario, u.correo].some(v => v.toLowerCase().includes(q)));
-
-
-        if (list.length === 0) {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `<td colspan="6" class="text-center text-muted py-4">Sin usuarios aún. Haz clic en <strong>Agregar usuario</strong> para crear el primero.</td>`;
-            tbody.appendChild(tr);
-            return;
-        }
-
-
-        list.forEach(u => {
-            const chips = (u.empresas || []).map(k => {
-                const meta = EMPRESAS.find(e => e.key === k); if (!meta) return '';
-                return `<span class=\"company-badge me-1 mb-1\"><span class=\"company-dot ${meta.dot}\"></span>${meta.label.replace('Empresa ', 'E')}</span>`
-            }).join('');
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-<td>${u.nombre || ''}</td>
-<td>${u.usuario || ''}</td>
-<td>${u.correo || ''}</td>
-<td>${chips}</td>
-<td><span class=\"role-badge ${u.rol === 'admin' ? 'role-admin' : 'role-user'}\">${u.rol === 'admin' ? 'Admin' : 'Usuario'}</span></td>
-<td class=\"text-end\">
-<div class=\"btn-group\">
-<a class=\"btn btn-sm btn-outline-primary\" href=\"crear_usuario.html?edit=${u.usuario || ''}\">Editar</a>
-<button class=\"btn btn-sm btn-outline-secondary\">Reset</button>
-<button class=\"btn btn-sm btn-outline-danger\" ${(u.rol === 'admin') ? 'disabled' : ''}>Eliminar</button>
-</div>
-</td>`;
-            tbody.appendChild(tr);
-        });
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Administración de usuarios</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body {
+      background: #f3f6f1;
+      font-family: 'Manrope', system-ui, sans-serif;
+      color: #243226;
+      min-height: 100vh;
     }
 
+    .contenedor {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: clamp(1rem, 2vw, 2rem);
+    }
+
+    .panel-card {
+      background: #fff;
+      border-radius: 20px;
+      box-shadow: 0 18px 50px rgba(36, 50, 38, 0.12);
+      padding: clamp(1rem, 2.5vw, 2rem);
+    }
+
+    .btn-primario {
+      background: #2f6f4e;
+      border-color: #2f6f4e;
+      font-weight: 700;
+    }
+
+    .btn-primario:hover,
+    .btn-primario:focus {
+      background: #26523e;
+      border-color: #26523e;
+    }
+
+    .role-badge {
+      border-radius: 999px;
+      padding: 0.25rem 0.75rem;
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+
+    .role-admin {
+      background: rgba(47, 111, 78, 0.15);
+      color: #26523e;
+    }
+
+    .role-user {
+      background: rgba(36, 50, 38, 0.08);
+      color: #243226;
+    }
+
+    .company-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      border-radius: 999px;
+      background: rgba(47, 111, 78, 0.12);
+      color: #1f4b35;
+      font-weight: 600;
+      font-size: 0.75rem;
+      padding: 0.35rem 0.75rem;
+    }
+
+    .company-dot {
+      width: 0.5rem;
+      height: 0.5rem;
+      border-radius: 50%;
+      background: currentColor;
+      display: inline-block;
+    }
+
+    .alerta-global {
+      border-radius: 16px;
+    }
+
+    @media (max-width: 768px) {
+      .tabla-usuarios {
+        font-size: 0.9rem;
+      }
+
+      .tabla-usuarios thead {
+        display: none;
+      }
+
+      .tabla-usuarios tbody tr {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.75rem;
+        padding: 1rem 0.5rem;
+        border-bottom: 1px solid rgba(36, 50, 38, 0.1);
+      }
+
+      .tabla-usuarios tbody td {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+      }
+
+      .tabla-usuarios tbody td::before {
+        content: attr(data-title);
+        font-weight: 700;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        color: #5a6b5e;
+      }
+
+      .acciones {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="contenedor">
+    <header class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3 mb-4">
+      <div>
+        <h1 class="h3 fw-bold text-success mb-1">Administrar usuarios</h1>
+        <p class="text-muted mb-0">Gestiona accesos, permisos y contraseñas del panel.</p>
+      </div>
+      <div class="d-flex gap-2">
+        <a href="crear_usuario.html" class="btn btn-primario">Agregar usuario</a>
+        <a href="login.html" class="btn btn-outline-secondary">Cerrar sesión</a>
+      </div>
+    </header>
+
+    <div id="alerta" class="alerta-global visually-hidden"></div>
+
+    <section class="panel-card mb-4">
+      <div class="row g-3 align-items-center">
+        <div class="col-12 col-md-6">
+          <label for="busqueda" class="form-label fw-semibold mb-1">Buscar usuario</label>
+          <input type="search" id="busqueda" class="form-control" placeholder="Buscar por usuario, nombre o correo" />
+        </div>
+        <div class="col-12 col-md-6 text-md-end">
+          <small class="text-muted">Solo el usuario administrador global puede gestionar cuentas.</small>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel-card">
+      <div class="table-responsive">
+        <table class="table tabla-usuarios align-middle" id="tablaUsuarios">
+          <thead>
+            <tr>
+              <th scope="col">Nombre</th>
+              <th scope="col">Usuario</th>
+              <th scope="col">Correo</th>
+              <th scope="col">Empresas</th>
+              <th scope="col">Rol</th>
+              <th scope="col" class="text-end">Acciones</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const API_BASE = 'http://localhost:3000/api';
+    const alerta = document.getElementById('alerta');
+    const tabla = document.getElementById('tablaUsuarios').querySelector('tbody');
+    const buscador = document.getElementById('busqueda');
+
+    let usuarios = [];
+
+    const obtenerSesion = () => {
+      try {
+        const sesion = JSON.parse(sessionStorage.getItem('sesionUsuario'));
+        return sesion || null;
+      } catch (error) {
+        return null;
+      }
+    };
+
+    const mostrarAlerta = (mensaje, tipo = 'danger') => {
+      alerta.textContent = mensaje;
+      alerta.className = `alerta-global alert alert-${tipo}`;
+    };
+
+    const limpiarAlerta = () => {
+      alerta.className = 'alerta-global visually-hidden';
+      alerta.textContent = '';
+    };
+
+    const representarEmpresas = (permisosPorEmpresa) => {
+      return Object.entries(permisosPorEmpresa || {})
+        .filter(([_, modulos]) => Object.values(modulos || {}).some((acciones) => acciones['Cargar y guardar'] || acciones.Revisar || acciones.Aprobar))
+        .map(([empresaId]) => {
+          const etiqueta = empresaId.replace('empresa', 'E');
+          return `<span class="company-badge mb-1"><span class="company-dot"></span>${etiqueta}</span>`;
+        }).join(' ');
+    };
+
+    const renderizarTabla = () => {
+      const termino = buscador.value.trim().toLowerCase();
+      tabla.innerHTML = '';
+
+      const filtrados = usuarios.filter((usuario) => {
+        if (!termino) return true;
+        return [usuario.usuario, usuario.nombres, usuario.apellidos, usuario.correo]
+          .filter(Boolean)
+          .some((valor) => valor.toLowerCase().includes(termino));
+      });
+
+      if (filtrados.length === 0) {
+        const fila = document.createElement('tr');
+        fila.innerHTML = `<td colspan="6" class="text-center text-muted py-4">No se encontraron usuarios.</td>`;
+        tabla.appendChild(fila);
+        return;
+      }
+
+      filtrados.forEach((usuario) => {
+        const fila = document.createElement('tr');
+        fila.innerHTML = `
+          <td data-title="Nombre">${[usuario.nombres, usuario.apellidos].filter(Boolean).join(' ') || '—'}</td>
+          <td data-title="Usuario">${usuario.usuario}</td>
+          <td data-title="Correo">${usuario.correo || '—'}</td>
+          <td data-title="Empresas">${representarEmpresas(usuario.permisosPorEmpresa)}</td>
+          <td data-title="Rol"><span class="role-badge ${usuario.esAdminGlobal ? 'role-admin' : 'role-user'}">${usuario.esAdminGlobal ? 'Administrador global' : 'Usuario'}</span></td>
+          <td data-title="Acciones" class="text-end acciones">
+            <div class="btn-group">
+              <a class="btn btn-sm btn-outline-success" href="crear_usuario.html?editar=${usuario.id}">Editar</a>
+              <button class="btn btn-sm btn-outline-secondary" data-accion="reset" data-id="${usuario.id}" ${usuario.esAdminGlobal ? 'disabled' : ''}>Restablecer contraseña</button>
+              <button class="btn btn-sm btn-outline-danger" data-accion="eliminar" data-id="${usuario.id}" ${usuario.esAdminGlobal ? 'disabled' : ''}>Eliminar</button>
+            </div>
+          </td>`;
+        tabla.appendChild(fila);
+      });
+    };
+
+    const cargarUsuarios = async () => {
+      limpiarAlerta();
+      try {
+        const respuesta = await fetch(`${API_BASE}/usuarios`);
+        const datos = await respuesta.json();
+        if (!respuesta.ok) {
+          throw new Error(datos.mensaje || 'No fue posible obtener los usuarios.');
+        }
+        usuarios = datos.usuarios || [];
+        renderizarTabla();
+      } catch (error) {
+        mostrarAlerta(error.message || 'Ocurrió un error al cargar los usuarios.');
+      }
+    };
+
+    const eliminarUsuario = async (id) => {
+      if (!confirm('¿Deseas eliminar al usuario seleccionado? Esta acción no se puede deshacer.')) {
+        return;
+      }
+      try {
+        const respuesta = await fetch(`${API_BASE}/usuarios/${id}`, { method: 'DELETE' });
+        const datos = await respuesta.json();
+        if (!respuesta.ok) {
+          throw new Error(datos.mensaje || 'No fue posible eliminar al usuario.');
+        }
+        mostrarAlerta(datos.mensaje, 'success');
+        await cargarUsuarios();
+      } catch (error) {
+        mostrarAlerta(error.message || 'Ocurrió un problema al eliminar el usuario.');
+      }
+    };
+
+    const restablecerContrasena = async (id) => {
+      const nueva = prompt('Ingresa la nueva contraseña (mínimo 8 caracteres):');
+      if (!nueva) return;
+      if (nueva.length < 8) {
+        mostrarAlerta('La contraseña debe tener al menos 8 caracteres.');
+        return;
+      }
+      try {
+        const respuesta = await fetch(`${API_BASE}/usuarios/${id}/restablecer-contrasena`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contrasena: nueva })
+        });
+        const datos = await respuesta.json();
+        if (!respuesta.ok) {
+          throw new Error(datos.mensaje || 'No fue posible restablecer la contraseña.');
+        }
+        mostrarAlerta(datos.mensaje, 'success');
+      } catch (error) {
+        mostrarAlerta(error.message || 'Ocurrió un problema al restablecer la contraseña.');
+      }
+    };
+
+    tabla.addEventListener('click', (evento) => {
+      const boton = evento.target.closest('button[data-accion]');
+      if (!boton) return;
+      const id = boton.getAttribute('data-id');
+      const accion = boton.getAttribute('data-accion');
+      if (accion === 'eliminar') {
+        eliminarUsuario(id);
+      } else if (accion === 'reset') {
+        restablecerContrasena(id);
+      }
+    });
+
+    buscador.addEventListener('input', renderizarTabla);
 
     document.addEventListener('DOMContentLoaded', () => {
-        renderUsersTable();
-        document.getElementById('userSearch').addEventListener('input', (e) => renderUsersTable(e.target.value));
+      const sesion = obtenerSesion();
+      if (!sesion || !sesion.usuario?.esAdminGlobal) {
+        window.location.href = 'login.html';
+        return;
+      }
+      cargarUsuarios();
     });
-</script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 
 </html>
