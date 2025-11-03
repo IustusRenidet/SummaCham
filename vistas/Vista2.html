@@ -346,8 +346,14 @@
         </div>
     </div>
 
+    <script src="js/sesion.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
     <script>
+        const sesion = Sesion.requerirSesion();
+        if (!sesion) {
+            throw new Error('Redireccionando al inicio de sesión.');
+        }
+
         const accountSearchInput = document.getElementById('accountSearch');
         const saveBudgetBtn = document.getElementById('saveBudgetBtn');
         const loadBudgetBtn = document.getElementById('loadBudgetBtn');
