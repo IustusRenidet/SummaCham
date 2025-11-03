@@ -180,6 +180,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/sesion.js"></script>
 
   <script>
     const API_BASE = 'http://localhost:3000/api';
@@ -193,13 +194,26 @@
     const contenedorEmpresas = document.getElementById('contenedorEmpresas');
     const indicadorContrasena = document.getElementById('indicadorContrasena');
 
-    const obtenerSesion = () => {
-      try {
-        const sesion = JSON.parse(sessionStorage.getItem('sesionUsuario'));
-        return sesion || null;
-      } catch (error) {
-        return null;
-      }
+    const sesion = Sesion.requerirSesion({ requireAdmin: true });
+    if (!sesion) {
+      throw new Error('Redireccionando al inicio de sesión.');
+    }
+
+    const permisosGeneralesSesion = sesion.usuario?.permisosGenerales || {};
+    const puedeAgregar = Boolean(permisosGeneralesSesion.puedeAgregar);
+    const puedeModificar = Boolean(permisosGeneralesSesion.puedeModificar);
+
+    const actualizarEstadoPermisosGenerales = (esAdminDestino) => {
+      const campos = [
+        document.getElementById('permAgregar'),
+        document.getElementById('permModificar'),
+        document.getElementById('permEliminar')
+      ];
+
+      campos.forEach((campo) => {
+        campo.checked = esAdminDestino;
+        campo.disabled = true;
+      });
     };
 
     const mostrarAlerta = (mensaje, tipo = 'danger') => {
@@ -337,6 +351,8 @@
           });
         });
         base.permisosGenerales = { puedeAgregar: true, puedeModificar: true, puedeEliminar: true };
+      } else {
+        base.permisosGenerales = { puedeAgregar: false, puedeModificar: false, puedeEliminar: false };
       }
 
       return base;
@@ -359,7 +375,8 @@
     };
 
     const cargarUsuario = async (id) => {
-      const respuesta = await fetch(`${API_BASE}/usuarios/${id}`);
+      const respuesta = await fetch(`${API_BASE}/usuarios/${id}`,
+        { headers: Sesion.headersAutenticacion() });
       const datos = await respuesta.json();
       if (!respuesta.ok) {
         throw new Error(datos.mensaje || 'No fue posible obtener la información del usuario.');
@@ -368,14 +385,20 @@
     };
 
     const inicializar = async () => {
-      const sesion = obtenerSesion();
-      if (!sesion || !sesion.usuario?.esAdminGlobal) {
-        window.location.href = 'login.html';
+      const idEdicion = obtenerParametroEdicion();
+      const esEdicion = Boolean(idEdicion);
+
+      if (esEdicion && !puedeModificar) {
+        mostrarAlerta('No cuentas con permiso para modificar usuarios.');
+        setTimeout(() => { window.location.href = 'usuarios.html'; }, 1500);
         return;
       }
 
-      const idEdicion = obtenerParametroEdicion();
-      const esEdicion = Boolean(idEdicion);
+      if (!esEdicion && !puedeAgregar) {
+        mostrarAlerta('No cuentas con permiso para agregar usuarios.');
+        setTimeout(() => { window.location.href = 'usuarios.html'; }, 1500);
+        return;
+      }
 
       if (esEdicion) {
         document.getElementById('tituloPagina').textContent = 'Editar usuario';
@@ -390,13 +413,12 @@
           document.getElementById('nombres').value = usuario.nombres || '';
           document.getElementById('apellidos').value = usuario.apellidos || '';
           document.getElementById('correo').value = usuario.correo || '';
-          document.getElementById('permAgregar').checked = usuario.permisosGenerales.puedeAgregar;
-          document.getElementById('permModificar').checked = usuario.permisosGenerales.puedeModificar;
-          document.getElementById('permEliminar').checked = usuario.permisosGenerales.puedeEliminar;
           document.getElementById('esAdminGlobal').checked = usuario.esAdminGlobal;
+          actualizarEstadoPermisosGenerales(usuario.esAdminGlobal);
           aplicarPermisosAlFormulario(usuario.permisosPorEmpresa);
         } else {
           empresas.forEach((empresa) => sincronizarEstadoEmpresa(empresa.id, false));
+          actualizarEstadoPermisosGenerales(false);
         }
       } catch (error) {
         mostrarAlerta(error.message || 'Ocurrió un problema al iniciar el formulario.');
@@ -404,9 +426,7 @@
 
       document.getElementById('esAdminGlobal').addEventListener('change', (evento) => {
         const esAdmin = evento.target.checked;
-        document.getElementById('permAgregar').checked = esAdmin;
-        document.getElementById('permModificar').checked = esAdmin;
-        document.getElementById('permEliminar').checked = esAdmin;
+        actualizarEstadoPermisosGenerales(esAdmin);
         contenedorEmpresas.querySelectorAll('.activar-empresa').forEach((switchEmpresa) => {
           switchEmpresa.checked = esAdmin;
           sincronizarEstadoEmpresa(switchEmpresa.dataset.empresa, esAdmin);
@@ -424,6 +444,16 @@
 
       const idEdicion = obtenerParametroEdicion();
       const esEdicion = Boolean(idEdicion);
+
+      if (esEdicion && !puedeModificar) {
+        mostrarAlerta('No cuentas con permiso para modificar usuarios.');
+        return;
+      }
+
+      if (!esEdicion && !puedeAgregar) {
+        mostrarAlerta('No cuentas con permiso para agregar usuarios.');
+        return;
+      }
 
       if (!formulario.usuario.value.trim()) {
         formulario.usuario.focus();
@@ -444,7 +474,10 @@
       try {
         const respuesta = await fetch(`${API_BASE}/usuarios${esEdicion ? `/${idEdicion}` : ''}`, {
           method: esEdicion ? 'PUT' : 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            ...Sesion.headersAutenticacion(),
+            'Content-Type': 'application/json'
+          },
           body: JSON.stringify(payload)
         });
         const datos = await respuesta.json();
