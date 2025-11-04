@@ -210,7 +210,14 @@
 
       const filtrados = usuarios.filter((usuario) => {
         if (!termino) return true;
-        return [usuario.usuario, usuario.nombres, usuario.apellidos, usuario.correo]
+        return [
+          usuario.usuario,
+          usuario.nombres,
+          usuario.apellidoPrimero,
+          usuario.apellidoSegundo,
+          usuario.apellidos,
+          usuario.correo
+        ]
           .filter(Boolean)
           .some((valor) => valor.toLowerCase().includes(termino));
       });
@@ -228,6 +235,10 @@
         const puedeResetearFila = puedeModificar && !usuario.esAdminGlobal;
         const puedeEliminarFila = puedeEliminar && !usuario.esAdminGlobal;
 
+        const nombreCompleto = [usuario.nombres, usuario.apellidoPrimero, usuario.apellidoSegundo]
+          .filter(Boolean)
+          .join(' ');
+
         const enlaceEditar = puedeEditarFila
           ? `<a class="btn btn-sm btn-outline-success" href="crear_usuario.html?editar=${usuario.id}">Editar</a>`
           : `<span class="btn btn-sm btn-outline-success disabled" aria-disabled="true">Editar</span>`;
@@ -236,7 +247,7 @@
         const botonEliminar = `<button class="btn btn-sm btn-outline-danger" data-accion="eliminar" data-id="${usuario.id}" ${puedeEliminarFila ? '' : 'disabled'}>Eliminar</button>`;
 
         fila.innerHTML = `
-          <td data-title="Nombre">${[usuario.nombres, usuario.apellidos].filter(Boolean).join(' ') || '—'}</td>
+          <td data-title="Nombre">${nombreCompleto || '—'}</td>
           <td data-title="Usuario">${usuario.usuario}</td>
           <td data-title="Correo">${usuario.correo || '—'}</td>
           <td data-title="Empresas">${representarEmpresas(usuario.permisosPorEmpresa)}</td>
