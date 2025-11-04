@@ -3,16 +3,26 @@ const Joi = require('joi');
 const bcrypt = require('bcryptjs');
 const { db } = require('../db/sqlite');
 const { construirMapaPermisos } = require('../services/permisosService');
-const { obtenerEmpresaPorId } = require('../config/empresas');
+const { EMPRESAS } = require('../config/empresas');
 const { probarConexion } = require('../services/firebirdService');
 
 const router = express.Router();
 
 const esquemaLogin = Joi.object({
   usuario: Joi.string().trim().min(3).required(),
-  contrasena: Joi.string().min(6).required(),
-  empresaId: Joi.string().trim().required()
+  contrasena: Joi.string().min(6).required()
 });
+
+const serializarEmpresa = (empresa) => {
+  if (!empresa) {
+    return null;
+  }
+  return {
+    id: empresa.id,
+    nombre: empresa.nombre,
+    etiqueta: empresa.etiqueta
+  };
+};
 
 router.post('/login', async (req, res) => {
   const { error, value } = esquemaLogin.validate(req.body || {}, { abortEarly: false });
@@ -24,10 +34,6 @@ router.post('/login', async (req, res) => {
   }
 
   const usuarioBuscado = value.usuario.trim().toUpperCase();
-  const empresaSeleccionada = obtenerEmpresaPorId(value.empresaId);
-  if (!empresaSeleccionada) {
-    return res.status(404).json({ mensaje: 'La empresa indicada no existe.' });
-  }
 
   const registro = db.prepare(`
     SELECT id, usuario, nombres, apellido_primero, apellido_segundo, apellidos,
@@ -53,14 +59,26 @@ router.post('/login', async (req, res) => {
   `).all(registro.id);
   const mapaPermisos = construirMapaPermisos(permisos);
 
-  if (!registro.es_admin_global) {
-    const permisosEmpresa = mapaPermisos[value.empresaId];
-    if (!permisosEmpresa) {
-      return res.status(403).json({ mensaje: 'No cuentas con permisos en la empresa seleccionada.' });
+  const esIconet = registro.usuario === 'ICONET';
+  const esAdminGlobal = Boolean(registro.es_admin_global) || esIconet;
+
+  const empresasDisponibles = EMPRESAS.filter((empresa) => {
+    if (esAdminGlobal) {
+      return true;
     }
+    const permisosEmpresa = mapaPermisos[empresa.id];
+    if (!permisosEmpresa) {
+      return false;
+    }
+    return Object.values(permisosEmpresa).some((acciones) => acciones['Cargar y guardar'] || acciones.Revisar || acciones.Aprobar);
+  });
+
+  if (empresasDisponibles.length === 0) {
+    return res.status(403).json({ mensaje: 'No cuentas con empresas habilitadas.' });
   }
 
-  const disponible = await probarConexion(value.empresaId);
+  const empresaActiva = empresasDisponibles[0];
+  const disponible = await probarConexion(empresaActiva.id);
 
   res.json({
     usuario: {
@@ -71,7 +89,7 @@ router.post('/login', async (req, res) => {
       apellidoSegundo: registro.apellido_segundo,
       apellidos: registro.apellidos,
       correo: registro.correo,
-      esAdminGlobal: Boolean(registro.es_admin_global),
+      esAdminGlobal,
       permisosGenerales: {
         puedeAgregar: Boolean(registro.puede_agregar),
         puedeModificar: Boolean(registro.puede_modificar),
@@ -80,7 +98,8 @@ router.post('/login', async (req, res) => {
       permisosPorEmpresa: mapaPermisos,
       contrasenaVisible: registro.contrasena_visible
     },
-    empresa: empresaSeleccionada,
+    empresaActiva: serializarEmpresa(empresaActiva),
+    empresasDisponibles: empresasDisponibles.map(serializarEmpresa),
     firebirdDisponible: disponible
   });
 });
