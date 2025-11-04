@@ -7,15 +7,15 @@ const MODULE_GROUPS = [
     id: 'panel-resumenes',
     label: 'Paneles',
     items: [
-      { id: 'presupuestos', label: 'Presupuestos', path: 'Presupuestos.html', badge: 'Finanzas' },
-      { id: 'summary', label: 'Summary', path: 'SUMMARY.html', badge: 'Ejecutivo' }
+      { id: 'presupuestos', label: 'Presupuestos', path: 'Presupuestos.html', badge: 'ppto' },
+      { id: 'summary', label: 'Summary', path: 'SUMMARY.html', badge: 'summary' }
     ]
   },
   {
     id: 'resumen-areas',
     label: 'Resumen',
     items: [
-      { id: 'resumen', label: 'Resumen', path: 'RESUMEN.html', badge: 'Finanzas' },
+      { id: 'resumen', label: 'Resumen', path: 'RESUMEN.html', badge: 'ppto' },
       { id: 'membresia', label: 'Membresía', path: 'Membresía.html' },
       { id: 'eventos', label: 'Eventos', path: 'Eventos.html' },
       { id: 'comunicacion', label: 'Comunicación', path: 'Comunicación.html' },

@@ -10,7 +10,7 @@ const MODULOS = [
   'VPE',
   'Finanzas',
   'Gtos Corporativos',
-  'SUMMARY (Resumen E)',
+  'SUMMARY',
   'Presupuestos',
   'RESUMEN'
 ];
