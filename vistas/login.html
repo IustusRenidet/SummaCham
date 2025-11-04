@@ -170,13 +170,7 @@
 
         Sesion.guardar(datos);
 
-        const puedeAdministrar = Sesion.puedeAdministrarUsuarios(datos);
-
-        if (puedeAdministrar) {
-          window.location.href = 'usuarios.html';
-        } else {
-          window.location.href = 'Vista1.html';
-        }
+        window.location.href = 'RESUMEN.html';
       } catch (error) {
         mostrarAlerta(error.message || 'Ocurrió un problema durante el inicio de sesión.');
       } finally {
