@@ -99,8 +99,12 @@
             <input type="text" id="nombres" name="nombres" class="form-control" maxlength="80" />
           </div>
           <div class="col-12 col-md-6">
-            <label for="apellidos" class="form-label fw-semibold">Apellidos</label>
-            <input type="text" id="apellidos" name="apellidos" class="form-control" maxlength="120" />
+            <label for="primer-apellido" class="form-label fw-semibold">Primer Apellido</label>
+            <input type="text" id="primer-apellido" name="primer-apellido" class="form-control" maxlength="120" />
+          </div>
+          <div class="col-12 col-md-6">
+            <label for="segundo-apellido" class="form-label fw-semibold">Segundo Apellido</label>
+            <input type="text" id="segundo-apellido" name="segundo-apellido" class="form-control" maxlength="120" />
           </div>
           <div class="col-12 col-md-4">
             <label for="usuario" class="form-label fw-semibold">Usuario <span class="text-danger">*</span></label>
@@ -156,7 +160,6 @@
       </section>
 
       <div class="d-flex flex-column flex-md-row gap-3 justify-content-end mt-5">
-        <button type="button" class="btn btn-outline-secondary" id="btnPrevisualizar">Previsualizar datos</button>
         <button type="submit" class="btn btn-primario">Guardar</button>
       </div>
     </form>
@@ -489,13 +492,6 @@
       } catch (error) {
         mostrarAlerta(error.message || 'Ocurrió un problema al guardar la información.');
       }
-    });
-
-    document.getElementById('btnPrevisualizar').addEventListener('click', () => {
-      const esEdicion = Boolean(obtenerParametroEdicion());
-      const datos = recopilarDatos(esEdicion);
-      previsualizacion.textContent = JSON.stringify(datos, null, 2);
-      modalPrevisualizacion.show();
     });
 
     document.addEventListener('DOMContentLoaded', inicializar);

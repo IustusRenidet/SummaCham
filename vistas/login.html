@@ -69,8 +69,7 @@
 <body>
   <main class="tarjeta-acceso" aria-labelledby="titulo-login">
     <header class="mb-4 text-center text-md-start">
-      <h1 id="titulo-login" class="h3 mb-1">Panel financiero AmCham</h1>
-      <p class="text-muted mb-0">Selecciona tu empresa y autentícate para continuar.</p>
+      <h1 id="titulo-login" class="h3 mb-1">AmCham</h1>
     </header>
 
     <div id="alerta" class="mensaje-estado visually-hidden" role="alert"></div>
@@ -78,7 +77,7 @@
     <form id="formularioLogin" novalidate class="needs-validation" autocomplete="off">
       <div class="mb-3">
         <label for="usuario" class="form-label fw-semibold">Usuario <span aria-hidden="true">*</span></label>
-        <input type="text" id="usuario" name="usuario" class="form-control form-control-lg" required autocomplete="username" placeholder="ICONET" />
+        <input type="text" id="usuario" name="usuario" class="form-control form-control-lg" required autocomplete="username" placeholder="" />
         <div class="invalid-feedback">Ingresa tu usuario.</div>
       </div>
 
@@ -92,7 +91,6 @@
         <label for="empresa" class="form-label fw-semibold">Empresa <span aria-hidden="true">*</span></label>
         <select id="empresa" name="empresa" class="form-select form-select-lg" required aria-describedby="ayuda-empresa">
         </select>
-        <div id="ayuda-empresa" class="form-text">Las empresas están vinculadas a bases de datos Firebird independientes.</div>
         <div class="invalid-feedback">Selecciona la empresa con la que deseas trabajar.</div>
       </div>
 
