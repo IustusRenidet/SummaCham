@@ -4,6 +4,7 @@ const { inicializarBaseDatos } = require('./db/sqlite');
 const rutasAuth = require('./routes/auth');
 const rutasUsuarios = require('./routes/usuarios');
 const rutasEmpresas = require('./routes/empresas');
+const rutasModulos = require('./routes/modulos');
 
 let instanciaServidor = null;
 
@@ -26,6 +27,7 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3000)) => {
   app.use('/api/auth', rutasAuth);
   app.use('/api/usuarios', rutasUsuarios);
   app.use('/api/empresas', rutasEmpresas);
+  app.use('/api/modulos', rutasModulos);
 
   app.use((req, res) => {
     res.status(404).json({ mensaje: 'Recurso no encontrado.' });

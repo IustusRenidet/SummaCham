@@ -139,20 +139,12 @@
   <div class="col-12">
     <div class="card table-card fade-in">
       <div class="card-body">
-        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between">
-          <h5 class="fw-bold mb-3 mb-md-0" style="color: var(--color-primary);">Porcentaje Gastos Corporativos</h5>
-          <div class="d-flex align-items-center gap-3">
-            <span class="fw-semibold">Años:</span>
-            <div class="form-check form-check-inline">
-              <input class="form-check-input year-check" type="checkbox" id="year2024" value="2024" checked>
-              <label class="form-check-label" for="year2024">2024</label>
-            </div>
-            <div class="form-check form-check-inline">
-              <input class="form-check-input year-check" type="checkbox" id="year2025" value="2025" checked>
-              <label class="form-check-label" for="year2025">2025</label>
+          <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between">
+            <h5 class="fw-bold mb-3 mb-md-0" style="color: var(--color-primary);">Porcentaje Gastos Corporativos</h5>
+            <div class="d-flex align-items-center gap-3 flex-wrap" id="yearFilters" aria-live="polite">
+              <span class="fw-semibold mb-0">Años:</span>
             </div>
           </div>
-        </div>
 
         <div id="pctContainer" class="row mt-3">
           <!-- Tarjetas por año se inyectan aquí -->
@@ -169,6 +161,7 @@
     <div class="row">
       <div class="col-12">
         <div class="table-card fade-in">
+          <div id="resumenStatus" class="alert alert-info mb-3 visually-hidden" role="status"></div>
           <div class="table-responsive">
             <table class="table align-middle mb-0" id="mainTable">
               <thead>
@@ -203,178 +196,255 @@
     Sesion.asegurarEnlaceAdministrarUsuarios(document.querySelector('#navbarNav .navbar-nav'));
 
 
-    const CITY_LABELS = {
-      CDMX: "Ciudad de México",
-      GDL: "Guadalajara",
-      MTY: "Monterrey"
+
+    const API_BASE = 'http://localhost:3000/api';
+    const estado = document.getElementById('resumenStatus');
+    const citySelect = document.getElementById('citySelect');
+    const cityPill = document.getElementById('cityPill');
+    const chapterTitle = document.getElementById('chapterTitle');
+    const chapterSubtitle = document.getElementById('chapterSubtitle');
+    const tableBody = document.getElementById('tableBody');
+    const pctContainer = document.getElementById('pctContainer');
+    const yearFilters = document.getElementById('yearFilters');
+
+    const estadoModulo = {
+      datos: {
+        ciudades: [],
+        anios: [],
+        tabla: [],
+        gastosCorporativos: {}
+      },
+      ciudadActual: '',
+      aniosActivos: new Set()
     };
 
-    // TODO: Reemplazar con datos reales por ciudad.
-    // Estructura: cada entrada representa una fila de la tabla.
-    // type: 'section' dibuja una fila de encabezado de sección.
-    // Para filas normales, usar keys: name, real2025, ppto2025, real2024, varReal, varPpto
-    const BASE_ROWS = [
-      { type: "section", name: "INCOME", real2025: "7,429,942", ppto2025: "7,988,991", real2024: "6,768,264", varReal: "10%", varPpto: "-7%" },
-      { name: "Membership",          real2025: "6,021,827", ppto2025: "5,769,308", real2024: "5,730,814", varReal: "5%",   varPpto: "4%"  },
-      { name: "Events",              real2025: "468,783",   ppto2025: "945,000",   real2024: "453,300",   varReal: "3%",   varPpto: "-50%" },
-      { name: "Committees",          real2025: "493,932",   ppto2025: "943,800",   real2024: "272,150",   varReal: "81%",  varPpto: "-48%" },
-      { name: "Services to Members", real2025: "445,400",   ppto2025: "330,882",   real2024: "312,000",   varReal: "43%",  varPpto: "35%"  },
-
-      { type: "section", name: "EXPENSE", real2025: "7,802,833", ppto2025: "8,751,333", real2024: "6,326,172", varReal: "23%", varPpto: "-11%" },
-      { name: "Membership",           real2025: "261,569",  ppto2025: "404,258",  real2024: "291,669", varReal: "-10%", varPpto: "-35%" },
-      { name: "Events",               real2025: "316,129",  ppto2025: "756,045",  real2024: "207,965", varReal: "52%",  varPpto: "-58%" },
-      { name: "Committees",           real2025: "436,752",  ppto2025: "485,280",  real2024: "174,406", varReal: "150%", varPpto: "-10%" },
-      { name: "Services to Members",  real2025: "269,801",  ppto2025: "225,941",  real2024: "188,297", varReal: "43%",  varPpto: "19%"  },
-      { name: "Gastos Administrativos", real2025: "1,078,577", ppto2025: "1,255,838", real2024: "773,980", varReal: "39%", varPpto: "-14%" },
-      { name: "Nómina",              real2025: "3,313,719", ppto2025: "3,336,915", real2024: "2,638,976", varReal: "26%", varPpto: "-1%"  },
-      { name: "Gastos Corporativos", real2025: "2,126,286", ppto2025: "2,287,056", real2024: "2,050,877", varReal: "4%",  varPpto: "-7%"  },
-
-      { type: "section", name: "OPERATING RESULTS", real2025: "-372,891", ppto2025: "-762,343", real2024: "442,092", varReal: "-184%", varPpto: "51%" },
-      { name: "Member Centricity",   real2025: "348,147",  ppto2025: "-",        real2024: "212,205", varReal: "64%",  varPpto: "0%"  },
-      { name: "Other",               real2025: "129",      ppto2025: "-",        real2024: "82,235",  varReal: "-100%", varPpto: "0%"  },
-
-      { type: "section", name: "NET RESULTS", real2025: "720,908", ppto2025: "762,343", real2024: "312,121", varReal: "-331%", varPpto: "-5%" }
-    ];
-
-    const DATASET = {
-      CDMX: BASE_ROWS,
-      GDL:  BASE_ROWS,
-      MTY:  BASE_ROWS
+    const limpiarEstado = () => {
+      if (!estado) return;
+      estado.className = 'alert alert-info mb-3 visually-hidden';
+      estado.textContent = '';
     };
 
-    function getVarClass(val) {
-      // val como "10%", "-7%", "0%"
-      try {
-        const n = parseFloat(val.replace('%', ''));
-        if (isNaN(n)) return 'neutral';
-        if (n > 0) return 'positive';
-        if (n < 0) return 'negative';
-        return 'neutral';
-      } catch { return 'neutral'; }
-    }
+    const mostrarEstado = (mensaje, tipo = 'info') => {
+      if (!estado) return;
+      estado.textContent = mensaje;
+      estado.className = `alert alert-${tipo} mb-3`;
+    };
 
-    function renderTable(city) {
-      const tbody = document.getElementById('tableBody');
-      tbody.innerHTML = '';
+    const construirOpcionCiudad = (ciudad) => {
+      const opcion = document.createElement('option');
+      opcion.value = ciudad.id;
+      opcion.textContent = `${ciudad.id} — ${ciudad.etiqueta || ciudad.nombre || ciudad.id}`;
+      return opcion;
+    };
 
-      (DATASET[city] || []).forEach(row => {
-        if (row.type === 'section') {
+    const actualizarEncabezado = () => {
+      const ciudadSeleccionada = estadoModulo.datos.ciudades.find((ciudad) => ciudad.id === estadoModulo.ciudadActual);
+      const etiqueta = ciudadSeleccionada?.etiqueta || ciudadSeleccionada?.nombre || estadoModulo.ciudadActual || 'Sin datos';
+      chapterTitle.textContent = 'Resumen';
+      chapterSubtitle.textContent = estadoModulo.ciudadActual ? `Capítulo ${etiqueta}` : 'Sin información disponible';
+      cityPill.textContent = estadoModulo.ciudadActual || '—';
+      document.title = `Resumen${estadoModulo.ciudadActual ? ` – ${etiqueta}` : ''}`;
+    };
+
+    const renderizarTabla = () => {
+      tableBody.innerHTML = '';
+      const filas = estadoModulo.datos.tabla.filter((fila) => {
+        if (fila.ciudad && estadoModulo.ciudadActual) {
+          return fila.ciudad === estadoModulo.ciudadActual;
+        }
+        return true;
+      });
+
+      if (filas.length === 0) {
+        const vacio = document.createElement('tr');
+        vacio.innerHTML = '<td colspan="6" class="text-center text-muted py-4">No hay información para mostrar.</td>';
+        tableBody.appendChild(vacio);
+        return;
+      }
+
+      filas.forEach((fila) => {
+        if (fila.type === 'section') {
           const tr = document.createElement('tr');
           tr.className = 'section-header-row';
           tr.innerHTML = `
-            <td>${row.name}</td>
-            <td class="text-end">${row.real2025}</td>
-            <td class="text-end">${row.ppto2025}</td>
-            <td class="text-end">${row.real2024}</td>
-            <td class="text-end ${getVarClass(row.varReal)}">${row.varReal}</td>
-            <td class="text-end ${getVarClass(row.varPpto)}">${row.varPpto}</td>
+            <td>${fila.name || ''}</td>
+            <td class="text-end">${fila.real2025 || '—'}</td>
+            <td class="text-end">${fila.ppto2025 || '—'}</td>
+            <td class="text-end">${fila.real2024 || '—'}</td>
+            <td class="text-end">${fila.varReal || '—'}</td>
+            <td class="text-end">${fila.varPpto || '—'}</td>
           `;
-          tbody.appendChild(tr);
+          tableBody.appendChild(tr);
         } else {
           const tr = document.createElement('tr');
           tr.innerHTML = `
-            <td>${row.name}</td>
-            <td class="text-end">${row.real2025}</td>
-            <td class="text-end">${row.ppto2025}</td>
-            <td class="text-end">${row.real2024}</td>
-            <td class="text-end ${getVarClass(row.varReal)}">${row.varReal}</td>
-            <td class="text-end ${getVarClass(row.varPpto)}">${row.varPpto}</td>
+            <td>${fila.name || ''}</td>
+            <td class="text-end">${fila.real2025 || '—'}</td>
+            <td class="text-end">${fila.ppto2025 || '—'}</td>
+            <td class="text-end">${fila.real2024 || '—'}</td>
+            <td class="text-end">${fila.varReal || '—'}</td>
+            <td class="text-end">${fila.varPpto || '—'}</td>
           `;
-          tbody.appendChild(tr);
+          tableBody.appendChild(tr);
         }
       });
-    }
+    };
 
-    function updateHeader(city) {
-      const subtitle = document.getElementById('chapterSubtitle');
-      const pill = document.getElementById('cityPill');
-      subtitle.textContent = `Capítulo ${CITY_LABELS[city] || city}`;
-      pill.textContent = city;
-      document.title = `Resumen – ${CITY_LABELS[city] || city}`;
-      document.getElementById('chapterTitle').textContent = 'Resumen';
-    }
+    const destacarCiudad = () => {
+      document.querySelectorAll('.pct-item').forEach((elemento) => elemento.classList.remove('highlight'));
+      if (!estadoModulo.ciudadActual) return;
+      document.querySelectorAll(`.pct-item[data-city="${estadoModulo.ciudadActual}"]`).forEach((elemento) => elemento.classList.add('highlight'));
+    };
 
-    function highlightPctCity(city) {
-      // Quita highlight previo
-      document.querySelectorAll('.pct-item').forEach(el => el.classList.remove('highlight'));
-      // Agrega a ambos años para la ciudad elegida
-      document.querySelectorAll(`.pct-item[data-city="${city}"]`).forEach(el => el.classList.add('highlight'));
-    }
+    const renderizarGastosCorporativos = () => {
+      pctContainer.innerHTML = '';
+      const gastos = estadoModulo.datos.gastosCorporativos || {};
+      const anios = estadoModulo.datos.anios || [];
+      const activos = Array.from(estadoModulo.aniosActivos);
 
-    // Init
-    const citySelect = document.getElementById('citySelect');
-    citySelect.addEventListener('change', (e) => {
-      const city = e.target.value;
-      renderTable(city);
-      updateHeader(city);
-      highlightPctCity(city);
+      if (!anios.length) {
+        pctContainer.innerHTML = '<div class="col-12"><div class="alert alert-secondary mb-0">Aún no se han configurado años para esta sección.</div></div>';
+        return;
+      }
+
+      if (activos.length === 0) {
+        pctContainer.innerHTML = '<div class="col-12"><div class="alert alert-warning mb-0">Selecciona al menos un año para visualizar los porcentajes.</div></div>';
+        return;
+      }
+
+      activos.forEach((anio) => {
+        const valoresPorCiudad = gastos[anio] || {};
+        const tarjeta = document.createElement('div');
+        tarjeta.className = 'col-12 col-lg-4';
+        tarjeta.innerHTML = `
+          <div class="p-4 border rounded-4 h-100 shadow-sm bg-white">
+            <h6 class="fw-bold text-success mb-3">${anio}</h6>
+            <div class="d-flex flex-column gap-2">
+              ${estadoModulo.datos.ciudades.map((ciudad) => {
+                const valor = valoresPorCiudad[ciudad.id];
+                const contenido = valor != null ? `${valor}%` : '—';
+                return `
+                  <div class="d-flex justify-content-between mb-1 pct-item" data-city="${ciudad.id}" data-year="${anio}">
+                    <span class="fw-semibold">${ciudad.id}</span>
+                    <strong>${contenido}</strong>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        `;
+        pctContainer.appendChild(tarjeta);
+      });
+
+      destacarCiudad();
+    };
+
+    const prepararFiltrosAnio = () => {
+      const anios = estadoModulo.datos.anios || [];
+      yearFilters.querySelectorAll('.form-check').forEach((nodo) => nodo.remove());
+
+      if (!anios.length) {
+        const mensaje = document.createElement('span');
+        mensaje.className = 'text-muted small';
+        mensaje.textContent = 'Sin años disponibles';
+        yearFilters.appendChild(mensaje);
+        return;
+      }
+
+      anios.forEach((anio) => {
+        const contenedor = document.createElement('div');
+        contenedor.className = 'form-check form-check-inline';
+        const input = document.createElement('input');
+        input.type = 'checkbox';
+        input.className = 'form-check-input year-check';
+        input.id = `year-${anio}`;
+        input.value = anio;
+        input.checked = estadoModulo.aniosActivos.size === 0 || estadoModulo.aniosActivos.has(anio);
+        if (input.checked) {
+          estadoModulo.aniosActivos.add(anio);
+        }
+        const etiqueta = document.createElement('label');
+        etiqueta.className = 'form-check-label';
+        etiqueta.setAttribute('for', input.id);
+        etiqueta.textContent = anio;
+        input.addEventListener('change', (evento) => {
+          if (evento.target.checked) {
+            estadoModulo.aniosActivos.add(anio);
+          } else {
+            estadoModulo.aniosActivos.delete(anio);
+          }
+          renderizarGastosCorporativos();
+        });
+        contenedor.appendChild(input);
+        contenedor.appendChild(etiqueta);
+        yearFilters.appendChild(contenedor);
+      });
+    };
+
+    const prepararCiudades = () => {
+      citySelect.innerHTML = '';
+      const ciudades = estadoModulo.datos.ciudades || [];
+      if (!ciudades.length) {
+        const opcion = document.createElement('option');
+        opcion.value = '';
+        opcion.textContent = 'Sin ciudades disponibles';
+        citySelect.appendChild(opcion);
+        citySelect.disabled = true;
+        estadoModulo.ciudadActual = '';
+        actualizarEncabezado();
+        renderizarTabla();
+        renderizarGastosCorporativos();
+        return;
+      }
+
+      citySelect.disabled = false;
+      ciudades.forEach((ciudad) => citySelect.appendChild(construirOpcionCiudad(ciudad)));
+      estadoModulo.ciudadActual = ciudades[0]?.id || '';
+      citySelect.value = estadoModulo.ciudadActual;
+      actualizarEncabezado();
+      renderizarTabla();
+      renderizarGastosCorporativos();
+    };
+
+    const cargarDatos = async () => {
+      mostrarEstado('Cargando información…');
+      try {
+        const respuesta = await fetch(`${API_BASE}/modulos/resumen`, {
+          headers: Sesion.headersAutenticacion()
+        });
+        const datos = await respuesta.json();
+        if (!respuesta.ok) {
+          throw new Error(datos.mensaje || 'No fue posible obtener la información.');
+        }
+        estadoModulo.datos = {
+          ciudades: Array.isArray(datos.ciudades) ? datos.ciudades : [],
+          anios: Array.isArray(datos.anios) ? datos.anios : [],
+          tabla: Array.isArray(datos.tabla) ? datos.tabla : [],
+          gastosCorporativos: datos.gastosCorporativos || {}
+        };
+        estadoModulo.aniosActivos = new Set(estadoModulo.datos.anios);
+        prepararFiltrosAnio();
+        prepararCiudades();
+        limpiarEstado();
+      } catch (error) {
+        mostrarEstado(error.message || 'Ocurrió un error al cargar la información.', 'danger');
+        console.error('Error al cargar resumen', error);
+        estadoModulo.datos = { ciudades: [], anios: [], tabla: [], gastosCorporativos: {} };
+        estadoModulo.aniosActivos = new Set();
+        prepararFiltrosAnio();
+        prepararCiudades();
+      }
+    };
+
+    citySelect.addEventListener('change', (evento) => {
+      estadoModulo.ciudadActual = evento.target.value;
+      actualizarEncabezado();
+      renderizarTabla();
+      destacarCiudad();
     });
 
-    // Render inicial (GDL)
-    renderTable('GDL');
-    updateHeader('GDL');
-    highlightPctCity('GDL');
-
-    // Porcentajes de Gastos Corporativos por año y ciudad
-const CORPORATE_EXPENSE_PCT = {
-  2024: { CDMX: 53, GDL: 16, MTY: 31 },
-  2025: { CDMX: 55, GDL: 13, MTY: 32 }
-};
-
-function selectedYears() {
-  const checks = Array.from(document.querySelectorAll('.year-check'));
-  return checks.filter(c => c.checked).map(c => c.value);
-}
-
-function renderPctCards() {
-  const container = document.getElementById('pctContainer');
-  const years = selectedYears();
-  container.innerHTML = '';
-
-  if (years.length === 0) {
-    container.innerHTML = `
-      <div class="col-12">
-        <div class="p-3 border rounded-3 bg-light text-muted">
-          Selecciona al menos un año para visualizar.
-        </div>
-      </div>`;
-    return;
-  }
-
-  years.forEach((year) => {
-    const data = CORPORATE_EXPENSE_PCT[year];
-    if (!data) return;
-    const col = document.createElement('div');
-    col.className = 'col-md-6 mb-3';
-    const bg = year === '2024' ? 'rgba(47, 111, 78, 0.05)' : 'rgba(184, 115, 51, 0.08)';
-    col.innerHTML = `
-      <div class="p-3 h-100" style="background-color: ${bg}; border-radius: 8px;">
-        <h6 class="fw-semibold mb-2">${year}</h6>
-        <div class="d-flex justify-content-between mb-1 pct-item" data-city="CDMX" data-year="${year}">
-          <span>CDMX</span><strong>${data.CDMX}%</strong>
-        </div>
-        <div class="d-flex justify-content-between mb-1 pct-item" data-city="GDL" data-year="${year}">
-          <span>GDL</span><strong>${data.GDL}%</strong>
-        </div>
-        <div class="d-flex justify-content-between pct-item" data-city="MTY" data-year="${year}">
-          <span>MTY</span><strong>${data.MTY}%</strong>
-        </div>
-      </div>
-    `;
-    container.appendChild(col);
-  });
-
-  highlightPctCity(document.getElementById('citySelect').value);
-}
-
-// Escucha cambios de año
-document.querySelectorAll('.year-check').forEach(chk => {
-  chk.addEventListener('change', renderPctCards);
-});
-
-// Render inicial
-renderPctCards();
-
+    Sesion.asegurarEnlaceAdministrarUsuarios(document.querySelector('#navbarNav .navbar-nav'));
+    cargarDatos();
   </script>
   
 </body>
