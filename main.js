@@ -19,7 +19,7 @@ const createWindow = () => {
     icon: resolveAssetPath('icono', iconName)
   });
 
-  mainWindow.loadFile(resolveAssetPath('vistas', 'login.html'));
+  mainWindow.loadFile(resolveAssetPath('vistas', 'app.html'));
 };
 
 app.whenReady().then(() => {
