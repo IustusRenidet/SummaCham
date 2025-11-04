@@ -117,7 +117,10 @@
           </div>
           <div class="col-12 col-md-4">
             <label for="contrasena" class="form-label fw-semibold">Contraseña <span id="indicadorContrasena" class="text-danger">*</span></label>
-            <input type="password" id="contrasena" name="contrasena" class="form-control" autocomplete="new-password" minlength="8" />
+            <div class="input-group">
+              <input type="password" id="contrasena" name="contrasena" class="form-control" autocomplete="new-password" minlength="8" />
+              <button type="button" class="btn btn-outline-secondary" id="toggleContrasena" aria-pressed="false" aria-label="Mostrar contraseña">👁️</button>
+            </div>
             <div class="invalid-feedback">La contraseña debe tener al menos 8 caracteres.</div>
           </div>
           <div class="col-12 col-lg-4">
@@ -196,6 +199,19 @@
     const previsualizacion = document.getElementById('previsualizacionJson');
     const contenedorEmpresas = document.getElementById('contenedorEmpresas');
     const indicadorContrasena = document.getElementById('indicadorContrasena');
+    const inputContrasena = document.getElementById('contrasena');
+    const toggleContrasena = document.getElementById('toggleContrasena');
+    const inputPrimerApellido = document.getElementById('primer-apellido');
+    const inputSegundoApellido = document.getElementById('segundo-apellido');
+    const inputNombres = document.getElementById('nombres');
+    const inputUsuario = document.getElementById('usuario');
+    const inputCorreo = document.getElementById('correo');
+    const checkPermAgregar = document.getElementById('permAgregar');
+    const checkPermModificar = document.getElementById('permModificar');
+    const checkPermEliminar = document.getElementById('permEliminar');
+    const switchAdminGlobal = document.getElementById('esAdminGlobal');
+
+    let contrasenaOriginal = '';
 
     const sesion = Sesion.requerirSesion({ requireAdmin: true });
     if (!sesion) {
@@ -206,16 +222,32 @@
     const puedeAgregar = Boolean(permisosGeneralesSesion.puedeAgregar);
     const puedeModificar = Boolean(permisosGeneralesSesion.puedeModificar);
 
+    if (toggleContrasena) {
+      toggleContrasena.addEventListener('click', () => {
+        const mostrando = inputContrasena.type === 'text';
+        inputContrasena.type = mostrando ? 'password' : 'text';
+        toggleContrasena.setAttribute('aria-pressed', String(!mostrando));
+        toggleContrasena.setAttribute('aria-label', mostrando ? 'Mostrar contraseña' : 'Ocultar contraseña');
+        toggleContrasena.textContent = mostrando ? '👁️' : '🙈';
+      });
+    }
+
     const actualizarEstadoPermisosGenerales = (esAdminDestino) => {
-      const campos = [
-        document.getElementById('permAgregar'),
-        document.getElementById('permModificar'),
-        document.getElementById('permEliminar')
-      ];
+      const campos = [checkPermAgregar, checkPermModificar, checkPermEliminar];
 
       campos.forEach((campo) => {
-        campo.checked = esAdminDestino;
-        campo.disabled = true;
+        if (!campo) return;
+        if (esAdminDestino) {
+          campo.dataset.prevChecked = campo.checked ? '1' : '0';
+          campo.checked = true;
+          campo.disabled = true;
+        } else {
+          if (campo.dataset.prevChecked !== undefined) {
+            campo.checked = campo.dataset.prevChecked === '1';
+            delete campo.dataset.prevChecked;
+          }
+          campo.disabled = false;
+        }
       });
     };
 
@@ -326,23 +358,25 @@
     };
 
     const recopilarDatos = (esEdicion) => {
-      const esAdmin = document.getElementById('esAdminGlobal').checked;
+      const esAdmin = switchAdminGlobal.checked;
+      const contrasenaValor = inputContrasena.value.trim();
       const base = {
-        usuario: document.getElementById('usuario').value.trim(),
-        nombres: document.getElementById('nombres').value.trim(),
-        apellidos: document.getElementById('apellidos').value.trim(),
-        correo: document.getElementById('correo').value.trim(),
+        usuario: inputUsuario.value.trim(),
+        nombres: inputNombres.value.trim(),
+        apellidoPrimero: inputPrimerApellido.value.trim(),
+        apellidoSegundo: inputSegundoApellido.value.trim(),
+        correo: inputCorreo.value.trim(),
         esAdminGlobal: esAdmin,
         permisosGenerales: {
-          puedeAgregar: document.getElementById('permAgregar').checked,
-          puedeModificar: document.getElementById('permModificar').checked,
-          puedeEliminar: document.getElementById('permEliminar').checked
+          puedeAgregar: checkPermAgregar.checked,
+          puedeModificar: checkPermModificar.checked,
+          puedeEliminar: checkPermEliminar.checked
         },
         permisos: obtenerPermisosDelFormulario()
       };
 
-      if (!esEdicion || document.getElementById('contrasena').value.trim()) {
-        base.contrasena = document.getElementById('contrasena').value.trim();
+      if (!esEdicion || contrasenaValor !== contrasenaOriginal) {
+        base.contrasena = contrasenaValor;
       }
 
       if (esAdmin) {
@@ -354,8 +388,6 @@
           });
         });
         base.permisosGenerales = { puedeAgregar: true, puedeModificar: true, puedeEliminar: true };
-      } else {
-        base.permisosGenerales = { puedeAgregar: false, puedeModificar: false, puedeEliminar: false };
       }
 
       return base;
@@ -403,31 +435,39 @@
         return;
       }
 
-      if (esEdicion) {
-        document.getElementById('tituloPagina').textContent = 'Editar usuario';
-        indicadorContrasena.textContent = '(opcional)';
-      }
-
-      try {
-        const empresas = await cargarEmpresas();
         if (esEdicion) {
-          const usuario = await cargarUsuario(idEdicion);
-          document.getElementById('usuario').value = usuario.usuario;
-          document.getElementById('nombres').value = usuario.nombres || '';
-          document.getElementById('apellidos').value = usuario.apellidos || '';
-          document.getElementById('correo').value = usuario.correo || '';
-          document.getElementById('esAdminGlobal').checked = usuario.esAdminGlobal;
-          actualizarEstadoPermisosGenerales(usuario.esAdminGlobal);
-          aplicarPermisosAlFormulario(usuario.permisosPorEmpresa);
-        } else {
-          empresas.forEach((empresa) => sincronizarEstadoEmpresa(empresa.id, false));
-          actualizarEstadoPermisosGenerales(false);
+          document.getElementById('tituloPagina').textContent = 'Editar usuario';
+          indicadorContrasena.textContent = '(opcional)';
         }
-      } catch (error) {
+
+        try {
+          const empresas = await cargarEmpresas();
+          if (esEdicion) {
+            const usuario = await cargarUsuario(idEdicion);
+            inputUsuario.value = usuario.usuario;
+            inputNombres.value = usuario.nombres || '';
+            inputPrimerApellido.value = usuario.apellidoPrimero || '';
+            inputSegundoApellido.value = usuario.apellidoSegundo || '';
+            inputCorreo.value = usuario.correo || '';
+            inputContrasena.value = usuario.contrasenaVisible || '';
+            contrasenaOriginal = inputContrasena.value.trim();
+            switchAdminGlobal.checked = usuario.esAdminGlobal;
+            checkPermAgregar.checked = Boolean(usuario.permisosGenerales?.puedeAgregar);
+            checkPermModificar.checked = Boolean(usuario.permisosGenerales?.puedeModificar);
+            checkPermEliminar.checked = Boolean(usuario.permisosGenerales?.puedeEliminar);
+            actualizarEstadoPermisosGenerales(usuario.esAdminGlobal);
+            aplicarPermisosAlFormulario(usuario.permisosPorEmpresa);
+          } else {
+            contrasenaOriginal = '';
+            inputContrasena.value = '';
+            empresas.forEach((empresa) => sincronizarEstadoEmpresa(empresa.id, false));
+            actualizarEstadoPermisosGenerales(false);
+          }
+        } catch (error) {
         mostrarAlerta(error.message || 'Ocurrió un problema al iniciar el formulario.');
       }
 
-      document.getElementById('esAdminGlobal').addEventListener('change', (evento) => {
+        switchAdminGlobal.addEventListener('change', (evento) => {
         const esAdmin = evento.target.checked;
         actualizarEstadoPermisosGenerales(esAdmin);
         contenedorEmpresas.querySelectorAll('.activar-empresa').forEach((switchEmpresa) => {
@@ -458,19 +498,22 @@
         return;
       }
 
-      if (!formulario.usuario.value.trim()) {
-        formulario.usuario.focus();
-        formulario.usuario.classList.add('is-invalid');
-        return;
-      }
+        if (!inputUsuario.value.trim()) {
+          inputUsuario.focus();
+          inputUsuario.classList.add('is-invalid');
+          return;
+        }
 
-      if ((!esEdicion || formulario.contrasena.value.trim()) && formulario.contrasena.value.trim().length < 8) {
-        formulario.contrasena.classList.add('is-invalid');
-        return;
-      }
+        const contrasenaValor = inputContrasena.value.trim();
+        const contrasenaCambiada = contrasenaValor !== contrasenaOriginal;
+        const debeValidarContrasena = !esEdicion || contrasenaCambiada;
+        if (debeValidarContrasena && contrasenaValor.length < 8) {
+          inputContrasena.classList.add('is-invalid');
+          return;
+        }
 
-      formulario.usuario.classList.remove('is-invalid');
-      formulario.contrasena.classList.remove('is-invalid');
+        inputUsuario.classList.remove('is-invalid');
+        inputContrasena.classList.remove('is-invalid');
 
       const payload = recopilarDatos(esEdicion);
 

@@ -351,8 +351,10 @@
     <script>
         const sesion = Sesion.requerirSesion();
         if (!sesion) {
-            throw new Error('Redireccionando al inicio de sesión.');
+          throw new Error('Redireccionando al inicio de sesión.');
         }
+
+        Sesion.asegurarEnlaceAdministrarUsuarios(document.querySelector('#navbarNav .navbar-nav'));
 
         const accountSearchInput = document.getElementById('accountSearch');
         const saveBudgetBtn = document.getElementById('saveBudgetBtn');

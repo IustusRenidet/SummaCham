@@ -200,6 +200,8 @@
       throw new Error('Redireccionando al inicio de sesión.');
     }
 
+    Sesion.asegurarEnlaceAdministrarUsuarios(document.querySelector('#navbarNav .navbar-nav'));
+
 
     const CITY_LABELS = {
       CDMX: "Ciudad de México",

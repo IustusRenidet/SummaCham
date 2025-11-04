@@ -36,7 +36,8 @@ const schemaGenerales = Joi.object({
 const schemaUsuarioBase = {
   usuario: Joi.string().trim().min(3).max(32).required(),
   nombres: Joi.string().trim().allow('').default(''),
-  apellidos: Joi.string().trim().allow('').default(''),
+  apellidoPrimero: Joi.string().trim().allow('').default(''),
+  apellidoSegundo: Joi.string().trim().allow('').default(''),
   correo: Joi.string().trim().email({ tlds: { allow: false } }).allow('').default(''),
   permisosGenerales: schemaGenerales,
   permisos: schemaPermisos,
@@ -121,7 +122,12 @@ const cargarUsuarioActual = (req, res, next) => {
   }
 
   const esIconet = registro.usuario === 'ICONET';
-  const esAdmin = Boolean(registro.es_admin_global) || esIconet;
+  const esAdminGlobal = Boolean(registro.es_admin_global) || esIconet;
+  const puedeAgregar = Boolean(registro.puede_agregar);
+  const puedeModificar = Boolean(registro.puede_modificar);
+  const puedeEliminar = Boolean(registro.puede_eliminar);
+  const tienePermisosGestion = puedeAgregar && puedeModificar && puedeEliminar;
+  const esAdmin = esAdminGlobal || tienePermisosGestion;
 
   if (!esAdmin) {
     return res.status(403).json({ mensaje: 'No cuentas con permisos para administrar usuarios.' });
@@ -130,11 +136,11 @@ const cargarUsuarioActual = (req, res, next) => {
   req.usuarioActual = {
     id: registro.id,
     usuario: registro.usuario,
-    esAdminGlobal: esAdmin,
+    esAdminGlobal,
     permisosGenerales: {
-      puedeAgregar: true,
-      puedeModificar: true,
-      puedeEliminar: true
+      puedeAgregar,
+      puedeModificar,
+      puedeEliminar
     }
   };
 
@@ -154,8 +160,9 @@ router.use(cargarUsuarioActual);
 
 router.get('/', (req, res) => {
   const registros = db.prepare(`
-    SELECT id, usuario, nombres, apellidos, correo, es_admin_global,
-           puede_agregar, puede_modificar, puede_eliminar
+    SELECT id, usuario, nombres, apellido_primero, apellido_segundo, apellidos,
+           correo, es_admin_global, puede_agregar, puede_modificar, puede_eliminar,
+           contrasena_visible
     FROM usuarios
     ORDER BY usuario ASC
   `).all();
@@ -164,6 +171,8 @@ router.get('/', (req, res) => {
     id: registro.id,
     usuario: registro.usuario,
     nombres: registro.nombres,
+    apellidoPrimero: registro.apellido_primero,
+    apellidoSegundo: registro.apellido_segundo,
     apellidos: registro.apellidos,
     correo: registro.correo,
     esAdminGlobal: Boolean(registro.es_admin_global),
@@ -172,7 +181,8 @@ router.get('/', (req, res) => {
       puedeModificar: Boolean(registro.puede_modificar),
       puedeEliminar: Boolean(registro.puede_eliminar)
     },
-    permisosPorEmpresa: obtenerPermisosPorUsuario(registro.id)
+    permisosPorEmpresa: obtenerPermisosPorUsuario(registro.id),
+    contrasenaVisible: registro.contrasena_visible
   }));
 
   res.json({ usuarios });
@@ -181,8 +191,9 @@ router.get('/', (req, res) => {
 router.get('/:id', (req, res) => {
   const usuarioId = Number(req.params.id);
   const registro = db.prepare(`
-    SELECT id, usuario, nombres, apellidos, correo, es_admin_global,
-           puede_agregar, puede_modificar, puede_eliminar
+    SELECT id, usuario, nombres, apellido_primero, apellido_segundo, apellidos,
+           correo, es_admin_global, puede_agregar, puede_modificar, puede_eliminar,
+           contrasena_visible
     FROM usuarios
     WHERE id = ?
   `).get(usuarioId);
@@ -198,6 +209,8 @@ router.get('/:id', (req, res) => {
       id: registro.id,
       usuario: registro.usuario,
       nombres: registro.nombres,
+      apellidoPrimero: registro.apellido_primero,
+      apellidoSegundo: registro.apellido_segundo,
       apellidos: registro.apellidos,
       correo: registro.correo,
       esAdminGlobal: Boolean(registro.es_admin_global),
@@ -206,7 +219,8 @@ router.get('/:id', (req, res) => {
         puedeModificar: Boolean(registro.puede_modificar),
         puedeEliminar: Boolean(registro.puede_eliminar)
       },
-      permisosPorEmpresa
+      permisosPorEmpresa,
+      contrasenaVisible: registro.contrasena_visible
     }
   });
 });
@@ -235,22 +249,34 @@ router.post('/', asegurarPermisoGeneral('puedeAgregar'), (req, res) => {
   }
 
   const hash = bcrypt.hashSync(value.contrasena, 12);
+  const contrasenaVisible = value.contrasena;
+  const apellidosCompletos = [value.apellidoPrimero, value.apellidoSegundo].filter(Boolean).join(' ');
 
-  const permisosGenerales = value.esAdminGlobal ? { puedeAgregar: 1, puedeModificar: 1, puedeEliminar: 1 } : { puedeAgregar: 0, puedeModificar: 0, puedeEliminar: 0 };
+  const permisosGenerales = value.esAdminGlobal
+    ? { puedeAgregar: 1, puedeModificar: 1, puedeEliminar: 1 }
+    : {
+        puedeAgregar: value.permisosGenerales?.puedeAgregar ? 1 : 0,
+        puedeModificar: value.permisosGenerales?.puedeModificar ? 1 : 0,
+        puedeEliminar: value.permisosGenerales?.puedeEliminar ? 1 : 0
+      };
 
   const insertar = db.prepare(`
     INSERT INTO usuarios (
-      usuario, nombres, apellidos, correo, contrasena, es_admin_global,
+      usuario, nombres, apellido_primero, apellido_segundo, apellidos,
+      correo, contrasena, contrasena_visible, es_admin_global,
       puede_agregar, puede_modificar, puede_eliminar
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   const resultado = insertar.run(
     usuarioNormalizado,
     value.nombres,
-    value.apellidos,
+    value.apellidoPrimero,
+    value.apellidoSegundo,
+    apellidosCompletos,
     value.correo,
     hash,
+    contrasenaVisible,
     value.esAdminGlobal ? 1 : 0,
     permisosGenerales.puedeAgregar,
     permisosGenerales.puedeModificar,
@@ -291,17 +317,27 @@ router.put('/:id', asegurarPermisoGeneral('puedeModificar'), (req, res) => {
 
   const actualizar = db.prepare(`
     UPDATE usuarios
-    SET usuario = ?, nombres = ?, apellidos = ?, correo = ?, es_admin_global = ?,
-        puede_agregar = ?, puede_modificar = ?, puede_eliminar = ?
+    SET usuario = ?, nombres = ?, apellido_primero = ?, apellido_segundo = ?, apellidos = ?,
+        correo = ?, es_admin_global = ?, puede_agregar = ?, puede_modificar = ?, puede_eliminar = ?
     WHERE id = ?
   `);
 
-  const permisosGenerales = value.esAdminGlobal ? { puedeAgregar: 1, puedeModificar: 1, puedeEliminar: 1 } : { puedeAgregar: 0, puedeModificar: 0, puedeEliminar: 0 };
+  const permisosGenerales = value.esAdminGlobal
+    ? { puedeAgregar: 1, puedeModificar: 1, puedeEliminar: 1 }
+    : {
+        puedeAgregar: value.permisosGenerales?.puedeAgregar ? 1 : 0,
+        puedeModificar: value.permisosGenerales?.puedeModificar ? 1 : 0,
+        puedeEliminar: value.permisosGenerales?.puedeEliminar ? 1 : 0
+      };
+
+  const apellidosCompletos = [value.apellidoPrimero, value.apellidoSegundo].filter(Boolean).join(' ');
 
   actualizar.run(
     normalizarUsuario(value.usuario),
     value.nombres,
-    value.apellidos,
+    value.apellidoPrimero,
+    value.apellidoSegundo,
+    apellidosCompletos,
     value.correo,
     value.esAdminGlobal ? 1 : 0,
     permisosGenerales.puedeAgregar,
@@ -312,7 +348,7 @@ router.put('/:id', asegurarPermisoGeneral('puedeModificar'), (req, res) => {
 
   if (value.contrasena) {
     const hash = bcrypt.hashSync(value.contrasena, 12);
-    db.prepare('UPDATE usuarios SET contrasena = ? WHERE id = ?').run(hash, usuarioId);
+    db.prepare('UPDATE usuarios SET contrasena = ?, contrasena_visible = ? WHERE id = ?').run(hash, value.contrasena, usuarioId);
   }
 
   aplicarPermisos(usuarioId, value.permisos);
@@ -351,7 +387,7 @@ router.post('/:id/restablecer-contrasena', asegurarPermisoGeneral('puedeModifica
   }
 
   const hash = bcrypt.hashSync(value.contrasena, 12);
-  db.prepare('UPDATE usuarios SET contrasena = ? WHERE id = ?').run(hash, usuarioId);
+  db.prepare('UPDATE usuarios SET contrasena = ?, contrasena_visible = ? WHERE id = ?').run(hash, value.contrasena, usuarioId);
 
   res.json({ mensaje: 'Contraseña actualizada correctamente.' });
 });

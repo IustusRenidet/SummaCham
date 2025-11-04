@@ -170,11 +170,9 @@
 
         Sesion.guardar(datos);
 
-        const permisosGenerales = datos.usuario?.permisosGenerales || {};
-        const esAdmin = Sesion.esAdmin(datos);
-        const tienePermisoUsuarios = Boolean(permisosGenerales.puedeAgregar || permisosGenerales.puedeModificar || permisosGenerales.puedeEliminar);
+        const puedeAdministrar = Sesion.puedeAdministrarUsuarios(datos);
 
-        if (esAdmin || tienePermisoUsuarios) {
+        if (puedeAdministrar) {
           window.location.href = 'usuarios.html';
         } else {
           window.location.href = 'Vista1.html';
