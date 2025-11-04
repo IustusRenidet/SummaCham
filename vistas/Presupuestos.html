@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/estilos.css">
     <style>
         :root {
             --color-primary: #2f6f4e;
@@ -113,7 +114,8 @@
                     <div class="card-body text-center text-lg-start">
                         <div class="d-flex flex-column flex-lg-row align-items-center justify-content-between gap-3">
                             <div>
-                                <h1 class="fw-bold display-6 mb-3">Presupuestos</h1>
+                                <h1 class="fw-bold display-6 mb-2">Presupuestos</h1>
+                                <p class="mb-0 text-white-50">Ejercicio <span class="anio" id="yearLabel"></span> · <span id="empresaLabel">—</span></p>
                             </div>
                         </div>
                     </div>
@@ -127,8 +129,8 @@
                     <div class="card-body p-3">
                         <h5 class="fw-bold mb-3" style="color: var(--color-primary);">Controles de Presupuesto</h5>
                         <div class="btn-group btn-group-custom" role="group">
-                            <button type="button" class="btn btn-primary btn-custom" id="saveBudgetBtn">Guardar</button>
-                            <button type="button" class="btn btn-outline-primary btn-custom" id="loadBudgetBtn">Cargar</button>
+                            <button type="button" class="btn btn-primario btn-custom" id="saveBudgetBtn">Guardar</button>
+                            <button type="button" class="btn btn-outline-success btn-custom" id="loadBudgetBtn">Cargar</button>
                             <button type="button" class="btn btn-success btn-custom">Autorizar</button>
                         </div>
                         <input type="file" id="budgetFileInput" accept=".csv,text/csv" class="d-none">
@@ -148,8 +150,9 @@
         <div class="row">
             <div class="col-12">
                 <div class="table-card fade-in">
+                    <div id="presupuestoStatus" class="alert alert-info visually-hidden" role="status"></div>
                     <div class="table-responsive">
-                        <table class="table align-middle mb-0">
+                        <table class="table align-middle mb-0" id="tablaPresupuestos">
                             <thead>
                                 <tr>
                                     <th scope="col" class="text-start">Cuenta</th>
@@ -166,152 +169,13 @@
                                     <th scope="col" class="text-end">Oct</th>
                                     <th scope="col" class="text-end">Nov</th>
                                     <th scope="col" class="text-end">Dic</th>
-                                    <th scope="col" class="text-end">Anual</th>
+                                    <th scope="col" class="text-end">Anual <span class="anio" id="yearColumn"></span></th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                <tr class="section-header-row" data-account="100-00-000-0000" data-desc="Activo">
-                                    <td>100-00-000-0000</td>
-                                    <td>Activo</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                </tr>
-                                <tr class="section-header-row" data-account="101-00-000-0000" data-desc="Pasivo">
-                                    <td>101-00-000-0000</td>
-                                    <td>Pasivo</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                </tr>
-                                <tr class="section-header-row" data-account="102-00-000-0000" data-desc="Capital Contable">
-                                    <td>102-00-000-0000</td>
-                                    <td>Capital Contable</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                </tr>
-                                <tr class="section-header-row" data-account="103-00-000-0000" data-desc="Ingresos">
-                                    <td>103-00-000-0000</td>
-                                    <td>Ingresos</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                </tr>
-                                <tr class="section-header-row" data-account="104-00-000-0000" data-desc="Costos">
-                                    <td>104-00-000-0000</td>
-                                    <td>Costos</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                </tr>
-                                <tr class="section-header-row" data-account="105-00-000-0000" data-desc="Gastos">
-                                    <td>105-00-000-0000</td>
-                                    <td>Gastos</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                </tr>
-                                <tr class="section-header-row" data-account="106-00-000-0000" data-desc="Banco">
-                                    <td>106-00-000-0000</td>
-                                    <td>Banco</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                </tr>
-                                <tr class="section-header-row" data-account="800-00-000-0000" data-desc="Caja">
-                                    <td>800-00-000-0000</td>
-                                    <td>Caja</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                    <td class="budget-value">0</td>
-                                </tr>
-                            </tbody>
+                            <tbody></tbody>
                         </table>
                     </div>
                 </div>
-            </div>
-        </div>
     </div>
 
     <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1080;">
@@ -328,6 +192,7 @@
     <script src="js/sesion.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
     <script>
+        const API_BASE = 'http://localhost:3000/api';
         const sesion = Sesion.requerirSesion();
         if (!sesion) {
           throw new Error('Redireccionando al inicio de sesión.');
@@ -342,117 +207,247 @@
         const toastElement = document.getElementById('actionToast');
         const toastBody = document.getElementById('actionToastBody');
         const toastInstance = bootstrap.Toast.getOrCreateInstance(toastElement, { delay: 3000 });
+        const tablaBody = document.querySelector('#tablaPresupuestos tbody');
+        const presupuestoStatus = document.getElementById('presupuestoStatus');
+        const yearLabel = document.getElementById('yearLabel');
+        const yearColumn = document.getElementById('yearColumn');
+        const empresaLabel = document.getElementById('empresaLabel');
+
+        const EJERCICIO = new Date().getFullYear();
+        const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+        const formatoNumero = new Intl.NumberFormat('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        yearLabel.textContent = EJERCICIO;
+        yearColumn.textContent = EJERCICIO;
+
+        const estado = {
+          cuentas: [],
+          filtro: ''
+        };
 
         function showToast(message, variant = 'text-bg-success') {
-            toastElement.classList.remove('text-bg-success', 'text-bg-danger', 'text-bg-warning', 'text-bg-info');
-            toastElement.classList.add(variant);
-            toastBody.textContent = message;
-            toastInstance.show();
+          toastElement.classList.remove('text-bg-success', 'text-bg-danger', 'text-bg-warning', 'text-bg-info');
+          toastElement.classList.add(variant);
+          toastBody.textContent = message;
+          toastInstance.show();
         }
 
-        function getTableRowsMap() {
-            const rows = document.querySelectorAll('tbody tr');
-            const map = new Map();
-            rows.forEach(row => {
-                const account = row.querySelector('td')?.textContent.trim();
-                if (account) {
-                    map.set(account, row);
-                }
+        const mostrarEstado = (mensaje, tipo = 'info') => {
+          presupuestoStatus.textContent = mensaje;
+          presupuestoStatus.className = `alert alert-${tipo} mb-3`;
+        };
+
+        const limpiarEstado = () => {
+          presupuestoStatus.textContent = '';
+          presupuestoStatus.className = 'alert alert-info visually-hidden';
+        };
+
+        const obtenerEmpresaActiva = () => Sesion.obtenerEmpresaActiva();
+
+        const actualizarEncabezadoEmpresa = (empresa) => {
+          const activa = empresa || obtenerEmpresaActiva();
+          if (activa && activa.nombre) {
+            empresaLabel.textContent = activa.etiqueta ? `${activa.etiqueta} — ${activa.nombre}` : activa.nombre;
+          } else {
+            empresaLabel.textContent = 'Sin empresa asignada';
+          }
+        };
+
+        const formatearValor = (valor) => formatoNumero.format(Number.isFinite(Number(valor)) ? Number(valor) : 0);
+
+        const renderizarTabla = () => {
+          tablaBody.innerHTML = '';
+          const termino = estado.filtro.trim().toLowerCase();
+          const cuentasFiltradas = estado.cuentas.filter((cuenta) => {
+            if (!termino) {
+              return true;
+            }
+            const texto = `${cuenta.numCta || ''} ${cuenta.nombre || ''}`.toLowerCase();
+            return texto.includes(termino);
+          });
+
+          if (cuentasFiltradas.length === 0) {
+            const fila = document.createElement('tr');
+            fila.innerHTML = '<td colspan="15" class="text-center text-muted py-4">No hay información para mostrar.</td>';
+            tablaBody.appendChild(fila);
+            return;
+          }
+
+          cuentasFiltradas.forEach((cuenta) => {
+            const fila = document.createElement('tr');
+            fila.dataset.account = cuenta.numCta || '';
+            fila.dataset.desc = cuenta.nombre || '';
+
+            const celdaCuenta = document.createElement('td');
+            celdaCuenta.textContent = cuenta.numCta || '—';
+            fila.appendChild(celdaCuenta);
+
+            const celdaNombre = document.createElement('td');
+            celdaNombre.textContent = cuenta.nombre || '—';
+            fila.appendChild(celdaNombre);
+
+            MESES.forEach((_, indice) => {
+              const periodo = indice + 1;
+              const celda = document.createElement('td');
+              celda.className = 'budget-value text-end';
+              celda.textContent = formatearValor(cuenta.periodos?.[periodo] ?? 0);
+              fila.appendChild(celda);
             });
-            return map;
-        }
 
-        function convertTableToCsv() {
-            const table = document.querySelector('table');
-            const headerCells = Array.from(table.querySelectorAll('thead th'), cell => cell.textContent.trim());
-            const bodyRows = Array.from(table.querySelectorAll('tbody tr'));
+            const celdaAnual = document.createElement('td');
+            celdaAnual.className = 'budget-value text-end';
+            celdaAnual.textContent = formatearValor(cuenta.periodos?.[12] ?? 0);
+            fila.appendChild(celdaAnual);
 
-            const csvRows = [headerCells.join(',')];
-            bodyRows.forEach(row => {
-                const rowData = Array.from(row.querySelectorAll('td'), cell => cell.textContent.trim());
-                csvRows.push(rowData.join(','));
+            tablaBody.appendChild(fila);
+          });
+        };
+
+        const cargarPresupuestos = async () => {
+          const empresa = obtenerEmpresaActiva();
+          if (!empresa) {
+            actualizarEncabezadoEmpresa(null);
+            estado.cuentas = [];
+            renderizarTabla();
+            mostrarEstado('Selecciona una empresa desde el panel principal para visualizar sus presupuestos.', 'warning');
+            return;
+          }
+
+          actualizarEncabezadoEmpresa(empresa);
+          mostrarEstado('Cargando presupuestos…', 'info');
+
+          try {
+            const respuesta = await fetch(`${API_BASE}/presupuestos?anio=${EJERCICIO}`, {
+              headers: Sesion.headersAutenticacion()
             });
-
-            return csvRows.join('\n');
-        }
-
-        function updateTableFromCsv(csvText) {
-            const lines = csvText.split(/\r?\n/).filter(line => line.trim().length > 0);
-            if (lines.length <= 1) {
-                return false;
+            const datos = await respuesta.json();
+            if (!respuesta.ok) {
+              throw new Error(datos.mensaje || 'No fue posible obtener los presupuestos.');
             }
 
-            const rowsMap = getTableRowsMap();
-            for (let i = 1; i < lines.length; i++) {
-                const columns = lines[i].split(',').map(cell => cell.trim());
-                const account = columns[0];
-                const row = rowsMap.get(account);
-                if (row) {
-                    const cells = row.querySelectorAll('td');
-                    columns.forEach((value, index) => {
-                        if (cells[index]) {
-                            cells[index].textContent = value;
-                        }
-                    });
-                }
+            if (datos.empresa) {
+              actualizarEncabezadoEmpresa(datos.empresa);
             }
-            return true;
-        }
 
-        accountSearchInput.addEventListener('input', function (e) {
-            const searchTerm = e.target.value.toLowerCase();
-            const rows = document.querySelectorAll('tbody tr');
+            estado.cuentas = Array.isArray(datos.cuentas)
+              ? datos.cuentas.map((cuenta) => {
+                  const periodosNormalizados = {};
+                  MESES.forEach((_, indice) => {
+                    const periodo = indice + 1;
+                    const valor = cuenta.periodos?.[periodo];
+                    const numerico = Number(valor);
+                    periodosNormalizados[periodo] = Number.isFinite(numerico) ? numerico : 0;
+                  });
+                  return { ...cuenta, periodos: periodosNormalizados };
+                })
+              : [];
 
-            rows.forEach(row => {
-                const account = row.getAttribute('data-account') || '';
-                const desc = row.getAttribute('data-desc') || '';
-                if (account.includes(searchTerm) || desc.toLowerCase().includes(searchTerm)) {
-                    row.classList.remove('hidden-row');
-                } else {
-                    row.classList.add('hidden-row');
-                }
+            estado.filtro = '';
+            accountSearchInput.value = '';
+            limpiarEstado();
+            renderizarTabla();
+          } catch (error) {
+            estado.cuentas = [];
+            renderizarTabla();
+            mostrarEstado(error.message || 'Ocurrió un problema al cargar la información.', 'danger');
+          }
+        };
+
+        const convertirTablaACsv = () => {
+          const encabezados = ['Cuenta', 'Descripción', ...MESES, `Anual ${EJERCICIO}`];
+          const filas = estado.cuentas.map((cuenta) => {
+            const periodos = MESES.map((_, indice) => (cuenta.periodos?.[indice + 1] ?? 0));
+            const anual = cuenta.periodos?.[12] ?? 0;
+            return [
+              cuenta.numCta || '',
+              cuenta.nombre || '',
+              ...periodos.map((valor) => Number(valor).toFixed(2)),
+              Number(anual).toFixed(2)
+            ];
+          });
+          const csv = [encabezados.join(',')];
+          filas.forEach((fila) => csv.push(fila.join(',')));
+          return csv.join('
+');
+        };
+
+        const actualizarDesdeCsv = (texto) => {
+          const lineas = texto.split(/
+?
+/).filter((linea) => linea.trim().length > 0);
+          if (lineas.length <= 1) {
+            return false;
+          }
+
+          const mapaCuentas = new Map(estado.cuentas.map((cuenta) => [cuenta.numCta, cuenta]));
+          for (let i = 1; i < lineas.length; i += 1) {
+            const columnas = lineas[i].split(',');
+            if (columnas.length < MESES.length + 2) {
+              continue;
+            }
+            const cuenta = mapaCuentas.get(columnas[0].trim());
+            if (!cuenta) {
+              continue;
+            }
+            MESES.forEach((_, indice) => {
+              const columna = columnas[indice + 2] || '0';
+              const numerico = Number(columna.replace(/[^0-9+\-.,]/g, '').replace(',', '.'));
+              cuenta.periodos[indice + 1] = Number.isFinite(numerico) ? numerico : 0;
             });
+          }
+          renderizarTabla();
+          return true;
+        };
+
+        accountSearchInput.addEventListener('input', (event) => {
+          estado.filtro = event.target.value.trim().toLowerCase();
+          renderizarTabla();
         });
 
         saveBudgetBtn.addEventListener('click', () => {
-            const csvContent = convertTableToCsv();
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const downloadLink = document.createElement('a');
-            const url = URL.createObjectURL(blob);
-            downloadLink.href = url;
-            downloadLink.download = 'presupuesto.csv';
-            document.body.appendChild(downloadLink);
-            downloadLink.click();
-            document.body.removeChild(downloadLink);
-            URL.revokeObjectURL(url);
-            showToast('Presupuesto guardado correctamente.');
+          const csvContent = convertirTablaACsv();
+          const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+          const downloadLink = document.createElement('a');
+          const url = URL.createObjectURL(blob);
+          downloadLink.href = url;
+          downloadLink.download = `presupuesto_${EJERCICIO}.csv`;
+          document.body.appendChild(downloadLink);
+          downloadLink.click();
+          document.body.removeChild(downloadLink);
+          URL.revokeObjectURL(url);
+          showToast('Presupuesto exportado correctamente.');
         });
 
         loadBudgetBtn.addEventListener('click', () => {
-            budgetFileInput.click();
+          budgetFileInput.click();
         });
 
         budgetFileInput.addEventListener('change', (event) => {
-            const file = event.target.files?.[0];
-            if (!file) {
-                return;
-            }
+          const file = event.target.files?.[0];
+          if (!file) {
+            return;
+          }
 
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const success = updateTableFromCsv(e.target?.result || '');
-                if (success) {
-                    showToast('Presupuesto cargado correctamente.', 'text-bg-info');
-                } else {
-                    showToast('El archivo seleccionado no contiene datos válidos.', 'text-bg-warning');
-                }
-            };
-            reader.onerror = () => {
-                showToast('No se pudo leer el archivo seleccionado.', 'text-bg-danger');
-            };
-            reader.readAsText(file);
-            event.target.value = '';
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const exito = actualizarDesdeCsv(e.target?.result || '');
+            if (exito) {
+              showToast('Presupuesto cargado correctamente.', 'text-bg-info');
+            } else {
+              showToast('El archivo seleccionado no contiene datos válidos.', 'text-bg-warning');
+            }
+          };
+          reader.onerror = () => {
+            showToast('No se pudo leer el archivo seleccionado.', 'text-bg-danger');
+          };
+          reader.readAsText(file);
+          event.target.value = '';
         });
-    </script>
+
+        document.addEventListener('DOMContentLoaded', () => {
+          actualizarEncabezadoEmpresa();
+          cargarPresupuestos();
+        });
+    </script></script>
 </body>
 </html>

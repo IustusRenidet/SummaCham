@@ -1,0 +1,40 @@
+:root {
+  --btn-primario-bg: #2f6f4e;
+  --btn-primario-bg-hover: #26523e;
+  --btn-primario-text: #ffffff;
+}
+
+.btn-primario {
+  background-color: var(--btn-primario-bg);
+  border-color: var(--btn-primario-bg);
+  color: var(--btn-primario-text);
+  font-weight: 700;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.btn-primario:hover,
+.btn-primario:focus {
+  background-color: var(--btn-primario-bg-hover);
+  border-color: var(--btn-primario-bg-hover);
+  color: var(--btn-primario-text);
+  transform: translateY(-1px);
+}
+
+.btn-primario:active {
+  background-color: var(--btn-primario-bg-hover);
+  border-color: var(--btn-primario-bg-hover);
+}
+
+.btn-primario:disabled,
+.btn-primario.disabled {
+  background-color: var(--btn-primario-bg);
+  border-color: var(--btn-primario-bg);
+  color: var(--btn-primario-text);
+  opacity: 0.65;
+}
+
+.anio {
+  font-weight: 700;
+  color: var(--btn-primario-bg, #2f6f4e);
+  font-variant-numeric: tabular-nums;
+}
