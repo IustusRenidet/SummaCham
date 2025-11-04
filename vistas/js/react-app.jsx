@@ -5,17 +5,17 @@ const API_BASE = 'http://localhost:3000/api';
 const MODULE_GROUPS = [
   {
     id: 'panel-resumenes',
-    label: 'Resumenes',
+    label: 'Paneles',
     items: [
-      { id: 'resumen', label: 'Resumen', path: 'RESUMEN.html', badge: 'Finanzas' },
       { id: 'presupuestos', label: 'Presupuestos', path: 'Presupuestos.html', badge: 'Finanzas' },
-      { id: 'summary', label: 'Resumen E', path: 'SUMMARY.html', badge: 'Ejecutivo' }
+      { id: 'summary', label: 'Summary', path: 'SUMMARY.html', badge: 'Ejecutivo' }
     ]
   },
   {
-    id: 'panel-areas',
-    label: 'Áreas',
+    id: 'resumen-areas',
+    label: 'Resumen',
     items: [
+      { id: 'resumen', label: 'Resumen', path: 'RESUMEN.html', badge: 'Finanzas' },
       { id: 'membresia', label: 'Membresía', path: 'Membresía.html' },
       { id: 'eventos', label: 'Eventos', path: 'Eventos.html' },
       { id: 'comunicacion', label: 'Comunicación', path: 'Comunicación.html' },
@@ -23,13 +23,7 @@ const MODULE_GROUPS = [
       { id: 'comites', label: 'Comités', path: 'Comités.html' },
       { id: 'tic', label: 'T&IC', path: 'T&IC.html' },
       { id: 'rh', label: 'Recursos Humanos', path: 'RH.html' },
-      { id: 'vpe', label: 'VPE', path: 'VPE.html' }
-    ]
-  },
-  {
-    id: 'panel-finanzas',
-    label: 'Finanzas',
-    items: [
+      { id: 'vpe', label: 'VPE', path: 'VPE.html' },
       { id: 'finanzas', label: 'Finanzas', path: 'Finanzas.html' },
       { id: 'gtos-corporativos', label: 'Gastos Corporativos', path: 'Gtos_Corporativos.html' }
     ]
