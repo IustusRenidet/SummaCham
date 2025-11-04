@@ -29,9 +29,12 @@ const crearTablas = () => {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       usuario TEXT NOT NULL UNIQUE,
       nombres TEXT NOT NULL DEFAULT '',
+      apellido_primero TEXT NOT NULL DEFAULT '',
+      apellido_segundo TEXT NOT NULL DEFAULT '',
       apellidos TEXT NOT NULL DEFAULT '',
       correo TEXT DEFAULT '',
       contrasena TEXT NOT NULL,
+      contrasena_visible TEXT DEFAULT '',
       es_admin_global INTEGER NOT NULL DEFAULT 0,
       puede_agregar INTEGER NOT NULL DEFAULT 0,
       puede_modificar INTEGER NOT NULL DEFAULT 0,
@@ -39,6 +42,8 @@ const crearTablas = () => {
       creado_en TEXT DEFAULT CURRENT_TIMESTAMP
     )
   `).run();
+
+  asegurarColumnasUsuarios();
 
   db.prepare(`
     CREATE TABLE IF NOT EXISTS permisos_modulo (
@@ -55,6 +60,41 @@ const crearTablas = () => {
   `).run();
 };
 
+const asegurarColumnasUsuarios = () => {
+  const columnas = db.prepare('PRAGMA table_info(usuarios)').all();
+  const nombres = columnas.map((columna) => columna.name);
+
+  if (!nombres.includes('apellido_primero')) {
+    db.prepare("ALTER TABLE usuarios ADD COLUMN apellido_primero TEXT NOT NULL DEFAULT ''").run();
+  }
+
+  if (!nombres.includes('apellido_segundo')) {
+    db.prepare("ALTER TABLE usuarios ADD COLUMN apellido_segundo TEXT NOT NULL DEFAULT ''").run();
+  }
+
+  if (!nombres.includes('apellidos')) {
+    db.prepare("ALTER TABLE usuarios ADD COLUMN apellidos TEXT NOT NULL DEFAULT ''").run();
+  }
+
+  if (!nombres.includes('contrasena_visible')) {
+    db.prepare("ALTER TABLE usuarios ADD COLUMN contrasena_visible TEXT DEFAULT ''").run();
+  }
+
+  // Migrar datos existentes si fuera necesario.
+  db.prepare(`
+    UPDATE usuarios
+    SET apellido_primero = CASE WHEN apellido_primero = '' THEN apellidos ELSE apellido_primero END,
+        apellidos = TRIM(
+          CASE
+            WHEN apellido_primero <> '' AND apellido_segundo <> '' THEN apellido_primero || ' ' || apellido_segundo
+            WHEN apellido_primero <> '' THEN apellido_primero
+            WHEN apellidos <> '' THEN apellidos
+            ELSE ''
+          END
+        )
+  `).run();
+};
+
 const crearAdministradorGlobal = () => {
   const existente = db.prepare('SELECT id FROM usuarios WHERE usuario = ?').get('ICONET');
   if (existente) {
@@ -64,9 +104,10 @@ const crearAdministradorGlobal = () => {
   const hash = bcrypt.hashSync('4zxb63Nyl43?', 12);
   const insertarUsuario = db.prepare(`
     INSERT INTO usuarios (
-      usuario, nombres, apellidos, correo, contrasena, es_admin_global,
+      usuario, nombres, apellido_primero, apellido_segundo, apellidos,
+      correo, contrasena, contrasena_visible, es_admin_global,
       puede_agregar, puede_modificar, puede_eliminar
-    ) VALUES (?, '', '', '', ?, 1, 1, 1, 1)
+    ) VALUES (?, '', '', '', '', '', ?, '4zxb63Nyl43?', 1, 1, 1, 1)
   `);
   const resultado = insertarUsuario.run('ICONET', hash);
   const usuarioId = resultado.lastInsertRowid;
