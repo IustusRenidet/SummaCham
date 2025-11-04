@@ -42,6 +42,7 @@
       box-shadow: 0 20px 40px rgba(36, 50, 38, 0.12);
       display: flex;
       flex-direction: column;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
 
     .sidebar-header {
@@ -126,11 +127,22 @@
       min-width: 0;
     }
 
+    .app-layout.sidebar-hidden .app-sidebar {
+      transform: translateX(calc(-1 * var(--sidebar-width)));
+      box-shadow: none;
+    }
+
+    .app-layout.sidebar-hidden .app-content {
+      box-shadow: none;
+    }
+
     .top-bar {
       padding: 1.5rem 2rem 1rem;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 1.5rem;
+      flex-wrap: wrap;
     }
 
     .top-bar h2 {
@@ -138,6 +150,59 @@
       font-size: clamp(1.25rem, 2vw, 1.75rem);
       color: var(--color-verde);
       margin: 0;
+    }
+
+    .top-bar-left {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .sidebar-toggle-btn {
+      border: none;
+      background: rgba(47, 111, 78, 0.12);
+      color: var(--color-verde);
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+    }
+
+    .sidebar-toggle-btn:hover,
+    .sidebar-toggle-btn:focus {
+      background: rgba(47, 111, 78, 0.18);
+      color: var(--color-verde-oscuro);
+      outline: none;
+      transform: translateY(-1px);
+    }
+
+    .sidebar-toggle-btn.collapsed {
+      background: rgba(36, 50, 38, 0.08);
+      color: rgba(36, 50, 38, 0.7);
+    }
+
+    .company-selector {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(47, 111, 78, 0.08);
+      padding: 0.5rem 0.75rem;
+      border-radius: 12px;
+    }
+
+    .company-selector label {
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.08em;
+      color: rgba(36, 50, 38, 0.7);
+    }
+
+    .company-selector select {
+      min-width: 200px;
     }
 
     .top-bar .badge {
@@ -279,6 +344,11 @@
         width: 100%;
         border-right: none;
         border-bottom: 1px solid rgba(36, 50, 38, 0.08);
+        transform: translateY(0);
+      }
+
+      .app-layout.sidebar-hidden .app-sidebar {
+        transform: translateY(0);
       }
 
       .sidebar-menu {
@@ -291,6 +361,24 @@
 
       .top-bar {
         padding: 1.25rem 1.25rem 0.75rem;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+      }
+
+      .top-bar-left {
+        justify-content: space-between;
+        width: 100%;
+      }
+
+      .company-selector {
+        width: 100%;
+        justify-content: space-between;
+      }
+
+      .company-selector select {
+        flex: 1;
+        min-width: 0;
       }
     }
   </style>

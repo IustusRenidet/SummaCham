@@ -48,28 +48,12 @@ const obtenerNombreUsuario = (sesion) => {
 };
 
 const LoginView = ({ onLogin }) => {
-  const [empresas, setEmpresas] = useState([]);
-  const [form, setForm] = useState({ usuario: '', contrasena: '', empresaId: '' });
+  const [form, setForm] = useState({ usuario: '', contrasena: '' });
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
     Sesion.limpiar();
-    const cargarEmpresas = async () => {
-      try {
-        const respuesta = await fetch(`${API_BASE}/empresas`);
-        const datos = await respuesta.json();
-        const listado = datos.empresas || [];
-        setEmpresas(listado);
-        if (listado.length > 0) {
-          setForm((prev) => ({ ...prev, empresaId: listado[0].id }));
-        }
-      } catch (err) {
-        console.error('No fue posible cargar las empresas', err);
-        setError('No fue posible obtener la lista de empresas. Verifica el servicio local.');
-      }
-    };
-    cargarEmpresas();
   }, []);
 
   const actualizarCampo = (evento) => {
@@ -81,8 +65,8 @@ const LoginView = ({ onLogin }) => {
     evento.preventDefault();
     setError('');
 
-    if (!form.usuario || !form.contrasena || !form.empresaId) {
-      setError('Completa usuario, contraseña y empresa.');
+    if (!form.usuario || !form.contrasena) {
+      setError('Completa usuario y contraseña.');
       return;
     }
 
@@ -93,16 +77,15 @@ const LoginView = ({ onLogin }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           usuario: form.usuario,
-          contrasena: form.contrasena,
-          empresaId: form.empresaId
+          contrasena: form.contrasena
         })
       });
       const datos = await respuesta.json();
       if (!respuesta.ok) {
         throw new Error(datos.mensaje || 'No fue posible iniciar sesión.');
       }
-      Sesion.guardar(datos);
-      onLogin(datos);
+      const sesionNormalizada = Sesion.guardar(datos) || datos;
+      onLogin(sesionNormalizada);
     } catch (err) {
       console.error('Error de inicio de sesión', err);
       setError(err.message || 'Ocurrió un problema durante el inicio de sesión.');
@@ -149,35 +132,15 @@ const LoginView = ({ onLogin }) => {
               className="form-control form-control-lg"
               value={form.contrasena}
               onChange={actualizarCampo}
-              disabled={cargando}
-              autoComplete="current-password"
-              required
-            />
-          </div>
+          disabled={cargando}
+          autoComplete="current-password"
+          required
+        />
+      </div>
 
-          <div className="mb-4">
-            <label htmlFor="empresaId" className="form-label fw-semibold">Empresa <span className="text-danger">*</span></label>
-            <select
-              id="empresaId"
-              name="empresaId"
-              className="form-select form-select-lg"
-              value={form.empresaId}
-              onChange={actualizarCampo}
-              disabled={cargando || empresas.length === 0}
-              required
-            >
-              {empresas.length === 0 && <option value="">Sin empresas disponibles</option>}
-              {empresas.map((empresa) => (
-                <option key={empresa.id} value={empresa.id}>
-                  {empresa.etiqueta} — {empresa.nombre}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <button type="submit" className="btn btn-verde w-100" disabled={cargando}>
-            {cargando && <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>}
-            {cargando ? 'Ingresando…' : 'Ingresar'}
+      <button type="submit" className="btn btn-verde w-100" disabled={cargando}>
+        {cargando && <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>}
+        {cargando ? 'Ingresando…' : 'Ingresar'}
           </button>
         </form>
       </main>
@@ -222,7 +185,7 @@ const SidebarGroup = ({ group, modules, selectedModule, onSelect, open, onToggle
   );
 };
 
-const DashboardLayout = ({ sesion, selectedModuleId, onSelectModule, onLogout }) => {
+const DashboardLayout = ({ sesion, selectedModuleId, onSelectModule, onLogout, empresaActiva, onChangeEmpresa }) => {
   const puedeAdministrar = useMemo(() => Sesion.puedeAdministrarUsuarios(sesion), [sesion]);
 
   const gruposDisponibles = useMemo(() => {
@@ -242,6 +205,11 @@ const DashboardLayout = ({ sesion, selectedModuleId, onSelectModule, onLogout })
     () => modulosDisponibles.find((module) => module.id === selectedModuleId) || null,
     [modulosDisponibles, selectedModuleId]
   );
+
+  const empresasDisponibles = useMemo(() => Sesion.obtenerEmpresasDisponibles(sesion), [sesion]);
+  const puedeCambiarEmpresa = useMemo(() => Sesion.puedeCambiarEmpresa(sesion), [sesion]);
+  const empresaActualId = empresaActiva?.id || '';
+  const [sidebarOculta, setSidebarOculta] = useState(false);
 
   const [gruposAbiertos, setGruposAbiertos] = useState(() => new Set(gruposDisponibles.map((group) => group.id)));
 
@@ -273,8 +241,21 @@ const DashboardLayout = ({ sesion, selectedModuleId, onSelectModule, onLogout })
     }
   };
 
+  const alternarSidebar = () => {
+    setSidebarOculta((prev) => !prev);
+  };
+
+  const manejarCambioEmpresa = (evento) => {
+    const nuevoId = evento.target.value;
+    if (onChangeEmpresa) {
+      onChangeEmpresa(nuevoId);
+    }
+  };
+
+  const layoutClassName = `app-layout${sidebarOculta ? ' sidebar-hidden' : ''}`;
+
   return (
-    <div className="app-layout">
+    <div className={layoutClassName}>
       <aside className="app-sidebar" aria-label="Navegación principal">
         <div className="sidebar-header">
           <h1>Panel AmCham</h1>
@@ -305,18 +286,46 @@ const DashboardLayout = ({ sesion, selectedModuleId, onSelectModule, onLogout })
       </aside>
       <main className="app-content">
         <div className="top-bar">
-          <div>
-            <h2>{moduloSeleccionado ? moduloSeleccionado.label : 'Selecciona un módulo'}</h2>
-            {moduloSeleccionado?.badge && (
-              <span className="badge rounded-pill mt-2">{moduloSeleccionado.badge}</span>
-            )}
+          <div className="top-bar-left">
+            <button
+              type="button"
+              className={`sidebar-toggle-btn${sidebarOculta ? ' collapsed' : ''}`}
+              onClick={alternarSidebar}
+              aria-label={sidebarOculta ? 'Mostrar menú lateral' : 'Ocultar menú lateral'}
+              aria-expanded={!sidebarOculta}
+            >
+              <span aria-hidden="true">☰</span>
+            </button>
+            <div>
+              <h2>{moduloSeleccionado ? moduloSeleccionado.label : 'Selecciona un módulo'}</h2>
+              {moduloSeleccionado?.badge && (
+                <span className="badge rounded-pill mt-2">{moduloSeleccionado.badge}</span>
+              )}
+            </div>
+          </div>
+          <div className="company-selector">
+            <label htmlFor="companyFilter" className="fw-semibold mb-0">Empresa:</label>
+            <select
+              id="companyFilter"
+              className="form-select form-select-sm"
+              value={empresaActualId}
+              onChange={manejarCambioEmpresa}
+              disabled={!puedeCambiarEmpresa || empresasDisponibles.length === 0}
+            >
+              {empresasDisponibles.length === 0 && <option value="">Sin empresas disponibles</option>}
+              {empresasDisponibles.map((empresa) => (
+                <option key={empresa.id} value={empresa.id}>
+                  {empresa.etiqueta ? `${empresa.etiqueta} — ${empresa.nombre}` : empresa.nombre}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
         <div className="content-wrapper">
           <div className="content-card">
             {moduloSeleccionado ? (
               <iframe
-                key={moduloSeleccionado.id}
+                key={`${moduloSeleccionado.id}-${empresaActualId || 'sin-empresa'}`}
                 src={moduloSeleccionado.path}
                 title={moduloSeleccionado.label}
                 className="content-iframe"
@@ -335,35 +344,45 @@ const DashboardLayout = ({ sesion, selectedModuleId, onSelectModule, onLogout })
 
 const App = () => {
   const [sesion, setSesion] = useState(() => Sesion.obtener());
+  const [empresaActiva, setEmpresaActiva] = useState(() => Sesion.obtenerEmpresaActiva());
   const [moduloSeleccionado, setModuloSeleccionado] = useState(null);
-
-  const manejarLogin = (datosSesion) => {
-    setSesion(datosSesion);
-    const puedeAdministrar = Sesion.puedeAdministrarUsuarios(datosSesion);
-    const primerGrupo = MODULE_GROUPS.find((grupo) => grupo.items.some((modulo) => !modulo.requiresAdmin || puedeAdministrar));
-    if (primerGrupo) {
-      const primerModulo = primerGrupo.items.find((modulo) => !modulo.requiresAdmin || puedeAdministrar);
-      if (primerModulo) {
-        setModuloSeleccionado(primerModulo.id);
-      }
-    }
-  };
-
-  const manejarLogout = () => {
-    Sesion.limpiar();
-    setSesion(null);
-    setModuloSeleccionado(null);
-  };
 
   const seleccionarModulo = useCallback((moduloId) => {
     setModuloSeleccionado(moduloId);
   }, []);
 
+  const manejarLogin = (datosSesion) => {
+    const sesionNormalizada = datosSesion || Sesion.obtener();
+    setSesion(sesionNormalizada);
+    setEmpresaActiva(Sesion.obtenerEmpresaActiva(sesionNormalizada));
+  };
+
+  const manejarLogout = () => {
+    Sesion.limpiar();
+    setSesion(null);
+    setEmpresaActiva(null);
+    setModuloSeleccionado(null);
+  };
+
+  const manejarCambioEmpresa = useCallback((empresaId) => {
+    const nuevaEmpresa = Sesion.establecerEmpresaActiva(empresaId);
+    setEmpresaActiva(nuevaEmpresa);
+    setSesion(Sesion.obtener());
+  }, []);
+
   useEffect(() => {
-    if (sesion) {
-      manejarLogin(sesion);
+    if (!sesion) {
+      return;
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    const puedeAdministrar = Sesion.puedeAdministrarUsuarios(sesion);
+    const primerGrupo = MODULE_GROUPS.find((grupo) => grupo.items.some((modulo) => !modulo.requiresAdmin || puedeAdministrar));
+    if (primerGrupo) {
+      const primerModulo = primerGrupo.items.find((modulo) => !modulo.requiresAdmin || puedeAdministrar);
+      if (primerModulo) {
+        setModuloSeleccionado((actual) => actual || primerModulo.id);
+      }
+    }
+  }, [sesion]);
 
   if (!sesion) {
     return <LoginView onLogin={manejarLogin} />;
@@ -375,6 +394,8 @@ const App = () => {
       selectedModuleId={moduloSeleccionado}
       onSelectModule={seleccionarModulo}
       onLogout={manejarLogout}
+      empresaActiva={empresaActiva}
+      onChangeEmpresa={manejarCambioEmpresa}
     />
   );
 };

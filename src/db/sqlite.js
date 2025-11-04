@@ -107,7 +107,7 @@ const crearAdministradorGlobal = () => {
       usuario, nombres, apellido_primero, apellido_segundo, apellidos,
       correo, contrasena, contrasena_visible, es_admin_global,
       puede_agregar, puede_modificar, puede_eliminar
-    ) VALUES (?, '', '', '', '', '', ?, '4zxb63Nyl43?', 1, 1, 1, 1)
+    ) VALUES (?, 'Administrador', 'General', '', 'General', 'admin@amcham.org', ?, '4zxb63Nyl43?', 1, 1, 1, 1)
   `);
   const resultado = insertarUsuario.run('ICONET', hash);
   const usuarioId = resultado.lastInsertRowid;
