@@ -36,9 +36,9 @@ const schemaGenerales = Joi.object({
 const schemaUsuarioBase = {
   usuario: Joi.string().trim().min(3).max(32).required(),
   nombres: Joi.string().trim().allow('').default(''),
-  apellidoPrimero: Joi.string().trim().allow('').default(''),
+  apellidoPrimero: Joi.string().trim().min(1).max(120).required(),
   apellidoSegundo: Joi.string().trim().allow('').default(''),
-  correo: Joi.string().trim().email({ tlds: { allow: false } }).allow('').default(''),
+  correo: Joi.string().trim().email({ tlds: { allow: false } }).required(),
   permisosGenerales: schemaGenerales,
   permisos: schemaPermisos,
   esAdminGlobal: Joi.boolean().default(false)
