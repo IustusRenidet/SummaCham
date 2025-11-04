@@ -30,7 +30,8 @@ router.post('/login', async (req, res) => {
   }
 
   const registro = db.prepare(`
-    SELECT id, usuario, nombres, apellidos, correo, contrasena, es_admin_global,
+    SELECT id, usuario, nombres, apellido_primero, apellido_segundo, apellidos,
+           correo, contrasena, contrasena_visible, es_admin_global,
            puede_agregar, puede_modificar, puede_eliminar
     FROM usuarios
     WHERE usuario = ?
@@ -66,6 +67,8 @@ router.post('/login', async (req, res) => {
       id: registro.id,
       usuario: registro.usuario,
       nombres: registro.nombres,
+      apellidoPrimero: registro.apellido_primero,
+      apellidoSegundo: registro.apellido_segundo,
       apellidos: registro.apellidos,
       correo: registro.correo,
       esAdminGlobal: Boolean(registro.es_admin_global),
@@ -74,7 +77,8 @@ router.post('/login', async (req, res) => {
         puedeModificar: Boolean(registro.puede_modificar),
         puedeEliminar: Boolean(registro.puede_eliminar)
       },
-      permisosPorEmpresa: mapaPermisos
+      permisosPorEmpresa: mapaPermisos,
+      contrasenaVisible: registro.contrasena_visible
     },
     empresa: empresaSeleccionada,
     firebirdDisponible: disponible

@@ -1653,6 +1653,8 @@
       throw new Error('Redireccionando al inicio de sesión.');
     }
 
+    Sesion.asegurarEnlaceAdministrarUsuarios(document.querySelector('#navbarNav .navbar-nav'));
+
     // Script para selección de celdas y zoom
     document.addEventListener('DOMContentLoaded', function() {
       const table = document.getElementById('mainTable');
