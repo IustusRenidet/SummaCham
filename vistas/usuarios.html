@@ -232,7 +232,6 @@
       filtrados.forEach((usuario) => {
         const fila = document.createElement('tr');
         const puedeEditarFila = puedeModificar;
-        const puedeResetearFila = puedeModificar && !usuario.esAdminGlobal;
         const puedeEliminarFila = puedeEliminar && !usuario.esAdminGlobal;
 
         const nombreCompleto = [usuario.nombres, usuario.apellidoPrimero, usuario.apellidoSegundo]
@@ -242,8 +241,6 @@
         const enlaceEditar = puedeEditarFila
           ? `<a class="btn btn-sm btn-outline-success" href="crear_usuario.html?editar=${usuario.id}">Editar</a>`
           : `<span class="btn btn-sm btn-outline-success disabled" aria-disabled="true">Editar</span>`;
-
-        const botonReset = `<button class="btn btn-sm btn-outline-secondary" data-accion="reset" data-id="${usuario.id}" ${puedeResetearFila ? '' : 'disabled'}>Restablecer contraseña</button>`;
         const botonEliminar = `<button class="btn btn-sm btn-outline-danger" data-accion="eliminar" data-id="${usuario.id}" ${puedeEliminarFila ? '' : 'disabled'}>Eliminar</button>`;
 
         fila.innerHTML = `
@@ -255,7 +252,6 @@
           <td data-title="Acciones" class="text-end acciones">
             <div class="btn-group">
               ${enlaceEditar}
-              ${botonReset}
               ${botonEliminar}
             </div>
           </td>`;
@@ -304,35 +300,7 @@
       }
     };
 
-    const restablecerContrasena = async (id) => {
-      if (!puedeModificar) {
-        mostrarAlerta('No cuentas con permiso para modificar usuarios.');
-        return;
-      }
-      const nueva = prompt('Ingresa la nueva contraseña (mínimo 8 caracteres):');
-      if (!nueva) return;
-      if (nueva.length < 8) {
-        mostrarAlerta('La contraseña debe tener al menos 8 caracteres.');
-        return;
-      }
-      try {
-        const respuesta = await fetch(`${API_BASE}/usuarios/${id}/restablecer-contrasena`, {
-          method: 'POST',
-          headers: {
-            ...Sesion.headersAutenticacion(),
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ contrasena: nueva })
-        });
-        const datos = await respuesta.json();
-        if (!respuesta.ok) {
-          throw new Error(datos.mensaje || 'No fue posible restablecer la contraseña.');
-        }
-        mostrarAlerta(datos.mensaje, 'success');
-      } catch (error) {
-        mostrarAlerta(error.message || 'Ocurrió un problema al restablecer la contraseña.');
-      }
-    };
+
 
     tabla.addEventListener('click', (evento) => {
       const boton = evento.target.closest('button[data-accion]');
@@ -341,8 +309,6 @@
       const accion = boton.getAttribute('data-accion');
       if (accion === 'eliminar') {
         eliminarUsuario(id);
-      } else if (accion === 'reset') {
-        restablecerContrasena(id);
       }
     });
 
