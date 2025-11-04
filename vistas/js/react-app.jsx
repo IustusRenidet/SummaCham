@@ -116,7 +116,6 @@ const LoginView = ({ onLogin }) => {
       <main className="login-card" aria-labelledby="titulo-login">
         <header className="mb-4 text-center text-md-start">
           <h1 id="titulo-login" className="h3 mb-1">AmCham</h1>
-          <p className="mb-0 text-muted">Accede con tu cuenta corporativa.</p>
         </header>
 
         {error && (
@@ -279,7 +278,6 @@ const DashboardLayout = ({ sesion, selectedModuleId, onSelectModule, onLogout })
       <aside className="app-sidebar" aria-label="Navegación principal">
         <div className="sidebar-header">
           <h1>Panel AmCham</h1>
-          <p className="text-muted mb-0">Selecciona un módulo para comenzar.</p>
         </div>
         <div className="sidebar-menu">
           {gruposDisponibles.map((group) => (
@@ -326,8 +324,6 @@ const DashboardLayout = ({ sesion, selectedModuleId, onSelectModule, onLogout })
               ></iframe>
             ) : (
               <div className="empty-state">
-                <h3>Selecciona un módulo para comenzar</h3>
-                <p>Elige un elemento en la barra lateral para visualizar la información correspondiente.</p>
               </div>
             )}
           </div>
