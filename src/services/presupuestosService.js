@@ -24,24 +24,48 @@ const construirNombreTabla = (prefijo, anio) => {
   return `${prefijo}${sufijo}`;
 };
 
-const construirExpresionSaldoPeriodo = (periodo, alias) => {
-  // Construir suma de cargos hasta el periodo
-  const camposCargo = [];
-  for (let i = 1; i <= periodo; i++) {
-    camposCargo.push(`COALESCE(s.cargo${formatearPeriodo(i)},0)`);
-  }
-  
-  // Construir suma de abonos hasta el periodo
-  const camposAbono = [];
-  for (let i = 1; i <= periodo; i++) {
-    camposAbono.push(`COALESCE(s.abono${formatearPeriodo(i)},0)`);
-  }
+const construirExpresionSaldoMensual = (periodo, alias) => {
+  const camposCargo = Array.from(
+    { length: periodo },
+    (_, indice) => `COALESCE(s.cargo${formatearPeriodo(indice + 1)}, 0)`
+  );
+  const camposAbono = Array.from(
+    { length: periodo },
+    (_, indice) => `COALESCE(s.abono${formatearPeriodo(indice + 1)}, 0)`
+  );
 
-  const sumaCargos = camposCargo.join(' + ');
-  const sumaAbonos = camposAbono.join(' + ');
+  const sumaCargos = camposCargo.length ? camposCargo.join(' + ') : '0';
+  const sumaAbonos = camposAbono.length ? camposAbono.join(' + ') : '0';
 
-  // Saldo base tal como está en tu query original (sin modificar por naturaleza)
-  return `COALESCE(s.inicial,0) + (${sumaCargos}) - (${sumaAbonos}) AS ${alias}`;
+  return `COALESCE(s.inicial, 0) + (${sumaCargos}) - (${sumaAbonos}) AS ${alias}`;
+};
+
+const construirExpresionSaldoAnual = () => {
+  const camposCargo = Array.from(
+    { length: 12 },
+    (_, indice) => `COALESCE(s.cargo${formatearPeriodo(indice + 1)}, 0)`
+  );
+  const camposAbono = Array.from(
+    { length: 12 },
+    (_, indice) => `COALESCE(s.abono${formatearPeriodo(indice + 1)}, 0)`
+  );
+
+  return `COALESCE(s.inicial, 0) + (${camposCargo.join(' + ')}) - (${camposAbono.join(' + ')}) AS ANUAL`;
+};
+
+const mapearRegistro = (registro) => {
+  const datos = {
+    numCta: registro.CUENTA,
+    descripcion: registro.DESCRIPCION
+  };
+
+  MESES.forEach(({ alias, clave }) => {
+    datos[clave] = Number(registro[alias] ?? 0);
+  });
+
+  datos.anual = Number(registro.ANUAL ?? 0);
+
+  return datos;
 };
 
 const obtenerPresupuestosMayor = async (empresaId, anio) => {
@@ -53,53 +77,29 @@ const obtenerPresupuestosMayor = async (empresaId, anio) => {
     throw new Error('El ejercicio indicado no es válido.');
   }
 
-  const tablaCuentas = construirNombreTabla('cuentas', ejercicio);
-  const tablaSaldos = construirNombreTabla('saldos', ejercicio);
+  const tablaCuentas = construirNombreTabla('CUENTAS', ejercicio);
+  const tablaSaldos = construirNombreTabla('SALDOS', ejercicio);
 
-  // Construir expresiones para cada periodo (P1 a P12)
-  const columnasSaldo = [];
-  for (let p = 1; p <= 12; p++) {
-    columnasSaldo.push(construirExpresionSaldoPeriodo(p, `saldo_p${p}_${ejercicio}`));
-  }
+  const columnasMensuales = MESES.map(({ periodo, alias }) => construirExpresionSaldoMensual(periodo, alias));
+  const columnaAnual = construirExpresionSaldoAnual();
 
-  // Query exacto a tu estructura original
   const consulta = `
-    SELECT 
-      c.num_cta,
-      c.nombre,
-      c.naturaleza,
-      ${columnasSaldo.join(',\n      ')}
+    SELECT
+      c.NUM_CTA AS CUENTA,
+      c.NOMBRE AS DESCRIPCION,
+      ${[...columnasMensuales, columnaAnual].join(',\n      ')}
     FROM ${tablaCuentas} c
     LEFT JOIN ${tablaSaldos} s
-      ON s.num_cta = c.num_cta
-     AND s.ejercicio = ?
-    WHERE c.status = 'A'
-      AND c.tipo = 'A'
-      AND c.nivel = '1'
-    ORDER BY c.num_cta
+      ON s.NUM_CTA = c.NUM_CTA
+     AND s.EJERCICIO = ?
+    WHERE c.STATUS = 'A'
+      AND c.TIPO = 'A'
+      AND c.NIVEL = '1'
+    ORDER BY c.NUM_CTA
   `;
 
   const resultados = await ejecutarConsulta(empresaId, consulta, [ejercicio]);
-  
-  // Mapear los resultados al formato esperado por el frontend
-  return resultados.map((registro) => {
-    const datos = {
-      numCta: registro.NUM_CTA,
-      descripcion: registro.NOMBRE,
-      naturaleza: registro.NATURALEZA || null
-    };
-
-    // Extraer los valores de cada periodo tal como vienen de la BD
-    MESES.forEach(({ periodo, clave }) => {
-      const nombreColumna = `SALDO_P${periodo}_${ejercicio}`.toUpperCase();
-      datos[clave] = Number(registro[nombreColumna] ?? 0);
-    });
-
-    // El anual es el saldo del periodo 12
-    datos.anual = Number(registro[`SALDO_P12_${ejercicio}`.toUpperCase()] ?? 0);
-
-    return datos;
-  });
+  return resultados.map((registro) => mapearRegistro(registro));
 };
 
 module.exports = {
