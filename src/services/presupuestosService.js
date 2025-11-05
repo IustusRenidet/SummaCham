@@ -37,7 +37,11 @@ const construirExpresionSaldoMensual = (periodo, alias) => {
   const sumaCargos = camposCargo.length ? camposCargo.join(' + ') : '0';
   const sumaAbonos = camposAbono.length ? camposAbono.join(' + ') : '0';
 
-  return `COALESCE(s.inicial, 0) + (${sumaCargos}) - (${sumaAbonos}) AS ${alias}`;
+  return `CASE WHEN c.NATURALEZA = 'H' THEN
+    COALESCE(s.inicial, 0) - (${sumaCargos}) + (${sumaAbonos})
+  ELSE
+    COALESCE(s.inicial, 0) + (${sumaCargos}) - (${sumaAbonos})
+  END AS ${alias}`;
 };
 
 const construirExpresionSaldoAnual = () => {
@@ -50,13 +54,21 @@ const construirExpresionSaldoAnual = () => {
     (_, indice) => `COALESCE(s.abono${formatearPeriodo(indice + 1)}, 0)`
   );
 
-  return `COALESCE(s.inicial, 0) + (${camposCargo.join(' + ')}) - (${camposAbono.join(' + ')}) AS ANUAL`;
+  const sumaCargos = camposCargo.length ? camposCargo.join(' + ') : '0';
+  const sumaAbonos = camposAbono.length ? camposAbono.join(' + ') : '0';
+
+  return `CASE WHEN c.NATURALEZA = 'H' THEN
+    COALESCE(s.inicial, 0) - (${sumaCargos}) + (${sumaAbonos})
+  ELSE
+    COALESCE(s.inicial, 0) + (${sumaCargos}) - (${sumaAbonos})
+  END AS ANUAL`;
 };
 
 const mapearRegistro = (registro) => {
   const datos = {
     numCta: registro.CUENTA,
-    descripcion: registro.DESCRIPCION
+    descripcion: registro.DESCRIPCION,
+    naturaleza: (registro.NATURALEZA || '').trim()
   };
 
   MESES.forEach(({ alias, clave }) => {
@@ -87,6 +99,7 @@ const obtenerPresupuestosMayor = async (empresaId, anio) => {
     SELECT
       c.NUM_CTA AS CUENTA,
       c.NOMBRE AS DESCRIPCION,
+      c.NATURALEZA AS NATURALEZA,
       ${[...columnasMensuales, columnaAnual].join(',\n      ')}
     FROM ${tablaCuentas} c
     LEFT JOIN ${tablaSaldos} s
