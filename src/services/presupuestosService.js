@@ -56,7 +56,8 @@ const construirExpresionSaldoAnual = () => {
 const mapearRegistro = (registro) => {
   const datos = {
     numCta: registro.CUENTA,
-    descripcion: registro.DESCRIPCION
+    descripcion: registro.DESCRIPCION,
+    naturaleza: registro.NATURALEZA || null
   };
 
   MESES.forEach(({ alias, clave }) => {
@@ -87,6 +88,7 @@ const obtenerPresupuestosMayor = async (empresaId, anio) => {
     SELECT
       c.NUM_CTA AS CUENTA,
       c.NOMBRE AS DESCRIPCION,
+      c.NATURALEZA AS NATURALEZA,
       ${[...columnasMensuales, columnaAnual].join(',\n      ')}
     FROM ${tablaCuentas} c
     LEFT JOIN ${tablaSaldos} s
