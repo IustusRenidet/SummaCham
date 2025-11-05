@@ -24,58 +24,59 @@ const construirNombreTabla = (prefijo, anio) => {
   return `${prefijo}${sufijo}`;
 };
 
-const construirExpresionSaldoMensual = (periodo, alias) => {
-  const camposCargo = Array.from(
-    { length: periodo },
-    (_, indice) => `COALESCE(s.cargo${formatearPeriodo(indice + 1)}, 0)`
-  );
-  const camposAbono = Array.from(
-    { length: periodo },
-    (_, indice) => `COALESCE(s.abono${formatearPeriodo(indice + 1)}, 0)`
-  );
+const construirColumnasMovimientos = () => {
+  const columnas = [`COALESCE(s.INICIAL, 0) AS INICIAL`];
 
-  const sumaCargos = camposCargo.length ? camposCargo.join(' + ') : '0';
-  const sumaAbonos = camposAbono.length ? camposAbono.join(' + ') : '0';
+  PERIODOS.forEach((periodo) => {
+    const sufijo = formatearPeriodo(periodo);
+    columnas.push(`COALESCE(s.CARGO${sufijo}, 0) AS CARGO${sufijo}`);
+    columnas.push(`COALESCE(s.ABONO${sufijo}, 0) AS ABONO${sufijo}`);
+  });
 
-  return `CASE WHEN c.NATURALEZA = 'H' THEN
-    COALESCE(s.inicial, 0) - (${sumaCargos}) + (${sumaAbonos})
-  ELSE
-    COALESCE(s.inicial, 0) + (${sumaCargos}) - (${sumaAbonos})
-  END AS ${alias}`;
+  return columnas;
 };
 
-const construirExpresionSaldoAnual = () => {
-  const camposCargo = Array.from(
-    { length: 12 },
-    (_, indice) => `COALESCE(s.cargo${formatearPeriodo(indice + 1)}, 0)`
-  );
-  const camposAbono = Array.from(
-    { length: 12 },
-    (_, indice) => `COALESCE(s.abono${formatearPeriodo(indice + 1)}, 0)`
-  );
+const normalizarNumero = (valor) => {
+  const numero = Number(valor);
+  return Number.isFinite(numero) ? numero : 0;
+};
 
-  const sumaCargos = camposCargo.length ? camposCargo.join(' + ') : '0';
-  const sumaAbonos = camposAbono.length ? camposAbono.join(' + ') : '0';
+const redondearSaldo = (valor) => {
+  const redondeado = Math.round((valor + Number.EPSILON) * 100) / 100;
+  return Object.is(redondeado, -0) ? 0 : redondeado;
+};
 
-  return `CASE WHEN c.NATURALEZA = 'H' THEN
-    COALESCE(s.inicial, 0) - (${sumaCargos}) + (${sumaAbonos})
-  ELSE
-    COALESCE(s.inicial, 0) + (${sumaCargos}) - (${sumaAbonos})
-  END AS ANUAL`;
+const calcularSaldo = (naturaleza, inicial, cargosAcumulados, abonosAcumulados) => {
+  const esAcreedora = naturaleza === 'H';
+  if (esAcreedora) {
+    return inicial - cargosAcumulados + abonosAcumulados;
+  }
+  return inicial + cargosAcumulados - abonosAcumulados;
 };
 
 const mapearRegistro = (registro) => {
+  const naturaleza = (registro.NATURALEZA || '').trim().toUpperCase();
+  const inicial = normalizarNumero(registro.INICIAL);
+
+  let cargosAcumulados = 0;
+  let abonosAcumulados = 0;
+
   const datos = {
     numCta: registro.CUENTA,
     descripcion: registro.DESCRIPCION,
-    naturaleza: (registro.NATURALEZA || '').trim()
+    naturaleza
   };
 
-  MESES.forEach(({ alias, clave }) => {
-    datos[clave] = Number(registro[alias] ?? 0);
+  MESES.forEach(({ periodo, clave }) => {
+    const sufijo = formatearPeriodo(periodo);
+    cargosAcumulados += normalizarNumero(registro[`CARGO${sufijo}`]);
+    abonosAcumulados += normalizarNumero(registro[`ABONO${sufijo}`]);
+    const saldo = calcularSaldo(naturaleza, inicial, cargosAcumulados, abonosAcumulados);
+    datos[clave] = redondearSaldo(saldo);
   });
 
-  datos.anual = Number(registro.ANUAL ?? 0);
+  const saldoAnual = calcularSaldo(naturaleza, inicial, cargosAcumulados, abonosAcumulados);
+  datos.anual = redondearSaldo(saldoAnual);
 
   return datos;
 };
@@ -92,15 +93,14 @@ const obtenerPresupuestosMayor = async (empresaId, anio) => {
   const tablaCuentas = construirNombreTabla('CUENTAS', ejercicio);
   const tablaSaldos = construirNombreTabla('SALDOS', ejercicio);
 
-  const columnasMensuales = MESES.map(({ periodo, alias }) => construirExpresionSaldoMensual(periodo, alias));
-  const columnaAnual = construirExpresionSaldoAnual();
+  const columnasMovimientos = construirColumnasMovimientos();
 
   const consulta = `
     SELECT
       c.NUM_CTA AS CUENTA,
       c.NOMBRE AS DESCRIPCION,
       c.NATURALEZA AS NATURALEZA,
-      ${[...columnasMensuales, columnaAnual].join(',\n      ')}
+      ${columnasMovimientos.join(',\n      ')}
     FROM ${tablaCuentas} c
     LEFT JOIN ${tablaSaldos} s
       ON s.NUM_CTA = c.NUM_CTA
