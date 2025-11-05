@@ -346,18 +346,25 @@
               return Number.isFinite(numerico) ? numerico : 0;
             };
 
+            const obtenerNaturaleza = (valor) => (valor || '').toString().trim().toUpperCase();
+            const esAcreedora = (naturaleza) => ['A', 'C'].includes(naturaleza);
+
             estado.cuentas = Array.isArray(datos.cuentas)
               ? datos.cuentas.map((cuenta) => {
+                  const naturaleza = obtenerNaturaleza(cuenta.naturaleza || cuenta.NATURALEZA);
+                  const factor = esAcreedora(naturaleza) ? -1 : 1;
+
                   const normalizada = {
                     numCta: cuenta.numCta || cuenta.num_cta || cuenta.CUENTA || '',
-                    descripcion: cuenta.descripcion || cuenta.nombre || cuenta.DESCRIPCION || ''
+                    descripcion: cuenta.descripcion || cuenta.nombre || cuenta.DESCRIPCION || '',
+                    naturaleza
                   };
 
                   MESES.forEach(({ clave }) => {
-                    normalizada[clave] = normalizarNumero(cuenta[clave]);
+                    normalizada[clave] = normalizarNumero(cuenta[clave]) * factor;
                   });
 
-                  normalizada.anual = normalizarNumero(cuenta.anual);
+                  normalizada.anual = normalizarNumero(cuenta.anual) * factor;
                   return normalizada;
                 })
               : [];
