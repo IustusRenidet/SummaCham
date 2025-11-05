@@ -483,6 +483,16 @@
     <div class="row">
       <div class="col-12">
         <div class="table-card fade-in">
+          <!-- Barra de fórmulas tipo Excel -->
+          <div class="d-flex align-items-center gap-2 p-2 border-bottom" id="formulaToolbar">
+            <span class="text-muted small">Celda</span>
+            <strong id="currentCellId">-</strong>
+            <input id="formulaBar" type="text" class="form-control form-control-sm" placeholder="=SUM(A1:A10)" style="max-width: 360px;" />
+            <button id="applyFormula" type="button" class="btn btn-sm btn-primary">Aplicar</button>
+            <button id="clearFormula" type="button" class="btn btn-sm btn-outline-secondary">Limpiar</button>
+            <button id="saveFormulas" type="button" class="btn btn-sm btn-outline-primary ms-auto">Guardar</button>
+            <button id="loadFormulas" type="button" class="btn btn-sm btn-outline-primary">Cargar</button>
+          </div>
           <div id="summaryStatus" class="alert alert-info mb-3 visually-hidden" role="status"></div>
           <div class="table-responsive">
             <div class="table-wrapper" id="tableWrapper">
