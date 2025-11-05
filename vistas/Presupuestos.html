@@ -214,7 +214,20 @@
         const empresaLabel = document.getElementById('empresaLabel');
 
         const EJERCICIO = new Date().getFullYear();
-        const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+        const MESES = [
+          { etiqueta: 'Ene', clave: 'ene' },
+          { etiqueta: 'Feb', clave: 'feb' },
+          { etiqueta: 'Mar', clave: 'mar' },
+          { etiqueta: 'Abr', clave: 'abr' },
+          { etiqueta: 'May', clave: 'may' },
+          { etiqueta: 'Jun', clave: 'jun' },
+          { etiqueta: 'Jul', clave: 'jul' },
+          { etiqueta: 'Ago', clave: 'ago' },
+          { etiqueta: 'Sep', clave: 'sep' },
+          { etiqueta: 'Oct', clave: 'oct' },
+          { etiqueta: 'Nov', clave: 'nov' },
+          { etiqueta: 'Dic', clave: 'dic' }
+        ];
         const formatoNumero = new Intl.NumberFormat('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
         yearLabel.textContent = EJERCICIO;
@@ -262,7 +275,7 @@
             if (!termino) {
               return true;
             }
-            const texto = `${cuenta.numCta || ''} ${cuenta.nombre || ''}`.toLowerCase();
+            const texto = `${cuenta.numCta || ''} ${cuenta.descripcion || ''}`.toLowerCase();
             return texto.includes(termino);
           });
 
@@ -276,27 +289,26 @@
           cuentasFiltradas.forEach((cuenta) => {
             const fila = document.createElement('tr');
             fila.dataset.account = cuenta.numCta || '';
-            fila.dataset.desc = cuenta.nombre || '';
+            fila.dataset.desc = cuenta.descripcion || '';
 
             const celdaCuenta = document.createElement('td');
             celdaCuenta.textContent = cuenta.numCta || '—';
             fila.appendChild(celdaCuenta);
 
             const celdaNombre = document.createElement('td');
-            celdaNombre.textContent = cuenta.nombre || '—';
+            celdaNombre.textContent = cuenta.descripcion || '—';
             fila.appendChild(celdaNombre);
 
-            MESES.forEach((_, indice) => {
-              const periodo = indice + 1;
+            MESES.forEach(({ clave }) => {
               const celda = document.createElement('td');
               celda.className = 'budget-value text-end';
-              celda.textContent = formatearValor(cuenta.periodos?.[periodo] ?? 0);
+              celda.textContent = formatearValor(cuenta[clave]);
               fila.appendChild(celda);
             });
 
             const celdaAnual = document.createElement('td');
             celdaAnual.className = 'budget-value text-end';
-            celdaAnual.textContent = formatearValor(cuenta.periodos?.[12] ?? 0);
+            celdaAnual.textContent = formatearValor(cuenta.anual);
             fila.appendChild(celdaAnual);
 
             tablaBody.appendChild(fila);
@@ -329,16 +341,24 @@
               actualizarEncabezadoEmpresa(datos.empresa);
             }
 
+            const normalizarNumero = (valor) => {
+              const numerico = Number(valor);
+              return Number.isFinite(numerico) ? numerico : 0;
+            };
+
             estado.cuentas = Array.isArray(datos.cuentas)
               ? datos.cuentas.map((cuenta) => {
-                  const periodosNormalizados = {};
-                  MESES.forEach((_, indice) => {
-                    const periodo = indice + 1;
-                    const valor = cuenta.periodos?.[periodo];
-                    const numerico = Number(valor);
-                    periodosNormalizados[periodo] = Number.isFinite(numerico) ? numerico : 0;
+                  const normalizada = {
+                    numCta: cuenta.numCta || cuenta.num_cta || cuenta.CUENTA || '',
+                    descripcion: cuenta.descripcion || cuenta.nombre || cuenta.DESCRIPCION || ''
+                  };
+
+                  MESES.forEach(({ clave }) => {
+                    normalizada[clave] = normalizarNumero(cuenta[clave]);
                   });
-                  return { ...cuenta, periodos: periodosNormalizados };
+
+                  normalizada.anual = normalizarNumero(cuenta.anual);
+                  return normalizada;
                 })
               : [];
 
@@ -354,27 +374,24 @@
         };
 
         const convertirTablaACsv = () => {
-          const encabezados = ['Cuenta', 'Descripción', ...MESES, `Anual ${EJERCICIO}`];
+          const encabezados = ['Cuenta', 'Descripción', ...MESES.map((mes) => mes.etiqueta), `Anual ${EJERCICIO}`];
           const filas = estado.cuentas.map((cuenta) => {
-            const periodos = MESES.map((_, indice) => (cuenta.periodos?.[indice + 1] ?? 0));
-            const anual = cuenta.periodos?.[12] ?? 0;
+            const periodos = MESES.map(({ clave }) => cuenta[clave] ?? 0);
+            const anual = cuenta.anual ?? 0;
             return [
               cuenta.numCta || '',
-              cuenta.nombre || '',
+              cuenta.descripcion || '',
               ...periodos.map((valor) => Number(valor).toFixed(2)),
               Number(anual).toFixed(2)
             ];
           });
           const csv = [encabezados.join(',')];
           filas.forEach((fila) => csv.push(fila.join(',')));
-          return csv.join('
-');
+          return csv.join('\n');
         };
 
         const actualizarDesdeCsv = (texto) => {
-          const lineas = texto.split(/
-?
-/).filter((linea) => linea.trim().length > 0);
+          const lineas = texto.split(/\r?\n/).filter((linea) => linea.trim().length > 0);
           if (lineas.length <= 1) {
             return false;
           }
@@ -389,11 +406,12 @@
             if (!cuenta) {
               continue;
             }
-            MESES.forEach((_, indice) => {
+            MESES.forEach((mes, indice) => {
               const columna = columnas[indice + 2] || '0';
               const numerico = Number(columna.replace(/[^0-9+\-.,]/g, '').replace(',', '.'));
-              cuenta.periodos[indice + 1] = Number.isFinite(numerico) ? numerico : 0;
+              cuenta[mes.clave] = Number.isFinite(numerico) ? numerico : 0;
             });
+            cuenta.anual = MESES.reduce((acumulado, mes) => acumulado + (cuenta[mes.clave] ?? 0), 0);
           }
           renderizarTabla();
           return true;

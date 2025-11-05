@@ -1,7 +1,21 @@
 const { ejecutarConsulta } = require('./firebirdService');
 
 const PERIODOS = Array.from({ length: 12 }, (_, indice) => indice + 1);
-const PERIODOS_AJUSTE = [13, 14];
+
+const MESES = [
+  { periodo: 1, alias: 'ENE', clave: 'ene' },
+  { periodo: 2, alias: 'FEB', clave: 'feb' },
+  { periodo: 3, alias: 'MAR', clave: 'mar' },
+  { periodo: 4, alias: 'ABR', clave: 'abr' },
+  { periodo: 5, alias: 'MAY', clave: 'may' },
+  { periodo: 6, alias: 'JUN', clave: 'jun' },
+  { periodo: 7, alias: 'JUL', clave: 'jul' },
+  { periodo: 8, alias: 'AGO', clave: 'ago' },
+  { periodo: 9, alias: 'SEP', clave: 'sep' },
+  { periodo: 10, alias: 'OCT', clave: 'oct' },
+  { periodo: 11, alias: 'NOV', clave: 'nov' },
+  { periodo: 12, alias: 'DIC', clave: 'dic' }
+];
 
 const formatearPeriodo = (valor) => valor.toString().padStart(2, '0');
 
@@ -10,35 +24,46 @@ const construirNombreTabla = (prefijo, anio) => {
   return `${prefijo}${sufijo}`;
 };
 
-const construirExpresionSaldo = (prefijo, periodo, anio) => {
-  const camposCargo = Array.from({ length: periodo }, (_, indice) => `COALESCE(s.cargo${formatearPeriodo(indice + 1)}, 0)`);
-  const camposAbono = Array.from({ length: periodo }, (_, indice) => `COALESCE(s.abono${formatearPeriodo(indice + 1)}, 0)`);
-  const alias = `${prefijo.toUpperCase()}_P${periodo}_${anio}`;
-  const sumaCargos = camposCargo.length ? ` + (${camposCargo.join(' + ')})` : '';
-  const sumaAbonos = camposAbono.length ? ` - (${camposAbono.join(' + ')})` : '';
-  return `COALESCE(s.inicial, 0)${sumaCargos}${sumaAbonos} AS ${alias}`;
+const construirExpresionSaldoMensual = (periodo, alias) => {
+  const camposCargo = Array.from(
+    { length: periodo },
+    (_, indice) => `COALESCE(s.cargo${formatearPeriodo(indice + 1)}, 0)`
+  );
+  const camposAbono = Array.from(
+    { length: periodo },
+    (_, indice) => `COALESCE(s.abono${formatearPeriodo(indice + 1)}, 0)`
+  );
+
+  const sumaCargos = camposCargo.length ? camposCargo.join(' + ') : '0';
+  const sumaAbonos = camposAbono.length ? camposAbono.join(' + ') : '0';
+
+  return `COALESCE(s.inicial, 0) + (${sumaCargos}) - (${sumaAbonos}) AS ${alias}`;
 };
 
-const mapearRegistro = (registro, anio) => {
+const construirExpresionSaldoAnual = () => {
+  const camposCargo = Array.from(
+    { length: 12 },
+    (_, indice) => `COALESCE(s.cargo${formatearPeriodo(indice + 1)}, 0)`
+  );
+  const camposAbono = Array.from(
+    { length: 12 },
+    (_, indice) => `COALESCE(s.abono${formatearPeriodo(indice + 1)}, 0)`
+  );
+
+  return `COALESCE(s.inicial, 0) + (${camposCargo.join(' + ')}) - (${camposAbono.join(' + ')}) AS ANUAL`;
+};
+
+const mapearRegistro = (registro) => {
   const datos = {
-    numCta: registro.NUM_CTA,
-    nombre: registro.NOMBRE,
-    naturaleza: registro.NATURALEZA,
-    periodos: {},
-    ajustes: {}
+    numCta: registro.CUENTA,
+    descripcion: registro.DESCRIPCION
   };
 
-  PERIODOS.forEach((periodo) => {
-    const clave = `SALDO_P${periodo}_${anio}`;
-    datos.periodos[periodo] = Number(registro[clave] ?? 0);
+  MESES.forEach(({ alias, clave }) => {
+    datos[clave] = Number(registro[alias] ?? 0);
   });
 
-  PERIODOS_AJUSTE.forEach((periodo) => {
-    const clave = `SALDO_P${periodo}_${anio}`;
-    if (registro[clave] != null) {
-      datos.ajustes[periodo] = Number(registro[clave]);
-    }
-  });
+  datos.anual = Number(registro.ANUAL ?? 0);
 
   return datos;
 };
@@ -55,15 +80,14 @@ const obtenerPresupuestosMayor = async (empresaId, anio) => {
   const tablaCuentas = construirNombreTabla('CUENTAS', ejercicio);
   const tablaSaldos = construirNombreTabla('SALDOS', ejercicio);
 
-  const columnasPeriodos = PERIODOS.map((periodo) => construirExpresionSaldo('saldo', periodo, ejercicio));
-  const columnasAjustes = PERIODOS_AJUSTE.map((periodo) => construirExpresionSaldo('saldo', periodo, ejercicio));
+  const columnasMensuales = MESES.map(({ periodo, alias }) => construirExpresionSaldoMensual(periodo, alias));
+  const columnaAnual = construirExpresionSaldoAnual();
 
   const consulta = `
     SELECT
-      c.NUM_CTA,
-      c.NOMBRE,
-      c.NATURALEZA,
-      ${[...columnasPeriodos, ...columnasAjustes].join(',\n      ')}
+      c.NUM_CTA AS CUENTA,
+      c.NOMBRE AS DESCRIPCION,
+      ${[...columnasMensuales, columnaAnual].join(',\n      ')}
     FROM ${tablaCuentas} c
     LEFT JOIN ${tablaSaldos} s
       ON s.NUM_CTA = c.NUM_CTA
@@ -75,7 +99,7 @@ const obtenerPresupuestosMayor = async (empresaId, anio) => {
   `;
 
   const resultados = await ejecutarConsulta(empresaId, consulta, [ejercicio]);
-  return resultados.map((registro) => mapearRegistro(registro, ejercicio));
+  return resultados.map((registro) => mapearRegistro(registro));
 };
 
 module.exports = {
