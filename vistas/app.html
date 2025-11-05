@@ -42,7 +42,7 @@
       box-shadow: 0 20px 40px rgba(36, 50, 38, 0.12);
       display: flex;
       flex-direction: column;
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      transition: width 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
     }
 
     .sidebar-header {
@@ -128,6 +128,7 @@
     }
 
     .app-layout.sidebar-hidden .app-sidebar {
+      width: 0;
       transform: translateX(calc(-1 * var(--sidebar-width)));
       box-shadow: none;
     }
@@ -348,6 +349,7 @@
       }
 
       .app-layout.sidebar-hidden .app-sidebar {
+        width: 100%;
         transform: translateY(0);
       }
 
