@@ -56,7 +56,9 @@ const construirExpresionSaldoAnual = () => {
 const mapearRegistro = (registro) => {
   const datos = {
     numCta: registro.CUENTA,
-    descripcion: registro.DESCRIPCION
+    descripcion: registro.DESCRIPCION,
+    // Agregado: Incluir naturaleza para que el cliente aplique el factor correctamente
+    naturaleza: registro.NATURALEZA || ''
   };
 
   MESES.forEach(({ alias, clave }) => {
@@ -83,10 +85,12 @@ const obtenerPresupuestosMayor = async (empresaId, anio) => {
   const columnasMensuales = MESES.map(({ periodo, alias }) => construirExpresionSaldoMensual(periodo, alias));
   const columnaAnual = construirExpresionSaldoAnual();
 
+  // Agregado: Incluir NATURALEZA en el SELECT para respetar la lógica contable (factor ±1)
   const consulta = `
     SELECT
       c.NUM_CTA AS CUENTA,
       c.NOMBRE AS DESCRIPCION,
+      c.NATURALEZA,
       ${[...columnasMensuales, columnaAnual].join(',\n      ')}
     FROM ${tablaCuentas} c
     LEFT JOIN ${tablaSaldos} s
