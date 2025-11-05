@@ -20,6 +20,20 @@ const createWindow = () => {
   });
 
   mainWindow.loadFile(resolveAssetPath('vistas', 'app.html'));
+
+  // Abre DevTools automáticamente en desarrollo
+  if (!app.isPackaged) {
+    try {
+      mainWindow.webContents.openDevTools({ mode: 'detach' });
+    } catch (_) {
+      // Ignorar si no es posible abrir DevTools
+    }
+  }
+
+  // Log rápido por si falla la carga de la vista
+  mainWindow.webContents.on('did-fail-load', (_e, code, desc, _url, isMainFrame) => {
+    console.error('Fallo al cargar vista:', { code, desc, isMainFrame });
+  });
 };
 
 app.whenReady().then(() => {

@@ -305,8 +305,18 @@
       return id ? Number(id) : null;
     };
 
+    const normalizarModulo = (valor) => {
+      return (valor || '')
+        .toString()
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '') // quita acentos/diacríticos
+        .replace(/\s+/g, '_')
+        .replace(/[^a-z0-9_]/g, '');
+    };
+
     const crearCheckbox = (empresaId, modulo, accion) => {
-      const id = `${empresaId}_${modulo}_${accion}`.replace(/\s+/g, '_').replace(/[^A-Za-z0-9_]/g, '');
+      const id = normalizarModulo(`${empresaId}_${modulo}_${accion}`);
       return `
         <div class="form-check">
           <input class="form-check-input permiso" type="checkbox" id="${id}" data-empresa="${empresaId}" data-modulo="${modulo}" data-accion="${accion}">
@@ -332,13 +342,19 @@
           </div>
           <div class="permiso-grid">
             ${MODULOS.map((modulo) => `
-              <article class="modulo-card" data-empresa="${empresa.id}" data-modulo="${modulo}">
+              <article class="modulo-card" data-empresa="${empresa.id}" data-modulo="${modulo}" data-modulo-key="${normalizarModulo(modulo)}">
                 <h4 class="h6 fw-bold mb-3">${modulo}</h4>
                 ${ACCIONES.map((accion) => crearCheckbox(empresa.id, modulo, accion)).join('')}
               </article>`).join('')}
           </div>
         `;
         contenedorEmpresas.appendChild(envoltura);
+        // Activar por defecto la empresa para permitir especificar acciones
+        const switchEmpresa = document.getElementById(`activar_${empresa.id}`);
+        if (switchEmpresa) {
+          switchEmpresa.checked = true;
+          sincronizarEstadoEmpresa(empresa.id, true);
+        }
       });
     };
 
@@ -384,12 +400,16 @@
         }
 
         Object.entries(modulos || {}).forEach(([modulo, acciones]) => {
+          const clave = normalizarModulo(modulo);
+          let card = contenedorEmpresas.querySelector(`.modulo-card[data-empresa="${empresaId}"][data-modulo-key="${clave}"]`);
+          if (!card) {
+            // Fallback por si no existe data-modulo-key en el DOM (compatibilidad)
+            card = contenedorEmpresas.querySelector(`.modulo-card[data-empresa="${empresaId}"][data-modulo="${modulo}"]`);
+          }
+          if (!card) return;
           Object.entries(acciones || {}).forEach(([accion, valor]) => {
-            const id = `${empresaId}_${modulo}_${accion}`.replace(/\s+/g, '_').replace(/[^A-Za-z0-9_]/g, '');
-            const checkbox = document.getElementById(id);
-            if (checkbox) {
-              checkbox.checked = Boolean(valor);
-            }
+            const checkbox = card.querySelector(`input.permiso[data-accion="${accion}"]`);
+            if (checkbox) checkbox.checked = Boolean(valor);
           });
         });
       });
@@ -432,19 +452,24 @@
     };
 
     const cargarEmpresas = async () => {
-      const respuesta = await fetch(`${API_BASE}/empresas`);
-      const datos = await respuesta.json();
-      if (!respuesta.ok) {
-        throw new Error(datos.mensaje || 'No fue posible obtener las empresas.');
+      let empresas = [];
+      try {
+        const respuesta = await fetch(`${API_BASE}/empresas`);
+        const datos = await respuesta.json();
+        if (!respuesta.ok) throw new Error();
+        empresas = Array.isArray(datos.empresas) ? datos.empresas : [];
+      } catch (_) {
+        empresas = Sesion.obtenerEmpresasDisponibles(sesion);
       }
-      construirSeccionEmpresas(datos.empresas || []);
+      construirSeccionEmpresas(empresas);
       contenedorEmpresas.querySelectorAll('.activar-empresa').forEach((switchEmpresa) => {
         switchEmpresa.addEventListener('change', (evento) => {
           sincronizarEstadoEmpresa(evento.target.dataset.empresa, evento.target.checked);
         });
-        sincronizarEstadoEmpresa(switchEmpresa.dataset.empresa, false);
+        switchEmpresa.checked = true;
+        sincronizarEstadoEmpresa(switchEmpresa.dataset.empresa, true);
       });
-      return datos.empresas || [];
+      return empresas;
     };
 
     const cargarUsuario = async (id) => {
@@ -474,7 +499,27 @@
       }
 
       if (esEdicion) {
-        document.getElementById('tituloPagina').textContent = 'Editar usuario';
+        const __tp = document.getElementById('tituloPagina');
+        if (__tp) { __tp.textContent = 'Editar usuario'; }
+        // Intenta poblar datos básicos del usuario antes de cargar empresas,
+        // así no dependemos de que el grid de empresas esté listo para ver nombre/correo.
+        try {
+          const usr = await cargarUsuario(idEdicion);
+          inputUsuario.value = usr.usuario;
+          inputNombres.value = usr.nombres || '';
+          inputPrimerApellido.value = usr.apellidoPrimero || '';
+          inputSegundoApellido.value = usr.apellidoSegundo || '';
+          inputCorreo.value = usr.correo || '';
+          inputContrasena.value = usr.contrasenaVisible || '';
+          contrasenaOriginal = inputContrasena.value.trim();
+          switchAdminGlobal.checked = usr.esAdminGlobal;
+          checkPermAgregar.checked = Boolean(usr.permisosGenerales?.puedeAgregar);
+          checkPermModificar.checked = Boolean(usr.permisosGenerales?.puedeModificar);
+          checkPermEliminar.checked = Boolean(usr.permisosGenerales?.puedeEliminar);
+          actualizarEstadoPermisosGenerales(usr.esAdminGlobal);
+        } catch (_) {
+          // Si falla aquí, el bloque principal volverá a intentar
+        }
       }
 
       try {
