@@ -256,7 +256,12 @@ const DashboardLayout = ({ sesion, selectedModuleId, onSelectModule, onLogout, e
 
   return (
     <div className={layoutClassName}>
-      <aside className="app-sidebar" aria-label="Navegación principal">
+      <aside
+        className="app-sidebar"
+        aria-label="Navegación principal"
+        aria-hidden={sidebarOculta}
+        inert={sidebarOculta ? '' : undefined}
+      >
         <div className="sidebar-header">
           <h1>Panel AmCham</h1>
         </div>

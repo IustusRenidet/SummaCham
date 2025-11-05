@@ -20,6 +20,12 @@ const createWindow = () => {
   });
 
   mainWindow.loadFile(resolveAssetPath('vistas', 'app.html'));
+
+  if (!app.isPackaged) {
+    mainWindow.webContents.once('did-finish-load', () => {
+      mainWindow.webContents.openDevTools({ mode: 'detach' });
+    });
+  }
 };
 
 app.whenReady().then(() => {
