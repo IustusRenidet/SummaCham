@@ -404,10 +404,12 @@
                 </select>
               </div>
               <div class="col-sm-12 col-lg-3">
-                <button type="button" class="btn btn-success w-100 fw-semibold">Aplicar selección</button>
+                <button id="btnAplicar" type="button" class="btn btn-primario w-100 fw-semibold">Aplicar
+                  selección</button>
               </div>
               <div class="col-sm-12 col-lg-3">
-                <button type="button" class="btn btn-outline-secondary w-100 fw-semibold">Restablecer</button>
+                <button id="btnReset" type="button"
+                  class="btn btn-outline-secondary w-100 fw-semibold">Restablecer</button>
               </div>
             </form>
           </div>
@@ -535,6 +537,7 @@
   </div>
 
   <script src="js/sesion.js"></script>
+  <script src="js/summary.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     const sesion = Sesion.requerirSesion();
@@ -716,9 +719,170 @@
                 filtroAnio.disabled = false;
               }
               actualizarResumen(valor);
+              setAllYearSpans(valor); // <--- asegura que el header muestre ese año
             }
           });
       };
+
+      // ==== 1) LAYOUT de filas (edítalo a tu gusto) ====
+      const SUMMARY_LAYOUT_V1 = [
+        {
+          id: 'cdmx_income', tipo: 'categoria', estilo: 'highlight-primary', etiqueta: 'CDMX INCOME', hijos: [
+            {
+              id: 'membership', tipo: 'categoria', estilo: 'highlight-secondary', etiqueta: 'Membership', hijos: [
+                { id: 'ctas_cuotas', tipo: 'detalle', codigo: '401000000000000000001', descripcion: 'Cuotas Netas' },
+                { id: 'ctas_nuevos', tipo: 'detalle', codigo: '402000000000000000001', descripcion: 'Ingresos socios nuevos' },
+                { id: 'membership_sub', tipo: 'subtotal', estilo: 'amarillo', etiqueta: 'Subtotal Membership' }
+              ]
+            },
+            {
+              id: 'events', tipo: 'categoria', estilo: 'highlight-secondary', etiqueta: 'EVENTS', hijos: [
+                { id: 'ctas_eventos', tipo: 'detalle', codigo: '407000000000000000001', descripcion: 'Eventos' },
+                { id: 'ctas_patro', tipo: 'detalle', codigo: '408000000000000000001', descripcion: 'Patrocinios' },
+                { id: 'events_sub', tipo: 'subtotal', estilo: 'amarillo', etiqueta: 'Subtotal Events' }
+              ]
+            },
+            { id: 'income_total', tipo: 'total', estilo: 'verde', etiqueta: 'TOTAL INCOME' }
+          ]
+        }
+      ];
+
+      // Helpers para persistir layout si el usuario lo edita
+      const saveLayoutLS = (l) => localStorage.setItem('summary_layout_v1', JSON.stringify(l));
+      const loadLayoutLS = () => { try { return JSON.parse(localStorage.getItem('summary_layout_v1') || 'null'); } catch { return null; } };
+      let CURRENT_LAYOUT = loadLayoutLS() ?? SUMMARY_LAYOUT_V1;
+
+      // ==== 2) TIPOS y utilidades de métrica ====
+      /** Estructura métrica por fila */
+      const zeroMetrics = () => ({
+        // Mes (seleccionado)
+        mesActual: 0, mesPlan: 0, mesAnterior: 0, mesVariacionPlan: 0, mesVariacionAnterior: 0,
+        // YTD (hasta mes seleccionado)
+        acumuladoActual: 0, acumuladoPlan: 0, acumuladoAnterior: 0, acumuladoVariacionPlan: 0, acumuladoVariacionAnterior: 0,
+      });
+
+      /** % seguro cuando b = 0 */
+      const pct = (a, b) => (Math.abs(b || 0) === 0 ? 0 : ((a - b) / Math.abs(b)) * 100);
+
+      /** Suma métrica (para subtotal/total) */
+      const addMetrics = (dst, src) => {
+        Object.keys(dst).forEach(k => dst[k] += (src[k] || 0));
+        return dst;
+      };
+
+      // ==== 3) Índices de datos (por NUM_CTA) ====
+      /** Convierte arreglo de detalle (API) a índice por código */
+      function buildIndex(apiRows) {
+        const idx = {};
+        (apiRows || []).forEach(r => { idx[String(r.codigo).trim()] = r; });
+        return idx;
+      }
+
+      /** Extrae todos los códigos NUM_CTA visibles en el layout */
+      function collectCodes(layout) {
+        const codes = [];
+        const walk = (nodos) => nodos.forEach(n => {
+          if (n.tipo === 'detalle' && n.codigo) codes.push(String(n.codigo).trim());
+          if (Array.isArray(n.hijos)) walk(n.hijos);
+        });
+        walk(layout);
+        return codes;
+      }
+
+      // ==== 4) Cálculo recursivo: detail -> subtotal/total ====
+      /**
+       * node: estructura del layout
+       * idx : índice por NUM_CTA { codigo: { mesActual, mesPlan, mesAnterior, acumuladoActual, ... } }
+       * return: { row, metrics, children[] }
+       */
+      function computeNode(node, idx) {
+        const metrics = zeroMetrics();
+        let children = [];
+
+        if (Array.isArray(node.hijos) && node.hijos.length) {
+          children = node.hijos.map(h => computeNode(h, idx));
+          // Sumar hijos para categoria/subtotal/total
+          children.forEach(ch => addMetrics(metrics, ch.metrics));
+        } else if (node.tipo === 'detalle' && node.codigo) {
+          const r = idx[String(node.codigo).trim()];
+          if (r) {
+            metrics.mesActual = r.mesActual || 0;
+            metrics.mesPlan = r.mesPlan || 0;
+            metrics.mesAnterior = r.mesAnterior || 0;
+
+            metrics.acumuladoActual = r.acumuladoActual || 0;
+            metrics.acumuladoPlan = r.acumuladoPlan || 0;
+            metrics.acumuladoAnterior = r.acumuladoAnterior || 0;
+          }
+        }
+
+        // % variaciones
+        metrics.mesVariacionPlan = pct(metrics.mesActual, metrics.mesPlan);
+        metrics.mesVariacionAnterior = pct(metrics.mesActual, metrics.mesAnterior);
+        metrics.acumuladoVariacionPlan = pct(metrics.acumuladoActual, metrics.acumuladoPlan);
+        metrics.acumuladoVariacionAnterior = pct(metrics.acumuladoActual, metrics.acumuladoAnterior);
+
+        return { row: node, metrics, children };
+      }
+
+      /** Construye el árbol calculado para todo el layout */
+      function computeTree(layout, idx) {
+        return layout.map(n => computeNode(n, idx));
+      }
+
+      // ==== 5) Aplana el árbol para tu renderizarTabla() ====
+      /** Convierte el árbol calculado -> arreglo plano de filas con el shape exacto que tu renderer espera */
+      function flattenForRender(tree) {
+        const out = [];
+        const walk = (node, depth = 0) => {
+          const { row, metrics, children } = node;
+
+          if (row.tipo === 'categoria' || row.tipo === 'subtotal' || row.tipo === 'total') {
+            out.push({
+              tipo: 'categoria',                // tu renderer usa 'categoria' para filas de título
+              estilo: row.estilo || 'highlight-primary',
+              etiqueta: row.etiqueta || row.label || '',
+              // MES
+              mesActual: metrics.mesActual,
+              mesPlan: metrics.mesPlan,
+              mesAnterior: metrics.mesAnterior,
+              mesVariacionPlan: metrics.mesVariacionPlan,
+              mesVariacionAnterior: metrics.mesVariacionAnterior,
+              // YTD
+              acumuladoActual: metrics.acumuladoActual,
+              acumuladoPlan: metrics.acumuladoPlan,
+              acumuladoAnterior: metrics.acumuladoAnterior,
+              acumuladoVariacionPlan: metrics.acumuladoVariacionPlan,
+              acumuladoVariacionAnterior: metrics.acumuladoVariacionAnterior,
+              depth
+            });
+          } else {
+            // detalle (cuenta)
+            out.push({
+              tipo: 'detalle',
+              codigo: row.codigo,
+              descripcion: row.descripcion || '',
+              // MES
+              mesActual: metrics.mesActual,
+              mesPlan: metrics.mesPlan,
+              mesAnterior: metrics.mesAnterior,
+              mesVariacionPlan: metrics.mesVariacionPlan,
+              mesVariacionAnterior: metrics.mesVariacionAnterior,
+              // YTD
+              acumuladoActual: metrics.acumuladoActual,
+              acumuladoPlan: metrics.acumuladoPlan,
+              acumuladoAnterior: metrics.acumuladoAnterior,
+              acumuladoVariacionPlan: metrics.acumuladoVariacionPlan,
+              acumuladoVariacionAnterior: metrics.acumuladoVariacionAnterior,
+              depth
+            });
+          }
+
+          (children || []).forEach(ch => walk(ch, depth + 1));
+        };
+        tree.forEach(n => walk(n, 0));
+        return out;
+      }
 
       const cargarDatos = async () => {
         mostrarEstado('Cargando información…');
@@ -748,22 +912,24 @@
       if (summaryYearSelect) {
         summaryYearSelect.addEventListener('change', (event) => {
           const seleccionado = event.target.value;
+          setAllYearSpans(seleccionado);      // <--- NUEVO
           actualizarResumen(seleccionado);
           if (filtroAnio && filtroAnio.value !== seleccionado) {
             filtroAnio.value = seleccionado;
           }
         });
       }
-
       if (filtroAnio) {
         filtroAnio.addEventListener('change', (event) => {
           const seleccionado = event.target.value;
+          setAllYearSpans(seleccionado);      // <--- NUEVO
           actualizarResumen(seleccionado);
           if (summaryYearSelect && summaryYearSelect.value !== seleccionado) {
             summaryYearSelect.value = seleccionado;
           }
         });
       }
+
 
       cargarDatos();
       let selectedCell = null;
@@ -1123,6 +1289,19 @@
       const saldoValue = document.getElementById('saldoValue');
       const acumuladoValue = document.getElementById('acumuladoValue');
       const filtroAnio = document.getElementById('selectAnio');
+
+      // --- utilidades de año/mes ---
+      const setAllYearSpans = (anio) => {
+        document.querySelectorAll('.anio').forEach(sp => sp.textContent = anio);
+      };
+
+      // mapa “mes visible” -> periodo (1..13)
+      const MES_A_PERIODO = {
+        'enero': 1, 'febrero': 2, 'marzo': 3, 'abril': 4, 'mayo': 5, 'junio': 6,
+        'julio': 7, 'agosto': 8, 'septiembre': 9, 'octubre': 10, 'noviembre': 11, 'diciembre': 12,
+        'ajuste': 13
+      };
+
 
       // Inicializar sistema Excel
       const excelTable = new ExcelTable('mainTable');
