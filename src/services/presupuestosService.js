@@ -1,4 +1,5 @@
 const { ejecutarConsulta } = require('./firebirdService');
+const { obtenerPresupuestosMock } = require('./presupuestosMockService');
 
 const PERIODOS = Array.from({ length: 12 }, (_, indice) => indice + 1);
 
@@ -111,8 +112,21 @@ const obtenerPresupuestosMayor = async (empresaId, anio) => {
     ORDER BY c.NUM_CTA
   `;
 
-  const resultados = await ejecutarConsulta(empresaId, consulta, [ejercicio]);
-  return resultados.map((registro) => mapearRegistro(registro));
+  try {
+    const resultados = await ejecutarConsulta(empresaId, consulta, [ejercicio]);
+    return resultados.map((registro) => mapearRegistro(registro));
+  } catch (error) {
+    const permitirMock = process.env.USE_PRESUPUESTOS_MOCK !== 'false';
+    if (!permitirMock) {
+      throw error;
+    }
+
+    console.warn(
+      `No fue posible consultar presupuestos en Firebird para la empresa "${empresaId}". Se utilizarán datos simulados.`,
+      error
+    );
+    return obtenerPresupuestosMock(empresaId, ejercicio);
+  }
 };
 
 module.exports = {

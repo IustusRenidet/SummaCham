@@ -16,12 +16,24 @@
             --color-background: #f3f6f1;
             --color-text: #243226;
         }
+        html, body {
+            height: 100%;
+        }
         body {
             background-color: var(--color-background);
             font-family: 'Manrope', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             color: var(--color-text);
             min-height: 100vh;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
             padding-top: 70px;
+        }
+        .page-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
         }
         .header-card {
             background: var(--color-primary);
@@ -107,7 +119,7 @@
     </style>
 </head>
 <body>
-    <div class="container py-4 py-lg-5">
+    <main class="container py-4 py-lg-5 page-wrapper">
         <div class="row mb-4">
             <div class="col-12">
                 <div class="card header-card fade-in">
@@ -176,7 +188,9 @@
                         </table>
                     </div>
                 </div>
-    </div>
+            </div>
+        </div>
+    </main>
 
     <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1080;">
         <div id="actionToast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
@@ -467,6 +481,6 @@
           actualizarEncabezadoEmpresa();
           cargarPresupuestos();
         });
-    </script></script>
+    </script>
 </body>
 </html>
