@@ -2,8 +2,10 @@ const { ejecutarConsulta } = require('./firebirdService');
 
 const pad2 = (n) => n.toString().padStart(2, '0');
 
+// Devuelve el nombre fisico de la tabla (p.ej. SALDOS26, CUENTAS26)
 const nombreTabla = (prefijo, anio) => `${prefijo}${anio.toString().slice(-2).padStart(2, '0')}`;
 
+// Construye una expresion de suma para columnas CARGOxx/ABONOxx hasta el periodo indicado
 const sumaCols = (prefix, hasta) => {
   const limite = Math.max(0, Math.min(13, Number(hasta) || 0));
   if (limite <= 0) return '0';
@@ -17,6 +19,7 @@ const sumaCols = (prefix, hasta) => {
 // Construye una tabla derivada con los códigos solicitados para asegurar que
 // todos los códigos aparezcan (aunque no existan en CUENTAS/SALDOS)
 // Firebird SQL 3: SELECT ... FROM (SELECT ? AS NUM_CTA FROM RDB$DATABASE UNION ALL SELECT ? ...)
+// Derivada de codigos: garantiza presencia de cada NUM_CTA en el resultado
 const tablaCodigosDerivada = (codigos = []) => {
   const limpios = (Array.isArray(codigos) ? codigos : [])
     .map((c) => (c == null ? '' : String(c).trim()))
@@ -30,6 +33,7 @@ const tablaCodigosDerivada = (codigos = []) => {
   return { sql, params: limpios };
 };
 
+// SELECT principal del resumen (mes y YTD) para ejercicio/periodo
 const construirSelectResumen = ({ anio, periodo, usarAjusteEnYTD, codigos }) => {
   const tablaSaldos = nombreTabla('SALDOS', anio);
   const tablaCuentas = nombreTabla('CUENTAS', anio);
@@ -62,6 +66,7 @@ const construirSelectResumen = ({ anio, periodo, usarAjusteEnYTD, codigos }) => 
   return { sql, parametros };
 };
 
+// Mapea filas crudas a objetos tipados por codigo
 const mapearResultados = (filas = []) => {
   const mapa = new Map();
   filas.forEach((r) => {
@@ -79,6 +84,7 @@ const mapearResultados = (filas = []) => {
 
 const normalizarCodigos = (codigos) => (Array.isArray(codigos) ? codigos : []).map((c) => String(c || '').trim());
 
+// Punto de entrada desde el router: arma payload para el front (detalle + ejercicios)
 async function obtenerResumen({ empresaId, anio, periodo, codigos = [], anioComparativo, usarAjusteEnYTD = false }) {
   const ejercicio = Number(anio);
   const periodoNum = Number(periodo);

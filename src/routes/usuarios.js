@@ -303,8 +303,10 @@ router.put('/:id', asegurarPermisoGeneral('puedeModificar'), (req, res) => {
     return res.status(404).json({ mensaje: 'Usuario no encontrado.' });
   }
 
-  if (existente.es_admin_global && !value.esAdminGlobal) {
-    return res.status(400).json({ mensaje: 'No es posible retirar el rol de administrador global.' });
+  // Solo impedir quitar el rol de admin global al usuario ICONET.
+  const esIconet = (existente.usuario || '').toString().trim().toUpperCase() === 'ICONET';
+  if (esIconet && existente.es_admin_global && !value.esAdminGlobal) {
+    return res.status(400).json({ mensaje: 'No es posible retirar el rol de administrador global del usuario ICONET.' });
   }
 
   const totalPermisos = Object.values(value.permisos || {}).reduce((acum, modulos) => {

@@ -11,6 +11,15 @@
 // === CONFIG / ESTADO GENERAL ===
 // ================================
 const API_BASE = 'http://localhost:3000/api';
+/*
+  Resumen de la logica (guia rapida):
+  - CURRENT_LAYOUT describe la jerarquia/colores de la tabla (simula el Excel original).
+  - fetchSummary() pide al backend los importes por codigo segun periodo/ejercicio.
+  - buildIndex() crea un mapa { codigo -> importes } para calcular rapido.
+  - computeTree() recorre el layout y calcula subtotal/total sumando hijos.
+  - flattenForRender() convierte el arbol en filas para la <table>.
+  - aplicarSeleccionUI() orquesta todo: lee filtros, obtiene datos, calcula y renderiza.
+*/
 
 const estadoModulo = {
   ejercicios: [],
@@ -122,6 +131,23 @@ const SUMMARY_LAYOUT_V1 = [
 const saveLayoutLS = (l) => localStorage.setItem('summary_layout_v1', JSON.stringify(l));
 const loadLayoutLS = () => { try { return JSON.parse(localStorage.getItem('summary_layout_v1') || 'null'); } catch { return null; } };
 let CURRENT_LAYOUT = loadLayoutLS() ?? SUMMARY_LAYOUT_V1;
+
+// Mostrar un toast verde de exito (Bootstrap) al actualizar
+function mostrarToastExito(mensaje = 'Actualizado correctamente') {
+  const toastEl = document.getElementById('summaryToast');
+  const body = document.getElementById('summaryToastBody');
+  if (!toastEl) return;
+  if (body) body.textContent = mensaje;
+  const ctor = (window.bootstrap && window.bootstrap.Toast) ? window.bootstrap.Toast : null;
+  if (ctor) {
+    const toast = new ctor(toastEl);
+    toast.show();
+  } else {
+    // Fallback simple si Bootstrap Toast no esta disponible aun
+    toastEl.classList.add('show');
+    setTimeout(() => { toastEl.classList.remove('show'); }, 1500);
+  }
+}
 
 // ======================================
 // === Motor de cálculo tipo “Excel”  ===
@@ -352,6 +378,12 @@ const CALC_STRATEGY = {
 // ======================================================
 // === FETCH / DATA PIPELINE
 // ======================================================
+// fetchSummary
+// - Llama a la API del backend para obtener los montos por codigo contable
+//   segun empresa, periodo y ejercicio seleccionados.
+// - Devuelve un objeto con:
+//   { detalle: [...], ejercicios: [...] }
+//   donde 'detalle' son filas por codigo y 'ejercicios' alimenta la tarjeta superior.
 async function fetchSummary({ anio, periodo, empresaId }) {
   const codigos = collectCodes(CURRENT_LAYOUT);
 
@@ -519,6 +551,10 @@ async function aplicarSeleccionUI() {
     actualizarResumen(anio);
     renderizarTabla();
     limpiarEstado();
+    // Aviso toast en verde cuando todo sali bien
+    if (typeof mostrarToastExito === 'function') {
+      mostrarToastExito('Datos actualizados correctamente.');
+    }
   } catch (err) {
     console.error(err);
     mostrarEstado(err.message || 'Error al calcular.', 'danger');

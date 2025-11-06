@@ -299,7 +299,13 @@
           <div class="permiso-grid">
             ${MODULOS.map((modulo) => `
               <article class="modulo-card" data-empresa="${empresa.id}" data-modulo="${modulo}" data-modulo-key="${normalizarModulo(modulo)}">
-                <h4 class="h6 fw-bold mb-3">${modulo}</h4>
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                  <h4 class="h6 fw-bold mb-0">${modulo}</h4>
+                  <div class="form-check">
+                    <input class="form-check-input select-all" type="checkbox" id="selall_${empresa.id}_${normalizarModulo(modulo)}">
+                    <label class="form-check-label small" for="selall_${empresa.id}_${normalizarModulo(modulo)}">Seleccionar todo</label>
+                  </div>
+                </div>
                 ${ACCIONES.map((accion) => crearCheckbox(empresa.id, modulo, accion)).join('')}
               </article>`).join('')}
           </div>
@@ -367,9 +373,33 @@
             const checkbox = card.querySelector(`input.permiso[data-accion="${accion}"]`);
             if (checkbox) checkbox.checked = Boolean(valor);
           });
+          // Ajusta el estado del select-all del modulo
+          actualizarSelectAllDeCard(card);
         });
       });
     };
+
+    // --- Select-all por modulo (vista) ---
+    const actualizarSelectAllDeCard = (card) => {
+      const acciones = Array.from(card.querySelectorAll('input.permiso'));
+      const selAll = card.querySelector('input.select-all');
+      if (!selAll || acciones.length === 0) return;
+      const marcados = acciones.filter(cb => cb.checked).length;
+      selAll.indeterminate = marcados > 0 && marcados < acciones.length;
+      selAll.checked = marcados === acciones.length;
+    };
+
+    contenedorEmpresas.addEventListener('change', (e) => {
+      const card = e.target.closest('.modulo-card');
+      if (!card) return;
+      if (e.target.classList.contains('select-all')) {
+        const valor = e.target.checked;
+        card.querySelectorAll('input.permiso').forEach((cb) => { cb.checked = valor; });
+      }
+      if (e.target.classList.contains('permiso') || e.target.classList.contains('select-all')) {
+        actualizarSelectAllDeCard(card);
+      }
+    });
 
     const recopilarDatos = (esEdicion) => {
       const esAdmin = switchAdminGlobal.checked;
@@ -505,17 +535,19 @@
         mostrarAlerta(error.message || 'Ocurrió un problema al iniciar el formulario.');
       }
 
-      switchAdminGlobal.addEventListener('change', (evento) => {
-        const esAdmin = evento.target.checked;
-        actualizarEstadoPermisosGenerales(esAdmin);
-        contenedorEmpresas.querySelectorAll('.activar-empresa').forEach((switchEmpresa) => {
-          switchEmpresa.checked = esAdmin;
-          sincronizarEstadoEmpresa(switchEmpresa.dataset.empresa, esAdmin);
-        });
-        contenedorEmpresas.querySelectorAll('.permiso').forEach((checkbox) => {
-          checkbox.checked = esAdmin;
-        });
-      });
+  switchAdminGlobal.addEventListener('change', (evento) => {
+    const esAdmin = evento.target.checked;
+    actualizarEstadoPermisosGenerales(esAdmin);
+    contenedorEmpresas.querySelectorAll('.activar-empresa').forEach((switchEmpresa) => {
+      switchEmpresa.checked = esAdmin;
+      sincronizarEstadoEmpresa(switchEmpresa.dataset.empresa, esAdmin);
+    });
+    contenedorEmpresas.querySelectorAll('.permiso').forEach((checkbox) => {
+      checkbox.checked = esAdmin;
+    });
+    // Actualiza los select-all de cada modulo
+    contenedorEmpresas.querySelectorAll('.modulo-card').forEach(actualizarSelectAllDeCard);
+  });
     };
 
     formulario.addEventListener('submit', async (evento) => {
