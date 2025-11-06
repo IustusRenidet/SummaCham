@@ -152,6 +152,25 @@
     </section>
   </div>
 
+  <!-- Modal de confirmación de eliminado (estilo consistente con la UI) -->
+  <div class="modal fade" id="modalConfirmarEliminar" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content" style="border-radius:16px; overflow:hidden;">
+        <div class="modal-header" style="background:#2f6f4e; color:#fff;">
+          <h5 class="modal-title fw-bold">Confirmar eliminación</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-0" id="modalEliminarMensaje">¿Deseas eliminar al usuario seleccionado? Esta acción no se puede deshacer.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-outline-danger" id="btnConfirmarEliminar">Eliminar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="js/sesion.js"></script>
   <script>
     const API_BASE = 'http://localhost:3000/api';
@@ -281,14 +300,36 @@
       }
     };
 
+    const confirmarEliminacion = (mensaje) => {
+      return new Promise((resolve) => {
+        const modalEl = document.getElementById('modalConfirmarEliminar');
+        const msgEl = document.getElementById('modalEliminarMensaje');
+        const btnOk = document.getElementById('btnConfirmarEliminar');
+        if (!modalEl) return resolve(confirm(mensaje || '¿Confirmar eliminación?'));
+
+        if (msgEl && mensaje) msgEl.textContent = mensaje;
+        const Modal = (window.bootstrap && window.bootstrap.Modal) ? window.bootstrap.Modal : null;
+        const instancia = Modal ? new Modal(modalEl) : null;
+
+        const cleanup = () => {
+          btnOk.removeEventListener('click', onOk);
+          modalEl.removeEventListener('hidden.bs.modal', onCancel);
+        };
+        const onOk = () => { cleanup(); instancia?.hide(); resolve(true); };
+        const onCancel = () => { cleanup(); resolve(false); };
+        btnOk.addEventListener('click', onOk, { once: true });
+        modalEl.addEventListener('hidden.bs.modal', onCancel, { once: true });
+        instancia ? instancia.show() : resolve(confirm(mensaje || '¿Confirmar eliminación?'));
+      });
+    };
+
     const eliminarUsuario = async (id) => {
       if (!puedeEliminar) {
         mostrarAlerta('No cuentas con permiso para eliminar usuarios.');
         return;
       }
-      if (!confirm('¿Deseas eliminar al usuario seleccionado? Esta acción no se puede deshacer.')) {
-        return;
-      }
+      const ok = await confirmarEliminacion('¿Deseas eliminar al usuario seleccionado? Esta acción no se puede deshacer.');
+      if (!ok) return;
       try {
         const respuesta = await fetch(`${API_BASE}/usuarios/${id}`, {
           method: 'DELETE',

@@ -85,8 +85,9 @@
         <h2 class="h5 fw-bold text-success mb-3">Información general</h2>
         <div class="row g-3">
           <div class="col-12 col-md-6">
-            <label for="nombres" class="form-label fw-semibold">Nombre(s)</label>
-            <input type="text" id="nombres" name="nombres" class="form-control" maxlength="80" />
+            <label for="nombres" class="form-label fw-semibold">Nombre(s) <span class="text-danger">*</span></label>
+            <input type="text" id="nombres" name="nombres" class="form-control" maxlength="80" required />
+            <div class="invalid-feedback">Ingresa el nombre.</div>
           </div>
           <div class="col-12 col-md-6">
             <label for="primer-apellido" class="form-label fw-semibold">Primer Apellido <span class="text-danger">*</span></label>
@@ -523,8 +524,9 @@
           inputPrimerApellido.value = usr.apellidoPrimero || '';
           inputSegundoApellido.value = usr.apellidoSegundo || '';
           inputCorreo.value = usr.correo || '';
-          inputContrasena.value = usr.contrasenaVisible || '';
-          contrasenaOriginal = inputContrasena.value.trim();
+          contrasenaOriginal = '';
+          inputContrasena.value = '';
+          if (indicadorContrasena) indicadorContrasena.textContent = '';
           switchAdminGlobal.checked = usr.esAdminGlobal;
           checkPermAgregar.checked = Boolean(usr.permisosGenerales?.puedeAgregar);
           checkPermModificar.checked = Boolean(usr.permisosGenerales?.puedeModificar);
@@ -544,8 +546,9 @@
           inputPrimerApellido.value = usuario.apellidoPrimero || '';
           inputSegundoApellido.value = usuario.apellidoSegundo || '';
           inputCorreo.value = usuario.correo || '';
-          inputContrasena.value = usuario.contrasenaVisible || '';
-          contrasenaOriginal = inputContrasena.value.trim();
+          contrasenaOriginal = '';
+          inputContrasena.value = '';
+          if (indicadorContrasena) indicadorContrasena.textContent = '';
           switchAdminGlobal.checked = usuario.esAdminGlobal;
           checkPermAgregar.checked = Boolean(usuario.permisosGenerales?.puedeAgregar);
           checkPermModificar.checked = Boolean(usuario.permisosGenerales?.puedeModificar);
@@ -594,6 +597,15 @@
         mostrarAlerta('No cuentas con permiso para agregar usuarios.');
         return;
       }
+
+      // Validación: nombres requeridos
+      const nombresValor = inputNombres.value.trim();
+      if (!nombresValor) {
+        inputNombres.classList.add('is-invalid');
+        inputNombres.focus();
+        return;
+      }
+      inputNombres.classList.remove('is-invalid');
 
       const primerApellidoValor = inputPrimerApellido.value.trim();
       if (!primerApellidoValor) {

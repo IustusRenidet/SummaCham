@@ -35,7 +35,8 @@ const schemaGenerales = Joi.object({
 
 const schemaUsuarioBase = {
   usuario: Joi.string().trim().min(3).max(32).required(),
-  nombres: Joi.string().trim().allow('').default(''),
+  // Nombres y correo obligatorios en validación de código (no a nivel DB)
+  nombres: Joi.string().trim().min(1).max(80).required(),
   apellidoPrimero: Joi.string().trim().min(1).max(120).required(),
   apellidoSegundo: Joi.string().trim().allow('').default(''),
   correo: Joi.string().trim().email({ tlds: { allow: false } }).required(),
@@ -161,8 +162,7 @@ router.use(cargarUsuarioActual);
 router.get('/', (req, res) => {
   const registros = db.prepare(`
     SELECT id, usuario, nombres, apellido_primero, apellido_segundo, apellidos,
-           correo, es_admin_global, puede_agregar, puede_modificar, puede_eliminar,
-           contrasena_visible
+           correo, es_admin_global, puede_agregar, puede_modificar, puede_eliminar
     FROM usuarios
     ORDER BY usuario ASC
   `).all();
@@ -181,8 +181,7 @@ router.get('/', (req, res) => {
       puedeModificar: Boolean(registro.puede_modificar),
       puedeEliminar: Boolean(registro.puede_eliminar)
     },
-    permisosPorEmpresa: obtenerPermisosPorUsuario(registro.id),
-    contrasenaVisible: registro.contrasena_visible
+    permisosPorEmpresa: obtenerPermisosPorUsuario(registro.id)
   }));
 
   res.json({ usuarios });
@@ -192,8 +191,7 @@ router.get('/:id', (req, res) => {
   const usuarioId = Number(req.params.id);
   const registro = db.prepare(`
     SELECT id, usuario, nombres, apellido_primero, apellido_segundo, apellidos,
-           correo, es_admin_global, puede_agregar, puede_modificar, puede_eliminar,
-           contrasena_visible
+           correo, es_admin_global, puede_agregar, puede_modificar, puede_eliminar
     FROM usuarios
     WHERE id = ?
   `).get(usuarioId);
@@ -219,8 +217,7 @@ router.get('/:id', (req, res) => {
         puedeModificar: Boolean(registro.puede_modificar),
         puedeEliminar: Boolean(registro.puede_eliminar)
       },
-      permisosPorEmpresa,
-      contrasenaVisible: registro.contrasena_visible
+      permisosPorEmpresa
     }
   });
 });
@@ -249,7 +246,6 @@ router.post('/', asegurarPermisoGeneral('puedeAgregar'), (req, res) => {
   }
 
   const hash = bcrypt.hashSync(value.contrasena, 12);
-  const contrasenaVisible = value.contrasena;
   const apellidosCompletos = [value.apellidoPrimero, value.apellidoSegundo].filter(Boolean).join(' ');
 
   const permisosGenerales = value.esAdminGlobal
@@ -263,9 +259,9 @@ router.post('/', asegurarPermisoGeneral('puedeAgregar'), (req, res) => {
   const insertar = db.prepare(`
     INSERT INTO usuarios (
       usuario, nombres, apellido_primero, apellido_segundo, apellidos,
-      correo, contrasena, contrasena_visible, es_admin_global,
+      correo, contrasena, es_admin_global,
       puede_agregar, puede_modificar, puede_eliminar
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   const resultado = insertar.run(
@@ -276,7 +272,6 @@ router.post('/', asegurarPermisoGeneral('puedeAgregar'), (req, res) => {
     apellidosCompletos,
     value.correo,
     hash,
-    contrasenaVisible,
     value.esAdminGlobal ? 1 : 0,
     permisosGenerales.puedeAgregar,
     permisosGenerales.puedeModificar,
@@ -350,7 +345,7 @@ router.put('/:id', asegurarPermisoGeneral('puedeModificar'), (req, res) => {
 
   if (value.contrasena) {
     const hash = bcrypt.hashSync(value.contrasena, 12);
-    db.prepare('UPDATE usuarios SET contrasena = ?, contrasena_visible = ? WHERE id = ?').run(hash, value.contrasena, usuarioId);
+    db.prepare('UPDATE usuarios SET contrasena = ? WHERE id = ?').run(hash, usuarioId);
   }
 
   aplicarPermisos(usuarioId, value.permisos);
@@ -389,7 +384,7 @@ router.post('/:id/restablecer-contrasena', asegurarPermisoGeneral('puedeModifica
   }
 
   const hash = bcrypt.hashSync(value.contrasena, 12);
-  db.prepare('UPDATE usuarios SET contrasena = ?, contrasena_visible = ? WHERE id = ?').run(hash, value.contrasena, usuarioId);
+  db.prepare('UPDATE usuarios SET contrasena = ? WHERE id = ?').run(hash, usuarioId);
 
   res.json({ mensaje: 'Contraseña actualizada correctamente.' });
 });
