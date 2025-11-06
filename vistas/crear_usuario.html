@@ -339,11 +339,11 @@
           </div>
         `;
         contenedorEmpresas.appendChild(envoltura);
-        // Activar por defecto la empresa para permitir especificar acciones
+        // Iniciar las empresas desactivadas por defecto
         const switchEmpresa = document.getElementById(`activar_${empresa.id}`);
         if (switchEmpresa) {
-          switchEmpresa.checked = true;
-          sincronizarEstadoEmpresa(empresa.id, true);
+          switchEmpresa.checked = false;
+          sincronizarEstadoEmpresa(empresa.id, false);
         }
       });
     };
@@ -480,8 +480,7 @@
         switchEmpresa.addEventListener('change', (evento) => {
           sincronizarEstadoEmpresa(evento.target.dataset.empresa, evento.target.checked);
         });
-        switchEmpresa.checked = true;
-        sincronizarEstadoEmpresa(switchEmpresa.dataset.empresa, true);
+        // No activar por defecto; el estado inicial queda en falso
       });
       return empresas;
     };
