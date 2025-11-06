@@ -23,9 +23,9 @@ const tablaCodigosDerivada = (codigos = []) => {
     .filter((c) => c.length > 0);
   if (limpios.length === 0) {
     // Asegura al menos una fila vacía para no romper el SELECT; luego se normaliza a 0
-    return { sql: "SELECT CAST(''__VACIO__'' AS VARCHAR(24)) AS NUM_CTA FROM RDB$DATABASE", params: [] };
+    return { sql: "SELECT CAST('__VACIO__' AS VARCHAR(24)) AS NUM_CTA FROM RDB$DATABASE", params: [] };
   }
-  const selects = limpios.map(() => 'SELECT ? AS NUM_CTA FROM RDB$DATABASE');
+  const selects = limpios.map(() => 'SELECT CAST(? AS VARCHAR(24)) AS NUM_CTA FROM RDB$DATABASE');
   const sql = selects.join(' UNION ALL ');
   return { sql, params: limpios };
 };

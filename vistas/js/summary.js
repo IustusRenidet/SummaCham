@@ -196,6 +196,7 @@ function flattenForRender(tree) {
         tipo: 'categoria',
         estilo: row.estilo || estiloPorTipo(row.tipo),
         etiqueta: row.etiqueta || row.label || '',
+        tipoFila: row.tipo,
         // Métricas
         mesActual: metrics.mesActual,
         mesPlan: metrics.mesPlan,
@@ -214,6 +215,7 @@ function flattenForRender(tree) {
         tipo: 'detalle',
         codigo: row.codigo,
         descripcion: row.descripcion || '',
+        tipoFila: row.tipo,
         // Métricas
         mesActual: metrics.mesActual,
         mesPlan: metrics.mesPlan,
@@ -422,7 +424,9 @@ function renderizarTabla() {
     const tr = document.createElement('tr');
 
     if (fila.tipo === 'categoria') {
-      tr.className = fila.estilo || THEME.categoria;
+      const clases = [fila.estilo || THEME.categoria];
+      if (fila.tipoFila) clases.push(`fila-${fila.tipoFila}`);
+      tr.className = clases.join(' ');
       tr.innerHTML = `
         <th></th>
         <td class="mono">${formatearMoneda(fila.mesActual)}</td>
@@ -438,6 +442,9 @@ function renderizarTabla() {
         <td class="mono">${formatearPorcentaje(fila.acumuladoVariacionAnterior)}</td>
       `;
     } else {
+      const clases = [];
+      if (fila.tipoFila && fila.tipoFila !== 'detalle') clases.push(`fila-${fila.tipoFila}`);
+      if (clases.length) tr.className = clases.join(' ');
       tr.innerHTML = `
         <th class="code-cell">${fila.codigo || ''}</th>
         <td class="mono">${formatearMoneda(fila.mesActual)}</td>
