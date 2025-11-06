@@ -34,7 +34,6 @@ const crearTablas = () => {
       apellidos TEXT NOT NULL DEFAULT '',
       correo TEXT DEFAULT '',
       contrasena TEXT NOT NULL,
-      contrasena_visible TEXT DEFAULT '',
       es_admin_global INTEGER NOT NULL DEFAULT 0,
       puede_agregar INTEGER NOT NULL DEFAULT 0,
       puede_modificar INTEGER NOT NULL DEFAULT 0,
@@ -76,9 +75,7 @@ const asegurarColumnasUsuarios = () => {
     db.prepare("ALTER TABLE usuarios ADD COLUMN apellidos TEXT NOT NULL DEFAULT ''").run();
   }
 
-  if (!nombres.includes('contrasena_visible')) {
-    db.prepare("ALTER TABLE usuarios ADD COLUMN contrasena_visible TEXT DEFAULT ''").run();
-  }
+  // Dejar de crear/usar la columna contrasena_visible (ya no se almacena en texto plano)
 
   // Migrar datos existentes si fuera necesario.
   db.prepare(`
@@ -105,9 +102,9 @@ const crearAdministradorGlobal = () => {
   const insertarUsuario = db.prepare(`
     INSERT INTO usuarios (
       usuario, nombres, apellido_primero, apellido_segundo, apellidos,
-      correo, contrasena, contrasena_visible, es_admin_global,
+      correo, contrasena, es_admin_global,
       puede_agregar, puede_modificar, puede_eliminar
-    ) VALUES (?, 'Administrador', 'General', '', 'General', 'admin@amcham.org', ?, '4zxb63Nyl43?', 1, 1, 1, 1)
+    ) VALUES (?, 'Administrador', 'General', '', 'General', 'admin@amcham.org', ?, 1, 1, 1, 1)
   `);
   const resultado = insertarUsuario.run('ICONET', hash);
   const usuarioId = resultado.lastInsertRowid;

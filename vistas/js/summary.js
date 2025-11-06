@@ -37,6 +37,12 @@ const MES_A_PERIODO = {
 const setAllYearSpans = (anio) => {
   document.querySelectorAll('.anio').forEach(sp => sp.textContent = anio);
 };
+// Actualiza todos los <span class="mes">...</span> en el header
+const setAllMonthSpans = (mesNombre) => {
+  const txt = (mesNombre || '').toString().trim();
+  const up = txt ? txt.toUpperCase() : '';
+  document.querySelectorAll('.mes').forEach(sp => sp.textContent = up);
+};
 
 // ================================
 // === UI helpers (mensajes/UI) ===
@@ -572,8 +578,12 @@ async function cargarDatos() {
 // === BOOT (listeners y carga inicial) ===
 // =======================================
 document.addEventListener('DOMContentLoaded', () => {
-  // Botón "Aplicar selección"
-  document.getElementById('btnAplicar')?.addEventListener('click', aplicarSeleccionUI);
+  // Botón "Aplicar selección" ya no se usa; aplicar en tiempo real
+  const btnAplicar = document.getElementById('btnAplicar');
+  if (btnAplicar) {
+    btnAplicar.classList.add('d-none');
+    btnAplicar.removeEventListener?.('click', aplicarSeleccionUI);
+  }
 
   // Mantener sincronizados los <span.anio> del header
   const summaryYearSelect = document.getElementById('summaryYearSelect');
@@ -585,6 +595,8 @@ document.addEventListener('DOMContentLoaded', () => {
       setAllYearSpans(seleccionado);
       actualizarResumen(seleccionado);
       if (filtroAnio && filtroAnio.value !== seleccionado) filtroAnio.value = seleccionado;
+      // Aplicar inmediatamente
+      aplicarSeleccionUI();
     });
   }
   if (filtroAnio) {
@@ -593,9 +605,142 @@ document.addEventListener('DOMContentLoaded', () => {
       setAllYearSpans(seleccionado);
       actualizarResumen(seleccionado);
       if (summaryYearSelect && summaryYearSelect.value !== seleccionado) summaryYearSelect.value = seleccionado;
+      // Aplicar inmediatamente
+      aplicarSeleccionUI();
+    });
+  }
+
+  // Cambios de mes se aplican al momento
+  const filtroMes = document.getElementById('selectMes');
+  if (filtroMes) {
+    filtroMes.addEventListener('change', (event) => {
+      const mesNombre = String(event.target.value || '').toLowerCase();
+      setAllMonthSpans(mesNombre);
+      aplicarSeleccionUI();
+    });
+  }
+
+  // Botón Restablecer: establece año/mes en curso y aplica
+  const btnReset = document.getElementById('btnReset');
+  if (btnReset) {
+    btnReset.addEventListener('click', () => {
+      const ahora = new Date();
+      const anioActual = ahora.getFullYear();
+      const mesIndex = ahora.getMonth(); // 0=enero
+      const nombres = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+      const mesNombre = nombres[mesIndex];
+
+      const selAnio = document.getElementById('selectAnio');
+      if (selAnio) selAnio.value = String(anioActual);
+      if (summaryYearSelect) summaryYearSelect.value = String(anioActual);
+      setAllYearSpans(anioActual);
+      actualizarResumen(anioActual);
+
+      const selMes = document.getElementById('selectMes');
+      if (selMes) selMes.value = mesNombre.charAt(0).toUpperCase() + mesNombre.slice(1);
+      setAllMonthSpans(mesNombre);
+
+      aplicarSeleccionUI();
     });
   }
 
   // Carga inicial
   cargarDatos();
+});
+
+// ========== EXTENSION: render con marcado de celdas (IDs por fila/columna) ==========
+// Redefine renderizarTabla para inyectar identificadores únicos por posición
+function renderizarTabla() {
+  const body = document.getElementById('summaryTableBody');
+  if (!body) return;
+
+  body.innerHTML = '';
+  const filas = estadoModulo.tabla;
+
+  if (!Array.isArray(filas) || filas.length === 0) {
+    const vacio = document.createElement('tr');
+    vacio.innerHTML = '<td colspan="12" class="text-center text-muted py-4">No hay información disponible para mostrar.</td>';
+    body.appendChild(vacio);
+    return;
+  }
+
+  filas.forEach((fila, rowIndex) => {
+    const r = rowIndex + 1;
+    const tr = document.createElement('tr');
+    tr.id = `row-r${r}`;
+    tr.setAttribute('data-row-index', String(r));
+
+    if (fila.tipo === 'categoria') {
+      const clases = [fila.estilo || THEME.categoria];
+      if (fila.tipoFila) clases.push(`fila-${fila.tipoFila}`);
+      tr.className = clases.join(' ');
+      tr.innerHTML = `
+        <th id="cell-r${r}-c1" data-row-index="${r}" data-col-index="1" data-role="code"></th>
+        <td id="cell-r${r}-c2" data-row-index="${r}" data-col-index="2" class="mono">${formatearMoneda(fila.mesActual)}</td>
+        <td id="cell-r${r}-c3" data-row-index="${r}" data-col-index="3" class="mono">${formatearMoneda(fila.mesPlan)}</td>
+        <td id="cell-r${r}-c4" data-row-index="${r}" data-col-index="4" class="mono">${formatearMoneda(fila.mesAnterior)}</td>
+        <td id="cell-r${r}-c5" data-row-index="${r}" data-col-index="5" class="mono">${formatearPorcentaje(fila.mesVariacionPlan)}</td>
+        <td id="cell-r${r}-c6" data-row-index="${r}" data-col-index="6" class="mono">${formatearPorcentaje(fila.mesVariacionAnterior)}</td>
+        <td id="cell-r${r}-c7" data-row-index="${r}" data-col-index="7" class="category-cell" data-depth="${fila.depth||0}" style="--depth:${fila.depth||0}">${fila.etiqueta || ''}</td>
+        <td id="cell-r${r}-c8" data-row-index="${r}" data-col-index="8" class="mono">${formatearMoneda(fila.acumuladoActual)}</td>
+        <td id="cell-r${r}-c9" data-row-index="${r}" data-col-index="9" class="mono">${formatearMoneda(fila.acumuladoPlan)}</td>
+        <td id="cell-r${r}-c10" data-row-index="${r}" data-col-index="10" class="mono">${formatearMoneda(fila.acumuladoAnterior)}</td>
+        <td id="cell-r${r}-c11" data-row-index="${r}" data-col-index="11" class="mono">${formatearPorcentaje(fila.acumuladoVariacionPlan)}</td>
+        <td id="cell-r${r}-c12" data-row-index="${r}" data-col-index="12" class="mono">${formatearPorcentaje(fila.acumuladoVariacionAnterior)}</td>
+      `;
+    } else {
+      const clases = [];
+      if (fila.tipoFila && fila.tipoFila !== 'detalle') clases.push(`fila-${fila.tipoFila}`);
+      if (clases.length) tr.className = clases.join(' ');
+      tr.innerHTML = `
+        <th id="cell-r${r}-c1" data-row-index="${r}" data-col-index="1" data-role="code" class="code-cell" data-codigo="${fila.codigo || ''}">${fila.codigo || ''}</th>
+        <td id="cell-r${r}-c2" data-row-index="${r}" data-col-index="2" class="mono">${formatearMoneda(fila.mesActual)}</td>
+        <td id="cell-r${r}-c3" data-row-index="${r}" data-col-index="3" class="mono">${formatearMoneda(fila.mesPlan)}</td>
+        <td id="cell-r${r}-c4" data-row-index="${r}" data-col-index="4" class="mono">${formatearMoneda(fila.mesAnterior)}</td>
+        <td id="cell-r${r}-c5" data-row-index="${r}" data-col-index="5" class="mono">${formatearPorcentaje(fila.mesVariacionPlan)}</td>
+        <td id="cell-r${r}-c6" data-row-index="${r}" data-col-index="6" class="mono">${formatearPorcentaje(fila.mesVariacionAnterior)}</td>
+        <td id="cell-r${r}-c7" data-row-index="${r}" data-col-index="7" class="label-cell" data-role="descripcion" data-depth="${fila.depth||0}" style="--depth:${fila.depth||0}">${fila.descripcion || ''}</td>
+        <td id="cell-r${r}-c8" data-row-index="${r}" data-col-index="8" class="mono">${formatearMoneda(fila.acumuladoActual)}</td>
+        <td id="cell-r${r}-c9" data-row-index="${r}" data-col-index="9" class="mono">${formatearMoneda(fila.acumuladoPlan)}</td>
+        <td id="cell-r${r}-c10" data-row-index="${r}" data-col-index="10" class="mono">${formatearMoneda(fila.acumuladoAnterior)}</td>
+        <td id="cell-r${r}-c11" data-row-index="${r}" data-col-index="11" class="mono">${formatearPorcentaje(fila.acumuladoVariacionPlan)}</td>
+        <td id="cell-r${r}-c12" data-row-index="${r}" data-col-index="12" class="mono">${formatearPorcentaje(fila.acumuladoVariacionAnterior)}</td>
+      `;
+    }
+    body.appendChild(tr);
+  });
+}
+
+// ========== Poblar años desde SALDOSxx y sincronizar spans ==========
+document.addEventListener('DOMContentLoaded', () => {
+  (async () => {
+    try {
+      const resp = await fetch(`${API_BASE}/modulos/summary-anios`, {
+        headers: { ...Sesion.headersAutenticacion() }
+      });
+      const data = await resp.json();
+      const anios = Array.isArray(data?.anios) ? data.anios : [];
+      const sel = document.getElementById('selectAnio');
+      if (sel) {
+        sel.innerHTML = '';
+        const actual = new Date().getFullYear();
+        const lista = anios.length ? anios : [actual];
+        lista.forEach((y) => {
+          const opt = document.createElement('option');
+          opt.value = String(y);
+          opt.textContent = String(y);
+          sel.appendChild(opt);
+        });
+        const prefer = lista.includes(actual) ? actual : lista[0];
+        sel.value = String(prefer);
+        setAllYearSpans(prefer);
+      }
+    } catch (e) {
+      console.warn('No fue posible poblar años desde SALDOSxx.', e);
+    }
+  // inicializar <span.mes> con el valor actual del combo
+  const filtroMesInit = document.getElementById('selectMes');
+  const m = String(filtroMesInit?.value || 'enero').toLowerCase();
+  setAllMonthSpans(m);
+})();
 });

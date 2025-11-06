@@ -1,6 +1,6 @@
 const express = require('express');
 const { listarModulos, obtenerDatosModulo } = require('../services/modulosService');
-const { obtenerResumen } = require('../services/summaryService');
+const { obtenerResumen, listarAniosSALDOS } = require('../services/summaryService');
 
 const router = express.Router();
 
@@ -65,5 +65,22 @@ router.post('/summary-resumen-e', async (req, res) => {
   }
 });
 
-module.exports = router;
+// GET /api/modulos/summary-anios
+// Devuelve los años disponibles en base a las tablas SALDOSxx detectadas en Firebird
+router.get('/summary-anios', async (req, res) => {
+  try {
+    const empresaIdHeader = req.get('X-Empresa-Activa');
+    const empresaId = (req.query.empresaId || empresaIdHeader || '').toString();
+    if (!empresaId) {
+      return res.status(400).json({ mensaje: 'Falta empresaId.' });
+    }
 
+    const anios = await listarAniosSALDOS(empresaId);
+    res.json({ anios });
+  } catch (error) {
+    console.error('Error en summary-anios:', error);
+    res.status(500).json({ mensaje: 'No fue posible listar los años disponibles.' });
+  }
+});
+
+module.exports = router;

@@ -128,5 +128,33 @@ async function obtenerResumen({ empresaId, anio, periodo, codigos = [], anioComp
 }
 
 module.exports = {
-  obtenerResumen
+  obtenerResumen,
+  listarAniosSALDOS
 };
+
+// Lista años disponibles detectando tablas SALDOSxx en la base de datos
+async function listarAniosSALDOS(empresaId) {
+  // Consultar tablas de usuario que empiecen con SALDOS
+  const sql = `
+    SELECT TRIM(RDB$RELATION_NAME) AS NOMBRE
+    FROM RDB$RELATIONS
+    WHERE (RDB$SYSTEM_FLAG = 0 OR RDB$SYSTEM_FLAG IS NULL)
+      AND RDB$VIEW_BLR IS NULL
+      AND UPPER(RDB$RELATION_NAME) LIKE 'SALDOS%'
+  `;
+  const filas = await ejecutarConsulta(empresaId, sql, []);
+
+  const aniosSet = new Set();
+  (filas || []).forEach((r) => {
+    const nombre = String(r.NOMBRE || '').trim().toUpperCase();
+    const m = nombre.match(/^SALDOS(\d{2})$/);
+    if (m) {
+      const suf = parseInt(m[1], 10);
+      const anio = 2000 + suf; // SALDOS01 -> 2001, SALDOS20 -> 2020
+      if (anio >= 2000 && anio <= 2099) aniosSet.add(anio);
+    }
+  });
+
+  const anios = Array.from(aniosSet).sort((a, b) => b - a);
+  return anios;
+}
