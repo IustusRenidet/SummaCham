@@ -70,6 +70,16 @@
 
     <div id="alerta" class="alerta-global visually-hidden"></div>
 
+    <!-- Toasts flotantes de estado -->
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1080">
+      <div id="toastUsuario" class="toast align-items-center text-white bg-success border-0" role="status" aria-live="polite" aria-atomic="true">
+        <div class="d-flex">
+          <div class="toast-body" id="toastUsuarioBody">Operación realizada correctamente.</div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Cerrar"></button>
+        </div>
+      </div>
+    </div>
+
     <form id="formularioUsuario" class="panel-card" novalidate>
       <section class="mb-4">
         <h2 class="h5 fw-bold text-success mb-3">Información general</h2>
@@ -245,9 +255,27 @@
       });
     };
 
+    const mostrarToast = (mensaje, tipo = 'success') => {
+      const toastEl = document.getElementById('toastUsuario');
+      const body = document.getElementById('toastUsuarioBody');
+      if (!toastEl) return;
+      if (body) body.textContent = mensaje;
+      // Ajusta color segun tipo
+      toastEl.classList.remove('bg-success', 'bg-danger');
+      toastEl.classList.add(tipo === 'success' ? 'bg-success' : 'bg-danger');
+      const ctor = (window.bootstrap && window.bootstrap.Toast) ? window.bootstrap.Toast : null;
+      if (ctor) {
+        const toast = new ctor(toastEl);
+        toast.show();
+      } else {
+        toastEl.classList.add('show');
+        setTimeout(() => toastEl.classList.remove('show'), 1800);
+      }
+    };
+
     const mostrarAlerta = (mensaje, tipo = 'danger') => {
-      alerta.textContent = mensaje;
-      alerta.className = `alerta-global alert alert-${tipo}`;
+      // Mantiene compatibilidad: ahora usa toast para que sea visible aunque la pagina este scrolleada
+      mostrarToast(mensaje, tipo === 'success' ? 'success' : 'danger');
     };
 
     const limpiarAlerta = () => {
