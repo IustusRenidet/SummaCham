@@ -8,14 +8,14 @@ const MODULE_GROUPS = [
     label: 'Paneles',
     items: [
       { id: 'presupuestos', label: 'Presupuestos', path: 'Presupuestos.html', badge: 'ppto' },
-      { id: 'summary', label: 'Summary', path: 'SUMMARY.html', badge: 'summary' }
+      { id: 'summary', label: 'Summary', path: 'SUMMARY.html', badge: 'summary', permiso: 'SUMMARY' }
     ]
   },
   {
     id: 'resumen-areas',
     label: 'Resumen',
     items: [
-      { id: 'resumen', label: 'Resumen', path: 'RESUMEN.html', badge: 'ppto' },
+      { id: 'resumen', label: 'Resumen', path: 'RESUMEN.html', badge: 'ppto', permiso: 'RESUMEN' },
       { id: 'membresia', label: 'Membresía', path: 'Membresía.html' },
       { id: 'eventos', label: 'Eventos', path: 'Eventos.html' },
       { id: 'comunicacion', label: 'Comunicación', path: 'Comunicación.html' },
@@ -51,6 +51,24 @@ const LoginView = ({ onLogin }) => {
   const [form, setForm] = useState({ usuario: '', contrasena: '' });
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState('');
+  const [toastMsg, setToastMsg] = useState('');
+  const [toastType, setToastType] = useState('danger');
+  const toastRef = React.useRef(null);
+
+  useEffect(() => {
+    if (error) {
+      // Muestra toast para errores visibles aunque haya scroll
+      try {
+        const ctor = window.bootstrap && window.bootstrap.Toast;
+        if (ctor && toastRef.current) {
+          setToastMsg(error);
+          setToastType('danger');
+          const t = new ctor(toastRef.current);
+          t.show();
+        }
+      } catch (_) { /* noop */ }
+    }
+  }, [error]);
 
   useEffect(() => {
     Sesion.limpiar();
@@ -59,6 +77,20 @@ const LoginView = ({ onLogin }) => {
   const actualizarCampo = (evento) => {
     const { name, value } = evento.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const mostrarToast = (mensaje, tipo = 'danger') => {
+    setToastMsg(mensaje);
+    setToastType(tipo);
+    try {
+      const ctor = window.bootstrap && window.bootstrap.Toast;
+      if (ctor && toastRef.current) {
+        const t = new ctor(toastRef.current);
+        t.show();
+      }
+    } catch (e) {
+      // silencioso
+    }
   };
 
   const manejarEnvio = async (evento) => {
@@ -144,6 +176,22 @@ const LoginView = ({ onLogin }) => {
           </button>
         </form>
       </main>
+
+      {/* Toast flotante para errores de login */}
+      <div className="position-fixed bottom-0 end-0 p-3" style={{ zIndex: 1080 }}>
+        <div
+          ref={toastRef}
+          className={`toast align-items-center text-white ${toastType === 'success' ? 'bg-success' : 'bg-danger'} border-0`}
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          <div className="d-flex">
+            <div className="toast-body">{toastMsg || 'Aviso'}</div>
+            <button type="button" className="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Cerrar"></button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
@@ -188,17 +236,33 @@ const SidebarGroup = ({ group, modules, selectedModule, onSelect, open, onToggle
 const DashboardLayout = ({ sesion, selectedModuleId, onSelectModule, onLogout, empresaActiva, onChangeEmpresa }) => {
   const puedeAdministrar = useMemo(() => Sesion.puedeAdministrarUsuarios(sesion), [sesion]);
 
+  const empresasDisponibles = useMemo(() => Sesion.obtenerEmpresasDisponibles(sesion), [sesion]);
+  const puedeCambiarEmpresa = useMemo(() => Sesion.puedeCambiarEmpresa(sesion), [sesion]);
+  const empresaActualId = empresaActiva?.id || '';
+
+  const tieneAccesoVista = useCallback((module) => {
+    if (!sesion || !sesion.usuario) return false;
+    const u = (sesion.usuario.usuario || '').toString().trim().toUpperCase();
+    if (u === 'ICONET' || sesion.usuario.esAdminGlobal) return true;
+    const permisosEmpresa = sesion.usuario.permisosPorEmpresa?.[empresaActualId] || {};
+    const clave = module.permiso || module.label;
+    const acciones = permisosEmpresa[clave];
+    if (!acciones) return false;
+    return Boolean(acciones['Cargar y guardar'] || acciones.Revisar || acciones.Aprobar);
+  }, [sesion, empresaActualId]);
+
   const gruposDisponibles = useMemo(() => {
     return MODULE_GROUPS.map((group) => {
       const items = group.items.filter((module) => {
         if (module.requiresAdmin && !puedeAdministrar) {
           return false;
         }
-        return true;
+        // Ocultar vistas sin permisos para la empresa activa
+        return tieneAccesoVista(module);
       });
       return { ...group, items };
     }).filter((group) => group.items.length > 0);
-  }, [puedeAdministrar]);
+  }, [puedeAdministrar, tieneAccesoVista]);
 
   const modulosDisponibles = useMemo(() => gruposDisponibles.flatMap((group) => group.items), [gruposDisponibles]);
   const moduloSeleccionado = useMemo(
@@ -206,9 +270,7 @@ const DashboardLayout = ({ sesion, selectedModuleId, onSelectModule, onLogout, e
     [modulosDisponibles, selectedModuleId]
   );
 
-  const empresasDisponibles = useMemo(() => Sesion.obtenerEmpresasDisponibles(sesion), [sesion]);
-  const puedeCambiarEmpresa = useMemo(() => Sesion.puedeCambiarEmpresa(sesion), [sesion]);
-  const empresaActualId = empresaActiva?.id || '';
+  // empresasDisponibles, puedeCambiarEmpresa y empresaActualId ya definidos arriba
   const [sidebarOculta, setSidebarOculta] = useState(false);
 
   const [gruposAbiertos, setGruposAbiertos] = useState(() => new Set(gruposDisponibles.map((group) => group.id)));
@@ -401,3 +463,4 @@ const App = () => {
 };
 
 ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+
