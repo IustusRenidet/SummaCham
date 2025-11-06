@@ -83,7 +83,15 @@
 
       <div class="mb-3">
         <label for="contrasena" class="form-label fw-semibold">Contraseña <span aria-hidden="true">*</span></label>
-        <input type="password" id="contrasena" name="contrasena" class="form-control form-control-lg" required autocomplete="current-password" />
+        <div class="input-group">
+          <input type="password" id="contrasena" name="contrasena" class="form-control form-control-lg" required autocomplete="current-password" />
+          <button type="button" class="btn btn-outline-secondary" id="toggleContrasena" aria-pressed="false" aria-label="Mostrar contraseña">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eye" viewBox="0 0 16 16">
+              <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12 8 12s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z"/>
+              <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5"/>
+            </svg>
+          </button>
+        </div>
         <div class="invalid-feedback">Ingresa tu contraseña.</div>
       </div>
 
@@ -151,6 +159,18 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       Sesion.limpiar();
+      const toggle = document.getElementById('toggleContrasena');
+      const input = document.getElementById('contrasena');
+      if (toggle && input) {
+        toggle.addEventListener('click', () => {
+          const visible = input.getAttribute('type') === 'text';
+          input.setAttribute('type', visible ? 'password' : 'text');
+          toggle.setAttribute('aria-pressed', visible ? 'false' : 'true');
+          toggle.innerHTML = visible
+            ? `<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" fill=\"currentColor\" class=\"bi bi-eye\" viewBox=\"0 0 16 16\"><path d=\"M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12 8 12s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z\"/><path d=\"M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5\"/></svg>`
+            : `<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" fill=\"currentColor\" class=\"bi bi-eye-slash\" viewBox=\"0 0 16 16\"><path d=\"M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5c-1.304 0-2.55.29-3.676.8l.823.823A6.7 6.7 0 0 1 8 3.5C12.28 3.5 15 8 15 8s-.51.88-1.641 2.012l-.001.001-.707-.707c.58-.58 1.04-1.17 1.348-1.667a13 13 0 0 0-2.19-2.572c-.456-.4-.936-.746-1.43-1.03l-.708.708c.45.244.885.54 1.297.884.405.338.79.707 1.154 1.105-.278.39-.648.86-1.11 1.322l-.703-.703z\"/><path d=\"M11.297 9.176a3.5 3.5 0 0 0-4.474-4.474l.823.823a2.5 2.5 0 0 1 2.829 2.829l.822.822zm-2.62 2.62.707-.707a6.7 6.7 0 0 1-1.384.161C4.72 11.25 2 6.75 2 6.75s.879-1.52 2.641-2.762l-.707-.707C2.94 4.28 2 6 2 6s3 5.5 8 5.5c.48 0 .95-.05 1.398-.145l-.721-.721z\"/></svg>`;
+        });
+      }
     });
   </script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
