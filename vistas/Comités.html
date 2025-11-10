@@ -634,13 +634,22 @@
           ocultarContextMenu();
         });
 
-        // Inicio
-        (async () => {
+        async function inicializarPanel() {
           await poblarAnios();
           renderTabla();
           await poblarCuentasDisponibles();
-          cargarDatos();
-        })();
+          await cargarDatos();
+        }
+
+        inicializarPanel();
+
+        if (typeof Sesion !== 'undefined' && Sesion.EVENTO_EMPRESA) {
+          window.addEventListener(Sesion.EVENTO_EMPRESA, async () => {
+            state.datos.clear();
+            state.anio = new Date().getFullYear();
+            await inicializarPanel();
+          });
+        }
       }
 
       document.addEventListener('DOMContentLoaded', initComitesPanel);
