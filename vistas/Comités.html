@@ -223,7 +223,7 @@
   <script src="js/sesion.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
  
-  <script> existente
+  <script>
 
       (() => {
         const sesion = (typeof Sesion !== 'undefined' && typeof Sesion.requerirSesion === 'function')
@@ -474,9 +474,10 @@
 
               if (Array.isArray(data.anios) && data.anios.length) {
                 const ordenAsc = data.anios.slice().sort((a, b) => a - b);
-                els.yearSelect.innerHTML = ordenAsc
-                  .map(anio => `<option value="${anio}">${anio}</option>`)
-                  .join('');
+                const opciones = ['<option value="">—</option>'].concat(
+                  ordenAsc.map(anio => `<option value="${anio}">${anio}</option>`)
+                );
+                els.yearSelect.innerHTML = opciones.join('');
                 if (!ordenAsc.includes(state.anio)) {
                   state.anio = ordenAsc[ordenAsc.length - 1]; // último año disponible
                 }
@@ -487,8 +488,11 @@
             } catch (error) {
               console.warn('No fue posible cargar años.', error);
               const actual = new Date().getFullYear();
-              els.yearSelect.innerHTML = `<option value="${actual}">${actual}</option>`;
-              els.yearSelect.value = actual;
+              els.yearSelect.innerHTML = `
+                <option value="">—</option>
+                <option value="${actual}">${actual}</option>
+              `;
+              els.yearSelect.value = String(actual);
               state.anio = actual;
               setStatus(error.message || 'Error al cargar años', 'warning');
             } finally {
