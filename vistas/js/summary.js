@@ -801,6 +801,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   await poblarAniosDesdeSALDOS();
   inicializarMesDesdeSelect();
   await cargarDatos();
+
+  if (typeof Sesion !== 'undefined' && Sesion.EVENTO_EMPRESA) {
+    window.addEventListener(Sesion.EVENTO_EMPRESA, async () => {
+      await poblarAniosDesdeSALDOS();
+      await aplicarSeleccionUI();
+    });
+  }
 });
 
 // ========== EXTENSION: render con marcado de celdas (IDs por fila/columna) ==========
