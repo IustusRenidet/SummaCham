@@ -465,6 +465,15 @@ const emptyDetalle = () => ({
 // Aquí metes TUS fórmulas reales:
 const OPERACIONES = {
   // SALDOSxx: INICIAL, CARGO01..13, ABONO01..13, NATURALEZA...
+  //
+  // 🔧 Cómo extenderlo:
+  // - La idea es que el backend entregue los saldos "crudos" (mes actual, acumulado actual,
+  //   año anterior, etc.) y aquí puedas combinarlos con reglas específicas para cada celda.
+  // - Si necesitas aplicar fórmulas diferentes por cuenta, puedes inspeccionar `d.codigo`
+  //   antes de regresar el objeto y realizar operaciones adicionales (por ejemplo sumar
+  //   varias cuentas, multiplicar por un porcentaje o calcular variaciones personalizadas).
+  // - Cualquier campo numérico de `d` termina renderizado en la tabla, por lo que este es el
+  //   punto ideal para definir tu “lógica de operaciones por celda”.
   detalleDesdeSALDOS: (raw, ctx) => {
     const d = emptyDetalle();
     d.codigo = String(raw.NUM_CTA || raw.CUENTA || '').trim();
@@ -510,6 +519,12 @@ const OPERACIONES = {
     d.acumuladoPlan     = 0;
     d.acumuladoAnterior = ytdAnt;
 
+    // 👉 Ejemplo de lógica por celda:
+    // if (d.codigo === '401000000000000000001') {
+    //   d.mesActual = d.mesActual * 1.16; // aplica IVA, margen, etc.
+    //   d.acumuladoActual += 5000;        // suma ajustes específicos
+    // }
+
     d.naturaleza = raw.NATURALEZA || '';
     d.ajuste     = (+raw.CARGO13 || 0) - (+raw.ABONO13 || 0);
     return d;
@@ -549,6 +564,9 @@ const OPERACIONES = {
 const CALC_STRATEGY = {
   modo: 'server',            // 'server' | 'client'
   fuente: () => CTX.fuente   // 'SALDOSxx' | 'ACUMxx'
+  // En modo "client" puedes exponer una UI que permita elegir entre distintas versiones de
+  // operaciones (p. ej., KPIs personalizados vs. saldos contables) y, dependiendo de la
+  // selección, cambiar `CTX.fuente` o elegir diferentes funciones dentro de OPERACIONES.
 };
 
 // ======================================================
