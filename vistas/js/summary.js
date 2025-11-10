@@ -23,8 +23,92 @@ const API_BASE = 'http://localhost:3000/api';
 
 const estadoModulo = {
   ejercicios: [],
+  ejerciciosDisponibles: [],
   tabla: []
 };
+
+function normalizarListaAnios(lista) {
+  const numeros = (Array.isArray(lista) ? lista : [])
+    .map((valor) => {
+      const numero = Number(valor);
+      return Number.isFinite(numero) ? numero : null;
+    })
+    .filter((valor) => valor != null);
+  return Array.from(new Set(numeros)).sort((a, b) => a - b);
+}
+
+function sincronizarSelectsAnio(listaAnios, preferido) {
+  const selectPrincipal = document.getElementById('selectAnio');
+  const selectHeader = document.getElementById('summaryYearSelect');
+  const selects = [selectPrincipal, selectHeader].filter(Boolean);
+  const anios = normalizarListaAnios(listaAnios);
+
+  if (!selects.length) {
+    return Number.isFinite(Number(preferido)) ? Number(preferido) : null;
+  }
+
+  const limpiarYAgregarPlaceholder = (select) => {
+    select.innerHTML = '';
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = '—';
+    select.appendChild(placeholder);
+  };
+
+  selects.forEach(limpiarYAgregarPlaceholder);
+
+  if (!anios.length) {
+    selects.forEach((sel) => { sel.value = ''; });
+    if (selectPrincipal && selectHeader) selectHeader.value = selectPrincipal.value;
+    return Number.isFinite(Number(preferido)) ? Number(preferido) : null;
+  }
+
+  const fillSelect = (sel, prefer) => {
+    if (!sel) return prefer;
+
+    anios.forEach((anio) => {
+      const opt = document.createElement('option');
+      opt.value = String(anio);
+      opt.textContent = String(anio);
+      sel.appendChild(opt);
+    });
+
+    const anterior = Number(sel.value);
+    const preferidoNum = Number(prefer);
+    let objetivo = null;
+
+    if (Number.isFinite(anterior) && anios.includes(anterior)) {
+      objetivo = anterior;
+    } else if (Number.isFinite(preferidoNum) && anios.includes(preferidoNum)) {
+      objetivo = preferidoNum;
+    } else {
+      objetivo = anios[anios.length - 1];
+    }
+
+    if (Number.isFinite(objetivo)) {
+      sel.value = String(objetivo);
+      return objetivo;
+    }
+
+    sel.value = '';
+    return prefer;
+  };
+
+  const preferInicial = Number(preferido);
+  const seleccionado = selects.reduce((acc, sel) => fillSelect(sel, acc), Number.isFinite(preferInicial) ? preferInicial : undefined);
+
+  if (selectPrincipal && selectHeader) selectHeader.value = selectPrincipal.value;
+
+  if (Number.isFinite(seleccionado)) {
+    return seleccionado;
+  }
+
+  if (Number.isFinite(preferInicial) && anios.includes(preferInicial)) {
+    return preferInicial;
+  }
+
+  return anios[anios.length - 1];
+}
 
 // Mapa Mes (UI) -> Periodo numérico (1..13)
 const MES_A_PERIODO = {
@@ -604,9 +688,6 @@ async function poblarAniosDesdeSALDOS() {
   const authHeaders = (typeof Sesion !== 'undefined' && typeof Sesion.headersAutenticacion === 'function')
     ? Sesion.headersAutenticacion()
     : {};
-  const selectAnio = document.getElementById('selectAnio');
-  const selectHeader = document.getElementById('summaryYearSelect');
-  const selects = [selectAnio, selectHeader].filter(Boolean);
   const anioActual = new Date().getFullYear();
   let lista = [anioActual];
 
@@ -628,38 +709,8 @@ async function poblarAniosDesdeSALDOS() {
   }
 
   const prefer = lista.includes(anioActual) ? anioActual : lista[0];
-  const fillSelect = (sel, preferred) => {
-    if (!sel) return preferred;
-    const prev = Number(sel.value);
-    sel.innerHTML = '';
-
-    const placeholder = document.createElement('option');
-    placeholder.value = '';
-    placeholder.textContent = '—';
-    sel.appendChild(placeholder);
-
-    lista.forEach((anio) => {
-      const opt = document.createElement('option');
-      opt.value = String(anio);
-      opt.textContent = String(anio);
-      sel.appendChild(opt);
-    });
-
-    const tienePrevio = Number.isFinite(prev) && lista.includes(prev);
-    const fallback = Number.isFinite(preferred) ? preferred : lista[lista.length - 1];
-    const target = tienePrevio ? prev : fallback;
-
-    if (Number.isFinite(target)) {
-      sel.value = String(target);
-      return target;
-    }
-
-    sel.value = '';
-    return preferred;
-  };
-
-  const valorSeleccionado = selects.reduce((acc, sel) => fillSelect(sel, acc ?? prefer), null) ?? prefer;
-  if (selectAnio && selectHeader) selectHeader.value = selectAnio.value;
+  estadoModulo.ejerciciosDisponibles = normalizarListaAnios(lista);
+  const valorSeleccionado = sincronizarSelectsAnio(estadoModulo.ejerciciosDisponibles, prefer);
   setAllYearSpans(valorSeleccionado);
   actualizarResumen(valorSeleccionado);
   return valorSeleccionado;
@@ -709,7 +760,10 @@ async function aplicarSeleccionUI() {
     estadoModulo.tabla = applyFormulaEngine(tablaCalculada);
     estadoModulo.ejercicios = ejercicios;
     if (Array.isArray(ejerciciosDisponibles) && ejerciciosDisponibles.length) {
-      estadoModulo.ejerciciosDisponibles = ejerciciosDisponibles;
+      estadoModulo.ejerciciosDisponibles = normalizarListaAnios(ejerciciosDisponibles);
+      sincronizarSelectsAnio(estadoModulo.ejerciciosDisponibles, anio);
+    } else {
+      estadoModulo.ejerciciosDisponibles = [];
     }
 
     actualizarResumen(anio);
