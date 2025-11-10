@@ -1,5 +1,6 @@
 
 const { ejecutarConsulta } = require('./firebirdService');
+const { listarAniosSaldos } = require('./saldosMetadataService');
 
 const MESES = [
   { periodo: 1, alias: 'ENE', clave: 'ene' },
@@ -94,10 +95,13 @@ async function obtenerAniosDisponibles(empresaId) {
   const anios = [];
   for (let anio = 2000; anio <= 2100; anio++) {
     const tSal = construirNombreTabla('SALDOS', anio);
-    const sql = `SELECT COUNT(*) as count FROM ${tSal} WHERE ejercicio = ?`;
+    const sql = `SELECT COUNT(*) AS TOTAL FROM ${tSal} WHERE ejercicio = ?`;
     try {
       const rows = await ejecutarConsulta(empresaId, sql, [anio]);
-      if (rows.length > 0 && rows[0].count > 0) {
+      const registro = rows[0] || {};
+      // Firebird devuelve los aliases en mayúsculas aunque se definan en minúsculas.
+      const total = Number(registro.TOTAL ?? registro.total ?? 0);
+      if (total > 0) {
         anios.push(anio);
       }
     } catch (e) {
