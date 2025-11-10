@@ -8,37 +8,36 @@
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --color-primary: #1f4e94;
-      --color-secondary: #f6b60a;
-      --color-background: #101623;
-      --color-panel: #111a2c;
-      --color-text: #f8fafc;
-      --color-muted: rgba(255, 255, 255, 0.5);
-      --border-soft: rgba(255, 255, 255, 0.08);
+      --color-primary: #2f6f4e;
+      --color-secondary: #b87333;
+      --color-background: #f3f6f1;
+      --color-text: #243226;
+      --color-primary-blue: #333399;
+      --color-bright-blue: #0e19fa;
+      --color-secondary-white: #8497b0;
+      --color-neutral-row: #d9d9d9;
+      --color-selected: #ffeaa7;
+      --zoom-level: 1;
     }
 
     body {
-      background: radial-gradient(circle at top, #1a2740 0%, #0c1220 55%);
+      background: var(--color-background);
       font-family: 'Manrope', 'Segoe UI', Tahoma, sans-serif;
       color: var(--color-text);
       min-height: 100vh;
-      padding-top: 40px;
+      padding-top: 20px;
     }
 
     .hero-card {
-      background: linear-gradient(120deg, #1d3056 0%, #15213d 70%);
+      background: var(--color-primary);
       border-radius: 20px;
+      color: #fff;
       padding: 2rem;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 25px 45px rgba(47, 111, 78, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.15);
     }
 
-    .hero-card h1 {
-      font-weight: 700;
-      margin-bottom: 0.25rem;
-    }
-
-    .pill {
+    .hero-card .pill {
       display: inline-flex;
       align-items: center;
       gap: 0.35rem;
@@ -47,22 +46,17 @@
       letter-spacing: 0.08em;
       padding: 0.35rem 0.9rem;
       border-radius: 999px;
-      background: rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.16);
       border: 1px solid rgba(255, 255, 255, 0.2);
     }
 
     .panel {
       margin-top: 2rem;
-      background: var(--color-panel);
+      background: #fff;
       border-radius: 18px;
-      border: 1px solid var(--border-soft);
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
-      padding: 1.5rem;
-    }
-
-    .panel-title {
-      font-size: 1.1rem;
-      font-weight: 600;
+      border: 1px solid rgba(36, 50, 38, 0.08);
+      box-shadow: 0 25px 55px rgba(36, 50, 38, 0.08);
+      padding: 1.75rem;
     }
 
     .filters {
@@ -70,56 +64,40 @@
       flex-wrap: wrap;
       gap: 1rem;
       align-items: flex-end;
-      margin-bottom: 1.5rem;
+      margin-bottom: 1.25rem;
     }
 
     .filters .form-label {
       font-weight: 600;
       font-size: 0.85rem;
-      color: var(--color-muted);
-    }
-
-    .form-control,
-    .form-select {
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(255, 255, 255, 0.2);
       color: var(--color-text);
-    }
-
-    .form-control:focus,
-    .form-select:focus {
-      background: rgba(255, 255, 255, 0.07);
-      color: var(--color-text);
-      border-color: var(--color-secondary);
-      box-shadow: 0 0 0 0.15rem rgba(246, 182, 10, 0.25);
     }
 
     .btn-hero {
-      background: linear-gradient(120deg, #f6b60a, #ffcf4b);
-      color: #00102c;
+      background: linear-gradient(120deg, var(--color-secondary), #f4a905);
+      color: #0b1f3a;
       font-weight: 700;
       border-radius: 999px;
       padding: 0.55rem 1.6rem;
       border: none;
-      box-shadow: 0 12px 20px rgba(246, 182, 10, 0.4);
+      box-shadow: 0 12px 22px rgba(184, 115, 51, 0.35);
     }
 
     .btn-hero:disabled {
-      opacity: 0.5;
+      opacity: 0.6;
       box-shadow: none;
     }
 
     .table-comites {
       width: 100%;
       border-collapse: collapse;
-      font-size: 0.85rem;
-      color: var(--color-text);
+      font-size: 0.86rem;
     }
 
     .table-comites th,
     .table-comites td {
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      padding: 0.4rem 0.55rem;
+      border: 1px solid rgba(36, 50, 38, 0.12);
+      padding: 0.45rem 0.55rem;
       text-align: right;
       min-width: 75px;
     }
@@ -128,11 +106,12 @@
     .table-comites td:first-child {
       text-align: left;
       font-weight: 600;
-      min-width: 280px;
+      min-width: 320px;
     }
 
     .table-comites thead th {
       background: var(--color-primary);
+      color: #fff;
       text-transform: uppercase;
       letter-spacing: 0.05em;
       font-size: 0.78rem;
@@ -144,35 +123,42 @@
       font-weight: 800;
     }
 
-    .table-comites tbody tr[data-section="ingresos"] td:first-child,
-    .table-comites tbody tr[data-section="gastos"] td:first-child {
-      color: var(--color-muted);
-      font-weight: 500;
-    }
-
     .table-comites tbody tr[data-kind="total"] {
-      background: rgba(255, 255, 255, 0.05);
+      background: #ebf2ff;
       font-weight: 700;
     }
 
     .table-comites tbody tr[data-kind="resultado"] {
-      background: rgba(41, 171, 135, 0.12);
+      background: #e9fbf3;
       font-weight: 800;
     }
 
-    .status-badge {
+    .table-comites tbody tr[data-section="ingresos"] td:first-child,
+    .table-comites tbody tr[data-section="gastos"] td:first-child {
+      color: var(--color-text);
+      font-weight: 500;
+    }
+
+    .table-comites tbody tr td:first-child span {
+      display: block;
+      color: var(--color-secondary-white);
+      font-size: 0.78rem;
+      font-weight: 500;
+    }
+
+    #comitesStatus {
+      font-weight: 600;
       font-size: 0.85rem;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
     }
 
     .comites-context-menu {
       position: fixed;
       z-index: 50;
-      background: #0d1422;
-      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: var(--color-primary);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.15);
       border-radius: 8px;
-      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+      box-shadow: 0 18px 30px rgba(36, 50, 38, 0.35);
       overflow: hidden;
       min-width: 180px;
     }
@@ -181,42 +167,19 @@
       width: 100%;
       background: transparent;
       border: none;
-      color: var(--color-text);
+      color: inherit;
       text-align: left;
       padding: 0.6rem 0.9rem;
     }
 
     .comites-context-menu button:hover {
-      background: rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.1);
       color: var(--color-secondary);
-    }
-
-    @media (max-width: 992px) {
-      .table-comites th,
-      .table-comites td {
-        min-width: 90px;
-      }
     }
   </style>
 </head>
 <body>
   <div class="container py-4">
-    <div class="hero-card mb-4">
-      <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start gap-3">
-        <div>
-          <p class="pill mb-2">Panel Comités</p>
-          <h1 class="display-6 mb-2">Resultados y Saldos por Cuenta</h1>
-          <p class="text-white-50 mb-0">
-            Consolida ingresos y gastos de los comités, con ajustes automáticos y totales mensuales.
-          </p>
-        </div>
-        <div class="text-lg-end">
-          <p class="text-uppercase text-white-50 mb-1 status-badge">Fuente</p>
-          <strong>SALDOSxx</strong>
-        </div>
-      </div>
-    </div>
-
     <section class="panel">
       <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
         <div class="panel-title">Reporte dinámico</div>
@@ -259,6 +222,11 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     (() => {
+      const sesion = (typeof Sesion !== 'undefined' && typeof Sesion.requerirSesion === 'function')
+        ? Sesion.requerirSesion({ redirectTo: 'login.html' })
+        : null;
+      if (!sesion) return;
+
       const API_BASE = 'http://localhost:3000/api';
       const STORAGE_KEY = 'comites_cuentas_v2';
       const DEFAULT_LIST = {
@@ -337,10 +305,7 @@
         }
 
         function empresaActiva() {
-          if (typeof Sesion !== 'undefined' && typeof Sesion.obtenerEmpresaActiva === 'function') {
-            return Sesion.obtenerEmpresaActiva();
-          }
-          return null;
+          return sesion?.empresaActiva || null;
         }
 
         function setStatus(msg, tipo = 'info') {
@@ -401,8 +366,8 @@
 
         function renderTabla() {
           actualizarEncabezado();
-          const ingresosRows = state.cuentas.ingresos.map(c => buildRow(c, 'ingresos'));
-          const gastosRows = state.cuentas.gastos.map(c => buildRow(c, 'gastos'));
+          const ingresosRows = Array.from(new Set(state.cuentas.ingresos)).map(c => buildRow(c, 'ingresos'));
+          const gastosRows = Array.from(new Set(state.cuentas.gastos)).map(c => buildRow(c, 'gastos'));
           const totalIngresos = sumarFilas(ingresosRows);
           const totalGastos = sumarFilas(gastosRows);
           const resultado = {};
@@ -459,15 +424,17 @@
 
         async function poblarAnios() {
           try {
-            const resp = await fetch(`${API_BASE}/modulos/summary-anios`, { headers: headersAuth() });
+            const empresa = empresaActiva();
+            const query = empresa?.id ? `?empresaId=${encodeURIComponent(empresa.id)}` : '';
+            const resp = await fetch(`${API_BASE}/saldos/anios${query}`, { headers: headersAuth() });
             const data = await resp.json();
             if (resp.ok && Array.isArray(data.anios) && data.anios.length) {
-              els.yearSelect.innerHTML = data.anios
-                .sort((a, b) => b - a)
+              const ordenAsc = data.anios.slice().sort((a, b) => a - b);
+              els.yearSelect.innerHTML = ordenAsc
                 .map(anio => `<option value="${anio}">${anio}</option>`)
                 .join('');
-              if (!data.anios.includes(state.anio)) {
-                state.anio = data.anios[0];
+              if (!ordenAsc.includes(state.anio)) {
+                state.anio = ordenAsc[0];
               }
               els.yearSelect.value = String(state.anio);
             } else {
@@ -537,6 +504,7 @@
           if (!raw) return;
           const soloNumeros = raw.replace(/\D/g, '');
           const clean = soloNumeros.length ? soloNumeros : raw.toUpperCase();
+          if (clean.length === 0) return;
           const yaExiste = [...state.cuentas.ingresos, ...state.cuentas.gastos].some(cta => cta === clean);
           if (yaExiste) {
             alert('La cuenta ya está en la lista.');

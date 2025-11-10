@@ -87,4 +87,25 @@ async function obtenerSaldosPorCuentas(empresaId, anio, cuentas = []) {
   return rows.map(mapRow);
 }
 
-module.exports = { obtenerSaldosPorCuentas, MESES };
+async function obtenerAniosDisponibles(empresaId) {
+  if (!empresaId) throw new Error('Empresa obligatoria');
+
+  // Buscar años disponibles en tablas SALDOS desde 2000 hasta 2100
+  const anios = [];
+  for (let anio = 2000; anio <= 2100; anio++) {
+    const tSal = construirNombreTabla('SALDOS', anio);
+    const sql = `SELECT COUNT(*) as count FROM ${tSal} WHERE ejercicio = ?`;
+    try {
+      const rows = await ejecutarConsulta(empresaId, sql, [anio]);
+      if (rows.length > 0 && rows[0].count > 0) {
+        anios.push(anio);
+      }
+    } catch (e) {
+      // Tabla no existe o error, continuar
+    }
+  }
+
+  return anios.sort((a, b) => a - b); // Orden ascendente
+}
+
+module.exports = { obtenerSaldosPorCuentas, MESES, obtenerAniosDisponibles };

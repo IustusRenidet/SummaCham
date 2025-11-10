@@ -611,13 +611,18 @@ async function poblarAniosDesdeSALDOS() {
   let lista = [anioActual];
 
   try {
-    const resp = await fetch(`${API_BASE}/modulos/summary-anios`, { headers: { ...authHeaders } });
+    const empresaActiva = (typeof Sesion !== 'undefined' && typeof Sesion.obtenerEmpresaActiva === 'function')
+      ? Sesion.obtenerEmpresaActiva()
+      : (typeof sesion !== 'undefined' ? (sesion.empresaActiva || null) : null);
+    const empresaId = empresaActiva?.id || sesion?.empresaId || '';
+    const query = empresaId ? `?empresaId=${encodeURIComponent(empresaId)}` : '';
+    const resp = await fetch(`${API_BASE}/modulos/summary-anios${query}`, { headers: { ...authHeaders } });
     const data = await resp.json();
     if (!resp.ok) throw new Error(data.mensaje || 'No fue posible obtener los ejercicios disponibles.');
     const normalizados = Array.isArray(data?.anios)
       ? data.anios.map((y) => Number(y)).filter((n) => Number.isFinite(n))
       : [];
-    if (normalizados.length) lista = normalizados.sort((a, b) => b - a);
+    if (normalizados.length) lista = normalizados.sort((a, b) => a - b);
   } catch (error) {
     console.warn('No fue posible poblar años desde SALDOSxx.', error);
   }
