@@ -916,3 +916,142 @@ document.addEventListener('DOMContentLoaded', () => {
   setAllMonthSpans(m);
 })();
 });
+
+// Busca una cuenta en el payload del backend por código exacto
+function indexByCodigo(detalle) {
+  const map = new Map();
+  for (const r of detalle) map.set(String(r.codigo).trim(), r);
+  return map;
+}
+
+function zeroRow() {
+  return {
+    mesActual:0, ytdActual:0,
+    mesPlan:0,   ytdPlan:0,
+    mesAnterior:0, ytdAnterior:0
+  };
+}
+
+function addRows(a, b) {
+  return {
+    mesActual:   (a.mesActual||0)   + (b.mesActual||0),
+    ytdActual:   (a.ytdActual||0)   + (b.ytdActual||0),
+    mesPlan:     (a.mesPlan||0)     + (b.mesPlan||0),
+    ytdPlan:     (a.ytdPlan||0)     + (b.ytdPlan||0),
+    mesAnterior: (a.mesAnterior||0) + (b.mesAnterior||0),
+    ytdAnterior: (a.ytdAnterior||0) + (b.ytdAnterior||0),
+  };
+}
+
+function safeDiv(n, d) {
+  const N = Number(n||0), D = Number(d||0);
+  return D === 0 ? 0 : N / D;
+}
+
+// Eval simple de fórmulas tipo "UTI.ytdActual / UTI.ytdPlan"
+// rowsOut es un diccionario { idRow -> rowValues }
+function evalFormula(expr, rowsOut) {
+  // Solo soportamos "A.B / C.D" o "A.B - C.D" etc. con + - * /
+  // Sencillo parser:
+  const tokens = expr.split(/\s+/);
+  const stack = [];
+
+  function valueOf(token) {
+    // token como "UTI.ytdActual" o número
+    if (/^[A-Za-z_][\w]*\.[A-Za-z_][\w]*$/.test(token)) {
+      const [id, field] = token.split('.');
+      const row = rowsOut[id] || zeroRow();
+      return Number(row[field] || 0);
+    }
+    if (!isNaN(Number(token))) return Number(token);
+    return token; // operador
+  }
+
+  for (const t of tokens) {
+    stack.push(valueOf(t));
+    while (stack.length >= 3 && typeof stack[stack.length-2] === 'string') {
+      const b = stack.pop();
+      const op = stack.pop();
+      const a = stack.pop();
+      if (op === '+') stack.push(Number(a)+Number(b));
+      else if (op === '-') stack.push(Number(a)-Number(b));
+      else if (op === '*') stack.push(Number(a)*Number(b));
+      else if (op === '/') stack.push(safeDiv(a,b));
+      else { // operador desconocido, reponer
+        stack.push(a, op, b);
+        break;
+      }
+    }
+  }
+  return Number(stack[0] || 0);
+}
+
+// Construye todas las filas del layout a partir del payload del backend
+export function materializarLayout(LAYOUT, payload) {
+  // payload.detalle: [{ codigo, mesActual, ytdActual, mesPlan, ytdPlan, mesAnterior, ytdAnterior, ... }, ...]
+  const byCode = indexByCodigo(payload.detalle);
+  const rowsOut = {}; // id -> valores calculados
+
+  // 1) Primero resuelve las filas de cuenta
+  for (const item of LAYOUT) {
+    if (item.tipo === 'cuenta') {
+      const r = byCode.get(String(item.codigo).trim()) || {};
+      rowsOut[item.id] = {
+        titulo: item.titulo || item.codigo,
+        ...zeroRow(),
+        mesActual:   Number(r.mesActual||0),
+        ytdActual:   Number(r.ytdActual||0),
+        mesPlan:     Number(r.mesPlan||0),
+        ytdPlan:     Number(r.ytdPlan||0),
+        mesAnterior: Number(r.mesAnterior||0),
+        ytdAnterior: Number(r.ytdAnterior||0),
+      };
+    }
+  }
+
+  // 2) Luego subtotales/totales (pueden depender de varias cuentas)
+  const tiposSuma = new Set(['subtotal','total']);
+  for (const item of LAYOUT) {
+    if (tiposSuma.has(item.tipo)) {
+      const hijos = item.hijos || [];
+      let acc = zeroRow();
+      for (const hid of hijos) {
+        const hv = rowsOut[hid] || zeroRow();
+        acc = addRows(acc, hv);
+      }
+      rowsOut[item.id] = { titulo: item.titulo || item.id, ...acc };
+    }
+  }
+
+  // 3) Por último KPIs (fórmulas)
+  for (const item of LAYOUT) {
+    if (item.tipo === 'kpi') {
+      const v = {
+        ...zeroRow(),
+        // Por convención mostramos el KPI en YTD y MES en estos dos campos:
+        ytdActual: evalFormula(item.formula.replaceAll(/\b([A-Za-z_]\w*)\./g, '$1.'), rowsOut),
+      };
+      // Si quieres también KPI de MES con otra fórmula, agrega formulaMes: '...'
+      if (item.formulaMes) v.mesActual = evalFormula(item.formulaMes, rowsOut);
+      rowsOut[item.id] = { titulo: item.titulo || item.id, ...v };
+    }
+  }
+
+  // 4) Devuelve arreglado en el mismo orden del LAYOUT (para pintar)
+  const salida = [];
+  for (const item of LAYOUT) {
+    if (item.tipo === 'categoria') {
+      salida.push({ id: item.id, tipo: 'categoria', titulo: item.titulo });
+    } else {
+      const v = rowsOut[item.id] || zeroRow();
+      salida.push({
+        id: item.id,
+        tipo: item.tipo,
+        titulo: (rowsOut[item.id] && rowsOut[item.id].titulo) || item.titulo || item.id,
+        ...v
+      });
+    }
+  }
+  return salida;
+}
+
