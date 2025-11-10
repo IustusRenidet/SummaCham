@@ -5,7 +5,13 @@ const pad2 = (n) => n.toString().padStart(2, '0');
 // Devuelve el nombre fisico de la tabla (p.ej. SALDOS26, CUENTAS26)
 const nombreTabla = (prefijo, anio) => `${prefijo}${anio.toString().slice(-2).padStart(2, '0')}`;
 
-// Construye una expresion de suma para columnas CARGOxx/ABONOxx hasta el periodo indicado
+// Construye una expresion de suma para columnas CARGOxx/ABONOxx hasta el periodo indicado.
+//
+// La UI solicita montos "mes" y "acumulado" (YTD) para el ejercicio en curso y para el
+// ejercicio comparativo (generalmente el año anterior). Para calcular el acumulado se van
+// sumando las columnas CARGOnn/ABONOnn desde enero (01) hasta el periodo seleccionado; si
+// el periodo es 13 significa que el usuario está pidiendo el ajuste anual y se deben
+// contemplar también esas columnas.
 const sumaCols = (prefix, hasta) => {
   const limite = Math.max(0, Math.min(13, Number(hasta) || 0));
   if (limite <= 0) return '0';
@@ -33,7 +39,13 @@ const tablaCodigosDerivada = (codigos = []) => {
   return { sql, params: limpios };
 };
 
-// SELECT principal del resumen (mes y YTD) para ejercicio/periodo
+// SELECT principal del resumen (mes y YTD) para ejercicio/periodo.
+//
+// La lógica del Summary es: por cada código contable solicitado se calculan los saldos del
+// mes (`MES`) y el acumulado del año (`YTD`) utilizando SALDOSxx.<Periodo>. Esta misma
+// consulta se ejecuta dos veces: una para el ejercicio actual y otra para el ejercicio
+// comparativo (anioComparativo). De esa forma el front puede mostrar en la tabla una fila
+// con las tres columnas claves: mes actual, mes anterior y acumulado anterior.
 const construirSelectResumen = ({ anio, periodo, usarAjusteEnYTD, codigos }) => {
   const tablaSaldos = nombreTabla('SALDOS', anio);
   const tablaCuentas = nombreTabla('CUENTAS', anio);
@@ -43,6 +55,8 @@ const construirSelectResumen = ({ anio, periodo, usarAjusteEnYTD, codigos }) => 
   const incluirAjuste = Boolean(usarAjusteEnYTD) && p >= 13;
   const ytdHasta = incluirAjuste ? 13 : Math.min(p, 12);
 
+  // `exprMes` obtiene el movimiento del periodo seleccionado (cargo - abono).
+  // `exprYtd` suma el saldo inicial más todos los movimientos hasta el periodo solicitado.
   const exprMes = `COALESCE(s.CARGO${pp}, 0) - COALESCE(s.ABONO${pp}, 0)`;
   const exprYtd = `COALESCE(s.INICIAL, 0) + (${sumaCols('s.CARGO', ytdHasta)}) - (${sumaCols('s.ABONO', ytdHasta)})`;
 
@@ -104,6 +118,9 @@ async function obtenerResumen({ empresaId, anio, periodo, codigos = [], anioComp
 
   // Armar detalle por código
   const detalle = listaCodigos.map((codigo) => {
+    // Para cada código devolvemos los saldos del ejercicio actual y del comparativo.
+    // Esto alimenta cada "celda" de la tabla en el front, que después puede aplicar
+    // lógica adicional (sumas, porcentajes, etc.) sobre estos importes base.
     const a = mapaActual.get(codigo) || { codigo, descripcion: '', mes: 0, ytd: 0 };
     const b = mapaComp.get(codigo) || { codigo, descripcion: '', mes: 0, ytd: 0 };
     return {
@@ -118,6 +135,8 @@ async function obtenerResumen({ empresaId, anio, periodo, codigos = [], anioComp
     };
   });
 
+  // El widget de tarjetas muestra el acumulado del ejercicio actual; aquí lo calculamos
+  // sumando el YTD de todos los códigos para el año base.
   const totalAcumulado = detalle.reduce((acc, it) => acc + (Number(it.acumuladoActual) || 0), 0);
 
   const ejercicios = [
