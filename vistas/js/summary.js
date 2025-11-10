@@ -600,6 +600,63 @@ function removeByCode(codigo) {
   saveLayoutLS(CURRENT_LAYOUT);
 }
 
+async function poblarAniosDesdeSALDOS() {
+  const authHeaders = (typeof Sesion !== 'undefined' && typeof Sesion.headersAutenticacion === 'function')
+    ? Sesion.headersAutenticacion()
+    : {};
+  const selectAnio = document.getElementById('selectAnio');
+  const selectHeader = document.getElementById('summaryYearSelect');
+  const selects = [selectAnio, selectHeader].filter(Boolean);
+  const anioActual = new Date().getFullYear();
+  let lista = [anioActual];
+
+  try {
+    const resp = await fetch(`${API_BASE}/modulos/summary-anios`, { headers: { ...authHeaders } });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.mensaje || 'No fue posible obtener los ejercicios disponibles.');
+    const normalizados = Array.isArray(data?.anios)
+      ? data.anios.map((y) => Number(y)).filter((n) => Number.isFinite(n))
+      : [];
+    if (normalizados.length) lista = normalizados.sort((a, b) => b - a);
+  } catch (error) {
+    console.warn('No fue posible poblar años desde SALDOSxx.', error);
+  }
+
+  const prefer = lista.includes(anioActual) ? anioActual : lista[0];
+  const fillSelect = (sel, preferred) => {
+    if (!sel) return preferred;
+    const prev = Number(sel.value);
+    sel.innerHTML = '';
+    lista.forEach((anio) => {
+      const opt = document.createElement('option');
+      opt.value = String(anio);
+      opt.textContent = String(anio);
+      sel.appendChild(opt);
+    });
+    const target = lista.includes(prev) ? prev : preferred;
+    sel.value = String(target);
+    return target;
+  };
+
+  const valorSeleccionado = selects.reduce((acc, sel) => fillSelect(sel, acc ?? prefer), null) ?? prefer;
+  if (selectAnio && selectHeader) selectHeader.value = selectAnio.value;
+  setAllYearSpans(valorSeleccionado);
+  actualizarResumen(valorSeleccionado);
+  return valorSeleccionado;
+}
+
+function inicializarMesDesdeSelect() {
+  const filtroMesInit = document.getElementById('selectMes');
+  const nombres = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  const ahora = new Date();
+  const mesActual = nombres[ahora.getMonth()];
+  if (filtroMesInit && !filtroMesInit.value) {
+    filtroMesInit.value = mesActual.charAt(0).toUpperCase() + mesActual.slice(1);
+  }
+  const mesTexto = String(filtroMesInit?.value || mesActual || 'enero').toLowerCase();
+  setAllMonthSpans(mesTexto);
+}
+
 // ==================================
 // === CONTROLADOR PRINCIPAL (UI) ===
 // ==================================
@@ -658,7 +715,7 @@ async function cargarDatos() {
 // =======================================
 // === BOOT (listeners y carga inicial) ===
 // =======================================
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   // Botón "Aplicar selección" ya no se usa; aplicar en tiempo real
   const btnAplicar = document.getElementById('btnAplicar');
   if (btnAplicar) {
@@ -736,7 +793,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Carga inicial
-  cargarDatos();
+  await poblarAniosDesdeSALDOS();
+  inicializarMesDesdeSelect();
+  await cargarDatos();
 });
 
 // ========== EXTENSION: render con marcado de celdas (IDs por fila/columna) ==========
@@ -804,42 +863,7 @@ function renderizarTabla() {
   });
 }
 
-// ========== Poblar años desde SALDOSxx y sincronizar spans ==========
-document.addEventListener('DOMContentLoaded', () => {
-  (async () => {
-    try {
-      const resp = await fetch(`${API_BASE}/modulos/summary-anios`, {
-        headers: { ...Sesion.headersAutenticacion() }
-      });
-      const data = await resp.json();
-      const anios = Array.isArray(data?.anios) ? data.anios : [];
-      const sel = document.getElementById('selectAnio');
-      if (sel) {
-        sel.innerHTML = '';
-        const actual = new Date().getFullYear();
-        const lista = anios.length ? anios : [actual];
-        lista.forEach((y) => {
-          const opt = document.createElement('option');
-          opt.value = String(y);
-          opt.textContent = String(y);
-          sel.appendChild(opt);
-        });
-        const prefer = lista.includes(actual) ? actual : lista[0];
-        sel.value = String(prefer);
-        setAllYearSpans(prefer);
-      }
-    } catch (e) {
-      console.warn('No fue posible poblar años desde SALDOSxx.', e);
-    }
-  // inicializar <span.mes> con el valor actual del combo
-  const filtroMesInit = document.getElementById('selectMes');
-  const ahora = new Date();
-  const mesActualNombre = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'][ahora.getMonth()];
-  if (filtroMesInit) filtroMesInit.value = mesActualNombre.charAt(0).toUpperCase() + mesActualNombre.slice(1);
-  const m = String(filtroMesInit?.value || mesActualNombre || 'enero').toLowerCase();
-  setAllMonthSpans(m);
-})();
-});
+
 
 // Construye todas las filas del layout a partir del payload del backend
 function materializarLayout(LAYOUT, payload) {
