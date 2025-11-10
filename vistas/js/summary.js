@@ -632,15 +632,30 @@ async function poblarAniosDesdeSALDOS() {
     if (!sel) return preferred;
     const prev = Number(sel.value);
     sel.innerHTML = '';
+
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = '—';
+    sel.appendChild(placeholder);
+
     lista.forEach((anio) => {
       const opt = document.createElement('option');
       opt.value = String(anio);
       opt.textContent = String(anio);
       sel.appendChild(opt);
     });
-    const target = lista.includes(prev) ? prev : preferred;
-    sel.value = String(target);
-    return target;
+
+    const tienePrevio = Number.isFinite(prev) && lista.includes(prev);
+    const fallback = Number.isFinite(preferred) ? preferred : lista[lista.length - 1];
+    const target = tienePrevio ? prev : fallback;
+
+    if (Number.isFinite(target)) {
+      sel.value = String(target);
+      return target;
+    }
+
+    sel.value = '';
+    return preferred;
   };
 
   const valorSeleccionado = selects.reduce((acc, sel) => fillSelect(sel, acc ?? prefer), null) ?? prefer;
