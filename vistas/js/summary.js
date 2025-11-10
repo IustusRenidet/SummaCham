@@ -167,6 +167,174 @@ const zeroMetrics = () => ({
 const pct = (a, b) => (Math.abs(b || 0) === 0 ? 0 : ((a - b) / Math.abs(b)) * 100);
 const addMetrics = (dst, src) => { Object.keys(dst).forEach(k => dst[k] += (src[k] || 0)); return dst; };
 
+// =========================================================
+// === SISTEMA DE FORMULAS (fila / celda / columna)     ===
+// =========================================================
+/*
+  Como extender:
+  - ROW_FORMULAS: se ejecuta una vez por fila renderizable (rowId = layout.id). Ideal para reglas globales.
+  - CELL_FORMULAS: se dispara por fila+columna. Usa la misma llave rowId y el key de columna (ver COLUMN_DEFS).
+  - COLUMN_FORMULAS: corre una vez por columna con acceso a todas las filas. Perfecto para totales personalizados.
+
+  Cada handler recibe un contexto con helpers:
+    ctx.row           -> Objeto que se pintara (puedes mutarlo).
+    ctx.rowIndex      -> Indice base 0 en la tabla final (rowNumber = +1).
+    ctx.rows          -> Todas las filas (ya clonadas), util para buscar referencias.
+    ctx.columnKey     -> Solo en formulas de celda/columna.
+    ctx.columnMeta    -> Metadata declarada en COLUMN_DEFS (indice visual, etiqueta, etc.).
+    ctx.getRow(rowId) -> Helper para encontrar cualquier fila por su id original del layout.
+    ctx.getValue(rowId, columnKey) -> Lee el valor de otra celda.
+    ctx.setValue(rowId, columnKey, value) -> Asigna en otra celda (col/col formulas).
+
+  Usa estos registros para agregar tus formulas reales sin tocar el motor:
+*/
+const COLUMN_DEFS = [
+  { key: 'mesActual', colIndex: 2, label: 'Mes actual', tipo: 'currency' },
+  { key: 'mesPlan', colIndex: 3, label: 'Mes plan', tipo: 'currency' },
+  { key: 'mesAnterior', colIndex: 4, label: 'Mes anterior', tipo: 'currency' },
+  { key: 'mesVariacionPlan', colIndex: 5, label: 'Var. mes vs plan', tipo: 'percent' },
+  { key: 'mesVariacionAnterior', colIndex: 6, label: 'Var. mes vs anterior', tipo: 'percent' },
+  { key: 'acumuladoActual', colIndex: 8, label: 'YTD actual', tipo: 'currency' },
+  { key: 'acumuladoPlan', colIndex: 9, label: 'YTD plan', tipo: 'currency' },
+  { key: 'acumuladoAnterior', colIndex: 10, label: 'YTD anterior', tipo: 'currency' },
+  { key: 'acumuladoVariacionPlan', colIndex: 11, label: 'Var. YTD vs plan', tipo: 'percent' },
+  { key: 'acumuladoVariacionAnterior', colIndex: 12, label: 'Var. YTD vs anterior', tipo: 'percent' }
+];
+const COLUMN_LOOKUP = COLUMN_DEFS.reduce((acc, col) => {
+  acc[col.key] = col;
+  return acc;
+}, {});
+
+const ROW_FORMULAS = {
+  /*
+    Ejemplo:
+    income_total: ({ row }) => {
+      row.mesActual = row.mesActual * 1.1;
+    }
+  */
+};
+
+const CELL_FORMULAS = {
+  /*
+    Ejemplo:
+    membership_sub: {
+      mesVariacionPlan: ({ value, row }) => value || (pct(row.mesActual, row.mesPlan))
+    }
+  */
+};
+
+const COLUMN_FORMULAS = {
+  /*
+    Ejemplo:
+    acumuladoActual: ({ values, setValue }) => {
+      const total = values.reduce((sum, item) => sum + (item.row.tipoFila === 'total' ? 0 : (item.value || 0)), 0);
+      setValue('income_total', total);
+    }
+  */
+};
+
+const findRowById = (rows, rowId) => rows.find((r) => r.rowId === rowId);
+const assignKnownKeys = (row, partial = {}) => {
+  Object.keys(partial || {}).forEach((key) => {
+    if (key in row) row[key] = partial[key];
+  });
+};
+
+const createSharedFormulaCtx = (rows) => ({
+  rows,
+  getRow: (rowId) => findRowById(rows, rowId),
+  getValue: (rowId, columnKey) => {
+    const r = findRowById(rows, rowId);
+    return r ? r[columnKey] : undefined;
+  },
+  setValue: (rowId, columnKey, value) => {
+    const r = findRowById(rows, rowId);
+    if (!r) return;
+    if (columnKey in r || COLUMN_LOOKUP[columnKey]) r[columnKey] = value;
+  }
+});
+
+const applyRowFormulas = (rows) => {
+  const shared = createSharedFormulaCtx(rows);
+  rows.forEach((row, rowIndex) => {
+    const handler = ROW_FORMULAS[row.rowId];
+    if (typeof handler !== 'function') return;
+    const ctx = {
+      ...shared,
+      row,
+      rowIndex,
+      rowNumber: row.rowNumber,
+      columns: COLUMN_DEFS
+    };
+    const result = handler(ctx);
+    if (result && typeof result === 'object') assignKnownKeys(row, result);
+  });
+};
+
+const applyCellFormulas = (rows) => {
+  const shared = createSharedFormulaCtx(rows);
+  rows.forEach((row, rowIndex) => {
+    const registry = CELL_FORMULAS[row.rowId];
+    if (!registry) return;
+    COLUMN_DEFS.forEach((col) => {
+      const handler = registry[col.key];
+      if (typeof handler !== 'function') return;
+      const ctx = {
+        ...shared,
+        row,
+        rowIndex,
+        rowNumber: row.rowNumber,
+        columnKey: col.key,
+        columnMeta: col,
+        value: row[col.key]
+      };
+      const next = handler(ctx);
+      if (typeof next !== 'undefined') row[col.key] = next;
+    });
+  });
+};
+
+const applyColumnFormulas = (rows) => {
+  const shared = createSharedFormulaCtx(rows);
+  COLUMN_DEFS.forEach((col) => {
+    const handler = COLUMN_FORMULAS[col.key];
+    if (typeof handler !== 'function') return;
+    const ctx = {
+      ...shared,
+      columnKey: col.key,
+      columnMeta: col,
+      values: rows.map((row, rowIndex) => ({
+        rowId: row.rowId,
+        row,
+        rowIndex,
+        rowNumber: row.rowNumber,
+        value: row[col.key]
+      })),
+      setValue: (rowId, value) => shared.setValue(rowId, col.key, value)
+    };
+    const result = handler(ctx);
+    if (Array.isArray(result)) {
+      result.forEach((item) => {
+        if (item && item.rowId) ctx.setValue(item.rowId, item.value);
+      });
+    } else if (result && typeof result === 'object') {
+      Object.entries(result).forEach(([rowId, value]) => ctx.setValue(rowId, value));
+    }
+  });
+};
+
+const applyFormulaEngine = (rows) => {
+  if (!Array.isArray(rows) || rows.length === 0) return rows;
+  const cloned = rows.map((row, index) => ({
+    ...row,
+    rowNumber: index + 1 // 1-based para empatar con la UI
+  }));
+  applyRowFormulas(cloned);
+  applyCellFormulas(cloned);
+  applyColumnFormulas(cloned);
+  return cloned;
+};
+
 // Índices de datos por NUM_CTA
 function buildIndex(apiRows) {
   const idx = {};
@@ -226,6 +394,7 @@ function flattenForRender(tree) {
     if (row.tipo === 'categoria' || row.tipo === 'subtotal' || row.tipo === 'total') {
       out.push({
         tipo: 'categoria',
+        rowId: row.id || row.codigo || row.descripcion || '',
         estilo: row.estilo || estiloPorTipo(row.tipo),
         etiqueta: row.etiqueta || row.label || '',
         tipoFila: row.tipo,
@@ -245,6 +414,7 @@ function flattenForRender(tree) {
     } else {
       out.push({
         tipo: 'detalle',
+        rowId: row.id || row.codigo || row.descripcion || '',
         codigo: row.codigo,
         descripcion: row.descripcion || '',
         tipoFila: row.tipo,
@@ -550,8 +720,8 @@ async function aplicarSeleccionUI() {
     // cálculo jerárquico
     const tree = computeTree(CURRENT_LAYOUT, idx);
 
-    // aplanado para tu renderer
-    estadoModulo.tabla = flattenForRender(tree);
+    const tablaCalculada = flattenForRender(tree);
+    estadoModulo.tabla = applyFormulaEngine(tablaCalculada);
     estadoModulo.ejercicios = ejercicios;
 
     actualizarResumen(anio);
@@ -665,46 +835,48 @@ function renderizarTabla() {
   }
 
   filas.forEach((fila, rowIndex) => {
-    const r = rowIndex + 1;
+    const r = fila.rowNumber || rowIndex + 1;
     const tr = document.createElement('tr');
     tr.id = `row-r${r}`;
     tr.setAttribute('data-row-index', String(r));
+    if (fila.rowId) tr.setAttribute('data-row-id', fila.rowId);
+    if (fila.tipoFila) tr.setAttribute('data-row-type', fila.tipoFila);
 
     if (fila.tipo === 'categoria') {
       const clases = [fila.estilo || THEME.categoria];
       if (fila.tipoFila) clases.push(`fila-${fila.tipoFila}`);
       tr.className = clases.join(' ');
       tr.innerHTML = `
-        <th id="cell-r${r}-c1" data-row-index="${r}" data-col-index="1" data-role="code"></th>
-        <td id="cell-r${r}-c2" data-row-index="${r}" data-col-index="2" class="mono">${formatearMoneda(fila.mesActual)}</td>
-        <td id="cell-r${r}-c3" data-row-index="${r}" data-col-index="3" class="mono">${formatearMoneda(fila.mesPlan)}</td>
-        <td id="cell-r${r}-c4" data-row-index="${r}" data-col-index="4" class="mono">${formatearMoneda(fila.mesAnterior)}</td>
-        <td id="cell-r${r}-c5" data-row-index="${r}" data-col-index="5" class="mono">${formatearPorcentaje(fila.mesVariacionPlan)}</td>
-        <td id="cell-r${r}-c6" data-row-index="${r}" data-col-index="6" class="mono">${formatearPorcentaje(fila.mesVariacionAnterior)}</td>
-        <td id="cell-r${r}-c7" data-row-index="${r}" data-col-index="7" class="category-cell" data-depth="${fila.depth||0}" style="--depth:${fila.depth||0}">${fila.etiqueta || ''}</td>
-        <td id="cell-r${r}-c8" data-row-index="${r}" data-col-index="8" class="mono">${formatearMoneda(fila.acumuladoActual)}</td>
-        <td id="cell-r${r}-c9" data-row-index="${r}" data-col-index="9" class="mono">${formatearMoneda(fila.acumuladoPlan)}</td>
-        <td id="cell-r${r}-c10" data-row-index="${r}" data-col-index="10" class="mono">${formatearMoneda(fila.acumuladoAnterior)}</td>
-        <td id="cell-r${r}-c11" data-row-index="${r}" data-col-index="11" class="mono">${formatearPorcentaje(fila.acumuladoVariacionPlan)}</td>
-        <td id="cell-r${r}-c12" data-row-index="${r}" data-col-index="12" class="mono">${formatearPorcentaje(fila.acumuladoVariacionAnterior)}</td>
+        <th id="cell-r${r}-c1" data-row-index="${r}" data-col-index="1" data-column-key="codigo" data-role="code"></th>
+        <td id="cell-r${r}-c2" data-row-index="${r}" data-col-index="2" data-column-key="mesActual" class="mono">${formatearMoneda(fila.mesActual)}</td>
+        <td id="cell-r${r}-c3" data-row-index="${r}" data-col-index="3" data-column-key="mesPlan" class="mono">${formatearMoneda(fila.mesPlan)}</td>
+        <td id="cell-r${r}-c4" data-row-index="${r}" data-col-index="4" data-column-key="mesAnterior" class="mono">${formatearMoneda(fila.mesAnterior)}</td>
+        <td id="cell-r${r}-c5" data-row-index="${r}" data-col-index="5" data-column-key="mesVariacionPlan" class="mono">${formatearPorcentaje(fila.mesVariacionPlan)}</td>
+        <td id="cell-r${r}-c6" data-row-index="${r}" data-col-index="6" data-column-key="mesVariacionAnterior" class="mono">${formatearPorcentaje(fila.mesVariacionAnterior)}</td>
+        <td id="cell-r${r}-c7" data-row-index="${r}" data-col-index="7" data-column-key="label" class="category-cell" data-depth="${fila.depth||0}" style="--depth:${fila.depth||0}">${fila.etiqueta || ''}</td>
+        <td id="cell-r${r}-c8" data-row-index="${r}" data-col-index="8" data-column-key="acumuladoActual" class="mono">${formatearMoneda(fila.acumuladoActual)}</td>
+        <td id="cell-r${r}-c9" data-row-index="${r}" data-col-index="9" data-column-key="acumuladoPlan" class="mono">${formatearMoneda(fila.acumuladoPlan)}</td>
+        <td id="cell-r${r}-c10" data-row-index="${r}" data-col-index="10" data-column-key="acumuladoAnterior" class="mono">${formatearMoneda(fila.acumuladoAnterior)}</td>
+        <td id="cell-r${r}-c11" data-row-index="${r}" data-col-index="11" data-column-key="acumuladoVariacionPlan" class="mono">${formatearPorcentaje(fila.acumuladoVariacionPlan)}</td>
+        <td id="cell-r${r}-c12" data-row-index="${r}" data-col-index="12" data-column-key="acumuladoVariacionAnterior" class="mono">${formatearPorcentaje(fila.acumuladoVariacionAnterior)}</td>
       `;
     } else {
       const clases = [];
       if (fila.tipoFila && fila.tipoFila !== 'detalle') clases.push(`fila-${fila.tipoFila}`);
       if (clases.length) tr.className = clases.join(' ');
       tr.innerHTML = `
-        <th id="cell-r${r}-c1" data-row-index="${r}" data-col-index="1" data-role="code" class="code-cell" data-codigo="${fila.codigo || ''}">${fila.codigo || ''}</th>
-        <td id="cell-r${r}-c2" data-row-index="${r}" data-col-index="2" class="mono">${formatearMoneda(fila.mesActual)}</td>
-        <td id="cell-r${r}-c3" data-row-index="${r}" data-col-index="3" class="mono">${formatearMoneda(fila.mesPlan)}</td>
-        <td id="cell-r${r}-c4" data-row-index="${r}" data-col-index="4" class="mono">${formatearMoneda(fila.mesAnterior)}</td>
-        <td id="cell-r${r}-c5" data-row-index="${r}" data-col-index="5" class="mono">${formatearPorcentaje(fila.mesVariacionPlan)}</td>
-        <td id="cell-r${r}-c6" data-row-index="${r}" data-col-index="6" class="mono">${formatearPorcentaje(fila.mesVariacionAnterior)}</td>
-        <td id="cell-r${r}-c7" data-row-index="${r}" data-col-index="7" class="label-cell" data-role="descripcion" data-depth="${fila.depth||0}" style="--depth:${fila.depth||0}">${fila.descripcion || ''}</td>
-        <td id="cell-r${r}-c8" data-row-index="${r}" data-col-index="8" class="mono">${formatearMoneda(fila.acumuladoActual)}</td>
-        <td id="cell-r${r}-c9" data-row-index="${r}" data-col-index="9" class="mono">${formatearMoneda(fila.acumuladoPlan)}</td>
-        <td id="cell-r${r}-c10" data-row-index="${r}" data-col-index="10" class="mono">${formatearMoneda(fila.acumuladoAnterior)}</td>
-        <td id="cell-r${r}-c11" data-row-index="${r}" data-col-index="11" class="mono">${formatearPorcentaje(fila.acumuladoVariacionPlan)}</td>
-        <td id="cell-r${r}-c12" data-row-index="${r}" data-col-index="12" class="mono">${formatearPorcentaje(fila.acumuladoVariacionAnterior)}</td>
+        <th id="cell-r${r}-c1" data-row-index="${r}" data-col-index="1" data-column-key="codigo" data-role="code" class="code-cell" data-codigo="${fila.codigo || ''}">${fila.codigo || ''}</th>
+        <td id="cell-r${r}-c2" data-row-index="${r}" data-col-index="2" data-column-key="mesActual" class="mono">${formatearMoneda(fila.mesActual)}</td>
+        <td id="cell-r${r}-c3" data-row-index="${r}" data-col-index="3" data-column-key="mesPlan" class="mono">${formatearMoneda(fila.mesPlan)}</td>
+        <td id="cell-r${r}-c4" data-row-index="${r}" data-col-index="4" data-column-key="mesAnterior" class="mono">${formatearMoneda(fila.mesAnterior)}</td>
+        <td id="cell-r${r}-c5" data-row-index="${r}" data-col-index="5" data-column-key="mesVariacionPlan" class="mono">${formatearPorcentaje(fila.mesVariacionPlan)}</td>
+        <td id="cell-r${r}-c6" data-row-index="${r}" data-col-index="6" data-column-key="mesVariacionAnterior" class="mono">${formatearPorcentaje(fila.mesVariacionAnterior)}</td>
+        <td id="cell-r${r}-c7" data-row-index="${r}" data-col-index="7" data-column-key="label" class="label-cell" data-role="descripcion" data-depth="${fila.depth||0}" style="--depth:${fila.depth||0}">${fila.descripcion || ''}</td>
+        <td id="cell-r${r}-c8" data-row-index="${r}" data-col-index="8" data-column-key="acumuladoActual" class="mono">${formatearMoneda(fila.acumuladoActual)}</td>
+        <td id="cell-r${r}-c9" data-row-index="${r}" data-col-index="9" data-column-key="acumuladoPlan" class="mono">${formatearMoneda(fila.acumuladoPlan)}</td>
+        <td id="cell-r${r}-c10" data-row-index="${r}" data-col-index="10" data-column-key="acumuladoAnterior" class="mono">${formatearMoneda(fila.acumuladoAnterior)}</td>
+        <td id="cell-r${r}-c11" data-row-index="${r}" data-col-index="11" data-column-key="acumuladoVariacionPlan" class="mono">${formatearPorcentaje(fila.acumuladoVariacionPlan)}</td>
+        <td id="cell-r${r}-c12" data-row-index="${r}" data-col-index="12" data-column-key="acumuladoVariacionAnterior" class="mono">${formatearPorcentaje(fila.acumuladoVariacionAnterior)}</td>
       `;
     }
     body.appendChild(tr);
