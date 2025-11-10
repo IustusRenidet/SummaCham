@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -178,6 +179,7 @@
     }
   </style>
 </head>
+
 <body>
   <div class="container py-4">
     <section class="panel">
@@ -196,10 +198,12 @@
         <div class="flex-grow-1">
           <label class="form-label" for="comitesNuevaCuenta">Agregar cuenta</label>
           <div class="input-group">
-            <input id="comitesNuevaCuenta" class="form-control" placeholder="Buscar cuenta..." maxlength="24" autocomplete="off" />
+            <input id="comitesNuevaCuenta" class="form-control" placeholder="Buscar cuenta..." maxlength="24"
+              autocomplete="off" />
             <button id="comitesBtnAgregar" class="btn btn-outline-light">Agregar</button>
           </div>
-          <div id="comitesCuentaSuggestions" class="position-absolute bg-white border rounded shadow-sm d-none" style="z-index: 1000; max-height: 200px; overflow-y: auto; width: calc(100% - 80px);"></div>
+          <div id="comitesCuentaSuggestions" class="position-absolute bg-white border rounded shadow-sm d-none"
+            style="z-index: 1000; max-height: 200px; overflow-y: auto; width: calc(100% - 80px);"></div>
         </div>
         <div>
           <button id="comitesBtnActualizar" class="btn btn-hero">Actualizar</button>
@@ -221,439 +225,497 @@
 
   <script src="js/sesion.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script>
-    (() => {
-      const sesion = (typeof Sesion !== 'undefined' && typeof Sesion.requerirSesion === 'function')
-        ? Sesion.requerirSesion({ redirectTo: 'login.html' })
-        : null;
-      if (!sesion) return;
+ 
+  <script> existente
 
-      const API_BASE = 'http://localhost:3000/api';
-      const STORAGE_KEY = 'comites_cuentas_v2';
-      const DEFAULT_LIST = {
-        ingresos: [
-          '404005000000000000002','404017000000000000002','404001000000000000002',
-          '404003000000000000002','404013000000000000002','404007000000000000002',
-          '404016000000000000002','404004000000000000002','404008000000000000002',
-          '404009000000000000002','404018000000000000002'
-        ],
-        gastos: [
-          '502014000000000000002','502005000000000000002','502001000000000000002',
-          '502003000000000000002','502013000000000000002','502007000000000000002',
-          '502016000000000000002','502004000000000000002','502002000000000000002',
-          '502009000000000000002','502017000000000000002','504000000000000000002'
-        ]
-      };
-      const COLUMNS = [
-        { clave: 'ene', etiqueta: 'ENE' }, { clave: 'feb', etiqueta: 'FEB' },
-        { clave: 'mar', etiqueta: 'MAR' }, { clave: 'abr', etiqueta: 'ABR' },
-        { clave: 'may', etiqueta: 'MAY' }, { clave: 'jun', etiqueta: 'JUN' },
-        { clave: 'jul', etiqueta: 'JUL' }, { clave: 'ago', etiqueta: 'AGO' },
-        { clave: 'sep', etiqueta: 'SEP' }, { clave: 'oct', etiqueta: 'OCT' },
-        { clave: 'nov', etiqueta: 'NOV' }, { clave: 'dic', etiqueta: 'DIC' }
-      ];
-      const currency = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 });
+      (() => {
+        const sesion = (typeof Sesion !== 'undefined' && typeof Sesion.requerirSesion === 'function')
+          ? Sesion.requerirSesion({ redirectTo: 'login.html' })
+          : null;
+        if (!sesion) return;
 
-      function initComitesPanel() {
-        const els = {
-          yearSelect: document.getElementById('comitesYearSelect'),
-          btnActualizar: document.getElementById('comitesBtnActualizar'),
-          inputNuevaCuenta: document.getElementById('comitesNuevaCuenta'),
-          btnAgregar: document.getElementById('comitesBtnAgregar'),
-          tableHead: document.querySelector('#comitesTable thead'),
-          tableBody: document.querySelector('#comitesTable tbody'),
-          status: document.getElementById('comitesStatus'),
-          contextMenu: document.getElementById('comitesContextMenu')
+        const API_BASE = 'http://localhost:3000/api';
+        const STORAGE_KEY = 'comites_cuentas_v2';
+        const DEFAULT_LIST = {
+          ingresos: [
+            '404005000000000000002', '404017000000000000002', '404001000000000000002',
+            '404003000000000000002', '404013000000000000002', '404007000000000000002',
+            '404016000000000000002', '404004000000000000002', '404008000000000000002',
+            '404009000000000000002', '404018000000000000002'
+          ],
+          gastos: [
+            '502014000000000000002', '502005000000000000002', '502001000000000000002',
+            '502003000000000000002', '502013000000000000002', '502007000000000000002',
+            '502016000000000000002', '502004000000000000002', '502002000000000000002',
+            '502009000000000000002', '502017000000000000002', '504000000000000000002'
+          ]
         };
+        const COLUMNS = [
+          { clave: 'ene', etiqueta: 'ENE' }, { clave: 'feb', etiqueta: 'FEB' },
+          { clave: 'mar', etiqueta: 'MAR' }, { clave: 'abr', etiqueta: 'ABR' },
+          { clave: 'may', etiqueta: 'MAY' }, { clave: 'jun', etiqueta: 'JUN' },
+          { clave: 'jul', etiqueta: 'JUL' }, { clave: 'ago', etiqueta: 'AGO' },
+          { clave: 'sep', etiqueta: 'SEP' }, { clave: 'oct', etiqueta: 'OCT' },
+          { clave: 'nov', etiqueta: 'NOV' }, { clave: 'dic', etiqueta: 'DIC' }
+        ];
+        const currency = new Intl.NumberFormat('es-MX', {
+          style: 'currency',
+          currency: 'MXN',
+          maximumFractionDigits: 0
+        });
 
-        const state = {
-          cuentas: cargarLista(),
-          datos: new Map(),
-          anio: new Date().getFullYear(),
-          mesesMeta: [],
-          cuentaSeleccionada: null,
-          cuentasDisponibles: []
-        };
-
-        function cargarLista() {
-          try {
-            const raw = localStorage.getItem(STORAGE_KEY);
-            if (!raw) return estructuraDefault();
-            const parsed = JSON.parse(raw);
-            const ingresos = Array.isArray(parsed.ingresos) && parsed.ingresos.length ? parsed.ingresos : DEFAULT_LIST.ingresos.slice();
-            const gastos = Array.isArray(parsed.gastos) && parsed.gastos.length ? parsed.gastos : DEFAULT_LIST.gastos.slice();
-            return { ingresos, gastos };
-          } catch {
-            return estructuraDefault();
-          }
-        }
-
-        function estructuraDefault() {
-          return {
-            ingresos: DEFAULT_LIST.ingresos.slice(),
-            gastos: DEFAULT_LIST.gastos.slice()
+        function initComitesPanel() {
+          const els = {
+            yearSelect: document.getElementById('comitesYearSelect'),
+            btnActualizar: document.getElementById('comitesBtnActualizar'),
+            inputNuevaCuenta: document.getElementById('comitesNuevaCuenta'),
+            btnAgregar: document.getElementById('comitesBtnAgregar'),
+            tableHead: document.querySelector('#comitesTable thead'),
+            tableBody: document.querySelector('#comitesTable tbody'),
+            status: document.getElementById('comitesStatus'),
+            contextMenu: document.getElementById('comitesContextMenu'),
+            suggestions: document.getElementById('comitesCuentaSuggestions')
           };
-        }
 
-        function guardarLista() {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(state.cuentas));
-        }
-
-        function headersAuth() {
-          if (typeof Sesion !== 'undefined' && typeof Sesion.headersAutenticacion === 'function') {
-            return { ...Sesion.headersAutenticacion() };
-          }
-          return {};
-        }
-
-        function empresaActiva() {
-          return sesion?.empresaActiva || null;
-        }
-
-        function setStatus(msg, tipo = 'info') {
-          if (!els.status) return;
-          const palette = {
-            info: 'text-white-50',
-            success: 'text-success',
-            danger: 'text-danger',
-            warning: 'text-warning'
+          const state = {
+            cuentas: cargarLista(),
+            datos: new Map(),
+            anio: new Date().getFullYear(),
+            mesesMeta: [],
+            cuentaSeleccionada: null,
+            cuentasDisponibles: []
           };
-          els.status.textContent = msg || '';
-          els.status.className = palette[tipo] || palette.info;
-        }
 
-        function formatoValor(value) {
-          if (!value || Math.abs(value) < 0.5) return '–';
-          return currency.format(value);
-        }
-
-        function actualizarEncabezado() {
-          const anio = Number(state.anio) || new Date().getFullYear();
-          const sufijo = String(anio).slice(-2);
-          const cols = COLUMNS.map(col => `<th><span>${col.etiqueta.toLowerCase()}-${sufijo}</span></th>`).join('');
-          els.tableHead.innerHTML = `
-            <tr>
-              <th>COMITÉS</th>
-              ${cols}
-              <th><span>${anio}</span>Total</th>
-            </tr>
-          `;
-        }
-
-        function buildRow(codigo, tipo) {
-          const registro = state.datos.get(codigo) || {};
-          const valores = {};
-          COLUMNS.forEach((col) => {
-            valores[col.clave] = Number(registro[col.clave] || 0);
-          });
-          valores.total = Number(registro.anual || 0);
-          return {
-            codigo,
-            nombre: registro.nombre || codigo,
-            valores,
-            tipo
-          };
-        }
-
-        function sumarFilas(rows) {
-          const total = {};
-          COLUMNS.forEach(col => total[col.clave] = 0);
-          total.total = 0;
-          rows.forEach((row) => {
-            COLUMNS.forEach((col) => { total[col.clave] += row.valores[col.clave]; });
-            total.total += row.valores.total;
-          });
-          return total;
-        }
-
-        function renderTabla() {
-          actualizarEncabezado();
-          const ingresosRows = Array.from(new Set(state.cuentas.ingresos)).map(c => buildRow(c, 'ingresos'));
-          const gastosRows = Array.from(new Set(state.cuentas.gastos)).map(c => buildRow(c, 'gastos'));
-          const totalIngresos = sumarFilas(ingresosRows);
-          const totalGastos = sumarFilas(gastosRows);
-          const resultado = {};
-          COLUMNS.forEach((col) => { resultado[col.clave] = totalIngresos[col.clave] - totalGastos[col.clave]; });
-          resultado.total = totalIngresos.total - totalGastos.total;
-
-          const htmlPartes = [];
-
-          ingresosRows.forEach((row) => {
-            htmlPartes.push(renderRow(row, 'ingresos'));
-          });
-          htmlPartes.push(renderTotalRow('Suma de Ingresos Comités', totalIngresos));
-          htmlPartes.push('<tr><td colspan="14" style="background:transparent; border:none;"></td></tr>');
-          gastosRows.forEach((row) => htmlPartes.push(renderRow(row, 'gastos')));
-          htmlPartes.push(renderTotalRow('Suma de Gastos Comités', totalGastos));
-          htmlPartes.push(renderResultadoRow('Resultado Operativo Comités', resultado));
-          htmlPartes.push(renderResultadoRow('Resultado Comités', resultado));
-
-          els.tableBody.innerHTML = htmlPartes.join('');
-        }
-
-        function renderRow(row, section) {
-          const celdas = COLUMNS.map(col => `<td>${formatoValor(row.valores[col.clave])}</td>`).join('');
-          return `
-            <tr data-cuenta="${row.codigo}" data-section="${section}">
-              <td>${row.codigo} <br><span class="text-white-50">${row.nombre}</span></td>
-              ${celdas}
-              <td>${formatoValor(row.valores.total)}</td>
-            </tr>
-          `;
-        }
-
-        function renderTotalRow(label, totales) {
-          const celdas = COLUMNS.map(col => `<td>${formatoValor(totales[col.clave])}</td>`).join('');
-          return `
-            <tr data-kind="total">
-              <td>${label}</td>
-              ${celdas}
-              <td>${formatoValor(totales.total)}</td>
-            </tr>
-          `;
-        }
-
-        function renderResultadoRow(label, totales) {
-          const celdas = COLUMNS.map(col => `<td>${formatoValor(totales[col.clave])}</td>`).join('');
-          return `
-            <tr data-kind="resultado">
-              <td>${label}</td>
-              ${celdas}
-              <td>${formatoValor(totales.total)}</td>
-            </tr>
-          `;
-        }
-
-        async function poblarAnios() {
-          try {
-            const empresa = empresaActiva();
-            const query = empresa?.id ? `?empresaId=${encodeURIComponent(empresa.id)}` : '';
-            const resp = await fetch(`${API_BASE}/saldos/anios${query}`, { headers: headersAuth() });
-            const data = await resp.json();
-            if (resp.ok && Array.isArray(data.anios) && data.anios.length) {
-              const ordenAsc = data.anios.slice().sort((a, b) => a - b);
-              els.yearSelect.innerHTML = ordenAsc
-                .map(anio => `<option value="${anio}">${anio}</option>`)
-                .join('');
-              if (!ordenAsc.includes(state.anio)) {
-                state.anio = ordenAsc[0];
-              }
-              els.yearSelect.value = String(state.anio);
-              await poblarCuentasDisponibles(); // Cargar cuentas cuando cambie el año
-            } else {
-              throw new Error('Sin ejercicios disponibles.');
+          function cargarLista() {
+            try {
+              const raw = localStorage.getItem(STORAGE_KEY);
+              if (!raw) return estructuraDefault();
+              const parsed = JSON.parse(raw);
+              const ingresos = Array.isArray(parsed.ingresos) && parsed.ingresos.length
+                ? parsed.ingresos
+                : DEFAULT_LIST.ingresos.slice();
+              const gastos = Array.isArray(parsed.gastos) && parsed.gastos.length
+                ? parsed.gastos
+                : DEFAULT_LIST.gastos.slice();
+              return { ingresos, gastos };
+            } catch {
+              return estructuraDefault();
             }
-          } catch (error) {
-            console.warn('No fue posible cargar años.', error);
-            const actual = new Date().getFullYear();
-            els.yearSelect.innerHTML = `<option value="${actual}">${actual}</option>`;
-            els.yearSelect.value = actual;
-            state.anio = actual;
           }
-        }
 
-        async function poblarCuentasDisponibles() {
-          try {
-            const empresa = empresaActiva();
-            const query = empresa?.id ? `?empresaId=${encodeURIComponent(empresa.id)}&anio=${encodeURIComponent(state.anio)}` : '';
-            const resp = await fetch(`${API_BASE}/saldos/cuentas${query}`, { headers: headersAuth() });
-            const data = await resp.json();
-            if (resp.ok && Array.isArray(data.cuentas)) {
-              state.cuentasDisponibles = data.cuentas;
-            } else {
+          function estructuraDefault() {
+            return {
+              ingresos: DEFAULT_LIST.ingresos.slice(),
+              gastos: DEFAULT_LIST.gastos.slice()
+            };
+          }
+
+          function guardarLista() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state.cuentas));
+          }
+
+          function headersAuth() {
+            if (typeof Sesion !== 'undefined' && typeof Sesion.headersAutenticacion === 'function') {
+              return { ...Sesion.headersAutenticacion() };
+            }
+            return {};
+          }
+
+          function empresaActiva() {
+            return sesion?.empresaActiva || null;
+          }
+
+          function setStatus(msg, tipo = 'info') {
+            if (!els.status) return;
+            const palette = {
+              info: 'text-white-50',
+              success: 'text-success',
+              danger: 'text-danger',
+              warning: 'text-warning'
+            };
+            els.status.textContent = msg || '';
+            els.status.className = palette[tipo] || palette.info;
+          }
+
+          function formatoValor(value) {
+            if (!value || Math.abs(value) < 0.5) return '–';
+            return currency.format(value);
+          }
+
+          function actualizarEncabezado() {
+            const anio = Number(state.anio) || new Date().getFullYear();
+            const sufijo = String(anio).slice(-2);
+            const cols = COLUMNS.map(col =>
+              `<th><span>${col.etiqueta.toLowerCase()}-${sufijo}</span></th>`
+            ).join('');
+            els.tableHead.innerHTML = `
+        <tr>
+          <th>COMITÉS</th>
+          ${cols}
+          <th><span>${anio}</span>Total</th>
+        </tr>
+      `;
+          }
+
+          function buildRow(codigo, tipo) {
+            const registro = state.datos.get(codigo) || {};
+            const valores = {};
+            COLUMNS.forEach((col) => {
+              valores[col.clave] = Number(registro[col.clave] || 0);
+            });
+            valores.total = Number(registro.anual || 0);
+            return {
+              codigo,
+              nombre: registro.nombre || codigo,
+              valores,
+              tipo
+            };
+          }
+
+          function sumarFilas(rows) {
+            const total = {};
+            COLUMNS.forEach(col => total[col.clave] = 0);
+            total.total = 0;
+            rows.forEach((row) => {
+              COLUMNS.forEach((col) => {
+                total[col.clave] += row.valores[col.clave];
+              });
+              total.total += row.valores.total;
+            });
+            return total;
+          }
+
+          function renderTabla() {
+            actualizarEncabezado();
+            const ingresosRows = Array.from(new Set(state.cuentas.ingresos))
+              .map(c => buildRow(c, 'ingresos'));
+            const gastosRows = Array.from(new Set(state.cuentas.gastos))
+              .map(c => buildRow(c, 'gastos'));
+            const totalIngresos = sumarFilas(ingresosRows);
+            const totalGastos = sumarFilas(gastosRows);
+            const resultado = {};
+            COLUMNS.forEach((col) => {
+              resultado[col.clave] = totalIngresos[col.clave] - totalGastos[col.clave];
+            });
+            resultado.total = totalIngresos.total - totalGastos.total;
+
+            const htmlPartes = [];
+
+            ingresosRows.forEach((row) => {
+              htmlPartes.push(renderRow(row, 'ingresos'));
+            });
+            htmlPartes.push(renderTotalRow('Suma de Ingresos Comités', totalIngresos));
+            htmlPartes.push('<tr><td colspan="14" style="background:transparent; border:none;"></td></tr>');
+            gastosRows.forEach((row) => htmlPartes.push(renderRow(row, 'gastos')));
+            htmlPartes.push(renderTotalRow('Suma de Gastos Comités', totalGastos));
+            htmlPartes.push(renderResultadoRow('Resultado Operativo Comités', resultado));
+            htmlPartes.push(renderResultadoRow('Resultado Comités', resultado));
+
+            els.tableBody.innerHTML = htmlPartes.join('');
+          }
+
+          function renderRow(row, section) {
+            const celdas = COLUMNS.map(col =>
+              `<td>${formatoValor(row.valores[col.clave])}</td>`
+            ).join('');
+            return `
+        <tr data-cuenta="${row.codigo}" data-section="${section}">
+          <td>${row.codigo} <br><span class="text-white-50">${row.nombre}</span></td>
+          ${celdas}
+          <td>${formatoValor(row.valores.total)}</td>
+        </tr>
+      `;
+          }
+
+          function renderTotalRow(label, totales) {
+            const celdas = COLUMNS.map(col =>
+              `<td>${formatoValor(totales[col.clave])}</td>`
+            ).join('');
+            return `
+        <tr data-kind="total">
+          <td>${label}</td>
+          ${celdas}
+          <td>${formatoValor(totales.total)}</td>
+        </tr>
+      `;
+          }
+
+          function renderResultadoRow(label, totales) {
+            const celdas = COLUMNS.map(col =>
+              `<td>${formatoValor(totales[col.clave])}</td>`
+            ).join('');
+            return `
+        <tr data-kind="resultado">
+          <td>${label}</td>
+          ${celdas}
+          <td>${formatoValor(totales.total)}</td>
+        </tr>
+      `;
+          }
+
+          async function poblarAnios() {
+            try {
+              const empresa = empresaActiva();
+              if (!empresa?.id) {
+                throw new Error('No hay empresa activa');
+              }
+
+              const query = `?empresaId=${encodeURIComponent(empresa.id)}`;
+              const resp = await fetch(`${API_BASE}/comites/anios${query}`, {
+                headers: headersAuth()
+              });
+              const data = await resp.json();
+
+              if (!resp.ok) {
+                throw new Error(data.mensaje || 'Error al cargar años');
+              }
+
+              if (Array.isArray(data.anios) && data.anios.length) {
+                const ordenAsc = data.anios.slice().sort((a, b) => a - b);
+                els.yearSelect.innerHTML = ordenAsc
+                  .map(anio => `<option value="${anio}">${anio}</option>`)
+                  .join('');
+                if (!ordenAsc.includes(state.anio)) {
+                  state.anio = ordenAsc[ordenAsc.length - 1]; // Último año disponible
+                }
+                els.yearSelect.value = String(state.anio);
+                await poblarCuentasDisponibles();
+              } else {
+                throw new Error('Sin ejercicios disponibles.');
+              }
+            } catch (error) {
+              console.warn('No fue posible cargar años.', error);
+              const actual = new Date().getFullYear();
+              els.yearSelect.innerHTML = `<option value="${actual}">${actual}</option>`;
+              els.yearSelect.value = actual;
+              state.anio = actual;
+              setStatus(error.message || 'Error al cargar años', 'warning');
+            }
+          }
+
+          async function poblarCuentasDisponibles() {
+            try {
+              const empresa = empresaActiva();
+              if (!empresa?.id) return;
+
+              const query = `?empresaId=${encodeURIComponent(empresa.id)}&anio=${encodeURIComponent(state.anio)}`;
+              const resp = await fetch(`${API_BASE}/comites/cuentas${query}`, {
+                headers: headersAuth()
+              });
+              const data = await resp.json();
+
+              if (resp.ok && Array.isArray(data.cuentas)) {
+                state.cuentasDisponibles = data.cuentas;
+              } else {
+                state.cuentasDisponibles = [];
+              }
+            } catch (error) {
+              console.warn('No fue posible cargar cuentas disponibles.', error);
               state.cuentasDisponibles = [];
             }
-          } catch (error) {
-            console.warn('No fue posible cargar cuentas disponibles.', error);
-            state.cuentasDisponibles = [];
-          }
-        }
-
-        async function cargarDatos() {
-          const empresa = empresaActiva();
-          if (!empresa?.id) {
-            setStatus('Selecciona una empresa en la barra principal.', 'warning');
-            return;
-          }
-          const anioSeleccionado = Number(els.yearSelect.value || new Date().getFullYear());
-          state.anio = anioSeleccionado;
-          setStatus('Consultando saldos…', 'info');
-          els.btnActualizar.disabled = true;
-
-          const cuentas = [...state.cuentas.ingresos, ...state.cuentas.gastos];
-          if (!cuentas.length) {
-            els.tableBody.innerHTML = '<tr><td colspan="14">No hay cuentas configuradas.</td></tr>';
-            setStatus('Agrega al menos una cuenta.', 'warning');
-            els.btnActualizar.disabled = false;
-            return;
           }
 
-          const params = new URLSearchParams({
-            empresaId: empresa.id,
-            anio: anioSeleccionado,
-            cuentas: cuentas.join(',')
-          }).toString();
+          async function cargarDatos() {
+            const empresa = empresaActiva();
+            if (!empresa?.id) {
+              setStatus('Selecciona una empresa en la barra principal.', 'warning');
+              return;
+            }
 
-          try {
-            const resp = await fetch(`${API_BASE}/saldos?${params}`, { headers: headersAuth() });
-            const payload = await resp.json();
-            if (!resp.ok) throw new Error(payload.mensaje || 'No fue posible obtener saldos.');
+            const anioSeleccionado = Number(els.yearSelect.value || new Date().getFullYear());
+            state.anio = anioSeleccionado;
+            setStatus('Consultando saldos…', 'info');
+            els.btnActualizar.disabled = true;
 
-            state.datos = new Map(
-              (payload.cuentas || []).map(item => [String(item.numCta).trim(), item])
-            );
-            state.mesesMeta = payload.meses || [];
+            const cuentas = [...state.cuentas.ingresos, ...state.cuentas.gastos];
+            if (!cuentas.length) {
+              els.tableBody.innerHTML = '<tr><td colspan="14">No hay cuentas configuradas.</td></tr>';
+              setStatus('Agrega al menos una cuenta.', 'warning');
+              els.btnActualizar.disabled = false;
+              return;
+            }
+
+            const params = new URLSearchParams({
+              empresaId: empresa.id,
+              anio: anioSeleccionado,
+              cuentas: cuentas.join(',')
+            }).toString();
+
+            try {
+              const resp = await fetch(`${API_BASE}/comites/movimientos?${params}`, {
+                headers: headersAuth()
+              });
+              const payload = await resp.json();
+
+              if (!resp.ok) {
+                throw new Error(payload.mensaje || 'No fue posible obtener saldos.');
+              }
+
+              state.datos = new Map(
+                (payload.cuentas || []).map(item => [String(item.numCta).trim(), item])
+              );
+              state.mesesMeta = payload.meses || [];
+              renderTabla();
+              setStatus(`Actualizado ${new Date().toLocaleTimeString('es-MX')}`, 'success');
+            } catch (error) {
+              console.error('Error al cargar saldos', error);
+              setStatus(error.message || 'No fue posible cargar saldos.', 'danger');
+            } finally {
+              els.btnActualizar.disabled = false;
+            }
+          }
+
+          function determinarGrupo(codigo) {
+            if (/^404/.test(codigo)) return 'ingresos';
+            if (/^502|^504/.test(codigo)) return 'gastos';
+            return state.cuentas.ingresos.length <= state.cuentas.gastos.length
+              ? 'ingresos'
+              : 'gastos';
+          }
+
+          function mostrarSugerenciasCuentas(termino) {
+            if (!termino.trim() || !els.suggestions) {
+              els.suggestions?.classList.add('d-none');
+              return;
+            }
+
+            const terminoLower = termino.toLowerCase();
+            const sugerencias = state.cuentasDisponibles
+              .filter(cuenta =>
+                cuenta.cuenta.toLowerCase().includes(terminoLower) ||
+                cuenta.nombre.toLowerCase().includes(terminoLower)
+              )
+              .slice(0, 10);
+
+            if (sugerencias.length === 0) {
+              els.suggestions.classList.add('d-none');
+              return;
+            }
+
+            els.suggestions.innerHTML = sugerencias
+              .map(cuenta => `
+          <div class="p-2 border-bottom cursor-pointer cuenta-sugerencia" 
+               data-cuenta="${cuenta.cuenta}" 
+               style="cursor: pointer;">
+            <div class="fw-bold">${cuenta.cuenta}</div>
+            <div class="text-muted small">${cuenta.nombre}</div>
+          </div>
+        `)
+              .join('');
+
+            els.suggestions.classList.remove('d-none');
+          }
+
+          function ocultarSugerenciasCuentas() {
+            setTimeout(() => els.suggestions?.classList.add('d-none'), 150);
+          }
+
+          function agregarCuenta() {
+            const raw = (els.inputNuevaCuenta.value || '').trim();
+            if (!raw) return;
+
+            const soloNumeros = raw.replace(/\D/g, '');
+            const clean = soloNumeros.length ? soloNumeros : raw.toUpperCase();
+            if (clean.length === 0) return;
+
+            const yaExiste = [...state.cuentas.ingresos, ...state.cuentas.gastos]
+              .some(cta => cta === clean);
+            if (yaExiste) {
+              alert('La cuenta ya está en la lista.');
+              return;
+            }
+
+            const grupo = determinarGrupo(clean);
+            state.cuentas[grupo].push(clean);
+            guardarLista();
+            els.inputNuevaCuenta.value = '';
             renderTabla();
-            setStatus(`Actualizado ${new Date().toLocaleTimeString('es-MX')}`, 'success');
-          } catch (error) {
-            console.error('Error al cargar saldos', error);
-            setStatus(error.message || 'No fue posible cargar saldos.', 'danger');
-          } finally {
-            els.btnActualizar.disabled = false;
-          }
-        }
-
-        function determinarGrupo(codigo) {
-          if (/^404/.test(codigo)) return 'ingresos';
-          if (/^502|^504/.test(codigo)) return 'gastos';
-          return state.cuentas.ingresos.length <= state.cuentas.gastos.length ? 'ingresos' : 'gastos';
-        }
-
-        function mostrarSugerenciasCuentas(termino) {
-          const suggestionsEl = document.getElementById('comitesCuentaSuggestions');
-          if (!termino.trim()) {
-            suggestionsEl.classList.add('d-none');
-            return;
           }
 
-          const terminoLower = termino.toLowerCase();
-          const sugerencias = state.cuentasDisponibles
-            .filter(cuenta =>
-              cuenta.cuenta.toLowerCase().includes(terminoLower) ||
-              cuenta.nombre.toLowerCase().includes(terminoLower)
-            )
-            .slice(0, 10); // Limitar a 10 sugerencias
-
-          if (sugerencias.length === 0) {
-            suggestionsEl.classList.add('d-none');
-            return;
+          function eliminarCuenta(codigo) {
+            state.cuentas.ingresos = state.cuentas.ingresos.filter(cta => cta !== codigo);
+            state.cuentas.gastos = state.cuentas.gastos.filter(cta => cta !== codigo);
+            guardarLista();
+            renderTabla();
           }
 
-          suggestionsEl.innerHTML = sugerencias
-            .map(cuenta => `
-              <div class="p-2 border-bottom cursor-pointer cuenta-sugerencia" data-cuenta="${cuenta.cuenta}" style="cursor: pointer;">
-                <div class="fw-bold">${cuenta.cuenta}</div>
-                <div class="text-muted small">${cuenta.nombre}</div>
-              </div>
-            `)
-            .join('');
-
-          suggestionsEl.classList.remove('d-none');
-        }
-
-        function ocultarSugerenciasCuentas() {
-          const suggestionsEl = document.getElementById('comitesCuentaSuggestions');
-          setTimeout(() => suggestionsEl.classList.add('d-none'), 150);
-        }
-
-        function agregarCuenta() {
-          const raw = (els.inputNuevaCuenta.value || '').trim();
-          if (!raw) return;
-          const soloNumeros = raw.replace(/\D/g, '');
-          const clean = soloNumeros.length ? soloNumeros : raw.toUpperCase();
-          if (clean.length === 0) return;
-          const yaExiste = [...state.cuentas.ingresos, ...state.cuentas.gastos].some(cta => cta === clean);
-          if (yaExiste) {
-            alert('La cuenta ya está en la lista.');
-            return;
+          function mostrarContextMenu(evt, codigo) {
+            state.cuentaSeleccionada = codigo;
+            els.contextMenu.style.top = `${evt.clientY}px`;
+            els.contextMenu.style.left = `${evt.clientX}px`;
+            els.contextMenu.classList.remove('d-none');
           }
-          const grupo = determinarGrupo(clean);
-          state.cuentas[grupo].push(clean);
-          guardarLista();
-          els.inputNuevaCuenta.value = '';
-          renderTabla();
-        }
 
-        function eliminarCuenta(codigo) {
-          state.cuentas.ingresos = state.cuentas.ingresos.filter(cta => cta !== codigo);
-          state.cuentas.gastos = state.cuentas.gastos.filter(cta => cta !== codigo);
-          guardarLista();
-          renderTabla();
-        }
-
-        function mostrarContextMenu(evt, codigo) {
-          state.cuentaSeleccionada = codigo;
-          els.contextMenu.style.top = `${evt.clientY}px`;
-          els.contextMenu.style.left = `${evt.clientX}px`;
-          els.contextMenu.classList.remove('d-none');
-        }
-
-        function ocultarContextMenu() {
-          els.contextMenu.classList.add('d-none');
-          state.cuentaSeleccionada = null;
-        }
-
-        // Eventos
-        els.btnAgregar.addEventListener('click', agregarCuenta);
-        els.inputNuevaCuenta.addEventListener('input', (evt) => {
-          mostrarSugerenciasCuentas(evt.target.value);
-        });
-        els.inputNuevaCuenta.addEventListener('keyup', (evt) => {
-          if (evt.key === 'Enter') agregarCuenta();
-          if (evt.key === 'Escape') ocultarSugerenciasCuentas();
-        });
-        els.inputNuevaCuenta.addEventListener('blur', ocultarSugerenciasCuentas);
-        els.btnActualizar.addEventListener('click', cargarDatos);
-        els.yearSelect.addEventListener('change', async () => {
-          state.anio = Number(els.yearSelect.value);
-          await poblarCuentasDisponibles();
-        });
-
-        // Evento para las sugerencias de cuentas
-        document.addEventListener('click', (evt) => {
-          if (evt.target.classList.contains('cuenta-sugerencia')) {
-            const cuenta = evt.target.dataset.cuenta;
-            els.inputNuevaCuenta.value = cuenta;
-            ocultarSugerenciasCuentas();
-            agregarCuenta();
+          function ocultarContextMenu() {
+            els.contextMenu.classList.add('d-none');
+            state.cuentaSeleccionada = null;
           }
-        });
-        els.tableBody.addEventListener('contextmenu', (evt) => {
-          const fila = evt.target.closest('tr[data-cuenta]');
-          if (!fila) return;
-          evt.preventDefault();
-          mostrarContextMenu(evt, fila.dataset.cuenta);
-        });
-        document.addEventListener('click', (evt) => {
-          if (!evt.target.closest('#comitesContextMenu')) ocultarContextMenu();
-        });
-        window.addEventListener('scroll', ocultarContextMenu);
-        window.addEventListener('resize', ocultarContextMenu);
-        els.contextMenu.querySelector('[data-action="remove"]').addEventListener('click', () => {
-          if (state.cuentaSeleccionada) eliminarCuenta(state.cuentaSeleccionada);
-          ocultarContextMenu();
-        });
 
-        async function inicializarPanel() {
-          await poblarAnios();
-          renderTabla();
-          await poblarCuentasDisponibles();
-          await cargarDatos();
-        }
-
-        inicializarPanel();
-
-        if (typeof Sesion !== 'undefined' && Sesion.EVENTO_EMPRESA) {
-          window.addEventListener(Sesion.EVENTO_EMPRESA, async () => {
-            state.datos.clear();
-            state.anio = new Date().getFullYear();
-            await inicializarPanel();
+          // Eventos
+          els.btnAgregar?.addEventListener('click', agregarCuenta);
+          els.inputNuevaCuenta?.addEventListener('input', (evt) => {
+            mostrarSugerenciasCuentas(evt.target.value);
           });
-        }
-      }
+          els.inputNuevaCuenta?.addEventListener('keyup', (evt) => {
+            if (evt.key === 'Enter') agregarCuenta();
+            if (evt.key === 'Escape') ocultarSugerenciasCuentas();
+          });
+          els.inputNuevaCuenta?.addEventListener('blur', ocultarSugerenciasCuentas);
+          els.btnActualizar?.addEventListener('click', cargarDatos);
+          els.yearSelect?.addEventListener('change', async () => {
+            state.anio = Number(els.yearSelect.value);
+            await poblarCuentasDisponibles();
+          });
 
-      document.addEventListener('DOMContentLoaded', initComitesPanel);
-    })();
+          document.addEventListener('click', (evt) => {
+            if (evt.target.classList.contains('cuenta-sugerencia')) {
+              const cuenta = evt.target.dataset.cuenta;
+              els.inputNuevaCuenta.value = cuenta;
+              ocultarSugerenciasCuentas();
+              agregarCuenta();
+            }
+          });
+
+          els.tableBody?.addEventListener('contextmenu', (evt) => {
+            const fila = evt.target.closest('tr[data-cuenta]');
+            if (!fila) return;
+            evt.preventDefault();
+            mostrarContextMenu(evt, fila.dataset.cuenta);
+          });
+
+          document.addEventListener('click', (evt) => {
+            if (!evt.target.closest('#comitesContextMenu')) ocultarContextMenu();
+          });
+
+          window.addEventListener('scroll', ocultarContextMenu);
+          window.addEventListener('resize', ocultarContextMenu);
+
+          els.contextMenu?.querySelector('[data-action="remove"]')?.addEventListener('click', () => {
+            if (state.cuentaSeleccionada) eliminarCuenta(state.cuentaSeleccionada);
+            ocultarContextMenu();
+          });
+
+          async function inicializarPanel() {
+            await poblarAnios();
+            renderTabla();
+            await poblarCuentasDisponibles();
+            await cargarDatos();
+          }
+
+          inicializarPanel();
+
+          if (typeof Sesion !== 'undefined' && Sesion.EVENTO_EMPRESA) {
+            window.addEventListener(Sesion.EVENTO_EMPRESA, async () => {
+              state.datos.clear();
+              state.anio = new Date().getFullYear();
+              await inicializarPanel();
+            });
+          }
+        }
+
+        document.addEventListener('DOMContentLoaded', initComitesPanel);
+      })();
   </script>
 </body>
+
 </html>
