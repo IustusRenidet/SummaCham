@@ -842,7 +842,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Construye todas las filas del layout a partir del payload del backend
-export function materializarLayout(LAYOUT, payload) {
+function materializarLayout(LAYOUT, payload) {
   const layout = Array.isArray(LAYOUT) ? LAYOUT : [];
   const detalle = Array.isArray(payload?.detalle) ? payload.detalle : [];
   const filas = SummaryCore.buildSummaryRows(layout, detalle, { estiloPorTipo });
@@ -867,5 +867,13 @@ export function materializarLayout(LAYOUT, payload) {
     acumuladoVariacionPlan: Number(fila.acumuladoVariacionPlan || 0),
     acumuladoVariacionAnterior: Number(fila.acumuladoVariacionAnterior || 0)
   }));
+}
+
+// Expone helper para su reutilizaci�n (CLI/tests/otros m�dulos)
+if (typeof window !== 'undefined') {
+  window.materializarLayout = materializarLayout;
+}
+if (typeof module === 'object' && module.exports) {
+  module.exports = { materializarLayout };
 }
 
