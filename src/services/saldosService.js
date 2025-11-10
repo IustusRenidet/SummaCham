@@ -108,4 +108,33 @@ async function obtenerAniosDisponibles(empresaId) {
   return anios.sort((a, b) => a - b); // Orden ascendente
 }
 
-module.exports = { obtenerSaldosPorCuentas, MESES, obtenerAniosDisponibles };
+async function obtenerCuentasPorAnio(empresaId, anio) {
+  if (!empresaId) throw new Error('Empresa obligatoria');
+  const ejercicio = Number(anio);
+  if (!Number.isInteger(ejercicio) || ejercicio < 2000 || ejercicio > 2100) {
+    throw new Error('Ejercicio inválido');
+  }
+
+  const tCtas = construirNombreTabla('CUENTAS', ejercicio);
+  const tSal = construirNombreTabla('SALDOS', ejercicio);
+
+  const sql = `
+    SELECT DISTINCT
+      c.num_cta AS cuenta,
+      c.nombre AS nombre,
+      c.naturaleza AS naturaleza
+    FROM ${tCtas} c
+    INNER JOIN ${tSal} s ON s.num_cta = c.num_cta AND s.ejercicio = ?
+    WHERE c.status = 'A'
+    ORDER BY c.num_cta
+  `;
+
+  const rows = await ejecutarConsulta(empresaId, sql, [ejercicio]);
+  return rows.map(row => ({
+    cuenta: String(row.cuenta).trim(),
+    nombre: String(row.nombre || '').trim(),
+    naturaleza: String(row.naturaleza || '').trim()
+  }));
+}
+
+module.exports = { obtenerSaldosPorCuentas, MESES, obtenerAniosDisponibles, obtenerCuentasPorAnio };
