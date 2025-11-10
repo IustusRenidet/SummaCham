@@ -1,8 +1,51 @@
 const express = require('express');
 const { listarModulos, obtenerDatosModulo } = require('../services/modulosService');
 const { obtenerResumen, listarAniosSALDOS } = require('../services/summaryService');
+const { obtenerPresupuestosMayor } = require('../services/presupuestosService');
 
 const router = express.Router();
+
+const CLAVES_PLAN = {
+  1: 'ene',
+  2: 'feb',
+  3: 'mar',
+  4: 'abr',
+  5: 'may',
+  6: 'jun',
+  7: 'jul',
+  8: 'ago',
+  9: 'sep',
+  10: 'oct',
+  11: 'nov',
+  12: 'dic',
+  13: 'anual'
+};
+
+const normalizarTexto = (valor) => (valor == null ? '' : String(valor).trim());
+const normalizarCodigo = (valor) => normalizarTexto(valor);
+const normalizarNaturaleza = (valor) => normalizarTexto(valor).toUpperCase();
+const numeroSeguro = (valor) => {
+  const numero = Number(valor);
+  return Number.isFinite(numero) ? numero : 0;
+};
+
+const clavePlanPorPeriodo = (periodo) => {
+  const p = Math.max(1, Math.min(13, Number(periodo) || 1));
+  return CLAVES_PLAN[p] || 'anual';
+};
+
+const obtenerYtdPlan = (registro, periodo) => {
+  const clave = clavePlanPorPeriodo(periodo);
+  if (clave === 'anual') return numeroSeguro(registro.anual);
+  return numeroSeguro(registro[clave]);
+};
+
+const obtenerMesPlan = (registro, periodo) => {
+  const ytdActual = obtenerYtdPlan(registro, periodo);
+  if (periodo <= 1) return ytdActual;
+  const ytdPrevio = obtenerYtdPlan(registro, periodo - 1);
+  return ytdActual - ytdPrevio;
+};
 
 router.get('/', (req, res) => {
   res.json({ modulos: listarModulos() });
@@ -57,8 +100,51 @@ router.post('/summary-resumen-e', async (req, res) => {
       anioComparativo,
       usarAjusteEnYTD: Boolean(usarAjusteEnYTD)
     });
+    const presupuestos = await obtenerPresupuestosMayor(empresaId, ejercicio);
+    const mapaPlan = new Map(
+      (presupuestos || []).map((registro) => [normalizarCodigo(registro.numCta), registro])
+    );
 
-    res.json(resultado);
+    const detalle = (resultado.detalle || []).map((fila) => {
+      const codigo = normalizarCodigo(fila.codigo);
+      const plan = mapaPlan.get(codigo);
+      const descripcionPlan = plan ? normalizarTexto(plan.descripcion) : '';
+      const naturalezaPlan = plan ? normalizarNaturaleza(plan.naturaleza) : '';
+      const descripcion = normalizarTexto(fila.descripcion) || descripcionPlan;
+      const naturaleza = normalizarNaturaleza(fila.naturaleza || naturalezaPlan);
+      let acumuladoPlan = numeroSeguro(fila.acumuladoPlan);
+      let mesPlan = numeroSeguro(fila.mesPlan);
+      if (plan) {
+        acumuladoPlan = obtenerYtdPlan(plan, periodoNum);
+        mesPlan = obtenerMesPlan(plan, periodoNum);
+      }
+
+      const acumuladoActual = numeroSeguro(fila.acumuladoActual);
+      const acumuladoAnterior = numeroSeguro(fila.acumuladoAnterior);
+      const mesActual = numeroSeguro(fila.mesActual);
+      const mesAnterior = numeroSeguro(fila.mesAnterior);
+
+      return {
+        ...fila,
+        codigo,
+        descripcion,
+        naturaleza,
+        mesActual,
+        mesPlan,
+        mesAnterior,
+        acumuladoActual,
+        acumuladoPlan,
+        acumuladoAnterior,
+        ytdActual: numeroSeguro(fila.ytdActual != null ? fila.ytdActual : acumuladoActual),
+        ytdPlan: acumuladoPlan,
+        ytdAnterior: numeroSeguro(fila.ytdAnterior != null ? fila.ytdAnterior : acumuladoAnterior)
+      };
+    });
+
+    res.json({
+      ...resultado,
+      detalle
+    });
   } catch (error) {
     console.error('Error en summary-resumen-e:', error);
     res.status(500).json({ mensaje: 'No fue posible obtener el resumen solicitado.' });
