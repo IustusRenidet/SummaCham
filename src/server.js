@@ -6,6 +6,7 @@ const rutasUsuarios = require('./routes/usuarios');
 const rutasEmpresas = require('./routes/empresas');
 const rutasModulos = require('./routes/modulos');
 const rutasPresupuestos = require('./routes/presupuestos');
+const rutasComites = require('./routes/comitesRoutes');
 
 let instanciaServidor = null;
 
@@ -30,6 +31,7 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3000)) => {
   app.use('/api/empresas', rutasEmpresas);
   app.use('/api/modulos', rutasModulos);
   app.use('/api/presupuestos', rutasPresupuestos);
+  app.use('/api/comites', rutasComites);
 
   app.use((req, res) => {
     res.status(404).json({ mensaje: 'Recurso no encontrado.' });

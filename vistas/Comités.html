@@ -205,9 +205,6 @@
           <div id="comitesCuentaSuggestions" class="position-absolute bg-white border rounded shadow-sm d-none"
             style="z-index: 1000; max-height: 200px; overflow-y: auto; width: calc(100% - 80px);"></div>
         </div>
-        <div>
-          <button id="comitesBtnActualizar" class="btn btn-hero">Actualizar</button>
-        </div>
       </div>
 
       <div class="table-responsive">
@@ -267,7 +264,6 @@
         function initComitesPanel() {
           const els = {
             yearSelect: document.getElementById('comitesYearSelect'),
-            btnActualizar: document.getElementById('comitesBtnActualizar'),
             inputNuevaCuenta: document.getElementById('comitesNuevaCuenta'),
             btnAgregar: document.getElementById('comitesBtnAgregar'),
             tableHead: document.querySelector('#comitesTable thead'),
@@ -283,7 +279,9 @@
             anio: new Date().getFullYear(),
             mesesMeta: [],
             cuentaSeleccionada: null,
-            cuentasDisponibles: []
+            cuentasDisponibles: [],
+            cargando: false,
+            needsReload: false
           };
 
           function cargarLista() {
@@ -322,6 +320,10 @@
           }
 
           function empresaActiva() {
+            if (typeof Sesion !== 'undefined' && typeof Sesion.obtenerEmpresaActiva === 'function') {
+              const activa = Sesion.obtenerEmpresaActiva();
+              if (activa?.id) return activa;
+            }
             return sesion?.empresaActiva || null;
           }
 
@@ -476,10 +478,9 @@
                   .map(anio => `<option value="${anio}">${anio}</option>`)
                   .join('');
                 if (!ordenAsc.includes(state.anio)) {
-                  state.anio = ordenAsc[ordenAsc.length - 1]; // Último año disponible
+                  state.anio = ordenAsc[ordenAsc.length - 1]; // último año disponible
                 }
                 els.yearSelect.value = String(state.anio);
-                await poblarCuentasDisponibles();
               } else {
                 throw new Error('Sin ejercicios disponibles.');
               }
@@ -490,9 +491,10 @@
               els.yearSelect.value = actual;
               state.anio = actual;
               setStatus(error.message || 'Error al cargar años', 'warning');
+            } finally {
+              await poblarCuentasDisponibles();
             }
           }
-
           async function poblarCuentasDisponibles() {
             try {
               const empresa = empresaActiva();
@@ -522,16 +524,22 @@
               return;
             }
 
+            if (state.cargando) {
+              state.needsReload = true;
+              return;
+            }
+            state.cargando = true;
+            state.needsReload = false;
+
             const anioSeleccionado = Number(els.yearSelect.value || new Date().getFullYear());
             state.anio = anioSeleccionado;
-            setStatus('Consultando saldos…', 'info');
-            els.btnActualizar.disabled = true;
+            setStatus('Consultando movimientos…', 'info');
 
             const cuentas = [...state.cuentas.ingresos, ...state.cuentas.gastos];
             if (!cuentas.length) {
               els.tableBody.innerHTML = '<tr><td colspan="14">No hay cuentas configuradas.</td></tr>';
               setStatus('Agrega al menos una cuenta.', 'warning');
-              els.btnActualizar.disabled = false;
+              state.cargando = false;
               return;
             }
 
@@ -548,7 +556,7 @@
               const payload = await resp.json();
 
               if (!resp.ok) {
-                throw new Error(payload.mensaje || 'No fue posible obtener saldos.');
+                throw new Error(payload.mensaje || 'No fue posible obtener movimientos.');
               }
 
               state.datos = new Map(
@@ -558,10 +566,14 @@
               renderTabla();
               setStatus(`Actualizado ${new Date().toLocaleTimeString('es-MX')}`, 'success');
             } catch (error) {
-              console.error('Error al cargar saldos', error);
-              setStatus(error.message || 'No fue posible cargar saldos.', 'danger');
+              console.error('Error al cargar movimientos', error);
+              setStatus(error.message || 'No fue posible cargar movimientos.', 'danger');
             } finally {
-              els.btnActualizar.disabled = false;
+              state.cargando = false;
+              if (state.needsReload) {
+                state.needsReload = false;
+                cargarDatos();
+              }
             }
           }
 
@@ -630,6 +642,7 @@
             guardarLista();
             els.inputNuevaCuenta.value = '';
             renderTabla();
+            cargarDatos();
           }
 
           function eliminarCuenta(codigo) {
@@ -637,6 +650,7 @@
             state.cuentas.gastos = state.cuentas.gastos.filter(cta => cta !== codigo);
             guardarLista();
             renderTabla();
+            cargarDatos();
           }
 
           function mostrarContextMenu(evt, codigo) {
@@ -661,10 +675,10 @@
             if (evt.key === 'Escape') ocultarSugerenciasCuentas();
           });
           els.inputNuevaCuenta?.addEventListener('blur', ocultarSugerenciasCuentas);
-          els.btnActualizar?.addEventListener('click', cargarDatos);
           els.yearSelect?.addEventListener('change', async () => {
             state.anio = Number(els.yearSelect.value);
             await poblarCuentasDisponibles();
+            await cargarDatos();
           });
 
           document.addEventListener('click', (evt) => {
@@ -698,7 +712,6 @@
           async function inicializarPanel() {
             await poblarAnios();
             renderTabla();
-            await poblarCuentasDisponibles();
             await cargarDatos();
           }
 
@@ -719,3 +732,4 @@
 </body>
 
 </html>
+
