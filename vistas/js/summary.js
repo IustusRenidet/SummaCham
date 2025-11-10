@@ -112,31 +112,43 @@ const estiloPorTipo = (tipo) => (
 // === LAYOUT (jerarquía y colores) ===
 // ===================================
 // Puedes extenderlo o cargarlo desde BD/JSON; si el usuario lo edita, se persiste en LS.
-const SUMMARY_LAYOUT_V1 = [
-  {
-    id: 'cdmx_income', tipo: 'categoria', estilo: THEME.categoria, etiqueta: 'CDMX INCOME', hijos: [
-      {
-        id: 'membership', tipo: 'categoria', estilo: THEME.subcategoria, etiqueta: 'Membership', hijos: [
-          { id: 'ctas_cuotas', tipo: 'detalle', codigo: '401000000000000000001', descripcion: 'Cuotas Netas' },
-          { id: 'ctas_nuevos', tipo: 'detalle', codigo: '402000000000000000001', descripcion: 'Ingresos socios nuevos' },
-          { id: 'membership_sub', tipo: 'subtotal', estilo: THEME.subtotal, etiqueta: 'Subtotal Membership' }
-        ]
-      },
-      {
-        id: 'events', tipo: 'categoria', estilo: THEME.subcategoria, etiqueta: 'EVENTS', hijos: [
-          { id: 'ctas_eventos', tipo: 'detalle', codigo: '407000000000000000001', descripcion: 'Eventos' },
-          { id: 'ctas_patro', tipo: 'detalle', codigo: '408000000000000000001', descripcion: 'Patrocinios' },
-          { id: 'events_sub', tipo: 'subtotal', estilo: THEME.subtotal, etiqueta: 'Subtotal Events' }
-        ]
-      },
-      { id: 'income_total', tipo: 'total', estilo: THEME.total, etiqueta: 'TOTAL INCOME' }
-    ]
+const SummaryCore = (typeof window !== 'undefined' && window.SummaryEngineCore)
+  ? window.SummaryEngineCore
+  : {
+      collectCodes: () => [],
+      buildSummaryRows: () => [],
+      safeDiv: (n, d) => {
+        const num = Number(n || 0);
+        const den = Number(d || 0);
+        return Math.abs(den) === 0 ? 0 : num / den;
+      }
+    };
+
+const collectCodes = typeof SummaryCore.collectCodes === 'function'
+  ? (layout) => SummaryCore.collectCodes(layout)
+  : () => [];
+
+const DEFAULT_LAYOUT = (typeof window !== 'undefined' && window.SUMMARY_E01_LAYOUT)
+  ? window.SUMMARY_E01_LAYOUT
+  : [];
+
+const cloneLayout = (layout) => {
+  try {
+    return JSON.parse(JSON.stringify(layout));
+  } catch (e) {
+    console.warn('No fue posible clonar layout, usando arreglo original.', e);
+    return Array.isArray(layout) ? layout.slice() : [];
   }
-];
+};
 
 const saveLayoutLS = (l) => localStorage.setItem('summary_layout_v1', JSON.stringify(l));
 const loadLayoutLS = () => { try { return JSON.parse(localStorage.getItem('summary_layout_v1') || 'null'); } catch { return null; } };
-let CURRENT_LAYOUT = loadLayoutLS() ?? SUMMARY_LAYOUT_V1;
+
+let CURRENT_LAYOUT = loadLayoutLS();
+if (!Array.isArray(CURRENT_LAYOUT) || CURRENT_LAYOUT.length === 0) {
+  CURRENT_LAYOUT = cloneLayout(DEFAULT_LAYOUT);
+}
+
 
 // Mostrar un toast verde de exito (Bootstrap) al actualizar
 function mostrarToastExito(mensaje = 'Actualizado correctamente') {
@@ -154,18 +166,6 @@ function mostrarToastExito(mensaje = 'Actualizado correctamente') {
     setTimeout(() => { toastEl.classList.remove('show'); }, 1500);
   }
 }
-
-// ======================================
-// === Motor de cálculo tipo “Excel”  ===
-// ======================================
-const zeroMetrics = () => ({
-  // Mes (seleccionado)
-  mesActual: 0, mesPlan: 0, mesAnterior: 0, mesVariacionPlan: 0, mesVariacionAnterior: 0,
-  // YTD (hasta mes seleccionado)
-  acumuladoActual: 0, acumuladoPlan: 0, acumuladoAnterior: 0, acumuladoVariacionPlan: 0, acumuladoVariacionAnterior: 0
-});
-const pct = (a, b) => (Math.abs(b || 0) === 0 ? 0 : ((a - b) / Math.abs(b)) * 100);
-const addMetrics = (dst, src) => { Object.keys(dst).forEach(k => dst[k] += (src[k] || 0)); return dst; };
 
 // =========================================================
 // === SISTEMA DE FORMULAS (fila / celda / columna)     ===
@@ -335,109 +335,6 @@ const applyFormulaEngine = (rows) => {
   return cloned;
 };
 
-// Índices de datos por NUM_CTA
-function buildIndex(apiRows) {
-  const idx = {};
-  (apiRows || []).forEach(r => { idx[String(r.codigo).trim()] = r; });
-  return idx;
-}
-
-// Recolecta códigos NUM_CTA del layout visible
-function collectCodes(layout) {
-  const codes = [];
-  const walk = (nodos) => nodos.forEach(n => {
-    if (n.tipo === 'detalle' && n.codigo) codes.push(String(n.codigo).trim());
-    if (Array.isArray(n.hijos)) walk(n.hijos);
-  });
-  walk(layout);
-  return codes;
-}
-
-// Cálculo recursivo: detalle -> subtotal/categoría/total
-function computeNode(node, idx) {
-  const metrics = zeroMetrics();
-  let children = [];
-
-  if (Array.isArray(node.hijos) && node.hijos.length) {
-    children = node.hijos.map(h => computeNode(h, idx));
-    // Agregación: suma de hijos
-    children.forEach(ch => addMetrics(metrics, ch.metrics));
-  } else if (node.tipo === 'detalle' && node.codigo) {
-    const r = idx[String(node.codigo).trim()];
-    if (r) {
-      metrics.mesActual = r.mesActual || 0;
-      metrics.mesPlan = r.mesPlan || 0;
-      metrics.mesAnterior = r.mesAnterior || 0;
-
-      metrics.acumuladoActual = r.acumuladoActual || 0;
-      metrics.acumuladoPlan = r.acumuladoPlan || 0;
-      metrics.acumuladoAnterior = r.acumuladoAnterior || 0;
-    }
-  }
-
-  // Variaciones %
-  metrics.mesVariacionPlan = pct(metrics.mesActual, metrics.mesPlan);
-  metrics.mesVariacionAnterior = pct(metrics.mesActual, metrics.mesAnterior);
-  metrics.acumuladoVariacionPlan = pct(metrics.acumuladoActual, metrics.acumuladoPlan);
-  metrics.acumuladoVariacionAnterior = pct(metrics.acumuladoActual, metrics.acumuladoAnterior);
-
-  return { row: node, metrics, children };
-}
-function computeTree(layout, idx) { return layout.map(n => computeNode(n, idx)); }
-
-// Aplana árbol -> arreglo que entiende el renderer
-function flattenForRender(tree) {
-  const out = [];
-  const walk = (node, depth = 0) => {
-    const { row, metrics, children } = node;
-
-    if (row.tipo === 'categoria' || row.tipo === 'subtotal' || row.tipo === 'total') {
-      out.push({
-        tipo: 'categoria',
-        rowId: row.id || row.codigo || row.descripcion || '',
-        estilo: row.estilo || estiloPorTipo(row.tipo),
-        etiqueta: row.etiqueta || row.label || '',
-        tipoFila: row.tipo,
-        // Métricas
-        mesActual: metrics.mesActual,
-        mesPlan: metrics.mesPlan,
-        mesAnterior: metrics.mesAnterior,
-        mesVariacionPlan: metrics.mesVariacionPlan,
-        mesVariacionAnterior: metrics.mesVariacionAnterior,
-        acumuladoActual: metrics.acumuladoActual,
-        acumuladoPlan: metrics.acumuladoPlan,
-        acumuladoAnterior: metrics.acumuladoAnterior,
-        acumuladoVariacionPlan: metrics.acumuladoVariacionPlan,
-        acumuladoVariacionAnterior: metrics.acumuladoVariacionAnterior,
-        depth
-      });
-    } else {
-      out.push({
-        tipo: 'detalle',
-        rowId: row.id || row.codigo || row.descripcion || '',
-        codigo: row.codigo,
-        descripcion: row.descripcion || '',
-        tipoFila: row.tipo,
-        // Métricas
-        mesActual: metrics.mesActual,
-        mesPlan: metrics.mesPlan,
-        mesAnterior: metrics.mesAnterior,
-        mesVariacionPlan: metrics.mesVariacionPlan,
-        mesVariacionAnterior: metrics.mesVariacionAnterior,
-        acumuladoActual: metrics.acumuladoActual,
-        acumuladoPlan: metrics.acumuladoPlan,
-        acumuladoAnterior: metrics.acumuladoAnterior,
-        acumuladoVariacionPlan: metrics.acumuladoVariacionPlan,
-        acumuladoVariacionAnterior: metrics.acumuladoVariacionAnterior,
-        depth
-      });
-    }
-    (children || []).forEach(ch => walk(ch, depth + 1));
-  };
-  tree.forEach(n => walk(n, 0));
-  return out;
-}
-
 // ========================================
 // === ADAPTADORES (SALDOSxx / ACUMxx)  ===
 // ========================================
@@ -578,14 +475,15 @@ const CALC_STRATEGY = {
 // - Devuelve un objeto con:
 //   { detalle: [...], ejercicios: [...] }
 //   donde 'detalle' son filas por codigo y 'ejercicios' alimenta la tarjeta superior.
-async function fetchSummary({ anio, periodo, empresaId }) {
+async function fetchSummary({ anio, periodo, empresaId, incluirAjusteEnYTD }) {
   const codigos = collectCodes(CURRENT_LAYOUT);
+  const usarAjuste = Boolean(incluirAjusteEnYTD);
 
   // set contexto
   CTX.anio = anio;
   CTX.periodo = periodo;
   CTX.anioComparativo = anio - 1;
-  CTX.incluirAjusteEnYTD = false;      // cámbialo si quieres expositor en UI
+  CTX.incluirAjusteEnYTD = usarAjuste;
   CTX.fuente = 'SALDOSxx';             // o 'ACUMxx' según la fuente
 
   if (CALC_STRATEGY.modo === 'server') {
@@ -593,13 +491,21 @@ async function fetchSummary({ anio, periodo, empresaId }) {
     const resp = await fetch(`${API_BASE}/modulos/summary-resumen-e`, {
       method: 'POST',
       headers: { ...Sesion.headersAutenticacion(), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ anio, periodo, empresaId, codigos })
+      body: JSON.stringify({
+        anio,
+        periodo,
+        empresaId,
+        codigos,
+        anioComparativo: CTX.anioComparativo,
+        usarAjusteEnYTD: usarAjuste
+      })
     });
     const data = await resp.json();
     if (!resp.ok) throw new Error(data.mensaje || 'No fue posible obtener la información.');
     return {
       detalle: Array.isArray(data.detalle) ? data.detalle : [],
-      ejercicios: Array.isArray(data.ejercicios) ? data.ejercicios : []
+      ejercicios: Array.isArray(data.ejercicios) ? data.ejercicios : [],
+      ejerciciosDisponibles: Array.isArray(data.ejerciciosDisponibles) ? data.ejerciciosDisponibles : []
     };
   }
 
@@ -607,7 +513,14 @@ async function fetchSummary({ anio, periodo, empresaId }) {
   const resp = await fetch(`${API_BASE}/modulos/summary-crudo`, {
     method: 'POST',
     headers: { ...Sesion.headersAutenticacion(), 'Content-Type': 'application/json' },
-    body: JSON.stringify({ anio, periodo, empresaId, codigos, fuente: CALC_STRATEGY.fuente() })
+    body: JSON.stringify({
+      anio,
+      periodo,
+      empresaId,
+      codigos,
+      fuente: CALC_STRATEGY.fuente(),
+      usarAjusteEnYTD: usarAjuste
+    })
   });
   const raw = await resp.json();
   if (!resp.ok) throw new Error(raw.mensaje || 'No fue posible obtener la información.');
@@ -626,90 +539,64 @@ async function fetchSummary({ anio, periodo, empresaId }) {
     return OPERACIONES.detalleDesdeACUM(r, CTX);
   });
 
-  return { detalle, ejercicios: raw.ejercicios || [] };
-}
-
-// ======================================================
-// === RENDER DE TABLA (respeta estilos y jerarquía) ===
-// ======================================================
-function renderizarTabla() {
-  const body = document.getElementById('summaryTableBody');
-  if (!body) return;
-
-  body.innerHTML = '';
-  const filas = estadoModulo.tabla;
-
-  if (!Array.isArray(filas) || filas.length === 0) {
-    const vacio = document.createElement('tr');
-    vacio.innerHTML = '<td colspan="12" class="text-center text-muted py-4">No hay información disponible para mostrar.</td>';
-    body.appendChild(vacio);
-    return;
-  }
-
-  filas.forEach((fila) => {
-    const tr = document.createElement('tr');
-
-    if (fila.tipo === 'categoria') {
-      const clases = [fila.estilo || THEME.categoria];
-      if (fila.tipoFila) clases.push(`fila-${fila.tipoFila}`);
-      tr.className = clases.join(' ');
-      tr.innerHTML = `
-        <th></th>
-        <td class="mono">${formatearMoneda(fila.mesActual)}</td>
-        <td class="mono">${formatearMoneda(fila.mesPlan)}</td>
-        <td class="mono">${formatearMoneda(fila.mesAnterior)}</td>
-        <td class="mono">${formatearPorcentaje(fila.mesVariacionPlan)}</td>
-        <td class="mono">${formatearPorcentaje(fila.mesVariacionAnterior)}</td>
-        <td class="category-cell" data-depth="${fila.depth||0}" style="--depth:${fila.depth||0}">${fila.etiqueta || ''}</td>
-        <td class="mono">${formatearMoneda(fila.acumuladoActual)}</td>
-        <td class="mono">${formatearMoneda(fila.acumuladoPlan)}</td>
-        <td class="mono">${formatearMoneda(fila.acumuladoAnterior)}</td>
-        <td class="mono">${formatearPorcentaje(fila.acumuladoVariacionPlan)}</td>
-        <td class="mono">${formatearPorcentaje(fila.acumuladoVariacionAnterior)}</td>
-      `;
-    } else {
-      const clases = [];
-      if (fila.tipoFila && fila.tipoFila !== 'detalle') clases.push(`fila-${fila.tipoFila}`);
-      if (clases.length) tr.className = clases.join(' ');
-      tr.innerHTML = `
-        <th class="code-cell">${fila.codigo || ''}</th>
-        <td class="mono">${formatearMoneda(fila.mesActual)}</td>
-        <td class="mono">${formatearMoneda(fila.mesPlan)}</td>
-        <td class="mono">${formatearMoneda(fila.mesAnterior)}</td>
-        <td class="mono">${formatearPorcentaje(fila.mesVariacionPlan)}</td>
-        <td class="mono">${formatearPorcentaje(fila.mesVariacionAnterior)}</td>
-        <td class="label-cell" data-depth="${fila.depth||0}" style="--depth:${fila.depth||0}">${fila.descripcion || ''}</td>
-        <td class="mono">${formatearMoneda(fila.acumuladoActual)}</td>
-        <td class="mono">${formatearMoneda(fila.acumuladoPlan)}</td>
-        <td class="mono">${formatearMoneda(fila.acumuladoAnterior)}</td>
-        <td class="mono">${formatearPorcentaje(fila.acumuladoVariacionPlan)}</td>
-        <td class="mono">${formatearPorcentaje(fila.acumuladoVariacionAnterior)}</td>
-      `;
-    }
-    body.appendChild(tr);
-  });
+  return {
+    detalle,
+    ejercicios: raw.ejercicios || [],
+    ejerciciosDisponibles: raw.ejerciciosDisponibles || []
+  };
 }
 
 // ==============================================================
 // === ACCIONES (agregar/quitar cuentas conservando estilos)  ===
 // ==============================================================
 function addDetail(parentId, codigo, descripcion = '') {
-  const deep = (xs) => xs.map(x => {
-    if (x.id === parentId) {
-      const hijos = Array.isArray(x.hijos) ? x.hijos.slice() : [];
-      hijos.push({ id: `det_${codigo}`, tipo: 'detalle', codigo: String(codigo), descripcion });
-      return { ...x, hijos };
+  if (!parentId || !codigo) return;
+  const codigoTxt = String(codigo).trim();
+  const nuevoId = `cuenta_${codigoTxt}`;
+  const nuevaFila = {
+    id: nuevoId,
+    tipo: 'cuenta',
+    codigo: codigoTxt,
+    titulo: descripcion || codigoTxt,
+    padre: parentId
+  };
+
+  const actualizado = (Array.isArray(CURRENT_LAYOUT) ? CURRENT_LAYOUT.slice() : []);
+  actualizado.push(nuevaFila);
+
+  CURRENT_LAYOUT = actualizado.map((item) => {
+    if (!Array.isArray(item.componentes)) return item;
+    if (item.id === parentId || item.padre === parentId) {
+      if (!item.componentes.includes(nuevoId)) {
+        return { ...item, componentes: [...item.componentes, nuevoId] };
+      }
     }
-    return { ...x, hijos: x.hijos ? deep(x.hijos) : x.hijos };
+    return item;
   });
-  CURRENT_LAYOUT = deep(CURRENT_LAYOUT);
+
   saveLayoutLS(CURRENT_LAYOUT);
 }
 
 function removeByCode(codigo) {
-  const deep = (xs) => xs.map(x => ({ ...x, hijos: x.hijos ? deep(x.hijos) : x.hijos }))
-    .filter(x => !(x.tipo === 'detalle' && String(x.codigo).trim() === String(codigo).trim()));
-  CURRENT_LAYOUT = deep(CURRENT_LAYOUT);
+  if (!codigo) return;
+  const codigoTxt = String(codigo).trim();
+  let idEliminado = null;
+
+  CURRENT_LAYOUT = (Array.isArray(CURRENT_LAYOUT) ? CURRENT_LAYOUT : []).filter((item) => {
+    if (item.tipo === 'cuenta' && String(item.codigo || '').trim() === codigoTxt) {
+      idEliminado = item.id;
+      return false;
+    }
+    return true;
+  }).map((item) => {
+    if (!Array.isArray(item.componentes) || !idEliminado) return item;
+    const filtrado = item.componentes.filter((comp) => comp !== idEliminado);
+    if (filtrado.length !== item.componentes.length) {
+      return { ...item, componentes: filtrado };
+    }
+    return item;
+  });
+
   saveLayoutLS(CURRENT_LAYOUT);
 }
 
@@ -722,25 +609,31 @@ async function aplicarSeleccionUI() {
   const anio = Number(filtroAnio?.value || new Date().getFullYear());
   const mesNombre = String((filtroMes?.value || 'enero')).toLowerCase();
   const periodo = MES_A_PERIODO[mesNombre] || 1;
+  const incluirAjuste = Boolean(document.getElementById('chkAjuste')?.checked);
 
   setAllYearSpans(anio);
   mostrarEstado('Calculando…');
 
   try {
-    const { detalle, ejercicios } = await fetchSummary({
+    const { detalle, ejercicios, ejerciciosDisponibles } = await fetchSummary({
       anio,
       periodo,
-      empresaId: (typeof sesion !== 'undefined' ? sesion?.empresaId : undefined)
+      empresaId: (typeof sesion !== 'undefined' ? sesion?.empresaId : undefined),
+      incluirAjusteEnYTD: incluirAjuste
     });
 
-    // index por codigo para el motor
-    const idx = buildIndex(detalle);
-    // cálculo jerárquico
-    const tree = computeTree(CURRENT_LAYOUT, idx);
+    const layoutParaMotor = Array.isArray(CURRENT_LAYOUT) ? CURRENT_LAYOUT : [];
+    const tablaCalculada = SummaryCore.buildSummaryRows(
+      layoutParaMotor,
+      detalle,
+      { estiloPorTipo }
+    );
 
-    const tablaCalculada = flattenForRender(tree);
     estadoModulo.tabla = applyFormulaEngine(tablaCalculada);
     estadoModulo.ejercicios = ejercicios;
+    if (Array.isArray(ejerciciosDisponibles) && ejerciciosDisponibles.length) {
+      estadoModulo.ejerciciosDisponibles = ejerciciosDisponibles;
+    }
 
     actualizarResumen(anio);
     renderizarTabla();
@@ -810,6 +703,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Botón Restablecer: establece año/mes en curso y aplica
   const btnReset = document.getElementById('btnReset');
+  const chkAjuste = document.getElementById('chkAjuste');
   if (btnReset) {
     btnReset.addEventListener('click', () => {
       const ahora = new Date();
@@ -828,6 +722,15 @@ document.addEventListener('DOMContentLoaded', () => {
       if (selMes) selMes.value = mesNombre.charAt(0).toUpperCase() + mesNombre.slice(1);
       setAllMonthSpans(mesNombre);
 
+      if (chkAjuste) chkAjuste.checked = false;
+
+      aplicarSeleccionUI();
+    });
+  }
+
+  if (chkAjuste) {
+    chkAjuste.checked = false;
+    chkAjuste.addEventListener('change', () => {
       aplicarSeleccionUI();
     });
   }
@@ -930,146 +833,39 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   // inicializar <span.mes> con el valor actual del combo
   const filtroMesInit = document.getElementById('selectMes');
-  const m = String(filtroMesInit?.value || 'enero').toLowerCase();
+  const ahora = new Date();
+  const mesActualNombre = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'][ahora.getMonth()];
+  if (filtroMesInit) filtroMesInit.value = mesActualNombre.charAt(0).toUpperCase() + mesActualNombre.slice(1);
+  const m = String(filtroMesInit?.value || mesActualNombre || 'enero').toLowerCase();
   setAllMonthSpans(m);
 })();
 });
 
-// Busca una cuenta en el payload del backend por código exacto
-function indexByCodigo(detalle) {
-  const map = new Map();
-  for (const r of detalle) map.set(String(r.codigo).trim(), r);
-  return map;
-}
-
-function zeroRow() {
-  return {
-    mesActual:0, ytdActual:0,
-    mesPlan:0,   ytdPlan:0,
-    mesAnterior:0, ytdAnterior:0
-  };
-}
-
-function addRows(a, b) {
-  return {
-    mesActual:   (a.mesActual||0)   + (b.mesActual||0),
-    ytdActual:   (a.ytdActual||0)   + (b.ytdActual||0),
-    mesPlan:     (a.mesPlan||0)     + (b.mesPlan||0),
-    ytdPlan:     (a.ytdPlan||0)     + (b.ytdPlan||0),
-    mesAnterior: (a.mesAnterior||0) + (b.mesAnterior||0),
-    ytdAnterior: (a.ytdAnterior||0) + (b.ytdAnterior||0),
-  };
-}
-
-function safeDiv(n, d) {
-  const N = Number(n||0), D = Number(d||0);
-  return D === 0 ? 0 : N / D;
-}
-
-// Eval simple de fórmulas tipo "UTI.ytdActual / UTI.ytdPlan"
-// rowsOut es un diccionario { idRow -> rowValues }
-function evalFormula(expr, rowsOut) {
-  // Solo soportamos "A.B / C.D" o "A.B - C.D" etc. con + - * /
-  // Sencillo parser:
-  const tokens = expr.split(/\s+/);
-  const stack = [];
-
-  function valueOf(token) {
-    // token como "UTI.ytdActual" o número
-    if (/^[A-Za-z_][\w]*\.[A-Za-z_][\w]*$/.test(token)) {
-      const [id, field] = token.split('.');
-      const row = rowsOut[id] || zeroRow();
-      return Number(row[field] || 0);
-    }
-    if (!isNaN(Number(token))) return Number(token);
-    return token; // operador
-  }
-
-  for (const t of tokens) {
-    stack.push(valueOf(t));
-    while (stack.length >= 3 && typeof stack[stack.length-2] === 'string') {
-      const b = stack.pop();
-      const op = stack.pop();
-      const a = stack.pop();
-      if (op === '+') stack.push(Number(a)+Number(b));
-      else if (op === '-') stack.push(Number(a)-Number(b));
-      else if (op === '*') stack.push(Number(a)*Number(b));
-      else if (op === '/') stack.push(safeDiv(a,b));
-      else { // operador desconocido, reponer
-        stack.push(a, op, b);
-        break;
-      }
-    }
-  }
-  return Number(stack[0] || 0);
-}
-
 // Construye todas las filas del layout a partir del payload del backend
 export function materializarLayout(LAYOUT, payload) {
-  // payload.detalle: [{ codigo, mesActual, ytdActual, mesPlan, ytdPlan, mesAnterior, ytdAnterior, ... }, ...]
-  const byCode = indexByCodigo(payload.detalle);
-  const rowsOut = {}; // id -> valores calculados
+  const layout = Array.isArray(LAYOUT) ? LAYOUT : [];
+  const detalle = Array.isArray(payload?.detalle) ? payload.detalle : [];
+  const filas = SummaryCore.buildSummaryRows(layout, detalle, { estiloPorTipo });
 
-  // 1) Primero resuelve las filas de cuenta
-  for (const item of LAYOUT) {
-    if (item.tipo === 'cuenta') {
-      const r = byCode.get(String(item.codigo).trim()) || {};
-      rowsOut[item.id] = {
-        titulo: item.titulo || item.codigo,
-        ...zeroRow(),
-        mesActual:   Number(r.mesActual||0),
-        ytdActual:   Number(r.ytdActual||0),
-        mesPlan:     Number(r.mesPlan||0),
-        ytdPlan:     Number(r.ytdPlan||0),
-        mesAnterior: Number(r.mesAnterior||0),
-        ytdAnterior: Number(r.ytdAnterior||0),
-      };
-    }
-  }
-
-  // 2) Luego subtotales/totales (pueden depender de varias cuentas)
-  const tiposSuma = new Set(['subtotal','total']);
-  for (const item of LAYOUT) {
-    if (tiposSuma.has(item.tipo)) {
-      const hijos = item.hijos || [];
-      let acc = zeroRow();
-      for (const hid of hijos) {
-        const hv = rowsOut[hid] || zeroRow();
-        acc = addRows(acc, hv);
-      }
-      rowsOut[item.id] = { titulo: item.titulo || item.id, ...acc };
-    }
-  }
-
-  // 3) Por último KPIs (fórmulas)
-  for (const item of LAYOUT) {
-    if (item.tipo === 'kpi') {
-      const v = {
-        ...zeroRow(),
-        // Por convención mostramos el KPI en YTD y MES en estos dos campos:
-        ytdActual: evalFormula(item.formula.replaceAll(/\b([A-Za-z_]\w*)\./g, '$1.'), rowsOut),
-      };
-      // Si quieres también KPI de MES con otra fórmula, agrega formulaMes: '...'
-      if (item.formulaMes) v.mesActual = evalFormula(item.formulaMes, rowsOut);
-      rowsOut[item.id] = { titulo: item.titulo || item.id, ...v };
-    }
-  }
-
-  // 4) Devuelve arreglado en el mismo orden del LAYOUT (para pintar)
-  const salida = [];
-  for (const item of LAYOUT) {
-    if (item.tipo === 'categoria') {
-      salida.push({ id: item.id, tipo: 'categoria', titulo: item.titulo });
-    } else {
-      const v = rowsOut[item.id] || zeroRow();
-      salida.push({
-        id: item.id,
-        tipo: item.tipo,
-        titulo: (rowsOut[item.id] && rowsOut[item.id].titulo) || item.titulo || item.id,
-        ...v
-      });
-    }
-  }
-  return salida;
+  return filas.map((fila) => ({
+    id: fila.rowId,
+    tipo: fila.tipoFila,
+    titulo: fila.etiqueta || fila.descripcion || fila.rowId,
+    codigo: fila.codigo,
+    descripcion: fila.descripcion || '',
+    mesActual: Number(fila.mesActual || 0),
+    mesPlan: Number(fila.mesPlan || 0),
+    mesAnterior: Number(fila.mesAnterior || 0),
+    mesVariacionPlan: Number(fila.mesVariacionPlan || 0),
+    mesVariacionAnterior: Number(fila.mesVariacionAnterior || 0),
+    ytdActual: Number(fila.acumuladoActual ?? fila.ytdActual ?? 0),
+    ytdPlan: Number(fila.acumuladoPlan ?? fila.ytdPlan ?? 0),
+    ytdAnterior: Number(fila.acumuladoAnterior ?? fila.ytdAnterior ?? 0),
+    acumuladoActual: Number(fila.acumuladoActual || fila.ytdActual || 0),
+    acumuladoPlan: Number(fila.acumuladoPlan || fila.ytdPlan || 0),
+    acumuladoAnterior: Number(fila.acumuladoAnterior || fila.ytdAnterior || 0),
+    acumuladoVariacionPlan: Number(fila.acumuladoVariacionPlan || 0),
+    acumuladoVariacionAnterior: Number(fila.acumuladoVariacionAnterior || 0)
+  }));
 }
 
