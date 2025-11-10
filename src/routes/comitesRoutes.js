@@ -1,158 +1,169 @@
-// src/routes/comitesRoutes.js
 const express = require('express');
+const Joi = require('joi');
+const { db } = require('../db/sqlite');
+const { obtenerEmpresaPorId } = require('../config/empresas');
+const { construirMapaPermisos } = require('../services/permisosService');
+const {
+  MESES,
+  obtenerAniosDisponibles,
+  obtenerComites,
+  obtenerCuentasDisponibles,
+  obtenerMovimientosPorCuentas
+} = require('../services/comitesService');
+
 const router = express.Router();
-const { requireAuth } = require('../middleware/auth');
-const comitesService = require('../services/comitesService');
 
-/**
- * GET /api/comites/anios
- * Obtiene los años disponibles desde las tablas SALDOS
- */
-router.get('/anios', requireAuth, async (req, res) => {
+const normalizar = (v) => (v || '').toString().trim().toUpperCase();
+
+const puede = (mapa, empresaId) => {
+  const registro = mapa[empresaId];
+  return registro && Object.values(registro).some((a) => a['Cargar y guardar'] || a.Revisar || a.Aprobar);
+};
+
+function autenticar(req) {
+  const usuarioHeader = normalizar(req.headers['x-usuario-actual']);
+  if (!usuarioHeader) {
+    const err = new Error('Usuario no válido.');
+    err.status = 401;
+    throw err;
+  }
+
+  const usr = db.prepare(`SELECT id, usuario, es_admin_global FROM usuarios WHERE usuario=?`).get(usuarioHeader);
+  if (!usr) {
+    const err = new Error('Usuario no válido.');
+    err.status = 401;
+    throw err;
+  }
+
+  const esAdmin = usr.usuario === 'ICONET' || !!usr.es_admin_global;
+  let mapa = {};
+  if (!esAdmin) {
+    const permisos = db.prepare(`
+      SELECT empresa_id, modulo, puede_cargar_guardar, puede_revisar, puede_aprobar
+      FROM permisos_modulo
+      WHERE usuario_id = ?
+    `).all(usr.id);
+    mapa = construirMapaPermisos(permisos);
+  }
+
+  return { esAdmin, mapa };
+}
+
+function obtenerEmpresaSegura(empresaId) {
+  const empresa = obtenerEmpresaPorId(empresaId);
+  if (!empresa) {
+    const err = new Error('Empresa no existe.');
+    err.status = 404;
+    throw err;
+  }
+  return empresa;
+}
+
+function asegurarPermiso(req, empresaId) {
+  const { esAdmin, mapa } = autenticar(req);
+  const empresa = obtenerEmpresaSegura(empresaId);
+  if (!esAdmin && !puede(mapa, empresa.id)) {
+    const err = new Error('Sin permiso para esta empresa.');
+    err.status = 403;
+    throw err;
+  }
+  return empresa;
+}
+
+const schemaEmpresa = Joi.object({
+  empresaId: Joi.string().required()
+});
+
+const schemaEmpresaAnio = Joi.object({
+  empresaId: Joi.string().required(),
+  anio: Joi.number().integer().min(2000).max(2100).required()
+});
+
+const schemaMovimientos = Joi.object({
+  empresaId: Joi.string().required(),
+  anio: Joi.number().integer().min(2000).max(2100).required(),
+  cuentas: Joi.alternatives().try(
+    Joi.array().items(Joi.string().trim()).min(1),
+    Joi.string().trim()
+  ).required()
+});
+
+router.get('/anios', async (req, res) => {
   try {
-    const { empresaId } = req.query;
-    
-    if (!empresaId) {
-      return res.status(400).json({
-        exito: false,
-        mensaje: 'El parámetro empresaId es obligatorio'
-      });
+    const { value, error } = schemaEmpresa.validate(req.query, { abortEarly: false });
+    if (error) {
+      return res.status(400).json({ mensaje: 'Parámetros inválidos', detalles: error.details.map((d) => d.message) });
     }
 
-    const anios = await comitesService.obtenerAniosDisponibles(empresaId);
-    
-    res.json({
-      exito: true,
-      anios
-    });
+    const empresa = asegurarPermiso(req, value.empresaId);
+    const anios = await obtenerAniosDisponibles(empresa.id);
+    res.json({ anios });
   } catch (error) {
-    console.error('Error al obtener años:', error);
-    res.status(500).json({
-      exito: false,
-      mensaje: error.message || 'Error al obtener años disponibles'
+    console.error('Error /api/comites/anios:', error);
+    res.status(error.status || 500).json({
+      mensaje: error.status ? error.message : 'No fue posible obtener los años disponibles.'
     });
   }
 });
 
-/**
- * GET /api/comites/lista
- * Obtiene la lista de comités únicos para un año
- */
-router.get('/lista', requireAuth, async (req, res) => {
+router.get('/lista', async (req, res) => {
   try {
-    const { empresaId, anio } = req.query;
-    
-    if (!empresaId || !anio) {
-      return res.status(400).json({
-        exito: false,
-        mensaje: 'Los parámetros empresaId y anio son obligatorios'
-      });
+    const { value, error } = schemaEmpresaAnio.validate(req.query, { abortEarly: false });
+    if (error) {
+      return res.status(400).json({ mensaje: 'Parámetros inválidos', detalles: error.details.map((d) => d.message) });
     }
 
-    const comites = await comitesService.obtenerComites(empresaId, anio);
-    
-    res.json({
-      exito: true,
-      comites
-    });
+    const empresa = asegurarPermiso(req, value.empresaId);
+    const comites = await obtenerComites(empresa.id, value.anio);
+    res.json({ comites });
   } catch (error) {
-    console.error('Error al obtener comités:', error);
-    res.status(500).json({
-      exito: false,
-      mensaje: error.message || 'Error al obtener comités'
+    console.error('Error /api/comites/lista:', error);
+    res.status(error.status || 500).json({
+      mensaje: error.status ? error.message : 'No fue posible obtener los comités.'
     });
   }
 });
 
-/**
- * GET /api/comites/cuentas
- * Obtiene cuentas disponibles para autocompletado
- */
-router.get('/cuentas', requireAuth, async (req, res) => {
+router.get('/cuentas', async (req, res) => {
   try {
-    const { empresaId, anio } = req.query;
-    
-    if (!empresaId || !anio) {
-      return res.status(400).json({
-        exito: false,
-        mensaje: 'Los parámetros empresaId y anio son obligatorios'
-      });
+    const { value, error } = schemaEmpresaAnio.validate(req.query, { abortEarly: false });
+    if (error) {
+      return res.status(400).json({ mensaje: 'Parámetros inválidos', detalles: error.details.map((d) => d.message) });
     }
 
-    const cuentas = await comitesService.obtenerCuentasDisponibles(empresaId, anio);
-    
-    res.json({
-      exito: true,
-      cuentas
-    });
+    const empresa = asegurarPermiso(req, value.empresaId);
+    const cuentas = await obtenerCuentasDisponibles(empresa.id, value.anio);
+    res.json({ cuentas });
   } catch (error) {
-    console.error('Error al obtener cuentas:', error);
-    res.status(500).json({
-      exito: false,
-      mensaje: error.message || 'Error al obtener cuentas disponibles'
+    console.error('Error /api/comites/cuentas:', error);
+    res.status(error.status || 500).json({
+      mensaje: error.status ? error.message : 'No fue posible obtener las cuentas.'
     });
   }
 });
 
-/**
- * GET /api/comites/movimientos
- * Obtiene movimientos quincenales por cuentas
- */
-router.get('/movimientos', requireAuth, async (req, res) => {
+router.get('/movimientos', async (req, res) => {
   try {
-    const { empresaId, anio, cuentas } = req.query;
-    
-    if (!empresaId || !anio) {
-      return res.status(400).json({
-        exito: false,
-        mensaje: 'Los parámetros empresaId y anio son obligatorios'
-      });
+    const { value, error } = schemaMovimientos.validate({ ...req.query, cuentas: req.query.cuentas }, { abortEarly: false });
+    if (error) {
+      return res.status(400).json({ mensaje: 'Parámetros inválidos', detalles: error.details.map((d) => d.message) });
     }
 
-    // Convertir cuentas de string separado por comas a array
-    const listaCuentas = cuentas 
-      ? String(cuentas).split(',').map(c => c.trim()).filter(Boolean)
-      : [];
+    const empresa = asegurarPermiso(req, value.empresaId);
+    const cuentas = Array.isArray(value.cuentas)
+      ? value.cuentas
+      : value.cuentas.split(',').map((c) => c.trim()).filter(Boolean);
 
-    if (listaCuentas.length === 0) {
-      return res.json({
-        exito: true,
-        cuentas: [],
-        meses: []
-      });
+    if (!cuentas.length) {
+      return res.json({ cuentas: [], meses: MESES });
     }
 
-    const movimientos = await comitesService.obtenerMovimientosQuincenales(
-      empresaId, 
-      anio, 
-      listaCuentas
-    );
-    
-    const meses = [
-      { periodo: 1, alias: 'ENE', clave: 'ene' },
-      { periodo: 2, alias: 'FEB', clave: 'feb' },
-      { periodo: 3, alias: 'MAR', clave: 'mar' },
-      { periodo: 4, alias: 'ABR', clave: 'abr' },
-      { periodo: 5, alias: 'MAY', clave: 'may' },
-      { periodo: 6, alias: 'JUN', clave: 'jun' },
-      { periodo: 7, alias: 'JUL', clave: 'jul' },
-      { periodo: 8, alias: 'AGO', clave: 'ago' },
-      { periodo: 9, alias: 'SEP', clave: 'sep' },
-      { periodo: 10, alias: 'OCT', clave: 'oct' },
-      { periodo: 11, alias: 'NOV', clave: 'nov' },
-      { periodo: 12, alias: 'DIC', clave: 'dic' }
-    ];
-
-    res.json({
-      exito: true,
-      cuentas: movimientos,
-      meses
-    });
+    const movimientos = await obtenerMovimientosPorCuentas(empresa.id, value.anio, cuentas);
+    res.json({ cuentas: movimientos, meses: MESES });
   } catch (error) {
-    console.error('Error al obtener movimientos:', error);
-    res.status(500).json({
-      exito: false,
-      mensaje: error.message || 'Error al obtener movimientos'
+    console.error('Error /api/comites/movimientos:', error);
+    res.status(error.status || 500).json({
+      mensaje: error.status ? error.message : 'No fue posible obtener los movimientos.'
     });
   }
 });
