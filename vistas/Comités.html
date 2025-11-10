@@ -8,103 +8,601 @@
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --color-primary: #2f6f4e;
-      --color-secondary: #b87333;
-      --color-background: #f3f6f1;
-      --color-text: #243226;
+      --color-primary: #1f4e94;
+      --color-secondary: #f6b60a;
+      --color-background: #101623;
+      --color-panel: #111a2c;
+      --color-text: #f8fafc;
+      --color-muted: rgba(255, 255, 255, 0.5);
+      --border-soft: rgba(255, 255, 255, 0.08);
     }
 
     body {
-      background: var(--color-background);
+      background: radial-gradient(circle at top, #1a2740 0%, #0c1220 55%);
       font-family: 'Manrope', 'Segoe UI', Tahoma, sans-serif;
       color: var(--color-text);
       min-height: 100vh;
-      padding-top: 60px;
+      padding-top: 40px;
     }
 
-    .header-card {
-      background: var(--color-primary);
-      color: #fff;
-      border-radius: 18px;
-      border: 1px solid rgba(36, 50, 38, 0.1);
-      box-shadow: 0 18px 42px rgba(36, 50, 38, 0.18);
-    }
-
-    .module-card {
+    .hero-card {
+      background: linear-gradient(120deg, #1d3056 0%, #15213d 70%);
       border-radius: 20px;
-      border: 1px solid rgba(36, 50, 38, 0.08);
-      box-shadow: 0 22px 48px rgba(36, 50, 38, 0.16);
-      background: #fff;
+      padding: 2rem;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
     }
 
-    .module-card .card-body {
-      padding: clamp(1.5rem, 2vw, 2.5rem);
+    .hero-card h1 {
+      font-weight: 700;
+      margin-bottom: 0.25rem;
     }
 
-    .pill-accent {
-      background: rgba(255, 255, 255, 0.18);
-      border: 1px solid rgba(255, 255, 255, 0.3);
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
       padding: 0.35rem 0.9rem;
       border-radius: 999px;
-      font-weight: 700;
-      letter-spacing: 0.08em;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
     }
 
-    .module-grid {
-      min-height: 180px;
-    }
-
-    .module-card article {
-      border: none;
+    .panel {
+      margin-top: 2rem;
+      background: var(--color-panel);
       border-radius: 18px;
-      background: linear-gradient(145deg, #ffffff 0%, #f6f9f3 100%);
+      border: 1px solid var(--border-soft);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+      padding: 1.5rem;
     }
 
-    .module-card .card h3 {
-      color: var(--color-primary);
+    .panel-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: flex-end;
+      margin-bottom: 1.5rem;
+    }
+
+    .filters .form-label {
+      font-weight: 600;
+      font-size: 0.85rem;
+      color: var(--color-muted);
+    }
+
+    .form-control,
+    .form-select {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: var(--color-text);
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+      background: rgba(255, 255, 255, 0.07);
+      color: var(--color-text);
+      border-color: var(--color-secondary);
+      box-shadow: 0 0 0 0.15rem rgba(246, 182, 10, 0.25);
+    }
+
+    .btn-hero {
+      background: linear-gradient(120deg, #f6b60a, #ffcf4b);
+      color: #00102c;
       font-weight: 700;
+      border-radius: 999px;
+      padding: 0.55rem 1.6rem;
+      border: none;
+      box-shadow: 0 12px 20px rgba(246, 182, 10, 0.4);
+    }
+
+    .btn-hero:disabled {
+      opacity: 0.5;
+      box-shadow: none;
+    }
+
+    .table-comites {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      color: var(--color-text);
+    }
+
+    .table-comites th,
+    .table-comites td {
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 0.4rem 0.55rem;
+      text-align: right;
+      min-width: 75px;
+    }
+
+    .table-comites th:first-child,
+    .table-comites td:first-child {
+      text-align: left;
+      font-weight: 600;
+      min-width: 280px;
+    }
+
+    .table-comites thead th {
+      background: var(--color-primary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-size: 0.78rem;
+    }
+
+    .table-comites thead th span {
+      display: block;
+      color: var(--color-secondary);
+      font-weight: 800;
+    }
+
+    .table-comites tbody tr[data-section="ingresos"] td:first-child,
+    .table-comites tbody tr[data-section="gastos"] td:first-child {
+      color: var(--color-muted);
+      font-weight: 500;
+    }
+
+    .table-comites tbody tr[data-kind="total"] {
+      background: rgba(255, 255, 255, 0.05);
+      font-weight: 700;
+    }
+
+    .table-comites tbody tr[data-kind="resultado"] {
+      background: rgba(41, 171, 135, 0.12);
+      font-weight: 800;
+    }
+
+    .status-badge {
+      font-size: 0.85rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .comites-context-menu {
+      position: fixed;
+      z-index: 50;
+      background: #0d1422;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+      overflow: hidden;
+      min-width: 180px;
+    }
+
+    .comites-context-menu button {
+      width: 100%;
+      background: transparent;
+      border: none;
+      color: var(--color-text);
+      text-align: left;
+      padding: 0.6rem 0.9rem;
+    }
+
+    .comites-context-menu button:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--color-secondary);
+    }
+
+    @media (max-width: 992px) {
+      .table-comites th,
+      .table-comites td {
+        min-width: 90px;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="container py-4 py-lg-5">
-    <div class="row mb-4">
-      <div class="col-12">
-        <div class="card header-card">
-          <div class="card-body d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
-            <div>
-              <h1 class="h3 fw-bold mb-1">Comités</h1>
-              <p class="mb-0">Seguimiento a la actividad, participantes y resultados de los comités.</p>
-            </div>
-            <span class="pill-accent">Datos dinámicos</span>
-          </div>
+  <div class="container py-4">
+    <div class="hero-card mb-4">
+      <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start gap-3">
+        <div>
+          <p class="pill mb-2">Panel Comités</p>
+          <h1 class="display-6 mb-2">Resultados y Saldos por Cuenta</h1>
+          <p class="text-white-50 mb-0">
+            Consolida ingresos y gastos de los comités, con ajustes automáticos y totales mensuales.
+          </p>
+        </div>
+        <div class="text-lg-end">
+          <p class="text-uppercase text-white-50 mb-1 status-badge">Fuente</p>
+          <strong>SALDOSxx</strong>
         </div>
       </div>
     </div>
 
-    <div class="row g-4">
-      <div class="col-12">
-        <div class="card module-card">
-          <div class="card-body">
-            <div id="moduleLoader" class="d-flex align-items-center gap-2 mb-3 visually-hidden">
-              <div class="spinner-border text-success" role="status" aria-hidden="true"></div>
-              <span class="fw-semibold text-success">Actualizando información…</span>
-            </div>
-            <div id="moduleStatus" class="alert alert-info">Preparando información…</div>
-            <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4 module-grid" id="moduleDynamicList"></div>
+    <section class="panel">
+      <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <div class="panel-title">Reporte dinámico</div>
+        <span id="comitesStatus" class="text-white-50 small"></span>
+      </div>
+
+      <div class="filters">
+        <div class="flex-grow-1 flex-md-grow-0">
+          <label class="form-label" for="comitesYearSelect">Ejercicio</label>
+          <select id="comitesYearSelect" class="form-select">
+            <option value="">—</option>
+          </select>
+        </div>
+        <div class="flex-grow-1">
+          <label class="form-label" for="comitesNuevaCuenta">Agregar cuenta</label>
+          <div class="input-group">
+            <input id="comitesNuevaCuenta" class="form-control" placeholder="Ej. 404005000000000000002" maxlength="24" />
+            <button id="comitesBtnAgregar" class="btn btn-outline-light">Agregar</button>
           </div>
         </div>
+        <div>
+          <button id="comitesBtnActualizar" class="btn btn-hero">Actualizar</button>
+        </div>
       </div>
-    </div>
+
+      <div class="table-responsive">
+        <table class="table-comites" id="comitesTable">
+          <thead></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <div id="comitesContextMenu" class="comites-context-menu d-none">
+    <button type="button" data-action="remove">Eliminar cuenta</button>
   </div>
 
   <script src="js/sesion.js"></script>
-  <script src="js/modulo-generico.js"></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      initGenericModule('comites');
-    });
-  </script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    (() => {
+      const API_BASE = 'http://localhost:3000/api';
+      const STORAGE_KEY = 'comites_cuentas_v2';
+      const DEFAULT_LIST = {
+        ingresos: [
+          '404005000000000000002','404017000000000000002','404001000000000000002',
+          '404003000000000000002','404013000000000000002','404007000000000000002',
+          '404016000000000000002','404004000000000000002','404008000000000000002',
+          '404009000000000000002','404018000000000000002'
+        ],
+        gastos: [
+          '502014000000000000002','502005000000000000002','502001000000000000002',
+          '502003000000000000002','502013000000000000002','502007000000000000002',
+          '502016000000000000002','502004000000000000002','502002000000000000002',
+          '502009000000000000002','502017000000000000002','504000000000000000002'
+        ]
+      };
+      const COLUMNS = [
+        { clave: 'ene', etiqueta: 'ENE' }, { clave: 'feb', etiqueta: 'FEB' },
+        { clave: 'mar', etiqueta: 'MAR' }, { clave: 'abr', etiqueta: 'ABR' },
+        { clave: 'may', etiqueta: 'MAY' }, { clave: 'jun', etiqueta: 'JUN' },
+        { clave: 'jul', etiqueta: 'JUL' }, { clave: 'ago', etiqueta: 'AGO' },
+        { clave: 'sep', etiqueta: 'SEP' }, { clave: 'oct', etiqueta: 'OCT' },
+        { clave: 'nov', etiqueta: 'NOV' }, { clave: 'dic', etiqueta: 'DIC' }
+      ];
+      const currency = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 });
+
+      function initComitesPanel() {
+        const els = {
+          yearSelect: document.getElementById('comitesYearSelect'),
+          btnActualizar: document.getElementById('comitesBtnActualizar'),
+          inputNuevaCuenta: document.getElementById('comitesNuevaCuenta'),
+          btnAgregar: document.getElementById('comitesBtnAgregar'),
+          tableHead: document.querySelector('#comitesTable thead'),
+          tableBody: document.querySelector('#comitesTable tbody'),
+          status: document.getElementById('comitesStatus'),
+          contextMenu: document.getElementById('comitesContextMenu')
+        };
+
+        const state = {
+          cuentas: cargarLista(),
+          datos: new Map(),
+          anio: new Date().getFullYear(),
+          mesesMeta: [],
+          cuentaSeleccionada: null
+        };
+
+        function cargarLista() {
+          try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) return estructuraDefault();
+            const parsed = JSON.parse(raw);
+            const ingresos = Array.isArray(parsed.ingresos) && parsed.ingresos.length ? parsed.ingresos : DEFAULT_LIST.ingresos.slice();
+            const gastos = Array.isArray(parsed.gastos) && parsed.gastos.length ? parsed.gastos : DEFAULT_LIST.gastos.slice();
+            return { ingresos, gastos };
+          } catch {
+            return estructuraDefault();
+          }
+        }
+
+        function estructuraDefault() {
+          return {
+            ingresos: DEFAULT_LIST.ingresos.slice(),
+            gastos: DEFAULT_LIST.gastos.slice()
+          };
+        }
+
+        function guardarLista() {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state.cuentas));
+        }
+
+        function headersAuth() {
+          if (typeof Sesion !== 'undefined' && typeof Sesion.headersAutenticacion === 'function') {
+            return { ...Sesion.headersAutenticacion() };
+          }
+          return {};
+        }
+
+        function empresaActiva() {
+          if (typeof Sesion !== 'undefined' && typeof Sesion.obtenerEmpresaActiva === 'function') {
+            return Sesion.obtenerEmpresaActiva();
+          }
+          return null;
+        }
+
+        function setStatus(msg, tipo = 'info') {
+          if (!els.status) return;
+          const palette = {
+            info: 'text-white-50',
+            success: 'text-success',
+            danger: 'text-danger',
+            warning: 'text-warning'
+          };
+          els.status.textContent = msg || '';
+          els.status.className = palette[tipo] || palette.info;
+        }
+
+        function formatoValor(value) {
+          if (!value || Math.abs(value) < 0.5) return '–';
+          return currency.format(value);
+        }
+
+        function actualizarEncabezado() {
+          const anio = Number(state.anio) || new Date().getFullYear();
+          const sufijo = String(anio).slice(-2);
+          const cols = COLUMNS.map(col => `<th><span>${col.etiqueta.toLowerCase()}-${sufijo}</span></th>`).join('');
+          els.tableHead.innerHTML = `
+            <tr>
+              <th>COMITÉS</th>
+              ${cols}
+              <th><span>${anio}</span>Total</th>
+            </tr>
+          `;
+        }
+
+        function buildRow(codigo, tipo) {
+          const registro = state.datos.get(codigo) || {};
+          const valores = {};
+          COLUMNS.forEach((col) => {
+            valores[col.clave] = Number(registro[col.clave] || 0);
+          });
+          valores.total = Number(registro.anual || 0);
+          return {
+            codigo,
+            nombre: registro.nombre || codigo,
+            valores,
+            tipo
+          };
+        }
+
+        function sumarFilas(rows) {
+          const total = {};
+          COLUMNS.forEach(col => total[col.clave] = 0);
+          total.total = 0;
+          rows.forEach((row) => {
+            COLUMNS.forEach((col) => { total[col.clave] += row.valores[col.clave]; });
+            total.total += row.valores.total;
+          });
+          return total;
+        }
+
+        function renderTabla() {
+          actualizarEncabezado();
+          const ingresosRows = state.cuentas.ingresos.map(c => buildRow(c, 'ingresos'));
+          const gastosRows = state.cuentas.gastos.map(c => buildRow(c, 'gastos'));
+          const totalIngresos = sumarFilas(ingresosRows);
+          const totalGastos = sumarFilas(gastosRows);
+          const resultado = {};
+          COLUMNS.forEach((col) => { resultado[col.clave] = totalIngresos[col.clave] - totalGastos[col.clave]; });
+          resultado.total = totalIngresos.total - totalGastos.total;
+
+          const htmlPartes = [];
+
+          ingresosRows.forEach((row) => {
+            htmlPartes.push(renderRow(row, 'ingresos'));
+          });
+          htmlPartes.push(renderTotalRow('Suma de Ingresos Comités', totalIngresos));
+          htmlPartes.push('<tr><td colspan="14" style="background:transparent; border:none;"></td></tr>');
+          gastosRows.forEach((row) => htmlPartes.push(renderRow(row, 'gastos')));
+          htmlPartes.push(renderTotalRow('Suma de Gastos Comités', totalGastos));
+          htmlPartes.push(renderResultadoRow('Resultado Operativo Comités', resultado));
+          htmlPartes.push(renderResultadoRow('Resultado Comités', resultado));
+
+          els.tableBody.innerHTML = htmlPartes.join('');
+        }
+
+        function renderRow(row, section) {
+          const celdas = COLUMNS.map(col => `<td>${formatoValor(row.valores[col.clave])}</td>`).join('');
+          return `
+            <tr data-cuenta="${row.codigo}" data-section="${section}">
+              <td>${row.codigo} <br><span class="text-white-50">${row.nombre}</span></td>
+              ${celdas}
+              <td>${formatoValor(row.valores.total)}</td>
+            </tr>
+          `;
+        }
+
+        function renderTotalRow(label, totales) {
+          const celdas = COLUMNS.map(col => `<td>${formatoValor(totales[col.clave])}</td>`).join('');
+          return `
+            <tr data-kind="total">
+              <td>${label}</td>
+              ${celdas}
+              <td>${formatoValor(totales.total)}</td>
+            </tr>
+          `;
+        }
+
+        function renderResultadoRow(label, totales) {
+          const celdas = COLUMNS.map(col => `<td>${formatoValor(totales[col.clave])}</td>`).join('');
+          return `
+            <tr data-kind="resultado">
+              <td>${label}</td>
+              ${celdas}
+              <td>${formatoValor(totales.total)}</td>
+            </tr>
+          `;
+        }
+
+        async function poblarAnios() {
+          try {
+            const resp = await fetch(`${API_BASE}/modulos/summary-anios`, { headers: headersAuth() });
+            const data = await resp.json();
+            if (resp.ok && Array.isArray(data.anios) && data.anios.length) {
+              els.yearSelect.innerHTML = data.anios
+                .sort((a, b) => b - a)
+                .map(anio => `<option value="${anio}">${anio}</option>`)
+                .join('');
+              if (!data.anios.includes(state.anio)) {
+                state.anio = data.anios[0];
+              }
+              els.yearSelect.value = String(state.anio);
+            } else {
+              throw new Error('Sin ejercicios disponibles.');
+            }
+          } catch (error) {
+            console.warn('No fue posible cargar años.', error);
+            const actual = new Date().getFullYear();
+            els.yearSelect.innerHTML = `<option value="${actual}">${actual}</option>`;
+            els.yearSelect.value = actual;
+            state.anio = actual;
+          }
+        }
+
+        async function cargarDatos() {
+          const empresa = empresaActiva();
+          if (!empresa?.id) {
+            setStatus('Selecciona una empresa en la barra principal.', 'warning');
+            return;
+          }
+          const anioSeleccionado = Number(els.yearSelect.value || new Date().getFullYear());
+          state.anio = anioSeleccionado;
+          setStatus('Consultando saldos…', 'info');
+          els.btnActualizar.disabled = true;
+
+          const cuentas = [...state.cuentas.ingresos, ...state.cuentas.gastos];
+          if (!cuentas.length) {
+            els.tableBody.innerHTML = '<tr><td colspan="14">No hay cuentas configuradas.</td></tr>';
+            setStatus('Agrega al menos una cuenta.', 'warning');
+            els.btnActualizar.disabled = false;
+            return;
+          }
+
+          const params = new URLSearchParams({
+            empresaId: empresa.id,
+            anio: anioSeleccionado,
+            cuentas: cuentas.join(',')
+          }).toString();
+
+          try {
+            const resp = await fetch(`${API_BASE}/saldos?${params}`, { headers: headersAuth() });
+            const payload = await resp.json();
+            if (!resp.ok) throw new Error(payload.mensaje || 'No fue posible obtener saldos.');
+
+            state.datos = new Map(
+              (payload.cuentas || []).map(item => [String(item.numCta).trim(), item])
+            );
+            state.mesesMeta = payload.meses || [];
+            renderTabla();
+            setStatus(`Actualizado ${new Date().toLocaleTimeString('es-MX')}`, 'success');
+          } catch (error) {
+            console.error('Error al cargar saldos', error);
+            setStatus(error.message || 'No fue posible cargar saldos.', 'danger');
+          } finally {
+            els.btnActualizar.disabled = false;
+          }
+        }
+
+        function determinarGrupo(codigo) {
+          if (/^404/.test(codigo)) return 'ingresos';
+          if (/^502|^504/.test(codigo)) return 'gastos';
+          return state.cuentas.ingresos.length <= state.cuentas.gastos.length ? 'ingresos' : 'gastos';
+        }
+
+        function agregarCuenta() {
+          const raw = (els.inputNuevaCuenta.value || '').trim();
+          if (!raw) return;
+          const soloNumeros = raw.replace(/\D/g, '');
+          const clean = soloNumeros.length ? soloNumeros : raw.toUpperCase();
+          const yaExiste = [...state.cuentas.ingresos, ...state.cuentas.gastos].some(cta => cta === clean);
+          if (yaExiste) {
+            alert('La cuenta ya está en la lista.');
+            return;
+          }
+          const grupo = determinarGrupo(clean);
+          state.cuentas[grupo].push(clean);
+          guardarLista();
+          els.inputNuevaCuenta.value = '';
+          renderTabla();
+        }
+
+        function eliminarCuenta(codigo) {
+          state.cuentas.ingresos = state.cuentas.ingresos.filter(cta => cta !== codigo);
+          state.cuentas.gastos = state.cuentas.gastos.filter(cta => cta !== codigo);
+          guardarLista();
+          renderTabla();
+        }
+
+        function mostrarContextMenu(evt, codigo) {
+          state.cuentaSeleccionada = codigo;
+          els.contextMenu.style.top = `${evt.clientY}px`;
+          els.contextMenu.style.left = `${evt.clientX}px`;
+          els.contextMenu.classList.remove('d-none');
+        }
+
+        function ocultarContextMenu() {
+          els.contextMenu.classList.add('d-none');
+          state.cuentaSeleccionada = null;
+        }
+
+        // Eventos
+        els.btnAgregar.addEventListener('click', agregarCuenta);
+        els.inputNuevaCuenta.addEventListener('keyup', (evt) => {
+          if (evt.key === 'Enter') agregarCuenta();
+        });
+        els.btnActualizar.addEventListener('click', cargarDatos);
+        els.yearSelect.addEventListener('change', () => {
+          state.anio = Number(els.yearSelect.value);
+        });
+        els.tableBody.addEventListener('contextmenu', (evt) => {
+          const fila = evt.target.closest('tr[data-cuenta]');
+          if (!fila) return;
+          evt.preventDefault();
+          mostrarContextMenu(evt, fila.dataset.cuenta);
+        });
+        document.addEventListener('click', (evt) => {
+          if (!evt.target.closest('#comitesContextMenu')) ocultarContextMenu();
+        });
+        window.addEventListener('scroll', ocultarContextMenu);
+        window.addEventListener('resize', ocultarContextMenu);
+        els.contextMenu.querySelector('[data-action="remove"]').addEventListener('click', () => {
+          if (state.cuentaSeleccionada) eliminarCuenta(state.cuentaSeleccionada);
+          ocultarContextMenu();
+        });
+
+        // Inicio
+        (async () => {
+          await poblarAnios();
+          renderTabla();
+          cargarDatos();
+        })();
+      }
+
+      document.addEventListener('DOMContentLoaded', initComitesPanel);
+    })();
+  </script>
 </body>
 </html>
