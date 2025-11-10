@@ -196,9 +196,10 @@
         <div class="flex-grow-1">
           <label class="form-label" for="comitesNuevaCuenta">Agregar cuenta</label>
           <div class="input-group">
-            <input id="comitesNuevaCuenta" class="form-control" placeholder="Ej. 404005000000000000002" maxlength="24" />
+            <input id="comitesNuevaCuenta" class="form-control" placeholder="Buscar cuenta..." maxlength="24" autocomplete="off" />
             <button id="comitesBtnAgregar" class="btn btn-outline-light">Agregar</button>
           </div>
+          <div id="comitesCuentaSuggestions" class="position-absolute bg-white border rounded shadow-sm d-none" style="z-index: 1000; max-height: 200px; overflow-y: auto; width: calc(100% - 80px);"></div>
         </div>
         <div>
           <button id="comitesBtnActualizar" class="btn btn-hero">Actualizar</button>
@@ -270,7 +271,8 @@
           datos: new Map(),
           anio: new Date().getFullYear(),
           mesesMeta: [],
-          cuentaSeleccionada: null
+          cuentaSeleccionada: null,
+          cuentasDisponibles: []
         };
 
         function cargarLista() {
@@ -437,6 +439,7 @@
                 state.anio = ordenAsc[0];
               }
               els.yearSelect.value = String(state.anio);
+              await poblarCuentasDisponibles(); // Cargar cuentas cuando cambie el año
             } else {
               throw new Error('Sin ejercicios disponibles.');
             }
@@ -446,6 +449,23 @@
             els.yearSelect.innerHTML = `<option value="${actual}">${actual}</option>`;
             els.yearSelect.value = actual;
             state.anio = actual;
+          }
+        }
+
+        async function poblarCuentasDisponibles() {
+          try {
+            const empresa = empresaActiva();
+            const query = empresa?.id ? `?empresaId=${encodeURIComponent(empresa.id)}&anio=${encodeURIComponent(state.anio)}` : '';
+            const resp = await fetch(`${API_BASE}/saldos/cuentas${query}`, { headers: headersAuth() });
+            const data = await resp.json();
+            if (resp.ok && Array.isArray(data.cuentas)) {
+              state.cuentasDisponibles = data.cuentas;
+            } else {
+              state.cuentasDisponibles = [];
+            }
+          } catch (error) {
+            console.warn('No fue posible cargar cuentas disponibles.', error);
+            state.cuentasDisponibles = [];
           }
         }
 
@@ -499,6 +519,43 @@
           return state.cuentas.ingresos.length <= state.cuentas.gastos.length ? 'ingresos' : 'gastos';
         }
 
+        function mostrarSugerenciasCuentas(termino) {
+          const suggestionsEl = document.getElementById('comitesCuentaSuggestions');
+          if (!termino.trim()) {
+            suggestionsEl.classList.add('d-none');
+            return;
+          }
+
+          const terminoLower = termino.toLowerCase();
+          const sugerencias = state.cuentasDisponibles
+            .filter(cuenta =>
+              cuenta.cuenta.toLowerCase().includes(terminoLower) ||
+              cuenta.nombre.toLowerCase().includes(terminoLower)
+            )
+            .slice(0, 10); // Limitar a 10 sugerencias
+
+          if (sugerencias.length === 0) {
+            suggestionsEl.classList.add('d-none');
+            return;
+          }
+
+          suggestionsEl.innerHTML = sugerencias
+            .map(cuenta => `
+              <div class="p-2 border-bottom cursor-pointer cuenta-sugerencia" data-cuenta="${cuenta.cuenta}" style="cursor: pointer;">
+                <div class="fw-bold">${cuenta.cuenta}</div>
+                <div class="text-muted small">${cuenta.nombre}</div>
+              </div>
+            `)
+            .join('');
+
+          suggestionsEl.classList.remove('d-none');
+        }
+
+        function ocultarSugerenciasCuentas() {
+          const suggestionsEl = document.getElementById('comitesCuentaSuggestions');
+          setTimeout(() => suggestionsEl.classList.add('d-none'), 150);
+        }
+
         function agregarCuenta() {
           const raw = (els.inputNuevaCuenta.value || '').trim();
           if (!raw) return;
@@ -538,12 +595,28 @@
 
         // Eventos
         els.btnAgregar.addEventListener('click', agregarCuenta);
+        els.inputNuevaCuenta.addEventListener('input', (evt) => {
+          mostrarSugerenciasCuentas(evt.target.value);
+        });
         els.inputNuevaCuenta.addEventListener('keyup', (evt) => {
           if (evt.key === 'Enter') agregarCuenta();
+          if (evt.key === 'Escape') ocultarSugerenciasCuentas();
         });
+        els.inputNuevaCuenta.addEventListener('blur', ocultarSugerenciasCuentas);
         els.btnActualizar.addEventListener('click', cargarDatos);
-        els.yearSelect.addEventListener('change', () => {
+        els.yearSelect.addEventListener('change', async () => {
           state.anio = Number(els.yearSelect.value);
+          await poblarCuentasDisponibles();
+        });
+
+        // Evento para las sugerencias de cuentas
+        document.addEventListener('click', (evt) => {
+          if (evt.target.classList.contains('cuenta-sugerencia')) {
+            const cuenta = evt.target.dataset.cuenta;
+            els.inputNuevaCuenta.value = cuenta;
+            ocultarSugerenciasCuentas();
+            agregarCuenta();
+          }
         });
         els.tableBody.addEventListener('contextmenu', (evt) => {
           const fila = evt.target.closest('tr[data-cuenta]');
@@ -565,6 +638,7 @@
         (async () => {
           await poblarAnios();
           renderTabla();
+          await poblarCuentasDisponibles();
           cargarDatos();
         })();
       }

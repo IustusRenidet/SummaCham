@@ -4,7 +4,7 @@ const Joi = require('joi');
 const { db } = require('../db/sqlite');
 const { obtenerEmpresaPorId } = require('../config/empresas');
 const { construirMapaPermisos } = require('../services/permisosService');
-const { obtenerSaldosPorCuentas, MESES, obtenerAniosDisponibles } = require('../services/saldosService');
+const { obtenerSaldosPorCuentas, MESES, obtenerAniosDisponibles, obtenerCuentasPorAnio } = require('../services/saldosService');
 
 const router = express.Router();
 
@@ -113,6 +113,48 @@ router.get('/anios', async (req, res) => {
   } catch (e) {
     console.error('Error /api/saldos/anios:', e);
     res.status(500).json({ mensaje: 'No fue posible obtener años disponibles.' });
+  }
+});
+
+router.get('/cuentas', async (req, res) => {
+  // auth mínima igual que presupuestos.js
+  const u = normalizar(req.headers['x-usuario-actual']);
+  if (!u) return res.status(401).json({ mensaje: 'Usuario no válido.' });
+
+  const usr = db.prepare(`SELECT id, usuario, es_admin_global FROM usuarios WHERE usuario=?`).get(u);
+  if (!usr) return res.status(401).json({ mensaje: 'Usuario no válido.' });
+
+  const esAdmin = usr.usuario === 'ICONET' || !!usr.es_admin_global;
+
+  const { value, error } = Joi.object({
+    empresaId: Joi.string().required(),
+    anio: Joi.number().integer().min(2000).max(2100).required()
+  }).validate(req.query, { abortEarly: false });
+
+  if (error) {
+    return res.status(400).json({ mensaje:'Parámetros inválidos', detalles: error.details.map(d=>d.message) });
+  }
+
+  const empresa = obtenerEmpresaPorId(value.empresaId);
+  if (!empresa) return res.status(404).json({ mensaje: 'Empresa no existe.' });
+
+  let mapa = {};
+  if (!esAdmin) {
+    const permisos = db.prepare(`
+      SELECT empresa_id, modulo, puede_cargar_guardar, puede_revisar, puede_aprobar
+      FROM permisos_modulo
+      WHERE usuario_id = ?
+    `).all(usr.id);
+    mapa = construirMapaPermisos(permisos);
+    if (!puede(mapa, empresa.id)) return res.status(403).json({ mensaje: 'Sin permiso para esta empresa.' });
+  }
+
+  try {
+    const cuentas = await obtenerCuentasPorAnio(empresa.id, value.anio);
+    res.json({ cuentas });
+  } catch (e) {
+    console.error('Error /api/saldos/cuentas:', e);
+    res.status(500).json({ mensaje: 'No fue posible obtener cuentas.' });
   }
 });
 
