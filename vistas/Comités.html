@@ -107,7 +107,13 @@
     .table-comites td:first-child {
       text-align: left;
       font-weight: 600;
-      min-width: 320px;
+      min-width: 180px;
+    }
+
+    .table-comites th:nth-child(2),
+    .table-comites td:nth-child(2) {
+      text-align: left;
+      min-width: 240px;
     }
 
     .table-comites thead th {
@@ -140,10 +146,9 @@
       font-weight: 500;
     }
 
-    .table-comites tbody tr td:first-child span {
-      display: block;
+    .table-comites tbody tr td:nth-child(2) {
       color: var(--color-secondary-white);
-      font-size: 0.78rem;
+      font-size: 0.82rem;
       font-weight: 500;
     }
 
@@ -223,7 +228,7 @@
   <script src="js/sesion.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
  
-  <script> existente
+  <script>
 
       (() => {
         const sesion = (typeof Sesion !== 'undefined' && typeof Sesion.requerirSesion === 'function')
@@ -344,6 +349,15 @@
             return currency.format(value);
           }
 
+          function escapeHtml(value) {
+            return String(value ?? '')
+              .replace(/&/g, '&amp;')
+              .replace(/</g, '&lt;')
+              .replace(/>/g, '&gt;')
+              .replace(/"/g, '&quot;')
+              .replace(/'/g, '&#39;');
+          }
+
           function actualizarEncabezado() {
             const anio = Number(state.anio) || new Date().getFullYear();
             const sufijo = String(anio).slice(-2);
@@ -352,7 +366,8 @@
             ).join('');
             els.tableHead.innerHTML = `
         <tr>
-          <th>COMITÉS</th>
+          <th>Cuenta</th>
+          <th>Descripción</th>
           ${cols}
           <th><span>${anio}</span>Total</th>
         </tr>
@@ -365,7 +380,9 @@
             COLUMNS.forEach((col) => {
               valores[col.clave] = Number(registro[col.clave] || 0);
             });
-            valores.total = Number(registro.anual || 0);
+            const ajustes = Number(registro.ajuste13 || 0) + Number(registro.ajuste14 || 0);
+            const totalMeses = COLUMNS.reduce((acum, col) => acum + valores[col.clave], 0);
+            valores.total = totalMeses + ajustes;
             return {
               codigo,
               nombre: registro.nombre || codigo,
@@ -407,7 +424,7 @@
               htmlPartes.push(renderRow(row, 'ingresos'));
             });
             htmlPartes.push(renderTotalRow('Suma de Ingresos Comités', totalIngresos));
-            htmlPartes.push('<tr><td colspan="14" style="background:transparent; border:none;"></td></tr>');
+            htmlPartes.push('<tr><td colspan="15" style="background:transparent; border:none;"></td></tr>');
             gastosRows.forEach((row) => htmlPartes.push(renderRow(row, 'gastos')));
             htmlPartes.push(renderTotalRow('Suma de Gastos Comités', totalGastos));
             htmlPartes.push(renderResultadoRow('Resultado Operativo Comités', resultado));
@@ -420,9 +437,13 @@
             const celdas = COLUMNS.map(col =>
               `<td>${formatoValor(row.valores[col.clave])}</td>`
             ).join('');
+            const codigo = row.codigo ? escapeHtml(row.codigo) : '—';
+            const descripcionTexto = row.nombre ? escapeHtml(row.nombre) : '—';
+            const tituloDescripcion = row.nombre ? ` title="${descripcionTexto}"` : '';
             return `
         <tr data-cuenta="${row.codigo}" data-section="${section}">
-          <td>${row.codigo} <br><span class="text-white-50">${row.nombre}</span></td>
+          <td>${codigo}</td>
+          <td${tituloDescripcion}>${descripcionTexto}</td>
           ${celdas}
           <td>${formatoValor(row.valores.total)}</td>
         </tr>
@@ -433,9 +454,10 @@
             const celdas = COLUMNS.map(col =>
               `<td>${formatoValor(totales[col.clave])}</td>`
             ).join('');
+            const texto = escapeHtml(label);
             return `
         <tr data-kind="total">
-          <td>${label}</td>
+          <td colspan="2" class="text-start">${texto}</td>
           ${celdas}
           <td>${formatoValor(totales.total)}</td>
         </tr>
@@ -446,9 +468,10 @@
             const celdas = COLUMNS.map(col =>
               `<td>${formatoValor(totales[col.clave])}</td>`
             ).join('');
+            const texto = escapeHtml(label);
             return `
         <tr data-kind="resultado">
-          <td>${label}</td>
+          <td colspan="2" class="text-start">${texto}</td>
           ${celdas}
           <td>${formatoValor(totales.total)}</td>
         </tr>
@@ -474,9 +497,10 @@
 
               if (Array.isArray(data.anios) && data.anios.length) {
                 const ordenAsc = data.anios.slice().sort((a, b) => a - b);
-                els.yearSelect.innerHTML = ordenAsc
-                  .map(anio => `<option value="${anio}">${anio}</option>`)
-                  .join('');
+                const opciones = ['<option value="">—</option>'].concat(
+                  ordenAsc.map(anio => `<option value="${anio}">${anio}</option>`)
+                );
+                els.yearSelect.innerHTML = opciones.join('');
                 if (!ordenAsc.includes(state.anio)) {
                   state.anio = ordenAsc[ordenAsc.length - 1]; // último año disponible
                 }
@@ -487,8 +511,11 @@
             } catch (error) {
               console.warn('No fue posible cargar años.', error);
               const actual = new Date().getFullYear();
-              els.yearSelect.innerHTML = `<option value="${actual}">${actual}</option>`;
-              els.yearSelect.value = actual;
+              els.yearSelect.innerHTML = `
+                <option value="">—</option>
+                <option value="${actual}">${actual}</option>
+              `;
+              els.yearSelect.value = String(actual);
               state.anio = actual;
               setStatus(error.message || 'Error al cargar años', 'warning');
             } finally {
@@ -537,7 +564,7 @@
 
             const cuentas = [...state.cuentas.ingresos, ...state.cuentas.gastos];
             if (!cuentas.length) {
-              els.tableBody.innerHTML = '<tr><td colspan="14">No hay cuentas configuradas.</td></tr>';
+              els.tableBody.innerHTML = '<tr><td colspan="15">No hay cuentas configuradas.</td></tr>';
               setStatus('Agrega al menos una cuenta.', 'warning');
               state.cargando = false;
               return;
