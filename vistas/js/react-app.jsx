@@ -13,7 +13,7 @@ const MODULE_GROUPS = [
   },
   {
     id: 'resumen-areas',
-    label: 'Resumen',
+    label: 'Divisiones',
     items: [
       { id: 'resumen', label: 'Resumen', path: 'RESUMEN.html', badge: 'ppto', permiso: 'RESUMEN' },
       { id: 'membresia', label: 'Membresía', path: 'Membresía.html' },
@@ -30,7 +30,7 @@ const MODULE_GROUPS = [
   },
   {
     id: 'panel-administracion',
-    label: 'Administración',
+    label: 'Configuración',
     items: [
       { id: 'usuarios', label: 'Administrar usuarios', path: 'usuarios.html', badge: 'Permisos', requiresAdmin: true },
       { id: 'crear-usuario', label: 'Crear usuario', path: 'crear_usuario.html', requiresAdmin: true }
@@ -337,7 +337,7 @@ const DashboardLayout = ({ sesion, selectedModuleId, onSelectModule, onLogout, e
     <div className={layoutClassName}>
       <aside className="app-sidebar" aria-label="Navegación principal">
         <div className="sidebar-header">
-          <img src="../icono/ambcham.png" alt="AmCham" className="sidebar-logo" />
+          <img src="../icono/amcham.png" alt="AmCham" className="sidebar-logo" />
         </div>
         <div className="sidebar-menu">
           {gruposDisponibles.map((group) => (
