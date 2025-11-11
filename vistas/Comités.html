@@ -110,11 +110,25 @@
       min-width: 75px;
     }
 
-    .table-comites th:first-child,
-    .table-comites td:first-child {
+    .table-comites .account-column-header {
+      text-align: left;
+      min-width: 160px;
+      white-space: nowrap;
+    }
+
+    .table-comites .account-column {
       text-align: left;
       font-weight: 600;
-      min-width: 320px;
+      min-width: 160px;
+      font-family: 'Courier New', monospace;
+      background-color: rgba(47, 84, 150, 0.05);
+    }
+
+    .table-comites .account-description {
+      text-align: left;
+      font-weight: 600;
+      min-width: 240px;
+      color: var(--color-text);
     }
 
     .table-comites thead th {
@@ -141,17 +155,15 @@
       font-weight: 800;
     }
 
-    .table-comites tbody tr[data-section="ingresos"] td:first-child,
-    .table-comites tbody tr[data-section="gastos"] td:first-child {
+    .table-comites tbody tr[data-section="ingresos"] .account-description,
+    .table-comites tbody tr[data-section="gastos"] .account-description {
       color: var(--color-text);
       font-weight: 500;
     }
 
-    .table-comites tbody tr td:first-child span {
-      display: block;
-      color: var(--color-secondary-white);
-      font-size: 0.78rem;
-      font-weight: 500;
+    body.ocultar-cuentas .account-column,
+    body.ocultar-cuentas .account-column-header {
+      display: none;
     }
 
     #comitesStatus {
@@ -211,6 +223,9 @@
           <div id="comitesCuentaSuggestions" class="position-absolute bg-white border rounded shadow-sm d-none"
             style="z-index: 1000; max-height: 200px; overflow-y: auto; width: calc(100% - 80px);"></div>
         </div>
+        <div class="flex-shrink-0 d-flex align-items-end">
+          <button id="comitesToggleAccounts" type="button" class="btn btn-outline-secondary d-none">Ocultar cuentas</button>
+        </div>
       </div>
 
       <div class="table-responsive">
@@ -239,6 +254,7 @@
 
         const API_BASE = 'http://localhost:3000/api';
         const STORAGE_KEY = 'comites_cuentas_v2';
+        const COLUMN_VISIBILITY_KEY = 'comites_ocultar_cuentas';
         const DEFAULT_LIST = {
           ingresos: [
             '404005000000000000002', '404017000000000000002', '404001000000000000002',
@@ -261,6 +277,7 @@
           { clave: 'sep', etiqueta: 'SEP' }, { clave: 'oct', etiqueta: 'OCT' },
           { clave: 'nov', etiqueta: 'NOV' }, { clave: 'dic', etiqueta: 'DIC' }
         ];
+        const TOTAL_COLUMNS = COLUMNS.length + 3;
         const currency = new Intl.NumberFormat('es-MX', {
           style: 'currency',
           currency: 'MXN',
@@ -276,7 +293,8 @@
             tableBody: document.querySelector('#comitesTable tbody'),
             status: document.getElementById('comitesStatus'),
             contextMenu: document.getElementById('comitesContextMenu'),
-            suggestions: document.getElementById('comitesCuentaSuggestions')
+            suggestions: document.getElementById('comitesCuentaSuggestions'),
+            toggleAccounts: document.getElementById('comitesToggleAccounts')
           };
 
           const state = {
@@ -288,6 +306,38 @@
             cuentasDisponibles: [],
             cargando: false,
             needsReload: false
+          };
+
+          const actualizarBotonColumnas = (ocultar) => {
+            if (!els.toggleAccounts) return;
+            els.toggleAccounts.textContent = ocultar ? 'Mostrar cuentas' : 'Ocultar cuentas';
+            els.toggleAccounts.setAttribute('aria-pressed', ocultar ? 'true' : 'false');
+          };
+
+          const aplicarVisibilidadCuentas = (ocultar) => {
+            document.body.classList.toggle('ocultar-cuentas', Boolean(ocultar));
+            actualizarBotonColumnas(Boolean(ocultar));
+          };
+
+          const inicializarToggleColumnas = () => {
+            const esAdminGlobal = typeof Sesion !== 'undefined'
+              && typeof Sesion.esAdminGlobal === 'function'
+              && Sesion.esAdminGlobal(sesion);
+
+            if (!esAdminGlobal || !els.toggleAccounts) {
+              aplicarVisibilidadCuentas(false);
+              return;
+            }
+
+            els.toggleAccounts.classList.remove('d-none');
+            const preferencia = localStorage.getItem(COLUMN_VISIBILITY_KEY) === '1';
+            aplicarVisibilidadCuentas(preferencia);
+
+            els.toggleAccounts.addEventListener('click', () => {
+              const ocultar = !document.body.classList.contains('ocultar-cuentas');
+              aplicarVisibilidadCuentas(ocultar);
+              localStorage.setItem(COLUMN_VISIBILITY_KEY, ocultar ? '1' : '0');
+            });
           };
 
           function cargarLista() {
@@ -358,6 +408,7 @@
             ).join('');
             els.tableHead.innerHTML = `
         <tr>
+          <th class="account-column-header">Cuenta</th>
           <th>COMITÉS</th>
           ${cols}
           <th><span>${anio}</span>Total</th>
@@ -413,7 +464,7 @@
               htmlPartes.push(renderRow(row, 'ingresos'));
             });
             htmlPartes.push(renderTotalRow('Suma de Ingresos Comités', totalIngresos));
-            htmlPartes.push('<tr><td colspan="14" style="background:transparent; border:none;"></td></tr>');
+            htmlPartes.push(`<tr><td colspan="${TOTAL_COLUMNS}" style="background:transparent; border:none;"></td></tr>`);
             gastosRows.forEach((row) => htmlPartes.push(renderRow(row, 'gastos')));
             htmlPartes.push(renderTotalRow('Suma de Gastos Comités', totalGastos));
             htmlPartes.push(renderResultadoRow('Resultado Operativo Comités', resultado));
@@ -426,9 +477,12 @@
             const celdas = COLUMNS.map(col =>
               `<td>${formatoValor(row.valores[col.clave])}</td>`
             ).join('');
+            const descripcion = row.nombre || row.codigo;
+            const codigo = row.codigo || '—';
             return `
         <tr data-cuenta="${row.codigo}" data-section="${section}">
-          <td>${row.codigo} <br><span class="text-white-50">${row.nombre}</span></td>
+          <td class="account-column">${codigo}</td>
+          <td class="account-description">${descripcion}</td>
           ${celdas}
           <td>${formatoValor(row.valores.total)}</td>
         </tr>
@@ -441,7 +495,7 @@
             ).join('');
             return `
         <tr data-kind="total">
-          <td>${label}</td>
+          <td colspan="2">${label}</td>
           ${celdas}
           <td>${formatoValor(totales.total)}</td>
         </tr>
@@ -454,7 +508,7 @@
             ).join('');
             return `
         <tr data-kind="resultado">
-          <td>${label}</td>
+          <td colspan="2">${label}</td>
           ${celdas}
           <td>${formatoValor(totales.total)}</td>
         </tr>
@@ -547,7 +601,7 @@
 
             const cuentas = [...state.cuentas.ingresos, ...state.cuentas.gastos];
             if (!cuentas.length) {
-              els.tableBody.innerHTML = '<tr><td colspan="14">No hay cuentas configuradas.</td></tr>';
+              els.tableBody.innerHTML = `<tr><td colspan="${TOTAL_COLUMNS}">No hay cuentas configuradas.</td></tr>`;
               setStatus('Agrega al menos una cuenta.', 'warning');
               state.cargando = false;
               return;
@@ -718,6 +772,8 @@
             if (state.cuentaSeleccionada) eliminarCuenta(state.cuentaSeleccionada);
             ocultarContextMenu();
           });
+
+          inicializarToggleColumnas();
 
           async function inicializarPanel() {
             await poblarAnios();
