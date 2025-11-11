@@ -13,15 +13,21 @@
 
   <style>
     :root {
-      --color-primary: #2f6f4e;
-      --color-secondary: #b87333;
-      --color-background: #f3f6f1;
-      --color-text: #243226;
-      --color-primary-blue: #333399;
-      --color-bright-blue: #0e19fa;
-      --color-secondary-white: #8497b0;
+      --color-primary: #2f5496;
+      --color-secondary: #8497b0;
+      --color-background: #f2f2f2;
+      --color-text: #2f5496;
+      --bs-primary: #2f5496;
+      --bs-primary-rgb: 47, 84, 150;
+      --bs-success: #2f5496;
+      --bs-success-rgb: 47, 84, 150;
+      --bs-success-bg-subtle: rgba(47, 84, 150, 0.16);
+      --bs-success-border-subtle: rgba(47, 84, 150, 0.35);
+      --color-primary-blue: #2f5496;
+      --color-bright-blue: #8497b0;
+      --color-secondary-white: #d9d9d9;
       --color-neutral-row: #d9d9d9;
-      --color-selected: #ffeaa7;
+      --color-selected: #8497b0;
       --zoom-level: 1;
     }
 
@@ -37,15 +43,15 @@
       background: var(--color-primary);
       color: #fff;
       border-radius: 16px;
-      border: 1px solid rgba(36, 50, 38, .1);
-      box-shadow: 0 12px 30px rgba(36, 50, 38, .18);
+      border: 1px solid rgba(47, 84, 150, .1);
+      box-shadow: 0 12px 30px rgba(47, 84, 150, .18);
     }
 
     .filter-card {
       border-radius: 16px;
-      border: 1px solid rgba(36, 50, 38, .08);
+      border: 1px solid rgba(47, 84, 150, .08);
       background: #ffffff;
-      box-shadow: 0 10px 24px rgba(36, 50, 38, .12);
+      box-shadow: 0 10px 24px rgba(47, 84, 150, .12);
     }
 
     .filter-card label {
@@ -55,9 +61,9 @@
 
     .summary-card {
       border-radius: 18px;
-      border: 1px solid rgba(36, 50, 38, .08);
-      background: linear-gradient(145deg, #ffffff 0%, #f6f9f3 50%, #eef3ea 100%);
-      box-shadow: 0 14px 36px rgba(36, 50, 38, .14);
+      border: 1px solid rgba(47, 84, 150, .08);
+      background: linear-gradient(145deg, #ffffff 0%, #f2f2f2 50%, #d9d9d9 100%);
+      box-shadow: 0 14px 36px rgba(47, 84, 150, .14);
     }
 
     .summary-card .card-title {
@@ -86,8 +92,8 @@
     .table-card {
       background: #fff;
       border-radius: 18px;
-      border: 1px solid rgba(36, 50, 38, .05);
-      box-shadow: 0 18px 40px rgba(36, 50, 38, .16);
+      border: 1px solid rgba(47, 84, 150, .05);
+      box-shadow: 0 18px 40px rgba(47, 84, 150, .16);
       overflow: hidden;
       width: 100%;
     }
@@ -145,7 +151,7 @@
     }
 
     .table thead {
-      background: #e8e8e8;
+      background: #d9d9d9;
     }
 
     .table thead th {
@@ -177,13 +183,13 @@
     }
 
     .table tbody tr:hover td {
-      background-color: #f0f0f0 !important;
+      background-color: #f2f2f2 !important;
     }
 
     .table td.selected,
     .table th.selected {
       background-color: var(--color-selected) !important;
-      outline: 2px solid #f39c12;
+      outline: 2px solid #8497b0;
     }
 
     .label-cell {
@@ -206,7 +212,7 @@
       font-size: .75rem;
       font-weight: 800;
       text-align: left;
-      background: #e8e8e8;
+      background: #d9d9d9;
       color: #000;
       border: 1px solid #999 !important;
       padding-left: calc(12px + (var(--depth, 0) * 18px));
@@ -224,7 +230,7 @@
       color: #333;
       font-family: monospace;
       text-align: left;
-      background-color: #f5f5f5 !important;
+      background-color: #f2f2f2 !important;
       font-weight: 400;
     }
 
@@ -241,14 +247,14 @@
 
     .amarillo th,
     .amarillo td {
-      background-color: #fff2cc;
+      background-color: #ffff00;
       font-weight: 700;
       color: #000;
     }
 
     .verde th,
     .verde td {
-      background-color: #92d050;
+      background-color: #375623;
       font-weight: 800;
       color: #1f2d0c;
     }
@@ -276,7 +282,7 @@
 
     /* Encabezados "Y T D" por bloque */
     .ytd-head {
-      background: #e8e8e8 !important;
+      background: #8497b0 !important;
       font-weight: 900 !important;
       letter-spacing: .15em;
       color: #000 !important;
@@ -286,7 +292,7 @@
 
     .subhdr {
       font-weight: 700 !important;
-      background: #e8e8e8;
+      background: #d9d9d9;
       border: 1px solid #999 !important;
       font-size: 0.7rem;
     }
@@ -327,8 +333,8 @@
     /* Estilo secundario con fondo blanco (Primera y tercera fila del tbody) */
     .highlight-secondary th,
     .highlight-secondary td {
-      background-color: #b8cce4 !important;
-      color: #1f3763 !important;
+      background-color: #8497b0 !important;
+      color: #2f5496 !important;
       font-weight: 700 !important;
       border: 1px solid #999 !important;
     }
@@ -336,29 +342,29 @@
     .highlight-primary th,
     .highlight-primary td {
       background-color: #d9d9d9 !important;
-      color: #1f1f1f !important;
+      color: #2f5496 !important;
       font-weight: 700 !important;
-      border: 1px solid #999 !important;
+      border: 1px solid #8497b0 !important;
     }
 
     .highlight-primary .category-cell,
     .highlight-primary .label-cell {
-      color: #1f3763 !important;
+      color: #2f5496 !important;
     }
 
     .highlight-bright th,
     .highlight-bright td {
-      background-color: #cfd8f3 !important;
-      color: #0e19fa !important;
+      background-color: #2f5496 !important;
+      color: #f2f2f2 !important;
       font-weight: 700 !important;
-      border: 1px solid #999 !important;
+      border: 1px solid #8497b0 !important;
     }
 
     .highlight-bright .category-cell,
     .highlight-bright .label-cell,
     .highlight-bright .mono,
     .highlight-bright .code-cell {
-      color: #0e19fa !important;
+      color: #f2f2f2 !important;
     }
   </style>
 </head>
