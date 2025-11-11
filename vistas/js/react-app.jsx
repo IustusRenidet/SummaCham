@@ -337,7 +337,7 @@ const DashboardLayout = ({ sesion, selectedModuleId, onSelectModule, onLogout, e
     <div className={layoutClassName}>
       <aside className="app-sidebar" aria-label="Navegación principal">
         <div className="sidebar-header">
-          <h1>Panel AmCham</h1>
+          <img src="../icono/ambcham.png" alt="AmCham" className="sidebar-logo" />
         </div>
         <div className="sidebar-menu">
           {gruposDisponibles.map((group) => (

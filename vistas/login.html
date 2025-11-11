@@ -9,10 +9,16 @@
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
-      --color-verde: #2f6f4e;
-      --color-verde-oscuro: #1f4b35;
-      --color-fondo: #f3f6f1;
-      --color-texto: #243226;
+      --color-primario: #2f5496;
+      --color-primario-claro: #8497b0;
+      --color-fondo: #f2f2f2;
+      --color-texto: #2f5496;
+      --bs-primary: #2f5496;
+      --bs-primary-rgb: 47, 84, 150;
+      --bs-success: #2f5496;
+      --bs-success-rgb: 47, 84, 150;
+      --bs-success-bg-subtle: rgba(47, 84, 150, 0.16);
+      --bs-success-border-subtle: rgba(47, 84, 150, 0.35);
     }
 
     body {
@@ -30,19 +36,19 @@
     .tarjeta-acceso {
       background: #fff;
       border-radius: 20px;
-      box-shadow: 0 24px 60px rgba(36, 50, 38, 0.12);
+      box-shadow: 0 24px 60px rgba(47, 84, 150, 0.12);
       padding: clamp(1.5rem, 4vw, 3rem);
       width: min(480px, 100%);
     }
 
     .tarjeta-acceso h1 {
       font-weight: 800;
-      color: var(--color-verde);
+      color: var(--color-primario);
     }
 
     .btn-verde {
-      background: var(--color-verde);
-      border-color: var(--color-verde);
+      background: var(--color-primario);
+      border-color: var(--color-primario);
       font-weight: 700;
       padding-block: 0.75rem;
       transition: background 0.2s ease, transform 0.2s ease;
@@ -50,8 +56,8 @@
 
     .btn-verde:hover,
     .btn-verde:focus {
-      background: var(--color-verde-oscuro);
-      border-color: var(--color-verde-oscuro);
+      background: var(--color-primario-claro);
+      border-color: var(--color-primario-claro);
       transform: translateY(-1px);
     }
 
@@ -61,7 +67,7 @@
     }
 
     label span {
-      color: #b02a37;
+      color: #2f5496;
     }
   </style>
 </head>
