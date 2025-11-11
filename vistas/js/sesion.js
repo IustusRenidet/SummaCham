@@ -112,6 +112,11 @@
     return Boolean(generales.puedeAgregar && generales.puedeModificar && generales.puedeEliminar);
   };
 
+  const esAdminGlobal = (sesion) => {
+    const evaluada = sesion || obtener();
+    return Boolean(evaluada?.usuario?.esAdminGlobal);
+  };
+
   const esAdmin = (sesion) => puedeAdministrarUsuarios(sesion);
 
   const requerirSesion = ({ requireAdmin = false, redirectTo = REDIRECCION_POR_DEFECTO } = {}) => {
@@ -186,6 +191,7 @@
     limpiar,
     requerirSesion,
     esAdmin,
+    esAdminGlobal,
     puedeAdministrarUsuarios,
     asegurarEnlaceAdministrarUsuarios,
     headersAutenticacion,

@@ -908,7 +908,7 @@ function renderizarTabla() {
       if (fila.tipoFila) clases.push(`fila-${fila.tipoFila}`);
       tr.className = clases.join(' ');
       tr.innerHTML = `
-        <th id="cell-r${r}-c1" data-row-index="${r}" data-col-index="1" data-column-key="codigo" data-role="code"></th>
+        <th id="cell-r${r}-c1" data-row-index="${r}" data-col-index="1" data-column-key="codigo" data-role="code" class="account-column code-cell"></th>
         <td id="cell-r${r}-c2" data-row-index="${r}" data-col-index="2" data-column-key="mesActual" class="mono">${formatearMoneda(fila.mesActual)}</td>
         <td id="cell-r${r}-c3" data-row-index="${r}" data-col-index="3" data-column-key="mesPlan" class="mono">${formatearMoneda(fila.mesPlan)}</td>
         <td id="cell-r${r}-c4" data-row-index="${r}" data-col-index="4" data-column-key="mesAnterior" class="mono">${formatearMoneda(fila.mesAnterior)}</td>
@@ -926,7 +926,7 @@ function renderizarTabla() {
       if (fila.tipoFila && fila.tipoFila !== 'detalle') clases.push(`fila-${fila.tipoFila}`);
       if (clases.length) tr.className = clases.join(' ');
       tr.innerHTML = `
-        <th id="cell-r${r}-c1" data-row-index="${r}" data-col-index="1" data-column-key="codigo" data-role="code" class="code-cell" data-codigo="${fila.codigo || ''}">${fila.codigo || ''}</th>
+        <th id="cell-r${r}-c1" data-row-index="${r}" data-col-index="1" data-column-key="codigo" data-role="code" class="account-column code-cell" data-codigo="${fila.codigo || ''}">${fila.codigo || ''}</th>
         <td id="cell-r${r}-c2" data-row-index="${r}" data-col-index="2" data-column-key="mesActual" class="mono">${formatearMoneda(fila.mesActual)}</td>
         <td id="cell-r${r}-c3" data-row-index="${r}" data-col-index="3" data-column-key="mesPlan" class="mono">${formatearMoneda(fila.mesPlan)}</td>
         <td id="cell-r${r}-c4" data-row-index="${r}" data-col-index="4" data-column-key="mesAnterior" class="mono">${formatearMoneda(fila.mesAnterior)}</td>
