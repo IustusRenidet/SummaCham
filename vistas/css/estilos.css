@@ -1,6 +1,6 @@
 :root {
-  --btn-primario-bg: #2f6f4e;
-  --btn-primario-bg-hover: #26523e;
+  --btn-primario-bg: #2f5496;
+  --btn-primario-bg-hover: #8497b0;
   --btn-primario-text: #ffffff;
 }
 
@@ -35,6 +35,6 @@
 
 .anio {
   font-weight: 700;
-  color: var(--btn-primario-bg, #2f6f4e);
+  color: var(--btn-primario-bg, #2f5496);
   font-variant-numeric: tabular-nums;
 }
