@@ -325,7 +325,15 @@
               && Sesion.esAdminGlobal(sesion);
 
             if (!esAdminGlobal || !els.toggleAccounts) {
-              aplicarVisibilidadCuentas(false);
+              aplicarVisibilidadCuentas(true);
+              if (els.toggleAccounts) {
+                els.toggleAccounts.classList.add('d-none');
+                els.toggleAccounts.setAttribute('aria-pressed', 'true');
+                els.toggleAccounts.setAttribute('disabled', 'true');
+                els.toggleAccounts.setAttribute('aria-disabled', 'true');
+                els.toggleAccounts.setAttribute('tabindex', '-1');
+              }
+              localStorage.setItem(COLUMN_VISIBILITY_KEY, '1');
               return;
             }
 
