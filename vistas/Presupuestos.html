@@ -314,7 +314,15 @@
             && typeof Sesion.esAdminGlobal === 'function'
             && Sesion.esAdminGlobal(sesion);
           if (!esAdminGlobal || !toggleAccountColumnBtn) {
-            aplicarVisibilidadCuentas(false);
+            aplicarVisibilidadCuentas(true);
+            if (toggleAccountColumnBtn) {
+              toggleAccountColumnBtn.classList.add('d-none');
+              toggleAccountColumnBtn.setAttribute('aria-pressed', 'true');
+              toggleAccountColumnBtn.setAttribute('disabled', 'true');
+              toggleAccountColumnBtn.setAttribute('aria-disabled', 'true');
+              toggleAccountColumnBtn.setAttribute('tabindex', '-1');
+            }
+            localStorage.setItem(ACCOUNT_COLUMN_STORAGE_KEY, '1');
             return;
           }
 
