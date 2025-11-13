@@ -4,14 +4,17 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Comunicación</title>
+
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
   <style>
     :root {
-       --color-primary: #2f5496;
-      --color-secondary: #8497b0;
-      --color-background: #f2f2f2;
-      --color-text: #2f5496;
+      --comm-color-primary: #2f5496;
+      --comm-color-secondary: #8497b0;
+      --comm-color-background: #f2f2f2;
+      --comm-color-text: #2f5496;
+
       --bs-primary: #2f5496;
       --bs-primary-rgb: 47, 84, 150;
       --bs-success: #2f5496;
@@ -19,264 +22,367 @@
       --bs-success-bg-subtle: rgba(47, 84, 150, 0.16);
       --bs-success-border-subtle: rgba(47, 84, 150, 0.35);
     }
-    body{
-      background:var(--color-background);
-      font-family:'Manrope','Segoe UI',Tahoma,sans-serif;
-      color:var(--color-text);
-      min-height:100vh;
-      padding-top:60px;
-    }
-    .header-card{
-      background:var(--color-primary);
-      color:#fff;
-      border-radius:18px;
-      border:1px solid rgba(36,50,38,.1);
-      box-shadow:0 18px 42px rgba(36,50,38,.18);
-    }
-    .module-card{
-      border-radius:20px;
-      border:1px solid rgba(36,50,38,.08);
-      box-shadow:0 22px 48px rgba(36,50,38,.16);
-      background:#fff;
-    }
-    .module-card .card-body{ padding:clamp(1.5rem,2vw,2.5rem); }
 
     body {
-      background: var(--color-background);
+      background: var(--comm-color-background);
       font-family: 'Manrope', 'Segoe UI', Tahoma, sans-serif;
-      color: var(--color-text);
+      color: var(--comm-color-text);
       min-height: 100vh;
-      padding-top: 60px;
+      padding-top: 20px;
     }
 
-    .header-card {
-      background: var(--color-primary);
-      color: #fff;
-      border-radius: 18px;
-      border: 1px solid rgba(47, 84, 150, 0.1);
-      box-shadow: 0 18px 42px rgba(47, 84, 150, 0.18);
+    .comm-container {
+      max-width: 1440px;
     }
 
-    .module-card {
-      border-radius: 20px;
-      border: 1px solid rgba(47, 84, 150, 0.08);
-      box-shadow: 0 22px 48px rgba(47, 84, 150, 0.16);
+    .comm-panel {
       background: #fff;
-    }
-
-    .module-card .card-body {
-      padding: clamp(1.5rem, 2vw, 2.5rem);
-    }
-
-    .pill-accent {
-      background: rgba(255, 255, 255, 0.18);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      padding: 0.35rem 0.9rem;
-      border-radius: 999px;
-      font-weight: 700;
-      letter-spacing: 0.08em;
-    }
-
-    .module-grid {
-      min-height: 180px;
-    }
-
-    .module-card article {
-      border: none;
       border-radius: 18px;
-      background: linear-gradient(145deg, #ffffff 0%, #f2f2f2 100%);
+      border: 1px solid rgba(47, 84, 150, 0.08);
+      box-shadow: 0 25px 55px rgba(47, 84, 150, 0.08);
+      padding: 1.75rem;
     }
 
-    .module-card .card h3 {
-      color: var(--color-primary);
+    .comm-hero {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .comm-title {
+      color: var(--comm-color-primary);
+      font-weight: 800;
+      margin: 0;
+    }
+
+    .comm-status {
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .comm-controls {
+      display: flex;
+      gap: 0.75rem;
+      align-items: flex-end;
+      flex-wrap: wrap;
+    }
+
+    .comm-controls .form-select {
+      min-width: 110px;
+    }
+
+    .comm-btn-toggle {
+      border-radius: 10px;
+      padding: 0.6rem 1rem;
+      border: 1px solid rgba(47, 84, 150, 0.25);
+      background: #fff;
+      color: var(--comm-color-text);
       font-weight: 700;
+    }
+
+    .comm-table-wrapper {
+      width: 100%;
+      overflow-x: auto;
+      margin-top: 1rem;
+    }
+
+    .comm-table {
+      width: 100%;
+      min-width: 1600px;
+      border-collapse: collapse;
+      font-size: 0.92rem;
+    }
+
+    .comm-table th,
+    .comm-table td {
+      border: 1px solid rgba(47, 84, 150, 0.12);
+      padding: 0.55rem 0.6rem;
+      text-align: right;
+      min-width: 90px;
+      background: #fff;
+      white-space: nowrap;
+    }
+
+    .comm-table thead th {
+      background: #2f5496;
+      color: #fff;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-size: 0.8rem;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    .comm-table thead th span {
+      display: block;
+      color: #d9d9d9;
+      font-weight: 800;
+    }
+
+    .comm-account-col-h {
+      text-align: left;
+      min-width: 160px;
+      background: #f7f9fc;
+    }
+
+    .comm-account-col {
+      text-align: left;
+      min-width: 160px;
+      background: #f7f9fc;
+      font-family: 'Courier New', monospace;
+      font-weight: 600;
+    }
+
+    .comm-desc-col {
+      text-align: left;
+      min-width: 260px;
+      font-weight: 600;
+      color: var(--comm-color-text);
+    }
+
+    .comm-table th.comm-dup,
+    .comm-table td.comm-dup {
+      background: #fff7d6;
+      border-left: 2px solid rgba(47, 84, 150, 0.25);
+    }
+
+    .comm-table tbody tr[data-kind="total"],
+    .comm-table tbody tr[data-kind="resultado"] {
+      background: #f2f2f2;
+      font-weight: 800;
+    }
+
+    .comm-table tbody tr[data-kind="resultado-final"] {
+      background: #eef8ff;
+      font-weight: 900;
+    }
+
+    .comm-section-row {
+      background: rgba(47, 84, 150, 0.05);
+      font-weight: 800;
+      color: var(--comm-color-primary);
     }
   </style>
 </head>
 <body>
-  <div class="container py-4 py-lg-5 comms-scope">
-
-    <!-- Header -->
-    <div class="row mb-4">
-      <div class="col-12">
-        <div class="card header-card">
-          <div class="card-body d-flex flex-column align-items-center gap-2">
-            <h1 class="fw-bold display-6 mb-1">Comunicación</h1>
-            <p id="chapterSubtitle" class="mb-0 fs-5">Capítulo —</p>
+  <div class="container-xxl comm-container py-4">
+    <section class="comm-panel">
+      <div class="comm-hero mb-3">
+        <div>
+          <h1 class="comm-title h3 mb-1">Comunicación</h1>
+          <span id="commStatus" class="comm-status text-success"></span>
+          <div id="chapterSubtitle" class="fw-semibold mt-1" style="color:#6b7280"></div>
+        </div>
+        <div class="comm-controls">
+          <div>
+            <label for="yearSelect" class="form-label mb-1 fw-bold" style="color:#4567a8">Ejercicio</label>
+            <select id="yearSelect" class="form-select">
+              <option value="2024">2024</option>
+              <option value="2025">2025</option>
+              <option value="2026" selected>2026</option>
+            </select>
           </div>
+          <button id="toggleAccounts" type="button" class="comm-btn-toggle">
+            Ocultar cuentas
+          </button>
         </div>
       </div>
-    </div>
 
-    <!-- Años (estilo Resumen) -->
-    <div class="row mb-3">
-      <div class="col-12">
-        <div class="d-flex align-items-center justify-content-end gap-3 year-controls">
-          <label class="mb-0">Años:</label>
-          <div class="form-check form-check-inline">
-            <input class="form-check-input" type="checkbox" id="year-2024" data-year="2024" checked>
-            <label class="form-check-label" for="year-2024">2024</label>
-          </div>
-          <div class="form-check form-check-inline">
-            <input class="form-check-input" type="checkbox" id="year-2025" data-year="2025" checked>
-            <label class="form-check-label" for="year-2025">2025</label>
-          </div>
-          <div class="form-check form-check-inline">
-            <input class="form-check-input" type="checkbox" id="year-2026" data-year="2026" checked>
-            <label class="form-check-label" for="year-2026">2026</label>
-          </div>
-        </div>
+      <div class="comm-table-wrapper">
+        <table class="comm-table" id="tblComunicacion">
+          <thead></thead>
+          <tbody></tbody>
+        </table>
       </div>
-    </div>
-
-    <!-- 1) Ingresos Comunicación -->
-    <div class="row g-4 mb-2">
-      <div class="col-12">
-        <div class="card module-card">
-          <div class="card-body">
-            <h5 class="section-title">Ingresos Comunicación</h5>
-            <div class="row g-3">
-              <!-- 2026 -->
-              <div class="col-12" data-year="2026" id="ing-2026">
-                <div class="list-card">
-                  <div class="year-pill">2026</div>
-                  <table class="list-table">
-                    <thead>
-                      <tr class="muted">
-                        <th class="text-start">Concepto</th>
-                        <th class="text-end">Total anual</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr id="ing2026-ingresos-row">
-                        <td>Ingresos</td>
-                        <td class="text-end dash" id="ing2026-ingresos-total">—</td>
-                      </tr>
-                      <tr>
-                        <td><strong>Suma de Ingresos Comunicación</strong></td>
-                        <td class="text-end dash" id="ing2026-suma-total">—</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-              <!-- Duplica bloques para 2024 y 2025 cuando haya datos -->
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 2) Gastos Comunicación -->
-    <div class="row g-4 mb-2">
-      <div class="col-12">
-        <div class="card module-card">
-          <div class="card-body">
-            <h5 class="section-title">Gastos Comunicación</h5>
-            <div class="row g-3">
-              <!-- 2026 -->
-              <div class="col-12" data-year="2026" id="gas-2026">
-                <div class="list-card">
-                  <div class="year-pill">2026</div>
-                  <table class="list-table">
-                    <thead>
-                      <tr class="muted">
-                        <th class="text-start">Cuenta / Concepto</th>
-                        <th class="text-end">Total anual</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr id="gas2026-801-013-006-00-row">
-                        <td>Agencias de Comunicación</td>
-                        <td class="text-end dash" id="gas2026-801-013-006-00">—</td>
-                      </tr>
-                      <tr id="gas2026-801-013-016-00-row">
-                        <td>Contenidos multimedia</td>
-                        <td class="text-end dash" id="gas2026-801-013-016-00">—</td>
-                      </tr>
-                      <tr id="gas2026-801-013-015-00-row">
-                        <td>Marketing Licencias</td>
-                        <td class="text-end dash" id="gas2026-801-013-015-00">—</td>
-                      </tr>
-                      <tr id="gas2026-801-013-010-00-row">
-                        <td>Traductor</td>
-                        <td class="text-end dash" id="gas2026-801-013-010-00">—</td>
-                      </tr>
-                      <tr>
-                        <td><strong>Suma de Gastos Comunicación</strong></td>
-                        <td class="text-end dash" id="gas2026-suma-total">—</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-              <!-- Duplica para 2024/2025 si lo necesitas -->
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 3) Resultado Operativo Comunicación -->
-    <div class="row g-4">
-      <div class="col-12">
-        <div class="card module-card">
-          <div class="card-body">
-            <h5 class="section-title">Resultado Operativo</h5>
-            <div class="row g-3">
-              <!-- 2026 -->
-              <div class="col-12" data-year="2026" id="res-2026">
-                <div class="list-card">
-                  <div class="year-pill">2026</div>
-                  <table class="list-table">
-                    <thead>
-                      <tr class="muted">
-                        <th class="text-start">Concepto</th>
-                        <th class="text-end">Total anual</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr id="res2026-oper-row">
-                        <td>Resultado Operativo Comunicación</td>
-                        <td class="text-end dash" id="res2026-oper-total">—</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-              <!-- Duplica para 2024/2025 si lo necesitas -->
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
+    </section>
   </div>
 
   <script src="js/sesion.js"></script>
   <script>
-    // Capítulo según empresa activa
-    (function setChapterFromEmpresa(){
-      try{
-        const emp = (typeof Sesion!=='undefined' && Sesion.obtenerEmpresaActiva && Sesion.obtenerEmpresaActiva()) || null;
+    (function () {
+      // ======= Datos de sesión / capítulo =======
+      try {
+        const emp = (typeof Sesion !== 'undefined' && Sesion.obtenerEmpresaActiva && Sesion.obtenerEmpresaActiva()) || null;
         const ciudad = emp?.etiqueta || emp?.nombre || emp?.id || '—';
-        document.getElementById('chapterSubtitle').textContent = `Capítulo ${ciudad}`;
-      }catch{}
-    })();
+        document.getElementById('chapterSubtitle').textContent = ciudad ? 'Capítulo ' + ciudad : '';
+      } catch {}
 
-    // Mostrar/ocultar por año
-    (function wireYearFilters(){
-      const checks = Array.from(document.querySelectorAll('.year-controls .form-check-input'));
-      const toggle = ()=>{
-        const activos = new Set(checks.filter(c=>c.checked).map(c=>c.dataset.year));
-        document.querySelectorAll('[data-year]').forEach(card=>{
-          card.classList.toggle('d-none', !activos.has(card.getAttribute('data-year')));
+      const statusEl   = document.getElementById('commStatus');
+      const yearSelect = document.getElementById('yearSelect');
+      const tableHead  = document.querySelector('#tblComunicacion thead');
+      const tableBody  = document.querySelector('#tblComunicacion tbody');
+      const toggleBtn  = document.getElementById('toggleAccounts');
+      const STORAGE_KEY = 'comunicacion_ocultar_cuentas';
+
+      function updateStatusTime() {
+        if (!statusEl) return;
+        statusEl.textContent = 'Vista ' + new Date().toLocaleTimeString('es-MX') + '.';
+      }
+
+      // ======= Meses (A normal, B duplicado amarillito) =======
+      const COMM_MONTHS = [
+        { key: 'eneA', label: 'ENE', dup: false }, { key: 'eneB', label: 'ENE', dup: true },
+        { key: 'febA', label: 'FEB', dup: false }, { key: 'febB', label: 'FEB', dup: true },
+        { key: 'marA', label: 'MAR', dup: false }, { key: 'marB', label: 'MAR', dup: true },
+        { key: 'abrA', label: 'ABR', dup: false }, { key: 'abrB', label: 'ABR', dup: true },
+        { key: 'mayA', label: 'MAY', dup: false }, { key: 'mayB', label: 'MAY', dup: true },
+        { key: 'junA', label: 'JUN', dup: false }, { key: 'junB', label: 'JUN', dup: true },
+        { key: 'julA', label: 'JUL', dup: false }, { key: 'julB', label: 'JUL', dup: true },
+        { key: 'agoA', label: 'AGO', dup: false }, { key: 'agoB', label: 'AGO', dup: true },
+        { key: 'sepA', label: 'SEP', dup: false }, { key: 'sepB', label: 'SEP', dup: true },
+        { key: 'octA', label: 'OCT', dup: false }, { key: 'octB', label: 'OCT', dup: true },
+        { key: 'novA', label: 'NOV', dup: false }, { key: 'novB', label: 'NOV', dup: true },
+        { key: 'dicA', label: 'DIC', dup: false }, { key: 'dicB', label: 'DIC', dup: true }
+      ];
+
+      const dash = '–';
+
+      // ======= Filas según el Excel "Mex Comunicación 2026" =======
+      const COMM_ROWS = [
+        { tipo: 'section', nombre: 'Ingresos Comunicación' },
+        { tipo: 'ing', cuenta: '—', nombre: 'Ingresos' },
+        { tipo: 'total', nombre: 'Suma de Ingresos Comunicación' },
+
+        { tipo: 'sep' },
+
+        { tipo: 'section', nombre: 'Gastos Comunicación' },
+        { tipo: 'gto', cuenta: '801-013-006-00', nombre: 'Agencias de Comunicación' },
+        { tipo: 'gto', cuenta: '801-013-016-00', nombre: 'Contenidos multimedia' },
+        { tipo: 'gto', cuenta: '801-013-015-00', nombre: 'Marketing Licencias' },
+        { tipo: 'gto', cuenta: '801-013-010-00', nombre: 'Traductor' },
+        { tipo: 'total', nombre: 'Suma de Gastos Comunicación' },
+
+        { tipo: 'sep' },
+
+        { tipo: 'res', nombre: 'Resultado Operativo Comunicación' }
+      ];
+
+      // ======= Render =======
+      let ocultarCuentas = (localStorage.getItem(STORAGE_KEY) === '1');
+
+      function renderHead() {
+        const year = yearSelect.value || new Date().getFullYear();
+        const suf  = String(year).slice(-2);
+
+        const monthTh = COMM_MONTHS.map(m =>
+          `<th class="${m.dup ? 'comm-dup' : ''}"><span>${m.label.toLowerCase()}-${suf}</span></th>`
+        ).join('');
+
+        if (ocultarCuentas) {
+          tableHead.innerHTML = `
+            <tr>
+              <th>COMUNICACIÓN</th>
+              ${monthTh}
+              <th><span>${year}</span>Total</th>
+            </tr>
+          `;
+        } else {
+          tableHead.innerHTML = `
+            <tr>
+              <th class="comm-account-col-h">Cuenta</th>
+              <th>COMUNICACIÓN</th>
+              ${monthTh}
+              <th><span>${year}</span>Total</th>
+            </tr>
+          `;
+        }
+      }
+
+      function renderBody() {
+        const TOTAL_COLS = ocultarCuentas
+          ? (1 + COMM_MONTHS.length + 1)      // descripción + meses + total
+          : (2 + COMM_MONTHS.length + 1);     // cuenta + descripción + meses + total
+
+        const rowsHtml = [];
+
+        COMM_ROWS.forEach(row => {
+          if (row.tipo === 'sep') {
+            rowsHtml.push(
+              `<tr><td colspan="${TOTAL_COLS}" style="background:transparent;border:none;height:.35rem;"></td></tr>`
+            );
+            return;
+          }
+
+          if (row.tipo === 'section') {
+            rowsHtml.push(
+              `<tr>
+                 <td colspan="${TOTAL_COLS}" class="comm-section-row">${row.nombre}</td>
+               </tr>`
+            );
+            return;
+          }
+
+          const cells = COMM_MONTHS
+            .map(m => `<td class="${m.dup ? 'comm-dup' : ''}">${dash}</td>`)
+            .join('');
+
+          if (row.tipo === 'total' || row.tipo === 'res') {
+            const kind = row.tipo === 'res' ? 'resultado-final' : 'total';
+            const labelColspan = ocultarCuentas ? 1 : 2;
+
+            rowsHtml.push(`
+              <tr data-kind="${kind}">
+                <td colspan="${labelColspan}">${row.nombre}</td>
+                ${cells}
+                <td>${dash}</td>
+              </tr>
+            `);
+            return;
+          }
+
+          // Fila normal
+          if (ocultarCuentas) {
+            rowsHtml.push(`
+              <tr data-tipo="${row.tipo}">
+                <td class="comm-desc-col">${row.nombre || ''}</td>
+                ${cells}
+                <td>${dash}</td>
+              </tr>
+            `);
+          } else {
+            rowsHtml.push(`
+              <tr data-tipo="${row.tipo}">
+                <td class="comm-account-col">${row.cuenta || '—'}</td>
+                <td class="comm-desc-col">${row.nombre || ''}</td>
+                ${cells}
+                <td>${dash}</td>
+              </tr>
+            `);
+          }
         });
-      };
-      checks.forEach(c=>c.addEventListener('change', toggle));
-      toggle();
+
+        tableBody.innerHTML = rowsHtml.join('');
+      }
+
+      function updateToggleButton() {
+        toggleBtn.textContent = ocultarCuentas ? 'Mostrar cuentas' : 'Ocultar cuentas';
+        toggleBtn.setAttribute('aria-pressed', ocultarCuentas ? 'true' : 'false');
+      }
+
+      function renderAll() {
+        updateStatusTime();
+        renderHead();
+        renderBody();
+        updateToggleButton();
+      }
+
+      // ======= Eventos =======
+      yearSelect.addEventListener('change', renderAll);
+
+      toggleBtn.addEventListener('click', () => {
+        ocultarCuentas = !ocultarCuentas;
+        localStorage.setItem(STORAGE_KEY, ocultarCuentas ? '1' : '0');
+        renderAll();
+      });
+
+      // Primera pinta
+      renderAll();
     })();
   </script>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

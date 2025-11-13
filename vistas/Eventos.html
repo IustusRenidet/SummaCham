@@ -2,290 +2,427 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Eventos</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+
   <style>
-    :root {
-    --color-primary: #2f5496;
-      --color-secondary: #8497b0;
-      --color-background: #f2f2f2;
-      --color-text: #2f5496;
-      --bs-primary: #2f5496;
-      --bs-primary-rgb: 47, 84, 150;
-      --bs-success: #2f5496;
-      --bs-success-rgb: 47, 84, 150;
-      --bs-success-bg-subtle: rgba(47, 84, 150, 0.16);
-      --bs-success-border-subtle: rgba(47, 84, 150, 0.35);
+    :root{
+      --evt-color-primary:#2f5496;
+      --evt-color-secondary:#8497b0;
+      --evt-color-background:#f2f2f2;
+      --evt-color-text:#2f5496;
+
+      --bs-primary:#2f5496;
+      --bs-primary-rgb:47,84,150;
+      --bs-success:#2f5496;
+      --bs-success-rgb:47,84,150;
+      --bs-success-bg-subtle:rgba(47,84,150,0.16);
+      --bs-success-border-subtle:rgba(47,84,150,0.35);
     }
+
     body{
-      background:var(--color-background);
+      background:var(--evt-color-background);
       font-family:'Manrope','Segoe UI',Tahoma,sans-serif;
-      color:var(--color-text);
+      color:var(--evt-color-text);
       min-height:100vh;
-      padding-top:60px;
+      padding-top:20px;
     }
 
-    .header-card {
-      background: var(--color-primary);
-      color: #fff;
-      border-radius: 18px;
-       border: 1px solid rgba(47, 84, 150, 0.1);
-      box-shadow: 0 18px 42px rgba(47, 84, 150, 0.18);
+    .evt-container{
+      max-width:1440px;
     }
 
-    .module-card {
-      border-radius: 20px;
-      border: 1px solid rgba(47, 84, 150, 0.08);
-      box-shadow: 0 22px 48px rgba(47, 84, 150, 0.16);
-      background: #fff;
-    }
-    .module-card .card-body{ padding:clamp(1.5rem,2vw,2.5rem); }
-
-    /* ===== Estilos NUEVOS scopeados para Eventos ===== */
-    .eventos-scope .section-title{
-      color:var(--color-primary); font-weight:800; margin:0 0 .75rem;
-    }
-    .eventos-scope .year-controls label{
-      font-weight:700; color:rgba(36,50,38,.8); margin-right:.75rem;
-    }
-    .eventos-scope .year-pill{
-      color:var(--color-primary); font-weight:800; margin-bottom:.25rem;
+    .evt-panel{
+      background:#fff;
+      border-radius:18px;
+      border:1px solid rgba(47,84,150,0.08);
+      box-shadow:0 25px 55px rgba(47,84,150,0.08);
+      padding:1.75rem;
     }
 
-    .module-card article {
-      border: none;
-      border-radius: 18px;
-      background: linear-gradient(145deg, #ffffff 0%, #f2f2f2 100%);
+    .evt-hero{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:1rem;
+      flex-wrap:wrap;
     }
-    .eventos-scope .list-table{ width:100%; border-collapse:separate; border-spacing:0; }
-    .eventos-scope .list-table tr>*{ padding:.75rem 1rem; vertical-align:middle; }
-    .eventos-scope .list-table td:first-child{ font-weight:700; }
-    .eventos-scope .list-table td:last-child{ text-align:right; }
-    .eventos-scope .list-table tr:hover{ background:rgba(47,111,78,.04); }
-    .eventos-scope .dash{ font-weight:700; color:var(--color-primary); }
-    .eventos-scope .muted{ color:#6b746d; }
-    .eventos-scope .status-pill{
-      display:inline-block; padding:.2rem .6rem; border-radius:999px;
-      border:1px solid rgba(36,50,38,.15); font-weight:700; font-size:.85rem;
+    .evt-title{
+      color:var(--evt-color-primary);
+      font-weight:800;
+      margin:0;
+    }
+    .evt-status{
+      font-weight:600;
+      font-size:.9rem;
+    }
+
+    .evt-controls{
+      display:flex;
+      gap:.75rem;
+      align-items:flex-end;
+      flex-wrap:wrap;
+    }
+    .evt-controls .form-select{
+      min-width:110px;
+    }
+    .evt-btn-toggle{
+      border-radius:10px;
+      padding:.6rem 1rem;
+      border:1px solid rgba(47,84,150,.25);
+      background:#fff;
+      color:var(--evt-color-text);
+      font-weight:700;
+    }
+
+    /* ===== Tabla Eventos ===== */
+    .evt-table-wrapper{
+      width:100%;
+      overflow-x:auto;
+    }
+
+    .evt-table{
+      width:100%;
+      min-width:1600px;
+      border-collapse:collapse;
+      font-size:0.92rem;
+    }
+    .evt-table th,
+    .evt-table td{
+      border:1px solid rgba(47,84,150,0.12);
+      padding:.55rem .6rem;
+      text-align:right;
+      min-width:90px;
+      background:#fff;
+      white-space:nowrap;
+    }
+
+    .evt-table thead th{
+      background:#2f5496;
+      color:#fff;
+      text-transform:uppercase;
+      letter-spacing:.05em;
+      font-size:.8rem;
+      position:sticky;
+      top:0;
+      z-index:1;
+    }
+    .evt-table thead th span{
+      color:#d9d9d9;
+      font-weight:800;
+      display:block;
+    }
+
+    .evt-account-col-h{
+      text-align:left;
+      min-width:160px;
+      background:#f7f9fc;
+    }
+    .evt-account-col{
+      text-align:left;
+      min-width:160px;
+      background:#f7f9fc;
+      font-family:'Courier New',monospace;
+      font-weight:600;
+    }
+    .evt-desc-col{
+      text-align:left;
+      min-width:260px;
+      font-weight:600;
+      color:var(--evt-color-text);
+    }
+
+    /* Duplicado (segunda columna del mes) en amarillo */
+    .evt-table th.evt-dup,
+    .evt-table td.evt-dup{
+      background:#fff7d6;
+      border-left:2px solid rgba(47,84,150,.25);
+    }
+
+    /* Totales y resultados */
+    .evt-table tbody tr[data-kind="total"],
+    .evt-table tbody tr[data-kind="resultado"]{
+      background:#f2f2f2;
+      font-weight:800;
+    }
+    .evt-table tbody tr[data-kind="resultado-final"]{
+      background:#eef8ff;
+      font-weight:900;
     }
   </style>
 </head>
 <body>
-  <div class="container py-4 py-lg-5 eventos-scope">
 
-    <!-- Header -->
-    <div class="row mb-4">
-      <div class="col-12">
-        <div class="card header-card">
-          <div class="card-body d-flex flex-column align-items-center gap-2">
-            <h1 class="fw-bold display-6 mb-1">Eventos</h1>
-            <p id="chapterSubtitle" class="mb-0 fs-5">Capítulo —</p>
+  <div class="container-xxl evt-container py-4">
+    <section class="evt-panel">
+      <div class="evt-hero mb-3">
+        <div>
+          <h1 class="evt-title h3 mb-1">Eventos</h1>
+          <span id="panelTime" class="evt-status text-success"></span>
+          <div id="chapterSubtitle" class="fw-semibold mt-1" style="color:#6b7280"></div>
+        </div>
+        <div class="evt-controls">
+          <div>
+            <label for="yearSelect" class="form-label mb-1 fw-bold" style="color:#4567a8">Ejercicio</label>
+            <select id="yearSelect" class="form-select">
+              <option value="2024">2024</option>
+              <option value="2025" selected>2025</option>
+              <option value="2026">2026</option>
+            </select>
           </div>
+          <button id="toggleAccounts" type="button" class="evt-btn-toggle">
+            Ocultar cuentas
+          </button>
         </div>
       </div>
-    </div>
 
-    <!-- Controles (Años) -->
-    <div class="row mb-3">
-      <div class="col-12">
-        <div class="d-flex align-items-center justify-content-end gap-3 year-controls">
-          <label class="mb-0">Años:</label>
-          <div class="form-check form-check-inline">
-            <input class="form-check-input" type="checkbox" id="year-2024" data-year="2024" checked>
-            <label class="form-check-label" for="year-2024">2024</label>
-          </div>
-          <div class="form-check form-check-inline">
-            <input class="form-check-input" type="checkbox" id="year-2025" data-year="2025" checked>
-            <label class="form-check-label" for="year-2025">2025</label>
-          </div>
-          <div class="form-check form-check-inline">
-            <input class="form-check-input" type="checkbox" id="year-2026" data-year="2026" checked>
-            <label class="form-check-label" for="year-2026">2026</label>
-          </div>
-        </div>
+      <div class="evt-table-wrapper">
+        <table class="evt-table" id="eventosTable">
+          <thead></thead>
+          <tbody></tbody>
+        </table>
       </div>
-    </div>
-
-    <!-- 1) Calendario de eventos -->
-    <div class="row g-4 mb-2">
-      <div class="col-12">
-        <div class="card module-card">
-          <div class="card-body">
-            <h5 class="section-title">Calendario de eventos</h5>
-            <div class="row g-3" id="calendarioWrap">
-              <!-- Año 2026 (ejemplo estático) -->
-              <div class="col-12">
-                <div class="list-card" data-year="2026" id="cal-2026">
-                  <div class="year-pill">2026</div>
-                  <table class="list-table">
-                    <thead>
-                      <tr class="muted">
-                        <th class="text-start">Evento</th>
-                        <th class="text-start">Fecha</th>
-                        <th class="text-start">Sede</th>
-                        <th class="text-start">Responsable</th>
-                        <th class="text-end">Estatus</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr id="ev2026-1-row">
-                        <td id="ev2026-1-nom">—</td>
-                        <td><span class="date" id="ev2026-1-fecha">—</span></td>
-                        <td id="ev2026-1-sede">—</td>
-                        <td id="ev2026-1-resp">—</td>
-                        <td class="text-end">
-                          <span class="status-pill" id="ev2026-1-status">—</span>
-                        </td>
-                      </tr>
-                      <tr id="ev2026-2-row">
-                        <td id="ev2026-2-nom">—</td>
-                        <td><span class="date" id="ev2026-2-fecha">—</span></td>
-                        <td id="ev2026-2-sede">—</td>
-                        <td id="ev2026-2-resp">—</td>
-                        <td class="text-end">
-                          <span class="status-pill" id="ev2026-2-status">—</span>
-                        </td>
-                      </tr>
-                      <!-- más filas luego por datos -->
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-              <!-- Duplica bloques para 2024/2025 si quieres verlos de muestra -->
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 2) Presupuesto por evento -->
-    <div class="row g-4 mb-2">
-      <div class="col-12">
-        <div class="card module-card">
-          <div class="card-body">
-            <h5 class="section-title">Presupuesto por evento</h5>
-            <div class="row g-3" id="pptoWrap">
-              <div class="col-12">
-                <div class="list-card" data-year="2026" id="ppto-2026">
-                  <div class="year-pill">2026</div>
-                  <table class="list-table">
-                    <thead>
-                      <tr class="muted">
-                        <th class="text-start">Evento</th>
-                        <th class="text-end">PPTO Ingresos</th>
-                        <th class="text-end">PPTO Gastos</th>
-                        <th class="text-end">PPTO Resultado</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr id="ppto2026-1-row">
-                        <td id="ppto2026-1-nom">—</td>
-                        <td id="ppto2026-1-ing" class="text-end dash">—</td>
-                        <td id="ppto2026-1-gto" class="text-end dash">—</td>
-                        <td id="ppto2026-1-res" class="text-end dash">—</td>
-                      </tr>
-                      <tr id="ppto2026-2-row">
-                        <td id="ppto2026-2-nom">—</td>
-                        <td id="ppto2026-2-ing" class="text-end dash">—</td>
-                        <td id="ppto2026-2-gto" class="text-end dash">—</td>
-                        <td id="ppto2026-2-res" class="text-end dash">—</td>
-                      </tr>
-                      <tr>
-                        <td><strong>Total PPTO</strong></td>
-                        <td id="ppto2026-total-ing" class="text-end dash">—</td>
-                        <td id="ppto2026-total-gto" class="text-end dash">—</td>
-                        <td id="ppto2026-total-res" class="text-end dash">—</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>            
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 3) Real vs PPTO por evento -->
-    <div class="row g-4">
-      <div class="col-12">
-        <div class="card module-card">
-          <div class="card-body">
-            <h5 class="section-title">Real vs PPTO por evento</h5>
-            <div class="row g-3" id="realWrap">
-              <div class="col-12">
-                <div class="list-card" data-year="2026" id="real-2026">
-                  <div class="year-pill">2026</div>
-                  <table class="list-table">
-                    <thead>
-                      <tr class="muted">
-                        <th class="text-start">Evento</th>
-                        <th class="text-end">REAL Ingresos</th>
-                        <th class="text-end">REAL Gastos</th>
-                        <th class="text-end">REAL Resultado</th>
-                        <th class="text-end">Variación Resultado</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr id="real2026-1-row">
-                        <td id="real2026-1-nom">—</td>
-                        <td id="real2026-1-ing" class="text-end dash">—</td>
-                        <td id="real2026-1-gto" class="text-end dash">—</td>
-                        <td id="real2026-1-res" class="text-end dash">—</td>
-                        <td id="real2026-1-var" class="text-end dash">—</td>
-                      </tr>
-                      <tr id="real2026-2-row">
-                        <td id="real2026-2-nom">—</td>
-                        <td id="real2026-2-ing" class="text-end dash">—</td>
-                        <td id="real2026-2-gto" class="text-end dash">—</td>
-                        <td id="real2026-2-res" class="text-end dash">—</td>
-                        <td id="real2026-2-var" class="text-end dash">—</td>
-                      </tr>
-                      <tr>
-                        <td><strong>Total REAL</strong></td>
-                        <td id="real2026-total-ing" class="text-end dash">—</td>
-                        <td id="real2026-total-gto" class="text-end dash">—</td>
-                        <td id="real2026-total-res" class="text-end dash">—</td>
-                        <td id="real2026-total-var" class="text-end dash">—</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>            
-          </div>
-        </div>
-      </div>
-    </div>
-
+    </section>
   </div>
 
   <script src="js/sesion.js"></script>
   <script>
-    // Capítulo según empresa activa
-    (function setChapterFromEmpresa(){
-      try{
-        const emp = (typeof Sesion!=='undefined' && Sesion.obtenerEmpresaActiva && Sesion.obtenerEmpresaActiva()) || null;
-        const ciudad = emp?.etiqueta || emp?.nombre || emp?.id || '—';
-        document.getElementById('chapterSubtitle').textContent = `Capítulo ${ciudad}`;
-      }catch{}
-    })();
+  (() => {
+    // ======= Encabezados de sesión / capítulo =======
+    try{
+      const emp = (typeof Sesion!=='undefined' && Sesion.obtenerEmpresaActiva && Sesion.obtenerEmpresaActiva()) || null;
+      const ciudad = emp?.etiqueta || emp?.nombre || emp?.id || '—';
+      document.getElementById('chapterSubtitle').textContent = ciudad ? 'Capítulo ' + ciudad : '';
+    }catch{}
 
-    // Mostrar/ocultar por año (misma lógica que en Membresía/Resumen)
-    (function wireYearFilters(){
-      const checks = Array.from(document.querySelectorAll('.year-controls .form-check-input'));
-      const toggle = ()=>{
-        const activos = new Set(checks.filter(c=>c.checked).map(c=>c.dataset.year));
-        document.querySelectorAll('[data-year]').forEach(card=>{
-          card.classList.toggle('d-none', !activos.has(card.getAttribute('data-year')));
-        });
-      };
-      checks.forEach(c=>c.addEventListener('change', toggle));
-      toggle();
-    })();
+    const timeEl      = document.getElementById('panelTime');
+    const yearSelect  = document.getElementById('yearSelect');
+    const tableHead   = document.querySelector('#eventosTable thead');
+    const tableBody   = document.querySelector('#eventosTable tbody');
+    const toggleBtn   = document.getElementById('toggleAccounts');
+    const STORAGE_KEY = 'eventos_ocultar_cuentas';
+
+    function setStaticViewTime(){
+      if(!timeEl) return;
+      timeEl.textContent = 'Vista ' + new Date().toLocaleTimeString('es-MX') + '.';
+    }
+
+    // ===== Meses duplicados (A normal / B duplicado amarillo) =====
+    const MONTHS = [
+      {k:'eneA',m:'ENE',dup:false},{k:'eneB',m:'ENE',dup:true},
+      {k:'febA',m:'FEB',dup:false},{k:'febB',m:'FEB',dup:true},
+      {k:'marA',m:'MAR',dup:false},{k:'marB',m:'MAR',dup:true},
+      {k:'abrA',m:'ABR',dup:false},{k:'abrB',m:'ABR',dup:true},
+      {k:'mayA',m:'MAY',dup:false},{k:'mayB',m:'MAY',dup:true},
+      {k:'junA',m:'JUN',dup:false},{k:'junB',m:'JUN',dup:true},
+      {k:'julA',m:'JUL',dup:false},{k:'julB',m:'JUL',dup:true},
+      {k:'agoA',m:'AGO',dup:false},{k:'agoB',m:'AGO',dup:true},
+      {k:'sepA',m:'SEP',dup:false},{k:'sepB',m:'SEP',dup:true},
+      {k:'octA',m:'OCT',dup:false},{k:'octB',m:'OCT',dup:true},
+      {k:'novA',m:'NOV',dup:false},{k:'novB',m:'NOV',dup:true},
+      {k:'dicA',m:'DIC',dup:false},{k:'dicB',m:'DIC',dup:true},
+    ];
+
+    const dash = '–';
+
+    // ===== Filas estáticas según Excel =====
+    const filas = [
+      // Ingresos Boletaje
+      { tipo:'ing', cuenta:'407-005-000-00', nombre:'Asamblea Anual' },
+      { tipo:'ing', cuenta:'407-010-000-00', nombre:'Torneo Golf' },
+      { tipo:'ing', cuenta:'407-002-000-00', nombre:'Secretarias' },
+      { tipo:'ing', cuenta:'407-008-000-00', nombre:'Foro Económico' },
+      { tipo:'ing', cuenta:'407-009-000-00', nombre:'Foros Comités' },
+      { tipo:'ing', cuenta:'407-012-000-00', nombre:'Cena Gala' },
+      { tipo:'ing', cuenta:'407-013-000-00', nombre:'AmCham Connect' },
+      { tipo:'ing', cuenta:'407-014-000-00', nombre:'North America Week' },
+      { tipo:'ing', cuenta:'407-007-000-00', nombre:'Sondeo de Seguridad' },
+      { tipo:'subtotal', nombre:'Ingresos Boletaje' },
+
+      { tipo:'sep' },
+
+      // Ingresos Patrocinios
+      { tipo:'ing', cuenta:'408-005-000-00', nombre:'Asamblea Anual' },
+      { tipo:'ing', cuenta:'408-010-000-00', nombre:'Torneo Golf' },
+      { tipo:'ing', cuenta:'408-002-000-00', nombre:'Secretarias' },
+      { tipo:'ing', cuenta:'408-008-000-00', nombre:'Foro Económico' },
+      { tipo:'ing', cuenta:'408-009-000-00', nombre:'Sondeo de Seguridad' },
+      { tipo:'ing', cuenta:'408-003-000-00', nombre:'Foros Comités' },
+      { tipo:'ing', cuenta:'408-016-000-00', nombre:'Select USA Conference' },
+      { tipo:'ing', cuenta:'408-006-000-00', nombre:'AmCham Connect' },
+      { tipo:'ing', cuenta:'408-013-000-00', nombre:'Cena Gala' },
+      { tipo:'ing', cuenta:'408-004-000-00', nombre:'CEO Talk' },
+      { tipo:'ing', cuenta:'408-015-000-00', nombre:'AmCham B2B' },
+      { tipo:'ing', cuenta:'408-014-000-00', nombre:'North America Week' },
+      { tipo:'ing', cuenta:'408-018-000-00', nombre:'Incidencia' },
+      { tipo:'subtotal', nombre:'Ingresos Patrocinios' },
+
+      { tipo:'total', nombre:'Suma Ingresos Eventos' },
+
+      { tipo:'sep' },
+
+      // Costos y Gastos Eventos
+      { tipo:'gto', cuenta:'701-001-004-00', nombre:'Asamblea Anual' },
+      { tipo:'gto', cuenta:'701-001-013-00', nombre:'Torneo Golf' },
+      { tipo:'gto', cuenta:'701-001-011-00', nombre:'Secretarias' },
+      { tipo:'gto', cuenta:'701-001-006-00', nombre:'Foro Económico' },
+      { tipo:'gto', cuenta:'701-001-014-00', nombre:'Foros de Comités' },
+      { tipo:'gto', cuenta:'701-001-017-00', nombre:'AmCham Connect' },
+      { tipo:'gto', cuenta:'701-001-012-00', nombre:'Cena Gala' },
+      { tipo:'gto', cuenta:'701-001-003-00', nombre:'CEO Talk' },
+      { tipo:'gto', cuenta:'701-001-018-00', nombre:'AmCham B2B' },
+      { tipo:'gto', cuenta:'701-001-008-00', nombre:'Sondeo de Seguridad' },
+      { tipo:'gto', cuenta:'701-001-015-00', nombre:'NORTH AMERICA WEEK' },
+      { tipo:'gto', cuenta:'701-001-002-00', nombre:'Incidencia' },
+      { tipo:'gto', cuenta:'701-001-016-00', nombre:'Ppto Marketing' },
+      { tipo:'total', nombre:'Suma Costos y Gastos Eventos' },
+      { tipo:'res-op', nombre:'Resultado Operativo Eventos' },
+
+      { tipo:'sep' },
+
+      // Gastos Administrativos
+      { tipo:'adm', cuenta:'801-010-001-00', nombre:'Teléfono Móvil' },
+      { tipo:'adm', cuenta:'801-010-003-00', nombre:'Gasolina' },
+      { tipo:'adm', cuenta:'801-010-004-00', nombre:'Mantenimiento auto' },
+      { tipo:'adm', cuenta:'801-010-016-00', nombre:'Gastos de viaje' },
+      { tipo:'adm', cuenta:'801-010-005-00', nombre:'Pasajes y estacionamientos' },
+      { tipo:'adm', cuenta:'801-010-007-00', nombre:'Papelería' },
+      { tipo:'adm', cuenta:'801-010-011-00', nombre:'Promoción' },
+      { tipo:'adm', cuenta:'801-010-010-00', nombre:'Becarios' },
+      { tipo:'adm', cuenta:'801-010-013-00', nombre:'Gastos Administrativos (impresión tarjetas)' },
+      { tipo:'adm', cuenta:'801-010-015-00', nombre:'Herramientas Tele-trabajo' },
+      { tipo:'total', nombre:'Suma Gastos Administrativos' },
+
+      { tipo:'res', nombre:'Resultado  Eventos y Serv Membresía' }
+    ];
+
+    // ===== Render =====
+    let ocultarCuentas = (localStorage.getItem(STORAGE_KEY) === '1');
+
+    function renderHead(){
+      const year = yearSelect.value || new Date().getFullYear();
+      const suf  = String(year).slice(-2);
+
+      const monthTh = MONTHS.map(m =>
+        `<th class="${m.dup ? 'evt-dup' : ''}"><span>${m.m.toLowerCase()}-${suf}</span></th>`
+      ).join('');
+
+      if(ocultarCuentas){
+        // Sin columna de cuentas
+        tableHead.innerHTML = `
+          <tr>
+            <th>EVENTOS</th>
+            ${monthTh}
+            <th><span>${year}</span>Total</th>
+          </tr>
+        `;
+      }else{
+        // Con columna de cuentas
+        tableHead.innerHTML = `
+          <tr>
+            <th class="evt-account-col-h">Cuenta</th>
+            <th>EVENTOS</th>
+            ${monthTh}
+            <th><span>${year}</span>Total</th>
+          </tr>
+        `;
+      }
+    }
+
+    function renderBody(){
+      const TOTAL_COLS = ocultarCuentas
+        ? (1 + MONTHS.length + 1)   // desc + meses + total
+        : (2 + MONTHS.length + 1);  // cuenta + desc + meses + total
+
+      const out = [];
+
+      filas.forEach(f => {
+        if (f.tipo === 'sep'){
+          out.push(
+            `<tr><td colspan="${TOTAL_COLS}" style="background:transparent;border:none;height:.35rem;"></td></tr>`
+          );
+          return;
+        }
+
+        if (f.tipo === 'total' || f.tipo === 'subtotal' || f.tipo === 'res-op' || f.tipo === 'res'){
+          const kind =
+            f.tipo === 'res'    ? 'resultado-final' :
+            f.tipo === 'res-op' ? 'resultado' :
+            'total';
+
+          const cells = MONTHS.map(m =>
+            `<td class="${m.dup ? 'evt-dup' : ''}">${dash}</td>`
+          ).join('');
+
+          const labelColspan = ocultarCuentas ? 1 : 2;
+
+          out.push(`
+            <tr data-kind="${kind}">
+              <td colspan="${labelColspan}">${f.nombre}</td>
+              ${cells}
+              <td>${dash}</td>
+            </tr>
+          `);
+          return;
+        }
+
+        // Fila normal (ing/gto/adm)
+        const cells = MONTHS.map(m =>
+          `<td class="${m.dup ? 'evt-dup' : ''}">${dash}</td>`
+        ).join('');
+
+        if(ocultarCuentas){
+          out.push(`
+            <tr data-tipo="${f.tipo}">
+              <td class="evt-desc-col">${f.nombre || ''}</td>
+              ${cells}
+              <td>${dash}</td>
+            </tr>
+          `);
+        }else{
+          out.push(`
+            <tr data-tipo="${f.tipo}">
+              <td class="evt-account-col">${f.cuenta || '—'}</td>
+              <td class="evt-desc-col">${f.nombre || ''}</td>
+              ${cells}
+              <td>${dash}</td>
+            </tr>
+          `);
+        }
+      });
+
+      tableBody.innerHTML = out.join('');
+    }
+
+    function updateToggleButton(){
+      toggleBtn.textContent = ocultarCuentas ? 'Mostrar cuentas' : 'Ocultar cuentas';
+      toggleBtn.setAttribute('aria-pressed', ocultarCuentas ? 'true' : 'false');
+    }
+
+    function renderAll(){
+      setStaticViewTime();
+      renderHead();
+      renderBody();
+      updateToggleButton();
+    }
+
+    // Eventos
+    yearSelect.addEventListener('change', renderAll);
+
+    toggleBtn.addEventListener('click', () => {
+      ocultarCuentas = !ocultarCuentas;
+      localStorage.setItem(STORAGE_KEY, ocultarCuentas ? '1' : '0');
+      renderAll();
+    });
+
+    // Primera pinta
+    renderAll();
+  })();
   </script>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

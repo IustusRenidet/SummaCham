@@ -4,14 +4,17 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Servicios a la Membresía</title>
+
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
   <style>
     :root {
-       --color-primary: #2f5496;
-      --color-secondary: #8497b0;
-      --color-background: #f2f2f2;
-      --color-text: #2f5496;
+      --servm-color-primary: #2f5496;
+      --servm-color-secondary: #8497b0;
+      --servm-color-background: #f2f2f2;
+      --servm-color-text: #2f5496;
+
       --bs-primary: #2f5496;
       --bs-primary-rgb: 47, 84, 150;
       --bs-success: #2f5496;
@@ -21,364 +24,364 @@
     }
 
     body {
-      background: var(--color-background);
+      background: var(--servm-color-background);
       font-family: 'Manrope', 'Segoe UI', Tahoma, sans-serif;
-      color: var(--color-text);
+      color: var(--servm-color-text);
       min-height: 100vh;
-      padding-top: 60px;
+      padding-top: 20px;
     }
 
-    .header-card {
-      background: var(--color-primary);
-      color: #fff;
-      border-radius: 18px;
-      border: 1px solid rgba(47, 84, 150, 0.1);
-      box-shadow: 0 18px 42px rgba(47, 84, 150, 0.18);
+    .servm-container {
+      max-width: 1440px;
     }
 
-    .module-card {
-      border-radius: 20px;
-      border: 1px solid rgba(47, 84, 150, 0.08);
-      box-shadow: 0 22px 48px rgba(47, 84, 150, 0.16);
+    .servm-panel {
       background: #fff;
-    }
-
-    .module-card .card-body {
-      padding: clamp(1.5rem, 2vw, 2.5rem);
-    }
-
-    .pill-accent {
-      background: rgba(255, 255, 255, 0.18);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      padding: 0.35rem 0.9rem;
-      border-radius: 999px;
-      font-weight: 700;
-      letter-spacing: 0.08em;
-    }
-
-    .module-grid {
-      min-height: 180px;
-    }
-
-    .module-card article {
-      border: none;
       border-radius: 18px;
-      background: linear-gradient(145deg, #ffffff 0%, #f2f2f2 100%);
+      border: 1px solid rgba(47, 84, 150, 0.08);
+      box-shadow: 0 25px 55px rgba(47, 84, 150, 0.08);
+      padding: 1.75rem;
     }
 
-    .module-card .card h3 {
-      color: var(--color-primary);
+    .servm-hero {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .servm-title {
+      color: var(--servm-color-primary);
+      font-weight: 800;
+      margin: 0;
+    }
+
+    .servm-status {
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .servm-controls {
+      display: flex;
+      gap: 0.75rem;
+      align-items: flex-end;
+      flex-wrap: wrap;
+    }
+
+    .servm-controls .form-select {
+      min-width: 110px;
+    }
+
+    .servm-btn-toggle {
+      border-radius: 10px;
+      padding: 0.6rem 1rem;
+      border: 1px solid rgba(47, 84, 150, 0.25);
+      background: #fff;
+      color: var(--servm-color-text);
       font-weight: 700;
+    }
+
+    .servm-table-wrapper {
+      width: 100%;
+      overflow-x: auto;
+      margin-top: 1rem;
+    }
+
+    .servm-table {
+      width: 100%;
+      min-width: 1600px;
+      border-collapse: collapse;
+      font-size: 0.92rem;
+    }
+
+    .servm-table th,
+    .servm-table td {
+      border: 1px solid rgba(47, 84, 150, 0.12);
+      padding: 0.55rem 0.6rem;
+      text-align: right;
+      min-width: 90px;
+      background: #fff;
+      white-space: nowrap;
+    }
+
+    .servm-table thead th {
+      background: #2f5496;
+      color: #fff;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-size: 0.8rem;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    .servm-table thead th span {
+      display: block;
+      color: #d9d9d9;
+      font-weight: 800;
+    }
+
+    .servm-account-col-h {
+      text-align: left;
+      min-width: 160px;
+      background: #f7f9fc;
+    }
+
+    .servm-account-col {
+      text-align: left;
+      min-width: 160px;
+      background: #f7f9fc;
+      font-family: 'Courier New', monospace;
+      font-weight: 600;
+    }
+
+    .servm-desc-col {
+      text-align: left;
+      min-width: 260px;
+      font-weight: 600;
+      color: var(--servm-color-text);
+    }
+
+    .servm-table th.servm-dup,
+    .servm-table td.servm-dup {
+      background: #fff7d6;
+      border-left: 2px solid rgba(47, 84, 150, 0.25);
+    }
+
+    .servm-table tbody tr[data-kind="total"],
+    .servm-table tbody tr[data-kind="resultado"] {
+      background: #f2f2f2;
+      font-weight: 800;
+    }
+
+    .servm-table tbody tr[data-kind="resultado-final"] {
+      background: #eef8ff;
+      font-weight: 900;
+    }
+
+    .servm-section-row {
+      background: rgba(47, 84, 150, 0.05);
+      font-weight: 800;
+      color: var(--servm-color-primary);
     }
   </style>
 </head>
 <body>
-  <div class="container py-4 py-lg-5 servmb-scope">
-
-    <!-- Header -->
-    <div class="row mb-4">
-      <div class="col-12">
-        <div class="card header-card">
-          <div class="card-body d-flex flex-column align-items-center gap-2">
-            <h1 class="fw-bold display-6 mb-1">Servicios a la Membresía</h1>
-            <p id="chapterSubtitle" class="mb-0 fs-5">Capítulo —</p>
+  <div class="container-xxl servm-container py-4">
+    <section class="servm-panel">
+      <div class="servm-hero mb-3">
+        <div>
+          <h1 class="servm-title h3 mb-1">Servicios a la Membresía</h1>
+          <span id="servmStatus" class="servm-status text-success"></span>
+          <div id="chapterSubtitle" class="fw-semibold mt-1" style="color:#6b7280"></div>
+        </div>
+        <div class="servm-controls">
+          <div>
+            <label for="yearSelect" class="form-label mb-1 fw-bold" style="color:#4567a8">Ejercicio</label>
+            <select id="yearSelect" class="form-select">
+              <option value="2024">2024</option>
+              <option value="2025">2025</option>
+              <option value="2026" selected>2026</option>
+            </select>
           </div>
+          <button id="toggleAccounts" type="button" class="servm-btn-toggle">
+            Ocultar cuentas
+          </button>
         </div>
       </div>
-    </div>
 
-    <!-- Filtros de años (similar Resumen) -->
-    <div class="row mb-3">
-      <div class="col-12">
-        <div class="d-flex align-items-center justify-content-end gap-3 year-controls">
-          <label class="mb-0">Años:</label>
-          <!-- Si agregas más años en el futuro, solo duplica estos checks -->
-          <div class="form-check form-check-inline">
-            <input class="form-check-input" type="checkbox" id="year-2026" data-year="2026" checked>
-            <label class="form-check-label" for="year-2026">2026</label>
-          </div>
-        </div>
+      <div class="servm-table-wrapper">
+        <table class="servm-table" id="tblServMembresia">
+          <thead></thead>
+          <tbody></tbody>
+        </table>
       </div>
-    </div>
-
-    <!-- Ingresos -->
-    <div class="row g-4 mb-2">
-      <div class="col-12">
-        <div class="card module-card">
-          <div class="card-body">
-            <h5 class="section-title">Ingresos Servicios a la Membresía</h5>
-            <div class="row g-3">
-              <div class="col-12" data-year="2026" id="ing-2026">
-                <div class="list-card">
-                  <div class="year-pill">2026</div>
-                  <table class="list-table" aria-describedby="ingresos-2026">
-                    <thead>
-                      <tr class="muted">
-                        <th class="text-start">Cuenta / Concepto</th>
-                        <th class="text-end">Total anual</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr id="row-ing-406-001-000-00">
-                        <td>406-001-000-00 · Encuesta de Sueldos y Prestaciones</td>
-                        <td class="text-end dash" id="ing-2026-406-001-000-00">—</td>
-                      </tr>
-                      <tr id="row-ing-406-002-000-00">
-                        <td>406-002-000-00 · Digital Training</td>
-                        <td class="text-end dash" id="ing-2026-406-002-000-00">—</td>
-                      </tr>
-                      <tr>
-                        <td><strong>Suma de Ingresos Servicios Membresía</strong></td>
-                        <td class="text-end dash" id="ing-2026-suma">—</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div><!-- /col -->
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Gastos -->
-    <div class="row g-4 mb-2">
-      <div class="col-12">
-        <div class="card module-card">
-          <div class="card-body">
-            <h5 class="section-title">Gastos Servicios a la Membresía</h5>
-            <div class="row g-3">
-              <div class="col-12" data-year="2026" id="gas-2026">
-                <div class="list-card">
-                  <div class="year-pill">2026</div>
-                  <table class="list-table" aria-describedby="gastos-2026">
-                    <thead>
-                      <tr class="muted">
-                        <th class="text-start">Cuenta / Concepto</th>
-                        <th class="text-end">Total anual</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr id="row-gas-601-002-003-00">
-                        <td>601-002-003-00 · Encuesta de Sueldos y Prestaciones</td>
-                        <td class="text-end dash" id="gas-2026-601-002-003-00">—</td>
-                      </tr>
-                      <tr id="row-gas-601-003-001-00">
-                        <td>601-003-001-00 · Digital Training</td>
-                        <td class="text-end dash" id="gas-2026-601-003-001-00">—</td>
-                      </tr>
-                      <tr>
-                        <td><strong>Suma de Gastos Servicios Membresía</strong></td>
-                        <td class="text-end dash" id="gas-2026-suma">—</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div><!-- /col -->
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Resultado -->
-    <div class="row g-4">
-      <div class="col-12">
-        <div class="card module-card">
-          <div class="card-body">
-            <h5 class="section-title">Resultado Operativo</h5>
-            <div class="row g-3">
-              <div class="col-12" data-year="2026" id="res-2026">
-                <div class="list-card">
-                  <div class="year-pill">2026</div>
-                  <table class="list-table" aria-describedby="resultado-2026">
-                    <thead>
-                      <tr class="muted">
-                        <th class="text-start">Concepto</th>
-                        <th class="text-end">Total anual</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr id="row-res-2026">
-                        <td>Resultado Serv Membresía</td>
-                        <td class="text-end dash" id="res-2026-total">—</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div><!-- /col -->
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ============== Excel embebido (oculto) ============== -->
-    <div id="excel-serv-membership" class="d-none">
-      <!-- Pegamos aquí la tabla que me enviaste tal cual -->
-      <table>
-        <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-        <tr>
-          <td></td><td>SERVICIOS A LA MEMBRESIA</td>
-          <td>Jan-26</td><td>Jan-26</td><td>Feb-26</td><td>Feb-26</td><td>Mar-26</td><td>Mar-26</td>
-          <td>Apr-26</td><td>Apr-26</td><td>May-26</td><td>May-26</td><td>Jun-26</td><td>Jun-26</td>
-          <td>Jul-26</td><td>Jul-26</td><td>Aug-26</td><td>Aug-26</td><td>Sep-26</td><td>Sep-26</td>
-          <td>Oct-26</td><td>Oct-26</td><td>Nov-26</td><td>Nov-26</td><td>Dec-26</td><td>Dec-26</td>
-          <td>2026</td><td></td><td></td>
-        </tr>
-        <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-
-        <tr><td></td><td>Ingresos Serv Membresía</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-        <tr>
-          <td>406-001-000-00</td><td> Encuesta de Sueldos y Prestaciones</td>
-          <td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td>
-          <td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td>
-          <td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td>
-          <td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td>
-          <td> -   </td><td></td><td></td>
-        </tr>
-        <tr>
-          <td>406-002-000-00</td><td> Digital Training</td>
-          <td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td>
-          <td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td>
-          <td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td>
-          <td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td>
-          <td> -   </td><td></td><td></td>
-        </tr>
-        <tr><td></td><td>Suma de Ingresos Serv Membresía</td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td></td><td></td></tr>
-
-        <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-
-        <tr><td></td><td>Gastos  Serv Membresía</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-        <tr>
-          <td>601-002-003-00</td><td>Encuesta de Sueldos y Prestaciones</td>
-          <td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td>
-          <td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td>
-          <td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td>
-          <td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td>
-          <td> -   </td><td></td><td></td>
-        </tr>
-        <tr>
-          <td>601-003-001-00</td><td>Digital Training</td>
-          <td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td>
-          <td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td>
-          <td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td>
-          <td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td>
-          <td> -   </td><td></td><td></td>
-        </tr>
-        <tr><td></td><td>Suma de Gastos Serv Membresía</td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td></td><td></td></tr>
-
-        <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-
-        <tr><td></td><td>Resultado Serv Membresía</td>
-          <td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td>
-          <td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td>
-          <td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td>
-          <td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td><td> -   </td>
-          <td> -   </td><td></td><td></td>
-        </tr>
-      </table>
-    </div>
-    <!-- ============== /Excel embebido ============== -->
-
+    </section>
   </div>
 
   <script src="js/sesion.js"></script>
   <script>
-    // Capítulo según empresa activa
-    (function setChapterFromEmpresa(){
-      try{
-        const emp = (typeof Sesion!=='undefined' && Sesion.obtenerEmpresaActiva && Sesion.obtenerEmpresaActiva()) || null;
+    (function () {
+      // ===== Capítulo según empresa activa =====
+      try {
+        const emp = (typeof Sesion !== 'undefined' && Sesion.obtenerEmpresaActiva && Sesion.obtenerEmpresaActiva()) || null;
         const ciudad = emp?.etiqueta || emp?.nombre || emp?.id || '—';
-        document.getElementById('chapterSubtitle').textContent = `Capítulo ${ciudad}`;
-      }catch{}
-    })();
+        document.getElementById('chapterSubtitle').textContent = ciudad ? 'Capítulo ' + ciudad : '';
+      } catch {}
 
-    // Mostrar/ocultar por año (extensible)
-    (function wireYearFilters(){
-      const checks = Array.from(document.querySelectorAll('.year-controls .form-check-input'));
-      const toggle = ()=>{
-        const activos = new Set(checks.filter(c=>c.checked).map(c=>c.dataset.year));
-        document.querySelectorAll('[data-year]').forEach(card=>{
-          card.classList.toggle('d-none', !activos.has(card.getAttribute('data-year')));
-        });
-      };
-      checks.forEach(c=>c.addEventListener('change', toggle));
-      toggle();
-    })();
+      const statusEl    = document.getElementById('servmStatus');
+      const yearSelect  = document.getElementById('yearSelect');
+      const tableHead   = document.querySelector('#tblServMembresia thead');
+      const tableBody   = document.querySelector('#tblServMembresia tbody');
+      const toggleBtn   = document.getElementById('toggleAccounts');
+      const STORAGE_KEY = 'servmemb_ocultar_cuentas';
 
-    // ===== Parsear tabla pegada y poblar totales =====
-    (function parseAndFill(){
-      const host = document.querySelector('#excel-serv-membership table');
-      if(!host) return;
-
-      // Busca una fila por el primer <td> que contenga exactamente el código
-      function findRowByCode(code){
-        const rows = host.querySelectorAll('tr');
-        for(const r of rows){
-          const first = r.querySelector('td');
-          if(!first) continue;
-          const txt = (first.textContent || '').trim();
-          if(txt === code) return r;
-        }
-        return null;
+      function updateStatusTime() {
+        if (!statusEl) return;
+        statusEl.textContent = 'Vista ' + new Date().toLocaleTimeString('es-MX') + '.';
       }
 
-      // Suma todas las celdas numéricas de la fila (ignorando '-' y vacíos)
-      function sumRow(row){
-        if(!row) return null;
-        const tds = Array.from(row.querySelectorAll('td')).slice(2); // a partir de col 3 (meses)
-        let total = 0;
-        let hasNumber = false;
-        for(const td of tds){
-          const raw = (td.textContent || '').replace(/\s+/g,'').replace(/,/g,'');
-          if(raw === '-' || raw === '' || raw === '–') continue;
-          const val = Number(raw);
-          if(!Number.isNaN(val)){
-            total += val;
-            hasNumber = true;
+      // ===== Meses duplicados (A normal, B duplicado amarillo) =====
+      const SERVM_MONTHS = [
+        { key: 'eneA', label: 'ENE', dup: false }, { key: 'eneB', label: 'ENE', dup: true },
+        { key: 'febA', label: 'FEB', dup: false }, { key: 'febB', label: 'FEB', dup: true },
+        { key: 'marA', label: 'MAR', dup: false }, { key: 'marB', label: 'MAR', dup: true },
+        { key: 'abrA', label: 'ABR', dup: false }, { key: 'abrB', label: 'ABR', dup: true },
+        { key: 'mayA', label: 'MAY', dup: false }, { key: 'mayB', label: 'MAY', dup: true },
+        { key: 'junA', label: 'JUN', dup: false }, { key: 'junB', label: 'JUN', dup: true },
+        { key: 'julA', label: 'JUL', dup: false }, { key: 'julB', label: 'JUL', dup: true },
+        { key: 'agoA', label: 'AGO', dup: false }, { key: 'agoB', label: 'AGO', dup: true },
+        { key: 'sepA', label: 'SEP', dup: false }, { key: 'sepB', label: 'SEP', dup: true },
+        { key: 'octA', label: 'OCT', dup: false }, { key: 'octB', label: 'OCT', dup: true },
+        { key: 'novA', label: 'NOV', dup: false }, { key: 'novB', label: 'NOV', dup: true },
+        { key: 'dicA', label: 'DIC', dup: false }, { key: 'dicB', label: 'DIC', dup: true }
+      ];
+
+      const dash = '–';
+
+      // ===== Filas según Excel "Mex Serv Membresía 2026" =====
+      const SERVM_ROWS = [
+        { tipo: 'section', nombre: 'Ingresos Serv Membresía' },
+        { tipo: 'ing', cuenta: '406-001-000-00', nombre: 'Encuesta de Sueldos y Prestaciones' },
+        { tipo: 'ing', cuenta: '406-002-000-00', nombre: 'Digital Training' },
+        { tipo: 'total', nombre: 'Suma de Ingresos Serv Membresía' },
+
+        { tipo: 'sep' },
+
+        { tipo: 'section', nombre: 'Gastos Serv Membresía' },
+        { tipo: 'gto', cuenta: '601-002-003-00', nombre: 'Encuesta de Sueldos y Prestaciones' },
+        { tipo: 'gto', cuenta: '601-003-001-00', nombre: 'Digital Training' },
+        { tipo: 'total', nombre: 'Suma de Gastos Serv Membresía' },
+
+        { tipo: 'sep' },
+
+        { tipo: 'res', nombre: 'Resultado Serv Membresía' }
+      ];
+
+      // ===== Render =====
+      let ocultarCuentas = (localStorage.getItem(STORAGE_KEY) === '1');
+
+      function renderHead() {
+        const year = yearSelect.value || new Date().getFullYear();
+        const suf  = String(year).slice(-2);
+
+        const monthTh = SERVM_MONTHS.map(m =>
+          `<th class="${m.dup ? 'servm-dup' : ''}"><span>${m.label.toLowerCase()}-${suf}</span></th>`
+        ).join('');
+
+        if (ocultarCuentas) {
+          tableHead.innerHTML = `
+            <tr>
+              <th>SERVICIOS A LA MEMBRESÍA</th>
+              ${monthTh}
+              <th><span>${year}</span>Total</th>
+            </tr>
+          `;
+        } else {
+          tableHead.innerHTML = `
+            <tr>
+              <th class="servm-account-col-h">Cuenta</th>
+              <th>SERVICIOS A LA MEMBRESÍA</th>
+              ${monthTh}
+              <th><span>${year}</span>Total</th>
+            </tr>
+          `;
+        }
+      }
+
+      function renderBody() {
+        const TOTAL_COLS = ocultarCuentas
+          ? (1 + SERVM_MONTHS.length + 1)      // descripción + meses + total
+          : (2 + SERVM_MONTHS.length + 1);     // cuenta + descripción + meses + total
+
+        const parts = [];
+
+        SERVM_ROWS.forEach(row => {
+          if (row.tipo === 'sep') {
+            parts.push(
+              `<tr><td colspan="${TOTAL_COLS}" style="background:transparent;border:none;height:.35rem;"></td></tr>`
+            );
+            return;
           }
-        }
-        return hasNumber ? total : null;
+
+          if (row.tipo === 'section') {
+            parts.push(
+              `<tr>
+                 <td colspan="${TOTAL_COLS}" class="servm-section-row">${row.nombre}</td>
+               </tr>`
+            );
+            return;
+          }
+
+          const cells = SERVM_MONTHS
+            .map(m => `<td class="${m.dup ? 'servm-dup' : ''}">${dash}</td>`)
+            .join('');
+
+          if (row.tipo === 'total' || row.tipo === 'res') {
+            const kind = row.tipo === 'res' ? 'resultado-final' : 'total';
+            const labelColspan = ocultarCuentas ? 1 : 2;
+
+            parts.push(`
+              <tr data-kind="${kind}">
+                <td colspan="${labelColspan}">${row.nombre}</td>
+                ${cells}
+                <td>${dash}</td>
+              </tr>
+            `);
+            return;
+          }
+
+          // Fila normal
+          if (ocultarCuentas) {
+            parts.push(`
+              <tr data-tipo="${row.tipo}">
+                <td class="servm-desc-col">${row.nombre || ''}</td>
+                ${cells}
+                <td>${dash}</td>
+              </tr>
+            `);
+          } else {
+            parts.push(`
+              <tr data-tipo="${row.tipo}">
+                <td class="servm-account-col">${row.cuenta || '—'}</td>
+                <td class="servm-desc-col">${row.nombre || ''}</td>
+                ${cells}
+                <td>${dash}</td>
+              </tr>
+            `);
+          }
+        });
+
+        tableBody.innerHTML = parts.join('');
       }
 
-      // Helper para formatear moneda MXN o dejar '—'
-      function fmt(n){
-        if(n==null) return '—';
-        try{
-          return new Intl.NumberFormat('es-MX',{ style:'currency', currency:'MXN', maximumFractionDigits:0 }).format(n);
-        }catch{
-          return n.toLocaleString();
-        }
+      function updateToggleButton() {
+        toggleBtn.textContent = ocultarCuentas ? 'Mostrar cuentas' : 'Ocultar cuentas';
+        toggleBtn.setAttribute('aria-pressed', ocultarCuentas ? 'true' : 'false');
       }
 
-      // === Ingresos 2026 ===
-      const rIng1 = findRowByCode('406-001-000-00');
-      const rIng2 = findRowByCode('406-002-000-00');
-      const tIng1 = sumRow(rIng1);
-      const tIng2 = sumRow(rIng2);
-      const sumaIngresos = (tIng1||0) + (tIng2||0);
+      function renderAll() {
+        updateStatusTime();
+        renderHead();
+        renderBody();
+        updateToggleButton();
+      }
 
-      document.getElementById('ing-2026-406-001-000-00').textContent = fmt(tIng1);
-      document.getElementById('ing-2026-406-002-000-00').textContent = fmt(tIng2);
-      document.getElementById('ing-2026-suma').textContent = fmt(sumaIngresos);
+      // ===== Eventos =====
+      yearSelect.addEventListener('change', renderAll);
 
-      // === Gastos 2026 ===
-      const rGas1 = findRowByCode('601-002-003-00');
-      const rGas2 = findRowByCode('601-003-001-00');
-      const tGas1 = sumRow(rGas1);
-      const tGas2 = sumRow(rGas2);
-      const sumaGastos = (tGas1||0) + (tGas2||0);
+      toggleBtn.addEventListener('click', () => {
+        ocultarCuentas = !ocultarCuentas;
+        localStorage.setItem(STORAGE_KEY, ocultarCuentas ? '1' : '0');
+        renderAll();
+      });
 
-      document.getElementById('gas-2026-601-002-003-00').textContent = fmt(tGas1);
-      document.getElementById('gas-2026-601-003-001-00').textContent = fmt(tGas2);
-      document.getElementById('gas-2026-suma').textContent = fmt(sumaGastos);
-
-      // === Resultado 2026 ===
-      const resultado = (sumaIngresos||0) - (sumaGastos||0);
-      document.getElementById('res-2026-total').textContent = fmt((tIng1==null && tIng2==null && tGas1==null && tGas2==null) ? null : resultado);
+      // Primera pinta
+      renderAll();
     })();
   </script>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
