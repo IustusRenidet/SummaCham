@@ -2,301 +2,339 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Membresía</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+
   <style>
-    :root {
-      --color-primary: #2f5496;
-      --color-secondary: #8497b0;
-      --color-background: #f2f2f2;
-      --color-text: #2f5496;
-      --bs-primary: #2f5496;
-      --bs-primary-rgb: 47, 84, 150;
-      --bs-success: #2f5496;
-      --bs-success-rgb: 47, 84, 150;
-      --bs-success-bg-subtle: rgba(47, 84, 150, 0.16);
-      --bs-success-border-subtle: rgba(47, 84, 150, 0.35);
+    :root{
+      --color-primary:#2f5496;
+      --color-secondary:#8497b0;
+      --color-background:#f2f2f2;
+      --color-text:#2f5496;
+
+      --bs-primary:#2f5496;
+      --bs-primary-rgb:47,84,150;
+      --bs-success:#2f5496;
+      --bs-success-rgb:47,84,150;
+      --bs-success-bg-subtle:rgba(47,84,150,0.16);
+      --bs-success-border-subtle:rgba(47,84,150,0.35);
     }
+
     body{
       background:var(--color-background);
       font-family:'Manrope','Segoe UI',Tahoma,sans-serif;
       color:var(--color-text);
       min-height:100vh;
-      padding-top:60px;
+      padding-top:20px;
     }
-    .header-card{
-      background:var(--color-primary);
-      color:#fff;
+
+    /* Contenedor más ancho en esta página */
+    .membresia-container{
+      max-width:1440px;  /* ajusta si necesitas aún más ancho */
+    }
+
+    .panel{
+      background:#fff;
       border-radius:18px;
-      border:1px solid rgba(36,50,38,0.1);
-      box-shadow:0 18px 42px rgba(36,50,38,0.18);
+      border:1px solid rgba(47,84,150,0.08);
+      box-shadow:0 25px 55px rgba(47,84,150,0.08);
+      padding:1.75rem;
     }
-    .module-card{
-      border-radius:20px;
-      border:1px solid rgba(36,50,38,0.08);
-      box-shadow:0 22px 48px rgba(36,50,38,0.16);
+
+    .table-membresia{
+      width:100%;
+      border-collapse:collapse;
+      font-size:0.92rem;
+    }
+    .table-membresia th,
+    .table-membresia td{
+      border:1px solid rgba(47,84,150,0.12);
+      padding:.55rem .6rem;
+      text-align:right;
+      min-width:90px;
       background:#fff;
     }
-    .module-card .card-body{ padding:clamp(1.5rem,2vw,2.5rem); }
 
-    /* ===== Estilos NUEVOS, scopeados ===== */
-    .membresia-scope .section-title{
-      color:var(--color-primary); font-weight:800; margin:0 0 .75rem;
+    .table-membresia thead th{
+      background:#2f5496;
+      color:#fff;
+      text-transform:uppercase;
+      letter-spacing:.05em;
+      font-size:.8rem;
+      position:sticky;
+      top:0;
+      z-index:1;
+    }
+    .table-membresia thead th span{ color:#d9d9d9; font-weight:800; display:block; }
+
+    .account-col-h,
+    .account-col{
+      text-align:left;
+      min-width:120px;
+      background:#f7f9fc;
+    }
+    .account-col{
+      font-family:'Courier New',monospace;
+      font-weight:600;
+    }
+    .desc-col{
+      text-align:left;
+      min-width:260px;
+      font-weight:600;
+      color:var(--color-text);
     }
 
-    .header-card {
-      background: var(--color-primary);
-      color: #fff;
-      border-radius: 18px;
-      border: 1px solid rgba(47, 84, 150, 0.1);
-      box-shadow: 0 18px 42px rgba(47, 84, 150, 0.18);
+    /* Totales y resultados */
+    .table-membresia tbody tr[data-kind="total"],
+    .table-membresia tbody tr[data-kind="resultado"]{
+      background:#f2f2f2;
+      font-weight:800;
     }
 
-    .module-card {
-      border-radius: 20px;
-      border: 1px solid rgba(47, 84, 150, 0.08);
-      box-shadow: 0 22px 48px rgba(47, 84, 150, 0.16);
-      background: #fff;
+    /* Duplicado (segunda columna del mes) en amarillo */
+    .table-membresia th.dup,
+    .table-membresia td.dup{
+      background:#fff7d6; /* amarillo suave */
+      border-left:2px solid rgba(47,84,150,.25);
     }
 
-    .module-card .card-body {
-      padding: clamp(1.5rem, 2vw, 2.5rem);
+    /* Botón ocultar/mostrar cuentas y clase global */
+    body.ocultar-cuentas .account-col,
+    body.ocultar-cuentas .account-col-h{
+      display:none;
     }
 
-    .pill-accent {
-      background: rgba(255, 255, 255, 0.18);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      padding: 0.35rem 0.9rem;
-      border-radius: 999px;
-      font-weight: 700;
-      letter-spacing: 0.08em;
+    /* Encabezado de página */
+    .hero{
+      display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;
     }
-
-    .module-grid {
-      min-height: 180px;
+    .title{
+      color:var(--color-primary);
+      font-weight:800;
+      margin:0;
     }
-
-    .module-card article {
-      border: none;
-      border-radius: 18px;
-      background: linear-gradient(145deg, #ffffff 0%, #f2f2f2 100%);
+    .status{
+      font-weight:600;font-size:.9rem;
     }
-
-    .module-card .card h3 {
-      color: var(--color-primary);
-      font-weight: 700;
-    }
-    .membresia-scope .list-table{ width:100%; border-collapse:separate; border-spacing:0; }
-    .membresia-scope .list-table tr>*{ padding:.75rem 1rem; }
-    .membresia-scope .list-table td:first-child{ font-weight:700; }
-    .membresia-scope .list-table td:last-child{ text-align:right; }
-    .membresia-scope .list-table tr:hover{ background:rgba(47,111,78,.04); }
-    .membresia-scope .dash{ font-weight:700; color:var(--color-primary); }
   </style>
 </head>
 <body>
-  <div class="container py-4 py-lg-5 membresia-scope">
 
-    <!-- Header -->
-    <div class="row mb-4">
-      <div class="col-12">
-        <div class="card header-card">
-          <div class="card-body d-flex flex-column align-items-center gap-2">
-            <h1 class="fw-bold display-6 mb-1">Membresía</h1>
-            <p id="chapterSubtitle" class="mb-0 fs-5">Capítulo —</p>
+  <div class="container-xxl membresia-container py-4">
+    <section class="panel">
+      <div class="hero mb-3">
+        <div>
+          <h1 class="title h3 mb-1">Membresía</h1>
+          <span id="membStatus" class="status text-success"></span>
+        </div>
+        <div class="d-flex align-items-end gap-2 flex-wrap">
+          <div>
+            <label class="form-label mb-1" for="yearSelect">Ejercicio</label>
+            <select id="yearSelect" class="form-select">
+              <option value="2024">2024</option>
+              <option value="2025" selected>2025</option>
+              <option value="2026">2026</option>
+            </select>
           </div>
+          <button id="toggleAccounts" type="button" class="btn btn-outline-secondary">
+            Ocultar cuentas
+          </button>
         </div>
       </div>
-    </div>
 
-    <!-- Controles (Años) -->
-    <div class="row mb-3">
-      <div class="col-12">
-        <div class="d-flex align-items-center justify-content-end gap-3 year-controls">
-          <label class="mb-0">Años:</label>
-          <div class="form-check form-check-inline">
-            <input class="form-check-input" type="checkbox" id="year-2024" data-year="2024" checked>
-            <label class="form-check-label" for="year-2024">2024</label>
-          </div>
-          <div class="form-check form-check-inline">
-            <input class="form-check-input" type="checkbox" id="year-2025" data-year="2025" checked>
-            <label class="form-check-label" for="year-2025">2025</label>
-          </div>
-          <div class="form-check form-check-inline">
-            <input class="form-check-input" type="checkbox" id="year-2026" data-year="2026" checked>
-            <label class="form-check-label" for="year-2026">2026</label>
-          </div>
-        </div>
+      <div class="table-responsive">
+        <table class="table-membresia" id="tblMembresia">
+          <thead></thead>
+          <tbody></tbody>
+        </table>
       </div>
-    </div>
-
-    <!-- Ingresos Membresía -->
-    <div class="row g-4 mb-2">
-      <div class="col-12">
-        <div class="card module-card">
-          <div class="card-body">
-            <h5 class="section-title">Ingresos Membresía</h5>
-            <div id="ingresosWrap" class="row g-3">
-              <!-- Año 2026 (ejemplo estático) -->
-              <div class="col-12">
-                <div class="list-card" data-year="2026">
-                  <div class="year-pill">2026</div>
-                  <table class="list-table">
-                    <tbody>
-                      <tr><td>Renovaciones</td><td class="dash">—</td></tr>
-                      <tr><td>Descuentos por pronto pago</td><td class="dash">—</td></tr>
-                      <tr><td>Socios nuevos</td><td class="dash">—</td></tr>
-                      <tr><td>Cuotas suscripción</td><td class="dash">—</td></tr>
-                      <tr><td>Diamond Publicidad en Publicaciones</td><td class="dash">—</td></tr>
-                      <tr><td><strong>Suma de Ingresos Membresía</strong></td><td class="dash">—</td></tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-              <!-- Puedes duplicar bloques por 2024/2025 si quieres verlos ya -->
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Gastos Membresía -->
-    <div class="row g-4 mb-2">
-      <div class="col-12">
-        <div class="card module-card">
-          <div class="card-body">
-            <h5 class="section-title">Gastos Membresía</h5>
-            <div id="gastosWrap" class="row g-3">
-              <div class="col-12">
-                <div class="list-card" data-year="2026">
-                  <div class="year-pill">2026</div>
-                  <table class="list-table">
-                    <tbody>
-                      <tr><td>Intercambios membresía-especie</td><td class="dash">—</td></tr>
-                      <tr><td>Intercambios membresía</td><td class="dash">—</td></tr>
-                      <tr><td>Comisiones KAM´s</td><td class="dash">—</td></tr>
-                      <tr><td>Promoción Servicios Membresías (Representación)</td><td class="dash">—</td></tr>
-                      <tr><td>Onboarding</td><td class="dash">—</td></tr>
-                      <tr><td><strong>Suma de Gastos Membresía</strong></td><td class="dash">—</td></tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Resultado Operativo Membresía -->
-    <div class="row g-4 mb-2">
-      <div class="col-12">
-        <div class="card module-card">
-          <div class="card-body">
-            <h5 class="section-title">Resultado Operativo Membresía</h5>
-            <div id="resultadoOperativoWrap" class="row g-3">
-              <div class="col-12">
-                <div class="list-card" data-year="2026">
-                  <div class="year-pill">2026</div>
-                  <table class="list-table">
-                    <tbody>
-                      <tr><td><strong>Resultado Operativo</strong></td><td class="dash">—</td></tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Gastos Administrativos -->
-    <div class="row g-4 mb-2">
-      <div class="col-12">
-        <div class="card module-card">
-          <div class="card-body">
-            <h5 class="section-title">Gastos Administrativos</h5>
-            <div id="gastosAdmWrap" class="row g-3">
-              <div class="col-12">
-                <div class="list-card" data-year="2026">
-                  <div class="year-pill">2026</div>
-                  <table class="list-table">
-                    <tbody>
-                      <tr><td>Teléfono móvil</td><td class="dash">—</td></tr>
-                      <tr><td>Mantenimientos de automóvil</td><td class="dash">—</td></tr>
-                      <tr><td>Gasolina</td><td class="dash">—</td></tr>
-                      <tr><td>Pasajes y taxis</td><td class="dash">—</td></tr>
-                      <tr><td>Estacionamientos</td><td class="dash">—</td></tr>
-                      <tr><td>Becario</td><td class="dash">—</td></tr>
-                      <tr><td>Gastos de viaje</td><td class="dash">—</td></tr>
-                      <tr><td>Gastos Administrativos (impresión tarjetas)</td><td class="dash">—</td></tr>
-                      <tr><td>Papelería y artículos de oficina</td><td class="dash">—</td></tr>
-                      <tr><td>Juntas de trabajo</td><td class="dash">—</td></tr>
-                      <tr><td>No deducibles</td><td class="dash">—</td></tr>
-                      <tr><td>Herramientas Tele-trabajo</td><td class="dash">—</td></tr>
-                      <tr><td><strong>Suma Gastos Administrativos</strong></td><td class="dash">—</td></tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Resultado Membresía -->
-    <div class="row g-4">
-      <div class="col-12">
-        <div class="card module-card">
-          <div class="card-body">
-            <h5 class="section-title">Resultado Membresía</h5>
-            <div id="resultadoFinalWrap" class="row g-3">
-              <div class="col-12">
-                <div class="list-card" data-year="2026">
-                  <div class="year-pill">2026</div>
-                  <table class="list-table">
-                    <tbody>
-                      <tr><td><strong>Resultado Membresía</strong></td><td class="dash">—</td></tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
+    </section>
   </div>
 
   <script src="js/sesion.js"></script>
   <script>
-    // Capítulo según empresa activa (usa tu helper Sesion)
-    (function setChapterFromEmpresa(){
+    (()=>{
+      // ====== Estado mínimo (estático por ahora) ======
+      const els = {
+        head: document.querySelector('#tblMembresia thead'),
+        body: document.querySelector('#tblMembresia tbody'),
+        yearSelect: document.getElementById('yearSelect'),
+        status: document.getElementById('membStatus'),
+        toggleAccounts: document.getElementById('toggleAccounts')
+      };
+
+      // Si existe tu helper Sesion, mostramos el capítulo; si no, lo omitimos (estático)
       try{
         const emp = (typeof Sesion!=='undefined' && Sesion.obtenerEmpresaActiva && Sesion.obtenerEmpresaActiva()) || null;
-        const ciudad = emp?.etiqueta || emp?.nombre || emp?.id || '—';
-        document.getElementById('chapterSubtitle').textContent = `Capítulo ${ciudad}`;
+        if(emp?.etiqueta){
+          document.title = `Membresía – ${emp.etiqueta}`;
+        }
       }catch{}
-    })();
 
-    // Mostrar/ocultar por año como en Resumen (simple, estático)
-    (function wireYearFilters(){
-      const checks = Array.from(document.querySelectorAll('.year-controls .form-check-input'));
-      const toggle = ()=>{
-        const activos = new Set(checks.filter(c=>c.checked).map(c=>c.dataset.year));
-        document.querySelectorAll('[data-year]').forEach(card=>{
-          card.classList.toggle('d-none', !activos.has(card.getAttribute('data-year')));
-        });
-      };
-      checks.forEach(c=>c.addEventListener('change', toggle));
-      toggle();
+      function tickStatus(){
+        if(!els.status) return;
+        els.status.textContent = `Vista ${new Date().toLocaleTimeString('es-MX')}.`;
+      }
+      tickStatus();
+
+      // ====== Columnas (meses duplicados como Excel) ======
+      const MONTHS = [
+        { k:'ene', l:'ENE' },{ k:'feb', l:'FEB' },{ k:'mar', l:'MAR' },
+        { k:'abr', l:'ABR' },{ k:'may', l:'MAY' },{ k:'jun', l:'JUN' },
+        { k:'jul', l:'JUL' },{ k:'ago', l:'AGO' },{ k:'sep', l:'SEP' },
+        { k:'oct', l:'OCT' },{ k:'nov', l:'NOV' },{ k:'dic', l:'DIC' }
+      ];
+
+      // Par de columnas por mes: normal + duplicada (amarilla)
+      const COLUMNS = MONTHS.flatMap(m => ([
+        { key: m.k,          label: m.l, dup:false },
+        { key: m.k + '_b',   label: m.l, dup:true  }
+      ]));
+      const TOTAL_COLUMNS = COLUMNS.length + 3; // Cuenta + Membresía + Total
+
+      // ====== Datos ESTÁTICOS (solo nombres/estructura) ======
+      const bloqueIngresos = [
+        { cuenta:'—', nombre:'Renovaciones' },
+        { cuenta:'—', nombre:'Descuentos por pronto pago' },
+        { cuenta:'—', nombre:'Socios nuevos' },
+        { cuenta:'—', nombre:'Cuotas suscripción' },
+        { cuenta:'—', nombre:'Diamond Publicidad en Publicaciones' },
+      ];
+
+      const bloqueGastos = [
+        { cuenta:'—', nombre:'Intercambios membresía-especie' },
+        { cuenta:'—', nombre:'Intercambios membresía' },
+        { cuenta:'—', nombre:"Comisiones KAM's" },
+        { cuenta:'—', nombre:'Promoción Servicios Membresías (Representación)' },
+        { cuenta:'—', nombre:'Onboarding' },
+      ];
+
+      const bloqueGastosAdm = [
+        { cuenta:'—', nombre:'Teléfono móvil' },
+        { cuenta:'—', nombre:'Mantenimientos de automóvil' },
+        { cuenta:'—', nombre:'Gasolina' },
+        { cuenta:'—', nombre:'Pasajes y taxis' },
+        { cuenta:'—', nombre:'Estacionamientos' },
+        { cuenta:'—', nombre:'Becario' },
+        { cuenta:'—', nombre:'Gastos de viaje' },
+        { cuenta:'—', nombre:'Gastos Administrativos (impresión tarjetas)' },
+        { cuenta:'—', nombre:'Papelería y artículos de oficina' },
+        { cuenta:'—', nombre:'Juntas de trabajo' },
+        { cuenta:'—', nombre:'No deducibles' },
+        { cuenta:'—', nombre:'Herramientas Tele-trabajo' },
+      ];
+
+      // ====== Render ======
+      let anio = Number(els.yearSelect.value || new Date().getFullYear());
+
+      function renderHead(){
+        const suf = String(anio).slice(-2);
+        const cols = COLUMNS.map(c =>
+          `<th class="${c.dup ? 'dup' : ''}"><span>${c.label.toLowerCase()}-${suf}</span></th>`
+        ).join('');
+        els.head.innerHTML = `
+          <tr>
+            <th class="account-col-h">Cuenta</th>
+            <th>MEMBRESÍA</th>
+            ${cols}
+            <th><span>${anio}</span>Total</th>
+          </tr>
+        `;
+      }
+
+      // Para estático, todas las celdas muestran "–"
+      const dash = '–';
+
+      function rowHtml(item){
+        const celdas = COLUMNS.map(c => `<td class="${c.dup?'dup':''}">${dash}</td>`).join('');
+        return `
+          <tr>
+            <td class="account-col">${item.cuenta || '—'}</td>
+            <td class="desc-col">${item.nombre || ''}</td>
+            ${celdas}
+            <td>${dash}</td>
+          </tr>
+        `;
+      }
+
+      function spacer(){
+        return `<tr><td colspan="${TOTAL_COLUMNS}" style="background:transparent;border:none;height:.35rem;"></td></tr>`;
+      }
+
+      function totalRow(label){
+        const celdas = COLUMNS.map(()=>`<td>${dash}</td>`).join('');
+        return `
+          <tr data-kind="total">
+            <td colspan="2">${label}</td>
+            ${celdas}
+            <td>${dash}</td>
+          </tr>
+        `;
+      }
+
+      function resultadoRow(label){
+        const celdas = COLUMNS.map(()=>`<td>${dash}</td>`).join('');
+        return `
+          <tr data-kind="resultado">
+            <td colspan="2">${label}</td>
+            ${celdas}
+            <td>${dash}</td>
+          </tr>
+        `;
+      }
+
+      function renderBody(){
+        const parts = [];
+
+        // Ingresos
+        bloqueIngresos.forEach(it => parts.push(rowHtml(it)));
+        parts.push(totalRow('Suma de Ingresos Membresía'));
+        parts.push(spacer());
+
+        // Gastos
+        bloqueGastos.forEach(it => parts.push(rowHtml(it)));
+        parts.push(totalRow('Suma de Gastos Membresía'));
+        parts.push(resultadoRow('Resultado Operativo Membresía'));
+        parts.push(spacer());
+
+        // Gastos Administrativos
+        bloqueGastosAdm.forEach(it => parts.push(rowHtml(it)));
+        parts.push(totalRow('Suma Gastos Administrativos'));
+        parts.push(spacer());
+
+        // Resultado final
+        parts.push(resultadoRow('Resultado Membresía'));
+
+        els.body.innerHTML = parts.join('');
+      }
+
+      // Toggle mostrar/ocultar columna "Cuenta"
+      function applyToggle(ocultar){
+        document.body.classList.toggle('ocultar-cuentas', Boolean(ocultar));
+        els.toggleAccounts.textContent = ocultar ? 'Mostrar cuentas' : 'Ocultar cuentas';
+        els.toggleAccounts.setAttribute('aria-pressed', ocultar ? 'true' : 'false');
+      }
+
+      // Eventos
+      els.yearSelect.addEventListener('change', ()=>{
+        anio = Number(els.yearSelect.value);
+        renderHead();
+      });
+
+      els.toggleAccounts.addEventListener('click', ()=>{
+        const hide = !document.body.classList.contains('ocultar-cuentas');
+        applyToggle(hide);
+      });
+
+      // Primera pinta
+      renderHead();
+      renderBody();
+      applyToggle(false);
     })();
   </script>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
