@@ -6,110 +6,437 @@
   <title>T&IC</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
   <style>
-    :root {
-       --color-primary: #2f5496;
-      --color-secondary: #8497b0;
-      --color-background: #f2f2f2;
-      --color-text: #2f5496;
-      --bs-primary: #2f5496;
-      --bs-primary-rgb: 47, 84, 150;
-      --bs-success: #2f5496;
-      --bs-success-rgb: 47, 84, 150;
-      --bs-success-bg-subtle: rgba(47, 84, 150, 0.16);
-      --bs-success-border-subtle: rgba(47, 84, 150, 0.35);
+    :root{
+      --tic-color-primary:#2f5496;
+      --tic-color-secondary:#8497b0;
+      --tic-color-background:#f2f2f2;
+      --tic-color-text:#2f5496;
+      --tic-color-dup:#fff7d6;
+
+      --bs-primary:#2f5496;
+      --bs-primary-rgb:47,84,150;
+      --bs-success:#2f5496;
+      --bs-success-rgb:47,84,150;
+      --bs-success-bg-subtle:rgba(47,84,150,0.16);
+      --bs-success-border-subtle:rgba(47,84,150,0.35);
     }
 
-    body {
-      background: var(--color-background);
-      font-family: 'Manrope', 'Segoe UI', Tahoma, sans-serif;
-      color: var(--color-text);
-      min-height: 100vh;
-      padding-top: 60px;
+    html,body{
+      margin:0;
+      padding:0;
+      min-height:100%;
     }
 
-    .header-card {
-      background: var(--color-primary);
-      color: #fff;
-      border-radius: 18px;
-      border: 1px solid rgba(47, 84, 150, 0.1);
-      box-shadow: 0 18px 42px rgba(47, 84, 150, 0.18);
+    body{
+      background:var(--tic-color-background);
+      font-family:'Manrope','Segoe UI',Tahoma,sans-serif;
+      color:var(--tic-color-text);
+      min-height:100vh;
+      padding-top:20px;
     }
 
-    .module-card {
-      border-radius: 20px;
-      border: 1px solid rgba(47, 84, 150, 0.08);
-      box-shadow: 0 22px 48px rgba(47, 84, 150, 0.16);
-      background: #fff;
+    .tic-container{
+      max-width:1440px;
     }
 
-    .module-card .card-body {
-      padding: clamp(1.5rem, 2vw, 2.5rem);
+    .tic-panel{
+      background:#fff;
+      border-radius:20px;
+      border:1px solid rgba(47,84,150,.12);
+      box-shadow:0 24px 60px rgba(47,84,150,.12);
+      padding:1.75rem;
     }
 
-    .pill-accent {
-      background: rgba(255, 255, 255, 0.18);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      padding: 0.35rem 0.9rem;
-      border-radius: 999px;
-      font-weight: 700;
-      letter-spacing: 0.08em;
+    .tic-hero{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:1rem;
+      flex-wrap:wrap;
     }
 
-    .module-grid {
-      min-height: 180px;
+    .tic-title{
+      color:var(--tic-color-primary);
+      font-weight:800;
+      margin:0;
     }
 
-    .module-card article {
-      border: none;
-      border-radius: 18px;
-      background: linear-gradient(145deg, #ffffff 0%, #f2f2f2 100%);
+    .tic-subtitle{
+      display:block;
+      font-weight:600;
+      color:rgba(47,84,150,.8);
+      margin-top:.15rem;
     }
 
-    .module-card .card h3 {
-      color: var(--color-primary);
-      font-weight: 700;
+    .tic-status{
+      display:block;
+      font-size:.85rem;
+      margin-top:.25rem;
+    }
+
+    .tic-controls{
+      display:flex;
+      align-items:flex-end;
+      gap:.75rem;
+      flex-wrap:wrap;
+    }
+
+    .tic-controls label{
+      font-size:.8rem;
+      font-weight:700;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      color:rgba(47,84,150,.8);
+    }
+
+    .tic-toggle-btn{
+      border-radius:10px;
+      padding:.55rem 1rem;
+      border:1px solid rgba(47,84,150,.25);
+      background:#fff;
+      color:var(--tic-color-text);
+      font-weight:700;
+      font-size:.9rem;
+      white-space:nowrap;
+    }
+
+    .tic-toggle-btn:hover,
+    .tic-toggle-btn:focus{
+      background:rgba(47,84,150,.06);
+      outline:none;
+    }
+
+    /* ===== Tabla ===== */
+    .tic-table-wrapper{
+      margin-top:1rem;
+    }
+
+    .tic-table-responsive{
+      overflow-x:auto;
+    }
+
+    .tic-table{
+      width:100%;
+      min-width:1800px;
+      border-collapse:collapse;
+      font-size:.9rem;
+      background:#fff;
+    }
+
+    .tic-table th,
+    .tic-table td{
+      border:1px solid rgba(47,84,150,.14);
+      padding:.5rem .6rem;
+      text-align:right;
+      white-space:nowrap;
+      background:#fff;
+    }
+
+    .tic-table thead th{
+      background:var(--tic-color-primary);
+      color:#fff;
+      text-transform:uppercase;
+      letter-spacing:.05em;
+      font-size:.78rem;
+      position:sticky;
+      top:0;
+      z-index:1;
+    }
+
+    .tic-table thead th span{
+      display:block;
+      color:#d9d9d9;
+      font-weight:800;
+    }
+
+    .tic-account-col-h,
+    .tic-account-col{
+      text-align:left;
+      min-width:140px;
+      background:#f7f9fc;
+    }
+
+    .tic-account-col{
+      font-family:'Courier New',monospace;
+      font-weight:600;
+    }
+
+    .tic-desc-col{
+      text-align:left;
+      min-width:220px;
+      font-weight:600;
+      color:var(--tic-color-text);
+      background:#f7f9fc;
+    }
+
+    .tic-month-head-alt{
+      background:#325f9f;
+    }
+
+    .tic-month-head-dup{
+      background:var(--tic-color-dup);
+      color:#374151;
+    }
+
+    .tic-cell-dup{
+      background:var(--tic-color-dup);
+    }
+
+    tr[data-tic-kind="total"],
+    tr[data-tic-kind="resultado"]{
+      background:#f2f2f2;
+      font-weight:800;
+    }
+
+    tr[data-tic-kind="resultado-final"]{
+      background:#eef8ff;
+      font-weight:900;
+    }
+
+    .tic-spacer-row td{
+      background:transparent!important;
+      border:none!important;
+      height:.4rem;
+      padding:0;
+    }
+
+    /* Ocultar cuentas sólo visualmente */
+    body.tic-ocultar-cuentas .tic-account-col,
+    body.tic-ocultar-cuentas .tic-account-col-h{
+      display:none;
+    }
+
+    @media (max-width:992px){
+      .tic-panel{
+        padding:1.25rem;
+      }
+      .tic-hero{
+        align-items:stretch;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="container py-4 py-lg-5">
-    <div class="row mb-4">
-      <div class="col-12">
-        <div class="card header-card">
-          <div class="card-body d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
-            <div>
-              <h1 class="h3 fw-bold mb-1">T&IC</h1>
-              <p class="mb-0">Iniciativas tecnológicas y de innovación que respaldan a los capítulos.</p>
-            </div>
-            <span class="pill-accent">Datos dinámicos</span>
+  <div class="container-xxl tic-container py-4">
+    <section class="tic-panel">
+      <div class="tic-hero mb-3">
+        <div>
+          <h1 class="tic-title h3 mb-1">T&amp;IC</h1>
+          <span id="ticChapterSubtitle" class="tic-subtitle">Capítulo —</span>
+          <span id="ticStatus" class="tic-status text-success"></span>
+        </div>
+        <div class="tic-controls">
+          <div>
+            <label for="ticYearSelect" class="mb-1">Ejercicio</label>
+            <select id="ticYearSelect" class="form-select form-select-sm">
+              <option value="2024">2024</option>
+              <option value="2025">2025</option>
+              <option value="2026" selected>2026</option>
+            </select>
           </div>
+          <button id="ticToggleAccounts" type="button" class="tic-toggle-btn">
+            Ocultar cuentas
+          </button>
         </div>
       </div>
-    </div>
 
-    <div class="row g-4">
-      <div class="col-12">
-        <div class="card module-card">
-          <div class="card-body">
-            <div id="moduleLoader" class="d-flex align-items-center gap-2 mb-3 visually-hidden">
-              <div class="spinner-border text-success" role="status" aria-hidden="true"></div>
-              <span class="fw-semibold text-success">Actualizando información…</span>
-            </div>
-            <div id="moduleStatus" class="alert alert-info">Preparando información…</div>
-            <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4 module-grid" id="moduleDynamicList"></div>
-          </div>
+      <div class="tic-table-wrapper">
+        <div class="tic-table-responsive">
+          <table class="tic-table" id="ticTable">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
         </div>
       </div>
-    </div>
+    </section>
   </div>
 
   <script src="js/sesion.js"></script>
-  <script src="js/modulo-generico.js"></script>
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      initGenericModule('tic');
-    });
+    (function(){
+      const els = {
+        subtitle: document.getElementById('ticChapterSubtitle'),
+        status: document.getElementById('ticStatus'),
+        yearSelect: document.getElementById('ticYearSelect'),
+        toggleAccounts: document.getElementById('ticToggleAccounts'),
+        head: document.querySelector('#ticTable thead'),
+        body: document.querySelector('#ticTable tbody')
+      };
+
+      // Capítulo desde Sesion (igual que en otras vistas)
+      try{
+        const emp = (typeof Sesion!=='undefined' && Sesion.obtenerEmpresaActiva && Sesion.obtenerEmpresaActiva()) || null;
+        const ciudad = emp?.etiqueta || emp?.nombre || emp?.id || '—';
+        els.subtitle.textContent = 'Capítulo ' + ciudad;
+        if(emp?.etiqueta){
+          document.title = 'T&IC – ' + emp.etiqueta;
+        }
+      }catch{}
+
+      function tickStatus(){
+        if(!els.status) return;
+        els.status.textContent = 'Vista ' + new Date().toLocaleTimeString('es-MX') + '.';
+      }
+      tickStatus();
+
+      // Meses (12 * 2 columnas como en el Excel: A normal, B duplicado amarillo)
+      const BASE_MONTHS = [
+        { code:'ene', label:'ENE' },
+        { code:'feb', label:'FEB' },
+        { code:'mar', label:'MAR' },
+        { code:'abr', label:'ABR' },
+        { code:'may', label:'MAY' },
+        { code:'jun', label:'JUN' },
+        { code:'jul', label:'JUL' },
+        { code:'ago', label:'AGO' },
+        { code:'sep', label:'SEP' },
+        { code:'oct', label:'OCT' },
+        { code:'nov', label:'NOV' },
+        { code:'dic', label:'DIC' }
+      ];
+
+      const TIC_COLUMNS = BASE_MONTHS.flatMap(m => ([
+        { key: m.code + '_a', label: m.label, dup:false },
+        { key: m.code + '_b', label: m.label, dup:true }
+      ]));
+
+      const TOTAL_COLUMNS_COUNT = 2 + TIC_COLUMNS.length + 1; // cuenta + desc + meses + total
+
+      // Definición de filas basada en el Excel
+      const TIC_ROWS = [
+        // Ingresos
+        { kind:'normal', group:'ingresos', code:'405-001-000-00', label:'Ingresos 1' },
+        { kind:'normal', group:'ingresos', code:'405-002-000-00', label:'Ingresos 2' },
+        { kind:'total',  group:'ingresos', code:null,             label:'Suma de Ingresos T&IC' },
+
+        { kind:'spacer' },
+
+        // Gastos
+        { kind:'normal', group:'gastos', code:'703-002-000-00', label:'Gastos 1' },
+        { kind:'normal', group:'gastos', code:'703-003-000-00', label:'Gastos 2' },
+        { kind:'total',  group:'gastos', code:null,             label:'Suma de Gastos T&IC' },
+
+        { kind:'spacer' },
+
+        // Resultado
+        { kind:'resultado-final', group:'resultado', code:null, label:'Resultado T&IC' }
+      ];
+
+      function renderHead(){
+        const year = els.yearSelect.value || new Date().getFullYear();
+        const suf = String(year).slice(-2);
+
+        const monthTh = TIC_COLUMNS.map(col => {
+          const cls = col.dup ? 'tic-month-head-dup' : 'tic-month-head-alt';
+          const spanId = 'tic-head-' + col.key + '-' + year;
+          return `<th class="${cls}"><span id="${spanId}">${col.label.toLowerCase()}-${suf}</span></th>`;
+        }).join('');
+
+        const totalHeadId = 'tic-head-total-' + year;
+
+        els.head.innerHTML = `
+          <tr>
+            <th class="tic-account-col-h"><span id="tic-head-cuenta">Cuenta</span></th>
+            <th class="tic-desc-col"><span id="tic-head-area">T&amp;IC</span></th>
+            ${monthTh}
+            <th><span id="${totalHeadId}">${year}</span><span>Total</span></th>
+          </tr>
+        `;
+      }
+
+      const dash = '–';
+
+      function buildMonthCells(rowKey){
+        return TIC_COLUMNS.map(col => {
+          const cellId = `tic-${rowKey}-${col.key}`;
+          const cls = col.dup ? 'tic-cell-dup' : '';
+          return `<td class="${cls}"><span id="${cellId}">${dash}</span></td>`;
+        }).join('');
+      }
+
+      function renderBody(){
+        const parts = [];
+
+        TIC_ROWS.forEach((row, idx) => {
+          if(row.kind === 'spacer'){
+            parts.push(`<tr class="tic-spacer-row"><td colspan="${TOTAL_COLUMNS_COUNT}"></td></tr>`);
+            return;
+          }
+
+          const baseKey = row.code ? row.code.replace(/[^0-9A-Za-z]/g,'_') : row.group + '_' + row.kind + '_' + idx;
+          const monthCells = buildMonthCells(baseKey);
+          const totalId = `tic-${baseKey}-total`;
+
+          if(row.kind === 'normal'){
+            const accId = `tic-cta-${baseKey}`;
+            const descId = `tic-desc-${baseKey}`;
+            parts.push(`
+              <tr data-tic-kind="normal" data-tic-group="${row.group}">
+                <td class="tic-account-col"><span id="${accId}">${row.code}</span></td>
+                <td class="tic-desc-col"><span id="${descId}">${row.label}</span></td>
+                ${monthCells}
+                <td><span id="${totalId}">${dash}</span></td>
+              </tr>
+            `);
+            return;
+          }
+
+          if(row.kind === 'total'){
+            const descId = `tic-label-${baseKey}`;
+            const rowKind = 'total';
+            parts.push(`
+              <tr data-tic-kind="${rowKind}" data-tic-group="${row.group}">
+                <td class="tic-account-col"><span id="tic-empty-${baseKey}"></span></td>
+                <td class="tic-desc-col"><span id="${descId}">${row.label}</span></td>
+                ${monthCells}
+                <td><span id="${totalId}">${dash}</span></td>
+              </tr>
+            `);
+            return;
+          }
+
+          if(row.kind === 'resultado-final'){
+            const descId = `tic-label-${baseKey}`;
+            const rowKind = 'resultado-final';
+            parts.push(`
+              <tr data-tic-kind="${rowKind}" data-tic-group="${row.group}">
+                <td class="tic-account-col"><span id="tic-empty-${baseKey}"></span></td>
+                <td class="tic-desc-col"><span id="${descId}">${row.label}</span></td>
+                ${monthCells}
+                <td><span id="${totalId}">${dash}</span></td>
+              </tr>
+            `);
+            return;
+          }
+        });
+
+        els.body.innerHTML = parts.join('');
+      }
+
+      function applyToggle(ocultar){
+        document.body.classList.toggle('tic-ocultar-cuentas', !!ocultar);
+        els.toggleAccounts.textContent = ocultar ? 'Mostrar cuentas' : 'Ocultar cuentas';
+        els.toggleAccounts.setAttribute('aria-pressed', ocultar ? 'true' : 'false');
+      }
+
+      // Eventos
+      els.yearSelect.addEventListener('change', () => {
+        renderHead();
+        tickStatus();
+      });
+
+      els.toggleAccounts.addEventListener('click', () => {
+        const ocultar = !document.body.classList.contains('tic-ocultar-cuentas');
+        applyToggle(ocultar);
+      });
+
+      // Primera pinta
+      renderHead();
+      renderBody();
+      applyToggle(false);
+    })();
   </script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>

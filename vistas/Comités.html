@@ -1,809 +1,469 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Comités</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+
   <style>
-    :root {
---color-primary: #2f5496;
-      --color-secondary: #8497b0;
-      --color-background: #f2f2f2;
-      --color-text: #2f5496;
-      --bs-primary: #2f5496;
-      --bs-primary-rgb: 47, 84, 150;
-      --bs-success: #2f5496;
-      --bs-success-rgb: 47, 84, 150;
-      --bs-success-bg-subtle: rgba(47, 84, 150, 0.16);
-      --bs-success-border-subtle: rgba(47, 84, 150, 0.35);
-      --color-primary-blue: #2f5496;
-      --color-bright-blue: #8497b0;
-      --color-secondary-white: #d9d9d9;
-      --color-neutral-row: #d9d9d9;
-      --color-selected: #ffeaa7;
-      --color-selected: #8497b0;
-      --zoom-level: 1;
-    }
+  :root{
+    --color-primary:#2f5496;
+    --color-secondary:#8497b0;
+    --color-background:#f2f2f2;
+    --color-text:#2f5496;
 
-    body {
-      background: var(--color-background);
-      font-family: 'Manrope', 'Segoe UI', Tahoma, sans-serif;
-      color: var(--color-text);
-      min-height: 100vh;
-      padding-top: 20px;
-    }
+    --bs-primary:#2f5496;
+    --bs-primary-rgb:47,84,150;
+    --bs-success:#2f5496;
+    --bs-success-rgb:47,84,150;
+    --bs-success-bg-subtle:rgba(47,84,150,0.16);
+    --bs-success-border-subtle:rgba(47,84,150,0.35);
 
-    .hero-card {
-      background: var(--color-primary);
-      border-radius: 20px;
-      color: #fff;
-      padding: 2rem;
-      box-shadow: 0 25px 45px rgba(47, 84, 150, 0.35);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-    }
+    --comites-dup-bg:#fff7d6; /* duplicado: amarillo suave */
+  }
 
-    .hero-card .pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35rem;
-      font-size: 0.85rem;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      padding: 0.35rem 0.9rem;
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.16);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-    }
+  body{
+    background:var(--color-background);
+    font-family:'Manrope','Segoe UI',Tahoma,sans-serif;
+    color:var(--color-text);
+    min-height:100vh;
+    padding-top:20px;
+  }
 
-    .panel {
-      margin-top: 2rem;
-      background: #fff;
-      border-radius: 18px;
-      border: 1px solid rgba(47, 84, 150, 0.08);
-      box-shadow: 0 25px 55px rgba(47, 84, 150, 0.08);
-      padding: 1.75rem;
-    }
+  .comites-container{
+    max-width:1440px;
+  }
 
-    .filters {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 1rem;
-      align-items: flex-end;
-      margin-bottom: 1.25rem;
-    }
+  .comites-panel{
+    background:#fff;
+    border-radius:18px;
+    border:1px solid rgba(47,84,150,0.08);
+    box-shadow:0 25px 55px rgba(47,84,150,0.10);
+    padding:1.75rem;
+  }
 
-    .filters .form-label {
-      font-weight: 600;
-      font-size: 0.85rem;
-      color: var(--color-text);
-    }
+  .comites-hero{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:1rem;
+    flex-wrap:wrap;
+  }
 
-    .btn-hero {
-      background: linear-gradient(120deg, var(--color-secondary), #d9d9d9);
-      color: #2f5496;
-      font-weight: 700;
-      border-radius: 999px;
-      padding: 0.55rem 1.6rem;
-      border: none;
-      box-shadow: 0 12px 22px rgba(184, 115, 51, 0.35);
-    }
+  .comites-title{
+    color:var(--color-primary);
+    font-weight:800;
+    margin:0;
+  }
 
-    .btn-hero:disabled {
-      opacity: 0.6;
-      box-shadow: none;
-    }
+  .comites-status{
+    font-weight:600;
+    font-size:.9rem;
+  }
 
-    .table-comites {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.86rem;
-    }
+  .comites-subtitle{
+    font-weight:600;
+    font-size:.9rem;
+    color:#6b7280;
+  }
 
-    .table-comites th,
-    .table-comites td {
-      border: 1px solid rgba(47, 84, 150, 0.12);
-      padding: 0.45rem 0.55rem;
-      text-align: right;
-      min-width: 75px;
-    }
+  .comites-controls{
+    display:flex;
+    align-items:flex-end;
+    gap:.75rem;
+    flex-wrap:wrap;
+  }
 
-    .table-comites .account-column-header {
-      text-align: left;
-      min-width: 160px;
-      white-space: nowrap;
-    }
+  .comites-controls label{
+    color:#4567a8;
+    font-weight:700;
+    font-size:.85rem;
+  }
 
-    .table-comites .account-column {
-      text-align: left;
-      font-weight: 600;
-      min-width: 160px;
-      font-family: 'Courier New', monospace;
-      background-color: rgba(47, 84, 150, 0.05);
-    }
+  .comites-btn-toggle{
+    border-radius:10px;
+    padding:.6rem 1rem;
+    border:1px solid rgba(47,84,150,.25);
+    background:#fff;
+    color:var(--color-text);
+    font-weight:700;
+    font-size:.9rem;
+  }
 
-    .table-comites .account-description {
-      text-align: left;
-      font-weight: 600;
-      min-width: 240px;
-      color: var(--color-text);
-    }
+  .comites-btn-toggle:hover,
+  .comites-btn-toggle:focus{
+    background:rgba(47,84,150,0.06);
+  }
 
-    .table-comites thead th {
-      background: var(--color-primary);
-      color: #fff;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      font-size: 0.78rem;
-    }
+  .comites-table-shell{
+    margin-top:.5rem;
+  }
 
-    .table-comites thead th span {
-      display: block;
-      color: var(--color-secondary);
-      font-weight: 800;
-    }
+  .comites-table-wrap{
+    overflow-x:auto;
+  }
 
-    .table-comites tbody tr[data-kind="total"] {
-      background: #f2f2f2;
-      font-weight: 700;
-    }
+  .comites-table{
+    width:100%;
+    min-width:1600px;
+    border-collapse:collapse;
+    font-size:.92rem;
+  }
 
-    .table-comites tbody tr[data-kind="resultado"] {
-      background: #f2f2f2;
-      font-weight: 800;
-    }
+  .comites-table th,
+  .comites-table td{
+    border:1px solid rgba(47,84,150,.12);
+    padding:.55rem .6rem;
+    text-align:right;
+    background:#fff;
+    white-space:nowrap;
+  }
 
-    .table-comites tbody tr[data-section="ingresos"] .account-description,
-    .table-comites tbody tr[data-section="gastos"] .account-description {
-      color: var(--color-text);
-      font-weight: 500;
-    }
+  .comites-table thead th{
+    background:var(--color-primary);
+    color:#fff;
+    text-transform:uppercase;
+    letter-spacing:.05em;
+    font-size:.8rem;
+    position:sticky;
+    top:0;
+    z-index:1;
+  }
 
-    body.ocultar-cuentas .account-column,
-    body.ocultar-cuentas .account-column-header {
-      display: none;
-    }
+  .comites-table thead th span{
+    display:block;
+    color:#d9d9d9;
+    font-weight:800;
+  }
 
-    #comitesStatus {
-      font-weight: 600;
-      font-size: 0.85rem;
-    }
+  .comites-account-col-h,
+  .comites-account-col{
+    text-align:left;
+    min-width:140px;
+    background:#f7f9fc;
+  }
 
-    .comites-context-menu {
-      position: fixed;
-      z-index: 50;
-      background: var(--color-primary);
-      color: #fff;
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 8px;
-      box-shadow: 0 18px 30px rgba(47, 84, 150, 0.35);
-      overflow: hidden;
-      min-width: 180px;
-    }
+  .comites-account-col{
+    font-family:'Courier New',monospace;
+    font-weight:600;
+  }
 
-    .comites-context-menu button {
-      width: 100%;
-      background: transparent;
-      border: none;
-      color: inherit;
-      text-align: left;
-      padding: 0.6rem 0.9rem;
-    }
+  .comites-desc-col{
+    text-align:left;
+    min-width:260px;
+    font-weight:600;
+    color:var(--color-text);
+  }
 
-    .comites-context-menu button:hover {
-      background: rgba(255, 255, 255, 0.1);
-      color: var(--color-secondary);
+  /* === Amarillos (columnas B) === */
+  th.comites-dup-head{
+    background:var(--comites-dup-bg) !important;
+    color:#374151 !important;
+  }
+  th.comites-dup-head span{
+    color:#374151 !important;
+  }
+  td.comites-dup-cell{
+    background:var(--comites-dup-bg) !important;
+  }
+
+  /* Filas de totales y resultados */
+  .comites-table tbody tr[data-kind="total"],
+  .comites-table tbody tr[data-kind="resultado"]{
+    background:#f2f2f2;
+    font-weight:800;
+  }
+
+  .comites-table tbody tr[data-kind="resultado"]{
+    background:#eef8ff;
+  }
+
+  .comites-spacer td{
+    background:transparent;
+    border:none;
+    height:.4rem;
+    padding:0;
+  }
+
+  /* Ocultar cuentas sin romper tabla */
+  body.comites-hide-accounts .comites-account-col,
+  body.comites-hide-accounts .comites-account-col-h{
+    max-width:0 !important;
+    width:0 !important;
+    padding:0 !important;
+    border:none !important;
+    font-size:0 !important;
+  }
+
+  @media (max-width:992px){
+    .comites-panel{
+      padding:1.25rem;
     }
-  </style>
+    .comites-hero{
+      align-items:flex-start;
+    }
+    .comites-controls{
+      width:100%;
+      justify-content:flex-start;
+    }
+  }
+</style>
+
 </head>
-
 <body>
-  <div class="container py-4">
-    <section class="panel">
-      <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-        <span id="comitesStatus" class="text-white-50 small"></span>
-      </div>
-
-      <div class="filters">
-        <div class="flex-grow-1 flex-md-grow-0">
-          <label class="form-label" for="comitesYearSelect">Ejercicio</label>
-          <select id="comitesYearSelect" class="form-select">
-            <option value="">—</option>
-          </select>
+  <div class="container-xxl comites-container py-4">
+    <section class="comites-panel">
+      <div class="comites-hero mb-3">
+        <div>
+          <h1 class="comites-title h3 mb-1">Comités y Relaciones Externas</h1>
+          <div id="comitesStatus" class="comites-status text-success"></div>
+          <div id="comitesSubtitle" class="comites-subtitle mt-1">Capítulo —</div>
         </div>
-        <div class="flex-grow-1">
-          <label class="form-label" for="comitesNuevaCuenta">Agregar cuenta</label>
-          <div class="input-group">
-            <input id="comitesNuevaCuenta" class="form-control" placeholder="Buscar cuenta..." maxlength="24"
-              autocomplete="off" />
-            <button id="comitesBtnAgregar" class="btn btn-outline-light">Agregar</button>
+        <div class="comites-controls">
+          <div class="text-end">
+            <label for="comitesYearSelect" class="form-label mb-1">Ejercicio</label>
+            <select id="comitesYearSelect" class="form-select form-select-sm">
+              <option value="2024">2024</option>
+              <option value="2025" selected>2025</option>
+              <option value="2026">2026</option>
+            </select>
           </div>
-          <div id="comitesCuentaSuggestions" class="position-absolute bg-white border rounded shadow-sm d-none"
-            style="z-index: 1000; max-height: 200px; overflow-y: auto; width: calc(100% - 80px);"></div>
-        </div>
-        <div class="flex-shrink-0 d-flex align-items-end">
-          <button id="comitesToggleAccounts" type="button" class="btn btn-outline-secondary d-none">Ocultar cuentas</button>
+          <button id="comitesToggleAccounts" type="button" class="comites-btn-toggle">
+            Ocultar cuentas
+          </button>
         </div>
       </div>
 
-      <div class="table-responsive">
-        <table class="table-comites" id="comitesTable">
-          <thead></thead>
-          <tbody></tbody>
-        </table>
+      <div class="comites-table-shell">
+        <div class="comites-table-wrap">
+          <table class="comites-table" id="comitesTable">
+            <thead id="comitesHead"></thead>
+            <tbody id="comitesBody"></tbody>
+          </table>
+        </div>
       </div>
     </section>
   </div>
 
-  <div id="comitesContextMenu" class="comites-context-menu d-none">
-    <button type="button" data-action="remove">Eliminar cuenta</button>
-  </div>
-
   <script src="js/sesion.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
- 
   <script>
+  (()=>{
+    // ====== Capítulo por empresa activa ======
+    try{
+      const emp = (typeof Sesion!=='undefined' && Sesion.obtenerEmpresaActiva && Sesion.obtenerEmpresaActiva()) || null;
+      const ciudad = emp?.etiqueta || emp?.nombre || emp?.id || '—';
+      document.getElementById('comitesSubtitle').textContent = 'Capítulo ' + ciudad;
+    }catch{}
 
-      (() => {
-        const sesion = (typeof Sesion !== 'undefined' && typeof Sesion.requerirSesion === 'function')
-          ? Sesion.requerirSesion({ redirectTo: 'login.html' })
-          : null;
-        if (!sesion) return;
+    const els = {
+      head: document.getElementById('comitesHead'),
+      body: document.getElementById('comitesBody'),
+      yearSelect: document.getElementById('comitesYearSelect'),
+      status: document.getElementById('comitesStatus'),
+      toggleAccounts: document.getElementById('comitesToggleAccounts')
+    };
 
-        const API_BASE = 'http://localhost:3000/api';
-        const STORAGE_KEY = 'comites_cuentas_v2';
-        const COLUMN_VISIBILITY_KEY = 'comites_ocultar_cuentas';
-        const DEFAULT_LIST = {
-          ingresos: [
-            '404005000000000000002', '404017000000000000002', '404001000000000000002',
-            '404003000000000000002', '404013000000000000002', '404007000000000000002',
-            '404016000000000000002', '404004000000000000002', '404008000000000000002',
-            '404009000000000000002', '404018000000000000002'
-          ],
-          gastos: [
-            '502014000000000000002', '502005000000000000002', '502001000000000000002',
-            '502003000000000000002', '502013000000000000002', '502007000000000000002',
-            '502016000000000000002', '502004000000000000002', '502002000000000000002',
-            '502009000000000000002', '502017000000000000002', '504000000000000000002'
-          ]
-        };
-        const COLUMNS = [
-          { clave: 'ene', etiqueta: 'ENE' }, { clave: 'feb', etiqueta: 'FEB' },
-          { clave: 'mar', etiqueta: 'MAR' }, { clave: 'abr', etiqueta: 'ABR' },
-          { clave: 'may', etiqueta: 'MAY' }, { clave: 'jun', etiqueta: 'JUN' },
-          { clave: 'jul', etiqueta: 'JUL' }, { clave: 'ago', etiqueta: 'AGO' },
-          { clave: 'sep', etiqueta: 'SEP' }, { clave: 'oct', etiqueta: 'OCT' },
-          { clave: 'nov', etiqueta: 'NOV' }, { clave: 'dic', etiqueta: 'DIC' }
-        ];
-        const TOTAL_COLUMNS = COLUMNS.length + 3;
-        const currency = new Intl.NumberFormat('es-MX', {
-          style: 'currency',
-          currency: 'MXN',
-          maximumFractionDigits: 0
-        });
+    function tickStatus(){
+      if(!els.status) return;
+      els.status.textContent = 'Vista ' + new Date().toLocaleTimeString('es-MX') + '.';
+    }
+    tickStatus();
 
-        function initComitesPanel() {
-          const els = {
-            yearSelect: document.getElementById('comitesYearSelect'),
-            inputNuevaCuenta: document.getElementById('comitesNuevaCuenta'),
-            btnAgregar: document.getElementById('comitesBtnAgregar'),
-            tableHead: document.querySelector('#comitesTable thead'),
-            tableBody: document.querySelector('#comitesTable tbody'),
-            status: document.getElementById('comitesStatus'),
-            contextMenu: document.getElementById('comitesContextMenu'),
-            suggestions: document.getElementById('comitesCuentaSuggestions'),
-            toggleAccounts: document.getElementById('comitesToggleAccounts')
-          };
+    // ====== Definición de columnas (12 meses, A/B) ======
+    const COMITES_MONTHS = [
+      { k:'ene', l:'ENE' },
+      { k:'feb', l:'FEB' },
+      { k:'mar', l:'MAR' },
+      { k:'abr', l:'ABR' },
+      { k:'may', l:'MAY' },
+      { k:'jun', l:'JUN' },
+      { k:'jul', l:'JUL' },
+      { k:'ago', l:'AGO' },
+      { k:'sep', l:'SEP' },
+      { k:'oct', l:'OCT' },
+      { k:'nov', l:'NOV' },
+      { k:'dic', l:'DIC' }
+    ];
 
-          const state = {
-            cuentas: cargarLista(),
-            datos: new Map(),
-            anio: new Date().getFullYear(),
-            mesesMeta: [],
-            cuentaSeleccionada: null,
-            cuentasDisponibles: [],
-            cargando: false,
-            needsReload: false
-          };
+    // Para Comités: par de columnas A/B por mes (ppto / real, visualmente)
+    const COMITES_COLUMNS = COMITES_MONTHS.flatMap(m => ([
+      { key: m.k + 'A', label: m.l, dup:false },
+      { key: m.k + 'B', label: m.l, dup:true  }
+    ]));
 
-          const actualizarBotonColumnas = (ocultar) => {
-            if (!els.toggleAccounts) return;
-            els.toggleAccounts.textContent = ocultar ? 'Mostrar cuentas' : 'Ocultar cuentas';
-            els.toggleAccounts.setAttribute('aria-pressed', ocultar ? 'true' : 'false');
-          };
+    const TOTAL_COLUMNS = 2 + COMITES_COLUMNS.length + 1; // Cuenta + Comités + meses + Total
 
-          const aplicarVisibilidadCuentas = (ocultar) => {
-            document.body.classList.toggle('ocultar-cuentas', Boolean(ocultar));
-            actualizarBotonColumnas(Boolean(ocultar));
-          };
+    // ====== Bloques de filas (según Excel "Comités") ======
+    const filasIngresos = [
+      { cuenta:'404-017-000-00', nombre:'Agroindustria (Virtual)' },
+      { cuenta:'404-005-000-00', nombre:'Asuntos Fiscales' },
+      { cuenta:'404-001-000-00', nombre:'Capital Humano y Asuntos Laborales' },
+      { cuenta:'404-003-000-00', nombre:'Comercio Exterior y Logística' },
+      { cuenta:'404-013-000-00', nombre:'Innovación y TICs' },
+      { cuenta:'404-007-000-00', nombre:'Legalidad y Estado de Derecho' },
+      { cuenta:'404-016-000-00', nombre:'Salud' },
+      { cuenta:'404-004-000-00', nombre:'Seguridad' },
+      { cuenta:'',               nombre:'Sustentabilidad y Responsabilidad Social' },
+      { cuenta:'404-009-000-00', nombre:'Turismo' },
+      { cuenta:'404-018-000-00', nombre:'Programa de Mentoría (EWDP)' }
+    ];
 
-          const inicializarToggleColumnas = () => {
-            const esAdminGlobal = typeof Sesion !== 'undefined'
-              && typeof Sesion.esAdminGlobal === 'function'
-              && Sesion.esAdminGlobal(sesion);
+    const filasGastos = [
+      { cuenta:'502-014-000-00', nombre:'Agroindustria' },
+      { cuenta:'502-005-000-00', nombre:'Asuntos Fiscales' },
+      { cuenta:'502-001-000-00', nombre:'Capital Humano y Asuntos Laborales' },
+      { cuenta:'502-003-000-00', nombre:'Comercio Exterior y Logística' },
+      { cuenta:'502-013-000-00', nombre:'Innovación y TICs' },
+      { cuenta:'502-007-000-00', nombre:'Legalidad y Estado de Derecho' },
+      { cuenta:'502-016-000-00', nombre:'Salud' },
+      { cuenta:'502-004-000-00', nombre:'Seguridad' },
+      { cuenta:'502-002-000-00', nombre:'Sustentabilidad y Responsabilidad Social' },
+      { cuenta:'502-009-000-00', nombre:'Turismo' },
+      { cuenta:'502-017-000-00', nombre:'Programa de Mentoría (EWDP)' }
+    ];
 
-            if (!esAdminGlobal || !els.toggleAccounts) {
-              aplicarVisibilidadCuentas(true);
-              if (els.toggleAccounts) {
-                els.toggleAccounts.classList.add('d-none');
-                els.toggleAccounts.setAttribute('aria-pressed', 'true');
-                els.toggleAccounts.setAttribute('disabled', 'true');
-                els.toggleAccounts.setAttribute('aria-disabled', 'true');
-                els.toggleAccounts.setAttribute('tabindex', '-1');
-              }
-              localStorage.setItem(COLUMN_VISIBILITY_KEY, '1');
-              return;
-            }
+    // ====== Render encabezado ======
+    function renderHead(){
+      const year = Number(els.yearSelect.value || new Date().getFullYear());
+      const suf = String(year).slice(-2);
 
-            els.toggleAccounts.classList.remove('d-none');
-            const preferencia = localStorage.getItem(COLUMN_VISIBILITY_KEY) === '1';
-            aplicarVisibilidadCuentas(preferencia);
+      const colsHtml = COMITES_COLUMNS.map(col => {
+        const cls = col.dup ? 'comites-dup-head' : '';
+        return `<th class="${cls}"><span>${col.label.toLowerCase()}-${suf}</span></th>`;
+      }).join('');
 
-            els.toggleAccounts.addEventListener('click', () => {
-              const ocultar = !document.body.classList.contains('ocultar-cuentas');
-              aplicarVisibilidadCuentas(ocultar);
-              localStorage.setItem(COLUMN_VISIBILITY_KEY, ocultar ? '1' : '0');
-            });
-          };
-
-          function cargarLista() {
-            try {
-              const raw = localStorage.getItem(STORAGE_KEY);
-              if (!raw) return estructuraDefault();
-              const parsed = JSON.parse(raw);
-              const ingresos = Array.isArray(parsed.ingresos) && parsed.ingresos.length
-                ? parsed.ingresos
-                : DEFAULT_LIST.ingresos.slice();
-              const gastos = Array.isArray(parsed.gastos) && parsed.gastos.length
-                ? parsed.gastos
-                : DEFAULT_LIST.gastos.slice();
-              return { ingresos, gastos };
-            } catch {
-              return estructuraDefault();
-            }
-          }
-
-          function estructuraDefault() {
-            return {
-              ingresos: DEFAULT_LIST.ingresos.slice(),
-              gastos: DEFAULT_LIST.gastos.slice()
-            };
-          }
-
-          function guardarLista() {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(state.cuentas));
-          }
-
-          function headersAuth() {
-            if (typeof Sesion !== 'undefined' && typeof Sesion.headersAutenticacion === 'function') {
-              return { ...Sesion.headersAutenticacion() };
-            }
-            return {};
-          }
-
-          function empresaActiva() {
-            if (typeof Sesion !== 'undefined' && typeof Sesion.obtenerEmpresaActiva === 'function') {
-              const activa = Sesion.obtenerEmpresaActiva();
-              if (activa?.id) return activa;
-            }
-            return sesion?.empresaActiva || null;
-          }
-
-          function setStatus(msg, tipo = 'info') {
-            if (!els.status) return;
-            const palette = {
-              info: 'text-white-50',
-              success: 'text-success',
-              danger: 'text-danger',
-              warning: 'text-warning'
-            };
-            els.status.textContent = msg || '';
-            els.status.className = palette[tipo] || palette.info;
-          }
-
-          function formatoValor(value) {
-            if (!value || Math.abs(value) < 0.5) return '–';
-            return currency.format(value);
-          }
-
-          function actualizarEncabezado() {
-            const anio = Number(state.anio) || new Date().getFullYear();
-            const sufijo = String(anio).slice(-2);
-            const cols = COLUMNS.map(col =>
-              `<th><span>${col.etiqueta.toLowerCase()}-${sufijo}</span></th>`
-            ).join('');
-            els.tableHead.innerHTML = `
+      els.head.innerHTML = `
         <tr>
-          <th class="account-column-header">Cuenta</th>
-          <th>COMITÉS</th>
-          ${cols}
-          <th><span>${anio}</span>Total</th>
+          <th class="comites-account-col-h"><span>Cuenta</span></th>
+          <th><span>Comités</span></th>
+          ${colsHtml}
+          <th><span>${year}</span>Total</th>
         </tr>
       `;
-          }
+    }
 
-          function buildRow(codigo, tipo) {
-            const registro = state.datos.get(codigo) || {};
-            const valores = {};
-            COLUMNS.forEach((col) => {
-              valores[col.clave] = Number(registro[col.clave] || 0);
-            });
-            valores.total = Number(registro.anual || 0);
-            return {
-              codigo,
-              nombre: registro.nombre || codigo,
-              valores,
-              tipo
-            };
-          }
+    const dash = '–';
 
-          function sumarFilas(rows) {
-            const total = {};
-            COLUMNS.forEach(col => total[col.clave] = 0);
-            total.total = 0;
-            rows.forEach((row) => {
-              COLUMNS.forEach((col) => {
-                total[col.clave] += row.valores[col.clave];
-              });
-              total.total += row.valores.total;
-            });
-            return total;
-          }
+    function celdasMeses(dupClassBase){
+      return COMITES_COLUMNS.map(c => {
+        const cls = c.dup ? dupClassBase : '';
+        return `<td class="${cls}">${dash}</td>`;
+      }).join('');
+    }
 
-          function renderTabla() {
-            actualizarEncabezado();
-            const ingresosRows = Array.from(new Set(state.cuentas.ingresos))
-              .map(c => buildRow(c, 'ingresos'));
-            const gastosRows = Array.from(new Set(state.cuentas.gastos))
-              .map(c => buildRow(c, 'gastos'));
-            const totalIngresos = sumarFilas(ingresosRows);
-            const totalGastos = sumarFilas(gastosRows);
-            const resultado = {};
-            COLUMNS.forEach((col) => {
-              resultado[col.clave] = totalIngresos[col.clave] - totalGastos[col.clave];
-            });
-            resultado.total = totalIngresos.total - totalGastos.total;
+    function rowIngresoHtml(item){
+      const cuenta = item.cuenta && item.cuenta.trim() ? item.cuenta.trim() : '—';
+      const perMes = celdasMeses('comites-dup-cell');
+      // ID sólo en la celda total anual por ahora
+      const totalId = item.cuenta
+        ? `comites-total-ing-${item.cuenta.replace(/[^0-9A-Za-z]+/g,'_')}`
+        : `comites-total-ing-sin_cuenta-${item.nombre.replace(/\s+/g,'_')}`;
 
-            const htmlPartes = [];
-
-            ingresosRows.forEach((row) => {
-              htmlPartes.push(renderRow(row, 'ingresos'));
-            });
-            htmlPartes.push(renderTotalRow('Suma de Ingresos Comités', totalIngresos));
-            htmlPartes.push(`<tr><td colspan="${TOTAL_COLUMNS}" style="background:transparent; border:none;"></td></tr>`);
-            gastosRows.forEach((row) => htmlPartes.push(renderRow(row, 'gastos')));
-            htmlPartes.push(renderTotalRow('Suma de Gastos Comités', totalGastos));
-            htmlPartes.push(renderResultadoRow('Resultado Operativo Comités', resultado));
-            htmlPartes.push(renderResultadoRow('Resultado Comités', resultado));
-
-            els.tableBody.innerHTML = htmlPartes.join('');
-          }
-
-          function renderRow(row, section) {
-            const celdas = COLUMNS.map(col =>
-              `<td>${formatoValor(row.valores[col.clave])}</td>`
-            ).join('');
-            const descripcion = row.nombre || row.codigo;
-            const codigo = row.codigo || '—';
-            return `
-        <tr data-cuenta="${row.codigo}" data-section="${section}">
-          <td class="account-column">${codigo}</td>
-          <td class="account-description">${descripcion}</td>
-          ${celdas}
-          <td>${formatoValor(row.valores.total)}</td>
+      return `
+        <tr data-bloque="ingresos">
+          <td class="comites-account-col">${cuenta}</td>
+          <td class="comites-desc-col">${item.nombre}</td>
+          ${perMes}
+          <td id="${totalId}">${dash}</td>
         </tr>
       `;
-          }
+    }
 
-          function renderTotalRow(label, totales) {
-            const celdas = COLUMNS.map(col =>
-              `<td>${formatoValor(totales[col.clave])}</td>`
-            ).join('');
-            return `
+    function rowGastoHtml(item){
+      const cuenta = item.cuenta && item.cuenta.trim() ? item.cuenta.trim() : '—';
+      const perMes = celdasMeses('comites-dup-cell');
+      const totalId = `comites-total-gas-${item.cuenta.replace(/[^0-9A-Za-z]+/g,'_')}`;
+
+      return `
+        <tr data-bloque="gastos">
+          <td class="comites-account-col">${cuenta}</td>
+          <td class="comites-desc-col">${item.nombre}</td>
+          ${perMes}
+          <td id="${totalId}">${dash}</td>
+        </tr>
+      `;
+    }
+
+    function spacerRow(){
+      return `
+        <tr class="comites-spacer">
+          <td colspan="${TOTAL_COLUMNS}"></td>
+        </tr>
+      `;
+    }
+
+    function totalRow(label, id){
+      const perMes = celdasMeses('comites-dup-cell');
+      return `
         <tr data-kind="total">
-          <td colspan="2">${label}</td>
-          ${celdas}
-          <td>${formatoValor(totales.total)}</td>
+          <td class="comites-account-col"></td>
+          <td class="comites-desc-col">${label}</td>
+          ${perMes}
+          <td id="${id}">${dash}</td>
         </tr>
       `;
-          }
+    }
 
-          function renderResultadoRow(label, totales) {
-            const celdas = COLUMNS.map(col =>
-              `<td>${formatoValor(totales[col.clave])}</td>`
-            ).join('');
-            return `
+    function resultadoRow(label, id){
+      const perMes = celdasMeses('comites-dup-cell');
+      return `
         <tr data-kind="resultado">
-          <td colspan="2">${label}</td>
-          ${celdas}
-          <td>${formatoValor(totales.total)}</td>
+          <td class="comites-account-col"></td>
+          <td class="comites-desc-col">${label}</td>
+          ${perMes}
+          <td id="${id}">${dash}</td>
         </tr>
       `;
-          }
+    }
 
-          async function poblarAnios() {
-            try {
-              const empresa = empresaActiva();
-              if (!empresa?.id) {
-                throw new Error('No hay empresa activa');
-              }
+    function renderBody(){
+      const parts = [];
 
-              const query = `?empresaId=${encodeURIComponent(empresa.id)}`;
-              const resp = await fetch(`${API_BASE}/comites/anios${query}`, {
-                headers: headersAuth()
-              });
-              const data = await resp.json();
+      // Bloque Ingresos
+      filasIngresos.forEach(f => parts.push(rowIngresoHtml(f)));
+      parts.push(totalRow('Suma de Ingresos Comités', 'comites-suma-ingresos'));
+      parts.push(spacerRow());
 
-              if (!resp.ok) {
-                throw new Error(data.mensaje || 'Error al cargar años');
-              }
+      // Bloque Gastos
+      filasGastos.forEach(f => parts.push(rowGastoHtml(f)));
+      parts.push(totalRow('Suma de Gastos Comités', 'comites-suma-gastos'));
+      parts.push(spacerRow());
 
-              if (Array.isArray(data.anios) && data.anios.length) {
-                const ordenAsc = data.anios.slice().sort((a, b) => a - b);
-                const opciones = ['<option value="">—</option>'].concat(
-                  ordenAsc.map(anio => `<option value="${anio}">${anio}</option>`)
-                );
-                els.yearSelect.innerHTML = opciones.join('');
-                if (!ordenAsc.includes(state.anio)) {
-                  state.anio = ordenAsc[ordenAsc.length - 1]; // último año disponible
-                }
-                els.yearSelect.value = String(state.anio);
-              } else {
-                throw new Error('Sin ejercicios disponibles.');
-              }
-            } catch (error) {
-              console.warn('No fue posible cargar años.', error);
-              const actual = new Date().getFullYear();
-              els.yearSelect.innerHTML = `
-                <option value="">—</option>
-                <option value="${actual}">${actual}</option>
-              `;
-              els.yearSelect.value = String(actual);
-              state.anio = actual;
-              setStatus(error.message || 'Error al cargar años', 'warning');
-            } finally {
-              await poblarCuentasDisponibles();
-            }
-          }
-          async function poblarCuentasDisponibles() {
-            try {
-              const empresa = empresaActiva();
-              if (!empresa?.id) return;
+      // Resultado
+      parts.push(resultadoRow('Resultado Comités', 'comites-resultado'));
 
-              const query = `?empresaId=${encodeURIComponent(empresa.id)}&anio=${encodeURIComponent(state.anio)}`;
-              const resp = await fetch(`${API_BASE}/comites/cuentas${query}`, {
-                headers: headersAuth()
-              });
-              const data = await resp.json();
+      els.body.innerHTML = parts.join('');
+    }
 
-              if (resp.ok && Array.isArray(data.cuentas)) {
-                state.cuentasDisponibles = data.cuentas;
-              } else {
-                state.cuentasDisponibles = [];
-              }
-            } catch (error) {
-              console.warn('No fue posible cargar cuentas disponibles.', error);
-              state.cuentasDisponibles = [];
-            }
-          }
+    // ====== Toggle mostrar/ocultar cuentas (colapsando columna) ======
+    function applyToggle(ocultar){
+      document.body.classList.toggle('comites-hide-accounts', !!ocultar);
+      els.toggleAccounts.textContent = ocultar ? 'Mostrar cuentas' : 'Ocultar cuentas';
+      els.toggleAccounts.setAttribute('aria-pressed', ocultar ? 'true' : 'false');
+    }
 
-          async function cargarDatos() {
-            const empresa = empresaActiva();
-            if (!empresa?.id) {
-              setStatus('Selecciona una empresa en la barra principal.', 'warning');
-              return;
-            }
+    els.toggleAccounts.addEventListener('click', ()=>{
+      const hide = !document.body.classList.contains('comites-hide-accounts');
+      applyToggle(hide);
+    });
 
-            if (state.cargando) {
-              state.needsReload = true;
-              return;
-            }
-            state.cargando = true;
-            state.needsReload = false;
+    // ====== Render inicial y cambio de año ======
+    function renderAll(){
+      tickStatus();
+      renderHead();
+      renderBody();
+    }
 
-            const anioSeleccionado = Number(els.yearSelect.value || new Date().getFullYear());
-            state.anio = anioSeleccionado;
-            setStatus('Consultando movimientos…', 'info');
+    els.yearSelect.addEventListener('change', renderAll);
 
-            const cuentas = [...state.cuentas.ingresos, ...state.cuentas.gastos];
-            if (!cuentas.length) {
-              els.tableBody.innerHTML = `<tr><td colspan="${TOTAL_COLUMNS}">No hay cuentas configuradas.</td></tr>`;
-              setStatus('Agrega al menos una cuenta.', 'warning');
-              state.cargando = false;
-              return;
-            }
-
-            const params = new URLSearchParams({
-              empresaId: empresa.id,
-              anio: anioSeleccionado,
-              cuentas: cuentas.join(',')
-            }).toString();
-
-            try {
-              const resp = await fetch(`${API_BASE}/comites/movimientos?${params}`, {
-                headers: headersAuth()
-              });
-              const payload = await resp.json();
-
-              if (!resp.ok) {
-                throw new Error(payload.mensaje || 'No fue posible obtener movimientos.');
-              }
-
-              state.datos = new Map(
-                (payload.cuentas || []).map(item => [String(item.numCta).trim(), item])
-              );
-              state.mesesMeta = payload.meses || [];
-              renderTabla();
-              setStatus(`Actualizado ${new Date().toLocaleTimeString('es-MX')}`, 'success');
-            } catch (error) {
-              console.error('Error al cargar movimientos', error);
-              setStatus(error.message || 'No fue posible cargar movimientos.', 'danger');
-            } finally {
-              state.cargando = false;
-              if (state.needsReload) {
-                state.needsReload = false;
-                cargarDatos();
-              }
-            }
-          }
-
-          function determinarGrupo(codigo) {
-            if (/^404/.test(codigo)) return 'ingresos';
-            if (/^502|^504/.test(codigo)) return 'gastos';
-            return state.cuentas.ingresos.length <= state.cuentas.gastos.length
-              ? 'ingresos'
-              : 'gastos';
-          }
-
-          function mostrarSugerenciasCuentas(termino) {
-            if (!termino.trim() || !els.suggestions) {
-              els.suggestions?.classList.add('d-none');
-              return;
-            }
-
-            const terminoLower = termino.toLowerCase();
-            const sugerencias = state.cuentasDisponibles
-              .filter(cuenta =>
-                cuenta.cuenta.toLowerCase().includes(terminoLower) ||
-                cuenta.nombre.toLowerCase().includes(terminoLower)
-              )
-              .slice(0, 10);
-
-            if (sugerencias.length === 0) {
-              els.suggestions.classList.add('d-none');
-              return;
-            }
-
-            els.suggestions.innerHTML = sugerencias
-              .map(cuenta => `
-          <div class="p-2 border-bottom cursor-pointer cuenta-sugerencia" 
-               data-cuenta="${cuenta.cuenta}" 
-               style="cursor: pointer;">
-            <div class="fw-bold">${cuenta.cuenta}</div>
-            <div class="text-muted small">${cuenta.nombre}</div>
-          </div>
-        `)
-              .join('');
-
-            els.suggestions.classList.remove('d-none');
-          }
-
-          function ocultarSugerenciasCuentas() {
-            setTimeout(() => els.suggestions?.classList.add('d-none'), 150);
-          }
-
-          function agregarCuenta() {
-            const raw = (els.inputNuevaCuenta.value || '').trim();
-            if (!raw) return;
-
-            const soloNumeros = raw.replace(/\D/g, '');
-            const clean = soloNumeros.length ? soloNumeros : raw.toUpperCase();
-            if (clean.length === 0) return;
-
-            const yaExiste = [...state.cuentas.ingresos, ...state.cuentas.gastos]
-              .some(cta => cta === clean);
-            if (yaExiste) {
-              alert('La cuenta ya está en la lista.');
-              return;
-            }
-
-            const grupo = determinarGrupo(clean);
-            state.cuentas[grupo].push(clean);
-            guardarLista();
-            els.inputNuevaCuenta.value = '';
-            renderTabla();
-            cargarDatos();
-          }
-
-          function eliminarCuenta(codigo) {
-            state.cuentas.ingresos = state.cuentas.ingresos.filter(cta => cta !== codigo);
-            state.cuentas.gastos = state.cuentas.gastos.filter(cta => cta !== codigo);
-            guardarLista();
-            renderTabla();
-            cargarDatos();
-          }
-
-          function mostrarContextMenu(evt, codigo) {
-            state.cuentaSeleccionada = codigo;
-            els.contextMenu.style.top = `${evt.clientY}px`;
-            els.contextMenu.style.left = `${evt.clientX}px`;
-            els.contextMenu.classList.remove('d-none');
-          }
-
-          function ocultarContextMenu() {
-            els.contextMenu.classList.add('d-none');
-            state.cuentaSeleccionada = null;
-          }
-
-          // Eventos
-          els.btnAgregar?.addEventListener('click', agregarCuenta);
-          els.inputNuevaCuenta?.addEventListener('input', (evt) => {
-            mostrarSugerenciasCuentas(evt.target.value);
-          });
-          els.inputNuevaCuenta?.addEventListener('keyup', (evt) => {
-            if (evt.key === 'Enter') agregarCuenta();
-            if (evt.key === 'Escape') ocultarSugerenciasCuentas();
-          });
-          els.inputNuevaCuenta?.addEventListener('blur', ocultarSugerenciasCuentas);
-          els.yearSelect?.addEventListener('change', async () => {
-            state.anio = Number(els.yearSelect.value);
-            await poblarCuentasDisponibles();
-            await cargarDatos();
-          });
-
-          document.addEventListener('click', (evt) => {
-            if (evt.target.classList.contains('cuenta-sugerencia')) {
-              const cuenta = evt.target.dataset.cuenta;
-              els.inputNuevaCuenta.value = cuenta;
-              ocultarSugerenciasCuentas();
-              agregarCuenta();
-            }
-          });
-
-          els.tableBody?.addEventListener('contextmenu', (evt) => {
-            const fila = evt.target.closest('tr[data-cuenta]');
-            if (!fila) return;
-            evt.preventDefault();
-            mostrarContextMenu(evt, fila.dataset.cuenta);
-          });
-
-          document.addEventListener('click', (evt) => {
-            if (!evt.target.closest('#comitesContextMenu')) ocultarContextMenu();
-          });
-
-          window.addEventListener('scroll', ocultarContextMenu);
-          window.addEventListener('resize', ocultarContextMenu);
-
-          els.contextMenu?.querySelector('[data-action="remove"]')?.addEventListener('click', () => {
-            if (state.cuentaSeleccionada) eliminarCuenta(state.cuentaSeleccionada);
-            ocultarContextMenu();
-          });
-
-          inicializarToggleColumnas();
-
-          async function inicializarPanel() {
-            await poblarAnios();
-            renderTabla();
-            await cargarDatos();
-          }
-
-          inicializarPanel();
-
-          if (typeof Sesion !== 'undefined' && Sesion.EVENTO_EMPRESA) {
-            window.addEventListener(Sesion.EVENTO_EMPRESA, async () => {
-              state.datos.clear();
-              state.anio = new Date().getFullYear();
-              await inicializarPanel();
-            });
-          }
-        }
-
-        document.addEventListener('DOMContentLoaded', initComitesPanel);
-      })();
+    renderAll();
+    applyToggle(false);
+  })();
   </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
-
 </html>
-
