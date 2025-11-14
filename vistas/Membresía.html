@@ -1,340 +1,233 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Membresía</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Membresía - Presupuestos</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="css/estilos.css" />
   <style>
-    :root{
-      --color-primary:#2f5496;
-      --color-secondary:#8497b0;
-      --color-background:#f2f2f2;
-      --color-text:#2f5496;
-
-      --bs-primary:#2f5496;
-      --bs-primary-rgb:47,84,150;
-      --bs-success:#2f5496;
-      --bs-success-rgb:47,84,150;
-      --bs-success-bg-subtle:rgba(47,84,150,0.16);
-      --bs-success-border-subtle:rgba(47,84,150,0.35);
+    :root {
+      --color-primary: #2f5496;
+      --color-secondary: #8497b0;
+      --color-background: #f2f2f2;
+      --color-text: #2f5496;
     }
 
-    body{
-      background:var(--color-background);
-      font-family:'Manrope','Segoe UI',Tahoma,sans-serif;
-      color:var(--color-text);
-      min-height:100vh;
-      padding-top:20px;
+    body {
+      background-color: var(--color-background);
+      font-family: 'Manrope', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: var(--color-text);
+      min-height: 100vh;
+      padding-top: 70px;
     }
 
-    /* Contenedor más ancho en esta página */
-    .membresia-container{
-      max-width:1440px;  /* ajusta si necesitas aún más ancho */
+    .header-card {
+      background: var(--color-primary);
+      border-radius: 16px;
+      border: 1px solid rgba(47, 84, 150, 0.1);
+      color: #fff;
     }
 
-    .panel{
-      background:#fff;
-      border-radius:18px;
-      border:1px solid rgba(47,84,150,0.08);
-      box-shadow:0 25px 55px rgba(47,84,150,0.08);
-      padding:1.75rem;
+    .table-card,
+    .workflow-card {
+      background: #fff;
+      border-radius: 16px;
+      border: 1px solid rgba(47, 84, 150, 0.1);
+      overflow: hidden;
     }
 
-    .table-membresia{
-      width:100%;
-      border-collapse:collapse;
-      font-size:0.92rem;
-    }
-    .table-membresia th,
-    .table-membresia td{
-      border:1px solid rgba(47,84,150,0.12);
-      padding:.55rem .6rem;
-      text-align:right;
-      min-width:90px;
-      background:#fff;
+    .table thead {
+      background-color: #d9d9d9;
     }
 
-    .table-membresia thead th{
-      background:#2f5496;
-      color:#fff;
-      text-transform:uppercase;
-      letter-spacing:.05em;
-      font-size:.8rem;
-      position:sticky;
-      top:0;
-      z-index:1;
-    }
-    .table-membresia thead th span{ color:#d9d9d9; font-weight:800; display:block; }
-
-    .account-col-h,
-    .account-col{
-      text-align:left;
-      min-width:120px;
-      background:#f7f9fc;
-    }
-    .account-col{
-      font-family:'Courier New',monospace;
-      font-weight:600;
-    }
-    .desc-col{
-      text-align:left;
-      min-width:260px;
-      font-weight:600;
-      color:var(--color-text);
+    .table thead th {
+      border: none;
+      font-weight: 600;
+      color: #2f5496;
+      text-transform: uppercase;
+      font-size: 0.8rem;
+      letter-spacing: 0.06em;
+      padding-top: 1rem;
+      padding-bottom: 1rem;
     }
 
-    /* Totales y resultados */
-    .table-membresia tbody tr[data-kind="total"],
-    .table-membresia tbody tr[data-kind="resultado"]{
-      background:#f2f2f2;
-      font-weight:800;
+    .table tbody tr:hover {
+      background-color: rgba(47, 84, 150, 0.05);
     }
 
-    /* Duplicado (segunda columna del mes) en amarillo */
-    .table-membresia th.dup,
-    .table-membresia td.dup{
-      background:#fff7d6; /* amarillo suave */
-      border-left:2px solid rgba(47,84,150,.25);
+    .search-input {
+      width: 100%;
+      padding: 0.5rem 1rem;
+      border: 1px solid #d9d9d9;
+      border-radius: 8px;
+      font-size: 0.9rem;
     }
 
-    /* Botón ocultar/mostrar cuentas y clase global */
-    body.ocultar-cuentas .account-col,
-    body.ocultar-cuentas .account-col-h{
-      display:none;
+    .account-column {
+      text-align: left;
+      font-family: 'Courier New', monospace;
+      font-size: 0.85rem;
+      white-space: nowrap;
     }
 
-    /* Encabezado de página */
-    .hero{
-      display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;
+    .account-column-header {
+      text-align: left;
+      white-space: nowrap;
     }
-    .title{
-      color:var(--color-primary);
-      font-weight:800;
-      margin:0;
+
+    body.ocultar-cuentas .account-column,
+    body.ocultar-cuentas .account-column-header {
+      display: none;
     }
-    .status{
-      font-weight:600;font-size:.9rem;
+
+    .workflow-card .card-header {
+      background: rgba(47, 84, 150, 0.08);
+      font-weight: 700;
+      color: var(--color-primary);
+    }
+
+    .workflow-card .list-group-item {
+      border: none;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+      font-size: 0.9rem;
+    }
+
+    .workflow-card .list-group-item:last-child {
+      border-bottom: none;
     }
   </style>
 </head>
-<body>
 
-  <div class="container-xxl membresia-container py-4">
-    <section class="panel">
-      <div class="hero mb-3">
-        <div>
-          <h1 class="title h3 mb-1">Membresía</h1>
-          <span id="membStatus" class="status text-success"></span>
-        </div>
-        <div class="d-flex align-items-end gap-2 flex-wrap">
-          <div>
-            <label class="form-label mb-1" for="yearSelect">Ejercicio</label>
-            <select id="yearSelect" class="form-select">
-              <option value="2024">2024</option>
-              <option value="2025" selected>2025</option>
-              <option value="2026">2026</option>
-            </select>
+<body data-modulo="Membresía" data-modulo-alias="Membresía">
+  <div class="container py-4 py-lg-5">
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="card header-card fade-in">
+          <div class="card-body text-center text-lg-start">
+            <div class="d-flex flex-column flex-lg-row align-items-center justify-content-between gap-3">
+              <div>
+                <h1 class="fw-bold display-6 mb-2">Membresía</h1>
+                <p class="mb-0 text-white-50">Planeación financiera del área de Membresía.</p>
+                <p class="mb-0 text-white-50">Ejercicio <span class="anio text-light" id="yearLabel"></span> · <span
+                    id="empresaLabel">—</span></p>
+              </div>
+            </div>
           </div>
-          <button id="toggleAccounts" type="button" class="btn btn-outline-secondary">
-            Ocultar cuentas
-          </button>
         </div>
       </div>
+    </div>
 
-      <div class="table-responsive">
-        <table class="table-membresia" id="tblMembresia">
-          <thead></thead>
-          <tbody></tbody>
-        </table>
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="card table-card fade-in">
+          <div class="card-body p-3">
+            <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+              <div>
+                <p class="text-muted fw-semibold mb-1">Estado del presupuesto</p>
+                <div class="workflow-badge" id="workflowBadge">Sin cargar</div>
+                <p class="workflow-meta mb-0" id="workflowMeta"></p>
+              </div>
+              <div class="toolbar-actions" role="group">
+                <button type="button" class="btn btn-chip btn-chip-outline" id="toggleAccountColumnBtn">
+                  <i class="bi bi-eye-slash"></i>
+                  <span>Ocultar cuentas</span>
+                </button>
+                <button type="button" class="btn btn-chip btn-chip-outline d-none" id="loadBudgetBtn">
+                  <i class="bi bi-upload"></i>
+                  <span>Cargar</span>
+                </button>
+                <button type="button" class="btn btn-chip btn-chip-warning d-none" id="reviewBudgetBtn">
+                  <i class="bi bi-clipboard-check"></i>
+                  <span>Revisar</span>
+                </button>
+                <button type="button" class="btn btn-chip btn-chip-success d-none" id="authorizeBudgetBtn">
+                  <i class="bi bi-shield-check"></i>
+                  <span>Autorizar</span>
+                </button>
+                <button type="button" class="btn btn-chip btn-chip-primary d-none" id="saveBudgetBtn">
+                  <i class="bi bi-floppy"></i>
+                  <span>Guardar</span>
+                </button>
+                <button type="button" class="btn btn-chip btn-primario d-none" id="approveBudgetBtn">
+                  <i class="bi bi-check-circle"></i>
+                  <span>Aprobar</span>
+                </button>
+              </div>
+            </div>
+            <input type="file" id="budgetFileInput" accept=".csv,text/csv" class="d-none" />
+          </div>
+        </div>
       </div>
-    </section>
+    </div>
+
+    <div class="row mb-3">
+      <div class="col-12">
+        <input type="text" id="accountSearch" class="search-input" placeholder="Buscar cuenta o descripción..." />
+      </div>
+    </div>
+
+    <div class="row g-4 align-items-start">
+      <div class="col-12 col-xl-9">
+        <div class="table-card fade-in">
+          <div id="presupuestoStatus" class="alert alert-info visually-hidden" role="status"></div>
+          <div class="table-responsive">
+            <table class="table align-middle mb-0" id="tablaPresupuestos">
+              <thead>
+                <tr>
+                  <th scope="col" class="text-start account-column-header">Cuenta</th>
+                  <th scope="col" class="text-start">Descripción</th>
+                  <th scope="col" class="text-end">Ene</th>
+                  <th scope="col" class="text-end">Feb</th>
+                  <th scope="col" class="text-end">Mar</th>
+                  <th scope="col" class="text-end">Abr</th>
+                  <th scope="col" class="text-end">May</th>
+                  <th scope="col" class="text-end">Jun</th>
+                  <th scope="col" class="text-end">Jul</th>
+                  <th scope="col" class="text-end">Ago</th>
+                  <th scope="col" class="text-end">Sep</th>
+                  <th scope="col" class="text-end">Oct</th>
+                  <th scope="col" class="text-end">Nov</th>
+                  <th scope="col" class="text-end">Dic</th>
+                  <th scope="col" class="text-end">Anual <span class="anio" id="yearColumn"></span></th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-xl-3">
+        <div class="card workflow-card h-100">
+          <div class="card-header">Flujo de autorización</div>
+          <ul class="list-group list-group-flush" id="workflowHistory"></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1080;">
+    <div id="actionToast" class="toast align-items-center text-bg-success border-0" role="alert"
+      aria-live="assertive" aria-atomic="true">
+      <div class="d-flex">
+        <div class="toast-body" id="actionToastBody">Acción realizada correctamente.</div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
+          aria-label="Cerrar"></button>
+      </div>
+    </div>
   </div>
 
   <script src="js/sesion.js"></script>
-  <script>
-    (()=>{
-      // ====== Estado mínimo (estático por ahora) ======
-      const els = {
-        head: document.querySelector('#tblMembresia thead'),
-        body: document.querySelector('#tblMembresia tbody'),
-        yearSelect: document.getElementById('yearSelect'),
-        status: document.getElementById('membStatus'),
-        toggleAccounts: document.getElementById('toggleAccounts')
-      };
-
-      // Si existe tu helper Sesion, mostramos el capítulo; si no, lo omitimos (estático)
-      try{
-        const emp = (typeof Sesion!=='undefined' && Sesion.obtenerEmpresaActiva && Sesion.obtenerEmpresaActiva()) || null;
-        if(emp?.etiqueta){
-          document.title = `Membresía – ${emp.etiqueta}`;
-        }
-      }catch{}
-
-      function tickStatus(){
-        if(!els.status) return;
-        els.status.textContent = `Vista ${new Date().toLocaleTimeString('es-MX')}.`;
-      }
-      tickStatus();
-
-      // ====== Columnas (meses duplicados como Excel) ======
-      const MONTHS = [
-        { k:'ene', l:'ENE' },{ k:'feb', l:'FEB' },{ k:'mar', l:'MAR' },
-        { k:'abr', l:'ABR' },{ k:'may', l:'MAY' },{ k:'jun', l:'JUN' },
-        { k:'jul', l:'JUL' },{ k:'ago', l:'AGO' },{ k:'sep', l:'SEP' },
-        { k:'oct', l:'OCT' },{ k:'nov', l:'NOV' },{ k:'dic', l:'DIC' }
-      ];
-
-      // Par de columnas por mes: normal + duplicada (amarilla)
-      const COLUMNS = MONTHS.flatMap(m => ([
-        { key: m.k,          label: m.l, dup:false },
-        { key: m.k + '_b',   label: m.l, dup:true  }
-      ]));
-      const TOTAL_COLUMNS = COLUMNS.length + 3; // Cuenta + Membresía + Total
-
-      // ====== Datos ESTÁTICOS (solo nombres/estructura) ======
-      const bloqueIngresos = [
-        { cuenta:'—', nombre:'Renovaciones' },
-        { cuenta:'—', nombre:'Descuentos por pronto pago' },
-        { cuenta:'—', nombre:'Socios nuevos' },
-        { cuenta:'—', nombre:'Cuotas suscripción' },
-        { cuenta:'—', nombre:'Diamond Publicidad en Publicaciones' },
-      ];
-
-      const bloqueGastos = [
-        { cuenta:'—', nombre:'Intercambios membresía-especie' },
-        { cuenta:'—', nombre:'Intercambios membresía' },
-        { cuenta:'—', nombre:"Comisiones KAM's" },
-        { cuenta:'—', nombre:'Promoción Servicios Membresías (Representación)' },
-        { cuenta:'—', nombre:'Onboarding' },
-      ];
-
-      const bloqueGastosAdm = [
-        { cuenta:'—', nombre:'Teléfono móvil' },
-        { cuenta:'—', nombre:'Mantenimientos de automóvil' },
-        { cuenta:'—', nombre:'Gasolina' },
-        { cuenta:'—', nombre:'Pasajes y taxis' },
-        { cuenta:'—', nombre:'Estacionamientos' },
-        { cuenta:'—', nombre:'Becario' },
-        { cuenta:'—', nombre:'Gastos de viaje' },
-        { cuenta:'—', nombre:'Gastos Administrativos (impresión tarjetas)' },
-        { cuenta:'—', nombre:'Papelería y artículos de oficina' },
-        { cuenta:'—', nombre:'Juntas de trabajo' },
-        { cuenta:'—', nombre:'No deducibles' },
-        { cuenta:'—', nombre:'Herramientas Tele-trabajo' },
-      ];
-
-      // ====== Render ======
-      let anio = Number(els.yearSelect.value || new Date().getFullYear());
-
-      function renderHead(){
-        const suf = String(anio).slice(-2);
-        const cols = COLUMNS.map(c =>
-          `<th class="${c.dup ? 'dup' : ''}"><span>${c.label.toLowerCase()}-${suf}</span></th>`
-        ).join('');
-        els.head.innerHTML = `
-          <tr>
-            <th class="account-col-h">Cuenta</th>
-            <th>MEMBRESÍA</th>
-            ${cols}
-            <th><span>${anio}</span>Total</th>
-          </tr>
-        `;
-      }
-
-      // Para estático, todas las celdas muestran "–"
-      const dash = '–';
-
-      function rowHtml(item){
-        const celdas = COLUMNS.map(c => `<td class="${c.dup?'dup':''}">${dash}</td>`).join('');
-        return `
-          <tr>
-            <td class="account-col">${item.cuenta || '—'}</td>
-            <td class="desc-col">${item.nombre || ''}</td>
-            ${celdas}
-            <td>${dash}</td>
-          </tr>
-        `;
-      }
-
-      function spacer(){
-        return `<tr><td colspan="${TOTAL_COLUMNS}" style="background:transparent;border:none;height:.35rem;"></td></tr>`;
-      }
-
-      function totalRow(label){
-        const celdas = COLUMNS.map(()=>`<td>${dash}</td>`).join('');
-        return `
-          <tr data-kind="total">
-            <td colspan="2">${label}</td>
-            ${celdas}
-            <td>${dash}</td>
-          </tr>
-        `;
-      }
-
-      function resultadoRow(label){
-        const celdas = COLUMNS.map(()=>`<td>${dash}</td>`).join('');
-        return `
-          <tr data-kind="resultado">
-            <td colspan="2">${label}</td>
-            ${celdas}
-            <td>${dash}</td>
-          </tr>
-        `;
-      }
-
-      function renderBody(){
-        const parts = [];
-
-        // Ingresos
-        bloqueIngresos.forEach(it => parts.push(rowHtml(it)));
-        parts.push(totalRow('Suma de Ingresos Membresía'));
-        parts.push(spacer());
-
-        // Gastos
-        bloqueGastos.forEach(it => parts.push(rowHtml(it)));
-        parts.push(totalRow('Suma de Gastos Membresía'));
-        parts.push(resultadoRow('Resultado Operativo Membresía'));
-        parts.push(spacer());
-
-        // Gastos Administrativos
-        bloqueGastosAdm.forEach(it => parts.push(rowHtml(it)));
-        parts.push(totalRow('Suma Gastos Administrativos'));
-        parts.push(spacer());
-
-        // Resultado final
-        parts.push(resultadoRow('Resultado Membresía'));
-
-        els.body.innerHTML = parts.join('');
-      }
-
-      // Toggle mostrar/ocultar columna "Cuenta"
-      function applyToggle(ocultar){
-        document.body.classList.toggle('ocultar-cuentas', Boolean(ocultar));
-        els.toggleAccounts.textContent = ocultar ? 'Mostrar cuentas' : 'Ocultar cuentas';
-        els.toggleAccounts.setAttribute('aria-pressed', ocultar ? 'true' : 'false');
-      }
-
-      // Eventos
-      els.yearSelect.addEventListener('change', ()=>{
-        anio = Number(els.yearSelect.value);
-        renderHead();
-      });
-
-      els.toggleAccounts.addEventListener('click', ()=>{
-        const hide = !document.body.classList.contains('ocultar-cuentas');
-        applyToggle(hide);
-      });
-
-      // Primera pinta
-      renderHead();
-      renderBody();
-      applyToggle(false);
-    })();
-  </script>
-
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/presupuesto-vista.js"></script>
+  <script>
+    initVistaPresupuesto();
+  </script>
 </body>
+
 </html>
