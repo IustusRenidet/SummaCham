@@ -65,6 +65,12 @@
   transform: translateY(-1px);
 }
 
+.btn-chip-info {
+  background-color: rgba(68, 114, 196, 0.12);
+  border: 1px solid rgba(68, 114, 196, 0.4);
+  color: #2f5496;
+}
+
 .btn-chip-primary {
   background-color: var(--btn-primario-bg);
   border-color: var(--btn-primario-bg);
@@ -133,4 +139,74 @@
   font-weight: 600;
   font-size: 0.9rem;
   padding: 0.35rem 0.9rem;
+}
+
+.table-budget {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.table-budget thead {
+  background-color: #4472c4;
+}
+
+.table-budget thead th {
+  border: none;
+  font-weight: 600;
+  color: #ffffff;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+
+.table-budget thead th.month-header,
+.table-budget thead th.year-header {
+  background-color: #ffc000;
+  color: #000000;
+}
+
+.table-budget tbody tr:hover {
+  background-color: rgba(47, 84, 150, 0.05);
+}
+
+.workflow-toggle {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 12px;
+  color: #ffffff;
+  display: inline-flex;
+  height: 44px;
+  justify-content: center;
+  width: 44px;
+}
+
+.workflow-toggle i {
+  font-size: 1.25rem;
+}
+
+.workflow-toggle:hover,
+.workflow-toggle:focus {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+.workflow-drawer {
+  --bs-offcanvas-width: min(420px, 90vw);
+}
+
+.workflow-drawer .offcanvas-header {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.workflow-drawer .list-group-item {
+  border: none;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  font-size: 0.9rem;
+}
+
+.workflow-drawer .list-group-item:last-child {
+  border-bottom: none;
 }
