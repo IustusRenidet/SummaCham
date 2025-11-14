@@ -18,7 +18,7 @@
   const WORKFLOW_ETIQUETAS = {
     'sin-cargar': {
       texto: 'Sin cargar',
-      descripcion: 'Carga el presupuesto estimado para comenzar.'
+      descripcion: 'En espera de información.'
     },
     borrador: {
       texto: 'Cargado',
@@ -42,7 +42,7 @@
     cargar: {
       destino: 'borrador',
       permiso: 'Cargar y guardar',
-      habilita: (estado) => ['sin-cargar', 'borrador'].includes(estado)
+      habilita: () => true
     },
     revisar: {
       destino: 'revisado',
@@ -60,8 +60,6 @@
       habilita: (estado) => estado === 'autorizado'
     }
   };
-
-  const ACCOUNT_COLUMN_STORAGE_KEY = 'presupuestos_ocultar_cuentas';
 
   const formatoNumero = new Intl.NumberFormat('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -105,7 +103,6 @@
       reviewBudgetBtn: document.getElementById('reviewBudgetBtn'),
       authorizeBudgetBtn: document.getElementById('authorizeBudgetBtn'),
       approveBudgetBtn: document.getElementById('approveBudgetBtn'),
-      toggleAccountColumnBtn: document.getElementById('toggleAccountColumnBtn'),
       budgetFileInput: document.getElementById('budgetFileInput'),
       toastElement: document.getElementById('actionToast'),
       toastBody: document.getElementById('actionToastBody'),
@@ -226,42 +223,6 @@
         celdaAnual.textContent = formatoNumero.format(cuenta.anual ?? 0);
         fila.appendChild(celdaAnual);
         elementos.tablaBody.appendChild(fila);
-      });
-    };
-
-    const aplicarVisibilidadCuentas = (ocultar) => {
-      document.body.classList.toggle('ocultar-cuentas', Boolean(ocultar));
-      if (elementos.toggleAccountColumnBtn) {
-        const icono = elementos.toggleAccountColumnBtn.querySelector('i');
-        const texto = elementos.toggleAccountColumnBtn.querySelector('span');
-        if (icono) {
-          icono.className = ocultar ? 'bi bi-eye' : 'bi bi-eye-slash';
-        }
-        if (texto) {
-          texto.textContent = ocultar ? 'Mostrar cuentas' : 'Ocultar cuentas';
-        }
-        elementos.toggleAccountColumnBtn.setAttribute('aria-pressed', ocultar ? 'true' : 'false');
-      }
-    };
-
-    const inicializarControlCuentas = () => {
-      const esAdminGlobal = Sesion.esAdminGlobal(sesion);
-      const preferencia = localStorage.getItem(ACCOUNT_COLUMN_STORAGE_KEY);
-      const debeOcultar = preferencia ? preferencia === '1' : !esAdminGlobal;
-      aplicarVisibilidadCuentas(debeOcultar);
-      if (!elementos.toggleAccountColumnBtn) {
-        return;
-      }
-      if (!esAdminGlobal) {
-        elementos.toggleAccountColumnBtn.classList.add('d-none');
-        elementos.toggleAccountColumnBtn.setAttribute('disabled', 'true');
-        return;
-      }
-      elementos.toggleAccountColumnBtn.classList.remove('d-none');
-      elementos.toggleAccountColumnBtn.addEventListener('click', () => {
-        const ocultar = !document.body.classList.contains('ocultar-cuentas');
-        localStorage.setItem(ACCOUNT_COLUMN_STORAGE_KEY, ocultar ? '1' : '0');
-        aplicarVisibilidadCuentas(ocultar);
       });
     };
 
@@ -433,7 +394,8 @@
       const estadoActual = estado.workflow.estado;
       const puedeCargar = Boolean(permisos?.['Cargar y guardar']);
       const puedeRevisar = Boolean(permisos?.Revisar);
-      const puedeAprobar = Boolean(permisos?.Aprobar);
+      const puedeAutorizar = Boolean(permisos?.Aprobar);
+      const puedeGuardar = Boolean(permisos?.Aprobar);
 
       if (elementos.loadBudgetBtn) {
         elementos.loadBudgetBtn.classList.toggle('d-none', !puedeCargar);
@@ -444,16 +406,12 @@
         elementos.reviewBudgetBtn.disabled = !puedeRevisar || !TRANSICIONES.revisar.habilita(estadoActual);
       }
       if (elementos.authorizeBudgetBtn) {
-        elementos.authorizeBudgetBtn.classList.toggle('d-none', !puedeAprobar);
-        elementos.authorizeBudgetBtn.disabled = !puedeAprobar || !TRANSICIONES.autorizar.habilita(estadoActual);
-      }
-      if (elementos.approveBudgetBtn) {
-        elementos.approveBudgetBtn.classList.toggle('d-none', !puedeAprobar);
-        elementos.approveBudgetBtn.disabled = !puedeAprobar || !TRANSICIONES.aprobar.habilita(estadoActual);
+        elementos.authorizeBudgetBtn.classList.toggle('d-none', !puedeAutorizar);
+        elementos.authorizeBudgetBtn.disabled = !puedeAutorizar || !TRANSICIONES.autorizar.habilita(estadoActual);
       }
       if (elementos.saveBudgetBtn) {
-        const habilitado = puedeCargar && ['autorizado', 'aprobado'].includes(estadoActual);
-        elementos.saveBudgetBtn.classList.toggle('d-none', !puedeCargar);
+        const habilitado = puedeGuardar && TRANSICIONES.aprobar.habilita(estadoActual);
+        elementos.saveBudgetBtn.classList.toggle('d-none', !puedeGuardar);
         elementos.saveBudgetBtn.disabled = !habilitado;
       }
     };
@@ -468,7 +426,7 @@
     const nombreArchivoModulo = opciones.modulo.replace(/[^a-zA-Z0-9_-]+/g, '-');
 
     if (elementos.saveBudgetBtn) {
-      elementos.saveBudgetBtn.addEventListener('click', () => {
+      elementos.saveBudgetBtn.addEventListener('click', async () => {
         const csvContent = convertirTablaACsv();
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const downloadLink = document.createElement('a');
@@ -480,6 +438,7 @@
         document.body.removeChild(downloadLink);
         URL.revokeObjectURL(url);
         showToast('Presupuesto exportado correctamente.');
+        await ejecutarAccionWorkflow('aprobar');
       });
     }
 
@@ -520,10 +479,8 @@
     }
 
     if (elementos.approveBudgetBtn) {
-      elementos.approveBudgetBtn.addEventListener('click', () => ejecutarAccionWorkflow('aprobar'));
+      elementos.approveBudgetBtn.remove();
     }
-
-    inicializarControlCuentas();
     actualizarDisponibilidadAcciones();
 
     const inicializarDatos = () => {
