@@ -57,6 +57,49 @@ const crearTablas = () => {
       FOREIGN KEY(usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
     )
   `).run();
+
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS presupuestos_estado (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      empresa_id TEXT NOT NULL,
+      modulo TEXT NOT NULL,
+      anio INTEGER NOT NULL,
+      estado TEXT NOT NULL DEFAULT 'sin-cargar',
+      actualizado_por INTEGER,
+      actualizado_en TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(empresa_id, modulo, anio),
+      FOREIGN KEY(actualizado_por) REFERENCES usuarios(id) ON DELETE SET NULL
+    )
+  `).run();
+
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS presupuestos_estado_historial (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      empresa_id TEXT NOT NULL,
+      modulo TEXT NOT NULL,
+      anio INTEGER NOT NULL,
+      estado TEXT NOT NULL,
+      usuario_id INTEGER,
+      registrado_en TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(usuario_id) REFERENCES usuarios(id) ON DELETE SET NULL
+    )
+  `).run();
+
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS notificaciones (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      usuario_id INTEGER NOT NULL,
+      empresa_id TEXT,
+      modulo TEXT,
+      titulo TEXT NOT NULL,
+      mensaje TEXT NOT NULL,
+      tipo TEXT NOT NULL DEFAULT 'info',
+      enlace TEXT DEFAULT '',
+      creada_en TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      leida_en TEXT,
+      FOREIGN KEY(usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+    )
+  `).run();
 };
 
 const asegurarColumnasUsuarios = () => {

@@ -185,6 +185,31 @@
     return headers;
   };
 
+  const obtenerPermisosModulo = (modulo, empresaId, sesionActual) => {
+    const sesionEvaluada = sesionActual || obtener();
+    const moduloNormalizado = (modulo || '').toString();
+    if (!sesionEvaluada || !sesionEvaluada.usuario || !moduloNormalizado) {
+      return null;
+    }
+    const empresa = empresaId || obtenerEmpresaActiva(sesionEvaluada)?.id;
+    if (!empresa) {
+      return null;
+    }
+    return sesionEvaluada.usuario?.permisosPorEmpresa?.[empresa]?.[moduloNormalizado] || null;
+  };
+
+  const tienePermisoModulo = (modulo, accion, empresaId, sesionActual) => {
+    const permisos = obtenerPermisosModulo(modulo, empresaId, sesionActual);
+    if (!permisos) {
+      return false;
+    }
+    const accionNormalizada = (accion || '').toString();
+    if (!accionNormalizada) {
+      return false;
+    }
+    return Boolean(permisos[accionNormalizada]);
+  };
+
   window.Sesion = {
     obtener,
     guardar,
@@ -199,6 +224,8 @@
     obtenerEmpresaActiva,
     establecerEmpresaActiva,
     puedeCambiarEmpresa,
-    EVENTO_EMPRESA
+    EVENTO_EMPRESA,
+    obtenerPermisosModulo,
+    tienePermisoModulo
   };
 })();
