@@ -42,7 +42,8 @@
       color: #fff;
     }
 
-    .table-card {
+    .table-card,
+    .workflow-card {
       background: #fff;
       border-radius: 16px;
       border: 1px solid rgba(47, 84, 150, 0.1);
@@ -110,6 +111,26 @@
         align-items: center;
         justify-content: space-between;
       }
+    }
+
+    .workflow-card .card-header {
+      background: rgba(47, 84, 150, 0.08);
+      font-weight: 700;
+      color: var(--color-primary);
+    }
+
+    .workflow-card .list-group-item {
+      border: none;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+      font-size: 0.9rem;
+    }
+
+    .workflow-card .list-group-item:last-child {
+      border-bottom: none;
+    }
+
+    .workflow-card small {
+      font-variant-numeric: tabular-nums;
     }
   </style>
 </head>
