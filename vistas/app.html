@@ -167,6 +167,12 @@
       gap: 1rem;
     }
 
+    .top-bar-right {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
     .sidebar-toggle-btn {
       border: none;
       background: rgba(47, 84, 150, 0.15);
@@ -212,6 +218,98 @@
 
     .company-selector select {
       min-width: 200px;
+    }
+
+    .notification-bell {
+      position: relative;
+    }
+
+    .notification-bell__button {
+      border: none;
+      background: rgba(47, 84, 150, 0.1);
+      color: var(--color-primario);
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .notification-bell__button:hover,
+    .notification-bell__button:focus {
+      background: rgba(47, 84, 150, 0.2);
+      color: #fff;
+    }
+
+    .notification-bell__badge {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      background: #dc3545;
+      color: #fff;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      padding: 0 0.35rem;
+      font-weight: 700;
+    }
+
+    .notification-panel {
+      position: absolute;
+      top: calc(100% + 0.5rem);
+      right: 0;
+      width: min(320px, 80vw);
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+      border: 1px solid rgba(47, 84, 150, 0.15);
+      padding: 1rem;
+      z-index: 1200;
+    }
+
+    .notification-panel__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.75rem;
+    }
+
+    .notification-panel__list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      max-height: 360px;
+      overflow-y: auto;
+    }
+
+    .notification-panel__item {
+      border: 1px solid rgba(47, 84, 150, 0.15);
+      border-radius: 12px;
+      padding: 0.65rem 0.75rem;
+      background: #fff;
+      display: flex;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+
+    .notification-panel__item--new {
+      border-color: var(--color-primario);
+      box-shadow: 0 12px 30px rgba(47, 84, 150, 0.15);
+    }
+
+    .notification-panel__title {
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+      color: var(--color-primario);
+    }
+
+    .notification-panel__message {
+      font-size: 0.9rem;
+      color: rgba(47, 84, 150, 0.8);
     }
 
     .top-bar .badge {
@@ -380,6 +478,11 @@
       .top-bar-left {
         justify-content: space-between;
         width: 100%;
+      }
+
+      .top-bar-right {
+        width: 100%;
+        justify-content: space-between;
       }
 
       .company-selector {

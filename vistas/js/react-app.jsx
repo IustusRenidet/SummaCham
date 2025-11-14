@@ -250,7 +250,114 @@ const SidebarGroup = ({ group, modules, selectedModule, onSelect, open, onToggle
   );
 };
 
-const DashboardLayout = ({ sesion, selectedModuleId, onSelectModule, onLogout, empresaActiva, onChangeEmpresa }) => {
+const NotificationBell = ({ notifications = [], onRefresh, onMarkAsRead }) => {
+  const [open, setOpen] = useState(false);
+  const bellRef = React.useRef(null);
+  const unread = notifications.filter((item) => !item.leidaEn).length;
+
+  useEffect(() => {
+    const handleClick = (event) => {
+      if (!open) return;
+      if (bellRef.current && !bellRef.current.contains(event.target)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [open]);
+
+  const toggle = () => setOpen((prev) => !prev);
+  const marcarLeida = (id) => {
+    if (onMarkAsRead) {
+      onMarkAsRead(id);
+    }
+  };
+
+  const renderFecha = (valor) => {
+    if (!valor) return '';
+    try {
+      return new Date(valor).toLocaleString('es-MX');
+    } catch (e) {
+      return valor;
+    }
+  };
+
+  return (
+    <div className={`notification-bell${open ? ' notification-bell--open' : ''}`} ref={bellRef}>
+      <button
+        type="button"
+        className="notification-bell__button"
+        onClick={toggle}
+        aria-expanded={open}
+        aria-label="Notificaciones"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="20"
+          height="20"
+          fill="currentColor"
+          className="notification-bell__icon"
+          viewBox="0 0 16 16"
+          aria-hidden="true"
+        >
+          <path d="M8 16a2 2 0 0 0 1.985-1.75H6.015A2 2 0 0 0 8 16m6-6c0-3.071-1.639-5.64-4.5-6.32V3a1.5 1.5 0 0 0-3 0v.68C3.64 4.36 2 6.929 2 10v2l-1 1v1h14v-1l-1-1z" />
+        </svg>
+        {unread > 0 && <span className="notification-bell__badge">{unread}</span>}
+      </button>
+      {open && (
+        <div className="notification-panel" role="dialog" aria-label="Notificaciones recientes">
+          <div className="notification-panel__header">
+            <strong>Notificaciones</strong>
+            <button type="button" className="btn btn-link btn-sm p-0" onClick={onRefresh}>
+              Actualizar
+            </button>
+          </div>
+          <div className="notification-panel__body">
+            {notifications.length === 0 ? (
+              <p className="text-muted small mb-0">Sin notificaciones pendientes.</p>
+            ) : (
+              <ul className="notification-panel__list">
+                {notifications.map((item) => (
+                  <li
+                    key={item.id}
+                    className={`notification-panel__item${!item.leidaEn ? ' notification-panel__item--new' : ''}`}
+                  >
+                    <div>
+                      <p className="notification-panel__title mb-1">{item.titulo}</p>
+                      <p className="notification-panel__message mb-1">{item.mensaje}</p>
+                      <small className="text-muted">{renderFecha(item.creadaEn)}</small>
+                    </div>
+                    {!item.leidaEn && (
+                      <button
+                        type="button"
+                        className="btn btn-link btn-sm p-0"
+                        onClick={() => marcarLeida(item.id)}
+                      >
+                        Marcar como leída
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const DashboardLayout = ({
+  sesion,
+  selectedModuleId,
+  onSelectModule,
+  onLogout,
+  empresaActiva,
+  onChangeEmpresa,
+  notifications = [],
+  onRefreshNotifications,
+  onMarkNotification
+}) => {
   const puedeAdministrar = useMemo(() => Sesion.puedeAdministrarUsuarios(sesion), [sesion]);
 
   const empresasDisponibles = useMemo(() => Sesion.obtenerEmpresasDisponibles(sesion), [sesion]);
@@ -332,6 +439,16 @@ const DashboardLayout = ({ sesion, selectedModuleId, onSelectModule, onLogout, e
   };
 
   const layoutClassName = `app-layout${sidebarOculta ? ' sidebar-hidden' : ''}`;
+  const manejarActualizarNotificaciones = () => {
+    if (onRefreshNotifications) {
+      onRefreshNotifications();
+    }
+  };
+  const manejarMarcarNotificacion = (id) => {
+    if (onMarkNotification) {
+      onMarkNotification(id);
+    }
+  };
 
   return (
     <div className={layoutClassName}>
@@ -382,22 +499,29 @@ const DashboardLayout = ({ sesion, selectedModuleId, onSelectModule, onLogout, e
               )}
             </div>
           </div>
-          <div className="company-selector">
-            <label htmlFor="companyFilter" className="fw-semibold mb-0">Empresa:</label>
-            <select
-              id="companyFilter"
-              className="form-select form-select-sm"
-              value={empresaActualId}
-              onChange={manejarCambioEmpresa}
-              disabled={!puedeCambiarEmpresa || empresasDisponibles.length === 0}
-            >
-              {empresasDisponibles.length === 0 && <option value="">Sin empresas disponibles</option>}
-              {empresasDisponibles.map((empresa) => (
-                <option key={empresa.id} value={empresa.id}>
-                  {empresa.etiqueta ? `${empresa.etiqueta} — ${empresa.nombre}` : empresa.nombre}
-                </option>
-              ))}
-            </select>
+          <div className="top-bar-right d-flex align-items-center gap-3">
+            <NotificationBell
+              notifications={notifications}
+              onRefresh={manejarActualizarNotificaciones}
+              onMarkAsRead={manejarMarcarNotificacion}
+            />
+            <div className="company-selector">
+              <label htmlFor="companyFilter" className="fw-semibold mb-0">Empresa:</label>
+              <select
+                id="companyFilter"
+                className="form-select form-select-sm"
+                value={empresaActualId}
+                onChange={manejarCambioEmpresa}
+                disabled={!puedeCambiarEmpresa || empresasDisponibles.length === 0}
+              >
+                {empresasDisponibles.length === 0 && <option value="">Sin empresas disponibles</option>}
+                {empresasDisponibles.map((empresa) => (
+                  <option key={empresa.id} value={empresa.id}>
+                    {empresa.etiqueta ? `${empresa.etiqueta} — ${empresa.nombre}` : empresa.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
         <div className="content-wrapper">
@@ -425,6 +549,7 @@ const App = () => {
   const [sesion, setSesion] = useState(() => Sesion.obtener());
   const [empresaActiva, setEmpresaActiva] = useState(() => Sesion.obtenerEmpresaActiva());
   const [moduloSeleccionado, setModuloSeleccionado] = useState(null);
+  const [notificaciones, setNotificaciones] = useState([]);
 
   const seleccionarModulo = useCallback((moduloId) => {
     setModuloSeleccionado(moduloId);
@@ -441,6 +566,7 @@ const App = () => {
     setSesion(null);
     setEmpresaActiva(null);
     setModuloSeleccionado(null);
+    setNotificaciones([]);
   };
 
   const manejarCambioEmpresa = useCallback((empresaId) => {
@@ -448,6 +574,53 @@ const App = () => {
     setEmpresaActiva(nuevaEmpresa);
     setSesion(Sesion.obtener());
   }, []);
+
+  const cargarNotificaciones = useCallback(async () => {
+    const sesionActual = Sesion.obtener();
+    if (!sesionActual) {
+      setNotificaciones([]);
+      return;
+    }
+    try {
+      const respuesta = await fetch(`${API_BASE}/notificaciones?limite=10`, {
+        headers: Sesion.headersAutenticacion()
+      });
+      const datos = await respuesta.json();
+      if (!respuesta.ok) {
+        throw new Error(datos.mensaje || 'No fue posible obtener las notificaciones.');
+      }
+      setNotificaciones(datos.notificaciones || []);
+    } catch (error) {
+      console.warn('Error al cargar notificaciones', error);
+    }
+  }, []);
+
+  const marcarNotificacion = useCallback(async (id) => {
+    if (!id) return;
+    try {
+      const respuesta = await fetch(`${API_BASE}/notificaciones/${id}/leida`, {
+        method: 'PATCH',
+        headers: Sesion.headersAutenticacion()
+      });
+      if (!respuesta.ok) {
+        const datos = await respuesta.json();
+        throw new Error(datos.mensaje || 'No fue posible actualizar la notificación.');
+      }
+      cargarNotificaciones();
+    } catch (error) {
+      console.warn('Error al marcar notificación como leída', error);
+    }
+  }, [cargarNotificaciones]);
+
+  useEffect(() => {
+    if (!sesion) {
+      setNotificaciones([]);
+      return;
+    }
+    cargarNotificaciones();
+    const intervalo = setInterval(cargarNotificaciones, 60000);
+    return () => clearInterval(intervalo);
+  }, [sesion, empresaActiva, cargarNotificaciones]);
 
   useEffect(() => {
     if (!sesion) {
@@ -475,6 +648,9 @@ const App = () => {
       onLogout={manejarLogout}
       empresaActiva={empresaActiva}
       onChangeEmpresa={manejarCambioEmpresa}
+      notifications={notificaciones}
+      onRefreshNotifications={cargarNotificaciones}
+      onMarkNotification={marcarNotificacion}
     />
   );
 };

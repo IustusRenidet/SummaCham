@@ -1,7 +1,12 @@
 :root {
   --btn-primario-bg: #2f5496;
-  --btn-primario-bg-hover: #8497b0;
+  --btn-primario-bg-hover: #203763;
   --btn-primario-text: #ffffff;
+  --btn-secundario-bg: #f4f6fb;
+  --btn-secundario-border: #d7def0;
+  --btn-alerta-bg: #fef4e6;
+  --btn-alerta-border: #f3c994;
+  --texto-acento: #2f5496;
 }
 
 .btn-primario {
@@ -37,4 +42,171 @@
   font-weight: 700;
   color: var(--btn-primario-bg, #2f5496);
   font-variant-numeric: tabular-nums;
+}
+
+.btn-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 0.45rem 0.95rem;
+  line-height: 1.2;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-chip i {
+  font-size: 1rem;
+}
+
+.btn-chip:hover,
+.btn-chip:focus {
+  transform: translateY(-1px);
+}
+
+.btn-chip-info {
+  background-color: rgba(68, 114, 196, 0.12);
+  border: 1px solid rgba(68, 114, 196, 0.4);
+  color: #2f5496;
+}
+
+.btn-chip-primary {
+  background-color: var(--btn-primario-bg);
+  border-color: var(--btn-primario-bg);
+  color: #fff;
+}
+
+.btn-chip-outline {
+  background-color: var(--btn-secundario-bg);
+  border: 1px solid var(--btn-secundario-border);
+  color: var(--texto-acento);
+}
+
+.btn-chip-warning {
+  background-color: var(--btn-alerta-bg);
+  border: 1px solid var(--btn-alerta-border);
+  color: #8d5a12;
+}
+
+.btn-chip-success {
+  background: rgba(41, 196, 142, 0.12);
+  border: 1px solid rgba(41, 196, 142, 0.45);
+  color: #11805d;
+}
+
+.btn-chip-ghost {
+  background: transparent;
+  border: 1px dashed var(--btn-secundario-border);
+  color: var(--texto-acento);
+}
+
+.workflow-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.9rem;
+  border-radius: 999px;
+  font-weight: 700;
+  background: rgba(47, 84, 150, 0.1);
+  color: var(--texto-acento);
+}
+
+.workflow-badge[data-estado='revisado'] {
+  background: rgba(255, 193, 7, 0.15);
+  color: #7c5205;
+}
+
+.workflow-badge[data-estado='autorizado'],
+.workflow-badge[data-estado='aprobado'] {
+  background: rgba(25, 135, 84, 0.15);
+  color: #0f5132;
+}
+
+.workflow-meta {
+  font-size: 0.8rem;
+  color: rgba(47, 84, 150, 0.7);
+}
+
+.toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.toolbar-actions .btn {
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 0.35rem 0.9rem;
+}
+
+.table-budget {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.table-budget thead {
+  background-color: #4472c4;
+}
+
+.table-budget thead th {
+  border: none;
+  font-weight: 600;
+  color: #ffffff;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+
+.table-budget thead th.month-header,
+.table-budget thead th.year-header {
+  background-color: #ffc000;
+  color: #000000;
+}
+
+.table-budget tbody tr:hover {
+  background-color: rgba(47, 84, 150, 0.05);
+}
+
+.workflow-toggle {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 12px;
+  color: #ffffff;
+  display: inline-flex;
+  height: 44px;
+  justify-content: center;
+  width: 44px;
+}
+
+.workflow-toggle i {
+  font-size: 1.25rem;
+}
+
+.workflow-toggle:hover,
+.workflow-toggle:focus {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+.workflow-drawer {
+  --bs-offcanvas-width: min(420px, 90vw);
+}
+
+.workflow-drawer .offcanvas-header {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.workflow-drawer .list-group-item {
+  border: none;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  font-size: 0.9rem;
+}
+
+.workflow-drawer .list-group-item:last-child {
+  border-bottom: none;
 }
