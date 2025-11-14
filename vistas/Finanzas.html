@@ -105,7 +105,8 @@
   </style>
 </head>
 
-<body data-modulo="Finanzas" data-modulo-alias="Finanzas">
+<body data-modulo="Finanzas" data-modulo-alias="Finanzas"
+  data-modulo-descripcion="Planeación financiera del área de Finanzas.">
   <div class="container py-4 py-lg-5">
     <div class="row mb-4">
       <div class="col-12">
@@ -113,8 +114,8 @@
           <div class="card-body text-center text-lg-start">
             <div class="d-flex flex-column flex-lg-row align-items-center justify-content-between gap-3">
               <div>
-                <h1 class="fw-bold display-6 mb-2">Finanzas</h1>
-                <p class="mb-0 text-white-50">Planeación financiera del área de Finanzas.</p>
+                <h1 class="fw-bold display-6 mb-2" id="moduleTitle">Finanzas</h1>
+                <p class="mb-0 text-white-50" id="moduleDescription">Planeación financiera del área de Finanzas.</p>
                 <p class="mb-0 text-white-50">Ejercicio <span class="anio text-light" id="yearLabel"></span> · <span
                     id="empresaLabel">—</span></p>
               </div>
@@ -177,6 +178,67 @@
         <div class="toast-body" id="actionToastBody">Acción realizada correctamente.</div>
         <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
           aria-label="Cerrar"></button>
+      </div>
+    </div>
+
+    <div class="row mb-3">
+      <div class="col-12">
+        <div class="search-container">
+          <input type="text" id="accountSearch" class="search-input" placeholder="Buscar cuenta o descripción..." />
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-4 align-items-start">
+      <div class="col-12">
+        <div class="table-card fade-in">
+          <div id="presupuestoStatus" class="alert alert-info visually-hidden" role="status"></div>
+          <div class="table-responsive">
+            <table class="table align-middle mb-0 table-budget" id="tablaPresupuestos">
+              <thead>
+                <tr>
+                  <th scope="col" class="text-start account-column-header">Cuenta</th>
+                  <th scope="col" class="text-start">Descripción</th>
+                  <th scope="col" class="text-end month-header">Ene</th>
+                  <th scope="col" class="text-end month-header">Feb</th>
+                  <th scope="col" class="text-end month-header">Mar</th>
+                  <th scope="col" class="text-end month-header">Abr</th>
+                  <th scope="col" class="text-end month-header">May</th>
+                  <th scope="col" class="text-end month-header">Jun</th>
+                  <th scope="col" class="text-end month-header">Jul</th>
+                  <th scope="col" class="text-end month-header">Ago</th>
+                  <th scope="col" class="text-end month-header">Sep</th>
+                  <th scope="col" class="text-end month-header">Oct</th>
+                  <th scope="col" class="text-end month-header">Nov</th>
+                  <th scope="col" class="text-end month-header">Dic</th>
+                  <th scope="col" class="text-end year-header">Anual <span class="anio" id="yearColumn"></span></th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="offcanvas offcanvas-end workflow-drawer" tabindex="-1" id="workflowDrawer"
+    aria-labelledby="workflowDrawerLabel">
+    <div class="offcanvas-header">
+      <h5 class="offcanvas-title" id="workflowDrawerLabel">Flujo de autorización</h5>
+      <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
+    </div>
+    <div class="offcanvas-body">
+      <ul class="list-group list-group-flush" id="workflowHistory"></ul>
+    </div>
+  </div>
+
+  <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1080;">
+    <div id="actionToast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive"
+      aria-atomic="true">
+      <div class="d-flex">
+        <div class="toast-body" id="actionToastBody">Acción realizada correctamente.</div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Cerrar"></button>
       </div>
     </div>
 

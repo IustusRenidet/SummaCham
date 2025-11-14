@@ -65,9 +65,13 @@
 
   const obtenerConfigDesdeDataset = () => {
     const dataset = document.body?.dataset || {};
+    const modulo = dataset.modulo || 'Presupuestos';
+    const alias = dataset.moduloAlias || modulo || 'Presupuestos';
+    const descripcion = dataset.moduloDescripcion || '';
     return {
-      modulo: dataset.modulo || 'Presupuestos',
-      titulo: dataset.moduloAlias || dataset.modulo || 'Presupuestos'
+      modulo,
+      titulo: alias,
+      descripcion: descripcion || `Planeación financiera del área de ${alias}.`
     };
   };
 
@@ -112,13 +116,17 @@
       empresaLabel: document.getElementById('empresaLabel'),
       workflowBadge: document.getElementById('workflowBadge'),
       workflowMeta: document.getElementById('workflowMeta'),
-      workflowHistory: document.getElementById('workflowHistory')
+      workflowHistory: document.getElementById('workflowHistory'),
+      moduleTitle: document.getElementById('moduleTitle'),
+      moduleDescription: document.getElementById('moduleDescription')
     };
 
     const toastInstance = window.bootstrap?.Toast.getOrCreateInstance(elementos.toastElement, { delay: 3000 });
 
     if (elementos.yearLabel) elementos.yearLabel.textContent = anio;
     if (elementos.yearColumn) elementos.yearColumn.textContent = anio;
+    if (elementos.moduleTitle) elementos.moduleTitle.textContent = opciones.titulo;
+    if (elementos.moduleDescription) elementos.moduleDescription.textContent = opciones.descripcion;
 
     const estado = {
       cuentas: [],
