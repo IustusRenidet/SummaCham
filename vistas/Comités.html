@@ -1,22 +1,22 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Comités - Presupuestos</title>
+  <title>Comités</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-  <link rel="stylesheet" href="css/estilos.css" />
   <style>
     :root {
       --color-primary: #2f5496;
       --color-secondary: #8497b0;
       --color-background: #f2f2f2;
       --color-text: #2f5496;
+      --color-budget: #4472c4;
+      --color-real: #ffc000;
     }
 
     body {
@@ -41,65 +41,140 @@
       overflow: hidden;
     }
 
-    .section-header-row {
-      background-color: rgba(132, 151, 176, 0.2);
+    .table-comparison {
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 0.85rem;
+    }
+
+    .table-comparison thead th {
+      border: 1px solid #d0d7de;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+      padding: 0.75rem 0.5rem;
+      vertical-align: middle;
+      text-align: center;
+    }
+
+    /* Columnas fijas de cuenta y descripción */
+    .table-comparison thead th:nth-child(1),
+    .table-comparison thead th:nth-child(2) {
+      background-color: var(--color-primary);
+      color: #ffffff;
+      position: sticky;
+      z-index: 10;
+    }
+
+    .table-comparison thead th:nth-child(1) {
+      left: 0;
+      text-align: left;
+      min-width: 120px;
+    }
+
+    .table-comparison thead th:nth-child(2) {
+      left: 120px;
+      text-align: left;
+      min-width: 200px;
+    }
+
+    /* Columnas de meses - presupuesto (azul) */
+    .table-comparison thead th.month-budget {
+      background-color: var(--color-budget);
+      color: #ffffff;
+    }
+
+    /* Columnas de meses - real (amarillo) */
+    .table-comparison thead th.month-real {
+      background-color: var(--color-real);
+      color: #000000;
+    }
+
+    /* Columna del año (2026) */
+    .table-comparison thead th.year-column {
+      background-color: #ffffff;
+      color: var(--color-text);
       font-weight: 700;
     }
 
+    .table-comparison tbody td {
+      border: 1px solid #e1e4e8;
+      padding: 0.6rem 0.5rem;
+      vertical-align: middle;
+    }
+
+    .table-comparison tbody td:nth-child(1) {
+      text-align: left;
+      font-family: 'Courier New', monospace;
+      font-size: 0.8rem;
+      background-color: #f6f8fa;
+      position: sticky;
+      left: 0;
+      z-index: 5;
+      white-space: nowrap;
+      color: #57606a;
+    }
+
+    .table-comparison tbody td:nth-child(2) {
+      text-align: left;
+      font-weight: 500;
+      background-color: #f6f8fa;
+      position: sticky;
+      left: 120px;
+      z-index: 5;
+    }
+
+    .table-comparison tbody td.budget-value {
+      text-align: right;
+      font-family: 'Courier New', monospace;
+      font-size: 0.85rem;
+    }
+
+    /* Filas de sección (Ingresos Comités, Gastos Comités, etc.) */
     .section-header-row td {
-      color: #2f5496;
+      background-color: rgba(132, 151, 176, 0.2);
+      font-weight: 700;
+      color: var(--color-primary);
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      font-size: 0.85rem;
-      padding-top: 0.75rem;
-      padding-bottom: 0.75rem;
+      font-size: 0.8rem;
+      padding: 0.75rem 0.5rem;
     }
 
-    .budget-value {
-      text-align: right;
-      font-weight: 500;
+    /* Filas de suma */
+    .sum-row td {
+      background-color: rgba(68, 114, 196, 0.1);
+      font-weight: 700;
+      color: var(--color-primary);
     }
 
-    .search-container {
-      position: relative;
-    }
-
-    .search-input {
-      width: 100%;
-      padding: 0.5rem 1rem;
-      border: 1px solid #d9d9d9;
-      border-radius: 8px;
+    /* Resultado final */
+    .result-row td {
+      background-color: var(--color-primary);
+      color: #ffffff;
+      font-weight: 700;
       font-size: 0.9rem;
     }
 
-    .search-input:focus {
-      border-color: var(--color-primary);
-      box-shadow: 0 0 0 0.2rem rgba(47, 84, 150, 0.1);
+    .table-comparison tbody tr:hover td {
+      background-color: rgba(47, 84, 150, 0.05);
     }
 
-    .account-column {
-      text-align: left;
-      font-family: 'Courier New', monospace;
-      font-size: 0.85rem;
-      white-space: nowrap;
+    .anio {
+      font-weight: 700;
+      color: var(--color-primary);
+      font-variant-numeric: tabular-nums;
     }
 
-    .account-column-header {
-      text-align: left;
-      white-space: nowrap;
-    }
-
-    .workflow-toolbar {
-      display: flex;
-      flex-direction: column;
-      gap: 0.35rem;
-    }
-
-    @media (min-width: 992px) {
-      .workflow-toolbar {
-        flex-direction: row;
-        align-items: center;
-        justify-content: space-between;
+    @media (max-width: 768px) {
+      .table-comparison {
+        font-size: 0.75rem;
+      }
+      
+      .table-comparison thead th,
+      .table-comparison tbody td {
+        padding: 0.5rem 0.3rem;
       }
     }
   </style>
@@ -114,7 +189,6 @@
             <div class="d-flex flex-column flex-lg-row align-items-center justify-content-between gap-3">
               <div>
                 <h1 class="fw-bold display-6 mb-2">Comités</h1>
-                <p class="mb-0 text-white-50">Planeación financiera del área de Comités.</p>
                 <p class="mb-0 text-white-50">Ejercicio <span class="anio text-light" id="yearLabel"></span> · <span
                     id="empresaLabel">—</span></p>
               </div>
@@ -128,6 +202,7 @@
       </div>
     </div>
 
+    
     <div class="row mb-4">
       <div class="col-12">
         <div class="card table-card fade-in">
@@ -163,7 +238,7 @@
       </div>
     </div>
 
-    <div class="row mb-3">
+     <div class="row mb-3">
       <div class="col-12">
         <div class="search-container">
           <input type="text" id="accountSearch" class="search-input" placeholder="Buscar cuenta o descripción..." />
@@ -174,29 +249,569 @@
     <div class="row g-4 align-items-start">
       <div class="col-12">
         <div class="table-card fade-in">
-          <div id="presupuestoStatus" class="alert alert-info visually-hidden" role="status"></div>
           <div class="table-responsive">
-            <table class="table align-middle mb-0 table-budget" id="tablaPresupuestos">
+            <table class="table align-middle mb-0 table-comparison" id="tablaComparacion">
               <thead>
                 <tr>
-                  <th scope="col" class="text-start account-column-header">Cuenta</th>
-                  <th scope="col" class="text-start">Descripción</th>
-                  <th scope="col" class="text-end month-header">Ene</th>
-                  <th scope="col" class="text-end month-header">Feb</th>
-                  <th scope="col" class="text-end month-header">Mar</th>
-                  <th scope="col" class="text-end month-header">Abr</th>
-                  <th scope="col" class="text-end month-header">May</th>
-                  <th scope="col" class="text-end month-header">Jun</th>
-                  <th scope="col" class="text-end month-header">Jul</th>
-                  <th scope="col" class="text-end month-header">Ago</th>
-                  <th scope="col" class="text-end month-header">Sep</th>
-                  <th scope="col" class="text-end month-header">Oct</th>
-                  <th scope="col" class="text-end month-header">Nov</th>
-                  <th scope="col" class="text-end month-header">Dic</th>
-                  <th scope="col" class="text-end year-header">Anual <span class="anio" id="yearColumn"></span></th>
+                  <th scope="col" rowspan="2" style="min-width: 120px;"></th>
+                  <th scope="col" rowspan="2" style="min-width: 200px;">COMITÉS</th>
+                  
+                  <!-- Enero -->
+                  <th scope="col" class="month-budget">ene-26</th>
+                  <th scope="col" class="month-real">ene-26</th>
+                  
+                  <!-- Febrero -->
+                  <th scope="col" class="month-budget">feb-26</th>
+                  <th scope="col" class="month-real">feb-26</th>
+                  
+                  <!-- Marzo -->
+                  <th scope="col" class="month-budget">mar-26</th>
+                  <th scope="col" class="month-real">mar-26</th>
+                  
+                  <!-- Abril -->
+                  <th scope="col" class="month-budget">abr-26</th>
+                  <th scope="col" class="month-real">abr-26</th>
+                  
+                  <!-- Mayo -->
+                  <th scope="col" class="month-budget">may-26</th>
+                  <th scope="col" class="month-real">may-26</th>
+                  
+                  <!-- Junio -->
+                  <th scope="col" class="month-budget">jun-26</th>
+                  <th scope="col" class="month-real">jun-26</th>
+                  
+                  <!-- Julio -->
+                  <th scope="col" class="month-budget">jul-26</th>
+                  <th scope="col" class="month-real">jul-26</th>
+                  
+                  <!-- Agosto -->
+                  <th scope="col" class="month-budget">ago-26</th>
+                  <th scope="col" class="month-real">ago-26</th>
+                  
+                  <!-- Septiembre -->
+                  <th scope="col" class="month-budget">sep-26</th>
+                  <th scope="col" class="month-real">sep-26</th>
+                  
+                  <!-- Octubre -->
+                  <th scope="col" class="month-budget">oct-26</th>
+                  <th scope="col" class="month-real">oct-26</th>
+                  
+                  <!-- Noviembre -->
+                  <th scope="col" class="month-budget">nov-26</th>
+                  <th scope="col" class="month-real">nov-26</th>
+                  
+                  <!-- Diciembre -->
+                  <th scope="col" class="month-budget">dic-26</th>
+                  <th scope="col" class="month-real">dic-26</th>
+                  
+                  <!-- Año -->
+                  <th scope="col" class="year-column" rowspan="2">2026</th>
                 </tr>
               </thead>
-              <tbody></tbody>
+              <tbody>
+                <!-- Sección: Ingresos Comités -->
+                <tr class="section-header-row">
+                  <td colspan="26">Ingresos Comités</td>
+                </tr>
+                
+                <tr>
+                  <td>404-017-000-00</td>
+                  <td>Agroindustria</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td>
+                </tr>
+                
+                <tr>
+                  <td>404-005-000-00</td>
+                  <td>Asuntos Fiscales</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td>
+                </tr>
+                
+                <tr>
+                  <td>404-001-000-00</td>
+                  <td>Capital Humano y Asuntos Laborales</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td>
+                </tr>
+                
+                <tr>
+                  <td>404-003-000-00</td>
+                  <td>Comercio Exterior y Logística</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td>
+                </tr>
+                
+                <tr>
+                  <td>404-013-000-00</td>
+                  <td>Innovación y TICs</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td>
+                </tr>
+                
+                <tr>
+                  <td>404-007-000-00</td>
+                  <td>Legalidad y Estado de Derecho</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td>
+                </tr>
+                
+                <tr>
+                  <td>404-016-000-00</td>
+                  <td>Salud</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td>
+                </tr>
+                
+                <tr>
+                  <td>404-004-000-00</td>
+                  <td>Seguridad</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td>
+                </tr>
+                
+                <tr>
+                  <td>404-008-000-00</td>
+                  <td>Sustentabilidad y Responsabilidad Social</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td>
+                </tr>
+                
+                <tr>
+                  <td>404-009-000-00</td>
+                  <td>Turismo</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td>
+                </tr>
+                
+                <tr>
+                  <td>404-018-000-00</td>
+                  <td>Programa de Mentoría (EWDP)</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td>
+                </tr>
+                
+                <tr class="sum-row">
+                  <td></td>
+                  <td>Suma de Ingresos Comités</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td>
+                </tr>
+                
+                <!-- Sección: Gastos Comités -->
+                <tr class="section-header-row">
+                  <td colspan="26">Gastos Comités</td>
+                </tr>
+                
+                <tr>
+                  <td>502-014-000-00</td>
+                  <td>Agroindustria</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td>
+                </tr>
+                
+                <tr>
+                  <td>502-005-000-00</td>
+                  <td>Asuntos Fiscales</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td>
+                </tr>
+                
+                <tr>
+                  <td>502-001-000-00</td>
+                  <td>Capital Humano y Asuntos Laborales</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td>
+                </tr>
+                
+                <tr>
+                  <td>502-003-000-00</td>
+                  <td>Comercio Exterior y Logística</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td>
+                </tr>
+                
+                <tr>
+                  <td>502-013-000-00</td>
+                  <td>Innovación y TICs</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td>
+                </tr>
+                
+                <tr>
+                  <td>502-007-000-00</td>
+                  <td>Legalidad y Estado de Derecho</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td>
+                </tr>
+                
+                <tr>
+                  <td>502-016-000-00</td>
+                  <td>Salud</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td>
+                </tr>
+                
+                <tr>
+                  <td>502-004-000-00</td>
+                  <td>Seguridad</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td>
+                </tr>
+                
+                <tr>
+                  <td>502-002-000-00</td>
+                  <td>Sustentabilidad y Responsabilidad Social</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td>
+                </tr>
+                
+                <tr>
+                  <td>502-009-000-00</td>
+                  <td>Turismo</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td>
+                </tr>
+                
+                <tr>
+                  <td>502-017-000-00</td>
+                  <td>Programa de Mentoría (EWDP)</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td>
+                </tr>
+                
+                <tr class="sum-row">
+                  <td></td>
+                  <td>Suma de Gastos Comités</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td>
+                </tr>
+                
+                <!-- Resultado Operativo -->
+                <tr class="section-header-row">
+                  <td colspan="26">Resultado Operativo Comités</td>
+                </tr>
+                
+                <tr class="sum-row">
+                  <td></td>
+                  <td>Resultado Operativo Comités</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td>
+                </tr>
+                
+                <!-- Comisiones EWDP -->
+                <tr>
+                  <td>504-000-000-00</td>
+                  <td>Comisiones EWDP</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td>
+                </tr>
+                
+                <!-- Resultado Final -->
+                <tr class="result-row">
+                  <td></td>
+                  <td>Resultado Comités</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td><td class="budget-value">-</td>
+                  <td class="budget-value">-</td>
+                </tr>
+              </tbody>
             </table>
           </div>
         </div>
@@ -204,33 +819,6 @@
     </div>
   </div>
 
-  <div class="offcanvas offcanvas-end workflow-drawer" tabindex="-1" id="workflowDrawer"
-    aria-labelledby="workflowDrawerLabel">
-    <div class="offcanvas-header">
-      <h5 class="offcanvas-title" id="workflowDrawerLabel">Flujo de autorización</h5>
-      <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
-    </div>
-    <div class="offcanvas-body">
-      <ul class="list-group list-group-flush" id="workflowHistory"></ul>
-    </div>
-  </div>
-
-  <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1080;">
-    <div id="actionToast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive"
-      aria-atomic="true">
-      <div class="d-flex">
-        <div class="toast-body" id="actionToastBody">Acción realizada correctamente.</div>
-        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Cerrar"></button>
-      </div>
-    </div>
-  </div>
-
-  <script src="js/sesion.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="js/presupuesto-vista.js"></script>
-  <script>
-    initVistaPresupuesto();
-  </script>
 </body>
-
 </html>
