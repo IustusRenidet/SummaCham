@@ -1,6 +1,26 @@
 (() => {
   const API_BASE = 'http://localhost:3000/api';
 
+  const crearSlug = (texto, fallback = 'modulo') => {
+    if (!texto) {
+      return fallback;
+    }
+    const base = typeof texto.normalize === 'function'
+      ? texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      : texto;
+    const slug = base.replace(/[^0-9a-zA-Z]+/g, '-').replace(/^-+|-+$/g, '').toLowerCase();
+    return slug || fallback;
+  };
+
+  const limpiarEndpoint = (segmento, fallback = 'comites') => {
+    const limpio = String(segmento || '').trim().replace(/^\/+|\/+$/g, '');
+    return limpio || fallback;
+  };
+
+  const obtenerSelectEjercicio = () => {
+    return document.querySelector('[data-role="module-year-select"]') || document.querySelector('select[id$="YearSelect"]');
+  };
+
   const formatearCuentaAspel = (numLargo) => {
     const s = (numLargo ?? '').toString().padStart(11, '0');
     const a = s.slice(0, 3);
@@ -47,11 +67,13 @@
 
   const obtenerConfigDesdeDataset = () => {
     const dataset = document.body?.dataset || {};
-    const modulo = dataset.modulo || 'Comites';
+    const modulo = dataset.modulo || 'Planeacion';
     const alias = dataset.moduloAlias || modulo;
+    const endpointAnios = dataset.endpointAnios || '';
     return {
       modulo,
-      titulo: alias
+      titulo: alias,
+      endpointAnios
     };
   };
 
@@ -158,13 +180,15 @@
     return lista[lista.length - 1];
   };
 
-  const initVistaComites = (config = {}) => {
+  const initVistaModuloPlaneacion = (config = {}) => {
     const sesion = Sesion.requerirSesion();
     if (!sesion) {
       return;
     }
 
-    const opciones = { ...obtenerConfigDesdeDataset(), ...config };
+    const opciones = { endpointAnios: 'comites', ...obtenerConfigDesdeDataset(), ...config };
+    opciones.endpointAnios = limpiarEndpoint(opciones.endpointAnios, 'comites');
+    const nombreArchivoModulo = crearSlug(opciones.titulo || opciones.modulo || 'modulo');
     const datasetAnio = Number(document.body?.dataset?.anio);
     const anioInicial = Number.isInteger(datasetAnio) ? datasetAnio : new Date().getFullYear();
 
@@ -185,7 +209,7 @@
       yearLabel: document.getElementById('yearLabel'),
       yearColumn: document.getElementById('yearColumn'),
       empresaLabel: document.getElementById('empresaLabel'),
-      yearSelect: document.getElementById('comitesYearSelect')
+      yearSelect: obtenerSelectEjercicio()
     };
 
     const toastInstance = window.bootstrap?.Toast.getOrCreateInstance(elementos.toastElement, { delay: 3000 });
@@ -278,7 +302,7 @@
       }
       try {
         const params = new URLSearchParams({ empresaId: empresa.id });
-        const respuesta = await fetch(`${API_BASE}/comites/anios?${params.toString()}`, {
+        const respuesta = await fetch(`${API_BASE}/${opciones.endpointAnios}/anios?${params.toString()}`, {
           headers: Sesion.headersAutenticacion()
         });
         if (!respuesta.ok) {
@@ -287,7 +311,7 @@
         const datos = await respuesta.json();
         estado.aniosDisponibles = asegurarAniosVigentes(datos.anios || []);
       } catch (error) {
-        console.error('Error al cargar años de Comit\u00E9s', error);
+        console.error(`Error al cargar ejercicios de ${opciones.titulo}`, error);
         showToast(error.message || 'Sin ejercicios disponibles.', 'text-bg-danger');
         estado.aniosDisponibles = asegurarAniosVigentes([]);
       }
@@ -436,7 +460,7 @@
           historial: datos.historial || []
         };
       } catch (error) {
-        console.warn('Error al obtener el workflow de Comités', error);
+        console.warn(`Error al obtener el workflow de ${opciones.titulo}`, error);
         showToast(error.message || 'No se pudo actualizar el estado del flujo.', 'text-bg-danger');
         estado.workflow = { estado: 'sin-cargar', actualizadoEn: null, actualizadoPor: '', historial: [] };
       }
@@ -482,7 +506,7 @@
         actualizarDisponibilidadAcciones();
         showToast(datos.mensaje || 'Acción registrada correctamente.');
       } catch (error) {
-        console.error('Error al ejecutar transición del workflow de Comités', error);
+        console.error(`Error al ejecutar la transición del workflow de ${opciones.titulo}`, error);
         showToast(error.message || 'No fue posible completar la acción solicitada.', 'text-bg-danger');
       }
     };
@@ -544,7 +568,7 @@
         const enlace = document.createElement('a');
         enlace.href = url;
         const anioReferencia = Number.isInteger(estado.anio) ? estado.anio : new Date().getFullYear();
-        enlace.download = `comites_${anioReferencia}.csv`;
+        enlace.download = `${nombreArchivoModulo}_${anioReferencia}.csv`;
         document.body.appendChild(enlace);
         enlace.click();
         document.body.removeChild(enlace);
@@ -576,7 +600,8 @@
     });
   };
 
-  window.initVistaComites = initVistaComites;
+  window.initVistaModuloPlaneacion = initVistaModuloPlaneacion;
+  window.initVistaComites = initVistaModuloPlaneacion;
   window.formatearCuentaAspel = formatearCuentaAspel;
   window.quitarGuiones = quitarGuiones;
   window.cuentaConGuiones = cuentaConGuiones;
