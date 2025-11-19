@@ -174,6 +174,7 @@
       </section>
 
       <div class="d-flex flex-column flex-md-row gap-3 justify-content-end mt-5">
+        <button type="button" class="btn btn-outline-secondary" id="cancelarBtn">Cancelar</button>
         <button type="submit" class="btn btn-primario">Guardar</button>
       </div>
     </form>
@@ -213,6 +214,7 @@
     const indicadorContrasena = document.getElementById('indicadorContrasena');
     const inputContrasena = document.getElementById('contrasena');
     const toggleContrasena = document.getElementById('toggleContrasena');
+    const botonCancelar = document.getElementById('cancelarBtn');
     const inputPrimerApellido = document.getElementById('primer-apellido');
     const inputSegundoApellido = document.getElementById('segundo-apellido');
     const inputNombres = document.getElementById('nombres');
@@ -517,6 +519,32 @@
       contenedorEmpresas.querySelectorAll('.modulo-card').forEach(actualizarSelectAllDeCard);
     };
 
+    const restablecerFormulario = () => {
+      if (formulario) {
+        formulario.reset();
+      }
+      modoIconetActivo = false;
+      if (switchAdminGlobal) {
+        switchAdminGlobal.checked = false;
+        switchAdminGlobal.disabled = false;
+      }
+      actualizarEstadoPermisosGenerales(false);
+      contenedorEmpresas.querySelectorAll('.activar-empresa').forEach((switchEmpresa) => {
+        switchEmpresa.checked = false;
+        switchEmpresa.disabled = false;
+        sincronizarEstadoEmpresa(switchEmpresa.dataset.empresa, false);
+      });
+      contenedorEmpresas.querySelectorAll('.permiso').forEach((checkbox) => {
+        checkbox.checked = false;
+        checkbox.disabled = false;
+      });
+      contenedorEmpresas.querySelectorAll('input.select-all').forEach((selectAll) => {
+        selectAll.checked = false;
+        selectAll.indeterminate = false;
+        selectAll.disabled = false;
+      });
+    };
+
     const evaluarModoIconet = () => {
       aplicarModoIconet(esIconetObjetivo());
     };
@@ -779,6 +807,13 @@
         mostrarAlerta(error.message || 'Ocurrió un problema al guardar la información.');
       }
     });
+
+    if (botonCancelar) {
+      botonCancelar.addEventListener('click', () => {
+        restablecerFormulario();
+        window.location.href = 'usuarios.html';
+      });
+    }
 
     document.addEventListener('DOMContentLoaded', inicializar);
   </script>
