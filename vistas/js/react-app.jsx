@@ -25,7 +25,8 @@ const MODULE_GROUPS = [
       { id: 'rh', label: 'Recursos Humanos', path: 'RH.html' },
       { id: 'vpe', label: 'VPE', path: 'VPE.html' },
       { id: 'finanzas', label: 'Finanzas', path: 'Finanzas.html' },
-      { id: 'gtos-corporativos', label: 'Gastos Corporativos', path: 'Gtos_Corporativos.html' }
+      { id: 'gtos-corporativos', label: 'Gastos Corporativos', path: 'Gtos_Corporativos.html' },
+      { id: 'direccion', label: 'Dirección', path: 'Dirección.html' }
     ]
   },
   {
