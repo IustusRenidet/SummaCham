@@ -6,6 +6,7 @@ const { EMPRESAS } = require('../config/empresas');
 const { MODULOS, construirMapaPermisos } = require('../services/permisosService');
 
 const router = express.Router();
+const ACCIONES_PERMISOS = ['Cargar y guardar', 'Revisar', 'Aprobar'];
 
 const normalizarUsuario = (valor = '') => valor.toString().trim().toUpperCase();
 
@@ -105,6 +106,46 @@ const aplicarPermisos = (usuarioId, permisos) => {
 
   transaccion();
 };
+
+const construirPermisosCompletos = (permisosActuales = {}) => {
+  const resultado = {};
+
+  const asegurarPermiso = (empresaId, modulo, accion) => {
+    if (!resultado[empresaId]) {
+      resultado[empresaId] = {};
+    }
+    if (!resultado[empresaId][modulo]) {
+      resultado[empresaId][modulo] = {};
+    }
+    resultado[empresaId][modulo][accion] = true;
+  };
+
+  EMPRESAS.forEach((empresa) => {
+    MODULOS.forEach((modulo) => {
+      ACCIONES_PERMISOS.forEach((accion) => asegurarPermiso(empresa.id, modulo, accion));
+    });
+  });
+
+  Object.entries(permisosActuales || {}).forEach(([empresaId, modulos]) => {
+    Object.entries(modulos || {}).forEach(([modulo, acciones]) => {
+      Object.keys(acciones || {}).forEach((accion) => asegurarPermiso(empresaId, modulo, accion));
+    });
+  });
+
+  return resultado;
+};
+
+const forzarPermisosIconet = (datos = {}) => ({
+  ...datos,
+  usuario: 'ICONET',
+  esAdminGlobal: true,
+  permisosGenerales: {
+    puedeAgregar: true,
+    puedeModificar: true,
+    puedeEliminar: true
+  },
+  permisos: construirPermisosCompletos(datos.permisos)
+});
 
 const cargarUsuarioActual = (req, res, next) => {
   const usuarioEncabezado = normalizarUsuario(req.headers['x-usuario-actual']);
@@ -231,29 +272,36 @@ router.post('/', asegurarPermisoGeneral('puedeAgregar'), (req, res) => {
     });
   }
 
-  const usuarioNormalizado = normalizarUsuario(value.usuario);
+  let payload = { ...value };
+  let usuarioNormalizado = normalizarUsuario(payload.usuario);
+  const esIconetDestino = usuarioNormalizado === 'ICONET';
+  if (esIconetDestino) {
+    payload = forzarPermisosIconet(payload);
+    usuarioNormalizado = 'ICONET';
+  }
+
   const existente = db.prepare('SELECT id FROM usuarios WHERE usuario = ?').get(usuarioNormalizado);
   if (existente) {
     return res.status(409).json({ mensaje: 'El usuario ya existe.' });
   }
 
-  const totalPermisos = Object.values(value.permisos || {}).reduce((acum, modulos) => {
+  const totalPermisos = Object.values(payload.permisos || {}).reduce((acum, modulos) => {
     return acum + Object.values(modulos || {}).length;
   }, 0);
 
-  if (!value.esAdminGlobal && totalPermisos === 0) {
+  if (!payload.esAdminGlobal && totalPermisos === 0) {
     return res.status(400).json({ mensaje: 'Debes asignar al menos un permiso por empresa.' });
   }
 
-  const hash = bcrypt.hashSync(value.contrasena, 12);
-  const apellidosCompletos = [value.apellidoPrimero, value.apellidoSegundo].filter(Boolean).join(' ');
+  const hash = bcrypt.hashSync(payload.contrasena, 12);
+  const apellidosCompletos = [payload.apellidoPrimero, payload.apellidoSegundo].filter(Boolean).join(' ');
 
-  const permisosGenerales = value.esAdminGlobal
+  const permisosGenerales = payload.esAdminGlobal
     ? { puedeAgregar: 1, puedeModificar: 1, puedeEliminar: 1 }
     : {
-        puedeAgregar: value.permisosGenerales?.puedeAgregar ? 1 : 0,
-        puedeModificar: value.permisosGenerales?.puedeModificar ? 1 : 0,
-        puedeEliminar: value.permisosGenerales?.puedeEliminar ? 1 : 0
+        puedeAgregar: payload.permisosGenerales?.puedeAgregar ? 1 : 0,
+        puedeModificar: payload.permisosGenerales?.puedeModificar ? 1 : 0,
+        puedeEliminar: payload.permisosGenerales?.puedeEliminar ? 1 : 0
       };
 
   const insertar = db.prepare(`
@@ -266,19 +314,19 @@ router.post('/', asegurarPermisoGeneral('puedeAgregar'), (req, res) => {
 
   const resultado = insertar.run(
     usuarioNormalizado,
-    value.nombres,
-    value.apellidoPrimero,
-    value.apellidoSegundo,
+    payload.nombres,
+    payload.apellidoPrimero,
+    payload.apellidoSegundo,
     apellidosCompletos,
-    value.correo,
+    payload.correo,
     hash,
-    value.esAdminGlobal ? 1 : 0,
+    payload.esAdminGlobal ? 1 : 0,
     permisosGenerales.puedeAgregar,
     permisosGenerales.puedeModificar,
     permisosGenerales.puedeEliminar
   );
 
-  aplicarPermisos(resultado.lastInsertRowid, value.permisos);
+  aplicarPermisos(resultado.lastInsertRowid, payload.permisos);
 
   res.status(201).json({ mensaje: 'Usuario creado correctamente.' });
 });
@@ -298,17 +346,33 @@ router.put('/:id', asegurarPermisoGeneral('puedeModificar'), (req, res) => {
     return res.status(404).json({ mensaje: 'Usuario no encontrado.' });
   }
 
-  // Solo impedir quitar el rol de admin global al usuario ICONET.
   const esIconet = (existente.usuario || '').toString().trim().toUpperCase() === 'ICONET';
+  if (esIconet && req.usuarioActual?.id !== usuarioId) {
+    return res.status(403).json({ mensaje: 'El usuario ICONET solo puede modificarse a si mismo.' });
+  }
+
+  // Solo impedir quitar el rol de admin global al usuario ICONET.
   if (esIconet && existente.es_admin_global && !value.esAdminGlobal) {
     return res.status(400).json({ mensaje: 'No es posible retirar el rol de administrador global del usuario ICONET.' });
   }
 
-  const totalPermisos = Object.values(value.permisos || {}).reduce((acum, modulos) => {
+  let payload = { ...value };
+  if (esIconet) {
+    payload.usuario = 'ICONET';
+  }
+
+  let usuarioNormalizado = normalizarUsuario(payload.usuario);
+  const esIconetDestino = usuarioNormalizado === 'ICONET';
+  if (esIconet || esIconetDestino) {
+    payload = forzarPermisosIconet(payload);
+    usuarioNormalizado = 'ICONET';
+  }
+
+  const totalPermisos = Object.values(payload.permisos || {}).reduce((acum, modulos) => {
     return acum + Object.values(modulos || {}).length;
   }, 0);
 
-  if (!value.esAdminGlobal && totalPermisos === 0) {
+  if (!payload.esAdminGlobal && totalPermisos === 0) {
     return res.status(400).json({ mensaje: 'Debes asignar al menos un permiso por empresa.' });
   }
 
@@ -319,45 +383,49 @@ router.put('/:id', asegurarPermisoGeneral('puedeModificar'), (req, res) => {
     WHERE id = ?
   `);
 
-  const permisosGenerales = value.esAdminGlobal
+  const permisosGenerales = payload.esAdminGlobal
     ? { puedeAgregar: 1, puedeModificar: 1, puedeEliminar: 1 }
     : {
-        puedeAgregar: value.permisosGenerales?.puedeAgregar ? 1 : 0,
-        puedeModificar: value.permisosGenerales?.puedeModificar ? 1 : 0,
-        puedeEliminar: value.permisosGenerales?.puedeEliminar ? 1 : 0
+        puedeAgregar: payload.permisosGenerales?.puedeAgregar ? 1 : 0,
+        puedeModificar: payload.permisosGenerales?.puedeModificar ? 1 : 0,
+        puedeEliminar: payload.permisosGenerales?.puedeEliminar ? 1 : 0
       };
 
-  const apellidosCompletos = [value.apellidoPrimero, value.apellidoSegundo].filter(Boolean).join(' ');
+  const apellidosCompletos = [payload.apellidoPrimero, payload.apellidoSegundo].filter(Boolean).join(' ');
 
   actualizar.run(
-    normalizarUsuario(value.usuario),
-    value.nombres,
-    value.apellidoPrimero,
-    value.apellidoSegundo,
+    usuarioNormalizado,
+    payload.nombres,
+    payload.apellidoPrimero,
+    payload.apellidoSegundo,
     apellidosCompletos,
-    value.correo,
-    value.esAdminGlobal ? 1 : 0,
+    payload.correo,
+    payload.esAdminGlobal ? 1 : 0,
     permisosGenerales.puedeAgregar,
     permisosGenerales.puedeModificar,
     permisosGenerales.puedeEliminar,
     usuarioId
   );
 
-  if (value.contrasena) {
-    const hash = bcrypt.hashSync(value.contrasena, 12);
+  if (payload.contrasena) {
+    const hash = bcrypt.hashSync(payload.contrasena, 12);
     db.prepare('UPDATE usuarios SET contrasena = ? WHERE id = ?').run(hash, usuarioId);
   }
 
-  aplicarPermisos(usuarioId, value.permisos);
+  aplicarPermisos(usuarioId, payload.permisos);
 
   res.json({ mensaje: 'Usuario actualizado correctamente.' });
 });
 
 router.delete('/:id', asegurarPermisoGeneral('puedeEliminar'), (req, res) => {
   const usuarioId = Number(req.params.id);
-  const existente = db.prepare('SELECT es_admin_global FROM usuarios WHERE id = ?').get(usuarioId);
+  const existente = db.prepare('SELECT usuario, es_admin_global FROM usuarios WHERE id = ?').get(usuarioId);
   if (!existente) {
     return res.status(404).json({ mensaje: 'Usuario no encontrado.' });
+  }
+
+  if (normalizarUsuario(existente.usuario) === 'ICONET') {
+    return res.status(400).json({ mensaje: 'No es posible eliminar al usuario ICONET.' });
   }
 
   if (existente.es_admin_global) {

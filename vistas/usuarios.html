@@ -198,6 +198,8 @@
     const puedeAgregar = Boolean(permisosGenerales.puedeAgregar);
     const puedeModificar = Boolean(permisosGenerales.puedeModificar);
     const puedeEliminar = Boolean(permisosGenerales.puedeEliminar);
+    const usuarioSesion = (sesion.usuario?.usuario || '').toString().trim().toUpperCase();
+    const esSesionIconet = usuarioSesion === 'ICONET';
 
     let usuarios = [];
 
@@ -264,7 +266,8 @@
 
       filtrados.forEach((usuario) => {
         const fila = document.createElement('tr');
-        const puedeEditarFila = puedeModificar;
+        const esFilaIconet = (usuario.usuario || '').toString().trim().toUpperCase() === 'ICONET';
+        const puedeEditarFila = puedeModificar && (!esFilaIconet || esSesionIconet);
         const puedeEliminarFila = puedeEliminar && !usuario.esAdminGlobal;
 
         const nombreCompleto = [usuario.nombres, usuario.apellidoPrimero, usuario.apellidoSegundo]
