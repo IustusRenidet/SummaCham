@@ -3,6 +3,7 @@ const MODULOS = [
   'Membresía',
   'Eventos',
   'Comunicación',
+  'Dirección',
   'Serv Membresía',
   'Comités',
   'T&IC',
