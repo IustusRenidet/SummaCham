@@ -233,6 +233,9 @@
     const permisosGeneralesSesion = sesion.usuario?.permisosGenerales || {};
     const puedeAgregar = Boolean(permisosGeneralesSesion.puedeAgregar);
     const puedeModificar = Boolean(permisosGeneralesSesion.puedeModificar);
+    let modoIconetActivo = false;
+    let empresasDisponibles = [];
+    const esIconetObjetivo = () => normalizarUsuarioEntrada(inputUsuario.value) === 'ICONET';
 
     if (toggleContrasena) {
       toggleContrasena.addEventListener('click', () => {
@@ -265,6 +268,7 @@
         }
       });
     };
+
 
     const mostrarToast = (mensaje, tipo = 'success') => {
       const toastEl = document.getElementById('toastUsuario');
@@ -429,6 +433,11 @@
     };
 
     contenedorEmpresas.addEventListener('change', (e) => {
+      if (modoIconetActivo && (e.target.classList.contains('permiso') || e.target.classList.contains('select-all'))) {
+        e.preventDefault();
+        e.target.checked = true;
+        return;
+      }
       const card = e.target.closest('.modulo-card');
       if (!card) return;
       if (e.target.classList.contains('select-all')) {
@@ -439,6 +448,83 @@
         actualizarSelectAllDeCard(card);
       }
     });
+
+    const construirPermisosIconetPayload = (permisosActuales = {}) => {
+      const resultado = {};
+      const empresas = (Array.isArray(empresasDisponibles) && empresasDisponibles.length > 0)
+        ? empresasDisponibles
+        : (Sesion.obtenerEmpresasDisponibles(sesion) || []);
+
+      const asegurar = (empresaId, modulo, accion) => {
+        if (!empresaId) return;
+        if (!resultado[empresaId]) resultado[empresaId] = {};
+        if (!resultado[empresaId][modulo]) resultado[empresaId][modulo] = {};
+        resultado[empresaId][modulo][accion] = true;
+      };
+
+      empresas.forEach((empresa) => {
+        const empresaId = empresa?.id != null ? String(empresa.id) : '';
+        if (!empresaId) return;
+        MODULOS.forEach((modulo) => {
+          ACCIONES.forEach((accion) => asegurar(empresaId, modulo, accion));
+        });
+      });
+
+      Object.entries(permisosActuales || {}).forEach(([empresaId, modulos]) => {
+        Object.entries(modulos || {}).forEach(([modulo, acciones]) => {
+          Object.keys(acciones || {}).forEach((accion) => asegurar(empresaId, modulo, accion));
+        });
+      });
+
+      return resultado;
+    };
+
+    const aplicarModoIconet = (activo) => {
+      modoIconetActivo = activo;
+      if (switchAdminGlobal) {
+        if (activo && !switchAdminGlobal.checked) {
+          switchAdminGlobal.checked = true;
+          switchAdminGlobal.dispatchEvent(new Event('change'));
+        }
+        switchAdminGlobal.disabled = activo;
+      }
+
+      actualizarEstadoPermisosGenerales(activo ? true : switchAdminGlobal.checked);
+
+      contenedorEmpresas.querySelectorAll('.activar-empresa').forEach((switchEmpresa) => {
+        if (activo) {
+          switchEmpresa.checked = true;
+        }
+        switchEmpresa.disabled = activo;
+        sincronizarEstadoEmpresa(switchEmpresa.dataset.empresa, activo ? true : switchEmpresa.checked);
+      });
+
+      contenedorEmpresas.querySelectorAll('.permiso').forEach((checkbox) => {
+        if (activo) {
+          checkbox.checked = true;
+        }
+        checkbox.disabled = activo;
+      });
+
+      contenedorEmpresas.querySelectorAll('input.select-all').forEach((selectAll) => {
+        if (activo) {
+          selectAll.checked = true;
+          selectAll.indeterminate = false;
+        }
+        selectAll.disabled = activo;
+      });
+
+      contenedorEmpresas.querySelectorAll('.modulo-card').forEach(actualizarSelectAllDeCard);
+    };
+
+    const evaluarModoIconet = () => {
+      aplicarModoIconet(esIconetObjetivo());
+    };
+
+    if (inputUsuario) {
+      inputUsuario.addEventListener('input', evaluarModoIconet);
+      inputUsuario.addEventListener('blur', evaluarModoIconet);
+    }
 
     const recopilarDatos = (esEdicion) => {
       const esAdmin = switchAdminGlobal.checked;
@@ -473,6 +559,12 @@
         base.permisosGenerales = { puedeAgregar: true, puedeModificar: true, puedeEliminar: true };
       }
 
+      if (normalizarUsuarioEntrada(base.usuario) === 'ICONET') {
+        base.esAdminGlobal = true;
+        base.permisosGenerales = { puedeAgregar: true, puedeModificar: true, puedeEliminar: true };
+        base.permisos = construirPermisosIconetPayload(base.permisos);
+      }
+
       return base;
     };
 
@@ -489,10 +581,17 @@
       construirSeccionEmpresas(empresas);
       contenedorEmpresas.querySelectorAll('.activar-empresa').forEach((switchEmpresa) => {
         switchEmpresa.addEventListener('change', (evento) => {
+          if (modoIconetActivo) {
+            evento.preventDefault();
+            evento.target.checked = true;
+            return;
+          }
           sincronizarEstadoEmpresa(evento.target.dataset.empresa, evento.target.checked);
         });
         // No activar por defecto; el estado inicial queda en falso
       });
+      empresasDisponibles = Array.isArray(empresas) ? empresas : [];
+      evaluarModoIconet();
       return empresas;
     };
 
@@ -542,6 +641,7 @@
           checkPermModificar.checked = Boolean(usr.permisosGenerales?.puedeModificar);
           checkPermEliminar.checked = Boolean(usr.permisosGenerales?.puedeEliminar);
           actualizarEstadoPermisosGenerales(usr.esAdminGlobal);
+          evaluarModoIconet();
         } catch (_) {
           // Si falla aquí, el bloque principal volverá a intentar
         }
@@ -565,17 +665,24 @@
           checkPermEliminar.checked = Boolean(usuario.permisosGenerales?.puedeEliminar);
           actualizarEstadoPermisosGenerales(usuario.esAdminGlobal);
           aplicarPermisosAlFormulario(usuario.permisosPorEmpresa);
+          evaluarModoIconet();
         } else {
           contrasenaOriginal = '';
           inputContrasena.value = '';
           empresas.forEach((empresa) => sincronizarEstadoEmpresa(empresa.id, false));
           actualizarEstadoPermisosGenerales(false);
+          evaluarModoIconet();
         }
       } catch (error) {
         mostrarAlerta(error.message || 'Ocurrió un problema al iniciar el formulario.');
       }
 
   switchAdminGlobal.addEventListener('change', (evento) => {
+    if (modoIconetActivo && !evento.target.checked) {
+      evento.preventDefault();
+      evento.target.checked = true;
+      return;
+    }
     const esAdmin = evento.target.checked;
     actualizarEstadoPermisosGenerales(esAdmin);
     contenedorEmpresas.querySelectorAll('.activar-empresa').forEach((switchEmpresa) => {
