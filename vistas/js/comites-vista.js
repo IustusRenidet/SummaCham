@@ -1,6 +1,30 @@
 (() => {
   const API_BASE = 'http://localhost:3000/api';
 
+  const formatearCuentaAspel = (numLargo) => {
+    const s = (numLargo ?? '').toString().padStart(11, '0');
+    const a = s.slice(0, 3);
+    const b = s.slice(3, 6);
+    const c = s.slice(6, 9);
+    const d = s.slice(9, 11);
+    return `${a}-${b}-${c}-${d}`;
+  };
+
+  const quitarGuiones = (cuenta) => {
+    return (cuenta || '').replace(/-/g, '') + '0000000002';
+  };
+
+  const cuentaConGuiones = (numLargo) => {
+    const s = String(numLargo || '').padStart(21, '0');
+    const visible = s.slice(0, 11);
+    return `${visible.slice(0, 3)}-${visible.slice(3, 6)}-${visible.slice(6, 9)}-${visible.slice(9, 11)}`;
+  };
+
+  const cuentaLarga = (cuentaLegible) => {
+    const base = (cuentaLegible || '').replace(/-/g, '');
+    return base.padEnd(20, '0') + '2';
+  };
+
   const WORKFLOW_ETIQUETAS = {
     'sin-cargar': { texto: 'Sin cargar', descripcion: 'Esperando información.' },
     borrador: { texto: 'Cargado', descripcion: 'Pendiente de revisión.' },
@@ -107,6 +131,7 @@
       authorizeBudgetBtn: document.getElementById('authorizeBudgetBtn'),
       saveBudgetBtn: document.getElementById('saveBudgetBtn'),
       budgetFileInput: document.getElementById('budgetFileInput'),
+      toggleAccountsBtn: document.getElementById('toggleAccountsBtn'),
       workflowBadge: document.getElementById('workflowBadge'),
       workflowMeta: document.getElementById('workflowMeta'),
       workflowHistory: document.getElementById('workflowHistory'),
@@ -122,6 +147,7 @@
     const estado = {
       filtro: '',
       filas: [],
+      mostrarCuentas: true,
       workflow: {
         estado: 'sin-cargar',
         actualizadoEn: null,
@@ -163,6 +189,17 @@
         const visible = !termino || texto.includes(termino);
         fila.classList.toggle('d-none', !visible);
       });
+    };
+
+    const aplicarVisibilidadCuentas = () => {
+      if (!elementos.tabla) {
+        return;
+      }
+      elementos.tabla.classList.toggle('sin-cuentas', !estado.mostrarCuentas);
+      if (elementos.toggleAccountsBtn) {
+        elementos.toggleAccountsBtn.textContent = estado.mostrarCuentas ? 'Ocultar cuentas' : 'Mostrar cuentas';
+        elementos.toggleAccountsBtn.setAttribute('aria-pressed', estado.mostrarCuentas ? 'true' : 'false');
+      }
     };
 
     const actualizarBadgeWorkflow = () => {
@@ -331,6 +368,13 @@
       elementos.authorizeBudgetBtn.addEventListener('click', () => ejecutarAccionWorkflow('autorizar'));
     }
 
+    if (elementos.toggleAccountsBtn) {
+      elementos.toggleAccountsBtn.addEventListener('click', () => {
+        estado.mostrarCuentas = !estado.mostrarCuentas;
+        aplicarVisibilidadCuentas();
+      });
+    }
+
     if (elementos.saveBudgetBtn) {
       elementos.saveBudgetBtn.addEventListener('click', () => {
         const csv = convertirTablaACsv(elementos.tabla);
@@ -356,6 +400,7 @@
       actualizarEncabezadoEmpresa();
       estado.filas = prepararFilasBusqueda(elementos.tabla);
       filtrarFilas();
+      aplicarVisibilidadCuentas();
       obtenerWorkflow();
     };
 
@@ -372,5 +417,8 @@
   };
 
   window.initVistaComites = initVistaComites;
+  window.formatearCuentaAspel = formatearCuentaAspel;
+  window.quitarGuiones = quitarGuiones;
+  window.cuentaConGuiones = cuentaConGuiones;
+  window.cuentaLarga = cuentaLarga;
 })();
-
