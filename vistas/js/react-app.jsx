@@ -517,7 +517,7 @@ const DashboardLayout = ({
                 {empresasDisponibles.length === 0 && <option value="">Sin empresas disponibles</option>}
                 {empresasDisponibles.map((empresa) => (
                   <option key={empresa.id} value={empresa.id}>
-                    {empresa.etiqueta ? `${empresa.etiqueta} — ${empresa.nombre}` : empresa.nombre}
+                    {empresa.etiqueta || empresa.nombre || 'Selecciona una empresa'}
                   </option>
                 ))}
               </select>

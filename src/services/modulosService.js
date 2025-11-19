@@ -3,7 +3,7 @@ const { MODULOS } = require('../config/modulos');
 const CIUDADES_BASE = [
   { id: 'CDMX', etiqueta: 'Ciudad de México' },
   { id: 'GDL', etiqueta: 'Guadalajara' },
-  { id: 'MTY', etiqueta: 'Monterrey' },
+  { id: 'MTY', etiqueta: 'Noreste' },
   { id: 'NO', etiqueta: 'Noroeste' }
 ];
 

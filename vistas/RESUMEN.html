@@ -111,11 +111,12 @@
             <div class="mt-3 mt-lg-0 d-flex align-items-center selector-wrapper">
               <label for="citySelect" class="me-2 fw-semibold">Ciudad:</label>
               <select id="citySelect" class="form-select form-select-sm w-auto">
-                <option value="GDL" selected>GDL — Guadalajara</option>
-                <option value="CDMX">CDMX — Ciudad de México</option>
-                <option value="MTY">MTY — Monterrey</option>
+                <option value="GDL" selected>Guadalajara</option>
+                <option value="CDMX">Ciudad de México</option>
+                <option value="MTY">Noreste</option>
+                <option value="NO">Noroeste</option>
               </select>
-              <span class="city-pill ms-2" id="cityPill">GDL</span>
+              <span class="city-pill ms-2" id="cityPill">Guadalajara</span>
             </div>
           </div>
         </div>
@@ -221,17 +222,18 @@
     const construirOpcionCiudad = (ciudad) => {
       const opcion = document.createElement('option');
       opcion.value = ciudad.id;
-      opcion.textContent = `${ciudad.id} — ${ciudad.etiqueta || ciudad.nombre || ciudad.id}`;
+      opcion.textContent = ciudad.etiqueta || ciudad.nombre || ciudad.id;
       return opcion;
     };
 
     const actualizarEncabezado = () => {
       const ciudadSeleccionada = estadoModulo.datos.ciudades.find((ciudad) => ciudad.id === estadoModulo.ciudadActual);
-      const etiqueta = ciudadSeleccionada?.etiqueta || ciudadSeleccionada?.nombre || estadoModulo.ciudadActual || 'Sin datos';
+      const etiqueta = ciudadSeleccionada?.etiqueta || ciudadSeleccionada?.nombre || '';
+      const etiquetaVisible = etiqueta || 'Sin datos';
       chapterTitle.textContent = 'Resumen';
-      chapterSubtitle.textContent = estadoModulo.ciudadActual ? `Capítulo ${etiqueta}` : 'Sin información disponible';
-      cityPill.textContent = estadoModulo.ciudadActual || '—';
-      document.title = `Resumen${estadoModulo.ciudadActual ? ` – ${etiqueta}` : ''}`;
+      chapterSubtitle.textContent = etiqueta ? `Capítulo ${etiqueta}` : 'Sin información disponible';
+      cityPill.textContent = etiquetaVisible;
+      document.title = etiqueta ? `Resumen - ${etiqueta}` : 'Resumen';
     };
 
     const renderizarTabla = () => {
@@ -313,7 +315,7 @@
                 const contenido = valor != null ? `${valor}%` : '—';
                 return `
                   <div class="d-flex justify-content-between mb-1 pct-item" data-city="${ciudad.id}" data-year="${anio}">
-                    <span class="fw-semibold">${ciudad.id}</span>
+                    <span class="fw-semibold">${ciudad.etiqueta || ciudad.nombre || ciudad.id}</span>
                     <strong>${contenido}</strong>
                   </div>
                 `;

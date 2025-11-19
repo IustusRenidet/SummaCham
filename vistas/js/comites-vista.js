@@ -172,7 +172,8 @@
 
     const actualizarEncabezadoEmpresa = () => {
       const empresa = Sesion.obtenerEmpresaActiva(sesion);
-      actualizarTexto(elementos.empresaLabel, empresa?.nombre || '—');
+      const etiqueta = empresa?.etiqueta || empresa?.nombre || '-';
+      actualizarTexto(elementos.empresaLabel, etiqueta);
     };
 
     const filtrarFilas = () => {

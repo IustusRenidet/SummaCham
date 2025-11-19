@@ -41,10 +41,10 @@ function rutaFallback(empresaNumero) {
 
 // Catálogo centralizado de empresas y sus respectivas bases de datos Firebird
 const EMPRESAS_META = [
-  { id: 'empresa1', nombre: 'Empresa 1', etiqueta: 'CDMX', numero: 1 },
-  { id: 'empresa2', nombre: 'Empresa 2', etiqueta: 'GDL', numero: 2 },
-  { id: 'empresa3', nombre: 'Empresa 3', etiqueta: 'MTY', numero: 3 },
-  { id: 'empresa4', nombre: 'Empresa 4', etiqueta: 'Noroeste', numero: 4 }
+  { id: 'empresa1', nombre: 'Ciudad de México', etiqueta: 'Ciudad de México', numero: 1 },
+  { id: 'empresa2', nombre: 'Guadalajara', etiqueta: 'Guadalajara', numero: 2 },
+  { id: 'empresa3', nombre: 'Noreste', etiqueta: 'Noreste', numero: 3 },
+  { id: 'empresa4', nombre: 'Noroeste', etiqueta: 'Noroeste', numero: 4 }
 ];
 
 // Determinar rutas dinámicamente por empresa: elegir la carpeta COI de mayor versión que tenga el .FDB
