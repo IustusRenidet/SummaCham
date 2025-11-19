@@ -16,17 +16,18 @@ const MODULE_GROUPS = [
     label: 'Divisiones',
     items: [
       { id: 'resumen', label: 'Resumen', path: 'RESUMEN.html', badge: 'ppto', permiso: 'RESUMEN' },
-      { id: 'membresia', label: 'Membresía', path: 'Membresía.html' },
-      { id: 'eventos', label: 'Eventos', path: 'Eventos.html' },
-      { id: 'comunicacion', label: 'Comunicación', path: 'Comunicación.html' },
-      { id: 'serv-membresia', label: 'Servicios a la Membresía', path: 'Serv_Membresía.html' },
+      {label:'—————————————', id:'separador-1'},
       { id: 'comites', label: 'Comités', path: 'Comités.html' },
-      { id: 'tic', label: 'T&IC', path: 'T&IC.html' },
-      { id: 'rh', label: 'Recursos Humanos', path: 'RH.html' },
-      { id: 'vpe', label: 'VPE', path: 'VPE.html' },
+      { id: 'comunicacion', label: 'Comunicación', path: 'Comunicación.html' },
+      { id: 'direccion', label: 'Dirección', path: 'Dirección.html' },
+      { id: 'eventos', label: 'Eventos', path: 'Eventos.html' },
       { id: 'finanzas', label: 'Finanzas', path: 'Finanzas.html' },
       { id: 'gtos-corporativos', label: 'Gastos Corporativos', path: 'Gtos_Corporativos.html' },
-      { id: 'direccion', label: 'Dirección', path: 'Dirección.html' }
+      { id: 'membresia', label: 'Membresía', path: 'Membresía.html' },
+      { id: 'rh', label: 'Recursos Humanos', path: 'RH.html' },
+      { id: 'serv-membresia', label: 'Servicios a la Membresía', path: 'Serv_Membresía.html' },
+      { id: 'tic', label: 'T&IC', path: 'T&IC.html' },
+      { id: 'vpe', label: 'VPE', path: 'VPE.html' }
     ]
   },
   {
