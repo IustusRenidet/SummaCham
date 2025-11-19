@@ -242,7 +242,7 @@
               <div>
                 <h1 class="fw-bold display-6 mb-2">Comités</h1>
                 <p class="mb-0 text-white-50">Ejercicio <span class="anio text-light" id="yearLabel"></span> · <span
-                    id="empresaLabel">—</span></p>
+                    id="empresaLabel">-</span></p>
               </div>
               <button class="workflow-toggle" type="button" data-bs-toggle="offcanvas" data-bs-target="#workflowDrawer"
                 aria-controls="workflowDrawer" aria-label="Ver flujo de autorización">
@@ -251,6 +251,15 @@
             </div>
           </div>
         </div>
+      </div>
+    </div>
+
+    <div class="row mb-3">
+      <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+        <label for="comitesYearSelect" class="form-label fw-semibold text-muted small mb-2">Ejercicio</label>
+        <select id="comitesYearSelect" class="form-select">
+          <option value="">Cargando ejercicios...</option>
+        </select>
       </div>
     </div>
 
@@ -316,52 +325,52 @@
                   <th scope="col" rowspan="2" style="min-width: 200px;">COMITÉS</th>
                   
                   <!-- Enero -->
-                  <th scope="col" class="month-budget">ene-26</th>
-                  <th scope="col" class="month-real">ene-26</th>
+                  <th scope="col" class="month-budget" data-mes="ene">ENE-26</th>
+                  <th scope="col" class="month-real" data-mes="ene">ENE-26</th>
                   
                   <!-- Febrero -->
-                  <th scope="col" class="month-budget">feb-26</th>
-                  <th scope="col" class="month-real">feb-26</th>
+                  <th scope="col" class="month-budget" data-mes="feb">FEB-26</th>
+                  <th scope="col" class="month-real" data-mes="feb">FEB-26</th>
                   
                   <!-- Marzo -->
-                  <th scope="col" class="month-budget">mar-26</th>
-                  <th scope="col" class="month-real">mar-26</th>
+                  <th scope="col" class="month-budget" data-mes="mar">MAR-26</th>
+                  <th scope="col" class="month-real" data-mes="mar">MAR-26</th>
                   
                   <!-- Abril -->
-                  <th scope="col" class="month-budget">abr-26</th>
-                  <th scope="col" class="month-real">abr-26</th>
+                  <th scope="col" class="month-budget" data-mes="abr">ABR-26</th>
+                  <th scope="col" class="month-real" data-mes="abr">ABR-26</th>
                   
                   <!-- Mayo -->
-                  <th scope="col" class="month-budget">may-26</th>
-                  <th scope="col" class="month-real">may-26</th>
+                  <th scope="col" class="month-budget" data-mes="may">MAY-26</th>
+                  <th scope="col" class="month-real" data-mes="may">MAY-26</th>
                   
                   <!-- Junio -->
-                  <th scope="col" class="month-budget">jun-26</th>
-                  <th scope="col" class="month-real">jun-26</th>
+                  <th scope="col" class="month-budget" data-mes="jun">JUN-26</th>
+                  <th scope="col" class="month-real" data-mes="jun">JUN-26</th>
                   
                   <!-- Julio -->
-                  <th scope="col" class="month-budget">jul-26</th>
-                  <th scope="col" class="month-real">jul-26</th>
+                  <th scope="col" class="month-budget" data-mes="jul">JUL-26</th>
+                  <th scope="col" class="month-real" data-mes="jul">JUL-26</th>
                   
                   <!-- Agosto -->
-                  <th scope="col" class="month-budget">ago-26</th>
-                  <th scope="col" class="month-real">ago-26</th>
+                  <th scope="col" class="month-budget" data-mes="ago">AGO-26</th>
+                  <th scope="col" class="month-real" data-mes="ago">AGO-26</th>
                   
                   <!-- Septiembre -->
-                  <th scope="col" class="month-budget">sep-26</th>
-                  <th scope="col" class="month-real">sep-26</th>
+                  <th scope="col" class="month-budget" data-mes="sep">SEP-26</th>
+                  <th scope="col" class="month-real" data-mes="sep">SEP-26</th>
                   
                   <!-- Octubre -->
-                  <th scope="col" class="month-budget">oct-26</th>
-                  <th scope="col" class="month-real">oct-26</th>
+                  <th scope="col" class="month-budget" data-mes="oct">OCT-26</th>
+                  <th scope="col" class="month-real" data-mes="oct">OCT-26</th>
                   
                   <!-- Noviembre -->
-                  <th scope="col" class="month-budget">nov-26</th>
-                  <th scope="col" class="month-real">nov-26</th>
+                  <th scope="col" class="month-budget" data-mes="nov">NOV-26</th>
+                  <th scope="col" class="month-real" data-mes="nov">NOV-26</th>
                   
                   <!-- Diciembre -->
-                  <th scope="col" class="month-budget">dic-26</th>
-                  <th scope="col" class="month-real">dic-26</th>
+                  <th scope="col" class="month-budget" data-mes="dic">DIC-26</th>
+                  <th scope="col" class="month-real" data-mes="dic">DIC-26</th>
                   
                   <!-- Año -->
                   <th scope="col" class="year-column" rowspan="2"><span class="anio" id="yearColumn">2026</span></th>

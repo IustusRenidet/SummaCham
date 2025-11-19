@@ -113,6 +113,51 @@
     return filas;
   };
 
+  const MESES_TABLA = [
+    { clave: 'ene', etiqueta: 'ENE' },
+    { clave: 'feb', etiqueta: 'FEB' },
+    { clave: 'mar', etiqueta: 'MAR' },
+    { clave: 'abr', etiqueta: 'ABR' },
+    { clave: 'may', etiqueta: 'MAY' },
+    { clave: 'jun', etiqueta: 'JUN' },
+    { clave: 'jul', etiqueta: 'JUL' },
+    { clave: 'ago', etiqueta: 'AGO' },
+    { clave: 'sep', etiqueta: 'SEP' },
+    { clave: 'oct', etiqueta: 'OCT' },
+    { clave: 'nov', etiqueta: 'NOV' },
+    { clave: 'dic', etiqueta: 'DIC' }
+  ];
+
+  const normalizarListaEnteros = (lista) => {
+    return Array.from(new Set(
+      (Array.isArray(lista) ? lista : [])
+        .map((valor) => Number(valor))
+        .filter((valor) => Number.isInteger(valor))
+    )).sort((a, b) => a - b);
+  };
+
+  const asegurarAniosVigentes = (lista = []) => {
+    const actual = new Date().getFullYear();
+    const conjunto = new Set(normalizarListaEnteros(lista));
+    conjunto.add(actual);
+    conjunto.add(actual + 1);
+    return Array.from(conjunto).sort((a, b) => a - b);
+  };
+
+  const seleccionarAnio = (lista = [], preferido) => {
+    if (!lista.length) {
+      return Number.isInteger(preferido) ? preferido : new Date().getFullYear();
+    }
+    if (Number.isInteger(preferido) && lista.includes(preferido)) {
+      return preferido;
+    }
+    const actual = new Date().getFullYear();
+    if (lista.includes(actual)) {
+      return actual;
+    }
+    return lista[lista.length - 1];
+  };
+
   const initVistaComites = (config = {}) => {
     const sesion = Sesion.requerirSesion();
     if (!sesion) {
@@ -121,7 +166,7 @@
 
     const opciones = { ...obtenerConfigDesdeDataset(), ...config };
     const datasetAnio = Number(document.body?.dataset?.anio);
-    const anio = Number.isInteger(datasetAnio) ? datasetAnio : new Date().getFullYear();
+    const anioInicial = Number.isInteger(datasetAnio) ? datasetAnio : new Date().getFullYear();
 
     const elementos = {
       tabla: document.getElementById('tablaComparacion'),
@@ -139,7 +184,8 @@
       toastBody: document.getElementById('actionToastBody'),
       yearLabel: document.getElementById('yearLabel'),
       yearColumn: document.getElementById('yearColumn'),
-      empresaLabel: document.getElementById('empresaLabel')
+      empresaLabel: document.getElementById('empresaLabel'),
+      yearSelect: document.getElementById('comitesYearSelect')
     };
 
     const toastInstance = window.bootstrap?.Toast.getOrCreateInstance(elementos.toastElement, { delay: 3000 });
@@ -148,6 +194,8 @@
       filtro: '',
       filas: [],
       mostrarCuentas: true,
+      anio: anioInicial,
+      aniosDisponibles: [],
       workflow: {
         estado: 'sin-cargar',
         actualizadoEn: null,
@@ -156,8 +204,101 @@
       }
     };
 
-    actualizarTexto(elementos.yearLabel, anio);
-    actualizarTexto(elementos.yearColumn, anio);
+    const actualizarYearLabels = () => {
+      if (elementos.yearLabel) {
+        actualizarTexto(elementos.yearLabel, estado.anio);
+      }
+      if (elementos.yearColumn) {
+        actualizarTexto(elementos.yearColumn, estado.anio);
+      }
+      if (elementos.yearSelect && Number(elementos.yearSelect.value) !== Number(estado.anio)) {
+        elementos.yearSelect.value = String(estado.anio ?? '');
+      }
+    };
+
+    const actualizarEncabezadosMes = () => {
+      if (!Number.isInteger(estado.anio)) {
+        return;
+      }
+      const sufijo = String(estado.anio).slice(-2);
+      document.querySelectorAll('[data-mes]').forEach((th) => {
+        const clave = th.dataset.mes || '';
+        const meta = MESES_TABLA.find((item) => item.clave === clave);
+        const baseEtiqueta = meta ? meta.etiqueta : clave.toUpperCase();
+        th.textContent = `${baseEtiqueta}-${sufijo}`;
+      });
+    };
+
+    const actualizarSelectAnio = () => {
+      if (!elementos.yearSelect) {
+        return;
+      }
+      elementos.yearSelect.innerHTML = '';
+      if (!estado.aniosDisponibles.length) {
+        const opcion = document.createElement('option');
+        opcion.value = '';
+        opcion.textContent = 'Sin ejercicios disponibles';
+        elementos.yearSelect.appendChild(opcion);
+        elementos.yearSelect.disabled = true;
+        return;
+      }
+
+      estado.aniosDisponibles.forEach((anio) => {
+        const opcion = document.createElement('option');
+        opcion.value = String(anio);
+        opcion.textContent = String(anio);
+        elementos.yearSelect.appendChild(opcion);
+      });
+      elementos.yearSelect.disabled = false;
+      elementos.yearSelect.value = String(estado.anio ?? '');
+    };
+
+    const establecerAnioActivo = (nuevoAnio) => {
+      if (!Number.isInteger(nuevoAnio)) {
+        return;
+      }
+      if (estado.anio === nuevoAnio) {
+        return;
+      }
+      estado.anio = nuevoAnio;
+      actualizarYearLabels();
+      actualizarEncabezadosMes();
+      obtenerWorkflow();
+    };
+
+    const cargarAniosDisponibles = async () => {
+      const empresa = Sesion.obtenerEmpresaActiva(sesion);
+      if (!empresa?.id) {
+        estado.aniosDisponibles = asegurarAniosVigentes([]);
+        estado.anio = seleccionarAnio(estado.aniosDisponibles, estado.anio);
+        actualizarSelectAnio();
+        actualizarYearLabels();
+        actualizarEncabezadosMes();
+        return;
+      }
+      try {
+        const params = new URLSearchParams({ empresaId: empresa.id });
+        const respuesta = await fetch(`${API_BASE}/comites/anios?${params.toString()}`, {
+          headers: Sesion.headersAutenticacion()
+        });
+        if (!respuesta.ok) {
+          throw new Error('No fue posible obtener los ejercicios disponibles.');
+        }
+        const datos = await respuesta.json();
+        estado.aniosDisponibles = asegurarAniosVigentes(datos.anios || []);
+      } catch (error) {
+        console.error('Error al cargar años de Comit\u00E9s', error);
+        showToast(error.message || 'Sin ejercicios disponibles.', 'text-bg-danger');
+        estado.aniosDisponibles = asegurarAniosVigentes([]);
+      }
+      estado.anio = seleccionarAnio(estado.aniosDisponibles, estado.anio);
+      actualizarSelectAnio();
+      actualizarYearLabels();
+      actualizarEncabezadosMes();
+    };
+
+    actualizarYearLabels();
+    actualizarEncabezadosMes();
 
     const showToast = (mensaje, clase = 'text-bg-success') => {
       if (!elementos.toastElement || !toastInstance) {
@@ -270,7 +411,7 @@
 
     const obtenerWorkflow = async () => {
       const { empresa } = obtenerPermisosActuales(sesion, opciones.modulo);
-      if (!empresa) {
+      if (!empresa || !Number.isInteger(estado.anio)) {
         estado.workflow = { estado: 'sin-cargar', actualizadoEn: null, actualizadoPor: '', historial: [] };
         actualizarBadgeWorkflow();
         renderizarHistorial();
@@ -278,7 +419,7 @@
         return;
       }
       try {
-        const params = new URLSearchParams({ modulo: opciones.modulo, anio });
+        const params = new URLSearchParams({ modulo: opciones.modulo, anio: estado.anio });
         const respuesta = await fetch(`${API_BASE}/presupuestos/estado?${params.toString()}`, {
           headers: {
             ...Sesion.headersAutenticacion()
@@ -308,6 +449,10 @@
       if (!TRANSICIONES[accion]) {
         return;
       }
+      if (!Number.isInteger(estado.anio)) {
+        showToast('Selecciona un ejercicio válido antes de continuar.', 'text-bg-warning');
+        return;
+      }
       try {
         const respuesta = await fetch(`${API_BASE}/presupuestos/estado`, {
           method: 'POST',
@@ -317,7 +462,7 @@
           },
           body: JSON.stringify({
             modulo: opciones.modulo,
-            anio,
+            anio: estado.anio,
             accion
           })
         });
@@ -341,6 +486,17 @@
         showToast(error.message || 'No fue posible completar la acción solicitada.', 'text-bg-danger');
       }
     };
+
+    if (elementos.yearSelect) {
+      elementos.yearSelect.addEventListener('change', (event) => {
+        const seleccionado = Number(event.target.value);
+        if (Number.isInteger(seleccionado)) {
+          establecerAnioActivo(seleccionado);
+        } else if (estado.anio != null) {
+          event.target.value = String(estado.anio);
+        }
+      });
+    }
 
     if (elementos.accountSearchInput) {
       elementos.accountSearchInput.addEventListener('input', (event) => {
@@ -387,7 +543,8 @@
         const url = URL.createObjectURL(blob);
         const enlace = document.createElement('a');
         enlace.href = url;
-        enlace.download = `comites_${anio}.csv`;
+        const anioReferencia = Number.isInteger(estado.anio) ? estado.anio : new Date().getFullYear();
+        enlace.download = `comites_${anioReferencia}.csv`;
         document.body.appendChild(enlace);
         enlace.click();
         document.body.removeChild(enlace);
@@ -397,23 +554,25 @@
       });
     }
 
-    const inicializar = () => {
+    const inicializar = async () => {
       actualizarEncabezadoEmpresa();
       estado.filas = prepararFilasBusqueda(elementos.tabla);
       filtrarFilas();
       aplicarVisibilidadCuentas();
-      obtenerWorkflow();
+      await cargarAniosDisponibles();
+      await obtenerWorkflow();
     };
 
     if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', inicializar, { once: true });
+      document.addEventListener('DOMContentLoaded', () => { inicializar(); }, { once: true });
     } else {
       inicializar();
     }
 
-    window.addEventListener(Sesion.EVENTO_EMPRESA, () => {
+    window.addEventListener(Sesion.EVENTO_EMPRESA, async () => {
       actualizarEncabezadoEmpresa();
-      obtenerWorkflow();
+      await cargarAniosDisponibles();
+      await obtenerWorkflow();
     });
   };
 
