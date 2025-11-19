@@ -16,7 +16,6 @@ const MODULE_GROUPS = [
     label: 'Divisiones',
     items: [
       { id: 'resumen', label: 'Resumen', path: 'RESUMEN.html', badge: 'ppto', permiso: 'RESUMEN' },
-      {label:'—————————————', id:'separador-1'},
       { id: 'comites', label: 'Comités', path: 'Comités.html' },
       { id: 'comunicacion', label: 'Comunicación', path: 'Comunicación.html' },
       { id: 'direccion', label: 'Dirección', path: 'Dirección.html' },
