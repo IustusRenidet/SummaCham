@@ -15,7 +15,7 @@
   };
 
   const normalizarSheetId = (texto) => normalizarTexto(texto).replace(/[\s._]+/g, '');
-  const normalizarModuloClave = (valor) => normalizarTexto(valor || '').replace(/[^A-Z0-9]/g, '');
+  const normalizarModuloClave = (valor) => normalizarTexto(valor || '').replace(/[^A-Z0-9]/g, '').toLowerCase();
 
   const obtenerTabla = (selector) => {
     if (selector) {
@@ -182,10 +182,11 @@
       limpiarValores();
       return;
     }
+    const moduloClave = estadoModulo.moduloClave || normalizarModuloClave(estadoModulo.moduloId);
     const payload = {
       empresaId: empresa.id,
       anio,
-      modulo: estadoModulo.moduloId,
+      modulo: moduloClave || estadoModulo.moduloId,
       cuentas
     };
     estadoModulo.ultimaSolicitud += 1;
