@@ -1,0 +1,13 @@
+﻿# dataset	database	engine_version	row_count	column_count
+metadata_campos_COI	C:\Program Files (x86)\Common Files\Aspel\Sistemas Aspel\COI10.00\Datos\Empresa2\COI10EMPRE2.FDB	2.5.0	6391	9
+# --- columnas ---
+order	name	pandas_dtype
+1	TABLA	object
+2	CAMPO	object
+3	TIPO_CODIGO	int64
+4	TIPO_DATO	object
+5	LONGITUD	int64
+6	ESCALA	int64
+7	NULLABLE	object
+8	POSICION	int64
+9	DESCRIPCION	object
