@@ -593,6 +593,11 @@
       inicializar();
     }
 
+    window.addEventListener('modulo-planeacion:tabla-actualizada', () => {
+      estado.filas = prepararFilasBusqueda(elementos.tabla);
+      filtrarFilas();
+    });
+
     window.addEventListener(Sesion.EVENTO_EMPRESA, async () => {
       actualizarEncabezadoEmpresa();
       await cargarAniosDisponibles();

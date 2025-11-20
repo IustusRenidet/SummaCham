@@ -39,6 +39,38 @@ const MODULE_GROUPS = [
   }
 ];
 
+const moduloDisponiblePorEmpresa = (empresaId, moduloId) => {
+  const config = window.CapitulosModulos;
+  if (!config || typeof config.moduloDisponible !== 'function') {
+    return true;
+  }
+  return config.moduloDisponible(empresaId, moduloId);
+};
+
+const usuarioPuedeUsarModulo = (sesion, empresaId, modulo, puedeAdministrar) => {
+  if (!sesion || !sesion.usuario) {
+    return false;
+  }
+  const puedeAdmin = typeof puedeAdministrar === 'boolean' ? puedeAdministrar : Sesion.puedeAdministrarUsuarios(sesion);
+  if (modulo.requiresAdmin && !puedeAdmin) {
+    return false;
+  }
+  if (!moduloDisponiblePorEmpresa(empresaId, modulo.id)) {
+    return false;
+  }
+  const usuario = (sesion.usuario.usuario || '').toString().trim().toUpperCase();
+  if (usuario === 'ICONET' || sesion.usuario.esAdminGlobal) {
+    return true;
+  }
+  const permisosEmpresa = sesion.usuario.permisosPorEmpresa?.[empresaId] || {};
+  const clave = modulo.permiso || modulo.label;
+  const acciones = permisosEmpresa[clave];
+  if (!acciones) {
+    return false;
+  }
+  return Boolean(acciones['Cargar y guardar'] || acciones.Revisar || acciones.Aprobar);
+};
+
 const obtenerNombreUsuario = (sesion) => {
   if (!sesion || !sesion.usuario) {
     return 'Sin sesión activa';
@@ -366,28 +398,15 @@ const DashboardLayout = ({
   const empresaActualId = empresaActiva?.id || '';
 
   const tieneAccesoVista = useCallback((module) => {
-    if (!sesion || !sesion.usuario) return false;
-    const u = (sesion.usuario.usuario || '').toString().trim().toUpperCase();
-    if (u === 'ICONET' || sesion.usuario.esAdminGlobal) return true;
-    const permisosEmpresa = sesion.usuario.permisosPorEmpresa?.[empresaActualId] || {};
-    const clave = module.permiso || module.label;
-    const acciones = permisosEmpresa[clave];
-    if (!acciones) return false;
-    return Boolean(acciones['Cargar y guardar'] || acciones.Revisar || acciones.Aprobar);
-  }, [sesion, empresaActualId]);
+    return usuarioPuedeUsarModulo(sesion, empresaActualId, module, puedeAdministrar);
+  }, [sesion, empresaActualId, puedeAdministrar]);
 
   const gruposDisponibles = useMemo(() => {
     return MODULE_GROUPS.map((group) => {
-      const items = group.items.filter((module) => {
-        if (module.requiresAdmin && !puedeAdministrar) {
-          return false;
-        }
-        // Ocultar vistas sin permisos para la empresa activa
-        return tieneAccesoVista(module);
-      });
+      const items = group.items.filter((module) => tieneAccesoVista(module));
       return { ...group, items };
     }).filter((group) => group.items.length > 0);
-  }, [puedeAdministrar, tieneAccesoVista]);
+  }, [tieneAccesoVista]);
 
   const modulosDisponibles = useMemo(() => gruposDisponibles.flatMap((group) => group.items), [gruposDisponibles]);
   const moduloSeleccionado = useMemo(
@@ -628,14 +647,15 @@ const App = () => {
       return;
     }
     const puedeAdministrar = Sesion.puedeAdministrarUsuarios(sesion);
-    const primerGrupo = MODULE_GROUPS.find((grupo) => grupo.items.some((modulo) => !modulo.requiresAdmin || puedeAdministrar));
-    if (primerGrupo) {
-      const primerModulo = primerGrupo.items.find((modulo) => !modulo.requiresAdmin || puedeAdministrar);
-      if (primerModulo) {
-        setModuloSeleccionado((actual) => actual || primerModulo.id);
+    const empresaId = empresaActiva?.id || '';
+    for (const grupo of MODULE_GROUPS) {
+      const moduloPermitido = grupo.items.find((modulo) => usuarioPuedeUsarModulo(sesion, empresaId, modulo, puedeAdministrar));
+      if (moduloPermitido) {
+        setModuloSeleccionado((actual) => actual || moduloPermitido.id);
+        return;
       }
     }
-  }, [sesion]);
+  }, [sesion, empresaActiva]);
 
   if (!sesion) {
     return <LoginView onLogin={manejarLogin} />;
