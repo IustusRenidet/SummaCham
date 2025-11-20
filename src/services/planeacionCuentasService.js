@@ -37,13 +37,41 @@ async function obtenerPresupuestosPorCuentas(empresaId, anio, cuentas = []) {
   return filas.map(mapearPresupuesto);
 }
 
+const limpiarCuentaBase = (valor = '') => valor.toString().replace(/[^0-9A-Za-z]/g, '').toUpperCase();
+
+const deducirNivel = (base) => {
+  const limpio = base.padEnd(11, '0').slice(0, 11);
+  const b = limpio.slice(3, 6);
+  const c = limpio.slice(6, 9);
+  const d = limpio.slice(9, 11);
+  if (b === '000' && c === '000' && d === '00') return '1';
+  if (c === '000' && d === '00') return '2';
+  if (d === '00') return '3';
+  return '4';
+};
+
+const formatearCuentaAspel = (valor) => {
+  const limpio = limpiarCuentaBase(valor);
+  if (!limpio) {
+    return '';
+  }
+  if (limpio.length >= 21) {
+    return limpio.slice(0, 21);
+  }
+  const base = limpio.slice(0, 11).padEnd(11, '0');
+  const nivel = deducirNivel(base);
+  return base.padEnd(20, '0') + nivel;
+};
+
 const normalizarListaCuentas = (cuentas) => {
   const lista = Array.isArray(cuentas) ? cuentas : [];
-  const unico = new Set(
-    lista
-      .map((cuenta) => (cuenta == null ? '' : String(cuenta).trim()))
-      .filter((cuenta) => cuenta.length > 0)
-  );
+  const unico = new Set();
+  lista.forEach((cuenta) => {
+    const formateada = formatearCuentaAspel(cuenta);
+    if (formateada) {
+      unico.add(formateada);
+    }
+  });
   return Array.from(unico);
 };
 

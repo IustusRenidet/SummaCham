@@ -34,7 +34,7 @@ const exprAnual = () => {
 
 const mapRow = (r) => {
   const out = {
-    numCta: r.CUENTA,
+    numCta: String(r.CUENTA || '').trim(),
     nombre: r.NOMBRE,
     naturaleza: r.NATURALEZA || ''
   };
