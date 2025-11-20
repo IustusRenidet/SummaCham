@@ -30,8 +30,15 @@
     return `${a}-${b}-${c}-${d}`;
   };
 
+  const normalizarCuentaBase = (cuenta) => {
+    if (!cuenta) {
+      return '';
+    }
+    return cuenta.toString().replace(/[^0-9A-Za-z]/g, '').toUpperCase();
+  };
+
   const quitarGuiones = (cuenta) => {
-    return (cuenta || '').replace(/-/g, '') + '0000000002';
+    return normalizarCuentaBase(cuenta) + '0000000002';
   };
 
   const cuentaConGuiones = (numLargo) => {
@@ -40,9 +47,24 @@
     return `${visible.slice(0, 3)}-${visible.slice(3, 6)}-${visible.slice(6, 9)}-${visible.slice(9, 11)}`;
   };
 
+  const deducirNivel = (base) => {
+    const limpio = normalizarCuentaBase(base).padEnd(11, '0').slice(0, 11);
+    const b = limpio.slice(3, 6);
+    const c = limpio.slice(6, 9);
+    const d = limpio.slice(9, 11);
+    if (b === '000' && c === '000' && d === '00') return '1';
+    if (c === '000' && d === '00') return '2';
+    if (d === '00') return '3';
+    return '4';
+  };
+
   const cuentaLarga = (cuentaLegible) => {
-    const base = (cuentaLegible || '').replace(/-/g, '');
-    return base.padEnd(20, '0') + '2';
+    const base = normalizarCuentaBase(cuentaLegible).padEnd(11, '0').slice(0, 11);
+    if (!base.trim()) {
+      return '';
+    }
+    const nivel = deducirNivel(base);
+    return base.padEnd(20, '0') + nivel;
   };
 
   const WORKFLOW_ETIQUETAS = {
@@ -247,6 +269,9 @@
       if (elementos.yearColumn) {
         actualizarTexto(elementos.yearColumn, estado.anio);
       }
+      document.querySelectorAll('.anio').forEach((span) => {
+        span.textContent = estado.anio;
+      });
       if (elementos.yearSelect && Number(elementos.yearSelect.value) !== Number(estado.anio)) {
         elementos.yearSelect.value = String(estado.anio ?? '');
       }

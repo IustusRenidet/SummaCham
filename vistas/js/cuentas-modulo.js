@@ -58,6 +58,19 @@
     return { moduloId, moduloSheet };
   };
 
+  const MODULOS_SOPORTADOS = new Set([
+    'comunicacion',
+    'direccion',
+    'eventos',
+    'finanzas',
+    'gtoscorporativos',
+    'membresia',
+    'rh',
+    'servmembresia',
+    'tic',
+    'vpe'
+  ]);
+
   const estadoModulo = {
     moduloId: '',
     moduloClave: '',
@@ -95,6 +108,10 @@
         mapa[`real-${clave}`] = indice;
       } else if (th.classList.contains('year-column')) {
         mapa.year = indice;
+      } else if (th.classList.contains('total-budget-column')) {
+        mapa['total-budget'] = indice;
+      } else if (th.classList.contains('total-real-column')) {
+        mapa['total-real'] = indice;
       }
     });
     return mapa;
@@ -138,6 +155,8 @@
         establecerValorCelda(fila, `budget-${mes}`, 0);
         establecerValorCelda(fila, `real-${mes}`, 0);
       });
+      establecerValorCelda(fila, 'total-budget', 0);
+      establecerValorCelda(fila, 'total-real', 0);
     });
   };
 
@@ -146,12 +165,18 @@
     obtenerFilasCuenta().forEach((fila) => {
       const cuenta = fila.dataset.cuenta21 || '';
       const registro = mapa.get(cuenta);
+      let totalPresupuesto = 0;
+      let totalReal = 0;
       MESES.forEach((mes) => {
         const presupuesto = registro?.presupuesto?.[mes] ?? 0;
         const real = registro?.real?.[mes] ?? 0;
+        totalPresupuesto += Number(presupuesto) || 0;
+        totalReal += Number(real) || 0;
         establecerValorCelda(fila, `budget-${mes}`, presupuesto);
         establecerValorCelda(fila, `real-${mes}`, real);
       });
+      establecerValorCelda(fila, 'total-budget', totalPresupuesto);
+      establecerValorCelda(fila, 'total-real', totalReal);
     });
   };
 
@@ -168,6 +193,11 @@
   };
 
   const solicitarDatos = async () => {
+    const moduloClave = estadoModulo.moduloClave || normalizarModuloClave(estadoModulo.moduloId);
+    if (!MODULOS_SOPORTADOS.has(moduloClave)) {
+      return;
+    }
+
     const empresa = Sesion.obtenerEmpresaActiva();
     const anio = obtenerAnioSeleccionado();
     if (!empresa?.id || !Number.isInteger(anio)) {
@@ -182,7 +212,6 @@
       limpiarValores();
       return;
     }
-    const moduloClave = estadoModulo.moduloClave || normalizarModuloClave(estadoModulo.moduloId);
     const payload = {
       empresaId: empresa.id,
       anio,
@@ -283,13 +312,7 @@
         celdaNombre.textContent = item.nombre || '';
         fila.appendChild(celdaNombre);
         fila.dataset.cuenta = item.cuenta || '';
-        try {
-          fila.dataset.cuenta21 = typeof window.cuentaLarga === 'function'
-            ? window.cuentaLarga(item.cuenta || '')
-            : (item.cuenta || '').replace(/-/g, '');
-        } catch (_) {
-          fila.dataset.cuenta21 = (item.cuenta || '').replace(/-/g, '');
-        }
+        fila.dataset.cuenta21 = convertirCuenta21(item.cuenta || '');
         for (let i = 0; i < placeholdersPorFila; i += 1) {
           const celda = document.createElement('td');
           celda.className = 'budget-value';
@@ -432,3 +455,31 @@
     render: renderizarTabla
   };
 })();
+  const normalizarCuentaBase = (cuenta) => {
+    if (!cuenta) return '';
+    return cuenta.toString().replace(/[^0-9A-Za-z]/g, '').toUpperCase();
+  };
+
+  const deducirNivel = (base) => {
+    const limpio = normalizarCuentaBase(base).padEnd(11, '0').slice(0, 11);
+    const b = limpio.slice(3, 6);
+    const c = limpio.slice(6, 9);
+    const d = limpio.slice(9, 11);
+    if (b === '000' && c === '000' && d === '00') return '1';
+    if (c === '000' && d === '00') return '2';
+    if (d === '00') return '3';
+    return '4';
+  };
+
+  const convertirCuenta21 = (cuentaLegible) => {
+    if (typeof window.cuentaLarga === 'function') {
+      const resultado = window.cuentaLarga(cuentaLegible);
+      if (resultado) return resultado;
+    }
+    const base = normalizarCuentaBase(cuentaLegible).padEnd(11, '0').slice(0, 11);
+    if (!base.trim()) {
+      return '';
+    }
+    const nivel = deducirNivel(base);
+    return base.padEnd(20, '0') + nivel;
+  };

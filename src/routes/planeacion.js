@@ -7,15 +7,25 @@ const { obtenerDatosPlaneacion } = require('../services/planeacionCuentasService
 
 const router = express.Router();
 
+const normalizarModulo = (valor = '') => {
+  return valor
+    .toString()
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
+};
+
 const MODULOS_PLANEACION = new Set([
   'comunicacion',
   'direccion',
   'eventos',
   'finanzas',
-  'gtos-corporativos',
+  'gtoscorporativos',
   'membresia',
   'rh',
-  'serv-membresia',
+  'servmembresia',
   'tic',
   'vpe'
 ]);
@@ -91,7 +101,7 @@ router.post('/cuentas', async (req, res) => {
       });
     }
 
-    const moduloId = value.modulo.toLowerCase();
+    const moduloId = normalizarModulo(value.modulo);
     if (!MODULOS_PLANEACION.has(moduloId)) {
       return res.status(400).json({ mensaje: 'Módulo no soportado para consulta de cuentas.' });
     }

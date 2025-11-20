@@ -114,6 +114,33 @@
       background-color: var(--color-real);
       color: #000000;
     }
+    .table-comparison thead th.total-budget-column,
+    .table-comparison thead th.total-real-column {
+      background-color: #ffffff;
+      color: var(--color-text);
+      font-weight: 700;
+    }
+
+    .table-comparison tbody td:nth-child(1),
+    .table-comparison tbody td:nth-child(2) {
+      position: sticky;
+      background-color: #ffffff;
+      z-index: 4;
+    }
+
+    .table-comparison tbody td:nth-child(1) {
+      left: 0;
+      min-width: 120px;
+      font-weight: 600;
+    }
+
+    .table-comparison tbody td:nth-child(2) {
+      left: 120px;
+      min-width: 200px;
+      z-index: 3;
+    }
+
+
 
     /* Columna del año (2026) */
     .table-comparison thead th.year-column {
@@ -127,29 +154,7 @@
       padding: 0.6rem 0.5rem;
       vertical-align: middle;
     }
-
-    .table-comparison tbody td:nth-child(1) {
-      text-align: left;
-      font-family: 'Courier New', monospace;
-      font-size: 0.8rem;
-      background-color: #f6f8fa;
-      position: sticky;
-      left: 0;
-      z-index: 5;
-      white-space: nowrap;
-      color: #57606a;
-    }
-
-    .table-comparison tbody td:nth-child(2) {
-      text-align: left;
-      font-weight: 500;
-      background-color: #f6f8fa;
-      position: sticky;
-      left: 120px;
-      z-index: 5;
-    }
-
-    .table-comparison tbody td.budget-value {
+.table-comparison tbody td.budget-value {
       text-align: right;
       font-family: 'Courier New', monospace;
       font-size: 0.85rem;
@@ -371,16 +376,22 @@
                   <!-- Diciembre -->
                   <th scope="col" class="month-budget" data-mes="dic">DIC-26</th>
                   <th scope="col" class="month-real" data-mes="dic">DIC-26</th>
-                  
+
                   <!-- Año -->
+
                   <th scope="col" class="year-column" rowspan="2"><span class="anio" id="yearColumn">2026</span></th>
+
+                  <th scope="col" class="total-budget-column" rowspan="2">Ppto. Acumulado <span class="anio">2026</span></th>
+
+                  <th scope="col" class="total-real-column" rowspan="2">Real Acumulado <span class="anio">2026</span></th>
+
                 </tr>
               </thead>
                             <tbody id="tablaCuentasBody">
 
                 <tr class="estado-tabla">
 
-                  <td colspan="27">Cargando informacion...</td>
+                  <td colspan="29">Cargando informacion...</td>
 
                 </tr>
 
@@ -431,3 +442,4 @@
   </script>
 </body>
 </html>
+
