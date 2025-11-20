@@ -214,6 +214,8 @@
 
     const toastInstance = window.bootstrap?.Toast.getOrCreateInstance(elementos.toastElement, { delay: 3000 });
 
+    const EVENTO_CONTEXTO = 'planeacion:contexto-actualizado';
+
     const estado = {
       filtro: '',
       filas: [],
@@ -226,6 +228,16 @@
         actualizadoPor: '',
         historial: []
       }
+    };
+
+    const notificarContexto = () => {
+      const empresa = Sesion.obtenerEmpresaActiva(sesion);
+      const detalle = {
+        empresaId: empresa?.id || null,
+        anio: Number.isInteger(estado.anio) ? estado.anio : null,
+        modulo: opciones.modulo
+      };
+      window.dispatchEvent(new CustomEvent(EVENTO_CONTEXTO, { detail: detalle }));
     };
 
     const actualizarYearLabels = () => {
@@ -287,6 +299,7 @@
       estado.anio = nuevoAnio;
       actualizarYearLabels();
       actualizarEncabezadosMes();
+      notificarContexto();
       obtenerWorkflow();
     };
 
@@ -319,6 +332,7 @@
       actualizarSelectAnio();
       actualizarYearLabels();
       actualizarEncabezadosMes();
+      notificarContexto();
     };
 
     actualizarYearLabels();

@@ -1,4 +1,9 @@
 (() => {
+  const API_BASE = 'http://localhost:3000/api';
+  const EVENTO_TABLA_ACTUALIZADA = 'modulo-planeacion:tabla-actualizada';
+  const EVENTO_CONTEXTO = 'planeacion:contexto-actualizado';
+  const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+
   const normalizarTexto = (valor) => {
     if (valor == null) return '';
     return valor
@@ -10,6 +15,7 @@
   };
 
   const normalizarSheetId = (texto) => normalizarTexto(texto).replace(/[\s._]+/g, '');
+  const normalizarModuloClave = (valor) => normalizarTexto(valor || '').replace(/[^A-Z0-9]/g, '');
 
   const obtenerTabla = (selector) => {
     if (selector) {
@@ -50,6 +56,163 @@
     const moduloId = dataset.moduloId || dataset.modulo || '';
     const moduloSheet = dataset.moduloSheet || '';
     return { moduloId, moduloSheet };
+  };
+
+  const estadoModulo = {
+    moduloId: '',
+    moduloClave: '',
+    sheet: '',
+    columnas: {},
+    tabla: null,
+    ultimaSolicitud: 0
+  };
+
+  const obtenerYearSelect = () => {
+    return document.querySelector('[data-role="module-year-select"]') || document.querySelector('select[id$="YearSelect"]');
+  };
+
+  const obtenerAnioSeleccionado = () => {
+    const select = obtenerYearSelect();
+    const valor = Number(select?.value);
+    if (Number.isInteger(valor)) {
+      return valor;
+    }
+    return null;
+  };
+
+  const construirMapaColumnas = (tabla) => {
+    if (!tabla?.tHead) {
+      return {};
+    }
+    const mapa = {};
+    const cabeceras = Array.from(tabla.tHead.querySelectorAll('th'));
+    cabeceras.forEach((th, indice) => {
+      if (th.classList.contains('month-budget')) {
+        const clave = th.dataset.mes || '';
+        mapa[`budget-${clave}`] = indice;
+      } else if (th.classList.contains('month-real')) {
+        const clave = th.dataset.mes || '';
+        mapa[`real-${clave}`] = indice;
+      } else if (th.classList.contains('year-column')) {
+        mapa.year = indice;
+      }
+    });
+    return mapa;
+  };
+
+  const formatearNumero = (valor) => {
+    const numero = Number(valor) || 0;
+    if (numero === 0) {
+      return '-';
+    }
+    try {
+      const formato = new Intl.NumberFormat('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+      return formato.format(numero);
+    } catch (error) {
+      return numero.toString();
+    }
+  };
+
+  const obtenerFilasCuenta = () => {
+    if (!estadoModulo.tabla) {
+      return [];
+    }
+    return Array.from(estadoModulo.tabla.querySelectorAll('tbody tr.fila-cuenta'));
+  };
+
+  const establecerValorCelda = (fila, clave, valor) => {
+    const indice = estadoModulo.columnas[clave];
+    if (indice == null) {
+      return;
+    }
+    const celda = fila.cells[indice];
+    if (!celda) {
+      return;
+    }
+    celda.textContent = formatearNumero(valor);
+  };
+
+  const limpiarValores = () => {
+    obtenerFilasCuenta().forEach((fila) => {
+      MESES.forEach((mes) => {
+        establecerValorCelda(fila, `budget-${mes}`, 0);
+        establecerValorCelda(fila, `real-${mes}`, 0);
+      });
+    });
+  };
+
+  const aplicarImportes = (registros = []) => {
+    const mapa = new Map(registros.map((registro) => [registro.cuenta, registro]));
+    obtenerFilasCuenta().forEach((fila) => {
+      const cuenta = fila.dataset.cuenta21 || '';
+      const registro = mapa.get(cuenta);
+      MESES.forEach((mes) => {
+        const presupuesto = registro?.presupuesto?.[mes] ?? 0;
+        const real = registro?.real?.[mes] ?? 0;
+        establecerValorCelda(fila, `budget-${mes}`, presupuesto);
+        establecerValorCelda(fila, `real-${mes}`, real);
+      });
+    });
+  };
+
+  const obtenerCuentasSolicitadas = () => {
+    const filas = obtenerFilasCuenta();
+    const conjunto = new Set();
+    filas.forEach((fila) => {
+      const cuenta = (fila.dataset.cuenta21 || '').trim();
+      if (cuenta) {
+        conjunto.add(cuenta);
+      }
+    });
+    return Array.from(conjunto);
+  };
+
+  const solicitarDatos = async () => {
+    const empresa = Sesion.obtenerEmpresaActiva();
+    const anio = obtenerAnioSeleccionado();
+    if (!empresa?.id || !Number.isInteger(anio)) {
+      limpiarValores();
+      return;
+    }
+    if (!estadoModulo.moduloId) {
+      return;
+    }
+    const cuentas = obtenerCuentasSolicitadas();
+    if (!cuentas.length) {
+      limpiarValores();
+      return;
+    }
+    const payload = {
+      empresaId: empresa.id,
+      anio,
+      modulo: estadoModulo.moduloId,
+      cuentas
+    };
+    estadoModulo.ultimaSolicitud += 1;
+    const folio = estadoModulo.ultimaSolicitud;
+    try {
+      const respuesta = await fetch(`${API_BASE}/planeacion/cuentas`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...Sesion.headersAutenticacion()
+        },
+        body: JSON.stringify(payload)
+      });
+      const datos = await respuesta.json();
+      if (!respuesta.ok) {
+        throw new Error(datos.mensaje || 'No fue posible obtener la información contable.');
+      }
+      if (folio !== estadoModulo.ultimaSolicitud) {
+        return;
+      }
+      aplicarImportes(datos.cuentas || []);
+    } catch (error) {
+      console.error('Error al cargar datos de planeación', error);
+      if (folio === estadoModulo.ultimaSolicitud) {
+        limpiarValores();
+      }
+    }
   };
 
   const obtenerSumasConfig = (sheetName, capitulo, seccion) => {
@@ -118,6 +281,14 @@
         const celdaNombre = document.createElement('td');
         celdaNombre.textContent = item.nombre || '';
         fila.appendChild(celdaNombre);
+        fila.dataset.cuenta = item.cuenta || '';
+        try {
+          fila.dataset.cuenta21 = typeof window.cuentaLarga === 'function'
+            ? window.cuentaLarga(item.cuenta || '')
+            : (item.cuenta || '').replace(/-/g, '');
+        } catch (_) {
+          fila.dataset.cuenta21 = (item.cuenta || '').replace(/-/g, '');
+        }
         for (let i = 0; i < placeholdersPorFila; i += 1) {
           const celda = document.createElement('td');
           celda.className = 'budget-value';
@@ -159,6 +330,7 @@
 
     const { moduloId, moduloSheet } = obtenerConfigModulo();
     const moduloNormalizado = (opciones.moduloId || moduloId || '').toString().trim();
+    const moduloClave = normalizarModuloClave(moduloNormalizado || moduloId);
     const sheetPorConfig = window.CapitulosModulos?.obtenerSheetPorModulo
       ? window.CapitulosModulos.obtenerSheetPorModulo(moduloNormalizado)
       : null;
@@ -209,6 +381,13 @@
       });
     });
 
+    estadoModulo.tabla = tabla;
+    estadoModulo.columnas = construirMapaColumnas(tabla);
+    estadoModulo.moduloId = moduloNormalizado;
+    estadoModulo.moduloClave = moduloClave;
+    estadoModulo.sheet = sheetConfigurada;
+    solicitarDatos();
+
     return Promise.resolve(true);
   };
 
@@ -218,7 +397,7 @@
     const ejecutar = () => {
       if (destruido) return Promise.resolve(false);
       return renderizarTabla(config).then((resultado) => {
-        window.dispatchEvent(new CustomEvent('modulo-planeacion:tabla-actualizada'));
+        window.dispatchEvent(new CustomEvent(EVENTO_TABLA_ACTUALIZADA));
         return resultado;
       });
     };
@@ -227,12 +406,22 @@
       ejecutar();
     };
     window.addEventListener(Sesion.EVENTO_EMPRESA, listener);
+    const contextoListener = (evento) => {
+      const moduloEvento = normalizarModuloClave(evento?.detail?.modulo || '');
+      const moduloActual = estadoModulo.moduloClave;
+      if (moduloEvento && moduloEvento !== moduloActual) {
+        return;
+      }
+      solicitarDatos();
+    };
+    window.addEventListener(EVENTO_CONTEXTO, contextoListener);
     return {
       ready,
       refresh: ejecutar,
       destroy() {
         destruido = true;
         window.removeEventListener(Sesion.EVENTO_EMPRESA, listener);
+        window.removeEventListener(EVENTO_CONTEXTO, contextoListener);
       }
     };
   };
