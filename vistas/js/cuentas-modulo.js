@@ -77,7 +77,8 @@
     sheet: '',
     columnas: {},
     tabla: null,
-    ultimaSolicitud: 0
+    ultimaSolicitud: 0,
+    anio: null
   };
 
   const obtenerYearSelect = () => {
@@ -86,9 +87,18 @@
 
   const obtenerAnioSeleccionado = () => {
     const select = obtenerYearSelect();
-    const valor = Number(select?.value);
-    if (Number.isInteger(valor)) {
-      return valor;
+    if (select) {
+      const crudo = (select.value || '').trim();
+      if (crudo) {
+        const valor = Number(crudo);
+        if (Number.isInteger(valor)) {
+          estadoModulo.anio = valor;
+          return valor;
+        }
+      }
+    }
+    if (Number.isInteger(estadoModulo.anio)) {
+      return estadoModulo.anio;
     }
     return null;
   };
@@ -204,6 +214,7 @@
       limpiarValores();
       return;
     }
+    estadoModulo.anio = anio;
     if (!estadoModulo.moduloId) {
       return;
     }
@@ -218,6 +229,8 @@
       modulo: moduloClave || estadoModulo.moduloId,
       cuentas
     };
+    // eslint-disable-next-line no-console
+    console.debug('[planeacion] payload', payload);
     estadoModulo.ultimaSolicitud += 1;
     const folio = estadoModulo.ultimaSolicitud;
     try {
@@ -231,7 +244,8 @@
       });
       const datos = await respuesta.json();
       if (!respuesta.ok) {
-        throw new Error(datos.mensaje || 'No fue posible obtener la información contable.');
+        const detalles = Array.isArray(datos.detalles) ? ` (${datos.detalles.join('; ')})` : '';
+        throw new Error((datos.mensaje || 'No fue posible obtener la información contable.') + detalles);
       }
       if (folio !== estadoModulo.ultimaSolicitud) {
         return;
@@ -342,6 +356,22 @@
     }));
   };
 
+  const obtenerHojaDatos = (nombre, dataset) => {
+    if (!nombre) {
+      return null;
+    }
+    const claves = new Set([nombre]);
+    if (nombre.includes('&')) {
+      claves.add(nombre.replace(/&/g, '&amp;'));
+    }
+    for (const clave of claves) {
+      if (dataset[clave]) {
+        return dataset[clave];
+      }
+    }
+    return null;
+  };
+
   const renderizarTabla = (opciones = {}) => {
     const tabla = obtenerTabla(opciones.tablaSelector);
     const cuerpo = tabla?.querySelector('tbody');
@@ -360,7 +390,7 @@
       : null;
     const sheetConfigurada = opciones.sheet || moduloSheet || sheetPorConfig || moduloNormalizado;
     const dataset = window.CUENTAS_POR_MODULO || {};
-    const hoja = sheetConfigurada ? dataset[sheetConfigurada] : null;
+    const hoja = obtenerHojaDatos(sheetConfigurada, dataset);
     limpiarBody(cuerpo);
 
     const empresa = Sesion.obtenerEmpresaActiva();
@@ -435,6 +465,10 @@
       const moduloActual = estadoModulo.moduloClave;
       if (moduloEvento && moduloEvento !== moduloActual) {
         return;
+      }
+      const anioEvento = Number(evento?.detail?.anio);
+      if (Number.isInteger(anioEvento)) {
+        estadoModulo.anio = anioEvento;
       }
       solicitarDatos();
     };
