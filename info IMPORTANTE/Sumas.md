@@ -1,4 +1,3 @@
-
 # ✅ **Tipos de filas y qué suma cada una**
 
 ## 🟦 **1. Cuenta normal (row de cuenta)**
@@ -104,6 +103,62 @@ La fila inferior que muestra **el total general** (total de ingresos, total de g
 Es el número maestro: el total general usado en reportes ejecutivos y consolidados.
 
 ---
+
+# ✅ **Qué es SUMA VARIOS**
+
+`sumavarios` =  **una fila que suma varias secciones completas** .
+
+Pero solo funciona  **si las secciones que vas a sumar están una después de la otra** , sin nada en medio.
+
+---
+
+### 👉 **SUMA VARIOS solo se coloca al final del bloque exacto que engloba.**
+
+### 👉 **Y solo funciona si las secciones son consecutivas.**
+
+**Ejemplo correcto:**
+
+```
+SECCIÓN A
+SECCIÓN B
+SECCIÓN C
+SUMA VARIOS (A + B + C)
+```
+
+---
+
+# 🟦 **Regla clara para que no duplique nunca**
+
+### ✔ **1. El sumavarios debe estar SOLO al final del bloque.**
+
+### ✔ **2. El bloque debe tener secciones consecutivas sin interrupciones.**
+
+### Bloque 1 – Ingresos Membresía
+
+```
+Ingresos Membresía → SUMA ROW
+Resultado Operativo Membresía → SUMA VARIOS
+```
+
+### Bloque 2 – Gastos Membresía
+
+```
+Gastos Membresía → SUMA ROW
+Resultado Operativo Membresía → SUMA VARIOS
+```
+
+Si colocas un sumavarios aquí:
+
+```
+Ingresos Membresía
+SUMA INGRESOS
+Resultado Operativo  ← SUMAVARIOS
+Gastos Membresía
+SUMA GASTOS
+Resultado Operativo  ← SUMAVARIOS
+```
+
+👉 Esto está mal, sin duplicar
 
 # 🎯 **Resumen ultra claro**
 
