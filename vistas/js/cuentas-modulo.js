@@ -130,9 +130,6 @@
 
   const formatearNumero = (valor) => {
     const numero = Number(valor) || 0;
-    if (numero === 0) {
-      return '-';
-    }
     try {
       const formato = new Intl.NumberFormat('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
       return formato.format(numero);
