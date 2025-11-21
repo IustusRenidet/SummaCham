@@ -244,6 +244,8 @@
       mostrarCuentas: true,
       anio: anioInicial,
       aniosDisponibles: [],
+      editMode: false,
+      cambiosPendientes: false,
       workflow: {
         estado: 'sin-cargar',
         actualizadoEn: null,
@@ -568,20 +570,44 @@
       });
     }
 
-    if (elementos.loadBudgetBtn && elementos.budgetFileInput) {
+    const actualizarTextoBotonCargar = () => {
+      if (!elementos.loadBudgetBtn) return;
+      const span = elementos.loadBudgetBtn.querySelector('span');
+      const texto = estado.editMode ? 'Cancelar edición' : 'Cargar';
+      if (span) {
+        span.textContent = texto;
+      } else {
+        elementos.loadBudgetBtn.textContent = texto;
+      }
+    };
+
+    const activarEdicionPresupuesto = () => {
+      if (window.CuentasModulo?.setEditMode) {
+        window.CuentasModulo.setEditMode(true);
+      }
+      estado.editMode = true;
+      actualizarTextoBotonCargar();
+      showToast('Modo edición de presupuesto activo.', 'text-bg-info');
+    };
+
+    const cancelarEdicionPresupuesto = () => {
+      if (window.CuentasModulo?.cancelEdit) {
+        window.CuentasModulo.cancelEdit();
+      }
+      estado.editMode = false;
+      estado.cambiosPendientes = false;
+      actualizarTextoBotonCargar();
+      showToast('Cambios descartados. Modo edición desactivado.', 'text-bg-warning');
+    };
+
+    if (elementos.loadBudgetBtn) {
+      actualizarTextoBotonCargar();
       elementos.loadBudgetBtn.addEventListener('click', () => {
-        if (window.CuentasModulo?.setEditMode) {
-          window.CuentasModulo.setEditMode(true);
+        if (estado.editMode) {
+          cancelarEdicionPresupuesto();
+          return;
         }
-        elementos.budgetFileInput.click();
-      });
-      elementos.budgetFileInput.addEventListener('change', (event) => {
-        const file = event.target.files?.[0];
-        if (file) {
-          showToast(`Archivo "${file.name}" cargado para revisión.`, 'text-bg-info');
-          ejecutarAccionWorkflow('cargar');
-        }
-        event.target.value = '';
+        activarEdicionPresupuesto();
       });
     }
 
@@ -599,6 +625,10 @@
         aplicarVisibilidadCuentas();
       });
     }
+
+    window.addEventListener('modulo-planeacion:presupuesto-editado', (event) => {
+      estado.cambiosPendientes = Boolean(event?.detail?.hayCambios);
+    });
 
     if (elementos.saveBudgetBtn) {
       elementos.saveBudgetBtn.addEventListener('click', () => {

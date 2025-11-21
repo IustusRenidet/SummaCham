@@ -82,6 +82,8 @@
     anio: null,
     tooltips: [],
     editMode: false,
+    editSnapshot: null,
+    hayCambios: false,
     sumas: {
       secciones: [],
       sumavariosRows: new Map(),
@@ -216,6 +218,8 @@
       establecerValorCelda(fila, 'total-real', 0);
     });
     recalcularSumas();
+    estadoModulo.hayCambios = false;
+    estadoModulo.editSnapshot = null;
   };
 
   const aplicarImportes = (registros = []) => {
@@ -244,6 +248,8 @@
       estadoModulo.valoresPorCuenta.set(cuenta, almacen);
     });
     recalcularSumas();
+    estadoModulo.hayCambios = false;
+    estadoModulo.editSnapshot = null;
   };
 
   const obtenerCuentasSolicitadas = () => {
@@ -256,6 +262,76 @@
       }
     });
     return Array.from(conjunto);
+  };
+
+  const clonarMapaValores = (mapa) =>
+    new Map(Array.from(mapa.entries()).map(([clave, valores]) => [clave, { ...(valores || {}) }]));
+
+  const tomarSnapshotEdicion = () => ({
+    valores: clonarMapaValores(estadoModulo.valoresPorCuenta),
+    nombres: new Map(estadoModulo.nombresPorCuenta)
+  });
+
+  const restablecerDesdeSnapshot = (snap) => {
+    if (!snap) return;
+    estadoModulo.valoresPorCuenta = clonarMapaValores(snap.valores || new Map());
+    estadoModulo.nombresPorCuenta = new Map(snap.nombres || []);
+    obtenerFilasCuenta().forEach((fila) => {
+      const cuenta = fila.dataset.cuenta21 || '';
+      const nombre = estadoModulo.nombresPorCuenta.get(cuenta) || '';
+      if (nombre) {
+        actualizarNombreFila(fila, nombre);
+      }
+      const valores = estadoModulo.valoresPorCuenta.get(cuenta) || {};
+      MESES.forEach((mes) => {
+        establecerValorCelda(fila, `budget-${mes}`, valores[`budget-${mes}`] ?? 0);
+        establecerValorCelda(fila, `real-${mes}`, valores[`real-${mes}`] ?? 0);
+      });
+      establecerValorCelda(fila, 'total-budget', valores['total-budget'] ?? 0);
+      establecerValorCelda(fila, 'total-real', valores['total-real'] ?? 0);
+    });
+    recalcularSumas();
+  };
+
+  const obtenerCambiosPendientes = () => {
+    if (!estadoModulo.editSnapshot) {
+      return { presupuesto: [], nombres: [] };
+    }
+    const cambiosPresupuesto = [];
+    const cambiosNombres = [];
+    const baseValores = estadoModulo.editSnapshot.valores || new Map();
+    const baseNombres = estadoModulo.editSnapshot.nombres || new Map();
+
+    estadoModulo.valoresPorCuenta.forEach((valores, cuenta) => {
+      const prev = baseValores.get(cuenta) || {};
+      const diff = {};
+      MESES.forEach((mes) => {
+        const clave = `budget-${mes}`;
+        const actual = Number(valores?.[clave]) || 0;
+        const anterior = Number(prev?.[clave]) || 0;
+        if (actual !== anterior) {
+          diff[clave] = actual;
+        }
+      });
+      if (Object.keys(diff).length) {
+        cambiosPresupuesto.push({ cuenta, valores: diff });
+      }
+    });
+
+    estadoModulo.nombresPorCuenta.forEach((nombre, cuenta) => {
+      const anterior = baseNombres.get(cuenta) || '';
+      if ((nombre || '') !== (anterior || '')) {
+        cambiosNombres.push({ cuenta, nombre });
+      }
+    });
+
+    return { presupuesto: cambiosPresupuesto, nombres: cambiosNombres };
+  };
+
+  const notificarCambios = () => {
+    const cambios = obtenerCambiosPendientes();
+    const detalle = { ...cambios, hayCambios: estadoModulo.hayCambios };
+    window.dispatchEvent(new CustomEvent('modulo-planeacion:presupuesto-editado', { detail: detalle }));
   };
 
   const aplicarNombresTabla = (mapaNombres = new Map()) => {
@@ -651,6 +727,8 @@
     }
     recalcularTotalesFilaPresupuesto(fila);
     recalcularSumas();
+    estadoModulo.hayCambios = true;
+    notificarCambios();
   };
 
   const manejarCambioNombre = (fila, celda) => {
@@ -660,6 +738,8 @@
     if (cuenta) {
       estadoModulo.nombresPorCuenta.set(cuenta, nombre);
     }
+    estadoModulo.hayCambios = true;
+    notificarCambios();
   };
 
   const actualizarPresupuestoCelda = (fila, clave, celda) => {
@@ -672,10 +752,30 @@
     celda.textContent = formatearNumero(valor);
     recalcularTotalesFilaPresupuesto(fila);
     recalcularSumas();
+    estadoModulo.hayCambios = true;
+    notificarCambios();
+  };
+
+  const limpiarModoEdicionEnTabla = () => {
+    if (!estadoModulo.tabla) return;
+    obtenerFilasCuenta().forEach((fila) => {
+      Array.from(fila.cells).forEach((celda) => {
+        if (!celda.dataset.editable) return;
+        celda.contentEditable = 'false';
+        delete celda.dataset.editable;
+        delete celda.dataset.columnaClave;
+      });
+    });
+    estadoModulo.tabla.classList.remove('modo-edicion');
   };
 
   const aplicarModoEdicionEnTabla = () => {
-    if (!estadoModulo.editMode || !estadoModulo.tabla) return;
+    if (!estadoModulo.tabla) return;
+    if (!estadoModulo.editMode) {
+      limpiarModoEdicionEnTabla();
+      return;
+    }
+    estadoModulo.tabla.classList.add('modo-edicion');
     const reverse = invertirColumnas();
     const filas = obtenerFilasCuenta();
     filas.forEach((fila) => {
@@ -721,6 +821,30 @@
     });
   };
 
+  const iniciarEdicion = () => {
+    if (estadoModulo.editMode) return;
+    estadoModulo.editSnapshot = tomarSnapshotEdicion();
+    estadoModulo.hayCambios = false;
+    estadoModulo.editMode = true;
+    aplicarModoEdicionEnTabla();
+    notificarCambios();
+  };
+
+  const cancelarEdicion = () => {
+    if (!estadoModulo.editMode) return;
+    restablecerDesdeSnapshot(estadoModulo.editSnapshot);
+    estadoModulo.hayCambios = false;
+    estadoModulo.editMode = false;
+    aplicarModoEdicionEnTabla();
+    notificarCambios();
+  };
+
+  const finalizarEdicion = () => {
+    if (!estadoModulo.editMode) return;
+    estadoModulo.editMode = false;
+    aplicarModoEdicionEnTabla();
+  };
+
   const obtenerHojaDatos = (nombre, dataset) => {
     if (!nombre) {
       return null;
@@ -743,6 +867,9 @@
     if (!tabla || !cuerpo) {
       return Promise.resolve(false);
     }
+    estadoModulo.editMode = false;
+    estadoModulo.hayCambios = false;
+    estadoModulo.editSnapshot = null;
     destruirTooltips();
 
     const columnas = Number(opciones.totalColumnas) || contarColumnas(tabla);
@@ -883,8 +1010,14 @@
       ready,
       refresh: ejecutar,
       setEditMode(flag) {
-        estadoModulo.editMode = Boolean(flag);
-        aplicarModoEdicionEnTabla();
+        if (flag) {
+          iniciarEdicion();
+        } else {
+          finalizarEdicion();
+        }
+      },
+      cancelEdit() {
+        cancelarEdicion();
       },
       destroy() {
         destruido = true;
@@ -899,8 +1032,17 @@
     init: crearInstancia,
     render: renderizarTabla,
     setEditMode(flag) {
-      estadoModulo.editMode = Boolean(flag);
-      aplicarModoEdicionEnTabla();
+      if (flag) {
+        iniciarEdicion();
+      } else {
+        finalizarEdicion();
+      }
+    },
+    cancelEdit() {
+      cancelarEdicion();
+    },
+    getCambios() {
+      return obtenerCambiosPendientes();
     }
   };
 })();
