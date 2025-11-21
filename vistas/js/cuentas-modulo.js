@@ -137,13 +137,12 @@
   };
 
   const formatearNumero = (valor) => {
-    const numero = Number(valor) || 0;
-    try {
-      const formato = new Intl.NumberFormat('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-      return formato.format(numero);
-    } catch (error) {
-      return numero.toString();
-    }
+    const numero = Number(valor);
+    if (!Number.isFinite(numero)) return '0.00';
+    const fijo = numero.toFixed(2);
+    const [entero, decimales] = fijo.split('.');
+    const enteroConComas = entero.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return `${enteroConComas}.${decimales}`;
   };
 
   const obtenerFilasCuenta = () => {
@@ -237,7 +236,7 @@
 
   const cargarNombresCuentas = async ({ empresaId, anio, cuentas } = {}) => {
     const lista = Array.isArray(cuentas) ? Array.from(new Set(cuentas)) : [];
-    if (!empresaId || !Number.isInteger(anio) || !lista.length) return;
+    if (!empresaId || !Number.isInteger(anio) || !lista.length) return new Map();
     try {
       const params = new URLSearchParams({ empresaId, anio, cuentas: lista.join(',') });
       const resp = await fetch(`${API_BASE}/saldos/cuentas?${params.toString()}`, {
@@ -255,8 +254,10 @@
         }
       });
       aplicarNombresTabla(mapa);
+      return mapa;
     } catch (error) {
       console.warn('No fue posible cargar nombres de cuentas', error);
+      return new Map();
     }
   };
 
@@ -601,7 +602,7 @@
     return null;
   };
 
-  const renderizarTabla = (opciones = {}) => {
+  const renderizarTabla = async (opciones = {}) => {
     const tabla = obtenerTabla(opciones.tablaSelector);
     const cuerpo = tabla?.querySelector('tbody');
     if (!tabla || !cuerpo) {
@@ -646,6 +647,14 @@
     if (!registros.length) {
       cuerpo.appendChild(crearFilaEstado('El capitulo no tiene cuentas configuradas en el libro.', columnas));
       return Promise.resolve(false);
+    }
+
+    const cuentasCapitulo = registros
+      .map((registro) => convertirCuenta21(registro.cuenta || ''))
+      .filter(Boolean);
+    if (empresaId && cuentasCapitulo.length) {
+      const anioNombres = obtenerAnioSeleccionado() || new Date().getFullYear();
+      await cargarNombresCuentas({ empresaId, anio: anioNombres, cuentas: cuentasCapitulo });
     }
 
     estadoModulo.sumas = { secciones: [], sumavariosRows: new Map(), resultRows: new Map() };
