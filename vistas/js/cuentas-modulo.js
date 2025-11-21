@@ -477,6 +477,7 @@
       }
     });
 
+    // sum-row-sumavarios: suma de los sum-row (sumValues) con la misma etiqueta
     const acumuladosSumavarios = new Map();
     secciones.forEach((seccion) => {
       const clave = normalizarClave(seccion.sumRowSumavariosTexto);
@@ -497,6 +498,7 @@
       }
     });
 
+    // sum-row-sumavarios2: suma de los sumavarios (si existen) o de sum-row si no hay sumavarios
     const acumuladosSumavarios2 = new Map();
     secciones.forEach((seccion) => {
       const clave = normalizarClave(seccion.sumRowSumavarios2Texto);
@@ -518,15 +520,12 @@
       }
     });
 
+    // result-row: suma solamente los sum-row de todas las secciones con la misma etiqueta de resultado
     const acumuladosResultado = new Map();
     secciones.forEach((seccion) => {
       const clave = normalizarClave(seccion.resultRowTexto);
       if (!clave) return;
-      const origen =
-        seccion.sumavarios2Values ||
-        seccion.sumavariosValues ||
-        seccion.sumValues ||
-        Array.from({ length: longitud }, () => 0);
+      const origen = seccion.sumValues || Array.from({ length: longitud }, () => 0);
       const prev = acumuladosResultado.get(clave) || Array.from({ length: longitud }, () => 0);
       origen.forEach((valor, idx) => {
         prev[idx] += Number(valor) || 0;
