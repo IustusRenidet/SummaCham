@@ -59,6 +59,7 @@
   };
 
   const MODULOS_SOPORTADOS = new Set([
+    'comites',
     'comunicacion',
     'direccion',
     'eventos',

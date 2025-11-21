@@ -18,6 +18,7 @@ const normalizarModulo = (valor = '') => {
 };
 
 const MODULOS_PLANEACION = new Set([
+  'comites',
   'comunicacion',
   'direccion',
   'eventos',
