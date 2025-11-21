@@ -86,7 +86,8 @@
       sumavariosRows: new Map(),
       resultRows: new Map()
     },
-    valoresPorCuenta: new Map()
+    valoresPorCuenta: new Map(),
+    nombresPorCuenta: new Map()
   };
 
   const obtenerYearSelect = () => {
@@ -152,6 +153,12 @@
     return Array.from(estadoModulo.tabla.querySelectorAll('tbody tr.fila-cuenta'));
   };
 
+  const actualizarNombreFila = (fila, nombre) => {
+    if (!fila || fila.cells.length < 2) return;
+    if (!nombre) return;
+    fila.cells[1].textContent = nombre;
+  };
+
   const establecerValorCelda = (fila, clave, valor) => {
     const indice = estadoModulo.columnas[clave];
     if (indice == null) {
@@ -215,6 +222,42 @@
       }
     });
     return Array.from(conjunto);
+  };
+
+  const aplicarNombresTabla = (mapaNombres = new Map()) => {
+    if (!mapaNombres.size) return;
+    obtenerFilasCuenta().forEach((fila) => {
+      const cuenta = fila.dataset.cuenta21 || '';
+      const nombre = mapaNombres.get(cuenta);
+      if (nombre) {
+        actualizarNombreFila(fila, nombre);
+      }
+    });
+  };
+
+  const cargarNombresCuentas = async ({ empresaId, anio, cuentas } = {}) => {
+    const lista = Array.isArray(cuentas) ? Array.from(new Set(cuentas)) : [];
+    if (!empresaId || !Number.isInteger(anio) || !lista.length) return;
+    try {
+      const params = new URLSearchParams({ empresaId, anio, cuentas: lista.join(',') });
+      const resp = await fetch(`${API_BASE}/saldos/cuentas?${params.toString()}`, {
+        headers: Sesion.headersAutenticacion()
+      });
+      const datos = await resp.json();
+      if (!resp.ok) throw new Error(datos.mensaje || 'No fue posible obtener nombres.');
+      const mapa = new Map();
+      (datos.cuentas || []).forEach((registro) => {
+        const clave = convertirCuenta21(registro.cuenta || registro.numCta || registro.NUM_CTA || '');
+        const nombre = (registro.nombre || registro.nombreCuenta || registro.NOMBRE || '').trim();
+        if (clave && nombre) {
+          mapa.set(clave, nombre);
+          estadoModulo.nombresPorCuenta.set(clave, nombre);
+        }
+      });
+      aplicarNombresTabla(mapa);
+    } catch (error) {
+      console.warn('No fue posible cargar nombres de cuentas', error);
+    }
   };
 
   const destruirTooltips = () => {
@@ -336,6 +379,7 @@
 
   const renderizarSecciones = ({ registros, cuerpo, placeholdersPorFila, sheetName, capitulo }) => {
     const secciones = new Map();
+    const faltantesNombre = new Set();
     registros.forEach((item) => {
       const clave = item.seccion || 'SIN SECCION';
       if (!secciones.has(clave)) {
@@ -374,7 +418,11 @@
         }
         fila.appendChild(celdaCuenta);
         const celdaNombre = document.createElement('td');
-        celdaNombre.textContent = item.nombre || '';
+        const nombreMostrar = item.nombre || estadoModulo.nombresPorCuenta.get(cuenta21) || '';
+        celdaNombre.textContent = nombreMostrar || '-';
+        if (!nombreMostrar) {
+          faltantesNombre.add(cuenta21);
+        }
         fila.appendChild(celdaNombre);
         fila.dataset.cuenta = item.cuenta || '';
         fila.dataset.cuenta21 = cuenta21;
@@ -430,7 +478,8 @@
         clase: 'result-row'
       })),
       sumasSecciones,
-      sumavarios: sumavariosData
+      sumavarios: sumavariosData,
+      faltantesNombre: Array.from(faltantesNombre)
     };
   };
 
@@ -647,6 +696,10 @@
     estadoModulo.moduloId = moduloNormalizado;
     estadoModulo.moduloClave = moduloClave;
     estadoModulo.sheet = sheetConfigurada;
+    const anioNombres = obtenerAnioSeleccionado() || new Date().getFullYear();
+    if (pendientes.faltantesNombre?.length && empresaId) {
+      cargarNombresCuentas({ empresaId, anio: anioNombres, cuentas: pendientes.faltantesNombre });
+    }
     solicitarDatos();
     activarTooltipsCuentas();
 
