@@ -81,6 +81,7 @@
     ultimaSolicitud: 0,
     anio: null,
     tooltips: [],
+    editMode: false,
     sumas: {
       secciones: [],
       sumavariosRows: new Map(),
@@ -136,6 +137,22 @@
     return mapa;
   };
 
+  const invertirColumnas = () => {
+    const reverse = {};
+    Object.entries(estadoModulo.columnas || {}).forEach(([clave, idx]) => {
+      reverse[idx] = clave;
+    });
+    return reverse;
+  };
+
+  const esClaveBudget = (clave) => clave && clave.startsWith('budget-');
+
+  const parsearNumero = (texto) => {
+    const limpio = (texto || '').toString().replace(/[^0-9+.,-]/g, '').replace(',', '.');
+    const numero = Number(limpio);
+    return Number.isFinite(numero) ? numero : 0;
+  };
+
   const formatearNumero = (valor) => {
     const numero = Number(valor);
     if (!Number.isFinite(numero)) return '0.00';
@@ -156,6 +173,24 @@
     if (!fila || fila.cells.length < 2) return;
     if (!nombre) return;
     fila.cells[1].textContent = nombre;
+  };
+
+  const recalcularTotalesFilaPresupuesto = (fila) => {
+    if (!fila) return;
+    const cuenta = fila.dataset.cuenta21 || '';
+    const almacen = estadoModulo.valoresPorCuenta.get(cuenta) || {};
+    let totalPresupuesto = 0;
+    MESES.forEach((mes) => {
+      totalPresupuesto += Number(almacen[`budget-${mes}`]) || 0;
+    });
+    if (estadoModulo.columnas['total-budget'] != null) {
+      const celdaTotal = fila.cells[estadoModulo.columnas['total-budget']];
+      if (celdaTotal) {
+        celdaTotal.textContent = formatearNumero(totalPresupuesto);
+      }
+    }
+    almacen['total-budget'] = totalPresupuesto;
+    estadoModulo.valoresPorCuenta.set(cuenta, almacen);
   };
 
   const establecerValorCelda = (fila, clave, valor) => {
@@ -586,6 +621,106 @@
     });
   };
 
+  const manejarCambioCuenta = (fila, celda) => {
+    if (!fila || !celda) return;
+    const texto = (celda.textContent || '').trim();
+    const nuevaCuenta21 = convertirCuenta21(texto);
+    const cuentaAnterior = fila.dataset.cuenta21 || '';
+    const valoresPrevios = estadoModulo.valoresPorCuenta.get(cuentaAnterior) || {};
+    const nombrePrevio = estadoModulo.nombresPorCuenta.get(cuentaAnterior);
+    if (cuentaAnterior && cuentaAnterior !== nuevaCuenta21) {
+      estadoModulo.valoresPorCuenta.delete(cuentaAnterior);
+      estadoModulo.nombresPorCuenta.delete(cuentaAnterior);
+    }
+    fila.dataset.cuenta = texto;
+    fila.dataset.cuenta21 = nuevaCuenta21;
+    if (nuevaCuenta21) {
+      fila.dataset.cuenta = texto || nuevaCuenta21;
+      estadoModulo.valoresPorCuenta.set(nuevaCuenta21, valoresPrevios);
+      if (nombrePrevio) {
+        estadoModulo.nombresPorCuenta.set(nuevaCuenta21, nombrePrevio);
+        actualizarNombreFila(fila, nombrePrevio);
+      }
+      celda.title = nuevaCuenta21;
+      celda.dataset.bsToggle = 'tooltip';
+      celda.dataset.bsPlacement = 'top';
+    } else {
+      celda.title = '';
+      celda.removeAttribute('data-bs-toggle');
+      celda.removeAttribute('data-bs-placement');
+    }
+    recalcularTotalesFilaPresupuesto(fila);
+    recalcularSumas();
+  };
+
+  const manejarCambioNombre = (fila, celda) => {
+    if (!fila || !celda) return;
+    const nombre = (celda.textContent || '').trim();
+    const cuenta = fila.dataset.cuenta21 || '';
+    if (cuenta) {
+      estadoModulo.nombresPorCuenta.set(cuenta, nombre);
+    }
+  };
+
+  const actualizarPresupuestoCelda = (fila, clave, celda) => {
+    if (!fila || !clave || !celda) return;
+    const cuenta = fila.dataset.cuenta21 || '';
+    const almacen = estadoModulo.valoresPorCuenta.get(cuenta) || {};
+    const valor = parsearNumero(celda.textContent);
+    almacen[clave] = valor;
+    estadoModulo.valoresPorCuenta.set(cuenta, almacen);
+    celda.textContent = formatearNumero(valor);
+    recalcularTotalesFilaPresupuesto(fila);
+    recalcularSumas();
+  };
+
+  const aplicarModoEdicionEnTabla = () => {
+    if (!estadoModulo.editMode || !estadoModulo.tabla) return;
+    const reverse = invertirColumnas();
+    const filas = obtenerFilasCuenta();
+    filas.forEach((fila) => {
+      const celdaCuenta = fila.cells[0];
+      const celdaNombre = fila.cells[1];
+      if (celdaCuenta && !celdaCuenta.dataset.editable) {
+        celdaCuenta.contentEditable = 'true';
+        celdaCuenta.dataset.editable = 'cuenta';
+        celdaCuenta.addEventListener('blur', () => manejarCambioCuenta(fila, celdaCuenta));
+        celdaCuenta.addEventListener('keydown', (evt) => {
+          if (evt.key === 'Enter') {
+            evt.preventDefault();
+            celdaCuenta.blur();
+          }
+        });
+      }
+      if (celdaNombre && !celdaNombre.dataset.editable) {
+        celdaNombre.contentEditable = 'true';
+        celdaNombre.dataset.editable = 'nombre';
+        celdaNombre.addEventListener('blur', () => manejarCambioNombre(fila, celdaNombre));
+        celdaNombre.addEventListener('keydown', (evt) => {
+          if (evt.key === 'Enter') {
+            evt.preventDefault();
+            celdaNombre.blur();
+          }
+        });
+      }
+      Array.from(fila.cells).forEach((celda, idx) => {
+        const clave = reverse[idx];
+        if (!esClaveBudget(clave)) return;
+        if (celda.dataset.editable) return;
+        celda.contentEditable = 'true';
+        celda.dataset.editable = 'budget';
+        celda.dataset.columnaClave = clave;
+        celda.addEventListener('blur', () => actualizarPresupuestoCelda(fila, clave, celda));
+        celda.addEventListener('keydown', (evt) => {
+          if (evt.key === 'Enter') {
+            evt.preventDefault();
+            celda.blur();
+          }
+        });
+      });
+    });
+  };
+
   const obtenerHojaDatos = (nombre, dataset) => {
     if (!nombre) {
       return null;
@@ -711,6 +846,7 @@
     }
     solicitarDatos();
     activarTooltipsCuentas();
+    aplicarModoEdicionEnTabla();
 
     return Promise.resolve(true);
   };
@@ -746,6 +882,10 @@
     return {
       ready,
       refresh: ejecutar,
+      setEditMode(flag) {
+        estadoModulo.editMode = Boolean(flag);
+        aplicarModoEdicionEnTabla();
+      },
       destroy() {
         destruido = true;
         window.removeEventListener(Sesion.EVENTO_EMPRESA, listener);
@@ -757,7 +897,11 @@
 
   window.CuentasModulo = {
     init: crearInstancia,
-    render: renderizarTabla
+    render: renderizarTabla,
+    setEditMode(flag) {
+      estadoModulo.editMode = Boolean(flag);
+      aplicarModoEdicionEnTabla();
+    }
   };
 })();
   const normalizarCuentaBase = (cuenta) => {

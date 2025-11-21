@@ -569,7 +569,12 @@
     }
 
     if (elementos.loadBudgetBtn && elementos.budgetFileInput) {
-      elementos.loadBudgetBtn.addEventListener('click', () => elementos.budgetFileInput.click());
+      elementos.loadBudgetBtn.addEventListener('click', () => {
+        if (window.CuentasModulo?.setEditMode) {
+          window.CuentasModulo.setEditMode(true);
+        }
+        elementos.budgetFileInput.click();
+      });
       elementos.budgetFileInput.addEventListener('change', (event) => {
         const file = event.target.files?.[0];
         if (file) {
