@@ -80,7 +80,11 @@
     tabla: null,
     ultimaSolicitud: 0,
     anio: null,
-    tooltips: []
+    tooltips: [],
+    sumas: {
+      secciones: [],
+      resultRows: new Map()
+    }
   };
 
   const obtenerYearSelect = () => {
@@ -167,6 +171,7 @@
       establecerValorCelda(fila, 'total-budget', 0);
       establecerValorCelda(fila, 'total-real', 0);
     });
+    recalcularSumas();
   };
 
   const aplicarImportes = (registros = []) => {
@@ -187,6 +192,7 @@
       establecerValorCelda(fila, 'total-budget', totalPresupuesto);
       establecerValorCelda(fila, 'total-real', totalReal);
     });
+    recalcularSumas();
   };
 
   const obtenerCuentasSolicitadas = () => {
@@ -298,7 +304,7 @@
 
   const agregarFilaResumen = ({ texto, clase, cuerpo, placeholdersPorFila }) => {
     if (!texto) {
-      return;
+      return null;
     }
     const fila = document.createElement('tr');
     fila.className = clase;
@@ -315,6 +321,7 @@
       fila.appendChild(celda);
     }
     cuerpo.appendChild(fila);
+    return fila;
   };
 
   const renderizarSecciones = ({ registros, cuerpo, placeholdersPorFila, sheetName, capitulo }) => {
@@ -328,8 +335,11 @@
     });
 
     const resultRows = new Map();
+    const sumasSecciones = [];
 
     secciones.forEach((lista, seccion) => {
+      const claveSeccion = normalizarTexto(seccion || 'SIN SECCION');
+      const filasCuenta = [];
       if (seccion && seccion !== 'SIN SECCION') {
         const filaSeccion = document.createElement('tr');
         filaSeccion.className = 'section-header-row';
@@ -357,6 +367,7 @@
         fila.appendChild(celdaNombre);
         fila.dataset.cuenta = item.cuenta || '';
         fila.dataset.cuenta21 = cuenta21;
+        fila.dataset.seccion = claveSeccion;
         for (let i = 0; i < placeholdersPorFila; i += 1) {
           const celda = document.createElement('td');
           celda.className = 'budget-value';
@@ -364,13 +375,38 @@
           fila.appendChild(celda);
         }
         cuerpo.appendChild(fila);
+        filasCuenta.push(fila);
       });
 
       const sumas = sheetName && capitulo ? obtenerSumasConfig(sheetName, capitulo, seccion) : null;
+      const metaSeccion = {
+        seccion: claveSeccion,
+        filasCuenta,
+        sumRowTexto: sumas?.sumRow ? normalizarTexto(sumas.sumRow) : '',
+        sumRowSumavariosTexto: sumas?.sumRowSumavarios ? normalizarTexto(sumas.sumRowSumavarios) : '',
+        sumRowSumavarios2Texto: sumas?.sumRowSumavarios2 ? normalizarTexto(sumas.sumRowSumavarios2) : '',
+        resultRowTexto: sumas?.resultRow ? normalizarTexto(sumas.resultRow) : '',
+        elementos: {}
+      };
       if (sumas) {
-        agregarFilaResumen({ texto: sumas.sumRow, clase: 'sum-row', cuerpo, placeholdersPorFila });
-        agregarFilaResumen({ texto: sumas.sumRowSumavarios, clase: 'sum-row-sumavarios', cuerpo, placeholdersPorFila });
-        agregarFilaResumen({ texto: sumas.sumRowSumavarios2, clase: 'sum-row-sumavarios2', cuerpo, placeholdersPorFila });
+        metaSeccion.elementos.sumRow = agregarFilaResumen({
+          texto: sumas.sumRow,
+          clase: 'sum-row',
+          cuerpo,
+          placeholdersPorFila
+        });
+        metaSeccion.elementos.sumRowSumavarios = agregarFilaResumen({
+          texto: sumas.sumRowSumavarios,
+          clase: 'sum-row-sumavarios',
+          cuerpo,
+          placeholdersPorFila
+        });
+        metaSeccion.elementos.sumRowSumavarios2 = agregarFilaResumen({
+          texto: sumas.sumRowSumavarios2,
+          clase: 'sum-row-sumavarios2',
+          cuerpo,
+          placeholdersPorFila
+        });
         if (sumas.resultRow) {
           const clave = `${sumas.resultRow}::result-row`;
           if (!resultRows.has(clave)) {
@@ -378,12 +414,129 @@
           }
         }
       }
+      sumasSecciones.push(metaSeccion);
     });
 
-    return Array.from(resultRows.values()).map((texto) => ({
-      texto,
-      clase: 'result-row'
-    }));
+    return {
+      resultadoFilas: Array.from(resultRows.values()).map((texto) => ({
+        texto,
+        clase: 'result-row'
+      })),
+      sumasSecciones
+    };
+  };
+
+  const normalizarClave = (valor) => normalizarTexto(valor || '');
+
+  const extraerValoresNumericos = (fila, inicio = 2) => {
+    const valores = [];
+    for (let i = inicio; i < fila.cells.length; i += 1) {
+      const texto = (fila.cells[i].textContent || '').replace(/[^0-9+.,-]/g, '');
+      const numero = Number(texto.replace(',', '.'));
+      valores.push(Number.isFinite(numero) ? numero : 0);
+    }
+    return valores;
+  };
+
+  const asignarValoresNumericos = (fila, valores, inicio = 2) => {
+    if (!fila || !Array.isArray(valores)) return;
+    for (let i = inicio; i < fila.cells.length && i - inicio < valores.length; i += 1) {
+      fila.cells[i].textContent = formatearNumero(valores[i - inicio]);
+    }
+  };
+
+  const sumarListas = (listas = [], longitud = 0) => {
+    const resultado = Array.from({ length: longitud }, () => 0);
+    listas.forEach((lista) => {
+      lista.forEach((valor, indice) => {
+        resultado[indice] += Number(valor) || 0;
+      });
+    });
+    return resultado;
+  };
+
+  const recalcularSumas = () => {
+    const meta = estadoModulo.sumas;
+    if (!meta || !meta.secciones.length) {
+      return;
+    }
+    const secciones = meta.secciones;
+
+    const filaMuestra =
+      obtenerFilasCuenta().find((fila) => fila.cells && fila.cells.length > 2) || secciones[0]?.filasCuenta?.[0];
+    if (!filaMuestra) {
+      return;
+    }
+    const longitud = filaMuestra.cells.length - 2;
+
+    secciones.forEach((seccion) => {
+      const valores = sumarListas(seccion.filasCuenta.map((fila) => extraerValoresNumericos(fila)), longitud);
+      seccion.sumValues = valores;
+      if (seccion.elementos.sumRow) {
+        asignarValoresNumericos(seccion.elementos.sumRow, valores);
+      }
+    });
+
+    const acumuladosSumavarios = new Map();
+    secciones.forEach((seccion) => {
+      const clave = normalizarClave(seccion.sumRowSumavariosTexto);
+      if (!clave) return;
+      const prev = acumuladosSumavarios.get(clave) || Array.from({ length: longitud }, () => 0);
+      seccion.sumValues.forEach((valor, idx) => {
+        prev[idx] += Number(valor) || 0;
+      });
+      acumuladosSumavarios.set(clave, prev);
+    });
+    secciones.forEach((seccion) => {
+      const clave = normalizarClave(seccion.sumRowSumavariosTexto);
+      if (!clave) return;
+      const valores = acumuladosSumavarios.get(clave) || Array.from({ length: longitud }, () => 0);
+      seccion.sumavariosValues = valores;
+      if (seccion.elementos.sumRowSumavarios) {
+        asignarValoresNumericos(seccion.elementos.sumRowSumavarios, valores);
+      }
+    });
+
+    const acumuladosSumavarios2 = new Map();
+    secciones.forEach((seccion) => {
+      const clave = normalizarClave(seccion.sumRowSumavarios2Texto);
+      if (!clave) return;
+      const origen = seccion.sumavariosValues || seccion.sumValues || Array.from({ length: longitud }, () => 0);
+      const prev = acumuladosSumavarios2.get(clave) || Array.from({ length: longitud }, () => 0);
+      origen.forEach((valor, idx) => {
+        prev[idx] += Number(valor) || 0;
+      });
+      acumuladosSumavarios2.set(clave, prev);
+    });
+    secciones.forEach((seccion) => {
+      const clave = normalizarClave(seccion.sumRowSumavarios2Texto);
+      if (!clave) return;
+      const valores = acumuladosSumavarios2.get(clave) || Array.from({ length: longitud }, () => 0);
+      seccion.sumavarios2Values = valores;
+      if (seccion.elementos.sumRowSumavarios2) {
+        asignarValoresNumericos(seccion.elementos.sumRowSumavarios2, valores);
+      }
+    });
+
+    const acumuladosResultado = new Map();
+    secciones.forEach((seccion) => {
+      const clave = normalizarClave(seccion.resultRowTexto);
+      if (!clave) return;
+      const origen =
+        seccion.sumavarios2Values ||
+        seccion.sumavariosValues ||
+        seccion.sumValues ||
+        Array.from({ length: longitud }, () => 0);
+      const prev = acumuladosResultado.get(clave) || Array.from({ length: longitud }, () => 0);
+      origen.forEach((valor, idx) => {
+        prev[idx] += Number(valor) || 0;
+      });
+      acumuladosResultado.set(clave, prev);
+    });
+    meta.resultRows.forEach((fila, clave) => {
+      const valores = acumuladosResultado.get(clave) || Array.from({ length: longitud }, () => 0);
+      asignarValoresNumericos(fila, valores);
+    });
   };
 
   const obtenerHojaDatos = (nombre, dataset) => {
@@ -449,6 +602,7 @@
       return Promise.resolve(false);
     }
 
+    estadoModulo.sumas = { secciones: [], resultRows: new Map() };
     const pendientes = renderizarSecciones({
       registros,
       cuerpo,
@@ -457,15 +611,19 @@
       capitulo: capituloDestino
     });
 
-    pendientes.forEach((fila) => {
-      agregarFilaResumen({
+    pendientes.resultadoFilas.forEach((fila) => {
+      const resultadoFila = agregarFilaResumen({
         texto: fila.texto,
         clase: fila.clase,
         cuerpo,
         placeholdersPorFila
       });
+      if (resultadoFila) {
+        estadoModulo.sumas.resultRows.set(normalizarTexto(fila.texto), resultadoFila);
+      }
     });
 
+    estadoModulo.sumas.secciones = pendientes.sumasSecciones;
     estadoModulo.tabla = tabla;
     estadoModulo.columnas = construirMapaColumnas(tabla);
     estadoModulo.moduloId = moduloNormalizado;
