@@ -37,9 +37,16 @@
     return cuenta.toString().replace(/[^0-9A-Za-z]/g, '').toUpperCase();
   };
 
-  const quitarGuiones = (cuenta) => {
-    return normalizarCuentaBase(cuenta) + '0000000002';
+  const construirCuentaLarga = (valor) => {
+    const base = normalizarCuentaBase(valor).padEnd(11, '0').slice(0, 11);
+    if (!base.trim()) {
+      return '';
+    }
+    const nivel = deducirNivel(base);
+    return base.padEnd(20, '0') + nivel;
   };
+
+  const quitarGuiones = (cuenta) => construirCuentaLarga(cuenta);
 
   const cuentaConGuiones = (numLargo) => {
     const s = String(numLargo || '').padStart(21, '0');
@@ -58,14 +65,7 @@
     return '4';
   };
 
-  const cuentaLarga = (cuentaLegible) => {
-    const base = normalizarCuentaBase(cuentaLegible).padEnd(11, '0').slice(0, 11);
-    if (!base.trim()) {
-      return '';
-    }
-    const nivel = deducirNivel(base);
-    return base.padEnd(20, '0') + nivel;
-  };
+  const cuentaLarga = (cuentaLegible) => construirCuentaLarga(cuentaLegible);
 
   const WORKFLOW_ETIQUETAS = {
     'sin-cargar': { texto: 'Sin cargar', descripcion: 'Esperando información.' },

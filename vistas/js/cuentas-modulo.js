@@ -78,7 +78,8 @@
     columnas: {},
     tabla: null,
     ultimaSolicitud: 0,
-    anio: null
+    anio: null,
+    tooltips: []
   };
 
   const obtenerYearSelect = () => {
@@ -202,6 +203,31 @@
     return Array.from(conjunto);
   };
 
+  const destruirTooltips = () => {
+    estadoModulo.tooltips.forEach((tooltip) => {
+      if (typeof tooltip?.dispose === 'function') {
+        tooltip.dispose();
+      }
+    });
+    estadoModulo.tooltips = [];
+  };
+
+  const activarTooltipsCuentas = () => {
+    destruirTooltips();
+    if (!estadoModulo.tabla || !window.bootstrap?.Tooltip) {
+      return;
+    }
+    const celdas = estadoModulo.tabla.querySelectorAll('tbody tr.fila-cuenta td[data-bs-toggle="tooltip"]');
+    celdas.forEach((celda) => {
+      const tooltip = window.bootstrap.Tooltip.getOrCreateInstance(celda, {
+        placement: 'top',
+        trigger: 'hover',
+        container: 'body'
+      });
+      estadoModulo.tooltips.push(tooltip);
+    });
+  };
+
   const solicitarDatos = async () => {
     const moduloClave = estadoModulo.moduloClave || normalizarModuloClave(estadoModulo.moduloId);
     if (!MODULOS_SOPORTADOS.has(moduloClave)) {
@@ -320,13 +346,19 @@
         const fila = document.createElement('tr');
         fila.className = 'fila-cuenta';
         const celdaCuenta = document.createElement('td');
+        const cuenta21 = convertirCuenta21(item.cuenta || '');
         celdaCuenta.textContent = item.cuenta || '-';
+        if (cuenta21) {
+          celdaCuenta.title = cuenta21;
+          celdaCuenta.dataset.bsToggle = 'tooltip';
+          celdaCuenta.dataset.bsPlacement = 'top';
+        }
         fila.appendChild(celdaCuenta);
         const celdaNombre = document.createElement('td');
         celdaNombre.textContent = item.nombre || '';
         fila.appendChild(celdaNombre);
         fila.dataset.cuenta = item.cuenta || '';
-        fila.dataset.cuenta21 = convertirCuenta21(item.cuenta || '');
+        fila.dataset.cuenta21 = cuenta21;
         for (let i = 0; i < placeholdersPorFila; i += 1) {
           const celda = document.createElement('td');
           celda.className = 'budget-value';
@@ -378,6 +410,7 @@
     if (!tabla || !cuerpo) {
       return Promise.resolve(false);
     }
+    destruirTooltips();
 
     const columnas = Number(opciones.totalColumnas) || contarColumnas(tabla);
     const placeholdersPorFila = Math.max(0, columnas - 2);
@@ -441,6 +474,7 @@
     estadoModulo.moduloClave = moduloClave;
     estadoModulo.sheet = sheetConfigurada;
     solicitarDatos();
+    activarTooltipsCuentas();
 
     return Promise.resolve(true);
   };
@@ -480,6 +514,7 @@
         destruido = true;
         window.removeEventListener(Sesion.EVENTO_EMPRESA, listener);
         window.removeEventListener(EVENTO_CONTEXTO, contextoListener);
+        destruirTooltips();
       }
     };
   };
