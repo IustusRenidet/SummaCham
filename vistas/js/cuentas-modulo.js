@@ -84,7 +84,8 @@
     sumas: {
       secciones: [],
       resultRows: new Map()
-    }
+    },
+    valoresPorCuenta: new Map()
   };
 
   const obtenerYearSelect = () => {
@@ -163,6 +164,7 @@
   };
 
   const limpiarValores = () => {
+    estadoModulo.valoresPorCuenta = new Map();
     obtenerFilasCuenta().forEach((fila) => {
       MESES.forEach((mes) => {
         establecerValorCelda(fila, `budget-${mes}`, 0);
@@ -176,11 +178,13 @@
 
   const aplicarImportes = (registros = []) => {
     const mapa = new Map(registros.map((registro) => [registro.cuenta, registro]));
+    estadoModulo.valoresPorCuenta = new Map();
     obtenerFilasCuenta().forEach((fila) => {
       const cuenta = fila.dataset.cuenta21 || '';
       const registro = mapa.get(cuenta);
       let totalPresupuesto = 0;
       let totalReal = 0;
+      const almacen = {};
       MESES.forEach((mes) => {
         const presupuesto = registro?.presupuesto?.[mes] ?? 0;
         const real = registro?.real?.[mes] ?? 0;
@@ -188,9 +192,14 @@
         totalReal += Number(real) || 0;
         establecerValorCelda(fila, `budget-${mes}`, presupuesto);
         establecerValorCelda(fila, `real-${mes}`, real);
+        almacen[`budget-${mes}`] = Number(presupuesto) || 0;
+        almacen[`real-${mes}`] = Number(real) || 0;
       });
       establecerValorCelda(fila, 'total-budget', totalPresupuesto);
       establecerValorCelda(fila, 'total-real', totalReal);
+      almacen['total-budget'] = totalPresupuesto;
+      almacen['total-real'] = totalReal;
+      estadoModulo.valoresPorCuenta.set(cuenta, almacen);
     });
     recalcularSumas();
   };
@@ -460,17 +469,28 @@
     if (!meta || !meta.secciones.length) {
       return;
     }
-    const secciones = meta.secciones;
-
-    const filaMuestra =
-      obtenerFilasCuenta().find((fila) => fila.cells && fila.cells.length > 2) || secciones[0]?.filasCuenta?.[0];
-    if (!filaMuestra) {
+    const clavesOrdenadas = Object.entries(estadoModulo.columnas || {})
+      .sort((a, b) => a[1] - b[1])
+      .map(([clave]) => clave)
+      .filter((clave) => clave !== 'year');
+    const longitud = clavesOrdenadas.length;
+    if (!longitud) {
       return;
     }
-    const longitud = filaMuestra.cells.length - 2;
+    const secciones = meta.secciones;
 
     secciones.forEach((seccion) => {
-      const valores = sumarListas(seccion.filasCuenta.map((fila) => extraerValoresNumericos(fila)), longitud);
+      const valores = sumarListas(
+        seccion.filasCuenta.map((fila) => {
+          const cuenta = fila.dataset.cuenta21 || '';
+          const almacenados = estadoModulo.valoresPorCuenta.get(cuenta);
+          if (almacenados) {
+            return clavesOrdenadas.map((clave) => almacenados[clave] ?? 0);
+          }
+          return extraerValoresNumericos(fila);
+        }),
+        longitud
+      );
       seccion.sumValues = valores;
       if (seccion.elementos.sumRow) {
         asignarValoresNumericos(seccion.elementos.sumRow, valores);
