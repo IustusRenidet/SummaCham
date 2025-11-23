@@ -334,6 +334,26 @@
     window.dispatchEvent(new CustomEvent('modulo-planeacion:presupuesto-editado', { detail: detalle }));
   };
 
+  const indicesMesReal = () =>
+    Object.entries(estadoModulo.columnas || {})
+      .filter(([clave]) => clave.startsWith('real-'))
+      .map(([, idx]) => idx);
+
+  const ocultarColumnasReal = (ocultar) => {
+    if (!estadoModulo.tabla) return;
+    const indices = indicesMesReal();
+    if (!indices.length) return;
+    const filas = Array.from(estadoModulo.tabla.querySelectorAll('tr'));
+    filas.forEach((fila) => {
+      indices.forEach((idx) => {
+        const celda = fila.cells[idx];
+        if (celda) {
+          celda.style.display = ocultar ? 'none' : '';
+        }
+      });
+    });
+  };
+
   const aplicarNombresTabla = (mapaNombres = new Map()) => {
     if (!mapaNombres.size) return;
     obtenerFilasCuenta().forEach((fila) => {
@@ -758,6 +778,7 @@
 
   const limpiarModoEdicionEnTabla = () => {
     if (!estadoModulo.tabla) return;
+    ocultarColumnasReal(false);
     obtenerFilasCuenta().forEach((fila) => {
       Array.from(fila.cells).forEach((celda) => {
         if (!celda.dataset.editable) return;
@@ -776,8 +797,45 @@
       return;
     }
     estadoModulo.tabla.classList.add('modo-edicion');
+    ocultarColumnasReal(true);
     const reverse = invertirColumnas();
     const filas = obtenerFilasCuenta();
+
+    const obtenerCeldasEditablesFila = (fila) => Array.from(fila.cells).filter((celda) => celda.dataset.editable);
+    const enfocarCelda = (celda) => {
+      if (!celda) return;
+      celda.focus();
+      const range = document.createRange();
+      const sel = window.getSelection();
+      range.selectNodeContents(celda);
+      range.collapse(false);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    };
+    const moverFocus = (celdaActual, direccion) => {
+      if (!celdaActual) return;
+      const fila = celdaActual.parentElement;
+      const filasEdit = obtenerFilasCuenta();
+      const filaIndex = filasEdit.indexOf(fila);
+      const colIndex = Array.from(fila.cells).indexOf(celdaActual);
+      if (filaIndex < 0 || colIndex < 0) return;
+      if (direccion === 'arriba' && filaIndex > 0) {
+        const target = filasEdit[filaIndex - 1].cells[colIndex];
+        if (target?.dataset.editable) enfocarCelda(target);
+      } else if (direccion === 'abajo' && filaIndex < filasEdit.length - 1) {
+        const target = filasEdit[filaIndex + 1].cells[colIndex];
+        if (target?.dataset.editable) enfocarCelda(target);
+      } else if (direccion === 'izquierda') {
+        const editables = obtenerCeldasEditablesFila(fila);
+        const idx = editables.indexOf(celdaActual);
+        if (idx > 0) enfocarCelda(editables[idx - 1]);
+      } else if (direccion === 'derecha') {
+        const editables = obtenerCeldasEditablesFila(fila);
+        const idx = editables.indexOf(celdaActual);
+        if (idx >= 0 && idx < editables.length - 1) enfocarCelda(editables[idx + 1]);
+      }
+    };
+
     filas.forEach((fila) => {
       const celdaCuenta = fila.cells[0];
       const celdaNombre = fila.cells[1];
@@ -789,6 +847,15 @@
           if (evt.key === 'Enter') {
             evt.preventDefault();
             celdaCuenta.blur();
+          } else if (evt.key === 'ArrowRight') {
+            evt.preventDefault();
+            moverFocus(celdaCuenta, 'derecha');
+          } else if (evt.key === 'ArrowDown') {
+            evt.preventDefault();
+            moverFocus(celdaCuenta, 'abajo');
+          } else if (evt.key === 'ArrowUp') {
+            evt.preventDefault();
+            moverFocus(celdaCuenta, 'arriba');
           }
         });
       }
@@ -800,6 +867,18 @@
           if (evt.key === 'Enter') {
             evt.preventDefault();
             celdaNombre.blur();
+          } else if (evt.key === 'ArrowLeft') {
+            evt.preventDefault();
+            moverFocus(celdaNombre, 'izquierda');
+          } else if (evt.key === 'ArrowRight') {
+            evt.preventDefault();
+            moverFocus(celdaNombre, 'derecha');
+          } else if (evt.key === 'ArrowDown') {
+            evt.preventDefault();
+            moverFocus(celdaNombre, 'abajo');
+          } else if (evt.key === 'ArrowUp') {
+            evt.preventDefault();
+            moverFocus(celdaNombre, 'arriba');
           }
         });
       }
@@ -815,10 +894,37 @@
           if (evt.key === 'Enter') {
             evt.preventDefault();
             celda.blur();
+          } else if (evt.key === 'ArrowLeft') {
+            evt.preventDefault();
+            moverFocus(celda, 'izquierda');
+          } else if (evt.key === 'ArrowRight') {
+            evt.preventDefault();
+            moverFocus(celda, 'derecha');
+          } else if (evt.key === 'ArrowDown') {
+            evt.preventDefault();
+            moverFocus(celda, 'abajo');
+          } else if (evt.key === 'ArrowUp') {
+            evt.preventDefault();
+            moverFocus(celda, 'arriba');
           }
         });
       });
     });
+
+    // Enfocar la primera celda budget disponible
+    const primerFila = filas[0];
+    if (primerFila) {
+      const indiceBudget = Object.entries(estadoModulo.columnas || {})
+        .filter(([clave]) => esClaveBudget(clave))
+        .map(([, idx]) => idx)
+        .sort((a, b) => a - b)[0];
+      if (indiceBudget != null) {
+        const celdaFocus = primerFila.cells[indiceBudget];
+        if (celdaFocus) {
+          setTimeout(() => enfocarCelda(celdaFocus), 0);
+        }
+      }
+    }
   };
 
   const iniciarEdicion = () => {
