@@ -20,28 +20,55 @@ const MESES = [
 const formatearPeriodo = (v) => v.toString().padStart(2, '0');
 const construirNombreTabla = (prefijo, anio) => `${prefijo}${anio.toString().slice(-2).padStart(2,'0')}`;
 
-const exprSaldoAcumMes = (periodo, alias) => {
-  const c = Array.from({length: periodo}, (_,i)=>`COALESCE(s.cargo${formatearPeriodo(i+1)},0)`).join(' + ') || '0';
-  const a = Array.from({length: periodo}, (_,i)=>`COALESCE(s.abono${formatearPeriodo(i+1)},0)`).join(' + ') || '0';
-  return `COALESCE(s.inicial,0) + (${c}) - (${a}) AS ${alias}`;
+const determinarNaturalezaReal = (numCta, naturalezaCampo) => {
+  const cuenta = String(numCta || '').trim();
+  if (/^1/.test(cuenta)) return 'D';
+  if (/^2/.test(cuenta)) return 'A';
+  if (/^3/.test(cuenta)) return 'A';
+  if (/^4/.test(cuenta)) return 'A';
+  if (/^[5-9]/.test(cuenta)) return 'D';
+  const nat = String(naturalezaCampo || '').trim().toUpperCase();
+  return ['A', '2', 'C'].includes(nat) ? 'A' : 'D';
 };
 
-const exprAnual = () => {
-  const c = Array.from({length: 12}, (_,i)=>`COALESCE(s.cargo${formatearPeriodo(i+1)},0)`).join(' + ');
-  const a = Array.from({length: 12}, (_,i)=>`COALESCE(s.abono${formatearPeriodo(i+1)},0)`).join(' + ');
-  return `COALESCE(s.inicial,0) + (${c}) - (${a}) AS ANUAL`;
+const calcularSaldosCoiPorMes = (row) => {
+  const naturalezaReal = determinarNaturalezaReal(row.CUENTA, row.NATURALEZA);
+  const inicial = Number(row.INICIAL ?? 0);
+  let cargosAcum = 0;
+  let abonosAcum = 0;
+  const saldos = {};
+
+  MESES.forEach(({ periodo, clave }) => {
+    const cargo = Number(row[`CARGO${formatearPeriodo(periodo)}`] ?? 0);
+    const abono = Number(row[`ABONO${formatearPeriodo(periodo)}`] ?? 0);
+    cargosAcum += cargo;
+    abonosAcum += abono;
+    const saldo =
+      naturalezaReal === 'D'
+        ? Math.abs(inicial + cargosAcum - abonosAcum)
+        : Math.abs(inicial + abonosAcum - cargosAcum);
+    saldos[clave] = saldo;
+  });
+
+  return {
+    naturalezaReal,
+    saldos,
+    anual: saldos.dic ?? 0
+  };
 };
 
 const mapRow = (r) => {
+  const { naturalezaReal, saldos, anual } = calcularSaldosCoiPorMes(r);
   const out = {
     numCta: String(r.CUENTA || '').trim(),
     nombre: r.NOMBRE,
-    naturaleza: r.NATURALEZA || ''
+    naturaleza: r.NATURALEZA || '',
+    naturalezaReal
   };
-  MESES.forEach(({alias, clave}) => out[clave] = Number(r[alias] ?? 0));
-  out.ajuste13 = Number((r.AJU13 ?? 0));
-  out.ajuste14 = Number((r.AJU14 ?? 0));
-  out.anual = Number(r.ANUAL ?? 0);
+  MESES.forEach(({ clave }) => {
+    out[clave] = Number(saldos[clave] ?? 0);
+  });
+  out.anual = Number(anual ?? 0);
   return out;
 };
 
@@ -56,12 +83,8 @@ async function obtenerSaldosPorCuentas(empresaId, anio, cuentas = []) {
   const tCtas = construirNombreTabla('CUENTAS', ejercicio);
   const tSal = construirNombreTabla('SALDOS', ejercicio);
 
-  const colsMeses = MESES.map(({periodo, alias}) => exprSaldoAcumMes(periodo, alias)).join(',\n      ');
-  const colsAjustes = `
-      COALESCE(s.cargo13,0) - COALESCE(s.abono13,0) AS AJU13,
-      COALESCE(s.cargo14,0) - COALESCE(s.abono14,0) AS AJU14
-  `;
-  const colAnual = exprAnual();
+  const colsCargos = MESES.map(({periodo}) => `COALESCE(s.cargo${formatearPeriodo(periodo)},0) AS CARGO${formatearPeriodo(periodo)}`).join(',\n      ');
+  const colsAbonos = MESES.map(({periodo}) => `COALESCE(s.abono${formatearPeriodo(periodo)},0) AS ABONO${formatearPeriodo(periodo)}`).join(',\n      ');
 
   // Placeholders para IN (?, ?, ...)
   const binds = cuentas.map(()=>'?').join(',');
@@ -72,9 +95,9 @@ async function obtenerSaldosPorCuentas(empresaId, anio, cuentas = []) {
       c.num_cta AS CUENTA,
       c.nombre  AS NOMBRE,
       c.naturaleza AS NATURALEZA,
-      ${colsMeses},
-      ${colsAjustes},
-      ${colAnual}
+      COALESCE(s.inicial,0) AS INICIAL,
+      ${colsCargos},
+      ${colsAbonos}
     FROM ${tCtas} c
     LEFT JOIN ${tSal} s
       ON s.num_cta = c.num_cta
