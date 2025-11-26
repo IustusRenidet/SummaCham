@@ -188,15 +188,22 @@
     return Array.from(conjunto).sort((a, b) => a - b);
   };
 
+  let soportaSaldosAnios = true;
   const obtenerAniosDesdeSaldos = async (empresaId) => {
-    if (!empresaId) return [];
+    if (!empresaId || !soportaSaldosAnios) return [];
     try {
       const params = new URLSearchParams({ empresaId });
       const resp = await fetch(`${API_BASE}/saldos/anios?${params.toString()}`, {
         headers: Sesion.headersAutenticacion()
       });
       const datos = await resp.json();
-      if (!resp.ok) throw new Error(datos.mensaje || 'No fue posible obtener los ejercicios de saldos.');
+      if (!resp.ok) {
+        if (resp.status === 404) {
+          soportaSaldosAnios = false;
+          return [];
+        }
+        throw new Error(datos.mensaje || 'No fue posible obtener los ejercicios de saldos.');
+      }
       return normalizarListaEnteros(datos.anios || []);
     } catch (error) {
       console.warn('No fue posible obtener ejercicios desde saldos', error);

@@ -123,7 +123,7 @@
     const mapa = {};
     const cabeceras = Array.from(tabla.tHead.querySelectorAll('th'));
     cabeceras.forEach((th, indice) => {
-      if (th.classList.contains('month-budget')) {
+      if (th.classList.contains('![1764172340712](image/cuentas-modulo/1764172340712.png)budget')) {
         const clave = th.dataset.mes || '';
         mapa[`budget-${clave}`] = indice;
       } else if (th.classList.contains('month-real')) {
@@ -419,15 +419,29 @@
           if (!cuenta21) return null;
           const presupuesto = {};
           const real = {};
-          MESES.forEach((mes) => {
-            presupuesto[mes] = normalizarNumero(cuenta[mes]) * factor;
+          MESES.forEach((mes, idxMes) => {
+            const sufijoMes = String(idxMes + 1).padStart(2, '0');
+            const presupuestoCampo =
+              cuenta[`PRESUP${sufijoMes}`] ??
+              cuenta[`presup${sufijoMes}`] ??
+              (cuenta.presupuesto && cuenta.presupuesto[mes] != null ? cuenta.presupuesto[mes] : undefined) ??
+              cuenta[`presupuesto_${mes}`] ??
+              cuenta[`presupuesto${mes}`] ??
+              cuenta[mes];
             const realCampo =
+              (cuenta.contabilizacion && cuenta.contabilizacion[mes] != null ? cuenta.contabilizacion[mes] : undefined) ??
+              cuenta[`contabilizacion_${mes}`] ??
+              cuenta[`contabilizacion${mes}`] ??
               (cuenta.real && cuenta.real[mes] != null ? cuenta.real[mes] : undefined) ??
               cuenta[`real_${mes}`] ??
               cuenta[`real${mes}`] ??
               cuenta[`REAL_${mes}`] ??
               cuenta[`REAL${mes}`];
-            real[mes] = normalizarNumero(realCampo) * factor;
+            const valorPresupuesto = normalizarNumero(presupuestoCampo) * factor;
+            const tieneReal = realCampo != null && realCampo !== undefined;
+            const valorReal = normalizarNumero(tieneReal ? realCampo : presupuestoCampo) * factor;
+            presupuesto[mes] = valorPresupuesto;
+            real[mes] = valorReal;
           });
           return {
             cuenta21,
