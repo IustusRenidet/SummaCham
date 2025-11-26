@@ -123,6 +123,11 @@
     const mapa = {};
     const cabeceras = Array.from(tabla.tHead.querySelectorAll('th'));
     cabeceras.forEach((th, indice) => {
+      if (th.classList.contains('budget-annual-column')) {
+        mapa['budget-annual'] = indice;
+      } else if (th.classList.contains('budget-monthly-column')) {
+        mapa['budget-monthly'] = indice;
+      }
       if (th.classList.contains('month-budget')) {
         const clave = th.dataset.mes || '';
         mapa[`budget-${clave}`] = indice;
@@ -192,7 +197,22 @@
         celdaTotal.textContent = formatearNumero(totalPresupuesto);
       }
     }
+    if (estadoModulo.columnas['budget-annual'] != null) {
+      const celdaAnnual = fila.cells[estadoModulo.columnas['budget-annual']];
+      if (celdaAnnual) {
+        celdaAnnual.textContent = formatearNumero(totalPresupuesto);
+      }
+    }
+    if (estadoModulo.columnas['budget-monthly'] != null) {
+      const celdaMensual = fila.cells[estadoModulo.columnas['budget-monthly']];
+      if (celdaMensual) {
+        const mensual = totalPresupuesto / 12;
+        celdaMensual.textContent = formatearNumero(mensual);
+      }
+    }
     almacen['total-budget'] = totalPresupuesto;
+    almacen['budget-annual'] = totalPresupuesto;
+    almacen['budget-monthly'] = totalPresupuesto / 12;
     estadoModulo.valoresPorCuenta.set(cuenta, almacen);
   };
 
@@ -217,6 +237,8 @@
       });
       establecerValorCelda(fila, 'total-budget', 0);
       establecerValorCelda(fila, 'total-real', 0);
+      establecerValorCelda(fila, 'budget-annual', 0);
+      establecerValorCelda(fila, 'budget-monthly', 0);
     });
     recalcularSumas();
     estadoModulo.hayCambios = false;
@@ -234,22 +256,25 @@
       const cuenta = fila.dataset.cuenta21 || '';
       const registro = mapa.get(cuenta);
       let totalPresupuesto = 0;
-      let totalReal = 0;
       const almacen = {};
       MESES.forEach((mes) => {
         const presupuesto = numeroSeguro(registro?.presupuesto?.[mes]);
         const real = numeroSeguro(registro?.real?.[mes]);
         totalPresupuesto += presupuesto;
-        totalReal += real;
         establecerValorCelda(fila, `budget-${mes}`, presupuesto);
         establecerValorCelda(fila, `real-${mes}`, real);
         almacen[`budget-${mes}`] = presupuesto;
         almacen[`real-${mes}`] = real;
       });
+      const totalRealConAjuste = numeroSeguro(registro?.real?.dic);
       establecerValorCelda(fila, 'total-budget', totalPresupuesto);
-      establecerValorCelda(fila, 'total-real', totalReal);
+      establecerValorCelda(fila, 'total-real', totalRealConAjuste);
+      establecerValorCelda(fila, 'budget-annual', totalPresupuesto);
+      establecerValorCelda(fila, 'budget-monthly', totalPresupuesto / 12);
       almacen['total-budget'] = totalPresupuesto;
-      almacen['total-real'] = totalReal;
+      almacen['budget-annual'] = totalPresupuesto;
+      almacen['budget-monthly'] = totalPresupuesto / 12;
+      almacen['total-real'] = totalRealConAjuste;
       estadoModulo.valoresPorCuenta.set(cuenta, almacen);
     });
     recalcularSumas();
@@ -294,6 +319,8 @@
       });
       establecerValorCelda(fila, 'total-budget', valores['total-budget'] ?? 0);
       establecerValorCelda(fila, 'total-real', valores['total-real'] ?? 0);
+      establecerValorCelda(fila, 'budget-annual', valores['budget-annual'] ?? 0);
+      establecerValorCelda(fila, 'budget-monthly', valores['budget-monthly'] ?? 0);
     });
     recalcularSumas();
   };

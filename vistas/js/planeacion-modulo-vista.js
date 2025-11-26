@@ -177,7 +177,7 @@
       (Array.isArray(lista) ? lista : [])
         .map((valor) => Number(valor))
         .filter((valor) => Number.isInteger(valor))
-    )).sort((a, b) => a - b);
+    )).sort((a, b) => b - a); // Descendente: más recientes primero
   };
 
   const asegurarAniosVigentes = (lista = []) => {
@@ -220,7 +220,8 @@
     if (lista.includes(actual)) {
       return actual;
     }
-    return lista[lista.length - 1];
+    // Lista descendente: primer elemento es el más reciente
+    return lista[0];
   };
 
   const initVistaModuloPlaneacion = (config = {}) => {

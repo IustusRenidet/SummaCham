@@ -34,7 +34,8 @@ function normalizarListaAnios(lista) {
       return Number.isFinite(numero) ? numero : null;
     })
     .filter((valor) => valor != null);
-  return Array.from(new Set(numeros)).sort((a, b) => a - b);
+  // Orden descendente (más recientes primero)
+  return Array.from(new Set(numeros)).sort((a, b) => b - a);
 }
 
 function sincronizarSelectsAnio(listaAnios, preferido) {
@@ -107,7 +108,8 @@ function sincronizarSelectsAnio(listaAnios, preferido) {
     return preferInicial;
   }
 
-  return anios[anios.length - 1];
+  // Con lista descendente, el primero es el más reciente
+  return anios[0];
 }
 
 // Mapa Mes (UI) -> Periodo numérico (1..13)

@@ -69,6 +69,7 @@ const mapRow = (r) => {
     out[clave] = Number(saldos[clave] ?? 0);
   });
   out.anual = Number(anual ?? 0);
+  out.ajuste14 = Number(r.AJU14 ?? 0);
   return out;
 };
 
@@ -97,7 +98,8 @@ async function obtenerSaldosPorCuentas(empresaId, anio, cuentas = []) {
       c.naturaleza AS NATURALEZA,
       COALESCE(s.inicial,0) AS INICIAL,
       ${colsCargos},
-      ${colsAbonos}
+      ${colsAbonos},
+      COALESCE(s.cargo14,0) - COALESCE(s.abono14,0) AS AJU14
     FROM ${tCtas} c
     LEFT JOIN ${tSal} s
       ON s.num_cta = c.num_cta
