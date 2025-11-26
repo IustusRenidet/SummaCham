@@ -123,7 +123,7 @@
     const mapa = {};
     const cabeceras = Array.from(tabla.tHead.querySelectorAll('th'));
     cabeceras.forEach((th, indice) => {
-      if (th.classList.contains('![1764172340712](image/cuentas-modulo/1764172340712.png)budget')) {
+      if (th.classList.contains('month-budget')) {
         const clave = th.dataset.mes || '';
         mapa[`budget-${clave}`] = indice;
       } else if (th.classList.contains('month-real')) {
