@@ -3,7 +3,7 @@ const Joi = require('joi');
 const { db } = require('../db/sqlite');
 const { obtenerEmpresaPorId } = require('../config/empresas');
 const { MODULOS, construirMapaPermisos } = require('../services/permisosService');
-const { obtenerPresupuestosMayor, PERIODOS } = require('../services/presupuestosService');
+const { obtenerPresupuestosMayor, PERIODOS, listarAniosPresupuestos } = require('../services/presupuestosService');
 const { notificarWorkflowPresupuesto } = require('../services/notificacionesService');
 
 const router = express.Router();
@@ -151,6 +151,28 @@ const guardarEstadoPresupuesto = (empresaId, modulo, anio, estado, usuarioId) =>
   `).run(empresaId, modulo, anio, estado, usuarioId);
   return obtenerEstadoPresupuesto(empresaId, modulo, anio);
 };
+
+router.get('/anios', async (req, res) => {
+  const empresaId = req.query.empresaId || req.headers['x-empresa-activa'];
+  if (!empresaId) {
+    return res.status(400).json({ mensaje: 'Debes indicar una empresa.' });
+  }
+  const empresa = obtenerEmpresaPorId(empresaId);
+  if (!empresa) {
+    return res.status(404).json({ mensaje: 'La empresa indicada no existe.' });
+  }
+  if (!req.esAdmin && !tienePermisoEnEmpresa(req.mapaPermisos, empresa.id)) {
+    return res.status(403).json({ mensaje: 'No cuentas con permisos para consultar esta empresa.' });
+  }
+
+  try {
+    const anios = await listarAniosPresupuestos(empresa.id);
+    res.json({ anios });
+  } catch (error) {
+    console.error('Error al consultar anos de presupuestos:', error);
+    res.status(500).json({ mensaje: 'No fue posible obtener los ejercicios disponibles.' });
+  }
+});
 
 router.get('/', async (req, res) => {
   const { value, error } = esquemaConsulta.validate(req.query, { abortEarly: false });

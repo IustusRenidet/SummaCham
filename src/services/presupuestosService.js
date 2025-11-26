@@ -1,4 +1,5 @@
 const { ejecutarConsulta } = require('./firebirdService');
+const { listarAniosPresupuestos } = require('./presupuestosMetadataService');
 
 const PERIODOS = Array.from({ length: 12 }, (_, indice) => indice + 1);
 
@@ -24,48 +25,35 @@ const construirNombreTabla = (prefijo, anio) => {
   return `${prefijo}${sufijo}`;
 };
 
-const construirExpresionSaldoMensual = (periodo, alias) => {
-  const camposCargo = Array.from(
-    { length: periodo },
-    (_, indice) => `COALESCE(s.cargo${formatearPeriodo(indice + 1)}, 0)`
-  );
-  const camposAbono = Array.from(
-    { length: periodo },
-    (_, indice) => `COALESCE(s.abono${formatearPeriodo(indice + 1)}, 0)`
-  );
-
-  const sumaCargos = camposCargo.length ? camposCargo.join(' + ') : '0';
-  const sumaAbonos = camposAbono.length ? camposAbono.join(' + ') : '0';
-
-  return `COALESCE(s.inicial, 0) + (${sumaCargos}) - (${sumaAbonos}) AS ${alias}`;
-};
-
-const construirExpresionSaldoAnual = () => {
-  const camposCargo = Array.from(
-    { length: 12 },
-    (_, indice) => `COALESCE(s.cargo${formatearPeriodo(indice + 1)}, 0)`
-  );
-  const camposAbono = Array.from(
-    { length: 12 },
-    (_, indice) => `COALESCE(s.abono${formatearPeriodo(indice + 1)}, 0)`
-  );
-
-  return `COALESCE(s.inicial, 0) + (${camposCargo.join(' + ')}) - (${camposAbono.join(' + ')}) AS ANUAL`;
-};
-
 const mapearRegistro = (registro) => {
+  const presupuestoMensual = {};
+  const realMensual = {};
+  let acumuladoPresupuesto = 0;
+
   const datos = {
     numCta: registro.CUENTA,
     descripcion: registro.DESCRIPCION,
-    // Agregado: Incluir naturaleza para que el cliente aplique el factor correctamente
     naturaleza: registro.NATURALEZA || ''
   };
 
-  MESES.forEach(({ alias, clave }) => {
-    datos[clave] = Number(registro[alias] ?? 0);
+  MESES.forEach(({ clave, periodo }) => {
+    const sufijo = formatearPeriodo(periodo);
+    const valorPresupuesto = Number(registro[`PRESUP${sufijo}`] ?? 0);
+    const valorReal = Number(registro[`REAL${sufijo}`] ?? 0);
+
+    presupuestoMensual[clave] = valorPresupuesto;
+    realMensual[clave] = valorReal;
+
+    datos[`presup${sufijo}`] = valorPresupuesto;
+    datos[`real${sufijo}`] = valorReal;
+
+    acumuladoPresupuesto += valorPresupuesto;
+    datos[clave] = acumuladoPresupuesto;
   });
 
-  datos.anual = Number(registro.ANUAL ?? 0);
+  datos.presupuesto = presupuestoMensual;
+  datos.real = realMensual;
+  datos.anual = acumuladoPresupuesto;
 
   return datos;
 };
@@ -76,23 +64,31 @@ const obtenerPresupuestosMayor = async (empresaId, anio) => {
   }
   const ejercicio = Number(anio);
   if (!Number.isInteger(ejercicio) || ejercicio < 2000 || ejercicio > 2100) {
-    throw new Error('El ejercicio indicado no es válido.');
+    throw new Error('El ejercicio indicado no es valido.');
   }
 
   const tablaCuentas = construirNombreTabla('CUENTAS', ejercicio);
+  const tablaPresupuesto = construirNombreTabla('PRESUP', ejercicio);
   const tablaSaldos = construirNombreTabla('SALDOS', ejercicio);
 
-  const columnasMensuales = MESES.map(({ periodo, alias }) => construirExpresionSaldoMensual(periodo, alias));
-  const columnaAnual = construirExpresionSaldoAnual();
+  const columnasPresupuesto = MESES.map(
+    ({ periodo }) => `COALESCE(p.PRESUP${formatearPeriodo(periodo)}, 0) AS PRESUP${formatearPeriodo(periodo)}`
+  );
+  const columnasReal = MESES.map(
+    ({ periodo }) =>
+      `COALESCE(s.CARGO${formatearPeriodo(periodo)}, 0) - COALESCE(s.ABONO${formatearPeriodo(periodo)}, 0) AS REAL${formatearPeriodo(periodo)}`
+  );
 
-  // Agregado: Incluir NATURALEZA en el SELECT para respetar la lógica contable (factor ±1)
   const consulta = `
     SELECT
       c.NUM_CTA AS CUENTA,
       c.NOMBRE AS DESCRIPCION,
       c.NATURALEZA,
-      ${[...columnasMensuales, columnaAnual].join(',\n      ')}
+      ${[...columnasPresupuesto, ...columnasReal].join(',\n      ')}
     FROM ${tablaCuentas} c
+    LEFT JOIN ${tablaPresupuesto} p
+      ON p.NUM_CTA = c.NUM_CTA
+     AND p.EJERCICIO = ?
     LEFT JOIN ${tablaSaldos} s
       ON s.NUM_CTA = c.NUM_CTA
      AND s.EJERCICIO = ?
@@ -102,11 +98,12 @@ const obtenerPresupuestosMayor = async (empresaId, anio) => {
     ORDER BY c.NUM_CTA
   `;
 
-  const resultados = await ejecutarConsulta(empresaId, consulta, [ejercicio]);
+  const resultados = await ejecutarConsulta(empresaId, consulta, [ejercicio, ejercicio]);
   return resultados.map((registro) => mapearRegistro(registro));
 };
 
 module.exports = {
   obtenerPresupuestosMayor,
+  listarAniosPresupuestos,
   PERIODOS
 };

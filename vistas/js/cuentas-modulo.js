@@ -413,7 +413,7 @@
       return cuentas
         .map((cuenta) => {
           const naturaleza = (cuenta.naturaleza || cuenta.NATURALEZA || '').toString().trim().toUpperCase();
-          const factor = esAcreedora(naturaleza) ? -1 : 1;
+          const factorReal = esAcreedora(naturaleza) ? -1 : 1;
           const cuentaVisible = cuenta.numCta || cuenta.num_cta || cuenta.CUENTA || cuenta.cuenta || '';
           const cuenta21 = convertirCuenta21(cuentaVisible);
           if (!cuenta21) return null;
@@ -437,9 +437,11 @@
               cuenta[`real${mes}`] ??
               cuenta[`REAL_${mes}`] ??
               cuenta[`REAL${mes}`];
-            const valorPresupuesto = normalizarNumero(presupuestoCampo) * factor;
+            // Presupuesto: usar el valor tal cual viene de la tabla PRESUPxx (sin factor).
+            const valorPresupuesto = normalizarNumero(presupuestoCampo);
             const tieneReal = realCampo != null && realCampo !== undefined;
-            const valorReal = normalizarNumero(tieneReal ? realCampo : presupuestoCampo) * factor;
+            // Real: se toma la contabilización (cargo-abono) y se ajusta por naturaleza.
+            const valorReal = normalizarNumero(tieneReal ? realCampo : 0) * factorReal;
             presupuesto[mes] = valorPresupuesto;
             real[mes] = valorReal;
           });

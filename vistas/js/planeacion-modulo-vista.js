@@ -188,25 +188,27 @@
     return Array.from(conjunto).sort((a, b) => a - b);
   };
 
-  let soportaSaldosAnios = true;
-  const obtenerAniosDesdeSaldos = async (empresaId) => {
-    if (!empresaId || !soportaSaldosAnios) return [];
+  const soporteAniosPorEndpoint = new Map();
+  const obtenerAniosDesdeEndpoint = async (empresaId, endpointAnios = 'saldos') => {
+    const endpoint = limpiarEndpoint(endpointAnios, 'saldos');
+    if (!empresaId) return [];
+    if (soporteAniosPorEndpoint.get(endpoint) === false) return [];
     try {
       const params = new URLSearchParams({ empresaId });
-      const resp = await fetch(`${API_BASE}/saldos/anios?${params.toString()}`, {
+      const resp = await fetch(`${API_BASE}/${endpoint}/anios?${params.toString()}`, {
         headers: Sesion.headersAutenticacion()
       });
       const datos = await resp.json();
       if (!resp.ok) {
         if (resp.status === 404) {
-          soportaSaldosAnios = false;
+          soporteAniosPorEndpoint.set(endpoint, false);
           return [];
         }
-        throw new Error(datos.mensaje || 'No fue posible obtener los ejercicios de saldos.');
+        throw new Error(datos.mensaje || 'No fue posible obtener los ejercicios disponibles.');
       }
       return normalizarListaEnteros(datos.anios || []);
     } catch (error) {
-      console.warn('No fue posible obtener ejercicios desde saldos', error);
+      console.warn(`No fue posible obtener ejercicios desde ${endpoint}`, error);
       return [];
     }
   };
@@ -363,8 +365,8 @@
         actualizarEncabezadosMes();
         return;
       }
-      const aniosSaldos = await obtenerAniosDesdeSaldos(empresa.id);
-      estado.aniosDisponibles = asegurarAniosVigentes(aniosSaldos);
+      const aniosDisponibles = await obtenerAniosDesdeEndpoint(empresa.id, opciones.endpointAnios);
+      estado.aniosDisponibles = asegurarAniosVigentes(aniosDisponibles);
       estado.anio = seleccionarAnio(estado.aniosDisponibles, estado.anio);
       actualizarSelectAnio();
       actualizarYearLabels();
