@@ -71,13 +71,17 @@ const obtenerPresupuestosMayor = async (empresaId, anio) => {
   const tablaPresupuesto = construirNombreTabla('PRESUP', ejercicio);
   const tablaSaldos = construirNombreTabla('SALDOS', ejercicio);
 
-  const columnasPresupuesto = MESES.map(
-    ({ periodo }) => `COALESCE(p.PRESUP${formatearPeriodo(periodo)}, 0) AS PRESUP${formatearPeriodo(periodo)}`
-  );
-  const columnasReal = MESES.map(
-    ({ periodo }) =>
-      `COALESCE(s.CARGO${formatearPeriodo(periodo)}, 0) - COALESCE(s.ABONO${formatearPeriodo(periodo)}, 0) AS REAL${formatearPeriodo(periodo)}`
-  );
+  const columnasPresupuesto = MESES.map(({ periodo }) => {
+    const sufijo = formatearPeriodo(periodo);
+    return `COALESCE(p.PRESUP${sufijo}, 0) AS PRESUP${sufijo}`;
+  });
+
+  const columnasReal = MESES.map(({ periodo }) => {
+    const sufijo = formatearPeriodo(periodo);
+    const sumaCargos = Array.from({ length: periodo }, (_, i) => `COALESCE(s.CARGO${formatearPeriodo(i + 1)}, 0)`).join(' + ') || '0';
+    const sumaAbonos = Array.from({ length: periodo }, (_, i) => `COALESCE(s.ABONO${formatearPeriodo(i + 1)}, 0)`).join(' + ') || '0';
+    return `COALESCE(s.INICIAL, 0) + (${sumaCargos}) - (${sumaAbonos}) AS REAL${sufijo}`;
+  });
 
   const consulta = `
     SELECT
