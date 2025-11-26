@@ -69,6 +69,7 @@
     'rh',
     'servmembresia',
     'tic',
+    'presupuestos',
     'vpe'
   ]);
 
@@ -392,6 +393,49 @@
     }
   };
 
+  const cargarCuentasPresupuestos = async ({ anio } = {}) => {
+    const params = new URLSearchParams({ anio: Number.isInteger(anio) ? anio : new Date().getFullYear() });
+    const normalizarNumero = (valor) => {
+      const numerico = Number(valor);
+      return Number.isFinite(numerico) ? numerico : 0;
+    };
+    const esAcreedora = (naturaleza) => ['A', 'C'].includes((naturaleza || '').toString().trim().toUpperCase());
+
+    try {
+      const resp = await fetch(`${API_BASE}/presupuestos?${params.toString()}`, {
+        headers: Sesion.headersAutenticacion()
+      });
+      const datos = await resp.json();
+      if (!resp.ok) {
+        throw new Error(datos.mensaje || 'No fue posible obtener las cuentas de presupuestos.');
+      }
+      const cuentas = Array.isArray(datos.cuentas) ? datos.cuentas : [];
+      return cuentas
+        .map((cuenta) => {
+          const naturaleza = (cuenta.naturaleza || cuenta.NATURALEZA || '').toString().trim().toUpperCase();
+          const factor = esAcreedora(naturaleza) ? -1 : 1;
+          const cuentaVisible = cuenta.numCta || cuenta.num_cta || cuenta.CUENTA || cuenta.cuenta || '';
+          const cuenta21 = convertirCuenta21(cuentaVisible);
+          if (!cuenta21) return null;
+          const presupuesto = {};
+          MESES.forEach((mes) => {
+            presupuesto[mes] = normalizarNumero(cuenta[mes]) * factor;
+          });
+          return {
+            cuenta21,
+            cuentaVisible,
+            nombre: cuenta.descripcion || cuenta.nombre || cuenta.DESCRIPCION || '',
+            presupuesto,
+            real: {}
+          };
+        })
+        .filter(Boolean);
+    } catch (error) {
+      console.warn('No fue posible obtener cuentas para presupuestos', error);
+      return [];
+    }
+  };
+
   const destruirTooltips = () => {
     estadoModulo.tooltips.forEach((tooltip) => {
       if (typeof tooltip?.dispose === 'function') {
@@ -438,6 +482,29 @@
       limpiarValores();
       return;
     }
+
+    // Módulo Presupuestos usa su propio origen de datos
+    if (moduloClave === 'presupuestos') {
+      const registrosPresupuesto = await cargarCuentasPresupuestos({ anio });
+      if (!registrosPresupuesto.length) {
+        limpiarValores();
+        return;
+      }
+      const registros = registrosPresupuesto.map((registro) => {
+        const real = {};
+        MESES.forEach((mes) => {
+          real[mes] = Number(registro.real?.[mes]) || 0;
+        });
+        return {
+          cuenta: registro.cuenta21 || registro.cuenta || '',
+          presupuesto: registro.presupuesto || {},
+          real
+        };
+      });
+      aplicarImportes(registros);
+      return;
+    }
+
     const payload = {
       empresaId: empresa.id,
       anio,
@@ -989,7 +1056,7 @@
       : null;
     const sheetConfigurada = opciones.sheet || moduloSheet || sheetPorConfig || moduloNormalizado;
     const dataset = window.CUENTAS_POR_MODULO || {};
-    const hoja = obtenerHojaDatos(sheetConfigurada, dataset);
+    let hoja = obtenerHojaDatos(sheetConfigurada, dataset);
     limpiarBody(cuerpo);
 
     const empresa = Sesion.obtenerEmpresaActiva();
@@ -1002,6 +1069,21 @@
     if (!moduloHabilitado) {
       cuerpo.appendChild(crearFilaEstado('El capitulo seleccionado no tiene esta vista asignada.', columnas));
       return Promise.resolve(false);
+    }
+
+    if ((!hoja || !Array.isArray(hoja)) && moduloClave === 'presupuestos' && capituloDestino) {
+      const anioPresupuesto = obtenerAnioSeleccionado() || new Date().getFullYear();
+      const cuentasPresupuesto = await cargarCuentasPresupuestos({ anio: anioPresupuesto });
+      if (cuentasPresupuesto.length) {
+        hoja = cuentasPresupuesto
+          .map((registro) => ({
+            capitulo: capituloDestino,
+            seccion: 'Presupuestos',
+            cuenta: registro.cuentaVisible || '',
+            nombre: registro.nombre || ''
+          }))
+          .filter((registro) => registro.cuenta);
+      }
     }
 
     if (!hoja || !Array.isArray(hoja) || !capituloDestino) {
@@ -1020,7 +1102,7 @@
     const cuentasCapitulo = registros
       .map((registro) => convertirCuenta21(registro.cuenta || ''))
       .filter(Boolean);
-    if (empresaId && cuentasCapitulo.length) {
+    if (empresaId && cuentasCapitulo.length && moduloClave !== 'presupuestos') {
       const anioNombres = obtenerAnioSeleccionado() || new Date().getFullYear();
       await cargarNombresCuentas({ empresaId, anio: anioNombres, cuentas: cuentasCapitulo });
     }
@@ -1033,6 +1115,15 @@
       sheetName: sheetConfigurada,
       capitulo: capituloDestino
     });
+    if (moduloClave === 'presupuestos' && pendientes?.sumasSecciones) {
+      const claveResultado = normalizarTexto('Resultado Presupuestos');
+      pendientes.sumasSecciones.forEach((seccion) => {
+        seccion.resultRowTexto = claveResultado;
+      });
+      if (!pendientes.resultadoFilas.length) {
+        pendientes.resultadoFilas.push({ texto: 'Resultado Presupuestos', clase: 'result-row' });
+      }
+    }
 
     estadoModulo.sumas.sumavariosRows = new Map();
     pendientes.sumavarios.forEach((info, clave) => {

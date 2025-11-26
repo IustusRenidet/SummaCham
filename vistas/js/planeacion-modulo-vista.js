@@ -340,6 +340,15 @@
         actualizarEncabezadosMes();
         return;
       }
+      // Algunos modulos (p.ej. presupuestos) aun no exponen endpoint de ejercicios.
+      if ((opciones.endpointAnios || '').toLowerCase() === 'presupuestos') {
+        estado.aniosDisponibles = asegurarAniosVigentes([]);
+        estado.anio = seleccionarAnio(estado.aniosDisponibles, estado.anio);
+        actualizarSelectAnio();
+        actualizarYearLabels();
+        actualizarEncabezadosMes();
+        return;
+      }
       try {
         const params = new URLSearchParams({ empresaId: empresa.id });
         const respuesta = await fetch(`${API_BASE}/${opciones.endpointAnios}/anios?${params.toString()}`, {

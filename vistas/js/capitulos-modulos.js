@@ -93,6 +93,7 @@
     finanzas: 'Finanzas',
     'gtos-corporativos': 'Gtos Corporativos',
     membresia: 'Membresía',
+    presupuestos: 'Presupuestos',
     rh: 'RH',
     'serv-membresia': 'Serv Membresía',
     tic: 'T&IC',
