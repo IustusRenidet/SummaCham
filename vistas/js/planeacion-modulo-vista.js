@@ -181,11 +181,7 @@
   };
 
   const asegurarAniosVigentes = (lista = []) => {
-    const actual = new Date().getFullYear();
-    const conjunto = new Set(normalizarListaEnteros(lista));
-    conjunto.add(actual);
-    conjunto.add(actual + 1);
-    return Array.from(conjunto).sort((a, b) => a - b);
+    return normalizarListaEnteros(lista);
   };
 
   const soporteAniosPorEndpoint = new Map();

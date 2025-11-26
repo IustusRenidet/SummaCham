@@ -223,9 +223,13 @@
     estadoModulo.editSnapshot = null;
   };
 
-  const aplicarImportes = (registros = []) => {
+  const contarSaldos = (registros = []) => {
     const mapa = new Map(registros.map((registro) => [registro.cuenta, registro]));
     estadoModulo.valoresPorCuenta = new Map();
+    const numeroSeguro = (valor) => {
+      const n = Number(valor);
+      return Number.isFinite(n) ? n : 0;
+    };
     obtenerFilasCuenta().forEach((fila) => {
       const cuenta = fila.dataset.cuenta21 || '';
       const registro = mapa.get(cuenta);
@@ -233,14 +237,14 @@
       let totalReal = 0;
       const almacen = {};
       MESES.forEach((mes) => {
-        const presupuesto = registro?.presupuesto?.[mes] ?? 0;
-        const real = registro?.real?.[mes] ?? 0;
-        totalPresupuesto += Number(presupuesto) || 0;
-        totalReal += Number(real) || 0;
+        const presupuesto = numeroSeguro(registro?.presupuesto?.[mes]);
+        const real = numeroSeguro(registro?.real?.[mes]);
+        totalPresupuesto += presupuesto;
+        totalReal += real;
         establecerValorCelda(fila, `budget-${mes}`, presupuesto);
         establecerValorCelda(fila, `real-${mes}`, real);
-        almacen[`budget-${mes}`] = Number(presupuesto) || 0;
-        almacen[`real-${mes}`] = Number(real) || 0;
+        almacen[`budget-${mes}`] = presupuesto;
+        almacen[`real-${mes}`] = real;
       });
       establecerValorCelda(fila, 'total-budget', totalPresupuesto);
       establecerValorCelda(fila, 'total-real', totalReal);
@@ -524,7 +528,7 @@
           real
         };
       });
-      aplicarImportes(registros);
+      contarSaldos(registros);
       return;
     }
 
@@ -555,7 +559,7 @@
       if (folio !== estadoModulo.ultimaSolicitud) {
         return;
       }
-      aplicarImportes(datos.cuentas || []);
+      contarSaldos(datos.cuentas || []);
     } catch (error) {
       console.error('Error al cargar datos de planeación', error);
       if (folio === estadoModulo.ultimaSolicitud) {
