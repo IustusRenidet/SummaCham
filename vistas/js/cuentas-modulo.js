@@ -418,15 +418,23 @@
           const cuenta21 = convertirCuenta21(cuentaVisible);
           if (!cuenta21) return null;
           const presupuesto = {};
+          const real = {};
           MESES.forEach((mes) => {
             presupuesto[mes] = normalizarNumero(cuenta[mes]) * factor;
+            const realCampo =
+              (cuenta.real && cuenta.real[mes] != null ? cuenta.real[mes] : undefined) ??
+              cuenta[`real_${mes}`] ??
+              cuenta[`real${mes}`] ??
+              cuenta[`REAL_${mes}`] ??
+              cuenta[`REAL${mes}`];
+            real[mes] = normalizarNumero(realCampo) * factor;
           });
           return {
             cuenta21,
             cuentaVisible,
             nombre: cuenta.descripcion || cuenta.nombre || cuenta.DESCRIPCION || '',
             presupuesto,
-            real: {}
+            real
           };
         })
         .filter(Boolean);

@@ -188,6 +188,22 @@
     return Array.from(conjunto).sort((a, b) => a - b);
   };
 
+  const obtenerAniosDesdeSaldos = async (empresaId) => {
+    if (!empresaId) return [];
+    try {
+      const params = new URLSearchParams({ empresaId });
+      const resp = await fetch(`${API_BASE}/saldos/anios?${params.toString()}`, {
+        headers: Sesion.headersAutenticacion()
+      });
+      const datos = await resp.json();
+      if (!resp.ok) throw new Error(datos.mensaje || 'No fue posible obtener los ejercicios de saldos.');
+      return normalizarListaEnteros(datos.anios || []);
+    } catch (error) {
+      console.warn('No fue posible obtener ejercicios desde saldos', error);
+      return [];
+    }
+  };
+
   const seleccionarAnio = (lista = [], preferido) => {
     if (!lista.length) {
       return Number.isInteger(preferido) ? preferido : new Date().getFullYear();
@@ -340,30 +356,8 @@
         actualizarEncabezadosMes();
         return;
       }
-      // Algunos modulos (p.ej. presupuestos) aun no exponen endpoint de ejercicios.
-      if ((opciones.endpointAnios || '').toLowerCase() === 'presupuestos') {
-        estado.aniosDisponibles = asegurarAniosVigentes([]);
-        estado.anio = seleccionarAnio(estado.aniosDisponibles, estado.anio);
-        actualizarSelectAnio();
-        actualizarYearLabels();
-        actualizarEncabezadosMes();
-        return;
-      }
-      try {
-        const params = new URLSearchParams({ empresaId: empresa.id });
-        const respuesta = await fetch(`${API_BASE}/${opciones.endpointAnios}/anios?${params.toString()}`, {
-          headers: Sesion.headersAutenticacion()
-        });
-        if (!respuesta.ok) {
-          throw new Error('No fue posible obtener los ejercicios disponibles.');
-        }
-        const datos = await respuesta.json();
-        estado.aniosDisponibles = asegurarAniosVigentes(datos.anios || []);
-      } catch (error) {
-        console.error(`Error al cargar ejercicios de ${opciones.titulo}`, error);
-        showToast(error.message || 'Sin ejercicios disponibles.', 'text-bg-danger');
-        estado.aniosDisponibles = asegurarAniosVigentes([]);
-      }
+      const aniosSaldos = await obtenerAniosDesdeSaldos(empresa.id);
+      estado.aniosDisponibles = asegurarAniosVigentes(aniosSaldos);
       estado.anio = seleccionarAnio(estado.aniosDisponibles, estado.anio);
       actualizarSelectAnio();
       actualizarYearLabels();
