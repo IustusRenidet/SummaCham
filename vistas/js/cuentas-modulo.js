@@ -554,12 +554,25 @@
     }
   };
 
+  const cuentaVisibleDesdeLarga = (cuentaLarga) => {
+    const base = normalizarCuentaBase(cuentaLarga).padEnd(21, '0');
+    const visible = base.slice(0, 11);
+    return `${visible.slice(0, 3)}-${visible.slice(3, 6)}-${visible.slice(6, 9)}-${visible.slice(9, 11)}`;
+  };
+
+  const formatearCuentaVisible = (cuenta) => {
+    const canonica = convertirCuenta21(cuenta);
+    if (!canonica) return (cuenta || '').toString();
+    return cuentaVisibleDesdeLarga(canonica);
+  };
+
   const unificarCuentasDisponibles = (lista = []) => {
     const previo = new Set(estadoModulo.cuentasDisponibles || []);
     lista.forEach((cuenta) => {
       const limpia = (cuenta || '').toString().trim();
-      if (limpia) {
-        previo.add(limpia);
+      const canonica = convertirCuenta21(limpia);
+      if (canonica) {
+        previo.add(canonica);
       }
     });
     estadoModulo.cuentasDisponibles = Array.from(previo);
@@ -570,8 +583,70 @@
       return;
     }
     const registros = await cargarCuentasPresupuestos({ anio });
-    const cuentas = registros.map((item) => item.cuentaVisible || item.cuenta21 || item.cuenta || '').filter(Boolean);
+    const cuentas = registros
+      .map((item) => convertirCuenta21(item.cuentaVisible || item.cuenta21 || item.cuenta || ''))
+      .filter(Boolean);
     unificarCuentasDisponibles(cuentas);
+  };
+
+  const cargarCatalogoCompleto = async ({ anio }) => {
+    if (!Number.isInteger(anio)) return [];
+    const rutas = [
+      `${API_BASE}/cuentas/catalogo`,
+      `${API_BASE}/planeacion/catalogo`,
+      `${API_BASE}/saldos/catalogo`
+    ];
+    const params = new URLSearchParams({ anio });
+    for (const ruta of rutas) {
+      try {
+        const resp = await fetch(`${ruta}?${params.toString()}`, { headers: Sesion.headersAutenticacion() });
+        const datos = await resp.json();
+        if (!resp.ok) {
+          continue;
+        }
+        const cuentas = Array.isArray(datos.cuentas) ? datos.cuentas : Array.isArray(datos) ? datos : [];
+        return cuentas
+          .map((item) => convertirCuenta21(item.numCta || item.NUM_CTA || item.cuenta || item.CUENTA || item.num_cta || ''))
+          .filter(Boolean);
+      } catch (error) {
+        // probar siguiente ruta
+      }
+    }
+    return [];
+  };
+
+  let catalogoPromesa = null;
+  const cargarSugerenciasCompletas = (anio) => {
+    if (catalogoPromesa) return catalogoPromesa;
+    catalogoPromesa = Promise.all([
+      poblarSugerenciasDesdeAnio(anio),
+      cargarCatalogoCompleto({ anio })
+    ])
+      .then(([, catalogo]) => {
+        if (Array.isArray(catalogo)) {
+          unificarCuentasDisponibles(catalogo);
+        }
+        compilarCatalogoGlobal();
+      })
+      .catch(() => {})
+      .finally(() => {
+        catalogoPromesa = null;
+      });
+    return catalogoPromesa;
+  };
+
+  const compilarCatalogoGlobal = () => {
+    const dataset = window.CUENTAS_POR_MODULO || {};
+    const todas = [];
+    Object.values(dataset).forEach((registros) => {
+      if (!Array.isArray(registros)) return;
+      registros.forEach((registro) => {
+        if (registro?.cuenta) {
+          todas.push(convertirCuenta21(registro.cuenta));
+        }
+      });
+    });
+    unificarCuentasDisponibles(todas);
   };
 
   const destruirTooltips = () => {
@@ -757,7 +832,7 @@
         fila.className = 'fila-cuenta';
         const celdaCuenta = document.createElement('td');
         const cuenta21 = convertirCuenta21(item.cuenta || '');
-        celdaCuenta.textContent = item.cuenta || '-';
+        celdaCuenta.textContent = formatearCuentaVisible(item.cuenta || cuenta21 || '-');
         if (cuenta21) {
           celdaCuenta.title = cuenta21;
           celdaCuenta.dataset.bsToggle = 'tooltip';
@@ -883,8 +958,16 @@
     if (!celda || !estadoModulo.editMode) return;
     const contenedor = asegurarContenedorSugerencias();
     const consulta = limpiarCuentaTexto(texto ?? celda.textContent);
+    if (!estadoModulo.cuentasDisponibles.length) {
+      cargarSugerenciasCompletas(estadoModulo.anio).finally(() => mostrarSugerenciasCuenta(celda, texto));
+      return;
+    }
     const lista = estadoModulo.cuentasDisponibles
-      .filter((cuenta) => !consulta || limpiarCuentaTexto(cuenta).includes(consulta))
+      .filter((cuenta) => {
+        const visible = cuentaVisibleDesdeLarga(cuenta);
+        const objetivo = normalizarTexto(consulta);
+        return !objetivo || normalizarTexto(cuenta).includes(objetivo) || normalizarTexto(visible).includes(objetivo);
+      })
       .slice(0, 10);
     if (!lista.length) {
       ocultarSugerencias();
@@ -894,7 +977,9 @@
     lista.forEach((cuenta) => {
       const boton = document.createElement('button');
       boton.type = 'button';
-      boton.textContent = cuenta;
+      boton.textContent = cuentaVisibleDesdeLarga(cuenta);
+      boton.title = cuenta;
+      boton.dataset.cuentaLarga = cuenta;
       Object.assign(boton.style, {
         display: 'block',
         width: '100%',
@@ -912,7 +997,8 @@
       });
       boton.addEventListener('mousedown', (evt) => {
         evt.preventDefault();
-        celda.textContent = cuenta;
+        celda.textContent = cuentaVisibleDesdeLarga(cuenta);
+        celda.dataset.cuenta21 = cuenta;
         manejarCambioCuenta(celda.parentElement, celda);
         ocultarSugerencias();
       });
@@ -1252,7 +1338,8 @@
       referenciaMeta?.elementos?.sumRow ||
       obtenerPrimerResultadoFila();
     if (!anchor) {
-      anchor = obtenerPrimerResultadoFila();
+      const resultadoFila = obtenerPrimerResultadoFila();
+      anchor = resultadoFila || cuerpo.lastChild?.nextSibling || null;
     }
     if (anchor) {
       cuerpo.insertBefore(header, anchor);
@@ -1367,6 +1454,9 @@
   document.addEventListener('contextmenu', (evt) => {
     if (!estadoModulo.editMode || !esModuloEditable(estadoModulo.moduloClave)) {
       return;
+    }
+    if (!estadoModulo.cuentasDisponibles.length) {
+      cargarSugerenciasCompletas(estadoModulo.anio);
     }
     const tabla = estadoModulo.tabla || obtenerTabla();
     if (!tabla || !tabla.contains(evt.target)) {
@@ -1512,6 +1602,7 @@
         actualizarNombreFila(fila, nombrePrevio);
       }
       celda.title = nuevaCuenta21;
+      celda.textContent = formatearCuentaVisible(nuevaCuenta21);
       celda.dataset.bsToggle = 'tooltip';
       celda.dataset.bsPlacement = 'top';
     } else {
@@ -1791,6 +1882,7 @@
     const dataset = window.CUENTAS_POR_MODULO || {};
     let hoja = obtenerHojaDatos(sheetConfigurada, dataset);
     limpiarBody(cuerpo);
+    compilarCatalogoGlobal();
 
     const anioSeleccionTemp = obtenerAnioSeleccionado();
     const anioSeleccionado = Number.isInteger(anioSeleccionTemp) ? anioSeleccionTemp : estadoModulo.anio;
@@ -1933,7 +2025,7 @@
     if (Number.isInteger(anioSeleccionado)) {
       estadoModulo.anio = anioSeleccionado;
     }
-    poblarSugerenciasDesdeAnio(estadoModulo.anio);
+    cargarSugerenciasCompletas(estadoModulo.anio);
     const anioNombres = obtenerAnioSeleccionado() || new Date().getFullYear();
     if (pendientes.faltantesNombre?.length && empresaId) {
       cargarNombresCuentas({ empresaId, anio: anioNombres, cuentas: pendientes.faltantesNombre });
