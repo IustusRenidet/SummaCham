@@ -2,440 +2,523 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Resumen</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Resumen PPTO - Resumen-E</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/estilos.css">
   <style>
     :root {
-      --color-primary: #2f5496;
-      --color-secondary: #8497b0;
-      --color-background: #f2f2f2;
-      --color-text: #2f5496;
-      --bs-primary: #2f5496;
-      --bs-primary-rgb: 47, 84, 150;
-      --bs-success: #2f5496;
-      --bs-success-rgb: 47, 84, 150;
-      --bs-success-bg-subtle: rgba(47, 84, 150, 0.16);
-      --bs-success-border-subtle: rgba(47, 84, 150, 0.35);
+      --bg: #f2f4f8;
+      --panel: #ffffff;
+      --panel-soft: #f7f9fc;
+      --stroke: #d7deea;
+      --text: #1f2f46;
+      --muted: #607293;
+      --accent: #2f5496;
+      --accent-2: #5b7dc0;
+      --highlight: #ffc000;
+      --danger: #c94b43;
+      --success: #2f9c5b;
+      --radius: 16px;
+      --shadow: 0 12px 32px rgba(31, 47, 70, 0.15);
     }
+    * { box-sizing: border-box; }
     body {
-      background-color: var(--color-background);
+      margin: 0;
       font-family: 'Manrope', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      color: var(--color-text);
+      background: var(--bg);
+      color: var(--text);
       min-height: 100vh;
-      padding-top: 70px;
+      padding: 26px 18px 40px 18px;
     }
-    .header-card {
-      background: var(--color-primary);
-      border: 1px solid rgba(47, 84, 150, 0.1);
-      border-radius: 16px;
+    .page {
+      max-width: 1220px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    header {
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
       color: #fff;
+      border-radius: 18px;
+      padding: 18px 20px;
+      box-shadow: var(--shadow);
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
     }
-    .table-card {
-      background: #fff;
-      border-radius: 16px;
-      border: 1px solid rgba(47, 84, 150, 0.1);
-      overflow: hidden;
-    }
-    .table thead {
-      background-color: #d9d9d9;
-    }
-    .table thead th {
-      border: none;
-      font-weight: 600;
-      color: #2f5496;
-      text-transform: uppercase;
-      font-size: 0.8rem;
-      letter-spacing: 0.06em;
-      padding-top: 1rem;
-      padding-bottom: 1rem;
-    }
-    .table tbody tr { transition: background-color 0.3s ease; }
-    .table tbody tr:hover { background-color: rgba(47, 84, 150, 0.05); }
-    .section-header-row {
-      background-color: rgba(132, 151, 176, 0.25);
-      font-weight: 800 !important;
-      border-left: 4px solid var(--color-secondary);
-    }
-    .section-header-row td {
-      color: var(--color-primary);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      font-size: 0.9rem;
-      padding-top: 1rem;
-      padding-bottom: 1rem;
-      font-family: 'Manrope', sans-serif;
-    }
-    .section-header-row td:first-child {
-      font-size: 1rem;
-      font-weight: 900;
-    }
-    .positive { color: #2f5496; font-weight: 600; }
-    .negative { color: #8497b0; font-weight: 600; }
-    .neutral  { color: rgba(47, 84, 150, 0.6); font-weight: 600; }
-
-
-    .fade-in { animation: fadeIn .5s ease-in; }
-    @keyframes fadeIn { from {opacity:0; transform: translateY(20px);} to {opacity:1; transform: translateY(0);} }
-
-    .city-pill {
-      background: rgba(255,255,255,.15);
-      border: 1px solid rgba(255,255,255,.25);
-      color: #fff;
-      padding: .4rem .75rem;
+    .title h1 { margin: 0; font-size: 28px; letter-spacing: 0.2px; }
+    .title p { margin: 4px 0 0 0; color: #e7f2ea; }
+    .chips { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .chip {
+      background: rgba(255,255,255,0.12);
       border-radius: 999px;
-      font-weight: 600;
+      padding: 8px 12px;
+      color: #e7f2ea;
+      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid rgba(255,255,255,0.18);
     }
-    .selector-wrapper {
-      gap: .75rem;
+    .badge-city {
+      background: #fff;
+      color: var(--accent);
+      font-weight: 700;
+      padding: 8px 12px;
+      border-radius: 12px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.1);
     }
-    .pct-item.highlight strong, .pct-item.highlight span { color: var(--color-primary); }
+    section {
+      background: var(--panel);
+      border-radius: var(--radius);
+      border: 1px solid var(--stroke);
+      box-shadow: var(--shadow);
+      padding: 18px;
+    }
+    h2 { margin: 0 0 12px 0; font-size: 18px; letter-spacing: 0.1px; }
+    .flex-between { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .small { font-size: 13px; color: var(--muted); }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+    .card {
+      background: var(--panel-soft);
+      border: 1px solid var(--stroke);
+      border-radius: 14px;
+      padding: 14px;
+    }
+    .status {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .status .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: var(--highlight);
+      box-shadow: 0 0 0 6px rgba(217,130,59,0.18);
+    }
+    .stat-title { color: var(--muted); font-size: 13px; margin: 0; }
+    .stat-value { font-size: 22px; margin: 6px 0 2px 0; }
+    .stat-trend { font-size: 13px; color: var(--success); }
+    .stat-trend.neg { color: var(--danger); }
+    .panel-soft { background: var(--panel-soft); border: 1px solid var(--stroke); border-radius: 14px; padding: 16px; }
+    .cols-two { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+    .list { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+    .list li { display: flex; justify-content: space-between; }
+    .toggle-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .toggle-row label { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+    select {
+      border: 1px solid var(--stroke);
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 13px;
+      color: var(--text);
+      background: #fff;
+      min-width: 110px;
+    }
+    .table-wrap { overflow-x: auto; border-radius: 14px; border: 1px solid var(--stroke); }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 960px;
+      font-size: 14px;
+    }
+    thead th {
+      background: #eef2f9;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-size: 12px;
+      color: var(--muted);
+      padding: 12px 10px;
+      border-bottom: 1px solid var(--stroke);
+      text-align: right;
+    }
+    thead th:nth-child(1), thead th:nth-child(2) { text-align: left; }
+    tbody td { padding: 12px 10px; border-bottom: 1px solid var(--stroke); background: #fff; vertical-align: middle; }
+    tbody tr:nth-child(even) td { background: #f9fbff; }
+    td.numeric { text-align: right; font-variant-numeric: tabular-nums; }
+    td.strong { font-weight: 700; }
+    .badge-pill { padding: 4px 10px; border-radius: 999px; font-size: 12px; color: #0b1325; display: inline-block; }
+    .badge-ok { background: #dff3e7; color: var(--success); }
+    .badge-danger { background: #f9dfdc; color: var(--danger); }
+    .section-row td { background: #eef2f9 !important; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 2px solid #e0e6f1; }
+    .section-marker { width: 4px; background: var(--accent); border-radius: 3px; display: inline-block; height: 20px; margin-right: 8px; vertical-align: middle; }
+    .notes { color: var(--muted); font-size: 13px; line-height: 1.5; }
+    .error { color: var(--danger); font-weight: 700; }
+    @media (max-width: 720px) {
+      body { padding: 16px; }
+      header { grid-template-columns: 1fr; }
+      .title h1 { font-size: 24px; }
+    }
   </style>
 </head>
 <body>
+  <div class="page">
+    <header>
+      <div class="title">
+        <h1>Resumen</h1>
+        <p>Capítulo <span id="empresaSpan">Empresa 2</span> · Datos desde resumen-e</p>
+      </div>
+      <div class="chips">
+        <span class="chip">Fuente: resumen-e (mes real vs ppto mensual)</span>
+        <span class="badge-city">Empresa seleccionada</span>
+      </div>
+    </header>
 
-  <div class="container py-4 py-lg-5">
-    <!-- Encabezado -->
-    <div class="row mb-4">
-      <div class="col-12">
-        <div class="card header-card fade-in">
-          <div class="card-body d-flex flex-column flex-lg-row align-items-center justify-content-between">
-            <div class="text-center text-lg-start">
-              <h1 id="chapterTitle" class="fw-bold display-6 mb-2">Resumen</h1>
-              <p id="chapterSubtitle" class="mb-0 fs-5">Capítulo Guadalajara</p>
-            </div>
-            <div class="mt-3 mt-lg-0 d-flex align-items-center selector-wrapper">
-              <label for="citySelect" class="me-2 fw-semibold">Ciudad:</label>
-              <select id="citySelect" class="form-select form-select-sm w-auto">
-                <option value="GDL" selected>Guadalajara</option>
-                <option value="CDMX">Ciudad de México</option>
-                <option value="MTY">Noreste</option>
-                <option value="NO">Noroeste</option>
-              </select>
-              <span class="city-pill ms-2" id="cityPill">Guadalajara</span>
-            </div>
-          </div>
+    <section>
+      <div class="flex-between">
+        <h2>Indicadores</h2>
+        <div class="status" id="status"><span class="dot"></span><span id="statusText">Cargando...</span></div>
+      </div>
+      <div class="card-grid">
+        <div class="card">
+          <p class="stat-title">Ingresos (Real)</p>
+          <div class="stat-value" id="ingresos">$ —</div>
+          <div class="stat-trend" id="varIng">Variación vs Ppto: —</div>
+        </div>
+        <div class="card">
+          <p class="stat-title">Gastos (Real)</p>
+          <div class="stat-value" id="gastos">$ —</div>
+          <div class="stat-trend neg" id="varGas">Variación vs Ppto: —</div>
+        </div>
+        <div class="card">
+          <p class="stat-title">Resultado Operativo</p>
+          <div class="stat-value" id="operativo">$ —</div>
+          <div class="stat-trend" id="varOper">vs Ppto: —</div>
+        </div>
+        <div class="card">
+          <p class="stat-title">Resultado Neto</p>
+          <div class="stat-value" id="neto">$ —</div>
+          <div class="stat-trend" id="varNeto">vs Ppto: —</div>
         </div>
       </div>
-    </div>
+    </section>
 
-    <!-- Porcentaje Gastos Corporativos -->
-<div class="row mb-4">
-  <div class="col-12">
-    <div class="card table-card fade-in">
-      <div class="card-body">
-          <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between">
-            <h5 class="fw-bold mb-3 mb-md-0" style="color: var(--color-primary);">Porcentaje Gastos Corporativos</h5>
-            <div class="d-flex align-items-center gap-3 flex-wrap" id="yearFilters" aria-live="polite">
-              <span class="fw-semibold mb-0">Años:</span>
-            </div>
-          </div>
-
-        <div id="pctContainer" class="row mt-3">
-          <!-- Tarjetas por año se inyectan aquí -->
+    <section>
+      <div class="flex-between">
+        <h2>Porcentaje Gastos Corporativos</h2>
+        <div class="toggle-row">
+          <label>Empresa
+            <select id="selEmpresa">
+              <option value="1">Empresa 1</option>
+              <option value="2" selected>Empresa 2</option>
+              <option value="3">Empresa 3</option>
+              <option value="4">Empresa 4</option>
+            </select>
+          </label>
+          <label>Año Real
+            <select id="selReal"></select>
+          </label>
+          <label>Comparar con
+            <select id="selComp"></select>
+          </label>
+          <label>Ppto base
+            <select id="selPpto"></select>
+          </label>
         </div>
-
-        <small class="text-muted d-block mt-2">Tip: el porcentaje de la ciudad seleccionada se resalta. Puedes comparar uno o varios años.</small>
       </div>
-    </div>
+      <div class="panel-soft cols-two">
+        <div>
+          <p class="stat-title">Comparativo</p>
+          <ul class="list" id="list2024">
+            <li><span>—</span><strong>100%</strong></li>
+          </ul>
+        </div>
+        <div>
+          <p class="stat-title">Año actual</p>
+          <ul class="list" id="list2025">
+            <li><span>—</span><strong>100%</strong></li>
+          </ul>
+        </div>
+      </div>
+      <p class="notes">Usa los saldos reales (month-real) y presupuestos (month-budget) del año seleccionado; el reparto se recalcula por empresa.</p>
+    </section>
+
+    <section>
+      <div class="flex-between">
+        <h2>Resumen de cuentas</h2>
+        <span class="small">Lógica aplicada a empresa y años seleccionados</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:12%;">Código</th>
+              <th style="width:26%;">Capítulo</th>
+              <th class="numeric col-2025" id="thRealYear">REAL</th>
+              <th class="numeric col-2025" id="thPptoYear">PPTO.</th>
+              <th class="numeric col-2024" id="thRealComp">REAL</th>
+              <th class="numeric col-var24" id="thVarReal">VAR REAL VS REAL</th>
+              <th class="numeric col-var25" id="thVarPpto">VARIACIÓN PPTO VS REAL</th>
+              <th class="numeric">Δ VS PPTO</th>
+            </tr>
+          </thead>
+          <tbody id="tablaModulos">
+            <tr><td colspan="8" class="notes">Cargando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <h2>Notas</h2>
+      <div class="notes">
+        <div>· Empresa: 1-4 (usa empresa activa de sesión si existe).</div>
+        <div>· Año Real vs Comparativo y Ppto se eligen en los selects; se recalcula con resumen-e.</div>
+        <div>· Variaciones: (Real/Base) - 1; base puede ser Real comparativo o Ppto.</div>
+      </div>
+    </section>
   </div>
-</div>
-
-
-    <!-- Tabla principal -->
-    <div class="row">
-      <div class="col-12">
-        <div class="table-card fade-in">
-          <div id="resumenStatus" class="alert alert-info mb-3 visually-hidden" role="status"></div>
-          <div class="table-responsive">
-            <table class="table align-middle mb-0" id="mainTable">
-              <thead>
-                <tr>
-                  <th scope="col" class="text-start"></th>
-                  <th scope="col" class="text-end">Real <span class="anio">2025</span></th>
-                  <th scope="col" class="text-end">Ppto. <span class="anio">2025</span></th>
-                  <th scope="col" class="text-end">Real <span class="anio">2024</span></th>
-                  <th scope="col" class="text-end">Variación Real <span class="anio">2024</span> vs Real <span class="anio">2025</span></th>
-                  <th scope="col" class="text-end">Variación Ppto. <span class="anio">2025</span> vs Real <span class="anio">2025</span></th>
-                </tr>
-              </thead>
-              <tbody id="tableBody">
-                <!-- Filas inyectadas por JS -->
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <script src="js/sesion.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
   <script>
-    const sesion = Sesion.requerirSesion();
-    if (!sesion) {
-      throw new Error('Redireccionando al inicio de sesión.');
-    }
-
-    Sesion.asegurarEnlaceAdministrarUsuarios(document.querySelector('#navbarNav .navbar-nav'));
-
-
-
+    const fmtNum = (n) => new Intl.NumberFormat('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(n) || 0);
+    const fmtPct = (v) => `${(Number(v) * 100).toFixed(2)}%`;
+    const safeDiv = (a, b) => (Number(b) ? Number(a) / Number(b) : 0);
     const API_BASE = 'http://localhost:3000/api';
-    const estado = document.getElementById('resumenStatus');
-    const citySelect = document.getElementById('citySelect');
-    const cityPill = document.getElementById('cityPill');
-    const chapterTitle = document.getElementById('chapterTitle');
-    const chapterSubtitle = document.getElementById('chapterSubtitle');
-    const tableBody = document.getElementById('tableBody');
-    const pctContainer = document.getElementById('pctContainer');
-    const yearFilters = document.getElementById('yearFilters');
 
-    const estadoModulo = {
-      datos: {
-        ciudades: [],
-        anios: [],
-        tabla: [],
-        gastosCorporativos: {}
-      },
-      ciudadActual: '',
-      aniosActivos: new Set()
+    const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    const setStatus = (text, type = 'ok') => {
+      setText('statusText', text);
+      const dot = document.querySelector('.status .dot');
+      if (!dot) return;
+      const bg = type === 'error' ? 'var(--danger)' : type === 'warn' ? 'var(--highlight)' : 'var(--success)';
+      const glow = type === 'error' ? 'rgba(201,75,67,0.2)' : type === 'warn' ? 'rgba(217,130,59,0.2)' : 'rgba(47,156,91,0.2)';
+      dot.style.background = bg;
+      dot.style.boxShadow = `0 0 0 6px ${glow}`;
     };
 
-    const limpiarEstado = () => {
-      if (!estado) return;
-      estado.className = 'alert alert-info mb-3 visually-hidden';
-      estado.textContent = '';
+    const state = { empresaId: '2', anios: [], realYear: null, compYear: null, pptoYear: null, codigos: [], detalle: [] };
+
+    const headersAuth = () => {
+      const h = (window.Sesion && window.Sesion.headersAutenticacion) ? window.Sesion.headersAutenticacion() : {};
+      return { ...h, 'Content-Type': 'application/json' };
     };
 
-    const mostrarEstado = (mensaje, tipo = 'info') => {
-      if (!estado) return;
-      estado.textContent = mensaje;
-      estado.className = `alert alert-${tipo} mb-3`;
-    };
-
-    const construirOpcionCiudad = (ciudad) => {
-      const opcion = document.createElement('option');
-      opcion.value = ciudad.id;
-      opcion.textContent = ciudad.etiqueta || ciudad.nombre || ciudad.id;
-      return opcion;
-    };
-
-    const actualizarEncabezado = () => {
-      const ciudadSeleccionada = estadoModulo.datos.ciudades.find((ciudad) => ciudad.id === estadoModulo.ciudadActual);
-      const etiqueta = ciudadSeleccionada?.etiqueta || ciudadSeleccionada?.nombre || '';
-      const etiquetaVisible = etiqueta || 'Sin datos';
-      chapterTitle.textContent = 'Resumen';
-      chapterSubtitle.textContent = etiqueta ? `Capítulo ${etiqueta}` : 'Sin información disponible';
-      cityPill.textContent = etiquetaVisible;
-      document.title = etiqueta ? `Resumen - ${etiqueta}` : 'Resumen';
-    };
-
-    const renderizarTabla = () => {
-      tableBody.innerHTML = '';
-      const filas = estadoModulo.datos.tabla.filter((fila) => {
-        if (fila.ciudad && estadoModulo.ciudadActual) {
-          return fila.ciudad === estadoModulo.ciudadActual;
-        }
-        return true;
+    const fillSelect = (id, values, selected) => {
+      const sel = document.getElementById(id);
+      if (!sel) return;
+      sel.innerHTML = '';
+      values.forEach((v) => {
+        const opt = document.createElement('option');
+        opt.value = v;
+        opt.textContent = v;
+        sel.appendChild(opt);
       });
+      sel.value = selected || values[0] || '';
+    };
 
-      if (filas.length === 0) {
-        const vacio = document.createElement('tr');
-        vacio.innerHTML = '<td colspan="6" class="text-center text-muted py-4">No hay información para mostrar.</td>';
-        tableBody.appendChild(vacio);
-        return;
-      }
+    const renderSpans = () => setText('empresaSpan', `Empresa ${state.empresaId}`);
 
-      filas.forEach((fila) => {
-        if (fila.type === 'section') {
-          const tr = document.createElement('tr');
-          tr.className = 'section-header-row';
-          tr.innerHTML = `
-            <td>${fila.name || ''}</td>
-            <td class="text-end">${fila.real2025 || '—'}</td>
-            <td class="text-end">${fila.ppto2025 || '—'}</td>
-            <td class="text-end">${fila.real2024 || '—'}</td>
-            <td class="text-end">${fila.varReal || '—'}</td>
-            <td class="text-end">${fila.varPpto || '—'}</td>
-          `;
-          tableBody.appendChild(tr);
-        } else {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${fila.name || ''}</td>
-            <td class="text-end">${fila.real2025 || '—'}</td>
-            <td class="text-end">${fila.ppto2025 || '—'}</td>
-            <td class="text-end">${fila.real2024 || '—'}</td>
-            <td class="text-end">${fila.varReal || '—'}</td>
-            <td class="text-end">${fila.varPpto || '—'}</td>
-          `;
-          tableBody.appendChild(tr);
+    const renderShares = () => {
+      const list2024 = document.getElementById('list2024');
+      const list2025 = document.getElementById('list2025');
+      if (list2024) list2024.innerHTML = `<li><span>${state.compYear || '—'}</span><strong>100%</strong></li>`;
+      if (list2025) list2025.innerHTML = `<li><span>${state.realYear || '—'}</span><strong>100%</strong></li>`;
+    };
+
+    const renderMetrics = (rows) => {
+      const find = (name) => rows.find((r) => r.label.toLowerCase().startsWith(name));
+      const income = find('income') || { real: 0, ppto: 0 };
+      const expense = find('expense') || { real: 0, ppto: 0 };
+      const operating = find('operating results') || { real: 0, ppto: 0 };
+      const net = find('net results') || { real: 0, ppto: 0 };
+      const varIng = safeDiv(income.real, income.ppto) - 1;
+      const varGas = safeDiv(expense.real, expense.ppto) - 1;
+      const varOper = safeDiv(operating.real, operating.ppto) - 1;
+      const varNeto = safeDiv(net.real, net.ppto) - 1;
+      setText('ingresos', fmtNum(income.real));
+      setText('gastos', fmtNum(expense.real));
+      setText('operativo', fmtNum(operating.real));
+      setText('neto', fmtNum(net.real));
+      setText('varIng', `Variación vs Ppto: ${fmtPct(varIng)}`);
+      setText('varGas', `Variación vs Ppto: ${fmtPct(varGas)}`);
+      setText('varOper', `vs Ppto: ${fmtPct(varOper)}`);
+      setText('varNeto', `vs Ppto: ${fmtPct(varNeto)}`);
+    };
+
+    const recomputeSections = (rows) => {
+      const salida = [];
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const isSection = !row.code && row.label === row.label.toUpperCase();
+        const nuevo = { ...row, isSection };
+        salida.push(nuevo);
+        if (!isSection) continue;
+        const hijos = [];
+        for (let j = i + 1; j < rows.length; j++) {
+          const next = rows[j];
+          const nextIsSection = !next.code && next.label === next.label.toUpperCase();
+          if (nextIsSection) break;
+          hijos.push(next);
         }
-      });
+        if (hijos.length) {
+          const sum = (k) => hijos.reduce((acc, r) => acc + (Number(r[k]) || 0), 0);
+          nuevo.real = sum('real');
+          nuevo.ppto = sum('ppto');
+          nuevo.realPrev = sum('realPrev');
+          nuevo.varReal = safeDiv(nuevo.real, nuevo.realPrev) - 1;
+          nuevo.varPpto = safeDiv(nuevo.real, nuevo.ppto) - 1;
+          nuevo.diff = nuevo.real - nuevo.ppto;
+        }
+      }
+      return salida;
     };
 
-    const destacarCiudad = () => {
-      document.querySelectorAll('.pct-item').forEach((elemento) => elemento.classList.remove('highlight'));
-      if (!estadoModulo.ciudadActual) return;
-      document.querySelectorAll(`.pct-item[data-city="${estadoModulo.ciudadActual}"]`).forEach((elemento) => elemento.classList.add('highlight'));
-    };
-
-    const renderizarGastosCorporativos = () => {
-      pctContainer.innerHTML = '';
-      const gastos = estadoModulo.datos.gastosCorporativos || {};
-      const anios = estadoModulo.datos.anios || [];
-      const activos = Array.from(estadoModulo.aniosActivos);
-
-      if (!anios.length) {
-        pctContainer.innerHTML = '<div class="col-12"><div class="alert alert-secondary mb-0">Aún no se han configurado años para esta sección.</div></div>';
+    const renderTable = () => {
+      const cuerpo = document.getElementById('tablaModulos');
+      if (!cuerpo) return;
+      if (!state.detalle.length) {
+        cuerpo.innerHTML = '<tr><td colspan="8" class="notes">No se hallaron filas.</td></tr>';
         return;
       }
-
-      if (activos.length === 0) {
-        pctContainer.innerHTML = '<div class="col-12"><div class="alert alert-warning mb-0">Selecciona al menos un año para visualizar los porcentajes.</div></div>';
-        return;
-      }
-
-      activos.forEach((anio) => {
-        const valoresPorCiudad = gastos[anio] || {};
-        const tarjeta = document.createElement('div');
-        tarjeta.className = 'col-12 col-lg-4';
-        tarjeta.innerHTML = `
-          <div class="p-4 border rounded-4 h-100 shadow-sm bg-white">
-            <h6 class="fw-bold text-success mb-3">${anio}</h6>
-            <div class="d-flex flex-column gap-2">
-              ${estadoModulo.datos.ciudades.map((ciudad) => {
-                const valor = valoresPorCiudad[ciudad.id];
-                const contenido = valor != null ? `${valor}%` : '—';
-                return `
-                  <div class="d-flex justify-content-between mb-1 pct-item" data-city="${ciudad.id}" data-year="${anio}">
-                    <span class="fw-semibold">${ciudad.etiqueta || ciudad.nombre || ciudad.id}</span>
-                    <strong>${contenido}</strong>
-                  </div>
-                `;
-              }).join('')}
-            </div>
-          </div>
+      setText('thRealYear', `REAL ${state.realYear || ''}`);
+      setText('thPptoYear', `PPTO. ${state.pptoYear || ''}`);
+      setText('thRealComp', `REAL ${state.compYear || '-'}`);
+      setText('thVarReal', `VAR REAL ${state.compYear || ''} VS REAL ${state.realYear || ''}`);
+      setText('thVarPpto', `VARIACIÓN PPTO. ${state.pptoYear || ''} VS REAL ${state.realYear || ''}`);
+      cuerpo.innerHTML = state.detalle.map((m) => {
+        const clsReal = m.varReal >= 0 ? 'badge-ok' : 'badge-danger';
+        const clsPpto = m.varPpto >= 0 ? 'badge-ok' : 'badge-danger';
+        const marker = m.isSection ? '<span class="section-marker"></span>' : '';
+        return `
+          <tr class="${m.isSection ? 'section-row' : ''}">
+            <td>${m.code || '-'}</td>
+            <td>${marker}${m.label}</td>
+            <td class="numeric col-2025 ${m.isSection ? 'strong' : ''}">${fmtNum(m.real)}</td>
+            <td class="numeric col-2025 ${m.isSection ? 'strong' : ''}">${fmtNum(m.ppto)}</td>
+            <td class="numeric col-2024 ${m.isSection ? 'strong' : ''}">${fmtNum(m.realPrev)}</td>
+            <td class="numeric col-var24"><span class="badge-pill ${clsReal}">${fmtPct(m.varReal)}</span></td>
+            <td class="numeric col-var25"><span class="badge-pill ${clsPpto}">${fmtPct(m.varPpto)}</span></td>
+            <td class="numeric ${m.isSection ? 'strong' : ''}">${fmtNum(m.diff)}</td>
+          </tr>
         `;
-        pctContainer.appendChild(tarjeta);
-      });
-
-      destacarCiudad();
+      }).join('');
     };
 
-    const prepararFiltrosAnio = () => {
-      const anios = estadoModulo.datos.anios || [];
-      yearFilters.querySelectorAll('.form-check').forEach((nodo) => nodo.remove());
+    const renderAll = () => {
+      renderSpans();
+      renderMetrics(state.detalle);
+      renderShares();
+      renderTable();
+    };
 
+    const obtenerAnios = async () => {
+      const res = await fetch(`${API_BASE}/modulos/summary-anios?empresaId=${encodeURIComponent(state.empresaId)}`);
+      if (!res.ok) throw new Error('No fue posible listar años');
+      const data = await res.json();
+      let anios = Array.isArray(data.anios) ? data.anios.map(Number).filter(Number.isFinite).sort((a, b) => b - a) : [];
       if (!anios.length) {
-        const mensaje = document.createElement('span');
-        mensaje.className = 'text-muted small';
-        mensaje.textContent = 'Sin años disponibles';
-        yearFilters.appendChild(mensaje);
-        return;
+        const hoy = new Date().getFullYear();
+        anios = [hoy, hoy - 1];
       }
+      state.anios = anios;
+      state.realYear = anios[0];
+      state.compYear = anios[1] || anios[0];
+      state.pptoYear = anios[0];
+      fillSelect('selReal', anios, state.realYear);
+      fillSelect('selComp', anios, state.compYear);
+      fillSelect('selPpto', anios, state.pptoYear);
+    };
 
-      anios.forEach((anio) => {
-        const contenedor = document.createElement('div');
-        contenedor.className = 'form-check form-check-inline';
-        const input = document.createElement('input');
-        input.type = 'checkbox';
-        input.className = 'form-check-input year-check';
-        input.id = `year-${anio}`;
-        input.value = anio;
-        input.checked = estadoModulo.aniosActivos.size === 0 || estadoModulo.aniosActivos.has(anio);
-        if (input.checked) {
-          estadoModulo.aniosActivos.add(anio);
-        }
-        const etiqueta = document.createElement('label');
-        etiqueta.className = 'form-check-label';
-        etiqueta.setAttribute('for', input.id);
-        etiqueta.textContent = anio;
-        input.addEventListener('change', (evento) => {
-          if (evento.target.checked) {
-            estadoModulo.aniosActivos.add(anio);
-          } else {
-            estadoModulo.aniosActivos.delete(anio);
-          }
-          renderizarGastosCorporativos();
-        });
-        contenedor.appendChild(input);
-        contenedor.appendChild(etiqueta);
-        yearFilters.appendChild(contenedor);
+    const obtenerCodigos = async () => {
+      if (!state.realYear) throw new Error('No hay año real seleccionado');
+      const query = new URLSearchParams({ empresaId: state.empresaId, anio: state.realYear });
+      const res = await fetch(`${API_BASE}/saldos/cuentas?${query.toString()}`, { headers: headersAuth() });
+      if (!res.ok) throw new Error('No fue posible obtener cuentas');
+      const data = await res.json();
+      const cuentas = Array.isArray(data.cuentas) ? data.cuentas : [];
+      state.codigos = cuentas.map((c) => c.cuenta).filter(Boolean);
+    };
+
+    const obtenerResumen = async () => {
+      const payload = {
+        anio: state.realYear,
+        periodo: 12,
+        empresaId: state.empresaId,
+        codigos: state.codigos,
+        anioComparativo: state.compYear,
+        usarAjusteEnYTD: false
+      };
+      const res = await fetch(`${API_BASE}/modulos/summary-resumen-e`, {
+        method: 'POST',
+        headers: headersAuth(),
+        body: JSON.stringify(payload)
       });
+      if (!res.ok) throw new Error('No fue posible obtener resumen-e');
+      const data = await res.json();
+      const detalle = Array.isArray(data.detalle) ? data.detalle : [];
+      const filas = detalle.map((f) => ({
+        label: f.descripcion || f.codigo || '',
+        code: f.codigo || '',
+        real: Number(f.ytdActual ?? f.acumuladoActual ?? 0),
+        ppto: Number(f.ytdPlan ?? f.acumuladoPlan ?? 0),
+        realPrev: Number(f.ytdAnterior ?? f.acumuladoAnterior ?? 0),
+        diff: 0,
+        varReal: 0,
+        varPpto: 0
+      }));
+      filas.forEach((f) => {
+        f.diff = f.real - f.ppto;
+        f.varReal = safeDiv(f.real, f.realPrev) - 1;
+        f.varPpto = safeDiv(f.real, f.ppto) - 1;
+      });
+      state.detalle = recomputeSections(filas);
     };
 
-    const prepararCiudades = () => {
-      citySelect.innerHTML = '';
-      const ciudades = estadoModulo.datos.ciudades || [];
-      if (!ciudades.length) {
-        const opcion = document.createElement('option');
-        opcion.value = '';
-        opcion.textContent = 'Sin ciudades disponibles';
-        citySelect.appendChild(opcion);
-        citySelect.disabled = true;
-        estadoModulo.ciudadActual = '';
-        actualizarEncabezado();
-        renderizarTabla();
-        renderizarGastosCorporativos();
-        return;
-      }
-
-      citySelect.disabled = false;
-      ciudades.forEach((ciudad) => citySelect.appendChild(construirOpcionCiudad(ciudad)));
-      estadoModulo.ciudadActual = ciudades[0]?.id || '';
-      citySelect.value = estadoModulo.ciudadActual;
-      actualizarEncabezado();
-      renderizarTabla();
-      renderizarGastosCorporativos();
-    };
-
-    const cargarDatos = async () => {
-      mostrarEstado('Cargando información…');
+    const cargar = async () => {
       try {
-        const respuesta = await fetch(`${API_BASE}/modulos/resumen`, {
-          headers: Sesion.headersAutenticacion()
-        });
-        const datos = await respuesta.json();
-        if (!respuesta.ok) {
-          throw new Error(datos.mensaje || 'No fue posible obtener la información.');
-        }
-        estadoModulo.datos = {
-          ciudades: Array.isArray(datos.ciudades) ? datos.ciudades : [],
-          anios: Array.isArray(datos.anios) ? datos.anios : [],
-          tabla: Array.isArray(datos.tabla) ? datos.tabla : [],
-          gastosCorporativos: datos.gastosCorporativos || {}
-        };
-        estadoModulo.aniosActivos = new Set(estadoModulo.datos.anios);
-        prepararFiltrosAnio();
-        prepararCiudades();
-        limpiarEstado();
+        setStatus(`Cargando empresa ${state.empresaId}...`, 'warn');
+        await obtenerAnios();
+        if (!state.realYear) throw new Error('No hay años disponibles');
+        await obtenerCodigos();
+        if (!state.codigos.length) throw new Error('No se encontraron cuentas para el año seleccionado');
+        await obtenerResumen();
+        renderAll();
+        setStatus(`Datos empresa ${state.empresaId}, año ${state.realYear}`, 'ok');
       } catch (error) {
-        mostrarEstado(error.message || 'Ocurrió un error al cargar la información.', 'danger');
-        console.error('Error al cargar resumen', error);
-        estadoModulo.datos = { ciudades: [], anios: [], tabla: [], gastosCorporativos: {} };
-        estadoModulo.aniosActivos = new Set();
-        prepararFiltrosAnio();
-        prepararCiudades();
+        console.error(error);
+        setStatus(`Error: ${error.message}`, 'error');
+        const cuerpo = document.getElementById('tablaModulos');
+        if (cuerpo) cuerpo.innerHTML = '<tr><td colspan="8" class="error">No fue posible obtener datos.</td></tr>';
       }
     };
 
-    citySelect.addEventListener('change', (evento) => {
-      estadoModulo.ciudadActual = evento.target.value;
-      actualizarEncabezado();
-      renderizarTabla();
-      destacarCiudad();
+    document.addEventListener('DOMContentLoaded', () => {
+      const sesion = window.Sesion?.obtener?.();
+      if (sesion?.empresaActiva?.id) state.empresaId = String(sesion.empresaActiva.id);
+      renderSpans();
+      const selEmp = document.getElementById('selEmpresa');
+      if (selEmp) {
+        selEmp.value = state.empresaId;
+        selEmp.addEventListener('change', (e) => {
+          state.empresaId = e.target.value;
+          if (window.Sesion?.establecerEmpresaActiva) window.Sesion.establecerEmpresaActiva(state.empresaId);
+          cargar();
+        });
+      }
+      ['selReal', 'selComp', 'selPpto'].forEach((id) => {
+        const sel = document.getElementById(id);
+        if (sel) {
+          sel.addEventListener('change', (e) => {
+            const val = Number(e.target.value);
+            if (id === 'selReal') state.realYear = val;
+            if (id === 'selComp') state.compYear = val;
+            if (id === 'selPpto') state.pptoYear = val;
+            cargar();
+          });
+        }
+      });
+      cargar();
     });
-
-    Sesion.asegurarEnlaceAdministrarUsuarios(document.querySelector('#navbarNav .navbar-nav'));
-    cargarDatos();
   </script>
-  
 </body>
 </html>
