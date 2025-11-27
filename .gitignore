@@ -72,3 +72,5 @@ Thumbs.db
 .vscode/
 .fleet/
 
+info IMPORTANTE/METADATA/SUMMARY/*.json
+info IMPORTANTE/METADATA/SUMMARY/*.csv
