@@ -152,6 +152,9 @@
     layoutSnapshot: null,
     layoutEsPersonalizado: false,
     cuentasDisponibles: [],
+    cuentasDisponiblesPorAnio: new Map(),
+    catalogoPromesas: new Map(),
+    catalogoFallido: new Set(),
     sugerencias: {
       contenedor: null
     }
@@ -560,8 +563,43 @@
     return `${visible.slice(0, 3)}-${visible.slice(3, 6)}-${visible.slice(6, 9)}-${visible.slice(9, 11)}`;
   };
 
-  const unificarCuentasDisponibles = (lista = []) => {
-    const previo = new Set(estadoModulo.cuentasDisponibles || []);
+  const obtenerAnioSugerencias = (anio) => {
+    if (Number.isInteger(anio)) return anio;
+    const anioSelect = obtenerAnioSeleccionado();
+    if (Number.isInteger(anioSelect)) return anioSelect;
+    if (Number.isInteger(estadoModulo.anio)) return estadoModulo.anio;
+    return null;
+  };
+
+  const sincronizarCuentasDisponibles = (anio, conjunto) => {
+    if (!Number.isInteger(anio)) return;
+    const lista = Array.from(conjunto);
+    estadoModulo.cuentasDisponiblesPorAnio.set(anio, lista);
+    if (anio === estadoModulo.anio) {
+      estadoModulo.cuentasDisponibles = lista;
+    }
+  };
+
+  const obtenerCuentasDisponiblesPorAnio = (anio) => {
+    if (!Number.isInteger(anio)) {
+      return estadoModulo.cuentasDisponibles || [];
+    }
+    const porAnio = estadoModulo.cuentasDisponiblesPorAnio.get(anio);
+    if (porAnio?.length) return porAnio;
+    return estadoModulo.cuentasDisponibles || [];
+  };
+
+  const unificarCuentasDisponibles = (lista = [], opciones = {}) => {
+    const anioObjetivo = obtenerAnioSugerencias(opciones.anio);
+    const usarReset = Boolean(opciones.reset);
+    const baseSet = new Set();
+    if (Number.isInteger(anioObjetivo)) {
+      const prev = estadoModulo.cuentasDisponiblesPorAnio.get(anioObjetivo);
+      prev?.forEach((c) => baseSet.add(c));
+    } else {
+      (estadoModulo.cuentasDisponibles || []).forEach((c) => baseSet.add(c));
+    }
+    const previo = usarReset ? new Set() : baseSet;
     lista.forEach((cuenta) => {
       const limpia = (cuenta || '').toString().trim();
       const canonica = convertirCuenta21(limpia);
@@ -569,7 +607,11 @@
         previo.add(canonica);
       }
     });
+    if (Number.isInteger(anioObjetivo)) {
+      sincronizarCuentasDisponibles(anioObjetivo, previo);
+    }
     estadoModulo.cuentasDisponibles = Array.from(previo);
+    return estadoModulo.cuentasDisponibles;
   };
 
   const poblarSugerenciasDesdeAnio = async (anio) => {
@@ -580,36 +622,68 @@
     const cuentas = registros
       .map((item) => convertirCuenta21(item.cuentaVisible || item.cuenta21 || item.cuenta || ''))
       .filter(Boolean);
-    unificarCuentasDisponibles(cuentas);
+    // Reiniciar con las de presupuestos del año
+    unificarCuentasDisponibles(cuentas, { anio, reset: true });
+    // Agregar catálogo completo (todos los niveles) del mismo año (con cache y sin spamear el backend)
+    cargarCatalogoCompleto({ anio })
+      .then((lista) => {
+        if (Array.isArray(lista) && lista.length) {
+          unificarCuentasDisponibles(lista, { anio });
+        }
+      })
+      .catch(() => {
+        // silencio: ya se marca fallido en cache
+      });
   };
 
-  const cargarCatalogoCompleto = async ({ anio }) => {
-    if (!Number.isInteger(anio)) return [];
+  const cargarCatalogoCompleto = ({ anio }) => {
+    if (!Number.isInteger(anio)) return Promise.resolve([]);
+    if (estadoModulo.catalogoPromesas.has(anio)) {
+      return estadoModulo.catalogoPromesas.get(anio);
+    }
+    if (estadoModulo.catalogoFallido.has(anio)) {
+      return Promise.resolve([]);
+    }
     const rutas = [
       `${API_BASE}/cuentas/catalogo`,
       `${API_BASE}/planeacion/catalogo`,
       `${API_BASE}/saldos/catalogo`
     ];
     const params = new URLSearchParams({ anio });
-    for (const ruta of rutas) {
-      try {
-        const resp = await fetch(`${ruta}?${params.toString()}`, { headers: Sesion.headersAutenticacion() });
-        const datos = await resp.json();
-        if (!resp.ok) {
-          continue;
+    const promesa = (async () => {
+      const acumuladas = new Set();
+      for (const ruta of rutas) {
+        try {
+          const resp = await fetch(`${ruta}?${params.toString()}`, { headers: Sesion.headersAutenticacion() });
+          const datos = await resp.json();
+          if (!resp.ok) {
+            continue;
+          }
+          const cuentas = Array.isArray(datos.cuentas) ? datos.cuentas : Array.isArray(datos) ? datos : [];
+          cuentas.forEach((item) => {
+            const canonica = convertirCuenta21(
+              item.numCta || item.NUM_CTA || item.cuenta || item.CUENTA || item.num_cta || ''
+            );
+            if (canonica) {
+              acumuladas.add(canonica);
+            }
+          });
+        } catch (error) {
+          // probar siguiente ruta
         }
-        const cuentas = Array.isArray(datos.cuentas) ? datos.cuentas : Array.isArray(datos) ? datos : [];
-        return cuentas
-          .map((item) => convertirCuenta21(item.numCta || item.NUM_CTA || item.cuenta || item.CUENTA || item.num_cta || ''))
-          .filter(Boolean);
-      } catch (error) {
-        // probar siguiente ruta
       }
-    }
-    return [];
+      const lista = Array.from(acumuladas);
+      if (!lista.length) {
+        estadoModulo.catalogoFallido.add(anio);
+      }
+      return lista;
+    })();
+    estadoModulo.catalogoPromesas.set(anio, promesa);
+    return promesa;
   };
 
   const compilarCatalogoGlobal = () => {
+    const anioActual = obtenerAnioSeleccionado() || estadoModulo.anio;
     const dataset = window.CUENTAS_POR_MODULO || {};
     const todas = [];
     Object.values(dataset).forEach((registros) => {
@@ -620,7 +694,7 @@
         }
       });
     });
-    unificarCuentasDisponibles(todas);
+    unificarCuentasDisponibles(todas, { anio: anioActual });
   };
 
   const destruirTooltips = () => {
@@ -661,6 +735,7 @@
       return;
     }
     estadoModulo.anio = anio;
+    poblarSugerenciasDesdeAnio(anio);
     if (!estadoModulo.moduloId) {
       return;
     }
@@ -770,7 +845,8 @@
     sheetName,
     capitulo,
     sumasPersonalizadas,
-    resultadoForzado
+    resultadoForzado,
+    mostrarCuentaVisible = false
   }) => {
     const secciones = new Map();
     const faltantesNombre = new Set();
@@ -806,7 +882,12 @@
         fila.className = 'fila-cuenta';
         const celdaCuenta = document.createElement('td');
         const cuenta21 = convertirCuenta21(item.cuenta || '');
-        celdaCuenta.textContent = item.cuenta || '-';
+        const cuentaTexto = mostrarCuentaVisible
+          ? cuenta21
+            ? cuentaVisibleDesdeLarga(cuenta21)
+            : item.cuenta || '-'
+          : item.cuenta || '-';
+        celdaCuenta.textContent = cuentaTexto;
         if (cuenta21) {
           celdaCuenta.title = cuenta21;
           celdaCuenta.dataset.bsToggle = 'tooltip';
@@ -931,16 +1012,31 @@
   const mostrarSugerenciasCuenta = (celda, texto) => {
     if (!celda || !estadoModulo.editMode) return;
     const contenedor = asegurarContenedorSugerencias();
+    const anioActual = obtenerAnioSeleccionado() || estadoModulo.anio;
     const consulta = limpiarCuentaTexto(texto ?? celda.textContent);
-    const lista = estadoModulo.cuentasDisponibles
+    const disponibles = obtenerCuentasDisponiblesPorAnio(anioActual);
+    const usadas = new Set(obtenerCuentasSolicitadas());
+    const objetivo = normalizarTexto(consulta);
+    let lista = disponibles
+      .filter((cuenta) => !usadas.has(cuenta))
       .filter((cuenta) => {
+        if (!objetivo) return true;
         const visible = cuentaVisibleDesdeLarga(cuenta);
-        const objetivo = normalizarTexto(consulta);
-        return !objetivo || normalizarTexto(cuenta).includes(objetivo) || normalizarTexto(visible).includes(objetivo);
-      })
-      .slice(0, 10);
+        return normalizarTexto(cuenta).includes(objetivo) || normalizarTexto(visible).includes(objetivo);
+      });
     if (!lista.length) {
-      ocultarSugerencias();
+      // Si no hay sugerencias, recargar catálogo del año y reintentar una vez.
+      poblarSugerenciasDesdeAnio(anioActual);
+      cargarCatalogoCompleto({ anio: anioActual })
+        .then((listaCompleta) => {
+          if (Array.isArray(listaCompleta) && listaCompleta.length) {
+            unificarCuentasDisponibles(listaCompleta, { anio: anioActual });
+            mostrarSugerenciasCuenta(celda, texto);
+          } else {
+            ocultarSugerencias();
+          }
+        })
+        .catch(() => ocultarSugerencias());
       return;
     }
     contenedor.innerHTML = '';
@@ -1912,7 +2008,9 @@
     const cuentasCapitulo = registros
       .map((registro) => convertirCuenta21(registro.cuenta || ''))
       .filter(Boolean);
-    unificarCuentasDisponibles(registros.map((registro) => registro.cuenta).filter((cuenta) => (cuenta || '').trim()));
+    unificarCuentasDisponibles(registros.map((registro) => registro.cuenta).filter((cuenta) => (cuenta || '').trim()), {
+      anio: anioSeleccionado
+    });
     if (empresaId && cuentasCapitulo.length && moduloClave !== 'presupuestos') {
       const anioNombres = obtenerAnioSeleccionado() || new Date().getFullYear();
       await cargarNombresCuentas({ empresaId, anio: anioNombres, cuentas: cuentasCapitulo });
@@ -1926,7 +2024,8 @@
       sheetName: sheetConfigurada,
       capitulo: capituloDestino,
       sumasPersonalizadas,
-      resultadoForzado
+      resultadoForzado,
+      mostrarCuentaVisible: moduloClave === 'presupuestos'
     });
     if (moduloClave === 'presupuestos' && pendientes?.sumasSecciones && !layoutPersonalizado) {
       const claveResultado = normalizarTexto('Resultado Presupuestos');
@@ -1989,7 +2088,9 @@
       estadoModulo.anio = anioSeleccionado;
     }
     poblarSugerenciasDesdeAnio(estadoModulo.anio);
-    cargarCatalogoCompleto({ anio: estadoModulo.anio }).then((lista) => unificarCuentasDisponibles(lista || []));
+    cargarCatalogoCompleto({ anio: estadoModulo.anio }).then((lista) =>
+      unificarCuentasDisponibles(lista || [], { anio: estadoModulo.anio })
+    );
     const anioNombres = obtenerAnioSeleccionado() || new Date().getFullYear();
     if (pendientes.faltantesNombre?.length && empresaId) {
       cargarNombresCuentas({ empresaId, anio: anioNombres, cuentas: pendientes.faltantesNombre });
@@ -2025,6 +2126,7 @@
       const anioEvento = Number(evento?.detail?.anio);
       if (Number.isInteger(anioEvento)) {
         estadoModulo.anio = anioEvento;
+        poblarSugerenciasDesdeAnio(anioEvento);
       }
       solicitarDatos();
     };
