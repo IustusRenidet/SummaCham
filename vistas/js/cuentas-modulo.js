@@ -160,6 +160,300 @@
     }
   };
 
+  const MODAL_SECCION_ID = 'sectionModal';
+  const crearModalSeccion = () => {
+    const modalWrapper = document.createElement('div');
+    modalWrapper.id = MODAL_SECCION_ID;
+    modalWrapper.className = 'section-modal';
+    modalWrapper.hidden = true;
+    modalWrapper.innerHTML = `
+      <div class="section-modal__overlay"></div>
+      <div class="section-modal__dialog">
+        <h5>Agregar sección</h5>
+        <form class="section-modal__form">
+          <label class="section-modal__label" for="sectionTitleInput">Título de sección</label>
+          <input id="sectionTitleInput" class="form-control section-modal__input" maxlength="80" required />
+
+          <label class="section-modal__label" for="sectionSumLabelInput">Etiqueta para sum row</label>
+          <input id="sectionSumLabelInput" class="form-control section-modal__input" maxlength="80" required />
+
+          <div id="sectionAccountsContainer" class="section-account-list"></div>
+          <button type="button" id="sectionAddAccountBtn" class="btn btn-chip btn-chip-outline w-100 mb-3">
+            <i class="bi bi-plus"></i>
+            Agregar cuenta
+          </button>
+
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="sectionGroupToggle">
+            <label class="form-check-label" for="sectionGroupToggle">
+              Crear sum row varios (secciones contiguas)
+            </label>
+          </div>
+          <div id="sectionGroupFields" class="section-modal__group" hidden>
+            <label class="section-modal__label" for="sectionGroupStart">Sección inicial</label>
+            <select id="sectionGroupStart" class="form-select section-modal__input"></select>
+            <label class="section-modal__label" for="sectionGroupEnd">Sección final</label>
+            <select id="sectionGroupEnd" class="form-select section-modal__input"></select>
+            <label class="section-modal__label" for="sectionGroupLabel">Etiqueta sum row varios</label>
+            <input id="sectionGroupLabel" class="form-control section-modal__input" maxlength="80" />
+          </div>
+
+          <div class="section-modal__actions">
+            <button type="submit" class="btn btn-primario">Crear sección</button>
+            <button type="button" id="sectionModalCancel" class="btn btn-chip btn-chip-outline">Cancelar</button>
+          </div>
+        </form>
+      </div>
+    `;
+    document.body.appendChild(modalWrapper);
+    return modalWrapper;
+  };
+
+  const asegurarEstilosModal = () => {
+    if (document.getElementById('sectionModalStyles')) return;
+    const style = document.createElement('style');
+    style.id = 'sectionModalStyles';
+    style.textContent = `
+      .section-modal {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1999;
+      }
+      .section-modal__overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(0,0,0,0.35);
+      }
+      .section-modal__dialog {
+        position: relative;
+        background: #fff;
+        border-radius: 16px;
+        padding: 24px;
+        max-width: 420px;
+        width: min(90vw, 420px);
+        box-shadow: 0 18px 40px rgba(0,0,0,0.15);
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .section-modal__form {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .section-modal__label {
+        font-size: 0.85rem;
+        font-weight: 600;
+      }
+      .section-account-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr auto;
+        gap: 8px;
+      }
+      .section-account-row .form-control {
+        margin-bottom: 0;
+      }
+      .section-account-row button {
+        align-self: center;
+        background: transparent;
+        border: none;
+        color: #c74b3a;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .section-modal__group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .section-modal__actions {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+      }
+    `;
+    document.head.appendChild(style);
+  };
+
+  let sectionModalInstance = null;
+  let pendingSectionReferencia = null;
+
+  const crearCampoCuentaFormulario = () => {
+    const fila = document.createElement('div');
+    fila.className = 'section-account-row';
+    fila.innerHTML = `
+      <input type="text" class="form-control section-account-input" placeholder="Cuenta" maxlength="25" />
+      <input type="text" class="form-control section-account-input" placeholder="Descripción" maxlength="120" />
+      <button type="button" aria-label="Eliminar cuenta">&times;</button>
+    `;
+    fila.querySelector('button').addEventListener('click', () => fila.remove());
+    return fila;
+  };
+
+  const poblarSelectSeccionesModal = () => {
+    if (!sectionModalInstance) return;
+    const startSelect = sectionModalInstance.querySelector('#sectionGroupStart');
+    const endSelect = sectionModalInstance.querySelector('#sectionGroupEnd');
+    if (!startSelect || !endSelect) return;
+    startSelect.innerHTML = '';
+    endSelect.innerHTML = '';
+    const secciones = (estadoModulo.sumas.secciones || []).map((meta, idx) => ({
+      idx,
+      label: meta?.tituloVisible || meta?.seccion || `Sección ${idx + 1}`
+    }));
+    const groupToggle = sectionModalInstance.querySelector('#sectionGroupToggle');
+    if (!secciones.length) {
+      const option = document.createElement('option');
+      option.value = '';
+      option.textContent = 'Sin secciones disponibles';
+      option.disabled = true;
+      startSelect.appendChild(option);
+      endSelect.appendChild(option.cloneNode(true));
+      if (groupToggle) {
+        groupToggle.checked = false;
+        groupToggle.disabled = true;
+        sectionModalInstance.querySelector('#sectionGroupFields').hidden = true;
+      }
+      return;
+    }
+    if (groupToggle) {
+      groupToggle.disabled = false;
+    }
+    secciones.forEach(({ idx, label }) => {
+      const optionStart = document.createElement('option');
+      optionStart.value = String(idx);
+      optionStart.textContent = label;
+      startSelect.appendChild(optionStart);
+      const optionEnd = optionStart.cloneNode(true);
+      endSelect.appendChild(optionEnd);
+    });
+  };
+
+  const abrirModalAgregarSeccion = (referencia) => {
+    asegurarModal();
+    sectionModalInstance = sectionModalInstance || crearModalSeccion();
+    pendingSectionReferencia = referencia || null;
+    if (!sectionModalInstance) return;
+    const modal = sectionModalInstance;
+    const form = modal.querySelector('form');
+    const accountsContainer = modal.querySelector('#sectionAccountsContainer');
+    const groupToggle = modal.querySelector('#sectionGroupToggle');
+    const groupFields = modal.querySelector('#sectionGroupFields');
+    const titleInput = modal.querySelector('#sectionTitleInput');
+    const sumLabelInput = modal.querySelector('#sectionSumLabelInput');
+    const groupLabelInput = modal.querySelector('#sectionGroupLabel');
+    if (!form || !accountsContainer || !groupToggle || !groupFields) return;
+    titleInput.value = '';
+    sumLabelInput.value = '';
+    groupToggle.checked = false;
+    groupFields.hidden = true;
+    groupLabelInput.value = '';
+    accountsContainer.innerHTML = '';
+    accountsContainer.appendChild(crearCampoCuentaFormulario());
+    abrirModalAgregarSeccion.actualizarSecciones = () => poblarSelectSeccionesModal();
+    poblarSelectSeccionesModal();
+    modal.hidden = false;
+    addAccountBtn.addEventListener('click', () => {
+      accountsContainer.appendChild(crearCampoCuentaFormulario());
+    });
+  };
+
+  const cerrarModalSeccion = () => {
+    if (!sectionModalInstance) return;
+    sectionModalInstance.hidden = true;
+    const form = sectionModalInstance.querySelector('form');
+    if (form) {
+      form.reset();
+    }
+  };
+
+  const getSectionModalElements = () => {
+    if (!sectionModalInstance) return null;
+    return {
+      form: sectionModalInstance.querySelector('form'),
+      titleInput: sectionModalInstance.querySelector('#sectionTitleInput'),
+      sumLabelInput: sectionModalInstance.querySelector('#sectionSumLabelInput'),
+      accountsContainer: sectionModalInstance.querySelector('#sectionAccountsContainer'),
+      addAccountBtn: sectionModalInstance.querySelector('#sectionAddAccountBtn'),
+      groupToggle: sectionModalInstance.querySelector('#sectionGroupToggle'),
+      groupFields: sectionModalInstance.querySelector('#sectionGroupFields'),
+      groupStart: sectionModalInstance.querySelector('#sectionGroupStart'),
+      groupEnd: sectionModalInstance.querySelector('#sectionGroupEnd'),
+      groupLabel: sectionModalInstance.querySelector('#sectionGroupLabel'),
+      cancelBtn: sectionModalInstance.querySelector('#sectionModalCancel')
+    };
+  };
+
+  const inicializarModalSeccion = () => {
+    asegurarEstilosModal();
+    sectionModalInstance = sectionModalInstance || crearModalSeccion();
+    const elems = getSectionModalElements();
+    if (!elems) return;
+    elems.groupToggle.addEventListener('change', () => {
+      elems.groupFields.hidden = !elems.groupToggle.checked;
+    });
+    elems.addAccountBtn.addEventListener('click', () => {
+      elems.accountsContainer.appendChild(crearCampoCuentaFormulario());
+    });
+    elems.cancelBtn.addEventListener('click', () => {
+      cerrarModalSeccion();
+    });
+    elems.form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const cuentas = Array.from(elems.accountsContainer.querySelectorAll('.section-account-row')).map((row) => {
+        const inputs = row.querySelectorAll('input');
+        return {
+          cuenta: inputs[0]?.value.trim() || '',
+          descripcion: inputs[1]?.value.trim() || ''
+        };
+      }).filter((item) => item.cuenta || item.descripcion);
+      if (!cuentas.length) {
+        window.alert('Debes agregar al menos una cuenta para la sección.');
+        return;
+      }
+      const titulo = elems.titleInput.value.trim();
+      const sumLabel = elems.sumLabelInput.value.trim();
+      if (!titulo || !sumLabel) {
+        window.alert('El título y la etiqueta del sum row son obligatorios.');
+        return;
+      }
+      let range = null;
+      let sumavariosLabel = '';
+      if (elems.groupToggle.checked) {
+        const start = Number(elems.groupStart.value);
+        const end = Number(elems.groupEnd.value);
+        sumavariosLabel = elems.groupLabel.value.trim();
+        if (Number.isNaN(start) || Number.isNaN(end) || start > end) {
+          window.alert('Selecciona un rango válido para las secciones contiguas.');
+          return;
+        }
+        if (!sumavariosLabel) {
+          window.alert('Proporciona una etiqueta para el sum row varios.');
+          return;
+        }
+        range = { start, end };
+      }
+      crearSeccionDesdeFormulario({
+        referenciaFila: pendingSectionReferencia,
+        titulo,
+        sumLabel,
+        cuentas,
+        sumavariosLabel,
+        range
+      });
+      cerrarModalSeccion();
+    });
+  };
+
+  const asegurarModal = () => {
+    if (sectionModalInstance) return;
+    inicializarModalSeccion();
+  };
+
   const obtenerYearSelect = () => {
     return document.querySelector('[data-role="module-year-select"]') || document.querySelector('select[id$="YearSelect"]');
   };
@@ -1267,6 +1561,149 @@
     return fila;
   };
 
+  const crearFilaCuentaDesdeDatos = (datos, seccionClave) => {
+    const fila = crearFilaCuentaVacia(seccionClave);
+    const cuentaTexto = datos.cuenta || '-';
+    const descripcionTexto = datos.descripcion || '-';
+    const cuentaCelda = fila.children[0];
+    const descripcionCelda = fila.children[1];
+    if (cuentaCelda) {
+      cuentaCelda.textContent = cuentaTexto;
+    }
+    if (descripcionCelda) {
+      descripcionCelda.textContent = descripcionTexto;
+    }
+    fila.dataset.cuenta = datos.cuenta || '';
+    fila.dataset.cuenta21 = datos.cuenta ? convertirCuenta21(datos.cuenta) : '';
+    return fila;
+  };
+
+  const actualizarSumavariosParaRango = (label, indices, insertIdx) => {
+    if (!label || !Array.isArray(indices) || !indices.length || !estadoModulo.tabla) {
+      return;
+    }
+    const clave = normalizarTexto(label);
+    if (!clave) return;
+    const cuerpo = estadoModulo.tabla.querySelector('tbody');
+    if (!cuerpo) return;
+    // Eliminar fila existente si hay
+    const existente = estadoModulo.sumas.sumavariosRows.get(clave);
+    if (existente && existente.parentNode) {
+      existente.parentNode.removeChild(existente);
+      estadoModulo.sumas.sumavariosRows.delete(clave);
+    }
+    const filaSumario = agregarFilaResumen({
+      texto: label,
+      clase: 'sum-row-sumavarios',
+      cuerpo,
+      placeholdersPorFila: estadoModulo.placeholdersPorFila
+    });
+    if (!filaSumario) return;
+    estadoModulo.sumas.sumavariosRows.set(clave, filaSumario);
+    const metas = indices
+      .map((idx) => {
+        const ajustado = idx >= insertIdx ? idx + 1 : idx;
+        return estadoModulo.sumas.secciones[ajustado];
+      })
+      .filter(Boolean);
+    metas.forEach((meta) => {
+      meta.sumRowSumavariosLabel = clave;
+      meta.sumRowSumavariosTexto = label;
+    });
+    const ultimaMeta = metas[metas.length - 1];
+    const referencia =
+      ultimaMeta?.elementos?.sumRow ||
+      ultimaMeta?.filasCuenta?.[ultimaMeta.filasCuenta.length - 1] ||
+      cuerpo.lastChild;
+    if (referencia && referencia.parentNode) {
+      referencia.parentNode.insertBefore(filaSumario, referencia.nextSibling);
+    }
+  };
+
+  const crearSeccionDesdeFormulario = ({
+    referenciaFila,
+    titulo,
+    sumLabel,
+    cuentas,
+    sumavariosLabel,
+    range
+  }) => {
+    if (!estadoModulo.tabla) return;
+    const cuerpo = estadoModulo.tabla.querySelector('tbody');
+    if (!cuerpo) return;
+    const seccionClave = normalizarTexto(titulo);
+    const header = document.createElement('tr');
+    header.className = 'section-header-row';
+    const celdaHeader = document.createElement('td');
+    celdaHeader.colSpan = estadoModulo.placeholdersPorFila + 2;
+    celdaHeader.textContent = titulo;
+    header.appendChild(celdaHeader);
+
+    const cuentasFilas = cuentas.map((datos) => crearFilaCuentaDesdeDatos(datos, seccionClave));
+    const textoSumRow = sumLabel || `Suma ${titulo}`;
+    const filaSumRow = agregarFilaResumen({
+      texto: textoSumRow,
+      clase: 'sum-row',
+      cuerpo,
+      placeholdersPorFila: estadoModulo.placeholdersPorFila
+    });
+
+    const metaBase =
+      referenciaFila?.classList.contains('sum-row-sumavarios') && obtenerMetaPorSumavariosFila(referenciaFila)
+        ? obtenerMetaPorSumavariosFila(referenciaFila)
+        : obtenerMetaSeccionPorFila(referenciaFila);
+    const idxInsercion = metaBase ? obtenerIndiceInsercionSeccion(metaBase) : estadoModulo.sumas.secciones.length;
+    const referenciaMeta = estadoModulo.sumas.secciones[idxInsercion] || estadoModulo.sumas.secciones[idxInsercion - 1] || null;
+
+    let anchor =
+      referenciaMeta?.elementos?.sumRow ||
+      referenciaMeta?.filasCuenta?.[0] ||
+      obtenerPrimerResultadoFila();
+    if (!anchor) {
+      anchor = cuerpo.lastElementChild?.nextSibling || null;
+    }
+
+    if (anchor) {
+      cuerpo.insertBefore(header, anchor);
+      cuentasFilas.forEach((fila) => cuerpo.insertBefore(fila, anchor));
+      if (filaSumRow) {
+        cuerpo.insertBefore(filaSumRow, anchor);
+      }
+    } else {
+      cuerpo.appendChild(header);
+      cuentasFilas.forEach((fila) => cuerpo.appendChild(fila));
+      if (filaSumRow) {
+        cuerpo.appendChild(filaSumRow);
+      }
+    }
+
+    const metaNueva = {
+      seccion: seccionClave,
+      tituloVisible: titulo,
+      filasCuenta: cuentasFilas,
+      sumRowTexto: normalizarTexto(textoSumRow),
+      sumRowSumavariosTexto: '',
+      sumRowSumavarios2Texto: '',
+      sumRowSumavariosLabel: '',
+      elementos: {
+        header,
+        sumRow: filaSumRow
+      }
+    };
+
+    estadoModulo.sumas.secciones.splice(idxInsercion, 0, metaNueva);
+
+    if (sumavariosLabel && range) {
+      const indices = [];
+      for (let i = range.start; i <= range.end; i += 1) {
+        indices.push(i);
+      }
+      actualizarSumavariosParaRango(sumavariosLabel, indices, idxInsercion);
+    }
+
+    actualizarEstructuraDespuesCambio();
+  };
+
   const actualizarEstructuraDespuesCambio = () => {
     aplicarModoEdicionEnTabla();
     recalcularSumas();
@@ -1368,70 +1805,7 @@
   };
 
   const agregarSeccionNueva = (referenciaFila) => {
-    if (!estadoModulo.tabla) return;
-    const titulo = window.prompt('Nombre de la seccion nueva:');
-    if (!titulo) return;
-    const sumLabel = window.prompt('Etiqueta para la suma de la seccion:', `Suma ${titulo}`) || `Suma ${titulo}`;
-    const cuerpo = estadoModulo.tabla.querySelector('tbody');
-    const metaBase =
-      referenciaFila?.classList.contains('sum-row-sumavarios') && obtenerMetaPorSumavariosFila(referenciaFila)
-        ? obtenerMetaPorSumavariosFila(referenciaFila)
-        : obtenerMetaSeccionPorFila(referenciaFila);
-    const idxInsercion = metaBase ? obtenerIndiceInsercionSeccion(metaBase) : estadoModulo.sumas.secciones.length;
-    const referenciaMeta = estadoModulo.sumas.secciones[idxInsercion] || estadoModulo.sumas.secciones[idxInsercion - 1] || null;
-    const seccionClave = normalizarTexto(titulo);
-    const header = document.createElement('tr');
-    header.className = 'section-header-row';
-    const celdaHeader = document.createElement('td');
-    celdaHeader.colSpan = estadoModulo.placeholdersPorFila + 2;
-    celdaHeader.textContent = titulo;
-    header.appendChild(celdaHeader);
-
-    const filaCuenta = crearFilaCuentaVacia(seccionClave);
-    const filaSumRow = agregarFilaResumen({
-      texto: sumLabel,
-      clase: 'sum-row',
-      cuerpo,
-      placeholdersPorFila: estadoModulo.placeholdersPorFila
-    });
-
-    let anchor =
-      referenciaMeta?.elementos?.header ||
-      referenciaMeta?.filasCuenta?.[0] ||
-      referenciaMeta?.elementos?.sumRow ||
-      obtenerPrimerResultadoFila();
-    if (!anchor) {
-      const resultadoFila = obtenerPrimerResultadoFila();
-      anchor = resultadoFila || cuerpo.lastChild?.nextSibling || null;
-    }
-    if (anchor) {
-      cuerpo.insertBefore(header, anchor);
-      cuerpo.insertBefore(filaCuenta, anchor);
-      cuerpo.insertBefore(filaSumRow, anchor);
-    } else {
-      cuerpo.appendChild(header);
-      cuerpo.appendChild(filaCuenta);
-      cuerpo.appendChild(filaSumRow);
-    }
-
-    const resultadoTexto = estadoModulo.layoutActual?.resultRow || obtenerTextoCeldaDescripcion(obtenerPrimerResultadoFila()) || '';
-    const metaNueva = {
-      seccion: seccionClave,
-      tituloVisible: titulo,
-      filasCuenta: [filaCuenta],
-      sumRowTexto: normalizarTexto(sumLabel),
-      sumRowSumavariosTexto: '',
-      sumRowSumavarios2Texto: '',
-      sumRowSumavariosLabel: '',
-      resultRowTexto: resultadoTexto ? normalizarTexto(resultadoTexto) : '',
-      elementos: {
-        header,
-        sumRow: filaSumRow
-      }
-    };
-
-    estadoModulo.sumas.secciones.splice(idxInsercion, 0, metaNueva);
-    actualizarEstructuraDespuesCambio();
+    abrirModalAgregarSeccion(referenciaFila);
   };
 
   const ocultarMenuContextual = () => {
@@ -1534,7 +1908,7 @@
     } else if (fila.classList.contains('sum-row-sumavarios')) {
       opciones.push({ clave: 'delete_row', texto: 'Eliminar sum-row-sumavarios' });
     }
-    opciones.push({ clave: 'add_section', texto: 'Agregar seccion debajo' });
+    opciones.push({ clave: 'add_section', texto: 'Agregar sección' });
     if (!opciones.length) return;
     evt.preventDefault();
     filaContextual = fila;
@@ -2165,6 +2539,9 @@
     },
     cancelEdit() {
       cancelarEdicion();
+    },
+    guardarLayout() {
+      return persistirLayoutActual();
     },
     getCambios() {
       return obtenerCambiosPendientes();

@@ -3,169 +3,273 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Resumen Presupuestario</title>
+  <title>Resumen</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="css/estilos.css" />
   <style>
     :root {
-      --bg: #eef1f5;
-      --panel: #fff;
-      --border: #d1d7e2;
-      --text: #2b3852;
-      --muted: #6f7a8c;
-      --accent: #c27a2b;
-      --accent-dark: #1f2b3f;
-      font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+      --color-primary: #2f5496;
+      --color-secondary: #8497b0;
+      --color-background: #f2f2f2;
+      --color-text: #2f5496;
+      --color-budget: #4472c4;
+      --color-real: #ffc000;
     }
-    * { box-sizing: border-box; }
+
     body {
-      margin: 0;
+      background-color: var(--color-background);
+      font-family: 'Manrope', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: var(--color-text);
       min-height: 100vh;
-      background: var(--bg);
-      color: var(--text);
-      padding: 24px;
+      padding-top: 70px;
     }
-    main {
-      max-width: 1120px;
-      margin: 0 auto;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-    header {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 18px 24px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 16px;
-      box-shadow: 0 12px 30px rgba(18, 32, 73, 0.08);
-    }
-    header h1 {
-      margin: 0;
-      font-size: 22px;
-      letter-spacing: 0.4px;
-    }
-    .controls {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-    select {
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      padding: 6px 10px;
-      background: #fff;
-      color: var(--text);
-      font-size: 14px;
-    }
-    .status {
-      font-size: 14px;
-      color: var(--muted);
-    }
-    .table-shell {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      padding: 16px;
-      box-shadow: 0 16px 40px rgba(33, 49, 81, 0.1);
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 15px;
-    }
-    thead th {
-      background: var(--accent-dark);
+
+    .header-card {
+      background: var(--color-primary);
+      border-radius: 16px;
+      border: 1px solid rgba(47, 84, 150, 0.1);
       color: #fff;
-      font-size: 13px;
+    }
+
+    .table-card {
+      background: #fff;
+      border-radius: 16px;
+      border: 1px solid rgba(47, 84, 150, 0.1);
+      overflow: hidden;
+    }
+
+    .table-comparison {
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 0.85rem;
+      min-width: 960px;
+    }
+
+    .table-comparison thead th {
+      border: 1px solid #d0d7de;
+      font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: 0.08em;
-      padding: 12px;
-      border: 1px solid var(--border);
+      font-size: 0.75rem;
+      letter-spacing: 0.04em;
+      padding: 0.75rem 0.6rem;
+      vertical-align: middle;
+      text-align: center;
+      background-color: #fff;
     }
-    tbody td {
-      padding: 12px;
-      border: 1px solid var(--border);
+
+    .table-comparison tbody td,
+    .table-comparison tbody th {
+      border: 1px solid #e1e4e8;
+      padding: 0.6rem 0.6rem;
+      vertical-align: middle;
     }
-    tbody tr:nth-child(even) {
-      background: #f9fbff;
+
+    .table-comparison tbody th {
+      font-weight: 600;
+      text-align: left;
+      background-color: #fff;
     }
-    .section {
+
+    .table-comparison tbody tr:hover td {
+      background-color: rgba(47, 84, 150, 0.04);
+    }
+
+    .section-row td {
+      background-color: rgba(132, 151, 176, 0.2);
       font-weight: 700;
-      color: var(--accent-dark);
+      color: var(--color-primary);
       text-transform: uppercase;
-      letter-spacing: 0.1em;
+      letter-spacing: 0.05em;
+      font-size: 0.8rem;
     }
-    .indent-2 { padding-left: 24px; }
-    .indent-3 { padding-left: 36px; }
-    .accent { color: var(--accent); }
-    .delta { text-align: right; }
-    .text-green { color: #2e8b57; }
-    .text-red { color: #c74b3a; }
-    .notes { font-size: 13px; color: var(--muted); margin-top: 12px; }
-    @media (max-width: 960px) {
-      header {
-        flex-direction: column;
-        align-items: flex-start;
+
+    .section-label {
+      padding-left: 1rem;
+    }
+
+    .module-row th {
+      color: #c27a2b;
+    }
+
+    .sum-row td,
+    .sum-row th {
+      background-color: rgba(68, 114, 196, 0.1);
+      font-weight: 700;
+    }
+
+    .table-comparison tbody tr.income td,
+    .table-comparison tbody tr.income th {
+      color: #2c8b57;
+    }
+
+    .table-comparison tbody tr.expense td,
+    .table-comparison tbody tr.expense th {
+      color: #c74b3a;
+    }
+
+    .text-green {
+      color: #2c8b57;
+      font-weight: 600;
+    }
+
+    .text-red {
+      color: #c74b3a;
+      font-weight: 600;
+    }
+
+    .btn-split {
+      display: flex;
+      gap: 1px;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .btn-split .split-main,
+    .btn-split .split-secondary {
+      border-radius: 0;
+      flex: 1;
+    }
+
+    .btn-split .split-main {
+      border-right: 1px solid rgba(255, 255, 255, 0.25);
+    }
+
+    body.ocultar-cuentas th:first-child,
+    body.ocultar-cuentas td:first-child {
+      display: none;
+    }
+
+    @media (max-width: 1200px) {
+      .table-responsive {
+        overflow-x: auto;
       }
-      .controls {
-        width: 100%;
-        justify-content: flex-start;
+    }
+
+    @media (max-width: 768px) {
+      .table-comparison {
+        font-size: 0.72rem;
+      }
+
+      .table-comparison thead th,
+      .table-comparison tbody td {
+        padding: 0.45rem 0.35rem;
       }
     }
   </style>
 </head>
-<body>
-  <main>
-    <header>
-      <div>
-        <h1>Resumen Ejecutivo</h1>
-        <p class="notes">Los totales se calculan desde resumen-e y agrupan por cuentas clave.</p>
+<body data-modulo="Resumen" data-modulo-alias="Resumen" data-modulo-id="resumen">
+  <div class="container py-4 py-lg-5">
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="card header-card fade-in">
+          <div class="card-body">
+            <div class="d-flex flex-column flex-lg-row align-items-start align-items-lg-center justify-content-between gap-3">
+              <div>
+                <h1 class="fw-bold display-6 mb-2">Resumen</h1>
+              </div>
+              <div class="text-end d-flex flex-column flex-sm-row align-items-start align-items-sm-center gap-2 justify-content-end">
+                <span class="badge bg-white text-primary">Ppto vs Real</span>
+                <button type="button" class="btn btn-chip btn-chip-outline d-none" id="toggleAccountColumnBtn" aria-pressed="true">
+                  <i class="bi bi-eye-slash"></i>
+                  <span class="toggle-account-label">Ocultar cuentas</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="controls">
-        <label>
-          Empresa
-          <select id="selEmpresa">
-            <option value="empresa1">Ciudad de México</option>
-            <option value="empresa2" selected>Guadalajara</option>
-            <option value="empresa3">Noreste</option>
-            <option value="empresa4">Noroeste</option>
-          </select>
-        </label>
-        <label>
-          Año Real
-          <select id="selReal"></select>
-        </label>
-        <span id="statusText" class="status">Estado: cargando datos...</span>
+    </div>
+    <div class="row mb-3">
+      <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+        <label for="selReal" class="form-label fw-semibold text-muted small mb-2">Ejercicio</label>
+        <select id="selReal" class="form-select" data-role="module-year-select" aria-label="Selecciona el ejercicio">
+          <option value="">Cargando ejercicios...</option>
+        </select>
       </div>
-    </header>
-
-    <section class="table-shell">
-      <table>
-        <thead>
-          <tr>
-            <th style="width:30%;">Concepto</th>
-            <th>Real <span id="hdrRealYear">YYYY</span></th>
-            <th>PPTO <span id="hdrPptoYear">YYYY</span></th>
-            <th>Real <span id="hdrPrevYear">YYYY-1</span></th>
-            <th>Var Real vs anterior</th>
-            <th>Var Ppto vs real</th>
-          </tr>
-        </thead>
-        <tbody id="tablaResumen">
-          <tr>
-            <td colspan="6" style="text-align:center; padding:20px;">Esperando datos...</td>
-          </tr>
-        </tbody>
-      </table>
-      <p class="notes">Si la API /saldos/cuentas no responde se muestra esta advertencia en la tabla.</p>
-    </section>
-  </main>
-
+    </div>
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="card table-card fade-in">
+          <div class="card-body p-3">
+            <div class="workflow-toolbar">
+              <div>
+                <p class="text-muted fw-semibold mb-1">Estado del flujo</p>
+                <div class="workflow-badge" id="workflowBadge">Sin cambios</div>
+                <p class="workflow-meta mb-0" id="workflowMeta">Lista para guardar.</p>
+              </div>
+            <div class="toolbar-actions" role="group">
+              <div class="btn-split" id="editSplitBtn">
+                <button type="button" class="btn btn-chip btn-chip-primary split-main" id="saveLayoutBtn">
+                  <i class="bi bi-save"></i>
+                  Guardar edición
+                </button>
+                <button type="button" class="btn btn-chip btn-chip-outline split-secondary" id="cancelLayoutBtn">
+                  <i class="bi bi-x-circle"></i>
+                  Cancelar edición
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-12">
+        <div class="card table-card fade-in">
+          <div class="table-responsive">
+            <table class="table table-comparison mb-0" aria-label="Tabla de resumen ejecutivo">
+              <thead>
+                <tr>
+                  <th scope="col">Cuenta</th>
+                  <th scope="col">Real <span id="hdrRealYear">YYYY</span></th>
+                  <th scope="col">Ppto. <span id="hdrPptoYear">YYYY</span></th>
+                  <th scope="col">Real <span id="hdrPrevYear">YYYY-1</span></th>
+                  <th scope="col">Variacion Ppto vs Real</th>
+                  <th scope="col">Variacion Real vs Real anterior</th>
+                  <th scope="col">Seccion</th>
+                  <th scope="col">Real <span id="hdrRealYear2">YYYY</span></th>
+                  <th scope="col">Ppto. <span id="hdrPptoYear2">YYYY</span></th>
+                  <th scope="col">Real <span id="hdrPrevYear2">YYYY-1</span></th>
+                  <th scope="col">Variacion Ppto vs Real</th>
+                  <th scope="col">Variacion Real vs Real anterior</th>
+                </tr>
+              </thead>
+              <tbody id="tablaResumenBody">
+                <tr>
+                  <td colspan="12" class="text-center text-muted py-5">Cargando datos...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="js/sesion.js"></script>
+  <script src="js/capitulos-modulos.js"></script>
+  <script src="js/cuentas-modulo.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+    crossorigin="anonymous"></script>
   <script>
     const API_BASE = 'http://localhost:3000/api';
+    const MODULES = [
+      { key: 'vpe', label: 'VPE', type: 'income', keywords: ['vpe'], prefixes: ['3'] },
+      { key: 'comunicacion', label: 'Comunicacion', type: 'income', keywords: ['comunicaci', 'communication'], prefixes: ['4'] },
+      { key: 'gtos-corporativos', label: 'Gtos Corporativos', type: 'expense', keywords: ['corporativos', 'corporate'], prefixes: ['9'] },
+      { key: 'tic', label: 'T&IC', type: 'income', keywords: ['t&ic', 'trade'], prefixes: ['7'] },
+      { key: 'comites', label: 'Comites', type: 'income', keywords: ['comite'], prefixes: ['4'] },
+      { key: 'finanzas', label: 'Finanzas', type: 'income', keywords: ['finance', 'finanza'], prefixes: ['4'] },
+      { key: 'serv-membresia', label: 'Servicios a la membresia', type: 'expense', keywords: ['servicios', 'services'], prefixes: ['5', '6'] },
+      { key: 'membresia', label: 'Membresia', type: 'income', keywords: ['membership'], prefixes: ['4'] },
+      { key: 'rh', label: 'Recursos Humanos', type: 'expense', keywords: ['human', 'recursos'], prefixes: ['8'] },
+      { key: 'eventos', label: 'Eventos', type: 'income', keywords: ['event'], prefixes: ['4'] }
+    ];
     const state = {
       empresaId: 'empresa2',
       realYear: null,
@@ -174,72 +278,121 @@
       codigos: [],
       rows: []
     };
-
-    const structure = [
-      { id: 'INCOME', label: 'Income', level: 1, section: true },
-      { id: 'MEMBERSHIP', label: 'Membership', level: 2, parent: 'INCOME', prefixes: ['400'] },
-      { id: 'CUOTAS', label: 'Cuotas Netas', level: 3, parent: 'MEMBERSHIP', prefixes: ['400'] },
-      { id: 'SOCIOS', label: 'Ingresos socios nuevos', level: 3, parent: 'MEMBERSHIP', prefixes: ['401'] },
-      { id: 'EVENTOS', label: 'Events', level: 2, parent: 'INCOME', prefixes: ['404', '405'] },
-      { id: 'PATROCINIOS', label: 'Patrocinios', level: 3, parent: 'EVENTOS', prefixes: ['405'] },
-      { id: 'COMITE', label: 'Committees', level: 2, parent: 'INCOME', prefixes: ['493'] },
-      { id: 'SERVICES', label: 'Services to Members', level: 2, parent: 'INCOME', prefixes: ['445'] },
-      { id: 'GASTOS', label: 'Expense', level: 1, section: true },
-      { id: 'GASTOS_MEMBERS', label: 'Membership', level: 2, parent: 'GASTOS', prefixes: ['261','8094'] },
-      { id: 'GASTOS_EVENTS', label: 'Events', level: 2, parent: 'GASTOS', prefixes: ['316','436'] },
-      { id: 'GASTOS_ADMIN', label: 'Gastos Administrativos', level: 2, parent: 'GASTOS', prefixes: ['847','230','331'] }
-    ];
-
-    const fmtNum = (v) => new Intl.NumberFormat('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(Number(v) || 0);
+    const fmtNum = (n) => new Intl.NumberFormat('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(Number(n) || 0);
     const fmtPct = (v) => `${(Number(v) * 100).toFixed(0)}%`;
+    const ACCOUNT_COLUMN_STORAGE_KEY = 'resumen_ocultar_cuentas';
+    const workflowBadgeEl = document.getElementById('workflowBadge');
+    const workflowMetaEl = document.getElementById('workflowMeta');
 
+    const applyAccountVisibility = (ocultar) => {
+      document.body.classList.toggle('ocultar-cuentas', Boolean(ocultar));
+      const button = document.getElementById('toggleAccountColumnBtn');
+      if (!button) return;
+      const label = button.querySelector('.toggle-account-label');
+      if (label) {
+        label.textContent = ocultar ? 'Mostrar cuentas' : 'Ocultar cuentas';
+      }
+      button.setAttribute('aria-pressed', ocultar ? 'true' : 'false');
+    };
+
+    const initAccountToggle = () => {
+      const button = document.getElementById('toggleAccountColumnBtn');
+      if (!button) return;
+      const sesionActual = window.sesion || (typeof Sesion !== 'undefined' ? Sesion.obtener() : null);
+      const esAdminGlobal = typeof Sesion !== 'undefined'
+        && typeof Sesion.esAdminGlobal === 'function'
+        && Sesion.esAdminGlobal(sesionActual);
+      if (!esAdminGlobal) {
+        applyAccountVisibility(true);
+        button.classList.add('d-none');
+        button.setAttribute('aria-disabled', 'true');
+        button.setAttribute('disabled', 'true');
+        button.setAttribute('tabindex', '-1');
+        localStorage.setItem(ACCOUNT_COLUMN_STORAGE_KEY, '1');
+        return;
+      }
+      button.classList.remove('d-none');
+      const preferencia = localStorage.getItem(ACCOUNT_COLUMN_STORAGE_KEY) === '1';
+      applyAccountVisibility(preferencia);
+      button.addEventListener('click', () => {
+        const ocultar = !document.body.classList.contains('ocultar-cuentas');
+        applyAccountVisibility(ocultar);
+        localStorage.setItem(ACCOUNT_COLUMN_STORAGE_KEY, ocultar ? '1' : '0');
+      });
+    };
     const setStatus = (text, isError = false) => {
       const el = document.getElementById('statusText');
       if (el) {
         el.textContent = `Estado: ${text}`;
-        el.style.color = isError ? '#c94b43' : '#4b6a9b';
+        el.style.color = isError ? '#c74b3a' : '#4b6a9b';
+      }
+      if (workflowMetaEl) {
+        workflowMetaEl.textContent = text;
+      }
+      if (workflowBadgeEl) {
+        workflowBadgeEl.textContent = isError ? 'Error' : 'Activo';
       }
     };
-
-    const fillYears = (years) => {
-      const select = document.getElementById('selReal');
-      select.innerHTML = '';
-      years.forEach((year) => {
-        const opt = document.createElement('option');
-        opt.value = year;
-        opt.textContent = year;
-        select.appendChild(opt);
-      });
-      state.realYear = years[0];
-      state.prevYear = years[1] || years[0] - 1;
-      state.pptoYear = years[0];
-      document.getElementById('hdrRealYear').textContent = state.realYear;
-      document.getElementById('hdrPptoYear').textContent = state.pptoYear;
-      document.getElementById('hdrPrevYear').textContent = state.prevYear;
-    };
-
     const headersAuth = () => {
       const h = window.Sesion?.headersAutenticacion?.() || {};
       return { ...h, 'Content-Type': 'application/json' };
     };
-
-    const fetchYears = async () => {
-      const res = await fetch(`${API_BASE}/modulos/summary-anios?empresaId=${state.empresaId}`);
-      if (!res.ok) throw new Error('no fue posible listar años');
-      const data = await res.json();
-      const years = Array.isArray(data.anios) ? data.anios.filter(Boolean).map(Number).sort((a,b)=>b-a) : [];
-      return years.length ? years : [new Date().getFullYear(), new Date().getFullYear()-1];
+    const normalizeYears = (list) => {
+      if (!Array.isArray(list)) return [];
+      return Array.from(new Set(list.filter((year) => year && !Number.isNaN(Number(year))).map(Number)))
+        .sort((a, b) => b - a);
     };
 
+    const fillYearSelect = (years) => {
+      const sel = document.getElementById('selReal');
+      if (!sel) return;
+      const normalized = normalizeYears(years);
+      sel.innerHTML = '';
+      const placeholder = document.createElement('option');
+      placeholder.value = '';
+      placeholder.textContent = '-';
+      sel.appendChild(placeholder);
+      normalized.forEach((year) => {
+        const opt = document.createElement('option');
+        opt.value = String(year);
+        opt.textContent = String(year);
+        sel.appendChild(opt);
+      });
+      const selectedYear = normalized.length ? normalized[0] : new Date().getFullYear();
+      state.realYear = selectedYear;
+      state.pptoYear = selectedYear;
+      state.prevYear = normalized[1] || selectedYear - 1;
+      sel.value = String(state.realYear);
+      ['RealYear', 'RealYear2'].forEach((id) => {
+        const el = document.getElementById(`hdr${id}`);
+        if (el) el.textContent = state.realYear;
+      });
+      ['PptoYear', 'PptoYear2'].forEach((id) => {
+        const el = document.getElementById(`hdr${id}`);
+        if (el) el.textContent = state.pptoYear;
+      });
+      ['PrevYear', 'PrevYear2'].forEach((id) => {
+        const el = document.getElementById(`hdr${id}`);
+        if (el) el.textContent = state.prevYear;
+      });
+    };
+    const fetchYears = async () => {
+      const url = `${API_BASE}/modulos/summary-anios`;
+      const params = new URLSearchParams({ empresaId: state.empresaId });
+      const res = await fetch(`${url}?${params.toString()}`, { headers: headersAuth() });
+      if (!res.ok) throw new Error('No fue posible listar anios');
+      const data = await res.json();
+      const years = Array.isArray(data.anios) ? data.anios.filter(Boolean).map(Number).sort((a, b) => b - a) : [];
+      return years.length ? years : [new Date().getFullYear(), new Date().getFullYear() - 1];
+    };
     const fetchCodigos = async () => {
-      if (!state.realYear) throw new Error('falta año real');
-      const params = new URLSearchParams({ empresaId: state.empresaId, anio: state.realYear });
-      const res = await fetch(`${API_BASE}/saldos/cuentas?${params.toString()}`, { headers: headersAuth() });
-      if (!res.ok) throw new Error('No fue posible obtener cuentas (API no disponible)');
+      if (!state.realYear) throw new Error('Anio real no seleccionado');
+      const query = new URLSearchParams({ empresaId: state.empresaId, anio: state.realYear });
+      const res = await fetch(`${API_BASE}/saldos/cuentas?${query.toString()}`, { headers: headersAuth() });
+      if (!res.ok) throw new Error('No fue posible obtener cuentas');
       const body = await res.json();
       return Array.isArray(body.cuentas) ? body.cuentas.map((c) => c.cuenta).filter(Boolean) : [];
     };
-
     const fetchResumen = async () => {
       const payload = {
         empresaId: state.empresaId,
@@ -258,97 +411,247 @@
       const data = await res.json();
       return Array.isArray(data.detalle) ? data.detalle : [];
     };
-
-    const mapData = (detalle) => {
-      const mapa = new Map();
-      structure.forEach((item) => mapa.set(item.id, { ...item, real: 0, ppto: 0, realPrev: 0 }));
-      detalle.forEach((row) => {
-        const prefijo = (row.codigo || '').toString().replace(/[^0-9]/g, '').slice(0,3);
-        const target = structure.find((item) => item.prefixes?.some((pref) => pref === prefijo));
-        if (target) {
-          const entry = mapa.get(target.id);
-          entry.real += Number(row.ytdActual ?? row.acumuladoActual ?? 0);
-          entry.ppto += Number(row.ytdPlan ?? row.acumuladoPlan ?? 0);
-          entry.realPrev += Number(row.ytdAnterior ?? row.acumuladoAnterior ?? 0);
-        }
+    const matchModule = (row) => {
+      const text = (row.descripcion || '').toLowerCase();
+      const code = (row.codigo || '').replace(/[^0-9]/g, '');
+      return MODULES.find((m) => {
+        if (m.keywords.some((k) => text.includes(k))) return true;
+        return m.prefixes.some((pref) => code.startsWith(pref));
       });
-      structure.filter((item) => item.parent).forEach((child) => {
-        const parent = mapa.get(child.parent);
-        const current = mapa.get(child.id);
-        parent.real += current.real;
-        parent.ppto += current.ppto;
-        parent.realPrev += current.realPrev;
-      });
-      const result = Array.from(mapa.values()).map((entry) => {
-        const diff = entry.real - entry.ppto;
-        return {
-          ...entry,
-          diff,
-          varReal: entry.realPrev ? safeDiv(entry.real, entry.realPrev) - 1 : 0,
-          varPpto: entry.ppto ? safeDiv(entry.real, entry.ppto) - 1 : 0
-        };
-      });
-      return result;
+    };
+    const guardarEdicion = () => {
+      const guardar = window.CuentasModulo?.guardarLayout?.();
+      if (guardar === false) {
+        setStatus('No fue posible guardar la edición.', true);
+        return;
+      }
+      setStatus('Edición guardada.');
     };
 
+    const cancelarEdicion = () => {
+      const confirmacion = window.confirm('¿Deseas cancelar la edición? Se descartarán los cambios no guardados.');
+      if (!confirmacion) return;
+      if (window.CuentasModulo?.cancelEdit) {
+        window.CuentasModulo.cancelEdit();
+      }
+      setStatus('Edición cancelada.');
+    };
+
+    const buildRows = (detalle) => {
+      const modules = MODULES.reduce((acc, module) => {
+        acc[module.key] = {
+          ...module,
+          totals: { real: 0, ppto: 0, prev: 0 },
+          rows: []
+        };
+        return acc;
+      }, {});
+      const others = { label: 'Otros', type: 'other', totals: { real: 0, ppto: 0, prev: 0 }, rows: [] };
+      detalle.forEach((entry) => {
+        const targetModule = matchModule(entry);
+        const bucket = targetModule ? modules[targetModule.key] : others;
+        const real = Number(entry.ytdActual ?? entry.acumuladoActual ?? 0);
+        const ppto = Number(entry.ytdPlan ?? entry.acumuladoPlan ?? 0);
+        const prev = Number(entry.ytdAnterior ?? entry.acumuladoAnterior ?? 0);
+        bucket.totals.real += real;
+        bucket.totals.ppto += ppto;
+        bucket.totals.prev += prev;
+        bucket.rows.push({
+          code: entry.codigo || '',
+          label: entry.descripcion || '',
+          module: bucket.label,
+          type: bucket.type,
+          real,
+          ppto,
+          prev,
+          varPpto: ppto ? real / ppto - 1 : 0,
+          varReal: prev ? real / prev - 1 : 0
+        });
+      });
+      const sectionRows = [];
+      const pushSection = (label, entries, isIncome) => {
+        if (!entries.length) return;
+        sectionRows.push({ section: true, label, type: isIncome ? 'income' : 'expense', data: null });
+        const sectionTotals = entries.reduce((acc, entry) => {
+          const totals = entry.totals || { real: 0, ppto: 0, prev: 0 };
+          acc.real += totals.real;
+          acc.ppto += totals.ppto;
+          acc.prev += totals.prev;
+          return acc;
+        }, { real: 0, ppto: 0, prev: 0 });
+
+        entries.forEach((entry) => {
+          const totals = entry.totals;
+          const varPpto = totals.ppto ? totals.real / totals.ppto - 1 : 0;
+          const varReal = totals.prev ? totals.real / totals.prev - 1 : 0;
+          sectionRows.push({
+            type: entry.type,
+            isModule: true,
+            label: entry.label,
+            module: entry.label,
+            real: totals.real,
+            ppto: totals.ppto,
+            prev: totals.prev,
+            varPpto,
+            varReal
+          });
+          entry.rows.forEach((row) => sectionRows.push(row));
+        });
+
+        const sectionVarPpto = sectionTotals.ppto ? sectionTotals.real / sectionTotals.ppto - 1 : 0;
+        const sectionVarReal = sectionTotals.prev ? sectionTotals.real / sectionTotals.prev - 1 : 0;
+        sectionRows.push({
+          type: isIncome ? 'income' : 'expense',
+          isSectionTotal: true,
+          label: `${label} total`,
+          real: sectionTotals.real,
+          ppto: sectionTotals.ppto,
+          prev: sectionTotals.prev,
+          varPpto: sectionVarPpto,
+          varReal: sectionVarReal
+        });
+      };
+      const incomeModules = MODULES.filter((m) => m.type === 'income').map((m) => modules[m.key]);
+      const expenseModules = MODULES.filter((m) => m.type === 'expense').map((m) => modules[m.key]);
+      pushSection('Income', incomeModules, true);
+      pushSection('Expense', expenseModules, false);
+      if (others.rows.length) {
+        pushSection('Otros', [others], false);
+      }
+      return sectionRows;
+    };
     const renderTable = () => {
-      const tbody = document.getElementById('tablaResumen');
+      const tbody = document.getElementById('tablaResumenBody');
+      if (!tbody) return;
       tbody.innerHTML = '';
       if (!state.rows.length) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Sin datos disponibles</td></tr>';
+        tbody.innerHTML = `<tr><td colspan="12" class="text-center text-muted py-4">Sin datos</td></tr>`;
         return;
       }
       state.rows.forEach((row) => {
+        if (row.section) {
+          const sectionRow = document.createElement('tr');
+          sectionRow.className = 'section-row';
+          const sectionCell = document.createElement('td');
+          sectionCell.setAttribute('colspan', '12');
+          sectionCell.className = 'section-label';
+          sectionCell.textContent = row.label;
+          sectionRow.appendChild(sectionCell);
+          tbody.appendChild(sectionRow);
+          return;
+        }
+        if (row.isSectionTotal) {
+          const real = fmtNum(row.real);
+          const ppto = fmtNum(row.ppto);
+          const prev = fmtNum(row.prev);
+          const varPpto = fmtPct(row.varPpto);
+          const varReal = fmtPct(row.varReal);
+          const positivePpto = row.varPpto >= 0 ? 'text-green' : 'text-red';
+          const positiveReal = row.varReal >= 0 ? 'text-green' : 'text-red';
+          const tr = document.createElement('tr');
+          const classes = ['sum-row'];
+          if (row.type) classes.push(row.type);
+          tr.className = classes.join(' ');
+          tr.innerHTML = `
+            <th scope="row"></th>
+            <td>${real}</td>
+            <td>${ppto}</td>
+            <td>${prev}</td>
+            <td class="${positivePpto}">${varPpto}</td>
+            <td class="${positiveReal}">${varReal}</td>
+            <td>${row.label}</td>
+            <td>${real}</td>
+            <td>${ppto}</td>
+            <td>${prev}</td>
+            <td class="${positivePpto}">${varPpto}</td>
+            <td class="${positiveReal}">${varReal}</td>
+          `;
+          tbody.appendChild(tr);
+          return;
+        }
+        const codeCell = row.isModule ? '' : row.code;
+        const labelCell = row.isModule ? row.label : row.label || row.module;
+        const real = fmtNum(row.real);
+        const ppto = fmtNum(row.ppto);
+        const prev = fmtNum(row.prev);
+        const varPpto = fmtPct(row.varPpto);
+        const varReal = fmtPct(row.varReal);
+        const positivePpto = row.varPpto >= 0 ? 'text-green' : 'text-red';
+        const positiveReal = row.varReal >= 0 ? 'text-green' : 'text-red';
         const tr = document.createElement('tr');
-        const classes = row.section ? 'section' : row.level === 2 ? 'indent-2' : 'indent-3';
+        const rowClasses = [];
+        if (row.isModule) rowClasses.push('module-row');
+        if (row.type) rowClasses.push(row.type);
+        if (rowClasses.length) tr.className = rowClasses.join(' ');
         tr.innerHTML = `
-          <td class="${row.section ? 'section' : row.level === 1 ? '' : row.level === 2 ? 'indent-2' : 'indent-3'}">${row.label}</td>
-          <td>${fmtNum(row.real)}</td>
-          <td>${fmtNum(row.ppto)}</td>
-          <td>${fmtNum(row.realPrev)}</td>
-          <td class="delta ${row.varReal >= 0 ? 'text-green' : 'text-red'}">${fmtPct(row.varReal)}</td>
-          <td class="delta ${row.varPpto >= 0 ? 'text-green' : 'text-red'}">${fmtPct(row.varPpto)}</td>
+          <th scope="row">${codeCell || ''}</th>
+          <td>${real}</td>
+          <td>${ppto}</td>
+          <td>${prev}</td>
+          <td class="${positivePpto}">${varPpto}</td>
+          <td class="${positiveReal}">${varReal}</td>
+          <td>${labelCell}</td>
+          <td>${real}</td>
+          <td>${ppto}</td>
+          <td>${prev}</td>
+          <td class="${positivePpto}">${varPpto}</td>
+          <td class="${positiveReal}">${varReal}</td>
         `;
         tbody.appendChild(tr);
       });
     };
-
     const cargarResumen = async () => {
       try {
         setStatus('Cargando datos...');
         const years = await fetchYears();
-        fillYears(years);
+        fillYearSelect(years);
         state.codigos = await fetchCodigos();
-        if (!state.codigos.length) {
-          throw new Error('No se pudieron obtener cuentas (API no disponible)');
-        }
+        if (!state.codigos.length) throw new Error('No se pudieron obtener cuentas (API no disponible)');
         const detalle = await fetchResumen();
-        state.rows = mapData(detalle);
+        state.rows = buildRows(detalle);
         renderTable();
-        setStatus(`Empresa ${state.empresaId}, año ${state.realYear}`);
+        setStatus(`Empresa ${state.empresaId}, anio ${state.realYear}`);
       } catch (error) {
         console.error(error);
         setStatus(error.message, true);
-        const tbody = document.getElementById('tablaResumen');
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#c94b43;">${error.message}</td></tr>`;
+        const tbody = document.getElementById('tablaResumenBody');
+        if (tbody) {
+          tbody.innerHTML = `<tr><td colspan="12" class="text-center text-danger py-4">${error.message}</td></tr>`;
+        }
         state.rows = [];
       }
     };
-
     document.addEventListener('DOMContentLoaded', () => {
       const selEmpresa = document.getElementById('selEmpresa');
       const selReal = document.getElementById('selReal');
-      selEmpresa.addEventListener('change', (e) => {
-        state.empresaId = e.target.value;
-        cargarResumen();
-      });
-      selReal.addEventListener('change', (e) => {
-        state.realYear = Number(e.target.value);
-        state.prevYear = state.realYear - 1;
-        document.getElementById('hdrRealYear').textContent = state.realYear;
-        document.getElementById('hdrPrevYear').textContent = state.prevYear;
-        cargarResumen();
-      });
+      if (selEmpresa) {
+        selEmpresa.addEventListener('change', (e) => {
+          state.empresaId = e.target.value;
+          cargarResumen();
+        });
+      }
+      if (selReal) {
+        selReal.addEventListener('change', (e) => {
+          state.realYear = Number(e.target.value);
+          state.prevYear = state.realYear - 1;
+          document.getElementById('hdrRealYear').textContent = state.realYear;
+          document.getElementById('hdrPptoYear').textContent = state.realYear;
+          document.getElementById('hdrPrevYear').textContent = state.prevYear;
+          document.getElementById('hdrRealYear2').textContent = state.realYear;
+          document.getElementById('hdrPptoYear2').textContent = state.realYear;
+          document.getElementById('hdrPrevYear2').textContent = state.prevYear;
+          cargarResumen();
+        });
+      }
+      const saveLayoutBtn = document.getElementById('saveLayoutBtn');
+      const cancelLayoutBtn = document.getElementById('cancelLayoutBtn');
+      if (saveLayoutBtn) {
+        saveLayoutBtn.addEventListener('click', guardarEdicion);
+      }
+      if (cancelLayoutBtn) {
+        cancelLayoutBtn.addEventListener('click', cancelarEdicion);
+      }
+      initAccountToggle();
       cargarResumen();
     });
   </script>
