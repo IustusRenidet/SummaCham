@@ -560,12 +560,6 @@
     return `${visible.slice(0, 3)}-${visible.slice(3, 6)}-${visible.slice(6, 9)}-${visible.slice(9, 11)}`;
   };
 
-  const formatearCuentaVisible = (cuenta) => {
-    const canonica = convertirCuenta21(cuenta);
-    if (!canonica) return (cuenta || '').toString();
-    return cuentaVisibleDesdeLarga(canonica);
-  };
-
   const unificarCuentasDisponibles = (lista = []) => {
     const previo = new Set(estadoModulo.cuentasDisponibles || []);
     lista.forEach((cuenta) => {
@@ -613,26 +607,6 @@
       }
     }
     return [];
-  };
-
-  let catalogoPromesa = null;
-  const cargarSugerenciasCompletas = (anio) => {
-    if (catalogoPromesa) return catalogoPromesa;
-    catalogoPromesa = Promise.all([
-      poblarSugerenciasDesdeAnio(anio),
-      cargarCatalogoCompleto({ anio })
-    ])
-      .then(([, catalogo]) => {
-        if (Array.isArray(catalogo)) {
-          unificarCuentasDisponibles(catalogo);
-        }
-        compilarCatalogoGlobal();
-      })
-      .catch(() => {})
-      .finally(() => {
-        catalogoPromesa = null;
-      });
-    return catalogoPromesa;
   };
 
   const compilarCatalogoGlobal = () => {
@@ -832,7 +806,7 @@
         fila.className = 'fila-cuenta';
         const celdaCuenta = document.createElement('td');
         const cuenta21 = convertirCuenta21(item.cuenta || '');
-        celdaCuenta.textContent = formatearCuentaVisible(item.cuenta || cuenta21 || '-');
+        celdaCuenta.textContent = item.cuenta || '-';
         if (cuenta21) {
           celdaCuenta.title = cuenta21;
           celdaCuenta.dataset.bsToggle = 'tooltip';
@@ -884,7 +858,7 @@
           cuerpo,
           placeholdersPorFila
         });
-        // Registrar la última sección asociada a este sumario (sum-row-sumavarios / sumavarios2)
+        // Registrar la última sección asociada a este sumario (s![1764218453015](image/cuentas-modulo/1764218453015.png) / sumavarios2)
         const claveSumario = normalizarTexto(metaSeccion.sumRowSumavariosLabel);
         if (claveSumario) {
           const existente = sumavariosData.get(claveSumario) || { texto: metaSeccion.sumRowSumavariosLabel, meta: null };
@@ -958,10 +932,6 @@
     if (!celda || !estadoModulo.editMode) return;
     const contenedor = asegurarContenedorSugerencias();
     const consulta = limpiarCuentaTexto(texto ?? celda.textContent);
-    if (!estadoModulo.cuentasDisponibles.length) {
-      cargarSugerenciasCompletas(estadoModulo.anio).finally(() => mostrarSugerenciasCuenta(celda, texto));
-      return;
-    }
     const lista = estadoModulo.cuentasDisponibles
       .filter((cuenta) => {
         const visible = cuentaVisibleDesdeLarga(cuenta);
@@ -978,8 +948,6 @@
       const boton = document.createElement('button');
       boton.type = 'button';
       boton.textContent = cuentaVisibleDesdeLarga(cuenta);
-      boton.title = cuenta;
-      boton.dataset.cuentaLarga = cuenta;
       Object.assign(boton.style, {
         display: 'block',
         width: '100%',
@@ -998,7 +966,6 @@
       boton.addEventListener('mousedown', (evt) => {
         evt.preventDefault();
         celda.textContent = cuentaVisibleDesdeLarga(cuenta);
-        celda.dataset.cuenta21 = cuenta;
         manejarCambioCuenta(celda.parentElement, celda);
         ocultarSugerencias();
       });
@@ -1455,9 +1422,6 @@
     if (!estadoModulo.editMode || !esModuloEditable(estadoModulo.moduloClave)) {
       return;
     }
-    if (!estadoModulo.cuentasDisponibles.length) {
-      cargarSugerenciasCompletas(estadoModulo.anio);
-    }
     const tabla = estadoModulo.tabla || obtenerTabla();
     if (!tabla || !tabla.contains(evt.target)) {
       return;
@@ -1602,7 +1566,6 @@
         actualizarNombreFila(fila, nombrePrevio);
       }
       celda.title = nuevaCuenta21;
-      celda.textContent = formatearCuentaVisible(nuevaCuenta21);
       celda.dataset.bsToggle = 'tooltip';
       celda.dataset.bsPlacement = 'top';
     } else {
@@ -2025,7 +1988,8 @@
     if (Number.isInteger(anioSeleccionado)) {
       estadoModulo.anio = anioSeleccionado;
     }
-    cargarSugerenciasCompletas(estadoModulo.anio);
+    poblarSugerenciasDesdeAnio(estadoModulo.anio);
+    cargarCatalogoCompleto({ anio: estadoModulo.anio }).then((lista) => unificarCuentasDisponibles(lista || []));
     const anioNombres = obtenerAnioSeleccionado() || new Date().getFullYear();
     if (pendientes.faltantesNombre?.length && empresaId) {
       cargarNombresCuentas({ empresaId, anio: anioNombres, cuentas: pendientes.faltantesNombre });
