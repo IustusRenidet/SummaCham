@@ -99,6 +99,7 @@ async function obtenerDatosPlaneacion({ empresaId, anio, cuentas = [] }) {
       datosPresupuesto[clave] = Number(presupuesto[clave] ?? 0);
       datosReal[clave] = Number(real[clave] ?? 0);
     });
+    datosReal.ajuste14 = Number(real.ajuste14 ?? 0);
 
     return {
       cuenta,
