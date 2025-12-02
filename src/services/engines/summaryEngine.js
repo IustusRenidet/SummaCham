@@ -132,18 +132,33 @@ const resolveEmpresaId =
 const buildSectionTotals = async (empresaId, anio, mapping, options) => {
   const cuentas = Array.from(mapping.keys());
   if (!cuentas.length) {
-    return new Map();
+    return { totals: new Map(), details: new Map() };
   }
   const saldos = await obtenerSaldosPorCuentas(empresaId, anio, cuentas);
   const totals = new Map();
+  const details = new Map(); // { sectionKey: [ {cuenta, descripcion, valor} ] }
+  
   saldos.forEach((fila) => {
     const key = normalizeKey(fila.numCta);
     const info = mapping.get(key);
     if (!info) return;
     const valor = Number(fila.dic_acum ?? fila.anual ?? 0);
+    
+    // Acumular total
     totals.set(info.sectionKey, (totals.get(info.sectionKey) || 0) + valor);
+    
+    // Guardar detalle de cuenta
+    if (!details.has(info.sectionKey)) {
+      details.set(info.sectionKey, []);
+    }
+    details.get(info.sectionKey).push({
+      cuenta: fila.numCta,
+      descripcion: info.descripcion || fila.numCta,
+      valor: valor
+    });
   });
-  return totals;
+  
+  return { totals, details };
 };
 
 async function generarSummary(empresaId, anio, opciones = {}) {
@@ -180,14 +195,16 @@ async function generarSummary(empresaId, anio, opciones = {}) {
   });
 
   const totalsPorEmpresa = new Map();
+  const detallesPorEmpresa = new Map();
   const mappingPorEmpresa = new Map();
   for (const targetId of empresasNecesarias) {
     const pathMap = getMappingPath(targetId, opts) || baseMappingPath;
     const filas = await cargarCsv(pathMap);
     const parsed = parseMapping(filas);
     mappingPorEmpresa.set(targetId, parsed);
-    const totals = await buildSectionTotals(targetId, anio, parsed, opts);
-    totalsPorEmpresa.set(targetId, totals);
+    const result = await buildSectionTotals(targetId, anio, parsed, opts);
+    totalsPorEmpresa.set(targetId, result.totals);
+    detallesPorEmpresa.set(targetId, result.details);
   }
 
   const detalle = Array.from((totalsPorEmpresa.get(empresaId) || new Map()).entries()).map(([key, value]) => ({
@@ -199,7 +216,9 @@ async function generarSummary(empresaId, anio, opciones = {}) {
   rules.forEach((rule) => {
     const targetEmpresa = resolverEmpresa(empresaId, rule.companyLabel);
     const totals = totalsPorEmpresa.get(targetEmpresa) || new Map();
+    const details = detallesPorEmpresa.get(targetEmpresa) || new Map();
     const sectionTotal = totals.get(rule.sectionKey) || 0;
+    const sectionAccounts = details.get(rule.sectionKey) || [];
     const amount = rule.operation === 'resta' ? -sectionTotal : sectionTotal;
     const padre = garantizarNode(resumen, rule.parentKey, rule.parentLabel);
     padre.total += amount;
@@ -208,7 +227,8 @@ async function generarSummary(empresaId, anio, opciones = {}) {
       total: amount,
       section: rule.sectionKey,
       empresa: targetEmpresa,
-      operation: rule.operation
+      operation: rule.operation,
+      cuentas: sectionAccounts // Agregar cuentas individuales
     });
   });
 

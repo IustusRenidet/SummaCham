@@ -1,0 +1,12 @@
+Capítulo,Clase,Sección,operación,Unnamed: 4,operación.1,Unnamed: 6,operación.2,Unnamed: 8
+Noroeste,income-Membership,Membership,suma,Monterrey Income,suma,OPERATING RESULTS ,suma,NET RESULTS 
+Noroeste,income-Events and Committees,Events and Committees,suma,Monterrey Income,suma,OPERATING RESULTS ,suma,NET RESULTS 
+Noroeste,income-Services to Members,Services to Members,suma,Monterrey Income,suma,OPERATING RESULTS ,suma,NET RESULTS 
+Noroeste,expense-Membership,Membership,suma,Monterrey Expense,resta,OPERATING RESULTS ,suma,NET RESULTS 
+Noroeste,expense-Events and Committees,Events and Committees,suma,Monterrey Expense,resta,OPERATING RESULTS ,suma,NET RESULTS 
+Noroeste,expense-Services to Members,Services to Members,suma,Monterrey Expense,resta,OPERATING RESULTS ,suma,NET RESULTS 
+Noroeste,expense-Other expenses,Other expenses,suma,Monterrey Expense,resta,OPERATING RESULTS ,suma,NET RESULTS 
+Noroeste,expense-G&A,G&A,suma,Monterrey Expense,resta,OPERATING RESULTS ,suma,NET RESULTS 
+Noroeste,expense-Gastos Corporativos,Gastos Corporativos,suma,Monterrey Expense,resta,OPERATING RESULTS ,suma,NET RESULTS 
+Noroeste,expense-CARGOS ADMINISTRATIVOS,CARGOS ADMINISTRATIVOS,suma,Monterrey Expense,resta,OPERATING RESULTS ,suma,NET RESULTS 
+Noroeste,other-Other,Other,suma,Other,,Other,suma,NET RESULTS 

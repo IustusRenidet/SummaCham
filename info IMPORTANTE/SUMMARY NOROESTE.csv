@@ -1,7 +1,35 @@
-CUENTA,SECCION,SECCION HIJA,SECCION MAYOR
-101001000000000000003,ACT CIRCULANTE,Bancos,ACTIVOS
-102001000000000000003,ACT FIJO,Terrenos,ACTIVOS
-201001000000000000003,PAS CORRIENTE,Proveedores,PASIVOS
-301001000000000000003,CAPITAL,Capital Social,CAPITAL
-401001000000000000003,INGRESOS,Ventas,INGRESOS
-501001000000000000003,GASTOS,Operación,GASTOS
+Cuentas,Descripción,Sección,SECCIÓN MAYOR
+400000000000000000001,Cuotas Netas,Membership,Monterrey Income
+401000000000000000001,Ingresos socios nuevos,Membership,Monterrey Income
+407000000000000000001,Comités,Events and Committees,Monterrey Income
+408000000000000000001,Eventos,Events and Committees,Monterrey Income
+414000000000000000001,Eventos especiales,Events and Committees,Monterrey Income
+404000000000000000001,Venta de publicidad,Services to Members,Monterrey Income
+405000000000000000001,Infocenter,Services to Members,Monterrey Income
+406000000000000000001,Bolsa de trabajo,Services to Members,Monterrey Income
+410000000000000000001,Venta de publicaciones,Services to Members,Monterrey Income
+412000000000000000001,Visas,Services to Members,Monterrey Income
+707000000000000000001,Cuotas,Membership,Monterrey Expense
+707000000000000000001,Comsiones por venta de membresía,Membership,Monterrey Expense
+707000000000000000001,Paquete Anual,Membership,Monterrey Expense
+701000000000000000001,Gastos Junta de Comité,Events and Committees,Monterrey Expense
+702000000000000000001,Gastos Junta de Consejo,Events and Committees,Monterrey Expense
+703000000000000000001,Juntas de Comité Extraordinarias,Events and Committees,Monterrey Expense
+705000000000000000001,Eventos,Events and Committees,Monterrey Expense
+706000000000000000001,Visas,Services to Members,Monterrey Expense
+600000000000000000001,Costo de publicaciones,Services to Members,Monterrey Expense
+800007000000000000002,Becarios,Services to Members,Monterrey Expense
+901002000000000000002,Campaña Institucional,Services to Members,Monterrey Expense
+901002000000000000002,Sistema de proveedores confiables,Services to Members,Monterrey Expense
+808000000000000000001,Other,Other expenses,Monterrey Expense
+501000000000000000001,Nómina,G&A,Monterrey Expense
+800000000000000000001,Gastos administrativos,G&A,Monterrey Expense
+704000000000000000001,Cuotas club de industriales,G&A,Monterrey Expense
+801000000000000000001,Comisiones bancarias,G&A,Monterrey Expense
+802000000000000000001,Gastos Generales,G&A,Monterrey Expense
+900000000000000000001,Gastos Corporativos,Gastos Corporativos,Monterrey Expense
+900001000000000000002,CARGOS ADMINISTRATIVOS,CARGOS ADMINISTRATIVOS,Monterrey Expense
+810000000000000000001,no deducibles,CARGOS ADMINISTRATIVOS,Monterrey Expense
+403000000000000000001,Otros ingresos,Other,Other
+409000000000000000001,Utilidad cambiaria,Other,Other
+413000000000000000001,Rendimientos bancarios,Other,Other

@@ -1,0 +1,12 @@
+Capítulo,Clase,Sección,operación,Unnamed: 4,operación.1,Unnamed: 6,operación.2,Unnamed: 8
+GUADALAJARA,income-Membership,Membership,suma,Guadalajara Income,suma,OPERATING RESULTS ,Suma,NET RESULTS
+GUADALAJARA,income-Events and Committees,Events and Committees,suma,Guadalajara Income,suma,OPERATING RESULTS ,Suma,NET RESULTS
+GUADALAJARA,income-Services to Members,Services to Members,suma,Guadalajara Income,suma,OPERATING RESULTS ,Suma,NET RESULTS
+GUADALAJARA,expense-Membership,Membership,suma,Guadalajara Expense,resta,OPERATING RESULTS ,Suma,NET RESULTS
+GUADALAJARA,expense-Events and Committees,Events and Committees,suma,Guadalajara Expense,resta,OPERATING RESULTS ,Suma,NET RESULTS
+GUADALAJARA,expense-Services to Members,Services to Members,suma,Guadalajara Expense,resta,OPERATING RESULTS ,Suma,NET RESULTS
+GUADALAJARA,expense-Other,Other,suma,Guadalajara Expense,resta,OPERATING RESULTS ,Suma,NET RESULTS
+GUADALAJARA,expense-G&A,G&A,suma,Guadalajara Expense,resta,OPERATING RESULTS ,Suma,NET RESULTS
+GUADALAJARA,expense-Gastos Corporativos,Gastos Corporativos,suma,Guadalajara Expense,resta,OPERATING RESULTS ,Suma,NET RESULTS
+GUADALAJARA,expense-CARGOS ADMINISTRATIVOS,CARGOS ADMINISTRATIVOS,suma,Guadalajara Expense,resta,OPERATING RESULTS ,Suma,NET RESULTS
+GUADALAJARA,other-Other,Other,suma,Other,,Other,Suma,NET RESULTS

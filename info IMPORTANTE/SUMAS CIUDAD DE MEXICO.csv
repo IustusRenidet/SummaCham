@@ -1,9 +1,20 @@
-SECCION,SECCION HIJA,SECCION MAYOR,OPERACION,EMPRESA
-ACTIVO CIRCULANTE,Bancos,ACTIVOS,SUMAR,CIUDAD DE MEXICO
-ACTIVO CIRCULANTE,Inversiones,ACTIVOS,SUMAR,CIUDAD DE MEXICO
-ACTIVO FIJO,Terrenos y Edificios,ACTIVOS,SUMAR,CIUDAD DE MEXICO
-PASIVO CORRIENTE,Proveedores,PASIVOS,RESTAR,CIUDAD DE MEXICO
-PASIVO CORRIENTE,Acreedores,PASIVOS,RESTAR,CIUDAD DE MEXICO
-CAPITAL,Capital Social,CAPITAL,SUMAR,CIUDAD DE MEXICO
-INGRESOS,Ingresos por Ventas,INGRESOS,SUMAR,CIUDAD DE MEXICO
-GASTOS,Gastos de Operación,GASTOS,RESTAR,CIUDAD DE MEXICO
+Capítulo,Clase,Sección,operación,Unnamed: 4,operación.1,Unnamed: 6,operación.2,Unnamed: 8,operación.3,Unnamed: 10
+Ciudad de México,income-Membership,Membership,sumar,CDMX Income,suma,CONSOLIDATED INCOME ,suma,OPERATING RESULTS  MEXICO,suma,CONSOLIDATED OPERATING RESULTS 
+Ciudad de México,income-Events,Events,sumar,CDMX Income,suma,CONSOLIDATED INCOME ,suma,OPERATING RESULTS  MEXICO,suma,CONSOLIDATED OPERATING RESULTS 
+Ciudad de México,income-Committees,Committees,sumar,CDMX Income,suma,CONSOLIDATED INCOME ,suma,OPERATING RESULTS  MEXICO,suma,CONSOLIDATED OPERATING RESULTS 
+Ciudad de México,income-Services to Members,Services to Members,sumar,CDMX Income,suma,CONSOLIDATED INCOME ,suma,OPERATING RESULTS  MEXICO,suma,CONSOLIDATED OPERATING RESULTS 
+Ciudad de México,income-Guadalajara Income,Guadalajara Income,sumar,Guadalajara Income,suma,CONSOLIDATED INCOME ,suma,OPERATING RESULTS GUADALAJARA,suma,CONSOLIDATED OPERATING RESULTS 
+Ciudad de México,income-Monterrey Income,Monterrey Income,sumar,Monterrey Income,suma,CONSOLIDATED INCOME ,suma,OPERATING RESULTS MONTERREY,suma,CONSOLIDATED OPERATING RESULTS 
+Ciudad de México,expense-Membership,Membership,sumar,CDMX Expense,suma,CONSOLIDATED EXPENSES,resta,OPERATING RESULTS  MEXICO,suma,CONSOLIDATED OPERATING RESULTS 
+Ciudad de México,expense-Events,Events,sumar,CDMX Expense,suma,CONSOLIDATED EXPENSES,resta,OPERATING RESULTS  MEXICO,suma,CONSOLIDATED OPERATING RESULTS 
+Ciudad de México,expense-Committees,Committees,sumar,CDMX Expense,suma,CONSOLIDATED EXPENSES,resta,OPERATING RESULTS  MEXICO,suma,CONSOLIDATED OPERATING RESULTS 
+Ciudad de México,expense-Services to Members,Services to Members,sumar,CDMX Expense,suma,CONSOLIDATED EXPENSES,resta,OPERATING RESULTS  MEXICO,suma,CONSOLIDATED OPERATING RESULTS 
+Ciudad de México,expense-Gastos administrativos,Gastos administrativos,sumar,CDMX Expense,suma,CONSOLIDATED EXPENSES,resta,OPERATING RESULTS  MEXICO,suma,CONSOLIDATED OPERATING RESULTS 
+Ciudad de México,expense-Other,Other,sumar,CDMX Expense,suma,CONSOLIDATED EXPENSES,resta,OPERATING RESULTS  MEXICO,suma,CONSOLIDATED OPERATING RESULTS 
+Ciudad de México,expense-Gastos de Nomina,Gastos de Nomina,sumar,CDMX Expense,suma,CONSOLIDATED EXPENSES,resta,OPERATING RESULTS  MEXICO,suma,CONSOLIDATED OPERATING RESULTS 
+Ciudad de México,expense-Guadalajara Expense,Guadalajara Expense,sumar,Guadalajara Expense,suma,CONSOLIDATED EXPENSES,resta,OPERATING RESULTS GUADALAJARA,suma,CONSOLIDATED OPERATING RESULTS 
+Ciudad de México,expense-Monterrey Expense,Monterrey Expense,sumar,Monterrey Expense,suma,CONSOLIDATED EXPENSES,resta,OPERATING RESULTS MONTERREY,suma,CONSOLIDATED OPERATING RESULTS 
+Ciudad de México,other-income-México  Other Income,México  Other Income,sumar,México  Other Income,suma,,,OPERATING RESULTS  MEXICO,,NET RESULTS  MEXICO
+Ciudad de México,other-income-Guadalajara Other Income,Guadalajara Other Income,sumar,Guadalajara Other Income,suma,,,OPERATING RESULTS GUADALAJARA,,NET RESULTS GUADALAJARA
+Ciudad de México,other-income-Monterrey Other Income,Monterrey Other Income,sumar,Monterrey Other Income,suma,,,OPERATING RESULTS MONTERREY,,NET RESULTS MONTERREY
+Ciudad de México,other-income-Northwest  Other Income,Northwest  Other Income,sumar,Northwest  Other Income,suma,,,OPERATING RESULTS NORTHWEST,,NET RESULTS NORTHWEST

@@ -1,6 +1,7 @@
 (() => {
   const API_BASE = 'http://localhost:3000/api';
   const YEAR_SELECT = document.getElementById('resumenYearSelect');
+  const MONTH_SELECT = document.getElementById('resumenMonthSelect');
   const TABLE_BODY = document.getElementById('tablaCuentasBody');
   const ESTADO_BIEN = 'Construyendo el resumen financiero, espera un momento...';
   const YEAR_ACTUAL_SPANS = document.querySelectorAll('.year-act');
@@ -297,7 +298,8 @@
       const valor = await inicializarSelectAnio();
       actualizarEncabezadosYears(valor);
       if (valor) {
-        await fetchSummary(Number(valor));
+        const periodo = Number(MONTH_SELECT?.value) || 12;
+        await fetchSummary(Number(valor), periodo);
       }
     };
 
@@ -305,11 +307,21 @@
       const valor = Number(YEAR_SELECT?.value);
       if (Number.isInteger(valor)) {
         actualizarEncabezadosYears(valor);
-        await fetchSummary(valor);
+        const periodo = Number(MONTH_SELECT?.value) || 12;
+        await fetchSummary(valor, periodo);
+      }
+    };
+
+    const onChangeMonth = async () => {
+      const anio = Number(YEAR_SELECT?.value);
+      const periodo = Number(MONTH_SELECT?.value);
+      if (Number.isInteger(anio) && Number.isInteger(periodo)) {
+        await fetchSummary(anio, periodo);
       }
     };
 
   YEAR_SELECT?.addEventListener('change', onChangeAnio);
+  MONTH_SELECT?.addEventListener('change', onChangeMonth);
   document.addEventListener('DOMContentLoaded', () => {
     iniciar();
   });

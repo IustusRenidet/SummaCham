@@ -1,9 +1,44 @@
-CUENTA,SECCION,SECCION HIJA,SECCION MAYOR
-101001000000000000001,ACTIVO CIRCULANTE,Bancos,ACTIVOS
-101002000000000000001,ACTIVO CIRCULANTE,Inversiones,ACTIVOS
-102001000000000000001,ACTIVO FIJO,Terrenos y Edificios,ACTIVOS
-201001000000000000001,PASIVO CORRIENTE,Proveedores,PASIVOS
-201002000000000000001,PASIVO CORRIENTE,Acreedores,PASIVOS
-301001000000000000001,CAPITAL,Capital Social,CAPITAL
-401001000000000000001,INGRESOS,Ingresos por Ventas,INGRESOS
-501001000000000000001,GASTOS,Gastos de Operación,GASTOS
+Cuentas,Descripción,Sección,SECCIÓN MAYOR
+401000000000000000001,Cuotas Netas,Membership,CDMX Income
+402000000000000000001,Ingresos socios nuevos,Membership,CDMX Income
+412000000000000000001,Economex,Membership,CDMX Income
+407000000000000000001,Eventos,Events,CDMX Income
+408000000000000000001,Patrocinios,Events,CDMX Income
+417000000000000000001,Committees,Committees,CDMX Income
+403000000000000000001,Patrocinios por Comites,Committees,CDMX Income
+409000000000000000001,Venta Publicaciones,Services to Members,CDMX Income
+406000000000000000001,Bolsa de Trabajo,Services to Members,CDMX Income
+450001000000000000002,Guadalajara Income,Guadalajara Income,Guadalajara Income
+450002000000000000002,Monterrey Income,Monterrey Income,Monterrey Income
+705000000000000000001,Gastos Promoción,Membership,CDMX Expense
+701000000000000000001,Costo Eventos,Events,CDMX Expense
+702000000000000000001,Servicio a la membresia,Committees,CDMX Expense
+704000000000000000001,Portafolio Económico,Committees,CDMX Expense
+601000000000000000001,Costo  directo de publicaciones,Services to Members,CDMX Expense
+801001000000000000002,Desarrollo de Negocios,Gastos administrativos,CDMX Expense
+801002000000000000002,Relaciones Externas,Gastos administrativos,CDMX Expense
+801003000000000000002,Servicios a las membresia,Gastos administrativos,CDMX Expense
+801004000000000000002,Vicepresidencia,Gastos administrativos,CDMX Expense
+801005000000000000002,Finanzas,Gastos administrativos,CDMX Expense
+801006000000000000002,Administración,Gastos administrativos,CDMX Expense
+801007000000000000002,Sistemas,Gastos administrativos,CDMX Expense
+801008000000000000002,Empleos,Gastos administrativos,CDMX Expense
+801009000000000000002,Servicios Generakes (Almacén),Gastos administrativos,CDMX Expense
+801010000000000000002,Eventos,Gastos administrativos,CDMX Expense
+801011000000000000002,Comites,Gastos administrativos,CDMX Expense
+801012000000000000002,Renta de Salas,Gastos administrativos,CDMX Expense
+801013000000000000002,Comunicación,Gastos administrativos,CDMX Expense
+901000000000000000001,Gastos Generales,Other,CDMX Expense
+513000000000000000001,Nomina Vicepresidencia,Gastos de Nomina,CDMX Expense
+517000000000000000001,Nomina Desarrollo de Negocios,Gastos de Nomina,CDMX Expense
+516000000000000000001,Nomina Comites y Relaciones Externas,Gastos de Nomina,CDMX Expense
+519000000000000000001,Nomina Comunicación,Gastos de Nomina,CDMX Expense
+515000000000000000001,Nomina Servicios a la Membresia,Gastos de Nomina,CDMX Expense
+518000000000000000001,Nomina Eventos y Mercadotecnia,Gastos de Nomina,CDMX Expense
+514000000000000000001,Nomina Administración y Finanzas,Gastos de Nomina,CDMX Expense
+950001002000000000003,Gastos Guadalajara,Guadalajara Expense,Guadalajara Expense
+950002002000000000003,Gastos Monterrey,Monterrey Expense,Monterrey Expense
+413000000000000000001,Otros Ingresos,México  Other Income,Other Income
+414000000000000000001,Intereses Bancos,México  Other Income,Other Income
+416000000000000000001,Utilidad Cambiaria Inversiones,México  Other Income,Other Income
+418000000000000000001,Plusvalia/Minusvalia Portafolio Inversiones ,México  Other Income,Other Income

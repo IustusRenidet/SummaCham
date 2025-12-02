@@ -1,9 +1,23 @@
-CUENTA,SECCION,SECCION HIJA,SECCION MAYOR
-101001000000000000002,ACTIVO CIRCULANTE,Bancos,ACTIVOS
-101002000000000000002,ACTIVO CIRCULANTE,Inversiones,ACTIVOS
-102001000000000000002,ACTIVO FIJO,Terrenos y Edificios,ACTIVOS
-201001000000000000002,PASIVO CORRIENTE,Proveedores,PASIVOS
-201002000000000000002,PASIVO CORRIENTE,Acreedores,PASIVOS
-301001000000000000002,CAPITAL,Capital Social,CAPITAL
-401001000000000000002,INGRESOS,Ingresos por Ventas,INGRESOS
-501001000000000000002,GASTOS,Gastos de Operación,GASTOS
+Cuentas,Descripción,Sección,SECCIÓN MAYOR
+400000000000000000001,Cuotas Netas,Membership,Guadalajara Income
+401000000000000000001,Ingresos socios nuevos,Membership,Guadalajara Income
+404000000000000000001,Comités,Events and Committees,Guadalajara Income
+405000000000000000001,Eventos,Events and Committees,Guadalajara Income
+403000000000000000001,Venta Publicaciones,Services to Members,Guadalajara Income
+406000000000000000001,Bolsa de Trabajo,Services to Members,Guadalajara Income
+407000000000000000001,Publicidad,Services to Members,Guadalajara Income
+408000000000000000001,Visas,Services to Members,Guadalajara Income
+409000000000000000001,Información comercial,Services to Members,Guadalajara Income
+502000000000000000001,Costo comités,Events and Committees,Guadalajara Expense
+701000000000000000001,Costo Eventos,Events and Committees,Guadalajara Expense
+601000000000000000001,Gastos directos de publicación,Services to Members,Guadalajara Expense
+702000000000000000001,Costo de publicidad,Services to Members,Guadalajara Expense
+902000000000000000001,Gtos promoción y juntas de trabajo,Services to Members,Guadalajara Expense
+904000000000000000001,Gastos extraordinarios,Other,Guadalajara Expense
+501000000000000000001,Nómina Guadalajara,G&A,Guadalajara Expense
+801000000000000000001,Gasto de local,G&A,Guadalajara Expense
+901000000000000000001,Gastos de Administracion,G&A,Guadalajara Expense
+903000000000000000001,Gastos Corporativos,Gastos Corporativos,Guadalajara Expense
+903016000000000000002,CARGOS ADMINISTRATIVOS,CARGOS ADMINISTRATIVOS,Guadalajara Expense
+402000000000000000001,Otros ingresos,Other,Other
+410000000000000000001,Utilidad cambiaria,Other,Other
