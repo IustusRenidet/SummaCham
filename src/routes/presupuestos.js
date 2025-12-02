@@ -43,7 +43,7 @@ const TRANSICIONES = {
   cargar: {
     destino: 'borrador',
     requiere: 'Cargar y guardar',
-    habilita: (estado) => ['sin-cargar', 'borrador', 'revisado', 'autorizado', 'guardado'].includes(estado)
+    habilita: (estado) => estado === 'sin-cargar'
   },
   revisar: { destino: 'revisado', requiere: 'Revisar', habilita: (estado) => estado === 'borrador' },
   autorizar: { destino: 'autorizado', requiere: 'Aprobar', habilita: (estado) => estado === 'revisado' },

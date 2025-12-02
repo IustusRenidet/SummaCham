@@ -3,6 +3,8 @@
   const YEAR_SELECT = document.getElementById('resumenYearSelect');
   const TABLE_BODY = document.getElementById('tablaCuentasBody');
   const ESTADO_BIEN = 'Construyendo el resumen financiero, espera un momento...';
+  const YEAR_ACTUAL_SPANS = document.querySelectorAll('.year-act');
+  const YEAR_PREV_SPANS = document.querySelectorAll('.year-prev');
   const formatCurrency = new Intl.NumberFormat('es-MX', {
     style: 'currency',
     currency: 'MXN',
@@ -113,6 +115,17 @@
       }
     });
     return resumen;
+  };
+
+  const actualizarEncabezadosYears = (anio) => {
+    const actual = Number.isInteger(anio) ? String(anio) : '-';
+    const previo = Number.isInteger(anio) ? String(anio - 1) : '-';
+    YEAR_ACTUAL_SPANS.forEach((span) => {
+      span.textContent = actual;
+    });
+    YEAR_PREV_SPANS.forEach((span) => {
+      span.textContent = previo;
+    });
   };
 
   const variation = (actual, base) => {
@@ -255,10 +268,10 @@
     }
   };
 
-  const inicializarSelectAnio = async () => {
-    if (!YEAR_SELECT) return null;
-    const lista = await poblarAnios();
-    YEAR_SELECT.innerHTML = '';
+    const inicializarSelectAnio = async () => {
+      if (!YEAR_SELECT) return null;
+      const lista = await poblarAnios();
+      YEAR_SELECT.innerHTML = '';
     if (!lista.length) {
       const opt = document.createElement('option');
       opt.value = '';
@@ -279,20 +292,22 @@
     return actual;
   };
 
-  const iniciar = async () => {
-    if (!TABLE_BODY) return;
-    const valor = await inicializarSelectAnio();
-    if (valor) {
-      await fetchSummary(Number(valor));
-    }
-  };
+    const iniciar = async () => {
+      if (!TABLE_BODY) return;
+      const valor = await inicializarSelectAnio();
+      actualizarEncabezadosYears(valor);
+      if (valor) {
+        await fetchSummary(Number(valor));
+      }
+    };
 
-  const onChangeAnio = async () => {
-    const valor = Number(YEAR_SELECT?.value);
-    if (Number.isInteger(valor)) {
-      await fetchSummary(valor);
-    }
-  };
+    const onChangeAnio = async () => {
+      const valor = Number(YEAR_SELECT?.value);
+      if (Number.isInteger(valor)) {
+        actualizarEncabezadosYears(valor);
+        await fetchSummary(valor);
+      }
+    };
 
   YEAR_SELECT?.addEventListener('change', onChangeAnio);
   document.addEventListener('DOMContentLoaded', () => {

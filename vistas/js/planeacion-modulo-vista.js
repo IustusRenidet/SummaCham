@@ -79,7 +79,7 @@
     cargar: {
       destino: 'borrador',
       permiso: 'Cargar y guardar',
-      habilita: (estado) => ['sin-cargar', 'borrador', 'revisado', 'autorizado', 'guardado'].includes(estado)
+      habilita: (estado) => estado === 'sin-cargar'
     },
     revisar: {
       destino: 'revisado',
