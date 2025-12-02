@@ -55,3 +55,19 @@ El proyecto está configurado con **electron-builder** para generar un ejecutabl
 - El archivo `.gitignore` incluye directorios generados y artefactos temporales comunes.
 - Para personalizar el icono actualiza los recursos en `icono/icono.ico` y `icono/icono.png`.
 
+## Generador de reporte Summary
+
+`src/services/reporteSummaryService.js` expone la función `generarReporteSummary(empresaId, anio, opciones)` que:
+
+- Lee los CSV (`SUMMARY Ciudad de México.csv`, `SUMMARY GUADALAJARA.csv`, `SUMMARY NOROESTE.csv`) para mapear cada cuenta a su sección / sección mayor.
+- Obtiene los saldos año contra año desde Firebird utilizando la misma lógica de `summaryService`.
+- Aplica las reglas definidas en `SUMAS CIUDAD DE MEXICO.csv` (operaciones `sumar`/`resta`, referencias a otras empresas) para construir el árbol de nodos consolidado.
+- Devuelve un JSON como `{ empresa, anio, resultado, reglasAplicadas }` donde cada clave corresponde a un nodo padre con `total` y `children`.
+
+Opciones disponibles:
+
+- `basePath`: ruta base donde residen los CSV (por defecto `info IMPORTANTE`).
+- `rulesPath`: ruta al archivo de reglas (predeterminado `SUMAS CIUDAD DE MEXICO.csv`).
+- `mappingFiles`: reemplazos por empresa para los nombres de archivos de mapeo.
+- `companyAliases`: alias extras para transformar etiquetas de empresa (ej. `"GUADALAJARA"` → `"GDL"`).
+

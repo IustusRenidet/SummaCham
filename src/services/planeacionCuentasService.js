@@ -97,9 +97,15 @@ async function obtenerDatosPlaneacion({ empresaId, anio, cuentas = [] }) {
 
     MESES.forEach(({ clave }) => {
       datosPresupuesto[clave] = Number(presupuesto[clave] ?? 0);
-      datosReal[clave] = Number(real[clave] ?? 0);
+      const valorMes = Number(real[clave] ?? 0);
+      const acumuladoMes = Number(real[`${clave}_acum`] ?? valorMes);
+      datosReal[clave] = valorMes;
+      datosReal[`${clave}_acum`] = acumuladoMes;
     });
     datosReal.ajuste14 = Number(real.ajuste14 ?? 0);
+    const dicAcum = Number(real.dic_acum ?? real.dic ?? 0);
+    datosReal.dic_acum = dicAcum;
+    datosReal.dic = Number(real.dic ?? dicAcum);
 
     return {
       cuenta,

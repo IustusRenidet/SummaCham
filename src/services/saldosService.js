@@ -36,29 +36,33 @@ const calcularSaldosCoiPorMes = (row) => {
   const inicial = Number(row.INICIAL ?? 0);
   let cargosAcum = 0;
   let abonosAcum = 0;
-  const saldos = {};
+  const meses = {};
 
   MESES.forEach(({ periodo, clave }) => {
     const cargo = Number(row[`CARGO${formatearPeriodo(periodo)}`] ?? 0);
     const abono = Number(row[`ABONO${formatearPeriodo(periodo)}`] ?? 0);
     cargosAcum += cargo;
     abonosAcum += abono;
-    const saldo =
+    const acumulado =
       naturalezaReal === 'D'
         ? Math.abs(inicial + cargosAcum - abonosAcum)
         : Math.abs(inicial + abonosAcum - cargosAcum);
-    saldos[clave] = saldo;
+    const movimiento = naturalezaReal === 'D' ? cargo - abono : abono - cargo;
+    meses[clave] = {
+      movimiento,
+      acumulado
+    };
   });
 
   return {
     naturalezaReal,
-    saldos,
-    anual: saldos.dic ?? 0
+    meses,
+    anual: meses.dic?.acumulado ?? 0
   };
 };
 
 const mapRow = (r) => {
-  const { naturalezaReal, saldos, anual } = calcularSaldosCoiPorMes(r);
+  const { naturalezaReal, meses, anual } = calcularSaldosCoiPorMes(r);
   const out = {
     numCta: String(r.CUENTA || '').trim(),
     nombre: r.NOMBRE,
@@ -66,9 +70,14 @@ const mapRow = (r) => {
     naturalezaReal
   };
   MESES.forEach(({ clave }) => {
-    out[clave] = Number(saldos[clave] ?? 0);
+    const datosMes = meses[clave] || { movimiento: 0, acumulado: 0 };
+    out[clave] = Number(datosMes.movimiento ?? 0);
+    out[`${clave}_acum`] = Number(datosMes.acumulado ?? 0);
   });
-  out.anual = Number(anual ?? 0);
+  const dicAcum = Number(meses.dic?.acumulado ?? 0);
+  out.dic = dicAcum;
+  out.dic_acum = dicAcum;
+  out.anual = Number(anual ?? dicAcum);
   out.ajuste14 = Number(r.AJU14 ?? 0);
   return out;
 };

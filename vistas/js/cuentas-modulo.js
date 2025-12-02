@@ -627,7 +627,9 @@
         almacen[`real-${mes}`] = real;
       });
       // Real acumulado: usar el valor de diciembre (mes 12) tal cual viene en real.
-      const totalRealConAjuste = numeroSeguro(registro?.real?.dic ?? registro?.real?.['dic']);
+      const totalRealConAjuste = numeroSeguro(
+        registro?.real?.dic_acum ?? registro?.real?.dic ?? registro?.real?.['dic']
+      );
       establecerValorCelda(fila, 'total-budget', totalPresupuesto);
       establecerValorCelda(fila, 'total-real', totalRealConAjuste);
       establecerValorCelda(fila, 'budget-annual', totalPresupuesto);
