@@ -466,23 +466,11 @@
     </div>
 
     <script src="js/sesion.js"></script>
-    <script src="js/capitulos-modulos.js"></script>
-    <script src="js/cuentas-data.js"></script>
-    <script src="js/resumen-data.js"></script>
-    <script src="js/cuentas-modulo.js"></script>
-    <script src="js/logica-resumen.js"></script>
+    <script src="js/resumen-view.js"></script>
     <script
       src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
       integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
       crossorigin="anonymous"
     ></script>
-    <script src="js/planeacion-modulo-vista.js"></script>
-    <script>
-      (async () => {
-        const instancia = CuentasModulo.init({ moduloId: "resumen" });
-        await instancia.ready;
-        initVistaModuloPlaneacion();
-      })();
-    </script>
   </body>
 </html>

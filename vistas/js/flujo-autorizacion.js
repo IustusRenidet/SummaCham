@@ -1,5 +1,6 @@
 (() => {
-  const API_BASE = window.API_BASE || `${window.location.protocol}//${window.location.host}/api`;
+  const origin = window.location.protocol === 'file:' ? 'http://localhost:3000' : window.location.origin;
+  const API_BASE = `${origin}/api`;
   const FORMATTER_NUMEROS = new Intl.NumberFormat('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const EVENTO_CONTEXTO = 'planeacion:contexto-actualizado';
   const EVENTO_EDICION = 'modulo-planeacion:presupuesto-editado';
