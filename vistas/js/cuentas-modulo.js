@@ -1155,6 +1155,7 @@
     const resultRows = new Map();
     const sumasSecciones = [];
     const sumavariosData = new Map();
+    const forcedResultTexto = (resultadoForzado || '').toString().trim();
 
     secciones.forEach((lista, seccion) => {
       const claveSeccion = normalizarTexto(seccion || 'SIN SECCION');
@@ -1212,7 +1213,19 @@
         (sumasPersonalizadas instanceof Map ? sumasPersonalizadas.get(claveSeccion) : null) ||
         (sheetName && capitulo ? obtenerSumasConfig(sheetName, capitulo, seccion) : null);
       const etiquetaSumRow = (sumas?.sumRow || '').trim() || `Suma ${seccion}`;
-      const etiquetaResultado = (resultadoForzado || sumas?.resultRow || '').trim();
+      const resultRowTexts = [];
+      if (forcedResultTexto) {
+        resultRowTexts.push(forcedResultTexto);
+      }
+      if (Array.isArray(sumas?.resultRows)) {
+        sumas.resultRows.forEach((texto) => {
+          const limpio = (texto || '').toString().trim();
+          if (limpio) resultRowTexts.push(limpio);
+        });
+      } else if (sumas?.resultRow) {
+        const texto = sumas.resultRow.toString().trim();
+        if (texto) resultRowTexts.push(texto);
+      }
       const metaSeccion = {
         seccion: claveSeccion,
         tituloVisible: seccion,
@@ -1220,8 +1233,10 @@
         sumRowTexto: etiquetaSumRow ? normalizarTexto(etiquetaSumRow) : '',
         sumRowSumavariosTexto: sumas?.sumRowSumavarios ? normalizarTexto(sumas.sumRowSumavarios) : '',
         sumRowSumavarios2Texto: sumas?.sumRowSumavarios2 ? normalizarTexto(sumas.sumRowSumavarios2) : '',
-        sumRowSumavariosLabel: sumas?.sumRowSumavarios || sumas?.sumRowSumavarios2 || '',
-        resultRowTexto: etiquetaResultado ? normalizarTexto(etiquetaResultado) : '',
+        sumRowSumavariosLabel: sumas?.sumRowSumavarios || '',
+        sumRowSumavarios2Label: sumas?.sumRowSumavarios2 || '',
+        resultRowTexto: resultRowTexts[0] ? normalizarTexto(resultRowTexts[0]) : '',
+        resultRows: resultRowTexts,
         elementos: {
           header: headerRow
         }
@@ -1233,26 +1248,30 @@
           cuerpo,
           placeholdersPorFila
         });
-        // Registrar la última sección asociada a este sumario (s![1764218453015](image/cuentas-modulo/1764218453015.png) / sumavarios2)
-        const claveSumario = normalizarTexto(metaSeccion.sumRowSumavariosLabel);
-        if (claveSumario) {
-          const existente = sumavariosData.get(claveSumario) || { texto: metaSeccion.sumRowSumavariosLabel, meta: null };
-          existente.meta = metaSeccion; // mantener la última sección encontrada para posicionar el sumario debajo
-          sumavariosData.set(claveSumario, existente);
-        }
-        if (etiquetaResultado) {
-          const clave = `${etiquetaResultado}::result-row`;
+        const registrarSumario = (texto) => {
+          if (!texto) return;
+          const clave = normalizarTexto(texto);
+          if (!clave) return;
+          const existente = sumavariosData.get(clave) || { texto, meta: null };
+          existente.meta = metaSeccion;
+          sumavariosData.set(clave, existente);
+        };
+        registrarSumario(metaSeccion.sumRowSumavariosLabel);
+        registrarSumario(metaSeccion.sumRowSumavarios2Label);
+        metaSeccion.resultRows.forEach((texto) => {
+          if (!texto) return;
+          const clave = `${texto}::result-row`;
           if (!resultRows.has(clave)) {
-            resultRows.set(clave, etiquetaResultado);
+            resultRows.set(clave, texto);
           }
-        }
+        });
       }
       sumasSecciones.push(metaSeccion);
     });
 
-    if (resultadoForzado) {
+    if (forcedResultTexto) {
       resultRows.clear();
-      resultRows.set(`${resultadoForzado}::result-row`, resultadoForzado);
+      resultRows.set(`${forcedResultTexto}::result-row`, forcedResultTexto);
     }
 
     let resultadoFilas = Array.from(resultRows.values()).map((texto) => ({
