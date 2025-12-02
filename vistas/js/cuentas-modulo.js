@@ -723,10 +723,15 @@
 
   const notificarCambios = () => {
     const cambios = obtenerCambiosPendientes();
-    const detalle = { ...cambios, hayCambios: estadoModulo.hayCambios };
+    let guardadoLocal = false;
     if (estadoModulo.editMode && estadoModulo.hayCambios) {
-      persistirLayoutActual();
+      guardadoLocal = persistirLayoutActual();
     }
+    const detalle = {
+      ...cambios,
+      hayCambios: estadoModulo.hayCambios,
+      borradorGuardado: Boolean(guardadoLocal)
+    };
     window.dispatchEvent(new CustomEvent('modulo-planeacion:presupuesto-editado', { detail: detalle }));
   };
 

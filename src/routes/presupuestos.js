@@ -43,7 +43,7 @@ const TRANSICIONES = {
   cargar: {
     destino: 'borrador',
     requiere: 'Cargar y guardar',
-    habilita: (estado) => ['sin-cargar', 'borrador', 'revisado', 'autorizado'].includes(estado)
+    habilita: (estado) => ['sin-cargar', 'borrador', 'revisado', 'autorizado', 'guardado'].includes(estado)
   },
   revisar: { destino: 'revisado', requiere: 'Revisar', habilita: (estado) => estado === 'borrador' },
   autorizar: { destino: 'autorizado', requiere: 'Aprobar', habilita: (estado) => estado === 'revisado' },
@@ -281,7 +281,7 @@ router.post('/estado', (req, res) => {
   });
 });
 
-router.post('/guardar', (req, res) => {
+ router.post('/guardar', cargarUsuarioActual, (req, res) => {
   const { modulo, anio, empresaId, datos } = req.body || {};
   const ejercicio = Number(anio);
   if (!modulo || !empresaId || !Number.isInteger(ejercicio)) {

@@ -79,7 +79,7 @@
     cargar: {
       destino: 'borrador',
       permiso: 'Cargar y guardar',
-      habilita: (estado) => ['sin-cargar', 'borrador', 'revisado', 'autorizado'].includes(estado)
+      habilita: (estado) => ['sin-cargar', 'borrador', 'revisado', 'autorizado', 'guardado'].includes(estado)
     },
     revisar: {
       destino: 'revisado',
@@ -274,7 +274,8 @@
         actualizadoEn: null,
         actualizadoPor: '',
         historial: []
-      }
+      },
+      borradorGuardado: false
     };
 
     const notificarContexto = () => {
@@ -347,6 +348,10 @@
         return;
       }
       estado.anio = nuevoAnio;
+      estado.editMode = false;
+      estado.borradorGuardado = false;
+      estado.cambiosPendientes = false;
+      actualizarTextoBotonCargar();
       actualizarYearLabels();
       actualizarEncabezadosMes();
       notificarContexto();
@@ -467,21 +472,23 @@
       const puedeAutorizar = esAdminGlobal || Boolean(permisos?.[TRANSICIONES.autorizar.permiso]);
       const puedeGuardar = esAdminGlobal || Boolean(permisos?.[TRANSICIONES.guardar.permiso]);
 
+      const limiteCarga = esAdminGlobal || estadoActual === 'sin-cargar';
       if (elementos.loadBudgetBtn) {
         elementos.loadBudgetBtn.classList.toggle('d-none', !puedeCargar);
-        elementos.loadBudgetBtn.disabled = !puedeCargar || !(esAdminGlobal || TRANSICIONES.cargar.habilita(estadoActual));
+        elementos.loadBudgetBtn.disabled = !puedeCargar || !limiteCarga;
       }
+      const requiereGuardado = estado.borradorGuardado && !estado.editMode;
       if (elementos.reviewBudgetBtn) {
         elementos.reviewBudgetBtn.classList.toggle('d-none', !puedeRevisar);
-        elementos.reviewBudgetBtn.disabled = !puedeRevisar || !(esAdminGlobal || TRANSICIONES.revisar.habilita(estadoActual));
+        elementos.reviewBudgetBtn.disabled = !puedeRevisar || !(esAdminGlobal || (requiereGuardado && TRANSICIONES.revisar.habilita(estadoActual)));
       }
       if (elementos.authorizeBudgetBtn) {
         elementos.authorizeBudgetBtn.classList.toggle('d-none', !puedeAutorizar);
-        elementos.authorizeBudgetBtn.disabled = !puedeAutorizar || !(esAdminGlobal || TRANSICIONES.autorizar.habilita(estadoActual));
+        elementos.authorizeBudgetBtn.disabled = !puedeAutorizar || !(esAdminGlobal || (requiereGuardado && TRANSICIONES.autorizar.habilita(estadoActual)));
       }
       if (elementos.saveBudgetBtn) {
         elementos.saveBudgetBtn.classList.toggle('d-none', !puedeGuardar);
-        elementos.saveBudgetBtn.disabled = !puedeGuardar || !(esAdminGlobal || TRANSICIONES.guardar.habilita(estadoActual));
+        elementos.saveBudgetBtn.disabled = !puedeGuardar || !(esAdminGlobal || (requiereGuardado && TRANSICIONES.guardar.habilita(estadoActual)));
       }
     };
 
@@ -528,6 +535,17 @@
       if (!Number.isInteger(estado.anio)) {
         showToast('Selecciona un ejercicio válido antes de continuar.', 'text-bg-warning');
         return;
+      }
+      const requiereGuardado = new Set(['revisar', 'autorizar', 'guardar']);
+      if (!Sesion.esAdminGlobal(sesion) && requiereGuardado.has(accion)) {
+        if (estado.editMode) {
+          showToast('Finaliza la edición (Cancelar) antes de continuar.', 'text-bg-warning');
+          return;
+        }
+        if (!estado.borradorGuardado) {
+          showToast('Guarda el borrador antes de avanzar en el flujo.', 'text-bg-warning');
+          return;
+        }
       }
       try {
         const respuesta = await fetch(`${API_BASE}/presupuestos/estado`, {
@@ -612,7 +630,7 @@
     const actualizarTextoBotonCargar = () => {
       if (!elementos.loadBudgetBtn) return;
       const span = elementos.loadBudgetBtn.querySelector('span');
-      const texto = estado.editMode ? 'Cancelar edición' : 'Cargar';
+      const texto = estado.editMode ? 'Terminar edición' : 'Cargar';
       if (span) {
         span.textContent = texto;
       } else {
@@ -625,18 +643,18 @@
         window.CuentasModulo.setEditMode(true);
       }
       estado.editMode = true;
+      estado.borradorGuardado = false;
       actualizarTextoBotonCargar();
       showToast('Modo edición de presupuesto activo.', 'text-bg-info');
     };
 
     const cancelarEdicionPresupuesto = () => {
-      if (window.CuentasModulo?.cancelEdit) {
-        window.CuentasModulo.cancelEdit();
-      }
+      if (!estado.editMode) return;
       estado.editMode = false;
       estado.cambiosPendientes = false;
+      estado.borradorGuardado = true;
       actualizarTextoBotonCargar();
-      showToast('Cambios descartados. Modo edición desactivado.', 'text-bg-warning');
+      showToast('Edición guardada y lista para continuar.', 'text-bg-success');
     };
 
     if (elementos.loadBudgetBtn) {
@@ -668,6 +686,9 @@
 
     window.addEventListener('modulo-planeacion:presupuesto-editado', (event) => {
       estado.cambiosPendientes = Boolean(event?.detail?.hayCambios);
+      if (event?.detail?.borradorGuardado) {
+        estado.borradorGuardado = true;
+      }
     });
 
     if (elementos.saveBudgetBtn) {
@@ -676,6 +697,7 @@
           const respuesta = await guardarPresupuestoEnBD();
           showToast(respuesta.mensaje || 'Datos guardados en la base de datos.');
           await ejecutarAccionWorkflow('guardar');
+          estado.borradorGuardado = true;
         } catch (error) {
           console.error('Error al guardar presupuesto en BD', error);
           showToast(error.message || 'No fue posible guardar el presupuesto.', 'text-bg-danger');
