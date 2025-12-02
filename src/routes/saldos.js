@@ -158,4 +158,8 @@ router.get('/cuentas', async (req, res) => {
   }
 });
 
+router.get('/catalogo', (_req, res) => {
+  res.json({ cuentas: [] });
+});
+
 module.exports = router;

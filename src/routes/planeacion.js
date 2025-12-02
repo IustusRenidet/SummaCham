@@ -121,12 +121,16 @@ router.post('/cuentas', async (req, res) => {
     });
 
     res.json({ cuentas: datos });
-  } catch (err) {
+} catch (err) {
     console.error('Error en POST /api/planeacion/cuentas', err);
     res.status(err.status || 500).json({
       mensaje: err.status ? err.message : 'No fue posible obtener la información solicitada.'
     });
   }
+});
+
+router.get('/catalogo', (req, res) => {
+  res.json({ cuentas: [] });
 });
 
 module.exports = router;

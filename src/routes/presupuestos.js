@@ -215,7 +215,7 @@ router.get('/estado', (req, res) => {
   if (error) {
     return res.status(400).json({ mensaje: 'Los parámetros proporcionados no son válidos.', detalles: error.details.map((detalle) => detalle.message) });
   }
-  const empresaId = req.headers['x-empresa-activa'];
+  const empresaId = req.headers['x-empresa-activa'] || req.query.empresaId || req.body.empresaId;
   if (!empresaId) {
     return res.status(400).json({ mensaje: 'Debes indicar una empresa.' });
   }
