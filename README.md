@@ -55,19 +55,17 @@ El proyecto está configurado con **electron-builder** para generar un ejecutabl
 - El archivo `.gitignore` incluye directorios generados y artefactos temporales comunes.
 - Para personalizar el icono actualiza los recursos en `icono/icono.ico` y `icono/icono.png`.
 
-## Generador de reporte Summary
+## Reportes Summary y Resumen
 
-`src/services/reporteSummaryService.js` expone la función `generarReporteSummary(empresaId, anio, opciones)` que:
+Se habilitaron motores independientes que consumen saldos (`saldosService`) y reglas definidas en los archivos CSV:
 
-- Lee los CSV (`SUMMARY Ciudad de México.csv`, `SUMMARY GUADALAJARA.csv`, `SUMMARY NOROESTE.csv`) para mapear cada cuenta a su sección / sección mayor.
-- Obtiene los saldos año contra año desde Firebird utilizando la misma lógica de `summaryService`.
-- Aplica las reglas definidas en `SUMAS CIUDAD DE MEXICO.csv` (operaciones `sumar`/`resta`, referencias a otras empresas) para construir el árbol de nodos consolidado.
-- Devuelve un JSON como `{ empresa, anio, resultado, reglasAplicadas }` donde cada clave corresponde a un nodo padre con `total` y `children`.
+- `summaryEngine` (`src/services/engines/summaryEngine.js`): lee los mapeos (`SUMMARY Ciudad de México.csv`, `SUMMARY GUADALAJARA.csv`, etc.) y las reglas de `SUMAS CIUDAD DE MEXICO.csv`, consulta los saldos de las cuentas mapeadas y arma el árbol jerárquico aplicando sumas y restas.
+- `resumenEngine` (`src/services/engines/resumenEngine.js`): lee el archivo de mapeo del Resumen, trae los saldos de cada cuenta y devuelve una lista agrupada por rubros.
 
-Opciones disponibles:
+Ambos motores exponen rutas REST distintas:
 
-- `basePath`: ruta base donde residen los CSV (por defecto `info IMPORTANTE`).
-- `rulesPath`: ruta al archivo de reglas (predeterminado `SUMAS CIUDAD DE MEXICO.csv`).
-- `mappingFiles`: reemplazos por empresa para los nombres de archivos de mapeo.
-- `companyAliases`: alias extras para transformar etiquetas de empresa (ej. `"GUADALAJARA"` → `"GDL"`).
+- `GET /api/reportes/summary?empresaId=<empresa>&anio=<ejercicio>` → `{ empresa, anio, detalle, resumen, reglasAplicadas }`
+- `GET /api/reportes/resumen?empresaId=<empresa>&anio=<ejercicio>` → `{ empresa, anio, filas, grupos }`
+
+Los motores aceptan opciones para ajustar la carpeta base (`info IMPORTANTE` por defecto), rutas de los CSV y alias de empresa.
 
