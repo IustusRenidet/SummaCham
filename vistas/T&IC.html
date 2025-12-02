@@ -300,6 +300,16 @@
                   <span>Guardar</span>
                 </button>
               </div>
+              <div class="controles-flujo d-flex gap-2 mt-2 flex-wrap">
+                <button id="btnGuardarBorrador" class="btn btn-warning btn-sm d-none">Guardar Borrador</button>
+                <button id="btnEnviarCambios" class="btn btn-primary btn-sm d-none">Enviar a Revisión</button>
+                <button id="btnCancelarEdicion" class="btn btn-secondary btn-sm d-none">Cancelar</button>
+                <button id="btnVerBorrador" class="btn btn-info btn-sm d-none">Ver Pendientes</button>
+                <div id="panelRevision" class="d-none">
+                  <button id="btnAutorizar" class="btn btn-success btn-sm">Autorizar</button>
+                  <button id="btnRechazar" class="btn btn-danger btn-sm">Rechazar</button>
+                </div>
+              </div>
             </div>
             <input type="file" id="budgetFileInput" accept=".csv,text/csv" class="d-none" />
           </div>
@@ -431,6 +441,7 @@
     integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
     crossorigin="anonymous"></script>
   <script src="js/planeacion-modulo-vista.js"></script>
+  <script src="js/flujo-autorizacion.js"></script>
   <script>
     (async () => {
       const instancia = CuentasModulo.init({ moduloId: 'tic' });

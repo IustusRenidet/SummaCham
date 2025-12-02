@@ -113,6 +113,22 @@ const crearTablas = () => {
       FOREIGN KEY(guardado_por) REFERENCES usuarios(id) ON DELETE SET NULL
     )
   `).run();
+
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS PLAN_BORRADORES (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      empresaId TEXT NOT NULL,
+      anio INTEGER NOT NULL,
+      modulo TEXT NOT NULL,
+      usuarioId TEXT NOT NULL,
+      data TEXT NOT NULL,
+      estado TEXT NOT NULL DEFAULT 'EDITANDO',
+      fechaCreacion TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      fechaEnvio TEXT,
+      comentarios TEXT,
+      UNIQUE(empresaId, modulo, anio)
+    )
+  `).run();
 };
 
 const asegurarColumnasUsuarios = () => {
