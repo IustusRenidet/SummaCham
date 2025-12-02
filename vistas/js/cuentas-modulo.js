@@ -724,6 +724,9 @@
   const notificarCambios = () => {
     const cambios = obtenerCambiosPendientes();
     const detalle = { ...cambios, hayCambios: estadoModulo.hayCambios };
+    if (estadoModulo.editMode && estadoModulo.hayCambios) {
+      persistirLayoutActual();
+    }
     window.dispatchEvent(new CustomEvent('modulo-planeacion:presupuesto-editado', { detail: detalle }));
   };
 
@@ -2561,6 +2564,21 @@
     },
     guardarLayout() {
       return persistirLayoutActual();
+    },
+    guardarBorradorLocal() {
+      return persistirLayoutActual();
+    },
+    cargarBorradorLocal() {
+      const empresa = Sesion.obtenerEmpresaActiva();
+      const anioSeleccionado = Number.isInteger(estadoModulo.anio) ? estadoModulo.anio : null;
+      if (!empresa?.id || !anioSeleccionado || !estadoModulo.moduloClave) {
+        return null;
+      }
+      return cargarLayoutLocal({
+        moduloClave: estadoModulo.moduloClave,
+        empresaId: empresa.id,
+        anio: anioSeleccionado
+      });
     },
     getCambios() {
       return obtenerCambiosPendientes();

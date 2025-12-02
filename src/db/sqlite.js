@@ -100,6 +100,19 @@ const crearTablas = () => {
       FOREIGN KEY(usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
     )
   `).run();
+
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS presupuestos_guardados (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      empresa_id TEXT NOT NULL,
+      modulo TEXT NOT NULL,
+      anio INTEGER NOT NULL,
+      datos TEXT NOT NULL,
+      guardado_por INTEGER,
+      guardado_en TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(guardado_por) REFERENCES usuarios(id) ON DELETE SET NULL
+    )
+  `).run();
 };
 
 const asegurarColumnasUsuarios = () => {
@@ -165,6 +178,16 @@ const crearAdministradorGlobal = () => {
   });
 };
 
+const registrarPresupuestoGuardado = ({ empresaId, modulo, anio, datos, guardadoPor }) => {
+  const insertar = db.prepare(`
+    INSERT INTO presupuestos_guardados (
+      empresa_id, modulo, anio, datos, guardado_por
+    ) VALUES (?, ?, ?, ?, ?)
+  `);
+  const datosJson = typeof datos === 'string' ? datos : JSON.stringify(datos || {});
+  return insertar.run(empresaId, modulo, anio, datosJson, guardadoPor || null);
+};
+
 const inicializarBaseDatos = () => {
   crearTablas();
   crearAdministradorGlobal();
@@ -172,5 +195,6 @@ const inicializarBaseDatos = () => {
 
 module.exports = {
   db,
-  inicializarBaseDatos
+  inicializarBaseDatos,
+  registrarPresupuestoGuardado
 };

@@ -1,6 +1,6 @@
 const express = require('express');
 const Joi = require('joi');
-const { db } = require('../db/sqlite');
+const { db, registrarPresupuestoGuardado } = require('../db/sqlite');
 const { obtenerEmpresaPorId } = require('../config/empresas');
 const { MODULOS, construirMapaPermisos } = require('../services/permisosService');
 const { obtenerPresupuestosMayor, PERIODOS, listarAniosPresupuestos } = require('../services/presupuestosService');
@@ -23,7 +23,7 @@ const esquemaEstado = Joi.object({
 const esquemaTransicion = Joi.object({
   modulo: Joi.string().trim().required(),
   anio: Joi.number().integer().min(2000).max(2100).required(),
-  accion: Joi.string().valid('cargar', 'revisar', 'autorizar', 'aprobar').required()
+  accion: Joi.string().valid('cargar', 'revisar', 'autorizar', 'guardar').required()
 });
 
 const serializarEmpresa = (empresa) => {
@@ -37,13 +37,17 @@ const serializarEmpresa = (empresa) => {
   };
 };
 
-const ESTADOS_VALIDOS = ['sin-cargar', 'borrador', 'revisado', 'autorizado', 'aprobado'];
+const ESTADOS_VALIDOS = ['sin-cargar', 'borrador', 'revisado', 'autorizado', 'guardado'];
 
 const TRANSICIONES = {
-  cargar: { destino: 'borrador', requiere: 'Cargar y guardar', habilita: (estado) => ['sin-cargar', 'borrador'].includes(estado) },
+  cargar: {
+    destino: 'borrador',
+    requiere: 'Cargar y guardar',
+    habilita: (estado) => ['sin-cargar', 'borrador', 'revisado', 'autorizado'].includes(estado)
+  },
   revisar: { destino: 'revisado', requiere: 'Revisar', habilita: (estado) => estado === 'borrador' },
   autorizar: { destino: 'autorizado', requiere: 'Aprobar', habilita: (estado) => estado === 'revisado' },
-  aprobar: { destino: 'aprobado', requiere: 'Aprobar', habilita: (estado) => estado === 'autorizado' }
+  guardar: { destino: 'guardado', requiere: 'Aprobar', habilita: (estado) => estado === 'autorizado' }
 };
 
 const construirNombreUsuario = (registro) => {
@@ -275,6 +279,52 @@ router.post('/estado', (req, res) => {
   }).catch((notifError) => {
     console.warn('No fue posible enviar notificaciones del workflow.', notifError);
   });
+});
+
+router.post('/guardar', (req, res) => {
+  const { modulo, anio, empresaId, datos } = req.body || {};
+  const ejercicio = Number(anio);
+  if (!modulo || !empresaId || !Number.isInteger(ejercicio)) {
+    return res.status(400).json({ mensaje: 'Faltan datos obligatorios para guardar.' });
+  }
+  const empresa = obtenerEmpresaPorId(empresaId);
+  if (!empresa) {
+    return res.status(404).json({ mensaje: 'La empresa indicada no existe.' });
+  }
+  if (!req.esAdmin && !tienePermisoEnModulo(req.mapaPermisos, empresaId, modulo, 'Cargar y guardar')) {
+    return res.status(403).json({ mensaje: 'No cuentas con permisos para guardar este presupuesto.' });
+  }
+  try {
+    registrarPresupuestoGuardado({
+      empresaId,
+      modulo,
+      anio: ejercicio,
+      datos,
+      guardadoPor: req.usuarioActual.id
+    });
+    const estadoActualizado = guardarEstadoPresupuesto(empresaId, modulo, ejercicio, 'guardado', req.usuarioActual.id);
+    res.json({
+      mensaje: 'Presupuesto guardado en la base de datos.',
+      ...estadoActualizado
+    });
+    notificarWorkflowPresupuesto({
+      empresaId,
+      modulo,
+      anio: ejercicio,
+      accion: 'guardar',
+      estado: 'guardado',
+      ejecutor: {
+        id: req.usuarioActual.id,
+        usuario: req.usuarioActual.usuario,
+        nombre: construirNombreUsuario(req.usuarioActual)
+      }
+    }).catch((notifError) => {
+      console.warn('No fue posible enviar notificaciones del workflow.', notifError);
+    });
+  } catch (error) {
+    console.error('Error al guardar presupuesto en la base de datos:', error);
+    res.status(500).json({ mensaje: 'No fue posible registrar el guardado.' });
+  }
 });
 
 module.exports = router;

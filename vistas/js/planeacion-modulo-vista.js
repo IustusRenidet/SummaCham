@@ -69,17 +69,33 @@
 
   const WORKFLOW_ETIQUETAS = {
     'sin-cargar': { texto: 'Sin cargar', descripcion: 'Esperando información.' },
-    borrador: { texto: 'Cargado', descripcion: 'Pendiente de revisión.' },
-    revisado: { texto: 'Revisado', descripcion: 'Listo para autorizar.' },
-    autorizado: { texto: 'Autorizado', descripcion: 'Listo para exportar la versión final.' },
-    aprobado: { texto: 'Aprobado', descripcion: 'Presupuesto final aprobado.' }
+    borrador: { texto: 'Borrador', descripcion: 'Edición local en curso.' },
+    revisado: { texto: 'Revisado', descripcion: 'Listo para autorizar o volver a editar.' },
+    autorizado: { texto: 'Autorizado', descripcion: 'Listo para guardar en base de datos.' },
+    guardado: { texto: 'Guardado', descripcion: 'Presupuesto comprometido en la base de datos.' }
   };
 
   const TRANSICIONES = {
-    cargar: { destino: 'borrador', permiso: 'Cargar y guardar', habilita: (estado) => ['sin-cargar', 'borrador'].includes(estado) },
-    revisar: { destino: 'revisado', permiso: 'Revisar', habilita: (estado) => estado === 'borrador' },
-    autorizar: { destino: 'autorizado', permiso: 'Aprobar', habilita: (estado) => estado === 'revisado' },
-    aprobar: { destino: 'aprobado', permiso: 'Aprobar', habilita: (estado) => estado === 'autorizado' }
+    cargar: {
+      destino: 'borrador',
+      permiso: 'Cargar y guardar',
+      habilita: (estado) => ['sin-cargar', 'borrador', 'revisado', 'autorizado'].includes(estado)
+    },
+    revisar: {
+      destino: 'revisado',
+      permiso: 'Revisar',
+      habilita: (estado) => estado === 'borrador'
+    },
+    autorizar: {
+      destino: 'autorizado',
+      permiso: 'Aprobar',
+      habilita: (estado) => estado === 'revisado'
+    },
+    guardar: {
+      destino: 'guardado',
+      permiso: 'Aprobar',
+      habilita: (estado) => estado === 'autorizado'
+    }
   };
 
   const formatoFecha = new Intl.DateTimeFormat('es-MX', {
@@ -123,21 +139,6 @@
       return '';
     }
     return formatoFecha.format(fecha);
-  };
-
-  const convertirTablaACsv = (tabla) => {
-    if (!tabla) {
-      return '';
-    }
-    const filas = Array.from(tabla.querySelectorAll('tr'));
-    return filas.map((fila) => {
-      const celdas = Array.from(fila.querySelectorAll('th,td'));
-      return celdas.map((celda) => {
-        const texto = celda.innerText.replace(/\s+/g, ' ').trim();
-        const seguro = texto.replace(/"/g, '""');
-        return `"${seguro}"`;
-      }).join(',');
-    }).join('\r\n');
   };
 
   const prepararFilasBusqueda = (tabla) => {
@@ -460,26 +461,27 @@
     const actualizarDisponibilidadAcciones = () => {
       const { permisos } = obtenerPermisosActuales(sesion, opciones.modulo);
       const estadoActual = estado.workflow.estado;
-      const puedeCargar = Boolean(permisos?.[TRANSICIONES.cargar.permiso]);
-      const puedeRevisar = Boolean(permisos?.[TRANSICIONES.revisar.permiso]);
-      const puedeAutorizar = Boolean(permisos?.[TRANSICIONES.autorizar.permiso]);
-      const puedeAprobar = Boolean(permisos?.[TRANSICIONES.aprobar.permiso]);
+      const esAdminGlobal = Sesion.esAdminGlobal(sesion);
+      const puedeCargar = esAdminGlobal || Boolean(permisos?.[TRANSICIONES.cargar.permiso]);
+      const puedeRevisar = esAdminGlobal || Boolean(permisos?.[TRANSICIONES.revisar.permiso]);
+      const puedeAutorizar = esAdminGlobal || Boolean(permisos?.[TRANSICIONES.autorizar.permiso]);
+      const puedeGuardar = esAdminGlobal || Boolean(permisos?.[TRANSICIONES.guardar.permiso]);
 
       if (elementos.loadBudgetBtn) {
         elementos.loadBudgetBtn.classList.toggle('d-none', !puedeCargar);
-        elementos.loadBudgetBtn.disabled = !puedeCargar || !TRANSICIONES.cargar.habilita(estadoActual);
+        elementos.loadBudgetBtn.disabled = !puedeCargar || !(esAdminGlobal || TRANSICIONES.cargar.habilita(estadoActual));
       }
       if (elementos.reviewBudgetBtn) {
         elementos.reviewBudgetBtn.classList.toggle('d-none', !puedeRevisar);
-        elementos.reviewBudgetBtn.disabled = !puedeRevisar || !TRANSICIONES.revisar.habilita(estadoActual);
+        elementos.reviewBudgetBtn.disabled = !puedeRevisar || !(esAdminGlobal || TRANSICIONES.revisar.habilita(estadoActual));
       }
       if (elementos.authorizeBudgetBtn) {
         elementos.authorizeBudgetBtn.classList.toggle('d-none', !puedeAutorizar);
-        elementos.authorizeBudgetBtn.disabled = !puedeAutorizar || !TRANSICIONES.autorizar.habilita(estadoActual);
+        elementos.authorizeBudgetBtn.disabled = !puedeAutorizar || !(esAdminGlobal || TRANSICIONES.autorizar.habilita(estadoActual));
       }
       if (elementos.saveBudgetBtn) {
-        elementos.saveBudgetBtn.classList.toggle('d-none', !puedeAprobar);
-        elementos.saveBudgetBtn.disabled = !puedeAprobar || !TRANSICIONES.aprobar.habilita(estadoActual);
+        elementos.saveBudgetBtn.classList.toggle('d-none', !puedeGuardar);
+        elementos.saveBudgetBtn.disabled = !puedeGuardar || !(esAdminGlobal || TRANSICIONES.guardar.habilita(estadoActual));
       }
     };
 
@@ -561,6 +563,34 @@
       }
     };
 
+    const guardarPresupuestoEnBD = async () => {
+      const empresa = Sesion.obtenerEmpresaActiva(sesion);
+      const anioSeleccionado = Number.isInteger(estado.anio) ? estado.anio : null;
+      if (!empresa?.id || !anioSeleccionado) {
+        throw new Error('Selecciona una empresa y ejercicio válidos antes de guardar.');
+      }
+      const cambios = window.CuentasModulo?.getCambios?.() || {};
+      const payload = {
+        modulo: opciones.modulo,
+        empresaId: empresa.id,
+        anio: anioSeleccionado,
+        datos: cambios
+      };
+      const respuesta = await fetch(`${API_BASE}/presupuestos/guardar`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...Sesion.headersAutenticacion()
+        },
+        body: JSON.stringify(payload)
+      });
+      const datos = await respuesta.json();
+      if (!respuesta.ok) {
+        throw new Error(datos.mensaje || 'No fue posible guardar los datos en la base de datos.');
+      }
+      return datos;
+    };
+
     if (elementos.yearSelect) {
       elementos.yearSelect.addEventListener('change', (event) => {
         const seleccionado = Number(event.target.value);
@@ -617,6 +647,7 @@
           return;
         }
         activarEdicionPresupuesto();
+        ejecutarAccionWorkflow('cargar');
       });
     }
 
@@ -640,24 +671,15 @@
     });
 
     if (elementos.saveBudgetBtn) {
-      elementos.saveBudgetBtn.addEventListener('click', () => {
-        const csv = convertirTablaACsv(elementos.tabla);
-        if (!csv) {
-          showToast('No se encontraron datos para exportar.', 'text-bg-warning');
-          return;
+      elementos.saveBudgetBtn.addEventListener('click', async () => {
+        try {
+          const respuesta = await guardarPresupuestoEnBD();
+          showToast(respuesta.mensaje || 'Datos guardados en la base de datos.');
+          await ejecutarAccionWorkflow('guardar');
+        } catch (error) {
+          console.error('Error al guardar presupuesto en BD', error);
+          showToast(error.message || 'No fue posible guardar el presupuesto.', 'text-bg-danger');
         }
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const enlace = document.createElement('a');
-        enlace.href = url;
-        const anioReferencia = Number.isInteger(estado.anio) ? estado.anio : new Date().getFullYear();
-        enlace.download = `${nombreArchivoModulo}_${anioReferencia}.csv`;
-        document.body.appendChild(enlace);
-        enlace.click();
-        document.body.removeChild(enlace);
-        URL.revokeObjectURL(url);
-        showToast('Información exportada correctamente.');
-        ejecutarAccionWorkflow('aprobar');
       });
     }
 

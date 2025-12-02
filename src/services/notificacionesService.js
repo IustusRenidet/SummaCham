@@ -148,7 +148,8 @@ const MAPA_DESTINATARIOS = {
   cargar: { permiso: 'Revisar', asunto: 'listo para revisión' },
   revisar: { permiso: 'Aprobar', asunto: 'requiere autorización' },
   autorizar: { permiso: 'Cargar y guardar', asunto: 'autorizado y listo para guardar' },
-  aprobar: { permiso: 'Cargar y guardar', asunto: 'aprobado y cerrado' }
+  aprobar: { permiso: 'Cargar y guardar', asunto: 'aprobado y cerrado' },
+  guardar: { permiso: 'Cargar y guardar', asunto: 'guardado y listo para operación' }
 };
 
 const notificarWorkflowPresupuesto = async ({ empresaId, modulo, anio, accion, estado, ejecutor }) => {
