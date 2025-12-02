@@ -1,6 +1,8 @@
 (() => {
   const base = window.location.protocol === 'file:' ? 'http://localhost:3000' : window.location.origin;
   const API_ENDPOINT = `${base}/api/reportes/summary`;
+  const API_ANIOS = `${base}/api/saldos/anios`;
+  
   const formatNumber = (valor) => {
     const monto = Number(valor ?? 0);
     if (!Number.isFinite(monto)) return '0.00';
@@ -10,6 +12,7 @@
   const summaryStatus = document.getElementById('summaryStatus');
   const summaryBody = document.getElementById('summaryTableBody');
   const aggregateBody = document.getElementById('summaryCityAggregates');
+  const selectAnio = document.getElementById('selectAnio');
 
   const CITY_LABELS = {
     empresa1: 'Ciudad de México',
@@ -108,15 +111,71 @@
     }
   };
 
-  document.addEventListener('DOMContentLoaded', () => {
+  const cargarAniosDisponibles = async (empresaId) => {
+    if (!selectAnio) return [];
+    
+    try {
+      const response = await fetch(`${API_ANIOS}?empresaId=${encodeURIComponent(empresaId)}`, {
+        headers: Sesion.headersAutenticacion()
+      });
+      
+      if (!response.ok) {
+        throw new Error('No fue posible obtener años disponibles');
+      }
+      
+      const data = await response.json();
+      const anios = data.anios || [];
+      
+      // Asegurar años vigentes (2024, 2025, 2026)
+      const anoActual = new Date().getFullYear();
+      const aniosVigentes = [anoActual - 1, anoActual, anoActual + 1];
+      const aniosMerge = [...new Set([...anios, ...aniosVigentes])].filter(a => a >= 2000 && a <= 2100).sort((a, b) => b - a);
+      
+      // Poblar select
+      selectAnio.innerHTML = '';
+      aniosMerge.forEach(ano => {
+        const option = document.createElement('option');
+        option.value = ano;
+        option.textContent = ano;
+        selectAnio.appendChild(option);
+      });
+      
+      // Seleccionar año actual
+      selectAnio.value = anoActual;
+      selectAnio.disabled = false;
+      
+      return aniosMerge;
+    } catch (error) {
+      console.error('Error cargando años:', error);
+      selectAnio.innerHTML = '<option value="">Error cargando años</option>';
+      selectAnio.disabled = true;
+      return [];
+    }
+  };
+
+  document.addEventListener('DOMContentLoaded', async () => {
     const sesion = Sesion.requerirSesion();
     if (!sesion) return;
+    
     const empresa = Sesion.obtenerEmpresaActiva(sesion);
     if (!empresa?.id) {
       showStatus('Selecciona una empresa para continuar.', 'warning');
       return;
     }
-    const actual = new Date().getFullYear();
-    fetchSummary(empresa.id, actual);
+    
+    // Cargar años disponibles
+    await cargarAniosDisponibles(empresa.id);
+    
+    // Cargar datos del año seleccionado
+    const anioActual = Number(selectAnio?.value) || new Date().getFullYear();
+    await fetchSummary(empresa.id, anioActual);
+    
+    // Event listener para cambios de año
+    if (selectAnio) {
+      selectAnio.addEventListener('change', () => {
+        const anio = Number(selectAnio.value) || new Date().getFullYear();
+        fetchSummary(empresa.id, anio);
+      });
+    }
   });
 })();

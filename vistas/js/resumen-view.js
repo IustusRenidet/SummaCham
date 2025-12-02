@@ -1,6 +1,8 @@
 (() => {
   const base = window.location.protocol === 'file:' ? 'http://localhost:3000' : window.location.origin;
   const API_ENDPOINT = `${base}/api/reportes/resumen`;
+  const API_ANIOS = `${base}/api/saldos/anios`;
+  
   const formatNumber = (valor) => {
     const monto = Number(valor ?? 0);
     if (!Number.isFinite(monto)) return '0.00';
@@ -12,13 +14,44 @@
   const searchInput = document.getElementById('accountSearch');
   const toggleBtn = document.getElementById('toggleAccountsBtn');
 
-  const populateYearSelect = () => {
-    if (!yearSelect) return;
-    const actual = new Date().getFullYear();
-    const opciones = [actual, actual - 1, actual - 2];
-    yearSelect.innerHTML = opciones
-      .map((anio) => `<option value="${anio}">${anio}</option>`)
-      .join('');
+  const cargarAniosDisponibles = async (empresaId) => {
+    if (!yearSelect) return [];
+    
+    try {
+      const response = await fetch(`${API_ANIOS}?empresaId=${encodeURIComponent(empresaId)}`, {
+        headers: Sesion.headersAutenticacion()
+      });
+      
+      if (!response.ok) {
+        throw new Error('No fue posible obtener años disponibles');
+      }
+      
+      const data = await response.json();
+      const anios = data.anios || [];
+      
+      // Asegurar años vigentes (2024, 2025, 2026)
+      const anoActual = new Date().getFullYear();
+      const aniosVigentes = [anoActual - 1, anoActual, anoActual + 1];
+      const aniosMerge = [...new Set([...anios, ...aniosVigentes])].filter(a => a >= 2000 && a <= 2100).sort((a, b) => b - a);
+      
+      // Poblar select
+      yearSelect.innerHTML = '';
+      aniosMerge.forEach(ano => {
+        const option = document.createElement('option');
+        option.value = ano;
+        option.textContent = ano;
+        yearSelect.appendChild(option);
+      });
+      
+      // Seleccionar año actual
+      yearSelect.value = anoActual;
+      
+      return aniosMerge;
+    } catch (error) {
+      console.error('Error cargando años:', error);
+      yearSelect.innerHTML = '<option value="">Error cargando años</option>';
+      return [];
+    }
   };
 
   const setStatusRow = (mensaje) => {
@@ -122,7 +155,7 @@
     });
   };
 
-  document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('DOMContentLoaded', async () => {
     const sesion = Sesion.requerirSesion();
     if (!sesion) return;
     const empresa = Sesion.obtenerEmpresaActiva(sesion);
@@ -130,7 +163,10 @@
       setStatusRow('Selecciona una empresa para continuar.');
       return;
     }
-    populateYearSelect();
+    
+    // Cargar años disponibles
+    await cargarAniosDisponibles(empresa.id);
+    
     const valorInicial = Number(yearSelect?.value) || new Date().getFullYear();
     fetchResumen(empresa.id, valorInicial);
     if (yearSelect) {

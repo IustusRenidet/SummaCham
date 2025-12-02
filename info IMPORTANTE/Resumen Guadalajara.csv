@@ -1,7 +1,24 @@
 CUENTA,DESCRIPCION,GRUPO
-101001000000000000002,Bancos,Activos Circulantes
-102001000000000000002,Terrenos,Activos Fijos
-201001000000000000002,Proveedores,Pasivos
-301001000000000000002,Capital Social,Capital
-401001000000000000002,Ventas,Ingresos
-501001000000000000002,Gastos Operación,Gastos
+400-000-000-00,Cuotas Netas,GENERAL
+401-000-000-00,Ingresos socios nuevos,GENERAL
+405-000-000-00,Eventos,GENERAL
+406-000-000-00,Patrocinios,GENERAL
+404-000-000-00,Comités,GENERAL
+407-000-000-00,Trade & Investment Center,GENERAL
+403-000-000-00,Venta Publicaciones,GENERAL
+408-000-000-00,Visas,GENERAL
+702-000-000-00,Gastos Promoción,GENERAL
+503-000-000-00,Comisiones por venta de membresías,GENERAL
+701-000-000-00,Costo Eventos,GENERAL
+502-000-000-00,Costo comités,GENERAL
+504-000-000-00,Comisiones EWDP,GENERAL
+703-000-000-00,Costo Trade & Investment Center,GENERAL
+601-000-000-00,Gastos Venta Publicaciones,GENERAL
+801-000-000-00,Gasto de Administración,GENERAL
+901-000-000-00,Gastos Generales,GENERAL
+501-000-000-00,Nómina,GENERAL
+903-000-000-00,Gastos Corporativos,GENERAL
+903-016-000-00,Cargos Administrativos,GENERAL
+904-000-000-00,Member Centricity,GENERAL
+402-000-000-00,Otros ingresos,GENERAL
+410-000-000-00,Utilidad cambiaria,GENERAL

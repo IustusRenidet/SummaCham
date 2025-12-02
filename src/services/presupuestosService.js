@@ -78,9 +78,8 @@ const obtenerPresupuestosMayor = async (empresaId, anio) => {
 
   const columnasReal = MESES.map(({ periodo }) => {
     const sufijo = formatearPeriodo(periodo);
-    const sumaCargos = Array.from({ length: periodo }, (_, i) => `COALESCE(s.CARGO${formatearPeriodo(i + 1)}, 0)`).join(' + ') || '0';
-    const sumaAbonos = Array.from({ length: periodo }, (_, i) => `COALESCE(s.ABONO${formatearPeriodo(i + 1)}, 0)`).join(' + ') || '0';
-    return `COALESCE(s.INICIAL, 0) + (${sumaCargos}) - (${sumaAbonos}) AS REAL${sufijo}`;
+    // Real mensual = CARGO del mes - ABONO del mes (no acumulado)
+    return `(COALESCE(s.CARGO${sufijo}, 0) - COALESCE(s.ABONO${sufijo}, 0)) AS REAL${sufijo}`;
   });
 
   const consulta = `
