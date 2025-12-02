@@ -47,7 +47,10 @@ const calcularSaldosCoiPorMes = (row) => {
       naturalezaReal === 'D'
         ? Math.abs(inicial + cargosAcum - abonosAcum)
         : Math.abs(inicial + abonosAcum - cargosAcum);
-    const movimiento = naturalezaReal === 'D' ? cargo - abono : abono - cargo;
+    const movimiento =
+      naturalezaReal === 'D'
+        ? cargo - abono
+        : abono;
     meses[clave] = {
       movimiento,
       acumulado
