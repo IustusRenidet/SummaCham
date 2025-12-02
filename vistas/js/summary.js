@@ -770,6 +770,15 @@ async function aplicarSeleccionUI() {
 
     actualizarResumen(anio);
     renderizarTabla();
+    window.dispatchEvent(new CustomEvent('summary:data-ready', {
+      detail: {
+        detalle,
+        anio,
+        periodo,
+        ejercicios,
+        ejerciciosDisponibles
+      }
+    }));
     limpiarEstado();
     // Aviso toast en verde cuando todo sali bien
     if (typeof mostrarToastExito === 'function') {
