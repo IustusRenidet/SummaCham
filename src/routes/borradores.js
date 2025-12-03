@@ -47,7 +47,7 @@ const cargarUsuarioActual = (req, res, next) => {
   req.esAdmin = esIconet || Boolean(registro.es_admin_global);
   if (!req.esAdmin) {
     const permisos = db.prepare(`
-      SELECT empresa_id, modulo, puede_cargar_guardar, puede_revisar, puede_aprobar
+      SELECT empresa_id, modulo, puede_leer, puede_cargar_guardar, puede_revisar, puede_aprobar
       FROM permisos_modulo
       WHERE usuario_id = ?
     `).all(registro.id);

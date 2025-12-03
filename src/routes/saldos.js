@@ -21,7 +21,7 @@ const esquema = Joi.object({
 
 const puede = (mapa, empresaId) => {
   const p = mapa[empresaId];
-  return p && Object.values(p).some(a => a['Cargar y guardar'] || a.Revisar || a.Aprobar);
+  return p && Object.values(p).some((a) => a.Lectura || a['Cargar y guardar'] || a.Revisar || a.Aprobar);
 };
 
 router.get('/', async (req, res) => {
@@ -49,7 +49,7 @@ router.get('/', async (req, res) => {
   let mapa = {};
   if (!esAdmin) {
     const permisos = db.prepare(`
-      SELECT empresa_id, modulo, puede_cargar_guardar, puede_revisar, puede_aprobar
+      SELECT empresa_id, modulo, puede_leer, puede_cargar_guardar, puede_revisar, puede_aprobar
       FROM permisos_modulo
       WHERE usuario_id = ?
     `).all(usr.id);
@@ -98,11 +98,11 @@ router.get('/anios', async (req, res) => {
 
   let mapa = {};
   if (!esAdmin) {
-    const permisos = db.prepare(`
-      SELECT empresa_id, modulo, puede_cargar_guardar, puede_revisar, puede_aprobar
-      FROM permisos_modulo
-      WHERE usuario_id = ?
-    `).all(usr.id);
+  const permisos = db.prepare(`
+    SELECT empresa_id, modulo, puede_leer, puede_cargar_guardar, puede_revisar, puede_aprobar
+    FROM permisos_modulo
+    WHERE usuario_id = ?
+  `).all(usr.id);
     mapa = construirMapaPermisos(permisos);
     if (!puede(mapa, empresa.id)) return res.status(403).json({ mensaje: 'Sin permiso para esta empresa.' });
   }
@@ -145,7 +145,7 @@ router.get('/cuentas', async (req, res) => {
   let mapa = {};
   if (!esAdmin) {
     const permisos = db.prepare(`
-      SELECT empresa_id, modulo, puede_cargar_guardar, puede_revisar, puede_aprobar
+      SELECT empresa_id, modulo, puede_leer, puede_cargar_guardar, puede_revisar, puede_aprobar
       FROM permisos_modulo
       WHERE usuario_id = ?
     `).all(usr.id);

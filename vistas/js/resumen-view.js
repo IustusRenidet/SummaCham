@@ -20,7 +20,8 @@
   const tablaBody = document.getElementById('tablaCuentasBody');
   const yearSelect = document.getElementById('resumenYearSelect');
   const monthSelect = document.getElementById('resumenMonthSelect');
-  const capituloSelect = document.getElementById('resumenChapterSelect');
+  const obtenerCapituloEmpresa = (empresaId) =>
+    window.CapitulosModulos?.obtenerCapituloPorEmpresa?.(empresaId) || null;
   const searchInput = document.getElementById('accountSearch');
   const toggleBtn = document.getElementById('toggleAccountsBtn');
 
@@ -157,33 +158,6 @@
     headers.forEach((encabezado) => encabezado.classList.remove('d-none'));
   };
 
-  const actualizarCapitulos = (capitulos = [], seleccionado) => {
-    if (!capituloSelect) return;
-    capituloSelect.innerHTML = '';
-    if (!capitulos.length) {
-      const option = document.createElement('option');
-      option.value = '';
-      option.textContent = 'Sin capítulos';
-      capituloSelect.appendChild(option);
-      capituloSelect.disabled = true;
-      return;
-    }
-    capitulos.forEach(({ clave, etiqueta }) => {
-      const opt = document.createElement('option');
-      opt.value = clave;
-      opt.textContent = etiqueta;
-      capituloSelect.appendChild(opt);
-    });
-    if (seleccionado) {
-      const claveSel = capitulos.find((c) => c.etiqueta === seleccionado)?.clave || seleccionado;
-      capituloSelect.value = claveSel;
-    }
-    if (!capituloSelect.value) {
-      capituloSelect.value = capitulos[0].clave;
-    }
-    capituloSelect.disabled = false;
-  };
-
   const fetchResumen = async (empresaId, anio, mes) => {
     if (!empresaId || !anio) return;
     setStatusRow('Cargando resumen financiero...');
@@ -192,9 +166,8 @@
       if (Number.isInteger(mes)) {
         params.set('mes', String(mes));
       }
-      if (capituloSelect?.value) {
-        params.set('capitulo', capituloSelect.value);
-      }
+      const capitulo = obtenerCapituloEmpresa(empresaId);
+      if (capitulo) params.set('capitulo', capitulo);
       const respuesta = await fetch(`${API_ENDPOINT}?${params.toString()}`, {
         headers: Sesion.headersAutenticacion()
       });
@@ -203,7 +176,6 @@
       }
       const datos = await respuesta.json();
       renderTable(datos.resumen || [], Number(anio));
-      actualizarCapitulos(datos.capitulosDisponibles || [], datos.capituloSeleccionado);
     } catch (error) {
       console.error('Error resumen:', error);
       setStatusRow(error.message || 'No fue posible cargar el resumen.');
@@ -251,13 +223,6 @@
       monthSelect.addEventListener('change', () => {
         const anio = Number(yearSelect?.value) || valorInicial;
         const mes = Number(monthSelect.value) || mesInicial;
-        fetchResumen(empresa.id, anio, mes);
-      });
-    }
-    if (capituloSelect) {
-      capituloSelect.addEventListener('change', () => {
-        const anio = Number(yearSelect?.value) || valorInicial;
-        const mes = Number(monthSelect?.value) || mesInicial;
         fetchResumen(empresa.id, anio, mes);
       });
     }

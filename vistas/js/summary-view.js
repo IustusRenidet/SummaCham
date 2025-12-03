@@ -14,7 +14,9 @@
   const aggregateBody = document.getElementById('summaryCityAggregates');
   const selectAnio = document.getElementById('selectAnio');
   const selectMes = document.getElementById('selectMes');
-  const selectCapitulo = document.getElementById('selectCapitulo');
+  const obtenerCapituloEmpresa = (empresaId) => {
+    return window.CapitulosModulos?.obtenerCapituloPorEmpresa?.(empresaId) || null;
+  };
 
   const MESES = [
     { etiqueta: 'Enero', clave: 'ene', periodo: 1 },
@@ -194,34 +196,7 @@
     });
   };
 
-  const actualizarCapitulos = (capitulos = [], seleccionado) => {
-    if (!selectCapitulo) return;
-    selectCapitulo.innerHTML = '';
-    if (!capitulos.length) {
-      const option = document.createElement('option');
-      option.value = '';
-      option.textContent = 'Sin capítulos';
-      selectCapitulo.appendChild(option);
-      selectCapitulo.disabled = true;
-      return;
-    }
-    capitulos.forEach(({ clave, etiqueta }) => {
-      const option = document.createElement('option');
-      option.value = clave;
-      option.textContent = etiqueta;
-      selectCapitulo.appendChild(option);
-    });
-    if (seleccionado) {
-      const claveSel = capitulos.find((c) => c.etiqueta === seleccionado)?.clave || seleccionado;
-      selectCapitulo.value = claveSel;
-    }
-    if (!selectCapitulo.value) {
-      selectCapitulo.value = capitulos[0].clave;
-    }
-    selectCapitulo.disabled = false;
-  };
-
-  const fetchSummary = async (empresaId, anio, mes, capituloClave) => {
+  const fetchSummary = async (empresaId, anio, mes) => {
     if (!empresaId) return;
     showStatus('Cargando datos del reporte Summary...', 'info');
     try {
@@ -232,9 +207,8 @@
       if (Number.isInteger(mes)) {
         params.set('mes', String(mes));
       }
-      if (capituloClave) {
-        params.set('capitulo', capituloClave);
-      }
+      const capituloClave = obtenerCapituloEmpresa(empresaId);
+      if (capituloClave) params.set('capitulo', capituloClave);
       const response = await fetch(`${API_ENDPOINT}?${params.toString()}`, {
         headers: Sesion.headersAutenticacion()
       });
@@ -312,14 +286,13 @@
     const anioInicial = Number(selectAnio?.value) || anios[0] || new Date().getFullYear();
     const mesInicial = Number.isInteger(mesActual) ? mesActual : 1;
 
-    await fetchSummary(empresa.id, anioInicial, mesInicial, selectCapitulo?.value);
+    await fetchSummary(empresa.id, anioInicial, mesInicial);
 
     if (selectAnio) {
       selectAnio.addEventListener('change', () => {
         const anio = Number(selectAnio.value) || anioInicial;
         const mes = Number(selectMes?.value) || mesInicial;
-        const cap = selectCapitulo?.value || undefined;
-        fetchSummary(empresa.id, anio, mes, cap);
+        fetchSummary(empresa.id, anio, mes);
       });
     }
 
@@ -336,18 +309,7 @@
       selectMes.addEventListener('change', () => {
         const anio = Number(selectAnio?.value) || anioInicial;
         const mes = Number(selectMes.value) || mesInicial;
-        const cap = selectCapitulo?.value || undefined;
-        fetchSummary(empresa.id, anio, mes, cap);
-      });
-      actualizarEtiquetaMes(mesInicial);
-    }
-
-    if (selectCapitulo) {
-      selectCapitulo.addEventListener('change', () => {
-        const anio = Number(selectAnio?.value) || anioInicial;
-        const mes = Number(selectMes?.value) || mesInicial;
-        const cap = selectCapitulo.value || undefined;
-        fetchSummary(empresa.id, anio, mes, cap);
+        fetchSummary(empresa.id, anio, mes);
       });
       actualizarEtiquetaMes(mesInicial);
     }
