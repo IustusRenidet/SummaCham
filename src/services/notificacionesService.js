@@ -146,8 +146,11 @@ const construirMensajeCorreo = ({ titulo, mensaje, enlace }) => {
 
 const MAPA_DESTINATARIOS = {
   cargar: { permiso: 'Revisar', asunto: 'listo para revisión' },
+  enviar: { permiso: 'Revisar', asunto: 'enviado para revisión' },
   revisar: { permiso: 'Aprobar', asunto: 'requiere autorización' },
+  'revisar-cancelar': { permiso: 'Cargar y guardar', asunto: 'regresado a edición' },
   autorizar: { permiso: 'Cargar y guardar', asunto: 'autorizado y listo para guardar' },
+  rechazar: { permiso: 'Cargar y guardar', asunto: 'rechazado, requiere ajustes' },
   aprobar: { permiso: 'Cargar y guardar', asunto: 'aprobado y cerrado' },
   guardar: { permiso: 'Cargar y guardar', asunto: 'guardado y listo para operación' }
 };
