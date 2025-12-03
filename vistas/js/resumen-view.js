@@ -28,6 +28,9 @@
     window.CapitulosModulos?.EMPRESA_CONFIG?.[empresaId]?.etiqueta || '';
   const searchInput = document.getElementById('accountSearch');
   const toggleBtn = document.getElementById('toggleAccountsBtn');
+  let empresaActual = null;
+  const leerAnioSeleccionado = () => Number(yearSelect?.value) || new Date().getFullYear();
+  const leerMesSeleccionado = () => Number(monthSelect?.value) || new Date().getMonth() + 1;
 
   const cargarAniosDisponibles = async (empresaId) => {
     if (!yearSelect) return [];
@@ -239,6 +242,22 @@
     }
   };
 
+  const aplicarEmpresaResumen = async (empresaId) => {
+    if (!empresaId) return;
+    const anios = await cargarAniosDisponibles(empresaId);
+    const valorInicial = Number(yearSelect?.value) || anios[0] || new Date().getFullYear();
+    const mesInicial = Number(monthSelect?.value) || new Date().getMonth() + 1;
+    if (yearSelect) yearSelect.value = String(valorInicial);
+    if (monthSelect) monthSelect.value = String(mesInicial);
+    actualizarEncabezado(empresaId, valorInicial);
+    window.dispatchEvent(
+      new CustomEvent('planeacion:contexto-actualizado', {
+        detail: { empresaId, anio: valorInicial, modulo: document.body.dataset.modulo || 'resumen' }
+      })
+    );
+    await fetchResumen(empresaId, valorInicial, mesInicial);
+  };
+
   const initToggleColumns = () => {
     if (!toggleBtn) return;
     const tabla = document.getElementById('tablaComparacion');
@@ -262,44 +281,41 @@
       setStatusRow('Selecciona una empresa para continuar.');
       return;
     }
-    
-    // Cargar años disponibles
-    const anios = await cargarAniosDisponibles(empresa.id);
 
-    const valorInicial = Number(yearSelect?.value) || anios[0] || new Date().getFullYear();
-    const mesInicial = Number(monthSelect?.value) || new Date().getMonth() + 1;
-    actualizarEncabezado(empresa.id, valorInicial);
-    window.dispatchEvent(
-      new CustomEvent('planeacion:contexto-actualizado', {
-        detail: { empresaId: empresa.id, anio: valorInicial, modulo: document.body.dataset.modulo || 'resumen' }
-      })
-    );
-    fetchResumen(empresa.id, valorInicial, mesInicial);
+    empresaActual = empresa;
+    await aplicarEmpresaResumen(empresaActual.id);
+
+    const handleYearChange = () => {
+      const anio = leerAnioSeleccionado();
+      const mes = leerMesSeleccionado();
+      if (!empresaActual?.id) return;
+      actualizarEncabezado(empresaActual.id, anio);
+      window.dispatchEvent(
+        new CustomEvent('planeacion:contexto-actualizado', {
+          detail: { empresaId: empresaActual.id, anio, modulo: document.body.dataset.modulo || 'resumen' }
+        })
+      );
+      fetchResumen(empresaActual.id, anio, mes);
+    };
+
+    const handleMonthChange = () => {
+      const anio = leerAnioSeleccionado();
+      const mes = leerMesSeleccionado();
+      if (!empresaActual?.id) return;
+      actualizarEncabezado(empresaActual.id, anio);
+      window.dispatchEvent(
+        new CustomEvent('planeacion:contexto-actualizado', {
+          detail: { empresaId: empresaActual.id, anio, modulo: document.body.dataset.modulo || 'resumen' }
+        })
+      );
+      fetchResumen(empresaActual.id, anio, mes);
+    };
+
     if (yearSelect) {
-      yearSelect.addEventListener('change', () => {
-        const anio = Number(yearSelect.value) || new Date().getFullYear();
-        const mes = Number(monthSelect?.value) || mesInicial;
-        actualizarEncabezado(empresa.id, anio);
-        window.dispatchEvent(
-          new CustomEvent('planeacion:contexto-actualizado', {
-            detail: { empresaId: empresa.id, anio, modulo: document.body.dataset.modulo || 'resumen' }
-          })
-        );
-        fetchResumen(empresa.id, anio, mes);
-      });
+      yearSelect.addEventListener('change', handleYearChange);
     }
     if (monthSelect) {
-      monthSelect.addEventListener('change', () => {
-        const anio = Number(yearSelect?.value) || valorInicial;
-        const mes = Number(monthSelect.value) || mesInicial;
-        actualizarEncabezado(empresa.id, anio);
-        window.dispatchEvent(
-          new CustomEvent('planeacion:contexto-actualizado', {
-            detail: { empresaId: empresa.id, anio, modulo: document.body.dataset.modulo || 'resumen' }
-          })
-        );
-        fetchResumen(empresa.id, anio, mes);
-      });
+      monthSelect.addEventListener('change', handleMonthChange);
     }
     if (searchInput) {
       searchInput.addEventListener('input', (event) => {
@@ -307,5 +323,12 @@
       });
     }
     initToggleColumns();
+
+    window.addEventListener(Sesion.EVENTO_EMPRESA, async (event) => {
+      const nuevaEmpresa = event?.detail?.empresa;
+      if (!nuevaEmpresa?.id) return;
+      empresaActual = nuevaEmpresa;
+      await aplicarEmpresaResumen(empresaActual.id);
+    });
   });
 })();

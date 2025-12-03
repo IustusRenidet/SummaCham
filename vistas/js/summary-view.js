@@ -19,6 +19,12 @@
   const aggregateBody = document.getElementById('summaryCityAggregates');
   const selectAnio = document.getElementById('selectAnio');
   const selectMes = document.getElementById('selectMes');
+  const capituloLabel = document.getElementById('capituloLabel');
+  const selectCapitulo = document.getElementById('selectCapitulo');
+  let capituloActual = '';
+  let empresaActual = null;
+  const leerAnioSeleccionado = () => Number(selectAnio?.value) || new Date().getFullYear();
+  const leerMesSeleccionado = () => Number(selectMes?.value) || (new Date().getMonth() + 1);
   const obtenerCapituloEmpresa = (empresaId) => {
     return window.CapitulosModulos?.obtenerCapituloPorEmpresa?.(empresaId) || null;
   };
@@ -39,9 +45,51 @@
   ];
 
   // Compatibilidad: algunos layouts antiguos esperaban esta función.
-  // Hoy el capítulo se deriva de la empresa activa, pero exponemos un
-  // no-op para evitar referencias indefinidas en cargas previas.
-  const actualizarCapitulos = () => {};
+  // Hoy el capítulo se deriva de la empresa activa, pero aquí podemos
+  // también mostrar y permitir cambiar la selección.
+  const actualizarEtiquetaCapitulo = (texto) => {
+    if (!capituloLabel) return;
+    const valor = texto ? texto.toString() : '';
+    capituloLabel.textContent = valor ? `Capítulo: ${valor}` : 'Capítulo: -';
+  };
+
+  const actualizarCapitulos = (capitulos = [], seleccionado = '') => {
+    if (!selectCapitulo) {
+      capituloActual = seleccionado || capituloActual;
+      actualizarEtiquetaCapitulo(capituloActual);
+      return;
+    }
+
+    selectCapitulo.innerHTML = '';
+    if (!Array.isArray(capitulos) || !capitulos.length) {
+      const option = document.createElement('option');
+      option.value = '';
+      option.textContent = 'Sin capítulos disponibles';
+      selectCapitulo.appendChild(option);
+      selectCapitulo.disabled = true;
+      capituloActual = '';
+      actualizarEtiquetaCapitulo('');
+      return;
+    }
+
+    capitulos.forEach((item) => {
+      const etiqueta = (item?.etiqueta ?? item?.clave ?? '').toString().trim();
+      if (!etiqueta) return;
+      const option = document.createElement('option');
+      option.value = etiqueta;
+      option.textContent = etiqueta;
+      selectCapitulo.appendChild(option);
+    });
+
+    const preferido = capitulos.find((item) => (item?.etiqueta ?? '').toString().trim() === (seleccionado || '').toString().trim())
+      ? (seleccionado || '')
+      : (selectCapitulo.options[0]?.value || '');
+
+    selectCapitulo.value = preferido;
+    selectCapitulo.disabled = capitulos.length <= 1;
+    capituloActual = preferido;
+    actualizarEtiquetaCapitulo(preferido);
+  };
 
   const CITY_LABELS = {
     empresa1: 'Ciudad de México',
@@ -85,6 +133,48 @@
   const createCell = (val, isBold = false) => `<td class="text-end ${isBold ? 'fw-bold' : ''}">${formatNumber(val)}</td>`;
   const createPercentCell = (val) => `<td class="text-end">${formatPercent(val)}</td>`;
 
+  const extractTotals = (nodo = {}) => ({
+    actualMonth: toNumber(nodo.actualMonth ?? nodo.totalActualMonth),
+    planMonth: toNumber(nodo.planMonth ?? nodo.totalPlanMonth),
+    prevMonth: toNumber(nodo.prevMonth ?? nodo.totalPrevMonth),
+    actualYTD: toNumber(nodo.actualYTD ?? nodo.totalActualYTD),
+    planYTD: toNumber(nodo.planYTD ?? nodo.totalPlanYTD),
+    prevYTD: toNumber(nodo.prevYTD ?? nodo.totalPrevYTD)
+  });
+
+  const createTotalsRow = (nodo, options = {}) => {
+    const {
+      label = '',
+      rowClass = '',
+      labelClasses = 'text-center text-primary text-uppercase',
+      boldNumbers = false
+    } = options;
+
+    const totals = extractTotals(nodo);
+    const varMonthPlan = calculateVar(totals.actualMonth, totals.planMonth);
+    const varMonthPrev = calculateVar(totals.actualMonth, totals.prevMonth);
+    const varYTDPlan = calculateVar(totals.actualYTD, totals.planYTD);
+    const varYTDPrev = calculateVar(totals.actualYTD, totals.prevYTD);
+
+    const row = document.createElement('tr');
+    row.className = rowClass || '';
+    row.innerHTML = `
+      <td></td>
+      ${createCell(totals.actualMonth, boldNumbers)}
+      ${createCell(totals.planMonth, boldNumbers)}
+      ${createCell(totals.prevMonth, boldNumbers)}
+      ${createPercentCell(varMonthPlan)}
+      ${createPercentCell(varMonthPrev)}
+      <td class="${labelClasses}">${label}</td>
+      ${createCell(totals.actualYTD, boldNumbers)}
+      ${createCell(totals.planYTD, boldNumbers)}
+      ${createCell(totals.prevYTD, boldNumbers)}
+      ${createPercentCell(varYTDPlan)}
+      ${createPercentCell(varYTDPrev)}
+    `;
+    return row;
+  };
+
   const actualizarEtiquetaMes = (mesSeleccionado) => {
     const etiqueta = MESES.find((m) => m.periodo === mesSeleccionado)?.etiqueta || '';
     document.querySelectorAll('.mes').forEach((span) => {
@@ -112,86 +202,62 @@
   const renderSummary = (resumen = [], mesSeleccionado) => {
     if (!summaryBody) return;
     summaryBody.innerHTML = '';
-    
+
     if (!resumen.length) {
       summaryBody.innerHTML = '<tr><td colspan="12" class="text-center">Sin datos disponibles.</td></tr>';
       return;
     }
-    
+
     resumen.forEach((capitulo) => {
-      // 1. Fila de Capítulo (ej. CDMX Income)
-      const capVarMonthPlan = calculateVar(capitulo.totalActualMonth, capitulo.totalPlanMonth);
-      const capVarMonthPrev = calculateVar(capitulo.totalActualMonth, capitulo.totalPrevMonth);
-      const capVarYTDPlan = calculateVar(capitulo.totalActualYTD, capitulo.totalPlanYTD);
-      const capVarYTDPrev = calculateVar(capitulo.totalActualYTD, capitulo.totalPrevYTD);
+      summaryBody.appendChild(createTotalsRow(capitulo, {
+        label: capitulo.label || '',
+        rowClass: 'section-header-row table-secondary fw-bold text-center',
+        labelClasses: 'text-center text-primary text-uppercase',
+        boldNumbers: true
+      }));
 
-      const capRow = document.createElement('tr');
-      capRow.className = 'section-header-row table-secondary fw-bold text-center';
-      capRow.innerHTML = `
-        <td></td> <!-- Cuenta vacía -->
-        ${createCell(capitulo.totalActualMonth, true)}
-        ${createCell(capitulo.totalPlanMonth, true)}
-        ${createCell(capitulo.totalPrevMonth, true)}
-        ${createPercentCell(capVarMonthPlan)}
-        ${createPercentCell(capVarMonthPrev)}
-        <td class="text-center text-primary text-uppercase">${capitulo.label}</td>
-        ${createCell(capitulo.totalActualYTD, true)}
-        ${createCell(capitulo.totalPlanYTD, true)}
-        ${createCell(capitulo.totalPrevYTD, true)}
-        ${createPercentCell(capVarYTDPlan)}
-        ${createPercentCell(capVarYTDPrev)}
-      `;
-      summaryBody.appendChild(capRow);
+      const principales = Array.isArray(capitulo.children) ? capitulo.children : [];
+      principales.forEach((principal) => {
+        if (!principal) return;
+        summaryBody.appendChild(createTotalsRow(principal, {
+          label: principal.label || '',
+          rowClass: 'section-header-row table-light fw-bold text-center',
+          labelClasses: 'text-center text-secondary text-uppercase',
+          boldNumbers: true
+        }));
 
-      (capitulo.children || []).forEach((seccion) => {
-        // 2. Fila de Sección (ej. Membership)
-        const secVarMonthPlan = calculateVar(seccion.totalActualMonth, seccion.totalPlanMonth);
-        const secVarMonthPrev = calculateVar(seccion.totalActualMonth, seccion.totalPrevMonth);
-        const secVarYTDPlan = calculateVar(seccion.totalActualYTD, seccion.totalPlanYTD);
-        const secVarYTDPrev = calculateVar(seccion.totalActualYTD, seccion.totalPrevYTD);
+        const secciones = Array.isArray(principal.children) ? principal.children : [];
+        secciones.forEach((seccion) => {
+          (seccion.cuentas || []).forEach((cta) => {
+            const ctaVarMonthPlan = calculateVar(cta.actualMonth, cta.planMonth);
+            const ctaVarMonthPrev = calculateVar(cta.actualMonth, cta.prevMonth);
+            const ctaVarYTDPlan = calculateVar(cta.actualYTD, cta.planYTD);
+            const ctaVarYTDPrev = calculateVar(cta.actualYTD, cta.prevYTD);
 
-        const secRow = document.createElement('tr');
-        secRow.className = 'subsection-row fw-bold fst-italic text-center';
-        secRow.style.backgroundColor = '#e9ecef';
-        secRow.innerHTML = `
-          <td></td>
-          ${createCell(seccion.totalActualMonth)}
-          ${createCell(seccion.totalPlanMonth)}
-          ${createCell(seccion.totalPrevMonth)}
-          ${createPercentCell(secVarMonthPlan)}
-          ${createPercentCell(secVarMonthPrev)}
-          <td class="text-center">${seccion.label}</td>
-          ${createCell(seccion.totalActualYTD)}
-          ${createCell(seccion.totalPlanYTD)}
-          ${createCell(seccion.totalPrevYTD)}
-          ${createPercentCell(secVarYTDPlan)}
-          ${createPercentCell(secVarYTDPrev)}
-        `;
-        summaryBody.appendChild(secRow);
+            const ctaRow = document.createElement('tr');
+            ctaRow.innerHTML = `
+              <td class="font-monospace small text-start account-column">${cta.cuenta || ''}</td>
+              ${createCell(cta.actualMonth)}
+              ${createCell(cta.planMonth)}
+              ${createCell(cta.prevMonth)}
+              ${createPercentCell(ctaVarMonthPlan)}
+              ${createPercentCell(ctaVarMonthPrev)}
+              <td class="text-center">${cta.descripcion || ''}</td>
+              ${createCell(cta.actualYTD)}
+              ${createCell(cta.planYTD)}
+              ${createCell(cta.prevYTD)}
+              ${createPercentCell(ctaVarYTDPlan)}
+              ${createPercentCell(ctaVarYTDPrev)}
+            `;
+            summaryBody.appendChild(ctaRow);
+          });
 
-        // 3. Filas de Cuentas
-        (seccion.cuentas || []).forEach((cta) => {
-          const ctaVarMonthPlan = calculateVar(cta.actualMonth, cta.planMonth);
-          const ctaVarMonthPrev = calculateVar(cta.actualMonth, cta.prevMonth);
-          const ctaVarYTDPlan = calculateVar(cta.actualYTD, cta.planYTD);
-          const ctaVarYTDPrev = calculateVar(cta.actualYTD, cta.prevYTD);
-
-          const ctaRow = document.createElement('tr');
-          ctaRow.innerHTML = `
-            <td class="font-monospace small text-start account-column">${cta.cuenta}</td>
-            ${createCell(cta.actualMonth)}
-            ${createCell(cta.planMonth)}
-            ${createCell(cta.prevMonth)}
-            ${createPercentCell(ctaVarMonthPlan)}
-            ${createPercentCell(ctaVarMonthPrev)}
-            <td class="text-center">${cta.descripcion}</td>
-            ${createCell(cta.actualYTD)}
-            ${createCell(cta.planYTD)}
-            ${createCell(cta.prevYTD)}
-            ${createPercentCell(ctaVarYTDPlan)}
-            ${createPercentCell(ctaVarYTDPrev)}
-          `;
-          summaryBody.appendChild(ctaRow);
+          summaryBody.appendChild(createTotalsRow(seccion, {
+            label: seccion.label || '',
+            rowClass: 'subsection-row fw-semibold text-center',
+            labelClasses: 'text-start text-primary',
+            boldNumbers: true
+          }));
         });
       });
     });
@@ -231,7 +297,24 @@
     });
   };
 
-  const fetchSummary = async (empresaId, anio, mes) => {
+  const aplicarEmpresa = async (empresaId) => {
+    if (!empresaId) return;
+    if (selectMes) {
+      selectMes.value = String(new Date().getMonth() + 1);
+    }
+    capituloActual = '';
+    if (selectCapitulo) {
+      selectCapitulo.innerHTML = '<option value="">Cargando capítulos...</option>';
+      selectCapitulo.disabled = true;
+    }
+    await cargarAniosDisponibles(empresaId);
+    const anioSeleccionado = leerAnioSeleccionado();
+    const mesSeleccionado = leerMesSeleccionado();
+    const capituloPreferido = selectCapitulo?.value || capituloActual || '';
+    await fetchSummary(empresaId, anioSeleccionado, mesSeleccionado, capituloPreferido);
+  };
+
+  const fetchSummary = async (empresaId, anio, mes, capitulo = '') => {
     if (!empresaId) return;
     showStatus('Cargando datos del reporte Summary...', 'info');
     try {
@@ -242,8 +325,10 @@
       if (Number.isInteger(mes)) {
         params.set('mes', String(mes));
       }
-      const capituloClave = obtenerCapituloEmpresa(empresaId);
-      if (capituloClave) params.set('capitulo', capituloClave);
+      const preferido = (capitulo || '').toString().trim() || obtenerCapituloEmpresa(empresaId) || '';
+      if (preferido) {
+        params.set('capitulo', preferido);
+      }
       const response = await fetch(`${API_ENDPOINT}?${params.toString()}`, {
         headers: Sesion.headersAutenticacion()
       });
@@ -256,7 +341,7 @@
 
       renderSummary(data.resumen || [], mes);
       renderAggregateTable(data.resumen || []);
-      actualizarCapitulos(data.capitulosDisponibles || [], data.capituloSeleccionado);
+      actualizarCapitulos(data.capitulosDisponibles || [], data.capituloSeleccionado || preferido);
       actualizarEtiquetasAnio(anioReporte, anioPrevio);
       hideStatus();
     } catch (error) {
@@ -312,29 +397,38 @@
   document.addEventListener('DOMContentLoaded', async () => {
     const sesion = Sesion.requerirSesion();
     if (!sesion) return;
-    
+
     const empresa = Sesion.obtenerEmpresaActiva(sesion);
     if (!empresa?.id) {
       showStatus('Selecciona una empresa para continuar.', 'warning');
       return;
     }
-    
-    // Cargar años disponibles
-    const anios = await cargarAniosDisponibles(empresa.id);
-    const mesActual = new Date().getMonth() + 1;
-    const anioInicial = Number(selectAnio?.value) || anios[0] || new Date().getFullYear();
-    const mesInicial = Number.isInteger(mesActual) ? mesActual : 1;
 
-    actualizarEtiquetasAnio(anioInicial, anioInicial - 1);
-    await fetchSummary(empresa.id, anioInicial, mesInicial);
+    empresaActual = empresa;
+    await aplicarEmpresa(empresaActual.id);
+
+    const leerCapitulo = () => (selectCapitulo?.value || '').toString().trim();
+
+    const handleAnioChange = () => {
+      const anio = leerAnioSeleccionado();
+      const mes = leerMesSeleccionado();
+      actualizarEtiquetasAnio(anio, anio - 1);
+      if (empresaActual?.id) {
+        fetchSummary(empresaActual.id, anio, mes, leerCapitulo());
+      }
+    };
+
+    const handleMesChange = () => {
+      const anio = leerAnioSeleccionado();
+      const mes = leerMesSeleccionado();
+      actualizarEtiquetaMes(mes);
+      if (empresaActual?.id) {
+        fetchSummary(empresaActual.id, anio, mes, leerCapitulo());
+      }
+    };
 
     if (selectAnio) {
-      selectAnio.addEventListener('change', () => {
-        const anio = Number(selectAnio.value) || anioInicial;
-        const mes = Number(selectMes?.value) || mesInicial;
-        actualizarEtiquetasAnio(anio, anio - 1);
-        fetchSummary(empresa.id, anio, mes);
-      });
+      selectAnio.addEventListener('change', handleAnioChange);
     }
 
     if (selectMes) {
@@ -346,13 +440,26 @@
         opt.value = String(MESES[idx].periodo);
         opt.textContent = MESES[idx].etiqueta;
       });
-      selectMes.value = String(mesInicial);
-      selectMes.addEventListener('change', () => {
-        const anio = Number(selectAnio?.value) || anioInicial;
-        const mes = Number(selectMes.value) || mesInicial;
-        fetchSummary(empresa.id, anio, mes);
-      });
-      actualizarEtiquetaMes(mesInicial);
+      selectMes.addEventListener('change', handleMesChange);
+      actualizarEtiquetaMes(leerMesSeleccionado());
     }
+
+    if (selectCapitulo) {
+      selectCapitulo.addEventListener('change', () => {
+        const anio = leerAnioSeleccionado();
+        const mes = leerMesSeleccionado();
+        capituloActual = selectCapitulo.value || '';
+        if (empresaActual?.id) {
+          fetchSummary(empresaActual.id, anio, mes, capituloActual);
+        }
+      });
+    }
+
+    window.addEventListener(Sesion.EVENTO_EMPRESA, async (event) => {
+      const nuevaEmpresa = event?.detail?.empresa;
+      if (!nuevaEmpresa?.id) return;
+      empresaActual = nuevaEmpresa;
+      await aplicarEmpresa(empresaActual.id);
+    });
   });
 })();
