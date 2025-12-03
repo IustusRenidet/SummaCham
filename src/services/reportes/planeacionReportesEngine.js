@@ -107,10 +107,6 @@ const calcularTotales = (cuentas, claveMes, planeacionActual, planeacionPrevio) 
   };
 };
 
-const construirReporte = (definiciones, claveMes, planeacionActual, planeacionPrevio) => {
-  const definicionCuentas = new Map();
-  const agrupado = new Map();
-
   const sumaHastaMes = (registro, incluirPrevio) => {
     let total = 0;
     for (const { clave } of MESES) {
@@ -172,7 +168,7 @@ const construirNodoSeccion = ({ seccion, cuentas, definicion, claveMes, planeaci
   };
 };
 
-const construirReporte = (definiciones, claveMes, planeacionActual, planeacionPrevio) => {
+const construirReporteResumen = (definiciones, claveMes, planeacionActual, planeacionPrevio) => {
   const definicionCuentas = new Map();
   const agrupado = new Map();
 
@@ -253,7 +249,7 @@ async function generarReporte(tipoReporte, empresaId, anio, mesSeleccionado, cap
     obtenerDatosPlaneacion({ empresaId, anio: Number(anio) - 1, cuentas })
   ]);
 
-  const resumen = construirReporte(listaFiltrada, claveMes, planeacionActual, planeacionPrevio);
+  const resumen = construirReporteResumen(listaFiltrada, claveMes, planeacionActual, planeacionPrevio);
   const payload = {
     empresaId,
     reportKey: tipoReporte,
