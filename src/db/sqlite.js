@@ -5,18 +5,46 @@ const bcrypt = require('bcryptjs');
 const { MODULOS } = require('../config/modulos');
 const { EMPRESAS } = require('../config/empresas');
 
-const RUTA_BASE = path.join(__dirname, 'datos');
-const RUTA_DB = path.join(RUTA_BASE, 'panel.sqlite');
+const NOMBRE_DB = 'panel.sqlite';
 
-const asegurarDirectorio = () => {
-  if (!fs.existsSync(RUTA_BASE)) {
-    fs.mkdirSync(RUTA_BASE, { recursive: true });
+const obtenerRutaBaseDatos = (() => {
+  let rutaCache = null;
+  return () => {
+    if (rutaCache) {
+      return rutaCache;
+    }
+
+    if (process.env.PANELAMCHAM_DATA_DIR) {
+      rutaCache = path.resolve(process.env.PANELAMCHAM_DATA_DIR);
+      return rutaCache;
+    }
+
+    try {
+      const electronModule = require('electron');
+      if (electronModule?.app?.getPath) {
+        rutaCache = path.join(electronModule.app.getPath('userData'), 'datos');
+        return rutaCache;
+      }
+    } catch (_) {
+      // Sin electron disponible; se usará el directorio por defecto
+    }
+
+    rutaCache = path.join(process.cwd(), 'datos');
+    return rutaCache;
+  };
+})();
+
+const asegurarDirectorio = (rutaBase) => {
+  if (!fs.existsSync(rutaBase)) {
+    fs.mkdirSync(rutaBase, { recursive: true });
   }
 };
 
 const crearConexion = () => {
-  asegurarDirectorio();
-  const conexion = new Database(RUTA_DB);
+  const rutaBase = obtenerRutaBaseDatos();
+  asegurarDirectorio(rutaBase);
+  const rutaDb = path.join(rutaBase, NOMBRE_DB);
+  const conexion = new Database(rutaDb);
   conexion.pragma('foreign_keys = ON');
   return conexion;
 };

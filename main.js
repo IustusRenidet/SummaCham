@@ -1,6 +1,5 @@
 const { app, BrowserWindow } = require('electron');
 const path = require('path');
-const iniciarServidor = require('./src/server');
 
 const resolveAssetPath = (...segments) => {
   return path.join(app.getAppPath(), ...segments);
@@ -37,6 +36,8 @@ const createWindow = () => {
 };
 
 app.whenReady().then(() => {
+  process.env.PANELAMCHAM_DATA_DIR = path.join(app.getPath('userData'), 'datos');
+  const iniciarServidor = require('./src/server');
   iniciarServidor();
   app.setAppUserModelId('com.summa.cham');
   createWindow();

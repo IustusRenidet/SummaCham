@@ -9,7 +9,7 @@
     "start": "electron .",
     "test": "node --test",
     "pack": "electron-builder --dir",
-    "dist": "electron-builder --win portable",
+    "dist": "electron-builder --win nsis",
     "postinstall": "electron-builder install-app-deps"
   },
   "devDependencies": {
@@ -26,6 +26,7 @@
     },
     "files": [
       "main.js",
+      "src/**/*",
       "vistas/**/*",
       "icono/icono.png",
       "icono/icono.ico",
@@ -45,7 +46,7 @@
     "win": {
       "target": [
         {
-          "target": "portable",
+          "target": "nsis",
           "arch": [
             "x64"
           ]
@@ -55,6 +56,16 @@
       "signAndEditExecutable": false,
       "publisherName": [],
       "artifactName": "${productName}-portable-${version}-${arch}.${ext}"
+    }
+    ,
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "icono/icono.ico",
+      "uninstallerIcon": "icono/icono.ico",
+      "displayLanguageSelector": false
     }
   },
   "dependencies": {
