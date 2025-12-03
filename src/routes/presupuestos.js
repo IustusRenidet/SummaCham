@@ -56,6 +56,19 @@ const construirNombreUsuario = (registro) => {
   return nombre || registro?.usuario || 'Usuario';
 };
 
+const esTablaPresupuestoInexistente = (error) => {
+  const codigoSql = Number(error?.sqlcode || error?.SQLCODE);
+  if (codigoSql === -204) {
+    return true;
+  }
+  const mensaje = (error?.message || '').toString().toUpperCase();
+  return (
+    mensaje.includes('TABLE') &&
+    mensaje.includes('UNKNOWN') &&
+    (mensaje.includes('PRESUP') || mensaje.includes('CUENTAS') || mensaje.includes('SALDOS'))
+  );
+};
+
 const cargarUsuarioActual = (req, res, next) => {
   const usuarioEncabezado = normalizarUsuario(req.headers['x-usuario-actual']);
   if (!usuarioEncabezado) {
@@ -199,6 +212,13 @@ router.get('/', async (req, res) => {
   const anioActual = new Date().getFullYear();
   const ejercicio = value.anio || anioActual;
   try {
+    const aniosDisponibles = await listarAniosPresupuestos(empresa.id);
+    if (Array.isArray(aniosDisponibles) && aniosDisponibles.length > 0 && !aniosDisponibles.includes(ejercicio)) {
+      return res.status(404).json({
+        mensaje: 'El ejercicio solicitado no está disponible en la base de datos.',
+        disponibles: aniosDisponibles
+      });
+    }
     const cuentas = await obtenerPresupuestosMayor(empresa.id, ejercicio);
     res.json({
       empresa: serializarEmpresa(empresa),
@@ -207,6 +227,12 @@ router.get('/', async (req, res) => {
       cuentas
     });
   } catch (err) {
+    if (esTablaPresupuestoInexistente(err)) {
+      return res.status(404).json({
+        mensaje: 'No existe información de presupuestos para el ejercicio indicado.',
+        disponibles: await listarAniosPresupuestos(empresa.id)
+      });
+    }
     console.error('Error al consultar presupuestos:', err);
     res.status(500).json({ mensaje: 'No fue posible obtener la información de presupuestos.' });
   }
