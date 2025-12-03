@@ -107,12 +107,115 @@
     }
   };
 
+  const cambiosPendientes = new Map();
+  let editMode = false;
+
+  const limpiarCambios = () => {
+    cambiosPendientes.clear();
+    editMode = false;
+  };
+
+  const claveCambio = (cuenta, columna) => `${cuenta}|${columna}`;
+
+  const registrarCambio = (cuenta, columna, valor, original) => {
+    if (!cuenta || !columna) return;
+    cambiosPendientes.set(claveCambio(cuenta, columna), {
+      cuenta,
+      columna,
+      valor,
+      original
+    });
+  };
+
+  const eliminarCambio = (cuenta, columna) => {
+    cambiosPendientes.delete(claveCambio(cuenta, columna));
+  };
+
+  const obtenerCambiosPendientes = () => {
+    const porCuenta = new Map();
+    cambiosPendientes.forEach((registro) => {
+      const valores = porCuenta.get(registro.cuenta) || {};
+      valores[registro.columna] = registro.valor;
+      porCuenta.set(registro.cuenta, valores);
+    });
+
+    const presupuesto = Array.from(porCuenta.entries()).map(([cuenta, valores]) => ({
+      cuenta,
+      valores
+    }));
+
+    return { presupuesto, hayCambios: presupuesto.length > 0 };
+  };
+
+  const notificarCambios = () => {
+    const detalle = { ...obtenerCambiosPendientes(), borradorGuardado: false };
+    window.dispatchEvent(new CustomEvent('modulo-planeacion:presupuesto-editado', { detail: detalle }));
+  };
+
+  const parseNumber = (texto) => {
+    const limpio = String(texto || '')
+      .replace(/[^0-9,.-]/g, '')
+      .replace(/,/g, '');
+    const numero = Number(limpio);
+    return Number.isFinite(numero) ? numero : 0;
+  };
+
+  const restaurarValoresOriginales = () => {
+    if (!tablaBody) return;
+    Array.from(tablaBody.querySelectorAll('.editable-cell')).forEach((celda) => {
+      const original = Number(celda.dataset.valorOriginal ?? 0);
+      celda.textContent = formatNumber(original);
+    });
+  };
+
+  const cancelarEdicion = () => {
+    restaurarValoresOriginales();
+    limpiarCambios();
+    notificarCambios();
+  };
+
+  const manejarBlurCelda = (event) => {
+    const celda = event.currentTarget;
+    const fila = celda.closest('tr');
+    const cuenta = fila?.dataset.cuenta;
+    const columna = celda.dataset.columnaClave;
+    const original = Number(celda.dataset.valorOriginal ?? 0);
+    const nuevoValor = parseNumber(celda.textContent);
+
+    if (!cuenta || !columna) return;
+
+    if (nuevoValor !== original) {
+      celda.textContent = formatNumber(nuevoValor);
+      registrarCambio(cuenta, columna, nuevoValor, original);
+    } else {
+      celda.textContent = formatNumber(original);
+      eliminarCambio(cuenta, columna);
+    }
+
+    notificarCambios();
+  };
+
+  const activarModoEdicion = () => {
+    if (editMode || !tablaBody) return;
+    editMode = true;
+    const celdas = Array.from(tablaBody.querySelectorAll('.editable-cell'));
+    celdas.forEach((celda) => {
+      celda.contentEditable = 'true';
+      celda.addEventListener('blur', manejarBlurCelda);
+    });
+  };
+
+  window.CuentasModulo = window.CuentasModulo || {};
+  window.CuentasModulo.cancelEdit = cancelarEdicion;
+  window.CuentasModulo.getCambios = obtenerCambiosPendientes;
+
   const renderTable = (nodos = [], anioActual) => {
     if (!tablaBody) return;
     if (!nodos.length) {
       setStatusRow('No hay datos disponibles para este año.');
       return;
     }
+    limpiarCambios();
     tablaBody.innerHTML = '';
     nodos.forEach((nodo) => {
       const header = document.createElement('tr');
@@ -155,13 +258,20 @@
           const variacionCuentaPrev = formatPercent(cuenta.actualMonth - cuenta.prevMonth, cuenta.prevMonth);
           const row = document.createElement('tr');
           row.className = 'data-row';
+          row.dataset.cuenta = cuenta.cuenta;
           row.dataset.section = nodo.key;
           row.innerHTML = `
             <td>${cuenta.cuenta}</td>
             <td>${cuenta.descripcion || ''}</td>
-            <td class="text-end">${formatNumber(cuenta.actualMonth)}</td>
-            <td class="text-end">${formatNumber(cuenta.planMonth)}</td>
-            <td class="text-end">${formatNumber(cuenta.prevMonth)}</td>
+            <td class="text-end editable-cell" data-columna-clave="actualMonth" data-valor-original="${Number(
+              cuenta.actualMonth ?? 0
+            )}">${formatNumber(cuenta.actualMonth)}</td>
+            <td class="text-end editable-cell" data-columna-clave="planMonth" data-valor-original="${Number(
+              cuenta.planMonth ?? 0
+            )}">${formatNumber(cuenta.planMonth)}</td>
+            <td class="text-end editable-cell" data-columna-clave="prevMonth" data-valor-original="${Number(
+              cuenta.prevMonth ?? 0
+            )}">${formatNumber(cuenta.prevMonth)}</td>
             <td class="text-end">${variacionCuentaPlan}</td>
             <td class="text-end">${variacionCuentaPrev}</td>
           `;
@@ -173,6 +283,8 @@
     if (anioActual) {
       actualizarEtiquetasAnio(anioActual);
     }
+
+    activarModoEdicion();
   };
 
   const filterRows = (termino) => {
