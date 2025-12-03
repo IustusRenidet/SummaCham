@@ -31,6 +31,15 @@ async function obtenerResumen({ empresaId, anio, periodo, codigos = [], anioComp
   const usarAjuste = Boolean(usarAjusteEnYTD);
   const listaCodigos = normalizarCodigos(codigos);
 
+  // Obtener PRESUPUESTO para año actual y comparativo
+  const { obtenerPresupuestosPorCuentas } = require('./planeacionCuentasService');
+  const [presupuestosActual, presupuestosComp] = await Promise.all([
+    obtenerPresupuestosPorCuentas(empresaId, ejercicio, listaCodigos),
+    obtenerPresupuestosPorCuentas(empresaId, comp, listaCodigos)
+  ]);
+  const mapaPresupuestosActual = new Map(presupuestosActual.map((r) => [r.cuenta, r]));
+  const mapaPresupuestosComp = new Map(presupuestosComp.map((r) => [r.cuenta, r]));
+
   // Consulta ejercicio actual
   const selActual = construirSelectResumen({ anio: ejercicio, periodo: periodoNum, usarAjusteEnYTD: usarAjuste, codigos: listaCodigos });
   const filasActual = await ejecutarConsulta(empresaId, selActual.sql, selActual.parametros);
@@ -48,30 +57,45 @@ async function obtenerResumen({ empresaId, anio, periodo, codigos = [], anioComp
     if (txt === 'A' || txt === 'D' || txt === 'C') return txt;
     return txt;
   };
+  // Mapeo de meses 1-12 a claves 'ene', 'feb', etc.
+  const MESES_CLAVES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  const mesActualClave = periodoNum >= 1 && periodoNum <= 12 ? MESES_CLAVES[periodoNum - 1] : 'ene';
+
   const detalle = listaCodigos.map((codigo) => {
-    // Para cada código devolvemos los saldos del ejercicio actual y del comparativo.
-    // Esto alimenta cada "celda" de la tabla en el front, que después puede aplicar
-    // lógica adicional (sumas, porcentajes, etc.) sobre estos importes base.
     const a = mapaActual.get(codigo) || { codigo, descripcion: '', mes: 0, ytd: 0 };
     const b = mapaComp.get(codigo) || { codigo, descripcion: '', mes: 0, ytd: 0 };
+    const presupActual = mapaPresupuestosActual.get(codigo) || {};
+    const presupComp = mapaPresupuestosComp.get(codigo) || {};
+
     const descripcion = normalizarTexto(a.descripcion || b.descripcion || '');
     const naturaleza = normalizarNaturaleza(a.naturaleza || b.naturaleza || '');
+    
     const mesActual = Number(a.mes || 0);
     const mesAnterior = Number(b.mes || 0);
     const acumuladoActual = Number(a.ytd || 0);
     const acumuladoAnterior = Number(b.ytd || 0);
+
+    // Obtener presupuesto mensual
+    const mesPlan = Number(presupActual[mesActualClave] || 0);
+    
+    // Calcular YTD del presupuesto sumando todos los meses hasta el periodo actual
+    let acumuladoPlan = 0;
+    for (let i = 0; i < periodoNum && i < 12; i++) {
+      acumuladoPlan += Number(presupActual[MESES_CLAVES[i]] || 0);
+    }
+
     return {
       codigo,
       descripcion,
       naturaleza,
       mesActual,
-      mesPlan: 0,
+      mesPlan,
       mesAnterior,
       acumuladoActual,
-      acumuladoPlan: 0,
+      acumuladoPlan,
       acumuladoAnterior,
       ytdActual: acumuladoActual,
-      ytdPlan: 0,
+      ytdPlan: acumuladoPlan,
       ytdAnterior: acumuladoAnterior
     };
   });
