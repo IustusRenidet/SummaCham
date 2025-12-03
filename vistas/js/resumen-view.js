@@ -9,8 +9,18 @@
     return new Intl.NumberFormat('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(monto);
   };
 
+  const formatPercent = (numerador, denominador) => {
+    const base = Number(denominador ?? 0);
+    const num = Number(numerador ?? 0);
+    if (!Number.isFinite(base) || base === 0) return '0%';
+    const resultado = (num / Math.abs(base)) * 100;
+    return `${resultado.toFixed(0)}%`;
+  };
+
   const tablaBody = document.getElementById('tablaCuentasBody');
   const yearSelect = document.getElementById('resumenYearSelect');
+  const monthSelect = document.getElementById('resumenMonthSelect');
+  const capituloSelect = document.getElementById('resumenChapterSelect');
   const searchInput = document.getElementById('accountSearch');
   const toggleBtn = document.getElementById('toggleAccountsBtn');
 
@@ -27,26 +37,27 @@
       }
       
       const data = await response.json();
-      const anios = data.anios || [];
-      
-      // Asegurar años vigentes (2024, 2025, 2026)
-      const anoActual = new Date().getFullYear();
-      const aniosVigentes = [anoActual - 1, anoActual, anoActual + 1];
-      const aniosMerge = [...new Set([...anios, ...aniosVigentes])].filter(a => a >= 2000 && a <= 2100).sort((a, b) => b - a);
-      
-      // Poblar select
+      const anios = (data.anios || []).filter((a) => Number.isInteger(a)).sort((a, b) => b - a);
+
       yearSelect.innerHTML = '';
-      aniosMerge.forEach(ano => {
+      if (!anios.length) {
+        const option = document.createElement('option');
+        option.value = '';
+        option.textContent = 'Sin años disponibles';
+        yearSelect.appendChild(option);
+        return [];
+      }
+
+      anios.forEach((ano) => {
         const option = document.createElement('option');
         option.value = ano;
         option.textContent = ano;
         yearSelect.appendChild(option);
       });
-      
-      // Seleccionar año actual
-      yearSelect.value = anoActual;
-      
-      return aniosMerge;
+
+      yearSelect.value = anios[0];
+
+      return anios;
     } catch (error) {
       console.error('Error cargando años:', error);
       yearSelect.innerHTML = '<option value="">Error cargando años</option>';
@@ -71,7 +82,14 @@
     return grupos;
   };
 
-  const renderTable = (nodos = []) => {
+  const actualizarEtiquetasAnio = (anio) => {
+    const yearAct = document.querySelectorAll('.year-act');
+    const yearPrev = document.querySelectorAll('.year-prev');
+    yearAct.forEach((el) => (el.textContent = anio));
+    yearPrev.forEach((el) => (el.textContent = anio - 1));
+  };
+
+  const renderTable = (nodos = [], anioActual) => {
     if (!tablaBody) return;
     if (!nodos.length) {
       setStatusRow('No hay datos disponibles para este año.');
@@ -84,22 +102,47 @@
       header.dataset.section = nodo.key;
       header.innerHTML = `<td colspan="7">${nodo.label}</td>`;
       tablaBody.appendChild(header);
-      (nodo.children || []).forEach((child) => {
-        const row = document.createElement('tr');
-        row.className = 'data-row';
-        row.dataset.section = nodo.key;
-        row.innerHTML = `
-          <td>↳ ${child.label || child.section || 'Detalle'}</td>
-          <td>${child.chapter || ''}</td>
-          <td class="text-end">${formatNumber(child.amount)}</td>
-          <td class="text-end">0.00</td>
-          <td class="text-end">0.00</td>
-          <td class="text-end">${formatNumber(child.amount)}</td>
-          <td class="text-end">${formatNumber(child.amount)}</td>
+
+      (nodo.children || []).forEach((seccion) => {
+        const totalesRow = document.createElement('tr');
+        totalesRow.className = 'sum-row data-row';
+        totalesRow.dataset.section = nodo.key;
+        const variacionPlan = formatPercent(seccion.totalActualMonth - seccion.totalPlanMonth, seccion.totalPlanMonth);
+        const variacionPrev = formatPercent(seccion.totalActualMonth - seccion.totalPrevMonth, seccion.totalPrevMonth);
+        totalesRow.innerHTML = `
+          <td>${seccion.label}</td>
+          <td>Total sección</td>
+          <td class="text-end">${formatNumber(seccion.totalActualMonth)}</td>
+          <td class="text-end">${formatNumber(seccion.totalPlanMonth)}</td>
+          <td class="text-end">${formatNumber(seccion.totalPrevMonth)}</td>
+          <td class="text-end">${variacionPlan}</td>
+          <td class="text-end">${variacionPrev}</td>
         `;
-        tablaBody.appendChild(row);
+        tablaBody.appendChild(totalesRow);
+
+        (seccion.cuentas || []).forEach((cuenta) => {
+          const variacionCuentaPlan = formatPercent(cuenta.actualMonth - cuenta.planMonth, cuenta.planMonth);
+          const variacionCuentaPrev = formatPercent(cuenta.actualMonth - cuenta.prevMonth, cuenta.prevMonth);
+          const row = document.createElement('tr');
+          row.className = 'data-row';
+          row.dataset.section = nodo.key;
+          row.innerHTML = `
+            <td>${cuenta.cuenta}</td>
+            <td>${cuenta.descripcion || ''}</td>
+            <td class="text-end">${formatNumber(cuenta.actualMonth)}</td>
+            <td class="text-end">${formatNumber(cuenta.planMonth)}</td>
+            <td class="text-end">${formatNumber(cuenta.prevMonth)}</td>
+            <td class="text-end">${variacionCuentaPlan}</td>
+            <td class="text-end">${variacionCuentaPrev}</td>
+          `;
+          tablaBody.appendChild(row);
+        });
       });
     });
+
+    if (anioActual) {
+      actualizarEtiquetasAnio(anioActual);
+    }
   };
 
   const filterRows = (termino) => {
@@ -111,26 +154,56 @@
       fila.classList.toggle('d-none', text && !contenido.includes(text));
     });
     const headers = Array.from(tablaBody.querySelectorAll('tr.section-header-row'));
-    headers.forEach((encabezado) => {
-      const seccion = encabezado.dataset.section;
-      const hijos = Array.from(tablaBody.querySelectorAll(`tr.data-row[data-section="${seccion}"]`));
-      const visible = hijos.some((fila) => !fila.classList.contains('d-none'));
-      encabezado.classList.toggle('d-none', text && !visible);
-    });
+    headers.forEach((encabezado) => encabezado.classList.remove('d-none'));
   };
 
-    const fetchResumen = async (empresaId, anio) => {
+  const actualizarCapitulos = (capitulos = [], seleccionado) => {
+    if (!capituloSelect) return;
+    capituloSelect.innerHTML = '';
+    if (!capitulos.length) {
+      const option = document.createElement('option');
+      option.value = '';
+      option.textContent = 'Sin capítulos';
+      capituloSelect.appendChild(option);
+      capituloSelect.disabled = true;
+      return;
+    }
+    capitulos.forEach(({ clave, etiqueta }) => {
+      const opt = document.createElement('option');
+      opt.value = clave;
+      opt.textContent = etiqueta;
+      capituloSelect.appendChild(opt);
+    });
+    if (seleccionado) {
+      const claveSel = capitulos.find((c) => c.etiqueta === seleccionado)?.clave || seleccionado;
+      capituloSelect.value = claveSel;
+    }
+    if (!capituloSelect.value) {
+      capituloSelect.value = capitulos[0].clave;
+    }
+    capituloSelect.disabled = false;
+  };
+
+  const fetchResumen = async (empresaId, anio, mes) => {
     if (!empresaId || !anio) return;
     setStatusRow('Cargando resumen financiero...');
     try {
-      const respuesta = await fetch(`${API_ENDPOINT}?empresaId=${encodeURIComponent(empresaId)}&anio=${Number(anio)}`, {
+      const params = new URLSearchParams({ empresaId: empresaId, anio: Number(anio) });
+      if (Number.isInteger(mes)) {
+        params.set('mes', String(mes));
+      }
+      if (capituloSelect?.value) {
+        params.set('capitulo', capituloSelect.value);
+      }
+      const respuesta = await fetch(`${API_ENDPOINT}?${params.toString()}`, {
         headers: Sesion.headersAutenticacion()
       });
       if (!respuesta.ok) {
         throw new Error('No fue posible obtener el resumen.');
       }
       const datos = await respuesta.json();
-      renderTable(datos.resumen || []);
+      renderTable(datos.resumen || [], Number(anio));
+      actualizarCapitulos(datos.capitulosDisponibles || [], datos.capituloSeleccionado);
     } catch (error) {
       console.error('Error resumen:', error);
       setStatusRow(error.message || 'No fue posible cargar el resumen.');
@@ -162,14 +235,30 @@
     }
     
     // Cargar años disponibles
-    await cargarAniosDisponibles(empresa.id);
-    
-    const valorInicial = Number(yearSelect?.value) || new Date().getFullYear();
-    fetchResumen(empresa.id, valorInicial);
+    const anios = await cargarAniosDisponibles(empresa.id);
+
+    const valorInicial = Number(yearSelect?.value) || anios[0] || new Date().getFullYear();
+    const mesInicial = Number(monthSelect?.value) || new Date().getMonth() + 1;
+    fetchResumen(empresa.id, valorInicial, mesInicial);
     if (yearSelect) {
       yearSelect.addEventListener('change', () => {
         const anio = Number(yearSelect.value) || new Date().getFullYear();
-        fetchResumen(empresa.id, anio);
+        const mes = Number(monthSelect?.value) || mesInicial;
+        fetchResumen(empresa.id, anio, mes);
+      });
+    }
+    if (monthSelect) {
+      monthSelect.addEventListener('change', () => {
+        const anio = Number(yearSelect?.value) || valorInicial;
+        const mes = Number(monthSelect.value) || mesInicial;
+        fetchResumen(empresa.id, anio, mes);
+      });
+    }
+    if (capituloSelect) {
+      capituloSelect.addEventListener('change', () => {
+        const anio = Number(yearSelect?.value) || valorInicial;
+        const mes = Number(monthSelect?.value) || mesInicial;
+        fetchResumen(empresa.id, anio, mes);
       });
     }
     if (searchInput) {

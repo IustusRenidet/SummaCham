@@ -1,5 +1,14 @@
 const { db, registrarPresupuestoGuardado } = require('../db/sqlite');
 
+const ESTADOS = {
+  EDITANDO: 'EDITANDO',
+  PENDIENTE: 'PENDIENTE',
+  REVISADO: 'REVISADO',
+  RECHAZADO: 'RECHAZADO',
+  APROBADO: 'APROBADO',
+  GUARDADO: 'GUARDADO'
+};
+
 const mapData = (texto) => {
   if (!texto) return null;
   try {
@@ -151,8 +160,9 @@ const obtenerBorrador = ({ empresaId, modulo, anio }) => {
   const fila = db.prepare(`
     SELECT *
     FROM PLAN_BORRADORES
-    WHERE empresaId = ? AND modulo = ? AND anio = ? AND estado IN ('EDITANDO', 'PENDIENTE')
-    ORDER BY id DESC
+    WHERE empresaId = ? AND modulo = ? AND anio = ?
+      AND estado IN ('${ESTADOS.EDITANDO}', '${ESTADOS.PENDIENTE}', '${ESTADOS.RECHAZADO}', '${ESTADOS.REVISADO}', '${ESTADOS.APROBADO}')
+    ORDER BY fechaEnvio DESC NULLS LAST, id DESC
     LIMIT 1
   `).get(empresaId, modulo, anio);
   return mapearFila(fila);
@@ -170,7 +180,7 @@ const guardarBorrador = (contexto, datos) => {
   if (existente) {
     db.prepare(`
       UPDATE PLAN_BORRADORES
-      SET data = ?, estado = 'EDITANDO', fechaEnvio = NULL, comentarios = NULL, usuarioId = ?
+      SET data = ?, estado = '${ESTADOS.EDITANDO}', fechaEnvio = NULL, comentarios = NULL, usuarioId = ?
       WHERE id = ?
     `).run(contenido, cfg.usuarioId, existente.id);
     return obtenerBorradorPorId(existente.id);
@@ -178,7 +188,7 @@ const guardarBorrador = (contexto, datos) => {
 
   const resultado = db.prepare(`
     INSERT INTO PLAN_BORRADORES (empresaId, anio, modulo, usuarioId, data, estado, comentarios)
-    VALUES (?, ?, ?, ?, ?, 'EDITANDO', ?)
+    VALUES (?, ?, ?, ?, ?, '${ESTADOS.EDITANDO}', ?)
   `).run(cfg.empresaId, cfg.anio, cfg.modulo, cfg.usuarioId, contenido, cfg.comentarios);
 
   return obtenerBorradorPorId(resultado.lastInsertRowid);
@@ -191,17 +201,35 @@ const enviarRevision = async (borradorId, usuarioRol) => {
   }
 
   if (usuarioRol === 'ADMIN_GLOBAL') {
-    const autorizado = await autorizarBorrador(borradorId);
-    return { autoAutorizado: true, borrador: autorizado };
+    db.prepare(`
+      UPDATE PLAN_BORRADORES
+      SET estado = '${ESTADOS.APROBADO}', fechaEnvio = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).run(borradorId);
+    return { autoAutorizado: true, borrador: obtenerBorradorPorId(borradorId) };
   }
 
   db.prepare(`
     UPDATE PLAN_BORRADORES
-    SET estado = 'PENDIENTE', fechaEnvio = CURRENT_TIMESTAMP
+    SET estado = '${ESTADOS.PENDIENTE}', fechaEnvio = CURRENT_TIMESTAMP
     WHERE id = ?
   `).run(borradorId);
 
   return { autoAutorizado: false, borrador: obtenerBorradorPorId(borradorId) };
+};
+
+const marcarRevisado = (borradorId, cancelar = false) => {
+  const borrador = obtenerBorradorPorId(borradorId);
+  if (!borrador) {
+    throw new Error('Borrador no encontrado.');
+  }
+  const destino = cancelar ? ESTADOS.EDITANDO : ESTADOS.REVISADO;
+  db.prepare(`
+    UPDATE PLAN_BORRADORES
+    SET estado = ?, comentarios = NULL
+    WHERE id = ?
+  `).run(destino, borradorId);
+  return obtenerBorradorPorId(borradorId);
 };
 
 const autorizarBorrador = async (borradorId) => {
@@ -210,14 +238,13 @@ const autorizarBorrador = async (borradorId) => {
     throw new Error('Borrador no encontrado.');
   }
 
-  const finalizador = obtenerFinalizador(borrador.modulo);
-  if (finalizador) {
-    await finalizador(borrador);
+  if (![ESTADOS.REVISADO, ESTADOS.APROBADO].includes(borrador.estado)) {
+    throw new Error('El borrador debe estar revisado antes de autorizar.');
   }
 
   db.prepare(`
     UPDATE PLAN_BORRADORES
-    SET estado = 'APROBADO', fechaEnvio = CURRENT_TIMESTAMP
+    SET estado = '${ESTADOS.APROBADO}', fechaEnvio = CURRENT_TIMESTAMP
     WHERE id = ?
   `).run(borradorId);
 
@@ -232,10 +259,30 @@ const rechazarBorrador = (borradorId, motivo) => {
 
   db.prepare(`
     UPDATE PLAN_BORRADORES
-    SET estado = 'RECHAZADO', comentarios = ?, fechaEnvio = CURRENT_TIMESTAMP
+    SET estado = '${ESTADOS.RECHAZADO}', comentarios = ?, fechaEnvio = CURRENT_TIMESTAMP
     WHERE id = ?
   `).run(motivo || null, borradorId);
 
+  return obtenerBorradorPorId(borradorId);
+};
+
+const guardarAutorizado = async (borradorId) => {
+  const borrador = obtenerBorradorPorId(borradorId);
+  if (!borrador) {
+    throw new Error('Borrador no encontrado.');
+  }
+  if (borrador.estado !== ESTADOS.APROBADO) {
+    throw new Error('El borrador debe estar autorizado antes de guardar.');
+  }
+  const finalizador = obtenerFinalizador(borrador.modulo);
+  if (finalizador) {
+    await finalizador(borrador);
+  }
+  db.prepare(`
+    UPDATE PLAN_BORRADORES
+    SET estado = '${ESTADOS.GUARDADO}', fechaEnvio = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `).run(borradorId);
   return obtenerBorradorPorId(borradorId);
 };
 
@@ -245,5 +292,8 @@ module.exports = {
   enviarRevision,
   autorizarBorrador,
   rechazarBorrador,
-  obtenerBorradorPorId
+  obtenerBorradorPorId,
+  marcarRevisado,
+  guardarAutorizado,
+  ESTADOS
 };
