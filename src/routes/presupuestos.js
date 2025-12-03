@@ -199,6 +199,13 @@ router.get('/', async (req, res) => {
   const anioActual = new Date().getFullYear();
   const ejercicio = value.anio || anioActual;
   try {
+    const aniosDisponibles = await listarAniosPresupuestos(empresa.id);
+    if (Array.isArray(aniosDisponibles) && aniosDisponibles.length > 0 && !aniosDisponibles.includes(ejercicio)) {
+      return res.status(404).json({
+        mensaje: 'El ejercicio solicitado no está disponible en la base de datos.',
+        disponibles: aniosDisponibles
+      });
+    }
     const cuentas = await obtenerPresupuestosMayor(empresa.id, ejercicio);
     res.json({
       empresa: serializarEmpresa(empresa),
