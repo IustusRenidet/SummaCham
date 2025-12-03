@@ -5,6 +5,14 @@
   const EVENTO_CONTEXTO = 'planeacion:contexto-actualizado';
   const EVENTO_EDICION = 'modulo-planeacion:presupuesto-editado';
   const STYLE_ID = 'flujo-autorizacion-style';
+  const ESTADOS = {
+    EDITANDO: 'EDITANDO',
+    PENDIENTE: 'PENDIENTE',
+    REVISADO: 'REVISADO',
+    RECHAZADO: 'RECHAZADO',
+    APROBADO: 'APROBADO',
+    GUARDADO: 'GUARDADO'
+  };
 
   const colocarEstilo = () => {
     if (document.getElementById(STYLE_ID)) {
@@ -70,6 +78,7 @@
         'btnEnviarCambios',
         'btnCancelarEdicion',
         'btnVerBorrador',
+        'btnGuardarAutorizado',
         'btnAutorizar',
         'btnRechazar',
         'panelRevision'
@@ -94,6 +103,9 @@
       }
       if (this.buttons.btnRechazar) {
         this.buttons.btnRechazar.addEventListener('click', () => this._handleRechazar());
+      }
+      if (this.buttons.btnGuardarAutorizado) {
+        this.buttons.btnGuardarAutorizado.addEventListener('click', () => this._handleGuardarFinal());
       }
     }
 
@@ -211,6 +223,9 @@
     }
 
     async _handleEnviar() {
+      if (!this.borradorActual?.id || this.hayCambios) {
+        await this._handleGuardar();
+      }
       if (!this.borradorActual?.id) {
         this._mostrarToast('No hay borrador guardado para enviar.', 'warning');
         return;
@@ -246,6 +261,10 @@
         this._mostrarToast('No hay borrador pendiente.', 'warning');
         return;
       }
+      const estado = this.borradorActual?.estado;
+      if (estado === ESTADOS.PENDIENTE) {
+        return this._handleRevision(false);
+      }
       try {
         const respuesta = await fetch(`${API_BASE}/borradores/autorizar`, {
           method: 'POST',
@@ -274,6 +293,12 @@
         this._mostrarToast('No hay borrador pendiente.', 'warning');
         return;
       }
+      if (this.borradorActual?.estado === ESTADOS.REVISADO) {
+        const cancelar = window.confirm('¿Cancelar revisión y regresar a edición?');
+        if (cancelar) {
+          return this._handleRevision(true);
+        }
+      }
       const motivo = window.prompt('Indica el motivo para rechazar este borrador:');
       if (!motivo) {
         return;
@@ -298,6 +323,62 @@
       } catch (error) {
         console.error('Error al rechazar borrador', error);
         this._mostrarToast(error.message || 'No fue posible rechazar.', 'danger');
+      }
+    }
+
+    async _handleRevision(cancelar) {
+      if (!this.borradorActual?.id) {
+        this._mostrarToast('No hay borrador para revisar.', 'warning');
+        return;
+      }
+      try {
+        const respuesta = await fetch(`${API_BASE}/borradores/revisar`, {
+          method: 'POST',
+          headers: this._construirHeaders(),
+          body: JSON.stringify({ borradorId: this.borradorActual.id, cancelar: Boolean(cancelar) })
+        });
+        const datos = await respuesta.json().catch(() => ({}));
+        if (!respuesta.ok) {
+          throw new Error(datos.mensaje || 'No fue posible actualizar la revisión.');
+        }
+        this.borradorActual = datos.borrador || null;
+        this.borradorGuardado = Boolean(this.borradorActual);
+        this.hayCambios = false;
+        this.verBorradorVisible = false;
+        FlujoAutorizacion.limpiarBorrador(this.tableElement);
+        this._actualizarBotones();
+        this._mostrarToast(datos.mensaje || 'Revisión registrada.');
+      } catch (error) {
+        console.error('Error al marcar revisión', error);
+        this._mostrarToast(error.message || 'No fue posible actualizar la revisión.', 'danger');
+      }
+    }
+
+    async _handleGuardarFinal() {
+      if (!this.borradorActual?.id) {
+        this._mostrarToast('No hay borrador autorizado para guardar.', 'warning');
+        return;
+      }
+      try {
+        const respuesta = await fetch(`${API_BASE}/borradores/finalizar`, {
+          method: 'POST',
+          headers: this._construirHeaders(),
+          body: JSON.stringify({ borradorId: this.borradorActual.id })
+        });
+        const datos = await respuesta.json().catch(() => ({}));
+        if (!respuesta.ok) {
+          throw new Error(datos.mensaje || 'No fue posible guardar en base de datos.');
+        }
+        this.borradorActual = datos.borrador || null;
+        this.borradorGuardado = Boolean(this.borradorActual);
+        this.hayCambios = false;
+        this.verBorradorVisible = false;
+        FlujoAutorizacion.limpiarBorrador(this.tableElement);
+        this._actualizarBotones();
+        this._mostrarToast(datos.mensaje || 'Información guardada en la base de datos.');
+      } catch (error) {
+        console.error('Error al guardar autorizado', error);
+        this._mostrarToast(error.message || 'No fue posible guardar en la base de datos.', 'danger');
       }
     }
 
@@ -345,7 +426,16 @@
 
     _actualizarBotones() {
       const estado = this.borradorActual?.estado || null;
-      const { btnGuardarBorrador, btnEnviarCambios, btnCancelarEdicion, btnVerBorrador, panelRevision } = this.buttons;
+      const {
+        btnGuardarBorrador,
+        btnEnviarCambios,
+        btnCancelarEdicion,
+        btnVerBorrador,
+        panelRevision,
+        btnAutorizar,
+        btnRechazar,
+        btnGuardarAutorizado
+      } = this.buttons;
 
       if (btnGuardarBorrador) {
         btnGuardarBorrador.disabled = !this.hayCambios;
@@ -353,9 +443,8 @@
       }
 
       if (btnEnviarCambios) {
-        const puedeEnviar = Boolean(this.borradorActual)
-          && ['EDITANDO', 'RECHAZADO'].includes(estado)
-          && !this.hayCambios;
+        const puedeEnviar = [ESTADOS.EDITANDO, ESTADOS.RECHAZADO, null].includes(estado)
+          && (this.hayCambios || Boolean(this.borradorActual));
         btnEnviarCambios.classList.toggle('d-none', !puedeEnviar);
       }
 
@@ -370,7 +459,22 @@
       }
 
       if (panelRevision) {
-        panelRevision.classList.toggle('d-none', estado !== 'PENDIENTE');
+        const visible = [ESTADOS.PENDIENTE, ESTADOS.REVISADO, ESTADOS.APROBADO].includes(estado);
+        panelRevision.classList.toggle('d-none', !visible);
+      }
+
+      if (btnAutorizar) {
+        const enRevision = estado === ESTADOS.PENDIENTE;
+        btnAutorizar.textContent = enRevision ? 'Marcar revisado' : 'Autorizar';
+        btnAutorizar.classList.toggle('d-none', ![ESTADOS.PENDIENTE, ESTADOS.REVISADO].includes(estado));
+      }
+
+      if (btnRechazar) {
+        btnRechazar.classList.toggle('d-none', ![ESTADOS.PENDIENTE, ESTADOS.REVISADO, ESTADOS.APROBADO].includes(estado));
+      }
+
+      if (btnGuardarAutorizado) {
+        btnGuardarAutorizado.classList.toggle('d-none', estado !== ESTADOS.APROBADO);
       }
     }
 
