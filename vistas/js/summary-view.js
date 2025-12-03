@@ -92,18 +92,20 @@
     });
   };
 
-  const actualizarEtiquetasAnio = (anio) => {
-    const anioNum = Number(anio);
-    const anioAnterior = anioNum - 1;
+  const actualizarEtiquetasAnio = (anioActual, anioComparativo) => {
+    const anioNum = Number(anioActual);
+    const anioAnterior = Number.isFinite(Number(anioComparativo)) ? Number(anioComparativo) : anioNum - 1;
+    const etiquetaActual = Number.isFinite(anioNum) ? anioNum : '—';
+    const etiquetaAnterior = Number.isFinite(anioAnterior) ? anioAnterior : '—';
 
     document.querySelectorAll('.anio').forEach((span) => {
-      span.textContent = anioNum;
+      span.textContent = etiquetaActual;
     });
     document.querySelectorAll('.anio-seleccionado').forEach((span) => {
-      span.textContent = anioNum;
+      span.textContent = etiquetaActual;
     });
     document.querySelectorAll('.anio-seleccionado-anterior').forEach((span) => {
-      span.textContent = anioAnterior;
+      span.textContent = etiquetaAnterior;
     });
   };
 
@@ -176,7 +178,7 @@
 
           const ctaRow = document.createElement('tr');
           ctaRow.innerHTML = `
-            <td class="font-monospace small text-start">${cta.cuenta}</td>
+            <td class="font-monospace small text-start account-column">${cta.cuenta}</td>
             ${createCell(cta.actualMonth)}
             ${createCell(cta.planMonth)}
             ${createCell(cta.prevMonth)}
@@ -249,9 +251,13 @@
         throw new Error('No fue posible obtener el Summary.');
       }
       const data = await response.json();
+      const anioReporte = Number.isFinite(Number(data?.anio)) ? Number(data.anio) : anio;
+      const anioPrevio = Number.isFinite(Number(data?.anioComparativo)) ? Number(data.anioComparativo) : anioReporte - 1;
+
       renderSummary(data.resumen || [], mes);
       renderAggregateTable(data.resumen || []);
       actualizarCapitulos(data.capitulosDisponibles || [], data.capituloSeleccionado);
+      actualizarEtiquetasAnio(anioReporte, anioPrevio);
       hideStatus();
     } catch (error) {
       console.error('Error Summary:', error);
@@ -319,14 +325,14 @@
     const anioInicial = Number(selectAnio?.value) || anios[0] || new Date().getFullYear();
     const mesInicial = Number.isInteger(mesActual) ? mesActual : 1;
 
-    actualizarEtiquetasAnio(anioInicial);
+    actualizarEtiquetasAnio(anioInicial, anioInicial - 1);
     await fetchSummary(empresa.id, anioInicial, mesInicial);
 
     if (selectAnio) {
       selectAnio.addEventListener('change', () => {
         const anio = Number(selectAnio.value) || anioInicial;
         const mes = Number(selectMes?.value) || mesInicial;
-        actualizarEtiquetasAnio(anio);
+        actualizarEtiquetasAnio(anio, anio - 1);
         fetchSummary(empresa.id, anio, mes);
       });
     }
