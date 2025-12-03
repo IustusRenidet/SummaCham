@@ -170,7 +170,7 @@
       .table-comparison.sin-cuentas thead th:nth-child(1),
       .table-comparison.sin-cuentas
         tbody
-        tr:not(.section-header-row)
+        tr:not(.section-header-row):not(.sum-row)
         td:nth-child(1) {
         display: none;
       }
@@ -178,12 +178,13 @@
       .table-comparison.sin-cuentas thead th:nth-child(2),
       .table-comparison.sin-cuentas
         tbody
-        tr:not(.section-header-row)
+        tr:not(.section-header-row):not(.sum-row)
         td:nth-child(2) {
         left: 0;
       }
 
-      .table-comparison.sin-cuentas .section-header-row td {
+      .table-comparison.sin-cuentas .section-header-row td,
+      .table-comparison.sin-cuentas .sum-row td:nth-child(1) {
         display: table-cell;
         padding-left: calc(0.5rem + 120px);
       }
@@ -306,6 +307,12 @@
             <option value="10">Octubre</option>
             <option value="11">Noviembre</option>
             <option value="12" selected>Diciembre</option>
+          </select>
+        </div>
+        <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+          <label for="resumenChapterSelect" class="form-label fw-semibold text-muted small mb-2">Capítulo</label>
+          <select id="resumenChapterSelect" class="form-select">
+            <option value="">Cargando capítulos...</option>
           </select>
         </div>
       </div>
