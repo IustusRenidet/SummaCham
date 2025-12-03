@@ -9,8 +9,12 @@ const {
   enviarRevision,
   autorizarBorrador,
   rechazarBorrador,
-  obtenerBorradorPorId
+  obtenerBorradorPorId,
+  marcarRevisado,
+  guardarAutorizado,
+  ESTADOS
 } = require('../services/borradoresService');
+const { notificarWorkflowPresupuesto } = require('../services/notificacionesService');
 
 const router = express.Router();
 
@@ -98,6 +102,12 @@ const esquemaBorradorId = Joi.object({
 const esquemaRechazo = esquemaBorradorId.keys({
   motivo: Joi.string().trim().required()
 });
+
+const esquemaRevision = esquemaBorradorId.keys({
+  cancelar: Joi.boolean().default(false)
+});
+
+const esquemaFinalizar = esquemaBorradorId;
 
 router.use(cargarUsuarioActual);
 
@@ -192,6 +202,18 @@ router.post('/enviar', async (req, res) => {
 
   try {
     const resultado = await enviarRevision(value.borradorId, req.esAdmin ? 'ADMIN_GLOBAL' : 'USUARIO');
+    notificarWorkflowPresupuesto({
+      empresaId: empresa.id,
+      modulo: borrador.modulo,
+      anio: borrador.anio,
+      accion: resultado.autoAutorizado ? 'autorizar' : 'enviar',
+      estado: resultado.borrador?.estado,
+      ejecutor: {
+        id: req.usuarioActual.id,
+        usuario: req.usuarioActual.usuario,
+        nombre: `${req.usuarioActual.nombres || ''} ${req.usuarioActual.apellidos || ''}`.trim() || req.usuarioActual.usuario
+      }
+    }).catch((notifError) => console.warn('No se enviaron todas las notificaciones de borradores.', notifError));
     return res.json({
       mensaje: resultado.autoAutorizado ? 'Borrador autorizado automáticamente.' : 'Borrador enviado a revisión.',
       ...resultado
@@ -225,6 +247,18 @@ router.post('/autorizar', async (req, res) => {
 
   try {
     const aprobado = await autorizarBorrador(value.borradorId);
+    notificarWorkflowPresupuesto({
+      empresaId: empresa.id,
+      modulo: borrador.modulo,
+      anio: borrador.anio,
+      accion: 'autorizar',
+      estado: aprobado.estado,
+      ejecutor: {
+        id: req.usuarioActual.id,
+        usuario: req.usuarioActual.usuario,
+        nombre: `${req.usuarioActual.nombres || ''} ${req.usuarioActual.apellidos || ''}`.trim() || req.usuarioActual.usuario
+      }
+    }).catch((notifError) => console.warn('No se enviaron todas las notificaciones de borradores.', notifError));
     return res.json({ mensaje: 'Borrador autorizado.', borrador: aprobado });
   } catch (errorAutorizar) {
     console.error('Error al autorizar borrador:', errorAutorizar);
@@ -255,10 +289,110 @@ router.post('/rechazar', (req, res) => {
 
   try {
     const rechazado = rechazarBorrador(value.borradorId, value.motivo);
+    notificarWorkflowPresupuesto({
+      empresaId: empresa.id,
+      modulo: borrador.modulo,
+      anio: borrador.anio,
+      accion: 'rechazar',
+      estado: rechazado.estado,
+      ejecutor: {
+        id: req.usuarioActual.id,
+        usuario: req.usuarioActual.usuario,
+        nombre: `${req.usuarioActual.nombres || ''} ${req.usuarioActual.apellidos || ''}`.trim() || req.usuarioActual.usuario
+      }
+    }).catch((notifError) => console.warn('No se enviaron todas las notificaciones de borradores.', notifError));
     return res.json({ mensaje: 'Borrador rechazado.', borrador: rechazado });
   } catch (errorRechazar) {
     console.error('Error al rechazar borrador:', errorRechazar);
     return res.status(500).json({ mensaje: 'No fue posible rechazar el borrador.' });
+  }
+});
+
+router.post('/revisar', (req, res) => {
+  const { value, error } = esquemaRevision.validate(req.body, { abortEarly: false });
+  if (error) {
+    return res.status(400).json({
+      mensaje: 'Verifica los datos proporcionados.',
+      detalles: error.details.map((detalle) => detalle.message)
+    });
+  }
+
+  const borrador = obtenerBorradorPorId(value.borradorId);
+  if (!borrador) {
+    return res.status(404).json({ mensaje: 'Borrador no encontrado.' });
+  }
+  const empresa = obtenerEmpresaPorId(borrador.empresaId);
+  if (!empresa) {
+    return res.status(404).json({ mensaje: 'Empresa asociada al borrador no existe.' });
+  }
+  if (!req.esAdmin && !tienePermisoEnModulo(req.mapaPermisos, empresa.id, borrador.modulo, 'Revisar')) {
+    return res.status(403).json({ mensaje: 'No cuentas con permisos para revisar borradores.' });
+  }
+
+  try {
+    const resultado = marcarRevisado(value.borradorId, value.cancelar);
+    notificarWorkflowPresupuesto({
+      empresaId: empresa.id,
+      modulo: borrador.modulo,
+      anio: borrador.anio,
+      accion: value.cancelar ? 'revisar-cancelar' : 'revisar',
+      estado: resultado.estado,
+      ejecutor: {
+        id: req.usuarioActual.id,
+        usuario: req.usuarioActual.usuario,
+        nombre: `${req.usuarioActual.nombres || ''} ${req.usuarioActual.apellidos || ''}`.trim() || req.usuarioActual.usuario
+      }
+    }).catch((notifError) => console.warn('No se enviaron todas las notificaciones de borradores.', notifError));
+    const mensaje = value.cancelar ? 'Revisión cancelada y devuelta a edición.' : 'Borrador marcado como revisado.';
+    return res.json({ mensaje, borrador: resultado });
+  } catch (errorRevision) {
+    console.error('Error al marcar revisión:', errorRevision);
+    return res.status(500).json({ mensaje: 'No fue posible actualizar la revisión.' });
+  }
+});
+
+router.post('/finalizar', async (req, res) => {
+  const { value, error } = esquemaFinalizar.validate(req.body, { abortEarly: false });
+  if (error) {
+    return res.status(400).json({
+      mensaje: 'Verifica los datos proporcionados.',
+      detalles: error.details.map((detalle) => detalle.message)
+    });
+  }
+
+  const borrador = obtenerBorradorPorId(value.borradorId);
+  if (!borrador) {
+    return res.status(404).json({ mensaje: 'Borrador no encontrado.' });
+  }
+  const empresa = obtenerEmpresaPorId(borrador.empresaId);
+  if (!empresa) {
+    return res.status(404).json({ mensaje: 'Empresa asociada al borrador no existe.' });
+  }
+  if (!req.esAdmin && !tienePermisoEnModulo(req.mapaPermisos, empresa.id, borrador.modulo, 'Cargar y guardar')) {
+    return res.status(403).json({ mensaje: 'No cuentas con permisos para guardar en base de datos.' });
+  }
+  if (borrador.estado !== ESTADOS.APROBADO) {
+    return res.status(409).json({ mensaje: 'El borrador debe estar autorizado para guardar en base de datos.' });
+  }
+
+  try {
+    const guardado = await guardarAutorizado(value.borradorId);
+    notificarWorkflowPresupuesto({
+      empresaId: empresa.id,
+      modulo: borrador.modulo,
+      anio: borrador.anio,
+      accion: 'guardar',
+      estado: guardado.estado,
+      ejecutor: {
+        id: req.usuarioActual.id,
+        usuario: req.usuarioActual.usuario,
+        nombre: `${req.usuarioActual.nombres || ''} ${req.usuarioActual.apellidos || ''}`.trim() || req.usuarioActual.usuario
+      }
+    }).catch((notifError) => console.warn('No se enviaron todas las notificaciones de borradores.', notifError));
+    return res.json({ mensaje: 'Presupuesto guardado en base de datos.', borrador: guardado });
+  } catch (errorFinal) {
+    console.error('Error al guardar borrador autorizado:', errorFinal);
+    return res.status(500).json({ mensaje: 'No fue posible guardar en la base de datos.' });
   }
 });
 
