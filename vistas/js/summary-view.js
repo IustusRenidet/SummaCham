@@ -2,6 +2,11 @@
   const base = window.location.protocol === 'file:' ? 'http://localhost:3000' : window.location.origin;
   const API_ENDPOINT = `${base}/api/reportes/summary`;
   const API_ANIOS = `${base}/api/saldos/anios`;
+
+  const toNumber = (valor) => {
+    const numero = Number(valor);
+    return Number.isFinite(numero) ? numero : 0;
+  };
   
   const formatNumber = (valor) => {
     const monto = Number(valor ?? 0);
@@ -59,9 +64,17 @@
     summaryStatus.className = 'alert alert-info mb-3 visually-hidden';
   };
 
-  const calculateVar = (actual, budget) => {
-    if (!budget) return 0;
-    return ((actual - budget) / budget) * 100;
+  const safeDiv = (numerador, denominador) => {
+    const num = toNumber(numerador);
+    const den = toNumber(denominador);
+    if (!Number.isFinite(den) || Math.abs(den) === 0) return 0;
+    return num / den;
+  };
+
+  const calculateVar = (actual, base) => {
+    const actualNum = toNumber(actual);
+    const baseNum = toNumber(base);
+    return safeDiv(actualNum - baseNum, Math.abs(baseNum)) * 100;
   };
 
   const formatPercent = (val) => {
