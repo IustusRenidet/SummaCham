@@ -6,6 +6,7 @@ const construirMapaPermisos = (registros) => {
       acumulado[registro.empresa_id] = {};
     }
     acumulado[registro.empresa_id][registro.modulo] = {
+      Lectura: Boolean(registro.puede_leer),
       'Cargar y guardar': Boolean(registro.puede_cargar_guardar),
       Revisar: Boolean(registro.puede_revisar),
       Aprobar: Boolean(registro.puede_aprobar)
@@ -18,6 +19,7 @@ const construirEstructuraPermisosVacia = () => {
   const plantilla = {};
   MODULOS.forEach((modulo) => {
     plantilla[modulo] = {
+      Lectura: false,
       'Cargar y guardar': false,
       Revisar: false,
       Aprobar: false

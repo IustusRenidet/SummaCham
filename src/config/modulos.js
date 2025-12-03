@@ -16,7 +16,7 @@ const MODULOS = [
   'RESUMEN'
 ];
 
-const ACCIONES = ['Cargar y guardar', 'Revisar', 'Aprobar'];
+const ACCIONES = ['Lectura', 'Cargar y guardar', 'Revisar', 'Aprobar'];
 
 module.exports = {
   MODULOS,
