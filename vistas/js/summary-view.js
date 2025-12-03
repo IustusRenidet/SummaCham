@@ -21,14 +21,26 @@
   const selectMes = document.getElementById('selectMes');
   const capituloLabel = document.getElementById('capituloLabel');
   const selectCapitulo = document.getElementById('selectCapitulo');
+  
   let capituloActual = '';
   let empresaActual = null;
+  let flujoAutorizacion = null;
+
   const leerAnioSeleccionado = () => Number(selectAnio?.value) || new Date().getFullYear();
   const leerMesSeleccionado = () => Number(selectMes?.value) || (new Date().getMonth() + 1);
-  const obtenerSelectorGlobalEmpresa = () => window.parent?.document?.getElementById('companyFilter') || null;
+  
+  const obtenerSelectorGlobalEmpresa = () => window.parent?.document?.getElementById('companyFilter') || document.getElementById('companyFilter');
+  
   const sincronizarSelectorEmpresaGlobal = () => {
     const selector = obtenerSelectorGlobalEmpresa();
     if (!selector) return;
+    
+    if (selector.value && (!empresaActual || empresaActual.id !== selector.value)) {
+        Sesion.establecerEmpresaActiva(selector.value);
+        empresaActual = Sesion.obtenerEmpresaActiva();
+        aplicarEmpresa(empresaActual?.id);
+    }
+
     selector.addEventListener('change', async () => {
       const nuevoId = selector.value;
       if (!nuevoId) return;
@@ -39,15 +51,68 @@
       await aplicarEmpresa(empresaActual?.id);
     });
   };
+
   const obtenerCapituloEmpresa = (empresaId) => {
     return window.CapitulosModulos?.obtenerCapituloPorEmpresa?.(empresaId) || null;
   };
 
-  const cambiosPendientes = new Map();
-  let editMode = false;
-
+  // --- Ordering Logic (Waterfall) ---
   const normalizeText = (texto) => (texto || '').toString().normalize('NFD').replace(/\p{Diacritic}/gu, '').toUpperCase();
 
+  const SECTION_ORDER = [
+    'MEMBERSHIP',
+    'EVENTS',
+    'COMMITTEES',
+    'T&IC',
+    'SERVICES TO MEMBERS',
+    'GUADALAJARA INCOME',
+    'MONTERREY INCOME',
+    'NORTHWEST INCOME',
+    'GASTOS ADMINISTRATIVOS',
+    'GASTOS GENERALES',
+    'NOMINA',
+    'GASTOS CORPORATIVOS',
+    'GUADALAJARA EXPENSE',
+    'MONTERREY EXPENSE',
+    'NORTHWEST EXPENSE',
+    'CARGOS ADMINISTRATIVOS',
+    'MEMBER CENTRICITY',
+    'OTHER',
+    'OTHER INCOME'
+  ];
+
+  const getSectionPriority = (label) => {
+    const text = normalizeText(label);
+    const index = SECTION_ORDER.findIndex(key => text.includes(key));
+    return index === -1 ? 999 : index;
+  };
+
+  const PRINCIPAL_ORDER = ['INCOME', 'EXPENSE', 'OPERATING', 'OTHER'];
+  const getPrincipalPriority = (label) => {
+    const text = normalizeText(label);
+    const index = PRINCIPAL_ORDER.findIndex(key => text.includes(key));
+    return index === -1 ? 999 : index;
+  };
+
+  const sortSections = (sections) => {
+    return [...sections].sort((a, b) => {
+      const pA = getSectionPriority(a.label);
+      const pB = getSectionPriority(b.label);
+      if (pA !== pB) return pA - pB;
+      return (a.label || '').localeCompare(b.label || '');
+    });
+  };
+
+  const sortPrincipals = (principals) => {
+    return [...principals].sort((a, b) => {
+      const pA = getPrincipalPriority(a.label);
+      const pB = getPrincipalPriority(b.label);
+      if (pA !== pB) return pA - pB;
+      return (a.label || '').localeCompare(b.label || '');
+    });
+  };
+
+  // --- Rendering ---
   const MESES = [
     { etiqueta: 'Enero', clave: 'ene', periodo: 1 },
     { etiqueta: 'Febrero', clave: 'feb', periodo: 2 },
@@ -63,234 +128,28 @@
     { etiqueta: 'Diciembre', clave: 'dic', periodo: 12 }
   ];
 
-  const limpiarCambios = () => {
-    cambiosPendientes.clear();
-    editMode = false;
-  };
-
-  const claveCambio = (cuenta, columna) => `${cuenta}|${columna}`;
-
-  const registrarCambio = (cuenta, columna, valor, original) => {
-    if (!cuenta || !columna) return;
-    cambiosPendientes.set(claveCambio(cuenta, columna), {
-      cuenta,
-      columna,
-      valor,
-      original
+  const actualizarEtiquetaMes = (mesSeleccionado) => {
+    const etiqueta = MESES.find((m) => m.periodo === mesSeleccionado)?.etiqueta || '';
+    document.querySelectorAll('.mes').forEach((span) => {
+      span.textContent = etiqueta.toUpperCase();
     });
   };
 
-  const eliminarCambio = (cuenta, columna) => {
-    cambiosPendientes.delete(claveCambio(cuenta, columna));
-  };
+  const actualizarEtiquetasAnio = (anioActual, anioComparativo) => {
+    const anioNum = Number(anioActual);
+    const anioAnterior = Number.isFinite(Number(anioComparativo)) ? Number(anioComparativo) : anioNum - 1;
+    const etiquetaActual = Number.isFinite(anioNum) ? anioNum : '—';
+    const etiquetaAnterior = Number.isFinite(anioAnterior) ? anioAnterior : '—';
 
-  const obtenerCambiosPendientes = () => {
-    const porCuenta = new Map();
-    cambiosPendientes.forEach((registro) => {
-      const valores = porCuenta.get(registro.cuenta) || {};
-      valores[registro.columna] = registro.valor;
-      porCuenta.set(registro.cuenta, valores);
+    document.querySelectorAll('.anio').forEach((span) => {
+      span.textContent = etiquetaActual;
     });
-
-    const presupuesto = Array.from(porCuenta.entries()).map(([cuenta, valores]) => ({
-      cuenta,
-      valores
-    }));
-
-    return { presupuesto, hayCambios: presupuesto.length > 0 };
-  };
-
-  const notificarCambios = () => {
-    const detalle = { ...obtenerCambiosPendientes(), borradorGuardado: false };
-    window.dispatchEvent(new CustomEvent('modulo-planeacion:presupuesto-editado', { detail: detalle }));
-  };
-
-  const parseNumber = (texto) => {
-    const limpio = String(texto || '')
-      .replace(/[^0-9,.-]/g, '')
-      .replace(/,/g, '');
-    const numero = Number(limpio);
-    return Number.isFinite(numero) ? numero : 0;
-  };
-
-  const restaurarValoresOriginales = () => {
-    if (!summaryBody) return;
-    Array.from(summaryBody.querySelectorAll('.editable-cell')).forEach((celda) => {
-      const original = Number(celda.dataset.valorOriginal ?? 0);
-      celda.textContent = formatNumber(original);
+    document.querySelectorAll('.anio-seleccionado').forEach((span) => {
+      span.textContent = etiquetaActual;
     });
-  };
-
-  const cancelarEdicion = () => {
-    restaurarValoresOriginales();
-    limpiarCambios();
-    notificarCambios();
-  };
-
-  const manejarBlurCelda = (event) => {
-    const celda = event.currentTarget;
-    const fila = celda.closest('tr');
-    const cuenta = fila?.dataset.cuenta;
-    const columna = celda.dataset.columnaClave;
-    const original = Number(celda.dataset.valorOriginal ?? 0);
-    const nuevoValor = parseNumber(celda.textContent);
-
-    if (!cuenta || !columna) return;
-
-    if (nuevoValor !== original) {
-      celda.textContent = formatNumber(nuevoValor);
-      registrarCambio(cuenta, columna, nuevoValor, original);
-    } else {
-      celda.textContent = formatNumber(original);
-      eliminarCambio(cuenta, columna);
-    }
-
-    notificarCambios();
-  };
-
-  const activarModoEdicion = () => {
-    if (editMode || !summaryBody) return;
-    editMode = true;
-    const celdas = Array.from(summaryBody.querySelectorAll('.editable-cell'));
-    celdas.forEach((celda) => {
-      celda.contentEditable = 'true';
-      celda.addEventListener('blur', manejarBlurCelda);
+    document.querySelectorAll('.anio-seleccionado-anterior').forEach((span) => {
+      span.textContent = etiquetaAnterior;
     });
-  };
-
-  window.CuentasModulo = window.CuentasModulo || {};
-  window.CuentasModulo.cancelEdit = cancelarEdicion;
-  window.CuentasModulo.getCambios = obtenerCambiosPendientes;
-
-  // Compatibilidad: algunos layouts antiguos esperaban esta función.
-  // Hoy el capítulo se deriva de la empresa activa, pero aquí podemos
-  // también mostrar y permitir cambiar la selección.
-  const SECTION_PRIORITY = [
-    'MEMBERSHIP',
-    'EVENTS',
-    'COMMITTEES',
-    'T&IC',
-    'SERVICES TO MEMBERS',
-    'GUADALAJARA',
-    'MONTERREY',
-    'NORTHWEST',
-    'GASTOS ADMINISTRATIVOS',
-    'GASTOS GENERALES',
-    'NOMINA',
-    'GASTOS CORPORATIVOS',
-    'CARGOS ADMINISTRATIVOS',
-    'MEMBER CENTRICITY',
-    'OTHER',
-    'OTHER INCOME'
-  ];
-
-  const SECTION_PRIORITY_DEFAULT = SECTION_PRIORITY.length;
-  const sectionPriority = (label) => {
-    const text = normalizeText(label);
-    for (let idx = 0; idx < SECTION_PRIORITY.length; idx += 1) {
-      if (text.includes(SECTION_PRIORITY[idx])) {
-        return idx;
-      }
-    }
-    return SECTION_PRIORITY_DEFAULT;
-  };
-
-  const PRINCIPAL_PRIORITY = [
-    'INCOME',
-    'EXPENSE',
-    'OPERATING',
-    'OTHER'
-  ];
-
-  const principalPriority = (label) => {
-    const text = normalizeText(label);
-    for (let idx = 0; idx < PRINCIPAL_PRIORITY.length; idx += 1) {
-      if (text.includes(PRINCIPAL_PRIORITY[idx])) {
-        return idx;
-      }
-    }
-    return PRINCIPAL_PRIORITY.length;
-  };
-
-  const sortSections = (secciones = []) => {
-    return (Array.isArray(secciones) ? secciones : []).slice().sort((a, b) => {
-      const orden = sectionPriority(a.label) - sectionPriority(b.label);
-      if (orden !== 0) return orden;
-      return normalizeText(a.label).localeCompare(normalizeText(b.label));
-    });
-  };
-
-  const sortPrincipals = (principales = []) => {
-    return (Array.isArray(principales) ? principales : []).slice().sort((a, b) => {
-      const orden = principalPriority(a.label) - principalPriority(b.label);
-      if (orden !== 0) return orden;
-      return normalizeText(a.label).localeCompare(normalizeText(b.label));
-    });
-  };
-
-  const actualizarEtiquetaCapitulo = (texto) => {
-    if (!capituloLabel) return;
-    const valor = texto ? texto.toString() : '';
-    capituloLabel.textContent = valor ? `Capítulo: ${valor}` : 'Capítulo: -';
-  };
-
-  const actualizarCapitulos = (capitulos = [], seleccionado = '') => {
-    if (!selectCapitulo) {
-      capituloActual = seleccionado || capituloActual;
-      actualizarEtiquetaCapitulo(capituloActual);
-      return;
-    }
-
-    selectCapitulo.innerHTML = '';
-    if (!Array.isArray(capitulos) || !capitulos.length) {
-      const option = document.createElement('option');
-      option.value = '';
-      option.textContent = 'Sin capítulos disponibles';
-      selectCapitulo.appendChild(option);
-      selectCapitulo.disabled = true;
-      capituloActual = '';
-      actualizarEtiquetaCapitulo('');
-      return;
-    }
-
-    capitulos.forEach((item) => {
-      const etiqueta = (item?.etiqueta ?? item?.clave ?? '').toString().trim();
-      if (!etiqueta) return;
-      const option = document.createElement('option');
-      option.value = etiqueta;
-      option.textContent = etiqueta;
-      selectCapitulo.appendChild(option);
-    });
-
-    const preferido = capitulos.find((item) => (item?.etiqueta ?? '').toString().trim() === (seleccionado || '').toString().trim())
-      ? (seleccionado || '')
-      : (selectCapitulo.options[0]?.value || '');
-
-    selectCapitulo.value = preferido;
-    selectCapitulo.disabled = capitulos.length <= 1;
-    capituloActual = preferido;
-    actualizarEtiquetaCapitulo(preferido);
-  };
-
-  const CITY_LABELS = {
-    empresa1: 'Ciudad de México',
-    empresa2: 'Guadalajara',
-    empresa3: 'Noreste',
-    empresa4: 'Noroeste'
-  };
-
-  const emptyCells = (count) => Array(count).fill('<td></td>').join('');
-
-  const showStatus = (mensaje, tipo = 'info') => {
-    if (!summaryStatus) return;
-    summaryStatus.textContent = mensaje;
-    summaryStatus.className = `alert alert-${tipo} mb-3`;
-  };
-
-  const hideStatus = () => {
-    if (!summaryStatus) return;
-    summaryStatus.textContent = '';
-    summaryStatus.className = 'alert alert-info mb-3 visually-hidden';
   };
 
   const safeDiv = (numerador, denominador) => {
@@ -356,33 +215,8 @@
     return row;
   };
 
-  const actualizarEtiquetaMes = (mesSeleccionado) => {
-    const etiqueta = MESES.find((m) => m.periodo === mesSeleccionado)?.etiqueta || '';
-    document.querySelectorAll('.mes').forEach((span) => {
-      span.textContent = etiqueta.toUpperCase();
-    });
-  };
-
-  const actualizarEtiquetasAnio = (anioActual, anioComparativo) => {
-    const anioNum = Number(anioActual);
-    const anioAnterior = Number.isFinite(Number(anioComparativo)) ? Number(anioComparativo) : anioNum - 1;
-    const etiquetaActual = Number.isFinite(anioNum) ? anioNum : '—';
-    const etiquetaAnterior = Number.isFinite(anioAnterior) ? anioAnterior : '—';
-
-    document.querySelectorAll('.anio').forEach((span) => {
-      span.textContent = etiquetaActual;
-    });
-    document.querySelectorAll('.anio-seleccionado').forEach((span) => {
-      span.textContent = etiquetaActual;
-    });
-    document.querySelectorAll('.anio-seleccionado-anterior').forEach((span) => {
-      span.textContent = etiquetaAnterior;
-    });
-  };
-
   const renderSummary = (resumen = [], mesSeleccionado) => {
     if (!summaryBody) return;
-    limpiarCambios();
     summaryBody.innerHTML = '';
 
     if (!resumen.length) {
@@ -391,6 +225,7 @@
     }
 
     resumen.forEach((capitulo) => {
+      // Render Chapter Header (Operating Results)
       summaryBody.appendChild(createTotalsRow(capitulo, {
         label: capitulo.label || '',
         rowClass: 'section-header-row table-secondary fw-bold text-center',
@@ -448,8 +283,6 @@
     if (mesSeleccionado) {
       actualizarEtiquetaMes(mesSeleccionado);
     }
-
-    activarModoEdicion();
   };
 
   const renderAggregateTable = (resumen = []) => {
@@ -466,6 +299,12 @@
       aggregateBody.innerHTML = '<tr><td colspan="8" class="text-center">Sin datos consolidados.</td></tr>';
       return;
     }
+    const CITY_LABELS = {
+        empresa1: 'Ciudad de México',
+        empresa2: 'Guadalajara',
+        empresa3: 'Noreste',
+        empresa4: 'Noroeste'
+    };
     Object.entries(totals).forEach(([empresa, total]) => {
       const row = document.createElement('tr');
       row.innerHTML = `
@@ -528,6 +367,13 @@
       renderAggregateTable(data.resumen || []);
       actualizarCapitulos(data.capitulosDisponibles || [], data.capituloSeleccionado || preferido);
       actualizarEtiquetasAnio(anioReporte, anioPrevio);
+      
+      if (flujoAutorizacion) {
+        window.dispatchEvent(new CustomEvent('planeacion:contexto-actualizado', {
+            detail: { empresaId, anio, modulo: 'summary' }
+        }));
+      }
+
       hideStatus();
     } catch (error) {
       console.error('Error Summary:', error);
@@ -579,22 +425,73 @@
     }
   };
 
+  const actualizarCapitulos = (capitulos = [], seleccionado = '') => {
+    if (!selectCapitulo) {
+      capituloActual = seleccionado || capituloActual;
+      if(capituloLabel) capituloLabel.textContent = `Capítulo: ${capituloActual || '-'}`;
+      return;
+    }
+
+    selectCapitulo.innerHTML = '';
+    if (!Array.isArray(capitulos) || !capitulos.length) {
+      const option = document.createElement('option');
+      option.value = '';
+      option.textContent = 'Sin capítulos disponibles';
+      selectCapitulo.appendChild(option);
+      selectCapitulo.disabled = true;
+      capituloActual = '';
+      if(capituloLabel) capituloLabel.textContent = 'Capítulo: -';
+      return;
+    }
+
+    capitulos.forEach((item) => {
+      const etiqueta = (item?.etiqueta ?? item?.clave ?? '').toString().trim();
+      if (!etiqueta) return;
+      const option = document.createElement('option');
+      option.value = etiqueta;
+      option.textContent = etiqueta;
+      selectCapitulo.appendChild(option);
+    });
+
+    const preferido = capitulos.find((item) => (item?.etiqueta ?? '').toString().trim() === (seleccionado || '').toString().trim())
+      ? (seleccionado || '')
+      : (selectCapitulo.options[0]?.value || '');
+
+    selectCapitulo.value = preferido;
+    selectCapitulo.disabled = capitulos.length <= 1;
+    capituloActual = preferido;
+    if(capituloLabel) capituloLabel.textContent = `Capítulo: ${preferido}`;
+  };
+
+  const showStatus = (mensaje, tipo = 'info') => {
+    if (!summaryStatus) return;
+    summaryStatus.textContent = mensaje;
+    summaryStatus.className = `alert alert-${tipo} mb-3`;
+  };
+
+  const hideStatus = () => {
+    if (!summaryStatus) return;
+    summaryStatus.textContent = '';
+    summaryStatus.className = 'alert alert-info mb-3 visually-hidden';
+  };
+
   document.addEventListener('DOMContentLoaded', async () => {
     const sesion = Sesion.requerirSesion();
     if (!sesion) return;
+
+    if (window.FlujoAutorizacion) {
+        flujoAutorizacion = new window.FlujoAutorizacion({
+            modulo: 'summary',
+            tablaId: 'summaryTable'
+        });
+        flujoAutorizacion.init();
+    }
 
     const empresa = Sesion.obtenerEmpresaActiva(sesion);
     if (!empresa?.id) {
       showStatus('Selecciona una empresa para continuar.', 'warning');
       return;
     }
-
-    const modulo = document.body?.dataset?.modulo || 'summary';
-    const publicarContexto = (anio) => {
-      window.dispatchEvent(new CustomEvent('planeacion:contexto-actualizado', {
-        detail: { empresaId: empresa.id, anio, modulo }
-      }));
-    };
 
     empresaActual = empresa;
     await aplicarEmpresa(empresaActual.id);
@@ -605,7 +502,6 @@
       const anio = leerAnioSeleccionado();
       const mes = leerMesSeleccionado();
       actualizarEtiquetasAnio(anio, anio - 1);
-      publicarContexto(anio);
       if (empresaActual?.id) {
         fetchSummary(empresaActual.id, anio, mes, leerCapitulo());
       }
@@ -615,7 +511,6 @@
       const anio = leerAnioSeleccionado();
       const mes = leerMesSeleccionado();
       actualizarEtiquetaMes(mes);
-      publicarContexto(anio);
       if (empresaActual?.id) {
         fetchSummary(empresaActual.id, anio, mes, leerCapitulo());
       }
