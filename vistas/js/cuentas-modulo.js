@@ -1640,6 +1640,25 @@
     }
   };
 
+  const sincronizarSumavariosExistentes = () => {
+    if (!estadoModulo.sumas?.sumavariosRows?.size) return;
+    const etiquetas = Array.from(estadoModulo.sumas.sumavariosRows.keys());
+    etiquetas.forEach((clave) => {
+      const indices = [];
+      estadoModulo.sumas.secciones.forEach((meta, idx) => {
+        if (normalizarClave(meta.sumRowSumavariosLabel) === clave) {
+          indices.push(idx);
+        }
+      });
+      if (!indices.length) return;
+      const metaReferencia = estadoModulo.sumas.secciones[indices[0]];
+      const label = metaReferencia?.sumRowSumavariosTexto || metaReferencia?.sumRowSumavariosLabel || '';
+      if (label) {
+        actualizarSumavariosParaRango(label, indices, estadoModulo.sumas.secciones.length);
+      }
+    });
+  };
+
   const crearSeccionDesdeFormulario = ({
     referenciaFila,
     titulo,
@@ -1713,6 +1732,12 @@
 
     estadoModulo.sumas.secciones.splice(idxInsercion, 0, metaNueva);
 
+    const etiquetaGrupoReferencia = normalizarTexto(metaBase?.sumRowSumavariosLabel || '');
+    if (etiquetaGrupoReferencia && !sumavariosLabel && !range) {
+      metaNueva.sumRowSumavariosLabel = metaBase.sumRowSumavariosLabel;
+      metaNueva.sumRowSumavariosTexto = metaBase.sumRowSumavariosTexto || metaBase.sumRowSumavariosLabel;
+    }
+
     if (sumavariosLabel && range) {
       const indices = [];
       for (let i = range.start; i <= range.end; i += 1) {
@@ -1720,6 +1745,8 @@
       }
       actualizarSumavariosParaRango(sumavariosLabel, indices, idxInsercion);
     }
+
+    sincronizarSumavariosExistentes();
 
     actualizarEstructuraDespuesCambio();
   };
