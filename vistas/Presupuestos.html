@@ -224,7 +224,7 @@
   </style>
 </head>
 
-<body data-modulo="Presupuestos" data-modulo-alias="Presupuestos" data-modulo-id="presupuestos" data-endpoint-anios="presupuestos">
+<body data-modulo="Presupuestos" data-modulo-alias="Presupuestos" data-modulo-id="presupuestos">
   <div class="container py-4 py-lg-5">
     <div class="row mb-4">
       <div class="col-12">
@@ -412,7 +412,7 @@
     (async () => {
       const instancia = CuentasModulo.init({ moduloId: 'presupuestos' });
       await instancia.ready;
-      initVistaModuloPlaneacion({ endpointAnios: 'presupuestos' });
+      initVistaModuloPlaneacion();
     })();
   </script>
 </body>

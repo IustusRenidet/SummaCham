@@ -279,8 +279,17 @@ router.get('/', async (req, res) => {
         disponibles
       });
     }
-    console.error('Error al consultar presupuestos:', err);
-    res.status(500).json({ mensaje: 'No fue posible obtener la información de presupuestos.' });
+    console.error('Error al consultar presupuestos:', {
+      mensaje: err?.message,
+      stack: err?.stack,
+      code: err?.code,
+      sqlcode: err?.sqlcode || err?.SQLCODE,
+      error: err
+    });
+    res.status(500).json({ 
+      mensaje: 'No fue posible obtener la información de presupuestos.',
+      detalle: err?.message || 'Error desconocido'
+    });
   }
 });
 

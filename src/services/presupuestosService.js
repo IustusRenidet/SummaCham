@@ -98,7 +98,7 @@ const obtenerPresupuestosMayor = async (empresaId, anio) => {
     WHERE c.STATUS = 'A'
       AND c.TIPO = 'A'
       AND c.NIVEL = '1'
-      AND SUBSTR(c.NUM_CTA, 1, 3) BETWEEN '400' AND '799'
+      AND SUBSTRING(c.NUM_CTA FROM 1 FOR 3) BETWEEN '400' AND '799'
     ORDER BY c.NUM_CTA
   `;
 

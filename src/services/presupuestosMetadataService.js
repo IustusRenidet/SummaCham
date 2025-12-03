@@ -70,7 +70,12 @@ async function listarDesdeMetadata(empresaId) {
 
 async function detectarPorInspeccion(empresaId) {
   const anios = [];
-  for (let anio = ANIO_MIN; anio <= ANIO_MAX; anio += 1) {
+  // Solo revisar años recientes (actual +/- 5 años) en lugar de 2000-2100
+  const anioActual = new Date().getFullYear();
+  const anioInicio = Math.max(ANIO_MIN, anioActual - 5);
+  const anioFin = Math.min(ANIO_MAX, anioActual + 5);
+  
+  for (let anio = anioInicio; anio <= anioFin; anio += 1) {
     const tabla = construirNombreTabla(anio);
     const sql = `SELECT COUNT(*) AS TOTAL FROM ${tabla}`;
     try {

@@ -1058,30 +1058,6 @@
       return;
     }
 
-    // Módulo Presupuestos usa su propio origen de datos
-    if (moduloClave === 'presupuestos') {
-      const registrosPresupuesto = await cargarCuentasPresupuestos({ anio });
-      if (!registrosPresupuesto.length) {
-        limpiarValores();
-        return;
-      }
-      const registros = registrosPresupuesto
-        .filter((registro) => esCuentaPresupuestoValida(registro.cuenta21 || registro.cuenta || registro.cuentaVisible || ''))
-        .map((registro) => {
-        const real = {};
-        MESES.forEach((mes) => {
-          real[mes] = Number(registro.real?.[mes]) || 0;
-        });
-        return {
-          cuenta: registro.cuenta21 || registro.cuenta || '',
-          presupuesto: registro.presupuesto || {},
-          real
-        };
-      });
-      contarSaldos(registros);
-      return;
-    }
-
     const payload = {
       empresaId: empresa.id,
       anio,

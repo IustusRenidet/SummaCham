@@ -25,6 +25,7 @@ const MODULOS_PLANEACION = new Set([
   'finanzas',
   'gtoscorporativos',
   'membresia',
+  'presupuestos',
   'rh',
   'servmembresia',
   'tic',
