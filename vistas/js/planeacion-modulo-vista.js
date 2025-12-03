@@ -72,7 +72,7 @@
     borrador: { texto: 'Borrador', descripcion: 'Edición local en curso.' },
     revisado: { texto: 'Revisado', descripcion: 'Listo para autorizar o volver a editar.' },
     autorizado: { texto: 'Autorizado', descripcion: 'Listo para guardar en base de datos.' },
-    guardado: { texto: 'Guardado', descripcion: 'Presupuesto comprometido en la base de datos.' }
+    guardado: { texto: 'Guardado', descripcion: 'Movimiento de guardado en el flujo de autorización.' }
   };
 
   const TRANSICIONES = {
