@@ -76,6 +76,7 @@ const calcularTotales = (cuentas, claveMes, planeacionActual, planeacionPrevio) 
     planYTD: 0,
     prevYTD: 0
   };
+};
 
   const sumaHastaMes = (registro, incluirPrevio) => {
     let total = 0;

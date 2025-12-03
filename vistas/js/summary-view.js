@@ -349,6 +349,7 @@
         const cap = selectCapitulo.value || undefined;
         fetchSummary(empresa.id, anio, mes, cap);
       });
+      actualizarEtiquetaMes(mesInicial);
     }
   });
 })();
