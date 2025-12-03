@@ -69,7 +69,6 @@
         verBorrador: 'btnVerBorrador',
         autorizar: 'btnAutorizar',
         rechazar: 'btnRechazar',
-        guardarAutorizado: 'btnGuardarAutorizado',
         panelRevision: 'panelRevision'
       };
       this._conectarEventos();
@@ -105,9 +104,6 @@
       }
       if (this.buttons.rechazar) {
         this.buttons.rechazar.addEventListener('click', () => this._handleRechazar());
-      }
-      if (this.buttons.guardarAutorizado) {
-        this.buttons.guardarAutorizado.addEventListener('click', () => this._handleGuardarFinal());
       }
     }
 
@@ -366,45 +362,6 @@
       }
     }
 
-    async _handleGuardarFinal() {
-      try {
-        if (!this.borradorActual?.id && this.hayCambios) {
-          await this._handleGuardar();
-        }
-        if (!this.borradorActual?.id) {
-          this._mostrarToast('No hay borrador autorizado para guardar.', 'warning');
-          return;
-        }
-        if (this.esAdminGlobal && this.borradorActual?.estado !== ESTADOS.APROBADO) {
-          await this._handleEnviar();
-        }
-        if (this.borradorActual?.estado !== ESTADOS.APROBADO) {
-          this._mostrarToast('El borrador debe estar autorizado antes de guardar.', 'warning');
-          return;
-        }
-
-        const respuesta = await fetch(`${API_BASE}/borradores/finalizar`, {
-          method: 'POST',
-          headers: this._construirHeaders(),
-          body: JSON.stringify({ borradorId: this.borradorActual.id })
-        });
-        const datos = await respuesta.json().catch(() => ({}));
-        if (!respuesta.ok) {
-          throw new Error(datos.mensaje || 'No fue posible guardar en base de datos.');
-        }
-        this.borradorActual = datos.borrador || null;
-        this.borradorGuardado = Boolean(this.borradorActual);
-        this.hayCambios = false;
-        this.verBorradorVisible = true;
-        FlujoAutorizacion.pintarBorrador(this.tableElement, this.borradorActual);
-        this._actualizarBotones();
-        this._mostrarToast(datos.mensaje || 'Información guardada en la base de datos.');
-      } catch (error) {
-        console.error('Error al guardar autorizado', error);
-        this._mostrarToast(error.message || 'No fue posible guardar en la base de datos.', 'danger');
-      }
-    }
-
     _handleCancelarEdicion() {
       this.hayCambios = false;
       this.verBorradorVisible = false;
@@ -456,8 +413,7 @@
         verBorrador,
         panelRevision,
         autorizar,
-        rechazar,
-        guardarAutorizado
+        rechazar
       } = this.buttons;
 
       const enEdicion = [ESTADOS.EDITANDO, ESTADOS.RECHAZADO, null].includes(estado);
@@ -499,13 +455,6 @@
         rechazar.classList.toggle('d-none', this.esAdminGlobal || ![ESTADOS.PENDIENTE, ESTADOS.REVISADO, ESTADOS.APROBADO].includes(estado));
       }
 
-      if (guardarAutorizado) {
-        const autorizado = estado === ESTADOS.APROBADO && this.borradorActual?.id;
-        const adminListo = this.esAdminGlobal && (this.borradorActual?.id || this.hayCambios);
-        const mostrarGuardarFinal = autorizado || adminListo;
-        guardarAutorizado.classList.toggle('d-none', !mostrarGuardarFinal);
-        guardarAutorizado.disabled = !mostrarGuardarFinal;
-      }
     }
 
     static pintarBorrador(tabla, datosBorrador) {
