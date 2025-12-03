@@ -230,19 +230,27 @@ router.get('/', async (req, res) => {
   }
   const anioActual = new Date().getFullYear();
   const ejercicio = value.anio || anioActual;
+  let aniosDisponibles;
   try {
-    const aniosDisponibles = await listarAniosPresupuestos(empresa.id);
-    if (!Array.isArray(aniosDisponibles) || aniosDisponibles.length === 0) {
-      return res.status(404).json({
-        mensaje: 'No se encontraron ejercicios de presupuestos para esta empresa.',
-        disponibles: []
-      });
-    }
-    if (!aniosDisponibles.includes(ejercicio)) {
-      return res.status(404).json({
-        mensaje: 'El ejercicio solicitado no está disponible en la base de datos.',
-        disponibles: aniosDisponibles
-      });
+    try {
+      aniosDisponibles = await listarAniosPresupuestos(empresa.id);
+      if (
+        Array.isArray(aniosDisponibles) &&
+        aniosDisponibles.length > 0 &&
+        !aniosDisponibles.includes(ejercicio)
+      ) {
+        return res.status(404).json({
+          mensaje: 'El ejercicio solicitado no está disponible en la base de datos.',
+          disponibles: aniosDisponibles
+        });
+      }
+    } catch (errorListado) {
+      if (esErrorConexionFirebird(errorListado)) {
+        return res.status(503).json({
+          mensaje: 'No fue posible conectar con la base de datos de Firebird para esta empresa.'
+        });
+      }
+      console.warn('No fue posible listar ejercicios antes de consultar presupuestos.', errorListado);
     }
     const cuentas = await obtenerPresupuestosMayor(empresa.id, ejercicio);
     res.json({
@@ -258,11 +266,13 @@ router.get('/', async (req, res) => {
       });
     }
     if (esTablaPresupuestoInexistente(err)) {
-      let disponibles = [];
-      try {
-        disponibles = await listarAniosPresupuestos(empresa.id);
-      } catch (listarError) {
-        console.warn('No fue posible obtener los ejercicios disponibles para respuesta 404.', listarError);
+      let disponibles = Array.isArray(aniosDisponibles) ? aniosDisponibles : [];
+      if (!Array.isArray(aniosDisponibles) || aniosDisponibles.length === 0) {
+        try {
+          disponibles = await listarAniosPresupuestos(empresa.id);
+        } catch (listarError) {
+          console.warn('No fue posible obtener los ejercicios disponibles para respuesta 404.', listarError);
+        }
       }
       return res.status(404).json({
         mensaje: 'No existe información de presupuestos para el ejercicio indicado.',
