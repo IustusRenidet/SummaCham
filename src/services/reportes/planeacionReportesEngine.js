@@ -169,20 +169,6 @@ async function generarReporte(tipoReporte, empresaId, anio) {
     resumen
   };
 
-  if (tipoReporte === 'RESUMEN') {
-    payload.resumen = resumen.map((capitulo) => ({
-      key: capitulo.key,
-      label: capitulo.label,
-      children: (capitulo.children || []).map((seccion) => ({
-        label: seccion.label,
-        chapter: capitulo.label,
-        amount: seccion.totalActualYTD,
-        totalPlanYTD: seccion.totalPlanYTD,
-        totalPrevYTD: seccion.totalPrevYTD
-      }))
-    }));
-  }
-
   return payload;
 }
 
