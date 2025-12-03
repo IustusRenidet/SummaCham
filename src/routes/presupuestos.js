@@ -258,9 +258,15 @@ router.get('/', async (req, res) => {
       });
     }
     if (esTablaPresupuestoInexistente(err)) {
+      let disponibles = [];
+      try {
+        disponibles = await listarAniosPresupuestos(empresa.id);
+      } catch (listarError) {
+        console.warn('No fue posible obtener los ejercicios disponibles para respuesta 404.', listarError);
+      }
       return res.status(404).json({
         mensaje: 'No existe información de presupuestos para el ejercicio indicado.',
-        disponibles: await listarAniosPresupuestos(empresa.id)
+        disponibles
       });
     }
     console.error('Error al consultar presupuestos:', err);
