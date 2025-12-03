@@ -42,7 +42,7 @@
     cargar: {
       destino: 'borrador',
       permiso: 'Cargar y guardar',
-      habilita: () => true
+      habilita: (estado) => ['sin-cargar', 'borrador', 'revisado'].includes(estado)
     },
     revisar: {
       destino: 'revisado',
@@ -407,7 +407,15 @@
 
       if (elementos.loadBudgetBtn) {
         elementos.loadBudgetBtn.classList.toggle('d-none', !puedeCargar);
-        elementos.loadBudgetBtn.disabled = !puedeCargar || !TRANSICIONES.cargar.habilita(estadoActual);
+        const habilitado = puedeCargar && TRANSICIONES.cargar.habilita(estadoActual);
+        elementos.loadBudgetBtn.disabled = !habilitado;
+        const etiqueta = habilitado ? 'Enviar presupuesto' : 'Cargar';
+        const span = elementos.loadBudgetBtn.querySelector('span');
+        if (span) {
+          span.textContent = etiqueta;
+        } else {
+          elementos.loadBudgetBtn.textContent = etiqueta;
+        }
       }
       if (elementos.reviewBudgetBtn) {
         elementos.reviewBudgetBtn.classList.toggle('d-none', !puedeRevisar);
@@ -419,7 +427,7 @@
       }
       if (elementos.saveBudgetBtn) {
         const habilitado = puedeGuardar && TRANSICIONES.aprobar.habilita(estadoActual);
-        elementos.saveBudgetBtn.classList.toggle('d-none', !puedeGuardar);
+        elementos.saveBudgetBtn.classList.toggle('d-none', !habilitado);
         elementos.saveBudgetBtn.disabled = !habilitado;
       }
     };
@@ -433,20 +441,69 @@
 
     const nombreArchivoModulo = opciones.modulo.replace(/[^a-zA-Z0-9_-]+/g, '-');
 
+    const prepararPayloadPresupuesto = () => {
+      return estado.cuentas.map((cuenta) => {
+        const mensual = {};
+        MESES.forEach(({ clave, periodo }) => {
+          const valor = Number(cuenta[clave] ?? 0);
+          mensual[`presup${periodo.toString().padStart(2, '0')}`] = Number.isFinite(valor) ? valor : 0;
+        });
+        return {
+          numCta: cuenta.numCta,
+          descripcion: cuenta.descripcion,
+          anual: Number(cuenta.anual ?? 0) || 0,
+          ...mensual
+        };
+      });
+    };
+
+    const guardarPresupuestoEnCoi = async () => {
+      const empresa = Sesion.obtenerEmpresaActiva(sesion);
+      if (!empresa?.id) {
+        throw new Error('Selecciona una empresa válida antes de guardar.');
+      }
+      const registros = prepararPayloadPresupuesto();
+      const payload = {
+        empresaId: empresa.id,
+        anio,
+        cuentas: registros,
+        modulo: opciones.modulo
+      };
+      const respuesta = await fetch(`${API_BASE}/presupuestos/guardar`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...Sesion.headersAutenticacion()
+        },
+        body: JSON.stringify(payload)
+      });
+      const datos = await respuesta.json().catch(() => ({}));
+      if (!respuesta.ok) {
+        throw new Error(datos.mensaje || 'No fue posible guardar en COI (PRESUPYY).');
+      }
+      return datos;
+    };
+
     if (elementos.saveBudgetBtn) {
       elementos.saveBudgetBtn.addEventListener('click', async () => {
-        const csvContent = convertirTablaACsv();
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const downloadLink = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        downloadLink.href = url;
-        downloadLink.download = `presupuesto_${nombreArchivoModulo}_${anio}.csv`;
-        document.body.appendChild(downloadLink);
-        downloadLink.click();
-        document.body.removeChild(downloadLink);
-        URL.revokeObjectURL(url);
-        showToast('Presupuesto exportado correctamente.');
-        await ejecutarAccionWorkflow('aprobar');
+        try {
+          const csvContent = convertirTablaACsv();
+          const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+          const downloadLink = document.createElement('a');
+          const url = URL.createObjectURL(blob);
+          downloadLink.href = url;
+          downloadLink.download = `presupuesto_${nombreArchivoModulo}_${anio}.csv`;
+          document.body.appendChild(downloadLink);
+          downloadLink.click();
+          document.body.removeChild(downloadLink);
+          URL.revokeObjectURL(url);
+          await guardarPresupuestoEnCoi();
+          showToast('Presupuesto exportado y guardado en COI correctamente.');
+          await ejecutarAccionWorkflow('aprobar');
+        } catch (error) {
+          console.error('Error al guardar presupuesto en COI', error);
+          showToast(error.message || 'No fue posible guardar el presupuesto en COI.', 'text-bg-danger');
+        }
       });
     }
 
