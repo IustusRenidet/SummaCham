@@ -92,6 +92,21 @@
     });
   };
 
+  const actualizarEtiquetasAnio = (anio) => {
+    const anioNum = Number(anio);
+    const anioAnterior = anioNum - 1;
+    
+    document.querySelectorAll('.anio').forEach((span) => {
+      span.textContent = anioNum;
+    });
+    document.querySelectorAll('.anio-seleccionado').forEach((span) => {
+      span.textContent = anioAnterior;
+    });
+    document.querySelectorAll('.anio-seleccionado-anterior').forEach((span) => {
+      span.textContent = anioAnterior;
+    });
+  };
+
   const renderSummary = (resumen = [], mesSeleccionado) => {
     if (!summaryBody) return;
     summaryBody.innerHTML = '';
@@ -304,12 +319,14 @@
     const anioInicial = Number(selectAnio?.value) || anios[0] || new Date().getFullYear();
     const mesInicial = Number.isInteger(mesActual) ? mesActual : 1;
 
+    actualizarEtiquetasAnio(anioInicial);
     await fetchSummary(empresa.id, anioInicial, mesInicial);
 
     if (selectAnio) {
       selectAnio.addEventListener('change', () => {
         const anio = Number(selectAnio.value) || anioInicial;
         const mes = Number(selectMes?.value) || mesInicial;
+        actualizarEtiquetasAnio(anio);
         fetchSummary(empresa.id, anio, mes);
       });
     }
