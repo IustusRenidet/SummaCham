@@ -114,58 +114,86 @@
       return;
     }
     tablaBody.innerHTML = '';
-    nodos.forEach((nodo) => {
-      const header = document.createElement('tr');
-      header.className = 'section-header-row';
-      header.dataset.section = nodo.key;
+    
+    // Nivel 1: Operating Results (ej. OPERATING RESULTS MEXICO)
+    nodos.forEach((nodoOperativo) => {
+      const headerOperativo = document.createElement('tr');
+      headerOperativo.className = 'section-header-row';
+      headerOperativo.style.backgroundColor = 'rgba(47, 84, 150, 0.15)'; // Un poco más oscuro
+      headerOperativo.dataset.section = nodoOperativo.key;
       
-      const varPlan = formatPercent(nodo.totalActualMonth - nodo.totalPlanMonth, nodo.totalPlanMonth);
-      const varPrev = formatPercent(nodo.totalActualMonth - nodo.totalPrevMonth, nodo.totalPrevMonth);
+      const varPlanOp = formatPercent(nodoOperativo.totalActualMonth - nodoOperativo.totalPlanMonth, nodoOperativo.totalPlanMonth);
+      const varPrevOp = formatPercent(nodoOperativo.totalActualMonth - nodoOperativo.totalPrevMonth, nodoOperativo.totalPrevMonth);
 
-      header.innerHTML = `
+      headerOperativo.innerHTML = `
         <td></td>
-        <td>${nodo.label}</td>
-        <td class="text-end">${formatNumber(nodo.totalActualMonth)}</td>
-        <td class="text-end">${formatNumber(nodo.totalPlanMonth)}</td>
-        <td class="text-end">${formatNumber(nodo.totalPrevMonth)}</td>
-        <td class="text-end">${varPlan}</td>
-        <td class="text-end">${varPrev}</td>
+        <td class="fw-bold text-uppercase" style="color: var(--color-primary);">${nodoOperativo.label}</td>
+        <td class="text-end fw-bold">${formatNumber(nodoOperativo.totalActualMonth)}</td>
+        <td class="text-end fw-bold">${formatNumber(nodoOperativo.totalPlanMonth)}</td>
+        <td class="text-end fw-bold">${formatNumber(nodoOperativo.totalPrevMonth)}</td>
+        <td class="text-end fw-bold">${varPlanOp}</td>
+        <td class="text-end fw-bold">${varPrevOp}</td>
       `;
-      tablaBody.appendChild(header);
+      tablaBody.appendChild(headerOperativo);
 
-      (nodo.children || []).forEach((seccion) => {
-        const totalesRow = document.createElement('tr');
-        totalesRow.className = 'sum-row data-row';
-        totalesRow.dataset.section = nodo.key;
-        const variacionPlan = formatPercent(seccion.totalActualMonth - seccion.totalPlanMonth, seccion.totalPlanMonth);
-        const variacionPrev = formatPercent(seccion.totalActualMonth - seccion.totalPrevMonth, seccion.totalPrevMonth);
-        totalesRow.innerHTML = `
-          <td>${seccion.label}</td>
-          <td>Total sección</td>
-          <td class="text-end">${formatNumber(seccion.totalActualMonth)}</td>
-          <td class="text-end">${formatNumber(seccion.totalPlanMonth)}</td>
-          <td class="text-end">${formatNumber(seccion.totalPrevMonth)}</td>
-          <td class="text-end">${variacionPlan}</td>
-          <td class="text-end">${variacionPrev}</td>
+      // Nivel 2: Major Section (ej. CDMX Income)
+      (nodoOperativo.children || []).forEach((nodoPrincipal) => {
+        const headerPrincipal = document.createElement('tr');
+        headerPrincipal.className = 'section-header-row';
+        headerPrincipal.dataset.section = nodoPrincipal.key;
+        
+        const varPlanPrin = formatPercent(nodoPrincipal.totalActualMonth - nodoPrincipal.totalPlanMonth, nodoPrincipal.totalPlanMonth);
+        const varPrevPrin = formatPercent(nodoPrincipal.totalActualMonth - nodoPrincipal.totalPrevMonth, nodoPrincipal.totalPrevMonth);
+
+        headerPrincipal.innerHTML = `
+          <td></td>
+          <td class="ps-4 fw-bold" style="color: var(--color-primary);">${nodoPrincipal.label}</td>
+          <td class="text-end fw-bold">${formatNumber(nodoPrincipal.totalActualMonth)}</td>
+          <td class="text-end fw-bold">${formatNumber(nodoPrincipal.totalPlanMonth)}</td>
+          <td class="text-end fw-bold">${formatNumber(nodoPrincipal.totalPrevMonth)}</td>
+          <td class="text-end fw-bold">${varPlanPrin}</td>
+          <td class="text-end fw-bold">${varPrevPrin}</td>
         `;
-        tablaBody.appendChild(totalesRow);
+        tablaBody.appendChild(headerPrincipal);
 
-        (seccion.cuentas || []).forEach((cuenta) => {
-          const variacionCuentaPlan = formatPercent(cuenta.actualMonth - cuenta.planMonth, cuenta.planMonth);
-          const variacionCuentaPrev = formatPercent(cuenta.actualMonth - cuenta.prevMonth, cuenta.prevMonth);
-          const row = document.createElement('tr');
-          row.className = 'data-row';
-          row.dataset.section = nodo.key;
-          row.innerHTML = `
-            <td>${cuenta.cuenta}</td>
-            <td>${cuenta.descripcion || ''}</td>
-            <td class="text-end">${formatNumber(cuenta.actualMonth)}</td>
-            <td class="text-end">${formatNumber(cuenta.planMonth)}</td>
-            <td class="text-end">${formatNumber(cuenta.prevMonth)}</td>
-            <td class="text-end">${variacionCuentaPlan}</td>
-            <td class="text-end">${variacionCuentaPrev}</td>
+        // Nivel 3: Minor Section (ej. Membership)
+        (nodoPrincipal.children || []).forEach((seccion) => {
+          const totalesRow = document.createElement('tr');
+          totalesRow.className = 'sum-row data-row';
+          totalesRow.dataset.section = nodoPrincipal.key;
+          
+          const variacionPlan = formatPercent(seccion.totalActualMonth - seccion.totalPlanMonth, seccion.totalPlanMonth);
+          const variacionPrev = formatPercent(seccion.totalActualMonth - seccion.totalPrevMonth, seccion.totalPrevMonth);
+          
+          totalesRow.innerHTML = `
+            <td class="ps-4">${seccion.label}</td>
+            <td>Total sección</td>
+            <td class="text-end">${formatNumber(seccion.totalActualMonth)}</td>
+            <td class="text-end">${formatNumber(seccion.totalPlanMonth)}</td>
+            <td class="text-end">${formatNumber(seccion.totalPrevMonth)}</td>
+            <td class="text-end">${variacionPlan}</td>
+            <td class="text-end">${variacionPrev}</td>
           `;
-          tablaBody.appendChild(row);
+          tablaBody.appendChild(totalesRow);
+
+          // Nivel 4: Cuentas
+          (seccion.cuentas || []).forEach((cuenta) => {
+            const variacionCuentaPlan = formatPercent(cuenta.actualMonth - cuenta.planMonth, cuenta.planMonth);
+            const variacionCuentaPrev = formatPercent(cuenta.actualMonth - cuenta.prevMonth, cuenta.prevMonth);
+            const row = document.createElement('tr');
+            row.className = 'data-row';
+            row.dataset.section = nodoPrincipal.key;
+            row.innerHTML = `
+              <td class="ps-5">${cuenta.cuenta}</td>
+              <td>${cuenta.descripcion || ''}</td>
+              <td class="text-end">${formatNumber(cuenta.actualMonth)}</td>
+              <td class="text-end">${formatNumber(cuenta.planMonth)}</td>
+              <td class="text-end">${formatNumber(cuenta.prevMonth)}</td>
+              <td class="text-end">${variacionCuentaPlan}</td>
+              <td class="text-end">${variacionCuentaPrev}</td>
+            `;
+            tablaBody.appendChild(row);
+          });
         });
       });
     });

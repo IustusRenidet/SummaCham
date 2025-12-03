@@ -165,64 +165,138 @@ const construirNodoSeccion = ({ seccion, cuentas, definicion, claveMes, planeaci
   };
 };
 
-const construirReporteResumen = (definiciones, claveMes, planeacionActual, planeacionPrevio) => {
+const construirReporteResumen = (definiciones, configAgrupacion, capituloSeleccionado, claveMes, planeacionActual, planeacionPrevio) => {
   const definicionCuentas = new Map();
-  const agrupado = new Map();
+  // Mapa: Capitulo -> Operativo -> Principal -> Secundaria -> [Cuentas]
+  const estructura = new Map();
 
+  // 1. Indexar configuración de agrupación para búsqueda rápida
+  // Clave: "CAPITULO|SECCION" -> { operativo, principal }
+  const mapaConfig = new Map();
+  if (Array.isArray(configAgrupacion)) {
+    configAgrupacion.forEach((cfg) => {
+      const cap = NORMALIZAR_CAPITULO(cfg.CAPITULO);
+      const sec = (cfg.SECCION || '').trim();
+      if (!cap || !sec) return;
+      const key = `${cap}|${sec.toUpperCase()}`;
+      mapaConfig.set(key, {
+        operativo: cfg['sum-row-operativo'] || 'OTROS',
+        principal: cfg['sum-row-sumavarios'] || cfg['SECCIÓN Principal'] || 'GENERAL'
+      });
+    });
+  }
+
+  // 2. Procesar definiciones de cuentas
   definiciones.forEach((item) => {
-    const capitulo = item['SECCIÓN Principal'] || item['SECCION Principal'] || item['SECCION'] || item['SECCIÓN'];
+    const capitulo = item['SECCIÓN Principal'] || item['SECCION Principal'] || item['SECCION'] || item['SECCIÓN']; // Ojo: En el JSON 'CAPITULO' es la columna CAPITULO, pero aquí parece que se usaba diferente.
+    // Corrección: Usar la columna CAPITULO del JSON
+    const capReal = item.CAPITULO || capitulo;
+    
+    // Si no coincide con el capítulo seleccionado, saltar (aunque ya filtramos antes, doble check)
+    if (NORMALIZAR_CAPITULO(capReal) !== NORMALIZAR_CAPITULO(capituloSeleccionado)) return;
+
     const seccion = item['SECCION Secundaria'] || item['Sección'] || item['SECCION'];
     const cuentaCanonica = normalizarCuentaCanonica(item.CUENTA);
-    if (!capitulo || !seccion || !cuentaCanonica) return;
+    
+    if (!capReal || !seccion || !cuentaCanonica) return;
 
     definicionCuentas.set(cuentaCanonica, {
       descripcion: item.NOMBRE || '',
       visible: item.CUENTA || cuentaVisibleDesdeCanonica(cuentaCanonica)
     });
 
-    if (!agrupado.has(capitulo)) {
-      agrupado.set(capitulo, new Map());
-    }
+    // Determinar jerarquía usando mapaConfig
+    // La 'SECCION' en configAgrupacion parece corresponder a 'SECCION Secundaria' en DEFINICIONES (o una parte de ella)
+    // En el JSON:
+    // DEFINICIONES: CAPITULO="CIUDAD DE MÉXICO", SECCION Secundaria="Membership"
+    // AGRUPACION: CAPITULO="CIUDAD DE MÉXICO", SECCION="Membership"
+    
+    const keyConfig = `${NORMALIZAR_CAPITULO(capReal)}|${seccion.trim().toUpperCase()}`;
+    const config = mapaConfig.get(keyConfig) || { 
+      operativo: 'SIN CLASIFICAR', 
+      principal: item['SECCIÓN Principal'] || 'GENERAL' 
+    };
 
-    const secciones = agrupado.get(capitulo);
-    if (!secciones.has(seccion)) {
-      secciones.set(seccion, []);
+    const nivelOperativo = config.operativo;
+    const nivelPrincipal = config.principal;
+
+    if (!estructura.has(nivelOperativo)) {
+      estructura.set(nivelOperativo, new Map());
     }
-    secciones.get(seccion).push(cuentaCanonica);
+    const mapaPrincipal = estructura.get(nivelOperativo);
+    
+    if (!mapaPrincipal.has(nivelPrincipal)) {
+      mapaPrincipal.set(nivelPrincipal, new Map());
+    }
+    const mapaSecundario = mapaPrincipal.get(nivelPrincipal);
+
+    if (!mapaSecundario.has(seccion)) {
+      mapaSecundario.set(seccion, []);
+    }
+    mapaSecundario.get(seccion).push(cuentaCanonica);
   });
 
   const resumen = [];
 
-  agrupado.forEach((secciones, capitulo) => {
-    const children = [];
+  // 3. Construir árbol de resultados
+  estructura.forEach((mapaPrincipal, keyOperativo) => {
+    const childrenOperativo = [];
 
-    secciones.forEach((cuentas, seccion) => {
-      children.push(construirNodoSeccion({ seccion, cuentas, definicion: definicionCuentas, claveMes, planeacionActual, planeacionPrevio }));
+    mapaPrincipal.forEach((mapaSecundario, keyPrincipal) => {
+      const childrenPrincipal = [];
+
+      mapaSecundario.forEach((cuentas, keySecundaria) => {
+        childrenPrincipal.push(construirNodoSeccion({ 
+          seccion: keySecundaria, 
+          cuentas, 
+          definicion: definicionCuentas, 
+          claveMes, 
+          planeacionActual, 
+          planeacionPrevio 
+        }));
+      });
+
+      // Totales Nivel Principal
+      const totalesPrincipal = childrenPrincipal.reduce(
+        (acc, nodo) => ({
+          actualMonth: acc.actualMonth + nodo.totalActualMonth,
+          planMonth: acc.planMonth + nodo.totalPlanMonth,
+          prevMonth: acc.prevMonth + nodo.totalPrevMonth,
+          actualYTD: acc.actualYTD + nodo.totalActualYTD,
+          planYTD: acc.planYTD + nodo.totalPlanYTD,
+          prevYTD: acc.prevYTD + nodo.totalPrevYTD
+        }),
+        { actualMonth: 0, planMonth: 0, prevMonth: 0, actualYTD: 0, planYTD: 0, prevYTD: 0 }
+      );
+
+      childrenOperativo.push({
+        key: NORMALIZAR_CLAVE(keyPrincipal),
+        label: keyPrincipal,
+        children: childrenPrincipal,
+        ...totalesPrincipal,
+        total: totalesPrincipal.actualYTD
+      });
     });
 
-    const totalesCapitulo = children.reduce(
+    // Totales Nivel Operativo
+    const totalesOperativo = childrenOperativo.reduce(
       (acc, nodo) => ({
-        actualMonth: acc.actualMonth + nodo.totalActualMonth,
-        planMonth: acc.planMonth + nodo.totalPlanMonth,
-        prevMonth: acc.prevMonth + nodo.totalPrevMonth,
-        actualYTD: acc.actualYTD + nodo.totalActualYTD,
-        planYTD: acc.planYTD + nodo.totalPlanYTD,
-        prevYTD: acc.prevYTD + nodo.totalPrevYTD
+        actualMonth: acc.actualMonth + nodo.actualMonth,
+        planMonth: acc.planMonth + nodo.planMonth,
+        prevMonth: acc.prevMonth + nodo.prevMonth,
+        actualYTD: acc.actualYTD + nodo.actualYTD,
+        planYTD: acc.planYTD + nodo.planYTD,
+        prevYTD: acc.prevYTD + nodo.prevYTD
       }),
       { actualMonth: 0, planMonth: 0, prevMonth: 0, actualYTD: 0, planYTD: 0, prevYTD: 0 }
     );
 
     resumen.push({
-      key: NORMALIZAR_CLAVE(capitulo),
-      label: capitulo,
-      children,
-      totalActualMonth: totalesCapitulo.actualMonth,
-      totalPlanMonth: totalesCapitulo.planMonth,
-      totalPrevMonth: totalesCapitulo.prevMonth,
-      totalActualYTD: totalesCapitulo.actualYTD,
-      totalPlanYTD: totalesCapitulo.planYTD,
-      totalPrevYTD: totalesCapitulo.prevYTD,
-      total: totalesCapitulo.actualYTD
+      key: NORMALIZAR_CLAVE(keyOperativo),
+      label: keyOperativo,
+      children: childrenOperativo,
+      ...totalesOperativo,
+      total: totalesOperativo.actualYTD
     });
   });
 
@@ -231,14 +305,22 @@ const construirReporteResumen = (definiciones, claveMes, planeacionActual, plane
 
 async function generarReporte(tipoReporte, empresaId, anio, mesSeleccionado, capituloSeleccionado) {
   const definiciones = cargarDefiniciones();
-  const lista = definiciones[tipoReporte];
+  
+  // Mapeo: Si es RESUMEN, usar SUMMARY
+  const tipoReal = (tipoReporte === 'RESUMEN') ? 'SUMMARY' : tipoReporte;
+  
+  const lista = definiciones[tipoReal];
   if (!Array.isArray(lista) || !lista.length) {
-    throw new Error(`No hay definiciones para ${tipoReporte}`);
+    throw new Error(`No hay definiciones para ${tipoReal}`);
   }
+
+  const configAgrupacion = definiciones['SUMA DE VARIAS SECCIONES'] || [];
 
   const capitulosDisponibles = extraerCapitulos(lista);
   const capituloClave = NORMALIZAR_CAPITULO(capituloSeleccionado || capitulosDisponibles[0]?.etiqueta || '');
   const capituloEncontrado = capitulosDisponibles.find(({ clave }) => clave === capituloClave);
+  
+  // Filtrar definiciones por capítulo
   const listaFiltrada = capituloEncontrado
     ? lista.filter((item) => NORMALIZAR_CAPITULO(item.CAPITULO) === capituloClave)
     : lista;
@@ -251,7 +333,14 @@ async function generarReporte(tipoReporte, empresaId, anio, mesSeleccionado, cap
     obtenerDatosPlaneacion({ empresaId, anio: Number(anio) - 1, cuentas })
   ]);
 
-  const resumen = construirReporteResumen(listaFiltrada, claveMes, planeacionActual, planeacionPrevio);
+  const resumen = construirReporteResumen(
+    listaFiltrada, 
+    configAgrupacion, 
+    capituloEncontrado?.etiqueta || capituloSeleccionado, 
+    claveMes, 
+    planeacionActual, 
+    planeacionPrevio
+  );
 
   return {
     empresaId,
@@ -261,8 +350,6 @@ async function generarReporte(tipoReporte, empresaId, anio, mesSeleccionado, cap
     capituloSeleccionado: capituloEncontrado?.etiqueta || capitulosDisponibles[0]?.etiqueta || null,
     capitulosDisponibles
   };
-
-  return payload;
 }
 
 module.exports = {

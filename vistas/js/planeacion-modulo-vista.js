@@ -303,6 +303,13 @@
       }
     };
 
+    const obtenerPrefijoMes = (th) => {
+      if (!th) return '';
+      if (th.classList.contains('month-budget')) return 'Ppto ';
+      if (th.classList.contains('month-real')) return 'Real ';
+      return '';
+    };
+
     const actualizarEncabezadosMes = () => {
       if (!Number.isInteger(estado.anio)) {
         return;
@@ -312,7 +319,8 @@
         const clave = th.dataset.mes || '';
         const meta = MESES_TABLA.find((item) => item.clave === clave);
         const baseEtiqueta = meta ? meta.etiqueta : clave.toUpperCase();
-        th.textContent = `${baseEtiqueta}-${sufijo}`;
+        const prefijo = obtenerPrefijoMes(th);
+        th.textContent = `${prefijo}${baseEtiqueta}-${sufijo}`;
       });
     };
 
