@@ -218,6 +218,7 @@
       const data = await response.json();
       renderSummary(data.resumen || [], mes);
       renderAggregateTable(data.resumen || []);
+      actualizarCapitulos(data.capitulosDisponibles || [], data.capituloSeleccionado);
       hideStatus();
     } catch (error) {
       console.error('Error Summary:', error);
