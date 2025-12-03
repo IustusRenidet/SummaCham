@@ -9,6 +9,35 @@ const DEFINICIONES_FILE = path.join(DEFAULT_BASE_PATH, 'CUENTAS SUMMARY y RESUME
 const NORMALIZAR_CLAVE = (valor = '') => valor.toString().trim().toUpperCase();
 const NORMALIZAR_CAPITULO = (valor = '') => valor.toString().trim().toUpperCase();
 
+const normalizarCuentaCanonica = (valor = '') => {
+  const limpio = valor.toString().replace(/[^0-9]/g, '');
+  if (!limpio) return '';
+
+  // Si ya viene en formato COI de 21 caracteres, respétalo con padding.
+  if (limpio.length >= 21) {
+    return limpio.slice(0, 21);
+  }
+
+  const visible = limpio.slice(0, 11).padEnd(11, '0');
+  const b = visible.slice(3, 6);
+  const c = visible.slice(6, 9);
+  const d = visible.slice(9, 11);
+  const nivel = (() => {
+    if (b === '000' && c === '000' && d === '00') return '1';
+    if (c === '000' && d === '00') return '2';
+    if (d === '00') return '3';
+    return '4';
+  })();
+
+  return visible.padEnd(20, '0') + nivel;
+};
+
+const cuentaVisibleDesdeCanonica = (cuentaCanonica = '') => {
+  const base = cuentaCanonica.toString().padStart(21, '0');
+  const visible = base.slice(0, 11);
+  return `${visible.slice(0, 3)}-${visible.slice(3, 6)}-${visible.slice(6, 9)}-${visible.slice(9, 11)}`;
+};
+
 const cargarDefiniciones = () => {
   const contenido = fs.readFileSync(DEFINICIONES_FILE, 'utf8');
   return JSON.parse(contenido);
@@ -78,6 +107,10 @@ const calcularTotales = (cuentas, claveMes, planeacionActual, planeacionPrevio) 
   };
 };
 
+const construirReporte = (definiciones, claveMes, planeacionActual, planeacionPrevio) => {
+  const definicionCuentas = new Map();
+  const agrupado = new Map();
+
   const sumaHastaMes = (registro, incluirPrevio) => {
     let total = 0;
     for (const { clave } of MESES) {
@@ -114,7 +147,7 @@ const construirNodoSeccion = ({ seccion, cuentas, definicion, claveMes, planeaci
       const actual = planeacionActual.find((p) => p.cuenta === cuentaId) || {};
       const previo = planeacionPrevio.find((p) => p.cuenta === cuentaId) || {};
       return {
-        cuenta: cuentaId,
+        cuenta: definicion.get(cuentaId)?.visible || cuentaId,
         descripcion: definicion.get(cuentaId)?.descripcion || '',
         actualMonth: Number(actual.real?.[claveMes] ?? 0),
         planMonth: Number(actual.presupuesto?.[claveMes] ?? 0),
@@ -146,10 +179,13 @@ const construirReporte = (definiciones, claveMes, planeacionActual, planeacionPr
   definiciones.forEach((item) => {
     const capitulo = item['SECCIÓN Principal'] || item['SECCION Principal'] || item['SECCION'] || item['SECCIÓN'];
     const seccion = item['SECCION Secundaria'] || item['Sección'] || item['SECCION'];
-    const cuenta = NORMALIZAR_CLAVE(item.CUENTA);
-    if (!capitulo || !seccion || !cuenta) return;
+    const cuentaCanonica = normalizarCuentaCanonica(item.CUENTA);
+    if (!capitulo || !seccion || !cuentaCanonica) return;
 
-    definicionCuentas.set(cuenta, { descripcion: item.NOMBRE || '' });
+    definicionCuentas.set(cuentaCanonica, {
+      descripcion: item.NOMBRE || '',
+      visible: item.CUENTA || cuentaVisibleDesdeCanonica(cuentaCanonica)
+    });
     if (!agrupado.has(capitulo)) {
       agrupado.set(capitulo, new Map());
     }
@@ -157,7 +193,7 @@ const construirReporte = (definiciones, claveMes, planeacionActual, planeacionPr
     if (!secciones.has(seccion)) {
       secciones.set(seccion, []);
     }
-    secciones.get(seccion).push(cuenta);
+    secciones.get(seccion).push(cuentaCanonica);
   });
 
   const resumen = [];

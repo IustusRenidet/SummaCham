@@ -908,6 +908,12 @@
       const limpia = (cuenta || '').toString().trim();
       const canonica = convertirCuenta21(limpia);
       if (canonica) {
+        if (normalizarModuloClave(estadoModulo.moduloClave) === 'presupuestos') {
+          const prefijo = Number.parseInt(canonica.slice(0, 3), 10);
+          if (!Number.isFinite(prefijo) || prefijo < 400 || prefijo >= 800) {
+            return;
+          }
+        }
         previo.add(canonica);
       }
     });
@@ -1056,7 +1062,13 @@
         limpiarValores();
         return;
       }
-      const registros = registrosPresupuesto.map((registro) => {
+      const registros = registrosPresupuesto
+        .filter((registro) => {
+          const canonica = convertirCuenta21(registro.cuenta21 || registro.cuenta || registro.cuentaVisible || '');
+          const prefijo = Number.parseInt((canonica || '').slice(0, 3), 10);
+          return Number.isFinite(prefijo) && prefijo >= 400 && prefijo < 800;
+        })
+        .map((registro) => {
         const real = {};
         MESES.forEach((mes) => {
           real[mes] = Number(registro.real?.[mes]) || 0;
