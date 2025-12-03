@@ -440,19 +440,10 @@
                 <select id="selectAnio" class="form-select">
                   <option value="">—</option>
                 </select>
-              </div>
-              <div class="col-sm-6 col-lg-3">
-                <div class="form-check mt-4">
-                  <input class="form-check-input" type="checkbox" id="chkAjuste">
-                  <label class="form-check-label" for="chkAjuste">
-                    Incluir ajuste en YTD
-                  </label>
-                </div>
-              </div>
-              <!-- Botón Aplicar eliminado: cambios se aplican en tiempo real -->
-              <div class="col-sm-6 col-lg-3">
-                <button id="btnReset" type="button"
-                  class="btn btn-outline-secondary w-100 fw-semibold">Restablecer</button>
+                <button class="workflow-toggle" type="button" data-bs-toggle="offcanvas" data-bs-target="#workflowDrawer"
+                aria-controls="workflowDrawer" aria-label="Ver flujo de autorización">
+                <i class="bi bi-list-task"></i>
+              </button>
               </div>
             </form>
           </div>
@@ -546,13 +537,13 @@
                     <th class="account-column-header"></th>
                     <th>Actual</th>
                     <th>Plan</th>
-                    <th><span class="anio">2021</span></th>
+                    <th><span class="anio-seleccionado">2025</span></th>
                     <th>B/(W)%</th>
                     <th></th>
                     <th></th>
                     <th>Actual</th>
                     <th>Plan</th>
-                    <th><span class="anio">2021</span></th>
+                    <th><span class="anio-seleccionado">2025</span></th>
                     <th>B/(W)%</th>
                     <th></th>
                   </tr>
@@ -562,13 +553,13 @@
                     <td></td>
                     <td></td>
                     <td>vs. Plan</td>
-                    <td>vs. <span class="anio">2018</span></td>
+                    <td>vs. <span class="anio-seleccionado-anterior">2025</span></td>
                     <th></th>
                     <td></td>
                     <td></td>
                     <td></td>
                     <td>vs. Plan</td>
-                    <td>vs. <span class="anio">2018</span></td>
+                    <td>vs. <span class="anio-seleccionado-anterior">2025</span></td>
                   </tr>
                 </thead>
                 <tbody id="summaryTableBody"></tbody>
