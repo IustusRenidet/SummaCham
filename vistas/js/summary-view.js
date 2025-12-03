@@ -25,6 +25,20 @@
   let empresaActual = null;
   const leerAnioSeleccionado = () => Number(selectAnio?.value) || new Date().getFullYear();
   const leerMesSeleccionado = () => Number(selectMes?.value) || (new Date().getMonth() + 1);
+  const obtenerSelectorGlobalEmpresa = () => window.parent?.document?.getElementById('companyFilter') || null;
+  const sincronizarSelectorEmpresaGlobal = () => {
+    const selector = obtenerSelectorGlobalEmpresa();
+    if (!selector) return;
+    selector.addEventListener('change', async () => {
+      const nuevoId = selector.value;
+      if (!nuevoId) return;
+      const empresaLocal = Sesion.obtenerEmpresaActiva();
+      if (empresaLocal?.id === nuevoId) return;
+      Sesion.establecerEmpresaActiva(nuevoId);
+      empresaActual = Sesion.obtenerEmpresaActiva();
+      await aplicarEmpresa(empresaActual?.id);
+    });
+  };
   const obtenerCapituloEmpresa = (empresaId) => {
     return window.CapitulosModulos?.obtenerCapituloPorEmpresa?.(empresaId) || null;
   };
@@ -455,6 +469,7 @@
       });
     }
 
+    sincronizarSelectorEmpresaGlobal();
     window.addEventListener(Sesion.EVENTO_EMPRESA, async (event) => {
       const nuevaEmpresa = event?.detail?.empresa;
       if (!nuevaEmpresa?.id) return;

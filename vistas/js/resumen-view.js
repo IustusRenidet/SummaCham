@@ -31,6 +31,20 @@
   let empresaActual = null;
   const leerAnioSeleccionado = () => Number(yearSelect?.value) || new Date().getFullYear();
   const leerMesSeleccionado = () => Number(monthSelect?.value) || new Date().getMonth() + 1;
+  const obtenerSelectorEmpresaGlobal = () => window.parent?.document?.getElementById('companyFilter') || null;
+  const sincronizarSelectorEmpresaGlobal = () => {
+    const selector = obtenerSelectorEmpresaGlobal();
+    if (!selector) return;
+    selector.addEventListener('change', async () => {
+      const nuevoId = selector.value;
+      if (!nuevoId) return;
+      const empresaLocal = Sesion.obtenerEmpresaActiva();
+      if (empresaLocal?.id === nuevoId) return;
+      Sesion.establecerEmpresaActiva(nuevoId);
+      empresaActual = Sesion.obtenerEmpresaActiva();
+      await aplicarEmpresaResumen(empresaActual?.id);
+    });
+  };
 
   const cargarAniosDisponibles = async (empresaId) => {
     if (!yearSelect) return [];
@@ -284,6 +298,8 @@
 
     empresaActual = empresa;
     await aplicarEmpresaResumen(empresaActual.id);
+
+    sincronizarSelectorEmpresaGlobal();
 
     const handleYearChange = () => {
       const anio = leerAnioSeleccionado();
