@@ -9,6 +9,14 @@
     return new Intl.NumberFormat('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(monto);
   };
 
+  const formatPercent = (numerador, denominador) => {
+    const base = Number(denominador ?? 0);
+    const num = Number(numerador ?? 0);
+    if (!Number.isFinite(base) || base === 0) return '0%';
+    const resultado = (num / Math.abs(base)) * 100;
+    return `${resultado.toFixed(0)}%`;
+  };
+
   const tablaBody = document.getElementById('tablaCuentasBody');
   const yearSelect = document.getElementById('resumenYearSelect');
   const searchInput = document.getElementById('accountSearch');
@@ -71,7 +79,14 @@
     return grupos;
   };
 
-  const renderTable = (nodos = []) => {
+  const actualizarEtiquetasAnio = (anio) => {
+    const yearAct = document.querySelectorAll('.year-act');
+    const yearPrev = document.querySelectorAll('.year-prev');
+    yearAct.forEach((el) => (el.textContent = anio));
+    yearPrev.forEach((el) => (el.textContent = anio - 1));
+  };
+
+  const renderTable = (nodos = [], anioActual) => {
     if (!tablaBody) return;
     if (!nodos.length) {
       setStatusRow('No hay datos disponibles para este año.');
@@ -84,22 +99,47 @@
       header.dataset.section = nodo.key;
       header.innerHTML = `<td colspan="7">${nodo.label}</td>`;
       tablaBody.appendChild(header);
-      (nodo.children || []).forEach((child) => {
-        const row = document.createElement('tr');
-        row.className = 'data-row';
-        row.dataset.section = nodo.key;
-        row.innerHTML = `
-          <td>↳ ${child.label || child.section || 'Detalle'}</td>
-          <td>${child.chapter || ''}</td>
-          <td class="text-end">${formatNumber(child.amount)}</td>
-          <td class="text-end">0.00</td>
-          <td class="text-end">0.00</td>
-          <td class="text-end">${formatNumber(child.amount)}</td>
-          <td class="text-end">${formatNumber(child.amount)}</td>
+
+      (nodo.children || []).forEach((seccion) => {
+        const totalesRow = document.createElement('tr');
+        totalesRow.className = 'sum-row data-row';
+        totalesRow.dataset.section = nodo.key;
+        const variacionPlan = formatPercent(seccion.totalActualMonth - seccion.totalPlanMonth, seccion.totalPlanMonth);
+        const variacionPrev = formatPercent(seccion.totalActualMonth - seccion.totalPrevMonth, seccion.totalPrevMonth);
+        totalesRow.innerHTML = `
+          <td>${seccion.label}</td>
+          <td>Total sección</td>
+          <td class="text-end">${formatNumber(seccion.totalActualMonth)}</td>
+          <td class="text-end">${formatNumber(seccion.totalPlanMonth)}</td>
+          <td class="text-end">${formatNumber(seccion.totalPrevMonth)}</td>
+          <td class="text-end">${variacionPlan}</td>
+          <td class="text-end">${variacionPrev}</td>
         `;
-        tablaBody.appendChild(row);
+        tablaBody.appendChild(totalesRow);
+
+        (seccion.cuentas || []).forEach((cuenta) => {
+          const variacionCuentaPlan = formatPercent(cuenta.actualMonth - cuenta.planMonth, cuenta.planMonth);
+          const variacionCuentaPrev = formatPercent(cuenta.actualMonth - cuenta.prevMonth, cuenta.prevMonth);
+          const row = document.createElement('tr');
+          row.className = 'data-row';
+          row.dataset.section = nodo.key;
+          row.innerHTML = `
+            <td>${cuenta.cuenta}</td>
+            <td>${cuenta.descripcion || ''}</td>
+            <td class="text-end">${formatNumber(cuenta.actualMonth)}</td>
+            <td class="text-end">${formatNumber(cuenta.planMonth)}</td>
+            <td class="text-end">${formatNumber(cuenta.prevMonth)}</td>
+            <td class="text-end">${variacionCuentaPlan}</td>
+            <td class="text-end">${variacionCuentaPrev}</td>
+          `;
+          tablaBody.appendChild(row);
+        });
       });
     });
+
+    if (anioActual) {
+      actualizarEtiquetasAnio(anioActual);
+    }
   };
 
   const filterRows = (termino) => {
@@ -119,7 +159,7 @@
     });
   };
 
-    const fetchResumen = async (empresaId, anio) => {
+  const fetchResumen = async (empresaId, anio) => {
     if (!empresaId || !anio) return;
     setStatusRow('Cargando resumen financiero...');
     try {
@@ -130,7 +170,7 @@
         throw new Error('No fue posible obtener el resumen.');
       }
       const datos = await respuesta.json();
-      renderTable(datos.resumen || []);
+      renderTable(datos.resumen || [], Number(anio));
     } catch (error) {
       console.error('Error resumen:', error);
       setStatusRow(error.message || 'No fue posible cargar el resumen.');
