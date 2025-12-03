@@ -23,6 +23,9 @@
     return window.CapitulosModulos?.obtenerCapituloPorEmpresa?.(empresaId) || null;
   };
 
+  const cambiosPendientes = new Map();
+  let editMode = false;
+
   const MESES = [
     { etiqueta: 'Enero', clave: 'ene', periodo: 1 },
     { etiqueta: 'Febrero', clave: 'feb', periodo: 2 },
@@ -37,6 +40,105 @@
     { etiqueta: 'Noviembre', clave: 'nov', periodo: 11 },
     { etiqueta: 'Diciembre', clave: 'dic', periodo: 12 }
   ];
+
+  const limpiarCambios = () => {
+    cambiosPendientes.clear();
+    editMode = false;
+  };
+
+  const claveCambio = (cuenta, columna) => `${cuenta}|${columna}`;
+
+  const registrarCambio = (cuenta, columna, valor, original) => {
+    if (!cuenta || !columna) return;
+    cambiosPendientes.set(claveCambio(cuenta, columna), {
+      cuenta,
+      columna,
+      valor,
+      original
+    });
+  };
+
+  const eliminarCambio = (cuenta, columna) => {
+    cambiosPendientes.delete(claveCambio(cuenta, columna));
+  };
+
+  const obtenerCambiosPendientes = () => {
+    const porCuenta = new Map();
+    cambiosPendientes.forEach((registro) => {
+      const valores = porCuenta.get(registro.cuenta) || {};
+      valores[registro.columna] = registro.valor;
+      porCuenta.set(registro.cuenta, valores);
+    });
+
+    const presupuesto = Array.from(porCuenta.entries()).map(([cuenta, valores]) => ({
+      cuenta,
+      valores
+    }));
+
+    return { presupuesto, hayCambios: presupuesto.length > 0 };
+  };
+
+  const notificarCambios = () => {
+    const detalle = { ...obtenerCambiosPendientes(), borradorGuardado: false };
+    window.dispatchEvent(new CustomEvent('modulo-planeacion:presupuesto-editado', { detail: detalle }));
+  };
+
+  const parseNumber = (texto) => {
+    const limpio = String(texto || '')
+      .replace(/[^0-9,.-]/g, '')
+      .replace(/,/g, '');
+    const numero = Number(limpio);
+    return Number.isFinite(numero) ? numero : 0;
+  };
+
+  const restaurarValoresOriginales = () => {
+    if (!summaryBody) return;
+    Array.from(summaryBody.querySelectorAll('.editable-cell')).forEach((celda) => {
+      const original = Number(celda.dataset.valorOriginal ?? 0);
+      celda.textContent = formatNumber(original);
+    });
+  };
+
+  const cancelarEdicion = () => {
+    restaurarValoresOriginales();
+    limpiarCambios();
+    notificarCambios();
+  };
+
+  const manejarBlurCelda = (event) => {
+    const celda = event.currentTarget;
+    const fila = celda.closest('tr');
+    const cuenta = fila?.dataset.cuenta;
+    const columna = celda.dataset.columnaClave;
+    const original = Number(celda.dataset.valorOriginal ?? 0);
+    const nuevoValor = parseNumber(celda.textContent);
+
+    if (!cuenta || !columna) return;
+
+    if (nuevoValor !== original) {
+      celda.textContent = formatNumber(nuevoValor);
+      registrarCambio(cuenta, columna, nuevoValor, original);
+    } else {
+      celda.textContent = formatNumber(original);
+      eliminarCambio(cuenta, columna);
+    }
+
+    notificarCambios();
+  };
+
+  const activarModoEdicion = () => {
+    if (editMode || !summaryBody) return;
+    editMode = true;
+    const celdas = Array.from(summaryBody.querySelectorAll('.editable-cell'));
+    celdas.forEach((celda) => {
+      celda.contentEditable = 'true';
+      celda.addEventListener('blur', manejarBlurCelda);
+    });
+  };
+
+  window.CuentasModulo = window.CuentasModulo || {};
+  window.CuentasModulo.cancelEdit = cancelarEdicion;
+  window.CuentasModulo.getCambios = obtenerCambiosPendientes;
 
   // Compatibilidad: algunos layouts antiguos esperaban esta función.
   // Hoy el capítulo se deriva de la empresa activa, pero exponemos un
@@ -111,8 +213,9 @@
 
   const renderSummary = (resumen = [], mesSeleccionado) => {
     if (!summaryBody) return;
+    limpiarCambios();
     summaryBody.innerHTML = '';
-    
+
     if (!resumen.length) {
       summaryBody.innerHTML = '<tr><td colspan="12" class="text-center">Sin datos disponibles.</td></tr>';
       return;
@@ -177,17 +280,31 @@
           const ctaVarYTDPrev = calculateVar(cta.actualYTD, cta.prevYTD);
 
           const ctaRow = document.createElement('tr');
+          ctaRow.className = 'data-row';
+          ctaRow.dataset.cuenta = cta.cuenta;
           ctaRow.innerHTML = `
             <td class="font-monospace small text-start account-column">${cta.cuenta}</td>
-            ${createCell(cta.actualMonth)}
-            ${createCell(cta.planMonth)}
-            ${createCell(cta.prevMonth)}
+            <td class="text-end editable-cell" data-columna-clave="actualMonth" data-valor-original="${Number(
+              cta.actualMonth ?? 0
+            )}">${formatNumber(cta.actualMonth)}</td>
+            <td class="text-end editable-cell" data-columna-clave="planMonth" data-valor-original="${Number(
+              cta.planMonth ?? 0
+            )}">${formatNumber(cta.planMonth)}</td>
+            <td class="text-end editable-cell" data-columna-clave="prevMonth" data-valor-original="${Number(
+              cta.prevMonth ?? 0
+            )}">${formatNumber(cta.prevMonth)}</td>
             ${createPercentCell(ctaVarMonthPlan)}
             ${createPercentCell(ctaVarMonthPrev)}
             <td class="text-center">${cta.descripcion}</td>
-            ${createCell(cta.actualYTD)}
-            ${createCell(cta.planYTD)}
-            ${createCell(cta.prevYTD)}
+            <td class="text-end editable-cell" data-columna-clave="actualYTD" data-valor-original="${Number(
+              cta.actualYTD ?? 0
+            )}">${formatNumber(cta.actualYTD)}</td>
+            <td class="text-end editable-cell" data-columna-clave="planYTD" data-valor-original="${Number(
+              cta.planYTD ?? 0
+            )}">${formatNumber(cta.planYTD)}</td>
+            <td class="text-end editable-cell" data-columna-clave="prevYTD" data-valor-original="${Number(
+              cta.prevYTD ?? 0
+            )}">${formatNumber(cta.prevYTD)}</td>
             ${createPercentCell(ctaVarYTDPlan)}
             ${createPercentCell(ctaVarYTDPrev)}
           `;
@@ -199,6 +316,8 @@
     if (mesSeleccionado) {
       actualizarEtiquetaMes(mesSeleccionado);
     }
+
+    activarModoEdicion();
   };
 
   const renderAggregateTable = (resumen = []) => {
@@ -312,18 +431,25 @@
   document.addEventListener('DOMContentLoaded', async () => {
     const sesion = Sesion.requerirSesion();
     if (!sesion) return;
-    
+
     const empresa = Sesion.obtenerEmpresaActiva(sesion);
     if (!empresa?.id) {
       showStatus('Selecciona una empresa para continuar.', 'warning');
       return;
     }
-    
+
     // Cargar años disponibles
     const anios = await cargarAniosDisponibles(empresa.id);
     const mesActual = new Date().getMonth() + 1;
     const anioInicial = Number(selectAnio?.value) || anios[0] || new Date().getFullYear();
     const mesInicial = Number.isInteger(mesActual) ? mesActual : 1;
+    const modulo = document.body?.dataset?.modulo || 'summary';
+
+    window.dispatchEvent(
+      new CustomEvent('planeacion:contexto-actualizado', {
+        detail: { empresaId: empresa.id, anio: anioInicial, modulo }
+      })
+    );
 
     actualizarEtiquetasAnio(anioInicial, anioInicial - 1);
     await fetchSummary(empresa.id, anioInicial, mesInicial);
@@ -333,6 +459,11 @@
         const anio = Number(selectAnio.value) || anioInicial;
         const mes = Number(selectMes?.value) || mesInicial;
         actualizarEtiquetasAnio(anio, anio - 1);
+        window.dispatchEvent(
+          new CustomEvent('planeacion:contexto-actualizado', {
+            detail: { empresaId: empresa.id, anio, modulo }
+          })
+        );
         fetchSummary(empresa.id, anio, mes);
       });
     }
@@ -350,6 +481,11 @@
       selectMes.addEventListener('change', () => {
         const anio = Number(selectAnio?.value) || anioInicial;
         const mes = Number(selectMes.value) || mesInicial;
+        window.dispatchEvent(
+          new CustomEvent('planeacion:contexto-actualizado', {
+            detail: { empresaId: empresa.id, anio, modulo }
+          })
+        );
         fetchSummary(empresa.id, anio, mes);
       });
       actualizarEtiquetaMes(mesInicial);

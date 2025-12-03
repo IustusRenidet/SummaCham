@@ -1111,10 +1111,23 @@
     return porCapitulo[normalizarTexto(seccion)] || null;
   };
 
+  const resolverPlaceholdersPorFila = (placeholdersPorFila, cuerpo) => {
+    if (Number.isInteger(placeholdersPorFila) && placeholdersPorFila >= 0) {
+      return placeholdersPorFila;
+    }
+    if (Number.isInteger(estadoModulo.placeholdersPorFila) && estadoModulo.placeholdersPorFila >= 0) {
+      return estadoModulo.placeholdersPorFila;
+    }
+    const tabla = cuerpo?.closest ? cuerpo.closest('table') : estadoModulo.tabla;
+    const columnas = contarColumnas(tabla);
+    return Math.max(0, columnas - 2);
+  };
+
   const agregarFilaResumen = ({ texto, clase, cuerpo, placeholdersPorFila }) => {
-    if (!texto) {
+    if (!texto || !cuerpo) {
       return null;
     }
+    const placeholders = resolverPlaceholdersPorFila(placeholdersPorFila, cuerpo);
     const fila = document.createElement('tr');
     fila.className = clase;
     const celdaCuenta = document.createElement('td');
@@ -1123,7 +1136,7 @@
     const celdaDescripcion = document.createElement('td');
     celdaDescripcion.textContent = texto;
     fila.appendChild(celdaDescripcion);
-    for (let i = 0; i < placeholdersPorFila; i += 1) {
+    for (let i = 0; i < placeholders; i += 1) {
       const celda = document.createElement('td');
       celda.className = 'budget-value';
       celda.textContent = '-';
@@ -1143,6 +1156,7 @@
     resultadoForzado,
     mostrarCuentaVisible = false
   }) => {
+    const placeholders = resolverPlaceholdersPorFila(placeholdersPorFila, cuerpo);
     const secciones = new Map();
     const faltantesNombre = new Set();
     registros.forEach((item) => {
@@ -1166,7 +1180,7 @@
         const filaSeccion = document.createElement('tr');
         filaSeccion.className = 'section-header-row';
         const celda = document.createElement('td');
-        celda.colSpan = placeholdersPorFila + 2;
+        celda.colSpan = placeholders + 2;
         celda.textContent = seccion;
         filaSeccion.appendChild(celda);
         cuerpo.appendChild(filaSeccion);
@@ -1200,7 +1214,7 @@
         fila.dataset.cuenta = item.cuenta || '';
         fila.dataset.cuenta21 = cuenta21;
         fila.dataset.seccion = claveSeccion;
-        for (let i = 0; i < placeholdersPorFila; i += 1) {
+        for (let i = 0; i < placeholders; i += 1) {
           const celda = document.createElement('td');
           celda.className = 'budget-value';
           celda.textContent = '-';
@@ -1247,7 +1261,7 @@
           texto: etiquetaSumRow,
           clase: 'sum-row',
           cuerpo,
-          placeholdersPorFila
+          placeholdersPorFila: placeholders
         });
         const registrarSumario = (texto) => {
           if (!texto) return;
