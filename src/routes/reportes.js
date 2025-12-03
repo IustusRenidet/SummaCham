@@ -47,7 +47,9 @@ router.get('/resumen', async (req, res) => {
     return res.status(404).json({ mensaje: 'Empresa no encontrada.' });
   }
   try {
-    const data = await generarResumenEjecutivo(value.empresaId, normalizarAnio(value.anio));
+    // Usar el nuevo motor unificado
+    const { generarReporte } = require('../services/reportes/planeacionReportesEngine');
+    const data = await generarReporte('RESUMEN', value.empresaId, normalizarAnio(value.anio));
     res.json(data);
   } catch (errorRes) {
     console.error('Error generando Resumen:', errorRes);

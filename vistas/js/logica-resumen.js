@@ -134,116 +134,85 @@
     return ((Number(actual || 0) - Number(base || 0)) / Math.abs(base)) * 100;
   };
 
-  const renderizarResumen = (detalle, seccionesPorCapitulo) => {
+  const renderizarResumen = (resumenData) => {
     if (!TABLE_BODY) return;
     TABLE_BODY.innerHTML = '';
-    const mapaDetalle = new Map();
-    detalle.forEach((fila) => {
-      const codigo = sanitizeCodigo(fila.codigo);
-      if (codigo) {
-        mapaDetalle.set(codigo, fila);
-      }
-    });
+    
+    if (!resumenData || !resumenData.length) {
+      vaciarTabla('No hay datos disponibles.');
+      return;
+    }
 
-    let totalIngresos = { real: 0, plan: 0, anterior: 0 };
-    let totalGastos = { real: 0, plan: 0, anterior: 0 };
-
-    seccionesPorCapitulo.forEach(({ capitulo, secciones }) => {
+    resumenData.forEach((capitulo) => {
+      // 1. Encabezado de Capítulo
       const header = document.createElement('tr');
-      header.className = 'section-header-row';
-      const headerCelda = document.createElement('td');
-      headerCelda.colSpan = 7;
-      headerCelda.textContent = capitulo;
-      header.appendChild(headerCelda);
+      header.className = 'section-header-row table-primary fw-bold';
+      header.innerHTML = `<td colspan="7" class="text-center text-uppercase">${capitulo.label}</td>`;
       TABLE_BODY.appendChild(header);
 
-      secciones.forEach((seccion) => {
-        const totales = calcularTotales(seccion.seccion, seccion.cuentas, mapaDetalle);
-        const fila = document.createElement('tr');
-        fila.className = 'sum-row';
-        fila.innerHTML = `
-          <td></td>
-          <td>${seccion.seccion}</td>
-          <td class="budget-value">${formatCurrency.format(totales.real)}</td>
-          <td class="budget-value">${formatCurrency.format(totales.plan)}</td>
-          <td class="budget-value">${formatCurrency.format(totales.anterior)}</td>
-          <td class="budget-value">${formatPercent(variation(totales.real, totales.plan))}</td>
-          <td class="budget-value">${formatPercent(variation(totales.real, totales.anterior))}</td>
-        `;
-        TABLE_BODY.appendChild(fila);
+      (capitulo.children || []).forEach((seccion) => {
+        // 2. Encabezado de Sección
+        const subHeader = document.createElement('tr');
+        subHeader.className = 'subsection-header-row table-light fw-bold fst-italic';
+        subHeader.innerHTML = `<td colspan="7" class="ps-4">${seccion.label}</td>`;
+        TABLE_BODY.appendChild(subHeader);
 
-        if (seccion.tipo === 'ingreso') {
-          totalIngresos.real += totales.real;
-          totalIngresos.plan += totales.plan;
-          totalIngresos.anterior += totales.anterior;
-        } else if (seccion.tipo === 'gasto') {
-          totalGastos.real += totales.real;
-          totalGastos.plan += totales.plan;
-          totalGastos.anterior += totales.anterior;
-        }
+        // 3. Filas de Cuentas (LO QUE PEDÍA EL USUARIO)
+        (seccion.cuentas || []).forEach((cta) => {
+          const fila = document.createElement('tr');
+          const varPlan = variation(cta.actualMonth, cta.planMonth);
+          const varPrev = variation(cta.actualMonth, cta.prevMonth);
+          
+          fila.innerHTML = `
+            <td class="font-monospace small">${cta.cuenta}</td>
+            <td>${cta.descripcion}</td>
+            <td class="text-end">${formatCurrency.format(cta.actualMonth)}</td>
+            <td class="text-end">${formatCurrency.format(cta.planMonth)}</td>
+            <td class="text-end">${formatCurrency.format(cta.prevMonth)}</td>
+            <td class="text-end">${formatPercent(varPlan)}</td>
+            <td class="text-end">${formatPercent(varPrev)}</td>
+          `;
+          TABLE_BODY.appendChild(fila);
+        });
+
+        // 4. Total de Sección
+        const totalRow = document.createElement('tr');
+        totalRow.className = 'sum-row fw-bold';
+        totalRow.style.backgroundColor = '#f0f0f0';
+        const secVarPlan = variation(seccion.totalActualMonth, seccion.totalPlanMonth);
+        const secVarPrev = variation(seccion.totalActualMonth, seccion.totalPrevMonth);
+        
+        totalRow.innerHTML = `
+          <td></td>
+          <td class="text-end">Total ${seccion.label}</td>
+          <td class="text-end">${formatCurrency.format(seccion.totalActualMonth)}</td>
+          <td class="text-end">${formatCurrency.format(seccion.totalPlanMonth)}</td>
+          <td class="text-end">${formatCurrency.format(seccion.totalPrevMonth)}</td>
+          <td class="text-end">${formatPercent(secVarPlan)}</td>
+          <td class="text-end">${formatPercent(secVarPrev)}</td>
+        `;
+        TABLE_BODY.appendChild(totalRow);
       });
     });
-
-    const filaResultado = document.createElement('tr');
-    filaResultado.className = 'result-row';
-    const utilidadReal = totalIngresos.real - totalGastos.real;
-    const utilidadPlan = totalIngresos.plan - totalGastos.plan;
-    const utilidadAnterior = totalIngresos.anterior - totalGastos.anterior;
-    filaResultado.innerHTML = `
-      <td></td>
-      <td>Utilidad Operativa</td>
-      <td class="budget-value">${formatCurrency.format(utilidadReal)}</td>
-      <td class="budget-value">${formatCurrency.format(utilidadPlan)}</td>
-      <td class="budget-value">${formatCurrency.format(utilidadAnterior)}</td>
-      <td class="budget-value">${formatPercent(variation(utilidadReal, utilidadPlan))}</td>
-      <td class="budget-value">${formatPercent(variation(utilidadReal, utilidadAnterior))}</td>
-    `;
-    TABLE_BODY.appendChild(filaResultado);
   };
 
-  const fetchSummary = async (anio) => {
-    if (!TABLE_BODY) return;
-    if (!Number.isInteger(anio)) {
-      vaciarTabla('Selecciona un ejercicio válido para comenzar.');
-      return;
-    }
-    const empresa = obtenerEmpresaActiva();
-    if (!empresa?.id) {
-      vaciarTabla('Selecciona una empresa válida.');
-      return;
-    }
-    const codigos = construirCodigos();
-    if (!codigos.length) {
-      vaciarTabla('No existen cuentas mapeadas para este módulo.');
-      return;
-    }
-    const payload = {
-      anio,
-      periodo: 12,
-      empresaId: empresa.id,
-      codigos,
-      anioComparativo: anio - 1,
-      usarAjusteEnYTD: true
-    };
+  const fetchSummary = async (anio, mes) => {
+    if (!anio) return;
     vaciarTabla(ESTADO_BIEN);
     try {
-      const respuesta = await fetch(`${API_BASE}/modulos/summary-resumen-e`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...Sesion.headersAutenticacion()
-        },
-        body: JSON.stringify(payload)
+      const empresa = obtenerEmpresaActiva();
+      const response = await fetch(`${API_BASE}/reportes/resumen?empresaId=${encodeURIComponent(empresa.id)}&anio=${Number(anio)}&mes=${mes || 'dic'}`, {
+        headers: Sesion.headersAutenticacion()
       });
-      const datos = await respuesta.json();
-      if (!respuesta.ok) {
-        throw new Error(datos.mensaje || 'No fue posible obtener el resumen.');
+      if (!response.ok) {
+        throw new Error('Error al cargar el resumen.');
       }
-      const estructura = construirEstructura();
-      renderizarResumen(datos.detalle || [], estructura);
+      const data = await response.json();
+      renderizarResumen(data.resumen);
+      actualizarEncabezadosYears(anio);
     } catch (error) {
-      console.error('Error al cargar resumen', error);
-      vaciarTabla(error.message || 'No fue posible construir el resumen.');
+      console.error(error);
+      vaciarTabla('Ocurrió un error al cargar el reporte.');
     }
   };
 
