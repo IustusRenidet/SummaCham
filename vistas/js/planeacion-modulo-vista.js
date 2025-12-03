@@ -487,8 +487,9 @@
         elementos.authorizeBudgetBtn.disabled = esAdminGlobal || !puedeAutorizar || !(esAdminGlobal || (requiereGuardado && TRANSICIONES.autorizar.habilita(estadoActual)));
       }
       if (elementos.saveBudgetBtn) {
-        elementos.saveBudgetBtn.classList.toggle('d-none', !puedeGuardar);
-        elementos.saveBudgetBtn.disabled = !puedeGuardar || !(esAdminGlobal || (requiereGuardado && TRANSICIONES.guardar.habilita(estadoActual)));
+        const visibleGuardar = esAdminGlobal || (requiereGuardado && estadoActual === 'autorizado');
+        elementos.saveBudgetBtn.classList.toggle('d-none', !puedeGuardar || !visibleGuardar);
+        elementos.saveBudgetBtn.disabled = !puedeGuardar || !visibleGuardar || !(esAdminGlobal || (requiereGuardado && TRANSICIONES.guardar.habilita(estadoActual)));
       }
     };
 

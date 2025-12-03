@@ -167,8 +167,13 @@
         }
         this.borradorActual = datos.borrador || null;
         this.borradorGuardado = Boolean(this.borradorActual);
-        this.verBorradorVisible = [ESTADOS.PENDIENTE, ESTADOS.REVISADO, ESTADOS.APROBADO, ESTADOS.GUARDADO]
-          .includes(this.borradorActual?.estado);
+        this.verBorradorVisible = [
+          ESTADOS.PENDIENTE,
+          ESTADOS.REVISADO,
+          ESTADOS.APROBADO,
+          ESTADOS.GUARDADO,
+          ESTADOS.RECHAZADO
+        ].includes(this.borradorActual?.estado);
         if (this.verBorradorVisible) {
           FlujoAutorizacion.pintarBorrador(this.tableElement, this.borradorActual);
         } else {
@@ -362,11 +367,22 @@
     }
 
     async _handleGuardarFinal() {
-      if (!this.borradorActual?.id) {
-        this._mostrarToast('No hay borrador autorizado para guardar.', 'warning');
-        return;
-      }
       try {
+        if (!this.borradorActual?.id && this.hayCambios) {
+          await this._handleGuardar();
+        }
+        if (!this.borradorActual?.id) {
+          this._mostrarToast('No hay borrador autorizado para guardar.', 'warning');
+          return;
+        }
+        if (this.esAdminGlobal && this.borradorActual?.estado !== ESTADOS.APROBADO) {
+          await this._handleEnviar();
+        }
+        if (this.borradorActual?.estado !== ESTADOS.APROBADO) {
+          this._mostrarToast('El borrador debe estar autorizado antes de guardar.', 'warning');
+          return;
+        }
+
         const respuesta = await fetch(`${API_BASE}/borradores/finalizar`, {
           method: 'POST',
           headers: this._construirHeaders(),
@@ -444,15 +460,18 @@
         guardarAutorizado
       } = this.buttons;
 
+      const enEdicion = [ESTADOS.EDITANDO, ESTADOS.RECHAZADO, null].includes(estado);
+
       if (guardar) {
-        guardar.disabled = true;
-        guardar.classList.add('d-none');
+        const mostrarGuardar = enEdicion && this.hayCambios;
+        guardar.classList.toggle('d-none', !mostrarGuardar);
+        guardar.disabled = !mostrarGuardar;
       }
 
       if (enviar) {
-        const puedeEnviar = [ESTADOS.EDITANDO, ESTADOS.RECHAZADO, null].includes(estado)
-          && (this.hayCambios || Boolean(this.borradorActual));
+        const puedeEnviar = enEdicion && (this.hayCambios || Boolean(this.borradorActual));
         enviar.classList.toggle('d-none', !puedeEnviar);
+        enviar.disabled = !puedeEnviar;
       }
 
       if (cancelar) {
@@ -466,7 +485,7 @@
       }
 
       if (panelRevision) {
-        const visible = !this.esAdminGlobal && [ESTADOS.PENDIENTE, ESTADOS.REVISADO, ESTADOS.APROBADO].includes(estado);
+        const visible = !this.esAdminGlobal && [ESTADOS.PENDIENTE, ESTADOS.REVISADO].includes(estado);
         panelRevision.classList.toggle('d-none', !visible);
       }
 
@@ -481,8 +500,11 @@
       }
 
       if (guardarAutorizado) {
-        const puedeGuardar = this.esAdminGlobal || estado === ESTADOS.APROBADO;
-        guardarAutorizado.classList.toggle('d-none', !puedeGuardar);
+        const autorizado = estado === ESTADOS.APROBADO && this.borradorActual?.id;
+        const adminListo = this.esAdminGlobal && (this.borradorActual?.id || this.hayCambios);
+        const mostrarGuardarFinal = autorizado || adminListo;
+        guardarAutorizado.classList.toggle('d-none', !mostrarGuardarFinal);
+        guardarAutorizado.disabled = !mostrarGuardarFinal;
       }
     }
 
