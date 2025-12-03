@@ -62,6 +62,16 @@
         obtenerCambios: options.obtenerCambios || (() => window.CuentasModulo?.getCambios?.() || {}),
         obtenerHeaders: options.obtenerHeaders || (() => Sesion.headersAutenticacion())
       };
+      this.buttonIds = options.buttonIds || {
+        guardar: 'btnGuardarBorrador',
+        enviar: 'btnEnviarCambios',
+        cancelar: 'btnCancelarEdicion',
+        verBorrador: 'btnVerBorrador',
+        autorizar: 'btnAutorizar',
+        rechazar: 'btnRechazar',
+        guardarAutorizado: 'btnGuardarAutorizado',
+        panelRevision: 'panelRevision'
+      };
       this._conectarEventos();
     }
 
@@ -74,36 +84,30 @@
   }
 
     _definirBotones() {
-      const ids = [
-        'btnGuardarBorrador',
-        'btnEnviarCambios',
-        'btnCancelarEdicion',
-        'btnVerBorrador',
-        'btnGuardarAutorizado',
-        'btnAutorizar',
-        'btnRechazar',
-        'panelRevision'
-      ];
-      ids.forEach((id) => {
-        this.buttons[id] = document.getElementById(id);
+      Object.entries(this.buttonIds).forEach(([key, id]) => {
+        if (!id) return;
+        this.buttons[key] = document.getElementById(id);
       });
-      if (this.buttons.btnGuardarBorrador) {
-        this.buttons.btnGuardarBorrador.addEventListener('click', () => this._handleGuardar());
+      if (this.buttons.guardar) {
+        this.buttons.guardar.addEventListener('click', () => this._handleGuardar());
       }
-      if (this.buttons.btnEnviarCambios) {
-        this.buttons.btnEnviarCambios.addEventListener('click', () => this._handleEnviar());
+      if (this.buttons.enviar) {
+        this.buttons.enviar.addEventListener('click', () => this._handleEnviar());
       }
-      if (this.buttons.btnCancelarEdicion) {
-        this.buttons.btnCancelarEdicion.addEventListener('click', () => this._handleCancelarEdicion());
+      if (this.buttons.cancelar) {
+        this.buttons.cancelar.addEventListener('click', () => this._handleCancelarEdicion());
       }
-      if (this.buttons.btnVerBorrador) {
-        this.buttons.btnVerBorrador.addEventListener('click', () => this._toggleVerBorrador());
+      if (this.buttons.verBorrador) {
+        this.buttons.verBorrador.addEventListener('click', () => this._toggleVerBorrador());
       }
-      if (this.buttons.btnAutorizar) {
-        this.buttons.btnAutorizar.addEventListener('click', () => this._handleAutorizar());
+      if (this.buttons.autorizar) {
+        this.buttons.autorizar.addEventListener('click', () => this._handleAutorizar());
       }
-      if (this.buttons.btnRechazar) {
-        this.buttons.btnRechazar.addEventListener('click', () => this._handleRechazar());
+      if (this.buttons.rechazar) {
+        this.buttons.rechazar.addEventListener('click', () => this._handleRechazar());
+      }
+      if (this.buttons.guardarAutorizado) {
+        this.buttons.guardarAutorizado.addEventListener('click', () => this._handleGuardarFinal());
       }
       if (this.buttons.btnGuardarAutorizado) {
         this.buttons.btnGuardarAutorizado.addEventListener('click', () => this._handleGuardarFinal());
@@ -433,35 +437,35 @@
     _actualizarBotones() {
       const estado = this.borradorActual?.estado || null;
       const {
-        btnGuardarBorrador,
-        btnEnviarCambios,
-        btnCancelarEdicion,
-        btnVerBorrador,
+        guardar,
+        enviar,
+        cancelar,
+        verBorrador,
         panelRevision,
-        btnAutorizar,
-        btnRechazar,
-        btnGuardarAutorizado
+        autorizar,
+        rechazar,
+        guardarAutorizado
       } = this.buttons;
 
-      if (btnGuardarBorrador) {
-        btnGuardarBorrador.disabled = true;
-        btnGuardarBorrador.classList.add('d-none');
+      if (guardar) {
+        guardar.disabled = true;
+        guardar.classList.add('d-none');
       }
 
-      if (btnEnviarCambios) {
+      if (enviar) {
         const puedeEnviar = [ESTADOS.EDITANDO, ESTADOS.RECHAZADO, null].includes(estado)
           && (this.hayCambios || Boolean(this.borradorActual));
-        btnEnviarCambios.classList.toggle('d-none', !puedeEnviar);
+        enviar.classList.toggle('d-none', !puedeEnviar);
       }
 
-      if (btnCancelarEdicion) {
-        btnCancelarEdicion.classList.toggle('d-none', !this.hayCambios);
+      if (cancelar) {
+        cancelar.classList.toggle('d-none', !this.hayCambios);
       }
 
-      if (btnVerBorrador) {
+      if (verBorrador) {
         const tieneDatos = Boolean(this.borradorActual?.data);
-        btnVerBorrador.classList.toggle('d-none', !tieneDatos);
-        btnVerBorrador.classList.toggle('active', this.verBorradorVisible);
+        verBorrador.classList.toggle('d-none', !tieneDatos);
+        verBorrador.classList.toggle('active', this.verBorradorVisible);
       }
 
       if (panelRevision) {
@@ -469,18 +473,19 @@
         panelRevision.classList.toggle('d-none', !visible);
       }
 
-      if (btnAutorizar) {
+      if (autorizar) {
         const enRevision = estado === ESTADOS.PENDIENTE;
-        btnAutorizar.textContent = enRevision ? 'Marcar revisado' : 'Autorizar';
-        btnAutorizar.classList.toggle('d-none', this.esAdminGlobal || ![ESTADOS.PENDIENTE, ESTADOS.REVISADO].includes(estado));
+        autorizar.textContent = enRevision ? 'Marcar revisado' : 'Autorizar';
+        autorizar.classList.toggle('d-none', this.esAdminGlobal || ![ESTADOS.PENDIENTE, ESTADOS.REVISADO].includes(estado));
       }
 
-      if (btnRechazar) {
-        btnRechazar.classList.toggle('d-none', this.esAdminGlobal || ![ESTADOS.PENDIENTE, ESTADOS.REVISADO, ESTADOS.APROBADO].includes(estado));
+      if (rechazar) {
+        rechazar.classList.toggle('d-none', this.esAdminGlobal || ![ESTADOS.PENDIENTE, ESTADOS.REVISADO, ESTADOS.APROBADO].includes(estado));
       }
 
-      if (btnGuardarAutorizado) {
-        btnGuardarAutorizado.classList.toggle('d-none', estado !== ESTADOS.APROBADO);
+      if (guardarAutorizado) {
+        const puedeGuardar = this.esAdminGlobal || estado === ESTADOS.APROBADO;
+        guardarAutorizado.classList.toggle('d-none', !puedeGuardar);
       }
     }
 
