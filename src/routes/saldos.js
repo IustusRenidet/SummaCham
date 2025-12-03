@@ -169,8 +169,49 @@ router.get('/cuentas', async (req, res) => {
   }
 });
 
-router.get('/catalogo', (_req, res) => {
-  res.json({ cuentas: [] });
+const esquemaCatalogo = Joi.object({
+  empresaId: Joi.string().required(),
+  anio: Joi.number().integer().min(2000).max(2100).required()
+});
+
+router.get('/catalogo', async (req, res) => {
+  const usuario = normalizar(req.headers['x-usuario-actual']);
+  if (!usuario) return res.status(401).json({ mensaje: 'Usuario no válido.' });
+
+  const registro = db.prepare('SELECT id, usuario, es_admin_global FROM usuarios WHERE usuario=?').get(usuario);
+  if (!registro) return res.status(401).json({ mensaje: 'Usuario no válido.' });
+
+  const esAdmin = registro.usuario === 'ICONET' || !!registro.es_admin_global;
+  const { value, error } = esquemaCatalogo.validate({ ...req.query, empresaId: req.query.empresaId || req.headers['x-empresa-activa'] }, {
+    abortEarly: false,
+    allowUnknown: true
+  });
+
+  if (error) {
+    return res.status(400).json({ mensaje: 'Parámetros inválidos', detalles: error.details.map((d) => d.message) });
+  }
+
+  const empresa = obtenerEmpresaPorId(value.empresaId);
+  if (!empresa) return res.status(404).json({ mensaje: 'Empresa no existe.' });
+
+  let mapa = {};
+  if (!esAdmin) {
+    const permisos = db.prepare(`
+      SELECT empresa_id, modulo, puede_leer, puede_cargar_guardar, puede_revisar, puede_aprobar
+      FROM permisos_modulo
+      WHERE usuario_id = ?
+    `).all(registro.id);
+    mapa = construirMapaPermisos(permisos);
+    if (!puede(mapa, empresa.id)) return res.status(403).json({ mensaje: 'Sin permiso para esta empresa.' });
+  }
+
+  try {
+    const cuentas = await obtenerCuentasPorAnio(empresa.id, value.anio);
+    return res.json({ cuentas });
+  } catch (e) {
+    console.error('Error /api/saldos/catalogo:', e);
+    return res.status(500).json({ mensaje: 'No fue posible obtener cuentas.' });
+  }
 });
 
 module.exports = router;

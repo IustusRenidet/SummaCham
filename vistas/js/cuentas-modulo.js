@@ -963,6 +963,10 @@
       `${API_BASE}/saldos/catalogo`
     ];
     const params = new URLSearchParams({ anio });
+    const empresaActiva = typeof Sesion?.obtenerEmpresaActiva === 'function' ? Sesion.obtenerEmpresaActiva() : null;
+    if (empresaActiva?.id) {
+      params.set('empresaId', empresaActiva.id);
+    }
     const promesa = (async () => {
       const acumuladas = new Set();
       for (const ruta of rutas) {
