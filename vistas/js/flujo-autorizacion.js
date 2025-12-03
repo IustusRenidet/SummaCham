@@ -14,6 +14,16 @@
     GUARDADO: 'GUARDADO'
   };
 
+  const ETIQUETAS_ESTADOS = {
+    [ESTADOS.EDITANDO]: { titulo: 'En edición', descripcion: 'El borrador puede actualizarse antes de enviar.' },
+    [ESTADOS.PENDIENTE]: { titulo: 'En revisión', descripcion: 'Esperando la revisión del área correspondiente.' },
+    [ESTADOS.REVISADO]: { titulo: 'Revisado', descripcion: 'Listo para autorizar o devolver a edición.' },
+    [ESTADOS.RECHAZADO]: { titulo: 'Rechazado', descripcion: 'El borrador fue devuelto para ajustes.' },
+    [ESTADOS.APROBADO]: { titulo: 'Autorizado', descripcion: 'Autorizado por finanzas. Listo para guardar en base de datos.' },
+    [ESTADOS.GUARDADO]: { titulo: 'Guardado', descripcion: 'Borrador consolidado en la base de datos.' },
+    null: { titulo: 'Sin borrador', descripcion: 'Aún no se han guardado cambios para este contexto.' }
+  };
+
   const colocarEstilo = () => {
     if (document.getElementById(STYLE_ID)) {
       return;
@@ -33,6 +43,16 @@
         top: 0.15rem;
         font-size: 0.75rem;
         color: #5f3c1c;
+      }
+      .flujo-status-text {
+        font-size: 0.9rem;
+        color: #6c757d;
+        margin: 0;
+      }
+      .flujo-status-acciones {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
       }
     `;
     document.head.appendChild(style);
@@ -57,16 +77,27 @@
         rechazar: true,
         revision: true
       };
-      this.borradorActual = null;
-      this.hayCambios = false;
-      this.borradorGuardado = false;
-      this.verBorradorVisible = false;
-      this.esAdminGlobal = Boolean(window.Sesion?.esAdminGlobal?.());
+      this.estado = {
+        borrador: null,
+        hayCambios: false,
+        borradorGuardado: false,
+        verBorradorVisible: false,
+        esAdminGlobal: Boolean(window.Sesion?.esAdminGlobal?.()),
+        cargando: false
+      };
+      this.forzarMostrarBorrador = new URL(window.location.href).searchParams.get('mostrarBorrador') === '1';
       this.tableElement = null;
       this.toastInstance = null;
       this.toastBody = null;
       this.buttons = {};
       this.draftModule = null;
+      this.ui = {
+        badge: document.getElementById('workflowBadge'),
+        meta: document.getElementById('workflowMeta'),
+        history: document.getElementById('workflowHistory'),
+        statusText: null,
+        acciones: null
+      };
       this.callbacks = {
         onCancelEdit: options.onCancelEdit || (() => window.CuentasModulo?.cancelEdit?.()),
         obtenerCambios: options.obtenerCambios || (() => window.CuentasModulo?.getCambios?.() || {}),
@@ -88,6 +119,7 @@
       this._definirBotones();
       this._asegurarModuloBorradores();
       this._prepararToast();
+      this._actualizarEstadoServidor();
       this._actualizarBotones();
       return this;
     }
@@ -155,9 +187,9 @@
 
       window.addEventListener(EVENTO_EDICION, (evento) => {
         const detalle = evento?.detail || {};
-        this.hayCambios = Boolean(detalle.hayCambios);
-        if (detalle.borradorGuardado && this.borradorActual) {
-          this.borradorGuardado = true;
+        this.estado.hayCambios = Boolean(detalle.hayCambios);
+        if (detalle.borradorGuardado && this.estado.borrador) {
+          this.estado.borradorGuardado = true;
         }
         this._actualizarBotones();
       });
@@ -168,7 +200,19 @@
     }
 
     _estadoEditable(estado) {
-      return [ESTADOS.EDITANDO, ESTADOS.PENDIENTE, ESTADOS.RECHAZADO, null].includes(estado || null);
+      return [ESTADOS.EDITANDO, ESTADOS.PENDIENTE, ESTADOS.RECHAZADO, ESTADOS.REVISADO, null].includes(estado || null);
+    }
+
+    _estadoVisible(estado) {
+      return [
+        ESTADOS.EDITANDO,
+        ESTADOS.PENDIENTE,
+        ESTADOS.RECHAZADO,
+        ESTADOS.REVISADO,
+        ESTADOS.APROBADO,
+        ESTADOS.GUARDADO,
+        null
+      ].includes(estado || null);
     }
 
     _tablaTieneDatos() {
@@ -182,6 +226,7 @@
       if (!this._contextoCompleto()) {
         return;
       }
+      this._setCargando(true);
       try {
         const params = new URLSearchParams({
           empresaId: this.contexto.empresaId,
@@ -193,29 +238,17 @@
         });
         const datos = await respuesta.json().catch(() => ({}));
         if (!respuesta.ok) {
-          this.borradorActual = null;
-          this.borradorGuardado = false;
-          this.verBorradorVisible = false;
-          FlujoAutorizacion.limpiarBorrador(this.tableElement);
-          this._actualizarModuloBorradores();
-          this._actualizarBotones();
+          this._establecerBorrador(null);
+          this._mostrarToast(datos.mensaje || 'No fue posible consultar el estado.', 'danger');
           return;
         }
-        this.borradorActual = datos.borrador || null;
-        this.borradorGuardado = Boolean(this.borradorActual);
-        const estadoBorrador = this.borradorActual?.estado || null;
-        this.verBorradorVisible = this._permitido('verBorrador')
-          && this._estadoEditable(estadoBorrador)
-          && Boolean(this.borradorActual?.data);
-        if (this.verBorradorVisible) {
-          FlujoAutorizacion.pintarBorrador(this.tableElement, this.borradorActual);
-        } else {
-          FlujoAutorizacion.limpiarBorrador(this.tableElement);
-        }
-        this._actualizarModuloBorradores();
-        this._actualizarBotones();
+        this._establecerBorrador(datos.borrador || null, this.forzarMostrarBorrador);
+        this.forzarMostrarBorrador = false;
       } catch (error) {
         console.error('Error consultando el estado del borrador', error);
+        this._mostrarToast('No fue posible actualizar el estado del flujo.', 'danger');
+      } finally {
+        this._setCargando(false);
       }
     }
 
@@ -264,7 +297,7 @@
       this.permisos = permisosActualizados;
 
       if (!this._permitido('verBorrador')) {
-        this.verBorradorVisible = false;
+        this.estado.verBorradorVisible = false;
         FlujoAutorizacion.limpiarBorrador(this.tableElement);
         const contenedor = this.draftModule?.contenedor || document.querySelector('.draft-viewer');
         if (contenedor) {
@@ -337,18 +370,19 @@
       if (!modulo || !this._permitido('verBorrador')) {
         return;
       }
-      const estado = this.borradorActual?.estado || null;
-      const permitido = this._estadoEditable(estado) && Boolean(this.borradorActual);
-      const fechaEnvio = this.borradorActual?.fechaEnvio ? new Date(this.borradorActual.fechaEnvio) : null;
-      const metaTexto = permitido
+      const estado = this.estado.borrador?.estado || null;
+      const visible = this._estadoVisible(estado) && Boolean(this.estado.borrador);
+      const fechaEnvio = this.estado.borrador?.fechaEnvio ? new Date(this.estado.borrador.fechaEnvio) : null;
+      const metaTexto = visible
         ? `Borrador ${estado || 'EDITANDO'}${fechaEnvio ? ` · actualizado ${fechaEnvio.toLocaleString('es-MX')}` : ''}`
         : 'No hay borradores activos.';
       modulo.estado.textContent = metaTexto;
       if (modulo.boton) {
-        modulo.boton.classList.toggle('d-none', !permitido || !this.borradorActual?.data);
-        modulo.boton.disabled = !permitido || !this.borradorActual?.data;
+        const puedeVer = visible && Boolean(this.estado.borrador?.data);
+        modulo.boton.classList.toggle('d-none', !puedeVer);
+        modulo.boton.disabled = !puedeVer;
       }
-      modulo.contenedor.classList.toggle('d-none', !permitido && !this.borradorActual);
+      modulo.contenedor.classList.toggle('d-none', !visible && !this.estado.borrador);
     }
 
     async _handleGuardar() {
@@ -356,7 +390,7 @@
         this._mostrarToast('Esta vista no permite guardar borradores.', 'warning');
         return;
       }
-      if (!this.hayCambios) {
+      if (!this.estado.hayCambios) {
         this._mostrarToast('No hay cambios pendientes para guardar.', 'warning');
         return;
       }
@@ -373,7 +407,7 @@
           presupuesto: Array.isArray(cambios?.presupuesto) ? cambios.presupuesto : []
         }
       };
-      try {
+      await this._ejecutarAccion('guardar', async () => {
         const respuesta = await fetch(`${API_BASE}/borradores/guardar`, {
           method: 'POST',
           headers: this._construirHeaders(),
@@ -383,17 +417,10 @@
         if (!respuesta.ok) {
           throw new Error(datos.mensaje || 'No fue posible guardar el borrador.');
         }
-        this.borradorActual = datos.borrador || null;
-        this.borradorGuardado = Boolean(this.borradorActual);
-        this.hayCambios = false;
-        this.verBorradorVisible = this._permitido('verBorrador');
-        FlujoAutorizacion.pintarBorrador(this.tableElement, this.borradorActual);
-        this._actualizarBotones();
+        this._establecerBorrador(datos.borrador || null, true);
+        this.estado.hayCambios = false;
         this._mostrarToast(datos.mensaje || 'Borrador guardado.');
-      } catch (error) {
-        console.error('Error al guardar el borrador', error);
-        this._mostrarToast(error.message || 'No fue posible guardar el borrador.', 'danger');
-      }
+      });
     }
 
     async _handleEnviar() {
@@ -401,37 +428,29 @@
         this._mostrarToast('Esta vista no permite enviar a revisión.', 'warning');
         return;
       }
-      if (!this.borradorActual?.id || this.hayCambios) {
+      if (!this.estado.borrador?.id || this.estado.hayCambios) {
         await this._handleGuardar();
       }
-      if (!this.borradorActual?.id) {
+      if (!this.estado.borrador?.id) {
         this._mostrarToast('No hay borrador guardado para enviar.', 'warning');
         return;
       }
-      try {
+      await this._ejecutarAccion('enviar', async () => {
         const respuesta = await fetch(`${API_BASE}/borradores/enviar`, {
           method: 'POST',
           headers: this._construirHeaders(),
-          body: JSON.stringify({ borradorId: this.borradorActual.id })
+          body: JSON.stringify({ borradorId: this.estado.borrador.id })
         });
         const datos = await respuesta.json().catch(() => ({}));
         if (!respuesta.ok) {
           throw new Error(datos.mensaje || 'No fue posible enviar el borrador.');
         }
-        this.borradorActual = datos.borrador || null;
-        this.borradorGuardado = Boolean(this.borradorActual);
-        this.hayCambios = false;
-        this.verBorradorVisible = this._permitido('verBorrador');
-        FlujoAutorizacion.pintarBorrador(this.tableElement, this.borradorActual);
-        this._actualizarBotones();
+        this._establecerBorrador(datos.borrador || null, true);
         const mensaje = datos.autoAutorizado
           ? 'Borrador autorizado automáticamente.'
           : 'Borrador enviado a revisión.';
         this._mostrarToast(mensaje);
-      } catch (error) {
-        console.error('Error al enviar a revisión', error);
-        this._mostrarToast(error.message || 'No fue posible enviar a revisión.', 'danger');
-      }
+      });
     }
 
     async _handleAutorizar() {
@@ -439,35 +458,27 @@
         this._mostrarToast('Esta vista no permite autorizar.', 'warning');
         return;
       }
-      if (!this.borradorActual?.id) {
+      if (!this.estado.borrador?.id) {
         this._mostrarToast('No hay borrador pendiente.', 'warning');
         return;
       }
-      const estado = this.borradorActual?.estado;
+      const estado = this.estado.borrador?.estado;
       if (estado === ESTADOS.PENDIENTE) {
         return this._handleRevision(false);
       }
-      try {
+      await this._ejecutarAccion('autorizar', async () => {
         const respuesta = await fetch(`${API_BASE}/borradores/autorizar`, {
           method: 'POST',
           headers: this._construirHeaders(),
-          body: JSON.stringify({ borradorId: this.borradorActual.id })
+          body: JSON.stringify({ borradorId: this.estado.borrador.id })
         });
         const datos = await respuesta.json().catch(() => ({}));
         if (!respuesta.ok) {
           throw new Error(datos.mensaje || 'No fue posible autorizar el borrador.');
         }
-        this.borradorActual = datos.borrador || null;
-        this.borradorGuardado = Boolean(this.borradorActual);
-        this.hayCambios = false;
-        this.verBorradorVisible = this._permitido('verBorrador');
-        FlujoAutorizacion.pintarBorrador(this.tableElement, this.borradorActual);
-        this._actualizarBotones();
+        this._establecerBorrador(datos.borrador || null, true);
         this._mostrarToast(datos.mensaje || 'Borrador autorizado.');
-      } catch (error) {
-        console.error('Error al autorizar borrador', error);
-        this._mostrarToast(error.message || 'No fue posible autorizar.', 'danger');
-      }
+      });
     }
 
     async _handleRechazar() {
@@ -475,11 +486,11 @@
         this._mostrarToast('Esta vista no permite rechazar.', 'warning');
         return;
       }
-      if (!this.borradorActual?.id) {
+      if (!this.estado.borrador?.id) {
         this._mostrarToast('No hay borrador pendiente.', 'warning');
         return;
       }
-      if (this.borradorActual?.estado === ESTADOS.REVISADO) {
+      if (this.estado.borrador?.estado === ESTADOS.REVISADO) {
         const cancelar = window.confirm('¿Cancelar revisión y regresar a edición?');
         if (cancelar) {
           return this._handleRevision(true);
@@ -489,27 +500,19 @@
       if (!motivo) {
         return;
       }
-      try {
+      await this._ejecutarAccion('rechazar', async () => {
         const respuesta = await fetch(`${API_BASE}/borradores/rechazar`, {
           method: 'POST',
           headers: this._construirHeaders(),
-          body: JSON.stringify({ borradorId: this.borradorActual.id, motivo })
+          body: JSON.stringify({ borradorId: this.estado.borrador.id, motivo })
         });
         const datos = await respuesta.json().catch(() => ({}));
         if (!respuesta.ok) {
           throw new Error(datos.mensaje || 'No fue posible rechazar el borrador.');
         }
-        this.borradorActual = datos.borrador || null;
-        this.borradorGuardado = Boolean(this.borradorActual);
-        this.hayCambios = false;
-        this.verBorradorVisible = this._permitido('verBorrador');
-        FlujoAutorizacion.pintarBorrador(this.tableElement, this.borradorActual);
-        this._actualizarBotones();
+        this._establecerBorrador(datos.borrador || null, true);
         this._mostrarToast(datos.mensaje || 'Borrador rechazado.');
-      } catch (error) {
-        console.error('Error al rechazar borrador', error);
-        this._mostrarToast(error.message || 'No fue posible rechazar.', 'danger');
-      }
+      });
     }
 
     async _handleRevision(cancelar) {
@@ -517,36 +520,28 @@
         this._mostrarToast('Esta vista no permite actualizar la revisión.', 'warning');
         return;
       }
-      if (!this.borradorActual?.id) {
+      if (!this.estado.borrador?.id) {
         this._mostrarToast('No hay borrador para revisar.', 'warning');
         return;
       }
-      try {
+      await this._ejecutarAccion('revision', async () => {
         const respuesta = await fetch(`${API_BASE}/borradores/revisar`, {
           method: 'POST',
           headers: this._construirHeaders(),
-          body: JSON.stringify({ borradorId: this.borradorActual.id, cancelar: Boolean(cancelar) })
+          body: JSON.stringify({ borradorId: this.estado.borrador.id, cancelar: Boolean(cancelar) })
         });
         const datos = await respuesta.json().catch(() => ({}));
         if (!respuesta.ok) {
           throw new Error(datos.mensaje || 'No fue posible actualizar la revisión.');
         }
-        this.borradorActual = datos.borrador || null;
-        this.borradorGuardado = Boolean(this.borradorActual);
-        this.hayCambios = false;
-        this.verBorradorVisible = this._permitido('verBorrador');
-        FlujoAutorizacion.pintarBorrador(this.tableElement, this.borradorActual);
-        this._actualizarBotones();
+        this._establecerBorrador(datos.borrador || null, true);
         this._mostrarToast(datos.mensaje || 'Revisión registrada.');
-      } catch (error) {
-        console.error('Error al marcar revisión', error);
-        this._mostrarToast(error.message || 'No fue posible actualizar la revisión.', 'danger');
-      }
+      });
     }
 
     _handleCancelarEdicion() {
-      this.hayCambios = false;
-      this.verBorradorVisible = false;
+      this.estado.hayCambios = false;
+      this.estado.verBorradorVisible = false;
       FlujoAutorizacion.limpiarBorrador(this.tableElement);
       this._actualizarBotones();
       try {
@@ -557,12 +552,12 @@
     }
 
     _toggleVerBorrador() {
-      if (!this.borradorActual || !this._permitido('verBorrador')) {
+      if (!this.estado.borrador || !this._permitido('verBorrador')) {
         return;
       }
-      this.verBorradorVisible = !this.verBorradorVisible;
-      if (this.verBorradorVisible) {
-        FlujoAutorizacion.pintarBorrador(this.tableElement, this.borradorActual);
+      this.estado.verBorradorVisible = !this.estado.verBorradorVisible;
+      if (this.estado.verBorradorVisible) {
+        FlujoAutorizacion.pintarBorrador(this.tableElement, this.estado.borrador);
       } else {
         FlujoAutorizacion.limpiarBorrador(this.tableElement);
       }
@@ -586,8 +581,33 @@
       console.info(`[Flujo AUT] ${mensaje}`);
     }
 
+    _setCargando(valor) {
+      this.estado.cargando = Boolean(valor);
+      if (this.buttons.guardar) this.buttons.guardar.disabled = valor;
+      if (this.buttons.autorizar) this.buttons.autorizar.disabled = valor;
+      if (this.buttons.rechazar) this.buttons.rechazar.disabled = valor;
+    }
+
+    async _ejecutarAccion(nombreAccion, callback) {
+      if (this.estado.cargando) {
+        this._mostrarToast('Hay otra acción en curso, espera un momento.', 'warning');
+        return;
+      }
+      if (typeof callback !== 'function') return;
+      this._setCargando(true);
+      try {
+        await callback();
+      } catch (error) {
+        console.error(`Error en acción ${nombreAccion}:`, error);
+        this._mostrarToast(error.message || 'No fue posible completar la acción.', 'danger');
+      } finally {
+        this._setCargando(false);
+        this._actualizarBotones();
+      }
+    }
+
     _actualizarBotones() {
-      const estado = this.borradorActual?.estado || null;
+      const estado = this.estado.borrador?.estado || null;
       const {
         guardar,
         verBorrador,
@@ -604,38 +624,92 @@
       const permitirRechazar = this._permitido('rechazar');
 
       if (guardar) {
-        const mostrarGuardar = permitirGuardar && enEdicion && this.hayCambios && this._tablaTieneDatos();
+        const mostrarGuardar = permitirGuardar && enEdicion && this.estado.hayCambios && this._tablaTieneDatos();
         guardar.classList.toggle('d-none', !mostrarGuardar);
-        guardar.disabled = !mostrarGuardar;
+        guardar.disabled = !mostrarGuardar || this.estado.cargando;
+        guardar.textContent = this.estado.cargando ? 'Guardando...' : guardar.dataset.label || guardar.textContent;
       }
 
       if (verBorrador) {
-        const tieneDatos = permitirBorrador && Boolean(this.borradorActual?.data) && enEdicion;
+        const estadoVisible = this._estadoVisible(estado);
+        const tieneDatos = permitirBorrador && estadoVisible && Boolean(this.estado.borrador?.data);
         verBorrador.classList.toggle('d-none', !tieneDatos);
-        verBorrador.classList.toggle('active', this.verBorradorVisible);
+        verBorrador.disabled = !tieneDatos || this.estado.cargando;
+        verBorrador.classList.toggle('active', this.estado.verBorradorVisible);
       }
 
       if (panelRevision) {
-        const visible = permitirRevision && !this.esAdminGlobal && [ESTADOS.PENDIENTE, ESTADOS.REVISADO].includes(estado);
+        const visible = permitirRevision && !this.estado.esAdminGlobal && [ESTADOS.PENDIENTE, ESTADOS.REVISADO].includes(estado);
         panelRevision.classList.toggle('d-none', !visible);
       }
 
       if (autorizar) {
         const enRevision = estado === ESTADOS.PENDIENTE;
         autorizar.textContent = enRevision ? 'Marcar revisado' : 'Autorizar';
-        const visible = permitirAutorizar && !this.esAdminGlobal && [ESTADOS.PENDIENTE, ESTADOS.REVISADO].includes(estado);
+        const visible = permitirAutorizar && !this.estado.esAdminGlobal && [ESTADOS.PENDIENTE, ESTADOS.REVISADO].includes(estado);
         autorizar.classList.toggle('d-none', !visible);
+        autorizar.disabled = this.estado.cargando;
       }
 
       if (rechazar) {
         const visible = permitirRechazar
-          && !this.esAdminGlobal
+          && !this.estado.esAdminGlobal
           && [ESTADOS.PENDIENTE, ESTADOS.REVISADO, ESTADOS.APROBADO].includes(estado);
         rechazar.classList.toggle('d-none', !visible);
+        rechazar.disabled = this.estado.cargando;
       }
 
       this._actualizarModuloBorradores();
+      this._renderEstadoUI();
+    }
 
+    _renderEstadoUI() {
+      const estadoActual = this.estado.borrador?.estado || null;
+      const definicion = ETIQUETAS_ESTADOS[estadoActual] || ETIQUETAS_ESTADOS[null];
+      const fecha = this.estado.borrador?.fechaEnvio || this.estado.borrador?.fechaActualizacion || null;
+      if (this.ui.badge) {
+        this.ui.badge.dataset.estado = estadoActual || 'SIN_BORRADOR';
+        this.ui.badge.textContent = definicion.titulo;
+      }
+      if (this.ui.meta) {
+        const fechaTexto = fecha ? new Date(fecha).toLocaleString('es-MX') : null;
+        const detalles = [definicion.descripcion, fechaTexto ? `Último cambio: ${fechaTexto}` : '']
+          .filter(Boolean)
+          .join(' · ');
+        this.ui.meta.textContent = detalles;
+      }
+      if (this.ui.history && Array.isArray(this.estado.borrador?.historial)) {
+        const items = this.estado.borrador.historial.map((registro) => {
+          const fechaRegistro = registro.fecha ? new Date(registro.fecha).toLocaleString('es-MX') : '';
+          return `
+            <li class="list-group-item d-flex justify-content-between align-items-start">
+              <div>
+                <strong>${registro.estado}</strong>
+                <div class="small text-muted">${registro.usuario || '—'}</div>
+              </div>
+              <small class="text-muted">${fechaRegistro}</small>
+            </li>`;
+        });
+        this.ui.history.innerHTML = items.join('') || '<li class="list-group-item text-muted">Aún no hay movimientos.</li>';
+      }
+    }
+
+    _establecerBorrador(borrador, forzarVisible = false) {
+      const estabaVisible = this.estado.verBorradorVisible;
+      this.estado.borrador = borrador;
+      this.estado.borradorGuardado = Boolean(borrador);
+      const estadoBorrador = borrador?.estado || null;
+      const puedeVer = this._permitido('verBorrador') && this._estadoVisible(estadoBorrador) && Boolean(borrador?.data);
+      this.estado.verBorradorVisible = forzarVisible ? Boolean(borrador?.data) : estabaVisible && puedeVer;
+      if (!this.estado.verBorradorVisible && puedeVer) {
+        this.estado.verBorradorVisible = true;
+      }
+      if (this.estado.verBorradorVisible) {
+        FlujoAutorizacion.pintarBorrador(this.tableElement, borrador);
+      } else {
+        FlujoAutorizacion.limpiarBorrador(this.tableElement);
+      }
+      this._actualizarBotones();
     }
 
     static pintarBorrador(tabla, datosBorrador) {
