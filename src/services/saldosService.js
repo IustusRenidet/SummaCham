@@ -151,7 +151,7 @@ async function obtenerCuentasPorAnio(empresaId, anio, filtroCuentas = []) {
       c.nombre AS nombre,
       c.naturaleza AS naturaleza
     FROM ${tCtas} c
-    INNER JOIN ${tSal} s ON s.num_cta = c.num_cta AND s.ejercicio = ?
+    LEFT JOIN ${tSal} s ON s.num_cta = c.num_cta AND s.ejercicio = ?
     WHERE c.status = 'A'
       ${whereCuentas}
     ORDER BY c.num_cta

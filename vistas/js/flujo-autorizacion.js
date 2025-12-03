@@ -57,6 +57,7 @@
       this.toastInstance = null;
       this.toastBody = null;
       this.buttons = {};
+      this.draftModule = null;
       this.callbacks = {
         onCancelEdit: options.onCancelEdit || (() => window.CuentasModulo?.cancelEdit?.()),
         obtenerCambios: options.obtenerCambios || (() => window.CuentasModulo?.getCambios?.() || {}),
@@ -64,8 +65,6 @@
       };
       this.buttonIds = options.buttonIds || {
         guardar: 'btnGuardarBorrador',
-        enviar: 'btnEnviarCambios',
-        cancelar: 'btnCancelarEdicion',
         verBorrador: 'btnVerBorrador',
         autorizar: 'btnAutorizar',
         rechazar: 'btnRechazar',
@@ -77,6 +76,7 @@
   init() {
     this.tableElement = document.getElementById(this.tablaId);
     this._definirBotones();
+    this._asegurarModuloBorradores();
     this._prepararToast();
     this._actualizarBotones();
     return this;
@@ -87,14 +87,16 @@
         if (!id) return;
         this.buttons[key] = document.getElementById(id);
       });
+      ['enviar', 'cancelar'].forEach((key) => {
+        const id = this.buttonIds[key];
+        const btn = id ? document.getElementById(id) : null;
+        if (btn) {
+          btn.remove();
+        }
+        this.buttons[key] = null;
+      });
       if (this.buttons.guardar) {
         this.buttons.guardar.addEventListener('click', () => this._handleGuardar());
-      }
-      if (this.buttons.enviar) {
-        this.buttons.enviar.addEventListener('click', () => this._handleEnviar());
-      }
-      if (this.buttons.cancelar) {
-        this.buttons.cancelar.addEventListener('click', () => this._handleCancelarEdicion());
       }
       if (this.buttons.verBorrador) {
         this.buttons.verBorrador.addEventListener('click', () => this._toggleVerBorrador());
@@ -139,6 +141,17 @@
       return this.contexto.empresaId && this.contexto.anio && this.contexto.modulo;
     }
 
+    _estadoEditable(estado) {
+      return [ESTADOS.EDITANDO, ESTADOS.PENDIENTE, ESTADOS.RECHAZADO, null].includes(estado || null);
+    }
+
+    _tablaTieneDatos() {
+      if (!this.tableElement) return false;
+      const filas = Array.from(this.tableElement.querySelectorAll('tbody tr'));
+      if (!filas.length) return false;
+      return !filas.every((fila) => fila.classList.contains('estado-tabla'));
+    }
+
     async _actualizarEstadoServidor() {
       if (!this._contextoCompleto()) {
         return;
@@ -158,23 +171,20 @@
           this.borradorGuardado = false;
           this.verBorradorVisible = false;
           FlujoAutorizacion.limpiarBorrador(this.tableElement);
+          this._actualizarModuloBorradores();
           this._actualizarBotones();
           return;
         }
         this.borradorActual = datos.borrador || null;
         this.borradorGuardado = Boolean(this.borradorActual);
-        this.verBorradorVisible = [
-          ESTADOS.PENDIENTE,
-          ESTADOS.REVISADO,
-          ESTADOS.APROBADO,
-          ESTADOS.GUARDADO,
-          ESTADOS.RECHAZADO
-        ].includes(this.borradorActual?.estado);
+        const estadoBorrador = this.borradorActual?.estado || null;
+        this.verBorradorVisible = this._estadoEditable(estadoBorrador) && Boolean(this.borradorActual?.data);
         if (this.verBorradorVisible) {
           FlujoAutorizacion.pintarBorrador(this.tableElement, this.borradorActual);
         } else {
           FlujoAutorizacion.limpiarBorrador(this.tableElement);
         }
+        this._actualizarModuloBorradores();
         this._actualizarBotones();
       } catch (error) {
         console.error('Error consultando el estado del borrador', error);
@@ -187,6 +197,77 @@
         'Content-Type': 'application/json',
         ...base
       };
+    }
+
+    _asegurarModuloBorradores() {
+      if (this.draftModule) {
+        return this.draftModule;
+      }
+      const existente = this.buttonIds.verBorrador
+        ? document.getElementById(this.buttonIds.verBorrador)
+        : document.getElementById('btnVerBorrador');
+      if (existente) {
+        this.draftModule = {
+          contenedor: existente.closest('.draft-viewer') || existente.parentElement,
+          estado: document.getElementById('draftStatusText'),
+          boton: existente
+        };
+        this.buttons.verBorrador = existente;
+        if (this.buttons.verBorrador) {
+          this.buttons.verBorrador.addEventListener('click', () => this._toggleVerBorrador());
+        }
+        return this.draftModule;
+      }
+      const contenedor = document.querySelector('.workflow-toolbar');
+      if (!contenedor) {
+        return null;
+      }
+      const modulo = document.createElement('div');
+      modulo.className = 'draft-viewer card border-0 shadow-sm mt-3';
+      modulo.innerHTML = `
+        <div class="card-body d-flex flex-column flex-md-row align-items-md-center gap-3">
+          <div class="flex-grow-1">
+            <p class="text-muted fw-semibold mb-1">Borradores en curso</p>
+            <p class="mb-0 small" id="draftStatusText">No hay borradores activos.</p>
+          </div>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-chip btn-chip-info d-none" id="btnVerBorrador">
+              <i class="bi bi-eye"></i>
+              <span>Ver borrador</span>
+            </button>
+          </div>
+        </div>
+      `;
+      contenedor.insertAdjacentElement('afterend', modulo);
+      this.draftModule = {
+        contenedor: modulo,
+        estado: modulo.querySelector('#draftStatusText'),
+        boton: modulo.querySelector('#btnVerBorrador')
+      };
+      this.buttons.verBorrador = this.draftModule.boton;
+      if (this.buttons.verBorrador) {
+        this.buttons.verBorrador.addEventListener('click', () => this._toggleVerBorrador());
+      }
+      return this.draftModule;
+    }
+
+    _actualizarModuloBorradores() {
+      const modulo = this._asegurarModuloBorradores();
+      if (!modulo) {
+        return;
+      }
+      const estado = this.borradorActual?.estado || null;
+      const permitido = this._estadoEditable(estado) && Boolean(this.borradorActual);
+      const fechaEnvio = this.borradorActual?.fechaEnvio ? new Date(this.borradorActual.fechaEnvio) : null;
+      const metaTexto = permitido
+        ? `Borrador ${estado || 'EDITANDO'}${fechaEnvio ? ` · actualizado ${fechaEnvio.toLocaleString('es-MX')}` : ''}`
+        : 'No hay borradores activos.';
+      modulo.estado.textContent = metaTexto;
+      if (modulo.boton) {
+        modulo.boton.classList.toggle('d-none', !permitido || !this.borradorActual?.data);
+        modulo.boton.disabled = !permitido || !this.borradorActual?.data;
+      }
+      modulo.contenedor.classList.toggle('d-none', !permitido && !this.borradorActual);
     }
 
     async _handleGuardar() {
@@ -408,34 +489,22 @@
       const estado = this.borradorActual?.estado || null;
       const {
         guardar,
-        enviar,
-        cancelar,
         verBorrador,
         panelRevision,
         autorizar,
         rechazar
       } = this.buttons;
 
-      const enEdicion = [ESTADOS.EDITANDO, ESTADOS.RECHAZADO, null].includes(estado);
+      const enEdicion = this._estadoEditable(estado);
 
       if (guardar) {
-        const mostrarGuardar = enEdicion && this.hayCambios;
+        const mostrarGuardar = enEdicion && this.hayCambios && this._tablaTieneDatos();
         guardar.classList.toggle('d-none', !mostrarGuardar);
         guardar.disabled = !mostrarGuardar;
       }
 
-      if (enviar) {
-        const puedeEnviar = enEdicion && (this.hayCambios || Boolean(this.borradorActual));
-        enviar.classList.toggle('d-none', !puedeEnviar);
-        enviar.disabled = !puedeEnviar;
-      }
-
-      if (cancelar) {
-        cancelar.classList.toggle('d-none', !this.hayCambios);
-      }
-
       if (verBorrador) {
-        const tieneDatos = Boolean(this.borradorActual?.data);
+        const tieneDatos = Boolean(this.borradorActual?.data) && enEdicion;
         verBorrador.classList.toggle('d-none', !tieneDatos);
         verBorrador.classList.toggle('active', this.verBorradorVisible);
       }
@@ -454,6 +523,8 @@
       if (rechazar) {
         rechazar.classList.toggle('d-none', this.esAdminGlobal || ![ESTADOS.PENDIENTE, ESTADOS.REVISADO, ESTADOS.APROBADO].includes(estado));
       }
+
+      this._actualizarModuloBorradores();
 
     }
 
