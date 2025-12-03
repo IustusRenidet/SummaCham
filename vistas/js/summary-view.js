@@ -340,7 +340,7 @@
     const row = document.createElement('tr');
     row.className = rowClass || '';
     row.innerHTML = `
-      <td></td>
+      <td class="account-column"></td>
       ${createCell(totals.actualMonth, boldNumbers)}
       ${createCell(totals.planMonth, boldNumbers)}
       ${createCell(totals.prevMonth, boldNumbers)}
