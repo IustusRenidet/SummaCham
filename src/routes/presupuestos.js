@@ -74,7 +74,7 @@ const cargarUsuarioActual = (req, res, next) => {
   req.esAdmin = esIconet || Boolean(registro.es_admin_global);
   if (!req.esAdmin) {
     const permisos = db.prepare(`
-      SELECT empresa_id, modulo, puede_cargar_guardar, puede_revisar, puede_aprobar
+      SELECT empresa_id, modulo, puede_leer, puede_cargar_guardar, puede_revisar, puede_aprobar
       FROM permisos_modulo
       WHERE usuario_id = ?
     `).all(registro.id);
@@ -92,7 +92,9 @@ const tienePermisoEnEmpresa = (mapaPermisos, empresaId) => {
   if (!permisos) {
     return false;
   }
-  return Object.values(permisos).some((acciones) => acciones['Cargar y guardar'] || acciones.Revisar || acciones.Aprobar);
+  return Object.values(permisos).some(
+    (acciones) => acciones.Lectura || acciones['Cargar y guardar'] || acciones.Revisar || acciones.Aprobar
+  );
 };
 
 const tienePermisoEnModulo = (mapaPermisos, empresaId, modulo, accion) => {
@@ -101,7 +103,7 @@ const tienePermisoEnModulo = (mapaPermisos, empresaId, modulo, accion) => {
     return false;
   }
   if (!accion) {
-    return Boolean(permisos['Cargar y guardar'] || permisos.Revisar || permisos.Aprobar);
+    return Boolean(permisos.Lectura || permisos['Cargar y guardar'] || permisos.Revisar || permisos.Aprobar);
   }
   return Boolean(permisos[accion]);
 };

@@ -5,6 +5,14 @@
   const EVENTO_CONTEXTO = 'planeacion:contexto-actualizado';
   const EVENTO_EDICION = 'modulo-planeacion:presupuesto-editado';
   const STYLE_ID = 'flujo-autorizacion-style';
+  const ESTADOS = {
+    EDITANDO: 'EDITANDO',
+    PENDIENTE: 'PENDIENTE',
+    REVISADO: 'REVISADO',
+    RECHAZADO: 'RECHAZADO',
+    APROBADO: 'APROBADO',
+    GUARDADO: 'GUARDADO'
+  };
 
   const colocarEstilo = () => {
     if (document.getElementById(STYLE_ID)) {
@@ -44,17 +52,28 @@
       this.hayCambios = false;
       this.borradorGuardado = false;
       this.verBorradorVisible = false;
+      this.esAdminGlobal = Boolean(window.Sesion?.esAdminGlobal?.());
       this.tableElement = null;
       this.toastInstance = null;
       this.toastBody = null;
       this.buttons = {};
-    this.callbacks = {
-      onCancelEdit: options.onCancelEdit || (() => window.CuentasModulo?.cancelEdit?.()),
-      obtenerCambios: options.obtenerCambios || (() => window.CuentasModulo?.getCambios?.() || {}),
-      obtenerHeaders: options.obtenerHeaders || (() => Sesion.headersAutenticacion())
-    };
-    this._conectarEventos();
-  }
+      this.callbacks = {
+        onCancelEdit: options.onCancelEdit || (() => window.CuentasModulo?.cancelEdit?.()),
+        obtenerCambios: options.obtenerCambios || (() => window.CuentasModulo?.getCambios?.() || {}),
+        obtenerHeaders: options.obtenerHeaders || (() => Sesion.headersAutenticacion())
+      };
+      this.buttonIds = options.buttonIds || {
+        guardar: 'btnGuardarBorrador',
+        enviar: 'btnEnviarCambios',
+        cancelar: 'btnCancelarEdicion',
+        verBorrador: 'btnVerBorrador',
+        autorizar: 'btnAutorizar',
+        rechazar: 'btnRechazar',
+        guardarAutorizado: 'btnGuardarAutorizado',
+        panelRevision: 'panelRevision'
+      };
+      this._conectarEventos();
+    }
 
   init() {
     this.tableElement = document.getElementById(this.tablaId);
@@ -65,35 +84,30 @@
   }
 
     _definirBotones() {
-      const ids = [
-        'btnGuardarBorrador',
-        'btnEnviarCambios',
-        'btnCancelarEdicion',
-        'btnVerBorrador',
-        'btnAutorizar',
-        'btnRechazar',
-        'panelRevision'
-      ];
-      ids.forEach((id) => {
-        this.buttons[id] = document.getElementById(id);
+      Object.entries(this.buttonIds).forEach(([key, id]) => {
+        if (!id) return;
+        this.buttons[key] = document.getElementById(id);
       });
-      if (this.buttons.btnGuardarBorrador) {
-        this.buttons.btnGuardarBorrador.addEventListener('click', () => this._handleGuardar());
+      if (this.buttons.guardar) {
+        this.buttons.guardar.addEventListener('click', () => this._handleGuardar());
       }
-      if (this.buttons.btnEnviarCambios) {
-        this.buttons.btnEnviarCambios.addEventListener('click', () => this._handleEnviar());
+      if (this.buttons.enviar) {
+        this.buttons.enviar.addEventListener('click', () => this._handleEnviar());
       }
-      if (this.buttons.btnCancelarEdicion) {
-        this.buttons.btnCancelarEdicion.addEventListener('click', () => this._handleCancelarEdicion());
+      if (this.buttons.cancelar) {
+        this.buttons.cancelar.addEventListener('click', () => this._handleCancelarEdicion());
       }
-      if (this.buttons.btnVerBorrador) {
-        this.buttons.btnVerBorrador.addEventListener('click', () => this._toggleVerBorrador());
+      if (this.buttons.verBorrador) {
+        this.buttons.verBorrador.addEventListener('click', () => this._toggleVerBorrador());
       }
-      if (this.buttons.btnAutorizar) {
-        this.buttons.btnAutorizar.addEventListener('click', () => this._handleAutorizar());
+      if (this.buttons.autorizar) {
+        this.buttons.autorizar.addEventListener('click', () => this._handleAutorizar());
       }
-      if (this.buttons.btnRechazar) {
-        this.buttons.btnRechazar.addEventListener('click', () => this._handleRechazar());
+      if (this.buttons.rechazar) {
+        this.buttons.rechazar.addEventListener('click', () => this._handleRechazar());
+      }
+      if (this.buttons.guardarAutorizado) {
+        this.buttons.guardarAutorizado.addEventListener('click', () => this._handleGuardarFinal());
       }
     }
 
@@ -153,8 +167,13 @@
         }
         this.borradorActual = datos.borrador || null;
         this.borradorGuardado = Boolean(this.borradorActual);
-        this.verBorradorVisible = false;
-        FlujoAutorizacion.limpiarBorrador(this.tableElement);
+        this.verBorradorVisible = [ESTADOS.PENDIENTE, ESTADOS.REVISADO, ESTADOS.APROBADO, ESTADOS.GUARDADO]
+          .includes(this.borradorActual?.estado);
+        if (this.verBorradorVisible) {
+          FlujoAutorizacion.pintarBorrador(this.tableElement, this.borradorActual);
+        } else {
+          FlujoAutorizacion.limpiarBorrador(this.tableElement);
+        }
         this._actualizarBotones();
       } catch (error) {
         console.error('Error consultando el estado del borrador', error);
@@ -200,8 +219,8 @@
         this.borradorActual = datos.borrador || null;
         this.borradorGuardado = Boolean(this.borradorActual);
         this.hayCambios = false;
-        this.verBorradorVisible = false;
-        FlujoAutorizacion.limpiarBorrador(this.tableElement);
+        this.verBorradorVisible = true;
+        FlujoAutorizacion.pintarBorrador(this.tableElement, this.borradorActual);
         this._actualizarBotones();
         this._mostrarToast(datos.mensaje || 'Borrador guardado.');
       } catch (error) {
@@ -211,6 +230,9 @@
     }
 
     async _handleEnviar() {
+      if (!this.borradorActual?.id || this.hayCambios) {
+        await this._handleGuardar();
+      }
       if (!this.borradorActual?.id) {
         this._mostrarToast('No hay borrador guardado para enviar.', 'warning');
         return;
@@ -228,8 +250,8 @@
         this.borradorActual = datos.borrador || null;
         this.borradorGuardado = Boolean(this.borradorActual);
         this.hayCambios = false;
-        this.verBorradorVisible = false;
-        FlujoAutorizacion.limpiarBorrador(this.tableElement);
+        this.verBorradorVisible = true;
+        FlujoAutorizacion.pintarBorrador(this.tableElement, this.borradorActual);
         this._actualizarBotones();
         const mensaje = datos.autoAutorizado
           ? 'Borrador autorizado automáticamente.'
@@ -246,6 +268,10 @@
         this._mostrarToast('No hay borrador pendiente.', 'warning');
         return;
       }
+      const estado = this.borradorActual?.estado;
+      if (estado === ESTADOS.PENDIENTE) {
+        return this._handleRevision(false);
+      }
       try {
         const respuesta = await fetch(`${API_BASE}/borradores/autorizar`, {
           method: 'POST',
@@ -259,8 +285,8 @@
         this.borradorActual = datos.borrador || null;
         this.borradorGuardado = Boolean(this.borradorActual);
         this.hayCambios = false;
-        this.verBorradorVisible = false;
-        FlujoAutorizacion.limpiarBorrador(this.tableElement);
+        this.verBorradorVisible = true;
+        FlujoAutorizacion.pintarBorrador(this.tableElement, this.borradorActual);
         this._actualizarBotones();
         this._mostrarToast(datos.mensaje || 'Borrador autorizado.');
       } catch (error) {
@@ -273,6 +299,12 @@
       if (!this.borradorActual?.id) {
         this._mostrarToast('No hay borrador pendiente.', 'warning');
         return;
+      }
+      if (this.borradorActual?.estado === ESTADOS.REVISADO) {
+        const cancelar = window.confirm('¿Cancelar revisión y regresar a edición?');
+        if (cancelar) {
+          return this._handleRevision(true);
+        }
       }
       const motivo = window.prompt('Indica el motivo para rechazar este borrador:');
       if (!motivo) {
@@ -291,13 +323,69 @@
         this.borradorActual = datos.borrador || null;
         this.borradorGuardado = Boolean(this.borradorActual);
         this.hayCambios = false;
-        this.verBorradorVisible = false;
-        FlujoAutorizacion.limpiarBorrador(this.tableElement);
+        this.verBorradorVisible = true;
+        FlujoAutorizacion.pintarBorrador(this.tableElement, this.borradorActual);
         this._actualizarBotones();
         this._mostrarToast(datos.mensaje || 'Borrador rechazado.');
       } catch (error) {
         console.error('Error al rechazar borrador', error);
         this._mostrarToast(error.message || 'No fue posible rechazar.', 'danger');
+      }
+    }
+
+    async _handleRevision(cancelar) {
+      if (!this.borradorActual?.id) {
+        this._mostrarToast('No hay borrador para revisar.', 'warning');
+        return;
+      }
+      try {
+        const respuesta = await fetch(`${API_BASE}/borradores/revisar`, {
+          method: 'POST',
+          headers: this._construirHeaders(),
+          body: JSON.stringify({ borradorId: this.borradorActual.id, cancelar: Boolean(cancelar) })
+        });
+        const datos = await respuesta.json().catch(() => ({}));
+        if (!respuesta.ok) {
+          throw new Error(datos.mensaje || 'No fue posible actualizar la revisión.');
+        }
+        this.borradorActual = datos.borrador || null;
+        this.borradorGuardado = Boolean(this.borradorActual);
+        this.hayCambios = false;
+        this.verBorradorVisible = true;
+        FlujoAutorizacion.pintarBorrador(this.tableElement, this.borradorActual);
+        this._actualizarBotones();
+        this._mostrarToast(datos.mensaje || 'Revisión registrada.');
+      } catch (error) {
+        console.error('Error al marcar revisión', error);
+        this._mostrarToast(error.message || 'No fue posible actualizar la revisión.', 'danger');
+      }
+    }
+
+    async _handleGuardarFinal() {
+      if (!this.borradorActual?.id) {
+        this._mostrarToast('No hay borrador autorizado para guardar.', 'warning');
+        return;
+      }
+      try {
+        const respuesta = await fetch(`${API_BASE}/borradores/finalizar`, {
+          method: 'POST',
+          headers: this._construirHeaders(),
+          body: JSON.stringify({ borradorId: this.borradorActual.id })
+        });
+        const datos = await respuesta.json().catch(() => ({}));
+        if (!respuesta.ok) {
+          throw new Error(datos.mensaje || 'No fue posible guardar en base de datos.');
+        }
+        this.borradorActual = datos.borrador || null;
+        this.borradorGuardado = Boolean(this.borradorActual);
+        this.hayCambios = false;
+        this.verBorradorVisible = true;
+        FlujoAutorizacion.pintarBorrador(this.tableElement, this.borradorActual);
+        this._actualizarBotones();
+        this._mostrarToast(datos.mensaje || 'Información guardada en la base de datos.');
+      } catch (error) {
+        console.error('Error al guardar autorizado', error);
+        this._mostrarToast(error.message || 'No fue posible guardar en la base de datos.', 'danger');
       }
     }
 
@@ -345,32 +433,56 @@
 
     _actualizarBotones() {
       const estado = this.borradorActual?.estado || null;
-      const { btnGuardarBorrador, btnEnviarCambios, btnCancelarEdicion, btnVerBorrador, panelRevision } = this.buttons;
+      const {
+        guardar,
+        enviar,
+        cancelar,
+        verBorrador,
+        panelRevision,
+        autorizar,
+        rechazar,
+        guardarAutorizado
+      } = this.buttons;
 
-      if (btnGuardarBorrador) {
-        btnGuardarBorrador.disabled = !this.hayCambios;
-        btnGuardarBorrador.classList.toggle('d-none', false);
+      if (guardar) {
+        guardar.disabled = true;
+        guardar.classList.add('d-none');
       }
 
-      if (btnEnviarCambios) {
-        const puedeEnviar = Boolean(this.borradorActual)
-          && ['EDITANDO', 'RECHAZADO'].includes(estado)
-          && !this.hayCambios;
-        btnEnviarCambios.classList.toggle('d-none', !puedeEnviar);
+      if (enviar) {
+        const puedeEnviar = [ESTADOS.EDITANDO, ESTADOS.RECHAZADO, null].includes(estado)
+          && (this.hayCambios || Boolean(this.borradorActual));
+        enviar.classList.toggle('d-none', !puedeEnviar);
       }
 
-      if (btnCancelarEdicion) {
-        btnCancelarEdicion.classList.toggle('d-none', !this.hayCambios);
+      if (cancelar) {
+        cancelar.classList.toggle('d-none', !this.hayCambios);
       }
 
-      if (btnVerBorrador) {
-        const tieneDatos = Boolean(this.borradorActual?.data?.presupuesto?.length);
-        btnVerBorrador.classList.toggle('d-none', !tieneDatos);
-        btnVerBorrador.classList.toggle('active', this.verBorradorVisible);
+      if (verBorrador) {
+        const tieneDatos = Boolean(this.borradorActual?.data);
+        verBorrador.classList.toggle('d-none', !tieneDatos);
+        verBorrador.classList.toggle('active', this.verBorradorVisible);
       }
 
       if (panelRevision) {
-        panelRevision.classList.toggle('d-none', estado !== 'PENDIENTE');
+        const visible = !this.esAdminGlobal && [ESTADOS.PENDIENTE, ESTADOS.REVISADO, ESTADOS.APROBADO].includes(estado);
+        panelRevision.classList.toggle('d-none', !visible);
+      }
+
+      if (autorizar) {
+        const enRevision = estado === ESTADOS.PENDIENTE;
+        autorizar.textContent = enRevision ? 'Marcar revisado' : 'Autorizar';
+        autorizar.classList.toggle('d-none', this.esAdminGlobal || ![ESTADOS.PENDIENTE, ESTADOS.REVISADO].includes(estado));
+      }
+
+      if (rechazar) {
+        rechazar.classList.toggle('d-none', this.esAdminGlobal || ![ESTADOS.PENDIENTE, ESTADOS.REVISADO, ESTADOS.APROBADO].includes(estado));
+      }
+
+      if (guardarAutorizado) {
+        const puedeGuardar = this.esAdminGlobal || estado === ESTADOS.APROBADO;
+        guardarAutorizado.classList.toggle('d-none', !puedeGuardar);
       }
     }
 

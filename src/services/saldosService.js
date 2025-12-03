@@ -129,7 +129,7 @@ async function obtenerAniosDisponibles(empresaId) {
   return listarAniosSaldos(empresaId);
 }
 
-async function obtenerCuentasPorAnio(empresaId, anio) {
+async function obtenerCuentasPorAnio(empresaId, anio, filtroCuentas = []) {
   if (!empresaId) throw new Error('Empresa obligatoria');
   const ejercicio = Number(anio);
   if (!Number.isInteger(ejercicio) || ejercicio < 2000 || ejercicio > 2100) {
@@ -139,6 +139,12 @@ async function obtenerCuentasPorAnio(empresaId, anio) {
   const tCtas = construirNombreTabla('CUENTAS', ejercicio);
   const tSal = construirNombreTabla('SALDOS', ejercicio);
 
+  const filtros = Array.isArray(filtroCuentas)
+    ? filtroCuentas.filter(Boolean)
+    : [];
+
+  const parametros = [ejercicio];
+  const whereCuentas = filtros.length ? ` AND c.num_cta IN (${filtros.map(() => '?').join(',')})` : '';
   const sql = `
     SELECT DISTINCT
       c.num_cta AS cuenta,
@@ -147,10 +153,11 @@ async function obtenerCuentasPorAnio(empresaId, anio) {
     FROM ${tCtas} c
     INNER JOIN ${tSal} s ON s.num_cta = c.num_cta AND s.ejercicio = ?
     WHERE c.status = 'A'
+      ${whereCuentas}
     ORDER BY c.num_cta
   `;
 
-  const rows = await ejecutarConsulta(empresaId, sql, [ejercicio]);
+  const rows = await ejecutarConsulta(empresaId, sql, parametros.concat(filtros));
   return rows.map(row => ({
     cuenta: String(row.cuenta).trim(),
     nombre: String(row.nombre || '').trim(),
