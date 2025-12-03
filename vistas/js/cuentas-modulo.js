@@ -861,6 +861,12 @@
     }
   };
 
+  const esCuentaPresupuestoValida = (valorCuenta) => {
+    const canonica = convertirCuenta21(valorCuenta || '');
+    const prefijo = Number.parseInt((canonica || '').slice(0, 3), 10);
+    return Number.isFinite(prefijo) && prefijo >= 400 && prefijo < 800;
+  };
+
   const cuentaVisibleDesdeLarga = (cuentaLarga) => {
     const base = normalizarCuentaBase(cuentaLarga).padEnd(21, '0');
     const visible = base.slice(0, 11);
@@ -908,11 +914,8 @@
       const limpia = (cuenta || '').toString().trim();
       const canonica = convertirCuenta21(limpia);
       if (canonica) {
-        if (normalizarModuloClave(estadoModulo.moduloClave) === 'presupuestos') {
-          const prefijo = Number.parseInt(canonica.slice(0, 3), 10);
-          if (!Number.isFinite(prefijo) || prefijo < 400 || prefijo >= 800) {
-            return;
-          }
+        if (normalizarModuloClave(estadoModulo.moduloClave) === 'presupuestos' && !esCuentaPresupuestoValida(canonica)) {
+          return;
         }
         previo.add(canonica);
       }
@@ -1063,11 +1066,7 @@
         return;
       }
       const registros = registrosPresupuesto
-        .filter((registro) => {
-          const canonica = convertirCuenta21(registro.cuenta21 || registro.cuenta || registro.cuentaVisible || '');
-          const prefijo = Number.parseInt((canonica || '').slice(0, 3), 10);
-          return Number.isFinite(prefijo) && prefijo >= 400 && prefijo < 800;
-        })
+        .filter((registro) => esCuentaPresupuestoValida(registro.cuenta21 || registro.cuenta || registro.cuentaVisible || ''))
         .map((registro) => {
         const real = {};
         MESES.forEach((mes) => {
@@ -2375,8 +2374,11 @@
     if ((!hoja || !Array.isArray(hoja)) && moduloClave === 'presupuestos' && capituloDestino) {
       const anioPresupuesto = obtenerAnioSeleccionado() || new Date().getFullYear();
       const cuentasPresupuesto = await cargarCuentasPresupuestos({ anio: anioPresupuesto });
-      if (cuentasPresupuesto.length) {
-        hoja = cuentasPresupuesto
+      const cuentasFiltradas = cuentasPresupuesto.filter((registro) =>
+        esCuentaPresupuestoValida(registro.cuentaVisible || registro.cuenta21 || registro.cuenta)
+      );
+      if (cuentasFiltradas.length) {
+        hoja = cuentasFiltradas
           .map((registro) => ({
             capitulo: capituloDestino,
             seccion: 'Presupuestos',
@@ -2394,6 +2396,12 @@
 
     const objetivo = normalizarTexto(capituloDestino);
     let registros = hoja.filter((registro) => normalizarTexto(registro.capitulo) === objetivo);
+    if (moduloClave === 'presupuestos') {
+      registros = registros.filter((registro) => {
+        if (!registro?.cuenta) return true;
+        return esCuentaPresupuestoValida(registro.cuenta);
+      });
+    }
     let sumasPersonalizadas = null;
     let resultadoForzado = '';
     let layoutPersonalizado = null;
