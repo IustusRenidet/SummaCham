@@ -261,6 +261,8 @@ async function generarReporte(tipoReporte, empresaId, anio, mesSeleccionado, cap
     capituloSeleccionado: capituloEncontrado?.etiqueta || capitulosDisponibles[0]?.etiqueta || null,
     capitulosDisponibles
   };
+
+  return payload;
 }
 
 module.exports = {
