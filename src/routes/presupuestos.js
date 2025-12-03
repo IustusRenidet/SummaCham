@@ -377,8 +377,14 @@ router.post('/estado', (req, res) => {
       guardadoPor: req.usuarioActual.id
     });
     const estadoActualizado = guardarEstadoPresupuesto(empresaId, modulo, ejercicio, 'guardado', req.usuarioActual.id);
+    const ejecutor = {
+      id: req.usuarioActual.id,
+      usuario: req.usuarioActual.usuario,
+      nombre: construirNombreUsuario(req.usuarioActual)
+    };
     res.json({
-      mensaje: 'Presupuesto guardado en la base de datos.',
+      mensaje: `Presupuesto marcado como guardado por ${ejecutor.nombre} en el flujo de presupuestos (${modulo}).`,
+      ejecutor,
       ...estadoActualizado
     });
     notificarWorkflowPresupuesto({
@@ -387,11 +393,7 @@ router.post('/estado', (req, res) => {
       anio: ejercicio,
       accion: 'guardar',
       estado: 'guardado',
-      ejecutor: {
-        id: req.usuarioActual.id,
-        usuario: req.usuarioActual.usuario,
-        nombre: construirNombreUsuario(req.usuarioActual)
-      }
+      ejecutor
     }).catch((notifError) => {
       console.warn('No fue posible enviar notificaciones del workflow.', notifError);
     });

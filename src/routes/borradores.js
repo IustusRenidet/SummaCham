@@ -377,19 +377,24 @@ router.post('/finalizar', async (req, res) => {
 
   try {
     const guardado = await guardarAutorizado(value.borradorId);
+    const ejecutor = {
+      id: req.usuarioActual.id,
+      usuario: req.usuarioActual.usuario,
+      nombre: `${req.usuarioActual.nombres || ''} ${req.usuarioActual.apellidos || ''}`.trim() || req.usuarioActual.usuario
+    };
     notificarWorkflowPresupuesto({
       empresaId: empresa.id,
       modulo: borrador.modulo,
       anio: borrador.anio,
       accion: 'guardar',
       estado: guardado.estado,
-      ejecutor: {
-        id: req.usuarioActual.id,
-        usuario: req.usuarioActual.usuario,
-        nombre: `${req.usuarioActual.nombres || ''} ${req.usuarioActual.apellidos || ''}`.trim() || req.usuarioActual.usuario
-      }
+      ejecutor
     }).catch((notifError) => console.warn('No se enviaron todas las notificaciones de borradores.', notifError));
-    return res.json({ mensaje: 'Presupuesto guardado en base de datos.', borrador: guardado });
+    return res.json({
+      mensaje: `Presupuesto marcado como guardado por ${ejecutor.nombre} en el flujo de borradores (${borrador.modulo}).`,
+      ejecutor,
+      borrador: guardado
+    });
   } catch (errorFinal) {
     console.error('Error al guardar borrador autorizado:', errorFinal);
     return res.status(500).json({ mensaje: 'No fue posible guardar en la base de datos.' });
