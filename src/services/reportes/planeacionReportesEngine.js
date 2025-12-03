@@ -13,7 +13,6 @@ const normalizarCuentaCanonica = (valor = '') => {
   const limpio = valor.toString().replace(/[^0-9]/g, '');
   if (!limpio) return '';
 
-  // Si ya viene en formato COI de 21 caracteres, respétalo con padding.
   if (limpio.length >= 21) {
     return limpio.slice(0, 21);
   }
@@ -22,6 +21,7 @@ const normalizarCuentaCanonica = (valor = '') => {
   const b = visible.slice(3, 6);
   const c = visible.slice(6, 9);
   const d = visible.slice(9, 11);
+
   const nivel = (() => {
     if (b === '000' && c === '000' && d === '00') return '1';
     if (c === '000' && d === '00') return '2';
@@ -83,8 +83,10 @@ const normalizarClaveMes = (mesEntrada) => {
   if (Number.isInteger(numero) && numero >= 1 && numero <= 12) {
     return MESES[numero - 1].clave;
   }
+
   const texto = mesEntrada.toString().trim().toLowerCase();
   if (!texto) return null;
+
   const coincidencia = MESES.find(({ alias, clave }, idx) => {
     return (
       alias.toLowerCase() === texto
@@ -93,71 +95,66 @@ const normalizarClaveMes = (mesEntrada) => {
       || NOMBRES_MESES[idx].startsWith(texto)
     );
   });
+
   return coincidencia ? coincidencia.clave : null;
 };
 
 const calcularTotales = (cuentas, claveMes, planeacionActual, planeacionPrevio) => {
-  const acumulados = {
-    actualMonth: 0,
-    planMonth: 0,
-    prevMonth: 0,
-    actualYTD: 0,
-    planYTD: 0,
-    prevYTD: 0
-  };
-};
-
-  const sumaHastaMes = (registro, incluirPrevio) => {
-    let total = 0;
-    for (const { clave } of MESES) {
-      total += Number(registro?.presupuesto?.[clave] ?? 0);
-      if (clave === claveMes) break;
-    }
-    if (incluirPrevio) return total;
-    return total;
-  };
-
   const claveAcum = `${claveMes}_acum`;
 
-  cuentas.forEach((cuenta) => {
-    const actual = planeacionActual.find((p) => p.cuenta === cuenta);
-    const previo = planeacionPrevio.find((p) => p.cuenta === cuenta);
+  return cuentas.reduce(
+    (acc, cuenta) => {
+      const actual = planeacionActual.find((p) => p.cuenta === cuenta);
+      const previo = planeacionPrevio.find((p) => p.cuenta === cuenta);
 
-    acumulados.actualMonth += Number(actual?.real?.[claveMes] ?? 0);
-    acumulados.planMonth += Number(actual?.presupuesto?.[claveMes] ?? 0);
-    acumulados.prevMonth += Number(previo?.real?.[claveMes] ?? 0);
+      acc.actualMonth += Number(actual?.real?.[claveMes] ?? 0);
+      acc.planMonth += Number(actual?.presupuesto?.[claveMes] ?? 0);
+      acc.prevMonth += Number(previo?.real?.[claveMes] ?? 0);
 
-    acumulados.actualYTD += Number(actual?.real?.[claveAcum] ?? 0);
-    acumulados.planYTD += sumaHastaMes(actual, false);
-    acumulados.prevYTD += Number(previo?.real?.[claveAcum] ?? 0);
-  });
+      acc.actualYTD += Number(actual?.real?.[claveAcum] ?? 0);
+      acc.planYTD += MESES.reduce((total, { clave }) => {
+        if (total.detener) return total;
+        const nuevo = total.total + Number(actual?.presupuesto?.[clave] ?? 0);
+        if (clave === claveMes) return { total: nuevo, detener: true };
+        return { total: nuevo, detener: false };
+      }, { total: 0, detener: false }).total;
+      acc.prevYTD += Number(previo?.real?.[claveAcum] ?? 0);
 
-  return acumulados;
+      return acc;
+    },
+    { actualMonth: 0, planMonth: 0, prevMonth: 0, actualYTD: 0, planYTD: 0, prevYTD: 0 }
+  );
 };
 
 const construirNodoSeccion = ({ seccion, cuentas, definicion, claveMes, planeacionActual, planeacionPrevio }) => {
   const totales = calcularTotales(cuentas, claveMes, planeacionActual, planeacionPrevio);
+
+  const cuentasDetalle = cuentas.map((cuentaId) => {
+    const actual = planeacionActual.find((p) => p.cuenta === cuentaId) || {};
+    const previo = planeacionPrevio.find((p) => p.cuenta === cuentaId) || {};
+
+    const planYTD = MESES.reduce((acc, { clave }) => {
+      if (acc.detener) return acc;
+      const nuevo = acc.total + Number(actual.presupuesto?.[clave] ?? 0);
+      if (clave === claveMes) return { total: nuevo, detener: true };
+      return { total: nuevo, detener: false };
+    }, { total: 0, detener: false }).total;
+
+    return {
+      cuenta: definicion.get(cuentaId)?.visible || cuentaId,
+      descripcion: definicion.get(cuentaId)?.descripcion || '',
+      actualMonth: Number(actual.real?.[claveMes] ?? 0),
+      planMonth: Number(actual.presupuesto?.[claveMes] ?? 0),
+      prevMonth: Number(previo.real?.[claveMes] ?? 0),
+      actualYTD: Number(actual.real?.[`${claveMes}_acum`] ?? 0),
+      planYTD,
+      prevYTD: Number(previo.real?.[`${claveMes}_acum`] ?? 0)
+    };
+  });
+
   return {
     label: seccion,
-    cuentas: cuentas.map((cuentaId) => {
-      const actual = planeacionActual.find((p) => p.cuenta === cuentaId) || {};
-      const previo = planeacionPrevio.find((p) => p.cuenta === cuentaId) || {};
-      return {
-        cuenta: definicion.get(cuentaId)?.visible || cuentaId,
-        descripcion: definicion.get(cuentaId)?.descripcion || '',
-        actualMonth: Number(actual.real?.[claveMes] ?? 0),
-        planMonth: Number(actual.presupuesto?.[claveMes] ?? 0),
-        prevMonth: Number(previo.real?.[claveMes] ?? 0),
-        actualYTD: Number(actual.real?.[`${claveMes}_acum`] ?? 0),
-        planYTD: MESES.reduce((acc, { clave }) => {
-          if (acc.detener) return acc;
-          const nuevo = acc.total + Number(actual.presupuesto?.[clave] ?? 0);
-          if (clave === claveMes) return { total: nuevo, detener: true };
-          return { total: nuevo, detener: false };
-        }, { total: 0, detener: false }).total,
-        prevYTD: Number(previo.real?.[`${claveMes}_acum`] ?? 0)
-      };
-    }),
+    cuentas: cuentasDetalle,
     totalActualMonth: totales.actualMonth,
     totalPlanMonth: totales.planMonth,
     totalPrevMonth: totales.prevMonth,
@@ -182,9 +179,11 @@ const construirReporteResumen = (definiciones, claveMes, planeacionActual, plane
       descripcion: item.NOMBRE || '',
       visible: item.CUENTA || cuentaVisibleDesdeCanonica(cuentaCanonica)
     });
+
     if (!agrupado.has(capitulo)) {
       agrupado.set(capitulo, new Map());
     }
+
     const secciones = agrupado.get(capitulo);
     if (!secciones.has(seccion)) {
       secciones.set(seccion, []);
@@ -196,19 +195,22 @@ const construirReporteResumen = (definiciones, claveMes, planeacionActual, plane
 
   agrupado.forEach((secciones, capitulo) => {
     const children = [];
+
     secciones.forEach((cuentas, seccion) => {
       children.push(construirNodoSeccion({ seccion, cuentas, definicion: definicionCuentas, claveMes, planeacionActual, planeacionPrevio }));
     });
 
-    const totalesCapitulo = children.reduce((acc, nodo) => {
-      acc.actualMonth += nodo.totalActualMonth;
-      acc.planMonth += nodo.totalPlanMonth;
-      acc.prevMonth += nodo.totalPrevMonth;
-      acc.actualYTD += nodo.totalActualYTD;
-      acc.planYTD += nodo.totalPlanYTD;
-      acc.prevYTD += nodo.totalPrevYTD;
-      return acc;
-    }, { actualMonth: 0, planMonth: 0, prevMonth: 0, actualYTD: 0, planYTD: 0, prevYTD: 0 });
+    const totalesCapitulo = children.reduce(
+      (acc, nodo) => ({
+        actualMonth: acc.actualMonth + nodo.totalActualMonth,
+        planMonth: acc.planMonth + nodo.totalPlanMonth,
+        prevMonth: acc.prevMonth + nodo.totalPrevMonth,
+        actualYTD: acc.actualYTD + nodo.totalActualYTD,
+        planYTD: acc.planYTD + nodo.totalPlanYTD,
+        prevYTD: acc.prevYTD + nodo.totalPrevYTD
+      }),
+      { actualMonth: 0, planMonth: 0, prevMonth: 0, actualYTD: 0, planYTD: 0, prevYTD: 0 }
+    );
 
     resumen.push({
       key: NORMALIZAR_CLAVE(capitulo),
@@ -250,7 +252,8 @@ async function generarReporte(tipoReporte, empresaId, anio, mesSeleccionado, cap
   ]);
 
   const resumen = construirReporteResumen(listaFiltrada, claveMes, planeacionActual, planeacionPrevio);
-  const payload = {
+
+  return {
     empresaId,
     reportKey: tipoReporte,
     anio,
