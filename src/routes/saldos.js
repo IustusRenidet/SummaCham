@@ -128,8 +128,12 @@ router.get('/cuentas', async (req, res) => {
 
   const { value, error } = Joi.object({
     empresaId: Joi.string().required(),
-    anio: Joi.number().integer().min(2000).max(2100).required()
-  }).validate(req.query, { abortEarly: false });
+    anio: Joi.number().integer().min(2000).max(2100).required(),
+    cuentas: Joi.alternatives().try(
+      Joi.array().items(Joi.string().trim()).min(1),
+      Joi.string().trim()
+    ).optional()
+  }).validate(req.query, { abortEarly: false, allowUnknown: true });
 
   if (error) {
     return res.status(400).json({ mensaje:'Parámetros inválidos', detalles: error.details.map(d=>d.message) });
@@ -149,9 +153,16 @@ router.get('/cuentas', async (req, res) => {
     if (!puede(mapa, empresa.id)) return res.status(403).json({ mensaje: 'Sin permiso para esta empresa.' });
   }
 
+  const cuentas = Array.isArray(value.cuentas)
+    ? value.cuentas
+    : (value.cuentas || '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+
   try {
-    const cuentas = await obtenerCuentasPorAnio(empresa.id, value.anio);
-    res.json({ cuentas });
+    const cuentasEncontradas = await obtenerCuentasPorAnio(empresa.id, value.anio, cuentas);
+    res.json({ cuentas: cuentasEncontradas });
   } catch (e) {
     console.error('Error /api/saldos/cuentas:', e);
     res.status(500).json({ mensaje: 'No fue posible obtener cuentas.' });
