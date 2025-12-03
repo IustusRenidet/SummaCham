@@ -46,6 +46,8 @@
   const cambiosPendientes = new Map();
   let editMode = false;
 
+  const normalizeText = (texto) => (texto || '').toString().normalize('NFD').replace(/\p{Diacritic}/gu, '').toUpperCase();
+
   const MESES = [
     { etiqueta: 'Enero', clave: 'ene', periodo: 1 },
     { etiqueta: 'Febrero', clave: 'feb', periodo: 2 },
@@ -163,6 +165,69 @@
   // Compatibilidad: algunos layouts antiguos esperaban esta función.
   // Hoy el capítulo se deriva de la empresa activa, pero aquí podemos
   // también mostrar y permitir cambiar la selección.
+  const SECTION_PRIORITY = [
+    'MEMBERSHIP',
+    'EVENTS',
+    'COMMITTEES',
+    'T&IC',
+    'SERVICES TO MEMBERS',
+    'GUADALAJARA',
+    'MONTERREY',
+    'NORTHWEST',
+    'GASTOS ADMINISTRATIVOS',
+    'GASTOS GENERALES',
+    'NOMINA',
+    'GASTOS CORPORATIVOS',
+    'CARGOS ADMINISTRATIVOS',
+    'MEMBER CENTRICITY',
+    'OTHER',
+    'OTHER INCOME'
+  ];
+
+  const SECTION_PRIORITY_DEFAULT = SECTION_PRIORITY.length;
+  const sectionPriority = (label) => {
+    const text = normalizeText(label);
+    for (let idx = 0; idx < SECTION_PRIORITY.length; idx += 1) {
+      if (text.includes(SECTION_PRIORITY[idx])) {
+        return idx;
+      }
+    }
+    return SECTION_PRIORITY_DEFAULT;
+  };
+
+  const PRINCIPAL_PRIORITY = [
+    'INCOME',
+    'EXPENSE',
+    'OPERATING',
+    'OTHER'
+  ];
+
+  const principalPriority = (label) => {
+    const text = normalizeText(label);
+    for (let idx = 0; idx < PRINCIPAL_PRIORITY.length; idx += 1) {
+      if (text.includes(PRINCIPAL_PRIORITY[idx])) {
+        return idx;
+      }
+    }
+    return PRINCIPAL_PRIORITY.length;
+  };
+
+  const sortSections = (secciones = []) => {
+    return (Array.isArray(secciones) ? secciones : []).slice().sort((a, b) => {
+      const orden = sectionPriority(a.label) - sectionPriority(b.label);
+      if (orden !== 0) return orden;
+      return normalizeText(a.label).localeCompare(normalizeText(b.label));
+    });
+  };
+
+  const sortPrincipals = (principales = []) => {
+    return (Array.isArray(principales) ? principales : []).slice().sort((a, b) => {
+      const orden = principalPriority(a.label) - principalPriority(b.label);
+      if (orden !== 0) return orden;
+      return normalizeText(a.label).localeCompare(normalizeText(b.label));
+    });
+  };
+
   const actualizarEtiquetaCapitulo = (texto) => {
     if (!capituloLabel) return;
     const valor = texto ? texto.toString() : '';
@@ -333,17 +398,11 @@
         boldNumbers: true
       }));
 
-      const principales = Array.isArray(capitulo.children) ? capitulo.children : [];
+      const principales = sortPrincipals(capitulo.children);
       principales.forEach((principal) => {
         if (!principal) return;
-        summaryBody.appendChild(createTotalsRow(principal, {
-          label: principal.label || '',
-          rowClass: 'section-header-row table-light fw-bold text-center',
-          labelClasses: 'text-center text-secondary text-uppercase',
-          boldNumbers: true
-        }));
 
-        const secciones = Array.isArray(principal.children) ? principal.children : [];
+        const secciones = sortSections(principal.children);
         secciones.forEach((seccion) => {
           (seccion.cuentas || []).forEach((cta) => {
             const ctaVarMonthPlan = calculateVar(cta.actualMonth, cta.planMonth);
@@ -369,53 +428,20 @@
             summaryBody.appendChild(ctaRow);
           });
 
-<<<<<<< HEAD
           summaryBody.appendChild(createTotalsRow(seccion, {
             label: seccion.label || '',
             rowClass: 'subsection-row fw-semibold text-center',
             labelClasses: 'text-start text-primary',
             boldNumbers: true
           }));
-=======
-        // 3. Filas de Cuentas
-        (seccion.cuentas || []).forEach((cta) => {
-          const ctaVarMonthPlan = calculateVar(cta.actualMonth, cta.planMonth);
-          const ctaVarMonthPrev = calculateVar(cta.actualMonth, cta.prevMonth);
-          const ctaVarYTDPlan = calculateVar(cta.actualYTD, cta.planYTD);
-          const ctaVarYTDPrev = calculateVar(cta.actualYTD, cta.prevYTD);
-
-          const ctaRow = document.createElement('tr');
-          ctaRow.className = 'data-row';
-          ctaRow.dataset.cuenta = cta.cuenta;
-          ctaRow.innerHTML = `
-            <td class="font-monospace small text-start account-column">${cta.cuenta}</td>
-            <td class="text-end editable-cell" data-columna-clave="actualMonth" data-valor-original="${Number(
-              cta.actualMonth ?? 0
-            )}">${formatNumber(cta.actualMonth)}</td>
-            <td class="text-end editable-cell" data-columna-clave="planMonth" data-valor-original="${Number(
-              cta.planMonth ?? 0
-            )}">${formatNumber(cta.planMonth)}</td>
-            <td class="text-end editable-cell" data-columna-clave="prevMonth" data-valor-original="${Number(
-              cta.prevMonth ?? 0
-            )}">${formatNumber(cta.prevMonth)}</td>
-            ${createPercentCell(ctaVarMonthPlan)}
-            ${createPercentCell(ctaVarMonthPrev)}
-            <td class="text-center">${cta.descripcion}</td>
-            <td class="text-end editable-cell" data-columna-clave="actualYTD" data-valor-original="${Number(
-              cta.actualYTD ?? 0
-            )}">${formatNumber(cta.actualYTD)}</td>
-            <td class="text-end editable-cell" data-columna-clave="planYTD" data-valor-original="${Number(
-              cta.planYTD ?? 0
-            )}">${formatNumber(cta.planYTD)}</td>
-            <td class="text-end editable-cell" data-columna-clave="prevYTD" data-valor-original="${Number(
-              cta.prevYTD ?? 0
-            )}">${formatNumber(cta.prevYTD)}</td>
-            ${createPercentCell(ctaVarYTDPlan)}
-            ${createPercentCell(ctaVarYTDPrev)}
-          `;
-          summaryBody.appendChild(ctaRow);
->>>>>>> ed6749d9ef66393a4e7521a028dd83afc58ac4e7
         });
+
+        summaryBody.appendChild(createTotalsRow(principal, {
+          label: principal.label || '',
+          rowClass: 'section-header-row table-light fw-bold text-center',
+          labelClasses: 'text-center text-secondary text-uppercase',
+          boldNumbers: true
+        }));
       });
     });
 
@@ -562,22 +588,13 @@
       showStatus('Selecciona una empresa para continuar.', 'warning');
       return;
     }
-<<<<<<< HEAD
-=======
 
-    // Cargar años disponibles
-    const anios = await cargarAniosDisponibles(empresa.id);
-    const mesActual = new Date().getMonth() + 1;
-    const anioInicial = Number(selectAnio?.value) || anios[0] || new Date().getFullYear();
-    const mesInicial = Number.isInteger(mesActual) ? mesActual : 1;
     const modulo = document.body?.dataset?.modulo || 'summary';
-
-    window.dispatchEvent(
-      new CustomEvent('planeacion:contexto-actualizado', {
-        detail: { empresaId: empresa.id, anio: anioInicial, modulo }
-      })
-    );
->>>>>>> ed6749d9ef66393a4e7521a028dd83afc58ac4e7
+    const publicarContexto = (anio) => {
+      window.dispatchEvent(new CustomEvent('planeacion:contexto-actualizado', {
+        detail: { empresaId: empresa.id, anio, modulo }
+      }));
+    };
 
     empresaActual = empresa;
     await aplicarEmpresa(empresaActual.id);
@@ -588,6 +605,7 @@
       const anio = leerAnioSeleccionado();
       const mes = leerMesSeleccionado();
       actualizarEtiquetasAnio(anio, anio - 1);
+      publicarContexto(anio);
       if (empresaActual?.id) {
         fetchSummary(empresaActual.id, anio, mes, leerCapitulo());
       }
@@ -597,27 +615,14 @@
       const anio = leerAnioSeleccionado();
       const mes = leerMesSeleccionado();
       actualizarEtiquetaMes(mes);
+      publicarContexto(anio);
       if (empresaActual?.id) {
         fetchSummary(empresaActual.id, anio, mes, leerCapitulo());
       }
     };
 
     if (selectAnio) {
-<<<<<<< HEAD
       selectAnio.addEventListener('change', handleAnioChange);
-=======
-      selectAnio.addEventListener('change', () => {
-        const anio = Number(selectAnio.value) || anioInicial;
-        const mes = Number(selectMes?.value) || mesInicial;
-        actualizarEtiquetasAnio(anio, anio - 1);
-        window.dispatchEvent(
-          new CustomEvent('planeacion:contexto-actualizado', {
-            detail: { empresaId: empresa.id, anio, modulo }
-          })
-        );
-        fetchSummary(empresa.id, anio, mes);
-      });
->>>>>>> ed6749d9ef66393a4e7521a028dd83afc58ac4e7
     }
 
     if (selectMes) {
@@ -629,23 +634,8 @@
         opt.value = String(MESES[idx].periodo);
         opt.textContent = MESES[idx].etiqueta;
       });
-<<<<<<< HEAD
       selectMes.addEventListener('change', handleMesChange);
       actualizarEtiquetaMes(leerMesSeleccionado());
-=======
-      selectMes.value = String(mesInicial);
-      selectMes.addEventListener('change', () => {
-        const anio = Number(selectAnio?.value) || anioInicial;
-        const mes = Number(selectMes.value) || mesInicial;
-        window.dispatchEvent(
-          new CustomEvent('planeacion:contexto-actualizado', {
-            detail: { empresaId: empresa.id, anio, modulo }
-          })
-        );
-        fetchSummary(empresa.id, anio, mes);
-      });
-      actualizarEtiquetaMes(mesInicial);
->>>>>>> ed6749d9ef66393a4e7521a028dd83afc58ac4e7
     }
 
     if (selectCapitulo) {

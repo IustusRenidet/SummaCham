@@ -31,6 +31,60 @@
   let empresaActual = null;
   const leerAnioSeleccionado = () => Number(yearSelect?.value) || new Date().getFullYear();
   const leerMesSeleccionado = () => Number(monthSelect?.value) || new Date().getMonth() + 1;
+  const normalizeText = (texto) => (texto || '').toString().normalize('NFD').replace(/\p{Diacritic}/gu, '').toUpperCase();
+  const SECTION_ORDER = [
+    'MEMBERSHIP',
+    'EVENTS',
+    'COMMITTEES',
+    'T&IC',
+    'SERVICES TO MEMBERS',
+    'GASTOS ADMINISTRATIVOS',
+    'GASTOS GENERALES',
+    'NOMINA',
+    'GASTOS CORPORATIVOS',
+    'CARGOS ADMINISTRATIVOS',
+    'MEMBER CENTRICITY',
+    'OTHER'
+  ];
+  const SECTION_DEFAULT_ORDER = SECTION_ORDER.length;
+  const sectionOrder = (label) => {
+    const text = normalizeText(label);
+    for (let idx = 0; idx < SECTION_ORDER.length; idx += 1) {
+      if (text.includes(SECTION_ORDER[idx])) {
+        return idx;
+      }
+    }
+    return SECTION_DEFAULT_ORDER;
+  };
+  const NODE_PRIORITY = [
+    'INCOME',
+    'EXPENSE',
+    'OPERATING',
+    'OTHER'
+  ];
+  const nodePriority = (label) => {
+    const text = normalizeText(label);
+    for (let idx = 0; idx < NODE_PRIORITY.length; idx += 1) {
+      if (text.includes(NODE_PRIORITY[idx])) {
+        return idx;
+      }
+    }
+    return NODE_PRIORITY.length;
+  };
+  const sortSections = (secciones = []) => {
+    return (Array.isArray(secciones) ? secciones : []).slice().sort((a, b) => {
+      const orden = sectionOrder(a.label) - sectionOrder(b.label);
+      if (orden !== 0) return orden;
+      return normalizeText(a.label).localeCompare(normalizeText(b.label));
+    });
+  };
+  const sortNodos = (nodos = []) => {
+    return (Array.isArray(nodos) ? nodos : []).slice().sort((a, b) => {
+      const orden = nodePriority(a.label) - nodePriority(b.label);
+      if (orden !== 0) return orden;
+      return normalizeText(a.label).localeCompare(normalizeText(b.label));
+    });
+  };
   const obtenerSelectorEmpresaGlobal = () => window.parent?.document?.getElementById('companyFilter') || null;
   const sincronizarSelectorEmpresaGlobal = () => {
     const selector = obtenerSelectorEmpresaGlobal();
@@ -229,19 +283,18 @@
   const renderTable = (nodos = [], anioActual) => {
     if (!tablaBody) return;
     if (!nodos.length) {
-      setStatusRow('No hay datos disponibles para este aÃ±o.');
+      setStatusRow('No hay datos disponibles para este año.');
       return;
     }
-    limpiarCambios();
     tablaBody.innerHTML = '';
-    
-    // Nivel 1: Operating Results (ej. OPERATING RESULTS MEXICO)
-    nodos.forEach((nodoOperativo) => {
+
+    const operativos = sortNodos(nodos);
+    operativos.forEach((nodoOperativo) => {
       const headerOperativo = document.createElement('tr');
       headerOperativo.className = 'section-header-row';
-      headerOperativo.style.backgroundColor = 'rgba(47, 84, 150, 0.15)'; // Un poco mÃ¡s oscuro
+      headerOperativo.style.backgroundColor = 'rgba(47, 84, 150, 0.15)';
       headerOperativo.dataset.section = nodoOperativo.key;
-      
+
       const varPlanOp = formatPercent(nodoOperativo.totalActualMonth - nodoOperativo.totalPlanMonth, nodoOperativo.totalPlanMonth);
       const varPrevOp = formatPercent(nodoOperativo.totalActualMonth - nodoOperativo.totalPrevMonth, nodoOperativo.totalPrevMonth);
 
@@ -256,12 +309,12 @@
       `;
       tablaBody.appendChild(headerOperativo);
 
-      // Nivel 2: Major Section (ej. CDMX Income)
-      (nodoOperativo.children || []).forEach((nodoPrincipal) => {
+      const principales = sortSections(nodoOperativo.children);
+      principales.forEach((nodoPrincipal) => {
         const headerPrincipal = document.createElement('tr');
         headerPrincipal.className = 'section-header-row';
         headerPrincipal.dataset.section = nodoPrincipal.key;
-        
+
         const varPlanPrin = formatPercent(nodoPrincipal.totalActualMonth - nodoPrincipal.totalPlanMonth, nodoPrincipal.totalPlanMonth);
         const varPrevPrin = formatPercent(nodoPrincipal.totalActualMonth - nodoPrincipal.totalPrevMonth, nodoPrincipal.totalPrevMonth);
 
@@ -276,51 +329,8 @@
         `;
         tablaBody.appendChild(headerPrincipal);
 
-<<<<<<< HEAD
-        // Nivel 3: Minor Section (ej. Membership)
-        (nodoPrincipal.children || []).forEach((seccion) => {
-          const totalesRow = document.createElement('tr');
-          totalesRow.className = 'sum-row data-row';
-          totalesRow.dataset.section = nodoPrincipal.key;
-          
-          const variacionPlan = formatPercent(seccion.totalActualMonth - seccion.totalPlanMonth, seccion.totalPlanMonth);
-          const variacionPrev = formatPercent(seccion.totalActualMonth - seccion.totalPrevMonth, seccion.totalPrevMonth);
-          
-          totalesRow.innerHTML = `
-            <td class="ps-4">${seccion.label}</td>
-            <td>Total secciÃ³n</td>
-            <td class="text-end">${formatNumber(seccion.totalActualMonth)}</td>
-            <td class="text-end">${formatNumber(seccion.totalPlanMonth)}</td>
-            <td class="text-end">${formatNumber(seccion.totalPrevMonth)}</td>
-            <td class="text-end">${variacionPlan}</td>
-            <td class="text-end">${variacionPrev}</td>
-=======
-        (seccion.cuentas || []).forEach((cuenta) => {
-          const variacionCuentaPlan = formatPercent(cuenta.actualMonth - cuenta.planMonth, cuenta.planMonth);
-          const variacionCuentaPrev = formatPercent(cuenta.actualMonth - cuenta.prevMonth, cuenta.prevMonth);
-          const row = document.createElement('tr');
-          row.className = 'data-row';
-          row.dataset.cuenta = cuenta.cuenta;
-          row.dataset.section = nodo.key;
-          row.innerHTML = `
-            <td>${cuenta.cuenta}</td>
-            <td>${cuenta.descripcion || ''}</td>
-            <td class="text-end editable-cell" data-columna-clave="actualMonth" data-valor-original="${Number(
-              cuenta.actualMonth ?? 0
-            )}">${formatNumber(cuenta.actualMonth)}</td>
-            <td class="text-end editable-cell" data-columna-clave="planMonth" data-valor-original="${Number(
-              cuenta.planMonth ?? 0
-            )}">${formatNumber(cuenta.planMonth)}</td>
-            <td class="text-end editable-cell" data-columna-clave="prevMonth" data-valor-original="${Number(
-              cuenta.prevMonth ?? 0
-            )}">${formatNumber(cuenta.prevMonth)}</td>
-            <td class="text-end">${variacionCuentaPlan}</td>
-            <td class="text-end">${variacionCuentaPrev}</td>
->>>>>>> ed6749d9ef66393a4e7521a028dd83afc58ac4e7
-          `;
-          tablaBody.appendChild(totalesRow);
-
-          // Nivel 4: Cuentas
+        const secciones = sortSections(nodoPrincipal.children);
+        secciones.forEach((seccion) => {
           (seccion.cuentas || []).forEach((cuenta) => {
             const variacionCuentaPlan = formatPercent(cuenta.actualMonth - cuenta.planMonth, cuenta.planMonth);
             const variacionCuentaPrev = formatPercent(cuenta.actualMonth - cuenta.prevMonth, cuenta.prevMonth);
@@ -338,6 +348,24 @@
             `;
             tablaBody.appendChild(row);
           });
+
+          const totalesRow = document.createElement('tr');
+          totalesRow.className = 'sum-row data-row';
+          totalesRow.dataset.section = nodoPrincipal.key;
+
+          const variacionPlan = formatPercent(seccion.totalActualMonth - seccion.totalPlanMonth, seccion.totalPlanMonth);
+          const variacionPrev = formatPercent(seccion.totalActualMonth - seccion.totalPrevMonth, seccion.totalPrevMonth);
+
+          totalesRow.innerHTML = `
+            <td class="ps-4">${seccion.label}</td>
+            <td>Total sección</td>
+            <td class="text-end">${formatNumber(seccion.totalActualMonth)}</td>
+            <td class="text-end">${formatNumber(seccion.totalPlanMonth)}</td>
+            <td class="text-end">${formatNumber(seccion.totalPrevMonth)}</td>
+            <td class="text-end">${variacionPlan}</td>
+            <td class="text-end">${variacionPrev}</td>
+          `;
+          tablaBody.appendChild(totalesRow);
         });
       });
     });
@@ -345,10 +373,7 @@
     if (anioActual) {
       actualizarEtiquetasAnio(anioActual);
     }
-
-    activarModoEdicion();
   };
-
   const filterRows = (termino) => {
     if (!tablaBody) return;
     const text = (termino || '').toLowerCase();
