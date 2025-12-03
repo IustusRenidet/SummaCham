@@ -213,7 +213,13 @@ router.get('/', async (req, res) => {
   const ejercicio = value.anio || anioActual;
   try {
     const aniosDisponibles = await listarAniosPresupuestos(empresa.id);
-    if (Array.isArray(aniosDisponibles) && aniosDisponibles.length > 0 && !aniosDisponibles.includes(ejercicio)) {
+    if (!Array.isArray(aniosDisponibles) || aniosDisponibles.length === 0) {
+      return res.status(404).json({
+        mensaje: 'No se encontraron ejercicios de presupuestos para esta empresa.',
+        disponibles: []
+      });
+    }
+    if (!aniosDisponibles.includes(ejercicio)) {
       return res.status(404).json({
         mensaje: 'El ejercicio solicitado no está disponible en la base de datos.',
         disponibles: aniosDisponibles
