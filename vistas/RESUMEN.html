@@ -170,7 +170,7 @@
       .table-comparison.sin-cuentas thead th:nth-child(1),
       .table-comparison.sin-cuentas
         tbody
-        tr:not(.section-header-row)
+        tr:not(.section-header-row):not(.sum-row)
         td:nth-child(1) {
         display: none;
       }
@@ -178,12 +178,13 @@
       .table-comparison.sin-cuentas thead th:nth-child(2),
       .table-comparison.sin-cuentas
         tbody
-        tr:not(.section-header-row)
+        tr:not(.section-header-row):not(.sum-row)
         td:nth-child(2) {
         left: 0;
       }
 
-      .table-comparison.sin-cuentas .section-header-row td {
+      .table-comparison.sin-cuentas .section-header-row td,
+      .table-comparison.sin-cuentas .sum-row td:nth-child(1) {
         display: table-cell;
         padding-left: calc(0.5rem + 120px);
       }
@@ -477,6 +478,7 @@
     </div>
 
     <script src="js/sesion.js"></script>
+    <script src="js/flujo-autorizacion.js"></script>
     <script src="js/resumen-view.js"></script>
     <script
       src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
