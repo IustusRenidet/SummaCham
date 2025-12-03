@@ -121,12 +121,21 @@ const MES_A_PERIODO = {
 
 // Actualiza todos los <span class="anio">...</span> en el header
 const setAllYearSpans = (anio) => {
-  const anioNum = Number(anio);
-  const anioAnterior = anioNum - 1;
-  
-  document.querySelectorAll('.anio').forEach(sp => sp.textContent = anio);
-  document.querySelectorAll('.anio-seleccionado').forEach(sp => sp.textContent = anioAnterior);
-  document.querySelectorAll('.anio-seleccionado-anterior').forEach(sp => sp.textContent = anioAnterior);
+  const numero = Number(anio);
+  const textoAnio = Number.isFinite(numero) ? String(numero) : '—';
+  const textoAnterior = Number.isFinite(numero) ? String(numero - 1) : '—';
+
+  document.querySelectorAll('.anio').forEach((sp) => {
+    sp.textContent = textoAnio;
+  });
+
+  document.querySelectorAll('.anio-seleccionado').forEach((sp) => {
+    sp.textContent = textoAnio;
+  });
+
+  document.querySelectorAll('.anio-seleccionado-anterior').forEach((sp) => {
+    sp.textContent = textoAnterior;
+  });
 };
 // Actualiza todos los <span class="mes">...</span> en el header
 const setAllMonthSpans = (mesNombre) => {
