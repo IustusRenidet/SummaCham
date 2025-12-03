@@ -50,6 +50,7 @@ const crearTablas = () => {
       usuario_id INTEGER NOT NULL,
       empresa_id TEXT NOT NULL,
       modulo TEXT NOT NULL,
+      puede_leer INTEGER NOT NULL DEFAULT 0,
       puede_cargar_guardar INTEGER NOT NULL DEFAULT 0,
       puede_revisar INTEGER NOT NULL DEFAULT 0,
       puede_aprobar INTEGER NOT NULL DEFAULT 0,
@@ -57,6 +58,12 @@ const crearTablas = () => {
       FOREIGN KEY(usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
     )
   `).run();
+
+  const infoPermisos = db.prepare(`PRAGMA table_info(permisos_modulo)`).all();
+  const tieneLectura = infoPermisos.some((columna) => columna.name === 'puede_leer');
+  if (!tieneLectura) {
+    db.prepare(`ALTER TABLE permisos_modulo ADD COLUMN puede_leer INTEGER NOT NULL DEFAULT 0`).run();
+  }
 
   db.prepare(`
     CREATE TABLE IF NOT EXISTS presupuestos_estado (
@@ -183,8 +190,8 @@ const crearAdministradorGlobal = () => {
 
   const insertarPermiso = db.prepare(`
     INSERT OR IGNORE INTO permisos_modulo (
-      usuario_id, empresa_id, modulo, puede_cargar_guardar, puede_revisar, puede_aprobar
-    ) VALUES (?, ?, ?, 1, 1, 1)
+      usuario_id, empresa_id, modulo, puede_leer, puede_cargar_guardar, puede_revisar, puede_aprobar
+    ) VALUES (?, ?, ?, 1, 1, 1, 1)
   `);
 
   EMPRESAS.forEach((empresa) => {

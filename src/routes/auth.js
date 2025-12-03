@@ -53,7 +53,7 @@ router.post('/login', async (req, res) => {
   }
 
   const permisos = db.prepare(`
-    SELECT empresa_id, modulo, puede_cargar_guardar, puede_revisar, puede_aprobar
+    SELECT empresa_id, modulo, puede_leer, puede_cargar_guardar, puede_revisar, puede_aprobar
     FROM permisos_modulo
     WHERE usuario_id = ?
   `).all(registro.id);
@@ -70,7 +70,9 @@ router.post('/login', async (req, res) => {
     if (!permisosEmpresa) {
       return false;
     }
-    return Object.values(permisosEmpresa).some((acciones) => acciones['Cargar y guardar'] || acciones.Revisar || acciones.Aprobar);
+    return Object.values(permisosEmpresa).some(
+      (acciones) => acciones.Lectura || acciones['Cargar y guardar'] || acciones.Revisar || acciones.Aprobar
+    );
   });
 
   if (empresasDisponibles.length === 0) {
