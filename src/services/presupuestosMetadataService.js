@@ -13,6 +13,20 @@ const construirNombreTabla = (anio) => `PRESUP${anio.toString().slice(-2).padSta
 const ANIO_MIN = 2000;
 const ANIO_MAX = 2100;
 
+const esErrorConexionFirebird = (error) => {
+  const codigo = (error?.code || '').toString().toUpperCase();
+  if (['ECONNREFUSED', 'EHOSTUNREACH', 'ENETUNREACH', 'ETIMEDOUT'].includes(codigo)) {
+    return true;
+  }
+  const mensaje = (error?.message || '').toString().toUpperCase();
+  return (
+    mensaje.includes('UNABLE TO COMPLETE NETWORK REQUEST') ||
+    mensaje.includes('FAILED TO ESTABLISH A CONNECTION') ||
+    mensaje.includes('NETWORK REQUEST') ||
+    mensaje.includes('CONNECTION REJECTED')
+  );
+};
+
 const extraerAnio = (nombre) => {
   const normalizado = normalizarNombre(nombre);
   const match = normalizado.match(/^PRESUP[_]?(\d{1,4})$/);
@@ -46,6 +60,9 @@ async function listarDesdeMetadata(empresaId) {
     });
     return Array.from(anios);
   } catch (error) {
+    if (esErrorConexionFirebird(error)) {
+      throw error;
+    }
     console.warn('No fue posible consultar RDB$RELATIONS para PRESUP.', error);
     return [];
   }
@@ -67,6 +84,9 @@ async function detectarPorInspeccion(empresaId) {
         }
       }
     } catch (error) {
+      if (esErrorConexionFirebird(error)) {
+        throw error;
+      }
       // Tabla inexistente o sin permisos, continuar con el siguiente ano.
     }
   }

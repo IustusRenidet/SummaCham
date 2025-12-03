@@ -56,6 +56,33 @@ const construirNombreUsuario = (registro) => {
   return nombre || registro?.usuario || 'Usuario';
 };
 
+const esTablaPresupuestoInexistente = (error) => {
+  const codigoSql = Number(error?.sqlcode || error?.SQLCODE);
+  if (codigoSql === -204) {
+    return true;
+  }
+  const mensaje = (error?.message || '').toString().toUpperCase();
+  return (
+    mensaje.includes('TABLE') &&
+    mensaje.includes('UNKNOWN') &&
+    (mensaje.includes('PRESUP') || mensaje.includes('CUENTAS') || mensaje.includes('SALDOS'))
+  );
+};
+
+const esErrorConexionFirebird = (error) => {
+  const codigo = (error?.code || '').toString().toUpperCase();
+  if (['ECONNREFUSED', 'EHOSTUNREACH', 'ENETUNREACH', 'ETIMEDOUT'].includes(codigo)) {
+    return true;
+  }
+  const mensaje = (error?.message || '').toString().toUpperCase();
+  return (
+    mensaje.includes('UNABLE TO COMPLETE NETWORK REQUEST') ||
+    mensaje.includes('FAILED TO ESTABLISH A CONNECTION') ||
+    mensaje.includes('NETWORK REQUEST') ||
+    mensaje.includes('CONNECTION REJECTED')
+  );
+};
+
 const cargarUsuarioActual = (req, res, next) => {
   const usuarioEncabezado = normalizarUsuario(req.headers['x-usuario-actual']);
   if (!usuarioEncabezado) {
@@ -175,6 +202,11 @@ router.get('/anios', async (req, res) => {
     const anios = await listarAniosPresupuestos(empresa.id);
     res.json({ anios });
   } catch (error) {
+    if (esErrorConexionFirebird(error)) {
+      return res.status(503).json({
+        mensaje: 'No fue posible conectar con la base de datos de Firebird para esta empresa.'
+      });
+    }
     console.error('Error al consultar anos de presupuestos:', error);
     res.status(500).json({ mensaje: 'No fue posible obtener los ejercicios disponibles.' });
   }
@@ -199,6 +231,19 @@ router.get('/', async (req, res) => {
   const anioActual = new Date().getFullYear();
   const ejercicio = value.anio || anioActual;
   try {
+    const aniosDisponibles = await listarAniosPresupuestos(empresa.id);
+    if (!Array.isArray(aniosDisponibles) || aniosDisponibles.length === 0) {
+      return res.status(404).json({
+        mensaje: 'No se encontraron ejercicios de presupuestos para esta empresa.',
+        disponibles: []
+      });
+    }
+    if (!aniosDisponibles.includes(ejercicio)) {
+      return res.status(404).json({
+        mensaje: 'El ejercicio solicitado no está disponible en la base de datos.',
+        disponibles: aniosDisponibles
+      });
+    }
     const cuentas = await obtenerPresupuestosMayor(empresa.id, ejercicio);
     res.json({
       empresa: serializarEmpresa(empresa),
@@ -207,6 +252,23 @@ router.get('/', async (req, res) => {
       cuentas
     });
   } catch (err) {
+    if (esErrorConexionFirebird(err)) {
+      return res.status(503).json({
+        mensaje: 'No fue posible conectar con la base de datos de Firebird para esta empresa.'
+      });
+    }
+    if (esTablaPresupuestoInexistente(err)) {
+      let disponibles = [];
+      try {
+        disponibles = await listarAniosPresupuestos(empresa.id);
+      } catch (listarError) {
+        console.warn('No fue posible obtener los ejercicios disponibles para respuesta 404.', listarError);
+      }
+      return res.status(404).json({
+        mensaje: 'No existe información de presupuestos para el ejercicio indicado.',
+        disponibles
+      });
+    }
     console.error('Error al consultar presupuestos:', err);
     res.status(500).json({ mensaje: 'No fue posible obtener la información de presupuestos.' });
   }
