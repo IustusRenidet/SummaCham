@@ -19,6 +19,8 @@
 
   const tablaBody = document.getElementById('tablaCuentasBody');
   const yearSelect = document.getElementById('resumenYearSelect');
+  const monthSelect = document.getElementById('resumenMonthSelect');
+  const capituloSelect = document.getElementById('resumenChapterSelect');
   const searchInput = document.getElementById('accountSearch');
   const toggleBtn = document.getElementById('toggleAccountsBtn');
 
@@ -155,11 +157,45 @@
     headers.forEach((encabezado) => encabezado.classList.remove('d-none'));
   };
 
-  const fetchResumen = async (empresaId, anio) => {
+  const actualizarCapitulos = (capitulos = [], seleccionado) => {
+    if (!capituloSelect) return;
+    capituloSelect.innerHTML = '';
+    if (!capitulos.length) {
+      const option = document.createElement('option');
+      option.value = '';
+      option.textContent = 'Sin capítulos';
+      capituloSelect.appendChild(option);
+      capituloSelect.disabled = true;
+      return;
+    }
+    capitulos.forEach(({ clave, etiqueta }) => {
+      const opt = document.createElement('option');
+      opt.value = clave;
+      opt.textContent = etiqueta;
+      capituloSelect.appendChild(opt);
+    });
+    if (seleccionado) {
+      const claveSel = capitulos.find((c) => c.etiqueta === seleccionado)?.clave || seleccionado;
+      capituloSelect.value = claveSel;
+    }
+    if (!capituloSelect.value) {
+      capituloSelect.value = capitulos[0].clave;
+    }
+    capituloSelect.disabled = false;
+  };
+
+  const fetchResumen = async (empresaId, anio, mes) => {
     if (!empresaId || !anio) return;
     setStatusRow('Cargando resumen financiero...');
     try {
-      const respuesta = await fetch(`${API_ENDPOINT}?empresaId=${encodeURIComponent(empresaId)}&anio=${Number(anio)}`, {
+      const params = new URLSearchParams({ empresaId: empresaId, anio: Number(anio) });
+      if (Number.isInteger(mes)) {
+        params.set('mes', String(mes));
+      }
+      if (capituloSelect?.value) {
+        params.set('capitulo', capituloSelect.value);
+      }
+      const respuesta = await fetch(`${API_ENDPOINT}?${params.toString()}`, {
         headers: Sesion.headersAutenticacion()
       });
       if (!respuesta.ok) {
@@ -167,6 +203,7 @@
       }
       const datos = await respuesta.json();
       renderTable(datos.resumen || [], Number(anio));
+      actualizarCapitulos(datos.capitulosDisponibles || [], datos.capituloSeleccionado);
     } catch (error) {
       console.error('Error resumen:', error);
       setStatusRow(error.message || 'No fue posible cargar el resumen.');
@@ -201,11 +238,27 @@
     const anios = await cargarAniosDisponibles(empresa.id);
 
     const valorInicial = Number(yearSelect?.value) || anios[0] || new Date().getFullYear();
-    fetchResumen(empresa.id, valorInicial);
+    const mesInicial = Number(monthSelect?.value) || new Date().getMonth() + 1;
+    fetchResumen(empresa.id, valorInicial, mesInicial);
     if (yearSelect) {
       yearSelect.addEventListener('change', () => {
         const anio = Number(yearSelect.value) || new Date().getFullYear();
-        fetchResumen(empresa.id, anio);
+        const mes = Number(monthSelect?.value) || mesInicial;
+        fetchResumen(empresa.id, anio, mes);
+      });
+    }
+    if (monthSelect) {
+      monthSelect.addEventListener('change', () => {
+        const anio = Number(yearSelect?.value) || valorInicial;
+        const mes = Number(monthSelect.value) || mesInicial;
+        fetchResumen(empresa.id, anio, mes);
+      });
+    }
+    if (capituloSelect) {
+      capituloSelect.addEventListener('change', () => {
+        const anio = Number(yearSelect?.value) || valorInicial;
+        const mes = Number(monthSelect?.value) || mesInicial;
+        fetchResumen(empresa.id, anio, mes);
       });
     }
     if (searchInput) {

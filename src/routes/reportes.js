@@ -12,7 +12,8 @@ const esquemaConsulta = Joi.object({
   mes: Joi.alternatives().try(
     Joi.number().integer().min(1).max(12),
     Joi.string().trim()
-  ).optional()
+  ).optional(),
+  capitulo: Joi.string().trim().optional()
 });
 
 const normalizarAnio = (valor) => {
@@ -49,7 +50,7 @@ router.get('/summary', async (req, res) => {
     return res.status(404).json({ mensaje: 'Empresa no encontrada.' });
   }
   try {
-    const data = await generarSummary(value.empresaId, normalizarAnio(value.anio), normalizarMes(value.mes));
+    const data = await generarSummary(value.empresaId, normalizarAnio(value.anio), normalizarMes(value.mes), value.capitulo);
     res.json(data);
   } catch (errorSum) {
     console.error('Error generando Summary:', errorSum);
@@ -69,7 +70,7 @@ router.get('/resumen', async (req, res) => {
   try {
     // Usar el nuevo motor unificado
     const { generarReporte } = require('../services/reportes/planeacionReportesEngine');
-    const data = await generarReporte('RESUMEN', value.empresaId, normalizarAnio(value.anio), normalizarMes(value.mes));
+    const data = await generarReporte('RESUMEN', value.empresaId, normalizarAnio(value.anio), normalizarMes(value.mes), value.capitulo);
     res.json(data);
   } catch (errorRes) {
     console.error('Error generando Resumen:', errorRes);

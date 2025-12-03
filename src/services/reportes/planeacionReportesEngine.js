@@ -7,10 +7,24 @@ const DEFAULT_BASE_PATH = path.join(__dirname, '..', '..', '..', 'info IMPORTANT
 const DEFINICIONES_FILE = path.join(DEFAULT_BASE_PATH, 'CUENTAS SUMMARY y RESUMEN.json');
 
 const NORMALIZAR_CLAVE = (valor = '') => valor.toString().trim().toUpperCase();
+const NORMALIZAR_CAPITULO = (valor = '') => valor.toString().trim().toUpperCase();
 
 const cargarDefiniciones = () => {
   const contenido = fs.readFileSync(DEFINICIONES_FILE, 'utf8');
   return JSON.parse(contenido);
+};
+
+const extraerCapitulos = (lista = []) => {
+  const vistos = new Map();
+  lista.forEach((item) => {
+    const etiqueta = (item.CAPITULO || '').toString().trim();
+    if (!etiqueta) return;
+    const clave = NORMALIZAR_CAPITULO(etiqueta);
+    if (!vistos.has(clave)) {
+      vistos.set(clave, etiqueta);
+    }
+  });
+  return Array.from(vistos, ([clave, etiqueta]) => ({ clave, etiqueta }));
 };
 
 const NOMBRES_MESES = [
@@ -62,6 +76,7 @@ const calcularTotales = (cuentas, claveMes, planeacionActual, planeacionPrevio) 
     planYTD: 0,
     prevYTD: 0
   };
+};
 
   const sumaHastaMes = (registro, incluirPrevio) => {
     let total = 0;
@@ -180,14 +195,21 @@ const construirReporte = (definiciones, claveMes, planeacionActual, planeacionPr
   return resumen;
 };
 
-async function generarReporte(tipoReporte, empresaId, anio, mesSeleccionado) {
+async function generarReporte(tipoReporte, empresaId, anio, mesSeleccionado, capituloSeleccionado) {
   const definiciones = cargarDefiniciones();
   const lista = definiciones[tipoReporte];
   if (!Array.isArray(lista) || !lista.length) {
     throw new Error(`No hay definiciones para ${tipoReporte}`);
   }
 
-  const cuentas = lista.map((item) => NORMALIZAR_CLAVE(item.CUENTA)).filter(Boolean);
+  const capitulosDisponibles = extraerCapitulos(lista);
+  const capituloClave = NORMALIZAR_CAPITULO(capituloSeleccionado || capitulosDisponibles[0]?.etiqueta || '');
+  const capituloEncontrado = capitulosDisponibles.find(({ clave }) => clave === capituloClave);
+  const listaFiltrada = capituloEncontrado
+    ? lista.filter((item) => NORMALIZAR_CAPITULO(item.CAPITULO) === capituloClave)
+    : lista;
+
+  const cuentas = listaFiltrada.map((item) => NORMALIZAR_CLAVE(item.CUENTA)).filter(Boolean);
   const claveMes = normalizarClaveMes(mesSeleccionado) || obtenerMesActualClave();
 
   const [planeacionActual, planeacionPrevio] = await Promise.all([
@@ -195,12 +217,14 @@ async function generarReporte(tipoReporte, empresaId, anio, mesSeleccionado) {
     obtenerDatosPlaneacion({ empresaId, anio: Number(anio) - 1, cuentas })
   ]);
 
-  const resumen = construirReporte(lista, claveMes, planeacionActual, planeacionPrevio);
+  const resumen = construirReporte(listaFiltrada, claveMes, planeacionActual, planeacionPrevio);
   const payload = {
     empresaId,
     reportKey: tipoReporte,
     anio,
-    resumen
+    resumen,
+    capituloSeleccionado: capituloEncontrado?.etiqueta || capitulosDisponibles[0]?.etiqueta || null,
+    capitulosDisponibles
   };
 
   return payload;
