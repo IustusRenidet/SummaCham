@@ -12,6 +12,9 @@ const {
   obtenerBorradorPorId,
   marcarRevisado,
   guardarAutorizado,
+  listarBorradores,
+  obtenerHistorial,
+  eliminarBorrador,
   ESTADOS
 } = require('../services/borradoresService');
 const { notificarWorkflowPresupuesto } = require('../services/notificacionesService');
@@ -27,6 +30,18 @@ const normalizarTexto = (valor) => {
     return base.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   }
   return base;
+};
+
+const normalizarEstados = (valor) => {
+  if (!valor) return [];
+  if (Array.isArray(valor)) {
+    return valor.map((item) => item.toString().trim().toUpperCase()).filter(Boolean);
+  }
+  return valor
+    .toString()
+    .split(',')
+    .map((item) => item.trim().toUpperCase())
+    .filter(Boolean);
 };
 
 const cargarUsuarioActual = (req, res, next) => {
@@ -109,7 +124,61 @@ const esquemaRevision = esquemaBorradorId.keys({
 
 const esquemaFinalizar = esquemaBorradorId;
 
+const esquemaListado = Joi.object({
+  empresaId: Joi.string().trim(),
+  anio: Joi.number().integer().min(2000).max(2100),
+  estado: Joi.alternatives().try(Joi.string(), Joi.array().items(Joi.string())),
+  modulo: Joi.string().trim(),
+  busca: Joi.string().allow('')
+});
+
+const esquemaId = Joi.object({
+  id: Joi.number().integer().required()
+});
+
 router.use(cargarUsuarioActual);
+
+router.get('/', (req, res) => {
+  const { value, error } = esquemaListado.validate(req.query || {}, { abortEarly: false });
+  if (error) {
+    return res.status(400).json({ mensaje: 'Verifica los filtros proporcionados.', detalles: error.details });
+  }
+
+  const moduloCanonico = value.modulo ? obtenerModuloCanonico(value.modulo) : null;
+  if (value.modulo && !moduloCanonico) {
+    return res.status(400).json({ mensaje: 'El módulo indicado no es válido.' });
+  }
+
+  const filtros = {
+    empresaId: value.empresaId || null,
+    anio: value.anio || null,
+    estados: normalizarEstados(value.estado),
+    modulo: moduloCanonico,
+    busqueda: value.busca ? value.busca.toString().trim() : null
+  };
+
+  try {
+    const borradores = listarBorradores(filtros).filter((borrador) => {
+      if (req.esAdmin) return true;
+      return tienePermisoEnModulo(req.mapaPermisos, borrador.empresaId, borrador.modulo);
+    });
+
+    const resumen = borradores.reduce(
+      (acc, borrador) => {
+        acc.total += 1;
+        const estado = borrador.estado || 'SIN_ESTADO';
+        acc.porEstado[estado] = (acc.porEstado[estado] || 0) + 1;
+        return acc;
+      },
+      { total: 0, porEstado: {} }
+    );
+
+    return res.json({ borradores, resumen });
+  } catch (listError) {
+    console.error('Error al listar borradores:', listError);
+    return res.status(500).json({ mensaje: 'No fue posible obtener los borradores.' });
+  }
+});
 
 router.get('/estado', (req, res) => {
   const empresaId = resolverEmpresaId(req);
@@ -201,7 +270,10 @@ router.post('/enviar', async (req, res) => {
   }
 
   try {
-    const resultado = await enviarRevision(value.borradorId, req.esAdmin ? 'ADMIN_GLOBAL' : 'USUARIO');
+    const resultado = await enviarRevision(value.borradorId, {
+      rol: req.esAdmin ? 'ADMIN_GLOBAL' : 'USUARIO',
+      usuarioId: req.usuarioActual.id
+    });
     notificarWorkflowPresupuesto({
       empresaId: empresa.id,
       modulo: borrador.modulo,
@@ -246,7 +318,7 @@ router.post('/autorizar', async (req, res) => {
   }
 
   try {
-    const aprobado = await autorizarBorrador(value.borradorId);
+    const aprobado = await autorizarBorrador(value.borradorId, { usuarioId: req.usuarioActual.id });
     notificarWorkflowPresupuesto({
       empresaId: empresa.id,
       modulo: borrador.modulo,
@@ -288,7 +360,7 @@ router.post('/rechazar', (req, res) => {
   }
 
   try {
-    const rechazado = rechazarBorrador(value.borradorId, value.motivo);
+    const rechazado = rechazarBorrador(value.borradorId, value.motivo, { usuarioId: req.usuarioActual.id });
     notificarWorkflowPresupuesto({
       empresaId: empresa.id,
       modulo: borrador.modulo,
@@ -330,7 +402,7 @@ router.post('/revisar', (req, res) => {
   }
 
   try {
-    const resultado = marcarRevisado(value.borradorId, value.cancelar);
+    const resultado = marcarRevisado(value.borradorId, value.cancelar, { usuarioId: req.usuarioActual.id });
     notificarWorkflowPresupuesto({
       empresaId: empresa.id,
       modulo: borrador.modulo,
@@ -376,7 +448,7 @@ router.post('/finalizar', async (req, res) => {
   }
 
   try {
-    const guardado = await guardarAutorizado(value.borradorId);
+    const guardado = await guardarAutorizado(value.borradorId, { usuarioId: req.usuarioActual.id });
     const ejecutor = {
       id: req.usuarioActual.id,
       usuario: req.usuarioActual.usuario,
@@ -398,6 +470,79 @@ router.post('/finalizar', async (req, res) => {
   } catch (errorFinal) {
     console.error('Error al guardar borrador autorizado:', errorFinal);
     return res.status(500).json({ mensaje: 'No fue posible guardar en la base de datos.' });
+  }
+});
+
+router.get('/:id/historial', (req, res) => {
+  const { value, error } = esquemaId.validate(req.params, { abortEarly: false });
+  if (error) {
+    return res.status(400).json({ mensaje: 'Identificador de borrador inválido.' });
+  }
+
+  const borrador = obtenerBorradorPorId(value.id);
+  if (!borrador) {
+    return res.status(404).json({ mensaje: 'Borrador no encontrado.' });
+  }
+
+  if (!req.esAdmin && !tienePermisoEnModulo(req.mapaPermisos, borrador.empresaId, borrador.modulo)) {
+    return res.status(403).json({ mensaje: 'No cuentas con permisos para ver este borrador.' });
+  }
+
+  try {
+    const historial = obtenerHistorial(value.id);
+    return res.json({ historial });
+  } catch (histError) {
+    console.error('Error al consultar historial de borrador:', histError);
+    return res.status(500).json({ mensaje: 'No fue posible obtener el historial.' });
+  }
+});
+
+router.get('/:id', (req, res) => {
+  const { value, error } = esquemaId.validate(req.params, { abortEarly: false });
+  if (error) {
+    return res.status(400).json({ mensaje: 'Identificador de borrador inválido.' });
+  }
+
+  const borrador = obtenerBorradorPorId(value.id);
+  if (!borrador) {
+    return res.status(404).json({ mensaje: 'Borrador no encontrado.' });
+  }
+
+  if (!req.esAdmin && !tienePermisoEnModulo(req.mapaPermisos, borrador.empresaId, borrador.modulo)) {
+    return res.status(403).json({ mensaje: 'No cuentas con permisos para ver este borrador.' });
+  }
+
+  try {
+    const historial = obtenerHistorial(value.id);
+    return res.json({ borrador, historial });
+  } catch (detailError) {
+    console.error('Error al consultar detalle de borrador:', detailError);
+    return res.status(500).json({ mensaje: 'No fue posible obtener el borrador.' });
+  }
+});
+
+router.delete('/:id', (req, res) => {
+  const { value, error } = esquemaId.validate(req.params, { abortEarly: false });
+  if (error) {
+    return res.status(400).json({ mensaje: 'Identificador de borrador inválido.' });
+  }
+
+  const borrador = obtenerBorradorPorId(value.id);
+  if (!borrador) {
+    return res.status(404).json({ mensaje: 'Borrador no encontrado.' });
+  }
+
+  const esPropio = String(borrador.usuarioId || '') === String(req.usuarioActual.id || '');
+  if (!req.esAdmin && !esPropio) {
+    return res.status(403).json({ mensaje: 'Solo el creador o un administrador pueden eliminar este borrador.' });
+  }
+
+  try {
+    eliminarBorrador(value.id);
+    return res.json({ mensaje: 'Borrador eliminado.' });
+  } catch (deleteError) {
+    console.error('Error al eliminar borrador:', deleteError);
+    return res.status(500).json({ mensaje: 'No fue posible eliminar el borrador.' });
   }
 });
 

@@ -136,6 +136,19 @@ const crearTablas = () => {
       UNIQUE(empresaId, modulo, anio)
     )
   `).run();
+
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS PLAN_BORRADORES_HISTORIAL (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      borradorId INTEGER NOT NULL,
+      estado TEXT NOT NULL,
+      comentario TEXT,
+      meta TEXT,
+      usuarioId TEXT,
+      fecha TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(borradorId) REFERENCES PLAN_BORRADORES(id) ON DELETE CASCADE
+    )
+  `).run();
 };
 
 const asegurarColumnasUsuarios = () => {

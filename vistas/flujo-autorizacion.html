@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestión de autorizaciones</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/estilos.css">
+  <style>
+    body {
+      background: #f5f6fa;
+      font-family: 'Manrope', system-ui, -apple-system, sans-serif;
+      color: #0a0e27;
+    }
+  </style>
+</head>
+<body>
+  <div class="container py-4">
+    <div class="flujo-hero mb-4">
+      <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start gap-3">
+        <div>
+          <div class="d-flex align-items-center gap-3 mb-2">
+            <span class="badge text-bg-light text-uppercase fw-bold">Versión 2.0</span>
+            <span class="badge-legend"><i class="bi bi-cloud-arrow-down"></i> Persistencia automática</span>
+            <span class="badge-legend"><i class="bi bi-shield-check"></i> Roles y permisos</span>
+          </div>
+          <h1 class="mb-2">Gestión centralizada de autorizaciones</h1>
+          <p class="mb-0 text-white-50">Panel dedicado para revisar, aprobar o rechazar borradores de presupuestos con timeline de auditoría y acciones contextualizadas.</p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+          <span class="estado-pill" data-estado="EDITANDO"><i class="bi bi-pencil-square"></i> Editando</span>
+          <span class="estado-pill" data-estado="PENDIENTE"><i class="bi bi-send-check"></i> Pendiente</span>
+          <span class="estado-pill" data-estado="REVISADO"><i class="bi bi-search-heart"></i> Revisado</span>
+          <span class="estado-pill" data-estado="APROBADO"><i class="bi bi-check-circle"></i> Aprobado</span>
+          <span class="estado-pill" data-estado="RECHAZADO"><i class="bi bi-x-octagon"></i> Rechazado</span>
+          <span class="estado-pill" data-estado="GUARDADO"><i class="bi bi-database-check"></i> Guardado</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-body">
+        <div class="row g-3 align-items-end">
+          <div class="col-md-4">
+            <label class="form-label fw-semibold text-muted">Empresa</label>
+            <select id="filtroEmpresa" class="form-select"></select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label fw-semibold text-muted">Ejercicio</label>
+            <select id="filtroAnio" class="form-select"></select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold text-muted">Estados</label>
+            <div class="d-flex flex-wrap gap-2" id="filtroEstados">
+              <!-- chips dinámicos -->
+            </div>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label fw-semibold text-muted">Búsqueda</label>
+            <input id="filtroBusqueda" type="search" class="form-control" placeholder="Módulo o comentario" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-3 mb-3" id="tarjetasResumen">
+      <div class="col-md-4">
+        <div class="tarjeta-estado h-100">
+          <div class="d-flex align-items-center justify-content-between">
+            <div>
+              <p class="text-muted mb-1">Borradores activos</p>
+              <div class="numero" id="totalBorradores">0</div>
+            </div>
+            <span class="estado-badge" data-estado="EDITANDO">Activos</span>
+          </div>
+          <p class="mb-0 small text-muted">Incluye borradores editando, pendientes y revisados.</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="tarjeta-estado h-100">
+          <div class="d-flex align-items-center justify-content-between">
+            <div>
+              <p class="text-muted mb-1">Listos para autorizar</p>
+              <div class="numero" id="totalRevisados">0</div>
+            </div>
+            <span class="estado-badge" data-estado="REVISADO">Revisado</span>
+          </div>
+          <p class="mb-0 small text-muted">Borradores marcados como revisados o auto autorizados.</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="tarjeta-estado h-100">
+          <div class="d-flex align-items-center justify-content-between">
+            <div>
+              <p class="text-muted mb-1">Autorizados / guardados</p>
+              <div class="numero" id="totalAutorizados">0</div>
+            </div>
+            <span class="estado-badge" data-estado="APROBADO">OK</span>
+          </div>
+          <p class="mb-0 small text-muted">Autorizados o guardados en base de datos.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-lg-8">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-header bg-white d-flex align-items-center justify-content-between">
+            <div>
+              <p class="mb-0 text-muted small">Flujo de autorizaciones</p>
+              <h5 class="mb-0">Borradores registrados</h5>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+              <span class="text-muted small"><i class="bi bi-activity me-1"></i>Sincronización automática</span>
+              <button id="btnRefrescar" class="btn btn-sm btn-outline-primary"><i class="bi bi-arrow-clockwise"></i> Refrescar</button>
+            </div>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table tabla-borradores mb-0 align-middle">
+                <thead class="table-light">
+                  <tr>
+                    <th class="text-muted small text-uppercase">Módulo</th>
+                    <th class="text-muted small text-uppercase">Empresa</th>
+                    <th class="text-muted small text-uppercase">Ejercicio</th>
+                    <th class="text-muted small text-uppercase">Estado</th>
+                    <th class="text-muted small text-uppercase">Actualizado</th>
+                    <th class="text-muted small text-uppercase text-end">Acción</th>
+                  </tr>
+                </thead>
+                <tbody id="listaBorradores">
+                  <tr>
+                    <td colspan="6" class="text-center py-5 text-muted">
+                      <div class="spinner-border text-primary mb-2" role="status"></div>
+                      <p class="mb-0">Cargando borradores...</p>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-4">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <div>
+              <p class="mb-0 text-muted small">Detalle</p>
+              <h5 class="mb-0">Vista contextual</h5>
+            </div>
+            <span class="estado-badge" id="detalleEstado">Sin selección</span>
+          </div>
+          <div class="card-body">
+            <div class="mb-3" id="detalleResumen">
+              <p class="text-muted small mb-1">Selecciona un borrador para ver su historial y acciones disponibles.</p>
+              <div class="resaltado d-flex align-items-center gap-2">
+                <i class="bi bi-info-circle text-warning"></i>
+                <span class="small">Los botones se habilitan según el estado y los permisos del usuario.</span>
+              </div>
+            </div>
+
+            <div class="acciones-flujo d-flex flex-wrap gap-2 mb-4">
+              <button id="accionRevisar" class="btn btn-outline-primary btn-sm" disabled><i class="bi bi-check2-square"></i> Marcar revisado</button>
+              <button id="accionAutorizar" class="btn btn-success btn-sm" disabled><i class="bi bi-shield-check"></i> Autorizar</button>
+              <button id="accionRechazar" class="btn btn-outline-danger btn-sm" disabled><i class="bi bi-x-circle"></i> Rechazar</button>
+              <button id="accionGuardar" class="btn btn-dark btn-sm" disabled><i class="bi bi-database-check"></i> Guardar en BD</button>
+              <button id="accionVer" class="btn btn-outline-secondary btn-sm" disabled><i class="bi bi-eye"></i> Ver borrador</button>
+            </div>
+
+            <div class="mb-3">
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <h6 class="mb-0">Timeline</h6>
+                <span class="small text-muted" id="detalleMeta"></span>
+              </div>
+              <div id="historial" class="timeline-historial"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1080;">
+    <div id="gestionToast" class="toast align-items-center text-bg-dark border-0" role="status" aria-live="assertive" aria-atomic="true">
+      <div class="d-flex">
+        <div class="toast-body" id="gestionToastBody">Listo.</div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Cerrar"></button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/sesion.js"></script>
+  <script src="js/flujo-autorizacion-gestion.js"></script>
+</body>
+</html>
