@@ -95,12 +95,12 @@
   const actualizarEtiquetasAnio = (anio) => {
     const anioNum = Number(anio);
     const anioAnterior = anioNum - 1;
-    
+
     document.querySelectorAll('.anio').forEach((span) => {
       span.textContent = anioNum;
     });
     document.querySelectorAll('.anio-seleccionado').forEach((span) => {
-      span.textContent = anioAnterior;
+      span.textContent = anioNum;
     });
     document.querySelectorAll('.anio-seleccionado-anterior').forEach((span) => {
       span.textContent = anioAnterior;
