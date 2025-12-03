@@ -33,6 +33,11 @@
     { etiqueta: 'Diciembre', clave: 'dic', periodo: 12 }
   ];
 
+  // Compatibilidad: algunos layouts antiguos esperaban esta función.
+  // Hoy el capítulo se deriva de la empresa activa, pero exponemos un
+  // no-op para evitar referencias indefinidas en cargas previas.
+  const actualizarCapitulos = () => {};
+
   const CITY_LABELS = {
     empresa1: 'Ciudad de México',
     empresa2: 'Guadalajara',

@@ -20,8 +20,12 @@
   const tablaBody = document.getElementById('tablaCuentasBody');
   const yearSelect = document.getElementById('resumenYearSelect');
   const monthSelect = document.getElementById('resumenMonthSelect');
+  const yearLabel = document.getElementById('yearLabel');
+  const empresaLabel = document.getElementById('empresaLabel');
   const obtenerCapituloEmpresa = (empresaId) =>
     window.CapitulosModulos?.obtenerCapituloPorEmpresa?.(empresaId) || null;
+  const obtenerEtiquetaEmpresa = (empresaId) =>
+    window.CapitulosModulos?.EMPRESA_CONFIG?.[empresaId]?.etiqueta || '';
   const searchInput = document.getElementById('accountSearch');
   const toggleBtn = document.getElementById('toggleAccountsBtn');
 
@@ -88,6 +92,19 @@
     const yearPrev = document.querySelectorAll('.year-prev');
     yearAct.forEach((el) => (el.textContent = anio));
     yearPrev.forEach((el) => (el.textContent = anio - 1));
+    if (yearLabel) {
+      yearLabel.textContent = anio;
+    }
+  };
+
+  const actualizarEncabezado = (empresaId, anio) => {
+    if (yearLabel && Number.isInteger(anio)) {
+      yearLabel.textContent = anio;
+    }
+    const etiqueta = obtenerCapituloEmpresa(empresaId) || obtenerEtiquetaEmpresa(empresaId);
+    if (empresaLabel) {
+      empresaLabel.textContent = etiqueta || '';
+    }
   };
 
   const renderTable = (nodos = [], anioActual) => {
@@ -211,11 +228,23 @@
 
     const valorInicial = Number(yearSelect?.value) || anios[0] || new Date().getFullYear();
     const mesInicial = Number(monthSelect?.value) || new Date().getMonth() + 1;
+    actualizarEncabezado(empresa.id, valorInicial);
+    window.dispatchEvent(
+      new CustomEvent('planeacion:contexto-actualizado', {
+        detail: { empresaId: empresa.id, anio: valorInicial, modulo: document.body.dataset.modulo || 'resumen' }
+      })
+    );
     fetchResumen(empresa.id, valorInicial, mesInicial);
     if (yearSelect) {
       yearSelect.addEventListener('change', () => {
         const anio = Number(yearSelect.value) || new Date().getFullYear();
         const mes = Number(monthSelect?.value) || mesInicial;
+        actualizarEncabezado(empresa.id, anio);
+        window.dispatchEvent(
+          new CustomEvent('planeacion:contexto-actualizado', {
+            detail: { empresaId: empresa.id, anio, modulo: document.body.dataset.modulo || 'resumen' }
+          })
+        );
         fetchResumen(empresa.id, anio, mes);
       });
     }
@@ -223,6 +252,12 @@
       monthSelect.addEventListener('change', () => {
         const anio = Number(yearSelect?.value) || valorInicial;
         const mes = Number(monthSelect.value) || mesInicial;
+        actualizarEncabezado(empresa.id, anio);
+        window.dispatchEvent(
+          new CustomEvent('planeacion:contexto-actualizado', {
+            detail: { empresaId: empresa.id, anio, modulo: document.body.dataset.modulo || 'resumen' }
+          })
+        );
         fetchResumen(empresa.id, anio, mes);
       });
     }

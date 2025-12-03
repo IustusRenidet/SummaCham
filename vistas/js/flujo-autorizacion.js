@@ -109,9 +109,6 @@
       if (this.buttons.guardarAutorizado) {
         this.buttons.guardarAutorizado.addEventListener('click', () => this._handleGuardarFinal());
       }
-      if (this.buttons.btnGuardarAutorizado) {
-        this.buttons.btnGuardarAutorizado.addEventListener('click', () => this._handleGuardarFinal());
-      }
     }
 
     _prepararToast() {
