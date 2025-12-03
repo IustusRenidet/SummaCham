@@ -118,7 +118,19 @@
       const header = document.createElement('tr');
       header.className = 'section-header-row';
       header.dataset.section = nodo.key;
-      header.innerHTML = `<td colspan="7">${nodo.label}</td>`;
+      
+      const varPlan = formatPercent(nodo.totalActualMonth - nodo.totalPlanMonth, nodo.totalPlanMonth);
+      const varPrev = formatPercent(nodo.totalActualMonth - nodo.totalPrevMonth, nodo.totalPrevMonth);
+
+      header.innerHTML = `
+        <td></td>
+        <td>${nodo.label}</td>
+        <td class="text-end">${formatNumber(nodo.totalActualMonth)}</td>
+        <td class="text-end">${formatNumber(nodo.totalPlanMonth)}</td>
+        <td class="text-end">${formatNumber(nodo.totalPrevMonth)}</td>
+        <td class="text-end">${varPlan}</td>
+        <td class="text-end">${varPrev}</td>
+      `;
       tablaBody.appendChild(header);
 
       (nodo.children || []).forEach((seccion) => {
