@@ -13,6 +13,30 @@
   const summaryBody = document.getElementById('summaryTableBody');
   const aggregateBody = document.getElementById('summaryCityAggregates');
   const selectAnio = document.getElementById('selectAnio');
+  const selectMes = document.getElementById('selectMes');
+  const obtenerCapituloEmpresa = (empresaId) => {
+    return window.CapitulosModulos?.obtenerCapituloPorEmpresa?.(empresaId) || null;
+  };
+
+  const MESES = [
+    { etiqueta: 'Enero', clave: 'ene', periodo: 1 },
+    { etiqueta: 'Febrero', clave: 'feb', periodo: 2 },
+    { etiqueta: 'Marzo', clave: 'mar', periodo: 3 },
+    { etiqueta: 'Abril', clave: 'abr', periodo: 4 },
+    { etiqueta: 'Mayo', clave: 'may', periodo: 5 },
+    { etiqueta: 'Junio', clave: 'jun', periodo: 6 },
+    { etiqueta: 'Julio', clave: 'jul', periodo: 7 },
+    { etiqueta: 'Agosto', clave: 'ago', periodo: 8 },
+    { etiqueta: 'Septiembre', clave: 'sep', periodo: 9 },
+    { etiqueta: 'Octubre', clave: 'oct', periodo: 10 },
+    { etiqueta: 'Noviembre', clave: 'nov', periodo: 11 },
+    { etiqueta: 'Diciembre', clave: 'dic', periodo: 12 }
+  ];
+
+  // Compatibilidad: algunos layouts antiguos esperaban esta función.
+  // Hoy el capítulo se deriva de la empresa activa, pero exponemos un
+  // no-op para evitar referencias indefinidas en cargas previas.
+  const actualizarCapitulos = () => {};
 
   const CITY_LABELS = {
     empresa1: 'Ciudad de México',
@@ -48,7 +72,14 @@
   const createCell = (val, isBold = false) => `<td class="text-end ${isBold ? 'fw-bold' : ''}">${formatNumber(val)}</td>`;
   const createPercentCell = (val) => `<td class="text-end">${formatPercent(val)}</td>`;
 
-  const renderSummary = (resumen = []) => {
+  const actualizarEtiquetaMes = (mesSeleccionado) => {
+    const etiqueta = MESES.find((m) => m.periodo === mesSeleccionado)?.etiqueta || '';
+    document.querySelectorAll('.mes').forEach((span) => {
+      span.textContent = etiqueta.toUpperCase();
+    });
+  };
+
+  const renderSummary = (resumen = [], mesSeleccionado) => {
     if (!summaryBody) return;
     summaryBody.innerHTML = '';
     
@@ -134,6 +165,10 @@
         });
       });
     });
+
+    if (mesSeleccionado) {
+      actualizarEtiquetaMes(mesSeleccionado);
+    }
   };
 
   const renderAggregateTable = (resumen = []) => {
@@ -166,18 +201,27 @@
     });
   };
 
-  const fetchSummary = async (empresaId, anio) => {
+  const fetchSummary = async (empresaId, anio, mes) => {
     if (!empresaId) return;
     showStatus('Cargando datos del reporte Summary...', 'info');
     try {
-      const response = await fetch(`${API_ENDPOINT}?empresaId=${encodeURIComponent(empresaId)}&anio=${Number(anio)}`, {
+      const params = new URLSearchParams({
+        empresaId: empresaId,
+        anio: Number(anio)
+      });
+      if (Number.isInteger(mes)) {
+        params.set('mes', String(mes));
+      }
+      const capituloClave = obtenerCapituloEmpresa(empresaId);
+      if (capituloClave) params.set('capitulo', capituloClave);
+      const response = await fetch(`${API_ENDPOINT}?${params.toString()}`, {
         headers: Sesion.headersAutenticacion()
       });
       if (!response.ok) {
         throw new Error('No fue posible obtener el Summary.');
       }
       const data = await response.json();
-      renderSummary(data.resumen || []);
+      renderSummary(data.resumen || [], mes);
       renderAggregateTable(data.resumen || []);
       hideStatus();
     } catch (error) {
@@ -199,27 +243,29 @@
       }
       
       const data = await response.json();
-      const anios = data.anios || [];
-      
-      // Asegurar años vigentes (2024, 2025, 2026)
-      const anoActual = new Date().getFullYear();
-      const aniosVigentes = [anoActual - 1, anoActual, anoActual + 1];
-      const aniosMerge = [...new Set([...anios, ...aniosVigentes])].filter(a => a >= 2000 && a <= 2100).sort((a, b) => b - a);
-      
-      // Poblar select
+      const anios = (data.anios || []).filter((a) => Number.isInteger(a)).sort((a, b) => b - a);
+
       selectAnio.innerHTML = '';
-      aniosMerge.forEach(ano => {
+      if (!anios.length) {
+        const option = document.createElement('option');
+        option.value = '';
+        option.textContent = 'Sin años disponibles';
+        selectAnio.appendChild(option);
+        selectAnio.disabled = true;
+        return [];
+      }
+
+      anios.forEach((ano) => {
         const option = document.createElement('option');
         option.value = ano;
         option.textContent = ano;
         selectAnio.appendChild(option);
       });
-      
-      // Seleccionar año actual
-      selectAnio.value = anoActual;
+
+      selectAnio.value = anios[0];
       selectAnio.disabled = false;
-      
-      return aniosMerge;
+
+      return anios;
     } catch (error) {
       console.error('Error cargando años:', error);
       selectAnio.innerHTML = '<option value="">Error cargando años</option>';
@@ -239,18 +285,37 @@
     }
     
     // Cargar años disponibles
-    await cargarAniosDisponibles(empresa.id);
-    
-    // Cargar datos del año seleccionado
-    const anioActual = Number(selectAnio?.value) || new Date().getFullYear();
-    await fetchSummary(empresa.id, anioActual);
-    
-    // Event listener para cambios de año
+    const anios = await cargarAniosDisponibles(empresa.id);
+    const mesActual = new Date().getMonth() + 1;
+    const anioInicial = Number(selectAnio?.value) || anios[0] || new Date().getFullYear();
+    const mesInicial = Number.isInteger(mesActual) ? mesActual : 1;
+
+    await fetchSummary(empresa.id, anioInicial, mesInicial);
+
     if (selectAnio) {
       selectAnio.addEventListener('change', () => {
-        const anio = Number(selectAnio.value) || new Date().getFullYear();
-        fetchSummary(empresa.id, anio);
+        const anio = Number(selectAnio.value) || anioInicial;
+        const mes = Number(selectMes?.value) || mesInicial;
+        fetchSummary(empresa.id, anio, mes);
       });
+    }
+
+    if (selectMes) {
+      selectMes.querySelectorAll('option').forEach((opt, idx) => {
+        if (idx >= MESES.length) {
+          opt.remove();
+          return;
+        }
+        opt.value = String(MESES[idx].periodo);
+        opt.textContent = MESES[idx].etiqueta;
+      });
+      selectMes.value = String(mesInicial);
+      selectMes.addEventListener('change', () => {
+        const anio = Number(selectAnio?.value) || anioInicial;
+        const mes = Number(selectMes.value) || mesInicial;
+        fetchSummary(empresa.id, anio, mes);
+      });
+      actualizarEtiquetaMes(mesInicial);
     }
   });
 })();

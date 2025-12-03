@@ -479,16 +479,17 @@
       }
       const requiereGuardado = estado.borradorGuardado && !estado.editMode;
       if (elementos.reviewBudgetBtn) {
-        elementos.reviewBudgetBtn.classList.toggle('d-none', !puedeRevisar);
-        elementos.reviewBudgetBtn.disabled = !puedeRevisar || !(esAdminGlobal || (requiereGuardado && TRANSICIONES.revisar.habilita(estadoActual)));
+        elementos.reviewBudgetBtn.classList.toggle('d-none', esAdminGlobal || !puedeRevisar);
+        elementos.reviewBudgetBtn.disabled = esAdminGlobal || !puedeRevisar || !(esAdminGlobal || (requiereGuardado && TRANSICIONES.revisar.habilita(estadoActual)));
       }
       if (elementos.authorizeBudgetBtn) {
-        elementos.authorizeBudgetBtn.classList.toggle('d-none', !puedeAutorizar);
-        elementos.authorizeBudgetBtn.disabled = !puedeAutorizar || !(esAdminGlobal || (requiereGuardado && TRANSICIONES.autorizar.habilita(estadoActual)));
+        elementos.authorizeBudgetBtn.classList.toggle('d-none', esAdminGlobal || !puedeAutorizar);
+        elementos.authorizeBudgetBtn.disabled = esAdminGlobal || !puedeAutorizar || !(esAdminGlobal || (requiereGuardado && TRANSICIONES.autorizar.habilita(estadoActual)));
       }
       if (elementos.saveBudgetBtn) {
-        elementos.saveBudgetBtn.classList.toggle('d-none', !puedeGuardar);
-        elementos.saveBudgetBtn.disabled = !puedeGuardar || !(esAdminGlobal || (requiereGuardado && TRANSICIONES.guardar.habilita(estadoActual)));
+        const visibleGuardar = esAdminGlobal || (requiereGuardado && estadoActual === 'autorizado');
+        elementos.saveBudgetBtn.classList.toggle('d-none', !puedeGuardar || !visibleGuardar);
+        elementos.saveBudgetBtn.disabled = !puedeGuardar || !visibleGuardar || !(esAdminGlobal || (requiereGuardado && TRANSICIONES.guardar.habilita(estadoActual)));
       }
     };
 
