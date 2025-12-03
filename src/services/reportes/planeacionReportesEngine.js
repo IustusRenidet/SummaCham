@@ -130,6 +130,7 @@ const construirReporte = (definiciones, claveMes, planeacionActual, planeacionPr
     }, { actualMonth: 0, planMonth: 0, prevMonth: 0, actualYTD: 0, planYTD: 0, prevYTD: 0 });
 
     resumen.push({
+      key: NORMALIZAR_CLAVE(capitulo),
       label: capitulo,
       children,
       totalActualMonth: totalesCapitulo.actualMonth,
@@ -161,13 +162,28 @@ async function generarReporte(tipoReporte, empresaId, anio) {
   ]);
 
   const resumen = construirReporte(lista, claveMes, planeacionActual, planeacionPrevio);
-
-  return {
+  const payload = {
     empresaId,
     reportKey: tipoReporte,
     anio,
     resumen
   };
+
+  if (tipoReporte === 'RESUMEN') {
+    payload.resumen = resumen.map((capitulo) => ({
+      key: capitulo.key,
+      label: capitulo.label,
+      children: (capitulo.children || []).map((seccion) => ({
+        label: seccion.label,
+        chapter: capitulo.label,
+        amount: seccion.totalActualYTD,
+        totalPlanYTD: seccion.totalPlanYTD,
+        totalPrevYTD: seccion.totalPrevYTD
+      }))
+    }));
+  }
+
+  return payload;
 }
 
 module.exports = {
