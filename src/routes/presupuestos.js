@@ -69,6 +69,20 @@ const esTablaPresupuestoInexistente = (error) => {
   );
 };
 
+const esErrorConexionFirebird = (error) => {
+  const codigo = (error?.code || '').toString().toUpperCase();
+  if (['ECONNREFUSED', 'EHOSTUNREACH', 'ENETUNREACH', 'ETIMEDOUT'].includes(codigo)) {
+    return true;
+  }
+  const mensaje = (error?.message || '').toString().toUpperCase();
+  return (
+    mensaje.includes('UNABLE TO COMPLETE NETWORK REQUEST') ||
+    mensaje.includes('FAILED TO ESTABLISH A CONNECTION') ||
+    mensaje.includes('NETWORK REQUEST') ||
+    mensaje.includes('CONNECTION REJECTED')
+  );
+};
+
 const cargarUsuarioActual = (req, res, next) => {
   const usuarioEncabezado = normalizarUsuario(req.headers['x-usuario-actual']);
   if (!usuarioEncabezado) {
@@ -188,6 +202,11 @@ router.get('/anios', async (req, res) => {
     const anios = await listarAniosPresupuestos(empresa.id);
     res.json({ anios });
   } catch (error) {
+    if (esErrorConexionFirebird(error)) {
+      return res.status(503).json({
+        mensaje: 'No fue posible conectar con la base de datos de Firebird para esta empresa.'
+      });
+    }
     console.error('Error al consultar anos de presupuestos:', error);
     res.status(500).json({ mensaje: 'No fue posible obtener los ejercicios disponibles.' });
   }
@@ -233,6 +252,11 @@ router.get('/', async (req, res) => {
       cuentas
     });
   } catch (err) {
+    if (esErrorConexionFirebird(err)) {
+      return res.status(503).json({
+        mensaje: 'No fue posible conectar con la base de datos de Firebird para esta empresa.'
+      });
+    }
     if (esTablaPresupuestoInexistente(err)) {
       return res.status(404).json({
         mensaje: 'No existe información de presupuestos para el ejercicio indicado.',
