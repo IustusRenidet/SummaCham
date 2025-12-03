@@ -105,6 +105,11 @@ const calcularTotales = (cuentas, claveMes, planeacionActual, planeacionPrevio) 
     planYTD: 0,
     prevYTD: 0
   };
+};
+
+const construirReporte = (definiciones, claveMes, planeacionActual, planeacionPrevio) => {
+  const definicionCuentas = new Map();
+  const agrupado = new Map();
 
   const sumaHastaMes = (registro, incluirPrevio) => {
     let total = 0;
