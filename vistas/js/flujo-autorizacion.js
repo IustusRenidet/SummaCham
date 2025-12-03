@@ -52,17 +52,18 @@
       this.hayCambios = false;
       this.borradorGuardado = false;
       this.verBorradorVisible = false;
+      this.esAdminGlobal = Boolean(window.Sesion?.esAdminGlobal?.());
       this.tableElement = null;
       this.toastInstance = null;
       this.toastBody = null;
       this.buttons = {};
-    this.callbacks = {
-      onCancelEdit: options.onCancelEdit || (() => window.CuentasModulo?.cancelEdit?.()),
-      obtenerCambios: options.obtenerCambios || (() => window.CuentasModulo?.getCambios?.() || {}),
-      obtenerHeaders: options.obtenerHeaders || (() => Sesion.headersAutenticacion())
-    };
-    this._conectarEventos();
-  }
+      this.callbacks = {
+        onCancelEdit: options.onCancelEdit || (() => window.CuentasModulo?.cancelEdit?.()),
+        obtenerCambios: options.obtenerCambios || (() => window.CuentasModulo?.getCambios?.() || {}),
+        obtenerHeaders: options.obtenerHeaders || (() => Sesion.headersAutenticacion())
+      };
+      this._conectarEventos();
+    }
 
   init() {
     this.tableElement = document.getElementById(this.tablaId);
@@ -165,8 +166,13 @@
         }
         this.borradorActual = datos.borrador || null;
         this.borradorGuardado = Boolean(this.borradorActual);
-        this.verBorradorVisible = false;
-        FlujoAutorizacion.limpiarBorrador(this.tableElement);
+        this.verBorradorVisible = [ESTADOS.PENDIENTE, ESTADOS.REVISADO, ESTADOS.APROBADO, ESTADOS.GUARDADO]
+          .includes(this.borradorActual?.estado);
+        if (this.verBorradorVisible) {
+          FlujoAutorizacion.pintarBorrador(this.tableElement, this.borradorActual);
+        } else {
+          FlujoAutorizacion.limpiarBorrador(this.tableElement);
+        }
         this._actualizarBotones();
       } catch (error) {
         console.error('Error consultando el estado del borrador', error);
@@ -212,8 +218,8 @@
         this.borradorActual = datos.borrador || null;
         this.borradorGuardado = Boolean(this.borradorActual);
         this.hayCambios = false;
-        this.verBorradorVisible = false;
-        FlujoAutorizacion.limpiarBorrador(this.tableElement);
+        this.verBorradorVisible = true;
+        FlujoAutorizacion.pintarBorrador(this.tableElement, this.borradorActual);
         this._actualizarBotones();
         this._mostrarToast(datos.mensaje || 'Borrador guardado.');
       } catch (error) {
@@ -243,8 +249,8 @@
         this.borradorActual = datos.borrador || null;
         this.borradorGuardado = Boolean(this.borradorActual);
         this.hayCambios = false;
-        this.verBorradorVisible = false;
-        FlujoAutorizacion.limpiarBorrador(this.tableElement);
+        this.verBorradorVisible = true;
+        FlujoAutorizacion.pintarBorrador(this.tableElement, this.borradorActual);
         this._actualizarBotones();
         const mensaje = datos.autoAutorizado
           ? 'Borrador autorizado automáticamente.'
@@ -278,8 +284,8 @@
         this.borradorActual = datos.borrador || null;
         this.borradorGuardado = Boolean(this.borradorActual);
         this.hayCambios = false;
-        this.verBorradorVisible = false;
-        FlujoAutorizacion.limpiarBorrador(this.tableElement);
+        this.verBorradorVisible = true;
+        FlujoAutorizacion.pintarBorrador(this.tableElement, this.borradorActual);
         this._actualizarBotones();
         this._mostrarToast(datos.mensaje || 'Borrador autorizado.');
       } catch (error) {
@@ -316,8 +322,8 @@
         this.borradorActual = datos.borrador || null;
         this.borradorGuardado = Boolean(this.borradorActual);
         this.hayCambios = false;
-        this.verBorradorVisible = false;
-        FlujoAutorizacion.limpiarBorrador(this.tableElement);
+        this.verBorradorVisible = true;
+        FlujoAutorizacion.pintarBorrador(this.tableElement, this.borradorActual);
         this._actualizarBotones();
         this._mostrarToast(datos.mensaje || 'Borrador rechazado.');
       } catch (error) {
@@ -344,8 +350,8 @@
         this.borradorActual = datos.borrador || null;
         this.borradorGuardado = Boolean(this.borradorActual);
         this.hayCambios = false;
-        this.verBorradorVisible = false;
-        FlujoAutorizacion.limpiarBorrador(this.tableElement);
+        this.verBorradorVisible = true;
+        FlujoAutorizacion.pintarBorrador(this.tableElement, this.borradorActual);
         this._actualizarBotones();
         this._mostrarToast(datos.mensaje || 'Revisión registrada.');
       } catch (error) {
@@ -372,8 +378,8 @@
         this.borradorActual = datos.borrador || null;
         this.borradorGuardado = Boolean(this.borradorActual);
         this.hayCambios = false;
-        this.verBorradorVisible = false;
-        FlujoAutorizacion.limpiarBorrador(this.tableElement);
+        this.verBorradorVisible = true;
+        FlujoAutorizacion.pintarBorrador(this.tableElement, this.borradorActual);
         this._actualizarBotones();
         this._mostrarToast(datos.mensaje || 'Información guardada en la base de datos.');
       } catch (error) {
@@ -438,8 +444,8 @@
       } = this.buttons;
 
       if (btnGuardarBorrador) {
-        btnGuardarBorrador.disabled = !this.hayCambios;
-        btnGuardarBorrador.classList.toggle('d-none', false);
+        btnGuardarBorrador.disabled = true;
+        btnGuardarBorrador.classList.add('d-none');
       }
 
       if (btnEnviarCambios) {
@@ -453,24 +459,24 @@
       }
 
       if (btnVerBorrador) {
-        const tieneDatos = Boolean(this.borradorActual?.data?.presupuesto?.length);
+        const tieneDatos = Boolean(this.borradorActual?.data);
         btnVerBorrador.classList.toggle('d-none', !tieneDatos);
         btnVerBorrador.classList.toggle('active', this.verBorradorVisible);
       }
 
       if (panelRevision) {
-        const visible = [ESTADOS.PENDIENTE, ESTADOS.REVISADO, ESTADOS.APROBADO].includes(estado);
+        const visible = !this.esAdminGlobal && [ESTADOS.PENDIENTE, ESTADOS.REVISADO, ESTADOS.APROBADO].includes(estado);
         panelRevision.classList.toggle('d-none', !visible);
       }
 
       if (btnAutorizar) {
         const enRevision = estado === ESTADOS.PENDIENTE;
         btnAutorizar.textContent = enRevision ? 'Marcar revisado' : 'Autorizar';
-        btnAutorizar.classList.toggle('d-none', ![ESTADOS.PENDIENTE, ESTADOS.REVISADO].includes(estado));
+        btnAutorizar.classList.toggle('d-none', this.esAdminGlobal || ![ESTADOS.PENDIENTE, ESTADOS.REVISADO].includes(estado));
       }
 
       if (btnRechazar) {
-        btnRechazar.classList.toggle('d-none', ![ESTADOS.PENDIENTE, ESTADOS.REVISADO, ESTADOS.APROBADO].includes(estado));
+        btnRechazar.classList.toggle('d-none', this.esAdminGlobal || ![ESTADOS.PENDIENTE, ESTADOS.REVISADO, ESTADOS.APROBADO].includes(estado));
       }
 
       if (btnGuardarAutorizado) {

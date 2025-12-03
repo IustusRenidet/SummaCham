@@ -35,26 +35,27 @@
       }
       
       const data = await response.json();
-      const anios = data.anios || [];
-      
-      // Asegurar años vigentes (2024, 2025, 2026)
-      const anoActual = new Date().getFullYear();
-      const aniosVigentes = [anoActual - 1, anoActual, anoActual + 1];
-      const aniosMerge = [...new Set([...anios, ...aniosVigentes])].filter(a => a >= 2000 && a <= 2100).sort((a, b) => b - a);
-      
-      // Poblar select
+      const anios = (data.anios || []).filter((a) => Number.isInteger(a)).sort((a, b) => b - a);
+
       yearSelect.innerHTML = '';
-      aniosMerge.forEach(ano => {
+      if (!anios.length) {
+        const option = document.createElement('option');
+        option.value = '';
+        option.textContent = 'Sin años disponibles';
+        yearSelect.appendChild(option);
+        return [];
+      }
+
+      anios.forEach((ano) => {
         const option = document.createElement('option');
         option.value = ano;
         option.textContent = ano;
         yearSelect.appendChild(option);
       });
-      
-      // Seleccionar año actual
-      yearSelect.value = anoActual;
-      
-      return aniosMerge;
+
+      yearSelect.value = anios[0];
+
+      return anios;
     } catch (error) {
       console.error('Error cargando años:', error);
       yearSelect.innerHTML = '<option value="">Error cargando años</option>';
@@ -151,12 +152,7 @@
       fila.classList.toggle('d-none', text && !contenido.includes(text));
     });
     const headers = Array.from(tablaBody.querySelectorAll('tr.section-header-row'));
-    headers.forEach((encabezado) => {
-      const seccion = encabezado.dataset.section;
-      const hijos = Array.from(tablaBody.querySelectorAll(`tr.data-row[data-section="${seccion}"]`));
-      const visible = hijos.some((fila) => !fila.classList.contains('d-none'));
-      encabezado.classList.toggle('d-none', text && !visible);
-    });
+    headers.forEach((encabezado) => encabezado.classList.remove('d-none'));
   };
 
   const fetchResumen = async (empresaId, anio) => {
@@ -202,9 +198,9 @@
     }
     
     // Cargar años disponibles
-    await cargarAniosDisponibles(empresa.id);
-    
-    const valorInicial = Number(yearSelect?.value) || new Date().getFullYear();
+    const anios = await cargarAniosDisponibles(empresa.id);
+
+    const valorInicial = Number(yearSelect?.value) || anios[0] || new Date().getFullYear();
     fetchResumen(empresa.id, valorInicial);
     if (yearSelect) {
       yearSelect.addEventListener('change', () => {

@@ -13,10 +13,44 @@ const cargarDefiniciones = () => {
   return JSON.parse(contenido);
 };
 
+const NOMBRES_MESES = [
+  'enero',
+  'febrero',
+  'marzo',
+  'abril',
+  'mayo',
+  'junio',
+  'julio',
+  'agosto',
+  'septiembre',
+  'octubre',
+  'noviembre',
+  'diciembre'
+];
+
 const obtenerMesActualClave = () => {
   const ahora = new Date();
   const indice = Math.min(Math.max(ahora.getMonth(), 0), 11);
   return MESES[indice]?.clave || 'dic';
+};
+
+const normalizarClaveMes = (mesEntrada) => {
+  if (mesEntrada == null) return null;
+  const numero = Number(mesEntrada);
+  if (Number.isInteger(numero) && numero >= 1 && numero <= 12) {
+    return MESES[numero - 1].clave;
+  }
+  const texto = mesEntrada.toString().trim().toLowerCase();
+  if (!texto) return null;
+  const coincidencia = MESES.find(({ alias, clave }, idx) => {
+    return (
+      alias.toLowerCase() === texto
+      || clave.toLowerCase() === texto
+      || NOMBRES_MESES[idx] === texto
+      || NOMBRES_MESES[idx].startsWith(texto)
+    );
+  });
+  return coincidencia ? coincidencia.clave : null;
 };
 
 const calcularTotales = (cuentas, claveMes, planeacionActual, planeacionPrevio) => {
@@ -146,7 +180,7 @@ const construirReporte = (definiciones, claveMes, planeacionActual, planeacionPr
   return resumen;
 };
 
-async function generarReporte(tipoReporte, empresaId, anio) {
+async function generarReporte(tipoReporte, empresaId, anio, mesSeleccionado) {
   const definiciones = cargarDefiniciones();
   const lista = definiciones[tipoReporte];
   if (!Array.isArray(lista) || !lista.length) {
@@ -154,7 +188,7 @@ async function generarReporte(tipoReporte, empresaId, anio) {
   }
 
   const cuentas = lista.map((item) => NORMALIZAR_CLAVE(item.CUENTA)).filter(Boolean);
-  const claveMes = obtenerMesActualClave();
+  const claveMes = normalizarClaveMes(mesSeleccionado) || obtenerMesActualClave();
 
   const [planeacionActual, planeacionPrevio] = await Promise.all([
     obtenerDatosPlaneacion({ empresaId, anio, cuentas }),

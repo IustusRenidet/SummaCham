@@ -1,7 +1,7 @@
 const { generarReporte } = require('../reportes/planeacionReportesEngine');
 
-async function generarSummary(empresaId, anio) {
-  return generarReporte('SUMMARY', empresaId, Number(anio));
+async function generarSummary(empresaId, anio, mes) {
+  return generarReporte('SUMMARY', empresaId, Number(anio), mes);
 }
 
 module.exports = {
