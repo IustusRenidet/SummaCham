@@ -3,7 +3,6 @@ const Joi = require('joi');
 const { generarSummary } = require('../services/engines/summaryEngine');
 const { generarResumenEjecutivo } = require('../services/engines/resumenEngine');
 const { obtenerEmpresaPorId } = require('../config/empresas');
-const path = require('path');
 
 const router = express.Router();
 
@@ -30,7 +29,7 @@ router.get('/summary', async (req, res) => {
     return res.status(404).json({ mensaje: 'Empresa no encontrada.' });
   }
   try {
-    const data = await generarSummary(value.empresaId, normalizarAnio(value.anio), { basePath: path.join(__dirname, '..', '..', 'info IMPORTANTE') });
+    const data = await generarSummary(value.empresaId, normalizarAnio(value.anio));
     res.json(data);
   } catch (errorSum) {
     console.error('Error generando Summary:', errorSum);
@@ -48,9 +47,7 @@ router.get('/resumen', async (req, res) => {
     return res.status(404).json({ mensaje: 'Empresa no encontrada.' });
   }
   try {
-    const data = await generarResumenEjecutivo(value.empresaId, normalizarAnio(value.anio), {
-      basePath: path.join(__dirname, '..', '..', 'info IMPORTANTE')
-    });
+    const data = await generarResumenEjecutivo(value.empresaId, normalizarAnio(value.anio));
     res.json(data);
   } catch (errorRes) {
     console.error('Error generando Resumen:', errorRes);

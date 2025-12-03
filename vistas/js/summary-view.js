@@ -35,28 +35,103 @@
     summaryStatus.className = 'alert alert-info mb-3 visually-hidden';
   };
 
-  const createRow = (label, total, indent = false) => {
-    const row = document.createElement('tr');
-    const contenido = indent ? `↳ ${label}` : label;
-    row.innerHTML = `
-      <th scope="row">${contenido}</th>
-      <td class="text-end">${formatNumber(total)}</td>
-      ${emptyCells(10)}
-    `;
-    return row;
+  const calculateVar = (actual, budget) => {
+    if (!budget) return 0;
+    return ((actual - budget) / budget) * 100;
   };
+
+  const formatPercent = (val) => {
+    if (!Number.isFinite(val)) return '0.00%';
+    return val.toFixed(2) + '%';
+  };
+
+  const createCell = (val, isBold = false) => `<td class="text-end ${isBold ? 'fw-bold' : ''}">${formatNumber(val)}</td>`;
+  const createPercentCell = (val) => `<td class="text-end">${formatPercent(val)}</td>`;
 
   const renderSummary = (resumen = []) => {
     if (!summaryBody) return;
     summaryBody.innerHTML = '';
+    
     if (!resumen.length) {
       summaryBody.innerHTML = '<tr><td colspan="12" class="text-center">Sin datos disponibles.</td></tr>';
       return;
     }
-    resumen.forEach((nodo) => {
-      summaryBody.appendChild(createRow(nodo.label, nodo.total));
-      (nodo.children || []).forEach((child) => {
-        summaryBody.appendChild(createRow(child.label, child.total, true));
+    
+    resumen.forEach((capitulo) => {
+      // 1. Fila de Capítulo (ej. CDMX Income)
+      const capVarMonthPlan = calculateVar(capitulo.totalActualMonth, capitulo.totalPlanMonth);
+      const capVarMonthPrev = calculateVar(capitulo.totalActualMonth, capitulo.totalPrevMonth);
+      const capVarYTDPlan = calculateVar(capitulo.totalActualYTD, capitulo.totalPlanYTD);
+      const capVarYTDPrev = calculateVar(capitulo.totalActualYTD, capitulo.totalPrevYTD);
+
+      const capRow = document.createElement('tr');
+      capRow.className = 'section-header-row table-secondary fw-bold text-center';
+      capRow.innerHTML = `
+        <td></td> <!-- Cuenta vacía -->
+        ${createCell(capitulo.totalActualMonth, true)}
+        ${createCell(capitulo.totalPlanMonth, true)}
+        ${createCell(capitulo.totalPrevMonth, true)}
+        ${createPercentCell(capVarMonthPlan)}
+        ${createPercentCell(capVarMonthPrev)}
+        <td class="text-center text-primary text-uppercase">${capitulo.label}</td>
+        ${createCell(capitulo.totalActualYTD, true)}
+        ${createCell(capitulo.totalPlanYTD, true)}
+        ${createCell(capitulo.totalPrevYTD, true)}
+        ${createPercentCell(capVarYTDPlan)}
+        ${createPercentCell(capVarYTDPrev)}
+      `;
+      summaryBody.appendChild(capRow);
+
+      (capitulo.children || []).forEach((seccion) => {
+        // 2. Fila de Sección (ej. Membership)
+        const secVarMonthPlan = calculateVar(seccion.totalActualMonth, seccion.totalPlanMonth);
+        const secVarMonthPrev = calculateVar(seccion.totalActualMonth, seccion.totalPrevMonth);
+        const secVarYTDPlan = calculateVar(seccion.totalActualYTD, seccion.totalPlanYTD);
+        const secVarYTDPrev = calculateVar(seccion.totalActualYTD, seccion.totalPrevYTD);
+
+        const secRow = document.createElement('tr');
+        secRow.className = 'subsection-row fw-bold fst-italic text-center';
+        secRow.style.backgroundColor = '#e9ecef';
+        secRow.innerHTML = `
+          <td></td>
+          ${createCell(seccion.totalActualMonth)}
+          ${createCell(seccion.totalPlanMonth)}
+          ${createCell(seccion.totalPrevMonth)}
+          ${createPercentCell(secVarMonthPlan)}
+          ${createPercentCell(secVarMonthPrev)}
+          <td class="text-center">${seccion.label}</td>
+          ${createCell(seccion.totalActualYTD)}
+          ${createCell(seccion.totalPlanYTD)}
+          ${createCell(seccion.totalPrevYTD)}
+          ${createPercentCell(secVarYTDPlan)}
+          ${createPercentCell(secVarYTDPrev)}
+        `;
+        summaryBody.appendChild(secRow);
+
+        // 3. Filas de Cuentas
+        (seccion.cuentas || []).forEach((cta) => {
+          const ctaVarMonthPlan = calculateVar(cta.actualMonth, cta.planMonth);
+          const ctaVarMonthPrev = calculateVar(cta.actualMonth, cta.prevMonth);
+          const ctaVarYTDPlan = calculateVar(cta.actualYTD, cta.planYTD);
+          const ctaVarYTDPrev = calculateVar(cta.actualYTD, cta.prevYTD);
+
+          const ctaRow = document.createElement('tr');
+          ctaRow.innerHTML = `
+            <td class="font-monospace small text-start">${cta.cuenta}</td>
+            ${createCell(cta.actualMonth)}
+            ${createCell(cta.planMonth)}
+            ${createCell(cta.prevMonth)}
+            ${createPercentCell(ctaVarMonthPlan)}
+            ${createPercentCell(ctaVarMonthPrev)}
+            <td class="text-center">${cta.descripcion}</td>
+            ${createCell(cta.actualYTD)}
+            ${createCell(cta.planYTD)}
+            ${createCell(cta.prevYTD)}
+            ${createPercentCell(ctaVarYTDPlan)}
+            ${createPercentCell(ctaVarYTDPrev)}
+          `;
+          summaryBody.appendChild(ctaRow);
+        });
       });
     });
   };

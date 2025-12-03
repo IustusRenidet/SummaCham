@@ -57,15 +57,15 @@ El proyecto está configurado con **electron-builder** para generar un ejecutabl
 
 ## Reportes Summary y Resumen
 
-Se habilitaron motores independientes que consumen saldos (`saldosService`) y reglas definidas en los archivos CSV:
+Los reportes ahora usan la misma arquitectura de secciones que los módulos de planeación:
 
-- `summaryEngine` (`src/services/engines/summaryEngine.js`): lee los mapeos (`SUMMARY Ciudad de México.csv`, `SUMMARY GUADALAJARA.csv`, etc.) y las reglas de `SUMAS CIUDAD DE MEXICO.csv`, consulta los saldos de las cuentas mapeadas y arma el árbol jerárquico aplicando sumas y restas.
-- `resumenEngine` (`src/services/engines/resumenEngine.js`): lee el archivo de mapeo del Resumen, trae los saldos de cada cuenta y devuelve una lista agrupada por rubros.
+- `planeacionReportesEngine` (`src/services/reportes/planeacionReportesEngine.js`) carga `info IMPORTANTE/CUENTAS SUMMARY y RESUMEN.xlsx` para definir capítulos/secciones, normaliza las cuentas y aplica `info IMPORTANTE/SUMAS CIUDAD DE MEXICO.csv` para sumar ingresos y restar gastos hacia los resultados operativos y los totales consolidados. Crea nodos con `children` como en planeación para poder pintar el overlay de secciones.
+- `summaryEngine` y `resumenEngine` (`src/services/engines/`) exponen funciones ligeras que ejecutan `generarReporte('SUMMARY', …)` y `generarReporte('RESUMEN', …)` respectivamente.
 
-Ambos motores exponen rutas REST distintas:
+Los nuevos endpoints consumen esos nodos y devuelven JSON listos para la vista:
 
-- `GET /api/reportes/summary?empresaId=<empresa>&anio=<ejercicio>` → `{ empresa, anio, detalle, resumen, reglasAplicadas }`
-- `GET /api/reportes/resumen?empresaId=<empresa>&anio=<ejercicio>` → `{ empresa, anio, filas, grupos }`
+- `GET /api/reportes/summary?empresaId=<empresa>&anio=<ejercicio>` → `{ empresaId, reportKey: 'SUMMARY', anio, detalle, resumen }`
+- `GET /api/reportes/resumen?empresaId=<empresa>&anio=<ejercicio>` → `{ empresaId, reportKey: 'RESUMEN', anio, detalle, resumen }`
 
-Los motores aceptan opciones para ajustar la carpeta base (`info IMPORTANTE` por defecto), rutas de los CSV y alias de empresa.
+Las vistas `SUMMARY.html` y `RESUMEN.html` usan `js/summary-view.js` y `js/resumen-view.js` para renderizar esas secciones jerárquicas; de esta forma el usuario solo necesita diseñar capítulos/secciones en los archivos Excel/CSV (`CUENTAS SUMMARY y RESUMEN.xlsx` y `SUMAS CIUDAD DE MEXICO.csv`) para que el sistema agregue automáticamente los operativos como ingresos menos gastos y muestre el árbol completo.
 

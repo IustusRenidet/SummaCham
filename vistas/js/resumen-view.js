@@ -71,34 +71,31 @@
     return grupos;
   };
 
-  const renderTable = (filas = []) => {
+  const renderTable = (nodos = []) => {
     if (!tablaBody) return;
-    if (!filas.length) {
+    if (!nodos.length) {
       setStatusRow('No hay datos disponibles para este año.');
       return;
     }
     tablaBody.innerHTML = '';
-    const grupos = groupFilas(filas);
-    Object.keys(grupos).forEach((grupo) => {
+    nodos.forEach((nodo) => {
       const header = document.createElement('tr');
       header.className = 'section-header-row';
-      header.dataset.section = grupo;
-      header.innerHTML = `<td colspan="7">${grupo}</td>`;
+      header.dataset.section = nodo.key;
+      header.innerHTML = `<td colspan="7">${nodo.label}</td>`;
       tablaBody.appendChild(header);
-      grupos[grupo].forEach((fila) => {
-        const varPlan = Number(fila.anual || 0);
-        const varReal = Number(fila.anual || 0) - Number(fila.dic ?? 0);
+      (nodo.children || []).forEach((child) => {
         const row = document.createElement('tr');
         row.className = 'data-row';
-        row.dataset.section = grupo;
+        row.dataset.section = nodo.key;
         row.innerHTML = `
-          <td>${fila.cuenta}</td>
-          <td>${fila.descripcion}</td>
-          <td class="text-end">${formatNumber(fila.anual)}</td>
+          <td>↳ ${child.label || child.section || 'Detalle'}</td>
+          <td>${child.chapter || ''}</td>
+          <td class="text-end">${formatNumber(child.amount)}</td>
           <td class="text-end">0.00</td>
-          <td class="text-end">${formatNumber(fila.dic)}</td>
-          <td class="text-end">${formatNumber(varPlan)}</td>
-          <td class="text-end">${formatNumber(varReal)}</td>
+          <td class="text-end">0.00</td>
+          <td class="text-end">${formatNumber(child.amount)}</td>
+          <td class="text-end">${formatNumber(child.amount)}</td>
         `;
         tablaBody.appendChild(row);
       });
@@ -107,22 +104,22 @@
 
   const filterRows = (termino) => {
     if (!tablaBody) return;
-    const texto = (termino || '').toLowerCase();
-    const rows = Array.from(tablaBody.querySelectorAll('tr.data-row'));
-    rows.forEach((fila) => {
+    const text = (termino || '').toLowerCase();
+    const datarows = Array.from(tablaBody.querySelectorAll('tr.data-row'));
+    datarows.forEach((fila) => {
       const contenido = (fila.textContent || '').toLowerCase();
-      fila.classList.toggle('d-none', texto && !contenido.includes(texto));
+      fila.classList.toggle('d-none', text && !contenido.includes(text));
     });
     const headers = Array.from(tablaBody.querySelectorAll('tr.section-header-row'));
     headers.forEach((encabezado) => {
       const seccion = encabezado.dataset.section;
       const hijos = Array.from(tablaBody.querySelectorAll(`tr.data-row[data-section="${seccion}"]`));
       const visible = hijos.some((fila) => !fila.classList.contains('d-none'));
-      encabezado.classList.toggle('d-none', texto && !visible);
+      encabezado.classList.toggle('d-none', text && !visible);
     });
   };
 
-  const fetchResumen = async (empresaId, anio) => {
+    const fetchResumen = async (empresaId, anio) => {
     if (!empresaId || !anio) return;
     setStatusRow('Cargando resumen financiero...');
     try {
@@ -133,7 +130,7 @@
         throw new Error('No fue posible obtener el resumen.');
       }
       const datos = await respuesta.json();
-      renderTable(datos.filas || []);
+      renderTable(datos.resumen || []);
     } catch (error) {
       console.error('Error resumen:', error);
       setStatusRow(error.message || 'No fue posible cargar el resumen.');
