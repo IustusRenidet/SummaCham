@@ -23,6 +23,8 @@
   const selectCapitulo = document.getElementById('selectCapitulo');
   let capituloActual = '';
   let empresaActual = null;
+  let mesClaveActual = 'dic';
+  let mesNumeroActual = 12;
   const leerAnioSeleccionado = () => Number(selectAnio?.value) || new Date().getFullYear();
   const leerMesSeleccionado = () => Number(selectMes?.value) || (new Date().getMonth() + 1);
   const obtenerSelectorGlobalEmpresa = () => window.parent?.document?.getElementById('companyFilter') || null;
@@ -41,6 +43,15 @@
   };
   const obtenerCapituloEmpresa = (empresaId) => {
     return window.CapitulosModulos?.obtenerCapituloPorEmpresa?.(empresaId) || null;
+  };
+
+  const actualizarMesContexto = (mesSeleccionado) => {
+    const numero = Number(mesSeleccionado);
+    const info = MESES.find((item) => item.periodo === numero);
+    if (info) {
+      mesClaveActual = info.clave;
+      mesNumeroActual = info.periodo;
+    }
   };
 
   const cambiosPendientes = new Map();
@@ -63,27 +74,10 @@
     { etiqueta: 'Diciembre', clave: 'dic', periodo: 12 }
   ];
 
-  const COLUMN_TOOLTIPS = {
-    actualMonth: 'Monto real del mes seleccionado (real del periodo).',
-    planMonth: 'Monto presupuestado del mes seleccionado.',
-    prevMonth: 'Resultado del mismo mes del año anterior.',
-    varMonthPlan: '((Actual mes - Plan mes) / |Plan mes|) × 100.',
-    varMonthPrev: '((Actual mes - Mes año anterior) / |Mes año anterior|) × 100.',
-    actualYTD: 'Real acumulado hasta el mes seleccionado.',
-    planYTD: 'Presupuesto acumulado hasta el mes seleccionado.',
-    prevYTD: 'Real acumulado del mismo periodo del año anterior.',
-    varYTDPlan: '((Actual YTD - Plan YTD) / |Plan YTD|) × 100.',
-    varYTDPrev: '((Actual YTD - YTD año anterior) / |YTD año anterior|) × 100.'
-  };
-
   const escapeAttr = (texto = '') => texto.toString().replace(/"/g, '&quot;');
-  const tooltipAttr = (key) => (key && COLUMN_TOOLTIPS[key]
-    ? ` title="${escapeAttr(COLUMN_TOOLTIPS[key])}" data-bs-toggle="tooltip"`
-    : '');
 
   const limpiarCambios = () => {
     cambiosPendientes.clear();
-    editMode = false;
   };
 
   const claveCambio = (cuenta, columna) => `${cuenta}|${columna}`;
@@ -118,6 +112,33 @@
     return { presupuesto, hayCambios: presupuesto.length > 0 };
   };
 
+  const sincronizarCeldasEditables = () => {
+    if (!summaryBody) return;
+    const celdas = Array.from(summaryBody.querySelectorAll('.editable-cell'));
+    celdas.forEach((celda) => {
+      celda.removeEventListener('blur', manejarBlurCelda);
+      if (editMode) {
+        celda.contentEditable = 'true';
+        celda.addEventListener('blur', manejarBlurCelda);
+      } else {
+        celda.contentEditable = 'false';
+      }
+    });
+  };
+
+  const establecerModoEdicion = (flag) => {
+    const habilitar = Boolean(flag);
+    if (habilitar) {
+      if (editMode) return;
+      editMode = true;
+      sincronizarCeldasEditables();
+      return;
+    }
+    if (editMode) {
+      cancelarEdicion();
+    }
+  };
+
   const notificarCambios = () => {
     const detalle = { ...obtenerCambiosPendientes(), borradorGuardado: false };
     window.dispatchEvent(new CustomEvent('modulo-planeacion:presupuesto-editado', { detail: detalle }));
@@ -142,6 +163,8 @@
   const cancelarEdicion = () => {
     restaurarValoresOriginales();
     limpiarCambios();
+    editMode = false;
+    sincronizarCeldasEditables();
     notificarCambios();
   };
 
@@ -166,19 +189,10 @@
     notificarCambios();
   };
 
-  const activarModoEdicion = () => {
-    if (editMode || !summaryBody) return;
-    editMode = true;
-    const celdas = Array.from(summaryBody.querySelectorAll('.editable-cell'));
-    celdas.forEach((celda) => {
-      celda.contentEditable = 'true';
-      celda.addEventListener('blur', manejarBlurCelda);
-    });
-  };
-
   window.CuentasModulo = window.CuentasModulo || {};
   window.CuentasModulo.cancelEdit = cancelarEdicion;
   window.CuentasModulo.getCambios = obtenerCambiosPendientes;
+  window.CuentasModulo.setEditMode = establecerModoEdicion;
 
   // Compatibilidad: algunos layouts antiguos esperaban esta función.
   // Hoy el capítulo se deriva de la empresa activa, pero aquí podemos
@@ -219,6 +233,35 @@
     'OPERATING',
     'OTHER'
   ];
+
+  const COLUMN_TOOLTIPS = {
+    actualMonth: 'Real del mes consultado. Suma los campos real[mes] de todas las cuentas visibles en la sección o principal.',
+    planMonth: 'Presupuesto del mes (columna PRESUPXX). Este es el valor que se enviará a COI al autorizar.',
+    prevMonth: 'Real del mismo mes pero del año anterior para comparar contra la base histórica inmediata.',
+    varMonthPlan: 'Variación mensual vs plan: ((Real mes - Plan mes) / |Plan mes|) × 100.',
+    varMonthPrev: 'Variación mensual interanual: ((Real mes - Real mes año anterior) / |Real año anterior|) × 100.',
+    actualYTD: 'Real acumulado de enero al mes seleccionado (usa los campos real[mes]_acum incluidos en el layout).',
+    planYTD: 'Presupuesto acumulado enero→mes consultado; suma PRESUP01…PRESUPMM siguiendo el libro “CUENTAS SUMMARY Y RESUMEN”.',
+    prevYTD: 'Real acumulado del mismo periodo pero del año anterior.',
+    varYTDPlan: 'Variación acumulada vs plan: ((Real YTD - Plan YTD) / |Plan YTD|) × 100.',
+    varYTDPrev: 'Variación acumulada vs año anterior: ((Real YTD - Real YTD previo) / |Real YTD previo|) × 100.'
+  };
+
+  const ROW_TOOLTIPS = {
+    account: 'Cuenta individual del catálogo SUMMARY/RESUMEN. La descripción es editable (no se guarda en Firebird) y los montos alimentan las sumas superiores.',
+    section: 'Total de sección (“sum-row” del Excel). Agrupa las cuentas inmediatas antes de pasar al bloque principal.',
+    principal: 'Bloque principal (Income, Expense, Operating, Other, etc.). Replica los encabezados del libro y aplica el signo correspondiente.',
+    group: 'Fila consolidada (CONSOLIDATED INCOME/EXPENSES, Operating Results preliminar, etc.).',
+    result: 'Operating Results definido en “SUMA DE VARIAS SECCIONES”: ingresos menos gastos con los factores configurados.',
+    net: 'Net Results por región/segmento. Combina resultados operativos y otros ingresos/egresos intermedios.',
+    final: 'Consolidated Net Results: resultado final tras sumar otros ingresos (“OTHER INCOME”) al Operating Result.'
+  };
+
+  const tooltipAttr = (key) => (key && COLUMN_TOOLTIPS[key]
+    ? ` title="${escapeAttr(COLUMN_TOOLTIPS[key])}" data-bs-toggle="tooltip"`
+    : '');
+
+  const rowTooltipAttr = (role) => (role ? ` data-row-role="${role}"` : '');
 
   const principalPriority = (label) => {
     const text = normalizeText(label);
@@ -339,8 +382,48 @@
     return val.toFixed(2) + '%';
   };
 
-  const createCell = (val, isBold = false, tooltipKey = '') => `<td class="text-end ${isBold ? 'fw-bold' : ''}"${tooltipAttr(tooltipKey)}>${formatNumber(val)}</td>`;
-  const createPercentCell = (val, tooltipKey = '') => `<td class="text-end"${tooltipAttr(tooltipKey)}>${formatPercent(val)}</td>`;
+  const createCell = (val, arg2 = false, tooltipKey = '', rowRole = '') => {
+    let bold = arg2;
+    let extraClasses = '';
+    if (typeof arg2 === 'object' && arg2 !== null) {
+      bold = Boolean(arg2.bold);
+      tooltipKey = arg2.tooltipKey || tooltipKey;
+      rowRole = arg2.rowRole || rowRole;
+      extraClasses = arg2.classes || '';
+    }
+    const classes = ['text-end'];
+    if (bold) classes.push('fw-bold');
+    if (extraClasses) classes.push(extraClasses);
+    return `<td class="${classes.join(' ')}"${tooltipAttr(tooltipKey)}${rowTooltipAttr(rowRole)}>${formatNumber(val)}</td>`;
+  };
+
+  const createPercentCell = (val, arg2 = '', rowRole = '') => {
+    let tooltipKey = arg2;
+    if (typeof arg2 === 'object' && arg2 !== null) {
+      tooltipKey = arg2.tooltipKey || '';
+      rowRole = arg2.rowRole || rowRole;
+    }
+    return `<td class="text-end"${tooltipAttr(tooltipKey)}${rowTooltipAttr(rowRole)}>${formatPercent(val)}</td>`;
+  };
+
+  const createEditableCell = (val, options = {}) => {
+    const {
+      columnKey = '',
+      tooltipKey = '',
+      rowRole = '',
+      classes = ''
+    } = options;
+    const classList = ['text-end', 'editable-cell'];
+    if (classes) classList.push(classes);
+    const attrs = [
+      `class="${classList.join(' ')}"`,
+      `data-valor-original="${Number(val ?? 0)}"`
+    ];
+    if (columnKey) {
+      attrs.push(`data-columna-clave="${columnKey}"`);
+    }
+    return `<td ${attrs.join(' ')}${tooltipAttr(tooltipKey)}${rowTooltipAttr(rowRole)}>${formatNumber(val)}</td>`;
+  };
 
   const extractTotals = (nodo = {}) => ({
     actualMonth: toNumber(nodo.actualMonth ?? nodo.totalActualMonth),
@@ -356,7 +439,8 @@
       label = '',
       rowClass = '',
       labelClasses = 'text-center text-primary text-uppercase',
-      boldNumbers = false
+      boldNumbers = false,
+      rowRole = ''
     } = options;
 
     const totals = extractTotals(nodo);
@@ -367,19 +451,26 @@
 
     const row = document.createElement('tr');
     row.className = rowClass || '';
+    if (rowRole) {
+      row.dataset.rowRole = rowRole;
+      if (ROW_TOOLTIPS[rowRole]) {
+        row.setAttribute('title', ROW_TOOLTIPS[rowRole]);
+        row.setAttribute('data-bs-toggle', 'tooltip');
+      }
+    }
     row.innerHTML = `
       <td class="account-column"></td>
-      ${createCell(totals.actualMonth, boldNumbers, 'actualMonth')}
-      ${createCell(totals.planMonth, boldNumbers, 'planMonth')}
-      ${createCell(totals.prevMonth, boldNumbers, 'prevMonth')}
-      ${createPercentCell(varMonthPlan, 'varMonthPlan')}
-      ${createPercentCell(varMonthPrev, 'varMonthPrev')}
-      <td class="${labelClasses}">${label}</td>
-      ${createCell(totals.actualYTD, boldNumbers, 'actualYTD')}
-      ${createCell(totals.planYTD, boldNumbers, 'planYTD')}
-      ${createCell(totals.prevYTD, boldNumbers, 'prevYTD')}
-      ${createPercentCell(varYTDPlan, 'varYTDPlan')}
-      ${createPercentCell(varYTDPrev, 'varYTDPrev')}
+      ${createCell(totals.actualMonth, { bold: boldNumbers, tooltipKey: 'actualMonth', rowRole })}
+      ${createCell(totals.planMonth, { bold: boldNumbers, tooltipKey: 'planMonth', rowRole })}
+      ${createCell(totals.prevMonth, { bold: boldNumbers, tooltipKey: 'prevMonth', rowRole })}
+      ${createPercentCell(varMonthPlan, { tooltipKey: 'varMonthPlan', rowRole })}
+      ${createPercentCell(varMonthPrev, { tooltipKey: 'varMonthPrev', rowRole })}
+      <td class="${labelClasses}"${rowTooltipAttr(rowRole)}>${label}</td>
+      ${createCell(totals.actualYTD, { bold: boldNumbers, tooltipKey: 'actualYTD', rowRole })}
+      ${createCell(totals.planYTD, { bold: boldNumbers, tooltipKey: 'planYTD', rowRole })}
+      ${createCell(totals.prevYTD, { bold: boldNumbers, tooltipKey: 'prevYTD', rowRole })}
+      ${createPercentCell(varYTDPlan, { tooltipKey: 'varYTDPlan', rowRole })}
+      ${createPercentCell(varYTDPrev, { tooltipKey: 'varYTDPrev', rowRole })}
     `;
     return row;
   };
@@ -428,6 +519,7 @@
   const renderSummary = (resumen = [], mesSeleccionado) => {
     if (!summaryBody) return;
     limpiarCambios();
+    editMode = false;
     disposeTooltips();
     summaryBody.innerHTML = '';
 
@@ -435,6 +527,10 @@
       summaryBody.innerHTML = '<tr><td colspan="12" class="text-center">Sin datos disponibles.</td></tr>';
       return;
     }
+
+    const mesInfo = MESES.find((item) => item.periodo === Number(mesSeleccionado));
+    const claveMesRender = mesInfo?.clave || mesClaveActual;
+    const planColumnKey = `budget-${claveMesRender}`;
 
     resumen.forEach((capitulo) => {
       const layout = Array.isArray(capitulo.layout) ? capitulo.layout.slice().sort((a, b) => (a.order || 0) - (b.order || 0)) : null;
@@ -453,19 +549,25 @@
             const ctaVarYTDPrev = calculateVar(cta.actualYTD, cta.prevYTD);
 
             const ctaRow = document.createElement('tr');
+            ctaRow.dataset.rowRole = 'account';
+            ctaRow.dataset.cuenta = cta.cuentaCanonica || cta.cuenta || '';
+            ctaRow.dataset.cuentaVisible = cta.cuenta || '';
+            const detalleCuenta = `Cuenta ${cta.cuenta || 'sin codigo'} – ${cta.descripcion || 'Sin descripcion'}. Los valores provienen del catálogo SUMMARY.`;
+            ctaRow.setAttribute('title', detalleCuenta);
+            ctaRow.setAttribute('data-bs-toggle', 'tooltip');
             ctaRow.innerHTML = `
               <td class="font-monospace small text-start account-column">${cta.cuenta || ''}</td>
-              ${createCell(cta.actualMonth, false, 'actualMonth')}
-              ${createCell(cta.planMonth, false, 'planMonth')}
-              ${createCell(cta.prevMonth, false, 'prevMonth')}
-              ${createPercentCell(ctaVarMonthPlan, 'varMonthPlan')}
-              ${createPercentCell(ctaVarMonthPrev, 'varMonthPrev')}
-              <td class="text-center">${cta.descripcion || ''}</td>
-              ${createCell(cta.actualYTD, false, 'actualYTD')}
-              ${createCell(cta.planYTD, false, 'planYTD')}
-              ${createCell(cta.prevYTD, false, 'prevYTD')}
-              ${createPercentCell(ctaVarYTDPlan, 'varYTDPlan')}
-              ${createPercentCell(ctaVarYTDPrev, 'varYTDPrev')}
+              ${createCell(cta.actualMonth, { tooltipKey: 'actualMonth', rowRole: 'account' })}
+              ${createEditableCell(cta.planMonth, { columnKey: planColumnKey, tooltipKey: 'planMonth', rowRole: 'account' })}
+              ${createCell(cta.prevMonth, { tooltipKey: 'prevMonth', rowRole: 'account' })}
+              ${createPercentCell(ctaVarMonthPlan, { tooltipKey: 'varMonthPlan', rowRole: 'account' })}
+              ${createPercentCell(ctaVarMonthPrev, { tooltipKey: 'varMonthPrev', rowRole: 'account' })}
+              <td class="text-center"${rowTooltipAttr('account')}>${cta.descripcion || ''}</td>
+              ${createCell(cta.actualYTD, { tooltipKey: 'actualYTD', rowRole: 'account' })}
+              ${createCell(cta.planYTD, { tooltipKey: 'planYTD', rowRole: 'account' })}
+              ${createCell(cta.prevYTD, { tooltipKey: 'prevYTD', rowRole: 'account' })}
+              ${createPercentCell(ctaVarYTDPlan, { tooltipKey: 'varYTDPlan', rowRole: 'account' })}
+              ${createPercentCell(ctaVarYTDPrev, { tooltipKey: 'varYTDPrev', rowRole: 'account' })}
             `;
             summaryBody.appendChild(ctaRow);
           });
@@ -474,7 +576,8 @@
             label: seccion.label || '',
             rowClass: 'subsection-row fw-semibold text-center',
             labelClasses: 'text-start text-primary',
-            boldNumbers: true
+            boldNumbers: true,
+            rowRole: 'section'
           }));
         });
 
@@ -482,7 +585,8 @@
           label: principal.label || '',
           rowClass: 'section-header-row table-light fw-bold text-center',
           labelClasses: 'text-center text-secondary text-uppercase',
-          boldNumbers: true
+          boldNumbers: true,
+          rowRole: 'principal'
         }));
       };
 
@@ -496,7 +600,8 @@
               label: block.label || '',
               rowClass: 'highlight-secondary fw-bold text-center',
               labelClasses: 'text-center text-uppercase',
-              boldNumbers: true
+              boldNumbers: true,
+              rowRole: 'group'
             }));
           } else {
             const rowClass = block.type === 'final'
@@ -508,7 +613,8 @@
               label: block.label || '',
               rowClass,
               labelClasses: 'text-center text-uppercase',
-              boldNumbers: true
+              boldNumbers: true,
+              rowRole: block.type || 'result'
             }));
           }
         });
@@ -516,14 +622,14 @@
         sortPrincipals(principales).forEach(renderPrincipal);
       }
     });
+    sincronizarCeldasEditables();
     activateTooltips();
 
     if (mesSeleccionado) {
       actualizarEtiquetaMes(mesSeleccionado);
     }
-
-    activarModoEdicion();
   };
+
 
   const renderAggregateTable = (resumen = []) => {
     if (!aggregateBody) return;
@@ -560,6 +666,7 @@
     if (selectMes) {
       selectMes.value = String(new Date().getMonth() + 1);
     }
+    actualizarMesContexto(Number(selectMes?.value || new Date().getMonth() + 1));
     capituloActual = '';
     if (selectCapitulo) {
       selectCapitulo.innerHTML = '<option value="">Cargando capítulos...</option>';
@@ -575,6 +682,7 @@
   const fetchSummary = async (empresaId, anio, mes, capitulo = '') => {
     if (!empresaId) return;
     showStatus('Cargando datos del reporte Summary...', 'info');
+    actualizarMesContexto(mes ?? leerMesSeleccionado());
     try {
       const params = new URLSearchParams({
         empresaId: empresaId,
@@ -687,6 +795,7 @@
     const handleMesChange = () => {
       const anio = leerAnioSeleccionado();
       const mes = leerMesSeleccionado();
+      actualizarMesContexto(mes);
       actualizarEtiquetaMes(mes);
       publicarContexto(anio);
       if (empresaActual?.id) {
@@ -708,7 +817,9 @@
         opt.textContent = MESES[idx].etiqueta;
       });
       selectMes.addEventListener('change', handleMesChange);
-      actualizarEtiquetaMes(leerMesSeleccionado());
+      const mesInicial = leerMesSeleccionado();
+      actualizarMesContexto(mesInicial);
+      actualizarEtiquetaMes(mesInicial);
     }
 
     if (selectCapitulo) {

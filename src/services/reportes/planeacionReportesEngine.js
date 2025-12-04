@@ -160,9 +160,11 @@ const construirNodoSeccion = ({ seccion, cuentas, definicion, claveMes, planeaci
       return { total: nuevo, detener: false };
     }, { total: 0, detener: false }).total;
 
+    const metadataCuenta = definicion.get(cuentaId) || {};
     return {
-      cuenta: definicion.get(cuentaId)?.visible || cuentaId,
-      descripcion: definicion.get(cuentaId)?.descripcion || '',
+      cuenta: metadataCuenta.visible || cuentaId,
+      cuentaCanonica: cuentaId,
+      descripcion: metadataCuenta.descripcion || '',
       actualMonth: Number(actual.real?.[claveMes] ?? 0),
       planMonth: Number(actual.presupuesto?.[claveMes] ?? 0),
       prevMonth: Number(previo.real?.[claveMes] ?? 0),

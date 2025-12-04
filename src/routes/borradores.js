@@ -12,6 +12,7 @@ const {
   obtenerBorradorPorId,
   marcarRevisado,
   guardarAutorizado,
+  listarBorradores,
   ESTADOS
 } = require('../services/borradoresService');
 const { notificarWorkflowPresupuesto } = require('../services/notificacionesService');
@@ -109,7 +110,95 @@ const esquemaRevision = esquemaBorradorId.keys({
 
 const esquemaFinalizar = esquemaBorradorId;
 
+const esquemaListado = Joi.object({
+  empresaId: Joi.string().trim().required(),
+  modulo: Joi.string().trim().required(),
+  anio: Joi.number().integer().min(2000).max(2100).optional(),
+  estado: Joi.string().valid(...Object.values(ESTADOS)).optional()
+});
+
+const esquemaDetalle = Joi.object({
+  id: Joi.number().integer().required()
+});
+
+const ROLES_VISIBILIDAD = {
+  EDITANDO: ['autor'],
+  PENDIENTE: ['autor', 'revision'],
+  RECHAZADO: ['autor', 'revision'],
+  REVISADO: ['autor', 'autorizar'],
+  APROBADO: ['autor', 'guardar'],
+  GUARDADO: ['autor', 'revision', 'autorizar', 'guardar']
+};
+
+const tienePermisoRol = (permisos = {}, rol) => {
+  switch (rol) {
+    case 'revision':
+      return Boolean(permisos.Revisar);
+    case 'autorizar':
+      return Boolean(permisos.Aprobar);
+    case 'guardar':
+      return Boolean(permisos['Cargar y guardar']);
+    case 'lectura':
+      return Boolean(permisos.Lectura);
+    default:
+      return false;
+  }
+};
+
+const puedeVerBorrador = (req, borrador) => {
+  if (!borrador) return false;
+  if (req.esAdmin) return true;
+  const esAutor = String(borrador.usuarioId) === String(req.usuarioActual.id);
+  if (esAutor) return true;
+  const permisos = req.mapaPermisos?.[borrador.empresaId]?.[borrador.modulo];
+  if (!permisos) return false;
+  const roles = ROLES_VISIBILIDAD[borrador.estado] || [];
+  return roles.some((rol) => {
+    if (rol === 'autor') return false;
+    return tienePermisoRol(permisos, rol);
+  });
+};
+
 router.use(cargarUsuarioActual);
+
+router.get('/listar', (req, res) => {
+  const merged = {
+    ...req.query
+  };
+  if (!merged.empresaId) {
+    merged.empresaId = resolverEmpresaId(req);
+  }
+  const { value, error } = esquemaListado.validate(merged, { abortEarly: false });
+  if (error) {
+    return res.status(400).json({
+      mensaje: 'Verifica los parámetros del listado.',
+      detalles: error.details.map((detalle) => detalle.message)
+    });
+  }
+
+  const empresa = obtenerEmpresaPorId(value.empresaId);
+  if (!empresa) {
+    return res.status(404).json({ mensaje: 'Empresa no encontrada.' });
+  }
+
+  const modulo = obtenerModuloCanonico(value.modulo);
+  if (!modulo) {
+    return res.status(400).json({ mensaje: 'El módulo indicado no es válido.' });
+  }
+
+  if (!req.esAdmin && !tienePermisoEnModulo(req.mapaPermisos, empresa.id, modulo)) {
+    return res.status(403).json({ mensaje: 'No cuentas con permisos en este módulo.' });
+  }
+
+  const borradores = listarBorradores({
+    empresaId: empresa.id,
+    modulo,
+    anio: value.anio,
+    estado: value.estado
+  }).filter((borrador) => puedeVerBorrador(req, borrador));
+
+  return res.json({ borradores });
+});
 
 router.get('/estado', (req, res) => {
   const empresaId = resolverEmpresaId(req);
@@ -137,6 +226,32 @@ router.get('/estado', (req, res) => {
     modulo,
     anio: value.anio
   });
+
+  return res.json({ borrador });
+});
+
+router.get('/detalle/:id', (req, res) => {
+  const { value, error } = esquemaDetalle.validate(req.params, { abortEarly: false });
+  if (error) {
+    return res.status(400).json({
+      mensaje: 'Identificador de borrador inválido.',
+      detalles: error.details.map((detalle) => detalle.message)
+    });
+  }
+
+  const borrador = obtenerBorradorPorId(value.id);
+  if (!borrador) {
+    return res.status(404).json({ mensaje: 'Borrador no encontrado.' });
+  }
+
+  const empresa = obtenerEmpresaPorId(borrador.empresaId);
+  if (!empresa) {
+    return res.status(404).json({ mensaje: 'Empresa asociada no existe.' });
+  }
+
+  if (!puedeVerBorrador(req, borrador)) {
+    return res.status(403).json({ mensaje: 'No puedes consultar este borrador.' });
+  }
 
   return res.json({ borrador });
 });

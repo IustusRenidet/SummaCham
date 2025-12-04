@@ -56,6 +56,25 @@ const mapearFila = (fila) => {
   };
 };
 
+const mapearResumen = (fila) => {
+  if (!fila) return null;
+  const autorNombre = fila.autorNombre || '';
+  return {
+    id: fila.id,
+    empresaId: fila.empresaId,
+    modulo: fila.modulo,
+    anio: fila.anio,
+    usuarioId: fila.usuarioId,
+    estado: fila.estado,
+    fechaCreacion: fila.fechaCreacion,
+    fechaEnvio: fila.fechaEnvio,
+    comentarios: fila.comentarios,
+    autorUsuario: fila.autorUsuario || '',
+    autorNombre: autorNombre.trim() || fila.autorUsuario || '',
+    data: null
+  };
+};
+
 const obtenerBorradorPorId = (id) => {
   if (!id) {
     return null;
@@ -66,6 +85,42 @@ const obtenerBorradorPorId = (id) => {
     WHERE id = ?
   `).get(id);
   return mapearFila(fila);
+};
+
+const listarBorradores = ({ empresaId, modulo, anio, estado } = {}) => {
+  const condiciones = [];
+  const parametros = [];
+  if (empresaId) {
+    condiciones.push('b.empresaId = ?');
+    parametros.push(empresaId);
+  }
+  if (modulo) {
+    condiciones.push('b.modulo = ?');
+    parametros.push(modulo);
+  }
+  if (Number.isInteger(anio)) {
+    condiciones.push('b.anio = ?');
+    parametros.push(anio);
+  }
+  if (estado) {
+    condiciones.push('b.estado = ?');
+    parametros.push(estado);
+  }
+
+  const whereClause = condiciones.length ? `WHERE ${condiciones.join(' AND ')}` : '';
+
+  const filas = db.prepare(`
+    SELECT
+      b.*,
+      u.usuario AS autorUsuario,
+      TRIM(COALESCE(u.nombres, '') || ' ' || COALESCE(u.apellidos, '')) AS autorNombre
+    FROM PLAN_BORRADORES b
+    LEFT JOIN usuarios u ON u.id = CAST(b.usuarioId AS INTEGER)
+    ${whereClause}
+    ORDER BY b.fechaEnvio DESC NULLS LAST, b.fechaCreacion DESC
+  `).all(...parametros);
+
+  return filas.map(mapearResumen).filter(Boolean);
 };
 
 const persistirEnFirebird = async (borrador) => {
@@ -295,5 +350,6 @@ module.exports = {
   obtenerBorradorPorId,
   marcarRevisado,
   guardarAutorizado,
+  listarBorradores,
   ESTADOS
 };
