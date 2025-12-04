@@ -355,45 +355,35 @@ const persistirEnFirebird = async (borrador) => {
     const valores = cambio.valores || {};
     if (!cuenta) continue;
 
-    // Construir SET clause para UPDATE o INSERT
-    const updates = [];
-    const columnas = ['NUM_CTA', 'EJERCICIO'];
-    const valorInsert = [cuenta, anio];
+    const columnasVariables = [];
+    const valoresVariables = [];
 
     Object.entries(valores).forEach(([clave, valor]) => {
       const columna = MESES_COLUMNAS[clave];
-      if (columna) {
-        const numero = Number(valor) || 0;
-        updates.push(`${columna} = ${numero}`);
-        columnas.push(columna);
-        valorInsert.push(numero);
-      }
+      if (!columna) return;
+      columnasVariables.push(columna);
+      const numero = Number(valor);
+      valoresVariables.push(Number.isFinite(numero) ? numero : 0);
     });
 
-    if (!updates.length) continue;
+    if (!columnasVariables.length) continue;
 
-    // Intentar UPDATE primero
-    const updateQuery = `UPDATE ${tablaPresup} SET ${updates.join(', ')} WHERE NUM_CTA = '${cuenta}' AND EJERCICIO = ${anio}`;
-    
+    const columnas = ['NUM_CTA', 'EJERCICIO', ...columnasVariables];
+    const parametros = [cuenta, anio, ...valoresVariables];
+    const placeholders = columnas.map(() => '?').join(', ');
+
+    // Firebird permite UPSERT con MATCHING; así no perdemos registros nuevos.
+    const upsertQuery = `
+      UPDATE OR INSERT INTO ${tablaPresup} (${columnas.join(', ')})
+      VALUES (${placeholders})
+      MATCHING (NUM_CTA, EJERCICIO)
+    `;
+
     try {
-      await ejecutarConsulta(borrador.empresaId, updateQuery, []);
-      
-      // Si no afectÃ³ filas, hacer INSERT
-      const placeholders = columnas.map(() => '?').join(', ');
-      const insertQuery = `INSERT INTO ${tablaPresup} (${columnas.join(', ')}) VALUES (${placeholders})`;
-      
-      // Nota: ejecutarConsulta verifica si el UPDATE fue exitoso internamente
-      // Si falla el UPDATE (0 filas), ejecuta el INSERT
+      await ejecutarConsulta(borrador.empresaId, upsertQuery, parametros);
     } catch (error) {
-      // Si el UPDATE falla, intentar INSERT
-      try {
-        const placeholders = columnas.map(() => '?').join(', ');
-        const insertQuery = `INSERT INTO ${tablaPresup} (${columnas.join(', ')}) VALUES (${placeholders})`;
-        await ejecutarConsulta(borrador.empresaId, insertQuery, valorInsert);
-      } catch (insertError) {
-        console.error(`Error al insertar en Firebird cuenta ${cuenta}:`, insertError);
-        throw insertError;
-      }
+      console.error(`Error al guardar cuenta ${cuenta} en ${tablaPresup}:`, error);
+      throw error;
     }
   }
 };

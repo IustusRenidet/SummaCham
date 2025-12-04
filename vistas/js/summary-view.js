@@ -879,7 +879,7 @@
       return;
     }
 
-    const modulo = document.body?.dataset?.modulo || 'summary';
+    const modulo = (document.body?.dataset?.modulo || 'SUMMARY').toString().toUpperCase();
     const publicarContexto = (anio) => {
       window.dispatchEvent(new CustomEvent('planeacion:contexto-actualizado', {
         detail: { empresaId: empresa.id, anio, modulo }

@@ -624,7 +624,7 @@
     if (monthSelect) monthSelect.value = String(mesInicial);
     actualizarEncabezado(empresaId, valorInicial);
     window.dispatchEvent(new CustomEvent('planeacion:contexto-actualizado', {
-      detail: { empresaId, anio: valorInicial, modulo: document.body.dataset.modulo || 'resumen' }
+      detail: { empresaId, anio: valorInicial, modulo: (document.body.dataset.modulo || 'RESUMEN').toUpperCase() }
     }));
     await fetchResumen(empresaId, valorInicial, mesInicial);
   };
@@ -676,7 +676,7 @@
       if (!empresaActual?.id) return;
       actualizarEncabezado(empresaActual.id, anio);
       window.dispatchEvent(new CustomEvent('planeacion:contexto-actualizado', {
-        detail: { empresaId: empresaActual.id, anio, modulo: document.body.dataset.modulo || 'resumen' }
+        detail: { empresaId: empresaActual.id, anio, modulo: (document.body.dataset.modulo || 'RESUMEN').toUpperCase() }
       }));
       fetchResumen(empresaActual.id, anio, mes);
     };
@@ -688,7 +688,7 @@
       if (!empresaActual?.id) return;
       actualizarEncabezado(empresaActual.id, anio);
       window.dispatchEvent(new CustomEvent('planeacion:contexto-actualizado', {
-        detail: { empresaId: empresaActual.id, anio, modulo: document.body.dataset.modulo || 'resumen' }
+        detail: { empresaId: empresaActual.id, anio, modulo: (document.body.dataset.modulo || 'RESUMEN').toUpperCase() }
       }));
       fetchResumen(empresaActual.id, anio, mes);
     };
