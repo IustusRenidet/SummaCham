@@ -50,13 +50,20 @@
     'COMMITTEES',
     'T&IC',
     'SERVICES TO MEMBERS',
+    'GUADALAJARA INCOME',
+    'MONTERREY INCOME',
+    'NORTHWEST INCOME',
     'GASTOS ADMINISTRATIVOS',
     'GASTOS GENERALES',
     'NOMINA',
     'GASTOS CORPORATIVOS',
+    'GUADALAJARA EXPENSE',
+    'MONTERREY EXPENSE',
+    'NORTHWEST EXPENSE',
     'CARGOS ADMINISTRATIVOS',
     'MEMBER CENTRICITY',
-    'OTHER'
+    'OTHER',
+    'OTHER INCOME'
   ];
   const SECTION_DEFAULT_ORDER = SECTION_ORDER.length;
   const sectionOrder = (label) => {
@@ -72,7 +79,8 @@
     'INCOME',
     'EXPENSE',
     'OPERATING',
-    'OTHER'
+    'OTHER',
+    'NET'
   ];
   const nodePriority = (label) => {
     const text = normalizeText(label);
@@ -97,19 +105,29 @@
       return normalizeText(a.label).localeCompare(normalizeText(b.label));
     });
   };
-  const obtenerSelectorEmpresaGlobal = () => window.parent?.document?.getElementById('companyFilter') || null;
+  const obtenerSelectorEmpresaGlobal = () =>
+    window.parent?.document?.getElementById('companyFilter')
+    || document.getElementById('companyFilter')
+    || null;
+
   const sincronizarSelectorEmpresaGlobal = () => {
     const selector = obtenerSelectorEmpresaGlobal();
     if (!selector) return;
-    selector.addEventListener('change', async () => {
-      const nuevoId = selector.value;
+
+    const aplicarSeleccion = async (nuevoId) => {
       if (!nuevoId) return;
       const empresaLocal = Sesion.obtenerEmpresaActiva();
       if (empresaLocal?.id === nuevoId) return;
       Sesion.establecerEmpresaActiva(nuevoId);
       empresaActual = Sesion.obtenerEmpresaActiva();
       await aplicarEmpresaResumen(empresaActual?.id);
-    });
+    };
+
+    if (selector.value) {
+      aplicarSeleccion(selector.value);
+    }
+
+    selector.addEventListener('change', () => aplicarSeleccion(selector.value));
   };
 
   const cargarAniosDisponibles = async (empresaId) => {
@@ -456,7 +474,12 @@
   document.addEventListener('DOMContentLoaded', async () => {
     const sesion = Sesion.requerirSesion();
     if (!sesion) return;
-    const empresa = Sesion.obtenerEmpresaActiva(sesion);
+    const selectorEmpresa = obtenerSelectorEmpresaGlobal();
+    let empresa = Sesion.obtenerEmpresaActiva(sesion);
+    if (!empresa?.id && selectorEmpresa?.value) {
+      Sesion.establecerEmpresaActiva(selectorEmpresa.value);
+      empresa = Sesion.obtenerEmpresaActiva();
+    }
     if (!empresa?.id) {
       setStatusRow('Selecciona una empresa para continuar.');
       return;
