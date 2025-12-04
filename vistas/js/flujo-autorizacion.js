@@ -1561,8 +1561,7 @@
     return { init };
   })();
 
-  const tieneControles = Boolean(document.getElementById('btnGuardarBorrador'));
-  if (tieneControles) {
+  if (!window.__flujoAutorizacionInstance) {
     window.__flujoAutorizacionInstance = new FlujoAutorizacion();
   }
 
@@ -1621,6 +1620,53 @@
     };
   })();
 
+  const vincularAccesosRapidos = () => {
+    const asegurarWorkflowDrawer = () => {
+      const drawer = ensureWorkflowDrawer();
+      const elemento = drawer || document.getElementById('workflowDrawer');
+      if (!elemento || !window.bootstrap?.Offcanvas) return null;
+      elemento.setAttribute('data-bs-scroll', 'true');
+      return window.bootstrap.Offcanvas.getOrCreateInstance(elemento);
+    };
+
+    document.querySelectorAll('.workflow-toggle').forEach((btn) => {
+      if (btn.dataset.workflowBound === '1') return;
+      btn.dataset.workflowBound = '1';
+      btn.setAttribute('data-bs-toggle', 'offcanvas');
+      btn.setAttribute('data-bs-target', '#workflowDrawer');
+      btn.addEventListener('click', (event) => {
+        event.preventDefault();
+        const instancia = asegurarWorkflowDrawer();
+        if (instancia) instancia.show();
+      });
+    });
+
+    const abrirCentroBorradores = () => {
+      ensureDraftsDrawer();
+      const instancia = window.__flujoAutorizacionInstance;
+      if (instancia?.init) {
+        instancia.init();
+        instancia._mostrarCentroBorradores();
+        return;
+      }
+      if (draftsDrawerEl && window.bootstrap?.Offcanvas) {
+        window.bootstrap.Offcanvas.getOrCreateInstance(draftsDrawerEl).show();
+      }
+    };
+
+    document.querySelectorAll('#btnVerBorrador, [data-open-drafts-center]')
+      .forEach((btn) => {
+        if (btn.dataset.draftsBound === '1') return;
+        btn.dataset.draftsBound = '1';
+        btn.setAttribute('data-bs-toggle', 'offcanvas');
+        btn.setAttribute('data-bs-target', `#${DRAFTS_DRAWER_ID}`);
+        btn.addEventListener('click', (event) => {
+          event.preventDefault();
+          abrirCentroBorradores();
+        });
+      });
+  };
+
   const autoInit = () => {
     const instancia = window.__flujoAutorizacionInstance;
     if (instancia) {
@@ -1628,6 +1674,7 @@
     }
     DraftHistoryCenter.init();
     renderWorkflowGuide();
+    vincularAccesosRapidos();
   };
 
   if (document.readyState === 'loading') {
