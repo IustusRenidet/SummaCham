@@ -492,6 +492,7 @@
     async _actualizarEstadoServidor() {
       if (!this._contextoCompleto()) {
         this._notificarEstadoBorrador(null);
+        this._actualizarBotones();
         return;
       }
       try {
@@ -950,10 +951,6 @@
     }
 
     async _mostrarCentroBorradores() {
-      if (!this._contextoCompleto()) {
-        this._mostrarToast('Selecciona empresa y ejercicio para consultar los borradores.', 'warning');
-        return;
-      }
       const drawer = ensureDraftsDrawer();
       if (!drawer) {
         console.error('[FlujoAutorizacion] No se pudo crear el drawer de borradores');
@@ -976,13 +973,32 @@
         this._mostrarToast('Error al abrir el centro de borradores.', 'danger');
         return;
       }
-      
+
+      if (!this._contextoCompleto()) {
+        draftsDrawerStatus.className = 'alert alert-warning';
+        draftsDrawerStatus.textContent = 'Selecciona empresa y ejercicio para consultar los borradores.';
+        draftsDrawerBody.innerHTML = `
+          <tr>
+            <td colspan="5" class="text-center text-muted">Sin contexto seleccionado</td>
+          </tr>`;
+        return;
+      }
+
       await this._cargarCentroBorradores();
     }
 
     async _cargarCentroBorradores() {
       ensureDraftsDrawer();
       if (!draftsDrawerBody || !draftsDrawerStatus) return;
+      if (!this._contextoCompleto()) {
+        draftsDrawerStatus.className = 'alert alert-warning';
+        draftsDrawerStatus.textContent = 'Selecciona empresa y ejercicio para consultar los borradores.';
+        draftsDrawerBody.innerHTML = `
+          <tr>
+            <td colspan="5" class="text-center text-muted">Sin contexto seleccionado</td>
+          </tr>`;
+        return;
+      }
       draftsDrawerStatus.className = 'alert alert-info';
       draftsDrawerStatus.textContent = 'Cargando borradores...';
       draftsDrawerBody.innerHTML = `
