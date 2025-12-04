@@ -63,6 +63,24 @@
     { etiqueta: 'Diciembre', clave: 'dic', periodo: 12 }
   ];
 
+  const COLUMN_TOOLTIPS = {
+    actualMonth: 'Monto real del mes seleccionado (real del periodo).',
+    planMonth: 'Monto presupuestado del mes seleccionado.',
+    prevMonth: 'Resultado del mismo mes del año anterior.',
+    varMonthPlan: '((Actual mes - Plan mes) / |Plan mes|) × 100.',
+    varMonthPrev: '((Actual mes - Mes año anterior) / |Mes año anterior|) × 100.',
+    actualYTD: 'Real acumulado hasta el mes seleccionado.',
+    planYTD: 'Presupuesto acumulado hasta el mes seleccionado.',
+    prevYTD: 'Real acumulado del mismo periodo del año anterior.',
+    varYTDPlan: '((Actual YTD - Plan YTD) / |Plan YTD|) × 100.',
+    varYTDPrev: '((Actual YTD - YTD año anterior) / |YTD año anterior|) × 100.'
+  };
+
+  const escapeAttr = (texto = '') => texto.toString().replace(/"/g, '&quot;');
+  const tooltipAttr = (key) => (key && COLUMN_TOOLTIPS[key]
+    ? ` title="${escapeAttr(COLUMN_TOOLTIPS[key])}" data-bs-toggle="tooltip"`
+    : '');
+
   const limpiarCambios = () => {
     cambiosPendientes.clear();
     editMode = false;
@@ -214,6 +232,11 @@
 
   const sortSections = (secciones = []) => {
     return (Array.isArray(secciones) ? secciones : []).slice().sort((a, b) => {
+      if (Number.isFinite(a?.orden) || Number.isFinite(b?.orden)) {
+        const ordenA = Number.isFinite(a?.orden) ? a.orden : Number.POSITIVE_INFINITY;
+        const ordenB = Number.isFinite(b?.orden) ? b.orden : Number.POSITIVE_INFINITY;
+        if (ordenA !== ordenB) return ordenA - ordenB;
+      }
       const orden = sectionPriority(a.label) - sectionPriority(b.label);
       if (orden !== 0) return orden;
       return normalizeText(a.label).localeCompare(normalizeText(b.label));
@@ -222,6 +245,11 @@
 
   const sortPrincipals = (principales = []) => {
     return (Array.isArray(principales) ? principales : []).slice().sort((a, b) => {
+      if (Number.isFinite(a?.orden) || Number.isFinite(b?.orden)) {
+        const ordenA = Number.isFinite(a?.orden) ? a.orden : Number.POSITIVE_INFINITY;
+        const ordenB = Number.isFinite(b?.orden) ? b.orden : Number.POSITIVE_INFINITY;
+        if (ordenA !== ordenB) return ordenA - ordenB;
+      }
       const orden = principalPriority(a.label) - principalPriority(b.label);
       if (orden !== 0) return orden;
       return normalizeText(a.label).localeCompare(normalizeText(b.label));
@@ -311,8 +339,8 @@
     return val.toFixed(2) + '%';
   };
 
-  const createCell = (val, isBold = false) => `<td class="text-end ${isBold ? 'fw-bold' : ''}">${formatNumber(val)}</td>`;
-  const createPercentCell = (val) => `<td class="text-end">${formatPercent(val)}</td>`;
+  const createCell = (val, isBold = false, tooltipKey = '') => `<td class="text-end ${isBold ? 'fw-bold' : ''}"${tooltipAttr(tooltipKey)}>${formatNumber(val)}</td>`;
+  const createPercentCell = (val, tooltipKey = '') => `<td class="text-end"${tooltipAttr(tooltipKey)}>${formatPercent(val)}</td>`;
 
   const extractTotals = (nodo = {}) => ({
     actualMonth: toNumber(nodo.actualMonth ?? nodo.totalActualMonth),
@@ -341,17 +369,17 @@
     row.className = rowClass || '';
     row.innerHTML = `
       <td class="account-column"></td>
-      ${createCell(totals.actualMonth, boldNumbers)}
-      ${createCell(totals.planMonth, boldNumbers)}
-      ${createCell(totals.prevMonth, boldNumbers)}
-      ${createPercentCell(varMonthPlan)}
-      ${createPercentCell(varMonthPrev)}
+      ${createCell(totals.actualMonth, boldNumbers, 'actualMonth')}
+      ${createCell(totals.planMonth, boldNumbers, 'planMonth')}
+      ${createCell(totals.prevMonth, boldNumbers, 'prevMonth')}
+      ${createPercentCell(varMonthPlan, 'varMonthPlan')}
+      ${createPercentCell(varMonthPrev, 'varMonthPrev')}
       <td class="${labelClasses}">${label}</td>
-      ${createCell(totals.actualYTD, boldNumbers)}
-      ${createCell(totals.planYTD, boldNumbers)}
-      ${createCell(totals.prevYTD, boldNumbers)}
-      ${createPercentCell(varYTDPlan)}
-      ${createPercentCell(varYTDPrev)}
+      ${createCell(totals.actualYTD, boldNumbers, 'actualYTD')}
+      ${createCell(totals.planYTD, boldNumbers, 'planYTD')}
+      ${createCell(totals.prevYTD, boldNumbers, 'prevYTD')}
+      ${createPercentCell(varYTDPlan, 'varYTDPlan')}
+      ${createPercentCell(varYTDPrev, 'varYTDPrev')}
     `;
     return row;
   };
@@ -380,9 +408,27 @@
     });
   };
 
+  const disposeTooltips = () => {
+    if (!window.bootstrap?.Tooltip) return;
+    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach((el) => {
+      const instance = window.bootstrap.Tooltip.getInstance(el);
+      if (instance) {
+        instance.dispose();
+      }
+    });
+  };
+
+  const activateTooltips = () => {
+    if (!window.bootstrap?.Tooltip) return;
+    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach((el) => {
+      window.bootstrap.Tooltip.getOrCreateInstance(el);
+    });
+  };
+
   const renderSummary = (resumen = [], mesSeleccionado) => {
     if (!summaryBody) return;
     limpiarCambios();
+    disposeTooltips();
     summaryBody.innerHTML = '';
 
     if (!resumen.length) {
@@ -391,19 +437,15 @@
     }
 
     resumen.forEach((capitulo) => {
-      summaryBody.appendChild(createTotalsRow(capitulo, {
-        label: capitulo.label || '',
-        rowClass: 'section-header-row table-secondary fw-bold text-center',
-        labelClasses: 'text-center text-primary text-uppercase',
-        boldNumbers: true
-      }));
+      const layout = Array.isArray(capitulo.layout) ? capitulo.layout.slice().sort((a, b) => (a.order || 0) - (b.order || 0)) : null;
+      const principales = Array.isArray(capitulo.children) ? capitulo.children.slice() : [];
+      const principalLookup = new Map(principales.map((principal) => [principal.label, principal]));
 
-      const principales = sortPrincipals(capitulo.children);
-      principales.forEach((principal) => {
+      const renderPrincipal = (principal) => {
         if (!principal) return;
+        const seccionesOrdenadas = sortSections(principal.children || []);
 
-        const secciones = sortSections(principal.children);
-        secciones.forEach((seccion) => {
+        seccionesOrdenadas.forEach((seccion) => {
           (seccion.cuentas || []).forEach((cta) => {
             const ctaVarMonthPlan = calculateVar(cta.actualMonth, cta.planMonth);
             const ctaVarMonthPrev = calculateVar(cta.actualMonth, cta.prevMonth);
@@ -413,17 +455,17 @@
             const ctaRow = document.createElement('tr');
             ctaRow.innerHTML = `
               <td class="font-monospace small text-start account-column">${cta.cuenta || ''}</td>
-              ${createCell(cta.actualMonth)}
-              ${createCell(cta.planMonth)}
-              ${createCell(cta.prevMonth)}
-              ${createPercentCell(ctaVarMonthPlan)}
-              ${createPercentCell(ctaVarMonthPrev)}
+              ${createCell(cta.actualMonth, false, 'actualMonth')}
+              ${createCell(cta.planMonth, false, 'planMonth')}
+              ${createCell(cta.prevMonth, false, 'prevMonth')}
+              ${createPercentCell(ctaVarMonthPlan, 'varMonthPlan')}
+              ${createPercentCell(ctaVarMonthPrev, 'varMonthPrev')}
               <td class="text-center">${cta.descripcion || ''}</td>
-              ${createCell(cta.actualYTD)}
-              ${createCell(cta.planYTD)}
-              ${createCell(cta.prevYTD)}
-              ${createPercentCell(ctaVarYTDPlan)}
-              ${createPercentCell(ctaVarYTDPrev)}
+              ${createCell(cta.actualYTD, false, 'actualYTD')}
+              ${createCell(cta.planYTD, false, 'planYTD')}
+              ${createCell(cta.prevYTD, false, 'prevYTD')}
+              ${createPercentCell(ctaVarYTDPlan, 'varYTDPlan')}
+              ${createPercentCell(ctaVarYTDPrev, 'varYTDPrev')}
             `;
             summaryBody.appendChild(ctaRow);
           });
@@ -442,8 +484,39 @@
           labelClasses: 'text-center text-secondary text-uppercase',
           boldNumbers: true
         }));
-      });
+      };
+
+      if (layout && layout.length) {
+        layout.forEach((block) => {
+          if (block.type === 'group') {
+            (block.principals || []).forEach((label) => {
+              renderPrincipal(principalLookup.get(label));
+            });
+            summaryBody.appendChild(createTotalsRow(block.totals || {}, {
+              label: block.label || '',
+              rowClass: 'highlight-secondary fw-bold text-center',
+              labelClasses: 'text-center text-uppercase',
+              boldNumbers: true
+            }));
+          } else {
+            const rowClass = block.type === 'final'
+              ? 'highlight-bright fw-bold text-center'
+              : block.type === 'net'
+                ? 'highlight-secondary fw-bold text-center'
+                : 'highlight-primary fw-bold text-center';
+            summaryBody.appendChild(createTotalsRow(block.totals || {}, {
+              label: block.label || '',
+              rowClass,
+              labelClasses: 'text-center text-uppercase',
+              boldNumbers: true
+            }));
+          }
+        });
+      } else {
+        sortPrincipals(principales).forEach(renderPrincipal);
+      }
     });
+    activateTooltips();
 
     if (mesSeleccionado) {
       actualizarEtiquetaMes(mesSeleccionado);

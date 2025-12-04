@@ -126,7 +126,27 @@ const calcularTotales = (cuentas, claveMes, planeacionActual, planeacionPrevio) 
   );
 };
 
-const construirNodoSeccion = ({ seccion, cuentas, definicion, claveMes, planeacionActual, planeacionPrevio }) => {
+const crearAcumulador = () => ({
+  actualMonth: 0,
+  planMonth: 0,
+  prevMonth: 0,
+  actualYTD: 0,
+  planYTD: 0,
+  prevYTD: 0
+});
+
+const sumarTotales = (destino, origen, factor = 1) => {
+  if (!destino || !origen) return destino;
+  destino.actualMonth += factor * Number(origen.actualMonth ?? 0);
+  destino.planMonth += factor * Number(origen.planMonth ?? 0);
+  destino.prevMonth += factor * Number(origen.prevMonth ?? 0);
+  destino.actualYTD += factor * Number(origen.actualYTD ?? 0);
+  destino.planYTD += factor * Number(origen.planYTD ?? 0);
+  destino.prevYTD += factor * Number(origen.prevYTD ?? 0);
+  return destino;
+};
+
+const construirNodoSeccion = ({ seccion, cuentas, definicion, claveMes, planeacionActual, planeacionPrevio, orden = 0 }) => {
   const totales = calcularTotales(cuentas, claveMes, planeacionActual, planeacionPrevio);
 
   const cuentasDetalle = cuentas.map((cuentaId) => {
@@ -155,6 +175,7 @@ const construirNodoSeccion = ({ seccion, cuentas, definicion, claveMes, planeaci
   return {
     label: seccion,
     cuentas: cuentasDetalle,
+    orden,
     totalActualMonth: totales.actualMonth,
     totalPlanMonth: totales.planMonth,
     totalPrevMonth: totales.prevMonth,
@@ -167,141 +188,240 @@ const construirNodoSeccion = ({ seccion, cuentas, definicion, claveMes, planeaci
 
 const construirReporteResumen = (definiciones, configAgrupacion, capituloSeleccionado, claveMes, planeacionActual, planeacionPrevio) => {
   const definicionCuentas = new Map();
-  // Mapa: Capitulo -> Operativo -> Principal -> Secundaria -> [Cuentas]
-  const estructura = new Map();
+  const principalMap = new Map();
 
-  // 1. Indexar configuración de agrupación para búsqueda rápida
-  // Clave: "CAPITULO|SECCION" -> { operativo, principal }
-  const mapaConfig = new Map();
+  const capituloClave = NORMALIZAR_CAPITULO(capituloSeleccionado || '');
+
+  const seccionOrden = new Map();
+  const principalOrden = new Map();
+  const consolidadoOrden = new Map();
+  const resultOrden = new Map();
+  const netOrden = new Map();
+  const finalOrden = new Map();
+
+  const configPorSeccion = new Map();
   if (Array.isArray(configAgrupacion)) {
     configAgrupacion.forEach((cfg) => {
       const cap = NORMALIZAR_CAPITULO(cfg.CAPITULO);
-      const sec = (cfg.SECCION || '').trim();
-      if (!cap || !sec) return;
-      const key = `${cap}|${sec.toUpperCase()}`;
-      mapaConfig.set(key, {
-        operativo: cfg['sum-row-operativo'] || 'OTROS',
-        principal: cfg['sum-row-sumavarios'] || cfg['SECCIÓN Principal'] || 'GENERAL'
+      const seccion = (cfg.SECCION || '').toString().trim();
+      if (!seccion || cap !== capituloClave) return;
+      const key = `${cap}|${seccion.toUpperCase()}`;
+      configPorSeccion.set(key, {
+        sumRow: cfg['sum-row'] || '',
+        principal: cfg['sum-row-sumavarios'] || '',
+        consolidado: cfg['sum-row-sumavarios-consolidado'] || '',
+        operativo: cfg['sum-row-operativo'] || '',
+        operativoConsolidado: cfg['sum-row-operativo-consolidado'] || '',
+        resultRow: cfg['result-row'] || '',
+        netRow: cfg['net-row'] || '',
+        resultNetRow: cfg['result-net-row'] || '',
+        clase: cfg.Clase || ''
       });
+
+      if (!seccionOrden.has(seccion)) {
+        seccionOrden.set(seccion, seccionOrden.size);
+      }
+      const principal = cfg['sum-row-sumavarios'];
+      if (principal && !principalOrden.has(principal)) {
+        principalOrden.set(principal, principalOrden.size);
+      }
+      const consolidado = cfg['sum-row-sumavarios-consolidado'];
+      if (consolidado && !consolidadoOrden.has(consolidado)) {
+        consolidadoOrden.set(consolidado, consolidadoOrden.size);
+      }
+      const resultRow = cfg['result-row'];
+      if (resultRow && !resultOrden.has(resultRow)) {
+        resultOrden.set(resultRow, resultOrden.size);
+      }
+      const netRow = cfg['net-row'];
+      if (netRow && !netOrden.has(netRow)) {
+        netOrden.set(netRow, netOrden.size);
+      }
+      const finalRow = cfg['result-net-row'];
+      if (finalRow && !finalOrden.has(finalRow)) {
+        finalOrden.set(finalRow, finalOrden.size);
+      }
     });
   }
 
-  // 2. Procesar definiciones de cuentas
   definiciones.forEach((item) => {
-    const capitulo = item['SECCIÓN Principal'] || item['SECCION Principal'] || item['SECCION'] || item['SECCIÓN']; // Ojo: En el JSON 'CAPITULO' es la columna CAPITULO, pero aquí parece que se usaba diferente.
-    // Corrección: Usar la columna CAPITULO del JSON
-    const capReal = item.CAPITULO || capitulo;
-    
-    // Si no coincide con el capítulo seleccionado, saltar (aunque ya filtramos antes, doble check)
-    if (NORMALIZAR_CAPITULO(capReal) !== NORMALIZAR_CAPITULO(capituloSeleccionado)) return;
+    const capReal = NORMALIZAR_CAPITULO(item.CAPITULO || '');
+    if (capReal !== capituloClave) return;
 
-    const seccion = item['SECCION Secundaria'] || item['Sección'] || item['SECCION'];
+    const seccion = (item['SECCION Secundaria'] || item['Secci¢n'] || item['SECCION'] || '').toString().trim();
     const cuentaCanonica = normalizarCuentaCanonica(item.CUENTA);
-    
-    if (!capReal || !seccion || !cuentaCanonica) return;
+    if (!seccion || !cuentaCanonica) return;
 
     definicionCuentas.set(cuentaCanonica, {
       descripcion: item.NOMBRE || '',
       visible: item.CUENTA || cuentaVisibleDesdeCanonica(cuentaCanonica)
     });
 
-    // Determinar jerarquía usando mapaConfig
-    // La 'SECCION' en configAgrupacion parece corresponder a 'SECCION Secundaria' en DEFINICIONES (o una parte de ella)
-    // En el JSON:
-    // DEFINICIONES: CAPITULO="CIUDAD DE MÉXICO", SECCION Secundaria="Membership"
-    // AGRUPACION: CAPITULO="CIUDAD DE MÉXICO", SECCION="Membership"
-    
-    const keyConfig = `${NORMALIZAR_CAPITULO(capReal)}|${seccion.trim().toUpperCase()}`;
-    const config = mapaConfig.get(keyConfig) || { 
-      operativo: 'SIN CLASIFICAR', 
-      principal: item['SECCIÓN Principal'] || 'GENERAL' 
-    };
+    const keyConfig = `${capituloClave}|${seccion.toUpperCase()}`;
+    const config = configPorSeccion.get(keyConfig) || {};
 
-    const nivelOperativo = config.operativo;
-    const nivelPrincipal = config.principal;
+    const principalLabel = config.principal || item['SECCIÓN Principal'] || 'GENERAL';
+    if (principalLabel && !principalOrden.has(principalLabel)) {
+      principalOrden.set(principalLabel, principalOrden.size);
+    }
 
-    if (!estructura.has(nivelOperativo)) {
-      estructura.set(nivelOperativo, new Map());
+    const principalKey = NORMALIZAR_CLAVE(principalLabel);
+    if (!principalMap.has(principalKey)) {
+      principalMap.set(principalKey, {
+        key: principalKey,
+        label: principalLabel,
+        clase: (config.clase || '').toString(),
+        consolidadoLabel: config.consolidado || '',
+        operativoLabel: config.operativo || '',
+        resultRow: config.resultRow || '',
+        netRow: config.netRow || '',
+        resultNetRow: config.resultNetRow || '',
+        orden: principalOrden.has(principalLabel) ? principalOrden.get(principalLabel) : principalOrden.size + principalMap.size,
+        secciones: new Map()
+      });
     }
-    const mapaPrincipal = estructura.get(nivelOperativo);
-    
-    if (!mapaPrincipal.has(nivelPrincipal)) {
-      mapaPrincipal.set(nivelPrincipal, new Map());
-    }
-    const mapaSecundario = mapaPrincipal.get(nivelPrincipal);
 
-    if (!mapaSecundario.has(seccion)) {
-      mapaSecundario.set(seccion, []);
+    const principalNode = principalMap.get(principalKey);
+    const seccionKey = seccion || 'SIN SECCIÓN';
+    if (!seccionOrden.has(seccionKey)) {
+      seccionOrden.set(seccionKey, seccionOrden.size + 1);
     }
-    mapaSecundario.get(seccion).push(cuentaCanonica);
+    if (!principalNode.secciones.has(seccionKey)) {
+      principalNode.secciones.set(seccionKey, {
+        label: seccionKey,
+        cuentas: [],
+        orden: seccionOrden.get(seccionKey)
+      });
+    }
+    principalNode.secciones.get(seccionKey).cuentas.push(cuentaCanonica);
   });
 
-  const resumen = [];
+  const principalList = Array.from(principalMap.values()).map((principal) => {
+    const seccionesOrdenadas = Array.from(principal.secciones.values()).sort((a, b) => a.orden - b.orden);
+    const children = seccionesOrdenadas.map((sec) => construirNodoSeccion({
+      seccion: sec.label,
+      cuentas: sec.cuentas,
+      definicion: definicionCuentas,
+      claveMes,
+      planeacionActual,
+      planeacionPrevio,
+      orden: sec.orden
+    }));
 
-  // 3. Construir árbol de resultados
-  estructura.forEach((mapaPrincipal, keyOperativo) => {
-    const childrenOperativo = [];
-
-    mapaPrincipal.forEach((mapaSecundario, keyPrincipal) => {
-      const childrenPrincipal = [];
-
-      mapaSecundario.forEach((cuentas, keySecundaria) => {
-        childrenPrincipal.push(construirNodoSeccion({ 
-          seccion: keySecundaria, 
-          cuentas, 
-          definicion: definicionCuentas, 
-          claveMes, 
-          planeacionActual, 
-          planeacionPrevio 
-        }));
-      });
-
-      // Totales Nivel Principal
-      const totalesPrincipal = childrenPrincipal.reduce(
-        (acc, nodo) => ({
-          actualMonth: acc.actualMonth + nodo.totalActualMonth,
-          planMonth: acc.planMonth + nodo.totalPlanMonth,
-          prevMonth: acc.prevMonth + nodo.totalPrevMonth,
-          actualYTD: acc.actualYTD + nodo.totalActualYTD,
-          planYTD: acc.planYTD + nodo.totalPlanYTD,
-          prevYTD: acc.prevYTD + nodo.totalPrevYTD
-        }),
-        { actualMonth: 0, planMonth: 0, prevMonth: 0, actualYTD: 0, planYTD: 0, prevYTD: 0 }
-      );
-
-      childrenOperativo.push({
-        key: NORMALIZAR_CLAVE(keyPrincipal),
-        label: keyPrincipal,
-        children: childrenPrincipal,
-        ...totalesPrincipal,
-        total: totalesPrincipal.actualYTD
-      });
-    });
-
-    // Totales Nivel Operativo
-    const totalesOperativo = childrenOperativo.reduce(
+    const totalesPrincipal = children.reduce(
       (acc, nodo) => ({
-        actualMonth: acc.actualMonth + nodo.actualMonth,
-        planMonth: acc.planMonth + nodo.planMonth,
-        prevMonth: acc.prevMonth + nodo.prevMonth,
-        actualYTD: acc.actualYTD + nodo.actualYTD,
-        planYTD: acc.planYTD + nodo.planYTD,
-        prevYTD: acc.prevYTD + nodo.prevYTD
+        actualMonth: acc.actualMonth + nodo.totalActualMonth,
+        planMonth: acc.planMonth + nodo.totalPlanMonth,
+        prevMonth: acc.prevMonth + nodo.totalPrevMonth,
+        actualYTD: acc.actualYTD + nodo.totalActualYTD,
+        planYTD: acc.planYTD + nodo.totalPlanYTD,
+        prevYTD: acc.prevYTD + nodo.totalPrevYTD
       }),
-      { actualMonth: 0, planMonth: 0, prevMonth: 0, actualYTD: 0, planYTD: 0, prevYTD: 0 }
+      crearAcumulador()
     );
 
-    resumen.push({
-      key: NORMALIZAR_CLAVE(keyOperativo),
-      label: keyOperativo,
-      children: childrenOperativo,
-      ...totalesOperativo,
-      total: totalesOperativo.actualYTD
-    });
+    const clase = (principal.clase || '').toLowerCase();
+    const sign = clase.includes('expense') ? -1 : 1;
+
+    return {
+      label: principal.label,
+      children,
+      ...totalesPrincipal,
+      total: totalesPrincipal.actualYTD,
+      orden: principal.orden,
+      consolidadoLabel: principal.consolidadoLabel || '',
+      operativoLabel: principal.operativoLabel || '',
+      resultRow: principal.resultRow || '',
+      netRow: principal.netRow || '',
+      resultNetRow: principal.resultNetRow || '',
+      sign
+    };
+  }).sort((a, b) => a.orden - b.orden);
+
+  const consolidatedMap = new Map();
+  const resultRowMap = new Map();
+  const netRowMap = new Map();
+  const finalRowMap = new Map();
+
+  const ensureAggregator = (mapa, etiqueta, ordenMapa) => {
+    if (!etiqueta) return null;
+    if (!mapa.has(etiqueta)) {
+      mapa.set(etiqueta, {
+        label: etiqueta,
+        orden: ordenMapa.has(etiqueta) ? ordenMapa.get(etiqueta) : mapa.size + ordenMapa.size,
+        totals: crearAcumulador(),
+        principals: []
+      });
+    }
+    return mapa.get(etiqueta);
+  };
+
+  principalList.forEach((principal) => {
+    const consolidated = ensureAggregator(consolidatedMap, principal.consolidadoLabel || principal.label, consolidadoOrden);
+    if (consolidated) {
+      consolidated.principals.push(principal.label);
+      sumarTotales(consolidated.totals, principal);
+    }
+
+    const resultRow = ensureAggregator(resultRowMap, principal.resultRow, resultOrden);
+    if (resultRow) {
+      sumarTotales(resultRow.totals, principal, principal.sign);
+    }
+
+    const netRow = ensureAggregator(netRowMap, principal.netRow, netOrden);
+    if (netRow) {
+      sumarTotales(netRow.totals, principal, principal.sign);
+    }
+
+    const finalRow = ensureAggregator(finalRowMap, principal.resultNetRow, finalOrden);
+    if (finalRow) {
+      sumarTotales(finalRow.totals, principal, principal.sign);
+    }
   });
 
-  return resumen;
+  let ordenGeneral = 0;
+  const siguienteOrden = () => {
+    ordenGeneral += 1;
+    return ordenGeneral;
+  };
+
+  const layout = [];
+
+  Array.from(consolidatedMap.values())
+    .sort((a, b) => a.orden - b.orden)
+    .forEach((grupo) => {
+      layout.push({
+        type: 'group',
+        label: grupo.label,
+        order: siguienteOrden(),
+        totals: grupo.totals,
+        principals: grupo.principals
+      });
+    });
+
+  const agregarBloques = (mapa, tipo) => {
+    Array.from(mapa.values())
+      .sort((a, b) => a.orden - b.orden)
+      .forEach((row) => {
+        layout.push({
+          type: tipo,
+          label: row.label,
+          order: siguienteOrden(),
+          totals: row.totals
+        });
+      });
+  };
+
+  agregarBloques(resultRowMap, 'result');
+  agregarBloques(netRowMap, 'net');
+  agregarBloques(finalRowMap, 'final');
+
+  return {
+    principals: principalList,
+    layout
+  };
 };
+
 
 async function generarReporte(tipoReporte, empresaId, anio, mesSeleccionado, capituloSeleccionado) {
   const definiciones = cargarDefiniciones();
@@ -333,7 +453,7 @@ async function generarReporte(tipoReporte, empresaId, anio, mesSeleccionado, cap
     obtenerDatosPlaneacion({ empresaId, anio: Number(anio) - 1, cuentas })
   ]);
 
-  const resumen = construirReporteResumen(
+  const { principals, layout } = construirReporteResumen(
     listaFiltrada, 
     configAgrupacion, 
     capituloEncontrado?.etiqueta || capituloSeleccionado, 
@@ -342,11 +462,17 @@ async function generarReporte(tipoReporte, empresaId, anio, mesSeleccionado, cap
     planeacionPrevio
   );
 
+  const nodoResumen = {
+    label: capituloEncontrado?.etiqueta || capituloSeleccionado,
+    children: principals,
+    layout
+  };
+
   return {
     empresaId,
     reportKey: tipoReporte,
     anio,
-    resumen,
+    resumen: [nodoResumen],
     capituloSeleccionado: capituloEncontrado?.etiqueta || capitulosDisponibles[0]?.etiqueta || null,
     capitulosDisponibles
   };
