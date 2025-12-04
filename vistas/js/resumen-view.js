@@ -97,19 +97,19 @@
   };
 
   const COLUMN_TOOLTIPS = {
-    actualMonth: 'Real del mes consultado según el layout RESUMEN.',
-    planMonth: 'Presupuesto del mes (columna PRESUPXX).',
-    prevMonth: 'Real del mismo mes pero del año anterior.',
-    varMonthPlan: 'Variación mensual vs plan: ((Real - Plan) / |Plan|) × 100.',
-    varMonthPrev: 'Variación mensual interanual: ((Real - Real año anterior) / |Real año anterior|) × 100.'
+    actualMonth: 'Real del mes consultado segun el layout RESUMEN. Se alimenta de los saldos reales del servicio de planeacion para las cuentas mapeadas en "CUENTAS SUMMARY Y RESUMEN.xlsx".',
+    planMonth: 'Presupuesto del mes (PRESUP01..12 de la tabla PRESUPYY) para las cuentas del bloque seleccionado.',
+    prevMonth: 'Real del mismo mes pero del ano anterior; usa el mismo set historico de saldos para comparar tendencias.',
+    varMonthPlan: 'Variacion mensual vs plan: ((Real - Plan) / |Plan|) x 100, operando con los valores reales y presupuestados de la fila.',
+    varMonthPrev: 'Variacion mensual interanual: ((Real - Real ano anterior) / |Real ano anterior|) x 100.'
   };
 
   const ROW_TOOLTIPS = {
-    account: 'Cuenta individual del catálogo RESUMEN. La descripción es libre y no se guarda en Firebird.',
-    section: 'Total de sección mostrado en el Excel (“sum-row”).',
-    principal: 'Subtotal del bloque principal (Income, Expense, Operating, etc.).',
-    group: 'Fila consolidada (CONSOLIDATED INCOME/EXPENSES u Operating Results).',
-    result: 'Operating/Net Results definidos en “SUMA DE VARIAS SECCIONES”.'
+    account: 'Cuenta individual del catalogo RESUMEN. Real y presupuesto provienen de los mismos origenes que SUMMARY; la descripcion libre no se guarda en Firebird.',
+    section: 'Total de seccion ("sum-row" del Excel). Suma todas las cuentas hijas antes de presentar el bloque principal.',
+    principal: 'Subtotal del bloque principal (Income, Expense, Operating, etc.) definido en el libro maestro.',
+    group: 'Fila consolidada (CONSOLIDATED INCOME/EXPENSES u Operating Results) que agrupa varios principales.',
+    result: 'Operating/Net Results definidos en "SUMA DE VARIAS SECCIONES"; combinan ingresos, gastos y otros ajustes segun el mapeo.'
   };
 
   const tooltipAttr = (key) => (key && COLUMN_TOOLTIPS[key]

@@ -235,33 +235,33 @@
   ];
 
   const COLUMN_TOOLTIPS = {
-    actualMonth: 'Real del mes consultado. Suma los campos real[mes] de todas las cuentas visibles en la sección o principal.',
-    planMonth: 'Presupuesto del mes (columna PRESUPXX). Este es el valor que se enviará a COI al autorizar.',
-    prevMonth: 'Real del mismo mes pero del año anterior para comparar contra la base histórica inmediata.',
-    varMonthPlan: 'Variación mensual vs plan: ((Real mes - Plan mes) / |Plan mes|) × 100.',
-    varMonthPrev: 'Variación mensual interanual: ((Real mes - Real mes año anterior) / |Real año anterior|) × 100.',
-    actualYTD: 'Real acumulado de enero al mes seleccionado (usa los campos real[mes]_acum incluidos en el layout).',
-    planYTD: 'Presupuesto acumulado enero→mes consultado; suma PRESUP01…PRESUPMM siguiendo el libro “CUENTAS SUMMARY Y RESUMEN”.',
-    prevYTD: 'Real acumulado del mismo periodo pero del año anterior.',
-    varYTDPlan: 'Variación acumulada vs plan: ((Real YTD - Plan YTD) / |Plan YTD|) × 100.',
-    varYTDPrev: 'Variación acumulada vs año anterior: ((Real YTD - Real YTD previo) / |Real YTD previo|) × 100.'
+    actualMonth: 'Real del mes consultado. Suma los campos real[mes] del servicio de planeacion (saldos Firebird) para cada cuenta definida en "CUENTAS SUMMARY Y RESUMEN.xlsx".',
+    planMonth: 'Presupuesto del mes (columnas PRESUP01..12 de la tabla PRESUPYY). Es el dato que se enviara a COI cuando el flujo termine en Guardar en COI.',
+    prevMonth: 'Real del mismo mes pero del ano anterior; proviene del mismo origen de saldos para comparar contra el historico inmediato.',
+    varMonthPlan: 'Variacion mensual vs plan: ((Real mes - Plan mes) / |Plan mes|) x 100. Usa los montos reales contra los PRESUPXX de la fila o seccion.',
+    varMonthPrev: 'Variacion mensual interanual: ((Real mes - Real mes ano anterior) / |Real ano anterior|) x 100.',
+    actualYTD: 'Real acumulado de enero al mes consultado (usa los campos real[mes]_acum de planeacion). Representa lo registrado en COI para las cuentas incluidas.',
+    planYTD: 'Presupuesto acumulado enero-mes; suma PRESUP01..PRESUPMM de la tabla PRESUPYY siguiendo el orden del libro "CUENTAS SUMMARY Y RESUMEN".',
+    prevYTD: 'Real acumulado del mismo periodo del ano previo, usando los campos _acum del set historico.',
+    varYTDPlan: 'Variacion acumulada vs plan: ((Real YTD - Plan YTD) / |Plan YTD|) x 100.',
+    varYTDPrev: 'Variacion acumulada vs ano anterior: ((Real YTD - Real YTD previo) / |Real YTD previo|) x 100.'
   };
 
   const ROW_TOOLTIPS = {
-    account: 'Cuenta individual del catálogo SUMMARY/RESUMEN. La descripción es editable (no se guarda en Firebird) y los montos alimentan las sumas superiores.',
-    section: 'Total de sección (“sum-row” del Excel). Agrupa las cuentas inmediatas antes de pasar al bloque principal.',
-    principal: 'Bloque principal (Income, Expense, Operating, Other, etc.). Replica los encabezados del libro y aplica el signo correspondiente.',
-    group: 'Fila consolidada (CONSOLIDATED INCOME/EXPENSES, Operating Results preliminar, etc.).',
-    result: 'Operating Results definido en “SUMA DE VARIAS SECCIONES”: ingresos menos gastos con los factores configurados.',
-    net: 'Net Results por región/segmento. Combina resultados operativos y otros ingresos/egresos intermedios.',
-    final: 'Consolidated Net Results: resultado final tras sumar otros ingresos (“OTHER INCOME”) al Operating Result.'
+    account: 'Cuenta individual del catalogo SUMMARY/RESUMEN. El real viene de los saldos por NUM_CTA y el presupuesto de PRESUPYY; la descripcion editable no se guarda en Firebird.',
+    section: 'Total de seccion ("sum-row" del Excel). Agrupa todas las cuentas hijas antes de pasar al bloque principal y usa sumatoria directa.',
+    principal: 'Bloque principal (Income, Expense, Operating, Other, etc.). Replica los encabezados del libro y respeta el signo configurado para cada clase.',
+    group: 'Fila consolidada (CONSOLIDATED INCOME/EXPENSES, Operating Results preliminar, etc.). Se genera cuando varias secciones comparten un sum-row-sumavarios.',
+    result: 'Operating Results definido en "SUMA DE VARIAS SECCIONES": ingresos menos gastos aplicando los factores establecidos en el Excel.',
+    net: 'Net Results por region/segmento. Combina el resultado operativo con otros ingresos/egresos intermedios marcados como net-row.',
+    final: 'Consolidated Net Results: cierre final tras sumar otros ingresos ("OTHER INCOME") al Operating Result.'
   };
 
-  const tooltipAttr = (key) => (key && COLUMN_TOOLTIPS[key]
+  const summaryTooltipAttr = (key) => (key && COLUMN_TOOLTIPS[key]
     ? ` title="${escapeAttr(COLUMN_TOOLTIPS[key])}" data-bs-toggle="tooltip"`
     : '');
 
-  const rowTooltipAttr = (role) => (role ? ` data-row-role="${role}"` : '');
+  const summaryRowTooltipAttr = (role) => (role ? ` data-row-role="${role}"` : '');
 
   const principalPriority = (label) => {
     const text = normalizeText(label);
@@ -394,7 +394,7 @@
     const classes = ['text-end'];
     if (bold) classes.push('fw-bold');
     if (extraClasses) classes.push(extraClasses);
-    return `<td class="${classes.join(' ')}"${tooltipAttr(tooltipKey)}${rowTooltipAttr(rowRole)}>${formatNumber(val)}</td>`;
+    return `<td class="${classes.join(' ')}"${summaryTooltipAttr(tooltipKey)}${summaryRowTooltipAttr(rowRole)}>${formatNumber(val)}</td>`;
   };
 
   const createPercentCell = (val, arg2 = '', rowRole = '') => {
@@ -403,7 +403,7 @@
       tooltipKey = arg2.tooltipKey || '';
       rowRole = arg2.rowRole || rowRole;
     }
-    return `<td class="text-end"${tooltipAttr(tooltipKey)}${rowTooltipAttr(rowRole)}>${formatPercent(val)}</td>`;
+    return `<td class="text-end"${summaryTooltipAttr(tooltipKey)}${summaryRowTooltipAttr(rowRole)}>${formatPercent(val)}</td>`;
   };
 
   const createEditableCell = (val, options = {}) => {
@@ -422,7 +422,7 @@
     if (columnKey) {
       attrs.push(`data-columna-clave="${columnKey}"`);
     }
-    return `<td ${attrs.join(' ')}${tooltipAttr(tooltipKey)}${rowTooltipAttr(rowRole)}>${formatNumber(val)}</td>`;
+    return `<td ${attrs.join(' ')}${summaryTooltipAttr(tooltipKey)}${summaryRowTooltipAttr(rowRole)}>${formatNumber(val)}</td>`;
   };
 
   const extractTotals = (nodo = {}) => ({
@@ -465,7 +465,7 @@
       ${createCell(totals.prevMonth, { bold: boldNumbers, tooltipKey: 'prevMonth', rowRole })}
       ${createPercentCell(varMonthPlan, { tooltipKey: 'varMonthPlan', rowRole })}
       ${createPercentCell(varMonthPrev, { tooltipKey: 'varMonthPrev', rowRole })}
-      <td class="${labelClasses}"${rowTooltipAttr(rowRole)}>${label}</td>
+      <td class="${labelClasses}"${summaryRowTooltipAttr(rowRole)}>${label}</td>
       ${createCell(totals.actualYTD, { bold: boldNumbers, tooltipKey: 'actualYTD', rowRole })}
       ${createCell(totals.planYTD, { bold: boldNumbers, tooltipKey: 'planYTD', rowRole })}
       ${createCell(totals.prevYTD, { bold: boldNumbers, tooltipKey: 'prevYTD', rowRole })}
@@ -552,7 +552,7 @@
             ctaRow.dataset.rowRole = 'account';
             ctaRow.dataset.cuenta = cta.cuentaCanonica || cta.cuenta || '';
             ctaRow.dataset.cuentaVisible = cta.cuenta || '';
-            const detalleCuenta = `Cuenta ${cta.cuenta || 'sin codigo'} – ${cta.descripcion || 'Sin descripcion'}. Los valores provienen del catálogo SUMMARY.`;
+            const detalleCuenta = `Cuenta ${cta.cuenta || 'sin codigo'} - ${cta.descripcion || 'Sin descripcion'}. Los valores provienen del catálogo SUMMARY.`;
             ctaRow.setAttribute('title', detalleCuenta);
             ctaRow.setAttribute('data-bs-toggle', 'tooltip');
             ctaRow.innerHTML = `
@@ -562,7 +562,7 @@
               ${createCell(cta.prevMonth, { tooltipKey: 'prevMonth', rowRole: 'account' })}
               ${createPercentCell(ctaVarMonthPlan, { tooltipKey: 'varMonthPlan', rowRole: 'account' })}
               ${createPercentCell(ctaVarMonthPrev, { tooltipKey: 'varMonthPrev', rowRole: 'account' })}
-              <td class="text-center"${rowTooltipAttr('account')}>${cta.descripcion || ''}</td>
+              <td class="text-center"${summaryRowTooltipAttr('account')}>${cta.descripcion || ''}</td>
               ${createCell(cta.actualYTD, { tooltipKey: 'actualYTD', rowRole: 'account' })}
               ${createCell(cta.planYTD, { tooltipKey: 'planYTD', rowRole: 'account' })}
               ${createCell(cta.prevYTD, { tooltipKey: 'prevYTD', rowRole: 'account' })}

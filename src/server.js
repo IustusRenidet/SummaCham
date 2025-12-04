@@ -40,6 +40,7 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3000)) => {
   app.use('/api/comites', rutasComites);
   app.use('/api/planeacion', rutasPlaneacion);
   app.use('/api/borradores', rutasBorradores);
+  app.use('/api/workflow/borradores', rutasBorradores);
   app.use('/api/notificaciones', rutasNotificaciones);
   app.use('/api/reportes', rutasReportes);
   app.use('/api/saldos', rutasSaldos);
