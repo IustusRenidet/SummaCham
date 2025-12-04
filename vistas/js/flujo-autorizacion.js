@@ -188,7 +188,7 @@
         </div>
         <div class="drafts-view d-none" data-drafts-view="history">
           <div id="draftHistoryStatus" class="alert alert-info">
-            Define filtros para consultar el historial del flujo.
+            Define filtros para consultar el historial  del flujo.
           </div>
           <form class="row g-2 drafts-history-filters mb-3" id="draftHistoryFilters">
             <div class="col-12">
@@ -247,6 +247,30 @@
     draftsDrawerEl = drawer;
     draftsDrawerBody = drawer.querySelector('#draftsCenterBody');
     draftsDrawerStatus = drawer.querySelector('#draftsCenterStatus');
+    
+    // CRITICAL: Add tab switching event listeners immediately after creating the drawer
+    const tabButtons = drawer.querySelectorAll('[data-drafts-tab]');
+    tabButtons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const target = btn.dataset.draftsTab;
+        if (!target) return;
+        
+        // Update active button
+        tabButtons.forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+        
+        // Show/hide views
+        const views = drawer.querySelectorAll('[data-drafts-view]');
+        views.forEach((view) => {
+          if (view.dataset.draftsView === target) {
+            view.classList.remove('d-none');
+          } else {
+            view.classList.add('d-none');
+          }
+        });
+      });
+    });
+    
     return draftsDrawerEl;
   };
 
@@ -931,10 +955,28 @@
         return;
       }
       const drawer = ensureDraftsDrawer();
-      const instancia = window.bootstrap?.Offcanvas?.getOrCreateInstance(drawer);
+      if (!drawer) {
+        console.error('[FlujoAutorizacion] No se pudo crear el drawer de borradores');
+        this._mostrarToast('Error al mostrar el centro de borradores.', 'danger');
+        return;
+      }
+      
+      // Ensure Bootstrap is loaded
+      if (!window.bootstrap?.Offcanvas) {
+        console.error('[FlujoAutorizacion] Bootstrap.Offcanvas no está disponible');
+        this._mostrarToast('Error: Bootstrap no está cargado correctamente.', 'danger');
+        return;
+      }
+      
+      const instancia = window.bootstrap.Offcanvas.getOrCreateInstance(drawer);
       if (instancia) {
         instancia.show();
+      } else {
+        console.error('[FlujoAutorizacion] No se pudo crear la instancia de Offcanvas');
+        this._mostrarToast('Error al abrir el centro de borradores.', 'danger');
+        return;
       }
+      
       await this._cargarCentroBorradores();
     }
 
@@ -1311,7 +1353,36 @@
       return params;
     };
 
+    const hidratarContexto = () => {
+      if (!contexto.empresaId && window.Sesion?.obtenerEmpresaActiva) {
+        const empresa = window.Sesion.obtenerEmpresaActiva();
+        if (empresa?.id) contexto.empresaId = empresa.id;
+      }
+      if (!contexto.modulo) {
+        contexto.modulo = document.body?.dataset?.modulo || '';
+      }
+      if (!contexto.anio || Number(contexto.anio) < 2000) {
+        const candidatos = [
+          document.getElementById('selectAnio')?.value,
+          document.getElementById('summaryYearSelect')?.value,
+          document.getElementById('resumenYearSelect')?.value,
+          document.getElementById('presupuestosYearSelect')?.value
+        ]
+          .map((valor) => {
+            const numero = Number(valor);
+            return Number.isFinite(numero) && numero >= 2000 ? numero : null;
+          })
+          .filter((valor) => valor != null);
+        if (candidatos.length) {
+          contexto.anio = candidatos[0];
+        } else {
+          contexto.anio = new Date().getFullYear();
+        }
+      }
+    };
+
     const cargarHistorial = async (target, filtros) => {
+      hidratarContexto();
       if (!contexto.empresaId || !Number.isInteger(contexto.anio)) {
         if (target?.status) {
           target.status.className = 'alert alert-info';
