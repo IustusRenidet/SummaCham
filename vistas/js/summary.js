@@ -10,7 +10,20 @@
 // ================================
 // === CONFIG / ESTADO GENERAL ===
 // ================================
-const API_BASE = 'http://localhost:3000/api';
+const configurarApi = () => {
+  if (typeof window.apiUrl === 'function' && window.API_BASE_URL) return;
+  const baseDetectada = window.location.protocol === 'file:'
+    ? 'https://amcham.iconetcloud.com.mx/api'
+    : `${window.location.origin}/api`;
+  const apiBase = (window.API_BASE_URL || baseDetectada).replace(/\/$/, '');
+  const construir = (ruta = '') => `${apiBase}${ruta.startsWith('/') ? '' : '/'}${ruta}`;
+  window.API_BASE_URL = apiBase;
+  window.apiUrl = construir;
+};
+
+configurarApi();
+
+const API_BASE = window.API_BASE_URL;
 /*
   Resumen de la logica (guia rapida):
   - CURRENT_LAYOUT describe la jerarquia/colores de la tabla (simula el Excel original).

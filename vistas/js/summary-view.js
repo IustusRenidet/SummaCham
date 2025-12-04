@@ -1,7 +1,19 @@
 (() => {
-  const base = window.location.protocol === 'file:' ? 'http://localhost:3000' : window.location.origin;
-  const API_ENDPOINT = `${base}/api/reportes/summary`;
-  const API_ANIOS = `${base}/api/saldos/anios`;
+  const configurarApi = () => {
+    if (typeof window.apiUrl === 'function' && window.API_BASE_URL) return;
+    const baseDetectada = window.location.protocol === 'file:'
+      ? 'https://amcham.iconetcloud.com.mx/api'
+      : `${window.location.origin}/api`;
+    const apiBase = (window.API_BASE_URL || baseDetectada).replace(/\/$/, '');
+    const construir = (ruta = '') => `${apiBase}${ruta.startsWith('/') ? '' : '/'}${ruta}`;
+    window.API_BASE_URL = apiBase;
+    window.apiUrl = construir;
+  };
+
+  configurarApi();
+
+  const API_ENDPOINT = window.apiUrl('reportes/summary');
+  const API_ANIOS = window.apiUrl('saldos/anios');
 
   const toNumber = (valor) => {
     const numero = Number(valor);

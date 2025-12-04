@@ -1,6 +1,18 @@
 (() => {
-  const origin = window.location.protocol === 'file:' ? 'http://localhost:3000' : window.location.origin;
-  const API_BASE = `${origin}/api`;
+  const configurarApi = () => {
+    if (typeof window.apiUrl === 'function' && window.API_BASE_URL) return;
+    const baseDetectada = window.location.protocol === 'file:'
+      ? 'https://amcham.iconetcloud.com.mx/api'
+      : `${window.location.origin}/api`;
+    const apiBase = (window.API_BASE_URL || baseDetectada).replace(/\/$/, '');
+    const construir = (ruta = '') => `${apiBase}${ruta.startsWith('/') ? '' : '/'}${ruta}`;
+    window.API_BASE_URL = apiBase;
+    window.apiUrl = construir;
+  };
+
+  configurarApi();
+
+  const API_BASE = window.API_BASE_URL;
   const FORMATTER_NUMEROS = new Intl.NumberFormat('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const EVENTO_CONTEXTO = 'planeacion:contexto-actualizado';
   const EVENTO_EDICION = 'modulo-planeacion:presupuesto-editado';

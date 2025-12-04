@@ -1,7 +1,19 @@
 (() => {
-  const base = window.location.protocol === 'file:' ? 'http://localhost:3000' : window.location.origin;
-  const API_ENDPOINT = `${base}/api/reportes/resumen`;
-  const API_ANIOS = `${base}/api/saldos/anios`;
+  const configurarApi = () => {
+    if (typeof window.apiUrl === 'function' && window.API_BASE_URL) return;
+    const baseDetectada = window.location.protocol === 'file:'
+      ? 'https://amcham.iconetcloud.com.mx/api'
+      : `${window.location.origin}/api`;
+    const apiBase = (window.API_BASE_URL || baseDetectada).replace(/\/$/, '');
+    const construir = (ruta = '') => `${apiBase}${ruta.startsWith('/') ? '' : '/'}${ruta}`;
+    window.API_BASE_URL = apiBase;
+    window.apiUrl = construir;
+  };
+
+  configurarApi();
+
+  const API_ENDPOINT = window.apiUrl('reportes/resumen');
+  const API_ANIOS = window.apiUrl('saldos/anios');
   
   const formatNumber = (valor) => {
     const monto = Number(valor ?? 0);
@@ -109,7 +121,7 @@
       });
       
       if (!response.ok) {
-        throw new Error('No fue posible obtener años disponibles');
+        throw new Error('No fue posible obtener aÃ±os disponibles');
       }
       
       const data = await response.json();
@@ -119,7 +131,7 @@
       if (!anios.length) {
         const option = document.createElement('option');
         option.value = '';
-        option.textContent = 'Sin años disponibles';
+        option.textContent = 'Sin aÃ±os disponibles';
         yearSelect.appendChild(option);
         return [];
       }
@@ -135,8 +147,8 @@
 
       return anios;
     } catch (error) {
-      console.error('Error cargando años:', error);
-      yearSelect.innerHTML = '<option value="">Error cargando años</option>';
+      console.error('Error cargando aÃ±os:', error);
+      yearSelect.innerHTML = '<option value="">Error cargando aÃ±os</option>';
       return [];
     }
   };
@@ -283,7 +295,7 @@
   const renderTable = (nodos = [], anioActual) => {
     if (!tablaBody) return;
     if (!nodos.length) {
-      setStatusRow('No hay datos disponibles para este a�o.');
+      setStatusRow('No hay datos disponibles para este año.');
       return;
     }
     tablaBody.innerHTML = '';
@@ -358,7 +370,7 @@
 
           totalesRow.innerHTML = `
             <td class="ps-4">${seccion.label}</td>
-            <td>Total secci�n</td>
+            <td>Total sección</td>
             <td class="text-end">${formatNumber(seccion.totalActualMonth)}</td>
             <td class="text-end">${formatNumber(seccion.totalPlanMonth)}</td>
             <td class="text-end">${formatNumber(seccion.totalPrevMonth)}</td>
