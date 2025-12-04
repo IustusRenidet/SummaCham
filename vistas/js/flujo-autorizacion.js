@@ -456,6 +456,7 @@
     }
 
     _contextoCompleto() {
+      this._hidratarContextoInicial();
       return this.contexto.empresaId && this.contexto.anio && this.contexto.modulo;
     }
 
@@ -558,12 +559,41 @@
       return Boolean(this.permisos?.[accion]);
     }
 
+    _hidratarContextoInicial() {
+      if (!this.contexto.empresaId && window.Sesion?.obtenerEmpresaActiva) {
+        const empresa = window.Sesion.obtenerEmpresaActiva();
+        if (empresa?.id) {
+          this.contexto.empresaId = empresa.id;
+        }
+      }
+      if (!this.contexto.anio || Number(this.contexto.anio) < 2000) {
+        const candidatos = [
+          document.getElementById('selectAnio')?.value,
+          document.getElementById('summaryYearSelect')?.value,
+          document.getElementById('resumenYearSelect')?.value
+        ]
+          .map((valor) => {
+            const numero = Number(valor);
+            return Number.isFinite(numero) && numero >= 2000 ? numero : null;
+          })
+          .filter((valor) => valor != null);
+        if (candidatos.length) {
+          this.contexto.anio = candidatos[0];
+        } else {
+          this.contexto.anio = new Date().getFullYear();
+        }
+      }
+      if (!this.contexto.modulo) {
+        this.contexto.modulo = document.body?.dataset?.modulo || this.moduloDefault;
+      }
+    }
+
     _resolverConfiguracionVista() {
       const dataset = this.tableElement?.dataset || document.body.dataset || {};
       const accionesTexto = dataset.flujoAcciones || dataset.operacionesAutorizacion || '';
       const permisosActualizados = { ...this.permisos };
 
-      if (accionesTexto) {
+      if (accionesTexto && accionesTexto.trim()) {
         const lista = accionesTexto
           .split(',')
           .map((accion) => accion.trim().toLowerCase())

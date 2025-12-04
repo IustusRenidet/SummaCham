@@ -159,6 +159,7 @@
       contenedor: null
     }
   };
+  let panelPrincipales = null;
 
   const MODAL_SECCION_ID = 'sectionModal';
   const crearModalSeccion = () => {
@@ -176,6 +177,14 @@
 
           <label class="section-modal__label" for="sectionSumLabelInput">Etiqueta para sum row</label>
           <input id="sectionSumLabelInput" class="form-control section-modal__input" maxlength="80" required />
+
+          <label class="section-modal__label" for="sectionPrincipalSelect">Principal / sumatoria</label>
+          <select id="sectionPrincipalSelect" class="form-select section-modal__input"></select>
+          <input id="sectionPrincipalCustom" class="form-control section-modal__input" maxlength="120" placeholder="Nombre del principal" hidden />
+          <label class="section-modal__label" for="sectionPrincipalFactor">Factor de operación</label>
+          <input id="sectionPrincipalFactor" type="number" step="0.01" value="1" class="form-control section-modal__input" />
+          <div class="form-text">Usa 1 para sumar, -1 para restar, 0.5 para dividir u otro factor personalizado.</div>
+          <div id="sectionPrincipalInfo" class="section-modal__info"></div>
 
           <div id="sectionAccountsContainer" class="section-account-list"></div>
           <button type="button" id="sectionAddAccountBtn" class="btn btn-chip btn-chip-outline w-100 mb-3">
@@ -275,6 +284,28 @@
         justify-content: flex-end;
         flex-wrap: wrap;
       }
+      .section-modal__info {
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 12px;
+        background: #f9fafb;
+        max-height: 180px;
+        overflow-y: auto;
+        font-size: 0.8rem;
+      }
+      .section-modal__info h6 {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+        letter-spacing: 0.05em;
+      }
+      .section-modal__info ul {
+        padding-left: 16px;
+        margin-bottom: 8px;
+      }
+      .section-modal__info li {
+        margin-bottom: 2px;
+      }
     `;
     document.head.appendChild(style);
   };
@@ -333,6 +364,70 @@
     });
   };
 
+  const obtenerPrincipalesResumen = () => {
+    const mapa = new Map();
+    (estadoModulo.sumas.secciones || []).forEach((meta) => {
+      const label = meta?.sumRowSumavariosLabel || '';
+      if (!label) return;
+      const clave = normalizarTexto(label);
+      if (!mapa.has(clave)) {
+        mapa.set(clave, { label, secciones: [] });
+      }
+      mapa.get(clave).secciones.push({
+        nombre: meta.tituloVisible || meta.seccion || 'Sin título',
+        factor: Number.isFinite(meta.operacionFactor) ? meta.operacionFactor : 1
+      });
+    });
+    return Array.from(mapa.values());
+  };
+
+  const llenarSelectPrincipalesModal = () => {
+    const elems = getSectionModalElements();
+    if (!elems?.principalSelect) return;
+    const select = elems.principalSelect;
+    const resumen = obtenerPrincipalesResumen();
+    select.innerHTML = '';
+    const optionDefault = document.createElement('option');
+    optionDefault.value = '';
+    optionDefault.textContent = 'Selecciona principal';
+    select.appendChild(optionDefault);
+    resumen.forEach((item) => {
+      const opt = document.createElement('option');
+      opt.value = item.label;
+      opt.textContent = `${item.label} (${item.secciones.length})`;
+      select.appendChild(opt);
+    });
+    const optNuevo = document.createElement('option');
+    optNuevo.value = '__custom__';
+    optNuevo.textContent = 'Crear nuevo principal...';
+    select.appendChild(optNuevo);
+  };
+
+  const renderizarResumenPrincipalesModal = () => {
+    const elems = getSectionModalElements();
+    if (!elems?.principalInfo) return;
+    const resumen = obtenerPrincipalesResumen();
+    if (!resumen.length) {
+      elems.principalInfo.innerHTML = '<p class="text-muted small mb-0">Aún no hay principales configurados.</p>';
+      return;
+    }
+    const contenido = resumen
+      .map((item) => {
+        const lista = item.secciones
+          .map(
+            (sec) =>
+              `<li>${sec.nombre} <span class="badge bg-light text-dark ms-1">${sec.factor >= 0 ? '+' : ''}${sec.factor}</span></li>`
+          )
+          .join('');
+        return `<div class="mb-2">
+          <h6>${item.label}</h6>
+          <ul class="mb-0">${lista}</ul>
+        </div>`;
+      })
+      .join('');
+    elems.principalInfo.innerHTML = contenido;
+  };
+
   const abrirModalAgregarSeccion = (referencia) => {
     asegurarModal();
     sectionModalInstance = sectionModalInstance || crearModalSeccion();
@@ -384,7 +479,11 @@
       groupStart: sectionModalInstance.querySelector('#sectionGroupStart'),
       groupEnd: sectionModalInstance.querySelector('#sectionGroupEnd'),
       groupLabel: sectionModalInstance.querySelector('#sectionGroupLabel'),
-      cancelBtn: sectionModalInstance.querySelector('#sectionModalCancel')
+      cancelBtn: sectionModalInstance.querySelector('#sectionModalCancel'),
+      principalSelect: sectionModalInstance.querySelector('#sectionPrincipalSelect'),
+      principalCustom: sectionModalInstance.querySelector('#sectionPrincipalCustom'),
+      principalFactor: sectionModalInstance.querySelector('#sectionPrincipalFactor'),
+      principalInfo: sectionModalInstance.querySelector('#sectionPrincipalInfo')
     };
   };
 

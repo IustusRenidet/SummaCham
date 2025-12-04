@@ -125,13 +125,23 @@
     return `${valores.slice(0, limite).join(', ')} y ${valores.length - limite} mas`;
   };
 
+  const describirFactor = (factor) => {
+    const numero = Number.isFinite(Number(factor)) ? Number(factor) : 1;
+    if (numero === 1) return 'Suma';
+    if (numero === -1) return 'Resta';
+    if (numero === 0.5) return 'Divide entre 2';
+    if (numero === 2) return 'Duplica';
+    if (numero === 0) return 'Ignora';
+    return numero > 0 ? `Escala x${numero}` : `Escala x${numero}`;
+  };
+
   const describirOperaciones = (operaciones = []) => {
     const fragmentos = (Array.isArray(operaciones) ? operaciones : [])
       .filter((op) => op && op.principal)
       .map((op) => {
-        const signo = op.factor >= 0 ? '+' : '-';
+        const accion = describirFactor(op.factor);
         const secciones = formatList(op.sections || [], 4);
-        return `${signo} ${op.principal}${secciones ? ` (secciones: ${secciones})` : ''}`;
+        return `${accion} ${op.principal}${secciones ? ` (secciones: ${secciones})` : ''}`;
       });
     return fragmentos.join('; ');
   };
@@ -418,7 +428,11 @@
             row.dataset.cuenta = cta.cuentaCanonica || cta.cuenta || '';
             row.dataset.cuenta21 = cta.cuentaCanonica || '';
             row.dataset.rowRole = 'account';
-            const detalleCuenta = `Cuenta ${cta.cuenta || 'sin codigo'} · Real: saldos COI · Presupuesto: tabla PRESUPYY (${planColumnKey.toUpperCase()}).`;
+            const detalleCuenta = [
+              `Cuenta ${cta.cuenta || 'sin codigo'} - Sección ${seccion.label || 'sin sección'}${principal.label ? ` - Principal ${principal.label}` : ''}`,
+              'Real: saldos COI via planeación',
+              `Presupuesto: ${planColumnKey.toUpperCase()} / PRESUP01-12 (tabla PRESUPYY)`
+            ].join(' - ');
             row.setAttribute('title', detalleCuenta);
             row.setAttribute('data-bs-toggle', 'tooltip');
             row.innerHTML = `

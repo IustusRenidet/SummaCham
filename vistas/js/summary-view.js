@@ -268,13 +268,23 @@
     return `${valores.slice(0, limite).join(', ')} y ${valores.length - limite} mas`;
   };
 
+  const describirFactor = (factor) => {
+    const numero = Number.isFinite(Number(factor)) ? Number(factor) : 1;
+    if (numero === 1) return 'Suma';
+    if (numero === -1) return 'Resta';
+    if (numero === 0) return 'Ignora';
+    if (numero === 0.5) return 'Divide entre 2';
+    if (numero === 2) return 'Duplica';
+    return numero > 0 ? `Escala x${numero}` : `Escala x${numero}`;
+  };
+
   const describirOperaciones = (operaciones = []) => {
     const fragmentos = (Array.isArray(operaciones) ? operaciones : [])
       .filter((op) => op && op.principal)
       .map((op) => {
-        const signo = op.factor >= 0 ? '+' : '-';
+        const accion = describirFactor(op.factor);
         const secciones = formatList(op.sections || [], 4);
-        return `${signo} ${op.principal}${secciones ? ` (secciones: ${secciones})` : ''}`;
+        return `${accion} ${op.principal}${secciones ? ` (secciones: ${secciones})` : ''}`;
       });
     return fragmentos.join('; ');
   };
@@ -324,7 +334,7 @@
     }
   };
 
-  const summaryTooltipAttr = (key) => (key && COLUMN_TOOLTIPS[key]
+  const columnTooltipAttr = (key) => (key && COLUMN_TOOLTIPS[key]
     ? ` title="${escapeAttr(COLUMN_TOOLTIPS[key])}" data-bs-toggle="tooltip"`
     : '');
 
@@ -461,7 +471,7 @@
     const classes = ['text-end'];
     if (bold) classes.push('fw-bold');
     if (extraClasses) classes.push(extraClasses);
-    return `<td class="${classes.join(' ')}"${summaryTooltipAttr(tooltipKey)}${summaryRowTooltipAttr(rowRole)}>${formatNumber(val)}</td>`;
+    return `<td class="${classes.join(' ')}"${columnTooltipAttr(tooltipKey)}${summaryRowTooltipAttr(rowRole)}>${formatNumber(val)}</td>`;
   };
 
   const createPercentCell = (val, arg2 = '', rowRole = '') => {
@@ -470,7 +480,7 @@
       tooltipKey = arg2.tooltipKey || '';
       rowRole = arg2.rowRole || rowRole;
     }
-    return `<td class="text-end"${summaryTooltipAttr(tooltipKey)}${summaryRowTooltipAttr(rowRole)}>${formatPercent(val)}</td>`;
+    return `<td class="text-end"${columnTooltipAttr(tooltipKey)}${summaryRowTooltipAttr(rowRole)}>${formatPercent(val)}</td>`;
   };
 
   const createEditableCell = (val, options = {}) => {
@@ -489,7 +499,7 @@
     if (columnKey) {
       attrs.push(`data-columna-clave="${columnKey}"`);
     }
-    return `<td ${attrs.join(' ')}${summaryTooltipAttr(tooltipKey)}${summaryRowTooltipAttr(rowRole)}>${formatNumber(val)}</td>`;
+    return `<td ${attrs.join(' ')}${columnTooltipAttr(tooltipKey)}${summaryRowTooltipAttr(rowRole)}>${formatNumber(val)}</td>`;
   };
 
   const extractTotals = (nodo = {}) => ({
@@ -614,6 +624,7 @@
         const seccionesOrdenadas = sortSections(principal.children || []);
 
         seccionesOrdenadas.forEach((seccion) => {
+          const seccionLabel = seccion.label || '';
           (seccion.cuentas || []).forEach((cta) => {
             const ctaVarMonthPlan = calculateVar(cta.actualMonth, cta.planMonth);
             const ctaVarMonthPrev = calculateVar(cta.actualMonth, cta.prevMonth);
@@ -625,7 +636,12 @@
             ctaRow.dataset.cuenta = cta.cuentaCanonica || cta.cuenta || '';
             ctaRow.dataset.cuenta21 = cta.cuentaCanonica || '';
             ctaRow.dataset.cuentaVisible = cta.cuenta || '';
-            const detalleCuenta = `Cuenta ${cta.cuenta || 'sin codigo'} · Real: saldos COI (servicio de planeacion). · Presupuesto: tabla PRESUPYY (${planColumnKey.toUpperCase()}). La descripcion editable no se sincroniza con Firebird.`;
+            const detalleCuenta = [
+              `Cuenta ${cta.cuenta || 'sin codigo'} - Sección ${seccionLabel || 'sin sección'}${principal.label ? ` - Principal ${principal.label}` : ''}`,
+              'Real: planeación COI (saldos mensuales y acumulados)',
+              `Presupuesto: columnas ${planColumnKey.toUpperCase()} / PRESUP01-12 (PRESUPYY)`,
+              'La descripción es libre y no se guarda en Firebird'
+            ].join(' - ');
             ctaRow.setAttribute('title', detalleCuenta);
             ctaRow.setAttribute('data-bs-toggle', 'tooltip');
             ctaRow.innerHTML = `
