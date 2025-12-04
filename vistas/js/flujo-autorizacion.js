@@ -492,6 +492,7 @@
     async _actualizarEstadoServidor() {
       if (!this._contextoCompleto()) {
         this._notificarEstadoBorrador(null);
+        this._actualizarBotones();
         return;
       }
       try {
@@ -950,10 +951,6 @@
     }
 
     async _mostrarCentroBorradores() {
-      if (!this._contextoCompleto()) {
-        this._mostrarToast('Selecciona empresa y ejercicio para consultar los borradores.', 'warning');
-        return;
-      }
       const drawer = ensureDraftsDrawer();
       if (!drawer) {
         console.error('[FlujoAutorizacion] No se pudo crear el drawer de borradores');
@@ -976,13 +973,32 @@
         this._mostrarToast('Error al abrir el centro de borradores.', 'danger');
         return;
       }
-      
+
+      if (!this._contextoCompleto()) {
+        draftsDrawerStatus.className = 'alert alert-warning';
+        draftsDrawerStatus.textContent = 'Selecciona empresa y ejercicio para consultar los borradores.';
+        draftsDrawerBody.innerHTML = `
+          <tr>
+            <td colspan="5" class="text-center text-muted">Sin contexto seleccionado</td>
+          </tr>`;
+        return;
+      }
+
       await this._cargarCentroBorradores();
     }
 
     async _cargarCentroBorradores() {
       ensureDraftsDrawer();
       if (!draftsDrawerBody || !draftsDrawerStatus) return;
+      if (!this._contextoCompleto()) {
+        draftsDrawerStatus.className = 'alert alert-warning';
+        draftsDrawerStatus.textContent = 'Selecciona empresa y ejercicio para consultar los borradores.';
+        draftsDrawerBody.innerHTML = `
+          <tr>
+            <td colspan="5" class="text-center text-muted">Sin contexto seleccionado</td>
+          </tr>`;
+        return;
+      }
       draftsDrawerStatus.className = 'alert alert-info';
       draftsDrawerStatus.textContent = 'Cargando borradores...';
       draftsDrawerBody.innerHTML = `
@@ -1545,8 +1561,7 @@
     return { init };
   })();
 
-  const tieneControles = Boolean(document.getElementById('btnGuardarBorrador'));
-  if (tieneControles) {
+  if (!window.__flujoAutorizacionInstance) {
     window.__flujoAutorizacionInstance = new FlujoAutorizacion();
   }
 
@@ -1605,6 +1620,53 @@
     };
   })();
 
+  const vincularAccesosRapidos = () => {
+    const asegurarWorkflowDrawer = () => {
+      const drawer = ensureWorkflowDrawer();
+      const elemento = drawer || document.getElementById('workflowDrawer');
+      if (!elemento || !window.bootstrap?.Offcanvas) return null;
+      elemento.setAttribute('data-bs-scroll', 'true');
+      return window.bootstrap.Offcanvas.getOrCreateInstance(elemento);
+    };
+
+    document.querySelectorAll('.workflow-toggle').forEach((btn) => {
+      if (btn.dataset.workflowBound === '1') return;
+      btn.dataset.workflowBound = '1';
+      btn.setAttribute('data-bs-toggle', 'offcanvas');
+      btn.setAttribute('data-bs-target', '#workflowDrawer');
+      btn.addEventListener('click', (event) => {
+        event.preventDefault();
+        const instancia = asegurarWorkflowDrawer();
+        if (instancia) instancia.show();
+      });
+    });
+
+    const abrirCentroBorradores = () => {
+      ensureDraftsDrawer();
+      const instancia = window.__flujoAutorizacionInstance;
+      if (instancia?.init) {
+        instancia.init();
+        instancia._mostrarCentroBorradores();
+        return;
+      }
+      if (draftsDrawerEl && window.bootstrap?.Offcanvas) {
+        window.bootstrap.Offcanvas.getOrCreateInstance(draftsDrawerEl).show();
+      }
+    };
+
+    document.querySelectorAll('#btnVerBorrador, [data-open-drafts-center]')
+      .forEach((btn) => {
+        if (btn.dataset.draftsBound === '1') return;
+        btn.dataset.draftsBound = '1';
+        btn.setAttribute('data-bs-toggle', 'offcanvas');
+        btn.setAttribute('data-bs-target', `#${DRAFTS_DRAWER_ID}`);
+        btn.addEventListener('click', (event) => {
+          event.preventDefault();
+          abrirCentroBorradores();
+        });
+      });
+  };
+
   const autoInit = () => {
     const instancia = window.__flujoAutorizacionInstance;
     if (instancia) {
@@ -1612,6 +1674,7 @@
     }
     DraftHistoryCenter.init();
     renderWorkflowGuide();
+    vincularAccesosRapidos();
   };
 
   if (document.readyState === 'loading') {
