@@ -1,5 +1,6 @@
 const { app, BrowserWindow } = require('electron');
 const path = require('path');
+const { CLIENTE_REMOTO } = require('./src/config/apiConfig');
 
 const resolveAssetPath = (...segments) => {
   return path.join(app.getAppPath(), ...segments);
@@ -37,8 +38,12 @@ const createWindow = () => {
 
 app.whenReady().then(() => {
   process.env.PANELAMCHAM_DATA_DIR = path.join(app.getPath('userData'), 'datos');
-  const iniciarServidor = require('./src/server');
-  iniciarServidor();
+  if (!CLIENTE_REMOTO) {
+    const iniciarServidor = require('./src/server');
+    iniciarServidor();
+  } else {
+    console.info('Modo cliente remoto activo: no se iniciará el servidor local.');
+  }
   app.setAppUserModelId('com.summa.cham');
   createWindow();
 

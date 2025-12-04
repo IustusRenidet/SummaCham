@@ -1,5 +1,7 @@
+const { CLIENTE_REMOTO } = require('../config/apiConfig');
+const { solicitarAPI } = require('./apiClient');
 const { ejecutarConsulta } = require('./firebirdService');
-const { listarAniosSaldos } = require('./saldosMetadataService');
+const { listarAniosSaldos: listarAniosSaldosLocal } = require('./saldosMetadataService');
 const { construirSelectResumen } = require('./saldosResumenHelper');
 
 // Mapea filas crudas a objetos tipados por codigo
@@ -25,6 +27,16 @@ const normalizarCodigos = (codigos) => (Array.isArray(codigos) ? codigos : []).m
 
 // Punto de entrada desde el router: arma payload para el front (detalle + ejercicios)
 async function obtenerResumen({ empresaId, anio, periodo, codigos = [], anioComparativo, usarAjusteEnYTD = false }) {
+  if (CLIENTE_REMOTO) {
+    return solicitarAPI('/modulos/summary-resumen-e', {
+      method: 'POST',
+      body: JSON.stringify({ empresaId, anio, periodo, codigos, anioComparativo, usarAjusteEnYTD }),
+      headers: {
+        'X-Empresa-Activa': empresaId
+      }
+    });
+  }
+
   const ejercicio = Number(anio);
   const periodoNum = Number(periodo);
   const comp = anioComparativo != null ? Number(anioComparativo) : ejercicio - 1;
@@ -123,6 +135,19 @@ async function obtenerResumen({ empresaId, anio, periodo, codigos = [], anioComp
     ejerciciosDisponibles
   };
 }
+
+const listarAniosSaldos = async (empresaId) => {
+  if (CLIENTE_REMOTO) {
+    const params = new URLSearchParams({ empresaId: empresaId || '' });
+    return solicitarAPI(`/modulos/summary-anios?${params.toString()}`, {
+      headers: {
+        'X-Empresa-Activa': empresaId
+      }
+    });
+  }
+
+  return listarAniosSaldosLocal(empresaId);
+};
 
 module.exports = {
   obtenerResumen,
