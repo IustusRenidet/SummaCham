@@ -210,18 +210,21 @@
 
       filtradas.forEach((cuenta) => {
         const fila = document.createElement('tr');
+        fila.dataset.cuenta = cuenta.numCta || '';
+        fila.dataset.cuenta21 = (cuenta.numCta || '').replace(/[^0-9]/g, '');
         const celdaCuenta = document.createElement('td');
-        celdaCuenta.textContent = cuenta.numCta || '—';
+        celdaCuenta.textContent = cuenta.numCta || '-';
         celdaCuenta.className = 'account-column';
         fila.appendChild(celdaCuenta);
 
         const celdaNombre = document.createElement('td');
-        celdaNombre.textContent = cuenta.descripcion || '—';
+        celdaNombre.textContent = cuenta.descripcion || '-';
         fila.appendChild(celdaNombre);
 
         MESES.forEach(({ clave }) => {
           const celda = document.createElement('td');
           celda.className = 'budget-value text-end';
+          celda.dataset.columnaClave = `budget-${clave}`;
           celda.textContent = formatoNumero.format(cuenta[clave] ?? 0);
           fila.appendChild(celda);
         });

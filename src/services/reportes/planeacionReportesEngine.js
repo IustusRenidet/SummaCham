@@ -211,7 +211,7 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
 
   const configPorSeccion = new Map();
   if (Array.isArray(configAgrupacion)) {
-    configAgrupacion.forEach((cfg) => {
+    configAgrupacion.forEach((cfg, idx) => {
       const cap = NORMALIZAR_CAPITULO(cfg.CAPITULO);
       const seccion = (cfg.SECCION || '').toString().trim();
       if (!seccion || cap !== capituloClave) return;
@@ -229,32 +229,32 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
       });
 
       if (!seccionOrden.has(seccion)) {
-        seccionOrden.set(seccion, seccionOrden.size);
+        seccionOrden.set(seccion, Number.isFinite(idx) ? idx : seccionOrden.size);
       }
       const principal = cfg['sum-row-sumavarios'];
       if (principal && !principalOrden.has(principal)) {
-        principalOrden.set(principal, principalOrden.size);
+        principalOrden.set(principal, Number.isFinite(idx) ? idx : principalOrden.size);
       }
       const consolidado = cfg['sum-row-sumavarios-consolidado'];
       if (consolidado && !consolidadoOrden.has(consolidado)) {
-        consolidadoOrden.set(consolidado, consolidadoOrden.size);
+        consolidadoOrden.set(consolidado, Number.isFinite(idx) ? idx : consolidadoOrden.size);
       }
       const resultRow = cfg['result-row'];
       if (resultRow && !resultOrden.has(resultRow)) {
-        resultOrden.set(resultRow, resultOrden.size);
+        resultOrden.set(resultRow, Number.isFinite(idx) ? idx : resultOrden.size);
       }
       const netRow = cfg['net-row'];
       if (netRow && !netOrden.has(netRow)) {
-        netOrden.set(netRow, netOrden.size);
+        netOrden.set(netRow, Number.isFinite(idx) ? idx : netOrden.size);
       }
       const finalRow = cfg['result-net-row'];
       if (finalRow && !finalOrden.has(finalRow)) {
-        finalOrden.set(finalRow, finalOrden.size);
+        finalOrden.set(finalRow, Number.isFinite(idx) ? idx : finalOrden.size);
       }
     });
   }
 
-  definiciones.forEach((item) => {
+  definiciones.forEach((item, idx) => {
     const capReal = NORMALIZAR_CAPITULO(item.CAPITULO || '');
     if (capReal !== capituloClave) return;
 
@@ -272,7 +272,7 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
 
     const principalLabel = config.principal || item['SECCIÓN Principal'] || 'GENERAL';
     if (principalLabel && !principalOrden.has(principalLabel)) {
-      principalOrden.set(principalLabel, principalOrden.size);
+      principalOrden.set(principalLabel, Number.isFinite(idx) ? idx : principalOrden.size);
     }
 
     const principalKey = NORMALIZAR_CLAVE(principalLabel);
@@ -286,7 +286,9 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
         resultRow: config.resultRow || '',
         netRow: config.netRow || '',
         resultNetRow: config.resultNetRow || '',
-        orden: principalOrden.has(principalLabel) ? principalOrden.get(principalLabel) : principalOrden.size + principalMap.size,
+        orden: principalOrden.has(principalLabel)
+          ? principalOrden.get(principalLabel)
+          : (Number.isFinite(idx) ? idx : principalMap.size + principalOrden.size),
         secciones: new Map()
       });
     }
@@ -294,7 +296,7 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
     const principalNode = principalMap.get(principalKey);
     const seccionKey = seccion || 'SIN SECCIÓN';
     if (!seccionOrden.has(seccionKey)) {
-      seccionOrden.set(seccionKey, seccionOrden.size + 1);
+      seccionOrden.set(seccionKey, Number.isFinite(idx) ? idx : seccionOrden.size + 1);
     }
     if (!principalNode.secciones.has(seccionKey)) {
       principalNode.secciones.set(seccionKey, {

@@ -152,6 +152,8 @@
     return Number.isFinite(numero) ? numero : 0;
   };
 
+  const parseText = (texto) => (texto || '').toString().trim();
+
   const restaurarValoresOriginales = () => {
     if (!summaryBody) return;
     Array.from(summaryBody.querySelectorAll('.editable-cell')).forEach((celda) => {
@@ -173,17 +175,31 @@
     const fila = celda.closest('tr');
     const cuenta = fila?.dataset.cuenta21 || fila?.dataset.cuenta;
     const columna = celda.dataset.columnaClave;
-    const original = Number(celda.dataset.valorOriginal ?? 0);
-    const nuevoValor = parseNumber(celda.textContent);
-
     if (!cuenta || !columna) return;
 
-    if (nuevoValor !== original) {
-      celda.textContent = formatNumber(nuevoValor);
-      registrarCambio(cuenta, columna, nuevoValor, original);
+    const esTexto = columna === 'cuenta' || columna === 'descripcion' || columna === 'nombre';
+    const originalRaw = celda.dataset.valorOriginal ?? '';
+
+    if (esTexto) {
+      const original = parseText(originalRaw);
+      const nuevoTexto = parseText(celda.textContent);
+      if (nuevoTexto !== original) {
+        celda.textContent = nuevoTexto;
+        registrarCambio(cuenta, columna, nuevoTexto, original);
+      } else {
+        celda.textContent = original;
+        eliminarCambio(cuenta, columna);
+      }
     } else {
-      celda.textContent = formatNumber(original);
-      eliminarCambio(cuenta, columna);
+      const original = Number(originalRaw ?? 0);
+      const nuevoValor = parseNumber(celda.textContent);
+      if (nuevoValor !== original) {
+        celda.textContent = formatNumber(nuevoValor);
+        registrarCambio(cuenta, columna, nuevoValor, original);
+      } else {
+        celda.textContent = formatNumber(original);
+        eliminarCambio(cuenta, columna);
+      }
     }
 
     notificarCambios();
@@ -330,7 +346,7 @@
       option.value = '';
       option.textContent = 'Sin capítulos disponibles';
       selectCapitulo.appendChild(option);
-      selectCapitulo.disabled = true;
+      selectCapitulo.disabled = false;
       capituloActual = '';
       actualizarEtiquetaCapitulo('');
       return;
@@ -350,7 +366,7 @@
       : (selectCapitulo.options[0]?.value || '');
 
     selectCapitulo.value = preferido;
-    selectCapitulo.disabled = capitulos.length <= 1;
+    selectCapitulo.disabled = false;
     capituloActual = preferido;
     actualizarEtiquetaCapitulo(preferido);
   };
@@ -423,18 +439,21 @@
       columnKey = '',
       tooltipKey = '',
       rowRole = '',
-      classes = ''
+      classes = '',
+      text = false
     } = options;
-    const classList = ['text-end', 'editable-cell'];
+    const classList = ['editable-cell'];
+    classList.push(text ? 'text-start' : 'text-end');
     if (classes) classList.push(classes);
     const attrs = [
       `class="${classList.join(' ')}"`,
-      `data-valor-original="${Number(val ?? 0)}"`
+      `data-valor-original="${text ? escapeAttr(val ?? '') : Number(val ?? 0)}"`
     ];
     if (columnKey) {
       attrs.push(`data-columna-clave="${columnKey}"`);
     }
-    return `<td ${attrs.join(' ')}${columnTooltipAttr(tooltipKey)}${summaryRowTooltipAttr(rowRole)}>${formatNumber(val)}</td>`;
+    const content = text ? escapeAttr(val ?? '') : formatNumber(val);
+    return `<td ${attrs.join(' ')}${columnTooltipAttr(tooltipKey)}${summaryRowTooltipAttr(rowRole)}>${content}</td>`;
   };
 
   const extractTotals = (nodo = {}) => ({
@@ -585,18 +604,18 @@
               `Cuenta ${cta.cuenta || 'sin codigo'} - Sección ${seccionLabel || 'sin sección'}${principal.label ? ` - Principal ${principal.label}` : ''}`,
               'Real: planeación COI (saldos mensuales y acumulados)',
               `Presupuesto: columnas ${planColumnKey.toUpperCase()} / PRESUP01-12 (PRESUPYY)`,
-              'La descripción es libre y no se guarda en Firebird'
+              'Editar solo cuenta/descripcion para referencia'
             ].join(' - ');
             ctaRow.setAttribute('title', detalleCuenta);
             ctaRow.setAttribute('data-bs-toggle', 'tooltip');
             ctaRow.innerHTML = `
-              <td class="font-monospace small text-start account-column">${cta.cuenta || ''}</td>
+              ${createEditableCell(cta.cuenta || '', { columnKey: 'cuenta', text: true, rowRole: 'account', classes: 'font-monospace small account-column text-start' })}
               ${createCell(cta.actualMonth, { tooltipKey: 'actualMonth', rowRole: 'account' })}
-              ${createEditableCell(cta.planMonth, { columnKey: planColumnKey, tooltipKey: 'planMonth', rowRole: 'account' })}
+              ${createCell(cta.planMonth, { tooltipKey: 'planMonth', rowRole: 'account' })}
               ${createCell(cta.prevMonth, { tooltipKey: 'prevMonth', rowRole: 'account' })}
               ${createPercentCell(ctaVarMonthPlan, { tooltipKey: 'varMonthPlan', rowRole: 'account' })}
               ${createPercentCell(ctaVarMonthPrev, { tooltipKey: 'varMonthPrev', rowRole: 'account' })}
-              <td class="text-center"${summaryRowTooltipAttr('account')}>${cta.descripcion || ''}</td>
+              ${createEditableCell(cta.descripcion || '', { columnKey: 'descripcion', text: true, rowRole: 'account', classes: 'text-center' })}
               ${createCell(cta.actualYTD, { tooltipKey: 'actualYTD', rowRole: 'account' })}
               ${createCell(cta.planYTD, { tooltipKey: 'planYTD', rowRole: 'account' })}
               ${createCell(cta.prevYTD, { tooltipKey: 'prevYTD', rowRole: 'account' })}

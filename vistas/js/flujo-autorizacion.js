@@ -404,7 +404,11 @@
     }
 
     init() {
-      this.tableElement = document.getElementById(this.tablaId);
+      this.tableElement = document.getElementById(this.tablaId)
+        || document.getElementById('tablaPresupuestos')
+        || document.querySelector('#tablaComparacion')
+        || document.querySelector('#mainTable')
+        || document.querySelector('table');
       this._resolverConfiguracionVista();
       this._definirBotones();
       this._prepararToast();
@@ -416,6 +420,11 @@
       Object.entries(this.buttonIds).forEach(([key, id]) => {
         if (!id) return;
         this.buttons[key] = document.getElementById(id);
+        if (this.buttons[key]) {
+          this.buttons[key].classList.remove('disabled');
+          this.buttons[key].removeAttribute('disabled');
+          this.buttons[key].style.pointerEvents = 'auto';
+        }
       });
 
       if (this.buttons.guardar) {
@@ -509,6 +518,18 @@
         this.contexto.modulo = detalle.modulo ? detalle.modulo : this.contexto.modulo;
         this._actualizarEstadoServidor();
       });
+
+      if (window.Sesion?.EVENTO_EMPRESA) {
+        window.addEventListener(window.Sesion.EVENTO_EMPRESA, (evento) => {
+          const empresa = evento?.detail?.empresa;
+          if (!empresa?.id) return;
+          this.contexto.empresaId = empresa.id;
+          this._actualizarEstadoServidor();
+        });
+      }
+
+      // Escucha cambios de los selectores de a¤o/empresa cuando el m¢dulo no emite el evento de contexto
+      this._suscribirSelectoresContexto();
     }
 
     _contextoCompleto() {
@@ -645,7 +666,7 @@
       }
     }
 
-    _resolverConfiguracionVista() {
+  _resolverConfiguracionVista() {
       const dataset = this.tableElement?.dataset || document.body.dataset || {};
       const accionesTexto = dataset.flujoAcciones || dataset.operacionesAutorizacion || '';
       const permisosActualizados = { ...this.permisos };
@@ -661,8 +682,42 @@
         });
       }
 
-      this.permisos = permisosActualizados;
+    this.permisos = permisosActualizados;
+  }
+
+  _suscribirSelectoresContexto() {
+    const selectoresAnio = [
+      document.getElementById('selectAnio'),
+      document.getElementById('summaryYearSelect'),
+      document.getElementById('resumenYearSelect'),
+      document.getElementById('presupuestosYearSelect')
+    ].filter(Boolean);
+
+    selectoresAnio.forEach((sel) => {
+      if (sel.dataset.workflowBound === '1') return;
+      sel.dataset.workflowBound = '1';
+      sel.addEventListener('change', () => {
+        const nuevoAnio = Number(sel.value);
+        if (Number.isFinite(nuevoAnio) && nuevoAnio >= 2000) {
+          this.contexto.anio = nuevoAnio;
+          this._actualizarEstadoServidor();
+        }
+      });
+    });
+
+    const selectorEmpresaGlobal = window.parent?.document?.getElementById('companyFilter')
+      || document.getElementById('companyFilter');
+    if (selectorEmpresaGlobal && selectorEmpresaGlobal.dataset.workflowBound !== '1') {
+      selectorEmpresaGlobal.dataset.workflowBound = '1';
+      selectorEmpresaGlobal.addEventListener('change', () => {
+        const nuevaEmpresa = selectorEmpresaGlobal.value;
+        if (nuevaEmpresa) {
+          this.contexto.empresaId = nuevaEmpresa;
+          this._actualizarEstadoServidor();
+        }
+      });
     }
+  }
 
     _activarModoEdicion(silent = false) {
       if (this.modoEdicion) return;

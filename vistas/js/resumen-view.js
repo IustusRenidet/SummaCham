@@ -61,47 +61,14 @@
     { etiqueta: 'Diciembre', clave: 'dic', periodo: 12 }
   ];
 
-  const SECTION_PRIORITY = [
-    'MEMBERSHIP',
-    'EVENTS',
-    'COMMITTEES',
-    'SERVICES TO MEMBERS',
-    'GUADALAJARA',
-    'MONTERREY',
-    'NORTHWEST',
-    'ADMIN',
-    'OTHER'
-  ];
-
-  const SECTION_DEFAULT_ORDER = SECTION_PRIORITY.length;
-  const normalizeText = (texto) => (texto || '').toString().normalize('NFD').replace(/\p{Diacritic}/gu, '').toUpperCase();
-  const sectionPriority = (label) => {
-    const text = normalizeText(label);
-    for (let idx = 0; idx < SECTION_PRIORITY.length; idx += 1) {
-      if (text.includes(SECTION_PRIORITY[idx])) {
-        return idx;
-      }
-    }
-    return SECTION_DEFAULT_ORDER;
-  };
-
-  const PRINCIPAL_PRIORITY = ['INCOME', 'EXPENSE', 'OPERATING', 'OTHER'];
-  const principalPriority = (label) => {
-    const text = normalizeText(label);
-    for (let idx = 0; idx < PRINCIPAL_PRIORITY.length; idx += 1) {
-      if (text.includes(PRINCIPAL_PRIORITY[idx])) {
-        return idx;
-      }
-    }
-    return PRINCIPAL_PRIORITY.length;
-  };
+  const parseText = (texto) => (texto || '').toString().trim();
 
   const COLUMN_TOOLTIPS = {
     actualMonth: 'Real del mes consultado segun el layout RESUMEN. Se alimenta de los saldos reales del servicio de planeacion para las cuentas mapeadas en "CUENTAS SUMMARY Y RESUMEN.xlsx".',
     planMonth: 'Presupuesto del mes (PRESUP01..12 de la tabla PRESUPYY) para las cuentas del bloque seleccionado.',
-    prevMonth: 'Real del mismo mes pero del ano anterior; usa el mismo set historico de saldos para comparar tendencias.',
-    varMonthPlan: 'Variacion mensual vs plan: ((Real - Plan) / |Plan|) x 100, operando con los valores reales y presupuestados de la fila.',
-    varMonthPrev: 'Variacion mensual interanual: ((Real - Real ano anterior) / |Real ano anterior|) x 100.'
+    prevMonth: 'Real del mes anterior del mismo ejercicio; compara contra el periodo inmediato anterior.',
+    varMonthPlan: 'Variacion mensual vs plan: ((Real - Plan) / |Plan|) x 100 con los valores de la fila.',
+    varMonthPrev: 'Variacion mensual vs mes anterior: ((Real - Real mes anterior) / |Real mes anterior|) x 100.'
   };
 
   const ROW_TOOLTIPS = {
@@ -251,8 +218,15 @@
   const restaurarValoresOriginales = () => {
     if (!tablaBody) return;
     Array.from(tablaBody.querySelectorAll('.editable-cell')).forEach((celda) => {
-      const original = Number(celda.dataset.valorOriginal ?? 0);
-      celda.textContent = formatNumber(original);
+      const columna = celda.dataset.columnaClave;
+      const esTexto = columna === 'cuenta' || columna === 'descripcion' || columna === 'nombre';
+      const originalRaw = celda.dataset.valorOriginal ?? '';
+      if (esTexto) {
+        celda.textContent = parseText(originalRaw);
+      } else {
+        const original = Number(originalRaw ?? 0);
+        celda.textContent = formatNumber(original);
+      }
     });
   };
 
@@ -280,17 +254,31 @@
     const fila = celda.closest('tr');
     const cuenta = fila?.dataset.cuenta21 || fila?.dataset.cuenta;
     const columna = celda.dataset.columnaClave;
-    const original = Number(celda.dataset.valorOriginal ?? 0);
-    const nuevoValor = parseNumber(celda.textContent);
-
     if (!cuenta || !columna) return;
 
-    if (nuevoValor !== original) {
-      celda.textContent = formatNumber(nuevoValor);
-      registrarCambio(cuenta, columna, nuevoValor, original);
+    const esTexto = columna === 'cuenta' || columna === 'descripcion' || columna === 'nombre';
+    const originalRaw = celda.dataset.valorOriginal ?? '';
+
+    if (esTexto) {
+      const originalTexto = parseText(originalRaw);
+      const nuevoTexto = parseText(celda.textContent);
+      if (nuevoTexto !== originalTexto) {
+        celda.textContent = nuevoTexto;
+        registrarCambio(cuenta, columna, nuevoTexto, originalTexto);
+      } else {
+        celda.textContent = originalTexto;
+        eliminarCambio(cuenta, columna);
+      }
     } else {
-      celda.textContent = formatNumber(original);
-      eliminarCambio(cuenta, columna);
+      const original = Number(originalRaw ?? 0);
+      const nuevoValor = parseNumber(celda.textContent);
+      if (nuevoValor !== original) {
+        celda.textContent = formatNumber(nuevoValor);
+        registrarCambio(cuenta, columna, nuevoValor, original);
+      } else {
+        celda.textContent = formatNumber(original);
+        eliminarCambio(cuenta, columna);
+      }
     }
 
     notificarCambios();
@@ -309,15 +297,25 @@
 
   const createPercentCell = (val, { rowRole = '', tooltipKey = '' } = {}) => `<td class="text-end"${resumenTooltipAttr(tooltipKey)}${resumenRowTooltipAttr(rowRole)}>${formatPercentValue(val)}</td>`;
 
-  const createEditableCell = (val, { columnKey = '', rowRole = '', tooltipKey = '' } = {}) => {
+  const createEditableCell = (val, {
+    columnKey = '',
+    rowRole = '',
+    tooltipKey = '',
+    text = false,
+    classes = ''
+  } = {}) => {
+    const classList = ['editable-cell'];
+    classList.push(text ? 'text-start' : 'text-end');
+    if (classes) classList.push(classes);
     const attrs = [
-      'class="text-end editable-cell"',
-      `data-valor-original="${Number(val ?? 0)}"`
+      `class="${classList.join(' ')}"`,
+      `data-valor-original="${text ? escapeAttr(val ?? '') : Number(val ?? 0)}"`
     ];
     if (columnKey) {
       attrs.push(`data-columna-clave="${columnKey}"`);
     }
-    return `<td ${attrs.join(' ')}${resumenTooltipAttr(tooltipKey)}${resumenRowTooltipAttr(rowRole)}>${formatNumber(val)}</td>`;
+    const contenido = text ? escapeAttr(val ?? '') : formatNumber(val);
+    return `<td ${attrs.join(' ')}${resumenTooltipAttr(tooltipKey)}${resumenRowTooltipAttr(rowRole)}>${contenido}</td>`;
   };
 
   const createResumenTotalsRow = (nodo, options = {}) => {
@@ -368,30 +366,12 @@
     tablaBody.innerHTML = `<tr class="estado-tabla"><td colspan="7">${mensaje}</td></tr>`;
   };
 
-  const sortSections = (secciones = []) => {
-    return (Array.isArray(secciones) ? secciones : []).slice().sort((a, b) => {
-      if (Number.isFinite(a?.orden) || Number.isFinite(b?.orden)) {
-        const ordenA = Number.isFinite(a?.orden) ? a.orden : Number.POSITIVE_INFINITY;
-        const ordenB = Number.isFinite(b?.orden) ? b.orden : Number.POSITIVE_INFINITY;
-        if (ordenA !== ordenB) return ordenA - ordenB;
-      }
-      const orden = sectionPriority(a.label) - sectionPriority(b.label);
-      if (orden !== 0) return orden;
-      return normalizeText(a.label).localeCompare(normalizeText(b.label));
-    });
-  };
-
-  const sortPrincipals = (principales = []) => {
-    return (Array.isArray(principales) ? principales : []).slice().sort((a, b) => {
-      if (Number.isFinite(a?.orden) || Number.isFinite(b?.orden)) {
-        const ordenA = Number.isFinite(a?.orden) ? a.orden : Number.POSITIVE_INFINITY;
-        const ordenB = Number.isFinite(b?.orden) ? b.orden : Number.POSITIVE_INFINITY;
-        if (ordenA !== ordenB) return ordenA - ordenB;
-      }
-      const orden = principalPriority(a.label) - principalPriority(b.label);
-      if (orden !== 0) return orden;
-      return normalizeText(a.label).localeCompare(normalizeText(b.label));
-    });
+  const ordenarPorOrden = (items = [], extractor) => {
+    return (Array.isArray(items) ? items : []).map((item, idx) => ({
+      item,
+      idx,
+      orden: extractor(item, idx)
+    })).sort((a, b) => a.orden - b.orden).map(({ item }) => item);
   };
 
   const renderResumen = (resumen = [], mesSeleccionado) => {
@@ -417,7 +397,10 @@
 
       const renderPrincipal = (principal) => {
         if (!principal) return;
-        const seccionesOrdenadas = sortSections(principal.children || []);
+        const seccionesOrdenadas = ordenarPorOrden(principal.children || [], (sec, idx) => {
+          const orden = Number.isFinite(Number(sec?.orden)) ? Number(sec.orden) : Number.isFinite(Number(sec?.order)) ? Number(sec.order) : null;
+          return orden != null ? orden : idx;
+        });
 
         seccionesOrdenadas.forEach((seccion) => {
           (seccion.cuentas || []).forEach((cta) => {
@@ -436,10 +419,10 @@
             row.setAttribute('title', detalleCuenta);
             row.setAttribute('data-bs-toggle', 'tooltip');
             row.innerHTML = `
-              <td class="font-monospace small">${cta.cuenta || ''}</td>
-              <td class="text-start">${cta.descripcion || ''}</td>
+              ${createEditableCell(cta.cuenta || '', { columnKey: 'cuenta', rowRole: 'account', tooltipKey: 'account', text: true, classes: 'font-monospace small text-start' })}
+              ${createEditableCell(cta.descripcion || '', { columnKey: 'descripcion', rowRole: 'account', tooltipKey: 'account', text: true, classes: 'text-start' })}
               ${createCell(cta.actualMonth, { rowRole: 'account', tooltipKey: 'actualMonth' })}
-              ${createEditableCell(cta.planMonth, { columnKey: planColumnKey, rowRole: 'account', tooltipKey: 'planMonth' })}
+              ${createCell(cta.planMonth, { rowRole: 'account', tooltipKey: 'planMonth' })}
               ${createCell(cta.prevMonth, { rowRole: 'account', tooltipKey: 'prevMonth' })}
               ${createPercentCell(varPlan, { rowRole: 'account', tooltipKey: 'varMonthPlan' })}
               ${createPercentCell(varPrev, { rowRole: 'account', tooltipKey: 'varMonthPrev' })}
@@ -502,7 +485,10 @@
           }
         });
       } else {
-        sortPrincipals(principales).forEach(renderPrincipal);
+        ordenarPorOrden(principales, (p, idx) => {
+          const orden = Number.isFinite(Number(p?.orden)) ? Number(p.orden) : Number.isFinite(Number(p?.order)) ? Number(p.order) : null;
+          return orden != null ? orden : idx;
+        }).forEach(renderPrincipal);
       }
     });
 
@@ -514,7 +500,7 @@
     const yearAct = document.querySelectorAll('.year-act');
     const yearPrev = document.querySelectorAll('.year-prev');
     yearAct.forEach((el) => (el.textContent = anio));
-    yearPrev.forEach((el) => (el.textContent = anio - 1));
+    yearPrev.forEach((el) => (el.textContent = anio));
     if (yearLabel) {
       yearLabel.textContent = anio;
     }

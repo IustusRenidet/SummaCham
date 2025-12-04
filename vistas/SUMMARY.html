@@ -109,6 +109,7 @@
       gap: 10px;
       justify-content: flex-end;
       margin-bottom: 15px;
+      pointer-events: auto;
     }
 
     .zoom-btn {
@@ -121,6 +122,7 @@
       font-weight: 600;
       transition: all 0.3s ease;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      pointer-events: auto;
     }
 
     .zoom-btn:hover {
@@ -499,7 +501,7 @@
               </div>
               <div class="col-12 col-md-4">
                 <label for="selectCapitulo" class="form-label">Capítulo</label>
-                <select id="selectCapitulo" class="form-select" disabled>
+                <select id="selectCapitulo" class="form-select">
                   <option value="">Cargando capítulos...</option>
                 </select>
               </div>
@@ -712,24 +714,16 @@
         };
 
         const inicializarToggleColumnas = () => {
-          const esAdminGlobal = typeof Sesion !== 'undefined'
-            && typeof Sesion.esAdminGlobal === 'function'
-            && Sesion.esAdminGlobal(window.sesion);
-
-          if (!esAdminGlobal || !toggleAccountColumnBtn) {
-            aplicarVisibilidadCuentas(true);
-            if (toggleAccountColumnBtn) {
-              toggleAccountColumnBtn.classList.add('d-none');
-              toggleAccountColumnBtn.setAttribute('aria-pressed', 'true');
-              toggleAccountColumnBtn.setAttribute('disabled', 'true');
-              toggleAccountColumnBtn.setAttribute('aria-disabled', 'true');
-              toggleAccountColumnBtn.setAttribute('tabindex', '-1');
-            }
-            localStorage.setItem(ACCOUNT_COLUMN_STORAGE_KEY, '1');
+          if (!toggleAccountColumnBtn) {
+            aplicarVisibilidadCuentas(false);
             return;
           }
 
           toggleAccountColumnBtn.classList.remove('d-none');
+          toggleAccountColumnBtn.removeAttribute('disabled');
+          toggleAccountColumnBtn.removeAttribute('aria-disabled');
+          toggleAccountColumnBtn.style.pointerEvents = 'auto';
+
           const preferencia = localStorage.getItem(ACCOUNT_COLUMN_STORAGE_KEY) === '1';
           aplicarVisibilidadCuentas(preferencia);
 
