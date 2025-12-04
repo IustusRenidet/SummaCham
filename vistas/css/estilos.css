@@ -132,6 +132,8 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.45rem;
+  position: relative;
+  z-index: 2;
 }
 
 .toolbar-actions .btn {
@@ -139,6 +141,9 @@
   font-weight: 600;
   font-size: 0.9rem;
   padding: 0.35rem 0.9rem;
+  position: relative;
+  z-index: 2;
+  pointer-events: auto;
 }
 
 .table-budget {
@@ -181,6 +186,9 @@
   height: 44px;
   justify-content: center;
   width: 44px;
+  position: relative;
+  z-index: 2;
+  pointer-events: auto;
 }
 
 .workflow-toggle i {

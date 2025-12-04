@@ -197,54 +197,17 @@
   // Compatibilidad: algunos layouts antiguos esperaban esta función.
   // Hoy el capítulo se deriva de la empresa activa, pero aquí podemos
   // también mostrar y permitir cambiar la selección.
-  const SECTION_PRIORITY = [
-    'MEMBERSHIP',
-    'EVENTS',
-    'COMMITTEES',
-    'T&IC',
-    'SERVICES TO MEMBERS',
-    'GUADALAJARA',
-    'MONTERREY',
-    'NORTHWEST',
-    'GASTOS ADMINISTRATIVOS',
-    'GASTOS GENERALES',
-    'NOMINA',
-    'GASTOS CORPORATIVOS',
-    'CARGOS ADMINISTRATIVOS',
-    'MEMBER CENTRICITY',
-    'OTHER',
-    'OTHER INCOME'
-  ];
-
-  const SECTION_PRIORITY_DEFAULT = SECTION_PRIORITY.length;
-  const sectionPriority = (label) => {
-    const text = normalizeText(label);
-    for (let idx = 0; idx < SECTION_PRIORITY.length; idx += 1) {
-      if (text.includes(SECTION_PRIORITY[idx])) {
-        return idx;
-      }
-    }
-    return SECTION_PRIORITY_DEFAULT;
-  };
-
-  const PRINCIPAL_PRIORITY = [
-    'INCOME',
-    'EXPENSE',
-    'OPERATING',
-    'OTHER'
-  ];
-
   const COLUMN_TOOLTIPS = {
     actualMonth: 'Real del mes consultado. Suma los campos real[mes] del servicio de planeacion (saldos Firebird) para cada cuenta definida en "CUENTAS SUMMARY Y RESUMEN.xlsx".',
     planMonth: 'Presupuesto del mes (columnas PRESUP01..12 de la tabla PRESUPYY). Es el dato que se enviara a COI cuando el flujo termine en Guardar en COI.',
-    prevMonth: 'Real del mismo mes pero del ano anterior; proviene del mismo origen de saldos para comparar contra el historico inmediato.',
+    prevMonth: 'Real del mes anterior del mismo ejercicio; se toma real[mesAnterior] para comparar contra el inmediato previo.',
     varMonthPlan: 'Variacion mensual vs plan: ((Real mes - Plan mes) / |Plan mes|) x 100. Usa los montos reales contra los PRESUPXX de la fila o seccion.',
-    varMonthPrev: 'Variacion mensual interanual: ((Real mes - Real mes ano anterior) / |Real ano anterior|) x 100.',
+    varMonthPrev: 'Variacion mensual vs mes anterior del mismo ejercicio: ((Real mes - Real mes anterior) / |Real mes anterior|) x 100.',
     actualYTD: 'Real acumulado de enero al mes consultado (usa los campos real[mes]_acum de planeacion). Representa lo registrado en COI para las cuentas incluidas.',
     planYTD: 'Presupuesto acumulado enero-mes; suma PRESUP01..PRESUPMM de la tabla PRESUPYY siguiendo el orden del libro "CUENTAS SUMMARY Y RESUMEN".',
-    prevYTD: 'Real acumulado del mismo periodo del ano previo, usando los campos _acum del set historico.',
+    prevYTD: 'Real acumulado hasta el mes anterior del mismo ejercicio (real[mesAnterior_acum]), para comparar contra el avance previo.',
     varYTDPlan: 'Variacion acumulada vs plan: ((Real YTD - Plan YTD) / |Plan YTD|) x 100.',
-    varYTDPrev: 'Variacion acumulada vs ano anterior: ((Real YTD - Real YTD previo) / |Real YTD previo|) x 100.'
+    varYTDPrev: 'Variacion acumulada vs YTD del mes anterior: ((Real YTD - Real YTD previo) / |Real YTD previo|) x 100.'
   };
 
   const ROW_TOOLTIPS = {
@@ -340,40 +303,12 @@
 
   const summaryRowTooltipAttr = (role) => (role ? ` data-row-role="${role}"` : '');
 
-  const principalPriority = (label) => {
-    const text = normalizeText(label);
-    for (let idx = 0; idx < PRINCIPAL_PRIORITY.length; idx += 1) {
-      if (text.includes(PRINCIPAL_PRIORITY[idx])) {
-        return idx;
-      }
-    }
-    return PRINCIPAL_PRIORITY.length;
-  };
-
-  const sortSections = (secciones = []) => {
-    return (Array.isArray(secciones) ? secciones : []).slice().sort((a, b) => {
-      if (Number.isFinite(a?.orden) || Number.isFinite(b?.orden)) {
-        const ordenA = Number.isFinite(a?.orden) ? a.orden : Number.POSITIVE_INFINITY;
-        const ordenB = Number.isFinite(b?.orden) ? b.orden : Number.POSITIVE_INFINITY;
-        if (ordenA !== ordenB) return ordenA - ordenB;
-      }
-      const orden = sectionPriority(a.label) - sectionPriority(b.label);
-      if (orden !== 0) return orden;
-      return normalizeText(a.label).localeCompare(normalizeText(b.label));
-    });
-  };
-
-  const sortPrincipals = (principales = []) => {
-    return (Array.isArray(principales) ? principales : []).slice().sort((a, b) => {
-      if (Number.isFinite(a?.orden) || Number.isFinite(b?.orden)) {
-        const ordenA = Number.isFinite(a?.orden) ? a.orden : Number.POSITIVE_INFINITY;
-        const ordenB = Number.isFinite(b?.orden) ? b.orden : Number.POSITIVE_INFINITY;
-        if (ordenA !== ordenB) return ordenA - ordenB;
-      }
-      const orden = principalPriority(a.label) - principalPriority(b.label);
-      if (orden !== 0) return orden;
-      return normalizeText(a.label).localeCompare(normalizeText(b.label));
-    });
+  const ordenarPorOrden = (items = [], extractor) => {
+    return (Array.isArray(items) ? items : []).map((item, idx) => ({
+      item,
+      idx,
+      orden: extractor(item, idx)
+    })).sort((a, b) => a.orden - b.orden).map(({ item }) => item);
   };
 
   const actualizarEtiquetaCapitulo = (texto) => {
@@ -562,13 +497,20 @@
     document.querySelectorAll('.mes').forEach((span) => {
       span.textContent = etiqueta.toUpperCase();
     });
+
+    const idx = MESES.findIndex((m) => m.periodo === mesSeleccionado);
+    const prev = idx > 0 ? MESES[idx - 1] : null;
+    const etiquetaPrev = prev ? prev.etiqueta : 'N/A';
+    document.querySelectorAll('.mes-anterior').forEach((span) => {
+      span.textContent = etiquetaPrev.toUpperCase();
+    });
   };
 
   const actualizarEtiquetasAnio = (anioActual, anioComparativo) => {
     const anioNum = Number(anioActual);
-    const anioAnterior = Number.isFinite(Number(anioComparativo)) ? Number(anioComparativo) : anioNum - 1;
-    const etiquetaActual = Number.isFinite(anioNum) ? anioNum : '—';
-    const etiquetaAnterior = Number.isFinite(anioAnterior) ? anioAnterior : '—';
+    // El comparativo ahora es mes anterior del mismo ejercicio
+    const etiquetaActual = Number.isFinite(anioNum) ? anioNum : '-';
+    const etiquetaAnterior = etiquetaActual;
 
     document.querySelectorAll('.anio').forEach((span) => {
       span.textContent = etiquetaActual;
@@ -621,7 +563,10 @@
 
       const renderPrincipal = (principal) => {
         if (!principal) return;
-        const seccionesOrdenadas = sortSections(principal.children || []);
+        const seccionesOrdenadas = ordenarPorOrden(principal.children || [], (sec, idx) => {
+          const orden = Number.isFinite(Number(sec?.orden)) ? Number(sec.orden) : Number.isFinite(Number(sec?.order)) ? Number(sec.order) : null;
+          return orden != null ? orden : idx;
+        });
 
         seccionesOrdenadas.forEach((seccion) => {
           const seccionLabel = seccion.label || '';
@@ -728,7 +673,11 @@
           }
         });
       } else {
-        sortPrincipals(principales).forEach(renderPrincipal);
+        const ordenados = ordenarPorOrden(principales, (p, idx) => {
+          const orden = Number.isFinite(Number(p?.orden)) ? Number(p.orden) : Number.isFinite(Number(p?.order)) ? Number(p.order) : null;
+          return orden != null ? orden : idx;
+        });
+        ordenados.forEach(renderPrincipal);
       }
     });
     sincronizarCeldasEditables();

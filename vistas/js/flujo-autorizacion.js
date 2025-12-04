@@ -387,15 +387,16 @@
         obtenerHeaders: typeof options.obtenerHeaders === 'function' ? options.obtenerHeaders : null
       };
       this.buttonIds = options.buttonIds || {
-        guardar: 'btnGuardarBorrador',
-        enviar: 'btnEnviarCambios',
-        cancelar: 'btnCancelarEdicion',
-        verBorrador: 'btnVerBorrador',
-        autorizar: 'btnAutorizar',
-        rechazar: 'btnRechazar',
-        marcarRevisado: 'btnMarcarRevisado',
-        guardarCOI: 'saveBudgetBtn'
-      };
+      guardar: 'btnGuardarBorrador',
+      enviar: 'btnEnviarCambios',
+      cancelar: 'btnCancelarEdicion',
+      verBorrador: 'btnVerBorrador',
+      descartar: 'btnDescartarBorrador',
+      autorizar: 'btnAutorizar',
+      rechazar: 'btnRechazar',
+      marcarRevisado: 'btnMarcarRevisado',
+      guardarCOI: 'saveBudgetBtn'
+    };
       this._conectarEventos();
       window.addEventListener(EVENTO_EDICION, (evento) => {
         this.hayCambios = Boolean(evento?.detail?.hayCambios);
@@ -435,6 +436,9 @@
         this.buttons.verBorrador.classList.remove('d-none');
       }
       this._asegurarBotonDescartar();
+      if (this.buttons.descartar) {
+        this.buttons.descartar.addEventListener('click', () => this._descartarBorrador());
+      }
       if (this.buttons.autorizar) {
         this.buttons.autorizar.addEventListener('click', () => this._handleAutorizar());
       }
@@ -455,7 +459,13 @@
     }
 
     _asegurarBotonDescartar() {
-      if (this.buttons.descartar) return;
+      if (this.buttons.descartar) {
+        // Solo aseguramos que esté visible y con pointer events habilitados
+        this.buttons.descartar.classList.remove('disabled');
+        this.buttons.descartar.removeAttribute('disabled');
+        this.buttons.descartar.style.pointerEvents = 'auto';
+        return;
+      }
       const contenedor = this.buttons.verBorrador?.parentElement;
       if (!contenedor) return;
 
@@ -471,6 +481,7 @@
       contenedor.insertBefore(boton, this.buttons.verBorrador?.nextSibling || null);
       this.buttons.descartar = boton;
       boton.addEventListener('click', () => this._descartarBorrador());
+      boton.style.pointerEvents = 'auto';
     }
 
     _prepararToast() {
