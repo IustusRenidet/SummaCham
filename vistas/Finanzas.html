@@ -315,51 +315,39 @@
                   <p class="workflow-meta mb-0" id="workflowMeta"></p>
                 </div>
                 <div class="toolbar-actions" role="group">
-                  <button
-                    type="button"
-                    class="btn btn-chip btn-chip-info d-none"
-                    id="loadBudgetBtn"
-                  >
+                  <button type="button" class="btn btn-chip btn-chip-warning d-none" id="btnGuardarBorrador">
                     <i class="bi bi-upload"></i>
-                    <span>Cargar</span>
+                    <span>Cargar Presupuesto</span>
                   </button>
-                  <button
-                    type="button"
-                    class="btn btn-chip btn-chip-warning d-none"
-                    id="reviewBudgetBtn"
-                  >
+                  <button type="button" class="btn btn-chip btn-chip-warning d-none" id="btnEnviarCambios">
+                    <i class="bi bi-send"></i>
+                    <span>Enviar</span>
+                  </button>
+                  <button type="button" class="btn btn-chip btn-outline-secondary d-none" id="btnCancelarEdicion">
+                    <i class="bi bi-x-circle"></i>
+                    <span>Cancelar</span>
+                  </button>
+                  <button type="button" class="btn btn-chip btn-chip-info d-none" id="btnMarcarRevisado">
                     <i class="bi bi-clipboard-check"></i>
-                    <span>Revisar</span>
+                    <span>Marcar como revisado</span>
                   </button>
-                  <button
-                    type="button"
-                    class="btn btn-chip btn-chip-success d-none"
-                    id="authorizeBudgetBtn"
-                  >
+                  <button type="button" class="btn btn-chip btn-chip-success d-none" id="btnAutorizar">
                     <i class="bi bi-shield-check"></i>
                     <span>Autorizar</span>
                   </button>
-                  <button
-                    type="button"
-                    class="btn btn-chip btn-primario d-none"
-                    id="saveBudgetBtn"
-                  >
+                  <button type="button" class="btn btn-chip btn-outline-danger d-none" id="btnRechazar">
+                    <i class="bi bi-x-octagon"></i>
+                    <span>Rechazar</span>
+                  </button>
+                  <button type="button" class="btn btn-chip btn-outline-secondary d-none" id="btnVerBorrador">
+                    <i class="bi bi-eye"></i>
+                    <span>Ver borrador</span>
+                  </button>
+                  <button type="button" class="btn btn-chip btn-primario d-none" id="saveBudgetBtn">
                     <i class="bi bi-floppy2"></i>
-                    <span>Guardar</span>
+                    <span>Guardar en COI</span>
                   </button>
                 </div>
-                <div class="controles-flujo d-flex gap-2 mt-2 flex-wrap">
-                  <button id="btnGuardarBorrador" class="btn btn-chip btn-chip-warning d-none">
-                    <i class="bi bi-send"></i>
-                    <span>Enviar Presupuesto</span>
-                  </button>
-                  <button id="btnEnviarCambios" class="btn btn-primary btn-sm d-none">Enviar edición</button>
-                  <button id="btnCancelarEdicion" class="btn btn-secondary btn-sm d-none">Cancelar</button>
-                <div id="panelRevision" class="d-none">
-                  <button id="btnAutorizar" class="btn btn-success btn-sm">Autorizar</button>
-                  <button id="btnRechazar" class="btn btn-danger btn-sm">Rechazar</button>
-                </div>
-              </div>
               </div>
               </div>
               </div>

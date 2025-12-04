@@ -667,11 +667,66 @@
     window.__flujoAutorizacionInstance = new FlujoAutorizacion();
   }
 
+  const renderWorkflowGuide = (() => {
+    let cache = null;
+    let loading = null;
+
+    const fetchGuide = async () => {
+      if (cache) {
+        return cache;
+      }
+      if (loading) {
+        return loading;
+      }
+      const url = new URL('componentes/flujo-autorizacion.html', window.location.href);
+      loading = fetch(url.href)
+        .then((resp) => {
+          if (!resp.ok) {
+            throw new Error('No se pudo cargar la guía de flujo.');
+          }
+          return resp.text();
+        })
+        .then((html) => {
+          cache = html;
+          return html;
+        })
+        .catch((error) => {
+          console.warn(error);
+          return '';
+        })
+        .finally(() => {
+          loading = null;
+        });
+      return loading;
+    };
+
+    return async () => {
+      const contenedores = document.querySelectorAll('.workflow-drawer .offcanvas-body');
+      if (!contenedores.length) {
+        return;
+      }
+      const html = await fetchGuide();
+      if (!html) {
+        return;
+      }
+      contenedores.forEach((contenedor) => {
+        if (contenedor.querySelector('.workflow-guide')) {
+          return;
+        }
+        const wrapper = document.createElement('div');
+        wrapper.className = 'workflow-guide-wrapper mt-3';
+        wrapper.innerHTML = html;
+        contenedor.appendChild(wrapper);
+      });
+    };
+  })();
+
   const autoInit = () => {
     const instancia = window.__flujoAutorizacionInstance;
     if (instancia) {
       instancia.init();
     }
+    renderWorkflowGuide();
   };
 
   if (document.readyState === 'loading') {
