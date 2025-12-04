@@ -432,7 +432,9 @@
       }
       if (this.buttons.verBorrador) {
         this.buttons.verBorrador.addEventListener('click', () => this._mostrarCentroBorradores());
+        this.buttons.verBorrador.classList.remove('d-none');
       }
+      this._asegurarBotonDescartar();
       if (this.buttons.autorizar) {
         this.buttons.autorizar.addEventListener('click', () => this._handleAutorizar());
       }
@@ -450,6 +452,25 @@
         }
         this.buttons.guardarCOI.addEventListener('click', () => this._handleGuardarCOI());
       }
+    }
+
+    _asegurarBotonDescartar() {
+      if (this.buttons.descartar) return;
+      const contenedor = this.buttons.verBorrador?.parentElement;
+      if (!contenedor) return;
+
+      const boton = document.createElement('button');
+      boton.type = 'button';
+      boton.className = 'btn btn-chip btn-outline-danger d-none';
+      boton.id = 'btnDescartarBorrador';
+      boton.innerHTML = `
+        <i class="bi bi-eraser"></i>
+        <span>Descartar borrador</span>
+      `;
+
+      contenedor.insertBefore(boton, this.buttons.verBorrador?.nextSibling || null);
+      this.buttons.descartar = boton;
+      boton.addEventListener('click', () => this._descartarBorrador());
     }
 
     _prepararToast() {
@@ -987,6 +1008,15 @@
       await this._cargarCentroBorradores();
     }
 
+    _descartarBorrador() {
+      FlujoAutorizacion.limpiarBorrador(this.tableElement);
+      this.borradorActual = null;
+      this._notificarEstadoBorrador(null);
+      this._actualizarInfoPanel();
+      this._actualizarBotones();
+      this._mostrarToast('Borrador descartado.', 'info');
+    }
+
     async _cargarCentroBorradores() {
       ensureDraftsDrawer();
       if (!draftsDrawerBody || !draftsDrawerStatus) return;
@@ -1218,12 +1248,14 @@
       }
 
       if (this.buttons.verBorrador) {
-        const puedeVerCentro = this.esAdminGlobal
-          || this._permitido('guardar')
-          || this._permitido('revision')
-          || this._permitido('autorizar')
-          || this._permitido('rechazar');
-        this.buttons.verBorrador.classList.toggle('d-none', !puedeVerCentro);
+        this.buttons.verBorrador.classList.remove('d-none');
+        this.buttons.verBorrador.disabled = false;
+      }
+
+      if (this.buttons.descartar) {
+        const puedeDescartar = Boolean(this.borradorActual);
+        this.buttons.descartar.classList.toggle('d-none', !puedeDescartar);
+        this.buttons.descartar.disabled = !puedeDescartar;
       }
     }
 
@@ -1632,6 +1664,9 @@
     document.querySelectorAll('.workflow-toggle').forEach((btn) => {
       if (btn.dataset.workflowBound === '1') return;
       btn.dataset.workflowBound = '1';
+      btn.classList.remove('disabled');
+      btn.removeAttribute('disabled');
+      btn.setAttribute('aria-disabled', 'false');
       btn.setAttribute('data-bs-toggle', 'offcanvas');
       btn.setAttribute('data-bs-target', '#workflowDrawer');
       btn.addEventListener('click', (event) => {
@@ -1658,6 +1693,9 @@
       .forEach((btn) => {
         if (btn.dataset.draftsBound === '1') return;
         btn.dataset.draftsBound = '1';
+        btn.classList.remove('disabled');
+        btn.removeAttribute('disabled');
+        btn.setAttribute('aria-disabled', 'false');
         btn.setAttribute('data-bs-toggle', 'offcanvas');
         btn.setAttribute('data-bs-target', `#${DRAFTS_DRAWER_ID}`);
         btn.addEventListener('click', (event) => {
