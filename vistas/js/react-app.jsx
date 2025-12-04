@@ -159,10 +159,26 @@ const LoginView = ({ onLogin }) => {
           contrasena: form.contrasena
         })
       });
-      const datos = await respuesta.json();
+
+      const cuerpo = await respuesta.text();
+      let datos = { mensaje: '' };
+      let parseError = null;
+
+      try {
+        datos = cuerpo ? JSON.parse(cuerpo) : {};
+      } catch (parseErr) {
+        parseError = parseErr;
+        console.error('Respuesta de login no es JSON', parseErr);
+      }
+
       if (!respuesta.ok) {
         throw new Error(datos.mensaje || 'No fue posible iniciar sesión.');
       }
+
+      if (parseError) {
+        throw new Error('La respuesta del servidor no es válida.');
+      }
+
       const sesionNormalizada = Sesion.guardar(datos) || datos;
       onLogin(sesionNormalizada);
     } catch (err) {

@@ -99,7 +99,7 @@
     return index === -1 ? 999 : index;
   };
 
-  const PRINCIPAL_ORDER = ['INCOME', 'EXPENSE', 'OPERATING', 'OTHER'];
+  const PRINCIPAL_ORDER = ['INCOME', 'EXPENSE', 'OPERATING', 'OTHER', 'NET'];
   const getPrincipalPriority = (label) => {
     const text = normalizeText(label);
     const index = PRINCIPAL_ORDER.findIndex(key => text.includes(key));
@@ -499,7 +499,13 @@
         flujoAutorizacion.init();
     }
 
-    const empresa = Sesion.obtenerEmpresaActiva(sesion);
+    const selectorEmpresa = obtenerSelectorGlobalEmpresa();
+    let empresa = Sesion.obtenerEmpresaActiva(sesion);
+    if (!empresa?.id && selectorEmpresa?.value) {
+      Sesion.establecerEmpresaActiva(selectorEmpresa.value);
+      empresa = Sesion.obtenerEmpresaActiva();
+    }
+
     if (!empresa?.id) {
       showStatus('Selecciona una empresa para continuar.', 'warning');
       return;
