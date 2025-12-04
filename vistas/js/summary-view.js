@@ -171,7 +171,7 @@
   const manejarBlurCelda = (event) => {
     const celda = event.currentTarget;
     const fila = celda.closest('tr');
-    const cuenta = fila?.dataset.cuenta;
+    const cuenta = fila?.dataset.cuenta21 || fila?.dataset.cuenta;
     const columna = celda.dataset.columnaClave;
     const original = Number(celda.dataset.valorOriginal ?? 0);
     const nuevoValor = parseNumber(celda.textContent);
@@ -255,6 +255,73 @@
     result: 'Operating Results definido en "SUMA DE VARIAS SECCIONES": ingresos menos gastos aplicando los factores establecidos en el Excel.',
     net: 'Net Results por region/segmento. Combina el resultado operativo con otros ingresos/egresos intermedios marcados como net-row.',
     final: 'Consolidated Net Results: cierre final tras sumar otros ingresos ("OTHER INCOME") al Operating Result.'
+  };
+
+  const formatList = (lista = [], limite = 5) => {
+    const valores = (Array.isArray(lista) ? lista : [])
+      .map((item) => (item || '').toString().trim())
+      .filter(Boolean);
+    if (!valores.length) return '';
+    if (valores.length <= limite) {
+      return valores.join(', ');
+    }
+    return `${valores.slice(0, limite).join(', ')} y ${valores.length - limite} mas`;
+  };
+
+  const describirOperaciones = (operaciones = []) => {
+    const fragmentos = (Array.isArray(operaciones) ? operaciones : [])
+      .filter((op) => op && op.principal)
+      .map((op) => {
+        const signo = op.factor >= 0 ? '+' : '-';
+        const secciones = formatList(op.sections || [], 4);
+        return `${signo} ${op.principal}${secciones ? ` (secciones: ${secciones})` : ''}`;
+      });
+    return fragmentos.join('; ');
+  };
+
+  const buildRowContextTooltip = (role, context = {}) => {
+    if (!role) return '';
+    switch (role) {
+      case 'section': {
+        const cuentas = Array.isArray(context.cuentas) ? context.cuentas : [];
+        const nombres = cuentas
+          .map((cta) => cta.descripcion || cta.cuenta || cta.cuentaCanonica || '')
+          .filter(Boolean);
+        const listado = formatList(nombres, 4);
+        const principal = context.principal ? ` del principal "${context.principal}"` : '';
+        const base = `Seccion "${context.label || ''}"${principal} acumula los saldos reales y presupuestos de ${cuentas.length} cuentas`;
+        return `${base}${listado ? ` (${listado})` : ''}. Real: servicio de planeacion (COI). Presupuesto: columnas PRESUP01..12.`;
+      }
+      case 'principal': {
+        const secciones = formatList(context.sections || [], 5);
+        const signo = Number(context.sign) < 0 ? 'resta (gastos)' : 'suma (ingresos)';
+        return `Principal "${context.label || ''}" ${signo} los totales de las secciones ${secciones || 'definidas en el capitulo'} antes de integrarse al consolidado.`;
+      }
+      case 'group': {
+        const detalle = describirOperaciones(context.operaciones || []);
+        if (detalle) {
+          return `Grupo "${context.label || ''}" consolida los principales: ${detalle}.`;
+        }
+        const lista = formatList(context.principals || [], 6);
+        return `Grupo "${context.label || ''}" consolida los principales ${lista || ''} mediante sumatoria directa.`;
+      }
+      case 'result':
+      case 'net':
+      case 'final': {
+        const detalle = describirOperaciones(context.operaciones || []);
+        const tipo = role === 'result'
+          ? 'resultado operativo (ingresos - gastos)'
+          : role === 'net'
+            ? 'neto intermedio (operativo + otros ingresos/gastos)'
+            : 'neto consolidado';
+        if (detalle) {
+          return `Fila "${context.label || ''}" (${tipo}) aplica las operaciones: ${detalle}.`;
+        }
+        return `Fila "${context.label || ''}" (${tipo}) combina los principales segun el mapeo del Excel.`;
+      }
+      default:
+        return ROW_TOOLTIPS[role] || '';
+    }
   };
 
   const summaryTooltipAttr = (key) => (key && COLUMN_TOOLTIPS[key]
@@ -440,7 +507,8 @@
       rowClass = '',
       labelClasses = 'text-center text-primary text-uppercase',
       boldNumbers = false,
-      rowRole = ''
+      rowRole = '',
+      rowContext = null
     } = options;
 
     const totals = extractTotals(nodo);
@@ -453,10 +521,14 @@
     row.className = rowClass || '';
     if (rowRole) {
       row.dataset.rowRole = rowRole;
-      if (ROW_TOOLTIPS[rowRole]) {
-        row.setAttribute('title', ROW_TOOLTIPS[rowRole]);
-        row.setAttribute('data-bs-toggle', 'tooltip');
-      }
+    }
+    const contextoTooltip = buildRowContextTooltip(rowRole, rowContext || {});
+    if (contextoTooltip) {
+      row.setAttribute('title', contextoTooltip);
+      row.setAttribute('data-bs-toggle', 'tooltip');
+    } else if (rowRole && ROW_TOOLTIPS[rowRole]) {
+      row.setAttribute('title', ROW_TOOLTIPS[rowRole]);
+      row.setAttribute('data-bs-toggle', 'tooltip');
     }
     row.innerHTML = `
       <td class="account-column"></td>
@@ -551,8 +623,9 @@
             const ctaRow = document.createElement('tr');
             ctaRow.dataset.rowRole = 'account';
             ctaRow.dataset.cuenta = cta.cuentaCanonica || cta.cuenta || '';
+            ctaRow.dataset.cuenta21 = cta.cuentaCanonica || '';
             ctaRow.dataset.cuentaVisible = cta.cuenta || '';
-            const detalleCuenta = `Cuenta ${cta.cuenta || 'sin codigo'} - ${cta.descripcion || 'Sin descripcion'}. Los valores provienen del catálogo SUMMARY.`;
+            const detalleCuenta = `Cuenta ${cta.cuenta || 'sin codigo'} · Real: saldos COI (servicio de planeacion). · Presupuesto: tabla PRESUPYY (${planColumnKey.toUpperCase()}). La descripcion editable no se sincroniza con Firebird.`;
             ctaRow.setAttribute('title', detalleCuenta);
             ctaRow.setAttribute('data-bs-toggle', 'tooltip');
             ctaRow.innerHTML = `
@@ -572,23 +645,33 @@
             summaryBody.appendChild(ctaRow);
           });
 
-          summaryBody.appendChild(createTotalsRow(seccion, {
-            label: seccion.label || '',
-            rowClass: 'subsection-row fw-semibold text-center',
-            labelClasses: 'text-start text-primary',
-            boldNumbers: true,
-            rowRole: 'section'
-          }));
-        });
-
-        summaryBody.appendChild(createTotalsRow(principal, {
-          label: principal.label || '',
-          rowClass: 'section-header-row table-light fw-bold text-center',
-          labelClasses: 'text-center text-secondary text-uppercase',
+        summaryBody.appendChild(createTotalsRow(seccion, {
+          label: seccion.label || '',
+          rowClass: 'subsection-row fw-semibold text-center',
+          labelClasses: 'text-start text-primary',
           boldNumbers: true,
-          rowRole: 'principal'
+          rowRole: 'section',
+          rowContext: {
+            label: seccion.label || '',
+            principal: principal.label || '',
+            cuentas: seccion.cuentas || []
+          }
         }));
-      };
+      });
+
+      summaryBody.appendChild(createTotalsRow(principal, {
+        label: principal.label || '',
+        rowClass: 'section-header-row table-light fw-bold text-center',
+        labelClasses: 'text-center text-secondary text-uppercase',
+        boldNumbers: true,
+        rowRole: 'principal',
+        rowContext: {
+          label: principal.label || '',
+          sections: seccionesOrdenadas.map((sec) => sec.label || ''),
+          sign: principal.sign
+        }
+      }));
+    };
 
       if (layout && layout.length) {
         layout.forEach((block) => {
@@ -601,7 +684,12 @@
               rowClass: 'highlight-secondary fw-bold text-center',
               labelClasses: 'text-center text-uppercase',
               boldNumbers: true,
-              rowRole: 'group'
+              rowRole: 'group',
+              rowContext: {
+                label: block.label || '',
+                principals: block.principals || [],
+                operaciones: block.operaciones || []
+              }
             }));
           } else {
             const rowClass = block.type === 'final'
@@ -614,7 +702,12 @@
               rowClass,
               labelClasses: 'text-center text-uppercase',
               boldNumbers: true,
-              rowRole: block.type || 'result'
+              rowRole: block.type || 'result',
+              rowContext: {
+                label: block.label || '',
+                type: block.type || 'result',
+                operaciones: block.operaciones || []
+              }
             }));
           }
         });

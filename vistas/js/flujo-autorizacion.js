@@ -5,6 +5,7 @@
   const EVENTO_CONTEXTO = 'planeacion:contexto-actualizado';
   const EVENTO_EDICION = 'modulo-planeacion:presupuesto-editado';
   const STYLE_ID = 'flujo-autorizacion-style';
+  const normalizarCuentaClave = (valor = '') => valor ? valor.toString().replace(/[^0-9]/g, '') : '';
   
   const ESTADOS = {
     EDITANDO: 'EDITANDO',
@@ -13,6 +14,17 @@
     RECHAZADO: 'RECHAZADO',
     APROBADO: 'APROBADO',
     GUARDADO: 'GUARDADO'
+  };
+
+  const HISTORIAL_ACCIONES = {
+    'guardar-borrador': 'Guardó el borrador',
+    'enviar-revision': 'Envió a revisión',
+    'rechazar': 'Rechazó el borrador',
+    'marcar-revision': 'Marcó como revisado',
+    'cancelar-revision': 'Regresó a edición',
+    'autorizar': 'Autorizó el borrador',
+    'autorizar-automatica': 'Autorización automática',
+    'guardar-coi': 'Guardó en COI'
   };
 
   const ESTADOS_ETIQUETAS = {
@@ -93,6 +105,41 @@
         font-size: 0.85rem;
         vertical-align: middle;
       }
+      .drafts-drawer .drafts-tabs .btn {
+        flex: 1;
+        font-weight: 600;
+      }
+      .drafts-drawer .drafts-view {
+        min-height: 260px;
+      }
+      .drafts-history-filters label,
+      .workflow-history-panel label {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      .drafts-history-filters input,
+      .drafts-history-filters select,
+      .workflow-history-panel input,
+      .workflow-history-panel select {
+        font-size: 0.9rem;
+      }
+      .workflow-history-panel {
+        border: 1px solid rgba(47,84,150,0.1);
+        border-radius: 12px;
+        padding: 1rem;
+        background: #fff;
+      }
+      .workflow-history-table td,
+      .workflow-history-table th {
+        font-size: 0.85rem;
+      }
+      .toast-global {
+        position: fixed !important;
+        inset: 1.25rem 1.25rem auto auto;
+        z-index: 2000;
+        width: min(360px, 90vw);
+      }
     `;
     document.head.appendChild(style);
   };
@@ -112,26 +159,87 @@
         <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
       </div>
       <div class="offcanvas-body">
-        <div id="draftsCenterStatus" class="alert alert-info">
+        <div class="btn-group drafts-tabs mb-3" role="group" aria-label="Vistas del centro de borradores">
+          <button type="button" class="btn btn-outline-primary active" data-drafts-tab="current">En curso</button>
+          <button type="button" class="btn btn-outline-primary" data-drafts-tab="history">Historial</button>
+        </div>
+        <div id="draftsCenterStatus" class="alert alert-info mb-3">
           Selecciona empresa y ejercicio para cargar los borradores.
         </div>
-        <div class="table-responsive">
-          <table class="table table-sm drafts-table align-middle">
-            <thead>
-              <tr>
-                <th>Contexto</th>
-                <th>Estado</th>
-                <th>Autor</th>
-                <th>Actualizado</th>
-                <th class="text-end">Acciones</th>
-              </tr>
-            </thead>
-            <tbody id="draftsCenterBody">
-              <tr>
-                <td colspan="5" class="text-center text-muted">Sin registros</td>
-              </tr>
-            </tbody>
-          </table>
+        <div class="drafts-view" data-drafts-view="current">
+          <div class="table-responsive">
+            <table class="table table-sm drafts-table align-middle">
+              <thead>
+                <tr>
+                  <th>Contexto</th>
+                  <th>Estado</th>
+                  <th>Autor</th>
+                  <th>Actualizado</th>
+                  <th class="text-end">Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="draftsCenterBody">
+                <tr>
+                  <td colspan="5" class="text-center text-muted">Sin registros</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="drafts-view d-none" data-drafts-view="history">
+          <div id="draftHistoryStatus" class="alert alert-info">
+            Define filtros para consultar el historial del flujo.
+          </div>
+          <form class="row g-2 drafts-history-filters mb-3" id="draftHistoryFilters">
+            <div class="col-12">
+              <label for="draftHistorySearch" class="form-label">Buscar</label>
+              <input type="search" class="form-control" id="draftHistorySearch" placeholder="Cuenta, usuario o comentario">
+            </div>
+            <div class="col-sm-6">
+              <label for="draftHistoryState" class="form-label">Estado</label>
+              <select id="draftHistoryState" class="form-select">
+                <option value="">Todos</option>
+              </select>
+            </div>
+            <div class="col-sm-6">
+              <label for="draftHistoryAction" class="form-label">Acción</label>
+              <select id="draftHistoryAction" class="form-select">
+                <option value="">Todas</option>
+              </select>
+            </div>
+            <div class="col-sm-6">
+              <label for="draftHistoryUser" class="form-label">Usuario</label>
+              <select id="draftHistoryUser" class="form-select">
+                <option value="">Todos</option>
+              </select>
+            </div>
+            <div class="col-sm-3">
+              <label for="draftHistoryFrom" class="form-label">Desde</label>
+              <input type="date" class="form-control" id="draftHistoryFrom">
+            </div>
+            <div class="col-sm-3">
+              <label for="draftHistoryTo" class="form-label">Hasta</label>
+              <input type="date" class="form-control" id="draftHistoryTo">
+            </div>
+          </form>
+          <div class="table-responsive">
+            <table class="table table-sm drafts-table align-middle">
+              <thead>
+                <tr>
+                  <th>Acción</th>
+                  <th>Estado</th>
+                  <th>Usuario</th>
+                  <th>Fecha</th>
+                  <th>Detalles</th>
+                </tr>
+              </thead>
+              <tbody id="draftHistoryTableBody">
+                <tr>
+                  <td colspan="5" class="text-center text-muted">Sin registros</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     `;
@@ -140,6 +248,83 @@
     draftsDrawerBody = drawer.querySelector('#draftsCenterBody');
     draftsDrawerStatus = drawer.querySelector('#draftsCenterStatus');
     return draftsDrawerEl;
+  };
+
+  const ensureWorkflowDrawer = () => {
+    const drawer = document.getElementById('workflowDrawer');
+    if (!drawer || drawer.dataset.workflowEnhanced === '1') {
+      return drawer || null;
+    }
+    const body = drawer.querySelector('.offcanvas-body');
+    if (!body) return drawer;
+    body.innerHTML = `
+      <div class="workflow-history-panel mb-3">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+          <div>
+            <p class="text-muted small mb-1">Estado actual</p>
+            <div id="workflowCurrentState" class="h6 mb-1">Sin contexto</div>
+            <div id="workflowCurrentMeta" class="text-muted small"></div>
+          </div>
+          <span class="badge bg-secondary" id="workflowCurrentBadge">-</span>
+        </div>
+        <div id="workflowHistoryStatus" class="alert alert-info">
+          Selecciona empresa, módulo y ejercicio para consultar el historial.
+        </div>
+        <form class="row g-2 workflow-history-filters mb-3" id="workflowHistoryFilters">
+          <div class="col-12">
+            <label for="workflowHistorySearch" class="form-label">Buscar</label>
+            <input type="search" id="workflowHistorySearch" class="form-control" placeholder="Acción, usuario o comentario">
+          </div>
+          <div class="col-sm-6">
+            <label for="workflowHistoryState" class="form-label">Estado</label>
+            <select id="workflowHistoryState" class="form-select">
+              <option value="">Todos</option>
+            </select>
+          </div>
+          <div class="col-sm-6">
+            <label for="workflowHistoryAction" class="form-label">Acción</label>
+            <select id="workflowHistoryAction" class="form-select">
+              <option value="">Todas</option>
+            </select>
+          </div>
+          <div class="col-sm-6">
+            <label for="workflowHistoryUser" class="form-label">Usuario</label>
+            <select id="workflowHistoryUser" class="form-select">
+              <option value="">Todos</option>
+            </select>
+          </div>
+          <div class="col-sm-3">
+            <label for="workflowHistoryFrom" class="form-label">Desde</label>
+            <input type="date" id="workflowHistoryFrom" class="form-control">
+          </div>
+          <div class="col-sm-3">
+            <label for="workflowHistoryTo" class="form-label">Hasta</label>
+            <input type="date" id="workflowHistoryTo" class="form-control">
+          </div>
+        </form>
+        <div class="table-responsive">
+          <table class="table table-sm workflow-history-table">
+            <thead>
+              <tr>
+                <th>Acción</th>
+                <th>Estado</th>
+                <th>Usuario</th>
+                <th>Fecha</th>
+                <th>Detalles</th>
+              </tr>
+            </thead>
+            <tbody id="workflowHistoryTableBody">
+              <tr>
+                <td colspan="5" class="text-center text-muted">Sin historial</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="workflow-guide-anchor mt-3"></div>
+    `;
+    drawer.dataset.workflowEnhanced = '1';
+    return drawer;
   };
 
   class FlujoAutorizacion {
@@ -173,9 +358,9 @@
       this.toastBody = null;
       this.buttons = {};
       this.callbacks = {
-        onCancelEdit: options.onCancelEdit || (() => {}),
-        obtenerCambios: options.obtenerCambios || (() => ({})),
-        obtenerHeaders: options.obtenerHeaders || (() => Sesion.headersAutenticacion())
+        onCancelEdit: typeof options.onCancelEdit === 'function' ? options.onCancelEdit : null,
+        obtenerCambios: typeof options.obtenerCambios === 'function' ? options.obtenerCambios : null,
+        obtenerHeaders: typeof options.obtenerHeaders === 'function' ? options.obtenerHeaders : null
       };
       this.buttonIds = options.buttonIds || {
         guardar: 'btnGuardarBorrador',
@@ -247,6 +432,14 @@
       const toastElement = document.getElementById('actionToast');
       const toastBody = document.getElementById('actionToastBody');
       if (toastElement && toastBody && window.bootstrap?.Toast) {
+        const wrapper = toastElement.closest('.position-fixed, .toast-global');
+        if (wrapper) {
+          wrapper.classList.add('toast-global');
+          document.body.appendChild(wrapper);
+        } else if (toastElement.parentElement !== document.body) {
+          toastElement.classList.add('toast-global');
+          document.body.appendChild(toastElement);
+        }
         this.toastInstance = window.bootstrap.Toast.getOrCreateInstance(toastElement, { delay: 3000 });
         this.toastBody = toastBody;
       }
@@ -273,6 +466,7 @@
 
     async _actualizarEstadoServidor() {
       if (!this._contextoCompleto()) {
+        this._notificarEstadoBorrador(null);
         return;
       }
       try {
@@ -288,16 +482,19 @@
         
         if (!respuesta.ok) {
           this.borradorActual = null;
+          this._notificarEstadoBorrador(null);
           this._actualizarBotones();
           return;
         }
         
         this.borradorActual = datos.borrador || null;
+        this._notificarEstadoBorrador(this.borradorActual);
         this._sincronizarModoEdicion();
         this._actualizarInfoPanel();
         this._actualizarBotones();
       } catch (error) {
         console.error('Error consultando el estado del borrador', error);
+        this._notificarEstadoBorrador(null);
       }
     }
 
@@ -313,12 +510,48 @@
       }
     }
 
+    _obtenerHeadersBase() {
+      if (typeof this.callbacks.obtenerHeaders === 'function') {
+        const personalizados = this.callbacks.obtenerHeaders() || {};
+        if (personalizados && typeof personalizados === 'object') {
+          return personalizados;
+        }
+      }
+      if (typeof Sesion?.headersAutenticacion === 'function') {
+        return Sesion.headersAutenticacion();
+      }
+      return {};
+    }
+
     _construirHeaders() {
-      const base = this.callbacks.obtenerHeaders();
       return {
         'Content-Type': 'application/json',
-        ...base
+        ...this._obtenerHeadersBase()
       };
+    }
+
+    _obtenerCambiosPendientes() {
+      let fuente = null;
+      if (typeof this.callbacks.obtenerCambios === 'function') {
+        fuente = this.callbacks.obtenerCambios();
+      } else if (window.CuentasModulo?.getCambios) {
+        fuente = window.CuentasModulo.getCambios();
+      }
+      const presupuesto = Array.isArray(fuente?.presupuesto) ? fuente.presupuesto : [];
+      return {
+        ...(fuente || {}),
+        presupuesto
+      };
+    }
+
+    _cancelarCambiosLocales() {
+      if (typeof this.callbacks.onCancelEdit === 'function') {
+        this.callbacks.onCancelEdit();
+        return;
+      }
+      if (window.CuentasModulo?.cancelEdit) {
+        window.CuentasModulo.cancelEdit();
+      }
     }
 
     _permitido(accion) {
@@ -366,6 +599,7 @@
       if (this.tableElement) {
         this.tableElement.classList.remove('modo-edicion');
       }
+      this._cancelarCambiosLocales();
       if (window.CuentasModulo?.setEditMode) {
         window.CuentasModulo.setEditMode(false);
       }
@@ -392,9 +626,9 @@
     }
 
     async _guardarBorradorTemporal() {
-      const cambios = this.callbacks.obtenerCambios();
+      const cambios = this._obtenerCambiosPendientes();
       const presupuesto = Array.isArray(cambios?.presupuesto) ? cambios.presupuesto : [];
-      if (!presupuesto.length && this.borradorActual) {
+      if (!presupuesto.length) {
         this._mostrarToast('No hay cambios nuevos que guardar.', 'info');
         return;
       }
@@ -433,13 +667,17 @@
         return;
       }
 
-      const cambios = this.callbacks.obtenerCambios();
+      const cambios = this._obtenerCambiosPendientes();
+      let presupuesto = Array.isArray(cambios?.presupuesto) ? cambios.presupuesto : [];
+      if (!presupuesto.length && Array.isArray(this.borradorActual?.data?.presupuesto)) {
+        presupuesto = this.borradorActual.data.presupuesto;
+      }
       const payload = {
         modulo: this.contexto.modulo,
         empresaId: this.contexto.empresaId,
         anio: this.contexto.anio,
         datos: {
-          presupuesto: Array.isArray(cambios?.presupuesto) ? cambios.presupuesto : []
+          presupuesto
         }
       };
 
@@ -644,6 +882,16 @@
       } catch (error) {
         console.error('Error al guardar en COI', error);
         this._mostrarToast(error.message || 'No fue posible guardar en COI.', 'danger');
+      }
+    }
+
+    _notificarEstadoBorrador(borrador) {
+      try {
+        window.dispatchEvent(new CustomEvent('flujo-autorizacion:estado-actualizado', {
+          detail: { borrador: borrador || null }
+        }));
+      } catch (error) {
+        console.warn('No fue posible notificar el estado del borrador.', error);
       }
     }
 
@@ -898,8 +1146,13 @@
       if (!cambios.length) return false;
       
       const mapaCambios = new Map();
+      const normalizar = (valor) => {
+        const canon = normalizarCuentaClave(valor);
+        const limpio = (valor || '').toString().trim();
+        return canon || limpio;
+      };
       cambios.forEach((registro) => {
-        const clave = (registro.cuenta || '').toString().trim();
+        const clave = normalizar(registro.cuenta);
         if (clave) {
           mapaCambios.set(clave, registro.valores || {});
         }
@@ -909,10 +1162,10 @@
       FlujoAutorizacion.limpiarBorrador(tabla);
       
       filas.forEach((fila) => {
-        const cuenta = (fila.dataset.cuenta21 || fila.dataset.cuenta || '').trim();
-        if (!cuenta) return;
+        const claveTabla = normalizar(fila.dataset.cuenta21 || fila.dataset.cuenta || '');
+        if (!claveTabla) return;
         
-        const valores = mapaCambios.get(cuenta);
+        const valores = mapaCambios.get(claveTabla) || mapaCambios.get((fila.dataset.cuenta || '').toString().trim());
         if (!valores) return;
         
         Array.from(fila.cells).forEach((celda) => {
@@ -946,6 +1199,250 @@
   }
 
   window.FlujoAutorizacion = FlujoAutorizacion;
+
+  const DraftHistoryCenter = (() => {
+    const filtrosDraft = { estado: '', accion: '', usuario: '', buscar: '', desde: '', hasta: '' };
+    const filtrosWorkflow = { ...filtrosDraft };
+    const refs = { drafts: null, workflow: null };
+    let vistaActual = 'current';
+    let contexto = {
+      empresaId: null,
+      modulo: document.body?.dataset?.modulo || '',
+      anio: null
+    };
+    let borradorEstado = null;
+    let debounceDraft = null;
+    let debounceWorkflow = null;
+
+    const headers = () => (typeof Sesion?.headersAutenticacion === 'function' ? Sesion.headersAutenticacion() : {});
+    const textoEstado = (estado) => ESTADOS_ETIQUETAS[estado] || estado || 'Sin estado';
+    const textoAccion = (accion) => HISTORIAL_ACCIONES[accion] || accion || 'Movimiento';
+
+    const asignarOpciones = (select, opciones, seleccionado) => {
+      if (!select) return;
+      const base = select.querySelector('option[value=""]');
+      select.innerHTML = '';
+      if (base) {
+        select.appendChild(base);
+      } else {
+        const opt = document.createElement('option');
+        opt.value = '';
+        opt.textContent = 'Todos';
+        select.appendChild(opt);
+      }
+      (opciones || []).forEach((item) => {
+        const opt = document.createElement('option');
+        opt.value = item.valor ?? item.id ?? '';
+        opt.textContent = item.etiqueta || item.valor || item.id || '-';
+        select.appendChild(opt);
+      });
+      select.value = seleccionado || '';
+    };
+
+    const renderTabla = (tbody, registros) => {
+      if (!tbody) return;
+      tbody.innerHTML = '';
+      if (!Array.isArray(registros) || !registros.length) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Sin datos</td></tr>';
+        return;
+      }
+      registros.forEach((registro) => {
+        const fila = document.createElement('tr');
+        fila.innerHTML = `
+          <td>
+            <div class="fw-semibold">${registro.accionEtiqueta || textoAccion(registro.accion)}</div>
+            <div class="text-muted small">${registro.descripcion || ''}</div>
+          </td>
+          <td><span class="badge text-bg-light">${registro.estadoEtiqueta || textoEstado(registro.estado)}</span></td>
+          <td>
+            <div class="fw-semibold">${registro.usuario?.nombre || registro.usuario?.usuario || '-'}</div>
+            <div class="text-muted small">${registro.modulo || ''}</div>
+          </td>
+          <td>${formatDateTime(registro.fecha)}</td>
+          <td>${registro.comentarios ? `<div class="text-muted small">${registro.comentarios}</div>` : '-'}</td>
+        `;
+        tbody.appendChild(fila);
+      });
+    };
+
+    const construirParams = (filtros) => {
+      const params = new URLSearchParams({
+        empresaId: contexto.empresaId,
+        modulo: contexto.modulo,
+        anio: contexto.anio,
+        limite: '200'
+      });
+      if (filtros.estado) params.set('estado', filtros.estado);
+      if (filtros.accion) params.set('accion', filtros.accion);
+      if (filtros.usuario) params.set('usuarioId', filtros.usuario);
+      if (filtros.buscar) params.set('buscar', filtros.buscar);
+      if (filtros.desde) params.set('desde', filtros.desde);
+      if (filtros.hasta) params.set('hasta', filtros.hasta);
+      return params;
+    };
+
+    const cargarHistorial = async (target, filtros) => {
+      if (!contexto.empresaId || !Number.isInteger(contexto.anio)) {
+        if (target?.status) {
+          target.status.className = 'alert alert-info';
+          target.status.textContent = 'Selecciona empresa y ejercicio para consultar el historial.';
+        }
+        return null;
+      }
+      try {
+        if (target?.status) {
+          target.status.className = 'alert alert-secondary';
+          target.status.textContent = 'Cargando información...';
+        }
+        const respuesta = await fetch(`${API_BASE}/borradores/historial?${construirParams(filtros).toString()}`, {
+          headers: headers()
+        });
+        const datos = await respuesta.json().catch(() => ({}));
+        if (!respuesta.ok) {
+          throw new Error(datos.mensaje || 'No fue posible consultar el historial.');
+        }
+        if (target?.status) {
+          target.status.className = 'alert alert-success';
+          target.status.textContent = `Historial disponible (${datos.historial?.length || 0} registros).`;
+        }
+        renderTabla(target?.tbody, datos.historial || []);
+        asignarOpciones(target?.state, datos.filtros?.estados || [], filtros.estado);
+        asignarOpciones(target?.action, datos.filtros?.acciones || [], filtros.accion);
+        asignarOpciones(target?.user, datos.filtros?.usuarios || [], filtros.usuario);
+        return datos;
+      } catch (error) {
+        console.error('Historial borradores', error);
+        if (target?.status) {
+          target.status.className = 'alert alert-danger';
+          target.status.textContent = error.message || 'No fue posible consultar el historial.';
+        }
+        renderTabla(target?.tbody, []);
+        return null;
+      }
+    };
+
+    const vincularFiltros = (refsFiltros, filtros, onChange) => {
+      if (!refsFiltros) return;
+      const { search, state, action, user, from, to } = refsFiltros;
+      if (search) {
+        search.addEventListener('input', () => {
+          filtros.buscar = search.value.trim();
+          onChange('search');
+        });
+      }
+      if (state) state.addEventListener('change', () => { filtros.estado = state.value; onChange(); });
+      if (action) action.addEventListener('change', () => { filtros.accion = action.value; onChange(); });
+      if (user) user.addEventListener('change', () => { filtros.usuario = user.value; onChange(); });
+      if (from) from.addEventListener('change', () => { filtros.desde = from.value; onChange(); });
+      if (to) to.addEventListener('change', () => { filtros.hasta = to.value; onChange(); });
+    };
+
+    const renderResumenWorkflow = () => {
+      if (!refs.workflow) return;
+      if (refs.workflow.badge) {
+        refs.workflow.badge.textContent = textoEstado(borradorEstado?.estado || 'sin-cargar');
+      }
+      if (refs.workflow.state) {
+        refs.workflow.state.textContent = textoEstado(borradorEstado?.estado || 'Sin datos');
+      }
+      if (refs.workflow.meta) {
+        const partes = [];
+        if (borradorEstado?.autorNombre) partes.push(borradorEstado.autorNombre);
+        if (borradorEstado?.fechaEnvio) partes.push(formatDateTime(borradorEstado.fechaEnvio));
+        refs.workflow.meta.textContent = partes.join(' · ');
+      }
+    };
+
+    const init = () => {
+      ensureDraftsDrawer();
+      ensureWorkflowDrawer();
+      if (draftsDrawerEl) {
+        refs.drafts = {
+          el: draftsDrawerEl,
+          status: draftsDrawerStatus,
+          tabs: draftsDrawerEl.querySelectorAll('[data-drafts-tab]'),
+          views: draftsDrawerEl.querySelectorAll('[data-drafts-view]'),
+          history: {
+            status: document.getElementById('draftHistoryStatus'),
+            tbody: document.getElementById('draftHistoryTableBody'),
+            search: document.getElementById('draftHistorySearch'),
+            state: document.getElementById('draftHistoryState'),
+            action: document.getElementById('draftHistoryAction'),
+            user: document.getElementById('draftHistoryUser'),
+            from: document.getElementById('draftHistoryFrom'),
+            to: document.getElementById('draftHistoryTo')
+          }
+        };
+        refs.drafts.tabs.forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const vista = btn.dataset.draftsTab;
+            if (vista === vistaActual) return;
+            vistaActual = vista;
+            refs.drafts.tabs.forEach((tab) => tab.classList.toggle('active', tab === btn));
+            refs.drafts.views.forEach((view) => view.classList.toggle('d-none', view.dataset.draftsView !== vistaActual));
+            if (vistaActual === 'history') {
+              cargarHistorial(refs.drafts.history, filtrosDraft);
+            }
+          });
+        });
+        vincularFiltros(refs.drafts.history, filtrosDraft, (tipo) => {
+          clearTimeout(debounceDraft);
+          if (tipo === 'search') {
+            debounceDraft = setTimeout(() => cargarHistorial(refs.drafts.history, filtrosDraft), 400);
+          } else {
+            cargarHistorial(refs.drafts.history, filtrosDraft);
+          }
+        });
+      }
+
+      const workflowDrawer = ensureWorkflowDrawer();
+      if (workflowDrawer) {
+        refs.workflow = {
+          el: workflowDrawer,
+          badge: document.getElementById('workflowCurrentBadge'),
+          state: document.getElementById('workflowCurrentState'),
+          meta: document.getElementById('workflowCurrentMeta'),
+          status: document.getElementById('workflowHistoryStatus'),
+          tbody: document.getElementById('workflowHistoryTableBody'),
+          filters: {
+            search: document.getElementById('workflowHistorySearch'),
+            state: document.getElementById('workflowHistoryState'),
+            action: document.getElementById('workflowHistoryAction'),
+            user: document.getElementById('workflowHistoryUser'),
+            from: document.getElementById('workflowHistoryFrom'),
+            to: document.getElementById('workflowHistoryTo')
+          }
+        };
+        workflowDrawer.addEventListener('show.bs.offcanvas', () => {
+          cargarHistorial(refs.workflow, filtrosWorkflow);
+          renderResumenWorkflow();
+        });
+        vincularFiltros(refs.workflow.filters, filtrosWorkflow, (tipo) => {
+          clearTimeout(debounceWorkflow);
+          if (tipo === 'search') {
+            debounceWorkflow = setTimeout(() => cargarHistorial(refs.workflow, filtrosWorkflow), 400);
+          } else {
+            cargarHistorial(refs.workflow, filtrosWorkflow);
+          }
+        });
+      }
+
+      window.addEventListener('planeacion:contexto-actualizado', (event) => {
+        const detalle = event?.detail || {};
+        contexto = {
+          empresaId: detalle.empresaId || contexto.empresaId,
+          modulo: detalle.modulo || contexto.modulo,
+          anio: Number.isInteger(Number(detalle.anio)) ? Number(detalle.anio) : contexto.anio
+        };
+      });
+      window.addEventListener('flujo-autorizacion:estado-actualizado', (event) => {
+        borradorEstado = event?.detail?.borrador || null;
+        renderResumenWorkflow();
+      });
+    };
+
+    return { init };
+  })();
 
   const tieneControles = Boolean(document.getElementById('btnGuardarBorrador'));
   if (tieneControles) {
@@ -995,13 +1492,14 @@
         return;
       }
       contenedores.forEach((contenedor) => {
-        if (contenedor.querySelector('.workflow-guide')) {
+        const anchor = contenedor.querySelector('.workflow-guide-anchor') || contenedor;
+        if (anchor.querySelector('.workflow-guide')) {
           return;
         }
         const wrapper = document.createElement('div');
         wrapper.className = 'workflow-guide-wrapper mt-3';
         wrapper.innerHTML = html;
-        contenedor.appendChild(wrapper);
+        anchor.appendChild(wrapper);
       });
     };
   })();
@@ -1011,6 +1509,7 @@
     if (instancia) {
       instancia.init();
     }
+    DraftHistoryCenter.init();
     renderWorkflowGuide();
   };
 

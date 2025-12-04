@@ -112,10 +112,65 @@
     result: 'Operating/Net Results definidos en "SUMA DE VARIAS SECCIONES"; combinan ingresos, gastos y otros ajustes segun el mapeo.'
   };
 
-  const tooltipAttr = (key) => (key && COLUMN_TOOLTIPS[key]
-    ? ` title="${COLUMN_TOOLTIPS[key].replace(/"/g, '&quot;')}" data-bs-toggle="tooltip"`
+  const escapeAttr = (texto = '') => texto.toString().replace(/"/g, '&quot;');
+
+  const formatList = (lista = [], limite = 5) => {
+    const valores = (Array.isArray(lista) ? lista : [])
+      .map((item) => (item || '').toString().trim())
+      .filter(Boolean);
+    if (!valores.length) return '';
+    if (valores.length <= limite) {
+      return valores.join(', ');
+    }
+    return `${valores.slice(0, limite).join(', ')} y ${valores.length - limite} mas`;
+  };
+
+  const describirOperaciones = (operaciones = []) => {
+    const fragmentos = (Array.isArray(operaciones) ? operaciones : [])
+      .filter((op) => op && op.principal)
+      .map((op) => {
+        const signo = op.factor >= 0 ? '+' : '-';
+        const secciones = formatList(op.sections || [], 4);
+        return `${signo} ${op.principal}${secciones ? ` (secciones: ${secciones})` : ''}`;
+      });
+    return fragmentos.join('; ');
+  };
+
+  const buildRowContextTooltip = (role, context = {}) => {
+    switch (role) {
+      case 'section': {
+        const cuentas = Array.isArray(context.cuentas) ? context.cuentas : [];
+        const nombres = cuentas
+          .map((cta) => cta.descripcion || cta.cuenta || cta.cuentaCanonica || '')
+          .filter(Boolean);
+        const listado = formatList(nombres, 4);
+        const principal = context.principal ? ` del principal "${context.principal}"` : '';
+        return `Seccion "${context.label || ''}"${principal} acumula reales (servicio de planeacion) y presupuestos (PRESUPYY) de ${cuentas.length} cuentas${listado ? ` (${listado})` : ''}.`;
+      }
+      case 'principal': {
+        const secciones = formatList(context.sections || [], 5);
+        const signo = Number(context.sign) < 0 ? 'resta (gastos)' : 'suma (ingresos)';
+        return `Principal "${context.label || ''}" ${signo} los totales de las secciones ${secciones || 'definidas en el capitulo'} antes de consolidarse.`;
+      }
+      case 'group': {
+        const detalle = describirOperaciones(context.operaciones || []);
+        if (detalle) {
+          return `Grupo "${context.label || ''}" consolida los principales indicados: ${detalle}.`;
+        }
+        const lista = formatList(context.principals || [], 6);
+        return `Grupo "${context.label || ''}" consolida los principales ${lista || ''} mediante sumatoria directa.`;
+      }
+      case 'result':
+        return describirOperaciones(context.operaciones || []) || ROW_TOOLTIPS.result;
+      default:
+        return ROW_TOOLTIPS[role] || '';
+    }
+  };
+
+  const resumenTooltipAttr = (key) => (key && COLUMN_TOOLTIPS[key]
+    ? ` title="${escapeAttr(COLUMN_TOOLTIPS[key])}" data-bs-toggle="tooltip"`
     : '');
-  const rowTooltipAttr = (role) => (role ? ` data-row-role="${role}"` : '');
+  const resumenRowTooltipAttr = (role) => (role ? ` data-row-role="${role}"` : '');
 
   const disposeTooltips = () => {
     if (!window.bootstrap?.Tooltip) return;
@@ -213,7 +268,7 @@
   const manejarBlurCelda = (event) => {
     const celda = event.currentTarget;
     const fila = celda.closest('tr');
-    const cuenta = fila?.dataset.cuenta;
+    const cuenta = fila?.dataset.cuenta21 || fila?.dataset.cuenta;
     const columna = celda.dataset.columnaClave;
     const original = Number(celda.dataset.valorOriginal ?? 0);
     const nuevoValor = parseNumber(celda.textContent);
@@ -236,15 +291,15 @@
   window.CuentasModulo.getCambios = obtenerCambiosPendientes;
   window.CuentasModulo.setEditMode = establecerModoEdicion;
 
-  const createCell = (val, { rowRole = '', classes = '' } = {}) => {
+  const createCell = (val, { rowRole = '', classes = '', tooltipKey = '' } = {}) => {
     const classList = ['text-end'];
     if (classes) classList.push(classes);
-    return `<td class="${classList.join(' ')}"${rowTooltipAttr(rowRole)}>${formatNumber(val)}</td>`;
+    return `<td class="${classList.join(' ')}"${resumenTooltipAttr(tooltipKey)}${resumenRowTooltipAttr(rowRole)}>${formatNumber(val)}</td>`;
   };
 
-  const createPercentCell = (val, rowRole = '') => `<td class="text-end"${rowTooltipAttr(rowRole)}>${formatPercentValue(val)}</td>`;
+  const createPercentCell = (val, { rowRole = '', tooltipKey = '' } = {}) => `<td class="text-end"${resumenTooltipAttr(tooltipKey)}${resumenRowTooltipAttr(rowRole)}>${formatPercentValue(val)}</td>`;
 
-  const createEditableCell = (val, { columnKey = '', rowRole = '' } = {}) => {
+  const createEditableCell = (val, { columnKey = '', rowRole = '', tooltipKey = '' } = {}) => {
     const attrs = [
       'class="text-end editable-cell"',
       `data-valor-original="${Number(val ?? 0)}"`
@@ -252,11 +307,11 @@
     if (columnKey) {
       attrs.push(`data-columna-clave="${columnKey}"`);
     }
-    return `<td ${attrs.join(' ')}${tooltipAttr('planMonth')}${rowTooltipAttr(rowRole)}>${formatNumber(val)}</td>`;
+    return `<td ${attrs.join(' ')}${resumenTooltipAttr(tooltipKey)}${resumenRowTooltipAttr(rowRole)}>${formatNumber(val)}</td>`;
   };
 
   const createResumenTotalsRow = (nodo, options = {}) => {
-    const { label = '', rowRole = 'section', rowClass = '' } = options;
+    const { label = '', rowRole = 'section', rowClass = '', rowContext = null, labelClasses = 'text-start fw-semibold' } = options;
     const totals = {
       actualMonth: toNumber(nodo.actualMonth ?? nodo.totalActualMonth),
       planMonth: toNumber(nodo.planMonth ?? nodo.totalPlanMonth),
@@ -267,18 +322,19 @@
     const row = document.createElement('tr');
     row.className = rowClass;
     row.dataset.rowRole = rowRole;
-    if (ROW_TOOLTIPS[rowRole]) {
-      row.setAttribute('title', ROW_TOOLTIPS[rowRole]);
+    const tooltip = buildRowContextTooltip(rowRole, rowContext || {}) || ROW_TOOLTIPS[rowRole];
+    if (tooltip) {
+      row.setAttribute('title', tooltip);
       row.setAttribute('data-bs-toggle', 'tooltip');
     }
     row.innerHTML = `
       <td></td>
-      <td class="text-start fw-semibold">${label}</td>
-      ${createCell(totals.actualMonth, { rowRole })}
-      ${createCell(totals.planMonth, { rowRole })}
-      ${createCell(totals.prevMonth, { rowRole })}
-      ${createPercentCell(varPlan, rowRole)}
-      ${createPercentCell(varPrev, rowRole)}
+      <td class="${labelClasses}"${resumenRowTooltipAttr(rowRole)}>${label}</td>
+      ${createCell(totals.actualMonth, { rowRole, tooltipKey: 'actualMonth' })}
+      ${createCell(totals.planMonth, { rowRole, tooltipKey: 'planMonth' })}
+      ${createCell(totals.prevMonth, { rowRole, tooltipKey: 'prevMonth' })}
+      ${createPercentCell(varPlan, { rowRole, tooltipKey: 'varMonthPlan' })}
+      ${createPercentCell(varPrev, { rowRole, tooltipKey: 'varMonthPrev' })}
     `;
     return row;
   };
@@ -360,15 +416,19 @@
             const row = document.createElement('tr');
             row.className = 'data-row';
             row.dataset.cuenta = cta.cuentaCanonica || cta.cuenta || '';
+            row.dataset.cuenta21 = cta.cuentaCanonica || '';
             row.dataset.rowRole = 'account';
+            const detalleCuenta = `Cuenta ${cta.cuenta || 'sin codigo'} · Real: saldos COI · Presupuesto: tabla PRESUPYY (${planColumnKey.toUpperCase()}).`;
+            row.setAttribute('title', detalleCuenta);
+            row.setAttribute('data-bs-toggle', 'tooltip');
             row.innerHTML = `
               <td class="font-monospace small">${cta.cuenta || ''}</td>
               <td class="text-start">${cta.descripcion || ''}</td>
-              ${createCell(cta.actualMonth, { rowRole: 'account' })}
-              ${createEditableCell(cta.planMonth, { columnKey: planColumnKey, rowRole: 'account' })}
-              ${createCell(cta.prevMonth, { rowRole: 'account' })}
-              ${createPercentCell(varPlan, 'account')}
-              ${createPercentCell(varPrev, 'account')}
+              ${createCell(cta.actualMonth, { rowRole: 'account', tooltipKey: 'actualMonth' })}
+              ${createEditableCell(cta.planMonth, { columnKey: planColumnKey, rowRole: 'account', tooltipKey: 'planMonth' })}
+              ${createCell(cta.prevMonth, { rowRole: 'account', tooltipKey: 'prevMonth' })}
+              ${createPercentCell(varPlan, { rowRole: 'account', tooltipKey: 'varMonthPlan' })}
+              ${createPercentCell(varPrev, { rowRole: 'account', tooltipKey: 'varMonthPrev' })}
             `;
             tablaBody.appendChild(row);
           });
@@ -376,14 +436,24 @@
           tablaBody.appendChild(createResumenTotalsRow(seccion, {
             label: seccion.label || '',
             rowRole: 'section',
-            rowClass: 'sum-row fw-semibold'
+            rowClass: 'sum-row fw-semibold',
+            rowContext: {
+              label: seccion.label || '',
+              principal: principal.label || '',
+              cuentas: seccion.cuentas || []
+            }
           }));
         });
 
         tablaBody.appendChild(createResumenTotalsRow(principal, {
           label: principal.label || '',
           rowRole: 'principal',
-          rowClass: 'section-header-row table-light fw-bold'
+          rowClass: 'section-header-row table-light fw-bold',
+          rowContext: {
+            label: principal.label || '',
+            sections: seccionesOrdenadas.map((sec) => sec.label || ''),
+            sign: principal.sign
+          }
         }));
       };
 
@@ -396,14 +466,24 @@
             tablaBody.appendChild(createResumenTotalsRow(block.totals || {}, {
               label: block.label || '',
               rowRole: 'group',
-              rowClass: 'fw-bold text-uppercase'
+              rowClass: 'fw-bold text-uppercase',
+              rowContext: {
+                label: block.label || '',
+                principals: block.principals || [],
+                operaciones: block.operaciones || []
+              }
             }));
           } else {
             const role = block.type || 'result';
             tablaBody.appendChild(createResumenTotalsRow(block.totals || {}, {
               label: block.label || '',
               rowRole: role,
-              rowClass: role === 'final' ? 'highlight-bright text-white fw-bold' : 'highlight-secondary fw-bold'
+              rowClass: role === 'final' ? 'highlight-bright text-white fw-bold' : 'highlight-secondary fw-bold',
+              rowContext: {
+                label: block.label || '',
+                type: role,
+                operaciones: block.operaciones || []
+              }
             }));
           }
         });

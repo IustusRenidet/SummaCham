@@ -13,6 +13,8 @@ const {
   marcarRevisado,
   guardarAutorizado,
   listarBorradores,
+  listarHistorialBorradores,
+  obtenerFiltrosHistorial,
   ESTADOS
 } = require('../services/borradoresService');
 const { notificarWorkflowPresupuesto } = require('../services/notificacionesService');
@@ -117,6 +119,19 @@ const esquemaListado = Joi.object({
   estado: Joi.string().valid(...Object.values(ESTADOS)).optional()
 });
 
+const esquemaHistorial = Joi.object({
+  empresaId: Joi.string().trim().optional(),
+  modulo: Joi.string().trim().optional(),
+  anio: Joi.number().integer().min(2000).max(2100).optional(),
+  estado: Joi.string().trim().optional(),
+  accion: Joi.string().trim().optional(),
+  usuarioId: Joi.number().integer().optional(),
+  buscar: Joi.string().trim().allow('').optional(),
+  desde: Joi.date().iso().optional(),
+  hasta: Joi.date().iso().optional(),
+  limite: Joi.number().integer().min(1).max(500).optional()
+});
+
 const esquemaDetalle = Joi.object({
   id: Joi.number().integer().required()
 });
@@ -198,6 +213,70 @@ router.get('/listar', (req, res) => {
   }).filter((borrador) => puedeVerBorrador(req, borrador));
 
   return res.json({ borradores });
+});
+
+router.get('/historial', (req, res) => {
+  const merged = { ...req.query };
+  if (!merged.empresaId) {
+    merged.empresaId = resolverEmpresaId(req);
+  }
+  const { value, error } = esquemaHistorial.validate(merged, { abortEarly: false });
+  if (error) {
+    return res.status(400).json({
+      mensaje: 'Verifica los parámetros del historial.',
+      detalles: error.details.map((detalle) => detalle.message)
+    });
+  }
+
+  const empresa = value.empresaId ? obtenerEmpresaPorId(value.empresaId) : null;
+  if (value.empresaId && !empresa) {
+    return res.status(404).json({ mensaje: 'Empresa no encontrada.' });
+  }
+
+  let modulo = null;
+  if (value.modulo) {
+    modulo = obtenerModuloCanonico(value.modulo);
+    if (!modulo) {
+      return res.status(400).json({ mensaje: 'El módulo indicado no es válido.' });
+    }
+  }
+
+  if (!req.esAdmin) {
+    if (!empresa) {
+      return res.status(400).json({ mensaje: 'Debes indicar una empresa para consultar el historial.' });
+    }
+    if (modulo && !tienePermisoEnModulo(req.mapaPermisos, empresa.id, modulo)) {
+      return res.status(403).json({ mensaje: 'No cuentas con permisos en este módulo.' });
+    }
+    if (!modulo) {
+      return res.status(400).json({ mensaje: 'Debes indicar el módulo para consultar el historial.' });
+    }
+  }
+
+  const filtros = {
+    empresaId: empresa?.id || null,
+    modulo: modulo || null,
+    anio: value.anio,
+    estado: value.estado,
+    accion: value.accion,
+    usuarioId: value.usuarioId,
+    buscar: value.buscar,
+    desde: value.desde,
+    hasta: value.hasta,
+    limite: value.limite
+  };
+
+  const historial = listarHistorialBorradores(filtros);
+  const opciones = obtenerFiltrosHistorial({
+    empresaId: filtros.empresaId,
+    modulo: filtros.modulo,
+    anio: filtros.anio
+  });
+
+  return res.json({
+    historial,
+    filtros: opciones
+  });
 });
 
 router.get('/estado', (req, res) => {
@@ -316,7 +395,7 @@ router.post('/enviar', async (req, res) => {
   }
 
   try {
-    const resultado = await enviarRevision(value.borradorId, req.esAdmin ? 'ADMIN_GLOBAL' : 'USUARIO');
+    const resultado = await enviarRevision(value.borradorId, req.esAdmin ? 'ADMIN_GLOBAL' : 'USUARIO', req.usuarioActual.id);
     notificarWorkflowPresupuesto({
       empresaId: empresa.id,
       modulo: borrador.modulo,
@@ -361,7 +440,7 @@ router.post('/autorizar', async (req, res) => {
   }
 
   try {
-    const aprobado = await autorizarBorrador(value.borradorId);
+    const aprobado = await autorizarBorrador(value.borradorId, req.usuarioActual.id);
     notificarWorkflowPresupuesto({
       empresaId: empresa.id,
       modulo: borrador.modulo,
@@ -403,7 +482,7 @@ router.post('/rechazar', (req, res) => {
   }
 
   try {
-    const rechazado = rechazarBorrador(value.borradorId, value.motivo);
+    const rechazado = rechazarBorrador(value.borradorId, value.motivo, req.usuarioActual.id);
     notificarWorkflowPresupuesto({
       empresaId: empresa.id,
       modulo: borrador.modulo,
@@ -445,7 +524,7 @@ router.post('/revisar', (req, res) => {
   }
 
   try {
-    const resultado = marcarRevisado(value.borradorId, value.cancelar);
+    const resultado = marcarRevisado(value.borradorId, value.cancelar, req.usuarioActual.id);
     notificarWorkflowPresupuesto({
       empresaId: empresa.id,
       modulo: borrador.modulo,
@@ -491,7 +570,7 @@ router.post('/finalizar', async (req, res) => {
   }
 
   try {
-    const guardado = await guardarAutorizado(value.borradorId);
+    const guardado = await guardarAutorizado(value.borradorId, req.usuarioActual.id);
     const ejecutor = {
       id: req.usuarioActual.id,
       usuario: req.usuarioActual.usuario,

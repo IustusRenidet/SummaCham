@@ -345,6 +345,12 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
   const netRowMap = new Map();
   const finalRowMap = new Map();
 
+  const describirPrincipalOperacion = (principal, factor = null) => ({
+    principal: principal.label,
+    factor: factor != null ? factor : principal.sign,
+    sections: (principal.children || []).map((sec) => sec.label || '')
+  });
+
   const ensureAggregator = (mapa, etiqueta, ordenMapa) => {
     if (!etiqueta) return null;
     if (!mapa.has(etiqueta)) {
@@ -352,7 +358,8 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
         label: etiqueta,
         orden: ordenMapa.has(etiqueta) ? ordenMapa.get(etiqueta) : mapa.size + ordenMapa.size,
         totals: crearAcumulador(),
-        principals: []
+        principals: [],
+        operaciones: []
       });
     }
     return mapa.get(etiqueta);
@@ -362,21 +369,28 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
     const consolidated = ensureAggregator(consolidatedMap, principal.consolidadoLabel || principal.label, consolidadoOrden);
     if (consolidated) {
       consolidated.principals.push(principal.label);
+      consolidated.operaciones.push(describirPrincipalOperacion(principal, 1));
       sumarTotales(consolidated.totals, principal);
     }
 
     const resultRow = ensureAggregator(resultRowMap, principal.resultRow, resultOrden);
     if (resultRow) {
+      resultRow.principals.push(principal.label);
+      resultRow.operaciones.push(describirPrincipalOperacion(principal));
       sumarTotales(resultRow.totals, principal, principal.sign);
     }
 
     const netRow = ensureAggregator(netRowMap, principal.netRow, netOrden);
     if (netRow) {
+      netRow.principals.push(principal.label);
+      netRow.operaciones.push(describirPrincipalOperacion(principal));
       sumarTotales(netRow.totals, principal, principal.sign);
     }
 
     const finalRow = ensureAggregator(finalRowMap, principal.resultNetRow, finalOrden);
     if (finalRow) {
+      finalRow.principals.push(principal.label);
+      finalRow.operaciones.push(describirPrincipalOperacion(principal));
       sumarTotales(finalRow.totals, principal, principal.sign);
     }
   });
@@ -397,7 +411,8 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
         label: grupo.label,
         order: siguienteOrden(),
         totals: grupo.totals,
-        principals: grupo.principals
+        principals: grupo.principals,
+        operaciones: grupo.operaciones || []
       });
     });
 
@@ -409,7 +424,9 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
           type: tipo,
           label: row.label,
           order: siguienteOrden(),
-          totals: row.totals
+          totals: row.totals,
+          principals: row.principals || [],
+          operaciones: row.operaciones || []
         });
       });
   };
