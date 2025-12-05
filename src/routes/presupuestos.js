@@ -10,6 +10,34 @@ const router = express.Router();
 
 const normalizarUsuario = (valor) => (valor || '').toString().trim().toUpperCase();
 
+const MAPA_ESTADO_CANONICO = {
+  'sin-cargar': 'SIN_CARGAR',
+  'SIN-CARGAR': 'SIN_CARGAR',
+  'SIN_CARGAR': 'SIN_CARGAR',
+  borrador: 'EDITANDO',
+  BORRADOR: 'EDITANDO',
+  revisado: 'REVISADO',
+  REVISADO: 'REVISADO',
+  autorizado: 'APROBADO',
+  AUTORIZADO: 'APROBADO',
+  guardado: 'GUARDADO',
+  GUARDADO: 'GUARDADO',
+  editando: 'EDITANDO',
+  EDITANDO: 'EDITANDO',
+  pendiente: 'PENDIENTE',
+  PENDIENTE: 'PENDIENTE',
+  rechazado: 'RECHAZADO',
+  RECHAZADO: 'RECHAZADO',
+  aprobado: 'APROBADO',
+  APROBADO: 'APROBADO'
+};
+
+const normalizarEstadoCanonico = (estado) => {
+  if (!estado) return 'SIN_CARGAR';
+  const clave = estado.toString();
+  return MAPA_ESTADO_CANONICO[clave] || MAPA_ESTADO_CANONICO[clave.toUpperCase()] || 'SIN_CARGAR';
+};
+
 const esquemaConsulta = Joi.object({
   anio: Joi.number().integer().min(2000).max(2100).optional(),
   empresaId: Joi.string().trim().optional()
@@ -37,17 +65,17 @@ const serializarEmpresa = (empresa) => {
   };
 };
 
-const ESTADOS_VALIDOS = ['sin-cargar', 'borrador', 'revisado', 'autorizado', 'guardado'];
+const ESTADOS_VALIDOS = ['SIN_CARGAR', 'EDITANDO', 'REVISADO', 'APROBADO', 'GUARDADO', 'PENDIENTE', 'RECHAZADO'];
 
 const TRANSICIONES = {
   cargar: {
-    destino: 'borrador',
+    destino: 'EDITANDO',
     requiere: 'Cargar y guardar',
-    habilita: (estado) => estado === 'sin-cargar'
+    habilita: (estado) => ['SIN_CARGAR', 'GUARDADO'].includes(normalizarEstadoCanonico(estado))
   },
-  revisar: { destino: 'revisado', requiere: 'Revisar', habilita: (estado) => estado === 'borrador' },
-  autorizar: { destino: 'autorizado', requiere: 'Aprobar', habilita: (estado) => estado === 'revisado' },
-  guardar: { destino: 'guardado', requiere: 'Aprobar', habilita: (estado) => estado === 'autorizado' }
+  revisar: { destino: 'REVISADO', requiere: 'Revisar', habilita: (estado) => normalizarEstadoCanonico(estado) === 'EDITANDO' },
+  autorizar: { destino: 'APROBADO', requiere: 'Aprobar', habilita: (estado) => normalizarEstadoCanonico(estado) === 'REVISADO' },
+  guardar: { destino: 'GUARDADO', requiere: 'Aprobar', habilita: (estado) => normalizarEstadoCanonico(estado) === 'APROBADO' }
 };
 
 const construirNombreUsuario = (registro) => {
@@ -155,12 +183,15 @@ const obtenerEstadoPresupuesto = (empresaId, modulo, anio) => {
     ORDER BY h.registrado_en DESC
     LIMIT 10
   `).all(empresaId, modulo, anio);
+  const estadoCanonico = normalizarEstadoCanonico(estadoActual?.estado);
   return {
-    estado: estadoActual?.estado || 'sin-cargar',
+    estado: estadoCanonico,
+    estadoRaw: estadoActual?.estado || 'sin-cargar',
     actualizadoEn: estadoActual?.actualizadoEn || null,
     actualizadoPor: estadoActual?.actualizadoPor || '',
     historial: historial.map((registro) => ({
-      estado: registro.estado,
+      estado: normalizarEstadoCanonico(registro.estado),
+      estadoRaw: registro.estado,
       fecha: registro.fecha,
       usuario: registro.usuario
     }))
@@ -385,7 +416,7 @@ router.post('/estado', (req, res) => {
       datos,
       guardadoPor: req.usuarioActual.id
     });
-    const estadoActualizado = guardarEstadoPresupuesto(empresaId, modulo, ejercicio, 'guardado', req.usuarioActual.id);
+    const estadoActualizado = guardarEstadoPresupuesto(empresaId, modulo, ejercicio, 'GUARDADO', req.usuarioActual.id);
     const ejecutor = {
       id: req.usuarioActual.id,
       usuario: req.usuarioActual.usuario,

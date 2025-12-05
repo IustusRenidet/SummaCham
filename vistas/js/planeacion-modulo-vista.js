@@ -1,5 +1,31 @@
 (() => {
   const API_BASE = 'http://localhost:3000/api';
+  const normalizarEstadoWorkflow = (valor) => {
+    if (!valor) return 'SIN_CARGAR';
+    const base = valor.toString().toUpperCase();
+    switch (base) {
+      case 'SIN-CARGAR':
+      case 'SIN_CARGAR':
+      case 'SIN CARGAR':
+        return 'SIN_CARGAR';
+      case 'BORRADOR':
+      case 'EDITANDO':
+        return 'EDITANDO';
+      case 'PENDIENTE':
+        return 'PENDIENTE';
+      case 'REVISADO':
+        return 'REVISADO';
+      case 'AUTORIZADO':
+      case 'APROBADO':
+        return 'APROBADO';
+      case 'RECHAZADO':
+        return 'RECHAZADO';
+      case 'GUARDADO':
+        return 'GUARDADO';
+      default:
+        return base;
+    }
+  };
 
   const crearSlug = (texto, fallback = 'modulo') => {
     if (!texto) {
@@ -68,33 +94,35 @@
   const cuentaLarga = (cuentaLegible) => construirCuentaLarga(cuentaLegible);
 
   const WORKFLOW_ETIQUETAS = {
-    'sin-cargar': { texto: 'Sin cargar', descripcion: 'Esperando información.' },
-    borrador: { texto: 'Borrador', descripcion: 'Edición local en curso.' },
-    revisado: { texto: 'Revisado', descripcion: 'Listo para autorizar o volver a editar.' },
-    autorizado: { texto: 'Autorizado', descripcion: 'Listo para guardar en base de datos.' },
-    guardado: { texto: 'Guardado', descripcion: 'Movimiento de guardado en el flujo de autorización.' }
+    SIN_CARGAR: { texto: 'Sin cargar', descripcion: 'Esperando informacion.' },
+    EDITANDO: { texto: 'En edicion', descripcion: 'Borrador en curso.' },
+    PENDIENTE: { texto: 'Pendiente', descripcion: 'Enviado a revision.' },
+    REVISADO: { texto: 'Revisado', descripcion: 'Listo para autorizar o volver a editar.' },
+    APROBADO: { texto: 'Aprobado', descripcion: 'Listo para guardar en base de datos.' },
+    GUARDADO: { texto: 'Guardado', descripcion: 'Movimiento de guardado en el flujo de autorizacion.' },
+    RECHAZADO: { texto: 'Rechazado', descripcion: 'Devuelto para ajustes.' }
   };
 
   const TRANSICIONES = {
     cargar: {
-      destino: 'borrador',
+      destino: 'EDITANDO',
       permiso: 'Cargar y guardar',
-      habilita: (estado) => estado === 'sin-cargar'
+      habilita: (estado) => estado === 'SIN_CARGAR' || estado === 'GUARDADO'
     },
     revisar: {
-      destino: 'revisado',
+      destino: 'REVISADO',
       permiso: 'Revisar',
-      habilita: (estado) => estado === 'borrador'
+      habilita: (estado) => estado === 'EDITANDO'
     },
     autorizar: {
-      destino: 'autorizado',
+      destino: 'APROBADO',
       permiso: 'Aprobar',
-      habilita: (estado) => estado === 'revisado'
+      habilita: (estado) => estado === 'REVISADO'
     },
     guardar: {
-      destino: 'guardado',
+      destino: 'GUARDADO',
       permiso: 'Aprobar',
-      habilita: (estado) => estado === 'autorizado'
+      habilita: (estado) => estado === 'APROBADO'
     }
   };
 
@@ -261,22 +289,23 @@
 
     const EVENTO_CONTEXTO = 'planeacion:contexto-actualizado';
 
-    const estado = {
-      filtro: '',
-      filas: [],
-      mostrarCuentas: true,
-      anio: anioInicial,
+  const estado = {
+    filtro: '',
+    filas: [],
+    mostrarCuentas: true,
+    anio: anioInicial,
       aniosDisponibles: [],
       editMode: false,
       cambiosPendientes: false,
-      workflow: {
-        estado: 'sin-cargar',
-        actualizadoEn: null,
-        actualizadoPor: '',
-        historial: []
-      },
-      borradorGuardado: false
-    };
+    workflow: {
+      estado: 'SIN_CARGAR',
+      actualizadoEn: null,
+      actualizadoPor: '',
+      historial: []
+    },
+    borradorGuardado: false
+  };
+  let moduloReadyDispatched = false;
 
     const notificarContexto = () => {
       const empresa = Sesion.obtenerEmpresaActiva(sesion);
@@ -436,7 +465,7 @@
       if (!elementos.workflowBadge) {
         return;
       }
-      const info = WORKFLOW_ETIQUETAS[estado.workflow.estado] || WORKFLOW_ETIQUETAS['sin-cargar'];
+      const info = WORKFLOW_ETIQUETAS[estado.workflow.estado] || WORKFLOW_ETIQUETAS.SIN_CARGAR;
       elementos.workflowBadge.dataset.estado = estado.workflow.estado;
       elementos.workflowBadge.textContent = info.texto;
       if (elementos.workflowMeta) {
@@ -480,7 +509,7 @@
       const puedeAutorizar = esAdminGlobal || Boolean(permisos?.[TRANSICIONES.autorizar.permiso]);
       const puedeGuardar = esAdminGlobal || Boolean(permisos?.[TRANSICIONES.guardar.permiso]);
 
-      const limiteCarga = esAdminGlobal || estadoActual === 'sin-cargar';
+      const limiteCarga = esAdminGlobal || estadoActual === 'SIN_CARGAR';
       if (elementos.loadBudgetBtn) {
         elementos.loadBudgetBtn.classList.toggle('d-none', !puedeCargar);
         elementos.loadBudgetBtn.disabled = !puedeCargar || !limiteCarga;
@@ -495,7 +524,7 @@
         elementos.authorizeBudgetBtn.disabled = esAdminGlobal || !puedeAutorizar || !(esAdminGlobal || (requiereGuardado && TRANSICIONES.autorizar.habilita(estadoActual)));
       }
       if (elementos.saveBudgetBtn) {
-        const visibleGuardar = esAdminGlobal || (requiereGuardado && estadoActual === 'autorizado');
+        const visibleGuardar = esAdminGlobal || (requiereGuardado && estadoActual === 'APROBADO');
         elementos.saveBudgetBtn.classList.toggle('d-none', !puedeGuardar || !visibleGuardar);
         elementos.saveBudgetBtn.disabled = !puedeGuardar || !visibleGuardar || !(esAdminGlobal || (requiereGuardado && TRANSICIONES.guardar.habilita(estadoActual)));
       }
@@ -504,7 +533,7 @@
     const obtenerWorkflow = async () => {
       const { empresa } = obtenerPermisosActuales(sesion, opciones.modulo);
       if (!empresa || !Number.isInteger(estado.anio)) {
-        estado.workflow = { estado: 'sin-cargar', actualizadoEn: null, actualizadoPor: '', historial: [] };
+        estado.workflow = { estado: 'SIN_CARGAR', actualizadoEn: null, actualizadoPor: '', historial: [] };
         actualizarBadgeWorkflow();
         renderizarHistorial();
         actualizarDisponibilidadAcciones();
@@ -522,15 +551,20 @@
         }
         const datos = await respuesta.json();
         estado.workflow = {
-          estado: datos.estado || 'sin-cargar',
+          estado: normalizarEstadoWorkflow(datos.estado),
+          estadoRaw: datos.estadoRaw || datos.estado,
           actualizadoEn: datos.actualizadoEn || null,
           actualizadoPor: datos.actualizadoPor || '',
-          historial: datos.historial || []
+          historial: (datos.historial || []).map((registro) => ({
+            ...registro,
+            estado: normalizarEstadoWorkflow(registro.estado),
+            estadoRaw: registro.estadoRaw || registro.estado
+          }))
         };
       } catch (error) {
         console.warn(`Error al obtener el workflow de ${opciones.titulo}`, error);
         showToast(error.message || 'No se pudo actualizar el estado del flujo.', 'text-bg-danger');
-        estado.workflow = { estado: 'sin-cargar', actualizadoEn: null, actualizadoPor: '', historial: [] };
+        estado.workflow = { estado: 'SIN_CARGAR', actualizadoEn: null, actualizadoPor: '', historial: [] };
       }
       actualizarBadgeWorkflow();
       renderizarHistorial();
@@ -575,10 +609,15 @@
         }
         const datos = await respuesta.json();
         estado.workflow = {
-          estado: datos.estado || 'sin-cargar',
+          estado: normalizarEstadoWorkflow(datos.estado),
+          estadoRaw: datos.estadoRaw || datos.estado,
           actualizadoEn: datos.actualizadoEn || null,
           actualizadoPor: datos.actualizadoPor || '',
-          historial: datos.historial || []
+          historial: (datos.historial || []).map((registro) => ({
+            ...registro,
+            estado: normalizarEstadoWorkflow(registro.estado),
+            estadoRaw: registro.estadoRaw || registro.estado
+          }))
         };
         actualizarBadgeWorkflow();
         renderizarHistorial();
@@ -721,6 +760,15 @@
       aplicarVisibilidadCuentas();
       await cargarAniosDisponibles();
       await obtenerWorkflow();
+      if (!moduloReadyDispatched) {
+        moduloReadyDispatched = true;
+        window.dispatchEvent(new CustomEvent('modulo:ready', {
+          detail: {
+            modulo: opciones.modulo,
+            anio: estado.anio
+          }
+        }));
+      }
     };
 
     if (document.readyState === 'loading') {

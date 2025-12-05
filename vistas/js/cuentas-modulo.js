@@ -159,6 +159,7 @@
       contenedor: null
     }
   };
+  let moduloReadyDispatched = false;
   let panelPrincipales = null;
 
   const MODAL_SECCION_ID = 'sectionModal';
@@ -2614,6 +2615,16 @@
     solicitarDatos();
     activarTooltipsCuentas();
     aplicarModoEdicionEnTabla();
+
+    if (!moduloReadyDispatched) {
+      moduloReadyDispatched = true;
+      window.dispatchEvent(new CustomEvent('modulo:ready', {
+        detail: {
+          modulo: estadoModulo.moduloClave || estadoModulo.moduloId || '',
+          anio: estadoModulo.anio
+        }
+      }));
+    }
 
     return Promise.resolve(true);
   };

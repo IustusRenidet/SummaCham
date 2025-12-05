@@ -686,11 +686,24 @@
 
   _suscribirSelectoresContexto() {
     const selectoresAnio = [
-      document.getElementById('selectAnio'),
-      document.getElementById('summaryYearSelect'),
-      document.getElementById('resumenYearSelect'),
-      document.getElementById('presupuestosYearSelect')
-    ].filter(Boolean);
+      'selectAnio',
+      'summaryYearSelect',
+      'resumenYearSelect',
+      'presupuestosYearSelect',
+      'finanzasYearSelect',
+      'comitesYearSelect',
+      'comunicacionYearSelect',
+      'direccionYearSelect',
+      'eventosYearSelect',
+      'gtoscorporativosYearSelect',
+      'membresiaYearSelect',
+      'rhYearSelect',
+      'servmembresiaYearSelect',
+      'ticYearSelect',
+      'vpeYearSelect'
+    ]
+      .map((id) => document.getElementById(id))
+      .filter(Boolean);
 
     selectoresAnio.forEach((sel) => {
       if (sel.dataset.workflowBound === '1') return;
@@ -1145,14 +1158,17 @@
       draftsDrawerStatus.className = 'alert alert-success';
       draftsDrawerStatus.textContent = 'Selecciona un borrador para visualizarlo en la tabla.';
 
-      draftsDrawerBody.addEventListener('click', (ev) => {
-        const boton = ev.target.closest('[data-borrador-id]');
-        if (!boton) return;
-        const id = Number(boton.dataset.borradorId);
-        if (Number.isFinite(id)) {
-          this._verBorradorDesdeCentro(id);
-        }
-      }, { once: true });
+      if (!draftsDrawerBody.dataset.delegadoClick) {
+        draftsDrawerBody.dataset.delegadoClick = '1';
+        draftsDrawerBody.addEventListener('click', (ev) => {
+          const boton = ev.target.closest('[data-borrador-id]');
+          if (!boton) return;
+          const id = Number(boton.dataset.borradorId);
+          if (Number.isFinite(id)) {
+            this._verBorradorDesdeCentro(id);
+          }
+        });
+      }
 
       const frag = document.createDocumentFragment();
       lista.forEach((item) => {

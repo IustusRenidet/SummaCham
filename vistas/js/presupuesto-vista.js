@@ -1,5 +1,31 @@
 (() => {
   const API_BASE = 'http://localhost:3000/api';
+  const normalizarEstadoWorkflow = (valor) => {
+    if (!valor) return 'SIN_CARGAR';
+    const base = valor.toString().toUpperCase();
+    switch (base) {
+      case 'SIN-CARGAR':
+      case 'SIN_CARGAR':
+      case 'SIN CARGAR':
+        return 'SIN_CARGAR';
+      case 'BORRADOR':
+      case 'EDITANDO':
+        return 'EDITANDO';
+      case 'PENDIENTE':
+        return 'PENDIENTE';
+      case 'REVISADO':
+        return 'REVISADO';
+      case 'AUTORIZADO':
+      case 'APROBADO':
+        return 'APROBADO';
+      case 'RECHAZADO':
+        return 'RECHAZADO';
+      case 'GUARDADO':
+        return 'GUARDADO';
+      default:
+        return base;
+    }
+  };
   const MESES = [
     { etiqueta: 'Ene', clave: 'ene' },
     { etiqueta: 'Feb', clave: 'feb' },
@@ -16,50 +42,59 @@
   ];
 
   const WORKFLOW_ETIQUETAS = {
-    'sin-cargar': {
+    SIN_CARGAR: {
       texto: 'Sin cargar',
-      descripcion: 'En espera de información.'
+      descripcion: 'En espera de informacion.'
     },
-    borrador: {
-      texto: 'Cargado',
-      descripcion: 'Pendiente de revisión.'
+    EDITANDO: {
+      texto: 'En edicion',
+      descripcion: 'Pendiente de revision.'
     },
-    revisado: {
+    PENDIENTE: {
+      texto: 'Pendiente',
+      descripcion: 'Enviado a revision.'
+    },
+    REVISADO: {
       texto: 'Revisado',
       descripcion: 'Listo para autorizar.'
     },
-    autorizado: {
-      texto: 'Autorizado',
-      descripcion: 'Disponible para guardar el CSV oficial.'
-    },
-    aprobado: {
+    APROBADO: {
       texto: 'Aprobado',
       descripcion: 'Presupuesto final aprobado.'
+    },
+    GUARDADO: {
+      texto: 'Guardado',
+      descripcion: 'Movimiento de guardado.'
+    },
+    RECHAZADO: {
+      texto: 'Rechazado',
+      descripcion: 'Devuelto para ajustes.'
     }
   };
 
   const TRANSICIONES = {
     cargar: {
-      destino: 'borrador',
+      destino: 'EDITANDO',
       permiso: 'Cargar y guardar',
-      habilita: (estado) => ['sin-cargar', 'borrador', 'revisado'].includes(estado)
+      habilita: (estado) => estado === 'SIN_CARGAR' || estado === 'GUARDADO'
     },
     revisar: {
-      destino: 'revisado',
+      destino: 'REVISADO',
       permiso: 'Revisar',
-      habilita: (estado) => estado === 'borrador'
+      habilita: (estado) => estado === 'EDITANDO'
     },
     autorizar: {
-      destino: 'autorizado',
+      destino: 'APROBADO',
       permiso: 'Aprobar',
-      habilita: (estado) => estado === 'revisado'
+      habilita: (estado) => estado === 'REVISADO'
     },
-    aprobar: {
-      destino: 'aprobado',
+    guardar: {
+      destino: 'GUARDADO',
       permiso: 'Aprobar',
-      habilita: (estado) => estado === 'autorizado'
+      habilita: (estado) => estado === 'APROBADO'
     }
   };
+  TRANSICIONES.aprobar = TRANSICIONES.guardar;
 
   const formatoNumero = new Intl.NumberFormat('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -132,11 +167,13 @@
       cuentas: [],
       filtro: '',
       workflow: {
-        estado: 'sin-cargar',
+        estado: 'SIN_CARGAR',
         actualizadoPor: '',
-        actualizadoEn: ''
+        actualizadoEn: '',
+        historial: []
       }
     };
+    let moduloReadyDispatched = false;
 
     const showToast = (mensaje, clase = 'text-bg-success') => {
       if (!elementos.toastElement || !toastInstance || !elementos.toastBody) return;
@@ -164,7 +201,7 @@
 
     const actualizarBadgeWorkflow = () => {
       if (!elementos.workflowBadge) return;
-      const info = WORKFLOW_ETIQUETAS[estado.workflow.estado] || WORKFLOW_ETIQUETAS['sin-cargar'];
+      const info = WORKFLOW_ETIQUETAS[estado.workflow.estado] || WORKFLOW_ETIQUETAS.SIN_CARGAR;
       elementos.workflowBadge.dataset.estado = estado.workflow.estado;
       elementos.workflowBadge.textContent = info.texto;
       if (elementos.workflowMeta) {
@@ -183,14 +220,16 @@
       if (!elementos.workflowHistory) return;
       const items = (estado.workflow.historial || []).map((registro) => {
         const fecha = registro.fecha ? new Date(registro.fecha).toLocaleString('es-MX') : '';
+        const etiqueta = WORKFLOW_ETIQUETAS[registro.estado]?.texto || registro.estado;
+        const usuario = registro.usuario || '-';
         return `
           <li class="list-group-item d-flex justify-content-between align-items-start">
             <div>
-              <strong>${registro.estado}</strong>
-              <div class="small text-muted">${registro.usuario || '—'}</div>
-            </div>
-            <small class="text-muted">${fecha}</small>
-          </li>`;
+              <strong>${etiqueta}</strong>
+              <div class="small text-muted">${usuario}<\/div>
+            <\/div>
+            <small class="text-muted">${fecha}<\/small>
+          <\/li>`;
       });
       elementos.workflowHistory.innerHTML = items.join('') || '<li class="list-group-item text-muted">Aún no hay movimientos.</li>';
     };
@@ -349,10 +388,15 @@
           throw new Error(datos.mensaje || 'No fue posible obtener el flujo de autorización.');
         }
         estado.workflow = {
-          estado: datos.estado || 'sin-cargar',
+          estado: normalizarEstadoWorkflow(datos.estado),
+          estadoRaw: datos.estadoRaw || datos.estado,
           actualizadoEn: datos.actualizadoEn || '',
           actualizadoPor: datos.actualizadoPor || '',
-          historial: datos.historial || []
+          historial: (datos.historial || []).map((registro) => ({
+            ...registro,
+            estado: normalizarEstadoWorkflow(registro.estado),
+            estadoRaw: registro.estadoRaw || registro.estado
+          }))
         };
         actualizarBadgeWorkflow();
         renderizarHistorial();
@@ -386,10 +430,15 @@
           throw new Error(datos.mensaje || 'No fue posible actualizar el estado.');
         }
         estado.workflow = {
-          estado: datos.estado,
+          estado: normalizarEstadoWorkflow(datos.estado),
+          estadoRaw: datos.estadoRaw || datos.estado,
           actualizadoEn: datos.actualizadoEn,
           actualizadoPor: datos.actualizadoPor,
-          historial: datos.historial || []
+          historial: (datos.historial || []).map((registro) => ({
+            ...registro,
+            estado: normalizarEstadoWorkflow(registro.estado),
+            estadoRaw: registro.estadoRaw || registro.estado
+          }))
         };
         actualizarBadgeWorkflow();
         renderizarHistorial();
@@ -429,7 +478,7 @@
         elementos.authorizeBudgetBtn.disabled = !puedeAutorizar || !TRANSICIONES.autorizar.habilita(estadoActual);
       }
       if (elementos.saveBudgetBtn) {
-        const habilitado = puedeGuardar && TRANSICIONES.aprobar.habilita(estadoActual);
+        const habilitado = puedeGuardar && TRANSICIONES.guardar.habilita(estadoActual);
         elementos.saveBudgetBtn.classList.toggle('d-none', !habilitado);
         elementos.saveBudgetBtn.disabled = !habilitado;
       }
@@ -502,7 +551,7 @@
           URL.revokeObjectURL(url);
           await guardarPresupuestoEnCoi();
           showToast('Presupuesto exportado y guardado en COI correctamente.');
-          await ejecutarAccionWorkflow('aprobar');
+          await ejecutarAccionWorkflow('guardar');
         } catch (error) {
           console.error('Error al guardar presupuesto en COI', error);
           showToast(error.message || 'No fue posible guardar el presupuesto en COI.', 'text-bg-danger');
@@ -551,10 +600,19 @@
     }
     actualizarDisponibilidadAcciones();
 
-    const inicializarDatos = () => {
+    const inicializarDatos = async () => {
       actualizarEncabezadoEmpresa();
-      cargarPresupuestos();
-      obtenerWorkflow();
+      await cargarPresupuestos();
+      await obtenerWorkflow();
+      if (!moduloReadyDispatched) {
+        moduloReadyDispatched = true;
+        window.dispatchEvent(new CustomEvent('modulo:ready', {
+          detail: {
+            modulo: opciones.modulo,
+            anio
+          }
+        }));
+      }
     };
 
     if (document.readyState === 'loading') {
