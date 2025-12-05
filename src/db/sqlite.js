@@ -2,6 +2,7 @@ const path = require('path');
 const fs = require('fs');
 const Database = require('better-sqlite3');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const { MODULOS } = require('../config/modulos');
 const { EMPRESAS } = require('../config/empresas');
 
@@ -228,9 +229,10 @@ const crearAdministradorGlobal = () => {
     return;
   }
 
-  const passwordPlano = envPassword || '4zxb63Nyl43?';
+  const passwordPlano = envPassword || crypto.randomBytes(16).toString('base64url');
   if (!envPassword) {
-    console.warn('ICONET: se creó con contraseña por defecto. Define PANELAMCHAM_ADMIN_PASSWORD para rotarla.');
+    console.warn('ICONET: se creó con contraseña aleatoria segura. Define PANELAMCHAM_ADMIN_PASSWORD/ICONET_PASSWORD para controlar la credencial.');
+    console.warn(`ICONET: contraseña generada (guárdala y rótala pronto): ${passwordPlano}`);
   }
   const hash = hashPassword(passwordPlano);
 

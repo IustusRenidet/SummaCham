@@ -15,7 +15,12 @@ const createWindow = () => {
     minHeight: 720,
     backgroundColor: '#f3f6f1',
     autoHideMenuBar: true,
-    icon: resolveAssetPath('icono', iconName)
+    icon: resolveAssetPath('icono', iconName),
+    webPreferences: {
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: false
+    }
   });
 
   mainWindow.loadFile(resolveAssetPath('vistas', 'app.html'));

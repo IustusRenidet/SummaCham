@@ -24,11 +24,18 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3000)) => {
   inicializarBaseDatos();
 
   const app = express();
-  // CORS sencillo para permitir llamadas desde la app local (file://) y localhost
+  // CORS restringido: permitir orígenes configurados (por defecto localhost y file:// -> null origin)
+  const allowedOrigins = (process.env.PANELAMCHAM_ALLOW_ORIGINS || 'http://localhost:3000,null,file://')
+    .split(',')
+    .map((o) => o.trim());
   app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
+    const origin = req.headers.origin || 'null';
+    if (allowedOrigins.includes(origin) || (origin === 'null' && allowedOrigins.includes('file://'))) {
+      res.header('Access-Control-Allow-Origin', origin);
+    }
+    res.header('Vary', 'Origin');
     res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, X-Usuario-Actual, X-Empresa-Activa');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, X-Usuario-Actual, X-Empresa-Activa, Authorization');
     if (req.method === 'OPTIONS') {
       return res.sendStatus(204);
     }
@@ -50,7 +57,6 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3000)) => {
   app.use('/api/comites', rutasComites);
   app.use('/api/planeacion', rutasPlaneacion);
   app.use('/api/borradores', rutasBorradores);
-  app.use('/api/workflow/borradores', rutasBorradores);
   app.use('/api/notificaciones', rutasNotificaciones);
   app.use('/api/reportes', rutasReportes);
   app.use('/api/saldos', rutasSaldos);

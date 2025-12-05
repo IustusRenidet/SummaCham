@@ -1,5 +1,6 @@
 (() => {
-  const API_BASE = 'http://localhost:3000/api';
+  const origin = window.location.protocol === 'file:' ? 'http://localhost:3000' : window.location.origin;
+  const API_BASE = `${origin}/api`;
   const normalizarEstadoWorkflow = (valor) => {
     if (!valor) return 'SIN_CARGAR';
     const base = valor.toString().toUpperCase();
@@ -268,9 +269,10 @@
     const elementos = {
       tabla: document.getElementById('tablaComparacion'),
       accountSearchInput: document.getElementById('accountSearch'),
-      loadBudgetBtn: document.getElementById('loadBudgetBtn'),
-      reviewBudgetBtn: document.getElementById('reviewBudgetBtn'),
-      authorizeBudgetBtn: document.getElementById('authorizeBudgetBtn'),
+      // Preferimos los IDs estandarizados del flujo de autorización y caemos al alias legado si existe.
+      loadBudgetBtn: document.getElementById('btnGuardarBorrador') || document.getElementById('loadBudgetBtn'),
+      reviewBudgetBtn: document.getElementById('btnMarcarRevisado') || document.getElementById('reviewBudgetBtn'),
+      authorizeBudgetBtn: document.getElementById('btnAutorizar') || document.getElementById('authorizeBudgetBtn'),
       saveBudgetBtn: document.getElementById('saveBudgetBtn'),
       budgetFileInput: document.getElementById('budgetFileInput'),
       toggleAccountsBtn: document.getElementById('toggleAccountsBtn'),
@@ -288,6 +290,7 @@
     const toastInstance = window.bootstrap?.Toast.getOrCreateInstance(elementos.toastElement, { delay: 3000 });
 
     const EVENTO_CONTEXTO = 'planeacion:contexto-actualizado';
+    const workflowControlExterno = true; // workflow lo maneja flujo-autorizacion.js
 
   const estado = {
     filtro: '',
@@ -392,7 +395,9 @@
       actualizarYearLabels();
       actualizarEncabezadosMes();
       notificarContexto();
-      obtenerWorkflow();
+      if (!workflowControlExterno) {
+        obtenerWorkflow();
+      }
     };
 
     const cargarAniosDisponibles = async () => {
@@ -462,6 +467,9 @@
     };
 
     const actualizarBadgeWorkflow = () => {
+      if (workflowControlExterno) {
+        return;
+      }
       if (!elementos.workflowBadge) {
         return;
       }
@@ -477,6 +485,9 @@
     };
 
     const renderizarHistorial = () => {
+      if (workflowControlExterno) {
+        return;
+      }
       if (!elementos.workflowHistory) {
         return;
       }
@@ -501,6 +512,9 @@
     };
 
     const actualizarDisponibilidadAcciones = () => {
+      if (workflowControlExterno) {
+        return;
+      }
       const { permisos } = obtenerPermisosActuales(sesion, opciones.modulo);
       const estadoActual = estado.workflow.estado;
       const esAdminGlobal = Sesion.esAdminGlobal(sesion);
@@ -531,6 +545,9 @@
     };
 
     const obtenerWorkflow = async () => {
+      if (workflowControlExterno) {
+        return;
+      }
       const { empresa } = obtenerPermisosActuales(sesion, opciones.modulo);
       if (!empresa || !Number.isInteger(estado.anio)) {
         estado.workflow = { estado: 'SIN_CARGAR', actualizadoEn: null, actualizadoPor: '', historial: [] };
@@ -572,6 +589,9 @@
     };
 
     const ejecutarAccionWorkflow = async (accion) => {
+      if (workflowControlExterno) {
+        return;
+      }
       if (!TRANSICIONES[accion]) {
         return;
       }
@@ -630,6 +650,9 @@
     };
 
     const guardarPresupuestoEnBD = async () => {
+      if (workflowControlExterno) {
+        throw new Error('El guardado en base de datos es manejado por el nuevo flujo de autorizacion.');
+      }
       const empresa = Sesion.obtenerEmpresaActiva(sesion);
       const anioSeleccionado = Number.isInteger(estado.anio) ? estado.anio : null;
       if (!empresa?.id || !anioSeleccionado) {
@@ -705,7 +728,7 @@
       showToast('Edición guardada y lista para continuar.', 'text-bg-success');
     };
 
-    if (elementos.loadBudgetBtn) {
+    if (!workflowControlExterno && elementos.loadBudgetBtn) {
       actualizarTextoBotonCargar();
       elementos.loadBudgetBtn.addEventListener('click', () => {
         if (estado.editMode) {
@@ -717,11 +740,11 @@
       });
     }
 
-    if (elementos.reviewBudgetBtn) {
+    if (!workflowControlExterno && elementos.reviewBudgetBtn) {
       elementos.reviewBudgetBtn.addEventListener('click', () => ejecutarAccionWorkflow('revisar'));
     }
 
-    if (elementos.authorizeBudgetBtn) {
+    if (!workflowControlExterno && elementos.authorizeBudgetBtn) {
       elementos.authorizeBudgetBtn.addEventListener('click', () => ejecutarAccionWorkflow('autorizar'));
     }
 
@@ -739,7 +762,7 @@
       }
     });
 
-    if (elementos.saveBudgetBtn) {
+    if (!workflowControlExterno && elementos.saveBudgetBtn) {
       elementos.saveBudgetBtn.addEventListener('click', async () => {
         try {
           const respuesta = await guardarPresupuestoEnBD();
@@ -759,7 +782,9 @@
       filtrarFilas();
       aplicarVisibilidadCuentas();
       await cargarAniosDisponibles();
-      await obtenerWorkflow();
+      if (!workflowControlExterno) {
+        await obtenerWorkflow();
+      }
       if (!moduloReadyDispatched) {
         moduloReadyDispatched = true;
         window.dispatchEvent(new CustomEvent('modulo:ready', {
@@ -785,7 +810,9 @@
     window.addEventListener(Sesion.EVENTO_EMPRESA, async () => {
       actualizarEncabezadoEmpresa();
       await cargarAniosDisponibles();
-      await obtenerWorkflow();
+      if (!workflowControlExterno) {
+        await obtenerWorkflow();
+      }
     });
   };
 

@@ -6,6 +6,23 @@
   const EVENTO_EDICION = 'modulo-planeacion:presupuesto-editado';
   const STYLE_ID = 'flujo-autorizacion-style';
   const normalizarCuentaClave = (valor = '') => valor ? valor.toString().replace(/[^0-9]/g, '') : '';
+  const YEAR_SELECTOR_IDS = [
+    'selectAnio',
+    'summaryYearSelect',
+    'resumenYearSelect',
+    'presupuestosYearSelect',
+    'finanzasYearSelect',
+    'comitesYearSelect',
+    'comunicacionYearSelect',
+    'direccionYearSelect',
+    'eventosYearSelect',
+    'gtoscorporativosYearSelect',
+    'membresiaYearSelect',
+    'rhYearSelect',
+    'servmembresiaYearSelect',
+    'ticYearSelect',
+    'vpeYearSelect'
+  ];
   
   const ESTADOS = {
     EDITANDO: 'EDITANDO',
@@ -376,7 +393,7 @@
       this.modoEdicion = false;
       this.cambiosEdicion = {};
       this.esAdminGlobal = Boolean(window.Sesion?.esAdminGlobal?.());
-      this.usuarioActual = window.Sesion?.obtenerDatosUsuario?.() || {};
+      this.usuarioActual = window.Sesion?.obtener?.()?.usuario || {};
       this.tableElement = null;
       this.toastInstance = null;
       this.toastBody = null;
@@ -543,7 +560,11 @@
 
     async _actualizarEstadoServidor() {
       if (!this._contextoCompleto()) {
+        this.borradorActual = null;
+        this._desactivarModoEdicion();
+        FlujoAutorizacion.limpiarBorrador(this.tableElement);
         this._notificarEstadoBorrador(null);
+        this._actualizarInfoPanel();
         this._actualizarBotones();
         return;
       }
@@ -560,19 +581,31 @@
         
         if (!respuesta.ok) {
           this.borradorActual = null;
+          this._desactivarModoEdicion();
+          FlujoAutorizacion.limpiarBorrador(this.tableElement);
           this._notificarEstadoBorrador(null);
+          this._actualizarInfoPanel();
           this._actualizarBotones();
           return;
         }
         
         this.borradorActual = datos.borrador || null;
+        if (!this.borradorActual) {
+          this._desactivarModoEdicion();
+          FlujoAutorizacion.limpiarBorrador(this.tableElement);
+        }
         this._notificarEstadoBorrador(this.borradorActual);
         this._sincronizarModoEdicion();
         this._actualizarInfoPanel();
         this._actualizarBotones();
       } catch (error) {
         console.error('Error consultando el estado del borrador', error);
+        this.borradorActual = null;
+        this._desactivarModoEdicion();
+        FlujoAutorizacion.limpiarBorrador(this.tableElement);
         this._notificarEstadoBorrador(null);
+        this._actualizarInfoPanel();
+        this._actualizarBotones();
       }
     }
 
@@ -637,18 +670,17 @@
     }
 
     _hidratarContextoInicial() {
+      this._contextoRetry = this._contextoRetry || 0;
       if (!this.contexto.empresaId && window.Sesion?.obtenerEmpresaActiva) {
         const empresa = window.Sesion.obtenerEmpresaActiva();
         if (empresa?.id) {
           this.contexto.empresaId = empresa.id;
         }
       }
+      const selectoresAnio = YEAR_SELECTOR_IDS.map((id) => document.getElementById(id)).filter(Boolean);
       if (!this.contexto.anio || Number(this.contexto.anio) < 2000) {
-        const candidatos = [
-          document.getElementById('selectAnio')?.value,
-          document.getElementById('summaryYearSelect')?.value,
-          document.getElementById('resumenYearSelect')?.value
-        ]
+        const candidatos = selectoresAnio
+          .map((el) => el?.value)
           .map((valor) => {
             const numero = Number(valor);
             return Number.isFinite(numero) && numero >= 2000 ? numero : null;
@@ -656,8 +688,16 @@
           .filter((valor) => valor != null);
         if (candidatos.length) {
           this.contexto.anio = candidatos[0];
+          this._contextoRetry = 0;
         } else {
           this.contexto.anio = new Date().getFullYear();
+          if (selectoresAnio.length && this._contextoRetry < 3) {
+            this._contextoRetry += 1;
+            setTimeout(() => {
+              this._hidratarContextoInicial();
+              this._actualizarEstadoServidor();
+            }, 500);
+          }
         }
       }
       if (!this.contexto.modulo) {
@@ -1337,16 +1377,11 @@
     }
 
     if (this.buttons.descartar) {
-      const visibleDescartar = this._permitido('guardar') && tieneBorrador;
-      this.buttons.descartar.classList.toggle('d-none', !visibleDescartar);
+      const puedeDescartar = this._permitido('guardar') && tieneBorrador;
+      this.buttons.descartar.classList.toggle('d-none', !puedeDescartar);
+      this.buttons.descartar.disabled = !puedeDescartar;
     }
-
-      if (this.buttons.descartar) {
-        const puedeDescartar = Boolean(this.borradorActual);
-        this.buttons.descartar.classList.toggle('d-none', !puedeDescartar);
-        this.buttons.descartar.disabled = !puedeDescartar;
-      }
-    }
+  }
 
     static pintarBorrador(tabla, datosBorrador) {
       if (!tabla || !datosBorrador) return false;

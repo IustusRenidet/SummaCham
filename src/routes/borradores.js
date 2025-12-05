@@ -390,7 +390,7 @@ router.post('/enviar', async (req, res) => {
   if (!empresa) {
     return res.status(404).json({ mensaje: 'Empresa asociada al borrador no existe.' });
   }
-  if (!req.esAdmin && !tienePermisoEnModulo(req.mapaPermisos, empresa.id, borrador.modulo, 'Revisar')) {
+  if (!req.esAdmin && !tienePermisoEnModulo(req.mapaPermisos, empresa.id, borrador.modulo, 'Cargar y guardar')) {
     return res.status(403).json({ mensaje: 'No cuentas con permisos para enviar a revisión.' });
   }
 

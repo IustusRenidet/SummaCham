@@ -453,9 +453,6 @@
     abrirModalAgregarSeccion.actualizarSecciones = () => poblarSelectSeccionesModal();
     poblarSelectSeccionesModal();
     modal.hidden = false;
-    addAccountBtn.addEventListener('click', () => {
-      accountsContainer.appendChild(crearCampoCuentaFormulario());
-    });
   };
 
   const cerrarModalSeccion = () => {
@@ -2716,3 +2713,38 @@
     }
   };
 })();
+  const normalizarCuentaBase = (cuenta) => {
+    if (!cuenta) return '';
+    return cuenta.toString().replace(/[^0-9A-Za-z]/g, '').toUpperCase().trim();
+  };
+
+  const deducirNivel = (baseVisible) => {
+    const visible = normalizarCuentaBase(baseVisible).slice(0, 11).padEnd(11, '0');
+    const b = visible.slice(3, 6);
+    const c = visible.slice(6, 9);
+    const d = visible.slice(9, 11);
+    if (b === '000' && c === '000' && d === '00') return '1';
+    if (c === '000' && d === '00') return '2';
+    if (d === '00') return '3';
+    return '4';
+  };
+
+  const convertirCuenta21 = (cuentaLegible) => {
+    const entrada = normalizarCuentaBase(cuentaLegible);
+    if (!entrada) return '';
+
+    // Si ya viene en formato COI de 21 caracteres, respétalo.
+    if (entrada.length >= 21) {
+      return entrada.slice(0, 21);
+    }
+
+    // Usa la conversión compartida si está disponible en la vista.
+    if (typeof window.cuentaLarga === 'function') {
+      const desdeVista = window.cuentaLarga(entrada);
+      if (desdeVista) return desdeVista;
+    }
+
+    const visible = entrada.slice(0, 11).padEnd(11, '0');
+    const nivel = deducirNivel(visible);
+    return visible.padEnd(20, '0') + nivel;
+  };

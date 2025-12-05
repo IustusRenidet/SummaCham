@@ -1,6 +1,11 @@
 (() => {
   const { useState, useEffect, useMemo, useCallback } = React;
-  const API_BASE = "http://localhost:3000/api";
+  const API_BASE = (() => {
+    if (window.location.protocol === "file:") {
+      return "http://localhost:3000/api";
+    }
+    return `${window.location.origin.replace(/\/$/, "")}/api`;
+  })();
   const MODULE_GROUPS = [
     {
       id: "panel-resumenes",
@@ -133,7 +138,7 @@
             contrasena: form.contrasena
           })
         });
-        const datos = await respuesta.json();
+        const datos = await respuesta.json().catch(() => ({}));
         if (!respuesta.ok) {
           throw new Error(datos.mensaje || "No fue posible iniciar sesi\xF3n.");
         }
@@ -141,7 +146,11 @@
         onLogin(sesionNormalizada);
       } catch (err) {
         console.error("Error de inicio de sesi\xF3n", err);
-        setError(err.message || "Ocurri\xF3 un problema durante el inicio de sesi\xF3n.");
+        const msg = err?.message || "Ocurri\xF3 un problema durante el inicio de sesi\xF3n.";
+        const sugerencia = msg.includes("Failed to fetch")
+          ? "Verifica que el servidor est\xE9 corriendo en http://localhost:3000 y que no haya bloqueos de red."
+          : msg;
+        setError(sugerencia);
       } finally {
         setCargando(false);
       }
