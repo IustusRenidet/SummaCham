@@ -23,7 +23,7 @@
     const actualNum = toNumber(actual);
     const baseNum = toNumber(base);
     if (Math.abs(baseNum) === 0) return 0;
-    return ((actualNum - baseNum) / Math.abs(baseNum)) * 100;
+    return (actualNum / baseNum) * 100;
   };
 
   const parseNumber = (texto) => {
@@ -323,10 +323,15 @@
     const totals = {
       actualMonth: toNumber(nodo.actualMonth ?? nodo.totalActualMonth),
       planMonth: toNumber(nodo.planMonth ?? nodo.totalPlanMonth),
-      prevMonth: toNumber(nodo.prevMonth ?? nodo.totalPrevMonth)
+      prevMonth: toNumber(nodo.prevMonth ?? nodo.totalPrevMonth),
+      actualYTD: toNumber(nodo.actualYTD ?? nodo.totalActualYTD),
+      planYTD: toNumber(nodo.planYTD ?? nodo.totalPlanYTD),
+      prevYTD: toNumber(nodo.prevYTD ?? nodo.totalPrevYTD)
     };
     const varPlan = calculateVar(totals.actualMonth, totals.planMonth);
     const varPrev = calculateVar(totals.actualMonth, totals.prevMonth);
+    const varPlanYTD = calculateVar(totals.actualYTD, totals.planYTD);
+    const varPrevYTD = calculateVar(totals.actualYTD, totals.prevYTD);
     const row = document.createElement('tr');
     row.className = rowClass;
     row.dataset.rowRole = rowRole;
@@ -343,6 +348,11 @@
       ${createCell(totals.prevMonth, { rowRole, tooltipKey: 'prevMonth' })}
       ${createPercentCell(varPlan, { rowRole, tooltipKey: 'varMonthPlan' })}
       ${createPercentCell(varPrev, { rowRole, tooltipKey: 'varMonthPrev' })}
+      ${createCell(totals.actualYTD, { rowRole, tooltipKey: 'actualYTD' })}
+      ${createCell(totals.planYTD, { rowRole, tooltipKey: 'planYTD' })}
+      ${createCell(totals.prevYTD, { rowRole, tooltipKey: 'prevYTD' })}
+      ${createPercentCell(varPlanYTD, { rowRole, tooltipKey: 'varYtdPlan' })}
+      ${createPercentCell(varPrevYTD, { rowRole, tooltipKey: 'varYtdPrev' })}
     `;
     return row;
   };
@@ -363,7 +373,7 @@
   const setStatusRow = (mensaje) => {
     if (!tablaBody) return;
     disposeTooltips();
-    tablaBody.innerHTML = `<tr class="estado-tabla"><td colspan="7">${mensaje}</td></tr>`;
+    tablaBody.innerHTML = `<tr class="estado-tabla"><td colspan="11">${mensaje}</td></tr>`;
   };
 
   const ordenarPorOrden = (items = [], extractor) => {
@@ -406,6 +416,8 @@
           (seccion.cuentas || []).forEach((cta) => {
             const varPlan = calculateVar(cta.actualMonth, cta.planMonth);
             const varPrev = calculateVar(cta.actualMonth, cta.prevMonth);
+            const varPlanYTD = calculateVar(cta.actualYTD, cta.planYTD);
+            const varPrevYTD = calculateVar(cta.actualYTD, cta.prevYTD);
             const row = document.createElement('tr');
             row.className = 'data-row';
             row.dataset.cuenta = cta.cuentaCanonica || cta.cuenta || '';
@@ -426,6 +438,11 @@
               ${createCell(cta.prevMonth, { rowRole: 'account', tooltipKey: 'prevMonth' })}
               ${createPercentCell(varPlan, { rowRole: 'account', tooltipKey: 'varMonthPlan' })}
               ${createPercentCell(varPrev, { rowRole: 'account', tooltipKey: 'varMonthPrev' })}
+              ${createCell(cta.actualYTD, { rowRole: 'account', tooltipKey: 'actualYTD' })}
+              ${createCell(cta.planYTD, { rowRole: 'account', tooltipKey: 'planYTD' })}
+              ${createCell(cta.prevYTD, { rowRole: 'account', tooltipKey: 'prevYTD' })}
+              ${createPercentCell(varPlanYTD, { rowRole: 'account', tooltipKey: 'varYtdPlan' })}
+              ${createPercentCell(varPrevYTD, { rowRole: 'account', tooltipKey: 'varYtdPrev' })}
             `;
             tablaBody.appendChild(row);
           });

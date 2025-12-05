@@ -289,11 +289,11 @@ function mostrarToastExito(mensaje = 'Actualizado correctamente') {
   Usa estos registros para agregar tus formulas reales sin tocar el motor:
 */
 const COLUMN_DEFS = [
-  { key: 'mesActual', colIndex: 2, label: 'Mes actual', tipo: 'currency' },
-  { key: 'mesPlan', colIndex: 3, label: 'Mes plan', tipo: 'currency' },
-  { key: 'mesAnterior', colIndex: 4, label: 'Mes anterior', tipo: 'currency' },
-  { key: 'mesVariacionPlan', colIndex: 5, label: 'Var. mes vs plan', tipo: 'percent' },
-  { key: 'mesVariacionAnterior', colIndex: 6, label: 'Var. mes vs anterior', tipo: 'percent' },
+  { key: 'mesActual', colIndex: 3, label: 'Mes actual', tipo: 'currency' },
+  { key: 'mesPlan', colIndex: 4, label: 'Mes plan', tipo: 'currency' },
+  { key: 'mesAnterior', colIndex: 5, label: 'Mes anterior', tipo: 'currency' },
+  { key: 'mesVariacionPlan', colIndex: 6, label: 'Var. mes vs plan', tipo: 'percent' },
+  { key: 'mesVariacionAnterior', colIndex: 7, label: 'Var. mes vs anterior', tipo: 'percent' },
   { key: 'acumuladoActual', colIndex: 8, label: 'YTD actual', tipo: 'currency' },
   { key: 'acumuladoPlan', colIndex: 9, label: 'YTD plan', tipo: 'currency' },
   { key: 'acumuladoAnterior', colIndex: 10, label: 'YTD anterior', tipo: 'currency' },
@@ -934,12 +934,12 @@ function renderizarTabla() {
       tr.className = clases.join(' ');
       tr.innerHTML = `
         <th id="cell-r${r}-c1" data-row-index="${r}" data-col-index="1" data-column-key="codigo" data-role="code" class="account-column code-cell"></th>
-        <td id="cell-r${r}-c2" data-row-index="${r}" data-col-index="2" data-column-key="mesActual" class="mono">${formatearMoneda(fila.mesActual)}</td>
-        <td id="cell-r${r}-c3" data-row-index="${r}" data-col-index="3" data-column-key="mesPlan" class="mono">${formatearMoneda(fila.mesPlan)}</td>
-        <td id="cell-r${r}-c4" data-row-index="${r}" data-col-index="4" data-column-key="mesAnterior" class="mono">${formatearMoneda(fila.mesAnterior)}</td>
-        <td id="cell-r${r}-c5" data-row-index="${r}" data-col-index="5" data-column-key="mesVariacionPlan" class="mono">${formatearPorcentaje(fila.mesVariacionPlan)}</td>
-        <td id="cell-r${r}-c6" data-row-index="${r}" data-col-index="6" data-column-key="mesVariacionAnterior" class="mono">${formatearPorcentaje(fila.mesVariacionAnterior)}</td>
-        <td id="cell-r${r}-c7" data-row-index="${r}" data-col-index="7" data-column-key="label" class="category-cell" data-depth="${fila.depth||0}" style="--depth:${fila.depth||0}">${fila.etiqueta || ''}</td>
+        <td id="cell-r${r}-c2" data-row-index="${r}" data-col-index="2" data-column-key="label" class="category-cell" data-depth="${fila.depth||0}" style="--depth:${fila.depth||0}">${fila.etiqueta || ''}</td>
+        <td id="cell-r${r}-c3" data-row-index="${r}" data-col-index="3" data-column-key="mesActual" class="mono">${formatearMoneda(fila.mesActual)}</td>
+        <td id="cell-r${r}-c4" data-row-index="${r}" data-col-index="4" data-column-key="mesPlan" class="mono">${formatearMoneda(fila.mesPlan)}</td>
+        <td id="cell-r${r}-c5" data-row-index="${r}" data-col-index="5" data-column-key="mesAnterior" class="mono">${formatearMoneda(fila.mesAnterior)}</td>
+        <td id="cell-r${r}-c6" data-row-index="${r}" data-col-index="6" data-column-key="mesVariacionPlan" class="mono">${formatearPorcentaje(fila.mesVariacionPlan)}</td>
+        <td id="cell-r${r}-c7" data-row-index="${r}" data-col-index="7" data-column-key="mesVariacionAnterior" class="mono">${formatearPorcentaje(fila.mesVariacionAnterior)}</td>
         <td id="cell-r${r}-c8" data-row-index="${r}" data-col-index="8" data-column-key="acumuladoActual" class="mono">${formatearMoneda(fila.acumuladoActual)}</td>
         <td id="cell-r${r}-c9" data-row-index="${r}" data-col-index="9" data-column-key="acumuladoPlan" class="mono">${formatearMoneda(fila.acumuladoPlan)}</td>
         <td id="cell-r${r}-c10" data-row-index="${r}" data-col-index="10" data-column-key="acumuladoAnterior" class="mono">${formatearMoneda(fila.acumuladoAnterior)}</td>
@@ -952,12 +952,12 @@ function renderizarTabla() {
       if (clases.length) tr.className = clases.join(' ');
       tr.innerHTML = `
         <th id="cell-r${r}-c1" data-row-index="${r}" data-col-index="1" data-column-key="codigo" data-role="code" class="account-column code-cell" data-codigo="${fila.codigo || ''}">${fila.codigo || ''}</th>
-        <td id="cell-r${r}-c2" data-row-index="${r}" data-col-index="2" data-column-key="mesActual" class="mono">${formatearMoneda(fila.mesActual)}</td>
-        <td id="cell-r${r}-c3" data-row-index="${r}" data-col-index="3" data-column-key="mesPlan" class="mono">${formatearMoneda(fila.mesPlan)}</td>
-        <td id="cell-r${r}-c4" data-row-index="${r}" data-col-index="4" data-column-key="mesAnterior" class="mono">${formatearMoneda(fila.mesAnterior)}</td>
-        <td id="cell-r${r}-c5" data-row-index="${r}" data-col-index="5" data-column-key="mesVariacionPlan" class="mono">${formatearPorcentaje(fila.mesVariacionPlan)}</td>
-        <td id="cell-r${r}-c6" data-row-index="${r}" data-col-index="6" data-column-key="mesVariacionAnterior" class="mono">${formatearPorcentaje(fila.mesVariacionAnterior)}</td>
-        <td id="cell-r${r}-c7" data-row-index="${r}" data-col-index="7" data-column-key="label" class="label-cell" data-role="descripcion" data-depth="${fila.depth||0}" style="--depth:${fila.depth||0}">${fila.descripcion || ''}</td>
+        <td id="cell-r${r}-c2" data-row-index="${r}" data-col-index="2" data-column-key="label" class="label-cell" data-role="descripcion" data-depth="${fila.depth||0}" style="--depth:${fila.depth||0}">${fila.descripcion || ''}</td>
+        <td id="cell-r${r}-c3" data-row-index="${r}" data-col-index="3" data-column-key="mesActual" class="mono">${formatearMoneda(fila.mesActual)}</td>
+        <td id="cell-r${r}-c4" data-row-index="${r}" data-col-index="4" data-column-key="mesPlan" class="mono">${formatearMoneda(fila.mesPlan)}</td>
+        <td id="cell-r${r}-c5" data-row-index="${r}" data-col-index="5" data-column-key="mesAnterior" class="mono">${formatearMoneda(fila.mesAnterior)}</td>
+        <td id="cell-r${r}-c6" data-row-index="${r}" data-col-index="6" data-column-key="mesVariacionPlan" class="mono">${formatearPorcentaje(fila.mesVariacionPlan)}</td>
+        <td id="cell-r${r}-c7" data-row-index="${r}" data-col-index="7" data-column-key="mesVariacionAnterior" class="mono">${formatearPorcentaje(fila.mesVariacionAnterior)}</td>
         <td id="cell-r${r}-c8" data-row-index="${r}" data-col-index="8" data-column-key="acumuladoActual" class="mono">${formatearMoneda(fila.acumuladoActual)}</td>
         <td id="cell-r${r}-c9" data-row-index="${r}" data-col-index="9" data-column-key="acumuladoPlan" class="mono">${formatearMoneda(fila.acumuladoPlan)}</td>
         <td id="cell-r${r}-c10" data-row-index="${r}" data-col-index="10" data-column-key="acumuladoAnterior" class="mono">${formatearMoneda(fila.acumuladoAnterior)}</td>
