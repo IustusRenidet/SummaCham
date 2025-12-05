@@ -1145,6 +1145,16 @@
       draftsDrawerStatus.className = 'alert alert-success';
       draftsDrawerStatus.textContent = 'Selecciona un borrador para visualizarlo en la tabla.';
 
+      draftsDrawerBody.addEventListener('click', (ev) => {
+        const boton = ev.target.closest('[data-borrador-id]');
+        if (!boton) return;
+        const id = Number(boton.dataset.borradorId);
+        if (Number.isFinite(id)) {
+          this._verBorradorDesdeCentro(id);
+        }
+      }, { once: true });
+
+      const frag = document.createDocumentFragment();
       lista.forEach((item) => {
         const row = document.createElement('tr');
         const etiquetaEstado = ESTADOS_ETIQUETAS[item.estado] || item.estado;
@@ -1168,17 +1178,9 @@
             </button>
           </td>
         `;
-        draftsDrawerBody.appendChild(row);
+        frag.appendChild(row);
       });
-
-      draftsDrawerBody.querySelectorAll('[data-borrador-id]').forEach((boton) => {
-        boton.addEventListener('click', () => {
-          const id = Number(boton.dataset.borradorId);
-          if (Number.isFinite(id)) {
-            this._verBorradorDesdeCentro(id);
-          }
-        });
-      });
+      draftsDrawerBody.appendChild(frag);
     }
 
     async _verBorradorDesdeCentro(borradorId) {
@@ -1200,7 +1202,7 @@
         }
         const pintado = FlujoAutorizacion.pintarBorrador(this.tableElement, this.borradorActual);
         if (!pintado) {
-          this._mostrarToast('Borrador obtenido pero no se pudo aplicar sobre la tabla.', 'warning');
+          this._mostrarToast('Borrador obtenido pero no se pudo aplicar sobre la tabla. Verifica data-columna-clave y cuentas coincidentes.', 'warning');
           return;
         }
         this._mostrarToast('Borrador aplicado. Las celdas en amarillo muestran la vista seleccionada.', 'info');
@@ -1738,8 +1740,8 @@
       btn.classList.remove('disabled');
       btn.removeAttribute('disabled');
       btn.setAttribute('aria-disabled', 'false');
-      btn.setAttribute('data-bs-toggle', 'offcanvas');
-      btn.setAttribute('data-bs-target', '#workflowDrawer');
+      btn.removeAttribute('data-bs-toggle');
+      btn.removeAttribute('data-bs-target');
       btn.addEventListener('click', (event) => {
         event.preventDefault();
         const instancia = asegurarWorkflowDrawer();
@@ -1767,8 +1769,8 @@
         btn.classList.remove('disabled');
         btn.removeAttribute('disabled');
         btn.setAttribute('aria-disabled', 'false');
-        btn.setAttribute('data-bs-toggle', 'offcanvas');
-        btn.setAttribute('data-bs-target', `#${DRAFTS_DRAWER_ID}`);
+        btn.removeAttribute('data-bs-toggle');
+        btn.removeAttribute('data-bs-target');
         btn.addEventListener('click', (event) => {
           event.preventDefault();
           abrirCentroBorradores();
