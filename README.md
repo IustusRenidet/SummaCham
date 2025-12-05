@@ -50,6 +50,12 @@ El proyecto está configurado con **electron-builder** para generar un ejecutabl
 - `npm run pack`: genera un paquete sin instalador (modo directorio).
 - `npm run dist`: genera el ejecutable portable listo para distribución.
 
+## Hardening de la cuenta ICONET (admin global)
+
+- La cuenta `ICONET` se crea al inicializar la base de datos. Define antes de arrancar la app la variable `PANELAMCHAM_ADMIN_PASSWORD` (o `ICONET_PASSWORD`) para establecer/rotar la contrasena y evitar la clave por defecto.
+- Si la cuenta ya existe y defines la variable, al siguiente arranque se actualiza el hash de `ICONET` automaticamente; no se registran ni exponen contrasenas en logs.
+- Tras la rotacion, distribuye la nueva credencial de forma segura y elimina la variable del entorno de ejecucion si no deseas que se siga aplicando en reinicios posteriores.
+
 ## Notas adicionales
 
 - El archivo `.gitignore` incluye directorios generados y artefactos temporales comunes.

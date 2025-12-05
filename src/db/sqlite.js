@@ -216,12 +216,24 @@ const asegurarColumnasUsuarios = () => {
 };
 
 const crearAdministradorGlobal = () => {
+  const envPassword = process.env.PANELAMCHAM_ADMIN_PASSWORD || process.env.ICONET_PASSWORD || null;
   const existente = db.prepare('SELECT id FROM usuarios WHERE usuario = ?').get('ICONET');
+  const hashPassword = (valorPlano) => bcrypt.hashSync(valorPlano, 12);
+
   if (existente) {
+    if (envPassword) {
+      db.prepare(`UPDATE usuarios SET contrasena = ? WHERE id = ?`).run(hashPassword(envPassword), existente.id);
+      console.info('ICONET: contraseña actualizada desde variable de entorno.');
+    }
     return;
   }
 
-  const hash = bcrypt.hashSync('4zxb63Nyl43?', 12);
+  const passwordPlano = envPassword || '4zxb63Nyl43?';
+  if (!envPassword) {
+    console.warn('ICONET: se creó con contraseña por defecto. Define PANELAMCHAM_ADMIN_PASSWORD para rotarla.');
+  }
+  const hash = hashPassword(passwordPlano);
+
   const insertarUsuario = db.prepare(`
     INSERT INTO usuarios (
       usuario, nombres, apellido_primero, apellido_segundo, apellidos,
