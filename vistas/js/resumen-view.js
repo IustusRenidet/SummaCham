@@ -373,7 +373,7 @@
   const setStatusRow = (mensaje) => {
     if (!tablaBody) return;
     disposeTooltips();
-    tablaBody.innerHTML = `<tr class="estado-tabla"><td colspan="11">${mensaje}</td></tr>`;
+    tablaBody.innerHTML = `<tr class="estado-tabla"><td colspan="12">${mensaje}</td></tr>`;
   };
 
   const ordenarPorOrden = (items = [], extractor) => {
@@ -716,4 +716,176 @@
       await aplicarEmpresaResumen(empresaActual.id);
     });
   });
+
+  // --- Workflow / COI bridge (ligero) ---
+  const workflowBadge = document.getElementById('workflowBadge');
+  const workflowMeta = document.getElementById('workflowMeta');
+  const workflowHistory = document.getElementById('workflowHistory');
+  const btnBorrador = document.getElementById('btnGuardarBorrador');
+  const btnRevisar = document.getElementById('btnMarcarRevisado');
+  const btnAutorizar = document.getElementById('btnAutorizar');
+  const btnGuardarCoi = document.getElementById('saveBudgetBtn');
+  const toastEl = document.getElementById('actionToast');
+  const toastBody = document.getElementById('actionToastBody');
+  const toastInst = toastEl ? window.bootstrap?.Toast.getOrCreateInstance(toastEl, { delay: 3000 }) : null;
+  const WORKFLOW_LABEL = {
+    'sin-cargar': 'Sin cargar',
+    borrador: 'Borrador',
+    revisado: 'Revisado',
+    autorizado: 'Autorizado',
+    guardado: 'Guardado en COI'
+  };
+
+  const showToast = (msg, variant = 'text-bg-success') => {
+    if (!toastEl || !toastInst) return;
+    toastEl.className = `toast align-items-center border-0 ${variant}`;
+    if (toastBody) toastBody.textContent = msg;
+    toastInst.show();
+  };
+
+  const workflowEstado = {
+    estado: 'sin-cargar',
+    actualizadoEn: null,
+    actualizadoPor: '',
+    historial: []
+  };
+
+  const renderWorkflow = () => {
+    if (workflowBadge) {
+      workflowBadge.textContent = WORKFLOW_LABEL[workflowEstado.estado] || workflowEstado.estado;
+    }
+    if (workflowMeta) {
+      const fecha = workflowEstado.actualizadoEn ? new Date(workflowEstado.actualizadoEn).toLocaleString('es-MX') : '';
+      const usuario = workflowEstado.actualizadoPor ? ` por ${workflowEstado.actualizadoPor}` : '';
+      workflowMeta.textContent = fecha ? `${fecha}${usuario}` : '';
+    }
+    if (workflowHistory) {
+      workflowHistory.innerHTML = '';
+      const lista = workflowEstado.historial || [];
+      if (!lista.length) {
+        const li = document.createElement('li');
+        li.className = 'list-group-item small text-muted';
+        li.textContent = 'Sin movimientos registrados.';
+        workflowHistory.appendChild(li);
+      } else {
+        lista.forEach((item) => {
+          const li = document.createElement('li');
+          li.className = 'list-group-item small';
+          const fecha = item.fecha ? new Date(item.fecha).toLocaleString('es-MX') : '';
+          li.textContent = `${WORKFLOW_LABEL[item.estado] || item.estado}${fecha ? ` · ${fecha}` : ''}${item.usuario ? ` · ${item.usuario}` : ''}`;
+          workflowHistory.appendChild(li);
+        });
+      }
+    }
+  };
+
+  const obtenerContexto = () => {
+    const empresa = Sesion.obtenerEmpresaActiva();
+    return {
+      empresaId: empresa?.id || '',
+      anio: leerAnioSeleccionado()
+    };
+  };
+
+  const API_WORKFLOW_ESTADO = `${base}/api/presupuestos/estado`;
+  const API_WORKFLOW_GUARDAR = `${base}/api/presupuestos/guardar`;
+
+  const cargarWorkflow = async (modulo) => {
+    const ctx = obtenerContexto();
+    if (!ctx.empresaId || !ctx.anio) return;
+    try {
+      const params = new URLSearchParams({ modulo, anio: ctx.anio });
+      const resp = await fetch(`${API_WORKFLOW_ESTADO}?${params.toString()}`, {
+        headers: Sesion.headersAutenticacion()
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) throw new Error(data.mensaje || 'No fue posible obtener el estado.');
+      workflowEstado.estado = data.estado || 'sin-cargar';
+      workflowEstado.actualizadoEn = data.actualizadoEn || null;
+      workflowEstado.actualizadoPor = data.actualizadoPor || '';
+      workflowEstado.historial = data.historial || [];
+      renderWorkflow();
+    } catch (err) {
+      console.warn('Workflow Resumen', err);
+      showToast(err.message || 'No fue posible actualizar el flujo.', 'text-bg-danger');
+    }
+  };
+
+  const postAccionWorkflow = async (accion, modulo) => {
+    const ctx = obtenerContexto();
+    if (!ctx.empresaId || !ctx.anio) {
+      showToast('Selecciona empresa y año.', 'text-bg-warning');
+      return;
+    }
+    try {
+      const resp = await fetch(API_WORKFLOW_ESTADO, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...Sesion.headersAutenticacion() },
+        body: JSON.stringify({ accion, modulo, anio: ctx.anio })
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) throw new Error(data.mensaje || 'No fue posible registrar la acción.');
+      workflowEstado.estado = data.estado || workflowEstado.estado;
+      workflowEstado.actualizadoEn = data.actualizadoEn || null;
+      workflowEstado.actualizadoPor = data.actualizadoPor || '';
+      workflowEstado.historial = data.historial || workflowEstado.historial;
+      renderWorkflow();
+      showToast(data.mensaje || 'Acción registrada.');
+    } catch (err) {
+      console.error('postAccionWorkflow', err);
+      showToast(err.message || 'No fue posible completar la acción.', 'text-bg-danger');
+    }
+  };
+
+  const guardarEnCoi = async (modulo) => {
+    const ctx = obtenerContexto();
+    if (!ctx.empresaId || !ctx.anio) {
+      showToast('Selecciona empresa y año.', 'text-bg-warning');
+      return;
+    }
+    const cambios = window.CuentasModulo?.getCambios?.() || { presupuesto: [], hayCambios: false };
+    try {
+      const resp = await fetch(API_WORKFLOW_GUARDAR, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...Sesion.headersAutenticacion() },
+        body: JSON.stringify({
+          modulo,
+          empresaId: ctx.empresaId,
+          anio: ctx.anio,
+          datos: cambios
+        })
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) throw new Error(data.mensaje || 'No fue posible guardar en COI.');
+      showToast(data.mensaje || 'Guardado en COI.');
+      await postAccionWorkflow('guardar', modulo);
+    } catch (err) {
+      console.error('guardarEnCoi', err);
+      showToast(err.message || 'No fue posible guardar en COI.', 'text-bg-danger');
+    }
+  };
+
+  const initWorkflowBridge = (modulo) => {
+    cargarWorkflow(modulo);
+    if (btnBorrador) {
+      btnBorrador.addEventListener('click', () => postAccionWorkflow('cargar', modulo));
+    }
+    if (btnRevisar) {
+      btnRevisar.addEventListener('click', () => postAccionWorkflow('revisar', modulo));
+    }
+    if (btnAutorizar) {
+      btnAutorizar.addEventListener('click', () => postAccionWorkflow('autorizar', modulo));
+    }
+    if (btnGuardarCoi) {
+      btnGuardarCoi.addEventListener('click', () => guardarEnCoi(modulo));
+    }
+    window.addEventListener('planeacion:contexto-actualizado', (evt) => {
+      const det = evt?.detail || {};
+      if (det?.modulo && det.modulo !== modulo) return;
+      cargarWorkflow(modulo);
+    });
+    window.addEventListener(Sesion.EVENTO_EMPRESA, () => cargarWorkflow(modulo));
+  };
+
+  initWorkflowBridge('RESUMEN');
 })();

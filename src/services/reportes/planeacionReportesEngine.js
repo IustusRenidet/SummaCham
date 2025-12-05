@@ -71,12 +71,6 @@ const NOMBRES_MESES = [
   'diciembre'
 ];
 
-const obtenerMesActualClave = () => {
-  const ahora = new Date();
-  const indice = Math.min(Math.max(ahora.getMonth(), 0), 11);
-  return MESES[indice]?.clave || 'dic';
-};
-
 const normalizarClaveMes = (mesEntrada) => {
   if (mesEntrada == null) return null;
   const numero = Number(mesEntrada);
@@ -107,17 +101,17 @@ const obtenerClaveMesAnterior = (claveMes) => {
   return null;
 };
 
-const calcularTotales = (cuentas, claveMes, claveMesPrevio, planeacionActual) => {
+const calcularTotales = (cuentas, claveMes, planeacionActual, planeacionPrev) => {
   const claveAcum = `${claveMes}_acum`;
-  const claveAcumPrevio = claveMesPrevio ? `${claveMesPrevio}_acum` : null;
 
   return cuentas.reduce(
     (acc, cuenta) => {
       const actual = planeacionActual.find((p) => p.cuenta === cuenta);
+      const previo = planeacionPrev?.find((p) => p.cuenta === cuenta);
 
       acc.actualMonth += Number(actual?.real?.[claveMes] ?? 0);
       acc.planMonth += Number(actual?.presupuesto?.[claveMes] ?? 0);
-      acc.prevMonth += claveMesPrevio ? Number(actual?.real?.[claveMesPrevio] ?? 0) : 0;
+      acc.prevMonth += Number(previo?.real?.[claveMes] ?? 0);
 
       acc.actualYTD += Number(actual?.real?.[claveAcum] ?? 0);
       acc.planYTD += MESES.reduce((total, { clave }) => {
@@ -126,7 +120,7 @@ const calcularTotales = (cuentas, claveMes, claveMesPrevio, planeacionActual) =>
         if (clave === claveMes) return { total: nuevo, detener: true };
         return { total: nuevo, detener: false };
       }, { total: 0, detener: false }).total;
-      acc.prevYTD += claveAcumPrevio ? Number(actual?.real?.[claveAcumPrevio] ?? 0) : 0;
+      acc.prevYTD += Number(previo?.real?.[claveAcum] ?? 0);
 
       return acc;
     },
@@ -154,12 +148,12 @@ const sumarTotales = (destino, origen, factor = 1) => {
   return destino;
 };
 
-const construirNodoSeccion = ({ seccion, cuentas, definicion, claveMes, claveMesPrevio, planeacionActual, orden = 0 }) => {
-  const totales = calcularTotales(cuentas, claveMes, claveMesPrevio, planeacionActual);
+const construirNodoSeccion = ({ seccion, cuentas, definicion, claveMes, planeacionActual, planeacionPrev, orden = 0 }) => {
+  const totales = calcularTotales(cuentas, claveMes, planeacionActual, planeacionPrev);
 
   const cuentasDetalle = cuentas.map((cuentaId) => {
     const actual = planeacionActual.find((p) => p.cuenta === cuentaId) || {};
-    const tienePrevio = Boolean(claveMesPrevio);
+    const previo = planeacionPrev?.find((p) => p.cuenta === cuentaId) || {};
 
     const planYTD = MESES.reduce((acc, { clave }) => {
       if (acc.detener) return acc;
@@ -175,10 +169,10 @@ const construirNodoSeccion = ({ seccion, cuentas, definicion, claveMes, claveMes
       descripcion: metadataCuenta.descripcion || '',
       actualMonth: Number(actual.real?.[claveMes] ?? 0),
       planMonth: Number(actual.presupuesto?.[claveMes] ?? 0),
-      prevMonth: tienePrevio ? Number(actual.real?.[claveMesPrevio] ?? 0) : 0,
+      prevMonth: Number(previo.real?.[claveMes] ?? 0),
       actualYTD: Number(actual.real?.[`${claveMes}_acum`] ?? 0),
       planYTD,
-      prevYTD: tienePrevio ? Number(actual.real?.[`${claveMesPrevio}_acum`] ?? 0) : 0
+      prevYTD: Number(previo.real?.[`${claveMes}_acum`] ?? 0)
     };
   });
 
@@ -196,7 +190,7 @@ const construirNodoSeccion = ({ seccion, cuentas, definicion, claveMes, claveMes
   };
 };
 
-const construirReporteResumen = (definiciones, configAgrupacion, capituloSeleccionado, claveMes, claveMesPrevio, planeacionActual) => {
+const construirReporteResumen = (definiciones, configAgrupacion, capituloSeleccionado, claveMes, planeacionActual, planeacionPrev) => {
   const definicionCuentas = new Map();
   const principalMap = new Map();
 
@@ -315,8 +309,8 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
       cuentas: sec.cuentas,
       definicion: definicionCuentas,
       claveMes,
-      claveMesPrevio,
       planeacionActual,
+      planeacionPrev,
       orden: sec.orden
     }));
 
@@ -475,18 +469,21 @@ async function generarReporte(tipoReporte, empresaId, anio, mesSeleccionado, cap
     : lista;
 
   const cuentas = listaFiltrada.map((item) => NORMALIZAR_CLAVE(item.CUENTA)).filter(Boolean);
-  const claveMes = normalizarClaveMes(mesSeleccionado) || obtenerMesActualClave();
-  const claveMesPrevio = obtenerClaveMesAnterior(claveMes);
+  const claveMes = normalizarClaveMes(mesSeleccionado) || MESES[Math.min(Math.max(new Date().getMonth(), 0), 11)].clave;
+  const anioPrevio = Number(anio) - 1;
 
-  const planeacionActual = await obtenerDatosPlaneacion({ empresaId, anio, cuentas });
+  const [planeacionActual, planeacionPrev] = await Promise.all([
+    obtenerDatosPlaneacion({ empresaId, anio, cuentas }),
+    obtenerDatosPlaneacion({ empresaId, anio: anioPrevio, cuentas })
+  ]);
 
   const { principals, layout } = construirReporteResumen(
     listaFiltrada, 
-    configAgrupacion, 
-    capituloEncontrado?.etiqueta || capituloSeleccionado, 
+    configAgrupacion,
+    capituloEncontrado?.etiqueta || capituloSeleccionado,
     claveMes,
-    claveMesPrevio,
-    planeacionActual
+    planeacionActual,
+    planeacionPrev
   );
 
   const nodoResumen = {

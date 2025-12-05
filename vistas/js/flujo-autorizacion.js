@@ -469,9 +469,8 @@
 
     _asegurarBotonDescartar() {
       if (this.buttons.descartar) {
-        // Solo aseguramos que esté visible y con pointer events habilitados
-        this.buttons.descartar.classList.remove('disabled');
-        this.buttons.descartar.removeAttribute('disabled');
+        // Mantener referencia pero no forzar visibilidad; se controla en _actualizarBotones
+        this.buttons.descartar.classList.add('d-none');
         this.buttons.descartar.style.pointerEvents = 'auto';
         return;
       }
@@ -1252,9 +1251,10 @@
       }
     }
 
-    _actualizarBotones() {
-      const estado = this.borradorActual?.estado;
-      const esCreador = this.borradorActual?.usuarioId === this.usuarioActual.id;
+  _actualizarBotones() {
+    const estado = this.borradorActual?.estado;
+    const esCreador = this.borradorActual?.usuarioId === this.usuarioActual.id;
+    const tieneBorrador = Boolean(this.borradorActual);
       
       // Botón Cargar / Guardar
       if (this.buttons.guardar) {
@@ -1301,22 +1301,27 @@
       }
       
       // Botón Rechazar
-      if (this.buttons.rechazar) {
-        const puedeRechazar = (this._permitido('revision') && (estado === ESTADOS.PENDIENTE || estado === ESTADOS.REVISADO)) ||
-          (this._permitido('autorizar') && (estado === ESTADOS.REVISADO || estado === ESTADOS.APROBADO));
-        this.buttons.rechazar.classList.toggle('d-none', !puedeRechazar);
-      }
+    if (this.buttons.rechazar) {
+      const puedeRechazar = (this._permitido('revision') && (estado === ESTADOS.PENDIENTE || estado === ESTADOS.REVISADO)) ||
+        (this._permitido('autorizar') && (estado === ESTADOS.REVISADO || estado === ESTADOS.APROBADO));
+      this.buttons.rechazar.classList.toggle('d-none', !puedeRechazar);
+    }
       
       // Botón Guardar en COI
-      if (this.buttons.guardarCOI) {
-        const puedeGuardarCOI = this._permitido('aprobar') && estado === ESTADOS.APROBADO;
-        this.buttons.guardarCOI.classList.toggle('d-none', !puedeGuardarCOI);
-      }
+    if (this.buttons.guardarCOI) {
+      const puedeGuardarCOI = this._permitido('aprobar') && estado === ESTADOS.APROBADO;
+      this.buttons.guardarCOI.classList.toggle('d-none', !puedeGuardarCOI);
+    }
 
-      if (this.buttons.verBorrador) {
-        this.buttons.verBorrador.classList.remove('d-none');
-        this.buttons.verBorrador.disabled = false;
-      }
+    if (this.buttons.verBorrador) {
+      this.buttons.verBorrador.classList.remove('d-none');
+      this.buttons.verBorrador.disabled = false;
+    }
+
+    if (this.buttons.descartar) {
+      const visibleDescartar = this._permitido('guardar') && tieneBorrador;
+      this.buttons.descartar.classList.toggle('d-none', !visibleDescartar);
+    }
 
       if (this.buttons.descartar) {
         const puedeDescartar = Boolean(this.borradorActual);

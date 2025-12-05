@@ -214,16 +214,16 @@
   // Hoy el capítulo se deriva de la empresa activa, pero aquí podemos
   // también mostrar y permitir cambiar la selección.
   const COLUMN_TOOLTIPS = {
-    actualMonth: 'Real del mes consultado. Suma los campos real[mes] del servicio de planeacion (saldos Firebird) para cada cuenta definida en "CUENTAS SUMMARY Y RESUMEN.xlsx".',
-    planMonth: 'Presupuesto del mes (columnas PRESUP01..12 de la tabla PRESUPYY). Es el dato que se enviara a COI cuando el flujo termine en Guardar en COI.',
-    prevMonth: 'Real del mes anterior del mismo ejercicio; se toma real[mesAnterior] para comparar contra el inmediato previo.',
-    varMonthPlan: 'Variacion mensual vs plan: ((Real mes - Plan mes) / |Plan mes|) x 100. Usa los montos reales contra los PRESUPXX de la fila o seccion.',
-    varMonthPrev: 'Variacion mensual vs mes anterior del mismo ejercicio: ((Real mes - Real mes anterior) / |Real mes anterior|) x 100.',
-    actualYTD: 'Real acumulado de enero al mes consultado (usa los campos real[mes]_acum de planeacion). Representa lo registrado en COI para las cuentas incluidas.',
-    planYTD: 'Presupuesto acumulado enero-mes; suma PRESUP01..PRESUPMM de la tabla PRESUPYY siguiendo el orden del libro "CUENTAS SUMMARY Y RESUMEN".',
-    prevYTD: 'Real acumulado hasta el mes anterior del mismo ejercicio (real[mesAnterior_acum]), para comparar contra el avance previo.',
-    varYTDPlan: 'Variacion acumulada vs plan: ((Real YTD - Plan YTD) / |Plan YTD|) x 100.',
-    varYTDPrev: 'Variacion acumulada vs YTD del mes anterior: ((Real YTD - Real YTD previo) / |Real YTD previo|) x 100.'
+    actualMonth: 'Real del mes consultado (año seleccionado).',
+    planMonth: 'Presupuesto del mes (tabla PRESUPYY del año seleccionado).',
+    prevMonth: 'Real del mismo mes del año previo.',
+    varMonthPlan: 'B/W mes vs presupuesto: Real / Presupuesto * 100.',
+    varMonthPrev: 'B/W mes vs real año previo: Real / Real año previo * 100.',
+    actualYTD: 'Real acumulado al mes consultado (año seleccionado).',
+    planYTD: 'Presupuesto acumulado al mes consultado (año seleccionado).',
+    prevYTD: 'Real acumulado al mes consultado pero del año previo.',
+    varYTDPlan: 'B/W YTD vs presupuesto acumulado: Real YTD / Presupuesto YTD * 100.',
+    varYTDPrev: 'B/W YTD vs real acumulado año previo: Real YTD / Real YTD previo * 100.'
   };
 
   const ROW_TOOLTIPS = {
@@ -402,7 +402,8 @@
   const calculateVar = (actual, base) => {
     const actualNum = toNumber(actual);
     const baseNum = toNumber(base);
-    return safeDiv(actualNum - baseNum, Math.abs(baseNum)) * 100;
+    if (Math.abs(baseNum) === 0) return 0;
+    return safeDiv(actualNum, baseNum) * 100;
   };
 
   const formatPercent = (val) => {
@@ -496,12 +497,12 @@
     }
     row.innerHTML = `
       <td class="account-column"></td>
+      <td class="${labelClasses}"${summaryRowTooltipAttr(rowRole)}>${label}</td>
       ${createCell(totals.actualMonth, { bold: boldNumbers, tooltipKey: 'actualMonth', rowRole })}
       ${createCell(totals.planMonth, { bold: boldNumbers, tooltipKey: 'planMonth', rowRole })}
       ${createCell(totals.prevMonth, { bold: boldNumbers, tooltipKey: 'prevMonth', rowRole })}
       ${createPercentCell(varMonthPlan, { tooltipKey: 'varMonthPlan', rowRole })}
       ${createPercentCell(varMonthPrev, { tooltipKey: 'varMonthPrev', rowRole })}
-      <td class="${labelClasses}"${summaryRowTooltipAttr(rowRole)}>${label}</td>
       ${createCell(totals.actualYTD, { bold: boldNumbers, tooltipKey: 'actualYTD', rowRole })}
       ${createCell(totals.planYTD, { bold: boldNumbers, tooltipKey: 'planYTD', rowRole })}
       ${createCell(totals.prevYTD, { bold: boldNumbers, tooltipKey: 'prevYTD', rowRole })}
@@ -529,7 +530,7 @@
     const anioNum = Number(anioActual);
     // El comparativo ahora es mes anterior del mismo ejercicio
     const etiquetaActual = Number.isFinite(anioNum) ? anioNum : '-';
-    const etiquetaAnterior = etiquetaActual;
+    const etiquetaAnterior = Number.isFinite(anioNum) ? anioNum - 1 : '-';
 
     document.querySelectorAll('.anio').forEach((span) => {
       span.textContent = etiquetaActual;
@@ -610,12 +611,12 @@
             ctaRow.setAttribute('data-bs-toggle', 'tooltip');
             ctaRow.innerHTML = `
               ${createEditableCell(cta.cuenta || '', { columnKey: 'cuenta', text: true, rowRole: 'account', classes: 'font-monospace small account-column text-start' })}
+              ${createEditableCell(cta.descripcion || '', { columnKey: 'descripcion', text: true, rowRole: 'account', classes: 'text-start' })}
               ${createCell(cta.actualMonth, { tooltipKey: 'actualMonth', rowRole: 'account' })}
               ${createCell(cta.planMonth, { tooltipKey: 'planMonth', rowRole: 'account' })}
               ${createCell(cta.prevMonth, { tooltipKey: 'prevMonth', rowRole: 'account' })}
               ${createPercentCell(ctaVarMonthPlan, { tooltipKey: 'varMonthPlan', rowRole: 'account' })}
               ${createPercentCell(ctaVarMonthPrev, { tooltipKey: 'varMonthPrev', rowRole: 'account' })}
-              ${createEditableCell(cta.descripcion || '', { columnKey: 'descripcion', text: true, rowRole: 'account', classes: 'text-center' })}
               ${createCell(cta.actualYTD, { tooltipKey: 'actualYTD', rowRole: 'account' })}
               ${createCell(cta.planYTD, { tooltipKey: 'planYTD', rowRole: 'account' })}
               ${createCell(cta.prevYTD, { tooltipKey: 'prevYTD', rowRole: 'account' })}
@@ -737,6 +738,177 @@
       aggregateBody.appendChild(row);
     });
   };
+
+  // --- Workflow / COI bridge (ligero) ---
+  const workflowBadge = document.getElementById('workflowBadge');
+  const workflowMeta = document.getElementById('workflowMeta');
+  const workflowHistory = document.getElementById('workflowHistory');
+  const btnBorrador = document.getElementById('btnGuardarBorrador');
+  const btnRevisar = document.getElementById('btnMarcarRevisado');
+  const btnAutorizar = document.getElementById('btnAutorizar');
+  const btnGuardarCoi = document.getElementById('saveBudgetBtn');
+  const toastEl = document.getElementById('actionToast');
+  const toastBody = document.getElementById('actionToastBody');
+  const toastInst = toastEl ? window.bootstrap?.Toast.getOrCreateInstance(toastEl, { delay: 3000 }) : null;
+  const WORKFLOW_LABEL = {
+    'sin-cargar': 'Sin cargar',
+    borrador: 'Borrador',
+    revisado: 'Revisado',
+    autorizado: 'Autorizado',
+    guardado: 'Guardado en COI'
+  };
+
+  const showToast = (msg, variant = 'text-bg-success') => {
+    if (!toastEl || !toastInst) return;
+    toastEl.className = `toast align-items-center border-0 ${variant}`;
+    if (toastBody) toastBody.textContent = msg;
+    toastInst.show();
+  };
+
+  const workflowEstado = {
+    estado: 'sin-cargar',
+    actualizadoEn: null,
+    actualizadoPor: '',
+    historial: []
+  };
+
+  const renderWorkflow = () => {
+    if (workflowBadge) {
+      workflowBadge.textContent = WORKFLOW_LABEL[workflowEstado.estado] || workflowEstado.estado;
+    }
+    if (workflowMeta) {
+      const fecha = workflowEstado.actualizadoEn ? new Date(workflowEstado.actualizadoEn).toLocaleString('es-MX') : '';
+      const usuario = workflowEstado.actualizadoPor ? ` por ${workflowEstado.actualizadoPor}` : '';
+      workflowMeta.textContent = fecha ? `${fecha}${usuario}` : '';
+    }
+    if (workflowHistory) {
+      workflowHistory.innerHTML = '';
+      const lista = workflowEstado.historial || [];
+      if (!lista.length) {
+        const li = document.createElement('li');
+        li.className = 'list-group-item small text-muted';
+        li.textContent = 'Sin movimientos registrados.';
+        workflowHistory.appendChild(li);
+      } else {
+        lista.forEach((item) => {
+          const li = document.createElement('li');
+          li.className = 'list-group-item small';
+          const fecha = item.fecha ? new Date(item.fecha).toLocaleString('es-MX') : '';
+          li.textContent = `${WORKFLOW_LABEL[item.estado] || item.estado}${fecha ? ` · ${fecha}` : ''}${item.usuario ? ` · ${item.usuario}` : ''}`;
+          workflowHistory.appendChild(li);
+        });
+      }
+    }
+  };
+
+  const obtenerContexto = () => {
+    const empresa = Sesion.obtenerEmpresaActiva();
+    return {
+      empresaId: empresa?.id || '',
+      anio: leerAnioSeleccionado()
+    };
+  };
+
+  const API_WORKFLOW_ESTADO = `${base}/api/presupuestos/estado`;
+  const API_WORKFLOW_GUARDAR = `${base}/api/presupuestos/guardar`;
+
+  const cargarWorkflow = async (modulo) => {
+    const ctx = obtenerContexto();
+    if (!ctx.empresaId || !ctx.anio) return;
+    try {
+      const params = new URLSearchParams({ modulo, anio: ctx.anio });
+      const resp = await fetch(`${API_WORKFLOW_ESTADO}?${params.toString()}`, {
+        headers: Sesion.headersAutenticacion()
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) throw new Error(data.mensaje || 'No fue posible obtener el estado.');
+      workflowEstado.estado = data.estado || 'sin-cargar';
+      workflowEstado.actualizadoEn = data.actualizadoEn || null;
+      workflowEstado.actualizadoPor = data.actualizadoPor || '';
+      workflowEstado.historial = data.historial || [];
+      renderWorkflow();
+    } catch (err) {
+      console.warn('Workflow Summary', err);
+      showToast(err.message || 'No fue posible actualizar el flujo.', 'text-bg-danger');
+    }
+  };
+
+  const postAccionWorkflow = async (accion, modulo) => {
+    const ctx = obtenerContexto();
+    if (!ctx.empresaId || !ctx.anio) {
+      showToast('Selecciona empresa y año.', 'text-bg-warning');
+      return;
+    }
+    try {
+      const resp = await fetch(API_WORKFLOW_ESTADO, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...Sesion.headersAutenticacion() },
+        body: JSON.stringify({ accion, modulo, anio: ctx.anio })
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) throw new Error(data.mensaje || 'No fue posible registrar la acción.');
+      workflowEstado.estado = data.estado || workflowEstado.estado;
+      workflowEstado.actualizadoEn = data.actualizadoEn || null;
+      workflowEstado.actualizadoPor = data.actualizadoPor || '';
+      workflowEstado.historial = data.historial || workflowEstado.historial;
+      renderWorkflow();
+      showToast(data.mensaje || 'Acción registrada.');
+    } catch (err) {
+      console.error('postAccionWorkflow', err);
+      showToast(err.message || 'No fue posible completar la acción.', 'text-bg-danger');
+    }
+  };
+
+  const guardarEnCoi = async (modulo) => {
+    const ctx = obtenerContexto();
+    if (!ctx.empresaId || !ctx.anio) {
+      showToast('Selecciona empresa y año.', 'text-bg-warning');
+      return;
+    }
+    const cambios = window.CuentasModulo?.getCambios?.() || { presupuesto: [], hayCambios: false };
+    try {
+      const resp = await fetch(API_WORKFLOW_GUARDAR, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...Sesion.headersAutenticacion() },
+        body: JSON.stringify({
+          modulo,
+          empresaId: ctx.empresaId,
+          anio: ctx.anio,
+          datos: cambios
+        })
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) throw new Error(data.mensaje || 'No fue posible guardar en COI.');
+      showToast(data.mensaje || 'Guardado en COI.');
+      await postAccionWorkflow('guardar', modulo);
+    } catch (err) {
+      console.error('guardarEnCoi', err);
+      showToast(err.message || 'No fue posible guardar en COI.', 'text-bg-danger');
+    }
+  };
+
+  const initWorkflowBridge = (modulo) => {
+    cargarWorkflow(modulo);
+    if (btnBorrador) {
+      btnBorrador.addEventListener('click', () => postAccionWorkflow('cargar', modulo));
+    }
+    if (btnRevisar) {
+      btnRevisar.addEventListener('click', () => postAccionWorkflow('revisar', modulo));
+    }
+    if (btnAutorizar) {
+      btnAutorizar.addEventListener('click', () => postAccionWorkflow('autorizar', modulo));
+    }
+    if (btnGuardarCoi) {
+      btnGuardarCoi.addEventListener('click', () => guardarEnCoi(modulo));
+    }
+    window.addEventListener('planeacion:contexto-actualizado', (evt) => {
+      const det = evt?.detail || {};
+      if (det?.modulo && det.modulo !== modulo) return;
+      cargarWorkflow(modulo);
+    });
+    window.addEventListener(Sesion.EVENTO_EMPRESA, () => cargarWorkflow(modulo));
+  };
+  // --- fin workflow bridge ---
 
   const aplicarEmpresa = async (empresaId) => {
     if (!empresaId) return;
@@ -911,6 +1083,7 @@
     }
 
     sincronizarSelectorEmpresaGlobal();
+    initWorkflowBridge('SUMMARY');
     window.addEventListener(Sesion.EVENTO_EMPRESA, async (event) => {
       const nuevaEmpresa = event?.detail?.empresa;
       if (!nuevaEmpresa?.id) return;
