@@ -1028,20 +1028,38 @@
           // Referencias a botones
           const btnConfirmar = modal.querySelector('.btn-confirmar-modal');
           const btnCancelar = modal.querySelector('[data-bs-dismiss="modal"]');
+          let resuelto = false;
           
           // Resolver con false cuando se cierre (con X, Cancelar, o backdrop)
           const handleCierre = () => {
-            bsModal.dispose();
-            document.body.removeChild(modal);
+            if (resuelto) return;
+            resuelto = true;
+            try {
+              bsModal.dispose();
+              document.body.removeChild(modal);
+            } catch (e) {
+              console.warn('Error limpiando modal:', e);
+            }
             resolve(false);
           };
           
           // Resolver con true cuando se confirme
           const handleConfirmar = (ev) => {
+            if (resuelto) return;
+            resuelto = true;
             ev.preventDefault();
-            bsModal.hide();
+            try {
+              bsModal.hide();
+            } catch (e) {
+              console.warn('Error ocultando modal:', e);
+            }
             setTimeout(() => {
-              handleCierre();
+              try {
+                bsModal.dispose();
+                document.body.removeChild(modal);
+              } catch (e) {
+                console.warn('Error limpiando modal en handleConfirmar:', e);
+              }
               resolve(true);
             }, 300);
           };
@@ -1049,6 +1067,15 @@
           // Listeners
           modal.addEventListener('hidden.bs.modal', handleCierre, { once: true });
           if (btnConfirmar) btnConfirmar.addEventListener('click', handleConfirmar, { once: true });
+          
+          // Agregar listener explícito al botón Cancelar (para modales creados dinámicamente)
+          if (btnCancelar) {
+            btnCancelar.addEventListener('click', (ev) => {
+              ev.preventDefault();
+              ev.stopPropagation();
+              bsModal.hide();
+            }, { once: true });
+          }
           
           // Mostrar modal
           bsModal.show();
@@ -1144,6 +1171,16 @@
           // Listeners
           modal.addEventListener('hidden.bs.modal', handleCierre, { once: true });
           if (btnConfirmar) btnConfirmar.addEventListener('click', handleConfirmar, { once: true });
+          
+          // Agregar listener explícito al botón Cancelar (para modales creados dinámicamente)
+          const btnCancelar = modal.querySelector('[data-bs-dismiss="modal"]');
+          if (btnCancelar) {
+            btnCancelar.addEventListener('click', (ev) => {
+              ev.preventDefault();
+              ev.stopPropagation();
+              bsModal.hide();
+            }, { once: true });
+          }
           
           // Ctrl+Enter para confirmar
           if (textArea) {
