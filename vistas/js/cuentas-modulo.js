@@ -1946,60 +1946,58 @@
 
   const eliminarFilaSeleccionada = (fila) => {
     if (!fila) return;
+
+    // Caso: fila de cuenta
     if (fila.classList.contains('fila-cuenta')) {
       const meta = obtenerMetaSeccionPorFila(fila);
-      if (!meta) return;
+      if (!meta) {
+        console.warn('⚠️ eliminarFilaSeleccionada: meta no encontrada');
+        return;
+      }
       if ((meta.filasCuenta || []).length <= 1) {
-        window.alert('La seccion debe tener al menos una cuenta.');
-        if (!fila) return;
-        if (fila.classList.contains('fila-cuenta')) {
-          const meta = obtenerMetaSeccionPorFila(fila);
-          if (!meta) {
-            console.warn('⚠️ eliminarFilaSeleccionada: meta no encontrada');
-            return;
-          }
-          if ((meta.filasCuenta || []).length <= 1) {
-            window.alert('La sección debe tener al menos una cuenta.');
-            return;
-          }
-          const cuenta = fila.dataset.cuenta21 || fila.dataset.cuenta;
-          if (cuenta) {
-            estadoModulo.valoresPorCuenta?.delete(cuenta);
-            estadoModulo.nombresPorCuenta?.delete(cuenta);
-          }
-          try { fila.remove(); } catch (e) { console.warn('⚠️ Error removiendo fila del DOM', e); }
-          const idx = meta.filasCuenta.indexOf(fila);
-          if (idx >= 0) meta.filasCuenta.splice(idx, 1);
-          actualizarEstructuraDespuesCambio();
-          console.log(`✅ Fila eliminada de sección ${meta.seccion}`);
-          return;
-        }
-        if (fila.classList.contains('sum-row-sumavarios')) {
-      if (claveSumavarios) {
-          if (!cuerpo) return;
-          // Buscar clave asociada
-          let claveAux = null;
-          for (const [k, f] of (estadoModulo.sumas.sumavariosRows || new Map()).entries()) {
-            if (f === fila) {
-              claveAux = k; break;
-            }
-          }
-          if (claveAux) {
-            // Limpiar referencias en metas
-            (estadoModulo.sumas.secciones || []).forEach((meta) => {
-              if (normalizarTexto(meta.sumRowSumavariosLabel) === normalizarTexto(claveAux)) {
-                meta.sumRowSumavariosLabel = '';
-                meta.sumRowSumavariosTexto = '';
-              }
-            });
-            estadoModulo.sumas.sumavariosRows.delete(claveAux);
-          }
-          try { fila.remove(); } catch (e) { console.warn('⚠️ Error al eliminar sumavarios del DOM', e); }
-          actualizarEstructuraDespuesCambio();
-          console.log(`✅ Sumavarios ${claveAux || ''} eliminado`);
-          return;
-      fila.remove();
+        window.alert('La sección debe tener al menos una cuenta.');
+        return;
+      }
+      const cuenta = fila.dataset.cuenta21 || fila.dataset.cuenta;
+      if (cuenta) {
+        estadoModulo.valoresPorCuenta?.delete(cuenta);
+        estadoModulo.nombresPorCuenta?.delete(cuenta);
+      }
+      try { fila.remove(); } catch (e) { console.warn('⚠️ Error removiendo fila del DOM', e); }
+      const idx = meta.filasCuenta.indexOf(fila);
+      if (idx >= 0) meta.filasCuenta.splice(idx, 1);
       actualizarEstructuraDespuesCambio();
+      console.log(`✅ Fila eliminada de sección ${meta.seccion}`);
+      return;
+    }
+
+    // Caso: fila sum-row-sumavarios
+    if (fila.classList.contains('sum-row-sumavarios')) {
+      if (!estadoModulo || !estadoModulo.tabla) return;
+      const cuerpo = estadoModulo.tabla.querySelector('tbody');
+      if (!cuerpo) return;
+
+      // Buscar clave asociada
+      let claveAux = null;
+      for (const [k, f] of (estadoModulo.sumas.sumavariosRows || new Map()).entries()) {
+        if (f === fila) {
+          claveAux = k; break;
+        }
+      }
+      if (claveAux) {
+        // Limpiar referencias en metas
+        (estadoModulo.sumas.secciones || []).forEach((meta) => {
+          if (normalizarTexto(meta.sumRowSumavariosLabel) === normalizarTexto(claveAux)) {
+            meta.sumRowSumavariosLabel = '';
+            meta.sumRowSumavariosTexto = '';
+          }
+        });
+        estadoModulo.sumas.sumavariosRows.delete(claveAux);
+      }
+      try { fila.remove(); } catch (e) { console.warn('⚠️ Error al eliminar sumavarios del DOM', e); }
+      actualizarEstructuraDespuesCambio();
+      console.log(`✅ Sumavarios ${claveAux || ''} eliminado`);
+      return;
     }
   };
 
