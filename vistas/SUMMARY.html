@@ -796,8 +796,11 @@
     document.addEventListener('DOMContentLoaded', () => {
       // Esperar a que se carguen los módulos
       setTimeout(() => {
+        const selectorTabla = document.body.dataset.tabla
+          ? `#${document.body.dataset.tabla}`
+          : '#tablaComparacion';
         // 1. Inicializar el módulo de edición
-        const inicioOK = ModoEdicionPresupuesto.inicializar('#tablaComparacion');
+        const inicioOK = ModoEdicionPresupuesto.inicializar(selectorTabla);
         
         if (!inicioOK) {
           console.warn('⚠️ No se pudo inicializar modo edición (tabla no encontrada)');
@@ -806,7 +809,7 @@
         // 2. Inicializar el flujo de autorización CON callbacks
         if (typeof FlujoAutorizacion !== 'undefined') {
           const flujo = new FlujoAutorizacion({
-            tablaId: 'tablaComparacion',
+            tablaId: document.body.dataset.tabla || 'tablaComparacion',
             modulo: 'PRESUPUESTOS',
             
             // ✅ CALLBACK CRÍTICO: Extraer cambios de la tabla
@@ -823,7 +826,7 @@
             
             // Callback cuando se cancela la edición
             onCancelEdit: () => {
-              ModoEdicionPresupuesto.desactivar('#tablaComparacion');
+              ModoEdicionPresupuesto.desactivar(selectorTabla);
               ModoEdicionPresupuesto.limpiar();
             }
           }).init();

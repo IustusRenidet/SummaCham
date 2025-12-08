@@ -33,8 +33,42 @@
   const estado = {
     modoEdicionActivo: false,
     cambiosCapturados: {},
-    cuentasDisponibles: []
+    cuentasDisponibles: [],
+    selectorTabla: SELECTOR_TABLA
   };
+
+  /**
+   * Resolver la tabla a utilizar considerando:
+   * - Selector recibido
+   * - data-tabla del body (id sin #)
+   * - Fallbacks comunes
+   */
+  function resolverTabla(selectorPreferido) {
+    const candidatos = [];
+    if (selectorPreferido) candidatos.push(selectorPreferido);
+
+    const dataTabla = document.body?.dataset?.tabla;
+    if (dataTabla) {
+      candidatos.push(dataTabla.startsWith('#') ? dataTabla : `#${dataTabla}`);
+    }
+
+    candidatos.push(
+      estado.selectorTabla || SELECTOR_TABLA,
+      SELECTOR_TABLA,
+      '#mainTable',
+      '#tablaPresupuestos',
+      'table.table-comparison',
+      'table'
+    );
+
+    for (const sel of candidatos) {
+      if (!sel) continue;
+      const tabla = document.querySelector(sel);
+      if (tabla) return { tabla, selectorUsado: sel };
+    }
+
+    return { tabla: null, selectorUsado: selectorPreferido || SELECTOR_TABLA };
+  }
 
   /**
    * Inicializar celdas de presupuesto como editables
@@ -196,7 +230,7 @@
     estado.cambiosCapturados = {};
     
     // Remover estilos de modificado
-    const tabla = document.querySelector(SELECTOR_TABLA);
+    const { tabla } = resolverTabla(estado.selectorTabla);
     if (tabla) {
       tabla.querySelectorAll(`.${CLASE_MODIFICADO}`).forEach((celda) => {
         celda.classList.remove(CLASE_MODIFICADO);
@@ -253,14 +287,15 @@
      * Inicializar el módulo
      */
     inicializar: function(selectorTabla) {
-      const tabla = document.querySelector(selectorTabla);
+      const { tabla, selectorUsado } = resolverTabla(selectorTabla);
       if (!tabla) {
-        console.error(`❌ No se encontró tabla en selector: ${selectorTabla}`);
+        console.error(`❌ No se encontró tabla en selector: ${selectorUsado}`);
         return false;
       }
 
+      estado.selectorTabla = selectorUsado;
       inicializarCeldasEditables(tabla);
-      console.log('✅ Modo edición inicializado');
+      console.log(`✅ Modo edición inicializado sobre ${selectorUsado}`);
       return true;
     },
 
@@ -268,12 +303,13 @@
      * Activar modo edición
      */
     activar: function(selectorTabla) {
-      const tabla = document.querySelector(selectorTabla);
+      const { tabla, selectorUsado } = resolverTabla(selectorTabla || estado.selectorTabla);
       if (!tabla) {
-        console.error(`❌ No se encontró tabla: ${selectorTabla}`);
+        console.error(`❌ No se encontró tabla: ${selectorUsado}`);
         return false;
       }
       
+      estado.selectorTabla = selectorUsado;
       activarModoEdicion(tabla);
       return true;
     },
@@ -282,9 +318,10 @@
      * Desactivar modo edición
      */
     desactivar: function(selectorTabla) {
-      const tabla = document.querySelector(selectorTabla);
+      const { tabla, selectorUsado } = resolverTabla(selectorTabla || estado.selectorTabla);
       if (!tabla) return false;
       
+      estado.selectorTabla = selectorUsado;
       desactivarModoEdicion(tabla);
       return true;
     },

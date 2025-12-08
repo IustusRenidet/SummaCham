@@ -118,7 +118,7 @@
   // porque Bootstrap no procesa correctamente estos atributos en elementos dinámicos
   // ============================================================================
   const inicializarBotonesBootstrap = () => {
-    // Función para agregar listener a un botón individual
+    // Función para agregar listener a un botón individual (DISMISS)
     const procesarBoton = (btn) => {
       if (btn.dataset.listenerAgregado) return; // Evitar duplicados
       btn.dataset.listenerAgregado = "true";
@@ -127,6 +127,8 @@
       if (!dismiss) return;
 
       btn.addEventListener("click", (ev) => {
+        // En dismiss, generalmente queremos prevenir default (ej. forms)
+        // pero bootstrap suele encargarse. Aquí reforzamos.
         ev.preventDefault();
 
         if (dismiss === "modal") {
@@ -136,7 +138,6 @@
             if (instance) {
               instance.hide();
             } else {
-              // Intentar crear instancia si no existe
               try {
                 const newInstance = new window.bootstrap.Modal(modalEl);
                 newInstance.hide();
@@ -165,27 +166,68 @@
           const toastEl = btn.closest(".toast");
           if (toastEl && window.bootstrap?.Toast) {
             const instance = window.bootstrap.Toast.getInstance(toastEl);
-            if (instance) {
-              instance.hide();
-            }
+            if (instance) instance.hide();
           }
         } else if (dismiss === "alert") {
           const alertEl = btn.closest(".alert");
           if (alertEl && window.bootstrap?.Alert) {
             const instance =
               window.bootstrap.Alert.getOrCreateInstance(alertEl);
-            if (instance) {
-              instance.close();
-            }
+            if (instance) instance.close();
           }
         }
       });
     };
 
-    // Procesar todos los botones existentes
+    // Función para procesar Toggles (Collapse, Dropdown)
+    const procesarToggle = (btn) => {
+      if (btn.dataset.toggleListenerAgregado) return;
+      btn.dataset.toggleListenerAgregado = "true";
+
+      const toggle = btn.getAttribute("data-bs-toggle");
+      if (!toggle) return;
+
+      if (toggle === "collapse" || toggle === "dropdown") {
+        btn.addEventListener("click", (ev) => {
+          // No prevenimos default para permitir comportamiento nativo si funciona
+          const targetId =
+            btn.getAttribute("data-bs-target") || btn.getAttribute("href");
+
+          if (toggle === "collapse" && targetId && window.bootstrap?.Collapse) {
+            try {
+              const target = document.querySelector(targetId);
+              if (target) {
+                // Intentamos obtener instancia existente
+                const instance = window.bootstrap.Collapse.getInstance(target);
+                // Si no existe, bootstrap nativo probablemente lo maneje.
+                // Si existe y no respondió al click nativo (por stopPropagation ajeno), lo forzamos:
+                if (instance && !target.classList.contains("collapsing")) {
+                  instance.toggle();
+                }
+              }
+            } catch (e) {
+              console.warn("Error manual collapse", e);
+            }
+          }
+          // Dropdowns suelen ser complejos de manejar manualmente sin romper popper.js
+          // Solo intervenimos si bootstrap está cargado
+          if (toggle === "dropdown" && window.bootstrap?.Dropdown) {
+            try {
+              const instance = window.bootstrap.Dropdown.getInstance(btn);
+              // Si no hay instancia, será creada por bootstrap nativo.
+              // Aquí solo actuamos si algo bloqueó el evento original
+            } catch (e) {
+              console.warn("Error manual dropdown", e);
+            }
+          }
+        });
+      }
+    };
+
+    // Procesar todos los botones existentes de dismiss y toggle
     const procesarTodos = () => {
-      const botones = document.querySelectorAll("[data-bs-dismiss]");
-      botones.forEach(procesarBoton);
+      document.querySelectorAll("[data-bs-dismiss]").forEach(procesarBoton);
+      document.querySelectorAll("[data-bs-toggle]").forEach(procesarToggle);
     };
 
     // Ejecutar inmediatamente
@@ -196,26 +238,24 @@
       mutations.forEach((mutation) => {
         mutation.addedNodes.forEach((node) => {
           if (node.nodeType !== Node.ELEMENT_NODE) return;
-          // Procesar el nodo si tiene data-bs-dismiss
-          if (node.hasAttribute && node.hasAttribute("data-bs-dismiss")) {
+
+          if (node.hasAttribute && node.hasAttribute("data-bs-dismiss"))
             procesarBoton(node);
+          if (node.hasAttribute && node.hasAttribute("data-bs-toggle"))
+            procesarToggle(node);
+
+          if (node.querySelectorAll) {
+            node.querySelectorAll("[data-bs-dismiss]").forEach(procesarBoton);
+            node.querySelectorAll("[data-bs-toggle]").forEach(procesarToggle);
           }
-          // Procesar hijos
-          const botones = node.querySelectorAll
-            ? node.querySelectorAll("[data-bs-dismiss]")
-            : [];
-          botones.forEach(procesarBoton);
         });
       });
     });
 
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true,
-    });
+    observer.observe(document.body, { childList: true, subtree: true });
 
     console.log(
-      "[FlujoAutorizacion] Botones Bootstrap inicializados globalmente"
+      "[FlujoAutorizacion] Botones Bootstrap (Dismiss y Toggle) inicializados globalmente con resiliencia"
     );
   };
 
@@ -239,7 +279,7 @@
     drawer.innerHTML = `
       <div class="offcanvas-header">
         <h5 class="offcanvas-title" id="draftsDrawerLabel">Centro de borradores</h5>
-        <button type="button" class="btn-close text-reset btn-cerrar-offcanvas" aria-label="Cerrar"></button>
+        <button type="button" class="btn-close text-reset btn-cerrar-offcanvas" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
       </div>
       <div class="offcanvas-body">
         <div class="btn-group drafts-tabs mb-3" role="group" aria-label="Vistas del centro de borradores">
@@ -330,10 +370,15 @@
 
     // Agregar listener explícito al botón close del offcanvas
     const btnCloseDrafts = drawer.querySelector(".btn-cerrar-offcanvas");
-    if (btnCloseDrafts && window.bootstrap?.Offcanvas) {
+    if (btnCloseDrafts) {
       btnCloseDrafts.addEventListener("click", () => {
-        const instance = window.bootstrap.Offcanvas.getInstance(drawer);
-        if (instance) instance.hide();
+        if (window.bootstrap?.Offcanvas) {
+          const instance = window.bootstrap.Offcanvas.getInstance(drawer);
+          if (instance) instance.hide();
+        } else {
+          drawer.classList.remove("show");
+          drawer.style.visibility = "";
+        }
       });
     }
 
@@ -364,7 +409,7 @@
     drawer.innerHTML = `
       <div class="offcanvas-header">
         <h5 class="offcanvas-title" id="workflowDrawerLabel">Historial del flujo</h5>
-        <button type="button" class="btn-close text-reset btn-cerrar-offcanvas" aria-label="Cerrar"></button>
+        <button type="button" class="btn-close text-reset btn-cerrar-offcanvas" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
       </div>
       <div class="offcanvas-body">
         <div class="workflow-info-panel mb-3">
@@ -437,10 +482,15 @@
 
     // Agregar listener explícito al botón close del offcanvas
     const btnCloseWorkflow = drawer.querySelector(".btn-cerrar-offcanvas");
-    if (btnCloseWorkflow && window.bootstrap?.Offcanvas) {
+    if (btnCloseWorkflow) {
       btnCloseWorkflow.addEventListener("click", () => {
-        const instance = window.bootstrap.Offcanvas.getInstance(drawer);
-        if (instance) instance.hide();
+        if (window.bootstrap?.Offcanvas) {
+          const instance = window.bootstrap.Offcanvas.getInstance(drawer);
+          if (instance) instance.hide();
+        } else {
+          drawer.classList.remove("show");
+          drawer.style.visibility = "";
+        }
       });
     }
 
@@ -1318,19 +1368,21 @@
           modal.className = "modal fade";
           modal.setAttribute("tabindex", "-1");
           modal.setAttribute("aria-hidden", "true");
+          modal.setAttribute("role", "dialog");
+          modal.setAttribute("aria-modal", "true");
 
           const contenidoHTML = `
             <div class="modal-dialog modal-dialog-centered">
               <div class="modal-content">
                 <div class="modal-header border-bottom">
                   <h5 class="modal-title">${titulo || "Confirmacion"}</h5>
-                  <button type="button" class="btn-close btn-cerrar-modal" aria-label="Cerrar"></button>
+                  <button type="button" class="btn-close btn-cerrar-modal" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                 </div>
                 <div class="modal-body">
                   ${mensaje || "Estas seguro?"}
                 </div>
                 <div class="modal-footer border-top">
-                  <button type="button" class="btn btn-secondary btn-cancelar-modal">Cancelar</button>
+                  <button type="button" class="btn btn-secondary btn-cancelar-modal" data-bs-dismiss="modal">Cancelar</button>
                   <button type="button" class="btn btn-${tipoBoton} btn-confirmar-modal">${etiquetaBoton}</button>
                 </div>
               </div>
@@ -1456,20 +1508,22 @@
           modal.className = "modal fade";
           modal.setAttribute("tabindex", "-1");
           modal.setAttribute("aria-hidden", "true");
+          modal.setAttribute("role", "dialog");
+          modal.setAttribute("aria-modal", "true");
 
           const contenidoHTML = `
             <div class="modal-dialog modal-dialog-centered">
               <div class="modal-content">
                 <div class="modal-header border-bottom">
                   <h5 class="modal-title">${titulo || "Entrada Requerida"}</h5>
-                  <button type="button" class="btn-close btn-cerrar-modal" aria-label="Cerrar"></button>
+                  <button type="button" class="btn-close btn-cerrar-modal" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                 </div>
                 <div class="modal-body">
                   <p>${mensaje || "Por favor ingresa un valor:"}</p>
                   <textarea class="form-control textarea-entrada-modal" rows="4" placeholder="${placeholder}" style="resize: vertical;"></textarea>
                 </div>
                 <div class="modal-footer border-top">
-                  <button type="button" class="btn btn-secondary btn-cancelar-modal">Cancelar</button>
+                  <button type="button" class="btn btn-secondary btn-cancelar-modal" data-bs-dismiss="modal">Cancelar</button>
                   <button type="button" class="btn btn-primary btn-confirmar-entrada">${etiquetaBoton}</button>
                 </div>
               </div>
@@ -2278,10 +2332,23 @@
     const asegurarWorkflowDrawer = () => {
       const drawer = ensureWorkflowDrawer();
       const elemento = drawer || document.getElementById("workflowDrawer");
-      if (!elemento || !window.bootstrap?.Offcanvas) return null;
-      elemento.setAttribute("data-bs-scroll", "true");
-      return window.bootstrap.Offcanvas.getOrCreateInstance(elemento);
+      if (elemento) {
+        try {
+          elemento.setAttribute("data-bs-scroll", "true");
+          // Solo inicializamos si bootstrap está disponible, pero no detenemos flujo si no
+          if (window.bootstrap?.Offcanvas) {
+            window.bootstrap.Offcanvas.getOrCreateInstance(elemento);
+          }
+        } catch (e) {
+          console.warn("Error init bootstrap offcanvas", e);
+        }
+      }
+      return elemento;
     };
+
+    // Asegurar que existan los elementos en el DOM inmediatamente
+    asegurarWorkflowDrawer();
+    ensureDraftsDrawer();
 
     document.querySelectorAll(".workflow-toggle").forEach((btn) => {
       if (btn.dataset.workflowBound === "1") return;
@@ -2289,35 +2356,39 @@
       btn.classList.remove("disabled");
       btn.removeAttribute("disabled");
       btn.setAttribute("aria-disabled", "false");
-      btn.removeAttribute("data-bs-toggle");
-      btn.removeAttribute("data-bs-target");
-      btn.addEventListener("click", (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        try {
-          const instancia = asegurarWorkflowDrawer();
-          if (instancia) {
-            instancia.show();
-          } else {
-            console.warn("No fue posible obtener instancia del offcanvas");
-          }
-        } catch (error) {
-          console.error("Error al abrir workflow drawer:", error);
-        }
+
+      // Resiliencia: Asegurar que tenga el target correcto
+      if (!btn.hasAttribute("data-bs-toggle")) {
+        btn.setAttribute("data-bs-toggle", "offcanvas");
+      }
+      if (!btn.getAttribute("data-bs-target") && !btn.getAttribute("href")) {
+        btn.setAttribute("data-bs-target", "#workflowDrawer");
+      }
+
+      btn.addEventListener("click", () => {
+        // Solo aseguramos que existe, dejamos que Bootstrap maneje el toggle
+        asegurarWorkflowDrawer();
       });
     });
 
     const abrirCentroBorradores = () => {
       ensureDraftsDrawer();
       const instancia = window.__flujoAutorizacionInstance;
-      if (instancia?.init) {
-        instancia.init();
-        instancia._mostrarCentroBorradores();
-        return;
-      }
-      const drawer = document.getElementById("workflowDraftsDrawer");
-      if (drawer && window.bootstrap?.Offcanvas) {
-        window.bootstrap.Offcanvas.getOrCreateInstance(drawer).show();
+      // Intento robusto de abrir
+      try {
+        const drawer = document.getElementById("workflowDraftsDrawer");
+        if (drawer && window.bootstrap?.Offcanvas) {
+          const offcanvas =
+            window.bootstrap.Offcanvas.getOrCreateInstance(drawer);
+          offcanvas.show();
+        }
+        // Inicializar lógica si es posible
+        if (instancia?.init) {
+          instancia.init();
+          instancia._mostrarCentroBorradores(); // Esto solo actualiza la vista interna
+        }
+      } catch (e) {
+        console.error("Error abriendo centro borradores", e);
       }
     };
 
@@ -2329,10 +2400,19 @@
         btn.classList.remove("disabled");
         btn.removeAttribute("disabled");
         btn.setAttribute("aria-disabled", "false");
-        btn.removeAttribute("data-bs-toggle");
-        btn.removeAttribute("data-bs-target");
+
+        // Asignar atributos nativos para resiliencia
+        if (!btn.hasAttribute("data-bs-toggle")) {
+          btn.setAttribute("data-bs-toggle", "offcanvas");
+        }
+        if (!btn.getAttribute("data-bs-target")) {
+          btn.setAttribute("data-bs-target", "#workflowDraftsDrawer");
+        }
+
         btn.addEventListener("click", (event) => {
-          event.preventDefault();
+          // Dejamos que bootstrap lo abra si tiene los atributos.
+          // Pero 'abrirCentroBorradores' tiene logica extra de inicializacion.
+          // Lo ejecutamos tambien.
           abrirCentroBorradores();
         });
       });
