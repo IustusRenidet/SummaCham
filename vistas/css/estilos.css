@@ -1,6 +1,4 @@
-* {
-  pointer-events: auto;
-}
+/* Global pointer-events: auto removed to prevent blocking overlays */
 
 [hidden],
 [disabled],
@@ -60,6 +58,13 @@ textarea:not(:disabled),
   pointer-events: auto !important;
 }
 
+.tooltip,
+.tooltip.show {
+  display: none !important;
+  pointer-events: none !important;
+  opacity: 0 !important;
+}
+
 .modal-backdrop.show {
   z-index: 1055 !important;
   pointer-events: auto !important;
@@ -90,6 +95,13 @@ textarea:not(:disabled),
   position: relative;
 }
 
+.modal.show .btn,
+.modal.show button {
+  pointer-events: auto !important;
+  position: relative;
+  z-index: 9999 !important;
+}
+
 :root {
   --btn-primario-bg: #2f5496;
   --btn-primario-bg-hover: #203763;
@@ -106,7 +118,8 @@ textarea:not(:disabled),
   border-color: var(--btn-primario-bg);
   color: var(--btn-primario-text);
   font-weight: 700;
-  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease,
+    transform 0.2s ease;
 }
 
 .btn-primario:hover,
@@ -114,7 +127,6 @@ textarea:not(:disabled),
   background-color: var(--btn-primario-bg-hover);
   border-color: var(--btn-primario-bg-hover);
   color: var(--btn-primario-text);
-  transform: translateY(-1px);
 }
 
 .btn-primario:active {
@@ -157,7 +169,7 @@ textarea:not(:disabled),
 
 .btn-chip:hover,
 .btn-chip:focus {
-  transform: translateY(-1px);
+  transform: none;
 }
 
 .btn-chip-info {
@@ -207,13 +219,13 @@ textarea:not(:disabled),
   color: var(--texto-acento);
 }
 
-.workflow-badge[data-estado='revisado'] {
+.workflow-badge[data-estado="revisado"] {
   background: rgba(255, 193, 7, 0.15);
   color: #7c5205;
 }
 
-.workflow-badge[data-estado='autorizado'],
-.workflow-badge[data-estado='aprobado'] {
+.workflow-badge[data-estado="autorizado"],
+.workflow-badge[data-estado="aprobado"] {
   background: rgba(25, 135, 84, 0.15);
   color: #0f5132;
 }

@@ -86,22 +86,6 @@
         background-color: #e6f2ff !important;
       }
       .workflow-info-panel {
-        background: rgba(47, 84, 150, 0.05);
-        border-radius: 12px;
-        padding: 1rem;
-        margin-bottom: 1rem;
-      }
-      .workflow-drawer .workflow-guide-anchor { min-height: 12px; }
-      .toast-global {
-        position: fixed !important;
-        inset: 1.25rem 1.25rem auto auto;
-        z-index: 2000;
-        width: min(360px, 90vw);
-      }
-    `;
-    document.head.appendChild(style);
-  };
-
   const formatDateTime = (valor) => {
     if (!valor) return "-";
     const fecha = new Date(valor);
@@ -1192,21 +1176,49 @@
         }
       }
 
-      if (this.state.borrador?.id) {
+      const intentarDescartar = async (payload) => {
         try {
           const resp = await fetch(`${API_BASE}/borradores/descartar`, {
             method: "POST",
             headers: this._construirHeaders(),
-            body: JSON.stringify({
-              borradorId: this.state.borrador.id,
-            }),
+            body: JSON.stringify(payload),
           });
           const data = await resp.json().catch(() => ({}));
           if (!resp.ok) {
-            console.warn("No se pudo descartar el borrador en el servidor:", data.mensaje);
+            console.warn(
+              "No se pudo descartar el borrador en el servidor:",
+              data?.mensaje || resp.statusText
+            );
+            return { ok: false, status: resp.status };
           }
+          return { ok: true };
         } catch (error) {
           console.error("Error al descartar borrador:", error);
+          return { ok: false, status: 0 };
+        }
+      };
+
+      if (this.state.borrador?.id || this._contextoCompleto()) {
+        const contextoPayload = {
+          empresaId: this.state.contexto.empresaId,
+          modulo: this.state.contexto.modulo,
+          anio: this.state.contexto.anio,
+        };
+        let resultado = null;
+        if (this.state.borrador?.id) {
+          resultado = await intentarDescartar({
+            borradorId: this.state.borrador.id,
+          });
+          if (resultado?.status === 404) {
+            resultado = await intentarDescartar(contextoPayload);
+          }
+        } else {
+          resultado = await intentarDescartar(contextoPayload);
+        }
+        if (!resultado?.ok) {
+          console.info(
+            "Continuando con limpieza local aun sin descartar borrador remoto."
+          );
         }
       }
 

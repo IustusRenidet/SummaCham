@@ -844,6 +844,90 @@
         }, 5000);
       });
 
+    const destruirTooltipsGlobales = () => {
+      if (window.bootstrap?.Tooltip) {
+        document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach((el) => {
+          try {
+            const instancia = window.bootstrap.Tooltip.getInstance(el);
+            if (instancia) instancia.dispose();
+          } catch (error) {
+            console.warn('No fue posible destruir tooltip', error);
+          }
+        });
+      }
+      document.querySelectorAll('.tooltip').forEach((tooltip) => tooltip.remove());
+      document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach((el) => {
+        el.removeAttribute('data-bs-toggle');
+        el.removeAttribute('data-bs-original-title');
+        if (el.getAttribute('title')) el.removeAttribute('title');
+      });
+    };
+
+    const diagnosticarBloqueadores = () => {
+      try {
+        const datos = {
+          timestamp: new Date().toISOString(),
+          overlays: [],
+          pointerNone: [],
+          centroPantalla: null,
+        };
+
+        const centroX = Math.round(window.innerWidth / 2);
+        const centroY = Math.round(window.innerHeight / 2);
+        const elementoCentro = document.elementFromPoint(centroX, centroY);
+        if (elementoCentro) {
+          const estiloCentro = window.getComputedStyle(elementoCentro);
+          datos.centroPantalla = {
+            tag: elementoCentro.tagName,
+            id: elementoCentro.id || null,
+            clase: elementoCentro.className || null,
+            pointerEvents: estiloCentro.pointerEvents,
+            zIndex: estiloCentro.zIndex,
+          };
+        }
+
+        document
+          .querySelectorAll('.modal-backdrop, .offcanvas-backdrop, [class*="backdrop"], [class*="overlay"]')
+          .forEach((overlay) => {
+            const rect = overlay.getBoundingClientRect();
+            datos.overlays.push({
+              tag: overlay.tagName,
+              id: overlay.id || null,
+              clase: overlay.className || null,
+              visible: rect.width > 0 && rect.height > 0,
+              pointerEvents: window.getComputedStyle(overlay).pointerEvents,
+              zIndex: window.getComputedStyle(overlay).zIndex,
+            });
+          });
+
+        document.querySelectorAll('*').forEach((el) => {
+          const style = window.getComputedStyle(el);
+          if (
+            style.pointerEvents === 'none' &&
+            !el.hasAttribute('hidden') &&
+            el.offsetParent !== null
+          ) {
+            datos.pointerNone.push({
+              tag: el.tagName,
+              id: el.id || null,
+              clase: el.className || null,
+            });
+          }
+        });
+
+        console.groupCollapsed('Diagnóstico de bloqueadores de clics');
+        console.table(datos.overlays, ['tag', 'id', 'clase', 'visible', 'pointerEvents', 'zIndex']);
+        console.table(datos.pointerNone.slice(0, 20), ['tag', 'id', 'clase']);
+        console.log('Elemento en el centro', datos.centroPantalla);
+        console.groupEnd();
+        window.__ultimoDiagnosticoBloqueadores = datos;
+        return datos;
+      } catch (error) {
+        console.error('No fue posible diagnosticar bloqueadores', error);
+        return null;
+      }
+    };
+
     const limpiarBotonesInteractivos = () => {
       document
         .querySelectorAll(
@@ -858,15 +942,12 @@
     const limpiarPointerEventsGlobales = () => {
       limpiarBotonesInteractivos();
 
-      // Remover backdrops residuales solo si no hay elementos visibles
-      const hayContenedorVisible = Boolean(
-        document.querySelector('.modal.show, .offcanvas.show')
-      );
-      if (!hayContenedorVisible) {
-        document
-          .querySelectorAll('.modal-backdrop, .offcanvas-backdrop, [class*="backdrop"]')
-          .forEach((backdrop) => backdrop.remove());
-      }
+      // Eliminar todos los backdrops para evitar bloqueos
+      document
+        .querySelectorAll('.modal-backdrop, .offcanvas-backdrop, [class*="backdrop"]')
+        .forEach((backdrop) => {
+          backdrop.remove();
+        });
 
       // Asegurar que elementos ocultos no bloqueen clics
       document.querySelectorAll('[hidden]').forEach((el) => {
@@ -908,6 +989,8 @@
       }
       limpiarBotonesInteractivos();
       limpiarPointerEventsGlobales();
+      destruirTooltipsGlobales();
+      diagnosticarBloqueadores();
       console.info("Vista de planeacion inicializada con limpieza de estado.");
     };
 
@@ -919,7 +1002,13 @@
       inicializarLimpieza();
     }
 
-    setInterval(limpiarPointerEventsGlobales, 5000);
+    setInterval(() => {
+      limpiarPointerEventsGlobales();
+      destruirTooltipsGlobales();
+      diagnosticarBloqueadores();
+    }, 5000);
+
+    window.__diagnosticarBloqueadores = diagnosticarBloqueadores;
 
     window.addEventListener("beforeunload", (event) => {
       const instancia = window.__flujoAutorizacionInstance;
