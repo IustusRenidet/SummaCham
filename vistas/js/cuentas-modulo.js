@@ -686,32 +686,59 @@
     if (!fila) return;
     const cuenta = fila.dataset.cuenta21 || '';
     const almacen = estadoModulo.valoresPorCuenta.get(cuenta) || {};
-    let totalPresupuesto = 0;
-    MESES.forEach((mes) => {
-      totalPresupuesto += Number(almacen[`budget-${mes}`]) || 0;
+    
+    // Mes actual
+    const mesActualIndex = estadoModulo.mesActualIndex ?? new Date().getMonth();
+    const mesActualClave = MESES[mesActualIndex] || 'dic';
+    
+    let totalPresupuestoAcumulado = 0;
+    let totalRealAcumulado = 0;
+    
+    MESES.forEach((mes, index) => {
+      // Acumular solo hasta el mes actual
+      if (index <= mesActualIndex) {
+        totalPresupuestoAcumulado += Number(almacen[`budget-${mes}`]) || 0;
+        totalRealAcumulado += Number(almacen[`real-${mes}`]) || 0;
+      }
     });
+    
+    // Presupuesto y Real del mes actual
+    const presupuestoMesActual = Number(almacen[`budget-${mesActualClave}`]) || 0;
+    const realMesActual = Number(almacen[`real-${mesActualClave}`]) || 0;
+    
+    // total-budget: acumulado desde enero hasta mes actual
     if (estadoModulo.columnas['total-budget'] != null) {
       const celdaTotal = fila.cells[estadoModulo.columnas['total-budget']];
       if (celdaTotal) {
-        celdaTotal.textContent = formatearNumero(totalPresupuesto);
+        celdaTotal.textContent = formatearNumero(totalPresupuestoAcumulado);
       }
     }
+    // budget-annual: presupuesto del mes actual (Gastos Corporativos: "Presupuesto YYYY")
     if (estadoModulo.columnas['budget-annual'] != null) {
       const celdaAnnual = fila.cells[estadoModulo.columnas['budget-annual']];
       if (celdaAnnual) {
-        celdaAnnual.textContent = formatearNumero(totalPresupuesto);
+        celdaAnnual.textContent = formatearNumero(presupuestoMesActual);
       }
     }
+    // budget-monthly: real del mes actual (Gastos Corporativos: "Mensual")
     if (estadoModulo.columnas['budget-monthly'] != null) {
       const celdaMensual = fila.cells[estadoModulo.columnas['budget-monthly']];
       if (celdaMensual) {
-        const mensual = totalPresupuesto / 12;
-        celdaMensual.textContent = formatearNumero(mensual);
+        celdaMensual.textContent = formatearNumero(realMesActual);
       }
     }
-    almacen['total-budget'] = totalPresupuesto;
-    almacen['budget-annual'] = totalPresupuesto;
-    almacen['budget-monthly'] = totalPresupuesto / 12;
+    // total-real: acumulado desde enero hasta mes actual
+    if (estadoModulo.columnas['total-real'] != null) {
+      const celdaRealTotal = fila.cells[estadoModulo.columnas['total-real']];
+      if (celdaRealTotal) {
+        celdaRealTotal.textContent = formatearNumero(totalRealAcumulado);
+      }
+    }
+    
+    almacen['total-budget'] = totalPresupuestoAcumulado;
+    almacen['budget-annual'] = presupuestoMesActual;
+    almacen['budget-monthly'] = realMesActual;
+    almacen['total-real'] = totalRealAcumulado;
     estadoModulo.valoresPorCuenta.set(cuenta, almacen);
   };
 
@@ -751,34 +778,54 @@
       const n = Number(valor);
       return Number.isFinite(n) ? n : 0;
     };
+    // Obtener mes actual (0-11, donde 0=enero, 11=diciembre)
+    const mesActualIndex = new Date().getMonth();
+    const mesActualClave = MESES[mesActualIndex] || 'dic'; // ene, feb, mar, etc.
+    
     obtenerFilasCuenta().forEach((fila) => {
       const cuenta = fila.dataset.cuenta21 || '';
       const registro = mapa.get(cuenta);
-      let totalPresupuesto = 0;
+      let totalPresupuestoAcumulado = 0;
+      let totalRealAcumulado = 0;
       const almacen = {};
-      MESES.forEach((mes) => {
+      
+      MESES.forEach((mes, index) => {
         const presupuesto = numeroSeguro(registro?.presupuesto?.[mes]);
         const real = numeroSeguro(registro?.real?.[mes]);
-        totalPresupuesto += presupuesto;
+        
+        // Acumular solo hasta el mes actual
+        if (index <= mesActualIndex) {
+          totalPresupuestoAcumulado += presupuesto;
+          totalRealAcumulado += real;
+        }
+        
         establecerValorCelda(fila, `budget-${mes}`, presupuesto);
         establecerValorCelda(fila, `real-${mes}`, real);
         almacen[`budget-${mes}`] = presupuesto;
         almacen[`real-${mes}`] = real;
       });
-      // Real acumulado: usar el valor de diciembre (mes 12) tal cual viene en real.
-      const totalRealConAjuste = numeroSeguro(
-        registro?.real?.dic_acum ?? registro?.real?.dic ?? registro?.real?.['dic']
-      );
-      establecerValorCelda(fila, 'total-budget', totalPresupuesto);
-      establecerValorCelda(fila, 'total-real', totalRealConAjuste);
-      establecerValorCelda(fila, 'budget-annual', totalPresupuesto);
-      establecerValorCelda(fila, 'budget-monthly', totalPresupuesto / 12);
-      almacen['total-budget'] = totalPresupuesto;
-      almacen['budget-annual'] = totalPresupuesto;
-      almacen['budget-monthly'] = totalPresupuesto / 12;
-      almacen['total-real'] = totalRealConAjuste;
+      
+      // Presupuesto del mes actual (para Gastos Corporativos: "Presupuesto YYYY")
+      const presupuestoMesActual = numeroSeguro(registro?.presupuesto?.[mesActualClave]);
+      // Real del mes actual (para Gastos Corporativos: "Mensual")
+      const realMesActual = numeroSeguro(registro?.real?.[mesActualClave]);
+      
+      // total-budget y total-real: acumulados desde enero hasta mes actual
+      establecerValorCelda(fila, 'total-budget', totalPresupuestoAcumulado);
+      establecerValorCelda(fila, 'total-real', totalRealAcumulado);
+      // budget-annual: presupuesto del mes actual (Gastos Corporativos)
+      establecerValorCelda(fila, 'budget-annual', presupuestoMesActual);
+      // budget-monthly: real del mes actual (Gastos Corporativos)
+      establecerValorCelda(fila, 'budget-monthly', realMesActual);
+      
+      almacen['total-budget'] = totalPresupuestoAcumulado;
+      almacen['budget-annual'] = presupuestoMesActual;
+      almacen['budget-monthly'] = realMesActual;
+      almacen['total-real'] = totalRealAcumulado;
       estadoModulo.valoresPorCuenta.set(cuenta, almacen);
     });
+    estadoModulo.mesActual = mesActualClave;
+    estadoModulo.mesActualIndex = mesActualIndex;
     recalcularSumas();
     estadoModulo.hayCambios = false;
     estadoModulo.editSnapshot = null;
