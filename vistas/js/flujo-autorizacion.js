@@ -862,7 +862,13 @@
         this._toast('No hay borrador para autorizar.', 'warning');
         return;
       }
-      if (!confirm('¿Autorizar este presupuesto?')) return;
+      // Mostrar modal de confirmación mejorado
+      const confirmado = await this._mostrarConfirmacion({
+        titulo: '⚠️ Autorizar Presupuesto',
+        mensaje: `¿Estás seguro de que deseas <strong>autorizar</strong> este presupuesto?<br><small class="text-muted">Esta acción permitirá al usuario guardarlo en la base de datos COI.</small>`,
+        etiquetaBoton: 'Autorizar'
+      });
+      if (!confirmado) return;
       try {
         const resp = await fetch(`${API_BASE}/borradores/autorizar`, {
           method: 'POST',
@@ -874,7 +880,7 @@
         this.state.borrador = data.borrador || null;
         this._renderInfo();
         this._renderBotones();
-        this._toast(data.mensaje || 'Presupuesto autorizado.');
+        this._toast(data.mensaje || 'Presupuesto autorizado.', 'success');
       } catch (error) {
         console.error('Autorizar', error);
         this._toast(error.message || 'No fue posible autorizar.', 'danger');
@@ -890,7 +896,13 @@
         this._toast('No hay borrador para rechazar.', 'warning');
         return;
       }
-      const motivo = prompt('Indica el motivo para rechazar este presupuesto:');
+      // Mostrar modal con campo de texto para motivo
+      const motivo = await this._mostrarEntradaConfirmacion({
+        titulo: '❌ Rechazar Presupuesto',
+        mensaje: `Indica el <strong>motivo</strong> para rechazar este presupuesto. El usuario podrá ver este comentario al revisarlo.`,
+        placeholder: 'Ej: Datos incompletos, revisión fallida, etc.',
+        etiquetaBoton: 'Rechazar'
+      });
       if (!motivo) return;
       try {
         const resp = await fetch(`${API_BASE}/borradores/rechazar`, {
@@ -903,7 +915,7 @@
         this.state.borrador = data.borrador || null;
         this._renderInfo();
         this._renderBotones();
-        this._toast(data.mensaje || 'Presupuesto rechazado.');
+        this._toast(data.mensaje || 'Presupuesto rechazado.', 'info');
       } catch (error) {
         console.error('Rechazar', error);
         this._toast(error.message || 'No fue posible rechazar.', 'danger');
@@ -919,7 +931,14 @@
         this._toast('El presupuesto debe estar aprobado para guardar en COI.', 'warning');
         return;
       }
-      if (!confirm('¿Guardar este presupuesto en la base de datos de COI?')) return;
+      // Mostrar modal de confirmación mejorado
+      const confirmado = await this._mostrarConfirmacion({
+        titulo: '💾 Guardar en Base de Datos COI',
+        mensaje: `¿Estás seguro de que deseas guardar este presupuesto <strong>autorizado</strong> en la base de datos de COI?<br><small class="text-muted">Esta es una acción irreversible. El presupuesto no podrá editarse más.</small>`,
+        etiquetaBoton: 'Guardar en COI',
+        tipoBoton: 'primary'
+      });
+      if (!confirmado) return;
       try {
         const resp = await fetch(`${API_BASE}/borradores/finalizar`, {
           method: 'POST',
@@ -931,7 +950,7 @@
         this.state.borrador = data.borrador || null;
         this._renderInfo();
         this._renderBotones();
-        this._toast(data.mensaje || 'Presupuesto guardado en COI.');
+        this._toast(data.mensaje || 'Presupuesto guardado en COI.', 'success');
       } catch (error) {
         console.error('Guardar COI', error);
         this._toast(error.message || 'No fue posible guardar en COI.', 'danger');
@@ -949,6 +968,105 @@
         return;
       }
       console.info(`[Flujo AUT] ${mensaje}`);
+    }
+
+    async _mostrarConfirmacion({ titulo, mensaje, etiquetaBoton = 'Confirmar', tipoBoton = 'warning' }) {
+      return new Promise((resolve) => {
+        const modal = document.createElement('div');
+        modal.className = 'modal fade';
+        modal.setAttribute('tabindex', '-1');
+        modal.setAttribute('aria-hidden', 'true');
+        modal.innerHTML = `
+          <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+              <div class="modal-header border-bottom">
+                <h5 class="modal-title">${titulo || 'Confirmación'}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+              </div>
+              <div class="modal-body">
+                ${mensaje || '¿Estás seguro?'}
+              </div>
+              <div class="modal-footer border-top">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-${tipoBoton}">${etiquetaBoton}</button>
+              </div>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(modal);
+        const bsModal = new window.bootstrap.Modal(modal);
+        const btnConfirmar = modal.querySelector('.btn-' + tipoBoton);
+        const handleCerrar = () => {
+          bsModal.hide();
+          setTimeout(() => {
+            document.body.removeChild(modal);
+            resolve(false);
+          }, 300);
+        };
+        const handleConfirmar = () => {
+          bsModal.hide();
+          setTimeout(() => {
+            document.body.removeChild(modal);
+            resolve(true);
+          }, 300);
+        };
+        modal.addEventListener('hidden.bs.modal', handleCerrar);
+        btnConfirmar.addEventListener('click', handleConfirmar);
+        bsModal.show();
+      });
+    }
+
+    async _mostrarEntradaConfirmacion({ titulo, mensaje, placeholder = '', etiquetaBoton = 'Confirmar' }) {
+      return new Promise((resolve) => {
+        const modal = document.createElement('div');
+        modal.className = 'modal fade';
+        modal.setAttribute('tabindex', '-1');
+        modal.setAttribute('aria-hidden', 'true');
+        modal.innerHTML = `
+          <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+              <div class="modal-header border-bottom">
+                <h5 class="modal-title">${titulo || 'Entrada Requerida'}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+              </div>
+              <div class="modal-body">
+                <p>${mensaje || 'Por favor ingresa un valor:'}</p>
+                <textarea class="form-control" rows="4" placeholder="${placeholder}" style="resize: vertical;"></textarea>
+              </div>
+              <div class="modal-footer border-top">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary">${etiquetaBoton}</button>
+              </div>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(modal);
+        const textArea = modal.querySelector('textarea');
+        const bsModal = new window.bootstrap.Modal(modal);
+        const btnConfirmar = modal.querySelector('.btn-primary');
+        const handleCerrar = () => {
+          bsModal.hide();
+          setTimeout(() => {
+            document.body.removeChild(modal);
+            resolve(null);
+          }, 300);
+        };
+        const handleConfirmar = () => {
+          const valor = (textArea.value || '').trim();
+          bsModal.hide();
+          setTimeout(() => {
+            document.body.removeChild(modal);
+            resolve(valor || null);
+          }, 300);
+        };
+        modal.addEventListener('hidden.bs.modal', handleCerrar);
+        btnConfirmar.addEventListener('click', handleConfirmar);
+        textArea.addEventListener('keypress', (ev) => {
+          if (ev.ctrlKey && ev.key === 'Enter') handleConfirmar();
+        });
+        bsModal.show();
+        setTimeout(() => textArea.focus(), 300);
+      });
     }
 
     _notificarEstadoBorrador(borrador) {
@@ -1085,6 +1203,14 @@
     async _descartarBorrador() {
       const contexto = { ...this.state.contexto };
       const borradorId = this.state.borrador?.id || null;
+      // Mostrar modal de confirmación mejorado
+      const confirmado = await this._mostrarConfirmacion({
+        titulo: '🗑️ Descartar Borrador',
+        mensaje: `¿Estás seguro de que deseas <strong>descartar</strong> este borrador?<br><small class="text-muted">Se perderán todos los cambios que no hayan sido guardados. Esta acción es irreversible.</small>`,
+        etiquetaBoton: 'Descartar',
+        tipoBoton: 'danger'
+      });
+      if (!confirmado) return;
       try {
         const body = JSON.stringify({
           borradorId,
@@ -1103,16 +1229,16 @@
         }
         FlujoAutorizacion.limpiarBorrador(this.tableElement);
         this.state.borrador = null;
-      this._exitEditMode(true);
-      this._notificarEstadoBorrador(null);
-      this._renderInfo();
-      this._renderBotones();
-      this._toast(data.mensaje || 'Borrador descartado.', 'info');
-      this._refreshEstado();
-    } catch (error) {
-      console.error('Descartar borrador', error);
-      this._toast(error.message || 'No se pudo descartar el borrador.', 'danger');
-    }
+        this._exitEditMode(true);
+        this._notificarEstadoBorrador(null);
+        this._renderInfo();
+        this._renderBotones();
+        this._toast(data.mensaje || 'Borrador descartado.', 'info');
+        this._refreshEstado();
+      } catch (error) {
+        console.error('Descartar borrador', error);
+        this._toast(error.message || 'No se pudo descartar el borrador.', 'danger');
+      }
     }
   }
 
