@@ -304,15 +304,20 @@
     text = false,
     classes = ''
   } = {}) => {
+    const esEditableReal = columnKey === 'cuenta' || columnKey === 'descripcion' || columnKey === 'nombre';
     const classList = ['editable-cell'];
     classList.push(text ? 'text-start' : 'text-end');
+    if (esEditableReal) classList.push('editable-real'); else classList.push('read-only-cell');
     if (classes) classList.push(classes);
     const attrs = [
       `class="${classList.join(' ')}"`,
-      `data-valor-original="${text ? escapeAttr(val ?? '') : Number(val ?? 0)}"`
+      `data-valor-original="${text ? escapeAttr(val ?? '') : Number(val ?? 0)}"`,
+      `data-editable-real="${esEditableReal}"`
     ];
-    if (columnKey) {
-      attrs.push(`data-columna-clave="${columnKey}"`);
+    if (columnKey) attrs.push(`data-columna-clave="${columnKey}"`);
+    if (!esEditableReal && tooltipKey) {
+      attrs.push(`title="Columna de solo lectura (${columnKey})"`);
+      attrs.push(`data-bs-toggle="tooltip"`);
     }
     const contenido = text ? escapeAttr(val ?? '') : formatNumber(val);
     return `<td ${attrs.join(' ')}${resumenTooltipAttr(tooltipKey)}${resumenRowTooltipAttr(rowRole)}>${contenido}</td>`;

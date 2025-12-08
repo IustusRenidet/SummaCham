@@ -390,6 +390,36 @@
     .highlight-bright .code-cell {
       color: #f2f2f2 !important;
     }
+
+    /* Editable vs Read-only indicators */
+    .editable-real {
+      background-color: #e8f4f8 !important;
+      cursor: text;
+      position: relative;
+    }
+    .editable-real:hover {
+      background-color: #d0e8f0 !important;
+      box-shadow: inset 0 0 3px rgba(0, 100, 200, 0.12);
+    }
+    .editable-real::before {
+      content: '✎';
+      position: absolute;
+      right: 6px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 0.8rem;
+      color: #0064c8;
+      opacity: 0.0;
+      transition: opacity 0.18s;
+    }
+    .editable-real:hover::before { opacity: 0.7; }
+
+    .read-only-cell {
+      background-color: #f5f5f5 !important;
+      cursor: not-allowed;
+      color: #666;
+    }
+    .read-only-cell:hover { background-color: #eeeeee !important; }
   </style>
 </head>
 
@@ -642,6 +672,7 @@
   <script src="js/sesion.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="js/flujo-autorizacion.js"></script>
+  <script src="js/modo-edicion-presupuesto.js"></script>
   <script src="js/summary-view.js"></script>
   <script>
     (function () {
@@ -760,6 +791,53 @@
     })();
   </script>
 
+  <!-- Inicialización del Flujo de Autorización con Modo Edición -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Esperar a que se carguen los módulos
+      setTimeout(() => {
+        // 1. Inicializar el módulo de edición
+        const inicioOK = ModoEdicionPresupuesto.inicializar('#tablaComparacion');
+        
+        if (!inicioOK) {
+          console.warn('⚠️ No se pudo inicializar modo edición (tabla no encontrada)');
+        }
+
+        // 2. Inicializar el flujo de autorización CON callbacks
+        if (typeof FlujoAutorizacion !== 'undefined') {
+          const flujo = new FlujoAutorizacion({
+            tablaId: 'tablaComparacion',
+            modulo: 'PRESUPUESTOS',
+            
+            // ✅ CALLBACK CRÍTICO: Extraer cambios de la tabla
+            obtenerCambios: () => {
+              const cambios = ModoEdicionPresupuesto.obtenerCambios();
+              console.log('📤 Obteniendo cambios:', cambios);
+              return cambios;
+            },
+            
+            // Headers de autenticación
+            obtenerHeaders: () => {
+              return Sesion.headersAutenticacion?.() || {};
+            },
+            
+            // Callback cuando se cancela la edición
+            onCancelEdit: () => {
+              ModoEdicionPresupuesto.desactivar('#tablaComparacion');
+              ModoEdicionPresupuesto.limpiar();
+            }
+          }).init();
+
+          // 3. Guardar referencia global para debugging
+          window.flujoAutorizacionActual = flujo;
+          
+          console.log('✅ Flujo de autorización inicializado con callbacks');
+        } else {
+          console.warn('⚠️ FlujoAutorizacion no está disponible');
+        }
+      }, 500);
+    });
+  </script>
 
 </body>
 

@@ -332,16 +332,50 @@ const persistirEnFirebird = async (borrador) => {
 
   // 2. Guardar en Firebird PRESUP table
   const { ejecutarConsulta } = require('./firebirdService');
-  const datos = typeof borrador.data === 'string' ? JSON.parse(borrador.data) : borrador.data;
+  
+  let datos;
+  try {
+    datos = typeof borrador.data === 'string' ? JSON.parse(borrador.data) : borrador.data;
+  } catch (parseError) {
+    console.error('❌ Error al parsear datos del borrador:', parseError);
+    throw new Error('Los datos del borrador están corruptos.');
+  }
+
   const presupuesto = Array.isArray(datos?.presupuesto) ? datos.presupuesto : [];
   
-  if (!presupuesto.length) {
-    return; // No hay datos para guardar en Firebird
+  // ✅ MEJORA: Validar que hay datos antes de proceder
+  if (!presupuesto || presupuesto.length === 0) {
+    console.warn(`⚠️ Borrador ${borrador.id} (${borrador.empresaId}/${borrador.modulo}/${borrador.anio}) sin datos presupuestarios`);
+    // No lanzar error - permitir guardar estado como GUARDADO pero registrar en logs
+    return;
+  }
+
+  // ✅ MEJORA: Validar que hay valores numéricos válidos
+  const tieneValoresValidos = presupuesto.some((cambio) => {
+    if (!cambio || !cambio.valores) return false;
+    return Object.values(cambio.valores).some((v) => {
+      const num = Number(v);
+      return Number.isFinite(num) && num !== 0;
+    });
+  });
+
+  if (!tieneValoresValidos) {
+    console.warn(
+      `⚠️ Borrador ${borrador.id} (${borrador.empresaId}/${borrador.modulo}/${borrador.anio}) ` +
+      `con solo ceros o valores inválidos`
+    );
+    // Registrar pero permitir - puede ser presupuesto legítimo de ceros
   }
 
   const anio = Number(borrador.anio);
   const sufijo = anio.toString().slice(-2).padStart(2, '0');
   const tablaPresup = `PRESUP${sufijo}`;
+
+  // ✅ MEJORA: Registrar intent de guardar
+  console.log(
+    `📝 Persistencia en Firebird: ${presupuesto.length} cuentas → ${tablaPresup} ` +
+    `(empresa: ${borrador.empresaId}, módulo: ${borrador.modulo})`
+  );
 
   // Mapeo de claves a columnas PRESUP01-PRESUP12
   const MESES_COLUMNAS = {
@@ -351,10 +385,18 @@ const persistirEnFirebird = async (borrador) => {
     'budget-oct': 'PRESUP10', 'budget-nov': 'PRESUP11', 'budget-dic': 'PRESUP12'
   };
 
+  let contadorExitosas = 0;
+  let contadorErrores = 0;
+
   for (const cambio of presupuesto) {
     const cuenta = (cambio.cuenta || '').toString().trim();
     const valores = cambio.valores || {};
-    if (!cuenta) continue;
+
+    if (!cuenta) {
+      console.warn(`⚠️ Cambio sin número de cuenta, ignorando`);
+      contadorErrores++;
+      continue;
+    }
 
     const columnasVariables = [];
     const valoresVariables = [];
@@ -367,13 +409,17 @@ const persistirEnFirebird = async (borrador) => {
       valoresVariables.push(Number.isFinite(numero) ? numero : 0);
     });
 
-    if (!columnasVariables.length) continue;
+    if (!columnasVariables.length) {
+      console.warn(`⚠️ Cuenta ${cuenta} sin valores numéricos`);
+      contadorErrores++;
+      continue;
+    }
 
     const columnas = ['NUM_CTA', 'EJERCICIO', ...columnasVariables];
     const parametros = [cuenta, anio, ...valoresVariables];
     const placeholders = columnas.map(() => '?').join(', ');
 
-    // Firebird permite UPSERT con MATCHING; as� no perdemos registros nuevos.
+    // Firebird permite UPSERT con MATCHING; no perdemos registros nuevos.
     const upsertQuery = `
       UPDATE OR INSERT INTO ${tablaPresup} (${columnas.join(', ')})
       VALUES (${placeholders})
@@ -382,11 +428,17 @@ const persistirEnFirebird = async (borrador) => {
 
     try {
       await ejecutarConsulta(borrador.empresaId, upsertQuery, parametros);
+      contadorExitosas++;
     } catch (error) {
-      console.error(`Error al guardar cuenta ${cuenta} en ${tablaPresup}:`, error);
-      throw error;
+      console.error(`❌ Error al guardar cuenta ${cuenta} en ${tablaPresup}:`, error.message);
+      contadorErrores++;
+      // No lanzar - continuar con otras cuentas para no perder todo
     }
   }
+
+  console.log(
+    `✅ Persistencia completada: ${contadorExitosas} cuentas exitosas, ${contadorErrores} errores`
+  );
 };
 
 const FINALIZADORES = {

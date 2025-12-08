@@ -1,5 +1,6 @@
 const express = require('express');
 const Joi = require('joi');
+const { db } = require('../db/sqlite');
 const { obtenerEmpresaPorId } = require('../config/empresas');
 const { MODULOS } = require('../services/permisosService');
 const {
@@ -32,6 +33,72 @@ const normalizarTexto = (valor) => {
 };
 
 router.use(requireAuth);
+
+/**
+ * GET /api/borradores/estado
+ * Obtiene el estado actual del borrador para una empresa/módulo/año
+ * 
+ * Query params:
+ * - empresaId: string (requerido)
+ * - modulo: string (requerido)
+ * - anio: number (requerido)
+ * 
+ * Response: { borrador: {}, estado: string } o { borrador: null, estado: 'sin-cargar' }
+ */
+router.get('/estado', (req, res) => {
+  const { empresaId, modulo, anio } = req.query;
+  
+  // Validar parámetros
+  if (!empresaId || !modulo || !anio) {
+    return res.status(400).json({
+      mensaje: 'Faltan parámetros: empresaId, modulo, anio'
+    });
+  }
+
+  // Validar empresa
+  const empresa = obtenerEmpresaPorId(empresaId);
+  if (!empresa) {
+    return res.status(404).json({ 
+      mensaje: 'Empresa no encontrada.' 
+    });
+  }
+
+  // Validar y normalizar módulo
+  const moduloCanonico = obtenerModuloCanonico(modulo);
+  if (!moduloCanonico) {
+    return res.status(400).json({ 
+      mensaje: 'El módulo indicado no es válido.' 
+    });
+  }
+
+  // Obtener el borrador actual para ese contexto
+  const borrador = obtenerBorrador({
+    empresaId: empresa.id,
+    modulo: moduloCanonico,
+    anio: Number(anio)
+  });
+
+  // Si no hay borrador, devolver estado 'sin-cargar'
+  if (!borrador) {
+    return res.json({
+      borrador: null,
+      estado: 'sin-cargar'
+    });
+  }
+
+  // Verificar si el usuario actual puede ver este borrador
+  if (!puedeVerBorrador(req, borrador)) {
+    return res.status(403).json({
+      mensaje: 'No tienes permisos para ver este borrador.'
+    });
+  }
+
+  // Devolver el borrador (sin datos completos para evitar transferencias grandes)
+  return res.json({
+    borrador: mapearResumen(borrador),
+    estado: borrador.estado
+  });
+});
 
 const obtenerModuloCanonico = (valor) => {
   const buscado = normalizarTexto(valor);
@@ -97,6 +164,18 @@ const esquemaDescartar = Joi.object({
   anio: Joi.number().integer().min(2000).max(2100).optional(),
   borradorId: Joi.number().integer().optional()
 }).or('borradorId', 'empresaId');
+
+const resetearEstadoPresupuesto = (empresaId, modulo, anio, usuarioId) => {
+  if (!empresaId || !modulo || !Number.isInteger(Number(anio))) return;
+  db.prepare(`
+    INSERT INTO presupuestos_estado (empresa_id, modulo, anio, estado, actualizado_por, actualizado_en)
+    VALUES (?, ?, ?, 'sin-cargar', ?, CURRENT_TIMESTAMP)
+    ON CONFLICT(empresa_id, modulo, anio) DO UPDATE SET
+      estado = 'sin-cargar',
+      actualizado_por = excluded.actualizado_por,
+      actualizado_en = CURRENT_TIMESTAMP
+  `).run(empresaId, modulo, Number(anio), usuarioId || null);
+};
 
 const esquemaHistorial = Joi.object({
   empresaId: Joi.string().trim().optional(),
@@ -353,6 +432,7 @@ router.post('/descartar', (req, res) => {
   }
 
   eliminarBorrador(empresa.id, modulo, borrador.anio, req.usuarioActual.id);
+  resetearEstadoPresupuesto(empresa.id, modulo, borrador.anio, req.usuarioActual.id);
   return res.json({ mensaje: 'Borrador descartado.', borradorId: borrador.id });
 });
 

@@ -1710,19 +1710,30 @@
   };
 
   const actualizarSumavariosParaRango = (label, indices, insertIdx) => {
-    if (!label || !Array.isArray(indices) || !indices.length || !estadoModulo.tabla) {
+    if (!label || !Array.isArray(indices) || indices.length < 2) {
+      console.warn('⚠️ Sumavarios requiere al menos 2 secciones');
       return;
     }
     const clave = normalizarTexto(label);
     if (!clave) return;
+    if (!estadoModulo || !estadoModulo.tabla) {
+      console.error('❌ actualizarSumavariosParaRango: estadoModulo.tabla no disponible');
+      return;
+    }
     const cuerpo = estadoModulo.tabla.querySelector('tbody');
     if (!cuerpo) return;
+
     // Eliminar fila existente si hay
-    const existente = estadoModulo.sumas.sumavariosRows.get(clave);
+    const existente = estadoModulo.sumas.sumavariosRows?.get(clave);
     if (existente && existente.parentNode) {
-      existente.parentNode.removeChild(existente);
-      estadoModulo.sumas.sumavariosRows.delete(clave);
+      try {
+        existente.parentNode.removeChild(existente);
+        estadoModulo.sumas.sumavariosRows.delete(clave);
+      } catch (e) {
+        console.warn('⚠️ Error eliminando sumavarios existente:', e);
+      }
     }
+
     const filaSumario = agregarFilaResumen({
       texto: label,
       clase: 'sum-row-sumavarios',
@@ -1730,24 +1741,46 @@
       placeholdersPorFila: estadoModulo.placeholdersPorFila
     });
     if (!filaSumario) return;
+    if (!estadoModulo.sumas.sumavariosRows) estadoModulo.sumas.sumavariosRows = new Map();
     estadoModulo.sumas.sumavariosRows.set(clave, filaSumario);
-    const metas = indices
-      .map((idx) => {
-        const ajustado = idx >= insertIdx ? idx + 1 : idx;
-        return estadoModulo.sumas.secciones[ajustado];
-      })
-      .filter(Boolean);
-    metas.forEach((meta) => {
-      meta.sumRowSumavariosLabel = clave;
-      meta.sumRowSumavariosTexto = label;
+
+    // Normalizar y validar índices
+    const indicesOrdenados = [...new Set(indices)].sort((a, b) => a - b);
+    const metasAfectadas = [];
+    indicesOrdenados.forEach((idx) => {
+      if (!Number.isInteger(idx)) return;
+      const idxReal = idx >= insertIdx ? idx + 1 : idx;
+      if (idxReal >= 0 && idxReal < (estadoModulo.sumas.secciones || []).length) {
+        const meta = estadoModulo.sumas.secciones[idxReal];
+        if (meta) metasAfectadas.push(meta);
+      }
     });
-    const ultimaMeta = metas[metas.length - 1];
+
+    if (metasAfectadas.length < 2) {
+      // No tiene sentido crear sumavarios para menos de 2 secciones
+      console.warn('⚠️ Menos de 2 secciones en sumavarios, se omite la creación');
+      estadoModulo.sumas.sumavariosRows.delete(clave);
+      try { filaSumario.remove(); } catch (e) {}
+      return;
+    }
+
+    metasAfectadas.forEach((meta) => {
+      meta.sumRowSumavariosLabel = label;
+      meta.sumRowSumavariosTexto = clave;
+    });
+
+    const ultimaMeta = metasAfectadas[metasAfectadas.length - 1];
     const referencia =
-      ultimaMeta?.elementos?.sumRow ||
-      ultimaMeta?.filasCuenta?.[ultimaMeta.filasCuenta.length - 1] ||
-      cuerpo.lastChild;
+      ultimaMeta?.elementos?.sumRow || ultimaMeta?.filasCuenta?.[ultimaMeta.filasCuenta.length - 1] || null;
     if (referencia && referencia.parentNode) {
-      referencia.parentNode.insertBefore(filaSumario, referencia.nextSibling);
+      try {
+        referencia.parentNode.insertBefore(filaSumario, referencia.nextSibling);
+      } catch (e) {
+        console.warn('⚠️ Error insertando fila sumavarios en DOM:', e);
+        cuerpo.appendChild(filaSumario);
+      }
+    } else {
+      cuerpo.appendChild(filaSumario);
     }
   };
 
@@ -1759,9 +1792,26 @@
     sumavariosLabel,
     range
   }) => {
-    if (!estadoModulo.tabla) return;
+    // VALIDACIONES
+    if (!estadoModulo || !estadoModulo.tabla) {
+      console.error('❌ crearSeccionDesdeFormulario: tabla no disponible');
+      return;
+    }
     const cuerpo = estadoModulo.tabla.querySelector('tbody');
-    if (!cuerpo) return;
+    if (!cuerpo) {
+      console.error('❌ crearSeccionDesdeFormulario: tbody no encontrado');
+      return;
+    }
+    if (!titulo || typeof titulo !== 'string' || !titulo.trim()) {
+      console.error('❌ crearSeccionDesdeFormulario: titulo inválido');
+      return;
+    }
+    const cuentasLista = Array.isArray(cuentas) ? cuentas.slice() : [];
+    if (cuentasLista.length === 0) {
+      console.error('❌ crearSeccionDesdeFormulario: Se requiere al menos una cuenta');
+      return;
+    }
+
     const seccionClave = normalizarTexto(titulo);
     const header = document.createElement('tr');
     header.className = 'section-header-row';
@@ -1770,8 +1820,8 @@
     celdaHeader.textContent = titulo;
     header.appendChild(celdaHeader);
 
-    const cuentasFilas = cuentas.map((datos) => crearFilaCuentaDesdeDatos(datos, seccionClave));
-    const textoSumRow = sumLabel || `Suma ${titulo}`;
+    const cuentasFilas = cuentasLista.map((datos) => crearFilaCuentaDesdeDatos(datos, seccionClave));
+    const textoSumRow = sumLabel && typeof sumLabel === 'string' && sumLabel.trim() ? sumLabel.trim() : `Suma ${titulo}`;
     const filaSumRow = agregarFilaResumen({
       texto: textoSumRow,
       clase: 'sum-row',
@@ -1779,33 +1829,41 @@
       placeholdersPorFila: estadoModulo.placeholdersPorFila
     });
 
-    const metaBase =
-      referenciaFila?.classList.contains('sum-row-sumavarios') && obtenerMetaPorSumavariosFila(referenciaFila)
+    // Determinar índice de inserción con validaciones
+    let idxInsercion = estadoModulo.sumas.secciones.length;
+    try {
+      const metaBase = referenciaFila?.classList.contains('sum-row-sumavarios') && obtenerMetaPorSumavariosFila(referenciaFila)
         ? obtenerMetaPorSumavariosFila(referenciaFila)
         : obtenerMetaSeccionPorFila(referenciaFila);
-    const idxInsercion = metaBase ? obtenerIndiceInsercionSeccion(metaBase) : estadoModulo.sumas.secciones.length;
-    const referenciaMeta = estadoModulo.sumas.secciones[idxInsercion] || estadoModulo.sumas.secciones[idxInsercion - 1] || null;
-
-    let anchor =
-      referenciaMeta?.elementos?.sumRow ||
-      referenciaMeta?.filasCuenta?.[0] ||
-      obtenerPrimerResultadoFila();
-    if (!anchor) {
-      anchor = cuerpo.lastElementChild?.nextSibling || null;
+      if (metaBase) {
+        const idxTent = obtenerIndiceInsercionSeccion(metaBase);
+        if (Number.isInteger(idxTent) && idxTent >= 0 && idxTent <= estadoModulo.sumas.secciones.length) {
+          idxInsercion = idxTent;
+        } else {
+          console.warn('⚠️ crearSeccionDesdeFormulario: índice de inserción inválido, se usará al final');
+        }
+      }
+    } catch (e) {
+      console.warn('⚠️ crearSeccionDesdeFormulario: error determinando índice inserción', e);
     }
 
-    if (anchor) {
-      cuerpo.insertBefore(header, anchor);
-      cuentasFilas.forEach((fila) => cuerpo.insertBefore(fila, anchor));
-      if (filaSumRow) {
-        cuerpo.insertBefore(filaSumRow, anchor);
+    const referenciaMeta = estadoModulo.sumas.secciones[idxInsercion] || estadoModulo.sumas.secciones[idxInsercion - 1] || null;
+    let anchor = referenciaMeta?.elementos?.sumRow || referenciaMeta?.filasCuenta?.[0] || obtenerPrimerResultadoFila();
+    if (!anchor) anchor = cuerpo.lastElementChild?.nextSibling || null;
+
+    try {
+      if (anchor && anchor.parentNode === cuerpo) {
+        cuerpo.insertBefore(header, anchor);
+        cuentasFilas.forEach((fila) => cuerpo.insertBefore(fila, anchor));
+        if (filaSumRow) cuerpo.insertBefore(filaSumRow, anchor);
+      } else {
+        cuerpo.appendChild(header);
+        cuentasFilas.forEach((fila) => cuerpo.appendChild(fila));
+        if (filaSumRow) cuerpo.appendChild(filaSumRow);
       }
-    } else {
-      cuerpo.appendChild(header);
-      cuentasFilas.forEach((fila) => cuerpo.appendChild(fila));
-      if (filaSumRow) {
-        cuerpo.appendChild(filaSumRow);
-      }
+    } catch (err) {
+      console.error('❌ crearSeccionDesdeFormulario: error insertando en DOM', err);
+      return;
     }
 
     const metaNueva = {
@@ -1816,20 +1874,31 @@
       sumRowSumavariosTexto: '',
       sumRowSumavarios2Texto: '',
       sumRowSumavariosLabel: '',
-      elementos: {
-        header,
-        sumRow: filaSumRow
-      }
+      sumRowSumavarios2Label: '',
+      resultRowTexto: '',
+      resultRows: [],
+      elementos: { header, sumRow: filaSumRow }
     };
 
-    estadoModulo.sumas.secciones.splice(idxInsercion, 0, metaNueva);
-
-    if (sumavariosLabel && range) {
-      const indices = [];
-      for (let i = range.start; i <= range.end; i += 1) {
-        indices.push(i);
+    try {
+      if (idxInsercion >= 0 && idxInsercion <= estadoModulo.sumas.secciones.length) {
+        estadoModulo.sumas.secciones.splice(idxInsercion, 0, metaNueva);
+      } else {
+        estadoModulo.sumas.secciones.push(metaNueva);
       }
-      actualizarSumavariosParaRango(sumavariosLabel, indices, idxInsercion);
+    } catch (err) {
+      console.error('❌ crearSeccionDesdeFormulario: error insertando metaSeccion', err);
+      return;
+    }
+
+    if (sumavariosLabel && range && typeof range === 'object') {
+      const indices = [];
+      const start = Number.isInteger(range.start) ? range.start : null;
+      const end = Number.isInteger(range.end) ? range.end : null;
+      if (start !== null && end !== null && start <= end) {
+        for (let i = start; i <= end; i += 1) indices.push(i);
+      }
+      if (indices.length > 1) actualizarSumavariosParaRango(sumavariosLabel, indices, idxInsercion);
     }
 
     actualizarEstructuraDespuesCambio();
@@ -1882,38 +1951,53 @@
       if (!meta) return;
       if ((meta.filasCuenta || []).length <= 1) {
         window.alert('La seccion debe tener al menos una cuenta.');
-        return;
-      }
-      const cuenta = fila.dataset.cuenta21 || fila.dataset.cuenta;
-      if (cuenta) {
-        estadoModulo.valoresPorCuenta.delete(cuenta);
-        estadoModulo.nombresPorCuenta.delete(cuenta);
-      }
-      fila.remove();
-      const idx = meta.filasCuenta.indexOf(fila);
-      if (idx >= 0) {
-        meta.filasCuenta.splice(idx, 1);
-      }
-      actualizarEstructuraDespuesCambio();
-      return;
-    }
-    if (fila.classList.contains('sum-row-sumavarios')) {
-      let claveSumavarios = null;
-      estadoModulo.sumas.sumavariosRows.forEach((valor, clave) => {
-        if (valor === fila) {
-          claveSumavarios = clave;
-        }
-      });
-      if (claveSumavarios) {
-        estadoModulo.sumas.sumavariosRows.delete(claveSumavarios);
-        estadoModulo.sumas.secciones.forEach((seccion) => {
-          if (normalizarClave(seccion.sumRowSumavariosLabel) === claveSumavarios) {
-            seccion.sumRowSumavariosLabel = '';
-            seccion.sumRowSumavariosTexto = '';
-            seccion.sumRowSumavarios2Texto = '';
+        if (!fila) return;
+        if (fila.classList.contains('fila-cuenta')) {
+          const meta = obtenerMetaSeccionPorFila(fila);
+          if (!meta) {
+            console.warn('⚠️ eliminarFilaSeleccionada: meta no encontrada');
+            return;
           }
-        });
-      }
+          if ((meta.filasCuenta || []).length <= 1) {
+            window.alert('La sección debe tener al menos una cuenta.');
+            return;
+          }
+          const cuenta = fila.dataset.cuenta21 || fila.dataset.cuenta;
+          if (cuenta) {
+            estadoModulo.valoresPorCuenta?.delete(cuenta);
+            estadoModulo.nombresPorCuenta?.delete(cuenta);
+          }
+          try { fila.remove(); } catch (e) { console.warn('⚠️ Error removiendo fila del DOM', e); }
+          const idx = meta.filasCuenta.indexOf(fila);
+          if (idx >= 0) meta.filasCuenta.splice(idx, 1);
+          actualizarEstructuraDespuesCambio();
+          console.log(`✅ Fila eliminada de sección ${meta.seccion}`);
+          return;
+        }
+        if (fila.classList.contains('sum-row-sumavarios')) {
+      if (claveSumavarios) {
+          if (!cuerpo) return;
+          // Buscar clave asociada
+          let claveAux = null;
+          for (const [k, f] of (estadoModulo.sumas.sumavariosRows || new Map()).entries()) {
+            if (f === fila) {
+              claveAux = k; break;
+            }
+          }
+          if (claveAux) {
+            // Limpiar referencias en metas
+            (estadoModulo.sumas.secciones || []).forEach((meta) => {
+              if (normalizarTexto(meta.sumRowSumavariosLabel) === normalizarTexto(claveAux)) {
+                meta.sumRowSumavariosLabel = '';
+                meta.sumRowSumavariosTexto = '';
+              }
+            });
+            estadoModulo.sumas.sumavariosRows.delete(claveAux);
+          }
+          try { fila.remove(); } catch (e) { console.warn('⚠️ Error al eliminar sumavarios del DOM', e); }
+          actualizarEstructuraDespuesCambio();
+          console.log(`✅ Sumavarios ${claveAux || ''} eliminado`);
+          return;
       fila.remove();
       actualizarEstructuraDespuesCambio();
     }
@@ -2075,7 +2159,8 @@
 
   const recalcularSumas = () => {
     const meta = estadoModulo.sumas;
-    if (!meta || !meta.secciones.length) {
+    if (!meta || !Array.isArray(meta.secciones) || meta.secciones.length === 0) {
+      if (!meta || !meta.secciones) console.warn('⚠️ recalcularSumas: sin meta.secciones');
       return;
     }
     const clavesOrdenadas = Object.entries(estadoModulo.columnas || {})
@@ -2084,66 +2169,96 @@
       .filter((clave) => clave !== 'year');
     const longitud = clavesOrdenadas.length;
     if (!longitud) {
+      console.warn('⚠️ recalcularSumas: sin columnas válidas');
       return;
     }
     const secciones = meta.secciones;
 
-    secciones.forEach((seccion) => {
-      const valores = sumarListas(
-        seccion.filasCuenta.map((fila) => {
+    const errores = [];
+    secciones.forEach((seccion, idxSeccion) => {
+      try {
+        if (!seccion || !Array.isArray(seccion.filasCuenta)) {
+          errores.push(`Sección inválida en índice ${idxSeccion}`);
+          seccion.sumValues = Array.from({ length: longitud }, () => 0);
+          return;
+        }
+        const listas = seccion.filasCuenta.map((fila) => {
+          if (!fila || !fila.dataset) return Array.from({ length: longitud }, () => 0);
           const cuenta = fila.dataset.cuenta21 || '';
-          const almacenados = estadoModulo.valoresPorCuenta.get(cuenta);
+          const almacenados = estadoModulo.valoresPorCuenta?.get(cuenta);
           if (almacenados) {
             return clavesOrdenadas.map((clave) => almacenados[clave] ?? 0);
           }
           return extraerValoresNumericos(fila);
-        }),
-        longitud
-      );
-      seccion.sumValues = valores;
-      if (seccion.elementos.sumRow) {
-        asignarValoresNumericos(seccion.elementos.sumRow, valores);
+        });
+        const valores = sumarListas(listas, longitud);
+        seccion.sumValues = valores;
+        if (seccion.elementos?.sumRow && seccion.elementos.sumRow.parentNode) {
+          asignarValoresNumericos(seccion.elementos.sumRow, valores);
+        } else {
+          // sumRow no existe en DOM
+          console.warn(`⚠️ Sección ${seccion.seccion || idxSeccion}: sumRow no presente en DOM`);
+        }
+      } catch (err) {
+        errores.push(`Error sumando sección ${idxSeccion}: ${err?.message || err}`);
       }
     });
+    if (errores.length) console.warn('⚠️ Errores en recalcularSumas:', errores);
 
     // sum-row-sumavarios: suma de los sum-row (sumValues) con la misma etiqueta
-    const acumuladosSumavarios = new Map();
-    secciones.forEach((seccion) => {
-      const clave = normalizarClave(seccion.sumRowSumavariosTexto || seccion.sumRowSumavarios2Texto);
-      if (!clave) return;
-      const prev = acumuladosSumavarios.get(clave) || Array.from({ length: longitud }, () => 0);
-      seccion.sumValues.forEach((valor, idx) => {
-        prev[idx] += Number(valor) || 0;
+    try {
+      const acumuladosSumavarios = new Map();
+      secciones.forEach((seccion) => {
+        const clave = normalizarClave(seccion.sumRowSumavariosTexto || seccion.sumRowSumavarios2Texto);
+        if (!clave) return;
+        const prev = acumuladosSumavarios.get(clave) || Array.from({ length: longitud }, () => 0);
+        (seccion.sumValues || Array.from({ length: longitud }, () => 0)).forEach((valor, idx) => {
+          prev[idx] += Number(valor) || 0;
+        });
+        acumuladosSumavarios.set(clave, prev);
       });
-      acumuladosSumavarios.set(clave, prev);
-    });
-    secciones.forEach((seccion) => {
-      const clave = normalizarClave(seccion.sumRowSumavariosTexto || seccion.sumRowSumavarios2Texto);
-      if (!clave) return;
-      const valores = acumuladosSumavarios.get(clave) || Array.from({ length: longitud }, () => 0);
-      seccion.sumavariosValues = valores;
-    });
-    meta.sumavariosRows?.forEach((fila, clave) => {
-      const valores = acumuladosSumavarios.get(clave) || Array.from({ length: longitud }, () => 0);
-      asignarValoresNumericos(fila, valores);
-    });
+      secciones.forEach((seccion) => {
+        const clave = normalizarClave(seccion.sumRowSumavariosTexto || seccion.sumRowSumavarios2Texto);
+        if (!clave) return;
+        const valores = acumuladosSumavarios.get(clave) || Array.from({ length: longitud }, () => 0);
+        seccion.sumavariosValues = valores;
+      });
+      meta.sumavariosRows?.forEach((fila, clave) => {
+        try {
+          const valores = acumuladosSumavarios.get(clave) || Array.from({ length: longitud }, () => 0);
+          if (fila && fila.parentNode) asignarValoresNumericos(fila, valores);
+        } catch (e) {
+          console.warn('⚠️ Error asignando sumavarios a fila:', e);
+        }
+      });
+    } catch (e) {
+      console.warn('⚠️ Error en fase sumavarios:', e);
+    }
 
     // result-row: suma solamente los sum-row de todas las secciones con la misma etiqueta de resultado
-    const acumuladosResultado = new Map();
-    secciones.forEach((seccion) => {
-      const clave = normalizarClave(seccion.resultRowTexto);
-      if (!clave) return;
-      const origen = seccion.sumValues || Array.from({ length: longitud }, () => 0);
-      const prev = acumuladosResultado.get(clave) || Array.from({ length: longitud }, () => 0);
-      origen.forEach((valor, idx) => {
-        prev[idx] += Number(valor) || 0;
+    try {
+      const acumuladosResultado = new Map();
+      secciones.forEach((seccion) => {
+        const clave = normalizarClave(seccion.resultRowTexto);
+        if (!clave) return;
+        const origen = seccion.sumValues || Array.from({ length: longitud }, () => 0);
+        const prev = acumuladosResultado.get(clave) || Array.from({ length: longitud }, () => 0);
+        origen.forEach((valor, idx) => {
+          prev[idx] += Number(valor) || 0;
+        });
+        acumuladosResultado.set(clave, prev);
       });
-      acumuladosResultado.set(clave, prev);
-    });
-    meta.resultRows.forEach((fila, clave) => {
-      const valores = acumuladosResultado.get(clave) || Array.from({ length: longitud }, () => 0);
-      asignarValoresNumericos(fila, valores);
-    });
+      meta.resultRows?.forEach((fila, clave) => {
+        try {
+          const valores = acumuladosResultado.get(clave) || Array.from({ length: longitud }, () => 0);
+          if (fila && fila.parentNode) asignarValoresNumericos(fila, valores);
+        } catch (e) {
+          console.warn('⚠️ Error asignando result-row:', e);
+        }
+      });
+    } catch (e) {
+      console.warn('⚠️ Error en fase resultado:', e);
+    }
   };
 
   const manejarCambioCuenta = (fila, celda) => {

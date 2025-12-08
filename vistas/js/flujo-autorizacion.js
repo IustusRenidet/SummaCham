@@ -1103,15 +1103,16 @@
         }
         FlujoAutorizacion.limpiarBorrador(this.tableElement);
         this.state.borrador = null;
-        this._exitEditMode(true);
-        this._notificarEstadoBorrador(null);
-        this._renderInfo();
-        this._renderBotones();
-        this._toast(data.mensaje || 'Borrador descartado.', 'info');
-      } catch (error) {
-        console.error('Descartar borrador', error);
-        this._toast(error.message || 'No se pudo descartar el borrador.', 'danger');
-      }
+      this._exitEditMode(true);
+      this._notificarEstadoBorrador(null);
+      this._renderInfo();
+      this._renderBotones();
+      this._toast(data.mensaje || 'Borrador descartado.', 'info');
+      this._refreshEstado();
+    } catch (error) {
+      console.error('Descartar borrador', error);
+      this._toast(error.message || 'No se pudo descartar el borrador.', 'danger');
+    }
     }
   }
 

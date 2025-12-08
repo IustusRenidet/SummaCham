@@ -481,5 +481,29 @@
     ></script>
     <script src="js/flujo-autorizacion.js"></script>
     <script src="js/resumen-view.js"></script>
+    <script>
+      // Inicialización del flujo para RESUMEN (modo lectura)
+      document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => {
+          if (typeof FlujoAutorizacion === 'undefined') {
+            console.warn('⚠️ FlujoAutorizacion no disponible en RESUMEN');
+            return;
+          }
+          const flujo = new FlujoAutorizacion({
+            tablaId: 'tablaCuentasBody',
+            modulo: 'resumen',
+            obtenerCambios: () => ({ presupuesto: [], nombres: [] }),
+            obtenerHeaders: () => (window.Sesion?.headersAutenticacion?.() || {}),
+            onEstadoChange: (estado) => {
+              console.log('🔄 Estado RESUMEN:', estado);
+              if (estado === 'EDITANDO') {
+                console.warn('⚠️ RESUMEN: Esta vista es de solo lectura.');
+              }
+            }
+          }).init?.();
+          window.flujoAutorizacionActual = flujo;
+        }, 300);
+      });
+    </script>
   </body>
 </html>
