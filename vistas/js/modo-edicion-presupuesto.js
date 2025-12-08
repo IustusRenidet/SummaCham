@@ -38,6 +38,7 @@
   };
 
   const normalizeString = (s) => (s || '').toString().normalize('NFD').replace(/\p{Diacritic}/gu, '').toUpperCase().trim();
+  const API_BASE = window.location.protocol === 'file:' ? 'http://localhost:3000' : window.location.origin;
 
   // Helpers para persistir layout (cuenta/descripcion) por empresa/anio/modulo
   const obtenerClaveLayoutLocal = ({ moduloClave, empresaId, anio }) => {
@@ -68,6 +69,38 @@
       return false;
     }
   };
+
+  async function guardarLayoutServidor({ moduloClave, empresaId, anio, layout }) {
+    try {
+      const ruta = `${API_BASE}/api/layouts`;
+      const headers = (typeof Sesion !== 'undefined' && typeof Sesion.headersAutenticacion === 'function') ? { 'Content-Type': 'application/json', ...Sesion.headersAutenticacion() } : { 'Content-Type': 'application/json' };
+      const resp = await fetch(ruta, { method: 'POST', headers, body: JSON.stringify({ empresaId, modulo: moduloClave, anio, datos: layout }) });
+      if (!resp.ok) {
+        const data = await resp.json().catch(()=>({}));
+        console.warn('Guardar layout servidor fallo:', data.mensaje || resp.status);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.warn('Error al guardar layout en servidor', err);
+      return false;
+    }
+  }
+
+  async function cargarLayoutServidor({ moduloClave, empresaId, anio }) {
+    try {
+      if (!empresaId || !moduloClave || !Number.isInteger(Number(anio))) return null;
+      const ruta = `${API_BASE}/api/layouts?empresaId=${encodeURIComponent(empresaId)}&modulo=${encodeURIComponent(moduloClave)}&anio=${Number(anio)}`;
+      const headers = (typeof Sesion !== 'undefined' && typeof Sesion.headersAutenticacion === 'function') ? Sesion.headersAutenticacion() : null;
+      const resp = await fetch(ruta, { headers });
+      if (!resp.ok) return null;
+      const data = await resp.json().catch(()=>({}));
+      return data.layout || null;
+    } catch (err) {
+      console.warn('Error cargar layout servidor', err);
+      return null;
+    }
+  }
 
   /**
    * Resolver la tabla a utilizar considerando:
@@ -367,8 +400,10 @@
     }
     const layout = capturarLayoutDesdeTabla(tabla);
     if (!layout) return false;
-    const guardado = guardarLayoutLocal({ moduloClave, empresaId: empresa.id, anio, layout });
-    if (guardado) {
+    const guardadoLocal = guardarLayoutLocal({ moduloClave, empresaId: empresa.id, anio, layout });
+    // Try server-side persist; fallback silently if server fails
+    try { guardarLayoutServidor({ moduloClave, empresaId: empresa.id, anio, layout }).then((srv)=>{ if (srv) console.log('Layout guardado en servidor'); }); } catch (err) {}
+    if (guardadoLocal) {
       console.log('Layout persistido (localStorage)', { moduloClave, empresaId: empresa.id, anio, filasCapturadas: layout?.filas?.length || 0 });
     }
     return guardado;
@@ -466,18 +501,39 @@
   let filaContextual = null;
 
   function ocultarMenuContextual() {
-    if (menuContextual) menuContextual.hidden = true;
+    if (!menuContextual) return;
+    // remove keyboard handler
+    try {
+      if (menuContextual._keyHandler) menuContextual.removeEventListener('keydown', menuContextual._keyHandler);
+    } catch (err) {}
+    menuContextual.hidden = true;
+    // return focus to the table or last active element
+    try { document.activeElement?.blur(); } catch (err) {}
   }
 
   function mostrarMenuContextual(x, y, opciones) {
-    const menu = menuContextual || Object.assign(document.createElement('div'), { className: 'modoedicion-context-menu', style: 'position:absolute; z-index:99999; background:#fff; border:1px solid #dcdcdc; padding:6px; box-shadow: 0 3px 8px rgba(0,0,0,0.12);' });
+    // Ensure we have base styles injected
+    if (!document.getElementById('modoedicion-style')) {
+      const style = document.createElement('style');
+      style.id = 'modoedicion-style';
+      style.textContent = `
+        .modoedicion-context-menu { position: absolute; z-index: 99999; background: #fff; border: 1px solid #dcdcdc; padding: 4px; box-shadow: 0 3px 8px rgba(0,0,0,0.12); min-width: 140px; }
+        .modoedicion-context-menu button { display:block; width:100%; border: none; background: transparent; padding:6px 10px; text-align: left; cursor: pointer; }
+        .modoedicion-context-menu button:focus { outline: 2px solid #2b7cff; background:#f0f8ff; }
+      `;
+      document.head.appendChild(style);
+    }
+
+    const menu = menuContextual || Object.assign(document.createElement('div'), { className: 'modoedicion-context-menu', role: 'menu', 'aria-label': 'Acciones de edición' });
     menuContextual = menu;
     menu.innerHTML = '';
-    opciones.forEach((opcion) => {
+    opciones.forEach((opcion, idx) => {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'btn btn-sm btn-light w-100 text-start';
       btn.textContent = opcion.texto || opcion.label;
+      btn.setAttribute('role', 'menuitem');
+      btn.setAttribute('tabindex', '-1');
       btn.addEventListener('click', () => {
         switch (opcion.clave) {
           case 'add_above': insertarFilaNueva('arriba'); break;
@@ -490,10 +546,42 @@
       });
       menu.appendChild(btn);
     });
+    document.body.appendChild(menu);
+    // prevent offscreen
+    menu.hidden = true; // hide until positioned
     menu.style.left = `${x}px`;
     menu.style.top = `${y}px`;
-    menu.hidden = false;
-    if (!document.body.contains(menu)) document.body.appendChild(menu);
+    requestAnimationFrame(() => {
+      const rect = menu.getBoundingClientRect();
+      let nx = x, ny = y;
+      if (rect.right > window.innerWidth) nx = Math.max(6, x - rect.width);
+      if (rect.bottom > window.innerHeight) ny = Math.max(6, y - rect.height);
+      menu.style.left = `${nx}px`;
+      menu.style.top = `${ny}px`;
+      menu.hidden = false;
+      // Setup keyboard navigation
+      const botones = Array.from(menu.querySelectorAll('button'));
+      if (botones.length) {
+        botones.forEach((b, i) => b.setAttribute('data-idx', i));
+        botones[0].setAttribute('tabindex', '0');
+        botones[0].focus();
+        const keyHandler = (e) => {
+          if (!menu || menu.hidden) return;
+          const current = document.activeElement;
+          const idx = Number(current?.getAttribute('data-idx') || 0);
+          if (e.key === 'ArrowDown') {
+            const next = botones[(idx + 1) % botones.length]; next.focus(); e.preventDefault();
+          } else if (e.key === 'ArrowUp') {
+            const prev = botones[(idx - 1 + botones.length) % botones.length]; prev.focus(); e.preventDefault();
+          } else if (e.key === 'Escape') {
+            ocultarMenuContextual(); e.preventDefault();
+          }
+        };
+        menu._keyHandler = keyHandler;
+        menu.addEventListener('keydown', keyHandler);
+      }
+    });
+    menuContextual = menu;
   }
 
   function insertarFilaNueva(pos = 'abajo') {
@@ -590,10 +678,13 @@
         const anio = Number.isInteger(anioSeleccion) ? anioSeleccion : null;
         const moduloClave = (document.body?.dataset?.modulo || document.body?.dataset?.moduloId || 'summary').toString().trim();
         if (empresa?.id && Number.isInteger(anio) && moduloClave) {
-          const layoutGuardado = cargarLayoutLocal({ moduloClave, empresaId: empresa.id, anio });
-          if (layoutGuardado) {
-            aplicarLayoutLocal(layoutGuardado, tabla);
-          }
+          // Prefer server layout; fallback to local layout
+          (async () => {
+            const serverLayout = await cargarLayoutServidor({ moduloClave, empresaId: empresa.id, anio });
+            if (serverLayout && aplicarLayoutLocal(serverLayout, tabla)) return;
+            const localLayout = cargarLayoutLocal({ moduloClave, empresaId: empresa.id, anio });
+            if (localLayout) aplicarLayoutLocal(localLayout, tabla);
+          })();
         }
       } catch (err) {
         console.warn('Error aplicando layout local', err);

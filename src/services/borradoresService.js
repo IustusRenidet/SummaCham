@@ -819,7 +819,15 @@ const guardarAutorizado = async (borradorId, usuarioId) => {
     descripcion: "Guardó la versión autorizada en COI",
     usuarioId,
   });
-  return actualizado;
+  // Remove the draft from the table as it was persisted in COI
+  try {
+    db.prepare(`DELETE FROM PLAN_BORRADORES WHERE id = ?`).run(borradorId);
+  } catch (err) {
+    console.warn('No fue posible eliminar borrador tras guardado en COI:', err);
+  }
+  // Return a snapshot-like response to the client (the object with estado = GUARDADO)
+  const snapshot = { ...actualizado, eliminado: true };
+  return snapshot;
 };
 
 module.exports = {
