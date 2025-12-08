@@ -86,6 +86,26 @@
         background-color: #e6f2ff !important;
       }
       .workflow-info-panel {
+        background: rgba(47, 84, 150, 0.05);
+        border-radius: 12px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+      }
+      .workflow-drawer .workflow-guide-anchor { min-height: 12px; }
+      .toast-global {
+        position: fixed !important;
+        inset: 1.25rem 1.25rem auto auto;
+        z-index: 2000;
+        width: min(360px, 90vw);
+        pointer-events: none !important;
+      }
+      .toast-global > * {
+        pointer-events: auto !important;
+      }
+    `;
+    document.head.appendChild(style);
+  };
+
   const formatDateTime = (valor) => {
     if (!valor) return "-";
     const fecha = new Date(valor);
@@ -662,7 +682,6 @@
       this.buttons.descartar = boton;
     }
 
-
     _bindButtonHandlers() {
       const agregarListener = (btn, handler) => {
         if (!btn) return;
@@ -1170,7 +1189,9 @@
         this.state.hayCambios || (cambios?.presupuesto?.length || 0) > 0
       );
       if (hayCambios) {
-        const confirmar = confirm("Estas seguro de cancelar la edicion? Se perderan todos los cambios no guardados.");
+        const confirmar = confirm(
+          "Estas seguro de cancelar la edicion? Se perderan todos los cambios no guardados."
+        );
         if (!confirmar) {
           return;
         }
@@ -1245,7 +1266,10 @@
         try {
           window.location.reload();
         } catch (error) {
-          console.warn("No se pudo recargar la pagina despues de cancelar:", error);
+          console.warn(
+            "No se pudo recargar la pagina despues de cancelar:",
+            error
+          );
         }
       }, 1000);
     }
