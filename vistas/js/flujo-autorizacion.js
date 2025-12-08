@@ -1372,7 +1372,9 @@
         placeholder: "Ej: Datos incompletos, revisión fallida, etc.",
         etiquetaBoton: "Rechazar",
       });
-      if (!motivo) return;
+      // Permitir motivo vacío (opcional)
+      if (motivo === null) return; // Solo si canceló (null)
+
       try {
         const resp = await fetch(`${API_BASE}/borradores/rechazar`, {
           method: "POST",
@@ -1617,7 +1619,7 @@
           modal.setAttribute("aria-modal", "true");
 
           const contenidoHTML = `
-            <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-dialog modal-dialog-centered" style="pointer-events: auto;">
               <div class="modal-content">
                 <div class="modal-header border-bottom">
                   <h5 class="modal-title">${titulo || "Entrada Requerida"}</h5>
@@ -1727,7 +1729,7 @@
               () => {
                 if (resuelto) return;
                 const valor = (textArea?.value || "").trim();
-                finalizar(valor || null);
+                finalizar(valor); // Devuelve string vacío si no escribió nada, pero NO null (confirmado)
               },
               { once: true }
             );

@@ -1,0 +1,249 @@
+--- USER DUMP START ---
+
+User: AA (ID: 4, Admin: 0)
+  - empresa1 | Finanzas: [Revisor]
+  - empresa1 | Gtos_Corporativos: [Revisor]
+  - empresa1 | VPE: [Revisor]
+  - empresa2 | Gtos_Corporativos: [Revisor]
+  - empresa4 | Gtos_Corporativos: [Revisor]
+
+User: AC (ID: 27, Admin: 0)
+  - empresa4 | Comités: [Editor]
+  - empresa4 | Eventos: [Editor]
+
+User: AMB (ID: 3, Admin: 0)
+  - empresa1 | Comités: [Aprobador]
+  - empresa1 | Comunicación: [Aprobador]
+  - empresa1 | Eventos: [Aprobador]
+  - empresa1 | Finanzas: [Aprobador]
+  - empresa1 | Gtos_Corporativos: [Aprobador]
+  - empresa1 | Membresía: [Aprobador]
+  - empresa1 | RH: [Aprobador]
+  - empresa1 | Serv_Membresía: [Aprobador]
+  - empresa1 | T&IC: [Aprobador]
+  - empresa1 | VPE: [Aprobador]
+  - empresa2 | Comités: [Aprobador]
+  - empresa2 | Comunicación: [Aprobador]
+  - empresa2 | Dirección: [Aprobador]
+  - empresa2 | Eventos: [Aprobador]
+  - empresa2 | Finanzas: [Aprobador]
+  - empresa2 | Gtos_Corporativos: [Aprobador]
+  - empresa2 | Membresía: [Aprobador]
+  - empresa2 | RH: [Aprobador]
+  - empresa2 | Serv_Membresía: [Aprobador]
+  - empresa2 | T&IC: [Aprobador]
+  - empresa4 | Comités: [Aprobador]
+  - empresa4 | Comunicación: [Aprobador]
+  - empresa4 | Dirección: [Aprobador]
+  - empresa4 | Eventos: [Aprobador]
+  - empresa4 | Finanzas: [Aprobador]
+  - empresa4 | Gtos_Corporativos: [Aprobador]
+  - empresa4 | Membresía: [Aprobador]
+  - empresa4 | RH: [Aprobador]
+  - empresa4 | Serv_Membresía: [Aprobador]
+  - empresa4 | T&IC: [Aprobador]
+
+User: AO (ID: 13, Admin: 0)
+  - empresa1 | T&IC: [Editor]
+  - empresa2 | T&IC: [Editor]
+  - empresa4 | T&IC: [Editor]
+
+User: AQ (ID: 6, Admin: 0)
+  - empresa1 | Comunicación: [Revisor]
+  - empresa1 | Eventos: [Revisor]
+  - empresa1 | Serv_Membresía: [Revisor]
+  - empresa2 | Comunicación: [Aprobador]
+  - empresa2 | Eventos: [Aprobador]
+  - empresa2 | Serv_Membresía: [Aprobador]
+  - empresa4 | Comunicación: [Aprobador]
+  - empresa4 | Eventos: [Aprobador]
+  - empresa4 | Serv_Membresía: [Aprobador]
+
+User: AS (ID: 17, Admin: 0)
+  - empresa2 | Comités: [Revisor]
+  - empresa2 | Comunicación: [Revisor]
+  - empresa2 | Dirección: [Revisor]
+  - empresa2 | Eventos: [Revisor]
+  - empresa2 | Finanzas: [Revisor]
+  - empresa2 | Membresía: [Revisor]
+  - empresa2 | RH: [Revisor]
+  - empresa2 | Serv_Membresía: [Revisor]
+  - empresa2 | T&IC: [Revisor]
+
+User: AZ (ID: 23, Admin: 0)
+  - No permissions.
+
+User: BS (ID: 26, Admin: 0)
+  - empresa4 | Comités: [Revisor]
+  - empresa4 | Comunicación: [Revisor]
+  - empresa4 | Dirección: [Revisor]
+  - empresa4 | Eventos: [Revisor]
+  - empresa4 | Finanzas: [Revisor]
+  - empresa4 | Membresía: [Editor, Revisor]
+  - empresa4 | RH: [Revisor]
+  - empresa4 | Serv_Membresía: [Revisor]
+  - empresa4 | T&IC: [Revisor]
+
+User: CA (ID: 15, Admin: 0)
+  - No permissions.
+
+User: CG (ID: 8, Admin: 0)
+  - empresa1 | RH: [Editor, Revisor]
+  - empresa2 | RH: [Editor]
+  - empresa4 | RH: [Editor]
+
+User: DF (ID: 12, Admin: 0)
+  - empresa1 | Comités: [Editor]
+
+User: DI (ID: 25, Admin: 0)
+  - No permissions.
+
+User: DM (ID: 11, Admin: 0)
+  - empresa1 | Serv_Membresía: [Editor]
+  - empresa2 | Serv_Membresía: [Editor]
+  - empresa4 | Serv_Membresía: [Editor]
+
+User: FO (ID: 9, Admin: 0)
+  - empresa1 | Eventos: [Editor]
+
+User: FS (ID: 5, Admin: 0)
+  - empresa1 | Membresía: [Editor, Revisor]
+  - empresa2 | Membresía: [Aprobador]
+  - empresa4 | Membresía: [Aprobador]
+
+User: GB (ID: 7, Admin: 0)
+  - empresa1 | Comités: [Revisor]
+  - empresa1 | T&IC: [Revisor]
+  - empresa2 | Comités: [Aprobador]
+  - empresa2 | T&IC: [Aprobador]
+  - empresa4 | Comités: [Aprobador]
+  - empresa4 | T&IC: [Aprobador]
+
+User: GL (ID: 16, Admin: 0)
+  - empresa1 | Finanzas: [Editor]
+  - empresa1 | Gtos_Corporativos: [Editor]
+  - empresa2 | Gtos_Corporativos: [Editor]
+  - empresa4 | Gtos_Corporativos: [Editor]
+
+User: ICONET (ID: 1, Admin: 1)
+  - empresa1 | Comités: [Editor, Revisor, Aprobador]
+  - empresa1 | Comunicación: [Editor, Revisor, Aprobador]
+  - empresa1 | Dirección: [Editor, Revisor, Aprobador]
+  - empresa1 | Eventos: [Editor, Revisor, Aprobador]
+  - empresa1 | Finanzas: [Editor, Revisor, Aprobador]
+  - empresa1 | Gtos Corporativos: [Editor, Revisor, Aprobador]
+  - empresa1 | Membresía: [Editor, Revisor, Aprobador]
+  - empresa1 | Presupuestos: [Editor, Revisor, Aprobador]
+  - empresa1 | RESUMEN: [Editor, Revisor, Aprobador]
+  - empresa1 | RH: [Editor, Revisor, Aprobador]
+  - empresa1 | SUMMARY: [Editor, Revisor, Aprobador]
+  - empresa1 | Serv Membresía: [Editor, Revisor, Aprobador]
+  - empresa1 | T&IC: [Editor, Revisor, Aprobador]
+  - empresa1 | VPE: [Editor, Revisor, Aprobador]
+  - empresa2 | Comités: [Editor, Revisor, Aprobador]
+  - empresa2 | Comunicación: [Editor, Revisor, Aprobador]
+  - empresa2 | Dirección: [Editor, Revisor, Aprobador]
+  - empresa2 | Eventos: [Editor, Revisor, Aprobador]
+  - empresa2 | Finanzas: [Editor, Revisor, Aprobador]
+  - empresa2 | Gtos Corporativos: [Editor, Revisor, Aprobador]
+  - empresa2 | Membresía: [Editor, Revisor, Aprobador]
+  - empresa2 | Presupuestos: [Editor, Revisor, Aprobador]
+  - empresa2 | RESUMEN: [Editor, Revisor, Aprobador]
+  - empresa2 | RH: [Editor, Revisor, Aprobador]
+  - empresa2 | SUMMARY: [Editor, Revisor, Aprobador]
+  - empresa2 | Serv Membresía: [Editor, Revisor, Aprobador]
+  - empresa2 | T&IC: [Editor, Revisor, Aprobador]
+  - empresa2 | VPE: [Editor, Revisor, Aprobador]
+  - empresa3 | Comités: [Editor, Revisor, Aprobador]
+  - empresa3 | Comunicación: [Editor, Revisor, Aprobador]
+  - empresa3 | Dirección: [Editor, Revisor, Aprobador]
+  - empresa3 | Eventos: [Editor, Revisor, Aprobador]
+  - empresa3 | Finanzas: [Editor, Revisor, Aprobador]
+  - empresa3 | Gtos Corporativos: [Editor, Revisor, Aprobador]
+  - empresa3 | Membresía: [Editor, Revisor, Aprobador]
+  - empresa3 | Presupuestos: [Editor, Revisor, Aprobador]
+  - empresa3 | RESUMEN: [Editor, Revisor, Aprobador]
+  - empresa3 | RH: [Editor, Revisor, Aprobador]
+  - empresa3 | SUMMARY: [Editor, Revisor, Aprobador]
+  - empresa3 | Serv Membresía: [Editor, Revisor, Aprobador]
+  - empresa3 | T&IC: [Editor, Revisor, Aprobador]
+  - empresa3 | VPE: [Editor, Revisor, Aprobador]
+  - empresa4 | Comités: [Editor, Revisor, Aprobador]
+  - empresa4 | Comunicación: [Editor, Revisor, Aprobador]
+  - empresa4 | Dirección: [Editor, Revisor, Aprobador]
+  - empresa4 | Eventos: [Editor, Revisor, Aprobador]
+  - empresa4 | Finanzas: [Editor, Revisor, Aprobador]
+  - empresa4 | Gtos Corporativos: [Editor, Revisor, Aprobador]
+  - empresa4 | Membresía: [Editor, Revisor, Aprobador]
+  - empresa4 | Presupuestos: [Editor, Revisor, Aprobador]
+  - empresa4 | RESUMEN: [Editor, Revisor, Aprobador]
+  - empresa4 | RH: [Editor, Revisor, Aprobador]
+  - empresa4 | SUMMARY: [Editor, Revisor, Aprobador]
+  - empresa4 | Serv Membresía: [Editor, Revisor, Aprobador]
+  - empresa4 | T&IC: [Editor, Revisor, Aprobador]
+  - empresa4 | VPE: [Editor, Revisor, Aprobador]
+
+User: JE (ID: 20, Admin: 0)
+  - empresa2 | Comités: [Editor]
+
+User: MG (ID: 21, Admin: 0)
+  - empresa2 | Dirección: [Editor]
+  - empresa2 | Finanzas: [Editor]
+
+User: MV (ID: 24, Admin: 0)
+  - No permissions.
+
+User: NG (ID: 18, Admin: 0)
+  - empresa2 | Membresía: [Editor]
+
+User: PCA (ID: 2, Admin: 0)
+  - empresa1 | Comités: [Aprobador]
+  - empresa1 | Comunicación: [Aprobador]
+  - empresa1 | Eventos: [Aprobador]
+  - empresa1 | Finanzas: [Aprobador]
+  - empresa1 | Gtos_Corporativos: [Aprobador]
+  - empresa1 | Membresía: [Aprobador]
+  - empresa1 | RH: [Aprobador]
+  - empresa1 | Serv_Membresía: [Aprobador]
+  - empresa1 | T&IC: [Aprobador]
+  - empresa1 | VPE: [Aprobador]
+  - empresa2 | Comités: [Aprobador]
+  - empresa2 | Comunicación: [Aprobador]
+  - empresa2 | Dirección: [Aprobador]
+  - empresa2 | Eventos: [Aprobador]
+  - empresa2 | Finanzas: [Aprobador]
+  - empresa2 | Gtos_Corporativos: [Aprobador]
+  - empresa2 | Membresía: [Aprobador]
+  - empresa2 | RH: [Aprobador]
+  - empresa2 | Serv_Membresía: [Aprobador]
+  - empresa2 | T&IC: [Aprobador]
+  - empresa4 | Comités: [Aprobador]
+  - empresa4 | Comunicación: [Aprobador]
+  - empresa4 | Dirección: [Aprobador]
+  - empresa4 | Eventos: [Aprobador]
+  - empresa4 | Finanzas: [Aprobador]
+  - empresa4 | Gtos_Corporativos: [Aprobador]
+  - empresa4 | Membresía: [Aprobador]
+  - empresa4 | RH: [Aprobador]
+  - empresa4 | Serv_Membresía: [Aprobador]
+  - empresa4 | T&IC: [Aprobador]
+
+User: PV (ID: 10, Admin: 0)
+  - empresa1 | Comunicación: [Editor]
+  - empresa2 | Comunicación: [Editor]
+  - empresa4 | Comunicación: [Editor]
+
+User: RA (ID: 19, Admin: 0)
+  - empresa2 | Eventos: [Editor]
+
+User: SB (ID: 14, Admin: 0)
+  - empresa1 | VPE: [Editor]
+
+User: XX (ID: 28, Admin: 0)
+  - empresa4 | Dirección: [Editor]
+  - empresa4 | Finanzas: [Editor]
+
+User: YB (ID: 22, Admin: 0)
+  - No permissions.
+
+--- USER DUMP END ---

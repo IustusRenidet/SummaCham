@@ -1,0 +1,194 @@
+--- USER DUMP START ---
+
+User: AA (ID: 14, Admin: NO)
+  - empresa1 | Finanzas: [Editor]
+  - empresa1 | Gtos_Corporativos: [Editor]
+  - empresa1 | VPE: [Editor]
+  - empresa2 | Gtos_Corporativos: [Editor]
+  - empresa4 | Gtos_Corporativos: [Editor]
+
+User: AC (ID: 22, Admin: NO)
+  - empresa4 | Comités: [Editor, Revisor]
+  - empresa4 | Eventos: [Editor, Revisor]
+
+User: AMB (ID: 3, Admin: NO)
+  - empresa1 | Comités: [Editor]
+  - empresa1 | Comunicación: [Editor]
+  - empresa1 | Eventos: [Editor]
+  - empresa1 | Finanzas: [Editor]
+  - empresa1 | Gtos_Corporativos: [Editor]
+  - empresa1 | Membresía: [Editor]
+  - empresa1 | RH: [Editor]
+  - empresa1 | Serv_Membresía: [Editor]
+  - empresa1 | T&IC: [Editor]
+  - empresa1 | VPE: [Editor]
+  - empresa2 | Comités: [Editor, Aprobador]
+  - empresa2 | Comunicación: [Editor, Aprobador]
+  - empresa2 | Dirección: [Editor]
+  - empresa2 | Eventos: [Editor, Aprobador]
+  - empresa2 | Finanzas: [Editor]
+  - empresa2 | Gtos_Corporativos: [Editor]
+  - empresa2 | Membresía: [Editor, Aprobador]
+  - empresa2 | RH: [Editor]
+  - empresa2 | Serv_Membresía: [Editor, Aprobador]
+  - empresa2 | T&IC: [Editor, Aprobador]
+  - empresa4 | Comités: [Editor, Aprobador]
+  - empresa4 | Comunicación: [Editor, Aprobador]
+  - empresa4 | Dirección: [Editor]
+  - empresa4 | Eventos: [Editor, Aprobador]
+  - empresa4 | Finanzas: [Editor]
+  - empresa4 | Gtos_Corporativos: [Editor]
+  - empresa4 | Membresía: [Editor, Aprobador]
+  - empresa4 | RH: [Editor]
+  - empresa4 | Serv_Membresía: [Editor, Aprobador]
+  - empresa4 | T&IC: [Editor, Aprobador]
+
+User: AO (ID: 11, Admin: NO)
+  - empresa1 | T&IC: [Editor, Revisor]
+  - empresa2 | T&IC: [Editor, Revisor]
+  - empresa4 | T&IC: [Editor, Revisor]
+
+User: AQ (ID: 6, Admin: NO)
+  - empresa1 | Comunicación: [Editor]
+  - empresa1 | Eventos: [Editor]
+  - empresa1 | Serv_Membresía: [Editor]
+  - empresa2 | Comunicación: [Editor]
+  - empresa2 | Eventos: [Editor]
+  - empresa2 | Serv_Membresía: [Editor]
+  - empresa4 | Comunicación: [Editor]
+  - empresa4 | Eventos: [Editor]
+  - empresa4 | Serv_Membresía: [Editor]
+
+User: AS (ID: 17, Admin: NO)
+  - empresa2 | Comités: [Editor]
+  - empresa2 | Comunicación: [Editor]
+  - empresa2 | Dirección: [Editor]
+  - empresa2 | Eventos: [Editor]
+  - empresa2 | Finanzas: [Editor]
+  - empresa2 | Membresía: [Editor]
+  - empresa2 | RH: [Editor]
+  - empresa2 | Serv_Membresía: [Editor]
+  - empresa2 | T&IC: [Editor]
+
+User: AZ (ID: 111, Admin: NO)
+  - No specific module permissions.
+
+User: BS (ID: 21, Admin: NO)
+  - empresa4 | Comités: [Editor]
+  - empresa4 | Comunicación: [Editor]
+  - empresa4 | Dirección: [Editor]
+  - empresa4 | Eventos: [Editor]
+  - empresa4 | Finanzas: [Editor]
+  - empresa4 | Membresía: [Editor, Revisor]
+  - empresa4 | RH: [Editor]
+  - empresa4 | Serv_Membresía: [Editor]
+  - empresa4 | T&IC: [Editor]
+
+User: CA (ID: 103, Admin: NO)
+  - No specific module permissions.
+
+User: CG (ID: 12, Admin: NO)
+  - empresa1 | RH: [Editor, Revisor]
+  - empresa2 | RH: [Editor, Revisor]
+  - empresa4 | RH: [Editor, Revisor]
+
+User: DF (ID: 9, Admin: NO)
+  - empresa1 | Comités: [Editor, Revisor]
+
+User: DI (ID: 113, Admin: NO)
+  - No specific module permissions.
+
+User: DM (ID: 8, Admin: NO)
+  - empresa1 | Serv_Membresía: [Editor, Revisor]
+  - empresa2 | Serv_Membresía: [Editor, Revisor]
+  - empresa4 | Serv_Membresía: [Editor, Revisor]
+
+User: FO (ID: 5, Admin: NO)
+  - empresa1 | Eventos: [Editor, Revisor]
+
+User: FS (ID: 2, Admin: NO)
+  - empresa1 | Membresía: [Editor, Revisor]
+  - empresa2 | Membresía: [Editor]
+  - empresa4 | Membresía: [Editor]
+
+User: GB (ID: 10, Admin: NO)
+  - empresa1 | Comités: [Editor]
+  - empresa1 | T&IC: [Editor]
+  - empresa2 | Comités: [Editor]
+  - empresa2 | T&IC: [Editor]
+  - empresa4 | Comités: [Editor]
+  - empresa4 | T&IC: [Editor]
+
+User: GL (ID: 15, Admin: NO)
+  - empresa1 | Finanzas: [Editor, Revisor]
+  - empresa1 | Gtos_Corporativos: [Editor, Revisor]
+  - empresa2 | Gtos_Corporativos: [Editor, Revisor]
+  - empresa4 | Gtos_Corporativos: [Editor, Revisor]
+
+User: ICONET (ID: 1, Admin: YES)
+  - Full Global Access (Admin)
+
+User: JE (ID: 19, Admin: NO)
+  - empresa2 | Comités: [Editor, Revisor]
+
+User: MG (ID: 20, Admin: NO)
+  - empresa2 | Dirección: [Editor, Revisor]
+  - empresa2 | Finanzas: [Editor, Revisor]
+
+User: MV (ID: 112, Admin: NO)
+  - No specific module permissions.
+
+User: NG (ID: 16, Admin: NO)
+  - empresa2 | Membresía: [Editor, Revisor]
+
+User: PCA (ID: 4, Admin: NO)
+  - empresa1 | Comités: [Editor, Aprobador]
+  - empresa1 | Comunicación: [Editor, Aprobador]
+  - empresa1 | Eventos: [Editor, Aprobador]
+  - empresa1 | Finanzas: [Editor, Aprobador]
+  - empresa1 | Gtos_Corporativos: [Editor, Aprobador]
+  - empresa1 | Membresía: [Editor, Aprobador]
+  - empresa1 | RH: [Editor, Aprobador]
+  - empresa1 | Serv_Membresía: [Editor, Aprobador]
+  - empresa1 | T&IC: [Editor, Aprobador]
+  - empresa1 | VPE: [Editor, Aprobador]
+  - empresa2 | Comités: [Editor, Aprobador]
+  - empresa2 | Comunicación: [Editor, Aprobador]
+  - empresa2 | Dirección: [Editor, Aprobador]
+  - empresa2 | Eventos: [Editor, Aprobador]
+  - empresa2 | Finanzas: [Editor, Aprobador]
+  - empresa2 | Gtos_Corporativos: [Editor, Aprobador]
+  - empresa2 | Membresía: [Editor, Aprobador]
+  - empresa2 | RH: [Editor, Aprobador]
+  - empresa2 | Serv_Membresía: [Editor, Aprobador]
+  - empresa2 | T&IC: [Editor, Aprobador]
+  - empresa4 | Comités: [Editor, Aprobador]
+  - empresa4 | Comunicación: [Editor, Aprobador]
+  - empresa4 | Dirección: [Editor, Aprobador]
+  - empresa4 | Eventos: [Editor, Aprobador]
+  - empresa4 | Finanzas: [Editor, Aprobador]
+  - empresa4 | Gtos_Corporativos: [Editor, Aprobador]
+  - empresa4 | Membresía: [Editor, Aprobador]
+  - empresa4 | RH: [Editor, Aprobador]
+  - empresa4 | Serv_Membresía: [Editor, Aprobador]
+  - empresa4 | T&IC: [Editor, Aprobador]
+
+User: PV (ID: 7, Admin: NO)
+  - empresa1 | Comunicación: [Editor, Revisor]
+  - empresa2 | Comunicación: [Editor, Revisor]
+  - empresa4 | Comunicación: [Editor, Revisor]
+
+User: RA (ID: 18, Admin: NO)
+  - empresa2 | Eventos: [Editor, Revisor]
+
+User: SB (ID: 13, Admin: NO)
+  - empresa1 | VPE: [Editor, Revisor]
+
+User: XX (ID: 23, Admin: NO)
+  - empresa4 | Dirección: [Editor, Revisor]
+  - empresa4 | Finanzas: [Editor, Revisor]
+
+User: YB (ID: 110, Admin: NO)
+  - No specific module permissions.
+
+--- USER DUMP END ---

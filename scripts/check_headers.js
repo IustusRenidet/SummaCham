@@ -8,6 +8,6 @@ const sheetName = workbook.SheetNames[0];
 const sheet = workbook.Sheets[sheetName];
 const data = xlsx.utils.sheet_to_json(sheet, { header: 1, defval: "" });
 
-console.log("--- JSON RAW START ---");
-console.log(JSON.stringify(data, null, 2));
-console.log("--- JSON RAW END ---");
+console.log("--- HEADERS START ---");
+console.log(JSON.stringify(data.slice(0, 5), null, 2));
+console.log("--- HEADERS END ---");
