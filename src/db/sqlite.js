@@ -246,7 +246,12 @@ const sembrarUsuariosDesdeJson = () => {
 
     const transaction = db.transaction(() => {
       seedUsers.forEach((u) => {
-        // Crear usuario con datos reales del JSON
+        // Create user with real data from JSON
+        console.log(
+          `Seeding user: ${u.username}`,
+          u.nombres,
+          u.apellidoPrimero
+        );
         insertUser.run(
           u.username,
           u.nombres || u.username,
@@ -362,7 +367,7 @@ const crearAdministradorGlobal = () => {
       usuario, nombres, apellido_primero, apellido_segundo, apellidos,
       correo, contrasena, es_admin_global,
       puede_agregar, puede_modificar, puede_eliminar
-    ) VALUES (?, 'Administrador', 'General', '', 'General', 'admin@amcham.org', ?, 1, 1, 1, 1)
+    ) VALUES (?, 'Administrador', 'Global', '', 'Global', 'admin@panel.amcham.org.mx', ?, 1, 1, 1, 1)
   `);
   const resultado = insertarUsuario.run("ICONET", hash);
   const usuarioId = resultado.lastInsertRowid;

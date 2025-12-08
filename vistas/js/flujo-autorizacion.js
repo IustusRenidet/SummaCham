@@ -19,6 +19,7 @@
     RECHAZADO: "RECHAZADO",
     APROBADO: "APROBADO",
     GUARDADO: "GUARDADO",
+    SIN_CARGAR: "SIN_CARGAR",
   };
 
   const ETIQUETAS_ESTADO = {
@@ -972,6 +973,7 @@
           return (
             (p.admin || p.cargar) &&
             (!estado ||
+              estado === ESTADOS.SIN_CARGAR ||
               estado === ESTADOS.GUARDADO ||
               (estado === ESTADOS.RECHAZADO && esAutor) ||
               (estado === ESTADOS.EDITANDO && esAutor))
