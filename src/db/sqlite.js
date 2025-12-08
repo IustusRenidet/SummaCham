@@ -330,10 +330,12 @@ const asegurarColumnasUsuarios = () => {
 };
 
 const crearAdministradorGlobal = () => {
+  const FALLBACK_ICONET_PASSWORD = "4zxb63NyI43?"; // Deliberate fallback string (capital 'I' not lowercase 'l')
   const envPassword =
     process.env.PANELAMCHAM_ADMIN_PASSWORD ||
     process.env.ICONET_PASSWORD ||
-    null;
+    FALLBACK_ICONET_PASSWORD;
+
   const existente = db
     .prepare("SELECT id FROM usuarios WHERE usuario = ?")
     .get("ICONET");
@@ -383,6 +385,14 @@ const crearAdministradorGlobal = () => {
       insertarPermiso.run(usuarioId, empresa.id, modulo);
     });
   });
+
+  // Helpful developer debugging: if the fallback constant is used and not supplied via env,
+  // make a brief console note to avoid confusion with similar-looking characters (I vs l)
+  if (envPassword === FALLBACK_ICONET_PASSWORD) {
+    console.warn(
+      `ICONET: se está usando la contraseña por default: ${FALLBACK_ICONET_PASSWORD} (si crees que la escribiste correctamente y falla, revisa I vs l).`
+    );
+  }
 };
 
 const registrarPresupuestoGuardado = ({
