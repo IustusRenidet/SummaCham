@@ -73,8 +73,8 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3000)) => {
     res.status(500).json({ mensaje: 'Ocurrió un error inesperado.' });
   });
 
-  instanciaServidor = app.listen(puerto, () => {
-    console.log(`API interna escuchando en el puerto ${puerto}`);
+  instanciaServidor = app.listen(puerto, '127.0.0.1', () => {
+    console.log(`API interna escuchando en http://127.0.0.1:${puerto}`);
   });
 
   return instanciaServidor;
