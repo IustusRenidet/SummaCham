@@ -290,6 +290,19 @@
       const { tabla, selectorUsado } = resolverTabla(selectorTabla);
       if (!tabla) {
         console.error(`❌ No se encontró tabla en selector: ${selectorUsado}`);
+        // Reintenta por si la tabla se inserta asincrónicamente
+        let reintentos = 4;
+        const timer = setInterval(() => {
+          const intento = resolverTabla(selectorUsado);
+          if (intento.tabla) {
+            clearInterval(timer);
+            estado.selectorTabla = intento.selectorUsado;
+            inicializarCeldasEditables(intento.tabla);
+            console.log(`✅ Modo edición inicializado (reintento) sobre ${intento.selectorUsado}`);
+          } else if (--reintentos <= 0) {
+            clearInterval(timer);
+          }
+        }, 400);
         return false;
       }
 
