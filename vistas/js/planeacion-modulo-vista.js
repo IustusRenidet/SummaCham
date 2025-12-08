@@ -856,42 +856,20 @@
     };
 
     const limpiarPointerEventsGlobales = () => {
-      // Ocultar modales inactivos
-      document.querySelectorAll('.modal:not(.show)').forEach((modal) => {
-        modal.style.display = 'none';
-        modal.style.pointerEvents = 'none';
-        modal.hidden = true;
-      });
-
-      // Ocultar offcanvas inactivos
-      document.querySelectorAll('.offcanvas:not(.show)').forEach((offcanvas) => {
-        offcanvas.style.display = 'none';
-        offcanvas.style.pointerEvents = 'none';
-      });
-
-      // Remover backdrops residuales
-      document.querySelectorAll('.modal-backdrop, .offcanvas-backdrop, [class*="backdrop"]').forEach((backdrop) => {
-        if (!document.querySelector('.modal.show, .offcanvas.show')) {
-          backdrop.remove();
-        } else {
-          backdrop.style.pointerEvents = 'auto';
-        }
-      });
-
       limpiarBotonesInteractivos();
 
-      // Evitar overlays invisibles bloqueando clicks
-      document.querySelectorAll('[class*="overlay"]').forEach((overlay) => {
-        const visible = overlay.offsetParent !== null;
-        if (!visible) {
-          overlay.style.display = 'none';
-          overlay.style.pointerEvents = 'none';
-        }
-      });
+      // Remover backdrops residuales solo si no hay elementos visibles
+      const hayContenedorVisible = Boolean(
+        document.querySelector('.modal.show, .offcanvas.show')
+      );
+      if (!hayContenedorVisible) {
+        document
+          .querySelectorAll('.modal-backdrop, .offcanvas-backdrop, [class*="backdrop"]')
+          .forEach((backdrop) => backdrop.remove());
+      }
 
-      // Elementos ocultos con z-index alto
+      // Asegurar que elementos ocultos no bloqueen clics
       document.querySelectorAll('[hidden]').forEach((el) => {
-        el.style.display = 'none';
         el.style.pointerEvents = 'none';
         const zIndex = Number.parseInt(window.getComputedStyle(el).zIndex, 10);
         if (Number.isFinite(zIndex) && zIndex > 100) {

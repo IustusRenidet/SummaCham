@@ -2524,37 +2524,64 @@
         });
     };
 
+    const procesarModal = (modal) => {
+      if (!modal || modal.dataset.pointerFixBound === "1") return;
+      modal.dataset.pointerFixBound = "1";
+      modal.addEventListener("show.bs.modal", () =>
+        habilitarPointerEvents(modal)
+      );
+      modal.addEventListener("shown.bs.modal", () =>
+        habilitarPointerEvents(modal)
+      );
+      modal.addEventListener("hidden.bs.modal", () => {
+        limpiarPointerEvents(modal);
+        limpiarBackdrops();
+      });
+      if (!modal.classList.contains("show")) {
+        limpiarPointerEvents(modal);
+      }
+    };
+
+    const procesarOffcanvas = (offcanvas) => {
+      if (!offcanvas || offcanvas.dataset.pointerFixBound === "1") return;
+      offcanvas.dataset.pointerFixBound = "1";
+      offcanvas.addEventListener("show.bs.offcanvas", () =>
+        habilitarPointerEvents(offcanvas)
+      );
+      offcanvas.addEventListener("shown.bs.offcanvas", () =>
+        habilitarPointerEvents(offcanvas)
+      );
+      offcanvas.addEventListener("hidden.bs.offcanvas", () => {
+        limpiarPointerEvents(offcanvas);
+        limpiarBackdrops();
+      });
+      if (!offcanvas.classList.contains("show")) {
+        limpiarPointerEvents(offcanvas);
+      }
+    };
+
     const vincularEventos = () => {
-      document.querySelectorAll(".modal").forEach((modal) => {
-        modal.addEventListener("show.bs.modal", () =>
-          habilitarPointerEvents(modal)
-        );
-        modal.addEventListener("shown.bs.modal", () =>
-          habilitarPointerEvents(modal)
-        );
-        modal.addEventListener("hidden.bs.modal", () => {
-          limpiarPointerEvents(modal);
-          limpiarBackdrops();
+      document.querySelectorAll(".modal").forEach(procesarModal);
+      document.querySelectorAll(".offcanvas").forEach(procesarOffcanvas);
+    };
+
+    const observarNuevosContenedores = () => {
+      const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+          mutation.addedNodes.forEach((node) => {
+            if (!(node instanceof HTMLElement)) return;
+            if (node.classList.contains("modal")) {
+              procesarModal(node);
+            } else if (node.classList.contains("offcanvas")) {
+              procesarOffcanvas(node);
+            } else {
+              node.querySelectorAll?.(".modal").forEach(procesarModal);
+              node.querySelectorAll?.(".offcanvas").forEach(procesarOffcanvas);
+            }
+          });
         });
-        if (!modal.classList.contains("show")) {
-          limpiarPointerEvents(modal);
-        }
       });
-      document.querySelectorAll(".offcanvas").forEach((offcanvas) => {
-        offcanvas.addEventListener("show.bs.offcanvas", () =>
-          habilitarPointerEvents(offcanvas)
-        );
-        offcanvas.addEventListener("shown.bs.offcanvas", () =>
-          habilitarPointerEvents(offcanvas)
-        );
-        offcanvas.addEventListener("hidden.bs.offcanvas", () => {
-          limpiarPointerEvents(offcanvas);
-          limpiarBackdrops();
-        });
-        if (!offcanvas.classList.contains("show")) {
-          limpiarPointerEvents(offcanvas);
-        }
-      });
+      observer.observe(document.body, { childList: true, subtree: true });
     };
 
     const intentarInicializar = () => {
@@ -2562,6 +2589,7 @@
         return false;
       }
       vincularEventos();
+      observarNuevosContenedores();
       limpiarBackdrops();
       setInterval(limpiarBackdrops, 2000);
       return true;
