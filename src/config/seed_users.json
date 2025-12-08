@@ -1,0 +1,1166 @@
+[
+  {
+    "username": "FS",
+    "password": "123",
+    "permissions": [
+      {
+        "empresaId": "empresa1",
+        "modulo": "Membresía",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Membresía",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Membresía",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      }
+    ]
+  },
+  {
+    "username": "AMB",
+    "password": "123",
+    "permissions": [
+      {
+        "empresaId": "empresa1",
+        "modulo": "Membresía",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "Eventos",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "Comunicación",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "Serv_Membresía",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "Comités",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "T&IC",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "RH",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "VPE",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "Finanzas",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "Gtos_Corporativos",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Membresía",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Eventos",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Comunicación",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Serv_Membresía",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Comités",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "T&IC",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "RH",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Dirección",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Finanzas",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Gtos_Corporativos",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Membresía",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Eventos",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Comunicación",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Serv_Membresía",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Comités",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "T&IC",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "RH",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Dirección",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Finanzas",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Gtos_Corporativos",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      }
+    ]
+  },
+  {
+    "username": "PCA",
+    "password": "123",
+    "permissions": [
+      {
+        "empresaId": "empresa1",
+        "modulo": "Membresía",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "Eventos",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "Comunicación",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "Serv_Membresía",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "Comités",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "T&IC",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "RH",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "VPE",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "Finanzas",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "Gtos_Corporativos",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Membresía",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Eventos",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Comunicación",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Serv_Membresía",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Comités",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "T&IC",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "RH",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Dirección",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Finanzas",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Gtos_Corporativos",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Membresía",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Eventos",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Comunicación",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Serv_Membresía",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Comités",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "T&IC",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "RH",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Dirección",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Finanzas",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Gtos_Corporativos",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      }
+    ]
+  },
+  {
+    "username": "FO",
+    "password": "123",
+    "permissions": [
+      {
+        "empresaId": "empresa1",
+        "modulo": "Eventos",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
+      }
+    ]
+  },
+  {
+    "username": "AQ",
+    "password": "123",
+    "permissions": [
+      {
+        "empresaId": "empresa1",
+        "modulo": "Eventos",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "Comunicación",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "Serv_Membresía",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Eventos",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Comunicación",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Serv_Membresía",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Eventos",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Comunicación",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Serv_Membresía",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      }
+    ]
+  },
+  {
+    "username": "PV",
+    "password": "123",
+    "permissions": [
+      {
+        "empresaId": "empresa1",
+        "modulo": "Comunicación",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Comunicación",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Comunicación",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
+      }
+    ]
+  },
+  {
+    "username": "DM",
+    "password": "123",
+    "permissions": [
+      {
+        "empresaId": "empresa1",
+        "modulo": "Serv_Membresía",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Serv_Membresía",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Serv_Membresía",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
+      }
+    ]
+  },
+  {
+    "username": "DF",
+    "password": "123",
+    "permissions": [
+      {
+        "empresaId": "empresa1",
+        "modulo": "Comités",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
+      }
+    ]
+  },
+  {
+    "username": "GB",
+    "password": "123",
+    "permissions": [
+      {
+        "empresaId": "empresa1",
+        "modulo": "Comités",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "T&IC",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Comités",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "T&IC",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Comités",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "T&IC",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      }
+    ]
+  },
+  {
+    "username": "AO",
+    "password": "123",
+    "permissions": [
+      {
+        "empresaId": "empresa1",
+        "modulo": "T&IC",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "T&IC",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "T&IC",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
+      }
+    ]
+  },
+  {
+    "username": "CG",
+    "password": "123",
+    "permissions": [
+      {
+        "empresaId": "empresa1",
+        "modulo": "RH",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "RH",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "RH",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
+      }
+    ]
+  },
+  {
+    "username": "SB",
+    "password": "123",
+    "permissions": [
+      {
+        "empresaId": "empresa1",
+        "modulo": "VPE",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
+      }
+    ]
+  },
+  {
+    "username": "AA",
+    "password": "123",
+    "permissions": [
+      {
+        "empresaId": "empresa1",
+        "modulo": "VPE",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "Finanzas",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "Gtos_Corporativos",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Gtos_Corporativos",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Gtos_Corporativos",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      }
+    ]
+  },
+  {
+    "username": "GL",
+    "password": "123",
+    "permissions": [
+      {
+        "empresaId": "empresa1",
+        "modulo": "Finanzas",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "Gtos_Corporativos",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Gtos_Corporativos",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Gtos_Corporativos",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
+      }
+    ]
+  },
+  {
+    "username": "NG",
+    "password": "123",
+    "permissions": [
+      {
+        "empresaId": "empresa2",
+        "modulo": "Membresía",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
+      }
+    ]
+  },
+  {
+    "username": "AS",
+    "password": "123",
+    "permissions": [
+      {
+        "empresaId": "empresa2",
+        "modulo": "Membresía",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Eventos",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Comunicación",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Serv_Membresía",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Comités",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "T&IC",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "RH",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Dirección",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Finanzas",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      }
+    ]
+  },
+  {
+    "username": "RA",
+    "password": "123",
+    "permissions": [
+      {
+        "empresaId": "empresa2",
+        "modulo": "Eventos",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
+      }
+    ]
+  },
+  {
+    "username": "JE",
+    "password": "123",
+    "permissions": [
+      {
+        "empresaId": "empresa2",
+        "modulo": "Comités",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
+      }
+    ]
+  },
+  {
+    "username": "MG",
+    "password": "123",
+    "permissions": [
+      {
+        "empresaId": "empresa2",
+        "modulo": "Dirección",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Finanzas",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
+      }
+    ]
+  },
+  {
+    "username": "BS",
+    "password": "123",
+    "permissions": [
+      {
+        "empresaId": "empresa4",
+        "modulo": "Membresía",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Eventos",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Comunicación",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Serv_Membresía",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Comités",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "T&IC",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "RH",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Dirección",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Finanzas",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      }
+    ]
+  },
+  {
+    "username": "AC",
+    "password": "123",
+    "permissions": [
+      {
+        "empresaId": "empresa4",
+        "modulo": "Eventos",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Comités",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
+      }
+    ]
+  },
+  {
+    "username": "XX",
+    "password": "123",
+    "permissions": [
+      {
+        "empresaId": "empresa4",
+        "modulo": "Dirección",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Finanzas",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
+      }
+    ]
+  }
+]
