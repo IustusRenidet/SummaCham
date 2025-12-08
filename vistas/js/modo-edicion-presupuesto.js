@@ -108,7 +108,7 @@
   function inicializarCeldasEditables(tabla) {
     if (!tabla) return;
 
-    // Buscar todas las celdas de presupuesto
+    // Buscar todas las celdas de presupuesto (numeros)
     const celdas = tabla.querySelectorAll('td[data-mes]');
     
     celdas.forEach((celda) => {
@@ -124,6 +124,21 @@
 
       // Detectar cambios directamente (por si el código carga datos vía JS)
       celda.addEventListener('change', () => {
+        marcarComoModificado(celda);
+      });
+    });
+
+    // Celdas de texto (codigo / descripcion / nombre) - click to edit
+    const textoCells = tabla.querySelectorAll('[data-role="descripcion"], th[data-role="code"], td[data-columna-clave="codigo"], td[data-columna-clave="label"]');
+    textoCells.forEach((celda) => {
+      celda.style.cursor = 'text';
+      celda.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        if (!estado.modoEdicionActivo) return;
+        activarEdicionTextoEnCelda(celda);
+      });
+      // Commit if content editable change arrives from other modules
+      celda.addEventListener('blur', () => {
         marcarComoModificado(celda);
       });
     });
@@ -186,6 +201,55 @@
       if (evento.key === 'Enter') guardarCambio();
       if (evento.key === 'Escape') cancelarEdicion();
     });
+  }
+
+  /**
+   * Activar edición textual (cuenta/descripcion) en una celda
+   */
+  function activarEdicionTextoEnCelda(celda) {
+    if (!celda || celda.classList.contains(CLASE_EDITANDO)) return;
+    const valor = celda.textContent?.trim() || '';
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = valor;
+    input.className = 'edit-input-text';
+    input.maxLength = 250;
+
+    celda.textContent = '';
+    celda.appendChild(input);
+    celda.classList.add(CLASE_EDITANDO);
+    input.focus();
+    input.select();
+
+    const guardar = () => {
+      const nuevo = (input.value || '').toString().trim();
+      celda.textContent = nuevo;
+      celda.classList.remove(CLASE_EDITANDO);
+      marcarComoModificado(celda);
+      // Si se editó la cuenta/codigo, actualizar dataset de la fila
+      try {
+        const fila = celda.closest('tr');
+        const columna = celda.dataset.columnaClave || celda.dataset.columnaKey || '';
+        if (fila && (columna === 'codigo' || columna === 'cuenta')) {
+          fila.dataset.cuenta = nuevo || '';
+          fila.dataset.cuentaVisible = nuevo || '';
+        }
+      } catch (err) {
+        // ignore
+      }
+      // Persistir layout inmediatamente (autoguardado de plantilla local)
+      try { persistirLayoutActual(); } catch (err) { /* ignore */ }
+    };
+    const cancelar = () => {
+      celda.textContent = valor;
+      celda.classList.remove(CLASE_EDITANDO);
+    };
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') guardar();
+      if (e.key === 'Escape') cancelar();
+    });
+    input.addEventListener('blur', guardar);
   }
 
   /**
@@ -279,17 +343,33 @@
 
   function persistirLayoutActual() {
     const { tabla } = resolverTabla(estado.selectorTabla);
+    // forzar que cualquier edición activa se aplique antes de leer la tabla
+    try {
+      if (tabla) {
+        tabla.querySelectorAll('[contenteditable="true"]').forEach((el) => el.blur());
+        // blur active element if needed
+        if (document.activeElement && document.activeElement.matches && document.activeElement.matches('[contenteditable="true"]')) {
+          document.activeElement.blur();
+        }
+      }
+    } catch (err) {
+      // ignore
+    }
     if (!tabla) return false;
     const empresa = Sesion.obtenerEmpresaActiva();
-    const anioSeleccion = Number(document.getElementById('selectAnio')?.value || new Date().getFullYear());
+    const selectAnioElem = document.getElementById('selectAnio') || document.getElementById('resumenYearSelect') || document.getElementById('yearSelect') || document.querySelector('[name="anio"]');
+    const anioSeleccion = Number(selectAnioElem?.value || new Date().getFullYear());
     const anio = Number.isInteger(anioSeleccion) ? anioSeleccion : null;
     const moduloClave = (document.body?.dataset?.modulo || document.body?.dataset?.moduloId || 'summary').toString().trim();
-    if (!empresa?.id || !Number.isInteger(anio) || !moduloClave) return false;
+    if (!empresa?.id || !Number.isInteger(anio) || !moduloClave) {
+      console.warn('No fue posible persistir layout: falta empresa/anio/modulo', { empresa: empresa?.id, anio, moduloClave });
+      return false;
+    }
     const layout = capturarLayoutDesdeTabla(tabla);
     if (!layout) return false;
     const guardado = guardarLayoutLocal({ moduloClave, empresaId: empresa.id, anio, layout });
     if (guardado) {
-      console.log('Layout persistido (localStorage)', { moduloClave, empresaId: empresa.id, anio });
+      console.log('Layout persistido (localStorage)', { moduloClave, empresaId: empresa.id, anio, filasCapturadas: layout?.filas?.length || 0 });
     }
     return guardado;
   }
@@ -307,6 +387,18 @@
         const celdaDescripcion = filaMatch.querySelector('[data-role="descripcion"]') || filaMatch.cells[1];
         if (celdaDescripcion && descripcionLayout != null) {
           celdaDescripcion.textContent = descripcionLayout;
+        }
+        // Si el layout contiene un valor de cuenta diferente, actualizar el dataset
+        try {
+          if (cuentaLayout) {
+            const actual = (filaMatch.dataset.cuenta || (filaMatch.querySelector('[data-cuenta]')?.dataset.cuenta || '')).toString().trim();
+            if (actual !== (cuentaLayout || '').toString().trim()) {
+              filaMatch.dataset.cuenta = cuentaLayout || '';
+              filaMatch.dataset.cuentaVisible = cuentaLayout || '';
+            }
+          }
+        } catch (err) {
+          // ignore
         }
       }
     });

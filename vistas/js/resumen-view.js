@@ -244,8 +244,14 @@
       if (editMode) return;
       editMode = true;
       sincronizarCeldasEditables();
+      if (window.ModoEdicionPresupuesto?.activar) {
+        try { window.ModoEdicionPresupuesto.activar(); } catch (e) { /* ignore */ }
+      }
     } else if (editMode) {
       cancelarEdicion();
+      if (window.ModoEdicionPresupuesto?.desactivar) {
+        try { window.ModoEdicionPresupuesto.desactivar(); } catch (e) { /* ignore */ }
+      }
     }
   };
 
@@ -265,6 +271,15 @@
       if (nuevoTexto !== originalTexto) {
         celda.textContent = nuevoTexto;
         registrarCambio(cuenta, columna, nuevoTexto, originalTexto);
+        // Si se editó la cuenta, actualizar dataset en la fila para persistencia
+        if (columna === 'cuenta' && fila) {
+          fila.dataset.cuenta = nuevoTexto || '';
+          fila.dataset.cuentaVisible = nuevoTexto || '';
+        }
+        // Si es columna de layout persistir layout local
+        if ((columna === 'cuenta' || columna === 'descripcion') && window.ModoEdicionPresupuesto?.guardarLayout) {
+          try { window.ModoEdicionPresupuesto.guardarLayout(); } catch (err) { /* ignore */ }
+        }
       } else {
         celda.textContent = originalTexto;
         eliminarCambio(cuenta, columna);
@@ -668,6 +683,7 @@
   };
 
   document.addEventListener('DOMContentLoaded', async () => {
+    try { window.ModoEdicionPresupuesto?.inicializar?.(); } catch (e) { /* ignore */ }
     const sesion = Sesion.requerirSesion();
     if (!sesion) return;
     const empresa = Sesion.obtenerEmpresaActiva(sesion);

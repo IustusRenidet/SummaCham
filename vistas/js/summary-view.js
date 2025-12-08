@@ -132,10 +132,16 @@
       if (editMode) return;
       editMode = true;
       sincronizarCeldasEditables();
+      if (window.ModoEdicionPresupuesto?.activar) {
+        try { window.ModoEdicionPresupuesto.activar(); } catch (e) { /* ignore */ }
+      }
       return;
     }
     if (editMode) {
       cancelarEdicion();
+      if (window.ModoEdicionPresupuesto?.desactivar) {
+        try { window.ModoEdicionPresupuesto.desactivar(); } catch (e) { /* ignore */ }
+      }
     }
   };
 
@@ -186,6 +192,16 @@
       if (nuevoTexto !== original) {
         celda.textContent = nuevoTexto;
         registrarCambio(cuenta, columna, nuevoTexto, original);
+        // Si se editó la cuenta, actualizar dataset en la fila para persistencia de layout
+        if (columna === 'cuenta' && fila) {
+          fila.dataset.cuenta = nuevoTexto || '';
+          // también actualizar cuentaVisible si aplica
+          fila.dataset.cuentaVisible = nuevoTexto || '';
+        }
+        // Si es columna de layout (cuenta/descripcion) persistir layout local
+        if ((columna === 'cuenta' || columna === 'descripcion') && window.ModoEdicionPresupuesto?.guardarLayout) {
+          try { window.ModoEdicionPresupuesto.guardarLayout(); } catch (err) { /* ignore */ }
+        }
       } else {
         celda.textContent = original;
         eliminarCambio(cuenta, columna);
@@ -1031,6 +1047,7 @@
   };
 
   document.addEventListener('DOMContentLoaded', async () => {
+    try { window.ModoEdicionPresupuesto?.inicializar?.(); } catch (e) { /* ignore */ }
     const sesion = Sesion.requerirSesion();
     if (!sesion) return;
 
