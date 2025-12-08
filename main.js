@@ -150,15 +150,32 @@ if (!gotTheLock) {
       "datos"
     );
 
+    // Configurar AppUserModelId ANTES de crear ventanas/tray
+    if (process.platform === "win32") {
+      app.setAppUserModelId("com.summa.cham.panelamcham");
+    }
+
     // Iniciar Backend
     try {
       const iniciarServidor = require("./src/server");
-      iniciarServidor();
+      const servidor = iniciarServidor();
+      console.log("Servidor backend iniciado correctamente");
+      
+      // Verificar que el servidor esté escuchando
+      if (!servidor) {
+        throw new Error("El servidor no se pudo iniciar");
+      }
     } catch (e) {
       console.error("Error fatal iniciando el servidor:", e);
+      // Mostrar diálogo de error en Windows
+      const { dialog } = require("electron");
+      dialog.showErrorBox(
+        "Error al iniciar servidor",
+        `No se pudo iniciar el servidor backend:\n\n${e.message}\n\nLa aplicación se cerrará.`
+      );
+      app.quit();
+      return;
     }
-
-    app.setAppUserModelId("com.summa.cham");
 
     // Configurar persistencia
     createTray();

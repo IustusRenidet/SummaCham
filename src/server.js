@@ -1,6 +1,8 @@
 const express = require('express');
 const helmet = require('helmet');
 const path = require('path');
+const session = require('express-session');
+const cookieParser = require('cookie-parser');
 const { inicializarBaseDatos } = require('./db/sqlite');
 const rutasAuth = require('./routes/auth');
 const rutasUsuarios = require('./routes/usuarios');
@@ -34,6 +36,7 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3000)) => {
     const origin = req.headers.origin || 'null';
     if (allowedOrigins.includes(origin) || (origin === 'null' && allowedOrigins.includes('file://'))) {
       res.header('Access-Control-Allow-Origin', origin);
+      res.header('Access-Control-Allow-Credentials', 'true');
     }
     res.header('Vary', 'Origin');
     res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
@@ -43,6 +46,23 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3000)) => {
     }
     next();
   });
+  
+  app.use(cookieParser());
+  
+  // Configuración de sesiones
+  app.use(session({
+    secret: process.env.SESSION_SECRET || 'cambia-este-secreto-de-sesion-en-produccion',
+    name: 'panelamcham.sid',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === 'production', // true en HTTPS
+      httpOnly: true,
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 días
+      sameSite: 'lax'
+    }
+  }));
+  
   app.use(helmet({ contentSecurityPolicy: false }));
   app.use(express.json({ limit: '1mb' }));
   app.use(express.urlencoded({ extended: false }));
@@ -82,6 +102,10 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3000)) => {
   app.use('/api/presupuestos', rutasPresupuestos);
   app.use('/api/comites', rutasComites);
   app.use('/api/planeacion', rutasPlaneacion);
+  app.use('/api/layouts', rutasLayouts);
+  app.use('/api/borradores', rutasBorradores);
+  app.use('/api/notificaciones', rutasNotificaciones);
+  app.use('/api/reportes', rutasReportes);
   app.use('/api/saldos', rutasSaldos);
   app.use('/api/cuentas', rutasCuentas);
 
@@ -89,10 +113,6 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3000)) => {
   app.get('/', (req, res) => {
     res.sendFile(path.join(vistasPath, 'app.html'));
   });
-
-  app.use((req, res) => {, rutasReportes);
-  app.use('/api/saldos', rutasSaldos);
-  app.use('/api/cuentas', rutasCuentas);
 
   app.use((req, res) => {
     res.status(404).json({ mensaje: 'Recurso no encontrado.' });

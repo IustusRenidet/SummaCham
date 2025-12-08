@@ -25,7 +25,7 @@
     "esbuild": "^0.27.1"
   },
   "build": {
-    "appId": "com.summa.cham",
+    "appId": "com.summa.cham.panelamcham",
     "productName": "PanelAMCHAM",
     "publish": [
       {
@@ -107,8 +107,10 @@
       ],
       "icon": "icono/icono.ico",
       "signAndEditExecutable": false,
-      "publisherName": [],
-      "artifactName": "${productName}-portable-${version}-${arch}.${ext}"
+      "publisherName": "AMCHAM",
+      "artifactName": "${productName}-${version}-${arch}.${ext}",
+      "verifyUpdateCodeSignature": false,
+      "requestedExecutionLevel": "asInvoker"
     },
     "nsis": {
       "oneClick": false,
@@ -117,16 +119,22 @@
       "allowToChangeInstallationDirectory": true,
       "installerIcon": "icono/icono.ico",
       "uninstallerIcon": "icono/icono.ico",
-      "displayLanguageSelector": false
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Panel AMCHAM",
+      "displayLanguageSelector": false,
+      "deleteAppDataOnUninstall": false
     }
   },
   "dependencies": {
     "auto-launch": "^5.0.6",
     "bcryptjs": "^3.0.3",
     "better-sqlite3": "^12.5.0",
+    "cookie-parser": "^1.4.7",
     "csv-parse": "^6.1.0",
     "electron-updater": "^6.6.2",
     "express": "^5.1.0",
+    "express-session": "^1.18.2",
     "helmet": "^8.1.0",
     "joi": "^18.0.1",
     "jsonwebtoken": "^9.0.3",

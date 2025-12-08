@@ -10,13 +10,23 @@ const REFRESH_TOKEN_TTL = process.env.PANELAMCHAM_REFRESH_TTL || '7d';
 const normalizarUsuario = (valor) => (valor || '').toString().trim().toUpperCase();
 
 const extraerToken = (req) => {
+  // 1. Primero verificar si hay sesión activa
+  if (req.session?.userId) {
+    // Usuario autenticado por sesión
+    return 'SESSION_AUTH';
+  }
+  
+  // 2. Luego verificar cookie de token
+  if (req.cookies?.tokenAcceso) {
+    return req.cookies.tokenAcceso;
+  }
+  
+  // 3. Finalmente verificar header Authorization
   const auth = req.headers.authorization || '';
   if (auth.toLowerCase().startsWith('bearer ')) {
     return auth.slice(7).trim();
   }
-  if (req.cookies?.tokenAcceso) {
-    return req.cookies.tokenAcceso;
-  }
+  
   return null;
 };
 
@@ -80,11 +90,26 @@ const requireAuth = (req, res, next) => {
     if (!token) {
       return res.status(401).json({ mensaje: 'Sesión no válida o expirada.' });
     }
-    const payload = jwt.verify(token, JWT_SECRET);
-    const registro = cargarUsuario(payload.sub);
-    if (!registro) {
-      return res.status(401).json({ mensaje: 'Usuario no encontrado.' });
+    
+    let payload;
+    let registro;
+    
+    // Autenticación por sesión
+    if (token === 'SESSION_AUTH') {
+      registro = cargarUsuario(req.session.userId);
+      if (!registro) {
+        req.session.destroy();
+        return res.status(401).json({ mensaje: 'Usuario no encontrado.' });
+      }
+    } else {
+      // Autenticación por JWT
+      payload = jwt.verify(token, JWT_SECRET);
+      registro = cargarUsuario(payload.sub);
+      if (!registro) {
+        return res.status(401).json({ mensaje: 'Usuario no encontrado.' });
+      }
     }
+    
     const contexto = construirContexto(registro);
     req.usuarioActual = {
       id: registro.id,

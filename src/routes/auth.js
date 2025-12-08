@@ -163,6 +163,20 @@ router.post('/login', async (req, res) => {
   try {
     const sesion = await construirSesion(registro);
     const tokens = emitirTokens({ id: registro.id, usuario: registro.usuario });
+    
+    // Establecer sesión con cookie
+    req.session.userId = registro.id;
+    req.session.usuario = registro.usuario;
+    req.session.esAdminGlobal = sesion.usuario.esAdminGlobal;
+    
+    // Establecer cookie con token de acceso (opcional, para compatibilidad)
+    res.cookie('tokenAcceso', tokens.tokenAcceso, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 días
+      sameSite: 'lax'
+    });
+    
     res.json({
       ...sesion,
       tokenAcceso: tokens.tokenAcceso,
@@ -198,6 +212,12 @@ router.post('/refresh', async (req, res) => {
     }
     const sesion = await construirSesion(registro);
     const tokens = emitirTokens({ id: registro.id, usuario: registro.usuario });
+    
+    // Actualizar sesión
+    req.session.userId = registro.id;
+    req.session.usuario = registro.usuario;
+    req.session.esAdminGlobal = sesion.usuario.esAdminGlobal;
+    
     res.json({
       ...sesion,
       tokenAcceso: tokens.tokenAcceso,
@@ -206,6 +226,23 @@ router.post('/refresh', async (req, res) => {
   } catch (error) {
     console.error('Error en refresh:', error);
     res.status(401).json({ mensaje: 'No fue posible refrescar la sesión.' });
+  }
+});
+
+router.post('/logout', (req, res) => {
+  if (req.session) {
+    req.session.destroy((err) => {
+      if (err) {
+        console.error('Error al destruir sesión:', err);
+        return res.status(500).json({ mensaje: 'Error al cerrar sesión.' });
+      }
+      res.clearCookie('panelamcham.sid');
+      res.clearCookie('tokenAcceso');
+      res.json({ mensaje: 'Sesión cerrada correctamente.' });
+    });
+  } else {
+    res.clearCookie('tokenAcceso');
+    res.json({ mensaje: 'Sesión cerrada.' });
   }
 });
 
