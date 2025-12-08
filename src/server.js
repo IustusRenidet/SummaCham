@@ -67,11 +67,16 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3000)) => {
   app.use(express.json({ limit: '1mb' }));
   app.use(express.urlencoded({ extended: false }));
 
-  // Servir archivos estáticos de la carpeta vistas
+  // Ruta raíz para servir la interfaz web
   const vistasPath = path.join(__dirname, '..', 'vistas');
+  app.get('/', (req, res) => {
+    res.sendFile(path.join(vistasPath, 'app.html'));
+  });
+
+  // Servir archivos estáticos de la carpeta vistas (CSS, JS, imágenes, otras vistas HTML)
   app.use(express.static(vistasPath));
 
-  // Ruta raíz para verificar que el servidor está funcionando
+  // Info de la API
   app.get('/api', (req, res) => {
     res.json({ 
       aplicacion: 'Panel AMCHAM',
@@ -109,13 +114,14 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3000)) => {
   app.use('/api/saldos', rutasSaldos);
   app.use('/api/cuentas', rutasCuentas);
 
-  // Ruta para servir app.html en la raíz
-  app.get('/', (req, res) => {
-    res.sendFile(path.join(vistasPath, 'app.html'));
-  });
-
+  // 404 para rutas no encontradas
   app.use((req, res) => {
-    res.status(404).json({ mensaje: 'Recurso no encontrado.' });
+    // Si es una petición a /api/*, devolver JSON
+    if (req.path.startsWith('/api/')) {
+      return res.status(404).json({ mensaje: 'Recurso no encontrado.' });
+    }
+    // Para otras rutas, redirigir a la raíz (SPA)
+    res.redirect('/');
   });
 
   app.use((error, req, res, next) => { // eslint-disable-line no-unused-vars
