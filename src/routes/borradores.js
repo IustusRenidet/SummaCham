@@ -255,11 +255,9 @@ router.get("/historial", (req, res) => {
 
   if (!req.esAdmin) {
     if (!empresa) {
-      return res
-        .status(400)
-        .json({
-          mensaje: "Debes indicar una empresa para consultar el historial.",
-        });
+      return res.status(400).json({
+        mensaje: "Debes indicar una empresa para consultar el historial.",
+      });
     }
     if (modulo && !tienePermisoEnModulo(req.mapaPermisos, empresa.id, modulo)) {
       return res
@@ -267,11 +265,9 @@ router.get("/historial", (req, res) => {
         .json({ mensaje: "No cuentas con permisos en este módulo." });
     }
     if (!modulo) {
-      return res
-        .status(400)
-        .json({
-          mensaje: "Debes indicar el módulo para consultar el historial.",
-        });
+      return res.status(400).json({
+        mensaje: "Debes indicar el módulo para consultar el historial.",
+      });
     }
   }
 
@@ -351,12 +347,9 @@ router.get("/estado", (req, res) => {
     return res.json({ borrador });
   } catch (err) {
     console.error("Error en GET /api/borradores/estado:", err);
-    return res
-      .status(500)
-      .json({
-        mensaje:
-          "Ocurrió un error inesperado al obtener el estado del borrador.",
-      });
+    return res.status(500).json({
+      mensaje: "Ocurrió un error inesperado al obtener el estado del borrador.",
+    });
   }
 });
 
@@ -451,11 +444,9 @@ router.post("/guardar", async (req, res) => {
         "Cargar y guardar"
       )
     ) {
-      return res
-        .status(403)
-        .json({
-          mensaje: "No cuentas con permisos para descartar este borrador.",
-        });
+      return res.status(403).json({
+        mensaje: "No cuentas con permisos para descartar este borrador.",
+      });
     }
 
     eliminarBorrador(empresa.id, modulo, borrador.anio, req.usuarioActual.id);
@@ -807,6 +798,78 @@ router.post("/revisar", (req, res) => {
   }
 });
 
+router.post("/descartar", async (req, res) => {
+  const { value, error } = esquemaDescartar.validate(req.body, {
+    abortEarly: false,
+  });
+  if (error) {
+    return res.status(400).json({
+      mensaje: "Verifica los datos para descartar.",
+      detalles: error.details.map((detalle) => detalle.message),
+    });
+  }
+
+  const { empresaId, modulo, anio, borradorId } = value;
+  // Si viene borradorId, lo usaremos preferentemente, de lo contrario contexto
+  try {
+    let borrador = null;
+    if (borradorId) {
+      borrador = obtenerBorradorPorId(borradorId);
+    } else if (empresaId && modulo && Number.isInteger(anio)) {
+      borrador = obtenerBorrador({ empresaId, modulo, anio });
+      if (!borrador) {
+        // Nada que descartar, devolvemos éxito silencioso o 404
+        return res
+          .status(404)
+          .json({ mensaje: "No hay borrador activo para descartar." });
+      }
+    } else {
+      return res
+        .status(400)
+        .json({ mensaje: "Faltan parámetros para identificar el borrador." });
+    }
+
+    if (!borrador) {
+      return res.status(404).json({ mensaje: "Borrador no encontrado." });
+    }
+
+    const empresa = obtenerEmpresaPorId(borrador.empresaId);
+    if (!empresa) {
+      return res.status(404).json({ mensaje: "Empresa no existe." });
+    }
+
+    // Verificar permisos: Solo autor o admin o alguien con permiso de editar/eliminar
+    if (
+      !req.esAdmin &&
+      String(borrador.usuarioId) !== String(req.usuarioActual.id) &&
+      !tienePermisoEnModulo(
+        req.mapaPermisos,
+        empresa.id,
+        borrador.modulo,
+        "Cargar y guardar"
+      )
+    ) {
+      return res
+        .status(403)
+        .json({ mensaje: "No tienes permiso para descartar este borrador." });
+    }
+
+    const eliminado = eliminarBorrador(
+      borrador.empresaId,
+      borrador.modulo,
+      borrador.anio,
+      req.usuarioActual.id
+    );
+    return res.json({
+      mensaje: "Borrador descartado correctamente.",
+      borrador: eliminado,
+    });
+  } catch (error) {
+    console.error("Error al descartar borrador:", error);
+    return res.status(500).json({ mensaje: "Error al descartar el borrador." });
+  }
+});
+
 router.post("/finalizar", async (req, res) => {
   const { value, error } = esquemaFinalizar.validate(req.body, {
     abortEarly: false,
@@ -837,19 +900,15 @@ router.post("/finalizar", async (req, res) => {
       "Cargar y guardar"
     )
   ) {
-    return res
-      .status(403)
-      .json({
-        mensaje: "No cuentas con permisos para guardar en base de datos.",
-      });
+    return res.status(403).json({
+      mensaje: "No cuentas con permisos para guardar en base de datos.",
+    });
   }
   if (borrador.estado !== ESTADOS.APROBADO) {
-    return res
-      .status(409)
-      .json({
-        mensaje:
-          "El borrador debe estar autorizado para guardar en base de datos.",
-      });
+    return res.status(409).json({
+      mensaje:
+        "El borrador debe estar autorizado para guardar en base de datos.",
+    });
   }
 
   try {

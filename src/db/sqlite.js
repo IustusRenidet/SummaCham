@@ -20,6 +20,14 @@ const obtenerRutaBaseDatos = (() => {
       return rutaCache;
     }
 
+    // 2. Prioridad: Carpeta 'datos' local (Modo Portable / Desarrollo)
+    // Se busca en la raíz del proyecto (desde src/db/ -> ../../datos)
+    const rutaLocal = path.resolve(__dirname, "../../datos");
+    if (fs.existsSync(rutaLocal)) {
+      rutaCache = rutaLocal;
+      return rutaCache;
+    }
+
     try {
       const electronModule = require("electron");
       if (electronModule?.app?.getPath) {
@@ -224,7 +232,7 @@ const sembrarUsuariosDesdeJson = () => {
         usuario, nombres, apellido_primero, apellido_segundo, apellidos,
         correo, contrasena, es_admin_global,
         puede_agregar, puede_modificar, puede_eliminar
-      ) VALUES (?, ?, ?, '', ?, '', ?, 0, 0, 0, 0)
+      ) VALUES (?, ?, ?, '', ?, ?, ?, 0, 0, 0, 0)
     `);
 
     const insertPermission = db.prepare(`
@@ -238,12 +246,13 @@ const sembrarUsuariosDesdeJson = () => {
 
     const transaction = db.transaction(() => {
       seedUsers.forEach((u) => {
-        // Crear usuario (nombre = username duplicado por simpleza si no hay info real)
+        // Crear usuario con datos reales del JSON
         insertUser.run(
           u.username,
-          u.username,
-          u.username,
-          u.username,
+          u.nombres || u.username,
+          u.apellidoPrimero || u.username,
+          u.apellidoPrimero || u.username, // Apellidos (fallback)
+          u.correo || "", // Correo real
           defaultHash
         );
 

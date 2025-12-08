@@ -1,38 +1,52 @@
-const { db, registrarPresupuestoGuardado } = require('../db/sqlite');
+const { db, registrarPresupuestoGuardado } = require("../db/sqlite");
 
 const ESTADOS = {
-  EDITANDO: 'EDITANDO',
-  PENDIENTE: 'PENDIENTE',
-  REVISADO: 'REVISADO',
-  RECHAZADO: 'RECHAZADO',
-  APROBADO: 'APROBADO',
-  GUARDADO: 'GUARDADO'
+  EDITANDO: "EDITANDO",
+  PENDIENTE: "PENDIENTE",
+  REVISADO: "REVISADO",
+  RECHAZADO: "RECHAZADO",
+  APROBADO: "APROBADO",
+  GUARDADO: "GUARDADO",
 };
 
 const HISTORIAL_ACCIONES = {
-  GUARDAR_BORRADOR: { clave: 'guardar-borrador', etiqueta: 'Guardó el borrador' },
-  ENVIAR_REVISION: { clave: 'enviar-revision', etiqueta: 'Envió a revisión' },
-  RECHAZAR: { clave: 'rechazar', etiqueta: 'Rechazó el borrador' },
-  MARCAR_REVISADO: { clave: 'marcar-revision', etiqueta: 'Marcó como revisado' },
-  CANCELAR_REVISION: { clave: 'cancelar-revision', etiqueta: 'Regresó a edición' },
-  AUTORIZAR: { clave: 'autorizar', etiqueta: 'Autorizó el borrador' },
-  AUTO_AUTORIZAR: { clave: 'autorizar-automatica', etiqueta: 'Autorización automática' },
-  GUARDAR_COI: { clave: 'guardar-coi', etiqueta: 'Guardó en COI' },
-  DESCARTAR: { clave: 'descartar', etiqueta: 'Descartó el borrador' }
+  GUARDAR_BORRADOR: {
+    clave: "guardar-borrador",
+    etiqueta: "Guardó el borrador",
+  },
+  ENVIAR_REVISION: { clave: "enviar-revision", etiqueta: "Envió a revisión" },
+  RECHAZAR: { clave: "rechazar", etiqueta: "Rechazó el borrador" },
+  MARCAR_REVISADO: {
+    clave: "marcar-revision",
+    etiqueta: "Marcó como revisado",
+  },
+  CANCELAR_REVISION: {
+    clave: "cancelar-revision",
+    etiqueta: "Regresó a edición",
+  },
+  AUTORIZAR: { clave: "autorizar", etiqueta: "Autorizó el borrador" },
+  AUTO_AUTORIZAR: {
+    clave: "autorizar-automatica",
+    etiqueta: "Autorización automática",
+  },
+  GUARDAR_COI: { clave: "guardar-coi", etiqueta: "Guardó en COI" },
+  DESCARTAR: { clave: "descartar", etiqueta: "Descartó el borrador" },
 };
 
 const ETIQUETAS_ESTADO = {
-  EDITANDO: 'En edición',
-  PENDIENTE: 'Pendiente de revisión',
-  REVISADO: 'Revisado',
-  RECHAZADO: 'Rechazado',
-  APROBADO: 'Autorizado',
-  GUARDADO: 'Guardado en COI'
+  EDITANDO: "En edición",
+  PENDIENTE: "Pendiente de revisión",
+  REVISADO: "Revisado",
+  RECHAZADO: "Rechazado",
+  APROBADO: "Autorizado",
+  GUARDADO: "Guardado en COI",
 };
 
 const obtenerEtiquetaAccion = (clave) => {
-  if (!clave) return '';
-  const entrada = Object.values(HISTORIAL_ACCIONES).find((accion) => accion.clave === clave);
+  if (!clave) return "";
+  const entrada = Object.values(HISTORIAL_ACCIONES).find(
+    (accion) => accion.clave === clave
+  );
   return entrada?.etiqueta || clave;
 };
 
@@ -45,18 +59,26 @@ const registrarEventoHistorial = ({
   anio,
   estado,
   accion,
-  descripcion = '',
-  comentarios = '',
-  usuarioId = null
+  descripcion = "",
+  comentarios = "",
+  usuarioId = null,
 }) => {
-  if (!empresaId || !modulo || !Number.isInteger(Number(anio)) || !estado || !accion) {
+  if (
+    !empresaId ||
+    !modulo ||
+    !Number.isInteger(Number(anio)) ||
+    !estado ||
+    !accion
+  ) {
     return;
   }
-  db.prepare(`
+  db.prepare(
+    `
     INSERT INTO PLAN_BORRADORES_HISTORIAL (
       borradorId, empresaId, modulo, anio, estado, accion, descripcion, comentarios, usuarioId, registradoEn
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-  `).run(
+  `
+  ).run(
     borradorId || null,
     empresaId,
     modulo,
@@ -80,21 +102,23 @@ const mapData = (texto) => {
 
 const normalizarContexto = (contexto) => {
   if (!contexto) {
-    throw new Error('Contexto del borrador no proporcionado.');
+    throw new Error("Contexto del borrador no proporcionado.");
   }
-  const empresaId = (contexto.empresaId || '').toString().trim();
-  const modulo = (contexto.modulo || '').toString().trim();
+  const empresaId = (contexto.empresaId || "").toString().trim();
+  const modulo = (contexto.modulo || "").toString().trim();
   const anio = Number(contexto.anio);
-  const usuarioId = (contexto.usuarioId || '').toString().trim();
+  const usuarioId = (contexto.usuarioId || "").toString().trim();
   if (!empresaId || !modulo || !Number.isInteger(anio) || !usuarioId) {
-    throw new Error('Contexto incompleto para el borrador.');
+    throw new Error("Contexto incompleto para el borrador.");
   }
   return {
     empresaId,
     modulo,
     anio,
     usuarioId,
-    comentarios: contexto.comentarios ? contexto.comentarios.toString().trim() : null
+    comentarios: contexto.comentarios
+      ? contexto.comentarios.toString().trim()
+      : null,
   };
 };
 
@@ -112,13 +136,13 @@ const mapearFila = (fila) => {
     estado: fila.estado,
     fechaCreacion: fila.fechaCreacion,
     fechaEnvio: fila.fechaEnvio,
-    comentarios: fila.comentarios
+    comentarios: fila.comentarios,
   };
 };
 
 const mapearResumen = (fila) => {
   if (!fila) return null;
-  const autorNombre = fila.autorNombre || '';
+  const autorNombre = fila.autorNombre || "";
   return {
     id: fila.id,
     empresaId: fila.empresaId,
@@ -129,9 +153,9 @@ const mapearResumen = (fila) => {
     fechaCreacion: fila.fechaCreacion,
     fechaEnvio: fila.fechaEnvio,
     comentarios: fila.comentarios,
-    autorUsuario: fila.autorUsuario || '',
-    autorNombre: autorNombre.trim() || fila.autorUsuario || '',
-    data: null
+    autorUsuario: fila.autorUsuario || "",
+    autorNombre: autorNombre.trim() || fila.autorUsuario || "",
+    data: null,
   };
 };
 
@@ -139,11 +163,15 @@ const obtenerBorradorPorId = (id) => {
   if (!id) {
     return null;
   }
-  const fila = db.prepare(`
+  const fila = db
+    .prepare(
+      `
     SELECT *
     FROM PLAN_BORRADORES
     WHERE id = ?
-  `).get(id);
+  `
+    )
+    .get(id);
   return mapearFila(fila);
 };
 
@@ -151,25 +179,29 @@ const listarBorradores = ({ empresaId, modulo, anio, estado } = {}) => {
   const condiciones = [];
   const parametros = [];
   if (empresaId) {
-    condiciones.push('b.empresaId = ?');
+    condiciones.push("b.empresaId = ?");
     parametros.push(empresaId);
   }
   if (modulo) {
-    condiciones.push('b.modulo = ?');
+    condiciones.push("b.modulo = ?");
     parametros.push(modulo);
   }
   if (Number.isInteger(anio)) {
-    condiciones.push('b.anio = ?');
+    condiciones.push("b.anio = ?");
     parametros.push(anio);
   }
   if (estado) {
-    condiciones.push('b.estado = ?');
+    condiciones.push("b.estado = ?");
     parametros.push(estado);
   }
 
-  const whereClause = condiciones.length ? `WHERE ${condiciones.join(' AND ')}` : '';
+  const whereClause = condiciones.length
+    ? `WHERE ${condiciones.join(" AND ")}`
+    : "";
 
-  const filas = db.prepare(`
+  const filas = db
+    .prepare(
+      `
     SELECT
       b.*,
       u.usuario AS autorUsuario,
@@ -178,7 +210,9 @@ const listarBorradores = ({ empresaId, modulo, anio, estado } = {}) => {
     LEFT JOIN usuarios u ON u.id = CAST(b.usuarioId AS INTEGER)
     ${whereClause}
     ORDER BY b.fechaEnvio DESC NULLS LAST, b.fechaCreacion DESC
-  `).all(...parametros);
+  `
+    )
+    .all(...parametros);
 
   return filas.map(mapearResumen).filter(Boolean);
 };
@@ -187,15 +221,15 @@ const buildBaseWhere = ({ empresaId, modulo, anio }) => {
   const condiciones = [];
   const parametros = [];
   if (empresaId) {
-    condiciones.push('empresaId = ?');
+    condiciones.push("empresaId = ?");
     parametros.push(empresaId);
   }
   if (modulo) {
-    condiciones.push('modulo = ?');
+    condiciones.push("modulo = ?");
     parametros.push(modulo);
   }
   if (Number.isInteger(Number(anio))) {
-    condiciones.push('anio = ?');
+    condiciones.push("anio = ?");
     parametros.push(Number(anio));
   }
   return { condiciones, parametros };
@@ -211,7 +245,7 @@ const listarHistorialBorradores = ({
   buscar,
   desde,
   hasta,
-  limite = 100
+  limite = 100,
 } = {}) => {
   const condiciones = [];
   const parametros = [];
@@ -221,42 +255,48 @@ const listarHistorialBorradores = ({
     parametros.push(...base.parametros);
   }
   if (estado) {
-    condiciones.push('estado = ?');
+    condiciones.push("estado = ?");
     parametros.push(estado);
   }
   if (accion) {
-    condiciones.push('accion = ?');
+    condiciones.push("accion = ?");
     parametros.push(accion);
   }
   if (usuarioId) {
-    condiciones.push('usuarioId = ?');
+    condiciones.push("usuarioId = ?");
     parametros.push(String(usuarioId));
   }
   if (buscar) {
-    condiciones.push('(descripcion LIKE ? OR comentarios LIKE ?)');
+    condiciones.push("(descripcion LIKE ? OR comentarios LIKE ?)");
     const termino = `%${buscar.trim()}%`;
     parametros.push(termino, termino);
   }
   if (desde) {
-    condiciones.push('DATE(registradoEn) >= DATE(?)');
+    condiciones.push("DATE(registradoEn) >= DATE(?)");
     parametros.push(desde);
   }
   if (hasta) {
-    condiciones.push('DATE(registradoEn) <= DATE(?)');
+    condiciones.push("DATE(registradoEn) <= DATE(?)");
     parametros.push(hasta);
   }
-  const whereClause = condiciones.length ? `WHERE ${condiciones.join(' AND ')}` : '';
+  const whereClause = condiciones.length
+    ? `WHERE ${condiciones.join(" AND ")}`
+    : "";
   const limiteSeguro = Math.min(Math.max(Number(limite) || 50, 1), 500);
 
-  const filas = db.prepare(`
-    SELECT h.*, u.usuario AS autorUsuario,
+  const filas = db
+    .prepare(
+      `
+    SELECT h.*, u.usuario AS autorUsuario, u.correo AS autorCorreo,
            TRIM(COALESCE(u.nombres, '') || ' ' || COALESCE(u.apellidos, '')) AS autorNombre
     FROM PLAN_BORRADORES_HISTORIAL h
     LEFT JOIN usuarios u ON u.id = CAST(h.usuarioId AS INTEGER)
     ${whereClause}
     ORDER BY h.registradoEn DESC
     LIMIT ?
-  `).all(...parametros, limiteSeguro);
+  `
+    )
+    .all(...parametros, limiteSeguro);
 
   return filas.map((fila) => ({
     id: fila.id,
@@ -268,40 +308,53 @@ const listarHistorialBorradores = ({
     estadoEtiqueta: obtenerEtiquetaEstado(fila.estado),
     accion: fila.accion,
     accionEtiqueta: obtenerEtiquetaAccion(fila.accion),
-    descripcion: fila.descripcion || '',
-    comentarios: fila.comentarios || '',
+    descripcion: fila.descripcion || "",
+    comentarios: fila.comentarios || "",
     fecha: fila.registradoEn,
     usuario: {
       id: fila.usuarioId ? Number(fila.usuarioId) : null,
-      usuario: fila.autorUsuario || '',
-      nombre: (fila.autorNombre || '').trim() || fila.autorUsuario || ''
-    }
+      usuario: fila.autorUsuario || "",
+      nombre: (fila.autorNombre || "").trim() || fila.autorUsuario || "",
+      correo: fila.autorCorreo || "",
+    },
   }));
 };
 
 const obtenerFiltrosHistorial = ({ empresaId, modulo, anio } = {}) => {
   const base = buildBaseWhere({ empresaId, modulo, anio });
   const filtros = { estados: [], acciones: [], usuarios: [] };
-  const whereClause = base.condiciones.length ? `WHERE ${base.condiciones.join(' AND ')}` : '';
+  const whereClause = base.condiciones.length
+    ? `WHERE ${base.condiciones.join(" AND ")}`
+    : "";
   const params = base.parametros;
 
-  const estados = db.prepare(`
+  const estados = db
+    .prepare(
+      `
     SELECT DISTINCT estado FROM PLAN_BORRADORES_HISTORIAL ${whereClause} ORDER BY estado
-  `).all(...params);
+  `
+    )
+    .all(...params);
   filtros.estados = estados
     .map((row) => row.estado)
     .filter(Boolean)
     .map((valor) => ({ valor, etiqueta: obtenerEtiquetaEstado(valor) }));
 
-  const acciones = db.prepare(`
+  const acciones = db
+    .prepare(
+      `
     SELECT DISTINCT accion FROM PLAN_BORRADORES_HISTORIAL ${whereClause} ORDER BY accion
-  `).all(...params);
+  `
+    )
+    .all(...params);
   filtros.acciones = acciones
     .map((row) => row.accion)
     .filter(Boolean)
     .map((valor) => ({ valor, etiqueta: obtenerEtiquetaAccion(valor) }));
 
-  const usuarios = db.prepare(`
+  const usuarios = db
+    .prepare(
+      `
     SELECT DISTINCT h.usuarioId AS id,
       u.usuario AS cuenta,
       TRIM(COALESCE(u.nombres, '') || ' ' || COALESCE(u.apellidos, '')) AS nombre
@@ -309,12 +362,14 @@ const obtenerFiltrosHistorial = ({ empresaId, modulo, anio } = {}) => {
     LEFT JOIN usuarios u ON u.id = CAST(h.usuarioId AS INTEGER)
     ${whereClause}
     ORDER BY nombre
-  `).all(...params);
+  `
+    )
+    .all(...params);
   filtros.usuarios = usuarios
     .filter((row) => row.id)
     .map((row) => ({
       id: Number(row.id),
-      etiqueta: (row.nombre || '').trim() || row.cuenta || `Usuario ${row.id}`
+      etiqueta: (row.nombre || "").trim() || row.cuenta || `Usuario ${row.id}`,
     }));
 
   return filtros;
@@ -327,25 +382,32 @@ const persistirEnFirebird = async (borrador) => {
     modulo: borrador.modulo,
     anio: borrador.anio,
     datos: borrador.data,
-    guardadoPor: Number(borrador.usuarioId) || null
+    guardadoPor: Number(borrador.usuarioId) || null,
   });
 
   // 2. Guardar en Firebird PRESUP table
-  const { ejecutarConsulta } = require('./firebirdService');
-  
+  const { ejecutarConsulta } = require("./firebirdService");
+
   let datos;
   try {
-    datos = typeof borrador.data === 'string' ? JSON.parse(borrador.data) : borrador.data;
+    datos =
+      typeof borrador.data === "string"
+        ? JSON.parse(borrador.data)
+        : borrador.data;
   } catch (parseError) {
-    console.error('❌ Error al parsear datos del borrador:', parseError);
-    throw new Error('Los datos del borrador están corruptos.');
+    console.error("❌ Error al parsear datos del borrador:", parseError);
+    throw new Error("Los datos del borrador están corruptos.");
   }
 
-  const presupuesto = Array.isArray(datos?.presupuesto) ? datos.presupuesto : [];
-  
+  const presupuesto = Array.isArray(datos?.presupuesto)
+    ? datos.presupuesto
+    : [];
+
   // ✅ MEJORA: Validar que hay datos antes de proceder
   if (!presupuesto || presupuesto.length === 0) {
-    console.warn(`⚠️ Borrador ${borrador.id} (${borrador.empresaId}/${borrador.modulo}/${borrador.anio}) sin datos presupuestarios`);
+    console.warn(
+      `⚠️ Borrador ${borrador.id} (${borrador.empresaId}/${borrador.modulo}/${borrador.anio}) sin datos presupuestarios`
+    );
     // No lanzar error - permitir guardar estado como GUARDADO pero registrar en logs
     return;
   }
@@ -362,34 +424,42 @@ const persistirEnFirebird = async (borrador) => {
   if (!tieneValoresValidos) {
     console.warn(
       `⚠️ Borrador ${borrador.id} (${borrador.empresaId}/${borrador.modulo}/${borrador.anio}) ` +
-      `con solo ceros o valores inválidos`
+        `con solo ceros o valores inválidos`
     );
     // Registrar pero permitir - puede ser presupuesto legítimo de ceros
   }
 
   const anio = Number(borrador.anio);
-  const sufijo = anio.toString().slice(-2).padStart(2, '0');
+  const sufijo = anio.toString().slice(-2).padStart(2, "0");
   const tablaPresup = `PRESUP${sufijo}`;
 
   // ✅ MEJORA: Registrar intent de guardar
   console.log(
     `📝 Persistencia en Firebird: ${presupuesto.length} cuentas → ${tablaPresup} ` +
-    `(empresa: ${borrador.empresaId}, módulo: ${borrador.modulo})`
+      `(empresa: ${borrador.empresaId}, módulo: ${borrador.modulo})`
   );
 
   // Mapeo de claves a columnas PRESUP01-PRESUP12
   const MESES_COLUMNAS = {
-    'budget-ene': 'PRESUP01', 'budget-feb': 'PRESUP02', 'budget-mar': 'PRESUP03',
-    'budget-abr': 'PRESUP04', 'budget-may': 'PRESUP05', 'budget-jun': 'PRESUP06',
-    'budget-jul': 'PRESUP07', 'budget-ago': 'PRESUP08', 'budget-sep': 'PRESUP09',
-    'budget-oct': 'PRESUP10', 'budget-nov': 'PRESUP11', 'budget-dic': 'PRESUP12'
+    "budget-ene": "PRESUP01",
+    "budget-feb": "PRESUP02",
+    "budget-mar": "PRESUP03",
+    "budget-abr": "PRESUP04",
+    "budget-may": "PRESUP05",
+    "budget-jun": "PRESUP06",
+    "budget-jul": "PRESUP07",
+    "budget-ago": "PRESUP08",
+    "budget-sep": "PRESUP09",
+    "budget-oct": "PRESUP10",
+    "budget-nov": "PRESUP11",
+    "budget-dic": "PRESUP12",
   };
 
   let contadorExitosas = 0;
   let contadorErrores = 0;
 
   for (const cambio of presupuesto) {
-    const cuenta = (cambio.cuenta || '').toString().trim();
+    const cuenta = (cambio.cuenta || "").toString().trim();
     const valores = cambio.valores || {};
 
     if (!cuenta) {
@@ -415,13 +485,13 @@ const persistirEnFirebird = async (borrador) => {
       continue;
     }
 
-    const columnas = ['NUM_CTA', 'EJERCICIO', ...columnasVariables];
+    const columnas = ["NUM_CTA", "EJERCICIO", ...columnasVariables];
     const parametros = [cuenta, anio, ...valoresVariables];
-    const placeholders = columnas.map(() => '?').join(', ');
+    const placeholders = columnas.map(() => "?").join(", ");
 
     // Firebird permite UPSERT con MATCHING; no perdemos registros nuevos.
     const upsertQuery = `
-      UPDATE OR INSERT INTO ${tablaPresup} (${columnas.join(', ')})
+      UPDATE OR INSERT INTO ${tablaPresup} (${columnas.join(", ")})
       VALUES (${placeholders})
       MATCHING (NUM_CTA, EJERCICIO)
     `;
@@ -430,7 +500,10 @@ const persistirEnFirebird = async (borrador) => {
       await ejecutarConsulta(borrador.empresaId, upsertQuery, parametros);
       contadorExitosas++;
     } catch (error) {
-      console.error(`❌ Error al guardar cuenta ${cuenta} en ${tablaPresup}:`, error.message);
+      console.error(
+        `❌ Error al guardar cuenta ${cuenta} en ${tablaPresup}:`,
+        error.message
+      );
       contadorErrores++;
       // No lanzar - continuar con otras cuentas para no perder todo
     }
@@ -442,27 +515,25 @@ const persistirEnFirebird = async (borrador) => {
 };
 
 const FINALIZADORES = {
-  PRESUPUESTOS: persistirEnFirebird
+  PRESUPUESTOS: persistirEnFirebird,
 };
 
 const obtenerFinalizador = (modulo) => {
-  const clave = (modulo || '').toString().trim().toUpperCase();
+  const clave = (modulo || "").toString().trim().toUpperCase();
   return FINALIZADORES[clave] || persistirEnFirebird;
 };
 
 const eliminarBorrador = (empresaId, modulo, anio, usuarioId) => {
   if (!empresaId || !modulo || !Number.isInteger(Number(anio))) {
-    throw new Error('Contexto incompleto para descartar.');
+    throw new Error("Contexto incompleto para descartar.");
   }
   const existente = obtenerBorrador({ empresaId, modulo, anio });
   if (!existente) {
     return null;
   }
-  db.prepare('DELETE FROM PLAN_BORRADORES WHERE empresaId = ? AND modulo = ? AND anio = ?').run(
-    empresaId,
-    modulo,
-    anio
-  );
+  db.prepare(
+    "DELETE FROM PLAN_BORRADORES WHERE empresaId = ? AND modulo = ? AND anio = ?"
+  ).run(empresaId, modulo, anio);
   registrarEventoHistorial({
     borradorId: existente.id,
     empresaId,
@@ -470,17 +541,23 @@ const eliminarBorrador = (empresaId, modulo, anio, usuarioId) => {
     anio,
     estado: existente.estado,
     accion: HISTORIAL_ACCIONES.DESCARTAR.clave,
-    descripcion: 'Descartó el borrador en edición',
-    usuarioId
+    descripcion: "Descartó el borrador en edición",
+    usuarioId,
   });
   return existente;
 };
 
 const obtenerBorrador = ({ empresaId, modulo, anio }) => {
   try {
-    console.log('[obtenerBorrador] called with:', { empresaId, modulo, anio });
-    const estadosValidos = [ESTADOS.EDITANDO, ESTADOS.PENDIENTE, ESTADOS.RECHAZADO, ESTADOS.REVISADO, ESTADOS.APROBADO];
-    const placeholders = estadosValidos.map(() => '?').join(',');
+    console.log("[obtenerBorrador] called with:", { empresaId, modulo, anio });
+    const estadosValidos = [
+      ESTADOS.EDITANDO,
+      ESTADOS.PENDIENTE,
+      ESTADOS.RECHAZADO,
+      ESTADOS.REVISADO,
+      ESTADOS.APROBADO,
+    ];
+    const placeholders = estadosValidos.map(() => "?").join(",");
     const query = `
       SELECT *
       FROM PLAN_BORRADORES
@@ -489,31 +566,42 @@ const obtenerBorrador = ({ empresaId, modulo, anio }) => {
       ORDER BY fechaEnvio DESC NULLS LAST, id DESC
       LIMIT 1
     `;
-    const fila = db.prepare(query).get(empresaId, modulo, anio, ...estadosValidos);
-    console.log('[obtenerBorrador] result:', fila ? `found id=${fila.id}, estado=${fila.estado}` : 'null');
+    const fila = db
+      .prepare(query)
+      .get(empresaId, modulo, anio, ...estadosValidos);
+    console.log(
+      "[obtenerBorrador] result:",
+      fila ? `found id=${fila.id}, estado=${fila.estado}` : "null"
+    );
     return mapearFila(fila);
   } catch (err) {
-    console.error('[obtenerBorrador] error:', err.message, err.stack);
+    console.error("[obtenerBorrador] error:", err.message, err.stack);
     throw err;
   }
 };
 
-
 const guardarBorrador = (contexto, datos) => {
   const cfg = normalizarContexto(contexto);
-  const contenido = typeof datos === 'string' ? datos : JSON.stringify(datos || {});
-  const existente = db.prepare(`
+  const contenido =
+    typeof datos === "string" ? datos : JSON.stringify(datos || {});
+  const existente = db
+    .prepare(
+      `
     SELECT id
     FROM PLAN_BORRADORES
     WHERE empresaId = ? AND modulo = ? AND anio = ?
-  `).get(cfg.empresaId, cfg.modulo, cfg.anio);
+  `
+    )
+    .get(cfg.empresaId, cfg.modulo, cfg.anio);
 
   if (existente) {
-    db.prepare(`
+    db.prepare(
+      `
       UPDATE PLAN_BORRADORES
       SET data = ?, estado = ?, fechaEnvio = NULL, comentarios = NULL, usuarioId = ?
       WHERE id = ?
-    `).run(contenido, ESTADOS.EDITANDO, cfg.usuarioId, existente.id);
+    `
+    ).run(contenido, ESTADOS.EDITANDO, cfg.usuarioId, existente.id);
     const actualizado = obtenerBorradorPorId(existente.id);
     registrarEventoHistorial({
       borradorId: actualizado.id,
@@ -522,16 +610,28 @@ const guardarBorrador = (contexto, datos) => {
       anio: actualizado.anio,
       estado: actualizado.estado,
       accion: HISTORIAL_ACCIONES.GUARDAR_BORRADOR.clave,
-      descripcion: 'Guardó cambios para continuar editando',
-      usuarioId: cfg.usuarioId
+      descripcion: "Guardó cambios para continuar editando",
+      usuarioId: cfg.usuarioId,
     });
     return actualizado;
   }
 
-  const resultado = db.prepare(`
+  const resultado = db
+    .prepare(
+      `
     INSERT INTO PLAN_BORRADORES (empresaId, anio, modulo, usuarioId, data, estado, comentarios)
     VALUES (?, ?, ?, ?, ?, ?, ?)
-  `).run(cfg.empresaId, cfg.anio, cfg.modulo, cfg.usuarioId, contenido, ESTADOS.EDITANDO, cfg.comentarios);
+  `
+    )
+    .run(
+      cfg.empresaId,
+      cfg.anio,
+      cfg.modulo,
+      cfg.usuarioId,
+      contenido,
+      ESTADOS.EDITANDO,
+      cfg.comentarios
+    );
 
   const nuevo = obtenerBorradorPorId(resultado.lastInsertRowid);
   registrarEventoHistorial({
@@ -541,8 +641,8 @@ const guardarBorrador = (contexto, datos) => {
     anio: nuevo.anio,
     estado: nuevo.estado,
     accion: HISTORIAL_ACCIONES.GUARDAR_BORRADOR.clave,
-    descripcion: 'Creó un nuevo borrador',
-    usuarioId: cfg.usuarioId
+    descripcion: "Creó un nuevo borrador",
+    usuarioId: cfg.usuarioId,
   });
   return nuevo;
 };
@@ -550,15 +650,17 @@ const guardarBorrador = (contexto, datos) => {
 const enviarRevision = async (borradorId, usuarioRol, usuarioId) => {
   const borrador = obtenerBorradorPorId(borradorId);
   if (!borrador) {
-    throw new Error('Borrador no encontrado.');
+    throw new Error("Borrador no encontrado.");
   }
 
-  if (usuarioRol === 'ADMIN_GLOBAL') {
-    db.prepare(`
+  if (usuarioRol === "ADMIN_GLOBAL") {
+    db.prepare(
+      `
       UPDATE PLAN_BORRADORES
       SET estado = ?, fechaEnvio = CURRENT_TIMESTAMP
       WHERE id = ?
-    `).run(ESTADOS.APROBADO, borradorId);
+    `
+    ).run(ESTADOS.APROBADO, borradorId);
     const actualizado = obtenerBorradorPorId(borradorId);
     registrarEventoHistorial({
       borradorId,
@@ -567,17 +669,19 @@ const enviarRevision = async (borradorId, usuarioRol, usuarioId) => {
       anio: actualizado.anio,
       estado: actualizado.estado,
       accion: HISTORIAL_ACCIONES.AUTO_AUTORIZAR.clave,
-      descripcion: 'Autorización automática por administrador global',
-      usuarioId
+      descripcion: "Autorización automática por administrador global",
+      usuarioId,
     });
     return { autoAutorizado: true, borrador: actualizado };
   }
 
-  db.prepare(`
+  db.prepare(
+    `
     UPDATE PLAN_BORRADORES
     SET estado = ?, fechaEnvio = CURRENT_TIMESTAMP
     WHERE id = ?
-  `).run(ESTADOS.PENDIENTE, borradorId);
+  `
+  ).run(ESTADOS.PENDIENTE, borradorId);
 
   const actualizado = obtenerBorradorPorId(borradorId);
   registrarEventoHistorial({
@@ -587,8 +691,8 @@ const enviarRevision = async (borradorId, usuarioRol, usuarioId) => {
     anio: actualizado.anio,
     estado: actualizado.estado,
     accion: HISTORIAL_ACCIONES.ENVIAR_REVISION.clave,
-    descripcion: 'Envió el borrador a revisión',
-    usuarioId
+    descripcion: "Envió el borrador a revisión",
+    usuarioId,
   });
   return { autoAutorizado: false, borrador: actualizado };
 };
@@ -596,14 +700,16 @@ const enviarRevision = async (borradorId, usuarioRol, usuarioId) => {
 const marcarRevisado = (borradorId, cancelar = false, usuarioId) => {
   const borrador = obtenerBorradorPorId(borradorId);
   if (!borrador) {
-    throw new Error('Borrador no encontrado.');
+    throw new Error("Borrador no encontrado.");
   }
   const destino = cancelar ? ESTADOS.EDITANDO : ESTADOS.REVISADO;
-  db.prepare(`
+  db.prepare(
+    `
     UPDATE PLAN_BORRADORES
     SET estado = ?, comentarios = NULL
     WHERE id = ?
-  `).run(destino, borradorId);
+  `
+  ).run(destino, borradorId);
   const actualizado = obtenerBorradorPorId(borradorId);
   registrarEventoHistorial({
     borradorId,
@@ -611,9 +717,13 @@ const marcarRevisado = (borradorId, cancelar = false, usuarioId) => {
     modulo: actualizado.modulo,
     anio: actualizado.anio,
     estado: actualizado.estado,
-    accion: cancelar ? HISTORIAL_ACCIONES.CANCELAR_REVISION.clave : HISTORIAL_ACCIONES.MARCAR_REVISADO.clave,
-    descripcion: cancelar ? 'Canceló la revisión y devolvió a edición' : 'Marcó el borrador como revisado',
-    usuarioId
+    accion: cancelar
+      ? HISTORIAL_ACCIONES.CANCELAR_REVISION.clave
+      : HISTORIAL_ACCIONES.MARCAR_REVISADO.clave,
+    descripcion: cancelar
+      ? "Canceló la revisión y devolvió a edición"
+      : "Marcó el borrador como revisado",
+    usuarioId,
   });
   return actualizado;
 };
@@ -621,18 +731,20 @@ const marcarRevisado = (borradorId, cancelar = false, usuarioId) => {
 const autorizarBorrador = async (borradorId, usuarioId) => {
   const borrador = obtenerBorradorPorId(borradorId);
   if (!borrador) {
-    throw new Error('Borrador no encontrado.');
+    throw new Error("Borrador no encontrado.");
   }
 
   if (![ESTADOS.REVISADO, ESTADOS.APROBADO].includes(borrador.estado)) {
-    throw new Error('El borrador debe estar revisado antes de autorizar.');
+    throw new Error("El borrador debe estar revisado antes de autorizar.");
   }
 
-  db.prepare(`
+  db.prepare(
+    `
     UPDATE PLAN_BORRADORES
     SET estado = ?, fechaEnvio = CURRENT_TIMESTAMP
     WHERE id = ?
-  `).run(ESTADOS.APROBADO, borradorId);
+  `
+  ).run(ESTADOS.APROBADO, borradorId);
 
   const actualizado = obtenerBorradorPorId(borradorId);
   registrarEventoHistorial({
@@ -642,8 +754,8 @@ const autorizarBorrador = async (borradorId, usuarioId) => {
     anio: actualizado.anio,
     estado: actualizado.estado,
     accion: HISTORIAL_ACCIONES.AUTORIZAR.clave,
-    descripcion: 'Autorizó el borrador',
-    usuarioId
+    descripcion: "Autorizó el borrador",
+    usuarioId,
   });
   return actualizado;
 };
@@ -651,14 +763,16 @@ const autorizarBorrador = async (borradorId, usuarioId) => {
 const rechazarBorrador = (borradorId, motivo, usuarioId) => {
   const borrador = obtenerBorradorPorId(borradorId);
   if (!borrador) {
-    throw new Error('Borrador no encontrado.');
+    throw new Error("Borrador no encontrado.");
   }
 
-  db.prepare(`
+  db.prepare(
+    `
     UPDATE PLAN_BORRADORES
     SET estado = ?, comentarios = ?, fechaEnvio = CURRENT_TIMESTAMP
     WHERE id = ?
-  `).run(ESTADOS.RECHAZADO, motivo || null, borradorId);
+  `
+  ).run(ESTADOS.RECHAZADO, motivo || null, borradorId);
 
   const actualizado = obtenerBorradorPorId(borradorId);
   registrarEventoHistorial({
@@ -668,9 +782,9 @@ const rechazarBorrador = (borradorId, motivo, usuarioId) => {
     anio: actualizado.anio,
     estado: actualizado.estado,
     accion: HISTORIAL_ACCIONES.RECHAZAR.clave,
-    descripcion: 'Rechazó el borrador',
-    comentarios: motivo || '',
-    usuarioId
+    descripcion: "Rechazó el borrador",
+    comentarios: motivo || "",
+    usuarioId,
   });
   return actualizado;
 };
@@ -678,20 +792,22 @@ const rechazarBorrador = (borradorId, motivo, usuarioId) => {
 const guardarAutorizado = async (borradorId, usuarioId) => {
   const borrador = obtenerBorradorPorId(borradorId);
   if (!borrador) {
-    throw new Error('Borrador no encontrado.');
+    throw new Error("Borrador no encontrado.");
   }
   if (borrador.estado !== ESTADOS.APROBADO) {
-    throw new Error('El borrador debe estar autorizado antes de guardar.');
+    throw new Error("El borrador debe estar autorizado antes de guardar.");
   }
   const finalizador = obtenerFinalizador(borrador.modulo);
   if (finalizador) {
     await finalizador(borrador);
   }
-  db.prepare(`
+  db.prepare(
+    `
     UPDATE PLAN_BORRADORES
     SET estado = ?, fechaEnvio = CURRENT_TIMESTAMP
     WHERE id = ?
-  `).run(ESTADOS.GUARDADO, borradorId);
+  `
+  ).run(ESTADOS.GUARDADO, borradorId);
   const actualizado = obtenerBorradorPorId(borradorId);
   registrarEventoHistorial({
     borradorId,
@@ -700,12 +816,11 @@ const guardarAutorizado = async (borradorId, usuarioId) => {
     anio: actualizado.anio,
     estado: actualizado.estado,
     accion: HISTORIAL_ACCIONES.GUARDAR_COI.clave,
-    descripcion: 'Guardó la versión autorizada en COI',
-    usuarioId
+    descripcion: "Guardó la versión autorizada en COI",
+    usuarioId,
   });
   return actualizado;
 };
-
 
 module.exports = {
   guardarBorrador,
@@ -721,5 +836,5 @@ module.exports = {
   listarHistorialBorradores,
   obtenerFiltrosHistorial,
   ESTADOS,
-  HISTORIAL_ACCIONES
+  HISTORIAL_ACCIONES,
 };

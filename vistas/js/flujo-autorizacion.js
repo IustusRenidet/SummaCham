@@ -2117,6 +2117,9 @@
             <div class="fw-semibold">${
               registro.usuario?.nombre || registro.usuario?.usuario || "-"
             }</div>
+            <div class="text-muted small">${
+              registro.usuario?.correo || ""
+            }</div>
             <div class="text-muted small">${registro.modulo || ""}</div>
           </td>
           <td>${formatDateTime(registro.fecha)}</td>
