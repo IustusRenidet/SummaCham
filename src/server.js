@@ -1,5 +1,6 @@
 const express = require('express');
 const helmet = require('helmet');
+const path = require('path');
 const { inicializarBaseDatos } = require('./db/sqlite');
 const rutasAuth = require('./routes/auth');
 const rutasUsuarios = require('./routes/usuarios');
@@ -26,7 +27,7 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3000)) => {
 
   const app = express();
   // CORS restringido: permitir orígenes configurados (por defecto localhost y file:// -> null origin)
-  const allowedOrigins = (process.env.PANELAMCHAM_ALLOW_ORIGINS || 'http://localhost:3000,null,file://')
+  const allowedOrigins = (process.env.PANELAMCHAM_ALLOW_ORIGINS || 'http://localhost:3000,https://panelamcham.iconetcloud.com.mx,null,file://')
     .split(',')
     .map((o) => o.trim());
   app.use((req, res, next) => {
@@ -46,6 +47,30 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3000)) => {
   app.use(express.json({ limit: '1mb' }));
   app.use(express.urlencoded({ extended: false }));
 
+  // Servir archivos estáticos de la carpeta vistas
+  const vistasPath = path.join(__dirname, '..', 'vistas');
+  app.use(express.static(vistasPath));
+
+  // Ruta raíz para verificar que el servidor está funcionando
+  app.get('/api', (req, res) => {
+    res.json({ 
+      aplicacion: 'Panel AMCHAM',
+      version: '1.0.1',
+      estado: 'activo',
+      mensaje: 'API funcionando correctamente',
+      endpoints: {
+        salud: '/api/salud',
+        autenticacion: '/api/auth',
+        usuarios: '/api/usuarios',
+        empresas: '/api/empresas',
+        modulos: '/api/modulos',
+        presupuestos: '/api/presupuestos',
+        planeacion: '/api/planeacion',
+        reportes: '/api/reportes'
+      }
+    });
+  });
+
   app.get('/api/salud', (req, res) => {
     res.json({ estado: 'ok' });
   });
@@ -57,10 +82,15 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3000)) => {
   app.use('/api/presupuestos', rutasPresupuestos);
   app.use('/api/comites', rutasComites);
   app.use('/api/planeacion', rutasPlaneacion);
-  app.use('/api/layouts', rutasLayouts);
-  app.use('/api/borradores', rutasBorradores);
-  app.use('/api/notificaciones', rutasNotificaciones);
-  app.use('/api/reportes', rutasReportes);
+  app.use('/api/saldos', rutasSaldos);
+  app.use('/api/cuentas', rutasCuentas);
+
+  // Ruta para servir app.html en la raíz
+  app.get('/', (req, res) => {
+    res.sendFile(path.join(vistasPath, 'app.html'));
+  });
+
+  app.use((req, res) => {, rutasReportes);
   app.use('/api/saldos', rutasSaldos);
   app.use('/api/cuentas', rutasCuentas);
 
@@ -73,8 +103,9 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3000)) => {
     res.status(500).json({ mensaje: 'Ocurrió un error inesperado.' });
   });
 
-  instanciaServidor = app.listen(puerto, () => {
-    console.log(`API interna escuchando en el puerto ${puerto}`);
+  instanciaServidor = app.listen(puerto, '127.0.0.1', () => {
+    console.log(`API interna escuchando en http://127.0.0.1:${puerto}`);
+    console.log(`Túnel público: https://panelamcham.iconetcloud.com.mx`);
   });
 
   return instanciaServidor;
