@@ -14,6 +14,9 @@ if (!gotTheLock) {
   let isQuitting = false;
 
   const resolveAssetPath = (...segments) => {
+    if (app.isPackaged) {
+      return path.join(process.resourcesPath, ...segments);
+    }
     return path.join(app.getAppPath(), ...segments);
   };
 

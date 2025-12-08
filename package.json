@@ -45,17 +45,14 @@
       "icono/icono.ico",
       "README.md"
     ],
-    "extraResources": [
-      {
-        "from": "vistas",
-        "to": "resources/vistas"
-      }
-    ],
     "portable": {
       "artifactName": "${productName}-portable-${version}-${arch}.${ext}",
       "useZip": false,
       "requestExecutionLevel": "user"
     },
+    "asarUnpack": [
+      "**/node_modules/better-sqlite3/**/*"
+    ],
     "win": {
       "target": [
         {
@@ -86,7 +83,13 @@
       "installerIcon": "icono/icono.ico",
       "uninstallerIcon": "icono/icono.ico",
       "displayLanguageSelector": false
-    }
+    },
+    "extraResources": [
+      {
+        "from": "icono",
+        "to": "icono"
+      }
+    ]
   },
   "dependencies": {
     "auto-launch": "^5.0.6",
