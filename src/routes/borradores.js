@@ -14,7 +14,8 @@ const {
   listarBorradores,
   listarHistorialBorradores,
   obtenerFiltrosHistorial,
-  ESTADOS
+  ESTADOS,
+  eliminarBorrador
 } = require('../services/borradoresService');
 const { notificarWorkflowPresupuesto } = require('../services/notificacionesService');
 const { requireAuth } = require('../middleware/auth');
@@ -89,6 +90,13 @@ const esquemaListado = Joi.object({
   anio: Joi.number().integer().min(2000).max(2100).optional(),
   estado: Joi.string().valid(...Object.values(ESTADOS)).optional()
 });
+
+const esquemaDescartar = Joi.object({
+  empresaId: Joi.string().trim().optional(),
+  modulo: Joi.string().trim().optional(),
+  anio: Joi.number().integer().min(2000).max(2100).optional(),
+  borradorId: Joi.number().integer().optional()
+}).or('borradorId', 'empresaId');
 
 const esquemaHistorial = Joi.object({
   empresaId: Joi.string().trim().optional(),
@@ -307,6 +315,47 @@ router.get('/detalle/:id', (req, res) => {
 router.post('/guardar', async (req, res) => {
   const empresaId = resolverEmpresaId(req);
   const { value, error } = esquemaGuardar.validate({ ...req.body, empresaId }, { abortEarly: false });
+router.post('/descartar', (req, res) => {
+  const merged = { ...req.body };
+  if (!merged.empresaId) merged.empresaId = resolverEmpresaId(req);
+  const { value, error } = esquemaDescartar.validate(merged, { abortEarly: false });
+  if (error) {
+    return res.status(400).json({
+      mensaje: 'Parámetros inválidos para descartar.',
+      detalles: error.details.map((detalle) => detalle.message)
+    });
+  }
+
+  let borrador = null;
+  if (value.borradorId) {
+    borrador = obtenerBorradorPorId(value.borradorId);
+    if (!borrador) {
+      return res.status(404).json({ mensaje: 'Borrador no encontrado.' });
+    }
+  } else {
+    const empresa = obtenerEmpresaPorId(value.empresaId);
+    if (!empresa) return res.status(404).json({ mensaje: 'Empresa no encontrada.' });
+    const modulo = obtenerModuloCanonico(value.modulo);
+    if (!modulo) return res.status(400).json({ mensaje: 'El módulo indicado no es válido.' });
+    borrador = obtenerBorrador({ empresaId: empresa.id, modulo, anio: value.anio });
+    if (!borrador) {
+      return res.status(404).json({ mensaje: 'No hay borrador para descartar.' });
+    }
+  }
+
+  const empresaId = borrador.empresaId;
+  const modulo = borrador.modulo;
+  const empresa = obtenerEmpresaPorId(empresaId);
+  if (!empresa) return res.status(404).json({ mensaje: 'Empresa asociada no existe.' });
+
+  if (!req.esAdmin && !tienePermisoEnModulo(req.mapaPermisos, empresa.id, modulo, 'Cargar y guardar')) {
+    return res.status(403).json({ mensaje: 'No cuentas con permisos para descartar este borrador.' });
+  }
+
+  eliminarBorrador(empresa.id, modulo, borrador.anio, req.usuarioActual.id);
+  return res.json({ mensaje: 'Borrador descartado.', borradorId: borrador.id });
+});
+
   if (error) {
     return res.status(400).json({
       mensaje: 'Verifica la información proporcionada.',

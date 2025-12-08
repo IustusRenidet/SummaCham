@@ -427,7 +427,13 @@
       this.buttons.cancelar?.addEventListener('click', () => this._handleCancelar());
       this.buttons.verBorrador?.addEventListener('click', () => this._mostrarCentroBorradores());
       this._ensureBotonDescartar();
-      this.buttons.descartar?.addEventListener('click', () => this._descartarBorrador());
+      if (this.buttons.descartar) {
+        this.buttons.descartar.style.pointerEvents = 'auto';
+        this.buttons.descartar.addEventListener('click', (ev) => {
+          ev.preventDefault();
+          this._descartarBorrador();
+        });
+      }
       this.buttons.autorizar?.addEventListener('click', () => this._handleAutorizar());
       this.buttons.rechazar?.addEventListener('click', () => this._handleRechazar());
       this.buttons.marcarRevisado?.addEventListener('click', () => this._handleMarcarRevisado());
@@ -1076,14 +1082,36 @@
       }
     }
 
-    _descartarBorrador() {
-      FlujoAutorizacion.limpiarBorrador(this.tableElement);
-      this.state.borrador = null;
-      this._exitEditMode(true);
-      this._notificarEstadoBorrador(null);
-      this._renderInfo();
-      this._renderBotones();
-      this._toast('Borrador descartado.', 'info');
+    async _descartarBorrador() {
+      const contexto = { ...this.state.contexto };
+      const borradorId = this.state.borrador?.id || null;
+      try {
+        const body = JSON.stringify({
+          borradorId,
+          empresaId: contexto.empresaId,
+          modulo: contexto.modulo,
+          anio: contexto.anio
+        });
+        const resp = await fetch(`${API_BASE}/borradores/descartar`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...this._construirHeaders() },
+          body
+        });
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok) {
+          throw new Error(data.mensaje || 'No fue posible descartar el borrador.');
+        }
+        FlujoAutorizacion.limpiarBorrador(this.tableElement);
+        this.state.borrador = null;
+        this._exitEditMode(true);
+        this._notificarEstadoBorrador(null);
+        this._renderInfo();
+        this._renderBotones();
+        this._toast(data.mensaje || 'Borrador descartado.', 'info');
+      } catch (error) {
+        console.error('Descartar borrador', error);
+        this._toast(error.message || 'No se pudo descartar el borrador.', 'danger');
+      }
     }
   }
 

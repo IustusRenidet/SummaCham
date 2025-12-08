@@ -17,7 +17,8 @@ const HISTORIAL_ACCIONES = {
   CANCELAR_REVISION: { clave: 'cancelar-revision', etiqueta: 'Regresó a edición' },
   AUTORIZAR: { clave: 'autorizar', etiqueta: 'Autorizó el borrador' },
   AUTO_AUTORIZAR: { clave: 'autorizar-automatica', etiqueta: 'Autorización automática' },
-  GUARDAR_COI: { clave: 'guardar-coi', etiqueta: 'Guardó en COI' }
+  GUARDAR_COI: { clave: 'guardar-coi', etiqueta: 'Guardó en COI' },
+  DESCARTAR: { clave: 'descartar', etiqueta: 'Descartó el borrador' }
 };
 
 const ETIQUETAS_ESTADO = {
@@ -397,6 +398,32 @@ const obtenerFinalizador = (modulo) => {
   return FINALIZADORES[clave] || persistirEnFirebird;
 };
 
+const eliminarBorrador = (empresaId, modulo, anio, usuarioId) => {
+  if (!empresaId || !modulo || !Number.isInteger(Number(anio))) {
+    throw new Error('Contexto incompleto para descartar.');
+  }
+  const existente = obtenerBorrador({ empresaId, modulo, anio });
+  if (!existente) {
+    return null;
+  }
+  db.prepare('DELETE FROM PLAN_BORRADORES WHERE empresaId = ? AND modulo = ? AND anio = ?').run(
+    empresaId,
+    modulo,
+    anio
+  );
+  registrarEventoHistorial({
+    borradorId: existente.id,
+    empresaId,
+    modulo,
+    anio,
+    estado: existente.estado,
+    accion: HISTORIAL_ACCIONES.DESCARTAR.clave,
+    descripcion: 'Descartó el borrador en edición',
+    usuarioId
+  });
+  return existente;
+};
+
 const obtenerBorrador = ({ empresaId, modulo, anio }) => {
   const fila = db.prepare(`
     SELECT *
@@ -627,6 +654,7 @@ module.exports = {
   obtenerBorradorPorId,
   marcarRevisado,
   guardarAutorizado,
+  eliminarBorrador,
   listarBorradores,
   listarHistorialBorradores,
   obtenerFiltrosHistorial,
