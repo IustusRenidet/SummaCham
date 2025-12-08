@@ -11,9 +11,12 @@ if (!gotTheLock) {
 } else {
   let mainWindow = null;
   let tray = null;
-  let isQuitting = false;
-
   const resolveAssetPath = (...segments) => {
+    // Vistas siempre desde el bundle (ASAR)
+    if (segments[0] === "vistas") {
+      return path.join(app.getAppPath(), ...segments);
+    }
+    // Iconos y otros recursos externos desde resources/ en producción
     if (app.isPackaged) {
       return path.join(process.resourcesPath, ...segments);
     }
