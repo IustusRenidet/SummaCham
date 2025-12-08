@@ -1,24 +1,24 @@
-const Firebird = require('node-firebird');
-const { obtenerEmpresaPorId } = require('../config/empresas');
+const Firebird = require("node-firebird");
+const { obtenerEmpresaPorId } = require("../config/empresas");
 
 const OPCIONES_BASE = {
-  host: process.env.FIREBIRD_HOST || '127.0.0.1',
-  port: Number(process.env.FIREBIRD_PORT || 3050),
-  user: process.env.FIREBIRD_USER || 'sysdba',
-  password: process.env.FIREBIRD_PASSWORD || 'masterkey',
+  host: process.env.FIREBIRD_HOST || "127.0.0.1",
+  port: Number(process.env.FIREBIRD_PORT || 15350),
+  user: process.env.FIREBIRD_USER || "sysdba",
+  password: process.env.FIREBIRD_PASSWORD || "masterkey",
   lowercase_keys: false,
-  pageSize: 4096
+  pageSize: 4096,
 };
 
 const crearOpciones = (empresaId) => {
   const empresa = obtenerEmpresaPorId(empresaId);
   if (!empresa) {
-    throw new Error('Empresa no encontrada');
+    throw new Error("Empresa no encontrada");
   }
 
   return {
     ...OPCIONES_BASE,
-    database: empresa.rutaBaseDatos
+    database: empresa.rutaBaseDatos,
   };
 };
 
@@ -49,7 +49,10 @@ const ejecutarConsulta = (empresaId, consulta, parametros = []) => {
 
 const probarConexion = async (empresaId) => {
   try {
-    await ejecutarConsulta(empresaId, 'SELECT 1 AS RESULTADO FROM RDB$DATABASE');
+    await ejecutarConsulta(
+      empresaId,
+      "SELECT 1 AS RESULTADO FROM RDB$DATABASE"
+    );
     return true;
   } catch (error) {
     return false;
@@ -58,5 +61,5 @@ const probarConexion = async (empresaId) => {
 
 module.exports = {
   ejecutarConsulta,
-  probarConexion
+  probarConexion,
 };
