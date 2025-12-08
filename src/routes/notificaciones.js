@@ -1,32 +1,13 @@
 const express = require('express');
-const { db } = require('../db/sqlite');
 const {
   listarNotificacionesPorUsuario,
   marcarNotificacionComoLeida
 } = require('../services/notificacionesService');
+const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
 
-const normalizarUsuario = (valor) => (valor || '').toString().trim().toUpperCase();
-
-const cargarUsuarioActual = (req, res, next) => {
-  const usuarioEncabezado = normalizarUsuario(req.headers['x-usuario-actual']);
-  if (!usuarioEncabezado) {
-    return res.status(401).json({ mensaje: 'No fue posible validar al usuario actual.' });
-  }
-  const registro = db.prepare(`
-    SELECT id, usuario
-    FROM usuarios
-    WHERE usuario = ?
-  `).get(usuarioEncabezado);
-  if (!registro) {
-    return res.status(401).json({ mensaje: 'No fue posible validar al usuario actual.' });
-  }
-  req.usuarioActual = registro;
-  next();
-};
-
-router.use(cargarUsuarioActual);
+router.use(requireAuth);
 
 router.get('/', (req, res) => {
   const soloNoLeidas = req.query.leidas === 'false' || req.query.estado === 'pendientes';

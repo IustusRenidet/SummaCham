@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const { db } = require('../db/sqlite');
 const { EMPRESAS } = require('../config/empresas');
 const { MODULOS, construirMapaPermisos } = require('../services/permisosService');
+const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
 const ACCIONES_PERMISOS = ['Cargar y guardar', 'Revisar', 'Aprobar'];
@@ -147,45 +148,25 @@ const forzarPermisosIconet = (datos = {}) => ({
   permisos: construirPermisosCompletos(datos.permisos)
 });
 
-const cargarUsuarioActual = (req, res, next) => {
-  const usuarioEncabezado = normalizarUsuario(req.headers['x-usuario-actual']);
-  if (!usuarioEncabezado) {
-    return res.status(401).json({ mensaje: 'No se pudo validar al usuario actual.' });
-  }
-
-  const registro = db.prepare(`
-    SELECT id, usuario, es_admin_global, puede_agregar, puede_modificar, puede_eliminar
-    FROM usuarios
-    WHERE usuario = ?
-  `).get(usuarioEncabezado);
-
-  if (!registro) {
-    return res.status(401).json({ mensaje: 'No se pudo validar al usuario actual.' });
-  }
-
-  const esIconet = registro.usuario === 'ICONET';
-  const esAdminGlobal = Boolean(registro.es_admin_global) || esIconet;
-  const puedeAgregar = Boolean(registro.puede_agregar);
-  const puedeModificar = Boolean(registro.puede_modificar);
-  const puedeEliminar = Boolean(registro.puede_eliminar);
+const asegurarAccesoUsuarios = (req, res, next) => {
+  const puedeAgregar = Boolean(req.usuarioActual?.permisosGenerales?.puedeAgregar);
+  const puedeModificar = Boolean(req.usuarioActual?.permisosGenerales?.puedeModificar);
+  const puedeEliminar = Boolean(req.usuarioActual?.permisosGenerales?.puedeEliminar);
   const tienePermisosGestion = puedeAgregar && puedeModificar && puedeEliminar;
-  const esAdmin = esAdminGlobal || tienePermisosGestion;
+  const esIconet = normalizarUsuario(req.usuarioActual?.usuario) === 'ICONET';
+  const esAdminGlobal = Boolean(req.esAdmin || req.usuarioActual?.esAdminGlobal);
+  const esAdminUsuarios = esAdminGlobal || tienePermisosGestion || esIconet;
 
-  if (!esAdmin) {
+  if (!esAdminUsuarios) {
     return res.status(403).json({ mensaje: 'No cuentas con permisos para administrar usuarios.' });
   }
 
-  req.usuarioActual = {
-    id: registro.id,
-    usuario: registro.usuario,
-    esAdminGlobal,
-    permisosGenerales: {
-      puedeAgregar,
-      puedeModificar,
-      puedeEliminar
-    }
+  req.usuarioActual.esAdminGlobal = esAdminGlobal;
+  req.usuarioActual.permisosGenerales = req.usuarioActual.permisosGenerales || {
+    puedeAgregar,
+    puedeModificar,
+    puedeEliminar
   };
-
   next();
 };
 
@@ -198,7 +179,7 @@ const asegurarPermisoGeneral = (campo) => (req, res, next) => {
   next();
 };
 
-router.use(cargarUsuarioActual);
+router.use(requireAuth, asegurarAccesoUsuarios);
 
 router.get('/', (req, res) => {
   const registros = db.prepare(`

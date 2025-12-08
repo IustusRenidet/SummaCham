@@ -1,9 +1,9 @@
 const express = require('express');
 const Joi = require('joi');
-const { db } = require('../db/sqlite');
 const { obtenerEmpresaPorId } = require('../config/empresas');
 const { construirMapaPermisos } = require('../services/permisosService');
 const { obtenerDatosPlaneacion } = require('../services/planeacionCuentasService');
+const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -32,42 +32,6 @@ const MODULOS_PLANEACION = new Set([
   'vpe'
 ]);
 
-const normalizar = (valor) => (valor || '').toString().trim().toUpperCase();
-
-const autenticar = (req) => {
-  const usuario = normalizar(req.headers['x-usuario-actual']);
-  if (!usuario) {
-    const err = new Error('Usuario no válido.');
-    err.status = 401;
-    throw err;
-  }
-
-  const registro = db.prepare(`
-    SELECT id, usuario, es_admin_global
-    FROM usuarios
-    WHERE usuario = ?
-  `).get(usuario);
-
-  if (!registro) {
-    const err = new Error('Usuario no válido.');
-    err.status = 401;
-    throw err;
-  }
-
-  const esAdmin = registro.usuario === 'ICONET' || Boolean(registro.es_admin_global);
-  if (esAdmin) {
-    return { esAdmin, mapaPermisos: {} };
-  }
-
-  const permisos = db.prepare(`
-    SELECT empresa_id, modulo, puede_cargar_guardar, puede_revisar, puede_aprobar
-    FROM permisos_modulo
-    WHERE usuario_id = ?
-  `).all(registro.id);
-
-  return { esAdmin, mapaPermisos: construirMapaPermisos(permisos) };
-};
-
 const asegurarEmpresa = (empresaId) => {
   const empresa = obtenerEmpresaPorId(empresaId);
   if (!empresa) {
@@ -93,6 +57,8 @@ const esquemaConsulta = Joi.object({
   cuentas: Joi.array().items(Joi.string().trim().min(1).max(24)).min(1).required()
 });
 
+router.use(requireAuth);
+
 router.post('/cuentas', async (req, res) => {
   try {
     const { value, error } = esquemaConsulta.validate(req.body || {}, { abortEarly: false });
@@ -108,7 +74,8 @@ router.post('/cuentas', async (req, res) => {
       return res.status(400).json({ mensaje: 'Módulo no soportado para consulta de cuentas.' });
     }
 
-    const { esAdmin, mapaPermisos } = autenticar(req);
+    const esAdmin = Boolean(req.esAdmin);
+    const mapaPermisos = req.mapaPermisos || construirMapaPermisos([]);
     const empresa = asegurarEmpresa(value.empresaId);
 
     if (!esAdmin && !puedeEnEmpresa(mapaPermisos, empresa.id)) {
@@ -122,7 +89,7 @@ router.post('/cuentas', async (req, res) => {
     });
 
     res.json({ cuentas: datos });
-} catch (err) {
+  } catch (err) {
     console.error('Error en POST /api/planeacion/cuentas', err);
     res.status(err.status || 500).json({
       mensaje: err.status ? err.message : 'No fue posible obtener la información solicitada.'
@@ -135,4 +102,3 @@ router.get('/catalogo', (req, res) => {
 });
 
 module.exports = router;
-

@@ -2,6 +2,7 @@ const express = require('express');
 const { listarModulos, obtenerDatosModulo } = require('../services/modulosService');
 const { obtenerResumen, listarAniosSALDOS } = require('../services/summaryService');
 const { obtenerPresupuestosMayor } = require('../services/presupuestosService');
+const { requireAuth, tienePermisoEmpresa } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -47,6 +48,8 @@ const obtenerMesPlan = (registro, periodo) => {
   return ytdActual - ytdPrevio;
 };
 
+router.use(requireAuth);
+
 router.get('/', (req, res) => {
   res.json({ modulos: listarModulos() });
 });
@@ -90,6 +93,9 @@ router.post('/summary-resumen-e', async (req, res) => {
     }
     if (!Array.isArray(codigos)) {
       return res.status(400).json({ mensaje: 'codigos debe ser un arreglo.' });
+    }
+    if (!req.esAdmin && !tienePermisoEmpresa(req.mapaPermisos, empresaId)) {
+      return res.status(403).json({ mensaje: 'No cuentas con permisos para esta empresa.' });
     }
 
     const resultado = await obtenerResumen({
@@ -159,6 +165,9 @@ router.get('/summary-anios', async (req, res) => {
     const empresaId = (req.query.empresaId || empresaIdHeader || '').toString();
     if (!empresaId) {
       return res.status(400).json({ mensaje: 'Falta empresaId.' });
+    }
+    if (!req.esAdmin && !tienePermisoEmpresa(req.mapaPermisos, empresaId)) {
+      return res.status(403).json({ mensaje: 'No cuentas con permisos para esta empresa.' });
     }
 
     const anios = await listarAniosSALDOS(empresaId);

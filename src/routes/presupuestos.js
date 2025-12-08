@@ -2,13 +2,12 @@ const express = require('express');
 const Joi = require('joi');
 const { db, registrarPresupuestoGuardado } = require('../db/sqlite');
 const { obtenerEmpresaPorId } = require('../config/empresas');
-const { MODULOS, construirMapaPermisos } = require('../services/permisosService');
+const { MODULOS } = require('../services/permisosService');
 const { obtenerPresupuestosMayor, PERIODOS, listarAniosPresupuestos } = require('../services/presupuestosService');
 const { notificarWorkflowPresupuesto } = require('../services/notificacionesService');
+const { requireAuth, tienePermisoEmpresa, tienePermisoModulo } = require('../middleware/auth');
 
 const router = express.Router();
-
-const normalizarUsuario = (valor) => (valor || '').toString().trim().toUpperCase();
 
 const MAPA_ESTADO_CANONICO = {
   'sin-cargar': 'SIN_CARGAR',
@@ -111,36 +110,7 @@ const esErrorConexionFirebird = (error) => {
   );
 };
 
-const cargarUsuarioActual = (req, res, next) => {
-  const usuarioEncabezado = normalizarUsuario(req.headers['x-usuario-actual']);
-  if (!usuarioEncabezado) {
-    return res.status(401).json({ mensaje: 'No fue posible validar al usuario actual.' });
-  }
-  const registro = db.prepare(`
-    SELECT id, usuario, es_admin_global, nombres, apellido_primero, apellido_segundo, apellidos
-    FROM usuarios
-    WHERE usuario = ?
-  `).get(usuarioEncabezado);
-  if (!registro) {
-    return res.status(401).json({ mensaje: 'No fue posible validar al usuario actual.' });
-  }
-  req.usuarioActual = registro;
-  const esIconet = registro.usuario === 'ICONET';
-  req.esAdmin = esIconet || Boolean(registro.es_admin_global);
-  if (!req.esAdmin) {
-    const permisos = db.prepare(`
-      SELECT empresa_id, modulo, puede_leer, puede_cargar_guardar, puede_revisar, puede_aprobar
-      FROM permisos_modulo
-      WHERE usuario_id = ?
-    `).all(registro.id);
-    req.mapaPermisos = construirMapaPermisos(permisos);
-  } else {
-    req.mapaPermisos = {};
-  }
-  next();
-};
-
-router.use(cargarUsuarioActual);
+router.use(requireAuth);
 
 const tienePermisoEnEmpresa = (mapaPermisos, empresaId) => {
   const permisos = mapaPermisos?.[empresaId];
@@ -395,7 +365,7 @@ router.post('/estado', (req, res) => {
   });
 });
 
- router.post('/guardar', cargarUsuarioActual, (req, res) => {
+ router.post('/guardar', (req, res) => {
   const { modulo, anio, empresaId, datos } = req.body || {};
   const ejercicio = Number(anio);
   if (!modulo || !empresaId || !Number.isInteger(ejercicio)) {

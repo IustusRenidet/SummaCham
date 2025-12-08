@@ -1,14 +1,10 @@
-
 const express = require('express');
 const Joi = require('joi');
-const { db } = require('../db/sqlite');
 const { obtenerEmpresaPorId } = require('../config/empresas');
-const { construirMapaPermisos } = require('../services/permisosService');
 const { obtenerSaldosPorCuentas, MESES, obtenerAniosDisponibles, obtenerCuentasPorAnio } = require('../services/saldosService');
+const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
-
-const normalizar = (v) => (v || '').toString().trim().toUpperCase();
 
 const esquema = Joi.object({
   anio: Joi.number().integer().min(2000).max(2100).required(),
@@ -24,42 +20,29 @@ const puede = (mapa, empresaId) => {
   return p && Object.values(p).some((a) => a.Lectura || a['Cargar y guardar'] || a.Revisar || a.Aprobar);
 };
 
+router.use(requireAuth);
+
 router.get('/', async (req, res) => {
-  // auth mínima igual que presupuestos.js
-  const u = normalizar(req.headers['x-usuario-actual']);
-  if (!u) return res.status(401).json({ mensaje: 'Usuario no válido.' });
-
-  const usr = db.prepare(`SELECT id, usuario, es_admin_global FROM usuarios WHERE usuario=?`).get(u);
-  if (!usr) return res.status(401).json({ mensaje: 'Usuario no válido.' });
-
-  const esAdmin = usr.usuario === 'ICONET' || !!usr.es_admin_global;
-
-  const { value, error } = esquema.validate({
-    ...req.query,
-    cuentas: req.query.cuentas
-  }, { abortEarly: false });
+  const { value, error } = esquema.validate(
+    { ...req.query, cuentas: req.query.cuentas },
+    { abortEarly: false }
+  );
 
   if (error) {
-    return res.status(400).json({ mensaje:'Parámetros inválidos', detalles: error.details.map(d=>d.message) });
+    return res.status(400).json({ mensaje: 'Parámetros inválidos', detalles: error.details.map((d) => d.message) });
   }
 
   const empresa = obtenerEmpresaPorId(value.empresaId);
   if (!empresa) return res.status(404).json({ mensaje: 'Empresa no existe.' });
 
-  let mapa = {};
-  if (!esAdmin) {
-    const permisos = db.prepare(`
-      SELECT empresa_id, modulo, puede_leer, puede_cargar_guardar, puede_revisar, puede_aprobar
-      FROM permisos_modulo
-      WHERE usuario_id = ?
-    `).all(usr.id);
-    mapa = construirMapaPermisos(permisos);
-    if (!puede(mapa, empresa.id)) return res.status(403).json({ mensaje: 'Sin permiso para esta empresa.' });
+  const mapa = req.mapaPermisos || {};
+  if (!req.esAdmin && !puede(mapa, empresa.id)) {
+    return res.status(403).json({ mensaje: 'Sin permiso para esta empresa.' });
   }
 
   const cuentas = Array.isArray(value.cuentas)
     ? value.cuentas
-    : value.cuentas.split(',').map(s => s.trim()).filter(Boolean);
+    : value.cuentas.split(',').map((s) => s.trim()).filter(Boolean);
 
   try {
     const data = await obtenerSaldosPorCuentas(empresa.id, value.anio, cuentas);
@@ -76,35 +59,20 @@ router.get('/', async (req, res) => {
 });
 
 router.get('/anios', async (req, res) => {
-  // auth mínima igual que presupuestos.js
-  const u = normalizar(req.headers['x-usuario-actual']);
-  if (!u) return res.status(401).json({ mensaje: 'Usuario no válido.' });
-
-  const usr = db.prepare(`SELECT id, usuario, es_admin_global FROM usuarios WHERE usuario=?`).get(u);
-  if (!usr) return res.status(401).json({ mensaje: 'Usuario no válido.' });
-
-  const esAdmin = usr.usuario === 'ICONET' || !!usr.es_admin_global;
-
   const { value, error } = Joi.object({
     empresaId: Joi.string().required()
   }).validate(req.query, { abortEarly: false });
 
   if (error) {
-    return res.status(400).json({ mensaje:'Parámetros inválidos', detalles: error.details.map(d=>d.message) });
+    return res.status(400).json({ mensaje: 'Parámetros inválidos', detalles: error.details.map((d) => d.message) });
   }
 
   const empresa = obtenerEmpresaPorId(value.empresaId);
   if (!empresa) return res.status(404).json({ mensaje: 'Empresa no existe.' });
 
-  let mapa = {};
-  if (!esAdmin) {
-  const permisos = db.prepare(`
-    SELECT empresa_id, modulo, puede_leer, puede_cargar_guardar, puede_revisar, puede_aprobar
-    FROM permisos_modulo
-    WHERE usuario_id = ?
-  `).all(usr.id);
-    mapa = construirMapaPermisos(permisos);
-    if (!puede(mapa, empresa.id)) return res.status(403).json({ mensaje: 'Sin permiso para esta empresa.' });
+  const mapa = req.mapaPermisos || {};
+  if (!req.esAdmin && !puede(mapa, empresa.id)) {
+    return res.status(403).json({ mensaje: 'Sin permiso para esta empresa.' });
   }
 
   try {
@@ -117,15 +85,6 @@ router.get('/anios', async (req, res) => {
 });
 
 router.get('/cuentas', async (req, res) => {
-  // auth mínima igual que presupuestos.js
-  const u = normalizar(req.headers['x-usuario-actual']);
-  if (!u) return res.status(401).json({ mensaje: 'Usuario no válido.' });
-
-  const usr = db.prepare(`SELECT id, usuario, es_admin_global FROM usuarios WHERE usuario=?`).get(u);
-  if (!usr) return res.status(401).json({ mensaje: 'Usuario no válido.' });
-
-  const esAdmin = usr.usuario === 'ICONET' || !!usr.es_admin_global;
-
   const { value, error } = Joi.object({
     empresaId: Joi.string().required(),
     anio: Joi.number().integer().min(2000).max(2100).required(),
@@ -136,21 +95,15 @@ router.get('/cuentas', async (req, res) => {
   }).validate(req.query, { abortEarly: false, allowUnknown: true });
 
   if (error) {
-    return res.status(400).json({ mensaje:'Parámetros inválidos', detalles: error.details.map(d=>d.message) });
+    return res.status(400).json({ mensaje: 'Parámetros inválidos', detalles: error.details.map((d) => d.message) });
   }
 
   const empresa = obtenerEmpresaPorId(value.empresaId);
   if (!empresa) return res.status(404).json({ mensaje: 'Empresa no existe.' });
 
-  let mapa = {};
-  if (!esAdmin) {
-    const permisos = db.prepare(`
-      SELECT empresa_id, modulo, puede_leer, puede_cargar_guardar, puede_revisar, puede_aprobar
-      FROM permisos_modulo
-      WHERE usuario_id = ?
-    `).all(usr.id);
-    mapa = construirMapaPermisos(permisos);
-    if (!puede(mapa, empresa.id)) return res.status(403).json({ mensaje: 'Sin permiso para esta empresa.' });
+  const mapa = req.mapaPermisos || {};
+  if (!req.esAdmin && !puede(mapa, empresa.id)) {
+    return res.status(403).json({ mensaje: 'Sin permiso para esta empresa.' });
   }
 
   const cuentas = Array.isArray(value.cuentas)
@@ -175,13 +128,6 @@ const esquemaCatalogo = Joi.object({
 });
 
 router.get('/catalogo', async (req, res) => {
-  const usuario = normalizar(req.headers['x-usuario-actual']);
-  if (!usuario) return res.status(401).json({ mensaje: 'Usuario no válido.' });
-
-  const registro = db.prepare('SELECT id, usuario, es_admin_global FROM usuarios WHERE usuario=?').get(usuario);
-  if (!registro) return res.status(401).json({ mensaje: 'Usuario no válido.' });
-
-  const esAdmin = registro.usuario === 'ICONET' || !!registro.es_admin_global;
   const { value, error } = esquemaCatalogo.validate({ ...req.query, empresaId: req.query.empresaId || req.headers['x-empresa-activa'] }, {
     abortEarly: false,
     allowUnknown: true
@@ -194,15 +140,9 @@ router.get('/catalogo', async (req, res) => {
   const empresa = obtenerEmpresaPorId(value.empresaId);
   if (!empresa) return res.status(404).json({ mensaje: 'Empresa no existe.' });
 
-  let mapa = {};
-  if (!esAdmin) {
-    const permisos = db.prepare(`
-      SELECT empresa_id, modulo, puede_leer, puede_cargar_guardar, puede_revisar, puede_aprobar
-      FROM permisos_modulo
-      WHERE usuario_id = ?
-    `).all(registro.id);
-    mapa = construirMapaPermisos(permisos);
-    if (!puede(mapa, empresa.id)) return res.status(403).json({ mensaje: 'Sin permiso para esta empresa.' });
+  const mapa = req.mapaPermisos || {};
+  if (!req.esAdmin && !puede(mapa, empresa.id)) {
+    return res.status(403).json({ mensaje: 'Sin permiso para esta empresa.' });
   }
 
   try {

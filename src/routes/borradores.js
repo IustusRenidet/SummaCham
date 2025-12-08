@@ -1,8 +1,7 @@
 const express = require('express');
 const Joi = require('joi');
-const { db } = require('../db/sqlite');
 const { obtenerEmpresaPorId } = require('../config/empresas');
-const { MODULOS, construirMapaPermisos } = require('../services/permisosService');
+const { MODULOS } = require('../services/permisosService');
 const {
   guardarBorrador,
   obtenerBorrador,
@@ -18,10 +17,9 @@ const {
   ESTADOS
 } = require('../services/borradoresService');
 const { notificarWorkflowPresupuesto } = require('../services/notificacionesService');
+const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
-
-const normalizarUsuario = (valor) => (valor || '').toString().trim().toUpperCase();
 
 const normalizarTexto = (valor) => {
   if (!valor) return '';
@@ -32,34 +30,7 @@ const normalizarTexto = (valor) => {
   return base;
 };
 
-const cargarUsuarioActual = (req, res, next) => {
-  const encabezado = normalizarUsuario(req.headers['x-usuario-actual']);
-  if (!encabezado) {
-    return res.status(401).json({ mensaje: 'No fue posible validar al usuario actual.' });
-  }
-  const registro = db.prepare(`
-    SELECT id, usuario, es_admin_global, nombres, apellido_primero, apellido_segundo, apellidos
-    FROM usuarios
-    WHERE usuario = ?
-  `).get(encabezado);
-  if (!registro) {
-    return res.status(401).json({ mensaje: 'No fue posible validar al usuario actual.' });
-  }
-  req.usuarioActual = registro;
-  const esIconet = registro.usuario === 'ICONET';
-  req.esAdmin = esIconet || Boolean(registro.es_admin_global);
-  if (!req.esAdmin) {
-    const permisos = db.prepare(`
-      SELECT empresa_id, modulo, puede_leer, puede_cargar_guardar, puede_revisar, puede_aprobar
-      FROM permisos_modulo
-      WHERE usuario_id = ?
-    `).all(registro.id);
-    req.mapaPermisos = construirMapaPermisos(permisos);
-  } else {
-    req.mapaPermisos = {};
-  }
-  next();
-};
+router.use(requireAuth);
 
 const obtenerModuloCanonico = (valor) => {
   const buscado = normalizarTexto(valor);
@@ -173,8 +144,6 @@ const puedeVerBorrador = (req, borrador) => {
     return tienePermisoRol(permisos, rol);
   });
 };
-
-router.use(cargarUsuarioActual);
 
 router.get('/listar', (req, res) => {
   const merged = {

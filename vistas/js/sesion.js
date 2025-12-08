@@ -39,6 +39,8 @@
     const empresaActiva = normalizarEmpresa(valor.empresaActiva) || empresas[0] || null;
     sesion.empresasDisponibles = empresas;
     sesion.empresaActiva = empresaActiva;
+    sesion.tokenAcceso = valor.tokenAcceso || valor.accessToken || valor.token || null;
+    sesion.tokenRefresco = valor.tokenRefresco || valor.refreshToken || null;
     return sesion;
   };
 
@@ -88,6 +90,8 @@
     }
     const sesionAnterior = obtener();
     const datos = prepararSesion(valor);
+    datos.tokenAcceso = valor.tokenAcceso || valor.accessToken || valor.token || sesionAnterior?.tokenAcceso || null;
+    datos.tokenRefresco = valor.tokenRefresco || valor.refreshToken || sesionAnterior?.tokenRefresco || null;
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(datos));
     const anteriorId = sesionAnterior?.empresaActiva?.id || null;
     const nuevaId = datos?.empresaActiva?.id || null;
@@ -121,7 +125,8 @@
 
   const requerirSesion = ({ requireAdmin = false, redirectTo = REDIRECCION_POR_DEFECTO } = {}) => {
     const sesion = obtener();
-    if (!sesion) {
+    if (!sesion || !sesion.tokenAcceso) {
+      limpiar();
       window.location.href = redirectTo;
       return null;
     }
@@ -173,9 +178,11 @@
       return {};
     }
 
-    const headers = {
-      'X-Usuario-Actual': normalizarUsuario(sesion.usuario.usuario)
-    };
+    const headers = {};
+
+    if (sesion.tokenAcceso) {
+      headers.Authorization = `Bearer ${sesion.tokenAcceso}`;
+    }
 
     const empresaActiva = obtenerEmpresaActiva(sesion);
     if (empresaActiva?.id) {
@@ -225,6 +232,8 @@
     establecerEmpresaActiva,
     puedeCambiarEmpresa,
     EVENTO_EMPRESA,
+    obtenerTokenAcceso: () => obtener()?.tokenAcceso || null,
+    obtenerTokenRefresco: () => obtener()?.tokenRefresco || null,
     obtenerPermisosModulo,
     tienePermisoModulo
   };

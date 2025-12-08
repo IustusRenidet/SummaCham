@@ -1,8 +1,6 @@
 const express = require('express');
 const Joi = require('joi');
-const { db } = require('../db/sqlite');
 const { obtenerEmpresaPorId } = require('../config/empresas');
-const { construirMapaPermisos } = require('../services/permisosService');
 const {
   MESES,
   obtenerAniosDisponibles,
@@ -10,65 +8,29 @@ const {
   obtenerCuentasDisponibles,
   obtenerMovimientosPorCuentas
 } = require('../services/comitesService');
+const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
-
-const normalizar = (v) => (v || '').toString().trim().toUpperCase();
 
 const puede = (mapa, empresaId) => {
   const registro = mapa[empresaId];
   return registro && Object.values(registro).some((a) => a['Cargar y guardar'] || a.Revisar || a.Aprobar);
 };
 
-function autenticar(req) {
-  const usuarioHeader = normalizar(req.headers['x-usuario-actual']);
-  if (!usuarioHeader) {
-    const err = new Error('Usuario no válido.');
-    err.status = 401;
-    throw err;
-  }
-
-  const usr = db.prepare(`SELECT id, usuario, es_admin_global FROM usuarios WHERE usuario=?`).get(usuarioHeader);
-  if (!usr) {
-    const err = new Error('Usuario no válido.');
-    err.status = 401;
-    throw err;
-  }
-
-  const esAdmin = usr.usuario === 'ICONET' || !!usr.es_admin_global;
-  let mapa = {};
-  if (!esAdmin) {
-    const permisos = db.prepare(`
-      SELECT empresa_id, modulo, puede_cargar_guardar, puede_revisar, puede_aprobar
-      FROM permisos_modulo
-      WHERE usuario_id = ?
-    `).all(usr.id);
-    mapa = construirMapaPermisos(permisos);
-  }
-
-  return { esAdmin, mapa };
-}
-
-function obtenerEmpresaSegura(empresaId) {
+const asegurarPermiso = (req, empresaId) => {
   const empresa = obtenerEmpresaPorId(empresaId);
   if (!empresa) {
     const err = new Error('Empresa no existe.');
     err.status = 404;
     throw err;
   }
-  return empresa;
-}
-
-function asegurarPermiso(req, empresaId) {
-  const { esAdmin, mapa } = autenticar(req);
-  const empresa = obtenerEmpresaSegura(empresaId);
-  if (!esAdmin && !puede(mapa, empresa.id)) {
+  if (!req.esAdmin && !puede(req.mapaPermisos || {}, empresa.id)) {
     const err = new Error('Sin permiso para esta empresa.');
     err.status = 403;
     throw err;
   }
   return empresa;
-}
+};
 
 const schemaEmpresa = Joi.object({
   empresaId: Joi.string().required()
@@ -87,6 +49,8 @@ const schemaMovimientos = Joi.object({
     Joi.string().trim()
   ).required()
 });
+
+router.use(requireAuth);
 
 router.get('/anios', async (req, res) => {
   try {

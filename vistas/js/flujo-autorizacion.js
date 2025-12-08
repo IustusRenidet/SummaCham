@@ -1,11 +1,30 @@
 (() => {
   const origin = window.location.protocol === 'file:' ? 'http://localhost:3000' : window.location.origin;
   const API_BASE = `${origin}/api`;
-  const FORMATTER_NUMEROS = new Intl.NumberFormat('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const EVENTO_CONTEXTO = 'planeacion:contexto-actualizado';
   const EVENTO_EDICION = 'modulo-planeacion:presupuesto-editado';
   const STYLE_ID = 'flujo-autorizacion-style';
-  const normalizarCuentaClave = (valor = '') => valor ? valor.toString().replace(/[^0-9]/g, '') : '';
+  const FORMATTER_NUMEROS = new Intl.NumberFormat('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  const ESTADOS = {
+    EDITANDO: 'EDITANDO',
+    PENDIENTE: 'PENDIENTE',
+    REVISADO: 'REVISADO',
+    RECHAZADO: 'RECHAZADO',
+    APROBADO: 'APROBADO',
+    GUARDADO: 'GUARDADO'
+  };
+
+  const ETIQUETAS_ESTADO = {
+    EDITANDO: 'En edición',
+    PENDIENTE: 'Pendiente de revisión',
+    REVISADO: 'Revisado',
+    RECHAZADO: 'Rechazado',
+    APROBADO: 'Aprobado',
+    GUARDADO: 'Guardado en COI',
+    SIN_CARGAR: 'Sin cargar'
+  };
+
   const YEAR_SELECTOR_IDS = [
     'selectAnio',
     'summaryYearSelect',
@@ -23,15 +42,6 @@
     'ticYearSelect',
     'vpeYearSelect'
   ];
-  
-  const ESTADOS = {
-    EDITANDO: 'EDITANDO',
-    PENDIENTE: 'PENDIENTE',
-    REVISADO: 'REVISADO',
-    RECHAZADO: 'RECHAZADO',
-    APROBADO: 'APROBADO',
-    GUARDADO: 'GUARDADO'
-  };
 
   const HISTORIAL_ACCIONES = {
     'guardar-borrador': 'Guardó el borrador',
@@ -44,31 +54,8 @@
     'guardar-coi': 'Guardó en COI'
   };
 
-  const ESTADOS_ETIQUETAS = {
-    EDITANDO: 'En edición',
-    PENDIENTE: 'Pendiente de revisión',
-    REVISADO: 'Revisado',
-    RECHAZADO: 'Rechazado',
-    APROBADO: 'Aprobado',
-    GUARDADO: 'Guardado en COI'
-  };
-  const DRAFTS_DRAWER_ID = 'workflowDraftsDrawer';
-  let draftsDrawerEl = null;
-  let draftsDrawerBody = null;
-  let draftsDrawerStatus = null;
-  const formatDateTime = (valor) => {
-    if (!valor) return '—';
-    const fecha = new Date(valor);
-    if (Number.isNaN(fecha.getTime())) {
-      return valor;
-    }
-    return fecha.toLocaleString('es-MX');
-  };
-
   const colocarEstilo = () => {
-    if (document.getElementById(STYLE_ID)) {
-      return;
-    }
+    if (document.getElementById(STYLE_ID)) return;
     const style = document.createElement('style');
     style.id = STYLE_ID;
     style.textContent = `
@@ -98,59 +85,7 @@
         padding: 1rem;
         margin-bottom: 1rem;
       }
-      .comentarios-panel {
-        margin-top: 1rem;
-      }
-      .cuenta-suggestion {
-        cursor: pointer;
-        padding: 0.5rem;
-        border-bottom: 1px solid #eee;
-      }
-      .cuenta-suggestion:hover {
-        background-color: #f8f9fa;
-      }
-      .drafts-drawer {
-        width: min(480px, 90vw);
-      }
-      .drafts-drawer .drafts-table th {
-        font-size: 0.75rem;
-        letter-spacing: 0.05em;
-        text-transform: uppercase;
-        background: #f4f6fa;
-      }
-      .drafts-drawer .drafts-table td {
-        font-size: 0.85rem;
-        vertical-align: middle;
-      }
-      .drafts-drawer .drafts-tabs .btn {
-        flex: 1;
-        font-weight: 600;
-      }
-      .drafts-drawer .drafts-view {
-        min-height: 260px;
-      }
-      .drafts-history-filters label,
-      .workflow-history-panel label {
-        font-size: 0.72rem;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-      }
-      .drafts-history-filters input,
-      .drafts-history-filters select,
-      .workflow-history-panel input,
-      .workflow-history-panel select {
-        font-size: 0.9rem;
-      }
-      .workflow-history-panel {
-        border: 1px solid rgba(47,84,150,0.1);
-        border-radius: 12px;
-        padding: 1rem;
-        background: #fff;
-      }
-      .workflow-history-table td,
-      .workflow-history-table th {
-        font-size: 0.85rem;
-      }
+      .workflow-drawer .workflow-guide-anchor { min-height: 12px; }
       .toast-global {
         position: fixed !important;
         inset: 1.25rem 1.25rem auto auto;
@@ -161,10 +96,19 @@
     document.head.appendChild(style);
   };
 
+  const formatDateTime = (valor) => {
+    if (!valor) return '-';
+    const fecha = new Date(valor);
+    if (Number.isNaN(fecha.getTime())) return valor;
+    return fecha.toLocaleString('es-MX');
+  };
+
+  const normalizarCuentaClave = (valor = '') => (valor ? valor.toString().replace(/[^0-9]/g, '') : '');
+
   const ensureDraftsDrawer = () => {
-    if (draftsDrawerEl) {
-      return draftsDrawerEl;
-    }
+    const DRAFTS_DRAWER_ID = 'workflowDraftsDrawer';
+    const existing = document.getElementById(DRAFTS_DRAWER_ID);
+    if (existing) return existing;
     const drawer = document.createElement('div');
     drawer.className = 'offcanvas offcanvas-end drafts-drawer';
     drawer.tabIndex = -1;
@@ -205,7 +149,7 @@
         </div>
         <div class="drafts-view d-none" data-drafts-view="history">
           <div id="draftHistoryStatus" class="alert alert-info">
-            Define filtros para consultar el historial  del flujo.
+            Define filtros para consultar el historial del flujo.
           </div>
           <form class="row g-2 drafts-history-filters mb-3" id="draftHistoryFilters">
             <div class="col-12">
@@ -261,112 +205,106 @@
       </div>
     `;
     document.body.appendChild(drawer);
-    draftsDrawerEl = drawer;
-    draftsDrawerBody = drawer.querySelector('#draftsCenterBody');
-    draftsDrawerStatus = drawer.querySelector('#draftsCenterStatus');
-    
-    // CRITICAL: Add tab switching event listeners immediately after creating the drawer
+
     const tabButtons = drawer.querySelectorAll('[data-drafts-tab]');
+    const views = drawer.querySelectorAll('[data-drafts-view]');
     tabButtons.forEach((btn) => {
       btn.addEventListener('click', () => {
-        const target = btn.dataset.draftsTab;
-        if (!target) return;
-        
-        // Update active button
         tabButtons.forEach((b) => b.classList.remove('active'));
         btn.classList.add('active');
-        
-        // Show/hide views
-        const views = drawer.querySelectorAll('[data-drafts-view]');
-        views.forEach((view) => {
-          if (view.dataset.draftsView === target) {
-            view.classList.remove('d-none');
-          } else {
-            view.classList.add('d-none');
-          }
-        });
+        const target = btn.dataset.draftsTab;
+        views.forEach((v) => v.classList.toggle('d-none', v.dataset.draftsView !== target));
       });
     });
-    
-    return draftsDrawerEl;
+
+    return drawer;
   };
 
   const ensureWorkflowDrawer = () => {
-    const drawer = document.getElementById('workflowDrawer');
-    if (!drawer || drawer.dataset.workflowEnhanced === '1') {
-      return drawer || null;
-    }
-    const body = drawer.querySelector('.offcanvas-body');
-    if (!body) return drawer;
-    body.innerHTML = `
-      <div class="workflow-history-panel mb-3">
-        <div class="d-flex justify-content-between align-items-start mb-3">
-          <div>
-            <p class="text-muted small mb-1">Estado actual</p>
-            <div id="workflowCurrentState" class="h6 mb-1">Sin contexto</div>
-            <div id="workflowCurrentMeta" class="text-muted small"></div>
-          </div>
-          <span class="badge bg-secondary" id="workflowCurrentBadge">-</span>
-        </div>
-        <div id="workflowHistoryStatus" class="alert alert-info">
-          Selecciona empresa, módulo y ejercicio para consultar el historial.
-        </div>
-        <form class="row g-2 workflow-history-filters mb-3" id="workflowHistoryFilters">
-          <div class="col-12">
-            <label for="workflowHistorySearch" class="form-label">Buscar</label>
-            <input type="search" id="workflowHistorySearch" class="form-control" placeholder="Acción, usuario o comentario">
-          </div>
-          <div class="col-sm-6">
-            <label for="workflowHistoryState" class="form-label">Estado</label>
-            <select id="workflowHistoryState" class="form-select">
-              <option value="">Todos</option>
-            </select>
-          </div>
-          <div class="col-sm-6">
-            <label for="workflowHistoryAction" class="form-label">Acción</label>
-            <select id="workflowHistoryAction" class="form-select">
-              <option value="">Todas</option>
-            </select>
-          </div>
-          <div class="col-sm-6">
-            <label for="workflowHistoryUser" class="form-label">Usuario</label>
-            <select id="workflowHistoryUser" class="form-select">
-              <option value="">Todos</option>
-            </select>
-          </div>
-          <div class="col-sm-3">
-            <label for="workflowHistoryFrom" class="form-label">Desde</label>
-            <input type="date" id="workflowHistoryFrom" class="form-control">
-          </div>
-          <div class="col-sm-3">
-            <label for="workflowHistoryTo" class="form-label">Hasta</label>
-            <input type="date" id="workflowHistoryTo" class="form-control">
-          </div>
-        </form>
-        <div class="table-responsive">
-          <table class="table table-sm workflow-history-table">
-            <thead>
-              <tr>
-                <th>Acción</th>
-                <th>Estado</th>
-                <th>Usuario</th>
-                <th>Fecha</th>
-                <th>Detalles</th>
-              </tr>
-            </thead>
-            <tbody id="workflowHistoryTableBody">
-              <tr>
-                <td colspan="5" class="text-center text-muted">Sin historial</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+    const existing = document.getElementById('workflowDrawer');
+    if (existing) return existing;
+    const drawer = document.createElement('div');
+    drawer.className = 'offcanvas offcanvas-end workflow-drawer';
+    drawer.tabIndex = -1;
+    drawer.id = 'workflowDrawer';
+    drawer.setAttribute('aria-labelledby', 'workflowDrawerLabel');
+    drawer.innerHTML = `
+      <div class="offcanvas-header">
+        <h5 class="offcanvas-title" id="workflowDrawerLabel">Historial del flujo</h5>
+        <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
       </div>
-      <div class="workflow-guide-anchor mt-3"></div>
+      <div class="offcanvas-body">
+        <div class="workflow-info-panel mb-3">
+          <div class="d-flex justify-content-between align-items-start mb-3">
+            <div>
+              <p class="text-muted small mb-1">Estado actual</p>
+              <div id="workflowCurrentState" class="h6 mb-1">Sin contexto</div>
+              <div id="workflowCurrentMeta" class="text-muted small"></div>
+            </div>
+            <span class="badge bg-secondary" id="workflowCurrentBadge">-</span>
+          </div>
+          <div id="workflowHistoryStatus" class="alert alert-info">
+            Selecciona empresa, módulo y ejercicio para consultar el historial.
+          </div>
+          <form class="row g-2 workflow-history-filters mb-3" id="workflowHistoryFilters">
+            <div class="col-12">
+              <label for="workflowHistorySearch" class="form-label">Buscar</label>
+              <input type="search" id="workflowHistorySearch" class="form-control" placeholder="Acción, usuario o comentario">
+            </div>
+            <div class="col-sm-6">
+              <label for="workflowHistoryState" class="form-label">Estado</label>
+              <select id="workflowHistoryState" class="form-select">
+                <option value="">Todos</option>
+              </select>
+            </div>
+            <div class="col-sm-6">
+              <label for="workflowHistoryAction" class="form-label">Acción</label>
+              <select id="workflowHistoryAction" class="form-select">
+                <option value="">Todas</option>
+              </select>
+            </div>
+            <div class="col-sm-6">
+              <label for="workflowHistoryUser" class="form-label">Usuario</label>
+              <select id="workflowHistoryUser" class="form-select">
+                <option value="">Todos</option>
+              </select>
+            </div>
+            <div class="col-sm-3">
+              <label for="workflowHistoryFrom" class="form-label">Desde</label>
+              <input type="date" id="workflowHistoryFrom" class="form-control">
+            </div>
+            <div class="col-sm-3">
+              <label for="workflowHistoryTo" class="form-label">Hasta</label>
+              <input type="date" id="workflowHistoryTo" class="form-control">
+            </div>
+          </form>
+          <div class="table-responsive">
+            <table class="table table-sm workflow-history-table">
+              <thead>
+                <tr>
+                  <th>Acción</th>
+                  <th>Estado</th>
+                  <th>Usuario</th>
+                  <th>Fecha</th>
+                  <th>Detalles</th>
+                </tr>
+              </thead>
+              <tbody id="workflowHistoryTableBody">
+                <tr>
+                  <td colspan="5" class="text-center text-muted">Sin historial</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="workflow-guide-anchor mt-3"></div>
+      </div>
     `;
-    drawer.dataset.workflowEnhanced = '1';
+    document.body.appendChild(drawer);
     return drawer;
   };
+
+  const headersAutenticacion = () => (typeof Sesion?.headersAutenticacion === 'function' ? Sesion.headersAutenticacion() : {});
 
   class FlujoAutorizacion {
     constructor(options = {}) {
@@ -374,142 +312,149 @@
       this.options = options;
       this.tablaId = options.tablaId || document.body.dataset.tabla || 'tablaComparacion';
       this.moduloDefault = options.modulo || document.body.dataset.modulo || '';
-      this.contexto = {
-        empresaId: null,
-        anio: null,
-        modulo: this.moduloDefault
+      this.state = {
+        contexto: { empresaId: null, anio: null, modulo: this.moduloDefault },
+        borrador: null,
+        permisos: { cargar: false, revisar: false, aprobar: false, leer: true, admin: false },
+        usuario: null,
+        editMode: false,
+        hayCambios: false
       };
-      this.permisos = {
-        guardar: true,
-        enviar: true,
-        verBorrador: true,
-        autorizar: true,
-        rechazar: true,
-        revision: true,
-        aprobar: true
-      };
-      this.borradorActual = null;
-      this.hayCambios = false;
-      this.modoEdicion = false;
-      this.cambiosEdicion = {};
-      this.esAdminGlobal = Boolean(window.Sesion?.esAdminGlobal?.());
-      this.usuarioActual = window.Sesion?.obtener?.()?.usuario || {};
       this.tableElement = null;
       this.toastInstance = null;
       this.toastBody = null;
       this.buttons = {};
+      this._contextRetry = 0;
       this.callbacks = {
         onCancelEdit: typeof options.onCancelEdit === 'function' ? options.onCancelEdit : null,
         obtenerCambios: typeof options.obtenerCambios === 'function' ? options.obtenerCambios : null,
         obtenerHeaders: typeof options.obtenerHeaders === 'function' ? options.obtenerHeaders : null
       };
       this.buttonIds = options.buttonIds || {
-      guardar: 'btnGuardarBorrador',
-      enviar: 'btnEnviarCambios',
-      cancelar: 'btnCancelarEdicion',
-      verBorrador: 'btnVerBorrador',
-      descartar: 'btnDescartarBorrador',
-      autorizar: 'btnAutorizar',
-      rechazar: 'btnRechazar',
-      marcarRevisado: 'btnMarcarRevisado',
-      guardarCOI: 'saveBudgetBtn'
-    };
-      this._conectarEventos();
-      window.addEventListener(EVENTO_EDICION, (evento) => {
-        this.hayCambios = Boolean(evento?.detail?.hayCambios);
-      });
+        guardar: 'btnGuardarBorrador',
+        enviar: 'btnEnviarCambios',
+        cancelar: 'btnCancelarEdicion',
+        verBorrador: 'btnVerBorrador',
+        descartar: 'btnDescartarBorrador',
+        autorizar: 'btnAutorizar',
+        rechazar: 'btnRechazar',
+        marcarRevisado: 'btnMarcarRevisado',
+        guardarCOI: 'saveBudgetBtn'
+      };
+      this._bindGlobalEvents();
     }
 
     init() {
-      this.tableElement = document.getElementById(this.tablaId)
-        || document.getElementById('tablaPresupuestos')
-        || document.querySelector('#tablaComparacion')
-        || document.querySelector('#mainTable')
-        || document.querySelector('table');
-      this._resolverConfiguracionVista();
-      this._definirBotones();
-      this._prepararToast();
-      this._actualizarEstadoServidor();
+      this._hydrateContext();
+      this._resolveTable();
+      this._setupButtons();
+      this._prepareToast();
+      this._refreshEstado();
       return this;
     }
 
-    _definirBotones() {
+    _hydrateContext() {
+      const sesion = typeof Sesion?.obtener === 'function' ? Sesion.obtener() : null;
+      this.state.usuario = sesion?.usuario || null;
+      this.state.permisos = this._resolverPermisos(sesion);
+      if (!this.state.contexto.empresaId && sesion?.empresaActiva?.id) {
+        this.state.contexto.empresaId = sesion.empresaActiva.id;
+      }
+      if (!this.state.contexto.modulo) {
+        this.state.contexto.modulo = document.body.dataset.modulo || this.moduloDefault;
+      }
+      if (!this.state.contexto.anio || Number(this.state.contexto.anio) < 2000) {
+        this.state.contexto.anio = this._resolverAnio();
+      }
+    }
+
+    _resolverPermisos(sesion) {
+      const base = { cargar: false, revisar: false, aprobar: false, leer: true, admin: false };
+      if (!sesion?.usuario) return base;
+      const esAdminGlobal = Boolean(sesion.usuario.esAdminGlobal) || (sesion.usuario.usuario || '').toUpperCase() === 'ICONET';
+      if (esAdminGlobal) {
+        return { cargar: true, revisar: true, aprobar: true, leer: true, admin: true };
+      }
+      const empresa = sesion?.empresaActiva?.id || null;
+      const modulo = this.state.contexto.modulo || this.moduloDefault;
+      const permisosModulo = typeof Sesion?.obtenerPermisosModulo === 'function'
+        ? Sesion.obtenerPermisosModulo(modulo, empresa, sesion)
+        : null;
+      return {
+        cargar: Boolean(permisosModulo?.['Cargar y guardar']),
+        revisar: Boolean(permisosModulo?.Revisar),
+        aprobar: Boolean(permisosModulo?.Aprobar),
+        leer: Boolean(permisosModulo?.Lectura ?? true),
+        admin: false
+      };
+    }
+
+    _resolverAnio() {
+      const candidatos = YEAR_SELECTOR_IDS.map((id) => document.getElementById(id))
+        .filter(Boolean)
+        .map((el) => Number(el.value))
+        .filter((n) => Number.isFinite(n) && n >= 2000);
+      if (candidatos.length) return candidatos[0];
+      return new Date().getFullYear();
+    }
+
+    _resolveTable() {
+      this.tableElement =
+        document.getElementById(this.tablaId) ||
+        document.getElementById('tablaPresupuestos') ||
+        document.querySelector('#tablaComparacion') ||
+        document.querySelector('#mainTable') ||
+        document.querySelector('table');
+    }
+
+    _setupButtons() {
       Object.entries(this.buttonIds).forEach(([key, id]) => {
         if (!id) return;
-        this.buttons[key] = document.getElementById(id);
-        if (this.buttons[key]) {
-          this.buttons[key].classList.remove('disabled');
-          this.buttons[key].removeAttribute('disabled');
-          this.buttons[key].style.pointerEvents = 'auto';
-        }
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.classList.remove('disabled');
+        el.removeAttribute('disabled');
+        el.style.pointerEvents = 'auto';
+        this.buttons[key] = el;
       });
 
-      if (this.buttons.guardar) {
-        this.buttons.guardar.addEventListener('click', () => this._handleGuardar());
-      }
+      this.buttons.guardar?.addEventListener('click', () => this._handleGuardar());
       if (this.buttons.enviar) {
-        const spanEnviar = this.buttons.enviar.querySelector('span');
-        if (spanEnviar) {
-          spanEnviar.textContent = 'Enviar presupuesto';
-        }
+        const span = this.buttons.enviar.querySelector('span');
+        if (span) span.textContent = 'Enviar presupuesto';
         this.buttons.enviar.addEventListener('click', () => this._handleEnviar());
       }
-      if (this.buttons.cancelar) {
-        this.buttons.cancelar.addEventListener('click', () => this._handleCancelar());
-      }
-      if (this.buttons.verBorrador) {
-        this.buttons.verBorrador.addEventListener('click', () => this._mostrarCentroBorradores());
-        this.buttons.verBorrador.classList.remove('d-none');
-      }
-      this._asegurarBotonDescartar();
-      if (this.buttons.descartar) {
-        this.buttons.descartar.addEventListener('click', () => this._descartarBorrador());
-      }
-      if (this.buttons.autorizar) {
-        this.buttons.autorizar.addEventListener('click', () => this._handleAutorizar());
-      }
-      if (this.buttons.rechazar) {
-        this.buttons.rechazar.addEventListener('click', () => this._handleRechazar());
-      }
-      if (this.buttons.marcarRevisado) {
-        this.buttons.marcarRevisado.addEventListener('click', () => this._handleMarcarRevisado());
-      }
+      this.buttons.cancelar?.addEventListener('click', () => this._handleCancelar());
+      this.buttons.verBorrador?.addEventListener('click', () => this._mostrarCentroBorradores());
+      this._ensureBotonDescartar();
+      this.buttons.descartar?.addEventListener('click', () => this._descartarBorrador());
+      this.buttons.autorizar?.addEventListener('click', () => this._handleAutorizar());
+      this.buttons.rechazar?.addEventListener('click', () => this._handleRechazar());
+      this.buttons.marcarRevisado?.addEventListener('click', () => this._handleMarcarRevisado());
       if (this.buttons.guardarCOI) {
-        // Cambiar texto del botón
         const span = this.buttons.guardarCOI.querySelector('span');
-        if (span) {
-          span.textContent = 'Guardar en COI';
-        }
+        if (span) span.textContent = 'Guardar en COI';
         this.buttons.guardarCOI.addEventListener('click', () => this._handleGuardarCOI());
       }
     }
 
-    _asegurarBotonDescartar() {
+    _ensureBotonDescartar() {
       if (this.buttons.descartar) {
-        // Mantener referencia pero no forzar visibilidad; se controla en _actualizarBotones
         this.buttons.descartar.classList.add('d-none');
-        this.buttons.descartar.style.pointerEvents = 'auto';
         return;
       }
       const contenedor = this.buttons.verBorrador?.parentElement;
       if (!contenedor) return;
-
       const boton = document.createElement('button');
       boton.type = 'button';
       boton.className = 'btn btn-chip btn-outline-danger d-none';
       boton.id = 'btnDescartarBorrador';
-      boton.innerHTML = `
-        <i class="bi bi-eraser"></i>
-        <span>Descartar borrador</span>
-      `;
-
+      boton.innerHTML = `<i class="bi bi-eraser"></i><span>Descartar borrador</span>`;
       contenedor.insertBefore(boton, this.buttons.verBorrador?.nextSibling || null);
       this.buttons.descartar = boton;
-      boton.addEventListener('click', () => this._descartarBorrador());
-      boton.style.pointerEvents = 'auto';
     }
 
-    _prepararToast() {
+    _prepareToast() {
       const toastElement = document.getElementById('actionToast');
       const toastBody = document.getElementById('actionToastBody');
       if (toastElement && toastBody && window.bootstrap?.Toast) {
@@ -521,127 +466,115 @@
           toastElement.classList.add('toast-global');
           document.body.appendChild(toastElement);
         }
-        this.toastInstance = window.bootstrap.Toast.getOrCreateInstance(toastElement, { delay: 3000 });
+        this.toastInstance = window.bootstrap.Toast.getOrCreateInstance(toastElement, { delay: 3200 });
         this.toastBody = toastBody;
       }
     }
 
-    _conectarEventos() {
-      window.addEventListener(EVENTO_CONTEXTO, (evento) => {
-        const detalle = evento?.detail || {};
-        this.contexto.empresaId = detalle.empresaId || this.contexto.empresaId;
-        this.contexto.anio = Number.isInteger(Number(detalle.anio)) ? Number(detalle.anio) : this.contexto.anio;
-        this.contexto.modulo = detalle.modulo ? detalle.modulo : this.contexto.modulo;
-        this._actualizarEstadoServidor();
+    _bindGlobalEvents() {
+      window.addEventListener(EVENTO_EDICION, (ev) => {
+        this.state.hayCambios = Boolean(ev?.detail?.hayCambios);
       });
-
+      window.addEventListener(EVENTO_CONTEXTO, (ev) => {
+        const d = ev?.detail || {};
+        this.state.contexto.empresaId = d.empresaId || this.state.contexto.empresaId;
+        this.state.contexto.anio = Number.isFinite(Number(d.anio)) ? Number(d.anio) : this.state.contexto.anio;
+        this.state.contexto.modulo = d.modulo || this.state.contexto.modulo;
+        this.state.permisos = this._resolverPermisos(typeof Sesion?.obtener === 'function' ? Sesion.obtener() : null);
+        this._refreshEstado();
+      });
       if (window.Sesion?.EVENTO_EMPRESA) {
-        window.addEventListener(window.Sesion.EVENTO_EMPRESA, (evento) => {
-          const empresa = evento?.detail?.empresa;
-          if (!empresa?.id) return;
-          this.contexto.empresaId = empresa.id;
-          this._actualizarEstadoServidor();
+        window.addEventListener(window.Sesion.EVENTO_EMPRESA, (ev) => {
+          const empresa = ev?.detail?.empresa;
+          if (empresa?.id) {
+            this.state.contexto.empresaId = empresa.id;
+            this.state.permisos = this._resolverPermisos(typeof Sesion?.obtener === 'function' ? Sesion.obtener() : null);
+            this._refreshEstado();
+          }
         });
       }
-
-      // Escucha cambios de los selectores de a¤o/empresa cuando el m¢dulo no emite el evento de contexto
-      this._suscribirSelectoresContexto();
+      YEAR_SELECTOR_IDS.map((id) => document.getElementById(id))
+        .filter(Boolean)
+        .forEach((sel) => {
+          if (sel.dataset.workflowBound === '1') return;
+          sel.dataset.workflowBound = '1';
+          sel.addEventListener('change', () => {
+            const nuevo = Number(sel.value);
+            if (Number.isFinite(nuevo) && nuevo >= 2000) {
+              this.state.contexto.anio = nuevo;
+              this._refreshEstado();
+            }
+          });
+        });
     }
 
-    _contextoCompleto() {
-      this._hidratarContextoInicial();
-      return this.contexto.empresaId && this.contexto.anio && this.contexto.modulo;
-    }
-
-    _puedeEditar(estado) {
-      const esCreador = this.borradorActual?.usuarioId === this.usuarioActual.id;
-      return estado === ESTADOS.EDITANDO || (estado === ESTADOS.RECHAZADO && esCreador);
-    }
-
-    async _actualizarEstadoServidor() {
+    async _refreshEstado() {
+      this._hydrateContext();
       if (!this._contextoCompleto()) {
-        this.borradorActual = null;
-        this._desactivarModoEdicion();
+        this.state.borrador = null;
+        this._exitEditMode(true);
         FlujoAutorizacion.limpiarBorrador(this.tableElement);
         this._notificarEstadoBorrador(null);
-        this._actualizarInfoPanel();
-        this._actualizarBotones();
+        this._renderInfo();
+        this._renderBotones();
         return;
       }
       try {
         const params = new URLSearchParams({
-          empresaId: this.contexto.empresaId,
-          anio: String(this.contexto.anio),
-          modulo: this.contexto.modulo
+          empresaId: this.state.contexto.empresaId,
+          anio: String(this.state.contexto.anio),
+          modulo: this.state.contexto.modulo
         });
-        const respuesta = await fetch(`${API_BASE}/borradores/estado?${params.toString()}`, {
+        const resp = await fetch(`${API_BASE}/borradores/estado?${params.toString()}`, {
           headers: this._construirHeaders()
         });
-        const datos = await respuesta.json().catch(() => ({}));
-        
-        if (!respuesta.ok) {
-          this.borradorActual = null;
-          this._desactivarModoEdicion();
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok) throw new Error(data.mensaje || 'No fue posible consultar el estado.');
+        this.state.borrador = data.borrador || null;
+        if (!this.state.borrador) {
+          this._exitEditMode(true);
           FlujoAutorizacion.limpiarBorrador(this.tableElement);
-          this._notificarEstadoBorrador(null);
-          this._actualizarInfoPanel();
-          this._actualizarBotones();
-          return;
+        } else {
+          this._sincronizarEdicion();
         }
-        
-        this.borradorActual = datos.borrador || null;
-        if (!this.borradorActual) {
-          this._desactivarModoEdicion();
-          FlujoAutorizacion.limpiarBorrador(this.tableElement);
-        }
-        this._notificarEstadoBorrador(this.borradorActual);
-        this._sincronizarModoEdicion();
-        this._actualizarInfoPanel();
-        this._actualizarBotones();
+        this._notificarEstadoBorrador(this.state.borrador);
+        this._renderInfo();
+        this._renderBotones();
       } catch (error) {
-        console.error('Error consultando el estado del borrador', error);
-        this.borradorActual = null;
-        this._desactivarModoEdicion();
+        console.error('Estado flujo', error);
+        this.state.borrador = null;
+        this._exitEditMode(true);
         FlujoAutorizacion.limpiarBorrador(this.tableElement);
         this._notificarEstadoBorrador(null);
-        this._actualizarInfoPanel();
-        this._actualizarBotones();
+        this._renderInfo();
+        this._renderBotones();
+        this._toast(error.message || 'No fue posible obtener el estado.', 'danger');
       }
     }
 
-    _sincronizarModoEdicion() {
-      const estado = this.borradorActual?.estado;
-      const esAutor = this.borradorActual?.usuarioId === this.usuarioActual.id;
-      if (estado === ESTADOS.EDITANDO && esAutor) {
-        this._activarModoEdicion(true);
-        return;
-      }
-      if (this.modoEdicion && estado !== ESTADOS.EDITANDO) {
-        this._desactivarModoEdicion();
+    _sincronizarEdicion() {
+      const estado = this.state.borrador?.estado;
+      const esAutor = this._esAutor();
+      if (estado === ESTADOS.EDITANDO && esAutor && this.state.permisos.cargar) {
+        this._enterEditMode(true);
+      } else if (this.state.editMode && estado !== ESTADOS.EDITANDO) {
+        this._exitEditMode();
       }
     }
 
-    _obtenerHeadersBase() {
-      if (typeof this.callbacks.obtenerHeaders === 'function') {
-        const personalizados = this.callbacks.obtenerHeaders() || {};
-        if (personalizados && typeof personalizados === 'object') {
-          return personalizados;
-        }
-      }
-      if (typeof Sesion?.headersAutenticacion === 'function') {
-        return Sesion.headersAutenticacion();
-      }
-      return {};
+    _contextoCompleto() {
+      const ctx = this.state.contexto;
+      return Boolean(ctx.empresaId && ctx.modulo && Number.isFinite(Number(ctx.anio)));
     }
 
     _construirHeaders() {
-      return {
-        'Content-Type': 'application/json',
-        ...this._obtenerHeadersBase()
-      };
+      const base = typeof this.callbacks.obtenerHeaders === 'function'
+        ? this.callbacks.obtenerHeaders() || {}
+        : headersAutenticacion();
+      return { 'Content-Type': 'application/json', ...base };
     }
 
-    _obtenerCambiosPendientes() {
+    _obtenerCambios() {
       let fuente = null;
       if (typeof this.callbacks.obtenerCambios === 'function') {
         fuente = this.callbacks.obtenerCambios();
@@ -649,441 +582,372 @@
         fuente = window.CuentasModulo.getCambios();
       }
       const presupuesto = Array.isArray(fuente?.presupuesto) ? fuente.presupuesto : [];
-      return {
-        ...(fuente || {}),
-        presupuesto
-      };
+      return { ...(fuente || {}), presupuesto };
     }
 
-    _cancelarCambiosLocales() {
-      if (typeof this.callbacks.onCancelEdit === 'function') {
-        this.callbacks.onCancelEdit();
-        return;
-      }
-      if (window.CuentasModulo?.cancelEdit) {
-        window.CuentasModulo.cancelEdit();
-      }
+    _esAutor() {
+      if (!this.state.usuario || !this.state.borrador) return false;
+      return String(this.state.usuario.id) === String(this.state.borrador.usuarioId);
     }
 
-    _permitido(accion) {
-      return Boolean(this.permisos?.[accion]);
+    _enterEditMode(silent = false) {
+      if (this.state.editMode) return;
+      this.state.editMode = true;
+      if (!silent) this.state.hayCambios = false;
+      this.tableElement?.classList.add('modo-edicion');
+      window.CuentasModulo?.setEditMode?.(true);
+      this._renderBotones();
     }
 
-    _hidratarContextoInicial() {
-      this._contextoRetry = this._contextoRetry || 0;
-      if (!this.contexto.empresaId && window.Sesion?.obtenerEmpresaActiva) {
-        const empresa = window.Sesion.obtenerEmpresaActiva();
-        if (empresa?.id) {
-          this.contexto.empresaId = empresa.id;
-        }
-      }
-      const selectoresAnio = YEAR_SELECTOR_IDS.map((id) => document.getElementById(id)).filter(Boolean);
-      if (!this.contexto.anio || Number(this.contexto.anio) < 2000) {
-        const candidatos = selectoresAnio
-          .map((el) => el?.value)
-          .map((valor) => {
-            const numero = Number(valor);
-            return Number.isFinite(numero) && numero >= 2000 ? numero : null;
-          })
-          .filter((valor) => valor != null);
-        if (candidatos.length) {
-          this.contexto.anio = candidatos[0];
-          this._contextoRetry = 0;
+    _exitEditMode(skipCancel = false) {
+      if (!this.state.editMode) return;
+      this.state.editMode = false;
+      this.state.hayCambios = false;
+      this.tableElement?.classList.remove('modo-edicion');
+      if (!skipCancel) {
+        if (typeof this.callbacks.onCancelEdit === 'function') {
+          this.callbacks.onCancelEdit();
         } else {
-          this.contexto.anio = new Date().getFullYear();
-          if (selectoresAnio.length && this._contextoRetry < 3) {
-            this._contextoRetry += 1;
-            setTimeout(() => {
-              this._hidratarContextoInicial();
-              this._actualizarEstadoServidor();
-            }, 500);
-          }
+          window.CuentasModulo?.cancelEdit?.();
         }
       }
-      if (!this.contexto.modulo) {
-        this.contexto.modulo = document.body?.dataset?.modulo || this.moduloDefault;
+      window.CuentasModulo?.setEditMode?.(false);
+      this._renderBotones();
+    }
+
+    _estadoSeguro() {
+      return this.state.borrador?.estado || 'SIN_CARGAR';
+    }
+
+    _puede({ accion, estadoOverride }) {
+      const estado = estadoOverride || this._estadoSeguro();
+      const esAutor = this._esAutor();
+      const p = this.state.permisos;
+      const ctxOk = this._contextoCompleto();
+      if (!ctxOk) return false;
+      switch (accion) {
+        case 'cargar':
+          return p.admin || p.cargar;
+        case 'editar':
+          return (p.admin || p.cargar) && (!estado || estado === ESTADOS.GUARDADO || (estado === ESTADOS.RECHAZADO && esAutor) || (estado === ESTADOS.EDITANDO && esAutor));
+        case 'guardarTemporal':
+          return (p.admin || p.cargar) && this.state.editMode;
+        case 'enviar':
+          return (p.admin || p.cargar) && this.state.editMode;
+        case 'revisar':
+          return (p.admin || p.revisar) && (estado === ESTADOS.PENDIENTE || estado === ESTADOS.REVISADO);
+        case 'autorizar':
+          return (p.admin || p.aprobar) && estado === ESTADOS.REVISADO;
+        case 'rechazar':
+          return (p.admin || p.revisar || p.aprobar) && [ESTADOS.PENDIENTE, ESTADOS.REVISADO, ESTADOS.APROBADO].includes(estado);
+        case 'guardarCoi':
+          return (p.admin || p.aprobar) && estado === ESTADOS.APROBADO;
+        case 'verBorradores':
+          return true;
+        case 'descartar':
+          return (p.admin || p.cargar) && Boolean(this.state.borrador);
+        default:
+          return false;
       }
     }
 
-  _resolverConfiguracionVista() {
-      const dataset = this.tableElement?.dataset || document.body.dataset || {};
-      const accionesTexto = dataset.flujoAcciones || dataset.operacionesAutorizacion || '';
-      const permisosActualizados = { ...this.permisos };
-
-      if (accionesTexto && accionesTexto.trim()) {
-        const lista = accionesTexto
-          .split(',')
-          .map((accion) => accion.trim().toLowerCase())
-          .filter(Boolean);
-
-        Object.keys(permisosActualizados).forEach((clave) => {
-          permisosActualizados[clave] = lista.includes(clave.toLowerCase());
-        });
+    _renderInfo() {
+      const badge = document.getElementById('workflowBadge');
+      const meta = document.getElementById('workflowMeta');
+      if (!badge) return;
+      const estado = this._estadoSeguro();
+      badge.textContent = ETIQUETAS_ESTADO[estado] || estado;
+      badge.dataset.estado = estado;
+      if (meta) {
+        const fecha = this.state.borrador?.fechaEnvio ? formatDateTime(this.state.borrador.fechaEnvio) : '';
+        const autor = this.state.borrador?.autorNombre || '';
+        meta.textContent = fecha ? `Actualizado: ${fecha}${autor ? ` · ${autor}` : ''}` : '';
       }
-
-    this.permisos = permisosActualizados;
-  }
-
-  _suscribirSelectoresContexto() {
-    const selectoresAnio = [
-      'selectAnio',
-      'summaryYearSelect',
-      'resumenYearSelect',
-      'presupuestosYearSelect',
-      'finanzasYearSelect',
-      'comitesYearSelect',
-      'comunicacionYearSelect',
-      'direccionYearSelect',
-      'eventosYearSelect',
-      'gtoscorporativosYearSelect',
-      'membresiaYearSelect',
-      'rhYearSelect',
-      'servmembresiaYearSelect',
-      'ticYearSelect',
-      'vpeYearSelect'
-    ]
-      .map((id) => document.getElementById(id))
-      .filter(Boolean);
-
-    selectoresAnio.forEach((sel) => {
-      if (sel.dataset.workflowBound === '1') return;
-      sel.dataset.workflowBound = '1';
-      sel.addEventListener('change', () => {
-        const nuevoAnio = Number(sel.value);
-        if (Number.isFinite(nuevoAnio) && nuevoAnio >= 2000) {
-          this.contexto.anio = nuevoAnio;
-          this._actualizarEstadoServidor();
-        }
-      });
-    });
-
-    const selectorEmpresaGlobal = window.parent?.document?.getElementById('companyFilter')
-      || document.getElementById('companyFilter');
-    if (selectorEmpresaGlobal && selectorEmpresaGlobal.dataset.workflowBound !== '1') {
-      selectorEmpresaGlobal.dataset.workflowBound = '1';
-      selectorEmpresaGlobal.addEventListener('change', () => {
-        const nuevaEmpresa = selectorEmpresaGlobal.value;
-        if (nuevaEmpresa) {
-          this.contexto.empresaId = nuevaEmpresa;
-          this._actualizarEstadoServidor();
-        }
-      });
-    }
-  }
-
-    _activarModoEdicion(silent = false) {
-      if (this.modoEdicion) return;
-      this.modoEdicion = true;
-      if (!silent) {
-        this.cambiosEdicion = {};
-      }
-      if (this.tableElement) {
-        this.tableElement.classList.add('modo-edicion');
-      }
-      if (window.CuentasModulo?.setEditMode) {
-        window.CuentasModulo.setEditMode(true);
-      }
-      this._actualizarBotones();
     }
 
-    _desactivarModoEdicion() {
-      if (!this.modoEdicion) return;
-      this.modoEdicion = false;
-      this.cambiosEdicion = {};
-      if (this.tableElement) {
-        this.tableElement.classList.remove('modo-edicion');
+    _renderBotones() {
+      const estado = this._estadoSeguro();
+      const tieneBorrador = Boolean(this.state.borrador);
+
+      if (this.buttons.guardar) {
+        const span = this.buttons.guardar.querySelector('span');
+        if (this.state.editMode) {
+          if (span) span.textContent = 'Guardar para más tarde';
+          this.buttons.guardar.classList.toggle('d-none', !this._puede({ accion: 'guardarTemporal' }));
+        } else {
+          if (span) span.textContent = 'Cargar presupuesto';
+          const visible = this._puede({ accion: 'editar', estadoOverride: estado }) || (!tieneBorrador && this._puede({ accion: 'cargar' }));
+          this.buttons.guardar.classList.toggle('d-none', !visible);
+        }
       }
-      this._cancelarCambiosLocales();
-      if (window.CuentasModulo?.setEditMode) {
-        window.CuentasModulo.setEditMode(false);
+
+      if (this.buttons.enviar) {
+        this.buttons.enviar.classList.toggle('d-none', !this._puede({ accion: 'enviar' }));
       }
-      this._actualizarBotones();
+      if (this.buttons.cancelar) {
+        this.buttons.cancelar.classList.toggle('d-none', !(this.state.editMode && this.state.permisos.cargar));
+      }
+      if (this.buttons.marcarRevisado) {
+        const visible = this._puede({ accion: 'revisar' });
+        this.buttons.marcarRevisado.classList.toggle('d-none', !visible);
+        if (visible) {
+          const texto = estado === ESTADOS.REVISADO ? 'Cancelar revisión' : 'Marcar como revisado';
+          const span = this.buttons.marcarRevisado.querySelector('span');
+          if (span) span.textContent = texto;
+        }
+      }
+      if (this.buttons.autorizar) {
+        this.buttons.autorizar.classList.toggle('d-none', !this._puede({ accion: 'autorizar' }));
+      }
+      if (this.buttons.rechazar) {
+        this.buttons.rechazar.classList.toggle('d-none', !this._puede({ accion: 'rechazar' }));
+      }
+      if (this.buttons.guardarCOI) {
+        this.buttons.guardarCOI.classList.toggle('d-none', !this._puede({ accion: 'guardarCoi' }));
+      }
+      if (this.buttons.verBorrador) {
+        this.buttons.verBorrador.classList.remove('d-none');
+        this.buttons.verBorrador.disabled = false;
+      }
+      if (this.buttons.descartar) {
+        const visible = this._puede({ accion: 'descartar' }) && (tieneBorrador || this.state.editMode);
+        this.buttons.descartar.classList.toggle('d-none', !visible);
+        this.buttons.descartar.disabled = !visible;
+      }
     }
 
     async _handleGuardar() {
-      if (!this._permitido('guardar')) {
-        this._mostrarToast('No cuentas con permisos para cargar presupuestos.', 'warning');
-        return;
-      }
-
-      if (!this._contextoCompleto()) {
-        this._mostrarToast('Selecciona ejercicio y empresa antes de guardar.', 'warning');
-        return;
-      }
-
-      if (this.modoEdicion) {
+      if (this.state.editMode) {
         await this._guardarBorradorTemporal();
         return;
       }
-
-      this._activarModoEdicion();
+      if (!this._puede({ accion: 'editar' })) {
+        this._toast('No cuentas con permisos para editar.', 'warning');
+        return;
+      }
+      this._enterEditMode();
     }
 
     async _guardarBorradorTemporal() {
-      const cambios = this._obtenerCambiosPendientes();
-      const presupuesto = Array.isArray(cambios?.presupuesto) ? cambios.presupuesto : [];
+      const cambios = this._obtenerCambios();
+      const presupuesto = Array.isArray(cambios.presupuesto) ? cambios.presupuesto : [];
       if (!presupuesto.length) {
-        this._mostrarToast('No hay cambios nuevos que guardar.', 'info');
+        this._toast('No hay cambios nuevos que guardar.', 'info');
         return;
       }
-
       const payload = {
-        modulo: this.contexto.modulo,
-        empresaId: this.contexto.empresaId,
-        anio: this.contexto.anio,
+        modulo: this.state.contexto.modulo,
+        empresaId: this.state.contexto.empresaId,
+        anio: this.state.contexto.anio,
         datos: { presupuesto }
       };
-
       try {
-        const respuesta = await fetch(`${API_BASE}/borradores/guardar`, {
+        const resp = await fetch(`${API_BASE}/borradores/guardar`, {
           method: 'POST',
           headers: this._construirHeaders(),
           body: JSON.stringify(payload)
         });
-        const datos = await respuesta.json().catch(() => ({}));
-        if (!respuesta.ok) {
-          throw new Error(datos.mensaje || 'No fue posible guardar el borrador.');
-        }
-        this.borradorActual = datos.borrador || this.borradorActual;
-        this.hayCambios = false;
-        this._mostrarToast('Borrador guardado para continuar editando.', 'success');
-        this._actualizarInfoPanel();
-        this._actualizarBotones();
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok) throw new Error(data.mensaje || 'No fue posible guardar el borrador.');
+        this.state.borrador = data.borrador || this.state.borrador;
+        this.state.hayCambios = false;
+        this._renderInfo();
+        this._renderBotones();
+        this._toast('Borrador guardado para continuar editando.');
       } catch (error) {
-        console.error('Error guardando borrador temporal', error);
-        this._mostrarToast(error.message || 'No fue posible guardar el borrador.', 'danger');
+        console.error('Guardar borrador', error);
+        this._toast(error.message || 'No fue posible guardar el borrador.', 'danger');
       }
     }
 
     async _handleEnviar() {
-      if (!this._permitido('enviar') && !this._permitido('guardar')) {
-        this._mostrarToast('No cuentas con permisos para enviar presupuestos.', 'warning');
+      if (!this._puede({ accion: 'enviar' })) {
+        this._toast('No cuentas con permisos para enviar.', 'warning');
         return;
       }
-
-      const cambios = this._obtenerCambiosPendientes();
+      const cambios = this._obtenerCambios();
       let presupuesto = Array.isArray(cambios?.presupuesto) ? cambios.presupuesto : [];
-      if (!presupuesto.length && Array.isArray(this.borradorActual?.data?.presupuesto)) {
-        presupuesto = this.borradorActual.data.presupuesto;
+      if (!presupuesto.length && Array.isArray(this.state.borrador?.data?.presupuesto)) {
+        presupuesto = this.state.borrador.data.presupuesto;
       }
       const payload = {
-        modulo: this.contexto.modulo,
-        empresaId: this.contexto.empresaId,
-        anio: this.contexto.anio,
-        datos: {
-          presupuesto
-        }
+        modulo: this.state.contexto.modulo,
+        empresaId: this.state.contexto.empresaId,
+        anio: this.state.contexto.anio,
+        datos: { presupuesto }
       };
-
       try {
-        // Primero guardar el borrador
-        let respuesta = await fetch(`${API_BASE}/borradores/guardar`, {
+        let resp = await fetch(`${API_BASE}/borradores/guardar`, {
           method: 'POST',
           headers: this._construirHeaders(),
           body: JSON.stringify(payload)
         });
-        let datos = await respuesta.json().catch(() => ({}));
-        
-        if (!respuesta.ok) {
-          throw new Error(datos.mensaje || 'No fue posible guardar el borrador.');
-        }
-
-        const borradorId = datos.borrador.id;
-
-        // Luego enviarlo a revisión
-        respuesta = await fetch(`${API_BASE}/borradores/enviar`, {
+        let data = await resp.json().catch(() => ({}));
+        if (!resp.ok) throw new Error(data.mensaje || 'No fue posible guardar el borrador.');
+        const borradorId = data.borrador.id;
+        resp = await fetch(`${API_BASE}/borradores/enviar`, {
           method: 'POST',
           headers: this._construirHeaders(),
           body: JSON.stringify({ borradorId })
         });
-        datos = await respuesta.json().catch(() => ({}));
-        
-        if (!respuesta.ok) {
-          throw new Error(datos.mensaje || 'No fue posible enviar el borrador.');
-        }
-
-        this.borradorActual = datos.borrador || null;
-        this._desactivarModoEdicion();
-        this._actualizarInfoPanel();
-        this._actualizarBotones();
-        
-        const mensaje = datos.autoAutorizado 
-          ? 'Presupuesto aprobado automáticamente (Admin Global).'
-          : 'Presupuesto enviado para revisión.';
-        this._mostrarToast(mensaje);
+        data = await resp.json().catch(() => ({}));
+        if (!resp.ok) throw new Error(data.mensaje || 'No fue posible enviar el borrador.');
+        this.state.borrador = data.borrador || null;
+        this._exitEditMode(true);
+        this._renderInfo();
+        this._renderBotones();
+        const mensaje = data.autoAutorizado
+          ? 'Presupuesto autorizado automáticamente.'
+          : 'Presupuesto enviado a revisión.';
+        this._toast(mensaje);
       } catch (error) {
-        console.error('Error al enviar el borrador', error);
-        this._mostrarToast(error.message || 'No fue posible enviar el presupuesto.', 'danger');
+        console.error('Enviar', error);
+        this._toast(error.message || 'No fue posible enviar el presupuesto.', 'danger');
       }
     }
 
     _handleCancelar() {
-      this._desactivarModoEdicion();
-      this._mostrarToast('Edición cancelada.', 'info');
+      // Salir de edición y limpiar cualquier borrador pintado/local
+      this._exitEditMode();
+      this.state.borrador = null;
+      FlujoAutorizacion.limpiarBorrador(this.tableElement);
+      this._notificarEstadoBorrador(null);
+      this._renderInfo();
+      this._renderBotones();
+      this._toast('Edición cancelada.', 'info');
     }
 
     async _handleMarcarRevisado() {
-      if (!this._permitido('revision')) {
-        this._mostrarToast('No cuentas con permisos para revisar.', 'warning');
+      if (!this._puede({ accion: 'revisar' })) {
+        this._toast('No cuentas con permisos para revisar.', 'warning');
         return;
       }
-
-      if (!this.borradorActual?.id) {
-        this._mostrarToast('No hay borrador para revisar.', 'warning');
+      if (!this.state.borrador?.id) {
+        this._toast('No hay borrador para revisar.', 'warning');
         return;
       }
-
-      const cancelar = this.borradorActual.estado === ESTADOS.REVISADO;
-      const mensaje = cancelar 
-        ? '¿Cancelar revisión y devolver a edición?' 
-        : '¿Marcar este presupuesto como revisado?';
-      
+      const cancelar = this.state.borrador.estado === ESTADOS.REVISADO;
+      const mensaje = cancelar ? '¿Cancelar revisión y devolver a edición?' : '¿Marcar como revisado?';
       if (!confirm(mensaje)) return;
-
       try {
-        const respuesta = await fetch(`${API_BASE}/borradores/revisar`, {
+        const resp = await fetch(`${API_BASE}/borradores/revisar`, {
           method: 'POST',
           headers: this._construirHeaders(),
-          body: JSON.stringify({ 
-            borradorId: this.borradorActual.id, 
-            cancelar 
-          })
+          body: JSON.stringify({ borradorId: this.state.borrador.id, cancelar })
         });
-        const datos = await respuesta.json().catch(() => ({}));
-        
-        if (!respuesta.ok) {
-          throw new Error(datos.mensaje || 'No fue posible actualizar la revisión.');
-        }
-
-        this.borradorActual = datos.borrador || null;
-        this._actualizarInfoPanel();
-        this._actualizarBotones();
-        this._mostrarToast(datos.mensaje || 'Revisión actualizada.');
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok) throw new Error(data.mensaje || 'No fue posible actualizar la revisión.');
+        this.state.borrador = data.borrador || null;
+        this._renderInfo();
+        this._renderBotones();
+        this._toast(data.mensaje || 'Revisión actualizada.');
       } catch (error) {
-        console.error('Error al marcar revisión', error);
-        this._mostrarToast(error.message || 'No fue posible actualizar la revisión.', 'danger');
+        console.error('Revisar', error);
+        this._toast(error.message || 'No fue posible actualizar la revisión.', 'danger');
       }
     }
 
     async _handleAutorizar() {
-      if (!this._permitido('autorizar')) {
-        this._mostrarToast('No cuentas con permisos para autorizar.', 'warning');
+      if (!this._puede({ accion: 'autorizar' })) {
+        this._toast('No cuentas con permisos para autorizar.', 'warning');
         return;
       }
-
-      if (!this.borradorActual?.id) {
-        this._mostrarToast('No hay borrador para autorizar.', 'warning');
+      if (!this.state.borrador?.id) {
+        this._toast('No hay borrador para autorizar.', 'warning');
         return;
       }
-
       if (!confirm('¿Autorizar este presupuesto?')) return;
-
       try {
-        const respuesta = await fetch(`${API_BASE}/borradores/autorizar`, {
+        const resp = await fetch(`${API_BASE}/borradores/autorizar`, {
           method: 'POST',
           headers: this._construirHeaders(),
-          body: JSON.stringify({ borradorId: this.borradorActual.id })
+          body: JSON.stringify({ borradorId: this.state.borrador.id })
         });
-        const datos = await respuesta.json().catch(() => ({}));
-        
-        if (!respuesta.ok) {
-          throw new Error(datos.mensaje || 'No fue posible autorizar el borrador.');
-        }
-
-        this.borradorActual = datos.borrador || null;
-        this._actualizarInfoPanel();
-        this._actualizarBotones();
-        this._mostrarToast(datos.mensaje || 'Presupuesto autorizado.');
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok) throw new Error(data.mensaje || 'No fue posible autorizar el borrador.');
+        this.state.borrador = data.borrador || null;
+        this._renderInfo();
+        this._renderBotones();
+        this._toast(data.mensaje || 'Presupuesto autorizado.');
       } catch (error) {
-        console.error('Error al autorizar borrador', error);
-        this._mostrarToast(error.message || 'No fue posible autorizar.', 'danger');
+        console.error('Autorizar', error);
+        this._toast(error.message || 'No fue posible autorizar.', 'danger');
       }
     }
 
     async _handleRechazar() {
-      if (!this._permitido('rechazar') && !this._permitido('autorizar')) {
-        this._mostrarToast('No cuentas con permisos para rechazar.', 'warning');
+      if (!this._puede({ accion: 'rechazar' })) {
+        this._toast('No cuentas con permisos para rechazar.', 'warning');
         return;
       }
-
-      if (!this.borradorActual?.id) {
-        this._mostrarToast('No hay borrador para rechazar.', 'warning');
+      if (!this.state.borrador?.id) {
+        this._toast('No hay borrador para rechazar.', 'warning');
         return;
       }
-
       const motivo = prompt('Indica el motivo para rechazar este presupuesto:');
       if (!motivo) return;
-
       try {
-        const respuesta = await fetch(`${API_BASE}/borradores/rechazar`, {
+        const resp = await fetch(`${API_BASE}/borradores/rechazar`, {
           method: 'POST',
           headers: this._construirHeaders(),
-          body: JSON.stringify({ 
-            borradorId: this.borradorActual.id, 
-            motivo 
-          })
+          body: JSON.stringify({ borradorId: this.state.borrador.id, motivo })
         });
-        const datos = await respuesta.json().catch(() => ({}));
-        
-        if (!respuesta.ok) {
-          throw new Error(datos.mensaje || 'No fue posible rechazar el borrador.');
-        }
-
-        this.borradorActual = datos.borrador || null;
-        this._actualizarInfoPanel();
-        this._actualizarBotones();
-        this._mostrarToast(datos.mensaje || 'Presupuesto rechazado.');
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok) throw new Error(data.mensaje || 'No fue posible rechazar el borrador.');
+        this.state.borrador = data.borrador || null;
+        this._renderInfo();
+        this._renderBotones();
+        this._toast(data.mensaje || 'Presupuesto rechazado.');
       } catch (error) {
-        console.error('Error al rechazar borrador', error);
-        this._mostrarToast(error.message || 'No fue posible rechazar.', 'danger');
+        console.error('Rechazar', error);
+        this._toast(error.message || 'No fue posible rechazar.', 'danger');
       }
     }
 
     async _handleGuardarCOI() {
-      if (!this._permitido('aprobar')) {
-        this._mostrarToast('No cuentas con permisos para guardar en COI.', 'warning');
+      if (!this._puede({ accion: 'guardarCoi' })) {
+        this._toast('No cuentas con permisos para guardar en COI.', 'warning');
         return;
       }
-
-      if (!this.borradorActual?.id) {
-        this._mostrarToast('No hay borrador aprobado para guardar.', 'warning');
+      if (!this.state.borrador?.id || this.state.borrador.estado !== ESTADOS.APROBADO) {
+        this._toast('El presupuesto debe estar aprobado para guardar en COI.', 'warning');
         return;
       }
-
-      if (this.borradorActual.estado !== ESTADOS.APROBADO) {
-        this._mostrarToast('El presupuesto debe estar aprobado para guardar en COI.', 'warning');
-        return;
-      }
-
       if (!confirm('¿Guardar este presupuesto en la base de datos de COI?')) return;
-
       try {
-        const respuesta = await fetch(`${API_BASE}/borradores/finalizar`, {
+        const resp = await fetch(`${API_BASE}/borradores/finalizar`, {
           method: 'POST',
           headers: this._construirHeaders(),
-          body: JSON.stringify({ borradorId: this.borradorActual.id })
+          body: JSON.stringify({ borradorId: this.state.borrador.id })
         });
-        const datos = await respuesta.json().catch(() => ({}));
-        
-        if (!respuesta.ok) {
-          throw new Error(datos.mensaje || 'No fue posible guardar en COI.');
-        }
-
-        this.borradorActual = datos.borrador || null;
-        this._actualizarInfoPanel();
-        this._actualizarBotones();
-        this._mostrarToast(datos.mensaje || 'Presupuesto guardado en COI.');
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok) throw new Error(data.mensaje || 'No fue posible guardar en COI.');
+        this.state.borrador = data.borrador || null;
+        this._renderInfo();
+        this._renderBotones();
+        this._toast(data.mensaje || 'Presupuesto guardado en COI.');
       } catch (error) {
-        console.error('Error al guardar en COI', error);
-        this._mostrarToast(error.message || 'No fue posible guardar en COI.', 'danger');
+        console.error('Guardar COI', error);
+        this._toast(error.message || 'No fue posible guardar en COI.', 'danger');
       }
+    }
+
+    _toast(mensaje, tipo = 'success') {
+      if (!mensaje) return;
+      if (this.toastInstance && this.toastBody) {
+        const clase = tipo === 'danger' ? 'text-bg-danger' : tipo === 'warning' ? 'text-bg-warning' : 'text-bg-success';
+        const toastEl = this.toastInstance._element;
+        if (toastEl) toastEl.className = `toast align-items-center border-0 ${clase}`;
+        this.toastBody.textContent = mensaje;
+        this.toastInstance.show();
+        return;
+      }
+      console.info(`[Flujo AUT] ${mensaje}`);
     }
 
     _notificarEstadoBorrador(borrador) {
       try {
-        window.dispatchEvent(new CustomEvent('flujo-autorizacion:estado-actualizado', {
-          detail: { borrador: borrador || null }
-        }));
+        window.dispatchEvent(new CustomEvent('flujo-autorizacion:estado-actualizado', { detail: { borrador: borrador || null } }));
       } catch (error) {
         console.warn('No fue posible notificar el estado del borrador.', error);
       }
@@ -1092,128 +956,79 @@
     async _mostrarCentroBorradores() {
       const drawer = ensureDraftsDrawer();
       if (!drawer) {
-        console.error('[FlujoAutorizacion] No se pudo crear el drawer de borradores');
-        this._mostrarToast('Error al mostrar el centro de borradores.', 'danger');
+        this._toast('Error al mostrar el centro de borradores.', 'danger');
         return;
       }
-      
-      // Ensure Bootstrap is loaded
       if (!window.bootstrap?.Offcanvas) {
-        console.error('[FlujoAutorizacion] Bootstrap.Offcanvas no está disponible');
-        this._mostrarToast('Error: Bootstrap no está cargado correctamente.', 'danger');
+        this._toast('Bootstrap no está cargado correctamente.', 'danger');
         return;
       }
-      
-      const instancia = window.bootstrap.Offcanvas.getOrCreateInstance(drawer);
-      if (instancia) {
-        instancia.show();
-      } else {
-        console.error('[FlujoAutorizacion] No se pudo crear la instancia de Offcanvas');
-        this._mostrarToast('Error al abrir el centro de borradores.', 'danger');
-        return;
-      }
-
+      const offcanvas = window.bootstrap.Offcanvas.getOrCreateInstance(drawer);
+      offcanvas.show();
       if (!this._contextoCompleto()) {
-        draftsDrawerStatus.className = 'alert alert-warning';
-        draftsDrawerStatus.textContent = 'Selecciona empresa y ejercicio para consultar los borradores.';
-        draftsDrawerBody.innerHTML = `
-          <tr>
-            <td colspan="5" class="text-center text-muted">Sin contexto seleccionado</td>
-          </tr>`;
+        const status = drawer.querySelector('#draftsCenterStatus');
+        const body = drawer.querySelector('#draftsCenterBody');
+        if (status) {
+          status.className = 'alert alert-warning';
+          status.textContent = 'Selecciona empresa y ejercicio para consultar los borradores.';
+        }
+        if (body) {
+          body.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Sin contexto seleccionado</td></tr>';
+        }
         return;
       }
-
-      await this._cargarCentroBorradores();
+      await this._cargarCentroBorradores(drawer);
     }
 
-    _descartarBorrador() {
-      FlujoAutorizacion.limpiarBorrador(this.tableElement);
-      this.borradorActual = null;
-      this._notificarEstadoBorrador(null);
-      this._actualizarInfoPanel();
-      this._actualizarBotones();
-      this._mostrarToast('Borrador descartado.', 'info');
-    }
-
-    async _cargarCentroBorradores() {
-      ensureDraftsDrawer();
-      if (!draftsDrawerBody || !draftsDrawerStatus) return;
-      if (!this._contextoCompleto()) {
-        draftsDrawerStatus.className = 'alert alert-warning';
-        draftsDrawerStatus.textContent = 'Selecciona empresa y ejercicio para consultar los borradores.';
-        draftsDrawerBody.innerHTML = `
-          <tr>
-            <td colspan="5" class="text-center text-muted">Sin contexto seleccionado</td>
-          </tr>`;
-        return;
-      }
-      draftsDrawerStatus.className = 'alert alert-info';
-      draftsDrawerStatus.textContent = 'Cargando borradores...';
-      draftsDrawerBody.innerHTML = `
-        <tr>
-          <td colspan="5" class="text-center text-muted">Cargando...</td>
-        </tr>
-      `;
+    async _cargarCentroBorradores(drawer) {
+      const status = drawer.querySelector('#draftsCenterStatus');
+      const body = drawer.querySelector('#draftsCenterBody');
+      if (!status || !body) return;
+      status.className = 'alert alert-info';
+      status.textContent = 'Cargando borradores...';
+      body.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Cargando...</td></tr>';
       try {
         const params = new URLSearchParams({
-          empresaId: this.contexto.empresaId,
-          modulo: this.contexto.modulo
+          empresaId: this.state.contexto.empresaId,
+          modulo: this.state.contexto.modulo,
+          anio: this.state.contexto.anio
         });
-        if (Number.isInteger(this.contexto.anio)) {
-          params.set('anio', String(this.contexto.anio));
-        }
-        const respuesta = await fetch(`${API_BASE}/borradores/listar?${params.toString()}`, {
+        const resp = await fetch(`${API_BASE}/borradores/listar?${params.toString()}`, {
           headers: this._construirHeaders()
         });
-        const datos = await respuesta.json().catch(() => ({}));
-        if (!respuesta.ok) {
-          throw new Error(datos.mensaje || 'No fue posible obtener los borradores.');
-        }
-        this._renderizarCentroBorradores(datos.borradores || []);
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok) throw new Error(data.mensaje || 'No fue posible obtener los borradores.');
+        this._renderizarCentroBorradores(data.borradores || [], status, body);
       } catch (error) {
-        draftsDrawerStatus.className = 'alert alert-danger';
-        draftsDrawerStatus.textContent = error.message || 'Ocurrió un error al consultar los borradores.';
-        draftsDrawerBody.innerHTML = `
-          <tr>
-            <td colspan="5" class="text-center text-muted">Sin datos</td>
-          </tr>
-        `;
+        status.className = 'alert alert-danger';
+        status.textContent = error.message || 'Error al consultar los borradores.';
+        body.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Sin datos</td></tr>';
       }
     }
 
-    _renderizarCentroBorradores(lista) {
-      if (!draftsDrawerBody || !draftsDrawerStatus) return;
-      draftsDrawerBody.innerHTML = '';
+    _renderizarCentroBorradores(lista, status, body) {
+      body.innerHTML = '';
       if (!Array.isArray(lista) || !lista.length) {
-        draftsDrawerStatus.className = 'alert alert-warning';
-        draftsDrawerStatus.textContent = 'No hay borradores disponibles para este contexto.';
-        draftsDrawerBody.innerHTML = `
-          <tr>
-            <td colspan="5" class="text-center text-muted">Sin registros</td>
-          </tr>
-        `;
+        status.className = 'alert alert-warning';
+        status.textContent = 'No hay borradores disponibles para este contexto.';
+        body.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Sin registros</td></tr>';
         return;
       }
-
-      draftsDrawerStatus.className = 'alert alert-success';
-      draftsDrawerStatus.textContent = 'Selecciona un borrador para visualizarlo en la tabla.';
-
-      if (!draftsDrawerBody.dataset.delegadoClick) {
-        draftsDrawerBody.dataset.delegadoClick = '1';
-        draftsDrawerBody.addEventListener('click', (ev) => {
+      status.className = 'alert alert-success';
+      status.textContent = 'Selecciona un borrador para visualizarlo en la tabla.';
+      if (!body.dataset.delegadoClick) {
+        body.dataset.delegadoClick = '1';
+        body.addEventListener('click', (ev) => {
           const boton = ev.target.closest('[data-borrador-id]');
           if (!boton) return;
           const id = Number(boton.dataset.borradorId);
-          if (Number.isFinite(id)) {
-            this._verBorradorDesdeCentro(id);
-          }
+          if (Number.isFinite(id)) this._verBorradorDesdeCentro(id);
         });
       }
-
       const frag = document.createDocumentFragment();
       lista.forEach((item) => {
         const row = document.createElement('tr');
-        const etiquetaEstado = ESTADOS_ETIQUETAS[item.estado] || item.estado;
+        const etiquetaEstado = ETIQUETAS_ESTADO[item.estado] || item.estado;
         row.innerHTML = `
           <td>
             <div class="fw-semibold">${item.modulo}</div>
@@ -1229,246 +1044,118 @@
             ${item.comentarios ? `<div class="text-muted small">${item.comentarios}</div>` : ''}
           </td>
           <td class="text-end">
-            <button class="btn btn-sm btn-outline-primary" data-borrador-id="${item.id}">
-              Ver en la tabla
-            </button>
+            <button class="btn btn-sm btn-outline-primary" data-borrador-id="${item.id}">Ver en la tabla</button>
           </td>
         `;
         frag.appendChild(row);
       });
-      draftsDrawerBody.appendChild(frag);
+      body.appendChild(frag);
     }
 
     async _verBorradorDesdeCentro(borradorId) {
       try {
-        const respuesta = await fetch(`${API_BASE}/borradores/detalle/${borradorId}`, {
-          headers: this._construirHeaders()
-        });
-        const datos = await respuesta.json().catch(() => ({}));
-        if (!respuesta.ok) {
-          throw new Error(datos.mensaje || 'No fue posible cargar ese borrador.');
-        }
-        this.borradorActual = datos.borrador || null;
-        if (!this.borradorActual) {
-          throw new Error('No se recibió información del borrador.');
-        }
-        const offcanvas = draftsDrawerEl ? window.bootstrap?.Offcanvas?.getInstance(draftsDrawerEl) : null;
-        if (offcanvas) {
-          offcanvas.hide();
-        }
-        const pintado = FlujoAutorizacion.pintarBorrador(this.tableElement, this.borradorActual);
+        const resp = await fetch(`${API_BASE}/borradores/detalle/${borradorId}`, { headers: this._construirHeaders() });
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok) throw new Error(data.mensaje || 'No fue posible cargar ese borrador.');
+        this.state.borrador = data.borrador || null;
+        if (!this.state.borrador) throw new Error('No se recibió información del borrador.');
+        const drawer = document.getElementById('workflowDraftsDrawer');
+        const offcanvas = drawer ? window.bootstrap?.Offcanvas?.getInstance(drawer) : null;
+        offcanvas?.hide();
+        const pintado = FlujoAutorizacion.pintarBorrador(this.tableElement, this.state.borrador);
         if (!pintado) {
-          this._mostrarToast('Borrador obtenido pero no se pudo aplicar sobre la tabla. Verifica data-columna-clave y cuentas coincidentes.', 'warning');
+          this._toast('Borrador obtenido pero no se pudo aplicar sobre la tabla. Verifica data-columna-clave y cuentas coincidentes.', 'warning');
           return;
         }
-        this._mostrarToast('Borrador aplicado. Las celdas en amarillo muestran la vista seleccionada.', 'info');
-        this._actualizarInfoPanel();
-        this._actualizarBotones();
+        this._renderInfo();
+        this._renderBotones();
+        this._toast('Borrador aplicado. Las celdas en amarillo muestran la vista seleccionada.', 'info');
       } catch (error) {
-        console.error('Error al visualizar borrador', error);
-        this._mostrarToast(error.message || 'No fue posible mostrar el borrador.', 'danger');
+        console.error('Ver borrador', error);
+        this._toast(error.message || 'No fue posible mostrar el borrador.', 'danger');
       }
     }
 
-    _toggleVerBorrador() {
-      this._mostrarCentroBorradores();
-    }
-
-    _mostrarToast(mensaje, tipo = 'success') {
-      if (!mensaje) return;
-      if (this.toastInstance && this.toastBody) {
-        const clase = tipo === 'danger' ? 'text-bg-danger' : tipo === 'warning' ? 'text-bg-warning' : 'text-bg-success';
-        const toastEl = this.toastInstance._element;
-        if (toastEl) {
-          toastEl.className = `toast align-items-center border-0 ${clase}`;
-        }
-        this.toastBody.textContent = mensaje;
-        this.toastInstance.show();
-        return;
-      }
-      console.info(`[Flujo AUT] ${mensaje}`);
-    }
-
-    _actualizarInfoPanel() {
-      const badge = document.getElementById('workflowBadge');
-      const meta = document.getElementById('workflowMeta');
-      
-      if (!badge) return;
-      
-      const estado = this.borradorActual?.estado || 'sin-cargar';
-      const etiqueta = ESTADOS_ETIQUETAS[estado] || 'Sin cargar';
-      
-      badge.textContent = etiqueta;
-      badge.dataset.estado = estado;
-      
-      if (meta && this.borradorActual) {
-        const fecha = this.borradorActual.fechaEnvio 
-          ? new Date(this.borradorActual.fechaEnvio).toLocaleString('es-MX')
-          : '';
-        meta.textContent = fecha ? `Actualizado: ${fecha}` : '';
-      }
-    }
-
-  _actualizarBotones() {
-    const estado = this.borradorActual?.estado;
-    const esCreador = this.borradorActual?.usuarioId === this.usuarioActual.id;
-    const tieneBorrador = Boolean(this.borradorActual);
-      
-      // Botón Cargar / Guardar
-      if (this.buttons.guardar) {
-        const span = this.buttons.guardar.querySelector('span');
-        const puedeCargar = this._permitido('guardar') &&
-          (!estado || estado === ESTADOS.GUARDADO || (estado === ESTADOS.RECHAZADO && esCreador));
-        if (this.modoEdicion) {
-          if (span) span.textContent = 'Guardar para más tarde';
-          const puedeGuardarTemporal = this._permitido('guardar') && (esCreador || !this.borradorActual || this.esAdminGlobal);
-          this.buttons.guardar.classList.toggle('d-none', !puedeGuardarTemporal);
-        } else {
-          if (span) span.textContent = 'Cargar presupuesto';
-          this.buttons.guardar.classList.toggle('d-none', !puedeCargar);
-        }
-      }
-      
-      // Botones de edición (Enviar y Cancelar)
-      if (this.buttons.enviar) {
-        const puedeEnviar = this.modoEdicion && this._permitido('enviar');
-        this.buttons.enviar.classList.toggle('d-none', !puedeEnviar);
-      }
-      if (this.buttons.cancelar) {
-        const puedeCancelar = this.modoEdicion && this._permitido('guardar');
-        this.buttons.cancelar.classList.toggle('d-none', !puedeCancelar);
-      }
-      
-      // Botón Marcar Revisado / Cancelar Revisión
-      if (this.buttons.marcarRevisado) {
-        const puedeRevisar = this._permitido('revision') && 
-          (estado === ESTADOS.PENDIENTE || estado === ESTADOS.REVISADO);
-        this.buttons.marcarRevisado.classList.toggle('d-none', !puedeRevisar);
-        
-        if (puedeRevisar) {
-          const texto = estado === ESTADOS.REVISADO ? 'Cancelar revisión' : 'Marcar como revisado';
-          const span = this.buttons.marcarRevisado.querySelector('span');
-          if (span) span.textContent = texto;
-        }
-      }
-      
-      // Botón Autorizar
-      if (this.buttons.autorizar) {
-        const puedeAutorizar = this._permitido('autorizar') && estado === ESTADOS.REVISADO;
-        this.buttons.autorizar.classList.toggle('d-none', !puedeAutorizar);
-      }
-      
-      // Botón Rechazar
-    if (this.buttons.rechazar) {
-      const puedeRechazar = (this._permitido('revision') && (estado === ESTADOS.PENDIENTE || estado === ESTADOS.REVISADO)) ||
-        (this._permitido('autorizar') && (estado === ESTADOS.REVISADO || estado === ESTADOS.APROBADO));
-      this.buttons.rechazar.classList.toggle('d-none', !puedeRechazar);
-    }
-      
-      // Botón Guardar en COI
-    if (this.buttons.guardarCOI) {
-      const puedeGuardarCOI = this._permitido('aprobar') && estado === ESTADOS.APROBADO;
-      this.buttons.guardarCOI.classList.toggle('d-none', !puedeGuardarCOI);
-    }
-
-    if (this.buttons.verBorrador) {
-      this.buttons.verBorrador.classList.remove('d-none');
-      this.buttons.verBorrador.disabled = false;
-    }
-
-    if (this.buttons.descartar) {
-      const puedeDescartar = this._permitido('guardar') && tieneBorrador;
-      this.buttons.descartar.classList.toggle('d-none', !puedeDescartar);
-      this.buttons.descartar.disabled = !puedeDescartar;
+    _descartarBorrador() {
+      FlujoAutorizacion.limpiarBorrador(this.tableElement);
+      this.state.borrador = null;
+      this._exitEditMode(true);
+      this._notificarEstadoBorrador(null);
+      this._renderInfo();
+      this._renderBotones();
+      this._toast('Borrador descartado.', 'info');
     }
   }
 
-    static pintarBorrador(tabla, datosBorrador) {
-      if (!tabla || !datosBorrador) return false;
-      const filas = Array.from(tabla.querySelectorAll('tbody tr'));
-      const cambios = Array.isArray(datosBorrador.data?.presupuesto) ? datosBorrador.data.presupuesto : [];
-      if (!cambios.length) return false;
-      
-      const mapaCambios = new Map();
-      const normalizar = (valor) => {
-        const canon = normalizarCuentaClave(valor);
-        const limpio = (valor || '').toString().trim();
-        return canon || limpio;
-      };
-      cambios.forEach((registro) => {
-        const clave = normalizar(registro.cuenta);
-        if (clave) {
-          mapaCambios.set(clave, registro.valores || {});
+  FlujoAutorizacion.pintarBorrador = (tabla, datosBorrador) => {
+    if (!tabla || !datosBorrador) return false;
+    const filas = Array.from(tabla.querySelectorAll('tbody tr'));
+    const cambios = Array.isArray(datosBorrador.data?.presupuesto) ? datosBorrador.data.presupuesto : [];
+    if (!cambios.length) return false;
+    const mapa = new Map();
+    const normalizar = (valor) => {
+      const canon = normalizarCuentaClave(valor);
+      const limpio = (valor || '').toString().trim();
+      return canon || limpio;
+    };
+    cambios.forEach((registro) => {
+      const clave = normalizar(registro.cuenta);
+      if (clave) mapa.set(clave, registro.valores || {});
+    });
+    if (!mapa.size) return false;
+    FlujoAutorizacion.limpiarBorrador(tabla);
+    filas.forEach((fila) => {
+      const claveTabla = normalizar(fila.dataset.cuenta21 || fila.dataset.cuenta || '');
+      if (!claveTabla) return;
+      const valores = mapa.get(claveTabla) || mapa.get((fila.dataset.cuenta || '').toString().trim());
+      if (!valores) return;
+      Array.from(fila.cells).forEach((celda) => {
+        const clave = celda.dataset.columnaClave;
+        if (!clave || !Object.prototype.hasOwnProperty.call(valores, clave)) return;
+        if (celda.dataset.borradorValorOriginal == null) {
+          celda.dataset.borradorValorOriginal = celda.textContent;
         }
+        const raw = valores[clave];
+        const numero = Number(raw);
+        const texto = Number.isFinite(numero) ? FORMATTER_NUMEROS.format(numero) : String(raw || '');
+        celda.textContent = texto;
+        celda.classList.add('celda-borrador');
       });
-      
-      if (!mapaCambios.size) return false;
-      FlujoAutorizacion.limpiarBorrador(tabla);
-      
-      filas.forEach((fila) => {
-        const claveTabla = normalizar(fila.dataset.cuenta21 || fila.dataset.cuenta || '');
-        if (!claveTabla) return;
-        
-        const valores = mapaCambios.get(claveTabla) || mapaCambios.get((fila.dataset.cuenta || '').toString().trim());
-        if (!valores) return;
-        
-        Array.from(fila.cells).forEach((celda) => {
-          const clave = celda.dataset.columnaClave;
-          if (!clave || !Object.prototype.hasOwnProperty.call(valores, clave)) return;
-          
-          if (celda.dataset.borradorValorOriginal == null) {
-            celda.dataset.borradorValorOriginal = celda.textContent;
-          }
-          const raw = valores[clave];
-          const numero = Number(raw);
-          const texto = Number.isFinite(numero) ? FORMATTER_NUMEROS.format(numero) : String(raw || '');
-          celda.textContent = texto;
-          celda.classList.add('celda-borrador');
-        });
-      });
-      return true;
-    }
+    });
+    return true;
+  };
 
-    static limpiarBorrador(tabla) {
-      if (!tabla) return;
-      const marcadas = Array.from(tabla.querySelectorAll('.celda-borrador'));
-      marcadas.forEach((celda) => {
-        if (celda.dataset.borradorValorOriginal != null) {
-          celda.textContent = celda.dataset.borradorValorOriginal;
-          delete celda.dataset.borradorValorOriginal;
-        }
-        celda.classList.remove('celda-borrador');
-      });
-    }
-  }
-
-  window.FlujoAutorizacion = FlujoAutorizacion;
+  FlujoAutorizacion.limpiarBorrador = (tabla) => {
+    if (!tabla) return;
+    const marcadas = Array.from(tabla.querySelectorAll('.celda-borrador'));
+    marcadas.forEach((celda) => {
+      if (celda.dataset.borradorValorOriginal != null) {
+        celda.textContent = celda.dataset.borradorValorOriginal;
+        delete celda.dataset.borradorValorOriginal;
+      }
+      celda.classList.remove('celda-borrador');
+    });
+  };
 
   const DraftHistoryCenter = (() => {
     const filtrosDraft = { estado: '', accion: '', usuario: '', buscar: '', desde: '', hasta: '' };
     const filtrosWorkflow = { ...filtrosDraft };
     const refs = { drafts: null, workflow: null };
     let vistaActual = 'current';
-    let contexto = {
-      empresaId: null,
-      modulo: document.body?.dataset?.modulo || '',
-      anio: null
-    };
+    let contexto = { empresaId: null, modulo: document.body?.dataset?.modulo || '', anio: null };
     let borradorEstado = null;
     let debounceDraft = null;
     let debounceWorkflow = null;
 
-    const headers = () => (typeof Sesion?.headersAutenticacion === 'function' ? Sesion.headersAutenticacion() : {});
-    const textoEstado = (estado) => ESTADOS_ETIQUETAS[estado] || estado || 'Sin estado';
+    const headers = () => headersAutenticacion();
+    const textoEstado = (estado) => ETIQUETAS_ESTADO[estado] || estado || 'Sin estado';
     const textoAccion = (accion) => HISTORIAL_ACCIONES[accion] || accion || 'Movimiento';
 
     const asignarOpciones = (select, opciones, seleccionado) => {
       if (!select) return;
       const base = select.querySelector('option[value=""]');
       select.innerHTML = '';
-      if (base) {
-        select.appendChild(base);
-      } else {
+      if (base) select.appendChild(base); else {
         const opt = document.createElement('option');
         opt.value = '';
         opt.textContent = 'Todos';
@@ -1530,9 +1217,7 @@
         const empresa = window.Sesion.obtenerEmpresaActiva();
         if (empresa?.id) contexto.empresaId = empresa.id;
       }
-      if (!contexto.modulo) {
-        contexto.modulo = document.body?.dataset?.modulo || '';
-      }
+      if (!contexto.modulo) contexto.modulo = document.body?.dataset?.modulo || '';
       if (!contexto.anio || Number(contexto.anio) < 2000) {
         const candidatos = [
           document.getElementById('selectAnio')?.value,
@@ -1545,11 +1230,7 @@
             return Number.isFinite(numero) && numero >= 2000 ? numero : null;
           })
           .filter((valor) => valor != null);
-        if (candidatos.length) {
-          contexto.anio = candidatos[0];
-        } else {
-          contexto.anio = new Date().getFullYear();
-        }
+        contexto.anio = candidatos.length ? candidatos[0] : new Date().getFullYear();
       }
     };
 
@@ -1567,22 +1248,18 @@
           target.status.className = 'alert alert-secondary';
           target.status.textContent = 'Cargando información...';
         }
-        const respuesta = await fetch(`${API_BASE}/borradores/historial?${construirParams(filtros).toString()}`, {
-          headers: headers()
-        });
-        const datos = await respuesta.json().catch(() => ({}));
-        if (!respuesta.ok) {
-          throw new Error(datos.mensaje || 'No fue posible consultar el historial.');
-        }
+        const resp = await fetch(`${API_BASE}/borradores/historial?${construirParams(filtros).toString()}`, { headers: headers() });
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok) throw new Error(data.mensaje || 'No fue posible consultar el historial.');
         if (target?.status) {
           target.status.className = 'alert alert-success';
-          target.status.textContent = `Historial disponible (${datos.historial?.length || 0} registros).`;
+          target.status.textContent = `Historial disponible (${data.historial?.length || 0} registros).`;
         }
-        renderTabla(target?.tbody, datos.historial || []);
-        asignarOpciones(target?.state, datos.filtros?.estados || [], filtros.estado);
-        asignarOpciones(target?.action, datos.filtros?.acciones || [], filtros.accion);
-        asignarOpciones(target?.user, datos.filtros?.usuarios || [], filtros.usuario);
-        return datos;
+        renderTabla(target?.tbody, data.historial || []);
+        asignarOpciones(target?.state, data.filtros?.estados || [], filtros.estado);
+        asignarOpciones(target?.action, data.filtros?.acciones || [], filtros.accion);
+        asignarOpciones(target?.user, data.filtros?.usuarios || [], filtros.usuario);
+        return data;
       } catch (error) {
         console.error('Historial borradores', error);
         if (target?.status) {
@@ -1597,12 +1274,7 @@
     const vincularFiltros = (refsFiltros, filtros, onChange) => {
       if (!refsFiltros) return;
       const { search, state, action, user, from, to } = refsFiltros;
-      if (search) {
-        search.addEventListener('input', () => {
-          filtros.buscar = search.value.trim();
-          onChange('search');
-        });
-      }
+      if (search) search.addEventListener('input', () => { filtros.buscar = search.value.trim(); onChange('search'); });
       if (state) state.addEventListener('change', () => { filtros.estado = state.value; onChange(); });
       if (action) action.addEventListener('change', () => { filtros.accion = action.value; onChange(); });
       if (user) user.addEventListener('change', () => { filtros.usuario = user.value; onChange(); });
@@ -1612,12 +1284,8 @@
 
     const renderResumenWorkflow = () => {
       if (!refs.workflow) return;
-      if (refs.workflow.badge) {
-        refs.workflow.badge.textContent = textoEstado(borradorEstado?.estado || 'sin-cargar');
-      }
-      if (refs.workflow.state) {
-        refs.workflow.state.textContent = textoEstado(borradorEstado?.estado || 'Sin datos');
-      }
+      if (refs.workflow.badge) refs.workflow.badge.textContent = textoEstado(borradorEstado?.estado || 'SIN_CARGAR');
+      if (refs.workflow.state) refs.workflow.state.textContent = textoEstado(borradorEstado?.estado || 'Sin datos');
       if (refs.workflow.meta) {
         const partes = [];
         if (borradorEstado?.autorNombre) partes.push(borradorEstado.autorNombre);
@@ -1629,12 +1297,12 @@
     const init = () => {
       ensureDraftsDrawer();
       ensureWorkflowDrawer();
-      if (draftsDrawerEl) {
+      if (document.getElementById('workflowDraftsDrawer')) {
         refs.drafts = {
-          el: draftsDrawerEl,
-          status: draftsDrawerStatus,
-          tabs: draftsDrawerEl.querySelectorAll('[data-drafts-tab]'),
-          views: draftsDrawerEl.querySelectorAll('[data-drafts-view]'),
+          el: document.getElementById('workflowDraftsDrawer'),
+          status: document.getElementById('draftsCenterStatus'),
+          tabs: document.querySelectorAll('[data-drafts-tab]'),
+          views: document.querySelectorAll('[data-drafts-view]'),
           history: {
             status: document.getElementById('draftHistoryStatus'),
             tbody: document.getElementById('draftHistoryTableBody'),
@@ -1653,22 +1321,17 @@
             vistaActual = vista;
             refs.drafts.tabs.forEach((tab) => tab.classList.toggle('active', tab === btn));
             refs.drafts.views.forEach((view) => view.classList.toggle('d-none', view.dataset.draftsView !== vistaActual));
-            if (vistaActual === 'history') {
-              cargarHistorial(refs.drafts.history, filtrosDraft);
-            }
+            if (vistaActual === 'history') cargarHistorial(refs.drafts.history, filtrosDraft);
           });
         });
         vincularFiltros(refs.drafts.history, filtrosDraft, (tipo) => {
           clearTimeout(debounceDraft);
-          if (tipo === 'search') {
-            debounceDraft = setTimeout(() => cargarHistorial(refs.drafts.history, filtrosDraft), 400);
-          } else {
-            cargarHistorial(refs.drafts.history, filtrosDraft);
-          }
+          if (tipo === 'search') debounceDraft = setTimeout(() => cargarHistorial(refs.drafts.history, filtrosDraft), 400);
+          else cargarHistorial(refs.drafts.history, filtrosDraft);
         });
       }
 
-      const workflowDrawer = ensureWorkflowDrawer();
+      const workflowDrawer = document.getElementById('workflowDrawer');
       if (workflowDrawer) {
         refs.workflow = {
           el: workflowDrawer,
@@ -1692,15 +1355,12 @@
         });
         vincularFiltros(refs.workflow.filters, filtrosWorkflow, (tipo) => {
           clearTimeout(debounceWorkflow);
-          if (tipo === 'search') {
-            debounceWorkflow = setTimeout(() => cargarHistorial(refs.workflow, filtrosWorkflow), 400);
-          } else {
-            cargarHistorial(refs.workflow, filtrosWorkflow);
-          }
+          if (tipo === 'search') debounceWorkflow = setTimeout(() => cargarHistorial(refs.workflow, filtrosWorkflow), 400);
+          else cargarHistorial(refs.workflow, filtrosWorkflow);
         });
       }
 
-      window.addEventListener('planeacion:contexto-actualizado', (event) => {
+      window.addEventListener(EVENTO_CONTEXTO, (event) => {
         const detalle = event?.detail || {};
         contexto = {
           empresaId: detalle.empresaId || contexto.empresaId,
@@ -1717,57 +1377,34 @@
     return { init };
   })();
 
-  if (!window.__flujoAutorizacionInstance) {
-    window.__flujoAutorizacionInstance = new FlujoAutorizacion();
-  }
-
   const renderWorkflowGuide = (() => {
     let cache = null;
     let loading = null;
-
     const fetchGuide = async () => {
-      if (cache) {
-        return cache;
-      }
-      if (loading) {
-        return loading;
-      }
+      if (cache) return cache;
+      if (loading) return loading;
       const url = new URL('componentes/flujo-autorizacion.html', window.location.href);
       loading = fetch(url.href)
         .then((resp) => {
-          if (!resp.ok) {
-            throw new Error('No se pudo cargar la guía de flujo.');
-          }
+          if (!resp.ok) throw new Error('No se pudo cargar la guía de flujo.');
           return resp.text();
         })
         .then((html) => {
           cache = html;
           return html;
         })
-        .catch((error) => {
-          console.warn(error);
-          return '';
-        })
-        .finally(() => {
-          loading = null;
-        });
+        .catch(() => '')
+        .finally(() => { loading = null; });
       return loading;
     };
-
     return async () => {
       const contenedores = document.querySelectorAll('.workflow-drawer .offcanvas-body');
-      if (!contenedores.length) {
-        return;
-      }
+      if (!contenedores.length) return;
       const html = await fetchGuide();
-      if (!html) {
-        return;
-      }
+      if (!html) return;
       contenedores.forEach((contenedor) => {
         const anchor = contenedor.querySelector('.workflow-guide-anchor') || contenedor;
-        if (anchor.querySelector('.workflow-guide')) {
-          return;
-        }
+        if (anchor.querySelector('.workflow-guide')) return;
         const wrapper = document.createElement('div');
         wrapper.className = 'workflow-guide-wrapper mt-3';
         wrapper.innerHTML = html;
@@ -1796,7 +1433,7 @@
       btn.addEventListener('click', (event) => {
         event.preventDefault();
         const instancia = asegurarWorkflowDrawer();
-        if (instancia) instancia.show();
+        instancia?.show();
       });
     });
 
@@ -1808,32 +1445,33 @@
         instancia._mostrarCentroBorradores();
         return;
       }
-      if (draftsDrawerEl && window.bootstrap?.Offcanvas) {
-        window.bootstrap.Offcanvas.getOrCreateInstance(draftsDrawerEl).show();
+      const drawer = document.getElementById('workflowDraftsDrawer');
+      if (drawer && window.bootstrap?.Offcanvas) {
+        window.bootstrap.Offcanvas.getOrCreateInstance(drawer).show();
       }
     };
 
-    document.querySelectorAll('#btnVerBorrador, [data-open-drafts-center]')
-      .forEach((btn) => {
-        if (btn.dataset.draftsBound === '1') return;
-        btn.dataset.draftsBound = '1';
-        btn.classList.remove('disabled');
-        btn.removeAttribute('disabled');
-        btn.setAttribute('aria-disabled', 'false');
-        btn.removeAttribute('data-bs-toggle');
-        btn.removeAttribute('data-bs-target');
-        btn.addEventListener('click', (event) => {
-          event.preventDefault();
-          abrirCentroBorradores();
-        });
+    document.querySelectorAll('#btnVerBorrador, [data-open-drafts-center]').forEach((btn) => {
+      if (btn.dataset.draftsBound === '1') return;
+      btn.dataset.draftsBound = '1';
+      btn.classList.remove('disabled');
+      btn.removeAttribute('disabled');
+      btn.setAttribute('aria-disabled', 'false');
+      btn.removeAttribute('data-bs-toggle');
+      btn.removeAttribute('data-bs-target');
+      btn.addEventListener('click', (event) => {
+        event.preventDefault();
+        abrirCentroBorradores();
       });
+    });
   };
 
   const autoInit = () => {
-    const instancia = window.__flujoAutorizacionInstance;
-    if (instancia) {
-      instancia.init();
+    if (!window.__flujoAutorizacionInstance) {
+      window.__flujoAutorizacionInstance = new FlujoAutorizacion();
     }
+    const instancia = window.__flujoAutorizacionInstance;
+    instancia?.init();
     DraftHistoryCenter.init();
     renderWorkflowGuide();
     vincularAccesosRapidos();
