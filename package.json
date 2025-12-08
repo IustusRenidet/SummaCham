@@ -1,6 +1,6 @@
 {
   "name": "panel-amcham",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Dashboard financiero PanelAMCHAM empaquetado como app de escritorio portable.",
   "main": "main.js",
   "author": "Iustus Renidet & J02V4N",
@@ -18,7 +18,7 @@
     "postinstall": "electron-builder install-app-deps"
   },
   "devDependencies": {
-    "electron": "^38.2.2",
+    "electron": "^33.0.0",
     "electron-builder": "^25.1.8",
     "esbuild": "^0.27.1"
   },
