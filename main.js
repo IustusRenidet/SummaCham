@@ -1,5 +1,6 @@
 const { app, BrowserWindow, Tray, Menu } = require("electron");
 const path = require("path");
+const { autoUpdater } = require("electron-updater");
 const AutoLaunch = require("auto-launch");
 
 // Garantizar una única instancia de la aplicación
@@ -51,6 +52,18 @@ if (!gotTheLock) {
           } else {
             createWindow();
           }
+        },
+      },
+      {
+        label: "Buscar actualizaciones",
+        click: () => {
+          if (!app.isPackaged) {
+            console.log(
+              "No se pueden buscar actualizaciones en desarrollo (unpackaged)."
+            );
+            return;
+          }
+          autoUpdater.checkForUpdatesAndNotify();
         },
       },
       { type: "separator" },
@@ -160,6 +173,16 @@ if (!gotTheLock) {
         createWindow();
       }
     });
+
+    // Verificar actualizaciones (solo en producción/paquete)
+    if (app.isPackaged) {
+      console.log("Buscando actualizaciones...");
+      // Logger simple
+      autoUpdater.logger = console;
+      autoUpdater.checkForUpdatesAndNotify().catch((err) => {
+        console.warn("Error buscando actualizaciones:", err);
+      });
+    }
   });
 
   app.on("second-instance", () => {

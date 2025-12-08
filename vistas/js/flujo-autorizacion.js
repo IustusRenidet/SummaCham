@@ -412,74 +412,86 @@
     drawer.setAttribute("aria-labelledby", "workflowDrawerLabel");
     drawer.innerHTML = `
       <div class="offcanvas-header">
-        <h5 class="offcanvas-title" id="workflowDrawerLabel">Historial del flujo</h5>
+        <h5 class="offcanvas-title" id="workflowDrawerLabel">Flujo de autorización</h5>
         <button type="button" class="btn-close text-reset btn-cerrar-offcanvas" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
       </div>
       <div class="offcanvas-body">
-        <div class="workflow-info-panel mb-3">
-          <div class="d-flex justify-content-between align-items-start mb-3">
-            <div>
-              <p class="text-muted small mb-1">Estado actual</p>
-              <div id="workflowCurrentState" class="h6 mb-1">Sin contexto</div>
-              <div id="workflowCurrentMeta" class="text-muted small"></div>
+        <div class="btn-group w-100 mb-3" role="group" aria-label="Vistas del flujo">
+          <button type="button" class="btn btn-outline-primary active" data-workflow-tab="guide">Información</button>
+          <button type="button" class="btn btn-outline-primary" data-workflow-tab="history">Historial</button>
+        </div>
+
+        <!-- Vista: Guía / Información -->
+        <div class="workflow-view" data-workflow-view="guide">
+          <div class="workflow-guide-anchor"></div>
+        </div>
+
+        <!-- Vista: Historial (Oculta por defecto) -->
+        <div class="workflow-view d-none" data-workflow-view="history">
+          <div class="workflow-info-panel mb-3">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+              <div>
+                <p class="text-muted small mb-1">Estado actual</p>
+                <div id="workflowCurrentState" class="h6 mb-1">Sin contexto</div>
+                <div id="workflowCurrentMeta" class="text-muted small"></div>
+              </div>
+              <span class="badge bg-secondary" id="workflowCurrentBadge">-</span>
             </div>
-            <span class="badge bg-secondary" id="workflowCurrentBadge">-</span>
-          </div>
-          <div id="workflowHistoryStatus" class="alert alert-info">
-            Selecciona empresa, módulo y ejercicio para consultar el historial.
-          </div>
-          <form class="row g-2 workflow-history-filters mb-3" id="workflowHistoryFilters">
-            <div class="col-12">
-              <label for="workflowHistorySearch" class="form-label">Buscar</label>
-              <input type="search" id="workflowHistorySearch" class="form-control" placeholder="Acción, usuario o comentario">
+            <div id="workflowHistoryStatus" class="alert alert-info">
+              Selecciona empresa, módulo y ejercicio para consultar el historial.
             </div>
-            <div class="col-sm-6">
-              <label for="workflowHistoryState" class="form-label">Estado</label>
-              <select id="workflowHistoryState" class="form-select">
-                <option value="">Todos</option>
-              </select>
+            <form class="row g-2 workflow-history-filters mb-3" id="workflowHistoryFilters">
+              <div class="col-12">
+                <label for="workflowHistorySearch" class="form-label">Buscar</label>
+                <input type="search" id="workflowHistorySearch" class="form-control" placeholder="Acción, usuario o comentario">
+              </div>
+              <div class="col-sm-6">
+                <label for="workflowHistoryState" class="form-label">Estado</label>
+                <select id="workflowHistoryState" class="form-select">
+                  <option value="">Todos</option>
+                </select>
+              </div>
+              <div class="col-sm-6">
+                <label for="workflowHistoryAction" class="form-label">Acción</label>
+                <select id="workflowHistoryAction" class="form-select">
+                  <option value="">Todas</option>
+                </select>
+              </div>
+              <div class="col-sm-6">
+                <label for="workflowHistoryUser" class="form-label">Usuario</label>
+                <select id="workflowHistoryUser" class="form-select">
+                  <option value="">Todos</option>
+                </select>
+              </div>
+              <div class="col-sm-3">
+                <label for="workflowHistoryFrom" class="form-label">Desde</label>
+                <input type="date" id="workflowHistoryFrom" class="form-control">
+              </div>
+              <div class="col-sm-3">
+                <label for="workflowHistoryTo" class="form-label">Hasta</label>
+                <input type="date" id="workflowHistoryTo" class="form-control">
+              </div>
+            </form>
+            <div class="table-responsive">
+              <table class="table table-sm workflow-history-table">
+                <thead>
+                  <tr>
+                    <th>Acción</th>
+                    <th>Estado</th>
+                    <th>Usuario</th>
+                    <th>Fecha</th>
+                    <th>Detalles</th>
+                  </tr>
+                </thead>
+                <tbody id="workflowHistoryTableBody">
+                  <tr>
+                    <td colspan="5" class="text-center text-muted">Sin historial</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
-            <div class="col-sm-6">
-              <label for="workflowHistoryAction" class="form-label">Acción</label>
-              <select id="workflowHistoryAction" class="form-select">
-                <option value="">Todas</option>
-              </select>
-            </div>
-            <div class="col-sm-6">
-              <label for="workflowHistoryUser" class="form-label">Usuario</label>
-              <select id="workflowHistoryUser" class="form-select">
-                <option value="">Todos</option>
-              </select>
-            </div>
-            <div class="col-sm-3">
-              <label for="workflowHistoryFrom" class="form-label">Desde</label>
-              <input type="date" id="workflowHistoryFrom" class="form-control">
-            </div>
-            <div class="col-sm-3">
-              <label for="workflowHistoryTo" class="form-label">Hasta</label>
-              <input type="date" id="workflowHistoryTo" class="form-control">
-            </div>
-          </form>
-          <div class="table-responsive">
-            <table class="table table-sm workflow-history-table">
-              <thead>
-                <tr>
-                  <th>Acción</th>
-                  <th>Estado</th>
-                  <th>Usuario</th>
-                  <th>Fecha</th>
-                  <th>Detalles</th>
-                </tr>
-              </thead>
-              <tbody id="workflowHistoryTableBody">
-                <tr>
-                  <td colspan="5" class="text-center text-muted">Sin historial</td>
-                </tr>
-              </tbody>
-            </table>
           </div>
         </div>
-        <div class="workflow-guide-anchor mt-3"></div>
       </div>
     `;
     document.body.appendChild(drawer);
@@ -497,6 +509,20 @@
         }
       });
     }
+
+    // Lógica de Tabs
+    const tabButtons = drawer.querySelectorAll("[data-workflow-tab]");
+    const views = drawer.querySelectorAll("[data-workflow-view]");
+    tabButtons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        tabButtons.forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        const target = btn.dataset.workflowTab;
+        views.forEach((v) =>
+          v.classList.toggle("d-none", v.dataset.workflowView !== target)
+        );
+      });
+    });
 
     return drawer;
   };

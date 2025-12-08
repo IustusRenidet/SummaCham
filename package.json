@@ -5,6 +5,10 @@
   "main": "main.js",
   "author": "Iustus Renidet & J02V4N",
   "license": "",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/IustusRenidet/SummaCham.git"
+  },
   "scripts": {
     "start": "electron .",
     "test": "node --test",
@@ -20,6 +24,13 @@
   "build": {
     "appId": "com.summa.cham",
     "productName": "PanelAMCHAM",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "IustusRenidet",
+        "repo": "SummaCham"
+      }
+    ],
     "asar": true,
     "directories": {
       "output": "dist",
@@ -81,6 +92,7 @@
     "bcryptjs": "^3.0.3",
     "better-sqlite3": "^12.4.1",
     "csv-parse": "^6.1.0",
+    "electron-updater": "^6.6.2",
     "express": "^5.1.0",
     "helmet": "^8.1.0",
     "joi": "^18.0.1",
