@@ -822,4 +822,136 @@
   window.quitarGuiones = quitarGuiones;
   window.cuentaConGuiones = cuentaConGuiones;
   window.cuentaLarga = cuentaLarga;
+
+  (() => {
+    const esperarCuentasModulo = () =>
+      new Promise((resolve) => {
+        if (window.CuentasModulo) {
+          resolve();
+          return;
+        }
+        let timeoutId = null;
+        const interval = setInterval(() => {
+          if (window.CuentasModulo) {
+            clearInterval(interval);
+            if (timeoutId) clearTimeout(timeoutId);
+            resolve();
+          }
+        }, 100);
+        timeoutId = setTimeout(() => {
+          clearInterval(interval);
+          resolve();
+        }, 5000);
+      });
+
+    const limpiarBotonesInteractivos = () => {
+      document
+        .querySelectorAll(
+          '.btn:not(.disabled):not(:disabled),button:not(.disabled):not(:disabled),a:not(.disabled)'
+        )
+        .forEach((elemento) => {
+          elemento.style.pointerEvents = 'auto';
+          elemento.style.cursor = 'pointer';
+        });
+    };
+
+    const limpiarPointerEventsGlobales = () => {
+      // Ocultar modales inactivos
+      document.querySelectorAll('.modal:not(.show)').forEach((modal) => {
+        modal.style.display = 'none';
+        modal.style.pointerEvents = 'none';
+        modal.hidden = true;
+      });
+
+      // Ocultar offcanvas inactivos
+      document.querySelectorAll('.offcanvas:not(.show)').forEach((offcanvas) => {
+        offcanvas.style.display = 'none';
+        offcanvas.style.pointerEvents = 'none';
+      });
+
+      // Remover backdrops residuales
+      document.querySelectorAll('.modal-backdrop, .offcanvas-backdrop, [class*="backdrop"]').forEach((backdrop) => {
+        if (!document.querySelector('.modal.show, .offcanvas.show')) {
+          backdrop.remove();
+        } else {
+          backdrop.style.pointerEvents = 'auto';
+        }
+      });
+
+      limpiarBotonesInteractivos();
+
+      // Evitar overlays invisibles bloqueando clicks
+      document.querySelectorAll('[class*="overlay"]').forEach((overlay) => {
+        const visible = overlay.offsetParent !== null;
+        if (!visible) {
+          overlay.style.display = 'none';
+          overlay.style.pointerEvents = 'none';
+        }
+      });
+
+      // Elementos ocultos con z-index alto
+      document.querySelectorAll('[hidden]').forEach((el) => {
+        el.style.display = 'none';
+        el.style.pointerEvents = 'none';
+        const zIndex = Number.parseInt(window.getComputedStyle(el).zIndex, 10);
+        if (Number.isFinite(zIndex) && zIndex > 100) {
+          el.style.zIndex = '-1';
+        }
+      });
+    };
+
+    const inicializarLimpieza = async () => {
+      await esperarCuentasModulo();
+      if (window.CuentasModulo) {
+        try {
+          window.CuentasModulo.cancelEdit?.();
+          window.CuentasModulo.setEditMode?.(false);
+        } catch (error) {
+          console.warn(
+            "No fue posible limpiar el modo edicion de CuentasModulo:",
+            error
+          );
+        }
+      }
+      const instancia = window.__flujoAutorizacionInstance;
+      if (instancia?.state?.editMode) {
+        instancia._exitEditMode?.(true);
+        instancia.state.hayCambios = false;
+        if (typeof instancia.callbacks?.onCancelEdit === "function") {
+          try {
+            instancia.callbacks.onCancelEdit();
+          } catch (error) {
+            console.warn(
+              "Error al ejecutar callback de cancelacion durante la limpieza:",
+              error
+            );
+          }
+        }
+      }
+      limpiarBotonesInteractivos();
+      limpiarPointerEventsGlobales();
+      console.info("Vista de planeacion inicializada con limpieza de estado.");
+    };
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", inicializarLimpieza, {
+        once: true,
+      });
+    } else {
+      inicializarLimpieza();
+    }
+
+    setInterval(limpiarPointerEventsGlobales, 5000);
+
+    window.addEventListener("beforeunload", (event) => {
+      const instancia = window.__flujoAutorizacionInstance;
+      if (instancia?.state?.editMode && instancia?.state?.hayCambios) {
+        const mensaje = "Salir sin guardar los cambios?";
+        event.preventDefault();
+        event.returnValue = mensaje;
+        return mensaje;
+      }
+      return undefined;
+    });
+  })();
 })();

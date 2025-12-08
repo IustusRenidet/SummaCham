@@ -642,11 +642,12 @@
     }
 
     _setupButtons() {
+      this.buttons = {};
       Object.entries(this.buttonIds).forEach(([key, id]) => {
         if (!id) return;
         const el = document.getElementById(id);
         if (!el) {
-          console.debug(`Botón no encontrado: ${key} (${id})`);
+          console.debug(`Bot¢n no encontrado: ${key} (${id})`);
           return;
         }
         el.classList.remove("disabled");
@@ -654,8 +655,31 @@
         el.style.pointerEvents = "auto";
         this.buttons[key] = el;
       });
+      this._ensureBotonDescartar();
+      this._bindButtonHandlers();
+    }
 
-      // Función helper para añadir listeners de forma segura
+    _ensureBotonDescartar() {
+      if (this.buttons.descartar) {
+        this.buttons.descartar.classList.add("d-none");
+        return;
+      }
+      const contenedor = this.buttons.verBorrador?.parentElement;
+      if (!contenedor) return;
+      const boton = document.createElement("button");
+      boton.type = "button";
+      boton.className = "btn btn-chip btn-outline-danger d-none";
+      boton.id = "btnDescartarBorrador";
+      boton.innerHTML = `<i class="bi bi-eraser"></i><span>Descartar borrador</span>`;
+      contenedor.insertBefore(
+        boton,
+        this.buttons.verBorrador?.nextSibling || null
+      );
+      this.buttons.descartar = boton;
+    }
+
+
+    _bindButtonHandlers() {
       const agregarListener = (btn, handler) => {
         if (!btn) return;
         btn.addEventListener("click", handler, { once: false });
@@ -674,7 +698,6 @@
         this._mostrarCentroBorradores()
       );
 
-      this._ensureBotonDescartar();
       if (this.buttons.descartar) {
         this.buttons.descartar.style.pointerEvents = "auto";
         agregarListener(this.buttons.descartar, (ev) => {
@@ -698,23 +721,18 @@
       }
     }
 
-    _ensureBotonDescartar() {
-      if (this.buttons.descartar) {
-        this.buttons.descartar.classList.add("d-none");
-        return;
-      }
-      const contenedor = this.buttons.verBorrador?.parentElement;
-      if (!contenedor) return;
-      const boton = document.createElement("button");
-      boton.type = "button";
-      boton.className = "btn btn-chip btn-outline-danger d-none";
-      boton.id = "btnDescartarBorrador";
-      boton.innerHTML = `<i class="bi bi-eraser"></i><span>Descartar borrador</span>`;
-      contenedor.insertBefore(
-        boton,
-        this.buttons.verBorrador?.nextSibling || null
-      );
-      this.buttons.descartar = boton;
+    _limpiarEventListeners() {
+      if (!this.buttons) return;
+      Object.entries(this.buttons).forEach(([key, btn]) => {
+        if (!btn || !btn.parentNode) return;
+        const clone = btn.cloneNode(true);
+        clone.classList.remove("disabled");
+        clone.removeAttribute("disabled");
+        clone.style.pointerEvents = "auto";
+        btn.parentNode.replaceChild(clone, btn);
+        this.buttons[key] = clone;
+      });
+      this._bindButtonHandlers();
     }
 
     _prepareToast() {
@@ -1162,15 +1180,66 @@
       }
     }
 
-    _handleCancelar() {
-      // Salir de edición y limpiar cualquier borrador pintado/local
-      this._exitEditMode();
+    async _handleCancelar() {
+      const cambios = this._obtenerCambios();
+      const hayCambios = Boolean(
+        this.state.hayCambios || (cambios?.presupuesto?.length || 0) > 0
+      );
+      if (hayCambios) {
+        const confirmar = confirm("Estas seguro de cancelar la edicion? Se perderan todos los cambios no guardados.");
+        if (!confirmar) {
+          return;
+        }
+      }
+
+      if (this.state.borrador?.id) {
+        try {
+          const resp = await fetch(`${API_BASE}/borradores/descartar`, {
+            method: "POST",
+            headers: this._construirHeaders(),
+            body: JSON.stringify({
+              borradorId: this.state.borrador.id,
+            }),
+          });
+          const data = await resp.json().catch(() => ({}));
+          if (!resp.ok) {
+            console.warn("No se pudo descartar el borrador en el servidor:", data.mensaje);
+          }
+        } catch (error) {
+          console.error("Error al descartar borrador:", error);
+        }
+      }
+
+      this._limpiarEventListeners();
+      this._exitEditMode(true);
       this.state.borrador = null;
+      this.state.hayCambios = false;
       FlujoAutorizacion.limpiarBorrador(this.tableElement);
       this._notificarEstadoBorrador(null);
+      if (typeof this.callbacks.onCancelEdit === "function") {
+        try {
+          this.callbacks.onCancelEdit();
+        } catch (error) {
+          console.warn("Error al notificar cancelacion externa:", error);
+        }
+      } else {
+        window.CuentasModulo?.cancelEdit?.();
+      }
+      window.CuentasModulo?.setEditMode?.(false);
       this._renderInfo();
       this._renderBotones();
-      this._toast("Edición cancelada.", "info");
+      this._toast("Edicion cancelada. Presupuesto descartado.", "info");
+      setTimeout(() => {
+        try {
+          window.location.reload();
+        } catch (error) {
+          console.warn("No se pudo recargar la pagina despues de cancelar:", error);
+        }
+      }, 1000);
+    }
+
+    cancelarEdicion() {
+      return this._handleCancelar();
     }
 
     async _handleMarcarRevisado() {
@@ -2429,9 +2498,89 @@
     vincularAccesosRapidos();
   };
 
+  const aplicarFixModalesPointerEvents = () => {
+    const limpiarPointerEvents = (elemento) => {
+      if (!elemento) return;
+      elemento.style.pointerEvents = "none";
+    };
+
+    const habilitarPointerEvents = (elemento) => {
+      if (!elemento) return;
+      elemento.style.pointerEvents = "auto";
+    };
+
+    const limpiarBackdrops = () => {
+      document
+        .querySelectorAll(".modal-backdrop, .offcanvas-backdrop")
+        .forEach((backdrop) => {
+          const hayVisible = document.querySelector(
+            ".modal.show, .offcanvas.show"
+          );
+          if (!hayVisible) {
+            backdrop.remove();
+          } else {
+            backdrop.style.pointerEvents = "auto";
+          }
+        });
+    };
+
+    const vincularEventos = () => {
+      document.querySelectorAll(".modal").forEach((modal) => {
+        modal.addEventListener("show.bs.modal", () =>
+          habilitarPointerEvents(modal)
+        );
+        modal.addEventListener("shown.bs.modal", () =>
+          habilitarPointerEvents(modal)
+        );
+        modal.addEventListener("hidden.bs.modal", () => {
+          limpiarPointerEvents(modal);
+          limpiarBackdrops();
+        });
+        if (!modal.classList.contains("show")) {
+          limpiarPointerEvents(modal);
+        }
+      });
+      document.querySelectorAll(".offcanvas").forEach((offcanvas) => {
+        offcanvas.addEventListener("show.bs.offcanvas", () =>
+          habilitarPointerEvents(offcanvas)
+        );
+        offcanvas.addEventListener("shown.bs.offcanvas", () =>
+          habilitarPointerEvents(offcanvas)
+        );
+        offcanvas.addEventListener("hidden.bs.offcanvas", () => {
+          limpiarPointerEvents(offcanvas);
+          limpiarBackdrops();
+        });
+        if (!offcanvas.classList.contains("show")) {
+          limpiarPointerEvents(offcanvas);
+        }
+      });
+    };
+
+    const intentarInicializar = () => {
+      if (!window.bootstrap) {
+        return false;
+      }
+      vincularEventos();
+      limpiarBackdrops();
+      setInterval(limpiarBackdrops, 2000);
+      return true;
+    };
+
+    if (!intentarInicializar()) {
+      const esperaBootstrap = setInterval(() => {
+        if (intentarInicializar()) {
+          clearInterval(esperaBootstrap);
+        }
+      }, 100);
+    }
+  };
+
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", autoInit, { once: true });
   } else {
     autoInit();
   }
+
+  aplicarFixModalesPointerEvents();
 })();

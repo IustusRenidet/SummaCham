@@ -1,3 +1,95 @@
+* {
+  pointer-events: auto;
+}
+
+[hidden],
+[disabled],
+.disabled,
+[aria-disabled="true"] {
+  pointer-events: none !important;
+}
+
+.modal:not(.show),
+.offcanvas:not(.show),
+[hidden] {
+  pointer-events: none !important;
+  display: none !important;
+}
+
+.modal-backdrop:not(.show),
+.offcanvas-backdrop:not(.show) {
+  pointer-events: none !important;
+  display: none !important;
+}
+
+button:not(:disabled):not(.disabled),
+a:not(.disabled),
+input:not(:disabled),
+select:not(:disabled),
+textarea:not(:disabled),
+.btn:not(:disabled):not(.disabled) {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+
+.toolbar-actions {
+  z-index: 100 !important;
+  position: relative;
+}
+
+.toolbar-actions .btn {
+  z-index: 101 !important;
+  position: relative;
+  pointer-events: auto !important;
+}
+
+.workflow-toggle {
+  z-index: 102 !important;
+  position: relative;
+  pointer-events: auto !important;
+}
+
+.btn-chip {
+  z-index: 103 !important;
+  position: relative;
+  pointer-events: auto !important;
+}
+
+.modal.show {
+  z-index: 1060 !important;
+  pointer-events: auto !important;
+}
+
+.modal-backdrop.show {
+  z-index: 1055 !important;
+  pointer-events: auto !important;
+}
+
+.offcanvas.show {
+  z-index: 1070 !important;
+  pointer-events: auto !important;
+}
+
+.offcanvas-backdrop.show {
+  z-index: 1065 !important;
+  pointer-events: auto !important;
+}
+
+.modal .btn,
+.modal button,
+.modal a,
+.modal input,
+.modal select,
+.offcanvas .btn,
+.offcanvas button,
+.offcanvas a,
+.offcanvas input,
+.offcanvas select {
+  pointer-events: auto !important;
+  z-index: 1 !important;
+  position: relative;
+}
+
 :root {
   --btn-primario-bg: #2f5496;
   --btn-primario-bg-hover: #203763;
@@ -54,6 +146,9 @@
   padding: 0.45rem 0.95rem;
   line-height: 1.2;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+  z-index: 10;
+  pointer-events: auto !important;
 }
 
 .btn-chip i {
@@ -133,7 +228,7 @@
   flex-wrap: wrap;
   gap: 0.45rem;
   position: relative;
-  z-index: 2;
+  z-index: 10;
 }
 
 .toolbar-actions .btn {
@@ -142,8 +237,8 @@
   font-size: 0.9rem;
   padding: 0.35rem 0.9rem;
   position: relative;
-  z-index: 2;
-  pointer-events: auto;
+  z-index: 10;
+  pointer-events: auto !important;
 }
 
 .table-budget {
@@ -187,8 +282,8 @@
   justify-content: center;
   width: 44px;
   position: relative;
-  z-index: 2;
-  pointer-events: auto;
+  z-index: 10;
+  pointer-events: auto !important;
 }
 
 .workflow-toggle i {
@@ -199,6 +294,17 @@
 .workflow-toggle:focus {
   background: rgba(255, 255, 255, 0.25);
   color: #ffffff;
+}
+
+.btn:disabled,
+.btn.disabled {
+  pointer-events: none;
+  opacity: 0.65;
+}
+
+button:not(:disabled):not(.disabled),
+a:not(.disabled) {
+  pointer-events: auto !important;
 }
 
 .workflow-drawer {

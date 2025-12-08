@@ -231,11 +231,23 @@
         align-items: center;
         justify-content: center;
         z-index: 1999;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+      }
+      .section-modal:not([hidden]) {
+        pointer-events: auto;
+        opacity: 1;
+      }
+      .section-modal[hidden] {
+        display: none !important;
+        pointer-events: none !important;
       }
       .section-modal__overlay {
         position: absolute;
         inset: 0;
         background: rgba(0,0,0,0.35);
+        pointer-events: auto;
       }
       .section-modal__dialog {
         position: relative;
@@ -248,6 +260,10 @@
         display: flex;
         flex-direction: column;
         gap: 12px;
+        max-height: 90vh;
+        overflow-y: auto;
+        z-index: 2000;
+        pointer-events: auto;
       }
       .section-modal__form {
         display: flex;
@@ -306,6 +322,13 @@
       }
       .section-modal__info li {
         margin-bottom: 2px;
+      }
+      .section-modal__dialog input,
+      .section-modal__dialog button,
+      .section-modal__dialog select,
+      .section-modal__dialog textarea,
+      .section-modal__dialog a {
+        pointer-events: auto !important;
       }
     `;
     document.head.appendChild(style);
@@ -453,11 +476,30 @@
     abrirModalAgregarSeccion.actualizarSecciones = () => poblarSelectSeccionesModal();
     poblarSelectSeccionesModal();
     modal.hidden = false;
+    modal.removeAttribute('hidden');
+    modal.style.display = 'flex';
+    modal.style.pointerEvents = 'auto';
+    const overlay = modal.querySelector('.section-modal__overlay');
+    if (overlay) {
+      overlay.style.pointerEvents = 'auto';
+    }
+    void modal.offsetHeight;
+    const primerInput = modal.querySelector('input, select, textarea');
+    if (primerInput) {
+      setTimeout(() => primerInput.focus(), 100);
+    }
   };
 
   const cerrarModalSeccion = () => {
     if (!sectionModalInstance) return;
     sectionModalInstance.hidden = true;
+    sectionModalInstance.setAttribute('hidden', 'hidden');
+    sectionModalInstance.style.display = 'none';
+    sectionModalInstance.style.pointerEvents = 'none';
+    const overlay = sectionModalInstance.querySelector('.section-modal__overlay');
+    if (overlay) {
+      overlay.style.pointerEvents = 'none';
+    }
     const form = sectionModalInstance.querySelector('form');
     if (form) {
       form.reset();
