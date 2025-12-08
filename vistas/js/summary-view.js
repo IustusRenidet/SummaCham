@@ -209,6 +209,10 @@
   window.CuentasModulo.cancelEdit = cancelarEdicion;
   window.CuentasModulo.getCambios = obtenerCambiosPendientes;
   window.CuentasModulo.setEditMode = establecerModoEdicion;
+  // Compatibilidad: exponer funciones de layout del editor de modo-edicion
+  window.CuentasModulo.guardarLayout = () => window.ModoEdicionPresupuesto?.guardarLayout?.() || false;
+  window.CuentasModulo.cargarLayoutLocal = () => window.ModoEdicionPresupuesto?.cargarLayoutLocal?.() || null;
+  window.CuentasModulo.aplicarLayoutLocal = (l) => window.ModoEdicionPresupuesto?.aplicarLayoutLocal?.(l) || false;
 
   // Compatibilidad: algunos layouts antiguos esperaban esta función.
   // Hoy el capítulo se deriva de la empresa activa, pero aquí podemos
@@ -871,6 +875,17 @@
       showToast('Selecciona empresa y año.', 'text-bg-warning');
       return;
     }
+    // Persistir layout localmente si el editor lo soporta (cuenta/descripcion)
+    try {
+      if (window.ModoEdicionPresupuesto?.guardarLayout) {
+        window.ModoEdicionPresupuesto.guardarLayout();
+      } else if (window.CuentasModulo?.guardarLayout) {
+        window.CuentasModulo.guardarLayout();
+      }
+    } catch (err) {
+      console.warn('guardarLayout (no crítico) falló', err);
+    }
+
     const cambios = window.CuentasModulo?.getCambios?.() || { presupuesto: [], hayCambios: false };
     try {
       const resp = await fetch(API_WORKFLOW_GUARDAR, {
@@ -1034,6 +1049,17 @@
 
     empresaActual = empresa;
     await aplicarEmpresa(empresaActual.id);
+    // Aplicar layout guardado localmente (si existe)
+    try {
+      const layoutLocal = window.CuentasModulo?.cargarLayoutLocal?.();
+      if (layoutLocal && window.CuentasModulo?.aplicarLayoutLocal) {
+        window.CuentasModulo.aplicarLayoutLocal(layoutLocal);
+      } else if (layoutLocal && window.ModoEdicionPresupuesto?.aplicarLayoutLocal) {
+        window.ModoEdicionPresupuesto.aplicarLayoutLocal(layoutLocal);
+      }
+    } catch (err) {
+      console.warn('Error aplicando layout local en Summary', err);
+    }
 
     const leerCapitulo = () => (selectCapitulo?.value || '').toString().trim();
 

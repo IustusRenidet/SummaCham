@@ -37,6 +37,38 @@
     selectorTabla: SELECTOR_TABLA
   };
 
+  const normalizeString = (s) => (s || '').toString().normalize('NFD').replace(/\p{Diacritic}/gu, '').toUpperCase().trim();
+
+  // Helpers para persistir layout (cuenta/descripcion) por empresa/anio/modulo
+  const obtenerClaveLayoutLocal = ({ moduloClave, empresaId, anio }) => {
+    if (!moduloClave || !empresaId || !Number.isInteger(anio)) return null;
+    return `planeacion-layout:${empresaId}:${anio}:${moduloClave}`;
+  };
+
+  const cargarLayoutLocal = ({ moduloClave, empresaId, anio }) => {
+    const clave = obtenerClaveLayoutLocal({ moduloClave, empresaId, anio });
+    if (!clave || !window.localStorage) return null;
+    try {
+      const crudo = window.localStorage.getItem(clave);
+      return crudo ? JSON.parse(crudo) : null;
+    } catch (err) {
+      console.warn('No fue posible leer layout local', err);
+      return null;
+    }
+  };
+
+  const guardarLayoutLocal = ({ moduloClave, empresaId, anio, layout }) => {
+    const clave = obtenerClaveLayoutLocal({ moduloClave, empresaId, anio });
+    if (!clave || !window.localStorage || !layout) return false;
+    try {
+      window.localStorage.setItem(clave, JSON.stringify(layout));
+      return true;
+    } catch (err) {
+      console.warn('No fue posible guardar layout local', err);
+      return false;
+    }
+  };
+
   /**
    * Resolver la tabla a utilizar considerando:
    * - Selector recibido
@@ -223,6 +255,64 @@
     return { presupuesto };
   }
 
+  // Capturar layout (cuenta+descripcion y tipo fila) desde la tabla para persistencia
+  function capturarLayoutDesdeTabla(tabla) {
+    if (!tabla) {
+      const res = resolverTabla(estado.selectorTabla);
+      tabla = res.tabla;
+    }
+    if (!tabla) return null;
+    const filas = Array.from(tabla.tBodies[0]?.rows || []);
+    const layout = filas.map((fila, idx) => {
+      const cuenta = (fila.dataset.cuenta || fila.querySelector('[data-cuenta]')?.dataset.cuenta || fila.cells[0]?.textContent || '').toString().trim();
+      const descripcion = (fila.querySelector('[data-role="descripcion"]')?.textContent || fila.cells[1]?.textContent || '').toString().trim();
+      const role = fila.dataset.rowRole || fila.dataset.rowRole?.trim() || fila.dataset.role || '';
+      return {
+        id: fila.id || `r${idx}`,
+        cuenta,
+        descripcion,
+        role
+      };
+    });
+    return { filas: layout };
+  }
+
+  function persistirLayoutActual() {
+    const { tabla } = resolverTabla(estado.selectorTabla);
+    if (!tabla) return false;
+    const empresa = Sesion.obtenerEmpresaActiva();
+    const anioSeleccion = Number(document.getElementById('selectAnio')?.value || new Date().getFullYear());
+    const anio = Number.isInteger(anioSeleccion) ? anioSeleccion : null;
+    const moduloClave = (document.body?.dataset?.modulo || document.body?.dataset?.moduloId || 'summary').toString().trim();
+    if (!empresa?.id || !Number.isInteger(anio) || !moduloClave) return false;
+    const layout = capturarLayoutDesdeTabla(tabla);
+    if (!layout) return false;
+    const guardado = guardarLayoutLocal({ moduloClave, empresaId: empresa.id, anio, layout });
+    if (guardado) {
+      console.log('Layout persistido (localStorage)', { moduloClave, empresaId: empresa.id, anio });
+    }
+    return guardado;
+  }
+
+  function aplicarLayoutLocal(layout, tabla) {
+    if (!layout || !Array.isArray(layout.filas) || !tabla) return false;
+    const filas = Array.from(tabla.tBodies[0]?.rows || []);
+    layout.filas.forEach((filaLayout) => {
+      const { cuenta: cuentaLayout, descripcion: descripcionLayout } = filaLayout || {};
+      if (!cuentaLayout) return;
+      // Buscar fila por dataset.cuenta o por primera celda coincidente
+      const filaMatch = filas.find(f => (f.dataset.cuenta && normalizeString(f.dataset.cuenta) === normalizeString(cuentaLayout))
+        || ((f.cells[0]?.textContent || '').trim() === (cuentaLayout || '').trim()));
+      if (filaMatch) {
+        const celdaDescripcion = filaMatch.querySelector('[data-role="descripcion"]') || filaMatch.cells[1];
+        if (celdaDescripcion && descripcionLayout != null) {
+          celdaDescripcion.textContent = descripcionLayout;
+        }
+      }
+    });
+    return true;
+  }
+
   /**
    * Limpiar cambios capturados
    */
@@ -279,6 +369,99 @@
     console.log('🛑 Modo edición DESACTIVADO');
   }
 
+  // CONTEXT MENU: Agregar/Eliminar filas y secciones
+  let menuContextual = null;
+  let filaContextual = null;
+
+  function ocultarMenuContextual() {
+    if (menuContextual) menuContextual.hidden = true;
+  }
+
+  function mostrarMenuContextual(x, y, opciones) {
+    const menu = menuContextual || Object.assign(document.createElement('div'), { className: 'modoedicion-context-menu', style: 'position:absolute; z-index:99999; background:#fff; border:1px solid #dcdcdc; padding:6px; box-shadow: 0 3px 8px rgba(0,0,0,0.12);' });
+    menuContextual = menu;
+    menu.innerHTML = '';
+    opciones.forEach((opcion) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn btn-sm btn-light w-100 text-start';
+      btn.textContent = opcion.texto || opcion.label;
+      btn.addEventListener('click', () => {
+        switch (opcion.clave) {
+          case 'add_above': insertarFilaNueva('arriba'); break;
+          case 'add_below': insertarFilaNueva('abajo'); break;
+          case 'delete_row': eliminarFilaSeleccionada(); break;
+          case 'add_section': agregarSeccionNueva(); break;
+          default: break;
+        }
+        ocultarMenuContextual();
+      });
+      menu.appendChild(btn);
+    });
+    menu.style.left = `${x}px`;
+    menu.style.top = `${y}px`;
+    menu.hidden = false;
+    if (!document.body.contains(menu)) document.body.appendChild(menu);
+  }
+
+  function insertarFilaNueva(pos = 'abajo') {
+    const { tabla } = resolverTabla(estado.selectorTabla);
+    if (!tabla || !filaContextual) return;
+    const nueva = filaContextual.cloneNode(true);
+    // limpiar valores y IDs
+    nueva.id = '';
+    Array.from(nueva.cells).forEach((c) => c.textContent = '');
+    if (pos === 'abajo') filaContextual.parentNode.insertBefore(nueva, filaContextual.nextSibling);
+    else filaContextual.parentNode.insertBefore(nueva, filaContextual);
+    // rebind
+    inicializarCeldasEditables(tabla);
+  }
+
+  function eliminarFilaSeleccionada() {
+    if (!filaContextual) return;
+    filaContextual.remove();
+    filaContextual = null;
+  }
+
+  function agregarSeccionNueva() {
+    const { tabla } = resolverTabla(estado.selectorTabla);
+    if (!tabla || !filaContextual) return;
+    const thead = tabla.tHead;
+    const tbody = tabla.tBodies[0];
+    const nueva = document.createElement('tr');
+    nueva.className = 'section-header-row';
+    const c1 = document.createElement('td');
+    c1.colSpan = tabla.tHead.rows[0]?.cells.length || 2;
+    c1.textContent = 'Nueva Seccion';
+    nueva.appendChild(c1);
+    filaContextual.parentNode.insertBefore(nueva, filaContextual);
+    inicializarCeldasEditables(tabla);
+  }
+
+  document.addEventListener('contextmenu', (evt) => {
+    if (!estado.modoEdicionActivo) return;
+    const res = resolverTabla(estado.selectorTabla);
+    if (!res || !res.tabla) return;
+    const tabla = res.tabla;
+    if (!tabla.contains(evt.target)) return;
+    const fila = evt.target.closest('tr');
+    if (!fila) return;
+    filaContextual = fila;
+    const opciones = [];
+    // si es fila de cuenta
+    if (fila.querySelector('[data-cuenta]') || fila.dataset.cuenta || fila.classList.contains('fila-cuenta')) {
+      opciones.push({ clave: 'add_above', texto: 'Agregar cuenta arriba' });
+      opciones.push({ clave: 'add_below', texto: 'Agregar cuenta abajo' });
+      opciones.push({ clave: 'delete_row', texto: 'Eliminar fila' });
+    } else if (fila.classList.contains('section-header-row')) {
+      opciones.push({ clave: 'delete_row', texto: 'Eliminar sección' });
+    }
+    opciones.push({ clave: 'add_section', texto: 'Agregar sección' });
+    if (!opciones.length) return;
+    evt.preventDefault();
+    mostrarMenuContextual(evt.pageX, evt.pageY, opciones);
+  });
+
   /**
    * API Pública
    */
@@ -308,6 +491,21 @@
 
       estado.selectorTabla = selectorUsado;
       inicializarCeldasEditables(tabla);
+      // Intentar cargar layout guardado localmente y aplicarlo
+      try {
+        const empresa = Sesion.obtenerEmpresaActiva();
+        const anioSeleccion = Number(document.getElementById('selectAnio')?.value || new Date().getFullYear());
+        const anio = Number.isInteger(anioSeleccion) ? anioSeleccion : null;
+        const moduloClave = (document.body?.dataset?.modulo || document.body?.dataset?.moduloId || 'summary').toString().trim();
+        if (empresa?.id && Number.isInteger(anio) && moduloClave) {
+          const layoutGuardado = cargarLayoutLocal({ moduloClave, empresaId: empresa.id, anio });
+          if (layoutGuardado) {
+            aplicarLayoutLocal(layoutGuardado, tabla);
+          }
+        }
+      } catch (err) {
+        console.warn('Error aplicando layout local', err);
+      }
       console.log(`✅ Modo edición inicializado sobre ${selectorUsado}`);
       return true;
     },
@@ -365,6 +563,22 @@
      */
     obtenerNumCambios: function() {
       return Object.keys(estado.cambiosCapturados).length;
+    },
+    // Persiste layout actual como plantilla local (por empresa/anio/modulo)
+    guardarLayout: function() {
+      return persistirLayoutActual();
+    },
+    cargarLayoutLocal: function() {
+      const empresa = Sesion.obtenerEmpresaActiva();
+      const anioSeleccion = Number(document.getElementById('selectAnio')?.value || new Date().getFullYear());
+      const anio = Number.isInteger(anioSeleccion) ? anioSeleccion : null;
+      const moduloClave = (document.body?.dataset?.modulo || document.body?.dataset?.moduloId || 'summary').toString().trim();
+      if (!empresa?.id || !Number.isInteger(anio) || !moduloClave) return null;
+      return cargarLayoutLocal({ moduloClave, empresaId: empresa.id, anio });
+    }
+    , aplicarLayoutLocal: function(layout) {
+      const { tabla } = resolverTabla(estado.selectorTabla);
+      return aplicarLayoutLocal(layout, tabla);
     }
   };
 

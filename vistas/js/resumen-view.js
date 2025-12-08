@@ -288,6 +288,9 @@
   window.CuentasModulo.cancelEdit = cancelarEdicion;
   window.CuentasModulo.getCambios = obtenerCambiosPendientes;
   window.CuentasModulo.setEditMode = establecerModoEdicion;
+  window.CuentasModulo.guardarLayout = () => window.ModoEdicionPresupuesto?.guardarLayout?.() || false;
+  window.CuentasModulo.cargarLayoutLocal = () => window.ModoEdicionPresupuesto?.cargarLayoutLocal?.() || null;
+  window.CuentasModulo.aplicarLayoutLocal = (l) => window.ModoEdicionPresupuesto?.aplicarLayoutLocal?.(l) || false;
 
   const createCell = (val, { rowRole = '', classes = '', tooltipKey = '' } = {}) => {
     const classList = ['text-end'];
@@ -675,6 +678,17 @@
 
     empresaActual = empresa;
     await aplicarEmpresaResumen(empresaActual.id);
+    // Aplicar layout guardado localmente (si existe)
+    try {
+      const layoutLocal = window.CuentasModulo?.cargarLayoutLocal?.();
+      if (layoutLocal && window.CuentasModulo?.aplicarLayoutLocal) {
+        window.CuentasModulo.aplicarLayoutLocal(layoutLocal);
+      } else if (layoutLocal && window.ModoEdicionPresupuesto?.aplicarLayoutLocal) {
+        window.ModoEdicionPresupuesto.aplicarLayoutLocal(layoutLocal);
+      }
+    } catch (err) {
+      console.warn('Error aplicando layout local en Resumen', err);
+    }
 
     sincronizarSelectorEmpresaGlobal();
 
@@ -848,6 +862,16 @@
       showToast('Selecciona empresa y año.', 'text-bg-warning');
       return;
     }
+    try {
+      if (window.ModoEdicionPresupuesto?.guardarLayout) {
+        window.ModoEdicionPresupuesto.guardarLayout();
+      } else if (window.CuentasModulo?.guardarLayout) {
+        window.CuentasModulo.guardarLayout();
+      }
+    } catch (err) {
+      console.warn('guardarLayout (no crítico) falló', err);
+    }
+
     const cambios = window.CuentasModulo?.getCambios?.() || { presupuesto: [], hayCambios: false };
     try {
       const resp = await fetch(API_WORKFLOW_GUARDAR, {
