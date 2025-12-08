@@ -14,6 +14,8 @@
     "test": "node --test",
     "pack": "electron-builder --dir",
     "dist": "electron-builder --win nsis",
+    "build:portable": "electron-builder --win portable --x64 --ia32",
+    "build:all": "electron-builder --win nsis,portable --x64 --ia32",
     "publish": "electron-builder --win --publish always",
     "postinstall": "electron-builder install-app-deps"
   },
@@ -41,14 +43,44 @@
       "main.js",
       "src/**/*",
       "vistas/**/*",
-      "icono/icono.png",
-      "icono/icono.ico",
+      "icono/**/*",
+      "image/**/*",
+      "mds/**/*",
+      "datos/**/*",
+      "info IMPORTANTE/**/*",
+      "IMPLEMENTACIONES/**/*",
+      "excels/**/*",
+      "scripts/**/*",
       "README.md"
     ],
     "extraResources": [
       {
         "from": "vistas",
         "to": "resources/vistas"
+      },
+      {
+        "from": "datos",
+        "to": "resources/datos"
+      },
+      {
+        "from": "info IMPORTANTE",
+        "to": "resources/info_importante"
+      },
+      {
+        "from": "mds",
+        "to": "resources/mds"
+      },
+      {
+        "from": "excels",
+        "to": "resources/excels"
+      },
+      {
+        "from": "IMPLEMENTACIONES",
+        "to": "resources/IMPLEMENTACIONES"
+      },
+      {
+        "from": "image",
+        "to": "resources/image"
       }
     ],
     "portable": {

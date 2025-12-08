@@ -38,17 +38,22 @@ El proyecto está configurado con **electron-builder** para generar un ejecutabl
 
 3. Comparte el archivo portable generado. Los usuarios solo necesitan descargarlo y abrirlo.
 
+Los recursos adicionales (`datos`, `info IMPORTANTE`, `mds`, `excels`, `image` y `IMPLEMENTACIONES`) se copian en `resources/*` dentro del instalador/portable. Si tu app actualiza archivos en tiempo de ejecución, configura esos path con `app.getPath('userData')`/carpeta de datos para persistencia fuera de `resources`.
+
 ## Estructura de carpetas
 
 - `main.js`: proceso principal de Electron.
 - `vistas/`: interfaces HTML utilizadas por la aplicación.
 - `icono/`: recursos gráficos utilizados durante el empaquetado.
+ - `datos/`, `info IMPORTANTE/`, `mds/`, `excels/` y `IMPLEMENTACIONES/`: datos y recursos adicionales que se empaquetan con la aplicación (resúmenes, archivos CSV/EXCEL y metadatos usados por los motores de reportes).
 
 ## Scripts disponibles
 
 - `npm start`: inicia la app en modo desarrollo.
 - `npm run pack`: genera un paquete sin instalador (modo directorio).
 - `npm run dist`: genera el ejecutable portable listo para distribución.
+ - `npm run build:portable`: genera el artifact portable (`portable`) para Windows (x64 + ia32).
+ - `npm run build:all`: genera installer + portable (NSIS + portable) para Windows (x64 + ia32).
 
 ## Hardening de la cuenta ICONET (admin global)
 
