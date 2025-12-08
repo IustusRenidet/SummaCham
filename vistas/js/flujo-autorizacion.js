@@ -411,36 +411,50 @@
       Object.entries(this.buttonIds).forEach(([key, id]) => {
         if (!id) return;
         const el = document.getElementById(id);
-        if (!el) return;
+        if (!el) {
+          console.debug(`Botón no encontrado: ${key} (${id})`);
+          return;
+        }
         el.classList.remove('disabled');
         el.removeAttribute('disabled');
         el.style.pointerEvents = 'auto';
         this.buttons[key] = el;
       });
 
-      this.buttons.guardar?.addEventListener('click', () => this._handleGuardar());
+      // Función helper para añadir listeners de forma segura
+      const agregarListener = (btn, handler) => {
+        if (!btn) return;
+        btn.addEventListener('click', handler, { once: false });
+      };
+
+      agregarListener(this.buttons.guardar, () => this._handleGuardar());
+      
       if (this.buttons.enviar) {
         const span = this.buttons.enviar.querySelector('span');
         if (span) span.textContent = 'Enviar presupuesto';
-        this.buttons.enviar.addEventListener('click', () => this._handleEnviar());
+        agregarListener(this.buttons.enviar, () => this._handleEnviar());
       }
-      this.buttons.cancelar?.addEventListener('click', () => this._handleCancelar());
-      this.buttons.verBorrador?.addEventListener('click', () => this._mostrarCentroBorradores());
+      
+      agregarListener(this.buttons.cancelar, () => this._handleCancelar());
+      agregarListener(this.buttons.verBorrador, () => this._mostrarCentroBorradores());
+      
       this._ensureBotonDescartar();
       if (this.buttons.descartar) {
         this.buttons.descartar.style.pointerEvents = 'auto';
-        this.buttons.descartar.addEventListener('click', (ev) => {
+        agregarListener(this.buttons.descartar, (ev) => {
           ev.preventDefault();
           this._descartarBorrador();
         });
       }
-      this.buttons.autorizar?.addEventListener('click', () => this._handleAutorizar());
-      this.buttons.rechazar?.addEventListener('click', () => this._handleRechazar());
-      this.buttons.marcarRevisado?.addEventListener('click', () => this._handleMarcarRevisado());
+      
+      agregarListener(this.buttons.autorizar, () => this._handleAutorizar());
+      agregarListener(this.buttons.rechazar, () => this._handleRechazar());
+      agregarListener(this.buttons.marcarRevisado, () => this._handleMarcarRevisado());
+      
       if (this.buttons.guardarCOI) {
         const span = this.buttons.guardarCOI.querySelector('span');
         if (span) span.textContent = 'Guardar en COI';
-        this.buttons.guardarCOI.addEventListener('click', () => this._handleGuardarCOI());
+        agregarListener(this.buttons.guardarCOI, () => this._handleGuardarCOI());
       }
     }
 
@@ -972,100 +986,181 @@
 
     async _mostrarConfirmacion({ titulo, mensaje, etiquetaBoton = 'Confirmar', tipoBoton = 'warning' }) {
       return new Promise((resolve) => {
-        const modal = document.createElement('div');
-        modal.className = 'modal fade';
-        modal.setAttribute('tabindex', '-1');
-        modal.setAttribute('aria-hidden', 'true');
-        modal.innerHTML = `
-          <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-              <div class="modal-header border-bottom">
-                <h5 class="modal-title">${titulo || 'Confirmación'}</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-              </div>
-              <div class="modal-body">
-                ${mensaje || '¿Estás seguro?'}
-              </div>
-              <div class="modal-footer border-top">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-${tipoBoton}">${etiquetaBoton}</button>
+        try {
+          // Crear modal con estructura correcta de Bootstrap
+          const modalId = 'modal-confirmacion-' + Date.now();
+          const modal = document.createElement('div');
+          modal.id = modalId;
+          modal.className = 'modal fade';
+          modal.setAttribute('tabindex', '-1');
+          modal.setAttribute('aria-hidden', 'true');
+          
+          const contenidoHTML = `
+            <div class="modal-dialog modal-dialog-centered">
+              <div class="modal-content">
+                <div class="modal-header border-bottom">
+                  <h5 class="modal-title">${titulo || 'Confirmación'}</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                  ${mensaje || '¿Estás seguro?'}
+                </div>
+                <div class="modal-footer border-top">
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                  <button type="button" class="btn btn-${tipoBoton} btn-confirmar-modal">${etiquetaBoton}</button>
+                </div>
               </div>
             </div>
-          </div>
-        `;
-        document.body.appendChild(modal);
-        const bsModal = new window.bootstrap.Modal(modal);
-        const btnConfirmar = modal.querySelector('.btn-' + tipoBoton);
-        const handleCerrar = () => {
-          bsModal.hide();
-          setTimeout(() => {
+          `;
+          
+          modal.innerHTML = contenidoHTML;
+          document.body.appendChild(modal);
+          
+          // Obtener instancia de Bootstrap modal
+          const bsModal = window.bootstrap?.Modal ? new window.bootstrap.Modal(modal, { backdrop: 'static', keyboard: false }) : null;
+          if (!bsModal) {
+            console.error('Bootstrap Modal no está disponible');
             document.body.removeChild(modal);
             resolve(false);
-          }, 300);
-        };
-        const handleConfirmar = () => {
-          bsModal.hide();
-          setTimeout(() => {
+            return;
+          }
+          
+          // Referencias a botones
+          const btnConfirmar = modal.querySelector('.btn-confirmar-modal');
+          const btnCancelar = modal.querySelector('[data-bs-dismiss="modal"]');
+          
+          // Resolver con false cuando se cierre (con X, Cancelar, o backdrop)
+          const handleCierre = () => {
+            bsModal.dispose();
             document.body.removeChild(modal);
-            resolve(true);
-          }, 300);
-        };
-        modal.addEventListener('hidden.bs.modal', handleCerrar);
-        btnConfirmar.addEventListener('click', handleConfirmar);
-        bsModal.show();
+            resolve(false);
+          };
+          
+          // Resolver con true cuando se confirme
+          const handleConfirmar = (ev) => {
+            ev.preventDefault();
+            bsModal.hide();
+            setTimeout(() => {
+              handleCierre();
+              resolve(true);
+            }, 300);
+          };
+          
+          // Listeners
+          modal.addEventListener('hidden.bs.modal', handleCierre, { once: true });
+          if (btnConfirmar) btnConfirmar.addEventListener('click', handleConfirmar, { once: true });
+          
+          // Mostrar modal
+          bsModal.show();
+        } catch (error) {
+          console.error('Error en _mostrarConfirmacion:', error);
+          resolve(false);
+        }
       });
     }
 
     async _mostrarEntradaConfirmacion({ titulo, mensaje, placeholder = '', etiquetaBoton = 'Confirmar' }) {
       return new Promise((resolve) => {
-        const modal = document.createElement('div');
-        modal.className = 'modal fade';
-        modal.setAttribute('tabindex', '-1');
-        modal.setAttribute('aria-hidden', 'true');
-        modal.innerHTML = `
-          <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-              <div class="modal-header border-bottom">
-                <h5 class="modal-title">${titulo || 'Entrada Requerida'}</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-              </div>
-              <div class="modal-body">
-                <p>${mensaje || 'Por favor ingresa un valor:'}</p>
-                <textarea class="form-control" rows="4" placeholder="${placeholder}" style="resize: vertical;"></textarea>
-              </div>
-              <div class="modal-footer border-top">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary">${etiquetaBoton}</button>
+        try {
+          // Crear modal con estructura correcta de Bootstrap
+          const modalId = 'modal-entrada-' + Date.now();
+          const modal = document.createElement('div');
+          modal.id = modalId;
+          modal.className = 'modal fade';
+          modal.setAttribute('tabindex', '-1');
+          modal.setAttribute('aria-hidden', 'true');
+          
+          const contenidoHTML = `
+            <div class="modal-dialog modal-dialog-centered">
+              <div class="modal-content">
+                <div class="modal-header border-bottom">
+                  <h5 class="modal-title">${titulo || 'Entrada Requerida'}</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                  <p>${mensaje || 'Por favor ingresa un valor:'}</p>
+                  <textarea class="form-control textarea-entrada-modal" rows="4" placeholder="${placeholder}" style="resize: vertical;"></textarea>
+                </div>
+                <div class="modal-footer border-top">
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                  <button type="button" class="btn btn-primary btn-confirmar-entrada">${etiquetaBoton}</button>
+                </div>
               </div>
             </div>
-          </div>
-        `;
-        document.body.appendChild(modal);
-        const textArea = modal.querySelector('textarea');
-        const bsModal = new window.bootstrap.Modal(modal);
-        const btnConfirmar = modal.querySelector('.btn-primary');
-        const handleCerrar = () => {
-          bsModal.hide();
-          setTimeout(() => {
+          `;
+          
+          modal.innerHTML = contenidoHTML;
+          document.body.appendChild(modal);
+          
+          // Obtener instancia de Bootstrap modal
+          const bsModal = window.bootstrap?.Modal ? new window.bootstrap.Modal(modal, { backdrop: 'static', keyboard: false }) : null;
+          if (!bsModal) {
+            console.error('Bootstrap Modal no está disponible');
             document.body.removeChild(modal);
             resolve(null);
-          }, 300);
-        };
-        const handleConfirmar = () => {
-          const valor = (textArea.value || '').trim();
-          bsModal.hide();
-          setTimeout(() => {
-            document.body.removeChild(modal);
-            resolve(valor || null);
-          }, 300);
-        };
-        modal.addEventListener('hidden.bs.modal', handleCerrar);
-        btnConfirmar.addEventListener('click', handleConfirmar);
-        textArea.addEventListener('keypress', (ev) => {
-          if (ev.ctrlKey && ev.key === 'Enter') handleConfirmar();
-        });
-        bsModal.show();
-        setTimeout(() => textArea.focus(), 300);
+            return;
+          }
+          
+          // Referencias
+          const textArea = modal.querySelector('.textarea-entrada-modal');
+          const btnConfirmar = modal.querySelector('.btn-confirmar-entrada');
+          let resuelto = false;
+          
+          // Resolver con null cuando se cierre
+          const handleCierre = () => {
+            if (resuelto) return;
+            resuelto = true;
+            try {
+              bsModal.dispose();
+              document.body.removeChild(modal);
+            } catch (e) {
+              console.warn('Error limpiando modal:', e);
+            }
+            resolve(null);
+          };
+          
+          // Resolver con valor cuando se confirme
+          const handleConfirmar = (ev) => {
+            if (resuelto) return;
+            resuelto = true;
+            ev.preventDefault();
+            const valor = (textArea?.value || '').trim();
+            try {
+              bsModal.hide();
+            } catch (e) {
+              console.warn('Error ocultando modal:', e);
+            }
+            setTimeout(() => {
+              try {
+                bsModal.dispose();
+                document.body.removeChild(modal);
+              } catch (e) {
+                console.warn('Error limpiando modal en handleConfirmar:', e);
+              }
+              resolve(valor || null);
+            }, 300);
+          };
+          
+          // Listeners
+          modal.addEventListener('hidden.bs.modal', handleCierre, { once: true });
+          if (btnConfirmar) btnConfirmar.addEventListener('click', handleConfirmar, { once: true });
+          
+          // Ctrl+Enter para confirmar
+          if (textArea) {
+            textArea.addEventListener('keypress', (ev) => {
+              if (ev.ctrlKey && ev.key === 'Enter') handleConfirmar(ev);
+            }, { once: false });
+          }
+          
+          // Mostrar modal
+          bsModal.show();
+          
+          // Enfocar textarea
+          setTimeout(() => textArea?.focus(), 300);
+        } catch (error) {
+          console.error('Error en _mostrarEntradaConfirmacion:', error);
+          resolve(null);
+        }
       });
     }
 
@@ -1587,8 +1682,17 @@
       btn.removeAttribute('data-bs-target');
       btn.addEventListener('click', (event) => {
         event.preventDefault();
-        const instancia = asegurarWorkflowDrawer();
-        instancia?.show();
+        event.stopPropagation();
+        try {
+          const instancia = asegurarWorkflowDrawer();
+          if (instancia) {
+            instancia.show();
+          } else {
+            console.warn('No fue posible obtener instancia del offcanvas');
+          }
+        } catch (error) {
+          console.error('Error al abrir workflow drawer:', error);
+        }
       });
     });
 
