@@ -10,7 +10,8 @@
 // ================================
 // === CONFIG / ESTADO GENERAL ===
 // ================================
-const API_BASE = 'http://localhost:3000/api';
+const base = window.location.protocol === 'file:' ? 'http://127.0.0.1:3000' : window.location.origin;
+const API_BASE = `${base}/api`;
 /*
   Resumen de la logica (guia rapida):
   - CURRENT_LAYOUT describe la jerarquia/colores de la tabla (simula el Excel original).

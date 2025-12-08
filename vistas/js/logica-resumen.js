@@ -1,5 +1,6 @@
 (() => {
-  const API_BASE = 'http://localhost:3000/api';
+  const base = window.location.protocol === 'file:' ? 'http://127.0.0.1:3000' : window.location.origin;
+  const API_BASE = `${base}/api`;
   const YEAR_SELECT = document.getElementById('resumenYearSelect');
   const MONTH_SELECT = document.getElementById('resumenMonthSelect');
   const TABLE_BODY = document.getElementById('tablaCuentasBody');
