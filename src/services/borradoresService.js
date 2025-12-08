@@ -477,15 +477,25 @@ const eliminarBorrador = (empresaId, modulo, anio, usuarioId) => {
 };
 
 const obtenerBorrador = ({ empresaId, modulo, anio }) => {
-  const fila = db.prepare(`
-    SELECT *
-    FROM PLAN_BORRADORES
-    WHERE empresaId = ? AND modulo = ? AND anio = ?
-      AND estado IN ('${ESTADOS.EDITANDO}', '${ESTADOS.PENDIENTE}', '${ESTADOS.RECHAZADO}', '${ESTADOS.REVISADO}', '${ESTADOS.APROBADO}')
-    ORDER BY fechaEnvio DESC NULLS LAST, id DESC
-    LIMIT 1
-  `).get(empresaId, modulo, anio);
-  return mapearFila(fila);
+  try {
+    console.log('[obtenerBorrador] called with:', { empresaId, modulo, anio });
+    const estadosValidos = [ESTADOS.EDITANDO, ESTADOS.PENDIENTE, ESTADOS.RECHAZADO, ESTADOS.REVISADO, ESTADOS.APROBADO];
+    const placeholders = estadosValidos.map(() => '?').join(',');
+    const query = `
+      SELECT *
+      FROM PLAN_BORRADORES
+      WHERE empresaId = ? AND modulo = ? AND anio = ?
+        AND estado IN (${placeholders})
+      ORDER BY fechaEnvio DESC NULLS LAST, id DESC
+      LIMIT 1
+    `;
+    const fila = db.prepare(query).get(empresaId, modulo, anio, ...estadosValidos);
+    console.log('[obtenerBorrador] result:', fila ? `found id=${fila.id}, estado=${fila.estado}` : 'null');
+    return mapearFila(fila);
+  } catch (err) {
+    console.error('[obtenerBorrador] error:', err.message, err.stack);
+    throw err;
+  }
 };
 
 
@@ -501,9 +511,9 @@ const guardarBorrador = (contexto, datos) => {
   if (existente) {
     db.prepare(`
       UPDATE PLAN_BORRADORES
-      SET data = ?, estado = '${ESTADOS.EDITANDO}', fechaEnvio = NULL, comentarios = NULL, usuarioId = ?
+      SET data = ?, estado = ?, fechaEnvio = NULL, comentarios = NULL, usuarioId = ?
       WHERE id = ?
-    `).run(contenido, cfg.usuarioId, existente.id);
+    `).run(contenido, ESTADOS.EDITANDO, cfg.usuarioId, existente.id);
     const actualizado = obtenerBorradorPorId(existente.id);
     registrarEventoHistorial({
       borradorId: actualizado.id,
@@ -520,8 +530,8 @@ const guardarBorrador = (contexto, datos) => {
 
   const resultado = db.prepare(`
     INSERT INTO PLAN_BORRADORES (empresaId, anio, modulo, usuarioId, data, estado, comentarios)
-    VALUES (?, ?, ?, ?, ?, '${ESTADOS.EDITANDO}', ?)
-  `).run(cfg.empresaId, cfg.anio, cfg.modulo, cfg.usuarioId, contenido, cfg.comentarios);
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(cfg.empresaId, cfg.anio, cfg.modulo, cfg.usuarioId, contenido, ESTADOS.EDITANDO, cfg.comentarios);
 
   const nuevo = obtenerBorradorPorId(resultado.lastInsertRowid);
   registrarEventoHistorial({
@@ -546,9 +556,9 @@ const enviarRevision = async (borradorId, usuarioRol, usuarioId) => {
   if (usuarioRol === 'ADMIN_GLOBAL') {
     db.prepare(`
       UPDATE PLAN_BORRADORES
-      SET estado = '${ESTADOS.APROBADO}', fechaEnvio = CURRENT_TIMESTAMP
+      SET estado = ?, fechaEnvio = CURRENT_TIMESTAMP
       WHERE id = ?
-    `).run(borradorId);
+    `).run(ESTADOS.APROBADO, borradorId);
     const actualizado = obtenerBorradorPorId(borradorId);
     registrarEventoHistorial({
       borradorId,
@@ -565,9 +575,9 @@ const enviarRevision = async (borradorId, usuarioRol, usuarioId) => {
 
   db.prepare(`
     UPDATE PLAN_BORRADORES
-    SET estado = '${ESTADOS.PENDIENTE}', fechaEnvio = CURRENT_TIMESTAMP
+    SET estado = ?, fechaEnvio = CURRENT_TIMESTAMP
     WHERE id = ?
-  `).run(borradorId);
+  `).run(ESTADOS.PENDIENTE, borradorId);
 
   const actualizado = obtenerBorradorPorId(borradorId);
   registrarEventoHistorial({
@@ -620,9 +630,9 @@ const autorizarBorrador = async (borradorId, usuarioId) => {
 
   db.prepare(`
     UPDATE PLAN_BORRADORES
-    SET estado = '${ESTADOS.APROBADO}', fechaEnvio = CURRENT_TIMESTAMP
+    SET estado = ?, fechaEnvio = CURRENT_TIMESTAMP
     WHERE id = ?
-  `).run(borradorId);
+  `).run(ESTADOS.APROBADO, borradorId);
 
   const actualizado = obtenerBorradorPorId(borradorId);
   registrarEventoHistorial({
@@ -646,9 +656,9 @@ const rechazarBorrador = (borradorId, motivo, usuarioId) => {
 
   db.prepare(`
     UPDATE PLAN_BORRADORES
-    SET estado = '${ESTADOS.RECHAZADO}', comentarios = ?, fechaEnvio = CURRENT_TIMESTAMP
+    SET estado = ?, comentarios = ?, fechaEnvio = CURRENT_TIMESTAMP
     WHERE id = ?
-  `).run(motivo || null, borradorId);
+  `).run(ESTADOS.RECHAZADO, motivo || null, borradorId);
 
   const actualizado = obtenerBorradorPorId(borradorId);
   registrarEventoHistorial({
@@ -679,9 +689,9 @@ const guardarAutorizado = async (borradorId, usuarioId) => {
   }
   db.prepare(`
     UPDATE PLAN_BORRADORES
-    SET estado = '${ESTADOS.GUARDADO}', fechaEnvio = CURRENT_TIMESTAMP
+    SET estado = ?, fechaEnvio = CURRENT_TIMESTAMP
     WHERE id = ?
-  `).run(borradorId);
+  `).run(ESTADOS.GUARDADO, borradorId);
   const actualizado = obtenerBorradorPorId(borradorId);
   registrarEventoHistorial({
     borradorId,

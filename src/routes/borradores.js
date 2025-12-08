@@ -34,72 +34,6 @@ const normalizarTexto = (valor) => {
 
 router.use(requireAuth);
 
-/**
- * GET /api/borradores/estado
- * Obtiene el estado actual del borrador para una empresa/módulo/año
- * 
- * Query params:
- * - empresaId: string (requerido)
- * - modulo: string (requerido)
- * - anio: number (requerido)
- * 
- * Response: { borrador: {}, estado: string } o { borrador: null, estado: 'sin-cargar' }
- */
-router.get('/estado', (req, res) => {
-  const { empresaId, modulo, anio } = req.query;
-  
-  // Validar parámetros
-  if (!empresaId || !modulo || !anio) {
-    return res.status(400).json({
-      mensaje: 'Faltan parámetros: empresaId, modulo, anio'
-    });
-  }
-
-  // Validar empresa
-  const empresa = obtenerEmpresaPorId(empresaId);
-  if (!empresa) {
-    return res.status(404).json({ 
-      mensaje: 'Empresa no encontrada.' 
-    });
-  }
-
-  // Validar y normalizar módulo
-  const moduloCanonico = obtenerModuloCanonico(modulo);
-  if (!moduloCanonico) {
-    return res.status(400).json({ 
-      mensaje: 'El módulo indicado no es válido.' 
-    });
-  }
-
-  // Obtener el borrador actual para ese contexto
-  const borrador = obtenerBorrador({
-    empresaId: empresa.id,
-    modulo: moduloCanonico,
-    anio: Number(anio)
-  });
-
-  // Si no hay borrador, devolver estado 'sin-cargar'
-  if (!borrador) {
-    return res.json({
-      borrador: null,
-      estado: 'sin-cargar'
-    });
-  }
-
-  // Verificar si el usuario actual puede ver este borrador
-  if (!puedeVerBorrador(req, borrador)) {
-    return res.status(403).json({
-      mensaje: 'No tienes permisos para ver este borrador.'
-    });
-  }
-
-  // Devolver el borrador (sin datos completos para evitar transferencias grandes)
-  return res.json({
-    borrador: mapearResumen(borrador),
-    estado: borrador.estado
-  });
-});
-
 const obtenerModuloCanonico = (valor) => {
   const buscado = normalizarTexto(valor);
   if (!buscado) {
@@ -336,33 +270,40 @@ router.get('/historial', (req, res) => {
 });
 
 router.get('/estado', (req, res) => {
-  const empresaId = resolverEmpresaId(req);
-  const { value, error } = esquemaContexto.validate({ ...req.query, empresaId }, { abortEarly: false });
-  if (error) {
-    return res.status(400).json({
-      mensaje: 'Verifica los parámetros de consulta.',
-      detalles: error.details.map((detalle) => detalle.message)
+  try {
+    const empresaId = resolverEmpresaId(req);
+    const { value, error } = esquemaContexto.validate({ ...req.query, empresaId }, { abortEarly: false });
+    if (error) {
+      return res.status(400).json({
+        mensaje: 'Verifica los parámetros de consulta.',
+        detalles: error.details.map((detalle) => detalle.message)
+      });
+    }
+    const empresa = obtenerEmpresaPorId(value.empresaId);
+    if (!empresa) {
+      return res.status(404).json({ mensaje: 'La empresa indicada no existe.' });
+    }
+    const modulo = obtenerModuloCanonico(value.modulo);
+    if (!modulo) {
+      return res.status(400).json({ mensaje: 'El módulo indicado no es válido.' });
+    }
+    if (!req.esAdmin && !tienePermisoEnModulo(req.mapaPermisos, empresa.id, modulo)) {
+      return res.status(403).json({ mensaje: 'No cuentas con permisos en este módulo.' });
+    }
+
+    console.debug('[borradores] GET /estado params:', { empresaId: value.empresaId, modulo: value.modulo, anio: value.anio, usuario: req.usuarioActual?.id });
+
+    const borrador = obtenerBorrador({
+      empresaId: empresa.id,
+      modulo,
+      anio: value.anio
     });
-  }
-  const empresa = obtenerEmpresaPorId(value.empresaId);
-  if (!empresa) {
-    return res.status(404).json({ mensaje: 'La empresa indicada no existe.' });
-  }
-  const modulo = obtenerModuloCanonico(value.modulo);
-  if (!modulo) {
-    return res.status(400).json({ mensaje: 'El módulo indicado no es válido.' });
-  }
-  if (!req.esAdmin && !tienePermisoEnModulo(req.mapaPermisos, empresa.id, modulo)) {
-    return res.status(403).json({ mensaje: 'No cuentas con permisos en este módulo.' });
-  }
 
-  const borrador = obtenerBorrador({
-    empresaId: empresa.id,
-    modulo,
-    anio: value.anio
-  });
-
-  return res.json({ borrador });
+    return res.json({ borrador });
+  } catch (err) {
+    console.error('Error en GET /api/borradores/estado:', err);
+    return res.status(500).json({ mensaje: 'Ocurrió un error inesperado al obtener el estado del borrador.' });
+  }
 });
 
 router.get('/detalle/:id', (req, res) => {
