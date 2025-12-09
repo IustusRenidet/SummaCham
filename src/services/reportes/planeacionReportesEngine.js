@@ -196,6 +196,7 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
 
   const capituloClave = NORMALIZAR_CAPITULO(capituloSeleccionado || '');
 
+  // CAMBIO CRÍTICO: usar el índice del JSON directamente para preservar el orden
   const seccionOrden = new Map();
   const principalOrden = new Map();
   const consolidadoOrden = new Map();
@@ -223,31 +224,36 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
       });
 
       if (!seccionOrden.has(seccion)) {
-        seccionOrden.set(seccion, Number.isFinite(idx) ? idx : seccionOrden.size);
+        seccionOrden.set(seccion, idx);
       }
       const principal = cfg['sum-row-sumavarios'];
       if (principal && !principalOrden.has(principal)) {
-        principalOrden.set(principal, Number.isFinite(idx) ? idx : principalOrden.size);
+        principalOrden.set(principal, idx);
       }
       const consolidado = cfg['sum-row-sumavarios-consolidado'];
       if (consolidado && !consolidadoOrden.has(consolidado)) {
-        consolidadoOrden.set(consolidado, Number.isFinite(idx) ? idx : consolidadoOrden.size);
+        consolidadoOrden.set(consolidado, idx);
       }
       const resultRow = cfg['result-row'];
       if (resultRow && !resultOrden.has(resultRow)) {
-        resultOrden.set(resultRow, Number.isFinite(idx) ? idx : resultOrden.size);
+        resultOrden.set(resultRow, idx);
       }
       const netRow = cfg['net-row'];
       if (netRow && !netOrden.has(netRow)) {
-        netOrden.set(netRow, Number.isFinite(idx) ? idx : netOrden.size);
+        netOrden.set(netRow, idx);
       }
       const finalRow = cfg['result-net-row'];
       if (finalRow && !finalOrden.has(finalRow)) {
-        finalOrden.set(finalRow, Number.isFinite(idx) ? idx : finalOrden.size);
+        finalOrden.set(finalRow, idx);
       }
     });
   }
 
+  // Procesar definiciones RESPETANDO el orden de aparición en el JSON
+  // Necesitamos un orden jerárquico: Principal (orden global) → Secundaria (orden dentro de Principal)
+  const principalFirstAppearance = new Map(); // Guardar índice global de primera aparición de cada Principal
+  const seccionFirstAppearance = new Map(); // Guardar índice global de primera aparición de cada Secundaria
+  
   definiciones.forEach((item, idx) => {
     const capReal = NORMALIZAR_CAPITULO(item.CAPITULO || '');
     if (capReal !== capituloClave) return;
@@ -264,9 +270,11 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
     const keyConfig = `${capituloClave}|${seccion.toUpperCase()}`;
     const config = configPorSeccion.get(keyConfig) || {};
 
-    const principalLabel = config.principal || item['SECCIÓN Principal'] || 'GENERAL';
-    if (principalLabel && !principalOrden.has(principalLabel)) {
-      principalOrden.set(principalLabel, Number.isFinite(idx) ? idx : principalOrden.size);
+    const principalLabel = item['SECCIÓN Principal'] || config.principal || 'GENERAL';
+    
+    // Registrar la PRIMERA aparición de cada Principal (índice global)
+    if (!principalFirstAppearance.has(principalLabel)) {
+      principalFirstAppearance.set(principalLabel, idx);
     }
 
     const principalKey = NORMALIZAR_CLAVE(principalLabel);
@@ -280,25 +288,28 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
         resultRow: config.resultRow || '',
         netRow: config.netRow || '',
         resultNetRow: config.resultNetRow || '',
-        orden: principalOrden.has(principalLabel)
-          ? principalOrden.get(principalLabel)
-          : (Number.isFinite(idx) ? idx : principalMap.size + principalOrden.size),
+        orden: principalFirstAppearance.get(principalLabel),
         secciones: new Map()
       });
     }
 
     const principalNode = principalMap.get(principalKey);
     const seccionKey = seccion || 'SIN SECCIÓN';
-    if (!seccionOrden.has(seccionKey)) {
-      seccionOrden.set(seccionKey, Number.isFinite(idx) ? idx : seccionOrden.size + 1);
+    
+    // Registrar la PRIMERA aparición de cada Secundaria (índice global)
+    if (!seccionFirstAppearance.has(seccionKey)) {
+      seccionFirstAppearance.set(seccionKey, idx);
     }
+    
     if (!principalNode.secciones.has(seccionKey)) {
       principalNode.secciones.set(seccionKey, {
         label: seccionKey,
         cuentas: [],
-        orden: seccionOrden.get(seccionKey)
+        orden: seccionFirstAppearance.get(seccionKey)
       });
     }
+    
+    // Las cuentas se agregan en el orden que aparecen en el JSON
     principalNode.secciones.get(seccionKey).cuentas.push(cuentaCanonica);
   });
 
@@ -399,6 +410,7 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
     }
   });
 
+  // Construir layout intercalando Principales, Secundarias y Sumas en orden jerárquico
   let ordenGeneral = 0;
   const siguienteOrden = () => {
     ordenGeneral += 1;
@@ -406,20 +418,67 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
   };
 
   const layout = [];
-
-  Array.from(consolidatedMap.values())
-    .sort((a, b) => a.orden - b.orden)
-    .forEach((grupo) => {
+  
+  // Para cada Principal (ya ordenadas), agregar sus Secundarias y luego las sumas correspondientes
+  principalList.forEach((principal) => {
+    // 1. Agregar la Principal como header
+    layout.push({
+      type: 'principal',
+      label: principal.label,
+      order: siguienteOrden(),
+      totals: {
+        actualMonth: principal.actualMonth,
+        planMonth: principal.planMonth,
+        prevMonth: principal.prevMonth,
+        actualYTD: principal.actualYTD,
+        planYTD: principal.planYTD,
+        prevYTD: principal.prevYTD
+      },
+      children: principal.children,
+      consolidadoLabel: principal.consolidadoLabel,
+      operativoLabel: principal.operativoLabel,
+      resultRow: principal.resultRow,
+      netRow: principal.netRow
+    });
+    
+    // 2. Agregar cada Secundaria con sus cuentas
+    (principal.children || []).forEach((secundaria) => {
       layout.push({
-        type: 'group',
-        label: grupo.label,
+        type: 'secundaria',
+        label: secundaria.label,
         order: siguienteOrden(),
-        totals: grupo.totals,
-        principals: grupo.principals,
-        operaciones: grupo.operaciones || []
+        totals: {
+          actualMonth: secundaria.totalActualMonth,
+          planMonth: secundaria.totalPlanMonth,
+          prevMonth: secundaria.totalPrevMonth,
+          actualYTD: secundaria.totalActualYTD,
+          planYTD: secundaria.totalPlanYTD,
+          prevYTD: secundaria.totalPrevYTD
+        },
+        cuentas: secundaria.cuentas || []
+      });
+      
+      // 3. Agregar cada cuenta de esta Secundaria
+      (secundaria.cuentas || []).forEach((cuenta) => {
+        layout.push({
+          type: 'cuenta',
+          label: cuenta.label,
+          cuenta: cuenta.cuenta,
+          order: siguienteOrden(),
+          totals: {
+            actualMonth: cuenta.actualMonth,
+            planMonth: cuenta.planMonth,
+            prevMonth: cuenta.prevMonth,
+            actualYTD: cuenta.actualYTD,
+            planYTD: cuenta.planYTD,
+            prevYTD: cuenta.prevYTD
+          }
+        });
       });
     });
-
+  });
+  
+  // Ahora agregar las filas de consolidación al final
   const agregarBloques = (mapa, tipo) => {
     Array.from(mapa.values())
       .sort((a, b) => a.orden - b.orden)
@@ -435,6 +494,7 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
       });
   };
 
+  agregarBloques(consolidatedMap, 'group');
   agregarBloques(resultRowMap, 'result');
   agregarBloques(netRowMap, 'net');
   agregarBloques(finalRowMap, 'final');
@@ -449,15 +509,18 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
 async function generarReporte(tipoReporte, empresaId, anio, mesSeleccionado, capituloSeleccionado) {
   const definiciones = cargarDefiniciones();
   
-  // Mapeo: Si es RESUMEN, usar SUMMARY
+  // Determinar el tipo real: RESUMEN usa las mismas cuentas que SUMMARY pero con diferente agrupación
   const tipoReal = (tipoReporte === 'RESUMEN') ? 'SUMMARY' : tipoReporte;
+  const hojaConfig = tipoReporte; // Mantener el tipo original para filtrar configuración
   
   const lista = definiciones[tipoReal];
   if (!Array.isArray(lista) || !lista.length) {
     throw new Error(`No hay definiciones para ${tipoReal}`);
   }
 
-  const configAgrupacion = definiciones['SUMA DE VARIAS SECCIONES'] || [];
+  // Filtrar configuración de agrupación por HOJA (SUMMARY o RESUMEN)
+  const configCompleta = definiciones['SUMA DE VARIAS SECCIONES'] || [];
+  const configAgrupacion = configCompleta.filter(cfg => cfg.HOJA === hojaConfig);
 
   const capitulosDisponibles = extraerCapitulos(lista);
   const capituloClave = NORMALIZAR_CAPITULO(capituloSeleccionado || capitulosDisponibles[0]?.etiqueta || '');

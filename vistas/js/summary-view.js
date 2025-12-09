@@ -822,45 +822,116 @@
       }));
     };
 
+      // Renderizar usando SOLO el layout (que ya tiene todo en orden correcto)
       if (layout && layout.length) {
         layout.forEach((block) => {
-          if (block.type === 'group') {
-            (block.principals || []).forEach((label) => {
-              renderPrincipal(principalLookup.get(label));
-            });
+          const blockType = block.type || '';
+          
+          // PRINCIPAL: Header de sección principal
+          if (blockType === 'principal') {
             summaryBody.appendChild(createTotalsRow(block.totals || {}, {
               label: block.label || '',
-              rowClass: 'highlight-secondary fw-bold text-center',
-              labelClasses: 'text-center text-uppercase',
+              rowClass: 'section-header-row table-info fw-bold text-center',
+              labelClasses: 'text-center text-uppercase fw-bold',
               boldNumbers: true,
-              rowRole: 'group',
+              rowRole: 'principal',
               rowContext: {
                 label: block.label || '',
-                principals: block.principals || [],
-                operaciones: block.operaciones || []
+                sections: (block.children || []).map(ch => ch.label || ''),
+                sign: 1
               }
             }));
-          } else {
-            const rowClass = block.type === 'final'
-              ? 'highlight-bright fw-bold text-center'
-              : block.type === 'net'
-                ? 'highlight-secondary fw-bold text-center'
-                : 'highlight-primary fw-bold text-center';
+          }
+          // SECUNDARIA: Header de subsección
+          else if (blockType === 'secundaria') {
+            summaryBody.appendChild(createTotalsRow(block.totals || {}, {
+              label: block.label || '',
+              rowClass: 'subsection-row bg-light fw-semibold text-center',
+              labelClasses: 'text-start ps-3 text-primary',
+              boldNumbers: false,
+              rowRole: 'section',
+              rowContext: {
+                label: block.label || '',
+                principal: '',
+                cuentas: block.cuentas || []
+              }
+            }));
+          }
+          // CUENTA: Fila de datos
+          else if (blockType === 'cuenta') {
+            const cta = block.totals || {};
+            const ctaVarMonthPlan = calculateVar(cta.actualMonth, cta.planMonth);
+            const ctaVarMonthPrev = calculateVar(cta.actualMonth, cta.prevMonth);
+            const ctaVarYTDPlan = calculateVar(cta.actualYTD, cta.planYTD);
+            const ctaVarYTDPrev = calculateVar(cta.actualYTD, cta.prevYTD);
+
+            const ctaRow = document.createElement('tr');
+            ctaRow.dataset.rowRole = 'account';
+            ctaRow.dataset.cuenta = block.cuenta || '';
+            ctaRow.dataset.cuenta21 = block.cuenta || '';
+            ctaRow.dataset.cuentaVisible = block.cuenta || '';
+            ctaRow.className = 'account-row';
+            
+            ctaRow.innerHTML = `
+              ${createEditableCell(block.cuenta || '', { columnKey: 'cuenta', text: true, rowRole: 'account', classes: 'font-monospace small account-column text-start ps-4' })}
+              ${createEditableCell(block.label || '', { columnKey: 'descripcion', text: true, rowRole: 'account', classes: 'text-start' })}
+              ${createCell(cta.actualMonth, { tooltipKey: 'actualMonth', rowRole: 'account' })}
+              ${createCell(cta.planMonth, { tooltipKey: 'planMonth', rowRole: 'account' })}
+              ${createCell(cta.prevMonth, { tooltipKey: 'prevMonth', rowRole: 'account' })}
+              ${createPercentCell(ctaVarMonthPlan, { tooltipKey: 'varMonthPlan', rowRole: 'account' })}
+              ${createPercentCell(ctaVarMonthPrev, { tooltipKey: 'varMonthPrev', rowRole: 'account' })}
+              ${createCell(cta.actualYTD, { tooltipKey: 'actualYTD', rowRole: 'account' })}
+              ${createCell(cta.planYTD, { tooltipKey: 'planYTD', rowRole: 'account' })}
+              ${createCell(cta.prevYTD, { tooltipKey: 'prevYTD', rowRole: 'account' })}
+              ${createPercentCell(ctaVarYTDPlan, { tooltipKey: 'varYTDPlan', rowRole: 'account' })}
+              ${createPercentCell(ctaVarYTDPrev, { tooltipKey: 'varYTDPrev', rowRole: 'account' })}
+            `;
+            summaryBody.appendChild(ctaRow);
+          }
+          // CONSOLIDACIONES: Filas de suma con jerarquía visual
+          else if (['group', 'result', 'net', 'final'].includes(blockType)) {
+            // Determinar clase CSS según tipo y label
+            let rowClass = '';
+            const label = (block.label || '').toUpperCase();
+            
+            // Nivel 5: NET RESULTS (máxima jerarquía)
+            if (blockType === 'final' || label.includes('NET RESULTS') || label.includes('CONSOLIDATED NET')) {
+              rowClass = 'highlight-bright fw-bold text-center';
+            }
+            // Nivel 4: OPERATING RESULTS
+            else if (label.includes('OPERATING RESULTS') || label.includes('OPERATING INCOME')) {
+              rowClass = 'highlight-secondary fw-bold text-center';
+            }
+            // Nivel 3: CONSOLIDATED INCOME/EXPENSES
+            else if (label.includes('CONSOLIDATED') && (label.includes('INCOME') || label.includes('EXPENSE'))) {
+              rowClass = 'highlight-primary fw-bold text-center';
+            }
+            // Nivel 2: Principal (INCOME, EXPENSE sin CONSOLIDATED)
+            else if ((label.includes('INCOME') || label.includes('EXPENSE')) && !label.includes('CONSOLIDATED')) {
+              rowClass = 'sum-row-principal fw-bold text-center';
+            }
+            // Nivel 1: Sumas de sección
+            else {
+              rowClass = 'sum-row fw-semibold text-center';
+            }
+            
             summaryBody.appendChild(createTotalsRow(block.totals || {}, {
               label: block.label || '',
               rowClass,
-              labelClasses: 'text-center text-uppercase',
+              labelClasses: 'text-center text-uppercase fw-bold',
               boldNumbers: true,
-              rowRole: block.type || 'result',
+              rowRole: blockType,
               rowContext: {
                 label: block.label || '',
-                type: block.type || 'result',
+                type: blockType,
+                principals: block.principals || [],
                 operaciones: block.operaciones || []
               }
             }));
           }
         });
       } else {
+        // Fallback: renderizar usando children (comportamiento anterior)
         const ordenados = ordenarPorOrden(principales, (p, idx) => {
           const orden = Number.isFinite(Number(p?.orden)) ? Number(p.orden) : Number.isFinite(Number(p?.order)) ? Number(p.order) : null;
           return orden != null ? orden : idx;

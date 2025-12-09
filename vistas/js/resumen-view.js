@@ -582,37 +582,109 @@
         }));
       };
 
+      // Renderizar usando SOLO el layout (que ya tiene todo en orden correcto)
       if (layout && layout.length) {
         layout.forEach((block) => {
-          if (block.type === 'group') {
-            (block.principals || []).forEach((label) => {
-              renderPrincipal(principalLookup.get(label));
-            });
+          const blockType = block.type || '';
+          
+          // PRINCIPAL: Header de sección principal
+          if (blockType === 'principal') {
             tablaBody.appendChild(createResumenTotalsRow(block.totals || {}, {
               label: block.label || '',
-              rowRole: 'group',
-              rowClass: 'fw-bold text-uppercase',
+              rowRole: 'principal',
+              rowClass: 'section-header-row table-info fw-bold text-center',
               rowContext: {
                 label: block.label || '',
-                principals: block.principals || [],
-                operaciones: block.operaciones || []
+                sections: (block.children || []).map(ch => ch.label || ''),
+                sign: 1
               }
             }));
-          } else {
-            const role = block.type || 'result';
+          }
+          // SECUNDARIA: Header de subsección
+          else if (blockType === 'secundaria') {
             tablaBody.appendChild(createResumenTotalsRow(block.totals || {}, {
               label: block.label || '',
-              rowRole: role,
-              rowClass: role === 'final' ? 'highlight-bright text-white fw-bold' : 'highlight-secondary fw-bold',
+              rowRole: 'section',
+              rowClass: 'subsection-row bg-light fw-semibold text-center',
               rowContext: {
                 label: block.label || '',
-                type: role,
+                principal: '',
+                cuentas: block.cuentas || []
+              }
+            }));
+          }
+          // CUENTA: Fila de datos
+          else if (blockType === 'cuenta') {
+            const cta = block.totals || {};
+            const varPlan = calculateVar(cta.actualMonth, cta.planMonth);
+            const varPrev = calculateVar(cta.actualMonth, cta.prevMonth);
+            const varPlanYTD = calculateVar(cta.actualYTD, cta.planYTD);
+            const varPrevYTD = calculateVar(cta.actualYTD, cta.prevYTD);
+
+            const row = document.createElement('tr');
+            row.className = 'account-row';
+            row.dataset.cuenta = block.cuenta || '';
+            row.dataset.cuenta21 = block.cuenta || '';
+            row.dataset.rowRole = 'account';
+            
+            row.innerHTML = `
+              ${createEditableCell(block.cuenta || '', { columnKey: 'cuenta', rowRole: 'account', tooltipKey: 'account', text: true, classes: 'font-monospace small text-start ps-4' })}
+              ${createEditableCell(block.label || '', { columnKey: 'descripcion', rowRole: 'account', tooltipKey: 'account', text: true, classes: 'text-start' })}
+              ${createCell(cta.actualMonth, { rowRole: 'account', tooltipKey: 'actualMonth' })}
+              ${createCell(cta.planMonth, { rowRole: 'account', tooltipKey: 'planMonth' })}
+              ${createCell(cta.prevMonth, { rowRole: 'account', tooltipKey: 'prevMonth' })}
+              ${createPercentCell(varPlan, { rowRole: 'account', tooltipKey: 'varMonthPlan' })}
+              ${createPercentCell(varPrev, { rowRole: 'account', tooltipKey: 'varMonthPrev' })}
+              ${createCell(cta.actualYTD, { rowRole: 'account', tooltipKey: 'actualYTD' })}
+              ${createCell(cta.planYTD, { rowRole: 'account', tooltipKey: 'planYTD' })}
+              ${createCell(cta.prevYTD, { rowRole: 'account', tooltipKey: 'prevYTD' })}
+              ${createPercentCell(varPlanYTD, { rowRole: 'account', tooltipKey: 'varYtdPlan' })}
+              ${createPercentCell(varPrevYTD, { rowRole: 'account', tooltipKey: 'varYtdPrev' })}
+            `;
+            tablaBody.appendChild(row);
+          }
+          // CONSOLIDACIONES: Filas de suma con jerarquía visual
+          else if (['group', 'result', 'net', 'final'].includes(blockType)) {
+            // Determinar clase CSS según tipo y label
+            let rowClass = '';
+            const label = (block.label || '').toUpperCase();
+            
+            // Nivel 5: NET RESULTS (máxima jerarquía)
+            if (blockType === 'final' || label.includes('NET RESULTS') || label.includes('CONSOLIDATED NET')) {
+              rowClass = 'highlight-bright text-white fw-bold';
+            }
+            // Nivel 4: OPERATING RESULTS
+            else if (label.includes('OPERATING RESULTS') || label.includes('OPERATING INCOME')) {
+              rowClass = 'highlight-secondary fw-bold';
+            }
+            // Nivel 3: CONSOLIDATED INCOME/EXPENSES
+            else if (label.includes('CONSOLIDATED') && (label.includes('INCOME') || label.includes('EXPENSE'))) {
+              rowClass = 'highlight-primary fw-bold text-uppercase';
+            }
+            // Nivel 2: Principal (INCOME, EXPENSE sin CONSOLIDATED)
+            else if ((label.includes('INCOME') || label.includes('EXPENSE')) && !label.includes('CONSOLIDATED')) {
+              rowClass = 'sum-row-principal fw-bold';
+            }
+            // Nivel 1: Sumas de sección
+            else {
+              rowClass = 'sum-row fw-semibold';
+            }
+            
+            tablaBody.appendChild(createResumenTotalsRow(block.totals || {}, {
+              label: block.label || '',
+              rowRole: blockType,
+              rowClass,
+              rowContext: {
+                label: block.label || '',
+                type: blockType,
+                principals: block.principals || [],
                 operaciones: block.operaciones || []
               }
             }));
           }
         });
       } else {
+        // Fallback: renderizar usando children (comportamiento anterior)
         ordenarPorOrden(principales, (p, idx) => {
           const orden = Number.isFinite(Number(p?.orden)) ? Number(p.orden) : Number.isFinite(Number(p?.order)) ? Number(p.order) : null;
           return orden != null ? orden : idx;
