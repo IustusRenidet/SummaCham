@@ -423,13 +423,13 @@
       row.setAttribute('data-bs-toggle', 'tooltip');
     }
     row.innerHTML = `
-      <td></td>
-      <td class="${labelClasses}"${resumenRowTooltipAttr(rowRole)}>${label}</td>
+      <td class="account-column"></td>
       ${createCell(totals.actualMonth, { rowRole, tooltipKey: 'actualMonth' })}
       ${createCell(totals.planMonth, { rowRole, tooltipKey: 'planMonth' })}
       ${createCell(totals.prevMonth, { rowRole, tooltipKey: 'prevMonth' })}
       ${createPercentCell(varPlan, { rowRole, tooltipKey: 'varMonthPlan' })}
       ${createPercentCell(varPrev, { rowRole, tooltipKey: 'varMonthPrev' })}
+      <td class="${labelClasses} text-start"${resumenRowTooltipAttr(rowRole)}>${label}</td>
       ${createCell(totals.actualYTD, { rowRole, tooltipKey: 'actualYTD' })}
       ${createCell(totals.planYTD, { rowRole, tooltipKey: 'planYTD' })}
       ${createCell(totals.prevYTD, { rowRole, tooltipKey: 'prevYTD' })}
@@ -599,9 +599,6 @@
                 sign: 1
               }
             });
-            // Agregar label en columna descripción (posición 7)
-            const cells = principalRow.querySelectorAll('td');
-            if (cells[6]) cells[6].textContent = block.label || '';
             tablaBody.appendChild(principalRow);
           }
           // SECUNDARIA: Header de subsección
@@ -616,7 +613,7 @@
                 cuentas: block.cuentas || []
               }
             });
-            // Agregar label en columna descripción y botón de colapso
+            // Agregar icono de colapso en la primera celda con texto
             const cells = secRow.querySelectorAll('td');
             if (cells[6]) {
               cells[6].innerHTML = `<i class="bi bi-chevron-down collapse-icon me-2" style="cursor:pointer;"></i>${block.label || ''}`;
@@ -697,9 +694,6 @@
               }
             });
             tablaBody.appendChild(consolidationRow);
-            // Agregar label en columna descripción
-            const cells = consolidationRow.querySelectorAll('td');
-            if (cells[6]) cells[6].textContent = block.label || '';
           }
         });
       } else {
