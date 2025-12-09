@@ -627,14 +627,17 @@
             row.dataset.cuenta21 = block.cuenta || '';
             row.dataset.rowRole = 'account';
             
+            // Usar block.nombre (del JSON NOMBRE) en vez de block.label
+            const nombreCuenta = block.nombre || block.label || '';
+            
             row.innerHTML = `
               ${createEditableCell(block.cuenta || '', { columnKey: 'cuenta', rowRole: 'account', tooltipKey: 'account', text: true, classes: 'font-monospace small text-start ps-4' })}
-              ${createEditableCell(block.label || '', { columnKey: 'descripcion', rowRole: 'account', tooltipKey: 'account', text: true, classes: 'text-start' })}
               ${createCell(cta.actualMonth, { rowRole: 'account', tooltipKey: 'actualMonth' })}
               ${createCell(cta.planMonth, { rowRole: 'account', tooltipKey: 'planMonth' })}
               ${createCell(cta.prevMonth, { rowRole: 'account', tooltipKey: 'prevMonth' })}
               ${createPercentCell(varPlan, { rowRole: 'account', tooltipKey: 'varMonthPlan' })}
               ${createPercentCell(varPrev, { rowRole: 'account', tooltipKey: 'varMonthPrev' })}
+              ${createEditableCell(nombreCuenta, { columnKey: 'descripcion', rowRole: 'account', tooltipKey: 'account', text: true, classes: 'text-start' })}
               ${createCell(cta.actualYTD, { rowRole: 'account', tooltipKey: 'actualYTD' })}
               ${createCell(cta.planYTD, { rowRole: 'account', tooltipKey: 'planYTD' })}
               ${createCell(cta.prevYTD, { rowRole: 'account', tooltipKey: 'prevYTD' })}

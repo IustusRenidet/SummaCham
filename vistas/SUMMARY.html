@@ -450,20 +450,19 @@
     .section-header-row td {
       padding: 0.85rem 0.75rem !important;
       border: 1px solid rgba(255,255,255,0.2) !important;
-      text-shadow: 0 1px 2px rgba(0,0,0,0.2);
     }
     
     /* Secundaria: Subsección (Membership, Events, etc.) */
     .subsection-row {
-      background: linear-gradient(to right, #e0e7ff 0%, #dbeafe 100%) !important;
-      color: #1e40af !important;
+      background: linear-gradient(to right, #dbeafe 0%, #bfdbfe 100%) !important;
+      color: #1e3a8a !important;
       font-weight: 600 !important;
       font-size: 0.95rem !important;
       border-left: 4px solid #3b82f6 !important;
     }
     .subsection-row td {
       padding: 0.65rem 0.6rem !important;
-      border: 1px solid #bfdbfe !important;
+      border: 1px solid #93c5fd !important;
     }
     .subsection-row td:first-child,
     .subsection-row td:nth-child(2) {
@@ -475,13 +474,12 @@
     /* Cuenta: Fila de datos individual */
     .account-row {
       background-color: white !important;
-      transition: all 0.2s ease;
-      border-left: 3px solid transparent !important;
+      transition: all 0.15s ease;
+      border-left: 2px solid transparent !important;
     }
     .account-row:hover {
-      background-color: #f0f9ff !important;
-      border-left-color: #60a5fa !important;
-      transform: translateX(2px);
+      background-color: #f8fafc !important;
+      border-left-color: #93c5fd !important;
     }
     .account-row td {
       padding: 0.5rem 0.6rem !important;
@@ -504,13 +502,13 @@
     /* Nivel 1: sum-row - Suma de cuentas de una sección */
     .sum-row {
       background: linear-gradient(to right, #fef3c7 0%, #fde68a 100%) !important;
-      color: #92400e !important;
+      color: #78350f !important;
       font-weight: 600 !important;
       border-left: 4px solid #f59e0b !important;
     }
     .sum-row td {
       padding: 0.6rem !important;
-      border: 1px solid #fcd34d !important;
+      border: 1px solid #fbbf24 !important;
       font-size: 0.92rem !important;
     }
     .sum-row td:first-child {
@@ -529,7 +527,6 @@
     .sum-row-principal td {
       padding: 0.75rem !important;
       border: 1px solid rgba(255,255,255,0.25) !important;
-      text-shadow: 0 1px 2px rgba(0,0,0,0.2);
       letter-spacing: 0.5px;
     }
     
@@ -545,7 +542,6 @@
     .highlight-primary td {
       padding: 0.8rem !important;
       border: 1px solid rgba(255,255,255,0.3) !important;
-      text-shadow: 0 1px 3px rgba(0,0,0,0.25);
       letter-spacing: 0.75px;
     }
     
@@ -561,7 +557,6 @@
     .highlight-secondary td {
       padding: 0.85rem !important;
       border: 1px solid rgba(255,255,255,0.3) !important;
-      text-shadow: 0 1px 3px rgba(0,0,0,0.3);
       letter-spacing: 1px;
     }
     
@@ -579,8 +574,11 @@
     .highlight-bright td {
       padding: 1rem !important;
       border: 1px solid rgba(255,255,255,0.35) !important;
-      text-shadow: 0 2px 4px rgba(0,0,0,0.4);
       letter-spacing: 1.5px;
+    }
+    .highlight-bright:hover {
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+      box-shadow: 0 5px 15px rgba(220, 38, 38, 0.6);
     }
   </style>
 </head>
@@ -753,8 +751,8 @@
                 <thead>
                   <tr>
                     <th class="account-column-header" rowspan="2">Cuenta</th>
-                    <th rowspan="2">Descripción</th>
                     <th colspan="5">Año <span class="anio-seleccionado">2025</span></th>
+                    <th rowspan="2">Descripción</th>
                     <th colspan="5" class="ytd-head">YTD <span class="anio-seleccionado">2025</span></th>
                   </tr>
                   <tr class="subhdr">

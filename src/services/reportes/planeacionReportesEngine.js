@@ -463,6 +463,7 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
         layout.push({
           type: 'cuenta',
           label: cuenta.label,
+          nombre: cuenta.descripcion || cuenta.label,
           cuenta: cuenta.cuenta,
           order: siguienteOrden(),
           totals: {
