@@ -82,12 +82,17 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3005)) => {
 
   // Ruta raíz para servir la interfaz web
   const vistasPath = path.join(__dirname, '..', 'vistas');
+  const iconoPath = path.join(__dirname, '..', 'icono');
+  
   app.get('/', (req, res) => {
     res.sendFile(path.join(vistasPath, 'app.html'));
   });
 
   // Servir archivos estáticos de la carpeta vistas (CSS, JS, imágenes, otras vistas HTML)
   app.use(express.static(vistasPath));
+  
+  // Servir archivos estáticos de la carpeta icono (logos, íconos)
+  app.use('/icono', express.static(iconoPath));
 
   // Info de la API
   app.get('/api', (req, res) => {

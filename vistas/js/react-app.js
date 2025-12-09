@@ -377,7 +377,7 @@
         onMarkNotification(id);
       }
     };
-    return /* @__PURE__ */ React.createElement("div", { className: layoutClassName }, /* @__PURE__ */ React.createElement("aside", { className: "app-sidebar", "aria-label": "Navegaci\xF3n principal" }, /* @__PURE__ */ React.createElement("div", { className: "sidebar-header" }, /* @__PURE__ */ React.createElement("img", { src: "../icono/amcham.png", alt: "AmCham", className: "sidebar-logo" })), /* @__PURE__ */ React.createElement("div", { className: "sidebar-menu" }, gruposDisponibles.map((group) => /* @__PURE__ */ React.createElement(
+    return /* @__PURE__ */ React.createElement("div", { className: layoutClassName }, /* @__PURE__ */ React.createElement("aside", { className: "app-sidebar", "aria-label": "Navegaci\xF3n principal" }, /* @__PURE__ */ React.createElement("div", { className: "sidebar-header" }, /* @__PURE__ */ React.createElement("img", { src: "icono/amcham.png", alt: "AmCham", className: "sidebar-logo" })), /* @__PURE__ */ React.createElement("div", { className: "sidebar-menu" }, gruposDisponibles.map((group) => /* @__PURE__ */ React.createElement(
       SidebarGroup,
       {
         key: group.id,
