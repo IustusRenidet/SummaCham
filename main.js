@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Tray, Menu } = require("electron");
+const { app, BrowserWindow, Tray, Menu, nativeImage } = require("electron");
 const path = require("path");
 const { autoUpdater } = require("electron-updater");
 const AutoLaunch = require("auto-launch");
@@ -38,7 +38,10 @@ if (!gotTheLock) {
     const iconName = process.platform === "win32" ? "icono.ico" : "icono.png";
     const iconPath = resolveAssetPath("icono", iconName);
 
-    tray = new Tray(iconPath);
+    // Crear nativeImage para asegurar que el ícono se cargue correctamente
+    const trayIcon = nativeImage.createFromPath(iconPath);
+    
+    tray = new Tray(trayIcon);
     tray.setToolTip("Panel Financiero AMCHAM");
 
     const contextMenu = Menu.buildFromTemplate([
@@ -96,6 +99,10 @@ if (!gotTheLock) {
 
   const createWindow = () => {
     const iconName = process.platform === "win32" ? "icono.ico" : "icono.png";
+    const iconPath = resolveAssetPath("icono", iconName);
+
+    // Crear nativeImage para asegurar que el ícono se cargue correctamente
+    const appIcon = nativeImage.createFromPath(iconPath);
 
     mainWindow = new BrowserWindow({
       width: 1400,
@@ -104,13 +111,24 @@ if (!gotTheLock) {
       minHeight: 720,
       backgroundColor: "#f3f6f1",
       autoHideMenuBar: true,
-      icon: resolveAssetPath("icono", iconName),
+      icon: appIcon,
+      title: "Panel AMCHAM",
       webPreferences: {
         contextIsolation: true,
         nodeIntegration: false,
         sandbox: false,
       },
     });
+
+    // Establecer el ícono de la ventana explícitamente (Windows)
+    if (process.platform === 'win32' && mainWindow) {
+      mainWindow.setIcon(appIcon);
+    }
+
+    // Establecer el ícono también en el overlay (taskbar)
+    if (process.platform === 'win32') {
+      mainWindow.setOverlayIcon(appIcon, 'Panel AMCHAM');
+    }
 
     // Cargar desde el servidor Node.js externo en puerto 3005
     mainWindow.loadURL('http://localhost:3005');

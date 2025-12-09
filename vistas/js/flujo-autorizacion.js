@@ -1202,16 +1202,21 @@
     }
 
     /**
-     * Envía el presupuesto a revisión (transición: EDITANDO → PENDIENTE)
+     * Envía el presupuesto a revisión (transición: EDITANDO → PENDIENTE o APROBADO)
      * 
-     * Proceso:
+     * Proceso normal (usuario con permiso "Cargar y guardar"):
      * 1. Guarda los cambios actuales como borrador
      * 2. Cambia el estado a PENDIENTE
      * 3. Sale del modo edición
      * 4. Notifica a los revisores
      * 
-     * Si el módulo permite auto-autorización (sin revisores configurados),
-     * el estado pasa directamente a APROBADO.
+     * Proceso para ADMINISTRADOR GLOBAL (ICONET):
+     * 1. Guarda los cambios actuales como borrador
+     * 2. Cambia el estado DIRECTAMENTE a APROBADO (omite PENDIENTE y REVISADO)
+     * 3. Sale del modo edición
+     * 4. El presupuesto queda listo para "Guardar en COI"
+     * 
+     * El administrador global NO depende de revisores configurados, siempre auto-aprueba.
      */
     async _handleEnviar() {
       if (!this._puede({ accion: "enviar" })) {

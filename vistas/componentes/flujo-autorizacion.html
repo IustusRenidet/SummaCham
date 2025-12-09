@@ -477,24 +477,71 @@
     </ol>
   </div>
 
-  <!-- ========== SECCIÓN 5: AUTO-AUTORIZACIÓN ========== -->
-  <h2>5️⃣ Auto-Autorización</h2>
+  <!-- ========== SECCIÓN 5: ADMINISTRADOR GLOBAL ========== -->
+  <h2>5️⃣ Flujo del Administrador Global (ICONET)</h2>
 
-  <div class="nota">
-    <p><strong>📌 ¿Qué es la auto-autorización?</strong></p>
+  <div class="nota success">
+    <p><strong>⚡ Privilegios del Administrador Global</strong></p>
     <p>
-      Algunos módulos pueden estar configurados <strong>sin revisores ni autorizadores</strong>. 
-      En estos casos, cuando el usuario envía el presupuesto, el sistema lo aprueba automáticamente.
+      El usuario <strong>ICONET</strong> y cualquier usuario marcado como "Administrador Global" 
+      tiene un flujo SIMPLIFICADO y DIRECTO:
     </p>
-    <p><strong>Flujo con auto-autorización:</strong></p>
+    
+    <h3 style="margin-top: 1.5rem;">Flujo del Admin Global:</h3>
+    <p style="text-align: center; font-size: 1.2rem; margin: 1.5rem 0; line-height: 2;">
+      EDITANDO → (enviar) → <span style="color: #198754; font-weight: bold;">APROBADO</span> → (guardar COI) → GUARDADO
+    </p>
+
+    <h3>Características clave:</h3>
+    <ul>
+      <li>✅ Puede <strong>crear, editar y enviar</strong> presupuestos (permiso "Cargar y guardar")</li>
+      <li>✅ Al enviar, el presupuesto pasa <strong>DIRECTAMENTE a APROBADO</strong></li>
+      <li>✅ <strong>Omite completamente</strong> los estados PENDIENTE y REVISADO</li>
+      <li>✅ NO depende de si el módulo tiene revisores configurados</li>
+      <li>✅ Puede <strong>guardar en COI</strong> inmediatamente después de enviar</li>
+      <li>✅ También puede revisar, autorizar y rechazar presupuestos de otros usuarios</li>
+    </ul>
+
+    <h3 style="margin-top: 1.5rem;">Proceso paso a paso para Admin Global:</h3>
+    <ol style="line-height: 2;">
+      <li><strong>Clic en "Cargar presupuesto"</strong> → Activa modo edición (EDITANDO)</li>
+      <li><strong>Captura/modifica datos</strong> en la tabla</li>
+      <li><strong>Opcional:</strong> Guardar progreso con "Guardar para más tarde" (sigue EDITANDO)</li>
+      <li><strong>Clic en "Enviar presupuesto"</strong> → Estado cambia a <strong>APROBADO</strong> automáticamente</li>
+      <li><strong>Clic en "Guardar en COI"</strong> → Guarda en Firebird (GUARDADO)</li>
+      <li><strong>✓ FINALIZADO</strong></li>
+    </ol>
+
+    <p style="margin-top: 1.5rem; padding: 1rem; background: rgba(255, 193, 7, 0.1); border-left: 3px solid #ffc107; border-radius: 4px;">
+      <strong>⚠️ Importante:</strong> El administrador global tiene TODOS los permisos en TODOS los módulos y empresas. 
+      No necesita que le asignen permisos específicos por módulo.
+    </p>
+  </div>
+
+  <!-- ========== SECCIÓN 6: AUTO-AUTORIZACIÓN POR CONFIGURACIÓN ========== -->
+  <h2>6️⃣ Auto-Autorización por Configuración del Módulo</h2>
+
+  <div class="nota warning">
+    <p><strong>📌 ¿Qué es la auto-autorización por configuración?</strong></p>
+    <p>
+      <strong>Diferente</strong> al administrador global, algunos módulos pueden estar configurados 
+      <strong>sin revisores ni autorizadores asignados</strong>. En estos casos, cuando un 
+      <strong>usuario normal</strong> (no admin) envía el presupuesto, el sistema lo aprueba automáticamente.
+    </p>
+    <p><strong>Flujo con auto-autorización configurada:</strong></p>
     <p style="text-align: center; font-size: 1.1rem; margin: 1rem 0;">
       EDITANDO → (enviar) → <span style="color: #198754; font-weight: bold;">APROBADO</span> → (guardar COI) → GUARDADO
     </p>
-    <p><strong>Estados que se omiten:</strong> PENDIENTE y REVISADO</p>
+    <p><strong>Diferencia con Admin Global:</strong></p>
+    <ul>
+      <li><strong>Admin Global:</strong> SIEMPRE auto-aprueba, independiente de la configuración del módulo</li>
+      <li><strong>Auto-aprobación por config:</strong> Solo si el módulo NO tiene revisores configurados</li>
+      <li><strong>Usuario normal en módulo con revisores:</strong> Sigue el flujo completo (PENDIENTE → REVISADO → APROBADO)</li>
+    </ul>
   </div>
 
-  <!-- ========== SECCIÓN 6: CONSEJOS Y MEJORES PRÁCTICAS ========== -->
-  <h2>6️⃣ Consejos y Mejores Prácticas</h2>
+  <!-- ========== SECCIÓN 7: CONSEJOS Y MEJORES PRÁCTICAS ========== -->
+  <h2>7️⃣ Consejos y Mejores Prácticas</h2>
 
   <div class="buttons-grid">
     <div class="button-card">
@@ -526,14 +573,24 @@
       <h4>🔍 Verifica permisos</h4>
       <p>Si no ves un botón que esperabas, verifica tus permisos para ese módulo/empresa con el administrador.</p>
     </div>
+
+    <div class="button-card">
+      <h4>⚡ Admin Global = Flujo rápido</h4>
+      <p>Si eres administrador global, tus presupuestos se auto-aprueban al enviar. Solo necesitas "Enviar" y "Guardar en COI".</p>
+    </div>
+
+    <div class="button-card">
+      <h4>🔐 Cuida las credenciales ICONET</h4>
+      <p>El usuario ICONET tiene poder absoluto. Solo personal autorizado debe tener acceso a estas credenciales.</p>
+    </div>
   </div>
 
-  <!-- ========== SECCIÓN 7: PREGUNTAS FRECUENTES ========== -->
-  <h2>7️⃣ Preguntas Frecuentes</h2>
+  <!-- ========== SECCIÓN 8: PREGUNTAS FRECUENTES ========== -->
+  <h2>8️⃣ Preguntas Frecuentes</h2>
 
   <div class="nota">
     <h4>❓ ¿Puedo editar un presupuesto que ya envié?</h4>
-    <p><strong>No.</strong> Una vez enviado (PENDIENTE), solo puede ser rechazado por un revisor/autorizador. Si te rechaza, podrás editarlo nuevamente.</p>
+    <p><strong>No.</strong> Una vez enviado (PENDIENTE o APROBADO), solo puede ser rechazado por un revisor/autorizador. Si te rechaza, podrás editarlo nuevamente.</p>
   </div>
 
   <div class="nota">
@@ -544,7 +601,7 @@
   <div class="nota">
     <h4>❓ ¿Cuál es la diferencia entre "Guardar para más tarde" y "Enviar presupuesto"?</h4>
     <p><strong>"Guardar para más tarde":</strong> Guarda tu progreso pero permaneces en modo edición (EDITANDO). Puedes seguir trabajando.</p>
-    <p><strong>"Enviar presupuesto":</strong> Guarda y FINALIZA tu trabajo, enviándolo a revisión (PENDIENTE). Ya no podrás editarlo.</p>
+    <p><strong>"Enviar presupuesto":</strong> Guarda y FINALIZA tu trabajo. Si eres usuario normal va a PENDIENTE. Si eres admin global va directo a APROBADO.</p>
   </div>
 
   <div class="nota">
@@ -553,17 +610,31 @@
   </div>
 
   <div class="nota">
+    <h4>❓ ¿Por qué mi presupuesto pasó directo a APROBADO al enviarlo?</h4>
+    <p><strong>Dos razones posibles:</strong></p>
+    <ul>
+      <li><strong>Eres administrador global:</strong> Tus presupuestos siempre se auto-aprueban</li>
+      <li><strong>El módulo no tiene revisores configurados:</strong> El sistema auto-aprueba cuando no hay quien revise</li>
+    </ul>
+  </div>
+
+  <div class="nota">
     <h4>❓ ¿Por qué no veo el botón "Autorizar"?</h4>
     <p><strong>Dos posibilidades:</strong></p>
     <ul>
       <li>No tienes el permiso "Aprobar" para ese módulo/empresa</li>
-      <li>El presupuesto aún no está en estado REVISADO (debe ser marcado como revisado primero)</li>
+      <li>El presupuesto aún no está en estado REVISADO (debe ser marcado como revisado primero por un revisor)</li>
     </ul>
   </div>
 
   <div class="nota">
     <h4>❓ ¿Qué significa el punto amarillo (·) en algunas celdas?</h4>
     <p>Indica que esa celda tiene cambios en un <strong>borrador no guardado</strong>. Son cambios temporales que aún no se han guardado con "Guardar para más tarde".</p>
+  </div>
+
+  <div class="nota">
+    <h4>❓ Soy admin global, ¿por qué tengo que hacer clic en "Guardar en COI"?</h4>
+    <p><strong>Por seguridad.</strong> Aunque tu presupuesto se auto-aprueba al enviar, el guardado en COI (Firebird) es una acción separada e IRREVERSIBLE. El sistema te pide confirmación explícita para evitar guardados accidentales.</p>
   </div>
 
   <div class="nota success">
