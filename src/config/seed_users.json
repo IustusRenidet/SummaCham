@@ -1,249 +1,81 @@
 [
   {
-    "username": "PCA",
-    "nombres": "Pedro",
-    "apellidoPrimero": "Casas Alatriste",
-    "correo": "pcasasalatriste@amcham.org.mx",
+    "username": "AA",
+    "nombres": "Alberto",
+    "apellidoPrimero": "Arredondo",
+    "correo": "aarredondo@amcham.org.mx",
     "permissions": [
       {
         "empresaId": "empresa1",
-        "modulo": "Membresía",
+        "modulo": "Finanzas",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
+        "puede_revisar": 1,
+        "puede_aprobar": 0
       },
       {
         "empresaId": "empresa1",
-        "modulo": "Eventos",
+        "modulo": "Gtos_Corporativos",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa1",
-        "modulo": "Comunicación",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa1",
-        "modulo": "Serv_Membresía",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa1",
-        "modulo": "Comités",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa1",
-        "modulo": "T&IC",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa1",
-        "modulo": "RH",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
+        "puede_revisar": 1,
+        "puede_aprobar": 0
       },
       {
         "empresaId": "empresa1",
         "modulo": "VPE",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa1",
-        "modulo": "Finanzas",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa1",
-        "modulo": "Gtos_Corporativos",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa2",
-        "modulo": "Membresía",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa2",
-        "modulo": "Eventos",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa2",
-        "modulo": "Comunicación",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa2",
-        "modulo": "Serv_Membresía",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa2",
-        "modulo": "Comités",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa2",
-        "modulo": "T&IC",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa2",
-        "modulo": "RH",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa2",
-        "modulo": "Dirección",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa2",
-        "modulo": "Finanzas",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
+        "puede_revisar": 1,
+        "puede_aprobar": 0
       },
       {
         "empresaId": "empresa2",
         "modulo": "Gtos_Corporativos",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
+        "puede_revisar": 1,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "Gtos_Corporativos",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
       },
       {
         "empresaId": "empresa4",
-        "modulo": "Membresía",
+        "modulo": "Gtos_Corporativos",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
+      }
+    ]
+  },
+  {
+    "username": "AC",
+    "nombres": "Ana",
+    "apellidoPrimero": "Cecilia",
+    "correo": "agutierrez@amcham.org.mx",
+    "permissions": [
+      {
+        "empresaId": "empresa4",
+        "modulo": "Comités",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
         "puede_revisar": 0,
-        "puede_aprobar": 1
+        "puede_aprobar": 0
       },
       {
         "empresaId": "empresa4",
         "modulo": "Eventos",
         "puede_leer": 1,
-        "puede_cargar_guardar": 0,
+        "puede_cargar_guardar": 1,
         "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa4",
-        "modulo": "Comunicación",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa4",
-        "modulo": "Serv_Membresía",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa4",
-        "modulo": "Comités",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa4",
-        "modulo": "T&IC",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa4",
-        "modulo": "RH",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa4",
-        "modulo": "Dirección",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa4",
-        "modulo": "Finanzas",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa4",
-        "modulo": "Gtos_Corporativos",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
+        "puede_aprobar": 0
       }
     ]
   },
@@ -255,15 +87,7 @@
     "permissions": [
       {
         "empresaId": "empresa1",
-        "modulo": "Membresía",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa1",
-        "modulo": "Eventos",
+        "modulo": "Comités",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
         "puede_revisar": 0,
@@ -279,7 +103,7 @@
       },
       {
         "empresaId": "empresa1",
-        "modulo": "Serv_Membresía",
+        "modulo": "Eventos",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
         "puede_revisar": 0,
@@ -287,7 +111,7 @@
       },
       {
         "empresaId": "empresa1",
-        "modulo": "Comités",
+        "modulo": "Finanzas",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
         "puede_revisar": 0,
@@ -295,7 +119,15 @@
       },
       {
         "empresaId": "empresa1",
-        "modulo": "T&IC",
+        "modulo": "Gtos_Corporativos",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "Membresía",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
         "puede_revisar": 0,
@@ -304,6 +136,22 @@
       {
         "empresaId": "empresa1",
         "modulo": "RH",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "Serv_Membresía",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "T&IC",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
         "puede_revisar": 0,
@@ -318,7 +166,39 @@
         "puede_aprobar": 1
       },
       {
-        "empresaId": "empresa1",
+        "empresaId": "empresa2",
+        "modulo": "Comités",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Comunicación",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Dirección",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Eventos",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa2",
         "modulo": "Finanzas",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
@@ -326,7 +206,7 @@
         "puede_aprobar": 1
       },
       {
-        "empresaId": "empresa1",
+        "empresaId": "empresa2",
         "modulo": "Gtos_Corporativos",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
@@ -343,15 +223,7 @@
       },
       {
         "empresaId": "empresa2",
-        "modulo": "Eventos",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa2",
-        "modulo": "Comunicación",
+        "modulo": "RH",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
         "puede_revisar": 0,
@@ -367,14 +239,6 @@
       },
       {
         "empresaId": "empresa2",
-        "modulo": "Comités",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa2",
         "modulo": "T&IC",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
@@ -382,15 +246,23 @@
         "puede_aprobar": 1
       },
       {
-        "empresaId": "empresa2",
-        "modulo": "RH",
+        "empresaId": "empresa3",
+        "modulo": "Comités",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
         "puede_revisar": 0,
         "puede_aprobar": 1
       },
       {
-        "empresaId": "empresa2",
+        "empresaId": "empresa3",
+        "modulo": "Comunicación",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa3",
         "modulo": "Dirección",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
@@ -398,7 +270,15 @@
         "puede_aprobar": 1
       },
       {
-        "empresaId": "empresa2",
+        "empresaId": "empresa3",
+        "modulo": "Eventos",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa3",
         "modulo": "Finanzas",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
@@ -406,7 +286,87 @@
         "puede_aprobar": 1
       },
       {
-        "empresaId": "empresa2",
+        "empresaId": "empresa3",
+        "modulo": "Gtos_Corporativos",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "Membresía",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "RH",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "Serv_Membresía",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "T&IC",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Comités",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Comunicación",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Dirección",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Eventos",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Finanzas",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa4",
         "modulo": "Gtos_Corporativos",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
@@ -423,15 +383,7 @@
       },
       {
         "empresaId": "empresa4",
-        "modulo": "Eventos",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa4",
-        "modulo": "Comunicación",
+        "modulo": "RH",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
         "puede_revisar": 0,
@@ -447,47 +399,7 @@
       },
       {
         "empresaId": "empresa4",
-        "modulo": "Comités",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa4",
         "modulo": "T&IC",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa4",
-        "modulo": "RH",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa4",
-        "modulo": "Dirección",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa4",
-        "modulo": "Finanzas",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa4",
-        "modulo": "Gtos_Corporativos",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
         "puede_revisar": 0,
@@ -496,14 +408,54 @@
     ]
   },
   {
-    "username": "AA",
-    "nombres": "Alberto",
-    "apellidoPrimero": "Arredondo",
-    "correo": "aarredondo@amcham.org.mx",
+    "username": "AO",
+    "nombres": "Anamary",
+    "apellidoPrimero": "Olivas",
+    "correo": "aolivas@amcham.org.mx",
     "permissions": [
       {
         "empresaId": "empresa1",
-        "modulo": "VPE",
+        "modulo": "T&IC",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "T&IC",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "T&IC",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "T&IC",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      }
+    ]
+  },
+  {
+    "username": "AQ",
+    "nombres": "Alejandra",
+    "apellidoPrimero": "Quezada",
+    "correo": "aquezada@amcham.org.mx",
+    "permissions": [
+      {
+        "empresaId": "empresa1",
+        "modulo": "Comunicación",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
         "puede_revisar": 1,
@@ -511,7 +463,7 @@
       },
       {
         "empresaId": "empresa1",
-        "modulo": "Finanzas",
+        "modulo": "Eventos",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
         "puede_revisar": 1,
@@ -519,7 +471,7 @@
       },
       {
         "empresaId": "empresa1",
-        "modulo": "Gtos_Corporativos",
+        "modulo": "Serv_Membresía",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
         "puede_revisar": 1,
@@ -527,7 +479,183 @@
       },
       {
         "empresaId": "empresa2",
-        "modulo": "Gtos_Corporativos",
+        "modulo": "Comunicación",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Eventos",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Serv_Membresía",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "Comunicación",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "Eventos",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "Serv_Membresía",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Comunicación",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Eventos",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Serv_Membresía",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      }
+    ]
+  },
+  {
+    "username": "AS",
+    "nombres": "Alessa",
+    "apellidoPrimero": "Silva",
+    "correo": "asilva@amcham.org.mx",
+    "permissions": [
+      {
+        "empresaId": "empresa2",
+        "modulo": "Comités",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Comunicación",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Dirección",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Eventos",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Finanzas",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Membresía",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "RH",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Serv_Membresía",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "T&IC",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
+      }
+    ]
+  },
+  {
+    "username": "AZ",
+    "nombres": "Adriana",
+    "apellidoPrimero": "Zertuche",
+    "correo": "azertuche@amcham.org.mx",
+    "permissions": [
+      {
+        "empresaId": "empresa3",
+        "modulo": "Eventos",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      }
+    ]
+  },
+  {
+    "username": "BS",
+    "nombres": "Benjamin",
+    "apellidoPrimero": "Suárez",
+    "correo": "bsuarez@amcham.org.mx",
+    "permissions": [
+      {
+        "empresaId": "empresa4",
+        "modulo": "Comités",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
         "puede_revisar": 1,
@@ -535,10 +663,202 @@
       },
       {
         "empresaId": "empresa4",
-        "modulo": "Gtos_Corporativos",
+        "modulo": "Comunicación",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
         "puede_revisar": 1,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Dirección",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Eventos",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Finanzas",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Membresía",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "RH",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Serv_Membresía",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "T&IC",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
+      }
+    ]
+  },
+  {
+    "username": "CG",
+    "nombres": "Claudia",
+    "apellidoPrimero": "Gonzalez",
+    "correo": "cgonzalez@amcham.org.mx",
+    "permissions": [
+      {
+        "empresaId": "empresa1",
+        "modulo": "RH",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "RH",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "RH",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "RH",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      }
+    ]
+  },
+  {
+    "username": "DF",
+    "nombres": "Diana",
+    "apellidoPrimero": "Flores",
+    "correo": "pflores@amcham.org.mx",
+    "permissions": [
+      {
+        "empresaId": "empresa1",
+        "modulo": "Comités",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      }
+    ]
+  },
+  {
+    "username": "DI",
+    "nombres": "David",
+    "apellidoPrimero": "Ibarra",
+    "correo": "dibarra@amcham.org.mx",
+    "permissions": [
+      {
+        "empresaId": "empresa3",
+        "modulo": "Dirección",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "Finanzas",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      }
+    ]
+  },
+  {
+    "username": "DM",
+    "nombres": "Daniela",
+    "apellidoPrimero": "Morales",
+    "correo": "dmorales@amcham.org.mx",
+    "permissions": [
+      {
+        "empresaId": "empresa1",
+        "modulo": "Serv_Membresía",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Serv_Membresía",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "Serv_Membresía",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Serv_Membresía",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      }
+    ]
+  },
+  {
+    "username": "FO",
+    "nombres": "Fernanda",
+    "apellidoPrimero": "Osorio",
+    "correo": "mosorio@amcham.org.mx",
+    "permissions": [
+      {
+        "empresaId": "empresa1",
+        "modulo": "Eventos",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
         "puede_aprobar": 0
       }
     ]
@@ -554,7 +874,7 @@
         "modulo": "Membresía",
         "puede_leer": 1,
         "puede_cargar_guardar": 1,
-        "puede_revisar": 1,
+        "puede_revisar": 0,
         "puede_aprobar": 0
       },
       {
@@ -566,88 +886,16 @@
         "puede_aprobar": 1
       },
       {
-        "empresaId": "empresa4",
+        "empresaId": "empresa3",
         "modulo": "Membresía",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
         "puede_revisar": 0,
         "puede_aprobar": 1
-      }
-    ]
-  },
-  {
-    "username": "AQ",
-    "nombres": "Alejandra",
-    "apellidoPrimero": "Quezada",
-    "correo": "aquezada@amcham.org.mx",
-    "permissions": [
-      {
-        "empresaId": "empresa1",
-        "modulo": "Eventos",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 1,
-        "puede_aprobar": 0
-      },
-      {
-        "empresaId": "empresa1",
-        "modulo": "Comunicación",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 1,
-        "puede_aprobar": 0
-      },
-      {
-        "empresaId": "empresa1",
-        "modulo": "Serv_Membresía",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 1,
-        "puede_aprobar": 0
-      },
-      {
-        "empresaId": "empresa2",
-        "modulo": "Eventos",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa2",
-        "modulo": "Comunicación",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa2",
-        "modulo": "Serv_Membresía",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
       },
       {
         "empresaId": "empresa4",
-        "modulo": "Eventos",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa4",
-        "modulo": "Comunicación",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa4",
-        "modulo": "Serv_Membresía",
+        "modulo": "Membresía",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
         "puede_revisar": 0,
@@ -694,6 +942,22 @@
         "puede_aprobar": 1
       },
       {
+        "empresaId": "empresa3",
+        "modulo": "Comités",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "T&IC",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
         "empresaId": "empresa4",
         "modulo": "Comités",
         "puede_leer": 1,
@@ -710,189 +974,6 @@
         "puede_aprobar": 1
       }
     ]
-  },
-  {
-    "username": "CG",
-    "nombres": "Claudia",
-    "apellidoPrimero": "Gonzalez",
-    "correo": "cgonzalez@amcham.org.mx",
-    "permissions": [
-      {
-        "empresaId": "empresa1",
-        "modulo": "RH",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 1,
-        "puede_revisar": 1,
-        "puede_aprobar": 0
-      },
-      {
-        "empresaId": "empresa2",
-        "modulo": "RH",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 1,
-        "puede_revisar": 0,
-        "puede_aprobar": 0
-      },
-      {
-        "empresaId": "empresa4",
-        "modulo": "RH",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 1,
-        "puede_revisar": 0,
-        "puede_aprobar": 0
-      }
-    ]
-  },
-  {
-    "username": "FO",
-    "nombres": "Fernanda",
-    "apellidoPrimero": "Osorio",
-    "correo": "mosorio@amcham.org.mx",
-    "permissions": [
-      {
-        "empresaId": "empresa1",
-        "modulo": "Eventos",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 1,
-        "puede_revisar": 0,
-        "puede_aprobar": 0
-      }
-    ]
-  },
-  {
-    "username": "PV",
-    "nombres": "Patricio",
-    "apellidoPrimero": "Vazquez",
-    "correo": "pvazquez@amcham.org.mx",
-    "permissions": [
-      {
-        "empresaId": "empresa1",
-        "modulo": "Comunicación",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 1,
-        "puede_revisar": 0,
-        "puede_aprobar": 0
-      },
-      {
-        "empresaId": "empresa2",
-        "modulo": "Comunicación",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 1,
-        "puede_revisar": 0,
-        "puede_aprobar": 0
-      },
-      {
-        "empresaId": "empresa4",
-        "modulo": "Comunicación",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 1,
-        "puede_revisar": 0,
-        "puede_aprobar": 0
-      }
-    ]
-  },
-  {
-    "username": "DM",
-    "nombres": "Daniela",
-    "apellidoPrimero": "Morales",
-    "correo": "dmorales@amcham.org.mx",
-    "permissions": [
-      {
-        "empresaId": "empresa1",
-        "modulo": "Serv_Membresía",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 1,
-        "puede_revisar": 0,
-        "puede_aprobar": 0
-      },
-      {
-        "empresaId": "empresa2",
-        "modulo": "Serv_Membresía",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 1,
-        "puede_revisar": 0,
-        "puede_aprobar": 0
-      },
-      {
-        "empresaId": "empresa4",
-        "modulo": "Serv_Membresía",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 1,
-        "puede_revisar": 0,
-        "puede_aprobar": 0
-      }
-    ]
-  },
-  {
-    "username": "DF",
-    "nombres": "Diana",
-    "apellidoPrimero": "Flores",
-    "correo": "pflores@amcham.org.mx",
-    "permissions": [
-      {
-        "empresaId": "empresa1",
-        "modulo": "Comités",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 1,
-        "puede_revisar": 0,
-        "puede_aprobar": 0
-      }
-    ]
-  },
-  {
-    "username": "AO",
-    "nombres": "Anamary",
-    "apellidoPrimero": "Olivas",
-    "correo": "aolivas@amcham.org.mx",
-    "permissions": [
-      {
-        "empresaId": "empresa1",
-        "modulo": "T&IC",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 1,
-        "puede_revisar": 0,
-        "puede_aprobar": 0
-      },
-      {
-        "empresaId": "empresa2",
-        "modulo": "T&IC",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 1,
-        "puede_revisar": 0,
-        "puede_aprobar": 0
-      },
-      {
-        "empresaId": "empresa4",
-        "modulo": "T&IC",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 1,
-        "puede_revisar": 0,
-        "puede_aprobar": 0
-      }
-    ]
-  },
-  {
-    "username": "SB",
-    "nombres": "Santiago",
-    "apellidoPrimero": "Bolio",
-    "correo": "bdireccion@amcham.org.mx",
-    "permissions": [
-      {
-        "empresaId": "empresa1",
-        "modulo": "VPE",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 1,
-        "puede_revisar": 0,
-        "puede_aprobar": 0
-      }
-    ]
-  },
-  {
-    "username": "CA",
-    "nombres": "Carmen",
-    "apellidoPrimero": "Amado",
-    "correo": "camado@amcham.org.mx",
-    "permissions": []
   },
   {
     "username": "GL",
@@ -925,6 +1006,14 @@
         "puede_aprobar": 0
       },
       {
+        "empresaId": "empresa3",
+        "modulo": "Gtos_Corporativos",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
         "empresaId": "empresa4",
         "modulo": "Gtos_Corporativos",
         "puede_leer": 1,
@@ -935,45 +1024,13 @@
     ]
   },
   {
-    "username": "AS",
-    "nombres": "Alessa",
-    "apellidoPrimero": "Silva",
-    "correo": "asilva@amcham.org.mx",
+    "username": "GLINGOW",
+    "nombres": "Grace",
+    "apellidoPrimero": "Lingow",
+    "correo": "glingow@amcham.org.mx",
     "permissions": [
       {
-        "empresaId": "empresa2",
-        "modulo": "Membresía",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 1,
-        "puede_aprobar": 0
-      },
-      {
-        "empresaId": "empresa2",
-        "modulo": "Eventos",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 1,
-        "puede_aprobar": 0
-      },
-      {
-        "empresaId": "empresa2",
-        "modulo": "Comunicación",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 1,
-        "puede_aprobar": 0
-      },
-      {
-        "empresaId": "empresa2",
-        "modulo": "Serv_Membresía",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 1,
-        "puede_aprobar": 0
-      },
-      {
-        "empresaId": "empresa2",
+        "empresaId": "empresa3",
         "modulo": "Comités",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
@@ -981,23 +1038,15 @@
         "puede_aprobar": 0
       },
       {
-        "empresaId": "empresa2",
-        "modulo": "T&IC",
+        "empresaId": "empresa3",
+        "modulo": "Comunicación",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
         "puede_revisar": 1,
         "puede_aprobar": 0
       },
       {
-        "empresaId": "empresa2",
-        "modulo": "RH",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 1,
-        "puede_aprobar": 0
-      },
-      {
-        "empresaId": "empresa2",
+        "empresaId": "empresa3",
         "modulo": "Dirección",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
@@ -1005,43 +1054,51 @@
         "puede_aprobar": 0
       },
       {
-        "empresaId": "empresa2",
+        "empresaId": "empresa3",
+        "modulo": "Eventos",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa3",
         "modulo": "Finanzas",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
         "puede_revisar": 1,
         "puede_aprobar": 0
-      }
-    ]
-  },
-  {
-    "username": "NG",
-    "nombres": "NallelyI",
-    "apellidoPrimero": "Gómez",
-    "correo": "ngomez@amcham.org.mx",
-    "permissions": [
+      },
       {
-        "empresaId": "empresa2",
+        "empresaId": "empresa3",
         "modulo": "Membresía",
         "puede_leer": 1,
-        "puede_cargar_guardar": 1,
-        "puede_revisar": 0,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 1,
         "puede_aprobar": 0
-      }
-    ]
-  },
-  {
-    "username": "RA",
-    "nombres": "Regina",
-    "apellidoPrimero": "Arauz",
-    "correo": "rarauz@amcham.org.mx",
-    "permissions": [
+      },
       {
-        "empresaId": "empresa2",
-        "modulo": "Eventos",
+        "empresaId": "empresa3",
+        "modulo": "RH",
         "puede_leer": 1,
-        "puede_cargar_guardar": 1,
-        "puede_revisar": 0,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "Serv_Membresía",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "T&IC",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 1,
         "puede_aprobar": 0
       }
     ]
@@ -1087,130 +1144,430 @@
     ]
   },
   {
-    "username": "YB",
-    "nombres": "Yanick",
-    "apellidoPrimero": "Brisson",
-    "correo": "ybrisson@amcham.org.mx",
-    "permissions": []
-  },
-  {
-    "username": "AZ",
-    "nombres": "Adriana",
-    "apellidoPrimero": "Zertuche",
-    "correo": "azertuche@amcham.org.mx",
-    "permissions": []
-  },
-  {
     "username": "MV",
     "nombres": "María",
     "apellidoPrimero": "Villareal",
     "correo": "mvillarreal@amcham.org.mx",
-    "permissions": []
-  },
-  {
-    "username": "DI",
-    "nombres": "David",
-    "apellidoPrimero": "Ibarra",
-    "correo": "dibarra@amcham.org.mx",
-    "permissions": []
-  },
-  {
-    "username": "BS",
-    "nombres": "Benjamin",
-    "apellidoPrimero": "Suárez",
-    "correo": "bsuarez@amcham.org.mx",
     "permissions": [
       {
-        "empresaId": "empresa4",
+        "empresaId": "empresa3",
+        "modulo": "Comités",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      }
+    ]
+  },
+  {
+    "username": "NG",
+    "nombres": "NallelyI",
+    "apellidoPrimero": "Gómez",
+    "correo": "ngomez@amcham.org.mx",
+    "permissions": [
+      {
+        "empresaId": "empresa2",
         "modulo": "Membresía",
         "puede_leer": 1,
         "puede_cargar_guardar": 1,
-        "puede_revisar": 1,
+        "puede_revisar": 0,
         "puede_aprobar": 0
+      }
+    ]
+  },
+  {
+    "username": "PCA",
+    "nombres": "Pedro",
+    "apellidoPrimero": "Casas Alatriste",
+    "correo": "pcasasalatriste@amcham.org.mx",
+    "permissions": [
+      {
+        "empresaId": "empresa1",
+        "modulo": "Comités",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
       },
       {
-        "empresaId": "empresa4",
+        "empresaId": "empresa1",
+        "modulo": "Comunicación",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa1",
         "modulo": "Eventos",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
-        "puede_revisar": 1,
-        "puede_aprobar": 0
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "Finanzas",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "Gtos_Corporativos",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "Membresía",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "RH",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "Serv_Membresía",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "T&IC",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "VPE",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Comités",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Comunicación",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Dirección",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Eventos",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Finanzas",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Gtos_Corporativos",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Membresía",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "RH",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Serv_Membresía",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "T&IC",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "Comités",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "Comunicación",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "Dirección",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "Eventos",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "Finanzas",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "Gtos_Corporativos",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "Membresía",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "RH",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "Serv_Membresía",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "T&IC",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Comités",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
       },
       {
         "empresaId": "empresa4",
         "modulo": "Comunicación",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
-        "puede_revisar": 1,
-        "puede_aprobar": 0
+        "puede_revisar": 0,
+        "puede_aprobar": 1
       },
       {
         "empresaId": "empresa4",
-        "modulo": "Serv_Membresía",
+        "modulo": "Dirección",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
-        "puede_revisar": 1,
-        "puede_aprobar": 0
+        "puede_revisar": 0,
+        "puede_aprobar": 1
       },
       {
         "empresaId": "empresa4",
-        "modulo": "Comités",
+        "modulo": "Eventos",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
-        "puede_revisar": 1,
-        "puede_aprobar": 0
+        "puede_revisar": 0,
+        "puede_aprobar": 1
       },
       {
         "empresaId": "empresa4",
-        "modulo": "T&IC",
+        "modulo": "Finanzas",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
-        "puede_revisar": 1,
-        "puede_aprobar": 0
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Gtos_Corporativos",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Membresía",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
       },
       {
         "empresaId": "empresa4",
         "modulo": "RH",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
-        "puede_revisar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Serv_Membresía",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "T&IC",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      }
+    ]
+  },
+  {
+    "username": "PV",
+    "nombres": "Patricio",
+    "apellidoPrimero": "Vazquez",
+    "correo": "pvazquez@amcham.org.mx",
+    "permissions": [
+      {
+        "empresaId": "empresa1",
+        "modulo": "Comunicación",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Comunicación",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "Comunicación",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
         "puede_aprobar": 0
       },
       {
         "empresaId": "empresa4",
-        "modulo": "Dirección",
+        "modulo": "Comunicación",
         "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 1,
-        "puede_aprobar": 0
-      },
-      {
-        "empresaId": "empresa4",
-        "modulo": "Finanzas",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
         "puede_aprobar": 0
       }
     ]
   },
   {
-    "username": "AC",
-    "nombres": "Ana",
-    "apellidoPrimero": "Cecilia",
-    "correo": "agutierrez@amcham.org.mx",
+    "username": "RA",
+    "nombres": "Regina",
+    "apellidoPrimero": "Arauz",
+    "correo": "rarauz@amcham.org.mx",
     "permissions": [
       {
-        "empresaId": "empresa4",
+        "empresaId": "empresa2",
         "modulo": "Eventos",
         "puede_leer": 1,
         "puede_cargar_guardar": 1,
         "puede_revisar": 0,
         "puede_aprobar": 0
-      },
+      }
+    ]
+  },
+  {
+    "username": "SB",
+    "nombres": "Santiago",
+    "apellidoPrimero": "Bolio",
+    "correo": "bdireccion@amcham.org.mx",
+    "permissions": [
       {
-        "empresaId": "empresa4",
-        "modulo": "Comités",
+        "empresaId": "empresa1",
+        "modulo": "VPE",
         "puede_leer": 1,
         "puede_cargar_guardar": 1,
         "puede_revisar": 0,
@@ -1219,22 +1576,14 @@
     ]
   },
   {
-    "username": "XX",
-    "nombres": "XX",
-    "apellidoPrimero": "XX",
-    "correo": "",
+    "username": "YB",
+    "nombres": "Yanick",
+    "apellidoPrimero": "Brisson",
+    "correo": "ybrisson@amcham.org.mx",
     "permissions": [
       {
-        "empresaId": "empresa4",
-        "modulo": "Dirección",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 1,
-        "puede_revisar": 0,
-        "puede_aprobar": 0
-      },
-      {
-        "empresaId": "empresa4",
-        "modulo": "Finanzas",
+        "empresaId": "empresa3",
+        "modulo": "Membresía",
         "puede_leer": 1,
         "puede_cargar_guardar": 1,
         "puede_revisar": 0,
