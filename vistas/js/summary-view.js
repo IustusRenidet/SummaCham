@@ -841,9 +841,6 @@
                 sign: 1
               }
             });
-            // Agregar label en columna descripción (posición 7)
-            const cells = principalRow.querySelectorAll('td');
-            if (cells[6]) cells[6].textContent = block.label || '';
             summaryBody.appendChild(principalRow);
           }
           // SECUNDARIA: Header de subsección
