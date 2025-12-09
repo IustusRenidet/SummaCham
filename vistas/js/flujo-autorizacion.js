@@ -884,14 +884,10 @@
 
     _sincronizarEdicion() {
       const estado = this.state.borrador?.estado;
-      const esAutor = this._esAutor();
-      if (
-        estado === ESTADOS.EDITANDO &&
-        esAutor &&
-        this.state.permisos.cargar
-      ) {
-        this._enterEditMode(true);
-      } else if (this.state.editMode && estado !== ESTADOS.EDITANDO) {
+      // Ya no activar automáticamente el modo edición al cargar
+      // El usuario debe hacer clic en "Editar" o "Cargar Borrador" explícitamente
+      // Solo salir del modo edición si el estado cambió y ya no es EDITANDO
+      if (this.state.editMode && estado !== ESTADOS.EDITANDO) {
         this._exitEditMode();
       }
     }

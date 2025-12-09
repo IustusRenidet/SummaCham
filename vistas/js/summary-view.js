@@ -132,9 +132,8 @@
       if (editMode) return;
       editMode = true;
       sincronizarCeldasEditables();
-      if (window.ModoEdicionPresupuesto?.activar) {
-        try { window.ModoEdicionPresupuesto.activar(); } catch (e) { /* ignore */ }
-      }
+      // NO activar ModoEdicionPresupuesto automáticamente
+      // Solo se activa cuando el usuario hace clic en "Editar"
       return;
     }
     if (editMode) {
