@@ -71,7 +71,7 @@
 
   const obtener = () => {
     try {
-      const datos = sessionStorage.getItem(STORAGE_KEY);
+      const datos = localStorage.getItem(STORAGE_KEY);
       const sesion = datos ? JSON.parse(datos) : null;
       if (!sesion) {
         return null;
@@ -92,7 +92,7 @@
     const datos = prepararSesion(valor);
     datos.tokenAcceso = valor.tokenAcceso || valor.accessToken || valor.token || sesionAnterior?.tokenAcceso || null;
     datos.tokenRefresco = valor.tokenRefresco || valor.refreshToken || sesionAnterior?.tokenRefresco || null;
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(datos));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(datos));
     const anteriorId = sesionAnterior?.empresaActiva?.id || null;
     const nuevaId = datos?.empresaActiva?.id || null;
     if (anteriorId !== nuevaId) {
@@ -102,7 +102,7 @@
   };
 
   const limpiar = () => {
-    sessionStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(STORAGE_KEY);
     notificarCambioEmpresa(null);
   };
 
