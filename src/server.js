@@ -20,12 +20,34 @@ const rutasBorradores = require('./routes/borradores');
 
 let instanciaServidor = null;
 
-const iniciarServidor = (puerto = Number(process.env.PORT || 3000)) => {
+const iniciarServidor = (puerto = Number(process.env.PORT || 3000)) => {) => {
   if (instanciaServidor) {
-    return instanciaServidor;
+    console.log("⚠️ Servidor ya está ejecutándose, retornando instancia existente");
+    console.log(`  → Escuchando en puerto: ${puertoActual}`);
+    return { servidor: instanciaServidor, puerto: puertoActual };
   }
 
+  console.log("🚀 Iniciando servidor Express...");
+  console.log("  Puerto solicitado:", puerto);
+  console.log("  NODE_ENV:", process.env.NODE_ENV || 'development');
+  
+  // Intentar encontrar un puerto disponible
+  let puertoDisponible;
+  try {
+    puertoDisponible = await encontrarPuertoDisponible(puerto);
+    if (puertoDisponible !== puerto) {
+      console.log(`⚠️ Puerto ${puerto} no disponible, usando puerto ${puertoDisponible}`);
+    }
+  } catch (error) {
+    console.error('❌ Error al buscar puerto disponible:', error.message);
+    throw error;
+  }
+  
+  puertoActual = puertoDisponible;
+  console.log("  Puerto final:", puertoActual);
+
   inicializarBaseDatos();
+  console.log("✓ Base de datos SQLite inicializada");
 
   const app = express();
   // CORS restringido: permitir orígenes configurados (por defecto localhost y file:// -> null origin)
@@ -130,8 +152,19 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3000)) => {
   });
 
   instanciaServidor = app.listen(puerto, '127.0.0.1', () => {
-    console.log(`API interna escuchando en http://127.0.0.1:${puerto}`);
-    console.log(`Túnel público: https://panelamcham.iconetcloud.com.mx`);
+    console.log('✓✓✓ SERVIDOR INICIADO EXITOSAMENTE ✓✓✓');
+    console.log(`  → API interna escuchando en http://127.0.0.1:${puerto}`);
+    console.log(`  → Túnel público: https://panelamcham.iconetcloud.com.mx`);
+    console.log(`  → El servidor está listo para recibir conexiones`);
+  });
+
+  instanciaServidor.on('error', (error) => {
+    console.error('❌ Error en el servidor:', error);
+    if (error.code === 'EADDRINUSE') {
+      console.error(`  ❌ CRÍTICO: El puerto ${puerto} ya está en uso.`);
+      console.error(`  → Cierre otras instancias de la aplicación o procesos usando el puerto ${puerto}`);
+    }
+    throw error;
   });
 
   return instanciaServidor;
@@ -140,5 +173,10 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3000)) => {
 module.exports = iniciarServidor;
 
 if (require.main === module) {
-  iniciarServidor();
+  try {
+    iniciarServidor();
+  } catch (error) {
+    console.error('Error al iniciar servidor:', error);
+    process.exit(1);
+  }
 }

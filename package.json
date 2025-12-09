@@ -34,7 +34,7 @@
         "repo": "SummaCham"
       }
     ],
-    "asar": true,
+    "asar": false,
     "directories": {
       "output": "dist",
       "buildResources": "icono"
@@ -51,6 +51,8 @@
       "IMPLEMENTACIONES/**/*",
       "excels/**/*",
       "scripts/**/*",
+      "node_modules/**/*",
+      "package.json",
       "README.md"
     ],
     "extraResources": [

@@ -492,7 +492,18 @@
           const flujo = new FlujoAutorizacion({
             tablaId: 'tablaCuentasBody',
             modulo: 'resumen',
-            obtenerCambios: () => ({ presupuesto: [], nombres: [] }),
+            obtenerCambios: () => {
+              // Obtener cambios de resumen-view.js que captura cuenta/descripción
+              const cambiosResumen = window.CuentasModulo?.getCambios?.() || { presupuesto: [], hayCambios: false };
+              
+              console.log('📤 Obteniendo cambios RESUMEN:', cambiosResumen);
+              
+              return {
+                presupuesto: cambiosResumen.presupuesto || [],
+                nombres: [],
+                hayCambios: cambiosResumen.hayCambios || false
+              };
+            },
             obtenerHeaders: () => (window.Sesion?.headersAutenticacion?.() || {}),
             onEstadoChange: (estado) => {
               console.log('🔄 Estado RESUMEN:', estado);

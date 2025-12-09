@@ -814,9 +814,31 @@
             
             // ✅ CALLBACK CRÍTICO: Extraer cambios de la tabla
             obtenerCambios: () => {
-              const cambios = ModoEdicionPresupuesto.obtenerCambios();
-              console.log('📤 Obteniendo cambios:', cambios);
-              return cambios;
+              // Priorizar cambios de summary-view.js que captura cuenta/descripción
+              const cambiosSummary = window.CuentasModulo?.getCambios?.() || { presupuesto: [], hayCambios: false };
+              const cambiosModoEdicion = ModoEdicionPresupuesto?.obtenerCambios?.() || { presupuesto: [], nombres: [] };
+              
+              // Combinar ambos: presupuestos numéricos + cambios de texto
+              const presupuestoMerged = [
+                ...cambiosSummary.presupuesto,
+                ...cambiosModoEdicion.presupuesto.filter(c => 
+                  !cambiosSummary.presupuesto.some(cs => cs.cuenta === c.cuenta)
+                )
+              ];
+              
+              const cambiosCombinados = {
+                presupuesto: presupuestoMerged,
+                nombres: cambiosModoEdicion.nombres || [],
+                hayCambios: cambiosSummary.hayCambios || cambiosModoEdicion.presupuesto?.length > 0
+              };
+              
+              console.log('📤 Obteniendo cambios SUMMARY:', {
+                summaryView: cambiosSummary,
+                modoEdicion: cambiosModoEdicion,
+                combinados: cambiosCombinados
+              });
+              
+              return cambiosCombinados;
             },
             
             // Headers de autenticación

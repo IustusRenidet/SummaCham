@@ -112,7 +112,8 @@ if (!gotTheLock) {
       },
     });
 
-    mainWindow.loadFile(resolveAssetPath("vistas", "app.html"));
+    // Cargar desde el servidor Express en puerto 3000
+    mainWindow.loadURL('http://localhost:3000');
 
     // Interceptar cierre para minimizar en lugar de salir
     mainWindow.on("close", (event) => {
@@ -156,30 +157,44 @@ if (!gotTheLock) {
     }
 
     // Iniciar Backend
+    let servidor = null;
     try {
-      const iniciarServidor = require("./src/server");
-      const servidor = iniciarServidor();
-      console.log("Servidor backend iniciado correctamente");
+      console.log("Intentando iniciar servidor backend...");
+      console.log("App packaged:", app.isPackaged);
+      console.log("App path:", app.getAppPath());
       
-      // Verificar que el servidor esté escuchando
+      const iniciarServidor = require("./src/server");
+      servidor = iniciarServidor();
+      
       if (!servidor) {
-        throw new Error("El servidor no se pudo iniciar");
+        throw new Error("El servidor no se pudo iniciar - retornó null");
       }
+      
+      console.log("✓ Servidor backend iniciado correctamente");
+      console.log("✓ Escuchando en puerto 3000");
+      
+      // Esperar a que el servidor esté listo antes de crear la ventana
+      setTimeout(() => {
+        console.log("Creando ventana y tray...");
+        // Configurar persistencia
+        createTray();
+        createWindow();
+        console.log("✓ Aplicación lista");
+      }, 1500);
     } catch (e) {
-      console.error("Error fatal iniciando el servidor:", e);
+      console.error("❌ Error fatal iniciando el servidor:");
+      console.error("  Mensaje:", e.message);
+      console.error("  Stack:", e.stack);
+      
       // Mostrar diálogo de error en Windows
       const { dialog } = require("electron");
       dialog.showErrorBox(
         "Error al iniciar servidor",
-        `No se pudo iniciar el servidor backend:\n\n${e.message}\n\nLa aplicación se cerrará.`
+        `No se pudo iniciar el servidor backend:\n\n${e.message}\n\nStack:\n${e.stack}\n\nLa aplicación se cerrará.`
       );
       app.quit();
       return;
     }
-
-    // Configurar persistencia
-    createTray();
-    createWindow();
 
     if (process.platform === "win32" || process.platform === "linux") {
       configureAutoLaunch();

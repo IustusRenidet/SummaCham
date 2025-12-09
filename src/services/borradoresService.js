@@ -385,7 +385,7 @@ const persistirEnFirebird = async (borrador) => {
     guardadoPor: Number(borrador.usuarioId) || null,
   });
 
-  // 2. Guardar en Firebird PRESUP table
+  // 2. Guardar en Firebird PRESUP table Y CUENTAS (si hay cambios de cuenta/descripción)
   const { ejecutarConsulta } = require("./firebirdService");
 
   let datos;
@@ -457,7 +457,9 @@ const persistirEnFirebird = async (borrador) => {
 
   let contadorExitosas = 0;
   let contadorErrores = 0;
+  let contadorCuentasActualizadas = 0;
 
+  // ✅ NUEVO: Procesar cambios de cuenta y descripción PRIMERO
   for (const cambio of presupuesto) {
     const cuenta = (cambio.cuenta || "").toString().trim();
     const valores = cambio.valores || {};
@@ -466,6 +468,50 @@ const persistirEnFirebird = async (borrador) => {
       console.warn(`⚠️ Cambio sin número de cuenta, ignorando`);
       contadorErrores++;
       continue;
+    }
+
+    // Verificar si hay cambios de cuenta o descripción
+    const nuevaCuenta = valores.cuenta;
+    const nuevaDescripcion = valores.descripcion;
+
+    if (nuevaCuenta || nuevaDescripcion) {
+      // Determinar tabla de cuentas según módulo
+      const tablaCuentas = borrador.modulo === 'resumen' ? 'CUENTAS21R' : 'CUENTAS21';
+      
+      try {
+        const updates = [];
+        const params = [];
+
+        if (nuevaCuenta && nuevaCuenta !== cuenta) {
+          updates.push('NUM_CTA = ?');
+          params.push(nuevaCuenta);
+        }
+
+        if (nuevaDescripcion !== undefined && nuevaDescripcion !== null) {
+          updates.push('DESCRIPCION = ?');
+          params.push(nuevaDescripcion);
+        }
+
+        if (updates.length > 0) {
+          params.push(cuenta); // WHERE NUM_CTA = ?
+          
+          const updateQuery = `
+            UPDATE ${tablaCuentas}
+            SET ${updates.join(', ')}
+            WHERE NUM_CTA = ?
+          `;
+
+          await ejecutarConsulta(borrador.empresaId, updateQuery, params);
+          contadorCuentasActualizadas++;
+          console.log(`✅ Actualizada cuenta ${cuenta} en ${tablaCuentas}`);
+        }
+      } catch (error) {
+        console.error(
+          `❌ Error al actualizar cuenta/descripción ${cuenta} en tabla CUENTAS:`,
+          error.message
+        );
+        // Continuar con otras cuentas
+      }
     }
 
     const columnasVariables = [];
@@ -510,7 +556,9 @@ const persistirEnFirebird = async (borrador) => {
   }
 
   console.log(
-    `✅ Persistencia completada: ${contadorExitosas} cuentas exitosas, ${contadorErrores} errores`
+    `✅ Persistencia completada: ${contadorExitosas} presupuestos actualizados, ` +
+    `${contadorCuentasActualizadas} cuentas/descripciones modificadas, ` +
+    `${contadorErrores} errores`
   );
 };
 
