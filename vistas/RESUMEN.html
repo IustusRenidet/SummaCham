@@ -253,7 +253,8 @@
       }
 
       body.ocultar-cuentas .account-column,
-      body.ocultar-cuentas .account-column-header {
+      body.ocultar-cuentas .account-column-header,
+      body.ocultar-cuentas .col-cuenta {
         display: none;
       }
 
@@ -761,14 +762,6 @@
                 />
               </div>
             </div>
-            <button
-              type="button"
-              class="btn btn-chip btn-chip-outline"
-              id="toggleAccountsBtn"
-              aria-pressed="true"
-            >
-              Ocultar cuentas
-            </button>
           </div>
         </div>
       </div>
@@ -784,7 +777,7 @@
                 >
                 <thead>
                 <tr class="encabezados">
-                  <th scope="col" class="col-cuenta">Cuenta</th>
+                  <th scope="col" class="account-column-header">Cuenta</th>
                   <th scope="col" class="month-real">Real <span class="year-act"></span></th>
                   <th scope="col" class="month-budget">Ppto. <span class="year-act"></span></th>
                   <th scope="col" class="month-real">Real <span class="year-prev"></span></th>
@@ -862,7 +855,7 @@
       crossorigin="anonymous"
     ></script>
     <script src="js/flujo-autorizacion.js?v=20251208-1"></script>
-    <script src="js/context-menu-manager.js?v=20251209-1"></script>
+    <script src="js/context-menu-manager.js?v=20251209-2"></script>
     <script src="js/resumen-view.js"></script>
     <script>
       // Inicialización del flujo para RESUMEN (modo lectura)

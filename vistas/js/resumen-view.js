@@ -643,7 +643,7 @@
             const nombreCuenta = block.nombre || block.label || '';
             
             row.innerHTML = `
-              ${createEditableCell(block.cuenta || '', { columnKey: 'cuenta', rowRole: 'account', tooltipKey: 'account', text: true, classes: 'font-monospace small text-start ps-4' })}
+              ${createEditableCell(block.cuenta || '', { columnKey: 'cuenta', rowRole: 'account', tooltipKey: 'account', text: true, classes: 'account-column font-monospace small text-start ps-4' })}
               ${createCell(cta.actualMonth, { rowRole: 'account', tooltipKey: 'actualMonth' })}
               ${createCell(cta.planMonth, { rowRole: 'account', tooltipKey: 'planMonth' })}
               ${createCell(cta.prevMonth, { rowRole: 'account', tooltipKey: 'prevMonth' })}

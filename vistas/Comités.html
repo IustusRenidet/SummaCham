@@ -431,6 +431,30 @@
     </div>
   </div>
 
+  <!-- Menú Contextual -->
+  <div id="contextMenu" class="context-menu" style="display: none; position: absolute; z-index: 10000; background: white; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); min-width: 200px;">
+    <div class="context-menu-item" data-action="add-row" style="padding: 10px 16px; cursor: pointer; display: flex; align-items: center; border-bottom: 1px solid #f0f0f0;">
+      <i class="bi bi-plus-circle me-2"></i>Agregar cuenta
+    </div>
+    <div class="context-menu-item" data-action="add-section" style="padding: 10px 16px; cursor: pointer; display: flex; align-items: center; border-bottom: 1px solid #f0f0f0;">
+      <i class="bi bi-folder-plus me-2"></i>Agregar sección
+    </div>
+    <div class="context-menu-item" data-action="add-operation" style="padding: 10px 16px; cursor: pointer; display: flex; align-items: center; border-bottom: 1px solid #f0f0f0;">
+      <i class="bi bi-calculator me-2"></i>Crear operación
+    </div>
+    <div class="context-menu-divider" style="height: 1px; background: #e0e0e0; margin: 4px 0;"></div>
+    <div class="context-menu-item" data-action="edit-row" style="padding: 10px 16px; cursor: pointer; display: flex; align-items: center; border-bottom: 1px solid #f0f0f0;">
+      <i class="bi bi-pencil me-2"></i>Editar
+    </div>
+    <div class="context-menu-item context-menu-danger" data-action="delete-row" style="padding: 10px 16px; cursor: pointer; display: flex; align-items: center; color: #dc3545;">
+      <i class="bi bi-trash me-2"></i>Eliminar
+    </div>
+  </div>
+  <style>
+    .context-menu-item:hover { background-color: #f8f9fa; }
+    .context-menu-danger:hover { background-color: #fff5f5; }
+  </style>
+
   <script src="js/sesion.js"></script>
   <script src="js/capitulos-modulos.js"></script>
   <script src="js/cuentas-data.js"></script>
@@ -440,6 +464,7 @@
     crossorigin="anonymous"></script>
   <script src="js/planeacion-modulo-vista.js"></script>
   <script src="js/flujo-autorizacion.js?v=20251208-1"></script>
+  <script src="js/context-menu-manager.js?v=20251209-2"></script>
   <script>
     (async () => {
       const instancia = CuentasModulo.init({ moduloId: 'comites' });

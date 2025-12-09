@@ -29,7 +29,11 @@
       const permiteEdicion = ['EDITANDO', 'BORRADOR', 'CARGANDO'].includes(estado) && modoEdicion;
 
       if (!permiteEdicion) {
-        alert(`❌ No se pueden hacer cambios estructurales en estado: ${estado}\n\nDebe cargar un presupuesto y activar el modo edición para modificar la estructura.`);
+        const estadoMostrar = estado === 'SIN_CARGAR' ? 'Sin cargar' : estado;
+        const mensaje = !modoEdicion 
+          ? `❌ No está en modo edición\n\nDebe hacer clic en "Cargar presupuesto" para activar el modo edición.`
+          : `❌ No se pueden hacer cambios estructurales en estado: ${estadoMostrar}\n\nDebe estar en modo edición para modificar la estructura.`;
+        alert(mensaje);
         return false;
       }
 
