@@ -12,6 +12,23 @@
     maximumFractionDigits: 2,
   });
 
+  /**
+   * Estados del flujo de autorización de presupuestos
+   * 
+   * Flujo normal:
+   * SIN_CARGAR → EDITANDO → PENDIENTE → REVISADO → APROBADO → GUARDADO
+   * 
+   * Flujo con rechazo:
+   * PENDIENTE/REVISADO/APROBADO → RECHAZADO → EDITANDO (corrección)
+   * 
+   * - EDITANDO: Usuario está creando/modificando el presupuesto
+   * - PENDIENTE: Enviado a revisión, esperando que un revisor lo marque como revisado
+   * - REVISADO: Marcado como revisado por un revisor, esperando autorización
+   * - RECHAZADO: Rechazado por revisor/autorizador, regresa al autor para correcciones
+   * - APROBADO: Autorizado por el aprobador, listo para guardar en COI
+   * - GUARDADO: Guardado en la base de datos COI, finalizado (inmutable)
+   * - SIN_CARGAR: Estado inicial cuando no existe borrador
+   */
   const ESTADOS = {
     EDITANDO: "EDITANDO",
     PENDIENTE: "PENDIENTE",
@@ -616,6 +633,19 @@
       }
     }
 
+    /**
+     * Resuelve los permisos del usuario actual para el flujo de autorización
+     * 
+     * Permisos disponibles:
+     * - cargar: Permiso "Cargar y guardar" - permite crear, editar y enviar presupuestos
+     * - revisar: Permiso "Revisar" - permite marcar como revisado o rechazar
+     * - aprobar: Permiso "Aprobar" - permite autorizar presupuestos revisados y guardar en COI
+     * - leer: Permiso de solo lectura (todos los usuarios)
+     * - admin: Administrador global (ICONET) - tiene todos los permisos
+     * 
+     * @param {Object} sesion - Sesión actual del usuario
+     * @returns {Object} Objeto con los permisos del usuario
+     */
     _resolverPermisos(sesion) {
       const base = {
         cargar: false,
@@ -1097,6 +1127,17 @@
       }
     }
 
+    /**
+     * Maneja el clic en el botón "Cargar presupuesto" o "Guardar para más tarde"
+     * 
+     * Comportamiento dual:
+     * - Si NO está en modo edición: Activa el modo edición para cargar/crear presupuesto
+     * - Si YA está en modo edición: Guarda los cambios actuales como borrador temporal
+     * 
+     * El botón cambia su texto según el estado:
+     * - "Cargar presupuesto" cuando no hay borrador y no está editando
+     * - "Guardar para más tarde" cuando está en modo edición
+     */
     async _handleGuardar() {
       if (this.state.editMode) {
         await this._guardarBorradorTemporal();
@@ -1109,6 +1150,17 @@
       this._enterEditMode();
     }
 
+    /**
+     * Guarda los cambios actuales como borrador temporal (estado: EDITANDO)
+     * 
+     * Permite al usuario:
+     * - Guardar su progreso sin finalizar
+     * - Continuar editando después
+     * - No pierde cambios si cierra la sesión
+     * 
+     * Los cambios se almacenan en la base de datos pero el estado permanece en EDITANDO.
+     * El usuario puede seguir editando o enviar a revisión cuando termine.
+     */
     async _guardarBorradorTemporal() {
       const cambios = this._obtenerCambios();
       const presupuesto = Array.isArray(cambios.presupuesto)
@@ -1149,6 +1201,18 @@
       }
     }
 
+    /**
+     * Envía el presupuesto a revisión (transición: EDITANDO → PENDIENTE)
+     * 
+     * Proceso:
+     * 1. Guarda los cambios actuales como borrador
+     * 2. Cambia el estado a PENDIENTE
+     * 3. Sale del modo edición
+     * 4. Notifica a los revisores
+     * 
+     * Si el módulo permite auto-autorización (sin revisores configurados),
+     * el estado pasa directamente a APROBADO.
+     */
     async _handleEnviar() {
       if (!this._puede({ accion: "enviar" })) {
         this._toast("No cuentas con permisos para enviar.", "warning");
@@ -1302,6 +1366,16 @@
       return this._handleCancelar();
     }
 
+    /**
+     * Marca el presupuesto como revisado o cancela la revisión
+     * 
+     * Acciones según el estado actual:
+     * - Si está en PENDIENTE → pasa a REVISADO (marca como revisado)
+     * - Si está en REVISADO → regresa a PENDIENTE (cancela revisión)
+     * 
+     * Solo usuarios con permiso "Revisar" pueden ejecutar esta acción.
+     * Un presupuesto debe estar REVISADO para poder ser autorizado.
+     */
     async _handleMarcarRevisado() {
       if (!this._puede({ accion: "revisar" })) {
         this._toast("No cuentas con permisos para revisar.", "warning");
@@ -1343,6 +1417,16 @@
       }
     }
 
+    /**
+     * Autoriza el presupuesto (transición: REVISADO → APROBADO)
+     * 
+     * Requisitos:
+     * - El presupuesto debe estar en estado REVISADO
+     * - El usuario debe tener permiso "Aprobar"
+     * 
+     * Una vez aprobado, el presupuesto puede ser guardado en la base de datos COI.
+     * Solo los usuarios con permiso "Aprobar" pueden guardar en COI.
+     */
     async _handleAutorizar() {
       if (!this._puede({ accion: "autorizar" })) {
         this._toast("No cuentas con permisos para autorizar.", "warning");
@@ -1380,6 +1464,20 @@
       }
     }
 
+    /**
+     * Rechaza el presupuesto y lo devuelve al autor para correcciones
+     * 
+     * Puede rechazarse desde los estados:
+     * - PENDIENTE (por revisor)
+     * - REVISADO (por revisor o autorizador)
+     * - APROBADO (por autorizador)
+     * 
+     * Al rechazar:
+     * 1. El estado cambia a RECHAZADO
+     * 2. Se registra el motivo del rechazo
+     * 3. El autor puede ver el motivo y corregir
+     * 4. El autor puede volver a enviar (RECHAZADO → EDITANDO → PENDIENTE)
+     */
     async _handleRechazar() {
       if (!this._puede({ accion: "rechazar" })) {
         this._toast("No cuentas con permisos para rechazar.", "warning");
@@ -1420,6 +1518,21 @@
       }
     }
 
+    /**
+     * Guarda el presupuesto autorizado en la base de datos COI (transición: APROBADO → GUARDADO)
+     * 
+     * Esta es la acción FINAL del flujo de autorización.
+     * 
+     * Requisitos:
+     * - El presupuesto debe estar en estado APROBADO
+     * - El usuario debe tener permiso "Aprobar"
+     * 
+     * Efectos:
+     * 1. Guarda el presupuesto en las tablas de Firebird (COI)
+     * 2. Cambia el estado a GUARDADO
+     * 3. El presupuesto se vuelve INMUTABLE (no se puede editar más)
+     * 4. Se elimina el borrador de la base de datos
+     */
     async _handleGuardarCOI() {
       if (!this._puede({ accion: "guardarCoi" })) {
         this._toast("No cuentas con permisos para guardar en COI.", "warning");
