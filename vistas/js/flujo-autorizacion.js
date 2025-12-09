@@ -289,134 +289,175 @@
     setTimeout(inicializarBotonesBootstrap, 100);
   }
 
+  /**
+   * ensureDraftsDrawer
+   * Crea el Centro de Borradores con dos vistas:
+   * 1. Borradores activos - Lista de borradores en curso para cargar
+   * 2. Historial completo - Todos los cambios de estado y acciones (incluso descartados/rechazados)
+   * 
+   * El historial se guarda en BD para auditoría y consulta permanente
+   * 
+   * @returns {HTMLElement} El drawer creado o existente
+   */
   const ensureDraftsDrawer = () => {
     const DRAFTS_DRAWER_ID = "workflowDraftsDrawer";
     const existing = document.getElementById(DRAFTS_DRAWER_ID);
     if (existing) return existing;
+    
     const drawer = document.createElement("div");
     drawer.className = "offcanvas offcanvas-end drafts-drawer";
     drawer.tabIndex = -1;
     drawer.id = DRAFTS_DRAWER_ID;
     drawer.setAttribute("aria-labelledby", "draftsDrawerLabel");
+    
     drawer.innerHTML = `
       <div class="offcanvas-header">
-        <h5 class="offcanvas-title" id="draftsDrawerLabel">Centro de borradores</h5>
-        <button type="button" class="btn-close text-reset btn-cerrar-offcanvas" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
+        <h5 class="offcanvas-title" id="draftsDrawerLabel">
+          <i class="bi bi-file-earmark-text me-2"></i>Centro de Borradores
+        </h5>
+        <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
       </div>
       <div class="offcanvas-body">
-        <div class="btn-group drafts-tabs mb-3" role="group" aria-label="Vistas del centro de borradores">
-          <button type="button" class="btn btn-outline-primary active" data-drafts-tab="current">En curso</button>
-          <button type="button" class="btn btn-outline-primary" data-drafts-tab="history">Historial</button>
-        </div>
-        <div id="draftsCenterStatus" class="alert alert-info mb-3">
-          Selecciona empresa y ejercicio para cargar los borradores.
-        </div>
-        <div class="drafts-view" data-drafts-view="current">
-          <div class="table-responsive">
-            <table class="table table-sm drafts-table align-middle">
-              <thead>
-                <tr>
-                  <th>Contexto</th>
-                  <th>Estado</th>
-                  <th>Autor</th>
-                  <th>Actualizado</th>
-                  <th class="text-end">Acciones</th>
-                </tr>
-              </thead>
-              <tbody id="draftsCenterBody">
-                <tr>
-                  <td colspan="5" class="text-center text-muted">Sin registros</td>
-                </tr>
-              </tbody>
-            </table>
+        <!-- Tabs: Borradores / Historial -->
+        <ul class="nav nav-tabs mb-3" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="drafts-tab" data-bs-toggle="tab" data-bs-target="#drafts-panel" type="button" role="tab">
+              <i class="bi bi-file-earmark me-1"></i>Borradores Activos
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="history-tab" data-bs-toggle="tab" data-bs-target="#history-panel" type="button" role="tab">
+              <i class="bi bi-clock-history me-1"></i>Historial Completo
+            </button>
+          </li>
+        </ul>
+
+        <div class="tab-content">
+          <!-- Panel: Borradores Activos -->
+          <div class="tab-pane fade show active" id="drafts-panel" role="tabpanel">
+            <div id="draftsCenterStatus" class="alert alert-info mb-3">
+              <i class="bi bi-info-circle me-2"></i>Selecciona empresa y ejercicio para ver tus borradores.
+            </div>
+            <div class="table-responsive">
+              <table class="table table-hover align-middle">
+                <thead class="table-light">
+                  <tr>
+                    <th>Estado</th>
+                    <th>Autor</th>
+                    <th>Fecha</th>
+                    <th class="text-end">Acción</th>
+                  </tr>
+                </thead>
+                <tbody id="draftsCenterBody">
+                  <tr>
+                    <td colspan="4" class="text-center text-muted py-4">Sin borradores</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
-        <div class="drafts-view d-none" data-drafts-view="history">
-          <div id="draftHistoryStatus" class="alert alert-info">
-            Define filtros para consultar el historial del flujo.
-          </div>
-          <form class="row g-2 drafts-history-filters mb-3" id="draftHistoryFilters">
-            <div class="col-12">
-              <label for="draftHistorySearch" class="form-label">Buscar</label>
-              <input type="search" class="form-control" id="draftHistorySearch" placeholder="Cuenta, usuario o comentario">
+
+          <!-- Panel: Historial Completo -->
+          <div class="tab-pane fade" id="history-panel" role="tabpanel">
+            <div id="draftsHistoryStatus" class="alert alert-info mb-3">
+              <i class="bi bi-info-circle me-2"></i>Historial de todos los cambios y acciones del flujo.
             </div>
-            <div class="col-sm-6">
-              <label for="draftHistoryState" class="form-label">Estado</label>
-              <select id="draftHistoryState" class="form-select">
-                <option value="">Todos</option>
-              </select>
+            
+            <!-- Filtros de búsqueda -->
+            <div class="card mb-3">
+              <div class="card-body">
+                <h6 class="card-title mb-3">Filtros</h6>
+                <div class="row g-2">
+                  <div class="col-12">
+                    <input type="search" class="form-control form-control-sm" id="draftsHistorySearch" placeholder="Buscar en descripción o comentarios...">
+                  </div>
+                  <div class="col-6">
+                    <select class="form-select form-select-sm" id="draftsHistoryState">
+                      <option value="">Todos los estados</option>
+                    </select>
+                  </div>
+                  <div class="col-6">
+                    <select class="form-select form-select-sm" id="draftsHistoryAction">
+                      <option value="">Todas las acciones</option>
+                    </select>
+                  </div>
+                  <div class="col-6">
+                    <input type="date" class="form-control form-control-sm" id="draftsHistoryFrom" placeholder="Desde">
+                  </div>
+                  <div class="col-6">
+                    <input type="date" class="form-control form-control-sm" id="draftsHistoryTo" placeholder="Hasta">
+                  </div>
+                  <div class="col-12">
+                    <button type="button" class="btn btn-sm btn-outline-secondary w-100" id="draftsHistoryClear">
+                      <i class="bi bi-x-circle me-1"></i>Limpiar filtros
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div class="col-sm-6">
-              <label for="draftHistoryAction" class="form-label">Acción</label>
-              <select id="draftHistoryAction" class="form-select">
-                <option value="">Todas</option>
-              </select>
+
+            <!-- Tabla de historial -->
+            <div class="table-responsive">
+              <table class="table table-sm table-hover">
+                <thead class="table-light">
+                  <tr>
+                    <th>Acción</th>
+                    <th>Estado</th>
+                    <th>Usuario</th>
+                    <th>Fecha</th>
+                  </tr>
+                </thead>
+                <tbody id="draftsHistoryBody">
+                  <tr>
+                    <td colspan="4" class="text-center text-muted py-4">Sin registros</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
-            <div class="col-sm-6">
-              <label for="draftHistoryUser" class="form-label">Usuario</label>
-              <select id="draftHistoryUser" class="form-select">
-                <option value="">Todos</option>
-              </select>
-            </div>
-            <div class="col-sm-3">
-              <label for="draftHistoryFrom" class="form-label">Desde</label>
-              <input type="date" class="form-control" id="draftHistoryFrom">
-            </div>
-            <div class="col-sm-3">
-              <label for="draftHistoryTo" class="form-label">Hasta</label>
-              <input type="date" class="form-control" id="draftHistoryTo">
-            </div>
-          </form>
-          <div class="table-responsive">
-            <table class="table table-sm drafts-table align-middle">
-              <thead>
-                <tr>
-                  <th>Acción</th>
-                  <th>Estado</th>
-                  <th>Usuario</th>
-                  <th>Fecha</th>
-                  <th>Detalles</th>
-                </tr>
-              </thead>
-              <tbody id="draftHistoryTableBody">
-                <tr>
-                  <td colspan="5" class="text-center text-muted">Sin registros</td>
-                </tr>
-              </tbody>
-            </table>
           </div>
         </div>
       </div>
     `;
+    
     document.body.appendChild(drawer);
-
-    // Agregar listener explícito al botón close del offcanvas
-    const btnCloseDrafts = drawer.querySelector(".btn-cerrar-offcanvas");
-    if (btnCloseDrafts) {
-      btnCloseDrafts.addEventListener("click", () => {
-        if (window.bootstrap?.Offcanvas) {
-          const instance = window.bootstrap.Offcanvas.getInstance(drawer);
-          if (instance) instance.hide();
-        } else {
-          drawer.classList.remove("show");
-          drawer.style.visibility = "";
-        }
-      });
-    }
-
-    const tabButtons = drawer.querySelectorAll("[data-drafts-tab]");
-    const views = drawer.querySelectorAll("[data-drafts-view]");
-    tabButtons.forEach((btn) => {
-      btn.addEventListener("click", () => {
-        tabButtons.forEach((b) => b.classList.remove("active"));
-        btn.classList.add("active");
-        const target = btn.dataset.draftsTab;
-        views.forEach((v) =>
-          v.classList.toggle("d-none", v.dataset.draftsView !== target)
-        );
-      });
-    });
-
+    
+    // Setup filtros de historial
+    const setupHistoryFilters = () => {
+      const searchInput = drawer.querySelector('#draftsHistorySearch');
+      const stateSelect = drawer.querySelector('#draftsHistoryState');
+      const actionSelect = drawer.querySelector('#draftsHistoryAction');
+      const fromInput = drawer.querySelector('#draftsHistoryFrom');
+      const toInput = drawer.querySelector('#draftsHistoryTo');
+      const clearBtn = drawer.querySelector('#draftsHistoryClear');
+      
+      let debounceTimer = null;
+      const triggerHistoryRefresh = () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          const event = new CustomEvent('draftsHistoryFilterChange');
+          drawer.dispatchEvent(event);
+        }, 300);
+      };
+      
+      if (searchInput) searchInput.addEventListener('input', triggerHistoryRefresh);
+      if (stateSelect) stateSelect.addEventListener('change', triggerHistoryRefresh);
+      if (actionSelect) actionSelect.addEventListener('change', triggerHistoryRefresh);
+      if (fromInput) fromInput.addEventListener('change', triggerHistoryRefresh);
+      if (toInput) toInput.addEventListener('change', triggerHistoryRefresh);
+      
+      if (clearBtn) {
+        clearBtn.addEventListener('click', () => {
+          if (searchInput) searchInput.value = '';
+          if (stateSelect) stateSelect.value = '';
+          if (actionSelect) actionSelect.value = '';
+          if (fromInput) fromInput.value = '';
+          if (toInput) toInput.value = '';
+          triggerHistoryRefresh();
+        });
+      }
+    };
+    
+    setupHistoryFilters();
     return drawer;
   };
 
@@ -1979,19 +2020,36 @@
       }
     }
 
+    /**
+     * _renderizarCentroBorradores
+     * Pinta la lista de borradores en la tabla simplificada
+     * 
+     * Tabla simplificada con 4 columnas:
+     * 1. Estado - Badge con el estado actual del borrador
+     * 2. Autor - Nombre del usuario que creó el borrador
+     * 3. Fecha - Última actualización
+     * 4. Acción - Botón para cargar el borrador en la tabla
+     * 
+     * @param {Array} lista - Array de borradores a mostrar
+     * @param {HTMLElement} status - Elemento para mensajes de estado
+     * @param {HTMLElement} body - tbody donde se pintarán las filas
+     */
     _renderizarCentroBorradores(lista, status, body) {
       body.innerHTML = "";
+      
+      // Validar que hay borradores
       if (!Array.isArray(lista) || !lista.length) {
         status.className = "alert alert-warning";
-        status.textContent =
-          "No hay borradores disponibles para este contexto.";
-        body.innerHTML =
-          '<tr><td colspan="5" class="text-center text-muted">Sin registros</td></tr>';
+        status.innerHTML = '<i class="bi bi-exclamation-triangle me-2"></i>No hay borradores disponibles para este contexto.';
+        body.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-4">Sin borradores</td></tr>';
         return;
       }
+      
+      // Actualizar mensaje de estado
       status.className = "alert alert-success";
-      status.textContent =
-        "Selecciona un borrador para visualizarlo en la tabla.";
+      status.innerHTML = `<i class="bi bi-check-circle me-2"></i>Se encontraron <strong>${lista.length}</strong> borrador(es). Haz clic en "Cargar" para visualizarlo.`;
+      
+      // Configurar evento delegado una sola vez
       if (!body.dataset.delegadoClick) {
         body.dataset.delegadoClick = "1";
         body.addEventListener("click", (ev) => {
@@ -2001,62 +2059,87 @@
           if (Number.isFinite(id)) this._verBorradorDesdeCentro(id);
         });
       }
+      
+      // Crear filas de la tabla (simplificadas)
       const frag = document.createDocumentFragment();
       lista.forEach((item) => {
         const row = document.createElement("tr");
         const etiquetaEstado = ETIQUETAS_ESTADO[item.estado] || item.estado;
+        
+        // Determinar color del badge según el estado
+        let badgeClass = "bg-secondary";
+        if (item.estado === "EDITANDO") badgeClass = "bg-info";
+        else if (item.estado === "PENDIENTE") badgeClass = "bg-warning text-dark";
+        else if (item.estado === "REVISADO") badgeClass = "bg-primary";
+        else if (item.estado === "APROBADO") badgeClass = "bg-success";
+        else if (item.estado === "RECHAZADO") badgeClass = "bg-danger";
+        
         row.innerHTML = `
           <td>
-            <div class="fw-semibold">${item.modulo}</div>
-            <div class="text-muted small">Año ${item.anio}</div>
+            <span class="badge ${badgeClass}">${etiquetaEstado}</span>
           </td>
-          <td><span class="badge text-bg-light">${etiquetaEstado}</span></td>
           <td>
             <div class="fw-semibold">${item.autorNombre || "Sin autor"}</div>
-            <div class="text-muted small">${item.autorUsuario || ""}</div>
+            <small class="text-muted">${item.autorUsuario || ""}</small>
           </td>
           <td>
-            <div>${formatDateTime(item.fechaEnvio || item.fechaCreacion)}</div>
-            ${
-              item.comentarios
-                ? `<div class="text-muted small">${item.comentarios}</div>`
-                : ""
-            }
+            <small>${formatDateTime(item.fechaEnvio || item.fechaCreacion)}</small>
           </td>
           <td class="text-end">
-            <button class="btn btn-sm btn-outline-primary" data-borrador-id="${
-              item.id
-            }">Ver en la tabla</button>
+            <button class="btn btn-sm btn-primary" data-borrador-id="${item.id}">
+              <i class="bi bi-box-arrow-in-down me-1"></i>Cargar
+            </button>
           </td>
         `;
         frag.appendChild(row);
       });
+      
       body.appendChild(frag);
     }
 
+    /**
+     * _verBorradorDesdeCentro
+     * Carga un borrador desde el Centro de Borradores y lo aplica a la tabla
+     * 
+     * Proceso:
+     * 1. Solicita el detalle completo del borrador al servidor
+     * 2. Cierra el drawer de borradores
+     * 3. Pinta el borrador en la tabla (celdas en amarillo)
+     * 4. Actualiza la información y botones del flujo
+     * 
+     * @param {number} borradorId - ID del borrador a cargar
+     */
     async _verBorradorDesdeCentro(borradorId) {
       try {
+        // Obtener detalle del borrador
         const resp = await fetch(
           `${API_BASE}/borradores/detalle/${borradorId}`,
           { headers: this._construirHeaders() }
         );
         const data = await resp.json().catch(() => ({}));
+        
         if (!resp.ok)
           throw new Error(
             data.mensaje || "No fue posible cargar ese borrador."
           );
+          
         this.state.borrador = data.borrador || null;
         if (!this.state.borrador)
           throw new Error("No se recibió información del borrador.");
+        
+        // Cerrar el drawer
         const drawer = document.getElementById("workflowDraftsDrawer");
         const offcanvas = drawer
           ? window.bootstrap?.Offcanvas?.getInstance(drawer)
           : null;
         offcanvas?.hide();
+        
+        // Pintar el borrador en la tabla
         const pintado = FlujoAutorizacion.pintarBorrador(
           this.tableElement,
           this.state.borrador
         );
+        
         if (!pintado) {
           this._toast(
             "Borrador obtenido pero no se pudo aplicar sobre la tabla. Verifica data-columna-clave y cuentas coincidentes.",
@@ -2064,12 +2147,17 @@
           );
           return;
         }
+        
+        // Actualizar interfaz
         this._renderInfo();
         this._renderBotones();
+        
+        // Notificar éxito
         this._toast(
-          "Borrador aplicado. Las celdas en amarillo muestran la vista seleccionada.",
-          "info"
+          `✓ Borrador cargado correctamente. Las celdas resaltadas muestran los cambios.`,
+          "success"
         );
+        
       } catch (error) {
         console.error("Ver borrador", error);
         this._toast(
