@@ -779,12 +779,12 @@
             ctaRow.setAttribute('data-bs-toggle', 'tooltip');
             ctaRow.innerHTML = `
               ${createEditableCell(cta.cuenta || '', { columnKey: 'cuenta', text: true, rowRole: 'account', classes: 'font-monospace small account-column text-start' })}
-              ${createEditableCell(cta.descripcion || '', { columnKey: 'descripcion', text: true, rowRole: 'account', classes: 'text-start' })}
               ${createCell(cta.actualMonth, { tooltipKey: 'actualMonth', rowRole: 'account' })}
               ${createCell(cta.planMonth, { tooltipKey: 'planMonth', rowRole: 'account' })}
               ${createCell(cta.prevMonth, { tooltipKey: 'prevMonth', rowRole: 'account' })}
               ${createPercentCell(ctaVarMonthPlan, { tooltipKey: 'varMonthPlan', rowRole: 'account' })}
               ${createPercentCell(ctaVarMonthPrev, { tooltipKey: 'varMonthPrev', rowRole: 'account' })}
+              ${createEditableCell(cta.descripcion || '', { columnKey: 'descripcion', text: true, rowRole: 'account', classes: 'text-start' })}
               ${createCell(cta.actualYTD, { tooltipKey: 'actualYTD', rowRole: 'account' })}
               ${createCell(cta.planYTD, { tooltipKey: 'planYTD', rowRole: 'account' })}
               ${createCell(cta.prevYTD, { tooltipKey: 'prevYTD', rowRole: 'account' })}
