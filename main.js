@@ -112,8 +112,8 @@ if (!gotTheLock) {
       },
     });
 
-    // Cargar desde el servidor Express en puerto 3000
-    mainWindow.loadURL('http://localhost:3000');
+    // Cargar desde el servidor Node.js externo en puerto 3005
+    mainWindow.loadURL('http://localhost:3005');
 
     // Interceptar cierre para minimizar en lugar de salir
     mainWindow.on("close", (event) => {
@@ -156,41 +156,37 @@ if (!gotTheLock) {
       app.setAppUserModelId("com.summa.cham.panelamcham");
     }
 
-    // Iniciar Backend
+    // Iniciar servidor Node.js como servicio
     let servidor = null;
     try {
-      console.log("Intentando iniciar servidor backend...");
-      console.log("App packaged:", app.isPackaged);
-      console.log("App path:", app.getAppPath());
-      
+      console.log("🚀 Iniciando servidor backend como servicio...");
       const iniciarServidor = require("./src/server");
-      servidor = iniciarServidor();
+      servidor = iniciarServidor(3005);
       
       if (!servidor) {
-        throw new Error("El servidor no se pudo iniciar - retornó null");
+        throw new Error("El servidor no se pudo iniciar");
       }
       
-      console.log("✓ Servidor backend iniciado correctamente");
-      console.log("✓ Escuchando en puerto 3000");
+      console.log("✓ Servidor backend iniciado en puerto 3005");
+      console.log("✓ Accesible localmente en http://localhost:3005");
+      console.log("✓ Accesible públicamente vía túnel HTTPS");
       
       // Esperar a que el servidor esté listo antes de crear la ventana
       setTimeout(() => {
-        console.log("Creando ventana y tray...");
-        // Configurar persistencia
+        console.log("Creando ventana Electron y tray...");
         createTray();
         createWindow();
-        console.log("✓ Aplicación lista");
+        console.log("✓ Aplicación lista - Servicio activo");
       }, 1500);
     } catch (e) {
       console.error("❌ Error fatal iniciando el servidor:");
       console.error("  Mensaje:", e.message);
       console.error("  Stack:", e.stack);
       
-      // Mostrar diálogo de error en Windows
       const { dialog } = require("electron");
       dialog.showErrorBox(
-        "Error al iniciar servidor",
-        `No se pudo iniciar el servidor backend:\n\n${e.message}\n\nStack:\n${e.stack}\n\nLa aplicación se cerrará.`
+        "Error al iniciar servicio",
+        `No se pudo iniciar el servidor:\n\n${e.message}\n\nLa aplicación se cerrará.`
       );
       app.quit();
       return;

@@ -20,38 +20,25 @@ const rutasBorradores = require('./routes/borradores');
 
 let instanciaServidor = null;
 
-const iniciarServidor = (puerto = Number(process.env.PORT || 3000)) => {) => {
+const iniciarServidor = (puerto = Number(process.env.PORT || 3005)) => {
   if (instanciaServidor) {
     console.log("⚠️ Servidor ya está ejecutándose, retornando instancia existente");
-    console.log(`  → Escuchando en puerto: ${puertoActual}`);
-    return { servidor: instanciaServidor, puerto: puertoActual };
+    return instanciaServidor;
   }
 
   console.log("🚀 Iniciando servidor Express...");
-  console.log("  Puerto solicitado:", puerto);
+  console.log("  Puerto configurado:", puerto);
   console.log("  NODE_ENV:", process.env.NODE_ENV || 'development');
-  
-  // Intentar encontrar un puerto disponible
-  let puertoDisponible;
-  try {
-    puertoDisponible = await encontrarPuertoDisponible(puerto);
-    if (puertoDisponible !== puerto) {
-      console.log(`⚠️ Puerto ${puerto} no disponible, usando puerto ${puertoDisponible}`);
-    }
-  } catch (error) {
-    console.error('❌ Error al buscar puerto disponible:', error.message);
-    throw error;
-  }
-  
-  puertoActual = puertoDisponible;
-  console.log("  Puerto final:", puertoActual);
 
   inicializarBaseDatos();
   console.log("✓ Base de datos SQLite inicializada");
 
   const app = express();
+  
+  // Confiar en proxy reverso (para túneles HTTPS como cloudflare, ngrok, etc.)
+  app.set('trust proxy', 1);
   // CORS restringido: permitir orígenes configurados (por defecto localhost y file:// -> null origin)
-  const allowedOrigins = (process.env.PANELAMCHAM_ALLOW_ORIGINS || 'http://localhost:3000,https://panelamcham.iconetcloud.com.mx,null,file://')
+  const allowedOrigins = (process.env.PANELAMCHAM_ALLOW_ORIGINS || 'http://localhost:3005,https://panelamcham.iconetcloud.com.mx,null,file://')
     .split(',')
     .map((o) => o.trim());
   app.use((req, res, next) => {
@@ -71,18 +58,22 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3000)) => {) => {
   
   app.use(cookieParser());
   
-  // Configuración de sesiones
+  // Configuración de sesiones para múltiples usuarios simultáneos
   app.use(session({
     secret: process.env.SESSION_SECRET || 'cambia-este-secreto-de-sesion-en-produccion',
     name: 'panelamcham.sid',
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: process.env.NODE_ENV === 'production', // true en HTTPS
+      // Habilitar secure solo si viene por HTTPS (túnel)
+      secure: process.env.NODE_ENV === 'production' ? 'auto' : false,
       httpOnly: true,
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 días
-      sameSite: 'lax'
-    }
+      maxAge: 30 * 60 * 1000, // 30 minutos de persistencia
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 'none' permite cookies cross-site en HTTPS
+      domain: process.env.COOKIE_DOMAIN || undefined // Para túnel: '.iconetcloud.com.mx'
+    },
+    // Store en memoria (para producción considera usar connect-sqlite3 o redis)
+    // Esto permite múltiples usuarios con sesiones independientes
   }));
   
   app.use(helmet({ contentSecurityPolicy: false }));
@@ -151,11 +142,15 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3000)) => {) => {
     res.status(500).json({ mensaje: 'Ocurrió un error inesperado.' });
   });
 
-  instanciaServidor = app.listen(puerto, '127.0.0.1', () => {
-    console.log('✓✓✓ SERVIDOR INICIADO EXITOSAMENTE ✓✓✓');
-    console.log(`  → API interna escuchando en http://127.0.0.1:${puerto}`);
-    console.log(`  → Túnel público: https://panelamcham.iconetcloud.com.mx`);
-    console.log(`  → El servidor está listo para recibir conexiones`);
+  // Escuchar en 0.0.0.0 para permitir acceso externo vía túnel
+  instanciaServidor = app.listen(puerto, '0.0.0.0', () => {
+    console.log('✓✓✓ SERVIDOR NODE.JS INICIADO EXITOSAMENTE ✓✓✓');
+    console.log(`  → Servidor corriendo en http://localhost:${puerto}`);
+    console.log(`  → Acceso local: http://localhost:${puerto}`);
+    console.log(`  → Acceso público: https://panelamcham.iconetcloud.com.mx`);
+    console.log(`  → Soporta múltiples usuarios simultáneos con sesiones independientes`);
+    console.log(`  → Sesiones expiran después de 30 minutos de inactividad`);
+    console.log(`  → O abre la app Electron con: npm start`);
   });
 
   instanciaServidor.on('error', (error) => {
