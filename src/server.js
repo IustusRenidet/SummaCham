@@ -17,6 +17,7 @@ const rutasSaldos = require('./routes/saldos');
 const rutasCuentas = require('./routes/cuentas');
 const rutasReportes = require('./routes/reportes');
 const rutasBorradores = require('./routes/borradores');
+const rutasEstructura = require('./routes/estructuraRoutes');
 
 let instanciaServidor = null;
 
@@ -131,6 +132,7 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3005)) => {
   app.use('/api/reportes', rutasReportes);
   app.use('/api/saldos', rutasSaldos);
   app.use('/api/cuentas', rutasCuentas);
+  app.use('/api', rutasEstructura);
 
   // 404 para rutas no encontradas
   app.use((req, res) => {

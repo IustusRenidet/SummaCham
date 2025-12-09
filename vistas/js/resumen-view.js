@@ -1205,5 +1205,102 @@
     }
   });
 
+  // Controles de zoom y visibilidad de columnas
+  const table = document.getElementById('tablaComparacion');
+  const tableWrapper = document.getElementById('tableWrapper');
+  const zoomInBtn = document.getElementById('zoomIn');
+  const zoomOutBtn = document.getElementById('zoomOut');
+  const zoomResetBtn = document.getElementById('zoomReset');
+  const zoomDisplay = document.getElementById('zoomDisplay');
+  const toggleAccountColumnBtn = document.getElementById('toggleAccountColumnBtn');
+  const ACCOUNT_COLUMN_STORAGE_KEY = 'resumen_ocultar_cuentas';
+
+  let selectedCell = null;
+  let zoomLevel = 1;
+
+  const clampZoom = (value) => Math.min(1.5, Math.max(0.6, value));
+  const renderZoom = () => {
+    if (tableWrapper) {
+      tableWrapper.style.transform = `scale(${zoomLevel})`;
+    }
+    if (zoomDisplay) {
+      zoomDisplay.textContent = `${Math.round(zoomLevel * 100)}%`;
+    }
+  };
+
+  if (zoomInBtn) {
+    zoomInBtn.addEventListener('click', () => {
+      zoomLevel = clampZoom(zoomLevel + 0.1);
+      renderZoom();
+    });
+  }
+
+  if (zoomOutBtn) {
+    zoomOutBtn.addEventListener('click', () => {
+      zoomLevel = clampZoom(zoomLevel - 0.1);
+      renderZoom();
+    });
+  }
+
+  if (zoomResetBtn) {
+    zoomResetBtn.addEventListener('click', () => {
+      zoomLevel = 1;
+      renderZoom();
+    });
+  }
+
+  const actualizarBotonColumnas = (ocultar) => {
+    if (!toggleAccountColumnBtn) return;
+    const etiqueta = toggleAccountColumnBtn.querySelector('.toggle-account-label');
+    if (etiqueta) {
+      etiqueta.textContent = ocultar ? 'Mostrar cuentas' : 'Ocultar cuentas';
+    }
+    toggleAccountColumnBtn.setAttribute('aria-pressed', ocultar ? 'true' : 'false');
+  };
+
+  const aplicarVisibilidadCuentas = (ocultar) => {
+    document.body.classList.toggle('ocultar-cuentas', Boolean(ocultar));
+    actualizarBotonColumnas(Boolean(ocultar));
+  };
+
+  const inicializarToggleColumnas = () => {
+    if (!toggleAccountColumnBtn) {
+      aplicarVisibilidadCuentas(false);
+      return;
+    }
+
+    const preferencia = localStorage.getItem(ACCOUNT_COLUMN_STORAGE_KEY) === '1';
+    aplicarVisibilidadCuentas(preferencia);
+
+    toggleAccountColumnBtn.addEventListener('click', () => {
+      const ocultar = !document.body.classList.contains('ocultar-cuentas');
+      aplicarVisibilidadCuentas(ocultar);
+      localStorage.setItem(ACCOUNT_COLUMN_STORAGE_KEY, ocultar ? '1' : '0');
+    });
+  };
+
+  if (table) {
+    table.addEventListener('click', (event) => {
+      const cell = event.target.closest('td, th');
+      if (!cell) return;
+      if (selectedCell) {
+        selectedCell.classList.remove('selected');
+      }
+      selectedCell = cell;
+      selectedCell.classList.add('selected');
+    });
+  }
+
+  document.addEventListener('click', (event) => {
+    if (!table || !selectedCell) return;
+    if (!table.contains(event.target)) {
+      selectedCell.classList.remove('selected');
+      selectedCell = null;
+    }
+  });
+
+  inicializarToggleColumnas();
+  renderZoom();
+
   initWorkflowBridge('RESUMEN');
 })();
