@@ -35,6 +35,20 @@
     return (ultima && ultima.cells.length) || filas[0].cells.length || 2;
   };
 
+  /**
+   * Crea una fila de estado para mostrar mensajes informativos en la tabla
+   * 
+   * Se usa cuando la tabla está vacía o hay algún error, por ejemplo:
+   * - "El capitulo seleccionado no tiene esta vista asignada."
+   * - "No hay informacion disponible para esta vista."
+   * - "El capitulo no tiene cuentas configuradas en el libro."
+   * 
+   * La fila ocupa todo el ancho de la tabla con una sola celda.
+   * 
+   * @param {string} mensaje - Mensaje a mostrar al usuario
+   * @param {number} colspan - Número de columnas que debe abarcar la celda
+   * @returns {HTMLTableRowElement} Fila HTML con el mensaje
+   */
   const crearFilaEstado = (mensaje, colspan) => {
     const fila = document.createElement('tr');
     fila.className = 'estado-tabla';
@@ -682,18 +696,33 @@
     fila.cells[1].textContent = nombre;
   };
 
+  /**
+   * Recalcula los totales de una fila de presupuesto
+   * 
+   * Esta función suma horizontalmente los valores de presupuesto y real
+   * de todos los meses para calcular los acumulados de una cuenta específica.
+   * 
+   * Cálculos que realiza:
+   * - Total Presupuesto: Suma de budget-ene hasta budget-[mesActual]
+   * - Total Real: Suma de real-ene hasta real-[mesActual]
+   * - Presupuesto Anual: Valor del mes actual (budget-monthly)
+   * - Mensual: Valor real del mes actual (budget-annual)
+   * 
+   * @param {HTMLTableRowElement} fila - Fila de la tabla a recalcular
+   */
   const recalcularTotalesFilaPresupuesto = (fila) => {
     if (!fila) return;
     const cuenta = fila.dataset.cuenta21 || '';
     const almacen = estadoModulo.valoresPorCuenta.get(cuenta) || {};
     
-    // Mes actual
+    // Obtener el mes actual (0-11, donde 0=enero, 11=diciembre)
     const mesActualIndex = estadoModulo.mesActualIndex ?? new Date().getMonth();
     const mesActualClave = MESES[mesActualIndex] || 'dic';
     
     let totalPresupuestoAcumulado = 0;
     let totalRealAcumulado = 0;
     
+    // Sumar todos los meses desde enero hasta el mes actual
     MESES.forEach((mes, index) => {
       // Acumular solo hasta el mes actual
       if (index <= mesActualIndex) {
@@ -702,32 +731,35 @@
       }
     });
     
-    // Presupuesto y Real del mes actual
+    // Obtener valores del mes actual específicamente
     const presupuestoMesActual = Number(almacen[`budget-${mesActualClave}`]) || 0;
     const realMesActual = Number(almacen[`real-${mesActualClave}`]) || 0;
     
-    // total-budget: acumulado desde enero hasta mes actual
+    // Actualizar celda de total-budget: acumulado desde enero hasta mes actual
     if (estadoModulo.columnas['total-budget'] != null) {
       const celdaTotal = fila.cells[estadoModulo.columnas['total-budget']];
       if (celdaTotal) {
         celdaTotal.textContent = formatearNumero(totalPresupuestoAcumulado);
       }
     }
-    // budget-annual: presupuesto del mes actual (Gastos Corporativos: "Presupuesto YYYY")
+    
+    // Actualizar celda budget-annual: presupuesto del mes actual
     if (estadoModulo.columnas['budget-annual'] != null) {
       const celdaAnnual = fila.cells[estadoModulo.columnas['budget-annual']];
       if (celdaAnnual) {
         celdaAnnual.textContent = formatearNumero(presupuestoMesActual);
       }
     }
-    // budget-monthly: real del mes actual (Gastos Corporativos: "Mensual")
+    
+    // Actualizar celda budget-monthly: real del mes actual
     if (estadoModulo.columnas['budget-monthly'] != null) {
       const celdaMensual = fila.cells[estadoModulo.columnas['budget-monthly']];
       if (celdaMensual) {
         celdaMensual.textContent = formatearNumero(realMesActual);
       }
     }
-    // total-real: acumulado desde enero hasta mes actual
+    
+    // Actualizar celda total-real: acumulado desde enero hasta mes actual
     if (estadoModulo.columnas['total-real'] != null) {
       const celdaRealTotal = fila.cells[estadoModulo.columnas['total-real']];
       if (celdaRealTotal) {
@@ -879,9 +911,7 @@
       return { presupuesto: [], nombres: [] };
     }
     const cambiosPresupuesto = [];
-    const cambiosNombres = [];
     const baseValores = estadoModulo.editSnapshot.valores || new Map();
-    const baseNombres = estadoModulo.editSnapshot.nombres || new Map();
 
     estadoModulo.valoresPorCuenta.forEach((valores, cuenta) => {
       const prev = baseValores.get(cuenta) || {};
@@ -899,14 +929,8 @@
       }
     });
 
-    estadoModulo.nombresPorCuenta.forEach((nombre, cuenta) => {
-      const anterior = baseNombres.get(cuenta) || '';
-      if ((nombre || '') !== (anterior || '')) {
-        cambiosNombres.push({ cuenta, nombre });
-      }
-    });
-
-    return { presupuesto: cambiosPresupuesto, nombres: cambiosNombres };
+    // NO enviar cambios de nombres - son solo visuales
+    return { presupuesto: cambiosPresupuesto, nombres: [] };
   };
 
   const notificarCambios = () => {
@@ -1309,6 +1333,30 @@
     return Math.max(0, columnas - 2);
   };
 
+  /**
+   * Agrega una fila de resumen/suma al cuerpo de la tabla
+   * 
+   * Estas filas especiales muestran totales calculados y pueden ser de varios tipos:
+   * - sum-row: Suma de todas las cuentas de una sección
+   * - sum-row-sumavarios: Suma de varios sum-rows agrupados
+   * - result-row: Resultado final del módulo
+   * 
+   * ESTRUCTURA DE FILA:
+   * | (vacío) | Texto descriptivo | val1 | val2 | ... | val12 |
+   * 
+   * La primera columna (cuenta) está vacía porque las filas de suma
+   * no representan una cuenta específica sino un total.
+   * 
+   * Los valores se inicializan en "-" y luego se actualizan con
+   * recalcularSumas() que calcula los totales reales.
+   * 
+   * @param {Object} params - Parámetros
+   * @param {string} params.texto - Texto descriptivo (ej: "Suma INGRESOS")
+   * @param {string} params.clase - Clase CSS (sum-row, sum-row-sumavarios, result-row)
+   * @param {HTMLElement} params.cuerpo - Elemento tbody donde insertar la fila
+   * @param {number} params.placeholdersPorFila - Cantidad de columnas de valores (12 meses)
+   * @returns {HTMLTableRowElement|null} Fila creada o null si faltan parámetros
+   */
   const agregarFilaResumen = ({ texto, clase, cuerpo, placeholdersPorFila }) => {
     if (!texto || !cuerpo) {
       return null;
@@ -1332,6 +1380,40 @@
     return fila;
   };
 
+  /**
+   * Renderiza las secciones y filas de cuentas en el tbody de la tabla
+   * 
+   * Esta función toma la lista de cuentas filtradas por capitulo y las
+   * organiza visualmente en secciones con sus respectivas filas.
+   * 
+   * PROCESO:
+   * 1. Agrupa registros por sección (ej: "INGRESOS", "GASTOS", etc.)
+   * 2. Para cada sección:
+   *    a. Crea fila de encabezado (section-header-row) con nombre de sección
+   *    b. Crea filas de cuenta (fila-cuenta) con columnas: cuenta | nombre | valores
+   *    c. Agrega fila sum-row si la configuración de sumas lo indica
+   * 3. Construye metadata de sumas (sumavarios, result-row)
+   * 4. Retorna información para que renderizarTabla agregue las filas especiales
+   * 
+   * ESTRUCTURA DE FILA DE CUENTA:
+   * | Cuenta (ej: 4101-010) | Nombre (ej: VENTAS) | ene | feb | ... | dic |
+   * 
+   * METADATA DE SUMAS:
+   * - sumRowTexto: etiqueta normalizada del sum-row (ej: "suma ingresos")
+   * - sumRowSumavariosTexto: etiqueta del sumavarios al que pertenece
+   * - resultRowTexto: etiqueta del result-row final
+   * 
+   * @param {Object} params - Parámetros de renderizado
+   * @param {Array} params.registros - Array de objetos {cuenta, nombre, seccion, capitulo}
+   * @param {HTMLElement} params.cuerpo - Elemento tbody donde insertar filas
+   * @param {number} params.placeholdersPorFila - Cantidad de columnas de valores (12 meses normalmente)
+   * @param {string} params.sheetName - Nombre de la hoja de configuración
+   * @param {string} params.capitulo - Nombre del capitulo/empresa
+   * @param {Map} params.sumasPersonalizadas - Configuración personalizada de sumas (desde layout guardado)
+   * @param {string} params.resultadoForzado - Texto forzado para result-row
+   * @param {boolean} params.mostrarCuentaVisible - Si true, muestra cuenta en formato visible (4 dígitos)
+   * @returns {Object} Objeto con resultadoFilas, sumasSecciones, sumavarios, faltantesNombre
+   */
   const renderizarSecciones = ({
     registros,
     cuerpo,
@@ -2217,6 +2299,17 @@
     mostrarMenuContextual(evt.pageX, evt.pageY, opciones);
   });
 
+  /**
+   * Extrae valores numéricos de las celdas de una fila
+   * 
+   * Lee el textContent de cada celda (empezando desde la columna 'inicio'),
+   * limpia el texto eliminando símbolos de moneda y formato,
+   * y convierte cada valor a número.
+   * 
+   * @param {HTMLTableRowElement} fila - Fila de la cual extraer valores
+   * @param {number} inicio - Índice de celda inicial (default: 2, saltando nombre y cuenta)
+   * @returns {Array<number>} Array con los valores numéricos extraídos
+   */
   const extraerValoresNumericos = (fila, inicio = 2) => {
     const valores = [];
     for (let i = inicio; i < fila.cells.length; i += 1) {
@@ -2227,6 +2320,16 @@
     return valores;
   };
 
+  /**
+   * Asigna valores numéricos formateados a las celdas de una fila
+   * 
+   * Toma un array de números y los escribe en las celdas de la fila
+   * aplicando el formato numérico (separadores de miles, decimales, etc.)
+   * 
+   * @param {HTMLTableRowElement} fila - Fila donde asignar los valores
+   * @param {Array<number>} valores - Array con los valores a asignar
+   * @param {number} inicio - Índice de celda inicial (default: 2, saltando nombre y cuenta)
+   */
   const asignarValoresNumericos = (fila, valores, inicio = 2) => {
     if (!fila || !Array.isArray(valores)) return;
     for (let i = inicio; i < fila.cells.length && i - inicio < valores.length; i += 1) {
@@ -2234,6 +2337,16 @@
     }
   };
 
+  /**
+   * Suma múltiples listas de valores numéricos columna por columna
+   * 
+   * Ejemplo: Si tienes 3 filas con valores [10, 20, 30] cada una,
+   * esta función retorna [30, 60, 90] (suma vertical por columna)
+   * 
+   * @param {Array<Array<number>>} listas - Array de arrays con valores numéricos
+   * @param {number} longitud - Cantidad de columnas esperadas
+   * @returns {Array<number>} Array con la suma de cada columna
+   */
   const sumarListas = (listas = [], longitud = 0) => {
     const resultado = Array.from({ length: longitud }, () => 0);
     listas.forEach((lista) => {
@@ -2244,12 +2357,40 @@
     return resultado;
   };
 
+  /**
+   * Recalcula las sumas de todas las secciones del módulo
+   * 
+   * Esta función realiza DOS tipos de suma:
+   * 
+   * 1. SUMA DE SECCIÓN (sum-row):
+   *    - Suma verticalmente todas las cuentas dentro de una sección
+   *    - Ejemplo: Si una sección tiene cuentas con presupuestos [100, 200, 300]
+   *      la fila sum-row mostrará 600
+   * 
+   * 2. SUMA DE VARIAS SECCIONES (sumavarios):
+   *    - Agrupa secciones que tienen el mismo sumRowSumavariosTexto
+   *    - Suma los sum-row de todas esas secciones
+   *    - Ejemplo: Si 3 secciones tienen sum-row [100], [200], [300]
+   *      y todas están agrupadas bajo "GASTOS TOTALES",
+   *      la fila sumavarios mostrará 600
+   * 
+   * El proceso es:
+   * - Para cada sección, extrae valores de todas sus filas (cuentas)
+   * - Suma esos valores columna por columna usando sumarListas()
+   * - Guarda el resultado en seccion.sumValues
+   * - Actualiza la fila sum-row en el DOM
+   * - Luego agrupa todas las secciones por sumRowSumavariosTexto
+   * - Suma los sumValues de secciones agrupadas
+   * - Actualiza las filas sumavarios en el DOM
+   */
   const recalcularSumas = () => {
     const meta = estadoModulo.sumas;
     if (!meta || !Array.isArray(meta.secciones) || meta.secciones.length === 0) {
       if (!meta || !meta.secciones) console.warn('⚠️ recalcularSumas: sin meta.secciones');
       return;
     }
+    
+    // Obtener todas las columnas ordenadas por su posición (excepto 'year')
     const clavesOrdenadas = Object.entries(estadoModulo.columnas || {})
       .sort((a, b) => a[1] - b[1])
       .map(([clave]) => clave)
@@ -2262,6 +2403,8 @@
     const secciones = meta.secciones;
 
     const errores = [];
+    
+    // PASO 1: Calcular sum-row para cada sección (suma vertical de todas las cuentas)
     secciones.forEach((seccion, idxSeccion) => {
       try {
         if (!seccion || !Array.isArray(seccion.filasCuenta)) {
@@ -2269,21 +2412,28 @@
           seccion.sumValues = Array.from({ length: longitud }, () => 0);
           return;
         }
+        
+        // Extraer valores de cada fila de cuenta en la sección
         const listas = seccion.filasCuenta.map((fila) => {
           if (!fila || !fila.dataset) return Array.from({ length: longitud }, () => 0);
           const cuenta = fila.dataset.cuenta21 || '';
           const almacenados = estadoModulo.valoresPorCuenta?.get(cuenta);
           if (almacenados) {
+            // Obtener valores desde el Map (más confiable)
             return clavesOrdenadas.map((clave) => almacenados[clave] ?? 0);
           }
+          // Si no está en el Map, extraer del DOM
           return extraerValoresNumericos(fila);
         });
+        
+        // Sumar todas las filas columna por columna
         const valores = sumarListas(listas, longitud);
         seccion.sumValues = valores;
+        
+        // Actualizar la fila sum-row en el DOM
         if (seccion.elementos?.sumRow && seccion.elementos.sumRow.parentNode) {
           asignarValoresNumericos(seccion.elementos.sumRow, valores);
         } else {
-          // sumRow no existe en DOM
           console.warn(`⚠️ Sección ${seccion.seccion || idxSeccion}: sumRow no presente en DOM`);
         }
       } catch (err) {
@@ -2292,18 +2442,24 @@
     });
     if (errores.length) console.warn('⚠️ Errores en recalcularSumas:', errores);
 
-    // sum-row-sumavarios: suma de los sum-row (sumValues) con la misma etiqueta
+    // PASO 2: Calcular sumavarios (suma de sum-rows agrupados por etiqueta)
     try {
       const acumuladosSumavarios = new Map();
+      
+      // Agrupar secciones por su etiqueta sumavarios
       secciones.forEach((seccion) => {
         const clave = normalizarClave(seccion.sumRowSumavariosTexto || seccion.sumRowSumavarios2Texto);
         if (!clave) return;
+        
+        // Acumular sumValues de secciones con la misma etiqueta
         const prev = acumuladosSumavarios.get(clave) || Array.from({ length: longitud }, () => 0);
         (seccion.sumValues || Array.from({ length: longitud }, () => 0)).forEach((valor, idx) => {
           prev[idx] += Number(valor) || 0;
         });
         acumuladosSumavarios.set(clave, prev);
       });
+      
+      // Actualizar filas sumavarios en el DOM
       secciones.forEach((seccion) => {
         const clave = normalizarClave(seccion.sumRowSumavariosTexto || seccion.sumRowSumavarios2Texto);
         if (!clave) return;
@@ -2622,6 +2778,35 @@
     return null;
   };
 
+  /**
+   * Función principal que renderiza/pinta la tabla completa de un módulo
+   * 
+   * Esta es la función maestra que coordina todo el proceso de renderizado:
+   * 
+   * FLUJO DE RENDERIZADO:
+   * 1. Validación inicial: verifica que exista tabla y tbody
+   * 2. Configuración de módulo: identifica qué módulo renderizar (Finanzas, Dirección, etc.)
+   * 3. Carga de datos: obtiene cuentas desde CUENTAS_POR_MODULO o Firebird (Presupuestos)
+   * 4. Filtrado: filtra cuentas por capitulo/empresa seleccionada
+   * 5. Layout personalizado: busca layouts guardados con secciones personalizadas
+   * 6. Renderizado de secciones: llama a renderizarSecciones() para crear filas
+   * 7. Filas de suma: agrega sum-row, sumavarios, result-row según configuración
+   * 8. Carga de valores: obtiene datos de Firebird para llenar las celdas
+   * 9. Recálculo: ejecuta recalcularSumas() para actualizar totales
+   * 
+   * TIPOS DE FILA:
+   * - fila-cuenta: Fila normal con datos de una cuenta contable
+   * - sum-row: Suma de todas las cuentas de una sección
+   * - sum-row-sumavarios: Suma de varios sum-rows agrupados
+   * - result-row: Resultado final (ej: "Resultado Presupuestos")
+   * 
+   * @param {Object} opciones - Configuración de renderizado
+   * @param {string} opciones.tablaSelector - Selector CSS de la tabla
+   * @param {number} opciones.totalColumnas - Número total de columnas
+   * @param {string} opciones.moduloId - ID del módulo a renderizar
+   * @param {string} opciones.sheet - Hoja de datos a usar
+   * @returns {Promise<boolean>} true si renderizó exitosamente, false si falló
+   */
   const renderizarTabla = async (opciones = {}) => {
     const tabla = obtenerTabla(opciones.tablaSelector);
     const cuerpo = tabla?.querySelector('tbody');

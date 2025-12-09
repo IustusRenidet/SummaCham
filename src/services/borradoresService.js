@@ -375,7 +375,7 @@ const obtenerFiltrosHistorial = ({ empresaId, modulo, anio } = {}) => {
   return filtros;
 };
 
-const persistirEnFirebird = async (borrador) => {
+const  persistirEnFirebird = async (borrador) => {
   // 1. Guardar registro en SQLite (para historial)
   registrarPresupuestoGuardado({
     empresaId: borrador.empresaId,
@@ -457,9 +457,7 @@ const persistirEnFirebird = async (borrador) => {
 
   let contadorExitosas = 0;
   let contadorErrores = 0;
-  let contadorCuentasActualizadas = 0;
 
-  // ✅ NUEVO: Procesar cambios de cuenta y descripción PRIMERO
   for (const cambio of presupuesto) {
     const cuenta = (cambio.cuenta || "").toString().trim();
     const valores = cambio.valores || {};
@@ -470,54 +468,16 @@ const persistirEnFirebird = async (borrador) => {
       continue;
     }
 
-    // Verificar si hay cambios de cuenta o descripción
-    const nuevaCuenta = valores.cuenta;
-    const nuevaDescripcion = valores.descripcion;
-
-    if (nuevaCuenta || nuevaDescripcion) {
-      // Determinar tabla de cuentas según módulo
-      const tablaCuentas = borrador.modulo === 'resumen' ? 'CUENTAS21R' : 'CUENTAS21';
-      
-      try {
-        const updates = [];
-        const params = [];
-
-        if (nuevaCuenta && nuevaCuenta !== cuenta) {
-          updates.push('NUM_CTA = ?');
-          params.push(nuevaCuenta);
-        }
-
-        if (nuevaDescripcion !== undefined && nuevaDescripcion !== null) {
-          updates.push('DESCRIPCION = ?');
-          params.push(nuevaDescripcion);
-        }
-
-        if (updates.length > 0) {
-          params.push(cuenta); // WHERE NUM_CTA = ?
-          
-          const updateQuery = `
-            UPDATE ${tablaCuentas}
-            SET ${updates.join(', ')}
-            WHERE NUM_CTA = ?
-          `;
-
-          await ejecutarConsulta(borrador.empresaId, updateQuery, params);
-          contadorCuentasActualizadas++;
-          console.log(`✅ Actualizada cuenta ${cuenta} en ${tablaCuentas}`);
-        }
-      } catch (error) {
-        console.error(
-          `❌ Error al actualizar cuenta/descripción ${cuenta} en tabla CUENTAS:`,
-          error.message
-        );
-        // Continuar con otras cuentas
-      }
-    }
-
     const columnasVariables = [];
     const valoresVariables = [];
 
+    // SOLO procesar cambios numéricos (meses), ignorar campos de texto
     Object.entries(valores).forEach(([clave, valor]) => {
+      // Ignorar cambios de texto (cuenta, descripcion, nombre) - son solo visuales
+      if (clave === 'cuenta' || clave === 'descripcion' || clave === 'nombre') {
+        return;
+      }
+      
       const columna = MESES_COLUMNAS[clave];
       if (!columna) return;
       columnasVariables.push(columna);
@@ -556,9 +516,7 @@ const persistirEnFirebird = async (borrador) => {
   }
 
   console.log(
-    `✅ Persistencia completada: ${contadorExitosas} presupuestos actualizados, ` +
-    `${contadorCuentasActualizadas} cuentas/descripciones modificadas, ` +
-    `${contadorErrores} errores`
+    `✅ Persistencia completada: ${contadorExitosas} cuentas exitosas, ${contadorErrores} errores`
   );
 };
 

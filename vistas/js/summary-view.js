@@ -163,8 +163,18 @@
   const restaurarValoresOriginales = () => {
     if (!summaryBody) return;
     Array.from(summaryBody.querySelectorAll('.editable-cell')).forEach((celda) => {
-      const original = Number(celda.dataset.valorOriginal ?? 0);
-      celda.textContent = formatNumber(original);
+      const columna = celda.dataset.columnaClave;
+      const esTexto = columna === 'cuenta' || columna === 'descripcion' || columna === 'nombre';
+      const originalRaw = celda.dataset.valorOriginal ?? '';
+      
+      if (esTexto) {
+        // Campos de texto
+        celda.textContent = originalRaw;
+      } else {
+        // Campos numéricos
+        const original = Number(originalRaw ?? 0);
+        celda.textContent = formatNumber(original);
+      }
     });
   };
 
@@ -431,6 +441,24 @@
     return val.toFixed(2) + '%';
   };
 
+  /**
+   * Crea una celda HTML <td> con valor numérico formateado
+   * 
+   * Esta función genera celdas para las columnas numéricas de la tabla:
+   * Actual Month, Plan Month, Prev Month, YTD, etc.
+   * 
+   * Aplica:
+   * - Formato de número con separadores de miles y decimales
+   * - Alineación a la derecha (text-end)
+   * - Negrita opcional para filas de totales
+   * - Tooltips con información de columna
+   * 
+   * @param {number} val - Valor numérico a mostrar
+   * @param {boolean|Object} arg2 - Si boolean: bold; si Object: {bold, tooltipKey, rowRole, classes}
+   * @param {string} tooltipKey - Clave del tooltip (ej: 'actualMonth')
+   * @param {string} rowRole - Rol de la fila (account, section, principal, etc.)
+   * @returns {string} HTML de la celda <td>
+   */
   const createCell = (val, arg2 = false, tooltipKey = '', rowRole = '') => {
     let bold = arg2;
     let extraClasses = '';
@@ -446,6 +474,22 @@
     return `<td class="${classes.join(' ')}"${columnTooltipAttr(tooltipKey)}${summaryRowTooltipAttr(rowRole)}>${formatNumber(val)}</td>`;
   };
 
+  /**
+   * Crea una celda HTML <td> con valor porcentual formateado
+   * 
+   * Genera celdas para las columnas de variaciones porcentuales:
+   * - Var% Month Plan: variación del mes vs presupuesto
+   * - Var% Month Prev: variación del mes vs año anterior
+   * - Var% YTD Plan: variación acumulada vs presupuesto
+   * - Var% YTD Prev: variación acumulada vs año anterior
+   * 
+   * Formato: muestra "+5.2%" o "-3.8%" con signo y color
+   * 
+   * @param {number} val - Valor decimal (ej: 0.052 para 5.2%)
+   * @param {string|Object} arg2 - Si string: tooltipKey; si Object: {tooltipKey, rowRole}
+   * @param {string} rowRole - Rol de la fila
+   * @returns {string} HTML de la celda <td>
+   */
   const createPercentCell = (val, arg2 = '', rowRole = '') => {
     let tooltipKey = arg2;
     if (typeof arg2 === 'object' && arg2 !== null) {
@@ -455,6 +499,33 @@
     return `<td class="text-end"${columnTooltipAttr(tooltipKey)}${summaryRowTooltipAttr(rowRole)}>${formatPercent(val)}</td>`;
   };
 
+  /**
+   * Crea una celda HTML <td> editable o de solo lectura
+   * 
+   * En Summary, SOLO cuenta y descripcion son realmente editables.
+   * El resto de columnas se marcan como read-only-cell.
+   * 
+   * CAMPOS EDITABLES (text=true):
+   * - cuenta: Código de cuenta contable (ej: "4101-010")
+   * - descripcion: Nombre descriptivo de la cuenta (ej: "VENTAS")
+   * 
+   * IMPORTANTE: Estos campos son VISUALES SOLAMENTE.
+   * No se guardan en Firebird, solo se persisten localmente.
+   * 
+   * La celda almacena:
+   * - data-valor-original: valor inicial para detectar cambios
+   * - data-editable-real: true/false si realmente es editable
+   * - data-columna-clave: nombre de la columna (cuenta, descripcion, etc.)
+   * 
+   * @param {string|number} val - Valor a mostrar
+   * @param {Object} options - Opciones
+   * @param {string} options.columnKey - Clave de columna (cuenta, descripcion, etc.)
+   * @param {string} options.tooltipKey - Clave del tooltip
+   * @param {string} options.rowRole - Rol de la fila
+   * @param {string} options.classes - Clases CSS adicionales
+   * @param {boolean} options.text - Si true, es texto; si false, es número
+   * @returns {string} HTML de la celda <td>
+   */
   const createEditableCell = (val, options = {}) => {
     const {
       columnKey = '',
@@ -483,6 +554,22 @@
     return `<td ${attrs.join(' ')}${columnTooltipAttr(tooltipKey)}${summaryRowTooltipAttr(rowRole)}>${content}</td>`;
   };
 
+  /**
+   * Extrae valores totales de un nodo del árbol jerárquico de Summary
+   * 
+   * Summary organiza cuentas en un árbol jerárquico donde cada nodo
+   * puede tener totales acumulados. Esta función normaliza los diferentes
+   * nombres que pueden tener estos totales.
+   * 
+   * @param {Object} nodo - Nodo del árbol con totales calculados
+   * @returns {Object} Objeto con los 6 valores totales estandarizados:
+   *   - actualMonth: Real del mes actual
+   *   - planMonth: Plan/presupuesto del mes actual
+   *   - prevMonth: Real del mes anterior (mismo mes año previo)
+   *   - actualYTD: Real acumulado año a la fecha (Year To Date)
+   *   - planYTD: Plan acumulado año a la fecha
+   *   - prevYTD: Real acumulado año previo a la fecha
+   */
   const extractTotals = (nodo = {}) => ({
     actualMonth: toNumber(nodo.actualMonth ?? nodo.totalActualMonth),
     planMonth: toNumber(nodo.planMonth ?? nodo.totalPlanMonth),
@@ -492,6 +579,28 @@
     prevYTD: toNumber(nodo.prevYTD ?? nodo.totalPrevYTD)
   });
 
+  /**
+   * Crea una fila de totales con 12 columnas de datos financieros
+   * 
+   * Esta función genera filas especiales que muestran totales acumulados,
+   * por ejemplo: "TOTAL REVENUE", "TOTAL EXPENSES", "NET INCOME".
+   * 
+   * Las 12 columnas son:
+   * - Actual Month: Real del mes
+   * - Plan Month: Presupuesto del mes
+   * - Prev Month: Real mes anterior
+   * - Var% Month Plan: Variación porcentual vs presupuesto del mes
+   * - Var% Month Prev: Variación porcentual vs mes anterior
+   * - Actual YTD: Real acumulado del año
+   * - Plan YTD: Presupuesto acumulado del año
+   * - Prev YTD: Real acumulado año anterior
+   * - Var% YTD Plan: Variación porcentual acumulada vs presupuesto
+   * - Var% YTD Prev: Variación porcentual acumulada vs año anterior
+   * 
+   * @param {Object} nodo - Nodo con los valores totales
+   * @param {Object} options - Opciones de formato (label, rowClass, etc.)
+   * @returns {HTMLTableRowElement} Fila HTML con los totales formateados
+   */
   const createTotalsRow = (nodo, options = {}) => {
     const {
       label = '',
@@ -586,6 +695,40 @@
     });
   };
 
+  /**
+   * Renderiza/pinta la tabla de Summary con estructura jerárquica
+   * 
+   * Summary muestra datos consolidados multi-empresa con estructura de árbol:
+   * Capitulo → Principal → Sección → Cuenta
+   * 
+   * JERARQUÍA DE SUMMARY:
+   * - Capitulo: Empresa (EMPRESA01, EMPRESA02, etc.)
+   * - Principal: Categoría principal (REVENUE, EXPENSES, etc.)
+   * - Sección: Subcategoría (SALES, OPERATING EXPENSES, etc.)
+   * - Cuenta: Cuenta contable individual con valores
+   * 
+   * LAYOUT PERSONALIZADO:
+   * Si existe capitulo.layout, sigue ese orden y agrupaciones:
+   * - type: 'group' → Agrupa varios principals y muestra subtotal
+   * - type: 'net' → Muestra resultado neto (REVENUE - EXPENSES)
+   * - type: 'final' → Muestra resultado final (NET INCOME)
+   * 
+   * COLUMNAS (12 en total):
+   * 1-2: Cuenta y Descripción (editables solo visualmente)
+   * 3: Actual Month - Real del mes
+   * 4: Plan Month - Presupuesto del mes
+   * 5: Prev Month - Real del mes anterior (año previo)
+   * 6: Var% Month Plan - Variación vs presupuesto
+   * 7: Var% Month Prev - Variación vs mes anterior
+   * 8: Actual YTD - Real acumulado del año
+   * 9: Plan YTD - Presupuesto acumulado
+   * 10: Prev YTD - Real acumulado año anterior
+   * 11: Var% YTD Plan - Variación acumulada vs presupuesto
+   * 12: Var% YTD Prev - Variación acumulada vs año anterior
+   * 
+   * @param {Array} resumen - Array de capitulos con estructura jerárquica
+   * @param {number} mesSeleccionado - Mes seleccionado (1-12)
+   */
   const renderSummary = (resumen = [], mesSeleccionado) => {
     if (!summaryBody) return;
     limpiarCambios();
@@ -735,6 +878,20 @@
   };
 
 
+  /**
+   * Renderiza la tabla de agregados por ciudad/empresa
+   * 
+   * Esta tabla consolida los totales de todas las empresas/ciudades
+   * en una vista resumida. Es útil para ver el consolidado multi-empresa.
+   * 
+   * Proceso:
+   * 1. Recorre todos los nodos del resumen
+   * 2. Para cada hijo (empresa), acumula su total
+   * 3. Agrupa por clave de empresa (empresa1, empresa2, etc.)
+   * 4. Renderiza una fila por empresa con su total acumulado
+   * 
+   * @param {Array} resumen - Array de nodos jerárquicos con datos de empresas
+   */
   const renderAggregateTable = (resumen = []) => {
     if (!aggregateBody) return;
     aggregateBody.innerHTML = '';

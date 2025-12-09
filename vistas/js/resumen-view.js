@@ -307,14 +307,54 @@
   window.CuentasModulo.cargarLayoutLocal = () => window.ModoEdicionPresupuesto?.cargarLayoutLocal?.() || null;
   window.CuentasModulo.aplicarLayoutLocal = (l) => window.ModoEdicionPresupuesto?.aplicarLayoutLocal?.(l) || false;
 
+  /**
+   * Crea una celda HTML <td> con valor numérico formateado para Resumen
+   * 
+   * Similar a la función de Summary pero adaptada a Resumen.
+   * Genera celdas numéricas con formato de miles y decimales.
+   * 
+   * @param {number} val - Valor numérico a mostrar
+   * @param {Object} options - Opciones
+   * @param {string} options.rowRole - Rol de la fila (account, section, etc.)
+   * @param {string} options.classes - Clases CSS adicionales
+   * @param {string} options.tooltipKey - Clave del tooltip
+   * @returns {string} HTML de la celda <td>
+   */
   const createCell = (val, { rowRole = '', classes = '', tooltipKey = '' } = {}) => {
     const classList = ['text-end'];
     if (classes) classList.push(classes);
     return `<td class="${classList.join(' ')}"${resumenTooltipAttr(tooltipKey)}${resumenRowTooltipAttr(rowRole)}>${formatNumber(val)}</td>`;
   };
 
+  /**
+   * Crea una celda HTML <td> con valor porcentual formateado para Resumen
+   * 
+   * Genera celdas para las columnas de variaciones porcentuales.
+   * Formato: "+5.2%" o "-3.8%" con color según signo.
+   * 
+   * @param {number} val - Valor decimal (ej: 0.052 para 5.2%)
+   * @param {Object} options - Opciones
+   * @param {string} options.rowRole - Rol de la fila
+   * @param {string} options.tooltipKey - Clave del tooltip
+   * @returns {string} HTML de la celda <td>
+   */
   const createPercentCell = (val, { rowRole = '', tooltipKey = '' } = {}) => `<td class="text-end"${resumenTooltipAttr(tooltipKey)}${resumenRowTooltipAttr(rowRole)}>${formatPercentValue(val)}</td>`;
 
+  /**
+   * Crea una celda HTML <td> editable o de solo lectura para Resumen
+   * 
+   * Igual que en Summary: SOLO cuenta y descripcion son editables.
+   * Estos campos son visuales y no se guardan en Firebird.
+   * 
+   * @param {string|number} val - Valor a mostrar
+   * @param {Object} options - Opciones
+   * @param {string} options.columnKey - Clave de columna
+   * @param {string} options.rowRole - Rol de la fila
+   * @param {string} options.tooltipKey - Clave del tooltip
+   * @param {boolean} options.text - Si true es texto, si false es número
+   * @param {string} options.classes - Clases CSS adicionales
+   * @returns {string} HTML de la celda <td>
+   */
   const createEditableCell = (val, {
     columnKey = '',
     rowRole = '',
@@ -341,6 +381,25 @@
     return `<td ${attrs.join(' ')}${resumenTooltipAttr(tooltipKey)}${resumenRowTooltipAttr(rowRole)}>${contenido}</td>`;
   };
 
+  /**
+   * Crea una fila de totales para el módulo Resumen
+   * 
+   * Similar a createTotalsRow de Summary, pero adaptada a la estructura
+   * jerárquica de Resumen (Empresa → División → Comité → Cuenta).
+   * 
+   * Genera filas que muestran totales acumulados por nivel jerárquico,
+   * por ejemplo: total de una división, total de un comité, etc.
+   * 
+   * Las 12 columnas son idénticas a Summary:
+   * - Actual Month, Plan Month, Prev Month
+   * - Var% Month Plan, Var% Month Prev
+   * - Actual YTD, Plan YTD, Prev YTD
+   * - Var% YTD Plan, Var% YTD Prev
+   * 
+   * @param {Object} nodo - Nodo jerárquico con valores totales calculados
+   * @param {Object} options - Opciones (label, rowRole, rowClass, etc.)
+   * @returns {HTMLTableRowElement} Fila HTML con los totales formateados
+   */
   const createResumenTotalsRow = (nodo, options = {}) => {
     const { label = '', rowRole = 'section', rowClass = '', rowContext = null, labelClasses = 'text-start fw-semibold' } = options;
     const totals = {
@@ -407,6 +466,35 @@
     })).sort((a, b) => a.orden - b.orden).map(({ item }) => item);
   };
 
+  /**
+   * Renderiza/pinta la tabla de Resumen con jerarquía multi-nivel
+   * 
+   * Resumen muestra el mismo tipo de datos que Summary pero organizado
+   * por división jerárquica interna de la empresa:
+   * Empresa → División → Comité → Sección → Cuenta
+   * 
+   * JERARQUÍA DE RESUMEN:
+   * - Empresa: EMPRESA01, EMPRESA02, etc.
+   * - División: CONSTRUCCIÓN, PROMOCIÓN, etc.
+   * - Comité: Subgrupo dentro de división
+   * - Sección: Categoría de cuentas (INGRESOS, GASTOS, etc.)
+   * - Cuenta: Cuenta contable individual
+   * 
+   * DIFERENCIA CON SUMMARY:
+   * - Summary: Vista consolidada por tipo de cuenta (Revenue, Expenses)
+   * - Resumen: Vista por estructura organizacional (Divisiones/Comités)
+   * 
+   * LAYOUT PERSONALIZADO:
+   * Similar a Summary, soporta agrupaciones y resultados especiales:
+   * - type: 'group' → Agrupa principals (divisiones)
+   * - type: 'net'/'final' → Resultados calculados
+   * 
+   * COLUMNAS: Las mismas 12 columnas que Summary
+   * (Actual Month, Plan, Prev, variaciones, YTD, etc.)
+   * 
+   * @param {Array} resumen - Array de empresas con estructura jerárquica
+   * @param {number} mesSeleccionado - Mes seleccionado (1-12)
+   */
   const renderResumen = (resumen = [], mesSeleccionado) => {
     if (!tablaBody) return;
     limpiarCambios();

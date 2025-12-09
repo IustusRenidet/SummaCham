@@ -552,17 +552,11 @@ router.post("/enviar", async (req, res) => {
       req.esAdmin ? "ADMIN_GLOBAL" : "USUARIO",
       req.usuarioActual.id
     );
-    // Si el resultado indica auto-autorización (admin global), auto finalizamos (guardar en COI)
-    if (resultado && resultado.autoAutorizado) {
-      try {
-        const guardado = await guardarAutorizado(value.borradorId, req.usuarioActual.id);
-        // Update mensaje para indicar guardado en COI, y ajustar retorno
-        return res.json({ mensaje: 'Borrador autorizado y guardado en COI automáticamente.', autoAutorizado: true, borrador: guardado });
-      } catch (err) {
-        console.error('Error al auto-guardar borrador para admin global:', err);
-        // proceed to notify that autosave failed, but still return authorized message
-      }
-    }
+    
+    // ✅ CORRECCIÓN: NO auto-guardar en COI al enviar
+    // Solo cambiar estado a APROBADO si es admin, pero NO persistir en Firebird
+    // El guardado en Firebird solo ocurre con el botón "Guardar en COI"
+    
     notificarWorkflowPresupuesto({
       empresaId: empresa.id,
       modulo: borrador.modulo,
@@ -585,7 +579,7 @@ router.post("/enviar", async (req, res) => {
     );
     return res.json({
       mensaje: resultado.autoAutorizado
-        ? "Borrador autorizado automáticamente."
+        ? "Presupuesto aprobado. Usa 'Guardar en COI' para insertar en la base de datos."
         : "Borrador enviado a revisión.",
       ...resultado,
     });
