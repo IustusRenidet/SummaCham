@@ -1,645 +1,443 @@
 <section class="workflow-guide">
-<style>
-.workflow-guide {
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  color: #1f2933;
-  background: transparent;
-}
-.workflow-guide .flow-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  background: white;
-  padding: 1.5rem;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-}
-.workflow-guide h1 {
-  color: #2f5496;
-  text-align: center;
-  margin-bottom: 1.5rem;
-  font-size: 1.8rem;
-}
-.workflow-guide h2 {
-  color: #2f5496;
-  margin-top: 2rem;
-  margin-bottom: 1rem;
-  font-size: 1.4rem;
-  border-bottom: 2px solid #2f5496;
-  padding-bottom: 0.5rem;
-}
-.workflow-guide h3 {
-  color: #2f5496;
-  font-size: 1.1rem;
-  margin: 1rem 0 0.5rem 0;
-}
-.workflow-guide .flujo {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  margin: 2rem 0;
-}
-.workflow-guide .estado {
-  padding: 1.5rem;
-  border-radius: 8px;
-  position: relative;
-}
-.workflow-guide .estado h3 {
-  margin: 0 0 0.5rem 0;
-  font-size: 1.2rem;
-}
-.workflow-guide .estado p {
-  margin: 0.5rem 0;
-  font-size: 0.95rem;
-}
-.workflow-guide .estado ul {
-  margin: 0.5rem 0 0 1rem;
-  font-size: 0.9rem;
-}
-.workflow-guide .estado .badge {
-  display: inline-block;
-  padding: 0.35rem 0.75rem;
-  background: rgba(0,0,0,0.1);
-  border-radius: 4px;
-  font-size: 0.8rem;
-  margin-right: 0.5rem;
-}
-.workflow-guide .flecha {
-  text-align: center;
-  font-size: 2rem;
-  color: #2f5496;
-  margin: 0.5rem 0;
-}
-.workflow-guide .editando {
-  background: #fff3cd;
-  border-left: 4px solid #856404;
-}
-.workflow-guide .pendiente {
-  background: #cfe2ff;
-  border-left: 4px solid #084298;
-}
-.workflow-guide .revisado {
-  background: #d1e7dd;
-  border-left: 4px solid #0a3622;
-}
-.workflow-guide .aprobado {
-  background: #d1e7dd;
-  border-left: 4px solid #0f5132;
-}
-.workflow-guide .rechazado {
-  background: #f8d7da;
-  border-left: 4px solid #842029;
-}
-.workflow-guide .guardado {
-  background: #e2e3e5;
-  border-left: 4px solid #41464b;
-}
-.workflow-guide .nota {
-  background: #e7f3ff;
-  padding: 1rem;
-  border-radius: 8px;
-  margin: 1rem 0;
-  border-left: 4px solid #0d6efd;
-  font-size: 0.9rem;
-}
-.workflow-guide .nota.warning {
-  background: #fff8dc;
-  border-left-color: #ffc107;
-}
-.workflow-guide .nota.success {
-  background: #d1e7dd;
-  border-left-color: #198754;
-}
-.workflow-guide .btn-example {
-  display: inline-block;
-  padding: 0.5rem 1rem;
-  margin: 0.25rem;
-  border-radius: 6px;
-  font-size: 0.9rem;
-  text-align: center;
-  border: none;
-  cursor: pointer;
-  font-weight: 500;
-}
-.workflow-guide .btn-primary {
-  background: #0d6efd;
-  color: white;
-}
-.workflow-guide .btn-success {
-  background: #198754;
-  color: white;
-}
-.workflow-guide .btn-warning {
-  background: #ffc107;
-  color: #000;
-}
-.workflow-guide .btn-danger {
-  background: #dc3545;
-  color: white;
-}
-.workflow-guide .btn-secondary {
-  background: #6c757d;
-  color: white;
-}
-.workflow-guide .btn-outline {
-  background: white;
-  border: 2px solid #6c757d;
-  color: #6c757d;
-}
-.workflow-guide .buttons-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-  margin: 1.5rem 0;
-}
-.workflow-guide .button-card {
-  background: #f8f9fa;
-  padding: 1rem;
-  border-radius: 8px;
-  border: 1px solid #e3e3e3;
-}
-.workflow-guide .button-card h4 {
-  margin: 0 0 0.5rem 0;
-  font-size: 1rem;
-  color: #2f5496;
-}
-.workflow-guide .button-card p {
-  font-size: 0.85rem;
-  margin: 0.5rem 0;
-  color: #5f6368;
-}
-.workflow-guide .permisos-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin: 1rem 0;
-}
-.workflow-guide .permisos-table th,
-.workflow-guide .permisos-table td {
-  padding: 0.75rem;
-  border: 1px solid #e0e0e0;
-  text-align: left;
-  font-size: 0.9rem;
-}
-.workflow-guide .permisos-table thead th {
-  background: #2f5496;
-  color: white;
-  font-weight: 600;
-}
-.workflow-guide .permisos-table tbody tr:nth-child(even) {
-  background: #f8f9fa;
-}
-.workflow-guide .check {
-  color: #198754;
-  font-weight: bold;
-}
-.workflow-guide .cross {
-  color: #dc3545;
-  font-weight: bold;
-}
-</style>
+  <style>
+    .workflow-guide {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      color: #1f2933;
+      background: transparent;
+    }
+    .workflow-guide .flow-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      padding: 1.5rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    .workflow-guide h1 {
+      color: #2f5496;
+      text-align: center;
+      margin-bottom: 1.5rem;
+      font-size: 1.8rem;
+    }
+    .workflow-guide h2 {
+      color: #2f5496;
+      margin-top: 2rem;
+      margin-bottom: 1rem;
+      font-size: 1.4rem;
+      border-bottom: 2px solid #2f5496;
+      padding-bottom: 0.5rem;
+    }
+    .workflow-guide h3 {
+      color: #2f5496;
+      font-size: 1.1rem;
+      margin: 1rem 0 0.5rem 0;
+    }
+    .workflow-guide .flujo {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      margin: 2rem 0;
+    }
+    .workflow-guide .estado {
+      padding: 1.5rem;
+      border-radius: 8px;
+      position: relative;
+    }
+    .workflow-guide .estado h3 {
+      margin: 0 0 0.5rem 0;
+      font-size: 1.2rem;
+    }
+    .workflow-guide .estado p {
+      margin: 0.5rem 0;
+      font-size: 0.95rem;
+    }
+    .workflow-guide .estado ul {
+      margin: 0.5rem 0 0 1rem;
+      font-size: 0.9rem;
+    }
+    .workflow-guide .estado .badge {
+      display: inline-block;
+      padding: 0.35rem 0.75rem;
+      background: rgba(0, 0, 0, 0.1);
+      border-radius: 4px;
+      font-size: 0.8rem;
+      margin-right: 0.5rem;
+    }
+    .workflow-guide .flecha {
+      text-align: center;
+      font-size: 2rem;
+      color: #2f5496;
+      margin: 0.5rem 0;
+    }
+    .workflow-guide .editando {
+      background: #fff3cd;
+      border-left: 4px solid #856404;
+    }
+    .workflow-guide .pendiente {
+      background: #cfe2ff;
+      border-left: 4px solid #084298;
+    }
+    .workflow-guide .revisado {
+      background: #d1e7dd;
+      border-left: 4px solid #0a3622;
+    }
+    .workflow-guide .aprobado {
+      background: #d1e7dd;
+      border-left: 4px solid #0f5132;
+    }
+    .workflow-guide .rechazado {
+      background: #f8d7da;
+      border-left: 4px solid #842029;
+    }
+    .workflow-guide .guardado {
+      background: #e2e3e5;
+      border-left: 4px solid #41464b;
+    }
+    .workflow-guide .nota {
+      background: #e7f3ff;
+      padding: 1rem;
+      border-radius: 8px;
+      margin: 1rem 0;
+      border-left: 4px solid #0d6efd;
+      font-size: 0.9rem;
+    }
+    .workflow-guide .nota.warning {
+      background: #fff8dc;
+      border-left-color: #ffc107;
+    }
+    .workflow-guide .nota.success {
+      background: #d1e7dd;
+      border-left-color: #198754;
+    }
+    .workflow-guide .btn-example {
+      display: inline-block;
+      padding: 0.5rem 1rem;
+      margin: 0.25rem;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      text-align: center;
+      border: none;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    .workflow-guide .btn-primary {
+      background: #0d6efd;
+      color: white;
+    }
+    .workflow-guide .btn-success {
+      background: #198754;
+      color: white;
+    }
+    .workflow-guide .btn-warning {
+      background: #ffc107;
+      color: #000;
+    }
+    .workflow-guide .btn-danger {
+      background: #dc3545;
+      color: white;
+    }
+    .workflow-guide .btn-secondary {
+      background: #6c757d;
+      color: white;
+    }
+    .workflow-guide .btn-outline {
+      background: white;
+      border: 2px solid #6c757d;
+      color: #6c757d;
+    }
+    .workflow-guide .buttons-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin: 1.5rem 0;
+    }
+    .workflow-guide .button-card {
+      background: #f8f9fa;
+      padding: 1rem;
+      border-radius: 8px;
+      border: 1px solid #e3e3e3;
+    }
+    .workflow-guide .button-card h4 {
+      margin: 0 0 0.5rem 0;
+      font-size: 1rem;
+      color: #2f5496;
+    }
+    .workflow-guide .button-card p {
+      font-size: 0.85rem;
+      margin: 0.5rem 0;
+      color: #5f6368;
+    }
+    .workflow-guide .permisos-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1rem 0;
+    }
+    .workflow-guide .permisos-table th,
+    .workflow-guide .permisos-table td {
+      padding: 0.75rem;
+      border: 1px solid #e0e0e0;
+      text-align: left;
+      font-size: 0.9rem;
+    }
+    .workflow-guide .permisos-table thead th {
+      background: #2f5496;
+      color: white;
+      font-weight: 600;
+    }
+    .workflow-guide .permisos-table tbody tr:nth-child(even) {
+      background: #f8f9fa;
+    }
+    .workflow-guide .check {
+      color: #198754;
+      font-weight: bold;
+    }
+    .workflow-guide .cross {
+      color: #dc3545;
+      font-weight: bold;
+    }
+  </style>
 
-<div class="flow-container">
-  <h1>📋 Guía del Flujo de Autorización de Presupuestos</h1>
-  
-  <div class="nota success">
-    <strong>💡 ¿Qué es el Flujo de Autorización?</strong><br>
-    Es el proceso que siguen los presupuestos desde su creación hasta su guardado final en la base de datos COI. 
-    Garantiza que cada presupuesto sea revisado y autorizado antes de ser almacenado de forma permanente.
-  </div>
+  <div class="flow-container">
+    <h1>📋 Guía del Flujo de Autorización de Presupuestos</h1>
 
-  <!-- ========== SECCIÓN 1: ESTADOS DEL FLUJO ========== -->
-  <h2>1️⃣ Estados del Flujo</h2>
-  
-  <div class="flujo">
-    <div class="estado editando">
-      <h3>🟡 EDITANDO</h3>
-      <p><strong>Estado inicial de creación/modificación</strong></p>
+    <div class="nota success">
+      <strong>💡 ¿Qué es el Flujo de Autorización?</strong><br />
+      Es el proceso que siguen los presupuestos desde su creación hasta su
+      guardado final en la base de datos COI. Garantiza que cada presupuesto sea
+      revisado y autorizado antes de ser almacenado de forma permanente.
+    </div>
+
+    <!-- ========== SECCIÓN 1: ESTADOS DEL FLUJO ========== -->
+    <h2>Estados del Flujo</h2>
+
+    <div class="flujo">
+      <div class="estado editando">
+        <h3>🟡 EDITANDO</h3>
+        <p><strong>Estado inicial de creación/modificación</strong></p>
+        <ul>
+          <li>
+            El usuario está capturando o modificando datos del presupuesto
+          </li>
+          <li>Puede guardar su progreso temporal sin finalizar</li>
+          <li>Los cambios NO están enviados a revisión</li>
+          <li>Puede cancelar y descartar todos los cambios</li>
+        </ul>
+        <span class="badge">Autor: Usuario con permiso "Cargar y guardar"</span>
+      </div>
+
+      <div class="flecha">↓</div>
+
+      <div class="estado pendiente">
+        <h3>🔵 PENDIENTE</h3>
+        <p>
+          <strong
+            >Enviado a revisión, esperando ser marcado como revisado</strong
+          >
+        </p>
+        <ul>
+          <li>El presupuesto fue enviado por el autor</li>
+          <li>Ya NO se puede editar (solo los revisores pueden rechazarlo)</li>
+          <li>Esperando que un revisor lo marque como "Revisado"</li>
+          <li>Puede ser rechazado para correcciones</li>
+        </ul>
+        <span class="badge">Revisor: Usuario con permiso "Revisar"</span>
+      </div>
+
+      <div class="flecha">↓</div>
+
+      <div class="estado revisado">
+        <h3>🟢 REVISADO</h3>
+        <p><strong>Marcado como revisado, esperando autorización</strong></p>
+        <ul>
+          <li>Un revisor verificó y marcó el presupuesto como correcto</li>
+          <li>Esperando que un autorizador lo apruebe</li>
+          <li>El revisor puede cancelar la revisión si detecta un error</li>
+          <li>Puede ser rechazado por el autorizador</li>
+        </ul>
+        <span class="badge">Autorizador: Usuario con permiso "Aprobar"</span>
+      </div>
+
+      <div class="flecha">↓</div>
+
+      <div class="estado aprobado">
+        <h3>🟢 APROBADO</h3>
+        <p><strong>Autorizado, listo para guardar en COI</strong></p>
+        <ul>
+          <li>El autorizador aprobó el presupuesto</li>
+          <li>Listo para ser guardado en la base de datos COI</li>
+          <li>Solo el autorizador puede guardarlo en COI</li>
+          <li>Aún puede ser rechazado si se detecta un problema</li>
+        </ul>
+        <span class="badge">Final: El autorizador guardará en COI</span>
+      </div>
+
+      <div class="flecha">↓</div>
+
+      <div class="estado guardado">
+        <h3>⚫ GUARDADO</h3>
+        <p><strong>Guardado en COI - FINALIZADO (inmutable)</strong></p>
+        <ul>
+          <li>El presupuesto fue almacenado en las tablas de Firebird (COI)</li>
+          <li>El proceso está COMPLETO</li>
+          <li><strong>NO se puede modificar más</strong> (inmutable)</li>
+          <li>El borrador se elimina de la base de datos</li>
+        </ul>
+        <span class="badge">Estado Final</span>
+      </div>
+    </div>
+
+    <!-- Estado RECHAZADO (flujo alternativo) -->
+    <div class="nota warning">
+      <h3>🔴 RECHAZADO (Flujo alternativo)</h3>
+      <p>
+        Cuando un presupuesto es rechazado desde PENDIENTE, REVISADO o APROBADO:
+      </p>
       <ul>
-        <li>El usuario está capturando o modificando datos del presupuesto</li>
-        <li>Puede guardar su progreso temporal sin finalizar</li>
-        <li>Los cambios NO están enviados a revisión</li>
-        <li>Puede cancelar y descartar todos los cambios</li>
+        <li>El estado cambia a RECHAZADO</li>
+        <li>Se registra el <strong>motivo del rechazo</strong></li>
+        <li>
+          El autor puede ver el motivo y hacer las correcciones necesarias
+        </li>
+        <li>
+          El autor puede volver a editar (RECHAZADO → EDITANDO) y enviar
+          nuevamente
+        </li>
       </ul>
-      <span class="badge">Autor: Usuario con permiso "Cargar y guardar"</span>
+      <p>
+        <strong>Flujo de corrección:</strong> RECHAZADO → EDITANDO → PENDIENTE →
+        REVISADO → APROBADO → GUARDADO
+      </p>
     </div>
 
-    <div class="flecha">↓</div>
+    <!-- ========== SECCIÓN 2: BOTONES Y ACCIONES ========== -->
+    <h2>Botones y Acciones Disponibles</h2>
 
-    <div class="estado pendiente">
-      <h3>🔵 PENDIENTE</h3>
-      <p><strong>Enviado a revisión, esperando ser marcado como revisado</strong></p>
-      <ul>
-        <li>El presupuesto fue enviado por el autor</li>
-        <li>Ya NO se puede editar (solo los revisores pueden rechazarlo)</li>
-        <li>Esperando que un revisor lo marque como "Revisado"</li>
-        <li>Puede ser rechazado para correcciones</li>
-      </ul>
-      <span class="badge">Revisor: Usuario con permiso "Revisar"</span>
-    </div>
+    <div class="buttons-grid">
+      <div class="button-card">
+        <button class="btn-example btn-primary">📝 Cargar presupuesto</button>
+        <h4>Iniciar Edición</h4>
+        <p>
+          <strong>Cuándo aparece:</strong> Cuando NO hay borrador o el borrador
+          está en RECHAZADO/GUARDADO
+        </p>
+        <p>
+          <strong>Qué hace:</strong> Activa el modo edición para crear o
+          modificar el presupuesto
+        </p>
+        <p><strong>Permiso:</strong> Cargar y guardar</p>
+      </div>
 
-    <div class="flecha">↓</div>
+      <div class="button-card">
+        <button class="btn-example btn-success">
+          💾 Guardar para más tarde
+        </button>
+        <h4>Guardar Borrador Temporal</h4>
+        <p>
+          <strong>Cuándo aparece:</strong> Cuando está en modo edición
+          (EDITANDO)
+        </p>
+        <p>
+          <strong>Qué hace:</strong> Guarda el progreso actual sin finalizar,
+          permanece en estado EDITANDO
+        </p>
+        <p><strong>Permiso:</strong> Cargar y guardar</p>
+      </div>
 
-    <div class="estado revisado">
-      <h3>🟢 REVISADO</h3>
-      <p><strong>Marcado como revisado, esperando autorización</strong></p>
-      <ul>
-        <li>Un revisor verificó y marcó el presupuesto como correcto</li>
-        <li>Esperando que un autorizador lo apruebe</li>
-        <li>El revisor puede cancelar la revisión si detecta un error</li>
-        <li>Puede ser rechazado por el autorizador</li>
-      </ul>
-      <span class="badge">Autorizador: Usuario con permiso "Aprobar"</span>
-    </div>
+      <div class="button-card">
+        <button class="btn-example btn-primary">📤 Enviar presupuesto</button>
+        <h4>Enviar a Revisión</h4>
+        <p>
+          <strong>Cuándo aparece:</strong> Cuando está en modo edición con
+          cambios
+        </p>
+        <p>
+          <strong>Qué hace:</strong> Guarda y envía a revisión (EDITANDO →
+          PENDIENTE), sale del modo edición
+        </p>
+        <p><strong>Permiso:</strong> Cargar y guardar</p>
+      </div>
 
-    <div class="flecha">↓</div>
+      <div class="button-card">
+        <button class="btn-example btn-outline">❌ Cancelar</button>
+        <h4>Cancelar Edición</h4>
+        <p><strong>Cuándo aparece:</strong> Cuando está en modo edición</p>
+        <p>
+          <strong>Qué hace:</strong> Descarta todos los cambios y sale del modo
+          edición
+        </p>
+        <p><strong>Permiso:</strong> Cargar y guardar</p>
+      </div>
 
-    <div class="estado aprobado">
-      <h3>🟢 APROBADO</h3>
-      <p><strong>Autorizado, listo para guardar en COI</strong></p>
-      <ul>
-        <li>El autorizador aprobó el presupuesto</li>
-        <li>Listo para ser guardado en la base de datos COI</li>
-        <li>Solo el autorizador puede guardarlo en COI</li>
-        <li>Aún puede ser rechazado si se detecta un problema</li>
-      </ul>
-      <span class="badge">Final: El autorizador guardará en COI</span>
-    </div>
+      <div class="button-card">
+        <button class="btn-example btn-warning">✓ Marcar como revisado</button>
+        <h4>Marcar/Cancelar Revisión</h4>
+        <p>
+          <strong>Cuándo aparece:</strong> Cuando está en PENDIENTE o REVISADO
+        </p>
+        <p>
+          <strong>Qué hace:</strong> PENDIENTE → REVISADO o REVISADO → PENDIENTE
+        </p>
+        <p><strong>Permiso:</strong> Revisar</p>
+      </div>
 
-    <div class="flecha">↓</div>
+      <div class="button-card">
+        <button class="btn-example btn-success">✓ Autorizar</button>
+        <h4>Aprobar Presupuesto</h4>
+        <p><strong>Cuándo aparece:</strong> Cuando está en REVISADO</p>
+        <p>
+          <strong>Qué hace:</strong> Aprueba el presupuesto (REVISADO →
+          APROBADO)
+        </p>
+        <p><strong>Permiso:</strong> Aprobar</p>
+      </div>
 
-    <div class="estado guardado">
-      <h3>⚫ GUARDADO</h3>
-      <p><strong>Guardado en COI - FINALIZADO (inmutable)</strong></p>
-      <ul>
-        <li>El presupuesto fue almacenado en las tablas de Firebird (COI)</li>
-        <li>El proceso está COMPLETO</li>
-        <li><strong>NO se puede modificar más</strong> (inmutable)</li>
-        <li>El borrador se elimina de la base de datos</li>
-      </ul>
-      <span class="badge">Estado Final</span>
-    </div>
-  </div>
+      <div class="button-card">
+        <button class="btn-example btn-danger">✗ Rechazar</button>
+        <h4>Rechazar Presupuesto</h4>
+        <p>
+          <strong>Cuándo aparece:</strong> Cuando está en PENDIENTE, REVISADO o
+          APROBADO
+        </p>
+        <p>
+          <strong>Qué hace:</strong> Rechaza con motivo (→ RECHAZADO) para que
+          el autor corrija
+        </p>
+        <p><strong>Permiso:</strong> Revisar o Aprobar</p>
+      </div>
 
-  <!-- Estado RECHAZADO (flujo alternativo) -->
-  <div class="nota warning">
-    <h3>🔴 RECHAZADO (Flujo alternativo)</h3>
-    <p>Cuando un presupuesto es rechazado desde PENDIENTE, REVISADO o APROBADO:</p>
-    <ul>
-      <li>El estado cambia a RECHAZADO</li>
-      <li>Se registra el <strong>motivo del rechazo</strong></li>
-      <li>El autor puede ver el motivo y hacer las correcciones necesarias</li>
-      <li>El autor puede volver a editar (RECHAZADO → EDITANDO) y enviar nuevamente</li>
-    </ul>
-    <p><strong>Flujo de corrección:</strong> RECHAZADO → EDITANDO → PENDIENTE → REVISADO → APROBADO → GUARDADO</p>
-  </div>
+      <div class="button-card">
+        <button class="btn-example btn-primary">💾 Guardar en COI</button>
+        <h4>Guardar en Base de Datos</h4>
+        <p><strong>Cuándo aparece:</strong> Cuando está en APROBADO</p>
+        <p>
+          <strong>Qué hace:</strong> Guarda en Firebird (APROBADO → GUARDADO),
+          finaliza el proceso
+        </p>
+        <p><strong>Permiso:</strong> Aprobar</p>
+      </div>
 
-  <!-- ========== SECCIÓN 2: BOTONES Y ACCIONES ========== -->
-  <h2>2️⃣ Botones y Acciones Disponibles</h2>
+      <div class="button-card">
+        <button class="btn-example btn-secondary">📂 Ver Borradores</button>
+        <h4>Centro de Borradores</h4>
+        <p><strong>Siempre disponible</strong></p>
+        <p>
+          <strong>Qué hace:</strong> Abre el panel para ver historial de
+          borradores y cambios
+        </p>
+        <p><strong>Permiso:</strong> Todos</p>
+      </div>
 
-  <div class="buttons-grid">
-    <div class="button-card">
-      <button class="btn-example btn-primary">📝 Cargar presupuesto</button>
-      <h4>Iniciar Edición</h4>
-      <p><strong>Cuándo aparece:</strong> Cuando NO hay borrador o el borrador está en RECHAZADO/GUARDADO</p>
-      <p><strong>Qué hace:</strong> Activa el modo edición para crear o modificar el presupuesto</p>
-      <p><strong>Permiso:</strong> Cargar y guardar</p>
-    </div>
-
-    <div class="button-card">
-      <button class="btn-example btn-success">💾 Guardar para más tarde</button>
-      <h4>Guardar Borrador Temporal</h4>
-      <p><strong>Cuándo aparece:</strong> Cuando está en modo edición (EDITANDO)</p>
-      <p><strong>Qué hace:</strong> Guarda el progreso actual sin finalizar, permanece en estado EDITANDO</p>
-      <p><strong>Permiso:</strong> Cargar y guardar</p>
-    </div>
-
-    <div class="button-card">
-      <button class="btn-example btn-primary">📤 Enviar presupuesto</button>
-      <h4>Enviar a Revisión</h4>
-      <p><strong>Cuándo aparece:</strong> Cuando está en modo edición con cambios</p>
-      <p><strong>Qué hace:</strong> Guarda y envía a revisión (EDITANDO → PENDIENTE), sale del modo edición</p>
-      <p><strong>Permiso:</strong> Cargar y guardar</p>
-    </div>
-
-    <div class="button-card">
-      <button class="btn-example btn-outline">❌ Cancelar</button>
-      <h4>Cancelar Edición</h4>
-      <p><strong>Cuándo aparece:</strong> Cuando está en modo edición</p>
-      <p><strong>Qué hace:</strong> Descarta todos los cambios y sale del modo edición</p>
-      <p><strong>Permiso:</strong> Cargar y guardar</p>
-    </div>
-
-    <div class="button-card">
-      <button class="btn-example btn-warning">✓ Marcar como revisado</button>
-      <h4>Marcar/Cancelar Revisión</h4>
-      <p><strong>Cuándo aparece:</strong> Cuando está en PENDIENTE o REVISADO</p>
-      <p><strong>Qué hace:</strong> PENDIENTE → REVISADO o REVISADO → PENDIENTE</p>
-      <p><strong>Permiso:</strong> Revisar</p>
-    </div>
-
-    <div class="button-card">
-      <button class="btn-example btn-success">✓ Autorizar</button>
-      <h4>Aprobar Presupuesto</h4>
-      <p><strong>Cuándo aparece:</strong> Cuando está en REVISADO</p>
-      <p><strong>Qué hace:</strong> Aprueba el presupuesto (REVISADO → APROBADO)</p>
-      <p><strong>Permiso:</strong> Aprobar</p>
-    </div>
-
-    <div class="button-card">
-      <button class="btn-example btn-danger">✗ Rechazar</button>
-      <h4>Rechazar Presupuesto</h4>
-      <p><strong>Cuándo aparece:</strong> Cuando está en PENDIENTE, REVISADO o APROBADO</p>
-      <p><strong>Qué hace:</strong> Rechaza con motivo (→ RECHAZADO) para que el autor corrija</p>
-      <p><strong>Permiso:</strong> Revisar o Aprobar</p>
-    </div>
-
-    <div class="button-card">
-      <button class="btn-example btn-primary">💾 Guardar en COI</button>
-      <h4>Guardar en Base de Datos</h4>
-      <p><strong>Cuándo aparece:</strong> Cuando está en APROBADO</p>
-      <p><strong>Qué hace:</strong> Guarda en Firebird (APROBADO → GUARDADO), finaliza el proceso</p>
-      <p><strong>Permiso:</strong> Aprobar</p>
-    </div>
-
-    <div class="button-card">
-      <button class="btn-example btn-secondary">📂 Ver Borradores</button>
-      <h4>Centro de Borradores</h4>
-      <p><strong>Siempre disponible</strong></p>
-      <p><strong>Qué hace:</strong> Abre el panel para ver historial de borradores y cambios</p>
-      <p><strong>Permiso:</strong> Todos</p>
-    </div>
-
-    <div class="button-card">
-      <button class="btn-example btn-danger">🗑️ Descartar borrador</button>
-      <h4>Eliminar Borrador</h4>
-      <p><strong>Cuándo aparece:</strong> Cuando hay un borrador disponible</p>
-      <p><strong>Qué hace:</strong> Elimina completamente el borrador actual</p>
-      <p><strong>Permiso:</strong> Cargar y guardar (solo el autor)</p>
+      <div class="button-card">
+        <button class="btn-example btn-danger">🗑️ Descartar borrador</button>
+        <h4>Eliminar Borrador</h4>
+        <p>
+          <strong>Cuándo aparece:</strong> Cuando hay un borrador disponible
+        </p>
+        <p>
+          <strong>Qué hace:</strong> Elimina completamente el borrador actual
+        </p>
+        <p><strong>Permiso:</strong> Cargar y guardar (solo el autor)</p>
+      </div>
     </div>
   </div>
-
-  <!-- ========== SECCIÓN 3: PERMISOS ========== -->
-  <h2>3️⃣ Permisos y Roles</h2>
-
-  <table class="permisos-table">
-    <thead>
-      <tr>
-        <th>Permiso</th>
-        <th>Crear/Editar</th>
-        <th>Enviar</th>
-        <th>Revisar</th>
-        <th>Autorizar</th>
-        <th>Guardar COI</th>
-        <th>Rechazar</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td><strong>Cargar y guardar</strong></td>
-        <td class="check">✓</td>
-        <td class="check">✓</td>
-        <td class="cross">✗</td>
-        <td class="cross">✗</td>
-        <td class="cross">✗</td>
-        <td class="cross">✗</td>
-      </tr>
-      <tr>
-        <td><strong>Revisar</strong></td>
-        <td class="cross">✗</td>
-        <td class="cross">✗</td>
-        <td class="check">✓</td>
-        <td class="cross">✗</td>
-        <td class="cross">✗</td>
-        <td class="check">✓</td>
-      </tr>
-      <tr>
-        <td><strong>Aprobar</strong></td>
-        <td class="cross">✗</td>
-        <td class="cross">✗</td>
-        <td class="cross">✗</td>
-        <td class="check">✓</td>
-        <td class="check">✓</td>
-        <td class="check">✓</td>
-      </tr>
-      <tr>
-        <td><strong>Admin (ICONET)</strong></td>
-        <td class="check">✓</td>
-        <td class="check">✓</td>
-        <td class="check">✓</td>
-        <td class="check">✓</td>
-        <td class="check">✓</td>
-        <td class="check">✓</td>
-      </tr>
-    </tbody>
-  </table>
-
-  <div class="nota">
-    <strong>📌 Nota importante sobre permisos:</strong>
-    <ul>
-      <li>Los permisos se configuran por <strong>módulo y empresa</strong> en la gestión de usuarios</li>
-      <li>Un usuario puede tener diferentes permisos en diferentes módulos</li>
-      <li>El usuario <strong>ICONET</strong> (administrador global) tiene TODOS los permisos en TODOS los módulos</li>
-      <li>Los permisos se validan en cada acción tanto en el frontend como en el backend</li>
-    </ul>
-  </div>
-
-  <!-- ========== SECCIÓN 4: FLUJO PASO A PASO ========== -->
-  <h2>4️⃣ Flujo Completo Paso a Paso</h2>
-
-  <div class="nota success">
-    <h3>Escenario: Usuario crea un presupuesto nuevo</h3>
-    <ol style="line-height: 2;">
-      <li><strong>INICIO:</strong> Usuario selecciona empresa y año</li>
-      <li><strong>Clic en "Cargar presupuesto"</strong> → Activa modo edición (estado: EDITANDO)</li>
-      <li><strong>Usuario captura datos</strong> en las celdas editables (fondo azul claro)</li>
-      <li><strong>Clic en "Guardar para más tarde"</strong> → Guarda progreso temporal (sigue EDITANDO)</li>
-      <li><strong>Usuario termina de capturar</strong> → Clic en "Enviar presupuesto"</li>
-      <li><strong>Estado cambia a PENDIENTE</strong> → Sale del modo edición, notifica a revisores</li>
-      <li><strong>Revisor recibe notificación</strong> → Revisa los datos</li>
-      <li><strong>Revisor hace clic en "Marcar como revisado"</strong> → Estado cambia a REVISADO</li>
-      <li><strong>Autorizador recibe notificación</strong> → Revisa y valida</li>
-      <li><strong>Autorizador hace clic en "Autorizar"</strong> → Estado cambia a APROBADO</li>
-      <li><strong>Autorizador hace clic en "Guardar en COI"</strong> → Guarda en Firebird</li>
-      <li><strong>Estado cambia a GUARDADO</strong> → Proceso FINALIZADO ✓</li>
-    </ol>
-  </div>
-
-  <div class="nota warning">
-    <h3>Escenario alternativo: Presupuesto rechazado</h3>
-    <ol style="line-height: 2;">
-      <li><strong>Usuario envía presupuesto</strong> → Estado: PENDIENTE</li>
-      <li><strong>Revisor detecta error</strong> → Clic en "Rechazar"</li>
-      <li><strong>Revisor escribe motivo del rechazo</strong> → Ejemplo: "Falta información del Q4"</li>
-      <li><strong>Estado cambia a RECHAZADO</strong> → Usuario recibe notificación</li>
-      <li><strong>Usuario lee el motivo</strong> → Clic en "Cargar presupuesto" nuevamente</li>
-      <li><strong>Usuario corrige el error</strong> → Estado cambia a EDITANDO</li>
-      <li><strong>Usuario envía de nuevo</strong> → Estado cambia a PENDIENTE</li>
-      <li><strong>Continúa el flujo normal...</strong></li>
-    </ol>
-  </div>
-
-  <!-- ========== SECCIÓN 5: ADMINISTRADOR GLOBAL ========== -->
-  <h2>5️⃣ Flujo del Administrador Global (ICONET)</h2>
-
-  <div class="nota success">
-    <p><strong>⚡ Privilegios del Administrador Global</strong></p>
-    <p>
-      El usuario <strong>ICONET</strong> y cualquier usuario marcado como "Administrador Global" 
-      tiene un flujo SIMPLIFICADO y DIRECTO:
-    </p>
-    
-    <h3 style="margin-top: 1.5rem;">Flujo del Admin Global:</h3>
-    <p style="text-align: center; font-size: 1.2rem; margin: 1.5rem 0; line-height: 2;">
-      EDITANDO → (enviar) → <span style="color: #198754; font-weight: bold;">APROBADO</span> → (guardar COI) → GUARDADO
-    </p>
-
-    <h3>Características clave:</h3>
-    <ul>
-      <li>✅ Puede <strong>crear, editar y enviar</strong> presupuestos (permiso "Cargar y guardar")</li>
-      <li>✅ Al enviar, el presupuesto pasa <strong>DIRECTAMENTE a APROBADO</strong></li>
-      <li>✅ <strong>Omite completamente</strong> los estados PENDIENTE y REVISADO</li>
-      <li>✅ NO depende de si el módulo tiene revisores configurados</li>
-      <li>✅ Puede <strong>guardar en COI</strong> inmediatamente después de enviar</li>
-      <li>✅ También puede revisar, autorizar y rechazar presupuestos de otros usuarios</li>
-    </ul>
-
-    <h3 style="margin-top: 1.5rem;">Proceso paso a paso para Admin Global:</h3>
-    <ol style="line-height: 2;">
-      <li><strong>Clic en "Cargar presupuesto"</strong> → Activa modo edición (EDITANDO)</li>
-      <li><strong>Captura/modifica datos</strong> en la tabla</li>
-      <li><strong>Opcional:</strong> Guardar progreso con "Guardar para más tarde" (sigue EDITANDO)</li>
-      <li><strong>Clic en "Enviar presupuesto"</strong> → Estado cambia a <strong>APROBADO</strong> automáticamente</li>
-      <li><strong>Clic en "Guardar en COI"</strong> → Guarda en Firebird (GUARDADO)</li>
-      <li><strong>✓ FINALIZADO</strong></li>
-    </ol>
-
-    <p style="margin-top: 1.5rem; padding: 1rem; background: rgba(255, 193, 7, 0.1); border-left: 3px solid #ffc107; border-radius: 4px;">
-      <strong>⚠️ Importante:</strong> El administrador global tiene TODOS los permisos en TODOS los módulos y empresas. 
-      No necesita que le asignen permisos específicos por módulo.
-    </p>
-  </div>
-
-  <!-- ========== SECCIÓN 6: AUTO-AUTORIZACIÓN POR CONFIGURACIÓN ========== -->
-  <h2>6️⃣ Auto-Autorización por Configuración del Módulo</h2>
-
-  <div class="nota warning">
-    <p><strong>📌 ¿Qué es la auto-autorización por configuración?</strong></p>
-    <p>
-      <strong>Diferente</strong> al administrador global, algunos módulos pueden estar configurados 
-      <strong>sin revisores ni autorizadores asignados</strong>. En estos casos, cuando un 
-      <strong>usuario normal</strong> (no admin) envía el presupuesto, el sistema lo aprueba automáticamente.
-    </p>
-    <p><strong>Flujo con auto-autorización configurada:</strong></p>
-    <p style="text-align: center; font-size: 1.1rem; margin: 1rem 0;">
-      EDITANDO → (enviar) → <span style="color: #198754; font-weight: bold;">APROBADO</span> → (guardar COI) → GUARDADO
-    </p>
-    <p><strong>Diferencia con Admin Global:</strong></p>
-    <ul>
-      <li><strong>Admin Global:</strong> SIEMPRE auto-aprueba, independiente de la configuración del módulo</li>
-      <li><strong>Auto-aprobación por config:</strong> Solo si el módulo NO tiene revisores configurados</li>
-      <li><strong>Usuario normal en módulo con revisores:</strong> Sigue el flujo completo (PENDIENTE → REVISADO → APROBADO)</li>
-    </ul>
-  </div>
-
-  <!-- ========== SECCIÓN 7: CONSEJOS Y MEJORES PRÁCTICAS ========== -->
-  <h2>7️⃣ Consejos y Mejores Prácticas</h2>
-
-  <div class="buttons-grid">
-    <div class="button-card">
-      <h4>💾 Guarda frecuentemente</h4>
-      <p>Usa "Guardar para más tarde" regularmente para no perder tu progreso si se cierra la sesión o hay un problema de conexión.</p>
-    </div>
-
-    <div class="button-card">
-      <h4>👁️ Revisa antes de enviar</h4>
-      <p>Verifica todos los datos antes de hacer clic en "Enviar presupuesto". Una vez enviado, solo los revisores pueden rechazarlo.</p>
-    </div>
-
-    <div class="button-card">
-      <h4>📝 Motivos claros al rechazar</h4>
-      <p>Si rechazas un presupuesto, escribe un motivo claro y específico para que el autor sepa qué corregir.</p>
-    </div>
-
-    <div class="button-card">
-      <h4>📂 Usa el Centro de Borradores</h4>
-      <p>Revisa el historial de cambios y versiones anteriores en "Ver Borradores" para auditar o recuperar datos.</p>
-    </div>
-
-    <div class="button-card">
-      <h4>⚠️ No edites directamente en COI</h4>
-      <p>Una vez guardado en COI (estado GUARDADO), el presupuesto es INMUTABLE. No intentes editarlo directamente en Firebird.</p>
-    </div>
-
-    <div class="button-card">
-      <h4>🔍 Verifica permisos</h4>
-      <p>Si no ves un botón que esperabas, verifica tus permisos para ese módulo/empresa con el administrador.</p>
-    </div>
-
-    <div class="button-card">
-      <h4>⚡ Admin Global = Flujo rápido</h4>
-      <p>Si eres administrador global, tus presupuestos se auto-aprueban al enviar. Solo necesitas "Enviar" y "Guardar en COI".</p>
-    </div>
-
-    <div class="button-card">
-      <h4>🔐 Cuida las credenciales ICONET</h4>
-      <p>El usuario ICONET tiene poder absoluto. Solo personal autorizado debe tener acceso a estas credenciales.</p>
-    </div>
-  </div>
-
-  <!-- ========== SECCIÓN 8: PREGUNTAS FRECUENTES ========== -->
-  <h2>8️⃣ Preguntas Frecuentes</h2>
-
-  <div class="nota">
-    <h4>❓ ¿Puedo editar un presupuesto que ya envié?</h4>
-    <p><strong>No.</strong> Una vez enviado (PENDIENTE o APROBADO), solo puede ser rechazado por un revisor/autorizador. Si te rechaza, podrás editarlo nuevamente.</p>
-  </div>
-
-  <div class="nota">
-    <h4>❓ ¿Qué pasa si cierro la sesión mientras estoy editando?</h4>
-    <p><strong>No pierdes tu trabajo</strong> si guardaste con "Guardar para más tarde". Al regresar, tus cambios estarán disponibles en el estado EDITANDO.</p>
-  </div>
-
-  <div class="nota">
-    <h4>❓ ¿Cuál es la diferencia entre "Guardar para más tarde" y "Enviar presupuesto"?</h4>
-    <p><strong>"Guardar para más tarde":</strong> Guarda tu progreso pero permaneces en modo edición (EDITANDO). Puedes seguir trabajando.</p>
-    <p><strong>"Enviar presupuesto":</strong> Guarda y FINALIZA tu trabajo. Si eres usuario normal va a PENDIENTE. Si eres admin global va directo a APROBADO.</p>
-  </div>
-
-  <div class="nota">
-    <h4>❓ ¿Puedo deshacer un guardado en COI?</h4>
-    <p><strong>No.</strong> Una vez guardado en COI (GUARDADO), el presupuesto es permanente e inmutable. Por eso el flujo requiere múltiples revisiones antes.</p>
-  </div>
-
-  <div class="nota">
-    <h4>❓ ¿Por qué mi presupuesto pasó directo a APROBADO al enviarlo?</h4>
-    <p><strong>Dos razones posibles:</strong></p>
-    <ul>
-      <li><strong>Eres administrador global:</strong> Tus presupuestos siempre se auto-aprueban</li>
-      <li><strong>El módulo no tiene revisores configurados:</strong> El sistema auto-aprueba cuando no hay quien revise</li>
-    </ul>
-  </div>
-
-  <div class="nota">
-    <h4>❓ ¿Por qué no veo el botón "Autorizar"?</h4>
-    <p><strong>Dos posibilidades:</strong></p>
-    <ul>
-      <li>No tienes el permiso "Aprobar" para ese módulo/empresa</li>
-      <li>El presupuesto aún no está en estado REVISADO (debe ser marcado como revisado primero por un revisor)</li>
-    </ul>
-  </div>
-
-  <div class="nota">
-    <h4>❓ ¿Qué significa el punto amarillo (·) en algunas celdas?</h4>
-    <p>Indica que esa celda tiene cambios en un <strong>borrador no guardado</strong>. Son cambios temporales que aún no se han guardado con "Guardar para más tarde".</p>
-  </div>
-
-  <div class="nota">
-    <h4>❓ Soy admin global, ¿por qué tengo que hacer clic en "Guardar en COI"?</h4>
-    <p><strong>Por seguridad.</strong> Aunque tu presupuesto se auto-aprueba al enviar, el guardado en COI (Firebird) es una acción separada e IRREVERSIBLE. El sistema te pide confirmación explícita para evitar guardados accidentales.</p>
-  </div>
-
-  <div class="nota success">
-    <h4>✅ ¿Necesitas más ayuda?</h4>
-    <p>Contacta al administrador del sistema (ICONET) o consulta la documentación técnica del módulo que estás utilizando.</p>
-  </div>
-</div>
 </section>
