@@ -182,7 +182,7 @@
 
   <script src="js/sesion.js"></script>
   <script>
-    const API_BASE = 'http://localhost:3000/api';
+    const API_BASE = 'http://localhost:3005/api';
     const sesion = Sesion.requerirSesion({ requireAdmin: true });
     if (!sesion) {
       throw new Error('Redireccionando al inicio de sesión.');

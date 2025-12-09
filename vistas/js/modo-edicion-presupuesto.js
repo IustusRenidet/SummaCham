@@ -38,7 +38,7 @@
   };
 
   const normalizeString = (s) => (s || '').toString().normalize('NFD').replace(/\p{Diacritic}/gu, '').toUpperCase().trim();
-  const API_BASE = window.location.protocol === 'file:' ? 'http://localhost:3000' : window.location.origin;
+  const API_BASE = window.location.protocol === 'file:' ? 'http://localhost:3005' : window.location.origin;
 
   // Helpers para persistir layout (cuenta/descripcion) por empresa/anio/modulo
   const obtenerClaveLayoutLocal = ({ moduloClave, empresaId, anio }) => {

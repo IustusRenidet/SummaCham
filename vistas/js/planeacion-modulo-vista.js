@@ -1,5 +1,5 @@
 (() => {
-  const origin = window.location.protocol === 'file:' ? 'http://localhost:3000' : window.location.origin;
+  const origin = window.location.protocol === 'file:' ? 'http://localhost:3005' : window.location.origin;
   const API_BASE = `${origin}/api`;
   const normalizarEstadoWorkflow = (valor) => {
     if (!valor) return 'SIN_CARGAR';

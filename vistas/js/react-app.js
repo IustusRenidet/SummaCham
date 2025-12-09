@@ -2,7 +2,7 @@
   const { useState, useEffect, useMemo, useCallback } = React;
   const API_BASE = (() => {
     if (window.location.protocol === "file:") {
-      return "http://localhost:3000/api";
+      return "http://localhost:3005/api";
     }
     return `${window.location.origin.replace(/\/$/, "")}/api`;
   })();
@@ -148,7 +148,7 @@
         console.error("Error de inicio de sesi\xF3n", err);
         const msg = err?.message || "Ocurri\xF3 un problema durante el inicio de sesi\xF3n.";
         const sugerencia = msg.includes("Failed to fetch")
-          ? "Verifica que el servidor est\xE9 corriendo en http://localhost:3000 y que no haya bloqueos de red."
+          ? "Verifica que el servidor est\xE9 corriendo en http://localhost:3005 y que no haya bloqueos de red."
           : msg;
         setError(sugerencia);
       } finally {

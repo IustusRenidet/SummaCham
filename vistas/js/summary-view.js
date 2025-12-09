@@ -1,5 +1,5 @@
 (() => {
-  const base = window.location.protocol === 'file:' ? 'http://localhost:3000' : window.location.origin;
+  const base = window.location.protocol === 'file:' ? 'http://localhost:3005' : window.location.origin;
   const API_ENDPOINT = `${base}/api/reportes/summary`;
   const API_ANIOS = `${base}/api/saldos/anios`;
 

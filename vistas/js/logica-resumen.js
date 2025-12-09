@@ -1,5 +1,5 @@
 (() => {
-  const API_BASE = 'http://localhost:3000/api';
+  const API_BASE = 'http://localhost:3005/api';
   const YEAR_SELECT = document.getElementById('resumenYearSelect');
   const MONTH_SELECT = document.getElementById('resumenMonthSelect');
   const TABLE_BODY = document.getElementById('tablaCuentasBody');

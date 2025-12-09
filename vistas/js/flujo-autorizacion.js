@@ -1,7 +1,7 @@
 (() => {
   const origin =
     window.location.protocol === "file:"
-      ? "http://localhost:3000"
+      ? "http://localhost:3005"
       : window.location.origin;
   const API_BASE = `${origin}/api`;
   const EVENTO_CONTEXTO = "planeacion:contexto-actualizado";
