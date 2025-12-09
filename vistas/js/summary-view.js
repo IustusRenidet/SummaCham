@@ -631,12 +631,12 @@
     }
     row.innerHTML = `
       <td class="account-column"></td>
-      <td class="${labelClasses}"${summaryRowTooltipAttr(rowRole)}>${label}</td>
       ${createCell(totals.actualMonth, { bold: boldNumbers, tooltipKey: 'actualMonth', rowRole })}
       ${createCell(totals.planMonth, { bold: boldNumbers, tooltipKey: 'planMonth', rowRole })}
       ${createCell(totals.prevMonth, { bold: boldNumbers, tooltipKey: 'prevMonth', rowRole })}
       ${createPercentCell(varMonthPlan, { tooltipKey: 'varMonthPlan', rowRole })}
       ${createPercentCell(varMonthPrev, { tooltipKey: 'varMonthPrev', rowRole })}
+      <td class="${labelClasses} text-start"${summaryRowTooltipAttr(rowRole)}>${label}</td>
       ${createCell(totals.actualYTD, { bold: boldNumbers, tooltipKey: 'actualYTD', rowRole })}
       ${createCell(totals.planYTD, { bold: boldNumbers, tooltipKey: 'planYTD', rowRole })}
       ${createCell(totals.prevYTD, { bold: boldNumbers, tooltipKey: 'prevYTD', rowRole })}
@@ -860,7 +860,7 @@
                 cuentas: block.cuentas || []
               }
             });
-            // Agregar label en columna descripción y botón de colapso
+            // Agregar icono de colapso en la columna de descripción
             const cells = secRow.querySelectorAll('td');
             if (cells[6]) {
               cells[6].innerHTML = `<i class="bi bi-chevron-down collapse-icon me-2" style="cursor:pointer;"></i>${block.label || ''}`;
@@ -944,9 +944,6 @@
               }
             });
             summaryBody.appendChild(consolidationRow);
-            // Agregar label en columna descripción
-            const cells = consolidationRow.querySelectorAll('td');
-            if (cells[6]) cells[6].textContent = block.label || '';
           }
         });
       } else {

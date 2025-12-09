@@ -352,43 +352,87 @@
         font-weight: 700;
       }
 
-      /* Estilos especiales según especificaciones */
-
-      /* Estilo secundario con fondo blanco (Primera y tercera fila del tbody) */
-      .highlight-secondary th,
-      .highlight-secondary td {
-        background-color: #8497b0 !important;
-        color: #2f5496 !important;
-        font-weight: 700 !important;
-        border: 1px solid #999 !important;
+      /* === TIPOS DE SUMAS - JERARQUÍA VISUAL === */
+      /* Nivel 1: sum-row - Suma de cuentas de una sección */
+      .sum-row {
+        background: linear-gradient(to right, #fef3c7 0%, #fde68a 100%) !important;
+        color: #78350f !important;
+        font-weight: 600 !important;
+        border-left: 4px solid #f59e0b !important;
       }
-
-      .highlight-primary th,
+      .sum-row td {
+        padding: 0.6rem !important;
+        border: 1px solid #fbbf24 !important;
+        font-size: 0.92rem !important;
+      }
+      .sum-row td:first-child {
+        padding-left: 1.5rem !important;
+      }
+      
+      /* Nivel 2: sum-row-principal - Principal (INCOME, EXPENSE) */
+      .sum-row-principal {
+        background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%) !important;
+        color: white !important;
+        font-weight: 700 !important;
+        font-size: 1.05rem !important;
+        text-transform: uppercase;
+        box-shadow: 0 2px 6px rgba(139, 92, 246, 0.3);
+      }
+      .sum-row-principal td {
+        padding: 0.75rem !important;
+        border: 1px solid rgba(255,255,255,0.25) !important;
+        letter-spacing: 0.5px;
+      }
+      
+      /* Nivel 3: highlight-primary - CONSOLIDATED (Income/Expense consolidado) */
+      .highlight-primary {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+        color: white !important;
+        font-weight: 700 !important;
+        font-size: 1.08rem !important;
+        text-transform: uppercase;
+        box-shadow: 0 3px 8px rgba(16, 185, 129, 0.4);
+      }
       .highlight-primary td {
-        background-color: #d9d9d9 !important;
-        color: #2f5496 !important;
+        padding: 0.8rem !important;
+        border: 1px solid rgba(255,255,255,0.3) !important;
+        letter-spacing: 0.75px;
+      }
+      
+      /* Nivel 4: highlight-secondary - OPERATING RESULTS */
+      .highlight-secondary {
+        background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%) !important;
+        color: white !important;
         font-weight: 700 !important;
-        border: 1px solid #8497b0 !important;
+        font-size: 1.1rem !important;
+        text-transform: uppercase;
+        box-shadow: 0 4px 10px rgba(8, 145, 178, 0.4);
       }
-
-      .highlight-primary .category-cell,
-      .highlight-primary .label-cell {
-        color: #2f5496 !important;
+      .highlight-secondary td {
+        padding: 0.85rem !important;
+        border: 1px solid rgba(255,255,255,0.3) !important;
+        letter-spacing: 1px;
       }
-
-      .highlight-bright th,
+      
+      /* Nivel 5: highlight-bright - NET RESULTS - Máxima jerarquía */
+      .highlight-bright {
+        background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%) !important;
+        color: white !important;
+        font-weight: 800 !important;
+        font-size: 1.15rem !important;
+        text-transform: uppercase;
+        box-shadow: 0 4px 12px rgba(220, 38, 38, 0.5);
+        border-top: 3px solid #991b1b !important;
+        border-bottom: 3px solid #991b1b !important;
+      }
       .highlight-bright td {
-        background-color: #2f5496 !important;
-        color: #f2f2f2 !important;
-        font-weight: 700 !important;
-        border: 1px solid #8497b0 !important;
+        padding: 1rem !important;
+        border: 1px solid rgba(255,255,255,0.35) !important;
+        letter-spacing: 1.5px;
       }
-
-      .highlight-bright .category-cell,
-      .highlight-bright .label-cell,
-      .highlight-bright .mono,
-      .highlight-bright .code-cell {
-        color: #f2f2f2 !important;
+      .highlight-bright:hover {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+        box-shadow: 0 5px 15px rgba(220, 38, 38, 0.6);
       }
 
       /* Editable vs Read-only indicators */
@@ -888,7 +932,9 @@
               }
             }
           }).init?.();
-          window.flujoAutorizacionActual = flujo;
+          
+          // Guardar referencia global para context-menu y debugging
+          window.__flujoAutorizacionInstance = flujo;
         }, 300);
       });
     </script>

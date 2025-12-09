@@ -352,45 +352,6 @@
       font-weight: 700;
     }
 
-    /* Estilos especiales según especificaciones */
-
-    /* Estilo secundario con fondo blanco (Primera y tercera fila del tbody) */
-    .highlight-secondary th,
-    .highlight-secondary td {
-      background-color: #8497b0 !important;
-      color: #2f5496 !important;
-      font-weight: 700 !important;
-      border: 1px solid #999 !important;
-    }
-
-    .highlight-primary th,
-    .highlight-primary td {
-      background-color: #d9d9d9 !important;
-      color: #2f5496 !important;
-      font-weight: 700 !important;
-      border: 1px solid #8497b0 !important;
-    }
-
-    .highlight-primary .category-cell,
-    .highlight-primary .label-cell {
-      color: #2f5496 !important;
-    }
-
-    .highlight-bright th,
-    .highlight-bright td {
-      background-color: #2f5496 !important;
-      color: #f2f2f2 !important;
-      font-weight: 700 !important;
-      border: 1px solid #8497b0 !important;
-    }
-
-    .highlight-bright .category-cell,
-    .highlight-bright .label-cell,
-    .highlight-bright .mono,
-    .highlight-bright .code-cell {
-      color: #f2f2f2 !important;
-    }
-
     /* Editable vs Read-only indicators */
     .editable-real {
       background-color: #e8f4f8 !important;
@@ -1023,8 +984,8 @@
             }
           }).init();
 
-          // 3. Guardar referencia global para debugging
-          window.flujoAutorizacionActual = flujo;
+          // 3. Guardar referencia global para context-menu y debugging
+          window.__flujoAutorizacionInstance = flujo;
           
           console.log('✅ Flujo de autorización inicializado con callbacks');
         } else {
