@@ -829,7 +829,7 @@
           
           // PRINCIPAL: Header de sección principal
           if (blockType === 'principal') {
-            summaryBody.appendChild(createTotalsRow(block.totals || {}, {
+            const principalRow = createTotalsRow(block.totals || {}, {
               label: block.label || '',
               rowClass: 'section-header-row table-info fw-bold text-center',
               labelClasses: 'text-center text-uppercase fw-bold',
@@ -840,13 +840,17 @@
                 sections: (block.children || []).map(ch => ch.label || ''),
                 sign: 1
               }
-            }));
+            });
+            // Agregar label en columna descripción (posición 7)
+            const cells = principalRow.querySelectorAll('td');
+            if (cells[6]) cells[6].textContent = block.label || '';
+            summaryBody.appendChild(principalRow);
           }
           // SECUNDARIA: Header de subsección
           else if (blockType === 'secundaria') {
-            summaryBody.appendChild(createTotalsRow(block.totals || {}, {
+            const secRow = createTotalsRow(block.totals || {}, {
               label: block.label || '',
-              rowClass: 'subsection-row bg-light fw-semibold text-center',
+              rowClass: 'subsection-row bg-light fw-semibold text-center collapsible-section',
               labelClasses: 'text-start ps-3 text-primary',
               boldNumbers: false,
               rowRole: 'section',
@@ -855,7 +859,15 @@
                 principal: '',
                 cuentas: block.cuentas || []
               }
-            }));
+            });
+            // Agregar label en columna descripción y botón de colapso
+            const cells = secRow.querySelectorAll('td');
+            if (cells[6]) {
+              cells[6].innerHTML = `<i class="bi bi-chevron-down collapse-icon me-2" style="cursor:pointer;"></i>${block.label || ''}`;
+              cells[6].style.cursor = 'pointer';
+              secRow.dataset.sectionName = block.label || '';
+            }
+            summaryBody.appendChild(secRow);
           }
           // CUENTA: Fila de datos
           else if (blockType === 'cuenta') {
@@ -870,7 +882,7 @@
             ctaRow.dataset.cuenta = block.cuenta || '';
             ctaRow.dataset.cuenta21 = block.cuenta || '';
             ctaRow.dataset.cuentaVisible = block.cuenta || '';
-            ctaRow.className = 'account-row';
+            ctaRow.className = 'account-row section-child';
             
             // Usar block.nombre (del JSON NOMBRE) en vez de block.label
             const nombreCuenta = block.nombre || block.label || '';
@@ -918,7 +930,7 @@
               rowClass = 'sum-row fw-semibold text-center';
             }
             
-            summaryBody.appendChild(createTotalsRow(block.totals || {}, {
+            const consolidationRow = createTotalsRow(block.totals || {}, {
               label: block.label || '',
               rowClass,
               labelClasses: 'text-center text-uppercase fw-bold',
@@ -930,7 +942,11 @@
                 principals: block.principals || [],
                 operaciones: block.operaciones || []
               }
-            }));
+            });
+            summaryBody.appendChild(consolidationRow);
+            // Agregar label en columna descripción
+            const cells = consolidationRow.querySelectorAll('td');
+            if (cells[6]) cells[6].textContent = block.label || '';
           }
         });
       } else {
@@ -1360,6 +1376,100 @@
         }
       });
     }
+
+    // Funcionalidad de colapso de secciones
+    const collapsedSections = new Set();
+    let allCollapsed = false;
+    
+    const collapseAllBtn = document.getElementById('collapseAllBtn');
+    const collapseAllLabel = document.getElementById('collapseAllLabel');
+    
+    if (collapseAllBtn) {
+      collapseAllBtn.addEventListener('click', () => {
+        const allSections = document.querySelectorAll('.collapsible-section');
+        
+        if (allCollapsed) {
+          // Expandir todas
+          collapsedSections.clear();
+          allSections.forEach(row => {
+            const icon = row.querySelector('.collapse-icon');
+            if (icon) {
+              icon.className = 'bi bi-chevron-down collapse-icon me-2';
+            }
+            const sectionName = row.dataset.sectionName;
+            if (sectionName) {
+              let nextRow = row.nextElementSibling;
+              while (nextRow && nextRow.classList.contains('section-child')) {
+                nextRow.style.display = '';
+                nextRow = nextRow.nextElementSibling;
+              }
+            }
+          });
+          if (collapseAllLabel) collapseAllLabel.textContent = 'Colapsar todo';
+          allCollapsed = false;
+        } else {
+          // Colapsar todas
+          allSections.forEach(row => {
+            const sectionName = row.dataset.sectionName;
+            if (sectionName) {
+              collapsedSections.add(sectionName);
+              const icon = row.querySelector('.collapse-icon');
+              if (icon) {
+                icon.className = 'bi bi-chevron-right collapse-icon me-2';
+              }
+              let nextRow = row.nextElementSibling;
+              while (nextRow && nextRow.classList.contains('section-child')) {
+                nextRow.style.display = 'none';
+                nextRow = nextRow.nextElementSibling;
+              }
+            }
+          });
+          if (collapseAllLabel) collapseAllLabel.textContent = 'Expandir todo';
+          allCollapsed = true;
+        }
+      });
+    }
+    
+    document.addEventListener('click', (e) => {
+      const collapseIcon = e.target.closest('.collapse-icon');
+      if (!collapseIcon) return;
+      
+      const row = collapseIcon.closest('.collapsible-section');
+      if (!row) return;
+      
+      const sectionName = row.dataset.sectionName;
+      if (!sectionName) return;
+      
+      e.stopPropagation();
+      
+      // Toggle collapsed state
+      if (collapsedSections.has(sectionName)) {
+        collapsedSections.delete(sectionName);
+        collapseIcon.className = 'bi bi-chevron-down collapse-icon me-2';
+      } else {
+        collapsedSections.add(sectionName);
+        collapseIcon.className = 'bi bi-chevron-right collapse-icon me-2';
+      }
+      
+      // Toggle visibility of child rows
+      let nextRow = row.nextElementSibling;
+      while (nextRow && nextRow.classList.contains('section-child')) {
+        nextRow.style.display = collapsedSections.has(sectionName) ? 'none' : '';
+        nextRow = nextRow.nextElementSibling;
+      }
+      
+      // Update allCollapsed state
+      const allSections = document.querySelectorAll('.collapsible-section');
+      const totalCollapsed = Array.from(allSections).filter(r => {
+        const name = r.dataset.sectionName;
+        return name && collapsedSections.has(name);
+      }).length;
+      
+      allCollapsed = totalCollapsed === allSections.length;
+      if (collapseAllLabel) {
+        collapseAllLabel.textContent = allCollapsed ? 'Expandir todo' : 'Colapsar todo';
+      }
+    });
 
     sincronizarSelectorEmpresaGlobal();
     initWorkflowBridge('SUMMARY');

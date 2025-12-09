@@ -3,250 +3,422 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Resumen</title>
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-    />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
-    <link
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
-    />
-    <link rel="stylesheet" href="css/estilos.css" />
+    <title>RESUMEN</title>
+
+    <!-- Bootstrap & Fonts -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="css/estilos.css">
+    <link rel="icon" type="image/x-icon" href="icono/icono.ico">
+
     <style>
       :root {
         --color-primary: #2f5496;
         --color-secondary: #8497b0;
         --color-background: #f2f2f2;
         --color-text: #2f5496;
-        --color-budget: #4472c4;
-        --color-real: #ffc000;
+        --bs-primary: #2f5496;
+        --bs-primary-rgb: 47, 84, 150;
+        --bs-success: #2f5496;
+        --bs-success-rgb: 47, 84, 150;
+        --bs-success-bg-subtle: rgba(47, 84, 150, 0.16);
+        --bs-success-border-subtle: rgba(47, 84, 150, 0.35);
+        --color-primary-blue: #2f5496;
+        --color-bright-blue: #8497b0;
+        --color-secondary-white: #d9d9d9;
+        --color-neutral-row: #d9d9d9;
+        --color-selected: #8497b0;
+        --zoom-level: 1;
       }
 
       body {
-        background-color: var(--color-background);
-        font-family: "Manrope", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: var(--color-background);
         color: var(--color-text);
+        font-family: 'Manrope', 'Segoe UI', Tahoma, Verdana, sans-serif;
         min-height: 100vh;
         padding-top: 70px;
       }
 
       .header-card {
         background: var(--color-primary);
-        border-radius: 16px;
-        border: 1px solid rgba(47, 84, 150, 0.1);
         color: #fff;
+        border-radius: 16px;
+        border: 1px solid rgba(47, 84, 150, .1);
+        box-shadow: 0 12px 30px rgba(47, 84, 150, .18);
+      }
+
+      .filter-card {
+        border-radius: 16px;
+        border: 1px solid rgba(47, 84, 150, .08);
+        background: #ffffff;
+        box-shadow: 0 10px 24px rgba(47, 84, 150, .12);
+      }
+
+      .filter-card label {
+        font-weight: 600;
+        color: var(--color-text);
+      }
+
+      .summary-card {
+        border-radius: 18px;
+        border: 1px solid rgba(47, 84, 150, .08);
+        background: linear-gradient(145deg, #ffffff 0%, #f2f2f2 50%, #d9d9d9 100%);
+        box-shadow: 0 14px 36px rgba(47, 84, 150, .14);
+      }
+
+      .summary-card .card-title {
+        font-weight: 700;
+        color: var(--color-primary);
+        letter-spacing: .02em;
+      }
+
+      .summary-card .metric-label {
+        font-size: .75rem;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+        color: var(--color-secondary);
+      }
+
+      .summary-card .metric-value {
+        font-size: 2rem;
+        font-weight: 800;
+        color: var(--color-text);
+      }
+
+      .summary-card .metric-value.small {
+        font-size: 1.5rem;
       }
 
       .table-card {
         background: #fff;
-        border-radius: 16px;
-        border: 1px solid rgba(47, 84, 150, 0.1);
+        border-radius: 18px;
+        border: 1px solid rgba(47, 84, 150, .05);
+        box-shadow: 0 18px 40px rgba(47, 84, 150, .16);
         overflow: hidden;
-      }
-
-      .workflow-toolbar {
-        display: flex;
-        flex-direction: column;
-        gap: 0.35rem;
-      }
-
-      .search-container {
-        position: relative;
-      }
-
-      .search-input {
         width: 100%;
-        padding: 0.5rem 1rem;
-        border: 1px solid #d9d9d9;
+      }
+
+      .zoom-controls {
+        position: sticky;
+        top: 80px;
+        right: 20px;
+        z-index: 1000;
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+        margin-bottom: 15px;
+        pointer-events: auto;
+      }
+
+      .zoom-btn {
+        background: var(--color-primary);
+        color: white;
+        border: none;
         border-radius: 8px;
-        font-size: 0.9rem;
-      }
-
-      .search-input:focus {
-        border-color: var(--color-primary);
-        box-shadow: 0 0 0 0.2rem rgba(47, 84, 150, 0.1);
-      }
-
-      .table-comparison {
-        border-collapse: separate;
-        border-spacing: 0;
-        font-size: 0.85rem;
-      }
-
-      .table-comparison thead th {
-        border: 1px solid #d0d7de;
+        padding: 8px 16px;
+        cursor: pointer;
         font-weight: 600;
-        text-transform: uppercase;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        pointer-events: auto;
+      }
+
+      .zoom-btn:hover {
+        background: var(--color-secondary);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      }
+
+      .zoom-level-display {
+        background: white;
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-weight: 600;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        display: flex;
+        align-items: center;
+      }
+
+      .table-wrapper {
+        transform-origin: top left;
+        transition: transform 0.3s ease;
+      }
+
+      .table {
+        table-layout: auto;
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 1200px;
         font-size: 0.75rem;
-        letter-spacing: 0.05em;
-        padding: 0.75rem 0.5rem;
-        vertical-align: middle;
+      }
+
+      .table thead {
+        background: #d9d9d9;
+      }
+
+      .table thead th {
+        border: 1px solid #999;
+        color: #000;
+        text-transform: uppercase;
+        letter-spacing: .03em;
+        font-size: .7rem;
+        font-weight: 700;
+        padding: 0.4rem 0.3rem;
         text-align: center;
-      }
-
-      /* Columnas fijas de cuenta y descripción */
-      .table-comparison thead th:nth-child(1),
-      .table-comparison thead th:nth-child(2) {
-        background-color: #ffffff;
-        color: var(--color-primary);
-        position: sticky;
-        z-index: 10;
-      }
-
-      .table-comparison thead th:nth-child(1) {
-        left: 0;
-        text-align: left;
-        min-width: 120px;
-      }
-
-      .table-comparison thead th:nth-child(2) {
-        left: 120px;
-        text-align: left;
-        min-width: 200px;
-      }
-
-      /* Columnas de meses - presupuesto (azul) */
-      .table-comparison thead th.month-budget {
-        background-color: var(--color-budget);
-        color: #ffffff;
-      }
-
-      /* Columnas de meses - real (amarillo) */
-      .table-comparison thead th.month-real {
-        background-color: var(--color-real);
-        color: #000000;
-      }
-      .table-comparison thead th.total-budget-column,
-      .table-comparison thead th.total-real-column {
-        background-color: #ffffff;
-        color: var(--color-text);
-        font-weight: 700;
-      }
-
-      .table-comparison tbody td:nth-child(1),
-      .table-comparison tbody td:nth-child(2) {
-        position: sticky;
-        background-color: #ffffff;
-        z-index: 4;
-      }
-
-      .table-comparison tbody td:nth-child(1) {
-        left: 0;
-        min-width: 120px;
-        font-weight: 600;
-      }
-
-      .table-comparison tbody td:nth-child(2) {
-        left: 120px;
-        min-width: 200px;
-        z-index: 3;
-      }
-
-      /* Columna del año (2026) */
-      .table-comparison thead th.year-column {
-        background-color: var(--color-primary);
-        color: var(--color-text);
-        font-weight: 700;
-      }
-
-      .table-comparison tbody td {
-        border: 1px solid #e1e4e8;
-        padding: 0.6rem 0.5rem;
         vertical-align: middle;
-      }
-      .table-comparison tbody td.budget-value {
-        text-align: right;
-        font-family: "Courier New", monospace;
-        font-size: 0.85rem;
+        min-width: 70px;
       }
 
-      .table-comparison.sin-cuentas thead th:nth-child(1),
-      .table-comparison.sin-cuentas
-        tbody
-        tr:not(.section-header-row):not(.sum-row)
-        td:nth-child(1) {
+      .table td,
+      .table th {
+        border: 1px solid #ccc;
+        vertical-align: middle;
+        font-size: .75rem;
+        padding: 0.3rem 0.4rem;
+        word-wrap: break-word;
+        cursor: pointer;
+        user-select: none;
+      }
+
+      .table tbody tr {
+        background-color: #fff;
+      }
+
+      .table tbody tr:hover td {
+        background-color: #f2f2f2 !important;
+      }
+
+      .table td.selected,
+      .table th.selected {
+        background-color: var(--color-selected) !important;
+        outline: 2px solid #8497b0;
+      }
+
+      .label-cell {
+        font-weight: 600;
+        color: #000;
+        text-align: left;
+        background-color: #fff !important;
+        font-size: 0.7rem;
+        padding-left: calc(16px + (var(--depth, 0) * 18px));
+      }
+
+      .label-cell strong {
+        color: var(--color-secondary);
+        font-weight: 800;
+      }
+
+      .category-cell {
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        font-size: .75rem;
+        font-weight: 800;
+        text-align: left;
+        background: #d9d9d9;
+        color: #000;
+        border: 1px solid #999 !important;
+        padding-left: calc(12px + (var(--depth, 0) * 18px));
+      }
+
+      .category-cell::before,
+      .label-cell::before {
+        content: '';
+        display: inline-block;
+        width: calc(var(--depth, 0) * 18px);
+      }
+
+      .code-cell {
+        font-size: .65rem;
+        color: #333;
+        font-family: monospace;
+        text-align: left;
+        background-color: #f2f2f2 !important;
+        font-weight: 400;
+      }
+
+      .account-column-header {
+        text-align: left;
+        width: 90px;
+        white-space: nowrap;
+      }
+
+      .account-column {
+        text-align: left;
+        font-family: 'Courier New', monospace;
+        font-size: .65rem;
+        color: #333;
+        background-color: #f2f2f2 !important;
+        font-weight: 400;
+      }
+
+      body.ocultar-cuentas .account-column,
+      body.ocultar-cuentas .account-column-header {
         display: none;
       }
 
-      .table-comparison.sin-cuentas thead th:nth-child(2),
-      .table-comparison.sin-cuentas
-        tbody
-        tr:not(.section-header-row):not(.sum-row)
-        td:nth-child(2) {
-        left: 0;
-      }
-
-      .table-comparison.sin-cuentas .section-header-row td,
-      .table-comparison.sin-cuentas .sum-row td:nth-child(1) {
-        display: table-cell;
-        padding-left: calc(0.5rem + 120px);
-      }
-
-      .section-header-row td {
-        background-color: rgba(132, 151, 176, 0.2);
-        font-weight: 700;
-        color: var(--color-primary);
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        font-size: 0.8rem;
-        padding: 0.75rem 0.5rem;
-      }
-
-      /* Filas de suma */
-      .sum-row td {
-        background-color: rgba(68, 114, 196, 0.1);
-        font-weight: 700;
-        color: var(--color-primary);
-      }
-
-      /* Resultado final */
-      .result-row td {
-        background-color: #ffffff;
-        color: var(--color-primary);
-        font-weight: 700;
-        font-size: 0.9rem;
-      }
-
-      .table-comparison tbody tr:hover td {
-        background-color: rgba(47, 84, 150, 0.05);
-      }
-
-      .table-comparison tbody tr:hover td:nth-child(1),
-      .table-comparison tbody tr:hover td:nth-child(2) {
-        background-color: #f6f8fa;
-      }
-
-      .anio {
-        font-weight: 700;
-        color: var(--color-primary);
+      .mono {
         font-variant-numeric: tabular-nums;
+        font-feature-settings: "tnum";
+        text-align: right;
+        white-space: nowrap;
+        font-family: 'Courier New', monospace;
+        color: #000;
+        font-weight: 500;
+        font-size: 0.7rem;
       }
 
-      @media (min-width: 992px) {
-        .workflow-toolbar {
-          flex-direction: row;
-          align-items: center;
-          justify-content: space-between;
+      .amarillo th,
+      .amarillo td {
+        background-color: #ffff00;
+        font-weight: 700;
+        color: #000;
+      }
+
+      .verde th,
+      .verde td {
+        background-color: #375623;
+        font-weight: 800;
+        color: #1f2d0c;
+      }
+
+      .important {
+        font-weight: 800 !important;
+        color: #000 !important;
+      }
+
+      .fade-in {
+        animation: fadeIn .5s ease-in;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(20px)
+        }
+
+        to {
+          opacity: 1;
+          transform: none
         }
       }
 
-      @media (max-width: 768px) {
-        .table-comparison {
-          font-size: 0.75rem;
-        }
-
-        .table-comparison thead th,
-        .table-comparison tbody td {
-          padding: 0.5rem 0.3rem;
-        }
+      /* Encabezados "Y T D" por bloque */
+      .ytd-head {
+        background: #8497b0 !important;
+        font-weight: 900 !important;
+        letter-spacing: .15em;
+        color: #000 !important;
+        text-align: center;
+        border: 1px solid #999 !important;
       }
+
+      .subhdr {
+        font-weight: 700 !important;
+        background: #d9d9d9;
+        border: 1px solid #999 !important;
+        font-size: 0.7rem;
+      }
+
+      .spacer {
+        height: 0.5rem;
+        background: transparent !important;
+        border: none !important;
+      }
+
+      .spacer td {
+        border: none !important;
+        padding: 0.25rem 0 !important;
+        background: transparent !important;
+      }
+
+      /*scroll horizontal cuidadoso */
+      .table-responsive {
+        overflow-x: auto;
+        border-radius: 12px;
+        width: 100%;
+      }
+
+      .table-responsive table {
+        margin-bottom: 0;
+        width: 100%;
+      }
+
+      /* para el pie */
+      .footer-row th,
+      .footer-row td {
+        border: 2px solid #000 !important;
+        font-weight: 700;
+      }
+
+      /* Estilos especiales según especificaciones */
+
+      /* Estilo secundario con fondo blanco (Primera y tercera fila del tbody) */
+      .highlight-secondary th,
+      .highlight-secondary td {
+        background-color: #8497b0 !important;
+        color: #2f5496 !important;
+        font-weight: 700 !important;
+        border: 1px solid #999 !important;
+      }
+
+      .highlight-primary th,
+      .highlight-primary td {
+        background-color: #d9d9d9 !important;
+        color: #2f5496 !important;
+        font-weight: 700 !important;
+        border: 1px solid #8497b0 !important;
+      }
+
+      .highlight-primary .category-cell,
+      .highlight-primary .label-cell {
+        color: #2f5496 !important;
+      }
+
+      .highlight-bright th,
+      .highlight-bright td {
+        background-color: #2f5496 !important;
+        color: #f2f2f2 !important;
+        font-weight: 700 !important;
+        border: 1px solid #8497b0 !important;
+      }
+
+      .highlight-bright .category-cell,
+      .highlight-bright .label-cell,
+      .highlight-bright .mono,
+      .highlight-bright .code-cell {
+        color: #f2f2f2 !important;
+      }
+
+      /* Editable vs Read-only indicators */
+      .editable-real {
+        background-color: #e8f4f8 !important;
+        cursor: text;
+        position: relative;
+      }
+      .editable-real:hover {
+        background-color: #d0e8f0 !important;
+        box-shadow: inset 0 0 3px rgba(0, 100, 200, 0.12);
+      }
+      .editable-real::before {
+        content: '✎';
+        position: absolute;
+        right: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 0.8rem;
+        color: #0064c8;
+        opacity: 0.0;
+        transition: opacity 0.18s;
+      }
+      .editable-real:hover::before { opacity: 0.7; }
+
+      .read-only-cell {
+        background-color: #f5f5f5 !important;
+        cursor: not-allowed;
+        color: #666;
+      }
+      .read-only-cell:hover { background-color: #eeeeee !important; }
       
       /* === PALETA DE COLORES MODERNA === */
       :root {
@@ -257,9 +429,13 @@
         --color-warning: #d97706;
         --color-danger: #dc2626;
         --color-info: #0891b2;
+        --gradient-blue: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --gradient-green: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        --gradient-purple: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%);
+        --gradient-orange: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
       }
       
-      /* === ESTILOS JERÁRQUICOS RESUMEN === */
+      /* === ESTILOS JERÁRQUICOS SUMMARY === */
       /* Principal: Header de sección principal (INCOME, EXPENSE, etc.) */
       .section-header-row {
         background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%) !important;
@@ -399,6 +575,10 @@
         border: 1px solid rgba(255,255,255,0.35) !important;
         letter-spacing: 1.5px;
       }
+      .highlight-bright:hover {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+        box-shadow: 0 5px 15px rgba(220, 38, 38, 0.6);
+      }
     </style>
   </head>
 
@@ -460,6 +640,12 @@
             <option value="11">Noviembre</option>
             <option value="12" selected>Diciembre</option>
           </select>
+        </div>
+        <div class="col-12 col-sm-6 col-md-4 col-lg-3 d-flex align-items-end">
+          <button type="button" class="btn btn-outline-primary w-100" id="collapseAllBtn" style="background: var(--color-primary); color: white; border: none; border-radius: 8px; padding: 8px 16px; font-weight: 600;">
+            <i class="bi bi-arrows-collapse"></i>
+            <span id="collapseAllLabel">Colapsar todo</span>
+          </button>
         </div>
       </div>
 
