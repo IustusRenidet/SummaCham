@@ -40,7 +40,7 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3005)) => {
   // Confiar en proxy reverso (para túneles HTTPS como cloudflare, ngrok, etc.)
   app.set('trust proxy', 1);
   // CORS restringido: permitir orígenes configurados (por defecto localhost y file:// -> null origin)
-  const allowedOrigins = (process.env.PANELAMCHAM_ALLOW_ORIGINS || 'http://localhost:3005,https://panelamcham.iconetcloud.com.mx,null,file://')
+  const allowedOrigins = (process.env.PANELAMCHAM_ALLOW_ORIGINS || 'http://localhost:3005,https://panelamcham.iconetcloud.com.mx,http://192.99.189.113,http://192.99.189.113:3005,null,file://')
     .split(',')
     .map((o) => o.trim());
   app.use((req, res, next) => {

@@ -10,8 +10,18 @@ const path = require('path');
 const fs = require('fs').promises;
 const { requireAuth } = require('../middleware/auth');
 
+// Helper para resolver rutas en ASAR
+const resolveUnpackedPath = (relativePath) => {
+  let basePath = __dirname;
+  // Si estamos dentro de app.asar, usar app.asar.unpacked
+  if (basePath.includes('app.asar') && !basePath.includes('app.asar.unpacked')) {
+    basePath = basePath.replace('app.asar', 'app.asar.unpacked');
+  }
+  return path.join(basePath, relativePath);
+};
+
 // Ruta al archivo JSON de configuración
-const JSON_PATH = path.join(__dirname, '../../info IMPORTANTE/CUENTAS SUMMARY y RESUMEN.json');
+const JSON_PATH = resolveUnpackedPath('../../info IMPORTANTE/CUENTAS SUMMARY y RESUMEN.json');
 
 /**
  * Helper: Cargar JSON

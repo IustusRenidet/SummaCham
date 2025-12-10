@@ -123,16 +123,15 @@
 
   const sincronizarCeldasEditables = () => {
     if (!summaryBody) return;
-    const celdas = Array.from(summaryBody.querySelectorAll('.editable-cell'));
-    celdas.forEach((celda) => {
-      celda.removeEventListener('blur', manejarBlurCelda);
-      if (editMode) {
-        celda.contentEditable = 'true';
-        celda.addEventListener('blur', manejarBlurCelda);
-      } else {
-        celda.contentEditable = 'false';
-      }
-    });
+    
+    // ⚠️ NOTA: Como usamos ModoEdicionPresupuesto con soloLayout: true,
+    // NO necesitamos contentEditable aquí - ModoEdicionPresupuesto maneja TODA la edición
+    // (cuentas/descripciones con inputs manuales)
+    
+    // ELIMINADO: contentEditable que causaba conflictos con ModoEdicionPresupuesto
+    // Ya no seteamos contentEditable porque ModoEdicionPresupuesto maneja los clicks
+    
+    console.log('✅ Summary: ModoEdicionPresupuesto maneja edición (soloLayout)');
   };
 
   const establecerModoEdicion = (flag) => {
@@ -141,8 +140,8 @@
       if (editMode) return;
       editMode = true;
       sincronizarCeldasEditables();
-      // ModoEdicionPresupuesto se activa desde flujo de autorización (FlujoAutorizacion._enterEditMode)
-      console.log('✅ Summary: contentEditable habilitado en celdas de texto');
+      // ModoEdicionPresupuesto maneja TODA la edición (soloLayout: true)
+      console.log('✅ Summary: modo edición activado (ModoEdicionPresupuesto con soloLayout)');
       return;
     }
     if (editMode) {
@@ -1525,7 +1524,9 @@
     });
 
     sincronizarSelectorEmpresaGlobal();
-    initWorkflowBridge('SUMMARY');
+    // NOTA: initWorkflowBridge comentado porque ahora usamos FlujoAutorizacion
+    // que maneja todo el workflow automáticamente desde SUMMARY.html
+    // initWorkflowBridge('SUMMARY');
     window.addEventListener(Sesion.EVENTO_EMPRESA, async (event) => {
       const nuevaEmpresa = event?.detail?.empresa;
       if (!nuevaEmpresa?.id) return;

@@ -1,5 +1,8 @@
 (() => {
-  const API_BASE = 'http://localhost:3005/api';
+  const API_BASE = (() => {
+    if (window.location.protocol === 'file:') return 'http://localhost:3005/api';
+    return `${window.location.origin.replace(/\/$/, '')}/api`;
+  })();
   const EVENTO_TABLA_ACTUALIZADA = 'modulo-planeacion:tabla-actualizada';
   const EVENTO_CONTEXTO = 'planeacion:contexto-actualizado';
   const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];

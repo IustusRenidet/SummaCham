@@ -163,6 +163,57 @@
   }
 
   /**
+   * Capturar layout actual de la tabla (estructura de filas)
+   * Para SUMMARY/RESUMEN: captura cuenta y descripción de cada fila
+   */
+  function capturarLayoutTabla(tabla) {
+    if (!tabla) return null;
+    
+    const filas = [];
+    const tbody = tabla.querySelector('tbody');
+    if (!tbody) return null;
+    
+    Array.from(tbody.querySelectorAll('tr')).forEach((fila, idx) => {
+      const celdas = fila.cells;
+      if (!celdas || celdas.length < 2) return;
+      
+      const cuenta = (celdas[0]?.textContent || '').trim();
+      const descripcion = (celdas[1]?.textContent || '').trim();
+      
+      // Solo capturar filas con cuenta
+      if (cuenta) {
+        filas.push({
+          indice: idx,
+          cuenta: cuenta,
+          descripcion: descripcion,
+          nivel: fila.dataset.nivel || detectarNivel(cuenta),
+          tipo: fila.dataset.tipo || detectarTipo(fila)
+        });
+      }
+    });
+    
+    return {
+      filas: filas,
+      total: filas.length,
+      timestamp: new Date().toISOString()
+    };
+  }
+  
+  function detectarNivel(cuenta) {
+    // Detectar nivel basado en estructura de cuenta
+    const partes = cuenta.split('-').filter(p => p && p !== '00');
+    return partes.length;
+  }
+  
+  function detectarTipo(fila) {
+    // Detectar tipo de fila (CAPÍTULO, SECUNDARIA, etc.)
+    if (fila.classList.contains('capitulo') || fila.classList.contains('nivel-1')) return 'CAPÍTULO';
+    if (fila.classList.contains('secundaria') || fila.classList.contains('nivel-2')) return 'SECUNDARIA';
+    if (fila.classList.contains('cuenta') || fila.classList.contains('nivel-3')) return 'CUENTA';
+    return 'CUENTA';
+  }
+
+  /**
    * Resolver la tabla a utilizar considerando:
    * - Selector recibido
    * - data-tabla del body (id sin #)
@@ -336,17 +387,24 @@
       input.placeholder = 'Descripción...';
     }
 
-    celda.textContent = '';
+    // IMPORTANTE: Solo reemplazar contenido DESPUÉS de crear el input completamente
+    celda.innerHTML = '';
     celda.appendChild(input);
     celda.classList.add(CLASE_EDITANDO);
-    input.focus();
-    input.select();
+    
+    // Pequeño delay para evitar que el click se propague al input
+    setTimeout(() => {
+      input.focus();
+      input.select();
+    }, 10);
 
     const guardar = () => {
       const nuevo = (input.value || '').toString().trim();
-      celda.textContent = nuevo;
       celda.classList.remove(CLASE_EDITANDO);
-      marcarComoModificado(celda);
+      celda.textContent = nuevo || valor; // Si está vacío, restaurar valor original
+      if (nuevo !== valor) {
+        marcarComoModificado(celda);
+      }
       
       // Si se editó la cuenta, actualizar dataset de la fila
       const fila = celda.closest('tr');
@@ -896,10 +954,27 @@
       const moduloClave = (document.body?.dataset?.modulo || document.body?.dataset?.moduloId || 'summary').toString().trim();
       if (!empresa?.id || !Number.isInteger(anio) || !moduloClave) return null;
       return cargarLayoutLocal({ moduloClave, empresaId: empresa.id, anio });
-    }
-    , aplicarLayoutLocal: function(layout) {
+    },
+    
+    /**
+     * Capturar layout actual de la tabla
+     */
+    capturarLayout: function(tabla) {
+      const tablaResuelta = tabla || resolverTabla(estado.selectorTabla).tabla;
+      return capturarLayoutTabla(tablaResuelta);
+    },
+    
+    aplicarLayoutLocal: function(layout) {
       const { tabla } = resolverTabla(estado.selectorTabla);
       return aplicarLayoutLocal(layout, tabla);
+    },
+    
+    /**
+     * Propiedad para verificar si hay cambios en layout
+     */
+    get layoutModificado() {
+      // Por ahora siempre retornar true si hay un layout capturado
+      return true;
     }
   };
 

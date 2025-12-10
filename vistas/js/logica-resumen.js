@@ -1,5 +1,8 @@
 (() => {
-  const API_BASE = 'http://localhost:3005/api';
+  const API_BASE = (() => {
+    if (window.location.protocol === 'file:') return 'http://localhost:3005/api';
+    return `${window.location.origin.replace(/\/$/, '')}/api`;
+  })();
   const YEAR_SELECT = document.getElementById('resumenYearSelect');
   const MONTH_SELECT = document.getElementById('resumenMonthSelect');
   const TABLE_BODY = document.getElementById('tablaCuentasBody');

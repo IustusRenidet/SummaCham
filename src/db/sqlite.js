@@ -1,6 +1,18 @@
 const path = require("path");
 const fs = require("fs");
-const Database = require("better-sqlite3");
+
+// Asegurar que better-sqlite3 se cargue desde .asar.unpacked en producción
+let Database;
+try {
+  // Intentar cargar desde ruta normal (desarrollo)
+  Database = require("better-sqlite3");
+} catch (err) {
+  // Si falla, intentar desde .asar.unpacked
+  const unpackedPath = __dirname.replace('app.asar', 'app.asar.unpacked');
+  const betterSqlite3Path = path.join(unpackedPath, '../../node_modules/better-sqlite3');
+  Database = require(betterSqlite3Path);
+}
+
 const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
 const { MODULOS } = require("../config/modulos");

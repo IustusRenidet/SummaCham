@@ -1,4 +1,16 @@
-const Firebird = require('node-firebird');
+// Asegurar que node-firebird se cargue desde .asar.unpacked en producción
+let Firebird;
+try {
+  // Intentar cargar desde ruta normal (desarrollo)
+  Firebird = require('node-firebird');
+} catch (err) {
+  // Si falla, intentar desde .asar.unpacked
+  const path = require('path');
+  const unpackedPath = __dirname.replace('app.asar', 'app.asar.unpacked');
+  const firebirdPath = path.join(unpackedPath, '../../node_modules/node-firebird');
+  Firebird = require(firebirdPath);
+}
+
 const { obtenerEmpresaPorId } = require('../config/empresas');
 
 const OPCIONES_BASE = {

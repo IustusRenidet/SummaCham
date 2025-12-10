@@ -212,16 +212,15 @@
 
   const sincronizarCeldasEditables = () => {
     if (!tablaBody) return;
-    const celdas = Array.from(tablaBody.querySelectorAll('.editable-cell'));
-    celdas.forEach((celda) => {
-      celda.removeEventListener('blur', manejarBlurCelda);
-      if (editMode) {
-        celda.contentEditable = 'true';
-        celda.addEventListener('blur', manejarBlurCelda);
-      } else {
-        celda.contentEditable = 'false';
-      }
-    });
+    
+    // ⚠️ NOTA: Como usamos ModoEdicionPresupuesto con soloLayout: true,
+    // NO necesitamos contentEditable aquí - ModoEdicionPresupuesto maneja TODA la edición
+    // (cuentas/descripciones con inputs manuales)
+    
+    // ELIMINADO: contentEditable que causaba conflictos con ModoEdicionPresupuesto
+    // Ya no seteamos contentEditable porque ModoEdicionPresupuesto maneja los clicks
+    
+    console.log('✅ Resumen: ModoEdicionPresupuesto maneja edición (soloLayout)');
   };
 
   const restaurarValoresOriginales = () => {
@@ -1353,5 +1352,7 @@
   inicializarToggleColumnas();
   renderZoom();
 
-  initWorkflowBridge('RESUMEN');
+  // NOTA: initWorkflowBridge comentado porque ahora usamos FlujoAutorizacion
+  // que maneja todo el workflow automáticamente desde RESUMEN.html
+  // initWorkflowBridge('RESUMEN');
 })();

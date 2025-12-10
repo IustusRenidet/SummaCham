@@ -3,7 +3,17 @@ const fs = require('fs');
 const { obtenerDatosPlaneacion } = require('../planeacionCuentasService');
 const { MESES } = require('../saldosService');
 
-const DEFAULT_BASE_PATH = path.join(__dirname, '..', '..', '..', 'info IMPORTANTE');
+// Helper para resolver rutas en ASAR
+const resolveUnpackedPath = (relativePath) => {
+  let basePath = __dirname;
+  // Si estamos dentro de app.asar, usar app.asar.unpacked
+  if (basePath.includes('app.asar') && !basePath.includes('app.asar.unpacked')) {
+    basePath = basePath.replace('app.asar', 'app.asar.unpacked');
+  }
+  return path.join(basePath, relativePath);
+};
+
+const DEFAULT_BASE_PATH = resolveUnpackedPath('../../../info IMPORTANTE');
 const DEFINICIONES_FILE = path.join(DEFAULT_BASE_PATH, 'CUENTAS SUMMARY y RESUMEN.json');
 
 const NORMALIZAR_CLAVE = (valor = '') => valor.toString().trim().toUpperCase();

@@ -36,7 +36,15 @@
         "repo": "SummaCham"
       }
     ],
-    "asar": false,
+    "asar": true,
+    "asarUnpack": [
+      "node_modules/better-sqlite3/**/*",
+      "node_modules/node-firebird/**/*",
+      "datos/**/*",
+      "info IMPORTANTE/**/*",
+      "excels/**/*",
+      "IMPLEMENTACIONES/**/*"
+    ],
     "directories": {
       "output": "dist",
       "buildResources": "icono"
