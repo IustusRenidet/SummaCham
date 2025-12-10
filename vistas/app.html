@@ -8,16 +8,61 @@
   <link rel="icon" type="image/png" sizes="32x32" href="icono/icono.png">
   <link href="vendor/bootstrap.min.css" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Cargar sesion.js primero -->
   <script src="js/sesion.js"></script>
+  
+  <!-- Verificación de sesión BLOQUEANTE -->
   <script>
-    // Verificar sesión antes de cargar la app
     (function() {
-      const sesion = Sesion?.obtener?.();
-      if (!sesion || !sesion.tokenAcceso) {
+      'use strict';
+      
+      // Verificar que Sesion existe
+      if (typeof Sesion === 'undefined') {
+        console.error('❌ Sesion no está disponible');
         window.location.replace('login.html');
+        throw new Error('Sesion no disponible');
       }
+
+      // Obtener sesión actual
+      const sesion = Sesion.obtener();
+      
+      // Verificar validez de la sesión
+      if (!sesion) {
+        console.warn('⚠️ No hay sesión activa');
+        window.location.replace('login.html');
+        throw new Error('No hay sesión');
+      }
+
+      if (!sesion.tokenAcceso) {
+        console.warn('⚠️ Sesión sin token de acceso');
+        window.location.replace('login.html');
+        throw new Error('Token no válido');
+      }
+
+      if (!sesion.usuario) {
+        console.warn('⚠️ Sesión sin usuario');
+        window.location.replace('login.html');
+        throw new Error('Usuario no válido');
+      }
+
+      // Verificar expiración del token
+      if (sesion.expiracion) {
+        const ahora = Date.now();
+        const expira = new Date(sesion.expiracion).getTime();
+        
+        if (ahora >= expira) {
+          console.warn('⚠️ Token expirado');
+          Sesion.cerrar();
+          window.location.replace('login.html');
+          throw new Error('Token expirado');
+        }
+      }
+
+      console.log('✅ Sesión válida:', sesion.usuario.usuario);
     })();
   </script>
+  
   <style>
     :root {
        --color-primario: #2f5496;
@@ -515,18 +560,26 @@
   <script src="vendor/bootstrap.bundle.min.js"></script>
   <script src="vendor/react.production.min.js"></script>
   <script src="vendor/react-dom.production.min.js"></script>
-  <script src="js/sesion.js"></script>
+  
+  <!-- Verificación de sesión final antes de React -->
   <script>
-    // Validar sesión antes de cargar la aplicación
     (function() {
+      'use strict';
+      
       const sesion = Sesion.obtener();
-      if (!sesion || !sesion.usuario) {
-        // Redirigir a login.html si no hay sesión válida
-        window.location.href = 'login.html';
-        return;
+      
+      if (!sesion || !sesion.usuario || !sesion.tokenAcceso) {
+        console.error('❌ Sesión inválida al cargar React');
+        window.location.replace('login.html');
+        throw new Error('Sesión no válida');
       }
+
+      // Exponer sesión globalmente para React
+      window.__APP_SESSION__ = sesion;
+      console.log('✅ Sesión confirmada para React:', sesion.usuario.usuario);
     })();
   </script>
+  
   <script src="js/capitulos-modulos.js"></script>
   <script src="js/react-app.js"></script>
 </body>

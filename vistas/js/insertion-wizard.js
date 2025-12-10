@@ -122,6 +122,7 @@
 
       const context = {
         capitulo: this.getCurrentCapitulo(),
+        anio: this.getCurrentAnio(),
         rowElement: row
       };
 
@@ -142,12 +143,52 @@
     },
 
     /**
-     * Obtiene el capítulo actual
+     * Obtiene el capítulo actual desde el selector global de empresa
      */
     getCurrentCapitulo() {
-      const selector = document.getElementById('selectCapitulo') || 
-                      document.getElementById('companyFilter');
-      return selector?.value || selector?.selectedOptions?.[0]?.text || '';
+      // Usar SOLO el companyFilter global - ya no hay selectores locales de capítulo
+      const companySelect = document.getElementById('companyFilter');
+      
+      if (!companySelect || !companySelect.value) {
+        console.warn('⚠️ No se encontró selector global de empresa (companyFilter)');
+        return '';
+      }
+
+      const empresaId = companySelect.value;
+      
+      // Usar CapitulosModulos para mapear empresaId -> capítulo
+      if (window.CapitulosModulos && typeof window.CapitulosModulos.empresaACapitulo === 'function') {
+        const capitulo = window.CapitulosModulos.empresaACapitulo(empresaId);
+        console.log('✅ Capítulo desde companyFilter:', empresaId, '→', capitulo);
+        return capitulo || '';
+      }
+
+      // Fallback: usar el texto del select
+      const selectedText = companySelect.selectedOptions?.[0]?.text || empresaId;
+      console.log('⚠️ Usando texto del select como capítulo:', selectedText);
+      return selectedText;
+    },
+
+    /**
+     * Obtiene el año actualmente seleccionado
+     */
+    getCurrentAnio() {
+      // Buscar selector de año en diferentes IDs posibles
+      const anioSelect = document.getElementById('yearFilter') ||
+                        document.getElementById('anioSelect') ||
+                        document.getElementById('selectAnio') ||
+                        document.getElementById('resumenYearSelect');
+      
+      if (!anioSelect) {
+        // Fallback: año actual
+        const anioActual = new Date().getFullYear();
+        console.warn('⚠️ No se encontró selector de año, usando:', anioActual);
+        return anioActual;
+      }
+
+      const anio = parseInt(anioSelect.value);
+      console.log('✅ Año detectado:', anio);
+      return anio;
     },
 
     /**
@@ -572,7 +613,11 @@
           moduleType: this.moduleType
         });
 
+        // Agregar capítulo y año
         if (this.contextData.capitulo) params.append('capitulo', this.contextData.capitulo);
+        if (this.contextData.anio) params.append('anio', this.contextData.anio);
+        
+        // Agregar jerarquía para filtrado
         if (this.contextData.principal) params.append('principal', this.contextData.principal);
         if (this.contextData.secundaria) params.append('secundaria', this.contextData.secundaria);
 

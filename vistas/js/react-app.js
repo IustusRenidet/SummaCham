@@ -428,10 +428,36 @@
     ) : /* @__PURE__ */ React.createElement("div", { className: "empty-state" })))));
   };
   const App = () => {
-    const [sesion, setSesion] = useState(() => Sesion.obtener());
+    // Verificación crítica de sesión al montar
+    const [sesion, setSesion] = useState(() => {
+      const s = Sesion.obtener();
+      if (!s || !s.tokenAcceso || !s.usuario) {
+        console.error('❌ No hay sesión válida al montar App');
+        window.location.replace('login.html');
+        return null;
+      }
+      return s;
+    });
+    
     const [empresaActiva, setEmpresaActiva] = useState(() => Sesion.obtenerEmpresaActiva());
     const [moduloSeleccionado, setModuloSeleccionado] = useState(null);
     const [notificaciones, setNotificaciones] = useState([]);
+    
+    // Verificar sesión periódicamente
+    useEffect(() => {
+      const verificarSesion = () => {
+        const s = Sesion.obtener();
+        if (!s || !s.tokenAcceso || !s.usuario) {
+          console.warn('⚠️ Sesión perdida, redirigiendo a login');
+          window.location.replace('login.html');
+        }
+      };
+      
+      // Verificar cada 30 segundos
+      const interval = setInterval(verificarSesion, 30000);
+      return () => clearInterval(interval);
+    }, []);
+    
     const seleccionarModulo = useCallback((moduloId) => {
       setModuloSeleccionado(moduloId);
     }, []);
@@ -454,7 +480,8 @@
     }, []);
     const cargarNotificaciones = useCallback(async () => {
       const sesionActual = Sesion.obtener();
-      if (!sesionActual) {
+      if (!sesionActual || !sesionActual.tokenAcceso) {
+        console.warn('⚠️ No hay sesión para cargar notificaciones');
         setNotificaciones([]);
         return;
       }
@@ -462,6 +489,15 @@
         const respuesta = await fetch(`${API_BASE}/notificaciones?limite=10`, {
           headers: Sesion.headersAutenticacion()
         });
+        
+        // Si es 401, sesión expirada
+        if (respuesta.status === 401) {
+          console.error('❌ Sesión expirada (401)');
+          Sesion.cerrar();
+          window.location.replace('login.html');
+          return;
+        }
+        
         const datos = await respuesta.json();
         if (!respuesta.ok) {
           throw new Error(datos.mensaje || "No fue posible obtener las notificaciones.");

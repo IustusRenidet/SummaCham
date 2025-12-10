@@ -20,7 +20,6 @@
   const selectAnio = document.getElementById('selectAnio');
   const selectMes = document.getElementById('selectMes');
   const capituloLabel = document.getElementById('capituloLabel');
-  const selectCapitulo = document.getElementById('selectCapitulo');
   let capituloActual = '';
   let empresaActual = null;
   let mesClaveActual = 'dic';
@@ -371,41 +370,9 @@
   };
 
   const actualizarCapitulos = (capitulos = [], seleccionado = '') => {
-    if (!selectCapitulo) {
-      capituloActual = seleccionado || capituloActual;
-      actualizarEtiquetaCapitulo(capituloActual);
-      return;
-    }
-
-    selectCapitulo.innerHTML = '';
-    if (!Array.isArray(capitulos) || !capitulos.length) {
-      const option = document.createElement('option');
-      option.value = '';
-      option.textContent = 'Sin capítulos disponibles';
-      selectCapitulo.appendChild(option);
-      selectCapitulo.disabled = false;
-      capituloActual = '';
-      actualizarEtiquetaCapitulo('');
-      return;
-    }
-
-    capitulos.forEach((item) => {
-      const etiqueta = (item?.etiqueta ?? item?.clave ?? '').toString().trim();
-      if (!etiqueta) return;
-      const option = document.createElement('option');
-      option.value = etiqueta;
-      option.textContent = etiqueta;
-      selectCapitulo.appendChild(option);
-    });
-
-    const preferido = capitulos.find((item) => (item?.etiqueta ?? '').toString().trim() === (seleccionado || '').toString().trim())
-      ? (seleccionado || '')
-      : (selectCapitulo.options[0]?.value || '');
-
-    selectCapitulo.value = preferido;
-    selectCapitulo.disabled = false;
-    capituloActual = preferido;
-    actualizarEtiquetaCapitulo(preferido);
+    // Ya no hay selector local - solo actualizar label
+    capituloActual = seleccionado || capituloActual;
+    actualizarEtiquetaCapitulo(capituloActual);
   };
 
   const CITY_LABELS = {
@@ -1252,16 +1219,15 @@
       selectMes.value = String(new Date().getMonth() + 1);
     }
     actualizarMesContexto(Number(selectMes?.value || new Date().getMonth() + 1));
-    capituloActual = '';
-    if (selectCapitulo) {
-      selectCapitulo.innerHTML = '<option value="">Cargando capítulos...</option>';
-      selectCapitulo.disabled = true;
-    }
+    
+    // Obtener capítulo desde CapitulosModulos basado en la empresa
+    capituloActual = obtenerCapituloEmpresa(empresaId) || '';
+    actualizarEtiquetaCapitulo(capituloActual);
+    
     await cargarAniosDisponibles(empresaId);
     const anioSeleccionado = leerAnioSeleccionado();
     const mesSeleccionado = leerMesSeleccionado();
-    const capituloPreferido = selectCapitulo?.value || capituloActual || '';
-    await fetchSummary(empresaId, anioSeleccionado, mesSeleccionado, capituloPreferido);
+    await fetchSummary(empresaId, anioSeleccionado, mesSeleccionado, capituloActual);
   };
 
   const fetchSummary = async (empresaId, anio, mes, capitulo = '') => {
@@ -1374,7 +1340,7 @@
       const anio = leerAnioSeleccionado();
       const moduloClave = modulo;
       
-      // Intentar cargar desde servidor primero
+      // Intentar cargar desde servidor primero (capítulo se deriva de empresa_id)
       const layoutServidor = await fetch(
         `${base}/api/layouts?empresaId=${empresa.id}&modulo=${moduloClave}&anio=${anio}`,
         { headers: Sesion.headersAutenticacion?.() || {} }
@@ -1398,26 +1364,26 @@
       console.warn('Error aplicando layout en Summary', err);
     }
 
-    const leerCapitulo = () => (selectCapitulo?.value || '').toString().trim();
-
     const handleAnioChange = () => {
       const anio = leerAnioSeleccionado();
       const mes = leerMesSeleccionado();
+      const capitulo = obtenerCapituloEmpresa(empresaActual?.id) || '';
       actualizarEtiquetasAnio(anio, anio - 1);
       publicarContexto(anio);
       if (empresaActual?.id) {
-        fetchSummary(empresaActual.id, anio, mes, leerCapitulo());
+        fetchSummary(empresaActual.id, anio, mes, capitulo);
       }
     };
 
     const handleMesChange = () => {
       const anio = leerAnioSeleccionado();
       const mes = leerMesSeleccionado();
+      const capitulo = obtenerCapituloEmpresa(empresaActual?.id) || '';
       actualizarMesContexto(mes);
       actualizarEtiquetaMes(mes);
       publicarContexto(anio);
       if (empresaActual?.id) {
-        fetchSummary(empresaActual.id, anio, mes, leerCapitulo());
+        fetchSummary(empresaActual.id, anio, mes, capitulo);
       }
     };
 
@@ -1440,16 +1406,8 @@
       actualizarEtiquetaMes(mesInicial);
     }
 
-    if (selectCapitulo) {
-      selectCapitulo.addEventListener('change', () => {
-        const anio = leerAnioSeleccionado();
-        const mes = leerMesSeleccionado();
-        capituloActual = selectCapitulo.value || '';
-        if (empresaActual?.id) {
-          fetchSummary(empresaActual.id, anio, mes, capituloActual);
-        }
-      });
-    }
+    // Ya no hay selector local de capítulo - se usa companyFilter global
+    // El capítulo cambia automáticamente cuando cambia la empresa
 
     // Funcionalidad de colapso de secciones
     const collapsedSections = new Set();
