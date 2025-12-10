@@ -148,6 +148,7 @@
     MODULO_SHEETS,
     obtenerConfigEmpresa,
     obtenerCapituloPorEmpresa,
+    empresaACapitulo: obtenerCapituloPorEmpresa, // Alias para compatibilidad
     moduloDisponible,
     obtenerSheetPorModulo
   };

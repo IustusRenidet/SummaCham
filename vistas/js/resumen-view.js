@@ -57,7 +57,6 @@
   const tablaBody = document.getElementById('tablaCuentasBody');
   const yearSelect = document.getElementById('resumenYearSelect');
   const monthSelect = document.getElementById('resumenMonthSelect');
-  const capituloSelect = document.getElementById('resumenCapituloSelect');
   const yearLabel = document.getElementById('yearLabel');
   const empresaLabel = document.getElementById('empresaLabel');
   const searchInput = document.getElementById('accountSearch');
@@ -830,15 +829,9 @@
       params.set('mes', String(mes));
     }
     
-    // Priorizar capítulo seleccionado manualmente
-    const capituloManual = capituloSelect?.value || '';
-    if (capituloManual) {
-      params.set('capitulo', capituloManual);
-    } else {
-      // Si no hay selección manual, usar capítulo de la empresa activa
-      const capitulo = obtenerCapituloEmpresa(empresaId);
-      if (capitulo) params.set('capitulo', capitulo);
-    }
+    // Usar capítulo derivado de la empresa activa
+    const capitulo = obtenerCapituloEmpresa(empresaId);
+    if (capitulo) params.set('capitulo', capitulo);
     
     const respuesta = await fetch(`${API_ENDPOINT}?${params.toString()}`, {
       headers: Sesion.headersAutenticacion()
@@ -864,16 +857,6 @@
     const mesInicial = Number(monthSelect?.value) || new Date().getMonth() + 1;
     if (yearSelect) yearSelect.value = String(valorInicial);
     if (monthSelect) monthSelect.value = String(mesInicial);
-    
-    // Sincronizar selector de capítulo con empresa activa
-    if (capituloSelect) {
-      const capitulo = obtenerCapituloEmpresa(empresaId);
-      if (capitulo) {
-        capituloSelect.value = capitulo;
-      } else {
-        capituloSelect.value = ''; // Todos
-      }
-    }
     
     actualizarEncabezado(empresaId, valorInicial);
     window.dispatchEvent(new CustomEvent('planeacion:contexto-actualizado', {
@@ -974,22 +957,13 @@
       fetchResumen(empresaActual.id, anio, mes);
     };
 
-    const handleCapituloChange = () => {
-      const anio = leerAnioSeleccionado();
-      const mes = leerMesSeleccionado();
-      if (!empresaActual?.id) return;
-      fetchResumen(empresaActual.id, anio, mes);
-    };
-
     if (yearSelect) {
       yearSelect.addEventListener('change', handleYearChange);
     }
     if (monthSelect) {
       monthSelect.addEventListener('change', handleMonthChange);
     }
-    if (capituloSelect) {
-      capituloSelect.addEventListener('change', handleCapituloChange);
-    }
+    // Ya no hay selector local de capítulo - se usa companyFilter global
     if (searchInput) {
       searchInput.addEventListener('input', (event) => {
         filterRows(event.target.value);

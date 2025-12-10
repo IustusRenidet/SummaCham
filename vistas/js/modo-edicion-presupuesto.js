@@ -35,7 +35,8 @@
     cambiosCapturados: {},
     cuentasDisponibles: [],
     selectorTabla: SELECTOR_TABLA,
-    soloLayout: false // Nueva opción: solo editar cuenta/descripción, no valores numéricos
+    soloLayout: false, // Nueva opción: solo editar cuenta/descripción, no valores numéricos
+    persistiendo: false // Flag para evitar recursión infinita
   };
 
   const normalizeString = (s) => (s || '').toString().normalize('NFD').replace(/\p{Diacritic}/gu, '').toUpperCase().trim();
@@ -399,6 +400,9 @@
     }, 10);
 
     const guardar = () => {
+      // Remover listener de blur para evitar llamadas recursivas
+      input.removeEventListener('blur', guardar);
+      
       const nuevo = (input.value || '').toString().trim();
       celda.classList.remove(CLASE_EDITANDO);
       celda.textContent = nuevo || valor; // Si está vacío, restaurar valor original
@@ -413,7 +417,15 @@
       }
       
       // Persistir layout inmediatamente (autoguardado de plantilla local)
-      try { persistirLayoutActual(); } catch (err) { /* ignore */ }
+      // Solo si NO estamos ya persistiendo
+      if (!estado.persistiendo) {
+        try { 
+          // Usar setTimeout para evitar bloqueo del UI
+          setTimeout(() => persistirLayoutActual(), 100);
+        } catch (err) { 
+          console.error('Error guardando layout:', err);
+        }
+      }
     };
     const cancelar = () => {
       celda.textContent = valor;
@@ -516,38 +528,63 @@
   }
 
   function persistirLayoutActual() {
-    const { tabla } = resolverTabla(estado.selectorTabla);
-    // forzar que cualquier edición activa se aplique antes de leer la tabla
-    try {
-      if (tabla) {
-        tabla.querySelectorAll('[contenteditable="true"]').forEach((el) => el.blur());
-        // blur active element if needed
-        if (document.activeElement && document.activeElement.matches && document.activeElement.matches('[contenteditable="true"]')) {
-          document.activeElement.blur();
-        }
-      }
-    } catch (err) {
-      // ignore
-    }
-    if (!tabla) return false;
-    const empresa = Sesion.obtenerEmpresaActiva();
-    const selectAnioElem = document.getElementById('selectAnio') || document.getElementById('resumenYearSelect') || document.getElementById('yearSelect') || document.querySelector('[name="anio"]');
-    const anioSeleccion = Number(selectAnioElem?.value || new Date().getFullYear());
-    const anio = Number.isInteger(anioSeleccion) ? anioSeleccion : null;
-    const moduloClave = (document.body?.dataset?.modulo || document.body?.dataset?.moduloId || 'summary').toString().trim();
-    if (!empresa?.id || !Number.isInteger(anio) || !moduloClave) {
-      console.warn('No fue posible persistir layout: falta empresa/anio/modulo', { empresa: empresa?.id, anio, moduloClave });
+    // Evitar recursión infinita
+    if (estado.persistiendo) {
+      console.log('⚠️ Ya hay una persistencia en curso, omitiendo...');
       return false;
     }
-    const layout = capturarLayoutDesdeTabla(tabla);
-    if (!layout) return false;
-    const guardadoLocal = guardarLayoutLocal({ moduloClave, empresaId: empresa.id, anio, layout });
-    // Try server-side persist; fallback silently if server fails
-    try { guardarLayoutServidor({ moduloClave, empresaId: empresa.id, anio, layout }).then((srv)=>{ if (srv) console.log('Layout guardado en servidor'); }); } catch (err) {}
-    if (guardadoLocal) {
-      console.log('Layout persistido (localStorage)', { moduloClave, empresaId: empresa.id, anio, filasCapturadas: layout?.filas?.length || 0 });
+    estado.persistiendo = true;
+    
+    try {
+      const { tabla } = resolverTabla(estado.selectorTabla);
+      
+      // NO hacer blur aquí para evitar recursión
+      // El blur ya se manejó en la función guardar()
+      
+      if (!tabla) {
+        return false;
+      }
+      const empresa = Sesion.obtenerEmpresaActiva();
+      const selectAnioElem = document.getElementById('selectAnio') || document.getElementById('resumenYearSelect') || document.getElementById('yearSelect') || document.querySelector('[name="anio"]');
+      const anioSeleccion = Number(selectAnioElem?.value || new Date().getFullYear());
+      const anio = Number.isInteger(anioSeleccion) ? anioSeleccion : null;
+      const moduloClave = (document.body?.dataset?.modulo || document.body?.dataset?.moduloId || 'summary').toString().trim();
+      if (!empresa?.id || !Number.isInteger(anio) || !moduloClave) {
+        console.warn('No fue posible persistir layout: falta empresa/anio/modulo', { empresa: empresa?.id, anio, moduloClave });
+        return false;
+      }
+      const layout = capturarLayoutDesdeTabla(tabla);
+      if (!layout) {
+        return false;
+      }
+      const guardadoLocal = guardarLayoutLocal({ moduloClave, empresaId: empresa.id, anio, layout });
+      
+      // Try server-side persist; fallback silently if server fails
+      guardarLayoutServidor({ moduloClave, empresaId: empresa.id, anio, layout })
+        .then((srv) => { 
+          if (srv) {
+            console.log('✅ Layout guardado en servidor', { moduloClave, empresaId: empresa.id, anio });
+          } else {
+            console.error('❌ Error guardando layout en servidor');
+          }
+        })
+        .catch((err) => {
+          console.error('❌ Error guardando layout en servidor:', err);
+        });
+      
+      if (guardadoLocal) {
+        console.log('✅ Layout persistido (localStorage)', { moduloClave, empresaId: empresa.id, anio, filasCapturadas: layout?.filas?.length || 0 });
+      }
+      
+      return guardadoLocal;
+      
+    } catch (err) {
+      console.error('❌ Error en persistirLayoutActual:', err);
+      return false;
+    } finally {
+      // Liberar flag de persistencia SIEMPRE
+      estado.persistiendo = false;
     }
-    return guardado;
   }
 
   function aplicarLayoutLocal(layout, tabla) {

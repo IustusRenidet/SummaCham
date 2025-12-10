@@ -9,41 +9,60 @@
   <link href="vendor/bootstrap.min.css" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   
+  <!-- Ocultar contenido hasta verificar sesión -->
+  <style>
+    #app-loader {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #f2f2f2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+    #app-loader .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid #d9d9d9;
+      border-top-color: #2f5496;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    body { visibility: hidden; }
+    body.session-verified { visibility: visible; }
+  </style>
+  
   <!-- Cargar sesion.js primero -->
   <script src="js/sesion.js"></script>
   
-  <!-- Verificación de sesión BLOQUEANTE -->
+  <!-- Verificación de sesión INMEDIATA -->
   <script>
     (function() {
       'use strict';
+      
+      const start = performance.now();
       
       // Verificar que Sesion existe
       if (typeof Sesion === 'undefined') {
         console.error('❌ Sesion no está disponible');
         window.location.replace('login.html');
-        throw new Error('Sesion no disponible');
+        return;
       }
 
-      // Obtener sesión actual
+      // Obtener sesión actual (SINCRÓNICO - solo lee localStorage)
       const sesion = Sesion.obtener();
       
       // Verificar validez de la sesión
-      if (!sesion) {
-        console.warn('⚠️ No hay sesión activa');
+      if (!sesion || !sesion.tokenAcceso || !sesion.usuario) {
+        console.warn('⚠️ No hay sesión válida, redirigiendo...');
         window.location.replace('login.html');
-        throw new Error('No hay sesión');
-      }
-
-      if (!sesion.tokenAcceso) {
-        console.warn('⚠️ Sesión sin token de acceso');
-        window.location.replace('login.html');
-        throw new Error('Token no válido');
-      }
-
-      if (!sesion.usuario) {
-        console.warn('⚠️ Sesión sin usuario');
-        window.location.replace('login.html');
-        throw new Error('Usuario no válido');
+        return;
       }
 
       // Verificar expiración del token
@@ -55,11 +74,19 @@
           console.warn('⚠️ Token expirado');
           Sesion.cerrar();
           window.location.replace('login.html');
-          throw new Error('Token expirado');
+          return;
         }
       }
 
-      console.log('✅ Sesión válida:', sesion.usuario.usuario);
+      const elapsed = performance.now() - start;
+      console.log(`✅ Sesión válida: ${sesion.usuario.usuario} (${elapsed.toFixed(2)}ms)`);
+      
+      // Mostrar contenido
+      document.addEventListener('DOMContentLoaded', () => {
+        document.body.classList.add('session-verified');
+        const loader = document.getElementById('app-loader');
+        if (loader) loader.remove();
+      });
     })();
   </script>
   
@@ -555,6 +582,11 @@
   </style>
 </head>
 <body>
+  <!-- Loader mientras se verifica la sesión -->
+  <div id="app-loader">
+    <div class="spinner"></div>
+  </div>
+  
   <div id="root" class="h-100"></div>
 
   <script src="vendor/bootstrap.bundle.min.js"></script>
