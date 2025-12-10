@@ -254,13 +254,13 @@
     actualMonth: 'Real del mes consultado (año seleccionado).',
     planMonth: 'Presupuesto del mes (tabla PRESUPYY del año seleccionado).',
     prevMonth: 'Real del mismo mes del año previo.',
-    varMonthPlan: 'B/W mes vs presupuesto: Real / Presupuesto * 100.',
-    varMonthPrev: 'B/W mes vs real año previo: Real / Real año previo * 100.',
+    varMonthPlan: 'B/W mes vs presupuesto: ((Real / Presupuesto) - 1) * 100. Ejemplo: Real=110, Ppto=100 → 10%',
+    varMonthPrev: 'B/W mes vs real año previo: ((Real / Real previo) - 1) * 100. Ejemplo: Real=110, Previo=100 → 10%',
     actualYTD: 'Real acumulado al mes consultado (año seleccionado).',
     planYTD: 'Presupuesto acumulado al mes consultado (año seleccionado).',
     prevYTD: 'Real acumulado al mes consultado pero del año previo.',
-    varYTDPlan: 'B/W YTD vs presupuesto acumulado: Real YTD / Presupuesto YTD * 100.',
-    varYTDPrev: 'B/W YTD vs real acumulado año previo: Real YTD / Real YTD previo * 100.'
+    varYTDPlan: 'B/W YTD vs presupuesto acumulado: ((Real YTD / Presupuesto YTD) - 1) * 100.',
+    varYTDPrev: 'B/W YTD vs real acumulado año previo: ((Real YTD / Real YTD previo) - 1) * 100.'
   };
 
   const ROW_TOOLTIPS = {
@@ -436,11 +436,33 @@
     return num / den;
   };
 
+  /**
+   * Calcula porcentaje de variación según fórmula Excel
+   * Fórmula: (real / base - 1) * 100
+   * 
+   * Ejemplos:
+   * - Real: 100, Base: 100 → (100/100 - 1) * 100 = 0%
+   * - Real: 110, Base: 100 → (110/100 - 1) * 100 = 10%
+   * - Real: 90, Base: 100 → (90/100 - 1) * 100 = -10%
+   * - Real: 100, Base: 0 → 0% (división por cero)
+   */
   const calculateVar = (actual, base) => {
     const actualNum = toNumber(actual);
     const baseNum = toNumber(base);
-    if (Math.abs(baseNum) === 0) return 0;
-    return safeDiv(actualNum, baseNum) * 100;
+    
+    // División por cero o base inválida → 0%
+    if (baseNum === 0 || baseNum == null || Number.isNaN(baseNum)) return 0;
+    if (!Number.isFinite(baseNum) || Math.abs(baseNum) === 0) return 0;
+    
+    const division = safeDiv(actualNum, baseNum);
+    
+    // Si división es cero, retornar 0%
+    if (division === 0) return 0;
+    
+    // Fórmula Excel: (real / base - 1) * 100
+    const porcentaje = (division - 1) * 100;
+    
+    return Number.isFinite(porcentaje) ? porcentaje : 0;
   };
 
   const formatPercent = (val) => {

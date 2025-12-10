@@ -507,6 +507,7 @@
     integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
     crossorigin="anonymous"></script>
   <script src="js/insertion-wizard.js"></script>
+  <script src="js/context-menu-wizard.js"></script>
   <script src="js/modo-edicion-presupuesto.js"></script>
   <script src="js/planeacion-modulo-vista.js"></script>
   <script src="js/flujo-autorizacion.js?v=20251208-1"></script>
@@ -515,6 +516,64 @@
   <script>
     initModuloPlaneacion({ moduloId: 'eventos', moduloNombre: 'EVENTOS' });
   </script>
+
+  <!-- Menú Contextual -->
+  <div id="contextMenu" class="context-menu" style="display: none; position: absolute; z-index: 10000; background: white; border: 1px solid #ccc; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); min-width: 220px;">
+    <div class="context-menu-item" data-action="add-row">
+      <i class="bi bi-plus-circle me-2"></i>
+      <span>Agregar cuenta</span>
+    </div>
+    <div class="context-menu-item" data-action="add-operation">
+      <i class="bi bi-calculator me-2"></i>
+      <span>Crear operación</span>
+    </div>
+    <div class="context-menu-item" data-action="add-section">
+      <i class="bi bi-folder-plus me-2"></i>
+      <span>Agregar sección</span>
+    </div>
+    <div class="context-menu-divider"></div>
+    <div class="context-menu-item" data-action="edit-row">
+      <i class="bi bi-pencil me-2"></i>
+      <span>Editar</span>
+    </div>
+    <div class="context-menu-item context-menu-danger" data-action="delete-row">
+      <i class="bi bi-trash me-2"></i>
+      <span>Eliminar</span>
+    </div>
+  </div>
+
+  <style>
+    .context-menu-item {
+      padding: 10px 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      font-size: 0.9rem;
+      transition: background 0.15s;
+      color: #333;
+    }
+    .context-menu-item:hover {
+      background: #f0f0f0;
+    }
+    .context-menu-item:first-child {
+      border-radius: 8px 8px 0 0;
+    }
+    .context-menu-item:last-child {
+      border-radius: 0 0 8px 8px;
+    }
+    .context-menu-divider {
+      height: 1px;
+      background: #e0e0e0;
+      margin: 4px 0;
+    }
+    .context-menu-danger {
+      color: #dc2626;
+    }
+    .context-menu-danger:hover {
+      background: #fee2e2;
+    }
+  </style>
+
 </body>
 
 </html>

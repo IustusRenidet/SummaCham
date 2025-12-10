@@ -33,9 +33,14 @@
         SUMMARY: {
           cuenta: {
             required: ['numero', 'nombre'],
-            hierarchy: ['secundaria', 'principal', 'capitulo'],
+            hierarchy: ['operacion', 'secundaria', 'principal', 'capitulo'],
             format: /^\d{21}$/,
             formatLabel: '21 dígitos (ej: 401000000000000000001)'
+          },
+          operacion: {
+            required: ['nombre', 'etiquetaSum'],
+            hierarchy: ['secundaria', 'principal', 'capitulo'],
+            autoCreate: ['sumRow']
           },
           secundaria: {
             required: ['nombre', 'etiquetaSum'],
@@ -457,7 +462,13 @@
             value: 'cuenta',
             label: 'Nueva Cuenta',
             icon: '📊',
-            description: 'Agregar una cuenta contable a una sección existente'
+            description: 'Agregar una cuenta contable a una operación existente'
+          },
+          {
+            value: 'operacion',
+            label: 'Nueva Operación',
+            icon: '⚙️',
+            description: 'Crear una operación dentro de una sección secundaria'
           },
           {
             value: 'secundaria',
@@ -598,9 +609,9 @@
     getHelpText() {
       const helps = {
         SUMMARY: {
-          1: 'En SUMMARY, las cuentas se organizan en Secciones Secundarias, que pertenecen a Secciones Principales.',
-          2: 'Selecciona dónde se insertará el nuevo elemento. Una Secundaria debe estar dentro de una Principal.',
-          3: 'Ingresa los datos del elemento. Se creará automáticamente un SUM ROW para totalizar.'
+          1: 'En SUMMARY, las cuentas se organizan en Operaciones, que pertenecen a Secciones Secundarias, que están dentro de Principales.',
+          2: 'Selecciona la jerarquía completa: Principal > Secundaria > Operación.',
+          3: 'Se creará automáticamente un SUM ROW en cada nivel de agrupación.'
         },
         RESUMEN: {
           1: 'En RESUMEN, las cuentas se organizan en Operaciones, que pertenecen a Secciones Secundarias, que están en Principales.',

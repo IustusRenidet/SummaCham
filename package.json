@@ -10,17 +10,20 @@
     "url": "https://github.com/IustusRenidet/SummaCham.git"
   },
   "scripts": {
-    "start": "electron .",
-    "server": "node src/server.js",
+    "start": "cross-env NODE_ENV=development electron .",
+    "start:prod": "cross-env NODE_ENV=production electron .",
+    "server": "cross-env NODE_ENV=development node src/server.js",
+    "server:prod": "cross-env NODE_ENV=production node src/server.js",
     "test": "node --test",
     "pack": "electron-builder --dir",
-    "dist": "electron-builder --win nsis",
-    "build:portable": "electron-builder --win portable --x64 --ia32",
-    "build:all": "electron-builder --win nsis,portable --x64 --ia32",
-    "publish": "electron-builder --win --publish always",
+    "dist": "cross-env NODE_ENV=production electron-builder --win nsis",
+    "build:portable": "cross-env NODE_ENV=production electron-builder --win portable --x64 --ia32",
+    "build:all": "cross-env NODE_ENV=production electron-builder --win nsis,portable --x64 --ia32",
+    "publish": "cross-env NODE_ENV=production electron-builder --win --publish always",
     "postinstall": "electron-builder install-app-deps"
   },
   "devDependencies": {
+    "cross-env": "^7.0.3",
     "electron": "^30.0.0",
     "electron-builder": "^25.1.8",
     "electron-rebuild": "^3.2.9",
@@ -54,6 +57,8 @@
       "image/**/*",
       "mds/**/*",
       "scripts/**/*",
+      ".env.production",
+      ".env.development",
       "node_modules/**/*",
       "package.json",
       "README.md",
@@ -76,22 +81,30 @@
       {
         "from": "datos",
         "to": "datos",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       },
       {
         "from": "excels",
         "to": "excels",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       },
       {
         "from": "info IMPORTANTE",
         "to": "info_importante",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       },
       {
         "from": "IMPLEMENTACIONES",
         "to": "IMPLEMENTACIONES",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       }
     ],
     "portable": {

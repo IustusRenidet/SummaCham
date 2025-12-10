@@ -13,14 +13,17 @@ try {
 
 const { obtenerEmpresaPorId } = require('../config/empresas');
 
+// Configuración base desde variables de entorno
 const OPCIONES_BASE = {
   host: process.env.FIREBIRD_HOST || '127.0.0.1',
-  port: Number(process.env.FIREBIRD_PORT || 3050),
+  port: Number(process.env.FIREBIRD_PORT) || 3050,
   user: process.env.FIREBIRD_USER || 'sysdba',
   password: process.env.FIREBIRD_PASSWORD || 'masterkey',
   lowercase_keys: false,
   pageSize: 4096
 };
+
+console.log(`🔥 Firebird configurado: ${OPCIONES_BASE.host}:${OPCIONES_BASE.port}`);
 
 const crearOpciones = (empresaId) => {
   const empresa = obtenerEmpresaPorId(empresaId);

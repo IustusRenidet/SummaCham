@@ -19,11 +19,33 @@
     return Number.isFinite(numero) ? numero : 0;
   };
 
+  /**
+   * Calcula porcentaje de variación según fórmula Excel
+   * Fórmula: (real / base - 1) * 100
+   * 
+   * Ejemplos:
+   * - Real: 100, Base: 100 → (100/100 - 1) * 100 = 0%
+   * - Real: 110, Base: 100 → (110/100 - 1) * 100 = 10%
+   * - Real: 90, Base: 100 → (90/100 - 1) * 100 = -10%
+   * - Real: 100, Base: 0 → 0% (división por cero)
+   */
   const calculateVar = (actual, base) => {
     const actualNum = toNumber(actual);
     const baseNum = toNumber(base);
-    if (Math.abs(baseNum) === 0) return 0;
-    return (actualNum / baseNum) * 100;
+    
+    // División por cero o base inválida → 0%
+    if (baseNum === 0 || baseNum == null || Number.isNaN(baseNum)) return 0;
+    if (!Number.isFinite(baseNum) || Math.abs(baseNum) === 0) return 0;
+    
+    const division = actualNum / baseNum;
+    
+    // Si división da resultado inválido, retornar 0%
+    if (!Number.isFinite(division) || division === 0) return 0;
+    
+    // Fórmula Excel: (real / base - 1) * 100
+    const porcentaje = (division - 1) * 100;
+    
+    return Number.isFinite(porcentaje) ? porcentaje : 0;
   };
 
   const parseNumber = (texto) => {
@@ -77,8 +99,8 @@
     actualMonth: 'Real del mes consultado segun el layout RESUMEN. Se alimenta de los saldos reales del servicio de planeacion para las cuentas mapeadas en "CUENTAS SUMMARY Y RESUMEN.xlsx".',
     planMonth: 'Presupuesto del mes (PRESUP01..12 de la tabla PRESUPYY) para las cuentas del bloque seleccionado.',
     prevMonth: 'Real del mes anterior del mismo ejercicio; compara contra el periodo inmediato anterior.',
-    varMonthPlan: 'Variacion mensual vs plan: ((Real - Plan) / |Plan|) x 100 con los valores de la fila.',
-    varMonthPrev: 'Variacion mensual vs mes anterior: ((Real - Real mes anterior) / |Real mes anterior|) x 100.'
+    varMonthPlan: 'Variacion mensual vs plan: ((Real / Plan) - 1) * 100 con los valores de la fila. Ejemplo: Real=110, Plan=100 → 10%',
+    varMonthPrev: 'Variacion mensual vs mes anterior: ((Real / Real mes anterior) - 1) * 100. Ejemplo: Real=110, Previo=100 → 10%'
   };
 
   const ROW_TOOLTIPS = {

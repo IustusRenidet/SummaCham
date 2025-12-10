@@ -174,24 +174,20 @@ if (!gotTheLock) {
       app.setAppUserModelId("com.summa.cham.panelamcham");
     }
 
+    // Configurar variables de entorno según modo (development/production)
+    const { setupEnvironment } = require("./src/config/env-config");
+    const envConfig = setupEnvironment();
+
     // Iniciar servidor Node.js como servicio
     let servidor = null;
     try {
-      // Configurar variables de entorno para Firebird
-      // En producción empaquetada, debe apuntar al servidor donde está Firebird/COI
-      if (!process.env.FIREBIRD_HOST) {
-        // Túnel TCP Firebird local → puerto 15350
-        process.env.FIREBIRD_HOST = '127.0.0.1';
-      }
-      if (!process.env.FIREBIRD_PORT) {
-        process.env.FIREBIRD_PORT = '15350'; // Puerto del túnel TCP Firebird
-      }
-      
-      console.log("🚀 Iniciando servidor backend como servicio...");
-      console.log(`  Firebird: ${process.env.FIREBIRD_HOST}:${process.env.FIREBIRD_PORT}`);
+      console.log("🚀 Iniciando servidor backend...");
+      console.log(`   Modo: ${envConfig.isDevelopment ? 'DESARROLLO' : 'PRODUCCIÓN'}`);
+      console.log(`   Firebird: ${envConfig.firebird.host}:${envConfig.firebird.port}`);
+      console.log(`   Servidor: http://localhost:${envConfig.server.port}`);
       
       const iniciarServidor = require("./src/server");
-      servidor = iniciarServidor(3005);
+      servidor = iniciarServidor(envConfig.server.port);
       
       if (!servidor) {
         throw new Error("El servidor no se pudo iniciar");

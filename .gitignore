@@ -4,6 +4,7 @@ node_modules/
 # Variables de entorno y configuración local
 .env
 .env.*
+!.env.example
 .npmrc
 .yarnrc*
 .pnpmfile.cjs
