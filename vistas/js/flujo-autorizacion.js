@@ -2914,4 +2914,7 @@
   }
 
   aplicarFixModalesPointerEvents();
+  
+  // Exportar la clase FlujoAutorizacion para uso externo
+  window.FlujoAutorizacion = FlujoAutorizacion;
 })();

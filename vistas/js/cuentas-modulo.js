@@ -2237,6 +2237,14 @@
       });
       boton.addEventListener('click', () => {
         switch (opcion.clave) {
+          case 'add_wizard':
+            // Usar InsertionWizard si está disponible
+            if (typeof window.InsertionWizard !== 'undefined') {
+              window.InsertionWizard.open(filaContextual);
+            } else {
+              console.warn('InsertionWizard no disponible');
+            }
+            break;
           case 'add_above':
             insertarFilaCuentaNueva(filaContextual, 'arriba');
             break;
@@ -2285,6 +2293,10 @@
       return;
     }
     const opciones = [];
+    // Priorizar InsertionWizard si está disponible
+    if (typeof window.InsertionWizard !== 'undefined') {
+      opciones.push({ clave: 'add_wizard', texto: '✨ Agregar cuenta/sección...' });
+    }
     if (fila.classList.contains('fila-cuenta')) {
       opciones.push({ clave: 'add_above', texto: 'Agregar cuenta arriba' });
       opciones.push({ clave: 'add_below', texto: 'Agregar cuenta abajo' });
@@ -2292,7 +2304,10 @@
     } else if (fila.classList.contains('sum-row-sumavarios')) {
       opciones.push({ clave: 'delete_row', texto: 'Eliminar sum-row-sumavarios' });
     }
-    opciones.push({ clave: 'add_section', texto: 'Agregar sección' });
+    // Agregar sección (legacy) solo si no hay wizard
+    if (typeof window.InsertionWizard === 'undefined') {
+      opciones.push({ clave: 'add_section', texto: 'Agregar sección' });
+    }
     if (!opciones.length) return;
     evt.preventDefault();
     filaContextual = fila;

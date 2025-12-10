@@ -506,6 +506,17 @@
   <script src="vendor/react.production.min.js"></script>
   <script src="vendor/react-dom.production.min.js"></script>
   <script src="js/sesion.js"></script>
+  <script>
+    // Validar sesión antes de cargar la aplicación
+    (function() {
+      const sesion = Sesion.obtener();
+      if (!sesion || !sesion.usuario) {
+        // Redirigir a login.html si no hay sesión válida
+        window.location.href = 'login.html';
+        return;
+      }
+    })();
+  </script>
   <script src="js/capitulos-modulos.js"></script>
   <script src="js/react-app.js"></script>
 </body>

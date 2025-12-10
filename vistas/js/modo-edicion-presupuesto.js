@@ -34,7 +34,8 @@
     modoEdicionActivo: false,
     cambiosCapturados: {},
     cuentasDisponibles: [],
-    selectorTabla: SELECTOR_TABLA
+    selectorTabla: SELECTOR_TABLA,
+    soloLayout: false // Nueva opción: solo editar cuenta/descripción, no valores numéricos
   };
 
   const normalizeString = (s) => (s || '').toString().normalize('NFD').replace(/\p{Diacritic}/gu, '').toUpperCase().trim();
@@ -200,40 +201,54 @@
   function inicializarCeldasEditables(tabla) {
     if (!tabla) return;
 
-    // Buscar todas las celdas de presupuesto (numeros)
-    const celdas = tabla.querySelectorAll('td[data-mes]');
-    
-    celdas.forEach((celda) => {
-      celda.classList.add(CLASE_EDITABLE);
-      celda.style.cursor = 'pointer';
+    // Si NO es modo soloLayout, permitir editar celdas numéricas
+    if (!estado.soloLayout) {
+      // Buscar todas las celdas de presupuesto (numeros)
+      const celdas = tabla.querySelectorAll('td[data-mes]');
       
-      celda.addEventListener('click', (evento) => {
-        evento.stopPropagation();
-        if (estado.modoEdicionActivo) {
-          activarEdicionEnCelda(celda);
-        }
-      });
+      celdas.forEach((celda) => {
+        celda.classList.add(CLASE_EDITABLE);
+        celda.style.cursor = 'pointer';
+        
+        celda.addEventListener('click', (evento) => {
+          evento.stopPropagation();
+          if (estado.modoEdicionActivo) {
+            activarEdicionEnCelda(celda);
+          }
+        });
 
-      // Detectar cambios directamente (por si el código carga datos vía JS)
-      celda.addEventListener('change', () => {
-        marcarComoModificado(celda);
+        // Detectar cambios directamente (por si el código carga datos vía JS)
+        celda.addEventListener('change', () => {
+          marcarComoModificado(celda);
+        });
       });
-    });
+    }
 
     // Celdas de texto (codigo / descripcion / nombre) - click to edit
     // IMPORTANTE: Estas columnas NO requieren modo edición activo porque NO se insertan a COI
-    const textoCells = tabla.querySelectorAll('[data-role="descripcion"], th[data-role="code"], td[data-columna-clave="codigo"], td[data-columna-clave="label"], td[data-columna-clave="cuenta"], td[data-columna-clave="descripcion"]');
-    textoCells.forEach((celda) => {
-      celda.style.cursor = 'text';
-      celda.addEventListener('click', (ev) => {
-        ev.stopPropagation();
-        // Permitir edición de CUENTAS/DESCRIPCION siempre (no se insertan a COI)
-        activarEdicionTextoEnCelda(celda);
-      });
-      // Commit if content editable change arrives from other modules
-      celda.addEventListener('blur', () => {
-        marcarComoModificado(celda);
-      });
+    // Detectar por posición: columna 0 = cuenta/código, columna 1 = descripción/nombre
+    const filas = Array.from(tabla.querySelectorAll('tbody tr'));
+    filas.forEach(fila => {
+      const celdaCuenta = fila.cells[0]; // Primera columna = cuenta
+      const celdaNombre = fila.cells[1]; // Segunda columna = descripción/nombre
+      
+      if (celdaCuenta && !celdaCuenta.dataset.mes) {
+        celdaCuenta.style.cursor = 'text';
+        celdaCuenta.dataset.columnaClave = 'cuenta';
+        celdaCuenta.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          activarEdicionTextoEnCelda(celdaCuenta);
+        });
+      }
+      
+      if (celdaNombre && !celdaNombre.dataset.mes) {
+        celdaNombre.style.cursor = 'text';
+        celdaNombre.dataset.columnaClave = 'descripcion';
+        celdaNombre.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          activarEdicionTextoEnCelda(celdaNombre);
+        });
+      }
     });
   }
 
@@ -311,16 +326,14 @@
     input.className = 'edit-input-text';
     input.maxLength = 250;
 
-    // Si es columna de cuenta/codigo, agregar autocomplete
-    const columna = celda.dataset.columnaClave || celda.dataset.columnaKey || '';
-    if (columna === 'codigo' || columna === 'cuenta') {
+    // AUTOCOMPLETE SOLO para columna CUENTA (no para descripcion/nombre)
+    const columna = celda.dataset.columnaClave || '';
+    if (columna === 'cuenta' && estado.cuentasDisponibles?.length > 0) {
       const datalistId = crearDatalistCuentas();
       input.setAttribute('list', datalistId);
       input.placeholder = 'Buscar cuenta...';
-      
-      // Ayuda visual: agregar ícono de búsqueda
-      celda.style.position = 'relative';
-      input.style.paddingRight = '25px';
+    } else if (columna === 'descripcion') {
+      input.placeholder = 'Descripción...';
     }
 
     celda.textContent = '';
@@ -334,17 +347,13 @@
       celda.textContent = nuevo;
       celda.classList.remove(CLASE_EDITANDO);
       marcarComoModificado(celda);
-      // Si se editó la cuenta/codigo, actualizar dataset de la fila
-      try {
-        const fila = celda.closest('tr');
-        const columna = celda.dataset.columnaClave || celda.dataset.columnaKey || '';
-        if (fila && (columna === 'codigo' || columna === 'cuenta')) {
-          fila.dataset.cuenta = nuevo || '';
-          fila.dataset.cuentaVisible = nuevo || '';
-        }
-      } catch (err) {
-        // ignore
+      
+      // Si se editó la cuenta, actualizar dataset de la fila
+      const fila = celda.closest('tr');
+      if (fila && celda.dataset.columnaClave === 'cuenta') {
+        fila.dataset.cuenta = nuevo || '';
       }
+      
       // Persistir layout inmediatamente (autoguardado de plantilla local)
       try { persistirLayoutActual(); } catch (err) { /* ignore */ }
     };
@@ -538,6 +547,12 @@
   function activarModoEdicion(tabla) {
     if (!tabla) return;
     
+    // Si es modo soloLayout, NO activar edición numérica (solo cuenta/descripción siempre editables)
+    if (estado.soloLayout) {
+      console.log('ℹ️ ModoEdicionPresupuesto: soloLayout activo, cuenta/descripción siempre editables');
+      return;
+    }
+    
     estado.modoEdicionActivo = true;
     tabla.classList.add('modo-edicion-activo');
     
@@ -556,6 +571,12 @@
    */
   function desactivarModoEdicion(tabla) {
     if (!tabla) return;
+    
+    // Si es modo soloLayout, NO desactivar (no hay nada que desactivar)
+    if (estado.soloLayout) {
+      console.log('ℹ️ ModoEdicionPresupuesto: soloLayout, cuenta/descripción siempre editables');
+      return;
+    }
     
     estado.modoEdicionActivo = false;
     tabla.classList.remove('modo-edicion-activo');
@@ -610,10 +631,16 @@
       btn.setAttribute('tabindex', '-1');
       btn.addEventListener('click', () => {
         switch (opcion.clave) {
-          case 'add_above': insertarFilaNueva('arriba'); break;
-          case 'add_below': insertarFilaNueva('abajo'); break;
+          case 'add_row':
+            // Usar InsertionWizard si está disponible
+            if (typeof window.InsertionWizard !== 'undefined') {
+              window.InsertionWizard.open(filaContextual);
+            } else {
+              // Fallback al sistema simple
+              insertarFilaNueva('abajo');
+            }
+            break;
           case 'delete_row': eliminarFilaSeleccionada(); break;
-          case 'add_section': agregarSeccionNueva(); break;
           default: break;
         }
         ocultarMenuContextual();
@@ -702,15 +729,13 @@
     if (!fila) return;
     filaContextual = fila;
     const opciones = [];
-    // si es fila de cuenta
-    if (fila.querySelector('[data-cuenta]') || fila.dataset.cuenta || fila.classList.contains('fila-cuenta')) {
-      opciones.push({ clave: 'add_above', texto: 'Agregar cuenta arriba' });
-      opciones.push({ clave: 'add_below', texto: 'Agregar cuenta abajo' });
+    // Si es fila de cuenta o sección
+    if (fila.querySelector('[data-cuenta]') || fila.dataset.cuenta || fila.classList.contains('fila-cuenta') || fila.classList.contains('section-header-row')) {
+      opciones.push({ clave: 'add_row', texto: 'Agregar cuenta/sección...' });
       opciones.push({ clave: 'delete_row', texto: 'Eliminar fila' });
-    } else if (fila.classList.contains('section-header-row')) {
-      opciones.push({ clave: 'delete_row', texto: 'Eliminar sección' });
+    } else {
+      opciones.push({ clave: 'add_row', texto: 'Agregar cuenta/sección...' });
     }
-    opciones.push({ clave: 'add_section', texto: 'Agregar sección' });
     if (!opciones.length) return;
     evt.preventDefault();
     mostrarMenuContextual(evt.pageX, evt.pageY, opciones);
@@ -722,8 +747,17 @@
   window.ModoEdicionPresupuesto = {
     /**
      * Inicializar el módulo
+     * @param {string} selectorTabla - Selector CSS de la tabla
+     * @param {object} opciones - { soloLayout: boolean } - Si true, solo edita cuenta/descripción
      */
-    inicializar: function(selectorTabla) {
+    inicializar: function(selectorTabla, opciones = {}) {
+      // Configurar modo soloLayout (para SUMMARY/RESUMEN)
+      estado.soloLayout = opciones.soloLayout === true;
+      
+      if (estado.soloLayout) {
+        console.log('📝 Modo SOLO LAYOUT: cuenta/descripción editables, NO valores numéricos');
+      }
+      
       const { tabla, selectorUsado } = resolverTabla(selectorTabla);
       if (!tabla) {
         console.error(`❌ No se encontró tabla en selector: ${selectorUsado}`);
@@ -789,7 +823,11 @@
       } catch (err) {
         console.warn('Error aplicando layout local', err);
       }
-      console.log(`✅ ModoEdicionPresupuesto: listeners inicializados (NO activo) en ${selectorUsado}`);
+      
+      const mensajeInicial = estado.soloLayout 
+        ? `✅ ModoEdicionPresupuesto (soloLayout): cuenta/descripción editables en ${selectorUsado}`
+        : `✅ ModoEdicionPresupuesto: listeners inicializados (NO activo) en ${selectorUsado}`;
+      console.log(mensajeInicial);
       return true;
     },
 

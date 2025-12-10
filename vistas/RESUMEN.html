@@ -898,122 +898,58 @@
       integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
       crossorigin="anonymous"
     ></script>
-    <script src="js/modo-edicion-presupuesto.js"></script>
     <script src="js/flujo-autorizacion.js?v=20251208-1"></script>
-    <script src="js/context-menu-manager.js?v=20251209-2"></script>
+    <script src="js/insertion-wizard.js"></script>
+    <script src="js/modo-edicion-presupuesto.js"></script>
     <script src="js/resumen-view.js"></script>
     <script>
-      // Inicialización del flujo para RESUMEN
+      // Inicialización de RESUMEN con FlujoAutorizacion
       document.addEventListener('DOMContentLoaded', () => {
         const selectorTabla = '#tablaComparacion';
         
-        // Inicializar ModoEdicionPresupuesto
-        if (typeof ModoEdicionPresupuesto !== 'undefined') {
-          const inicioOK = ModoEdicionPresupuesto.inicializar(selectorTabla);
-          if (!inicioOK) {
-            console.warn('⚠️ No se pudo inicializar ModoEdicionPresupuesto en RESUMEN');
-          }
-        }
-        
         setTimeout(() => {
-          if (typeof FlujoAutorizacion === 'undefined') {
-            console.warn('⚠️ FlujoAutorizacion no disponible en RESUMEN');
-            return;
+          // 1. Inicializar edición de presupuesto (solo layout para RESUMEN)
+          if (typeof ModoEdicionPresupuesto !== 'undefined') {
+            const inicioOK = ModoEdicionPresupuesto.inicializar(selectorTabla, {
+              soloLayout: true // RESUMEN solo edita cuenta/descripción, no valores numéricos
+            });
+            if (!inicioOK) {
+              console.warn('⚠️ No se pudo inicializar edición de layout en RESUMEN');
+            }
           }
           
-          const flujo = new FlujoAutorizacion({
-            tablaId: 'tablaCuentasBody',
-            modulo: 'RESUMEN',
-            obtenerCambios: () => {
-              // Capturar cambios del layout (cuentas/descripciones/filas)
-              const layoutActual = ModoEdicionPresupuesto?.cargarLayoutLocal?.() || null;
+          // 2. Inicializar FlujoAutorizacion para aprobar cambios de layout
+          if (typeof FlujoAutorizacion !== 'undefined') {
+            const flujo = new FlujoAutorizacion({
+              tablaId: 'tablaComparacion',
+              modulo: 'RESUMEN',
               
-              // RESUMEN no edita presupuesto, solo layout
-              const cambiosCombinados = {
-                presupuesto: [], // RESUMEN no modifica valores numéricos
-                nombres: [],
-                layout: layoutActual,
-                hayCambios: !!layoutActual
-              };
+              // RESUMEN solo captura cambios de LAYOUT (cuenta/descripción)
+              obtenerCambios: () => {
+                const layout = ModoEdicionPresupuesto?.capturarLayout(document.querySelector(selectorTabla));
+                
+                return {
+                  presupuesto: [], // RESUMEN no edita valores numéricos
+                  layout: layout,
+                  nombres: [],
+                  hayCambios: layout?.filas?.length > 0 && ModoEdicionPresupuesto.layoutModificado
+                };
+              },
               
-              console.log('📤 Obteniendo cambios RESUMEN:', cambiosCombinados);
-              return cambiosCombinados;
-            },
-            obtenerHeaders: () => (window.Sesion?.headersAutenticacion?.() || {}),
-            onEstadoChange: (estado) => {
-              console.log('🔄 Estado RESUMEN:', estado);
-            },
-            onGuardadoExitoso: () => {
-              // Limpiar después de guardar exitosamente
-              if (ModoEdicionPresupuesto?.limpiar) {
-                ModoEdicionPresupuesto.desactivar(selectorTabla);
-                ModoEdicionPresupuesto.limpiar();
+              obtenerHeaders: () => (window.Sesion?.headersAutenticacion?.() || {}),
+              
+              onCancelEdit: () => {
+                // No hacer nada, el layout se guarda automáticamente
               }
-            }
-          }).init?.();
-          
-          // Guardar referencia global
-          window.__flujoAutorizacionInstance = flujo;
+            }).init();
+            
+            window.__flujoAutorizacionInstance = flujo;
+            console.log('✅ FlujoAutorizacion inicializado para RESUMEN (solo layout)');
+          }
         }, 300);
       });
     </script>
 
-    <!-- Menú Contextual -->
-    <div id="contextMenu" class="context-menu" style="display: none; position: absolute; z-index: 10000; background: white; border: 1px solid #ccc; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); min-width: 220px;">
-      <div class="context-menu-item" data-action="add-row">
-        <i class="bi bi-plus-circle me-2"></i>
-        <span>Agregar cuenta</span>
-      </div>
-      <div class="context-menu-item" data-action="add-section">
-        <i class="bi bi-folder-plus me-2"></i>
-        <span>Agregar sección</span>
-      </div>
-      <div class="context-menu-item" data-action="add-operation">
-        <i class="bi bi-calculator me-2"></i>
-        <span>Crear operación</span>
-      </div>
-      <div class="context-menu-divider"></div>
-      <div class="context-menu-item" data-action="edit-row">
-        <i class="bi bi-pencil me-2"></i>
-        <span>Editar</span>
-      </div>
-      <div class="context-menu-item context-menu-danger" data-action="delete-row">
-        <i class="bi bi-trash me-2"></i>
-        <span>Eliminar</span>
-      </div>
-    </div>
-
-    <style>
-      .context-menu-item {
-        padding: 10px 16px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        font-size: 0.9rem;
-        transition: background 0.15s;
-        color: #333;
-      }
-      .context-menu-item:hover {
-        background: #f0f0f0;
-      }
-      .context-menu-item:first-child {
-        border-radius: 8px 8px 0 0;
-      }
-      .context-menu-item:last-child {
-        border-radius: 0 0 8px 8px;
-      }
-      .context-menu-divider {
-        height: 1px;
-        background: #e0e0e0;
-        margin: 4px 0;
-      }
-      .context-menu-danger {
-        color: #dc2626;
-      }
-      .context-menu-danger:hover {
-        background: #fee2e2;
-      }
-    </style>
   </body>
 </html>
 

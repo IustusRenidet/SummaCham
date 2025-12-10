@@ -74,19 +74,20 @@
         MODULOS: {
           cuenta: {
             required: ['numero', 'nombre'],
+            // Cuenta puede ir directo a SECCIÓN o dentro de OPERACIÓN (opcional)
             hierarchy: ['seccion', 'capitulo'],
-            hierarchyOptional: ['operacion'], // Operación es opcional
+            hierarchyOptional: ['operacion'], // Si hay operación, va cuenta→operación→sección
             format: /^\d{3}-\d{3}-\d{3}-\d{2}$/,
             formatLabel: 'XXX-XXX-XXX-XX (ej: 401-001-000-00)'
           },
           operacion: {
             required: ['nombre', 'etiquetaSum'],
-            hierarchy: ['seccion', 'capitulo'],
+            hierarchy: ['seccion', 'capitulo'], // Operación SIEMPRE va dentro de SECCIÓN
             autoCreate: ['sumRow']
           },
           seccion: {
             required: ['nombre', 'etiquetaSum'],
-            hierarchy: ['capitulo'],
+            hierarchy: ['capitulo'], // Sección va directo al CAPÍTULO
             autoCreate: ['sumRow']
           }
         }

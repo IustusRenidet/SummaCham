@@ -802,8 +802,8 @@
   <script src="js/sesion.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="js/flujo-autorizacion.js?v=20251208-1"></script>
-  <script src="js/modo-edicion-presupuesto.js?v=20251208-1"></script>
-  <script src="js/context-menu-manager.js?v=20251209-2"></script>
+  <script src="js/insertion-wizard.js"></script>
+  <script src="js/modo-edicion-presupuesto.js"></script>
   <script src="js/summary-view.js"></script>
   <script>
     (function () {
@@ -930,71 +930,46 @@
         const selectorTabla = document.body.dataset.tabla
           ? `#${document.body.dataset.tabla}`
           : '#tablaComparacion';
-        // 1. Inicializar el módulo de edición
-        const inicioOK = ModoEdicionPresupuesto.inicializar(selectorTabla);
         
-        if (!inicioOK) {
-          console.warn('⚠️ No se pudo inicializar modo edición (tabla no encontrada)');
+        // 1. Inicializar edición de presupuesto (solo layout para SUMMARY)
+        if (typeof ModoEdicionPresupuesto !== 'undefined') {
+          const inicioOK = ModoEdicionPresupuesto.inicializar(selectorTabla, {
+            soloLayout: true // SUMMARY solo edita cuenta/descripción, no valores numéricos
+          });
+          if (!inicioOK) {
+            console.warn('⚠️ No se pudo inicializar edición de layout');
+          }
         }
-
-        // 2. Inicializar el flujo de autorización CON callbacks
+        
+        // 2. Inicializar FlujoAutorizacion para aprobar cambios de layout
         if (typeof FlujoAutorizacion !== 'undefined') {
           const flujo = new FlujoAutorizacion({
             tablaId: document.body.dataset.tabla || 'tablaComparacion',
             modulo: 'SUMMARY',
             
-            // ✅ CALLBACK CRÍTICO: Extraer cambios de la tabla
+            // SUMMARY solo captura cambios de LAYOUT (cuenta/descripción)
             obtenerCambios: () => {
-              // Priorizar cambios de summary-view.js que captura cuenta/descripción
-              const cambiosSummary = window.CuentasModulo?.getCambios?.() || { presupuesto: [], hayCambios: false };
-              const cambiosModoEdicion = ModoEdicionPresupuesto?.obtenerCambios?.() || { presupuesto: [], nombres: [] };
+              const layout = ModoEdicionPresupuesto?.capturarLayout(document.querySelector(selectorTabla));
               
-              // Obtener el layout actual (estructura de la tabla)
-              const layoutActual = ModoEdicionPresupuesto?.cargarLayoutLocal?.() || null;
-              
-              // Combinar ambos: presupuestos numéricos + cambios de texto
-              const presupuestoMerged = [
-                ...cambiosSummary.presupuesto,
-                ...cambiosModoEdicion.presupuesto.filter(c => 
-                  !cambiosSummary.presupuesto.some(cs => cs.cuenta === c.cuenta)
-                )
-              ];
-              
-              const cambiosCombinados = {
-                presupuesto: presupuestoMerged,
-                layout: layoutActual, // INCLUIR LAYOUT para guardar en borrador
-                nombres: cambiosModoEdicion.nombres || [],
-                hayCambios: cambiosSummary.hayCambios || cambiosModoEdicion.presupuesto?.length > 0
+              return {
+                presupuesto: [], // SUMMARY no edita valores numéricos
+                layout: layout,
+                nombres: [],
+                hayCambios: layout?.filas?.length > 0 && ModoEdicionPresupuesto.layoutModificado
               };
-              
-              console.log('📤 Obteniendo cambios SUMMARY:', {
-                summaryView: cambiosSummary,
-                modoEdicion: cambiosModoEdicion,
-                layoutActual: layoutActual,
-                combinados: cambiosCombinados
-              });
-              
-              return cambiosCombinados;
             },
             
-            // Headers de autenticación
             obtenerHeaders: () => {
               return Sesion.headersAutenticacion?.() || {};
             },
             
-            // Callback cuando se cancela la edición
             onCancelEdit: () => {
-              ModoEdicionPresupuesto.desactivar(selectorTabla);
-              ModoEdicionPresupuesto.limpiar();
+              // No hacer nada, el layout se guarda automáticamente
             }
           }).init();
 
-          // 3. Guardar referencia global para context-menu y debugging
           window.__flujoAutorizacionInstance = flujo;
-          
-          console.log('✅ Flujo de autorización inicializado con callbacks');
-        } else {
-          console.warn('⚠️ FlujoAutorizacion no está disponible');
+          console.log('✅ FlujoAutorizacion inicializado para SUMMARY (solo layout)');
         }
       }, 500);
     });

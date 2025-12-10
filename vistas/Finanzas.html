@@ -597,15 +597,14 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
     integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
     crossorigin="anonymous"></script>
+  <script src="js/insertion-wizard.js"></script>
+  <script src="js/modo-edicion-presupuesto.js"></script>
   <script src="js/planeacion-modulo-vista.js"></script>
   <script src="js/flujo-autorizacion.js?v=20251208-1"></script>
   <script src="js/context-menu-manager.js?v=20251209-2"></script>
+  <script src="js/init-modulo-planeacion.js"></script>
   <script>
-    (async () => {
-      const instancia = CuentasModulo.init({ moduloId: 'finanzas' });
-      await instancia.ready;
-      initVistaModuloPlaneacion();
-    })();
+    initModuloPlaneacion({ moduloId: 'finanzas', moduloNombre: 'FINANZAS' });
   </script>
 </body>
 </html>
