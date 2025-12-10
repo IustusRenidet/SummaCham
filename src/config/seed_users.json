@@ -81,8 +81,8 @@
   },
   {
     "username": "AMB",
-    "nombres": "Ana",
-    "apellidoPrimero": "María Bustillos",
+    "nombres": "Ana María",
+    "apellidoPrimero": "Bustillos",
     "correo": "abustillos@amcham.org.mx",
     "permissions": [
       {
@@ -1178,7 +1178,7 @@
   {
     "username": "PCA",
     "nombres": "Pedro",
-    "apellidoPrimero": "Casas Alatriste",
+    "apellidoPrimero": "Casas",
     "correo": "pcasasalatriste@amcham.org.mx",
     "permissions": [
       {

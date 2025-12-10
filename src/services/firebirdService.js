@@ -3,7 +3,7 @@ const { obtenerEmpresaPorId } = require('../config/empresas');
 
 const OPCIONES_BASE = {
   host: process.env.FIREBIRD_HOST || '127.0.0.1',
-  port: Number(process.env.FIREBIRD_PORT || 15350),
+  port: Number(process.env.FIREBIRD_PORT || 3050),
   user: process.env.FIREBIRD_USER || 'sysdba',
   password: process.env.FIREBIRD_PASSWORD || 'masterkey',
   lowercase_keys: false,

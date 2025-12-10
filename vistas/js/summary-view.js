@@ -1016,12 +1016,32 @@
   const toastEl = document.getElementById('actionToast');
   const toastBody = document.getElementById('actionToastBody');
   const toastInst = toastEl ? window.bootstrap?.Toast.getOrCreateInstance(toastEl, { delay: 3000 }) : null;
+  
+  // Normalizar estado del backend (MAYÚSCULAS) a formato frontend (minúsculas-guiones)
+  const normalizarEstado = (estado) => {
+    if (!estado) return 'sin-cargar';
+    const mapa = {
+      'SIN_CARGAR': 'sin-cargar',
+      'EDITANDO': 'editando',
+      'REVISADO': 'revisado',
+      'APROBADO': 'autorizado',
+      'GUARDADO': 'guardado',
+      'PENDIENTE': 'pendiente',
+      'RECHAZADO': 'rechazado'
+    };
+    return mapa[estado] || estado.toLowerCase().replace(/_/g, '-');
+  };
+  
   const WORKFLOW_LABEL = {
     'sin-cargar': 'Sin cargar',
-    borrador: 'Borrador',
-    revisado: 'Revisado',
-    autorizado: 'Autorizado',
-    guardado: 'Guardado en COI'
+    'borrador': 'Borrador',
+    'editando': 'Editando',
+    'revisado': 'Revisado',
+    'autorizado': 'Autorizado',
+    'aprobado': 'Aprobado',
+    'guardado': 'Guardado en COI',
+    'pendiente': 'Pendiente',
+    'rechazado': 'Rechazado'
   };
 
   const showToast = (msg, variant = 'text-bg-success') => {
@@ -1088,10 +1108,13 @@
       });
       const data = await resp.json().catch(() => ({}));
       if (!resp.ok) throw new Error(data.mensaje || 'No fue posible obtener el estado.');
-      workflowEstado.estado = data.estado || 'sin-cargar';
+      workflowEstado.estado = normalizarEstado(data.estado);
       workflowEstado.actualizadoEn = data.actualizadoEn || null;
       workflowEstado.actualizadoPor = data.actualizadoPor || '';
-      workflowEstado.historial = data.historial || [];
+      workflowEstado.historial = (data.historial || []).map(h => ({
+        ...h,
+        estado: normalizarEstado(h.estado)
+      }));
       renderWorkflow();
     } catch (err) {
       console.warn('Workflow Summary', err);
@@ -1113,10 +1136,13 @@
       });
       const data = await resp.json().catch(() => ({}));
       if (!resp.ok) throw new Error(data.mensaje || 'No fue posible registrar la acción.');
-      workflowEstado.estado = data.estado || workflowEstado.estado;
+      workflowEstado.estado = normalizarEstado(data.estado) || workflowEstado.estado;
       workflowEstado.actualizadoEn = data.actualizadoEn || null;
       workflowEstado.actualizadoPor = data.actualizadoPor || '';
-      workflowEstado.historial = data.historial || workflowEstado.historial;
+      workflowEstado.historial = (data.historial || workflowEstado.historial).map(h => ({
+        ...h,
+        estado: normalizarEstado(h.estado)
+      }));
       renderWorkflow();
       showToast(data.mensaje || 'Acción registrada.');
     } catch (err) {
