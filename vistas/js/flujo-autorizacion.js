@@ -900,6 +900,19 @@
         });
     }
 
+    _manejarSesionExpirada(resp) {
+      if (resp?.status === 401) {
+        try {
+          if (typeof Sesion?.limpiar === "function") {
+            Sesion.limpiar();
+          }
+        } catch (e) { /* ignore */ }
+        window.location.href = "login.html";
+        return true;
+      }
+      return false;
+    }
+
     async _refreshEstado() {
       this._hydrateContext();
       if (!this._contextoCompleto()) {
@@ -923,6 +936,7 @@
             headers: this._construirHeaders(),
           }
         );
+        if (this._manejarSesionExpirada(resp)) return;
         const data = await resp.json().catch(() => ({}));
         if (!resp.ok)
           throw new Error(
@@ -1004,6 +1018,15 @@
       if (!silent) this.state.hayCambios = false;
       this.tableElement?.classList.add("modo-edicion");
       window.CuentasModulo?.setEditMode?.(true);
+      // Activar ModoEdicionPresupuesto para habilitar edición de celdas numéricas (que SÍ se insertan a COI)
+      if (window.ModoEdicionPresupuesto?.activar) {
+        try { 
+          window.ModoEdicionPresupuesto.activar();
+          console.log('🟢 Flujo Autorización: modo edición ACTIVADO (celdas numéricas editables)');
+        } catch (e) { 
+          console.warn('Error activando ModoEdicionPresupuesto:', e);
+        }
+      }
       this._renderBotones();
     }
 
@@ -1020,6 +1043,15 @@
         }
       }
       window.CuentasModulo?.setEditMode?.(false);
+      // Desactivar ModoEdicionPresupuesto
+      if (window.ModoEdicionPresupuesto?.desactivar) {
+        try {
+          window.ModoEdicionPresupuesto.desactivar();
+          console.log('🔴 Flujo Autorización: modo edición DESACTIVADO');
+        } catch (e) {
+          console.warn('Error desactivando ModoEdicionPresupuesto:', e);
+        }
+      }
       this._renderBotones();
     }
 

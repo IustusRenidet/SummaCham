@@ -40,6 +40,65 @@
   const normalizeString = (s) => (s || '').toString().normalize('NFD').replace(/\p{Diacritic}/gu, '').toUpperCase().trim();
   const API_BASE = window.location.protocol === 'file:' ? 'http://localhost:3005' : window.location.origin;
 
+  /**
+   * Cargar catálogo completo de cuentas desde CUENTASYY (Firebird)
+   */
+  async function cargarCatalogoCuentas(empresaId, anio) {
+    try {
+      if (!empresaId || !Number.isInteger(Number(anio))) {
+        console.warn('⚠️ Parámetros inválidos para cargar catálogo de cuentas');
+        return [];
+      }
+      
+      const ruta = `${API_BASE}/api/saldos/catalogo?empresaId=${encodeURIComponent(empresaId)}&anio=${Number(anio)}`;
+      const headers = (typeof Sesion !== 'undefined' && typeof Sesion.headersAutenticacion === 'function') 
+        ? Sesion.headersAutenticacion() 
+        : {};
+      
+      const resp = await fetch(ruta, { headers });
+      if (!resp.ok) {
+        console.warn(`⚠️ Error al cargar catálogo: ${resp.status}`);
+        return [];
+      }
+      
+      const data = await resp.json();
+      const cuentas = data.cuentas || [];
+      
+      console.log(`✅ Catálogo cargado: ${cuentas.length} cuentas de CUENTASYY ${anio}`);
+      estado.cuentasDisponibles = cuentas;
+      return cuentas;
+    } catch (err) {
+      console.error('❌ Error cargando catálogo de cuentas:', err);
+      return [];
+    }
+  }
+
+  /**
+   * Crear/actualizar datalist con las cuentas disponibles
+   */
+  function crearDatalistCuentas() {
+    let datalist = document.getElementById('datalist-cuentas-autocomplete');
+    if (!datalist) {
+      datalist = document.createElement('datalist');
+      datalist.id = 'datalist-cuentas-autocomplete';
+      document.body.appendChild(datalist);
+    }
+    
+    datalist.innerHTML = '';
+    
+    estado.cuentasDisponibles.forEach(cta => {
+      const option = document.createElement('option');
+      // Formato: "401-001-000-00 - Renovaciones"
+      const cuenta = cta.cuenta || '';
+      const nombre = cta.nombre || '';
+      option.value = cuenta;
+      option.textContent = nombre ? `${cuenta} - ${nombre}` : cuenta;
+      datalist.appendChild(option);
+    });
+    
+    return datalist.id;
+  }
+
   // Helpers para persistir layout (cuenta/descripcion) por empresa/anio/modulo
   const obtenerClaveLayoutLocal = ({ moduloClave, empresaId, anio }) => {
     if (!moduloClave || !empresaId || !Number.isInteger(anio)) return null;
@@ -162,12 +221,13 @@
     });
 
     // Celdas de texto (codigo / descripcion / nombre) - click to edit
-    const textoCells = tabla.querySelectorAll('[data-role="descripcion"], th[data-role="code"], td[data-columna-clave="codigo"], td[data-columna-clave="label"]');
+    // IMPORTANTE: Estas columnas NO requieren modo edición activo porque NO se insertan a COI
+    const textoCells = tabla.querySelectorAll('[data-role="descripcion"], th[data-role="code"], td[data-columna-clave="codigo"], td[data-columna-clave="label"], td[data-columna-clave="cuenta"], td[data-columna-clave="descripcion"]');
     textoCells.forEach((celda) => {
       celda.style.cursor = 'text';
       celda.addEventListener('click', (ev) => {
         ev.stopPropagation();
-        if (!estado.modoEdicionActivo) return;
+        // Permitir edición de CUENTAS/DESCRIPCION siempre (no se insertan a COI)
         activarEdicionTextoEnCelda(celda);
       });
       // Commit if content editable change arrives from other modules
@@ -238,6 +298,8 @@
 
   /**
    * Activar edición textual (cuenta/descripcion) en una celda
+   * NOTA: CUENTAS y DESCRIPCION se pueden editar SIEMPRE (no requieren modo edición activo)
+   * porque NO se insertan a COI - solo son para visualización/organización local
    */
   function activarEdicionTextoEnCelda(celda) {
     if (!celda || celda.classList.contains(CLASE_EDITANDO)) return;
@@ -248,6 +310,18 @@
     input.value = valor;
     input.className = 'edit-input-text';
     input.maxLength = 250;
+
+    // Si es columna de cuenta/codigo, agregar autocomplete
+    const columna = celda.dataset.columnaClave || celda.dataset.columnaKey || '';
+    if (columna === 'codigo' || columna === 'cuenta') {
+      const datalistId = crearDatalistCuentas();
+      input.setAttribute('list', datalistId);
+      input.placeholder = 'Buscar cuenta...';
+      
+      // Ayuda visual: agregar ícono de búsqueda
+      celda.style.position = 'relative';
+      input.style.paddingRight = '25px';
+    }
 
     celda.textContent = '';
     celda.appendChild(input);
@@ -474,7 +548,7 @@
       celda.title = 'Click para editar';
     });
     
-    console.log('✅ Modo edición ACTIVADO');
+    console.log('🟢 ModoEdicionPresupuesto: ACTIVADO (celdas numéricas editables)');
   }
 
   /**
@@ -671,6 +745,32 @@
 
       estado.selectorTabla = selectorUsado;
       inicializarCeldasEditables(tabla);
+      
+      // Cargar catálogo de cuentas desde CUENTASYY (Firebird)
+      try {
+        const empresa = Sesion?.obtenerEmpresaActiva?.();
+        const anioSeleccion = Number(document.getElementById('selectAnio')?.value || new Date().getFullYear());
+        const anio = Number.isInteger(anioSeleccion) ? anioSeleccion : null;
+        
+        if (empresa?.id && Number.isInteger(anio)) {
+          cargarCatalogoCuentas(empresa.id, anio);
+          
+          // Escuchar cambios de año para recargar catálogo
+          const selectAnio = document.getElementById('selectAnio');
+          if (selectAnio && !selectAnio.dataset.catalogoListener) {
+            selectAnio.dataset.catalogoListener = 'true';
+            selectAnio.addEventListener('change', () => {
+              const nuevoAnio = Number(selectAnio.value);
+              if (Number.isInteger(nuevoAnio) && empresa?.id) {
+                cargarCatalogoCuentas(empresa.id, nuevoAnio);
+              }
+            });
+          }
+        }
+      } catch (err) {
+        console.warn('⚠️ Error cargando catálogo de cuentas:', err);
+      }
+      
       // Intentar cargar layout guardado localmente y aplicarlo
       try {
         const empresa = Sesion.obtenerEmpresaActiva();
@@ -689,7 +789,7 @@
       } catch (err) {
         console.warn('Error aplicando layout local', err);
       }
-      console.log(`✅ Modo edición inicializado sobre ${selectorUsado}`);
+      console.log(`✅ ModoEdicionPresupuesto: listeners inicializados (NO activo) en ${selectorUsado}`);
       return true;
     },
 

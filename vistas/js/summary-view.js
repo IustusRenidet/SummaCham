@@ -25,6 +25,15 @@
   let empresaActual = null;
   let mesClaveActual = 'dic';
   let mesNumeroActual = 12;
+
+  const manejarSesionExpirada = (resp) => {
+    if (resp?.status === 401) {
+      try { Sesion.limpiar(); } catch (_) { /* noop */ }
+      window.location.href = 'login.html';
+      return true;
+    }
+    return false;
+  };
   const leerAnioSeleccionado = () => Number(selectAnio?.value) || new Date().getFullYear();
   const leerMesSeleccionado = () => Number(selectMes?.value) || (new Date().getMonth() + 1);
   const obtenerSelectorGlobalEmpresa = () => window.parent?.document?.getElementById('companyFilter') || null;
@@ -132,8 +141,8 @@
       if (editMode) return;
       editMode = true;
       sincronizarCeldasEditables();
-      // NO activar ModoEdicionPresupuesto automáticamente
-      // Solo se activa cuando el usuario hace clic en "Editar"
+      // ModoEdicionPresupuesto se activa desde flujo de autorización (FlujoAutorizacion._enterEditMode)
+      console.log('✅ Summary: contentEditable habilitado en celdas de texto');
       return;
     }
     if (editMode) {
@@ -1106,6 +1115,7 @@
       const resp = await fetch(`${API_WORKFLOW_ESTADO}?${params.toString()}`, {
         headers: Sesion.headersAutenticacion()
       });
+      if (manejarSesionExpirada(resp)) return;
       const data = await resp.json().catch(() => ({}));
       if (!resp.ok) throw new Error(data.mensaje || 'No fue posible obtener el estado.');
       workflowEstado.estado = normalizarEstado(data.estado);
@@ -1134,6 +1144,7 @@
         headers: { 'Content-Type': 'application/json', ...Sesion.headersAutenticacion() },
         body: JSON.stringify({ accion, modulo, anio: ctx.anio })
       });
+      if (manejarSesionExpirada(resp)) return;
       const data = await resp.json().catch(() => ({}));
       if (!resp.ok) throw new Error(data.mensaje || 'No fue posible registrar la acción.');
       workflowEstado.estado = normalizarEstado(data.estado) || workflowEstado.estado;
@@ -1180,6 +1191,7 @@
           datos: cambios
         })
       });
+      if (manejarSesionExpirada(resp)) return;
       const data = await resp.json().catch(() => ({}));
       if (!resp.ok) throw new Error(data.mensaje || 'No fue posible guardar en COI.');
       showToast(data.mensaje || 'Guardado en COI.');
@@ -1250,6 +1262,7 @@
       const response = await fetch(`${API_ENDPOINT}?${params.toString()}`, {
         headers: Sesion.headersAutenticacion()
       });
+      if (manejarSesionExpirada(response)) return;
       if (!response.ok) {
         throw new Error('No fue posible obtener el Summary.');
       }
@@ -1275,7 +1288,9 @@
       const response = await fetch(`${API_ANIOS}?empresaId=${encodeURIComponent(empresaId)}`, {
         headers: Sesion.headersAutenticacion()
       });
-      
+
+      if (manejarSesionExpirada(response)) return [];
+
       if (!response.ok) {
         throw new Error('No fue posible obtener años disponibles');
       }
@@ -1332,16 +1347,34 @@
 
     empresaActual = empresa;
     await aplicarEmpresa(empresaActual.id);
-    // Aplicar layout guardado localmente (si existe)
+    
+    // Aplicar layout guardado (servidor primero, luego localStorage)
     try {
-      const layoutLocal = window.CuentasModulo?.cargarLayoutLocal?.();
-      if (layoutLocal && window.CuentasModulo?.aplicarLayoutLocal) {
-        window.CuentasModulo.aplicarLayoutLocal(layoutLocal);
-      } else if (layoutLocal && window.ModoEdicionPresupuesto?.aplicarLayoutLocal) {
-        window.ModoEdicionPresupuesto.aplicarLayoutLocal(layoutLocal);
+      const anio = leerAnioSeleccionado();
+      const moduloClave = modulo;
+      
+      // Intentar cargar desde servidor primero
+      const layoutServidor = await fetch(
+        `${base}/api/layouts?empresaId=${empresa.id}&modulo=${moduloClave}&anio=${anio}`,
+        { headers: Sesion.headersAutenticacion?.() || {} }
+      ).then(r => r.ok ? r.json() : null).catch(() => null);
+      
+      if (layoutServidor?.layout && window.ModoEdicionPresupuesto?.aplicarLayoutLocal) {
+        window.ModoEdicionPresupuesto.aplicarLayoutLocal(layoutServidor.layout);
+        console.log('\u2705 Layout aplicado desde servidor:', layoutServidor.layout);
+      } else {
+        // Fallback: cargar desde localStorage
+        const layoutLocal = window.CuentasModulo?.cargarLayoutLocal?.();
+        if (layoutLocal && window.CuentasModulo?.aplicarLayoutLocal) {
+          window.CuentasModulo.aplicarLayoutLocal(layoutLocal);
+          console.log('\u2705 Layout aplicado desde localStorage:', layoutLocal);
+        } else if (layoutLocal && window.ModoEdicionPresupuesto?.aplicarLayoutLocal) {
+          window.ModoEdicionPresupuesto.aplicarLayoutLocal(layoutLocal);
+          console.log('\u2705 Layout aplicado desde localStorage (ModoEdicion):', layoutLocal);
+        }
       }
     } catch (err) {
-      console.warn('Error aplicando layout local en Summary', err);
+      console.warn('Error aplicando layout en Summary', err);
     }
 
     const leerCapitulo = () => (selectCapitulo?.value || '').toString().trim();

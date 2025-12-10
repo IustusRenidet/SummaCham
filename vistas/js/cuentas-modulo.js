@@ -2579,10 +2579,35 @@
     estadoModulo.tabla.classList.remove('modo-edicion');
   };
 
+  const habilitarEdicionTextoBasica = () => {
+    if (!estadoModulo.tabla) return;
+    const filas = obtenerFilasCuenta();
+    filas.forEach((fila) => {
+      const celdaCuenta = fila.cells[0];
+      const celdaNombre = fila.cells[1];
+      if (celdaCuenta && !celdaCuenta.dataset.textEditable) {
+        celdaCuenta.contentEditable = 'true';
+        celdaCuenta.dataset.textEditable = 'cuenta';
+        celdaCuenta.addEventListener('blur', () => {
+          manejarCambioCuenta(fila, celdaCuenta);
+          setTimeout(() => ocultarSugerencias(), 150);
+        });
+        celdaCuenta.addEventListener('input', () => mostrarSugerenciasCuenta(celdaCuenta, celdaCuenta.textContent));
+        celdaCuenta.addEventListener('focus', () => mostrarSugerenciasCuenta(celdaCuenta, celdaCuenta.textContent));
+      }
+      if (celdaNombre && !celdaNombre.dataset.textEditable) {
+        celdaNombre.contentEditable = 'true';
+        celdaNombre.dataset.textEditable = 'nombre';
+        celdaNombre.addEventListener('blur', () => manejarCambioNombre(fila, celdaNombre));
+      }
+    });
+  };
+
   const aplicarModoEdicionEnTabla = () => {
     if (!estadoModulo.tabla) return;
     if (!estadoModulo.editMode) {
       limpiarModoEdicionEnTabla();
+      habilitarEdicionTextoBasica();
       return;
     }
     estadoModulo.tabla.classList.add('modo-edicion');
@@ -2999,6 +3024,7 @@
     solicitarDatos();
     activarTooltipsCuentas();
     aplicarModoEdicionEnTabla();
+    habilitarEdicionTextoBasica();
 
     if (!moduloReadyDispatched) {
       moduloReadyDispatched = true;

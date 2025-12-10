@@ -898,42 +898,61 @@
       integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
       crossorigin="anonymous"
     ></script>
+    <script src="js/modo-edicion-presupuesto.js"></script>
     <script src="js/flujo-autorizacion.js?v=20251208-1"></script>
     <script src="js/context-menu-manager.js?v=20251209-2"></script>
     <script src="js/resumen-view.js"></script>
     <script>
-      // Inicialización del flujo para RESUMEN (modo lectura)
+      // Inicialización del flujo para RESUMEN
       document.addEventListener('DOMContentLoaded', () => {
+        const selectorTabla = '#tablaComparacion';
+        
+        // Inicializar ModoEdicionPresupuesto
+        if (typeof ModoEdicionPresupuesto !== 'undefined') {
+          const inicioOK = ModoEdicionPresupuesto.inicializar(selectorTabla);
+          if (!inicioOK) {
+            console.warn('⚠️ No se pudo inicializar ModoEdicionPresupuesto en RESUMEN');
+          }
+        }
+        
         setTimeout(() => {
           if (typeof FlujoAutorizacion === 'undefined') {
             console.warn('⚠️ FlujoAutorizacion no disponible en RESUMEN');
             return;
           }
+          
           const flujo = new FlujoAutorizacion({
             tablaId: 'tablaCuentasBody',
-            modulo: 'resumen',
+            modulo: 'RESUMEN',
             obtenerCambios: () => {
-              // Obtener cambios de resumen-view.js que captura cuenta/descripción
-              const cambiosResumen = window.CuentasModulo?.getCambios?.() || { presupuesto: [], hayCambios: false };
+              // Capturar cambios del layout (cuentas/descripciones/filas)
+              const layoutActual = ModoEdicionPresupuesto?.cargarLayoutLocal?.() || null;
               
-              console.log('📤 Obteniendo cambios RESUMEN:', cambiosResumen);
-              
-              return {
-                presupuesto: cambiosResumen.presupuesto || [],
+              // RESUMEN no edita presupuesto, solo layout
+              const cambiosCombinados = {
+                presupuesto: [], // RESUMEN no modifica valores numéricos
                 nombres: [],
-                hayCambios: cambiosResumen.hayCambios || false
+                layout: layoutActual,
+                hayCambios: !!layoutActual
               };
+              
+              console.log('📤 Obteniendo cambios RESUMEN:', cambiosCombinados);
+              return cambiosCombinados;
             },
             obtenerHeaders: () => (window.Sesion?.headersAutenticacion?.() || {}),
             onEstadoChange: (estado) => {
               console.log('🔄 Estado RESUMEN:', estado);
-              if (estado === 'EDITANDO') {
-                console.warn('⚠️ RESUMEN: Esta vista es de solo lectura.');
+            },
+            onGuardadoExitoso: () => {
+              // Limpiar después de guardar exitosamente
+              if (ModoEdicionPresupuesto?.limpiar) {
+                ModoEdicionPresupuesto.desactivar(selectorTabla);
+                ModoEdicionPresupuesto.limpiar();
               }
             }
           }).init?.();
           
-          // Guardar referencia global para context-menu y debugging
+          // Guardar referencia global
           window.__flujoAutorizacionInstance = flujo;
         }, 300);
       });

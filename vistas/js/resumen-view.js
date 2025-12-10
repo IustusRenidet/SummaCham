@@ -38,6 +38,15 @@
   const yearLabel = document.getElementById('yearLabel');
   const empresaLabel = document.getElementById('empresaLabel');
   const searchInput = document.getElementById('accountSearch');
+
+  const manejarSesionExpirada = (resp) => {
+    if (resp?.status === 401) {
+      try { Sesion.limpiar(); } catch (_) { /* ignore */ }
+      window.location.href = 'login.html';
+      return true;
+    }
+    return false;
+  };
   const toggleBtn = document.getElementById('toggleAccountsBtn');
 
   const obtenerCapituloEmpresa = (empresaId) => window.CapitulosModulos?.obtenerCapituloPorEmpresa?.(empresaId) || null;
@@ -752,6 +761,8 @@
         headers: Sesion.headersAutenticacion()
       });
 
+      if (manejarSesionExpirada(response)) return [];
+
       if (!response.ok) {
         throw new Error('No fue posible obtener años disponibles');
       }
@@ -793,17 +804,18 @@
     actualizarMesContexto(mes);
     try {
       const params = new URLSearchParams({ empresaId: empresaId, anio: Number(anio) });
-      if (Number.isInteger(mes)) {
-        params.set('mes', String(mes));
-      }
-      const capitulo = obtenerCapituloEmpresa(empresaId);
-      if (capitulo) params.set('capitulo', capitulo);
-      const respuesta = await fetch(`${API_ENDPOINT}?${params.toString()}`, {
-        headers: Sesion.headersAutenticacion()
-      });
-      if (!respuesta.ok) {
-        throw new Error('No fue posible obtener el resumen.');
-      }
+    if (Number.isInteger(mes)) {
+      params.set('mes', String(mes));
+    }
+    const capitulo = obtenerCapituloEmpresa(empresaId);
+    if (capitulo) params.set('capitulo', capitulo);
+    const respuesta = await fetch(`${API_ENDPOINT}?${params.toString()}`, {
+      headers: Sesion.headersAutenticacion()
+    });
+    if (manejarSesionExpirada(respuesta)) return;
+    if (!respuesta.ok) {
+      throw new Error('No fue posible obtener el resumen.');
+    }
       const datos = await respuesta.json();
       renderResumen(datos.resumen || [], mes);
       actualizarEtiquetasAnio(Number(anio));
@@ -867,16 +879,32 @@
 
     empresaActual = empresa;
     await aplicarEmpresaResumen(empresaActual.id);
-    // Aplicar layout guardado localmente (si existe)
+    
+    // 🔄 Cargar layout desde servidor (layout_templates) primero
+    const anio = leerAnioSeleccionado();
+    const moduloClave = 'RESUMEN';
+    
     try {
-      const layoutLocal = window.CuentasModulo?.cargarLayoutLocal?.();
-      if (layoutLocal && window.CuentasModulo?.aplicarLayoutLocal) {
-        window.CuentasModulo.aplicarLayoutLocal(layoutLocal);
-      } else if (layoutLocal && window.ModoEdicionPresupuesto?.aplicarLayoutLocal) {
-        window.ModoEdicionPresupuesto.aplicarLayoutLocal(layoutLocal);
+      const layoutServidor = await fetch(`${base}/api/layouts?empresaId=${empresa.id}&modulo=${moduloClave}&anio=${anio}`)
+        .then(r => r.ok ? r.json() : null)
+        .catch(() => null);
+      
+      if (layoutServidor?.datos) {
+        console.log('✅ Layout cargado desde servidor (RESUMEN):', layoutServidor);
+        if (window.ModoEdicionPresupuesto?.aplicarLayoutLocal) {
+          window.ModoEdicionPresupuesto.aplicarLayoutLocal(layoutServidor.datos);
+        }
+      } else {
+        // Fallback: cargar desde localStorage
+        console.log('📦 No hay layout en servidor, intentando localStorage...');
+        const layoutLocal = window.ModoEdicionPresupuesto?.cargarLayoutLocal?.();
+        if (layoutLocal && window.ModoEdicionPresupuesto?.aplicarLayoutLocal) {
+          window.ModoEdicionPresupuesto.aplicarLayoutLocal(layoutLocal);
+          console.log('✅ Layout aplicado desde localStorage');
+        }
       }
     } catch (err) {
-      console.warn('Error aplicando layout local en Resumen', err);
+      console.warn('⚠️ Error cargando layout en RESUMEN:', err);
     }
 
     sincronizarSelectorEmpresaGlobal();
@@ -1026,6 +1054,7 @@
       const resp = await fetch(`${API_WORKFLOW_ESTADO}?${params.toString()}`, {
         headers: Sesion.headersAutenticacion()
       });
+      if (manejarSesionExpirada(resp)) return;
       const data = await resp.json().catch(() => ({}));
       if (!resp.ok) throw new Error(data.mensaje || 'No fue posible obtener el estado.');
       workflowEstado.estado = normalizarEstado(data.estado);
@@ -1054,6 +1083,7 @@
         headers: { 'Content-Type': 'application/json', ...Sesion.headersAutenticacion() },
         body: JSON.stringify({ accion, modulo, anio: ctx.anio })
       });
+      if (manejarSesionExpirada(resp)) return;
       const data = await resp.json().catch(() => ({}));
       if (!resp.ok) throw new Error(data.mensaje || 'No fue posible registrar la acción.');
       workflowEstado.estado = normalizarEstado(data.estado) || workflowEstado.estado;
@@ -1099,6 +1129,7 @@
           datos: cambios
         })
       });
+      if (manejarSesionExpirada(resp)) return;
       const data = await resp.json().catch(() => ({}));
       if (!resp.ok) throw new Error(data.mensaje || 'No fue posible guardar en COI.');
       showToast(data.mensaje || 'Guardado en COI.');

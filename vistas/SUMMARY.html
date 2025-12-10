@@ -941,13 +941,16 @@
         if (typeof FlujoAutorizacion !== 'undefined') {
           const flujo = new FlujoAutorizacion({
             tablaId: document.body.dataset.tabla || 'tablaComparacion',
-            modulo: 'PRESUPUESTOS',
+            modulo: 'SUMMARY',
             
             // ✅ CALLBACK CRÍTICO: Extraer cambios de la tabla
             obtenerCambios: () => {
               // Priorizar cambios de summary-view.js que captura cuenta/descripción
               const cambiosSummary = window.CuentasModulo?.getCambios?.() || { presupuesto: [], hayCambios: false };
               const cambiosModoEdicion = ModoEdicionPresupuesto?.obtenerCambios?.() || { presupuesto: [], nombres: [] };
+              
+              // Obtener el layout actual (estructura de la tabla)
+              const layoutActual = ModoEdicionPresupuesto?.cargarLayoutLocal?.() || null;
               
               // Combinar ambos: presupuestos numéricos + cambios de texto
               const presupuestoMerged = [
@@ -959,6 +962,7 @@
               
               const cambiosCombinados = {
                 presupuesto: presupuestoMerged,
+                layout: layoutActual, // INCLUIR LAYOUT para guardar en borrador
                 nombres: cambiosModoEdicion.nombres || [],
                 hayCambios: cambiosSummary.hayCambios || cambiosModoEdicion.presupuesto?.length > 0
               };
@@ -966,6 +970,7 @@
               console.log('📤 Obteniendo cambios SUMMARY:', {
                 summaryView: cambiosSummary,
                 modoEdicion: cambiosModoEdicion,
+                layoutActual: layoutActual,
                 combinados: cambiosCombinados
               });
               

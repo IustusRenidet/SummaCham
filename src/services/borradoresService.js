@@ -385,7 +385,10 @@ const  persistirEnFirebird = async (borrador) => {
     guardadoPor: Number(borrador.usuarioId) || null,
   });
 
-  // 2. Guardar en Firebird PRESUP table Y CUENTAS (si hay cambios de cuenta/descripción)
+  // 2. Guardar LAYOUT (estructura de tabla: cuentas/descripciones/filas) en layout_templates
+  const { guardarLayout } = require('./layoutsService');
+  
+  // 3. Guardar en Firebird PRESUP table (solo valores numéricos)
   const { ejecutarConsulta } = require("./firebirdService");
 
   let datos;
@@ -403,12 +406,31 @@ const  persistirEnFirebird = async (borrador) => {
     ? datos.presupuesto
     : [];
 
-  // ✅ MEJORA: Validar que hay datos antes de proceder
+  // ✅ PASO 1: Guardar LAYOUT (estructura) en layout_templates
+  // El layout incluye: cuentas, descripciones, orden de filas, secciones creadas
+  if (datos?.layout || datos?.filas) {
+    const layoutData = datos.layout || { filas: datos.filas || [] };
+    try {
+      guardarLayout({
+        empresaId: borrador.empresaId,
+        modulo: borrador.modulo,
+        anio: borrador.anio,
+        layout: layoutData,
+        usuarioId: Number(borrador.usuarioId) || null
+      });
+      console.log(`✅ Layout guardado en layout_templates (${borrador.empresaId}/${borrador.modulo}/${borrador.anio})`);
+    } catch (layoutError) {
+      console.error(`❌ Error guardando layout:`, layoutError);
+      // No bloquear - continuar con presupuesto
+    }
+  }
+
+  // ✅ PASO 2: Validar que hay datos de presupuesto antes de proceder
   if (!presupuesto || presupuesto.length === 0) {
     console.warn(
       `⚠️ Borrador ${borrador.id} (${borrador.empresaId}/${borrador.modulo}/${borrador.anio}) sin datos presupuestarios`
     );
-    // No lanzar error - permitir guardar estado como GUARDADO pero registrar en logs
+    // No lanzar error - puede ser un borrador solo con cambios de layout
     return;
   }
 
@@ -473,7 +495,8 @@ const  persistirEnFirebird = async (borrador) => {
 
     // SOLO procesar cambios numéricos (meses), ignorar campos de texto
     Object.entries(valores).forEach(([clave, valor]) => {
-      // Ignorar cambios de texto (cuenta, descripcion, nombre) - son solo visuales
+      // Ignorar cambios de texto (cuenta, descripcion, nombre)
+      // Estos ya fueron guardados en layout_templates arriba
       if (clave === 'cuenta' || clave === 'descripcion' || clave === 'nombre') {
         return;
       }
