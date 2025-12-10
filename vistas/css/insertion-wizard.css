@@ -1,0 +1,261 @@
+/**
+ * insertion-wizard.css
+ * Estilos para el sistema de inserción inteligente
+ */
+
+/* Modal personalizado */
+#insertionWizardModal .modal-dialog {
+  max-width: 700px;
+}
+
+#insertionWizardModal .modal-content {
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+#insertionWizardModal .modal-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+}
+
+#insertionWizardModal .btn-close {
+  filter: brightness(0) invert(1);
+}
+
+/* Progress Bar */
+#insertionWizardModal .progress {
+  background-color: #e9ecef;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+#insertionWizardModal .progress-bar {
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  transition: width 0.3s ease;
+}
+
+/* Step Container */
+.wizard-step {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* List Group Items (Paso 1) */
+#insertionWizardModal .list-group-item {
+  border-radius: 8px !important;
+  margin-bottom: 10px;
+  border: 2px solid #e9ecef;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+#insertionWizardModal .list-group-item:hover {
+  background-color: #f8f9fa;
+  border-color: #667eea;
+  transform: translateX(5px);
+}
+
+#insertionWizardModal .list-group-item input[type="radio"]:checked ~ div {
+  color: #667eea;
+}
+
+#insertionWizardModal .list-group-item:has(input:checked) {
+  background-color: #f0f4ff;
+  border-color: #667eea;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+}
+
+/* Form Controls */
+#insertionWizardModal .form-control,
+#insertionWizardModal .form-select {
+  border-radius: 8px;
+  border: 2px solid #e9ecef;
+  transition: all 0.2s ease;
+}
+
+#insertionWizardModal .form-control:focus,
+#insertionWizardModal .form-select:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+}
+
+/* Validation States */
+#insertionWizardModal .form-control.is-valid,
+#insertionWizardModal .form-select.is-valid {
+  border-color: #28a745;
+  padding-right: calc(1.5em + 0.75rem);
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%2328a745' d='M2.3 6.73L.6 4.53c-.4-1.04.46-1.4 1.1-.8l1.1 1.4 3.4-3.8c.6-.63 1.6-.27 1.2.7l-4 4.6c-.43.5-.8.4-1.1.1z'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right calc(0.375em + 0.1875rem) center;
+  background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+}
+
+#insertionWizardModal .form-control.is-invalid,
+#insertionWizardModal .form-select.is-invalid {
+  border-color: #dc3545;
+  padding-right: calc(1.5em + 0.75rem);
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right calc(0.375em + 0.1875rem) center;
+  background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+}
+
+/* Contextual Help */
+#insertionWizardModal .alert-info {
+  background-color: #e7f3ff;
+  border-color: #bee5eb;
+  color: #0c5460;
+  border-radius: 8px;
+  border-left: 4px solid #17a2b8;
+}
+
+/* Insertion Preview */
+.insertion-preview {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-left: 4px solid #28a745;
+  border-radius: 8px;
+  padding: 15px;
+  margin-top: 15px;
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.insertion-preview strong {
+  color: #28a745;
+  font-size: 14px;
+}
+
+.insertion-preview .text-muted {
+  font-size: 13px;
+  margin-top: 5px;
+}
+
+.insertion-preview .text-success {
+  font-size: 13px;
+  margin-top: 5px;
+  font-weight: 500;
+}
+
+/* Footer Buttons */
+#insertionWizardModal .modal-footer {
+  border-top: 2px solid #e9ecef;
+  padding: 15px 20px;
+}
+
+#insertionWizardModal .modal-footer .btn {
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+#insertionWizardModal .modal-footer .btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+}
+
+#insertionWizardModal .modal-footer .btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+#insertionWizardModal .modal-footer .btn-success {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  border: none;
+}
+
+#insertionWizardModal .modal-footer .btn-success:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+}
+
+/* Form Text Helper */
+#insertionWizardModal .form-text {
+  color: #6c757d;
+  font-size: 12px;
+  margin-top: 5px;
+}
+
+/* Labels */
+#insertionWizardModal .form-label {
+  font-weight: 500;
+  color: #495057;
+  margin-bottom: 8px;
+}
+
+#insertionWizardModal .text-danger {
+  color: #dc3545 !important;
+}
+
+/* Step Title */
+#insertionWizardModal h6 {
+  color: #495057;
+  font-weight: 600;
+  font-size: 16px;
+  margin-bottom: 20px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  #insertionWizardModal .modal-dialog {
+    margin: 10px;
+  }
+  
+  #insertionWizardModal .modal-footer {
+    flex-direction: column;
+  }
+  
+  #insertionWizardModal .modal-footer .btn {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+}
+
+/* Icons in emoji format */
+#insertionWizardModal .fw-bold {
+  font-size: 15px;
+}
+
+/* Select Styling */
+#insertionWizardModal .form-select {
+  cursor: pointer;
+}
+
+#insertionWizardModal .form-select:disabled {
+  background-color: #e9ecef;
+  cursor: not-allowed;
+}
+
+/* Radio Input Styling */
+#insertionWizardModal input[type="radio"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+}
+
+#insertionWizardModal input[type="radio"]:checked {
+  background-color: #667eea;
+  border-color: #667eea;
+}
