@@ -147,6 +147,19 @@ const tienePermisoEmpresa = (mapaPermisos, empresaId) => {
 
 const tienePermisoModulo = (mapaPermisos, empresaId, modulo, accion) => {
   if (!empresaId || !modulo) return false;
+  
+  // Módulos con acceso universal (todos pueden ver)
+  const modulosUniversales = ['SUMMARY', 'RESUMEN', 'PRESUPUESTOS'];
+  const moduloNormalizado = (modulo || '').toString().toUpperCase().trim();
+  
+  if (modulosUniversales.includes(moduloNormalizado)) {
+    // Para módulos universales, siempre permitir lectura
+    if (!accion || accion === 'Lectura') {
+      return true;
+    }
+    // Para otras acciones (Cargar y guardar, Revisar, Aprobar), verificar permisos normalmente
+  }
+  
   const permisos = mapaPermisos?.[empresaId]?.[modulo];
   if (!permisos) return false;
   if (!accion) {

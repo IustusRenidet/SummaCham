@@ -177,7 +177,19 @@ if (!gotTheLock) {
     // Iniciar servidor Node.js como servicio
     let servidor = null;
     try {
+      // Configurar variables de entorno para Firebird
+      // En producción empaquetada, debe apuntar al servidor donde está Firebird/COI
+      if (!process.env.FIREBIRD_HOST) {
+        // Túnel TCP Firebird local → puerto 15350
+        process.env.FIREBIRD_HOST = '127.0.0.1';
+      }
+      if (!process.env.FIREBIRD_PORT) {
+        process.env.FIREBIRD_PORT = '15350'; // Puerto del túnel TCP Firebird
+      }
+      
       console.log("🚀 Iniciando servidor backend como servicio...");
+      console.log(`  Firebird: ${process.env.FIREBIRD_HOST}:${process.env.FIREBIRD_PORT}`);
+      
       const iniciarServidor = require("./src/server");
       servidor = iniciarServidor(3005);
       

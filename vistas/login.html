@@ -113,7 +113,8 @@
     // Detectar API_BASE dinámicamente según el entorno
     const API_BASE = (() => {
       if (window.location.protocol === 'file:') {
-        return 'http://localhost:3005/api';
+        const origin = window.location.protocol === 'file:' ? 'http://localhost:3005' : window.location.origin;
+        return `${origin}/api`;
       }
       return `${window.location.origin.replace(/\/$/, '')}/api`;
     })();
@@ -172,6 +173,29 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       Sesion.limpiar();
+      
+      // Eventos Enter para navegación fluida
+      const usuarioInput = document.getElementById('usuario');
+      const contrasenaInput = document.getElementById('contrasena');
+      
+      if (usuarioInput && contrasenaInput) {
+        // Enter en usuario → enfocar contraseña
+        usuarioInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            contrasenaInput.focus();
+          }
+        });
+        
+        // Enter en contraseña → enviar formulario
+        contrasenaInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            formulario.requestSubmit();
+          }
+        });
+      }
+      
       const toggle = document.getElementById('toggleContrasena');
       const input = document.getElementById('contrasena');
       if (toggle && input) {

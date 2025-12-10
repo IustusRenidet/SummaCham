@@ -2,7 +2,7 @@ const express = require("express");
 const Joi = require("joi");
 const { db } = require("../db/sqlite");
 const { obtenerEmpresaPorId } = require("../config/empresas");
-const { MODULOS } = require("../services/permisosService");
+const { MODULOS, normalizarNombreModulo } = require("../config/modulos");
 const {
   guardarBorrador,
   obtenerBorrador,
@@ -25,23 +25,13 @@ const { requireAuth } = require("../middleware/auth");
 
 const router = express.Router();
 
-const normalizarTexto = (valor) => {
-  if (!valor) return "";
-  const base = valor.toString().trim().toLowerCase();
-  if (typeof String.prototype.normalize === "function") {
-    return base.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  }
-  return base;
-};
-
 router.use(requireAuth);
 
 const obtenerModuloCanonico = (valor) => {
-  const buscado = normalizarTexto(valor);
-  if (!buscado) {
-    return null;
-  }
-  return MODULOS.find((modulo) => normalizarTexto(modulo) === buscado) || null;
+  if (!valor) return null;
+  // Usar normalización de modulos.js
+  const normalizado = normalizarNombreModulo(valor);
+  return MODULOS.includes(normalizado) ? normalizado : null;
 };
 
 const resolverEmpresaId = (req) => {

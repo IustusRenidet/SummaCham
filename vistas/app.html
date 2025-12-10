@@ -8,6 +8,16 @@
   <link rel="icon" type="image/png" sizes="32x32" href="icono/icono.png">
   <link href="vendor/bootstrap.min.css" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="js/sesion.js"></script>
+  <script>
+    // Verificar sesión antes de cargar la app
+    (function() {
+      const sesion = Sesion?.obtener?.();
+      if (!sesion || !sesion.tokenAcceso) {
+        window.location.replace('login.html');
+      }
+    })();
+  </script>
   <style>
     :root {
        --color-primario: #2f5496;
