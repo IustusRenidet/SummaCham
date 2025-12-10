@@ -39,12 +39,9 @@
     "asar": true,
     "asarUnpack": [
       "node_modules/better-sqlite3/**/*",
-      "node_modules/node-firebird/**/*",
-      "datos/**/*",
-      "info IMPORTANTE/**/*",
-      "excels/**/*",
-      "IMPLEMENTACIONES/**/*"
+      "node_modules/node-firebird/**/*"
     ],
+    "compression": "maximum",
     "directories": {
       "output": "dist",
       "buildResources": "icono"
@@ -56,43 +53,45 @@
       "icono/**/*",
       "image/**/*",
       "mds/**/*",
-      "datos/**/*",
-      "info IMPORTANTE/**/*",
-      "IMPLEMENTACIONES/**/*",
-      "excels/**/*",
       "scripts/**/*",
       "node_modules/**/*",
       "package.json",
-      "README.md"
+      "README.md",
+      "!node_modules/.cache",
+      "!node_modules/.bin",
+      "!node_modules/**/test/**",
+      "!node_modules/**/tests/**",
+      "!node_modules/**/*.test.js",
+      "!node_modules/**/__tests__/**",
+      "!node_modules/**/*.md",
+      "!node_modules/**/LICENSE",
+      "!node_modules/**/CHANGELOG*",
+      "!node_modules/**/.github",
+      "!node_modules/**/docs/**",
+      "!node_modules/**/examples/**",
+      "!**/*.map",
+      "!**/.DS_Store"
     ],
     "extraResources": [
       {
-        "from": "vistas",
-        "to": "resources/vistas"
-      },
-      {
         "from": "datos",
-        "to": "resources/datos"
-      },
-      {
-        "from": "info IMPORTANTE",
-        "to": "resources/info_importante"
-      },
-      {
-        "from": "mds",
-        "to": "resources/mds"
+        "to": "datos",
+        "filter": ["**/*"]
       },
       {
         "from": "excels",
-        "to": "resources/excels"
+        "to": "excels",
+        "filter": ["**/*"]
+      },
+      {
+        "from": "info IMPORTANTE",
+        "to": "info_importante",
+        "filter": ["**/*"]
       },
       {
         "from": "IMPLEMENTACIONES",
-        "to": "resources/IMPLEMENTACIONES"
-      },
-      {
-        "from": "image",
-        "to": "resources/image"
+        "to": "IMPLEMENTACIONES",
+        "filter": ["**/*"]
       }
     ],
     "portable": {
