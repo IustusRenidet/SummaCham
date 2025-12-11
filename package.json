@@ -79,6 +79,13 @@
     ],
     "extraResources": [
       {
+        "from": "icono",
+        "to": "icono",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
         "from": "datos",
         "to": "datos",
         "filter": [

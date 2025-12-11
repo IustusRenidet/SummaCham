@@ -18,6 +18,21 @@ if (!gotTheLock) {
   let isQuitting = false;
 
   const resolveAssetPath = (...segments) => {
+    // En desarrollo, usar la ruta del proyecto
+    if (!app.isPackaged) {
+      return path.join(__dirname, ...segments);
+    }
+    
+    // En producción, buscar en process.resourcesPath primero (donde están los recursos extraídos)
+    // Si no existe ahí, usar app.getAppPath() (dentro del ASAR)
+    const resourcePath = path.join(process.resourcesPath, ...segments);
+    const fs = require('fs');
+    
+    if (fs.existsSync(resourcePath)) {
+      return resourcePath;
+    }
+    
+    // Fallback a la ruta del ASAR
     return path.join(app.getAppPath(), ...segments);
   };
 
@@ -231,6 +246,9 @@ if (!gotTheLock) {
 
     // Crear nativeImage para asegurar que el ícono se cargue correctamente
     const appIcon = nativeImage.createFromPath(iconPath);
+    
+    console.log("📍 Ruta del icono:", iconPath);
+    console.log("🎨 Icono cargado:", !appIcon.isEmpty());
 
     mainWindow = new BrowserWindow({
       width: 1400,
@@ -239,7 +257,7 @@ if (!gotTheLock) {
       minHeight: 720,
       backgroundColor: "#f3f6f1",
       autoHideMenuBar: true,
-      icon: appIcon,
+      icon: iconPath, // Usar ruta directa en lugar de nativeImage
       title: "Panel AMCHAM",
       webPreferences: {
         contextIsolation: true,
@@ -248,14 +266,14 @@ if (!gotTheLock) {
       },
     });
 
-    // Establecer el ícono de la ventana explícitamente (Windows)
-    if (process.platform === 'win32' && mainWindow) {
+    // En Windows, establecer el ícono explícitamente después de crear la ventana
+    if (process.platform === 'win32' && mainWindow && !appIcon.isEmpty()) {
       mainWindow.setIcon(appIcon);
-    }
-
-    // Establecer el ícono también en el overlay (taskbar)
-    if (process.platform === 'win32') {
-      mainWindow.setOverlayIcon(appIcon, 'Panel AMCHAM');
+      
+      // Para Windows 7+: Establecer el AppUserModelId para mejor identificación en taskbar
+      if (app.isPackaged) {
+        app.setAppUserModelId('com.amcham.panel');
+      }
     }
 
     // Cargar desde el servidor Node.js externo en puerto 3005
