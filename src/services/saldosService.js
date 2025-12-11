@@ -43,14 +43,16 @@ const calcularSaldosCoiPorMes = (row) => {
     const abono = Number(row[`ABONO${formatearPeriodo(periodo)}`] ?? 0);
     cargosAcum += cargo;
     abonosAcum += abono;
+    // Acumulado YTD sin saldo inicial (solo movimientos del año)
     const acumulado =
       naturalezaReal === 'D'
-        ? Math.abs(inicial + cargosAcum - abonosAcum)
-        : Math.abs(inicial + abonosAcum - cargosAcum);
+        ? cargosAcum - abonosAcum
+        : abonosAcum - cargosAcum;
+    // Movimiento del mes firmado por naturaleza
     const movimiento =
       naturalezaReal === 'D'
         ? cargo - abono
-        : abono;
+        : abono - cargo;
     meses[clave] = {
       movimiento,
       acumulado
