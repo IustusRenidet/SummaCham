@@ -1,7 +1,11 @@
-const { app, BrowserWindow, Tray, Menu, nativeImage } = require("electron");
+const { app, BrowserWindow, Tray, Menu, nativeImage, dialog, Notification } = require("electron");
 const path = require("path");
 const { autoUpdater } = require("electron-updater");
 const AutoLaunch = require("auto-launch");
+
+// Configurar autoUpdater
+autoUpdater.autoDownload = false; // No descargar automáticamente, preguntar primero
+autoUpdater.autoInstallOnAppQuit = true; // Instalar al cerrar la app
 
 // Garantizar una única instancia de la aplicación
 const gotTheLock = app.requestSingleInstanceLock();
@@ -34,6 +38,121 @@ if (!gotTheLock) {
       });
   };
 
+  // Sistema de actualizaciones automáticas
+  const setupAutoUpdater = () => {
+    if (!app.isPackaged) {
+      console.log("⚠️ Actualizaciones deshabilitadas en modo desarrollo");
+      return;
+    }
+
+    // Configurar logger
+    autoUpdater.logger = console;
+    autoUpdater.logger.transports.file.level = "info";
+
+    // Evento: Verificando actualizaciones
+    autoUpdater.on("checking-for-update", () => {
+      console.log("🔍 Verificando actualizaciones...");
+    });
+
+    // Evento: Actualización disponible
+    autoUpdater.on("update-available", (info) => {
+      console.log("✨ Nueva actualización disponible:", info.version);
+      
+      const response = dialog.showMessageBoxSync(mainWindow, {
+        type: "info",
+        title: "Actualización disponible",
+        message: `Nueva versión ${info.version} disponible`,
+        detail: `Versión actual: ${app.getVersion()}\nNueva versión: ${info.version}\n\n¿Deseas descargar e instalar la actualización?`,
+        buttons: ["Descargar ahora", "Más tarde"],
+        defaultId: 0,
+        cancelId: 1,
+      });
+
+      if (response === 0) {
+        autoUpdater.downloadUpdate();
+        
+        // Mostrar notificación
+        if (Notification.isSupported()) {
+          new Notification({
+            title: "Descargando actualización",
+            body: `Descargando versión ${info.version}...`,
+            icon: resolveAssetPath("icono", "icono.png"),
+          }).show();
+        }
+      }
+    });
+
+    // Evento: No hay actualizaciones
+    autoUpdater.on("update-not-available", (info) => {
+      console.log("✓ Aplicación actualizada (versión " + info.version + ")");
+    });
+
+    // Evento: Error al buscar actualizaciones
+    autoUpdater.on("error", (err) => {
+      console.error("❌ Error en auto-updater:", err);
+      
+      if (mainWindow && mainWindow.isVisible()) {
+        dialog.showErrorBox(
+          "Error de actualización",
+          `No se pudo verificar actualizaciones:\n${err.message}`
+        );
+      }
+    });
+
+    // Evento: Progreso de descarga
+    autoUpdater.on("download-progress", (progressObj) => {
+      const message = `Descargando: ${Math.round(progressObj.percent)}%`;
+      console.log(message);
+      
+      // Actualizar título de la ventana con el progreso
+      if (mainWindow) {
+        mainWindow.setTitle(`Panel AMCHAM - ${message}`);
+      }
+    });
+
+    // Evento: Actualización descargada
+    autoUpdater.on("update-downloaded", (info) => {
+      console.log("✓ Actualización descargada:", info.version);
+      
+      // Restaurar título
+      if (mainWindow) {
+        mainWindow.setTitle("Panel AMCHAM");
+      }
+
+      const response = dialog.showMessageBoxSync(mainWindow, {
+        type: "info",
+        title: "Actualización lista",
+        message: "La actualización se ha descargado correctamente",
+        detail: `Versión ${info.version} lista para instalar.\n\n¿Deseas reiniciar ahora para aplicar la actualización?`,
+        buttons: ["Reiniciar ahora", "Reiniciar más tarde"],
+        defaultId: 0,
+        cancelId: 1,
+      });
+
+      if (response === 0) {
+        isQuitting = true;
+        autoUpdater.quitAndInstall(false, true);
+      } else {
+        // Notificar que se instalará al cerrar
+        if (Notification.isSupported()) {
+          new Notification({
+            title: "Actualización pendiente",
+            body: "La actualización se instalará cuando cierres la aplicación",
+            icon: resolveAssetPath("icono", "icono.png"),
+          }).show();
+        }
+      }
+    });
+
+    // Verificar actualizaciones al iniciar
+    setTimeout(() => {
+      console.log("🔄 Verificando actualizaciones automáticamente...");
+      autoUpdater.checkForUpdates().catch((err) => {
+        console.warn("⚠️ No se pudo verificar actualizaciones:", err.message);
+      });
+    }, 5000); // Esperar 5 segundos después del inicio
+  };
+
   const createTray = () => {
     const iconName = process.platform === "win32" ? "icono.ico" : "icono.png";
     const iconPath = resolveAssetPath("icono", iconName);
@@ -61,12 +180,21 @@ if (!gotTheLock) {
         label: "Buscar actualizaciones",
         click: () => {
           if (!app.isPackaged) {
-            console.log(
-              "No se pueden buscar actualizaciones en desarrollo (unpackaged)."
-            );
+            dialog.showMessageBox(mainWindow, {
+              type: "info",
+              title: "Modo desarrollo",
+              message: "Las actualizaciones solo están disponibles en la versión empaquetada",
+            });
             return;
           }
-          autoUpdater.checkForUpdatesAndNotify();
+          
+          console.log("🔍 Verificación manual de actualizaciones...");
+          autoUpdater.checkForUpdates().catch((err) => {
+            dialog.showErrorBox(
+              "Error",
+              `No se pudo verificar actualizaciones:\n${err.message}`
+            );
+          });
         },
       },
       { type: "separator" },
@@ -222,21 +350,14 @@ if (!gotTheLock) {
       configureAutoLaunch();
     }
 
+    // Configurar sistema de actualizaciones
+    setupAutoUpdater();
+
     app.on("activate", () => {
       if (BrowserWindow.getAllWindows().length === 0) {
         createWindow();
       }
     });
-
-    // Verificar actualizaciones (solo en producción/paquete)
-    if (app.isPackaged) {
-      console.log("Buscando actualizaciones...");
-      // Logger simple
-      autoUpdater.logger = console;
-      autoUpdater.checkForUpdatesAndNotify().catch((err) => {
-        console.warn("Error buscando actualizaciones:", err);
-      });
-    }
   });
 
   app.on("second-instance", () => {
