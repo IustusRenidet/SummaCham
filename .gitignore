@@ -9,7 +9,20 @@ node_modules/
 .yarnrc*
 .pnpmfile.cjs
 
-# Cachés de herramientas
+# Base de datos local (SQLite)
+datos/
+*.sqlite
+*.sqlite3
+*.db
+src/db/datos/
+
+# Archivos de configuración sensibles
+src/config/seed_users.json
+config/*.json
+!config/*.example.json
+
+# Sesiones y caché
+sessions/
 .cache/
 .parcel-cache/
 .eslintcache

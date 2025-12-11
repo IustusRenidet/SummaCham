@@ -1,0 +1,18 @@
+[
+  {
+    "username": "usuario.ejemplo",
+    "nombres": "Usuario",
+    "apellidoPrimero": "Ejemplo",
+    "correo": "usuario@ejemplo.com",
+    "permissions": [
+      {
+        "empresaId": "EMPRESA01",
+        "modulo": "presupuestos",
+        "puede_leer": true,
+        "puede_cargar_guardar": true,
+        "puede_revisar": false,
+        "puede_aprobar": false
+      }
+    ]
+  }
+]

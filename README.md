@@ -1,53 +1,114 @@
-# SummaCham
+# SummaCham 📊
 
-Aplicación de escritorio basada en Electron para visualizar paneles financieros de AmCham.
+> Aplicación de escritorio para gestión financiera empresarial con Electron, Node.js y Firebird.
 
-## Requisitos
+[![Electron](https://img.shields.io/badge/Electron-30.0.0-blue.svg)](https://www.electronjs.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-- [Node.js](https://nodejs.org/) 18 o superior (incluye npm)
-- Sistemas Windows 10/11 para generar el ejecutable portable
+## 🚀 Características
 
-## Instalación
+- ✅ Sistema multi-usuario con roles y permisos
+- ✅ Gestión de presupuestos y reportes financieros
+- ✅ Integración con bases de datos Firebird
+- ✅ Flujo de autorización y revisión de documentos
+- ✅ Actualizaciones automáticas via GitHub Releases
+- ✅ Sistema de borradores y guardado automático
+- ✅ Visualización de datos con tablas interactivas
+- ✅ Toggle de redondeo de cifras en todas las tablas
+- ✅ Exportación de reportes (próximamente)
+
+---
+
+## 📋 Requisitos Previos
+
+- **Node.js** 18.x o superior ([Descargar](https://nodejs.org/))
+- **npm** 9.x o superior (viene con Node.js)
+- **Windows** 10/11 (para builds de Electron)
+- **Firebird 2.5+** (opcional, solo si usas bases de datos Firebird)
+
+---
+
+## ⚡ Instalación Rápida
+
+### 1. Clonar el Repositorio
+
+```bash
+git clone https://github.com/IustusRenidet/SummaCham.git
+cd SummaCham
+```
+
+### 2. Instalar Dependencias
 
 ```bash
 npm install
 ```
 
-## Desarrollo
+### 3. Configurar Ambiente
 
-Ejecuta la aplicación en modo desarrollo:
+**Copia el archivo de ejemplo:**
+```bash
+cp .env.example .env
+```
+
+**Genera un secreto seguro para sesiones:**
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+**Edita `.env` y agrega tus valores:**
+```env
+PORT=3005
+SESSION_SECRET=tu_secreto_generado_aqui
+PANELAMCHAM_ADMIN_PASSWORD=tu_contraseña_admin_segura
+NODE_ENV=development
+```
+
+### 4. Configurar Usuarios Iniciales
+
+```bash
+cp src/config/seed_users.example.json src/config/seed_users.json
+```
+
+Edita `seed_users.json` con tus usuarios reales.
+
+### 5. Iniciar la Aplicación
 
 ```bash
 npm start
 ```
 
-## Empaquetado portable
+🎉 ¡La aplicación debería abrirse automáticamente!
 
-El proyecto está configurado con **electron-builder** para generar un ejecutable portable de Windows.
+**Credenciales por defecto:**
+- Usuario: `ICONET`
+- Contraseña: La que configuraste en `PANELAMCHAM_ADMIN_PASSWORD`
 
-1. Asegúrate de haber instalado las dependencias (`npm install`).
-2. Ejecuta el script de empaquetado:
+---
 
-   ```bash
-   npm run dist
-   ```
+## 📖 Documentación Completa
 
-   Esto crea el paquete en la carpeta `dist/` con un archivo `PanelAMCHAM-portable-<version>-x64.exe` listo para distribuirse sin instalación.
+- **[Setup Inicial](SETUP_INICIAL.md)** - Guía detallada paso a paso
+- **[Seguridad](SEGURIDAD.md)** - Cómo proteger información sensible
+- **[Actualizaciones](docs/ACTUALIZACIONES_GUIA_RAPIDA.md)** - Sistema de auto-actualización
+- **[API Reference](docs/API.md)** - Endpoints y autenticación *(próximamente)*
 
-   > 💡 En Linux y macOS se necesita tener instalados `wine`, `mono` y `icnsutils` para generar el ejecutable portable de Windows.
+---
 
-3. Comparte el archivo portable generado. Los usuarios solo necesitan descargarlo y abrirlo.
+## 🛠️ Scripts Disponibles
 
-Los recursos adicionales (`datos`, `info IMPORTANTE`, `mds`, `excels`, `image` y `IMPLEMENTACIONES`) se copian en `resources/*` dentro del instalador/portable. Si tu app actualiza archivos en tiempo de ejecución, configura esos path con `app.getPath('userData')`/carpeta de datos para persistencia fuera de `resources`.
+| Script | Descripción |
+|--------|-------------|
+| `npm start` | Inicia la aplicación en Electron |
+| `npm run server` | Solo inicia el servidor Node.js |
+| `npm run dev` | Modo desarrollo con hot-reload |
+| `npm run build` | Crea ejecutable de producción |
+| `npm run build:win` | Build específico para Windows |
+| `npm run audit-security` | Audita el repo antes de publicar |
 
-## Estructura de carpetas
+---
 
-- `main.js`: proceso principal de Electron.
-- `vistas/`: interfaces HTML utilizadas por la aplicación.
-- `icono/`: recursos gráficos utilizados durante el empaquetado.
- - `datos/`, `info IMPORTANTE/`, `mds/`, `excels/` y `IMPLEMENTACIONES/`: datos y recursos adicionales que se empaquetan con la aplicación (resúmenes, archivos CSV/EXCEL y metadatos usados por los motores de reportes).
-
-## Scripts disponibles
+## 📁 Estructura del Proyecto
 
 - `npm start`: inicia la app en modo desarrollo.
 - `npm run pack`: genera un paquete sin instalador (modo directorio).

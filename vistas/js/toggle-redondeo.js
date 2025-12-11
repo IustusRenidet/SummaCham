@@ -32,6 +32,12 @@
         console.warn('⚠️ No se encontró el contenedor para el toggle de redondeo:', containerSelector);
         return;
       }
+      
+      // Si ya se inicializó, no hacerlo de nuevo
+      if (container.querySelector('.round-toggle-container')) {
+        console.log('✓ Toggle de redondeo ya existe');
+        return;
+      }
 
       // Crear el HTML del toggle
       const toggleHTML = `
@@ -84,6 +90,10 @@
             align-items: center;
             border: 1px solid rgba(47, 84, 150, 0.1);
           }
+          /* Evitar wrap en celdas con porcentaje */
+          table td {
+            white-space: nowrap;
+          }
         `;
         document.head.appendChild(styles);
       }
@@ -99,21 +109,31 @@
           return;
         }
         
-        // Buscar todas las celdas numéricas (excluyendo las de texto)
-        const celdas = tabla.querySelectorAll('td:not(.text-start):not(.cuenta-col):not(.nombre-col):not([data-no-redondear])');
+        // Buscar todas las celdas numéricas (excluyendo las de texto y las primeras 2 columnas)
+        const celdas = tabla.querySelectorAll('td:not(.text-start):not(.cuenta-col):not(.nombre-col):not([data-no-redondear]):not(:nth-child(1)):not(:nth-child(2))');
         
         celdas.forEach(celda => {
           const texto = celda.textContent.trim();
           // Ignorar celdas vacías, guiones o texto no numérico
-          if (!texto || texto === '-' || texto === '' || texto === '0') return;
+          if (!texto || texto === '-' || texto === '') return;
           
-          // Intentar extraer el número (remover separadores y símbolos)
-          const valorOriginal = parseFloat(celda.dataset.originalValue || texto.replace(/[^0-9.-]/g, ''));
+          // Detectar si tiene símbolo de porcentaje (siempre buscar en el texto actual)
+          const tienePorc = texto.includes('%');
+          
+          // Intentar extraer el número (remover separadores, comas y símbolos)
+          let textoLimpio = texto.replace(/[^0-9.-]/g, '');
+          const valorOriginal = parseFloat(celda.dataset.originalValue || textoLimpio);
+          
           if (isNaN(valorOriginal)) return;
           
-          // Guardar valor original si no existe
+          // Guardar valor original en el primer renderizado
           if (!celda.dataset.originalValue) {
             celda.dataset.originalValue = valorOriginal;
+          }
+          
+          // Siempre detectar el porcentaje del texto actual
+          if (tienePorc) {
+            celda.dataset.tienePorc = 'true';
           }
           
           let valorMostrar;
@@ -124,10 +144,17 @@
           }
           
           // Formatear con separador de miles
-          celda.textContent = new Intl.NumberFormat('en-US', {
+          let textoFormateado = new Intl.NumberFormat('en-US', {
             minimumFractionDigits: redondear ? 0 : 2,
             maximumFractionDigits: redondear ? 0 : 2
           }).format(valorMostrar);
+          
+          // Restaurar el símbolo de porcentaje si lo tenía
+          if (celda.dataset.tienePorc === 'true') {
+            textoFormateado += ' %';
+          }
+          
+          celda.textContent = textoFormateado;
         });
       };
 
@@ -135,8 +162,6 @@
       const savedRoundState = localStorage.getItem(storageKey);
       if (savedRoundState === 'true') {
         roundToggle.checked = true;
-        // Aplicar redondeo cuando la tabla esté cargada
-        setTimeout(() => aplicarRedondeo(true), 500);
       }
       
       // Event listener para el toggle
@@ -145,6 +170,21 @@
         localStorage.setItem(storageKey, redondear);
         aplicarRedondeo(redondear);
       });
+      
+      // Aplicar redondeo inicial si está activado (con delay para datos asíncronos)
+      if (savedRoundState === 'true') {
+        // Esperar a que la tabla se llene con datos
+        const checkTable = setInterval(() => {
+          const tabla = document.querySelector(tableSelector);
+          if (tabla && tabla.querySelectorAll('tr').length > 1) {
+            clearInterval(checkTable);
+            aplicarRedondeo(true);
+          }
+        }, 200);
+        
+        // Timeout de seguridad
+        setTimeout(() => clearInterval(checkTable), 5000);
+      }
 
       console.log('✅ Toggle de redondeo inicializado para:', storageKey);
     }

@@ -75,7 +75,7 @@ Write-Host ""
 Write-Host "📌 Paso 4: Creando commit y tag de Git..." -ForegroundColor Yellow
 git add package.json
 git commit -m "Bump version to $Version"
-git tag -a "v$Version" -m "Release v$Version: $ReleaseNotes"
+git tag -a "v$Version" -m "Release v${Version}: $ReleaseNotes"
 Write-Host "   ✓ Commit y tag creados" -ForegroundColor Green
 Write-Host ""
 
