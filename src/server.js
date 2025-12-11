@@ -91,7 +91,19 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3005)) => {
   });
 
   // Servir archivos estáticos de la carpeta vistas (CSS, JS, imágenes, otras vistas HTML)
-  app.use(express.static(vistasPath));
+  // Deshabilitar caché para archivos JS y CSS en desarrollo
+  app.use(express.static(vistasPath, {
+    etag: false,
+    lastModified: false,
+    setHeaders: (res, filepath) => {
+      // No cachear archivos JavaScript y CSS
+      if (filepath.endsWith('.js') || filepath.endsWith('.css')) {
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+      }
+    }
+  }));
   
   // Servir archivos estáticos de la carpeta icono (logos, íconos)
   app.use('/icono', express.static(iconoPath));

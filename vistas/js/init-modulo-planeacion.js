@@ -36,7 +36,7 @@ window.initModuloPlaneacion = async function({ moduloId, moduloNombre, selectorT
         modulo: moduloNombre.toUpperCase(),
         obtenerCambios: () => {
           // Capturar cambios de presupuesto (valores numéricos)
-          const cambiosPresupuesto = window.CuentasModulo?.obtenerCambios?.() || { presupuesto: [], nombres: [] };
+          const cambiosPresupuesto = window.CuentasModulo?.getCambios?.() || { presupuesto: [], nombres: [] };
           
           // Capturar layout (cuentas/descripciones/filas)
           const layoutActual = window.ModoEdicionPresupuesto?.cargarLayoutLocal?.() || null;

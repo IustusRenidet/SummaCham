@@ -675,6 +675,16 @@
     }
 
     /**
+     * Sanitiza el nombre del módulo removiendo sufijos como :1, :2, etc
+     * que pueden venir concatenados por selectores de capítulo
+     * @param {string} modulo - Nombre del módulo posiblemente con sufijo
+     * @returns {string} Nombre del módulo limpio
+     */
+    _sanitizarModulo(modulo) {
+      return String(modulo || '').split(':')[0].trim();
+    }
+
+    /**
      * Resuelve los permisos del usuario actual para el flujo de autorización
      * 
      * Permisos disponibles:
@@ -925,10 +935,13 @@
         return;
       }
       try {
+        // Sanitizar módulo: remover sufijos como :1, :2, etc que puedan venir de capítulo
+        const moduloLimpio = this._sanitizarModulo(this.state.contexto.modulo);
+        console.log(`🧹 Módulo sanitizado: "${this.state.contexto.modulo}" → "${moduloLimpio}"`);
         const params = new URLSearchParams({
           empresaId: this.state.contexto.empresaId,
           anio: String(this.state.contexto.anio),
-          modulo: this.state.contexto.modulo,
+          modulo: moduloLimpio,
         });
         const resp = await fetch(
           `${API_BASE}/borradores/estado?${params.toString()}`,
@@ -1244,7 +1257,7 @@
         return;
       }
       const payload = {
-        modulo: this.state.contexto.modulo,
+        modulo: this._sanitizarModulo(this.state.contexto.modulo),
         empresaId: this.state.contexto.empresaId,
         anio: this.state.contexto.anio,
         datos: { presupuesto },
@@ -1307,7 +1320,7 @@
         presupuesto = this.state.borrador.data.presupuesto;
       }
       const payload = {
-        modulo: this.state.contexto.modulo,
+        modulo: this._sanitizarModulo(this.state.contexto.modulo),
         empresaId: this.state.contexto.empresaId,
         anio: this.state.contexto.anio,
         datos: { presupuesto },
@@ -1388,7 +1401,7 @@
       if (this.state.borrador?.id || this._contextoCompleto()) {
         const contextoPayload = {
           empresaId: this.state.contexto.empresaId,
-          modulo: this.state.contexto.modulo,
+          modulo: this._sanitizarModulo(this.state.contexto.modulo),
           anio: this.state.contexto.anio,
         };
         let resultado = null;
@@ -2028,7 +2041,7 @@
       try {
         const params = new URLSearchParams({
           empresaId: this.state.contexto.empresaId,
-          modulo: this.state.contexto.modulo,
+          modulo: this._sanitizarModulo(this.state.contexto.modulo),
           anio: this.state.contexto.anio,
         });
         const resp = await fetch(
