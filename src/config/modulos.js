@@ -23,7 +23,10 @@ const MAPA_NORMALIZACION_MODULOS = {
   'COMUNICACION': 'Comunicación',
   'DIRECCION': 'Dirección',
   'SERV_MEMBRESIA': 'Serv Membresía',
+  'SERV MEMBRESIA': 'Serv Membresía',
+  'SERVMEMBRESIA': 'Serv Membresía',
   'SERVICIO_MEMBRESIA': 'Serv Membresía',
+  'SERVICIO MEMBRESIA': 'Serv Membresía',
   'COMITES': 'Comités',
   'TIC': 'T&IC',
   'T&IC': 'T&IC',
@@ -31,6 +34,7 @@ const MAPA_NORMALIZACION_MODULOS = {
   'VPE': 'VPE',
   'FINANZAS': 'Finanzas',
   'GTOS_CORPORATIVOS': 'Gtos Corporativos',
+  'GTOS CORPORATIVOS': 'Gtos Corporativos',
   'SUMMARY': 'SUMMARY',
   'PRESUPUESTOS': 'Presupuestos',
   'RESUMEN': 'RESUMEN'
@@ -38,8 +42,13 @@ const MAPA_NORMALIZACION_MODULOS = {
 
 const normalizarNombreModulo = (nombre) => {
   if (!nombre) return null;
-  const clave = nombre.toString().trim().toUpperCase();
-  return MAPA_NORMALIZACION_MODULOS[clave] || nombre;
+  // Normalizar espacios múltiples y guiones bajos a espacio simple
+  const normalizado = nombre.toString()
+    .trim()
+    .replace(/[_\s]+/g, ' ')  // Reemplazar guiones bajos y espacios múltiples por espacio simple
+    .toUpperCase();
+  
+  return MAPA_NORMALIZACION_MODULOS[normalizado] || nombre;
 };
 
 const ACCIONES = ['Lectura', 'Cargar y guardar', 'Revisar', 'Aprobar'];

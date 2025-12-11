@@ -229,6 +229,7 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
         operativoConsolidado: cfg['sum-row-operativo-consolidado'] || '',
         resultRow: cfg['result-row'] || '',
         netRow: cfg['net-row'] || '',
+        netRowAdicional: cfg['net-row-adicional'] || '',
         resultNetRow: cfg['result-net-row'] || '',
         clase: cfg.Clase || ''
       });
@@ -251,6 +252,10 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
       const netRow = cfg['net-row'];
       if (netRow && !netOrden.has(netRow)) {
         netOrden.set(netRow, idx);
+      }
+      const netRowAdicional = cfg['net-row-adicional'];
+      if (netRowAdicional && !netOrden.has(netRowAdicional)) {
+        netOrden.set(netRowAdicional, idx);
       }
       const finalRow = cfg['result-net-row'];
       if (finalRow && !finalOrden.has(finalRow)) {
@@ -297,6 +302,7 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
         operativoLabel: config.operativo || '',
         resultRow: config.resultRow || '',
         netRow: config.netRow || '',
+        netRowAdicional: config.netRowAdicional || '',
         resultNetRow: config.resultNetRow || '',
         orden: principalFirstAppearance.get(principalLabel),
         secciones: new Map()
@@ -360,6 +366,7 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
       operativoLabel: principal.operativoLabel || '',
       resultRow: principal.resultRow || '',
       netRow: principal.netRow || '',
+      netRowAdicional: principal.netRowAdicional || '',
       resultNetRow: principal.resultNetRow || '',
       sign
     };
@@ -412,6 +419,14 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
       sumarTotales(netRow.totals, principal, principal.sign);
     }
 
+    // Procesar net-row-adicional (para sucursales en el capítulo consolidado)
+    const netRowAdicional = ensureAggregator(netRowMap, principal.netRowAdicional, netOrden);
+    if (netRowAdicional) {
+      netRowAdicional.principals.push(principal.label);
+      netRowAdicional.operaciones.push(describirPrincipalOperacion(principal));
+      sumarTotales(netRowAdicional.totals, principal, principal.sign);
+    }
+
     const finalRow = ensureAggregator(finalRowMap, principal.resultNetRow, finalOrden);
     if (finalRow) {
       finalRow.principals.push(principal.label);
@@ -448,7 +463,8 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
       consolidadoLabel: principal.consolidadoLabel,
       operativoLabel: principal.operativoLabel,
       resultRow: principal.resultRow,
-      netRow: principal.netRow
+      netRow: principal.netRow,
+      netRowAdicional: principal.netRowAdicional
     });
     
     // 2. Agregar cada Secundaria con sus cuentas

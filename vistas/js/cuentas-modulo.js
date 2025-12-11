@@ -2084,6 +2084,11 @@
     persistirLayoutActual();
     estadoModulo.hayCambios = true;
     notificarCambios();
+    
+    // Actualizar componente de colapso de secciones si existe
+    if (window.SeccionCollapse && typeof window.SeccionCollapse.actualizar === 'function') {
+      window.SeccionCollapse.actualizar();
+    }
   };
 
   const insertarFilaCuentaNueva = (referencia, posicion) => {
@@ -3043,6 +3048,13 @@
     activarTooltipsCuentas();
     aplicarModoEdicionEnTabla();
     habilitarEdicionTextoBasica();
+
+    // Actualizar SeccionCollapse después de renderizar la tabla
+    if (window.SeccionCollapse && typeof window.SeccionCollapse.actualizar === 'function') {
+      setTimeout(() => {
+        window.SeccionCollapse.actualizar();
+      }, 100);
+    }
 
     if (!moduloReadyDispatched) {
       moduloReadyDispatched = true;

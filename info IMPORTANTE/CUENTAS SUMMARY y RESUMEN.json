@@ -868,7 +868,9 @@
       "sum-row": "SUMA DE México  Other Income",
       "sum-row-sumavarios": "México  Other Income",
       "sum-row-operativo": "OPERATING RESULTS  MEXICO",
-      "result-row": "NET RESULTS  MEXICO"
+      "result-row": "CONSOLIDATED OPERATING RESULTS ",
+      "net-row": "NET RESULTS  MEXICO",
+      "result-net-row": "CONSOLIDATED NET RESULTS"
     },
     {
       "HOJA": "SUMMARY",
@@ -878,7 +880,9 @@
       "sum-row": "SUMA DE Guadalajara Other Income",
       "sum-row-sumavarios": "Guadalajara Other Income",
       "sum-row-operativo": "OPERATING RESULTS GUADALAJARA",
-      "result-row": "NET RESULTS GUADALAJARA"
+      "result-row": "CONSOLIDATED OPERATING RESULTS ",
+      "net-row": "NET RESULTS GUADALAJARA",
+      "result-net-row": "CONSOLIDATED NET RESULTS"
     },
     {
       "HOJA": "SUMMARY",
@@ -888,7 +892,9 @@
       "sum-row": "SUMA DE Monterrey Other Income",
       "sum-row-sumavarios": "Monterrey Other Income",
       "sum-row-operativo": "OPERATING RESULTS MONTERREY",
-      "result-row": "NET RESULTS MONTERREY"
+      "result-row": "CONSOLIDATED OPERATING RESULTS ",
+      "net-row": "NET RESULTS MONTERREY",
+      "result-net-row": "CONSOLIDATED NET RESULTS"
     },
     {
       "HOJA": "SUMMARY",
@@ -898,7 +904,9 @@
       "sum-row": "SUMA DE Northwest  Other Income",
       "sum-row-sumavarios": "Northwest  Other Income",
       "sum-row-operativo": "OPERATING RESULTS NORTHWEST",
-      "result-row": "NET RESULTS NORTHWEST"
+      "result-row": "CONSOLIDATED OPERATING RESULTS ",
+      "net-row": "NET RESULTS NORTHWEST",
+      "result-net-row": "CONSOLIDATED NET RESULTS"
     },
     {
       "HOJA": "SUMMARY",

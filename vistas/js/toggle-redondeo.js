@@ -120,8 +120,8 @@
           // Detectar si tiene símbolo de porcentaje (siempre buscar en el texto actual)
           const tienePorc = texto.includes('%');
           
-          // Intentar extraer el número (remover separadores, comas y símbolos)
-          let textoLimpio = texto.replace(/[^0-9.-]/g, '');
+          // Intentar extraer el número preservando el signo negativo
+          let textoLimpio = texto.replace(/[^0-9.\-]/g, '').replace(/(?!^)-/g, '');
           const valorOriginal = parseFloat(celda.dataset.originalValue || textoLimpio);
           
           if (isNaN(valorOriginal)) return;

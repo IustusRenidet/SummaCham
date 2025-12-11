@@ -504,6 +504,7 @@
   <script src="js/cuentas-data.js"></script>
   <script src="js/cuentas-modulo.js"></script>
   <script src="js/toggle-redondeo.js"></script>
+  <script src="js/seccion-collapse.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
     integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
     crossorigin="anonymous"></script>
@@ -522,6 +523,15 @@
         containerSelector: '.controls-container',
         tableSelector: '#tablaCuentasBody',
         storageKey: 'eventos_redondear_numeros'
+      });
+    }
+    
+    // Inicializar colapsar secciones
+    if (window.SeccionCollapse) {
+      SeccionCollapse.inicializar({
+        tableSelector: '#tablaCuentasBody',
+        storageKey: 'eventos_secciones_colapsadas',
+        containerSelector: '.controls-container'
       });
     }
   </script>
