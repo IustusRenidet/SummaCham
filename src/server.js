@@ -87,6 +87,10 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3005)) => {
   const iconoPath = path.join(__dirname, '..', 'icono');
   
   app.get('/', (req, res) => {
+    // Si no hay sesión activa, redirigir a login
+    if (!req.session || !req.session.usuario) {
+      return res.redirect('/login.html');
+    }
     res.sendFile(path.join(vistasPath, 'app.html'));
   });
 

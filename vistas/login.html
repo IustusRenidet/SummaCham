@@ -31,26 +31,32 @@
       justify-content: center;
       padding: 1.5rem;
       color: var(--color-texto);
+      overflow: hidden;
     }
 
     .tarjeta-acceso {
       background: #fff;
       border-radius: 20px;
       box-shadow: 0 24px 60px rgba(47, 84, 150, 0.12);
-      padding: clamp(1.5rem, 4vw, 3rem);
-      width: min(480px, 100%);
+      padding: 2.5rem 2rem;
+      width: 420px;
+      max-width: 100%;
+      margin: auto;
     }
 
     .tarjeta-acceso h1 {
       font-weight: 800;
       color: var(--color-primario);
+      font-size: 1.75rem;
+      margin-bottom: 1.5rem;
     }
 
     .btn-verde {
       background: var(--color-primario);
       border-color: var(--color-primario);
       font-weight: 700;
-      padding-block: 0.75rem;
+      padding: 0.875rem 1.5rem;
+      font-size: 1rem;
       transition: background 0.2s ease, transform 0.2s ease;
     }
 
@@ -68,6 +74,23 @@
 
     label span {
       color: #2f5496;
+    }
+
+    .form-control-lg {
+      padding: 0.75rem 1rem;
+      font-size: 1rem;
+    }
+
+    .input-group .btn {
+      padding: 0.75rem 1rem;
+    }
+
+    .mb-3 {
+      margin-bottom: 1.25rem !important;
+    }
+
+    header.mb-4 {
+      margin-bottom: 1.75rem !important;
     }
   </style>
 </head>

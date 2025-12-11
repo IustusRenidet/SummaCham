@@ -1,5 +1,6 @@
 const { app, BrowserWindow, Tray, Menu, nativeImage, dialog, Notification } = require("electron");
 const path = require("path");
+const fs = require("fs");
 const { autoUpdater } = require("electron-updater");
 const AutoLaunch = require("auto-launch");
 
@@ -10,7 +11,13 @@ autoUpdater.autoInstallOnAppQuit = true; // Instalar al cerrar la app
 // Garantizar una única instancia de la aplicación
 const gotTheLock = app.requestSingleInstanceLock();
 
+console.log("🔍 Iniciando aplicación...");
+console.log("  Lock obtenido:", gotTheLock);
+console.log("  Packaged:", app.isPackaged);
+console.log("  NODE_ENV:", process.env.NODE_ENV);
+
 if (!gotTheLock) {
+  console.log("⚠️ Otra instancia ya está corriendo, cerrando esta...");
   app.quit();
 } else {
   let mainWindow = null;
@@ -26,7 +33,6 @@ if (!gotTheLock) {
     // En producción, buscar en process.resourcesPath primero (donde están los recursos extraídos)
     // Si no existe ahí, usar app.getAppPath() (dentro del ASAR)
     const resourcePath = path.join(process.resourcesPath, ...segments);
-    const fs = require('fs');
     
     if (fs.existsSync(resourcePath)) {
       return resourcePath;
@@ -279,6 +285,14 @@ if (!gotTheLock) {
     // Cargar desde el servidor Node.js externo en puerto 3005
     mainWindow.loadURL('http://localhost:3005');
 
+    // Abrir DevTools en desarrollo
+    if (!app.isPackaged) {
+      mainWindow.webContents.once('did-finish-load', () => {
+        mainWindow.webContents.openDevTools({ mode: "detach" });
+        console.log("🔧 DevTools abiertas");
+      });
+    }
+
     // Interceptar cierre para minimizar en lugar de salir
     mainWindow.on("close", (event) => {
       if (!isQuitting) {
@@ -294,12 +308,6 @@ if (!gotTheLock) {
       }
       return false;
     });
-
-    if (!app.isPackaged) {
-      try {
-        mainWindow.webContents.openDevTools({ mode: "detach" });
-      } catch (_) {}
-    }
 
     mainWindow.webContents.on(
       "did-fail-load",
@@ -340,6 +348,7 @@ if (!gotTheLock) {
       }
       
       console.log("✓ Servidor backend iniciado en puerto 3005");
+      console.log("✓ Esperando conexión del servidor...");
       console.log("✓ Accesible localmente en http://localhost:3005");
       console.log("✓ Accesible públicamente vía túnel HTTPS");
       
@@ -353,6 +362,7 @@ if (!gotTheLock) {
     } catch (e) {
       console.error("❌ Error fatal iniciando el servidor:");
       console.error("  Mensaje:", e.message);
+      console.error("  Stack:", e.stack);
       console.error("  Stack:", e.stack);
       
       const { dialog } = require("electron");
