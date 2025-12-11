@@ -695,6 +695,14 @@
 
       <!-- Controles de Zoom -->
       <div class="zoom-controls">
+        <!-- Toggle para redondear números -->
+        <div class="round-toggle-container">
+          <label for="roundToggle">Redondear</label>
+          <label class="toggle-switch">
+            <input type="checkbox" id="roundToggle">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
         <div class="zoom-level-display">
           Zoom: <span id="zoomDisplay">100%</span>
         </div>
@@ -950,6 +958,58 @@
             console.log('✅ FlujoAutorizacion inicializado para RESUMEN (solo layout)');
           }
         }, 300);
+
+        // Toggle para redondear números
+        const roundToggle = document.getElementById('roundToggle');
+        const ROUND_STORAGE_KEY = 'resumen_redondear_numeros';
+        
+        const aplicarRedondeo = (redondear) => {
+          const tabla = document.querySelector('#tablaComparacion tbody');
+          if (!tabla) return;
+          
+          const celdas = tabla.querySelectorAll('td:not(.text-start):not(.cuenta-col)');
+          celdas.forEach(celda => {
+            const texto = celda.textContent.trim();
+            if (!texto || texto === '-' || texto === '' || texto === '0') return;
+            
+            const valorOriginal = parseFloat(celda.dataset.originalValue || texto.replace(/[^0-9.-]/g, ''));
+            if (isNaN(valorOriginal)) return;
+            
+            // Guardar valor original si no existe
+            if (!celda.dataset.originalValue) {
+              celda.dataset.originalValue = valorOriginal;
+            }
+            
+            let valorMostrar;
+            if (redondear) {
+              valorMostrar = Math.round(valorOriginal);
+            } else {
+              valorMostrar = valorOriginal;
+            }
+            
+            // Formatear con separador de miles
+            celda.textContent = new Intl.NumberFormat('en-US', {
+              minimumFractionDigits: redondear ? 0 : 2,
+              maximumFractionDigits: redondear ? 0 : 2
+            }).format(valorMostrar);
+          });
+        };
+
+        if (roundToggle) {
+          // Restaurar estado del toggle
+          const savedRoundState = localStorage.getItem(ROUND_STORAGE_KEY);
+          if (savedRoundState === 'true') {
+            roundToggle.checked = true;
+            // Aplicar redondeo cuando la tabla esté cargada
+            setTimeout(() => aplicarRedondeo(true), 500);
+          }
+          
+          roundToggle.addEventListener('change', function() {
+            const redondear = this.checked;
+            localStorage.setItem(ROUND_STORAGE_KEY, redondear);
+            aplicarRedondeo(redondear);
+          });
+        }
       });
     </script>
 

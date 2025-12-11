@@ -433,8 +433,8 @@
   };
 
   const formatPercent = (val) => {
-    if (!Number.isFinite(val)) return '0.00%';
-    return val.toFixed(2) + '%';
+    if (!Number.isFinite(val)) return '0.00 %';
+    return val.toFixed(2) + ' %';
   };
 
   /**

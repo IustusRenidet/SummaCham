@@ -10,8 +10,8 @@
   };
 
   const formatPercentValue = (valor) => {
-    if (!Number.isFinite(valor)) return '0.00%';
-    return `${valor.toFixed(2)}%`;
+    if (!Number.isFinite(valor)) return '0.00 %';
+    return `${valor.toFixed(2)} %`;
   };
 
   const toNumber = (valor) => {

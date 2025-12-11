@@ -91,11 +91,11 @@ Write-Host "   Luego, ve a GitHub y crea el release:" -ForegroundColor White
 Write-Host "   https://github.com/IustusRenidet/SummaCham/releases/new?tag=v$Version" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "   O usa gh CLI:" -ForegroundColor White
-Write-Host "   gh release create v$Version --title `"v$Version`" --notes `"$ReleaseNotes`" \" -ForegroundColor Cyan
-Write-Host "     dist/`"SummaCham Setup $Version.exe`" \" -ForegroundColor Cyan
-Write-Host "     dist/`"SummaCham Setup $Version-ia32.exe`" \" -ForegroundColor Cyan
-Write-Host "     dist/`"SummaCham $Version.exe`" \" -ForegroundColor Cyan
-Write-Host "     dist/`"SummaCham $Version-ia32.exe`" \" -ForegroundColor Cyan
+Write-Host "   gh release create v$Version --title ""v$Version"" --notes ""$ReleaseNotes"" \" -ForegroundColor Cyan
+Write-Host "     dist/""SummaCham Setup $Version.exe"" \" -ForegroundColor Cyan
+Write-Host "     dist/""SummaCham Setup $Version-ia32.exe"" \" -ForegroundColor Cyan
+Write-Host "     dist/""SummaCham $Version.exe"" \" -ForegroundColor Cyan
+Write-Host "     dist/""SummaCham $Version-ia32.exe"" \" -ForegroundColor Cyan
 Write-Host "     dist/latest.yml" -ForegroundColor Cyan
 Write-Host ""
 
