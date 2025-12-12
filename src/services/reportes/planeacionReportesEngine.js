@@ -57,17 +57,12 @@ function cargarDefinicionesModulo(modulo, empresaId = 'EMPRESA01', anio = new Da
       return definiciones;
     }
   } catch (error) {
-    console.warn(`⚠️ No se pudo cargar desde SQLite para ${modulo}, usando JSON:`, error.message);
+    console.error(`❌ No se pudo cargar desde SQLite para ${modulo}:`, error && error.message);
+    throw error;
   }
   
-  // Fallback: cargar desde JSON
-  try {
-    const contenido = fs.readFileSync(DEFINICIONES_FILE, 'utf-8');
-    return JSON.parse(contenido);
-  } catch (error) {
-    console.error('❌ Error al cargar definiciones:', error);
-    return {};
-  }
+  // If we reach here and no chapters found, raise explicit error so caller knows
+  throw new Error(`No existen capítulos definidos en SQLite para ${modulo} / ${empresaId} / ${anio}`);
 }
 
 const normalizarCuentaCanonica = (valor = '') => {

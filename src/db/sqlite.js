@@ -1,10 +1,14 @@
 const path = require("path");
 const fs = require("fs");
+const {
+  ensureActiveBinary,
+} = require("../utils/betterSqlite3Manager");
 
 // Asegurar que better-sqlite3 se cargue desde .asar.unpacked en producción
 let Database;
 let SQLITE_AVAILABLE = true;
 try {
+  ensureActiveBinary();
   // Intentar cargar desde ruta normal (desarrollo)
   Database = require("better-sqlite3");
 } catch (err) {
@@ -92,9 +96,9 @@ const crearConexion = () => {
 let db = null;
 
 const crearTablas = () => {
+  // Must have a valid DB connection
   if (!db) {
-    console.warn('⚠️ crearTablas: DB no disponible, saltando creación de tablas.');
-    return;
+    throw new Error('crearTablas: DB no inicializada');
   }
   db.prepare(
     `
@@ -580,21 +584,14 @@ const registrarPresupuestoGuardado = ({
 
 const inicializarBaseDatos = () => {
   if (!SQLITE_AVAILABLE) {
-    console.warn('⚠️ inicializarBaseDatos: SQLite no disponible. Se omitirá inicialización en DB.');
-    return false;
+    throw new Error('better-sqlite3 no disponible; inicialización de SQLite fallida');
   }
-  try {
-    db = crearConexion();
-    crearTablas();
-    crearAdministradorGlobal();
-    sembrarUsuariosDesdeJson();
-    console.log('✓ Base de datos SQLite inicializada');
-    return true;
-  } catch (err) {
-    console.warn('⚠️ inicializarBaseDatos: error creando conexion/tabla, fallback activado.', err && err.message);
-    db = null;
-    return false;
-  }
+  db = crearConexion();
+  crearTablas();
+  crearAdministradorGlobal();
+  sembrarUsuariosDesdeJson();
+  console.log('✓ Base de datos SQLite inicializada');
+  return true;
 };
 
 // Inicializar base de datos automáticamente al cargar el módulo

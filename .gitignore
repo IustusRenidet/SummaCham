@@ -1,5 +1,6 @@
 # Dependencias
 node_modules/
+native_modules/
 
 # Variables de entorno y configuración local
 .env

@@ -1,3 +1,7 @@
+const {
+  ensureActiveBinary,
+} = require('../src/utils/betterSqlite3Manager');
+ensureActiveBinary();
 const Database = require('better-sqlite3');
 const bcrypt = require('bcryptjs');
 const path = require('path');

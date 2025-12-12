@@ -2340,8 +2340,39 @@
   const extraerValoresNumericos = (fila, inicio = 2) => {
     const valores = [];
     for (let i = inicio; i < fila.cells.length; i += 1) {
-      const texto = (fila.cells[i].textContent || '').replace(/[^0-9+.,-]/g, '');
-      const numero = Number(texto.replace(',', '.'));
+      let texto = (fila.cells[i].textContent || '').replace(/[^0-9+.,-]/g, '');
+      // Determine locale/format heuristics:
+      const hasComma = texto.indexOf(',') >= 0;
+      const hasDot = texto.indexOf('.') >= 0;
+      if (hasComma && hasDot) {
+        // Use position of last separator to determine decimal separator
+        const lastDot = texto.lastIndexOf('.');
+        const lastComma = texto.lastIndexOf(',');
+        if (lastDot > lastComma) {
+          // dot is decimal, remove commas
+          texto = texto.replace(/,/g, '');
+        } else {
+          // comma is decimal, remove dots (thousands) and convert comma to dot
+          texto = texto.replace(/\./g, '');
+          texto = texto.replace(/,/g, '.');
+        }
+      } else if (hasComma && !hasDot) {
+        // Only comma exists: heuristic
+        const partes = texto.split(',');
+        // If part after comma is length 3, likely thousands -> remove commas, else comma likely decimal
+        if (partes.length > 1 && partes[1].length === 3) {
+          texto = texto.replace(/,/g, '');
+        } else {
+          texto = texto.replace(/,/g, '.');
+        }
+      }
+      // If multiple dots remain, keep last as decimal and remove others
+      if ((texto.match(/\./g) || []).length > 1) {
+        const partes = texto.split('.');
+        const decimal = partes.pop();
+        texto = partes.join('') + '.' + decimal;
+      }
+      const numero = Number(texto);
       valores.push(Number.isFinite(numero) ? numero : 0);
     }
     return valores;

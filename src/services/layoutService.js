@@ -9,6 +9,9 @@ const db = require('../db/sqlite').db;
  * Obtener layout completo para un módulo, año y capítulo
  */
 const obtenerLayout = ({ empresaId = 'EMPRESA01', modulo, anio, capitulo }) => {
+  // Fallback for SUMMARY/RESUMEN: if requested year < 2025 and no layout exists,
+  // use layout from 2025 so older years show the same layout for consistency.
+  const moduloNorm = (modulo || '').toString().trim().toUpperCase();
   // 1. Obtener cuentas
   const cuentas = db.prepare(`
     SELECT 
@@ -22,6 +25,63 @@ const obtenerLayout = ({ empresaId = 'EMPRESA01', modulo, anio, capitulo }) => {
     WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ?
     ORDER BY orden ASC, cuenta ASC
   `).all(empresaId, modulo, anio, capitulo);
+  if ((!cuentas || !cuentas.length) && (moduloNorm === 'SUMMARY' || moduloNorm === 'RESUMEN') && Number.isInteger(Number(anio)) && Number(anio) < 2025) {
+    // Find the latest available year <= 2025 and use it
+    const row = db.prepare(`SELECT MAX(anio) as anio FROM layout_cuentas WHERE modulo = ? AND anio <= ?`).get(modulo, 2025);
+    const fallbackYear = row && row.anio ? Number(row.anio) : null;
+    if (!fallbackYear) {
+      // No layout available
+      // Return empty structure; caller may handle emptiness
+      return { [modulo]: [], 'SUMA DE VARIAS SECCIONES': [] };
+    }
+    const cuentas2025 = db.prepare(`
+      SELECT 
+        cuenta AS CUENTA,
+        nombre AS NOMBRE,
+        capitulo AS CAPITULO,
+        seccion_principal AS "SECCIÓN Principal",
+        seccion_secundaria AS "SECCION Secundaria",
+        orden
+      FROM layout_cuentas
+      WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ?
+      ORDER BY orden ASC, cuenta ASC
+    `).all(empresaId, modulo, fallbackYear, capitulo);
+    if ((!cuentas2025 || !cuentas2025.length) && fallbackYear && fallbackYear !== 2025) {
+      // Try the detected latest year
+      const cuentasFallback = db.prepare(`
+        SELECT cuenta AS CUENTA, nombre AS NOMBRE, capitulo AS CAPITULO, seccion_principal AS "SECCIÓN Principal", seccion_secundaria AS "SECCION Secundaria", orden
+        FROM layout_cuentas
+        WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ?
+        ORDER BY orden ASC, cuenta ASC
+      `).all(empresaId, modulo, fallbackYear, capitulo);
+      if (cuentasFallback && cuentasFallback.length) {
+        const operaciones = db.prepare(`SELECT capitulo AS CAPITULO, clase AS Clase, seccion AS SECCION, operacion_tipo, operacion_label, signo, orden FROM layout_operaciones WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ? ORDER BY orden ASC`).all(empresaId, modulo, fallbackYear, capitulo);
+        const operacionesMap = {};
+        operaciones.forEach(op => { if (!operacionesMap[op.Clase]) operacionesMap[op.Clase] = { CAPITULO: op.CAPITULO, Clase: op.Clase, SECCION: op.SECCION }; operacionesMap[op.Clase][op.operacion_tipo] = op.operacion_label; });
+        return { [modulo]: cuentasFallback, 'SUMA DE VARIAS SECCIONES': Object.values(operacionesMap) };
+      }
+    }
+    if (cuentas2025 && cuentas2025.length) {
+      // Use 2025 layout
+      return {
+        [modulo]: cuentas2025,
+        'SUMA DE VARIAS SECCIONES': (() => {
+          const operaciones = db.prepare(`
+            SELECT capitulo AS CAPITULO, clase AS Clase, seccion AS SECCION, operacion_tipo, operacion_label, signo, orden
+            FROM layout_operaciones
+            WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ?
+            ORDER BY orden ASC
+          `).all(empresaId, modulo, 2025, capitulo);
+          const operacionesMap = {};
+          operaciones.forEach(op => {
+            if (!operacionesMap[op.Clase]) operacionesMap[op.Clase] = { CAPITULO: op.CAPITULO, Clase: op.Clase, SECCION: op.SECCION };
+            operacionesMap[op.Clase][op.operacion_tipo] = op.operacion_label;
+          });
+          return Object.values(operacionesMap);
+        })()
+      };
+    }
+  }
 
   // 2. Obtener operaciones
   const operaciones = db.prepare(`
@@ -67,6 +127,25 @@ const obtenerCapitulos = ({ empresaId = 'EMPRESA01', modulo, anio }) => {
     WHERE empresa_id = ? AND modulo = ? AND anio = ?
     ORDER BY capitulo ASC
   `).all(empresaId, modulo, anio);
+  if ((!capitulos || !capitulos.length) && (modulo || '').toString().trim().toUpperCase() === 'SUMMARY' && Number.isInteger(Number(anio)) && Number(anio) < 2025) {
+    // fallback to 2025 for SUMMARY
+    const capitulos2025 = db.prepare(`
+      SELECT DISTINCT capitulo
+      FROM layout_cuentas
+      WHERE empresa_id = ? AND modulo = ? AND anio = ?
+      ORDER BY capitulo ASC
+    `).all(empresaId, modulo, 2025);
+    return capitulos2025.map(c => c.capitulo);
+  }
+  if ((!capitulos || !capitulos.length) && (modulo || '').toString().trim().toUpperCase() === 'RESUMEN' && Number.isInteger(Number(anio)) && Number(anio) < 2025) {
+    const capitulos2025 = db.prepare(`
+      SELECT DISTINCT capitulo
+      FROM layout_cuentas
+      WHERE empresa_id = ? AND modulo = ? AND anio = ?
+      ORDER BY capitulo ASC
+    `).all(empresaId, modulo, 2025);
+    return capitulos2025.map(c => c.capitulo);
+  }
 
   return capitulos.map(c => c.capitulo);
 };

@@ -21,15 +21,21 @@
     "build:all": "cross-env NODE_ENV=production electron-builder --win nsis,portable --x64 --ia32",
     "publish": "cross-env NODE_ENV=production electron-builder --win --publish always",
     "postinstall": "electron-builder install-app-deps",
-
+    "native:save-node": "node scripts/manage-native.js save-node",
+    "native:save-electron": "node scripts/manage-native.js save-electron",
+    "native:use-node": "node scripts/manage-native.js use-node",
+    "native:use-electron": "node scripts/manage-native.js use-electron",
+    "native:status": "node scripts/manage-native.js status",
+    "native:ensure": "node scripts/manage-native.js ensure",
+    "rebuild-native-node": "npm rebuild better-sqlite3 --build-from-source && npm run native:save-node && npm run native:use-node",
+    "rebuild-native": "npm run rebuild-native-node && npx electron-rebuild -f -v 30.0.0 && npm rebuild better-sqlite3 --runtime=electron --target=30.0.0 --disturl=https://electronjs.org/headers && npm run native:save-electron && npm run native:use-electron",
+    "rebuild-native-all": "npm run rebuild-native",
     "preversion": "npm test -s || echo \"(sin tests)\"",
     "version": "git add -A",
     "postversion": "git push origin HEAD --follow-tags",
-
     "release:patch": "npm version patch",
     "release:minor": "npm version minor",
     "release:major": "npm version major"
-
   },
   "devDependencies": {
     "cross-env": "^7.0.3",
@@ -38,7 +44,9 @@
     "electron-rebuild": "^3.2.9",
     "esbuild": "^0.27.1"
   },
-  "publishConfig": { "tag-version-prefix": "v" },
+  "publishConfig": {
+    "tag-version-prefix": "v"
+  },
   "build": {
     "appId": "com.summa.cham.panelamcham",
     "productName": "PanelAMCHAM",
