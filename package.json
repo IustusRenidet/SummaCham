@@ -54,8 +54,11 @@
     "publish": [
       {
         "provider": "github",
-        "owner": "IustusRenidet",
-        "repo": "SummaCham"
+      "owner": "IustusRenidet",
+      "repo": "SummaCham",
+      "releaseType": "release",
+      "draft": false,
+      "prerelease": false
       }
     ],
     "asar": true,
