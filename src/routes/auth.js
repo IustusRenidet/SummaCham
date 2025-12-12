@@ -54,7 +54,7 @@ const checkRateLimit = (req, res) => {
 };
 
 const esquemaLogin = Joi.object({
-  usuario: Joi.string().trim().min(3).required(),
+  usuario: Joi.string().trim().min(2).required(),
   contrasena: Joi.string().min(6).required()
 });
 
@@ -126,11 +126,13 @@ const construirSesion = async (registro) => {
 };
 
 router.post('/login', async (req, res) => {
+  console.log('🔐 Intento de login:', req.body);
   const rateKey = checkRateLimit(req, res);
   if (!rateKey) return;
 
   const { error, value } = esquemaLogin.validate(req.body || {}, { abortEarly: false });
   if (error) {
+    console.log('❌ Validación fallida:', error.details);
     registerAttempt(rateKey, false);
     return res.status(400).json({
       mensaje: 'Verifica los datos capturados.',
@@ -139,6 +141,7 @@ router.post('/login', async (req, res) => {
   }
 
   const usuarioBuscado = value.usuario.trim().toUpperCase();
+  console.log('🔍 Buscando usuario:', usuarioBuscado);
 
   const registro = db.prepare(`
     SELECT id, usuario, nombres, apellido_primero, apellido_segundo, apellidos,
@@ -148,12 +151,20 @@ router.post('/login', async (req, res) => {
     WHERE usuario = ?
   `).get(usuarioBuscado);
 
+  console.log('👤 Usuario encontrado:', registro ? registro.usuario : 'NO ENCONTRADO');
+
   if (!registro) {
     registerAttempt(rateKey, false);
     return res.status(401).json({ mensaje: 'Usuario o contrase¤a incorrectos.' });
   }
 
+  console.log('🔑 Comparando contraseñas...');
+  console.log('   Contraseña recibida:', value.contrasena);
+  console.log('   Hash en DB:', registro.contrasena ? registro.contrasena.substring(0, 20) + '...' : 'NULL');
+  
   const contrasenaCorrecta = await bcrypt.compare(value.contrasena, registro.contrasena);
+  console.log('✅ Contraseña correcta:', contrasenaCorrecta);
+  
   if (!contrasenaCorrecta) {
     registerAttempt(rateKey, false);
     return res.status(401).json({ mensaje: 'Usuario o contrase¤a incorrectos.' });

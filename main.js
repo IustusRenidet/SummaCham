@@ -26,6 +26,21 @@ if (!gotTheLock) {
   let tray = null;
   let isQuitting = false;
 
+  // Manejar Ctrl+C en la terminal (solo en desarrollo)
+  if (isDev) {
+    process.on('SIGINT', () => {
+      console.log('\n🛑 Ctrl+C detectado - Cerrando aplicación...');
+      isQuitting = true;
+      app.quit();
+    });
+    
+    process.on('SIGTERM', () => {
+      console.log('\n🛑 SIGTERM recibido - Cerrando aplicación...');
+      isQuitting = true;
+      app.quit();
+    });
+  }
+
   const resolveAssetPath = (...segments) => {
     // En desarrollo, usar la ruta del proyecto
     if (!app.isPackaged) {
@@ -290,8 +305,13 @@ if (!gotTheLock) {
     // Abrir DevTools en desarrollo
     const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
     if (isDev) {
-      // Abrir DevTools inmediatamente
+      // Abrir DevTools en una ventana separada más pequeña
       mainWindow.webContents.openDevTools({ mode: "detach" });
+      
+      // Reducir el tamaño de la ventana principal para dejar espacio a DevTools
+      mainWindow.setSize(1100, 800);
+      mainWindow.center();
+      
       console.log("🔧 DevTools abiertas (modo desarrollo)");
     }
 

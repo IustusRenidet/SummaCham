@@ -52,6 +52,70 @@
         "puede_cargar_guardar": 0,
         "puede_revisar": 1,
         "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
       }
     ]
   },
@@ -74,6 +138,22 @@
         "modulo": "Eventos",
         "puede_leer": 1,
         "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
         "puede_revisar": 0,
         "puede_aprobar": 0
       }
@@ -404,8 +484,76 @@
         "puede_cargar_guardar": 0,
         "puede_revisar": 0,
         "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
       }
-    ]
+    ],
+    "esAdminGlobal": true,
+    "puedeAgregar": true,
+    "puedeModificar": true,
+    "puedeEliminar": false
   },
   {
     "username": "AO",
@@ -442,6 +590,70 @@
         "modulo": "T&IC",
         "puede_leer": 1,
         "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
         "puede_revisar": 0,
         "puede_aprobar": 0
       }
@@ -548,6 +760,70 @@
         "puede_cargar_guardar": 0,
         "puede_revisar": 0,
         "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
       }
     ]
   },
@@ -628,6 +904,22 @@
         "puede_cargar_guardar": 0,
         "puede_revisar": 1,
         "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
       }
     ]
   },
@@ -642,6 +934,22 @@
         "modulo": "Eventos",
         "puede_leer": 1,
         "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
         "puede_revisar": 0,
         "puede_aprobar": 0
       }
@@ -724,6 +1032,22 @@
         "puede_cargar_guardar": 0,
         "puede_revisar": 1,
         "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
       }
     ]
   },
@@ -764,6 +1088,70 @@
         "puede_cargar_guardar": 1,
         "puede_revisar": 0,
         "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
       }
     ]
   },
@@ -778,6 +1166,22 @@
         "modulo": "Comités",
         "puede_leer": 1,
         "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
         "puede_revisar": 0,
         "puede_aprobar": 0
       }
@@ -802,6 +1206,22 @@
         "modulo": "Finanzas",
         "puede_leer": 1,
         "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
         "puede_revisar": 0,
         "puede_aprobar": 0
       }
@@ -844,6 +1264,70 @@
         "puede_cargar_guardar": 1,
         "puede_revisar": 0,
         "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
       }
     ]
   },
@@ -858,6 +1342,22 @@
         "modulo": "Eventos",
         "puede_leer": 1,
         "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
         "puede_revisar": 0,
         "puede_aprobar": 0
       }
@@ -900,6 +1400,70 @@
         "puede_cargar_guardar": 0,
         "puede_revisar": 0,
         "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
       }
     ]
   },
@@ -972,6 +1536,70 @@
         "puede_cargar_guardar": 0,
         "puede_revisar": 0,
         "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
       }
     ]
   },
@@ -1018,6 +1646,70 @@
         "modulo": "Gtos_Corporativos",
         "puede_leer": 1,
         "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
         "puede_revisar": 0,
         "puede_aprobar": 0
       }
@@ -1100,6 +1792,22 @@
         "puede_cargar_guardar": 0,
         "puede_revisar": 1,
         "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
       }
     ]
   },
@@ -1114,6 +1822,22 @@
         "modulo": "Comités",
         "puede_leer": 1,
         "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
         "puede_revisar": 0,
         "puede_aprobar": 0
       }
@@ -1140,6 +1864,22 @@
         "puede_cargar_guardar": 1,
         "puede_revisar": 0,
         "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
       }
     ]
   },
@@ -1154,6 +1894,22 @@
         "modulo": "Comités",
         "puede_leer": 1,
         "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
         "puede_revisar": 0,
         "puede_aprobar": 0
       }
@@ -1172,6 +1928,22 @@
         "puede_cargar_guardar": 1,
         "puede_revisar": 0,
         "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
       }
     ]
   },
@@ -1179,6 +1951,7 @@
     "username": "PCA",
     "nombres": "Pedro",
     "apellidoPrimero": "Casas",
+    "apellidoSegundo": "Alatriste",
     "correo": "pcasasalatriste@amcham.org.mx",
     "permissions": [
       {
@@ -1500,6 +2273,70 @@
         "puede_cargar_guardar": 0,
         "puede_revisar": 0,
         "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
       }
     ]
   },
@@ -1540,6 +2377,70 @@
         "puede_cargar_guardar": 1,
         "puede_revisar": 0,
         "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
       }
     ]
   },
@@ -1554,6 +2455,22 @@
         "modulo": "Eventos",
         "puede_leer": 1,
         "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
         "puede_revisar": 0,
         "puede_aprobar": 0
       }
@@ -1572,6 +2489,22 @@
         "puede_cargar_guardar": 1,
         "puede_revisar": 0,
         "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
       }
     ]
   },
@@ -1586,6 +2519,22 @@
         "modulo": "Membresía",
         "puede_leer": 1,
         "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "RESUMEN",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
         "puede_revisar": 0,
         "puede_aprobar": 0
       }

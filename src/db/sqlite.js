@@ -546,7 +546,7 @@ const sembrarUsuariosDesdeJson = () => {
         usuario, nombres, apellido_primero, apellido_segundo, apellidos,
         correo, contrasena, es_admin_global,
         puede_agregar, puede_modificar, puede_eliminar
-      ) VALUES (?, ?, ?, '', ?, ?, ?, 0, 0, 0, 0)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const insertPermission = db.prepare(`
@@ -561,18 +561,32 @@ const sembrarUsuariosDesdeJson = () => {
     const transaction = db.transaction(() => {
       seedUsers.forEach((u) => {
         // Create user with real data from JSON
+        const apellido1 = u.apellidoPrimero || u.username;
+        const apellido2 = u.apellidoSegundo || '';
+        const apellidosCompletos = [apellido1, apellido2].filter(Boolean).join(' ');
+        const esAdminGlobal = u.esAdminGlobal ? 1 : 0;
+        const puedeAgregar = u.puedeAgregar ? 1 : 0;
+        const puedeModificar = u.puedeModificar ? 1 : 0;
+        const puedeEliminar = u.puedeEliminar ? 1 : 0;
         console.log(
           `Seeding user: ${u.username}`,
           u.nombres,
-          u.apellidoPrimero
+          apellido1,
+          apellido2,
+          esAdminGlobal ? '(ADMIN)' : ''
         );
         insertUser.run(
           u.username,
           u.nombres || u.username,
-          u.apellidoPrimero || u.username,
-          u.apellidoPrimero || u.username, // Apellidos (fallback)
+          apellido1,
+          apellido2,
+          apellidosCompletos,
           u.correo || "", // Correo real
-          defaultHash
+          defaultHash,
+          esAdminGlobal,
+          puedeAgregar,
+          puedeModificar,
+          puedeEliminar
         );
 
         const userRow = getUser.get(u.username);

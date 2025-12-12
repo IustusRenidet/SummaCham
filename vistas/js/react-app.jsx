@@ -15,18 +15,18 @@ const MODULE_GROUPS = [
     id: 'resumen-areas',
     label: 'Divisiones',
     items: [
-      { id: 'presupuestos', label: 'Presupuestos', path: 'Presupuestos.html', badge: 'ppto' },
-      { id: 'comites', label: 'Comités', path: 'Comités.html' },
-      { id: 'comunicacion', label: 'Comunicación', path: 'Comunicación.html' },
-      { id: 'direccion', label: 'Dirección', path: 'Dirección.html' },
-      { id: 'eventos', label: 'Eventos', path: 'Eventos.html' },
-      { id: 'finanzas', label: 'Finanzas', path: 'Finanzas.html' },
-      { id: 'gtos-corporativos', label: 'Gastos Corporativos', path: 'Gtos_Corporativos.html' },
-      { id: 'membresia', label: 'Membresía', path: 'Membresía.html' },
-      { id: 'rh', label: 'Recursos Humanos', path: 'RH.html' },
-      { id: 'serv-membresia', label: 'Servicios a la Membresía', path: 'Serv_Membresía.html' },
-      { id: 'tic', label: 'T&IC', path: 'T&IC.html' },
-      { id: 'vpe', label: 'VPE', path: 'VPE.html' }
+      { id: 'presupuestos', label: 'Presupuestos', path: 'Presupuestos.html', badge: 'ppto', permiso: 'Presupuestos' },
+      { id: 'comites', label: 'Comités', path: 'Comités.html', permiso: 'Comités' },
+      { id: 'comunicacion', label: 'Comunicación', path: 'Comunicación.html', permiso: 'Comunicación' },
+      { id: 'direccion', label: 'Dirección', path: 'Dirección.html', permiso: 'Dirección' },
+      { id: 'eventos', label: 'Eventos', path: 'Eventos.html', permiso: 'Eventos' },
+      { id: 'finanzas', label: 'Finanzas', path: 'Finanzas.html', permiso: 'Finanzas' },
+      { id: 'gtos-corporativos', label: 'Gastos Corporativos', path: 'Gtos_Corporativos.html', permiso: 'Gtos Corporativos' },
+      { id: 'membresia', label: 'Membresía', path: 'Membresía.html', permiso: 'Membresía' },
+      { id: 'rh', label: 'Recursos Humanos', path: 'RH.html', permiso: 'RH' },
+      { id: 'serv-membresia', label: 'Servicios a la Membresía', path: 'Serv_Membresía.html', permiso: 'Serv Membresía' },
+      { id: 'tic', label: 'T&IC', path: 'T&IC.html', permiso: 'T&IC' },
+      { id: 'vpe', label: 'VPE', path: 'VPE.html', permiso: 'VPE' }
     ]
   },
   {
@@ -68,7 +68,8 @@ const usuarioPuedeUsarModulo = (sesion, empresaId, modulo, puedeAdministrar) => 
   if (!acciones) {
     return false;
   }
-  return Boolean(acciones['Cargar y guardar'] || acciones.Revisar || acciones.Aprobar);
+  // Incluir permiso "Ver" (puede_leer) para mostrar el módulo
+  return Boolean(acciones.Ver || acciones['Cargar y guardar'] || acciones.Revisar || acciones.Aprobar);
 };
 
 const obtenerNombreUsuario = (sesion) => {

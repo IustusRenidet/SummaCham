@@ -7,13 +7,14 @@ const { MODULOS, construirMapaPermisos } = require('../services/permisosService'
 const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
-const ACCIONES_PERMISOS = ['Cargar y guardar', 'Revisar', 'Aprobar'];
+const ACCIONES_PERMISOS = ['Ver', 'Cargar y guardar', 'Revisar', 'Aprobar'];
 
 const normalizarUsuario = (valor = '') => valor.toString().trim().toUpperCase();
 
 const schemaPermisosModulo = Joi.object(
   MODULOS.reduce((acumulado, modulo) => {
     acumulado[modulo] = Joi.object({
+      Ver: Joi.boolean().required(),
       'Cargar y guardar': Joi.boolean().required(),
       Revisar: Joi.boolean().required(),
       Aprobar: Joi.boolean().required()
@@ -36,7 +37,7 @@ const schemaGenerales = Joi.object({
 }).required();
 
 const schemaUsuarioBase = {
-  usuario: Joi.string().trim().min(3).max(32).required(),
+  usuario: Joi.string().trim().min(2).max(32).required(),
   // Nombres y correo obligatorios en validación de código (no a nivel DB)
   nombres: Joi.string().trim().min(1).max(80).required(),
   apellidoPrimero: Joi.string().trim().min(1).max(120).required(),
@@ -69,7 +70,7 @@ const MENSAJES_PERMISOS = {
 
 const obtenerPermisosPorUsuario = (usuarioId) => {
   const permisos = db.prepare(`
-    SELECT empresa_id, modulo, puede_cargar_guardar, puede_revisar, puede_aprobar
+    SELECT empresa_id, modulo, puede_leer, puede_cargar_guardar, puede_revisar, puede_aprobar
     FROM permisos_modulo
     WHERE usuario_id = ?
   `).all(usuarioId);
@@ -80,8 +81,8 @@ const aplicarPermisos = (usuarioId, permisos) => {
   const limpiarPermisos = db.prepare('DELETE FROM permisos_modulo WHERE usuario_id = ?');
   const insertarPermiso = db.prepare(`
     INSERT INTO permisos_modulo (
-      usuario_id, empresa_id, modulo, puede_cargar_guardar, puede_revisar, puede_aprobar
-    ) VALUES (?, ?, ?, ?, ?, ?)
+      usuario_id, empresa_id, modulo, puede_leer, puede_cargar_guardar, puede_revisar, puede_aprobar
+    ) VALUES (?, ?, ?, ?, ?, ?, ?)
   `);
 
   const transaccion = db.transaction(() => {
@@ -89,14 +90,19 @@ const aplicarPermisos = (usuarioId, permisos) => {
     Object.entries(permisos).forEach(([empresaId, modulos]) => {
       if (!modulos) return;
       Object.entries(modulos).forEach(([modulo, acciones]) => {
-        const tienePermiso = acciones['Cargar y guardar'] || acciones.Revisar || acciones.Aprobar;
-        if (!tienePermiso) {
+        // Si cualquier otro permiso está activo, Ver también debe estar activo
+        const tieneOtroPermiso = acciones['Cargar y guardar'] || acciones.Revisar || acciones.Aprobar;
+        const puedeLeer = acciones.Ver || tieneOtroPermiso;
+        
+        // Solo insertar si tiene al menos el permiso de Ver
+        if (!puedeLeer) {
           return;
         }
         insertarPermiso.run(
           usuarioId,
           empresaId,
           modulo,
+          puedeLeer ? 1 : 0,
           acciones['Cargar y guardar'] ? 1 : 0,
           acciones.Revisar ? 1 : 0,
           acciones.Aprobar ? 1 : 0

@@ -205,13 +205,12 @@
     const API_BASE = (() => {
       const origin = window.location.protocol === 'file:' 
         ? 'http://localhost:3005'
-        : window.location.origin 
         : window.location.origin;
       return `${origin}/api`;
     })();
     
     const MODULOS = ['Membresía', 'Eventos', 'Comunicación', 'Dirección', 'Serv Membresía', 'Comités', 'T&IC', 'RH', 'VPE', 'Finanzas', 'Gtos Corporativos', 'SUMMARY', 'Presupuestos', 'RESUMEN'];
-    const ACCIONES = ['Cargar y guardar', 'Revisar', 'Aprobar'];
+    const ACCIONES = ['Ver', 'Cargar y guardar', 'Revisar', 'Aprobar'];
     const normalizarUsuarioEntrada = (valor = '') => valor.toString().trim().toUpperCase();
 
     const formulario = document.getElementById('formularioUsuario');
@@ -406,7 +405,9 @@
     };
 
     const aplicarPermisosAlFormulario = (permisos) => {
+      console.log('[DEBUG] aplicarPermisosAlFormulario llamada con:', permisos);
       Object.entries(permisos || {}).forEach(([empresaId, modulos]) => {
+        console.log('[DEBUG] Procesando empresa:', empresaId, 'módulos:', modulos);
         const switchEmpresa = document.getElementById(`activar_${empresaId}`);
         if (switchEmpresa) {
           const activo = Object.values(modulos || {}).some((acciones) => Object.values(acciones || {}).some(Boolean));
@@ -455,9 +456,24 @@
         card.querySelectorAll('input.permiso').forEach((cb) => { cb.checked = valor; });
       }
       if (e.target.classList.contains('permiso') || e.target.classList.contains('select-all')) {
+        // Si cualquier otro permiso está marcado, "Ver" debe estar marcado también
+        sincronizarCheckboxVer(card);
         actualizarSelectAllDeCard(card);
       }
     });
+
+    // Función para sincronizar el checkbox "Ver" basado en los otros permisos
+    const sincronizarCheckboxVer = (card) => {
+      const checkboxVer = card.querySelector('input.permiso[data-accion="Ver"]');
+      const otrosCheckboxes = Array.from(card.querySelectorAll('input.permiso')).filter(cb => cb.getAttribute('data-accion') !== 'Ver');
+      if (!checkboxVer) return;
+      
+      // Si cualquier otro checkbox está marcado, "Ver" debe estar marcado
+      const algunOtroMarcado = otrosCheckboxes.some(cb => cb.checked);
+      if (algunOtroMarcado && !checkboxVer.checked) {
+        checkboxVer.checked = true;
+      }
+    };
 
     const construirPermisosIconetPayload = (permisosActuales = {}) => {
       const resultado = {};
@@ -816,14 +832,18 @@
       }
     });
 
-    if (botonCancelar) {
-      botonCancelar.addEventListener('click', () => {
-        restablecerFormulario();
-        window.location.href = 'usuarios.html';
-      });
-    }
-
-    document.addEventListener('DOMContentLoaded', inicializar);
+    document.addEventListener('DOMContentLoaded', () => {
+      inicializar();
+      
+      // Mover el listener del botón cancelar aquí para asegurar que el DOM esté listo
+      const cancelarBtn = document.getElementById('cancelarBtn');
+      if (cancelarBtn) {
+        cancelarBtn.addEventListener('click', () => {
+          restablecerFormulario();
+          window.location.href = 'usuarios.html';
+        });
+      }
+    });
   </script>
 </body>
 

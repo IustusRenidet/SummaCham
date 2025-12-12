@@ -57,7 +57,7 @@ const normalizarNombreModulo = (nombre) => {
   return MAPA_NORMALIZACION_MODULOS[normalizado] || nombre;
 };
 
-const ACCIONES = ['Lectura', 'Cargar y guardar', 'Revisar', 'Aprobar'];
+const ACCIONES = ['Ver', 'Cargar y guardar', 'Revisar', 'Aprobar'];
 
 module.exports = {
   MODULOS,
