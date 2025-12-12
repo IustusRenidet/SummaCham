@@ -685,6 +685,17 @@
     }
 
     /**
+     * Extrae el capítulo del módulo si existe
+     * Formato: "SUMMARY:CDMX" → "CDMX"
+     * @param {string} modulo - Nombre del módulo posiblemente con sufijo
+     * @returns {string|null} Capítulo extraído o null
+     */
+    _extraerCapitulo(modulo) {
+      const partes = String(modulo || '').split(':');
+      return partes.length > 1 ? partes[1].trim() : null;
+    }
+
+    /**
      * Resuelve los permisos del usuario actual para el flujo de autorización
      * 
      * Permisos disponibles:

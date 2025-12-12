@@ -20,7 +20,16 @@
     "build:portable": "cross-env NODE_ENV=production electron-builder --win portable --x64 --ia32",
     "build:all": "cross-env NODE_ENV=production electron-builder --win nsis,portable --x64 --ia32",
     "publish": "cross-env NODE_ENV=production electron-builder --win --publish always",
-    "postinstall": "electron-builder install-app-deps"
+    "postinstall": "electron-builder install-app-deps",
+
+    "preversion": "npm test -s || echo \"(sin tests)\"",
+    "version": "git add -A",
+    "postversion": "git push origin HEAD --follow-tags",
+
+    "release:patch": "npm version patch",
+    "release:minor": "npm version minor",
+    "release:major": "npm version major"
+
   },
   "devDependencies": {
     "cross-env": "^7.0.3",
@@ -29,6 +38,7 @@
     "electron-rebuild": "^3.2.9",
     "esbuild": "^0.27.1"
   },
+  "publishConfig": { "tag-version-prefix": "v" },
   "build": {
     "appId": "com.summa.cham.panelamcham",
     "productName": "PanelAMCHAM",
