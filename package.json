@@ -1,6 +1,6 @@
 {
   "name": "panel-amcham",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Dashboard financiero PanelAMCHAM empaquetado como app de escritorio portable.",
   "main": "main.js",
   "author": "Iustus Renidet & J02V4N",
@@ -54,11 +54,11 @@
     "publish": [
       {
         "provider": "github",
-      "owner": "IustusRenidet",
-      "repo": "SummaCham",
-      "releaseType": "release",
-      "draft": false,
-      "prerelease": false
+        "owner": "IustusRenidet",
+        "repo": "SummaCham",
+        "releaseType": "release",
+        "draft": false,
+        "prerelease": false
       }
     ],
     "asar": true,
