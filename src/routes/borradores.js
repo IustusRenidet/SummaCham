@@ -60,6 +60,7 @@ const esquemaContexto = Joi.object({
   empresaId: Joi.string().trim().required(),
   modulo: Joi.string().trim().required(),
   anio: Joi.number().integer().min(2000).max(2100).required(),
+  capitulo: Joi.string().trim().default('DEFAULT'),
 });
 
 const esquemaGuardar = esquemaContexto.keys({
@@ -84,6 +85,7 @@ const esquemaListado = Joi.object({
   empresaId: Joi.string().trim().required(),
   modulo: Joi.string().trim().required(),
   anio: Joi.number().integer().min(2000).max(2100).optional(),
+  capitulo: Joi.string().trim().optional(),
   estado: Joi.string()
     .valid(...Object.values(ESTADOS))
     .optional(),
@@ -93,21 +95,22 @@ const esquemaDescartar = Joi.object({
   empresaId: Joi.string().trim().optional(),
   modulo: Joi.string().trim().optional(),
   anio: Joi.number().integer().min(2000).max(2100).optional(),
+  capitulo: Joi.string().trim().optional(),
   borradorId: Joi.number().integer().optional(),
 }).or("borradorId", "empresaId");
 
-const resetearEstadoPresupuesto = (empresaId, modulo, anio, usuarioId) => {
+const resetearEstadoPresupuesto = (empresaId, modulo, anio, capitulo, usuarioId) => {
   if (!empresaId || !modulo || !Number.isInteger(Number(anio))) return;
   db.prepare(
     `
-    INSERT INTO presupuestos_estado (empresa_id, modulo, anio, estado, actualizado_por, actualizado_en)
-    VALUES (?, ?, ?, 'sin-cargar', ?, CURRENT_TIMESTAMP)
-    ON CONFLICT(empresa_id, modulo, anio) DO UPDATE SET
+    INSERT INTO presupuestos_estado (empresa_id, modulo, anio, capitulo, estado, actualizado_por, actualizado_en)
+    VALUES (?, ?, ?, ?, 'sin-cargar', ?, CURRENT_TIMESTAMP)
+    ON CONFLICT(empresa_id, modulo, anio, capitulo) DO UPDATE SET
       estado = 'sin-cargar',
       actualizado_por = excluded.actualizado_por,
       actualizado_en = CURRENT_TIMESTAMP
   `
-  ).run(empresaId, modulo, Number(anio), usuarioId || null);
+  ).run(empresaId, modulo, Number(anio), capitulo || 'DEFAULT', usuarioId || null);
 };
 
 const esquemaHistorial = Joi.object({
@@ -207,6 +210,7 @@ router.get("/listar", (req, res) => {
     empresaId: empresa.id,
     modulo,
     anio: value.anio,
+    capitulo: value.capitulo,
     estado: value.estado,
   }).filter((borrador) => puedeVerBorrador(req, borrador));
 
@@ -325,6 +329,7 @@ router.get("/estado", (req, res) => {
       empresaId: value.empresaId,
       modulo: value.modulo,
       anio: value.anio,
+      capitulo: value.capitulo,
       usuario: req.usuarioActual?.id,
     });
 
@@ -332,6 +337,7 @@ router.get("/estado", (req, res) => {
       empresaId: empresa.id,
       modulo,
       anio: value.anio,
+      capitulo: value.capitulo || 'DEFAULT',
     });
 
     return res.json({ borrador });
@@ -379,78 +385,6 @@ router.post("/guardar", async (req, res) => {
     { ...req.body, empresaId },
     { abortEarly: false }
   );
-  router.post("/descartar", (req, res) => {
-    const merged = { ...req.body };
-    if (!merged.empresaId) merged.empresaId = resolverEmpresaId(req);
-    const { value, error } = esquemaDescartar.validate(merged, {
-      abortEarly: false,
-    });
-    if (error) {
-      return res.status(400).json({
-        mensaje: "Parámetros inválidos para descartar.",
-        detalles: error.details.map((detalle) => detalle.message),
-      });
-    }
-
-    let borrador = null;
-    if (value.borradorId) {
-      borrador = obtenerBorradorPorId(value.borradorId);
-      if (!borrador) {
-        return res.status(404).json({ mensaje: "Borrador no encontrado." });
-      }
-    } else {
-      const empresa = obtenerEmpresaPorId(value.empresaId);
-      if (!empresa)
-        return res.status(404).json({ mensaje: "Empresa no encontrada." });
-      const modulo = obtenerModuloCanonico(value.modulo);
-      if (!modulo)
-        return res
-          .status(400)
-          .json({ mensaje: "El módulo indicado no es válido." });
-      borrador = obtenerBorrador({
-        empresaId: empresa.id,
-        modulo,
-        anio: value.anio,
-      });
-      if (!borrador) {
-        return res
-          .status(404)
-          .json({ mensaje: "No hay borrador para descartar." });
-      }
-    }
-
-    const empresaId = borrador.empresaId;
-    const modulo = borrador.modulo;
-    const empresa = obtenerEmpresaPorId(empresaId);
-    if (!empresa)
-      return res.status(404).json({ mensaje: "Empresa asociada no existe." });
-
-    if (
-      !req.esAdmin &&
-      !tienePermisoEnModulo(
-        req.mapaPermisos,
-        empresa.id,
-        modulo,
-        "Cargar y guardar"
-      )
-    ) {
-      return res.status(403).json({
-        mensaje: "No cuentas con permisos para descartar este borrador.",
-      });
-    }
-
-    eliminarBorrador(empresa.id, modulo, borrador.anio, req.usuarioActual.id);
-    resetearEstadoPresupuesto(
-      empresa.id,
-      modulo,
-      borrador.anio,
-      req.usuarioActual.id
-    );
-    return res.json({
-      mensaje: "Borrador descartado.",
-      borradorId: borrador.id,
-    });
-  });
 
   if (error) {
     return res.status(400).json({
@@ -483,11 +417,13 @@ router.post("/guardar", async (req, res) => {
   }
 
   try {
+    const capitulo = value.capitulo || 'DEFAULT';
     const borrador = guardarBorrador(
       {
         empresaId: empresa.id,
         modulo,
         anio: value.anio,
+        capitulo,
         usuarioId: req.usuarioActual.id,
       },
       value.datos
@@ -804,14 +740,19 @@ router.post("/descartar", async (req, res) => {
     });
   }
 
-  const { empresaId, modulo, anio, borradorId } = value;
+  const { empresaId, modulo, anio, capitulo, borradorId } = value;
   // Si viene borradorId, lo usaremos preferentemente, de lo contrario contexto
   try {
     let borrador = null;
     if (borradorId) {
       borrador = obtenerBorradorPorId(borradorId);
     } else if (empresaId && modulo && Number.isInteger(anio)) {
-      borrador = obtenerBorrador({ empresaId, modulo, anio });
+      borrador = obtenerBorrador({ 
+        empresaId, 
+        modulo, 
+        anio, 
+        capitulo: capitulo || 'DEFAULT' 
+      });
       if (!borrador) {
         // Nada que descartar, devolvemos éxito silencioso o 404
         return res
@@ -853,6 +794,7 @@ router.post("/descartar", async (req, res) => {
       borrador.empresaId,
       borrador.modulo,
       borrador.anio,
+      borrador.capitulo,
       req.usuarioActual.id
     );
     return res.json({

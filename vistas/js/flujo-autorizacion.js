@@ -937,12 +937,16 @@
       try {
         // Sanitizar módulo: remover sufijos como :1, :2, etc que puedan venir de capítulo
         const moduloLimpio = this._sanitizarModulo(this.state.contexto.modulo);
-        console.log(`🧹 Módulo sanitizado: "${this.state.contexto.modulo}" → "${moduloLimpio}"`);
+        const capitulo = this._extraerCapitulo(this.state.contexto.modulo);
+        console.log(`🧹 Módulo sanitizado: "${this.state.contexto.modulo}" → "${moduloLimpio}"${capitulo ? ` [Capítulo: ${capitulo}]` : ''}`);
         const params = new URLSearchParams({
           empresaId: this.state.contexto.empresaId,
           anio: String(this.state.contexto.anio),
           modulo: moduloLimpio,
         });
+        if (capitulo) {
+          params.set('capitulo', capitulo);
+        }
         const resp = await fetch(
           `${API_BASE}/borradores/estado?${params.toString()}`,
           {
@@ -1256,12 +1260,17 @@
         this._toast("No hay cambios nuevos que guardar.", "info");
         return;
       }
+      const moduloLimpio = this._sanitizarModulo(this.state.contexto.modulo);
+      const capitulo = this._extraerCapitulo(this.state.contexto.modulo);
       const payload = {
-        modulo: this._sanitizarModulo(this.state.contexto.modulo),
+        modulo: moduloLimpio,
         empresaId: this.state.contexto.empresaId,
         anio: this.state.contexto.anio,
         datos: { presupuesto },
       };
+      if (capitulo) {
+        payload.capitulo = capitulo;
+      }
       try {
         const resp = await fetch(`${API_BASE}/borradores/guardar`, {
           method: "POST",
@@ -1319,12 +1328,17 @@
       ) {
         presupuesto = this.state.borrador.data.presupuesto;
       }
+      const moduloLimpio = this._sanitizarModulo(this.state.contexto.modulo);
+      const capitulo = this._extraerCapitulo(this.state.contexto.modulo);
       const payload = {
-        modulo: this._sanitizarModulo(this.state.contexto.modulo),
+        modulo: moduloLimpio,
         empresaId: this.state.contexto.empresaId,
         anio: this.state.contexto.anio,
         datos: { presupuesto },
       };
+      if (capitulo) {
+        payload.capitulo = capitulo;
+      }
       try {
         let resp = await fetch(`${API_BASE}/borradores/guardar`, {
           method: "POST",
@@ -1399,11 +1413,16 @@
       };
 
       if (this.state.borrador?.id || this._contextoCompleto()) {
+        const moduloLimpio = this._sanitizarModulo(this.state.contexto.modulo);
+        const capitulo = this._extraerCapitulo(this.state.contexto.modulo);
         const contextoPayload = {
           empresaId: this.state.contexto.empresaId,
-          modulo: this._sanitizarModulo(this.state.contexto.modulo),
+          modulo: moduloLimpio,
           anio: this.state.contexto.anio,
         };
+        if (capitulo) {
+          contextoPayload.capitulo = capitulo;
+        }
         let resultado = null;
         if (this.state.borrador?.id) {
           resultado = await intentarDescartar({
@@ -2039,11 +2058,16 @@
       body.innerHTML =
         '<tr><td colspan="5" class="text-center text-muted">Cargando...</td></tr>';
       try {
+        const moduloLimpio = this._sanitizarModulo(this.state.contexto.modulo);
+        const capitulo = this._extraerCapitulo(this.state.contexto.modulo);
         const params = new URLSearchParams({
           empresaId: this.state.contexto.empresaId,
-          modulo: this._sanitizarModulo(this.state.contexto.modulo),
+          modulo: moduloLimpio,
           anio: this.state.contexto.anio,
         });
+        if (capitulo) {
+          params.set('capitulo', capitulo);
+        }
         const resp = await fetch(
           `${API_BASE}/borradores/listar?${params.toString()}`,
           {

@@ -57,6 +57,7 @@ const registrarEventoHistorial = ({
   empresaId,
   modulo,
   anio,
+  capitulo = 'DEFAULT',
   estado,
   accion,
   descripcion = "",
@@ -75,14 +76,15 @@ const registrarEventoHistorial = ({
   db.prepare(
     `
     INSERT INTO PLAN_BORRADORES_HISTORIAL (
-      borradorId, empresaId, modulo, anio, estado, accion, descripcion, comentarios, usuarioId, registradoEn
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+      borradorId, empresaId, modulo, anio, capitulo, estado, accion, descripcion, comentarios, usuarioId, registradoEn
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
   `
   ).run(
     borradorId || null,
     empresaId,
     modulo,
     Number(anio),
+    capitulo || 'DEFAULT',
     estado,
     accion,
     descripcion,
@@ -107,6 +109,7 @@ const normalizarContexto = (contexto) => {
   const empresaId = (contexto.empresaId || "").toString().trim();
   const modulo = (contexto.modulo || "").toString().trim();
   const anio = Number(contexto.anio);
+  const capitulo = (contexto.capitulo || 'DEFAULT').toString().trim();
   const usuarioId = (contexto.usuarioId || "").toString().trim();
   if (!empresaId || !modulo || !Number.isInteger(anio) || !usuarioId) {
     throw new Error("Contexto incompleto para el borrador.");
@@ -115,6 +118,7 @@ const normalizarContexto = (contexto) => {
     empresaId,
     modulo,
     anio,
+    capitulo,
     usuarioId,
     comentarios: contexto.comentarios
       ? contexto.comentarios.toString().trim()
@@ -131,6 +135,7 @@ const mapearFila = (fila) => {
     empresaId: fila.empresaId,
     modulo: fila.modulo,
     anio: fila.anio,
+    capitulo: fila.capitulo || 'DEFAULT',
     usuarioId: fila.usuarioId,
     data: mapData(fila.data),
     estado: fila.estado,
@@ -148,6 +153,7 @@ const mapearResumen = (fila) => {
     empresaId: fila.empresaId,
     modulo: fila.modulo,
     anio: fila.anio,
+    capitulo: fila.capitulo || 'DEFAULT',
     usuarioId: fila.usuarioId,
     estado: fila.estado,
     fechaCreacion: fila.fechaCreacion,
@@ -175,7 +181,7 @@ const obtenerBorradorPorId = (id) => {
   return mapearFila(fila);
 };
 
-const listarBorradores = ({ empresaId, modulo, anio, estado } = {}) => {
+const listarBorradores = ({ empresaId, modulo, anio, capitulo, estado } = {}) => {
   const condiciones = [];
   const parametros = [];
   if (empresaId) {
@@ -189,6 +195,10 @@ const listarBorradores = ({ empresaId, modulo, anio, estado } = {}) => {
   if (Number.isInteger(anio)) {
     condiciones.push("b.anio = ?");
     parametros.push(anio);
+  }
+  if (capitulo) {
+    condiciones.push("b.capitulo = ?");
+    parametros.push(capitulo);
   }
   if (estado) {
     condiciones.push("b.estado = ?");
@@ -552,22 +562,23 @@ const obtenerFinalizador = (modulo) => {
   return FINALIZADORES[clave] || persistirEnFirebird;
 };
 
-const eliminarBorrador = (empresaId, modulo, anio, usuarioId) => {
+const eliminarBorrador = (empresaId, modulo, anio, capitulo, usuarioId) => {
   if (!empresaId || !modulo || !Number.isInteger(Number(anio))) {
     throw new Error("Contexto incompleto para descartar.");
   }
-  const existente = obtenerBorrador({ empresaId, modulo, anio });
+  const existente = obtenerBorrador({ empresaId, modulo, anio, capitulo: capitulo || 'DEFAULT' });
   if (!existente) {
     return null;
   }
   db.prepare(
-    "DELETE FROM PLAN_BORRADORES WHERE empresaId = ? AND modulo = ? AND anio = ?"
-  ).run(empresaId, modulo, anio);
+    "DELETE FROM PLAN_BORRADORES WHERE empresaId = ? AND modulo = ? AND anio = ? AND capitulo = ?"
+  ).run(empresaId, modulo, anio, capitulo || 'DEFAULT');
   registrarEventoHistorial({
     borradorId: existente.id,
     empresaId,
     modulo,
     anio,
+    capitulo: capitulo || 'DEFAULT',
     estado: existente.estado,
     accion: HISTORIAL_ACCIONES.DESCARTAR.clave,
     descripcion: "Descartó el borrador en edición",
@@ -576,9 +587,9 @@ const eliminarBorrador = (empresaId, modulo, anio, usuarioId) => {
   return existente;
 };
 
-const obtenerBorrador = ({ empresaId, modulo, anio }) => {
+const obtenerBorrador = ({ empresaId, modulo, anio, capitulo = 'DEFAULT' }) => {
   try {
-    console.log("[obtenerBorrador] called with:", { empresaId, modulo, anio });
+    console.log("[obtenerBorrador] called with:", { empresaId, modulo, anio, capitulo });
     const estadosValidos = [
       ESTADOS.EDITANDO,
       ESTADOS.PENDIENTE,
@@ -590,17 +601,17 @@ const obtenerBorrador = ({ empresaId, modulo, anio }) => {
     const query = `
       SELECT *
       FROM PLAN_BORRADORES
-      WHERE empresaId = ? AND modulo = ? AND anio = ?
+      WHERE empresaId = ? AND modulo = ? AND anio = ? AND capitulo = ?
         AND estado IN (${placeholders})
       ORDER BY fechaEnvio DESC NULLS LAST, id DESC
       LIMIT 1
     `;
     const fila = db
       .prepare(query)
-      .get(empresaId, modulo, anio, ...estadosValidos);
+      .get(empresaId, modulo, anio, capitulo || 'DEFAULT', ...estadosValidos);
     console.log(
       "[obtenerBorrador] result:",
-      fila ? `found id=${fila.id}, estado=${fila.estado}` : "null"
+      fila ? `found id=${fila.id}, estado=${fila.estado}, capitulo=${fila.capitulo}` : "null"
     );
     return mapearFila(fila);
   } catch (err) {
@@ -618,10 +629,10 @@ const guardarBorrador = (contexto, datos) => {
       `
     SELECT id
     FROM PLAN_BORRADORES
-    WHERE empresaId = ? AND modulo = ? AND anio = ?
+    WHERE empresaId = ? AND modulo = ? AND anio = ? AND capitulo = ?
   `
     )
-    .get(cfg.empresaId, cfg.modulo, cfg.anio);
+    .get(cfg.empresaId, cfg.modulo, cfg.anio, cfg.capitulo);
 
   if (existente) {
     db.prepare(
@@ -637,6 +648,7 @@ const guardarBorrador = (contexto, datos) => {
       empresaId: actualizado.empresaId,
       modulo: actualizado.modulo,
       anio: actualizado.anio,
+      capitulo: actualizado.capitulo,
       estado: actualizado.estado,
       accion: HISTORIAL_ACCIONES.GUARDAR_BORRADOR.clave,
       descripcion: "Guardó cambios para continuar editando",
@@ -648,14 +660,15 @@ const guardarBorrador = (contexto, datos) => {
   const resultado = db
     .prepare(
       `
-    INSERT INTO PLAN_BORRADORES (empresaId, anio, modulo, usuarioId, data, estado, comentarios)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO PLAN_BORRADORES (empresaId, anio, modulo, capitulo, usuarioId, data, estado, comentarios)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `
     )
     .run(
       cfg.empresaId,
       cfg.anio,
       cfg.modulo,
+      cfg.capitulo,
       cfg.usuarioId,
       contenido,
       ESTADOS.EDITANDO,
@@ -668,6 +681,7 @@ const guardarBorrador = (contexto, datos) => {
     empresaId: nuevo.empresaId,
     modulo: nuevo.modulo,
     anio: nuevo.anio,
+    capitulo: nuevo.capitulo,
     estado: nuevo.estado,
     accion: HISTORIAL_ACCIONES.GUARDAR_BORRADOR.clave,
     descripcion: "Creó un nuevo borrador",
@@ -696,6 +710,7 @@ const enviarRevision = async (borradorId, usuarioRol, usuarioId) => {
       empresaId: actualizado.empresaId,
       modulo: actualizado.modulo,
       anio: actualizado.anio,
+      capitulo: actualizado.capitulo,
       estado: actualizado.estado,
       accion: HISTORIAL_ACCIONES.AUTO_AUTORIZAR.clave,
       descripcion: "Autorización automática por administrador global",
@@ -718,6 +733,7 @@ const enviarRevision = async (borradorId, usuarioRol, usuarioId) => {
     empresaId: actualizado.empresaId,
     modulo: actualizado.modulo,
     anio: actualizado.anio,
+    capitulo: actualizado.capitulo,
     estado: actualizado.estado,
     accion: HISTORIAL_ACCIONES.ENVIAR_REVISION.clave,
     descripcion: "Envió el borrador a revisión",
@@ -745,6 +761,7 @@ const marcarRevisado = (borradorId, cancelar = false, usuarioId) => {
     empresaId: actualizado.empresaId,
     modulo: actualizado.modulo,
     anio: actualizado.anio,
+    capitulo: actualizado.capitulo,
     estado: actualizado.estado,
     accion: cancelar
       ? HISTORIAL_ACCIONES.CANCELAR_REVISION.clave
@@ -781,6 +798,7 @@ const autorizarBorrador = async (borradorId, usuarioId) => {
     empresaId: actualizado.empresaId,
     modulo: actualizado.modulo,
     anio: actualizado.anio,
+    capitulo: actualizado.capitulo,
     estado: actualizado.estado,
     accion: HISTORIAL_ACCIONES.AUTORIZAR.clave,
     descripcion: "Autorizó el borrador",
@@ -809,6 +827,7 @@ const rechazarBorrador = (borradorId, motivo, usuarioId) => {
     empresaId: actualizado.empresaId,
     modulo: actualizado.modulo,
     anio: actualizado.anio,
+    capitulo: actualizado.capitulo,
     estado: actualizado.estado,
     accion: HISTORIAL_ACCIONES.RECHAZAR.clave,
     descripcion: "Rechazó el borrador",
@@ -843,6 +862,7 @@ const guardarAutorizado = async (borradorId, usuarioId) => {
     empresaId: actualizado.empresaId,
     modulo: actualizado.modulo,
     anio: actualizado.anio,
+    capitulo: actualizado.capitulo,
     estado: actualizado.estado,
     accion: HISTORIAL_ACCIONES.GUARDAR_COI.clave,
     descripcion: "Guardó la versión autorizada en COI",

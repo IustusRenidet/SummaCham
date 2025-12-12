@@ -149,14 +149,23 @@ const crearTablas = () => {
       empresa_id TEXT NOT NULL,
       modulo TEXT NOT NULL,
       anio INTEGER NOT NULL,
+      capitulo TEXT NOT NULL DEFAULT 'DEFAULT',
       estado TEXT NOT NULL DEFAULT 'sin-cargar',
       actualizado_por INTEGER,
       actualizado_en TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      UNIQUE(empresa_id, modulo, anio),
+      UNIQUE(empresa_id, modulo, anio, capitulo),
       FOREIGN KEY(actualizado_por) REFERENCES usuarios(id) ON DELETE SET NULL
     )
   `
   ).run();
+
+  // Agregar columna capitulo si no existe (migración)
+  const infoEstado = db.prepare(`PRAGMA table_info(presupuestos_estado)`).all();
+  const tieneCapituloEstado = infoEstado.some(col => col.name === 'capitulo');
+  if (!tieneCapituloEstado) {
+    db.prepare(`ALTER TABLE presupuestos_estado ADD COLUMN capitulo TEXT NOT NULL DEFAULT 'DEFAULT'`).run();
+    console.log('✅ Columna capitulo agregada a presupuestos_estado');
+  }
 
   db.prepare(
     `
@@ -165,6 +174,7 @@ const crearTablas = () => {
       empresa_id TEXT NOT NULL,
       modulo TEXT NOT NULL,
       anio INTEGER NOT NULL,
+      capitulo TEXT NOT NULL DEFAULT 'DEFAULT',
       estado TEXT NOT NULL,
       usuario_id INTEGER,
       registrado_en TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -172,6 +182,14 @@ const crearTablas = () => {
     )
   `
   ).run();
+
+  // Agregar columna capitulo si no existe (migración)
+  const infoEstadoHist = db.prepare(`PRAGMA table_info(presupuestos_estado_historial)`).all();
+  const tieneCapituloEstadoHist = infoEstadoHist.some(col => col.name === 'capitulo');
+  if (!tieneCapituloEstadoHist) {
+    db.prepare(`ALTER TABLE presupuestos_estado_historial ADD COLUMN capitulo TEXT NOT NULL DEFAULT 'DEFAULT'`).run();
+    console.log('✅ Columna capitulo agregada a presupuestos_estado_historial');
+  }
 
   db.prepare(
     `
@@ -213,16 +231,25 @@ const crearTablas = () => {
       empresaId TEXT NOT NULL,
       anio INTEGER NOT NULL,
       modulo TEXT NOT NULL,
+      capitulo TEXT NOT NULL DEFAULT 'DEFAULT',
       usuarioId TEXT NOT NULL,
       data TEXT NOT NULL,
       estado TEXT NOT NULL DEFAULT 'EDITANDO',
       fechaCreacion TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       fechaEnvio TEXT,
       comentarios TEXT,
-      UNIQUE(empresaId, modulo, anio)
+      UNIQUE(empresaId, modulo, anio, capitulo)
     )
   `
   ).run();
+
+  // Agregar columna capitulo si no existe (migración)
+  const infoBorradores = db.prepare(`PRAGMA table_info(PLAN_BORRADORES)`).all();
+  const tieneCapitulo = infoBorradores.some(col => col.name === 'capitulo');
+  if (!tieneCapitulo) {
+    db.prepare(`ALTER TABLE PLAN_BORRADORES ADD COLUMN capitulo TEXT NOT NULL DEFAULT 'DEFAULT'`).run();
+    console.log('✅ Columna capitulo agregada a PLAN_BORRADORES');
+  }
 
   db.prepare(
     `
@@ -231,6 +258,7 @@ const crearTablas = () => {
       borradorId INTEGER,
       empresaId TEXT NOT NULL,
       modulo TEXT NOT NULL,
+      capitulo TEXT NOT NULL DEFAULT 'DEFAULT',
       anio INTEGER NOT NULL,
       estado TEXT NOT NULL,
       accion TEXT NOT NULL,
@@ -241,6 +269,14 @@ const crearTablas = () => {
     )
   `
   ).run();
+
+  // Agregar columna capitulo si no existe (migración)
+  const infoHistorial = db.prepare(`PRAGMA table_info(PLAN_BORRADORES_HISTORIAL)`).all();
+  const tieneCapituloHistorial = infoHistorial.some(col => col.name === 'capitulo');
+  if (!tieneCapituloHistorial) {
+    db.prepare(`ALTER TABLE PLAN_BORRADORES_HISTORIAL ADD COLUMN capitulo TEXT NOT NULL DEFAULT 'DEFAULT'`).run();
+    console.log('✅ Columna capitulo agregada a PLAN_BORRADORES_HISTORIAL');
+  }
 
   // Tablas para sistema de layouts por año y capítulo
   db.prepare(
