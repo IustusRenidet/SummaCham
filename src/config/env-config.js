@@ -53,9 +53,17 @@ function loadEnvFile(filePath) {
  * Configura variables de entorno según modo
  */
 function setupEnvironment() {
-  // Detectar si estamos empaquetados (producción) o en desarrollo
-  const isPackaged = require('electron').app?.isPackaged ?? false;
-  const isDevelopment = process.env.NODE_ENV === 'development' || !isPackaged;
+  // Detectar modo: NODE_ENV tiene prioridad, luego verificamos si estamos empaquetados
+  let isPackaged = false;
+  try {
+    isPackaged = require('electron').app?.isPackaged ?? false;
+  } catch (e) {
+    // Si falla, asumimos que estamos en desarrollo
+    isPackaged = false;
+  }
+  
+  // NODE_ENV tiene prioridad sobre isPackaged
+  const isDevelopment = process.env.NODE_ENV === 'development' || (!process.env.NODE_ENV && !isPackaged);
 
   // Determinar ruta base
   const appPath = isPackaged 

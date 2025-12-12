@@ -11,10 +11,12 @@ autoUpdater.autoInstallOnAppQuit = true; // Instalar al cerrar la app
 // Garantizar una única instancia de la aplicación
 const gotTheLock = app.requestSingleInstanceLock();
 
+const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 console.log("🔍 Iniciando aplicación...");
 console.log("  Lock obtenido:", gotTheLock);
 console.log("  Packaged:", app.isPackaged);
 console.log("  NODE_ENV:", process.env.NODE_ENV);
+console.log("  Modo:", isDev ? "🛠️ DESARROLLO" : "📦 PRODUCCIÓN");
 
 if (!gotTheLock) {
   console.log("⚠️ Otra instancia ya está corriendo, cerrando esta...");
@@ -286,11 +288,11 @@ if (!gotTheLock) {
     mainWindow.loadURL('http://localhost:3005');
 
     // Abrir DevTools en desarrollo
-    if (!app.isPackaged) {
-      mainWindow.webContents.once('did-finish-load', () => {
-        mainWindow.webContents.openDevTools({ mode: "detach" });
-        console.log("🔧 DevTools abiertas");
-      });
+    const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
+    if (isDev) {
+      // Abrir DevTools inmediatamente
+      mainWindow.webContents.openDevTools({ mode: "detach" });
+      console.log("🔧 DevTools abiertas (modo desarrollo)");
     }
 
     // Interceptar cierre para minimizar en lugar de salir
