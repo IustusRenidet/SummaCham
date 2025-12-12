@@ -416,7 +416,7 @@
       }
       mapa.get(clave).secciones.push({
         nombre: meta.tituloVisible || meta.seccion || 'Sin título',
-        factor: Number.isFinite(meta.operacionFactor) ? meta.operacionFactor : 1
+        factor: Number.isFinite(meta.factor) ? meta.factor : (Number.isFinite(meta.operacionFactor) ? meta.operacionFactor : 1)
       });
     });
     return Array.from(mapa.values());
@@ -1526,6 +1526,10 @@
         elementos: {
           header: headerRow
         }
+        ,
+        // Detectar factor/operación: si en la configuración hay operacionFactor usarlo,
+        // si el nombre es de tipo gastos/expense lo marcamos con -1
+        factor: Number.isFinite(sumas?.operacionFactor) ? sumas.operacionFactor : (/(GASTOS|EXPENSE)/i.test(seccion) ? -1 : 1)
       };
       if (etiquetaSumRow) {
         metaSeccion.elementos.sumRow = agregarFilaResumen({
@@ -2502,15 +2506,17 @@
     }
 
     // result-row: suma solamente los sum-row de todas las secciones con la misma etiqueta de resultado
+    // Aplicar factor por sección (ingresos = +1, gastos = -1 o user-defined operacionFactor)
     try {
       const acumuladosResultado = new Map();
       secciones.forEach((seccion) => {
         const clave = normalizarClave(seccion.resultRowTexto);
         if (!clave) return;
         const origen = seccion.sumValues || Array.from({ length: longitud }, () => 0);
+        const factor = Number.isFinite(seccion.factor) ? seccion.factor : 1;
         const prev = acumuladosResultado.get(clave) || Array.from({ length: longitud }, () => 0);
         origen.forEach((valor, idx) => {
-          prev[idx] += Number(valor) || 0;
+          prev[idx] += (Number(valor) || 0) * factor;
         });
         acumuladosResultado.set(clave, prev);
       });

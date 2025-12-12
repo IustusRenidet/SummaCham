@@ -33,8 +33,16 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3005)) => {
   console.log("  Puerto configurado:", puerto);
   console.log("  NODE_ENV:", process.env.NODE_ENV || 'development');
 
-  inicializarBaseDatos();
-  console.log("✓ Base de datos SQLite inicializada");
+  const sqliteInitialized = inicializarBaseDatos();
+  if (!sqliteInitialized) {
+    console.error('❌ No se pudo inicializar SQLite. El servidor requiere SQLite nativo cargado.');
+    console.error('   Asegúrate de reconstruir los módulos nativos:');
+    console.error('      npm ci');
+    console.error('      npx electron-rebuild -f -v 30.0.0');
+    console.error('      npm rebuild better-sqlite3 --runtime=electron --target=30.0.0 --disturl=https://electronjs.org/headers');
+    process.exit(1);
+  }
+  console.log('✓ Base de datos SQLite inicializada');
 
   const app = express();
   

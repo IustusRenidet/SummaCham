@@ -3,14 +3,29 @@ const fs = require("fs");
 
 // Asegurar que better-sqlite3 se cargue desde .asar.unpacked en producción
 let Database;
+let SQLITE_AVAILABLE = true;
 try {
   // Intentar cargar desde ruta normal (desarrollo)
   Database = require("better-sqlite3");
 } catch (err) {
-  // Si falla, intentar desde .asar.unpacked
-  const unpackedPath = __dirname.replace('app.asar', 'app.asar.unpacked');
-  const betterSqlite3Path = path.join(unpackedPath, '../../node_modules/better-sqlite3');
-  Database = require(betterSqlite3Path);
+  try {
+    // Si falla, intentar desde .asar.unpacked
+    const unpackedPath = __dirname.replace('app.asar', 'app.asar.unpacked');
+    const betterSqlite3Path = path.join(unpackedPath, '../../node_modules/better-sqlite3');
+    Database = require(betterSqlite3Path);
+  } catch (err2) {
+    // No es posible cargar better-sqlite3. Crash early and give instructions.
+    const mensaje = `\n\n❌ better-sqlite3 no pudo ser cargado: ${err2 && err2.message ? err2.message : err2}\n\n` +
+      'Para usar SQLite (obligatorio), reconstruye los módulos nativos para el runtime de Electron y la versión objetivo.\n' +
+      'Ejemplos:\n' +
+      '  npm ci\n' +
+      '  npx electron-rebuild -f -v 30.0.0\n' +
+      '  npm rebuild better-sqlite3 --runtime=electron --target=30.0.0 --disturl=https://electronjs.org/headers\n\n' +
+      'Si estás construyendo el paquete, asegúrate de ejecutar `electron-builder install-app-deps` antes de empaquetar.\n\n';
+    console.error(mensaje);
+    // Throw an explicit error - SQLite is required for full functionality and we don't fall back to JSON
+    throw new Error('better-sqlite3 no pudo ser cargado; reconstruye módulos nativos para Electron.');
+  }
 }
 
 const bcrypt = require("bcryptjs");
@@ -62,18 +77,25 @@ const asegurarDirectorio = (rutaBase) => {
 };
 
 const crearConexion = () => {
+  if (!SQLITE_AVAILABLE) {
+    throw new Error('better-sqlite3 no disponible: no se puede crear conexion');
+  }
   const rutaBase = obtenerRutaBaseDatos();
   asegurarDirectorio(rutaBase);
   const rutaDb = path.join(rutaBase, NOMBRE_DB);
   console.log("Conectando a SQLite en:", rutaDb);
-  const conexion = new Database(rutaDb);
-  conexion.pragma("foreign_keys = ON");
-  return conexion;
+  db = new Database(rutaDb);
+  db.pragma("foreign_keys = ON");
+  return db;
 };
 
-const db = crearConexion();
+let db = null;
 
 const crearTablas = () => {
+  if (!db) {
+    console.warn('⚠️ crearTablas: DB no disponible, saltando creación de tablas.');
+    return;
+  }
   db.prepare(
     `
     CREATE TABLE IF NOT EXISTS usuarios (
@@ -557,18 +579,31 @@ const registrarPresupuestoGuardado = ({
 };
 
 const inicializarBaseDatos = () => {
-  crearTablas();
-  crearAdministradorGlobal();
-  sembrarUsuariosDesdeJson();
+  if (!SQLITE_AVAILABLE) {
+    console.warn('⚠️ inicializarBaseDatos: SQLite no disponible. Se omitirá inicialización en DB.');
+    return false;
+  }
+  try {
+    db = crearConexion();
+    crearTablas();
+    crearAdministradorGlobal();
+    sembrarUsuariosDesdeJson();
+    console.log('✓ Base de datos SQLite inicializada');
+    return true;
+  } catch (err) {
+    console.warn('⚠️ inicializarBaseDatos: error creando conexion/tabla, fallback activado.', err && err.message);
+    db = null;
+    return false;
+  }
 };
 
 // Inicializar base de datos automáticamente al cargar el módulo
 if (require.main !== module) {
   // Solo inicializar si se está importando, no si se ejecuta directamente
   try {
-    crearTablas();
+    inicializarBaseDatos();
   } catch (error) {
-    console.error('Error al crear tablas:', error);
+    console.error('Error al inicializar base de datos:', error);
   }
 }
 
@@ -576,5 +611,6 @@ module.exports = {
   db,
   crearConexion,
   inicializarBaseDatos,
+  isSQLiteAvailable: () => SQLITE_AVAILABLE,
   registrarPresupuestoGuardado,
 };
