@@ -241,6 +241,83 @@ const crearTablas = () => {
     )
   `
   ).run();
+
+  // Tablas para sistema de layouts por año y capítulo
+  db.prepare(
+    `
+    CREATE TABLE IF NOT EXISTS layout_cuentas (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      empresa_id TEXT NOT NULL,
+      modulo TEXT NOT NULL,
+      anio INTEGER NOT NULL,
+      cuenta TEXT NOT NULL,
+      nombre TEXT NOT NULL,
+      capitulo TEXT NOT NULL,
+      seccion_principal TEXT NOT NULL,
+      seccion_secundaria TEXT,
+      orden INTEGER DEFAULT 0,
+      creado_en TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      actualizado_en TEXT,
+      UNIQUE(empresa_id, modulo, anio, capitulo, cuenta)
+    )
+  `
+  ).run();
+
+  db.prepare(
+    `
+    CREATE TABLE IF NOT EXISTS layout_operaciones (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      empresa_id TEXT NOT NULL,
+      modulo TEXT NOT NULL,
+      anio INTEGER NOT NULL,
+      capitulo TEXT NOT NULL,
+      clase TEXT NOT NULL,
+      seccion TEXT NOT NULL,
+      operacion_tipo TEXT NOT NULL,
+      operacion_label TEXT NOT NULL,
+      signo INTEGER NOT NULL DEFAULT 1,
+      orden INTEGER DEFAULT 0,
+      creado_en TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      actualizado_en TEXT,
+      UNIQUE(empresa_id, modulo, anio, capitulo, clase, operacion_tipo)
+    )
+  `
+  ).run();
+
+  db.prepare(
+    `
+    CREATE TABLE IF NOT EXISTS layout_secciones (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      empresa_id TEXT NOT NULL,
+      modulo TEXT NOT NULL,
+      anio INTEGER NOT NULL,
+      capitulo TEXT NOT NULL,
+      seccion_principal TEXT NOT NULL,
+      seccion_secundaria TEXT,
+      tipo TEXT NOT NULL,
+      orden INTEGER DEFAULT 0,
+      creado_en TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      actualizado_en TEXT,
+      UNIQUE(empresa_id, modulo, anio, capitulo, seccion_principal, seccion_secundaria)
+    )
+  `
+  ).run();
+
+  // Índices para optimizar consultas de layouts
+  db.prepare(`
+    CREATE INDEX IF NOT EXISTS idx_layout_cuentas_lookup 
+    ON layout_cuentas(empresa_id, modulo, anio, capitulo)
+  `).run();
+
+  db.prepare(`
+    CREATE INDEX IF NOT EXISTS idx_layout_operaciones_lookup 
+    ON layout_operaciones(empresa_id, modulo, anio, capitulo)
+  `).run();
+
+  db.prepare(`
+    CREATE INDEX IF NOT EXISTS idx_layout_secciones_lookup 
+    ON layout_secciones(empresa_id, modulo, anio, capitulo)
+  `).run();
 };
 
 const sembrarUsuariosDesdeJson = () => {
@@ -449,8 +526,19 @@ const inicializarBaseDatos = () => {
   sembrarUsuariosDesdeJson();
 };
 
+// Inicializar base de datos automáticamente al cargar el módulo
+if (require.main !== module) {
+  // Solo inicializar si se está importando, no si se ejecuta directamente
+  try {
+    crearTablas();
+  } catch (error) {
+    console.error('Error al crear tablas:', error);
+  }
+}
+
 module.exports = {
   db,
+  crearConexion,
   inicializarBaseDatos,
   registrarPresupuestoGuardado,
 };

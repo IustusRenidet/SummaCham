@@ -9,6 +9,7 @@ const router = express.Router();
 const path = require('path');
 const fs = require('fs').promises;
 const { requireAuth } = require('../middleware/auth');
+const layoutService = require('../services/layoutService');
 
 // Helper para resolver rutas en ASAR
 const resolveUnpackedPath = (relativePath) => {
@@ -20,12 +21,60 @@ const resolveUnpackedPath = (relativePath) => {
   return path.join(basePath, relativePath);
 };
 
-// Rutas a archivos JSON
+// Rutas a archivos JSON (LEGACY - usadas como fallback)
 const SUMMARY_RESUMEN_JSON = resolveUnpackedPath('../../info IMPORTANTE/CUENTAS SUMMARY y RESUMEN.json');
 const MODULOS_JSON = resolveUnpackedPath('../../info IMPORTANTE/CUENTAS.json');
 
 /**
- * Helper: Cargar JSON
+ * Helper: Cargar layout desde SQLite (con fallback a JSON)
+ */
+async function cargarLayout(modulo, empresaId = 'EMPRESA01', anio = new Date().getFullYear()) {
+  try {
+    // Intentar cargar desde SQLite
+    const capitulos = layoutService.obtenerCapitulos({ empresaId, modulo, anio });
+    
+    if (capitulos && capitulos.length > 0) {
+      // Cargar todos los capítulos
+      const layoutCompleto = {};
+      
+      for (const cap of capitulos) {
+        const layout = layoutService.obtenerLayout({ 
+          empresaId, 
+          modulo, 
+          anio, 
+          capitulo: cap.capitulo 
+        });
+        
+        if (!layoutCompleto[cap.capitulo]) {
+          layoutCompleto[cap.capitulo] = [];
+        }
+        
+        // Convertir de SQLite a formato legacy
+        layout.cuentas.forEach(cuenta => {
+          layoutCompleto[cap.capitulo].push({
+            CAPITULO: cap.capitulo,
+            CUENTA: cuenta.CUENTA,
+            NOMBRE: cuenta.NOMBRE,
+            'SECCIÓN Principal': cuenta['SECCIÓN Principal'],
+            'SECCION Secundaria': cuenta['SECCION Secundaria'],
+            SECCION: cuenta['SECCIÓN Principal'], // Para módulos operativos
+            orden: cuenta.orden
+          });
+        });
+      }
+      
+      return layoutCompleto;
+    }
+  } catch (error) {
+    console.warn(`⚠️ No se pudo cargar layout desde SQLite para ${modulo}, usando JSON:`, error.message);
+  }
+  
+  // Fallback: cargar desde JSON
+  return cargarJSON(modulo);
+}
+
+/**
+ * Helper: Cargar JSON (LEGACY)
  */
 async function cargarJSON(tipo) {
   try {
@@ -42,7 +91,38 @@ async function cargarJSON(tipo) {
 }
 
 /**
- * Helper: Guardar JSON
+ * Helper: Guardar layout en SQLite y JSON
+ */
+async function guardarLayout(modulo, capitulo, cuentas, empresaId = 'EMPRESA01', anio = new Date().getFullYear()) {
+  try {
+    // Guardar en SQLite
+    layoutService.guardarCuentas({
+      empresaId,
+      modulo,
+      anio,
+      capitulo,
+      cuentas: cuentas.map((c, index) => ({
+        CUENTA: c.CUENTA,
+        NOMBRE: c.NOMBRE,
+        'SECCIÓN Principal': c['SECCIÓN Principal'] || c.SECCION,
+        'SECCION Secundaria': c['SECCION Secundaria'],
+        orden: c.orden || index
+      }))
+    });
+    
+    console.log(`✅ Layout guardado en SQLite: ${modulo}/${capitulo}`);
+    
+    // También guardar en JSON como backup
+    return guardarJSON(modulo, cuentas);
+  } catch (error) {
+    console.error('❌ Error al guardar layout:', error);
+    // Intentar guardar solo en JSON
+    return guardarJSON(modulo, cuentas);
+  }
+}
+
+/**
+ * Helper: Guardar JSON (LEGACY)
  */
 async function guardarJSON(tipo, data) {
   try {

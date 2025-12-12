@@ -12,6 +12,7 @@ const rutasPresupuestos = require('./routes/presupuestos');
 const rutasComites = require('./routes/comitesRoutes');
 const rutasPlaneacion = require('./routes/planeacion');
 const rutasLayouts = require('./routes/layouts');
+const rutasLayoutsPorAnio = require('./routes/layoutRoutes');
 const rutasNotificaciones = require('./routes/notificaciones');
 const rutasSaldos = require('./routes/saldos');
 const rutasCuentas = require('./routes/cuentas');
@@ -144,6 +145,7 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3005)) => {
   app.use('/api/comites', rutasComites);
   app.use('/api/planeacion', rutasPlaneacion);
   app.use('/api/layouts', rutasLayouts);
+  app.use('/api/layouts-config', rutasLayoutsPorAnio);
   app.use('/api/borradores', rutasBorradores);
   app.use('/api/notificaciones', rutasNotificaciones);
   app.use('/api/reportes', rutasReportes);

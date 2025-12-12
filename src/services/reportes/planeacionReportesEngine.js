@@ -2,6 +2,7 @@ const path = require('path');
 const fs = require('fs');
 const { obtenerDatosPlaneacion } = require('../planeacionCuentasService');
 const { MESES } = require('../saldosService');
+const layoutService = require('../layoutService');
 
 // Helper para resolver rutas en ASAR
 const resolveUnpackedPath = (relativePath) => {
@@ -18,6 +19,56 @@ const DEFINICIONES_FILE = path.join(DEFAULT_BASE_PATH, 'CUENTAS SUMMARY y RESUME
 
 const NORMALIZAR_CLAVE = (valor = '') => valor.toString().trim().toUpperCase();
 const NORMALIZAR_CAPITULO = (valor = '') => valor.toString().trim().toUpperCase();
+
+/**
+ * Cargar definiciones desde SQLite con fallback a JSON
+ */
+function cargarDefinicionesModulo(modulo, empresaId = 'EMPRESA01', anio = new Date().getFullYear()) {
+  try {
+    // Intentar cargar desde SQLite
+    const capitulos = layoutService.obtenerCapitulos({ empresaId, modulo, anio });
+    
+    if (capitulos && capitulos.length > 0) {
+      const definiciones = {};
+      
+      for (const cap of capitulos) {
+        const layout = layoutService.obtenerLayout({ 
+          empresaId, 
+          modulo, 
+          anio, 
+          capitulo: cap.capitulo 
+        });
+        
+        // Convertir a formato legacy
+        definiciones[cap.capitulo] = layout.cuentas.map(cuenta => ({
+          CAPITULO: cap.capitulo,
+          CUENTA: cuenta.CUENTA,
+          NOMBRE: cuenta.NOMBRE,
+          'SECCIÓN Principal': cuenta['SECCIÓN Principal'],
+          'SECCION Secundaria': cuenta['SECCION Secundaria']
+        }));
+        
+        // Agregar operaciones si existen
+        if (layout.operaciones && layout.operaciones.length > 0) {
+          definiciones['SUMA DE VARIAS SECCIONES'] = layout.operaciones;
+        }
+      }
+      
+      return definiciones;
+    }
+  } catch (error) {
+    console.warn(`⚠️ No se pudo cargar desde SQLite para ${modulo}, usando JSON:`, error.message);
+  }
+  
+  // Fallback: cargar desde JSON
+  try {
+    const contenido = fs.readFileSync(DEFINICIONES_FILE, 'utf-8');
+    return JSON.parse(contenido);
+  } catch (error) {
+    console.error('❌ Error al cargar definiciones:', error);
+    return {};
+  }
+}
 
 const normalizarCuentaCanonica = (valor = '') => {
   const limpio = valor.toString().replace(/[^0-9]/g, '');
@@ -48,9 +99,11 @@ const cuentaVisibleDesdeCanonica = (cuentaCanonica = '') => {
   return `${visible.slice(0, 3)}-${visible.slice(3, 6)}-${visible.slice(6, 9)}-${visible.slice(9, 11)}`;
 };
 
-const cargarDefiniciones = () => {
-  const contenido = fs.readFileSync(DEFINICIONES_FILE, 'utf8');
-  return JSON.parse(contenido);
+/**
+ * Cargar definiciones (usa SQLite con fallback a JSON)
+ */
+const cargarDefiniciones = (modulo = 'SUMMARY', empresaId = 'EMPRESA01', anio = new Date().getFullYear()) => {
+  return cargarDefinicionesModulo(modulo, empresaId, anio);
 };
 
 const extraerCapitulos = (lista = []) => {
@@ -534,13 +587,28 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
 
 
 async function generarReporte(tipoReporte, empresaId, anio, mesSeleccionado, capituloSeleccionado) {
-  const definiciones = cargarDefiniciones();
+  // Cargar definiciones desde SQLite (con fallback a JSON)
+  const modulo = (tipoReporte === 'RESUMEN' || tipoReporte === 'SUMMARY') ? tipoReporte : 'MODULOS';
+  const definiciones = cargarDefiniciones(modulo, empresaId, anio);
   
   // Determinar el tipo real: RESUMEN usa las mismas cuentas que SUMMARY pero con diferente agrupación
   const tipoReal = (tipoReporte === 'RESUMEN') ? 'SUMMARY' : tipoReporte;
   const hojaConfig = tipoReporte; // Mantener el tipo original para filtrar configuración
   
-  const lista = definiciones[tipoReal];
+  // Para módulos con SQLite, las cuentas están agrupadas por capítulo
+  let lista = [];
+  if (definiciones && typeof definiciones === 'object' && !Array.isArray(definiciones)) {
+    // Es un objeto con capítulos, aplanar todas las cuentas
+    Object.keys(definiciones).forEach(capitulo => {
+      if (capitulo !== 'SUMA DE VARIAS SECCIONES' && Array.isArray(definiciones[capitulo])) {
+        lista = lista.concat(definiciones[capitulo]);
+      }
+    });
+  } else {
+    // Es un array directo (formato legacy)
+    lista = definiciones[tipoReal] || [];
+  }
+  
   if (!Array.isArray(lista) || !lista.length) {
     throw new Error(`No hay definiciones para ${tipoReal}`);
   }
