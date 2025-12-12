@@ -62,9 +62,9 @@
   function variationPercent(actual, base) {
     const a = Number(actual || 0);
     const b = Number(base || 0);
-    // Mostrar el ratio (actual / base) como porcentaje; si base es 0 regresamos 0
-    if (Math.abs(b) === 0) return 0;
-    return safeDiv(a, b) * 100;
+    if (!Number.isFinite(b) || Math.abs(b) === 0) return 0;
+    const ratio = safeDiv(a, b);
+    return (ratio - 1) * 100;
   }
 
   function collectCodes(layout) {
