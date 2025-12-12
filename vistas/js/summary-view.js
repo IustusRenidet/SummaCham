@@ -644,9 +644,18 @@
   };
 
   const actualizarEtiquetaMes = (mesSeleccionado) => {
-    const etiqueta = MESES.find((m) => m.periodo === mesSeleccionado)?.etiqueta || '';
+    const mesInfo = MESES.find((m) => m.periodo === mesSeleccionado);
+    const etiqueta = mesInfo?.etiqueta || '';
+    const clave = mesInfo?.clave || '';
+    
+    // Actualizar etiquetas completas del mes (Enero, Febrero, etc.)
     document.querySelectorAll('.mes').forEach((span) => {
       span.textContent = etiqueta.toUpperCase();
+    });
+    
+    // Actualizar etiquetas del mes actual (ENE, FEB, etc.)
+    document.querySelectorAll('.mes-actual').forEach((span) => {
+      span.textContent = clave.toUpperCase();
     });
 
     const idx = MESES.findIndex((m) => m.periodo === mesSeleccionado);
@@ -1218,7 +1227,9 @@
     if (selectMes) {
       selectMes.value = String(new Date().getMonth() + 1);
     }
-    actualizarMesContexto(Number(selectMes?.value || new Date().getMonth() + 1));
+    const mesSeleccionado = Number(selectMes?.value || new Date().getMonth() + 1);
+    actualizarMesContexto(mesSeleccionado);
+    actualizarEtiquetaMes(mesSeleccionado);
     
     // Obtener capítulo desde CapitulosModulos basado en la empresa
     capituloActual = obtenerCapituloEmpresa(empresaId) || '';
@@ -1226,7 +1237,6 @@
     
     await cargarAniosDisponibles(empresaId);
     const anioSeleccionado = leerAnioSeleccionado();
-    const mesSeleccionado = leerMesSeleccionado();
     await fetchSummary(empresaId, anioSeleccionado, mesSeleccionado, capituloActual);
   };
 

@@ -742,11 +742,24 @@
   const actualizarEtiquetasAnio = (anio) => {
     const yearAct = document.querySelectorAll('.year-act');
     const yearPrev = document.querySelectorAll('.year-prev');
+    const anioNum = Number(anio);
+    const anioAnterior = Number.isFinite(anioNum) ? anioNum - 1 : anio;
+    
     yearAct.forEach((el) => (el.textContent = anio));
-    yearPrev.forEach((el) => (el.textContent = anio));
+    yearPrev.forEach((el) => (el.textContent = anioAnterior));
     if (yearLabel) {
       yearLabel.textContent = anio;
     }
+  };
+
+  const actualizarEtiquetaMes = (mesSeleccionado) => {
+    const mesInfo = MESES.find((m) => m.periodo === mesSeleccionado);
+    const clave = mesInfo?.clave || 'DIC';
+    
+    // Actualizar etiquetas del mes actual en mayúsculas
+    document.querySelectorAll('.mes-actual').forEach((span) => {
+      span.textContent = clave.toUpperCase();
+    });
   };
 
   const actualizarEncabezado = (empresaId, anio) => {
@@ -859,6 +872,7 @@
     if (monthSelect) monthSelect.value = String(mesInicial);
     
     actualizarEncabezado(empresaId, valorInicial);
+    actualizarEtiquetaMes(mesInicial);
     window.dispatchEvent(new CustomEvent('planeacion:contexto-actualizado', {
       detail: { empresaId, anio: valorInicial, modulo: (document.body.dataset.modulo || 'RESUMEN').toUpperCase() }
     }));
@@ -949,6 +963,7 @@
       const anio = leerAnioSeleccionado();
       const mes = leerMesSeleccionado();
       actualizarMesContexto(mes);
+      actualizarEtiquetaMes(mes);
       if (!empresaActual?.id) return;
       actualizarEncabezado(empresaActual.id, anio);
       window.dispatchEvent(new CustomEvent('planeacion:contexto-actualizado', {
