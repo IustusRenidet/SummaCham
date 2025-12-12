@@ -55,10 +55,7 @@
       {
         "provider": "github",
         "owner": "IustusRenidet",
-        "repo": "SummaCham",
-        "releaseType": "release",
-        "draft": false,
-        "prerelease": false
+        "repo": "SummaCham"
       }
     ],
     "asar": true,
