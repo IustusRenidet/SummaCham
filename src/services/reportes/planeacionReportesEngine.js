@@ -25,45 +25,72 @@ const NORMALIZAR_CAPITULO = (valor = '') => valor.toString().trim().toUpperCase(
  */
 function cargarDefinicionesModulo(modulo, empresaId = 'EMPRESA01', anio = new Date().getFullYear()) {
   try {
-    // Intentar cargar desde SQLite
     const capitulos = layoutService.obtenerCapitulos({ empresaId, modulo, anio });
-    
+
     if (capitulos && capitulos.length > 0) {
       const definiciones = {};
-      
+      let operacionesGlobales = null;
+
       for (const cap of capitulos) {
+        const capituloEtiqueta = (cap && typeof cap === 'object') ? cap.capitulo : cap;
+        if (!capituloEtiqueta) continue;
+
         const layout = layoutService.obtenerLayout({ 
           empresaId, 
           modulo, 
           anio, 
-          capitulo: cap.capitulo 
+          capitulo: capituloEtiqueta 
         });
-        
-        // Convertir a formato legacy
-        definiciones[cap.capitulo] = layout.cuentas.map(cuenta => ({
-          CAPITULO: cap.capitulo,
+
+        const cuentasLayout = (layout && Array.isArray(layout.cuentas))
+          ? layout.cuentas
+          : (layout && Array.isArray(layout[modulo])) ? layout[modulo] : [];
+
+        definiciones[capituloEtiqueta] = cuentasLayout.map((cuenta) => ({
+          CAPITULO: capituloEtiqueta,
           CUENTA: cuenta.CUENTA,
           NOMBRE: cuenta.NOMBRE,
-          'SECCIÓN Principal': cuenta['SECCIÓN Principal'],
-          'SECCION Secundaria': cuenta['SECCION Secundaria']
+          'SECCIÓN Principal':
+            cuenta['SECCIÓN Principal'] ||
+            cuenta['SECCION Principal'] ||
+            cuenta['SECCIàN Principal'] ||
+            '',
+          'SECCION Secundaria':
+            cuenta['SECCION Secundaria'] ||
+            cuenta['SECCIÓN Secundaria'] ||
+            ''
         }));
-        
-        // Agregar operaciones si existen
-        if (layout.operaciones && layout.operaciones.length > 0) {
-          definiciones['SUMA DE VARIAS SECCIONES'] = layout.operaciones;
+
+        const operacionesLayout = Array.isArray(layout && layout.operaciones)
+          ? layout.operaciones
+          : Array.isArray(layout && layout['SUMA DE VARIAS SECCIONES'])
+            ? layout['SUMA DE VARIAS SECCIONES']
+            : [];
+
+        if (operacionesLayout.length) {
+          operacionesGlobales = operacionesLayout;
         }
       }
-      
+
+      if (operacionesGlobales && operacionesGlobales.length) {
+        definiciones['SUMA DE VARIAS SECCIONES'] = operacionesGlobales;
+      }
+
       return definiciones;
     }
   } catch (error) {
-    console.error(`❌ No se pudo cargar desde SQLite para ${modulo}:`, error && error.message);
+    console.error(
+      `[planeacionReportesEngine] No se pudo cargar layout ${modulo} / ${empresaId} / ${anio} desde SQLite:`,
+      error && error.message ? error.message : error
+    );
     throw error;
   }
-  
-  // If we reach here and no chapters found, raise explicit error so caller knows
-  throw new Error(`No existen capítulos definidos en SQLite para ${modulo} / ${empresaId} / ${anio}`);
+
+  throw new Error(
+    `No existen capitulos definidos en SQLite para ${modulo} / ${empresaId} / ${anio}`
+  );
 }
+
 
 const normalizarCuentaCanonica = (valor = '') => {
   const limpio = valor.toString().replace(/[^0-9]/g, '');
@@ -321,7 +348,13 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
     const capReal = NORMALIZAR_CAPITULO(item.CAPITULO || '');
     if (capReal !== capituloClave) return;
 
-    const seccion = (item['SECCION Secundaria'] || item['Secci¢n'] || item['SECCION'] || '').toString().trim();
+    const seccion = (
+      item['SECCION Secundaria'] ||
+      item['SECCIÓN Secundaria'] ||
+      item['Sección'] ||
+      item['SECCION'] ||
+      ''
+    ).toString().trim();
     const cuentaCanonica = normalizarCuentaCanonica(item.CUENTA);
     if (!seccion || !cuentaCanonica) return;
 

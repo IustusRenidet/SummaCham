@@ -10,10 +10,10 @@
     "url": "https://github.com/IustusRenidet/SummaCham.git"
   },
   "scripts": {
-    "start": "cross-env NODE_ENV=development electron .",
-    "start:prod": "cross-env NODE_ENV=production electron .",
-    "server": "cross-env NODE_ENV=development node src/server.js",
-    "server:prod": "cross-env NODE_ENV=production node src/server.js",
+    "start": "npm run native:use-electron && cross-env NODE_ENV=development electron .",
+    "start:prod": "npm run native:use-electron && cross-env NODE_ENV=production electron .",
+    "server": "npm run native:use-node && cross-env NODE_ENV=development node src/server.js",
+    "server:prod": "npm run native:use-node && cross-env NODE_ENV=production node src/server.js",
     "test": "node --test",
     "pack": "electron-builder --dir",
     "dist": "cross-env NODE_ENV=production electron-builder --win nsis",
@@ -27,6 +27,7 @@
     "native:use-electron": "node scripts/manage-native.js use-electron",
     "native:status": "node scripts/manage-native.js status",
     "native:ensure": "node scripts/manage-native.js ensure",
+    "import:layouts-2025": "python scripts/import_summary_resumen_2025.py",
     "rebuild-native-node": "npm rebuild better-sqlite3 --build-from-source && npm run native:save-node && npm run native:use-node",
     "rebuild-native": "npm run rebuild-native-node && npx electron-rebuild -f -v 30.0.0 && npm rebuild better-sqlite3 --runtime=electron --target=30.0.0 --disturl=https://electronjs.org/headers && npm run native:save-electron && npm run native:use-electron",
     "rebuild-native-all": "npm run rebuild-native",

@@ -47,8 +47,8 @@ const mapearRegistro = (registro) => {
     datos[`presup${sufijo}`] = valorPresupuesto;
     datos[`real${sufijo}`] = valorReal;
 
+    datos[clave] = valorPresupuesto;
     acumuladoPresupuesto += valorPresupuesto;
-    datos[clave] = acumuladoPresupuesto;
   });
 
   datos.presupuesto = presupuestoMensual;

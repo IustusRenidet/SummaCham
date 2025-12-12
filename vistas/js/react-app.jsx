@@ -5,9 +5,9 @@ const API_BASE = 'http://localhost:3000/api';
 const MODULE_GROUPS = [
   {
     id: 'panel-resumenes',
-    label: 'Paneles',
+    label: 'SUMMARY',
     items: [
-      { id: 'presupuestos', label: 'Presupuestos', path: 'Presupuestos.html', badge: 'ppto' },
+      { id: 'resumen', label: 'Resumen', path: 'RESUMEN.html', badge: 'summary', permiso: 'RESUMEN' },
       { id: 'summary', label: 'Summary', path: 'SUMMARY.html', badge: 'summary', permiso: 'SUMMARY' }
     ]
   },
@@ -15,7 +15,7 @@ const MODULE_GROUPS = [
     id: 'resumen-areas',
     label: 'Divisiones',
     items: [
-      { id: 'resumen', label: 'Resumen', path: 'RESUMEN.html', badge: 'ppto', permiso: 'RESUMEN' },
+      { id: 'presupuestos', label: 'Presupuestos', path: 'Presupuestos.html', badge: 'ppto' },
       { id: 'comites', label: 'Comités', path: 'Comités.html' },
       { id: 'comunicacion', label: 'Comunicación', path: 'Comunicación.html' },
       { id: 'direccion', label: 'Dirección', path: 'Dirección.html' },

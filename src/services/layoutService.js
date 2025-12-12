@@ -3,87 +3,215 @@
  * Servicio para gestionar layouts de módulos por año y capítulo en SQLite
  */
 
+const { EMPRESAS } = require('../config/empresas');
 const db = require('../db/sqlite').db;
+
+const CANONICAL_EMPRESA_DEFAULT = 'EMPRESA01';
+
+const generarVariantesEmpresa = (empresaId = CANONICAL_EMPRESA_DEFAULT) => {
+  const variantes = new Set();
+  const base = (empresaId || '').toString().trim();
+  if (base) {
+    variantes.add(base);
+    const upper = base.toUpperCase();
+    variantes.add(upper);
+    const match = upper.match(/EMPRESA\s*0*(\d+)/);
+    if (match) {
+      variantes.add(`EMPRESA${match[1].padStart(2, '0')}`);
+    }
+    const meta = EMPRESAS?.find(
+      (empresa) => empresa.id?.toLowerCase() === base.toLowerCase()
+    );
+    if (meta && meta.numero != null) {
+      variantes.add(`EMPRESA${String(meta.numero).padStart(2, '0')}`);
+    }
+  }
+  return Array.from(variantes).filter(Boolean);
+};
+
+const obtenerEmpresaCanonica = (empresaId = CANONICAL_EMPRESA_DEFAULT) => {
+  const variantes = generarVariantesEmpresa(empresaId);
+  const canonica = variantes.find((valor) => /^EMPRESA\d{2}$/i.test(valor));
+  return canonica || variantes[variantes.length - 1] || CANONICAL_EMPRESA_DEFAULT;
+};
+
+const existeLayoutAnio = ({ empresaId, modulo, anio }) => {
+  const row = db.prepare(`
+    SELECT COUNT(*) as total
+    FROM layout_cuentas
+    WHERE empresa_id = ? AND modulo = ? AND anio = ?
+    LIMIT 1
+  `).get(empresaId, modulo, anio);
+  return Boolean(row && row.total);
+};
+
+const buscarAnioReferencia = ({ empresaId, modulo, anio }) => {
+  const menorIgual = db.prepare(`
+    SELECT MAX(anio) as anio
+    FROM layout_cuentas
+    WHERE empresa_id = ? AND modulo = ? AND anio <= ?
+  `).get(empresaId, modulo, anio);
+  if (menorIgual && Number.isInteger(menorIgual.anio)) {
+    return menorIgual.anio;
+  }
+  const mayor = db.prepare(`
+    SELECT MIN(anio) as anio
+    FROM layout_cuentas
+    WHERE empresa_id = ? AND modulo = ? AND anio > ?
+  `).get(empresaId, modulo, anio);
+  if (mayor && Number.isInteger(mayor.anio)) {
+    return mayor.anio;
+  }
+  const cualquiera = db.prepare(`
+    SELECT MIN(anio) as anio
+    FROM layout_cuentas
+    WHERE empresa_id = ? AND modulo = ?
+  `).get(empresaId, modulo);
+  if (cualquiera && Number.isInteger(cualquiera.anio)) {
+    return cualquiera.anio;
+  }
+  return null;
+};
+
+const asegurarLayoutAnio = ({ empresaId, modulo, anio }) => {
+  const empresaCanonica = obtenerEmpresaCanonica(empresaId);
+  const anioNumero = Number(anio);
+  if (!Number.isInteger(anioNumero)) {
+    return false;
+  }
+  if (existeLayoutAnio({ empresaId: empresaCanonica, modulo, anio: anioNumero })) {
+    return true;
+  }
+  const anioReferencia = buscarAnioReferencia({
+    empresaId: empresaCanonica,
+    modulo,
+    anio: anioNumero
+  });
+  if (!anioReferencia || anioReferencia === anioNumero) {
+    return false;
+  }
+  try {
+    copiarLayout({
+      empresaId: empresaCanonica,
+      modulo,
+      anioOrigen: anioReferencia,
+      anioDestino: anioNumero
+    });
+    console.log(
+      `[layoutService] Layout ${modulo} ${anioNumero} generado desde ${anioReferencia}`
+    );
+    return true;
+  } catch (err) {
+    console.warn(
+      `[layoutService] No se pudo clonar layout ${modulo}/${anioNumero}:`,
+      err?.message || err
+    );
+    return false;
+  }
+};
+
+const resolverEmpresaConsulta = ({ empresaId, modulo, anio }) => {
+  const variantes = generarVariantesEmpresa(empresaId);
+  if (!modulo || !anio) {
+    return obtenerEmpresaCanonica(empresaId);
+  }
+  for (const candidata of variantes) {
+    const row = db.prepare(`
+      SELECT COUNT(*) as total
+      FROM layout_cuentas
+      WHERE empresa_id = ? AND modulo = ? AND anio = ?
+      LIMIT 1
+    `).get(candidata, modulo, anio);
+    if (row && row.total > 0) {
+      return candidata;
+    }
+  }
+  return obtenerEmpresaCanonica(empresaId);
+};
+
+const construirRespuestaLayout = ({
+  empresaId,
+  modulo,
+  anio,
+  capitulo,
+  cuentas,
+  operaciones
+}) => {
+  const respuesta = {
+    empresaId,
+    modulo,
+    anio,
+    capitulo,
+    cuentas,
+    operaciones
+  };
+  respuesta[modulo] = cuentas;
+  respuesta['SUMA DE VARIAS SECCIONES'] = operaciones;
+  return respuesta;
+};
+
 
 /**
  * Obtener layout completo para un módulo, año y capítulo
  */
+
 const obtenerLayout = ({ empresaId = 'EMPRESA01', modulo, anio, capitulo }) => {
-  // Fallback for SUMMARY/RESUMEN: if requested year < 2025 and no layout exists,
-  // use layout from 2025 so older years show the same layout for consistency.
+  const anioNumero = Number(anio);
   const moduloNorm = (modulo || '').toString().trim().toUpperCase();
-  // 1. Obtener cuentas
-  const cuentas = db.prepare(`
+  const empresaCanonica = obtenerEmpresaCanonica(empresaId);
+  asegurarLayoutAnio({ empresaId: empresaCanonica, modulo, anio: anioNumero });
+  const empresaConsulta = resolverEmpresaConsulta({ empresaId: empresaCanonica, modulo, anio: anioNumero });
+  const capituloObjetivo = capitulo || 'DEFAULT';
+
+  const consultarCuentas = (anioObjetivo) => db.prepare(`
     SELECT 
       cuenta AS CUENTA,
       nombre AS NOMBRE,
       capitulo AS CAPITULO,
-      seccion_principal AS "SECCIÓN Principal",
+      seccion_principal AS "SECCIàN Principal",
       seccion_secundaria AS "SECCION Secundaria",
       orden
     FROM layout_cuentas
     WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ?
     ORDER BY orden ASC, cuenta ASC
-  `).all(empresaId, modulo, anio, capitulo);
-  if ((!cuentas || !cuentas.length) && (moduloNorm === 'SUMMARY' || moduloNorm === 'RESUMEN') && Number.isInteger(Number(anio)) && Number(anio) < 2025) {
-    // Find the latest available year <= 2025 and use it
-    const row = db.prepare(`SELECT MAX(anio) as anio FROM layout_cuentas WHERE modulo = ? AND anio <= ?`).get(modulo, 2025);
-    const fallbackYear = row && row.anio ? Number(row.anio) : null;
-    if (!fallbackYear) {
-      // No layout available
-      // Return empty structure; caller may handle emptiness
-      return { [modulo]: [], 'SUMA DE VARIAS SECCIONES': [] };
-    }
-    const cuentas2025 = db.prepare(`
-      SELECT 
-        cuenta AS CUENTA,
-        nombre AS NOMBRE,
-        capitulo AS CAPITULO,
-        seccion_principal AS "SECCIÓN Principal",
-        seccion_secundaria AS "SECCION Secundaria",
-        orden
+  `).all(empresaConsulta, modulo, anioObjetivo, capituloObjetivo);
+
+  let cuentas = consultarCuentas(anioNumero);
+  let anioUsado = anioNumero;
+
+  const requiereFallback =
+    (!cuentas || !cuentas.length) &&
+    (moduloNorm === 'SUMMARY' || moduloNorm === 'RESUMEN') &&
+    Number.isInteger(anioNumero) &&
+    anioNumero < 2025;
+
+  if (requiereFallback) {
+    const row = db.prepare(`
+      SELECT MAX(anio) as anio
       FROM layout_cuentas
-      WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ?
-      ORDER BY orden ASC, cuenta ASC
-    `).all(empresaId, modulo, fallbackYear, capitulo);
-    if ((!cuentas2025 || !cuentas2025.length) && fallbackYear && fallbackYear !== 2025) {
-      // Try the detected latest year
-      const cuentasFallback = db.prepare(`
-        SELECT cuenta AS CUENTA, nombre AS NOMBRE, capitulo AS CAPITULO, seccion_principal AS "SECCIÓN Principal", seccion_secundaria AS "SECCION Secundaria", orden
-        FROM layout_cuentas
-        WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ?
-        ORDER BY orden ASC, cuenta ASC
-      `).all(empresaId, modulo, fallbackYear, capitulo);
+      WHERE empresa_id = ? AND modulo = ? AND anio <= ?
+    `).get(empresaConsulta, modulo, 2025);
+    const fallbackYear = row && row.anio ? Number(row.anio) : 2025;
+    if (fallbackYear) {
+      const cuentasFallback = consultarCuentas(fallbackYear);
       if (cuentasFallback && cuentasFallback.length) {
-        const operaciones = db.prepare(`SELECT capitulo AS CAPITULO, clase AS Clase, seccion AS SECCION, operacion_tipo, operacion_label, signo, orden FROM layout_operaciones WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ? ORDER BY orden ASC`).all(empresaId, modulo, fallbackYear, capitulo);
-        const operacionesMap = {};
-        operaciones.forEach(op => { if (!operacionesMap[op.Clase]) operacionesMap[op.Clase] = { CAPITULO: op.CAPITULO, Clase: op.Clase, SECCION: op.SECCION }; operacionesMap[op.Clase][op.operacion_tipo] = op.operacion_label; });
-        return { [modulo]: cuentasFallback, 'SUMA DE VARIAS SECCIONES': Object.values(operacionesMap) };
+        cuentas = cuentasFallback;
+        anioUsado = fallbackYear;
       }
-    }
-    if (cuentas2025 && cuentas2025.length) {
-      // Use 2025 layout
-      return {
-        [modulo]: cuentas2025,
-        'SUMA DE VARIAS SECCIONES': (() => {
-          const operaciones = db.prepare(`
-            SELECT capitulo AS CAPITULO, clase AS Clase, seccion AS SECCION, operacion_tipo, operacion_label, signo, orden
-            FROM layout_operaciones
-            WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ?
-            ORDER BY orden ASC
-          `).all(empresaId, modulo, 2025, capitulo);
-          const operacionesMap = {};
-          operaciones.forEach(op => {
-            if (!operacionesMap[op.Clase]) operacionesMap[op.Clase] = { CAPITULO: op.CAPITULO, Clase: op.Clase, SECCION: op.SECCION };
-            operacionesMap[op.Clase][op.operacion_tipo] = op.operacion_label;
-          });
-          return Object.values(operacionesMap);
-        })()
-      };
     }
   }
 
-  // 2. Obtener operaciones
+  if (!cuentas || !cuentas.length) {
+    return construirRespuestaLayout({
+      empresaId: empresaConsulta,
+      modulo,
+      anio: anioUsado,
+      capitulo: capituloObjetivo,
+      cuentas: [],
+      operaciones: []
+    });
+  }
+
   const operaciones = db.prepare(`
     SELECT 
       capitulo AS CAPITULO,
@@ -96,9 +224,8 @@ const obtenerLayout = ({ empresaId = 'EMPRESA01', modulo, anio, capitulo }) => {
     FROM layout_operaciones
     WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ?
     ORDER BY orden ASC
-  `).all(empresaId, modulo, anio, capitulo);
+  `).all(empresaConsulta, modulo, anioUsado, capituloObjetivo);
 
-  // 3. Construir objeto de operaciones por clase
   const operacionesMap = {};
   operaciones.forEach(op => {
     if (!operacionesMap[op.Clase]) {
@@ -111,63 +238,77 @@ const obtenerLayout = ({ empresaId = 'EMPRESA01', modulo, anio, capitulo }) => {
     operacionesMap[op.Clase][op.operacion_tipo] = op.operacion_label;
   });
 
-  return {
-    [modulo]: cuentas,
-    'SUMA DE VARIAS SECCIONES': Object.values(operacionesMap)
-  };
+  return construirRespuestaLayout({
+    empresaId: empresaConsulta,
+    modulo,
+    anio: anioUsado,
+    capitulo: capituloObjetivo,
+    cuentas,
+    operaciones: Object.values(operacionesMap)
+  });
 };
+
 
 /**
  * Obtener todos los capítulos disponibles para un módulo y año
  */
+
 const obtenerCapitulos = ({ empresaId = 'EMPRESA01', modulo, anio }) => {
-  const capitulos = db.prepare(`
+  const anioNumero = Number(anio);
+  const moduloNorm = (modulo || '').toString().trim().toUpperCase();
+  const empresaCanonica = obtenerEmpresaCanonica(empresaId);
+  asegurarLayoutAnio({ empresaId: empresaCanonica, modulo, anio: anioNumero });
+  const empresaConsulta = resolverEmpresaConsulta({ empresaId: empresaCanonica, modulo, anio: anioNumero });
+
+  let capitulos = db.prepare(`
     SELECT DISTINCT capitulo
     FROM layout_cuentas
     WHERE empresa_id = ? AND modulo = ? AND anio = ?
     ORDER BY capitulo ASC
-  `).all(empresaId, modulo, anio);
-  if ((!capitulos || !capitulos.length) && (modulo || '').toString().trim().toUpperCase() === 'SUMMARY' && Number.isInteger(Number(anio)) && Number(anio) < 2025) {
-    // fallback to 2025 for SUMMARY
-    const capitulos2025 = db.prepare(`
+  `).all(empresaConsulta, modulo, anioNumero);
+
+  const requiereFallback =
+    (!capitulos || !capitulos.length) &&
+    (moduloNorm === 'SUMMARY' || moduloNorm === 'RESUMEN') &&
+    Number.isInteger(anioNumero) &&
+    anioNumero < 2025;
+
+  if (requiereFallback) {
+    capitulos = db.prepare(`
       SELECT DISTINCT capitulo
       FROM layout_cuentas
       WHERE empresa_id = ? AND modulo = ? AND anio = ?
       ORDER BY capitulo ASC
-    `).all(empresaId, modulo, 2025);
-    return capitulos2025.map(c => c.capitulo);
-  }
-  if ((!capitulos || !capitulos.length) && (modulo || '').toString().trim().toUpperCase() === 'RESUMEN' && Number.isInteger(Number(anio)) && Number(anio) < 2025) {
-    const capitulos2025 = db.prepare(`
-      SELECT DISTINCT capitulo
-      FROM layout_cuentas
-      WHERE empresa_id = ? AND modulo = ? AND anio = ?
-      ORDER BY capitulo ASC
-    `).all(empresaId, modulo, 2025);
-    return capitulos2025.map(c => c.capitulo);
+    `).all(empresaConsulta, modulo, 2025);
   }
 
-  return capitulos.map(c => c.capitulo);
+  return (capitulos || []).map((c) => ({ capitulo: c.capitulo }));
 };
+
 
 /**
  * Obtener años disponibles para un módulo
  */
+
 const obtenerAniosDisponibles = ({ empresaId = 'EMPRESA01', modulo }) => {
+  const empresaCanonica = obtenerEmpresaCanonica(empresaId);
   const anios = db.prepare(`
     SELECT DISTINCT anio
     FROM layout_cuentas
     WHERE empresa_id = ? AND modulo = ?
     ORDER BY anio DESC
-  `).all(empresaId, modulo);
+  `).all(empresaCanonica, modulo);
 
   return anios.map(a => a.anio);
 };
 
+
 /**
  * Guardar cuentas de un layout
  */
+
 const guardarCuentas = ({ empresaId = 'EMPRESA01', modulo, anio, capitulo, cuentas }) => {
+  const empresaCanonica = obtenerEmpresaCanonica(empresaId);
   const insertCuenta = db.prepare(`
     INSERT OR REPLACE INTO layout_cuentas (
       empresa_id, modulo, anio, cuenta, nombre, capitulo, 
@@ -177,19 +318,20 @@ const guardarCuentas = ({ empresaId = 'EMPRESA01', modulo, anio, capitulo, cuent
 
   const transaction = db.transaction((cuentasArray) => {
     cuentasArray.forEach((cuenta, index) => {
-      // Validar campos obligatorios
       if (!cuenta.CUENTA) {
-        console.warn(`⚠️  Cuenta sin código en ${modulo}/${capitulo}, ignorando`);
+ 
+        console.warn(`[layoutService] Cuenta sin codigo en ${modulo}/${capitulo}, ignorando`);
+ 
         return;
+ 
       }
-      
-      // Soportar diferentes formatos de secciones
-      const seccionPrincipal = cuenta['SECCIÓN Principal'] || cuenta.SECCION || cuenta.seccion || '';
+ 
+      const seccionPrincipal = cuenta['SECCIàN Principal'] || cuenta.SECCION || cuenta.seccion || '';
       const seccionSecundaria = cuenta['SECCION Secundaria'] || cuenta.seccion_secundaria || null;
       const nombre = cuenta.NOMBRE || cuenta.nombre || cuenta.CUENTA || 'Sin nombre';
-      
+
       insertCuenta.run(
-        empresaId,
+        empresaCanonica,
         modulo,
         anio,
         cuenta.CUENTA,
@@ -206,10 +348,13 @@ const guardarCuentas = ({ empresaId = 'EMPRESA01', modulo, anio, capitulo, cuent
   return { success: true, insertadas: cuentas.length };
 };
 
+
 /**
  * Guardar operaciones de un layout
  */
+
 const guardarOperaciones = ({ empresaId = 'EMPRESA01', modulo, anio, operaciones }) => {
+  const empresaCanonica = obtenerEmpresaCanonica(empresaId);
   const insertOperacion = db.prepare(`
     INSERT OR REPLACE INTO layout_operaciones (
       empresa_id, modulo, anio, capitulo, clase, seccion,
@@ -219,7 +364,6 @@ const guardarOperaciones = ({ empresaId = 'EMPRESA01', modulo, anio, operaciones
 
   const transaction = db.transaction((operacionesArray) => {
     operacionesArray.forEach((op, index) => {
-      // Procesar cada tipo de operación en el objeto
       const tiposOperacion = [
         'sum-row', 'sum-row-sumavarios', 'sum-row-sumavarios-consolidado',
         'sum-row-operativo', 'sum-row-operativo-consolidado',
@@ -228,14 +372,13 @@ const guardarOperaciones = ({ empresaId = 'EMPRESA01', modulo, anio, operaciones
 
       tiposOperacion.forEach((tipo, tipoIndex) => {
         if (op[tipo]) {
-          // Determinar signo basado en la clase
           let signo = 1;
           if (op.Clase && op.Clase.toLowerCase().includes('expense')) {
             signo = -1;
           }
 
           insertOperacion.run(
-            empresaId,
+            empresaCanonica,
             modulo,
             anio,
             op.CAPITULO || op.HOJA,
@@ -255,10 +398,25 @@ const guardarOperaciones = ({ empresaId = 'EMPRESA01', modulo, anio, operaciones
   return { success: true, insertadas: operaciones.length };
 };
 
+
 /**
  * Copiar layout de un año a otro (útil para crear nuevo año)
  */
+
 const copiarLayout = ({ empresaId = 'EMPRESA01', modulo, anioOrigen, anioDestino }) => {
+  const empresaCanonica = obtenerEmpresaCanonica(empresaId);
+  const limpiarCuentas = db.prepare(`
+    DELETE FROM layout_cuentas
+    WHERE empresa_id = ? AND modulo = ? AND anio = ?
+  `);
+  const limpiarOperaciones = db.prepare(`
+    DELETE FROM layout_operaciones
+    WHERE empresa_id = ? AND modulo = ? AND anio = ?
+  `);
+  const limpiarSecciones = db.prepare(`
+    DELETE FROM layout_secciones
+    WHERE empresa_id = ? AND modulo = ? AND anio = ?
+  `);
   const copiarCuentas = db.prepare(`
     INSERT INTO layout_cuentas (
       empresa_id, modulo, anio, cuenta, nombre, capitulo,
@@ -283,19 +441,38 @@ const copiarLayout = ({ empresaId = 'EMPRESA01', modulo, anioOrigen, anioDestino
     WHERE empresa_id = ? AND modulo = ? AND anio = ?
   `);
 
+  const copiarSecciones = db.prepare(`
+    INSERT INTO layout_secciones (
+      empresa_id, modulo, anio, capitulo, seccion_principal,
+      seccion_secundaria, tipo, orden
+    )
+    SELECT 
+      empresa_id, modulo, ?, capitulo, seccion_principal,
+      seccion_secundaria, tipo, orden
+    FROM layout_secciones
+    WHERE empresa_id = ? AND modulo = ? AND anio = ?
+  `);
+
   const transaction = db.transaction(() => {
-    copiarCuentas.run(anioDestino, empresaId, modulo, anioOrigen);
-    copiarOperaciones.run(anioDestino, empresaId, modulo, anioOrigen);
+    limpiarCuentas.run(empresaCanonica, modulo, anioDestino);
+    limpiarOperaciones.run(empresaCanonica, modulo, anioDestino);
+    limpiarSecciones.run(empresaCanonica, modulo, anioDestino);
+    copiarCuentas.run(anioDestino, empresaCanonica, modulo, anioOrigen);
+    copiarOperaciones.run(anioDestino, empresaCanonica, modulo, anioOrigen);
+    copiarSecciones.run(anioDestino, empresaCanonica, modulo, anioOrigen);
   });
 
   transaction();
   return { success: true, mensaje: `Layout copiado de ${anioOrigen} a ${anioDestino}` };
 };
 
+
 /**
  * Eliminar layout completo de un año
  */
+
 const eliminarLayout = ({ empresaId = 'EMPRESA01', modulo, anio }) => {
+  const empresaCanonica = obtenerEmpresaCanonica(empresaId);
   const deleteCuentas = db.prepare(`
     DELETE FROM layout_cuentas
     WHERE empresa_id = ? AND modulo = ? AND anio = ?
@@ -306,33 +483,45 @@ const eliminarLayout = ({ empresaId = 'EMPRESA01', modulo, anio }) => {
     WHERE empresa_id = ? AND modulo = ? AND anio = ?
   `);
 
+  const deleteSecciones = db.prepare(`
+    DELETE FROM layout_secciones
+    WHERE empresa_id = ? AND modulo = ? AND anio = ?
+  `);
+
   const transaction = db.transaction(() => {
-    deleteCuentas.run(empresaId, modulo, anio);
-    deleteOperaciones.run(empresaId, modulo, anio);
+    deleteCuentas.run(empresaCanonica, modulo, anio);
+    deleteOperaciones.run(empresaCanonica, modulo, anio);
+    deleteSecciones.run(empresaCanonica, modulo, anio);
   });
 
   transaction();
   return { success: true, mensaje: `Layout eliminado para año ${anio}` };
 };
 
+
 /**
  * Verificar si existe un layout para un año específico
  */
+
 const existeLayout = ({ empresaId = 'EMPRESA01', modulo, anio }) => {
+  const empresaCanonica = obtenerEmpresaCanonica(empresaId);
   const resultado = db.prepare(`
     SELECT COUNT(*) as count
     FROM layout_cuentas
     WHERE empresa_id = ? AND modulo = ? AND anio = ?
     LIMIT 1
-  `).get(empresaId, modulo, anio);
+  `).get(empresaCanonica, modulo, anio);
 
   return resultado.count > 0;
 };
 
+
 /**
  * Obtener estadísticas de un layout
  */
+
 const obtenerEstadisticasLayout = ({ empresaId = 'EMPRESA01', modulo, anio }) => {
+  const empresaCanonica = obtenerEmpresaCanonica(empresaId);
   const stats = db.prepare(`
     SELECT 
       COUNT(DISTINCT capitulo) as capitulos,
@@ -340,19 +529,21 @@ const obtenerEstadisticasLayout = ({ empresaId = 'EMPRESA01', modulo, anio }) =>
       COUNT(*) as cuentas
     FROM layout_cuentas
     WHERE empresa_id = ? AND modulo = ? AND anio = ?
-  `).get(empresaId, modulo, anio);
+  `).get(empresaCanonica, modulo, anio);
 
   const operaciones = db.prepare(`
     SELECT COUNT(*) as operaciones
     FROM layout_operaciones
     WHERE empresa_id = ? AND modulo = ? AND anio = ?
-  `).get(empresaId, modulo, anio);
+  `).get(empresaCanonica, modulo, anio);
 
   return {
     ...stats,
     operaciones: operaciones.operaciones
   };
 };
+
+
 
 module.exports = {
   obtenerLayout,

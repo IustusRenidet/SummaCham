@@ -38,6 +38,7 @@ const { MODULOS } = require("../config/modulos");
 const { EMPRESAS } = require("../config/empresas");
 
 const NOMBRE_DB = "panel.sqlite";
+let rutaDbActiva = null;
 
 const obtenerRutaBaseDatos = (() => {
   let rutaCache = null;
@@ -80,6 +81,148 @@ const asegurarDirectorio = (rutaBase) => {
   }
 };
 
+const obtenerRutasDbSemilla = () => {
+  const rutas = [];
+
+  if (process.env.PANELAMCHAM_SEED_DB) {
+    rutas.push(path.resolve(process.env.PANELAMCHAM_SEED_DB));
+  }
+
+  rutas.push(path.resolve(__dirname, "../../datos", NOMBRE_DB));
+  rutas.push(path.resolve(process.cwd(), "datos", NOMBRE_DB));
+
+  if (process.resourcesPath) {
+    rutas.push(path.join(process.resourcesPath, "datos", NOMBRE_DB));
+  }
+
+  try {
+    const electronModule = require("electron");
+    if (electronModule?.app?.getAppPath) {
+      rutas.push(path.join(electronModule.app.getAppPath(), "datos", NOMBRE_DB));
+    }
+  } catch (_) {
+    // Ignorar: electron no disponible fuera de app empaquetada
+  }
+
+  return [...new Set(rutas.filter(Boolean))];
+};
+
+const resolverRutaSemillaDisponible = () => {
+  const candidatos = obtenerRutasDbSemilla();
+  for (const candidato of candidatos) {
+    try {
+      if (candidato && fs.existsSync(candidato) && fs.statSync(candidato).size > 0) {
+        return candidato;
+      }
+    } catch (_) {
+      // Ignorar errores al verificar la ruta
+    }
+  }
+  return null;
+};
+
+const tablaExiste = (conexion, tabla) => {
+  try {
+    const row = conexion
+      .prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name = ?`)
+      .get(tabla);
+    return !!row;
+  } catch (_) {
+    return false;
+  }
+};
+
+const copiarLayoutsDesdeSemillaSiFaltan = () => {
+  if (!db) {
+    return;
+  }
+
+  let layoutActual = 0;
+  try {
+    const row = db.prepare(`SELECT COUNT(*) as total FROM layout_cuentas`).get();
+    layoutActual = row ? row.total : 0;
+  } catch (err) {
+    console.warn("No fue posible verificar layout_cuentas:", err.message);
+    return;
+  }
+
+  if (layoutActual > 0) {
+    return;
+  }
+
+  const rutaSemilla = resolverRutaSemillaDisponible();
+  if (!rutaSemilla) {
+    console.warn("No se encontr¢ base de datos semilla para poblar layouts iniciales.");
+    return;
+  }
+
+  if (rutaDbActiva && path.resolve(rutaSemilla) === path.resolve(rutaDbActiva)) {
+    return;
+  }
+
+  let seedDb;
+  try {
+    seedDb = new Database(rutaSemilla, { readonly: true });
+  } catch (err) {
+    console.warn("No se pudo abrir la base de datos semilla:", err.message);
+    return;
+  }
+
+  let layoutsSemilla = 0;
+  try {
+    const row = seedDb.prepare(`SELECT COUNT(*) as total FROM layout_cuentas`).get();
+    layoutsSemilla = row ? row.total : 0;
+  } catch (err) {
+    console.warn("La base semilla no tiene layout_cuentas:", err.message);
+  }
+
+  if (!layoutsSemilla) {
+    seedDb.close();
+    return;
+  }
+
+  const tablas = [
+    "layout_cuentas",
+    "layout_operaciones",
+    "layout_secciones",
+    "layout_templates",
+  ];
+
+  const copias = [];
+  try {
+    db.transaction(() => {
+      tablas.forEach((tabla) => {
+        if (!tablaExiste(seedDb, tabla) || !tablaExiste(db, tabla)) {
+          return;
+        }
+        const registros = seedDb.prepare(`SELECT * FROM ${tabla}`).all();
+        if (!registros.length) {
+          return;
+        }
+        const columnas = Object.keys(registros[0]);
+        const placeholders = columnas.map(() => "?").join(",");
+        const insert = db.prepare(
+          `INSERT INTO ${tabla} (${columnas.join(",")}) VALUES (${placeholders})`
+        );
+        registros.forEach((registro) => {
+          insert.run(columnas.map((columna) => registro[columna]));
+        });
+        copias.push(`${tabla}:${registros.length}`);
+      });
+    })();
+  } catch (err) {
+    console.error("Error copiando layouts desde base semilla:", err);
+  } finally {
+    seedDb.close();
+  }
+
+  if (copias.length) {
+    console.log(`? Layouts iniciales restaurados (${copias.join(", ")}) desde ${rutaSemilla}`);
+  } else {
+    console.warn("No se copiaron layouts desde la base semilla (posiblemente ya exist¡an datos).");
+  }
+};
+
 const crearConexion = () => {
   if (!SQLITE_AVAILABLE) {
     throw new Error('better-sqlite3 no disponible: no se puede crear conexion');
@@ -87,6 +230,7 @@ const crearConexion = () => {
   const rutaBase = obtenerRutaBaseDatos();
   asegurarDirectorio(rutaBase);
   const rutaDb = path.join(rutaBase, NOMBRE_DB);
+  rutaDbActiva = rutaDb;
   console.log("Conectando a SQLite en:", rutaDb);
   db = new Database(rutaDb);
   db.pragma("foreign_keys = ON");
@@ -588,6 +732,7 @@ const inicializarBaseDatos = () => {
   }
   db = crearConexion();
   crearTablas();
+  copiarLayoutsDesdeSemillaSiFaltan();
   crearAdministradorGlobal();
   sembrarUsuariosDesdeJson();
   console.log('✓ Base de datos SQLite inicializada');

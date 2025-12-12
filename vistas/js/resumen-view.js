@@ -58,6 +58,7 @@
   const yearSelect = document.getElementById('resumenYearSelect');
   const monthSelect = document.getElementById('resumenMonthSelect');
   const yearLabel = document.getElementById('yearLabel');
+  const periodLabel = document.getElementById('periodLabel');
   const empresaLabel = document.getElementById('empresaLabel');
   const searchInput = document.getElementById('accountSearch');
 
@@ -368,7 +369,7 @@
    * @param {string} options.tooltipKey - Clave del tooltip
    * @returns {string} HTML de la celda <td>
    */
-  const createPercentCell = (val, { rowRole = '', tooltipKey = '' } = {}) => `<td class="text-end"${resumenTooltipAttr(tooltipKey)}${resumenRowTooltipAttr(rowRole)}>${formatPercentValue(val)}</td>`;
+  const createPercentCell = (val, { rowRole = '', tooltipKey = '' } = {}) => `<td class="text-end percent-cell"${resumenTooltipAttr(tooltipKey)}${resumenRowTooltipAttr(rowRole)}>${formatPercentValue(val)}</td>`;
 
   /**
    * Crea una celda HTML <td> editable o de solo lectura para Resumen
@@ -760,6 +761,12 @@
     document.querySelectorAll('.mes-actual').forEach((span) => {
       span.textContent = clave.toUpperCase();
     });
+
+    if (periodLabel) {
+      const nombreMes = (mesInfo?.etiqueta || clave).toUpperCase();
+      const anioActual = leerAnioSeleccionado();
+      periodLabel.textContent = anioActual ? `${nombreMes} ${anioActual}` : nombreMes;
+    }
   };
 
   const actualizarEncabezado = (empresaId, anio) => {

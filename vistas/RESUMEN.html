@@ -47,6 +47,10 @@
         border: 1px solid rgba(47, 84, 150, .1);
         box-shadow: 0 12px 30px rgba(47, 84, 150, .18);
       }
+      .summary-meta span {
+        font-weight: 600;
+        color: #fff;
+      }
 
       .filter-card {
         border-radius: 16px;
@@ -149,7 +153,6 @@
         table-layout: auto;
         width: 100%;
         border-collapse: collapse;
-        min-width: 1200px;
         font-size: 0.75rem;
       }
 
@@ -176,9 +179,12 @@
         vertical-align: middle;
         font-size: .75rem;
         padding: 0.3rem 0.4rem;
-        word-wrap: break-word;
         cursor: pointer;
         user-select: none;
+        white-space: nowrap;
+      }
+      .table td.text-start {
+        white-space: normal;
       }
 
       .table tbody tr {
@@ -239,7 +245,6 @@
 
       .account-column-header {
         text-align: left;
-        width: 90px;
         white-space: nowrap;
       }
 
@@ -343,6 +348,16 @@
       .table-responsive table {
         margin-bottom: 0;
         width: 100%;
+      }
+
+      .col-descripcion {
+        white-space: normal !important;
+      }
+
+      .percent-cell {
+        font-variant-numeric: tabular-nums;
+        font-weight: 600;
+        white-space: nowrap !important;
       }
 
       /* para el pie */
@@ -647,10 +662,10 @@
               >
                 <div>
                   <h1 class="fw-bold display-6 mb-2">Resumen</h1>
-                  <p class="mb-0 text-white-50">
-                    Ejercicio
-                    <span class="anio text-light" id="yearLabel"></span> ·
-                    <span id="empresaLabel">-</span>
+                  <p class="mb-0 text-white-50 summary-meta">
+                    Capítulo <span id="empresaLabel">-</span> ·
+                    Ejercicio <span class="anio text-light" id="yearLabel"></span> ·
+                    Periodo <span class="anio text-light" id="periodLabel">-</span>
                   </p>
                 </div>
                 <button class="workflow-toggle" type="button" data-bs-toggle="offcanvas" data-bs-target="#workflowDrawer"
@@ -831,7 +846,7 @@
                 <tr class="encabezados">
                   <th scope="col" class="account-column-header" rowspan="2">Cuenta</th>
                   <th scope="col" colspan="5"><span class="mes-actual">DICIEMBRE</span> <span class="year-act"></span></th>
-                  <th scope="col" class="col-descripción" rowspan="2">Descripción</th>
+                  <th scope="col" class="col-descripcion" rowspan="2">Descripción</th>
                   <th scope="col" colspan="5">YTD <span class="year-act"></span></th>
                 </tr>
                 <tr class="encabezados-sub">
@@ -973,6 +988,9 @@
           
           const celdas = tabla.querySelectorAll('td:not(.text-start):not(.cuenta-col)');
           celdas.forEach(celda => {
+            if (celda.classList.contains('percent-cell')) {
+              return;
+            }
             const texto = celda.textContent.trim();
             if (!texto || texto === '-' || texto === '' || texto === '0') return;
             
@@ -1076,4 +1094,3 @@
 
   </body>
 </html>
-
