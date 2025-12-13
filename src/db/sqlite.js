@@ -185,7 +185,6 @@ const copiarLayoutsDesdeSemillaSiFaltan = () => {
     "layout_cuentas",
     "layout_operaciones",
     "layout_secciones",
-    "layout_templates",
   ];
 
   const copias = [];
@@ -264,24 +263,8 @@ const crearTablas = () => {
   `
   ).run();
 
-  db.prepare(
-    `
-    CREATE TABLE IF NOT EXISTS layout_templates (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      empresa_id TEXT NOT NULL,
-      modulo TEXT NOT NULL,
-      anio INTEGER NOT NULL,
-      datos TEXT NOT NULL,
-      creado_por INTEGER,
-      creado_en TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      actualizado_por INTEGER,
-      actualizado_en TEXT,
-      UNIQUE(empresa_id, modulo, anio),
-      FOREIGN KEY(creado_por) REFERENCES usuarios(id) ON DELETE SET NULL,
-      FOREIGN KEY(actualizado_por) REFERENCES usuarios(id) ON DELETE SET NULL
-    )
-  `
-  ).run();
+  // Eliminar tabla legacy de templates serializados
+  db.prepare(`DROP TABLE IF EXISTS layout_templates`).run();
 
   asegurarColumnasUsuarios();
 

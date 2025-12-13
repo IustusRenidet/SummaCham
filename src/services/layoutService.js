@@ -554,5 +554,6 @@ module.exports = {
   copiarLayout,
   eliminarLayout,
   existeLayout,
-  obtenerEstadisticasLayout
+  obtenerEstadisticasLayout,
+  obtenerEmpresaCanonica
 };

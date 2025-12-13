@@ -100,11 +100,13 @@
         z-index: 10;
       }
 
-      .table-comparison thead th:nth-child(1) {
-        left: 0;
-        text-align: left;
-        min-width: 120px;
-      }
+    .table-comparison thead th:nth-child(1) {
+      left: 0;
+      text-align: left;
+      min-width: 120px;
+      white-space: nowrap;
+      font-family: 'Courier New', monospace;
+    }
 
       .table-comparison thead th:nth-child(2) {
         left: 120px;
@@ -141,6 +143,10 @@
       left: 0;
       min-width: 120px;
       font-weight: 600;
+      font-family: 'Courier New', monospace;
+      white-space: nowrap;
+      word-break: keep-all;
+      font-variant-numeric: tabular-nums;
     }
 
     .table-comparison tbody td:nth-child(2) {
@@ -629,5 +635,3 @@
   </script>
 </body>
 </html>
-
-

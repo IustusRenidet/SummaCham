@@ -395,7 +395,7 @@ const  persistirEnFirebird = async (borrador) => {
     guardadoPor: Number(borrador.usuarioId) || null,
   });
 
-  // 2. Guardar LAYOUT (estructura de tabla: cuentas/descripciones/filas) en layout_templates
+  // 2. Guardar LAYOUT (estructura de tabla: cuentas/descripciones/filas) en layout_cuentas (SQLite)
   const { guardarLayout } = require('./layoutsService');
   
   // 3. Guardar en Firebird PRESUP table (solo valores numéricos)
@@ -416,7 +416,7 @@ const  persistirEnFirebird = async (borrador) => {
     ? datos.presupuesto
     : [];
 
-  // ✅ PASO 1: Guardar LAYOUT (estructura) en layout_templates
+  // ✅ PASO 1: Guardar LAYOUT (estructura) en layout_cuentas
   // El layout incluye: cuentas, descripciones, orden de filas, secciones creadas
   if (datos?.layout || datos?.filas) {
     const layoutData = datos.layout || { filas: datos.filas || [] };
@@ -428,7 +428,7 @@ const  persistirEnFirebird = async (borrador) => {
         layout: layoutData,
         usuarioId: Number(borrador.usuarioId) || null
       });
-      console.log(`✅ Layout guardado en layout_templates (${borrador.empresaId}/${borrador.modulo}/${borrador.anio})`);
+      console.log(`✅ Layout actualizado en layout_cuentas (${borrador.empresaId}/${borrador.modulo}/${borrador.anio})`);
     } catch (layoutError) {
       console.error(`❌ Error guardando layout:`, layoutError);
       // No bloquear - continuar con presupuesto
@@ -506,7 +506,7 @@ const  persistirEnFirebird = async (borrador) => {
     // SOLO procesar cambios numéricos (meses), ignorar campos de texto
     Object.entries(valores).forEach(([clave, valor]) => {
       // Ignorar cambios de texto (cuenta, descripcion, nombre)
-      // Estos ya fueron guardados en layout_templates arriba
+      // Estos ya fueron guardados en layout_cuentas arriba
       if (clave === 'cuenta' || clave === 'descripcion' || clave === 'nombre') {
         return;
       }

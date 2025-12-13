@@ -22,7 +22,8 @@ router.get('/', (req, res) => {
   if (!empresa) return res.status(404).json({ mensaje: 'Empresa no encontrada' });
   // Permission check: allow admin or module permission cargar/guardar
   const layout = obtenerLayout({ empresaId: value.empresaId, modulo: value.modulo, anio: value.anio });
-  return res.json({ layout });
+  if (!layout) return res.status(404).json({ mensaje: 'Layout no disponible' });
+  return res.json({ layout, datos: layout });
 });
 
 router.post('/', (req, res) => {
@@ -38,9 +39,9 @@ router.post('/', (req, res) => {
     if (!req.esAdmin && !req.mapaPermisos?.[empresa.id]?.[value.modulo]?.['Cargar y guardar']) {
       return res.status(403).json({ mensaje: 'No cuentas con permisos para guardar templates.' });
     }
-    const saved = guardarLayout({ empresaId: value.empresaId, modulo: value.modulo, anio: value.anio, layout: value.datos, usuarioId: req.usuarioActual?.id });
-    if (!saved) return res.status(500).json({ mensaje: 'No fue posible guardar el layout.' });
-    return res.json({ mensaje: 'Plantilla guardada', success: true });
+    const resultado = guardarLayout({ empresaId: value.empresaId, modulo: value.modulo, anio: value.anio, layout: value.datos, usuarioId: req.usuarioActual?.id });
+    if (!resultado) return res.status(500).json({ mensaje: 'No fue posible guardar el layout.' });
+    return res.json({ mensaje: 'Plantilla guardada', success: true, resultado });
   } catch (err) {
     console.error('Error al guardar layout:', err);
     return res.status(500).json({ mensaje: 'Ocurrió un error al guardar la plantilla.' });

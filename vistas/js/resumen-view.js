@@ -573,7 +573,7 @@
             row.setAttribute('title', detalleCuenta);
             row.setAttribute('data-bs-toggle', 'tooltip');
             row.innerHTML = `
-              ${createEditableCell(cta.cuenta || '', { columnKey: 'cuenta', rowRole: 'account', tooltipKey: 'account', text: true, classes: 'font-monospace small text-start' })}
+              ${createEditableCell(cta.cuenta || '', { columnKey: 'cuenta', rowRole: 'account', tooltipKey: 'account', text: true, classes: 'account-column font-monospace small text-start' })}
               ${createEditableCell(cta.descripcion || '', { columnKey: 'descripcion', rowRole: 'account', tooltipKey: 'account', text: true, classes: 'text-start' })}
               ${createCell(cta.actualMonth, { rowRole: 'account', tooltipKey: 'actualMonth' })}
               ${createCell(cta.planMonth, { rowRole: 'account', tooltipKey: 'planMonth' })}
