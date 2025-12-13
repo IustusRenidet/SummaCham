@@ -11,10 +11,12 @@ const construirMapaPermisos = (registros) => {
     if (!acumulado[registro.empresa_id]) {
       acumulado[registro.empresa_id] = {};
     }
-    // Normalizar nombre del módulo para que coincida con el frontend
-    const moduloNormalizado = normalizarParaFrontend(registro.modulo);
+    const moduloNormalizado =
+      normalizarNombreModulo(registro.modulo) || normalizarParaFrontend(registro.modulo);
+    const puedeLeer = Boolean(registro.puede_leer);
     acumulado[registro.empresa_id][moduloNormalizado] = {
-      Ver: Boolean(registro.puede_leer),
+      Ver: puedeLeer,
+      Lectura: puedeLeer,
       'Cargar y guardar': Boolean(registro.puede_cargar_guardar),
       Revisar: Boolean(registro.puede_revisar),
       Aprobar: Boolean(registro.puede_aprobar)
@@ -28,6 +30,7 @@ const construirEstructuraPermisosVacia = () => {
   MODULOS.forEach((modulo) => {
     plantilla[modulo] = {
       Ver: false,
+      Lectura: false,
       'Cargar y guardar': false,
       Revisar: false,
       Aprobar: false

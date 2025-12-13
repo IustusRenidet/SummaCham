@@ -192,17 +192,31 @@
     return headers;
   };
 
+  const normalizarClaveModulo = (clave) => (clave || '').toString().trim().toUpperCase().replace(/\s+/g, ' ');
+
+  const buscarPermisosModulo = (permisosEmpresa = {}, clave) => {
+    if (!clave) return null;
+    if (permisosEmpresa[clave]) {
+      return permisosEmpresa[clave];
+    }
+    const claveNormalizada = normalizarClaveModulo(clave);
+    const coincidencia = Object.entries(permisosEmpresa).find(
+      ([nombre]) => normalizarClaveModulo(nombre) === claveNormalizada
+    );
+    return coincidencia ? coincidencia[1] : null;
+  };
+
   const obtenerPermisosModulo = (modulo, empresaId, sesionActual) => {
     const sesionEvaluada = sesionActual || obtener();
-    const moduloNormalizado = (modulo || '').toString();
-    if (!sesionEvaluada || !sesionEvaluada.usuario || !moduloNormalizado) {
+    if (!sesionEvaluada || !sesionEvaluada.usuario || !modulo) {
       return null;
     }
     const empresa = empresaId || obtenerEmpresaActiva(sesionEvaluada)?.id;
     if (!empresa) {
       return null;
     }
-    return sesionEvaluada.usuario?.permisosPorEmpresa?.[empresa]?.[moduloNormalizado] || null;
+    const permisosEmpresa = sesionEvaluada.usuario?.permisosPorEmpresa?.[empresa];
+    return buscarPermisosModulo(permisosEmpresa, modulo);
   };
 
   const tienePermisoModulo = (modulo, accion, empresaId, sesionActual) => {

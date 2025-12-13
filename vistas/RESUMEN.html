@@ -147,6 +147,41 @@
       .table-wrapper {
         transform-origin: top left;
         transition: transform 0.3s ease;
+        width: 100%;
+      }
+
+      .table-card .card-body,
+      .table-responsive,
+      .table-wrapper {
+        width: 100%;
+        max-width: 100%;
+      }
+
+      #tablaComparacion {
+        width: 100%;
+        max-width: 100%;
+        table-layout: auto;
+      }
+
+      #tablaComparacion col.col-cuenta {
+        width: 10%;
+      }
+
+      #tablaComparacion col.col-descripcion {
+        width: 20%;
+      }
+
+      #tablaComparacion col.col-valor {
+        width: 7%;
+      }
+
+      #tablaComparacion th,
+      #tablaComparacion td {
+        min-width: 0;
+      }
+
+      #tablaComparacion tbody td:nth-child(7) {
+        white-space: normal !important;
       }
 
       .table {
@@ -169,6 +204,8 @@
         font-weight: 700;
         padding: 0.4rem 0.3rem;
         text-align: center;
+        white-space: normal;
+        word-break: break-word;
         vertical-align: middle;
         min-width: 70px;
       }
@@ -842,6 +879,12 @@
                   class="table align-middle mb-0 table-comparison"
                   id="tablaComparacion"
                 >
+                <colgroup>
+                  <col class="col-cuenta">
+                  <col class="col-valor" span="5">
+                  <col class="col-descripcion">
+                  <col class="col-valor" span="5">
+                </colgroup>
                 <thead>
                 <tr class="encabezados">
                   <th scope="col" class="account-column-header" rowspan="2">Cuenta</th>
@@ -982,38 +1025,41 @@
         const roundToggle = document.getElementById('roundToggle');
         const ROUND_STORAGE_KEY = 'resumen_redondear_numeros';
         
+        const formatConSeparador = (valor, redondear) => new Intl.NumberFormat('en-US', {
+          minimumFractionDigits: redondear ? 0 : 2,
+          maximumFractionDigits: redondear ? 0 : 2
+        }).format(valor);
+
         const aplicarRedondeo = (redondear) => {
           const tabla = document.querySelector('#tablaComparacion tbody');
           if (!tabla) return;
           
           const celdas = tabla.querySelectorAll('td:not(.text-start):not(.cuenta-col)');
           celdas.forEach(celda => {
-            if (celda.classList.contains('percent-cell')) {
-              return;
-            }
             const texto = celda.textContent.trim();
-            if (!texto || texto === '-' || texto === '' || texto === '0') return;
-            
-            const valorOriginal = parseFloat(celda.dataset.originalValue || texto.replace(/[^0-9.-]/g, ''));
-            if (isNaN(valorOriginal)) return;
-            
-            // Guardar valor original si no existe
-            if (!celda.dataset.originalValue) {
-              celda.dataset.originalValue = valorOriginal;
-            }
-            
-            let valorMostrar;
-            if (redondear) {
-              valorMostrar = Math.round(valorOriginal);
+            if (!texto || texto === '-') return;
+
+            let valorOriginal = celda.dataset.originalValue;
+            if (typeof valorOriginal === 'undefined') {
+              const numerico = parseFloat(texto.replace(/[^0-9.-]/g, ''));
+              if (Number.isNaN(numerico)) {
+                return;
+              }
+              celda.dataset.originalValue = numerico;
+              valorOriginal = numerico;
             } else {
-              valorMostrar = valorOriginal;
+              valorOriginal = parseFloat(valorOriginal);
             }
-            
-            // Formatear con separador de miles
-            celda.textContent = new Intl.NumberFormat('en-US', {
-              minimumFractionDigits: redondear ? 0 : 2,
-              maximumFractionDigits: redondear ? 0 : 2
-            }).format(valorMostrar);
+
+            if (Number.isNaN(valorOriginal)) return;
+
+            const valorMostrar = redondear ? Math.round(valorOriginal) : valorOriginal;
+            const contenido = formatConSeparador(valorMostrar, redondear);
+            if (celda.classList.contains('percent-cell')) {
+              celda.textContent = `${contenido} %`;
+            } else {
+              celda.textContent = contenido;
+            }
           });
         };
 

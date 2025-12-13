@@ -42,6 +42,29 @@
       ]
     }
   ];
+  const MODULO_PERMISOS = {
+    resumen: "RESUMEN",
+    summary: "SUMMARY",
+    presupuestos: "Presupuestos",
+    comites: "Comit‚s",
+    comunicacion: "Comunicaci¢n",
+    direccion: "Direcci¢n",
+    eventos: "Eventos",
+    finanzas: "Finanzas",
+    "gtos-corporativos": "Gtos Corporativos",
+    membresia: "Membres¡a",
+    rh: "RH",
+    "serv-membresia": "Serv Membres¡a",
+    tic: "T&IC",
+    vpe: "VPE"
+  };
+  MODULE_GROUPS.forEach((group) => {
+    group.items = group.items.map((item) => {
+      if (item.permiso) return item;
+      const permisoNormalizado = MODULO_PERMISOS[item.id] || item.label;
+      return { ...item, permiso: permisoNormalizado };
+    });
+  });
   const moduloDisponiblePorEmpresa = (empresaId, moduloId) => {
     const config = window.CapitulosModulos;
     if (!config || typeof config.moduloDisponible !== "function") {
@@ -64,9 +87,8 @@
     if (usuario === "ICONET" || sesion.usuario.esAdminGlobal) {
       return true;
     }
-    const permisosEmpresa = sesion.usuario.permisosPorEmpresa?.[empresaId] || {};
     const clave = modulo.permiso || modulo.label;
-    const acciones = permisosEmpresa[clave];
+    const acciones = Sesion.obtenerPermisosModulo(clave, empresaId, sesion);
     if (!acciones) {
       return false;
     }
