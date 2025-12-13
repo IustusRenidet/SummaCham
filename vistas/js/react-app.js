@@ -9,9 +9,9 @@
   const MODULE_GROUPS = [
     {
       id: "panel-resumenes",
-      label: "Paneles",
+      label: "SUMMARY",
       items: [
-        { id: "presupuestos", label: "Presupuestos", path: "Presupuestos.html", badge: "ppto" },
+        { id: "resumen", label: "Resumen", path: "RESUMEN.html", badge: "summary", permiso: "RESUMEN" },
         { id: "summary", label: "Summary", path: "SUMMARY.html", badge: "summary", permiso: "SUMMARY" }
       ]
     },
@@ -19,18 +19,18 @@
       id: "resumen-areas",
       label: "Divisiones",
       items: [
-        { id: "resumen", label: "Resumen", path: "RESUMEN.html", badge: "ppto", permiso: "RESUMEN" },
-        { id: "comites", label: "Comit\xE9s", path: "Comit\xE9s.html" },
-        { id: "comunicacion", label: "Comunicaci\xF3n", path: "Comunicaci\xF3n.html" },
-        { id: "direccion", label: "Direcci\xF3n", path: "Direcci\xF3n.html" },
-        { id: "eventos", label: "Eventos", path: "Eventos.html" },
-        { id: "finanzas", label: "Finanzas", path: "Finanzas.html" },
-        { id: "gtos-corporativos", label: "Gastos Corporativos", path: "Gtos_Corporativos.html" },
-        { id: "membresia", label: "Membres\xEDa", path: "Membres\xEDa.html" },
-        { id: "rh", label: "Recursos Humanos", path: "RH.html" },
-        { id: "serv-membresia", label: "Servicios a la Membres\xEDa", path: "Serv_Membres\xEDa.html" },
-        { id: "tic", label: "T&IC", path: "T&IC.html" },
-        { id: "vpe", label: "VPE", path: "VPE.html" }
+        { id: "presupuestos", label: "Presupuestos", path: "Presupuestos.html", badge: "ppto", permiso: "Presupuestos" },
+        { id: "comites", label: "Comit\xE9s", path: "Comit\xE9s.html", permiso: "Comit\xE9s" },
+        { id: "comunicacion", label: "Comunicaci\xF3n", path: "Comunicaci\xF3n.html", permiso: "Comunicaci\xF3n" },
+        { id: "direccion", label: "Direcci\xF3n", path: "Direcci\xF3n.html", permiso: "Direcci\xF3n" },
+        { id: "eventos", label: "Eventos", path: "Eventos.html", permiso: "Eventos" },
+        { id: "finanzas", label: "Finanzas", path: "Finanzas.html", permiso: "Finanzas" },
+        { id: "gtos-corporativos", label: "Gastos Corporativos", path: "Gtos_Corporativos.html", permiso: "Gtos Corporativos" },
+        { id: "membresia", label: "Membres\xEDa", path: "Membres\xEDa.html", permiso: "Membres\xEDa" },
+        { id: "rh", label: "Recursos Humanos", path: "RH.html", permiso: "RH" },
+        { id: "serv-membresia", label: "Servicios a la Membres\xEDa", path: "Serv_Membres\xEDa.html", permiso: "Serv Membres\xEDa" },
+        { id: "tic", label: "T&IC", path: "T&IC.html", permiso: "T&IC" },
+        { id: "vpe", label: "VPE", path: "VPE.html", permiso: "VPE" }
       ]
     },
     {
@@ -91,6 +91,10 @@
     const acciones = Sesion.obtenerPermisosModulo(clave, empresaId, sesion);
     if (!acciones) {
       return false;
+    }
+    const esSoloLectura = ["summary", "resumen", "presupuestos"].includes((modulo.id || "").toLowerCase());
+    if (esSoloLectura) {
+      return Boolean(acciones["Cargar y guardar"] || acciones.Revisar || acciones.Aprobar || acciones.Lectura || acciones.Ver);
     }
     return Boolean(acciones["Cargar y guardar"] || acciones.Revisar || acciones.Aprobar);
   };
