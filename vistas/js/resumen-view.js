@@ -403,7 +403,10 @@
       `data-valor-original="${text ? escapeAttr(val ?? '') : Number(val ?? 0)}"`,
       `data-editable-real="${esEditableReal}"`
     ];
-    if (columnKey) attrs.push(`data-columna-clave="${columnKey}"`);
+    if (columnKey) {
+      attrs.push(`data-columna-clave="${columnKey}"`);
+      attrs.push(`data-role="${columnKey}"`);
+    }
     if (!esEditableReal && tooltipKey) {
       attrs.push(`title="Columna de solo lectura (${columnKey})"`);
       attrs.push(`data-bs-toggle="tooltip"`);
@@ -574,12 +577,12 @@
             row.setAttribute('data-bs-toggle', 'tooltip');
             row.innerHTML = `
               ${createEditableCell(cta.cuenta || '', { columnKey: 'cuenta', rowRole: 'account', tooltipKey: 'account', text: true, classes: 'account-column font-monospace small text-start' })}
-              ${createEditableCell(cta.descripcion || '', { columnKey: 'descripcion', rowRole: 'account', tooltipKey: 'account', text: true, classes: 'text-start' })}
               ${createCell(cta.actualMonth, { rowRole: 'account', tooltipKey: 'actualMonth' })}
               ${createCell(cta.planMonth, { rowRole: 'account', tooltipKey: 'planMonth' })}
               ${createCell(cta.prevMonth, { rowRole: 'account', tooltipKey: 'prevMonth' })}
               ${createPercentCell(varPlan, { rowRole: 'account', tooltipKey: 'varMonthPlan' })}
               ${createPercentCell(varPrev, { rowRole: 'account', tooltipKey: 'varMonthPrev' })}
+              ${createEditableCell(cta.descripcion || '', { columnKey: 'descripcion', rowRole: 'account', tooltipKey: 'account', text: true, classes: 'text-start' })}
               ${createCell(cta.actualYTD, { rowRole: 'account', tooltipKey: 'actualYTD' })}
               ${createCell(cta.planYTD, { rowRole: 'account', tooltipKey: 'planYTD' })}
               ${createCell(cta.prevYTD, { rowRole: 'account', tooltipKey: 'prevYTD' })}

@@ -1,87 +1,12 @@
-const path = require('path');
-const fs = require('fs');
-const os = require('os');
 const { obtenerDatosPlaneacion } = require('../planeacionCuentasService');
 const { MESES } = require('../saldosService');
 const layoutService = require('../layoutService');
-
-// Helper para resolver rutas en ASAR
-const resolveUnpackedPath = (relativePath) => {
-  let basePath = __dirname;
-  // Si estamos dentro de app.asar, usar app.asar.unpacked
-  if (basePath.includes('app.asar') && !basePath.includes('app.asar.unpacked')) {
-    basePath = basePath.replace('app.asar', 'app.asar.unpacked');
-  }
-  return path.join(basePath, relativePath);
-};
-
-const DEFAULT_BASE_PATH = resolveUnpackedPath('../../../info IMPORTANTE');
-const DEFINICIONES_FILE = path.join(DEFAULT_BASE_PATH, 'CUENTAS SUMMARY y RESUMEN.json');
-
-const agruparPorCapitulo = (lista = []) => {
-  return lista.reduce((acc, item) => {
-    const capitulo = (item.CAPITULO || 'GENERAL').toString().trim() || 'GENERAL';
-    if (!acc[capitulo]) {
-      acc[capitulo] = [];
-    }
-    acc[capitulo].push(item);
-    return acc;
-  }, {});
-};
-
-const leerJsonDefiniciones = (modulo, anio) => {
-  const moduloUpper = (modulo || '').toString().trim().toUpperCase();
-  const candidatos = [
-    path.join(DEFAULT_BASE_PATH, `${moduloUpper} CUENTAS ${anio}.json`),
-    path.join(DEFAULT_BASE_PATH, `${moduloUpper} CUENTAS.json`),
-    path.join(DEFAULT_BASE_PATH, `CUENTAS SUMMARY y RESUMEN ${anio}.json`),
-    path.join(os.homedir(), 'Downloads', `${moduloUpper} CUENTAS ${anio}.json`),
-    DEFINICIONES_FILE
-  ];
-
-  for (const archivo of candidatos) {
-    if (!archivo || !fs.existsSync(archivo)) continue;
-    try {
-      const contenido = JSON.parse(fs.readFileSync(archivo, 'utf8'));
-      const listaModulo = Array.isArray(contenido)
-        ? contenido
-        : contenido[moduloUpper] || contenido[modulo] || null;
-      if (!Array.isArray(listaModulo) || !listaModulo.length) {
-        continue;
-      }
-
-      const agrupado = agruparPorCapitulo(listaModulo);
-      if (!agrupado['SUMA DE VARIAS SECCIONES']) {
-        const sumas = contenido['SUMA DE VARIAS SECCIONES'];
-        if (Array.isArray(sumas) && sumas.length) {
-          agrupado['SUMA DE VARIAS SECCIONES'] = sumas;
-        } else if (fs.existsSync(DEFINICIONES_FILE)) {
-          try {
-            const base = JSON.parse(fs.readFileSync(DEFINICIONES_FILE, 'utf8'));
-            if (Array.isArray(base['SUMA DE VARIAS SECCIONES'])) {
-              agrupado['SUMA DE VARIAS SECCIONES'] = base['SUMA DE VARIAS SECCIONES'];
-            }
-          } catch (sumErr) {
-            console.warn('[planeacionReportesEngine] No se pudo cargar SUMA DE VARIAS SECCIONES base:', sumErr?.message || sumErr);
-          }
-        }
-      }
-
-      console.log(`[planeacionReportesEngine] Usando definiciones ${moduloUpper} desde archivo ${archivo}`);
-      return agrupado;
-    } catch (err) {
-      console.warn(`[planeacionReportesEngine] No se pudo leer definiciones desde ${archivo}:`, err?.message || err);
-    }
-  }
-
-  return null;
-};
 
 const NORMALIZAR_CLAVE = (valor = '') => valor.toString().trim().toUpperCase();
 const NORMALIZAR_CAPITULO = (valor = '') => valor.toString().trim().toUpperCase();
 
 /**
- * Cargar definiciones desde SQLite con fallback a JSON
+ * Cargar definiciones desde SQLite
  */
 function cargarDefinicionesModulo(modulo, empresaId = 'EMPRESA01', anio = new Date().getFullYear()) {
   try {
@@ -143,11 +68,6 @@ function cargarDefinicionesModulo(modulo, empresaId = 'EMPRESA01', anio = new Da
       `[planeacionReportesEngine] No se pudo cargar layout ${modulo} / ${empresaId} / ${anio} desde SQLite:`,
       error && error.message ? error.message : error
     );
-  }
-
-  const definicionesArchivo = leerJsonDefiniciones(modulo, anio);
-  if (definicionesArchivo) {
-    return definicionesArchivo;
   }
 
   throw new Error(

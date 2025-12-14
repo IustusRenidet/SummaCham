@@ -224,6 +224,13 @@
         white-space: normal;
       }
 
+      .table td.account-column {
+        white-space: nowrap !important;
+        word-break: keep-all;
+        overflow-wrap: normal;
+        hyphens: none;
+      }
+
       .table tbody tr {
         background-color: #fff;
       }
@@ -293,6 +300,10 @@
         background-color: #f2f2f2 !important;
         font-weight: 400;
         white-space: nowrap;
+        word-break: keep-all;
+        overflow-wrap: normal;
+        hyphens: none;
+        font-variant-numeric: tabular-nums;
       }
 
       body.ocultar-cuentas .account-column,
@@ -690,7 +701,7 @@
     data-modulo-alias="Resumen"
     data-modulo-id="RESUMEN"
   >
-    <div class="container py-4 py-lg-5">
+    <div class="container-fluid py-4 py-lg-5">
       <div class="row mb-4">
         <div class="col-12">
           <div class="card header-card fade-in">

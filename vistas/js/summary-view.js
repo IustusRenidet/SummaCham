@@ -541,7 +541,10 @@
       `data-valor-original="${text ? escapeAttr(val ?? '') : Number(val ?? 0)}"`,
       `data-editable-real="${esEditableReal}"`
     ];
-    if (columnKey) attrs.push(`data-columna-clave="${columnKey}"`);
+    if (columnKey) {
+      attrs.push(`data-columna-clave="${columnKey}"`);
+      attrs.push(`data-role="${columnKey}"`);
+    }
     if (!esEditableReal && tooltipKey) {
       attrs.push(`title="Columna de solo lectura (${columnKey})"`);
       attrs.push(`data-bs-toggle="tooltip"`);
