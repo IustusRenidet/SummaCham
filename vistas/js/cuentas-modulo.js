@@ -2630,10 +2630,13 @@
     ocultarColumnasReal(false);
     obtenerFilasCuenta().forEach((fila) => {
       Array.from(fila.cells).forEach((celda) => {
-        if (!celda.dataset.editable) return;
-        celda.contentEditable = 'false';
-        delete celda.dataset.editable;
-        delete celda.dataset.columnaClave;
+        // CRÍTICO: Marcar que los listeners fueron removidos para evitar re-agregar
+        if (celda.dataset.editable) {
+          celda.contentEditable = 'false';
+          delete celda.dataset.editable;
+          delete celda.dataset.columnaClave;
+          delete celda.dataset.listenersBound; // Permitir re-agregar listeners en próxima edición
+        }
       });
     });
     estadoModulo.tabla.classList.remove('modo-edicion');
@@ -2645,9 +2648,11 @@
     filas.forEach((fila) => {
       const celdaCuenta = fila.cells[0];
       const celdaNombre = fila.cells[1];
-      if (celdaCuenta && !celdaCuenta.dataset.textEditable) {
+      // CRÍTICO: Usar flag para evitar agregar listeners múltiples veces
+      if (celdaCuenta && !celdaCuenta.dataset.textEditable && !celdaCuenta.dataset.textListenersBound) {
         celdaCuenta.contentEditable = 'true';
         celdaCuenta.dataset.textEditable = 'cuenta';
+        celdaCuenta.dataset.textListenersBound = 'true';
         celdaCuenta.addEventListener('blur', () => {
           manejarCambioCuenta(fila, celdaCuenta);
           setTimeout(() => ocultarSugerencias(), 150);
@@ -2655,9 +2660,10 @@
         celdaCuenta.addEventListener('input', () => mostrarSugerenciasCuenta(celdaCuenta, celdaCuenta.textContent));
         celdaCuenta.addEventListener('focus', () => mostrarSugerenciasCuenta(celdaCuenta, celdaCuenta.textContent));
       }
-      if (celdaNombre && !celdaNombre.dataset.textEditable) {
+      if (celdaNombre && !celdaNombre.dataset.textEditable && !celdaNombre.dataset.textListenersBound) {
         celdaNombre.contentEditable = 'true';
         celdaNombre.dataset.textEditable = 'nombre';
+        celdaNombre.dataset.textListenersBound = 'true';
         celdaNombre.addEventListener('blur', () => manejarCambioNombre(fila, celdaNombre));
       }
     });
@@ -2713,9 +2719,11 @@
     filas.forEach((fila) => {
       const celdaCuenta = fila.cells[0];
       const celdaNombre = fila.cells[1];
-      if (celdaCuenta && !celdaCuenta.dataset.editable) {
+      // CRÍTICO: Usar flag listenersBound para evitar agregar listeners múltiples veces
+      if (celdaCuenta && !celdaCuenta.dataset.editable && !celdaCuenta.dataset.listenersBound) {
         celdaCuenta.contentEditable = 'true';
         celdaCuenta.dataset.editable = 'cuenta';
+        celdaCuenta.dataset.listenersBound = 'true';
         celdaCuenta.addEventListener('blur', () => {
           manejarCambioCuenta(fila, celdaCuenta);
           setTimeout(() => ocultarSugerencias(), 150);
@@ -2738,9 +2746,10 @@
         celdaCuenta.addEventListener('input', () => mostrarSugerenciasCuenta(celdaCuenta, celdaCuenta.textContent));
         celdaCuenta.addEventListener('focus', () => mostrarSugerenciasCuenta(celdaCuenta, celdaCuenta.textContent));
       }
-      if (celdaNombre && !celdaNombre.dataset.editable) {
+      if (celdaNombre && !celdaNombre.dataset.editable && !celdaNombre.dataset.listenersBound) {
         celdaNombre.contentEditable = 'true';
         celdaNombre.dataset.editable = 'nombre';
+        celdaNombre.dataset.listenersBound = 'true';
         celdaNombre.addEventListener('blur', () => manejarCambioNombre(fila, celdaNombre));
         celdaNombre.addEventListener('keydown', (evt) => {
           if (evt.key === 'Enter') {
@@ -2764,10 +2773,12 @@
       Array.from(fila.cells).forEach((celda, idx) => {
         const clave = reverse[idx];
         if (!esClaveBudget(clave)) return;
-        if (celda.dataset.editable) return;
+        // CRÍTICO: Verificar ambos flags para evitar duplicados
+        if (celda.dataset.editable || celda.dataset.listenersBound) return;
         celda.contentEditable = 'true';
         celda.dataset.editable = 'budget';
         celda.dataset.columnaClave = clave;
+        celda.dataset.listenersBound = 'true';
         celda.addEventListener('blur', () => actualizarPresupuestoCelda(fila, clave, celda));
         celda.addEventListener('keydown', (evt) => {
           if (evt.key === 'Enter') {

@@ -3,23 +3,35 @@
 User: AA (ID: 2, Admin: 0)
   - empresa1 | Finanzas: [Revisor]
   - empresa1 | Gtos_Corporativos: [Revisor]
+  - empresa1 | RESUMEN: []
+  - empresa1 | SUMMARY: []
   - empresa1 | VPE: [Revisor]
   - empresa2 | Gtos_Corporativos: [Revisor]
+  - empresa2 | RESUMEN: []
+  - empresa2 | SUMMARY: []
   - empresa3 | Gtos_Corporativos: [Revisor]
+  - empresa3 | RESUMEN: []
+  - empresa3 | SUMMARY: []
   - empresa4 | Gtos_Corporativos: [Revisor]
+  - empresa4 | RESUMEN: []
+  - empresa4 | SUMMARY: []
 
 User: AC (ID: 3, Admin: 0)
   - empresa4 | Comités: [Editor]
   - empresa4 | Eventos: [Editor]
+  - empresa4 | RESUMEN: []
+  - empresa4 | SUMMARY: []
 
-User: AMB (ID: 4, Admin: 0)
+User: AMB (ID: 4, Admin: 1)
   - empresa1 | Comités: [Aprobador]
   - empresa1 | Comunicación: [Aprobador]
   - empresa1 | Eventos: [Aprobador]
   - empresa1 | Finanzas: [Aprobador]
   - empresa1 | Gtos_Corporativos: [Aprobador]
   - empresa1 | Membresía: [Aprobador]
+  - empresa1 | RESUMEN: []
   - empresa1 | RH: [Aprobador]
+  - empresa1 | SUMMARY: []
   - empresa1 | Serv_Membresía: [Aprobador]
   - empresa1 | T&IC: [Aprobador]
   - empresa1 | VPE: [Aprobador]
@@ -30,7 +42,9 @@ User: AMB (ID: 4, Admin: 0)
   - empresa2 | Finanzas: [Aprobador]
   - empresa2 | Gtos_Corporativos: [Aprobador]
   - empresa2 | Membresía: [Aprobador]
+  - empresa2 | RESUMEN: []
   - empresa2 | RH: [Aprobador]
+  - empresa2 | SUMMARY: []
   - empresa2 | Serv_Membresía: [Aprobador]
   - empresa2 | T&IC: [Aprobador]
   - empresa3 | Comités: [Aprobador]
@@ -40,7 +54,9 @@ User: AMB (ID: 4, Admin: 0)
   - empresa3 | Finanzas: [Aprobador]
   - empresa3 | Gtos_Corporativos: [Aprobador]
   - empresa3 | Membresía: [Aprobador]
+  - empresa3 | RESUMEN: []
   - empresa3 | RH: [Aprobador]
+  - empresa3 | SUMMARY: []
   - empresa3 | Serv_Membresía: [Aprobador]
   - empresa3 | T&IC: [Aprobador]
   - empresa4 | Comités: [Aprobador]
@@ -50,28 +66,46 @@ User: AMB (ID: 4, Admin: 0)
   - empresa4 | Finanzas: [Aprobador]
   - empresa4 | Gtos_Corporativos: [Aprobador]
   - empresa4 | Membresía: [Aprobador]
+  - empresa4 | RESUMEN: []
   - empresa4 | RH: [Aprobador]
+  - empresa4 | SUMMARY: []
   - empresa4 | Serv_Membresía: [Aprobador]
   - empresa4 | T&IC: [Aprobador]
 
 User: AO (ID: 5, Admin: 0)
+  - empresa1 | RESUMEN: []
+  - empresa1 | SUMMARY: []
   - empresa1 | T&IC: [Editor]
+  - empresa2 | RESUMEN: []
+  - empresa2 | SUMMARY: []
   - empresa2 | T&IC: [Editor]
+  - empresa3 | RESUMEN: []
+  - empresa3 | SUMMARY: []
   - empresa3 | T&IC: [Editor]
+  - empresa4 | RESUMEN: []
+  - empresa4 | SUMMARY: []
   - empresa4 | T&IC: [Editor]
 
 User: AQ (ID: 6, Admin: 0)
   - empresa1 | Comunicación: [Revisor]
   - empresa1 | Eventos: [Revisor]
+  - empresa1 | RESUMEN: []
+  - empresa1 | SUMMARY: []
   - empresa1 | Serv_Membresía: [Revisor]
   - empresa2 | Comunicación: [Aprobador]
   - empresa2 | Eventos: [Aprobador]
+  - empresa2 | RESUMEN: []
+  - empresa2 | SUMMARY: []
   - empresa2 | Serv_Membresía: [Aprobador]
   - empresa3 | Comunicación: [Aprobador]
   - empresa3 | Eventos: [Aprobador]
+  - empresa3 | RESUMEN: []
+  - empresa3 | SUMMARY: []
   - empresa3 | Serv_Membresía: [Aprobador]
   - empresa4 | Comunicación: [Aprobador]
   - empresa4 | Eventos: [Aprobador]
+  - empresa4 | RESUMEN: []
+  - empresa4 | SUMMARY: []
   - empresa4 | Serv_Membresía: [Aprobador]
 
 User: AS (ID: 7, Admin: 0)
@@ -81,12 +115,16 @@ User: AS (ID: 7, Admin: 0)
   - empresa2 | Eventos: [Revisor]
   - empresa2 | Finanzas: [Revisor]
   - empresa2 | Membresía: [Revisor]
+  - empresa2 | RESUMEN: []
   - empresa2 | RH: [Revisor]
+  - empresa2 | SUMMARY: []
   - empresa2 | Serv_Membresía: [Revisor]
   - empresa2 | T&IC: [Revisor]
 
 User: AZ (ID: 8, Admin: 0)
   - empresa3 | Eventos: [Editor]
+  - empresa3 | RESUMEN: []
+  - empresa3 | SUMMARY: []
 
 User: BS (ID: 9, Admin: 0)
   - empresa4 | Comités: [Revisor]
@@ -95,54 +133,102 @@ User: BS (ID: 9, Admin: 0)
   - empresa4 | Eventos: [Revisor]
   - empresa4 | Finanzas: [Revisor]
   - empresa4 | Membresía: [Editor]
+  - empresa4 | RESUMEN: []
   - empresa4 | RH: [Revisor]
+  - empresa4 | SUMMARY: []
   - empresa4 | Serv_Membresía: [Revisor]
   - empresa4 | T&IC: [Revisor]
 
 User: CG (ID: 10, Admin: 0)
+  - empresa1 | RESUMEN: []
   - empresa1 | RH: [Editor]
+  - empresa1 | SUMMARY: []
+  - empresa2 | RESUMEN: []
   - empresa2 | RH: [Editor]
+  - empresa2 | SUMMARY: []
+  - empresa3 | RESUMEN: []
   - empresa3 | RH: [Editor]
+  - empresa3 | SUMMARY: []
+  - empresa4 | RESUMEN: []
   - empresa4 | RH: [Editor]
+  - empresa4 | SUMMARY: []
 
 User: DF (ID: 11, Admin: 0)
   - empresa1 | Comités: [Editor]
+  - empresa1 | RESUMEN: []
+  - empresa1 | SUMMARY: []
 
 User: DI (ID: 12, Admin: 0)
   - empresa3 | Dirección: [Editor]
   - empresa3 | Finanzas: [Editor]
+  - empresa3 | RESUMEN: []
+  - empresa3 | SUMMARY: []
 
 User: DM (ID: 13, Admin: 0)
+  - empresa1 | RESUMEN: []
+  - empresa1 | SUMMARY: []
   - empresa1 | Serv_Membresía: [Editor]
+  - empresa2 | RESUMEN: []
+  - empresa2 | SUMMARY: []
   - empresa2 | Serv_Membresía: [Editor]
+  - empresa3 | RESUMEN: []
+  - empresa3 | SUMMARY: []
   - empresa3 | Serv_Membresía: [Editor]
+  - empresa4 | RESUMEN: []
+  - empresa4 | SUMMARY: []
   - empresa4 | Serv_Membresía: [Editor]
 
 User: FO (ID: 14, Admin: 0)
   - empresa1 | Eventos: [Editor]
+  - empresa1 | RESUMEN: []
+  - empresa1 | SUMMARY: []
 
 User: FS (ID: 15, Admin: 0)
   - empresa1 | Membresía: [Editor]
+  - empresa1 | RESUMEN: []
+  - empresa1 | SUMMARY: []
   - empresa2 | Membresía: [Aprobador]
+  - empresa2 | RESUMEN: []
+  - empresa2 | SUMMARY: []
   - empresa3 | Membresía: [Aprobador]
+  - empresa3 | RESUMEN: []
+  - empresa3 | SUMMARY: []
   - empresa4 | Membresía: [Aprobador]
+  - empresa4 | RESUMEN: []
+  - empresa4 | SUMMARY: []
 
 User: GB (ID: 16, Admin: 0)
   - empresa1 | Comités: [Revisor]
+  - empresa1 | RESUMEN: []
+  - empresa1 | SUMMARY: []
   - empresa1 | T&IC: [Revisor]
   - empresa2 | Comités: [Aprobador]
+  - empresa2 | RESUMEN: []
+  - empresa2 | SUMMARY: []
   - empresa2 | T&IC: [Aprobador]
   - empresa3 | Comités: [Aprobador]
+  - empresa3 | RESUMEN: []
+  - empresa3 | SUMMARY: []
   - empresa3 | T&IC: [Aprobador]
   - empresa4 | Comités: [Aprobador]
+  - empresa4 | RESUMEN: []
+  - empresa4 | SUMMARY: []
   - empresa4 | T&IC: [Aprobador]
 
 User: GL (ID: 17, Admin: 0)
   - empresa1 | Finanzas: [Editor]
   - empresa1 | Gtos_Corporativos: [Editor]
+  - empresa1 | RESUMEN: []
+  - empresa1 | SUMMARY: []
   - empresa2 | Gtos_Corporativos: [Editor]
+  - empresa2 | RESUMEN: []
+  - empresa2 | SUMMARY: []
   - empresa3 | Gtos_Corporativos: [Editor]
+  - empresa3 | RESUMEN: []
+  - empresa3 | SUMMARY: []
   - empresa4 | Gtos_Corporativos: [Editor]
+  - empresa4 | RESUMEN: []
+  - empresa4 | SUMMARY: []
 
 User: GLINGOW (ID: 18, Admin: 0)
   - empresa3 | Comités: [Revisor]
@@ -151,7 +237,9 @@ User: GLINGOW (ID: 18, Admin: 0)
   - empresa3 | Eventos: [Revisor]
   - empresa3 | Finanzas: [Revisor]
   - empresa3 | Membresía: [Revisor]
+  - empresa3 | RESUMEN: []
   - empresa3 | RH: [Revisor]
+  - empresa3 | SUMMARY: []
   - empresa3 | Serv_Membresía: [Revisor]
   - empresa3 | T&IC: [Revisor]
 
@@ -215,16 +303,24 @@ User: ICONET (ID: 1, Admin: 1)
 
 User: JE (ID: 19, Admin: 0)
   - empresa2 | Comités: [Editor]
+  - empresa2 | RESUMEN: []
+  - empresa2 | SUMMARY: []
 
 User: MG (ID: 20, Admin: 0)
   - empresa2 | Dirección: [Editor]
   - empresa2 | Finanzas: [Editor]
+  - empresa2 | RESUMEN: []
+  - empresa2 | SUMMARY: []
 
 User: MV (ID: 21, Admin: 0)
   - empresa3 | Comités: [Editor]
+  - empresa3 | RESUMEN: []
+  - empresa3 | SUMMARY: []
 
 User: NG (ID: 22, Admin: 0)
   - empresa2 | Membresía: [Editor]
+  - empresa2 | RESUMEN: []
+  - empresa2 | SUMMARY: []
 
 User: PCA (ID: 23, Admin: 0)
   - empresa1 | Comités: [Aprobador]
@@ -233,7 +329,9 @@ User: PCA (ID: 23, Admin: 0)
   - empresa1 | Finanzas: [Aprobador]
   - empresa1 | Gtos_Corporativos: [Aprobador]
   - empresa1 | Membresía: [Aprobador]
+  - empresa1 | RESUMEN: []
   - empresa1 | RH: [Aprobador]
+  - empresa1 | SUMMARY: []
   - empresa1 | Serv_Membresía: [Aprobador]
   - empresa1 | T&IC: [Aprobador]
   - empresa1 | VPE: [Aprobador]
@@ -244,7 +342,9 @@ User: PCA (ID: 23, Admin: 0)
   - empresa2 | Finanzas: [Aprobador]
   - empresa2 | Gtos_Corporativos: [Aprobador]
   - empresa2 | Membresía: [Aprobador]
+  - empresa2 | RESUMEN: []
   - empresa2 | RH: [Aprobador]
+  - empresa2 | SUMMARY: []
   - empresa2 | Serv_Membresía: [Aprobador]
   - empresa2 | T&IC: [Aprobador]
   - empresa3 | Comités: [Aprobador]
@@ -254,7 +354,9 @@ User: PCA (ID: 23, Admin: 0)
   - empresa3 | Finanzas: [Aprobador]
   - empresa3 | Gtos_Corporativos: [Aprobador]
   - empresa3 | Membresía: [Aprobador]
+  - empresa3 | RESUMEN: []
   - empresa3 | RH: [Aprobador]
+  - empresa3 | SUMMARY: []
   - empresa3 | Serv_Membresía: [Aprobador]
   - empresa3 | T&IC: [Aprobador]
   - empresa4 | Comités: [Aprobador]
@@ -264,23 +366,39 @@ User: PCA (ID: 23, Admin: 0)
   - empresa4 | Finanzas: [Aprobador]
   - empresa4 | Gtos_Corporativos: [Aprobador]
   - empresa4 | Membresía: [Aprobador]
+  - empresa4 | RESUMEN: []
   - empresa4 | RH: [Aprobador]
+  - empresa4 | SUMMARY: []
   - empresa4 | Serv_Membresía: [Aprobador]
   - empresa4 | T&IC: [Aprobador]
 
 User: PV (ID: 24, Admin: 0)
   - empresa1 | Comunicación: [Editor]
+  - empresa1 | RESUMEN: []
+  - empresa1 | SUMMARY: []
   - empresa2 | Comunicación: [Editor]
+  - empresa2 | RESUMEN: []
+  - empresa2 | SUMMARY: []
   - empresa3 | Comunicación: [Editor]
+  - empresa3 | RESUMEN: []
+  - empresa3 | SUMMARY: []
   - empresa4 | Comunicación: [Editor]
+  - empresa4 | RESUMEN: []
+  - empresa4 | SUMMARY: []
 
 User: RA (ID: 25, Admin: 0)
   - empresa2 | Eventos: [Editor]
+  - empresa2 | RESUMEN: []
+  - empresa2 | SUMMARY: []
 
 User: SB (ID: 26, Admin: 0)
+  - empresa1 | RESUMEN: []
+  - empresa1 | SUMMARY: []
   - empresa1 | VPE: [Editor]
 
 User: YB (ID: 27, Admin: 0)
   - empresa3 | Membresía: [Editor]
+  - empresa3 | RESUMEN: []
+  - empresa3 | SUMMARY: []
 
 --- USER DUMP END ---

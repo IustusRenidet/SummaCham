@@ -6,138 +6,9 @@
 
 const express = require('express');
 const router = express.Router();
-const path = require('path');
-const fs = require('fs').promises;
 const { requireAuth } = require('../middleware/auth');
 const layoutService = require('../services/layoutService');
-
-// Helper para resolver rutas en ASAR
-const resolveUnpackedPath = (relativePath) => {
-  let basePath = __dirname;
-  // Si estamos dentro de app.asar, usar app.asar.unpacked
-  if (basePath.includes('app.asar') && !basePath.includes('app.asar.unpacked')) {
-    basePath = basePath.replace('app.asar', 'app.asar.unpacked');
-  }
-  return path.join(basePath, relativePath);
-};
-
-// Rutas a archivos JSON (LEGACY - usadas como fallback)
-const SUMMARY_RESUMEN_JSON = resolveUnpackedPath('../../info IMPORTANTE/CUENTAS SUMMARY y RESUMEN.json');
-const MODULOS_JSON = resolveUnpackedPath('../../info IMPORTANTE/CUENTAS.json');
-
-/**
- * Helper: Cargar layout desde SQLite (con fallback a JSON)
- */
-async function cargarLayout(modulo, empresaId = 'EMPRESA01', anio = new Date().getFullYear()) {
-  try {
-    // Intentar cargar desde SQLite
-    const capitulos = layoutService.obtenerCapitulos({ empresaId, modulo, anio });
-    
-    if (capitulos && capitulos.length > 0) {
-      // Cargar todos los capítulos
-      const layoutCompleto = {};
-      
-      for (const cap of capitulos) {
-        const layout = layoutService.obtenerLayout({ 
-          empresaId, 
-          modulo, 
-          anio, 
-          capitulo: cap.capitulo 
-        });
-        
-        if (!layoutCompleto[cap.capitulo]) {
-          layoutCompleto[cap.capitulo] = [];
-        }
-        
-        // Convertir de SQLite a formato legacy
-        layout.cuentas.forEach(cuenta => {
-          layoutCompleto[cap.capitulo].push({
-            CAPITULO: cap.capitulo,
-            CUENTA: cuenta.CUENTA,
-            NOMBRE: cuenta.NOMBRE,
-            'SECCIÓN Principal': cuenta['SECCIÓN Principal'],
-            'SECCION Secundaria': cuenta['SECCION Secundaria'],
-            SECCION: cuenta['SECCIÓN Principal'], // Para módulos operativos
-            orden: cuenta.orden
-          });
-        });
-      }
-      
-      return layoutCompleto;
-    }
-  } catch (error) {
-    console.warn(`⚠️ No se pudo cargar layout desde SQLite para ${modulo}, usando JSON:`, error.message);
-  }
-  
-  // Fallback: cargar desde JSON
-  return cargarJSON(modulo);
-}
-
-/**
- * Helper: Cargar JSON (LEGACY)
- */
-async function cargarJSON(tipo) {
-  try {
-    const jsonPath = (tipo === 'SUMMARY' || tipo === 'RESUMEN') 
-      ? SUMMARY_RESUMEN_JSON 
-      : MODULOS_JSON;
-    
-    const data = await fs.readFile(jsonPath, 'utf-8');
-    return JSON.parse(data);
-  } catch (error) {
-    console.error('❌ Error al cargar JSON:', error);
-    throw new Error('No se pudo cargar la configuración');
-  }
-}
-
-/**
- * Helper: Guardar layout en SQLite y JSON
- */
-async function guardarLayout(modulo, capitulo, cuentas, empresaId = 'EMPRESA01', anio = new Date().getFullYear()) {
-  try {
-    // Guardar en SQLite
-    layoutService.guardarCuentas({
-      empresaId,
-      modulo,
-      anio,
-      capitulo,
-      cuentas: cuentas.map((c, index) => ({
-        CUENTA: c.CUENTA,
-        NOMBRE: c.NOMBRE,
-        'SECCIÓN Principal': c['SECCIÓN Principal'] || c.SECCION,
-        'SECCION Secundaria': c['SECCION Secundaria'],
-        orden: c.orden || index
-      }))
-    });
-    
-    console.log(`✅ Layout guardado en SQLite: ${modulo}/${capitulo}`);
-    
-    // También guardar en JSON como backup
-    return guardarJSON(modulo, cuentas);
-  } catch (error) {
-    console.error('❌ Error al guardar layout:', error);
-    // Intentar guardar solo en JSON
-    return guardarJSON(modulo, cuentas);
-  }
-}
-
-/**
- * Helper: Guardar JSON (LEGACY)
- */
-async function guardarJSON(tipo, data) {
-  try {
-    const jsonPath = (tipo === 'SUMMARY' || tipo === 'RESUMEN') 
-      ? SUMMARY_RESUMEN_JSON 
-      : MODULOS_JSON;
-    
-    await fs.writeFile(jsonPath, JSON.stringify(data, null, 2), 'utf-8');
-    console.log(`✅ JSON guardado exitosamente: ${tipo}`);
-    return true;
-  } catch (error) {
-    console.error('❌ Error al guardar JSON:', error);
-    throw new Error('No se pudo guardar la configuración');
-  }
-}
+const { loadLayoutConfig, saveLayoutConfig } = require('../services/layoutConfigStore');
 
 /**
  * Helper: Validar jerarquía según tipo de módulo
@@ -270,7 +141,9 @@ router.post('/validar', requireAuth, async (req, res) => {
     errors.push(...jerarquiaErrors);
 
     // 2. Cargar configuración y validar duplicados
-    const config = await cargarJSON(moduleType);
+    const config = await loadLayoutConfig(moduleType, {
+      anio: context?.anio,
+    });
     const duplicado = verificarDuplicado(tipo, formData, config, moduleType);
     if (duplicado.duplicado) {
       errors.push(duplicado.mensaje);
@@ -348,7 +221,9 @@ router.post('/cuenta', requireAuth, async (req, res) => {
     }
 
     // Cargar configuración
-    const config = await cargarJSON(moduleType);
+    const config = await loadLayoutConfig(moduleType, {
+      anio: context?.anio,
+    });
 
     // Verificar duplicado
     const duplicado = verificarDuplicado('cuenta', formData, config, moduleType);
@@ -401,13 +276,15 @@ router.post('/cuenta', requireAuth, async (req, res) => {
         nuevaCuenta.OPERACIÓN = context.operacion;
       }
 
-      const moduleName = moduleType.replace('MODULOS_', '');
-      if (!config[moduleName]) config[moduleName] = [];
-      config[moduleName].push(nuevaCuenta);
+      const key = moduleType;
+      if (!config[key]) config[key] = [];
+      config[key].push(nuevaCuenta);
     }
 
     // Guardar
-    await guardarJSON(moduleType, config);
+    await saveLayoutConfig(moduleType, config, {
+      anio: context?.anio,
+    });
 
     res.json({
       exito: true,
@@ -449,7 +326,9 @@ router.post('/seccion', requireAuth, async (req, res) => {
     }
 
     // Cargar configuración
-    const config = await cargarJSON(moduleType);
+    const config = await loadLayoutConfig(moduleType, {
+      anio: context?.anio,
+    });
 
     // Verificar duplicado
     const duplicado = verificarDuplicado(tipo, { ...formData, ...context }, config, moduleType);
@@ -574,14 +453,16 @@ router.post('/seccion', requireAuth, async (req, res) => {
         "ES_SUM_ROW": true
       };
 
-      const moduleName = moduleType.replace('MODULOS_', '');
-      if (!config[moduleName]) config[moduleName] = [];
-      config[moduleName].push(nuevaSeccion);
-      config[moduleName].push(sumRow);
+      const key = moduleType;
+      if (!config[key]) config[key] = [];
+      config[key].push(nuevaSeccion);
+      config[key].push(sumRow);
     }
 
     // Guardar
-    await guardarJSON(moduleType, config);
+    await saveLayoutConfig(moduleType, config, {
+      anio: context?.anio,
+    });
 
     res.json({
       exito: true,
@@ -631,7 +512,9 @@ router.post('/operacion', requireAuth, async (req, res) => {
     }
 
     // Cargar configuración
-    const config = await cargarJSON(moduleType);
+    const config = await loadLayoutConfig(moduleType, {
+      anio: req.query?.anio,
+    });
 
     // Verificar duplicado
     const duplicado = verificarDuplicado('operacion', { ...formData, ...context }, config, moduleType);
@@ -691,14 +574,16 @@ router.post('/operacion', requireAuth, async (req, res) => {
         "ES_SUM_ROW": true
       };
 
-      const moduleName = moduleType.replace('MODULOS_', '');
-      if (!config[moduleName]) config[moduleName] = [];
-      config[moduleName].push(nuevaOperacion);
-      config[moduleName].push(sumRow);
+      const key = moduleType;
+      if (!config[key]) config[key] = [];
+      config[key].push(nuevaOperacion);
+      config[key].push(sumRow);
     }
 
     // Guardar
-    await guardarJSON(moduleType, config);
+    await saveLayoutConfig(moduleType, config, {
+      anio: req.query?.anio,
+    });
 
     res.json({
       exito: true,
@@ -734,7 +619,9 @@ router.get('/opciones/:nivel', requireAuth, async (req, res) => {
     }
 
     // Cargar configuración
-    const config = await cargarJSON(moduleType);
+    const config = await loadLayoutConfig(moduleType, {
+      anio: req.query?.anio,
+    });
     const data = config[moduleType] || [];
 
     let opciones = [];

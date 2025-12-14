@@ -106,9 +106,12 @@
      */
     open(referenceRow = null) {
       this.moduleType = this.detectModuleType();
-      this.currentStep = 1;
       this.contextData = this.extractContextFromRow(referenceRow);
       this.formData = {};
+
+      // Forzar tipo cuenta por defecto y saltar directamente al paso de contexto.
+      this.selectedType = 'cuenta';
+      this.currentStep = 2;
 
       this.renderWizard();
       this.showModal();
@@ -295,7 +298,8 @@
             ${options.map(opt => `
               <label class="list-group-item list-group-item-action d-flex align-items-center">
                 <input class="form-check-input me-3" type="radio" name="elementType" 
-                       value="${opt.value}" onchange="InsertionWizard.selectType('${opt.value}')">
+                       value="${opt.value}" ${this.selectedType === opt.value ? 'checked' : ''}
+                       onchange="InsertionWizard.selectType('${opt.value}')">
                 <div class="flex-grow-1">
                   <div class="fw-bold">${opt.icon} ${opt.label}</div>
                   <small class="text-muted">${opt.description}</small>
@@ -315,13 +319,24 @@
       if (!rules) return '<p>Error: Tipo no válido</p>';
 
       const hierarchy = rules.hierarchy || [];
+      const fixedCapitulo = this.contextData.capitulo || this.getCurrentCapitulo();
+      this.contextData.capitulo = fixedCapitulo;
+      const filteredHierarchy = hierarchy.filter(level => level !== 'capitulo');
       
       // Renderizar con placeholders, cargaremos opciones después
       const html = `
         <div class="wizard-step active" data-step="2">
           <h6 class="mb-3">Selecciona la ubicación</h6>
+
+          <div class="mb-3">
+            <label class="form-label">Capítulo activo</label>
+            <div class="form-control bg-light" readonly>
+              ${fixedCapitulo || 'Sin capítulo seleccionado'}
+            </div>
+            <small class="text-muted">El capítulo se toma del selector principal de empresa.</small>
+          </div>
           
-          ${hierarchy.map((level, index) => `
+          ${filteredHierarchy.map((level, index) => `
             <div class="mb-3">
               <label for="context_${level}" class="form-label">
                 ${this.getLevelLabel(level)}
@@ -362,7 +377,7 @@
       const rules = this.getValidationRules()[this.selectedType];
       if (!rules) return;
 
-      const hierarchy = rules.hierarchy || [];
+      const hierarchy = rules.hierarchy ? rules.hierarchy.filter(level => level !== 'capitulo') : [];
       const optional = rules.hierarchyOptional || [];
       const allLevels = [...hierarchy, ...optional];
 
@@ -375,6 +390,9 @@
      * Carga opciones para un select específico
      */
     async loadOptionsForSelect(level) {
+      if (level === 'capitulo') {
+        return;
+      }
       const select = document.getElementById(`context_${level}`);
       if (!select) return;
 
@@ -405,7 +423,7 @@
       const rules = this.getValidationRules()[this.selectedType];
       if (!rules) return;
 
-      const hierarchy = rules.hierarchy || [];
+      const hierarchy = (rules.hierarchy || []).filter(level => level !== 'capitulo');
       const currentIndex = hierarchy.indexOf(changedLevel);
       
       // Recargar niveles dependientes
@@ -607,6 +625,9 @@
      * Obtiene opciones para un nivel jerárquico
      */
     async getOptionsForLevel(level) {
+      if (level === 'capitulo') {
+        return [];
+      }
       try {
         // Construir query params
         const params = new URLSearchParams({

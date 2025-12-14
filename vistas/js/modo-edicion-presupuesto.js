@@ -366,6 +366,10 @@
       const celdas = tabla.querySelectorAll('td[data-mes]');
       
       celdas.forEach((celda) => {
+        // CRÍTICO: Verificar si ya se inicializó para evitar listeners duplicados
+        if (celda.dataset.modoEdicionInit) return;
+        celda.dataset.modoEdicionInit = 'true';
+        
         celda.classList.add(CLASE_EDITABLE);
         celda.style.cursor = 'pointer';
         
@@ -391,7 +395,9 @@
       const celdaCuenta = fila.cells[0]; // Primera columna = cuenta
       const celdaNombre = fila.cells[1]; // Segunda columna = descripción/nombre
       
-      if (celdaCuenta && !celdaCuenta.dataset.mes) {
+      // CRÍTICO: Verificar si ya se inicializó
+      if (celdaCuenta && !celdaCuenta.dataset.mes && !celdaCuenta.dataset.textoEdicionInit) {
+        celdaCuenta.dataset.textoEdicionInit = 'true';
         celdaCuenta.style.cursor = 'text';
         celdaCuenta.dataset.columnaClave = 'cuenta';
         celdaCuenta.addEventListener('click', (ev) => {
@@ -400,7 +406,8 @@
         });
       }
       
-      if (celdaNombre && !celdaNombre.dataset.mes) {
+      if (celdaNombre && !celdaNombre.dataset.mes && !celdaNombre.dataset.textoEdicionInit) {
+        celdaNombre.dataset.textoEdicionInit = 'true';
         celdaNombre.style.cursor = 'text';
         celdaNombre.dataset.columnaClave = 'descripcion';
         celdaNombre.addEventListener('click', (ev) => {
@@ -1010,7 +1017,16 @@
      * @param {string} selectorTabla - Selector CSS de la tabla
      * @param {object} opciones - { soloLayout: boolean } - Si true, solo edita cuenta/descripción
      */
+    // Referencia al timer de reintento para evitar acumulación
+    _pendingRetryTimer: null,
+    
     inicializar: function(selectorTabla, opciones = {}) {
+      // CRÍTICO: Limpiar timer de reintento anterior si existe
+      if (this._pendingRetryTimer) {
+        clearInterval(this._pendingRetryTimer);
+        this._pendingRetryTimer = null;
+      }
+      
       // Configurar modo soloLayout (para SUMMARY/RESUMEN)
       estado.soloLayout = opciones.soloLayout === true;
       
@@ -1023,15 +1039,19 @@
         console.error(`❌ No se encontró tabla en selector: ${selectorUsado}`);
         // Reintenta por si la tabla se inserta asincrónicamente
         let reintentos = 4;
-        const timer = setInterval(() => {
+        const self = this;
+        this._pendingRetryTimer = setInterval(() => {
           const intento = resolverTabla(selectorUsado);
           if (intento.tabla) {
-            clearInterval(timer);
+            clearInterval(self._pendingRetryTimer);
+            self._pendingRetryTimer = null;
             estado.selectorTabla = intento.selectorUsado;
             inicializarCeldasEditables(intento.tabla);
             console.log(`✅ Modo edición inicializado (reintento) sobre ${intento.selectorUsado}`);
           } else if (--reintentos <= 0) {
-            clearInterval(timer);
+            clearInterval(self._pendingRetryTimer);
+            self._pendingRetryTimer = null;
+            console.warn('⚠️ No se encontró tabla después de 4 reintentos');
           }
         }, 400);
         return false;

@@ -6,49 +6,8 @@
 
 const express = require('express');
 const router = express.Router();
-const path = require('path');
-const fs = require('fs').promises;
 const { requireAuth } = require('../middleware/auth');
-
-// Helper para resolver rutas en ASAR
-const resolveUnpackedPath = (relativePath) => {
-  let basePath = __dirname;
-  // Si estamos dentro de app.asar, usar app.asar.unpacked
-  if (basePath.includes('app.asar') && !basePath.includes('app.asar.unpacked')) {
-    basePath = basePath.replace('app.asar', 'app.asar.unpacked');
-  }
-  return path.join(basePath, relativePath);
-};
-
-// Ruta al archivo JSON de configuración
-const JSON_PATH = resolveUnpackedPath('../../info IMPORTANTE/CUENTAS SUMMARY y RESUMEN.json');
-
-/**
- * Helper: Cargar JSON
- */
-async function cargarJSON() {
-  try {
-    const data = await fs.readFile(JSON_PATH, 'utf-8');
-    return JSON.parse(data);
-  } catch (error) {
-    console.error('❌ Error al cargar JSON:', error);
-    throw new Error('No se pudo cargar la configuración');
-  }
-}
-
-/**
- * Helper: Guardar JSON
- */
-async function guardarJSON(data) {
-  try {
-    await fs.writeFile(JSON_PATH, JSON.stringify(data, null, 2), 'utf-8');
-    console.log('✅ JSON guardado exitosamente');
-    return true;
-  } catch (error) {
-    console.error('❌ Error al guardar JSON:', error);
-    throw new Error('No se pudo guardar la configuración');
-  }
-}
+const { loadLayoutConfig, saveLayoutConfig } = require('../services/layoutConfigStore');
 
 /**
  * POST /api/cuentas/agregar
@@ -56,7 +15,7 @@ async function guardarJSON(data) {
  */
 router.post('/cuentas/agregar', requireAuth, async (req, res) => {
   try {
-    const { cuenta, nombre, seccion, capitulo, modulo } = req.body;
+    const { cuenta, nombre, seccion, capitulo, modulo, anio } = req.body;
 
     if (!cuenta || !nombre || !seccion || !capitulo) {
       return res.status(400).json({
@@ -65,10 +24,11 @@ router.post('/cuentas/agregar', requireAuth, async (req, res) => {
       });
     }
 
-    const config = await cargarJSON();
+    const moduloClave = (modulo || 'SUMMARY').toUpperCase();
+    const config = await loadLayoutConfig(moduloClave, { anio });
     
     // Determinar el array correcto (SUMMARY o RESUMEN)
-    const targetArray = modulo === 'RESUMEN' ? 'RESUMEN' : 'SUMMARY';
+    const targetArray = moduloClave === 'RESUMEN' ? 'RESUMEN' : 'SUMMARY';
     
     if (!config[targetArray]) {
       config[targetArray] = [];
@@ -94,7 +54,7 @@ router.post('/cuentas/agregar', requireAuth, async (req, res) => {
 
     config[targetArray].push(nuevaCuenta);
 
-    await guardarJSON(config);
+    await saveLayoutConfig(targetArray, config, { anio });
 
     res.json({
       exito: true,
@@ -117,7 +77,7 @@ router.post('/cuentas/agregar', requireAuth, async (req, res) => {
  */
 router.put('/cuentas/editar', requireAuth, async (req, res) => {
   try {
-    const { cuenta, nombre, modulo } = req.body;
+    const { cuenta, nombre, modulo, anio } = req.body;
 
     if (!cuenta || !nombre) {
       return res.status(400).json({
@@ -126,8 +86,9 @@ router.put('/cuentas/editar', requireAuth, async (req, res) => {
       });
     }
 
-    const config = await cargarJSON();
-    const targetArray = modulo === 'RESUMEN' ? 'RESUMEN' : 'SUMMARY';
+    const moduloClave = (modulo || 'SUMMARY').toUpperCase();
+    const config = await loadLayoutConfig(moduloClave, { anio });
+    const targetArray = moduloClave === 'RESUMEN' ? 'RESUMEN' : 'SUMMARY';
 
     if (!config[targetArray]) {
       return res.status(404).json({
@@ -147,7 +108,7 @@ router.put('/cuentas/editar', requireAuth, async (req, res) => {
 
     config[targetArray][index].NOMBRE = nombre;
 
-    await guardarJSON(config);
+    await saveLayoutConfig(targetArray, config, { anio });
 
     res.json({
       exito: true,
@@ -170,7 +131,7 @@ router.put('/cuentas/editar', requireAuth, async (req, res) => {
  */
 router.delete('/cuentas/eliminar', requireAuth, async (req, res) => {
   try {
-    const { cuenta, modulo } = req.body;
+    const { cuenta, modulo, anio } = req.body;
 
     if (!cuenta) {
       return res.status(400).json({
@@ -179,8 +140,9 @@ router.delete('/cuentas/eliminar', requireAuth, async (req, res) => {
       });
     }
 
-    const config = await cargarJSON();
-    const targetArray = modulo === 'RESUMEN' ? 'RESUMEN' : 'SUMMARY';
+    const moduloClave = (modulo || 'SUMMARY').toUpperCase();
+    const config = await loadLayoutConfig(moduloClave, { anio });
+    const targetArray = moduloClave === 'RESUMEN' ? 'RESUMEN' : 'SUMMARY';
 
     if (!config[targetArray]) {
       return res.status(404).json({
@@ -199,7 +161,7 @@ router.delete('/cuentas/eliminar', requireAuth, async (req, res) => {
       });
     }
 
-    await guardarJSON(config);
+    await saveLayoutConfig(targetArray, config, { anio });
 
     res.json({
       exito: true,
@@ -221,7 +183,7 @@ router.delete('/cuentas/eliminar', requireAuth, async (req, res) => {
  */
 router.post('/secciones/agregar', requireAuth, async (req, res) => {
   try {
-    const { nombre, tipo, capitulo, parent, modulo } = req.body;
+    const { nombre, tipo, capitulo, parent, modulo, anio } = req.body;
 
     if (!nombre || !tipo || !capitulo) {
       return res.status(400).json({
@@ -230,7 +192,8 @@ router.post('/secciones/agregar', requireAuth, async (req, res) => {
       });
     }
 
-    const config = await cargarJSON();
+    const moduloClave = (modulo || 'SUMMARY').toUpperCase();
+    const config = await loadLayoutConfig(moduloClave, { anio });
 
     // Para secciones, podríamos crear una cuenta placeholder
     // O modificar la estructura del JSON para soportar secciones independientes
@@ -256,7 +219,7 @@ router.post('/secciones/agregar', requireAuth, async (req, res) => {
  */
 router.post('/operaciones/agregar', requireAuth, async (req, res) => {
   try {
-    const { nombre, tipo, formula, hoja, secciones, modulo } = req.body;
+    const { nombre, tipo, formula, hoja, secciones, modulo, anio } = req.body;
 
     if (!nombre || !tipo || !secciones || secciones.length === 0) {
       return res.status(400).json({
@@ -265,7 +228,8 @@ router.post('/operaciones/agregar', requireAuth, async (req, res) => {
       });
     }
 
-    const config = await cargarJSON();
+    const moduloClave = (modulo || 'SUMMARY').toUpperCase();
+    const config = await loadLayoutConfig(moduloClave, { anio });
 
     if (!config['SUMA DE VARIAS SECCIONES']) {
       config['SUMA DE VARIAS SECCIONES'] = [];
@@ -288,7 +252,7 @@ router.post('/operaciones/agregar', requireAuth, async (req, res) => {
 
     config['SUMA DE VARIAS SECCIONES'].push(nuevaOperacion);
 
-    await guardarJSON(config);
+    await saveLayoutConfig(moduloClave, config, { anio });
 
     res.json({
       exito: true,
@@ -311,10 +275,11 @@ router.post('/operaciones/agregar', requireAuth, async (req, res) => {
  */
 router.get('/estructura/secciones', requireAuth, async (req, res) => {
   try {
-    const config = await cargarJSON();
-    const { modulo } = req.query;
+    const { modulo, anio } = req.query;
+    const moduloClave = (modulo || 'SUMMARY').toUpperCase();
+    const config = await loadLayoutConfig(moduloClave, { anio });
 
-    const targetArray = modulo === 'RESUMEN' ? 'RESUMEN' : 'SUMMARY';
+    const targetArray = moduloClave === 'RESUMEN' ? 'RESUMEN' : 'SUMMARY';
 
     if (!config[targetArray]) {
       return res.json({

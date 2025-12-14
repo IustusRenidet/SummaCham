@@ -1,8 +1,10 @@
 const path = require("path");
 const fs = require("fs");
+const { ensureActiveBinary } = require("../utils/betterSqlite3Manager");
 const {
-  ensureActiveBinary,
-} = require("../utils/betterSqlite3Manager");
+  seedLayoutsFromJson,
+  resolverDirectorioInfoImportante,
+} = require("../services/layoutSeeder");
 
 // Asegurar que better-sqlite3 se cargue desde .asar.unpacked en producción
 let Database;
@@ -723,6 +725,29 @@ const registrarPresupuestoGuardado = ({
   return insertar.run(empresaId, modulo, anio, datosJson, guardadoPor || null);
 };
 
+const intentarSembrarLayoutsIniciales = () => {
+  if (!db) {
+    return;
+  }
+  try {
+    const resultado = seedLayoutsFromJson({
+      db,
+      baseDir: resolverDirectorioInfoImportante(),
+      force: false,
+    });
+    if (resultado?.ejecutado) {
+      console.log(
+        `✓ Layouts seed: ${resultado.cuentas} cuentas, ${resultado.operaciones} operaciones`
+      );
+    }
+  } catch (error) {
+    console.warn(
+      "[SQLite] No fue posible sembrar layouts iniciales:",
+      error?.message || error
+    );
+  }
+};
+
 const inicializarBaseDatos = () => {
   if (!SQLITE_AVAILABLE) {
     throw new Error('better-sqlite3 no disponible; inicialización de SQLite fallida');
@@ -730,6 +755,7 @@ const inicializarBaseDatos = () => {
   db = crearConexion();
   crearTablas();
   copiarLayoutsDesdeSemillaSiFaltan();
+  intentarSembrarLayoutsIniciales();
   crearAdministradorGlobal();
   sembrarUsuariosDesdeJson();
   console.log('✓ Base de datos SQLite inicializada');
