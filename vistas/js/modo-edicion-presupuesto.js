@@ -95,8 +95,15 @@
     input.autocomplete = 'off';
     input.addEventListener('keydown', manejarTeclasEditor);
     input.addEventListener('blur', () => {
+      // CRÍTICO: Evitar recursión infinita - verificar múltiples flags
       if (editorState.commitEnProgreso) return;
-      commitEditor();
+      if (!editorState.celda) return;
+      // Usar setTimeout para evitar conflictos con otros eventos
+      setTimeout(() => {
+        if (!editorState.commitEnProgreso && editorState.celda) {
+          commitEditor();
+        }
+      }, 10);
     });
     editorState.input = input;
     return input;
@@ -520,9 +527,9 @@
           if (fila && celda.dataset.columnaClave === 'cuenta') {
             fila.dataset.cuenta = nuevo || '';
           }
-          if (!estado.persistiendo) {
-            setTimeout(() => persistirLayoutActual(), 100);
-          }
+          // NO persistir automáticamente - solo marcar como modificado
+          // El usuario debe guardar explícitamente el borrador
+          estado.layoutModificado = true;
         }
       }
     } finally {

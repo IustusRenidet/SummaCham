@@ -168,23 +168,12 @@
   const normalizarCuentaClave = (valor = "") =>
     valor ? valor.toString().replace(/[^0-9]/g, "") : "";
 
-  // Bandera global para evitar múltiples inicializaciones de botones Bootstrap
-  let _botonesBootstrapInicializados = false;
-  let _botonesBootstrapObserver = null;
-
   // ============================================================================
   // INICIALIZACIÓN GLOBAL DE BOTONES BOOTSTRAP
   // Agrega listeners explícitos a TODOS los botones con data-bs-dismiss
   // porque Bootstrap no procesa correctamente estos atributos en elementos dinámicos
   // ============================================================================
   const inicializarBotonesBootstrap = () => {
-    // CRÍTICO: Evitar múltiples inicializaciones
-    if (_botonesBootstrapInicializados) {
-      console.log('[FlujoAutorizacion] Botones Bootstrap ya inicializados, omitiendo...');
-      return;
-    }
-    _botonesBootstrapInicializados = true;
-
     // Función para agregar listener a un botón individual (DISMISS)
     const procesarBoton = (btn) => {
       if (btn.dataset.listenerAgregado) return; // Evitar duplicados
@@ -300,37 +289,40 @@
     // Ejecutar inmediatamente
     procesarTodos();
 
-    // CRÍTICO: Reutilizar observer existente y agregar throttling
-    if (_botonesBootstrapObserver) {
-      console.log('[FlujoAutorizacion] Observer de botones ya existe, reutilizando...');
-      return;
-    }
+    // Observar el DOM para nuevos elementos con THROTTLE para evitar congelamiento
+    let pendingMutations = [];
+    let mutationTimeout = null;
+    const processMutationsBatch = () => {
+      const nodesToProcess = pendingMutations.splice(0, 50); // Procesar máximo 50 a la vez
+      nodesToProcess.forEach((node) => {
+        if (node.nodeType !== Node.ELEMENT_NODE) return;
+        if (node.hasAttribute && node.hasAttribute("data-bs-dismiss"))
+          procesarBoton(node);
+        if (node.hasAttribute && node.hasAttribute("data-bs-toggle"))
+          procesarToggle(node);
+        if (node.querySelectorAll) {
+          node.querySelectorAll("[data-bs-dismiss]").forEach(procesarBoton);
+          node.querySelectorAll("[data-bs-toggle]").forEach(procesarToggle);
+        }
+      });
+      // Si quedan más, programar otro batch
+      if (pendingMutations.length > 0) {
+        mutationTimeout = setTimeout(processMutationsBatch, 50);
+      }
+    };
 
-    // Observar el DOM para nuevos elementos con throttling
-    _botonesBootstrapObserver = new MutationObserver((mutations) => {
-      // Throttle: procesar solo cada 150ms máximo para evitar sobrecarga
-      if (_botonesBootstrapObserver._throttled) return;
-      _botonesBootstrapObserver._throttled = true;
-      setTimeout(() => { _botonesBootstrapObserver._throttled = false; }, 150);
-
+    const observer = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
         mutation.addedNodes.forEach((node) => {
-          if (node.nodeType !== Node.ELEMENT_NODE) return;
-
-          if (node.hasAttribute && node.hasAttribute("data-bs-dismiss"))
-            procesarBoton(node);
-          if (node.hasAttribute && node.hasAttribute("data-bs-toggle"))
-            procesarToggle(node);
-
-          if (node.querySelectorAll) {
-            node.querySelectorAll("[data-bs-dismiss]").forEach(procesarBoton);
-            node.querySelectorAll("[data-bs-toggle]").forEach(procesarToggle);
-          }
+          pendingMutations.push(node);
         });
       });
+      // Throttle: procesar en batch después de 100ms de inactividad
+      clearTimeout(mutationTimeout);
+      mutationTimeout = setTimeout(processMutationsBatch, 100);
     });
 
-    _botonesBootstrapObserver.observe(document.body, { childList: true, subtree: true });
+    observer.observe(document.body, { childList: true, subtree: true });
 
     console.log(
       "[FlujoAutorizacion] Botones Bootstrap (Dismiss y Toggle) inicializados globalmente con resiliencia"
@@ -2963,19 +2955,7 @@
     vincularAccesosRapidos();
   };
 
-  // Bandera global para evitar múltiples inicializaciones
-  let _fixModalesInicializado = false;
-  let _limpiarBackdropsIntervalId = null;
-  let _fixModalesObserver = null;
-
   const aplicarFixModalesPointerEvents = () => {
-    // CRÍTICO: Evitar múltiples inicializaciones que causan congelamiento
-    if (_fixModalesInicializado) {
-      console.log('[FlujoAutorizacion] Fix modales ya inicializado, omitiendo...');
-      return;
-    }
-    _fixModalesInicializado = true;
-
     const limpiarPointerEvents = (elemento) => {
       if (!elemento) return;
       elemento.style.pointerEvents = "none";
@@ -2987,18 +2967,18 @@
     };
 
     const limpiarBackdrops = () => {
-      // OPTIMIZACIÓN: Solo ejecutar si hay backdrops
-      const backdrops = document.querySelectorAll(".modal-backdrop, .offcanvas-backdrop");
-      if (!backdrops.length) return;
-      
-      const hayVisible = document.querySelector(".modal.show, .offcanvas.show");
-      backdrops.forEach((backdrop) => {
-        if (!hayVisible) {
-          backdrop.remove();
-        } else {
-          backdrop.style.pointerEvents = "auto";
-        }
-      });
+      document
+        .querySelectorAll(".modal-backdrop, .offcanvas-backdrop")
+        .forEach((backdrop) => {
+          const hayVisible = document.querySelector(
+            ".modal.show, .offcanvas.show"
+          );
+          if (!hayVisible) {
+            backdrop.remove();
+          } else {
+            backdrop.style.pointerEvents = "auto";
+          }
+        });
     };
 
     const procesarModal = (modal) => {
@@ -3043,33 +3023,38 @@
     };
 
     const observarNuevosContenedores = () => {
-      // CRÍTICO: Reutilizar observer existente para evitar acumulación
-      if (_fixModalesObserver) {
-        console.log('[FlujoAutorizacion] Observer ya existe, reutilizando...');
-        return;
-      }
+      // CRÍTICO: Agregar throttle para evitar congelamiento
+      let pendingNodes = [];
+      let processTimeout = null;
       
-      _fixModalesObserver = new MutationObserver((mutations) => {
-        // Throttle: procesar solo cada 100ms máximo
-        if (_fixModalesObserver._throttled) return;
-        _fixModalesObserver._throttled = true;
-        setTimeout(() => { _fixModalesObserver._throttled = false; }, 100);
-        
+      const processBatch = () => {
+        const batch = pendingNodes.splice(0, 20);
+        batch.forEach((node) => {
+          if (!(node instanceof HTMLElement)) return;
+          if (node.classList.contains("modal")) {
+            procesarModal(node);
+          } else if (node.classList.contains("offcanvas")) {
+            procesarOffcanvas(node);
+          } else {
+            node.querySelectorAll?.(".modal").forEach(procesarModal);
+            node.querySelectorAll?.(".offcanvas").forEach(procesarOffcanvas);
+          }
+        });
+        if (pendingNodes.length > 0) {
+          processTimeout = setTimeout(processBatch, 50);
+        }
+      };
+
+      const observer = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {
           mutation.addedNodes.forEach((node) => {
-            if (!(node instanceof HTMLElement)) return;
-            if (node.classList.contains("modal")) {
-              procesarModal(node);
-            } else if (node.classList.contains("offcanvas")) {
-              procesarOffcanvas(node);
-            } else {
-              node.querySelectorAll?.(".modal").forEach(procesarModal);
-              node.querySelectorAll?.(".offcanvas").forEach(procesarOffcanvas);
-            }
+            pendingNodes.push(node);
           });
         });
+        clearTimeout(processTimeout);
+        processTimeout = setTimeout(processBatch, 100);
       });
-      _fixModalesObserver.observe(document.body, { childList: true, subtree: true });
+      observer.observe(document.body, { childList: true, subtree: true });
     };
 
     const intentarInicializar = () => {
@@ -3079,17 +3064,23 @@
       vincularEventos();
       observarNuevosContenedores();
       limpiarBackdrops();
-      // CRÍTICO: Guardar referencia y reducir frecuencia para evitar sobrecarga
-      if (!_limpiarBackdropsIntervalId) {
-        _limpiarBackdropsIntervalId = setInterval(limpiarBackdrops, 5000);
+      // CRÍTICO: Guardar referencia al interval para poder limpiarlo si es necesario
+      if (!window.__backdropCleanupInterval) {
+        window.__backdropCleanupInterval = setInterval(limpiarBackdrops, 5000); // Reducido de 2s a 5s
       }
       return true;
     };
 
     if (!intentarInicializar()) {
+      let intentos = 0;
+      const maxIntentos = 50; // Máximo 5 segundos esperando
       const esperaBootstrap = setInterval(() => {
-        if (intentarInicializar()) {
+        intentos++;
+        if (intentarInicializar() || intentos >= maxIntentos) {
           clearInterval(esperaBootstrap);
+          if (intentos >= maxIntentos) {
+            console.warn('[FlujoAutorizacion] Bootstrap no disponible después de esperar');
+          }
         }
       }, 100);
     }

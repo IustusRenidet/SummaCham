@@ -156,6 +156,7 @@
     editMode: false,
     editSnapshot: null,
     hayCambios: false,
+    layoutModificado: false, // Flag para indicar que el layout fue modificado pero NO guardado
     sumas: {
       secciones: [],
       sumavariosRows: new Map(),
@@ -936,18 +937,32 @@
     return { presupuesto: cambiosPresupuesto, nombres: [] };
   };
 
+  // CRÍTICO: Flag para evitar recursión infinita en notificaciones
+  let notificandoCambios = false;
+  
   const notificarCambios = () => {
-    const cambios = obtenerCambiosPendientes();
-    let guardadoLocal = false;
-    if (estadoModulo.editMode && estadoModulo.hayCambios) {
-      guardadoLocal = persistirLayoutActual();
+    // Evitar recursión infinita
+    if (notificandoCambios) {
+      console.warn('⚠️ notificarCambios: evitando recursión');
+      return;
     }
-    const detalle = {
-      ...cambios,
-      hayCambios: estadoModulo.hayCambios,
-      borradorGuardado: Boolean(guardadoLocal)
-    };
-    window.dispatchEvent(new CustomEvent('modulo-planeacion:presupuesto-editado', { detail: detalle }));
+    notificandoCambios = true;
+    
+    try {
+      const cambios = obtenerCambiosPendientes();
+      // NO persistir automáticamente - solo notificar que hay cambios pendientes
+      // El usuario debe guardar explícitamente usando el botón de guardar borrador
+      const detalle = {
+        ...cambios,
+        hayCambios: estadoModulo.hayCambios,
+        layoutModificado: estadoModulo.layoutModificado || false,
+        borradorGuardado: false // Ya no se guarda automáticamente
+      };
+      window.dispatchEvent(new CustomEvent('modulo-planeacion:presupuesto-editado', { detail: detalle }));
+    } finally {
+      // Liberar flag con un pequeño delay para evitar llamadas inmediatas
+      setTimeout(() => { notificandoCambios = false; }, 50);
+    }
   };
 
   const indicesMesReal = () =>
@@ -1821,6 +1836,9 @@
     if (guardado) {
       estadoModulo.layoutActual = layout;
       estadoModulo.layoutEsPersonalizado = true;
+      // Resetear flag de modificación ya que se guardó exitosamente
+      estadoModulo.layoutModificado = false;
+      console.log('✅ Layout guardado explícitamente por el usuario');
     }
     return guardado;
   };
@@ -2085,7 +2103,8 @@
   const actualizarEstructuraDespuesCambio = () => {
     aplicarModoEdicionEnTabla();
     recalcularSumas();
-    persistirLayoutActual();
+    // NO persistir automáticamente - marcar como modificado para guardado explícito
+    estadoModulo.layoutModificado = true;
     estadoModulo.hayCambios = true;
     notificarCambios();
     
@@ -2594,7 +2613,8 @@
     }
     recalcularTotalesFilaPresupuesto(fila);
     recalcularSumas();
-    persistirLayoutActual();
+    // NO persistir automáticamente - el usuario debe guardar explícitamente
+    estadoModulo.layoutModificado = true;
     estadoModulo.hayCambios = true;
     notificarCambios();
   };
@@ -2606,7 +2626,8 @@
     if (cuenta) {
       estadoModulo.nombresPorCuenta.set(cuenta, nombre);
     }
-    persistirLayoutActual();
+    // NO persistir automáticamente - el usuario debe guardar explícitamente
+    estadoModulo.layoutModificado = true;
     estadoModulo.hayCambios = true;
     notificarCambios();
   };
