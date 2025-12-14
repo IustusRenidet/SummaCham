@@ -1,6 +1,6 @@
 {
   "name": "panel-amcham",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Dashboard financiero PanelAMCHAM empaquetado como app de escritorio portable.",
   "main": "main.js",
   "author": "Iustus Renidet & J02V4N",
@@ -142,7 +142,11 @@
     "win": {
       "target": [
         {
-          "target": "nsis", "arch": ["x64"]         }
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
       "icon": "icono/icono.ico",
       "signAndEditExecutable": false,
