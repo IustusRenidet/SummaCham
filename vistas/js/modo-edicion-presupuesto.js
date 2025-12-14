@@ -39,6 +39,113 @@
     persistiendo: false // Flag para evitar recursión infinita
   };
 
+  const editorState = {
+    input: null,
+    celda: null,
+    tipo: null,
+    valorOriginal: '',
+    valorNumericoOriginal: null,
+    commitEnProgreso: false
+  };
+
+  function obtenerNumeroDesdeCelda(celda) {
+    if (!celda) return 0;
+    const texto =
+      celda.dataset.valorPlano ??
+      (celda.textContent || '').toString().replace(/\s/g, '');
+    const numero = parseFloat(texto.replace(/[^0-9,.-]/g, '').replace(/,/g, ''));
+    return Number.isFinite(numero) ? numero : 0;
+  }
+
+  function obtenerNumeroDesdeTexto(texto) {
+    const limpio = (texto || '').toString().replace(/[^0-9,.-]/g, '').replace(/,/g, '');
+    const numero = parseFloat(limpio);
+    return Number.isFinite(numero) ? numero : 0;
+  }
+
+  function ensureEditorInlineStyles() {
+    if (document.getElementById('excel-inline-style')) return;
+    const style = document.createElement('style');
+    style.id = 'excel-inline-style';
+    style.textContent = `
+      .excel-inline-input {
+        width: 100%;
+        height: 100%;
+        border: none;
+        outline: none;
+        font-size: inherit;
+        font-family: inherit;
+        padding: 0.1rem 0.2rem;
+        background: #fffef5;
+      }
+      .excel-inline-input:focus {
+        outline: none;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  function obtenerEditorInline() {
+    if (editorState.input) return editorState.input;
+    ensureEditorInlineStyles();
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'excel-inline-input';
+    input.spellcheck = false;
+    input.autocomplete = 'off';
+    input.addEventListener('keydown', manejarTeclasEditor);
+    input.addEventListener('blur', () => {
+      if (editorState.commitEnProgreso) return;
+      commitEditor();
+    });
+    editorState.input = input;
+    return input;
+  }
+
+  function iniciarEdicionInline(celda, valor, opciones = {}) {
+    const input = obtenerEditorInline();
+    editorState.celda = celda;
+    editorState.tipo = opciones.tipo || 'texto';
+    editorState.valorOriginal = opciones.valorRestauracion ?? valor;
+    editorState.valorNumericoOriginal = opciones.valorNumerico ?? null;
+    celda.classList.add('celda-editando');
+    celda.classList.add(CLASE_EDITANDO);
+    if (opciones.placeholder) {
+      input.placeholder = opciones.placeholder;
+    } else {
+      input.removeAttribute('placeholder');
+    }
+    if (opciones.datalistId) {
+      input.setAttribute('list', opciones.datalistId);
+    } else {
+      input.removeAttribute('list');
+    }
+    if (input.parentElement !== celda) {
+      celda.textContent = '';
+      celda.appendChild(input);
+    }
+    input.value = valor;
+    requestAnimationFrame(() => {
+      input.focus({ preventScroll: true });
+      input.select();
+    });
+  }
+
+  function ocultarEditor() {
+    if (!editorState.input) return;
+    if (editorState.input.parentElement) {
+      editorState.input.parentElement.removeChild(editorState.input);
+    }
+    if (editorState.celda) {
+      editorState.celda.classList.remove('celda-editando');
+      editorState.celda.classList.remove(CLASE_EDITANDO);
+    }
+    editorState.celda = null;
+    editorState.tipo = null;
+    editorState.valorOriginal = '';
+    editorState.valorNumericoOriginal = null;
+  }
+
   const normalizeString = (s) => (s || '').toString().normalize('NFD').replace(/\p{Diacritic}/gu, '').toUpperCase().trim();
   const API_BASE = window.location.protocol === 'file:' ? 'http://localhost:3005' : window.location.origin;
 
@@ -308,58 +415,14 @@
    * Activar modo edición en una celda específica
    */
   function activarEdicionEnCelda(celda) {
-    // Si ya está editando, ignorar
-    if (celda.classList.contains(CLASE_EDITANDO)) return;
-
-    const valor = celda.textContent.trim();
-    const numero = parseFloat(valor.replace(/,/g, '')) || 0;
-    
-    // Crear input
-    const input = document.createElement('input');
-    input.type = 'number';
-    input.value = numero;
-    input.className = 'edit-input';
-    input.step = '0.01';
-    input.min = '0';
-    
-    // Reemplazar contenido
-    celda.textContent = '';
-    celda.appendChild(input);
-    celda.classList.add(CLASE_EDITANDO);
-    
-    // Auto-focus y select
-    input.focus();
-    input.select();
-
-    /**
-     * Guardar cambio
-     */
-    const guardarCambio = () => {
-      const nuevoValor = parseFloat(input.value) || 0;
-      const formateado = formatearNumero(nuevoValor);
-      celda.textContent = formateado;
-      celda.classList.remove(CLASE_EDITANDO);
-      
-      // Si cambió el valor, marcar como modificado
-      if (Math.abs(nuevoValor - numero) > 0.001) {
-        marcarComoModificado(celda);
-        capturarCambio(celda, nuevoValor);
-      }
-    };
-
-    /**
-     * Cancelar edición (ESC)
-     */
-    const cancelarEdicion = () => {
-      celda.textContent = valor;
-      celda.classList.remove(CLASE_EDITANDO);
-    };
-
-    // Event listeners
-    input.addEventListener('blur', guardarCambio);
-    input.addEventListener('keydown', (evento) => {
-      if (evento.key === 'Enter') guardarCambio();
-      if (evento.key === 'Escape') cancelarEdicion();
+    if (!celda || !estado.modoEdicionActivo) return;
+    if (editorState.celda === celda) return;
+    const numero = obtenerNumeroDesdeCelda(celda);
+    const display = celda.textContent?.trim() || formatearNumero(numero);
+    iniciarEdicionInline(celda, `${numero}`, {
+      tipo: 'numero',
+      valorNumerico: numero,
+      valorRestauracion: display
     });
   }
 
@@ -369,73 +432,175 @@
    * porque NO se insertan a COI - solo son para visualización/organización local
    */
   function activarEdicionTextoEnCelda(celda) {
-    if (!celda || celda.classList.contains(CLASE_EDITANDO)) return;
+    if (!celda) return;
+    if (editorState.celda === celda) return;
     const valor = celda.textContent?.trim() || '';
-
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.value = valor;
-    input.className = 'edit-input-text';
-    input.maxLength = 250;
-
-    // AUTOCOMPLETE SOLO para columna CUENTA (no para descripcion/nombre)
+    const opciones = { tipo: 'texto' };
     const columna = celda.dataset.columnaClave || '';
     if (columna === 'cuenta' && estado.cuentasDisponibles?.length > 0) {
-      const datalistId = crearDatalistCuentas();
-      input.setAttribute('list', datalistId);
-      input.placeholder = 'Buscar cuenta...';
+      opciones.datalistId = crearDatalistCuentas();
+      opciones.placeholder = 'Buscar cuenta...';
     } else if (columna === 'descripcion') {
-      input.placeholder = 'Descripción...';
+      opciones.placeholder = 'Descripción...';
     }
+    iniciarEdicionInline(celda, valor, opciones);
+  }
 
-    // IMPORTANTE: Solo reemplazar contenido DESPUÉS de crear el input completamente
-    celda.innerHTML = '';
-    celda.appendChild(input);
-    celda.classList.add(CLASE_EDITANDO);
-    
-    // Pequeño delay para evitar que el click se propague al input
-    setTimeout(() => {
-      input.focus();
-      input.select();
-    }, 10);
+  function manejarTeclasEditor(evento) {
+    if (!editorState.celda) return;
+    switch (evento.key) {
+      case 'Enter':
+        evento.preventDefault();
+        commitEditor({ mover: evento.shiftKey ? 'up' : 'down' });
+        break;
+      case 'Tab':
+        evento.preventDefault();
+        commitEditor({ mover: evento.shiftKey ? 'left' : 'right' });
+        break;
+      case 'ArrowRight':
+        evento.preventDefault();
+        commitEditor({ mover: 'right' });
+        break;
+      case 'ArrowLeft':
+        evento.preventDefault();
+        commitEditor({ mover: 'left' });
+        break;
+      case 'ArrowUp':
+        evento.preventDefault();
+        commitEditor({ mover: 'up' });
+        break;
+      case 'ArrowDown':
+        evento.preventDefault();
+        commitEditor({ mover: 'down' });
+        break;
+      case 'Escape':
+        evento.preventDefault();
+        cancelarEditor();
+        break;
+      default:
+        break;
+    }
+  }
 
-    const guardar = () => {
-      // Remover listener de blur para evitar llamadas recursivas
-      input.removeEventListener('blur', guardar);
-      
-      const nuevo = (input.value || '').toString().trim();
-      celda.classList.remove(CLASE_EDITANDO);
-      celda.textContent = nuevo || valor; // Si está vacío, restaurar valor original
-      if (nuevo !== valor) {
-        marcarComoModificado(celda);
-      }
-      
-      // Si se editó la cuenta, actualizar dataset de la fila
-      const fila = celda.closest('tr');
-      if (fila && celda.dataset.columnaClave === 'cuenta') {
-        fila.dataset.cuenta = nuevo || '';
-      }
-      
-      // Persistir layout inmediatamente (autoguardado de plantilla local)
-      // Solo si NO estamos ya persistiendo
-      if (!estado.persistiendo) {
-        try { 
-          // Usar setTimeout para evitar bloqueo del UI
-          setTimeout(() => persistirLayoutActual(), 100);
-        } catch (err) { 
-          console.error('Error guardando layout:', err);
+  function commitEditor({ mover } = {}) {
+    if (!editorState.celda || !editorState.input) return;
+    const celda = editorState.celda;
+    const tipo = editorState.tipo;
+    const valorAnterior = editorState.valorOriginal || '';
+    const numeroAnterior = editorState.valorNumericoOriginal;
+    const valorIngresado = editorState.input.value || '';
+
+    editorState.commitEnProgreso = true;
+    try {
+      if (tipo === 'numero') {
+        const numero = obtenerNumeroDesdeTexto(valorIngresado);
+        const previo = Number.isFinite(numeroAnterior) ? numeroAnterior : obtenerNumeroDesdeCelda(celda);
+        celda.dataset.valorPlano = `${numero}`;
+        celda.textContent = formatearNumero(numero);
+        celda.classList.remove(CLASE_EDITANDO);
+        if (Math.abs(numero - previo) > 0.0001) {
+          marcarComoModificado(celda);
+          capturarCambio(celda, numero);
+        }
+      } else {
+        const nuevo = valorIngresado.trim();
+        const previo = valorAnterior.trim();
+        celda.classList.remove(CLASE_EDITANDO);
+        celda.textContent = nuevo || previo;
+        if (nuevo !== previo) {
+          marcarComoModificado(celda);
+          const fila = celda.closest('tr');
+          if (fila && celda.dataset.columnaClave === 'cuenta') {
+            fila.dataset.cuenta = nuevo || '';
+          }
+          if (!estado.persistiendo) {
+            setTimeout(() => persistirLayoutActual(), 100);
+          }
         }
       }
+    } finally {
+      editorState.commitEnProgreso = false;
+      ocultarEditor();
+    }
+
+    if (mover) {
+      const siguiente = obtenerCeldaVecina(celda, mover);
+      if (siguiente) {
+        if (siguiente.dataset.mes) {
+          activarEdicionEnCelda(siguiente);
+        } else if (siguiente.dataset.columnaClave) {
+          activarEdicionTextoEnCelda(siguiente);
+        }
+      }
+    }
+  }
+
+  function cancelarEditor() {
+    if (!editorState.celda) return;
+    const celda = editorState.celda;
+    celda.textContent = editorState.valorOriginal;
+    celda.classList.remove(CLASE_EDITANDO);
+    ocultarEditor();
+  }
+
+  function obtenerCeldaVecina(celda, direccion) {
+    if (!celda) return null;
+    const fila = celda.closest('tr');
+    if (!fila) return null;
+    const cuerpo = fila.parentElement;
+    const filas = Array.from(cuerpo?.querySelectorAll('tr') || []);
+    const filaIndex = filas.indexOf(fila);
+    if (filaIndex === -1) return null;
+    const esNumerica = Boolean(celda.dataset.mes);
+
+    const buscarHorizontal = (paso) => {
+      if (esNumerica) {
+        const numericas = Array.from(fila.querySelectorAll('td[data-mes]'));
+        const posicion = numericas.indexOf(celda);
+        const destino = numericas[posicion + paso];
+        if (destino && destino.offsetParent !== null) return destino;
+        // Si no hay destino y vamos a la izquierda, regresar a descripción/cuenta
+        if (paso < 0) {
+          const preferidas = [
+            fila.querySelector('td[data-columna-clave="descripcion"]'),
+            fila.querySelector('td[data-columna-clave="cuenta"]'),
+          ].filter(Boolean);
+          const destinoTexto = preferidas.find((cel) => cel && cel.offsetParent !== null);
+          return destinoTexto || fila.cells[0] || null;
+        }
+        return null;
+      }
+      const indice = celda.cellIndex + paso;
+      if (indice >= 0 && indice < fila.cells.length) {
+        const candidata = fila.cells[indice];
+        return candidata && candidata.offsetParent !== null ? candidata : null;
+      }
+      return null;
     };
-    const cancelar = () => {
-      celda.textContent = valor;
-      celda.classList.remove(CLASE_EDITANDO);
+
+    const buscarVertical = (paso) => {
+      for (let i = filaIndex + paso; i >= 0 && i < filas.length; i += paso) {
+        const row = filas[i];
+        let candidate = null;
+        if (esNumerica && celda.dataset.mes) {
+          candidate = row.querySelector(`td[data-mes="${celda.dataset.mes}"]`);
+        } else if (celda.dataset.columnaClave) {
+          candidate = Array.from(row.cells).find(
+            (td) => td.dataset.columnaClave === celda.dataset.columnaClave
+          );
+        } else {
+          candidate = row.cells[celda.cellIndex] || null;
+        }
+        if (candidate && candidate.offsetParent !== null) return candidate;
+      }
+      return null;
     };
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') guardar();
-      if (e.key === 'Escape') cancelar();
-    });
-    input.addEventListener('blur', guardar);
+
+    if (direccion === 'left') return buscarHorizontal(-1);
+    if (direccion === 'right') return buscarHorizontal(1);
+    if (direccion === 'up') return buscarVertical(-1);
+    if (direccion === 'down') return buscarVertical(1);
+    return null;
   }
 
   /**

@@ -120,6 +120,40 @@
       .toast-global > * {
         pointer-events: auto !important;
       }
+      .workflow-progress {
+        max-height: 260px;
+        overflow: hidden;
+        padding-left: 0.25rem;
+      }
+      .workflow-progress.expanded {
+        max-height: 70vh;
+        overflow-y: auto;
+      }
+      .workflow-step {
+        border-left: 3px solid #6c7ae0;
+        padding: 0.5rem 0 0.5rem 0.75rem;
+        position: relative;
+      }
+      .workflow-step::before {
+        content: '';
+        position: absolute;
+        left: -6px;
+        top: 0.8rem;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #6c7ae0;
+      }
+      .workflow-step:last-child {
+        border-left-color: transparent;
+      }
+      .workflow-step h6 {
+        margin: 0;
+        font-size: 0.95rem;
+      }
+      .workflow-step .text-muted {
+        font-size: 0.82rem;
+      }
     `;
     document.head.appendChild(style);
   };
@@ -475,18 +509,20 @@
         <button type="button" class="btn-close text-reset btn-cerrar-offcanvas" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
       </div>
       <div class="offcanvas-body">
-        <div class="btn-group w-100 mb-3" role="group" aria-label="Vistas del flujo">
-          <button type="button" class="btn btn-outline-primary active" data-workflow-tab="guide">Información</button>
-          <button type="button" class="btn btn-outline-primary" data-workflow-tab="history">Historial</button>
-        </div>
+        <ul class="nav nav-tabs mb-3" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" data-workflow-tab="progress" type="button" role="tab">
+              <i class="bi bi-diagram-3 me-1"></i>Seguimiento
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" data-workflow-tab="guide" type="button" role="tab">
+              <i class="bi bi-info-circle me-1"></i>Guía
+            </button>
+          </li>
+        </ul>
 
-        <!-- Vista: Guía / Información -->
-        <div class="workflow-view" data-workflow-view="guide">
-          <div class="workflow-guide-anchor"></div>
-        </div>
-
-        <!-- Vista: Historial (Oculta por defecto) -->
-        <div class="workflow-view d-none" data-workflow-view="history">
+        <div class="workflow-view" data-workflow-view="progress">
           <div class="workflow-info-panel mb-3">
             <div class="d-flex justify-content-between align-items-start mb-3">
               <div>
@@ -496,60 +532,18 @@
               </div>
               <span class="badge bg-secondary" id="workflowCurrentBadge">-</span>
             </div>
-            <div id="workflowHistoryStatus" class="alert alert-info">
+            <div id="workflowProgressStatus" class="alert alert-info">
               Selecciona empresa, módulo y ejercicio para consultar el historial.
             </div>
-            <form class="row g-2 workflow-history-filters mb-3" id="workflowHistoryFilters">
-              <div class="col-12">
-                <label for="workflowHistorySearch" class="form-label">Buscar</label>
-                <input type="search" id="workflowHistorySearch" class="form-control" placeholder="Acción, usuario o comentario">
-              </div>
-              <div class="col-sm-6">
-                <label for="workflowHistoryState" class="form-label">Estado</label>
-                <select id="workflowHistoryState" class="form-select">
-                  <option value="">Todos</option>
-                </select>
-              </div>
-              <div class="col-sm-6">
-                <label for="workflowHistoryAction" class="form-label">Acción</label>
-                <select id="workflowHistoryAction" class="form-select">
-                  <option value="">Todas</option>
-                </select>
-              </div>
-              <div class="col-sm-6">
-                <label for="workflowHistoryUser" class="form-label">Usuario</label>
-                <select id="workflowHistoryUser" class="form-select">
-                  <option value="">Todos</option>
-                </select>
-              </div>
-              <div class="col-sm-3">
-                <label for="workflowHistoryFrom" class="form-label">Desde</label>
-                <input type="date" id="workflowHistoryFrom" class="form-control">
-              </div>
-              <div class="col-sm-3">
-                <label for="workflowHistoryTo" class="form-label">Hasta</label>
-                <input type="date" id="workflowHistoryTo" class="form-control">
-              </div>
-            </form>
-            <div class="table-responsive">
-              <table class="table table-sm workflow-history-table">
-                <thead>
-                  <tr>
-                    <th>Acción</th>
-                    <th>Estado</th>
-                    <th>Usuario</th>
-                    <th>Fecha</th>
-                    <th>Detalles</th>
-                  </tr>
-                </thead>
-                <tbody id="workflowHistoryTableBody">
-                  <tr>
-                    <td colspan="5" class="text-center text-muted">Sin historial</td>
-                  </tr>
-                </tbody>
-              </table>
+            <div id="workflowProgressList" class="workflow-progress collapsed"></div>
+            <div class="text-end">
+              <button type="button" class="btn btn-link btn-sm" id="workflowProgressToggle">Ver más</button>
             </div>
           </div>
+        </div>
+
+        <div class="workflow-view d-none" data-workflow-view="guide">
+          <div class="workflow-guide-anchor"></div>
         </div>
       </div>
     `;
@@ -617,6 +611,8 @@
       this.toastBody = null;
       this.buttons = {};
       this._contextRetry = 0;
+      this._modalConfirmacionActiva = false;
+      this._modalEntradaActiva = false;
       this.callbacks = {
         onCancelEdit:
           typeof options.onCancelEdit === "function"
@@ -943,6 +939,7 @@
         this._notificarEstadoBorrador(null);
         this._renderInfo();
         this._renderBotones();
+        window.__workflowRefreshTimeline?.();
         return;
       }
       try {
@@ -980,6 +977,7 @@
         this._notificarEstadoBorrador(this.state.borrador);
         this._renderInfo();
         this._renderBotones();
+        window.__workflowRefreshTimeline?.();
       } catch (error) {
         console.error("Estado flujo", error);
         this.state.borrador = null;
@@ -988,6 +986,7 @@
         this._notificarEstadoBorrador(null);
         this._renderInfo();
         this._renderBotones();
+        window.__workflowRefreshTimeline?.();
         this._toast(
           error.message || "No fue posible obtener el estado.",
           "danger"
@@ -1724,6 +1723,10 @@
       etiquetaBoton = "Confirmar",
       tipoBoton = "warning",
     }) {
+      if (this._modalConfirmacionActiva) {
+        return Promise.resolve(false);
+      }
+      this._modalConfirmacionActiva = true;
       return new Promise((resolve) => {
         try {
           // Crear modal con estructura correcta de Bootstrap
@@ -1767,6 +1770,7 @@
           if (!bsModal) {
             console.error("Bootstrap Modal no esta disponible");
             document.body.removeChild(modal);
+            this._modalConfirmacionActiva = false;
             resolve(false);
             return;
           }
@@ -1793,6 +1797,7 @@
             } catch (e) {
               console.warn("Error eliminando modal del DOM:", e);
             }
+            this._modalConfirmacionActiva = false;
           };
 
           const finalizar = (valor) => {
@@ -1811,6 +1816,7 @@
           const handleHidden = () => {
             limpiar();
             resolve(resultado);
+            this._modalConfirmacionActiva = false;
           };
 
           const fallbackTimer = setTimeout(() => {
@@ -1853,6 +1859,7 @@
           bsModal.show();
         } catch (error) {
           console.error("Error en _mostrarConfirmacion:", error);
+          this._modalConfirmacionActiva = false;
           resolve(false);
         }
       });
@@ -1864,6 +1871,10 @@
       placeholder = "",
       etiquetaBoton = "Confirmar",
     }) {
+      if (this._modalEntradaActiva) {
+        return null;
+      }
+      this._modalEntradaActiva = true;
       return new Promise((resolve) => {
         try {
           // Crear modal con estructura correcta de Bootstrap
@@ -1908,6 +1919,7 @@
           if (!bsModal) {
             console.error("Bootstrap Modal no esta disponible");
             document.body.removeChild(modal);
+            this._modalEntradaActiva = false;
             resolve(null);
             return;
           }
@@ -1935,6 +1947,7 @@
             } catch (e) {
               console.warn("Error eliminando modal del DOM:", e);
             }
+            this._modalEntradaActiva = false;
           };
 
           const finalizar = (valor) => {
@@ -1967,6 +1980,7 @@
             () => {
               clearTimeout(fallbackTimer);
               handleHidden();
+              this._modalEntradaActiva = false;
             },
             { once: true }
           );
@@ -2014,6 +2028,7 @@
           setTimeout(() => textArea?.focus(), 300);
         } catch (error) {
           console.error("Error en _mostrarEntradaConfirmacion:", error);
+          this._modalEntradaActiva = false;
           resolve(null);
         }
       });
@@ -2486,14 +2501,21 @@
 
     const cargarHistorial = async (target, filtros) => {
       hidratarContexto();
-      if (!contexto.empresaId || !Number.isInteger(contexto.anio)) {
-        if (target?.status) {
-          target.status.className = "alert alert-info";
-          target.status.textContent =
-            "Selecciona empresa y ejercicio para consultar el historial.";
-        }
-        return null;
+    if (!contexto.empresaId || !Number.isInteger(contexto.anio)) {
+      if (target?.status) {
+        target.status.className = "alert alert-info";
+        target.status.textContent =
+          "Selecciona empresa y ejercicio para consultar el historial.";
       }
+      if (typeof target?.onData === "function") {
+        try {
+          target.onData([]);
+        } catch (e) {
+          console.warn("onData workflow (sin contexto)", e);
+        }
+      }
+      return null;
+    }
       try {
         if (target?.status) {
           target.status.className = "alert alert-secondary";
@@ -2517,6 +2539,13 @@
           } registros).`;
         }
         renderTabla(target?.tbody, data.historial || []);
+        if (typeof target?.onData === "function") {
+          try {
+            target.onData(data.historial || []);
+          } catch (err) {
+            console.warn("onData workflow", err);
+          }
+        }
         asignarOpciones(
           target?.state,
           data.filtros?.estados || [],
@@ -2539,6 +2568,13 @@
           target.status.className = "alert alert-danger";
           target.status.textContent =
             error.message || "No fue posible consultar el historial.";
+        }
+        if (typeof target?.onData === "function") {
+          try {
+            target.onData([]);
+          } catch (e) {
+            console.warn("onData workflow error", e);
+          }
         }
         renderTabla(target?.tbody, []);
         return null;
@@ -2580,6 +2616,55 @@
         });
     };
 
+    let workflowTimelineData = [];
+    let workflowTimelineExpanded = false;
+
+    const renderWorkflowTimeline = () => {
+      if (!refs.workflow?.progress) return;
+      const contenedor = refs.workflow.progress;
+      contenedor.innerHTML = "";
+      if (!workflowTimelineData.length) {
+        contenedor.innerHTML =
+          '<p class="text-muted small mb-0">Sin historial disponible.</p>';
+      } else {
+        const limite = workflowTimelineExpanded
+          ? workflowTimelineData.length
+          : Math.min(6, workflowTimelineData.length);
+        workflowTimelineData.slice(0, limite).forEach((registro) => {
+          const paso = document.createElement("div");
+          paso.className = "workflow-step";
+          paso.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <span class="badge text-bg-light">${textoEstado(
+                registro.estado
+              )}</span>
+              <span class="text-muted small">${formatDateTime(
+                registro.fecha
+              )}</span>
+            </div>
+            <h6>${registro.accionEtiqueta || textoAccion(registro.accion)}</h6>
+            <div class="text-muted small mb-1">${
+              registro.descripcion || registro.comentarios || ""
+            }</div>
+            <div class="text-muted small">${
+              registro.usuario?.nombre || registro.usuario?.usuario || "-"
+            }</div>
+          `;
+          contenedor.appendChild(paso);
+        });
+      }
+      if (refs.workflow?.expandBtn) {
+        refs.workflow.expandBtn.textContent = workflowTimelineExpanded
+          ? "Contraer"
+          : "Ver más";
+        refs.workflow.expandBtn.classList.toggle(
+          "d-none",
+          workflowTimelineData.length <= 6
+        );
+        contenedor.classList.toggle("expanded", workflowTimelineExpanded);
+      }
+    };
+
     const renderResumenWorkflow = () => {
       if (!refs.workflow) return;
       if (refs.workflow.badge)
@@ -2599,6 +2684,17 @@
         refs.workflow.meta.textContent = partes.join(" · ");
       }
     };
+
+    const refrescarWorkflowHistorial = () => {
+      if (!refs.workflow) return;
+      workflowTimelineExpanded = false;
+      cargarHistorial(refs.workflow, filtrosWorkflow)?.then((data) => {
+        workflowTimelineData = data?.historial || [];
+        renderWorkflowTimeline();
+      });
+    };
+
+    window.__workflowRefreshTimeline = refrescarWorkflowHistorial;
 
     const init = () => {
       ensureDraftsDrawer();
@@ -2656,30 +2752,26 @@
           badge: document.getElementById("workflowCurrentBadge"),
           state: document.getElementById("workflowCurrentState"),
           meta: document.getElementById("workflowCurrentMeta"),
-          status: document.getElementById("workflowHistoryStatus"),
-          tbody: document.getElementById("workflowHistoryTableBody"),
-          filters: {
-            search: document.getElementById("workflowHistorySearch"),
-            state: document.getElementById("workflowHistoryState"),
-            action: document.getElementById("workflowHistoryAction"),
-            user: document.getElementById("workflowHistoryUser"),
-            from: document.getElementById("workflowHistoryFrom"),
-            to: document.getElementById("workflowHistoryTo"),
+          status: document.getElementById("workflowProgressStatus"),
+          progress: document.getElementById("workflowProgressList"),
+          expandBtn: document.getElementById("workflowProgressToggle"),
+          onData: (lista) => {
+            workflowTimelineData = lista || [];
+            renderWorkflowTimeline();
           },
         };
+        if (refs.workflow.expandBtn) {
+          refs.workflow.expandBtn.addEventListener("click", () => {
+            workflowTimelineExpanded = !workflowTimelineExpanded;
+            renderWorkflowTimeline();
+          });
+        }
         workflowDrawer.addEventListener("show.bs.offcanvas", () => {
-          cargarHistorial(refs.workflow, filtrosWorkflow);
+          workflowTimelineExpanded = false;
+          refrescarWorkflowHistorial();
           renderResumenWorkflow();
         });
-        vincularFiltros(refs.workflow.filters, filtrosWorkflow, (tipo) => {
-          clearTimeout(debounceWorkflow);
-          if (tipo === "search")
-            debounceWorkflow = setTimeout(
-              () => cargarHistorial(refs.workflow, filtrosWorkflow),
-              400
-            );
-          else cargarHistorial(refs.workflow, filtrosWorkflow);
-        });
+        renderWorkflowTimeline();
       }
 
       window.addEventListener(EVENTO_CONTEXTO, (event) => {
@@ -2731,7 +2823,7 @@
     };
     return async () => {
       const contenedores = document.querySelectorAll(
-        ".workflow-drawer .offcanvas-body"
+        '.workflow-view[data-workflow-view="guide"] .workflow-guide-anchor'
       );
       if (!contenedores.length) return;
       const html = await fetchGuide();
