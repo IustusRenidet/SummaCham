@@ -335,45 +335,74 @@ const procesarArchivoSummaryResumen = ({
       : [];
 
     anios.forEach((anio) => {
-      if (!force) {
-        const existentes = db
-          .prepare(
-            `SELECT COUNT(*) as total FROM layout_cuentas WHERE empresa_id = ? AND modulo = ? AND anio = ?`
-          )
-          .get(empresaId, nombre, anio);
-        if (existentes?.total > 0) {
-          return;
-        }
+      // Verificar si ya existen cuentas
+      const existenCuentas = db
+        .prepare(
+          `SELECT COUNT(*) as total FROM layout_cuentas WHERE empresa_id = ? AND modulo = ? AND anio = ?`
+        )
+        .get(empresaId, nombre, anio);
+      
+      // Verificar si existen operaciones
+      const existenOperaciones = db
+        .prepare(
+          `SELECT COUNT(*) as total FROM layout_operaciones WHERE empresa_id = ? AND modulo = ? AND anio = ?`
+        )
+        .get(empresaId, nombre, anio);
+      
+      // Si no forzamos y ya existen cuentas Y operaciones, saltamos
+      if (!force && existenCuentas?.total > 0 && existenOperaciones?.total > 0) {
+        return;
       }
 
-      limpiarLayout(db, { empresaId, modulo: nombre, anio });
+      // Si hay operaciones en el origen pero no en destino, solo insertar operaciones
+      if (!force && existenCuentas?.total > 0 && existenOperaciones?.total === 0 && operacionesOrigen.length > 0) {
+        const insertOperacionPrep = prepararInsertarOperacion(db);
+        const opsInsertadas = sembrarOperaciones({
+          db,
+          empresaId,
+          modulo: nombre,
+          anio,
+          operaciones: operacionesOrigen,
+          insertOperacion: insertOperacionPrep,
+        });
+        resumen.operaciones += opsInsertadas;
+        resumen.detalles.push(
+          `${nombre}-${anio}: ${opsInsertadas} operaciones (cuentas ya existían)`
+        );
+        return;
+      }
 
-      const cuentasAgrupadas = Array.from(agruparPorCapitulo(datosModulo)).map(
-        ([capitulo, cuentas]) => ({ capitulo, cuentas })
-      );
-      const insertadas = sembrarCuentas({
-        db,
-        empresaId,
-        modulo: nombre,
-        anio,
-        insertCuenta,
-        insertSeccion,
-        cuentasAgrupadas,
-      });
-      const opsInsertadas = sembrarOperaciones({
-        db,
-        empresaId,
-        modulo: nombre,
-        anio,
-        operaciones: operacionesOrigen,
-        insertOperacion,
-      });
+      // Siembra completa (cuentas + operaciones)
+      if (force || existenCuentas?.total === 0) {
+        limpiarLayout(db, { empresaId, modulo: nombre, anio });
 
-      resumen.cuentas += insertadas;
-      resumen.operaciones += opsInsertadas;
-      resumen.detalles.push(
-        `${nombre}-${anio}: ${insertadas} cuentas, ${opsInsertadas} operaciones`
-      );
+        const cuentasAgrupadas = Array.from(agruparPorCapitulo(datosModulo)).map(
+          ([capitulo, cuentas]) => ({ capitulo, cuentas })
+        );
+        const insertadas = sembrarCuentas({
+          db,
+          empresaId,
+          modulo: nombre,
+          anio,
+          insertCuenta,
+          insertSeccion,
+          cuentasAgrupadas,
+        });
+        const opsInsertadas = sembrarOperaciones({
+          db,
+          empresaId,
+          modulo: nombre,
+          anio,
+          operaciones: operacionesOrigen,
+          insertOperacion,
+        });
+
+        resumen.cuentas += insertadas;
+        resumen.operaciones += opsInsertadas;
+        resumen.detalles.push(
+          `${nombre}-${anio}: ${insertadas} cuentas, ${opsInsertadas} operaciones`
+        );
+      }
     });
   });
 };

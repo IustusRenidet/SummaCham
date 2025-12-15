@@ -376,4 +376,72 @@ router.get('/:modulo/:anio/existe', requireAuth, (req, res) => {
   }
 });
 
+/**
+ * POST /api/layouts/:modulo/:anio/reseed
+ * Forzar recarga de operaciones desde JSON para un módulo y año
+ */
+router.post('/:modulo/:anio/reseed', requireAuth, (req, res) => {
+  try {
+    const { modulo, anio } = req.params;
+    const { empresaId = 'EMPRESA01' } = req.body;
+    const path = require('path');
+    const fs = require('fs');
+
+    // Buscar el archivo JSON correcto
+    const baseDir = path.resolve(__dirname, '../../info IMPORTANTE');
+    const archivoAnio = `CUENTAS SUMMARY y RESUMEN ${anio}.json`;
+    const archivoGenerico = 'CUENTAS SUMMARY y RESUMEN.json';
+    
+    let archivoJson = path.join(baseDir, archivoAnio);
+    if (!fs.existsSync(archivoJson)) {
+      archivoJson = path.join(baseDir, archivoGenerico);
+    }
+    
+    if (!fs.existsSync(archivoJson)) {
+      return res.status(404).json({
+        success: false,
+        mensaje: `No se encontró archivo de configuración para ${modulo} ${anio}`
+      });
+    }
+
+    const contenido = JSON.parse(fs.readFileSync(archivoJson, 'utf8'));
+    const operacionesCompletas = contenido['SUMA DE VARIAS SECCIONES'] || [];
+    
+    // Filtrar por HOJA (módulo)
+    const operaciones = operacionesCompletas.filter(op => 
+      (op.HOJA || '').toUpperCase() === modulo.toUpperCase()
+    );
+
+    if (!operaciones.length) {
+      return res.json({
+        success: true,
+        mensaje: `No hay operaciones de ${modulo} en el archivo`,
+        operaciones: 0
+      });
+    }
+
+    // Guardar operaciones
+    const resultado = layoutService.guardarOperaciones({
+      empresaId,
+      modulo,
+      anio: parseInt(anio),
+      operaciones
+    });
+
+    res.json({
+      success: true,
+      mensaje: `Operaciones recargadas exitosamente desde ${path.basename(archivoJson)}`,
+      operaciones: operaciones.length,
+      resultado
+    });
+  } catch (error) {
+    console.error('Error al recargar operaciones:', error);
+    res.status(500).json({
+      success: false,
+      mensaje: 'Error al recargar operaciones',
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;

@@ -1,5 +1,731 @@
 {
-  "SUMA DE VARIAS SECCIONES": [],
+  "SUMA DE VARIAS SECCIONES": [
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "Clase": "income-Membership",
+      "SECCION": "Membership",
+      "sum-row": "SUMA DE Membership",
+      "sum-row-sumavarios": "CDMX INCOME",
+      "sum-row-sumavarios-consolidado": "CONSOLIDATED INCOME",
+      "sum-row-operativo": "OPERATING RESULTS MEXICO",
+      "result-row": "CONSOLIDATED OPERATING RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "Clase": "income-Events",
+      "SECCION": "Events ",
+      "sum-row": "SUMA DE Events",
+      "sum-row-sumavarios": "CDMX INCOME",
+      "sum-row-sumavarios-consolidado": "CONSOLIDATED INCOME",
+      "sum-row-operativo": "OPERATING RESULTS MEXICO",
+      "result-row": "CONSOLIDATED OPERATING RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "Clase": "income-Committees",
+      "SECCION": "Committees",
+      "sum-row": "SUMA DE Committees",
+      "sum-row-sumavarios": "CDMX INCOME",
+      "sum-row-sumavarios-consolidado": "CONSOLIDATED INCOME",
+      "sum-row-operativo": "OPERATING RESULTS MEXICO",
+      "result-row": "CONSOLIDATED OPERATING RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "Clase": "income-T&IC",
+      "SECCION": "T&IC",
+      "sum-row": "SUMA DE T&IC",
+      "sum-row-sumavarios": "CDMX INCOME",
+      "sum-row-sumavarios-consolidado": "CONSOLIDATED INCOME",
+      "sum-row-operativo": "OPERATING RESULTS MEXICO",
+      "result-row": "CONSOLIDATED OPERATING RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "Clase": "income-Services to Members",
+      "SECCION": "Services to Members",
+      "sum-row": "SUMA DE Services to Members",
+      "sum-row-sumavarios": "CDMX INCOME",
+      "sum-row-sumavarios-consolidado": "CONSOLIDATED INCOME",
+      "sum-row-operativo": "OPERATING RESULTS MEXICO",
+      "result-row": "CONSOLIDATED OPERATING RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "Clase": "income-Guadalajara Income",
+      "SECCION": "Guadalajara Income",
+      "sum-row": "SUMA DE Guadalajara Income",
+      "sum-row-sumavarios": "Guadalajara Income",
+      "sum-row-sumavarios-consolidado": "CONSOLIDATED INCOME",
+      "sum-row-operativo": "OPERATING RESULTS GUADALAJARA",
+      "result-row": "CONSOLIDATED OPERATING RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "Clase": "income-Monterrey Income",
+      "SECCION": "Monterrey Income",
+      "sum-row": "SUMA DE Monterrey Income",
+      "sum-row-sumavarios": "Monterrey Income",
+      "sum-row-sumavarios-consolidado": "CONSOLIDATED INCOME",
+      "sum-row-operativo": "OPERATING RESULTS MONTERREY",
+      "result-row": "CONSOLIDATED OPERATING RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "Clase": "income-Northwest Income",
+      "SECCION": "Northwest Income",
+      "sum-row": "SUMA DE Northwest Income",
+      "sum-row-sumavarios": "Northwest Income",
+      "sum-row-sumavarios-consolidado": "CONSOLIDATED INCOME",
+      "sum-row-operativo": "OPERATING RESULTS NORTHWEST",
+      "result-row": "CONSOLIDATED OPERATING RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "Clase": "expense-Membership",
+      "SECCION": "Membership",
+      "sum-row": "SUMA DE Membership",
+      "sum-row-sumavarios": "CDMX EXPENSE",
+      "sum-row-sumavarios-consolidado": "CONSOLIDATED EXPENSES",
+      "sum-row-operativo": "OPERATING RESULTS MEXICO",
+      "result-row": "CONSOLIDATED OPERATING RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "Clase": "expense-Events",
+      "SECCION": "Events ",
+      "sum-row": "SUMA DE Events",
+      "sum-row-sumavarios": "CDMX EXPENSE",
+      "sum-row-sumavarios-consolidado": "CONSOLIDATED EXPENSES",
+      "sum-row-operativo": "OPERATING RESULTS MEXICO",
+      "result-row": "CONSOLIDATED OPERATING RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "Clase": "expense-Committees",
+      "SECCION": "Committees",
+      "sum-row": "SUMA DE Committees",
+      "sum-row-sumavarios": "CDMX EXPENSE",
+      "sum-row-sumavarios-consolidado": "CONSOLIDATED EXPENSES",
+      "sum-row-operativo": "OPERATING RESULTS MEXICO",
+      "result-row": "CONSOLIDATED OPERATING RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "Clase": "expense-T&IC",
+      "SECCION": "T&IC",
+      "sum-row": "SUMA DE T&IC",
+      "sum-row-sumavarios": "CDMX EXPENSE",
+      "sum-row-sumavarios-consolidado": "CONSOLIDATED EXPENSES",
+      "sum-row-operativo": "OPERATING RESULTS MEXICO",
+      "result-row": "CONSOLIDATED OPERATING RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "Clase": "expense-Services to Members",
+      "SECCION": "Services to Members",
+      "sum-row": "SUMA DE Services to Members",
+      "sum-row-sumavarios": "CDMX EXPENSE",
+      "sum-row-sumavarios-consolidado": "CONSOLIDATED EXPENSES",
+      "sum-row-operativo": "OPERATING RESULTS MEXICO",
+      "result-row": "CONSOLIDATED OPERATING RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "Clase": "expense-Gastos Administrativos",
+      "SECCION": "Gastos Administrativos",
+      "sum-row": "SUMA DE Gastos Administrativos",
+      "sum-row-sumavarios": "CDMX EXPENSE",
+      "sum-row-sumavarios-consolidado": "CONSOLIDATED EXPENSES",
+      "sum-row-operativo": "OPERATING RESULTS MEXICO",
+      "result-row": "CONSOLIDATED OPERATING RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "Clase": "expense-Gastos Generales",
+      "SECCION": "Gastos Generales",
+      "sum-row": "SUMA DE Gastos Generales",
+      "sum-row-sumavarios": "CDMX EXPENSE",
+      "sum-row-sumavarios-consolidado": "CONSOLIDATED EXPENSES",
+      "sum-row-operativo": "OPERATING RESULTS MEXICO",
+      "result-row": "CONSOLIDATED OPERATING RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "Clase": "expense-Nómina",
+      "SECCION": "Nómina",
+      "sum-row": "SUMA DE Nómina",
+      "sum-row-sumavarios": "CDMX EXPENSE",
+      "sum-row-sumavarios-consolidado": "CONSOLIDATED EXPENSES",
+      "sum-row-operativo": "OPERATING RESULTS MEXICO",
+      "result-row": "CONSOLIDATED OPERATING RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "Clase": "expense-Gastos Corporativos",
+      "SECCION": "Gastos Corporativos",
+      "sum-row": "SUMA DE Gastos Corporativos",
+      "sum-row-sumavarios": "CDMX EXPENSE",
+      "sum-row-sumavarios-consolidado": "CONSOLIDATED EXPENSES",
+      "sum-row-operativo": "OPERATING RESULTS MEXICO",
+      "result-row": "CONSOLIDATED OPERATING RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "Clase": "expense-Guadalajara Expense",
+      "SECCION": "Guadalajara Expense",
+      "sum-row": "SUMA DE Guadalajara Expense",
+      "sum-row-sumavarios": "Guadalajara Expense",
+      "sum-row-sumavarios-consolidado": "CONSOLIDATED EXPENSES",
+      "sum-row-operativo": "OPERATING RESULTS GUADALAJARA",
+      "result-row": "CONSOLIDATED OPERATING RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "Clase": "expense-Monterrey Expense",
+      "SECCION": "Monterrey Expense",
+      "sum-row": "SUMA DE Monterrey Expense",
+      "sum-row-sumavarios": "Monterrey Expense",
+      "sum-row-sumavarios-consolidado": "CONSOLIDATED EXPENSES",
+      "sum-row-operativo": "OPERATING RESULTS MONTERREY",
+      "result-row": "CONSOLIDATED OPERATING RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "Clase": "expense-Northwest Expense",
+      "SECCION": "Northwest Expense",
+      "sum-row": "SUMA DE Northwest Expense",
+      "sum-row-sumavarios": "Northwest Expense",
+      "sum-row-sumavarios-consolidado": "CONSOLIDATED EXPENSES",
+      "sum-row-operativo": "OPERATING RESULTS NORTHWEST",
+      "result-row": "CONSOLIDATED OPERATING RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "Clase": "expense-Member Centricity",
+      "SECCION": "Member Centricity",
+      "sum-row": "SUMA DE Member Centricity",
+      "sum-row-sumavarios": "Member Centricity",
+      "sum-row-operativo": "OPERATING RESULTS MEXICO",
+      "result-row": "CONSOLIDATED OPERATING RESULTS",
+      "net-row": "NET RESULTS MEXICO",
+      "result-net-row": "CONSOLIDATED NET RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "Clase": "other-Other",
+      "SECCION": "Other",
+      "sum-row": "SUMA DE Other",
+      "sum-row-sumavarios": "Other (Mexico)",
+      "sum-row-operativo": "OPERATING RESULTS MEXICO",
+      "result-row": "CONSOLIDATED OPERATING RESULTS",
+      "net-row": "NET RESULTS MEXICO",
+      "result-net-row": "CONSOLIDATED NET RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "Clase": "other-Guadalajara Other Income",
+      "SECCION": "Guadalajara Other Income",
+      "sum-row": "SUMA DE Guadalajara Other Income",
+      "sum-row-sumavarios": "Guadalajara Other Income",
+      "sum-row-operativo": "OPERATING RESULTS GUADALAJARA",
+      "result-row": "CONSOLIDATED OPERATING RESULTS",
+      "net-row": "NET RESULTS GUADALAJARA",
+      "result-net-row": "CONSOLIDATED NET RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "Clase": "other-Monterrey Other Income",
+      "SECCION": "Monterrey Other Income",
+      "sum-row": "SUMA DE Monterrey Other Income",
+      "sum-row-sumavarios": "Monterrey Other Income",
+      "sum-row-operativo": "OPERATING RESULTS MONTERREY",
+      "result-row": "CONSOLIDATED OPERATING RESULTS",
+      "net-row": "NET RESULTS MONTERREY",
+      "result-net-row": "CONSOLIDATED NET RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "Clase": "other-Northwest Other Income",
+      "SECCION": "Northwest Other Income",
+      "sum-row": "SUMA DE Northwest Other Income",
+      "sum-row-sumavarios": "Northwest Other Income",
+      "sum-row-operativo": "OPERATING RESULTS NORTHWEST",
+      "result-row": "CONSOLIDATED OPERATING RESULTS",
+      "net-row": "NET RESULTS NORTHWEST",
+      "result-net-row": "CONSOLIDATED NET RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "GUADALAJARA",
+      "Clase": "income-Membership",
+      "SECCION": "Membership",
+      "sum-row": "SUMA DE Membership",
+      "sum-row-sumavarios": "GDL INCOME",
+      "sum-row-operativo": "OPERATING RESULTS",
+      "result-row": "NET RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "GUADALAJARA",
+      "Clase": "income-Events",
+      "SECCION": "Events ",
+      "sum-row": "SUMA DE Events",
+      "sum-row-sumavarios": "GDL INCOME",
+      "sum-row-operativo": "OPERATING RESULTS",
+      "result-row": "NET RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "GUADALAJARA",
+      "Clase": "income-Committees",
+      "SECCION": "Committees",
+      "sum-row": "SUMA DE Committees",
+      "sum-row-sumavarios": "GDL INCOME",
+      "sum-row-operativo": "OPERATING RESULTS",
+      "result-row": "NET RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "GUADALAJARA",
+      "Clase": "income-T&IC",
+      "SECCION": "T&IC",
+      "sum-row": "SUMA DE T&IC",
+      "sum-row-sumavarios": "GDL INCOME",
+      "sum-row-operativo": "OPERATING RESULTS",
+      "result-row": "NET RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "GUADALAJARA",
+      "Clase": "income-Services to Members",
+      "SECCION": "Services to Members",
+      "sum-row": "SUMA DE Services to Members",
+      "sum-row-sumavarios": "GDL INCOME",
+      "sum-row-operativo": "OPERATING RESULTS",
+      "result-row": "NET RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "GUADALAJARA",
+      "Clase": "expense-Membership",
+      "SECCION": "Membership",
+      "sum-row": "SUMA DE Membership",
+      "sum-row-sumavarios": "GDL EXPENSE",
+      "sum-row-operativo": "OPERATING RESULTS",
+      "result-row": "NET RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "GUADALAJARA",
+      "Clase": "expense-Events",
+      "SECCION": "Events ",
+      "sum-row": "SUMA DE Events",
+      "sum-row-sumavarios": "GDL EXPENSE",
+      "sum-row-operativo": "OPERATING RESULTS",
+      "result-row": "NET RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "GUADALAJARA",
+      "Clase": "expense-Committees",
+      "SECCION": "Committees",
+      "sum-row": "SUMA DE Committees",
+      "sum-row-sumavarios": "GDL EXPENSE",
+      "sum-row-operativo": "OPERATING RESULTS",
+      "result-row": "NET RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "GUADALAJARA",
+      "Clase": "expense-T&IC",
+      "SECCION": "T&IC",
+      "sum-row": "SUMA DE T&IC",
+      "sum-row-sumavarios": "GDL EXPENSE",
+      "sum-row-operativo": "OPERATING RESULTS",
+      "result-row": "NET RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "GUADALAJARA",
+      "Clase": "expense-Services to Members",
+      "SECCION": "Services to Members",
+      "sum-row": "SUMA DE Services to Members",
+      "sum-row-sumavarios": "GDL EXPENSE",
+      "sum-row-operativo": "OPERATING RESULTS",
+      "result-row": "NET RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "GUADALAJARA",
+      "Clase": "expense-Gastos G&A",
+      "SECCION": "Gastos G&A",
+      "sum-row": "SUMA DE Gastos G&A",
+      "sum-row-sumavarios": "GDL EXPENSE",
+      "sum-row-operativo": "OPERATING RESULTS",
+      "result-row": "NET RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "GUADALAJARA",
+      "Clase": "expense-Nómina",
+      "SECCION": "Nómina",
+      "sum-row": "SUMA DE Nómina",
+      "sum-row-sumavarios": "GDL EXPENSE",
+      "sum-row-operativo": "OPERATING RESULTS",
+      "result-row": "NET RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "GUADALAJARA",
+      "Clase": "expense-Gastos Corporativos",
+      "SECCION": "Gastos Corporativos",
+      "sum-row": "SUMA DE Gastos Corporativos",
+      "sum-row-sumavarios": "GDL EXPENSE",
+      "sum-row-operativo": "OPERATING RESULTS",
+      "result-row": "NET RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "GUADALAJARA",
+      "Clase": "expense-Cargos Administrativos",
+      "SECCION": "Cargos Administrativos",
+      "sum-row": "SUMA DE Cargos Administrativos",
+      "sum-row-sumavarios": "GDL EXPENSE",
+      "sum-row-operativo": "OPERATING RESULTS",
+      "result-row": "NET RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "GUADALAJARA",
+      "Clase": "expense-Member Centricity",
+      "SECCION": "Member Centricity",
+      "sum-row": "SUMA DE Member Centricity",
+      "sum-row-sumavarios": "Member Centricity",
+      "net-row": "NET RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "GUADALAJARA",
+      "Clase": "other-Other",
+      "SECCION": "Other",
+      "sum-row": "SUMA DE Other",
+      "sum-row-sumavarios": "Other",
+      "net-row": "NET RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "NORESTE",
+      "Clase": "income-Membership",
+      "SECCION": "Membership",
+      "sum-row": "SUMA DE Membership",
+      "sum-row-sumavarios": "NE INCOME",
+      "sum-row-operativo": "OPERATING RESULTS",
+      "result-row": "NET RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "NORESTE",
+      "Clase": "income-Events",
+      "SECCION": "Events ",
+      "sum-row": "SUMA DE Events",
+      "sum-row-sumavarios": "NE INCOME",
+      "sum-row-operativo": "OPERATING RESULTS",
+      "result-row": "NET RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "NORESTE",
+      "Clase": "income-Committees",
+      "SECCION": "Committees",
+      "sum-row": "SUMA DE Committees",
+      "sum-row-sumavarios": "NE INCOME",
+      "sum-row-operativo": "OPERATING RESULTS",
+      "result-row": "NET RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "NORESTE",
+      "Clase": "income-T&IC",
+      "SECCION": "T&IC",
+      "sum-row": "SUMA DE T&IC",
+      "sum-row-sumavarios": "NE INCOME",
+      "sum-row-operativo": "OPERATING RESULTS",
+      "result-row": "NET RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "NORESTE",
+      "Clase": "income-Services to Members",
+      "SECCION": "Services to Members",
+      "sum-row": "SUMA DE Services to Members",
+      "sum-row-sumavarios": "NE INCOME",
+      "sum-row-operativo": "OPERATING RESULTS",
+      "result-row": "NET RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "NORESTE",
+      "Clase": "expense-Membership",
+      "SECCION": "Membership",
+      "sum-row": "SUMA DE Membership",
+      "sum-row-sumavarios": "NE EXPENSE",
+      "sum-row-operativo": "OPERATING RESULTS",
+      "result-row": "NET RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "NORESTE",
+      "Clase": "expense-Events",
+      "SECCION": "Events ",
+      "sum-row": "SUMA DE Events",
+      "sum-row-sumavarios": "NE EXPENSE",
+      "sum-row-operativo": "OPERATING RESULTS",
+      "result-row": "NET RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "NORESTE",
+      "Clase": "expense-Committees",
+      "SECCION": "Committees",
+      "sum-row": "SUMA DE Committees",
+      "sum-row-sumavarios": "NE EXPENSE",
+      "sum-row-operativo": "OPERATING RESULTS",
+      "result-row": "NET RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "NORESTE",
+      "Clase": "expense-T&IC",
+      "SECCION": "T&IC",
+      "sum-row": "SUMA DE T&IC",
+      "sum-row-sumavarios": "NE EXPENSE",
+      "sum-row-operativo": "OPERATING RESULTS",
+      "result-row": "NET RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "NORESTE",
+      "Clase": "expense-Services to Members",
+      "SECCION": "Services to Members",
+      "sum-row": "SUMA DE Services to Members",
+      "sum-row-sumavarios": "NE EXPENSE",
+      "sum-row-operativo": "OPERATING RESULTS",
+      "result-row": "NET RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "NORESTE",
+      "Clase": "expense-Gastos Administrativos",
+      "SECCION": "Gastos Administrativos",
+      "sum-row": "SUMA DE Gastos Administrativos",
+      "sum-row-sumavarios": "NE EXPENSE",
+      "sum-row-operativo": "OPERATING RESULTS",
+      "result-row": "NET RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "NORESTE",
+      "Clase": "expense-Nómina",
+      "SECCION": "Nómina",
+      "sum-row": "SUMA DE Nómina",
+      "sum-row-sumavarios": "NE EXPENSE",
+      "sum-row-operativo": "OPERATING RESULTS",
+      "result-row": "NET RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "NORESTE",
+      "Clase": "expense-Gastos Corporativos",
+      "SECCION": "Gastos Corporativos",
+      "sum-row": "SUMA DE Gastos Corporativos",
+      "sum-row-sumavarios": "NE EXPENSE",
+      "sum-row-operativo": "OPERATING RESULTS",
+      "result-row": "NET RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "NORESTE",
+      "Clase": "expense-Member Centricity",
+      "SECCION": "Member Centricity",
+      "sum-row": "SUMA DE Member Centricity",
+      "sum-row-sumavarios": "Member Centricity",
+      "net-row": "NET RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "NORESTE",
+      "Clase": "other-Other",
+      "SECCION": "Other",
+      "sum-row": "SUMA DE Other",
+      "sum-row-sumavarios": "Other",
+      "net-row": "NET RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "NOROESTE",
+      "Clase": "income-Membership",
+      "SECCION": "Membership",
+      "sum-row": "SUMA DE Membership",
+      "sum-row-sumavarios": "NO INCOME",
+      "sum-row-operativo": "OPERATING RESULTS",
+      "result-row": "NET RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "NOROESTE",
+      "Clase": "income-Events",
+      "SECCION": "Events ",
+      "sum-row": "SUMA DE Events",
+      "sum-row-sumavarios": "NO INCOME",
+      "sum-row-operativo": "OPERATING RESULTS",
+      "result-row": "NET RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "NOROESTE",
+      "Clase": "income-Committees",
+      "SECCION": "Committees",
+      "sum-row": "SUMA DE Committees",
+      "sum-row-sumavarios": "NO INCOME",
+      "sum-row-operativo": "OPERATING RESULTS",
+      "result-row": "NET RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "NOROESTE",
+      "Clase": "income-T&IC",
+      "SECCION": "T&IC",
+      "sum-row": "SUMA DE T&IC",
+      "sum-row-sumavarios": "NO INCOME",
+      "sum-row-operativo": "OPERATING RESULTS",
+      "result-row": "NET RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "NOROESTE",
+      "Clase": "income-Services to Members",
+      "SECCION": "Services to Members",
+      "sum-row": "SUMA DE Services to Members",
+      "sum-row-sumavarios": "NO INCOME",
+      "sum-row-operativo": "OPERATING RESULTS",
+      "result-row": "NET RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "NOROESTE",
+      "Clase": "expense-Membership",
+      "SECCION": "Membership",
+      "sum-row": "SUMA DE Membership",
+      "sum-row-sumavarios": "NO EXPENSE",
+      "sum-row-operativo": "OPERATING RESULTS",
+      "result-row": "NET RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "NOROESTE",
+      "Clase": "expense-Events",
+      "SECCION": "Events ",
+      "sum-row": "SUMA DE Events",
+      "sum-row-sumavarios": "NO EXPENSE",
+      "sum-row-operativo": "OPERATING RESULTS",
+      "result-row": "NET RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "NOROESTE",
+      "Clase": "expense-Committees",
+      "SECCION": "Committees",
+      "sum-row": "SUMA DE Committees",
+      "sum-row-sumavarios": "NO EXPENSE",
+      "sum-row-operativo": "OPERATING RESULTS",
+      "result-row": "NET RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "NOROESTE",
+      "Clase": "expense-T&IC",
+      "SECCION": "T&IC",
+      "sum-row": "SUMA DE T&IC",
+      "sum-row-sumavarios": "NO EXPENSE",
+      "sum-row-operativo": "OPERATING RESULTS",
+      "result-row": "NET RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "NOROESTE",
+      "Clase": "expense-Services to Members",
+      "SECCION": "Services to Members",
+      "sum-row": "SUMA DE Services to Members",
+      "sum-row-sumavarios": "NO EXPENSE",
+      "sum-row-operativo": "OPERATING RESULTS",
+      "result-row": "NET RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "NOROESTE",
+      "Clase": "expense-Gastos Administrativos",
+      "SECCION": "Gastos Administrativos",
+      "sum-row": "SUMA DE Gastos Administrativos",
+      "sum-row-sumavarios": "NO EXPENSE",
+      "sum-row-operativo": "OPERATING RESULTS",
+      "result-row": "NET RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "NOROESTE",
+      "Clase": "expense-Nómina",
+      "SECCION": "Nómina",
+      "sum-row": "SUMA DE Nómina",
+      "sum-row-sumavarios": "NO EXPENSE",
+      "sum-row-operativo": "OPERATING RESULTS",
+      "result-row": "NET RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "NOROESTE",
+      "Clase": "expense-Gtos. Corporativos",
+      "SECCION": "Gtos. Corporativos",
+      "sum-row": "SUMA DE Gtos. Corporativos",
+      "sum-row-sumavarios": "NO EXPENSE",
+      "sum-row-operativo": "OPERATING RESULTS",
+      "result-row": "NET RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "NOROESTE",
+      "Clase": "other-Other",
+      "SECCION": "Other",
+      "sum-row": "SUMA DE Other",
+      "sum-row-sumavarios": "Other",
+      "net-row": "NET RESULTS"
+    }
+  ],
   "RESUMEN": [
     {
       "CAPITULO": "CIUDAD DE MÉXICO",

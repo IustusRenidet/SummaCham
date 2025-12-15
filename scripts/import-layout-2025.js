@@ -45,6 +45,7 @@ const cuentasArchivo = buscarArchivo([
 
 const operacionesArchivo = buscarArchivo([
   getArg('--operaciones'),
+  path.join(process.cwd(), 'info IMPORTANTE', 'CUENTAS SUMMARY y RESUMEN 2025.json'),
   path.join(process.cwd(), 'info IMPORTANTE', 'CUENTAS SUMMARY y RESUMEN.json')
 ]);
 

@@ -126,7 +126,20 @@ const resolverEmpresaConsulta = ({ empresaId, modulo, anio }) => {
       return candidata;
     }
   }
-  return obtenerEmpresaCanonica(empresaId);
+  const canonSolicitada = obtenerEmpresaCanonica(empresaId);
+  const canonBase = obtenerEmpresaCanonica('EMPRESA01');
+  if (canonBase && canonBase !== canonSolicitada) {
+    const rowFallback = db.prepare(`
+      SELECT COUNT(*) as total
+      FROM layout_cuentas
+      WHERE empresa_id = ? AND modulo = ? AND anio = ?
+      LIMIT 1
+    `).get(canonBase, modulo, anio);
+    if (rowFallback && rowFallback.total > 0) {
+      return canonBase;
+    }
+  }
+  return canonSolicitada;
 };
 
 const construirRespuestaLayout = ({
@@ -230,6 +243,7 @@ const obtenerLayout = ({ empresaId = 'EMPRESA01', modulo, anio, capitulo }) => {
   operaciones.forEach(op => {
     if (!operacionesMap[op.Clase]) {
       operacionesMap[op.Clase] = {
+        HOJA: modulo, // Agregar HOJA para que el filtro en planeacionReportesEngine funcione
         CAPITULO: op.CAPITULO,
         Clase: op.Clase,
         SECCION: op.SECCION
