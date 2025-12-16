@@ -116,6 +116,22 @@
         "puede_cargar_guardar": 0,
         "puede_revisar": 0,
         "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "Nomina",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "GastosGenerales",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
       }
     ]
   },
@@ -548,6 +564,70 @@
         "puede_cargar_guardar": 0,
         "puede_revisar": 0,
         "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "Nomina",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "GastosGenerales",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Nomina",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "GastosGenerales",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "Nomina",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "GastosGenerales",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Nomina",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "GastosGenerales",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
       }
     ],
     "esAdminGlobal": true,
@@ -920,6 +1000,22 @@
         "puede_cargar_guardar": 0,
         "puede_revisar": 0,
         "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Nomina",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "GastosGenerales",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
       }
     ]
   },
@@ -1047,6 +1143,22 @@
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
         "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Nomina",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "GastosGenerales",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 1,
         "puede_aprobar": 0
       }
     ]
@@ -1222,6 +1334,22 @@
         "modulo": "SUMMARY",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "Nomina",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "GastosGenerales",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
         "puede_revisar": 0,
         "puede_aprobar": 0
       }
@@ -1712,6 +1840,22 @@
         "puede_cargar_guardar": 0,
         "puede_revisar": 0,
         "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "Nomina",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "GastosGenerales",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
       }
     ]
   },
@@ -1808,6 +1952,22 @@
         "puede_cargar_guardar": 0,
         "puede_revisar": 0,
         "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "Nomina",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "GastosGenerales",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 1,
+        "puede_aprobar": 0
       }
     ]
   },
@@ -1878,6 +2038,22 @@
         "modulo": "SUMMARY",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Nomina",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "GastosGenerales",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 1,
         "puede_revisar": 0,
         "puede_aprobar": 0
       }
@@ -2337,6 +2513,70 @@
         "puede_cargar_guardar": 0,
         "puede_revisar": 0,
         "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "Nomina",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "GastosGenerales",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Nomina",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "GastosGenerales",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "Nomina",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "GastosGenerales",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Nomina",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "GastosGenerales",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
       }
     ]
   },

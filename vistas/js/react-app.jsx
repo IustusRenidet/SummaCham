@@ -15,30 +15,30 @@ const MODULE_GROUPS = [
     label: 'Divisiones',
     items: [
       { id: 'presupuestos', label: 'Presupuestos', path: 'Presupuestos.html', badge: 'ppto', permiso: 'Presupuestos' },
-      { id: 'comites', label: 'Comités', path: 'Comités.html', permiso: 'Comités' },
-      { id: 'comunicacion', label: 'Comunicación', path: 'Comunicación.html', permiso: 'Comunicación' },
-      { id: 'direccion', label: 'Dirección', path: 'Dirección.html', permiso: 'Dirección' },
+      { id: 'comites', label: 'Comitï¿½s', path: 'Comitï¿½s.html', permiso: 'Comitï¿½s' },
+      { id: 'comunicacion', label: 'Comunicaciï¿½n', path: 'Comunicaciï¿½n.html', permiso: 'Comunicaciï¿½n' },
+      { id: 'direccion', label: 'Direcciï¿½n', path: 'Direcciï¿½n.html', permiso: 'Direcciï¿½n' },
       { id: 'eventos', label: 'Eventos', path: 'Eventos.html', permiso: 'Eventos' },
       {
         id: 'finanzas-cluster',
         label: 'Finanzas',
         items: [
-          { id: 'finanzas', label: 'Finanzas', path: 'Finanzas.html', permiso: 'Finanzas' },
-          { id: 'gastosgenerales', label: 'Gastos Generales', path: 'GastosGenerales.html', permiso: 'Gastos Generales' },
-          { id: 'nomina', label: 'Nómina', path: 'Nomina.html', permiso: 'Nómina' }
+          { id: 'finanzas', label: 'Finanzas', path: 'Finanzas.html',badge: 'finanzas', permiso: 'Finanzas' },
+          { id: 'gastosgenerales', label: 'Gastos Generales',badge: 'finanzas', path: 'GastosGenerales.html', permiso: 'Gastos Generales' },
+          { id: 'nomina', label: 'Nï¿½mina', path: 'Nomina.html',badge: 'finanzas', permiso: 'Nï¿½mina' }
         ]
       },
       { id: 'gtos-corporativos', label: 'Gastos Corporativos', path: 'Gtos_Corporativos.html', permiso: 'Gtos Corporativos' },
-      { id: 'membresia', label: 'Membresía', path: 'Membresía.html', permiso: 'Membresía' },
+      { id: 'membresia', label: 'Membresï¿½a', path: 'Membresï¿½a.html', permiso: 'Membresï¿½a' },
       { id: 'rh', label: 'Recursos Humanos', path: 'RH.html', permiso: 'RH' },
-      { id: 'serv-membresia', label: 'Servicios a la Membresía', path: 'Serv_Membresía.html', permiso: 'Serv Membresía' },
+      { id: 'serv-membresia', label: 'Servicios a la Membresï¿½a', path: 'Serv_Membresï¿½a.html', permiso: 'Serv Membresï¿½a' },
       { id: 'tic', label: 'T&IC', path: 'T&IC.html', permiso: 'T&IC' },
       { id: 'vpe', label: 'VPE', path: 'VPE.html', permiso: 'VPE' }
     ]
   },
   {
     id: 'panel-administracion',
-    label: 'Configuración',
+    label: 'Configuraciï¿½n',
     items: [
       { id: 'perfil', label: 'Mi Perfil', path: 'perfil.html', badge: 'perfil', public: true },
       { id: 'usuarios', label: 'Administrar usuarios', path: 'usuarios.html', badge: 'Permisos', requiresAdmin: true },

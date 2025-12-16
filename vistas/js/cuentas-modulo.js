@@ -2763,14 +2763,43 @@
     notificarCambios();
   };
 
+  const resaltarCeldaPresupuesto = (celda) => {
+    if (!celda) return;
+    if (celda.dataset.originalBgColor === undefined) {
+      celda.dataset.originalBgColor = celda.style.backgroundColor || '';
+    }
+    celda.classList.add('cell-modified');
+    celda.dataset.valorModificado = 'true';
+    celda.style.backgroundColor = '#fff4cc';
+  };
+
+  const limpiarResaltadoCeldaPresupuesto = (celda) => {
+    if (!celda) return;
+    celda.classList.remove('cell-modified');
+    delete celda.dataset.valorModificado;
+    if (celda.dataset.originalBgColor !== undefined) {
+      celda.style.backgroundColor = celda.dataset.originalBgColor;
+    } else {
+      celda.style.backgroundColor = '';
+    }
+  };
+
   const actualizarPresupuestoCelda = (fila, clave, celda) => {
     if (!fila || !clave || !celda) return;
     const cuenta = fila.dataset.cuenta21 || '';
     const almacen = estadoModulo.valoresPorCuenta.get(cuenta) || {};
+    const previo = Object.prototype.hasOwnProperty.call(almacen, clave)
+      ? Number(almacen[clave])
+      : null;
     const valor = parsearNumero(celda.textContent);
     almacen[clave] = valor;
     estadoModulo.valoresPorCuenta.set(cuenta, almacen);
     celda.textContent = formatearNumero(valor);
+    if (previo == null || Math.abs(previo - valor) > 0.0001) {
+      resaltarCeldaPresupuesto(celda);
+    } else {
+      limpiarResaltadoCeldaPresupuesto(celda);
+    }
     recalcularTotalesFilaPresupuesto(fila);
     recalcularSumas();
     estadoModulo.hayCambios = true;

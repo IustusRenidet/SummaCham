@@ -1057,18 +1057,43 @@
       if (this.state.editMode) return;
       this.state.editMode = true;
       if (!silent) this.state.hayCambios = false;
+      const borradorPrevio = this.state.borrador || {};
+      const autorNombre =
+        borradorPrevio.autorNombre ||
+        this.state.usuario?.nombre ||
+        this.state.usuario?.usuario ||
+        "";
+      const marcaTemporal = new Date().toISOString();
+      const dataActual =
+        borradorPrevio.data && typeof borradorPrevio.data === "object"
+          ? borradorPrevio.data
+          : { presupuesto: [] };
+      if (!Array.isArray(dataActual.presupuesto)) {
+        dataActual.presupuesto = [];
+      }
+      this.state.borrador = {
+        ...borradorPrevio,
+        estado: ESTADOS.EDITANDO,
+        estadoRaw: ESTADOS.EDITANDO,
+        autorNombre,
+        fechaEnvio: borradorPrevio.fechaEnvio || marcaTemporal,
+        data: dataActual,
+        esTemporal: borradorPrevio.esTemporal ?? !borradorPrevio.id,
+      };
       this.tableElement?.classList.add("modo-edicion");
       window.CuentasModulo?.setEditMode?.(true);
       // Activar ModoEdicionPresupuesto para habilitar edición de celdas numéricas (que SÍ se insertan a COI)
       if (window.ModoEdicionPresupuesto?.activar) {
         try { 
           window.ModoEdicionPresupuesto.activar();
-          console.log('🟢 Flujo Autorización: modo edición ACTIVADO (celdas numéricas editables)');
+          console.log('?? Flujo Autorizaci¢n: modo edici¢n ACTIVADO (celdas numéricas editables)');
         } catch (e) { 
           console.warn('Error activando ModoEdicionPresupuesto:', e);
         }
       }
+      this._renderInfo();
       this._renderBotones();
+      this._notificarEstadoBorrador(this.state.borrador);
     }
 
     _exitEditMode(skipCancel = false) {
@@ -2412,6 +2437,21 @@
     const textoAccion = (accion) =>
       HISTORIAL_ACCIONES[accion] || accion || "Movimiento";
 
+    const obtenerEmpresaDesdeSelect = () => {
+      const selectores = [
+        document.getElementById("companyFilter"),
+        document.querySelector('[data-role="empresa-select"]'),
+        document.querySelector("select[name='empresaId']"),
+      ];
+      for (const selector of selectores) {
+        const valor = selector?.value?.trim();
+        if (valor) {
+          return valor;
+        }
+      }
+      return null;
+    };
+
     const asignarOpciones = (select, opciones, seleccionado) => {
       if (!select) return;
       const base = select.querySelector('option[value=""]');
@@ -2493,14 +2533,22 @@
         const empresa = window.Sesion.obtenerEmpresaActiva();
         if (empresa?.id) contexto.empresaId = empresa.id;
       }
+      if (!contexto.empresaId) {
+        const seleccion = obtenerEmpresaDesdeSelect();
+        if (seleccion) {
+          contexto.empresaId = seleccion;
+        }
+      }
       if (!contexto.modulo)
         contexto.modulo = document.body?.dataset?.modulo || "";
       if (!contexto.anio || Number(contexto.anio) < 2000) {
         const candidatos = [
+          document.querySelector("[data-role='module-year-select']")?.value,
           document.getElementById("selectAnio")?.value,
           document.getElementById("summaryYearSelect")?.value,
           document.getElementById("resumenYearSelect")?.value,
           document.getElementById("presupuestosYearSelect")?.value,
+          document.body?.dataset?.anio,
         ]
           .map((valor) => {
             const numero = Number(valor);

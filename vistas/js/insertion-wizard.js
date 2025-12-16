@@ -81,7 +81,7 @@
             required: ['numero', 'nombre'],
             // Cuenta puede ir directo a SECCIÓN o dentro de OPERACIÓN (opcional)
             hierarchy: ['seccion', 'capitulo'],
-            hierarchyOptional: ['operacion'], // Si hay operación, va cuenta→operación→sección
+            hierarchyOptional: ['operacion'], // Si hay operación, va cuenta->operación→sección
             format: /^\d{3}-\d{3}-\d{3}-\d{2}$/,
             formatLabel: 'XXX-XXX-XXX-XX (ej: 401-001-000-00)'
           },
@@ -149,27 +149,54 @@
      * Obtiene el capítulo actual desde el selector global de empresa
      */
     getCurrentCapitulo() {
-      // Usar SOLO el companyFilter global - ya no hay selectores locales de capítulo
-      const companySelect = document.getElementById('companyFilter');
-      
-      if (!companySelect || !companySelect.value) {
-        console.warn('⚠️ No se encontró selector global de empresa (companyFilter)');
+      const mapearCapitulo = (empresaId) => {
+        if (!empresaId) return '';
+        if (window.CapitulosModulos && typeof window.CapitulosModulos.empresaACapitulo === 'function') {
+          const capitulo = window.CapitulosModulos.empresaACapitulo(empresaId);
+          if (capitulo) {
+            console.log('? Cap¡tulo detectado via CapitulosModulos:', empresaId, '→', capitulo);
+            return capitulo;
+          }
+        }
         return '';
+      };
+
+      const posiblesSelectores = [
+        document.getElementById('companyFilter'),
+        document.getElementById('empresaFilter'),
+        document.querySelector('[data-role="empresa-select"]'),
+        document.querySelector('select[name="empresaId"]')
+      ];
+      const selectorActivo = posiblesSelectores.find((el) => el && el.value);
+      if (selectorActivo) {
+        const empresaId = selectorActivo.value;
+        const capitulo = mapearCapitulo(empresaId);
+        if (capitulo) return capitulo;
+        const selectedText = selectorActivo.selectedOptions?.[0]?.text?.trim();
+        console.log('?? Usando selector visible para cap¡tulo:', selectedText || empresaId);
+        return selectedText || empresaId || '';
       }
 
-      const empresaId = companySelect.value;
-      
-      // Usar CapitulosModulos para mapear empresaId -> capítulo
-      if (window.CapitulosModulos && typeof window.CapitulosModulos.empresaACapitulo === 'function') {
-        const capitulo = window.CapitulosModulos.empresaACapitulo(empresaId);
-        console.log('✅ Capítulo desde companyFilter:', empresaId, '→', capitulo);
-        return capitulo || '';
+      const empresaActiva = window.Sesion?.obtenerEmpresaActiva?.();
+      if (empresaActiva) {
+        const capitulo = mapearCapitulo(empresaActiva.id);
+        if (capitulo) return capitulo;
+        if (empresaActiva.capitulo) return empresaActiva.capitulo;
+        if (empresaActiva.etiqueta) return empresaActiva.etiqueta;
+        if (empresaActiva.nombre) return empresaActiva.nombre;
       }
 
-      // Fallback: usar el texto del select
-      const selectedText = companySelect.selectedOptions?.[0]?.text || empresaId;
-      console.log('⚠️ Usando texto del select como capítulo:', selectedText);
-      return selectedText;
+      const datasetCapitulo =
+        document.body?.dataset?.capitulo ||
+        document.body?.dataset?.empresa ||
+        document.body?.dataset?.empresaNombre ||
+        '';
+      if (datasetCapitulo) {
+        return datasetCapitulo;
+      }
+
+      console.warn('?? No se encontr¢ selector global de empresa (companyFilter)');
+      return '';
     },
 
     /**
