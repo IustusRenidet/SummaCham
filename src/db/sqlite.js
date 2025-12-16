@@ -3,6 +3,7 @@ const fs = require("fs");
 const { ensureActiveBinary } = require("../utils/betterSqlite3Manager");
 const {
   seedLayoutsFromJson,
+  seedLayoutsDesdeExcelCdMx,
   resolverDirectorioInfoImportante,
 } = require("../services/layoutSeeder");
 
@@ -38,6 +39,14 @@ const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
 const { MODULOS } = require("../config/modulos");
 const { EMPRESAS } = require("../config/empresas");
+const {
+  normalizarUsuario,
+  limpiarPermisosLista,
+  esUsuarioPermitidoResumen,
+  esAdministradorHistorico,
+  esModuloRestringido,
+  MODULOS_RESTRINGIDOS
+} = require("../services/usuariosPolicy");
 
 const VISTAS_POR_CAPITULO = {
   empresa1: [
@@ -540,6 +549,14 @@ const crearTablas = () => {
   `).run();
 };
 
+const permisosCompletos = (permiso = {}) => ({
+  ...permiso,
+  puede_leer: 1,
+  puede_cargar_guardar: 1,
+  puede_revisar: 1,
+  puede_aprobar: 1
+});
+
 const sembrarUsuariosDesdeJson = () => {
   try {
     const rutaSeed = path.join(__dirname, "../config/seed_users.json");
@@ -574,23 +591,31 @@ const sembrarUsuariosDesdeJson = () => {
 
     const transaction = db.transaction(() => {
       seedUsers.forEach((u) => {
-        // Create user with real data from JSON
+        const usuarioNormalizado = normalizarUsuario(u.username);
+        const permisosFiltrados = limpiarPermisosLista({
+          lista: Array.isArray(u.permissions) ? u.permissions : [],
+          usuario: usuarioNormalizado
+        });
+        const permisosNormalizados = esAdminHistorico
+          ? permisosFiltrados.map((permiso) => permisosCompletos(permiso))
+          : permisosFiltrados;
         const apellido1 = u.apellidoPrimero || u.username;
         const apellido2 = u.apellidoSegundo || '';
         const apellidosCompletos = [apellido1, apellido2].filter(Boolean).join(' ');
-        const esAdminGlobal = u.esAdminGlobal ? 1 : 0;
-        const puedeAgregar = u.puedeAgregar ? 1 : 0;
-        const puedeModificar = u.puedeModificar ? 1 : 0;
-        const puedeEliminar = u.puedeEliminar ? 1 : 0;
+        const esAdminHistorico = esAdministradorHistorico(usuarioNormalizado);
+        const esAdminGlobal = (u.esAdminGlobal || esAdminHistorico) ? 1 : 0;
+        const puedeAgregar = esAdminGlobal ? 1 : (u.puedeAgregar ? 1 : 0);
+        const puedeModificar = esAdminGlobal ? 1 : (u.puedeModificar ? 1 : 0);
+        const puedeEliminar = esAdminGlobal ? 1 : (u.puedeEliminar ? 1 : 0);
         console.log(
-          `Seeding user: ${u.username}`,
+          `Seeding user: ${usuarioNormalizado}`,
           u.nombres,
           apellido1,
           apellido2,
           esAdminGlobal ? '(ADMIN)' : ''
         );
         insertUser.run(
-          u.username,
+          usuarioNormalizado,
           u.nombres || u.username,
           apellido1,
           apellido2,
@@ -623,36 +648,38 @@ const sembrarUsuariosDesdeJson = () => {
             puedeAgregar,
             puedeModificar,
             puedeEliminar,
-            u.username
+            usuarioNormalizado
           );
         } catch (err) {
           // No bloquear el seeding por un error de actualización
-          console.warn('No fue posible actualizar usuario desde seed:', u.username, err?.message || err);
+          console.warn('No fue posible actualizar usuario desde seed:', usuarioNormalizado, err?.message || err);
         }
 
-        const userRow = getUser.get(u.username);
+        const userRow = getUser.get(usuarioNormalizado);
         if (!userRow) return;
 
         // Asignar permisos explícitos desde JSON
-        if (Array.isArray(u.permissions)) {
-          u.permissions.forEach((p) => {
-            insertPermission.run(
-              userRow.id,
-              p.empresaId,
-              p.modulo,
-              p.puede_leer ? 1 : 0,
-              p.puede_cargar_guardar ? 1 : 0,
-              p.puede_revisar ? 1 : 0,
-              p.puede_aprobar ? 1 : 0
-            );
-          });
-        }
+        permisosNormalizados.forEach((p) => {
+          insertPermission.run(
+            userRow.id,
+            p.empresaId,
+            p.modulo,
+            p.puede_leer ? 1 : 0,
+            p.puede_cargar_guardar ? 1 : 0,
+            p.puede_revisar ? 1 : 0,
+            p.puede_aprobar ? 1 : 0
+          );
+        });
 
         // Si el usuario es administrador global, asignar todos los permisos (por empresa y módulo)
-        if (u.esAdminGlobal) {
-          console.log(`Seeding admin global: asignando permisos completos a ${u.username}`);
+        if (esAdminGlobal) {
+          console.log(`Seeding admin global: asignando permisos completos a ${usuarioNormalizado}`);
+          const puedeVerResumen = esUsuarioPermitidoResumen(usuarioNormalizado);
           EMPRESAS.forEach((empresa) => {
             MODULOS.forEach((modulo) => {
+              if (!puedeVerResumen && esModuloRestringido(modulo)) {
+                return;
+              }
               insertPermission.run(userRow.id, empresa.id, modulo, 1, 1, 1, 1);
             });
           });
@@ -670,8 +697,13 @@ const sembrarUsuariosDesdeJson = () => {
         ) VALUES (?, ?, ?, 1, 1, 1, 1)
       `);
       admins.forEach((a) => {
+        const usuarioNormalizado = normalizarUsuario(a.usuario);
+        const puedeVerResumen = esUsuarioPermitidoResumen(usuarioNormalizado);
         EMPRESAS.forEach((empresa) => {
           MODULOS.forEach((modulo) => {
+            if (!puedeVerResumen && esModuloRestringido(modulo)) {
+              return;
+            }
             try {
               insertarPermiso.run(a.id, empresa.id, modulo);
             } catch (_) {
@@ -687,6 +719,36 @@ const sembrarUsuariosDesdeJson = () => {
     console.log(`Seeding completed: ${seedUsers.length} users processed.`);
   } catch (error) {
     console.error("Error seeding users:", error);
+  }
+};
+
+const limpiarPermisosResumenNoAutorizados = () => {
+  if (!db) return;
+  try {
+    const usuarios = db.prepare('SELECT id, usuario FROM usuarios').all();
+    if (!usuarios || !usuarios.length) return;
+    const eliminarPermiso = db.prepare(`
+      DELETE FROM permisos_modulo
+      WHERE usuario_id = ? AND modulo = ?
+    `);
+    const transaction = db.transaction((lista) => {
+      lista.forEach((registro) => {
+        const usuarioNormalizado = normalizarUsuario(registro.usuario);
+        if (esUsuarioPermitidoResumen(usuarioNormalizado)) {
+          return;
+        }
+        MODULOS_RESTRINGIDOS.forEach((modulo) => {
+          try {
+            eliminarPermiso.run(registro.id, modulo);
+          } catch (err) {
+            console.warn('No fue posible eliminar permiso restringido:', err?.message || err);
+          }
+        });
+      });
+    });
+    transaction(usuarios);
+  } catch (err) {
+    console.warn('No fue posible limpiar permisos restringidos:', err?.message || err);
   }
 };
 
@@ -841,10 +903,11 @@ const intentarSembrarLayoutsIniciales = () => {
   if (!db) {
     return;
   }
+  const baseDir = resolverDirectorioInfoImportante();
   try {
     const resultado = seedLayoutsFromJson({
       db,
-      baseDir: resolverDirectorioInfoImportante(),
+      baseDir,
       force: false,
     });
     if (resultado?.ejecutado) {
@@ -855,6 +918,31 @@ const intentarSembrarLayoutsIniciales = () => {
   } catch (error) {
     console.warn(
       "[SQLite] No fue posible sembrar layouts iniciales:",
+      error?.message || error
+    );
+  }
+
+  const aniosCdMx = [];
+  for (let anio = 2005; anio <= 2025; anio += 1) {
+    aniosCdMx.push(anio);
+  }
+
+  try {
+    const resultadoExcel = seedLayoutsDesdeExcelCdMx({
+      db,
+      baseDir,
+      empresaId: "EMPRESA01",
+      capitulo: "CIUDAD DE MÉXICO",
+      anios: aniosCdMx
+    });
+    if (resultadoExcel?.ejecutado) {
+      console.log(
+        `✓ Layouts CDMX: ${resultadoExcel.cuentas} cuentas, ${resultadoExcel.operaciones} operaciones (Excel)`
+      );
+    }
+  } catch (error) {
+    console.warn(
+      "[SQLite] No fue posible sembrar layouts CDMX desde Excel:",
       error?.message || error
     );
   }
@@ -894,9 +982,13 @@ const inicializarBaseDatos = () => {
             const idRow = db.prepare('SELECT id FROM usuarios WHERE usuario = ?').get(usuarioUpper);
             if (idRow && idRow.id) {
               const usuarioId = idRow.id;
+              const puedeVerResumen = esUsuarioPermitidoResumen(usuarioUpper);
               EMPRESAS.forEach((empresa) => {
                 MODULOS.forEach((modulo) => {
                   try {
+                    if (!puedeVerResumen && esModuloRestringido(modulo)) {
+                      return;
+                    }
                     insertarPermiso.run(usuarioId, empresa.id, modulo);
                   } catch (err2) {
                     // no bloquear
@@ -941,6 +1033,7 @@ const inicializarBaseDatos = () => {
     }
   };
   asegurarPermisosParaAdminsGlobales();
+  limpiarPermisosResumenNoAutorizados();
   sembrarUsuariosDesdeJson();
   sembrarVistasPorCapitulo();
   console.log('✓ Base de datos SQLite inicializada');

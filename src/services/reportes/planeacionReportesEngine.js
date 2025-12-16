@@ -217,8 +217,27 @@ const sumarTotales = (destino, origen, factor = 1) => {
   return destino;
 };
 
-const construirNodoSeccion = ({ seccion, cuentas, definicion, claveMes, planeacionActual, planeacionPrev, orden = 0 }) => {
-  const totales = calcularTotales(cuentas, claveMes, planeacionActual, planeacionPrev);
+const construirNodoSeccion = ({ seccion, cuentas, definicion, claveMes, planeacionActual, planeacionPrev, orden = 0, capituloClave = '' }) => {
+  let totales = calcularTotales(cuentas, claveMes, planeacionActual, planeacionPrev);
+
+  // Excluir Cargos Administrativos de SUMAS de EXPENSE para capítulo Guadalajara
+  const seccionNorm = (seccion || '').toString().trim().toUpperCase();
+  const capNorm = (capituloClave || '').toString().trim().toUpperCase();
+  const CAPITULOS_EXCLUSION_CARGOS = [
+    'GUADALAJARA',
+    'GDL',
+    'NORESTE',
+    'MONTERREY',
+    'NOROESTE',
+    'NORTHWEST',
+    'NO'
+  ];
+  const debeExcluirCapitulo = CAPITULOS_EXCLUSION_CARGOS.some((token) => capNorm.includes(token));
+  const esCargosAdminExcluido = debeExcluirCapitulo && seccionNorm.includes('CARGOS ADMINISTRATIVOS');
+  if (esCargosAdminExcluido) {
+    // No sumar estos totales en los niveles superiores
+    totales = { actualMonth: 0, planMonth: 0, prevMonth: 0, actualYTD: 0, planYTD: 0, prevYTD: 0 };
+  }
 
   const cuentasDetalle = cuentas.map((cuentaId) => {
     const actual = planeacionActual.find((p) => p.cuenta === cuentaId) || {};
@@ -245,7 +264,7 @@ const construirNodoSeccion = ({ seccion, cuentas, definicion, claveMes, planeaci
     };
   });
 
-  return {
+    return {
     label: seccion,
     cuentas: cuentasDetalle,
     orden,
@@ -255,6 +274,8 @@ const construirNodoSeccion = ({ seccion, cuentas, definicion, claveMes, planeaci
     totalActualYTD: totales.actualYTD,
     totalPlanYTD: totales.planYTD,
     totalPrevYTD: totales.prevYTD,
+      // Flag to indicate excluded-from-expense sections (useful for UI)
+      excludeFromExpense: esCargosAdminExcluido || false,
     total: totales.actualYTD
   };
 };
@@ -500,7 +521,8 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
       claveMes,
       planeacionActual,
       planeacionPrev,
-      orden: sec.orden
+      orden: sec.orden,
+      capituloClave: capituloSeleccionado
     }));
 
     const totalesPrincipal = children.reduce(

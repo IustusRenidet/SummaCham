@@ -26,10 +26,11 @@
         {
           id: "finanzas-cluster",
           label: "Finanzas",
+          badge: "finanzas",
           items: [
-            { id: "finanzas", label: "Finanzas", path: "Finanzas.html", permiso: "Finanzas" },
-            { id: "gastosgenerales", label: "Gastos Generales", path: "GastosGenerales.html", permiso: "Gastos Generales" },
-            { id: "nomina", label: "Nómina", path: "Nomina.html", permiso: "Nómina" }
+            { id: "finanzas", label: "Finanzas", path: "Finanzas.html", badge: "finanzas", permiso: "Finanzas" },
+            { id: "gastosgenerales", label: "Gastos Generales", path: "GastosGenerales.html", badge: "finanzas", permiso: "Gastos Generales" },
+            { id: "nomina", label: "Nómina", path: "Nomina.html", badge: "finanzas", permiso: "Nómina" }
           ]
         },
         { id: "gtos-corporativos", label: "Gastos Corporativos", path: "Gtos_Corporativos.html", permiso: "Gtos Corporativos" },

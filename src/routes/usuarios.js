@@ -5,11 +5,17 @@ const { db } = require('../db/sqlite');
 const { EMPRESAS } = require('../config/empresas');
 const { MODULOS, construirMapaPermisos } = require('../services/permisosService');
 const { requireAuth } = require('../middleware/auth');
+const {
+  normalizarUsuario,
+  limpiarPermisosMapa,
+  asegurarPermisosGeneralesAdmin,
+  esAdministradorHistorico,
+  esUsuarioPermitidoResumen,
+  esModuloRestringido
+} = require('../services/usuariosPolicy');
 
 const router = express.Router();
 const ACCIONES_PERMISOS = ['Ver', 'Cargar y guardar', 'Revisar', 'Aprobar'];
-
-const normalizarUsuario = (valor = '') => valor.toString().trim().toUpperCase();
 
 const schemaPermisosModulo = Joi.object(
   MODULOS.reduce((acumulado, modulo) => {
@@ -115,7 +121,12 @@ const aplicarPermisos = (usuarioId, permisos) => {
 };
 
 // Asignar todos los permisos (leer, cargar, revisar, aprobar) para todas las empresas y módulos
+const stmtUsuarioPorId = db.prepare('SELECT usuario FROM usuarios WHERE id = ?');
+
 const asignarPermisosCompletos = (usuarioId) => {
+  const registro = stmtUsuarioPorId.get(usuarioId);
+  const usuarioNormalizado = normalizarUsuario(registro?.usuario || '');
+  const puedeVerResumen = esUsuarioPermitidoResumen(usuarioNormalizado);
   const insertarPermiso = db.prepare(`
     INSERT OR IGNORE INTO permisos_modulo (
       usuario_id, empresa_id, modulo, puede_leer, puede_cargar_guardar, puede_revisar, puede_aprobar
@@ -124,6 +135,9 @@ const asignarPermisosCompletos = (usuarioId) => {
 
   EMPRESAS.forEach((empresa) => {
     MODULOS.forEach((modulo) => {
+      if (!puedeVerResumen && esModuloRestringido(modulo)) {
+        return;
+      }
       try {
         insertarPermiso.run(usuarioId, empresa.id, modulo);
       } catch (err) {
@@ -287,6 +301,19 @@ router.post('/', asegurarPermisoGeneral('puedeAgregar'), (req, res) => {
     usuarioNormalizado = 'ICONET';
   }
 
+  payload.permisos = limpiarPermisosMapa({
+    permisos: payload.permisos,
+    usuario: usuarioNormalizado
+  });
+
+  if (esAdministradorHistorico(usuarioNormalizado)) {
+    payload.esAdminGlobal = true;
+  }
+  payload.permisosGenerales = asegurarPermisosGeneralesAdmin(
+    usuarioNormalizado,
+    payload.permisosGenerales
+  );
+
   const existente = db.prepare('SELECT id FROM usuarios WHERE usuario = ?').get(usuarioNormalizado);
   if (existente) {
     return res.status(409).json({ mensaje: 'El usuario ya existe.' });
@@ -377,6 +404,19 @@ router.put('/:id', asegurarPermisoGeneral('puedeModificar'), (req, res) => {
     payload = forzarPermisosIconet(payload);
     usuarioNormalizado = 'ICONET';
   }
+
+  payload.permisos = limpiarPermisosMapa({
+    permisos: payload.permisos,
+    usuario: usuarioNormalizado
+  });
+
+  if (esAdministradorHistorico(usuarioNormalizado)) {
+    payload.esAdminGlobal = true;
+  }
+  payload.permisosGenerales = asegurarPermisosGeneralesAdmin(
+    usuarioNormalizado,
+    payload.permisosGenerales
+  );
 
   const totalPermisos = Object.values(payload.permisos || {}).reduce((acum, modulos) => {
     return acum + Object.values(modulos || {}).length;

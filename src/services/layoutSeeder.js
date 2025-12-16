@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const XLSX = require("xlsx");
 
 const EMPRESA_DEFAULT = "EMPRESA01";
 
@@ -27,10 +28,32 @@ const preferirValor = (obj = {}, claves = [], fallback = "") => {
 const normalizarTexto = (valor, defecto = "") =>
   valor == null ? defecto : String(valor).trim();
 
+const limpiarTextoPlano = (valor) =>
+  valor == null ? "" : String(valor).trim();
+
+const normalizarClaveExcel = (valor) =>
+  limpiarTextoPlano(valor)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase();
+
 const normalizarCapitulo = (valor) => {
   const texto = normalizarTexto(valor);
   return texto || "DEFAULT";
 };
+
+const generarRangoAnios = (inicio, fin) => {
+  const lista = [];
+  for (let anio = inicio; anio <= fin; anio += 1) {
+    lista.push(anio);
+  }
+  return lista;
+};
+
+const ANIOS_RESUMEN_ANTIGUOS = generarRangoAnios(2005, 2024);
+const ANIOS_RESUMEN_NUEVOS = generarRangoAnios(2025, 2030);
+const ANIOS_MODULOS_OPERATIVOS = generarRangoAnios(2005, 2025);
+const ANIOS_CDMX_LAYOUT = generarRangoAnios(2005, 2025);
 
 const leerJsonSiExiste = (ruta) => {
   try {
@@ -103,6 +126,19 @@ const limpiarLayout = (db, { empresaId, modulo, anio }) => {
   ).run(...params);
   db.prepare(
     `DELETE FROM layout_secciones WHERE empresa_id = ? AND modulo = ? AND anio = ?`
+  ).run(...params);
+};
+
+const limpiarLayoutPorCapitulo = (db, { empresaId, modulo, anio, capitulo }) => {
+  const params = [empresaId, modulo, anio, capitulo];
+  db.prepare(
+    `DELETE FROM layout_cuentas WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ?`
+  ).run(...params);
+  db.prepare(
+    `DELETE FROM layout_operaciones WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ?`
+  ).run(...params);
+  db.prepare(
+    `DELETE FROM layout_secciones WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ?`
   ).run(...params);
 };
 
@@ -431,7 +467,7 @@ const procesarModulosOperativos = ({ db, empresaId, baseDir, archivo, force, res
     }
 
     const modulo = clave.trim();
-    const anios = [2022, 2023, 2024, 2025];
+    const anios = ANIOS_MODULOS_OPERATIVOS;
 
     anios.forEach((anio) => {
       if (!force) {
@@ -524,8 +560,8 @@ const seedLayoutsFromJson = ({
     baseDir: base,
     archivo: "CUENTAS SUMMARY y RESUMEN 2022-2024.json",
     modulos: [
-      { nombre: "SUMMARY", anios: [2022, 2023, 2024] },
-      { nombre: "RESUMEN", anios: [2022, 2023, 2024] },
+      { nombre: "SUMMARY", anios: ANIOS_RESUMEN_ANTIGUOS },
+      { nombre: "RESUMEN", anios: ANIOS_RESUMEN_ANTIGUOS },
     ],
     force,
     resumen,
@@ -537,8 +573,8 @@ const seedLayoutsFromJson = ({
     baseDir: base,
     archivo: "CUENTAS SUMMARY y RESUMEN 2025.json",
     modulos: [
-      { nombre: "SUMMARY", anios: [2025] },
-      { nombre: "RESUMEN", anios: [2025] },
+      { nombre: "SUMMARY", anios: ANIOS_RESUMEN_NUEVOS },
+      { nombre: "RESUMEN", anios: ANIOS_RESUMEN_NUEVOS },
     ],
     force,
     resumen,
@@ -549,7 +585,7 @@ const seedLayoutsFromJson = ({
     empresaId,
     baseDir: base,
     archivo: "CUENTAS SUMMARY.json",
-    modulos: [{ nombre: "SUMMARY", anios: [2025] }],
+    modulos: [{ nombre: "SUMMARY", anios: ANIOS_RESUMEN_NUEVOS }],
     force,
     resumen,
   });
@@ -560,8 +596,8 @@ const seedLayoutsFromJson = ({
     baseDir: base,
     archivo: "CUENTAS SUMMARY y RESUMEN.json",
     modulos: [
-      { nombre: "SUMMARY", anios: [2025] },
-      { nombre: "RESUMEN", anios: [2025] },
+      { nombre: "SUMMARY", anios: ANIOS_RESUMEN_NUEVOS },
+      { nombre: "RESUMEN", anios: ANIOS_RESUMEN_NUEVOS },
     ],
     force,
     resumen,
@@ -584,7 +620,157 @@ const seedLayoutsFromJson = ({
   };
 };
 
+const seedLayoutsDesdeExcelCdMx = ({
+  db,
+  baseDir = null,
+  empresaId = EMPRESA_DEFAULT,
+  capitulo = 'CIUDAD DE MÉXICO',
+  anios = ANIOS_CDMX_LAYOUT,
+} = {}) => {
+  if (!db) {
+    throw new Error("seedLayoutsDesdeExcelCdMx requiere una conexión SQLite activa");
+  }
+
+  const base = baseDir || resolverDirectorioInfoImportante();
+  if (!base) {
+    console.warn("[layoutSeeder] No se encontró el directorio 'info IMPORTANTE'.");
+    return { ejecutado: false, motivo: "sin_directorio" };
+  }
+
+  const archivoExcel = path.join(base, "CUENTAS GASTOS GENERALES Y FINANZAS CDMX.xlsx");
+  if (!fs.existsSync(archivoExcel)) {
+    console.warn(`[layoutSeeder] No se encontró el archivo de Excel CDMX: ${archivoExcel}`);
+    return { ejecutado: false, motivo: "sin_excel" };
+  }
+
+  const libro = XLSX.readFile(archivoExcel, { cellDates: false });
+  const hojaOperaciones = libro.Sheets["SUMA DE VARIAS SECCIONES"];
+  const operacionesGlobales = hojaOperaciones
+    ? XLSX.utils.sheet_to_json(hojaOperaciones, { defval: "" })
+    : [];
+
+  const resumen = { ejecutado: true, cuentas: 0, operaciones: 0, detalles: [] };
+  const insertCuenta = prepararInsertarCuenta(db);
+  const insertSeccion = prepararInsertarSeccion(db);
+  const insertOperacion = prepararInsertarOperacion(db);
+  const capituloNormalizado = normalizarClaveExcel(capitulo);
+
+  const modulosExcel = [
+    { hoja: "Gastos Generales", modulo: "Gastos Generales" },
+    { hoja: "Finanzas", modulo: "Finanzas" }
+  ];
+
+  modulosExcel.forEach((def) => {
+    const hoja = libro.Sheets[def.hoja];
+    if (!hoja) {
+      resumen.detalles.push(`Hoja '${def.hoja}' no encontrada en Excel.`);
+      return;
+    }
+
+    const filasHoja = XLSX.utils.sheet_to_json(hoja, { defval: "" }) || [];
+    const cuentas = filasHoja
+      .map((row, idx) => {
+        const cuenta = limpiarTextoPlano(row.CUENTA);
+        const seccion = limpiarTextoPlano(row.SECCION);
+        const capituloFila = normalizarClaveExcel(row.CAPITULO);
+        if (!cuenta || capituloFila !== capituloNormalizado) {
+          return null;
+        }
+        return {
+          cuenta,
+          nombre: limpiarTextoPlano(row.NOMBRE) || cuenta,
+          seccion,
+          orden: idx
+        };
+      })
+      .filter(Boolean);
+
+    if (!cuentas.length) {
+      resumen.detalles.push(`Hoja '${def.hoja}' sin cuentas para ${capitulo}.`);
+      return;
+    }
+
+    const operacionesFiltradas = operacionesGlobales
+      .filter((fila) => {
+        return (
+          normalizarClaveExcel(fila.HOJA) === normalizarClaveExcel(def.hoja) &&
+          normalizarClaveExcel(fila.CAPITULO) === capituloNormalizado
+        );
+      })
+      .map((fila, idx) => ({
+        CAPITULO: capitulo,
+        Clase: `${def.modulo}-${fila.SECCION || `Operacion${idx + 1}`}`.trim(),
+        SECCION: limpiarTextoPlano(fila.SECCION),
+        ...fila
+      }));
+
+    anios.forEach((anio) => {
+      limpiarLayoutPorCapitulo(db, {
+        empresaId,
+        modulo: def.modulo,
+        anio,
+        capitulo
+      });
+
+      let insertadasOperaciones = 0;
+      const tx = db.transaction(() => {
+        const seccionesRegistradas = new Set();
+        cuentas.forEach((fila, idx) => {
+          const orden = Number.isFinite(Number(fila.orden)) ? Number(fila.orden) : idx;
+          insertCuenta.run(
+            empresaId,
+            def.modulo,
+            anio,
+            fila.cuenta,
+            fila.nombre,
+            capitulo,
+            fila.seccion || '',
+            null,
+            orden
+          );
+          if (fila.seccion) {
+            const clave = `${capitulo}::${fila.seccion}`;
+            if (!seccionesRegistradas.has(clave)) {
+              insertSeccion.run(
+                empresaId,
+                def.modulo,
+                anio,
+                capitulo,
+                fila.seccion,
+                null,
+                "principal",
+                orden
+              );
+              seccionesRegistradas.add(clave);
+            }
+          }
+        });
+
+        const opsInsertadas = sembrarOperaciones({
+          db,
+          empresaId,
+          modulo: def.modulo,
+          anio,
+          operaciones: operacionesFiltradas,
+          insertOperacion
+        });
+        insertadasOperaciones = opsInsertadas;
+        resumen.operaciones += opsInsertadas;
+      });
+
+      tx();
+      resumen.cuentas += cuentas.length;
+      resumen.detalles.push(
+        `${def.modulo} ${anio}: ${cuentas.length} cuentas, ${insertadasOperaciones} operaciones`
+      );
+    });
+  });
+
+  return resumen;
+};
+
 module.exports = {
   seedLayoutsFromJson,
+  seedLayoutsDesdeExcelCdMx,
   resolverDirectorioInfoImportante,
 };

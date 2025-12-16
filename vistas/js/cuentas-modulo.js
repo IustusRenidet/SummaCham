@@ -6,6 +6,7 @@
   const EVENTO_TABLA_ACTUALIZADA = 'modulo-planeacion:tabla-actualizada';
   const EVENTO_CONTEXTO = 'planeacion:contexto-actualizado';
   const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  const CLAVE_MES_A_PERIODO = new Map(MESES.map((clave, idx) => [clave, idx + 1]));
 
   const normalizarTexto = (valor) => {
     if (valor == null) return '';
@@ -265,6 +266,7 @@
     tabla: null,
     ultimaSolicitud: 0,
     anio: null,
+    periodoCerrado: null,
     tooltips: [],
     editMode: false,
     editSnapshot: null,
@@ -292,6 +294,24 @@
   };
   let moduloReadyDispatched = false;
   let panelPrincipales = null;
+
+  const normalizarPeriodo = (valor) => {
+    const numero = Number(valor);
+    if (Number.isInteger(numero) && numero >= 1 && numero <= MESES.length) {
+      return numero;
+    }
+    return null;
+  };
+
+  const obtenerPeriodoCerrado = () => normalizarPeriodo(estadoModulo.periodoCerrado);
+
+  const obtenerIndicePeriodoActual = () => {
+    const periodo = obtenerPeriodoCerrado();
+    if (periodo != null) {
+      return Math.max(0, Math.min(periodo - 1, MESES.length - 1));
+    }
+    return new Date().getMonth();
+  };
 
   const MODAL_SECCION_ID = 'sectionModal';
   const crearModalSeccion = () => {
@@ -944,7 +964,7 @@
       return Number.isFinite(n) ? n : 0;
     };
     // Obtener mes actual (0-11, donde 0=enero, 11=diciembre)
-    const mesActualIndex = new Date().getMonth();
+    const mesActualIndex = obtenerIndicePeriodoActual();
     const mesActualClave = MESES[mesActualIndex] || 'dic'; // ene, feb, mar, etc.
     
     obtenerFilasCuenta().forEach((fila) => {
@@ -1109,6 +1129,24 @@
         const celda = fila.cells[idx];
         if (celda) {
           celda.style.display = ocultar ? 'none' : '';
+        }
+      });
+    });
+  };
+
+  const aplicarFiltroColumnasPorPeriodo = () => {
+    if (!estadoModulo.tabla) return;
+    const periodoLimite = obtenerPeriodoCerrado();
+    const filas = Array.from(estadoModulo.tabla.querySelectorAll('tr'));
+    Object.entries(estadoModulo.columnas || {}).forEach(([clave, idx]) => {
+      if (!clave.startsWith('real-')) return;
+      const mesClave = clave.replace('real-', '');
+      const mesNumero = CLAVE_MES_A_PERIODO.get(mesClave) || null;
+      const debeOcultar = periodoLimite != null && mesNumero && mesNumero > periodoLimite;
+      filas.forEach((fila) => {
+        const celda = fila.cells[idx];
+        if (celda) {
+          celda.style.display = debeOcultar ? 'none' : '';
         }
       });
     });
@@ -1575,6 +1613,7 @@
     const placeholders = resolverPlaceholdersPorFila(placeholdersPorFila, cuerpo);
     const secciones = new Map();
     const faltantesNombre = new Set();
+    const moduloEsGastosGenerales = normalizarModuloClave(moduloClave) === 'gastosgenerales';
     registros.forEach((item) => {
       const clave = item.seccion || 'SIN SECCION';
       if (!secciones.has(clave)) {
@@ -1645,6 +1684,10 @@
         (sheetName && capitulo ? obtenerSumasConfig(sheetName, capitulo, seccion) : null);
       const sumas = aplicarOperacionesPorModulo(moduloClave, seccion, sumasBase) || sumasBase;
       const etiquetaSumRow = (sumas?.sumRow || '').trim() || `Suma ${seccion}`;
+      const seccionNormalizada = normalizarTexto(seccion);
+      const sumRowNormalizada = normalizarTexto(etiquetaSumRow);
+      const requiereAjusteUtilidad = moduloEsGastosGenerales &&
+        (seccionNormalizada.includes('GASTOS FINANCIEROS') || sumRowNormalizada.includes('GASTOS FINANCIEROS'));
       const resultRowTexts = [];
       if (forcedResultTexto) {
         resultRowTexts.push(forcedResultTexto);
@@ -1675,7 +1718,8 @@
         ,
         // Detectar factor/operación: si en la configuración hay operacionFactor usarlo,
         // si el nombre es de tipo gastos/expense lo marcamos con -1
-        factor: Number.isFinite(sumas?.operacionFactor) ? sumas.operacionFactor : (/(GASTOS|EXPENSE)/i.test(seccion) ? -1 : 1)
+        factor: Number.isFinite(sumas?.operacionFactor) ? sumas.operacionFactor : (/(GASTOS|EXPENSE)/i.test(seccion) ? -1 : 1),
+        restarUtilidadCambiaria: requiereAjusteUtilidad
       };
       if (etiquetaSumRow) {
         metaSeccion.elementos.sumRow = agregarFilaResumen({
@@ -2233,6 +2277,7 @@
 
   const actualizarEstructuraDespuesCambio = () => {
     aplicarModoEdicionEnTabla();
+    aplicarFiltroColumnasPorPeriodo();
     recalcularSumas();
     // NO persistir automáticamente - marcar como modificado para guardado explícito
     estadoModulo.layoutModificado = true;
@@ -2591,6 +2636,8 @@
    * - Suma los sumValues de secciones agrupadas
    * - Actualiza las filas sumavarios en el DOM
    */
+  const descripcionUtilidadCambiaria = (fila) => normalizarTexto(obtenerTextoCeldaDescripcion(fila)) === 'UTILIDAD CAMBIARIA';
+
   const recalcularSumas = () => {
     const meta = estadoModulo.sumas;
     if (!meta || !Array.isArray(meta.secciones) || meta.secciones.length === 0) {
@@ -2626,12 +2673,13 @@
           if (!fila || !fila.dataset) return Array.from({ length: longitud }, () => 0);
           const cuenta = fila.dataset.cuenta21 || '';
           const almacenados = estadoModulo.valoresPorCuenta?.get(cuenta);
-          if (almacenados) {
-            // Obtener valores desde el Map (más confiable)
-            return clavesOrdenadas.map((clave) => almacenados[clave] ?? 0);
+          const valores = almacenados
+            ? clavesOrdenadas.map((clave) => almacenados[clave] ?? 0)
+            : extraerValoresNumericos(fila);
+          if (seccion.restarUtilidadCambiaria && descripcionUtilidadCambiaria(fila)) {
+            return valores.map((valor) => (Number(valor) || 0) * -1);
           }
-          // Si no está en el Map, extraer del DOM
-          return extraerValoresNumericos(fila);
+          return valores;
         });
         
         // Sumar todas las filas columna por columna
@@ -2826,6 +2874,7 @@
   const limpiarModoEdicionEnTabla = () => {
     if (!estadoModulo.tabla) return;
     ocultarColumnasReal(false);
+    aplicarFiltroColumnasPorPeriodo();
     obtenerFilasCuenta().forEach((fila) => {
       Array.from(fila.cells).forEach((celda) => {
         // CRÍTICO: Marcar que los listeners fueron removidos para evitar re-agregar
@@ -3031,6 +3080,7 @@
     estadoModulo.hayCambios = false;
     estadoModulo.editMode = false;
     aplicarModoEdicionEnTabla();
+    aplicarFiltroColumnasPorPeriodo();
     notificarCambios();
     ocultarMenuContextual();
     const empresa = Sesion.obtenerEmpresaActiva();
@@ -3294,6 +3344,7 @@
     solicitarDatos();
     activarTooltipsCuentas();
     aplicarModoEdicionEnTabla();
+    aplicarFiltroColumnasPorPeriodo();
     habilitarEdicionTextoBasica();
 
     // Actualizar SeccionCollapse después de renderizar la tabla
@@ -3337,13 +3388,19 @@
       if (moduloEvento && moduloEvento !== moduloActual) {
         return;
       }
-      const anioEvento = Number(evento?.detail?.anio);
-      if (Number.isInteger(anioEvento)) {
-        estadoModulo.anio = anioEvento;
-        poblarSugerenciasDesdeAnio(anioEvento);
-      }
-      solicitarDatos();
-    };
+    const anioEvento = Number(evento?.detail?.anio);
+    if (Number.isInteger(anioEvento)) {
+      estadoModulo.anio = anioEvento;
+      poblarSugerenciasDesdeAnio(anioEvento);
+    }
+    const periodoEvento = normalizarPeriodo(evento?.detail?.periodo);
+    if (periodoEvento != null) {
+      estadoModulo.periodoCerrado = periodoEvento;
+      estadoModulo.mesActualIndex = periodoEvento - 1;
+      aplicarFiltroColumnasPorPeriodo();
+    }
+    solicitarDatos();
+  };
     window.addEventListener(EVENTO_CONTEXTO, contextoListener);
     return {
       ready,

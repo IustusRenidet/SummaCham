@@ -403,6 +403,18 @@
         white-space: normal !important;
       }
 
+      /* Centrar texto en columna descripción */
+      #tablaComparacion th.col-descripcion,
+      #tablaComparacion td[data-role="descripcion"] {
+        text-align: center;
+      }
+
+      /* Secciones que están excluidas de expenses */
+      .excluded-expense {
+        background: rgba(0, 128, 128, 0.06); /* light cyan */
+        border-left: 4px solid rgba(0, 128, 128, 0.2);
+      }
+
       .percent-cell {
         font-variant-numeric: tabular-nums;
         font-weight: 600;

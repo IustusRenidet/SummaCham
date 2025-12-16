@@ -111,6 +111,64 @@
     result: 'Operating/Net Results definidos en "SUMA DE VARIAS SECCIONES"; combinan ingresos, gastos y otros ajustes segun el mapeo.'
   };
 
+  const collapsedSections = new Set();
+  let allCollapsed = false;
+  const collapseAllBtn = document.getElementById('collapseAllBtn');
+  const collapseAllLabel = document.getElementById('collapseAllLabel');
+
+  const obtenerNombreSeccion = (row) => (row?.dataset?.sectionName || '').trim();
+
+  function setSectionCollapseState(row, collapsed) {
+    if (!row) return;
+    const sectionName = obtenerNombreSeccion(row);
+    if (!sectionName) return;
+
+    const icono = row.querySelector('.collapse-icon');
+    if (collapsed) {
+      collapsedSections.add(sectionName);
+      if (icono) {
+        icono.className = 'bi bi-chevron-right collapse-icon me-2';
+      }
+    } else {
+      collapsedSections.delete(sectionName);
+      if (icono) {
+        icono.className = 'bi bi-chevron-down collapse-icon me-2';
+      }
+    }
+
+    let siguiente = row.nextElementSibling;
+    while (siguiente && siguiente.classList.contains('section-child')) {
+      siguiente.style.display = collapsed ? 'none' : '';
+      siguiente = siguiente.nextElementSibling;
+    }
+  }
+
+  function syncCollapseAllState() {
+    const allSections = document.querySelectorAll('.collapsible-section');
+    if (!allSections.length) {
+      allCollapsed = false;
+      if (collapseAllLabel) {
+        collapseAllLabel.textContent = 'Colapsar todo';
+      }
+      return;
+    }
+    const totalCollapsed = Array.from(allSections).filter((row) => collapsedSections.has(obtenerNombreSeccion(row))).length;
+    allCollapsed = totalCollapsed === allSections.length;
+    if (collapseAllLabel) {
+      collapseAllLabel.textContent = allCollapsed ? 'Expandir todo' : 'Colapsar todo';
+    }
+  }
+
+  function autoCollapseExcludedSections() {
+    const filas = document.querySelectorAll('.collapsible-section.excluded-expense');
+    if (!filas.length) {
+      syncCollapseAllState();
+      return;
+    }
+    filas.forEach((row) => setSectionCollapseState(row, true));
+    syncCollapseAllState();
+  }
+
   const escapeAttr = (texto = '') => texto.toString().replace(/"/g, '&quot;');
 
   const formatList = (lista = [], limite = 5) => {
@@ -221,6 +279,7 @@
       resumenLayoutCache.set(cacheKey, cache);
     }
     resumen.forEach((capitulo) => {
+      const capituloName = (capitulo.label || capitulo.capitulo || '').toString().trim().toUpperCase();
       if (!capitulo || typeof capitulo !== 'object') return;
       const nombreCapitulo = capitulo.capitulo || capitulo.nombre || capitulo.label;
       if (!nombreCapitulo) return;
@@ -466,7 +525,7 @@
    * @returns {HTMLTableRowElement} Fila HTML con los totales formateados
    */
   const createResumenTotalsRow = (nodo, options = {}) => {
-    const { label = '', rowRole = 'section', rowClass = '', rowContext = null, labelClasses = 'text-start fw-semibold' } = options;
+    const { label = '', rowRole = 'section', rowClass = '', rowContext = null, labelClasses = 'text-center fw-semibold' } = options;
     const totals = {
       actualMonth: toNumber(nodo.actualMonth ?? nodo.totalActualMonth),
       planMonth: toNumber(nodo.planMonth ?? nodo.totalPlanMonth),
@@ -482,7 +541,11 @@
     const row = document.createElement('tr');
     row.className = rowClass;
     row.dataset.rowRole = rowRole;
-    const tooltip = buildRowContextTooltip(rowRole, rowContext || {}) || ROW_TOOLTIPS[rowRole];
+    let tooltip = buildRowContextTooltip(rowRole, rowContext || {}) || ROW_TOOLTIPS[rowRole];
+    if (nodo && nodo.excludeFromExpense) {
+      const aviso = 'Excluido de SUMAS de gastos para este capítulo.';
+      tooltip = tooltip ? `${tooltip} · ${aviso}` : aviso;
+    }
     if (tooltip) {
       row.setAttribute('title', tooltip);
       row.setAttribute('data-bs-toggle', 'tooltip');
@@ -577,6 +640,7 @@
     const planColumnKey = `budget-${claveMes}`;
 
     resumen.forEach((capitulo) => {
+      const capituloName = (capitulo.label || capitulo.capitulo || '').toString().trim().toUpperCase();
       const layout = Array.isArray(capitulo.layout) ? capitulo.layout.slice().sort((a, b) => (a.order || 0) - (b.order || 0)) : null;
       const principales = Array.isArray(capitulo.children) ? capitulo.children.slice() : [];
       const principalLookup = new Map(principales.map((principal) => [principal.label, principal]));
@@ -613,7 +677,7 @@
               ${createCell(cta.prevMonth, { rowRole: 'account', tooltipKey: 'prevMonth' })}
               ${createPercentCell(varPlan, { rowRole: 'account', tooltipKey: 'varMonthPlan' })}
               ${createPercentCell(varPrev, { rowRole: 'account', tooltipKey: 'varMonthPrev' })}
-              ${createEditableCell(cta.descripcion || '', { columnKey: 'descripcion', rowRole: 'account', tooltipKey: 'account', text: true, classes: 'text-start' })}
+              ${createEditableCell(cta.descripcion || '', { columnKey: 'descripcion', rowRole: 'account', tooltipKey: 'account', text: true, classes: 'text-center' })}
               ${createCell(cta.actualYTD, { rowRole: 'account', tooltipKey: 'actualYTD' })}
               ${createCell(cta.planYTD, { rowRole: 'account', tooltipKey: 'planYTD' })}
               ${createCell(cta.prevYTD, { rowRole: 'account', tooltipKey: 'prevYTD' })}
@@ -668,10 +732,14 @@
           }
           // SECUNDARIA: Header de subsección
           else if (blockType === 'secundaria') {
+            let secRowClass = 'subsection-row bg-light fw-semibold text-center collapsible-section';
+            if (block.totals && block.totals.excludeFromExpense) {
+              secRowClass += ' excluded-expense';
+            }
             const secRow = createResumenTotalsRow(block.totals || {}, {
               label: block.label || '',
               rowRole: 'section',
-              rowClass: 'subsection-row bg-light fw-semibold text-center collapsible-section',
+              rowClass: secRowClass,
               rowContext: {
                 label: block.label || '',
                 principal: '',
@@ -711,7 +779,7 @@
               ${createCell(cta.prevMonth, { rowRole: 'account', tooltipKey: 'prevMonth' })}
               ${createPercentCell(varPlan, { rowRole: 'account', tooltipKey: 'varMonthPlan' })}
               ${createPercentCell(varPrev, { rowRole: 'account', tooltipKey: 'varMonthPrev' })}
-              ${createEditableCell(nombreCuenta, { columnKey: 'descripcion', rowRole: 'account', tooltipKey: 'account', text: true, classes: 'text-start' })}
+              ${createEditableCell(nombreCuenta, { columnKey: 'descripcion', rowRole: 'account', tooltipKey: 'account', text: true, classes: 'text-center' })}
               ${createCell(cta.actualYTD, { rowRole: 'account', tooltipKey: 'actualYTD' })}
               ${createCell(cta.planYTD, { rowRole: 'account', tooltipKey: 'planYTD' })}
               ${createCell(cta.prevYTD, { rowRole: 'account', tooltipKey: 'prevYTD' })}
@@ -725,6 +793,12 @@
             // Determinar clase CSS según tipo y label
             let rowClass = '';
             const label = (block.label || '').toUpperCase();
+
+            // Para GUADALAJARA: solo mostrar la fila de OPERATING RESULTS específica de GDL
+            if (label.includes('OPERATING RESULTS') && capituloName.includes('GUADALAJARA') && !label.includes('GDL') && !label.includes('GUADALAJARA')) {
+              // Omitir filas genéricas de Operating Results cuando hay una específica de GDL
+              return;
+            }
             
             // Nivel 5: NET RESULTS (máxima jerarquía)
             if (blockType === 'final' || label.includes('NET RESULTS') || label.includes('CONSOLIDATED NET')) {
@@ -747,10 +821,16 @@
               rowClass = 'sum-row fw-semibold';
             }
             
+            // Si la sección/operación está marcada para excluirse de expenses, anotar clase
+            const extras = {};
+            if (block.totals && block.totals.excludeFromExpense) {
+              extras.rowClass = `${rowClass} excluded-expense`;
+            }
+
             const consolidationRow = createResumenTotalsRow(block.totals || {}, {
               label: block.label || '',
               rowRole: blockType,
-              rowClass,
+              rowClass: extras.rowClass || rowClass,
               rowContext: {
                 label: block.label || '',
                 type: blockType,
@@ -772,6 +852,7 @@
 
     sincronizarCeldasEditables();
     activateTooltips();
+    autoCollapseExcludedSections();
   };
 
   const actualizarEtiquetasAnio = (anio) => {
@@ -917,7 +998,7 @@
     actualizarEncabezado(empresaId, valorInicial);
     actualizarEtiquetaMes(mesInicial);
     window.dispatchEvent(new CustomEvent('planeacion:contexto-actualizado', {
-      detail: { empresaId, anio: valorInicial, modulo: (document.body.dataset.modulo || 'RESUMEN').toUpperCase() }
+      detail: { empresaId, anio: valorInicial, periodo: mesInicial, modulo: (document.body.dataset.modulo || 'RESUMEN').toUpperCase() }
     }));
     await fetchResumen(empresaId, valorInicial, mesInicial);
   };
@@ -997,7 +1078,7 @@
       if (!empresaActual?.id) return;
       actualizarEncabezado(empresaActual.id, anio);
       window.dispatchEvent(new CustomEvent('planeacion:contexto-actualizado', {
-        detail: { empresaId: empresaActual.id, anio, modulo: (document.body.dataset.modulo || 'RESUMEN').toUpperCase() }
+        detail: { empresaId: empresaActual.id, anio, periodo: mes, modulo: (document.body.dataset.modulo || 'RESUMEN').toUpperCase() }
       }));
       fetchResumen(empresaActual.id, anio, mes);
     };
@@ -1010,7 +1091,7 @@
       if (!empresaActual?.id) return;
       actualizarEncabezado(empresaActual.id, anio);
       window.dispatchEvent(new CustomEvent('planeacion:contexto-actualizado', {
-        detail: { empresaId: empresaActual.id, anio, modulo: (document.body.dataset.modulo || 'RESUMEN').toUpperCase() }
+        detail: { empresaId: empresaActual.id, anio, periodo: mes, modulo: (document.body.dataset.modulo || 'RESUMEN').toUpperCase() }
       }));
       fetchResumen(empresaActual.id, anio, mes);
     };
@@ -1246,98 +1327,33 @@
     window.addEventListener(Sesion.EVENTO_EMPRESA, () => cargarWorkflow(modulo));
   };
 
-  // Funcionalidad de colapso de secciones
-  const collapsedSections = new Set();
-  let allCollapsed = false;
-  
-  const collapseAllBtn = document.getElementById('collapseAllBtn');
-  const collapseAllLabel = document.getElementById('collapseAllLabel');
-  
   if (collapseAllBtn) {
     collapseAllBtn.addEventListener('click', () => {
       const allSections = document.querySelectorAll('.collapsible-section');
-      
-      if (allCollapsed) {
-        // Expandir todas
-        collapsedSections.clear();
-        allSections.forEach(row => {
-          const icon = row.querySelector('.collapse-icon');
-          if (icon) {
-            icon.className = 'bi bi-chevron-down collapse-icon me-2';
-          }
-          const sectionName = row.dataset.sectionName;
-          if (sectionName) {
-            let nextRow = row.nextElementSibling;
-            while (nextRow && nextRow.classList.contains('section-child')) {
-              nextRow.style.display = '';
-              nextRow = nextRow.nextElementSibling;
-            }
-          }
-        });
-        if (collapseAllLabel) collapseAllLabel.textContent = 'Colapsar todo';
-        allCollapsed = false;
-      } else {
-        // Colapsar todas
-        allSections.forEach(row => {
-          const sectionName = row.dataset.sectionName;
-          if (sectionName) {
-            collapsedSections.add(sectionName);
-            const icon = row.querySelector('.collapse-icon');
-            if (icon) {
-              icon.className = 'bi bi-chevron-right collapse-icon me-2';
-            }
-            let nextRow = row.nextElementSibling;
-            while (nextRow && nextRow.classList.contains('section-child')) {
-              nextRow.style.display = 'none';
-              nextRow = nextRow.nextElementSibling;
-            }
-          }
-        });
-        if (collapseAllLabel) collapseAllLabel.textContent = 'Expandir todo';
-        allCollapsed = true;
+      if (!allSections.length) {
+        return;
       }
+      const colapsar = !allCollapsed;
+      allSections.forEach((row) => setSectionCollapseState(row, colapsar));
+      syncCollapseAllState();
     });
   }
-  
+
   document.addEventListener('click', (e) => {
     const collapseIcon = e.target.closest('.collapse-icon');
     if (!collapseIcon) return;
-    
+
     const row = collapseIcon.closest('.collapsible-section');
     if (!row) return;
-    
-    const sectionName = row.dataset.sectionName;
+
+    const sectionName = obtenerNombreSeccion(row);
     if (!sectionName) return;
-    
+
     e.stopPropagation();
-    
-    // Toggle collapsed state
-    if (collapsedSections.has(sectionName)) {
-      collapsedSections.delete(sectionName);
-      collapseIcon.className = 'bi bi-chevron-down collapse-icon me-2';
-    } else {
-      collapsedSections.add(sectionName);
-      collapseIcon.className = 'bi bi-chevron-right collapse-icon me-2';
-    }
-    
-    // Toggle visibility of child rows
-    let nextRow = row.nextElementSibling;
-    while (nextRow && nextRow.classList.contains('section-child')) {
-      nextRow.style.display = collapsedSections.has(sectionName) ? 'none' : '';
-      nextRow = nextRow.nextElementSibling;
-    }
-    
-    // Update allCollapsed state
-    const allSections = document.querySelectorAll('.collapsible-section');
-    const totalCollapsed = Array.from(allSections).filter(r => {
-      const name = r.dataset.sectionName;
-      return name && collapsedSections.has(name);
-    }).length;
-    
-    allCollapsed = totalCollapsed === allSections.length;
-    if (collapseAllLabel) {
-      collapseAllLabel.textContent = allCollapsed ? 'Expandir todo' : 'Colapsar todo';
-    }
+
+    const debeColapsar = !collapsedSections.has(sectionName);
+    setSectionCollapseState(row, debeColapsar);
+    syncCollapseAllState();
   });
 
   // Controles de zoom y visibilidad de columnas
