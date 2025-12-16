@@ -111,6 +111,115 @@
     'nomina'
   ]);
 
+
+  const REGLAS_OPERACIONES_MODULO = {
+    membresia: {
+      etiqueta: 'Membresía',
+      ingresos: [/INGRESOS\s+MEMBRE/i],
+      gastos: [/GASTOS\s+MEMBRE/i, /GASTOS\s+ADMIN/i]
+    },
+    eventos: {
+      etiqueta: 'Eventos',
+      ingresos: [/BOLETAJE/i, /PATROCINIOS/i, /INGRESOS\s+EVENT/i],
+      gastos: [/COSTOS\s+Y\s+GASTOS\s+EVENTOS/i, /GASTOS\s+ADMIN/i]
+    },
+    comites: {
+      etiqueta: 'Comités',
+      ingresos: [/INGRESOS\s+COMITE/i],
+      gastos: [/GASTOS\s+COMITE/i, /COMISIONES/i, /GASTOS\s+ADMIN/i]
+    },
+    comunicacion: {
+      etiqueta: 'Comunicación',
+      ingresos: [/INGRESOS\s+COMUNIC/i],
+      gastos: [/GASTOS\s+COMUNIC/i]
+    },
+    direccion: {
+      etiqueta: 'Dirección',
+      ingresos: [/INGRESOS\s+(CE|COMITE|DIRE)/i],
+      gastos: [/GASTOS\s+(CE|COMITE|DIRE)/i, /GASTOS\s+DE\s+ADMIN/i]
+    },
+    finanzas: {
+      etiqueta: 'Finanzas',
+      ingresos: [/OTROS\s+INGRESOS/i],
+      gastos: [/GASTOS/i, /SUELDOS/i, /DEPRECIACIONES/i, /INDEM/i, /GA\s+CAP/i]
+    },
+    rh: {
+      etiqueta: 'RH',
+      ingresos: [/INGRESOS\s+RH/i],
+      gastos: [/GASTOS\s+RH/i, /GASTOS\s+ADMIN/i]
+    },
+    servmembresia: {
+      etiqueta: 'Serv Membresía',
+      ingresos: [/INGRESOS\s+SERV/i],
+      gastos: [/GASTOS\s+SERV/i]
+    },
+    tic: {
+      etiqueta: 'T&IC',
+      ingresos: [/INGRESOS\s+T&IC/i],
+      gastos: [/GASTOS\s+T&IC/i]
+    },
+    vpe: {
+      etiqueta: 'VPE',
+      ingresos: [/INGRESOS/i],
+      gastos: [/GASTOS\s+CEN/i, /GASTOS\s+ADMIN/i]
+    },
+    'gastosgenerales': {
+      etiqueta: 'Gastos Generales',
+      ingresos: [/OTROS\s+INGRESOS/i],
+      gastos: [/GASTOS\s+GENERALES/i, /GASTOS\s+FINANCIEROS/i, /DEPRECIACIONES/i, /GA\s+CAP/i]
+    },
+    nomina: {
+      etiqueta: 'Nómina',
+      ingresos: [],
+      gastos: [/NOMINA/i]
+    },
+    gtoscorporativos: {
+      etiqueta: 'Gastos Corporativos',
+      ingresos: [],
+      gastos: [/GASTOS/i]
+    },
+    presupuestos: {
+      etiqueta: 'Presupuestos',
+      ingresos: [/INGRESOS/i],
+      gastos: [/GASTOS/i]
+    }
+  };
+
+  const obtenerReglaModulo = (moduloClave) => {
+    const clave = normalizarModuloClave(moduloClave || '');
+    return REGLAS_OPERACIONES_MODULO[clave] || null;
+  };
+
+  const construirEtiquetasOperacion = (etiquetaVisible = 'Módulo') => ({
+    totalIngresos: `TOTAL INGRESOS ${etiquetaVisible}`,
+    totalGastos: `TOTAL GASTOS ${etiquetaVisible}`,
+    resultado: `RESULTADO ${etiquetaVisible}`
+  });
+
+  const aplicarOperacionesPorModulo = (moduloClave, seccionNombre, configuracionActual = null) => {
+    const regla = obtenerReglaModulo(moduloClave);
+    if (!regla) return configuracionActual;
+    const nombreSeccion = (seccionNombre || '').toString();
+    const seccionNormalizada = normalizarTexto(nombreSeccion);
+    const esIngreso = Array.isArray(regla.ingresos) && regla.ingresos.some((patron) => patron.test(seccionNormalizada));
+    const esGasto = !esIngreso && Array.isArray(regla.gastos) && regla.gastos.some((patron) => patron.test(seccionNormalizada));
+    if (!esIngreso && !esGasto) return configuracionActual;
+    const etiquetas = construirEtiquetasOperacion(regla.etiqueta || nombreSeccion);
+    const configuracion = { ...(configuracionActual || {}) };
+    configuracion.sumRow = configuracion.sumRow || `Suma ${nombreSeccion}`;
+    configuracion.sumRowSumavarios = esIngreso ? etiquetas.totalIngresos : etiquetas.totalGastos;
+    configuracion.sumRowSumavarios2 = etiquetas.resultado;
+    const existentes = Array.isArray(configuracion.resultRows)
+      ? configuracion.resultRows
+      : configuracion.resultRow
+        ? [configuracion.resultRow]
+        : [];
+    const resultadoSet = new Set([...existentes, etiquetas.resultado]);
+    configuracion.resultRows = Array.from(resultadoSet);
+    delete configuracion.resultRow;
+    return configuracion;
+  };
+
   const esModuloEditable = (moduloClave) => MODULOS_LAYOUT_EDITABLE.has(normalizarModuloClave(moduloClave || ''));
 
   const obtenerClaveLayoutLocal = ({ moduloClave, empresaId, anio }) => {
@@ -694,6 +803,22 @@
   const obtenerFilasCuenta = () => {
     if (!estadoModulo.tabla) {
       return [];
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     }
     return Array.from(estadoModulo.tabla.querySelectorAll('tbody tr.fila-cuenta'));
   };
@@ -1444,7 +1569,8 @@
     capitulo,
     sumasPersonalizadas,
     resultadoForzado,
-    mostrarCuentaVisible = false
+    mostrarCuentaVisible = false,
+    moduloClave
   }) => {
     const placeholders = resolverPlaceholdersPorFila(placeholdersPorFila, cuerpo);
     const secciones = new Map();
@@ -1514,9 +1640,10 @@
         filasCuenta.push(fila);
       });
 
-      const sumas =
+      const sumasBase =
         (sumasPersonalizadas instanceof Map ? sumasPersonalizadas.get(claveSeccion) : null) ||
         (sheetName && capitulo ? obtenerSumasConfig(sheetName, capitulo, seccion) : null);
+      const sumas = aplicarOperacionesPorModulo(moduloClave, seccion, sumasBase) || sumasBase;
       const etiquetaSumRow = (sumas?.sumRow || '').trim() || `Suma ${seccion}`;
       const resultRowTexts = [];
       if (forcedResultTexto) {
@@ -3064,7 +3191,8 @@
       capitulo: capituloDestino,
       sumasPersonalizadas,
       resultadoForzado,
-      mostrarCuentaVisible: moduloClave === 'presupuestos'
+      mostrarCuentaVisible: moduloClave === 'presupuestos',
+      moduloClave
     });
     if (moduloClave === 'presupuestos' && pendientes?.sumasSecciones && !layoutPersonalizado) {
       const claveResultado = normalizarTexto('Resultado Presupuestos');

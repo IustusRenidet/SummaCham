@@ -727,7 +727,7 @@
       const selectAnioElem = document.getElementById('selectAnio') || document.getElementById('resumenYearSelect') || document.getElementById('yearSelect') || document.querySelector('[name="anio"]');
       const anioSeleccion = Number(selectAnioElem?.value || new Date().getFullYear());
       const anio = Number.isInteger(anioSeleccion) ? anioSeleccion : null;
-      const moduloClave = (document.body?.dataset?.modulo || document.body?.dataset?.moduloId || 'summary').toString().trim();
+      const moduloClave = (document.body?.dataset?.modulo || document.body?.dataset?.moduloId || 'resumen').toString().trim();
       if (!empresa?.id || !Number.isInteger(anio) || !moduloClave) {
         console.warn('No fue posible persistir layout: falta empresa/anio/modulo', { empresa: empresa?.id, anio, moduloClave });
         return false;
@@ -1097,7 +1097,7 @@
         const empresa = Sesion.obtenerEmpresaActiva();
         const anioSeleccion = Number(document.getElementById('selectAnio')?.value || new Date().getFullYear());
         const anio = Number.isInteger(anioSeleccion) ? anioSeleccion : null;
-        const moduloClave = (document.body?.dataset?.modulo || document.body?.dataset?.moduloId || 'summary').toString().trim();
+        const moduloClave = (document.body?.dataset?.modulo || document.body?.dataset?.moduloId || 'resumen').toString().trim();
         if (empresa?.id && Number.isInteger(anio) && moduloClave) {
           // Prefer server layout; fallback to local layout
           (async () => {
@@ -1180,7 +1180,7 @@
       const empresa = Sesion.obtenerEmpresaActiva();
       const anioSeleccion = Number(document.getElementById('selectAnio')?.value || new Date().getFullYear());
       const anio = Number.isInteger(anioSeleccion) ? anioSeleccion : null;
-      const moduloClave = (document.body?.dataset?.modulo || document.body?.dataset?.moduloId || 'summary').toString().trim();
+      const moduloClave = (document.body?.dataset?.modulo || document.body?.dataset?.moduloId || 'resumen').toString().trim();
       if (!empresa?.id || !Number.isInteger(anio) || !moduloClave) return null;
       return cargarLayoutLocal({ moduloClave, empresaId: empresa.id, anio });
     },

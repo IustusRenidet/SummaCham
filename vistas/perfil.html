@@ -166,6 +166,63 @@
       color: #8497b0;
       font-size: 0.85rem;
     }
+
+    .password-field {
+      position: relative;
+    }
+
+    .password-field input {
+      padding-right: 3rem;
+    }
+
+    .password-toggle {
+      position: absolute;
+      top: 50%;
+      right: 0.75rem;
+      transform: translateY(-50%);
+      border: none;
+      background: none;
+      color: #2f5496;
+      font-weight: 600;
+      font-size: 0.85rem;
+      padding: 0.25rem 0.35rem;
+    }
+
+    .password-toggle:focus {
+      outline: none;
+      color: #1f3b6f;
+    }
+
+    .password-toggle[aria-pressed="true"] {
+      color: #0b57d0;
+    }
+
+    .password-feedback {
+      margin-top: 0.5rem;
+      border: 1px solid rgba(47, 84, 150, 0.2);
+      border-radius: 12px;
+      background: #f8faff;
+      padding: 0.75rem 1rem;
+      color: #2f5496;
+    }
+
+    .password-feedback .status {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .password-feedback .status + .status {
+      margin-top: 0.35rem;
+    }
+
+    .password-feedback .status .status-icon {
+      width: 1rem;
+      text-align: center;
+      font-size: 0.85rem;
+    }
   </style>
 </head>
 
@@ -248,18 +305,42 @@
               <form id="passwordForm" class="row g-3">
                 <div class="col-12">
                   <label for="contrasenaActual" class="form-label">Contraseña actual</label>
-                  <input type="password" class="form-control" id="contrasenaActual" name="contrasenaActual"
-                    autocomplete="current-password" required minlength="8">
+                  <div class="password-field" data-password-field>
+                    <input type="password" class="form-control" id="contrasenaActual" name="contrasenaActual"
+                      autocomplete="current-password" required minlength="8">
+                    <button type="button" class="password-toggle" data-password-toggle="contrasenaActual"
+                      aria-pressed="false">
+                      <span class="visually-hidden">Mostrar u ocultar contraseña actual</span>
+                      <span class="password-toggle-label" aria-hidden="true">Ver</span>
+                    </button>
+                  </div>
                 </div>
                 <div class="col-12 col-md-6">
                   <label for="nuevaContrasena" class="form-label">Nueva contraseña</label>
-                  <input type="password" class="form-control" id="nuevaContrasena" name="nuevaContrasena"
-                    autocomplete="new-password" required minlength="8">
+                  <div class="password-field" data-password-field>
+                    <input type="password" class="form-control" id="nuevaContrasena" name="nuevaContrasena"
+                      autocomplete="new-password" required minlength="8">
+                    <button type="button" class="password-toggle" data-password-toggle="nuevaContrasena"
+                      aria-pressed="false">
+                      <span class="visually-hidden">Mostrar u ocultar nueva contraseña</span>
+                      <span class="password-toggle-label" aria-hidden="true">Ver</span>
+                    </button>
+                  </div>
                 </div>
                 <div class="col-12 col-md-6">
                   <label for="confirmarContrasena" class="form-label">Confirmar nueva contraseña</label>
-                  <input type="password" class="form-control" id="confirmarContrasena" name="confirmarContrasena"
-                    autocomplete="new-password" required minlength="8">
+                  <div class="password-field" data-password-field>
+                    <input type="password" class="form-control" id="confirmarContrasena" name="confirmarContrasena"
+                      autocomplete="new-password" required minlength="8">
+                    <button type="button" class="password-toggle" data-password-toggle="confirmarContrasena"
+                      aria-pressed="false">
+                      <span class="visualmente-hidden">Mostrar u ocultar confirmación</span>
+                      <span class="password-toggle-label" aria-hidden="true">Ver</span>
+                    </button>
+                  </div>
+                </div>
+                <div class="col-12">
+                  <div id="passwordFeedback" class="password-feedback" role="status" aria-live="polite"></div>
                 </div>
                 <div class="col-12 text-end">
                   <button type="submit" class="btn btn-primario" id="btnActualizarPassword">
@@ -300,7 +381,8 @@
         permisosGenerales: document.getElementById('permisosGenerales'),
         permisosEmpresa: document.getElementById('permisosEmpresa'),
         passwordForm: document.getElementById('passwordForm'),
-        btnPassword: document.getElementById('btnActualizarPassword')
+        btnPassword: document.getElementById('btnActualizarPassword'),
+        passwordFeedback: document.getElementById('passwordFeedback')
       };
 
       const EMPRESAS = {
@@ -345,6 +427,107 @@
       };
 
       const obtenerRolEtiqueta = (usuario = {}) => usuario.esAdminGlobal ? 'Administrador global' : 'Usuario';
+
+      const PASSWORD_REGLAS = {
+        minLength: 8,
+        mensajes: {
+          min: 'Mínimo 8 caracteres.',
+          mismatch: 'Las contraseñas no coinciden.',
+          pendiente: 'Confirma tu nueva contraseña.'
+        }
+      };
+
+      const obtenerEstadoPassword = () => {
+        if (!ELEMENTOS.passwordForm) {
+          return { tieneMin: false, coincide: false, nueva: '', confirmar: '' };
+        }
+        const nueva = ELEMENTOS.passwordForm.nuevaContrasena?.value || '';
+        const confirmar = ELEMENTOS.passwordForm.confirmarContrasena?.value || '';
+        return {
+          nueva,
+          confirmar,
+          tieneMin: nueva.trim().length >= PASSWORD_REGLAS.minLength,
+          coincide: Boolean(nueva) && nueva === confirmar
+        };
+      };
+
+      const alternarClaseValidacion = (input, esValido) => {
+        if (!input) return;
+        input.classList.remove('is-valid', 'is-invalid');
+        if (!input.value) return;
+        input.classList.add(esValido ? 'is-valid' : 'is-invalid');
+      };
+
+      const renderizarEstadoPassword = () => {
+        if (!ELEMENTOS.passwordFeedback) return;
+        const estado = obtenerEstadoPassword();
+        const mensajes = [
+          {
+            ok: estado.tieneMin,
+            texto: PASSWORD_REGLAS.mensajes.min.replace(
+              '8',
+              PASSWORD_REGLAS.minLength.toString()
+            )
+          },
+          {
+            ok: estado.tieneMin && estado.coincide,
+            texto: estado.tieneMin && estado.coincide
+              ? 'Las contraseñas coinciden.'
+              : (estado.confirmar
+                ? PASSWORD_REGLAS.mensajes.mismatch
+                : PASSWORD_REGLAS.mensajes.pendiente)
+          }
+        ];
+        ELEMENTOS.passwordFeedback.innerHTML = '';
+        mensajes.forEach(({ ok, texto }) => {
+          const item = document.createElement('div');
+          item.className = `status ${ok ? 'text-success' : 'text-danger'}`;
+          const icono = document.createElement('span');
+          icono.className = 'status-icon';
+          icono.setAttribute('aria-hidden', 'true');
+          icono.textContent = ok ? '✓' : '•';
+          const contenido = document.createElement('span');
+          contenido.textContent = texto;
+          item.append(icono, contenido);
+          ELEMENTOS.passwordFeedback.appendChild(item);
+        });
+      };
+
+      const actualizarIndicadoresPassword = () => {
+        if (!ELEMENTOS.passwordForm) return;
+        const estado = obtenerEstadoPassword();
+        alternarClaseValidacion(ELEMENTOS.passwordForm.nuevaContrasena, estado.tieneMin);
+        alternarClaseValidacion(
+          ELEMENTOS.passwordForm.confirmarContrasena,
+          estado.tieneMin && estado.coincide
+        );
+        renderizarEstadoPassword();
+      };
+
+      const inicializarControlesPassword = () => {
+        if (!ELEMENTOS.passwordForm) return;
+        ['nuevaContrasena', 'confirmarContrasena'].forEach((campo) => {
+          const input = ELEMENTOS.passwordForm[campo];
+          if (input) {
+            input.addEventListener('input', actualizarIndicadoresPassword);
+          }
+        });
+        document.querySelectorAll('[data-password-toggle]').forEach((boton) => {
+          boton.addEventListener('click', () => {
+            const destino = boton.getAttribute('data-password-toggle');
+            const input = destino ? ELEMENTOS.passwordForm?.[destino] : null;
+            if (!input) return;
+            const esVisible = input.type === 'text';
+            input.type = esVisible ? 'password' : 'text';
+            boton.setAttribute('aria-pressed', esVisible ? 'false' : 'true');
+            const etiqueta = boton.querySelector('.password-toggle-label');
+            if (etiqueta) {
+              etiqueta.textContent = esVisible ? 'Ver' : 'Ocultar';
+            }
+          });
+        });
+        actualizarIndicadoresPassword();
+      };
 
       const mostrarAlerta = (mensaje, tipo = 'danger') => {
         if (!ELEMENTOS.alert) return;
@@ -555,6 +738,7 @@
         const actual = ELEMENTOS.passwordForm.contrasenaActual.value.trim();
         const nueva = ELEMENTOS.passwordForm.nuevaContrasena.value.trim();
         const confirmar = ELEMENTOS.passwordForm.confirmarContrasena.value.trim();
+        actualizarIndicadoresPassword();
 
         if (!actual || !nueva || !confirmar) {
           mostrarAlerta('Completa todos los campos para actualizar tu contraseña.', 'warning');
@@ -595,6 +779,7 @@
             throw new Error(datos.mensaje || 'No fue posible actualizar la contraseña.');
           }
           ELEMENTOS.passwordForm.reset();
+          actualizarIndicadoresPassword();
           mostrarAlerta(datos.mensaje || 'Contraseña actualizada correctamente.', 'success');
         } catch (error) {
           console.error('Error al actualizar contraseña', error);
@@ -607,6 +792,7 @@
 
       if (ELEMENTOS.passwordForm) {
         ELEMENTOS.passwordForm.addEventListener('submit', manejarCambioPassword);
+        inicializarControlesPassword();
       }
 
       cargarPerfil();

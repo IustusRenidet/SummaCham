@@ -11,8 +11,7 @@
       id: "panel-resumenes",
       label: "Summary",
       items: [
-        { id: "resumen", label: "Resumen", path: "RESUMEN.html", badge: "summary", permiso: "RESUMEN" },
-        { id: "summary", label: "Summary", path: "SUMMARY.html", badge: "summary", permiso: "SUMMARY" }
+        { id: "resumen", label: "Resumen", path: "RESUMEN.html", badge: "summary", permiso: "RESUMEN" }
       ]
     },
     {
@@ -54,7 +53,6 @@
 
   const MODULO_PERMISOS = {
     resumen: "RESUMEN",
-    summary: "SUMMARY",
     presupuestos: "Presupuestos",
     comites: "Comit\xE9s",
     comunicacion: "Comunicaci\xF3n",
@@ -141,7 +139,7 @@ const moduloDisponiblePorEmpresa = (empresaId, moduloId) => {
     if (!acciones) {
       return false;
     }
-    const esSoloLectura = ["summary", "resumen", "presupuestos"].includes((modulo.id || "").toLowerCase());
+    const esSoloLectura = ["resumen", "presupuestos"].includes((modulo.id || "").toLowerCase());
     if (esSoloLectura) {
       return Boolean(acciones["Cargar y guardar"] || acciones.Revisar || acciones.Aprobar || acciones.Lectura || acciones.Ver);
     }

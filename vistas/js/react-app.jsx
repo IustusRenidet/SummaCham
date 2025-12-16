@@ -8,7 +8,6 @@ const MODULE_GROUPS = [
     label: 'Summary',
     items: [
       { id: 'resumen', label: 'Resumen', path: 'RESUMEN.html', badge: 'summary', permiso: 'RESUMEN' },
-      { id: 'summary', label: 'Summary', path: 'SUMMARY.html', badge: 'summary', permiso: 'SUMMARY' }
     ]
   },
   {
