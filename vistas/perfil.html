@@ -37,6 +37,55 @@
       min-height: 100%;
     }
 
+    .profile-hero {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+      align-items: center;
+      background: linear-gradient(135deg, #2f5496, #3f6ab8);
+      border-radius: 20px;
+      padding: 1.5rem 2rem;
+      color: #fff;
+      box-shadow: 0 14px 36px rgba(47, 84, 150, 0.25);
+      margin-bottom: 1.25rem;
+    }
+
+    .profile-avatar {
+      width: 64px;
+      height: 64px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1.5rem;
+      text-transform: uppercase;
+    }
+
+    .profile-identity {
+      flex: 1;
+      min-width: 220px;
+    }
+
+    .profile-identity h2 {
+      font-size: 1.75rem;
+    }
+
+    .badge-rol {
+      background: rgba(255, 255, 255, 0.15);
+      color: #fff;
+      border-radius: 999px;
+      padding: 0.35rem 0.9rem;
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+
+    .hero-meta {
+      text-align: right;
+      min-width: 180px;
+    }
+
     .profile-section h3 {
       font-size: 1rem;
       text-transform: uppercase;
@@ -129,6 +178,20 @@
         <p class="text-muted mb-0">Consulta tu información personal, revisa tus permisos y actualiza tu contraseña con
           seguridad.</p>
       </header>
+
+      <section class="profile-hero d-none" id="perfilHero" aria-live="polite">
+        <div class="profile-avatar" id="heroAvatar" aria-hidden="true">--</div>
+        <div class="profile-identity">
+          <p class="text-uppercase text-white-50 fw-semibold small mb-1">Usuario activo</p>
+          <h2 class="mb-1" id="heroNombre">-</h2>
+          <p class="mb-0" id="heroUsuario">-</p>
+          <p class="text-white-50 mb-0" id="heroCorreo">-</p>
+        </div>
+        <div class="hero-meta">
+          <span class="badge badge-rol mb-2" id="heroRol">-</span>
+          <p class="small mb-0 text-white-50" id="heroEmpresa">Sin empresa seleccionada</p>
+        </div>
+      </section>
 
       <div id="perfilAlert" class="alert d-none" role="alert"></div>
 
@@ -223,6 +286,13 @@
         alert: document.getElementById('perfilAlert'),
         loader: document.getElementById('perfilLoader'),
         contenido: document.getElementById('perfilContenido'),
+        hero: document.getElementById('perfilHero'),
+        heroAvatar: document.getElementById('heroAvatar'),
+        heroNombre: document.getElementById('heroNombre'),
+        heroUsuario: document.getElementById('heroUsuario'),
+        heroCorreo: document.getElementById('heroCorreo'),
+        heroRol: document.getElementById('heroRol'),
+        heroEmpresa: document.getElementById('heroEmpresa'),
         nombre: document.getElementById('perfilNombre'),
         usuario: document.getElementById('perfilUsuario'),
         correo: document.getElementById('perfilCorreo'),
@@ -240,6 +310,42 @@
         empresa4: 'Noroeste'
       };
 
+      const obtenerUsuarioSesion = () => {
+        try {
+          const sesionActiva = typeof Sesion !== 'undefined' && Sesion.obtener ? Sesion.obtener() : null;
+          return sesionActiva?.usuario || null;
+        } catch (error) {
+          console.warn('No fue posible leer la sesión activa', error);
+          return null;
+        }
+      };
+
+      const obtenerEmpresaActivaEtiqueta = () => {
+        if (typeof Sesion === 'undefined' || typeof Sesion.obtenerEmpresaActiva !== 'function') {
+          return 'Sin empresa seleccionada';
+        }
+        const empresa = Sesion.obtenerEmpresaActiva();
+        return empresa?.etiqueta || empresa?.nombre || 'Sin empresa seleccionada';
+      };
+
+      const obtenerIniciales = (usuario = {}) => {
+        const base = [usuario.nombres, usuario.apellidoPrimero, usuario.apellidoSegundo]
+          .filter(Boolean)
+          .join(' ')
+          .trim()
+          || usuario.usuario
+          || '';
+        if (!base) return '--';
+        const letras = base
+          .split(/\s+/)
+          .filter(Boolean)
+          .map((parte) => parte[0])
+          .slice(0, 2);
+        return letras.join('').toUpperCase() || '--';
+      };
+
+      const obtenerRolEtiqueta = (usuario = {}) => usuario.esAdminGlobal ? 'Administrador global' : 'Usuario';
+
       const mostrarAlerta = (mensaje, tipo = 'danger') => {
         if (!ELEMENTOS.alert) return;
         ELEMENTOS.alert.classList.remove('d-none', 'alert-danger', 'alert-success', 'alert-warning');
@@ -251,6 +357,33 @@
         if (!ELEMENTOS.alert) return;
         ELEMENTOS.alert.classList.add('d-none');
         ELEMENTOS.alert.textContent = '';
+      };
+
+      const renderHero = (usuario = {}) => {
+        if (!ELEMENTOS.hero) return;
+        ELEMENTOS.hero.classList.remove('d-none');
+        if (ELEMENTOS.heroAvatar) {
+          ELEMENTOS.heroAvatar.textContent = obtenerIniciales(usuario);
+        }
+        if (ELEMENTOS.heroNombre) {
+          const nombreCompleto = [usuario.nombres, usuario.apellidoPrimero, usuario.apellidoSegundo]
+            .filter(Boolean)
+            .join(' ')
+            .trim();
+          ELEMENTOS.heroNombre.textContent = nombreCompleto || usuario.usuario || '-';
+        }
+        if (ELEMENTOS.heroUsuario) {
+          ELEMENTOS.heroUsuario.textContent = usuario.usuario || '-';
+        }
+        if (ELEMENTOS.heroCorreo) {
+          ELEMENTOS.heroCorreo.textContent = usuario.correo || 'Sin correo registrado';
+        }
+        if (ELEMENTOS.heroRol) {
+          ELEMENTOS.heroRol.textContent = obtenerRolEtiqueta(usuario);
+        }
+        if (ELEMENTOS.heroEmpresa) {
+          ELEMENTOS.heroEmpresa.textContent = obtenerEmpresaActivaEtiqueta();
+        }
       };
 
       const toggleLoader = (visible) => {
@@ -355,10 +488,22 @@
           .join(' ') || '-';
         ELEMENTOS.usuario.textContent = usuario.usuario || '-';
         ELEMENTOS.correo.textContent = usuario.correo || '-';
-        ELEMENTOS.rol.textContent = usuario.esAdminGlobal ? 'Administrador global' : 'Usuario';
-        renderPermisosGenerales(usuario.permisosGenerales);
+        ELEMENTOS.rol.textContent = obtenerRolEtiqueta(usuario);
+        const permisosGenerales = usuario.permisosGenerales || {
+          puedeAgregar: usuario.puedeAgregar,
+          puedeModificar: usuario.puedeModificar,
+          puedeEliminar: usuario.puedeEliminar
+        };
+        renderPermisosGenerales(permisosGenerales || {});
         renderPermisosEmpresa(usuario.permisosPorEmpresa);
+        renderHero(usuario);
       };
+
+      const usuarioSesion = obtenerUsuarioSesion();
+      if (usuarioSesion) {
+        rellenarDatos(usuarioSesion);
+        toggleLoader(false);
+      }
 
       const manejarRespuestaNoAutorizada = () => {
         Sesion.limpiar();
@@ -366,8 +511,11 @@
       };
 
       const cargarPerfil = async () => {
-        toggleLoader(true);
         limpiarAlerta();
+        const debeMostrarLoader = !usuarioSesion;
+        if (debeMostrarLoader) {
+          toggleLoader(true);
+        }
         try {
           const respuesta = await fetch(`${API_BASE}/perfil`, {
             headers: {
@@ -378,14 +526,23 @@
             manejarRespuestaNoAutorizada();
             return;
           }
+          if (respuesta.status === 404) {
+            mostrarAlerta('El servicio de perfil no está disponible en el servidor. Mostramos la información almacenada en tu sesión.', 'warning');
+            return;
+          }
           const datos = await respuesta.json();
           if (!respuesta.ok) {
             throw new Error(datos.mensaje || 'No fue posible obtener la información de tu perfil.');
           }
-          rellenarDatos(datos.usuario || {});
+          rellenarDatos(datos.usuario || usuarioSesion || {});
         } catch (error) {
           console.error('Error al cargar perfil', error);
-          mostrarAlerta(error.message || 'Ocurrió un error al cargar tu perfil.');
+          mostrarAlerta(
+            usuarioSesion
+              ? 'No fue posible actualizar tu perfil desde el servidor. Mostramos los datos almacenados en tu sesión.'
+              : (error.message || 'Ocurrió un error al cargar tu perfil.'),
+            usuarioSesion ? 'warning' : 'danger'
+          );
         } finally {
           toggleLoader(false);
         }
