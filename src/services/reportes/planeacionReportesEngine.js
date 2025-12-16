@@ -524,13 +524,13 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
       ...totalesPrincipal,
       total: totalesPrincipal.actualYTD,
       orden: principal.orden,
-      consolidadoLabel: normalizarConfigValor(principal.consolidadoLabel),
-      operativoLabel: normalizarConfigValor(principal.operativoLabel),
-      operativoConsolidado: normalizarConfigValor(principal.operativoConsolidado),
-      resultRow: normalizarConfigValor(principal.resultRow),
-      netRow: normalizarConfigValor(principal.netRow),
-      netRowAdicional: normalizarConfigValor(principal.netRowAdicional),
-      resultNetRow: normalizarConfigValor(principal.resultNetRow),
+      consolidadoLabel: principal.consolidadoLabel || '',
+      operativoLabel: principal.operativoLabel || '',
+      operativoConsolidado: principal.operativoConsolidado || '',
+      resultRow: principal.resultRow || '',
+      netRow: principal.netRow || '',
+      netRowAdicional: principal.netRowAdicional || '',
+      resultNetRow: principal.resultNetRow || '',
       sign,
       esVirtual: Boolean(principal.esVirtual)
     };
@@ -629,10 +629,19 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
     return agregador;
   };
 
+  /**
+   * Determina si un principal participa en OPERATING RESULTS
+   * - Income y Expense SÍ participan
+   * - Member Centricity y Other NO participan (van directo a NET RESULTS)
+   */
   const participaEnOperativo = (principal) => {
     if (!principal || !principal.operativoLabel) return false;
     const etiqueta = (principal.label || '').toUpperCase();
-    return !etiqueta.includes('MEMBER') && !etiqueta.includes('CENTRICITY') && !etiqueta.includes('OTHER');
+    // Solo excluir "OTHER" - Member Centricity va al NET RESULTS por separado
+    // Income y Expense SÍ participan en OPERATING RESULTS
+    const esOtherIncome = etiqueta.includes('OTHER') && etiqueta.includes('INCOME');
+    const esMemberCentricity = etiqueta.includes('MEMBER') || etiqueta.includes('CENTRICITY');
+    return !esOtherIncome && !esMemberCentricity;
   };
 
   principalList.forEach((principal) => {
@@ -702,6 +711,46 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
 
   const layout = [];
   
+  // Detectar si es capítulo consolidado (CIUDAD DE MÉXICO) o capítulo simple
+  const esCapituloConsolidado = capituloClave.includes('CIUDAD') || 
+                                 capituloClave.includes('MEXICO') || 
+                                 capituloClave.includes('MÉXICO');
+  
+  // Normalizar etiqueta: mayúsculas, trim, y colapsar espacios múltiples
+  const normalizarEtiquetaPrincipal = (etiqueta = '') =>
+    (etiqueta || '').toUpperCase().trim().replace(/\s+/g, ' ');
+
+  const principalPorEtiqueta = new Map();
+  principalList.forEach((principal) => {
+    principalPorEtiqueta.set(normalizarEtiquetaPrincipal(principal.label), principal);
+  });
+
+  const obtenerPrincipalPorEtiqueta = (etiqueta = '') => {
+    return principalPorEtiqueta.get(normalizarEtiquetaPrincipal(etiqueta)) || null;
+  };
+
+  /**
+   * Buscar fila de operativo por etiqueta (normalizada)
+   * Busca coincidencia exacta normalizada, luego parcial
+   */
+  const buscarOperativoRow = (etiqueta = '') => {
+    const normBusqueda = normalizarEtiquetaPrincipal(etiqueta);
+    // Buscar coincidencia exacta normalizada
+    for (const [key, value] of operativoRowMap.entries()) {
+      if (normalizarEtiquetaPrincipal(key) === normBusqueda) {
+        return value;
+      }
+    }
+    // Buscar coincidencia parcial
+    for (const [key, value] of operativoRowMap.entries()) {
+      if (normalizarEtiquetaPrincipal(key).includes(normBusqueda) ||
+          normBusqueda.includes(normalizarEtiquetaPrincipal(key))) {
+        return value;
+      }
+    }
+    return null;
+  };
+
   const establecerNetRowSegunFormula = ({ netLabel, operLabel, ajustes = [] }) => {
     if (!netLabel || !operLabel) return;
     const netRow = ensureAggregator(netRowMap, netLabel, netOrden);
@@ -710,7 +759,8 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
     netRow.principals = [];
     netRow.operaciones = [];
 
-    const operRow = operativoRowMap.get(operLabel);
+    // Buscar OPERATING RESULTS con normalización
+    const operRow = buscarOperativoRow(operLabel);
     if (operRow) {
       sumarTotales(netRow.totals, operRow.totals, 1);
       netRow.principals.push(operRow.label);
@@ -749,13 +799,17 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
   };
 
   if (esCapituloConsolidado) {
+    // Configuración de NET RESULTS para capítulo consolidado (CIUDAD DE MÉXICO)
+    // NET RESULTS = OPERATING RESULTS + Other Income (por región)
+    // Los nombres deben coincidir con los SECCIÓN Principal del JSON
     const netConfig = [
       {
         netLabel: 'NET RESULTS MEXICO',
         operLabel: 'OPERATING RESULTS MEXICO',
         ajustes: [
-          { label: 'Member Centricity', factor: -1 },
-          { label: 'Other (Mexico)', factor: 1 }
+          // México Other Income se suma al NET RESULTS
+          { label: 'México Other Income', factor: 1 },
+          { label: 'Mexico Other Income', factor: 1 } // Alternativa sin acento
         ]
       },
       {
@@ -797,11 +851,12 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
       });
     }
   } else {
+    // Para capítulos simples (GUADALAJARA, NORESTE, NOROESTE)
+    // NET RESULTS = OPERATING RESULTS + Other (ingresos no operativos)
     establecerNetRowSegunFormula({
       netLabel: 'NET RESULTS',
       operLabel: 'OPERATING RESULTS',
       ajustes: [
-        { label: 'Member Centricity', factor: -1 },
         { label: 'Other', factor: 1 }
       ]
     });
