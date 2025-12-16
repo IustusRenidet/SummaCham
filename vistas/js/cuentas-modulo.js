@@ -81,7 +81,9 @@
     'direccion',
     'eventos',
     'finanzas',
+    'gastosgenerales',
     'gtoscorporativos',
+    'nomina',
     'membresia',
     'rh',
     'servmembresia',
@@ -102,9 +104,11 @@
     'tic',
     'comites',
     'finanzas',
+    'gastosgenerales',
     'rh',
     'recursoshumanos',
-    'eventos'
+    'eventos',
+    'nomina'
   ]);
 
   const esModuloEditable = (moduloClave) => MODULOS_LAYOUT_EDITABLE.has(normalizarModuloClave(moduloClave || ''));
@@ -2646,6 +2650,23 @@
     notificarCambios();
   };
 
+  const sincronizarColumnasClaves = () => {
+    if (!estadoModulo.tabla) return;
+    const reverse = invertirColumnas();
+    obtenerFilasCuenta().forEach((fila) => {
+      Array.from(fila.cells).forEach((celda, idx) => {
+        const clave = reverse[idx];
+        if (esClaveBudget(clave)) {
+          celda.dataset.columnaClave = clave;
+        } else if (idx === 0 && !celda.dataset.columnaClave) {
+          celda.dataset.columnaClave = 'cuenta';
+        } else if (idx === 1 && !celda.dataset.columnaClave) {
+          celda.dataset.columnaClave = 'descripcion';
+        }
+      });
+    });
+  };
+
   const limpiarModoEdicionEnTabla = () => {
     if (!estadoModulo.tabla) return;
     ocultarColumnasReal(false);
@@ -2655,7 +2676,6 @@
         if (celda.dataset.editable) {
           celda.contentEditable = 'false';
           delete celda.dataset.editable;
-          delete celda.dataset.columnaClave;
           delete celda.dataset.listenersBound; // Permitir re-agregar listeners en próxima edición
         }
       });
@@ -2692,6 +2712,7 @@
 
   const aplicarModoEdicionEnTabla = () => {
     if (!estadoModulo.tabla) return;
+    sincronizarColumnasClaves();
     if (!estadoModulo.editMode) {
       limpiarModoEdicionEnTabla();
       habilitarEdicionTextoBasica();

@@ -11,6 +11,37 @@
     contextMenu: null,
     currentRow: null,
 
+    canModifyStructure(showAlert = true) {
+      const flujo = window.__flujoAutorizacionInstance;
+      const estadosPermitidos = ["EDITANDO", "BORRADOR", "CARGANDO"];
+      let modoEdicion = false;
+      let estado = "SIN_CARGAR";
+
+      if (flujo) {
+        estado = flujo.state?.borrador?.estado || "SIN_CARGAR";
+        modoEdicion = Boolean(flujo.state?.editMode);
+      }
+
+      if (!modoEdicion && window.ModoEdicionPresupuesto?.estaActivo) {
+        modoEdicion = window.ModoEdicionPresupuesto.estaActivo();
+        if (modoEdicion) estado = "EDITANDO";
+      }
+
+      if (!flujo && !window.ModoEdicionPresupuesto) {
+        return true;
+      }
+
+      const permitido = modoEdicion && estadosPermitidos.includes(estado);
+      if (!permitido && showAlert) {
+        const estadoMostrar = estado === "SIN_CARGAR" ? "Sin cargar" : estado;
+        const mensaje = modoEdicion
+          ? `❌ No se pueden hacer cambios estructurales en estado: ${estadoMostrar}\n\nDebes estar en modo inserción/edición para modificar la estructura.`
+          : '❌ No estás en modo inserción\n\nHaz clic en "Cargar presupuesto" para activar el modo edición antes de usar el wizard.';
+        alert(mensaje);
+      }
+      return permitido;
+    },
+
     /**
      * Inicializa el sistema de menú contextual
      */
@@ -54,11 +85,11 @@
      * Maneja el click derecho
      */
     handleContextMenu(e) {
-      e.preventDefault();
-
       // Encontrar la fila más cercana
       const row = e.target.closest('tr');
       if (!row) return;
+      if (!this.canModifyStructure()) return;
+      e.preventDefault();
 
       this.currentRow = row;
 
@@ -148,6 +179,7 @@
      * Abre el wizard para agregar cuenta u operación
      */
     openWizard(type) {
+      if (!this.canModifyStructure(false)) return;
       if (typeof InsertionWizard === 'undefined') {
         console.error('❌ InsertionWizard no está disponible');
         alert('Error: Sistema de inserción no disponible');
@@ -165,6 +197,7 @@
      * Abre wizard para sección (detecta si es secundaria o principal)
      */
     openWizardSection() {
+      if (!this.canModifyStructure(false)) return;
       if (typeof InsertionWizard === 'undefined') {
         console.error('❌ InsertionWizard no está disponible');
         alert('Error: Sistema de inserción no disponible');
@@ -193,6 +226,7 @@
      * Editar fila (función existente)
      */
     editRow() {
+      if (!this.canModifyStructure(false)) return;
       // Buscar función de edición existente en el módulo
       if (typeof window.editarFila === 'function') {
         window.editarFila(this.currentRow);
@@ -208,6 +242,7 @@
      * Eliminar fila (función existente)
      */
     deleteRow() {
+      if (!this.canModifyStructure(false)) return;
       // Buscar función de eliminación existente en el módulo
       if (typeof window.eliminarFila === 'function') {
         window.eliminarFila(this.currentRow);

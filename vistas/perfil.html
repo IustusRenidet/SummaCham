@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mi Perfil</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/estilos.css">
+  <style>
+    body {
+      background-color: #f2f2f2;
+      font-family: 'Manrope', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: #2f5496;
+      min-height: 100vh;
+    }
+
+    .perfil-wrapper {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: clamp(1rem, 2vw, 2rem) 0 3rem;
+    }
+
+    .profile-card {
+      border: 0;
+      border-radius: 24px;
+      box-shadow: 0 18px 55px rgba(47, 84, 150, 0.12);
+      background: #fff;
+    }
+
+    .profile-section {
+      border: 1px solid rgba(47, 84, 150, 0.08);
+      border-radius: 18px;
+      padding: 1.5rem;
+      background: #fff;
+      min-height: 100%;
+    }
+
+    .profile-section h3 {
+      font-size: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #8497b0;
+      margin-bottom: 1rem;
+    }
+
+    .datos-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+    }
+
+    .dato-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: #8497b0;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.15rem;
+    }
+
+    .dato-valor {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #2f5496;
+      word-break: break-word;
+    }
+
+    .badge-permiso {
+      border-radius: 999px;
+      font-weight: 600;
+      padding: 0.25rem 0.75rem;
+      font-size: 0.8rem;
+      border: 1px solid rgba(47, 84, 150, 0.2);
+      background: rgba(47, 84, 150, 0.08);
+      color: #2f5496;
+    }
+
+    .permisos-table thead th {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #8497b0;
+    }
+
+    .permisos-table td {
+      vertical-align: middle;
+      font-size: 0.9rem;
+    }
+
+    .acciones-chip {
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 0.25rem;
+    }
+
+    .acciones-chip span {
+      background: rgba(47, 84, 150, 0.08);
+      border-radius: 999px;
+      padding: 0.2rem 0.6rem;
+      font-size: 0.75rem;
+      color: #2f5496;
+      font-weight: 600;
+    }
+
+    .form-label {
+      font-weight: 600;
+      color: #2f5496;
+    }
+
+    #perfilAlert {
+      border-radius: 12px;
+    }
+
+    .muted-text {
+      color: #8497b0;
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container perfil-wrapper">
+    <div class="profile-card p-4 p-lg-5">
+      <header class="mb-4 text-center text-lg-start">
+        <p class="text-uppercase fw-semibold text-muted small mb-1">Configuración</p>
+        <h1 class="fw-bold mb-2">Mi Perfil</h1>
+        <p class="text-muted mb-0">Consulta tu información personal, revisa tus permisos y actualiza tu contraseña con
+          seguridad.</p>
+      </header>
+
+      <div id="perfilAlert" class="alert d-none" role="alert"></div>
+
+      <div id="perfilLoader" class="text-center py-4">
+        <div class="spinner-border text-primary mb-3" role="status">
+          <span class="visually-hidden">Cargando...</span>
+        </div>
+        <p class="text-muted mb-0">Cargando información de tu cuenta...</p>
+      </div>
+
+      <div id="perfilContenido" class="d-none">
+        <div class="row g-4">
+          <div class="col-12 col-lg-5">
+            <section class="profile-section h-100">
+              <h3>Datos del usuario</h3>
+              <div class="datos-grid">
+                <div>
+                  <p class="dato-label mb-1">Nombre completo</p>
+                  <p class="dato-valor" id="perfilNombre">-</p>
+                </div>
+                <div>
+                  <p class="dato-label mb-1">Usuario</p>
+                  <p class="dato-valor" id="perfilUsuario">-</p>
+                </div>
+                <div>
+                  <p class="dato-label mb-1">Correo</p>
+                  <p class="dato-valor" id="perfilCorreo">-</p>
+                </div>
+                <div>
+                  <p class="dato-label mb-1">Rol</p>
+                  <p class="dato-valor" id="perfilRol">-</p>
+                </div>
+              </div>
+
+              <div class="mt-4">
+                <p class="dato-label mb-2">Permisos generales</p>
+                <div id="permisosGenerales" class="d-flex flex-wrap gap-2"></div>
+              </div>
+            </section>
+          </div>
+
+          <div class="col-12 col-lg-7">
+            <section class="profile-section mb-4">
+              <h3>Permisos por empresa</h3>
+              <div id="permisosEmpresa">
+                <p class="text-muted mb-0">Sin permisos asignados.</p>
+              </div>
+            </section>
+
+            <section class="profile-section">
+              <h3>Actualizar contraseña</h3>
+              <p class="muted-text mb-4">Solo tú puedes modificar este dato. El resto de la información es de solo
+                lectura.</p>
+              <form id="passwordForm" class="row g-3">
+                <div class="col-12">
+                  <label for="contrasenaActual" class="form-label">Contraseña actual</label>
+                  <input type="password" class="form-control" id="contrasenaActual" name="contrasenaActual"
+                    autocomplete="current-password" required minlength="8">
+                </div>
+                <div class="col-12 col-md-6">
+                  <label for="nuevaContrasena" class="form-label">Nueva contraseña</label>
+                  <input type="password" class="form-control" id="nuevaContrasena" name="nuevaContrasena"
+                    autocomplete="new-password" required minlength="8">
+                </div>
+                <div class="col-12 col-md-6">
+                  <label for="confirmarContrasena" class="form-label">Confirmar nueva contraseña</label>
+                  <input type="password" class="form-control" id="confirmarContrasena" name="confirmarContrasena"
+                    autocomplete="new-password" required minlength="8">
+                </div>
+                <div class="col-12 text-end">
+                  <button type="submit" class="btn btn-primario" id="btnActualizarPassword">
+                    Actualizar contraseña
+                  </button>
+                </div>
+              </form>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/sesion.js"></script>
+  <script src="js/verificar-sesion.js"></script>
+  <script>
+    (function () {
+      const API_BASE = window.location.protocol === 'file:'
+        ? 'http://localhost:3005/api'
+        : `${window.location.origin.replace(/\/$/, '')}/api`;
+
+      const ELEMENTOS = {
+        alert: document.getElementById('perfilAlert'),
+        loader: document.getElementById('perfilLoader'),
+        contenido: document.getElementById('perfilContenido'),
+        nombre: document.getElementById('perfilNombre'),
+        usuario: document.getElementById('perfilUsuario'),
+        correo: document.getElementById('perfilCorreo'),
+        rol: document.getElementById('perfilRol'),
+        permisosGenerales: document.getElementById('permisosGenerales'),
+        permisosEmpresa: document.getElementById('permisosEmpresa'),
+        passwordForm: document.getElementById('passwordForm'),
+        btnPassword: document.getElementById('btnActualizarPassword')
+      };
+
+      const EMPRESAS = {
+        empresa1: 'Ciudad de México',
+        empresa2: 'Guadalajara',
+        empresa3: 'Noreste',
+        empresa4: 'Noroeste'
+      };
+
+      const mostrarAlerta = (mensaje, tipo = 'danger') => {
+        if (!ELEMENTOS.alert) return;
+        ELEMENTOS.alert.classList.remove('d-none', 'alert-danger', 'alert-success', 'alert-warning');
+        ELEMENTOS.alert.classList.add(`alert-${tipo}`);
+        ELEMENTOS.alert.textContent = mensaje;
+      };
+
+      const limpiarAlerta = () => {
+        if (!ELEMENTOS.alert) return;
+        ELEMENTOS.alert.classList.add('d-none');
+        ELEMENTOS.alert.textContent = '';
+      };
+
+      const toggleLoader = (visible) => {
+        if (ELEMENTOS.loader) {
+          ELEMENTOS.loader.classList.toggle('d-none', !visible);
+        }
+        if (ELEMENTOS.contenido) {
+          ELEMENTOS.contenido.classList.toggle('d-none', visible);
+        }
+      };
+
+      const renderPermisosGenerales = (permisos = {}) => {
+        if (!ELEMENTOS.permisosGenerales) return;
+        ELEMENTOS.permisosGenerales.innerHTML = '';
+        const claves = [
+          { campo: 'puedeAgregar', etiqueta: 'Agregar usuarios' },
+          { campo: 'puedeModificar', etiqueta: 'Modificar usuarios' },
+          { campo: 'puedeEliminar', etiqueta: 'Eliminar usuarios' }
+        ];
+        let alguno = false;
+        claves.forEach(({ campo, etiqueta }) => {
+          if (!permisos[campo]) {
+            return;
+          }
+          const span = document.createElement('span');
+          span.className = 'badge-permiso';
+          span.textContent = etiqueta;
+          ELEMENTOS.permisosGenerales.appendChild(span);
+          alguno = true;
+        });
+        if (!alguno) {
+          const p = document.createElement('p');
+          p.className = 'text-muted mb-0';
+          p.textContent = 'No cuentas con permisos administrativos.';
+          ELEMENTOS.permisosGenerales.appendChild(p);
+        }
+      };
+
+      const renderPermisosEmpresa = (permisosPorEmpresa = {}) => {
+        if (!ELEMENTOS.permisosEmpresa) return;
+        const registros = [];
+        Object.entries(permisosPorEmpresa).forEach(([empresaId, modulos]) => {
+          Object.entries(modulos || {}).forEach(([modulo, acciones]) => {
+            const activas = Object.entries(acciones || {})
+              .filter(([, activo]) => Boolean(activo))
+              .map(([accion]) => accion);
+            if (!activas.length) return;
+            registros.push({
+              empresa: EMPRESAS[empresaId] || empresaId,
+              modulo,
+              acciones: activas
+            });
+          });
+        });
+
+        if (!registros.length) {
+          ELEMENTOS.permisosEmpresa.innerHTML = '<p class="text-muted mb-0">Aún no tienes permisos para ningún módulo.</p>';
+          return;
+        }
+
+        registros.sort((a, b) => {
+          if (a.empresa === b.empresa) {
+            return a.modulo.localeCompare(b.modulo);
+          }
+          return a.empresa.localeCompare(b.empresa);
+        });
+
+        const tabla = document.createElement('div');
+        tabla.className = 'table-responsive';
+        tabla.innerHTML = `
+          <table class="table table-sm permisos-table mb-0">
+            <thead>
+              <tr>
+                <th scope="col">Empresa</th>
+                <th scope="col">Módulo</th>
+                <th scope="col">Acciones permitidas</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${registros.map((item) => `
+                <tr>
+                  <td>${item.empresa}</td>
+                  <td>${item.modulo}</td>
+                  <td>
+                    <div class="acciones-chip">
+                      ${item.acciones.map((accion) => `<span>${accion}</span>`).join('')}
+                    </div>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+        ELEMENTOS.permisosEmpresa.innerHTML = '';
+        ELEMENTOS.permisosEmpresa.appendChild(tabla);
+      };
+
+      const rellenarDatos = (usuario) => {
+        if (!usuario) return;
+        ELEMENTOS.nombre.textContent = [usuario.nombres, usuario.apellidoPrimero, usuario.apellidoSegundo]
+          .filter(Boolean)
+          .join(' ') || '-';
+        ELEMENTOS.usuario.textContent = usuario.usuario || '-';
+        ELEMENTOS.correo.textContent = usuario.correo || '-';
+        ELEMENTOS.rol.textContent = usuario.esAdminGlobal ? 'Administrador global' : 'Usuario';
+        renderPermisosGenerales(usuario.permisosGenerales);
+        renderPermisosEmpresa(usuario.permisosPorEmpresa);
+      };
+
+      const manejarRespuestaNoAutorizada = () => {
+        Sesion.limpiar();
+        window.location.replace('login.html');
+      };
+
+      const cargarPerfil = async () => {
+        toggleLoader(true);
+        limpiarAlerta();
+        try {
+          const respuesta = await fetch(`${API_BASE}/perfil`, {
+            headers: {
+              ...Sesion.headersAutenticacion()
+            }
+          });
+          if (respuesta.status === 401) {
+            manejarRespuestaNoAutorizada();
+            return;
+          }
+          const datos = await respuesta.json();
+          if (!respuesta.ok) {
+            throw new Error(datos.mensaje || 'No fue posible obtener la información de tu perfil.');
+          }
+          rellenarDatos(datos.usuario || {});
+        } catch (error) {
+          console.error('Error al cargar perfil', error);
+          mostrarAlerta(error.message || 'Ocurrió un error al cargar tu perfil.');
+        } finally {
+          toggleLoader(false);
+        }
+      };
+
+      const manejarCambioPassword = async (evento) => {
+        evento.preventDefault();
+        limpiarAlerta();
+
+        const actual = ELEMENTOS.passwordForm.contrasenaActual.value.trim();
+        const nueva = ELEMENTOS.passwordForm.nuevaContrasena.value.trim();
+        const confirmar = ELEMENTOS.passwordForm.confirmarContrasena.value.trim();
+
+        if (!actual || !nueva || !confirmar) {
+          mostrarAlerta('Completa todos los campos para actualizar tu contraseña.', 'warning');
+          return;
+        }
+
+        if (nueva.length < 8) {
+          mostrarAlerta('La nueva contraseña debe tener al menos 8 caracteres.', 'warning');
+          return;
+        }
+
+        if (nueva !== confirmar) {
+          mostrarAlerta('La confirmación no coincide con la nueva contraseña.', 'warning');
+          return;
+        }
+
+        ELEMENTOS.btnPassword.disabled = true;
+        ELEMENTOS.btnPassword.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Guardando...';
+
+        try {
+          const respuesta = await fetch(`${API_BASE}/perfil/password`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              ...Sesion.headersAutenticacion()
+            },
+            body: JSON.stringify({
+              contrasenaActual: actual,
+              nuevaContrasena: nueva
+            })
+          });
+          const datos = await respuesta.json();
+          if (respuesta.status === 401) {
+            manejarRespuestaNoAutorizada();
+            return;
+          }
+          if (!respuesta.ok) {
+            throw new Error(datos.mensaje || 'No fue posible actualizar la contraseña.');
+          }
+          ELEMENTOS.passwordForm.reset();
+          mostrarAlerta(datos.mensaje || 'Contraseña actualizada correctamente.', 'success');
+        } catch (error) {
+          console.error('Error al actualizar contraseña', error);
+          mostrarAlerta(error.message || 'Ocurrió un error al actualizar tu contraseña.');
+        } finally {
+          ELEMENTOS.btnPassword.disabled = false;
+          ELEMENTOS.btnPassword.textContent = 'Actualizar contraseña';
+        }
+      };
+
+      if (ELEMENTOS.passwordForm) {
+        ELEMENTOS.passwordForm.addEventListener('submit', manejarCambioPassword);
+      }
+
+      cargarPerfil();
+    })();
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>
