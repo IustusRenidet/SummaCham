@@ -603,10 +603,37 @@ const sembrarUsuariosDesdeJson = () => {
           puedeEliminar
         );
 
+        // Si el usuario ya existía, actualizar algunos campos para reflejar el seed (nombre, correo y rol de admin)
+        try {
+          // No sobreescribir el flag es_admin_global a falso si ya existe en DB.
+          const actualizarUsuario = db.prepare(`
+            UPDATE usuarios
+            SET nombres = ?, apellido_primero = ?, apellido_segundo = ?, apellidos = ?, correo = ?,
+                es_admin_global = CASE WHEN ? = 1 THEN 1 ELSE es_admin_global END,
+                puede_agregar = ?, puede_modificar = ?, puede_eliminar = ?
+            WHERE usuario = ?
+          `);
+          actualizarUsuario.run(
+            u.nombres || u.username,
+            apellido1,
+            apellido2,
+            apellidosCompletos,
+            u.correo || "",
+            esAdminGlobal,
+            puedeAgregar,
+            puedeModificar,
+            puedeEliminar,
+            u.username
+          );
+        } catch (err) {
+          // No bloquear el seeding por un error de actualización
+          console.warn('No fue posible actualizar usuario desde seed:', u.username, err?.message || err);
+        }
+
         const userRow = getUser.get(u.username);
         if (!userRow) return;
 
-        // Asignar permisos
+        // Asignar permisos explícitos desde JSON
         if (Array.isArray(u.permissions)) {
           u.permissions.forEach((p) => {
             insertPermission.run(
@@ -620,10 +647,43 @@ const sembrarUsuariosDesdeJson = () => {
             );
           });
         }
+
+        // Si el usuario es administrador global, asignar todos los permisos (por empresa y módulo)
+        if (u.esAdminGlobal) {
+          console.log(`Seeding admin global: asignando permisos completos a ${u.username}`);
+          EMPRESAS.forEach((empresa) => {
+            MODULOS.forEach((modulo) => {
+              insertPermission.run(userRow.id, empresa.id, modulo, 1, 1, 1, 1);
+            });
+          });
+        }
       });
     });
 
     transaction(); // Execute
+    // Asegurar que cualquier usuario marcado como admin global tenga permisos completos
+    try {
+      const admins = db.prepare('SELECT id, usuario FROM usuarios WHERE es_admin_global = 1').all();
+      const insertarPermiso = db.prepare(`
+        INSERT OR IGNORE INTO permisos_modulo (
+          usuario_id, empresa_id, modulo, puede_leer, puede_cargar_guardar, puede_revisar, puede_aprobar
+        ) VALUES (?, ?, ?, 1, 1, 1, 1)
+      `);
+      admins.forEach((a) => {
+        EMPRESAS.forEach((empresa) => {
+          MODULOS.forEach((modulo) => {
+            try {
+              insertarPermiso.run(a.id, empresa.id, modulo);
+            } catch (_) {
+              // ignore
+            }
+          });
+        });
+        console.log(`Permisos completos asegurados (seed) para administrador global: ${a.usuario}`);
+      });
+    } catch (err) {
+      console.warn('No fue posible asegurar permisos completos post-seed:', err?.message || err);
+    }
     console.log(`Seeding completed: ${seedUsers.length} users processed.`);
   } catch (error) {
     console.error("Error seeding users:", error);
@@ -809,6 +869,78 @@ const inicializarBaseDatos = () => {
   copiarLayoutsDesdeSemillaSiFaltan();
   intentarSembrarLayoutsIniciales();
   crearAdministradorGlobal();
+  // Asegurar que ciertos usuarios históricos sean administradores globales
+  const asegurarAdministradoresHistoricos = () => {
+    try {
+      const nombres = ['AA', 'AMB'];
+      const actualizar = db.prepare(`
+        UPDATE usuarios
+        SET es_admin_global = 1, puede_agregar = 1, puede_modificar = 1, puede_eliminar = 1
+        WHERE UPPER(usuario) = ?
+      `);
+      nombres.forEach((n) => {
+        const usuarioUpper = n.toUpperCase();
+        const res = actualizar.run(usuarioUpper);
+        if (res.changes) {
+          console.log(`Usuarios: '${usuarioUpper}' marcado como administrador global.`);
+
+          // Asignar permisos completos por empresa y módulo (si no existen)
+          try {
+            const insertarPermiso = db.prepare(`
+              INSERT OR IGNORE INTO permisos_modulo (
+                usuario_id, empresa_id, modulo, puede_leer, puede_cargar_guardar, puede_revisar, puede_aprobar
+              ) VALUES (?, ?, ?, 1, 1, 1, 1)
+            `);
+            const idRow = db.prepare('SELECT id FROM usuarios WHERE usuario = ?').get(usuarioUpper);
+            if (idRow && idRow.id) {
+              const usuarioId = idRow.id;
+              EMPRESAS.forEach((empresa) => {
+                MODULOS.forEach((modulo) => {
+                  try {
+                    insertarPermiso.run(usuarioId, empresa.id, modulo);
+                  } catch (err2) {
+                    // no bloquear
+                  }
+                });
+              });
+            }
+          } catch (err2) {
+            console.warn('No fue posible insertar permisos para administrador histórico:', err2?.message || err2);
+          }
+        }
+      });
+    } catch (err) {
+      console.warn('No fue posible aplicar administradores históricos:', err?.message || err);
+    }
+  };
+  asegurarAdministradoresHistoricos();
+  // Asegurar que todos los usuarios con es_admin_global = 1 tengan permisos completos
+  const asegurarPermisosParaAdminsGlobales = () => {
+    try {
+      const admins = db.prepare(`SELECT id, usuario FROM usuarios WHERE es_admin_global = 1`).all();
+      if (!admins || !admins.length) return;
+      const insertarPermiso = db.prepare(`
+        INSERT OR IGNORE INTO permisos_modulo (
+          usuario_id, empresa_id, modulo, puede_leer, puede_cargar_guardar, puede_revisar, puede_aprobar
+        ) VALUES (?, ?, ?, 1, 1, 1, 1)
+      `);
+      admins.forEach((a) => {
+        try {
+          EMPRESAS.forEach((empresa) => {
+            MODULOS.forEach((modulo) => {
+              insertarPermiso.run(a.id, empresa.id, modulo);
+            });
+          });
+          console.log(`Permisos completos asegurados para administrador global: ${a.usuario}`);
+        } catch (err) {
+          console.warn(`No fue posible asegurar permisos para ${a.usuario}:`, err?.message || err);
+        }
+      });
+    } catch (err) {
+      console.warn('Error al asegurar permisos para admins globales:', err?.message || err);
+    }
+  };
+  asegurarPermisosParaAdminsGlobales();
   sembrarUsuariosDesdeJson();
   sembrarVistasPorCapitulo();
   console.log('✓ Base de datos SQLite inicializada');

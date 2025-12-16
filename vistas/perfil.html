@@ -268,7 +268,7 @@
 
       <div id="perfilContenido" class="d-none">
         <div class="row g-4">
-          <div class="col-12 col-lg-5">
+          <div class="col-12 col-lg-5 order-lg-1">
             <section class="profile-section h-100">
               <h3>Datos del usuario</h3>
               <div class="datos-grid">
@@ -296,19 +296,9 @@
               </div>
             </section>
           </div>
-
-          <div class="col-12 col-lg-7">
-            <section class="profile-section mb-lg-4 mb-3">
-              <h3>Permisos por empresa</h3>
-              <div id="permisosEmpresa">
-                <p class="text-muted mb-0">Sin permisos asignados.</p>
-              </div>
-            </section>
-
+          <div class="col-12 col-lg-7 order-lg-2">
             <section class="profile-section">
               <h3>Actualizar contraseña</h3>
-              <p class="muted-text mb-4">Solo tú puedes modificar este dato. El resto de la información es de solo
-                lectura.</p>
               <form id="passwordForm" class="row g-3">
                 <div class="col-12">
                   <label for="contrasenaActual" class="form-label">Contraseña actual</label>
@@ -391,6 +381,15 @@
                   </button>
                 </div>
               </form>
+            </section>
+          </div>
+
+          <div class="col-12 col-lg-7">
+            <section class="profile-section mb-lg-4 mb-3">
+              <h3>Permisos por empresa</h3>
+              <div id="permisosEmpresa">
+                <p class="text-muted mb-0">Sin permisos asignados.</p>
+              </div>
             </section>
           </div>
         </div>

@@ -114,6 +114,26 @@ const aplicarPermisos = (usuarioId, permisos) => {
   transaccion();
 };
 
+// Asignar todos los permisos (leer, cargar, revisar, aprobar) para todas las empresas y módulos
+const asignarPermisosCompletos = (usuarioId) => {
+  const insertarPermiso = db.prepare(`
+    INSERT OR IGNORE INTO permisos_modulo (
+      usuario_id, empresa_id, modulo, puede_leer, puede_cargar_guardar, puede_revisar, puede_aprobar
+    ) VALUES (?, ?, ?, 1, 1, 1, 1)
+  `);
+
+  EMPRESAS.forEach((empresa) => {
+    MODULOS.forEach((modulo) => {
+      try {
+        insertarPermiso.run(usuarioId, empresa.id, modulo);
+      } catch (err) {
+        // No bloquear por error individual
+        console.warn('No fue posible insertar permiso completo:', err?.message || err);
+      }
+    });
+  });
+};
+
 const construirPermisosCompletos = (permisosActuales = {}) => {
   const resultado = {};
 
@@ -314,7 +334,10 @@ router.post('/', asegurarPermisoGeneral('puedeAgregar'), (req, res) => {
   );
 
   aplicarPermisos(resultado.lastInsertRowid, payload.permisos);
-
+  // Si es administrador global, asegurarse de que tenga permisos completos por empresa y módulo
+  if (payload.esAdminGlobal) {
+    asignarPermisosCompletos(resultado.lastInsertRowid);
+  }
   res.status(201).json({ mensaje: 'Usuario creado correctamente.' });
 });
 
@@ -397,6 +420,11 @@ router.put('/:id', asegurarPermisoGeneral('puedeModificar'), (req, res) => {
   if (payload.contrasena) {
     const hash = bcrypt.hashSync(payload.contrasena, 12);
     db.prepare('UPDATE usuarios SET contrasena = ? WHERE id = ?').run(hash, usuarioId);
+  }
+
+  // Asegurar permisos completos si se establece el rol de administrador global
+  if (payload.esAdminGlobal) {
+    asignarPermisosCompletos(usuarioId);
   }
 
   aplicarPermisos(usuarioId, payload.permisos);

@@ -22,10 +22,11 @@ const MODULE_GROUPS = [
       {
         id: 'finanzas-cluster',
         label: 'Finanzas',
+        badge: 'finanzas',
         items: [
-          { id: 'finanzas', label: 'Finanzas', path: 'Finanzas.html',badge: 'finanzas', permiso: 'Finanzas' },
-          { id: 'gastosgenerales', label: 'Gastos Generales',badge: 'finanzas', path: 'GastosGenerales.html', permiso: 'Gastos Generales' },
-          { id: 'nomina', label: 'N�mina', path: 'Nomina.html',badge: 'finanzas', permiso: 'N�mina' }
+          { id: 'finanzas', label: 'Finanzas', path: 'Finanzas.html', badge: 'finanzas', permiso: 'Finanzas' },
+          { id: 'gastosgenerales', label: 'Gastos Generales', badge: 'finanzas', path: 'GastosGenerales.html', permiso: 'Gastos Generales' },
+          { id: 'nomina', label: 'N�mina', path: 'Nomina.html', badge: 'finanzas', permiso: 'N�mina' }
         ]
       },
       { id: 'gtos-corporativos', label: 'Gastos Corporativos', path: 'Gtos_Corporativos.html', permiso: 'Gtos Corporativos' },
@@ -347,6 +348,8 @@ const SidebarGroup = ({ group, modules, selectedModule, onSelect, open, onToggle
 
         <span>{group.label}</span>
 
+        {group.badge && <span className="badge rounded-pill module-badge ms-2">{group.badge}</span>}
+
         <span className="module-count">{modules.length}</span>
 
       </button>
@@ -410,6 +413,8 @@ const SidebarModuleItem = ({ module, selectedModule, onSelect, gruposAbiertos, t
         >
 
           <span>{module.label}</span>
+
+          {module.badge && <span className="badge rounded-pill module-badge ms-2">{module.badge}</span>}
 
           <span className="module-count">{module.items.length}</span>
 

@@ -240,6 +240,26 @@ router.post('/refresh', async (req, res) => {
   }
 });
 
+// DEBUG: ver información de usuario (solo en desarrollo)
+if (process.env.NODE_ENV !== 'production') {
+  router.get('/debug/user/:usuario', async (req, res) => {
+    try {
+      const usuario = (req.params.usuario || '').toString().trim().toUpperCase();
+      const registro = db.prepare(`
+        SELECT id, usuario, nombres, apellido_primero, apellido_segundo, apellidos, correo, es_admin_global
+        FROM usuarios WHERE UPPER(usuario) = ?
+      `).get(usuario);
+      if (!registro) return res.status(404).json({ mensaje: 'Usuario no encontrado.' });
+      const permisos = db.prepare('SELECT COUNT(*) as total FROM permisos_modulo WHERE usuario_id = ?').get(registro.id);
+      const permisosDetalles = db.prepare('SELECT empresa_id, modulo, puede_leer, puede_cargar_guardar, puede_revisar, puede_aprobar FROM permisos_modulo WHERE usuario_id = ? LIMIT 200').all(registro.id);
+      res.json({ registro, permisosCount: permisos.total, permisosSample: permisosDetalles });
+    } catch (err) {
+      console.error('Error debug user:', err);
+      res.status(500).json({ mensaje: 'Error interno.' });
+    }
+  });
+}
+
 router.post('/logout', (req, res) => {
   if (req.session) {
     req.session.destroy((err) => {

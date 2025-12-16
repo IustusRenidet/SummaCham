@@ -119,7 +119,7 @@ const prepararInsertarCuenta = (db) =>
 const prepararInsertarOperacion = (db) =>
   db.prepare(
     `
-    INSERT OR REPLACE INTO layout_operaciones (
+    INSERT OR IGNORE INTO layout_operaciones (
       empresa_id, modulo, anio, capitulo, clase, seccion,
       operacion_tipo, operacion_label, signo, orden, creado_en, actualizado_en
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
@@ -275,7 +275,7 @@ const sembrarOperaciones = ({
         if (!etiqueta) {
           return;
         }
-        insertOperacion.run(
+        const res = insertOperacion.run(
           empresaId,
           modulo,
           anio,
@@ -287,7 +287,11 @@ const sembrarOperaciones = ({
           signo,
           indice * 100 + tipoIndex
         );
-        insertadas += 1;
+        if (res && res.changes && res.changes > 0) {
+          insertadas += 1;
+        } else {
+          // Insert was ignored (already exists) - do not overwrite existing label from another source
+        }
       });
     });
   });
