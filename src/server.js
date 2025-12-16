@@ -20,6 +20,7 @@ const rutasReportes = require('./routes/reportes');
 const rutasBorradores = require('./routes/borradores');
 const rutasEstructura = require('./routes/estructuraRoutes');
 const rutasInsercion = require('./routes/insercion');
+const rutasPerfil = require('./routes/perfil');
 
 let instanciaServidor = null;
 
@@ -149,6 +150,7 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3005)) => {
   app.use('/api/borradores', rutasBorradores);
   app.use('/api/notificaciones', rutasNotificaciones);
   app.use('/api/reportes', rutasReportes);
+  app.use('/api/perfil', rutasPerfil);
   app.use('/api/saldos', rutasSaldos);
   app.use('/api/cuentas', rutasCuentas);
   app.use('/api', rutasEstructura);

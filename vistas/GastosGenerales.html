@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Finanzas</title>
+    <title>Gastos Generales</title>
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
       rel="stylesheet"
@@ -260,7 +260,7 @@
     </style>
   </head>
 
-  <body data-modulo="Finanzas" data-modulo-alias="Finanzas" data-modulo-id="finanzas">
+  <body data-modulo="Gastos Generales" data-modulo-alias="Gastos Generales" data-modulo-id="gastosgenerales" data-modulo-sheet="Finanzas">
     <div class="container py-4 py-lg-5">
       <div class="row mb-4">
         <div class="col-12">
@@ -270,7 +270,7 @@
                 class="d-flex flex-column flex-lg-row align-items-center justify-content-between gap-3"
               >
                 <div>
-                  <h1 class="fw-bold display-6 mb-2">Finanzas</h1>
+                  <h1 class="fw-bold display-6 mb-2">Gastos Generales</h1>
                   <p class="mb-0 text-white-50">
                     Ejercicio
                     <span class="anio text-light" id="yearLabel"></span> ·
@@ -408,7 +408,7 @@
                   <tr>
                     <th scope="col" rowspan="2" style="min-width: 120px"></th>
                     <th scope="col" rowspan="2" style="min-width: 200px">
-                      FINANZAS: GASTOS GENERALES
+                      GASTOS GENERALES
                     </th>
 
                     <!-- Enero -->
@@ -613,13 +613,13 @@
   <script src="js/flujo-autorizacion.js?v=20251208-1"></script>
   <script src="js/init-modulo-planeacion.js"></script>
   <script>
-    initModuloPlaneacion({ moduloId: 'finanzas', moduloNombre: 'FINANZAS' });
+    initModuloPlaneacion({ moduloId: 'gastosgenerales', moduloNombre: 'GASTOS GENERALES' });
     // Inicializar toggle de redondeo
     if (window.ToggleRedondeo) {
       ToggleRedondeo.inicializar({
         containerSelector: '.controls-container',
         tableSelector: '#tablaCuentasBody',
-        storageKey: 'finanzas_redondear_numeros'
+        storageKey: 'gastosgenerales_redondear_numeros'
       });
     }
     
@@ -627,7 +627,7 @@
     if (window.SeccionCollapse) {
       SeccionCollapse.inicializar({
         tableSelector: '#tablaCuentasBody',
-        storageKey: 'finanzas_secciones_colapsadas',
+        storageKey: 'gastosgenerales_secciones_colapsadas',
         containerSelector: '.controls-container'
       });
     }

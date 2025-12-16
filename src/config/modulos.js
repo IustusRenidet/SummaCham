@@ -10,6 +10,8 @@ const MODULOS = [
   'RH',
   'VPE',
   'Finanzas',
+  'Gastos Generales',
+  'Nomina',
   'Gtos Corporativos',
   'SUMMARY',
   'Presupuestos',
@@ -39,6 +41,11 @@ const MAPA_NORMALIZACION_MODULOS = {
   'RH': 'RH',
   'VPE': 'VPE',
   'FINANZAS': 'Finanzas',
+  'GASTOS GENERALES': 'Gastos Generales',
+  'GASTOS_GENERALES': 'Gastos Generales',
+  'GASTOSGENERALES': 'Gastos Generales',
+  'NOMINA': 'Nomina',
+  'NÓMINA': 'Nomina',
   'GTOS_CORPORATIVOS': 'Gtos Corporativos',
   'GTOS CORPORATIVOS': 'Gtos Corporativos',
   'SUMMARY': 'SUMMARY',
@@ -48,10 +55,10 @@ const MAPA_NORMALIZACION_MODULOS = {
 
 const normalizarNombreModulo = (nombre) => {
   if (!nombre) return null;
-  // Normalizar espacios múltiples y guiones bajos a espacio simple
+  // Normalizar espacios múltiples, guiones y guiones bajos a espacio simple
   const normalizado = nombre.toString()
     .trim()
-    .replace(/[_\s]+/g, ' ')  // Reemplazar guiones bajos y espacios múltiples por espacio simple
+    .replace(/[-_\s]+/g, ' ')  // Reemplazar separadores por espacio simple
     .toUpperCase();
   
   return MAPA_NORMALIZACION_MODULOS[normalizado] || nombre;

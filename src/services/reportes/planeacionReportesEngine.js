@@ -274,6 +274,11 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
   const netOrden = new Map();
   const finalOrden = new Map();
 
+  const normalizarConfigValor = (valor) => {
+    if (valor == null) return '';
+    return valor.toString().trim();
+  };
+
   const configPorSeccion = new Map();
   const configPorPrincipal = new Map();
   if (Array.isArray(configAgrupacion)) {
@@ -283,18 +288,18 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
       if (!seccion || cap !== capituloClave) return;
       const key = `${cap}|${seccion.toUpperCase()}`;
       const configEntry = {
-        sumRow: cfg['sum-row'] || '',
-        principal: cfg['sum-row-sumavarios'] || '',
-        consolidado: cfg['sum-row-sumavarios-consolidado'] || '',
-        operativo: cfg['sum-row-operativo'] || '',
-        operativoConsolidado: cfg['sum-row-operativo-consolidado'] || '',
-        resultRow: cfg['result-row'] || '',
-        netRow: cfg['net-row'] || '',
-        netRowAdicional: cfg['net-row-adicional'] || '',
-        resultNetRow: cfg['result-net-row'] || '',
-        clase: cfg.Clase || ''
+        sumRow: normalizarConfigValor(cfg['sum-row']),
+        principal: normalizarConfigValor(cfg['sum-row-sumavarios']),
+        consolidado: normalizarConfigValor(cfg['sum-row-sumavarios-consolidado']),
+        operativo: normalizarConfigValor(cfg['sum-row-operativo']),
+        operativoConsolidado: normalizarConfigValor(cfg['sum-row-operativo-consolidado']),
+        resultRow: normalizarConfigValor(cfg['result-row']),
+        netRow: normalizarConfigValor(cfg['net-row']),
+        netRowAdicional: normalizarConfigValor(cfg['net-row-adicional']),
+        resultNetRow: normalizarConfigValor(cfg['result-net-row']),
+        clase: normalizarConfigValor(cfg.Clase)
       };
-      const principalBase = (cfg['sum-row-sumavarios'] || '').toString().trim();
+      const principalBase = configEntry.principal;
       configEntry.principalLabel = principalBase;
       configPorSeccion.set(key, configEntry);
       if (principalBase) {
@@ -304,38 +309,39 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
         }
       }
 
-      if (!seccionOrden.has(seccion)) {
-        seccionOrden.set(seccion, idx);
+      const seccionLimpia = normalizarConfigValor(seccion);
+      if (seccionLimpia && !seccionOrden.has(seccionLimpia)) {
+        seccionOrden.set(seccionLimpia, idx);
       }
-      const principal = cfg['sum-row-sumavarios'];
+      const principal = configEntry.principal;
       if (principal && !principalOrden.has(principal)) {
         principalOrden.set(principal, idx);
       }
-      const consolidado = cfg['sum-row-sumavarios-consolidado'];
+      const consolidado = configEntry.consolidado;
       if (consolidado && !consolidadoOrden.has(consolidado)) {
         consolidadoOrden.set(consolidado, idx);
       }
-      const operativo = cfg['sum-row-operativo'];
+      const operativo = configEntry.operativo;
       if (operativo && !operativoOrden.has(operativo)) {
         operativoOrden.set(operativo, idx);
       }
-      const operativoConsolidado = cfg['sum-row-operativo-consolidado'];
+      const operativoConsolidado = configEntry.operativoConsolidado;
       if (operativoConsolidado && !operativoOrden.has(operativoConsolidado)) {
         operativoOrden.set(operativoConsolidado, idx);
       }
-      const resultRow = cfg['result-row'];
+      const resultRow = configEntry.resultRow;
       if (resultRow && !resultOrden.has(resultRow)) {
         resultOrden.set(resultRow, idx);
       }
-      const netRow = cfg['net-row'];
+      const netRow = configEntry.netRow;
       if (netRow && !netOrden.has(netRow)) {
         netOrden.set(netRow, idx);
       }
-      const netRowAdicional = cfg['net-row-adicional'];
+      const netRowAdicional = configEntry.netRowAdicional;
       if (netRowAdicional && !netOrden.has(netRowAdicional)) {
         netOrden.set(netRowAdicional, idx);
       }
-      const finalRow = cfg['result-net-row'];
+      const finalRow = configEntry.resultNetRow;
       if (finalRow && !finalOrden.has(finalRow)) {
         finalOrden.set(finalRow, idx);
       }
@@ -485,7 +491,7 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
     }
   });
 
-  const principalList = Array.from(principalMap.values()).map((principal) => {
+  let principalList = Array.from(principalMap.values()).map((principal) => {
     const seccionesOrdenadas = Array.from(principal.secciones.values()).sort((a, b) => a.orden - b.orden);
     const children = seccionesOrdenadas.map((sec) => construirNodoSeccion({
       seccion: sec.label,
@@ -513,7 +519,7 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
     const sign = clase.includes('expense') ? -1 : 1;
 
     return {
-      label: principal.label,
+      label: principal.label ? principal.label.trim() : '',
       children,
       ...totalesPrincipal,
       total: totalesPrincipal.actualYTD,
@@ -530,6 +536,67 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
     };
   }).sort((a, b) => a.orden - b.orden);
 
+  const esCapituloConsolidado =
+    capituloClave.includes('CIUDAD') ||
+    capituloClave.includes('MEXICO') ||
+    capituloClave.includes('MÉXICO');
+
+  if (esCapituloConsolidado) {
+    const normalizarEtiqueta = (valor = '') => valor.toString().trim().toUpperCase();
+    const otherPrincipal = principalList.find((principal) => normalizarEtiqueta(principal.label) === 'OTHER');
+    if (otherPrincipal) {
+      otherPrincipal.label = 'Other (Mexico)';
+    }
+    principalList = principalList.filter(
+      (principal) => !(principal.esVirtual && normalizarEtiqueta(principal.label) === 'OTHER (MEXICO)')
+    );
+  }
+
+  const normalizarEtiqueta = (valor = '') => valor.toString().trim().toUpperCase();
+
+  const principalPorEtiqueta = new Map();
+  principalList.forEach((principal) => {
+    principalPorEtiqueta.set(normalizarEtiqueta(principal.label), principal);
+  });
+
+  const seccionPorEtiqueta = new Map();
+  principalList.forEach((principal) => {
+    (principal.children || []).forEach((sec) => {
+      const key = normalizarEtiqueta(sec.label);
+      if (key && !seccionPorEtiqueta.has(key)) {
+        seccionPorEtiqueta.set(key, sec);
+      }
+    });
+  });
+
+  const obtenerPrincipalPorEtiqueta = (etiqueta = '') => {
+    const key = normalizarEtiqueta(etiqueta);
+    return principalPorEtiqueta.get(key) || null;
+  };
+
+  const obtenerSeccionPorEtiqueta = (etiqueta = '') => {
+    const key = normalizarEtiqueta(etiqueta);
+    return seccionPorEtiqueta.get(key) || null;
+  };
+
+  const convertirSeccionATotales = (sec) => {
+    if (!sec) return null;
+    return {
+      actualMonth: Number(sec.totalActualMonth ?? 0),
+      planMonth: Number(sec.totalPlanMonth ?? 0),
+      prevMonth: Number(sec.totalPrevMonth ?? 0),
+      actualYTD: Number(sec.totalActualYTD ?? 0),
+      planYTD: Number(sec.totalPlanYTD ?? 0),
+      prevYTD: Number(sec.totalPrevYTD ?? 0)
+    };
+  };
+
+  const limpiarEtiqueta = (valor = '') => {
+    if (valor == null) return '';
+    return valor.toString().replace(/\s+/g, ' ').trim();
+  };
+  const claveEtiqueta = (valor = '') => limpiarEtiqueta(valor).toUpperCase();
+
   const consolidatedMap = new Map();
   const operativoRowMap = new Map();
   const resultRowMap = new Map();
@@ -543,17 +610,23 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
   });
 
   const ensureAggregator = (mapa, etiqueta, ordenMapa) => {
-    if (!etiqueta) return null;
-    if (!mapa.has(etiqueta)) {
-      mapa.set(etiqueta, {
-        label: etiqueta,
-        orden: ordenMapa.has(etiqueta) ? ordenMapa.get(etiqueta) : mapa.size + ordenMapa.size,
+    const etiquetaLimpia = limpiarEtiqueta(etiqueta);
+    const clave = claveEtiqueta(etiquetaLimpia);
+    if (!clave) return null;
+    if (!mapa.has(clave)) {
+      mapa.set(clave, {
+        label: etiquetaLimpia,
+        orden: ordenMapa.has(etiquetaLimpia) ? ordenMapa.get(etiquetaLimpia) : mapa.size + ordenMapa.size,
         totals: crearAcumulador(),
         principals: [],
         operaciones: []
       });
     }
-    return mapa.get(etiqueta);
+    const agregador = mapa.get(clave);
+    if (etiquetaLimpia && (!agregador.label || agregador.label !== etiquetaLimpia)) {
+      agregador.label = etiquetaLimpia;
+    }
+    return agregador;
   };
 
   /**
@@ -695,11 +768,32 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
     }
 
     ajustes.forEach(({ label, factor = 1 }) => {
-      const principalAjuste = obtenerPrincipalPorEtiqueta(label || '');
+      const objetivoLabel = label || '';
+      const principalAjuste = obtenerPrincipalPorEtiqueta(objetivoLabel);
       if (principalAjuste) {
         sumarTotales(netRow.totals, principalAjuste, factor);
         netRow.principals.push(principalAjuste.label);
         netRow.operaciones.push(describirPrincipalOperacion(principalAjuste, factor));
+        return;
+      }
+      const seccionAjuste = obtenerSeccionPorEtiqueta(objetivoLabel);
+      if (seccionAjuste) {
+        const totalesSeccion = convertirSeccionATotales(seccionAjuste);
+        if (process.env.DEBUG_NET_FORMULAS === '1') {
+          console.log('[debug-net] Ajuste sección', {
+            netLabel,
+            seccion: seccionAjuste.label,
+            factor,
+            totales: totalesSeccion
+          });
+        }
+        sumarTotales(netRow.totals, totalesSeccion, factor);
+        netRow.principals.push(seccionAjuste.label);
+        netRow.operaciones.push({
+          principal: seccionAjuste.label,
+          factor,
+          sections: [seccionAjuste.label]
+        });
       }
     });
   };

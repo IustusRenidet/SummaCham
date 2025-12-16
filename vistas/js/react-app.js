@@ -9,63 +9,109 @@
   const MODULE_GROUPS = [
     {
       id: "panel-resumenes",
-      label: "SUMMARY",
+      label: "Summary",
       items: [
         { id: "resumen", label: "Resumen", path: "RESUMEN.html", badge: "summary", permiso: "RESUMEN" },
         { id: "summary", label: "Summary", path: "SUMMARY.html", badge: "summary", permiso: "SUMMARY" }
       ]
     },
     {
-      id: "resumen-areas",
+      id: "modulos-planeacion",
       label: "Divisiones",
       items: [
         { id: "presupuestos", label: "Presupuestos", path: "Presupuestos.html", badge: "ppto", permiso: "Presupuestos" },
-        { id: "comites", label: "Comit\xE9s", path: "Comit\xE9s.html", permiso: "Comit\xE9s" },
-        { id: "comunicacion", label: "Comunicaci\xF3n", path: "Comunicaci\xF3n.html", permiso: "Comunicaci\xF3n" },
-        { id: "direccion", label: "Direcci\xF3n", path: "Direcci\xF3n.html", permiso: "Direcci\xF3n" },
+        { id: "comites", label: "Comités", path: "Comités.html", permiso: "Comités" },
+        { id: "comunicacion", label: "Comunicación", path: "Comunicación.html", permiso: "Comunicación" },
+        { id: "direccion", label: "Dirección", path: "Dirección.html", permiso: "Dirección" },
         { id: "eventos", label: "Eventos", path: "Eventos.html", permiso: "Eventos" },
-        { id: "finanzas", label: "Finanzas", path: "Finanzas.html", permiso: "Finanzas" },
+        {
+          id: "finanzas-cluster",
+          label: "Finanzas",
+          items: [
+            { id: "finanzas", label: "Finanzas", path: "Finanzas.html", permiso: "Finanzas" },
+            { id: "gastosgenerales", label: "Gastos Generales", path: "GastosGenerales.html", permiso: "Gastos Generales" },
+            { id: "nomina", label: "Nómina", path: "Nomina.html", permiso: "Nómina" }
+          ]
+        },
         { id: "gtos-corporativos", label: "Gastos Corporativos", path: "Gtos_Corporativos.html", permiso: "Gtos Corporativos" },
-        { id: "membresia", label: "Membres\xEDa", path: "Membres\xEDa.html", permiso: "Membres\xEDa" },
+        { id: "membresia", label: "Membresía", path: "Membresía.html", permiso: "Membresía" },
         { id: "rh", label: "Recursos Humanos", path: "RH.html", permiso: "RH" },
-        { id: "serv-membresia", label: "Servicios a la Membres\xEDa", path: "Serv_Membres\xEDa.html", permiso: "Serv Membres\xEDa" },
+        { id: "serv-membresia", label: "Servicios a la Membresía", path: "Serv_Membresía.html", permiso: "Serv Membresía" },
         { id: "tic", label: "T&IC", path: "T&IC.html", permiso: "T&IC" },
         { id: "vpe", label: "VPE", path: "VPE.html", permiso: "VPE" }
       ]
     },
     {
       id: "panel-administracion",
-      label: "Configuraci\xF3n",
+      label: "Configuración",
       items: [
+        { id: "perfil", label: "Mi Perfil", path: "perfil.html", badge: "perfil", public: true },
         { id: "usuarios", label: "Administrar usuarios", path: "usuarios.html", badge: "Permisos", requiresAdmin: true },
         { id: "crear-usuario", label: "Crear usuario", path: "crear_usuario.html", requiresAdmin: true }
       ]
     }
   ];
+
   const MODULO_PERMISOS = {
     resumen: "RESUMEN",
     summary: "SUMMARY",
     presupuestos: "Presupuestos",
-    comites: "Comit‚s",
-    comunicacion: "Comunicaci¢n",
-    direccion: "Direcci¢n",
+    comites: "Comit\xE9s",
+    comunicacion: "Comunicaci\xF3n",
+    direccion: "Direcci\xF3n",
     eventos: "Eventos",
     finanzas: "Finanzas",
+    gastosgenerales: "Gastos Generales",
     "gtos-corporativos": "Gtos Corporativos",
-    membresia: "Membres¡a",
+    membresia: "Membres\xEDa",
     rh: "RH",
-    "serv-membresia": "Serv Membres¡a",
+    "serv-membresia": "Serv Membres\xEDa",
     tic: "T&IC",
-    vpe: "VPE"
+    vpe: "VPE",
+    nomina: "N\xF3mina"
   };
-  MODULE_GROUPS.forEach((group) => {
-    group.items = group.items.map((item) => {
+  const mapPermisosEnItems = (items = []) => {
+    return items.map((item) => {
+      if (item.items && item.items.length > 0) {
+        return { ...item, items: mapPermisosEnItems(item.items) };
+      }
       if (item.permiso) return item;
       const permisoNormalizado = MODULO_PERMISOS[item.id] || item.label;
       return { ...item, permiso: permisoNormalizado };
     });
+  };
+  MODULE_GROUPS.forEach((group) => {
+    group.items = mapPermisosEnItems(group.items);
   });
-  const moduloDisponiblePorEmpresa = (empresaId, moduloId) => {
+    const flattenLeafModules = (items = []) => {
+    const resultado = [];
+    items.forEach((item) => {
+      if (item.items && item.items.length > 0) {
+        resultado.push(...flattenLeafModules(item.items));
+      } else {
+        resultado.push(item);
+      }
+    });
+    return resultado;
+  };
+  const collectNestedGroupIds = (items = [], target = []) => {
+    items.forEach((item) => {
+      if (item.items && item.items.length > 0) {
+        target.push(item.id);
+        collectNestedGroupIds(item.items, target);
+      }
+    });
+    return target;
+  };
+  const collectAllGroupIds = (groups = []) => {
+    const ids = [];
+    groups.forEach((group) => {
+      ids.push(group.id);
+      collectNestedGroupIds(group.items || [], ids);
+    });
+    return ids;
+  };
+const moduloDisponiblePorEmpresa = (empresaId, moduloId) => {
     const config = window.CapitulosModulos;
     if (!config || typeof config.moduloDisponible !== "function") {
       return true;
@@ -79,6 +125,9 @@
     const puedeAdmin = typeof puedeAdministrar === "boolean" ? puedeAdministrar : Sesion.puedeAdministrarUsuarios(sesion);
     if (modulo.requiresAdmin && !puedeAdmin) {
       return false;
+    }
+    if (modulo.public) {
+      return true;
     }
     if (!moduloDisponiblePorEmpresa(empresaId, modulo.id)) {
       return false;
@@ -230,7 +279,7 @@
       /* @__PURE__ */ React.createElement("div", { className: "d-flex" }, /* @__PURE__ */ React.createElement("div", { className: "toast-body" }, toastMsg || "Aviso"), /* @__PURE__ */ React.createElement("button", { type: "button", className: "btn-close btn-close-white me-2 m-auto", "data-bs-dismiss": "toast", "aria-label": "Cerrar" }))
     )));
   };
-  const SidebarGroup = ({ group, modules, selectedModule, onSelect, open, onToggle }) => {
+    const SidebarGroup = ({ group, modules, selectedModule, onSelect, open, onToggle, gruposAbiertos, toggleGrupo }) => {
     if (modules.length === 0) {
       return null;
     }
@@ -244,22 +293,57 @@
       },
       /* @__PURE__ */ React.createElement("span", null, group.label),
       /* @__PURE__ */ React.createElement("span", { className: "module-count" }, modules.length)
-    ), open && /* @__PURE__ */ React.createElement("div", { className: "submenu-content" }, modules.map((module) => {
-      const activo = selectedModule?.id === module.id;
-      return /* @__PURE__ */ React.createElement(
+    ), open && /* @__PURE__ */ React.createElement("div", { className: "submenu-content" }, modules.map((module) => /* @__PURE__ */ React.createElement(
+      SidebarModuleItem,
+      {
+        key: module.id,
+        module,
+        selectedModule,
+        onSelect,
+        gruposAbiertos,
+        toggleGrupo
+      }
+    ))));
+  };
+  const SidebarModuleItem = ({ module, selectedModule, onSelect, gruposAbiertos, toggleGrupo, level = 1 }) => {
+    if (module.items && module.items.length > 0) {
+      const abierto = gruposAbiertos.has(module.id);
+      return /* @__PURE__ */ React.createElement("div", { className: "sidebar-subgroup", style: { paddingLeft: level * 8 + "px" } }, /* @__PURE__ */ React.createElement(
         "button",
         {
-          key: module.id,
           type: "button",
-          className: `sidebar-link ${activo ? "active" : ""}`,
-          onClick: () => onSelect(module)
+          className: "submenu-toggle submenu-toggle-nested",
+          "aria-expanded": abierto,
+          onClick: () => toggleGrupo(module.id)
         },
         /* @__PURE__ */ React.createElement("span", null, module.label),
-        module.badge && /* @__PURE__ */ React.createElement("span", { className: "badge rounded-pill" }, module.badge)
-      );
-    })));
+        /* @__PURE__ */ React.createElement("span", { className: "module-count" }, module.items.length)
+      ), abierto && /* @__PURE__ */ React.createElement("div", { className: "submenu-content" }, module.items.map((child) => /* @__PURE__ */ React.createElement(
+        SidebarModuleItem,
+        {
+          key: child.id,
+          module: child,
+          selectedModule,
+          onSelect,
+          gruposAbiertos,
+          toggleGrupo,
+          level: level + 1
+        }
+      ))));
+    }
+    const activo = selectedModule?.id === module.id;
+    return /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        className: "sidebar-link " + (activo ? "active" : ""),
+        onClick: () => onSelect(module)
+      },
+      /* @__PURE__ */ React.createElement("span", null, module.label),
+      module.badge && /* @__PURE__ */ React.createElement("span", { className: "badge rounded-pill" }, module.badge)
+    );
   };
-  const NotificationBell = ({ notifications = [], onRefresh, onMarkAsRead }) => {
+const NotificationBell = ({ notifications = [], onRefresh, onMarkAsRead }) => {
     const [open, setOpen] = useState(false);
     const bellRef = React.useRef(null);
     const unread = notifications.filter((item) => !item.leidaEn).length;
@@ -346,28 +430,53 @@
     const tieneAccesoVista = useCallback((module) => {
       return usuarioPuedeUsarModulo(sesion, empresaActualId, module, puedeAdministrar);
     }, [sesion, empresaActualId, puedeAdministrar]);
-    const gruposDisponibles = useMemo(() => {
-      return MODULE_GROUPS.map((group) => {
-        const items = group.items.filter((module) => tieneAccesoVista(module));
-        return { ...group, items };
-      }).filter((group) => group.items.length > 0);
-    }, [tieneAccesoVista]);
-    const modulosDisponibles = useMemo(() => gruposDisponibles.flatMap((group) => group.items), [gruposDisponibles]);
-    const moduloSeleccionado = useMemo(
-      () => modulosDisponibles.find((module) => module.id === selectedModuleId) || null,
-      [modulosDisponibles, selectedModuleId]
-    );
-    const [sidebarOculta, setSidebarOculta] = useState(false);
-    const [gruposAbiertos, setGruposAbiertos] = useState(() => new Set(gruposDisponibles.map((group) => group.id)));
-    useEffect(() => {
-      setGruposAbiertos(new Set(gruposDisponibles.map((group) => group.id)));
-    }, [gruposDisponibles]);
-    useEffect(() => {
-      if (!moduloSeleccionado && modulosDisponibles.length > 0) {
-        onSelectModule(modulosDisponibles[0].id);
+    const filtrarItemsPorPermiso = useCallback((items = []) => {
+    return items.reduce((acumulado, item) => {
+      if (item.items && item.items.length > 0) {
+        const hijos = filtrarItemsPorPermiso(item.items);
+        if (hijos.length > 0) {
+          acumulado.push({ ...item, items: hijos });
+        }
+        return acumulado;
       }
-    }, [moduloSeleccionado, modulosDisponibles, onSelectModule]);
-    const toggleGrupo = (groupId) => {
+      if (tieneAccesoVista(item)) {
+        acumulado.push(item);
+      }
+      return acumulado;
+    }, []);
+  }, [tieneAccesoVista]);
+  const gruposDisponibles = useMemo(() => {
+    return MODULE_GROUPS.map((group) => {
+      const items = filtrarItemsPorPermiso(group.items);
+      return { ...group, items };
+    }).filter((group) => group.items.length > 0);
+  }, [filtrarItemsPorPermiso]);
+  const modulosDisponibles = useMemo(
+    () => gruposDisponibles.flatMap((group) => flattenLeafModules(group.items)),
+    [gruposDisponibles]
+  );
+  const moduloSeleccionado = useMemo(
+    () => modulosDisponibles.find((module) => module.id === selectedModuleId) || null,
+    [modulosDisponibles, selectedModuleId]
+  );
+  const [sidebarOculta, setSidebarOculta] = useState(false);
+  const [gruposAbiertos, setGruposAbiertos] = useState(() => new Set(collectAllGroupIds(MODULE_GROUPS)));
+  useEffect(() => {
+    setGruposAbiertos(new Set(collectAllGroupIds(gruposDisponibles)));
+  }, [gruposDisponibles]);
+  useEffect(() => {
+    if (modulosDisponibles.length === 0) {
+      if (selectedModuleId) {
+        onSelectModule(null);
+      }
+      return;
+    }
+    if (!modulosDisponibles.some((modulo) => modulo.id === selectedModuleId)) {
+      onSelectModule(modulosDisponibles[0].id);
+    }
+  }, [modulosDisponibles, selectedModuleId, onSelectModule, sesion, empresaActiva]);
+
+  const toggleGrupo = (groupId) => {
       setGruposAbiertos((prev) => {
         const nueva = new Set(prev);
         if (nueva.has(groupId)) {
@@ -412,7 +521,9 @@
         selectedModule: moduloSeleccionado,
         onSelect: seleccionarModulo,
         open: gruposAbiertos.has(group.id),
-        onToggle: toggleGrupo
+        onToggle: toggleGrupo,
+        gruposAbiertos,
+        toggleGrupo: toggleGrupo
       }
     ))), /* @__PURE__ */ React.createElement("footer", { className: "sidebar-footer" }, /* @__PURE__ */ React.createElement("div", { className: "user-info mb-3" }, /* @__PURE__ */ React.createElement("span", { className: "text-muted text-uppercase fw-semibold", style: { letterSpacing: "0.08em", fontSize: "0.7rem" } }, "Sesi\xF3n activa"), /* @__PURE__ */ React.createElement("strong", null, obtenerNombreUsuario(sesion)), /* @__PURE__ */ React.createElement("span", { className: "text-muted", style: { fontSize: "0.9rem" } }, sesion?.usuario?.usuario || "\u2014")), /* @__PURE__ */ React.createElement("button", { type: "button", className: "btn btn-outline-secondary w-100", onClick: onLogout }, "Cerrar sesi\xF3n"))), /* @__PURE__ */ React.createElement("main", { className: "app-content" }, /* @__PURE__ */ React.createElement("div", { className: "top-bar" }, /* @__PURE__ */ React.createElement("div", { className: "top-bar-left" }, /* @__PURE__ */ React.createElement(
       "button",
@@ -558,20 +669,6 @@
       const intervalo = setInterval(cargarNotificaciones, 6e4);
       return () => clearInterval(intervalo);
     }, [sesion, empresaActiva, cargarNotificaciones]);
-    useEffect(() => {
-      if (!sesion) {
-        return;
-      }
-      const puedeAdministrar = Sesion.puedeAdministrarUsuarios(sesion);
-      const empresaId = empresaActiva?.id || "";
-      for (const grupo of MODULE_GROUPS) {
-        const moduloPermitido = grupo.items.find((modulo) => usuarioPuedeUsarModulo(sesion, empresaId, modulo, puedeAdministrar));
-        if (moduloPermitido) {
-          setModuloSeleccionado((actual) => actual || moduloPermitido.id);
-          return;
-        }
-      }
-    }, [sesion, empresaActiva]);
     if (!sesion) {
       return /* @__PURE__ */ React.createElement(LoginView, { onLogin: manejarLogin });
     }

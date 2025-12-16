@@ -51,6 +51,8 @@ const DATOS_MODULOS = {
   rh: DATOS_POR_DEFECTO,
   vpe: DATOS_POR_DEFECTO,
   finanzas: DATOS_POR_DEFECTO,
+  'gastos-generales': DATOS_POR_DEFECTO,
+  nomina: DATOS_POR_DEFECTO,
   'gtos-corporativos': DATOS_POR_DEFECTO
 };
 
