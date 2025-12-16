@@ -69,7 +69,17 @@
 
     .mensaje-estado {
       border-radius: 12px;
-      padding: 0.75rem 1rem;
+      padding: 0.85rem 1.1rem;
+      font-size: 0.95rem;
+      font-weight: 500;
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+
+    .mensaje-estado.alert-danger {
+      background-color: #f8d7da;
+      border-color: #f5c2c7;
+      color: #842029;
     }
 
     label span {
@@ -148,9 +158,11 @@
     const spinner = boton.querySelector('.spinner-border');
 
     const mostrarAlerta = (mensaje, tipo = 'danger') => {
+      // Asegurar que el mensaje se muestre correctamente con caracteres especiales
       alerta.textContent = mensaje;
       alerta.className = `mensaje-estado alert alert-${tipo}`;
       alerta.classList.remove('visually-hidden');
+      alerta.setAttribute('role', 'alert');
     };
 
     const limpiarAlerta = () => {
@@ -174,20 +186,36 @@
       try {
         const respuesta = await fetch(`${API_BASE}/auth/login`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json; charset=utf-8' },
           body: JSON.stringify(cuerpo)
         });
 
         const datos = await respuesta.json();
         if (!respuesta.ok) {
-          throw new Error(datos.mensaje || 'No fue posible iniciar sesión.');
+          // Mensajes de error en español claros
+          let mensajeError = datos.mensaje || 'No fue posible iniciar sesión.';
+          if (respuesta.status === 401) {
+            mensajeError = 'Usuario o contraseña incorrectos.';
+          } else if (respuesta.status === 403) {
+            mensajeError = 'Tu cuenta ha sido desactivada. Contacta al administrador.';
+          } else if (respuesta.status === 429) {
+            mensajeError = 'Demasiados intentos fallidos. Espera unos minutos e intenta de nuevo.';
+          } else if (respuesta.status >= 500) {
+            mensajeError = 'Error en el servidor. Intenta de nuevo más tarde.';
+          }
+          throw new Error(mensajeError);
         }
 
         Sesion.guardar(datos);
 
         window.location.href = 'app.html';
       } catch (error) {
-        mostrarAlerta(error.message || 'Ocurrió un problema durante el inicio de sesión.');
+        let mensaje = error.message || 'Ocurrió un problema durante el inicio de sesión.';
+        // Reemplazar mensaje genérico si es error de red
+        if (error.name === 'TypeError' && error.message.includes('fetch')) {
+          mensaje = 'No se pudo conectar con el servidor. Verifica tu conexión a internet.';
+        }
+        mostrarAlerta(mensaje);
       } finally {
         boton.disabled = false;
         spinner.classList.add('visually-hidden');

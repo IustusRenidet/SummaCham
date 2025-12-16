@@ -9,7 +9,6 @@
       capitulo: 'CIUDAD DE M\u00c9XICO',
       modulos: [
         'resumen',
-        'summary',
         'presupuestos',
         'comites',
         'comunicacion',
@@ -31,7 +30,6 @@
       capitulo: 'GUADALAJARA',
       modulos: [
         'resumen',
-        'summary',
         'presupuestos',
         'comites',
         'comunicacion',
@@ -53,7 +51,6 @@
       capitulo: 'NORESTE',
       modulos: [
         'resumen',
-        'summary',
         'presupuestos',
         'comites',
         'comunicacion',
@@ -75,7 +72,6 @@
       capitulo: 'NOROESTE',
       modulos: [
         'resumen',
-        'summary',
         'presupuestos',
         'comites',
         'comunicacion',
@@ -112,7 +108,6 @@
 
   const MODULOS_CONTROLADOS = new Set([
     'resumen',
-    'summary',
     'presupuestos',
     'comites',
     'comunicacion',

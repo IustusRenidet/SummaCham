@@ -158,13 +158,73 @@
       color: #2f5496;
     }
 
-    #perfilAlert {
+    #perfilAlert,
+    #passwordAlert {
       border-radius: 12px;
     }
 
     .muted-text {
       color: #8497b0;
       font-size: 0.85rem;
+    }
+
+    .password-section {
+      margin-top: 1.5rem;
+    }
+
+    .password-section .input-group {
+      border-radius: 8px;
+    }
+
+    .password-section .input-group .form-control {
+      border-right: none;
+    }
+
+    .password-section .input-group .btn {
+      border-left: none;
+      background-color: #fff;
+      border-color: #dee2e6;
+    }
+
+    .password-section .input-group .btn:hover {
+      background-color: #f8f9fa;
+      border-color: #dee2e6;
+    }
+
+    .password-section .input-group .btn:focus {
+      box-shadow: none;
+      border-color: #2f5496;
+    }
+
+    .toggle-password svg {
+      transition: opacity 0.2s ease;
+    }
+
+    .toggle-password.active svg {
+      opacity: 0.6;
+    }
+
+    .alert-password {
+      border-radius: 12px;
+      font-size: 0.9rem;
+    }
+
+    .alert-password.alert-danger {
+      background-color: #f8d7da;
+      border-color: #f5c2c7;
+      color: #842029;
+    }
+
+    .alert-password.alert-warning {
+      background-color: #fff3cd;
+      border-color: #ffecb5;
+      color: #664d03;
+    }
+
+    .alert-password.alert-success {
+      background-color: #d1e7dd;
+      border-color: #badbcc;
+      color: #0f5132;
     }
   </style>
 </head>
@@ -241,27 +301,53 @@
               </div>
             </section>
 
-            <section class="profile-section">
+            <section class="profile-section password-section">
               <h3>Actualizar contraseña</h3>
               <p class="muted-text mb-4">Solo tú puedes modificar este dato. El resto de la información es de solo
                 lectura.</p>
+              <div id="passwordAlert" class="alert d-none mb-3" role="alert"></div>
               <form id="passwordForm" class="row g-3">
                 <div class="col-12">
                   <label for="contrasenaActual" class="form-label">Contraseña actual</label>
-                  <input type="password" class="form-control" id="contrasenaActual" name="contrasenaActual"
-                    autocomplete="current-password" required minlength="8">
+                  <div class="input-group">
+                    <input type="password" class="form-control" id="contrasenaActual" name="contrasenaActual"
+                      autocomplete="current-password" required minlength="8">
+                    <button type="button" class="btn btn-outline-secondary toggle-password" data-target="contrasenaActual" aria-label="Mostrar contraseña">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eye" viewBox="0 0 16 16">
+                        <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12 8 12s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z"/>
+                        <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5"/>
+                      </svg>
+                    </button>
+                  </div>
                 </div>
                 <div class="col-12 col-md-6">
                   <label for="nuevaContrasena" class="form-label">Nueva contraseña</label>
-                  <input type="password" class="form-control" id="nuevaContrasena" name="nuevaContrasena"
-                    autocomplete="new-password" required minlength="8">
+                  <div class="input-group">
+                    <input type="password" class="form-control" id="nuevaContrasena" name="nuevaContrasena"
+                      autocomplete="new-password" required minlength="8">
+                    <button type="button" class="btn btn-outline-secondary toggle-password" data-target="nuevaContrasena" aria-label="Mostrar contraseña">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eye" viewBox="0 0 16 16">
+                        <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12 8 12s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z"/>
+                        <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5"/>
+                      </svg>
+                    </button>
+                  </div>
+                  <small class="form-text text-muted">Mínimo 8 caracteres</small>
                 </div>
                 <div class="col-12 col-md-6">
                   <label for="confirmarContrasena" class="form-label">Confirmar nueva contraseña</label>
-                  <input type="password" class="form-control" id="confirmarContrasena" name="confirmarContrasena"
-                    autocomplete="new-password" required minlength="8">
+                  <div class="input-group">
+                    <input type="password" class="form-control" id="confirmarContrasena" name="confirmarContrasena"
+                      autocomplete="new-password" required minlength="8">
+                    <button type="button" class="btn btn-outline-secondary toggle-password" data-target="confirmarContrasena" aria-label="Mostrar contraseña">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eye" viewBox="0 0 16 16">
+                        <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12 8 12s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z"/>
+                        <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5"/>
+                      </svg>
+                    </button>
+                  </div>
                 </div>
-                <div class="col-12 text-end">
+                <div class="col-12 text-end mt-4">
                   <button type="submit" class="btn btn-primario" id="btnActualizarPassword">
                     Actualizar contraseña
                   </button>
@@ -552,22 +638,45 @@
         evento.preventDefault();
         limpiarAlerta();
 
+        const passwordAlert = document.getElementById('passwordAlert');
+        const mostrarPasswordAlert = (mensaje, tipo = 'danger') => {
+          if (!passwordAlert) return;
+          passwordAlert.classList.remove('d-none', 'alert-danger', 'alert-success', 'alert-warning');
+          passwordAlert.classList.add(`alert-${tipo}`);
+          passwordAlert.textContent = mensaje;
+          passwordAlert.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        };
+
+        const limpiarPasswordAlert = () => {
+          if (passwordAlert) {
+            passwordAlert.classList.add('d-none');
+            passwordAlert.textContent = '';
+          }
+        };
+
+        limpiarPasswordAlert();
+
         const actual = ELEMENTOS.passwordForm.contrasenaActual.value.trim();
         const nueva = ELEMENTOS.passwordForm.nuevaContrasena.value.trim();
         const confirmar = ELEMENTOS.passwordForm.confirmarContrasena.value.trim();
 
         if (!actual || !nueva || !confirmar) {
-          mostrarAlerta('Completa todos los campos para actualizar tu contraseña.', 'warning');
+          mostrarPasswordAlert('Por favor, completa todos los campos para actualizar tu contraseña.', 'warning');
           return;
         }
 
         if (nueva.length < 8) {
-          mostrarAlerta('La nueva contraseña debe tener al menos 8 caracteres.', 'warning');
+          mostrarPasswordAlert('La nueva contraseña debe tener al menos 8 caracteres.', 'warning');
           return;
         }
 
         if (nueva !== confirmar) {
-          mostrarAlerta('La confirmación no coincide con la nueva contraseña.', 'warning');
+          mostrarPasswordAlert('Las contraseñas no coinciden. Verifica que la nueva contraseña y su confirmación sean iguales.', 'danger');
+          return;
+        }
+
+        if (actual === nueva) {
+          mostrarPasswordAlert('La nueva contraseña debe ser diferente a la contraseña actual.', 'warning');
           return;
         }
 
@@ -592,13 +701,17 @@
             return;
           }
           if (!respuesta.ok) {
-            throw new Error(datos.mensaje || 'No fue posible actualizar la contraseña.');
+            const mensajeError = datos.mensaje || 'No fue posible actualizar la contraseña. Verifica que la contraseña actual sea correcta.';
+            throw new Error(mensajeError);
           }
           ELEMENTOS.passwordForm.reset();
-          mostrarAlerta(datos.mensaje || 'Contraseña actualizada correctamente.', 'success');
+          // Limpiar clases de validación
+          const inputs = ELEMENTOS.passwordForm.querySelectorAll('input');
+          inputs.forEach(input => input.classList.remove('is-valid', 'is-invalid'));
+          mostrarPasswordAlert(datos.mensaje || 'Contraseña actualizada correctamente.', 'success');
         } catch (error) {
           console.error('Error al actualizar contraseña', error);
-          mostrarAlerta(error.message || 'Ocurrió un error al actualizar tu contraseña.');
+          mostrarPasswordAlert(error.message || 'Ocurrió un error al actualizar tu contraseña. Inténtalo de nuevo.');
         } finally {
           ELEMENTOS.btnPassword.disabled = false;
           ELEMENTOS.btnPassword.textContent = 'Actualizar contraseña';
@@ -607,6 +720,72 @@
 
       if (ELEMENTOS.passwordForm) {
         ELEMENTOS.passwordForm.addEventListener('submit', manejarCambioPassword);
+      }
+
+      // Toggle para mostrar/ocultar contraseña
+      const toggleButtons = document.querySelectorAll('.toggle-password');
+      const eyeOpenSVG = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eye" viewBox="0 0 16 16">
+        <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12 8 12s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z"/>
+        <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5"/>
+      </svg>`;
+      const eyeClosedSVG = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eye-slash" viewBox="0 0 16 16">
+        <path d="M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5a7 7 0 0 0-2.79.588l.77.771A6 6 0 0 1 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755l.77.772z"/>
+        <path d="M11.297 9.176a3.5 3.5 0 0 0-4.474-4.474l.823.823a2.5 2.5 0 0 1 2.829 2.829zm-2.943 1.299.822.822a3.5 3.5 0 0 1-4.474-4.474l.823.823a2.5 2.5 0 0 0 2.829 2.829"/>
+        <path d="M3.35 5.47q-.27.24-.518.487A13 13 0 0 0 1.172 8l.195.288c.335.48.83 1.12 1.465 1.755C4.121 11.332 5.881 12.5 8 12.5c.716 0 1.39-.133 2.02-.36l.77.772A7 7 0 0 1 8 13.5C3 13.5 0 8 0 8s.939-1.721 2.641-3.238l.708.709zm10.296 8.884-12-12 .708-.708 12 12z"/>
+      </svg>`;
+
+      toggleButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+          const targetId = this.getAttribute('data-target');
+          const input = document.getElementById(targetId);
+          if (!input) return;
+
+          const isPassword = input.type === 'password';
+          input.type = isPassword ? 'text' : 'password';
+          this.innerHTML = isPassword ? eyeClosedSVG : eyeOpenSVG;
+          this.classList.toggle('active', isPassword);
+          this.setAttribute('aria-label', isPassword ? 'Ocultar contraseña' : 'Mostrar contraseña');
+        });
+      });
+
+      // Alerta específica para contraseñas
+      const passwordAlert = document.getElementById('passwordAlert');
+      const mostrarPasswordAlert = (mensaje, tipo = 'danger') => {
+        if (!passwordAlert) return;
+        passwordAlert.classList.remove('d-none', 'alert-danger', 'alert-success', 'alert-warning');
+        passwordAlert.classList.add(`alert-${tipo}`);
+        passwordAlert.textContent = mensaje;
+        passwordAlert.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      };
+
+      const limpiarPasswordAlert = () => {
+        if (!passwordAlert) return;
+        passwordAlert.classList.add('d-none');
+        passwordAlert.textContent = '';
+      };
+
+      // Validación en tiempo real
+      const confirmarInput = document.getElementById('confirmarContrasena');
+      const nuevaInput = document.getElementById('nuevaContrasena');
+
+      if (confirmarInput && nuevaInput) {
+        const validarCoincidencia = () => {
+          const nueva = nuevaInput.value;
+          const confirmar = confirmarInput.value;
+
+          if (confirmar.length > 0 && nueva !== confirmar) {
+            confirmarInput.classList.add('is-invalid');
+            confirmarInput.classList.remove('is-valid');
+          } else if (confirmar.length > 0 && nueva === confirmar) {
+            confirmarInput.classList.remove('is-invalid');
+            confirmarInput.classList.add('is-valid');
+          } else {
+            confirmarInput.classList.remove('is-invalid', 'is-valid');
+          }
+        };
+
+        confirmarInput.addEventListener('input', validarCoincidencia);
+        nuevaInput.addEventListener('input', validarCoincidencia);
       }
 
       cargarPerfil();
