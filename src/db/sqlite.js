@@ -39,6 +39,23 @@ const crypto = require("crypto");
 const { MODULOS } = require("../config/modulos");
 const { EMPRESAS } = require("../config/empresas");
 
+const VISTAS_POR_CAPITULO = {
+  empresa1: [
+    { vista: 'Finanzas', archivo: 'Finanzas.html' },
+    { vista: 'GastosGenerales', archivo: 'GastosGenerales.html' },
+    { vista: 'Nomina', archivo: 'Nomina.html' }
+  ],
+  empresa2: [
+    { vista: 'GastosGenerales', archivo: 'GastosGenerales.html' }
+  ],
+  empresa3: [
+    { vista: 'GastosGenerales', archivo: 'GastosGenerales.html' }
+  ],
+  empresa4: [
+    { vista: 'GastosGenerales', archivo: 'GastosGenerales.html' }
+  ]
+};
+
 const NOMBRE_DB = "panel.sqlite";
 let rutaDbActiva = null;
 
@@ -433,6 +450,18 @@ const crearTablas = () => {
     console.log('✅ Columna capitulo agregada a PLAN_BORRADORES_HISTORIAL');
   }
 
+  db.prepare(
+    `
+    CREATE TABLE IF NOT EXISTS empresa_vistas (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      empresa_id TEXT NOT NULL,
+      vista TEXT NOT NULL,
+      archivo TEXT NOT NULL,
+      UNIQUE(empresa_id, vista)
+    )
+  `
+  ).run();
+
   // Tablas para sistema de layouts por año y capítulo
   db.prepare(
     `
@@ -601,6 +630,29 @@ const sembrarUsuariosDesdeJson = () => {
   }
 };
 
+const sembrarVistasPorCapitulo = () => {
+  if (!db) {
+    return;
+  }
+  try {
+    const eliminarTodo = db.prepare(`DELETE FROM empresa_vistas`);
+    const insertar = db.prepare(`
+      INSERT OR IGNORE INTO empresa_vistas (empresa_id, vista, archivo)
+      VALUES (?, ?, ?)
+    `);
+    db.transaction(() => {
+      eliminarTodo.run();
+      Object.entries(VISTAS_POR_CAPITULO).forEach(([empresaId, vistas]) => {
+        (vistas || []).forEach((vista) => {
+          insertar.run(empresaId, vista.vista, vista.archivo);
+        });
+      });
+    })();
+  } catch (error) {
+    console.warn('No fue posible sembrar la tabla empresa_vistas:', error?.message || error);
+  }
+};
+
 const asegurarColumnasUsuarios = () => {
   const columnas = db.prepare("PRAGMA table_info(usuarios)").all();
   const nombres = columnas.map((columna) => columna.name);
@@ -758,6 +810,7 @@ const inicializarBaseDatos = () => {
   intentarSembrarLayoutsIniciales();
   crearAdministradorGlobal();
   sembrarUsuariosDesdeJson();
+  sembrarVistasPorCapitulo();
   console.log('✓ Base de datos SQLite inicializada');
   return true;
 };

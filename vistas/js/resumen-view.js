@@ -200,6 +200,37 @@
   let editMode = false;
   let empresaActual = null;
   let mesClaveActual = 'dic';
+  const resumenLayoutCache = new Map();
+
+  const clonarLayout = (layout) => JSON.parse(JSON.stringify(layout || []));
+
+  const obtenerClaveLayoutCache = (empresaId, anio) => {
+    const empresa = empresaId || 'sin-empresa';
+    const ejercicio = Number.isFinite(Number(anio)) ? Number(anio) : 'sin-anio';
+    return `${empresa}:${ejercicio}`;
+  };
+
+  const aplicarLayoutPersistente = (empresaId, anio, resumen = []) => {
+    if (!empresaId || !Number.isFinite(Number(anio)) || !Array.isArray(resumen)) {
+      return;
+    }
+    const cacheKey = obtenerClaveLayoutCache(empresaId, anio);
+    let cache = resumenLayoutCache.get(cacheKey);
+    if (!cache) {
+      cache = new Map();
+      resumenLayoutCache.set(cacheKey, cache);
+    }
+    resumen.forEach((capitulo) => {
+      if (!capitulo || typeof capitulo !== 'object') return;
+      const nombreCapitulo = capitulo.capitulo || capitulo.nombre || capitulo.label;
+      if (!nombreCapitulo) return;
+      if (Array.isArray(capitulo.layout) && capitulo.layout.length) {
+        cache.set(nombreCapitulo, clonarLayout(capitulo.layout));
+      } else if (cache.has(nombreCapitulo)) {
+        capitulo.layout = clonarLayout(cache.get(nombreCapitulo));
+      }
+    });
+  };
 
   const limpiarCambios = () => {
     cambiosPendientes.clear();
@@ -864,8 +895,10 @@
       throw new Error('No fue posible obtener el resumen.');
     }
       const datos = await respuesta.json();
+      const anioNumero = Number(anio);
+      aplicarLayoutPersistente(empresaId, anioNumero, datos?.resumen || []);
       renderResumen(datos.resumen || [], mes);
-      actualizarEtiquetasAnio(Number(anio));
+      actualizarEtiquetasAnio(anioNumero);
       disposeStatus();
     } catch (error) {
       console.error('Error resumen:', error);
