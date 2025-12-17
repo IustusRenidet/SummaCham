@@ -387,8 +387,8 @@
 
     if (btnCerrarSesion) {
       btnCerrarSesion.addEventListener('click', () => {
-        Sesion.limpiar();
-        window.location.href = 'login.html';
+        // Usar Sesion.cerrar() que maneja correctamente la redirección desde iframes
+        Sesion.cerrar();
       });
     }
 

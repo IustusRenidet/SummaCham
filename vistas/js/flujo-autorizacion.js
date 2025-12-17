@@ -933,12 +933,15 @@
 
     _manejarSesionExpirada(resp) {
       if (resp?.status === 401) {
+        // Usar Sesion.cerrar() que maneja correctamente la redirección desde iframes
         try {
-          if (typeof Sesion?.limpiar === "function") {
+          if (typeof Sesion?.cerrar === "function") {
+            Sesion.cerrar();
+          } else if (typeof Sesion?.limpiar === "function") {
             Sesion.limpiar();
+            (window.top || window).location.href = "login.html";
           }
         } catch (e) { /* ignore */ }
-        window.location.href = "login.html";
         return true;
       }
       return false;
