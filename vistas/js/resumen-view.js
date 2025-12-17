@@ -64,8 +64,8 @@
 
   const manejarSesionExpirada = (resp) => {
     if (resp?.status === 401) {
-      try { Sesion.limpiar(); } catch (_) { /* ignore */ }
-      window.location.href = 'login.html';
+      // Usar Sesion.cerrar() que maneja correctamente la redirección desde iframes
+      try { Sesion.cerrar(); } catch (_) { /* ignore */ }
       return true;
     }
     return false;

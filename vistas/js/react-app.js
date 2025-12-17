@@ -629,8 +629,7 @@ const NotificationBell = ({ notifications = [], onRefresh, onMarkAsRead }) => {
         // Si es 401, sesión expirada
         if (respuesta.status === 401) {
           console.error('❌ Sesión expirada (401)');
-          Sesion.cerrar();
-          window.location.replace('login.html');
+          Sesion.cerrar(); // Limpia sesión y redirige al login
           return;
         }
         

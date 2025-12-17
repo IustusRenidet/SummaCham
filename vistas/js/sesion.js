@@ -123,16 +123,26 @@
 
   const esAdmin = (sesion) => puedeAdministrarUsuarios(sesion);
 
-  const requerirSesion = ({ requireAdmin = false, redirectTo = REDIRECCION_POR_DEFECTO } = {}) => {
+  // Función auxiliar para redirigir, soportando contexto de iframe
+  const redirigir = (destino, usarTop = false) => {
+    if (usarTop && window.top !== window.self) {
+      // Estamos en un iframe y se pidió redirigir la ventana principal
+      window.top.location.replace(destino);
+    } else {
+      window.location.href = destino;
+    }
+  };
+
+  const requerirSesion = ({ requireAdmin = false, redirectTo = REDIRECCION_POR_DEFECTO, usarTop = false } = {}) => {
     const sesion = obtener();
     if (!sesion || !sesion.tokenAcceso) {
       limpiar();
-      window.location.href = redirectTo;
+      redirigir(redirectTo, usarTop);
       return null;
     }
 
     if (requireAdmin && !puedeAdministrarUsuarios(sesion)) {
-      window.location.href = redirectTo;
+      redirigir(redirectTo, usarTop);
       return null;
     }
 
@@ -231,10 +241,18 @@
     return Boolean(permisos[accionNormalizada]);
   };
 
+  // Función para cerrar sesión y redirigir al login (soporta iframes)
+  const cerrar = ({ redirectTo = REDIRECCION_POR_DEFECTO, usarTop = true } = {}) => {
+    limpiar();
+    redirigir(redirectTo, usarTop);
+  };
+
   window.Sesion = {
     obtener,
     guardar,
     limpiar,
+    cerrar,
+    redirigir,
     requerirSesion,
     esAdmin,
     esAdminGlobal,

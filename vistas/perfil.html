@@ -773,8 +773,8 @@
       }
 
       const manejarRespuestaNoAutorizada = () => {
-        Sesion.limpiar();
-        window.location.replace('login.html');
+        // Usar Sesion.cerrar() que maneja correctamente la redirección desde iframes
+        Sesion.cerrar();
       };
 
       const cargarPerfil = async () => {
