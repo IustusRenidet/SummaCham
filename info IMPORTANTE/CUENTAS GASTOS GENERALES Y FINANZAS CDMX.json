@@ -1,381 +1,395 @@
 {
-"Gastos Generales":[
- {
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Otros ingresos",
-  "CUENTA": "414-000-000-00",
-  "NOMBRE": "Rendimientos de Inversión"
- },
- {
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Otros ingresos",
-  "CUENTA": "418-000-000-00",
-  "NOMBRE": "Plusvalía\/Minusvalía Portafolio de Inversiones"
- },
- {
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Otros ingresos",
-  "CUENTA": "413-014-001-00",
-  "NOMBRE": "Renta oficinas Reforma"
- },
- {
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Otros ingresos",
-  "CUENTA": "413-006-000-00",
-  "NOMBRE": "Vta. De activo fijo"
- },
- {
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Otros ingresos",
-  "CUENTA": "413-001-000-00",
-  "NOMBRE": "Regalias"
- },
- {
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Otros ingresos",
-  "CUENTA": "413-002-000-00",
-  "NOMBRE": "Miscelaneos"
- },
- {
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Otros ingresos",
-  "CUENTA": "413-003-000-00",
-  "NOMBRE": "Trade & Investment Center"
- },
- {
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Otros ingresos",
-  "CUENTA": "413-007-000-00",
-  "NOMBRE": "Otros ingresos"
- },
- {
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Gastos Financieros",
-  "CUENTA": "416-000-000-00",
-  "NOMBRE": "Utilidad cambiaria"
- },
- {
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Gastos Financieros",
-  "CUENTA": "901-096-000-00",
-  "NOMBRE": "Pérdida cambiaria"
- },
- {
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Gastos Financieros",
-  "CUENTA": "901-020-000-00",
-  "NOMBRE": "Gtos Financieros (comisiones)"
- },
- {
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Gastos Generales",
-  "CUENTA": "901-001-001-00",
-  "NOMBRE": "Oficinas"
- },
- {
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Gastos Generales",
-  "CUENTA": "901-001-002-00",
-  "NOMBRE": "Biblioteca AmCham"
- },
- {
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Gastos Generales",
-  "CUENTA": "901-002-001-00",
-  "NOMBRE": "Oficinas"
- },
- {
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Gastos Generales",
-  "CUENTA": "901-002-002-00",
-  "NOMBRE": "Biblioteca AmCham"
- },
- {
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Gastos Generales",
-  "CUENTA": "901-022-000-00",
-  "NOMBRE": "Agua"
- },
- {
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Gastos Generales",
-  "CUENTA": "901-009-001-00",
-  "NOMBRE": "Matto. de Local "
- },
- {
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Gastos Generales",
-  "CUENTA": "901-009-003-00",
-  "NOMBRE": "Matto. de Biblioteca"
- },
- {
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Gastos Generales",
-  "CUENTA": "901-009-002-00",
-  "NOMBRE": "Pólizas de Mantenimiento"
- },
- {
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Gastos Generales",
-  "CUENTA": "901-021-000-00",
-  "NOMBRE": "Predial oficinas Reforma 295"
- },
- {
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Gastos Generales",
-  "CUENTA": "901-016-002-00",
-  "NOMBRE": "Papeleria Oficina y Almacén"
- },
- {
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Gastos Generales",
-  "CUENTA": "901-016-004-00",
-  "NOMBRE": "Servicio de Mensajeria Fedex"
- },
- {
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Gastos Generales",
-  "CUENTA": "901-013-007-00",
-  "NOMBRE": "Artículos de Limpieza y cafetería"
- },
- {
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Gastos Generales",
-  "CUENTA": "901-010-000-00",
-  "NOMBRE": "Matto. Equipo de Computo y Red"
- },
- {
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Gastos Generales",
-  "CUENTA": "901-016-006-00",
-  "NOMBRE": "Gtos Diversos\/Eventos internos"
- },
- {
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Gastos Generales",
-  "CUENTA": "901-099-000-00",
-  "NOMBRE": "Ajustes y diferencias"
- },
- {
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Gastos Generales",
-  "CUENTA": "901-014-002-00",
-  "NOMBRE": "Gastos Extraordinarios"
- },
- {
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Gastos Generales",
-  "CUENTA": "901-014-007-00",
-  "NOMBRE": "Otros gastos de operación no presupuestados"
- },
- {
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Gastos Generales",
-  "CUENTA": "901-014-003-00",
-  "NOMBRE": "Dif. De impuestos de ejercicios anteriores"
- },
- {
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Gastos Generales",
-  "CUENTA": "901-017-000-00",
-  "NOMBRE": "IVA  a Prorrata No Acreditable"
- },
- {
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Gastos Generales",
-  "CUENTA": "901-098-000-00",
-  "NOMBRE": "No Deducibles"
- },
- {
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Depreciaciones y Amortizaciones",
-  "CUENTA": "901-004-000-00",
-  "NOMBRE": "Depreciaciones de equipo"
- },
- {
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Depreciaciones y Amortizaciones",
-  "CUENTA": "901-005-002-00",
-  "NOMBRE": "Gastos de instalación oficina\/BA"
- },
- {
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Depreciaciones y Amortizaciones",
-  "CUENTA": "901-005-004-00",
-  "NOMBRE": "Software Activo fijo"
- },
- {
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Depreciaciones y Amortizaciones",
-  "CUENTA": "901-005-001-00",
-  "NOMBRE": "CRM"
- },
- {
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Gastos Corporativos CdMx",
-  "CUENTA": "903-000-000-00",
-  "NOMBRE": "Gastos Corporativos CdMx"
- },
- {
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Member Centricity",
-  "CUENTA": "902-000-000-00",
-  "NOMBRE": "Member Centricity"
- }
-],
-"Finanzas":[
- {
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Gastos Administrativos",
-  "CUENTA": "801-005-001-00",
-  "NOMBRE": "Teléfono Móvil "
- },
- {
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Gastos Administrativos",
-  "CUENTA": "801-005-004-00",
-  "NOMBRE": "Mantenimiento de Automóvil "
- },
- {
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Gastos Administrativos",
-  "CUENTA": "801-005-003-00",
-  "NOMBRE": "Gasolina "
- },
- {
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Gastos Administrativos",
-  "CUENTA": "801-005-010-00",
-  "NOMBRE": "Becarios"
- },
- {
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Gastos Administrativos",
-  "CUENTA": "801-005-005-00",
-  "NOMBRE": "Pasajes y taxis"
- },
- {
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Gastos Administrativos",
-  "CUENTA": "801-005-006-00",
-  "NOMBRE": "Estacionamientos"
- },
- {
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Gastos Administrativos",
-  "CUENTA": "801-005-011-00",
-  "NOMBRE": "Impresión Tarjetas"
- },
- {
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Gastos Administrativos",
-  "CUENTA": "801-005-008-00",
-  "NOMBRE": "Suscripciones y varios"
- },
- {
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Gastos Administrativos",
-  "CUENTA": "801-005-017-00",
-  "NOMBRE": "Gastos de viaje"
- },
- {
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Gastos Administrativos",
-  "CUENTA": "801-005-012-00",
-  "NOMBRE": "Gastos varios"
- },
- {
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Gastos Administrativos",
-  "CUENTA": "801-005-013-00",
-  "NOMBRE": "No deducibles"
- },
- {
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Gastos Administrativos",
-  "CUENTA": "801-005-015-00",
-  "NOMBRE": "PAPELERIA Y ARTICULOS DE OFICINA"
- },
- {
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Gastos Administrativos",
-  "CUENTA": "801-005-009-00",
-  "NOMBRE": "SERVICIOS ADMINISTRATIVOS (PERSONAL)"
- },
- {
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Gastos Administrativos",
-  "CUENTA": "801-005-007-00",
-  "NOMBRE": "HERRAMIENTAS TELE-TRABAJO"
- }
-],
-"SUMA DE VARIAS SECCIONES":[
- {
-  "HOJA": "Gastos Generales",
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Otros Ingresos",
-  "sum-row": "Suma Otros Ingresos",
-  "sum-row-sumavarios": "Otros Ingresos vs Gastos",
-  "result-row": "Total GA CdMx"
- },
- {
-  "HOJA": "Gastos Generales",
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Gastos Financieros",
-  "sum-row": "Suma Gastos Financieros",
-  "sum-row-sumavarios": "Otros Ingresos vs Gastos",
-  "result-row": "Total GA CdMx"
- },
- {
-  "HOJA": "Gastos Generales",
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Gastos Generales",
-  "sum-row": "Suma de Gastos Generales",
-  "result-row": "Total GA CdMx"
- },
- {
-  "HOJA": "Gastos Generales",
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Depreciaciones y Amortizaciones",
-  "sum-row": "Suma Depreciaciones y Amortizaciones",
-  "result-row": "Total GA CdMx"
- },
- {
-  "HOJA": "Gastos Generales",
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Gastos Corporativos CdMx",
-  "sum-row": "Suma Gastos Corporativos",
-  "result-row": "Total GA CdMx"
- },
- {
-  "HOJA": "Gastos Generales",
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Member Centricity",
-  "sum-row": "Suma Member Centricity",
-  "result-row": "Total GA CdMx"
- },
- {
-  "HOJA": "Finanzas",
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Ingresos Admon y Finanzas",
-  "sum-row": "Suma de Ingresos Admon y Finanzas ",
-  "sum-row-sumavarios": "Resultado Operativo Admon y Finanzas ",
-  "result-row": "Resultado Admon y Finanzas "
- },
- {
-  "HOJA": "Finanzas",
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Gastos Admon y Finanzas",
-  "sum-row": "Suma de Gastos Admon y Finanzas ",
-  "sum-row-sumavarios": "Resultado Operativo Admon y Finanzas ",
-  "result-row": "Resultado Admon y Finanzas "
- },
- {
-  "HOJA": "Finanzas",
-  "CAPITULO": "CIUDAD DE MÉXICO",
-  "SECCION": "Gastos Administrativos",
-  "sum-row": "Suma Gastos Administrativos",
-  "result-row": "Resultado Admon y Finanzas "
- }
-]
+  "Gastos Generales": [
+    {
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Otros ingresos",
+      "CUENTA": "414-000-000-00",
+      "NOMBRE": "Rendimientos de Inversión"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Otros ingresos",
+      "CUENTA": "418-000-000-00",
+      "NOMBRE": "Plusvalía/Minusvalía Portafolio de Inversiones"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Otros ingresos",
+      "CUENTA": "413-014-001-00",
+      "NOMBRE": "Renta oficinas Reforma"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Otros ingresos",
+      "CUENTA": "413-006-000-00",
+      "NOMBRE": "Vta. De activo fijo"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Otros ingresos",
+      "CUENTA": "413-001-000-00",
+      "NOMBRE": "Regalias"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Otros ingresos",
+      "CUENTA": "413-002-000-00",
+      "NOMBRE": "Miscelaneos"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Otros ingresos",
+      "CUENTA": "413-003-000-00",
+      "NOMBRE": "Trade & Investment Center"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Otros ingresos",
+      "CUENTA": "413-007-000-00",
+      "NOMBRE": "Otros ingresos"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Gastos Financieros",
+      "CUENTA": "416-000-000-00",
+      "NOMBRE": "Utilidad cambiaria"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Gastos Financieros",
+      "CUENTA": "901-096-000-00",
+      "NOMBRE": "Pérdida cambiaria"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Gastos Financieros",
+      "CUENTA": "901-020-000-00",
+      "NOMBRE": "Gtos Financieros (comisiones)"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "901-001-001-00",
+      "NOMBRE": "Oficinas"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "901-001-002-00",
+      "NOMBRE": "Biblioteca AmCham"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "901-002-001-00",
+      "NOMBRE": "Oficinas"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "901-002-002-00",
+      "NOMBRE": "Biblioteca AmCham"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "901-022-000-00",
+      "NOMBRE": "Agua"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "901-009-001-00",
+      "NOMBRE": "Matto. de Local "
+    },
+    {
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "901-009-003-00",
+      "NOMBRE": "Matto. de Biblioteca"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "901-009-002-00",
+      "NOMBRE": "Pólizas de Mantenimiento"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "901-021-000-00",
+      "NOMBRE": "Predial oficinas Reforma 295"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "901-016-002-00",
+      "NOMBRE": "Papeleria Oficina y Almacén"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "901-016-004-00",
+      "NOMBRE": "Servicio de Mensajeria Fedex"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "901-013-007-00",
+      "NOMBRE": "Artículos de Limpieza y cafetería"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "901-010-000-00",
+      "NOMBRE": "Matto. Equipo de Computo y Red"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "901-016-006-00",
+      "NOMBRE": "Gtos Diversos/Eventos internos"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "901-099-000-00",
+      "NOMBRE": "Ajustes y diferencias"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "901-014-002-00",
+      "NOMBRE": "Gastos Extraordinarios"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "901-014-007-00",
+      "NOMBRE": "Otros gastos de operación no presupuestados"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "901-014-003-00",
+      "NOMBRE": "Dif. De impuestos de ejercicios anteriores"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "901-017-000-00",
+      "NOMBRE": "IVA  a Prorrata No Acreditable"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "901-098-000-00",
+      "NOMBRE": "No Deducibles"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Depreciaciones y Amortizaciones",
+      "CUENTA": "901-004-000-00",
+      "NOMBRE": "Depreciaciones de equipo"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Depreciaciones y Amortizaciones",
+      "CUENTA": "901-005-002-00",
+      "NOMBRE": "Gastos de instalación oficina/BA"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Depreciaciones y Amortizaciones",
+      "CUENTA": "901-005-004-00",
+      "NOMBRE": "Software Activo fijo"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Depreciaciones y Amortizaciones",
+      "CUENTA": "901-005-001-00",
+      "NOMBRE": "CRM"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Gastos Corporativos CdMx",
+      "CUENTA": "903-000-000-00",
+      "NOMBRE": "Gastos Corporativos CdMx"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Member Centricity",
+      "CUENTA": "902-000-000-00",
+      "NOMBRE": "Member Centricity"
+    }
+  ],
+  "Finanzas": [
+    {
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Gastos Administrativos",
+      "CUENTA": "801-005-001-00",
+      "NOMBRE": "Teléfono Móvil "
+    },
+    {
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Gastos Administrativos",
+      "CUENTA": "801-005-004-00",
+      "NOMBRE": "Mantenimiento de Automóvil "
+    },
+    {
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Gastos Administrativos",
+      "CUENTA": "801-005-003-00",
+      "NOMBRE": "Gasolina "
+    },
+    {
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Gastos Administrativos",
+      "CUENTA": "801-005-010-00",
+      "NOMBRE": "Becarios"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Gastos Administrativos",
+      "CUENTA": "801-005-005-00",
+      "NOMBRE": "Pasajes y taxis"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Gastos Administrativos",
+      "CUENTA": "801-005-006-00",
+      "NOMBRE": "Estacionamientos"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Gastos Administrativos",
+      "CUENTA": "801-005-011-00",
+      "NOMBRE": "Impresión Tarjetas"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Gastos Administrativos",
+      "CUENTA": "801-005-008-00",
+      "NOMBRE": "Suscripciones y varios"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Gastos Administrativos",
+      "CUENTA": "801-005-017-00",
+      "NOMBRE": "Gastos de viaje"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Gastos Administrativos",
+      "CUENTA": "801-005-012-00",
+      "NOMBRE": "Gastos varios"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Gastos Administrativos",
+      "CUENTA": "801-005-013-00",
+      "NOMBRE": "No deducibles"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Gastos Administrativos",
+      "CUENTA": "801-005-015-00",
+      "NOMBRE": "PAPELERIA Y ARTICULOS DE OFICINA"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Gastos Administrativos",
+      "CUENTA": "801-005-009-00",
+      "NOMBRE": "SERVICIOS ADMINISTRATIVOS (PERSONAL)"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Gastos Administrativos",
+      "CUENTA": "801-005-007-00",
+      "NOMBRE": "HERRAMIENTAS TELE-TRABAJO"
+    }
+  ],
+  "SUMA DE VARIAS SECCIONES": [
+    {
+      "HOJA": "Gastos Generales",
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Otros Ingresos",
+      "sum-row": "Suma Otros Ingresos",
+      "sum-row-sumavarios": "Otros Ingresos vs Gastos",
+      "sum-row-sumavarios2": "",
+      "result-row": "Total GA CdMx"
+    },
+    {
+      "HOJA": "Gastos Generales",
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Gastos Financieros",
+      "sum-row": "Suma Gastos Financieros",
+      "sum-row-sumavarios": "Otros Ingresos vs Gastos",
+      "sum-row-sumavarios2": "",
+      "result-row": "Total GA CdMx"
+    },
+    {
+      "HOJA": "Gastos Generales",
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Gastos Generales",
+      "sum-row": "Suma de Gastos Generales",
+      "sum-row-sumavarios": "",
+      "sum-row-sumavarios2": "",
+      "result-row": "Total GA CdMx"
+    },
+    {
+      "HOJA": "Gastos Generales",
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Depreciaciones y Amortizaciones",
+      "sum-row": "Suma Depreciaciones y Amortizaciones",
+      "sum-row-sumavarios": "",
+      "sum-row-sumavarios2": "",
+      "result-row": "Total GA CdMx"
+    },
+    {
+      "HOJA": "Gastos Generales",
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Gastos Corporativos CdMx",
+      "sum-row": "Suma Gastos Corporativos",
+      "sum-row-sumavarios": "",
+      "sum-row-sumavarios2": "",
+      "result-row": "Total GA CdMx"
+    },
+    {
+      "HOJA": "Gastos Generales",
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Member Centricity",
+      "sum-row": "Suma Member Centricity",
+      "sum-row-sumavarios": "",
+      "sum-row-sumavarios2": "",
+      "result-row": "Total GA CdMx"
+    },
+    {
+      "HOJA": "Finanzas",
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Ingresos Admon y Finanzas",
+      "sum-row": "Suma de Ingresos Admon y Finanzas ",
+      "sum-row-sumavarios": "Resultado Operativo Admon y Finanzas ",
+      "sum-row-sumavarios2": "",
+      "result-row": "Resultado Admon y Finanzas "
+    },
+    {
+      "HOJA": "Finanzas",
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Gastos Admon y Finanzas",
+      "sum-row": "Suma de Gastos Admon y Finanzas ",
+      "sum-row-sumavarios": "Resultado Operativo Admon y Finanzas ",
+      "sum-row-sumavarios2": "",
+      "result-row": "Resultado Admon y Finanzas "
+    },
+    {
+      "HOJA": "Finanzas",
+      "CAPITULO": "CIUDAD DE MÉXICO",
+      "SECCION": "Gastos Administrativos",
+      "sum-row": "Suma Gastos Administrativos",
+      "sum-row-sumavarios": "",
+      "sum-row-sumavarios2": "",
+      "result-row": "Resultado Admon y Finanzas "
+    }
+  ]
 }

@@ -624,7 +624,7 @@ const seedLayoutsDesdeExcelCdMx = ({
   db,
   baseDir = null,
   empresaId = EMPRESA_DEFAULT,
-  capitulo = 'CIUDAD DE MÉXICO',
+  capitulo = 'CIUDAD DE MEXICO',
   anios = ANIOS_CDMX_LAYOUT,
 } = {}) => {
   if (!db) {

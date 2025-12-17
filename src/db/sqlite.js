@@ -932,7 +932,7 @@ const intentarSembrarLayoutsIniciales = () => {
       db,
       baseDir,
       empresaId: "EMPRESA01",
-      capitulo: "CIUDAD DE MÉXICO",
+      capitulo: "CIUDAD DE MEXICO",
       anios: aniosCdMx
     });
     if (resultadoExcel?.ejecutado) {

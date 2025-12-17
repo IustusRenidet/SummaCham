@@ -1509,6 +1509,67 @@
     return porCapitulo[normalizarTexto(seccion)] || null;
   };
 
+  const limpiarSeparadoresNomina = (texto = '') =>
+    texto
+      .replace(/,\s*,+/g, ', ')
+      .replace(/\s+,/g, ', ')
+      .replace(/,\s+/g, ', ')
+      .replace(/\s{2,}/g, ' ')
+      .replace(/^\s+|\s+$/g, '')
+      .replace(/^,\s*/, '')
+      .replace(/,\s*$/, '');
+
+  const limpiarEtiquetaNomina = (texto = '') => {
+    const base = (texto || '').toString();
+    const partes = base.split(',').map((p) => p.trim()).filter(Boolean);
+    const prohibidas = [/BONO\s+ANUAL\s+VPE/i, /CORPORATIVO/i];
+    const filtradas = partes.filter((p) => !prohibidas.some((rx) => rx.test(p)));
+    const reconstruido =
+      filtradas.length > 0
+        ? filtradas.join(', ')
+        : base.replace(/BONO\s+ANUAL\s+VPE/gi, '').replace(/CORPORATIVO/gi, '');
+    const normalizado = limpiarSeparadoresNomina(reconstruido);
+    return normalizado || 'Nomina';
+  };
+
+  const normalizarRegistrosNomina = (registros = []) =>
+    registros.map((item) => {
+      const seccionOriginal = item.seccion || 'SIN SECCION';
+      const seccionLimpia = limpiarEtiquetaNomina(seccionOriginal);
+      return {
+        ...item,
+        seccionOriginal,
+        seccion: seccionLimpia,
+        nombre: seccionLimpia
+      };
+    });
+
+  const limpiarSumasNomina = (sumas, seccionLimpia) => {
+    if (!sumas) return sumas;
+    const limpiarCampo = (valor, fallback = '') => {
+      if (valor == null) return valor;
+      const limpio = limpiarEtiquetaNomina(valor);
+      return limpiarSeparadoresNomina(limpio || fallback);
+    };
+    const copia = { ...sumas };
+    if ('sumRow' in copia) {
+      copia.sumRow = limpiarCampo(copia.sumRow, seccionLimpia ? `Suma ${seccionLimpia}` : '');
+    }
+    if ('sumRowSumavarios' in copia) {
+      copia.sumRowSumavarios = limpiarCampo(copia.sumRowSumavarios);
+    }
+    if ('sumRowSumavarios2' in copia) {
+      copia.sumRowSumavarios2 = limpiarCampo(copia.sumRowSumavarios2);
+    }
+    if (Array.isArray(copia.resultRows)) {
+      copia.resultRows = copia.resultRows.map((texto) => limpiarCampo(texto)).filter(Boolean);
+    } else if (copia.resultRow) {
+      copia.resultRows = [limpiarCampo(copia.resultRow)].filter(Boolean);
+      delete copia.resultRow;
+    }
+    return copia;
+  };
+
   const resolverPlaceholdersPorFila = (placeholdersPorFila, cuerpo) => {
     if (Number.isInteger(placeholdersPorFila) && placeholdersPorFila >= 0) {
       return placeholdersPorFila;
@@ -1613,16 +1674,25 @@
     mostrarCuentaVisible = false,
     moduloClave
   }) => {
+    const moduloNormalizado = normalizarModuloClave(moduloClave);
+    const registrosBase = Array.isArray(registros) ? registros : [];
     const placeholders = resolverPlaceholdersPorFila(placeholdersPorFila, cuerpo);
+    const registrosProcesados =
+      moduloNormalizado === 'nomina' ? normalizarRegistrosNomina(registrosBase) : registrosBase;
     const secciones = new Map();
+    const seccionOriginalPorClave = new Map();
     const faltantesNombre = new Set();
-    const moduloEsGastosGenerales = normalizarModuloClave(moduloClave) === 'gastosgenerales';
-    registros.forEach((item) => {
+    const moduloEsGastosGenerales = moduloNormalizado === 'gastosgenerales';
+    const esModuloNomina = moduloNormalizado === 'nomina';
+    registrosProcesados.forEach((item) => {
       const clave = item.seccion || 'SIN SECCION';
       if (!secciones.has(clave)) {
         secciones.set(clave, []);
       }
       secciones.get(clave).push(item);
+      if (!seccionOriginalPorClave.has(clave)) {
+        seccionOriginalPorClave.set(clave, item.seccionOriginal || item.seccion || 'SIN SECCION');
+      }
     });
 
     const resultRows = new Map();
@@ -1631,7 +1701,9 @@
     const forcedResultTexto = (resultadoForzado || '').toString().trim();
 
     secciones.forEach((lista, seccion) => {
+      const seccionOriginal = esModuloNomina ? seccionOriginalPorClave.get(seccion) || seccion : seccion;
       const claveSeccion = normalizarTexto(seccion || 'SIN SECCION');
+      const claveSeccionOriginal = normalizarTexto(seccionOriginal || 'SIN SECCION');
       const filasCuenta = [];
       let headerRow = null;
       if (seccion && seccion !== 'SIN SECCION') {
@@ -1683,9 +1755,17 @@
       });
 
       const sumasBase =
-        (sumasPersonalizadas instanceof Map ? sumasPersonalizadas.get(claveSeccion) : null) ||
-        (sheetName && capitulo ? obtenerSumasConfig(sheetName, capitulo, seccion) : null);
-      const sumas = aplicarOperacionesPorModulo(moduloClave, seccion, sumasBase) || sumasBase;
+        (sumasPersonalizadas instanceof Map
+          ? sumasPersonalizadas.get(claveSeccion) || sumasPersonalizadas.get(claveSeccionOriginal)
+          : null) ||
+        (sheetName && capitulo
+          ? obtenerSumasConfig(sheetName, capitulo, seccionOriginal) ||
+            obtenerSumasConfig(sheetName, capitulo, seccion)
+          : null);
+      let sumas = aplicarOperacionesPorModulo(moduloClave, seccion, sumasBase) || sumasBase;
+      if (esModuloNomina) {
+        sumas = limpiarSumasNomina(sumas, seccion);
+      }
       const etiquetaSumRow = (sumas?.sumRow || '').trim() || `Suma ${seccion}`;
       const seccionNormalizada = normalizarTexto(seccion);
       const sumRowNormalizada = normalizarTexto(etiquetaSumRow);
@@ -1715,6 +1795,7 @@
         sumRowSumavarios2Label: sumas?.sumRowSumavarios2 || '',
         resultRowTexto: resultRowTexts[0] ? normalizarTexto(resultRowTexts[0]) : '',
         resultRows: resultRowTexts,
+        seccionOriginal,
         elementos: {
           header: headerRow
         }
