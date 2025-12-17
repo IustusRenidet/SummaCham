@@ -83,7 +83,7 @@
     }
   };
 
-  const MODULO_SHEETS = {
+  const HOJAS_POR_MODULO_CRUDO = {
     comites: 'Comités',
     comunicacion: 'Comunicación',
     direccion: 'Dirección',
@@ -99,6 +99,11 @@
     tic: 'T&IC',
     vpe: 'VPE'
   };
+
+  const MODULO_SHEETS = Object.keys(HOJAS_POR_MODULO_CRUDO).reduce((map, moduloClave) => {
+    map[normalizarModuloId(moduloClave)] = HOJAS_POR_MODULO_CRUDO[moduloClave];
+    return map;
+  }, {});
 
   const MODULOS_CONTROLADOS = new Set([
     'resumen',

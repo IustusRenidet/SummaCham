@@ -849,84 +849,87 @@
     fila.cells[1].textContent = nombre;
   };
 
-  /**
-   * Recalcula los totales de una fila de presupuesto
-   * 
-   * Esta función suma horizontalmente los valores de presupuesto y real
-   * de todos los meses para calcular los acumulados de una cuenta específica.
-   * 
-   * Cálculos que realiza:
-   * - Total Presupuesto: Suma de budget-ene hasta budget-[mesActual]
-   * - Total Real: Suma de real-ene hasta real-[mesActual]
-   * - Presupuesto Anual: Valor del mes actual (budget-monthly)
-   * - Mensual: Valor real del mes actual (budget-annual)
-   * 
-   * @param {HTMLTableRowElement} fila - Fila de la tabla a recalcular
-   */
-  const recalcularTotalesFilaPresupuesto = (fila) => {
-    if (!fila) return;
-    const cuenta = fila.dataset.cuenta21 || '';
-    const almacen = estadoModulo.valoresPorCuenta.get(cuenta) || {};
-    
-    // Obtener el mes actual (0-11, donde 0=enero, 11=diciembre)
-    const mesActualIndex = estadoModulo.mesActualIndex ?? new Date().getMonth();
-    const mesActualClave = MESES[mesActualIndex] || 'dic';
-    
-    let totalPresupuestoAcumulado = 0;
-    let totalRealAcumulado = 0;
-    
-    // Sumar todos los meses desde enero hasta el mes actual
-    MESES.forEach((mes, index) => {
-      // Acumular solo hasta el mes actual
-      if (index <= mesActualIndex) {
-        totalPresupuestoAcumulado += Number(almacen[`budget-${mes}`]) || 0;
-        totalRealAcumulado += Number(almacen[`real-${mes}`]) || 0;
-      }
-    });
-    
-    // Obtener valores del mes actual específicamente
-    const presupuestoMesActual = Number(almacen[`budget-${mesActualClave}`]) || 0;
-    const realMesActual = Number(almacen[`real-${mesActualClave}`]) || 0;
-    
-    // Actualizar celda de total-budget: acumulado desde enero hasta mes actual
-    if (estadoModulo.columnas['total-budget'] != null) {
-      const celdaTotal = fila.cells[estadoModulo.columnas['total-budget']];
-      if (celdaTotal) {
-        celdaTotal.textContent = formatearNumero(totalPresupuestoAcumulado);
-      }
-    }
-    
-    // Actualizar celda budget-annual: presupuesto del mes actual
-    if (estadoModulo.columnas['budget-annual'] != null) {
-      const celdaAnnual = fila.cells[estadoModulo.columnas['budget-annual']];
-      if (celdaAnnual) {
-        celdaAnnual.textContent = formatearNumero(presupuestoMesActual);
-      }
-    }
-    
-    // Actualizar celda budget-monthly: real del mes actual
-    if (estadoModulo.columnas['budget-monthly'] != null) {
-      const celdaMensual = fila.cells[estadoModulo.columnas['budget-monthly']];
-      if (celdaMensual) {
-        celdaMensual.textContent = formatearNumero(realMesActual);
-      }
-    }
-    
-    // Actualizar celda total-real: acumulado desde enero hasta mes actual
-    if (estadoModulo.columnas['total-real'] != null) {
-      const celdaRealTotal = fila.cells[estadoModulo.columnas['total-real']];
-      if (celdaRealTotal) {
-        celdaRealTotal.textContent = formatearNumero(totalRealAcumulado);
-      }
-    }
-    
-    almacen['total-budget'] = totalPresupuestoAcumulado;
-    almacen['budget-annual'] = presupuestoMesActual;
-    almacen['budget-monthly'] = realMesActual;
-    almacen['total-real'] = totalRealAcumulado;
-    estadoModulo.valoresPorCuenta.set(cuenta, almacen);
-  };
-
+  /**
+   * Recalcula los totales de una fila de presupuesto
+   *
+   * Esta funcion suma horizontalmente los valores de presupuesto y real
+   * de todos los meses para calcular los acumulados de una cuenta especifica.
+   *
+   * Calculos que realiza:
+   * - Total Presupuesto: Suma de budget-ene hasta budget-[mesActual]
+   * - Total Real: Suma de real-ene hasta real-[mesActual]
+   * - Presupuesto Anual: Suma completa de todas las columnas budget-[mes]
+   * - Mensual: Valor real del mes actual (budget-monthly)
+   *
+   * @param {HTMLTableRowElement} fila - Fila de la tabla a recalcular
+   */
+  const recalcularTotalesFilaPresupuesto = (fila) => {
+    if (!fila) return;
+    const cuenta = fila.dataset.cuenta21 || '';
+    const almacen = estadoModulo.valoresPorCuenta.get(cuenta) || {};
+
+    // Obtener el mes actual (0-11, donde 0=enero, 11=diciembre)
+    const mesActualIndex = estadoModulo.mesActualIndex ?? new Date().getMonth();
+    const mesActualClave = MESES[mesActualIndex] || 'dic';
+
+    let totalPresupuestoAcumulado = 0;
+    let totalPresupuestoAnual = 0;
+    let totalRealAcumulado = 0;
+
+    // Sumar todos los meses desde enero hasta el mes actual
+    MESES.forEach((mes, index) => {
+      const presupuestoMes = Number(almacen[`budget-${mes}`]) || 0;
+      const realMes = Number(almacen[`real-${mes}`]) || 0;
+      totalPresupuestoAnual += presupuestoMes;
+      // Acumular solo hasta el mes actual
+      if (index <= mesActualIndex) {
+        totalPresupuestoAcumulado += presupuestoMes;
+        totalRealAcumulado += realMes;
+      }
+    });
+
+    // Obtener valor del mes actual especificamente
+    const realMesActual = Number(almacen[`real-${mesActualClave}`]) || 0;
+
+    // Actualizar celda de total-budget: acumulado desde enero hasta mes actual
+    if (estadoModulo.columnas['total-budget'] != null) {
+      const celdaTotal = fila.cells[estadoModulo.columnas['total-budget']];
+      if (celdaTotal) {
+        celdaTotal.textContent = formatearNumero(totalPresupuestoAcumulado);
+      }
+    }
+
+    // Actualizar celda budget-annual: suma total del presupuesto anual
+    if (estadoModulo.columnas['budget-annual'] != null) {
+      const celdaAnnual = fila.cells[estadoModulo.columnas['budget-annual']];
+      if (celdaAnnual) {
+        celdaAnnual.textContent = formatearNumero(totalPresupuestoAnual);
+      }
+    }
+
+    // Actualizar celda budget-monthly: real del mes actual
+    if (estadoModulo.columnas['budget-monthly'] != null) {
+      const celdaMensual = fila.cells[estadoModulo.columnas['budget-monthly']];
+      if (celdaMensual) {
+        celdaMensual.textContent = formatearNumero(realMesActual);
+      }
+    }
+
+    // Actualizar celda total-real: acumulado desde enero hasta mes actual
+    if (estadoModulo.columnas['total-real'] != null) {
+      const celdaRealTotal = fila.cells[estadoModulo.columnas['total-real']];
+      if (celdaRealTotal) {
+        celdaRealTotal.textContent = formatearNumero(totalRealAcumulado);
+      }
+    }
+
+    almacen['total-budget'] = totalPresupuestoAcumulado;
+    almacen['budget-annual'] = totalPresupuestoAnual;
+    almacen['budget-monthly'] = realMesActual;
+    almacen['total-real'] = totalRealAcumulado;
+    estadoModulo.valoresPorCuenta.set(cuenta, almacen);
+  };
+
   const establecerValorCelda = (fila, clave, valor) => {
     const indice = estadoModulo.columnas[clave];
     if (indice == null) {
@@ -971,6 +974,7 @@
       const cuenta = fila.dataset.cuenta21 || '';
       const registro = mapa.get(cuenta);
       let totalPresupuestoAcumulado = 0;
+      let totalPresupuestoAnual = 0;
       let totalRealAcumulado = 0;
       const almacen = {};
       
@@ -978,6 +982,7 @@
         const presupuesto = numeroSeguro(registro?.presupuesto?.[mes]);
         const real = numeroSeguro(registro?.real?.[mes]);
         
+        totalPresupuestoAnual += presupuesto;
         // Acumular solo hasta el mes actual
         if (index <= mesActualIndex) {
           totalPresupuestoAcumulado += presupuesto;
@@ -990,21 +995,19 @@
         almacen[`real-${mes}`] = real;
       });
       
-      // Presupuesto del mes actual (para Gastos Corporativos: "Presupuesto YYYY")
-      const presupuestoMesActual = numeroSeguro(registro?.presupuesto?.[mesActualClave]);
       // Real del mes actual (para Gastos Corporativos: "Mensual")
       const realMesActual = numeroSeguro(registro?.real?.[mesActualClave]);
       
       // total-budget y total-real: acumulados desde enero hasta mes actual
       establecerValorCelda(fila, 'total-budget', totalPresupuestoAcumulado);
       establecerValorCelda(fila, 'total-real', totalRealAcumulado);
-      // budget-annual: presupuesto del mes actual (Gastos Corporativos)
-      establecerValorCelda(fila, 'budget-annual', presupuestoMesActual);
+      // budget-annual: suma del presupuesto anual (todas las columnas budget-[mes])
+      establecerValorCelda(fila, 'budget-annual', totalPresupuestoAnual);
       // budget-monthly: real del mes actual (Gastos Corporativos)
       establecerValorCelda(fila, 'budget-monthly', realMesActual);
       
       almacen['total-budget'] = totalPresupuestoAcumulado;
-      almacen['budget-annual'] = presupuestoMesActual;
+      almacen['budget-annual'] = totalPresupuestoAnual;
       almacen['budget-monthly'] = realMesActual;
       almacen['total-real'] = totalRealAcumulado;
       estadoModulo.valoresPorCuenta.set(cuenta, almacen);
@@ -2877,42 +2880,14 @@
     aplicarFiltroColumnasPorPeriodo();
     obtenerFilasCuenta().forEach((fila) => {
       Array.from(fila.cells).forEach((celda) => {
-        // CRÍTICO: Marcar que los listeners fueron removidos para evitar re-agregar
+        celda.contentEditable = 'false';
         if (celda.dataset.editable) {
-          celda.contentEditable = 'false';
           delete celda.dataset.editable;
-          delete celda.dataset.listenersBound; // Permitir re-agregar listeners en próxima edición
         }
+        delete celda.dataset.listenersBound;
       });
     });
     estadoModulo.tabla.classList.remove('modo-edicion');
-  };
-
-  const habilitarEdicionTextoBasica = () => {
-    if (!estadoModulo.tabla) return;
-    const filas = obtenerFilasCuenta();
-    filas.forEach((fila) => {
-      const celdaCuenta = fila.cells[0];
-      const celdaNombre = fila.cells[1];
-      // CRÍTICO: Usar flag para evitar agregar listeners múltiples veces
-      if (celdaCuenta && !celdaCuenta.dataset.textEditable && !celdaCuenta.dataset.textListenersBound) {
-        celdaCuenta.contentEditable = 'true';
-        celdaCuenta.dataset.textEditable = 'cuenta';
-        celdaCuenta.dataset.textListenersBound = 'true';
-        celdaCuenta.addEventListener('blur', () => {
-          manejarCambioCuenta(fila, celdaCuenta);
-          setTimeout(() => ocultarSugerencias(), 150);
-        });
-        celdaCuenta.addEventListener('input', () => mostrarSugerenciasCuenta(celdaCuenta, celdaCuenta.textContent));
-        celdaCuenta.addEventListener('focus', () => mostrarSugerenciasCuenta(celdaCuenta, celdaCuenta.textContent));
-      }
-      if (celdaNombre && !celdaNombre.dataset.textEditable && !celdaNombre.dataset.textListenersBound) {
-        celdaNombre.contentEditable = 'true';
-        celdaNombre.dataset.textEditable = 'nombre';
-        celdaNombre.dataset.textListenersBound = 'true';
-        celdaNombre.addEventListener('blur', () => manejarCambioNombre(fila, celdaNombre));
-      }
-    });
   };
 
   const aplicarModoEdicionEnTabla = () => {
@@ -2920,7 +2895,6 @@
     sincronizarColumnasClaves();
     if (!estadoModulo.editMode) {
       limpiarModoEdicionEnTabla();
-      habilitarEdicionTextoBasica();
       return;
     }
     estadoModulo.tabla.classList.add('modo-edicion');
@@ -3107,16 +3081,26 @@
   };
 
   const obtenerHojaDatos = (nombre, dataset) => {
-    if (!nombre) {
+    if (!nombre || !dataset) {
       return null;
     }
-    const claves = new Set([nombre]);
-    if (nombre.includes('&')) {
-      claves.add(nombre.replace(/&/g, '&amp;'));
+    const buscarClave = (clave) => (clave && Object.hasOwn(dataset, clave) ? dataset[clave] : null);
+    const directo = buscarClave(nombre);
+    if (directo) {
+      return directo;
     }
-    for (const clave of claves) {
-      if (dataset[clave]) {
-        return dataset[clave];
+    if (nombre.includes('&')) {
+      const reemplazo = nombre.replace(/&/g, '&amp;');
+      const conAmp = buscarClave(reemplazo);
+      if (conAmp) {
+        return conAmp;
+      }
+    }
+    const identificador = normalizarSheetId(nombre);
+    if (identificador) {
+      const coincidencia = Object.keys(dataset).find((clave) => normalizarSheetId(clave) === identificador);
+      if (coincidencia) {
+        return dataset[coincidencia];
       }
     }
     return null;
@@ -3345,7 +3329,6 @@
     activarTooltipsCuentas();
     aplicarModoEdicionEnTabla();
     aplicarFiltroColumnasPorPeriodo();
-    habilitarEdicionTextoBasica();
 
     // Actualizar SeccionCollapse después de renderizar la tabla
     if (window.SeccionCollapse && typeof window.SeccionCollapse.actualizar === 'function') {

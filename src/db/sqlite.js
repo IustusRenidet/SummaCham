@@ -596,13 +596,13 @@ const sembrarUsuariosDesdeJson = () => {
           lista: Array.isArray(u.permissions) ? u.permissions : [],
           usuario: usuarioNormalizado
         });
-        const permisosNormalizados = esAdminHistorico
-          ? permisosFiltrados.map((permiso) => permisosCompletos(permiso))
-          : permisosFiltrados;
         const apellido1 = u.apellidoPrimero || u.username;
         const apellido2 = u.apellidoSegundo || '';
         const apellidosCompletos = [apellido1, apellido2].filter(Boolean).join(' ');
         const esAdminHistorico = esAdministradorHistorico(usuarioNormalizado);
+        const permisosNormalizados = esAdminHistorico
+          ? permisosFiltrados.map((permiso) => permisosCompletos(permiso))
+          : permisosFiltrados;
         const esAdminGlobal = (u.esAdminGlobal || esAdminHistorico) ? 1 : 0;
         const puedeAgregar = esAdminGlobal ? 1 : (u.puedeAgregar ? 1 : 0);
         const puedeModificar = esAdminGlobal ? 1 : (u.puedeModificar ? 1 : 0);

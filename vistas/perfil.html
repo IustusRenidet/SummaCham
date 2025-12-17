@@ -323,6 +323,7 @@
                       </span>
                     </button>
                   </div>
+                  <div class="invalid-feedback mt-1" id="contrasenaActualFeedback"></div>
                 </div>
                 <div class="col-12 col-md-6">
                   <label for="nuevaContrasena" class="form-label">Nueva contraseña</label>
@@ -424,7 +425,8 @@
         permisosEmpresa: document.getElementById('permisosEmpresa'),
         passwordForm: document.getElementById('passwordForm'),
         btnPassword: document.getElementById('btnActualizarPassword'),
-        passwordFeedback: document.getElementById('passwordFeedback')
+        passwordFeedback: document.getElementById('passwordFeedback'),
+        contrasenaActualFeedback: document.getElementById('contrasenaActualFeedback')
       };
 
       const EMPRESAS = {
@@ -500,6 +502,38 @@
         input.classList.add(esValido ? 'is-valid' : 'is-invalid');
       };
 
+      const limpiarEstadoContrasenaActual = () => {
+        const actualInput = ELEMENTOS.passwordForm?.contrasenaActual;
+        if (!actualInput) return;
+        actualInput.classList.remove('is-invalid');
+        const feedback = ELEMENTOS.contrasenaActualFeedback;
+        if (feedback) {
+          feedback.textContent = '';
+        }
+      };
+
+      const marcarContrasenaActualIncorrecta = (mensaje) => {
+        const actualInput = ELEMENTOS.passwordForm?.contrasenaActual;
+        if (!actualInput) return;
+        actualInput.classList.add('is-invalid');
+        if (ELEMENTOS.contrasenaActualFeedback) {
+          ELEMENTOS.contrasenaActualFeedback.textContent = mensaje || 'La contraseña actual no es correcta.';
+        }
+      };
+
+      const mensajeHaceReferenciaContrasenaActual = (mensaje = '') => {
+        if (typeof mensaje !== 'string') return false;
+        const texto = mensaje.toLowerCase();
+        const referencias = [
+          'contraseña actual',
+          'contrasena actual',
+          'actual no es correcta',
+          'contraseña actual no es correcta',
+          'contrasena actual no es correcta'
+        ];
+        return referencias.some((referencia) => texto.includes(referencia));
+      };
+
       const renderizarEstadoPassword = () => {
         if (!ELEMENTOS.passwordFeedback) return;
         const estado = obtenerEstadoPassword();
@@ -554,6 +588,12 @@
             input.addEventListener('input', actualizarIndicadoresPassword);
           }
         });
+        const actualInput = ELEMENTOS.passwordForm.contrasenaActual;
+        if (actualInput) {
+          actualInput.addEventListener('input', () => {
+            limpiarEstadoContrasenaActual();
+          });
+        }
         document.querySelectorAll('[data-password-toggle]').forEach((boton) => {
           boton.addEventListener('click', () => {
             const destino = boton.getAttribute('data-password-toggle');
@@ -778,6 +818,7 @@
       const manejarCambioPassword = async (evento) => {
         evento.preventDefault();
         limpiarAlerta();
+        limpiarEstadoContrasenaActual();
 
         const actual = ELEMENTOS.passwordForm.contrasenaActual.value.trim();
         const nueva = ELEMENTOS.passwordForm.nuevaContrasena.value.trim();
@@ -824,10 +865,17 @@
           }
           ELEMENTOS.passwordForm.reset();
           actualizarIndicadoresPassword();
+          limpiarEstadoContrasenaActual();
           mostrarAlerta(datos.mensaje || 'Contraseña actualizada correctamente.', 'success');
         } catch (error) {
           console.error('Error al actualizar contraseña', error);
-          mostrarAlerta(error.message || 'Ocurrió un error al actualizar tu contraseña.');
+          const mensajeError = error?.message || 'Ocurrió un error al actualizar tu contraseña.';
+          const esContrasenaActual = mensajeHaceReferenciaContrasenaActual(mensajeError);
+          if (esContrasenaActual) {
+            marcarContrasenaActualIncorrecta(mensajeError);
+          } else {
+            mostrarAlerta(mensajeError, 'danger');
+          }
         } finally {
           ELEMENTOS.btnPassword.disabled = false;
           ELEMENTOS.btnPassword.textContent = 'Actualizar contraseña';

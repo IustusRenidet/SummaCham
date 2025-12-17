@@ -320,7 +320,13 @@
               MESES.forEach(({ clave }) => {
                 normalizada[clave] = normalizarNumero(cuenta[clave]) * factor;
               });
-              normalizada.anual = normalizarNumero(cuenta.anual) * factor;
+              // Para presupuestos 2025, el "Ppto. Acumulado" debe ser la suma de todas las columnas month-budget
+              // (recalcular desde las columnas mensuales en lugar de confiar en el campo `anual` devuelto por la API).
+              if (Number(anio) === 2025) {
+                normalizada.anual = MESES.reduce((ac, mes) => ac + (normalizada[mes.clave] ?? 0), 0);
+              } else {
+                normalizada.anual = normalizarNumero(cuenta.anual) * factor;
+              }
               return normalizada;
             })
           : [];
