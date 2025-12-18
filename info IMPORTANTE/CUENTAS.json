@@ -683,486 +683,6 @@
   ],
   "Finanzas": [
     {
-      "CAPITULO": "GUADALAJARA",
-      "SECCION": "Otros Ingresos",
-      "CUENTA": "402-000-000-00",
-      "NOMBRE": "Otros Ingresos"
-    },
-    {
-      "CAPITULO": "GUADALAJARA",
-      "SECCION": "Gastos Financieros",
-      "CUENTA": "410-000-000-00",
-      "NOMBRE": "Utilidad Cambiaria"
-    },
-    {
-      "CAPITULO": "GUADALAJARA",
-      "SECCION": "Gastos Financieros",
-      "CUENTA": "901-019-000-00",
-      "NOMBRE": "Perdida Cambiaria"
-    },
-    {
-      "CAPITULO": "GUADALAJARA",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "901-011-007-00",
-      "NOMBRE": "MONITOREO ALARMA"
-    },
-    {
-      "CAPITULO": "GUADALAJARA",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "901-016-001-00",
-      "NOMBRE": "ENERGIA ELECTRICA"
-    },
-    {
-      "CAPITULO": "GUADALAJARA",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "901-016-003-00",
-      "NOMBRE": "PREDIAL"
-    },
-    {
-      "CAPITULO": "GUADALAJARA",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "901-011-013-00",
-      "NOMBRE": "ASEO OFICINAS"
-    },
-    {
-      "CAPITULO": "GUADALAJARA",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "901-009-000-00",
-      "NOMBRE": "DESPENSA, ARTS. CAFETERIA"
-    },
-    {
-      "CAPITULO": "GUADALAJARA",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "901-011-006-00",
-      "NOMBRE": "LAVANDERIA, TINTORERIA"
-    },
-    {
-      "CAPITULO": "GUADALAJARA",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "901-014-001-00",
-      "NOMBRE": "MANTENIMIENTO DE OFICINA"
-    },
-    {
-      "CAPITULO": "GUADALAJARA",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "901-003-000-00",
-      "NOMBRE": "RENTA IMPRESORAS / COPIADORAS"
-    },
-    {
-      "CAPITULO": "GUADALAJARA",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "901-006-003-00",
-      "NOMBRE": "TELEFONOS DE MEXICO"
-    },
-    {
-      "CAPITULO": "GUADALAJARA",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "901-011-002-00",
-      "NOMBRE": "PAQUETERIA Y MENSAJERIA"
-    },
-    {
-      "CAPITULO": "GUADALAJARA",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "901-002-000-00",
-      "NOMBRE": "CUOTAS y SUSCRIPCIONES"
-    },
-    {
-      "CAPITULO": "GUADALAJARA",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "901-011-011-00",
-      "NOMBRE": "GTOS EXP PERMISO LICENCIA"
-    },
-    {
-      "CAPITULO": "GUADALAJARA",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "901-011-015-00",
-      "NOMBRE": "ADMINISTRACION DE FIDEICOMISOS"
-    },
-    {
-      "CAPITULO": "GUADALAJARA",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "901-023-000-00",
-      "NOMBRE": "GASTOS PROMOCIONALES (termos, libretas, plumas)"
-    },
-    {
-      "CAPITULO": "GUADALAJARA",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "901-013-000-00",
-      "NOMBRE": "SERVICIOS DE CONSULTORIA EN COMUNICACIÓN"
-    },
-    {
-      "CAPITULO": "GUADALAJARA",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "901-011-012-00",
-      "NOMBRE": "GASTOS EXTRAORDINARIOS"
-    },
-    {
-      "CAPITULO": "GUADALAJARA",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "901-024-000-00",
-      "NOMBRE": "REUNION FIN DE AÑO"
-    },
-    {
-      "CAPITULO": "GUADALAJARA",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "901-011-004-00",
-      "NOMBRE": "OTROS GASTOS"
-    },
-    {
-      "CAPITULO": "GUADALAJARA",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "901-011-005-00",
-      "NOMBRE": "NO DEDUCIBLES"
-    },
-    {
-      "CAPITULO": "GUADALAJARA",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "501-000-000-00",
-      "NOMBRE": "NOMINA GDL"
-    },
-    {
-      "CAPITULO": "GUADALAJARA",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "801-006-001-00",
-      "NOMBRE": "REEMBOLSO TELEFONO"
-    },
-    {
-      "CAPITULO": "GUADALAJARA",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "801-006-003-00",
-      "NOMBRE": "GASOLINA KAM´S"
-    },
-    {
-      "CAPITULO": "GUADALAJARA",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "801-006-007-00",
-      "NOMBRE": "PASAJES y ESTACIONAMIENTOS"
-    },
-    {
-      "CAPITULO": "GUADALAJARA",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "801-006-008-00",
-      "NOMBRE": "PAPELERIA Y  ARTS OFICINA"
-    },
-    {
-      "CAPITULO": "GUADALAJARA",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "801-006-009-00",
-      "NOMBRE": "CONSUMOS REUNIONES DE TRABAJO"
-    },
-    {
-      "CAPITULO": "GUADALAJARA",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "801-006-010-00",
-      "NOMBRE": "HERRAMIENTAS TELE-TRABAJO"
-    },
-    {
-      "CAPITULO": "GUADALAJARA",
-      "SECCION": "Depreciaciones y Amortizaciones",
-      "CUENTA": "901-008-000-00",
-      "NOMBRE": "Depreciaciones de equipo"
-    },
-    {
-      "CAPITULO": "GUADALAJARA",
-      "SECCION": "Depreciaciones y Amortizaciones",
-      "CUENTA": "901-015-000-00",
-      "NOMBRE": "Amortizaciones"
-    },
-    {
-      "CAPITULO": "GUADALAJARA",
-      "SECCION": "GA Capítulo",
-      "CUENTA": "904-000-000-00",
-      "NOMBRE": "Member Centricity"
-    },
-    {
-      "CAPITULO": "NORESTE",
-      "SECCION": "Otros Ingresos",
-      "CUENTA": "403-000-000-00",
-      "NOMBRE": "Otros Ingresos"
-    },
-    {
-      "CAPITULO": "NORESTE",
-      "SECCION": "Otros Ingresos",
-      "CUENTA": "409-000-000-00",
-      "NOMBRE": "Utilidad Cambiaria"
-    },
-    {
-      "CAPITULO": "NORESTE",
-      "SECCION": "Gastos Financieros",
-      "CUENTA": "802-032-000-00",
-      "NOMBRE": "Gtos Financieros (comisiones)"
-    },
-    {
-      "CAPITULO": "NORESTE",
-      "SECCION": "Gastos Financieros",
-      "CUENTA": "804-000-000-00",
-      "NOMBRE": "Pérdida Cambiaria"
-    },
-    {
-      "CAPITULO": "NORESTE",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "802-001-000-00",
-      "NOMBRE": "Renta de oficinas"
-    },
-    {
-      "CAPITULO": "NORESTE",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "802-004-000-00",
-      "NOMBRE": "Energía Eléctrica"
-    },
-    {
-      "CAPITULO": "NORESTE",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "802-016-000-00",
-      "NOMBRE": "Agua potable / Drenaje"
-    },
-    {
-      "CAPITULO": "NORESTE",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "802-005-000-00",
-      "NOMBRE": "Telefonos (TELMEX)"
-    },
-    {
-      "CAPITULO": "NORESTE",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "802-017-000-00",
-      "NOMBRE": "Rta Copiadora"
-    },
-    {
-      "CAPITULO": "NORESTE",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "802-018-000-00",
-      "NOMBRE": "Servicio de Mensajeria Fedex /local"
-    },
-    {
-      "CAPITULO": "NORESTE",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "802-019-000-00",
-      "NOMBRE": "Despensa y artículos de limpieza"
-    },
-    {
-      "CAPITULO": "NORESTE",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "802-020-000-00",
-      "NOMBRE": "Becarios"
-    },
-    {
-      "CAPITULO": "NORESTE",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "802-010-000-00",
-      "NOMBRE": "Mtto. de  Oficina (extintores, mtto, alarmas, sensores, etc)"
-    },
-    {
-      "CAPITULO": "NORESTE",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "802-008-000-00",
-      "NOMBRE": "Matto. Equipo de Computo y Red"
-    },
-    {
-      "CAPITULO": "NORESTE",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "802-021-000-00",
-      "NOMBRE": "Gtos. Promocionales (libretas, tazas, Roll ups, dipticos y lonas, marcos y reconocimientos"
-    },
-    {
-      "CAPITULO": "NORESTE",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "802-007-000-00",
-      "NOMBRE": "Cuotas y suscripciones"
-    },
-    {
-      "CAPITULO": "NORESTE",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "802-014-000-00",
-      "NOMBRE": "Cuota mtto Club Indl"
-    },
-    {
-      "CAPITULO": "NORESTE",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "802-022-000-00",
-      "NOMBRE": "Tenencias autos AmCham"
-    },
-    {
-      "CAPITULO": "NORESTE",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "802-003-005-00",
-      "NOMBRE": "Auto utilitario (seguro)"
-    },
-    {
-      "CAPITULO": "NORESTE",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "802-025-000-00",
-      "NOMBRE": "Voluntariado"
-    },
-    {
-      "CAPITULO": "NORESTE",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "802-023-000-00",
-      "NOMBRE": "Gastos Extraordinarios (abituarios y envía flores)"
-    },
-    {
-      "CAPITULO": "NORESTE",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "802-024-000-00",
-      "NOMBRE": "Reunión fin de año"
-    },
-    {
-      "CAPITULO": "NORESTE",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "802-026-000-00",
-      "NOMBRE": "IVA a Prorrata No Acreditable"
-    },
-    {
-      "CAPITULO": "NORESTE",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "802-029-000-00",
-      "NOMBRE": "Ajustes y Diferencias"
-    },
-    {
-      "CAPITULO": "NORESTE",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "802-028-000-00",
-      "NOMBRE": "Otros gastos  (global entry y atenciones)"
-    },
-    {
-      "CAPITULO": "NORESTE",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "802-027-000-00",
-      "NOMBRE": "No Deducibles"
-    },
-    {
-      "CAPITULO": "NORESTE",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "501-000-000-00",
-      "NOMBRE": "Nómina total capítulo"
-    },
-    {
-      "CAPITULO": "NORESTE",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "803-001-000-00",
-      "NOMBRE": "Reembolso celulares"
-    },
-    {
-      "CAPITULO": "NORESTE",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "803-003-000-00",
-      "NOMBRE": "Gasolina Kam´s"
-    },
-    {
-      "CAPITULO": "NORESTE",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "803-007-000-00",
-      "NOMBRE": "Pasajes y Estacionamientos"
-    },
-    {
-      "CAPITULO": "NORESTE",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "803-008-000-00",
-      "NOMBRE": "Papelería, impresiones  y arts oficina"
-    },
-    {
-      "CAPITULO": "NORESTE",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "803-009-000-00",
-      "NOMBRE": "Consumos juntas trabajo"
-    },
-    {
-      "CAPITULO": "NORESTE",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "803-010-000-00",
-      "NOMBRE": "Herramientas TELE-TRABAJO"
-    },
-    {
-      "CAPITULO": "NORESTE",
-      "SECCION": "Depreciaciones y Amortizaciones",
-      "CUENTA": "802-002-000-00",
-      "NOMBRE": "Depreciaciones de equipo"
-    },
-    {
-      "CAPITULO": "NORESTE",
-      "SECCION": "Depreciaciones y Amortizaciones",
-      "CUENTA": "802-015-000-00",
-      "NOMBRE": "Amortizaciones (CRM y Mejoras a locales arrendados)"
-    },
-    {
-      "CAPITULO": "NORESTE",
-      "SECCION": "GA Capítulo",
-      "CUENTA": "900-000-000-00",
-      "NOMBRE": "Gastos Corporativos Mty"
-    },
-    {
-      "CAPITULO": "NORESTE",
-      "SECCION": "GA Capítulo",
-      "CUENTA": "901-000-000-00",
-      "NOMBRE": "Member Centricity"
-    },
-    {
-      "CAPITULO": "NOROESTE",
-      "SECCION": "Gastos Financieros",
-      "CUENTA": "901-006-000-00",
-      "NOMBRE": "Gtos Financieros (comisiones bancarias)"
-    },
-    {
-      "CAPITULO": "NOROESTE",
-      "SECCION": "Gastos Financieros",
-      "CUENTA": "902-003-000-00",
-      "NOMBRE": "Perdida Cambiaria"
-    },
-    {
-      "CAPITULO": "NOROESTE",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "901-008-003-00",
-      "NOMBRE": "Mantenimiento de oficina"
-    },
-    {
-      "CAPITULO": "NOROESTE",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "901-003-000-00",
-      "NOMBRE": "Servicio de Mensajeria Fedex /local"
-    },
-    {
-      "CAPITULO": "NOROESTE",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "901-008-004-00",
-      "NOMBRE": "Matto. Equipo de Computo y Red"
-    },
-    {
-      "CAPITULO": "NOROESTE",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "901-009-000-00",
-      "NOMBRE": "Despensa y cafetería"
-    },
-    {
-      "CAPITULO": "NOROESTE",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "501-000-000-00",
-      "NOMBRE": "Nómina"
-    },
-    {
-      "CAPITULO": "NOROESTE",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "901-013-000-00",
-      "NOMBRE": "Becarios"
-    },
-    {
-      "CAPITULO": "NOROESTE",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "901-007-000-00",
-      "NOMBRE": "IVA a Prorrata No Acreditable"
-    },
-    {
-      "CAPITULO": "NOROESTE",
-      "SECCION": "Gastos Generales",
-      "CUENTA": "901-015-000-00",
-      "NOMBRE": "Gastos Extraordinarios"
-    },
-    {
-      "CAPITULO": "NOROESTE",
-      "SECCION": "Depreciaciones y Amortizaciones",
-      "CUENTA": "901-004-004-00",
-      "NOMBRE": "Depreciaciones de equipo"
-    },
-    {
       "CAPITULO": "CIUDAD DE MÉXICO",
       "SECCION": "Gastos Administrativos",
       "CUENTA": "801-005-001-00",
@@ -3659,141 +3179,6 @@
       "result-row": "Resultado  Eventos"
     },
     {
-      "HOJA": "Finanzas",
-      "CAPITULO": "GUADALAJARA",
-      "SECCION": "Otros Ingresos",
-      "sum-row": "Suma Otros Ingresos",
-      "sum-row-sumavarios": "Otros Ingresos vs Gastos",
-      "sum-row-sumavarios2": "",
-      "result-row": "Total"
-    },
-    {
-      "HOJA": "Finanzas",
-      "CAPITULO": "GUADALAJARA",
-      "SECCION": "Gastos Financieros",
-      "sum-row": "Suma Gastos Financieros",
-      "sum-row-sumavarios": "Otros Ingresos vs Gastos",
-      "sum-row-sumavarios2": "",
-      "result-row": "Total"
-    },
-    {
-      "HOJA": "Finanzas",
-      "CAPITULO": "GUADALAJARA",
-      "SECCION": "Gastos Generales",
-      "sum-row": "Suma de Gastos Generales",
-      "sum-row-sumavarios": "",
-      "sum-row-sumavarios2": "",
-      "result-row": "Total"
-    },
-    {
-      "HOJA": "Finanzas",
-      "CAPITULO": "GUADALAJARA",
-      "SECCION": "Depreciaciones y Amortizaciones",
-      "sum-row": "Suma Depreciaciones y Amortizaciones",
-      "sum-row-sumavarios": "",
-      "sum-row-sumavarios2": "",
-      "result-row": "Total"
-    },
-    {
-      "HOJA": "Finanzas",
-      "CAPITULO": "GUADALAJARA",
-      "SECCION": "GA Capítulo",
-      "sum-row": "Total GA",
-      "sum-row-sumavarios": "",
-      "sum-row-sumavarios2": "",
-      "result-row": "Total"
-    },
-    {
-      "HOJA": "Finanzas",
-      "CAPITULO": "NORESTE",
-      "SECCION": "Otros Ingresos",
-      "sum-row": "Suma Otros Ingresos",
-      "sum-row-sumavarios": "Otros Ingresos vs Gastos",
-      "sum-row-sumavarios2": "",
-      "result-row": "Total"
-    },
-    {
-      "HOJA": "Finanzas",
-      "CAPITULO": "NORESTE",
-      "SECCION": "Gastos Financieros",
-      "sum-row": "Suma Gastos Financieros",
-      "sum-row-sumavarios": "Otros Ingresos vs Gastos",
-      "sum-row-sumavarios2": "",
-      "result-row": "Total"
-    },
-    {
-      "HOJA": "Finanzas",
-      "CAPITULO": "NORESTE",
-      "SECCION": "Gastos Generales",
-      "sum-row": "Suma de Gastos Generales",
-      "sum-row-sumavarios": "",
-      "sum-row-sumavarios2": "",
-      "result-row": "Total"
-    },
-    {
-      "HOJA": "Finanzas",
-      "CAPITULO": "NORESTE",
-      "SECCION": "Depreciaciones y Amortizaciones",
-      "sum-row": "Suma Depreciaciones y Amortizaciones",
-      "sum-row-sumavarios": "",
-      "sum-row-sumavarios2": "",
-      "result-row": "Total"
-    },
-    {
-      "HOJA": "Finanzas",
-      "CAPITULO": "NORESTE",
-      "SECCION": "GA Capítulo",
-      "sum-row": "Total GA",
-      "sum-row-sumavarios": "",
-      "sum-row-sumavarios2": "",
-      "result-row": "Total"
-    },
-    {
-      "HOJA": "Finanzas",
-      "CAPITULO": "NOROESTE",
-      "SECCION": "Otros Ingresos",
-      "sum-row": "Suma Otros Ingresos",
-      "sum-row-sumavarios": "Otros Ingresos vs Gastos",
-      "sum-row-sumavarios2": "",
-      "result-row": "Total"
-    },
-    {
-      "HOJA": "Finanzas",
-      "CAPITULO": "NOROESTE",
-      "SECCION": "Gastos Financieros",
-      "sum-row": "Suma Gastos Financieros",
-      "sum-row-sumavarios": "Otros Ingresos vs Gastos",
-      "sum-row-sumavarios2": "",
-      "result-row": "Total"
-    },
-    {
-      "HOJA": "Finanzas",
-      "CAPITULO": "NOROESTE",
-      "SECCION": "Gastos Generales",
-      "sum-row": "Suma de Gastos Generales",
-      "sum-row-sumavarios": "",
-      "sum-row-sumavarios2": "",
-      "result-row": "Total"
-    },
-    {
-      "HOJA": "Finanzas",
-      "CAPITULO": "NOROESTE",
-      "SECCION": "Depreciaciones y Amortizaciones",
-      "sum-row": "Suma Depreciaciones y Amortizaciones",
-      "sum-row-sumavarios": "",
-      "sum-row-sumavarios2": "",
-      "result-row": "Total"
-    },
-    {
-      "HOJA": "Finanzas",
-      "CAPITULO": "NOROESTE",
-      "SECCION": "GA Capítulo",
-      "sum-row": "Total GA",
-      "sum-row-sumavarios": "",
-      "sum-row-sumavarios2": "",
-      "result-row": "Total"
-    },
-    {
       "HOJA": "Membresía",
       "CAPITULO": "CIUDAD DE MÉXICO",
       "SECCION": "Ingresos Membresía",
@@ -4430,6 +3815,552 @@
       "SECCION": "Member Centricity",
       "CUENTA": "902-000-000-00",
       "NOMBRE": "Member Centricity"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "SECCION": "Otros Ingresos",
+      "CUENTA": "402-000-000-00",
+      "NOMBRE": "Otros Ingresos"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "SECCION": "Gastos Financieros",
+      "CUENTA": "410-000-000-00",
+      "NOMBRE": "Utilidad Cambiaria"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "SECCION": "Gastos Financieros",
+      "CUENTA": "901-019-000-00",
+      "NOMBRE": "Perdida Cambiaria"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "SECCION": "Gastos Financieros",
+      "CUENTA": "901-020-000-00",
+      "NOMBRE": "Gtos Financieros (comisiones)"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "901-011-007-00",
+      "NOMBRE": "MONITOREO ALARMA"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "901-016-001-00",
+      "NOMBRE": "ENERGIA ELECTRICA"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "901-016-002-00",
+      "NOMBRE": "AGUA POTABLE"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "901-016-003-00",
+      "NOMBRE": "PREDIAL"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "901-011-013-00",
+      "NOMBRE": "ASEO OFICINAS"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "901-009-000-00",
+      "NOMBRE": "DESPENSA, ARTS. CAFETERIA"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "901-011-006-00",
+      "NOMBRE": "LAVANDERIA, TINTORERIA"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "901-014-001-00",
+      "NOMBRE": "MANTENIMIENTO DE OFICINA"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "901-014-002-00",
+      "NOMBRE": "MANTTO EQ DE COMPUTO"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "901-003-000-00",
+      "NOMBRE": "RENTA IMPRESORAS / COPIADORAS"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "901-006-003-00",
+      "NOMBRE": "TELEFONOS DE MEXICO"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "901-011-002-00",
+      "NOMBRE": "PAQUETERIA Y MENSAJERIA"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "901-002-000-00",
+      "NOMBRE": "CUOTAS y SUSCRIPCIONES"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "901-011-011-00",
+      "NOMBRE": "GTOS EXP PERMISO LICENCIA"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "901-011-015-00",
+      "NOMBRE": "ADMINISTRACION DE FIDEICOMISOS"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "901-023-000-00",
+      "NOMBRE": "GASTOS PROMOCIONALES (termos, libretas, plumas)"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "901-013-000-00",
+      "NOMBRE": "SERVICIOS DE CONSULTORIA EN COMUNICACIÓN"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "901-011-012-00",
+      "NOMBRE": "GASTOS EXTRAORDINARIOS"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "901-024-000-00",
+      "NOMBRE": "REUNION FIN DE AÑO"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "901-022-000-00",
+      "NOMBRE": "IVA A PRORRATA NO ACREDITABLE"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "901-099-000-00",
+      "NOMBRE": "AJUSTES Y DIFERENCIAS"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "901-011-004-00",
+      "NOMBRE": "OTROS GASTOS"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "901-011-005-00",
+      "NOMBRE": "NO DEDUCIBLES"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "501-000-000-00",
+      "NOMBRE": "NOMINA GDL"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "801-006-001-00",
+      "NOMBRE": "REEMBOLSO TELEFONO"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "801-006-003-00",
+      "NOMBRE": "GASOLINA KAM´S"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "801-006-007-00",
+      "NOMBRE": "PASAJES y ESTACIONAMIENTOS"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "801-006-008-00",
+      "NOMBRE": "PAPELERIA Y  ARTS OFICINA"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "801-006-009-00",
+      "NOMBRE": "CONSUMOS REUNIONES DE TRABAJO"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "801-006-010-00",
+      "NOMBRE": "HERRAMIENTAS TELE-TRABAJO"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "SECCION": "Depreciaciones y Amortizaciones",
+      "CUENTA": "901-008-000-00",
+      "NOMBRE": "Depreciaciones de equipo"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "SECCION": "Depreciaciones y Amortizaciones",
+      "CUENTA": "901-015-000-00",
+      "NOMBRE": "Amortizaciones"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "SECCION": "GA Capítulo",
+      "CUENTA": "903-000-000-00",
+      "NOMBRE": "Gastos Corporativos Gdl"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "SECCION": "GA Capítulo",
+      "CUENTA": "904-000-000-00",
+      "NOMBRE": "Member Centricity"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "SECCION": "Otros Ingresos",
+      "CUENTA": "403-000-000-00",
+      "NOMBRE": "Otros Ingresos"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "SECCION": "Otros Ingresos",
+      "CUENTA": "409-000-000-00",
+      "NOMBRE": "Utilidad Cambiaria"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "SECCION": "Gastos Financieros",
+      "CUENTA": "802-032-000-00",
+      "NOMBRE": "Gtos Financieros (comisiones)"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "SECCION": "Gastos Financieros",
+      "CUENTA": "804-000-000-00",
+      "NOMBRE": "Pérdida Cambiaria"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "802-001-000-00",
+      "NOMBRE": "Renta de oficinas"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "802-004-000-00",
+      "NOMBRE": "Energía Eléctrica"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "802-016-000-00",
+      "NOMBRE": "Agua potable / Drenaje"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "802-005-000-00",
+      "NOMBRE": "Telefonos (TELMEX)"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "802-017-000-00",
+      "NOMBRE": "Rta Copiadora"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "802-018-000-00",
+      "NOMBRE": "Servicio de Mensajeria Fedex /local"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "802-019-000-00",
+      "NOMBRE": "Despensa y artículos de limpieza"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "802-020-000-00",
+      "NOMBRE": "Becarios"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "802-010-000-00",
+      "NOMBRE": "Mtto. de  Oficina (extintores, mtto, alarmas, sensores, etc)"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "802-008-000-00",
+      "NOMBRE": "Matto. Equipo de Computo y Red"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "802-021-000-00",
+      "NOMBRE": "Gtos. Promocionales (libretas, tazas, Roll ups, dipticos y lonas, marcos y reconocimientos"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "802-007-000-00",
+      "NOMBRE": "Cuotas y suscripciones"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "802-014-000-00",
+      "NOMBRE": "Cuota mtto Club Indl"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "802-022-000-00",
+      "NOMBRE": "Tenencias autos AmCham"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "802-003-005-00",
+      "NOMBRE": "Auto utilitario (seguro)"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "802-025-000-00",
+      "NOMBRE": "Voluntariado"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "802-023-000-00",
+      "NOMBRE": "Gastos Extraordinarios (abituarios y envía flores)"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "802-024-000-00",
+      "NOMBRE": "Reunión fin de año"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "802-026-000-00",
+      "NOMBRE": "IVA a Prorrata No Acreditable"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "802-029-000-00",
+      "NOMBRE": "Ajustes y Diferencias"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "802-028-000-00",
+      "NOMBRE": "Otros gastos  (global entry y atenciones)"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "802-027-000-00",
+      "NOMBRE": "No Deducibles"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "501-000-000-00",
+      "NOMBRE": "Nómina total capítulo"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "803-001-000-00",
+      "NOMBRE": "Reembolso celulares"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "803-003-000-00",
+      "NOMBRE": "Gasolina Kam´s"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "803-007-000-00",
+      "NOMBRE": "Pasajes y Estacionamientos"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "803-008-000-00",
+      "NOMBRE": "Papelería, impresiones  y arts oficina"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "803-009-000-00",
+      "NOMBRE": "Consumos juntas trabajo"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "803-010-000-00",
+      "NOMBRE": "Herramientas TELE-TRABAJO"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "SECCION": "Depreciaciones y Amortizaciones",
+      "CUENTA": "802-002-000-00",
+      "NOMBRE": "Depreciaciones de equipo"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "SECCION": "Depreciaciones y Amortizaciones",
+      "CUENTA": "802-015-000-00",
+      "NOMBRE": "Amortizaciones (CRM y Mejoras a locales arrendados)"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "SECCION": "GA Capítulo",
+      "CUENTA": "900-000-000-00",
+      "NOMBRE": "Gastos Corporativos Mty"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "SECCION": "GA Capítulo",
+      "CUENTA": "901-000-000-00",
+      "NOMBRE": "Member Centricity"
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "SECCION": "Gastos Financieros",
+      "CUENTA": "901-006-000-00",
+      "NOMBRE": "Gtos Financieros (comisiones bancarias)"
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "SECCION": "Gastos Financieros",
+      "CUENTA": "902-003-000-00",
+      "NOMBRE": "Perdida Cambiaria"
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "901-002-001-00",
+      "NOMBRE": "Telefono e Internet"
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "901-001-001-00",
+      "NOMBRE": "Energía Eléctrica"
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "901-001-002-00",
+      "NOMBRE": "Agua potable / Drenaje"
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "901-008-003-00",
+      "NOMBRE": "Mantenimiento de oficina"
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "901-003-000-00",
+      "NOMBRE": "Servicio de Mensajeria Fedex /local"
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "901-008-004-00",
+      "NOMBRE": "Matto. Equipo de Computo y Red"
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "901-009-000-00",
+      "NOMBRE": "Despensa y cafetería"
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "501-000-000-00",
+      "NOMBRE": "Nómina"
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "901-013-000-00",
+      "NOMBRE": "Becarios"
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "901-007-000-00",
+      "NOMBRE": "IVA a Prorrata No Acreditable"
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "901-010-000-00",
+      "NOMBRE": "REUNION FIN DE AÑO"
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "SECCION": "Gastos Generales",
+      "CUENTA": "901-015-000-00",
+      "NOMBRE": "Gastos Extraordinarios"
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "SECCION": "Depreciaciones y Amortizaciones",
+      "CUENTA": "901-004-004-00",
+      "NOMBRE": "Depreciaciones de equipo"
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "SECCION": "GA Capítulo",
+      "CUENTA": "903-000-000-00",
+      "NOMBRE": "Gastos Corporativos NO"
     }
   ],
   "Nomina": [

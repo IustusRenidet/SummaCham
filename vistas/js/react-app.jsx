@@ -2,6 +2,11 @@ const { useState, useEffect, useMemo, useCallback } = React;
 
 const API_BASE = 'http://localhost:3000/api';
 
+const esPantallaReducida = () =>
+  typeof window !== 'undefined' && window.matchMedia
+    ? window.matchMedia('(max-width: 992px)').matches
+    : false;
+
 const MODULE_GROUPS = [
   {
     id: 'panel-resumenes',
@@ -666,13 +671,37 @@ const DashboardLayout = ({
 
 
 
-  const [sidebarOculta, setSidebarOculta] = useState(false);
-
-
+  const [esMovil, setEsMovil] = useState(() => esPantallaReducida());
+  const [sidebarOculta, setSidebarOculta] = useState(() => esPantallaReducida());
 
   const [gruposAbiertos, setGruposAbiertos] = useState(() => new Set(collectAllGroupIds(MODULE_GROUPS)));
 
+  useEffect(() => {
+    const media = typeof window !== 'undefined' && window.matchMedia ? window.matchMedia('(max-width: 992px)') : null;
+    const manejarCambio = (evento) => {
+      const esChico = evento.matches ?? false;
+      setEsMovil(esChico);
+      setSidebarOculta(esChico);
+    };
+    if (media) {
+      manejarCambio(media);
+      media.addEventListener('change', manejarCambio);
+    }
+    return () => {
+      if (media) {
+        media.removeEventListener('change', manejarCambio);
+      }
+    };
+  }, []);
 
+  useEffect(() => {
+    if (esMovil) {
+      document.body.classList.toggle('sidebar-locked', !sidebarOculta);
+    } else {
+      document.body.classList.remove('sidebar-locked');
+    }
+    return () => document.body.classList.remove('sidebar-locked');
+  }, [sidebarOculta, esMovil]);
 
   useEffect(() => {
 
@@ -721,6 +750,9 @@ const DashboardLayout = ({
   const seleccionarModulo = (module) => {
     if (module && module.id !== selectedModuleId) {
       onSelectModule(module.id);
+      if (esMovil) {
+        setSidebarOculta(true);
+      }
     }
   };
 
@@ -736,6 +768,7 @@ const DashboardLayout = ({
   };
 
   const layoutClassName = `app-layout${sidebarOculta ? ' sidebar-hidden' : ''}`;
+  const mostrarBackdrop = esMovil && !sidebarOculta;
   const manejarActualizarNotificaciones = () => {
     if (onRefreshNotifications) {
       onRefreshNotifications();
@@ -749,6 +782,14 @@ const DashboardLayout = ({
 
   return (
     <div className={layoutClassName}>
+      {mostrarBackdrop && (
+        <button
+          type="button"
+          className="sidebar-backdrop"
+          onClick={() => setSidebarOculta(true)}
+          aria-label="Cerrar menú lateral"
+        />
+      )}
       <aside className="app-sidebar" aria-label="Navegación principal">
         <div className="sidebar-header">
           <img src="../icono/amcham.png" alt="AmCham" className="sidebar-logo" />

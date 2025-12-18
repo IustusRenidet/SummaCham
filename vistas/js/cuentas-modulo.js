@@ -1684,8 +1684,12 @@
     const faltantesNombre = new Set();
     const moduloEsGastosGenerales = moduloNormalizado === 'gastosgenerales';
     const esModuloNomina = moduloNormalizado === 'nomina';
+    const esModuloResumen = moduloNormalizado === 'resumen';
     registrosProcesados.forEach((item) => {
       const clave = item.seccion || 'SIN SECCION';
+      if (esModuloResumen && /OPERATING RESULTS/i.test(clave)) {
+        return;
+      }
       if (!secciones.has(clave)) {
         secciones.set(clave, []);
       }
@@ -1763,6 +1767,18 @@
             obtenerSumasConfig(sheetName, capitulo, seccion)
           : null);
       let sumas = aplicarOperacionesPorModulo(moduloClave, seccion, sumasBase) || sumasBase;
+      if (esModuloResumen) {
+        const limpiarOper = (texto) => (texto || '').trim();
+        const isOperating =
+          /OPERATING RESULTS/i.test(limpiarOper(sumas?.sumRow)) ||
+          /OPERATING RESULTS/i.test(limpiarOper(sumas?.sumRowSumavarios)) ||
+          /OPERATING RESULTS/i.test(limpiarOper(sumas?.sumRowSumavarios2)) ||
+          (Array.isArray(sumas?.resultRows) &&
+            sumas.resultRows.some((t) => /OPERATING RESULTS/i.test(limpiarOper(t))));
+        if (isOperating) {
+          return;
+        }
+      }
       if (esModuloNomina) {
         sumas = limpiarSumasNomina(sumas, seccion);
       }

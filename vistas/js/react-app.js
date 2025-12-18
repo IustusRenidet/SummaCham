@@ -6,6 +6,12 @@
     }
     return `${window.location.origin.replace(/\/$/, "")}/api`;
   })();
+  const esPantallaReducida = () => {
+    if (typeof window === "undefined" || !window.matchMedia) {
+      return false;
+    }
+    return window.matchMedia("(max-width: 992px)").matches;
+  };
   const MODULE_GROUPS = [
     {
       id: "panel-resumenes",
@@ -458,11 +464,37 @@ const NotificationBell = ({ notifications = [], onRefresh, onMarkAsRead }) => {
     () => modulosDisponibles.find((module) => module.id === selectedModuleId) || null,
     [modulosDisponibles, selectedModuleId]
   );
-  const [sidebarOculta, setSidebarOculta] = useState(false);
+  const [esMovil, setEsMovil] = useState(() => esPantallaReducida());
+  const [sidebarOculta, setSidebarOculta] = useState(() => esPantallaReducida());
   const [gruposAbiertos, setGruposAbiertos] = useState(() => new Set(collectAllGroupIds(MODULE_GROUPS)));
   useEffect(() => {
     setGruposAbiertos(new Set(collectAllGroupIds(gruposDisponibles)));
   }, [gruposDisponibles]);
+  useEffect(() => {
+    const media = typeof window !== "undefined" && window.matchMedia ? window.matchMedia("(max-width: 992px)") : null;
+    const manejarCambio = (evento) => {
+      const esChico = evento.matches ?? false;
+      setEsMovil(esChico);
+      setSidebarOculta(esChico);
+    };
+    if (media) {
+      manejarCambio(media);
+      media.addEventListener("change", manejarCambio);
+    }
+    return () => {
+      if (media) {
+        media.removeEventListener("change", manejarCambio);
+      }
+    };
+  }, []);
+  useEffect(() => {
+    if (esMovil) {
+      document.body.classList.toggle("sidebar-locked", !sidebarOculta);
+    } else {
+      document.body.classList.remove("sidebar-locked");
+    }
+    return () => document.body.classList.remove("sidebar-locked");
+  }, [sidebarOculta, esMovil]);
   useEffect(() => {
     if (modulosDisponibles.length === 0) {
       if (selectedModuleId) {
@@ -489,6 +521,9 @@ const NotificationBell = ({ notifications = [], onRefresh, onMarkAsRead }) => {
     const seleccionarModulo = (module) => {
       if (module && module.id !== selectedModuleId) {
         onSelectModule(module.id);
+        if (esMovil) {
+          setSidebarOculta(true);
+        }
       }
     };
     const alternarSidebar = () => {
@@ -501,6 +536,7 @@ const NotificationBell = ({ notifications = [], onRefresh, onMarkAsRead }) => {
       }
     };
     const layoutClassName = `app-layout${sidebarOculta ? " sidebar-hidden" : ""}`;
+    const mostrarBackdrop = esMovil && !sidebarOculta;
     const manejarActualizarNotificaciones = () => {
       if (onRefreshNotifications) {
         onRefreshNotifications();
@@ -511,7 +547,15 @@ const NotificationBell = ({ notifications = [], onRefresh, onMarkAsRead }) => {
         onMarkNotification(id);
       }
     };
-    return /* @__PURE__ */ React.createElement("div", { className: layoutClassName }, /* @__PURE__ */ React.createElement("aside", { className: "app-sidebar", "aria-label": "Navegaci\xF3n principal" }, /* @__PURE__ */ React.createElement("div", { className: "sidebar-header" }, /* @__PURE__ */ React.createElement("img", { src: "icono/amcham.png", alt: "AmCham", className: "sidebar-logo" })), /* @__PURE__ */ React.createElement("div", { className: "sidebar-menu" }, gruposDisponibles.map((group) => /* @__PURE__ */ React.createElement(
+    return /* @__PURE__ */ React.createElement("div", { className: layoutClassName }, mostrarBackdrop && /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        className: "sidebar-backdrop",
+        onClick: () => setSidebarOculta(true),
+        "aria-label": "Cerrar men\xFA lateral"
+      }
+    ), /* @__PURE__ */ React.createElement("aside", { className: "app-sidebar", "aria-label": "Navegaci\xF3n principal" }, /* @__PURE__ */ React.createElement("div", { className: "sidebar-header" }, /* @__PURE__ */ React.createElement("img", { src: "icono/amcham.png", alt: "AmCham", className: "sidebar-logo" })), /* @__PURE__ */ React.createElement("div", { className: "sidebar-menu" }, gruposDisponibles.map((group) => /* @__PURE__ */ React.createElement(
       SidebarGroup,
       {
         key: group.id,
