@@ -112,6 +112,45 @@
     'nomina'
   ]);
 
+  const MODULOS_SIN_OPERACIONES_AUTOMATICAS = new Set([
+    'servmembresia',
+    'serviciosalamembresia'
+  ]);
+
+  const ETIQUETAS_EXCLUIDAS_SERV_MEMBRESIA = new Set([
+    normalizarTexto('TOTAL INGRESOS Serv Membresía'),
+    normalizarTexto('TOTAL GASTOS Serv Membresía'),
+    normalizarTexto('RESULTADO Serv Membresía'),
+    normalizarTexto('Resultado Serv Membresía')
+  ]);
+
+  const limpiarSumasPorModulo = (configuracionActual, moduloClave) => {
+    const moduloNormalizado = normalizarModuloClave(moduloClave || '');
+    if (moduloNormalizado !== 'servmembresia') return configuracionActual;
+    if (!configuracionActual) return configuracionActual;
+
+    const limpio = { ...configuracionActual };
+    const limpiarEtiqueta = (texto) => {
+      if (!texto) return texto;
+      return ETIQUETAS_EXCLUIDAS_SERV_MEMBRESIA.has(normalizarTexto(texto)) ? '' : texto;
+    };
+
+    limpio.sumRowSumavarios = limpiarEtiqueta(limpio.sumRowSumavarios);
+    limpio.sumRowSumavarios2 = limpiarEtiqueta(limpio.sumRowSumavarios2);
+
+    if (limpio.resultRow && ETIQUETAS_EXCLUIDAS_SERV_MEMBRESIA.has(normalizarTexto(limpio.resultRow))) {
+      delete limpio.resultRow;
+    }
+
+    if (Array.isArray(limpio.resultRows)) {
+      limpio.resultRows = limpio.resultRows.filter(
+        (texto) => !ETIQUETAS_EXCLUIDAS_SERV_MEMBRESIA.has(normalizarTexto(texto))
+      );
+    }
+
+    return limpio;
+  };
+
 
   const REGLAS_OPERACIONES_MODULO = {
     membresia: {

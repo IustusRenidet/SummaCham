@@ -1752,23 +1752,7 @@
     "permissions": [
       {
         "empresaId": "empresa1",
-        "modulo": "Comit‚s",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa1",
-        "modulo": "Comunicaci¢n",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa1",
-        "modulo": "Direcci¢n",
+        "modulo": "Membresía",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
         "puede_revisar": 0,
@@ -1784,7 +1768,7 @@
       },
       {
         "empresaId": "empresa1",
-        "modulo": "Finanzas",
+        "modulo": "Comunicación",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
         "puede_revisar": 0,
@@ -1792,7 +1776,7 @@
       },
       {
         "empresaId": "empresa1",
-        "modulo": "Gtos_Corporativos",
+        "modulo": "Dirección",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
         "puede_revisar": 0,
@@ -1800,7 +1784,7 @@
       },
       {
         "empresaId": "empresa1",
-        "modulo": "Membres¡a",
+        "modulo": "Serv Membresía",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
         "puede_revisar": 0,
@@ -1808,15 +1792,7 @@
       },
       {
         "empresaId": "empresa1",
-        "modulo": "RH",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa1",
-        "modulo": "Serv_Membres¡a",
+        "modulo": "Comités",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
         "puede_revisar": 0,
@@ -1832,7 +1808,63 @@
       },
       {
         "empresaId": "empresa1",
+        "modulo": "RH",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa1",
         "modulo": "VPE",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "Finanzas",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "Gastos Generales",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "Nomina",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "Gtos Corporativos",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "Presupuestos",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
         "puede_revisar": 0,
@@ -1847,40 +1879,8 @@
         "puede_aprobar": 0
       },
       {
-        "empresaId": "empresa1",
-        "modulo": "Nomina",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa1",
-        "modulo": "GastosGenerales",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
         "empresaId": "empresa2",
-        "modulo": "Comit‚s",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa2",
-        "modulo": "Comunicaci¢n",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa2",
-        "modulo": "Direcci¢n",
+        "modulo": "Membresía",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
         "puede_revisar": 0,
@@ -1896,7 +1896,7 @@
       },
       {
         "empresaId": "empresa2",
-        "modulo": "Finanzas",
+        "modulo": "Comunicación",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
         "puede_revisar": 0,
@@ -1904,7 +1904,7 @@
       },
       {
         "empresaId": "empresa2",
-        "modulo": "Gtos_Corporativos",
+        "modulo": "Dirección",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
         "puede_revisar": 0,
@@ -1912,7 +1912,7 @@
       },
       {
         "empresaId": "empresa2",
-        "modulo": "Membres¡a",
+        "modulo": "Serv Membresía",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
         "puede_revisar": 0,
@@ -1920,15 +1920,7 @@
       },
       {
         "empresaId": "empresa2",
-        "modulo": "RH",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa2",
-        "modulo": "Serv_Membres¡a",
+        "modulo": "Comités",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
         "puede_revisar": 0,
@@ -1944,7 +1936,63 @@
       },
       {
         "empresaId": "empresa2",
+        "modulo": "RH",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa2",
         "modulo": "VPE",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Finanzas",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Gastos Generales",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Nomina",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Gtos Corporativos",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Presupuestos",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
         "puede_revisar": 0,
@@ -1959,40 +2007,8 @@
         "puede_aprobar": 0
       },
       {
-        "empresaId": "empresa2",
-        "modulo": "Nomina",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa2",
-        "modulo": "GastosGenerales",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
         "empresaId": "empresa3",
-        "modulo": "Comit‚s",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa3",
-        "modulo": "Comunicaci¢n",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa3",
-        "modulo": "Direcci¢n",
+        "modulo": "Membresía",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
         "puede_revisar": 0,
@@ -2008,7 +2024,7 @@
       },
       {
         "empresaId": "empresa3",
-        "modulo": "Finanzas",
+        "modulo": "Comunicación",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
         "puede_revisar": 0,
@@ -2016,7 +2032,7 @@
       },
       {
         "empresaId": "empresa3",
-        "modulo": "Gtos_Corporativos",
+        "modulo": "Dirección",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
         "puede_revisar": 0,
@@ -2024,7 +2040,7 @@
       },
       {
         "empresaId": "empresa3",
-        "modulo": "Membres¡a",
+        "modulo": "Serv Membresía",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
         "puede_revisar": 0,
@@ -2032,15 +2048,7 @@
       },
       {
         "empresaId": "empresa3",
-        "modulo": "RH",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa3",
-        "modulo": "Serv_Membres¡a",
+        "modulo": "Comités",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
         "puede_revisar": 0,
@@ -2056,7 +2064,63 @@
       },
       {
         "empresaId": "empresa3",
+        "modulo": "RH",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa3",
         "modulo": "VPE",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "Finanzas",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "Gastos Generales",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "Nomina",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "Gtos Corporativos",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "Presupuestos",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
         "puede_revisar": 0,
@@ -2071,40 +2135,8 @@
         "puede_aprobar": 0
       },
       {
-        "empresaId": "empresa3",
-        "modulo": "Nomina",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa3",
-        "modulo": "GastosGenerales",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
         "empresaId": "empresa4",
-        "modulo": "Comit‚s",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa4",
-        "modulo": "Comunicaci¢n",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa4",
-        "modulo": "Direcci¢n",
+        "modulo": "Membresía",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
         "puede_revisar": 0,
@@ -2120,7 +2152,7 @@
       },
       {
         "empresaId": "empresa4",
-        "modulo": "Finanzas",
+        "modulo": "Comunicación",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
         "puede_revisar": 0,
@@ -2128,7 +2160,7 @@
       },
       {
         "empresaId": "empresa4",
-        "modulo": "Gtos_Corporativos",
+        "modulo": "Dirección",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
         "puede_revisar": 0,
@@ -2136,7 +2168,7 @@
       },
       {
         "empresaId": "empresa4",
-        "modulo": "Membres¡a",
+        "modulo": "Serv Membresía",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
         "puede_revisar": 0,
@@ -2144,15 +2176,7 @@
       },
       {
         "empresaId": "empresa4",
-        "modulo": "RH",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa4",
-        "modulo": "Serv_Membres¡a",
+        "modulo": "Comités",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
         "puede_revisar": 0,
@@ -2168,7 +2192,63 @@
       },
       {
         "empresaId": "empresa4",
+        "modulo": "RH",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa4",
         "modulo": "VPE",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Finanzas",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Gastos Generales",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Nomina",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Gtos Corporativos",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "SUMMARY",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 0
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Presupuestos",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
         "puede_revisar": 0,
@@ -2181,54 +2261,6 @@
         "puede_cargar_guardar": 0,
         "puede_revisar": 0,
         "puede_aprobar": 0
-      },
-      {
-        "empresaId": "empresa4",
-        "modulo": "Nomina",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa4",
-        "modulo": "GastosGenerales",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa1",
-        "modulo": "Presupuestos",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa2",
-        "modulo": "Presupuestos",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa3",
-        "modulo": "Presupuestos",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa4",
-        "modulo": "Presupuestos",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 0,
-        "puede_revisar": 0,
-        "puede_aprobar": 1
       }
     ]
   },
