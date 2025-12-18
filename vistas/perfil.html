@@ -691,7 +691,7 @@
 
       const renderPermisosEmpresa = (permisosPorEmpresa = {}) => {
         if (!ELEMENTOS.permisosEmpresa) return;
-        const registros = [];
+        let registros = [];
         Object.entries(permisosPorEmpresa).forEach(([empresaId, modulos]) => {
           Object.entries(modulos || {}).forEach(([modulo, acciones]) => {
             const activas = Object.entries(acciones || {})
@@ -706,12 +706,14 @@
           });
         });
 
+        registros = registros.filter((item) => (item.modulo || '').toUpperCase() !== 'SUMMARY');
+
         if (!registros.length) {
           ELEMENTOS.permisosEmpresa.innerHTML = '<p class="text-muted mb-0">Aún no tienes permisos para ningún módulo.</p>';
           return;
         }
 
-        registros.sort((a, b) => {
+        registros = registros.sort((a, b) => {
           if (a.empresa === b.empresa) {
             return a.modulo.localeCompare(b.modulo);
           }

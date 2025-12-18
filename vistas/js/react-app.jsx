@@ -808,12 +808,12 @@ const DashboardLayout = ({
           ))}
         </div>
         <footer className="sidebar-footer">
-          <div className="user-info mb-3">
-            <span className="text-muted text-uppercase fw-semibold" style={{ letterSpacing: '0.08em', fontSize: '0.7rem' }}>Sesión activa</span>
-            <strong>{obtenerNombreUsuario(sesion)}</strong>
-            <span className="text-muted" style={{ fontSize: '0.9rem' }}>{sesion?.usuario?.usuario || '—'}</span>
+          <div className="user-info mb-2">
+            <span className="text-muted text-uppercase fw-semibold sidebar-session-label">Sesión activa</span>
+            <strong className="sidebar-user-name">{obtenerNombreUsuario(sesion)}</strong>
+            <span className="text-muted sidebar-user-handle">{sesion?.usuario?.usuario || '—'}</span>
           </div>
-          <button type="button" className="btn btn-outline-secondary w-100" onClick={onLogout}>
+          <button type="button" className="btn btn-outline-secondary w-100 btn-logout" onClick={onLogout}>
             Cerrar sesión
           </button>
         </footer>

@@ -392,6 +392,26 @@ const crearTablas = () => {
 
   db.prepare(
     `
+    CREATE TABLE IF NOT EXISTS comentarios_celdas (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      empresa_id TEXT,
+      modulo TEXT NOT NULL,
+      celda_id TEXT NOT NULL,
+      anio INTEGER,
+      capitulo TEXT,
+      texto TEXT NOT NULL,
+      parent_id INTEGER,
+      estado TEXT NOT NULL DEFAULT 'activo',
+      creado_por INTEGER NOT NULL,
+      creado_en TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(parent_id) REFERENCES comentarios_celdas(id) ON DELETE CASCADE,
+      FOREIGN KEY(creado_por) REFERENCES usuarios(id) ON DELETE CASCADE
+    )
+  `
+  ).run();
+
+  db.prepare(
+    `
     CREATE TABLE IF NOT EXISTS presupuestos_guardados (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       empresa_id TEXT NOT NULL,
@@ -546,6 +566,11 @@ const crearTablas = () => {
   db.prepare(`
     CREATE INDEX IF NOT EXISTS idx_layout_secciones_lookup 
     ON layout_secciones(empresa_id, modulo, anio, capitulo)
+  `).run();
+
+  db.prepare(`
+    CREATE INDEX IF NOT EXISTS idx_comentarios_celda_lookup
+    ON comentarios_celdas(empresa_id, modulo, anio, celda_id, estado, creado_en)
   `).run();
 };
 

@@ -198,7 +198,8 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="js/sesion.js"></script>
+    <script src="js/sesion.js"></script>
+    <script src="js/capitulos-modulos.js"></script>
 
   <script>
     // Detectar API_BASE dinámicamente según el entorno
@@ -209,7 +210,7 @@
       return `${origin}/api`;
     })();
     
-    const MODULOS = ['Membresía', 'Eventos', 'Comunicación', 'Dirección', 'Serv Membresía', 'Comités', 'T&IC', 'RH', 'VPE', 'Finanzas', 'Gtos Corporativos', 'SUMMARY', 'Presupuestos', 'RESUMEN'];
+    const MODULOS = ['Membresía', 'Eventos', 'Comunicación', 'Dirección', 'Serv Membresía', 'Comités', 'T&IC', 'RH', 'VPE', 'Finanzas', 'Gastos Generales', 'Nomina', 'Gtos Corporativos', 'Presupuestos', 'RESUMEN'];
     const ACCIONES = ['Ver', 'Cargar y guardar', 'Revisar', 'Aprobar'];
     const normalizarUsuarioEntrada = (valor = '') => valor.toString().trim().toUpperCase();
 
@@ -323,6 +324,54 @@
         .replace(/[^a-z0-9_]/g, '');
     };
 
+    const MODULO_LABELS = MODULOS.reduce((map, mod) => {
+      map[normalizarModulo(mod)] = mod;
+      return map;
+    }, {});
+
+    // Configuración explícita por empresa según solicitud
+    const MAPA_MODULOS_EMPRESA = {
+      empresa1: [
+        'Membresía', 'Eventos', 'Comunicación',
+        'Serv Membresía', 'Comités', 'T&IC', 'RH', 'VPE',
+        'Finanzas', 'Gastos Generales', 'Nomina', 'Gtos Corporativos',
+        'RESUMEN', 'Presupuestos'
+      ],
+      empresa2: [
+        'Membresía', 'Eventos', 'Comunicación', 'Dirección',
+        'Serv Membresía', 'Comités', 'T&IC', 'RH',
+        'Gastos Generales', 'Gtos Corporativos',
+        'RESUMEN', 'Presupuestos'
+      ],
+      empresa3: [
+        'Membresía', 'Eventos', 'Comunicación', 'Dirección',
+        'Serv Membresía', 'Comités', 'T&IC', 'RH',
+        'Gastos Generales', 'Gtos Corporativos',
+        'RESUMEN', 'Presupuestos'
+      ],
+      empresa4: [
+        'Membresía', 'Eventos', 'Comunicación', 'Dirección',
+        'Serv Membresía', 'Comités', 'T&IC', 'RH',
+        'Gastos Generales', 'Gtos Corporativos',
+        'RESUMEN', 'Presupuestos'
+      ]
+    };
+
+    const modulosDisponiblesParaEmpresa = (empresaId) => {
+      const lista = MAPA_MODULOS_EMPRESA[empresaId] || [];
+      if (lista.length) return lista;
+
+      // Fallback a CapitulosModulos si no hay configuración explícita
+      const listaCfg = window.CapitulosModulos?.EMPRESA_CONFIG?.[empresaId]?.modulos || [];
+      const normalizados = listaCfg
+        .map((m) => normalizarModulo(m))
+        .filter((m) => m && m !== 'summary');
+      const labels = normalizados.map((clave) => MODULO_LABELS[clave]).filter(Boolean);
+      return labels.length
+        ? labels
+        : MODULOS.filter((m) => normalizarModulo(m) !== 'summary');
+    };
+
     const crearCheckbox = (empresaId, modulo, accion) => {
       const id = normalizarModulo(`${empresaId}_${modulo}_${accion}`);
       return `
@@ -335,6 +384,7 @@
     const construirSeccionEmpresas = (empresas) => {
       contenedorEmpresas.innerHTML = '';
       empresas.forEach((empresa) => {
+        const modulosEmpresa = modulosDisponiblesParaEmpresa(empresa.id);
         const envoltura = document.createElement('section');
         envoltura.className = 'panel-card';
         envoltura.innerHTML = `
@@ -349,7 +399,7 @@
             </div>
           </div>
           <div class="permiso-grid">
-            ${MODULOS.map((modulo) => `
+            ${modulosEmpresa.map((modulo) => `
               <article class="modulo-card" data-empresa="${empresa.id}" data-modulo="${modulo}" data-modulo-key="${normalizarModulo(modulo)}">
                 <div class="d-flex align-items-center justify-content-between mb-2">
                   <h4 class="h6 fw-bold mb-0">${modulo}</h4>
@@ -848,4 +898,3 @@
 </body>
 
 </html>
-

@@ -334,24 +334,8 @@
         "puede_aprobar": 1
       },
       {
-        "empresaId": "empresa1",
-        "modulo": "SUMMARY",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 1,
-        "puede_revisar": 1,
-        "puede_aprobar": 1
-      },
-      {
         "empresaId": "empresa2",
         "modulo": "RESUMEN",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 1,
-        "puede_revisar": 1,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa2",
-        "modulo": "SUMMARY",
         "puede_leer": 1,
         "puede_cargar_guardar": 1,
         "puede_revisar": 1,
@@ -366,24 +350,8 @@
         "puede_aprobar": 1
       },
       {
-        "empresaId": "empresa3",
-        "modulo": "SUMMARY",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 1,
-        "puede_revisar": 1,
-        "puede_aprobar": 1
-      },
-      {
         "empresaId": "empresa4",
         "modulo": "RESUMEN",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 1,
-        "puede_revisar": 1,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa4",
-        "modulo": "SUMMARY",
         "puede_leer": 1,
         "puede_cargar_guardar": 1,
         "puede_revisar": 1,
@@ -818,24 +786,8 @@
         "puede_aprobar": 1
       },
       {
-        "empresaId": "empresa1",
-        "modulo": "SUMMARY",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 1,
-        "puede_revisar": 1,
-        "puede_aprobar": 1
-      },
-      {
         "empresaId": "empresa2",
         "modulo": "RESUMEN",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 1,
-        "puede_revisar": 1,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa2",
-        "modulo": "SUMMARY",
         "puede_leer": 1,
         "puede_cargar_guardar": 1,
         "puede_revisar": 1,
@@ -850,24 +802,8 @@
         "puede_aprobar": 1
       },
       {
-        "empresaId": "empresa3",
-        "modulo": "SUMMARY",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 1,
-        "puede_revisar": 1,
-        "puede_aprobar": 1
-      },
-      {
         "empresaId": "empresa4",
         "modulo": "RESUMEN",
-        "puede_leer": 1,
-        "puede_cargar_guardar": 1,
-        "puede_revisar": 1,
-        "puede_aprobar": 1
-      },
-      {
-        "empresaId": "empresa4",
-        "modulo": "SUMMARY",
         "puede_leer": 1,
         "puede_cargar_guardar": 1,
         "puede_revisar": 1,
@@ -2257,6 +2193,38 @@
       {
         "empresaId": "empresa4",
         "modulo": "GastosGenerales",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa1",
+        "modulo": "Presupuestos",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa2",
+        "modulo": "Presupuestos",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa3",
+        "modulo": "Presupuestos",
+        "puede_leer": 1,
+        "puede_cargar_guardar": 0,
+        "puede_revisar": 0,
+        "puede_aprobar": 1
+      },
+      {
+        "empresaId": "empresa4",
+        "modulo": "Presupuestos",
         "puede_leer": 1,
         "puede_cargar_guardar": 0,
         "puede_revisar": 0,
