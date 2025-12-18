@@ -1018,6 +1018,21 @@
               return;
             }
 
+            // Filtrar Operating Results y Net Results de CDMX/Mexico
+            // Solo mostrar los de GUADALAJARA, NE (Noreste) y NO (Noroeste)
+            const esMexico = label.includes('MEXICO') || label.includes('CDMX');
+            const esOperatingONet = label.includes('OPERATING RESULTS') || label.includes('NET RESULTS');
+            if (esMexico && esOperatingONet) {
+              return; // Excluir Operating Results y Net Results de CDMX/Mexico
+            }
+
+            // Excluir filas CONSOLIDATED de Operating Results y Net Results
+            // ya que incluyen valores de CDMX
+            const esConsolidated = label.includes('CONSOLIDATED');
+            if (esConsolidated && (label.includes('OPERATING') || label.includes('NET'))) {
+              return; // Excluir CONSOLIDATED OPERATING RESULTS y CONSOLIDATED NET RESULTS
+            }
+
             // Para GUADALAJARA: solo mostrar la fila de OPERATING RESULTS específica de GDL
             if (label.includes('OPERATING RESULTS') && capituloName.includes('GUADALAJARA') && !label.includes('GDL') && !label.includes('GUADALAJARA')) {
               // Omitir filas genéricas de Operating Results cuando hay una específica de GDL
