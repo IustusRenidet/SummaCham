@@ -720,8 +720,9 @@
       asignarAcumulado();
     };
 
-    const recalcularConsolidados = (layoutArr = []) => {
+    const recalcularConsolidados = (layoutArr = [], capituloName = '') => {
       if (!Array.isArray(layoutArr) || !layoutArr.length) return;
+      const esCapituloMexico = normalizarLabel(capituloName) === 'CIUDAD DE MEXICO';
       const labelMap = new Map(layoutArr.map((b) => [normalizarLabel(b.label || ''), b]));
       const obtenerPorLabels = (candidatos = []) => {
         for (const lbl of candidatos) {
@@ -808,6 +809,12 @@
         'Otros ingresos',
         'OTROS INGRESOS'
       ]);
+      const otherGdlMexico = obtenerPorLabels([
+        'Guadalajara Other Income',
+        'GDL Other Income',
+        'Other Guadalajara',
+        'Other GDL'
+      ]);
       const otherMty = obtenerPorLabels(['Monterrey Other Income', 'MTY Other Income']);
       const otherNw = obtenerPorLabels(['Northwest Other Income', 'NW Other Income', 'NO Other Income', 'NOROESTE Other Income']);
       const otherNe = obtenerPorLabels([
@@ -823,8 +830,13 @@
       const netResultsCalc = {
         // MX: resta Member Centricity y suma Other (MEXICO)
         mx: { op: ['OPERATING RESULTS MEXICO'], mc: memberCentricityMx, other: otherMx, labels: ['NET RESULTS MEXICO'] },
-        // GDL: (OPERATING RESULTS GDL) + Other (sin restar Member Centricity)
-        gdl: { op: ['OPERATING RESULTS GUADALAJARA', 'GDL OPERATING RESULTS'], mc: totalesCero(), other: otherGdl, labels: ['NET RESULTS GUADALAJARA', 'GDL NET RESULTS'] },
+        // GDL: en layout consolidado (CDMX) se suma solo Other Income de Guadalajara y no Member Centricity
+        gdl: {
+          op: ['OPERATING RESULTS GUADALAJARA', 'GDL OPERATING RESULTS'],
+          mc: totalesCero(),
+          other: esCapituloMexico ? otherGdlMexico : otherGdl,
+          labels: ['NET RESULTS GUADALAJARA', 'GDL NET RESULTS']
+        },
         // MTY: solo suma Other Income
         mty: { op: ['OPERATING RESULTS MONTERREY', 'MTY OPERATING RESULTS'], mc: totalesCero(), other: otherMty, labels: ['NET RESULTS MONTERREY', 'MTY NET RESULTS'] },
         // NW: solo suma Other Income
@@ -932,7 +944,7 @@
       // Renderizar usando SOLO el layout (que ya tiene todo en orden correcto)
       if (layout && layout.length) {
         recalcularPrincipales(layout);
-        recalcularConsolidados(layout);
+        recalcularConsolidados(layout, capituloName);
         layout.forEach((block) => {
           const blockType = block.type || '';
           
