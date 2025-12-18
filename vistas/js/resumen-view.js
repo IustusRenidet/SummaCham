@@ -815,7 +815,7 @@
 
     resumen.forEach((capitulo) => {
       const capituloName = (capitulo.label || capitulo.capitulo || '').toString().trim().toUpperCase();
-      const layout = Array.isArray(capitulo.layout) ? capitulo.layout.slice().sort((a, b) => (a.order || 0) - (b.order || 0)) : null;
+      const layout = Array.isArray(capitulo.layout) ? capitulo.layout.slice() : null;
       const principales = Array.isArray(capitulo.children) ? capitulo.children.slice() : [];
       const principalLookup = new Map(principales.map((principal) => [principal.label, principal]));
 
@@ -946,7 +946,7 @@
             row.dataset.rowRole = 'account';
             
             // Usar block.nombre (del JSON NOMBRE) en vez de block.label
-            const nombreCuenta = block.nombre || block.label || '';
+            const nombreCuenta = block.descripcion || block.nombre || block.label || '';
             
             row.innerHTML = `
               ${createEditableCell(block.cuenta || '', { columnKey: 'cuenta', rowRole: 'account', tooltipKey: 'account', text: true, classes: 'account-column font-monospace small text-start ps-4' })}
