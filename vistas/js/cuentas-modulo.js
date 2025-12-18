@@ -114,37 +114,57 @@
 
   const MODULOS_SIN_OPERACIONES_AUTOMATICAS = new Set([
     'servmembresia',
-    'serviciosalamembresia'
+    'serviciosalamembresia',
+    'tic',
+    'vpe'
   ]);
 
-  const ETIQUETAS_EXCLUIDAS_SERV_MEMBRESIA = new Set([
-    normalizarTexto('TOTAL INGRESOS Serv Membresía'),
-    normalizarTexto('TOTAL GASTOS Serv Membresía'),
-    normalizarTexto('RESULTADO Serv Membresía'),
-    normalizarTexto('Resultado Serv Membresía')
-  ]);
+  const normalizarEtiquetaExclusion = (texto) =>
+    normalizarTexto(texto || '').replace(/\s+/g, ' ');
+
+  const ETIQUETAS_EXCLUIDAS_POR_MODULO = {
+    servmembresia: new Set([
+      'TOTAL INGRESOS Serv Membresía',
+      'TOTAL GASTOS Serv Membresía',
+      'RESULTADO Serv Membresía',
+      'Resultado Serv Membresía'
+    ].map(normalizarEtiquetaExclusion)),
+    tic: new Set([
+      'TOTAL INGRESOS T&IC',
+      'TOTAL GASTOS T&IC',
+      'RESULTADO T&IC',
+      'Resultado T&IC'
+    ].map(normalizarEtiquetaExclusion)),
+    vpe: new Set([
+      'TOTAL INGRESOS VPE',
+      'TOTAL GASTOS VPE',
+      'RESULTADO VPE',
+      'Resultado VPE'
+    ].map(normalizarEtiquetaExclusion))
+  };
 
   const limpiarSumasPorModulo = (configuracionActual, moduloClave) => {
     const moduloNormalizado = normalizarModuloClave(moduloClave || '');
-    if (moduloNormalizado !== 'servmembresia') return configuracionActual;
-    if (!configuracionActual) return configuracionActual;
+    const excluidas = ETIQUETAS_EXCLUIDAS_POR_MODULO[moduloNormalizado];
+    if (!excluidas || !configuracionActual) return configuracionActual;
 
-    const limpio = { ...configuracionActual };
     const limpiarEtiqueta = (texto) => {
       if (!texto) return texto;
-      return ETIQUETAS_EXCLUIDAS_SERV_MEMBRESIA.has(normalizarTexto(texto)) ? '' : texto;
+      return excluidas.has(normalizarEtiquetaExclusion(texto)) ? '' : texto;
     };
+
+    const limpio = { ...configuracionActual };
 
     limpio.sumRowSumavarios = limpiarEtiqueta(limpio.sumRowSumavarios);
     limpio.sumRowSumavarios2 = limpiarEtiqueta(limpio.sumRowSumavarios2);
 
-    if (limpio.resultRow && ETIQUETAS_EXCLUIDAS_SERV_MEMBRESIA.has(normalizarTexto(limpio.resultRow))) {
+    if (limpio.resultRow && excluidas.has(normalizarEtiquetaExclusion(limpio.resultRow))) {
       delete limpio.resultRow;
     }
 
     if (Array.isArray(limpio.resultRows)) {
       limpio.resultRows = limpio.resultRows.filter(
-        (texto) => !ETIQUETAS_EXCLUIDAS_SERV_MEMBRESIA.has(normalizarTexto(texto))
+        (texto) => !excluidas.has(normalizarEtiquetaExclusion(texto))
       );
     }
 
@@ -237,7 +257,9 @@
   });
 
   const aplicarOperacionesPorModulo = (moduloClave, seccionNombre, configuracionActual = null) => {
-    const regla = obtenerReglaModulo(moduloClave);
+    const moduloNormalizado = normalizarModuloClave(moduloClave || '');
+    if (MODULOS_SIN_OPERACIONES_AUTOMATICAS.has(moduloNormalizado)) return configuracionActual;
+    const regla = obtenerReglaModulo(moduloNormalizado);
     if (!regla) return configuracionActual;
     const nombreSeccion = (seccionNombre || '').toString();
     const seccionNormalizada = normalizarTexto(nombreSeccion);
@@ -1823,12 +1845,13 @@
       const sumasBase =
         (sumasPersonalizadas instanceof Map
           ? sumasPersonalizadas.get(claveSeccion) || sumasPersonalizadas.get(claveSeccionOriginal)
-          : null) ||
+      : null) ||
         (sheetName && capitulo
           ? obtenerSumasConfig(sheetName, capitulo, seccionOriginal) ||
             obtenerSumasConfig(sheetName, capitulo, seccion)
           : null);
       let sumas = aplicarOperacionesPorModulo(moduloClave, seccion, sumasBase) || sumasBase;
+      sumas = limpiarSumasPorModulo(sumas, moduloClave) || sumasBase;
       if (esModuloResumen) {
         const limpiarOper = (texto) => (texto || '').trim();
         const isOperating =

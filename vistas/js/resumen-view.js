@@ -169,6 +169,36 @@
     syncCollapseAllState();
   }
 
+  function habilitarColapsoGastosAdministrativos() {
+    const filas = tablaBody?.querySelectorAll('tr') || [];
+    filas.forEach((row) => {
+      const role = (row.dataset?.rowRole || '').toLowerCase();
+      if (role && role !== 'section') return;
+
+      const descripcionCell = row.cells && row.cells[6];
+      const texto = (row.dataset?.sectionName || descripcionCell?.textContent || '').trim();
+      if (!texto || !/GASTOS\s+ADMINISTRATIVOS/i.test(texto)) return;
+
+      row.dataset.sectionName = texto;
+      if (!row.classList.contains('collapsible-section')) {
+        row.classList.add('collapsible-section');
+      }
+      if (descripcionCell && !row.querySelector('.collapse-icon')) {
+        descripcionCell.innerHTML = '';
+        const icon = document.createElement('i');
+        icon.className = 'bi bi-chevron-down collapse-icon me-2';
+        icon.style.cursor = 'pointer';
+        descripcionCell.style.cursor = 'pointer';
+        descripcionCell.appendChild(icon);
+        descripcionCell.appendChild(document.createTextNode(texto));
+      }
+      if (collapsedSections.has(texto)) {
+        setSectionCollapseState(row, true);
+      }
+    });
+    syncCollapseAllState();
+  }
+
   const escapeAttr = (texto = '') => texto.toString().replace(/"/g, '&quot;');
 
   const formatList = (lista = [], limite = 5) => {
@@ -860,6 +890,7 @@
     sincronizarCeldasEditables();
     activateTooltips();
     autoCollapseExcludedSections();
+    habilitarColapsoGastosAdministrativos();
   };
 
   const actualizarEtiquetasAnio = (anio) => {
