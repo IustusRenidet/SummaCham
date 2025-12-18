@@ -4142,7 +4142,7 @@
       "CAPITULO": "CIUDAD DE MÉXICO",
       "SECCION": "Ingresos Serv Membresía",
       "sum-row": "Suma de Ingresos Serv Membresía",
-      "sum-row-sumavarios": "Resultado Operativo Serv Membresía",
+      "sum-row-sumavarios": "",
       "sum-row-sumavarios2": "",
       "result-row": "Resultado Serv Membresía"
     },
@@ -4151,7 +4151,7 @@
       "CAPITULO": "CIUDAD DE MÉXICO",
       "SECCION": "Gastos  Serv Membresía",
       "sum-row": "Suma de Gastos Serv Membresía",
-      "sum-row-sumavarios": "Resultado Operativo Serv Membresía",
+      "sum-row-sumavarios": "",
       "sum-row-sumavarios2": "",
       "result-row": "Resultado Serv Membresía"
     },
@@ -4160,7 +4160,7 @@
       "CAPITULO": "GUADALAJARA",
       "SECCION": "Ingresos Serv Membresía",
       "sum-row": "Suma de Ingresos Serv Membresía",
-      "sum-row-sumavarios": "Resultado Operativo Serv Membresía",
+      "sum-row-sumavarios": "",
       "sum-row-sumavarios2": "",
       "result-row": "Resultado Serv Membresía"
     },
@@ -4169,7 +4169,7 @@
       "CAPITULO": "GUADALAJARA",
       "SECCION": "Gastos  Serv Membresía",
       "sum-row": "Suma de Gastos Serv Membresía",
-      "sum-row-sumavarios": "Resultado Operativo Serv Membresía",
+      "sum-row-sumavarios": "",
       "sum-row-sumavarios2": "",
       "result-row": "Resultado Serv Membresía"
     },
@@ -4178,7 +4178,7 @@
       "CAPITULO": "NORESTE",
       "SECCION": "Ingresos Serv Membresía",
       "sum-row": "Suma de Ingresos Serv Membresía",
-      "sum-row-sumavarios": "Resultado Operativo Serv Membresía",
+      "sum-row-sumavarios": "",
       "sum-row-sumavarios2": "",
       "result-row": "Resultado Serv Membresía"
     },
@@ -4187,7 +4187,7 @@
       "CAPITULO": "NORESTE",
       "SECCION": "Gastos  Serv Membresía",
       "sum-row": "Suma de Gastos Serv Membresía",
-      "sum-row-sumavarios": "Resultado Operativo Serv Membresía",
+      "sum-row-sumavarios": "",
       "sum-row-sumavarios2": "",
       "result-row": "Resultado Serv Membresía"
     },
@@ -4196,7 +4196,7 @@
       "CAPITULO": "NOROESTE",
       "SECCION": "Ingresos Serv Membresía",
       "sum-row": "Suma de Ingresos Serv Membresía",
-      "sum-row-sumavarios": "Resultado Operativo Serv Membresía",
+      "sum-row-sumavarios": "",
       "sum-row-sumavarios2": "",
       "result-row": "Resultado Serv Membresía"
     },
@@ -4205,7 +4205,7 @@
       "CAPITULO": "NOROESTE",
       "SECCION": "Gastos  Serv Membresía",
       "sum-row": "Suma de Gastos Serv Membresía",
-      "sum-row-sumavarios": "Resultado Operativo Serv Membresía",
+      "sum-row-sumavarios": "",
       "sum-row-sumavarios2": "",
       "result-row": "Resultado Serv Membresía"
     },
