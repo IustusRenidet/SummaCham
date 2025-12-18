@@ -1,0 +1,387 @@
+[
+  {
+    "Capítulo": "CIUDAD DE MÉXICO",
+    "Módulo": "Comités.html",
+    "Operaciones": "Resultado Operativo comités= (Suma de Ingresos Comités)-(Suma de Gastos Comités)"
+  },
+  {
+    "Capítulo": "CIUDAD DE MÉXICO",
+    "Módulo": "Comités.html",
+    "Operaciones": "Resultado Comités= (Resultado Operativo Comités) - (Suma Gastos Administrativos)"
+  },
+  {
+    "Capítulo": "GUADALAJARA",
+    "Módulo": "Comités.html",
+    "Operaciones": "Resultado Operativo comités= (Suma de Ingresos Comités)-(Suma de Gastos Comités)"
+  },
+  {
+    "Capítulo": "GUADALAJARA",
+    "Módulo": "Comités.html",
+    "Operaciones": "Resultado Comités= (Resultado Operativo Comités) - (Suma de Comisiones)"
+  },
+  {
+    "Capítulo": "NE",
+    "Módulo": "Comités.html",
+    "Operaciones": "Resultado Operativo comités= (Suma de Ingresos Comités)-(Suma de Gastos Comités)"
+  },
+  {
+    "Capítulo": "NE",
+    "Módulo": "Comités.html",
+    "Operaciones": "Resultado Comités= (Resultado Operativo Comités) - (Suma de Comisiones)"
+  },
+  {
+    "Capítulo": "NO",
+    "Módulo": "Comités.html",
+    "Operaciones": "Resultado Operativo comités= (Suma de Ingresos Comités)-(Suma de Gastos Comités)"
+  },
+  {
+    "Capítulo": "NO",
+    "Módulo": "Comités.html",
+    "Operaciones": "Resultado Comités= (Resultado Operativo Comités) - (Suma de Comisiones)"
+  },
+  {
+    "Capítulo": "CIUDAD DE MÉXICO",
+    "Módulo": "Comunicación.html",
+    "Operaciones": "Resultado Operativo Comunicación= (Suma de Ingresos Comunicación)-(Suma de Gastos Comunicación)"
+  },
+  {
+    "Capítulo": "GUADALAJARA",
+    "Módulo": "Comunicación.html",
+    "Operaciones": "Resultado Operativo Comunicación= (Suma de Ingresos Comunicación)-(Suma de Gastos Comunicación)"
+  },
+  {
+    "Capítulo": "NE",
+    "Módulo": "Comunicación.html",
+    "Operaciones": "Resultado Operativo Comunicación= (Suma de Ingresos Comunicación)-(Suma de Gastos Comunicación)"
+  },
+  {
+    "Capítulo": "NO",
+    "Módulo": "Comunicación.html",
+    "Operaciones": "Resultado Operativo Comunicación= (Suma de Ingresos Comunicación)-(Suma de Gastos Comunicación)"
+  },
+  {
+    "Capítulo": "GUADALAJARA",
+    "Módulo": "Dirección.html",
+    "Operaciones": "Resultado Board y Executive= (Suma de Ingresos CE/Board)-(Suma de Gastos CE/Board)"
+  },
+  {
+    "Capítulo": "GUADALAJARA",
+    "Módulo": "Dirección.html",
+    "Operaciones": "Resultado Director Capítulo= (Resultado Board y Executive)-(Suma Gastos Administrativos)"
+  },
+  {
+    "Capítulo": "NE",
+    "Módulo": "Dirección.html",
+    "Operaciones": "Resultado Juntas de Consejo y cena navideña= (Suma de Ingresos Dirección)-(Suma de Gastos Dirección)"
+  },
+  {
+    "Capítulo": "NE",
+    "Módulo": "Dirección.html",
+    "Operaciones": "Resultado Director Capítulo= (Resultado Juntas de Consejo y cena navideña)-(Suma Gastos Administrativos)"
+  },
+  {
+    "Capítulo": "NO",
+    "Módulo": "Dirección.html",
+    "Operaciones": "Resultado Juntas de Consejo= (Suma de Ingresos Dirección)-(Suma de Gastos Dirección)"
+  },
+  {
+    "Capítulo": "NO",
+    "Módulo": "Dirección.html",
+    "Operaciones": "Resultado Director Capítulo= (Resultado Juntas de Consejo)-(Suma Gastos Administrativos)"
+  },
+  {
+    "Capítulo": "CIUDAD DE MÉXICO",
+    "Módulo": "Eventos.html",
+    "Operaciones": "Suma Ingresos Eventos=(Ingresos Boletaje)+(Ingresos Patrocinios)"
+  },
+  {
+    "Capítulo": "CIUDAD DE MÉXICO",
+    "Módulo": "Eventos.html",
+    "Operaciones": "Resultado Operativo Eventos=(Suma Ingresos Eventos)-(Suma Costos y Gastos Eventos)"
+  },
+  {
+    "Capítulo": "CIUDAD DE MÉXICO",
+    "Módulo": "Eventos.html",
+    "Operaciones": "Resultado Eventos=(Resultado Operativo Eventos)-(Suma Gastos Administrativos)"
+  },
+  {
+    "Capítulo": "GUADALAJARA",
+    "Módulo": "Eventos.html",
+    "Operaciones": "Suma Ingresos Eventos=(Ingresos Boletaje)+(Ingresos Patrocinios)"
+  },
+  {
+    "Capítulo": "GUADALAJARA",
+    "Módulo": "Eventos.html",
+    "Operaciones": "Resultado Operativo Eventos=(Suma Ingresos Eventos)-(Suma Costos y Gastos Eventos)"
+  },
+  {
+    "Capítulo": "GUADALAJARA",
+    "Módulo": "Eventos.html",
+    "Operaciones": "Resultado Eventos=(Resultado Operativo Eventos)-(Suma Gastos Administrativos)"
+  },
+  {
+    "Capítulo": "NE",
+    "Módulo": "Eventos.html",
+    "Operaciones": "Suma Ingresos Eventos=(Ingresos Boletaje)+(Ingresos Patrocinios)"
+  },
+  {
+    "Capítulo": "NE",
+    "Módulo": "Eventos.html",
+    "Operaciones": "Resultado Operativo Eventos=(Suma Ingresos Eventos)-(Suma Costos y Gastos Eventos)"
+  },
+  {
+    "Capítulo": "NE",
+    "Módulo": "Eventos.html",
+    "Operaciones": "Resultado Eventos=(Resultado Operativo Eventos)-(Suma Gastos Administrativos)"
+  },
+  {
+    "Capítulo": "NO",
+    "Módulo": "Eventos.html",
+    "Operaciones": "Suma Ingresos Eventos=(Ingresos Boletaje)+(Ingresos Patrocinios)"
+  },
+  {
+    "Capítulo": "NO",
+    "Módulo": "Eventos.html",
+    "Operaciones": "Resultado Operativo Eventos=(Suma Ingresos Eventos)-(Suma Costos y Gastos Eventos)"
+  },
+  {
+    "Capítulo": "NO",
+    "Módulo": "Eventos.html",
+    "Operaciones": "Resultado Eventos=(Resultado Operativo Eventos)-(Suma Gastos Administrativos)"
+  },
+  {
+    "Capítulo": "CIUDAD DE MÉXICO",
+    "Módulo": "Finanzas.html",
+    "Operaciones": "Resultado Operativo Admon y Finanzas=(Suma de Ingresos Admon y Finanzas)-(Suma de Gastos Admon y Finanzas)"
+  },
+  {
+    "Capítulo": "CIUDAD DE MÉXICO",
+    "Módulo": "Finanzas.html",
+    "Operaciones": "Resultado Admon y Finanzas= (Resultado Operativo Admon y Finanzas)-(Suma Gastos Administrativos)"
+  },
+  {
+    "Capítulo": "CIUDAD DE MÉXICO",
+    "Módulo": "GastosGenerales.html",
+    "Operaciones": "Otros Ingresos vs Gastos=(Suma Otros Ingresos)-(Suma Gastos Ingresos)"
+  },
+  {
+    "Capítulo": "CIUDAD DE MÉXICO",
+    "Módulo": "GastosGenerales.html",
+    "Operaciones": "Total GA CdMx=(Otros Ingresos vs Gastos)-(Suma de Gastos Generales)-(Suma Depreciaciones y Amortizaciones)-(Suma Gastos Corporativos)-(Suma Member Centricity)"
+  },
+  {
+    "Capítulo": "GUADALAJARA",
+    "Módulo": "GastosGenerales.html",
+    "Operaciones": "Otros Ingresos vs Gastos=(Suma Otros Ingresos)-(Suma Gastos Financieros)"
+  },
+  {
+    "Capítulo": "GUADALAJARA",
+    "Módulo": "GastosGenerales.html",
+    "Operaciones": "Total=(Otros Ingresos vs Gastos)-(Suma de Gastos Generales)-(Suma Depreciaciones y Amortizaciones)-(Total GA)"
+  },
+  {
+    "Capítulo": "NE",
+    "Módulo": "GastosGenerales.html",
+    "Operaciones": "Otros Ingresos vs Gastos=(Suma Otros Ingresos)-(Suma Gastos Financieros)"
+  },
+  {
+    "Capítulo": "NE",
+    "Módulo": "GastosGenerales.html",
+    "Operaciones": "Total=(Otros Ingresos vs Gastos)-(Suma de Gastos Generales)-(Suma Depreciaciones y Amortizaciones)-(Total GA)"
+  },
+  {
+    "Capítulo": "NO",
+    "Módulo": "GastosGenerales.html",
+    "Operaciones": "Otros Ingresos vs Gastos=(Suma Otros Ingresos)-(Suma Gastos Financieros)"
+  },
+  {
+    "Capítulo": "NO",
+    "Módulo": "GastosGenerales.html",
+    "Operaciones": "Total=(Otros Ingresos vs Gastos)-(Suma de Gastos Generales)-(Suma Depreciaciones y Amortizaciones)-(Total GA)"
+  },
+  {
+    "Capítulo": "CIUDAD DE MÉXICO",
+    "Módulo": "Membresía.html",
+    "Operaciones": "Resultado Operativo Membresía=(Suma de Ingresos Membresía)-(Suma de Gastos Membresía)"
+  },
+  {
+    "Capítulo": "CIUDAD DE MÉXICO",
+    "Módulo": "Membresía.html",
+    "Operaciones": "Resultado Membresía=(Resultado Operativo Membresía)-(Suma de Gastos Administrativos)"
+  },
+  {
+    "Capítulo": "GUADALAJARA",
+    "Módulo": "Membresía.html",
+    "Operaciones": "Resultado Operativo Membresía=(Suma de Ingresos Membresía)-(Suma de Gastos Membresía)"
+  },
+  {
+    "Capítulo": "GUADALAJARA",
+    "Módulo": "Membresía.html",
+    "Operaciones": "Resultado Membresía=(Resultado Operativo Membresía)-(Suma de Gastos Administrativos)"
+  },
+  {
+    "Capítulo": "NE",
+    "Módulo": "Membresía.html",
+    "Operaciones": "Resultado Operativo Membresía=(Suma de Ingresos Membresía)-(Suma de Gastos Membresía)"
+  },
+  {
+    "Capítulo": "NE",
+    "Módulo": "Membresía.html",
+    "Operaciones": "Resultado Membresía=(Resultado Operativo Membresía)-(Suma de Gastos Administrativos)"
+  },
+  {
+    "Capítulo": "NO",
+    "Módulo": "Membresía.html",
+    "Operaciones": "Resultado Operativo Membresía=(Suma de Ingresos Membresía)-(Suma de Gastos Membresía)"
+  },
+  {
+    "Capítulo": "NO",
+    "Módulo": "Membresía.html",
+    "Operaciones": "Resultado Membresía=(Resultado Operativo Membresía)-(Suma de Gastos Administrativos)"
+  },
+  {
+    "Capítulo": "CIUDAD DE MÉXICO",
+    "Módulo": "RESUMEN.html",
+    "Operaciones": "CONSOLIDATED INCOME=(CDMX INCOME)+(GUADALAJARA INCOME)+(MONTERREY INCOME)+(NORTHWEST INCOME)"
+  },
+  {
+    "Capítulo": "CIUDAD DE MÉXICO",
+    "Módulo": "RESUMEN.html",
+    "Operaciones": "CONSOLIDATED EXPENSES=(CDMX EXPENSE)+(GUADALAJARA EXPENSE)+(MONTERREY EXPENSE)+(NORTHWEST EXPENSE)"
+  },
+  {
+    "Capítulo": "CIUDAD DE MÉXICO",
+    "Módulo": "RESUMEN.html",
+    "Operaciones": "OPERATING RESULTS MEXICO=(CDMX INCOME)-(CDMX EXPENSE)"
+  },
+  {
+    "Capítulo": "CIUDAD DE MÉXICO",
+    "Módulo": "RESUMEN.html",
+    "Operaciones": "OPERATING RESULTS GUADALAJARA=(GUADALAJARA INCOME)-(GUADALAJARA EXPENSE)"
+  },
+  {
+    "Capítulo": "CIUDAD DE MÉXICO",
+    "Módulo": "RESUMEN.html",
+    "Operaciones": "OPERATING RESULTS MONTERREY=(MONTERREY INCOME)-(MONTERREY EXPENSE)"
+  },
+  {
+    "Capítulo": "CIUDAD DE MÉXICO",
+    "Módulo": "RESUMEN.html",
+    "Operaciones": "OPERATING RESULTS NORTHWEST=(NORTHWEST INCOME)-(NORTHWEST EXPENSE)"
+  },
+  {
+    "Capítulo": "CIUDAD DE MÉXICO",
+    "Módulo": "RESUMEN.html",
+    "Operaciones": "CONSOLIDATED OPERATING RESULTS=(OPERATING RESULTS MEXICO)+(OPERATING RESULTS GUADALAJARA)+(OPERATING RESULTS MONTERREY)+(OPERATING RESULTS NORTHWEST)"
+  },
+  {
+    "Capítulo": "CIUDAD DE MÉXICO",
+    "Módulo": "RESUMEN.html",
+    "Operaciones": "NET RESULTS MEXICO=(OPERATING RESULTS MEXICO)-(MEMBER CENTRICITY)+(Other (MEXICO))"
+  },
+  {
+    "Capítulo": "CIUDAD DE MÉXICO",
+    "Módulo": "RESUMEN.html",
+    "Operaciones": "NET RESULTS GUADALAJARA=(OPERATING RESULTS GUADALAJARA)+(Guadalajara Other Income)"
+  },
+  {
+    "Capítulo": "CIUDAD DE MÉXICO",
+    "Módulo": "RESUMEN.html",
+    "Operaciones": "NET RESULTS MONTERREY=(OPERATING RESULTS MONTERREY)+(Monterrey Other Income)"
+  },
+  {
+    "Capítulo": "CIUDAD DE MÉXICO",
+    "Módulo": "RESUMEN.html",
+    "Operaciones": "NET RESULTS NORTHWEST=(OPERATING RESULTS NORTHWEST)+(Northwest Other Income)"
+  },
+  {
+    "Capítulo": "CIUDAD DE MÉXICO",
+    "Módulo": "RESUMEN.html",
+    "Operaciones": "CONSOLIDATED NET RESULTS=(NET RESULTS MEXICO)+(NET RESULTS GUADALAJARA)+(NET RESULTS MONTERREY)+(NET RESULTS NORTHWEST)"
+  },
+  {
+    "Capítulo": "GUADALAJARA",
+    "Módulo": "RESUMEN.html",
+    "Operaciones": "GDL EXPENSE=(Membership)+(Events)+(Committees)+(T&IC)+(Services to Members)+(Gastos G&A)+(Nómina)+(Gastos Corporativos)"
+  },
+  {
+    "Capítulo": "GUADALAJARA",
+    "Módulo": "RESUMEN.html",
+    "Operaciones": "GDL OPERATING RESULTS=(GDL INCOME)-(GDL EXPENSE)"
+  },
+  {
+    "Capítulo": "GUADALAJARA",
+    "Módulo": "RESUMEN.html",
+    "Operaciones": "NET RESULTS=(GDL OPERATING RESULTS)-(Member Centricity)+(Other)"
+  },
+  {
+    "Capítulo": "NE",
+    "Módulo": "RESUMEN.html",
+    "Operaciones": "NE EXPENSE=(Membership)+(Events)+(Committees)+(T&IC)+(Services to Members)+(Nómina)+(Gastos Corporativos)"
+  },
+  {
+    "Capítulo": "NE",
+    "Módulo": "RESUMEN.html",
+    "Operaciones": "NE OPERATING RESULTS=(NE INCOME)-(NE EXPENSE)"
+  },
+  {
+    "Capítulo": "NE",
+    "Módulo": "RESUMEN.html",
+    "Operaciones": "NET RESULTS=(NE OPERATING RESULTS)-(Member Centricity)+(Other)"
+  },
+  {
+    "Capítulo": "NO",
+    "Módulo": "RESUMEN.html",
+    "Operaciones": "NO EXPENSE=(Membership)+(Events)+(Committees)+(T&IC)+(Services to Members)+(Nómina)+(Gastos Corporativos)"
+  },
+  {
+    "Capítulo": "NO",
+    "Módulo": "RESUMEN.html",
+    "Operaciones": "NO OPERATING RESULTS=(NO INCOME)-(NO EXPENSE)"
+  },
+  {
+    "Capítulo": "NO",
+    "Módulo": "RESUMEN.html",
+    "Operaciones": "NET RESULTS=(NO OPERATING RESULTS)-(Member Centricity)+(Other)"
+  },
+  {
+    "Capítulo": "CIUDAD DE MÉXICO",
+    "Módulo": "RH.html",
+    "Operaciones": "Resultado Operativo RH=(Suma de Ingresos RH)-(Suma de Gastos RH)"
+  },
+  {
+    "Capítulo": "CIUDAD DE MÉXICO",
+    "Módulo": "RH.html",
+    "Operaciones": "Resultado RH=(Resultado Operativo RH)-(Suma Gastos Administrativos)"
+  },
+  {
+    "Capítulo": "GUADALAJARA",
+    "Módulo": "RH.html",
+    "Operaciones": "Resultado Operativo RH=(Suma de Ingresos RH)-(Suma de Gastos RH)"
+  },
+  {
+    "Capítulo": "GUADALAJARA",
+    "Módulo": "RH.html",
+    "Operaciones": "Resultado RH=(Resultado Operativo RH)-(Suma Gastos Administrativos)"
+  },
+  {
+    "Capítulo": "NE",
+    "Módulo": "RH.html",
+    "Operaciones": "Resultado Operativo RH=(Suma de Ingresos RH)-(Suma de Gastos RH)"
+  },
+  {
+    "Capítulo": "NE",
+    "Módulo": "RH.html",
+    "Operaciones": "Resultado RH=(Resultado Operativo RH)-(Suma Gastos Administrativos)"
+  },
+  {
+    "Capítulo": "NO",
+    "Módulo": "RH.html",
+    "Operaciones": "Resultado Operativo RH=(Suma de Ingresos RH)-(Suma de Gastos RH)"
+  },
+  {
+    "Capítulo": "NO",
+    "Módulo": "RH.html",
+    "Operaciones": "Resultado RH=(Resultado Operativo RH)-(Suma Gastos Administrativos)"
+  }
+]
