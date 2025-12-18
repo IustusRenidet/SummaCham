@@ -3841,7 +3841,7 @@
       "result-row": "Resultado  Eventos"
     },
     {
-      "HOJA": "Finanzas",
+      "HOJA": "Gastos Generales",
       "CAPITULO": "GUADALAJARA",
       "SECCION": "Otros Ingresos",
       "sum-row": "Suma Otros Ingresos",
@@ -3850,7 +3850,7 @@
       "result-row": "Total"
     },
     {
-      "HOJA": "Finanzas",
+      "HOJA": "Gastos Generales",
       "CAPITULO": "GUADALAJARA",
       "SECCION": "Gastos Financieros",
       "sum-row": "Suma Gastos Financieros",

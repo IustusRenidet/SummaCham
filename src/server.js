@@ -69,6 +69,7 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3005)) => {
     name: 'panelamcham.sid',
     resave: false,
     saveUninitialized: false,
+    rolling: true,
     cookie: {
       // Habilitar secure solo si viene por HTTPS (túnel)
       secure: process.env.NODE_ENV === 'production' ? 'auto' : false,
