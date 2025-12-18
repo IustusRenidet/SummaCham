@@ -305,12 +305,34 @@
 
   const obtenerPeriodoCerrado = () => normalizarPeriodo(estadoModulo.periodoCerrado);
 
+  const obtenerIndiceMesSistema = () => new Date().getMonth();
+
+  /**
+   * Determina el último mes que debe mostrarse/contarse.
+   * - Si el contexto indica un periodo cerrado, lo usa como límite superior.
+   * - Siempre excluye el mes en curso (solo se permiten meses anteriores).
+   * - Puede regresar -1 cuando no hay ningún mes cerrado en el ejercicio.
+   */
   const obtenerIndicePeriodoActual = () => {
     const periodo = obtenerPeriodoCerrado();
-    if (periodo != null) {
-      return Math.max(0, Math.min(periodo - 1, MESES.length - 1));
-    }
-    return new Date().getMonth();
+    const indiceDesdeContexto = Number.isInteger(periodo) ? periodo - 1 : null;
+    const indiceMesActual = obtenerIndiceMesSistema();
+    const anioSeleccionado = Number.isInteger(estadoModulo.anio) ? estadoModulo.anio : null;
+    const anioActual = new Date().getFullYear();
+    // Para ejercicios distintos al actual se permite ver el año completo
+    const limitePorFecha =
+      anioSeleccionado != null && anioSeleccionado !== anioActual
+        ? MESES.length - 1
+        : indiceMesActual - 1; // Excluir mes en curso
+    const limiteCalculadoBase =
+      indiceDesdeContexto != null ? Math.min(indiceDesdeContexto, limitePorFecha) : limitePorFecha;
+    const limiteMaximo = MESES.length - 1;
+    return Math.max(-1, Math.min(limiteCalculadoBase, limiteMaximo));
+  };
+
+  const obtenerPeriodoVisible = () => {
+    const indice = obtenerIndicePeriodoActual();
+    return indice >= 0 ? indice + 1 : null;
   };
 
   const MODAL_SECCION_ID = 'sectionModal';
@@ -869,8 +891,9 @@
     const almacen = estadoModulo.valoresPorCuenta.get(cuenta) || {};
 
     // Obtener el mes actual (0-11, donde 0=enero, 11=diciembre)
-    const mesActualIndex = estadoModulo.mesActualIndex ?? new Date().getMonth();
-    const mesActualClave = MESES[mesActualIndex] || 'dic';
+    const limiteMes = estadoModulo.mesActualIndex ?? obtenerIndicePeriodoActual();
+    const mesActualIndex = Number.isInteger(limiteMes) ? limiteMes : -1;
+    const mesActualClave = mesActualIndex >= 0 ? MESES[mesActualIndex] : null;
 
     let totalPresupuestoAcumulado = 0;
     let totalPresupuestoAnual = 0;
@@ -882,14 +905,14 @@
       const realMes = Number(almacen[`real-${mes}`]) || 0;
       totalPresupuestoAnual += presupuestoMes;
       // Acumular solo hasta el mes actual
-      if (index <= mesActualIndex) {
-        totalPresupuestoAcumulado += presupuestoMes;
-        totalRealAcumulado += realMes;
-      }
-    });
-
+      if (mesActualIndex >= 0 && index <= mesActualIndex) {
+        totalPresupuestoAcumulado += presupuestoMes;
+        totalRealAcumulado += realMes;
+      }
+    });
+
     // Obtener valor del mes actual especificamente
-    const realMesActual = Number(almacen[`real-${mesActualClave}`]) || 0;
+    const realMesActual = mesActualClave ? Number(almacen[`real-${mesActualClave}`]) || 0 : 0;
 
     // Actualizar celda de total-budget: acumulado desde enero hasta mes actual
     if (estadoModulo.columnas['total-budget'] != null) {
@@ -968,7 +991,7 @@
     };
     // Obtener mes actual (0-11, donde 0=enero, 11=diciembre)
     const mesActualIndex = obtenerIndicePeriodoActual();
-    const mesActualClave = MESES[mesActualIndex] || 'dic'; // ene, feb, mar, etc.
+    const mesActualClave = mesActualIndex >= 0 ? MESES[mesActualIndex] : null; // ene, feb, mar, etc.
     
     obtenerFilasCuenta().forEach((fila) => {
       const cuenta = fila.dataset.cuenta21 || '';
@@ -984,7 +1007,7 @@
         
         totalPresupuestoAnual += presupuesto;
         // Acumular solo hasta el mes actual
-        if (index <= mesActualIndex) {
+        if (mesActualIndex >= 0 && index <= mesActualIndex) {
           totalPresupuestoAcumulado += presupuesto;
           totalRealAcumulado += real;
         }
@@ -996,7 +1019,7 @@
       });
       
       // Real del mes actual (para Gastos Corporativos: "Mensual")
-      const realMesActual = numeroSeguro(registro?.real?.[mesActualClave]);
+      const realMesActual = mesActualClave ? numeroSeguro(registro?.real?.[mesActualClave]) : 0;
       
       // total-budget y total-real: acumulados desde enero hasta mes actual
       establecerValorCelda(fila, 'total-budget', totalPresupuestoAcumulado);
@@ -1012,8 +1035,8 @@
       almacen['total-real'] = totalRealAcumulado;
       estadoModulo.valoresPorCuenta.set(cuenta, almacen);
     });
-    estadoModulo.mesActual = mesActualClave;
-    estadoModulo.mesActualIndex = mesActualIndex;
+      estadoModulo.mesActual = mesActualClave || '';
+      estadoModulo.mesActualIndex = mesActualIndex;
     recalcularSumas();
     estadoModulo.hayCambios = false;
     estadoModulo.editSnapshot = null;
@@ -1139,13 +1162,13 @@
 
   const aplicarFiltroColumnasPorPeriodo = () => {
     if (!estadoModulo.tabla) return;
-    const periodoLimite = obtenerPeriodoCerrado();
+    const periodoLimite = obtenerPeriodoVisible();
     const filas = Array.from(estadoModulo.tabla.querySelectorAll('tr'));
     Object.entries(estadoModulo.columnas || {}).forEach(([clave, idx]) => {
       if (!clave.startsWith('real-')) return;
       const mesClave = clave.replace('real-', '');
       const mesNumero = CLAVE_MES_A_PERIODO.get(mesClave) || null;
-      const debeOcultar = periodoLimite != null && mesNumero && mesNumero > periodoLimite;
+      const debeOcultar = periodoLimite == null || (mesNumero && mesNumero > periodoLimite);
       filas.forEach((fila) => {
         const celda = fila.cells[idx];
         if (celda) {
@@ -3414,6 +3437,7 @@
     if (Number.isInteger(anioSeleccionado)) {
       estadoModulo.anio = anioSeleccionado;
     }
+    estadoModulo.mesActualIndex = obtenerIndicePeriodoActual();
     poblarSugerenciasDesdeAnio(estadoModulo.anio);
     cargarCatalogoCompleto({ anio: estadoModulo.anio }).then((lista) =>
       unificarCuentasDisponibles(lista || [], { anio: estadoModulo.anio })
@@ -3476,7 +3500,7 @@
     const periodoEvento = normalizarPeriodo(evento?.detail?.periodo);
     if (periodoEvento != null) {
       estadoModulo.periodoCerrado = periodoEvento;
-      estadoModulo.mesActualIndex = periodoEvento - 1;
+      estadoModulo.mesActualIndex = obtenerIndicePeriodoActual();
       aplicarFiltroColumnasPorPeriodo();
     }
     solicitarDatos();
