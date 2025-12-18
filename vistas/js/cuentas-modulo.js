@@ -878,10 +878,10 @@
    * de todos los meses para calcular los acumulados de una cuenta especifica.
    *
    * Calculos que realiza:
-   * - Total Presupuesto: Suma de budget-ene hasta budget-[mesActual]
-   * - Total Real: Suma de real-ene hasta real-[mesActual]
-   * - Presupuesto Anual: Suma completa de todas las columnas budget-[mes]
-   * - Mensual: Valor real del mes actual (budget-monthly)
+   * - Total Presupuesto: Suma de budget-ene hasta budget-[mes cerrado] (excluye el mes en curso)
+   * - Total Real: Suma de real-ene hasta real-[mes cerrado] (excluye el mes en curso)
+   * - Presupuesto Anual: Suma completa de todas las columnas budget-[mes]
+   * - Mensual: Valor real del ultimo mes cerrado (budget-monthly)
    *
    * @param {HTMLTableRowElement} fila - Fila de la tabla a recalcular
    */

@@ -638,6 +638,9 @@
     const mesInfo = MESES.find((item) => item.periodo === Number(mesSeleccionado));
     const claveMes = mesInfo?.clave || mesClaveActual;
     const planColumnKey = `budget-${claveMes}`;
+    const normalizarEtiqueta = (texto = '') => texto.toString().trim().toUpperCase().replace(/\s+/g, ' ');
+    const etiquetasOcultas = new Set(['INCOME', 'EXPENSE', 'OPERATING RESULTS']);
+    const debeOmitirEtiqueta = (texto = '') => etiquetasOcultas.has(normalizarEtiqueta(texto));
 
     resumen.forEach((capitulo) => {
       const capituloName = (capitulo.label || capitulo.capitulo || '').toString().trim().toUpperCase();
@@ -793,6 +796,10 @@
             // Determinar clase CSS según tipo y label
             let rowClass = '';
             const label = (block.label || '').toUpperCase();
+
+            if (debeOmitirEtiqueta(label)) {
+              return;
+            }
 
             // Para GUADALAJARA: solo mostrar la fila de OPERATING RESULTS específica de GDL
             if (label.includes('OPERATING RESULTS') && capituloName.includes('GUADALAJARA') && !label.includes('GDL') && !label.includes('GUADALAJARA')) {

@@ -457,7 +457,15 @@
   <script src="js/flujo-autorizacion.js?v=20251208-1"></script>
   <script src="js/init-modulo-planeacion.js"></script>
   <script>
-    initModuloPlaneacion({ moduloId: 'serv-membresia', moduloNombre: 'Serv Membresía' });
+    initModuloPlaneacion({ moduloId: 'serv-membresia', moduloNombre: 'Serv Membresía' });    
+    // Inicializar colapsar secciones
+    if (window.SeccionCollapse) {
+      SeccionCollapse.inicializar({
+        tableSelector: '#tablaCuentasBody',
+        storageKey: 'servmembresia_secciones_colapsadas',
+        containerSelector: '.controls-container'
+      });
+    }
   </script>
 
   <!-- Menú Contextual -->
@@ -521,6 +529,7 @@
 </body>
 
 </html>
+
 
 
 
