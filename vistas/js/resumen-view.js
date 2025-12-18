@@ -723,6 +723,38 @@
     const recalcularConsolidados = (layoutArr = []) => {
       if (!Array.isArray(layoutArr) || !layoutArr.length) return;
       const labelMap = new Map(layoutArr.map((b) => [normalizarLabel(b.label || ''), b]));
+      const obtenerPorLabels = (candidatos = []) => {
+        for (const lbl of candidatos) {
+          const block = labelMap.get(normalizarLabel(lbl));
+          if (block) return block.totals || totalesCero();
+        }
+        return totalesCero();
+      };
+      const asignarPrimero = (labels = [], totals) => {
+        for (const lbl of labels) {
+          const block = labelMap.get(normalizarLabel(lbl));
+          if (block && totals) {
+            block.totals = totals;
+            return block;
+          }
+        }
+        return null;
+      };
+
+      const INCOME_LABELS = {
+        mex: ['CDMX INCOME', 'MEXICO INCOME'],
+        gdl: ['GUADALAJARA INCOME', 'GDL INCOME'],
+        mty: ['MONTERREY INCOME', 'MTY INCOME'],
+        nw: ['NORTHWEST INCOME', 'NW INCOME', 'NOROESTE INCOME', 'NO INCOME'],
+        ne: ['NE INCOME', 'NORESTE INCOME']
+      };
+      const EXPENSE_LABELS = {
+        mex: ['CDMX EXPENSE', 'MEXICO EXPENSE'],
+        gdl: ['GUADALAJARA EXPENSE', 'GDL EXPENSE'],
+        mty: ['MONTERREY EXPENSE', 'MTY EXPENSE'],
+        nw: ['NORTHWEST EXPENSE', 'NW EXPENSE', 'NOROESTE EXPENSE', 'NO EXPENSE'],
+        ne: ['NE EXPENSE', 'NORESTE EXPENSE']
+      };
       const sumaTotales = (dest, src, signo = 1) => {
         if (!src) return;
         dest.actualMonth += toNumber(src.actualMonth) * signo;
@@ -750,69 +782,72 @@
 
       // Operating Results por plaza antes de los consolidados globales
       const opResults = {
-        'OPERATING RESULTS MEXICO': combinar(['CDMX INCOME'], ['CDMX EXPENSE']),
-        'OPERATING RESULTS GUADALAJARA': combinar(['GUADALAJARA INCOME'], ['GUADALAJARA EXPENSE']),
-        'OPERATING RESULTS MONTERREY': combinar(['MONTERREY INCOME'], ['MONTERREY EXPENSE']),
-        'OPERATING RESULTS NORTHWEST': combinar(['NORTHWEST INCOME'], ['NORTHWEST EXPENSE'])
+        mex: combinar(INCOME_LABELS.mex, EXPENSE_LABELS.mex),
+        gdl: combinar(INCOME_LABELS.gdl, EXPENSE_LABELS.gdl),
+        mty: combinar(INCOME_LABELS.mty, EXPENSE_LABELS.mty),
+        nw: combinar(INCOME_LABELS.nw, EXPENSE_LABELS.nw),
+        ne: combinar(INCOME_LABELS.ne, EXPENSE_LABELS.ne)
       };
-      Object.entries(opResults).forEach(([lbl, tot]) => asignar(lbl, tot));
+      asignarPrimero(['OPERATING RESULTS MEXICO'], opResults.mex);
+      asignarPrimero(['OPERATING RESULTS GUADALAJARA', 'GDL OPERATING RESULTS'], opResults.gdl);
+      asignarPrimero(['OPERATING RESULTS MONTERREY', 'MTY OPERATING RESULTS'], opResults.mty);
+      asignarPrimero(['OPERATING RESULTS NORTHWEST', 'OPERATING RESULTS NO', 'OPERATING RESULTS NOROESTE'], opResults.nw);
+      asignarPrimero(['OPERATING RESULTS NE', 'NE OPERATING RESULTS', 'OPERATING RESULTS NORESTE'], opResults.ne);
 
       // NET RESULTS por plaza según la lógica indicada
-      const memberCentricity = labelMap.get(normalizarLabel('MEMBER CENTRICITY'))?.totals || totalesCero();
-      const otherMx = labelMap.get(normalizarLabel('Other (MEXICO)'))?.totals
-        || labelMap.get(normalizarLabel('Other Income Mexico'))?.totals
-        || totalesCero();
-      const otherGdl = labelMap.get(normalizarLabel('Guadalajara Other Income'))?.totals || totalesCero();
-      const otherMty = labelMap.get(normalizarLabel('Monterrey Other Income'))?.totals || totalesCero();
-      const otherNw = labelMap.get(normalizarLabel('Northwest Other Income'))?.totals || totalesCero();
+      const memberCentricityMx = obtenerPorLabels(['MEMBER CENTRICITY', 'Member Centricity', 'Member Centricity CDMX', 'Member Centricity Mexico']);
+      const memberCentricityGdl = obtenerPorLabels(['Member Centricity GDL', 'Member Centricity Guadalajara', 'GDL Member Centricity', 'Guadalajara Member Centricity', 'Member Centricity']);
+      const memberCentricityNe = obtenerPorLabels(['Member Centricity NE', 'Member Centricity Noreste', 'NE Member Centricity', 'NORESTE Member Centricity', 'Member Centricity']);
+      const otherMx = obtenerPorLabels(['Other (MEXICO)', 'Other Income Mexico']);
+      const otherGdl = obtenerPorLabels([
+        'Guadalajara Other Income',
+        'GDL Other Income',
+        'Other Guadalajara',
+        'Other GDL',
+        'Other',
+        'Otros ingresos',
+        'OTROS INGRESOS'
+      ]);
+      const otherMty = obtenerPorLabels(['Monterrey Other Income', 'MTY Other Income']);
+      const otherNw = obtenerPorLabels(['Northwest Other Income', 'NW Other Income', 'NO Other Income', 'NOROESTE Other Income']);
+      const otherNe = obtenerPorLabels([
+        'NE Other Income',
+        'Noreste Other Income',
+        'NE Other',
+        'NORESTE Other Income',
+        'Other',
+        'Otros ingresos',
+        'OTROS INGRESOS'
+      ]);
 
-      asignar('NET RESULTS MEXICO', combinar(
-        ['OPERATING RESULTS MEXICO'],
-        []
-      ));
-      const netMxBlock = labelMap.get(normalizarLabel('NET RESULTS MEXICO'));
-      if (netMxBlock) {
-        // aplicar ajustes de Member Centricity y Other (MEXICO)
-        netMxBlock.totals = netMxBlock.totals || totalesCero();
-        sumaTotales(netMxBlock.totals, memberCentricity, -1);
-        sumaTotales(netMxBlock.totals, otherMx, 1);
-      }
+      const netResultsCalc = {
+        // MX: resta Member Centricity y suma Other (MEXICO)
+        mx: { op: ['OPERATING RESULTS MEXICO'], mc: memberCentricityMx, other: otherMx, labels: ['NET RESULTS MEXICO'] },
+        // GDL: (OPERATING RESULTS GDL) + Other (sin restar Member Centricity)
+        gdl: { op: ['OPERATING RESULTS GUADALAJARA', 'GDL OPERATING RESULTS'], mc: totalesCero(), other: otherGdl, labels: ['NET RESULTS GUADALAJARA', 'GDL NET RESULTS'] },
+        // MTY: solo suma Other Income
+        mty: { op: ['OPERATING RESULTS MONTERREY', 'MTY OPERATING RESULTS'], mc: totalesCero(), other: otherMty, labels: ['NET RESULTS MONTERREY', 'MTY NET RESULTS'] },
+        // NW: solo suma Other Income
+        nw: { op: ['OPERATING RESULTS NORTHWEST', 'OPERATING RESULTS NO', 'OPERATING RESULTS NOROESTE'], mc: totalesCero(), other: otherNw, labels: ['NET RESULTS NORTHWEST', 'NET RESULTS NO', 'NET RESULTS NOROESTE'] },
+        // NE: resta Member Centricity y suma Other Income
+        ne: { op: ['OPERATING RESULTS NE', 'NE OPERATING RESULTS', 'OPERATING RESULTS NORESTE'], mc: memberCentricityNe, other: otherNe, labels: ['NET RESULTS NE', 'NET RESULTS NORESTE'] }
+      };
 
-      asignar('NET RESULTS GUADALAJARA', combinar(
-        ['OPERATING RESULTS GUADALAJARA'],
-        []
-      ));
-      const netGdlBlock = labelMap.get(normalizarLabel('NET RESULTS GUADALAJARA'));
-      if (netGdlBlock) {
-        netGdlBlock.totals = netGdlBlock.totals || totalesCero();
-        sumaTotales(netGdlBlock.totals, otherGdl, 1);
-      }
-
-      asignar('NET RESULTS MONTERREY', combinar(
-        ['OPERATING RESULTS MONTERREY'],
-        []
-      ));
-      const netMtyBlock = labelMap.get(normalizarLabel('NET RESULTS MONTERREY'));
-      if (netMtyBlock) {
-        netMtyBlock.totals = netMtyBlock.totals || totalesCero();
-        sumaTotales(netMtyBlock.totals, otherMty, 1);
-      }
-
-      asignar('NET RESULTS NORTHWEST', combinar(
-        ['OPERATING RESULTS NORTHWEST'],
-        []
-      ));
-      const netNwBlock = labelMap.get(normalizarLabel('NET RESULTS NORTHWEST'));
-      if (netNwBlock) {
-        netNwBlock.totals = netNwBlock.totals || totalesCero();
-        sumaTotales(netNwBlock.totals, otherNw, 1);
-      }
+      Object.values(netResultsCalc).forEach(({ op, mc, other, labels }) => {
+        const totals = combinar(op, []);
+        const bloque = asignarPrimero(labels, totals);
+        if (bloque) {
+          bloque.totals = bloque.totals || totalesCero();
+          sumaTotales(bloque.totals, mc, -1);
+          sumaTotales(bloque.totals, other, 1);
+        }
+      });
 
       asignar('CONSOLIDATED INCOME', combinar(
-        ['CDMX INCOME', 'GUADALAJARA INCOME', 'MONTERREY INCOME', 'NORTHWEST INCOME']
+        [...INCOME_LABELS.mex, ...INCOME_LABELS.gdl, ...INCOME_LABELS.mty, ...INCOME_LABELS.nw]
       ));
       asignar('CONSOLIDATED EXPENSES', combinar(
-        ['CDMX EXPENSE', 'GUADALAJARA EXPENSE', 'MONTERREY EXPENSE', 'NORTHWEST EXPENSE']
+        [...EXPENSE_LABELS.mex, ...EXPENSE_LABELS.gdl, ...EXPENSE_LABELS.mty, ...EXPENSE_LABELS.nw]
       ));
       asignar('CONSOLIDATED OPERATING RESULTS', combinar(
         ['OPERATING RESULTS MEXICO', 'OPERATING RESULTS GUADALAJARA', 'OPERATING RESULTS MONTERREY', 'OPERATING RESULTS NORTHWEST']
