@@ -416,6 +416,24 @@
       color: rgba(47, 84, 150, 0.8);
     }
 
+    @media (max-width: 640px) {
+      .notification-panel {
+        position: fixed;
+        top: 84px;
+        left: 50%;
+        right: auto;
+        transform: translateX(-50%);
+        width: 92vw;
+        max-width: 420px;
+        max-height: 70vh;
+        overflow-y: auto;
+      }
+
+      .notification-panel__list {
+        max-height: none;
+      }
+    }
+
     .top-bar .badge {
       font-weight: 700;
       text-transform: uppercase;

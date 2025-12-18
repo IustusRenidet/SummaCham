@@ -346,3 +346,9 @@ a:not(.disabled) {
     z-index: auto !important;
   }
 }
+
+/* Selects de periodo/mes scrolleables */
+.select-scroll {
+  max-height: 240px;
+  overflow-y: auto;
+}
