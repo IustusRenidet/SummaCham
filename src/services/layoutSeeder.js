@@ -1,12 +1,14 @@
 const fs = require("fs");
 const path = require("path");
 const XLSX = require("xlsx");
+const { normalizarNombreModulo } = require("../config/modulos");
 
 const EMPRESA_DEFAULT = "EMPRESA01";
 
 const OPERACION_TIPOS = [
   "sum-row",
   "sum-row-sumavarios",
+  "sum-row-sumavarios2",
   "sum-row-sumavarios-consolidado",
   "sum-row-operativo",
   "sum-row-operativo-consolidado",
@@ -40,6 +42,16 @@ const normalizarClaveExcel = (valor) =>
 const normalizarCapitulo = (valor) => {
   const texto = normalizarTexto(valor);
   return texto || "DEFAULT";
+};
+
+const decodificarHtml = (valor = "") =>
+  normalizarTexto(valor).replace(/&amp;/gi, "&");
+
+const normalizarModuloFuente = (valor) => {
+  const base = decodificarHtml(valor).replace(/\./g, " ");
+  if (!base) return "";
+  const sinTildes = base.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return normalizarNombreModulo(sinTildes) || sinTildes;
 };
 
 const generarRangoAnios = (inicio, fin) => {
@@ -278,8 +290,8 @@ const sembrarCuentas = ({
 
 const filtrarOperacionesPorModulo = (operaciones = [], modulo) =>
   operaciones.filter((op) => {
-    const hoja = normalizarTexto(op.HOJA || op.modulo || modulo).toUpperCase();
-    return hoja === modulo.toUpperCase();
+    const hoja = normalizarModuloFuente(op.HOJA || op.modulo || modulo);
+    return hoja === normalizarModuloFuente(modulo);
   });
 
 const sembrarOperaciones = ({
@@ -454,10 +466,16 @@ const procesarModulosOperativos = ({ db, empresaId, baseDir, archivo, force, res
     return;
   }
 
+  const operacionesGlobales = Array.isArray(contenido["SUMA DE VARIAS SECCIONES"])
+    ? contenido["SUMA DE VARIAS SECCIONES"]
+    : [];
+
   const insertCuenta = prepararInsertarCuenta(db);
   const insertSeccion = prepararInsertarSeccion(db);
 
-  const modulosDisponibles = Object.keys(contenido || {});
+  const modulosDisponibles = Object.keys(contenido || {}).filter(
+    (clave) => normalizarTexto(clave) !== "SUMA DE VARIAS SECCIONES"
+  );
   const insertOperacion = prepararInsertarOperacion(db);
 
   modulosDisponibles.forEach((clave) => {
@@ -466,7 +484,11 @@ const procesarModulosOperativos = ({ db, empresaId, baseDir, archivo, force, res
       return;
     }
 
-    const modulo = clave.trim();
+    const modulo = normalizarModuloFuente(clave);
+    if (!modulo) {
+      return;
+    }
+    const operacionesModulo = filtrarOperacionesPorModulo(operacionesGlobales, modulo);
     const anios = ANIOS_MODULOS_OPERATIVOS;
 
     anios.forEach((anio) => {
@@ -497,18 +519,20 @@ const procesarModulosOperativos = ({ db, empresaId, baseDir, archivo, force, res
         insertCuenta,
         insertSeccion,
       });
-      // Módulos operativos no tienen operaciones declaradas en JSON
-      sembrarOperaciones({
+      const opsInsertadas = sembrarOperaciones({
         db,
         empresaId,
         modulo,
         anio,
-        operaciones: [],
+        operaciones: operacionesModulo,
         insertOperacion,
       });
 
       resumen.cuentas += insertadas;
-      resumen.detalles.push(`${modulo}-${anio}: ${insertadas} cuentas`);
+      resumen.operaciones += opsInsertadas;
+      resumen.detalles.push(
+        `${modulo}-${anio}: ${insertadas} cuentas${opsInsertadas ? `, ${opsInsertadas} operaciones` : ""}`
+      );
     });
   });
 };

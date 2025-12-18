@@ -336,3 +336,13 @@ a:not(.disabled) {
 .workflow-drawer .list-group-item:last-child {
   border-bottom: none;
 }
+
+/* Desactivar columnas fijas en pantallas pequeñas para tablas comparativas (todas las vistas) */
+@media (max-width: 768px) {
+  .table-comparison thead th,
+  .table-comparison tbody td {
+    position: static !important;
+    left: auto !important;
+    z-index: auto !important;
+  }
+}
