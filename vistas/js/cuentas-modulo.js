@@ -126,6 +126,7 @@
     servmembresia: new Set([
       'TOTAL INGRESOS Serv Membresía',
       'TOTAL GASTOS Serv Membresía',
+      'RESULTADO OPERATIVO Serv Membresía',
       'RESULTADO Serv Membresía',
       'Resultado Serv Membresía'
     ].map(normalizarEtiquetaExclusion)),
@@ -1906,6 +1907,64 @@
         factor: Number.isFinite(sumas?.operacionFactor) ? sumas.operacionFactor : (/(GASTOS|EXPENSE)/i.test(seccion) ? -1 : 1),
         restarUtilidadCambiaria: requiereAjusteUtilidad
       };
+      // Ajustes de operaciones conforme a info IMPORTANTE/logica operaciones.json
+      const agregarResultRow = (meta, texto) => {
+        if (!texto) return;
+        const clave = normalizarTexto(texto);
+        if (!clave) return;
+        if (!meta.resultRows.some((t) => normalizarTexto(t) === clave)) {
+          meta.resultRows.push(texto);
+        }
+        meta.resultRowTexto = meta.resultRowTexto || clave;
+      };
+      const capituloNormalizado = normalizarTexto(capitulo);
+      switch (moduloNormalizado) {
+        case 'comites': {
+          if (/COMISIONES/i.test(seccion || '')) {
+            metaSeccion.factor = -1;
+            agregarResultRow(metaSeccion, 'Resultado Comités');
+          }
+          if (capituloNormalizado === normalizarTexto('CIUDAD DE MÉXICO') && /GASTOS\s+ADMINISTRATIVOS/i.test(seccion || '')) {
+            metaSeccion.factor = -1;
+            agregarResultRow(metaSeccion, 'Resultado Comités');
+          }
+          break;
+        }
+        case 'gastosgenerales': {
+          const totalLabel = capituloNormalizado === normalizarTexto('CIUDAD DE MÉXICO') ? 'Total GA CdMx' : 'Total';
+          if (/DEPRECIACIONES/i.test(seccion || '') ||
+              /GA\s+CAPITULO/i.test(seccion || '') ||
+              /MEMBER\s+CENTRICITY/i.test(seccion || '') ||
+              /GASTOS\s+CORPORATIVOS/i.test(seccion || '')) {
+            metaSeccion.factor = -1;
+            agregarResultRow(metaSeccion, totalLabel);
+          }
+          break;
+        }
+        case 'eventos': {
+          if (/GASTOS\s+ADMINISTRATIVOS/i.test(seccion || '')) {
+            metaSeccion.factor = -1;
+            agregarResultRow(metaSeccion, 'Resultado  Eventos');
+          }
+          break;
+        }
+        case 'membresia': {
+          if (/GASTOS\s+ADMIN/i.test(seccion || '')) {
+            metaSeccion.factor = -1;
+            agregarResultRow(metaSeccion, 'Resultado  Membresía');
+          }
+          break;
+        }
+        case 'rh': {
+          if (/GASTOS\s+ADMIN/i.test(seccion || '')) {
+            metaSeccion.factor = -1;
+            agregarResultRow(metaSeccion, 'Resultado  RH');
+          }
+          break;
+        }
+        default:
+          break;
+      }
       if (etiquetaSumRow) {
         metaSeccion.elementos.sumRow = agregarFilaResumen({
           texto: etiquetaSumRow,

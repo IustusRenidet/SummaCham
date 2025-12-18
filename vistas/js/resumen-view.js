@@ -113,8 +113,8 @@
 
   const collapsedSections = new Set();
   let allCollapsed = false;
-  const collapseAllBtn = document.getElementById('collapseAllBtn');
-  const collapseAllLabel = document.getElementById('collapseAllLabel');
+  const collapseButtons = Array.from(document.querySelectorAll('#collapseAllBtn, #collapseAllBtnSecondary'));
+  const expandButtons = Array.from(document.querySelectorAll('#expandAllBtn, #expandAllBtnSecondary'));
 
   const obtenerNombreSeccion = (row) => (row?.dataset?.sectionName || '').trim();
 
@@ -137,7 +137,13 @@
     }
 
     let siguiente = row.nextElementSibling;
-    while (siguiente && siguiente.classList.contains('section-child')) {
+    const esCorte = (r) => {
+      if (!r) return true;
+      if (r.classList.contains('collapsible-section')) return true;
+      const rol = (r.dataset?.rowRole || '').toLowerCase();
+      return ['principal', 'group', 'result', 'net', 'final'].includes(rol);
+    };
+    while (siguiente && !esCorte(siguiente)) {
       siguiente.style.display = collapsed ? 'none' : '';
       siguiente = siguiente.nextElementSibling;
     }
@@ -147,16 +153,10 @@
     const allSections = document.querySelectorAll('.collapsible-section');
     if (!allSections.length) {
       allCollapsed = false;
-      if (collapseAllLabel) {
-        collapseAllLabel.textContent = 'Colapsar todo';
-      }
       return;
     }
     const totalCollapsed = Array.from(allSections).filter((row) => collapsedSections.has(obtenerNombreSeccion(row))).length;
     allCollapsed = totalCollapsed === allSections.length;
-    if (collapseAllLabel) {
-      collapseAllLabel.textContent = allCollapsed ? 'Expandir todo' : 'Colapsar todo';
-    }
   }
 
   function autoCollapseExcludedSections() {
@@ -172,9 +172,6 @@
   function habilitarColapsoGastosAdministrativos() {
     const filas = tablaBody?.querySelectorAll('tr') || [];
     filas.forEach((row) => {
-      const role = (row.dataset?.rowRole || '').toLowerCase();
-      if (role && role !== 'section') return;
-
       const descripcionCell = row.cells && row.cells[6];
       const texto = (row.dataset?.sectionName || descripcionCell?.textContent || '').trim();
       if (!texto || !/GASTOS\s+ADMINISTRATIVOS/i.test(texto)) return;
@@ -671,6 +668,150 @@
     const normalizarEtiqueta = (texto = '') => texto.toString().trim().toUpperCase().replace(/\s+/g, ' ');
     const etiquetasOcultas = new Set(['INCOME', 'EXPENSE', 'OPERATING RESULTS']);
     const debeOmitirEtiqueta = (texto = '') => etiquetasOcultas.has(normalizarEtiqueta(texto));
+    const normalizarLabel = (texto = '') =>
+      texto
+        .toString()
+        .trim()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toUpperCase()
+        .replace(/\s+/g, ' ');
+
+    const totalesCero = () => ({
+      actualMonth: 0, planMonth: 0, prevMonth: 0, actualYTD: 0, planYTD: 0, prevYTD: 0
+    });
+
+    const PRINCIPAL_SECCIONES_PERMITIDAS = {
+      'CDMX EXPENSE': [
+        'MEMBERSHIP',
+        'EVENTS',
+        'COMMITTEES',
+        'T&IC',
+        'SERVICES TO MEMBERS',
+        'GASTOS G&A',
+        'NOMINA',
+        'GASTOS CORPORATIVOS'
+      ],
+      'GUADALAJARA EXPENSE': [
+        'MEMBERSHIP',
+        'EVENTS',
+        'COMMITTEES',
+        'T&IC',
+        'SERVICES TO MEMBERS',
+        'GASTOS G&A',
+        'NOMINA',
+        'GASTOS CORPORATIVOS'
+      ],
+      'NE EXPENSE': [
+        'MEMBERSHIP',
+        'EVENTS',
+        'COMMITTEES',
+        'T&IC',
+        'SERVICES TO MEMBERS',
+        'NOMINA',
+        'GASTOS CORPORATIVOS'
+      ],
+      'NO EXPENSE': [
+        'MEMBERSHIP',
+        'EVENTS',
+        'COMMITTEES',
+        'T&IC',
+        'SERVICES TO MEMBERS',
+        'NOMINA',
+        'GASTOS CORPORATIVOS'
+      ]
+    };
+
+    const seccionPermitidaParaPrincipal = (principalLabel, seccionLabel) => {
+      const clavePrincipal = normalizarLabel(principalLabel);
+      const permitidas = PRINCIPAL_SECCIONES_PERMITIDAS[clavePrincipal];
+      if (!permitidas) return true;
+      return permitidas.includes(normalizarLabel(seccionLabel));
+    };
+
+    const recalcularPrincipales = (layoutArr = []) => {
+      if (!Array.isArray(layoutArr) || !layoutArr.length) return;
+      let principalActual = null;
+      let acumulado = totalesCero();
+      const applySign = (valor, signo = 1) => Number.isFinite(signo) ? signo : 1;
+      const asignarAcumulado = () => {
+        if (principalActual) {
+          principalActual.totals = { ...acumulado };
+        }
+      };
+      layoutArr.forEach((block) => {
+        const tipo = (block.type || '').toLowerCase();
+        if (tipo === 'principal') {
+          // Cierra el anterior y abre uno nuevo
+          asignarAcumulado();
+          principalActual = block;
+          acumulado = totalesCero();
+          return;
+        }
+        if (!principalActual) return;
+        if (tipo === 'secundaria') {
+          const sign = applySign(block.sign, 1);
+          // Respetar exclusiones de gasto marcadas en el layout
+          if (block.totals && block.totals.excludeFromExpense) {
+            return;
+          }
+          if (!seccionPermitidaParaPrincipal(principalActual.label || '', block.label || '')) {
+            return;
+          }
+          const t = block.totals || {};
+          acumulado.actualMonth += toNumber(t.actualMonth) * sign;
+          acumulado.planMonth += toNumber(t.planMonth) * sign;
+          acumulado.prevMonth += toNumber(t.prevMonth) * sign;
+          acumulado.actualYTD += toNumber(t.actualYTD) * sign;
+          acumulado.planYTD += toNumber(t.planYTD) * sign;
+          acumulado.prevYTD += toNumber(t.prevYTD) * sign;
+        }
+        // Si aparece otra consolidación de nivel superior, no cerramos aquí; se recalcula después.
+      });
+      asignarAcumulado();
+    };
+
+    const recalcularConsolidados = (layoutArr = []) => {
+      if (!Array.isArray(layoutArr) || !layoutArr.length) return;
+      const labelMap = new Map(layoutArr.map((b) => [normalizarLabel(b.label || ''), b]));
+      const sumaTotales = (dest, src, signo = 1) => {
+        if (!src) return;
+        dest.actualMonth += toNumber(src.actualMonth) * signo;
+        dest.planMonth += toNumber(src.planMonth) * signo;
+        dest.prevMonth += toNumber(src.prevMonth) * signo;
+        dest.actualYTD += toNumber(src.actualYTD) * signo;
+        dest.planYTD += toNumber(src.planYTD) * signo;
+        dest.prevYTD += toNumber(src.prevYTD) * signo;
+      };
+      const totalesCero = () => ({
+        actualMonth: 0, planMonth: 0, prevMonth: 0, actualYTD: 0, planYTD: 0, prevYTD: 0
+      });
+      const combinar = (sumarLabels = [], restarLabels = []) => {
+        const res = totalesCero();
+        sumarLabels.forEach((lbl) => sumaTotales(res, labelMap.get(normalizarLabel(lbl))?.totals, 1));
+        restarLabels.forEach((lbl) => sumaTotales(res, labelMap.get(normalizarLabel(lbl))?.totals, -1));
+        return res;
+      };
+      const asignar = (label, totals) => {
+        const block = labelMap.get(normalizarLabel(label));
+        if (block && totals) {
+          block.totals = totals;
+        }
+      };
+
+      asignar('CONSOLIDATED INCOME', combinar(
+        ['CDMX INCOME', 'GUADALAJARA INCOME', 'MONTERREY INCOME', 'NORTHWEST INCOME']
+      ));
+      asignar('CONSOLIDATED EXPENSES', combinar(
+        ['CDMX EXPENSE', 'GUADALAJARA EXPENSE', 'MONTERREY EXPENSE', 'NORTHWEST EXPENSE']
+      ));
+      asignar('CONSOLIDATED OPERATING RESULTS', combinar(
+        ['OPERATING RESULTS MEXICO', 'OPERATING RESULTS GUADALAJARA', 'OPERATING RESULTS MONTERREY', 'OPERATING RESULTS NORTHWEST']
+      ));
+      asignar('CONSOLIDATED NET RESULTS', combinar(
+        ['NET RESULTS MEXICO', 'NET RESULTS GUADALAJARA', 'NET RESULTS MONTERREY', 'NET RESULTS NORTHWEST']
+      ));
+    };
 
     resumen.forEach((capitulo) => {
       const capituloName = (capitulo.label || capitulo.capitulo || '').toString().trim().toUpperCase();
@@ -746,6 +887,8 @@
 
       // Renderizar usando SOLO el layout (que ya tiene todo en orden correcto)
       if (layout && layout.length) {
+        recalcularPrincipales(layout);
+        recalcularConsolidados(layout);
         layout.forEach((block) => {
           const blockType = block.type || '';
           
@@ -891,6 +1034,7 @@
     activateTooltips();
     autoCollapseExcludedSections();
     habilitarColapsoGastosAdministrativos();
+    wireCollapseControls();
   };
 
   const actualizarEtiquetasAnio = (anio) => {
@@ -1365,17 +1509,29 @@
     window.addEventListener(Sesion.EVENTO_EMPRESA, () => cargarWorkflow(modulo));
   };
 
-  if (collapseAllBtn) {
-    collapseAllBtn.addEventListener('click', () => {
-      const allSections = document.querySelectorAll('.collapsible-section');
-      if (!allSections.length) {
-        return;
-      }
-      const colapsar = !allCollapsed;
-      allSections.forEach((row) => setSectionCollapseState(row, colapsar));
-      syncCollapseAllState();
-    });
-  }
+  const wireCollapseControls = () => {
+    if (collapseButtons.length) {
+      collapseButtons.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const allSections = document.querySelectorAll('.collapsible-section');
+          if (!allSections.length) return;
+          allSections.forEach((row) => setSectionCollapseState(row, true));
+          syncCollapseAllState();
+        });
+      });
+    }
+
+    if (expandButtons.length) {
+      expandButtons.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const allSections = document.querySelectorAll('.collapsible-section');
+          if (!allSections.length) return;
+          allSections.forEach((row) => setSectionCollapseState(row, false));
+          syncCollapseAllState();
+        });
+      });
+    }
+  };
 
   document.addEventListener('click', (e) => {
     const collapseIcon = e.target.closest('.collapse-icon');
