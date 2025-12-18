@@ -266,13 +266,6 @@ const crearConexion = () => {
 
 let db = null;
 
-const getDb = () => {
-  if (db) {
-    return db;
-  }
-  throw new Error('SQLite no inicializada; inicializa la base antes de usarla.');
-};
-
 const crearTablas = () => {
   // Must have a valid DB connection
   if (!db) {
@@ -984,9 +977,6 @@ const inicializarBaseDatos = () => {
   if (!SQLITE_AVAILABLE) {
     throw new Error('better-sqlite3 no disponible; inicialización de SQLite fallida');
   }
-  if (db) {
-    return db;
-  }
   db = crearConexion();
   crearTablas();
   copiarLayoutsDesdeSemillaSiFaltan();
@@ -1072,7 +1062,7 @@ const inicializarBaseDatos = () => {
   sembrarUsuariosDesdeJson();
   sembrarVistasPorCapitulo();
   console.log('✓ Base de datos SQLite inicializada');
-  return db;
+  return true;
 };
 
 // Inicializar base de datos automáticamente al cargar el módulo
@@ -1082,15 +1072,11 @@ if (require.main !== module) {
     inicializarBaseDatos();
   } catch (error) {
     console.error('Error al inicializar base de datos:', error);
-    throw error;
   }
 }
 
 module.exports = {
-  get db() {
-    return getDb();
-  },
-  getDb,
+  db,
   crearConexion,
   inicializarBaseDatos,
   isSQLiteAvailable: () => SQLITE_AVAILABLE,

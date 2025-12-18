@@ -4,24 +4,6 @@ const path = require('path');
 const session = require('express-session');
 const cookieParser = require('cookie-parser');
 const { inicializarBaseDatos } = require('./db/sqlite');
-const rutasAuth = require('./routes/auth');
-const rutasUsuarios = require('./routes/usuarios');
-const rutasEmpresas = require('./routes/empresas');
-const rutasModulos = require('./routes/modulos');
-const rutasPresupuestos = require('./routes/presupuestos');
-const rutasComites = require('./routes/comitesRoutes');
-const rutasPlaneacion = require('./routes/planeacion');
-const rutasLayouts = require('./routes/layouts');
-const rutasLayoutsPorAnio = require('./routes/layoutRoutes');
-const rutasNotificaciones = require('./routes/notificaciones');
-const rutasComentarios = require('./routes/comentarios');
-const rutasSaldos = require('./routes/saldos');
-const rutasCuentas = require('./routes/cuentas');
-const rutasReportes = require('./routes/reportes');
-const rutasBorradores = require('./routes/borradores');
-const rutasEstructura = require('./routes/estructuraRoutes');
-const rutasInsercion = require('./routes/insercion');
-const rutasPerfil = require('./routes/perfil');
 
 let instanciaServidor = null;
 
@@ -35,8 +17,32 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3005)) => {
   console.log("  Puerto configurado:", puerto);
   console.log("  NODE_ENV:", process.env.NODE_ENV || 'development');
 
-  inicializarBaseDatos();
-  console.log('✓ Base de datos SQLite inicializada');
+  try {
+    inicializarBaseDatos();
+    console.log('✓ Base de datos SQLite inicializada');
+  } catch (error) {
+    console.error('❌ No se pudo inicializar SQLite:', error);
+    throw error;
+  }
+
+  const rutasAuth = require('./routes/auth');
+  const rutasUsuarios = require('./routes/usuarios');
+  const rutasEmpresas = require('./routes/empresas');
+  const rutasModulos = require('./routes/modulos');
+  const rutasPresupuestos = require('./routes/presupuestos');
+  const rutasComites = require('./routes/comitesRoutes');
+  const rutasPlaneacion = require('./routes/planeacion');
+  const rutasLayouts = require('./routes/layouts');
+  const rutasLayoutsPorAnio = require('./routes/layoutRoutes');
+  const rutasNotificaciones = require('./routes/notificaciones');
+  const rutasComentarios = require('./routes/comentarios');
+  const rutasSaldos = require('./routes/saldos');
+  const rutasCuentas = require('./routes/cuentas');
+  const rutasReportes = require('./routes/reportes');
+  const rutasBorradores = require('./routes/borradores');
+  const rutasEstructura = require('./routes/estructuraRoutes');
+  const rutasInsercion = require('./routes/insercion');
+  const rutasPerfil = require('./routes/perfil');
 
   const app = express();
   
