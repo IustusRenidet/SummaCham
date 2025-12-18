@@ -681,54 +681,6 @@
       actualMonth: 0, planMonth: 0, prevMonth: 0, actualYTD: 0, planYTD: 0, prevYTD: 0
     });
 
-    const PRINCIPAL_SECCIONES_PERMITIDAS = {
-      'CDMX EXPENSE': [
-        'MEMBERSHIP',
-        'EVENTS',
-        'COMMITTEES',
-        'T&IC',
-        'SERVICES TO MEMBERS',
-        'GASTOS G&A',
-        'NOMINA',
-        'GASTOS CORPORATIVOS'
-      ],
-      'GUADALAJARA EXPENSE': [
-        'MEMBERSHIP',
-        'EVENTS',
-        'COMMITTEES',
-        'T&IC',
-        'SERVICES TO MEMBERS',
-        'GASTOS G&A',
-        'NOMINA',
-        'GASTOS CORPORATIVOS'
-      ],
-      'NE EXPENSE': [
-        'MEMBERSHIP',
-        'EVENTS',
-        'COMMITTEES',
-        'T&IC',
-        'SERVICES TO MEMBERS',
-        'NOMINA',
-        'GASTOS CORPORATIVOS'
-      ],
-      'NO EXPENSE': [
-        'MEMBERSHIP',
-        'EVENTS',
-        'COMMITTEES',
-        'T&IC',
-        'SERVICES TO MEMBERS',
-        'NOMINA',
-        'GASTOS CORPORATIVOS'
-      ]
-    };
-
-    const seccionPermitidaParaPrincipal = (principalLabel, seccionLabel) => {
-      const clavePrincipal = normalizarLabel(principalLabel);
-      const permitidas = PRINCIPAL_SECCIONES_PERMITIDAS[clavePrincipal];
-      if (!permitidas) return true;
-      return permitidas.includes(normalizarLabel(seccionLabel));
-    };
-
     const recalcularPrincipales = (layoutArr = []) => {
       if (!Array.isArray(layoutArr) || !layoutArr.length) return;
       let principalActual = null;
@@ -753,9 +705,6 @@
           const sign = applySign(block.sign, 1);
           // Respetar exclusiones de gasto marcadas en el layout
           if (block.totals && block.totals.excludeFromExpense) {
-            return;
-          }
-          if (!seccionPermitidaParaPrincipal(principalActual.label || '', block.label || '')) {
             return;
           }
           const t = block.totals || {};
@@ -798,6 +747,66 @@
           block.totals = totals;
         }
       };
+
+      // Operating Results por plaza antes de los consolidados globales
+      const opResults = {
+        'OPERATING RESULTS MEXICO': combinar(['CDMX INCOME'], ['CDMX EXPENSE']),
+        'OPERATING RESULTS GUADALAJARA': combinar(['GUADALAJARA INCOME'], ['GUADALAJARA EXPENSE']),
+        'OPERATING RESULTS MONTERREY': combinar(['MONTERREY INCOME'], ['MONTERREY EXPENSE']),
+        'OPERATING RESULTS NORTHWEST': combinar(['NORTHWEST INCOME'], ['NORTHWEST EXPENSE'])
+      };
+      Object.entries(opResults).forEach(([lbl, tot]) => asignar(lbl, tot));
+
+      // NET RESULTS por plaza según la lógica indicada
+      const memberCentricity = labelMap.get(normalizarLabel('MEMBER CENTRICITY'))?.totals || totalesCero();
+      const otherMx = labelMap.get(normalizarLabel('Other (MEXICO)'))?.totals
+        || labelMap.get(normalizarLabel('Other Income Mexico'))?.totals
+        || totalesCero();
+      const otherGdl = labelMap.get(normalizarLabel('Guadalajara Other Income'))?.totals || totalesCero();
+      const otherMty = labelMap.get(normalizarLabel('Monterrey Other Income'))?.totals || totalesCero();
+      const otherNw = labelMap.get(normalizarLabel('Northwest Other Income'))?.totals || totalesCero();
+
+      asignar('NET RESULTS MEXICO', combinar(
+        ['OPERATING RESULTS MEXICO'],
+        []
+      ));
+      const netMxBlock = labelMap.get(normalizarLabel('NET RESULTS MEXICO'));
+      if (netMxBlock) {
+        // aplicar ajustes de Member Centricity y Other (MEXICO)
+        netMxBlock.totals = netMxBlock.totals || totalesCero();
+        sumaTotales(netMxBlock.totals, memberCentricity, -1);
+        sumaTotales(netMxBlock.totals, otherMx, 1);
+      }
+
+      asignar('NET RESULTS GUADALAJARA', combinar(
+        ['OPERATING RESULTS GUADALAJARA'],
+        []
+      ));
+      const netGdlBlock = labelMap.get(normalizarLabel('NET RESULTS GUADALAJARA'));
+      if (netGdlBlock) {
+        netGdlBlock.totals = netGdlBlock.totals || totalesCero();
+        sumaTotales(netGdlBlock.totals, otherGdl, 1);
+      }
+
+      asignar('NET RESULTS MONTERREY', combinar(
+        ['OPERATING RESULTS MONTERREY'],
+        []
+      ));
+      const netMtyBlock = labelMap.get(normalizarLabel('NET RESULTS MONTERREY'));
+      if (netMtyBlock) {
+        netMtyBlock.totals = netMtyBlock.totals || totalesCero();
+        sumaTotales(netMtyBlock.totals, otherMty, 1);
+      }
+
+      asignar('NET RESULTS NORTHWEST', combinar(
+        ['OPERATING RESULTS NORTHWEST'],
+        []
+      ));
+      const netNwBlock = labelMap.get(normalizarLabel('NET RESULTS NORTHWEST'));
+      if (netNwBlock) {
+        netNwBlock.totals = netNwBlock.totals || totalesCero();
+        sumaTotales(netNwBlock.totals, otherNw, 1);
+      }
 
       asignar('CONSOLIDATED INCOME', combinar(
         ['CDMX INCOME', 'GUADALAJARA INCOME', 'MONTERREY INCOME', 'NORTHWEST INCOME']
