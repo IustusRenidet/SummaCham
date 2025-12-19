@@ -248,6 +248,23 @@
       border-color: #0b5ed7;
       box-shadow: 0 12px 28px rgba(11,94,215,0.35);
     }
+    .comentarios-restore-btn {
+      position: fixed;
+      bottom: 120px;
+      right: 16px;
+      z-index: 1400;
+      display: none;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 10px;
+      background: #475569;
+      color: #fff;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      box-shadow: 0 10px 24px rgba(0,0,0,0.18);
+      font-weight: 700;
+      cursor: pointer;
+    }
     .comentario-celda-seleccionada {
       outline: 2px solid #0b5ed7;
       outline-offset: -2px;
@@ -283,6 +300,11 @@
     return `${window.location.origin.replace(/\/$/, '')}/api`;
   })();
   const TIME_ZONE = 'America/Mexico_City';
+
+  const obtenerModuloId = () => {
+    const id = document.body?.dataset?.moduloId || document.body?.dataset?.modulo || 'MODULO';
+    return id.toString().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  };
 
   const headersAuth = () => {
     const base = (window.Sesion?.headersAutenticacion?.() || {});
@@ -322,16 +344,16 @@
     return Number.isInteger(val) ? val : null;
   };
 
-  const construirCeldaId = (td) => {
+  const construirCeldaId = (td, rowIndexOverride = null, colIndexOverride = null) => {
     const fila = td.parentElement;
     const tabla = td.closest('table');
     if (!tabla || !fila) return null;
-    const rowIndex = Array.from(fila.parentElement.children).indexOf(fila);
-    const colIndex = td.cellIndex;
+    const rowIndex = rowIndexOverride !== null ? rowIndexOverride : Array.from(fila.parentElement.children).indexOf(fila);
+    const colIndex = colIndexOverride !== null ? colIndexOverride : td.cellIndex;
     const modulo = (document.body?.dataset?.modulo || 'MODULO').toString().toUpperCase();
     const empresaId = window.Sesion?.obtenerEmpresaActiva?.()?.id || 'EMPRESA';
     const anio = obtenerAnioActivo() || 'NA';
-    const cuenta = fila.querySelector('td')?.innerText?.trim().replace(/\s+/g, ' ') || 'row';
+    const cuenta = fila.querySelector('td')?.innerText?.trim().replace(/\s+/g, ' ') || `row${rowIndex}`;
     return `${modulo}|${empresaId}|${anio}|r${rowIndex}|c${colIndex}|${cuenta}`;
   };
 
@@ -375,11 +397,13 @@
     capitulo: null,
     parentReply: null,
     visorActivo: false,
-    resumenComentarios: []
+    resumenComentarios: [],
+    modalAbierto: false,
+    calloutsOcultos: new Set()
   };
   let selectedCell = null;
-  let actionMenu = null;
   let visorToggleBtn = null;
+  let restoreCalloutsBtn = null;
   let celdaMap = new Map();
   let relayoutHandle = null;
   let listenersVisorActivos = false;
@@ -403,6 +427,12 @@
     modal.style.display = 'none';
     modalBackdrop.style.display = 'none';
     state.parentReply = null;
+    state.modalAbierto = false;
+    if (state.visorActivo) {
+      calloutsLayer.style.display = 'block';
+      renderCallouts();
+      scheduleRelayout();
+    }
   };
 
   modal.querySelector('#comentariosCerrar').addEventListener('click', cerrarModal);
@@ -411,6 +441,8 @@
   const abrirModal = ({ focusInput = false } = {}) => {
     modal.style.display = 'flex';
     modalBackdrop.style.display = 'block';
+    state.modalAbierto = true;
+    calloutsLayer.style.display = 'none';
     refrescarContexto();
     cargarComentarios();
     if (focusInput) {
@@ -476,15 +508,18 @@
   };
 
   const renderCallouts = () => {
+    if (state.modalAbierto) return;
     if (!state.visorActivo) return;
     calloutsLayer.innerHTML = '';
     if (!state.resumenComentarios?.length) {
       calloutsLayer.style.display = 'none';
+      if (restoreCalloutsBtn) restoreCalloutsBtn.style.display = 'none';
       return;
     }
     calloutsLayer.style.display = 'block';
     celdaMap = buildCeldaMap();
     state.resumenComentarios.forEach((item) => {
+      if (state.calloutsOcultos.has(item.celdaId)) return;
       const td = celdaMap.get(item.celdaId);
       if (!td) return;
       const comentarios = Array.isArray(item.comentarios) ? item.comentarios : [];
@@ -514,6 +549,7 @@
         </div>
         <div class="comentario-callout__meta">
           <a href="#" class="link-light fw-bold" data-action="responder">Responder</a>
+          <a href="#" class="link-light" data-action="ocultar" style="margin-left:auto;">Ocultar</a>
         </div>
       `;
       callout.querySelector('[data-action="responder"]').addEventListener('click', (e) => {
@@ -523,6 +559,13 @@
           selectCell(celda, { openMenu: false, scroll: true });
         }
         abrirModal({ focusInput: true });
+      });
+      callout.querySelector('[data-action="ocultar"]').addEventListener('click', (e) => {
+        e.preventDefault();
+        state.calloutsOcultos.add(item.celdaId);
+        renderCallouts();
+        scheduleRelayout();
+        actualizarBotonRestaurar();
       });
       callout.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -535,6 +578,7 @@
       calloutsLayer.appendChild(callout);
     });
     posicionarCallouts();
+    actualizarBotonRestaurar();
   };
 
   const adjuntarListenersVisor = () => {
@@ -604,7 +648,7 @@
       ...state.resumenComentarios.filter((c) => c.celdaId !== celdaId),
       resumenItem
     ];
-    if (state.visorActivo) {
+    if (state.visorActivo && !state.modalAbierto) {
       renderCallouts();
       scheduleRelayout();
     }
@@ -646,6 +690,8 @@
       state.resumenComentarios = [];
       limpiarCallouts();
       removerListenersVisor();
+      state.calloutsOcultos = new Set();
+      actualizarBotonRestaurar();
     }
   };
 
@@ -653,11 +699,28 @@
     await setVisorActivo(!state.visorActivo);
   };
 
+  const actualizarBotonRestaurar = () => {
+    if (!restoreCalloutsBtn) return;
+    if (state.visorActivo && state.calloutsOcultos && state.calloutsOcultos.size > 0) {
+      restoreCalloutsBtn.style.display = 'inline-flex';
+      restoreCalloutsBtn.textContent = `Restaurar ${state.calloutsOcultos.size} globo${state.calloutsOcultos.size > 1 ? 's' : ''}`;
+    } else {
+      restoreCalloutsBtn.style.display = 'none';
+    }
+  };
+
+  const restaurarCallouts = () => {
+    state.calloutsOcultos = new Set();
+    renderCallouts();
+    scheduleRelayout();
+    actualizarBotonRestaurar();
+  };
+
   const setCeldaActual = (td) => {
-    const celdaId = construirCeldaId(td);
+    const celdaId = td.dataset?.celdaId || construirCeldaId(td);
     if (!celdaId) return;
     state.celdaId = celdaId;
-    state.celdaLabel = td.innerText.trim().slice(0, 80);
+    state.celdaLabel = td.dataset?.celdaLabel || td.innerText.trim().slice(0, 80);
     refrescarContexto();
     refs.titulo.textContent = 'Comentarios de celda';
     refs.subtitulo.textContent = `${state.celdaLabel || 'Celda seleccionada'} - ${state.celdaId}`;
@@ -730,7 +793,10 @@
   };
 
   const enviarComentario = async () => {
-    if (!state.celdaId) return;
+    if (!state.celdaId) {
+      alert('Selecciona una celda para comentar.');
+      return;
+    }
     const texto = refs.input.value.trim();
     if (!texto) return;
     const payload = {
@@ -742,14 +808,28 @@
       capitulo: state.capitulo,
       parentId: state.parentReply || null
     };
+    let res;
     try {
-      const res = await fetch(`${API_BASE}/comentarios`, {
+      res = await fetch(`${API_BASE}/comentarios`, {
         method: 'POST',
         headers: headersAuth(),
         credentials: 'include',
         body: JSON.stringify(payload)
       });
-      if (!res.ok) throw new Error('Error al enviar comentario');
+      if (!res.ok) {
+        let mensaje = 'No se pudo enviar el comentario.';
+        try {
+          const data = await res.json();
+          if (data?.mensaje) mensaje = data.mensaje;
+        } catch (_) { /* ignore */ }
+        if (res.status === 403) {
+          mensaje = 'Sin permisos para comentar en este módulo.';
+        } else if (res.status === 401) {
+          mensaje = 'Sesión expirada. Ingresa de nuevo.';
+        }
+        alert(mensaje);
+        throw new Error(mensaje);
+      }
       refs.input.value = '';
       refs.input.placeholder = 'Escribe un comentario...';
       state.parentReply = null;
@@ -757,6 +837,7 @@
       await refrescarVisorComentarios();
     } catch (error) {
       console.error(error);
+      if (res?.ok === false) return;
       alert('No se pudo enviar el comentario.');
     }
   };
@@ -803,6 +884,18 @@
     visorToggleBtn = document.querySelector('.comentarios-toggle-visor');
     visorToggleBtn.onclick = toggleVisorComentarios;
   }
+
+  if (!document.querySelector('.comentarios-restore-btn')) {
+    restoreCalloutsBtn = document.createElement('button');
+    restoreCalloutsBtn.type = 'button';
+    restoreCalloutsBtn.className = 'comentarios-restore-btn';
+    restoreCalloutsBtn.textContent = 'Restaurar globos';
+    restoreCalloutsBtn.addEventListener('click', restaurarCallouts);
+    document.body.appendChild(restoreCalloutsBtn);
+  } else {
+    restoreCalloutsBtn = document.querySelector('.comentarios-restore-btn');
+    restoreCalloutsBtn.onclick = restaurarCallouts;
+  }
   actualizarBotonVisor();
   setVisorActivo(false);
 
@@ -825,46 +918,6 @@
     document.body.appendChild(botonFlotante);
   }
 
-  const hideActionMenu = () => {
-    if (actionMenu) {
-      actionMenu.remove();
-      actionMenu = null;
-    }
-  };
-
-  const showActionMenu = (td) => {
-    hideActionMenu();
-    const rect = td.getBoundingClientRect();
-    actionMenu = document.createElement('div');
-    actionMenu.style.position = 'absolute';
-    actionMenu.style.zIndex = '1500';
-    actionMenu.style.background = '#fff';
-    actionMenu.style.border = '1px solid #d9d9d9';
-    actionMenu.style.boxShadow = '0 8px 20px rgba(0,0,0,0.18)';
-    actionMenu.style.borderRadius = '10px';
-    actionMenu.style.padding = '8px';
-    actionMenu.style.display = 'flex';
-    actionMenu.style.gap = '6px';
-    actionMenu.style.fontSize = '0.9rem';
-    actionMenu.innerHTML = `
-      <button type="button" class="btn btn-sm btn-light" data-action="ver">Ver comentarios</button>
-      <button type="button" class="btn btn-sm btn-primary" data-action="agregar">Agregar</button>
-    `;
-    document.body.appendChild(actionMenu);
-    actionMenu.style.top = `${rect.bottom + window.scrollY + 4}px`;
-    actionMenu.style.left = `${rect.left + window.scrollX}px`;
-    actionMenu.querySelector('[data-action="ver"]').addEventListener('click', (e) => {
-      e.stopPropagation();
-      abrirModal();
-      hideActionMenu();
-    });
-    actionMenu.querySelector('[data-action="agregar"]').addEventListener('click', (e) => {
-      e.stopPropagation();
-      abrirModal({ focusInput: true });
-      hideActionMenu();
-    });
-  };
-
   const selectCell = (td, { openMenu = true, scroll = true } = {}) => {
     if (!td) return;
     document.querySelectorAll('.comentario-celda-seleccionada').forEach((c) => {
@@ -878,7 +931,9 @@
     }
     selectedCell.focus({ preventScroll: true });
     setCeldaActual(selectedCell);
-    if (openMenu) showActionMenu(selectedCell);
+    if (openMenu) {
+      // No hay menú contextual de comentarios
+    }
   };
 
   const findNextCell = (td, dir) => {
@@ -926,25 +981,43 @@
   };
 
   const registrarCeldas = () => {
-    const celdas = document.querySelectorAll('table tbody td');
-    celdas.forEach((td) => {
-      td.addEventListener('click', (e) => {
-        e.stopPropagation();
-        selectCell(td);
+    const cuerpos = Array.from(document.querySelectorAll('table tbody'));
+    cuerpos.forEach((tbody) => {
+      const filas = Array.from(tbody.rows || []);
+      filas.forEach((fila, rIndex) => {
+        const celdas = Array.from(fila.cells || []);
+        celdas.forEach((td, cIndex) => {
+          td.dataset.celdaId = construirCeldaId(td, rIndex, cIndex);
+          td.dataset.celdaLabel = (td.innerText || '').trim().slice(0, 80);
+          if (!td.dataset.comentariosListener) {
+            td.addEventListener('click', (e) => {
+              e.stopPropagation();
+              selectCell(td);
+            });
+            td.dataset.comentariosListener = '1';
+          }
+        });
       });
     });
   };
 
-  document.addEventListener('keydown', handleArrowNavigation);
-  document.addEventListener('click', (e) => {
-    if (actionMenu && !actionMenu.contains(e.target)) {
-      hideActionMenu();
-    }
-  });
+  const observarCambiosTabla = () => {
+    let pendiente = null;
+    const observer = new MutationObserver(() => {
+      if (pendiente) return;
+      pendiente = requestAnimationFrame(() => {
+        pendiente = null;
+        registrarCeldas();
+      });
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+  };
 
+  document.addEventListener('keydown', handleArrowNavigation);
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', registrarCeldas);
   } else {
     registrarCeldas();
   }
+  observarCambiosTabla();
 })();
