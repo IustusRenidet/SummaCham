@@ -1834,15 +1834,46 @@
         meta.resultRowTexto = meta.resultRowTexto || clave;
       };
       const capituloNormalizado = normalizarTexto(capitulo);
+      const esCapituloMexico = capituloNormalizado === normalizarTexto('CIUDAD DE MÉXICO') || capituloNormalizado === normalizarTexto('CIUDAD DE MEXICO');
       switch (moduloNormalizado) {
         case 'comites': {
-          if (/COMISIONES/i.test(seccion || '')) {
+          const esComisiones = /COMISIONES/i.test(seccion || '');
+          const esGastosAdmin = /GASTOS\s+ADMINISTRATIVOS/i.test(seccion || '');
+          const etiquetaResultado = 'Resultado Comités';
+          const etiquetaResultadoNorm = normalizarTexto(etiquetaResultado);
+          let habilitarResultado = true;
+
+          // Resultado Operativo Comités = Ingresos - Gastos (sumavarios ya lo agrupa)
+          // Resultado Comités:
+          // - CDMX: Resultado Operativo - Gastos Administrativos
+          // - GDL/NE/NO: Resultado Operativo - Comisiones
+          if (esComisiones) {
             metaSeccion.factor = -1;
-            agregarResultRow(metaSeccion, 'Resultado Comités');
+            habilitarResultado = !esCapituloMexico;
+            // No debe entrar en el sumavarios de Resultado Operativo
+            metaSeccion.sumRowSumavariosTexto = '';
+            metaSeccion.sumRowSumavarios2Texto = '';
+            metaSeccion.sumRowSumavariosLabel = '';
+            metaSeccion.sumRowSumavarios2Label = '';
           }
-          if (capituloNormalizado === normalizarTexto('CIUDAD DE MÉXICO') && /GASTOS\s+ADMINISTRATIVOS/i.test(seccion || '')) {
+          if (esGastosAdmin) {
             metaSeccion.factor = -1;
-            agregarResultRow(metaSeccion, 'Resultado Comités');
+            habilitarResultado = esCapituloMexico;
+            // No debe entrar en el sumavarios de Resultado Operativo
+            metaSeccion.sumRowSumavariosTexto = '';
+            metaSeccion.sumRowSumavarios2Texto = '';
+            metaSeccion.sumRowSumavariosLabel = '';
+            metaSeccion.sumRowSumavarios2Label = '';
+          }
+
+          if (habilitarResultado) {
+            if (!metaSeccion.resultRows.some((t) => normalizarTexto(t) === etiquetaResultadoNorm)) {
+              metaSeccion.resultRows.push(etiquetaResultado);
+            }
+            metaSeccion.resultRowTexto = etiquetaResultadoNorm;
+          } else {
+            metaSeccion.resultRows = [];
+            metaSeccion.resultRowTexto = '';
           }
           break;
         }
@@ -1861,6 +1892,11 @@
           if (/GASTOS\s+ADMINISTRATIVOS/i.test(seccion || '')) {
             metaSeccion.factor = -1;
             agregarResultRow(metaSeccion, 'Resultado  Eventos');
+            // Excluir de la suma operativa (solo debe restarse al resultado final)
+            metaSeccion.sumRowSumavariosTexto = '';
+            metaSeccion.sumRowSumavarios2Texto = '';
+            metaSeccion.sumRowSumavariosLabel = '';
+            metaSeccion.sumRowSumavarios2Label = '';
           }
           break;
         }
@@ -1868,6 +1904,11 @@
           if (/GASTOS\s+ADMIN/i.test(seccion || '')) {
             metaSeccion.factor = -1;
             agregarResultRow(metaSeccion, 'Resultado  Membresía');
+            // Excluir de la suma operativa (solo debe restarse al resultado final)
+            metaSeccion.sumRowSumavariosTexto = '';
+            metaSeccion.sumRowSumavarios2Texto = '';
+            metaSeccion.sumRowSumavariosLabel = '';
+            metaSeccion.sumRowSumavarios2Label = '';
           }
           break;
         }
@@ -1875,6 +1916,34 @@
           if (/GASTOS\s+ADMIN/i.test(seccion || '')) {
             metaSeccion.factor = -1;
             agregarResultRow(metaSeccion, 'Resultado  RH');
+            // Excluir de la suma operativa (solo debe restarse al resultado final)
+            metaSeccion.sumRowSumavariosTexto = '';
+            metaSeccion.sumRowSumavarios2Texto = '';
+            metaSeccion.sumRowSumavariosLabel = '';
+            metaSeccion.sumRowSumavarios2Label = '';
+          }
+          break;
+        }
+        case 'direccion': {
+          const esGastosAdminDir = /GASTOS\s+DE\s+ADMINISTRACION|GASTOS\s+ADMINISTRATIVOS/i.test(seccion || '');
+          if (esGastosAdminDir) {
+            metaSeccion.factor = -1;
+            // Excluir de la suma operativa; se resta en el resultado del director
+            metaSeccion.sumRowSumavariosTexto = '';
+            metaSeccion.sumRowSumavarios2Texto = '';
+            metaSeccion.sumRowSumavariosLabel = '';
+            metaSeccion.sumRowSumavarios2Label = '';
+
+            let etiquetaDir = 'Resultado Director Capítulo';
+            if (/GUADALAJARA/i.test(capituloNormalizado)) etiquetaDir = 'Resultado Director Capítulo';
+            else if (/NORESTE|NE/i.test(capituloNormalizado)) etiquetaDir = 'Resultado Director Capítulo';
+            else if (/NOROESTE|NO/i.test(capituloNormalizado)) etiquetaDir = 'Resultado Director Capítulo';
+
+            const etiquetaDirNorm = normalizarTexto(etiquetaDir);
+            if (!metaSeccion.resultRows.some((t) => normalizarTexto(t) === etiquetaDirNorm)) {
+              metaSeccion.resultRows.push(etiquetaDir);
+            }
+            metaSeccion.resultRowTexto = etiquetaDirNorm;
           }
           break;
         }
@@ -2869,8 +2938,9 @@
         
         // Acumular sumValues de secciones con la misma etiqueta
         const prev = acumuladosSumavarios.get(clave) || Array.from({ length: longitud }, () => 0);
+        const factor = Number.isFinite(seccion.factor) ? seccion.factor : 1;
         (seccion.sumValues || Array.from({ length: longitud }, () => 0)).forEach((valor, idx) => {
-          prev[idx] += Number(valor) || 0;
+          prev[idx] += (Number(valor) || 0) * factor;
         });
         acumuladosSumavarios.set(clave, prev);
       });
