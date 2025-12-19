@@ -381,10 +381,9 @@
         celda.style.cursor = 'pointer';
         
         celda.addEventListener('click', (evento) => {
+          if (!estado.modoEdicionActivo) return;
           evento.stopPropagation();
-          if (estado.modoEdicionActivo) {
-            activarEdicionEnCelda(celda);
-          }
+          activarEdicionEnCelda(celda);
         });
 
         // Detectar cambios directamente (por si el código carga datos vía JS)
@@ -408,6 +407,7 @@
         celdaCuenta.style.cursor = 'text';
         celdaCuenta.dataset.columnaClave = 'cuenta';
         celdaCuenta.addEventListener('click', (ev) => {
+          if (!estado.modoEdicionActivo) return;
           ev.stopPropagation();
           activarEdicionTextoEnCelda(celdaCuenta);
         });
@@ -418,15 +418,16 @@
         celdaNombre.style.cursor = 'text';
         celdaNombre.dataset.columnaClave = 'descripcion';
         celdaNombre.addEventListener('click', (ev) => {
+          if (!estado.modoEdicionActivo) return;
           ev.stopPropagation();
           activarEdicionTextoEnCelda(celdaNombre);
         });
       }
     });
   }
-
   /**
-   * Activar modo edición en una celda específica
+   * Activar modo edicion en una celda numerica.
+   * Requiere haber habilitado el modo edicion global.
    */
   function activarEdicionEnCelda(celda) {
     if (!celda || !estado.modoEdicionActivo) return;
@@ -439,14 +440,12 @@
       valorRestauracion: display
     });
   }
-
   /**
-   * Activar edición textual (cuenta/descripcion) en una celda
-   * NOTA: CUENTAS y DESCRIPCION se pueden editar SIEMPRE (no requieren modo edición activo)
-   * porque NO se insertan a COI - solo son para visualización/organización local
+   * Activar edicion textual (cuenta/descripcion) en una celda.
+   * Requiere modo edicion activo; aplica a ajustes de layout locales.
    */
   function activarEdicionTextoEnCelda(celda) {
-    if (!celda) return;
+    if (!celda || !estado.modoEdicionActivo) return;
     if (editorState.celda === celda) return;
     const valor = celda.textContent?.trim() || '';
     const opciones = { tipo: 'texto' };
@@ -814,30 +813,27 @@
     
     console.log('🧹 Cambios limpiados');
   }
-
   /**
-   * Activar modo edición global
+   * Activar modo edicion global.
+   * Habilita clicks en celdas segun el modo actual.
    */
   function activarModoEdicion(tabla) {
     if (!tabla) return;
-    
-    // Si es modo soloLayout, NO activar edición numérica (solo cuenta/descripción siempre editables)
-    if (estado.soloLayout) {
-      console.log('ℹ️ ModoEdicionPresupuesto: soloLayout activo, cuenta/descripción siempre editables');
-      return;
-    }
-    
+
     estado.modoEdicionActivo = true;
     tabla.classList.add('modo-edicion-activo');
-    
-    // Mostrar hint visual
+
     const celdas = tabla.querySelectorAll(`.${CLASE_EDITABLE}`);
     celdas.forEach((celda) => {
+      if (estado.soloLayout && celda.dataset.mes) return;
       celda.style.cursor = 'pointer';
       celda.title = 'Click para editar';
     });
-    
-    console.log('🟢 ModoEdicionPresupuesto: ACTIVADO (celdas numéricas editables)');
+
+    const mensaje = estado.soloLayout
+      ? 'ModoEdicionPresupuesto: ACTIVADO (solo layout: cuenta/descripcion editables)'
+      : 'ModoEdicionPresupuesto: ACTIVADO (celdas numericas editables)';
+    console.log(mensaje);
   }
 
   /**
@@ -845,24 +841,17 @@
    */
   function desactivarModoEdicion(tabla) {
     if (!tabla) return;
-    
-    // Si es modo soloLayout, NO desactivar (no hay nada que desactivar)
-    if (estado.soloLayout) {
-      console.log('ℹ️ ModoEdicionPresupuesto: soloLayout, cuenta/descripción siempre editables');
-      return;
-    }
-    
+
     estado.modoEdicionActivo = false;
     tabla.classList.remove('modo-edicion-activo');
-    
-    // Limpiar cualquier edición en curso
+
     const editando = tabla.querySelector(`.${CLASE_EDITANDO}`);
     if (editando) {
       editando.textContent = editando.querySelector('input')?.value || '';
       editando.classList.remove(CLASE_EDITANDO);
     }
-    
-    console.log('🛑 Modo edición DESACTIVADO');
+
+    console.log('ModoEdicionPresupuesto: modo edicion desactivado');
   }
 
   // CONTEXT MENU: Agregar/Eliminar filas y secciones
@@ -1119,7 +1108,7 @@
     },
 
     /**
-     * Activar modo edición
+     * Activar modo edicion (wrapper publico).
      */
     activar: function(selectorTabla) {
       const { tabla, selectorUsado } = resolverTabla(selectorTabla || estado.selectorTabla);

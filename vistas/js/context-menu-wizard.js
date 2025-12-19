@@ -88,7 +88,7 @@
       // Encontrar la fila más cercana
       const row = e.target.closest('tr');
       if (!row) return;
-      if (!this.canModifyStructure()) return;
+      if (!this.canModifyStructure(false)) return;
       e.preventDefault();
 
       this.currentRow = row;

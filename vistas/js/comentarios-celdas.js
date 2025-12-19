@@ -218,6 +218,7 @@
     modulo: (document.body?.dataset?.modulo || 'MODULO').toString().toUpperCase(),
     anio: obtenerAnioActivo(),
     empresaId: window.Sesion?.obtenerEmpresaActiva?.()?.id || null,
+    capitulo: null,
     parentReply: null
   };
 
@@ -252,10 +253,11 @@
     state.celdaLabel = td.innerText.trim().slice(0, 80);
     state.anio = obtenerAnioActivo();
     state.empresaId = window.Sesion?.obtenerEmpresaActiva?.()?.id || null;
+    state.capitulo = window.CapitulosModulos?.obtenerCapituloPorEmpresa?.(state.empresaId) || null;
     refs.titulo.textContent = 'Comentarios de celda';
-    refs.subtitulo.textContent = `${state.celdaLabel || 'Celda seleccionada'} · ${state.celdaId}`;
-    abrirModal();
+    refs.subtitulo.textContent = `${state.celdaLabel || 'Celda seleccionada'} ú ${state.celdaId}`;
   };
+
 
   const renderComentario = (comentario) => {
     const wrap = document.createElement('div');
@@ -304,6 +306,7 @@
         celdaId: state.celdaId
       });
       if (state.anio) params.append('anio', state.anio);
+      if (state.capitulo) params.append('capitulo', state.capitulo);
       const res = await fetch(`${API_BASE}/comentarios?${params.toString()}`, {
         headers: headersAuth(),
         credentials: 'include'
@@ -333,6 +336,7 @@
       texto,
       anio: state.anio,
       empresaId: state.empresaId,
+      capitulo: state.capitulo,
       parentId: state.parentReply || null
     };
     try {

@@ -112,6 +112,7 @@
     'nomina'
   ]);
 
+  // Módulos sin operaciones automáticas (se usa la configuración tal como viene del layout/DB)
   const MODULOS_SIN_OPERACIONES_AUTOMATICAS = new Set([
     'membresia',
     'eventos',
@@ -184,7 +185,19 @@
   };
 
 
-  const REGLAS_OPERACIONES_MODULO = {};
+  // Reglas manuales: solo aplicamos para Eventos, el resto respeta el layout/DB.
+  const REGLAS_OPERACIONES_MODULO = {
+    eventos: {
+      default: [
+        // Ingresos Boletaje/Patrocinios -> resultado operativo y final
+        { match: /INGRESOS/i, sumavarios: 'Resultado Operativo Eventos', sumavarios2: 'Resultado Eventos' },
+        // Costos y Gastos Eventos -> resultado operativo y final (signo de gasto lo maneja el nombre)
+        { match: /COSTOS\s+Y\s+GASTOS\s+EVENTOS/i, sumavarios: 'Resultado Operativo Eventos', sumavarios2: 'Resultado Eventos' },
+        // Gastos Administrativos -> afecta solo el resultado final
+        { match: /GASTOS\s+ADMINISTRATIVOS/i, sumavarios2: 'Resultado Eventos' }
+      ]
+    }
+  };
 
   const obtenerReglaModulo = (moduloClave) => {
     const clave = normalizarModuloClave(moduloClave || '');
@@ -197,7 +210,25 @@
     resultado: `RESULTADO ${etiquetaVisible}`
   });
 
-  const aplicarOperacionesPorModulo = (moduloClave, seccionNombre, configuracionActual = null) => configuracionActual;
+  // Aplica reglas manuales (solo Eventos); el resto se respeta tal como viene del layout/DB.
+  const aplicarOperacionesPorModulo = (moduloClave, seccionNombre, configuracionActual = null) => {
+    if (!configuracionActual) return configuracionActual;
+    const reglasModulo = obtenerReglaModulo(moduloClave);
+    if (!reglasModulo || !Array.isArray(reglasModulo.default)) return configuracionActual;
+
+    const seccionNorm = normalizarTexto(seccionNombre);
+    const regla = reglasModulo.default.find((r) => r.match && r.match.test(seccionNorm));
+    if (!regla) return configuracionActual;
+
+    const limpio = { ...configuracionActual };
+    if (regla.sumavarios && !limpio.sumRowSumavarios) {
+      limpio.sumRowSumavarios = regla.sumavarios;
+    }
+    if (regla.sumavarios2 && !limpio.sumRowSumavarios2) {
+      limpio.sumRowSumavarios2 = regla.sumavarios2;
+    }
+    return limpio;
+  };
 
   const esModuloEditable = (moduloClave) => MODULOS_LAYOUT_EDITABLE.has(normalizarModuloClave(moduloClave || ''));
 
@@ -849,88 +880,156 @@
     fila.cells[1].textContent = nombre;
   };
 
-  /**
-   * Recalcula los totales de una fila de presupuesto
-   *
-   * Esta funcion suma horizontalmente los valores de presupuesto y real
-   * de todos los meses para calcular los acumulados de una cuenta especifica.
-   *
-   * Calculos que realiza:
+  /**
+
+   * Recalcula los totales de una fila de presupuesto
+
+   *
+
+   * Esta funcion suma horizontalmente los valores de presupuesto y real
+
+   * de todos los meses para calcular los acumulados de una cuenta especifica.
+
+   *
+
+   * Calculos que realiza:
+
    * - Total Presupuesto: Suma de budget-ene hasta budget-[mes cerrado] (excluye el mes en curso)
    * - Total Real: Suma de real-ene hasta real-[mes cerrado] (excluye el mes en curso)
    * - Presupuesto Anual: Suma completa de todas las columnas budget-[mes]
    * - Mensual: Valor real del ultimo mes cerrado (budget-monthly)
-   *
-   * @param {HTMLTableRowElement} fila - Fila de la tabla a recalcular
-   */
-  const recalcularTotalesFilaPresupuesto = (fila) => {
-    if (!fila) return;
-    const cuenta = fila.dataset.cuenta21 || '';
-    const almacen = estadoModulo.valoresPorCuenta.get(cuenta) || {};
-
-    // Obtener el mes actual (0-11, donde 0=enero, 11=diciembre)
+   *
+
+   * @param {HTMLTableRowElement} fila - Fila de la tabla a recalcular
+
+   */
+
+  const recalcularTotalesFilaPresupuesto = (fila) => {
+
+    if (!fila) return;
+
+    const cuenta = fila.dataset.cuenta21 || '';
+
+    const almacen = estadoModulo.valoresPorCuenta.get(cuenta) || {};
+
+
+
+    // Obtener el mes actual (0-11, donde 0=enero, 11=diciembre)
+
     const limiteMes = estadoModulo.mesActualIndex ?? obtenerIndicePeriodoActual();
     const mesActualIndex = Number.isInteger(limiteMes) ? limiteMes : -1;
     const mesActualClave = mesActualIndex >= 0 ? MESES[mesActualIndex] : null;
-
-    let totalPresupuestoAcumulado = 0;
-    let totalPresupuestoAnual = 0;
-    let totalRealAcumulado = 0;
-
-    // Sumar todos los meses desde enero hasta el mes actual
-    MESES.forEach((mes, index) => {
-      const presupuestoMes = Number(almacen[`budget-${mes}`]) || 0;
-      const realMes = Number(almacen[`real-${mes}`]) || 0;
-      totalPresupuestoAnual += presupuestoMes;
-      // Acumular solo hasta el mes actual
+
+
+    let totalPresupuestoAcumulado = 0;
+
+    let totalPresupuestoAnual = 0;
+
+    let totalRealAcumulado = 0;
+
+
+
+    // Sumar todos los meses desde enero hasta el mes actual
+
+    MESES.forEach((mes, index) => {
+
+      const presupuestoMes = Number(almacen[`budget-${mes}`]) || 0;
+
+      const realMes = Number(almacen[`real-${mes}`]) || 0;
+
+      totalPresupuestoAnual += presupuestoMes;
+
+      // Acumular solo hasta el mes actual
+
       if (mesActualIndex >= 0 && index <= mesActualIndex) {
         totalPresupuestoAcumulado += presupuestoMes;
         totalRealAcumulado += realMes;
       }
     });
 
-    // Obtener valor del mes actual especificamente
+    // Obtener valor del mes actual especificamente
+
     const realMesActual = mesActualClave ? Number(almacen[`real-${mesActualClave}`]) || 0 : 0;
-
-    // Actualizar celda de total-budget: acumulado desde enero hasta mes actual
-    if (estadoModulo.columnas['total-budget'] != null) {
-      const celdaTotal = fila.cells[estadoModulo.columnas['total-budget']];
-      if (celdaTotal) {
-        celdaTotal.textContent = formatearNumero(totalPresupuestoAcumulado);
-      }
-    }
-
-    // Actualizar celda budget-annual: suma total del presupuesto anual
-    if (estadoModulo.columnas['budget-annual'] != null) {
-      const celdaAnnual = fila.cells[estadoModulo.columnas['budget-annual']];
-      if (celdaAnnual) {
-        celdaAnnual.textContent = formatearNumero(totalPresupuestoAnual);
-      }
-    }
-
-    // Actualizar celda budget-monthly: real del mes actual
-    if (estadoModulo.columnas['budget-monthly'] != null) {
-      const celdaMensual = fila.cells[estadoModulo.columnas['budget-monthly']];
-      if (celdaMensual) {
-        celdaMensual.textContent = formatearNumero(realMesActual);
-      }
-    }
-
-    // Actualizar celda total-real: acumulado desde enero hasta mes actual
-    if (estadoModulo.columnas['total-real'] != null) {
-      const celdaRealTotal = fila.cells[estadoModulo.columnas['total-real']];
-      if (celdaRealTotal) {
-        celdaRealTotal.textContent = formatearNumero(totalRealAcumulado);
-      }
-    }
-
-    almacen['total-budget'] = totalPresupuestoAcumulado;
-    almacen['budget-annual'] = totalPresupuestoAnual;
-    almacen['budget-monthly'] = realMesActual;
-    almacen['total-real'] = totalRealAcumulado;
-    estadoModulo.valoresPorCuenta.set(cuenta, almacen);
-  };
-
+
+
+    // Actualizar celda de total-budget: acumulado desde enero hasta mes actual
+
+    if (estadoModulo.columnas['total-budget'] != null) {
+
+      const celdaTotal = fila.cells[estadoModulo.columnas['total-budget']];
+
+      if (celdaTotal) {
+
+        celdaTotal.textContent = formatearNumero(totalPresupuestoAcumulado);
+
+      }
+
+    }
+
+
+
+    // Actualizar celda budget-annual: suma total del presupuesto anual
+
+    if (estadoModulo.columnas['budget-annual'] != null) {
+
+      const celdaAnnual = fila.cells[estadoModulo.columnas['budget-annual']];
+
+      if (celdaAnnual) {
+
+        celdaAnnual.textContent = formatearNumero(totalPresupuestoAnual);
+
+      }
+
+    }
+
+
+
+    // Actualizar celda budget-monthly: real del mes actual
+
+    if (estadoModulo.columnas['budget-monthly'] != null) {
+
+      const celdaMensual = fila.cells[estadoModulo.columnas['budget-monthly']];
+
+      if (celdaMensual) {
+
+        celdaMensual.textContent = formatearNumero(realMesActual);
+
+      }
+
+    }
+
+
+
+    // Actualizar celda total-real: acumulado desde enero hasta mes actual
+
+    if (estadoModulo.columnas['total-real'] != null) {
+
+      const celdaRealTotal = fila.cells[estadoModulo.columnas['total-real']];
+
+      if (celdaRealTotal) {
+
+        celdaRealTotal.textContent = formatearNumero(totalRealAcumulado);
+
+      }
+
+    }
+
+
+
+    almacen['total-budget'] = totalPresupuestoAcumulado;
+
+    almacen['budget-annual'] = totalPresupuestoAnual;
+
+    almacen['budget-monthly'] = realMesActual;
+
+    almacen['total-real'] = totalRealAcumulado;
+
+    estadoModulo.valoresPorCuenta.set(cuenta, almacen);
+
+  };
+
+
+
   const establecerValorCelda = (fila, clave, valor) => {
     const indice = estadoModulo.columnas[clave];
     if (indice == null) {
@@ -2927,41 +3026,52 @@
     });
     if (errores.length) console.warn('⚠️ Errores en recalcularSumas:', errores);
 
+
     // PASO 2: Calcular sumavarios (suma de sum-rows agrupados por etiqueta)
     try {
       const acumuladosSumavarios = new Map();
-      
-      // Agrupar secciones por su etiqueta sumavarios
-      secciones.forEach((seccion) => {
-        const clave = normalizarClave(seccion.sumRowSumavariosTexto || seccion.sumRowSumavarios2Texto);
+      const obtenerCeros = () => Array.from({ length: longitud }, () => 0);
+
+      const acumularEnClave = (clave, seccion) => {
         if (!clave) return;
-        
-        // Acumular sumValues de secciones con la misma etiqueta
-        const prev = acumuladosSumavarios.get(clave) || Array.from({ length: longitud }, () => 0);
+        const prev = acumuladosSumavarios.get(clave) || obtenerCeros();
         const factor = Number.isFinite(seccion.factor) ? seccion.factor : 1;
-        (seccion.sumValues || Array.from({ length: longitud }, () => 0)).forEach((valor, idx) => {
+        const origen = seccion.sumValues || obtenerCeros();
+        origen.forEach((valor, idx) => {
           prev[idx] += (Number(valor) || 0) * factor;
         });
         acumuladosSumavarios.set(clave, prev);
+      };
+      
+      // Agrupar secciones por sus etiquetas sumavarios (incluye sumRowSumavarios y sumRowSumavarios2)
+      secciones.forEach((seccion) => {
+        const claves = [
+          normalizarClave(seccion.sumRowSumavariosTexto),
+          normalizarClave(seccion.sumRowSumavarios2Texto)
+        ].filter(Boolean);
+        if (!claves.length) return;
+        Array.from(new Set(claves)).forEach((clave) => acumularEnClave(clave, seccion));
       });
       
       // Actualizar filas sumavarios en el DOM
       secciones.forEach((seccion) => {
-        const clave = normalizarClave(seccion.sumRowSumavariosTexto || seccion.sumRowSumavarios2Texto);
-        if (!clave) return;
-        const valores = acumuladosSumavarios.get(clave) || Array.from({ length: longitud }, () => 0);
+        const clavePreferida =
+          normalizarClave(seccion.sumRowSumavariosTexto) ||
+          normalizarClave(seccion.sumRowSumavarios2Texto);
+        if (!clavePreferida) return;
+        const valores = acumuladosSumavarios.get(clavePreferida) || obtenerCeros();
         seccion.sumavariosValues = valores;
       });
       meta.sumavariosRows?.forEach((fila, clave) => {
         try {
-          const valores = acumuladosSumavarios.get(clave) || Array.from({ length: longitud }, () => 0);
+          const valores = acumuladosSumavarios.get(clave) || obtenerCeros();
           if (fila && fila.parentNode) asignarValoresNumericos(fila, valores);
         } catch (e) {
-          console.warn('⚠️ Error asignando sumavarios a fila:', e);
+          console.warn('?? Error asignando sumavarios a fila:', e);
         }
       });
     } catch (e) {
-      console.warn('⚠️ Error en fase sumavarios:', e);
+      console.warn('?? Error en fase sumavarios:', e);
     }
 
     // result-row: suma solamente los sum-row de todas las secciones con la misma etiqueta de resultado
