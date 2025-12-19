@@ -1,4 +1,4 @@
-(() => {
+﻿(() => {
   const estilo = document.createElement('style');
   estilo.textContent = `
     .comentarios-floating-btn {
@@ -221,6 +221,8 @@
     capitulo: null,
     parentReply: null
   };
+  let selectedCell = null;
+  let actionMenu = null;
 
   const refs = {
     lista: modal.querySelector('#comentariosLista'),
@@ -239,11 +241,13 @@
   modal.querySelector('#comentariosCerrar').addEventListener('click', cerrarModal);
   modalBackdrop.addEventListener('click', cerrarModal);
 
-  const abrirModal = () => {
+  const abrirModal = ({ focusInput = false } = {}) => {
     modal.style.display = 'flex';
     modalBackdrop.style.display = 'block';
     cargarComentarios();
-    refs.input.focus();
+    if (focusInput) {
+      setTimeout(() => refs.input?.focus(), 30);
+    }
   };
 
   const setCeldaActual = (td) => {
@@ -388,24 +392,134 @@
     botonFlotante.className = 'comentarios-floating-btn';
     botonFlotante.innerHTML = `<i class="bi bi-chat-dots"></i> Comentarios`;
     botonFlotante.addEventListener('click', () => {
+      // Si no hay celda seleccionada, seleccionar la primera visible
       if (!state.celdaId) {
-        alert('Selecciona primero una celda de la tabla para ver sus comentarios.');
-        return;
+        const primera = document.querySelector('.table-comparison tbody td');
+        if (primera) {
+          selectCell(primera, { openMenu: false, scroll: false });
+        }
       }
       abrirModal();
     });
     document.body.appendChild(botonFlotante);
   }
 
+  const hideActionMenu = () => {
+    if (actionMenu) {
+      actionMenu.remove();
+      actionMenu = null;
+    }
+  };
+
+  const showActionMenu = (td) => {
+    hideActionMenu();
+    const rect = td.getBoundingClientRect();
+    actionMenu = document.createElement('div');
+    actionMenu.style.position = 'absolute';
+    actionMenu.style.zIndex = '1500';
+    actionMenu.style.background = '#fff';
+    actionMenu.style.border = '1px solid #d9d9d9';
+    actionMenu.style.boxShadow = '0 8px 20px rgba(0,0,0,0.18)';
+    actionMenu.style.borderRadius = '10px';
+    actionMenu.style.padding = '8px';
+    actionMenu.style.display = 'flex';
+    actionMenu.style.gap = '6px';
+    actionMenu.style.fontSize = '0.9rem';
+    actionMenu.innerHTML = `
+      <button type="button" class="btn btn-sm btn-light" data-action="ver">Ver comentarios</button>
+      <button type="button" class="btn btn-sm btn-primary" data-action="agregar">Agregar</button>
+    `;
+    document.body.appendChild(actionMenu);
+    actionMenu.style.top = `${rect.bottom + window.scrollY + 4}px`;
+    actionMenu.style.left = `${rect.left + window.scrollX}px`;
+    actionMenu.querySelector('[data-action="ver"]').addEventListener('click', (e) => {
+      e.stopPropagation();
+      abrirModal();
+      hideActionMenu();
+    });
+    actionMenu.querySelector('[data-action="agregar"]').addEventListener('click', (e) => {
+      e.stopPropagation();
+      abrirModal({ focusInput: true });
+      hideActionMenu();
+    });
+  };
+
+  const selectCell = (td, { openMenu = true, scroll = true } = {}) => {
+    if (!td) return;
+    if (selectedCell) {
+      selectedCell.classList.remove('selected');
+    }
+    selectedCell = td;
+    selectedCell.classList.add('selected');
+    selectedCell.setAttribute('tabindex', '-1');
+    if (scroll) {
+      selectedCell.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    }
+    selectedCell.focus({ preventScroll: true });
+    setCeldaActual(selectedCell);
+    if (openMenu) showActionMenu(selectedCell);
+  };
+
+  const findNextCell = (td, dir) => {
+    const row = td?.parentElement;
+    const table = td?.closest('table');
+    if (!row || !table) return null;
+    const rows = Array.from(table.querySelectorAll('tbody tr')).filter(r => r.offsetParent !== null);
+    const rowIndex = rows.indexOf(row);
+    if (rowIndex === -1) return null;
+    const visibleCells = (r) => Array.from(r.querySelectorAll('td')).filter(c => c.offsetParent !== null);
+    const cellList = visibleCells(row);
+    const colIndex = cellList.indexOf(td);
+    if (colIndex === -1) return null;
+    if (dir === 'left' || dir === 'right') {
+      const next = cellList[colIndex + (dir === 'left' ? -1 : 1)];
+      return next || null;
+    }
+    let nextRowIndex = dir === 'up' ? rowIndex - 1 : rowIndex + 1;
+    while (nextRowIndex >= 0 && nextRowIndex < rows.length) {
+      const candidateRow = rows[nextRowIndex];
+      const cells = visibleCells(candidateRow);
+      if (cells[colIndex]) return cells[colIndex];
+      nextRowIndex += dir === 'up' ? -1 : 1;
+    }
+    return null;
+  };
+
+  const handleArrowNavigation = (event) => {
+    if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+    if (event.target.closest('.comentarios-modal')) return;
+    const tag = (event.target.tagName || '').toLowerCase();
+    if (['input', 'textarea', 'select', 'button'].includes(tag)) return;
+    if (event.target.isContentEditable) return;
+    event.preventDefault();
+    if (!selectedCell) {
+      const primera = document.querySelector('.table-comparison tbody td');
+      if (primera) selectCell(primera, { openMenu: false, scroll: false });
+      return;
+    }
+    const dirMap = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' };
+    const next = findNextCell(selectedCell, dirMap[event.key]);
+    if (next) {
+      selectCell(next, { openMenu: false });
+    }
+  };
+
   const registrarCeldas = () => {
     const celdas = document.querySelectorAll('.table-comparison tbody td');
     celdas.forEach((td) => {
       td.addEventListener('click', (e) => {
         e.stopPropagation();
-        setCeldaActual(td);
+        selectCell(td);
       });
     });
   };
+
+  document.addEventListener('keydown', handleArrowNavigation);
+  document.addEventListener('click', (e) => {
+    if (actionMenu && !actionMenu.contains(e.target)) {
+      hideActionMenu();
+    }
+  });
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', registrarCeldas);

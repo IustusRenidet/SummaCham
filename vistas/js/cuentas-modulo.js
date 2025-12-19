@@ -3074,6 +3074,7 @@
       console.warn('?? Error en fase sumavarios:', e);
     }
 
+
     // result-row: suma solamente los sum-row de todas las secciones con la misma etiqueta de resultado
     // Aplicar factor por sección (ingresos = +1, gastos = -1 o user-defined operacionFactor)
     try {
@@ -3089,17 +3090,55 @@
         });
         acumuladosResultado.set(clave, prev);
       });
+
+      // Ajuste: Gastos Generales (GDL/NE/NO) debe usar la fórmula
+      // (Otros Ingresos vs Gastos) - (Suma de Gastos Generales) - (Suma Depreciaciones y Amortizaciones) - (Total GA)
+      const esGastosGenerales = normalizarClave(estadoModulo.moduloClave) === 'gastosgenerales';
+      const capituloNorm = normalizarClave(estadoModulo.capitulo || '');
+      const esCdMx = capituloNorm === normalizarClave('CIUDAD DE MEXICO') || capituloNorm === normalizarClave('CIUDAD DE MÉXICO');
+      if (esGastosGenerales && !esCdMx) {
+        const claveOtrosVs = normalizarClave('Otros Ingresos vs Gastos');
+        const cero = Array.from({ length: longitud }, () => 0);
+        const sumarSecciones = (predicado) => {
+          const acumulado = Array.from({ length: longitud }, () => 0);
+          secciones.filter(predicado).forEach((sec) => {
+            const origen = sec.sumValues || cero;
+            const factor = Number.isFinite(sec.factor) ? sec.factor : 1;
+            origen.forEach((valor, idx) => {
+              acumulado[idx] += (Number(valor) || 0) * factor;
+            });
+          });
+          return acumulado;
+        };
+
+        const otrosVs = sumarSecciones((sec) => {
+          const clave = normalizarClave(sec.sumRowSumavariosTexto) || normalizarClave(sec.sumRowSumavarios2Texto);
+          return clave === claveOtrosVs;
+        });
+        const gastosGenerales = sumarSecciones((sec) => /GASTOS\s+GENERALES/i.test(sec.tituloVisible || sec.seccion || ''));
+        const depreciaciones = sumarSecciones((sec) => /DEPRECIACIONES/i.test(sec.tituloVisible || sec.seccion || ''));
+        const totalGa = sumarSecciones((sec) => /GA\s+CAPITULO/i.test(sec.tituloVisible || sec.seccion || ''));
+
+        const totalValores = otrosVs.map((v, idx) => (Number(v) || 0) +
+          (Number(gastosGenerales[idx]) || 0) +
+          (Number(depreciaciones[idx]) || 0) +
+          (Number(totalGa[idx]) || 0));
+
+        acumuladosResultado.set(normalizarClave('Total'), totalValores);
+      }
+
       meta.resultRows?.forEach((fila, clave) => {
         try {
           const valores = acumuladosResultado.get(clave) || Array.from({ length: longitud }, () => 0);
           if (fila && fila.parentNode) asignarValoresNumericos(fila, valores);
         } catch (e) {
-          console.warn('⚠️ Error asignando result-row:', e);
+          console.warn('?? Error asignando result-row:', e);
         }
       });
     } catch (e) {
-      console.warn('⚠️ Error en fase resultado:', e);
+      console.warn('?? Error en fase resultado:', e);
     }
+
   };
 
   const manejarCambioCuenta = (fila, celda) => {
