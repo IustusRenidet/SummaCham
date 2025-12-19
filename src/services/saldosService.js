@@ -80,7 +80,7 @@ const mapRow = (r) => {
     out[`${clave}_acum`] = Number(datosMes.acumulado ?? 0);
   });
   const dicAcum = Number(meses.dic?.acumulado ?? 0);
-  out.dic = dicAcum;
+  // Dic: mantener el movimiento mensual (ya asignado en el loop). dic_acum es el acumulado YTD.
   out.dic_acum = dicAcum;
   out.anual = Number(anual ?? dicAcum);
   out.ajuste14 = Number(r.AJU14 ?? 0);

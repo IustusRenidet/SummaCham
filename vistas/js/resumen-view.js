@@ -796,7 +796,7 @@
       asignarPrimero(['OPERATING RESULTS MEXICO'], opResults.mex);
       asignarPrimero(['OPERATING RESULTS GUADALAJARA', 'GDL OPERATING RESULTS'], opResults.gdl);
       asignarPrimero(['OPERATING RESULTS MONTERREY', 'MTY OPERATING RESULTS'], opResults.mty);
-      asignarPrimero(['OPERATING RESULTS NORTHWEST', 'OPERATING RESULTS NO', 'OPERATING RESULTS NOROESTE'], opResults.nw);
+      asignarPrimero(['OPERATING RESULTS NORTHWEST', 'OPERATING RESULTS NO', 'OPERATING RESULTS NOROESTE', 'NO OPERATING RESULTS'], opResults.nw);
       asignarPrimero(['OPERATING RESULTS NE', 'NE OPERATING RESULTS', 'OPERATING RESULTS NORESTE'], opResults.ne);
 
       // NET RESULTS por plaza según la lógica indicada
@@ -861,7 +861,7 @@
           },
           { op: ['OPERATING RESULTS MONTERREY', 'MTY OPERATING RESULTS'], mc: totalesCero(), other: otherMty, labels: ['NET RESULTS MONTERREY', 'MTY NET RESULTS'] },
           {
-            op: ['OPERATING RESULTS NORTHWEST', 'OPERATING RESULTS NO', 'OPERATING RESULTS NOROESTE'],
+            op: ['OPERATING RESULTS NORTHWEST', 'OPERATING RESULTS NO', 'OPERATING RESULTS NOROESTE', 'NO OPERATING RESULTS'],
             mc: totalesCero(),
             other: otherNw,
             labels: ['NET RESULTS NORTHWEST', 'NET RESULTS NO', 'NET RESULTS NOROESTE']
@@ -883,7 +883,7 @@
         });
       } else if (esCapituloNoroeste) {
         netResultsDefs.push({
-          op: ['OPERATING RESULTS NORTHWEST', 'OPERATING RESULTS NO', 'OPERATING RESULTS NOROESTE'],
+          op: ['OPERATING RESULTS NORTHWEST', 'OPERATING RESULTS NO', 'OPERATING RESULTS NOROESTE', 'NO OPERATING RESULTS'],
           mc: memberCentricityNw,
           other: otherNw,
           labels: ['NET RESULTS', 'NET RESULTS NORTHWEST', 'NET RESULTS NO', 'NET RESULTS NOROESTE']
@@ -899,7 +899,7 @@
           },
           { op: ['OPERATING RESULTS MONTERREY', 'MTY OPERATING RESULTS'], mc: totalesCero(), other: otherMty, labels: ['NET RESULTS MONTERREY', 'MTY NET RESULTS'] },
           {
-            op: ['OPERATING RESULTS NORTHWEST', 'OPERATING RESULTS NO', 'OPERATING RESULTS NOROESTE'],
+            op: ['OPERATING RESULTS NORTHWEST', 'OPERATING RESULTS NO', 'OPERATING RESULTS NOROESTE', 'NO OPERATING RESULTS'],
             mc: memberCentricityNw,
             other: otherNw,
             labels: ['NET RESULTS NORTHWEST', 'NET RESULTS NO', 'NET RESULTS NOROESTE']
@@ -926,10 +926,18 @@
           [...EXPENSE_LABELS.mex, ...EXPENSE_LABELS.gdl, ...EXPENSE_LABELS.mty, ...EXPENSE_LABELS.nw]
         ));
         asignar('CONSOLIDATED OPERATING RESULTS', combinar(
-          ['OPERATING RESULTS MEXICO', 'OPERATING RESULTS GUADALAJARA', 'OPERATING RESULTS MONTERREY', 'OPERATING RESULTS NORTHWEST']
+          [
+            'OPERATING RESULTS MEXICO',
+            'OPERATING RESULTS GUADALAJARA',
+            'OPERATING RESULTS MONTERREY',
+            'OPERATING RESULTS NORTHWEST',
+            'OPERATING RESULTS NO',
+            'OPERATING RESULTS NOROESTE',
+            'NO OPERATING RESULTS'
+          ]
         ));
         asignar('CONSOLIDATED NET RESULTS', combinar(
-          ['NET RESULTS MEXICO', 'NET RESULTS GUADALAJARA', 'NET RESULTS MONTERREY', 'NET RESULTS NORTHWEST']
+          ['NET RESULTS MEXICO', 'NET RESULTS GUADALAJARA', 'NET RESULTS MONTERREY', 'NET RESULTS NORTHWEST', 'NET RESULTS NO', 'NET RESULTS NOROESTE']
         ));
       }
     };
@@ -1212,8 +1220,8 @@
     });
   };
 
-  const cargarAniosDisponibles = async (empresaId) => {
-    if (!yearSelect) return [];
+const cargarAniosDisponibles = async (empresaId) => {
+  if (!yearSelect) return [];
 
     try {
       const response = await fetch(`${API_ANIOS}?empresaId=${encodeURIComponent(empresaId)}`, {
@@ -1259,12 +1267,13 @@
 
   const fetchResumen = async (empresaId, anio, mes) => {
     if (!empresaId || !anio) return;
+    const mesEntero = Number(mes);
     setStatusRow('Cargando resumen financiero...');
-    actualizarMesContexto(mes);
+    actualizarMesContexto(Number.isInteger(mesEntero) ? mesEntero : mes);
     try {
       const params = new URLSearchParams({ empresaId: empresaId, anio: Number(anio) });
-    if (Number.isInteger(mes)) {
-      params.set('mes', String(mes));
+    if (Number.isInteger(mesEntero)) {
+      params.set('mes', String(mesEntero));
     }
     
     // Usar capítulo derivado de la empresa activa
@@ -1281,13 +1290,21 @@
       const datos = await respuesta.json();
       const anioNumero = Number(anio);
       aplicarLayoutPersistente(empresaId, anioNumero, datos?.resumen || []);
-      renderResumen(datos.resumen || [], mes);
+      renderResumen(datos.resumen || [], mesEntero);
       actualizarEtiquetasAnio(anioNumero);
       disposeStatus();
     } catch (error) {
       console.error('Error resumen:', error);
       setStatusRow(error.message || 'No fue posible cargar el resumen.');
     }
+  };
+
+  const recargarSeleccionActual = async () => {
+    if (!empresaActual?.id) return;
+    const anio = leerAnioSeleccionado();
+    const mes = leerMesSeleccionado();
+    if (!Number.isInteger(Number(anio)) || !Number.isInteger(Number(mes))) return;
+    await fetchResumen(empresaActual.id, anio, mes);
   };
 
   const aplicarEmpresaResumen = async (empresaId) => {
@@ -1412,6 +1429,8 @@
       });
     }
     initToggleColumns();
+    // Forzar recarga con los valores actuales (evita desalineos en la primera carga)
+    await recargarSeleccionActual();
 
     window.addEventListener(Sesion.EVENTO_EMPRESA, async (event) => {
       const nuevaEmpresa = event?.detail?.empresa;
