@@ -30,7 +30,21 @@ const mapAutor = (row) => ({
   apellidoSegundo: row.apellido_segundo
 });
 
-const listarComentarios = ({ empresaId, modulo, celdaId, anio }) => {
+const resumirComentariosPorModulo = ({ empresaId, modulo, anio, capitulo }) => {
+  const condiciones = ['c.modulo = ?'];
+  const params = [modulo];
+  if (empresaId) {
+    condiciones.push('(c.empresa_id IS NULL OR c.empresa_id = ?)');
+    params.push(empresaId);
+  }
+  if (Number.isInteger(anio)) {
+    condiciones.push('(c.anio IS NULL OR c.anio = ?)');
+    params.push(anio);
+  }
+  if (capitulo) {
+    condiciones.push('(c.capitulo IS NULL OR c.capitulo = ?)');
+    params.push(capitulo);
+  }
   const query = db.prepare(`
     SELECT c.id, c.empresa_id AS empresaId, c.modulo, c.celda_id AS celdaId,
            c.anio, c.capitulo, c.texto, c.parent_id AS parentId,
@@ -38,13 +52,65 @@ const listarComentarios = ({ empresaId, modulo, celdaId, anio }) => {
            u.usuario, u.nombres, u.apellido_primero, u.apellido_segundo
     FROM comentarios_celdas c
     INNER JOIN usuarios u ON u.id = c.creado_por
-    WHERE c.modulo = ?
-      AND c.celda_id = ?
-      AND (c.empresa_id IS NULL OR c.empresa_id = ?)
-      AND (c.anio IS NULL OR c.anio = ?)
+    WHERE ${condiciones.join(' AND ')}
+    ORDER BY c.celda_id ASC, c.creado_en ASC, c.id ASC
+  `);
+  const lista = query.all(...params);
+  const mapa = new Map();
+  lista.forEach((row) => {
+    const existente = mapa.get(row.celdaId) || {
+      celdaId: row.celdaId,
+      empresaId: row.empresaId,
+      modulo: row.modulo,
+      anio: row.anio,
+      capitulo: row.capitulo,
+      totalComentarios: 0,
+      totalActivos: 0,
+      comentarios: [],
+      ultimo: null
+    };
+    const comentario = {
+      id: row.id,
+      texto: row.texto,
+      estado: row.estado,
+      creadoEn: row.creado_en,
+      parentId: row.parentId,
+      autor: mapAutor(row)
+    };
+    existente.totalComentarios += 1;
+    if (row.estado === 'activo') {
+      existente.totalActivos += 1;
+    }
+    existente.comentarios.push(comentario);
+    existente.ultimo = comentario;
+    mapa.set(row.celdaId, existente);
+  });
+  return Array.from(mapa.values());
+};
+
+const listarComentarios = ({ empresaId, modulo, celdaId, anio }) => {
+  const condiciones = ['c.modulo = ?', 'c.celda_id = ?'];
+  const params = [modulo, celdaId];
+  if (empresaId) {
+    condiciones.push('(c.empresa_id IS NULL OR c.empresa_id = ?)');
+    params.push(empresaId);
+  }
+  if (Number.isInteger(anio)) {
+    condiciones.push('(c.anio IS NULL OR c.anio = ?)');
+    params.push(anio);
+  }
+
+  const query = db.prepare(`
+    SELECT c.id, c.empresa_id AS empresaId, c.modulo, c.celda_id AS celdaId,
+           c.anio, c.capitulo, c.texto, c.parent_id AS parentId,
+           c.estado, c.creado_por, c.creado_en,
+           u.usuario, u.nombres, u.apellido_primero, u.apellido_segundo
+    FROM comentarios_celdas c
+    INNER JOIN usuarios u ON u.id = c.creado_por
+    WHERE ${condiciones.join(' AND ')}
     ORDER BY c.creado_en ASC, c.id ASC
   `);
-  return query.all(modulo, celdaId, empresaId || null, anio || null).map((row) => ({
+  return query.all(...params).map((row) => ({
     id: row.id,
     empresaId: row.empresaId,
     modulo: row.modulo,
@@ -149,5 +215,6 @@ module.exports = {
   listarComentarios,
   crearComentario,
   actualizarEstadoComentario,
-  obtenerComentario
+  obtenerComentario,
+  resumirComentariosPorModulo
 };

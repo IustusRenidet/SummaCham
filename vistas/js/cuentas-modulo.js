@@ -365,7 +365,7 @@
           <select id="sectionPrincipalSelect" class="form-select section-modal__input"></select>
           <input id="sectionPrincipalCustom" class="form-control section-modal__input" maxlength="120" placeholder="Nombre del principal" hidden />
           <label class="section-modal__label" for="sectionPrincipalFactor">Factor de operación</label>
-          <input id="sectionPrincipalFactor" type="number" step="0.01" value="1" class="form-control section-modal__input" />
+          <input id="sectionPrincipalFactor" type="number" step="0.01" placeholder="Ej: 1 para sumar, -1 para restar" class="form-control section-modal__input" />
           <div class="form-text">Usa 1 para sumar, -1 para restar, 0.5 para dividir u otro factor personalizado.</div>
           <div id="sectionPrincipalInfo" class="section-modal__info"></div>
 
@@ -458,11 +458,20 @@
       }
       .section-account-row {
         display: grid;
-        grid-template-columns: 1fr 1fr auto;
+        grid-template-columns: 1fr 1fr 1fr auto;
         gap: 8px;
       }
       .section-account-row .form-control {
         margin-bottom: 0;
+      }
+      .section-account-factor-wrapper {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .section-account-factor-wrapper .form-select,
+      .section-account-factor-wrapper .form-control {
+        width: 100%;
       }
       .section-account-row button {
         align-self: center;
@@ -524,9 +533,27 @@
     fila.className = 'section-account-row';
     fila.innerHTML = `
       <input type="text" class="form-control section-account-input" placeholder="Cuenta" maxlength="25" />
-      <input type="text" class="form-control section-account-input" placeholder="Descripción" maxlength="120" />
+      <input type="text" class="form-control section-account-input" placeholder="Descripcion" maxlength="120" />
+      <div class="section-account-factor-wrapper">
+        <select class="form-select section-account-factor" required>
+          <option value="" selected disabled>Operacion</option>
+          <option value="1">Sumar (+1)</option>
+          <option value="-1">Restar (-1)</option>
+          <option value="custom">Personalizado</option>
+        </select>
+        <input type="number" step="0.01" class="form-control section-account-factor-custom d-none" placeholder="Ej: 0.5 o -0.5" />
+      </div>
       <button type="button" aria-label="Eliminar cuenta">&times;</button>
     `;
+    const factorSelect = fila.querySelector('.section-account-factor');
+    const factorCustom = fila.querySelector('.section-account-factor-custom');
+    factorSelect.addEventListener('change', () => {
+      const usarCustom = factorSelect.value === 'custom';
+      factorCustom.classList.toggle('d-none', !usarCustom);
+      if (!usarCustom) {
+        factorCustom.value = '';
+      }
+    });
     fila.querySelector('button').addEventListener('click', () => fila.remove());
     return fila;
   };
@@ -647,12 +674,16 @@
     const titleInput = modal.querySelector('#sectionTitleInput');
     const sumLabelInput = modal.querySelector('#sectionSumLabelInput');
     const groupLabelInput = modal.querySelector('#sectionGroupLabel');
+    const factorInput = modal.querySelector('#sectionPrincipalFactor');
     if (!form || !accountsContainer || !groupToggle || !groupFields) return;
     titleInput.value = '';
     sumLabelInput.value = '';
     groupToggle.checked = false;
     groupFields.hidden = true;
     groupLabelInput.value = '';
+    if (factorInput) {
+      factorInput.value = '';
+    }
     accountsContainer.innerHTML = '';
     accountsContainer.appendChild(crearCampoCuentaFormulario());
     abrirModalAgregarSeccion.actualizarSecciones = () => poblarSelectSeccionesModal();
@@ -725,21 +756,59 @@
     });
     elems.form.addEventListener('submit', (event) => {
       event.preventDefault();
-      const cuentas = Array.from(elems.accountsContainer.querySelectorAll('.section-account-row')).map((row) => {
+      const cuentas = [];
+      let factorInvalido = false;
+      Array.from(elems.accountsContainer.querySelectorAll('.section-account-row')).forEach((row) => {
         const inputs = row.querySelectorAll('input');
-        return {
-          cuenta: inputs[0]?.value.trim() || '',
-          descripcion: inputs[1]?.value.trim() || ''
-        };
-      }).filter((item) => item.cuenta || item.descripcion);
+        const factorSelect = row.querySelector('.section-account-factor');
+        const factorCustomInput = row.querySelector('.section-account-factor-custom');
+        const cuentaValor = inputs[0]?.value.trim() || '';
+        const descripcionValor = inputs[1]?.value.trim() || '';
+        if (!cuentaValor && !descripcionValor) return;
+        const seleccion = factorSelect?.value;
+        if (!seleccion) {
+          factorInvalido = true;
+          return;
+        }
+        let factorValor = null;
+        if (seleccion === 'custom') {
+          const customRaw = factorCustomInput?.value;
+          if (customRaw === undefined || customRaw === null || customRaw === '') {
+            factorInvalido = true;
+            return;
+          }
+          factorValor = Number(customRaw);
+        } else {
+          factorValor = Number(seleccion);
+        }
+        if (!Number.isFinite(factorValor)) {
+          factorInvalido = true;
+          return;
+        }
+        cuentas.push({
+          cuenta: cuentaValor,
+          descripcion: descripcionValor,
+          factor: factorValor
+        });
+      });
       if (!cuentas.length) {
         window.alert('Debes agregar al menos una cuenta para la sección.');
+        return;
+      }
+      if (factorInvalido) {
+        window.alert('Define la operación (sumar, restar o factor personalizado) para cada cuenta.');
         return;
       }
       const titulo = elems.titleInput.value.trim();
       const sumLabel = elems.sumLabelInput.value.trim();
       if (!titulo || !sumLabel) {
         window.alert('El título y la etiqueta del sum row son obligatorios.');
+        return;
+      }
+      const factorSeccionRaw = elems.principalFactor?.value;
+      const factorSeccionValor = factorSeccionRaw === undefined ? NaN : Number(factorSeccionRaw);
+      if (factorSeccionRaw === '' || !Number.isFinite(factorSeccionValor)) {
+        window.alert('Indica cómo opera la sección (factor de suma/resta).');
         return;
       }
       let range = null;
@@ -764,7 +833,8 @@
         sumLabel,
         cuentas,
         sumavariosLabel,
-        range
+        range,
+        factorSeccion: factorSeccionValor
       });
       cerrarModalSeccion();
     });
@@ -1813,6 +1883,8 @@
       if (seccion && seccion !== 'SIN SECCION') {
         const filaSeccion = document.createElement('tr');
         filaSeccion.className = 'section-header-row';
+        filaSeccion.dataset.seccion = claveSeccion;
+        filaSeccion.dataset.sectionName = seccion;
         const celda = document.createElement('td');
         celda.colSpan = placeholders + 2;
         celda.textContent = seccion;
@@ -1823,7 +1895,7 @@
 
       lista.forEach((item) => {
         const fila = document.createElement('tr');
-        fila.className = 'fila-cuenta';
+        fila.className = 'fila-cuenta account-row';
         const celdaCuenta = document.createElement('td');
         const cuenta21 = convertirCuenta21(item.cuenta || '');
         const cuentaTexto = mostrarCuentaVisible
@@ -1845,6 +1917,8 @@
           faltantesNombre.add(cuenta21);
         }
         fila.appendChild(celdaNombre);
+        const factorCuenta = Number.isFinite(Number(item.factor)) ? Number(item.factor) : 1;
+        fila.dataset.operacionFactor = String(factorCuenta);
         fila.dataset.cuenta = item.cuenta || '';
         fila.dataset.cuenta21 = cuenta21;
         fila.dataset.seccion = claveSeccion;
@@ -1901,6 +1975,9 @@
         const texto = sumas.resultRow.toString().trim();
         if (texto) resultRowTexts.push(texto);
       }
+      const factorManual = Number.isFinite(Number(sumas?.operacionFactor)) ? Number(sumas.operacionFactor) : null;
+      const heuristicasPermitidas =
+        window.PlaneacionConfig && window.PlaneacionConfig.habilitarOperacionesAutomaticas === true;
       const metaSeccion = {
         seccion: claveSeccion,
         tituloVisible: seccion,
@@ -1915,11 +1992,10 @@
         seccionOriginal,
         elementos: {
           header: headerRow
-        }
-        ,
-        // Detectar factor/operación: si en la configuración hay operacionFactor usarlo,
-        // si el nombre es de tipo gastos/expense lo marcamos con -1
-        factor: Number.isFinite(sumas?.operacionFactor) ? sumas.operacionFactor : (/(GASTOS|EXPENSE)/i.test(seccion) ? -1 : 1),
+        },
+        // Factor definido manualmente en el layout (default: 1)
+        factor: factorManual != null ? factorManual : 1,
+        operacionFactor: factorManual != null ? factorManual : 1,
         restarUtilidadCambiaria: requiereAjusteUtilidad
       };
       // Ajustes de operaciones conforme a info IMPORTANTE/logica operaciones.json
@@ -1933,8 +2009,10 @@
         meta.resultRowTexto = meta.resultRowTexto || clave;
       };
       const capituloNormalizado = normalizarTexto(capitulo);
+      const aplicarHeuristicas = factorManual == null && heuristicasPermitidas;
       const esCapituloMexico = capituloNormalizado === normalizarTexto('CIUDAD DE MÉXICO') || capituloNormalizado === normalizarTexto('CIUDAD DE MEXICO');
-      switch (moduloNormalizado) {
+      if (aplicarHeuristicas) {
+        switch (moduloNormalizado) {
         case 'comites': {
           const esComisiones = /COMISIONES/i.test(seccion || '');
           const esGastosAdmin = /GASTOS\s+ADMINISTRATIVOS/i.test(seccion || '');
@@ -2051,6 +2129,7 @@
         default:
           break;
       }
+      }
       if (etiquetaSumRow) {
         metaSeccion.elementos.sumRow = agregarFilaResumen({
           texto: etiquetaSumRow,
@@ -2058,6 +2137,10 @@
           cuerpo,
           placeholdersPorFila: placeholders
         });
+        if (metaSeccion.elementos.sumRow) {
+          metaSeccion.elementos.sumRow.dataset.seccion = claveSeccion;
+          metaSeccion.elementos.sumRow.dataset.sectionName = seccion;
+        }
         const registrarSumario = (texto) => {
           if (!texto) return;
           const clave = normalizarTexto(texto);
@@ -2208,7 +2291,8 @@
         capitulo,
         seccion: titulo,
         cuenta: fila.cuenta || '',
-        nombre: fila.nombre || ''
+        nombre: fila.nombre || '',
+        factor: Number.isFinite(Number(fila.factor ?? fila.operacionFactor)) ? Number(fila.factor ?? fila.operacionFactor) : 1
       }));
     });
   };
@@ -2224,7 +2308,10 @@
         sumRow: seccion.sumRowLabel || seccion.sumRow || '',
         sumRowSumavarios: seccion.sumRowSumavarios || '',
         sumRowSumavarios2: seccion.sumRowSumavarios2 || '',
-        resultRow: seccion.resultRow || resultadoGlobal || ''
+        resultRow: seccion.resultRow || resultadoGlobal || '',
+        operacionFactor: Number.isFinite(Number(seccion.factor ?? seccion.operacionFactor))
+          ? Number(seccion.factor ?? seccion.operacionFactor)
+          : 1
       });
     });
     return mapa;
@@ -2289,9 +2376,11 @@
         sumRowSumavarios2: meta.sumRowSumavarios2Texto || '',
         sumRowSumavariosLabel: meta.sumRowSumavariosLabel || '',
         resultRow: resultadoTexto || meta.resultRowTexto || '',
+        factor: Number.isFinite(Number(meta.factor)) ? Number(meta.factor) : 1,
         cuentas: (meta.filasCuenta || []).map((fila) => ({
           cuenta: fila.dataset.cuenta || '',
-          nombre: obtenerTextoCeldaDescripcion(fila)
+          nombre: obtenerTextoCeldaDescripcion(fila),
+          factor: Number.isFinite(Number(fila.dataset.operacionFactor)) ? Number(fila.dataset.operacionFactor) : 1
         }))
       };
     });
@@ -2365,6 +2454,134 @@
     );
   };
 
+  const abrirModalEdicionFila = (fila) => {
+    if (!fila) return;
+    const esCuenta = fila.classList.contains('fila-cuenta') || fila.classList.contains('account-row');
+    const meta = obtenerMetaSeccionPorFila(fila);
+    if (!esCuenta && !meta) return;
+    const factorActual = esCuenta
+      ? Number(fila.dataset.operacionFactor ?? 1)
+      : Number(meta?.factor ?? meta?.operacionFactor ?? 1);
+    const factorChoice = factorActual === -1 ? '-1' : factorActual === 1 ? '1' : 'custom';
+    const factorCustom = factorChoice === 'custom' ? factorActual : '';
+    const descripcionActual = esCuenta ? obtenerTextoCeldaDescripcion(fila) : meta?.tituloVisible || '';
+    const etiqueta = esCuenta ? (fila.dataset.cuenta || fila.cells?.[0]?.textContent || '') : (meta?.seccion || '');
+
+    // Fallback sencillo si no hay Bootstrap
+    if (!window.bootstrap?.Modal) {
+      const entrada = Number(window.prompt('Define el factor (+ suma / - resta):', factorActual || 1));
+      if (!Number.isFinite(entrada)) return;
+      if (esCuenta) {
+        fila.dataset.operacionFactor = String(entrada);
+      } else if (meta) {
+        meta.factor = entrada;
+        meta.operacionFactor = entrada;
+      }
+      if (esCuenta && descripcionActual) {
+        actualizarNombreFila(fila, descripcionActual);
+      }
+      estadoModulo.layoutModificado = true;
+      recalcularSumas();
+      return;
+    }
+
+    const modalId = 'editFactorModal';
+    const existente = document.getElementById(modalId);
+    if (existente) existente.remove();
+
+    const html = `
+      <div class="modal fade" id="${modalId}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <form id="editFactorForm">
+              <div class="modal-header">
+                <h5 class="modal-title">Editar ${esCuenta ? 'cuenta' : 'secci¢n'}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+              </div>
+              <div class="modal-body">
+                <div class="mb-3">
+                  <label class="form-label">${esCuenta ? 'Cuenta' : 'Secci¢n'}</label>
+                  <input type="text" class="form-control" value="${etiqueta || ''}" readonly>
+                </div>
+                ${esCuenta ? `
+                <div class="mb-3">
+                  <label class="form-label">Descripci¢n</label>
+                  <input type="text" class="form-control" id="editDescripcion" value="${descripcionActual || ''}">
+                </div>` : ''}
+                <div class="mb-3">
+                  <label class="form-label">Operacion / factor</label>
+                  <select class="form-select" id="editFactorSelect">
+                    <option value="1" ${factorChoice === '1' ? 'selected' : ''}>Sumar (+1)</option>
+                    <option value="-1" ${factorChoice === '-1' ? 'selected' : ''}>Restar (-1)</option>
+                    <option value="custom" ${factorChoice === 'custom' ? 'selected' : ''}>Personalizado</option>
+                  </select>
+                </div>
+                <div class="mb-3 ${factorChoice === 'custom' ? '' : 'd-none'}" id="editFactorCustomGroup">
+                  <label class="form-label">Factor personalizado</label>
+                  <input type="number" step="0.01" class="form-control" id="editFactorCustom" value="${factorCustom}">
+                </div>
+                <div class="form-text">Usa 1 para sumar, -1 para restar o un factor decimal personalizado.</div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Guardar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', html);
+    const modalEl = document.getElementById(modalId);
+    const modal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
+    const factorSelect = modalEl.querySelector('#editFactorSelect');
+    const customGroup = modalEl.querySelector('#editFactorCustomGroup');
+    const customInput = modalEl.querySelector('#editFactorCustom');
+    const descInput = modalEl.querySelector('#editDescripcion');
+
+    const toggleCustom = (valor) => {
+      if (!customGroup) return;
+      const mostrar = valor === 'custom';
+      customGroup.classList.toggle('d-none', !mostrar);
+      if (mostrar && !customInput.value) {
+        customInput.value = factorCustom || '';
+      }
+    };
+    factorSelect.addEventListener('change', (ev) => toggleCustom(ev.target.value));
+
+    modalEl.querySelector('#editFactorForm')?.addEventListener('submit', (ev) => {
+      ev.preventDefault();
+      const seleccion = factorSelect.value;
+      const factor = seleccion === 'custom' ? Number(customInput.value) : Number(seleccion);
+      if (!Number.isFinite(factor)) {
+        window.alert('Define un factor v lido (usa 1 para sumar, -1 para restar).');
+        return;
+      }
+      if (esCuenta && descInput) {
+        const nuevoNombre = descInput.value.trim();
+        if (nuevoNombre) {
+          actualizarNombreFila(fila, nuevoNombre);
+        }
+      }
+      if (esCuenta) {
+        fila.dataset.operacionFactor = String(factor);
+      } else if (meta) {
+        meta.factor = factor;
+        meta.operacionFactor = factor;
+      }
+      estadoModulo.layoutModificado = true;
+      recalcularSumas();
+      modal.hide();
+    });
+
+    modalEl.addEventListener('hidden.bs.modal', () => modalEl.remove());
+    toggleCustom(factorChoice);
+    modal.show();
+  };
+
+  window.editarFila = abrirModalEdicionFila;
+
   const obtenerPrimerResultadoFila = () => {
     const iter = estadoModulo.sumas.resultRows?.values?.();
     if (!iter) return null;
@@ -2374,7 +2591,7 @@
 
   const crearFilaCuentaVacia = (seccionClave) => {
     const fila = document.createElement('tr');
-    fila.className = 'fila-cuenta';
+    fila.className = 'fila-cuenta account-row';
     const celdaCuenta = document.createElement('td');
     celdaCuenta.textContent = '-';
     fila.appendChild(celdaCuenta);
@@ -2390,6 +2607,7 @@
     fila.dataset.seccion = seccionClave || '';
     fila.dataset.cuenta = '';
     fila.dataset.cuenta21 = '';
+    fila.dataset.operacionFactor = '1';
     return fila;
   };
 
@@ -2407,6 +2625,8 @@
     }
     fila.dataset.cuenta = datos.cuenta || '';
     fila.dataset.cuenta21 = datos.cuenta ? convertirCuenta21(datos.cuenta) : '';
+    const factorCuenta = Number.isFinite(Number(datos.factor)) ? Number(datos.factor) : 1;
+    fila.dataset.operacionFactor = String(factorCuenta);
     return fila;
   };
 
@@ -2491,7 +2711,8 @@
     sumLabel,
     cuentas,
     sumavariosLabel,
-    range
+    range,
+    factorSeccion = 1
   }) => {
     // VALIDACIONES
     if (!estadoModulo || !estadoModulo.tabla) {
@@ -2513,9 +2734,11 @@
       return;
     }
 
-    const seccionClave = normalizarTexto(titulo);
+  const seccionClave = normalizarTexto(titulo);
     const header = document.createElement('tr');
     header.className = 'section-header-row';
+    header.dataset.seccion = seccionClave;
+    header.dataset.sectionName = titulo;
     const celdaHeader = document.createElement('td');
     celdaHeader.colSpan = estadoModulo.placeholdersPorFila + 2;
     celdaHeader.textContent = titulo;
@@ -2529,6 +2752,10 @@
       cuerpo,
       placeholdersPorFila: estadoModulo.placeholdersPorFila
     });
+    if (filaSumRow) {
+      filaSumRow.dataset.seccion = seccionClave;
+      filaSumRow.dataset.sectionName = titulo;
+    }
 
     // Determinar índice de inserción con validaciones
     let idxInsercion = estadoModulo.sumas.secciones.length;
@@ -2578,6 +2805,8 @@
       sumRowSumavarios2Label: '',
       resultRowTexto: '',
       resultRows: [],
+      factor: Number.isFinite(Number(factorSeccion)) ? Number(factorSeccion) : 1,
+      operacionFactor: Number.isFinite(Number(factorSeccion)) ? Number(factorSeccion) : 1,
       elementos: { header, sumRow: filaSumRow }
     };
 
@@ -2650,6 +2879,7 @@
       meta.filasCuenta.splice(idx + 1, 0, nuevaFila);
     }
     actualizarEstructuraDespuesCambio();
+    abrirModalEdicionFila(nuevaFila);
   };
 
   const eliminarFilaSeleccionada = (fila) => {
@@ -2782,6 +3012,10 @@
               console.warn('InsertionWizard no disponible');
             }
             break;
+          case 'edit_row':
+          case 'edit_section':
+            abrirModalEdicionFila(filaContextual);
+            break;
           case 'add_above':
             insertarFilaCuentaNueva(filaContextual, 'arriba');
             break;
@@ -2829,15 +3063,20 @@
     if (!fila) {
       return;
     }
+    const esCuenta = fila.classList.contains('fila-cuenta') || fila.classList.contains('account-row');
+    const esSeccion = fila.classList.contains('section-header-row') || fila.classList.contains('sum-row');
     const opciones = [];
     // Priorizar InsertionWizard si está disponible
     if (typeof window.InsertionWizard !== 'undefined') {
       opciones.push({ clave: 'add_wizard', texto: '✨ Agregar cuenta/sección...' });
     }
-    if (fila.classList.contains('fila-cuenta')) {
+    if (esCuenta) {
+      opciones.push({ clave: 'edit_row', texto: 'Editar operación / factor' });
       opciones.push({ clave: 'add_above', texto: 'Agregar cuenta arriba' });
       opciones.push({ clave: 'add_below', texto: 'Agregar cuenta abajo' });
       opciones.push({ clave: 'delete_row', texto: 'Eliminar fila' });
+    } else if (esSeccion) {
+      opciones.push({ clave: 'edit_section', texto: 'Editar operación de sección' });
     } else if (fila.classList.contains('sum-row-sumavarios')) {
       opciones.push({ clave: 'delete_row', texto: 'Eliminar sum-row-sumavarios' });
     }
@@ -3002,14 +3241,17 @@
         const listas = seccion.filasCuenta.map((fila) => {
           if (!fila || !fila.dataset) return Array.from({ length: longitud }, () => 0);
           const cuenta = fila.dataset.cuenta21 || '';
+          const factorCuenta = Number.isFinite(Number(fila.dataset.operacionFactor))
+            ? Number(fila.dataset.operacionFactor)
+            : 1;
           const almacenados = estadoModulo.valoresPorCuenta?.get(cuenta);
-          const valores = almacenados
+          const valoresBase = almacenados
             ? clavesOrdenadas.map((clave) => almacenados[clave] ?? 0)
             : extraerValoresNumericos(fila);
-          if (seccion.restarUtilidadCambiaria && descripcionUtilidadCambiaria(fila)) {
-            return valores.map((valor) => (Number(valor) || 0) * -1);
-          }
-          return valores;
+          const valoresAjustados = seccion.restarUtilidadCambiaria && descripcionUtilidadCambiaria(fila)
+            ? valoresBase.map((valor) => (Number(valor) || 0) * -1)
+            : valoresBase;
+          return valoresAjustados.map((valor) => (Number(valor) || 0) * factorCuenta);
         });
         
         // Sumar todas las filas columna por columna

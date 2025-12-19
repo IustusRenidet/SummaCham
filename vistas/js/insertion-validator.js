@@ -237,6 +237,15 @@
         }
       }
 
+      const factorValor = formData.factor ?? formData.operacionFactor;
+      if (!Number.isFinite(Number(factorValor))) {
+        errors.push({
+          field: 'factor',
+          message: 'Selecciona si la fila suma, resta o usa un factor numérico.',
+          severity: 'error'
+        });
+      }
+
       return errors;
     },
 

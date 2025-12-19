@@ -5,10 +5,25 @@ const {
   listarComentarios,
   crearComentario,
   actualizarEstadoComentario,
-  obtenerComentario
+  obtenerComentario,
+  resumirComentariosPorModulo
 } = require('../services/comentariosService');
 
 router.use(requireAuth);
+
+router.get('/resumen', (req, res) => {
+  const modulo = (req.query.modulo || '').toString().trim();
+  const anio = req.query.anio ? Number(req.query.anio) : null;
+  const capitulo = (req.query.capitulo || '').toString().trim() || null;
+  const empresaId = extraerEmpresaActiva(req) || req.query.empresaId || null;
+
+  if (!modulo) {
+    return res.status(400).json({ mensaje: 'Parametros insuficientes: modulo es obligatorio.' });
+  }
+
+  const resumen = resumirComentariosPorModulo({ empresaId, modulo, anio, capitulo });
+  return res.json({ resumen });
+});
 
 router.get('/', (req, res) => {
   const modulo = (req.query.modulo || '').toString().trim();
@@ -17,7 +32,7 @@ router.get('/', (req, res) => {
   const empresaId = extraerEmpresaActiva(req) || req.query.empresaId || null;
 
   if (!modulo || !celdaId) {
-    return res.status(400).json({ mensaje: 'Parámetros insuficientes: modulo y celdaId son obligatorios.' });
+    return res.status(400).json({ mensaje: 'Parametros insuficientes: modulo y celdaId son obligatorios.' });
   }
 
   const comentarios = listarComentarios({ empresaId, modulo, celdaId, anio });

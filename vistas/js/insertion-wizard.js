@@ -32,53 +32,53 @@
       const rules = {
         SUMMARY: {
           cuenta: {
-            required: ['numero', 'nombre'],
+            required: ['numero', 'nombre', 'factor'],
             hierarchy: ['operacion', 'secundaria', 'principal', 'capitulo'],
             format: /^\d{21}$/,
             formatLabel: '21 dígitos (ej: 401000000000000000001)'
           },
           operacion: {
-            required: ['nombre', 'etiquetaSum'],
+            required: ['nombre', 'etiquetaSum', 'factor'],
             hierarchy: ['secundaria', 'principal', 'capitulo'],
             autoCreate: ['sumRow']
           },
           secundaria: {
-            required: ['nombre', 'etiquetaSum'],
+            required: ['nombre', 'etiquetaSum', 'factor'],
             hierarchy: ['principal', 'capitulo'],
             autoCreate: ['sumRow']
           },
           principal: {
-            required: ['nombre', 'etiquetaSum'],
+            required: ['nombre', 'etiquetaSum', 'factor'],
             hierarchy: ['capitulo'],
             autoCreate: ['sumRow']
           }
         },
         RESUMEN: {
           cuenta: {
-            required: ['numero', 'nombre'],
+            required: ['numero', 'nombre', 'factor'],
             hierarchy: ['operacion', 'secundaria', 'principal', 'capitulo'],
             format: /^\d{3}-\d{3}-\d{3}-\d{2}$/,
             formatLabel: 'XXX-XXX-XXX-XX (ej: 401-001-000-00)'
           },
           operacion: {
-            required: ['nombre', 'etiquetaSum'],
+            required: ['nombre', 'etiquetaSum', 'factor'],
             hierarchy: ['secundaria', 'principal', 'capitulo'],
             autoCreate: ['sumRow']
           },
           secundaria: {
-            required: ['nombre', 'etiquetaSum'],
+            required: ['nombre', 'etiquetaSum', 'factor'],
             hierarchy: ['principal', 'capitulo'],
             autoCreate: ['sumRow']
           },
           principal: {
-            required: ['nombre', 'etiquetaSum'],
+            required: ['nombre', 'etiquetaSum', 'factor'],
             hierarchy: ['capitulo'],
             autoCreate: ['sumRow']
           }
         },
         MODULOS: {
           cuenta: {
-            required: ['numero', 'nombre'],
+            required: ['numero', 'nombre', 'factor'],
             // Cuenta puede ir directo a SECCIÓN o dentro de OPERACIÓN (opcional)
             hierarchy: ['seccion', 'capitulo'],
             hierarchyOptional: ['operacion'], // Si hay operación, va cuenta->operación→sección
@@ -86,12 +86,12 @@
             formatLabel: 'XXX-XXX-XXX-XX (ej: 401-001-000-00)'
           },
           operacion: {
-            required: ['nombre', 'etiquetaSum'],
+            required: ['nombre', 'etiquetaSum', 'factor'],
             hierarchy: ['seccion', 'capitulo'], // Operación SIEMPRE va dentro de SECCIÓN
             autoCreate: ['sumRow']
           },
           seccion: {
-            required: ['nombre', 'etiquetaSum'],
+            required: ['nombre', 'etiquetaSum', 'factor'],
             hierarchy: ['capitulo'], // Sección va directo al CAPÍTULO
             autoCreate: ['sumRow']
           }
@@ -107,7 +107,7 @@
     open(referenceRow = null) {
       this.moduleType = this.detectModuleType();
       this.contextData = this.extractContextFromRow(referenceRow);
-      this.formData = {};
+      this.formData = { factor: null, factorChoice: '' };
 
       // Forzar tipo cuenta por defecto y saltar directamente al paso de contexto.
       this.selectedType = 'cuenta';
@@ -465,6 +465,12 @@
     renderStep3_EnterData() {
       const rules = this.getValidationRules()[this.selectedType];
       if (!rules) return '<p>Error: Tipo no válido</p>';
+      const factorNumerico = Number.isFinite(Number(this.formData.factor)) ? Number(this.formData.factor) : null;
+      const factorChoice =
+        this.formData.factorChoice ||
+        (factorNumerico === null ? '' : factorNumerico === -1 ? '-1' : factorNumerico === 1 ? '1' : 'custom');
+      const factorCustomValor = factorChoice === 'custom' ? (this.formData.factor ?? '') : '';
+
 
       return `
         <div class="wizard-step active" data-step="3">
@@ -534,6 +540,28 @@
               </select>
             </div>
           ` : ''}
+          <div class="mb-3">
+            <label for="data_factor" class="form-label">
+              Operaci¢n / Factor <span class="text-danger">*</span>
+            </label>
+            <select class="form-select" id="data_factor"
+                    onchange="InsertionWizard.handleFactorChange(this.value)">
+              <option value="" ${factorChoice === '' ? 'selected' : ''} disabled>Selecciona...</option>
+              <option value="1" ${factorChoice === '1' ? 'selected' : ''}>Sumar (+1)</option>
+              <option value="-1" ${factorChoice === '-1' ? 'selected' : ''}>Restar (-1)</option>
+              <option value="custom" ${factorChoice === 'custom' ? 'selected' : ''}>Personalizado</option>
+            </select>
+            <div class="mt-2 ${factorChoice === 'custom' ? '' : 'd-none'}" id="data_factor_custom_group">
+              <input type="number" step="0.01" class="form-control" id="data_factor_custom"
+                     value="${factorCustomValor}"
+                     oninput="InsertionWizard.setCustomFactor(this.value)"
+                     placeholder="Ej: -0.5 para dividir o invertir">
+            </div>
+            <div class="form-text">
+              <i class="bi bi-calculator me-1"></i>
+              Define si esta fila suma, resta o usa un factor distinto en los totales.
+            </div>
+          </div>
         </div>
       `;
     },
@@ -738,6 +766,38 @@
       this.updatePreview();
     },
 
+    handleFactorChange(value) {
+      const customGroup = document.getElementById('data_factor_custom_group');
+      if (value === 'custom') {
+        this.formData.factorChoice = 'custom';
+        if (customGroup) customGroup.classList.remove('d-none');
+        return;
+      }
+      if (value === '') {
+        this.formData.factor = null;
+        this.formData.factorChoice = '';
+        if (customGroup) customGroup.classList.add('d-none');
+        this.updatePreview();
+        return;
+      }
+      const num = Number(value);
+      if (Number.isFinite(num)) {
+        this.formData.factor = num;
+        this.formData.factorChoice = value;
+      }
+      if (customGroup) customGroup.classList.add('d-none');
+      this.updatePreview();
+    },
+
+    setCustomFactor(value) {
+      const num = Number(value);
+      this.formData.factorChoice = 'custom';
+      if (Number.isFinite(num)) {
+        this.formData.factor = num;
+      }
+      this.updatePreview();
+    },
+
     /**
      * Valida un campo
      */
@@ -793,9 +853,18 @@
         if (this.contextData.secundaria) hierarchy.push(this.contextData.secundaria);
         if (this.contextData.operacion) hierarchy.push(this.contextData.operacion);
         
+        const factorLabel = Number.isFinite(Number(this.formData.factor))
+          ? (Number(this.formData.factor) === 1
+            ? 'Suma (+1)'
+            : Number(this.formData.factor) === -1
+              ? 'Resta (-1)'
+              : `Factor ${this.formData.factor}`)
+          : '';
+
         content.innerHTML = `
           <div><strong>${this.getTypeLabel(this.selectedType)}:</strong> ${this.formData.nombre || this.formData.numero || ''}</div>
           ${hierarchy.length > 0 ? `<div class="text-muted">📍 ${hierarchy.join(' > ')}</div>` : ''}
+          ${factorLabel ? `<div class="text-info">Operaci¢n: ${factorLabel}</div>` : ''}
           ${this.formData.etiquetaSum ? `<div class="text-success">✓ Se creará SUM ROW: "${this.formData.etiquetaSum}"</div>` : ''}
         `;
       } else {
@@ -841,7 +910,14 @@
         case 3:
           const dataRules = this.getValidationRules()[this.selectedType];
           const requiredFields = dataRules?.required || [];
-          return requiredFields.every(field => this.formData[field]);
+          return requiredFields.every((field) => {
+            if (field === 'factor') {
+              return Number.isFinite(Number(this.formData.factor));
+            }
+            const valor = this.formData[field];
+            if (valor === undefined || valor === null) return false;
+            return typeof valor === 'number' ? true : valor.toString().trim() !== '';
+          });
         default:
           return true;
       }
@@ -931,7 +1007,9 @@
           numero: this.formData.numero || '',
           nombre: this.formData.nombre || '',
           etiquetaSum: this.formData.etiquetaSum || '',
-          tipo: this.formData.tipo || 'otro'
+          tipo: this.formData.tipo || 'otro',
+          operacionFactor: Number.isFinite(Number(this.formData.factor)) ? Number(this.formData.factor) : 1,
+          factor: Number.isFinite(Number(this.formData.factor)) ? Number(this.formData.factor) : 1
         }
       };
 

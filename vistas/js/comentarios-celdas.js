@@ -127,6 +127,139 @@
     .comentario-reply {
       margin-left: 16px;
     }
+    .comentarios-callouts-layer {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 4000;
+    }
+    .comentario-callout {
+      position: absolute;
+      min-width: 240px;
+      max-width: 360px;
+      padding: 12px 14px;
+      background: #2f80ed;
+      color: #fff;
+      border-radius: 12px;
+      box-shadow: 0 14px 30px rgba(0,0,0,0.18);
+      transform: translateY(-50%);
+      pointer-events: auto;
+      border-left: 4px solid #1b5dbf;
+    }
+    .comentario-callout::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      border-style: solid;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.25));
+    }
+    .comentario-callout.side-right::after {
+      left: -10px;
+      border-width: 8px 10px 8px 0;
+      border-color: transparent #2f80ed transparent transparent;
+    }
+    .comentario-callout.side-left::after {
+      right: -10px;
+      border-width: 8px 0 8px 10px;
+      border-color: transparent transparent transparent #2f80ed;
+    }
+    .comentario-callout__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 0.88rem;
+    }
+    .comentario-callout__texto {
+      margin-top: 4px;
+      font-size: 0.85rem;
+      line-height: 1.28;
+      word-break: break-word;
+    }
+    .comentario-callout__lista {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 6px;
+    }
+    .comentario-callout__item {
+      padding: 8px 10px;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.16);
+    }
+    .comentario-callout__item .autor {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 700;
+      font-size: 0.82rem;
+    }
+    .comentario-callout__item .autor i {
+      opacity: 0.9;
+    }
+    .comentario-callout__item .texto {
+      margin-top: 2px;
+      font-size: 0.82rem;
+      line-height: 1.26;
+      word-break: break-word;
+    }
+    .comentario-callout__meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 4px;
+      font-size: 0.76rem;
+      opacity: 0.95;
+    }
+    .comentario-callout__badge {
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.35);
+      background: rgba(255,255,255,0.16);
+      font-size: 0.75rem;
+    }
+    .comentario-callout.is-selected {
+      box-shadow: 0 16px 32px rgba(15, 118, 178, 0.45);
+      border-left-color: #0ea5e9;
+    }
+    .comentarios-toggle-visor {
+      position: fixed;
+      bottom: 72px;
+      right: 16px;
+      z-index: 1400;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      background: #e2e8f0;
+      color: #0f172a;
+      border: 1px solid #cbd5e1;
+      border-radius: 12px;
+      box-shadow: 0 10px 24px rgba(0,0,0,0.18);
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .comentarios-toggle-visor.activo {
+      background: #0b5ed7;
+      color: #fff;
+      border-color: #0b5ed7;
+      box-shadow: 0 12px 28px rgba(11,94,215,0.35);
+    }
+    .comentario-celda-seleccionada {
+      outline: 2px solid #0b5ed7;
+      outline-offset: -2px;
+      position: relative;
+    }
+    .comentario-celda-seleccionada::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border: 2px solid rgba(11,94,215,0.2);
+      pointer-events: none;
+    }
     @media (max-width: 640px) {
       .comentarios-floating-btn {
         right: 12px;
@@ -149,6 +282,7 @@
     }
     return `${window.location.origin.replace(/\/$/, '')}/api`;
   })();
+  const TIME_ZONE = 'America/Mexico_City';
 
   const headersAuth = () => {
     const base = (window.Sesion?.headersAutenticacion?.() || {});
@@ -163,11 +297,23 @@
   const formatearFecha = (valor) => {
     try {
       const fecha = new Date(valor);
-      return fecha.toLocaleString('es-MX', { hour12: false });
+      return new Intl.DateTimeFormat('es-MX', {
+        timeZone: TIME_ZONE,
+        dateStyle: 'short',
+        timeStyle: 'short',
+        hour12: false
+      }).format(fecha);
     } catch (_) {
       return valor;
     }
   };
+
+  const escaparHtml = (texto = '') => texto
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 
   const obtenerAnioActivo = () => {
     const select = document.querySelector('select[id*="YearSelect"]');
@@ -206,11 +352,19 @@
     </div>
     <div class="comentarios-modal__footer">
       <textarea id="comentariosInput" class="comentarios-input" placeholder="Escribe un comentario..."></textarea>
-      <button type="button" id="comentariosEnviar">Enviar</button>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <button type="button" id="comentariosEnviar">Enviar</button>
+        <button type="button" id="comentariosCancelar" class="btn btn-light">Cancelar</button>
+      </div>
     </div>
   `;
   document.body.appendChild(modalBackdrop);
   document.body.appendChild(modal);
+
+  const calloutsLayer = document.createElement('div');
+  calloutsLayer.className = 'comentarios-callouts-layer';
+  calloutsLayer.style.display = 'none';
+  document.body.appendChild(calloutsLayer);
 
   const state = {
     celdaId: null,
@@ -219,17 +373,30 @@
     anio: obtenerAnioActivo(),
     empresaId: window.Sesion?.obtenerEmpresaActiva?.()?.id || null,
     capitulo: null,
-    parentReply: null
+    parentReply: null,
+    visorActivo: false,
+    resumenComentarios: []
   };
   let selectedCell = null;
   let actionMenu = null;
+  let visorToggleBtn = null;
+  let celdaMap = new Map();
+  let relayoutHandle = null;
+  let listenersVisorActivos = false;
 
   const refs = {
     lista: modal.querySelector('#comentariosLista'),
     input: modal.querySelector('#comentariosInput'),
     btnEnviar: modal.querySelector('#comentariosEnviar'),
+    btnCancelar: modal.querySelector('#comentariosCancelar'),
     titulo: modal.querySelector('#comentariosTitulo'),
     subtitulo: modal.querySelector('#comentariosSubtitulo')
+  };
+
+  const refrescarContexto = () => {
+    state.anio = obtenerAnioActivo();
+    state.empresaId = window.Sesion?.obtenerEmpresaActiva?.()?.id || null;
+    state.capitulo = window.CapitulosModulos?.obtenerCapituloPorEmpresa?.(state.empresaId) || null;
   };
 
   const cerrarModal = () => {
@@ -244,10 +411,246 @@
   const abrirModal = ({ focusInput = false } = {}) => {
     modal.style.display = 'flex';
     modalBackdrop.style.display = 'block';
+    refrescarContexto();
     cargarComentarios();
     if (focusInput) {
       setTimeout(() => refs.input?.focus(), 30);
     }
+  };
+
+  const actualizarSeleccionCallouts = () => {
+    calloutsLayer.querySelectorAll('.comentario-callout').forEach((node) => {
+      node.classList.toggle('is-selected', node.dataset.celdaId === state.celdaId);
+    });
+  };
+
+  const buildCeldaMap = () => {
+    const mapa = new Map();
+    document.querySelectorAll('.table-comparison tbody td').forEach((td) => {
+      const id = construirCeldaId(td);
+      if (id) {
+        mapa.set(id, td);
+      }
+    });
+    return mapa;
+  };
+
+  const limpiarCallouts = () => {
+    calloutsLayer.innerHTML = '';
+    calloutsLayer.style.display = 'none';
+  };
+
+  const posicionarCallouts = () => {
+    if (!state.visorActivo || !calloutsLayer.childElementCount) return;
+    celdaMap = buildCeldaMap();
+    calloutsLayer.querySelectorAll('.comentario-callout').forEach((callout) => {
+      const celdaId = callout.dataset.celdaId;
+      const td = celdaMap.get(celdaId);
+      if (!td) {
+        callout.style.display = 'none';
+        return;
+      }
+      const rect = td.getBoundingClientRect();
+      const ancho = callout.offsetWidth || 260;
+      const espacioIzquierda = rect.left;
+      const usarIzquierda = espacioIzquierda > ancho + 24;
+      callout.classList.toggle('side-left', usarIzquierda);
+      callout.classList.toggle('side-right', !usarIzquierda);
+      const left = usarIzquierda
+        ? rect.left - ancho - 14
+        : rect.right + 14;
+      callout.style.left = `${Math.max(8, left)}px`;
+      callout.style.top = `${rect.top + rect.height / 2}px`;
+      callout.style.display = 'block';
+      callout.classList.toggle('is-selected', celdaId === state.celdaId);
+    });
+  };
+
+  const scheduleRelayout = () => {
+    if (!state.visorActivo) return;
+    if (relayoutHandle) return;
+    relayoutHandle = requestAnimationFrame(() => {
+      relayoutHandle = null;
+      posicionarCallouts();
+    });
+  };
+
+  const renderCallouts = () => {
+    if (!state.visorActivo) return;
+    calloutsLayer.innerHTML = '';
+    if (!state.resumenComentarios?.length) {
+      calloutsLayer.style.display = 'none';
+      return;
+    }
+    calloutsLayer.style.display = 'block';
+    celdaMap = buildCeldaMap();
+    state.resumenComentarios.forEach((item) => {
+      const td = celdaMap.get(item.celdaId);
+      if (!td) return;
+      const comentarios = Array.isArray(item.comentarios) ? item.comentarios : [];
+      const listaHtml = comentarios.map((c) => {
+        const textoC = escaparHtml((c.texto || '').trim()).replace(/\n/g, '<br>');
+        return `
+          <div class="comentario-callout__item">
+            <div class="autor"><i class="bi bi-person-circle"></i> ${escaparHtml(c.autor?.usuario || 'Usuario')}</div>
+            <div class="texto">${textoC || 'Comentario sin texto'}</div>
+            <div class="comentario-callout__meta">${formatearFecha(c.creadoEn)}</div>
+          </div>
+        `;
+      }).join('');
+      const badgeTexto = item.totalComentarios === 1
+        ? '1 comentario'
+        : `${item.totalComentarios || 0} comentarios`;
+      const callout = document.createElement('div');
+      callout.className = 'comentario-callout side-left';
+      callout.dataset.celdaId = item.celdaId;
+      callout.innerHTML = `
+        <div class="comentario-callout__header">
+          <span>${escaparHtml(item.ultimo?.autor?.usuario || 'Usuario')}</span>
+          <span class="comentario-callout__badge">${badgeTexto}</span>
+        </div>
+        <div class="comentario-callout__lista">
+          ${listaHtml || '<div class="comentario-callout__item">Sin comentarios</div>'}
+        </div>
+        <div class="comentario-callout__meta">
+          <a href="#" class="link-light fw-bold" data-action="responder">Responder</a>
+        </div>
+      `;
+      callout.querySelector('[data-action="responder"]').addEventListener('click', (e) => {
+        e.preventDefault();
+        const celda = celdaMap.get(item.celdaId);
+        if (celda) {
+          selectCell(celda, { openMenu: false, scroll: true });
+        }
+        abrirModal({ focusInput: true });
+      });
+      callout.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const celda = celdaMap.get(item.celdaId);
+        if (celda) {
+          selectCell(celda, { openMenu: false, scroll: true });
+        }
+        abrirModal();
+      });
+      calloutsLayer.appendChild(callout);
+    });
+    posicionarCallouts();
+  };
+
+  const adjuntarListenersVisor = () => {
+    if (listenersVisorActivos) return;
+    document.addEventListener('scroll', scheduleRelayout, true);
+    window.addEventListener('resize', scheduleRelayout);
+    listenersVisorActivos = true;
+  };
+
+  const removerListenersVisor = () => {
+    if (!listenersVisorActivos) return;
+    document.removeEventListener('scroll', scheduleRelayout, true);
+    window.removeEventListener('resize', scheduleRelayout);
+    listenersVisorActivos = false;
+  };
+
+  const cargarResumenComentarios = async () => {
+    if (!state.visorActivo) return;
+    refrescarContexto();
+    try {
+      const params = new URLSearchParams({ modulo: state.modulo });
+      if (state.anio) params.append('anio', state.anio);
+      if (state.capitulo) params.append('capitulo', state.capitulo);
+      const res = await fetch(`${API_BASE}/comentarios/resumen?${params.toString()}`, {
+        headers: headersAuth(),
+        credentials: 'include'
+      });
+      if (!res.ok) throw new Error('Error al obtener resumen de comentarios');
+      const data = await res.json();
+      state.resumenComentarios = data.resumen || [];
+      renderCallouts();
+      scheduleRelayout();
+    } catch (error) {
+      state.resumenComentarios = [];
+      limpiarCallouts();
+      console.error(error);
+    }
+  };
+
+  const refrescarVisorComentarios = async () => {
+    if (!state.visorActivo) return;
+    await cargarResumenComentarios();
+  };
+
+  const sincronizarResumenLocal = (celdaId, comentarios) => {
+    if (!celdaId || !Array.isArray(comentarios)) return;
+    const lista = comentarios.map((c) => ({
+      id: c.id,
+      texto: c.texto,
+      estado: c.estado,
+      creadoEn: c.creadoEn,
+      parentId: c.parentId,
+      autor: c.autor || {}
+    }));
+    const resumenItem = {
+      celdaId,
+      empresaId: state.empresaId,
+      modulo: state.modulo,
+      anio: state.anio,
+      capitulo: state.capitulo,
+      totalComentarios: lista.length,
+      totalActivos: lista.filter((c) => c.estado === 'activo').length,
+      comentarios: lista,
+      ultimo: lista[lista.length - 1] || null
+    };
+    state.resumenComentarios = [
+      ...state.resumenComentarios.filter((c) => c.celdaId !== celdaId),
+      resumenItem
+    ];
+    if (state.visorActivo) {
+      renderCallouts();
+      scheduleRelayout();
+    }
+  };
+
+  const actualizarBotonVisor = () => {
+    if (!visorToggleBtn) return;
+    visorToggleBtn.classList.toggle('activo', state.visorActivo);
+    visorToggleBtn.innerHTML = state.visorActivo
+      ? '<i class="bi bi-chat-left-quote-fill"></i> Ocultar globos'
+      : '<i class="bi bi-chat-left-quote"></i> Ver globos';
+  };
+
+  const setVisorActivo = async (activo) => {
+    if (state.visorActivo === activo) {
+      actualizarBotonVisor();
+      if (activo) {
+        await cargarResumenComentarios();
+        if (!state.resumenComentarios.length && state.celdaId) {
+          await cargarComentarios();
+        }
+        renderCallouts();
+        scheduleRelayout();
+      }
+      return;
+    }
+    state.visorActivo = activo;
+    actualizarBotonVisor();
+    if (activo) {
+      calloutsLayer.style.display = 'block';
+      adjuntarListenersVisor();
+      await cargarResumenComentarios();
+      if (!state.resumenComentarios.length && state.celdaId) {
+        await cargarComentarios();
+      }
+      renderCallouts();
+      scheduleRelayout();
+    } else {
+      state.resumenComentarios = [];
+      limpiarCallouts();
+      removerListenersVisor();
+    }
+  };
+
+  const toggleVisorComentarios = async () => {
+    await setVisorActivo(!state.visorActivo);
   };
 
   const setCeldaActual = (td) => {
@@ -255,11 +658,11 @@
     if (!celdaId) return;
     state.celdaId = celdaId;
     state.celdaLabel = td.innerText.trim().slice(0, 80);
-    state.anio = obtenerAnioActivo();
-    state.empresaId = window.Sesion?.obtenerEmpresaActiva?.()?.id || null;
-    state.capitulo = window.CapitulosModulos?.obtenerCapituloPorEmpresa?.(state.empresaId) || null;
+    refrescarContexto();
     refs.titulo.textContent = 'Comentarios de celda';
-    refs.subtitulo.textContent = `${state.celdaLabel || 'Celda seleccionada'} ú ${state.celdaId}`;
+    refs.subtitulo.textContent = `${state.celdaLabel || 'Celda seleccionada'} - ${state.celdaId}`;
+    actualizarSeleccionCallouts();
+    scheduleRelayout();
   };
 
 
@@ -272,30 +675,24 @@
     const estadoBadge = comentario.estado && comentario.estado !== 'activo'
       ? `<span class="badge bg-secondary text-uppercase">${comentario.estado}</span>`
       : '';
+    const textoPlano = escaparHtml(comentario.texto || '').replace(/\n/g, '<br>');
     wrap.innerHTML = `
       <div class="meta">
         <strong>${comentario.autor?.usuario || 'Usuario'}</strong>
         <span>${formatearFecha(comentario.creadoEn)}</span>
         ${estadoBadge}
       </div>
-      <div class="texto">${comentario.texto}</div>
+      <div class="texto">${textoPlano}</div>
       <div class="comentario-actions">
         <button type="button" data-action="responder" data-id="${comentario.id}">Responder</button>
-        <button type="button" class="warning" data-action="descartar" data-id="${comentario.id}">Descartar</button>
-        <button type="button" class="danger" data-action="rechazar" data-id="${comentario.id}">Rechazar</button>
       </div>
     `;
     wrap.querySelectorAll('button').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        const accion = btn.dataset.action;
-        if (accion === 'responder') {
-          state.parentReply = comentario.id;
-          refs.input.focus();
-          refs.input.placeholder = `Responder a ${comentario.autor?.usuario || 'usuario'}...`;
-        } else if (accion === 'descartar' || accion === 'rechazar') {
-          actualizarEstado(comentario.id, accion === 'descartar' ? 'descartado' : 'rechazado');
-        }
+        state.parentReply = comentario.id;
+        refs.input.focus();
+        refs.input.placeholder = `Responder a ${comentario.autor?.usuario || 'usuario'}...`;
       });
     });
     return wrap;
@@ -303,6 +700,7 @@
 
   const cargarComentarios = async () => {
     if (!state.celdaId) return;
+    refrescarContexto();
     refs.lista.innerHTML = '<p class="text-muted">Cargando comentarios...</p>';
     try {
       const params = new URLSearchParams({
@@ -324,6 +722,7 @@
         return;
       }
       comentarios.forEach((c) => refs.lista.appendChild(renderComentario(c)));
+      sincronizarResumenLocal(state.celdaId, comentarios);
     } catch (error) {
       refs.lista.innerHTML = '<p class="text-danger mb-0">No fue posible cargar los comentarios.</p>';
       console.error(error);
@@ -355,6 +754,7 @@
       refs.input.placeholder = 'Escribe un comentario...';
       state.parentReply = null;
       await cargarComentarios();
+      await refrescarVisorComentarios();
     } catch (error) {
       console.error(error);
       alert('No se pudo enviar el comentario.');
@@ -371,6 +771,7 @@
       });
       if (!res.ok) throw new Error('Error al actualizar comentario');
       await cargarComentarios();
+      await refrescarVisorComentarios();
     } catch (error) {
       console.error(error);
       alert('No se pudo actualizar el comentario.');
@@ -384,6 +785,26 @@
       enviarComentario();
     }
   });
+  refs.btnCancelar?.addEventListener('click', () => {
+    refs.input.value = '';
+    refs.input.placeholder = 'Escribe un comentario...';
+    state.parentReply = null;
+    cerrarModal();
+  });
+
+  if (!document.querySelector('.comentarios-toggle-visor')) {
+    visorToggleBtn = document.createElement('button');
+    visorToggleBtn.type = 'button';
+    visorToggleBtn.className = 'comentarios-toggle-visor';
+    visorToggleBtn.innerHTML = '<i class="bi bi-chat-left-quote"></i> Ver globos';
+    visorToggleBtn.addEventListener('click', toggleVisorComentarios);
+    document.body.appendChild(visorToggleBtn);
+  } else {
+    visorToggleBtn = document.querySelector('.comentarios-toggle-visor');
+    visorToggleBtn.onclick = toggleVisorComentarios;
+  }
+  actualizarBotonVisor();
+  setVisorActivo(false);
 
   // No duplicar botón
   if (!document.querySelector('.comentarios-floating-btn')) {
@@ -446,11 +867,11 @@
 
   const selectCell = (td, { openMenu = true, scroll = true } = {}) => {
     if (!td) return;
-    if (selectedCell) {
-      selectedCell.classList.remove('selected');
-    }
+    document.querySelectorAll('.comentario-celda-seleccionada').forEach((c) => {
+      c.classList.remove('selected', 'comentario-celda-seleccionada');
+    });
     selectedCell = td;
-    selectedCell.classList.add('selected');
+    selectedCell.classList.add('selected', 'comentario-celda-seleccionada');
     selectedCell.setAttribute('tabindex', '-1');
     if (scroll) {
       selectedCell.scrollIntoView({ block: 'nearest', inline: 'nearest' });
@@ -493,7 +914,7 @@
     if (event.target.isContentEditable) return;
     event.preventDefault();
     if (!selectedCell) {
-      const primera = document.querySelector('.table-comparison tbody td');
+      const primera = document.querySelector('table tbody td');
       if (primera) selectCell(primera, { openMenu: false, scroll: false });
       return;
     }
@@ -505,7 +926,7 @@
   };
 
   const registrarCeldas = () => {
-    const celdas = document.querySelectorAll('.table-comparison tbody td');
+    const celdas = document.querySelectorAll('table tbody td');
     celdas.forEach((td) => {
       td.addEventListener('click', (e) => {
         e.stopPropagation();
