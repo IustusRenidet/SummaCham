@@ -52,14 +52,6 @@ router.post('/', (req, res) => {
     return res.status(400).json({ mensaje: 'modulo, celdaId y texto son obligatorios.' });
   }
 
-  const mapa = req.mapaPermisos || null;
-  const tienePermiso = !empresaId || !mapa
-    ? true
-    : tienePermisoModulo(mapa, empresaId, modulo, 'Lectura');
-  if (!tienePermiso) {
-    return res.status(403).json({ mensaje: 'Sin permisos para comentar en este modulo.' });
-  }
-
   try {
     const creado = crearComentario({
       empresaId,
