@@ -416,9 +416,9 @@
       "Clase": "expense-Cargos Administrativos",
       "SECCION": "Cargos Administrativos",
       "sum-row": "SUMA DE Cargos Administrativos",
-      "sum-row-sumavarios": "GDL EXPENSE",
-      "sum-row-operativo": "OPERATING RESULTS",
-      "result-row": "NET RESULTS"
+      "sum-row-sumavarios": "",
+      "sum-row-operativo": "",
+      "result-row": ""
     },
     {
       "HOJA": "RESUMEN",
@@ -571,6 +571,16 @@
     {
       "HOJA": "RESUMEN",
       "CAPITULO": "NORESTE",
+      "Clase": "expense-Cargos Administrativos",
+      "SECCION": "Cargos Administrativos",
+      "sum-row": "SUMA DE Cargos Administrativos",
+      "sum-row-sumavarios": "",
+      "sum-row-operativo": "",
+      "result-row": ""
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "NORESTE",
       "Clase": "expense-Member Centricity",
       "SECCION": "Member Centricity",
       "sum-row": "SUMA DE Member Centricity",
@@ -695,6 +705,16 @@
       "sum-row-sumavarios": "NO EXPENSE",
       "sum-row-operativo": "OPERATING RESULTS",
       "result-row": "NET RESULTS"
+    },
+    {
+      "HOJA": "RESUMEN",
+      "CAPITULO": "NOROESTE",
+      "Clase": "expense-Cargos Administrativos",
+      "SECCION": "Cargos Administrativos",
+      "sum-row": "SUMA DE Cargos Administrativos",
+      "sum-row-sumavarios": "",
+      "sum-row-operativo": "",
+      "result-row": ""
     },
     {
       "HOJA": "RESUMEN",
@@ -1387,6 +1407,13 @@
     },
     {
       "CAPITULO": "NORESTE",
+      "SECCIÓN Principal": "NE EXPENSE",
+      "SECCION Secundaria": "Cargos Administrativos",
+      "CUENTA": "900-001-000-00",
+      "NOMBRE": "Cargos Administrativos"
+    },
+    {
+      "CAPITULO": "NORESTE",
       "SECCIÓN Principal": "NE OPERATING RESULTS ",
       "SECCION Secundaria": "Member Centricity",
       "CUENTA": "901-000-000-00",
@@ -1545,6 +1572,13 @@
       "SECCION Secundaria": "Gtos. Corporativos",
       "CUENTA": "903-000-000-00",
       "NOMBRE": "Gtos. Corporativos"
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "SECCIÓN Principal": "NO EXPENSE",
+      "SECCION Secundaria": "Cargos Administrativos",
+      "CUENTA": "903-001-000-00",
+      "NOMBRE": "Cargos Administrativos"
     },
     {
       "CAPITULO": "NOROESTE",
