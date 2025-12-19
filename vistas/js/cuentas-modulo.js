@@ -1977,11 +1977,13 @@
           break;
         }
         case 'gastosgenerales': {
-          const totalLabel = capituloNormalizado === normalizarTexto('CIUDAD DE MÉXICO') ? 'Total GA CdMx' : 'Total';
-          if (/DEPRECIACIONES/i.test(seccion || '') ||
-              /GA\s+CAPITULO/i.test(seccion || '') ||
-              /MEMBER\s+CENTRICITY/i.test(seccion || '') ||
-              /GASTOS\s+CORPORATIVOS/i.test(seccion || '')) {
+          const totalLabel = capituloNormalizado === normalizarTexto('CIUDAD DE MEXICO') ? 'Total GA CdMx' : 'Total';
+          const seccionNormTexto = normalizarTexto(seccion || '');
+          const esDepreciaciones = /DEPRECIACIONES/i.test(seccionNormTexto);
+          const esGaCapitulo = /GA\s+CAPITULO/i.test(seccionNormTexto);
+          const esMemberCentricity = /MEMBER\s+CENTRICITY/i.test(seccionNormTexto);
+          const esGastosCorporativos = /GASTOS\s+CORPORATIVOS/i.test(seccionNormTexto);
+          if (esDepreciaciones || esGaCapitulo || esMemberCentricity || esGastosCorporativos) {
             metaSeccion.factor = -1;
             agregarResultRow(metaSeccion, totalLabel);
           }
@@ -3090,42 +3092,6 @@
         });
         acumuladosResultado.set(clave, prev);
       });
-
-      // Ajuste: Gastos Generales (GDL/NE/NO) debe usar la fórmula
-      // (Otros Ingresos vs Gastos) - (Suma de Gastos Generales) - (Suma Depreciaciones y Amortizaciones) - (Total GA)
-      const esGastosGenerales = normalizarClave(estadoModulo.moduloClave) === 'gastosgenerales';
-      const capituloNorm = normalizarClave(estadoModulo.capitulo || '');
-      const esCdMx = capituloNorm === normalizarClave('CIUDAD DE MEXICO') || capituloNorm === normalizarClave('CIUDAD DE MÉXICO');
-      if (esGastosGenerales && !esCdMx) {
-        const claveOtrosVs = normalizarClave('Otros Ingresos vs Gastos');
-        const cero = Array.from({ length: longitud }, () => 0);
-        const sumarSecciones = (predicado) => {
-          const acumulado = Array.from({ length: longitud }, () => 0);
-          secciones.filter(predicado).forEach((sec) => {
-            const origen = sec.sumValues || cero;
-            const factor = Number.isFinite(sec.factor) ? sec.factor : 1;
-            origen.forEach((valor, idx) => {
-              acumulado[idx] += (Number(valor) || 0) * factor;
-            });
-          });
-          return acumulado;
-        };
-
-        const otrosVs = sumarSecciones((sec) => {
-          const clave = normalizarClave(sec.sumRowSumavariosTexto) || normalizarClave(sec.sumRowSumavarios2Texto);
-          return clave === claveOtrosVs;
-        });
-        const gastosGenerales = sumarSecciones((sec) => /GASTOS\s+GENERALES/i.test(sec.tituloVisible || sec.seccion || ''));
-        const depreciaciones = sumarSecciones((sec) => /DEPRECIACIONES/i.test(sec.tituloVisible || sec.seccion || ''));
-        const totalGa = sumarSecciones((sec) => /GA\s+CAPITULO/i.test(sec.tituloVisible || sec.seccion || ''));
-
-        const totalValores = otrosVs.map((v, idx) => (Number(v) || 0) +
-          (Number(gastosGenerales[idx]) || 0) +
-          (Number(depreciaciones[idx]) || 0) +
-          (Number(totalGa[idx]) || 0));
-
-        acumuladosResultado.set(normalizarClave('Total'), totalValores);
-      }
 
       meta.resultRows?.forEach((fila, clave) => {
         try {
