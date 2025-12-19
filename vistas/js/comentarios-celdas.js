@@ -316,9 +316,20 @@
     return base;
   };
 
+  const parsearFechaUtc = (valor) => {
+    if (!valor) return null;
+    const str = valor.toString();
+    if (/Z|[+-]\d{2}:?\d{2}$/.test(str)) {
+      return new Date(str);
+    }
+    const isoLike = str.includes('T') ? str : str.replace(' ', 'T');
+    return new Date(`${isoLike}Z`);
+  };
+
   const formatearFecha = (valor) => {
     try {
-      const fecha = new Date(valor);
+      const fecha = parsearFechaUtc(valor);
+      if (!fecha || Number.isNaN(fecha.getTime())) return valor;
       return new Intl.DateTimeFormat('es-MX', {
         timeZone: TIME_ZONE,
         dateStyle: 'short',
@@ -350,7 +361,7 @@
     if (!tabla || !fila) return null;
     const rowIndex = rowIndexOverride !== null ? rowIndexOverride : Array.from(fila.parentElement.children).indexOf(fila);
     const colIndex = colIndexOverride !== null ? colIndexOverride : td.cellIndex;
-    const modulo = (document.body?.dataset?.modulo || 'MODULO').toString().toUpperCase();
+    const modulo = obtenerModuloId();
     const empresaId = window.Sesion?.obtenerEmpresaActiva?.()?.id || 'EMPRESA';
     const anio = obtenerAnioActivo() || 'NA';
     const cuenta = fila.querySelector('td')?.innerText?.trim().replace(/\s+/g, ' ') || `row${rowIndex}`;
@@ -391,7 +402,7 @@
   const state = {
     celdaId: null,
     celdaLabel: '',
-    modulo: (document.body?.dataset?.modulo || 'MODULO').toString().toUpperCase(),
+    modulo: obtenerModuloId(),
     anio: obtenerAnioActivo(),
     empresaId: window.Sesion?.obtenerEmpresaActiva?.()?.id || null,
     capitulo: null,
@@ -562,6 +573,7 @@
       });
       callout.querySelector('[data-action="ocultar"]').addEventListener('click', (e) => {
         e.preventDefault();
+        e.stopPropagation();
         state.calloutsOcultos.add(item.celdaId);
         renderCallouts();
         scheduleRelayout();
@@ -800,7 +812,7 @@
     const texto = refs.input.value.trim();
     if (!texto) return;
     const payload = {
-      modulo: state.modulo,
+      modulo: obtenerModuloId(),
       celdaId: state.celdaId,
       texto,
       anio: state.anio,
@@ -1001,6 +1013,24 @@
     });
   };
 
+  const manejarCambioEjercicio = () => {
+    refrescarContexto();
+    state.calloutsOcultos = new Set();
+    if (state.visorActivo) {
+      setVisorActivo(true);
+    } else {
+      limpiarCallouts();
+    }
+  };
+
+  const registrarListenerEjercicio = () => {
+    const selectYear = document.querySelector('select[id*="YearSelect"]');
+    if (selectYear && !selectYear.dataset.comentariosListener) {
+      selectYear.addEventListener('change', manejarCambioEjercicio);
+      selectYear.dataset.comentariosListener = '1';
+    }
+  };
+
   const observarCambiosTabla = () => {
     let pendiente = null;
     const observer = new MutationObserver(() => {
@@ -1008,6 +1038,7 @@
       pendiente = requestAnimationFrame(() => {
         pendiente = null;
         registrarCeldas();
+        registrarListenerEjercicio();
       });
     });
     observer.observe(document.body, { childList: true, subtree: true });
@@ -1016,8 +1047,10 @@
   document.addEventListener('keydown', handleArrowNavigation);
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', registrarCeldas);
+    document.addEventListener('DOMContentLoaded', registrarListenerEjercicio);
   } else {
     registrarCeldas();
+    registrarListenerEjercicio();
   }
   observarCambiosTabla();
 })();
