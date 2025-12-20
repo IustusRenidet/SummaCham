@@ -234,10 +234,8 @@ const construirNodoSeccion = ({ seccion, cuentas, definicion, claveMes, planeaci
   ];
   const debeExcluirCapitulo = CAPITULOS_EXCLUSION_CARGOS.some((token) => capNorm.includes(token));
   const esCargosAdminExcluido = debeExcluirCapitulo && seccionNorm.includes('CARGOS ADMINISTRATIVOS');
-  if (esCargosAdminExcluido) {
-    // No sumar estos totales en los niveles superiores
-    totales = { actualMonth: 0, planMonth: 0, prevMonth: 0, actualYTD: 0, planYTD: 0, prevYTD: 0 };
-  }
+  // Nota: mantenemos los totales reales para la secci¢n (mostrar suma),
+  // pero el flag excludeFromExpense evitar  que se acumulen en principales/consolidados.
 
   const cuentasDetalle = cuentas.map((cuentaId) => {
     const actual = planeacionActual.find((p) => p.cuenta === cuentaId) || {};
@@ -525,17 +523,20 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
       capituloClave: capituloSeleccionado
     }));
 
-    const totalesPrincipal = children.reduce(
-      (acc, nodo) => ({
+    const totalesPrincipal = children.reduce((acc, nodo) => {
+      // No acumular secciones marcadas para excluir (ej. Cargos Administrativos)
+      if (nodo.excludeFromExpense) {
+        return acc;
+      }
+      return {
         actualMonth: acc.actualMonth + nodo.totalActualMonth,
         planMonth: acc.planMonth + nodo.totalPlanMonth,
         prevMonth: acc.prevMonth + nodo.totalPrevMonth,
         actualYTD: acc.actualYTD + nodo.totalActualYTD,
         planYTD: acc.planYTD + nodo.totalPlanYTD,
         prevYTD: acc.prevYTD + nodo.totalPrevYTD
-      }),
-      crearAcumulador()
-    );
+      };
+    }, crearAcumulador());
 
     const clase = (principal.clase || '').toLowerCase();
     const sign = clase.includes('expense') ? -1 : 1;
@@ -892,7 +893,8 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
           prevMonth: secundaria.totalPrevMonth,
           actualYTD: secundaria.totalActualYTD,
           planYTD: secundaria.totalPlanYTD,
-          prevYTD: secundaria.totalPrevYTD
+          prevYTD: secundaria.totalPrevYTD,
+          excludeFromExpense: secundaria.excludeFromExpense || false
         },
         cuentas: secundaria.cuentas || []
       });

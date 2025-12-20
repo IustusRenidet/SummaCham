@@ -165,7 +165,11 @@
       syncCollapseAllState();
       return;
     }
-    filas.forEach((row) => setSectionCollapseState(row, true));
+    filas.forEach((row) => {
+      setSectionCollapseState(row, true);
+      // Ocultar la fila de secci¢n (p.ej. Cargos Administrativos) en modo colapsado
+      row.style.display = 'none';
+    });
     syncCollapseAllState();
   }
 
