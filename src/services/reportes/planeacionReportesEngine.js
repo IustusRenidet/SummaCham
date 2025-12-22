@@ -206,6 +206,13 @@ const crearAcumulador = () => ({
   prevYTD: 0
 });
 
+const normalizarTexto = (valor = '') => valor
+  .toString()
+  .trim()
+  .toUpperCase()
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '');
+
 const sumarTotales = (destino, origen, factor = 1) => {
   if (!destino || !origen) return destino;
   destino.actualMonth += factor * Number(origen.actualMonth ?? 0);
@@ -262,7 +269,24 @@ const construirNodoSeccion = ({ seccion, cuentas, definicion, claveMes, planeaci
     };
   });
 
-    return {
+  const esOther = normalizarTexto(seccion) === 'OTHER';
+  const requiereAjusteOther = esOther && ['NORESTE', 'NOROESTE'].some((token) => capNorm.includes(token));
+  if (requiereAjusteOther) {
+    const cuentasAjuste = cuentasDetalle.filter((cuenta) => {
+      const descNorm = normalizarTexto(cuenta.descripcion || '');
+      return descNorm.includes('PERDIDA CAMBIARIA');
+    });
+    cuentasAjuste.forEach((cuenta) => {
+      totales.actualMonth -= 2 * Number(cuenta.actualMonth ?? 0);
+      totales.planMonth -= 2 * Number(cuenta.planMonth ?? 0);
+      totales.prevMonth -= 2 * Number(cuenta.prevMonth ?? 0);
+      totales.actualYTD -= 2 * Number(cuenta.actualYTD ?? 0);
+      totales.planYTD -= 2 * Number(cuenta.planYTD ?? 0);
+      totales.prevYTD -= 2 * Number(cuenta.prevYTD ?? 0);
+    });
+  }
+
+  return {
     label: seccion,
     cuentas: cuentasDetalle,
     orden,
