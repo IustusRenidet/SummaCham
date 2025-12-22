@@ -210,7 +210,23 @@
       return `${origin}/api`;
     })();
     
-    const MODULOS = ['Membresía', 'Eventos', 'Comunicación', 'Dirección', 'Serv Membresía', 'Comités', 'T&IC', 'RH', 'VPE', 'Finanzas', 'Gastos Generales', 'Nomina', 'Gtos Corporativos', 'Presupuestos', 'RESUMEN'];
+    const MODULOS = [
+      'Membresía',
+      'Eventos',
+      'Comunicación',
+      'Dirección',
+      'Serv Membresía',
+      'Comités',
+      'T&IC',
+      'RH',
+      'VPE',
+      'Finanzas',
+      'Gastos Generales',
+      'Nomina',
+      'Gtos Corporativos',
+      'Presupuestos',
+      'RESUMEN'
+    ];
     const ACCIONES = ['Ver', 'Cargar y guardar', 'Revisar', 'Aprobar'];
     const normalizarUsuarioEntrada = (valor = '') => valor.toString().trim().toUpperCase();
 
@@ -331,29 +347,65 @@
 
     // Configuración explícita por empresa según solicitud
     const MAPA_MODULOS_EMPRESA = {
+      // CIUDAD DE MÉXICO
       empresa1: [
-        'Membresía', 'Eventos', 'Comunicación',
-        'Serv Membresía', 'Comités', 'T&IC', 'RH', 'VPE',
-        'Finanzas', 'Gastos Generales', 'Nomina', 'Gtos Corporativos',
-        'RESUMEN', 'Presupuestos'
+        'Membresía',
+        'Eventos',
+        'Comunicación',
+        'Serv Membresía',
+        'Comités',
+        'T&IC',
+        'RH',
+        'VPE',
+        'Finanzas',
+        'Gastos Generales',
+        'Nomina',
+        'Gtos Corporativos',
+        'Presupuestos',
+        'RESUMEN'
       ],
+      // GUADALAJARA, NORESTE, NOROESTE
       empresa2: [
-        'Membresía', 'Eventos', 'Comunicación', 'Dirección',
-        'Serv Membresía', 'Comités', 'T&IC', 'RH',
-        'Gastos Generales', 'Gtos Corporativos',
-        'RESUMEN', 'Presupuestos'
+        'Membresía',
+        'Eventos',
+        'Comunicación',
+        'Dirección',
+        'Serv Membresía',
+        'Comités',
+        'T&IC',
+        'RH',
+        'Gastos Generales',
+        'Gtos Corporativos',
+        'Presupuestos',
+        'RESUMEN'
       ],
       empresa3: [
-        'Membresía', 'Eventos', 'Comunicación', 'Dirección',
-        'Serv Membresía', 'Comités', 'T&IC', 'RH',
-        'Gastos Generales', 'Gtos Corporativos',
-        'RESUMEN', 'Presupuestos'
+        'Membresía',
+        'Eventos',
+        'Comunicación',
+        'Dirección',
+        'Serv Membresía',
+        'Comités',
+        'T&IC',
+        'RH',
+        'Gastos Generales',
+        'Gtos Corporativos',
+        'Presupuestos',
+        'RESUMEN'
       ],
       empresa4: [
-        'Membresía', 'Eventos', 'Comunicación', 'Dirección',
-        'Serv Membresía', 'Comités', 'T&IC', 'RH',
-        'Gastos Generales', 'Gtos Corporativos',
-        'RESUMEN', 'Presupuestos'
+        'Membresía',
+        'Eventos',
+        'Comunicación',
+        'Dirección',
+        'Serv Membresía',
+        'Comités',
+        'T&IC',
+        'RH',
+        'Gastos Generales',
+        'Gtos Corporativos',
+        'Presupuestos',
+        'RESUMEN'
       ]
     };
 

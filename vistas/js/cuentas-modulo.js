@@ -4020,6 +4020,7 @@
     estadoModulo.sumas.sumavariosRows = new Map();
     pendientes.sumavarios.forEach((info, clave) => {
       if (!info?.meta) return;
+      // Insertar justo debajo de la sección sobre la que opera
       const filaSumario = agregarFilaResumen({
         texto: info.texto,
         clase: 'sum-row-sumavarios',
