@@ -158,6 +158,18 @@
 
         const getMesClave = (num) => MESES.find((m) => m.periodo === Number(num))?.clave || 'dic';
 
+        const obtenerCapituloSeleccionado = (empresaId) => {
+          // Prioridad: valor del selector de empresa en el layout (company-selector)
+          const selector = document.querySelector('.company-selector select');
+          if (selector) {
+            const opt = selector.selectedOptions?.[0];
+            const texto = opt?.dataset?.capitulo || opt?.value || opt?.textContent;
+            if (texto) return texto.toString().trim();
+          }
+          // Fallback al mapeo de CapitulosModulos
+          return window.CapitulosModulos?.obtenerCapituloPorEmpresa?.(empresaId) || '';
+        };
+
         const flattenLabels = (nodos = []) => {
           const map = new Map();
           const walk = (arr) => {
@@ -352,7 +364,7 @@
           empresaLabel.textContent = `Capitulo: ${empresa?.nombre || empresa?.etiqueta || empresa?.id}`;
           const anio = Number(yearSelect.value) || new Date().getFullYear();
           const mes = Number(monthSelect.value) || new Date().getMonth() + 1;
-          const capitulo = window.CapitulosModulos?.obtenerCapituloPorEmpresa?.(empresa.id) || '';
+          const capitulo = obtenerCapituloSeleccionado(empresa.id);
           try {
             const url = new URL(API_ENDPOINT);
             url.searchParams.set('empresaId', empresa.id);
@@ -360,6 +372,11 @@
             url.searchParams.set('mes', mes.toString()); // API espera mes numerico (1-12)
             if (capitulo) url.searchParams.set('capitulo', capitulo);
             const res = await fetch(url.toString(), { headers: window.Sesion?.headersAutenticacion?.() || {} });
+            if (!res.ok) {
+              const text = await res.text();
+              console.warn('Graficas resumen 400/500', res.status, text);
+              throw new Error(`No se pudo obtener resumen (${res.status})`);
+            }
             const data = await res.json().catch(() => ({}));
             const metrics = buildMetrics(data.resumen || []);
             renderCharts(metrics);
