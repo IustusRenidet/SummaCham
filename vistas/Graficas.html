@@ -131,8 +131,8 @@
     <script>
       (() => {
         const base = window.location.protocol === 'file:' ? 'http://localhost:3005' : window.location.origin;
-        const API_ENDPOINT = \`\${base}/api/reportes/resumen\`;
-        const API_ANIOS = \`\${base}/api/saldos/anios\`;
+        const API_ENDPOINT = `${base}/api/reportes/resumen`;
+        const API_ANIOS = `${base}/api/saldos/anios`;
         const yearSelect = document.getElementById('grafYearSelect');
         const monthSelect = document.getElementById('grafMonthSelect');
         const empresaLabel = document.getElementById('empresaLabel');
@@ -349,15 +349,16 @@
             empresaLabel.textContent = 'Capitulo: -';
             return;
           }
-          empresaLabel.textContent = \`Capitulo: \${empresa?.nombre || empresa?.etiqueta || empresa?.id}\`;
+          empresaLabel.textContent = `Capitulo: ${empresa?.nombre || empresa?.etiqueta || empresa?.id}`;
           const anio = Number(yearSelect.value) || new Date().getFullYear();
           const mes = Number(monthSelect.value) || new Date().getMonth() + 1;
-          const mesClave = getMesClave(mes);
+          const capitulo = window.CapitulosModulos?.obtenerCapituloPorEmpresa?.(empresa.id) || '';
           try {
             const url = new URL(API_ENDPOINT);
             url.searchParams.set('empresaId', empresa.id);
             url.searchParams.set('anio', anio);
-            url.searchParams.set('mes', mesClave);
+            url.searchParams.set('mes', mes.toString()); // API espera mes numerico (1-12)
+            if (capitulo) url.searchParams.set('capitulo', capitulo);
             const res = await fetch(url.toString(), { headers: window.Sesion?.headersAutenticacion?.() || {} });
             const data = await res.json().catch(() => ({}));
             const metrics = buildMetrics(data.resumen || []);
@@ -378,4 +379,3 @@
     </script>
   </body>
 </html>
-

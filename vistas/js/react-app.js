@@ -17,7 +17,8 @@
       id: "panel-resumenes",
       label: "Summary",
       items: [
-        { id: "resumen", label: "Resumen", path: "RESUMEN.html", badge: "summary", permiso: "RESUMEN" }
+        { id: "resumen", label: "Resumen", path: "RESUMEN.html", badge: "summary", permiso: "RESUMEN" },
+        { id: "graficas", label: "Graficas", path: "Graficas.html", badge: "summary", permiso: "RESUMEN" }
       ]
     },
     {
