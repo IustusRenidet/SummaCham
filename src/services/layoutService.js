@@ -386,8 +386,9 @@ const guardarOperaciones = ({ empresaId = 'EMPRESA01', modulo, anio, operaciones
 
       tiposOperacion.forEach((tipo, tipoIndex) => {
         if (op[tipo]) {
-          let signo = 1;
-          if (op.Clase && op.Clase.toLowerCase().includes('expense')) {
+          const signoConfigurado = Number(op.signo);
+          let signo = Number.isFinite(signoConfigurado) && signoConfigurado !== 0 ? signoConfigurado : 1;
+          if (!Number.isFinite(signoConfigurado) && op.Clase && op.Clase.toLowerCase().includes('expense')) {
             signo = -1;
           }
 
