@@ -436,6 +436,106 @@
         empresa4: 'Noroeste'
       };
 
+      const MAPA_MODULOS_EMPRESA = {
+        empresa1: [
+          'Membresía',
+          'Eventos',
+          'Comunicación',
+          'Serv Membresía',
+          'Comités',
+          'T&IC',
+          'RH',
+          'VPE',
+          'Finanzas',
+          'Gastos Generales',
+          'Nomina',
+          'Gtos Corporativos',
+          'Presupuestos',
+          'RESUMEN'
+        ],
+        empresa2: [
+          'Membresía',
+          'Eventos',
+          'Comunicación',
+          'Dirección',
+          'Serv Membresía',
+          'Comités',
+          'T&IC',
+          'RH',
+          'Gastos Generales',
+          'Gtos Corporativos',
+          'Presupuestos',
+          'RESUMEN'
+        ],
+        empresa3: [
+          'Membresía',
+          'Eventos',
+          'Comunicación',
+          'Dirección',
+          'Serv Membresía',
+          'Comités',
+          'T&IC',
+          'RH',
+          'Gastos Generales',
+          'Gtos Corporativos',
+          'Presupuestos',
+          'RESUMEN'
+        ],
+        empresa4: [
+          'Membresía',
+          'Eventos',
+          'Comunicación',
+          'Dirección',
+          'Serv Membresía',
+          'Comités',
+          'T&IC',
+          'RH',
+          'Gastos Generales',
+          'Gtos Corporativos',
+          'Presupuestos',
+          'RESUMEN'
+        ]
+      };
+
+      const ACCIONES = ['Ver', 'Cargar y guardar', 'Revisar', 'Aprobar'];
+
+      const normalizarModuloId = (valor = '') => valor
+        .toString()
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[̀-ͯ]/g, '')
+        .replace(/[^a-z0-9]/g, '');
+
+      const obtenerEmpresasParaMostrar = (permisosPorEmpresa = {}) => {
+        const disponibles = (typeof Sesion !== 'undefined' && typeof Sesion.obtenerEmpresasDisponibles === 'function')
+          ? (Sesion.obtenerEmpresasDisponibles() || [])
+          : [];
+        const idsSesion = disponibles.map((empresa) => empresa.id).filter(Boolean);
+        const idsPermisos = Object.keys(permisosPorEmpresa || {});
+        return Array.from(new Set([...idsSesion, ...idsPermisos]));
+      };
+
+      const obtenerModulosEsperados = (empresaId, permisosPorEmpresa = {}) => {
+        const base = MAPA_MODULOS_EMPRESA[empresaId] || [];
+        const modulosSegunPermisos = Object.keys(permisosPorEmpresa?.[empresaId] || {});
+        const extras = modulosSegunPermisos.filter((nombre) => {
+          const clave = normalizarModuloId(nombre);
+          return clave && clave !== 'summary' && !base.some((mod) => normalizarModuloId(mod) === clave);
+        });
+        if (base.length) {
+          return [...base, ...extras];
+        }
+        return modulosSegunPermisos.filter((nombre) => normalizarModuloId(nombre) !== 'summary');
+      };
+
+      const encontrarAccionesModulo = (permisosPorEmpresa = {}, empresaId, moduloNombre) => {
+        const modulosEmpresa = permisosPorEmpresa?.[empresaId] || {};
+        const objetivo = normalizarModuloId(moduloNombre);
+        const par = Object.entries(modulosEmpresa).find(([nombre]) => normalizarModuloId(nombre) === objetivo);
+        return par ? par[1] : null;
+      };
+
+
       const obtenerUsuarioSesion = () => {
         try {
           const sesionActiva = typeof Sesion !== 'undefined' && Sesion.obtener ? Sesion.obtener() : null;
@@ -691,63 +791,63 @@
 
       const renderPermisosEmpresa = (permisosPorEmpresa = {}) => {
         if (!ELEMENTOS.permisosEmpresa) return;
-        let registros = [];
-        Object.entries(permisosPorEmpresa).forEach(([empresaId, modulos]) => {
-          Object.entries(modulos || {}).forEach(([modulo, acciones]) => {
-            const activas = Object.entries(acciones || {})
-              .filter(([, activo]) => Boolean(activo))
-              .map(([accion]) => accion);
-            if (!activas.length) return;
-            registros.push({
-              empresa: EMPRESAS[empresaId] || empresaId,
-              modulo,
-              acciones: activas
-            });
-          });
-        });
 
-        registros = registros.filter((item) => (item.modulo || '').toUpperCase() !== 'SUMMARY');
-
-        if (!registros.length) {
+        const empresas = obtenerEmpresasParaMostrar(permisosPorEmpresa);
+        if (!empresas.length) {
           ELEMENTOS.permisosEmpresa.innerHTML = '<p class="text-muted mb-0">Aún no tienes permisos para ningún módulo.</p>';
           return;
         }
 
-        registros = registros.sort((a, b) => {
-          if (a.empresa === b.empresa) {
-            return a.modulo.localeCompare(b.modulo);
-          }
-          return a.empresa.localeCompare(b.empresa);
+        const contenedor = document.createElement('div');
+        contenedor.className = 'd-flex flex-column gap-3';
+
+        empresas.forEach((empresaId) => {
+          const modulos = obtenerModulosEsperados(empresaId, permisosPorEmpresa);
+          if (!modulos.length) return;
+
+          const seccion = document.createElement('section');
+          seccion.className = 'border rounded p-3';
+
+          const header = document.createElement('div');
+          header.className = 'd-flex justify-content-between align-items-center mb-2';
+          const titulo = document.createElement('h4');
+          titulo.className = 'h6 mb-0';
+          titulo.textContent = EMPRESAS[empresaId] || empresaId;
+          const badge = document.createElement('span');
+          badge.className = 'badge bg-light text-primary border';
+          badge.textContent = `${modulos.length} módulos`;
+          header.append(titulo, badge);
+
+          const grid = document.createElement('div');
+          grid.className = 'row row-cols-1 row-cols-sm-2 g-2';
+
+          modulos.forEach((moduloNombre) => {
+            const acciones = encontrarAccionesModulo(permisosPorEmpresa, empresaId, moduloNombre) || {};
+            const activas = ACCIONES.filter((accion) => acciones[accion]);
+            const col = document.createElement('div');
+            col.className = 'col';
+            col.innerHTML = `
+              <div class="border rounded p-3 h-100">
+                <div class="fw-semibold mb-2">${moduloNombre}</div>
+                ${activas.length
+                  ? `<div class="acciones-chip">${activas.map((accion) => `<span>${accion}</span>`).join('')}</div>`
+                  : '<p class="text-muted mb-0 small">Sin permisos asignados</p>'}
+              </div>
+            `;
+            grid.appendChild(col);
+          });
+
+          seccion.append(header, grid);
+          contenedor.appendChild(seccion);
         });
 
-        const tabla = document.createElement('div');
-        tabla.className = 'table-responsive';
-        tabla.innerHTML = `
-          <table class="table table-sm permisos-table mb-0">
-            <thead>
-              <tr>
-                <th scope="col">Empresa</th>
-                <th scope="col">Módulo</th>
-                <th scope="col">Acciones permitidas</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${registros.map((item) => `
-                <tr>
-                  <td>${item.empresa}</td>
-                  <td>${item.modulo}</td>
-                  <td>
-                    <div class="acciones-chip">
-                      ${item.acciones.map((accion) => `<span>${accion}</span>`).join('')}
-                    </div>
-                  </td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        `;
+        if (!contenedor.childElementCount) {
+          ELEMENTOS.permisosEmpresa.innerHTML = '<p class="text-muted mb-0">Aún no tienes permisos para ningún módulo.</p>';
+          return;
+        }
+
         ELEMENTOS.permisosEmpresa.innerHTML = '';
-        ELEMENTOS.permisosEmpresa.appendChild(tabla);
+        ELEMENTOS.permisosEmpresa.appendChild(contenedor);
       };
 
       const rellenarDatos = (usuario) => {

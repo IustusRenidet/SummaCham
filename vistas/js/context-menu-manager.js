@@ -41,6 +41,11 @@
     },
 
     init() {
+      // Si está activo el nuevo menú del wizard, omitir este manager para evitar duplicados
+      if (window.ContextMenuWizard) {
+        console.info('ℹ️ ContextMenuManager deshabilitado: usando ContextMenuWizard');
+        return;
+      }
       this.menuElement = document.getElementById('contextMenu');
       if (!this.menuElement) {
         console.warn('❌ Menú contextual no encontrado');

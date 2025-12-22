@@ -3183,6 +3183,10 @@
     if (!estadoModulo.editMode || !esModuloEditable(estadoModulo.moduloClave)) {
       return;
     }
+    if (window.ContextMenuWizard || window.InsertionWizard) {
+      // Si está activo el wizard de inserción, dejamos que solo él maneje el menú contextual
+      return;
+    }
     const tabla = estadoModulo.tabla || obtenerTabla();
     if (!tabla || !tabla.contains(evt.target)) {
       return;

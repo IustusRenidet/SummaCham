@@ -370,7 +370,8 @@
     // Si NO es modo soloLayout, permitir editar celdas numéricas
     if (!estado.soloLayout) {
       // Buscar todas las celdas de presupuesto (numeros)
-      const celdas = tabla.querySelectorAll('td[data-mes]');
+      const selectorCeldasBudget = 'td[data-mes], td[data-columna-clave^="budget-"]';
+      const celdas = tabla.querySelectorAll(selectorCeldasBudget);
       
       celdas.forEach((celda) => {
         // CRÍTICO: Verificar si ya se inicializó para evitar listeners duplicados
@@ -984,6 +985,7 @@
 
   document.addEventListener('contextmenu', (evt) => {
     if (!estado.modoEdicionActivo) return;
+    if (window.ContextMenuWizard || window.InsertionWizard) return;
     const res = resolverTabla(estado.selectorTabla);
     if (!res || !res.tabla) return;
     const tabla = res.tabla;
@@ -1118,6 +1120,8 @@
       }
       
       estado.selectorTabla = selectorUsado;
+      // Reaplicar listeners en caso de rerender
+      inicializarCeldasEditables(tabla);
       activarModoEdicion(tabla);
       return true;
     },
