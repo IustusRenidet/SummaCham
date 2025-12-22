@@ -1,11 +1,19 @@
 ﻿(() => {
   const estilo = document.createElement('style');
   estilo.textContent = `
-    .comentarios-floating-btn {
+    .comentarios-fab-container {
       position: fixed;
-      bottom: 18px;
       right: 16px;
+      bottom: 18px;
       z-index: 1400;
+      display: inline-flex;
+      align-items: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+    .comentarios-floating-btn {
+      position: static;
       display: inline-flex;
       align-items: center;
       gap: 8px;
@@ -226,10 +234,7 @@
       border-left-color: #0ea5e9;
     }
     .comentarios-toggle-visor {
-      position: fixed;
-      bottom: 72px;
-      right: 16px;
-      z-index: 1400;
+      position: static;
       display: inline-flex;
       align-items: center;
       gap: 8px;
@@ -891,7 +896,6 @@
     visorToggleBtn.className = 'comentarios-toggle-visor';
     visorToggleBtn.innerHTML = '<i class="bi bi-chat-left-quote"></i> Ver globos';
     visorToggleBtn.addEventListener('click', toggleVisorComentarios);
-    document.body.appendChild(visorToggleBtn);
   } else {
     visorToggleBtn = document.querySelector('.comentarios-toggle-visor');
     visorToggleBtn.onclick = toggleVisorComentarios;
@@ -903,7 +907,6 @@
     restoreCalloutsBtn.className = 'comentarios-restore-btn';
     restoreCalloutsBtn.textContent = 'Restaurar globos';
     restoreCalloutsBtn.addEventListener('click', restaurarCallouts);
-    document.body.appendChild(restoreCalloutsBtn);
   } else {
     restoreCalloutsBtn = document.querySelector('.comentarios-restore-btn');
     restoreCalloutsBtn.onclick = restaurarCallouts;
@@ -912,8 +915,9 @@
   setVisorActivo(false);
 
   // No duplicar botón
-  if (!document.querySelector('.comentarios-floating-btn')) {
-    const botonFlotante = document.createElement('button');
+  let botonFlotante = document.querySelector('.comentarios-floating-btn');
+  if (!botonFlotante) {
+    botonFlotante = document.createElement('button');
     botonFlotante.type = 'button';
     botonFlotante.className = 'comentarios-floating-btn';
     botonFlotante.innerHTML = `<i class="bi bi-chat-dots"></i> Comentarios`;
@@ -927,7 +931,24 @@
       }
       abrirModal();
     });
-    document.body.appendChild(botonFlotante);
+  }
+
+  // Contenedor flotante para agrupar los botones en la esquina inferior derecha
+  let fabContainer = document.querySelector('.comentarios-fab-container');
+  if (!fabContainer) {
+    fabContainer = document.createElement('div');
+    fabContainer.className = 'comentarios-fab-container';
+    document.body.appendChild(fabContainer);
+  }
+
+  if (visorToggleBtn && !fabContainer.contains(visorToggleBtn)) {
+    fabContainer.appendChild(visorToggleBtn);
+  }
+  if (botonFlotante && !fabContainer.contains(botonFlotante)) {
+    fabContainer.appendChild(botonFlotante);
+  }
+  if (restoreCalloutsBtn && !fabContainer.contains(restoreCalloutsBtn)) {
+    fabContainer.appendChild(restoreCalloutsBtn);
   }
 
   const selectCell = (td, { openMenu = true, scroll = true } = {}) => {

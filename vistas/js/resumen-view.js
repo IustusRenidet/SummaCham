@@ -93,6 +93,57 @@
     { etiqueta: 'Diciembre', clave: 'dic', periodo: 12 }
   ];
 
+  const MODULO_CLAVE = (document.body?.dataset?.modulo || 'RESUMEN').toString().toUpperCase();
+
+  const leerContextoPersistido = () => {
+    const ctx = typeof Sesion?.obtenerContextoPlaneacion === 'function'
+      ? Sesion.obtenerContextoPlaneacion()
+      : {};
+    const anio = Number(ctx?.anio);
+    const mes = Number(ctx?.mes);
+    return {
+      anio: Number.isInteger(anio) ? anio : null,
+      mes: Number.isInteger(mes) ? mes : null
+    };
+  };
+
+  const persistirContextoSeleccion = (anio, mes) => {
+    if (typeof Sesion?.guardarContextoPlaneacion === 'function') {
+      Sesion.guardarContextoPlaneacion({ anio, mes, modulo: MODULO_CLAVE });
+    }
+  };
+
+  const elegirAnioDisponible = (lista = [], preferido) => {
+    if (!Array.isArray(lista) || !lista.length) {
+      return Number.isInteger(preferido) ? preferido : new Date().getFullYear();
+    }
+    const prefer = Number(preferido);
+    if (Number.isInteger(prefer) && lista.includes(prefer)) {
+      return prefer;
+    }
+    const actualSelect = Number(yearSelect?.value);
+    if (Number.isInteger(actualSelect) && lista.includes(actualSelect)) {
+      return actualSelect;
+    }
+    const anioActual = new Date().getFullYear();
+    if (lista.includes(anioActual)) {
+      return anioActual;
+    }
+    return lista[0];
+  };
+
+  const elegirMesValido = (preferido) => {
+    const numero = Number(preferido);
+    if (Number.isInteger(numero) && numero >= 1 && numero <= MESES.length) {
+      return numero;
+    }
+    const actualSelect = Number(monthSelect?.value);
+    if (Number.isInteger(actualSelect) && actualSelect >= 1 && actualSelect <= MESES.length) {
+      return actualSelect;
+    }
+    return new Date().getMonth() + 1;
+  };
+
   const parseText = (texto) => (texto || '').toString().trim();
 
   const COLUMN_TOOLTIPS = {
@@ -120,7 +171,16 @@
 
   function setSectionCollapseState(row, collapsed) {
     if (!row) return;
-    const sectionName = obtenerNombreSeccion(row);
+    let sectionName = obtenerNombreSeccion(row);
+    if (!sectionName) {
+      // Fallback: usar el texto de la columna de descripci¢n si no hay dataset
+      const descCell = row.cells && row.cells[6];
+      const texto = (descCell?.textContent || '').trim();
+      if (texto) {
+        sectionName = texto;
+        row.dataset.sectionName = texto;
+      }
+    }
     if (!sectionName) return;
 
     const icono = row.querySelector('.collapse-icon');
@@ -171,12 +231,15 @@
       return;
     }
     filas.forEach((row) => {
-      setSectionCollapseState(row, true);
-      // Mantener visible pero diferenciada
+      // Mantener visible pero diferenciada; se ocultará solo en colapso global
       row.classList.add('text-muted', 'excluded-expense-row');
       row.style.fontStyle = 'italic';
-      // Ocultar cuando est  colapsado (solo aplica a estas secciones)
+      // Ocultar cuando está colapsado (solo aplica a estas secciones)
       row.dataset.hideWhenCollapsed = '1';
+      // Asegurar nombre de sección para colapsar/expandir individualmente
+      if (!row.dataset.sectionName && row.cells && row.cells[6]) {
+        row.dataset.sectionName = (row.cells[6].textContent || '').trim();
+      }
     });
     syncCollapseAllState();
   }
@@ -198,6 +261,7 @@
         icon.className = 'bi bi-chevron-down collapse-icon me-2';
         icon.style.cursor = 'pointer';
         descripcionCell.style.cursor = 'pointer';
+        descripcionCell.classList.add('collapse-trigger');
         descripcionCell.appendChild(icon);
         descripcionCell.appendChild(document.createTextNode(texto));
       }
@@ -1068,6 +1132,7 @@
             if (cells[6]) {
               cells[6].innerHTML = `<i class="bi bi-chevron-down collapse-icon me-2" style="cursor:pointer;"></i>${block.label || ''}`;
               cells[6].style.cursor = 'pointer';
+              cells[6].classList.add('collapse-trigger');
               secRow.dataset.sectionName = block.label || '';
             }
             tablaBody.appendChild(secRow);
@@ -1232,7 +1297,7 @@
     });
   };
 
-const cargarAniosDisponibles = async (empresaId) => {
+const cargarAniosDisponibles = async (empresaId, preferido) => {
   if (!yearSelect) return [];
 
     try {
@@ -1265,7 +1330,8 @@ const cargarAniosDisponibles = async (empresaId) => {
         yearSelect.appendChild(option);
       });
 
-      yearSelect.value = anios[0];
+      const seleccionado = elegirAnioDisponible(anios, preferido);
+      yearSelect.value = String(seleccionado);
       yearSelect.disabled = false;
 
       return anios;
@@ -1321,14 +1387,17 @@ const cargarAniosDisponibles = async (empresaId) => {
 
   const aplicarEmpresaResumen = async (empresaId) => {
     if (!empresaId) return;
-    const anios = await cargarAniosDisponibles(empresaId);
-    const valorInicial = Number(yearSelect?.value) || anios[0] || new Date().getFullYear();
-    const mesInicial = Number(monthSelect?.value) || new Date().getMonth() + 1;
+    const { anio: ctxAnio, mes: ctxMes } = leerContextoPersistido();
+    const anios = await cargarAniosDisponibles(empresaId, ctxAnio ?? leerAnioSeleccionado());
+    const valorInicial = elegirAnioDisponible(anios, ctxAnio ?? leerAnioSeleccionado());
+    const mesInicial = elegirMesValido(ctxMes ?? leerMesSeleccionado());
     if (yearSelect) yearSelect.value = String(valorInicial);
     if (monthSelect) monthSelect.value = String(mesInicial);
     
     actualizarEncabezado(empresaId, valorInicial);
+    actualizarMesContexto(mesInicial);
     actualizarEtiquetaMes(mesInicial);
+    persistirContextoSeleccion(valorInicial, mesInicial);
     window.dispatchEvent(new CustomEvent('planeacion:contexto-actualizado', {
       detail: { empresaId, anio: valorInicial, periodo: mesInicial, modulo: (document.body.dataset.modulo || 'RESUMEN').toUpperCase() }
     }));
@@ -1409,6 +1478,7 @@ const cargarAniosDisponibles = async (empresaId) => {
       const mes = leerMesSeleccionado();
       if (!empresaActual?.id) return;
       actualizarEncabezado(empresaActual.id, anio);
+      persistirContextoSeleccion(anio, mes);
       window.dispatchEvent(new CustomEvent('planeacion:contexto-actualizado', {
         detail: { empresaId: empresaActual.id, anio, periodo: mes, modulo: (document.body.dataset.modulo || 'RESUMEN').toUpperCase() }
       }));
@@ -1422,6 +1492,7 @@ const cargarAniosDisponibles = async (empresaId) => {
       actualizarEtiquetaMes(mes);
       if (!empresaActual?.id) return;
       actualizarEncabezado(empresaActual.id, anio);
+      persistirContextoSeleccion(anio, mes);
       window.dispatchEvent(new CustomEvent('planeacion:contexto-actualizado', {
         detail: { empresaId: empresaActual.id, anio, periodo: mes, modulo: (document.body.dataset.modulo || 'RESUMEN').toUpperCase() }
       }));
@@ -1686,10 +1757,10 @@ const cargarAniosDisponibles = async (empresaId) => {
   };
 
   document.addEventListener('click', (e) => {
-    const collapseIcon = e.target.closest('.collapse-icon');
-    if (!collapseIcon) return;
+    const trigger = e.target.closest('.collapse-icon, .collapse-trigger');
+    if (!trigger) return;
 
-    const row = collapseIcon.closest('.collapsible-section');
+    const row = trigger.closest('.collapsible-section');
     if (!row) return;
 
     const sectionName = obtenerNombreSeccion(row);

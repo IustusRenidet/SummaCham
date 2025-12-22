@@ -122,6 +122,38 @@ const MES_A_PERIODO = {
   'noviembre': 11, 'diciembre': 12, 'ajuste': 13
 };
 
+const PERIODO_A_MES = Object.fromEntries(Object.entries(MES_A_PERIODO).map(([mes, periodo]) => [periodo, mes]));
+
+const normalizarPeriodo = (valor) => {
+  const numero = Number(valor);
+  return Number.isInteger(numero) && numero >= 1 && numero <= 13 ? numero : null;
+};
+
+const obtenerContextoPersistido = () => {
+  const ctx = typeof Sesion?.obtenerContextoPlaneacion === 'function'
+    ? Sesion.obtenerContextoPlaneacion()
+    : {};
+  const anio = Number(ctx?.anio);
+  const mes = Number(ctx?.mes);
+  return {
+    anio: Number.isInteger(anio) ? anio : null,
+    mes: Number.isInteger(mes) ? mes : null
+  };
+};
+
+const persistirContextoSeleccion = (anio, periodo) => {
+  if (typeof Sesion?.guardarContextoPlaneacion === 'function') {
+    Sesion.guardarContextoPlaneacion({ anio, mes: periodo, modulo: 'SUMMARY' });
+  }
+};
+
+const obtenerPeriodoSeleccionado = () => {
+  const filtroMes = document.getElementById('selectMes');
+  const mesNombre = String((filtroMes?.value || '')).toLowerCase();
+  const periodo = MES_A_PERIODO[mesNombre];
+  return normalizarPeriodo(periodo);
+};
+
 // Actualiza todos los <span class="anio">...</span> en el header
 const setAllYearSpans = (anio) => {
   const numero = Number(anio);
@@ -703,7 +735,7 @@ function removeByCode(codigo) {
   saveLayoutLS(CURRENT_LAYOUT);
 }
 
-async function poblarAniosDesdeSALDOS() {
+async function poblarAniosDesdeSALDOS(preferidoAnio) {
   const authHeaders = (typeof Sesion !== 'undefined' && typeof Sesion.headersAutenticacion === 'function')
     ? Sesion.headersAutenticacion()
     : {};
@@ -727,24 +759,33 @@ async function poblarAniosDesdeSALDOS() {
     console.warn('No fue posible poblar años desde SALDOSxx.', error);
   }
 
-  const prefer = lista.includes(anioActual) ? anioActual : lista[0];
+  const preferidoNumero = Number(preferidoAnio);
+  const prefer = Number.isInteger(preferidoNumero) && lista.includes(preferidoNumero)
+    ? preferidoNumero
+    : (lista.includes(anioActual) ? anioActual : lista[0]);
   estadoModulo.ejerciciosDisponibles = normalizarListaAnios(lista);
   const valorSeleccionado = sincronizarSelectsAnio(estadoModulo.ejerciciosDisponibles, prefer);
   setAllYearSpans(valorSeleccionado);
   actualizarResumen(valorSeleccionado);
+  const periodoActual = obtenerPeriodoSeleccionado();
+  persistirContextoSeleccion(valorSeleccionado, periodoActual);
   return valorSeleccionado;
 }
 
-function inicializarMesDesdeSelect() {
+function inicializarMesDesdeSelect(periodoPreferido) {
   const filtroMesInit = document.getElementById('selectMes');
   const nombres = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
-  const ahora = new Date();
-  const mesActual = nombres[ahora.getMonth()];
-  if (filtroMesInit && !filtroMesInit.value) {
-    filtroMesInit.value = mesActual.charAt(0).toUpperCase() + mesActual.slice(1);
+  const prefer = normalizarPeriodo(periodoPreferido);
+  const actualValor = String(filtroMesInit?.value || '').toLowerCase();
+  const mesBase = prefer && PERIODO_A_MES[prefer]
+    ? PERIODO_A_MES[prefer]
+    : (actualValor || nombres[new Date().getMonth()] || 'enero');
+  const mesTexto = String(mesBase || 'enero').toLowerCase();
+  if (filtroMesInit) {
+    filtroMesInit.value = mesTexto.charAt(0).toUpperCase() + mesTexto.slice(1);
   }
-  const mesTexto = String(filtroMesInit?.value || mesActual || 'enero').toLowerCase();
   setAllMonthSpans(mesTexto);
+  return MES_A_PERIODO[mesTexto] || prefer || null;
 }
 
 // ==================================
@@ -758,6 +799,7 @@ async function aplicarSeleccionUI() {
   const periodo = MES_A_PERIODO[mesNombre] || 1;
   const incluirAjuste = Boolean(document.getElementById('chkAjuste')?.checked);
 
+  persistirContextoSeleccion(anio, periodo);
   setAllYearSpans(anio);
   mostrarEstado('Calculando…');
 
@@ -895,13 +937,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // Carga inicial
-  await poblarAniosDesdeSALDOS();
-  inicializarMesDesdeSelect();
+  const ctxInicial = obtenerContextoPersistido();
+  const anioInicial = await poblarAniosDesdeSALDOS(ctxInicial.anio);
+  const periodoInicial = inicializarMesDesdeSelect(ctxInicial.mes);
+  persistirContextoSeleccion(anioInicial, periodoInicial || obtenerPeriodoSeleccionado());
   await cargarDatos();
 
   if (typeof Sesion !== 'undefined' && Sesion.EVENTO_EMPRESA) {
     window.addEventListener(Sesion.EVENTO_EMPRESA, async () => {
-      await poblarAniosDesdeSALDOS();
+      const ctx = obtenerContextoPersistido();
+      await poblarAniosDesdeSALDOS(ctx.anio);
+      inicializarMesDesdeSelect(ctx.mes);
       await aplicarSeleccionUI();
     });
   }
@@ -1009,4 +1055,3 @@ if (typeof window !== 'undefined') {
 if (typeof module === 'object' && module.exports) {
   module.exports = { materializarLayout };
 }
-

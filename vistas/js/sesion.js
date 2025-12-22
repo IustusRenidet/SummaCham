@@ -3,6 +3,7 @@
   const REDIRECCION_POR_DEFECTO = 'login.html';
   const ID_ENLACE_ADMIN = 'navAdministrarUsuarios';
   const EVENTO_EMPRESA = 'sesion:empresa-cambiada';
+  const CONTEXTO_KEY = 'planeacionContexto';
 
   const clonar = (valor) => {
     try {
@@ -10,6 +11,56 @@
     } catch (error) {
       console.warn('No fue posible clonar la sesión, se usará una referencia directa.', error);
       return valor;
+    }
+  };
+
+  const normalizarEntero = (valor) => {
+    const numero = Number(valor);
+    return Number.isInteger(numero) ? numero : null;
+  };
+
+  const obtenerContextoPlaneacion = () => {
+    try {
+      const datos = localStorage.getItem(CONTEXTO_KEY);
+      const ctx = datos ? JSON.parse(datos) : {};
+      const anio = normalizarEntero(ctx?.anio);
+      const mes = normalizarEntero(ctx?.mes);
+      const modulo = ctx?.modulo ? ctx.modulo.toString().toUpperCase() : undefined;
+      const limpio = {};
+      if (anio != null) limpio.anio = anio;
+      if (mes != null) limpio.mes = mes;
+      if (modulo) limpio.modulo = modulo;
+      return limpio;
+    } catch (error) {
+      console.warn('No fue posible leer el contexto de planeacion.', error);
+      return {};
+    }
+  };
+
+  const guardarContextoPlaneacion = (contexto = {}) => {
+    try {
+      const actual = obtenerContextoPlaneacion();
+      const siguiente = { ...actual };
+      const anio = normalizarEntero(contexto?.anio);
+      const mes = normalizarEntero(contexto?.mes);
+      if (anio != null) siguiente.anio = anio;
+      if (mes != null) siguiente.mes = mes;
+      if (contexto?.modulo) {
+        siguiente.modulo = contexto.modulo.toString().toUpperCase();
+      }
+      localStorage.setItem(CONTEXTO_KEY, JSON.stringify(siguiente));
+      return siguiente;
+    } catch (error) {
+      console.warn('No fue posible guardar el contexto de planeacion.', error);
+      return obtenerContextoPlaneacion();
+    }
+  };
+
+  const limpiarContextoPlaneacion = () => {
+    try {
+      localStorage.removeItem(CONTEXTO_KEY);
+    } catch (error) {
+      console.warn('No fue posible limpiar el contexto de planeacion.', error);
     }
   };
 
@@ -103,6 +154,7 @@
 
   const limpiar = () => {
     localStorage.removeItem(STORAGE_KEY);
+    limpiarContextoPlaneacion();
     notificarCambioEmpresa(null);
   };
 
@@ -263,6 +315,9 @@
     obtenerEmpresaActiva,
     establecerEmpresaActiva,
     puedeCambiarEmpresa,
+    obtenerContextoPlaneacion,
+    guardarContextoPlaneacion,
+    limpiarContextoPlaneacion,
     EVENTO_EMPRESA,
     obtenerTokenAcceso: () => obtener()?.tokenAcceso || null,
     obtenerTokenRefresco: () => obtener()?.tokenRefresco || null,

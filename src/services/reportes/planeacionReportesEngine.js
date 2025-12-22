@@ -614,11 +614,22 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
     };
   };
 
-  const limpiarEtiqueta = (valor = '') => {
-    if (valor == null) return '';
-    return valor.toString().replace(/\s+/g, ' ').trim();
-  };
-  const claveEtiqueta = (valor = '') => limpiarEtiqueta(valor).toUpperCase();
+const limpiarEtiqueta = (valor = '') => {
+  if (valor == null) return '';
+  return valor.toString().replace(/\s+/g, ' ').trim();
+};
+const claveEtiqueta = (valor = '') => limpiarEtiqueta(valor).toUpperCase();
+const etiquetaIncluye = (valor = '', texto = '') =>
+  claveEtiqueta(valor).includes(claveEtiqueta(texto));
+
+const combinarTotales = (a = {}, b = {}, factor = 1) => ({
+  actualMonth: Number(a.actualMonth || 0) + factor * Number(b.actualMonth || 0),
+  planMonth: Number(a.planMonth || 0) + factor * Number(b.planMonth || 0),
+  prevMonth: Number(a.prevMonth || 0) + factor * Number(b.prevMonth || 0),
+  actualYTD: Number(a.actualYTD || 0) + factor * Number(b.actualYTD || 0),
+  planYTD: Number(a.planYTD || 0) + factor * Number(b.planYTD || 0),
+  prevYTD: Number(a.prevYTD || 0) + factor * Number(b.prevYTD || 0)
+});
 
   const consolidatedMap = new Map();
   const operativoRowMap = new Map();
@@ -1087,6 +1098,41 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
     .filter(row => !filasAgregadas.has(row.label))
     .sort((a, b) => a.orden - b.orden)
     .forEach(row => agregarFilaConsolidacion(row, 'final'));
+
+  // Ajustes especiales para Comités (solo Resumen)
+  const aplicarAjustesComites = () => {
+    const normalizar = (valor = '') => claveEtiqueta(valor);
+    const buscarBloque = (etiquetaBuscada) =>
+      layout.find((b) => normalizar(b.label) === normalizar(etiquetaBuscada));
+
+    const sumIng = buscarBloque('Suma de Ingresos Comités');
+    const sumGas = buscarBloque('Suma de Gastos Comités');
+    const sumComisiones = buscarBloque('Suma de Comisiones');
+    const sumGastosAdmin = buscarBloque('Suma Gastos Administrativos');
+    const resOperativo = buscarBloque('Resultado Operativo Comités');
+    const resComites = buscarBloque('Resultado Comités');
+
+    if (!sumIng || !sumGas) return;
+
+    const operTot = combinarTotales(sumIng.totals, sumGas.totals, -1);
+    if (resOperativo) {
+      resOperativo.totals = operTot;
+    }
+
+    const cap = claveEtiqueta(capituloSeleccionado || '');
+    let ajuste = null;
+    if (cap.includes('CIUDAD') || cap.includes('MEXICO') || cap.includes('MÉXICO')) {
+      ajuste = sumGastosAdmin?.totals || null;
+    } else if (['GUADALAJARA', 'NORESTE', 'NE', 'NOROESTE', 'NO', 'NORTHWEST'].some((t) => cap.includes(t))) {
+      ajuste = sumComisiones?.totals || null;
+    }
+
+    if (resComites) {
+      resComites.totals = ajuste ? combinarTotales(operTot, ajuste, -1) : operTot;
+    }
+  };
+
+  aplicarAjustesComites();
 
   return {
     principals: principalList,

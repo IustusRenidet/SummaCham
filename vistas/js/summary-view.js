@@ -82,6 +82,57 @@
     { etiqueta: 'Diciembre', clave: 'dic', periodo: 12 }
   ];
 
+  const MODULO_CLAVE = (document.body?.dataset?.modulo || 'SUMMARY').toString().toUpperCase();
+
+  const leerContextoPersistido = () => {
+    const ctx = typeof Sesion?.obtenerContextoPlaneacion === 'function'
+      ? Sesion.obtenerContextoPlaneacion()
+      : {};
+    const anio = Number(ctx?.anio);
+    const mes = Number(ctx?.mes);
+    return {
+      anio: Number.isInteger(anio) ? anio : null,
+      mes: Number.isInteger(mes) ? mes : null
+    };
+  };
+
+  const persistirContextoSeleccion = (anio, mes) => {
+    if (typeof Sesion?.guardarContextoPlaneacion === 'function') {
+      Sesion.guardarContextoPlaneacion({ anio, mes, modulo: MODULO_CLAVE });
+    }
+  };
+
+  const elegirAnioDisponible = (lista = [], preferido) => {
+    if (!Array.isArray(lista) || !lista.length) {
+      return Number.isInteger(preferido) ? preferido : new Date().getFullYear();
+    }
+    const prefer = Number(preferido);
+    if (Number.isInteger(prefer) && lista.includes(prefer)) {
+      return prefer;
+    }
+    const actualSelect = Number(selectAnio?.value);
+    if (Number.isInteger(actualSelect) && lista.includes(actualSelect)) {
+      return actualSelect;
+    }
+    const anioActual = new Date().getFullYear();
+    if (lista.includes(anioActual)) {
+      return anioActual;
+    }
+    return lista[0];
+  };
+
+  const elegirMesValido = (preferido) => {
+    const numero = Number(preferido);
+    if (Number.isInteger(numero) && numero >= 1 && numero <= MESES.length) {
+      return numero;
+    }
+    const actualSelect = Number(selectMes?.value);
+    if (Number.isInteger(actualSelect) && actualSelect >= 1 && actualSelect <= MESES.length) {
+      return actualSelect;
+    }
+    return new Date().getMonth() + 1;
+  };
+
   const escapeAttr = (texto = '') => texto.toString().replace(/"/g, '&quot;');
 
   const limpiarCambios = () => {
@@ -1227,10 +1278,11 @@
 
   const aplicarEmpresa = async (empresaId) => {
     if (!empresaId) return;
+    const { anio: ctxAnio, mes: ctxMes } = leerContextoPersistido();
+    const mesSeleccionado = elegirMesValido(ctxMes ?? leerMesSeleccionado());
     if (selectMes) {
-      selectMes.value = String(new Date().getMonth() + 1);
+      selectMes.value = String(mesSeleccionado);
     }
-    const mesSeleccionado = Number(selectMes?.value || new Date().getMonth() + 1);
     actualizarMesContexto(mesSeleccionado);
     actualizarEtiquetaMes(mesSeleccionado);
     
@@ -1238,8 +1290,12 @@
     capituloActual = obtenerCapituloEmpresa(empresaId) || '';
     actualizarEtiquetaCapitulo(capituloActual);
     
-    await cargarAniosDisponibles(empresaId);
-    const anioSeleccionado = leerAnioSeleccionado();
+    const anios = await cargarAniosDisponibles(empresaId, ctxAnio ?? leerAnioSeleccionado());
+    const anioSeleccionado = elegirAnioDisponible(anios, ctxAnio ?? leerAnioSeleccionado());
+    if (selectAnio) {
+      selectAnio.value = String(anioSeleccionado);
+    }
+    persistirContextoSeleccion(anioSeleccionado, mesSeleccionado);
     await fetchSummary(empresaId, anioSeleccionado, mesSeleccionado, capituloActual);
   };
 
@@ -1281,7 +1337,7 @@
     }
   };
 
-  const cargarAniosDisponibles = async (empresaId) => {
+  const cargarAniosDisponibles = async (empresaId, preferido) => {
     if (!selectAnio) return [];
     
     try {
@@ -1315,7 +1371,8 @@
         selectAnio.appendChild(option);
       });
 
-      selectAnio.value = anios[0];
+      const seleccionado = elegirAnioDisponible(anios, preferido);
+      selectAnio.value = String(seleccionado);
       selectAnio.disabled = false;
 
       return anios;
@@ -1382,6 +1439,7 @@
       const mes = leerMesSeleccionado();
       const capitulo = obtenerCapituloEmpresa(empresaActual?.id) || '';
       actualizarEtiquetasAnio(anio, anio - 1);
+      persistirContextoSeleccion(anio, mes);
       publicarContexto(anio);
       if (empresaActual?.id) {
         fetchSummary(empresaActual.id, anio, mes, capitulo);
@@ -1394,6 +1452,7 @@
       const capitulo = obtenerCapituloEmpresa(empresaActual?.id) || '';
       actualizarMesContexto(mes);
       actualizarEtiquetaMes(mes);
+      persistirContextoSeleccion(anio, mes);
       publicarContexto(anio);
       if (empresaActual?.id) {
         fetchSummary(empresaActual.id, anio, mes, capitulo);

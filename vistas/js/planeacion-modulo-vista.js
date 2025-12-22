@@ -239,6 +239,20 @@
     }
   };
 
+  const leerContextoPersistido = () => {
+    const ctx = typeof Sesion?.obtenerContextoPlaneacion === 'function'
+      ? Sesion.obtenerContextoPlaneacion()
+      : {};
+    const anio = Number(ctx?.anio);
+    return Number.isInteger(anio) ? anio : null;
+  };
+
+  const persistirContexto = (anio, modulo) => {
+    if (typeof Sesion?.guardarContextoPlaneacion === 'function' && Number.isInteger(anio)) {
+      Sesion.guardarContextoPlaneacion({ anio, modulo });
+    }
+  };
+
   const seleccionarAnio = (lista = [], preferido) => {
     if (!lista.length) {
       return Number.isInteger(preferido) ? preferido : new Date().getFullYear();
@@ -260,11 +274,12 @@
       return;
     }
 
-    const opciones = { endpointAnios: 'comites', ...obtenerConfigDesdeDataset(), ...config };
-    opciones.endpointAnios = limpiarEndpoint(opciones.endpointAnios, 'comites');
-    const nombreArchivoModulo = crearSlug(opciones.titulo || opciones.modulo || 'modulo');
-    const datasetAnio = Number(document.body?.dataset?.anio);
-    const anioInicial = Number.isInteger(datasetAnio) ? datasetAnio : new Date().getFullYear();
+  const opciones = { endpointAnios: 'comites', ...obtenerConfigDesdeDataset(), ...config };
+  opciones.endpointAnios = limpiarEndpoint(opciones.endpointAnios, 'comites');
+  const nombreArchivoModulo = crearSlug(opciones.titulo || opciones.modulo || 'modulo');
+  const datasetAnio = Number(document.body?.dataset?.anio);
+  const ctxAnio = leerContextoPersistido();
+  const anioInicial = Number.isInteger(datasetAnio) ? datasetAnio : (ctxAnio ?? new Date().getFullYear());
 
     const elementos = {
       tabla: document.getElementById('tablaComparacion'),
@@ -309,6 +324,7 @@
     borradorGuardado: false
   };
   let moduloReadyDispatched = false;
+  persistirContexto(anioInicial, opciones.modulo);
 
     const notificarContexto = () => {
       const empresa = Sesion.obtenerEmpresaActiva(sesion);
@@ -394,6 +410,7 @@
       actualizarTextoBotonCargar();
       actualizarYearLabels();
       actualizarEncabezadosMes();
+      persistirContexto(estado.anio, opciones.modulo);
       notificarContexto();
       if (!workflowControlExterno) {
         obtenerWorkflow();
@@ -402,20 +419,23 @@
 
     const cargarAniosDisponibles = async () => {
       const empresa = Sesion.obtenerEmpresaActiva(sesion);
+      const preferido = leerContextoPersistido() ?? estado.anio;
       if (!empresa?.id) {
         estado.aniosDisponibles = asegurarAniosVigentes([]);
-        estado.anio = seleccionarAnio(estado.aniosDisponibles, estado.anio);
+        estado.anio = seleccionarAnio(estado.aniosDisponibles, preferido);
         actualizarSelectAnio();
         actualizarYearLabels();
         actualizarEncabezadosMes();
+        persistirContexto(estado.anio, opciones.modulo);
         return;
       }
       const aniosDisponibles = await obtenerAniosDesdeEndpoint(empresa.id, opciones.endpointAnios);
       estado.aniosDisponibles = asegurarAniosVigentes(aniosDisponibles);
-      estado.anio = seleccionarAnio(estado.aniosDisponibles, estado.anio);
+      estado.anio = seleccionarAnio(estado.aniosDisponibles, preferido);
       actualizarSelectAnio();
       actualizarYearLabels();
       actualizarEncabezadosMes();
+      persistirContexto(estado.anio, opciones.modulo);
       notificarContexto();
     };
 

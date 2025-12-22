@@ -67,6 +67,20 @@
     "vpeYearSelect",
   ];
 
+  const leerContextoPersistido = () => {
+    const ctx = typeof Sesion?.obtenerContextoPlaneacion === "function"
+      ? Sesion.obtenerContextoPlaneacion()
+      : {};
+    const anio = Number(ctx?.anio);
+    return Number.isInteger(anio) ? anio : null;
+  };
+
+  const persistirContexto = (anio, modulo) => {
+    if (typeof Sesion?.guardarContextoPlaneacion === "function" && Number.isInteger(anio)) {
+      Sesion.guardarContextoPlaneacion({ anio, modulo });
+    }
+  };
+
   const HISTORIAL_ACCIONES = {
     "guardar-borrador": "Guardó el borrador",
     "enviar-revision": "Envió a revisión",
@@ -676,12 +690,18 @@
         this.state.contexto.modulo =
           document.body.dataset.modulo || this.moduloDefault;
       }
+      const ctxPersistido = leerContextoPersistido();
+      if (Number.isInteger(ctxPersistido)) {
+        this.state.contexto.anio = ctxPersistido;
+      }
       if (
         !this.state.contexto.anio ||
         Number(this.state.contexto.anio) < 2000
       ) {
         this.state.contexto.anio = this._resolverAnio();
       }
+      this._sincronizarSelectoresAnio();
+      persistirContexto(this.state.contexto.anio, this.state.contexto.modulo);
     }
 
     /**
@@ -755,6 +775,10 @@
     }
 
     _resolverAnio() {
+      const preferido = leerContextoPersistido();
+      if (Number.isInteger(preferido)) {
+        return preferido;
+      }
       const candidatos = YEAR_SELECTOR_IDS.map((id) =>
         document.getElementById(id)
       )
@@ -763,6 +787,18 @@
         .filter((n) => Number.isFinite(n) && n >= 2000);
       if (candidatos.length) return candidatos[0];
       return new Date().getFullYear();
+    }
+
+    _sincronizarSelectoresAnio() {
+      const anio = Number(this.state?.contexto?.anio);
+      if (!Number.isInteger(anio)) return;
+      YEAR_SELECTOR_IDS.map((id) => document.getElementById(id))
+        .filter(Boolean)
+        .forEach((sel) => {
+          if (String(sel.value) !== String(anio)) {
+            sel.value = String(anio);
+          }
+        });
     }
 
     _resolveTable() {
@@ -899,6 +935,8 @@
           ? Number(d.anio)
           : this.state.contexto.anio;
         this.state.contexto.modulo = d.modulo || this.state.contexto.modulo;
+        persistirContexto(this.state.contexto.anio, this.state.contexto.modulo);
+        this._sincronizarSelectoresAnio();
         this.state.permisos = this._resolverPermisos(
           typeof Sesion?.obtener === "function" ? Sesion.obtener() : null
         );
@@ -925,6 +963,7 @@
             const nuevo = Number(sel.value);
             if (Number.isFinite(nuevo) && nuevo >= 2000) {
               this.state.contexto.anio = nuevo;
+              persistirContexto(this.state.contexto.anio, this.state.contexto.modulo);
               this._refreshEstado();
             }
           });
@@ -2848,6 +2887,7 @@
             ? Number(detalle.anio)
             : contexto.anio,
         };
+        persistirContexto(contexto.anio, contexto.modulo);
       });
       window.addEventListener(
         "flujo-autorizacion:estado-actualizado",
