@@ -147,6 +147,11 @@
       siguiente.style.display = collapsed ? 'none' : '';
       siguiente = siguiente.nextElementSibling;
     }
+
+    // Si la fila misma est  marcada para ocultarse al colapsar, aplicar display
+    if (row.dataset?.hideWhenCollapsed === '1') {
+      row.style.display = collapsed ? 'none' : '';
+    }
   }
 
   function syncCollapseAllState() {
@@ -167,8 +172,11 @@
     }
     filas.forEach((row) => {
       setSectionCollapseState(row, true);
-      // Ocultar la fila de secci¢n (p.ej. Cargos Administrativos) en modo colapsado
-      row.style.display = 'none';
+      // Mantener visible pero diferenciada
+      row.classList.add('text-muted', 'excluded-expense-row');
+      row.style.fontStyle = 'italic';
+      // Ocultar cuando est  colapsado (solo aplica a estas secciones)
+      row.dataset.hideWhenCollapsed = '1';
     });
     syncCollapseAllState();
   }
