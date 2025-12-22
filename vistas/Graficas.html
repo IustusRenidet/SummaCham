@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gráficas Resumen</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/estilos.css">
+    <link rel="icon" type="image/x-icon" href="icono/icono.ico">
+    <style>
+      :root {
+        --color-primary: #2f5496;
+        --color-secondary: #8497b0;
+        --bg-card: #ffffff;
+      }
+      body {
+        background: #f5f7fb;
+        color: #1f2937;
+        font-family: 'Manrope', 'Segoe UI', Tahoma, Verdana, sans-serif;
+      }
+      .header-card {
+        background: linear-gradient(120deg, #2f5496 0%, #1f3b6b 100%);
+        color: #fff;
+        border: none;
+        border-radius: 16px;
+        box-shadow: 0 14px 30px rgba(47, 84, 150, 0.25);
+      }
+      .chart-card {
+        background: var(--bg-card);
+        border-radius: 16px;
+        border: 1px solid rgba(47, 84, 150, 0.08);
+        box-shadow: 0 8px 22px rgba(47, 84, 150, 0.14);
+      }
+      .chart-card h5 {
+        color: #2f5496;
+        font-weight: 700;
+      }
+      .badge-pill {
+        background: rgba(47,84,150,0.12);
+        color: #2f5496;
+        border-radius: 999px;
+        padding: 6px 12px;
+        font-weight: 700;
+        letter-spacing: .02em;
+      }
+    </style>
+  </head>
+  <body data-modulo="RESUMEN" data-modulo-id="RESUMEN">
+    <div class="container-fluid py-4 py-lg-5">
+      <div class="row mb-4">
+        <div class="col-12">
+          <div class="card header-card">
+            <div class="card-body d-flex flex-column flex-lg-row align-items-center justify-content-between gap-3">
+              <div>
+                <h1 class="fw-bold mb-2">Gráficas de Resumen</h1>
+                <p class="mb-0 text-white-50">Comparativo de Resultados Operativos y Netos por capítulo</p>
+              </div>
+              <div class="d-flex gap-3 flex-wrap align-items-center">
+                <div>
+                  <label class="form-label text-white-50 small mb-1" for="grafYearSelect">Ejercicio</label>
+                  <select id="grafYearSelect" class="form-select form-select-sm">
+                    <option value="">Cargando...</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="form-label text-white-50 small mb-1" for="grafMonthSelect">Periodo</label>
+                  <select id="grafMonthSelect" class="form-select form-select-sm">
+                    <option value="1">Enero</option>
+                    <option value="2">Febrero</option>
+                    <option value="3">Marzo</option>
+                    <option value="4">Abril</option>
+                    <option value="5">Mayo</option>
+                    <option value="6">Junio</option>
+                    <option value="7">Julio</option>
+                    <option value="8">Agosto</option>
+                    <option value="9">Septiembre</option>
+                    <option value="10">Octubre</option>
+                    <option value="11">Noviembre</option>
+                    <option value="12" selected>Diciembre</option>
+                  </select>
+                </div>
+                <span class="badge-pill" id="empresaLabel">Capítulo: -</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-4">
+        <div class="col-12 col-xl-6">
+          <div class="card chart-card p-3">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <h5 class="mb-0">Resultados Operativos (Actual)</h5>
+              <small class="text-muted">Ingreso vs Gasto</small>
+            </div>
+            <canvas id="chartOperating"></canvas>
+          </div>
+        </div>
+        <div class="col-12 col-xl-6">
+          <div class="card chart-card p-3">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <h5 class="mb-0">Net Results (Actual)</h5>
+              <small class="text-muted">Resultado neto por capítulo</small>
+            </div>
+            <canvas id="chartNet"></canvas>
+          </div>
+        </div>
+        <div class="col-12">
+          <div class="card chart-card p-3">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <h5 class="mb-0">Comparativo Net Results</h5>
+              <small class="text-muted">México vs Guadalajara vs Monterrey vs Northwest</small>
+            </div>
+            <canvas id="chartNetCompare"></canvas>
+          </div>
+        </div>
+        <div class="col-12">
+          <div class="card chart-card p-3">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <h5 class="mb-0">Consolidated Income</h5>
+              <small class="text-muted">Ingreso consolidado del periodo</small>
+            </div>
+            <canvas id="chartConsolidated"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script>
+      (() => {
+        const base = window.location.protocol === 'file:' ? 'http://localhost:3005' : window.location.origin;
+        const API_ENDPOINT = \`\${base}/api/reportes/resumen\`;
+        const API_ANIOS = \`\${base}/api/saldos/anios\`;
+        const yearSelect = document.getElementById('grafYearSelect');
+        const monthSelect = document.getElementById('grafMonthSelect');
+        const empresaLabel = document.getElementById('empresaLabel');
+        const charts = {};
+
+        const normalizarLabel = (texto = '') =>
+          texto.toString().trim().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toUpperCase().replace(/\\s+/g, ' ');
+
+        const MESES = [
+          { etiqueta: 'Enero', clave: 'ene', periodo: 1 },
+          { etiqueta: 'Febrero', clave: 'feb', periodo: 2 },
+          { etiqueta: 'Marzo', clave: 'mar', periodo: 3 },
+          { etiqueta: 'Abril', clave: 'abr', periodo: 4 },
+          { etiqueta: 'Mayo', clave: 'may', periodo: 5 },
+          { etiqueta: 'Junio', clave: 'jun', periodo: 6 },
+          { etiqueta: 'Julio', clave: 'jul', periodo: 7 },
+          { etiqueta: 'Agosto', clave: 'ago', periodo: 8 },
+          { etiqueta: 'Septiembre', clave: 'sep', periodo: 9 },
+          { etiqueta: 'Octubre', clave: 'oct', periodo: 10 },
+          { etiqueta: 'Noviembre', clave: 'nov', periodo: 11 },
+          { etiqueta: 'Diciembre', clave: 'dic', periodo: 12 }
+        ];
+
+        const getMesClave = (num) => MESES.find((m) => m.periodo === Number(num))?.clave || 'dic';
+
+        const flattenLabels = (nodos = []) => {
+          const map = new Map();
+          const walk = (arr) => {
+            arr.forEach((n) => {
+              const key = normalizarLabel(n.label || '');
+              if (key) {
+                map.set(key, n.totals || n);
+              }
+              if (Array.isArray(n.children)) walk(n.children);
+            });
+          };
+          walk(nodos);
+          return map;
+        };
+
+        const toNumber = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+
+        const buildMetrics = (resumen = []) => {
+          if (!Array.isArray(resumen) || !resumen.length) return null;
+          const map = flattenLabels(resumen);
+          const get = (lbl) => map.get(normalizarLabel(lbl)) || {};
+          const ingreso = (lbl) => toNumber(get(lbl).actualMonth);
+          const planIngreso = (lbl) => toNumber(get(lbl).planMonth);
+          const expense = (lbl) => toNumber(get(lbl).actualMonth);
+
+          const makeOperating = (incLbl, expLbl, fallbackOpLbl) => {
+            const inc = ingreso(incLbl);
+            const exp = expense(expLbl);
+            if (inc || exp) return { actual: inc - exp, plan: planIngreso(incLbl) - planIngreso(expLbl) };
+            const op = get(fallbackOpLbl);
+            return { actual: toNumber(op.actualMonth), plan: toNumber(op.planMonth) };
+          };
+
+          const makeNet = (netLbl) => {
+            const n = get(netLbl);
+            return { actual: toNumber(n.actualMonth), plan: toNumber(n.planMonth) };
+          };
+
+          return {
+            operating: {
+              mexico: makeOperating('CDMX INCOME', 'CDMX EXPENSE', 'OPERATING RESULTS MEXICO'),
+              gdl: makeOperating('GUADALAJARA INCOME', 'GUADALAJARA EXPENSE', 'OPERATING RESULTS GUADALAJARA'),
+              mty: makeOperating('MONTERREY INCOME', 'MONTERREY EXPENSE', 'OPERATING RESULTS MONTERREY'),
+              nw: makeOperating('NORTHWEST INCOME', 'NORTHWEST EXPENSE', 'OPERATING RESULTS NORTHWEST')
+            },
+            net: {
+              mexico: makeNet('NET RESULTS MEXICO'),
+              gdl: makeNet('NET RESULTS GUADALAJARA'),
+              mty: makeNet('NET RESULTS MONTERREY'),
+              nw: makeNet('NET RESULTS NORTHWEST')
+            },
+            consolidatedIncome: {
+              actual: ingreso('CONSOLIDATED INCOME'),
+              plan: planIngreso('CONSOLIDATED INCOME')
+            }
+          };
+        };
+
+        const renderChart = (id, cfg) => {
+          const ctx = document.getElementById(id);
+          if (!ctx) return;
+          if (charts[id]) charts[id].destroy();
+          charts[id] = new Chart(ctx, cfg);
+        };
+
+        const renderCharts = (metrics) => {
+          if (!metrics) return;
+          const labels = ['México', 'Guadalajara', 'Monterrey', 'Northwest'];
+
+          renderChart('chartOperating', {
+            type: 'bar',
+            data: {
+              labels,
+              datasets: [
+                {
+                  label: 'Operating (Actual)',
+                  data: [metrics.operating.mexico.actual, metrics.operating.gdl.actual, metrics.operating.mty.actual, metrics.operating.nw.actual],
+                  backgroundColor: '#2f5496'
+                },
+                {
+                  label: 'Operating (Plan)',
+                  data: [metrics.operating.mexico.plan, metrics.operating.gdl.plan, metrics.operating.mty.plan, metrics.operating.nw.plan],
+                  backgroundColor: '#8fb2ff'
+                }
+              ]
+            },
+            options: {
+              responsive: true,
+              plugins: { legend: { position: 'bottom' } },
+              scales: { y: { beginAtZero: true } }
+            }
+          });
+
+          renderChart('chartNet', {
+            type: 'bar',
+            data: {
+              labels,
+              datasets: [
+                {
+                  label: 'Net (Actual)',
+                  data: [metrics.net.mexico.actual, metrics.net.gdl.actual, metrics.net.mty.actual, metrics.net.nw.actual],
+                  backgroundColor: '#10b981'
+                },
+                {
+                  label: 'Net (Plan)',
+                  data: [metrics.net.mexico.plan, metrics.net.gdl.plan, metrics.net.mty.plan, metrics.net.nw.plan],
+                  backgroundColor: '#6ee7b7'
+                }
+              ]
+            },
+            options: {
+              responsive: true,
+              plugins: { legend: { position: 'bottom' } },
+              scales: { y: { beginAtZero: true } }
+            }
+          });
+
+          renderChart('chartNetCompare', {
+            type: 'radar',
+            data: {
+              labels,
+              datasets: [
+                {
+                  label: 'Net Actual',
+                  data: [metrics.net.mexico.actual, metrics.net.gdl.actual, metrics.net.mty.actual, metrics.net.nw.actual],
+                  backgroundColor: 'rgba(47,84,150,0.25)',
+                  borderColor: '#2f5496'
+                },
+                {
+                  label: 'Net Plan',
+                  data: [metrics.net.mexico.plan, metrics.net.gdl.plan, metrics.net.mty.plan, metrics.net.nw.plan],
+                  backgroundColor: 'rgba(16,185,129,0.25)',
+                  borderColor: '#10b981'
+                }
+              ]
+            },
+            options: {
+              responsive: true,
+              plugins: { legend: { position: 'bottom' } },
+              scales: {
+                r: {
+                  angleLines: { color: '#e5e7eb' },
+                  grid: { color: '#e5e7eb' }
+                }
+              }
+            }
+          });
+
+          renderChart('chartConsolidated', {
+            type: 'bar',
+            data: {
+              labels: ['Consolidated Income'],
+              datasets: [
+                { label: 'Actual', data: [metrics.consolidatedIncome.actual], backgroundColor: '#f59e0b' },
+                { label: 'Plan', data: [metrics.consolidatedIncome.plan], backgroundColor: '#fcd34d' }
+              ]
+            },
+            options: {
+              responsive: true,
+              plugins: { legend: { position: 'bottom' } },
+              scales: { y: { beginAtZero: true } }
+            }
+          });
+        };
+
+        const loadYears = async () => {
+          try {
+            const empresa = window.Sesion?.obtenerEmpresaActiva?.();
+            const anioEmpresa = empresa?.anio;
+            const res = await fetch(API_ANIOS, { headers: window.Sesion?.headersAutenticacion?.() || {} });
+            const data = await res.json().catch(() => ({}));
+            const lista = Array.isArray(data?.anios) ? data.anios : [];
+            yearSelect.innerHTML = '';
+            (lista.length ? lista : [new Date().getFullYear()]).forEach((anio) => {
+              const opt = document.createElement('option');
+              opt.value = anio;
+              opt.textContent = anio;
+              yearSelect.appendChild(opt);
+            });
+            if (anioEmpresa && lista.includes(anioEmpresa)) yearSelect.value = anioEmpresa;
+          } catch (e) {
+            console.warn('No se pudieron cargar años disponibles', e);
+          }
+        };
+
+        const loadData = async () => {
+          const empresa = window.Sesion?.obtenerEmpresaActiva?.();
+          if (!empresa?.id) {
+            empresaLabel.textContent = 'Capítulo: -';
+            return;
+          }
+          empresaLabel.textContent = \`Capítulo: \${empresa?.nombre || empresa?.etiqueta || empresa?.id}\`;
+          const anio = Number(yearSelect.value) || new Date().getFullYear();
+          const mes = Number(monthSelect.value) || new Date().getMonth() + 1;
+          const mesClave = getMesClave(mes);
+          try {
+            const url = new URL(API_ENDPOINT);
+            url.searchParams.set('empresaId', empresa.id);
+            url.searchParams.set('anio', anio);
+            url.searchParams.set('mes', mesClave);
+            const res = await fetch(url.toString(), { headers: window.Sesion?.headersAutenticacion?.() || {} });
+            const data = await res.json().catch(() => ({}));
+            const metrics = buildMetrics(data.resumen || []);
+            renderCharts(metrics);
+          } catch (e) {
+            console.error('Error cargando resumen para gráficas', e);
+          }
+        };
+
+        monthSelect.addEventListener('change', loadData);
+        yearSelect.addEventListener('change', loadData);
+
+        (async () => {
+          await loadYears();
+          await loadData();
+        })();
+      })();
+    </script>
+  </body>
+</html>

@@ -13,6 +13,7 @@ const MODULE_GROUPS = [
     label: 'Summary',
     items: [
       { id: 'resumen', label: 'Resumen', path: 'RESUMEN.html', badge: 'summary', permiso: 'RESUMEN' },
+      { id: 'graficas', label: 'Gráficas', path: 'Graficas.html', badge: 'summary', permiso: 'RESUMEN' }
     ]
   },
   {
