@@ -1977,7 +1977,8 @@
       }
       const factorManual = Number.isFinite(Number(sumas?.operacionFactor)) ? Number(sumas.operacionFactor) : null;
       const heuristicasPermitidas =
-        window.PlaneacionConfig && window.PlaneacionConfig.habilitarOperacionesAutomaticas === true;
+        (window.PlaneacionConfig && window.PlaneacionConfig.habilitarOperacionesAutomaticas === true) ||
+        moduloNormalizado === 'gastosgenerales';
       const metaSeccion = {
         seccion: claveSeccion,
         tituloVisible: seccion,
@@ -2061,7 +2062,8 @@
           const esGaCapitulo = /GA\s+CAPITULO/i.test(seccionNormTexto);
           const esMemberCentricity = /MEMBER\s+CENTRICITY/i.test(seccionNormTexto);
           const esGastosCorporativos = /GASTOS\s+CORPORATIVOS/i.test(seccionNormTexto);
-          if (esDepreciaciones || esGaCapitulo || esMemberCentricity || esGastosCorporativos) {
+          const esGastosGenerales = /GASTOS\s+GENERALES/i.test(seccionNormTexto);
+          if (esDepreciaciones || esGaCapitulo || esMemberCentricity || esGastosCorporativos || esGastosGenerales) {
             metaSeccion.factor = -1;
             agregarResultRow(metaSeccion, totalLabel);
           }
