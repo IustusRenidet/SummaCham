@@ -2024,7 +2024,7 @@
         meta.resultRowTexto = meta.resultRowTexto || clave;
       };
       const capituloNormalizado = normalizarTexto(capitulo);
-      const aplicarHeuristicas = factorManual == null && heuristicasPermitidas;
+      const aplicarHeuristicas = heuristicasPermitidas && (factorManual == null || moduloNormalizado === 'direccion');
       const esCapituloMexico = capituloNormalizado === normalizarTexto('CIUDAD DE MÉXICO') || capituloNormalizado === normalizarTexto('CIUDAD DE MEXICO');
       if (aplicarHeuristicas) {
         switch (moduloNormalizado) {
@@ -2077,9 +2077,13 @@
           const esMemberCentricity = /MEMBER\s+CENTRICITY/i.test(seccionNormTexto);
           const esGastosCorporativos = /GASTOS\s+CORPORATIVOS/i.test(seccionNormTexto);
           const esGastosGenerales = /GASTOS\s+GENERALES/i.test(seccionNormTexto);
+          const esGastosFinancieros = /GASTOS\s+FINANCIEROS/i.test(seccionNormTexto);
           if (esDepreciaciones || esGaCapitulo || esMemberCentricity || esGastosCorporativos || esGastosGenerales) {
             metaSeccion.factor = -1;
             agregarResultRow(metaSeccion, totalLabel);
+          } else if (esGastosFinancieros) {
+            // Para "Otros Ingresos vs Gastos": restar gastos financieros de otros ingresos
+            metaSeccion.factor = -1;
           }
           break;
         }
@@ -2209,25 +2213,44 @@
           break;
         }
         case 'direccion': {
+          const seccionNormTexto = normalizarTexto(seccion || '');
           const esGastosAdminDir = /GASTOS\s+DE\s+ADMINISTRACION|GASTOS\s+ADMINISTRATIVOS/i.test(seccion || '');
+          const esGasto = /GASTOS/i.test(seccionNormTexto);
+          if (esGasto) {
+            metaSeccion.factor = -1;
+          } else if (/INGRESOS/i.test(seccionNormTexto)) {
+            metaSeccion.factor = 1;
+          }
+
+          const etiquetaOperativo = 'Resultado Operativo';
+          const etiquetaOperativoNorm = normalizarTexto(etiquetaOperativo);
+          let etiquetaDir = 'Resultado Director Capítulo';
+          if (/GUADALAJARA/i.test(capituloNormalizado)) etiquetaDir = 'Resultado Director Capítulo';
+          else if (/NORESTE|NE/i.test(capituloNormalizado)) etiquetaDir = 'Resultado Director Capítulo';
+          else if (/NOROESTE|NO/i.test(capituloNormalizado)) etiquetaDir = 'Resultado Director Capítulo';
+          const etiquetaDirNorm = normalizarTexto(etiquetaDir);
+
           if (esGastosAdminDir) {
             metaSeccion.factor = -1;
-            // Excluir de la suma operativa; se resta en el resultado del director
+            // Excluir de la suma operativa; se resta solo en el resultado del director
             metaSeccion.sumRowSumavariosTexto = '';
             metaSeccion.sumRowSumavarios2Texto = '';
             metaSeccion.sumRowSumavariosLabel = '';
             metaSeccion.sumRowSumavarios2Label = '';
-
-            let etiquetaDir = 'Resultado Director Capítulo';
-            if (/GUADALAJARA/i.test(capituloNormalizado)) etiquetaDir = 'Resultado Director Capítulo';
-            else if (/NORESTE|NE/i.test(capituloNormalizado)) etiquetaDir = 'Resultado Director Capítulo';
-            else if (/NOROESTE|NO/i.test(capituloNormalizado)) etiquetaDir = 'Resultado Director Capítulo';
-
-            const etiquetaDirNorm = normalizarTexto(etiquetaDir);
+            metaSeccion.resultRowTexto = etiquetaDirNorm;
             if (!metaSeccion.resultRows.some((t) => normalizarTexto(t) === etiquetaDirNorm)) {
               metaSeccion.resultRows.push(etiquetaDir);
             }
+          } else {
+            // Ingresos/Gastos CE/Board/Dirección aportan al operativo y al resultado director
+            if (!metaSeccion.sumRowSumavariosLabel) {
+              metaSeccion.sumRowSumavariosLabel = etiquetaOperativo;
+              metaSeccion.sumRowSumavariosTexto = etiquetaOperativoNorm;
+            }
             metaSeccion.resultRowTexto = etiquetaDirNorm;
+            if (!metaSeccion.resultRows.some((t) => normalizarTexto(t) === etiquetaDirNorm)) {
+              metaSeccion.resultRows.push(etiquetaDir);
+            }
           }
           break;
         }
@@ -3430,6 +3453,8 @@
       
       // Agrupar secciones por sus etiquetas sumavarios (incluye sumRowSumavarios y sumRowSumavarios2)
       secciones.forEach((seccion) => {
+        const esAdmin = /ADMIN/i.test(normalizarTexto(seccion.tituloVisible || seccion.seccion || ''));
+        if (esAdmin) return; // no contar admin en el resultado operativo
         const claves = [
           normalizarClave(seccion.sumRowSumavariosTexto),
           normalizarClave(seccion.sumRowSumavarios2Texto)
