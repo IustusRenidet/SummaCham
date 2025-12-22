@@ -2029,14 +2029,17 @@
       if (aplicarHeuristicas) {
         switch (moduloNormalizado) {
         case 'comites': {
-          const esComisiones = /COMISIONES/i.test(seccion || '');
-          const esGastosAdmin = /GASTOS\s+ADMINISTRATIVOS/i.test(seccion || '');
-          const etiquetaResultado = 'Resultado Comités';
+          const seccionNormTexto = normalizarTexto(seccion || '');
+          const esComisiones = /COMISIONES/i.test(seccionNormTexto);
+          const esGastosAdmin = /GASTOS\s+ADMINISTRATIVOS/i.test(seccionNormTexto);
+          const esGastoGenerico = /GASTOS/i.test(seccionNormTexto);
+          const esIngreso = /INGRESOS/i.test(seccionNormTexto);
+          const etiquetaResultado = 'Resultado Comites';
           const etiquetaResultadoNorm = normalizarTexto(etiquetaResultado);
           let habilitarResultado = true;
 
-          // Resultado Operativo Comités = Ingresos - Gastos (sumavarios ya lo agrupa)
-          // Resultado Comités:
+          // Resultado Operativo Comites = Ingresos - Gastos (sumavarios ya lo agrupa)
+          // Resultado Comites:
           // - CDMX: Resultado Operativo - Gastos Administrativos
           // - GDL/NE/NO: Resultado Operativo - Comisiones
           if (esComisiones) {
@@ -2047,15 +2050,17 @@
             metaSeccion.sumRowSumavarios2Texto = '';
             metaSeccion.sumRowSumavariosLabel = '';
             metaSeccion.sumRowSumavarios2Label = '';
-          }
-          if (esGastosAdmin) {
+          } else if (esGastosAdmin) {
             metaSeccion.factor = -1;
             habilitarResultado = esCapituloMexico;
-            // No debe entrar en el sumavarios de Resultado Operativo
             metaSeccion.sumRowSumavariosTexto = '';
             metaSeccion.sumRowSumavarios2Texto = '';
             metaSeccion.sumRowSumavariosLabel = '';
             metaSeccion.sumRowSumavarios2Label = '';
+          } else if (esGastoGenerico) {
+            metaSeccion.factor = -1; // gastos comites
+          } else if (esIngreso) {
+            metaSeccion.factor = 1;
           }
 
           if (habilitarResultado) {
