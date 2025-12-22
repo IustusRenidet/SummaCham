@@ -23,6 +23,9 @@ function validarJerarquia(tipo, context, moduleType) {
     if (tipo === 'secundaria' && !context.principal) {
       errors.push('Una Sección Secundaria requiere una Sección Principal');
     }
+    if (tipo === 'operacion_sumas' && (!context.principal || !context.secundaria)) {
+      errors.push('Una Operación de sumas requiere Sección Principal y Secundaria');
+    }
   }
 
   if (moduleType === 'RESUMEN') {
@@ -31,6 +34,9 @@ function validarJerarquia(tipo, context, moduleType) {
     }
     if (tipo === 'operacion' && (!context.principal || !context.secundaria)) {
       errors.push('Una Operación requiere Sección Principal y Secundaria');
+    }
+    if (tipo === 'operacion_sumas' && (!context.principal || !context.secundaria)) {
+      errors.push('Una Operación de sumas requiere Sección Principal y Secundaria');
     }
     if (tipo === 'secundaria' && !context.principal) {
       errors.push('Una Sección Secundaria requiere una Sección Principal');
@@ -93,6 +99,21 @@ function verificarDuplicado(tipo, data, config, moduleType) {
 
     if (existe) {
       return { duplicado: true, mensaje: `Ya existe una Operación con ese nombre en esa sección` };
+    }
+  }
+
+  if (tipo === 'operacion_sumas') {
+    const operaciones = config['SUMA DE VARIAS SECCIONES'] || [];
+    const capitulo = data.capitulo || '';
+    const seccion = data.seccion || data.secundaria || '';
+    const clase = data.clase || '';
+    const existe = operaciones.some((item) =>
+      item.CAPITULO === capitulo &&
+      item.SECCION === seccion &&
+      item.Clase === clase
+    );
+    if (existe) {
+      return { duplicado: true, mensaje: 'Ya existe una operación de sumas con esa sección y clase' };
     }
   }
 
@@ -161,14 +182,23 @@ router.post('/validar', requireAuth, async (req, res) => {
     if (tipo === 'cuenta') {
       if (!formData.numero) errors.push('El número de cuenta es obligatorio');
       if (!formData.nombre) errors.push('El nombre de cuenta es obligatorio');
+    } else if (tipo === 'operacion_sumas') {
+      if (!formData.clase) errors.push('La clase es obligatoria');
+      if (!formData.seccion && !context.secundaria) errors.push('La sección es obligatoria');
+      const operaciones = formData.operaciones || {};
+      const tieneOperacion = Object.values(operaciones).some((value) => value);
+      if (!tieneOperacion) errors.push('Define al menos una etiqueta de operación');
     } else {
       if (!formData.nombre) errors.push('El nombre es obligatorio');
       if (!formData.etiquetaSum) errors.push('La etiqueta de SUM ROW es obligatoria');
     }
 
     // 5. Advertencias
-    if (tipo !== 'cuenta') {
+    if (tipo !== 'cuenta' && tipo !== 'operacion_sumas') {
       warnings.push('Se creará automáticamente un SUM ROW con la etiqueta especificada');
+    }
+    if (tipo === 'operacion_sumas') {
+      warnings.push('Se agregará una configuración en SUMA DE VARIAS SECCIONES para el capítulo actual');
     }
 
     res.json({
@@ -594,6 +624,100 @@ router.post('/operacion', requireAuth, async (req, res) => {
 
   } catch (error) {
     console.error('Error en /insercion/operacion:', error);
+    res.status(500).json({
+      exito: false,
+      mensaje: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/insercion/operacion-sumas
+ * Inserta una nueva operación entre filas (SUMA DE VARIAS SECCIONES)
+ */
+router.post('/operacion-sumas', requireAuth, async (req, res) => {
+  try {
+    const { moduleType, context, formData } = req.body;
+
+    if (!moduleType || !context || !formData) {
+      return res.status(400).json({
+        exito: false,
+        mensaje: 'Faltan datos requeridos'
+      });
+    }
+
+    if (!['SUMMARY', 'RESUMEN'].includes(moduleType)) {
+      return res.status(400).json({
+        exito: false,
+        mensaje: 'Este tipo de operación solo aplica a SUMMARY/RESUMEN'
+      });
+    }
+
+    const jerarquiaErrors = validarJerarquia('operacion_sumas', context, moduleType);
+    if (jerarquiaErrors.length > 0) {
+      return res.status(400).json({
+        exito: false,
+        mensaje: jerarquiaErrors.join(', ')
+      });
+    }
+
+    const operaciones = formData.operaciones || {};
+    const tieneOperacion = Object.values(operaciones).some((value) => value);
+    if (!formData.clase || (!formData.seccion && !context.secundaria) || !tieneOperacion) {
+      return res.status(400).json({
+        exito: false,
+        mensaje: 'Clase, sección y al menos una operación son obligatorias'
+      });
+    }
+
+    const config = await loadLayoutConfig(moduleType, {
+      anio: context?.anio
+    });
+
+    const duplicado = verificarDuplicado(
+      'operacion_sumas',
+      { ...formData, ...context },
+      config,
+      moduleType
+    );
+    if (duplicado.duplicado) {
+      return res.status(400).json({
+        exito: false,
+        mensaje: duplicado.mensaje
+      });
+    }
+
+    if (!config['SUMA DE VARIAS SECCIONES']) config['SUMA DE VARIAS SECCIONES'] = [];
+
+    const nuevaOperacion = {
+      HOJA: moduleType,
+      CAPITULO: context.capitulo || '',
+      Clase: formData.clase,
+      SECCION: formData.seccion || context.secundaria || ''
+    };
+    if (Number.isFinite(Number(formData.signo))) {
+      nuevaOperacion.signo = Number(formData.signo);
+    }
+
+    Object.entries(operaciones).forEach(([tipo, etiqueta]) => {
+      if (etiqueta) {
+        nuevaOperacion[tipo] = etiqueta;
+      }
+    });
+
+    config['SUMA DE VARIAS SECCIONES'].push(nuevaOperacion);
+
+    await saveLayoutConfig(moduleType, config, {
+      anio: context?.anio
+    });
+
+    res.json({
+      exito: true,
+      mensaje: 'Operación entre filas agregada exitosamente',
+      operacion: nuevaOperacion
+    });
+  } catch (error) {
+    console.error('Error en /insercion/operacion-sumas:', error);
     res.status(500).json({
       exito: false,
       mensaje: error.message
