@@ -105,7 +105,7 @@
             <canvas id="chartNetByChapter"></canvas>
           </div>
         </div>
-        <div class="col-12">
+        <div class="col-12" id="cdmxNetCard">
           <div class="card chart-card p-3">
             <div class="d-flex justify-content-between align-items-center mb-2">
               <h5 class="mb-0">Net Results CDMX (detalle)</h5>
@@ -158,16 +158,19 @@
 
         const getMesClave = (num) => MESES.find((m) => m.periodo === Number(num))?.clave || 'dic';
 
-        const obtenerCapituloSeleccionado = (empresaId) => {
-          // Prioridad: valor del selector de empresa en el layout (company-selector)
+        const obtenerCapituloSeleccionado = () => {
           const selector = document.querySelector('.company-selector select');
-          if (selector) {
-            const opt = selector.selectedOptions?.[0];
-            const texto = opt?.dataset?.capitulo || opt?.value || opt?.textContent;
-            if (texto) return texto.toString().trim();
-          }
-          // Fallback al mapeo de CapitulosModulos
-          return window.CapitulosModulos?.obtenerCapituloPorEmpresa?.(empresaId) || '';
+          if (!selector) return '';
+          const opt = selector.selectedOptions?.[0];
+          const texto = opt?.dataset?.capitulo || opt?.value || opt?.textContent;
+          return texto ? texto.toString().trim() : '';
+        };
+
+        const obtenerEtiquetaSeleccionada = () => {
+          const selector = document.querySelector('.company-selector select');
+          if (!selector) return '';
+          const opt = selector.selectedOptions?.[0];
+          return opt?.textContent?.toString().trim() || opt?.value || '';
         };
 
         const flattenLabels = (nodos = []) => {
@@ -220,9 +223,9 @@
           charts[id] = new Chart(ctx, cfg);
         };
 
-        const renderCharts = (metricsList = []) => {
-          if (!Array.isArray(metricsList) || !metricsList.length) return;
-          const labels = metricsList.map((m) => m.chapter || 'Capítulo');
+        const renderCharts = (metrics, capituloLabel, esCdmx) => {
+          if (!metrics) return;
+          const labels = [capituloLabel || metrics.chapter || 'Capítulo'];
           const hasData = (totals) => toNumber(totals?.actual) !== 0 || toNumber(totals?.plan) !== 0;
           const pickTotals = (primary, fallback) => (hasData(primary) ? primary : (fallback || { actual: 0, plan: 0 }));
 
@@ -233,12 +236,12 @@
               datasets: [
                 {
                   label: 'Operating (Actual)',
-                  data: metricsList.map((m) => pickTotals(m.operating, m.cdmxOperating).actual),
+                  data: [pickTotals(metrics.operating, metrics.cdmxOperating).actual],
                   backgroundColor: '#2f5496'
                 },
                 {
                   label: 'Operating (Plan)',
-                  data: metricsList.map((m) => pickTotals(m.operating, m.cdmxOperating).plan),
+                  data: [pickTotals(metrics.operating, metrics.cdmxOperating).plan],
                   backgroundColor: '#8fb2ff'
                 }
               ]
@@ -257,12 +260,12 @@
               datasets: [
                 {
                   label: 'Net (Actual)',
-                  data: metricsList.map((m) => pickTotals(m.net, m.consolidatedNet).actual),
+                  data: [pickTotals(metrics.net, metrics.consolidatedNet).actual],
                   backgroundColor: '#10b981'
                 },
                 {
                   label: 'Net (Plan)',
-                  data: metricsList.map((m) => pickTotals(m.net, m.consolidatedNet).plan),
+                  data: [pickTotals(metrics.net, metrics.consolidatedNet).plan],
                   backgroundColor: '#6ee7b7'
                 }
               ]
@@ -274,7 +277,11 @@
             }
           });
 
-          const cdmx = metricsList.find((m) => normalizarLabel(m.chapter).includes('CIUDAD DE MEXICO')) || {};
+          const cdmxCard = document.getElementById('cdmxNetCard');
+          if (cdmxCard) {
+            cdmxCard.style.display = esCdmx ? '' : 'none';
+          }
+          const cdmx = esCdmx ? metrics : {};
           renderChart('chartNetCdmx', {
             type: 'bar',
             data: {
@@ -316,22 +323,22 @@
               datasets: [
                 {
                   label: 'Consolidated Operating (Actual)',
-                  data: metricsList.map((m) => m.consolidatedOperating.actual),
+                  data: [metrics.consolidatedOperating.actual],
                   backgroundColor: '#f59e0b'
                 },
                 {
                   label: 'Consolidated Operating (Plan)',
-                  data: metricsList.map((m) => m.consolidatedOperating.plan),
+                  data: [metrics.consolidatedOperating.plan],
                   backgroundColor: '#fcd34d'
                 },
                 {
                   label: 'Consolidated Net (Actual)',
-                  data: metricsList.map((m) => m.consolidatedNet.actual),
+                  data: [metrics.consolidatedNet.actual],
                   backgroundColor: '#9333ea'
                 },
                 {
                   label: 'Consolidated Net (Plan)',
-                  data: metricsList.map((m) => m.consolidatedNet.plan),
+                  data: [metrics.consolidatedNet.plan],
                   backgroundColor: '#c4b5fd'
                 }
               ]
@@ -366,46 +373,31 @@
 
         const loadData = async () => {
           const empresa = window.Sesion?.obtenerEmpresaActiva?.();
-          if (!empresa?.id) {
+          const capitulo = obtenerCapituloSeleccionado();
+          const etiqueta = obtenerEtiquetaSeleccionada();
+          if (!empresa?.id || !capitulo) {
             empresaLabel.textContent = 'Capitulo: -';
             return;
           }
-          empresaLabel.textContent = `Capitulo: ${empresa?.nombre || empresa?.etiqueta || empresa?.id}`;
+          empresaLabel.textContent = `Capitulo: ${etiqueta || capitulo}`;
           const anio = Number(yearSelect.value) || new Date().getFullYear();
           const mes = Number(monthSelect.value) || new Date().getMonth() + 1;
           try {
-            const baseUrl = new URL(API_ENDPOINT);
-            baseUrl.searchParams.set('empresaId', empresa.id);
-            baseUrl.searchParams.set('anio', anio);
-            baseUrl.searchParams.set('mes', mes.toString()); // API espera mes numerico (1-12)
-            const res = await fetch(baseUrl.toString(), { headers: window.Sesion?.headersAutenticacion?.() || {} });
+            const url = new URL(API_ENDPOINT);
+            url.searchParams.set('empresaId', empresa.id);
+            url.searchParams.set('anio', anio);
+            url.searchParams.set('mes', mes.toString()); // API espera mes numerico (1-12)
+            url.searchParams.set('capitulo', capitulo);
+            const res = await fetch(url.toString(), { headers: window.Sesion?.headersAutenticacion?.() || {} });
             if (!res.ok) {
               const text = await res.text();
               console.warn('Graficas resumen 400/500', res.status, text);
               throw new Error(`No se pudo obtener resumen (${res.status})`);
             }
             const data = await res.json().catch(() => ({}));
-            const capitulos = Array.isArray(data.capitulosDisponibles) ? data.capitulosDisponibles : [];
-            const etiquetas = capitulos.length
-              ? capitulos.map((c) => c.etiqueta).filter(Boolean)
-              : [obtenerCapituloSeleccionado(empresa.id)].filter(Boolean);
-            const headers = window.Sesion?.headersAutenticacion?.() || {};
-            const responses = await Promise.all(etiquetas.map(async (capitulo) => {
-              const url = new URL(API_ENDPOINT);
-              url.searchParams.set('empresaId', empresa.id);
-              url.searchParams.set('anio', anio);
-              url.searchParams.set('mes', mes.toString());
-              if (capitulo) url.searchParams.set('capitulo', capitulo);
-              const resp = await fetch(url.toString(), { headers });
-              if (!resp.ok) {
-                console.warn('Graficas resumen 400/500', resp.status, capitulo);
-                return null;
-              }
-              const json = await resp.json().catch(() => ({}));
-              return buildMetrics(json.resumen || []);
-            }));
-            const metricsList = responses.filter(Boolean);
-            renderCharts(metricsList);
+            const metrics = buildMetrics(data.resumen || []);
+            const esCdmx = normalizarLabel(capitulo).includes('CIUDAD DE MEXICO');
+            renderCharts(metrics, etiqueta || capitulo, esCdmx);
           } catch (e) {
             console.error('Error cargando resumen para graficas', e);
           }
@@ -413,6 +405,10 @@
 
         monthSelect.addEventListener('change', loadData);
         yearSelect.addEventListener('change', loadData);
+        const companySelector = document.querySelector('.company-selector select');
+        if (companySelector) {
+          companySelector.addEventListener('change', loadData);
+        }
 
         (async () => {
           await loadYears();

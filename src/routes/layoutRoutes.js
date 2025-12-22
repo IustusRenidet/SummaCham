@@ -7,6 +7,13 @@ const express = require('express');
 const router = express.Router();
 const layoutService = require('../services/layoutService');
 const { requireAuth } = require('../middleware/auth');
+const { normalizarNombreModulo } = require('../config/modulos');
+
+const tienePermisoGuardar = (req, empresaId, modulo) => {
+  if (req.esAdmin) return true;
+  const moduloNormalizado = normalizarNombreModulo(modulo) || modulo;
+  return Boolean(req.mapaPermisos?.[empresaId]?.[moduloNormalizado]?.['Cargar y guardar']);
+};
 
 /**
  * GET /api/layouts/:modulo/anios
@@ -278,6 +285,13 @@ router.post('/:modulo/copiar', requireAuth, (req, res) => {
   try {
     const { modulo } = req.params;
     const { empresaId = 'EMPRESA01', anioOrigen, anioDestino } = req.body;
+
+    if (!tienePermisoGuardar(req, empresaId, modulo)) {
+      return res.status(403).json({ 
+        success: false, 
+        mensaje: 'No cuentas con permisos para copiar layouts' 
+      });
+    }
 
     if (!anioOrigen || !anioDestino) {
       return res.status(400).json({ 

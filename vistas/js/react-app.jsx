@@ -50,7 +50,7 @@ const MODULE_GROUPS = [
       { id: 'perfil', label: 'Mi Perfil', path: 'perfil.html', badge: 'perfil', public: true },
       { id: 'usuarios', label: 'Administrar usuarios', path: 'usuarios.html', badge: 'Permisos', requiresAdmin: true },
       { id: 'crear-usuario', label: 'Crear usuario', path: 'crear_usuario.html', requiresAdmin: true },
-      { id: 'layout-loader', label: 'Gestor de layouts', path: 'LayoutLoader.html', requiresAdmin: true }
+      { id: 'layout-loader', label: 'Gestor de layouts', path: 'LayoutLoader.html', requiresAdmin: true, permiso: 'Layouts' }
     ]
   }
 ];

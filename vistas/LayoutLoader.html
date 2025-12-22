@@ -108,7 +108,7 @@
       (() => {
         const API_BASE = window.location.protocol === 'file:'
           ? 'http://localhost:3005/api'
-          : `${window.location.origin.replace(/\\/$/, '')}/api`;
+          : `${window.location.origin.replace(/\/$/, '')}/api`;
 
         const form = document.getElementById('layoutForm');
         const empresaInput = document.getElementById('empresaId');
