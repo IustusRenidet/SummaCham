@@ -124,6 +124,10 @@
      * Abre el wizard
      */
     open(referenceRow = null) {
+      if (!this.isEditModeAllowed()) {
+        alert('❌ Debes activar el modo edición antes de usar el wizard de inserción.');
+        return;
+      }
       this.moduleType = this.detectModuleType();
       this.contextData = this.extractContextFromRow(referenceRow);
       this.formData = { factor: null, factorChoice: '', operaciones: {} };
@@ -138,6 +142,29 @@
 
       this.renderWizard();
       this.showModal();
+    },
+
+    isEditModeAllowed() {
+      const flujo = window.__flujoAutorizacionInstance;
+      const estadosPermitidos = ['EDITANDO', 'BORRADOR', 'CARGANDO'];
+      let modoEdicion = false;
+      let estado = 'SIN_CARGAR';
+
+      if (flujo) {
+        estado = flujo.state?.borrador?.estado || 'SIN_CARGAR';
+        modoEdicion = Boolean(flujo.state?.editMode);
+      }
+
+      if (!modoEdicion && window.ModoEdicionPresupuesto?.estaActivo) {
+        modoEdicion = window.ModoEdicionPresupuesto.estaActivo();
+        if (modoEdicion) estado = 'EDITANDO';
+      }
+
+      if (!flujo && !window.ModoEdicionPresupuesto) {
+        return true;
+      }
+
+      return modoEdicion && estadosPermitidos.includes(estado);
     },
 
     /**

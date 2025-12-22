@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gestor de Layouts</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="css/estilos.css" />
+    <link rel="icon" type="image/x-icon" href="icono/icono.ico" />
+    <style>
+      body {
+        background: #f5f7fb;
+        color: #1f2937;
+        font-family: 'Manrope', 'Segoe UI', Tahoma, Verdana, sans-serif;
+      }
+      .card-shell {
+        background: #ffffff;
+        border: 1px solid rgba(47, 84, 150, 0.12);
+        border-radius: 18px;
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+      }
+      .status-pill {
+        border-radius: 999px;
+        padding: 6px 12px;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container py-4">
+      <div class="row mb-4">
+        <div class="col-12">
+          <div class="card card-shell p-4">
+            <div class="d-flex flex-column flex-lg-row align-items-start align-items-lg-center justify-content-between gap-3">
+              <div>
+                <h1 class="h4 mb-1">Gestor de layouts por año</h1>
+                <p class="text-muted mb-0">
+                  Copia layouts de un año base a un año aún no abierto (ej: 2026).
+                </p>
+              </div>
+              <span id="authStatus" class="status-pill bg-warning-subtle text-warning-emphasis">Verificando modo edición…</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card card-shell p-4">
+        <form id="layoutForm" class="row g-3">
+          <div class="col-12 col-lg-4">
+            <label for="empresaId" class="form-label">Empresa</label>
+            <input id="empresaId" class="form-control" placeholder="EMPRESA01" value="EMPRESA01" />
+          </div>
+          <div class="col-12 col-lg-4">
+            <label for="moduloSelect" class="form-label">Módulo</label>
+            <select id="moduloSelect" class="form-select">
+              <option value="RESUMEN">RESUMEN</option>
+              <option value="SUMMARY">SUMMARY</option>
+              <option value="Finanzas">Finanzas</option>
+              <option value="Gastos Generales">Gastos Generales</option>
+              <option value="Nomina">Nómina</option>
+              <option value="Membresía">Membresía</option>
+              <option value="Serv Membresía">Serv Membresía</option>
+              <option value="RH">RH</option>
+              <option value="Eventos">Eventos</option>
+              <option value="Comités">Comités</option>
+              <option value="Comunicación">Comunicación</option>
+              <option value="Dirección">Dirección</option>
+              <option value="Gtos Corporativos">Gtos Corporativos</option>
+              <option value="T&IC">T&IC</option>
+              <option value="VPE">VPE</option>
+            </select>
+          </div>
+          <div class="col-12 col-lg-2">
+            <label for="anioOrigen" class="form-label">Año base</label>
+            <select id="anioOrigen" class="form-select">
+              <option value="">Cargando…</option>
+            </select>
+          </div>
+          <div class="col-12 col-lg-2">
+            <label for="anioDestino" class="form-label">Año destino</label>
+            <input id="anioDestino" class="form-control" placeholder="Ej: 2026" />
+          </div>
+          <div class="col-12">
+            <div class="alert alert-info mb-0">
+              <strong>Importante:</strong> Se copia el layout completo (cuentas + operaciones). 
+              Si el año destino ya existe, se sobrescribirá.
+            </div>
+          </div>
+          <div class="col-12 d-flex flex-wrap gap-2 justify-content-end">
+            <button type="button" id="refreshYears" class="btn btn-outline-secondary">
+              Recargar años disponibles
+            </button>
+            <button type="submit" id="submitBtn" class="btn btn-primary">
+              Copiar layout
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card card-shell p-4 mt-4">
+        <h2 class="h6">Bitácora</h2>
+        <pre id="logOutput" class="mb-0 small text-muted" style="min-height: 120px;"></pre>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      (() => {
+        const API_BASE = window.location.protocol === 'file:'
+          ? 'http://localhost:3005/api'
+          : `${window.location.origin.replace(/\\/$/, '')}/api`;
+
+        const form = document.getElementById('layoutForm');
+        const empresaInput = document.getElementById('empresaId');
+        const moduloSelect = document.getElementById('moduloSelect');
+        const anioOrigenSelect = document.getElementById('anioOrigen');
+        const anioDestinoInput = document.getElementById('anioDestino');
+        const submitBtn = document.getElementById('submitBtn');
+        const refreshBtn = document.getElementById('refreshYears');
+        const authStatus = document.getElementById('authStatus');
+        const logOutput = document.getElementById('logOutput');
+
+        const log = (mensaje) => {
+          logOutput.textContent += `${mensaje}\\n`;
+          logOutput.scrollTop = logOutput.scrollHeight;
+        };
+
+        const getAuthHeaders = () => {
+          if (window.Sesion?.headersAutenticacion) {
+            return window.Sesion.headersAutenticacion();
+          }
+          return {};
+        };
+
+        const getEditModeState = () => {
+          const flujo = window.__flujoAutorizacionInstance;
+          const estadosPermitidos = ['EDITANDO', 'BORRADOR', 'CARGANDO'];
+          let modoEdicion = false;
+          let estado = 'SIN_CARGAR';
+
+          if (flujo) {
+            estado = flujo.state?.borrador?.estado || 'SIN_CARGAR';
+            modoEdicion = Boolean(flujo.state?.editMode);
+          }
+
+          if (!modoEdicion && window.ModoEdicionPresupuesto?.estaActivo) {
+            modoEdicion = window.ModoEdicionPresupuesto.estaActivo();
+            if (modoEdicion) estado = 'EDITANDO';
+          }
+
+          if (!flujo && !window.ModoEdicionPresupuesto) {
+            return { allowed: true, estado: 'SIN_CARGAR', modoEdicion: true };
+          }
+
+          const allowed = modoEdicion && estadosPermitidos.includes(estado);
+          return { allowed, estado, modoEdicion };
+        };
+
+        const renderAuthState = () => {
+          const { allowed, estado, modoEdicion } = getEditModeState();
+          if (allowed) {
+            authStatus.className = 'status-pill bg-success-subtle text-success-emphasis';
+            authStatus.textContent = 'Modo edición activo';
+            submitBtn.disabled = false;
+          } else {
+            authStatus.className = 'status-pill bg-danger-subtle text-danger-emphasis';
+            const estadoText = estado === 'SIN_CARGAR' ? 'Sin cargar' : estado;
+            authStatus.textContent = modoEdicion
+              ? `Modo edición: ${estadoText}`
+              : 'Modo edición inactivo';
+            submitBtn.disabled = true;
+          }
+        };
+
+        const cargarAniosDisponibles = async () => {
+          const modulo = moduloSelect.value;
+          const empresaId = empresaInput.value.trim() || 'EMPRESA01';
+          anioOrigenSelect.innerHTML = '<option value="">Cargando…</option>';
+          try {
+            const url = new URL(`${API_BASE}/layouts/${encodeURIComponent(modulo)}/anios`);
+            url.searchParams.set('empresaId', empresaId);
+            const res = await fetch(url.toString(), { headers: getAuthHeaders() });
+            if (!res.ok) throw new Error('No se pudieron cargar los años');
+            const data = await res.json();
+            const anios = Array.isArray(data.anios) ? data.anios : [];
+            anioOrigenSelect.innerHTML = '';
+            if (!anios.length) {
+              anioOrigenSelect.innerHTML = '<option value="">Sin años disponibles</option>';
+              return;
+            }
+            anios.forEach((anio) => {
+              const opt = document.createElement('option');
+              opt.value = anio;
+              opt.textContent = anio;
+              anioOrigenSelect.appendChild(opt);
+            });
+            anioOrigenSelect.value = anios[anios.length - 1];
+          } catch (error) {
+            console.error(error);
+            anioOrigenSelect.innerHTML = '<option value="">Error al cargar</option>';
+            log(`❌ ${error.message}`);
+          }
+        };
+
+        const validarDestino = async (modulo, empresaId, anioDestino) => {
+          const url = new URL(`${API_BASE}/layouts/${encodeURIComponent(modulo)}/${encodeURIComponent(anioDestino)}/existe`);
+          url.searchParams.set('empresaId', empresaId);
+          const res = await fetch(url.toString(), { headers: getAuthHeaders() });
+          if (!res.ok) return false;
+          const data = await res.json();
+          return Boolean(data.existe);
+        };
+
+        form.addEventListener('submit', async (event) => {
+          event.preventDefault();
+          renderAuthState();
+          const { allowed } = getEditModeState();
+          if (!allowed) {
+            log('❌ Debes activar el modo edición antes de copiar layouts.');
+            return;
+          }
+
+          const empresaId = empresaInput.value.trim() || 'EMPRESA01';
+          const modulo = moduloSelect.value;
+          const anioOrigen = anioOrigenSelect.value;
+          const anioDestino = anioDestinoInput.value.trim();
+
+          if (!anioOrigen || !anioDestino) {
+            log('❌ Debes seleccionar año base y año destino.');
+            return;
+          }
+
+          const destinoExiste = await validarDestino(modulo, empresaId, anioDestino);
+          if (destinoExiste) {
+            const confirmar = confirm(`El layout ${modulo} ${anioDestino} ya existe. ¿Deseas sobrescribirlo?`);
+            if (!confirmar) return;
+          }
+
+          try {
+            const res = await fetch(`${API_BASE}/layouts/${encodeURIComponent(modulo)}/copiar`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+              body: JSON.stringify({
+                empresaId,
+                anioOrigen: Number(anioOrigen),
+                anioDestino: Number(anioDestino)
+              })
+            });
+            const data = await res.json();
+            if (!res.ok) {
+              throw new Error(data?.mensaje || 'No se pudo copiar el layout');
+            }
+            log(`✅ Layout ${modulo} copiado de ${anioOrigen} a ${anioDestino}.`);
+            await cargarAniosDisponibles();
+          } catch (error) {
+            console.error(error);
+            log(`❌ ${error.message}`);
+          }
+        });
+
+        moduloSelect.addEventListener('change', cargarAniosDisponibles);
+        refreshBtn.addEventListener('click', cargarAniosDisponibles);
+
+        renderAuthState();
+        cargarAniosDisponibles();
+        setInterval(renderAuthState, 3000);
+      })();
+    </script>
+  </body>
+</html>
