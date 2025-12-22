@@ -1978,7 +1978,21 @@
       const factorManual = Number.isFinite(Number(sumas?.operacionFactor)) ? Number(sumas.operacionFactor) : null;
       const heuristicasPermitidas =
         (window.PlaneacionConfig && window.PlaneacionConfig.habilitarOperacionesAutomaticas === true) ||
-        moduloNormalizado === 'gastosgenerales';
+        moduloNormalizado === 'gastosgenerales' ||
+        moduloNormalizado === 'comites' ||
+        moduloNormalizado === 'comunicacion' ||
+        moduloNormalizado === 'eventos' ||
+        moduloNormalizado === 'direccion' ||
+        moduloNormalizado === 'finanzas' ||
+        moduloNormalizado === 'nomina' ||
+        moduloNormalizado === 'gtoscorporativos' ||
+        moduloNormalizado === 'membresia' ||
+        moduloNormalizado === 'rh' ||
+        moduloNormalizado === 'recursoshumanos' ||
+        moduloNormalizado === 'servmembresia' ||
+        moduloNormalizado === 'serviciosalamembresia' ||
+        moduloNormalizado === 'tic' ||
+        moduloNormalizado === 'vpe';
       const metaSeccion = {
         seccion: claveSeccion,
         tituloVisible: seccion,
@@ -2070,14 +2084,76 @@
           break;
         }
         case 'eventos': {
-          if (/GASTOS\s+ADMINISTRATIVOS/i.test(seccion || '')) {
+          const seccionNorm = normalizarTexto(seccion || '');
+          const esGastoAdmin = /GASTOS\s+ADMINISTRATIVOS/i.test(seccion || '');
+          const esCostosYGastos = /COSTOS\s+Y\s+GASTOS\s+EVENTOS/i.test(seccionNorm) || /GASTOS\s+EVENTOS/i.test(seccionNorm);
+          if (esGastoAdmin || esCostosYGastos) {
             metaSeccion.factor = -1;
             agregarResultRow(metaSeccion, 'Resultado  Eventos');
-            // Excluir de la suma operativa (solo debe restarse al resultado final)
-            metaSeccion.sumRowSumavariosTexto = '';
-            metaSeccion.sumRowSumavarios2Texto = '';
-            metaSeccion.sumRowSumavariosLabel = '';
-            metaSeccion.sumRowSumavarios2Label = '';
+            if (esGastoAdmin) {
+              // Excluir de la suma operativa (solo debe restarse al resultado final)
+              metaSeccion.sumRowSumavariosTexto = '';
+              metaSeccion.sumRowSumavarios2Texto = '';
+              metaSeccion.sumRowSumavariosLabel = '';
+              metaSeccion.sumRowSumavarios2Label = '';
+            }
+          }
+          break;
+        }
+        case 'comunicacion': {
+          const seccionNormTexto = normalizarTexto(seccion || '');
+          const esGasto = /GASTOS/i.test(seccionNormTexto);
+          if (esGasto) {
+            metaSeccion.factor = -1;
+          }
+          const etiquetaResultado = 'Resultado Operativo Comunicacion';
+          const etiquetaResultadoNorm = normalizarTexto(etiquetaResultado);
+          if (!metaSeccion.resultRows.some((t) => normalizarTexto(t) === etiquetaResultadoNorm)) {
+            metaSeccion.resultRows.push(etiquetaResultado);
+          }
+          metaSeccion.resultRowTexto = etiquetaResultadoNorm;
+          break;
+        }
+        case 'finanzas': {
+          const seccionNormTexto = normalizarTexto(seccion || '');
+          if (/GASTOS/i.test(seccionNormTexto)) {
+            metaSeccion.factor = -1;
+          } else if (/INGRESOS/i.test(seccionNormTexto)) {
+            metaSeccion.factor = 1;
+          }
+          const etiquetaResultado = 'Resultado Admon y Finanzas';
+          const etiquetaResultadoNorm = normalizarTexto(etiquetaResultado);
+          if (!metaSeccion.resultRows.some((t) => normalizarTexto(t) === etiquetaResultadoNorm)) {
+            metaSeccion.resultRows.push(etiquetaResultado);
+          }
+          metaSeccion.resultRowTexto = etiquetaResultadoNorm;
+          break;
+        }
+        case 'nomina': {
+          const seccionNormTexto = normalizarTexto(seccion || '');
+          if (/GASTOS|DEDUC|IMPUEST/i.test(seccionNormTexto)) {
+            metaSeccion.factor = -1;
+          } else if (/INGRESOS/i.test(seccionNormTexto)) {
+            metaSeccion.factor = 1;
+          }
+          break;
+        }
+        case 'gtoscorporativos': {
+          const seccionNormTexto = normalizarTexto(seccion || '');
+          if (/GASTOS/i.test(seccionNormTexto)) {
+            metaSeccion.factor = -1;
+          } else if (/INGRESOS/i.test(seccionNormTexto)) {
+            metaSeccion.factor = 1;
+          }
+          break;
+        }
+        case 'rh':
+        case 'recursoshumanos': {
+          const seccionNormTexto = normalizarTexto(seccion || '');
+          if (/GASTOS|DEDUC|IMPUEST|NOMINA/i.test(seccionNormTexto)) {
+            metaSeccion.factor = -1;
+          } else if (/INGRESOS/i.test(seccionNormTexto)) {
+            metaSeccion.factor = 1;
           }
           break;
         }
@@ -2090,6 +2166,33 @@
             metaSeccion.sumRowSumavarios2Texto = '';
             metaSeccion.sumRowSumavariosLabel = '';
             metaSeccion.sumRowSumavarios2Label = '';
+          } else {
+            const seccionNormTexto = normalizarTexto(seccion || '');
+            if (/GASTOS/i.test(seccionNormTexto)) {
+              metaSeccion.factor = -1;
+            } else if (/INGRESOS/i.test(seccionNormTexto)) {
+              metaSeccion.factor = 1;
+            }
+          }
+          break;
+        }
+        case 'servmembresia':
+        case 'serviciosalamembresia': {
+          const seccionNormTexto = normalizarTexto(seccion || '');
+          if (/GASTOS/i.test(seccionNormTexto)) {
+            metaSeccion.factor = -1;
+          } else if (/INGRESOS/i.test(seccionNormTexto)) {
+            metaSeccion.factor = 1;
+          }
+          break;
+        }
+        case 'tic':
+        case 'vpe': {
+          const seccionNormTexto = normalizarTexto(seccion || '');
+          if (/GASTOS/i.test(seccionNormTexto)) {
+            metaSeccion.factor = -1;
+          } else if (/INGRESOS/i.test(seccionNormTexto)) {
+            metaSeccion.factor = 1;
           }
           break;
         }
