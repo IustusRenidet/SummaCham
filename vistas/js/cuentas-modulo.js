@@ -3332,6 +3332,32 @@
     const secciones = meta.secciones;
 
     const errores = [];
+    const periodoVisible = obtenerPeriodoVisible();
+    const limitePeriodo = Number.isInteger(periodoVisible) ? periodoVisible : null;
+    const ajustarPorPeriodo = (valores) => {
+      if (limitePeriodo == null) return valores;
+      const ajustados = valores.slice();
+      const indicesReales = [];
+      clavesOrdenadas.forEach((clave, idx) => {
+        if (!clave.startsWith('real-')) return;
+        const mesClave = clave.replace('real-', '');
+        const mesNum = CLAVE_MES_A_PERIODO.get(mesClave) || null;
+        if (mesNum && mesNum > limitePeriodo) {
+          ajustados[idx] = 0;
+        }
+        if (mesNum) {
+          indicesReales.push({ idx, mesNum });
+        }
+      });
+      const totalRealIdx = clavesOrdenadas.indexOf('total-real');
+      if (totalRealIdx >= 0 && indicesReales.length) {
+        const suma = indicesReales
+          .filter(({ mesNum }) => mesNum <= limitePeriodo)
+          .reduce((acc, { idx }) => acc + (Number(ajustados[idx]) || 0), 0);
+        ajustados[totalRealIdx] = suma;
+      }
+      return ajustados;
+    };
     
     // PASO 1: Calcular sum-row para cada sección (suma vertical de todas las cuentas)
     secciones.forEach((seccion, idxSeccion) => {
@@ -3350,9 +3376,10 @@
             ? Number(fila.dataset.operacionFactor)
             : 1;
           const almacenados = estadoModulo.valoresPorCuenta?.get(cuenta);
-          const valoresBase = almacenados
+          let valoresBase = almacenados
             ? clavesOrdenadas.map((clave) => almacenados[clave] ?? 0)
             : extraerValoresNumericos(fila);
+          valoresBase = ajustarPorPeriodo(valoresBase);
           const valoresAjustados = seccion.restarUtilidadCambiaria && descripcionUtilidadCambiaria(fila)
             ? valoresBase.map((valor) => (Number(valor) || 0) * -1)
             : valoresBase;
@@ -3361,6 +3388,15 @@
         
         // Sumar todas las filas columna por columna
         const valores = sumarListas(listas, longitud);
+        // Recalcular total-real con la suma de todos los month-real visibles de la secci¢n
+        const idxTotalReal = clavesOrdenadas.indexOf('total-real');
+        if (idxTotalReal >= 0) {
+          const sumaReal = clavesOrdenadas.reduce((acc, clave, idx) => {
+            if (!clave.startsWith('real-')) return acc;
+            return acc + (Number(valores[idx]) || 0);
+          }, 0);
+          valores[idxTotalReal] = sumaReal;
+        }
         seccion.sumValues = valores;
         
         // Actualizar la fila sum-row en el DOM
