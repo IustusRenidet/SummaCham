@@ -90,37 +90,37 @@
         <div class="col-12 col-xl-6">
           <div class="card chart-card p-3">
             <div class="d-flex justify-content-between align-items-center mb-2">
-              <h5 class="mb-0">Resultados Operativos (Actual)</h5>
-              <small class="text-muted">Ingreso vs Gasto</small>
+              <h5 class="mb-0">Resultados Operativos por Capítulo</h5>
+              <small class="text-muted">Actual vs Plan</small>
             </div>
-            <canvas id="chartOperating"></canvas>
+            <canvas id="chartOperatingByChapter"></canvas>
           </div>
         </div>
         <div class="col-12 col-xl-6">
           <div class="card chart-card p-3">
             <div class="d-flex justify-content-between align-items-center mb-2">
-              <h5 class="mb-0">Net Results (Actual)</h5>
-              <small class="text-muted">Resultado neto por capitulo</small>
+              <h5 class="mb-0">Resultados Netos por Capítulo</h5>
+              <small class="text-muted">Actual vs Plan</small>
             </div>
-            <canvas id="chartNet"></canvas>
+            <canvas id="chartNetByChapter"></canvas>
           </div>
         </div>
         <div class="col-12">
           <div class="card chart-card p-3">
             <div class="d-flex justify-content-between align-items-center mb-2">
-              <h5 class="mb-0">Comparativo Net Results</h5>
-              <small class="text-muted">Mexico vs Guadalajara vs Monterrey vs Northwest</small>
+              <h5 class="mb-0">Net Results CDMX (detalle)</h5>
+              <small class="text-muted">Mexico · Guadalajara · Monterrey · Northwest</small>
             </div>
-            <canvas id="chartNetCompare"></canvas>
+            <canvas id="chartNetCdmx"></canvas>
           </div>
         </div>
         <div class="col-12">
           <div class="card chart-card p-3">
             <div class="d-flex justify-content-between align-items-center mb-2">
-              <h5 class="mb-0">Consolidated Income</h5>
-              <small class="text-muted">Ingreso consolidado del periodo</small>
+              <h5 class="mb-0">Consolidados Operativos vs Netos</h5>
+              <small class="text-muted">Resultados consolidados por capítulo</small>
             </div>
-            <canvas id="chartConsolidated"></canvas>
+            <canvas id="chartConsolidatedResults"></canvas>
           </div>
         </div>
       </div>
@@ -189,41 +189,26 @@
 
         const buildMetrics = (resumen = []) => {
           if (!Array.isArray(resumen) || !resumen.length) return null;
-          const map = flattenLabels(resumen);
-          const get = (lbl) => map.get(normalizarLabel(lbl)) || {};
-          const ingreso = (lbl) => toNumber(get(lbl).actualMonth);
-          const planIngreso = (lbl) => toNumber(get(lbl).planMonth);
-          const expense = (lbl) => toNumber(get(lbl).actualMonth);
+          const nodo = resumen[0] || {};
+          const mapa = flattenLabels(nodo.layout || nodo.children || []);
+          const get = (lbl) => mapa.get(normalizarLabel(lbl)) || {};
+          const getActual = (lbl) => toNumber(get(lbl).actualMonth);
+          const getPlan = (lbl) => toNumber(get(lbl).planMonth);
 
-          const makeOperating = (incLbl, expLbl, fallbackOpLbl) => {
-            const inc = ingreso(incLbl);
-            const exp = expense(expLbl);
-            if (inc || exp) return { actual: inc - exp, plan: planIngreso(incLbl) - planIngreso(expLbl) };
-            const op = get(fallbackOpLbl);
-            return { actual: toNumber(op.actualMonth), plan: toNumber(op.planMonth) };
-          };
-
-          const makeNet = (netLbl) => {
-            const n = get(netLbl);
-            return { actual: toNumber(n.actualMonth), plan: toNumber(n.planMonth) };
-          };
+          const readTotals = (lbl) => ({ actual: getActual(lbl), plan: getPlan(lbl) });
 
           return {
-            operating: {
-              mexico: makeOperating('CDMX INCOME', 'CDMX EXPENSE', 'OPERATING RESULTS MEXICO'),
-              gdl: makeOperating('GUADALAJARA INCOME', 'GUADALAJARA EXPENSE', 'OPERATING RESULTS GUADALAJARA'),
-              mty: makeOperating('MONTERREY INCOME', 'MONTERREY EXPENSE', 'OPERATING RESULTS MONTERREY'),
-              nw: makeOperating('NORTHWEST INCOME', 'NORTHWEST EXPENSE', 'OPERATING RESULTS NORTHWEST')
-            },
-            net: {
-              mexico: makeNet('NET RESULTS MEXICO'),
-              gdl: makeNet('NET RESULTS GUADALAJARA'),
-              mty: makeNet('NET RESULTS MONTERREY'),
-              nw: makeNet('NET RESULTS NORTHWEST')
-            },
-            consolidatedIncome: {
-              actual: ingreso('CONSOLIDATED INCOME'),
-              plan: planIngreso('CONSOLIDATED INCOME')
+            chapter: nodo.label || '',
+            operating: readTotals('OPERATING RESULTS'),
+            net: readTotals('NET RESULTS'),
+            consolidatedOperating: readTotals('CONSOLIDATED OPERATING RESULTS'),
+            consolidatedNet: readTotals('CONSOLIDATED NET RESULTS'),
+            cdmxOperating: readTotals('OPERATING RESULTS MEXICO'),
+            cdmxNet: {
+              mexico: readTotals('NET RESULTS MEXICO'),
+              gdl: readTotals('NET RESULTS GUADALAJARA'),
+              mty: readTotals('NET RESULTS MONTERREY'),
+              nw: readTotals('NET RESULTS NORTHWEST')
             }
           };
         };
@@ -235,23 +220,25 @@
           charts[id] = new Chart(ctx, cfg);
         };
 
-        const renderCharts = (metrics) => {
-          if (!metrics) return;
-          const labels = ['Mexico', 'Guadalajara', 'Monterrey', 'Northwest'];
+        const renderCharts = (metricsList = []) => {
+          if (!Array.isArray(metricsList) || !metricsList.length) return;
+          const labels = metricsList.map((m) => m.chapter || 'Capítulo');
+          const hasData = (totals) => toNumber(totals?.actual) !== 0 || toNumber(totals?.plan) !== 0;
+          const pickTotals = (primary, fallback) => (hasData(primary) ? primary : (fallback || { actual: 0, plan: 0 }));
 
-          renderChart('chartOperating', {
+          renderChart('chartOperatingByChapter', {
             type: 'bar',
             data: {
               labels,
               datasets: [
                 {
                   label: 'Operating (Actual)',
-                  data: [metrics.operating.mexico.actual, metrics.operating.gdl.actual, metrics.operating.mty.actual, metrics.operating.nw.actual],
+                  data: metricsList.map((m) => pickTotals(m.operating, m.cdmxOperating).actual),
                   backgroundColor: '#2f5496'
                 },
                 {
                   label: 'Operating (Plan)',
-                  data: [metrics.operating.mexico.plan, metrics.operating.gdl.plan, metrics.operating.mty.plan, metrics.operating.nw.plan],
+                  data: metricsList.map((m) => pickTotals(m.operating, m.cdmxOperating).plan),
                   backgroundColor: '#8fb2ff'
                 }
               ]
@@ -263,19 +250,19 @@
             }
           });
 
-          renderChart('chartNet', {
+          renderChart('chartNetByChapter', {
             type: 'bar',
             data: {
               labels,
               datasets: [
                 {
                   label: 'Net (Actual)',
-                  data: [metrics.net.mexico.actual, metrics.net.gdl.actual, metrics.net.mty.actual, metrics.net.nw.actual],
+                  data: metricsList.map((m) => pickTotals(m.net, m.consolidatedNet).actual),
                   backgroundColor: '#10b981'
                 },
                 {
                   label: 'Net (Plan)',
-                  data: [metrics.net.mexico.plan, metrics.net.gdl.plan, metrics.net.mty.plan, metrics.net.nw.plan],
+                  data: metricsList.map((m) => pickTotals(m.net, m.consolidatedNet).plan),
                   backgroundColor: '#6ee7b7'
                 }
               ]
@@ -287,44 +274,66 @@
             }
           });
 
-          renderChart('chartNetCompare', {
-            type: 'radar',
+          const cdmx = metricsList.find((m) => normalizarLabel(m.chapter).includes('CIUDAD DE MEXICO')) || {};
+          renderChart('chartNetCdmx', {
+            type: 'bar',
             data: {
-              labels,
+              labels: ['Mexico', 'Guadalajara', 'Monterrey', 'Northwest'],
               datasets: [
                 {
                   label: 'Net Actual',
-                  data: [metrics.net.mexico.actual, metrics.net.gdl.actual, metrics.net.mty.actual, metrics.net.nw.actual],
-                  backgroundColor: 'rgba(47,84,150,0.25)',
-                  borderColor: '#2f5496'
+                  data: [
+                    toNumber(cdmx.cdmxNet?.mexico?.actual),
+                    toNumber(cdmx.cdmxNet?.gdl?.actual),
+                    toNumber(cdmx.cdmxNet?.mty?.actual),
+                    toNumber(cdmx.cdmxNet?.nw?.actual)
+                  ],
+                  backgroundColor: '#2f5496'
                 },
                 {
                   label: 'Net Plan',
-                  data: [metrics.net.mexico.plan, metrics.net.gdl.plan, metrics.net.mty.plan, metrics.net.nw.plan],
-                  backgroundColor: 'rgba(16,185,129,0.25)',
-                  borderColor: '#10b981'
+                  data: [
+                    toNumber(cdmx.cdmxNet?.mexico?.plan),
+                    toNumber(cdmx.cdmxNet?.gdl?.plan),
+                    toNumber(cdmx.cdmxNet?.mty?.plan),
+                    toNumber(cdmx.cdmxNet?.nw?.plan)
+                  ],
+                  backgroundColor: '#8fb2ff'
                 }
               ]
             },
             options: {
               responsive: true,
               plugins: { legend: { position: 'bottom' } },
-              scales: {
-                r: {
-                  angleLines: { color: '#e5e7eb' },
-                  grid: { color: '#e5e7eb' }
-                }
-              }
+              scales: { y: { beginAtZero: true } }
             }
           });
 
-          renderChart('chartConsolidated', {
+          renderChart('chartConsolidatedResults', {
             type: 'bar',
             data: {
-              labels: ['Consolidated Income'],
+              labels,
               datasets: [
-                { label: 'Actual', data: [metrics.consolidatedIncome.actual], backgroundColor: '#f59e0b' },
-                { label: 'Plan', data: [metrics.consolidatedIncome.plan], backgroundColor: '#fcd34d' }
+                {
+                  label: 'Consolidated Operating (Actual)',
+                  data: metricsList.map((m) => m.consolidatedOperating.actual),
+                  backgroundColor: '#f59e0b'
+                },
+                {
+                  label: 'Consolidated Operating (Plan)',
+                  data: metricsList.map((m) => m.consolidatedOperating.plan),
+                  backgroundColor: '#fcd34d'
+                },
+                {
+                  label: 'Consolidated Net (Actual)',
+                  data: metricsList.map((m) => m.consolidatedNet.actual),
+                  backgroundColor: '#9333ea'
+                },
+                {
+                  label: 'Consolidated Net (Plan)',
+                  data: metricsList.map((m) => m.consolidatedNet.plan),
+                  backgroundColor: '#c4b5fd'
+                }
               ]
             },
             options: {
@@ -364,22 +373,39 @@
           empresaLabel.textContent = `Capitulo: ${empresa?.nombre || empresa?.etiqueta || empresa?.id}`;
           const anio = Number(yearSelect.value) || new Date().getFullYear();
           const mes = Number(monthSelect.value) || new Date().getMonth() + 1;
-          const capitulo = obtenerCapituloSeleccionado(empresa.id);
           try {
-            const url = new URL(API_ENDPOINT);
-            url.searchParams.set('empresaId', empresa.id);
-            url.searchParams.set('anio', anio);
-            url.searchParams.set('mes', mes.toString()); // API espera mes numerico (1-12)
-            if (capitulo) url.searchParams.set('capitulo', capitulo);
-            const res = await fetch(url.toString(), { headers: window.Sesion?.headersAutenticacion?.() || {} });
+            const baseUrl = new URL(API_ENDPOINT);
+            baseUrl.searchParams.set('empresaId', empresa.id);
+            baseUrl.searchParams.set('anio', anio);
+            baseUrl.searchParams.set('mes', mes.toString()); // API espera mes numerico (1-12)
+            const res = await fetch(baseUrl.toString(), { headers: window.Sesion?.headersAutenticacion?.() || {} });
             if (!res.ok) {
               const text = await res.text();
               console.warn('Graficas resumen 400/500', res.status, text);
               throw new Error(`No se pudo obtener resumen (${res.status})`);
             }
             const data = await res.json().catch(() => ({}));
-            const metrics = buildMetrics(data.resumen || []);
-            renderCharts(metrics);
+            const capitulos = Array.isArray(data.capitulosDisponibles) ? data.capitulosDisponibles : [];
+            const etiquetas = capitulos.length
+              ? capitulos.map((c) => c.etiqueta).filter(Boolean)
+              : [obtenerCapituloSeleccionado(empresa.id)].filter(Boolean);
+            const headers = window.Sesion?.headersAutenticacion?.() || {};
+            const responses = await Promise.all(etiquetas.map(async (capitulo) => {
+              const url = new URL(API_ENDPOINT);
+              url.searchParams.set('empresaId', empresa.id);
+              url.searchParams.set('anio', anio);
+              url.searchParams.set('mes', mes.toString());
+              if (capitulo) url.searchParams.set('capitulo', capitulo);
+              const resp = await fetch(url.toString(), { headers });
+              if (!resp.ok) {
+                console.warn('Graficas resumen 400/500', resp.status, capitulo);
+                return null;
+              }
+              const json = await resp.json().catch(() => ({}));
+              return buildMetrics(json.resumen || []);
+            }));
+            const metricsList = responses.filter(Boolean);
+            renderCharts(metricsList);
           } catch (e) {
             console.error('Error cargando resumen para graficas', e);
           }
