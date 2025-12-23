@@ -192,8 +192,12 @@
                 <table class="table table-sm preview-table mb-0">
                   <thead>
                     <tr>
-                      <th>Sección</th>
-                      <th class="text-muted">Tipo</th>
+                      <th>Orden</th>
+                      <th>Tipo</th>
+                      <th>Cuenta</th>
+                      <th>Descripción</th>
+                      <th>Sección principal</th>
+                      <th>Sección secundaria</th>
                     </tr>
                   </thead>
                   <tbody id="layoutPreviewBody">
@@ -357,6 +361,16 @@
         const setStatus = (mensaje = 'Listo.') => {
           if (statusMessage) statusMessage.textContent = mensaje;
         };
+        const getWizardModuleType = () => {
+          const modulo = moduloSelect.value;
+          if (['SUMMARY', 'RESUMEN'].includes(modulo)) return modulo;
+          return `MODULOS_${modulo}`;
+        };
+        const getWizardModuleBase = () => {
+          const moduleType = getWizardModuleType();
+          return moduleType.startsWith('MODULOS_') ? 'MODULOS' : moduleType;
+        };
+        const permiteOperacionesSumas = () => ['SUMMARY', 'RESUMEN'].includes(getWizardModuleBase());
 
         const getAuthHeaders = () => {
           if (window.Sesion?.headersAutenticacion) {
@@ -520,6 +534,10 @@
 
         };
 
+        const renderPreview = () => {
+          renderPreviewItems();
+        };
+
         const renderLayoutPreview = (layout) => {
           const cuentas = Array.isArray(layout?.cuentas)
             ? layout.cuentas
@@ -529,29 +547,60 @@
           if (!cuentas.length) {
             layoutPreviewBody.innerHTML = `
               <tr>
-                <td colspan="2" class="text-muted">No hay cuentas para mostrar.</td>
+                <td colspan="6" class="text-muted">No hay cuentas para mostrar.</td>
               </tr>
             `;
             return;
           }
-          const mapa = new Map();
-          cuentas.forEach((cuenta) => {
+          const cuentasOrdenadas = [...cuentas].sort((a, b) => (Number(a.orden) || 0) - (Number(b.orden) || 0));
+          const filas = [];
+          let principalActual = '';
+          let secundariaActual = '';
+          let ordenVista = 1;
+          cuentasOrdenadas.forEach((cuenta) => {
             const principal = cuenta['SECCIàN Principal'] || cuenta['SECCIÓN Principal'] || cuenta['SECCION Principal'] || cuenta.SECCION || cuenta.seccion_principal || 'Sin sección principal';
             const secundaria = cuenta['SECCION Secundaria'] || cuenta['SECCIÓN Secundaria'] || cuenta.seccion_secundaria || 'Sin sección secundaria';
-            if (!mapa.has(principal)) mapa.set(principal, new Set());
-            mapa.get(principal).add(secundaria);
+            if (principal && principal !== principalActual) {
+              principalActual = principal;
+              secundariaActual = '';
+              filas.push({
+                orden: ordenVista++,
+                tipo: 'Sección principal',
+                cuenta: '',
+                descripcion: principal,
+                principal,
+                secundaria: ''
+              });
+            }
+            if (secundaria && secundaria !== secundariaActual) {
+              secundariaActual = secundaria;
+              filas.push({
+                orden: ordenVista++,
+                tipo: 'Sección secundaria',
+                cuenta: '',
+                descripcion: secundaria,
+                principal,
+                secundaria
+              });
+            }
+            filas.push({
+              orden: ordenVista++,
+              tipo: 'Cuenta',
+              cuenta: cuenta.CUENTA || '',
+              descripcion: cuenta.NOMBRE || '',
+              principal,
+              secundaria
+            });
           });
-          layoutPreviewBody.innerHTML = Array.from(mapa.entries()).map(([principal, secundarias]) => `
-            <tr class="preview-principal">
-              <td>${principal}</td>
-              <td>Principal</td>
+          layoutPreviewBody.innerHTML = filas.map((fila) => `
+            <tr class="${fila.tipo === 'Sección principal' ? 'preview-principal' : fila.tipo === 'Sección secundaria' ? 'preview-secundaria' : ''}">
+              <td>${fila.orden}</td>
+              <td>${fila.tipo}</td>
+              <td>${fila.cuenta || '-'}</td>
+              <td>${fila.descripcion || '-'}</td>
+              <td>${fila.principal || '-'}</td>
+              <td>${fila.secundaria || '-'}</td>
             </tr>
-            ${Array.from(secundarias).map((secundaria) => `
-              <tr class="preview-secundaria">
-                <td>${secundaria}</td>
-                <td>Secundaria</td>
-              </tr>
-            `).join('')}
           `).join('');
         };
 
@@ -607,10 +656,12 @@
                         `).join('')}
                         ${items.length > 8 ? `<li class="text-muted">+${items.length - 8} cuentas más…</li>` : ''}
                       </ul>
-                      <button type="button" class="btn btn-sm btn-outline-success"
-                              onclick="window.__layoutLoaderAbrirWizard({ principal: '${principal.replace(/'/g, "\\'")}', secundaria: '${secundaria.replace(/'/g, "\\'")}' }, 'operacion_sumas')">
-                        Agregar operación entre filas
-                      </button>
+                      ${permiteOperacionesSumas() ? `
+                        <button type="button" class="btn btn-sm btn-outline-success"
+                                onclick="window.__layoutLoaderAbrirWizard({ principal: '${principal.replace(/'/g, "\\'")}', secundaria: '${secundaria.replace(/'/g, "\\'")}' }, 'operacion_sumas')">
+                          Agregar operación entre filas
+                        </button>
+                      ` : ''}
                     </div>
                   </details>
                 `).join('')}
@@ -621,6 +672,10 @@
 
         const renderOperacionesMap = (layout) => {
           const operaciones = Array.isArray(layout.operaciones) ? layout.operaciones : [];
+          if (!permiteOperacionesSumas()) {
+            operacionesMap.textContent = 'Operaciones disponibles solo para SUMMARY/RESUMEN.';
+            return;
+          }
           if (!operaciones.length) {
             operacionesMap.textContent = 'No hay operaciones entre filas para este capítulo.';
             return;
@@ -720,7 +775,8 @@
               anioEdicionSelect.innerHTML = '<option value="">Sin años disponibles</option>';
               return;
             }
-            anios.forEach((anio) => {
+            const aniosOrdenados = [...anios].sort((a, b) => Number(b) - Number(a));
+            aniosOrdenados.forEach((anio) => {
               const opt = document.createElement('option');
               opt.value = anio;
               opt.textContent = anio;
@@ -730,10 +786,10 @@
               optEdicion.textContent = anio;
               anioEdicionSelect.appendChild(optEdicion);
             });
-            anioOrigenSelect.value = anios[anios.length - 1];
+            anioOrigenSelect.value = aniosOrdenados[0];
             anioEdicionSelect.value = anioEdicionActual && anios.includes(Number(anioEdicionActual))
               ? anioEdicionActual
-              : (anios[0] || anios[anios.length - 1]);
+              : aniosOrdenados[0];
           } catch (error) {
             console.error(error);
             anioOrigenSelect.innerHTML = '<option value="">Error al cargar</option>';
@@ -815,6 +871,10 @@
             setStatus('InsertionWizard no disponible.');
             return;
           }
+          if (tipo === 'operacion_sumas' && !permiteOperacionesSumas()) {
+            setStatus('Las operaciones entre filas solo están disponibles para SUMMARY/RESUMEN.');
+            return;
+          }
           const capitulo = obtenerCapituloSeleccionado();
           const anio = anioEdicionSelect.value || anioOrigenSelect.value;
           if (!anio || !capitulo) {
@@ -823,7 +883,7 @@
           }
           window.InsertionWizard.selectedType = tipo || null;
           window.InsertionWizard.open(null, {
-            moduleType: moduloSelect.value,
+            moduleType: getWizardModuleType(),
             capitulo,
             anio,
             prefillContext: contextoExtra
@@ -878,6 +938,10 @@
           renderPreviewItems();
         });
         sendPreviewToWizard.addEventListener('click', () => {
+          if (!permiteOperacionesSumas()) {
+            setStatus('Las operaciones entre filas solo están disponibles para SUMMARY/RESUMEN.');
+            return;
+          }
           if (!previewState.items.length) {
             setStatus('Agrega operaciones antes de abrir el wizard.');
             return;
@@ -907,6 +971,10 @@
             setStatus('Activa modo edición para guardar.');
             return;
           }
+          if (!permiteOperacionesSumas()) {
+            setStatus('Las operaciones entre filas solo están disponibles para SUMMARY/RESUMEN.');
+            return;
+          }
           const capitulo = obtenerCapituloSeleccionado();
           const anio = anioEdicionSelect.value || anioOrigenSelect.value;
           const principal = previewPrincipal.value.trim();
@@ -933,7 +1001,7 @@
               method: 'POST',
               headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
               body: JSON.stringify({
-                moduleType: moduloSelect.value,
+                moduleType: getWizardModuleType(),
                 context: { capitulo, principal, secundaria: seccion, anio },
                 formData: {
                   clase,
