@@ -15,7 +15,8 @@ const MODULOS = [
   'Gtos Corporativos',
   'SUMMARY',
   'Presupuestos',
-  'RESUMEN'
+  'RESUMEN',
+  'Layouts'
 ];
 
 // Mapa de normalización: frontend → backend
@@ -50,7 +51,9 @@ const MAPA_NORMALIZACION_MODULOS = {
   'GTOS CORPORATIVOS': 'Gtos Corporativos',
   'SUMMARY': 'SUMMARY',
   'PRESUPUESTOS': 'Presupuestos',
-  'RESUMEN': 'RESUMEN'
+  'RESUMEN': 'RESUMEN',
+  'LAYOUTS': 'Layouts',
+  'GESTOR DE LAYOUTS': 'Layouts'
 };
 
 const normalizarNombreModulo = (nombre) => {

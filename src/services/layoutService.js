@@ -378,16 +378,24 @@ const guardarOperaciones = ({ empresaId = 'EMPRESA01', modulo, anio, operaciones
 
   const transaction = db.transaction((operacionesArray) => {
     operacionesArray.forEach((op, index) => {
-      const tiposOperacion = [
+      const tiposOperacionBase = [
         'sum-row', 'sum-row-sumavarios', 'sum-row-sumavarios-consolidado',
         'sum-row-operativo', 'sum-row-operativo-consolidado',
         'result-row', 'net-row', 'net-row-adicional', 'result-net-row'
       ];
+      const clavesReservadas = new Set([
+        'HOJA', 'CAPITULO', 'Clase', 'SECCION', 'signo', 'orden'
+      ]);
+      const tiposOperacionExtra = Object.keys(op || {})
+        .filter((key) => key && !clavesReservadas.has(key))
+        .filter((key) => !tiposOperacionBase.includes(key));
+      const tiposOperacion = [...tiposOperacionBase, ...tiposOperacionExtra];
 
       tiposOperacion.forEach((tipo, tipoIndex) => {
         if (op[tipo]) {
-          let signo = 1;
-          if (op.Clase && op.Clase.toLowerCase().includes('expense')) {
+          const signoConfigurado = Number(op.signo);
+          let signo = Number.isFinite(signoConfigurado) && signoConfigurado !== 0 ? signoConfigurado : 1;
+          if (!Number.isFinite(signoConfigurado) && op.Clase && op.Clase.toLowerCase().includes('expense')) {
             signo = -1;
           }
 
