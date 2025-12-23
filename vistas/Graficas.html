@@ -87,6 +87,24 @@
       </div>
 
       <div class="row g-4">
+        <div class="col-12">
+          <div class="card chart-card p-3">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <h5 class="mb-0">Resumen Operativo por capítulo</h5>
+              <small class="text-muted">Actual vs Plan</small>
+            </div>
+            <canvas id="chartOperatingSummaryByChapter"></canvas>
+          </div>
+        </div>
+        <div class="col-12">
+          <div class="card chart-card p-3">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <h5 class="mb-0">Resumen Neto por capítulo</h5>
+              <small class="text-muted">Actual vs Plan</small>
+            </div>
+            <canvas id="chartNetSummaryByChapter"></canvas>
+          </div>
+        </div>
         <div class="col-12 col-xl-6">
           <div class="card chart-card p-3">
             <div class="d-flex justify-content-between align-items-center mb-2">
@@ -163,7 +181,9 @@
             || document.querySelector('.company-selector select');
           if (!selector) return '';
           const opt = selector.selectedOptions?.[0];
-          const texto = opt?.dataset?.capitulo || opt?.value || opt?.textContent;
+          const empresaId = opt?.value || selector.value;
+          const capituloConfig = window.CapitulosModulos?.obtenerCapituloPorEmpresa?.(empresaId);
+          const texto = opt?.dataset?.capitulo || capituloConfig || opt?.value || opt?.textContent;
           return texto ? texto.toString().trim() : '';
         };
 
@@ -172,7 +192,34 @@
             || document.querySelector('.company-selector select');
           if (!selector) return '';
           const opt = selector.selectedOptions?.[0];
-          return opt?.textContent?.toString().trim() || opt?.value || '';
+          const empresaId = opt?.value || selector.value;
+          const etiquetaConfig = window.CapitulosModulos?.EMPRESA_CONFIG?.[empresaId]?.etiqueta;
+          return etiquetaConfig
+            || opt?.textContent?.toString().trim()
+            || opt?.value
+            || '';
+        };
+
+        const obtenerCapitulosDisponibles = () => {
+          const empresas = window.Sesion?.obtenerEmpresasDisponibles?.() || [];
+          const map = new Map();
+          empresas.forEach((empresa) => {
+            if (!empresa?.id) return;
+            const capitulo = window.CapitulosModulos?.obtenerCapituloPorEmpresa?.(empresa.id) || '';
+            if (!capitulo) return;
+            if (map.has(capitulo)) return;
+            const etiqueta = window.CapitulosModulos?.EMPRESA_CONFIG?.[empresa.id]?.etiqueta
+              || capitulo
+              || empresa.etiqueta
+              || empresa.nombre
+              || capitulo;
+            map.set(capitulo, {
+              empresaId: empresa.id,
+              capitulo,
+              etiqueta
+            });
+          });
+          return Array.from(map.values());
         };
 
         const flattenLabels = (nodos = []) => {
@@ -529,6 +576,92 @@
           });
         };
 
+        const renderChapterSummaryCharts = (summaries) => {
+          if (!Array.isArray(summaries) || !summaries.length) return;
+          const labels = summaries.map((item) => item.etiqueta || item.capitulo || 'Capítulo');
+          const operatingActual = summaries.map((item) => toNumber(item.metrics?.operating?.actual));
+          const operatingPlan = summaries.map((item) => toNumber(item.metrics?.operating?.plan));
+          const netActual = summaries.map((item) => toNumber(item.metrics?.net?.actual));
+          const netPlan = summaries.map((item) => toNumber(item.metrics?.net?.plan));
+
+          renderChart('chartOperatingSummaryByChapter', {
+            type: 'bar',
+            data: {
+              labels,
+              datasets: [
+                {
+                  label: 'Operating (Actual)',
+                  data: operatingActual,
+                  backgroundColor: '#2f5496'
+                },
+                {
+                  label: 'Operating (Plan)',
+                  data: operatingPlan,
+                  backgroundColor: '#8fb2ff'
+                }
+              ]
+            },
+            options: {
+              responsive: true,
+              plugins: { legend: { position: 'bottom' } },
+              scales: { y: { beginAtZero: true } }
+            }
+          });
+
+          renderChart('chartNetSummaryByChapter', {
+            type: 'bar',
+            data: {
+              labels,
+              datasets: [
+                {
+                  label: 'Net (Actual)',
+                  data: netActual,
+                  backgroundColor: '#10b981'
+                },
+                {
+                  label: 'Net (Plan)',
+                  data: netPlan,
+                  backgroundColor: '#6ee7b7'
+                }
+              ]
+            },
+            options: {
+              responsive: true,
+              plugins: { legend: { position: 'bottom' } },
+              scales: { y: { beginAtZero: true } }
+            }
+          });
+        };
+
+        const loadChapterSummaries = async (anio, mes) => {
+          const capitulos = obtenerCapitulosDisponibles();
+          if (!capitulos.length) return;
+          const summaries = await Promise.all(
+            capitulos.map(async (item) => {
+              try {
+                const url = new URL(API_ENDPOINT);
+                url.searchParams.set('empresaId', item.empresaId);
+                url.searchParams.set('anio', anio);
+                url.searchParams.set('mes', mes.toString());
+                url.searchParams.set('capitulo', item.capitulo);
+                const res = await fetch(url.toString(), { headers: window.Sesion?.headersAutenticacion?.() || {} });
+                if (!res.ok) {
+                  const text = await res.text();
+                  console.warn('Graficas resumen por capitulo 400/500', res.status, text);
+                  return { ...item, metrics: null };
+                }
+                const data = await res.json().catch(() => ({}));
+                return { ...item, metrics: buildMetrics(data.resumen || []) };
+              } catch (error) {
+                console.warn('No se pudo cargar resumen por capitulo', item, error);
+                return { ...item, metrics: null };
+              }
+            })
+          );
+          const validSummaries = summaries.filter((item) => item.metrics);
+          renderChapterSummaryCharts(validSummaries);
+        };
+
         const loadYears = async () => {
           try {
             const empresa = window.Sesion?.obtenerEmpresaActiva?.();
@@ -576,6 +709,7 @@
             const metrics = buildMetrics(data.resumen || []);
             const esCdmx = normalizarLabel(capitulo).includes('CIUDAD DE MEXICO');
             renderCharts(metrics, etiqueta || capitulo, esCdmx);
+            await loadChapterSummaries(anio, mes);
           } catch (e) {
             console.error('Error cargando resumen para graficas', e);
           }
