@@ -144,6 +144,9 @@
       </div>
     </div>
 
+    <script src="js/sesion.js"></script>
+    <script src="js/verificar-sesion.js"></script>
+    <script src="js/capitulos-modulos.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script>
@@ -151,6 +154,7 @@
         const base = window.location.protocol === 'file:' ? 'http://localhost:3005' : window.location.origin;
         const API_ENDPOINT = `${base}/api/reportes/resumen`;
         const API_ANIOS = `${base}/api/saldos/anios`;
+        const MODULO_CLAVE = (document.body.dataset.modulo || 'RESUMEN').toString().toUpperCase();
         const yearSelect = document.getElementById('grafYearSelect');
         const monthSelect = document.getElementById('grafMonthSelect');
         const empresaLabel = document.getElementById('empresaLabel');
@@ -204,6 +208,70 @@
             });
           });
           return Array.from(map.values());
+        };
+
+        const obtenerSelectorEmpresaGlobal = () =>
+          window.parent?.document?.getElementById('companyFilter')
+          || window.parent?.document?.querySelector('.company-selector select')
+          || document.getElementById('companyFilter')
+          || document.querySelector('.company-selector select');
+
+        const leerContextoPlaneacion = () => {
+          const ctx = window.Sesion?.obtenerContextoPlaneacion?.() || {};
+          const anio = Number(ctx.anio);
+          const mes = Number(ctx.mes);
+          return {
+            anio: Number.isInteger(anio) ? anio : null,
+            mes: Number.isInteger(mes) ? mes : null
+          };
+        };
+
+        const persistirContexto = (anio, mes) => {
+          if (typeof window.Sesion?.guardarContextoPlaneacion === 'function') {
+            window.Sesion.guardarContextoPlaneacion({ anio, mes, modulo: MODULO_CLAVE });
+          }
+        };
+
+        const elegirAnioDisponible = (lista = [], preferido) => {
+          if (!Array.isArray(lista) || !lista.length) {
+            return Number.isInteger(preferido) ? preferido : null;
+          }
+          const prefer = Number(preferido);
+          if (Number.isInteger(prefer) && lista.includes(prefer)) {
+            return prefer;
+          }
+          const actual = Number(yearSelect?.value);
+          if (Number.isInteger(actual) && lista.includes(actual)) {
+            return actual;
+          }
+          const actualYear = new Date().getFullYear();
+          if (lista.includes(actualYear)) {
+            return actualYear;
+          }
+          return lista[0];
+        };
+
+        const elegirMesValido = (preferido) => {
+          const numero = Number(preferido);
+          if (Number.isInteger(numero) && numero >= 1 && numero <= 12) return numero;
+          const actual = Number(monthSelect?.value);
+          if (Number.isInteger(actual) && actual >= 1 && actual <= 12) return actual;
+          return new Date().getMonth() + 1;
+        };
+
+        const sincronizarSelectorEmpresaGlobal = (onChange) => {
+          const selector = obtenerSelectorEmpresaGlobal();
+          if (!selector || typeof selector.addEventListener !== 'function') return;
+          selector.addEventListener('change', async () => {
+            const nuevoId = selector.value;
+            if (!nuevoId) return;
+            const empresaLocal = window.Sesion?.obtenerEmpresaActiva?.();
+            if (empresaLocal?.id === nuevoId) return;
+            window.Sesion?.establecerEmpresaActiva?.(nuevoId);
+            if (typeof onChange === 'function') {
+              await onChange();
+            }
+          });
         };
 
         const flattenLabels = (nodos = []) => {
@@ -646,11 +714,15 @@
           renderChapterSummaryCharts(validSummaries);
         };
 
-        const loadYears = async () => {
-          if (!yearSelect) return;
+        const loadYears = async (preferido) => {
+          if (!yearSelect) return { lista: [], seleccionado: null };
           try {
             const empresa = window.Sesion?.obtenerEmpresaActiva?.();
-            if (!empresa?.id) return;
+            if (!empresa?.id) {
+              yearSelect.innerHTML = '<option value="">Selecciona empresa</option>';
+              yearSelect.disabled = true;
+              return { lista: [], seleccionado: null };
+            }
             const res = await fetch(`${API_ANIOS}?empresaId=${encodeURIComponent(empresa.id)}`, {
               headers: window.Sesion?.headersAutenticacion?.() || {}
             });
@@ -659,7 +731,7 @@
             }
             const data = await res.json().catch(() => ({}));
             const lista = Array.isArray(data?.anios)
-              ? data.anios.filter((anio) => Number.isInteger(anio)).sort((a, b) => b - a)
+              ? data.anios.map((anio) => Number(anio)).filter((anio) => Number.isInteger(anio)).sort((a, b) => b - a)
               : [];
             yearSelect.innerHTML = '';
             if (!lista.length) {
@@ -668,20 +740,23 @@
               opt.textContent = 'Sin años disponibles';
               yearSelect.appendChild(opt);
               yearSelect.disabled = true;
-              return;
+              return { lista: [], seleccionado: null };
             }
+            const seleccionado = elegirAnioDisponible(lista, preferido);
             lista.forEach((anio) => {
               const opt = document.createElement('option');
               opt.value = anio;
               opt.textContent = anio;
               yearSelect.appendChild(opt);
             });
-            yearSelect.value = String(lista[0]);
+            yearSelect.value = seleccionado != null ? String(seleccionado) : String(lista[0]);
             yearSelect.disabled = false;
+            return { lista, seleccionado: yearSelect.value ? Number(yearSelect.value) : seleccionado };
           } catch (e) {
             console.warn('No se pudieron cargar anos disponibles', e);
             yearSelect.innerHTML = '<option value="">Error cargando años</option>';
             yearSelect.disabled = true;
+            return { lista: [], seleccionado: null };
           }
         };
 
@@ -695,13 +770,16 @@
           }
           const etiquetaFinal = etiqueta || empresa.etiqueta || empresa.nombre || capitulo;
           empresaLabel.textContent = `Capitulo: ${etiquetaFinal}`;
-          const anio = Number(yearSelect.value) || new Date().getFullYear();
-          const mes = Number(monthSelect.value) || new Date().getMonth() + 1;
+          const anio = Number(yearSelect?.value);
+          const mes = Number(monthSelect?.value);
+          const anioValido = Number.isInteger(anio) && anio > 0 ? anio : new Date().getFullYear();
+          const mesValido = elegirMesValido(mes);
+          persistirContexto(anioValido, mesValido);
           try {
             const url = new URL(API_ENDPOINT);
             url.searchParams.set('empresaId', empresa.id);
-            url.searchParams.set('anio', anio);
-            url.searchParams.set('mes', mes.toString()); // API espera mes numerico (1-12)
+            url.searchParams.set('anio', anioValido);
+            url.searchParams.set('mes', mesValido.toString()); // API espera mes numerico (1-12)
             if (capitulo) url.searchParams.set('capitulo', capitulo);
             const res = await fetch(url.toString(), { headers: window.Sesion?.headersAutenticacion?.() || {} });
             if (!res.ok) {
@@ -713,26 +791,55 @@
             const metrics = buildMetrics(data.resumen || []);
             const esCdmx = normalizarLabel(capitulo).includes('CIUDAD DE MEXICO');
             renderCharts(metrics, etiqueta || capitulo, esCdmx);
-            await loadChapterSummaries(anio, mes);
+            await loadChapterSummaries(anioValido, mesValido);
           } catch (e) {
             console.error('Error cargando resumen para graficas', e);
           }
         };
 
-        monthSelect.addEventListener('change', loadData);
-        yearSelect.addEventListener('change', loadData);
-        const companySelector = window.parent?.document?.querySelector('.company-selector select')
-          || document.querySelector('.company-selector select');
-        if (companySelector) {
-          companySelector.addEventListener('change', async () => {
-            await loadYears();
-            await loadData();
-          });
-        }
+        const aplicarEmpresaActual = async () => {
+          const empresa = window.Sesion?.obtenerEmpresaActiva?.();
+          if (!empresa?.id) {
+            if (yearSelect) {
+              yearSelect.innerHTML = '<option value="">Selecciona empresa</option>';
+              yearSelect.disabled = true;
+            }
+            empresaLabel.textContent = 'Capitulo: -';
+            return;
+          }
+          const contexto = leerContextoPlaneacion();
+          const { lista, seleccionado } = await loadYears(contexto.anio);
+          const anioInicial = Number.isInteger(seleccionado) ? seleccionado : elegirAnioDisponible(lista, contexto.anio);
+          const mesInicial = elegirMesValido(contexto.mes);
+          if (yearSelect && anioInicial != null) {
+            yearSelect.value = String(anioInicial);
+          }
+          if (monthSelect) {
+            monthSelect.value = String(mesInicial);
+          }
+          const anioSeleccionado = Number(yearSelect?.value);
+          const anioParaPersistir = Number.isInteger(anioSeleccionado) && anioSeleccionado > 0 ? anioSeleccionado : anioInicial;
+          persistirContexto(anioParaPersistir, mesInicial);
+          await loadData();
+        };
+
+        const handleChangePeriodo = async () => {
+          const anioSeleccion = Number(yearSelect?.value);
+          const mesSeleccion = Number(monthSelect?.value);
+          const anioValido = Number.isInteger(anioSeleccion) && anioSeleccion > 0 ? anioSeleccion : null;
+          const mesValido = Number.isInteger(mesSeleccion) && mesSeleccion >= 1 && mesSeleccion <= 12 ? mesSeleccion : null;
+          persistirContexto(anioValido, mesValido);
+          await loadData();
+        };
+
+        if (monthSelect) monthSelect.addEventListener('change', handleChangePeriodo);
+        if (yearSelect) yearSelect.addEventListener('change', handleChangePeriodo);
 
         (async () => {
-          await loadYears();
-          await loadData();
+          const sesion = window.Sesion?.requerirSesion?.();
+          if (!sesion) return;
+          sincronizarSelectorEmpresaGlobal(aplicarEmpresaActual);
+          await aplicarEmpresaActual();
         })();
       })();
     </script>
