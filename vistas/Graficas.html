@@ -90,37 +90,37 @@
         <div class="col-12 col-xl-6">
           <div class="card chart-card p-3">
             <div class="d-flex justify-content-between align-items-center mb-2">
-              <h5 class="mb-0">Resultados Operativos (Actual)</h5>
-              <small class="text-muted">Ingreso vs Gasto</small>
+              <h5 class="mb-0">Resultados Operativos por Capítulo</h5>
+              <small class="text-muted">Actual vs Plan</small>
             </div>
-            <canvas id="chartOperating"></canvas>
+            <canvas id="chartOperatingByChapter"></canvas>
           </div>
         </div>
         <div class="col-12 col-xl-6">
           <div class="card chart-card p-3">
             <div class="d-flex justify-content-between align-items-center mb-2">
-              <h5 class="mb-0">Net Results (Actual)</h5>
-              <small class="text-muted">Resultado neto por capitulo</small>
+              <h5 class="mb-0">Resultados Netos por Capítulo</h5>
+              <small class="text-muted">Actual vs Plan</small>
             </div>
-            <canvas id="chartNet"></canvas>
+            <canvas id="chartNetByChapter"></canvas>
+          </div>
+        </div>
+        <div class="col-12" id="cdmxNetCard">
+          <div class="card chart-card p-3">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <h5 class="mb-0">Net Results CDMX (detalle)</h5>
+              <small class="text-muted">Mexico · Guadalajara · Monterrey · Northwest</small>
+            </div>
+            <canvas id="chartNetCdmx"></canvas>
           </div>
         </div>
         <div class="col-12">
           <div class="card chart-card p-3">
             <div class="d-flex justify-content-between align-items-center mb-2">
-              <h5 class="mb-0">Comparativo Net Results</h5>
-              <small class="text-muted">Mexico vs Guadalajara vs Monterrey vs Northwest</small>
+              <h5 class="mb-0">Consolidados Operativos vs Netos</h5>
+              <small class="text-muted">Resultados consolidados por capítulo</small>
             </div>
-            <canvas id="chartNetCompare"></canvas>
-          </div>
-        </div>
-        <div class="col-12">
-          <div class="card chart-card p-3">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-              <h5 class="mb-0">Consolidated Income</h5>
-              <small class="text-muted">Ingreso consolidado del periodo</small>
-            </div>
-            <canvas id="chartConsolidated"></canvas>
+            <canvas id="chartConsolidatedResults"></canvas>
           </div>
         </div>
       </div>
@@ -158,16 +158,21 @@
 
         const getMesClave = (num) => MESES.find((m) => m.periodo === Number(num))?.clave || 'dic';
 
-        const obtenerCapituloSeleccionado = (empresaId) => {
-          // Prioridad: valor del selector de empresa en el layout (company-selector)
-          const selector = document.querySelector('.company-selector select');
-          if (selector) {
-            const opt = selector.selectedOptions?.[0];
-            const texto = opt?.dataset?.capitulo || opt?.value || opt?.textContent;
-            if (texto) return texto.toString().trim();
-          }
-          // Fallback al mapeo de CapitulosModulos
-          return window.CapitulosModulos?.obtenerCapituloPorEmpresa?.(empresaId) || '';
+        const obtenerCapituloSeleccionado = () => {
+          const selector = window.parent?.document?.querySelector('.company-selector select')
+            || document.querySelector('.company-selector select');
+          if (!selector) return '';
+          const opt = selector.selectedOptions?.[0];
+          const texto = opt?.dataset?.capitulo || opt?.value || opt?.textContent;
+          return texto ? texto.toString().trim() : '';
+        };
+
+        const obtenerEtiquetaSeleccionada = () => {
+          const selector = window.parent?.document?.querySelector('.company-selector select')
+            || document.querySelector('.company-selector select');
+          if (!selector) return '';
+          const opt = selector.selectedOptions?.[0];
+          return opt?.textContent?.toString().trim() || opt?.value || '';
         };
 
         const flattenLabels = (nodos = []) => {
@@ -189,41 +194,26 @@
 
         const buildMetrics = (resumen = []) => {
           if (!Array.isArray(resumen) || !resumen.length) return null;
-          const map = flattenLabels(resumen);
-          const get = (lbl) => map.get(normalizarLabel(lbl)) || {};
-          const ingreso = (lbl) => toNumber(get(lbl).actualMonth);
-          const planIngreso = (lbl) => toNumber(get(lbl).planMonth);
-          const expense = (lbl) => toNumber(get(lbl).actualMonth);
+          const nodo = resumen[0] || {};
+          const mapa = flattenLabels(nodo.layout || nodo.children || []);
+          const get = (lbl) => mapa.get(normalizarLabel(lbl)) || {};
+          const getActual = (lbl) => toNumber(get(lbl).actualMonth);
+          const getPlan = (lbl) => toNumber(get(lbl).planMonth);
 
-          const makeOperating = (incLbl, expLbl, fallbackOpLbl) => {
-            const inc = ingreso(incLbl);
-            const exp = expense(expLbl);
-            if (inc || exp) return { actual: inc - exp, plan: planIngreso(incLbl) - planIngreso(expLbl) };
-            const op = get(fallbackOpLbl);
-            return { actual: toNumber(op.actualMonth), plan: toNumber(op.planMonth) };
-          };
-
-          const makeNet = (netLbl) => {
-            const n = get(netLbl);
-            return { actual: toNumber(n.actualMonth), plan: toNumber(n.planMonth) };
-          };
+          const readTotals = (lbl) => ({ actual: getActual(lbl), plan: getPlan(lbl) });
 
           return {
-            operating: {
-              mexico: makeOperating('CDMX INCOME', 'CDMX EXPENSE', 'OPERATING RESULTS MEXICO'),
-              gdl: makeOperating('GUADALAJARA INCOME', 'GUADALAJARA EXPENSE', 'OPERATING RESULTS GUADALAJARA'),
-              mty: makeOperating('MONTERREY INCOME', 'MONTERREY EXPENSE', 'OPERATING RESULTS MONTERREY'),
-              nw: makeOperating('NORTHWEST INCOME', 'NORTHWEST EXPENSE', 'OPERATING RESULTS NORTHWEST')
-            },
-            net: {
-              mexico: makeNet('NET RESULTS MEXICO'),
-              gdl: makeNet('NET RESULTS GUADALAJARA'),
-              mty: makeNet('NET RESULTS MONTERREY'),
-              nw: makeNet('NET RESULTS NORTHWEST')
-            },
-            consolidatedIncome: {
-              actual: ingreso('CONSOLIDATED INCOME'),
-              plan: planIngreso('CONSOLIDATED INCOME')
+            chapter: nodo.label || '',
+            operating: readTotals('OPERATING RESULTS'),
+            net: readTotals('NET RESULTS'),
+            consolidatedOperating: readTotals('CONSOLIDATED OPERATING RESULTS'),
+            consolidatedNet: readTotals('CONSOLIDATED NET RESULTS'),
+            cdmxOperating: readTotals('OPERATING RESULTS MEXICO'),
+            cdmxNet: {
+              mexico: readTotals('NET RESULTS MEXICO'),
+              gdl: readTotals('NET RESULTS GUADALAJARA'),
+              mty: readTotals('NET RESULTS MONTERREY'),
+              nw: readTotals('NET RESULTS NORTHWEST')
             }
           };
         };
@@ -235,23 +225,25 @@
           charts[id] = new Chart(ctx, cfg);
         };
 
-        const renderCharts = (metrics) => {
+        const renderCharts = (metrics, capituloLabel, esCdmx) => {
           if (!metrics) return;
-          const labels = ['Mexico', 'Guadalajara', 'Monterrey', 'Northwest'];
+          const labels = [capituloLabel || metrics.chapter || 'Capítulo'];
+          const hasData = (totals) => toNumber(totals?.actual) !== 0 || toNumber(totals?.plan) !== 0;
+          const pickTotals = (primary, fallback) => (hasData(primary) ? primary : (fallback || { actual: 0, plan: 0 }));
 
-          renderChart('chartOperating', {
+          renderChart('chartOperatingByChapter', {
             type: 'bar',
             data: {
               labels,
               datasets: [
                 {
                   label: 'Operating (Actual)',
-                  data: [metrics.operating.mexico.actual, metrics.operating.gdl.actual, metrics.operating.mty.actual, metrics.operating.nw.actual],
+                  data: [pickTotals(metrics.operating, metrics.cdmxOperating).actual],
                   backgroundColor: '#2f5496'
                 },
                 {
                   label: 'Operating (Plan)',
-                  data: [metrics.operating.mexico.plan, metrics.operating.gdl.plan, metrics.operating.mty.plan, metrics.operating.nw.plan],
+                  data: [pickTotals(metrics.operating, metrics.cdmxOperating).plan],
                   backgroundColor: '#8fb2ff'
                 }
               ]
@@ -263,19 +255,19 @@
             }
           });
 
-          renderChart('chartNet', {
+          renderChart('chartNetByChapter', {
             type: 'bar',
             data: {
               labels,
               datasets: [
                 {
                   label: 'Net (Actual)',
-                  data: [metrics.net.mexico.actual, metrics.net.gdl.actual, metrics.net.mty.actual, metrics.net.nw.actual],
+                  data: [pickTotals(metrics.net, metrics.consolidatedNet).actual],
                   backgroundColor: '#10b981'
                 },
                 {
                   label: 'Net (Plan)',
-                  data: [metrics.net.mexico.plan, metrics.net.gdl.plan, metrics.net.mty.plan, metrics.net.nw.plan],
+                  data: [pickTotals(metrics.net, metrics.consolidatedNet).plan],
                   backgroundColor: '#6ee7b7'
                 }
               ]
@@ -287,44 +279,70 @@
             }
           });
 
-          renderChart('chartNetCompare', {
-            type: 'radar',
+          const cdmxCard = document.getElementById('cdmxNetCard');
+          if (cdmxCard) {
+            cdmxCard.style.display = esCdmx ? '' : 'none';
+          }
+          const cdmx = esCdmx ? metrics : {};
+          renderChart('chartNetCdmx', {
+            type: 'bar',
             data: {
-              labels,
+              labels: ['Mexico', 'Guadalajara', 'Monterrey', 'Northwest'],
               datasets: [
                 {
                   label: 'Net Actual',
-                  data: [metrics.net.mexico.actual, metrics.net.gdl.actual, metrics.net.mty.actual, metrics.net.nw.actual],
-                  backgroundColor: 'rgba(47,84,150,0.25)',
-                  borderColor: '#2f5496'
+                  data: [
+                    toNumber(cdmx.cdmxNet?.mexico?.actual),
+                    toNumber(cdmx.cdmxNet?.gdl?.actual),
+                    toNumber(cdmx.cdmxNet?.mty?.actual),
+                    toNumber(cdmx.cdmxNet?.nw?.actual)
+                  ],
+                  backgroundColor: '#2f5496'
                 },
                 {
                   label: 'Net Plan',
-                  data: [metrics.net.mexico.plan, metrics.net.gdl.plan, metrics.net.mty.plan, metrics.net.nw.plan],
-                  backgroundColor: 'rgba(16,185,129,0.25)',
-                  borderColor: '#10b981'
+                  data: [
+                    toNumber(cdmx.cdmxNet?.mexico?.plan),
+                    toNumber(cdmx.cdmxNet?.gdl?.plan),
+                    toNumber(cdmx.cdmxNet?.mty?.plan),
+                    toNumber(cdmx.cdmxNet?.nw?.plan)
+                  ],
+                  backgroundColor: '#8fb2ff'
                 }
               ]
             },
             options: {
               responsive: true,
               plugins: { legend: { position: 'bottom' } },
-              scales: {
-                r: {
-                  angleLines: { color: '#e5e7eb' },
-                  grid: { color: '#e5e7eb' }
-                }
-              }
+              scales: { y: { beginAtZero: true } }
             }
           });
 
-          renderChart('chartConsolidated', {
+          renderChart('chartConsolidatedResults', {
             type: 'bar',
             data: {
-              labels: ['Consolidated Income'],
+              labels,
               datasets: [
-                { label: 'Actual', data: [metrics.consolidatedIncome.actual], backgroundColor: '#f59e0b' },
-                { label: 'Plan', data: [metrics.consolidatedIncome.plan], backgroundColor: '#fcd34d' }
+                {
+                  label: 'Consolidated Operating (Actual)',
+                  data: [metrics.consolidatedOperating.actual],
+                  backgroundColor: '#f59e0b'
+                },
+                {
+                  label: 'Consolidated Operating (Plan)',
+                  data: [metrics.consolidatedOperating.plan],
+                  backgroundColor: '#fcd34d'
+                },
+                {
+                  label: 'Consolidated Net (Actual)',
+                  data: [metrics.consolidatedNet.actual],
+                  backgroundColor: '#9333ea'
+                },
+                {
+                  label: 'Consolidated Net (Plan)',
+                  data: [metrics.consolidatedNet.plan],
+                  backgroundColor: '#c4b5fd'
+                }
               ]
             },
             options: {
@@ -357,20 +375,21 @@
 
         const loadData = async () => {
           const empresa = window.Sesion?.obtenerEmpresaActiva?.();
-          if (!empresa?.id) {
+          const capitulo = obtenerCapituloSeleccionado();
+          const etiqueta = obtenerEtiquetaSeleccionada();
+          if (!empresa?.id || !capitulo) {
             empresaLabel.textContent = 'Capitulo: -';
             return;
           }
-          empresaLabel.textContent = `Capitulo: ${empresa?.nombre || empresa?.etiqueta || empresa?.id}`;
+          empresaLabel.textContent = `Capitulo: ${etiqueta || capitulo}`;
           const anio = Number(yearSelect.value) || new Date().getFullYear();
           const mes = Number(monthSelect.value) || new Date().getMonth() + 1;
-          const capitulo = obtenerCapituloSeleccionado(empresa.id);
           try {
             const url = new URL(API_ENDPOINT);
             url.searchParams.set('empresaId', empresa.id);
             url.searchParams.set('anio', anio);
             url.searchParams.set('mes', mes.toString()); // API espera mes numerico (1-12)
-            if (capitulo) url.searchParams.set('capitulo', capitulo);
+            url.searchParams.set('capitulo', capitulo);
             const res = await fetch(url.toString(), { headers: window.Sesion?.headersAutenticacion?.() || {} });
             if (!res.ok) {
               const text = await res.text();
@@ -379,7 +398,8 @@
             }
             const data = await res.json().catch(() => ({}));
             const metrics = buildMetrics(data.resumen || []);
-            renderCharts(metrics);
+            const esCdmx = normalizarLabel(capitulo).includes('CIUDAD DE MEXICO');
+            renderCharts(metrics, etiqueta || capitulo, esCdmx);
           } catch (e) {
             console.error('Error cargando resumen para graficas', e);
           }
@@ -387,6 +407,11 @@
 
         monthSelect.addEventListener('change', loadData);
         yearSelect.addEventListener('change', loadData);
+        const companySelector = window.parent?.document?.querySelector('.company-selector select')
+          || document.querySelector('.company-selector select');
+        if (companySelector) {
+          companySelector.addEventListener('change', loadData);
+        }
 
         (async () => {
           await loadYears();
