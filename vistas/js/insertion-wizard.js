@@ -40,6 +40,7 @@
      * Obtiene la configuración de validación según módulo
      */
     getValidationRules() {
+      const moduleBase = this.getModuleTypeBase();
       const rules = {
         SUMMARY: {
           cuenta: {
@@ -117,7 +118,15 @@
         }
       };
 
-      return rules[this.moduleType] || {};
+      return rules[moduleBase] || {};
+    },
+
+    getModuleTypeBase() {
+      const moduleType = (this.moduleType || '').toString();
+      if (moduleType.startsWith('MODULOS_')) {
+        return 'MODULOS';
+      }
+      return moduleType;
     },
 
     /**
@@ -772,6 +781,7 @@
      * Obtiene tipos disponibles según módulo
      */
     getAvailableTypes() {
+      const moduleBase = this.getModuleTypeBase();
       const types = {
         SUMMARY: [
           {
@@ -859,7 +869,7 @@
         ]
       };
 
-      return types[this.moduleType] || [];
+      return types[moduleBase] || [];
     },
 
     /**
@@ -943,6 +953,7 @@
      * Obtiene texto de ayuda contextual
      */
     getHelpText() {
+      const moduleBase = this.getModuleTypeBase();
       const helps = {
         SUMMARY: {
           1: 'En SUMMARY, las cuentas se organizan en Operaciones, que pertenecen a Secciones Secundarias, que están dentro de Principales.',
@@ -961,7 +972,7 @@
         }
       };
 
-      return helps[this.moduleType]?.[this.currentStep] || '';
+      return helps[moduleBase]?.[this.currentStep] || '';
     },
 
     /**

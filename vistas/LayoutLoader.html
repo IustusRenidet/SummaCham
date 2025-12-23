@@ -73,6 +73,18 @@
         background: #f8fafc;
         font-weight: 600;
       }
+      .preview-section-row {
+        background: #f8fafc;
+        font-weight: 700;
+      }
+      .preview-sum-row {
+        background: #eef2ff;
+        color: #1e3a8a;
+        font-weight: 600;
+      }
+      .preview-account-row td {
+        background: #ffffff;
+      }
       .status-text {
         font-size: 0.85rem;
         color: #475569;
@@ -190,15 +202,10 @@
               </div>
               <div class="table-responsive">
                 <table class="table table-sm preview-table mb-0">
-                  <thead>
-                    <tr>
-                      <th>Sección</th>
-                      <th class="text-muted">Tipo</th>
-                    </tr>
-                  </thead>
+                  <thead id="layoutPreviewHead"></thead>
                   <tbody id="layoutPreviewBody">
                     <tr>
-                      <td colspan="2" class="text-muted">Carga un layout para ver el formato final.</td>
+                      <td colspan="27" class="text-muted">Carga un layout para ver el formato final.</td>
                     </tr>
                   </tbody>
                 </table>
@@ -252,7 +259,7 @@
                   <input id="previewTargetLabel" class="form-control form-control-sm" placeholder="Ej: NET RESULTS" />
                 </div>
                 <div class="col-6 col-lg-2">
-                  <label class="form-label small" for="previewSign">Signo</label>
+                  <label class="form-label small" for="previewSign">Signo del elemento</label>
                   <select id="previewSign" class="form-select form-select-sm">
                     <option value="1">Sumar (+)</option>
                     <option value="-1">Restar (-)</option>
@@ -347,16 +354,28 @@
         const previewItemsList = document.getElementById('previewItemsList');
         const sendPreviewToWizard = document.getElementById('sendPreviewToWizard');
         const saveOperacionBtn = document.getElementById('saveOperacionBtn');
+        const layoutPreviewHead = document.getElementById('layoutPreviewHead');
         const layoutPreviewBody = document.getElementById('layoutPreviewBody');
 
         let layoutActivo = null;
         const previewState = {
           items: []
         };
+        const MESES = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
 
         const setStatus = (mensaje = 'Listo.') => {
           if (statusMessage) statusMessage.textContent = mensaje;
         };
+        const getWizardModuleType = () => {
+          const modulo = moduloSelect.value;
+          if (['SUMMARY', 'RESUMEN'].includes(modulo)) return modulo;
+          return `MODULOS_${modulo}`;
+        };
+        const getWizardModuleBase = () => {
+          const moduleType = getWizardModuleType();
+          return moduleType.startsWith('MODULOS_') ? 'MODULOS' : moduleType;
+        };
+        const permiteOperacionesSumas = () => ['SUMMARY', 'RESUMEN'].includes(getWizardModuleBase());
 
         const getAuthHeaders = () => {
           if (window.Sesion?.headersAutenticacion) {
@@ -520,7 +539,38 @@
 
         };
 
+        const renderPreview = () => {
+          renderPreviewItems();
+        };
+
+        const buildOperacionesPayload = () => {
+          const operaciones = {};
+          const signos = {};
+          previewState.items.forEach((item) => {
+            operaciones[item.tipo] = item.label;
+            signos[item.tipo] = Number(item.sign) === -1 ? -1 : 1;
+          });
+          return { operaciones, signos };
+        };
+
         const renderLayoutPreview = (layout) => {
+          const anioLayout = layout?.anio || anioEdicionSelect.value || anioOrigenSelect.value;
+          const yearLabel = anioLayout ? anioLayout.toString() : '--';
+          const yearShort = anioLayout ? anioLayout.toString().slice(-2) : '--';
+          const buildHeader = () => `
+            <tr>
+              <th>Cuenta</th>
+              <th>Descripción</th>
+              <th>PRESUPUESTO ${yearLabel}</th>
+              ${MESES.map((mes) => `
+                <th>PPTO ${mes}-${yearShort}</th>
+                <th>REAL ${mes}-${yearShort}</th>
+              `).join('')}
+            </tr>
+          `;
+          if (layoutPreviewHead) {
+            layoutPreviewHead.innerHTML = buildHeader();
+          }
           const cuentas = Array.isArray(layout?.cuentas)
             ? layout.cuentas
             : Array.isArray(layout?.[moduloSelect.value])
@@ -529,30 +579,136 @@
           if (!cuentas.length) {
             layoutPreviewBody.innerHTML = `
               <tr>
-                <td colspan="2" class="text-muted">No hay cuentas para mostrar.</td>
+                <td colspan="${3 + MESES.length * 2}" class="text-muted">No hay cuentas para mostrar.</td>
               </tr>
             `;
             return;
           }
-          const mapa = new Map();
-          cuentas.forEach((cuenta) => {
+          const cuentasOrdenadas = [...cuentas].sort((a, b) => (Number(a.orden) || 0) - (Number(b.orden) || 0));
+          const filas = [];
+          const tieneFilasEspeciales = cuentasOrdenadas.some((cuenta) => !cuenta.CUENTA || cuenta.CUENTA === 'SUM');
+          let principalActual = '';
+          let secundariaActual = '';
+
+          const pushSumRow = (label, principal, secundaria) => {
+            if (!label) return;
+            filas.push({
+              tipo: 'sum',
+              cuenta: '',
+              descripcion: `Suma ${label}`,
+              principal,
+              secundaria
+            });
+          };
+
+          cuentasOrdenadas.forEach((cuenta) => {
             const principal = cuenta['SECCIàN Principal'] || cuenta['SECCIÓN Principal'] || cuenta['SECCION Principal'] || cuenta.SECCION || cuenta.seccion_principal || 'Sin sección principal';
-            const secundaria = cuenta['SECCION Secundaria'] || cuenta['SECCIÓN Secundaria'] || cuenta.seccion_secundaria || 'Sin sección secundaria';
-            if (!mapa.has(principal)) mapa.set(principal, new Set());
-            mapa.get(principal).add(secundaria);
+            const secundaria = cuenta['SECCION Secundaria'] || cuenta['SECCIÓN Secundaria'] || cuenta.seccion_secundaria || '';
+            const cuentaCodigo = (cuenta.CUENTA || '').toString().trim();
+            const nombre = cuenta.NOMBRE || cuenta.nombre || '';
+
+            if (!tieneFilasEspeciales) {
+              if (principal && principal !== principalActual) {
+                if (secundariaActual) {
+                  pushSumRow(secundariaActual || principalActual, principalActual, secundariaActual);
+                }
+                principalActual = principal;
+                secundariaActual = '';
+                filas.push({
+                  tipo: 'principal',
+                  cuenta: '',
+                  descripcion: principal,
+                  principal,
+                  secundaria: ''
+                });
+              }
+              if (secundaria && secundaria !== secundariaActual) {
+                if (secundariaActual) {
+                  pushSumRow(secundariaActual, principalActual, secundariaActual);
+                }
+                secundariaActual = secundaria;
+                filas.push({
+                  tipo: 'secundaria',
+                  cuenta: '',
+                  descripcion: secundaria,
+                  principal,
+                  secundaria
+                });
+              }
+              filas.push({
+                tipo: 'cuenta',
+                cuenta: cuentaCodigo,
+                descripcion: nombre,
+                principal,
+                secundaria: secundariaActual || secundaria || ''
+              });
+              return;
+            }
+
+            if (!cuentaCodigo) {
+              filas.push({
+                tipo: 'principal',
+                cuenta: '',
+                descripcion: nombre || principal,
+                principal,
+                secundaria
+              });
+              return;
+            }
+            if (cuentaCodigo.toUpperCase() === 'SUM') {
+              filas.push({
+                tipo: 'sum',
+                cuenta: '',
+                descripcion: nombre || `Suma ${secundaria || principal}`,
+                principal,
+                secundaria
+              });
+              return;
+            }
+            filas.push({
+              tipo: 'cuenta',
+              cuenta: cuentaCodigo,
+              descripcion: nombre,
+              principal,
+              secundaria
+            });
           });
-          layoutPreviewBody.innerHTML = Array.from(mapa.entries()).map(([principal, secundarias]) => `
-            <tr class="preview-principal">
-              <td>${principal}</td>
-              <td>Principal</td>
-            </tr>
-            ${Array.from(secundarias).map((secundaria) => `
-              <tr class="preview-secundaria">
-                <td>${secundaria}</td>
-                <td>Secundaria</td>
+
+          if (!tieneFilasEspeciales && secundariaActual) {
+            pushSumRow(secundariaActual || principalActual, principalActual, secundariaActual);
+          }
+
+          const emptyCell = (valor = '') => `<td class="text-end text-muted">${valor}</td>`;
+          const numericCells = (valor = '0.00') => {
+            const celdas = [emptyCell(valor)];
+            MESES.forEach(() => {
+              celdas.push(emptyCell(valor));
+              celdas.push(emptyCell(valor));
+            });
+            return celdas.join('');
+          };
+
+          layoutPreviewBody.innerHTML = filas.map((fila) => {
+            const rowClass = fila.tipo === 'principal'
+              ? 'preview-section-row'
+              : fila.tipo === 'secundaria'
+                ? 'preview-secundaria'
+                : fila.tipo === 'sum'
+                  ? 'preview-sum-row'
+                  : 'preview-account-row';
+            const descripcion = fila.descripcion || '-';
+            const cuentaValor = fila.cuenta || '';
+            const numeric = fila.tipo === 'principal' || fila.tipo === 'secundaria'
+              ? numericCells('')
+              : numericCells('0.00');
+            return `
+              <tr class="${rowClass}">
+                <td>${cuentaValor}</td>
+                <td>${descripcion}</td>
+                ${numeric}
               </tr>
-            `).join('')}
-          `).join('');
+            `;
+          }).join('');
         };
 
         const renderLayoutMap = (layout) => {
@@ -607,10 +763,12 @@
                         `).join('')}
                         ${items.length > 8 ? `<li class="text-muted">+${items.length - 8} cuentas más…</li>` : ''}
                       </ul>
-                      <button type="button" class="btn btn-sm btn-outline-success"
-                              onclick="window.__layoutLoaderAbrirWizard({ principal: '${principal.replace(/'/g, "\\'")}', secundaria: '${secundaria.replace(/'/g, "\\'")}' }, 'operacion_sumas')">
-                        Agregar operación entre filas
-                      </button>
+                      ${permiteOperacionesSumas() ? `
+                        <button type="button" class="btn btn-sm btn-outline-success"
+                                onclick="window.__layoutLoaderAbrirWizard({ principal: '${principal.replace(/'/g, "\\'")}', secundaria: '${secundaria.replace(/'/g, "\\'")}' }, 'operacion_sumas')">
+                          Agregar operación entre filas
+                        </button>
+                      ` : ''}
                     </div>
                   </details>
                 `).join('')}
@@ -621,6 +779,10 @@
 
         const renderOperacionesMap = (layout) => {
           const operaciones = Array.isArray(layout.operaciones) ? layout.operaciones : [];
+          if (!permiteOperacionesSumas()) {
+            operacionesMap.textContent = 'Operaciones disponibles solo para SUMMARY/RESUMEN.';
+            return;
+          }
           if (!operaciones.length) {
             operacionesMap.textContent = 'No hay operaciones entre filas para este capítulo.';
             return;
@@ -647,8 +809,12 @@
               <div class="ps-3 pt-2">
                 ${ops.map((op) => {
                   const labels = Object.entries(op)
-                    .filter(([key]) => !['HOJA', 'CAPITULO', 'Clase', 'SECCION', 'signo', 'orden'].includes(key))
-                    .map(([key, value]) => `${key}: ${value}`)
+                    .filter(([key]) => !['HOJA', 'CAPITULO', 'Clase', 'SECCION', 'signo', 'signos', 'orden'].includes(key))
+                    .map(([key, value]) => {
+                      const signo = op.signos?.[key];
+                      const signoLabel = Number(signo) === -1 ? '(-)' : '(+)';
+                      return `${key}: ${value} ${op.signos ? signoLabel : ''}`.trim();
+                    })
                     .join(' | ');
                   return `
                     <div class="mb-2">
@@ -720,7 +886,8 @@
               anioEdicionSelect.innerHTML = '<option value="">Sin años disponibles</option>';
               return;
             }
-            anios.forEach((anio) => {
+            const aniosOrdenados = [...anios].sort((a, b) => Number(b) - Number(a));
+            aniosOrdenados.forEach((anio) => {
               const opt = document.createElement('option');
               opt.value = anio;
               opt.textContent = anio;
@@ -730,10 +897,10 @@
               optEdicion.textContent = anio;
               anioEdicionSelect.appendChild(optEdicion);
             });
-            anioOrigenSelect.value = anios[anios.length - 1];
+            anioOrigenSelect.value = aniosOrdenados[0];
             anioEdicionSelect.value = anioEdicionActual && anios.includes(Number(anioEdicionActual))
               ? anioEdicionActual
-              : (anios[0] || anios[anios.length - 1]);
+              : aniosOrdenados[0];
           } catch (error) {
             console.error(error);
             anioOrigenSelect.innerHTML = '<option value="">Error al cargar</option>';
@@ -815,6 +982,10 @@
             setStatus('InsertionWizard no disponible.');
             return;
           }
+          if (tipo === 'operacion_sumas' && !permiteOperacionesSumas()) {
+            setStatus('Las operaciones entre filas solo están disponibles para SUMMARY/RESUMEN.');
+            return;
+          }
           const capitulo = obtenerCapituloSeleccionado();
           const anio = anioEdicionSelect.value || anioOrigenSelect.value;
           if (!anio || !capitulo) {
@@ -823,7 +994,7 @@
           }
           window.InsertionWizard.selectedType = tipo || null;
           window.InsertionWizard.open(null, {
-            moduleType: moduloSelect.value,
+            moduleType: getWizardModuleType(),
             capitulo,
             anio,
             prefillContext: contextoExtra
@@ -878,6 +1049,10 @@
           renderPreviewItems();
         });
         sendPreviewToWizard.addEventListener('click', () => {
+          if (!permiteOperacionesSumas()) {
+            setStatus('Las operaciones entre filas solo están disponibles para SUMMARY/RESUMEN.');
+            return;
+          }
           if (!previewState.items.length) {
             setStatus('Agrega operaciones antes de abrir el wizard.');
             return;
@@ -887,10 +1062,7 @@
             setStatus('Define la sección destino.');
             return;
           }
-          const operaciones = {};
-          previewState.items.forEach((item) => {
-            operaciones[item.tipo] = item.label;
-          });
+          const { operaciones } = buildOperacionesPayload();
           abrirWizard({
             principal: previewPrincipal.value.trim(),
             secundaria: seccion,
@@ -905,6 +1077,10 @@
           const { allowed } = getEditModeState();
           if (!allowed) {
             setStatus('Activa modo edición para guardar.');
+            return;
+          }
+          if (!permiteOperacionesSumas()) {
+            setStatus('Las operaciones entre filas solo están disponibles para SUMMARY/RESUMEN.');
             return;
           }
           const capitulo = obtenerCapituloSeleccionado();
@@ -924,22 +1100,20 @@
             setStatus('Agrega al menos una operación.');
             return;
           }
-          const operaciones = {};
-          previewState.items.forEach((item) => {
-            operaciones[item.tipo] = item.label;
-          });
+          const { operaciones, signos } = buildOperacionesPayload();
           try {
             const res = await fetch(`${API_ROOT}/api/insercion/operacion-sumas`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
               body: JSON.stringify({
-                moduleType: moduloSelect.value,
+                moduleType: getWizardModuleType(),
                 context: { capitulo, principal, secundaria: seccion, anio },
                 formData: {
                   clase,
                   seccion,
                   signo: Number(previewSign.value) || 1,
-                  operaciones
+                  operaciones,
+                  signos
                 }
               })
             });

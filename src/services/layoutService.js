@@ -246,10 +246,13 @@ const obtenerLayout = ({ empresaId = 'EMPRESA01', modulo, anio, capitulo }) => {
         HOJA: modulo, // Agregar HOJA para que el filtro en planeacionReportesEngine funcione
         CAPITULO: op.CAPITULO,
         Clase: op.Clase,
-        SECCION: op.SECCION
+        SECCION: op.SECCION,
+        signo: op.signo ?? 1,
+        signos: {}
       };
     }
     operacionesMap[op.Clase][op.operacion_tipo] = op.operacion_label;
+    operacionesMap[op.Clase].signos[op.operacion_tipo] = op.signo ?? 1;
   });
 
   return construirRespuestaLayout({
@@ -393,7 +396,10 @@ const guardarOperaciones = ({ empresaId = 'EMPRESA01', modulo, anio, operaciones
 
       tiposOperacion.forEach((tipo, tipoIndex) => {
         if (op[tipo]) {
-          const signoConfigurado = Number(op.signo);
+          const signoDesdeMapa = op.signos?.[tipo];
+          const signoConfigurado = Number.isFinite(Number(signoDesdeMapa))
+            ? Number(signoDesdeMapa)
+            : Number(op.signo);
           let signo = Number.isFinite(signoConfigurado) && signoConfigurado !== 0 ? signoConfigurado : 1;
           if (!Number.isFinite(signoConfigurado) && op.Clase && op.Clase.toLowerCase().includes('expense')) {
             signo = -1;
