@@ -137,6 +137,24 @@
       if (capitulo) this.contextData.capitulo = capitulo;
       if (anio) this.contextData.anio = anio;
       this.formData = { factor: null, factorChoice: '', operaciones: {}, customOperaciones: [] };
+      if (prefillContext?.operaciones && typeof prefillContext.operaciones === 'object') {
+        this.formData.operaciones = { ...prefillContext.operaciones };
+      }
+      if (Array.isArray(prefillContext?.customOperaciones)) {
+        this.formData.customOperaciones = prefillContext.customOperaciones.map((op) => ({
+          key: op.key || '',
+          label: op.label || ''
+        }));
+      }
+      if (Number.isFinite(Number(prefillContext?.signo))) {
+        this.formData.signo = Number(prefillContext.signo);
+      }
+      if (prefillContext?.clase) {
+        this.formData.clase = prefillContext.clase;
+      }
+      if (prefillContext?.seccion) {
+        this.formData.seccion = prefillContext.seccion;
+      }
 
       const tieneTipo = Boolean(this.selectedType);
       if (!tieneTipo) {
