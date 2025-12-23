@@ -516,4 +516,305 @@ router.post('/:modulo/:anio/reseed', requireAuth, (req, res) => {
   }
 });
 
+/**
+ * PUT /api/layouts/:modulo/:anio/:capitulo/cuenta/:cuenta
+ * Actualizar una cuenta específica
+ */
+router.put('/:modulo/:anio/:capitulo/cuenta/:cuenta', requireAuth, (req, res) => {
+  try {
+    const { modulo, anio, capitulo, cuenta } = req.params;
+    const { empresaId = 'EMPRESA01', datos } = req.body;
+
+    if (!tienePermisoGuardar(req, empresaId, modulo)) {
+      return res.status(403).json({
+        success: false,
+        mensaje: 'No cuentas con permisos para editar'
+      });
+    }
+
+    const resultado = layoutService.actualizarCuenta({
+      empresaId,
+      modulo,
+      anio: parseInt(anio),
+      capitulo,
+      cuentaOriginal: cuenta,
+      datos
+    });
+
+    res.json({
+      success: true,
+      mensaje: 'Cuenta actualizada',
+      ...resultado
+    });
+  } catch (error) {
+    console.error('Error al actualizar cuenta:', error);
+    res.status(500).json({
+      success: false,
+      mensaje: 'Error al actualizar cuenta',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * DELETE /api/layouts/:modulo/:anio/:capitulo/cuenta/:cuenta
+ * Eliminar una cuenta específica
+ */
+router.delete('/:modulo/:anio/:capitulo/cuenta/:cuenta', requireAuth, (req, res) => {
+  try {
+    const { modulo, anio, capitulo, cuenta } = req.params;
+    const { empresaId = 'EMPRESA01' } = req.query;
+
+    if (!tienePermisoGuardar(req, empresaId, modulo)) {
+      return res.status(403).json({
+        success: false,
+        mensaje: 'No cuentas con permisos para eliminar'
+      });
+    }
+
+    const resultado = layoutService.eliminarCuenta({
+      empresaId,
+      modulo,
+      anio: parseInt(anio),
+      capitulo,
+      cuenta
+    });
+
+    res.json({
+      success: true,
+      mensaje: 'Cuenta eliminada',
+      ...resultado
+    });
+  } catch (error) {
+    console.error('Error al eliminar cuenta:', error);
+    res.status(500).json({
+      success: false,
+      mensaje: 'Error al eliminar cuenta',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/layouts/:modulo/:anio/:capitulo/reordenar
+ * Reordenar cuentas de un layout
+ */
+router.post('/:modulo/:anio/:capitulo/reordenar', requireAuth, (req, res) => {
+  try {
+    const { modulo, anio, capitulo } = req.params;
+    const { empresaId = 'EMPRESA01', orden } = req.body;
+
+    if (!tienePermisoGuardar(req, empresaId, modulo)) {
+      return res.status(403).json({
+        success: false,
+        mensaje: 'No cuentas con permisos para reordenar'
+      });
+    }
+
+    if (!Array.isArray(orden)) {
+      return res.status(400).json({
+        success: false,
+        mensaje: 'orden debe ser un array de objetos { cuenta, orden }'
+      });
+    }
+
+    const resultado = layoutService.reordenarCuentas({
+      empresaId,
+      modulo,
+      anio: parseInt(anio),
+      capitulo,
+      orden
+    });
+
+    res.json({
+      success: true,
+      mensaje: 'Orden actualizado',
+      ...resultado
+    });
+  } catch (error) {
+    console.error('Error al reordenar:', error);
+    res.status(500).json({
+      success: false,
+      mensaje: 'Error al reordenar',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * PUT /api/layouts/:modulo/:anio/operacion/:clase
+ * Actualizar una operación específica
+ */
+router.put('/:modulo/:anio/operacion/:clase', requireAuth, (req, res) => {
+  try {
+    const { modulo, anio, clase } = req.params;
+    const { empresaId = 'EMPRESA01', datos, capitulo } = req.body;
+
+    if (!tienePermisoGuardar(req, empresaId, modulo)) {
+      return res.status(403).json({
+        success: false,
+        mensaje: 'No cuentas con permisos para editar operaciones'
+      });
+    }
+
+    const resultado = layoutService.actualizarOperacion({
+      empresaId,
+      modulo,
+      anio: parseInt(anio),
+      capitulo,
+      claseOriginal: decodeURIComponent(clase),
+      datos
+    });
+
+    res.json({
+      success: true,
+      mensaje: 'Operación actualizada',
+      ...resultado
+    });
+  } catch (error) {
+    console.error('Error al actualizar operación:', error);
+    res.status(500).json({
+      success: false,
+      mensaje: 'Error al actualizar operación',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * DELETE /api/layouts/:modulo/:anio/operacion/:clase
+ * Eliminar una operación específica
+ */
+router.delete('/:modulo/:anio/operacion/:clase', requireAuth, (req, res) => {
+  try {
+    const { modulo, anio, clase } = req.params;
+    const { empresaId = 'EMPRESA01', capitulo } = req.query;
+
+    if (!tienePermisoGuardar(req, empresaId, modulo)) {
+      return res.status(403).json({
+        success: false,
+        mensaje: 'No cuentas con permisos para eliminar operaciones'
+      });
+    }
+
+    const resultado = layoutService.eliminarOperacion({
+      empresaId,
+      modulo,
+      anio: parseInt(anio),
+      capitulo,
+      clase: decodeURIComponent(clase)
+    });
+
+    res.json({
+      success: true,
+      mensaje: 'Operación eliminada',
+      ...resultado
+    });
+  } catch (error) {
+    console.error('Error al eliminar operación:', error);
+    res.status(500).json({
+      success: false,
+      mensaje: 'Error al eliminar operación',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/layouts/:modulo/:anio/:capitulo/seccion
+ * Crear o actualizar una sección
+ */
+router.post('/:modulo/:anio/:capitulo/seccion', requireAuth, (req, res) => {
+  try {
+    const { modulo, anio, capitulo } = req.params;
+    const { empresaId = 'EMPRESA01', tipo, nombre, principal, orden } = req.body;
+
+    if (!tienePermisoGuardar(req, empresaId, modulo)) {
+      return res.status(403).json({
+        success: false,
+        mensaje: 'No cuentas con permisos para crear secciones'
+      });
+    }
+
+    if (!tipo || !nombre) {
+      return res.status(400).json({
+        success: false,
+        mensaje: 'tipo y nombre son requeridos'
+      });
+    }
+
+    const resultado = layoutService.crearSeccion({
+      empresaId,
+      modulo,
+      anio: parseInt(anio),
+      capitulo,
+      tipo,
+      nombre,
+      principal: principal || null,
+      orden: orden || 1
+    });
+
+    res.json({
+      success: true,
+      mensaje: 'Sección creada',
+      ...resultado
+    });
+  } catch (error) {
+    console.error('Error al crear sección:', error);
+    res.status(500).json({
+      success: false,
+      mensaje: 'Error al crear sección',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * PUT /api/layouts/:modulo/:anio/:capitulo/seccion/:nombre
+ * Renombrar una sección (actualiza todas las cuentas asociadas)
+ */
+router.put('/:modulo/:anio/:capitulo/seccion/:nombre', requireAuth, (req, res) => {
+  try {
+    const { modulo, anio, capitulo, nombre } = req.params;
+    const { empresaId = 'EMPRESA01', nuevoNombre, tipo } = req.body;
+
+    if (!tienePermisoGuardar(req, empresaId, modulo)) {
+      return res.status(403).json({
+        success: false,
+        mensaje: 'No cuentas con permisos para editar secciones'
+      });
+    }
+
+    if (!nuevoNombre) {
+      return res.status(400).json({
+        success: false,
+        mensaje: 'nuevoNombre es requerido'
+      });
+    }
+
+    const resultado = layoutService.renombrarSeccion({
+      empresaId,
+      modulo,
+      anio: parseInt(anio),
+      capitulo,
+      nombreOriginal: decodeURIComponent(nombre),
+      nuevoNombre,
+      tipo: tipo || 'principal'
+    });
+
+    res.json({
+      success: true,
+      mensaje: 'Sección renombrada',
+      ...resultado
+    });
+  } catch (error) {
+    console.error('Error al renombrar sección:', error);
+    res.status(500).json({
+      success: false,
+      mensaje: 'Error al renombrar sección',
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;

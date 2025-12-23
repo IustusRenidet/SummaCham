@@ -786,6 +786,197 @@ const obtenerEstadisticasLayout = ({ empresaId = 'EMPRESA01', modulo, anio }) =>
 
 
 
+/**
+ * Actualizar una cuenta específica
+ */
+const actualizarCuenta = ({ empresaId = 'EMPRESA01', modulo, anio, capitulo, cuentaOriginal, datos }) => {
+  const empresaCanonica = obtenerEmpresaCanonica(empresaId);
+
+  const update = db.prepare(`
+    UPDATE layout_cuentas
+    SET cuenta = ?, nombre = ?, seccion_principal = ?, seccion_secundaria = ?, orden = ?
+    WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ? AND cuenta = ?
+  `);
+
+  const result = update.run(
+    datos.cuenta || cuentaOriginal,
+    datos.nombre,
+    datos.seccion_principal,
+    datos.seccion_secundaria || '',
+    datos.orden || 1,
+    empresaCanonica,
+    modulo,
+    anio,
+    capitulo,
+    cuentaOriginal
+  );
+
+  return { success: true, changes: result.changes };
+};
+
+
+/**
+ * Eliminar una cuenta específica
+ */
+const eliminarCuenta = ({ empresaId = 'EMPRESA01', modulo, anio, capitulo, cuenta }) => {
+  const empresaCanonica = obtenerEmpresaCanonica(empresaId);
+
+  const del = db.prepare(`
+    DELETE FROM layout_cuentas
+    WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ? AND cuenta = ?
+  `);
+
+  const result = del.run(empresaCanonica, modulo, anio, capitulo, cuenta);
+  return { success: true, changes: result.changes };
+};
+
+
+/**
+ * Reordenar cuentas de un layout
+ */
+const reordenarCuentas = ({ empresaId = 'EMPRESA01', modulo, anio, capitulo, orden }) => {
+  const empresaCanonica = obtenerEmpresaCanonica(empresaId);
+
+  const update = db.prepare(`
+    UPDATE layout_cuentas
+    SET orden = ?
+    WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ? AND cuenta = ?
+  `);
+
+  const transaction = db.transaction(() => {
+    orden.forEach(item => {
+      update.run(item.orden, empresaCanonica, modulo, anio, capitulo, item.cuenta);
+    });
+  });
+
+  transaction();
+  return { success: true, updated: orden.length };
+};
+
+
+/**
+ * Actualizar una operación específica
+ */
+const actualizarOperacion = ({ empresaId = 'EMPRESA01', modulo, anio, capitulo, claseOriginal, datos }) => {
+  const empresaCanonica = obtenerEmpresaCanonica(empresaId);
+
+  // Primero eliminar la operación existente
+  const del = db.prepare(`
+    DELETE FROM layout_operaciones
+    WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ? AND clase = ?
+  `);
+  del.run(empresaCanonica, modulo, anio, capitulo || 'DEFAULT', claseOriginal);
+
+  // Luego insertar la actualizada
+  const insert = db.prepare(`
+    INSERT INTO layout_operaciones (empresa_id, modulo, anio, capitulo, clase, seccion, operacion_tipo, operacion_label, signo, orden)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  // Process operaciones object
+  const operaciones = datos.operaciones || {};
+  let orden = 1;
+  Object.entries(operaciones).forEach(([tipo, label]) => {
+    if (label) {
+      insert.run(
+        empresaCanonica,
+        modulo,
+        anio,
+        capitulo || 'DEFAULT',
+        datos.clase || claseOriginal,
+        datos.seccion || '',
+        tipo,
+        label,
+        datos.signo || 1,
+        orden++
+      );
+    }
+  });
+
+  return { success: true };
+};
+
+
+/**
+ * Eliminar una operación específica
+ */
+const eliminarOperacion = ({ empresaId = 'EMPRESA01', modulo, anio, capitulo, clase }) => {
+  const empresaCanonica = obtenerEmpresaCanonica(empresaId);
+
+  const del = db.prepare(`
+    DELETE FROM layout_operaciones
+    WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ? AND clase = ?
+  `);
+
+  const result = del.run(empresaCanonica, modulo, anio, capitulo || 'DEFAULT', clase);
+  return { success: true, changes: result.changes };
+};
+
+
+/**
+ * Crear una sección
+ */
+const crearSeccion = ({ empresaId = 'EMPRESA01', modulo, anio, capitulo, tipo, nombre, principal, orden }) => {
+  const empresaCanonica = obtenerEmpresaCanonica(empresaId);
+
+  const insert = db.prepare(`
+    INSERT OR REPLACE INTO layout_secciones (empresa_id, modulo, anio, capitulo, seccion_principal, seccion_secundaria, tipo, orden)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  if (tipo === 'principal') {
+    insert.run(empresaCanonica, modulo, anio, capitulo, nombre, '', tipo, orden);
+  } else {
+    insert.run(empresaCanonica, modulo, anio, capitulo, principal || '', nombre, tipo, orden);
+  }
+
+  return { success: true };
+};
+
+
+/**
+ * Renombrar una sección (actualiza todas las cuentas asociadas)
+ */
+const renombrarSeccion = ({ empresaId = 'EMPRESA01', modulo, anio, capitulo, nombreOriginal, nuevoNombre, tipo }) => {
+  const empresaCanonica = obtenerEmpresaCanonica(empresaId);
+
+  const transaction = db.transaction(() => {
+    if (tipo === 'principal') {
+      // Update layout_cuentas
+      db.prepare(`
+        UPDATE layout_cuentas
+        SET seccion_principal = ?
+        WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ? AND seccion_principal = ?
+      `).run(nuevoNombre, empresaCanonica, modulo, anio, capitulo, nombreOriginal);
+
+      // Update layout_secciones
+      db.prepare(`
+        UPDATE layout_secciones
+        SET seccion_principal = ?
+        WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ? AND seccion_principal = ?
+      `).run(nuevoNombre, empresaCanonica, modulo, anio, capitulo, nombreOriginal);
+    } else {
+      // Update layout_cuentas for secundaria
+      db.prepare(`
+        UPDATE layout_cuentas
+        SET seccion_secundaria = ?
+        WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ? AND seccion_secundaria = ?
+      `).run(nuevoNombre, empresaCanonica, modulo, anio, capitulo, nombreOriginal);
+
+      // Update layout_secciones
+      db.prepare(`
+        UPDATE layout_secciones
+        SET seccion_secundaria = ?
+        WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ? AND seccion_secundaria = ?
+      `).run(nuevoNombre, empresaCanonica, modulo, anio, capitulo, nombreOriginal);
+    }
+  });
+
+  transaction();
+  return { success: true };
+};
+
+
 module.exports = {
   obtenerLayout,
   obtenerCapitulos,
@@ -798,5 +989,12 @@ module.exports = {
   existeLayout,
   obtenerEstadisticasLayout,
   obtenerEmpresaCanonica,
-  crearLayoutDemo
+  crearLayoutDemo,
+  actualizarCuenta,
+  eliminarCuenta,
+  reordenarCuentas,
+  actualizarOperacion,
+  eliminarOperacion,
+  crearSeccion,
+  renombrarSeccion
 };
