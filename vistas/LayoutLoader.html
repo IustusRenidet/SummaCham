@@ -73,6 +73,18 @@
         background: #f8fafc;
         font-weight: 600;
       }
+      .preview-section-row {
+        background: #f8fafc;
+        font-weight: 700;
+      }
+      .preview-sum-row {
+        background: #eef2ff;
+        color: #1e3a8a;
+        font-weight: 600;
+      }
+      .preview-account-row td {
+        background: #ffffff;
+      }
       .status-text {
         font-size: 0.85rem;
         color: #475569;
@@ -190,19 +202,10 @@
               </div>
               <div class="table-responsive">
                 <table class="table table-sm preview-table mb-0">
-                  <thead>
-                    <tr>
-                      <th>Orden</th>
-                      <th>Tipo</th>
-                      <th>Cuenta</th>
-                      <th>Descripción</th>
-                      <th>Sección principal</th>
-                      <th>Sección secundaria</th>
-                    </tr>
-                  </thead>
+                  <thead id="layoutPreviewHead"></thead>
                   <tbody id="layoutPreviewBody">
                     <tr>
-                      <td colspan="2" class="text-muted">Carga un layout para ver el formato final.</td>
+                      <td colspan="27" class="text-muted">Carga un layout para ver el formato final.</td>
                     </tr>
                   </tbody>
                 </table>
@@ -256,7 +259,7 @@
                   <input id="previewTargetLabel" class="form-control form-control-sm" placeholder="Ej: NET RESULTS" />
                 </div>
                 <div class="col-6 col-lg-2">
-                  <label class="form-label small" for="previewSign">Signo</label>
+                  <label class="form-label small" for="previewSign">Signo del elemento</label>
                   <select id="previewSign" class="form-select form-select-sm">
                     <option value="1">Sumar (+)</option>
                     <option value="-1">Restar (-)</option>
@@ -351,12 +354,14 @@
         const previewItemsList = document.getElementById('previewItemsList');
         const sendPreviewToWizard = document.getElementById('sendPreviewToWizard');
         const saveOperacionBtn = document.getElementById('saveOperacionBtn');
+        const layoutPreviewHead = document.getElementById('layoutPreviewHead');
         const layoutPreviewBody = document.getElementById('layoutPreviewBody');
 
         let layoutActivo = null;
         const previewState = {
           items: []
         };
+        const MESES = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
 
         const setStatus = (mensaje = 'Listo.') => {
           if (statusMessage) statusMessage.textContent = mensaje;
@@ -538,7 +543,34 @@
           renderPreviewItems();
         };
 
+        const buildOperacionesPayload = () => {
+          const operaciones = {};
+          const signos = {};
+          previewState.items.forEach((item) => {
+            operaciones[item.tipo] = item.label;
+            signos[item.tipo] = Number(item.sign) === -1 ? -1 : 1;
+          });
+          return { operaciones, signos };
+        };
+
         const renderLayoutPreview = (layout) => {
+          const anioLayout = layout?.anio || anioEdicionSelect.value || anioOrigenSelect.value;
+          const yearLabel = anioLayout ? anioLayout.toString() : '--';
+          const yearShort = anioLayout ? anioLayout.toString().slice(-2) : '--';
+          const buildHeader = () => `
+            <tr>
+              <th>Cuenta</th>
+              <th>Descripción</th>
+              <th>PRESUPUESTO ${yearLabel}</th>
+              ${MESES.map((mes) => `
+                <th>PPTO ${mes}-${yearShort}</th>
+                <th>REAL ${mes}-${yearShort}</th>
+              `).join('')}
+            </tr>
+          `;
+          if (layoutPreviewHead) {
+            layoutPreviewHead.innerHTML = buildHeader();
+          }
           const cuentas = Array.isArray(layout?.cuentas)
             ? layout.cuentas
             : Array.isArray(layout?.[moduloSelect.value])
@@ -547,61 +579,136 @@
           if (!cuentas.length) {
             layoutPreviewBody.innerHTML = `
               <tr>
-                <td colspan="6" class="text-muted">No hay cuentas para mostrar.</td>
+                <td colspan="${3 + MESES.length * 2}" class="text-muted">No hay cuentas para mostrar.</td>
               </tr>
             `;
             return;
           }
           const cuentasOrdenadas = [...cuentas].sort((a, b) => (Number(a.orden) || 0) - (Number(b.orden) || 0));
           const filas = [];
+          const tieneFilasEspeciales = cuentasOrdenadas.some((cuenta) => !cuenta.CUENTA || cuenta.CUENTA === 'SUM');
           let principalActual = '';
           let secundariaActual = '';
-          let ordenVista = 1;
+
+          const pushSumRow = (label, principal, secundaria) => {
+            if (!label) return;
+            filas.push({
+              tipo: 'sum',
+              cuenta: '',
+              descripcion: `Suma ${label}`,
+              principal,
+              secundaria
+            });
+          };
+
           cuentasOrdenadas.forEach((cuenta) => {
             const principal = cuenta['SECCIàN Principal'] || cuenta['SECCIÓN Principal'] || cuenta['SECCION Principal'] || cuenta.SECCION || cuenta.seccion_principal || 'Sin sección principal';
-            const secundaria = cuenta['SECCION Secundaria'] || cuenta['SECCIÓN Secundaria'] || cuenta.seccion_secundaria || 'Sin sección secundaria';
-            if (principal && principal !== principalActual) {
-              principalActual = principal;
-              secundariaActual = '';
+            const secundaria = cuenta['SECCION Secundaria'] || cuenta['SECCIÓN Secundaria'] || cuenta.seccion_secundaria || '';
+            const cuentaCodigo = (cuenta.CUENTA || '').toString().trim();
+            const nombre = cuenta.NOMBRE || cuenta.nombre || '';
+
+            if (!tieneFilasEspeciales) {
+              if (principal && principal !== principalActual) {
+                if (secundariaActual) {
+                  pushSumRow(secundariaActual || principalActual, principalActual, secundariaActual);
+                }
+                principalActual = principal;
+                secundariaActual = '';
+                filas.push({
+                  tipo: 'principal',
+                  cuenta: '',
+                  descripcion: principal,
+                  principal,
+                  secundaria: ''
+                });
+              }
+              if (secundaria && secundaria !== secundariaActual) {
+                if (secundariaActual) {
+                  pushSumRow(secundariaActual, principalActual, secundariaActual);
+                }
+                secundariaActual = secundaria;
+                filas.push({
+                  tipo: 'secundaria',
+                  cuenta: '',
+                  descripcion: secundaria,
+                  principal,
+                  secundaria
+                });
+              }
               filas.push({
-                orden: ordenVista++,
-                tipo: 'Sección principal',
-                cuenta: '',
-                descripcion: principal,
+                tipo: 'cuenta',
+                cuenta: cuentaCodigo,
+                descripcion: nombre,
                 principal,
-                secundaria: ''
+                secundaria: secundariaActual || secundaria || ''
               });
+              return;
             }
-            if (secundaria && secundaria !== secundariaActual) {
-              secundariaActual = secundaria;
+
+            if (!cuentaCodigo) {
               filas.push({
-                orden: ordenVista++,
-                tipo: 'Sección secundaria',
+                tipo: 'principal',
                 cuenta: '',
-                descripcion: secundaria,
+                descripcion: nombre || principal,
                 principal,
                 secundaria
               });
+              return;
+            }
+            if (cuentaCodigo.toUpperCase() === 'SUM') {
+              filas.push({
+                tipo: 'sum',
+                cuenta: '',
+                descripcion: nombre || `Suma ${secundaria || principal}`,
+                principal,
+                secundaria
+              });
+              return;
             }
             filas.push({
-              orden: ordenVista++,
-              tipo: 'Cuenta',
-              cuenta: cuenta.CUENTA || '',
-              descripcion: cuenta.NOMBRE || '',
+              tipo: 'cuenta',
+              cuenta: cuentaCodigo,
+              descripcion: nombre,
               principal,
               secundaria
             });
           });
-          layoutPreviewBody.innerHTML = filas.map((fila) => `
-            <tr class="${fila.tipo === 'Sección principal' ? 'preview-principal' : fila.tipo === 'Sección secundaria' ? 'preview-secundaria' : ''}">
-              <td>${fila.orden}</td>
-              <td>${fila.tipo}</td>
-              <td>${fila.cuenta || '-'}</td>
-              <td>${fila.descripcion || '-'}</td>
-              <td>${fila.principal || '-'}</td>
-              <td>${fila.secundaria || '-'}</td>
-            </tr>
-          `).join('');
+
+          if (!tieneFilasEspeciales && secundariaActual) {
+            pushSumRow(secundariaActual || principalActual, principalActual, secundariaActual);
+          }
+
+          const emptyCell = (valor = '') => `<td class="text-end text-muted">${valor}</td>`;
+          const numericCells = (valor = '0.00') => {
+            const celdas = [emptyCell(valor)];
+            MESES.forEach(() => {
+              celdas.push(emptyCell(valor));
+              celdas.push(emptyCell(valor));
+            });
+            return celdas.join('');
+          };
+
+          layoutPreviewBody.innerHTML = filas.map((fila) => {
+            const rowClass = fila.tipo === 'principal'
+              ? 'preview-section-row'
+              : fila.tipo === 'secundaria'
+                ? 'preview-secundaria'
+                : fila.tipo === 'sum'
+                  ? 'preview-sum-row'
+                  : 'preview-account-row';
+            const descripcion = fila.descripcion || '-';
+            const cuentaValor = fila.cuenta || '';
+            const numeric = fila.tipo === 'principal' || fila.tipo === 'secundaria'
+              ? numericCells('')
+              : numericCells('0.00');
+            return `
+              <tr class="${rowClass}">
+                <td>${cuentaValor}</td>
+                <td>${descripcion}</td>
+                ${numeric}
+              </tr>
+            `;
+          }).join('');
         };
 
         const renderLayoutMap = (layout) => {
@@ -702,8 +809,12 @@
               <div class="ps-3 pt-2">
                 ${ops.map((op) => {
                   const labels = Object.entries(op)
-                    .filter(([key]) => !['HOJA', 'CAPITULO', 'Clase', 'SECCION', 'signo', 'orden'].includes(key))
-                    .map(([key, value]) => `${key}: ${value}`)
+                    .filter(([key]) => !['HOJA', 'CAPITULO', 'Clase', 'SECCION', 'signo', 'signos', 'orden'].includes(key))
+                    .map(([key, value]) => {
+                      const signo = op.signos?.[key];
+                      const signoLabel = Number(signo) === -1 ? '(-)' : '(+)';
+                      return `${key}: ${value} ${op.signos ? signoLabel : ''}`.trim();
+                    })
                     .join(' | ');
                   return `
                     <div class="mb-2">
@@ -951,10 +1062,7 @@
             setStatus('Define la sección destino.');
             return;
           }
-          const operaciones = {};
-          previewState.items.forEach((item) => {
-            operaciones[item.tipo] = item.label;
-          });
+          const { operaciones } = buildOperacionesPayload();
           abrirWizard({
             principal: previewPrincipal.value.trim(),
             secundaria: seccion,
@@ -992,10 +1100,7 @@
             setStatus('Agrega al menos una operación.');
             return;
           }
-          const operaciones = {};
-          previewState.items.forEach((item) => {
-            operaciones[item.tipo] = item.label;
-          });
+          const { operaciones, signos } = buildOperacionesPayload();
           try {
             const res = await fetch(`${API_ROOT}/api/insercion/operacion-sumas`, {
               method: 'POST',
@@ -1007,7 +1112,8 @@
                   clase,
                   seccion,
                   signo: Number(previewSign.value) || 1,
-                  operaciones
+                  operaciones,
+                  signos
                 }
               })
             });

@@ -684,6 +684,7 @@ router.post('/operacion-sumas', requireAuth, async (req, res) => {
       });
     }
 
+    const signos = formData.signos || {};
     const config = await loadLayoutConfig(moduleType, {
       anio: context?.anio
     });
@@ -711,6 +712,9 @@ router.post('/operacion-sumas', requireAuth, async (req, res) => {
     };
     if (Number.isFinite(Number(formData.signo))) {
       nuevaOperacion.signo = Number(formData.signo);
+    }
+    if (signos && typeof signos === 'object' && Object.keys(signos).length) {
+      nuevaOperacion.signos = signos;
     }
 
     Object.entries(operaciones).forEach(([tipo, etiqueta]) => {
