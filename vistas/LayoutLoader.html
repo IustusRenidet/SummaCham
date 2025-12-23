@@ -147,10 +147,16 @@
             <div class="alert alert-info mb-0">
               Copia el layout completo (cuentas + operaciones). Si el año destino ya existe, se sobrescribirá.
             </div>
+            <div class="alert alert-secondary mt-2 mb-0">
+              Genera una plantilla demo con datos de muestra para probar operaciones incluso si el año aún no se ha abierto.
+            </div>
           </div>
           <div class="col-12 d-flex flex-wrap gap-2 justify-content-end">
             <button type="button" id="refreshYears" class="btn btn-outline-secondary">
               Recargar años disponibles
+            </button>
+            <button type="button" id="createDemoBtn" class="btn btn-outline-success">
+              Crear plantilla demo
             </button>
             <button type="submit" id="submitBtn" class="btn btn-primary">
               Copiar layout
@@ -333,6 +339,7 @@
         const anioDestinoInput = document.getElementById('anioDestino');
         const submitBtn = document.getElementById('submitBtn');
         const refreshBtn = document.getElementById('refreshYears');
+        const createDemoBtn = document.getElementById('createDemoBtn');
         const anioEdicionSelect = document.getElementById('anioEdicion');
         const capituloActivoInput = document.getElementById('capituloActivo');
         const loadLayoutBtn = document.getElementById('loadLayoutBtn');
@@ -918,6 +925,60 @@
           return Boolean(data.existe);
         };
 
+        const crearPlantillaDemo = async ({ overwrite = false } = {}) => {
+          renderAuthState();
+          const { allowed } = getEditModeState();
+          if (!allowed) {
+            setStatus('Activa modo edición para crear plantillas.');
+            return;
+          }
+
+          const empresaSeleccionada = readEmpresaSeleccionada();
+          const empresaId = empresaSeleccionada.id || empresaInput.value.trim() || 'EMPRESA01';
+          const modulo = moduloSelect.value;
+          const anioDestino = anioDestinoInput.value.trim();
+          const capitulo = obtenerCapituloSeleccionado();
+
+          if (!anioDestino) {
+            setStatus('Define el año destino para la plantilla.');
+            return;
+          }
+          if (!capitulo) {
+            setStatus('No se detectó capítulo activo.');
+            return;
+          }
+
+          try {
+            const res = await fetch(`${API_BASE}/${encodeURIComponent(modulo)}/${encodeURIComponent(anioDestino)}/demo`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+              body: JSON.stringify({
+                empresaId,
+                capitulo,
+                overwrite
+              })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (res.status === 409) {
+              const confirmar = confirm(`El layout ${modulo} ${anioDestino} ya tiene datos en el capítulo ${capitulo}. ¿Deseas sobrescribirlo?`);
+              if (!confirmar) return;
+              await crearPlantillaDemo({ overwrite: true });
+              return;
+            }
+            if (!res.ok) {
+              throw new Error(data?.mensaje || 'No se pudo crear la plantilla demo');
+            }
+            setStatus(`Plantilla demo creada para ${modulo} ${anioDestino}.`);
+            await cargarAniosDisponibles();
+            anioEdicionSelect.value = anioDestino;
+            capituloActivoInput.value = capitulo;
+            await cargarLayoutDetalle();
+          } catch (error) {
+            console.error(error);
+            setStatus(error.message);
+          }
+        };
+
         form.addEventListener('submit', async (event) => {
           event.preventDefault();
           renderAuthState();
@@ -1015,6 +1076,7 @@
           await cargarLayoutDetalle();
         });
         refreshBtn.addEventListener('click', cargarAniosDisponibles);
+        createDemoBtn.addEventListener('click', () => crearPlantillaDemo());
         loadLayoutBtn.addEventListener('click', cargarLayoutDetalle);
         openWizardBtn.addEventListener('click', () => abrirWizard());
         anioEdicionSelect.addEventListener('change', cargarLayoutDetalle);

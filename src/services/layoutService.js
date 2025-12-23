@@ -45,6 +45,16 @@ const existeLayoutAnio = ({ empresaId, modulo, anio }) => {
   return Boolean(row && row.total);
 };
 
+const existeLayoutCapitulo = ({ empresaId, modulo, anio, capitulo }) => {
+  const row = db.prepare(`
+    SELECT COUNT(*) as total
+    FROM layout_cuentas
+    WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ?
+    LIMIT 1
+  `).get(empresaId, modulo, anio, capitulo);
+  return Boolean(row && row.total);
+};
+
 const buscarAnioReferencia = ({ empresaId, modulo, anio }) => {
   const menorIgual = db.prepare(`
     SELECT MAX(anio) as anio
@@ -161,6 +171,209 @@ const construirRespuestaLayout = ({
   respuesta[modulo] = cuentas;
   respuesta['SUMA DE VARIAS SECCIONES'] = operaciones;
   return respuesta;
+};
+
+const eliminarLayoutCapitulo = ({
+  empresaId = 'EMPRESA01',
+  modulo,
+  anio,
+  capitulo
+}) => {
+  const empresaCanonica = obtenerEmpresaCanonica(empresaId);
+  const anioNumero = Number(anio);
+  if (!modulo || !Number.isInteger(anioNumero) || !capitulo) {
+    return { success: false };
+  }
+  const deleteCuentas = db.prepare(`
+    DELETE FROM layout_cuentas
+    WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ?
+  `);
+  const deleteOperaciones = db.prepare(`
+    DELETE FROM layout_operaciones
+    WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ?
+  `);
+  const deleteSecciones = db.prepare(`
+    DELETE FROM layout_secciones
+    WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ?
+  `);
+
+  const transaction = db.transaction(() => {
+    deleteCuentas.run(empresaCanonica, modulo, anioNumero, capitulo);
+    deleteOperaciones.run(empresaCanonica, modulo, anioNumero, capitulo);
+    deleteSecciones.run(empresaCanonica, modulo, anioNumero, capitulo);
+  });
+
+  transaction();
+  return { success: true };
+};
+
+const construirPlantillaDemo = ({ modulo, capitulo }) => {
+  const moduloNormalizado = (modulo || '').toString().trim().toUpperCase();
+  const esSummary = moduloNormalizado === 'SUMMARY';
+  const esResumen = moduloNormalizado === 'RESUMEN';
+  const formato = esSummary ? 'summary' : 'resumen';
+  const cuentas = [];
+  let orden = 0;
+
+  const crearCodigo = (prefijo, index) => {
+    if (formato === 'summary') {
+      return `${prefijo}${String(index + 1).padStart(3, '0')}`;
+    }
+    return `${prefijo}${String(index + 1).padStart(2, '0')}`;
+  };
+
+  const seccionesResumen = [
+    {
+      principal: 'INGRESOS',
+      secundaria: 'Membresías',
+      prefijoSummary: '401000000000000000',
+      prefijoResumen: '401-001-000-',
+      cuentas: ['Cuotas netas', 'Ingresos socios nuevos']
+    },
+    {
+      principal: 'GASTOS',
+      secundaria: 'Operativos',
+      prefijoSummary: '601000000000000000',
+      prefijoResumen: '601-001-000-',
+      cuentas: ['Servicios', 'Administración']
+    },
+    {
+      principal: 'GASTOS',
+      secundaria: 'Financieros',
+      prefijoSummary: '701000000000000000',
+      prefijoResumen: '701-001-000-',
+      cuentas: ['Intereses', 'Comisiones bancarias']
+    }
+  ];
+
+  const seccionesModulos = [
+    {
+      principal: 'Operaciones',
+      prefijoResumen: '401-002-000-',
+      cuentas: ['Servicios recurrentes', 'Eventos especiales']
+    },
+    {
+      principal: 'Administración',
+      prefijoResumen: '501-001-000-',
+      cuentas: ['Nómina', 'Sistemas']
+    },
+    {
+      principal: 'Soporte',
+      prefijoResumen: '601-005-000-',
+      cuentas: ['Capacitación', 'Viajes']
+    }
+  ];
+
+  const secciones = esSummary || esResumen ? seccionesResumen : seccionesModulos;
+
+  secciones.forEach((seccion) => {
+    seccion.cuentas.forEach((nombre, index) => {
+      const prefijo = esSummary
+        ? seccion.prefijoSummary
+        : seccion.prefijoResumen;
+      const codigo = crearCodigo(prefijo, index);
+      const cuenta = {
+        CAPITULO: capitulo,
+        CUENTA: codigo,
+        NOMBRE: nombre,
+        orden
+      };
+      if (esSummary || esResumen) {
+        cuenta['SECCIàN Principal'] = seccion.principal;
+        cuenta['SECCION Secundaria'] = seccion.secundaria;
+      } else {
+        cuenta.SECCION = seccion.principal;
+      }
+      cuentas.push(cuenta);
+      orden += 1;
+    });
+  });
+
+  const operaciones = [];
+  if (esSummary || esResumen) {
+    operaciones.push({
+      HOJA: modulo,
+      CAPITULO: capitulo,
+      Clase: 'Resultado Operativo',
+      SECCION: 'RESULTADOS',
+      'sum-row': 'INGRESOS / Membresías',
+      'sum-row-operativo': 'GASTOS / Operativos',
+      'result-row': 'UTILIDAD NETA',
+      signo: 1,
+      signos: {
+        'sum-row': 1,
+        'sum-row-operativo': -1,
+        'result-row': 1
+      }
+    });
+  }
+
+  return { cuentas, operaciones };
+};
+
+const crearLayoutDemo = ({
+  empresaId = 'EMPRESA01',
+  modulo,
+  anio,
+  capitulo,
+  overwrite = false
+}) => {
+  const empresaCanonica = obtenerEmpresaCanonica(empresaId);
+  const anioNumero = Number(anio);
+  const capituloObjetivo = capitulo || 'DEFAULT';
+  if (!modulo || !Number.isInteger(anioNumero)) {
+    return { success: false, mensaje: 'Datos inválidos para generar plantilla.' };
+  }
+
+  if (
+    existeLayoutCapitulo({
+      empresaId: empresaCanonica,
+      modulo,
+      anio: anioNumero,
+      capitulo: capituloObjetivo
+    })
+  ) {
+    if (!overwrite) {
+      return {
+        success: false,
+        conflict: true,
+        mensaje: 'El capítulo ya tiene layout en ese año.'
+      };
+    }
+    eliminarLayoutCapitulo({
+      empresaId: empresaCanonica,
+      modulo,
+      anio: anioNumero,
+      capitulo: capituloObjetivo
+    });
+  }
+
+  const { cuentas, operaciones } = construirPlantillaDemo({
+    modulo,
+    capitulo: capituloObjetivo
+  });
+  guardarCuentas({
+    empresaId: empresaCanonica,
+    modulo,
+    anio: anioNumero,
+    capitulo: capituloObjetivo,
+    cuentas
+  });
+  if (operaciones.length) {
+    guardarOperaciones({
+      empresaId: empresaCanonica,
+      modulo,
+      anio: anioNumero,
+      operaciones
+    });
+  }
+
+  return {
+    success: true,
+    cuentas: cuentas.length,
+    operaciones: operaciones.length,
+    capitulo: capituloObjetivo
+  };
 };
 
 
@@ -581,7 +794,9 @@ module.exports = {
   guardarOperaciones,
   copiarLayout,
   eliminarLayout,
+  eliminarLayoutCapitulo,
   existeLayout,
   obtenerEstadisticasLayout,
-  obtenerEmpresaCanonica
+  obtenerEmpresaCanonica,
+  crearLayoutDemo
 };
