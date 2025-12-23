@@ -10,13 +10,22 @@ const { requireAuth } = require('../middleware/auth');
 const layoutService = require('../services/layoutService');
 const { loadLayoutConfig, saveLayoutConfig } = require('../services/layoutConfigStore');
 
+const normalizarModuleType = (moduleType = '') => {
+  const valor = (moduleType || '').toString();
+  if (valor.startsWith('MODULOS_')) {
+    return 'MODULOS';
+  }
+  return valor;
+};
+
 /**
  * Helper: Validar jerarquía según tipo de módulo
  */
 function validarJerarquia(tipo, context, moduleType) {
   const errors = [];
+  const moduleBase = normalizarModuleType(moduleType);
 
-  if (moduleType === 'SUMMARY') {
+  if (moduleBase === 'SUMMARY') {
     if (tipo === 'cuenta' && (!context.principal || !context.secundaria)) {
       errors.push('Una cuenta en SUMMARY requiere Sección Principal y Secundaria');
     }
@@ -28,7 +37,7 @@ function validarJerarquia(tipo, context, moduleType) {
     }
   }
 
-  if (moduleType === 'RESUMEN') {
+  if (moduleBase === 'RESUMEN') {
     if (tipo === 'cuenta' && (!context.principal || !context.secundaria || !context.operacion)) {
       errors.push('Una cuenta en RESUMEN requiere Principal, Secundaria y Operación');
     }
@@ -43,7 +52,7 @@ function validarJerarquia(tipo, context, moduleType) {
     }
   }
 
-  if (moduleType === 'MODULOS') {
+  if (moduleBase === 'MODULOS') {
     if (tipo === 'cuenta' && !context.seccion) {
       errors.push('Una cuenta en MÓDULOS requiere una Sección');
     }
@@ -124,7 +133,8 @@ function verificarDuplicado(tipo, data, config, moduleType) {
  * Helper: Validar formato de cuenta
  */
 function validarFormato(numero, moduleType) {
-  if (moduleType === 'SUMMARY') {
+  const moduleBase = normalizarModuleType(moduleType);
+  if (moduleBase === 'SUMMARY') {
     // SUMMARY: 21 dígitos consecutivos
     if (!/^\d{21}$/.test(numero)) {
       return { valido: false, mensaje: 'Formato incorrecto. Debe ser 21 dígitos consecutivos (ej: 401000000000000000001)' };
@@ -224,6 +234,7 @@ router.post('/validar', requireAuth, async (req, res) => {
 router.post('/cuenta', requireAuth, async (req, res) => {
   try {
     const { moduleType, context, formData } = req.body;
+    const moduleBase = normalizarModuleType(moduleType);
 
     if (!moduleType || !context || !formData) {
       return res.status(400).json({
@@ -267,7 +278,7 @@ router.post('/cuenta', requireAuth, async (req, res) => {
     // Crear nueva cuenta según el módulo
     let nuevaCuenta;
 
-    if (moduleType === 'SUMMARY') {
+    if (moduleBase === 'SUMMARY') {
       nuevaCuenta = {
         "CAPITULO": context.capitulo || '',
         "SECCIÓN Principal": context.principal || '',
@@ -279,7 +290,7 @@ router.post('/cuenta', requireAuth, async (req, res) => {
       if (!config.SUMMARY) config.SUMMARY = [];
       config.SUMMARY.push(nuevaCuenta);
 
-    } else if (moduleType === 'RESUMEN') {
+    } else if (moduleBase === 'RESUMEN') {
       nuevaCuenta = {
         "CAPITULO": context.capitulo || '',
         "SECCIÓN Principal": context.principal || '',
@@ -338,6 +349,7 @@ router.post('/cuenta', requireAuth, async (req, res) => {
 router.post('/seccion', requireAuth, async (req, res) => {
   try {
     const { moduleType, tipo, context, formData } = req.body;
+    const moduleBase = normalizarModuleType(moduleType);
 
     if (!moduleType || !tipo || !context || !formData) {
       return res.status(400).json({
@@ -373,7 +385,7 @@ router.post('/seccion', requireAuth, async (req, res) => {
     let nuevaSeccion;
     let sumRow;
 
-    if (moduleType === 'SUMMARY') {
+    if (moduleBase === 'SUMMARY') {
       if (tipo === 'principal') {
         nuevaSeccion = {
           "CAPITULO": context.capitulo || '',
@@ -417,7 +429,7 @@ router.post('/seccion', requireAuth, async (req, res) => {
       config.SUMMARY.push(nuevaSeccion);
       config.SUMMARY.push(sumRow);
 
-    } else if (moduleType === 'RESUMEN') {
+    } else if (moduleBase === 'RESUMEN') {
       if (tipo === 'principal') {
         nuevaSeccion = {
           "CAPITULO": context.capitulo || '',
@@ -517,6 +529,7 @@ router.post('/seccion', requireAuth, async (req, res) => {
 router.post('/operacion', requireAuth, async (req, res) => {
   try {
     const { moduleType, context, formData } = req.body;
+    const moduleBase = normalizarModuleType(moduleType);
 
     if (!moduleType || !context || !formData) {
       return res.status(400).json({
@@ -525,7 +538,7 @@ router.post('/operacion', requireAuth, async (req, res) => {
       });
     }
 
-    if (moduleType === 'SUMMARY') {
+    if (moduleBase === 'SUMMARY') {
       return res.status(400).json({
         exito: false,
         mensaje: 'SUMMARY no soporta operaciones'
@@ -559,7 +572,7 @@ router.post('/operacion', requireAuth, async (req, res) => {
     let nuevaOperacion;
     let sumRow;
 
-    if (moduleType === 'RESUMEN') {
+    if (moduleBase === 'RESUMEN') {
       nuevaOperacion = {
         "CAPITULO": context.capitulo || '',
         "SECCIÓN Principal": context.principal || '',
@@ -638,6 +651,7 @@ router.post('/operacion', requireAuth, async (req, res) => {
 router.post('/operacion-sumas', requireAuth, async (req, res) => {
   try {
     const { moduleType, context, formData } = req.body;
+    const moduleBase = normalizarModuleType(moduleType);
 
     if (!moduleType || !context || !formData) {
       return res.status(400).json({
@@ -646,7 +660,7 @@ router.post('/operacion-sumas', requireAuth, async (req, res) => {
       });
     }
 
-    if (!['SUMMARY', 'RESUMEN'].includes(moduleType)) {
+    if (!['SUMMARY', 'RESUMEN'].includes(moduleBase)) {
       return res.status(400).json({
         exito: false,
         mensaje: 'Este tipo de operación solo aplica a SUMMARY/RESUMEN'
