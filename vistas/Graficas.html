@@ -303,23 +303,31 @@
             plan: toNumber(
               data.planMonth ?? data.totalPlanMonth ?? data.plan ?? data.totalPlan ?? data.presupuesto ?? data.totalPresupuesto
             ),
+            prev: toNumber(
+              data.prevMonth ?? data.totalPrevMonth ?? data.prev ?? data.totalPrev ?? data.realPrev ?? data.realAnterior
+            ),
             actualYTD: toNumber(
               data.actualYTD ?? data.totalActualYTD ?? data.actualAcum ?? data.totalActualAcum ?? data.realAcum
             ),
             planYTD: toNumber(
               data.planYTD ?? data.totalPlanYTD ?? data.planAcum ?? data.totalPlanAcum ?? data.presupuestoAcum
+            ),
+            prevYTD: toNumber(
+              data.prevYTD ?? data.totalPrevYTD ?? data.prevAcum ?? data.totalPrevAcum ?? data.realAcumPrev ?? data.realAcumAnterior
             )
           });
           const readTotals = (lbl) => normalizeTotals(get(lbl) || {});
           const sumTotals = (base, add, sign = 1) => ({
             actual: base.actual + (add.actual || 0) * sign,
             plan: base.plan + (add.plan || 0) * sign,
+            prev: base.prev + (add.prev || 0) * sign,
             actualYTD: base.actualYTD + (add.actualYTD || 0) * sign,
-            planYTD: base.planYTD + (add.planYTD || 0) * sign
+            planYTD: base.planYTD + (add.planYTD || 0) * sign,
+            prevYTD: base.prevYTD + (add.prevYTD || 0) * sign
           });
-          const totalsZero = () => ({ actual: 0, plan: 0, actualYTD: 0, planYTD: 0 });
+          const totalsZero = () => ({ actual: 0, plan: 0, prev: 0, actualYTD: 0, planYTD: 0, prevYTD: 0 });
           const hasTotals = (totals) =>
-            [totals?.actual, totals?.plan, totals?.actualYTD, totals?.planYTD].some((v) => toNumber(v) !== 0);
+            [totals?.actual, totals?.plan, totals?.prev, totals?.actualYTD, totals?.planYTD, totals?.prevYTD].some((v) => toNumber(v) !== 0);
           const sumLabels = (labels = []) => {
             let res = totalsZero();
             let found = false;
@@ -456,7 +464,8 @@
               gdl,
               mty,
               nw
-            }
+            },
+            lookup: (labels) => pickFirst(Array.isArray(labels) ? labels : [labels])
           };
         };
 
@@ -469,35 +478,85 @@
 
         const renderCharts = (metrics, capituloLabel, esCdmx) => {
           if (!metrics) return;
-          const chapterLabel = capituloLabel || metrics.chapter || 'Capítulo';
-          const labels = esCdmx
-            ? ['Mexico', 'Guadalajara', 'Monterrey', 'Northwest']
-            : [chapterLabel];
-          const hasData = (totals) =>
-            toNumber(totals?.actual) !== 0 || toNumber(totals?.plan) !== 0 || toNumber(totals?.actualYTD) !== 0;
-          const pickTotals = (primary, fallback) => (hasData(primary) ? primary : (fallback || { actual: 0, plan: 0 }));
-          const regionList = [metrics.regions?.mexico, metrics.regions?.gdl, metrics.regions?.mty, metrics.regions?.nw];
+          const capituloNorm = normalizarLabel(capituloLabel || metrics.chapter || '');
+          const columnaDefs = [
+            { key: 'actual', label: 'Real', color: '#2f5496' },
+            { key: 'plan', label: 'Ppto.', color: '#8fb2ff' },
+            { key: 'prev', label: 'Real mes año anterior', color: '#94a3b8' },
+            { key: 'actualYTD', label: 'Real acumulado', color: '#10b981' },
+            { key: 'planYTD', label: 'Ppto. acumulado', color: '#6ee7b7' },
+            { key: 'prevYTD', label: 'Real acumulado año anterior', color: '#f59e0b' }
+          ];
+          const rowsConfig = (() => {
+            if (capituloNorm.includes('CIUDAD DE MEXICO') || capituloNorm.includes('MEXICO')) {
+              return {
+                operating: [
+                  { label: 'OPERATING RESULTS MEXICO', labels: ['OPERATING RESULTS MEXICO'] },
+                  { label: 'OPERATING RESULTS GUADALAJARA', labels: ['OPERATING RESULTS GUADALAJARA', 'GDL OPERATING RESULTS'] },
+                  { label: 'OPERATING RESULTS MONTERREY', labels: ['OPERATING RESULTS MONTERREY', 'MTY OPERATING RESULTS'] },
+                  {
+                    label: 'OPERATING RESULTS NORTHWEST',
+                    labels: ['OPERATING RESULTS NORTHWEST', 'OPERATING RESULTS NO', 'OPERATING RESULTS NOROESTE', 'NO OPERATING RESULTS']
+                  },
+                  { label: 'CONSOLIDATED OPERATING RESULTS', labels: ['CONSOLIDATED OPERATING RESULTS', 'CONSOLIDATED OPERATING RESULT'] }
+                ],
+                net: [
+                  { label: 'NET RESULTS MEXICO', labels: ['NET RESULTS MEXICO'] },
+                  { label: 'NET RESULTS GUADALAJARA', labels: ['NET RESULTS GUADALAJARA', 'GDL NET RESULTS'] },
+                  { label: 'NET RESULTS MONTERREY', labels: ['NET RESULTS MONTERREY', 'MTY NET RESULTS'] },
+                  { label: 'NET RESULTS NORTHWEST', labels: ['NET RESULTS NORTHWEST', 'NET RESULTS NO', 'NET RESULTS NOROESTE'] },
+                  { label: 'CONSOLIDATED NET RESULTS', labels: ['CONSOLIDATED NET RESULTS', 'CONSOLIDATED NET RESULT'] }
+                ]
+              };
+            }
+            if (capituloNorm.includes('GUADALAJARA') || capituloNorm.includes('GDL')) {
+              return {
+                operating: [{ label: 'GDL OPERATING RESULTS', labels: ['OPERATING RESULTS GUADALAJARA', 'GDL OPERATING RESULTS'] }],
+                net: [{ label: 'NET RESULTS', labels: ['NET RESULTS', 'NET RESULTS GUADALAJARA', 'GDL NET RESULTS'] }]
+              };
+            }
+            if (capituloNorm.includes('NORESTE') || capituloNorm === 'NE') {
+              return {
+                operating: [{ label: 'NE OPERATING RESULTS', labels: ['NE OPERATING RESULTS', 'OPERATING RESULTS NE', 'OPERATING RESULTS NORESTE'] }],
+                net: [{ label: 'NET RESULTS', labels: ['NET RESULTS', 'NET RESULTS NE', 'NET RESULTS NORESTE'] }]
+              };
+            }
+            if (capituloNorm.includes('NOROESTE') || capituloNorm.includes('NORTHWEST') || capituloNorm === 'NO') {
+              return {
+                operating: [{
+                  label: 'NO OPERATING RESULTS',
+                  labels: ['OPERATING RESULTS NORTHWEST', 'OPERATING RESULTS NO', 'OPERATING RESULTS NOROESTE', 'NO OPERATING RESULTS']
+                }],
+                net: [{ label: 'NET RESULTS', labels: ['NET RESULTS NORTHWEST', 'NET RESULTS NO', 'NET RESULTS NOROESTE'] }]
+              };
+            }
+            return {
+              operating: [{ label: 'OPERATING RESULTS', labels: ['OPERATING RESULTS'] }],
+              net: [{ label: 'NET RESULTS', labels: ['NET RESULTS'] }]
+            };
+          })();
+
+          const totalsZero = () => ({ actual: 0, plan: 0, prev: 0, actualYTD: 0, planYTD: 0, prevYTD: 0 });
+          const buildRows = (defs = []) =>
+            defs.map((def) => ({
+              label: def.label,
+              totals: metrics.lookup ? metrics.lookup(def.labels) : totalsZero()
+            }));
+          const buildDatasets = (rows) =>
+            columnaDefs.map((col) => ({
+              label: col.label,
+              data: rows.map((row) => toNumber(row.totals?.[col.key])),
+              backgroundColor: col.color
+            }));
+
+          const operatingRows = buildRows(rowsConfig.operating);
+          const netRows = buildRows(rowsConfig.net);
 
           renderChart('chartOperatingByChapter', {
             type: 'bar',
             data: {
-              labels,
-              datasets: [
-                {
-                  label: 'Operating (Actual)',
-                  data: esCdmx
-                    ? regionList.map((region) => toNumber(region?.operating?.actual))
-                    : [pickTotals(metrics.operating).actual],
-                  backgroundColor: '#2f5496'
-                },
-                {
-                  label: 'Operating (Plan)',
-                  data: esCdmx
-                    ? regionList.map((region) => toNumber(region?.operating?.plan))
-                    : [pickTotals(metrics.operating).plan],
-                  backgroundColor: '#8fb2ff'
-                }
-              ]
+              labels: operatingRows.map((row) => row.label),
+              datasets: buildDatasets(operatingRows)
             },
             options: {
               responsive: true,
@@ -509,23 +568,8 @@
           renderChart('chartNetByChapter', {
             type: 'bar',
             data: {
-              labels,
-              datasets: [
-                {
-                  label: 'Net (Actual)',
-                  data: esCdmx
-                    ? regionList.map((region) => toNumber(region?.net?.actual))
-                    : [pickTotals(metrics.net, metrics.consolidatedNet).actual],
-                  backgroundColor: '#10b981'
-                },
-                {
-                  label: 'Net (Plan)',
-                  data: esCdmx
-                    ? regionList.map((region) => toNumber(region?.net?.plan))
-                    : [pickTotals(metrics.net, metrics.consolidatedNet).plan],
-                  backgroundColor: '#6ee7b7'
-                }
-              ]
+              labels: netRows.map((row) => row.label),
+              datasets: buildDatasets(netRows)
             },
             options: {
               responsive: true,
@@ -538,87 +582,31 @@
           if (cdmxCard) {
             cdmxCard.style.display = esCdmx ? '' : 'none';
           }
-          const cdmx = esCdmx ? metrics : {};
-          renderChart('chartNetCdmx', {
-            type: 'bar',
-            data: {
-              labels: ['Mexico', 'Guadalajara', 'Monterrey', 'Northwest'],
-              datasets: [
-                {
-                  label: 'Real',
-                  data: [
-                    toNumber(cdmx.regions?.mexico?.net?.actual),
-                    toNumber(cdmx.regions?.gdl?.net?.actual),
-                    toNumber(cdmx.regions?.mty?.net?.actual),
-                    toNumber(cdmx.regions?.nw?.net?.actual)
-                  ],
-                  backgroundColor: '#2f5496'
-                },
-                {
-                  label: 'Presupuesto',
-                  data: [
-                    toNumber(cdmx.regions?.mexico?.net?.plan),
-                    toNumber(cdmx.regions?.gdl?.net?.plan),
-                    toNumber(cdmx.regions?.mty?.net?.plan),
-                    toNumber(cdmx.regions?.nw?.net?.plan)
-                  ],
-                  backgroundColor: '#8fb2ff'
-                },
-                {
-                  label: 'Real acumulado',
-                  data: [
-                    toNumber(cdmx.regions?.mexico?.net?.actualYTD),
-                    toNumber(cdmx.regions?.gdl?.net?.actualYTD),
-                    toNumber(cdmx.regions?.mty?.net?.actualYTD),
-                    toNumber(cdmx.regions?.nw?.net?.actualYTD)
-                  ],
-                  backgroundColor: '#10b981'
-                },
-                {
-                  label: 'Presupuesto acumulado',
-                  data: [
-                    toNumber(cdmx.regions?.mexico?.net?.planYTD),
-                    toNumber(cdmx.regions?.gdl?.net?.planYTD),
-                    toNumber(cdmx.regions?.mty?.net?.planYTD),
-                    toNumber(cdmx.regions?.nw?.net?.planYTD)
-                  ],
-                  backgroundColor: '#6ee7b7'
-                }
-              ]
-            },
-            options: {
-              responsive: true,
-              plugins: { legend: { position: 'bottom' } },
-              scales: { y: { beginAtZero: true } }
-            }
-          });
+          if (esCdmx) {
+            renderChart('chartNetCdmx', {
+              type: 'bar',
+              data: {
+                labels: netRows.map((row) => row.label),
+                datasets: buildDatasets(netRows)
+              },
+              options: {
+                responsive: true,
+                plugins: { legend: { position: 'bottom' } },
+                scales: { y: { beginAtZero: true } }
+              }
+            });
+          }
+
+          const consolidatedRows = buildRows([
+            { label: 'CONSOLIDATED OPERATING RESULTS', labels: ['CONSOLIDATED OPERATING RESULTS', 'CONSOLIDATED OPERATING RESULT'] },
+            { label: 'CONSOLIDATED NET RESULTS', labels: ['CONSOLIDATED NET RESULTS', 'CONSOLIDATED NET RESULT'] }
+          ]);
 
           renderChart('chartConsolidatedResults', {
             type: 'bar',
             data: {
-              labels,
-              datasets: [
-                {
-                  label: 'Consolidated Operating (Actual)',
-                  data: [metrics.consolidatedOperating.actual],
-                  backgroundColor: '#f59e0b'
-                },
-                {
-                  label: 'Consolidated Operating (Plan)',
-                  data: [metrics.consolidatedOperating.plan],
-                  backgroundColor: '#fcd34d'
-                },
-                {
-                  label: 'Consolidated Net (Actual)',
-                  data: [metrics.consolidatedNet.actual],
-                  backgroundColor: '#9333ea'
-                },
-                {
-                  label: 'Consolidated Net (Plan)',
-                  data: [metrics.consolidatedNet.plan],
-                  backgroundColor: '#c4b5fd'
-                }
-              ]
+              labels: consolidatedRows.map((row) => row.label),
+              datasets: buildDatasets(consolidatedRows)
             },
             options: {
               responsive: true,
@@ -631,27 +619,30 @@
         const renderChapterSummaryCharts = (summaries) => {
           if (!Array.isArray(summaries) || !summaries.length) return;
           const labels = summaries.map((item) => item.etiqueta || item.capitulo || 'Capítulo');
-          const operatingActual = summaries.map((item) => toNumber(item.metrics?.operating?.actual));
-          const operatingPlan = summaries.map((item) => toNumber(item.metrics?.operating?.plan));
-          const netActual = summaries.map((item) => toNumber(item.metrics?.net?.actual));
-          const netPlan = summaries.map((item) => toNumber(item.metrics?.net?.plan));
+          const columnaDefs = [
+            { key: 'actual', label: 'Real', color: '#2f5496' },
+            { key: 'plan', label: 'Ppto.', color: '#8fb2ff' },
+            { key: 'prev', label: 'Real mes año anterior', color: '#94a3b8' },
+            { key: 'actualYTD', label: 'Real acumulado', color: '#10b981' },
+            { key: 'planYTD', label: 'Ppto. acumulado', color: '#6ee7b7' },
+            { key: 'prevYTD', label: 'Real acumulado año anterior', color: '#f59e0b' }
+          ];
+          const pickTotals = (item, key) =>
+            toNumber((item.metrics?.consolidatedOperating?.[key] ?? item.metrics?.operating?.[key]) || 0);
+          const pickNetTotals = (item, key) =>
+            toNumber((item.metrics?.consolidatedNet?.[key] ?? item.metrics?.net?.[key]) || 0);
+          const buildDatasets = (getter) =>
+            columnaDefs.map((col) => ({
+              label: col.label,
+              data: summaries.map((item) => getter(item, col.key)),
+              backgroundColor: col.color
+            }));
 
           renderChart('chartOperatingSummaryByChapter', {
             type: 'bar',
             data: {
               labels,
-              datasets: [
-                {
-                  label: 'Operating (Actual)',
-                  data: operatingActual,
-                  backgroundColor: '#2f5496'
-                },
-                {
-                  label: 'Operating (Plan)',
-                  data: operatingPlan,
-                  backgroundColor: '#8fb2ff'
-                }
-              ]
+              datasets: buildDatasets(pickTotals)
             },
             options: {
               responsive: true,
@@ -664,18 +655,7 @@
             type: 'bar',
             data: {
               labels,
-              datasets: [
-                {
-                  label: 'Net (Actual)',
-                  data: netActual,
-                  backgroundColor: '#10b981'
-                },
-                {
-                  label: 'Net (Plan)',
-                  data: netPlan,
-                  backgroundColor: '#6ee7b7'
-                }
-              ]
+              datasets: buildDatasets(pickNetTotals)
             },
             options: {
               responsive: true,
