@@ -146,6 +146,58 @@
 
   const parseText = (texto) => (texto || '').toString().trim();
 
+  // Snapshot local de la tabla RESUMEN para que otras vistas (Graficas) usen exactamente lo que ve el usuario
+  const SNAPSHOT_PREFIX = 'resumen_tabla_snapshot';
+  const buildSnapshotKey = (empresaId, anio, mes) => `${SNAPSHOT_PREFIX}:${empresaId || 'sin'}:${anio || 'sin'}:${mes || 'sin'}`;
+  const capturarTablaResumen = (empresaId, anio, mes, capituloLabel) => {
+    try {
+      const tabla = document.querySelector('#tablaComparacion tbody');
+      if (!tabla) return null;
+      const filas = Array.from(tabla.querySelectorAll('tr'));
+      const datos = [];
+      filas.forEach((fila) => {
+        const celdas = Array.from(fila.querySelectorAll('td'));
+        if (celdas.length < 9) return; // requerimos columnas de valores
+        const label = parseText(celdas[6]?.textContent || '');
+        if (!label) return;
+        const safeNumber = (celda) => parseNumber(celda?.textContent || '');
+        const registro = {
+          label,
+          totals: {
+            actual: safeNumber(celdas[1]),
+            plan: safeNumber(celdas[2]),
+            prev: safeNumber(celdas[3]),
+            actualYTD: safeNumber(celdas[7]),
+            planYTD: safeNumber(celdas[8]),
+            prevYTD: safeNumber(celdas[9])
+          }
+        };
+        datos.push(registro);
+      });
+      return {
+        empresaId,
+        anio,
+        mes,
+        capitulo: capituloLabel || '',
+        createdAt: Date.now(),
+        filas: datos
+      };
+    } catch (err) {
+      console.warn('No se pudo capturar snapshot de tabla RESUMEN', err);
+      return null;
+    }
+  };
+  const guardarSnapshotTabla = (snapshot) => {
+    if (!snapshot?.empresaId || !snapshot?.anio || !snapshot?.mes || !Array.isArray(snapshot?.filas)) return;
+    const key = buildSnapshotKey(snapshot.empresaId, snapshot.anio, snapshot.mes);
+    try {
+      localStorage.setItem(key, JSON.stringify(snapshot));
+      window.RESUMEN_SNAPSHOT = snapshot; // acceso inmediato para la misma p�gina
+    } catch (err) {
+      console.warn('No se pudo guardar snapshot RESUMEN', err);
+    }
+  };
+
   const COLUMN_TOOLTIPS = {
     actualMonth: 'Real del mes consultado segun el layout RESUMEN. Se alimenta de los saldos reales del servicio de planeacion para las cuentas mapeadas en "CUENTAS SUMMARY Y RESUMEN.xlsx".',
     planMonth: 'Presupuesto del mes (PRESUP01..12 de la tabla PRESUPYY) para las cuentas del bloque seleccionado.',
@@ -1369,6 +1421,9 @@ const cargarAniosDisponibles = async (empresaId, preferido) => {
       const anioNumero = Number(anio);
       aplicarLayoutPersistente(empresaId, anioNumero, datos?.resumen || []);
       renderResumen(datos.resumen || [], mesEntero);
+      const capituloLabel = obtenerCapituloEmpresa(empresaId) || '';
+      const snapshot = capturarTablaResumen(empresaId, anioNumero, Number.isInteger(mesEntero) ? mesEntero : mes, capituloLabel);
+      if (snapshot) guardarSnapshotTabla(snapshot);
       actualizarEtiquetasAnio(anioNumero);
       disposeStatus();
     } catch (error) {

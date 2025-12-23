@@ -291,73 +291,333 @@
 
         const toNumber = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 
-        const buildMetrics = (resumen = []) => {
-          if (!Array.isArray(resumen) || !resumen.length) return null;
-          const nodo = resumen[0] || {};
-          const mapa = flattenLabels(nodo.layout || nodo.children || []);
-          const get = (lbl) => mapa.get(normalizarLabel(lbl)) || null;
-          const normalizeTotals = (data = {}) => ({
-            actual: toNumber(
-              data.actualMonth ?? data.totalActualMonth ?? data.actual ?? data.totalActual ?? data.real ?? data.totalReal
-            ),
-            plan: toNumber(
-              data.planMonth ?? data.totalPlanMonth ?? data.plan ?? data.totalPlan ?? data.presupuesto ?? data.totalPresupuesto
-            ),
-            prev: toNumber(
-              data.prevMonth ?? data.totalPrevMonth ?? data.prev ?? data.totalPrev ?? data.realPrev ?? data.realAnterior
-            ),
-            actualYTD: toNumber(
-              data.actualYTD ?? data.totalActualYTD ?? data.actualAcum ?? data.totalActualAcum ?? data.realAcum
-            ),
-            planYTD: toNumber(
-              data.planYTD ?? data.totalPlanYTD ?? data.planAcum ?? data.totalPlanAcum ?? data.presupuestoAcum
-            ),
-            prevYTD: toNumber(
-              data.prevYTD ?? data.totalPrevYTD ?? data.prevAcum ?? data.totalPrevAcum ?? data.realAcumPrev ?? data.realAcumAnterior
-            )
-          });
-          const readTotals = (lbl) => normalizeTotals(get(lbl) || {});
-          const sumTotals = (base, add, sign = 1) => ({
-            actual: base.actual + (add.actual || 0) * sign,
-            plan: base.plan + (add.plan || 0) * sign,
-            prev: base.prev + (add.prev || 0) * sign,
-            actualYTD: base.actualYTD + (add.actualYTD || 0) * sign,
-            planYTD: base.planYTD + (add.planYTD || 0) * sign,
-            prevYTD: base.prevYTD + (add.prevYTD || 0) * sign
-          });
-          const totalsZero = () => ({ actual: 0, plan: 0, prev: 0, actualYTD: 0, planYTD: 0, prevYTD: 0 });
-          const hasTotals = (totals) =>
-            [totals?.actual, totals?.plan, totals?.prev, totals?.actualYTD, totals?.planYTD, totals?.prevYTD].some((v) => toNumber(v) !== 0);
-          const sumLabels = (labels = []) => {
-            let res = totalsZero();
-            let found = false;
-            labels.forEach((label) => {
-              const data = get(label);
-              if (data) {
-                res = sumTotals(res, normalizeTotals(data), 1);
-                found = true;
-              }
+        const SNAPSHOT_PREFIX = 'resumen_tabla_snapshot';
+        const buildSnapshotKey = (empresaId, anio, mes) => `${SNAPSHOT_PREFIX}:${empresaId || 'sin'}:${anio || 'sin'}:${mes || 'sin'}`;
+        const leerSnapshotTabla = (empresaId, anio, mes, capituloActual) => {
+          try {
+            const key = buildSnapshotKey(empresaId, anio, mes);
+            const raw = localStorage.getItem(key);
+            if (!raw) return null;
+            const data = JSON.parse(raw);
+            const capituloSnap = (data?.capitulo || '').toString().trim().toUpperCase();
+            const capituloNorm = normalizarLabel(capituloActual || '');
+            if (capituloSnap && normalizarLabel(capituloSnap) !== capituloNorm) return null;
+            const map = new Map();
+            (data?.filas || []).forEach((fila) => {
+              const lbl = normalizarLabel(fila?.label || '');
+              if (!lbl) return;
+              map.set(lbl, {
+                actual: toNumber(fila?.totals?.actual),
+                plan: toNumber(fila?.totals?.plan),
+                prev: toNumber(fila?.totals?.prev),
+                actualYTD: toNumber(fila?.totals?.actualYTD),
+                planYTD: toNumber(fila?.totals?.planYTD),
+                prevYTD: toNumber(fila?.totals?.prevYTD)
+              });
             });
-            return found ? res : totalsZero();
-          };
-          const pickFirst = (labels = []) => {
-            for (const label of labels) {
-              const data = get(label);
-              if (data) return normalizeTotals(data);
+            return { ...data, map };
+          } catch (err) {
+            console.warn('No se pudo leer snapshot de tabla RESUMEN', err);
+            return null;
+          }
+        };
+
+          const buildMetrics = (resumen = [], snapshotMap = null) => {
+            if ((!Array.isArray(resumen) || !resumen.length) && snapshotMap) {
+              resumen = [{}];
             }
-            return totalsZero();
-          };
-          const opFromIncomeExpense = (incomeLabels, expenseLabels) => {
-            const income = sumLabels(incomeLabels);
-            const expense = sumLabels(expenseLabels);
-            return sumTotals(income, expense, -1);
-          };
-          const netFromParts = (operatingTotals, memberLabels, otherLabels) => {
-            const member = sumLabels(memberLabels);
-            const other = sumLabels(otherLabels);
-            const base = totalsZero();
-            return sumTotals(sumTotals(sumTotals(base, operatingTotals, 1), member, -1), other, 1);
-          };
+            if (!Array.isArray(resumen) || !resumen.length) return null;
+            const nodo = resumen[0] || {};
+
+            const cloneLayout = (arr) => JSON.parse(JSON.stringify(Array.isArray(arr) ? arr : []));
+            const layout = cloneLayout(nodo.layout || nodo.children || []);
+
+            const normalizeTotals = (data = {}) => ({
+              actual: toNumber(
+                data.actualMonth ?? data.totalActualMonth ?? data.actual ?? data.totalActual ?? data.real ?? data.totalReal
+              ),
+              plan: toNumber(
+                data.planMonth ?? data.totalPlanMonth ?? data.plan ?? data.totalPlan ?? data.presupuesto ?? data.totalPresupuesto
+              ),
+              prev: toNumber(
+                data.prevMonth ?? data.totalPrevMonth ?? data.prev ?? data.totalPrev ?? data.realPrev ?? data.realAnterior
+              ),
+              actualYTD: toNumber(
+                data.actualYTD ?? data.totalActualYTD ?? data.actualAcum ?? data.totalActualAcum ?? data.realAcum
+              ),
+              planYTD: toNumber(
+                data.planYTD ?? data.totalPlanYTD ?? data.planAcum ?? data.totalPlanAcum ?? data.presupuestoAcum
+              ),
+              prevYTD: toNumber(
+                data.prevYTD ?? data.totalPrevYTD ?? data.prevAcum ?? data.totalPrevAcum ?? data.realAcumPrev ?? data.realAcumAnterior
+              )
+            });
+            const totalsZero = () => ({ actual: 0, plan: 0, prev: 0, actualYTD: 0, planYTD: 0, prevYTD: 0 });
+            const sumTotals = (base, add, sign = 1) => ({
+              actual: base.actual + (add.actual || 0) * sign,
+              plan: base.plan + (add.plan || 0) * sign,
+              prev: base.prev + (add.prev || 0) * sign,
+              actualYTD: base.actualYTD + (add.actualYTD || 0) * sign,
+              planYTD: base.planYTD + (add.planYTD || 0) * sign,
+              prevYTD: base.prevYTD + (add.prevYTD || 0) * sign
+            });
+            const hasTotals = (totals) =>
+              [totals?.actual, totals?.plan, totals?.prev, totals?.actualYTD, totals?.planYTD, totals?.prevYTD].some((v) => toNumber(v) !== 0);
+
+            // Replica de la lógica de recalculo de RESUMEN para usar los mismos totales de la tabla
+            const recalcularConsolidados = (layoutArr = [], capituloName = '') => {
+              if (!Array.isArray(layoutArr) || !layoutArr.length) return;
+              const capituloNormalizado = normalizarLabel(capituloName);
+              const esCapituloMexico = capituloNormalizado === 'CIUDAD DE MEXICO';
+              const esCapituloGuadalajara = capituloNormalizado === 'GUADALAJARA';
+              const esCapituloNoreste = capituloNormalizado === 'NORESTE' || capituloNormalizado === 'NE';
+              const esCapituloNoroeste = ['NOROESTE', 'NO', 'NORTHWEST'].includes(capituloNormalizado);
+              const labelMap = new Map(layoutArr.map((b) => [normalizarLabel(b.label || ''), b]));
+              const obtenerPorLabels = (candidatos = []) => {
+                for (const lbl of candidatos) {
+                  const block = labelMap.get(normalizarLabel(lbl));
+                  if (block) return normalizeTotals(block.totals || {});
+                }
+                return totalsZero();
+              };
+              const asignarPrimero = (labels = [], totals) => {
+                for (const lbl of labels) {
+                  const block = labelMap.get(normalizarLabel(lbl));
+                  if (block && totals) {
+                    block.totals = totals;
+                    return block;
+                  }
+                }
+                return null;
+              };
+
+              const INCOME_LABELS = {
+                mex: ['CDMX INCOME', 'MEXICO INCOME'],
+                gdl: ['GUADALAJARA INCOME', 'GDL INCOME'],
+                mty: ['MONTERREY INCOME', 'MTY INCOME'],
+                nw: ['NORTHWEST INCOME', 'NW INCOME', 'NOROESTE INCOME', 'NO INCOME'],
+                ne: ['NE INCOME', 'NORESTE INCOME']
+              };
+              const EXPENSE_LABELS = {
+                mex: ['CDMX EXPENSE', 'MEXICO EXPENSE'],
+                gdl: ['GUADALAJARA EXPENSE', 'GDL EXPENSE'],
+                mty: ['MONTERREY EXPENSE', 'MTY EXPENSE'],
+                nw: ['NORTHWEST EXPENSE', 'NW EXPENSE', 'NOROESTE EXPENSE', 'NO EXPENSE'],
+                ne: ['NE EXPENSE', 'NORESTE EXPENSE']
+              };
+              const sumaTotales = (dest, src, signo = 1) => {
+                if (!src) return;
+                dest.actual += toNumber(src.actual) * signo;
+                dest.plan += toNumber(src.plan) * signo;
+                dest.prev += toNumber(src.prev) * signo;
+                dest.actualYTD += toNumber(src.actualYTD) * signo;
+                dest.planYTD += toNumber(src.planYTD) * signo;
+                dest.prevYTD += toNumber(src.prevYTD) * signo;
+              };
+              const combinar = (sumarLabels = [], restarLabels = []) => {
+                const res = totalsZero();
+                sumarLabels.forEach((lbl) => sumaTotales(res, labelMap.get(normalizarLabel(lbl))?.totals, 1));
+                restarLabels.forEach((lbl) => sumaTotales(res, labelMap.get(normalizarLabel(lbl))?.totals, -1));
+                return res;
+              };
+              const asignar = (label, totals) => {
+                const block = labelMap.get(normalizarLabel(label));
+                if (block && totals) {
+                  block.totals = totals;
+                }
+              };
+
+              const opResults = {
+                mex: combinar(INCOME_LABELS.mex, EXPENSE_LABELS.mex),
+                gdl: combinar(INCOME_LABELS.gdl, EXPENSE_LABELS.gdl),
+                mty: combinar(INCOME_LABELS.mty, EXPENSE_LABELS.mty),
+                nw: combinar(INCOME_LABELS.nw, EXPENSE_LABELS.nw),
+                ne: combinar(INCOME_LABELS.ne, EXPENSE_LABELS.ne)
+              };
+              asignarPrimero(['OPERATING RESULTS MEXICO'], opResults.mex);
+              asignarPrimero(['OPERATING RESULTS GUADALAJARA', 'GDL OPERATING RESULTS'], opResults.gdl);
+              asignarPrimero(['OPERATING RESULTS MONTERREY', 'MTY OPERATING RESULTS'], opResults.mty);
+              asignarPrimero(['OPERATING RESULTS NORTHWEST', 'OPERATING RESULTS NO', 'OPERATING RESULTS NOROESTE', 'NO OPERATING RESULTS'], opResults.nw);
+              asignarPrimero(['OPERATING RESULTS NE', 'NE OPERATING RESULTS', 'OPERATING RESULTS NORESTE'], opResults.ne);
+
+              const memberCentricityMx = obtenerPorLabels(['MEMBER CENTRICITY', 'Member Centricity', 'Member Centricity CDMX', 'Member Centricity Mexico']);
+              const memberCentricityGdl = obtenerPorLabels(['Member Centricity GDL', 'Member Centricity Guadalajara', 'GDL Member Centricity', 'Guadalajara Member Centricity', 'Member Centricity']);
+              const memberCentricityNe = obtenerPorLabels(['Member Centricity NE', 'Member Centricity Noreste', 'NE Member Centricity', 'NORESTE Member Centricity', 'Member Centricity']);
+              const memberCentricityNw = obtenerPorLabels([
+                'Member Centricity NW',
+                'Member Centricity NorthWest',
+                'Member Centricity NO',
+                'Member Centricity NOROESTE',
+                'NORTHWEST Member Centricity',
+                'NOROESTE Member Centricity',
+                'Member Centricity'
+              ]);
+              const otherMx = obtenerPorLabels(['Other (MEXICO)', 'Other Income Mexico']);
+              const otherGdl = obtenerPorLabels([
+                'Guadalajara Other Income',
+                'GDL Other Income',
+                'Other Guadalajara',
+                'Other GDL',
+                'Other',
+                'Otros ingresos',
+                'OTROS INGRESOS'
+              ]);
+              const otherGdlMexico = obtenerPorLabels([
+                'Guadalajara Other Income',
+                'GDL Other Income',
+                'Other Guadalajara',
+                'Other GDL'
+              ]);
+              const otherMty = obtenerPorLabels(['Monterrey Other Income', 'MTY Other Income']);
+              const otherNw = obtenerPorLabels([
+                'Northwest Other Income',
+                'NW Other Income',
+                'NO Other Income',
+                'NOROESTE Other Income',
+                'Other',
+                'Otros ingresos',
+                'OTROS INGRESOS'
+              ]);
+              const otherNe = obtenerPorLabels([
+                'NE Other Income',
+                'Noreste Other Income',
+                'NE Other',
+                'NORESTE Other Income',
+                'Other',
+                'Otros ingresos',
+                'OTROS INGRESOS'
+              ]);
+
+              const netResultsDefs = [];
+
+              if (esCapituloMexico) {
+                netResultsDefs.push(
+                  { op: ['OPERATING RESULTS MEXICO'], mc: memberCentricityMx, other: otherMx, labels: ['NET RESULTS MEXICO'] },
+                  {
+                    op: ['OPERATING RESULTS GUADALAJARA', 'GDL OPERATING RESULTS'],
+                    mc: totalsZero(),
+                    other: otherGdlMexico,
+                    labels: ['NET RESULTS GUADALAJARA', 'GDL NET RESULTS']
+                  },
+                  { op: ['OPERATING RESULTS MONTERREY', 'MTY OPERATING RESULTS'], mc: totalsZero(), other: otherMty, labels: ['NET RESULTS MONTERREY', 'MTY NET RESULTS'] },
+                  {
+                    op: ['OPERATING RESULTS NORTHWEST', 'OPERATING RESULTS NO', 'OPERATING RESULTS NOROESTE', 'NO OPERATING RESULTS'],
+                    mc: totalsZero(),
+                    other: otherNw,
+                    labels: ['NET RESULTS NORTHWEST', 'NET RESULTS NO', 'NET RESULTS NOROESTE']
+                  }
+                );
+              } else if (esCapituloGuadalajara) {
+                netResultsDefs.push({
+                  op: ['OPERATING RESULTS GUADALAJARA', 'GDL OPERATING RESULTS'],
+                  mc: memberCentricityGdl,
+                  other: otherGdl,
+                  labels: ['NET RESULTS', 'NET RESULTS GUADALAJARA', 'GDL NET RESULTS']
+                });
+              } else if (esCapituloNoreste) {
+                netResultsDefs.push({
+                  op: ['OPERATING RESULTS NE', 'NE OPERATING RESULTS', 'OPERATING RESULTS NORESTE'],
+                  mc: memberCentricityNe,
+                  other: otherNe,
+                  labels: ['NET RESULTS', 'NET RESULTS NE', 'NET RESULTS NORESTE']
+                });
+              } else if (esCapituloNoroeste) {
+                netResultsDefs.push({
+                  op: ['OPERATING RESULTS NORTHWEST', 'OPERATING RESULTS NO', 'OPERATING RESULTS NOROESTE', 'NO OPERATING RESULTS'],
+                  mc: memberCentricityNw,
+                  other: otherNw,
+                  labels: ['NET RESULTS', 'NET RESULTS NORTHWEST', 'NET RESULTS NO', 'NET RESULTS NOROESTE']
+                });
+              } else {
+                netResultsDefs.push(
+                  { op: ['OPERATING RESULTS MEXICO'], mc: memberCentricityMx, other: otherMx, labels: ['NET RESULTS MEXICO'] },
+                  {
+                    op: ['OPERATING RESULTS GUADALAJARA', 'GDL OPERATING RESULTS'],
+                    mc: memberCentricityGdl,
+                    other: otherGdl,
+                    labels: ['NET RESULTS GUADALAJARA', 'GDL NET RESULTS']
+                  },
+                  { op: ['OPERATING RESULTS MONTERREY', 'MTY OPERATING RESULTS'], mc: totalsZero(), other: otherMty, labels: ['NET RESULTS MONTERREY', 'MTY NET RESULTS'] },
+                  {
+                    op: ['OPERATING RESULTS NORTHWEST', 'OPERATING RESULTS NO', 'OPERATING RESULTS NOROESTE', 'NO OPERATING RESULTS'],
+                    mc: memberCentricityNw,
+                    other: otherNw,
+                    labels: ['NET RESULTS NORTHWEST', 'NET RESULTS NO', 'NET RESULTS NOROESTE']
+                  },
+                  { op: ['OPERATING RESULTS NE', 'NE OPERATING RESULTS', 'OPERATING RESULTS NORESTE'], mc: memberCentricityNe, other: otherNe, labels: ['NET RESULTS NE', 'NET RESULTS NORESTE'] }
+                );
+              }
+
+              netResultsDefs.forEach(({ op, mc, other, labels }) => {
+                const totals = combinar(op, []);
+                const bloque = asignarPrimero(labels, totals);
+                if (bloque) {
+                  bloque.totals = bloque.totals || totalsZero();
+                  sumaTotales(bloque.totals, mc, -1);
+                  sumaTotales(bloque.totals, other, 1);
+                }
+              });
+
+              if (esCapituloMexico) {
+                asignar('CONSOLIDATED INCOME', combinar(
+                  [...INCOME_LABELS.mex, ...INCOME_LABELS.gdl, ...INCOME_LABELS.mty, ...INCOME_LABELS.nw]
+                ));
+                asignar('CONSOLIDATED EXPENSES', combinar(
+                  [...EXPENSE_LABELS.mex, ...EXPENSE_LABELS.gdl, ...EXPENSE_LABELS.mty, ...EXPENSE_LABELS.nw]
+                ));
+                asignar('CONSOLIDATED OPERATING RESULTS', combinar(
+                  [
+                    'OPERATING RESULTS MEXICO',
+                    'OPERATING RESULTS GUADALAJARA',
+                    'OPERATING RESULTS MONTERREY',
+                    'OPERATING RESULTS NORTHWEST',
+                    'OPERATING RESULTS NO',
+                    'OPERATING RESULTS NOROESTE',
+                    'NO OPERATING RESULTS'
+                  ]
+                ));
+                asignar('CONSOLIDATED NET RESULTS', combinar(
+                  ['NET RESULTS MEXICO', 'NET RESULTS GUADALAJARA', 'NET RESULTS MONTERREY', 'NET RESULTS NORTHWEST', 'NET RESULTS NO', 'NET RESULTS NOROESTE']
+                ));
+              }
+            };
+
+            // recalcular totales usando la misma lógica que RESUMEN
+            recalcularConsolidados(layout, nodo.label || nodo.capitulo || '');
+
+            const mapa = flattenLabels(layout);
+            const get = (lbl) => snapshotMap?.get(normalizarLabel(lbl)) || mapa.get(normalizarLabel(lbl)) || null;
+            const readTotals = (lbl) => normalizeTotals(get(lbl) || {});
+            const sumLabels = (labels = []) => {
+              let res = totalsZero();
+              let found = false;
+              labels.forEach((label) => {
+                const data = get(label);
+                if (data) {
+                  res = sumTotals(res, normalizeTotals(data), 1);
+                  found = true;
+                }
+              });
+              return found ? res : totalsZero();
+            };
+            const pickFirst = (labels = []) => {
+              for (const label of labels) {
+                const data = get(label);
+                if (data) return normalizeTotals(data);
+              }
+              return totalsZero();
+            };
+            const opFromIncomeExpense = (incomeLabels, expenseLabels) => {
+              const income = sumLabels(incomeLabels);
+              const expense = sumLabels(expenseLabels);
+              return sumTotals(income, expense, -1);
+            };
+            const netFromParts = (operatingTotals, memberLabels, otherLabels) => {
+              const member = sumLabels(memberLabels);
+              const other = sumLabels(otherLabels);
+              const base = totalsZero();
+              return sumTotals(sumTotals(sumTotals(base, operatingTotals, 1), member, -1), other, 1);
+            };
 
           const REGION_LABELS = {
             mex: {
@@ -755,6 +1015,14 @@
           const anioValido = Number.isInteger(anio) && anio > 0 ? anio : new Date().getFullYear();
           const mesValido = elegirMesValido(mes);
           persistirContexto(anioValido, mesValido);
+          const snapshot = leerSnapshotTabla(empresa.id, anioValido, mesValido, capitulo);
+          if (snapshot?.map) {
+            const metrics = buildMetrics(snapshot.resumen || [], snapshot.map);
+            const esCdmx = normalizarLabel(capitulo).includes('CIUDAD DE MEXICO');
+            renderCharts(metrics, etiqueta || capitulo, esCdmx);
+            await loadChapterSummaries(anioValido, mesValido);
+            return;
+          }
           try {
             const url = new URL(API_ENDPOINT);
             url.searchParams.set('empresaId', empresa.id);
