@@ -62,7 +62,8 @@
     "asar": true,
     "asarUnpack": [
       "node_modules/better-sqlite3/**/*",
-      "node_modules/node-firebird/**/*"
+      "node_modules/node-firebird/**/*",
+      "native_modules/**/*"
     ],
     "compression": "maximum",
     "directories": {
@@ -77,6 +78,7 @@
       "image/**/*",
       "mds/**/*",
       "scripts/**/*",
+      "native_modules/**/*",
       ".env.production",
       ".env.development",
       "node_modules/**/*",
