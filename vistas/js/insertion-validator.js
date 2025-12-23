@@ -79,6 +79,13 @@
             severity: 'error'
           });
         }
+        if (tipo === 'operacion_sumas' && (!context.secundaria || !context.principal)) {
+          errors.push({
+            field: 'jerarquia',
+            message: 'Una operación de sumas debe estar dentro de una Secundaria (que está en una Principal)',
+            severity: 'error'
+          });
+        }
       }
 
       if (moduleType === 'RESUMEN') {
@@ -86,6 +93,13 @@
           errors.push({
             field: 'jerarquia',
             message: 'Una Operación debe estar en una Secundaria (que está en una Principal)',
+            severity: 'error'
+          });
+        }
+        if (tipo === 'operacion_sumas' && (!context.secundaria || !context.principal)) {
+          errors.push({
+            field: 'jerarquia',
+            message: 'Una operación de sumas debe estar en una Secundaria (que está en una Principal)',
             severity: 'error'
           });
         }
@@ -218,6 +232,32 @@
       }
 
       if (tipo !== 'cuenta') {
+        if (tipo === 'operacion_sumas') {
+          if (!formData.clase || formData.clase.trim() === '') {
+            errors.push({
+              field: 'clase',
+              message: 'La clase es obligatoria para operaciones de sumas',
+              severity: 'error'
+            });
+          }
+          if (!formData.seccion && (!context.secundaria || context.secundaria.trim() === '')) {
+            errors.push({
+              field: 'seccion',
+              message: 'Selecciona la sección secundaria para la operación',
+              severity: 'error'
+            });
+          }
+          const operaciones = formData.operaciones || {};
+          const tieneOperacion = Object.values(operaciones).some((value) => value);
+          if (!tieneOperacion) {
+            errors.push({
+              field: 'operaciones',
+              message: 'Define al menos una etiqueta de operación',
+              severity: 'error'
+            });
+          }
+          return errors;
+        }
         // Validar nombre de sección/operación
         if (!formData.nombre || formData.nombre.trim() === '') {
           errors.push({
@@ -238,7 +278,7 @@
       }
 
       const factorValor = formData.factor ?? formData.operacionFactor;
-      if (!Number.isFinite(Number(factorValor))) {
+      if (tipo !== 'operacion_sumas' && !Number.isFinite(Number(factorValor))) {
         errors.push({
           field: 'factor',
           message: 'Selecciona si la fila suma, resta o usa un factor numérico.',
@@ -380,12 +420,14 @@
       return {
         SUMMARY: {
           cuenta: { hierarchy: ['capitulo', 'principal', 'secundaria'] },
+          operacion_sumas: { hierarchy: ['capitulo', 'principal', 'secundaria'] },
           secundaria: { hierarchy: ['capitulo', 'principal'] },
           principal: { hierarchy: ['capitulo'] }
         },
         RESUMEN: {
           cuenta: { hierarchy: ['capitulo', 'principal', 'secundaria', 'operacion'] },
           operacion: { hierarchy: ['capitulo', 'principal', 'secundaria'] },
+          operacion_sumas: { hierarchy: ['capitulo', 'principal', 'secundaria'] },
           secundaria: { hierarchy: ['capitulo', 'principal'] },
           principal: { hierarchy: ['capitulo'] }
         },
