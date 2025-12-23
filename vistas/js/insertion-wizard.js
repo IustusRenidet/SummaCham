@@ -123,14 +123,20 @@
     /**
      * Abre el wizard
      */
-    open(referenceRow = null) {
+    open(referenceRow = null, options = {}) {
       if (!this.isEditModeAllowed()) {
         alert('❌ Debes activar el modo edición antes de usar el wizard de inserción.');
         return;
       }
-      this.moduleType = this.detectModuleType();
-      this.contextData = this.extractContextFromRow(referenceRow);
-      this.formData = { factor: null, factorChoice: '', operaciones: {} };
+      const { moduleType, capitulo, anio, prefillContext } = options;
+      this.moduleType = moduleType || this.detectModuleType();
+      this.contextData = {
+        ...this.extractContextFromRow(referenceRow),
+        ...(prefillContext || {})
+      };
+      if (capitulo) this.contextData.capitulo = capitulo;
+      if (anio) this.contextData.anio = anio;
+      this.formData = { factor: null, factorChoice: '', operaciones: {}, customOperaciones: [] };
 
       const tieneTipo = Boolean(this.selectedType);
       if (!tieneTipo) {
@@ -145,7 +151,8 @@
     },
 
     isEditModeAllowed() {
-      const flujo = window.__flujoAutorizacionInstance;
+      const flujo = window.__flujoAutorizacionInstance || window.parent?.__flujoAutorizacionInstance;
+      const modoEdicionApi = window.ModoEdicionPresupuesto || window.parent?.ModoEdicionPresupuesto;
       const estadosPermitidos = ['EDITANDO', 'BORRADOR', 'CARGANDO'];
       let modoEdicion = false;
       let estado = 'SIN_CARGAR';
@@ -155,13 +162,13 @@
         modoEdicion = Boolean(flujo.state?.editMode);
       }
 
-      if (!modoEdicion && window.ModoEdicionPresupuesto?.estaActivo) {
-        modoEdicion = window.ModoEdicionPresupuesto.estaActivo();
+      if (!modoEdicion && modoEdicionApi?.estaActivo) {
+        modoEdicion = modoEdicionApi.estaActivo();
         if (modoEdicion) estado = 'EDITANDO';
       }
 
-      if (!flujo && !window.ModoEdicionPresupuesto) {
-        return true;
+      if (!flujo && !modoEdicionApi) {
+        return false;
       }
 
       return modoEdicion && estadosPermitidos.includes(estado);
@@ -528,6 +535,7 @@
       const claseSugerida = this.buildClaseSugerida();
       const seccionSugerida = this.contextData.secundaria || '';
       const operacionesActuales = this.formData.operaciones || {};
+      const customOperaciones = this.formData.customOperaciones || [];
       const signoActual = Number.isFinite(Number(this.formData.signo)) ? Number(this.formData.signo) : 1;
       if (!this.formData.clase && claseSugerida) {
         this.formData.clase = claseSugerida;
@@ -660,6 +668,56 @@
                            oninput="InsertionWizard.updateOperacionSumas('${op.key}', this.value)">
                   </div>
                 `).join('')}
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <div class="d-flex align-items-center justify-content-between">
+                <label class="form-label mb-0">Operaciones personalizadas</label>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="InsertionWizard.addCustomOperacionSumas()">
+                  + Agregar
+                </button>
+              </div>
+              <div class="mt-2">
+                ${customOperaciones.length === 0 ? `
+                  <div class="text-muted small">No hay operaciones adicionales definidas.</div>
+                ` : `
+                  <div class="row g-2">
+                    ${customOperaciones.map((op, index) => `
+                      <div class="col-12">
+                        <div class="card border-0 shadow-sm">
+                          <div class="card-body py-2">
+                            <div class="row g-2 align-items-center">
+                              <div class="col-12 col-md-4">
+                                <label class="form-label small text-muted mb-1">Clave</label>
+                                <input type="text" class="form-control form-control-sm"
+                                       value="${op.key || ''}"
+                                       placeholder="Ej: custom-net"
+                                       oninput="InsertionWizard.updateCustomOperacionSumas(${index}, 'key', this.value)">
+                              </div>
+                              <div class="col-12 col-md-7">
+                                <label class="form-label small text-muted mb-1">Etiqueta</label>
+                                <input type="text" class="form-control form-control-sm"
+                                       value="${op.label || ''}"
+                                       placeholder="Ej: RESULTADO PERSONALIZADO"
+                                       oninput="InsertionWizard.updateCustomOperacionSumas(${index}, 'label', this.value)">
+                              </div>
+                              <div class="col-12 col-md-1 text-end">
+                                <button type="button" class="btn btn-sm btn-outline-danger"
+                                        onclick="InsertionWizard.removeCustomOperacionSumas(${index})">
+                                  ✕
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    `).join('')}
+                  </div>
+                `}
+              </div>
+              <div class="form-text">
+                Define claves adicionales para operaciones entre filas. Se guardarán tal cual en el layout.
               </div>
             </div>
           ` : ''}
@@ -918,6 +976,29 @@
       this.updatePreview();
     },
 
+    addCustomOperacionSumas() {
+      if (!this.formData.customOperaciones) this.formData.customOperaciones = [];
+      this.formData.customOperaciones.push({ key: '', label: '' });
+      this.renderWizard();
+      this.showModal();
+    },
+
+    updateCustomOperacionSumas(index, field, value) {
+      if (!this.formData.customOperaciones) this.formData.customOperaciones = [];
+      if (!this.formData.customOperaciones[index]) {
+        this.formData.customOperaciones[index] = { key: '', label: '' };
+      }
+      this.formData.customOperaciones[index][field] = value;
+      this.updatePreview();
+    },
+
+    removeCustomOperacionSumas(index) {
+      if (!this.formData.customOperaciones) return;
+      this.formData.customOperaciones.splice(index, 1);
+      this.renderWizard();
+      this.showModal();
+    },
+
     updateOperacionSumasSigno(valor) {
       const numero = Number(valor);
       this.formData.signo = Number.isFinite(numero) ? numero : 1;
@@ -931,6 +1012,14 @@
         const valor = input?.value?.trim() || '';
         if (valor) {
           operaciones[op.key] = valor;
+        }
+      });
+      const customOps = this.formData.customOperaciones || [];
+      customOps.forEach((op) => {
+        const key = op?.key?.toString().trim();
+        const label = op?.label?.toString().trim();
+        if (key && label) {
+          operaciones[key] = label;
         }
       });
       this.formData.operaciones = operaciones;
@@ -1043,7 +1132,14 @@
               ? 'Resta (-1)'
               : `Factor ${this.formData.factor}`)
           : '';
-        const operaciones = this.formData.operaciones || {};
+        const operaciones = { ...(this.formData.operaciones || {}) };
+        (this.formData.customOperaciones || []).forEach((op) => {
+          const key = op?.key?.toString().trim();
+          const label = op?.label?.toString().trim();
+          if (key && label) {
+            operaciones[key] = label;
+          }
+        });
         const operacionesTexto = Object.entries(operaciones)
           .filter(([, value]) => value)
           .map(([tipo, etiqueta]) => `${tipo}: ${etiqueta}`)
