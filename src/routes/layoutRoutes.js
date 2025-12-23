@@ -322,6 +322,64 @@ router.post('/:modulo/copiar', requireAuth, (req, res) => {
 });
 
 /**
+ * POST /api/layouts/:modulo/:anio/demo
+ * Crear plantilla demo para un módulo, año y capítulo
+ */
+router.post('/:modulo/:anio/demo', requireAuth, (req, res) => {
+  try {
+    const { modulo, anio } = req.params;
+    const {
+      empresaId = 'EMPRESA01',
+      capitulo = 'DEFAULT',
+      overwrite = false
+    } = req.body || {};
+
+    if (!tienePermisoGuardar(req, empresaId, modulo)) {
+      return res.status(403).json({
+        success: false,
+        mensaje: 'No cuentas con permisos para crear plantillas'
+      });
+    }
+
+    const resultado = layoutService.crearLayoutDemo({
+      empresaId,
+      modulo,
+      anio: parseInt(anio, 10),
+      capitulo,
+      overwrite: Boolean(overwrite)
+    });
+
+    if (resultado.conflict) {
+      return res.status(409).json({
+        success: false,
+        mensaje: resultado.mensaje,
+        existe: true,
+        capitulo
+      });
+    }
+
+    if (!resultado.success) {
+      return res.status(400).json({
+        success: false,
+        mensaje: resultado.mensaje || 'No fue posible crear la plantilla.'
+      });
+    }
+
+    res.json({
+      success: true,
+      ...resultado
+    });
+  } catch (error) {
+    console.error('Error al crear plantilla demo:', error);
+    res.status(500).json({
+      success: false,
+      mensaje: 'Error al crear plantilla demo',
+      error: error.message
+    });
+  }
+});
+
+/**
  * DELETE /api/layouts/:modulo/:anio
  * Eliminar layout completo de un año
  */
