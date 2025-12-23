@@ -108,8 +108,8 @@
         <div class="col-12" id="cdmxNetCard">
           <div class="card chart-card p-3">
             <div class="d-flex justify-content-between align-items-center mb-2">
-              <h5 class="mb-0">Net Results CDMX (detalle)</h5>
-              <small class="text-muted">Mexico · Guadalajara · Monterrey · Northwest</small>
+              <h5 class="mb-0">Resultados CDMX por capítulo</h5>
+              <small class="text-muted">Real · Presupuesto · Real acumulado · Presupuesto acumulado</small>
             </div>
             <canvas id="chartNetCdmx"></canvas>
           </div>
@@ -196,24 +196,167 @@
           if (!Array.isArray(resumen) || !resumen.length) return null;
           const nodo = resumen[0] || {};
           const mapa = flattenLabels(nodo.layout || nodo.children || []);
-          const get = (lbl) => mapa.get(normalizarLabel(lbl)) || {};
-          const getActual = (lbl) => toNumber(get(lbl).actualMonth);
-          const getPlan = (lbl) => toNumber(get(lbl).planMonth);
+          const get = (lbl) => mapa.get(normalizarLabel(lbl)) || null;
+          const normalizeTotals = (data = {}) => ({
+            actual: toNumber(
+              data.actualMonth ?? data.totalActualMonth ?? data.actual ?? data.totalActual ?? data.real ?? data.totalReal
+            ),
+            plan: toNumber(
+              data.planMonth ?? data.totalPlanMonth ?? data.plan ?? data.totalPlan ?? data.presupuesto ?? data.totalPresupuesto
+            ),
+            actualYTD: toNumber(
+              data.actualYTD ?? data.totalActualYTD ?? data.actualAcum ?? data.totalActualAcum ?? data.realAcum
+            ),
+            planYTD: toNumber(
+              data.planYTD ?? data.totalPlanYTD ?? data.planAcum ?? data.totalPlanAcum ?? data.presupuestoAcum
+            )
+          });
+          const readTotals = (lbl) => normalizeTotals(get(lbl) || {});
+          const sumTotals = (base, add, sign = 1) => ({
+            actual: base.actual + (add.actual || 0) * sign,
+            plan: base.plan + (add.plan || 0) * sign,
+            actualYTD: base.actualYTD + (add.actualYTD || 0) * sign,
+            planYTD: base.planYTD + (add.planYTD || 0) * sign
+          });
+          const totalsZero = () => ({ actual: 0, plan: 0, actualYTD: 0, planYTD: 0 });
+          const hasTotals = (totals) =>
+            [totals?.actual, totals?.plan, totals?.actualYTD, totals?.planYTD].some((v) => toNumber(v) !== 0);
+          const sumLabels = (labels = []) => {
+            let res = totalsZero();
+            let found = false;
+            labels.forEach((label) => {
+              const data = get(label);
+              if (data) {
+                res = sumTotals(res, normalizeTotals(data), 1);
+                found = true;
+              }
+            });
+            return found ? res : totalsZero();
+          };
+          const pickFirst = (labels = []) => {
+            for (const label of labels) {
+              const data = get(label);
+              if (data) return normalizeTotals(data);
+            }
+            return totalsZero();
+          };
+          const opFromIncomeExpense = (incomeLabels, expenseLabels) => {
+            const income = sumLabels(incomeLabels);
+            const expense = sumLabels(expenseLabels);
+            return sumTotals(income, expense, -1);
+          };
+          const netFromParts = (operatingTotals, memberLabels, otherLabels) => {
+            const member = sumLabels(memberLabels);
+            const other = sumLabels(otherLabels);
+            const base = totalsZero();
+            return sumTotals(sumTotals(sumTotals(base, operatingTotals, 1), member, -1), other, 1);
+          };
 
-          const readTotals = (lbl) => ({ actual: getActual(lbl), plan: getPlan(lbl) });
+          const REGION_LABELS = {
+            mex: {
+              name: 'Mexico',
+              income: ['CDMX INCOME', 'MEXICO INCOME'],
+              expense: ['CDMX EXPENSE', 'MEXICO EXPENSE'],
+              operating: ['OPERATING RESULTS MEXICO', 'MEXICO OPERATING RESULTS'],
+              net: ['NET RESULTS MEXICO', 'MEXICO NET RESULTS'],
+              member: ['MEMBER CENTRICITY', 'Member Centricity', 'Member Centricity CDMX', 'Member Centricity Mexico'],
+              other: ['Other (MEXICO)', 'Other Income Mexico']
+            },
+            gdl: {
+              name: 'Guadalajara',
+              income: ['GUADALAJARA INCOME', 'GDL INCOME'],
+              expense: ['GUADALAJARA EXPENSE', 'GDL EXPENSE'],
+              operating: ['OPERATING RESULTS GUADALAJARA', 'GDL OPERATING RESULTS'],
+              net: ['NET RESULTS GUADALAJARA', 'GDL NET RESULTS'],
+              member: ['Member Centricity GDL', 'Member Centricity Guadalajara', 'GDL Member Centricity'],
+              other: [
+                'Guadalajara Other Income',
+                'GDL Other Income',
+                'Other Guadalajara',
+                'Other GDL',
+                'Other',
+                'Otros ingresos',
+                'OTROS INGRESOS'
+              ]
+            },
+            mty: {
+              name: 'Monterrey',
+              income: ['MONTERREY INCOME', 'MTY INCOME'],
+              expense: ['MONTERREY EXPENSE', 'MTY EXPENSE'],
+              operating: ['OPERATING RESULTS MONTERREY', 'MTY OPERATING RESULTS'],
+              net: ['NET RESULTS MONTERREY', 'MTY NET RESULTS'],
+              member: ['Member Centricity MTY', 'Member Centricity Monterrey', 'MTY Member Centricity'],
+              other: ['Monterrey Other Income', 'MTY Other Income']
+            },
+            nw: {
+              name: 'Northwest',
+              income: ['NORTHWEST INCOME', 'NW INCOME', 'NOROESTE INCOME', 'NO INCOME'],
+              expense: ['NORTHWEST EXPENSE', 'NW EXPENSE', 'NOROESTE EXPENSE', 'NO EXPENSE'],
+              operating: ['OPERATING RESULTS NORTHWEST', 'OPERATING RESULTS NO', 'OPERATING RESULTS NOROESTE', 'NO OPERATING RESULTS'],
+              net: ['NET RESULTS NORTHWEST', 'NET RESULTS NO', 'NET RESULTS NOROESTE'],
+              member: [
+                'Member Centricity NW',
+                'Member Centricity NorthWest',
+                'Member Centricity NO',
+                'Member Centricity NOROESTE',
+                'NORTHWEST Member Centricity',
+                'NOROESTE Member Centricity'
+              ],
+              other: [
+                'Northwest Other Income',
+                'NW Other Income',
+                'NO Other Income',
+                'NOROESTE Other Income',
+                'Other',
+                'Otros ingresos',
+                'OTROS INGRESOS'
+              ]
+            }
+          };
+
+          const buildRegion = (region) => {
+            const operatingRow = pickFirst(region.operating);
+            const operatingTotals = hasTotals(operatingRow)
+              ? operatingRow
+              : opFromIncomeExpense(region.income, region.expense);
+            const netRow = pickFirst(region.net);
+            const netTotals = hasTotals(netRow)
+              ? netRow
+              : netFromParts(operatingTotals, region.member, region.other);
+            return {
+              operating: operatingTotals,
+              net: netTotals,
+              income: sumLabels(region.income),
+              expense: sumLabels(region.expense)
+            };
+          };
+
+          const mexico = buildRegion(REGION_LABELS.mex);
+          const gdl = buildRegion(REGION_LABELS.gdl);
+          const mty = buildRegion(REGION_LABELS.mty);
+          const nw = buildRegion(REGION_LABELS.nw);
+
+          const operatingGeneral = hasTotals(readTotals('OPERATING RESULTS'))
+            ? readTotals('OPERATING RESULTS')
+            : opFromIncomeExpense(
+                ['INCOME', 'TOTAL INCOME', 'TOTAL INCOME GENERAL'],
+                ['EXPENSE', 'TOTAL EXPENSE', 'TOTAL EXPENSE GENERAL']
+              );
+          const netGeneral = hasTotals(readTotals('NET RESULTS'))
+            ? readTotals('NET RESULTS')
+            : netFromParts(operatingGeneral, ['MEMBER CENTRICITY', 'Member Centricity'], ['Other', 'Otros ingresos']);
 
           return {
             chapter: nodo.label || '',
-            operating: readTotals('OPERATING RESULTS'),
-            net: readTotals('NET RESULTS'),
-            consolidatedOperating: readTotals('CONSOLIDATED OPERATING RESULTS'),
-            consolidatedNet: readTotals('CONSOLIDATED NET RESULTS'),
-            cdmxOperating: readTotals('OPERATING RESULTS MEXICO'),
-            cdmxNet: {
-              mexico: readTotals('NET RESULTS MEXICO'),
-              gdl: readTotals('NET RESULTS GUADALAJARA'),
-              mty: readTotals('NET RESULTS MONTERREY'),
-              nw: readTotals('NET RESULTS NORTHWEST')
+            operating: operatingGeneral,
+            net: netGeneral,
+            consolidatedOperating: pickFirst(['CONSOLIDATED OPERATING RESULTS', 'CONSOLIDATED OPERATING RESULT']),
+            consolidatedNet: pickFirst(['CONSOLIDATED NET RESULTS', 'CONSOLIDATED NET RESULT']),
+            regions: {
+              mexico,
+              gdl,
+              mty,
+              nw
             }
           };
         };
@@ -227,9 +370,14 @@
 
         const renderCharts = (metrics, capituloLabel, esCdmx) => {
           if (!metrics) return;
-          const labels = [capituloLabel || metrics.chapter || 'Capítulo'];
-          const hasData = (totals) => toNumber(totals?.actual) !== 0 || toNumber(totals?.plan) !== 0;
+          const chapterLabel = capituloLabel || metrics.chapter || 'Capítulo';
+          const labels = esCdmx
+            ? ['Mexico', 'Guadalajara', 'Monterrey', 'Northwest']
+            : [chapterLabel];
+          const hasData = (totals) =>
+            toNumber(totals?.actual) !== 0 || toNumber(totals?.plan) !== 0 || toNumber(totals?.actualYTD) !== 0;
           const pickTotals = (primary, fallback) => (hasData(primary) ? primary : (fallback || { actual: 0, plan: 0 }));
+          const regionList = [metrics.regions?.mexico, metrics.regions?.gdl, metrics.regions?.mty, metrics.regions?.nw];
 
           renderChart('chartOperatingByChapter', {
             type: 'bar',
@@ -238,12 +386,16 @@
               datasets: [
                 {
                   label: 'Operating (Actual)',
-                  data: [pickTotals(metrics.operating, metrics.cdmxOperating).actual],
+                  data: esCdmx
+                    ? regionList.map((region) => toNumber(region?.operating?.actual))
+                    : [pickTotals(metrics.operating).actual],
                   backgroundColor: '#2f5496'
                 },
                 {
                   label: 'Operating (Plan)',
-                  data: [pickTotals(metrics.operating, metrics.cdmxOperating).plan],
+                  data: esCdmx
+                    ? regionList.map((region) => toNumber(region?.operating?.plan))
+                    : [pickTotals(metrics.operating).plan],
                   backgroundColor: '#8fb2ff'
                 }
               ]
@@ -262,12 +414,16 @@
               datasets: [
                 {
                   label: 'Net (Actual)',
-                  data: [pickTotals(metrics.net, metrics.consolidatedNet).actual],
+                  data: esCdmx
+                    ? regionList.map((region) => toNumber(region?.net?.actual))
+                    : [pickTotals(metrics.net, metrics.consolidatedNet).actual],
                   backgroundColor: '#10b981'
                 },
                 {
                   label: 'Net (Plan)',
-                  data: [pickTotals(metrics.net, metrics.consolidatedNet).plan],
+                  data: esCdmx
+                    ? regionList.map((region) => toNumber(region?.net?.plan))
+                    : [pickTotals(metrics.net, metrics.consolidatedNet).plan],
                   backgroundColor: '#6ee7b7'
                 }
               ]
@@ -290,24 +446,44 @@
               labels: ['Mexico', 'Guadalajara', 'Monterrey', 'Northwest'],
               datasets: [
                 {
-                  label: 'Net Actual',
+                  label: 'Real',
                   data: [
-                    toNumber(cdmx.cdmxNet?.mexico?.actual),
-                    toNumber(cdmx.cdmxNet?.gdl?.actual),
-                    toNumber(cdmx.cdmxNet?.mty?.actual),
-                    toNumber(cdmx.cdmxNet?.nw?.actual)
+                    toNumber(cdmx.regions?.mexico?.net?.actual),
+                    toNumber(cdmx.regions?.gdl?.net?.actual),
+                    toNumber(cdmx.regions?.mty?.net?.actual),
+                    toNumber(cdmx.regions?.nw?.net?.actual)
                   ],
                   backgroundColor: '#2f5496'
                 },
                 {
-                  label: 'Net Plan',
+                  label: 'Presupuesto',
                   data: [
-                    toNumber(cdmx.cdmxNet?.mexico?.plan),
-                    toNumber(cdmx.cdmxNet?.gdl?.plan),
-                    toNumber(cdmx.cdmxNet?.mty?.plan),
-                    toNumber(cdmx.cdmxNet?.nw?.plan)
+                    toNumber(cdmx.regions?.mexico?.net?.plan),
+                    toNumber(cdmx.regions?.gdl?.net?.plan),
+                    toNumber(cdmx.regions?.mty?.net?.plan),
+                    toNumber(cdmx.regions?.nw?.net?.plan)
                   ],
                   backgroundColor: '#8fb2ff'
+                },
+                {
+                  label: 'Real acumulado',
+                  data: [
+                    toNumber(cdmx.regions?.mexico?.net?.actualYTD),
+                    toNumber(cdmx.regions?.gdl?.net?.actualYTD),
+                    toNumber(cdmx.regions?.mty?.net?.actualYTD),
+                    toNumber(cdmx.regions?.nw?.net?.actualYTD)
+                  ],
+                  backgroundColor: '#10b981'
+                },
+                {
+                  label: 'Presupuesto acumulado',
+                  data: [
+                    toNumber(cdmx.regions?.mexico?.net?.planYTD),
+                    toNumber(cdmx.regions?.gdl?.net?.planYTD),
+                    toNumber(cdmx.regions?.mty?.net?.planYTD),
+                    toNumber(cdmx.regions?.nw?.net?.planYTD)
+                  ],
+                  backgroundColor: '#6ee7b7'
                 }
               ]
             },
