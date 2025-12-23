@@ -87,6 +87,24 @@
       </div>
 
       <div class="row g-4">
+        <div class="col-12">
+          <div class="card chart-card p-3">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <h5 class="mb-0">Resumen Operativo por capítulo</h5>
+              <small class="text-muted">Actual vs Plan</small>
+            </div>
+            <canvas id="chartOperatingSummaryByChapter"></canvas>
+          </div>
+        </div>
+        <div class="col-12">
+          <div class="card chart-card p-3">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <h5 class="mb-0">Resumen Neto por capítulo</h5>
+              <small class="text-muted">Actual vs Plan</small>
+            </div>
+            <canvas id="chartNetSummaryByChapter"></canvas>
+          </div>
+        </div>
         <div class="col-12 col-xl-6">
           <div class="card chart-card p-3">
             <div class="d-flex justify-content-between align-items-center mb-2">
@@ -158,21 +176,34 @@
 
         const getMesClave = (num) => MESES.find((m) => m.periodo === Number(num))?.clave || 'dic';
 
-        const obtenerCapituloSeleccionado = () => {
-          const selector = window.parent?.document?.querySelector('.company-selector select')
-            || document.querySelector('.company-selector select');
-          if (!selector) return '';
-          const opt = selector.selectedOptions?.[0];
-          const texto = opt?.dataset?.capitulo || opt?.value || opt?.textContent;
-          return texto ? texto.toString().trim() : '';
+        const obtenerCapituloSeleccionado = (empresaId) => {
+          const capituloConfig = window.CapitulosModulos?.obtenerCapituloPorEmpresa?.(empresaId);
+          return capituloConfig ? capituloConfig.toString().trim() : '';
         };
 
-        const obtenerEtiquetaSeleccionada = () => {
-          const selector = window.parent?.document?.querySelector('.company-selector select')
-            || document.querySelector('.company-selector select');
-          if (!selector) return '';
-          const opt = selector.selectedOptions?.[0];
-          return opt?.textContent?.toString().trim() || opt?.value || '';
+        const obtenerEtiquetaSeleccionada = (empresaId) => {
+          return window.CapitulosModulos?.EMPRESA_CONFIG?.[empresaId]?.etiqueta || '';
+        };
+
+        const obtenerCapitulosDisponibles = () => {
+          const empresas = window.Sesion?.obtenerEmpresasDisponibles?.() || [];
+          const map = new Map();
+          empresas.forEach((empresa) => {
+            if (!empresa?.id) return;
+            const capitulo = window.CapitulosModulos?.obtenerCapituloPorEmpresa?.(empresa.id) || '';
+            if (!capitulo) return;
+            if (map.has(capitulo)) return;
+            const etiqueta = window.CapitulosModulos?.EMPRESA_CONFIG?.[empresa.id]?.etiqueta
+              || empresa.etiqueta
+              || empresa.nombre
+              || capitulo;
+            map.set(capitulo, {
+              empresaId: empresa.id,
+              capitulo,
+              etiqueta
+            });
+          });
+          return Array.from(map.values());
         };
 
         const flattenLabels = (nodos = []) => {
@@ -529,35 +560,141 @@
           });
         };
 
+        const renderChapterSummaryCharts = (summaries) => {
+          if (!Array.isArray(summaries) || !summaries.length) return;
+          const labels = summaries.map((item) => item.etiqueta || item.capitulo || 'Capítulo');
+          const operatingActual = summaries.map((item) => toNumber(item.metrics?.operating?.actual));
+          const operatingPlan = summaries.map((item) => toNumber(item.metrics?.operating?.plan));
+          const netActual = summaries.map((item) => toNumber(item.metrics?.net?.actual));
+          const netPlan = summaries.map((item) => toNumber(item.metrics?.net?.plan));
+
+          renderChart('chartOperatingSummaryByChapter', {
+            type: 'bar',
+            data: {
+              labels,
+              datasets: [
+                {
+                  label: 'Operating (Actual)',
+                  data: operatingActual,
+                  backgroundColor: '#2f5496'
+                },
+                {
+                  label: 'Operating (Plan)',
+                  data: operatingPlan,
+                  backgroundColor: '#8fb2ff'
+                }
+              ]
+            },
+            options: {
+              responsive: true,
+              plugins: { legend: { position: 'bottom' } },
+              scales: { y: { beginAtZero: true } }
+            }
+          });
+
+          renderChart('chartNetSummaryByChapter', {
+            type: 'bar',
+            data: {
+              labels,
+              datasets: [
+                {
+                  label: 'Net (Actual)',
+                  data: netActual,
+                  backgroundColor: '#10b981'
+                },
+                {
+                  label: 'Net (Plan)',
+                  data: netPlan,
+                  backgroundColor: '#6ee7b7'
+                }
+              ]
+            },
+            options: {
+              responsive: true,
+              plugins: { legend: { position: 'bottom' } },
+              scales: { y: { beginAtZero: true } }
+            }
+          });
+        };
+
+        const loadChapterSummaries = async (anio, mes) => {
+          const capitulos = obtenerCapitulosDisponibles().filter((item) => item.capitulo);
+          if (!capitulos.length) return;
+          const summaries = await Promise.all(
+            capitulos.map(async (item) => {
+              try {
+                const url = new URL(API_ENDPOINT);
+                url.searchParams.set('empresaId', item.empresaId);
+                url.searchParams.set('anio', anio);
+                url.searchParams.set('mes', mes.toString());
+                if (item.capitulo) url.searchParams.set('capitulo', item.capitulo);
+                const res = await fetch(url.toString(), { headers: window.Sesion?.headersAutenticacion?.() || {} });
+                if (!res.ok) {
+                  const text = await res.text();
+                  console.warn('Graficas resumen por capitulo 400/500', res.status, text);
+                  return { ...item, metrics: null };
+                }
+                const data = await res.json().catch(() => ({}));
+                return { ...item, metrics: buildMetrics(data.resumen || []) };
+              } catch (error) {
+                console.warn('No se pudo cargar resumen por capitulo', item, error);
+                return { ...item, metrics: null };
+              }
+            })
+          );
+          const validSummaries = summaries.filter((item) => item.metrics);
+          renderChapterSummaryCharts(validSummaries);
+        };
+
         const loadYears = async () => {
+          if (!yearSelect) return;
           try {
             const empresa = window.Sesion?.obtenerEmpresaActiva?.();
-            const anioEmpresa = empresa?.anio;
-            const res = await fetch(API_ANIOS, { headers: window.Sesion?.headersAutenticacion?.() || {} });
+            if (!empresa?.id) return;
+            const res = await fetch(`${API_ANIOS}?empresaId=${encodeURIComponent(empresa.id)}`, {
+              headers: window.Sesion?.headersAutenticacion?.() || {}
+            });
+            if (!res.ok) {
+              throw new Error('No se pudieron cargar años disponibles');
+            }
             const data = await res.json().catch(() => ({}));
-            const lista = Array.isArray(data?.anios) ? data.anios : [];
+            const lista = Array.isArray(data?.anios)
+              ? data.anios.filter((anio) => Number.isInteger(anio)).sort((a, b) => b - a)
+              : [];
             yearSelect.innerHTML = '';
-            (lista.length ? lista : [new Date().getFullYear()]).forEach((anio) => {
+            if (!lista.length) {
+              const opt = document.createElement('option');
+              opt.value = '';
+              opt.textContent = 'Sin años disponibles';
+              yearSelect.appendChild(opt);
+              yearSelect.disabled = true;
+              return;
+            }
+            lista.forEach((anio) => {
               const opt = document.createElement('option');
               opt.value = anio;
               opt.textContent = anio;
               yearSelect.appendChild(opt);
             });
-            if (anioEmpresa && lista.includes(anioEmpresa)) yearSelect.value = anioEmpresa;
+            yearSelect.value = String(lista[0]);
+            yearSelect.disabled = false;
           } catch (e) {
             console.warn('No se pudieron cargar anos disponibles', e);
+            yearSelect.innerHTML = '<option value="">Error cargando años</option>';
+            yearSelect.disabled = true;
           }
         };
 
         const loadData = async () => {
           const empresa = window.Sesion?.obtenerEmpresaActiva?.();
-          const capitulo = obtenerCapituloSeleccionado();
-          const etiqueta = obtenerEtiquetaSeleccionada();
+          const capitulo = obtenerCapituloSeleccionado(empresa?.id);
+          const etiqueta = obtenerEtiquetaSeleccionada(empresa?.id);
           if (!empresa?.id || !capitulo) {
             empresaLabel.textContent = 'Capitulo: -';
             return;
           }
-          empresaLabel.textContent = `Capitulo: ${etiqueta || capitulo}`;
+          const etiquetaFinal = etiqueta || empresa.etiqueta || empresa.nombre || capitulo;
+          empresaLabel.textContent = `Capitulo: ${etiquetaFinal}`;
           const anio = Number(yearSelect.value) || new Date().getFullYear();
           const mes = Number(monthSelect.value) || new Date().getMonth() + 1;
           try {
@@ -565,7 +702,7 @@
             url.searchParams.set('empresaId', empresa.id);
             url.searchParams.set('anio', anio);
             url.searchParams.set('mes', mes.toString()); // API espera mes numerico (1-12)
-            url.searchParams.set('capitulo', capitulo);
+            if (capitulo) url.searchParams.set('capitulo', capitulo);
             const res = await fetch(url.toString(), { headers: window.Sesion?.headersAutenticacion?.() || {} });
             if (!res.ok) {
               const text = await res.text();
@@ -576,6 +713,7 @@
             const metrics = buildMetrics(data.resumen || []);
             const esCdmx = normalizarLabel(capitulo).includes('CIUDAD DE MEXICO');
             renderCharts(metrics, etiqueta || capitulo, esCdmx);
+            await loadChapterSummaries(anio, mes);
           } catch (e) {
             console.error('Error cargando resumen para graficas', e);
           }
@@ -586,7 +724,10 @@
         const companySelector = window.parent?.document?.querySelector('.company-selector select')
           || document.querySelector('.company-selector select');
         if (companySelector) {
-          companySelector.addEventListener('change', loadData);
+          companySelector.addEventListener('change', async () => {
+            await loadYears();
+            await loadData();
+          });
         }
 
         (async () => {
