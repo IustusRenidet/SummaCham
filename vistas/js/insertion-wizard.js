@@ -14,6 +14,17 @@
     selectedType: null, // 'cuenta', 'operacion', 'secundaria', 'principal'
     contextData: {},
     formData: {},
+    operacionesSumasTipos: [
+      { key: 'sum-row', label: 'Sum Row (sección)' },
+      { key: 'sum-row-sumavarios', label: 'Sum Row (sumavarios)' },
+      { key: 'sum-row-sumavarios-consolidado', label: 'Sum Row (consolidado)' },
+      { key: 'sum-row-operativo', label: 'Sum Row (operativo)' },
+      { key: 'sum-row-operativo-consolidado', label: 'Sum Row (operativo consolidado)' },
+      { key: 'result-row', label: 'Result Row' },
+      { key: 'net-row', label: 'Net Row' },
+      { key: 'net-row-adicional', label: 'Net Row adicional' },
+      { key: 'result-net-row', label: 'Result Net Row' }
+    ],
 
     /**
      * Detecta el tipo de módulo actual
@@ -51,6 +62,10 @@
             required: ['nombre', 'etiquetaSum', 'factor'],
             hierarchy: ['capitulo'],
             autoCreate: ['sumRow']
+          },
+          operacion_sumas: {
+            required: ['clase', 'seccion'],
+            hierarchy: ['secundaria', 'principal', 'capitulo']
           }
         },
         RESUMEN: {
@@ -74,6 +89,10 @@
             required: ['nombre', 'etiquetaSum', 'factor'],
             hierarchy: ['capitulo'],
             autoCreate: ['sumRow']
+          },
+          operacion_sumas: {
+            required: ['clase', 'seccion'],
+            hierarchy: ['secundaria', 'principal', 'capitulo']
           }
         },
         MODULOS: {
@@ -104,17 +123,55 @@
     /**
      * Abre el wizard
      */
-    open(referenceRow = null) {
-      this.moduleType = this.detectModuleType();
-      this.contextData = this.extractContextFromRow(referenceRow);
-      this.formData = { factor: null, factorChoice: '' };
+    open(referenceRow = null, options = {}) {
+      if (!this.isEditModeAllowed()) {
+        alert('❌ Debes activar el modo edición antes de usar el wizard de inserción.');
+        return;
+      }
+      const { moduleType, capitulo, anio, prefillContext } = options;
+      this.moduleType = moduleType || this.detectModuleType();
+      this.contextData = {
+        ...this.extractContextFromRow(referenceRow),
+        ...(prefillContext || {})
+      };
+      if (capitulo) this.contextData.capitulo = capitulo;
+      if (anio) this.contextData.anio = anio;
+      this.formData = { factor: null, factorChoice: '', operaciones: {}, customOperaciones: [] };
 
-      // Forzar tipo cuenta por defecto y saltar directamente al paso de contexto.
-      this.selectedType = 'cuenta';
-      this.currentStep = 2;
+      const tieneTipo = Boolean(this.selectedType);
+      if (!tieneTipo) {
+        this.selectedType = null;
+        this.currentStep = 1;
+      } else {
+        this.currentStep = 2;
+      }
 
       this.renderWizard();
       this.showModal();
+    },
+
+    isEditModeAllowed() {
+      const flujo = window.__flujoAutorizacionInstance || window.parent?.__flujoAutorizacionInstance;
+      const modoEdicionApi = window.ModoEdicionPresupuesto || window.parent?.ModoEdicionPresupuesto;
+      const estadosPermitidos = ['EDITANDO', 'BORRADOR', 'CARGANDO'];
+      let modoEdicion = false;
+      let estado = 'SIN_CARGAR';
+
+      if (flujo) {
+        estado = flujo.state?.borrador?.estado || 'SIN_CARGAR';
+        modoEdicion = Boolean(flujo.state?.editMode);
+      }
+
+      if (!modoEdicion && modoEdicionApi?.estaActivo) {
+        modoEdicion = modoEdicionApi.estaActivo();
+        if (modoEdicion) estado = 'EDITANDO';
+      }
+
+      if (!flujo && !modoEdicionApi) {
+        return false;
+      }
+
+      return modoEdicion && estadosPermitidos.includes(estado);
     },
 
     /**
@@ -353,7 +410,12 @@
       // Renderizar con placeholders, cargaremos opciones después
       const html = `
         <div class="wizard-step active" data-step="2">
-          <h6 class="mb-3">Selecciona la ubicación</h6>
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <h6 class="mb-0">Selecciona la ubicación</h6>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="InsertionWizard.volverSeleccionTipo()">
+              Cambiar tipo
+            </button>
+          </div>
 
           <div class="mb-3">
             <label class="form-label">Capítulo activo</label>
@@ -470,6 +532,17 @@
         this.formData.factorChoice ||
         (factorNumerico === null ? '' : factorNumerico === -1 ? '-1' : factorNumerico === 1 ? '1' : 'custom');
       const factorCustomValor = factorChoice === 'custom' ? (this.formData.factor ?? '') : '';
+      const claseSugerida = this.buildClaseSugerida();
+      const seccionSugerida = this.contextData.secundaria || '';
+      const operacionesActuales = this.formData.operaciones || {};
+      const customOperaciones = this.formData.customOperaciones || [];
+      const signoActual = Number.isFinite(Number(this.formData.signo)) ? Number(this.formData.signo) : 1;
+      if (!this.formData.clase && claseSugerida) {
+        this.formData.clase = claseSugerida;
+      }
+      if (!this.formData.seccion && seccionSugerida) {
+        this.formData.seccion = seccionSugerida;
+      }
 
 
       return `
@@ -508,7 +581,7 @@
             </div>
           ` : ''}
 
-          ${this.selectedType !== 'cuenta' ? `
+          ${this.selectedType !== 'cuenta' && this.selectedType !== 'operacion_sumas' ? `
             <div class="mb-3">
               <label for="data_nombre" class="form-label">
                 Nombre de ${this.getTypeLabel(this.selectedType)} <span class="text-danger">*</span>
@@ -540,6 +613,116 @@
               </select>
             </div>
           ` : ''}
+
+          ${this.selectedType === 'operacion_sumas' ? `
+            <div class="mb-3">
+              <label for="data_clase" class="form-label">
+                Clase (identificador) <span class="text-danger">*</span>
+              </label>
+              <input type="text" class="form-control" id="data_clase" required
+                     value="${this.formData.clase || claseSugerida}"
+                     placeholder="Ej: income-Membership"
+                     oninput="InsertionWizard.validateField('clase', this.value)">
+              <div class="form-text">
+                Usa una clase consistente (ej: income-Membership, expense-Other).
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="data_seccion" class="form-label">
+                Sección asociada <span class="text-danger">*</span>
+              </label>
+              <input type="text" class="form-control" id="data_seccion" required
+                     value="${this.formData.seccion || seccionSugerida}"
+                     placeholder="Ej: Membership"
+                     oninput="InsertionWizard.validateField('seccion', this.value)">
+              <div class="form-text">
+                Por defecto se toma la Sección Secundaria seleccionada.
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="data_signo" class="form-label">Signo de la operación</label>
+              <select class="form-select" id="data_signo" onchange="InsertionWizard.updateOperacionSumasSigno(this.value)">
+                <option value="1" ${signoActual === 1 ? 'selected' : ''}>Suma (+1)</option>
+                <option value="-1" ${signoActual === -1 ? 'selected' : ''}>Resta (-1)</option>
+              </select>
+              <div class="form-text">
+                Determina si la clase suma o resta en las consolidaciones.
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">
+                Operaciones entre filas <span class="text-danger">*</span>
+              </label>
+              <div class="row g-2">
+                ${this.operacionesSumasTipos.map((op) => `
+                  <div class="col-12 col-md-6">
+                    <label class="form-label small text-muted mb-1" for="data_op_${op.key}">
+                      ${op.label}
+                    </label>
+                    <input type="text" class="form-control" id="data_op_${op.key}"
+                           value="${operacionesActuales[op.key] || ''}"
+                           placeholder="Etiqueta (ej: NET RESULTS)"
+                           oninput="InsertionWizard.updateOperacionSumas('${op.key}', this.value)">
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <div class="d-flex align-items-center justify-content-between">
+                <label class="form-label mb-0">Operaciones personalizadas</label>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="InsertionWizard.addCustomOperacionSumas()">
+                  + Agregar
+                </button>
+              </div>
+              <div class="mt-2">
+                ${customOperaciones.length === 0 ? `
+                  <div class="text-muted small">No hay operaciones adicionales definidas.</div>
+                ` : `
+                  <div class="row g-2">
+                    ${customOperaciones.map((op, index) => `
+                      <div class="col-12">
+                        <div class="card border-0 shadow-sm">
+                          <div class="card-body py-2">
+                            <div class="row g-2 align-items-center">
+                              <div class="col-12 col-md-4">
+                                <label class="form-label small text-muted mb-1">Clave</label>
+                                <input type="text" class="form-control form-control-sm"
+                                       value="${op.key || ''}"
+                                       placeholder="Ej: custom-net"
+                                       oninput="InsertionWizard.updateCustomOperacionSumas(${index}, 'key', this.value)">
+                              </div>
+                              <div class="col-12 col-md-7">
+                                <label class="form-label small text-muted mb-1">Etiqueta</label>
+                                <input type="text" class="form-control form-control-sm"
+                                       value="${op.label || ''}"
+                                       placeholder="Ej: RESULTADO PERSONALIZADO"
+                                       oninput="InsertionWizard.updateCustomOperacionSumas(${index}, 'label', this.value)">
+                              </div>
+                              <div class="col-12 col-md-1 text-end">
+                                <button type="button" class="btn btn-sm btn-outline-danger"
+                                        onclick="InsertionWizard.removeCustomOperacionSumas(${index})">
+                                  ✕
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    `).join('')}
+                  </div>
+                `}
+              </div>
+              <div class="form-text">
+                Define claves adicionales para operaciones entre filas. Se guardarán tal cual en el layout.
+              </div>
+            </div>
+          ` : ''}
+
+          ${this.selectedType !== 'operacion_sumas' ? `
           <div class="mb-3">
             <label for="data_factor" class="form-label">
               Operaci¢n / Factor <span class="text-danger">*</span>
@@ -562,6 +745,7 @@
               Define si esta fila suma, resta o usa un factor distinto en los totales.
             </div>
           </div>
+          ` : ''}
         </div>
       `;
     },
@@ -595,6 +779,12 @@
             label: 'Nueva Sección Principal',
             icon: '📂',
             description: 'Crear una nueva sección principal en el capítulo'
+          },
+          {
+            value: 'operacion_sumas',
+            label: 'Operación entre filas',
+            icon: '➗',
+            description: 'Definir SUMA DE VARIAS SECCIONES (sumavarios, net, operativo)'
           }
         ],
         RESUMEN: [
@@ -621,6 +811,12 @@
             label: 'Nueva Sección Principal',
             icon: '📂',
             description: 'Crear una nueva sección principal en el capítulo'
+          },
+          {
+            value: 'operacion_sumas',
+            label: 'Operación entre filas',
+            icon: '➗',
+            description: 'Definir SUMA DE VARIAS SECCIONES (sumavarios, net, operativo)'
           }
         ],
         MODULOS: [
@@ -671,7 +867,8 @@
         operacion: 'Operación',
         secundaria: 'Sección Secundaria',
         principal: 'Sección Principal',
-        seccion: 'Sección'
+        seccion: 'Sección',
+        operacion_sumas: 'Operación entre filas'
       };
       return labels[type] || type;
     },
@@ -766,6 +963,78 @@
       this.updatePreview();
     },
 
+    buildClaseSugerida() {
+      const principal = (this.contextData.principal || '').toString().trim();
+      const secundaria = (this.contextData.secundaria || '').toString().trim();
+      if (!principal && !secundaria) return '';
+      return `${principal}-${secundaria}`.replace(/\s+/g, ' ').trim();
+    },
+
+    updateOperacionSumas(tipo, valor) {
+      if (!this.formData.operaciones) this.formData.operaciones = {};
+      this.formData.operaciones[tipo] = valor;
+      this.updatePreview();
+    },
+
+    addCustomOperacionSumas() {
+      if (!this.formData.customOperaciones) this.formData.customOperaciones = [];
+      this.formData.customOperaciones.push({ key: '', label: '' });
+      this.renderWizard();
+      this.showModal();
+    },
+
+    updateCustomOperacionSumas(index, field, value) {
+      if (!this.formData.customOperaciones) this.formData.customOperaciones = [];
+      if (!this.formData.customOperaciones[index]) {
+        this.formData.customOperaciones[index] = { key: '', label: '' };
+      }
+      this.formData.customOperaciones[index][field] = value;
+      this.updatePreview();
+    },
+
+    removeCustomOperacionSumas(index) {
+      if (!this.formData.customOperaciones) return;
+      this.formData.customOperaciones.splice(index, 1);
+      this.renderWizard();
+      this.showModal();
+    },
+
+    updateOperacionSumasSigno(valor) {
+      const numero = Number(valor);
+      this.formData.signo = Number.isFinite(numero) ? numero : 1;
+      this.updatePreview();
+    },
+
+    collectOperacionesSumas() {
+      const operaciones = {};
+      this.operacionesSumasTipos.forEach((op) => {
+        const input = document.getElementById(`data_op_${op.key}`);
+        const valor = input?.value?.trim() || '';
+        if (valor) {
+          operaciones[op.key] = valor;
+        }
+      });
+      const customOps = this.formData.customOperaciones || [];
+      customOps.forEach((op) => {
+        const key = op?.key?.toString().trim();
+        const label = op?.label?.toString().trim();
+        if (key && label) {
+          operaciones[key] = label;
+        }
+      });
+      this.formData.operaciones = operaciones;
+      const claseInput = document.getElementById('data_clase');
+      const seccionInput = document.getElementById('data_seccion');
+      if (claseInput) this.formData.clase = claseInput.value;
+      if (seccionInput) this.formData.seccion = seccionInput.value;
+      const signoInput = document.getElementById('data_signo');
+      if (signoInput) {
+        const numero = Number(signoInput.value);
+        if (Number.isFinite(numero)) this.formData.signo = numero;
+      }
+      return operaciones;
+    },
+
     handleFactorChange(value) {
       const customGroup = document.getElementById('data_factor_custom_group');
       if (value === 'custom') {
@@ -844,7 +1113,10 @@
       
       if (!preview || !content) return;
 
-      if (this.currentStep === 3 && this.formData.nombre) {
+      const tieneDatosPreview = this.selectedType === 'operacion_sumas'
+        ? Boolean(this.formData.clase || this.formData.seccion)
+        : Boolean(this.formData.nombre || this.formData.numero);
+      if (this.currentStep === 3 && tieneDatosPreview) {
         preview.classList.remove('d-none');
         
         const hierarchy = [];
@@ -860,12 +1132,30 @@
               ? 'Resta (-1)'
               : `Factor ${this.formData.factor}`)
           : '';
+        const operaciones = { ...(this.formData.operaciones || {}) };
+        (this.formData.customOperaciones || []).forEach((op) => {
+          const key = op?.key?.toString().trim();
+          const label = op?.label?.toString().trim();
+          if (key && label) {
+            operaciones[key] = label;
+          }
+        });
+        const operacionesTexto = Object.entries(operaciones)
+          .filter(([, value]) => value)
+          .map(([tipo, etiqueta]) => `${tipo}: ${etiqueta}`)
+          .join(' | ');
 
+        const nombrePreview = this.formData.nombre || this.formData.numero || this.formData.clase || '';
         content.innerHTML = `
-          <div><strong>${this.getTypeLabel(this.selectedType)}:</strong> ${this.formData.nombre || this.formData.numero || ''}</div>
+          <div><strong>${this.getTypeLabel(this.selectedType)}:</strong> ${nombrePreview}</div>
           ${hierarchy.length > 0 ? `<div class="text-muted">📍 ${hierarchy.join(' > ')}</div>` : ''}
           ${factorLabel ? `<div class="text-info">Operaci¢n: ${factorLabel}</div>` : ''}
           ${this.formData.etiquetaSum ? `<div class="text-success">✓ Se creará SUM ROW: "${this.formData.etiquetaSum}"</div>` : ''}
+          ${this.selectedType === 'operacion_sumas' ? `
+            <div class="text-info">Clase: ${this.formData.clase || ''}</div>
+            <div class="text-info">Sección: ${this.formData.seccion || this.contextData.secundaria || ''}</div>
+            ${operacionesTexto ? `<div class="text-muted small">Operaciones: ${operacionesTexto}</div>` : ''}
+          ` : ''}
         `;
       } else {
         preview.classList.add('d-none');
@@ -896,6 +1186,12 @@
       this.showModal();
     },
 
+    volverSeleccionTipo() {
+      this.currentStep = 1;
+      this.renderWizard();
+      this.showModal();
+    },
+
     /**
      * Valida el paso actual
      */
@@ -911,6 +1207,15 @@
           const dataRules = this.getValidationRules()[this.selectedType];
           const requiredFields = dataRules?.required || [];
           return requiredFields.every((field) => {
+            if (this.selectedType === 'operacion_sumas') {
+              const operaciones = this.collectOperacionesSumas();
+              const tieneOperacion = Object.values(operaciones).some((value) => value);
+              if (!tieneOperacion) return false;
+              if (!this.formData.clase || this.formData.clase.toString().trim() === '') return false;
+              const seccion = this.formData.seccion || this.contextData.secundaria;
+              if (!seccion || seccion.toString().trim() === '') return false;
+              return true;
+            }
             if (field === 'factor') {
               return Number.isFinite(Number(this.formData.factor));
             }
@@ -987,6 +1292,8 @@
         return await this.insertarSeccion(insertionData);
       } else if (this.selectedType === 'operacion') {
         return await this.insertarOperacion(insertionData);
+      } else if (this.selectedType === 'operacion_sumas') {
+        return await this.insertarOperacionSumas(insertionData);
       }
     },
 
@@ -994,6 +1301,9 @@
      * Construye el objeto de datos para inserción
      */
     buildInsertionData() {
+      if (this.selectedType === 'operacion_sumas') {
+        this.collectOperacionesSumas();
+      }
       const base = {
         moduleType: this.moduleType,
         context: {
@@ -1012,6 +1322,15 @@
           factor: Number.isFinite(Number(this.formData.factor)) ? Number(this.formData.factor) : 1
         }
       };
+
+      if (this.selectedType === 'operacion_sumas') {
+        base.formData = {
+          clase: this.formData.clase || '',
+          seccion: this.formData.seccion || this.contextData.secundaria || '',
+          signo: Number.isFinite(Number(this.formData.signo)) ? Number(this.formData.signo) : 1,
+          operaciones: this.formData.operaciones || {}
+        };
+      }
 
       return base;
     },
@@ -1095,6 +1414,26 @@
 
       const result = await response.json();
       console.log('✅ Operación insertada:', result);
+      return result;
+    },
+
+    /**
+     * Inserta una operación entre filas (SUMA DE VARIAS SECCIONES)
+     */
+    async insertarOperacionSumas(data) {
+      const response = await fetch('/api/insercion/operacion-sumas', {
+        method: 'POST',
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify(data)
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.mensaje || 'Error al insertar operación entre filas');
+      }
+
+      const result = await response.json();
+      console.log('✅ Operación entre filas insertada:', result);
       return result;
     },
 
