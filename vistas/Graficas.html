@@ -159,7 +159,8 @@
         const getMesClave = (num) => MESES.find((m) => m.periodo === Number(num))?.clave || 'dic';
 
         const obtenerCapituloSeleccionado = () => {
-          const selector = document.querySelector('.company-selector select');
+          const selector = window.parent?.document?.querySelector('.company-selector select')
+            || document.querySelector('.company-selector select');
           if (!selector) return '';
           const opt = selector.selectedOptions?.[0];
           const texto = opt?.dataset?.capitulo || opt?.value || opt?.textContent;
@@ -167,7 +168,8 @@
         };
 
         const obtenerEtiquetaSeleccionada = () => {
-          const selector = document.querySelector('.company-selector select');
+          const selector = window.parent?.document?.querySelector('.company-selector select')
+            || document.querySelector('.company-selector select');
           if (!selector) return '';
           const opt = selector.selectedOptions?.[0];
           return opt?.textContent?.toString().trim() || opt?.value || '';
@@ -405,7 +407,8 @@
 
         monthSelect.addEventListener('change', loadData);
         yearSelect.addEventListener('change', loadData);
-        const companySelector = document.querySelector('.company-selector select');
+        const companySelector = window.parent?.document?.querySelector('.company-selector select')
+          || document.querySelector('.company-selector select');
         if (companySelector) {
           companySelector.addEventListener('change', loadData);
         }

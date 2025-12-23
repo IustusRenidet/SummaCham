@@ -107,8 +107,8 @@
     <script>
       (() => {
         const API_BASE = window.location.protocol === 'file:'
-          ? 'http://localhost:3005/api'
-          : `${window.location.origin.replace(/\/$/, '')}/api`;
+          ? 'http://localhost:3005/api/layouts-config'
+          : `${window.location.origin.replace(/\/$/, '')}/api/layouts-config`;
 
         const form = document.getElementById('layoutForm');
         const empresaInput = document.getElementById('empresaId');
@@ -130,6 +130,19 @@
             return window.Sesion.headersAutenticacion();
           }
           return {};
+        };
+
+        const getCompanySelector = () => window.parent?.document?.querySelector('.company-selector select')
+          || document.querySelector('.company-selector select');
+
+        const readEmpresaSeleccionada = () => {
+          const selector = getCompanySelector();
+          if (!selector) return { id: '', label: '' };
+          const opt = selector.selectedOptions?.[0];
+          return {
+            id: opt?.value || '',
+            label: opt?.textContent?.toString().trim() || opt?.value || ''
+          };
         };
 
         const getEditModeState = () => {
@@ -174,13 +187,14 @@
 
         const cargarAniosDisponibles = async () => {
           const modulo = moduloSelect.value;
-          const empresaId = empresaInput.value.trim() || 'EMPRESA01';
+          const empresaSeleccionada = readEmpresaSeleccionada();
+          const empresaId = empresaSeleccionada.id || empresaInput.value.trim() || 'EMPRESA01';
           anioOrigenSelect.innerHTML = '<option value="">Cargando…</option>';
           try {
-            const url = new URL(`${API_BASE}/layouts/${encodeURIComponent(modulo)}/anios`);
+            const url = new URL(`${API_BASE}/${encodeURIComponent(modulo)}/anios`);
             url.searchParams.set('empresaId', empresaId);
             const res = await fetch(url.toString(), { headers: getAuthHeaders() });
-            if (!res.ok) throw new Error('No se pudieron cargar los años');
+            if (!res.ok) throw new Error(`No se pudieron cargar los años (${res.status})`);
             const data = await res.json();
             const anios = Array.isArray(data.anios) ? data.anios : [];
             anioOrigenSelect.innerHTML = '';
@@ -203,7 +217,7 @@
         };
 
         const validarDestino = async (modulo, empresaId, anioDestino) => {
-          const url = new URL(`${API_BASE}/layouts/${encodeURIComponent(modulo)}/${encodeURIComponent(anioDestino)}/existe`);
+          const url = new URL(`${API_BASE}/${encodeURIComponent(modulo)}/${encodeURIComponent(anioDestino)}/existe`);
           url.searchParams.set('empresaId', empresaId);
           const res = await fetch(url.toString(), { headers: getAuthHeaders() });
           if (!res.ok) return false;
@@ -220,7 +234,8 @@
             return;
           }
 
-          const empresaId = empresaInput.value.trim() || 'EMPRESA01';
+          const empresaSeleccionada = readEmpresaSeleccionada();
+          const empresaId = empresaSeleccionada.id || empresaInput.value.trim() || 'EMPRESA01';
           const modulo = moduloSelect.value;
           const anioOrigen = anioOrigenSelect.value;
           const anioDestino = anioDestinoInput.value.trim();
@@ -237,7 +252,7 @@
           }
 
           try {
-            const res = await fetch(`${API_BASE}/layouts/${encodeURIComponent(modulo)}/copiar`, {
+            const res = await fetch(`${API_BASE}/${encodeURIComponent(modulo)}/copiar`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
               body: JSON.stringify({
@@ -258,10 +273,26 @@
           }
         });
 
+        const syncEmpresa = () => {
+          const empresa = readEmpresaSeleccionada();
+          if (empresa.id) {
+            empresaInput.value = empresa.id;
+          }
+        };
+
+        const selectorEmpresa = getCompanySelector();
+        if (selectorEmpresa) {
+          selectorEmpresa.addEventListener('change', () => {
+            syncEmpresa();
+            cargarAniosDisponibles();
+          });
+        }
+
         moduloSelect.addEventListener('change', cargarAniosDisponibles);
         refreshBtn.addEventListener('click', cargarAniosDisponibles);
 
         renderAuthState();
+        syncEmpresa();
         cargarAniosDisponibles();
         setInterval(renderAuthState, 3000);
       })();
