@@ -378,11 +378,18 @@ const guardarOperaciones = ({ empresaId = 'EMPRESA01', modulo, anio, operaciones
 
   const transaction = db.transaction((operacionesArray) => {
     operacionesArray.forEach((op, index) => {
-      const tiposOperacion = [
+      const tiposOperacionBase = [
         'sum-row', 'sum-row-sumavarios', 'sum-row-sumavarios-consolidado',
         'sum-row-operativo', 'sum-row-operativo-consolidado',
         'result-row', 'net-row', 'net-row-adicional', 'result-net-row'
       ];
+      const clavesReservadas = new Set([
+        'HOJA', 'CAPITULO', 'Clase', 'SECCION', 'signo', 'orden'
+      ]);
+      const tiposOperacionExtra = Object.keys(op || {})
+        .filter((key) => key && !clavesReservadas.has(key))
+        .filter((key) => !tiposOperacionBase.includes(key));
+      const tiposOperacion = [...tiposOperacionBase, ...tiposOperacionExtra];
 
       tiposOperacion.forEach((tipo, tipoIndex) => {
         if (op[tipo]) {

@@ -6,6 +6,7 @@
     <title>Gestor de Layouts</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="css/estilos.css" />
+    <link rel="stylesheet" href="css/insertion-wizard.css" />
     <link rel="icon" type="image/x-icon" href="icono/icono.ico" />
     <style>
       body {
@@ -23,6 +24,33 @@
         border-radius: 999px;
         padding: 6px 12px;
         font-weight: 600;
+      }
+      .map-card {
+        background: #f8fafc;
+        border-radius: 12px;
+        padding: 12px;
+        border: 1px solid rgba(148, 163, 184, 0.2);
+      }
+      .map-card details summary {
+        cursor: pointer;
+      }
+      .map-card summary::-webkit-details-marker {
+        display: none;
+      }
+      .map-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 6px 0;
+      }
+      .map-tag {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #1d4ed8;
+        background: rgba(59, 130, 246, 0.1);
+        padding: 2px 8px;
+        border-radius: 999px;
       }
     </style>
   </head>
@@ -98,11 +126,76 @@
       </div>
 
       <div class="card card-shell p-4 mt-4">
+        <div class="d-flex flex-column flex-lg-row align-items-start align-items-lg-center justify-content-between gap-3">
+          <div>
+            <h2 class="h6 mb-1">Explorador y editor del layout</h2>
+            <p class="text-muted mb-0">
+              Visualiza el mapa de secciones/operaciones y abre el wizard para insertar nuevas filas.
+            </p>
+          </div>
+          <div class="d-flex flex-wrap gap-2">
+            <button type="button" id="loadLayoutBtn" class="btn btn-outline-primary">
+              Cargar layout
+            </button>
+            <button type="button" id="openWizardBtn" class="btn btn-success">
+              Agregar elemento
+            </button>
+          </div>
+        </div>
+
+        <div class="row g-3 mt-1">
+          <div class="col-12 col-lg-4">
+            <label for="capituloActivo" class="form-label">Capítulo activo</label>
+            <input id="capituloActivo" class="form-control" readonly placeholder="Sin capítulo seleccionado" />
+            <div class="form-text">Se toma del selector general de empresa (company-selector).</div>
+          </div>
+          <div class="col-12 col-lg-3">
+            <label for="anioEdicion" class="form-label">Año a editar</label>
+            <select id="anioEdicion" class="form-select">
+              <option value="">Cargando…</option>
+            </select>
+          </div>
+          <div class="col-12 col-lg-5">
+            <label class="form-label">Resumen rápido</label>
+            <div id="layoutSummary" class="map-card">Sin datos cargados.</div>
+          </div>
+        </div>
+
+        <div class="row g-3 mt-3">
+          <div class="col-12 col-lg-7">
+            <div class="map-card">
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <h3 class="h6 mb-0">Mapa de secciones</h3>
+                <span class="map-tag">Relaciones</span>
+              </div>
+              <div id="layoutMap" class="small text-muted">Carga un layout para visualizar la jerarquía.</div>
+            </div>
+          </div>
+          <div class="col-12 col-lg-5">
+            <div class="map-card">
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <h3 class="h6 mb-0">Operaciones entre filas</h3>
+                <span class="map-tag">SUMA DE VARIAS SECCIONES</span>
+              </div>
+              <div id="operacionesMap" class="small text-muted">Carga un layout para visualizar operaciones.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card card-shell p-4 mt-4">
         <h2 class="h6">Bitácora</h2>
         <pre id="logOutput" class="mb-0 small text-muted" style="min-height: 120px;"></pre>
       </div>
     </div>
 
+    <script src="js/sesion.js"></script>
+    <script src="js/verificar-sesion.js"></script>
+    <script src="js/capitulos-modulos.js"></script>
+    <script src="js/insertion-validator.js"></script>
+    <script src="js/insertion-wizard.js"></script>
+    <script src="js/modo-edicion-presupuesto.js"></script>
+    <script src="js/flujo-autorizacion.js?v=20251208-1"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
       (() => {
@@ -117,6 +210,13 @@
         const anioDestinoInput = document.getElementById('anioDestino');
         const submitBtn = document.getElementById('submitBtn');
         const refreshBtn = document.getElementById('refreshYears');
+        const anioEdicionSelect = document.getElementById('anioEdicion');
+        const capituloActivoInput = document.getElementById('capituloActivo');
+        const loadLayoutBtn = document.getElementById('loadLayoutBtn');
+        const openWizardBtn = document.getElementById('openWizardBtn');
+        const layoutSummary = document.getElementById('layoutSummary');
+        const layoutMap = document.getElementById('layoutMap');
+        const operacionesMap = document.getElementById('operacionesMap');
         const authStatus = document.getElementById('authStatus');
         const logOutput = document.getElementById('logOutput');
 
@@ -128,6 +228,9 @@
         const getAuthHeaders = () => {
           if (window.Sesion?.headersAutenticacion) {
             return window.Sesion.headersAutenticacion();
+          }
+          if (window.parent?.Sesion?.headersAutenticacion) {
+            return window.parent.Sesion.headersAutenticacion();
           }
           return {};
         };
@@ -145,8 +248,21 @@
           };
         };
 
+        const obtenerCapituloSeleccionado = () => {
+          const selector = getCompanySelector();
+          if (!selector) return '';
+          const empresaId = selector.value;
+          if (window.CapitulosModulos?.empresaACapitulo) {
+            const capitulo = window.CapitulosModulos.empresaACapitulo(empresaId);
+            if (capitulo) return capitulo;
+          }
+          const opt = selector.selectedOptions?.[0];
+          return opt?.textContent?.toString().trim() || empresaId || '';
+        };
+
         const getEditModeState = () => {
-          const flujo = window.__flujoAutorizacionInstance;
+          const flujo = window.__flujoAutorizacionInstance || window.parent?.__flujoAutorizacionInstance;
+          const modoEdicionApi = window.ModoEdicionPresupuesto || window.parent?.ModoEdicionPresupuesto;
           const estadosPermitidos = ['EDITANDO', 'BORRADOR', 'CARGANDO'];
           let modoEdicion = false;
           let estado = 'SIN_CARGAR';
@@ -156,13 +272,13 @@
             modoEdicion = Boolean(flujo.state?.editMode);
           }
 
-          if (!modoEdicion && window.ModoEdicionPresupuesto?.estaActivo) {
-            modoEdicion = window.ModoEdicionPresupuesto.estaActivo();
+          if (!modoEdicion && modoEdicionApi?.estaActivo) {
+            modoEdicion = modoEdicionApi.estaActivo();
             if (modoEdicion) estado = 'EDITANDO';
           }
 
-          if (!flujo && !window.ModoEdicionPresupuesto) {
-            return { allowed: true, estado: 'SIN_CARGAR', modoEdicion: true };
+          if (!flujo && !modoEdicionApi) {
+            return { allowed: false, estado: 'SIN_CARGAR', modoEdicion: false };
           }
 
           const allowed = modoEdicion && estadosPermitidos.includes(estado);
@@ -175,6 +291,7 @@
             authStatus.className = 'status-pill bg-success-subtle text-success-emphasis';
             authStatus.textContent = 'Modo edición activo';
             submitBtn.disabled = false;
+            openWizardBtn.disabled = false;
           } else {
             authStatus.className = 'status-pill bg-danger-subtle text-danger-emphasis';
             const estadoText = estado === 'SIN_CARGAR' ? 'Sin cargar' : estado;
@@ -182,6 +299,177 @@
               ? `Modo edición: ${estadoText}`
               : 'Modo edición inactivo';
             submitBtn.disabled = true;
+            openWizardBtn.disabled = true;
+          }
+        };
+
+        const renderLayoutSummary = (layout, anio, capitulo) => {
+          if (!layout) {
+            layoutSummary.textContent = 'Sin datos cargados.';
+            return;
+          }
+          const cuentas = Array.isArray(layout.cuentas)
+            ? layout.cuentas
+            : Array.isArray(layout[moduloSelect.value])
+              ? layout[moduloSelect.value]
+              : [];
+          const operaciones = Array.isArray(layout.operaciones) ? layout.operaciones : [];
+          const principales = new Set();
+          const secundarias = new Set();
+          cuentas.forEach((cuenta) => {
+            const principal = cuenta['SECCIàN Principal'] || cuenta['SECCIÓN Principal'] || cuenta['SECCION Principal'] || cuenta.SECCION || cuenta.seccion_principal || '';
+            const secundaria = cuenta['SECCION Secundaria'] || cuenta['SECCIÓN Secundaria'] || cuenta.seccion_secundaria || '';
+            if (principal) principales.add(principal);
+            if (secundaria) secundarias.add(`${principal}::${secundaria}`);
+          });
+          layoutSummary.innerHTML = `
+            <div class="map-row"><span>Capítulo</span><strong>${capitulo || '-'}</strong></div>
+            <div class="map-row"><span>Año</span><strong>${anio || '-'}</strong></div>
+            <div class="map-row"><span>Secciones principales</span><strong>${principales.size}</strong></div>
+            <div class="map-row"><span>Secciones secundarias</span><strong>${secundarias.size}</strong></div>
+            <div class="map-row"><span>Cuentas</span><strong>${cuentas.length}</strong></div>
+            <div class="map-row"><span>Operaciones entre filas</span><strong>${operaciones.length}</strong></div>
+          `;
+        };
+
+        const renderLayoutMap = (layout) => {
+          const cuentas = Array.isArray(layout.cuentas)
+            ? layout.cuentas
+            : Array.isArray(layout[moduloSelect.value])
+              ? layout[moduloSelect.value]
+              : [];
+          if (!cuentas.length) {
+            layoutMap.textContent = 'No hay cuentas para mostrar en este capítulo.';
+            return;
+          }
+          const mapa = new Map();
+          cuentas.forEach((cuenta) => {
+            const principal = cuenta['SECCIàN Principal'] || cuenta['SECCIÓN Principal'] || cuenta['SECCION Principal'] || cuenta.SECCION || cuenta.seccion_principal || 'Sin sección principal';
+            const secundaria = cuenta['SECCION Secundaria'] || cuenta['SECCIÓN Secundaria'] || cuenta.seccion_secundaria || 'Sin sección secundaria';
+            if (!mapa.has(principal)) mapa.set(principal, new Map());
+            const mapaSec = mapa.get(principal);
+            if (!mapaSec.has(secundaria)) mapaSec.set(secundaria, []);
+            mapaSec.get(secundaria).push(cuenta);
+          });
+
+          layoutMap.innerHTML = Array.from(mapa.entries()).map(([principal, secundarias]) => `
+            <details open class="mb-2">
+              <summary class="map-row">
+                <div>
+                  <strong>${principal}</strong>
+                  <span class="map-tag ms-2">${secundarias.size} secundarias</span>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-primary"
+                        onclick="window.__layoutLoaderAbrirWizard({ principal: '${principal.replace(/'/g, "\\'")}' })">
+                  Agregar aquí
+                </button>
+              </summary>
+              <div class="ps-3 pt-2">
+                ${Array.from(secundarias.entries()).map(([secundaria, items]) => `
+                  <details open class="mb-2">
+                    <summary class="map-row">
+                      <div>
+                        <strong>${secundaria}</strong>
+                        <span class="map-tag ms-2">${items.length} cuentas</span>
+                      </div>
+                      <button type="button" class="btn btn-sm btn-outline-secondary"
+                              onclick="window.__layoutLoaderAbrirWizard({ principal: '${principal.replace(/'/g, "\\'")}', secundaria: '${secundaria.replace(/'/g, "\\'")}' })">
+                        Agregar aquí
+                      </button>
+                    </summary>
+                    <div class="ps-3 pt-2">
+                      <ul class="list-unstyled small mb-2">
+                        ${items.slice(0, 8).map((cuenta) => `
+                          <li>${cuenta.CUENTA} - ${cuenta.NOMBRE}</li>
+                        `).join('')}
+                        ${items.length > 8 ? `<li class="text-muted">+${items.length - 8} cuentas más…</li>` : ''}
+                      </ul>
+                      <button type="button" class="btn btn-sm btn-outline-success"
+                              onclick="window.__layoutLoaderAbrirWizard({ principal: '${principal.replace(/'/g, "\\'")}', secundaria: '${secundaria.replace(/'/g, "\\'")}' }, 'operacion_sumas')">
+                        Agregar operación entre filas
+                      </button>
+                    </div>
+                  </details>
+                `).join('')}
+              </div>
+            </details>
+          `).join('');
+        };
+
+        const renderOperacionesMap = (layout) => {
+          const operaciones = Array.isArray(layout.operaciones) ? layout.operaciones : [];
+          if (!operaciones.length) {
+            operacionesMap.textContent = 'No hay operaciones entre filas para este capítulo.';
+            return;
+          }
+          const agrupadas = new Map();
+          operaciones.forEach((op) => {
+            const seccion = op.SECCION || 'Sin sección';
+            if (!agrupadas.has(seccion)) agrupadas.set(seccion, []);
+            agrupadas.get(seccion).push(op);
+          });
+
+          operacionesMap.innerHTML = Array.from(agrupadas.entries()).map(([seccion, ops]) => `
+            <details open class="mb-2">
+              <summary class="map-row">
+                <div>
+                  <strong>${seccion}</strong>
+                  <span class="map-tag ms-2">${ops.length} operaciones</span>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-success"
+                        onclick="window.__layoutLoaderAbrirWizard({ secundaria: '${seccion.replace(/'/g, "\\'")}' }, 'operacion_sumas')">
+                  + Operación
+                </button>
+              </summary>
+              <div class="ps-3 pt-2">
+                ${ops.map((op) => {
+                  const labels = Object.entries(op)
+                    .filter(([key]) => !['HOJA', 'CAPITULO', 'Clase', 'SECCION', 'signo', 'orden'].includes(key))
+                    .map(([key, value]) => `${key}: ${value}`)
+                    .join(' | ');
+                  return `
+                    <div class="mb-2">
+                      <div><strong>${op.Clase}</strong> <span class="text-muted">(signo ${op.signo ?? 1})</span></div>
+                      <div class="text-muted small">${labels || 'Sin etiquetas definidas'}</div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </details>
+          `).join('');
+        };
+
+        const cargarLayoutDetalle = async () => {
+          const modulo = moduloSelect.value;
+          const empresaSeleccionada = readEmpresaSeleccionada();
+          const empresaId = empresaSeleccionada.id || empresaInput.value.trim() || 'EMPRESA01';
+          const anio = anioEdicionSelect.value || anioOrigenSelect.value;
+          const capitulo = obtenerCapituloSeleccionado();
+
+          capituloActivoInput.value = capitulo || '';
+          if (!anio) {
+            log('⚠️ Selecciona un año para cargar el layout.');
+            return;
+          }
+          if (!capitulo) {
+            log('⚠️ No se detectó capítulo activo en el selector de empresa.');
+            return;
+          }
+
+          try {
+            const url = new URL(`${API_BASE}/${encodeURIComponent(modulo)}/${encodeURIComponent(anio)}/${encodeURIComponent(capitulo)}`);
+            url.searchParams.set('empresaId', empresaId);
+            const res = await fetch(url.toString(), { headers: getAuthHeaders() });
+            if (!res.ok) throw new Error(`No se pudo cargar el layout (${res.status})`);
+            const data = await res.json();
+            const layout = data.layout || {};
+            renderLayoutSummary(layout, data.anio, capitulo);
+            renderLayoutMap(layout);
+            renderOperacionesMap(layout);
+            log(`✅ Layout ${modulo} ${anio} cargado para ${capitulo}.`);
+          } catch (error) {
+            console.error(error);
+            log(`❌ ${error.message}`);
           }
         };
 
@@ -189,7 +477,9 @@
           const modulo = moduloSelect.value;
           const empresaSeleccionada = readEmpresaSeleccionada();
           const empresaId = empresaSeleccionada.id || empresaInput.value.trim() || 'EMPRESA01';
+          const anioEdicionActual = anioEdicionSelect.value;
           anioOrigenSelect.innerHTML = '<option value="">Cargando…</option>';
+          anioEdicionSelect.innerHTML = '<option value="">Cargando…</option>';
           try {
             const url = new URL(`${API_BASE}/${encodeURIComponent(modulo)}/anios`);
             url.searchParams.set('empresaId', empresaId);
@@ -200,6 +490,7 @@
             anioOrigenSelect.innerHTML = '';
             if (!anios.length) {
               anioOrigenSelect.innerHTML = '<option value="">Sin años disponibles</option>';
+              anioEdicionSelect.innerHTML = '<option value="">Sin años disponibles</option>';
               return;
             }
             anios.forEach((anio) => {
@@ -207,11 +498,19 @@
               opt.value = anio;
               opt.textContent = anio;
               anioOrigenSelect.appendChild(opt);
+              const optEdicion = document.createElement('option');
+              optEdicion.value = anio;
+              optEdicion.textContent = anio;
+              anioEdicionSelect.appendChild(optEdicion);
             });
             anioOrigenSelect.value = anios[anios.length - 1];
+            anioEdicionSelect.value = anioEdicionActual && anios.includes(Number(anioEdicionActual))
+              ? anioEdicionActual
+              : (anios[0] || anios[anios.length - 1]);
           } catch (error) {
             console.error(error);
             anioOrigenSelect.innerHTML = '<option value="">Error al cargar</option>';
+            anioEdicionSelect.innerHTML = '<option value="">Error al cargar</option>';
             log(`❌ ${error.message}`);
           }
         };
@@ -267,6 +566,9 @@
             }
             log(`✅ Layout ${modulo} copiado de ${anioOrigen} a ${anioDestino}.`);
             await cargarAniosDisponibles();
+            anioEdicionSelect.value = anioDestino;
+            capituloActivoInput.value = obtenerCapituloSeleccionado();
+            await cargarLayoutDetalle();
           } catch (error) {
             console.error(error);
             log(`❌ ${error.message}`);
@@ -278,23 +580,53 @@
           if (empresa.id) {
             empresaInput.value = empresa.id;
           }
+          capituloActivoInput.value = obtenerCapituloSeleccionado();
+        };
+
+        const abrirWizard = (contextoExtra = {}, tipo = null) => {
+          if (!window.InsertionWizard) {
+            log('❌ InsertionWizard no está disponible en esta vista.');
+            return;
+          }
+          const capitulo = obtenerCapituloSeleccionado();
+          const anio = anioEdicionSelect.value || anioOrigenSelect.value;
+          if (!anio || !capitulo) {
+            log('⚠️ Selecciona año y capítulo antes de abrir el wizard.');
+            return;
+          }
+          window.InsertionWizard.selectedType = tipo || null;
+          window.InsertionWizard.open(null, {
+            moduleType: moduloSelect.value,
+            capitulo,
+            anio,
+            prefillContext: contextoExtra
+          });
         };
 
         const selectorEmpresa = getCompanySelector();
         if (selectorEmpresa) {
-          selectorEmpresa.addEventListener('change', () => {
+          selectorEmpresa.addEventListener('change', async () => {
             syncEmpresa();
-            cargarAniosDisponibles();
+            await cargarAniosDisponibles();
+            await cargarLayoutDetalle();
           });
         }
 
-        moduloSelect.addEventListener('change', cargarAniosDisponibles);
+        moduloSelect.addEventListener('change', async () => {
+          await cargarAniosDisponibles();
+          await cargarLayoutDetalle();
+        });
         refreshBtn.addEventListener('click', cargarAniosDisponibles);
+        loadLayoutBtn.addEventListener('click', cargarLayoutDetalle);
+        openWizardBtn.addEventListener('click', () => abrirWizard());
+        anioEdicionSelect.addEventListener('change', cargarLayoutDetalle);
 
         renderAuthState();
         syncEmpresa();
         cargarAniosDisponibles();
         setInterval(renderAuthState, 3000);
+
+        window.__layoutLoaderAbrirWizard = abrirWizard;
       })();
     </script>
   </body>
