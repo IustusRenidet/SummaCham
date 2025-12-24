@@ -17,47 +17,141 @@
       id: "panel-resumenes",
       label: "Summary",
       items: [
-        { id: "resumen", label: "Resumen", path: "RESUMEN.html", badge: "summary", permiso: "RESUMEN" },
-        { id: "graficas", label: "Graficas", path: "Graficas.html", badge: "summary", permiso: "RESUMEN" }
-      ]
+        {
+          id: "resumen",
+          label: "Resumen",
+          path: "RESUMEN.html",
+          badge: "summary",
+          permiso: "RESUMEN",
+        },
+        {
+          id: "graficas",
+          label: "Graficas",
+          path: "Graficas.html",
+          badge: "summary",
+          permiso: "RESUMEN",
+        },
+      ],
     },
     {
       id: "modulos-planeacion",
       label: "Divisiones",
       items: [
-        { id: "presupuestos", label: "Presupuestos", path: "Presupuestos.html", badge: "ppto", permiso: "Presupuestos" },
-        { id: "comites", label: "Comités", path: "Comités.html", permiso: "Comités" },
-        { id: "comunicacion", label: "Comunicación", path: "Comunicación.html", permiso: "Comunicación" },
-        { id: "direccion", label: "Dirección", path: "Dirección.html", permiso: "Dirección" },
-        { id: "eventos", label: "Eventos", path: "Eventos.html", permiso: "Eventos" },
+        {
+          id: "presupuestos",
+          label: "Presupuestos",
+          path: "Presupuestos.html",
+          badge: "ppto",
+          permiso: "Presupuestos",
+        },
+        {
+          id: "comites",
+          label: "Comités",
+          path: "Comités.html",
+          permiso: "Comités",
+        },
+        {
+          id: "comunicacion",
+          label: "Comunicación",
+          path: "Comunicación.html",
+          permiso: "Comunicación",
+        },
+        {
+          id: "direccion",
+          label: "Dirección",
+          path: "Dirección.html",
+          permiso: "Dirección",
+        },
+        {
+          id: "eventos",
+          label: "Eventos",
+          path: "Eventos.html",
+          permiso: "Eventos",
+        },
         {
           id: "finanzas-cluster",
           label: "Finanzas",
           badge: "finanzas",
           items: [
-            { id: "finanzas", label: "Finanzas", path: "Finanzas.html", badge: "finanzas", permiso: "Finanzas" },
-            { id: "gastosgenerales", label: "Gastos Generales", path: "GastosGenerales.html", badge: "finanzas", permiso: "Gastos Generales" },
-            { id: "nomina", label: "Nómina", path: "Nomina.html", badge: "finanzas", permiso: "Nómina" }
-          ]
+            {
+              id: "finanzas",
+              label: "Finanzas",
+              path: "Finanzas.html",
+              badge: "finanzas",
+              permiso: "Finanzas",
+            },
+            {
+              id: "gastosgenerales",
+              label: "Gastos Generales",
+              path: "GastosGenerales.html",
+              badge: "finanzas",
+              permiso: "Gastos Generales",
+            },
+            {
+              id: "nomina",
+              label: "Nómina",
+              path: "Nomina.html",
+              badge: "finanzas",
+              permiso: "Nómina",
+            },
+          ],
         },
-        { id: "gtos-corporativos", label: "Gastos Corporativos", path: "Gtos_Corporativos.html", permiso: "Gtos Corporativos" },
-        { id: "membresia", label: "Membresía", path: "Membresía.html", permiso: "Membresía" },
+        {
+          id: "gtos-corporativos",
+          label: "Gastos Corporativos",
+          path: "Gtos_Corporativos.html",
+          permiso: "Gtos Corporativos",
+        },
+        {
+          id: "membresia",
+          label: "Membresía",
+          path: "Membresía.html",
+          permiso: "Membresía",
+        },
         { id: "rh", label: "Recursos Humanos", path: "RH.html", permiso: "RH" },
-        { id: "serv-membresia", label: "Servicios a la Membresía", path: "Serv_Membresía.html", permiso: "Serv Membresía" },
+        {
+          id: "serv-membresia",
+          label: "Servicios a la Membresía",
+          path: "Serv_Membresía.html",
+          permiso: "Serv Membresía",
+        },
         { id: "tic", label: "T&IC", path: "T&IC.html", permiso: "T&IC" },
-        { id: "vpe", label: "VPE", path: "VPE.html", permiso: "VPE" }
-      ]
+        { id: "vpe", label: "VPE", path: "VPE.html", permiso: "VPE" },
+      ],
     },
     {
       id: "panel-administracion",
       label: "Configuración",
       items: [
-        { id: "perfil", label: "Mi Perfil", path: "perfil.html", badge: "perfil", public: true },
-        { id: "usuarios", label: "Administrar usuarios", path: "usuarios.html", badge: "Permisos", requiresAdmin: true },
-        { id: "crear-usuario", label: "Crear usuario", path: "crear_usuario.html", requiresAdmin: true },
-        { id: "layout-loader", label: "Gestor de layouts", path: "LayoutLoader.html", requiresAdmin: true, permiso: "Layouts" }
-      ]
-    }
+        {
+          id: "perfil",
+          label: "Mi Perfil",
+          path: "perfil.html",
+          badge: "perfil",
+          public: true,
+        },
+        {
+          id: "usuarios",
+          label: "Administrar usuarios",
+          path: "usuarios.html",
+          badge: "Permisos",
+          requiresAdmin: true,
+        },
+        {
+          id: "crear-usuario",
+          label: "Crear usuario",
+          path: "crear_usuario.html",
+          requiresAdmin: true,
+        },
+        {
+          id: "plantillas",
+          label: "Gestor de Plantillas",
+          path: "plantillas.html",
+          requiresAdmin: true,
+          permiso: "Layouts",
+        },
+      ],
+    },
   ];
 
   const MODULO_PERMISOS = {
@@ -76,7 +170,7 @@
     tic: "T&IC",
     vpe: "VPE",
     nomina: "N\xF3mina",
-    "layout-loader": "Layouts"
+    plantillas: "Layouts",
   };
   const mapPermisosEnItems = (items = []) => {
     return items.map((item) => {
@@ -91,7 +185,7 @@
   MODULE_GROUPS.forEach((group) => {
     group.items = mapPermisosEnItems(group.items);
   });
-    const flattenLeafModules = (items = []) => {
+  const flattenLeafModules = (items = []) => {
     const resultado = [];
     items.forEach((item) => {
       if (item.items && item.items.length > 0) {
@@ -119,18 +213,26 @@
     });
     return ids;
   };
-const moduloDisponiblePorEmpresa = (empresaId, moduloId) => {
+  const moduloDisponiblePorEmpresa = (empresaId, moduloId) => {
     const config = window.CapitulosModulos;
     if (!config || typeof config.moduloDisponible !== "function") {
       return true;
     }
     return config.moduloDisponible(empresaId, moduloId);
   };
-  const usuarioPuedeUsarModulo = (sesion, empresaId, modulo, puedeAdministrar) => {
+  const usuarioPuedeUsarModulo = (
+    sesion,
+    empresaId,
+    modulo,
+    puedeAdministrar
+  ) => {
     if (!sesion || !sesion.usuario) {
       return false;
     }
-    const puedeAdmin = typeof puedeAdministrar === "boolean" ? puedeAdministrar : Sesion.puedeAdministrarUsuarios(sesion);
+    const puedeAdmin =
+      typeof puedeAdministrar === "boolean"
+        ? puedeAdministrar
+        : Sesion.puedeAdministrarUsuarios(sesion);
     if (modulo.requiresAdmin && !puedeAdmin) {
       return false;
     }
@@ -140,7 +242,10 @@ const moduloDisponiblePorEmpresa = (empresaId, moduloId) => {
     if (!moduloDisponiblePorEmpresa(empresaId, modulo.id)) {
       return false;
     }
-    const usuario = (sesion.usuario.usuario || "").toString().trim().toUpperCase();
+    const usuario = (sesion.usuario.usuario || "")
+      .toString()
+      .trim()
+      .toUpperCase();
     if (usuario === "ICONET" || sesion.usuario.esAdminGlobal) {
       return true;
     }
@@ -149,18 +254,31 @@ const moduloDisponiblePorEmpresa = (empresaId, moduloId) => {
     if (!acciones) {
       return false;
     }
-    const esSoloLectura = ["resumen", "presupuestos"].includes((modulo.id || "").toLowerCase());
+    const esSoloLectura = ["resumen", "presupuestos"].includes(
+      (modulo.id || "").toLowerCase()
+    );
     if (esSoloLectura) {
-      return Boolean(acciones["Cargar y guardar"] || acciones.Revisar || acciones.Aprobar || acciones.Lectura || acciones.Ver);
+      return Boolean(
+        acciones["Cargar y guardar"] ||
+          acciones.Revisar ||
+          acciones.Aprobar ||
+          acciones.Lectura ||
+          acciones.Ver
+      );
     }
-    return Boolean(acciones["Cargar y guardar"] || acciones.Revisar || acciones.Aprobar);
+    return Boolean(
+      acciones["Cargar y guardar"] || acciones.Revisar || acciones.Aprobar
+    );
   };
   const obtenerNombreUsuario = (sesion) => {
     if (!sesion || !sesion.usuario) {
       return "Sin sesi\xF3n activa";
     }
-    const { nombres, apellidoPrimero, apellidoSegundo, usuario } = sesion.usuario;
-    const nombre = [nombres, apellidoPrimero, apellidoSegundo].filter(Boolean).join(" ");
+    const { nombres, apellidoPrimero, apellidoSegundo, usuario } =
+      sesion.usuario;
+    const nombre = [nombres, apellidoPrimero, apellidoSegundo]
+      .filter(Boolean)
+      .join(" ");
     return nombre || usuario || "Usuario";
   };
   const LoginView = ({ onLogin }) => {
@@ -181,8 +299,7 @@ const moduloDisponiblePorEmpresa = (empresaId, moduloId) => {
             const t = new ctor(toastRef.current);
             t.show();
           }
-        } catch (_) {
-        }
+        } catch (_) {}
       }
     }, [error]);
     useEffect(() => {
@@ -201,8 +318,7 @@ const moduloDisponiblePorEmpresa = (empresaId, moduloId) => {
           const t = new ctor(toastRef.current);
           t.show();
         }
-      } catch (e) {
-      }
+      } catch (e) {}
     };
     const manejarEnvio = async (evento) => {
       evento.preventDefault();
@@ -218,8 +334,8 @@ const moduloDisponiblePorEmpresa = (empresaId, moduloId) => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             usuario: form.usuario,
-            contrasena: form.contrasena
-          })
+            contrasena: form.contrasena,
+          }),
         });
         const datos = await respuesta.json().catch(() => ({}));
         if (!respuesta.ok) {
@@ -229,7 +345,9 @@ const moduloDisponiblePorEmpresa = (empresaId, moduloId) => {
         onLogin(sesionNormalizada);
       } catch (err) {
         console.error("Error de inicio de sesi\xF3n", err);
-        const msg = err?.message || "Ocurri\xF3 un problema durante el inicio de sesi\xF3n.";
+        const msg =
+          err?.message ||
+          "Ocurri\xF3 un problema durante el inicio de sesi\xF3n.";
         const sugerencia = msg.includes("Failed to fetch")
           ? "Verifica que el servidor est\xE9 corriendo en http://localhost:3005 y que no haya bloqueos de red."
           : msg;
@@ -238,106 +356,284 @@ const moduloDisponiblePorEmpresa = (empresaId, moduloId) => {
         setCargando(false);
       }
     };
-    return /* @__PURE__ */ React.createElement("div", { className: "d-flex align-items-center justify-content-center h-100" }, /* @__PURE__ */ React.createElement("main", { className: "login-card", "aria-labelledby": "titulo-login" }, /* @__PURE__ */ React.createElement("header", { className: "mb-4 text-center text-md-start" }, /* @__PURE__ */ React.createElement("h1", { id: "titulo-login", className: "h3 mb-1" }, "AmCham")), error && /* @__PURE__ */ React.createElement("div", { className: "alert alert-danger", role: "alert" }, error), /* @__PURE__ */ React.createElement("form", { onSubmit: manejarEnvio, autoComplete: "off" }, /* @__PURE__ */ React.createElement("div", { className: "mb-3" }, /* @__PURE__ */ React.createElement("label", { htmlFor: "usuario", className: "form-label fw-semibold" }, "Usuario ", /* @__PURE__ */ React.createElement("span", { className: "text-danger" }, "*")), /* @__PURE__ */ React.createElement(
-      "input",
-      {
-        type: "text",
-        id: "usuario",
-        name: "usuario",
-        className: "form-control form-control-lg",
-        value: form.usuario,
-        onChange: actualizarCampo,
-        disabled: cargando,
-        autoComplete: "username",
-        required: true
-      }
-    )), /* @__PURE__ */ React.createElement("div", { className: "mb-3" }, /* @__PURE__ */ React.createElement("label", { htmlFor: "contrasena", className: "form-label fw-semibold" }, "Contrase\xF1a ", /* @__PURE__ */ React.createElement("span", { className: "text-danger" }, "*")), /* @__PURE__ */ React.createElement("div", { className: "input-group" }, /* @__PURE__ */ React.createElement(
-      "input",
-      {
-        type: mostrarContrasena ? "text" : "password",
-        id: "contrasena",
-        name: "contrasena",
-        className: "form-control form-control-lg",
-        value: form.contrasena,
-        onChange: actualizarCampo,
-        disabled: cargando,
-        autoComplete: "current-password",
-        required: true
-      }
-    ), /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        type: "button",
-        className: "btn btn-outline-secondary",
-        disabled: cargando,
-        "aria-pressed": mostrarContrasena,
-        "aria-label": mostrarContrasena ? "Ocultar contrase" : "Mostrar contrase",
-        onClick: () => setMostrarContrasena((v) => !v)
-      },
-      mostrarContrasena ? /* @__PURE__ */ React.createElement("svg", { xmlns: "http://www.w3.org/2000/svg", width: "16", height: "16", fill: "currentColor", className: "bi bi-eye-slash", viewBox: "0 0 16 16" }, /* @__PURE__ */ React.createElement("path", { d: "M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5a7 7 0 0 0-2.79.588l.77.771A6 6 0 0 1 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755q-.247.248-.517.486z" }), /* @__PURE__ */ React.createElement("path", { d: "M11.297 9.176a3.5 3.5 0 0 0-4.474-4.474l.823.823a2.5 2.5 0 0 1 2.829 2.829zm-2.943 1.299.822.822a3.5 3.5 0 0 1-4.474-4.474l.823.823a2.5 2.5 0 0 0 2.829 2.829" }), /* @__PURE__ */ React.createElement("path", { d: "M3.35 5.47q-.27.24-.518.487A13 13 0 0 0 1.172 8l.195.288c.335.48.83 1.12 1.465 1.755C4.121 11.332 5.881 12.5 8 12.5c.716 0 1.39-.133 2.02-.36l.772.772A7 7 0 0 1 8 13.5C3 13.5 0 8 0 8s.939-1.721 2.641-3.238l.708.709zm10.296 8.884-12-12 .708-.708 12 12z" })) : /* @__PURE__ */ React.createElement("svg", { xmlns: "http://www.w3.org/2000/svg", width: "16", height: "16", fill: "currentColor", className: "bi bi-eye", viewBox: "0 0 16 16" }, /* @__PURE__ */ React.createElement("path", { d: "M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12 8 12s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z" }), /* @__PURE__ */ React.createElement("path", { d: "M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5" }))
-    ))), /* @__PURE__ */ React.createElement("button", { type: "submit", className: "btn btn-verde w-100", disabled: cargando }, cargando && /* @__PURE__ */ React.createElement("span", { className: "spinner-border spinner-border-sm me-2", role: "status", "aria-hidden": "true" }), cargando ? "Ingresando\u2026" : "Ingresar"))), /* @__PURE__ */ React.createElement("div", { className: "position-fixed bottom-0 end-0 p-3", style: { zIndex: 1080 } }, /* @__PURE__ */ React.createElement(
+    return /* @__PURE__ */ React.createElement(
       "div",
-      {
-        ref: toastRef,
-        className: `toast align-items-center text-white ${toastType === "success" ? "bg-success" : "bg-danger"} border-0`,
-        role: "status",
-        "aria-live": "polite",
-        "aria-atomic": "true"
-      },
-      /* @__PURE__ */ React.createElement("div", { className: "d-flex" }, /* @__PURE__ */ React.createElement("div", { className: "toast-body" }, toastMsg || "Aviso"), /* @__PURE__ */ React.createElement("button", { type: "button", className: "btn-close btn-close-white me-2 m-auto", "data-bs-dismiss": "toast", "aria-label": "Cerrar" }))
-    )));
+      { className: "d-flex align-items-center justify-content-center h-100" },
+      /* @__PURE__ */ React.createElement(
+        "main",
+        { className: "login-card", "aria-labelledby": "titulo-login" },
+        /* @__PURE__ */ React.createElement(
+          "header",
+          { className: "mb-4 text-center text-md-start" },
+          /* @__PURE__ */ React.createElement(
+            "h1",
+            { id: "titulo-login", className: "h3 mb-1" },
+            "AmCham"
+          )
+        ),
+        error &&
+          /* @__PURE__ */ React.createElement(
+            "div",
+            { className: "alert alert-danger", role: "alert" },
+            error
+          ),
+        /* @__PURE__ */ React.createElement(
+          "form",
+          { onSubmit: manejarEnvio, autoComplete: "off" },
+          /* @__PURE__ */ React.createElement(
+            "div",
+            { className: "mb-3" },
+            /* @__PURE__ */ React.createElement(
+              "label",
+              { htmlFor: "usuario", className: "form-label fw-semibold" },
+              "Usuario ",
+              /* @__PURE__ */ React.createElement(
+                "span",
+                { className: "text-danger" },
+                "*"
+              )
+            ),
+            /* @__PURE__ */ React.createElement("input", {
+              type: "text",
+              id: "usuario",
+              name: "usuario",
+              className: "form-control form-control-lg",
+              value: form.usuario,
+              onChange: actualizarCampo,
+              disabled: cargando,
+              autoComplete: "username",
+              required: true,
+            })
+          ),
+          /* @__PURE__ */ React.createElement(
+            "div",
+            { className: "mb-3" },
+            /* @__PURE__ */ React.createElement(
+              "label",
+              { htmlFor: "contrasena", className: "form-label fw-semibold" },
+              "Contrase\xF1a ",
+              /* @__PURE__ */ React.createElement(
+                "span",
+                { className: "text-danger" },
+                "*"
+              )
+            ),
+            /* @__PURE__ */ React.createElement(
+              "div",
+              { className: "input-group" },
+              /* @__PURE__ */ React.createElement("input", {
+                type: mostrarContrasena ? "text" : "password",
+                id: "contrasena",
+                name: "contrasena",
+                className: "form-control form-control-lg",
+                value: form.contrasena,
+                onChange: actualizarCampo,
+                disabled: cargando,
+                autoComplete: "current-password",
+                required: true,
+              }),
+              /* @__PURE__ */ React.createElement(
+                "button",
+                {
+                  type: "button",
+                  className: "btn btn-outline-secondary",
+                  disabled: cargando,
+                  "aria-pressed": mostrarContrasena,
+                  "aria-label": mostrarContrasena
+                    ? "Ocultar contrase"
+                    : "Mostrar contrase",
+                  onClick: () => setMostrarContrasena((v) => !v),
+                },
+                mostrarContrasena
+                  ? /* @__PURE__ */ React.createElement(
+                      "svg",
+                      {
+                        xmlns: "http://www.w3.org/2000/svg",
+                        width: "16",
+                        height: "16",
+                        fill: "currentColor",
+                        className: "bi bi-eye-slash",
+                        viewBox: "0 0 16 16",
+                      },
+                      /* @__PURE__ */ React.createElement("path", {
+                        d: "M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5a7 7 0 0 0-2.79.588l.77.771A6 6 0 0 1 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755q-.247.248-.517.486z",
+                      }),
+                      /* @__PURE__ */ React.createElement("path", {
+                        d: "M11.297 9.176a3.5 3.5 0 0 0-4.474-4.474l.823.823a2.5 2.5 0 0 1 2.829 2.829zm-2.943 1.299.822.822a3.5 3.5 0 0 1-4.474-4.474l.823.823a2.5 2.5 0 0 0 2.829 2.829",
+                      }),
+                      /* @__PURE__ */ React.createElement("path", {
+                        d: "M3.35 5.47q-.27.24-.518.487A13 13 0 0 0 1.172 8l.195.288c.335.48.83 1.12 1.465 1.755C4.121 11.332 5.881 12.5 8 12.5c.716 0 1.39-.133 2.02-.36l.772.772A7 7 0 0 1 8 13.5C3 13.5 0 8 0 8s.939-1.721 2.641-3.238l.708.709zm10.296 8.884-12-12 .708-.708 12 12z",
+                      })
+                    )
+                  : /* @__PURE__ */ React.createElement(
+                      "svg",
+                      {
+                        xmlns: "http://www.w3.org/2000/svg",
+                        width: "16",
+                        height: "16",
+                        fill: "currentColor",
+                        className: "bi bi-eye",
+                        viewBox: "0 0 16 16",
+                      },
+                      /* @__PURE__ */ React.createElement("path", {
+                        d: "M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12 8 12s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z",
+                      }),
+                      /* @__PURE__ */ React.createElement("path", {
+                        d: "M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5",
+                      })
+                    )
+              )
+            )
+          ),
+          /* @__PURE__ */ React.createElement(
+            "button",
+            {
+              type: "submit",
+              className: "btn btn-verde w-100",
+              disabled: cargando,
+            },
+            cargando &&
+              /* @__PURE__ */ React.createElement("span", {
+                className: "spinner-border spinner-border-sm me-2",
+                role: "status",
+                "aria-hidden": "true",
+              }),
+            cargando ? "Ingresando\u2026" : "Ingresar"
+          )
+        )
+      ),
+      /* @__PURE__ */ React.createElement(
+        "div",
+        {
+          className: "position-fixed bottom-0 end-0 p-3",
+          style: { zIndex: 1080 },
+        },
+        /* @__PURE__ */ React.createElement(
+          "div",
+          {
+            ref: toastRef,
+            className: `toast align-items-center text-white ${
+              toastType === "success" ? "bg-success" : "bg-danger"
+            } border-0`,
+            role: "status",
+            "aria-live": "polite",
+            "aria-atomic": "true",
+          },
+          /* @__PURE__ */ React.createElement(
+            "div",
+            { className: "d-flex" },
+            /* @__PURE__ */ React.createElement(
+              "div",
+              { className: "toast-body" },
+              toastMsg || "Aviso"
+            ),
+            /* @__PURE__ */ React.createElement("button", {
+              type: "button",
+              className: "btn-close btn-close-white me-2 m-auto",
+              "data-bs-dismiss": "toast",
+              "aria-label": "Cerrar",
+            })
+          )
+        )
+      )
+    );
   };
-    const SidebarGroup = ({ group, modules, selectedModule, onSelect, open, onToggle, gruposAbiertos, toggleGrupo }) => {
+  const SidebarGroup = ({
+    group,
+    modules,
+    selectedModule,
+    onSelect,
+    open,
+    onToggle,
+    gruposAbiertos,
+    toggleGrupo,
+  }) => {
     if (modules.length === 0) {
       return null;
     }
-    return /* @__PURE__ */ React.createElement("div", { className: "sidebar-group" }, /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        type: "button",
-        className: "submenu-toggle",
-        "aria-expanded": open,
-        onClick: () => onToggle(group.id)
-      },
-      /* @__PURE__ */ React.createElement("span", null, group.label),
-      /* @__PURE__ */ React.createElement("span", { className: "module-count" }, modules.length)
-    ), open && /* @__PURE__ */ React.createElement("div", { className: "submenu-content" }, modules.map((module) => /* @__PURE__ */ React.createElement(
-      SidebarModuleItem,
-      {
-        key: module.id,
-        module,
-        selectedModule,
-        onSelect,
-        gruposAbiertos,
-        toggleGrupo
-      }
-    ))));
-  };
-  const SidebarModuleItem = ({ module, selectedModule, onSelect, gruposAbiertos, toggleGrupo, level = 1 }) => {
-    if (module.items && module.items.length > 0) {
-      const abierto = gruposAbiertos.has(module.id);
-      return /* @__PURE__ */ React.createElement("div", { className: "sidebar-subgroup", style: { paddingLeft: level * 8 + "px" } }, /* @__PURE__ */ React.createElement(
+    return /* @__PURE__ */ React.createElement(
+      "div",
+      { className: "sidebar-group" },
+      /* @__PURE__ */ React.createElement(
         "button",
         {
           type: "button",
-          className: "submenu-toggle submenu-toggle-nested",
-          "aria-expanded": abierto,
-          onClick: () => toggleGrupo(module.id)
+          className: "submenu-toggle",
+          "aria-expanded": open,
+          onClick: () => onToggle(group.id),
         },
-        /* @__PURE__ */ React.createElement("span", null, module.label),
-        /* @__PURE__ */ React.createElement("span", { className: "module-count" }, module.items.length)
-      ), abierto && /* @__PURE__ */ React.createElement("div", { className: "submenu-content" }, module.items.map((child) => /* @__PURE__ */ React.createElement(
-        SidebarModuleItem,
+        /* @__PURE__ */ React.createElement("span", null, group.label),
+        /* @__PURE__ */ React.createElement(
+          "span",
+          { className: "module-count" },
+          modules.length
+        )
+      ),
+      open &&
+        /* @__PURE__ */ React.createElement(
+          "div",
+          { className: "submenu-content" },
+          modules.map((module) =>
+            /* @__PURE__ */ React.createElement(SidebarModuleItem, {
+              key: module.id,
+              module,
+              selectedModule,
+              onSelect,
+              gruposAbiertos,
+              toggleGrupo,
+            })
+          )
+        )
+    );
+  };
+  const SidebarModuleItem = ({
+    module,
+    selectedModule,
+    onSelect,
+    gruposAbiertos,
+    toggleGrupo,
+    level = 1,
+  }) => {
+    if (module.items && module.items.length > 0) {
+      const abierto = gruposAbiertos.has(module.id);
+      return /* @__PURE__ */ React.createElement(
+        "div",
         {
-          key: child.id,
-          module: child,
-          selectedModule,
-          onSelect,
-          gruposAbiertos,
-          toggleGrupo,
-          level: level + 1
-        }
-      ))));
+          className: "sidebar-subgroup",
+          style: { paddingLeft: level * 8 + "px" },
+        },
+        /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            type: "button",
+            className: "submenu-toggle submenu-toggle-nested",
+            "aria-expanded": abierto,
+            onClick: () => toggleGrupo(module.id),
+          },
+          /* @__PURE__ */ React.createElement("span", null, module.label),
+          /* @__PURE__ */ React.createElement(
+            "span",
+            { className: "module-count" },
+            module.items.length
+          )
+        ),
+        abierto &&
+          /* @__PURE__ */ React.createElement(
+            "div",
+            { className: "submenu-content" },
+            module.items.map((child) =>
+              /* @__PURE__ */ React.createElement(SidebarModuleItem, {
+                key: child.id,
+                module: child,
+                selectedModule,
+                onSelect,
+                gruposAbiertos,
+                toggleGrupo,
+                level: level + 1,
+              })
+            )
+          )
+      );
     }
     const activo = selectedModule?.id === module.id;
     return /* @__PURE__ */ React.createElement(
@@ -345,13 +641,22 @@ const moduloDisponiblePorEmpresa = (empresaId, moduloId) => {
       {
         type: "button",
         className: "sidebar-link " + (activo ? "active" : ""),
-        onClick: () => onSelect(module)
+        onClick: () => onSelect(module),
       },
       /* @__PURE__ */ React.createElement("span", null, module.label),
-      module.badge && /* @__PURE__ */ React.createElement("span", { className: "badge rounded-pill" }, module.badge)
+      module.badge &&
+        /* @__PURE__ */ React.createElement(
+          "span",
+          { className: "badge rounded-pill" },
+          module.badge
+        )
     );
   };
-const NotificationBell = ({ notifications = [], onRefresh, onMarkAsRead }) => {
+  const NotificationBell = ({
+    notifications = [],
+    onRefresh,
+    onMarkAsRead,
+  }) => {
     const [open, setOpen] = useState(false);
     const bellRef = React.useRef(null);
     const unread = notifications.filter((item) => !item.leidaEn).length;
@@ -379,46 +684,125 @@ const NotificationBell = ({ notifications = [], onRefresh, onMarkAsRead }) => {
         return valor;
       }
     };
-    return /* @__PURE__ */ React.createElement("div", { className: `notification-bell${open ? " notification-bell--open" : ""}`, ref: bellRef }, /* @__PURE__ */ React.createElement(
-      "button",
+    return /* @__PURE__ */ React.createElement(
+      "div",
       {
-        type: "button",
-        className: "notification-bell__button",
-        onClick: toggle,
-        "aria-expanded": open,
-        "aria-label": "Notificaciones"
+        className: `notification-bell${open ? " notification-bell--open" : ""}`,
+        ref: bellRef,
       },
       /* @__PURE__ */ React.createElement(
-        "svg",
-        {
-          xmlns: "http://www.w3.org/2000/svg",
-          width: "20",
-          height: "20",
-          fill: "currentColor",
-          className: "notification-bell__icon",
-          viewBox: "0 0 16 16",
-          "aria-hidden": "true"
-        },
-        /* @__PURE__ */ React.createElement("path", { d: "M8 16a2 2 0 0 0 1.985-1.75H6.015A2 2 0 0 0 8 16m6-6c0-3.071-1.639-5.64-4.5-6.32V3a1.5 1.5 0 0 0-3 0v.68C3.64 4.36 2 6.929 2 10v2l-1 1v1h14v-1l-1-1z" })
-      ),
-      unread > 0 && /* @__PURE__ */ React.createElement("span", { className: "notification-bell__badge" }, unread)
-    ), open && /* @__PURE__ */ React.createElement("div", { className: "notification-panel", role: "dialog", "aria-label": "Notificaciones recientes" }, /* @__PURE__ */ React.createElement("div", { className: "notification-panel__header" }, /* @__PURE__ */ React.createElement("strong", null, "Notificaciones"), /* @__PURE__ */ React.createElement("button", { type: "button", className: "btn btn-link btn-sm p-0", onClick: onRefresh }, "Actualizar")), /* @__PURE__ */ React.createElement("div", { className: "notification-panel__body" }, notifications.length === 0 ? /* @__PURE__ */ React.createElement("p", { className: "text-muted small mb-0" }, "Sin notificaciones pendientes.") : /* @__PURE__ */ React.createElement("ul", { className: "notification-panel__list" }, notifications.map((item) => /* @__PURE__ */ React.createElement(
-      "li",
-      {
-        key: item.id,
-        className: `notification-panel__item${!item.leidaEn ? " notification-panel__item--new" : ""}`
-      },
-      /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: "notification-panel__title mb-1" }, item.titulo), /* @__PURE__ */ React.createElement("p", { className: "notification-panel__message mb-1" }, item.mensaje), /* @__PURE__ */ React.createElement("small", { className: "text-muted" }, renderFecha(item.creadaEn))),
-      !item.leidaEn && /* @__PURE__ */ React.createElement(
         "button",
         {
           type: "button",
-          className: "btn btn-link btn-sm p-0",
-          onClick: () => marcarLeida(item.id)
+          className: "notification-bell__button",
+          onClick: toggle,
+          "aria-expanded": open,
+          "aria-label": "Notificaciones",
         },
-        "Marcar como le\xEDda"
-      )
-    ))))));
+        /* @__PURE__ */ React.createElement(
+          "svg",
+          {
+            xmlns: "http://www.w3.org/2000/svg",
+            width: "20",
+            height: "20",
+            fill: "currentColor",
+            className: "notification-bell__icon",
+            viewBox: "0 0 16 16",
+            "aria-hidden": "true",
+          },
+          /* @__PURE__ */ React.createElement("path", {
+            d: "M8 16a2 2 0 0 0 1.985-1.75H6.015A2 2 0 0 0 8 16m6-6c0-3.071-1.639-5.64-4.5-6.32V3a1.5 1.5 0 0 0-3 0v.68C3.64 4.36 2 6.929 2 10v2l-1 1v1h14v-1l-1-1z",
+          })
+        ),
+        unread > 0 &&
+          /* @__PURE__ */ React.createElement(
+            "span",
+            { className: "notification-bell__badge" },
+            unread
+          )
+      ),
+      open &&
+        /* @__PURE__ */ React.createElement(
+          "div",
+          {
+            className: "notification-panel",
+            role: "dialog",
+            "aria-label": "Notificaciones recientes",
+          },
+          /* @__PURE__ */ React.createElement(
+            "div",
+            { className: "notification-panel__header" },
+            /* @__PURE__ */ React.createElement(
+              "strong",
+              null,
+              "Notificaciones"
+            ),
+            /* @__PURE__ */ React.createElement(
+              "button",
+              {
+                type: "button",
+                className: "btn btn-link btn-sm p-0",
+                onClick: onRefresh,
+              },
+              "Actualizar"
+            )
+          ),
+          /* @__PURE__ */ React.createElement(
+            "div",
+            { className: "notification-panel__body" },
+            notifications.length === 0
+              ? /* @__PURE__ */ React.createElement(
+                  "p",
+                  { className: "text-muted small mb-0" },
+                  "Sin notificaciones pendientes."
+                )
+              : /* @__PURE__ */ React.createElement(
+                  "ul",
+                  { className: "notification-panel__list" },
+                  notifications.map((item) =>
+                    /* @__PURE__ */ React.createElement(
+                      "li",
+                      {
+                        key: item.id,
+                        className: `notification-panel__item${
+                          !item.leidaEn ? " notification-panel__item--new" : ""
+                        }`,
+                      },
+                      /* @__PURE__ */ React.createElement(
+                        "div",
+                        null,
+                        /* @__PURE__ */ React.createElement(
+                          "p",
+                          { className: "notification-panel__title mb-1" },
+                          item.titulo
+                        ),
+                        /* @__PURE__ */ React.createElement(
+                          "p",
+                          { className: "notification-panel__message mb-1" },
+                          item.mensaje
+                        ),
+                        /* @__PURE__ */ React.createElement(
+                          "small",
+                          { className: "text-muted" },
+                          renderFecha(item.creadaEn)
+                        )
+                      ),
+                      !item.leidaEn &&
+                        /* @__PURE__ */ React.createElement(
+                          "button",
+                          {
+                            type: "button",
+                            className: "btn btn-link btn-sm p-0",
+                            onClick: () => marcarLeida(item.id),
+                          },
+                          "Marcar como le\xEDda"
+                        )
+                    )
+                  )
+                )
+          )
+        )
+    );
   };
   const DashboardLayout = ({
     sesion,
@@ -429,88 +813,126 @@ const NotificationBell = ({ notifications = [], onRefresh, onMarkAsRead }) => {
     onChangeEmpresa,
     notifications = [],
     onRefreshNotifications,
-    onMarkNotification
+    onMarkNotification,
   }) => {
-    const puedeAdministrar = useMemo(() => Sesion.puedeAdministrarUsuarios(sesion), [sesion]);
-    const empresasDisponibles = useMemo(() => Sesion.obtenerEmpresasDisponibles(sesion), [sesion]);
-    const puedeCambiarEmpresa = useMemo(() => Sesion.puedeCambiarEmpresa(sesion), [sesion]);
+    const puedeAdministrar = useMemo(
+      () => Sesion.puedeAdministrarUsuarios(sesion),
+      [sesion]
+    );
+    const empresasDisponibles = useMemo(
+      () => Sesion.obtenerEmpresasDisponibles(sesion),
+      [sesion]
+    );
+    const puedeCambiarEmpresa = useMemo(
+      () => Sesion.puedeCambiarEmpresa(sesion),
+      [sesion]
+    );
     const empresaActualId = empresaActiva?.id || "";
-    const tieneAccesoVista = useCallback((module) => {
-      return usuarioPuedeUsarModulo(sesion, empresaActualId, module, puedeAdministrar);
-    }, [sesion, empresaActualId, puedeAdministrar]);
-    const filtrarItemsPorPermiso = useCallback((items = []) => {
-    return items.reduce((acumulado, item) => {
-      if (item.items && item.items.length > 0) {
-        const hijos = filtrarItemsPorPermiso(item.items);
-        if (hijos.length > 0) {
-          acumulado.push({ ...item, items: hijos });
-        }
-        return acumulado;
-      }
-      if (tieneAccesoVista(item)) {
-        acumulado.push(item);
-      }
-      return acumulado;
-    }, []);
-  }, [tieneAccesoVista]);
-  const gruposDisponibles = useMemo(() => {
-    return MODULE_GROUPS.map((group) => {
-      const items = filtrarItemsPorPermiso(group.items);
-      return { ...group, items };
-    }).filter((group) => group.items.length > 0);
-  }, [filtrarItemsPorPermiso]);
-  const modulosDisponibles = useMemo(
-    () => gruposDisponibles.flatMap((group) => flattenLeafModules(group.items)),
-    [gruposDisponibles]
-  );
-  const moduloSeleccionado = useMemo(
-    () => modulosDisponibles.find((module) => module.id === selectedModuleId) || null,
-    [modulosDisponibles, selectedModuleId]
-  );
-  const [esMovil, setEsMovil] = useState(() => esPantallaReducida());
-  const [sidebarOculta, setSidebarOculta] = useState(() => esPantallaReducida());
-  const [gruposAbiertos, setGruposAbiertos] = useState(() => new Set(collectAllGroupIds(MODULE_GROUPS)));
-  useEffect(() => {
-    setGruposAbiertos(new Set(collectAllGroupIds(gruposDisponibles)));
-  }, [gruposDisponibles]);
-  useEffect(() => {
-    const media = typeof window !== "undefined" && window.matchMedia ? window.matchMedia("(max-width: 992px)") : null;
-    const manejarCambio = (evento) => {
-      const esChico = evento.matches ?? false;
-      setEsMovil(esChico);
-      setSidebarOculta(esChico);
-    };
-    if (media) {
-      manejarCambio(media);
-      media.addEventListener("change", manejarCambio);
-    }
-    return () => {
+    const tieneAccesoVista = useCallback(
+      (module) => {
+        return usuarioPuedeUsarModulo(
+          sesion,
+          empresaActualId,
+          module,
+          puedeAdministrar
+        );
+      },
+      [sesion, empresaActualId, puedeAdministrar]
+    );
+    const filtrarItemsPorPermiso = useCallback(
+      (items = []) => {
+        return items.reduce((acumulado, item) => {
+          if (item.items && item.items.length > 0) {
+            const hijos = filtrarItemsPorPermiso(item.items);
+            if (hijos.length > 0) {
+              acumulado.push({ ...item, items: hijos });
+            }
+            return acumulado;
+          }
+          if (tieneAccesoVista(item)) {
+            acumulado.push(item);
+          }
+          return acumulado;
+        }, []);
+      },
+      [tieneAccesoVista]
+    );
+    const gruposDisponibles = useMemo(() => {
+      return MODULE_GROUPS.map((group) => {
+        const items = filtrarItemsPorPermiso(group.items);
+        return { ...group, items };
+      }).filter((group) => group.items.length > 0);
+    }, [filtrarItemsPorPermiso]);
+    const modulosDisponibles = useMemo(
+      () =>
+        gruposDisponibles.flatMap((group) => flattenLeafModules(group.items)),
+      [gruposDisponibles]
+    );
+    const moduloSeleccionado = useMemo(
+      () =>
+        modulosDisponibles.find((module) => module.id === selectedModuleId) ||
+        null,
+      [modulosDisponibles, selectedModuleId]
+    );
+    const [esMovil, setEsMovil] = useState(() => esPantallaReducida());
+    const [sidebarOculta, setSidebarOculta] = useState(() =>
+      esPantallaReducida()
+    );
+    const [gruposAbiertos, setGruposAbiertos] = useState(
+      () => new Set(collectAllGroupIds(MODULE_GROUPS))
+    );
+    useEffect(() => {
+      setGruposAbiertos(new Set(collectAllGroupIds(gruposDisponibles)));
+    }, [gruposDisponibles]);
+    useEffect(() => {
+      const media =
+        typeof window !== "undefined" && window.matchMedia
+          ? window.matchMedia("(max-width: 992px)")
+          : null;
+      const manejarCambio = (evento) => {
+        const esChico = evento.matches ?? false;
+        setEsMovil(esChico);
+        setSidebarOculta(esChico);
+      };
       if (media) {
-        media.removeEventListener("change", manejarCambio);
+        manejarCambio(media);
+        media.addEventListener("change", manejarCambio);
       }
-    };
-  }, []);
-  useEffect(() => {
-    if (esMovil) {
-      document.body.classList.toggle("sidebar-locked", !sidebarOculta);
-    } else {
-      document.body.classList.remove("sidebar-locked");
-    }
-    return () => document.body.classList.remove("sidebar-locked");
-  }, [sidebarOculta, esMovil]);
-  useEffect(() => {
-    if (modulosDisponibles.length === 0) {
-      if (selectedModuleId) {
-        onSelectModule(null);
+      return () => {
+        if (media) {
+          media.removeEventListener("change", manejarCambio);
+        }
+      };
+    }, []);
+    useEffect(() => {
+      if (esMovil) {
+        document.body.classList.toggle("sidebar-locked", !sidebarOculta);
+      } else {
+        document.body.classList.remove("sidebar-locked");
       }
-      return;
-    }
-    if (!modulosDisponibles.some((modulo) => modulo.id === selectedModuleId)) {
-      onSelectModule(modulosDisponibles[0].id);
-    }
-  }, [modulosDisponibles, selectedModuleId, onSelectModule, sesion, empresaActiva]);
+      return () => document.body.classList.remove("sidebar-locked");
+    }, [sidebarOculta, esMovil]);
+    useEffect(() => {
+      if (modulosDisponibles.length === 0) {
+        if (selectedModuleId) {
+          onSelectModule(null);
+        }
+        return;
+      }
+      if (
+        !modulosDisponibles.some((modulo) => modulo.id === selectedModuleId)
+      ) {
+        onSelectModule(modulosDisponibles[0].id);
+      }
+    }, [
+      modulosDisponibles,
+      selectedModuleId,
+      onSelectModule,
+      sesion,
+      empresaActiva,
+    ]);
 
-  const toggleGrupo = (groupId) => {
+    const toggleGrupo = (groupId) => {
       setGruposAbiertos((prev) => {
         const nueva = new Set(prev);
         if (nueva.has(groupId)) {
@@ -538,7 +960,9 @@ const NotificationBell = ({ notifications = [], onRefresh, onMarkAsRead }) => {
         onChangeEmpresa(nuevoId);
       }
     };
-    const layoutClassName = `app-layout${sidebarOculta ? " sidebar-hidden" : ""}`;
+    const layoutClassName = `app-layout${
+      sidebarOculta ? " sidebar-hidden" : ""
+    }`;
     const mostrarBackdrop = esMovil && !sidebarOculta;
     const manejarActualizarNotificaciones = () => {
       if (onRefreshNotifications) {
@@ -550,97 +974,229 @@ const NotificationBell = ({ notifications = [], onRefresh, onMarkAsRead }) => {
         onMarkNotification(id);
       }
     };
-    return /* @__PURE__ */ React.createElement("div", { className: layoutClassName }, mostrarBackdrop && /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        type: "button",
-        className: "sidebar-backdrop",
-        onClick: () => setSidebarOculta(true),
-        "aria-label": "Cerrar men\xFA lateral"
-      }
-    ), /* @__PURE__ */ React.createElement("aside", { className: "app-sidebar", "aria-label": "Navegaci\xF3n principal" }, /* @__PURE__ */ React.createElement("div", { className: "sidebar-header" }, /* @__PURE__ */ React.createElement("img", { src: "icono/amcham.png", alt: "AmCham", className: "sidebar-logo" })), /* @__PURE__ */ React.createElement("div", { className: "sidebar-menu" }, gruposDisponibles.map((group) => /* @__PURE__ */ React.createElement(
-      SidebarGroup,
-      {
-        key: group.id,
-        group,
-        modules: group.items,
-        selectedModule: moduloSeleccionado,
-        onSelect: seleccionarModulo,
-        open: gruposAbiertos.has(group.id),
-        onToggle: toggleGrupo,
-        gruposAbiertos,
-        toggleGrupo: toggleGrupo
-      }
-    ))), /* @__PURE__ */ React.createElement("footer", { className: "sidebar-footer" }, /* @__PURE__ */ React.createElement("div", { className: "user-info mb-2" }, /* @__PURE__ */ React.createElement("span", { className: "text-muted text-uppercase fw-semibold sidebar-session-label" }, "Sesi\xF3n activa"), /* @__PURE__ */ React.createElement("strong", { className: "sidebar-user-name" }, obtenerNombreUsuario(sesion)), /* @__PURE__ */ React.createElement("span", { className: "text-muted sidebar-user-handle" }, sesion?.usuario?.usuario || "\u2014")), /* @__PURE__ */ React.createElement("button", { type: "button", className: "btn btn-outline-secondary w-100 btn-logout", onClick: onLogout }, "Cerrar sesi\xF3n"))), /* @__PURE__ */ React.createElement("main", { className: "app-content" }, /* @__PURE__ */ React.createElement("div", { className: "top-bar" }, /* @__PURE__ */ React.createElement("div", { className: "top-bar-left" }, /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        type: "button",
-        className: `sidebar-toggle-btn${sidebarOculta ? " collapsed" : ""}`,
-        onClick: alternarSidebar,
-        "aria-label": sidebarOculta ? "Mostrar men\xFA lateral" : "Ocultar men\xFA lateral",
-        "aria-expanded": !sidebarOculta
-      },
-      /* @__PURE__ */ React.createElement("span", { "aria-hidden": "true" }, "\u2630")
-    ), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h2", null, moduloSeleccionado ? moduloSeleccionado.label : "Selecciona un m\xF3dulo"), moduloSeleccionado?.badge && /* @__PURE__ */ React.createElement("span", { className: "badge rounded-pill mt-2" }, moduloSeleccionado.badge))), /* @__PURE__ */ React.createElement("div", { className: "top-bar-right d-flex align-items-center gap-3" }, /* @__PURE__ */ React.createElement(
-      NotificationBell,
-      {
-        notifications,
-        onRefresh: manejarActualizarNotificaciones,
-        onMarkAsRead: manejarMarcarNotificacion
-      }
-    ), /* @__PURE__ */ React.createElement("div", { className: "company-selector" }, /* @__PURE__ */ React.createElement("label", { htmlFor: "companyFilter", className: "fw-semibold mb-0" }, "Empresa:"), /* @__PURE__ */ React.createElement(
-      "select",
-      {
-        id: "companyFilter",
-        className: "form-select form-select-sm",
-        value: empresaActualId,
-        onChange: manejarCambioEmpresa,
-        disabled: !puedeCambiarEmpresa || empresasDisponibles.length === 0
-      },
-      empresasDisponibles.length === 0 && /* @__PURE__ */ React.createElement("option", { value: "" }, "Sin empresas disponibles"),
-      empresasDisponibles.map((empresa) => /* @__PURE__ */ React.createElement("option", { key: empresa.id, value: empresa.id }, empresa.etiqueta || empresa.nombre || "Selecciona una empresa"))
-    )))), /* @__PURE__ */ React.createElement("div", { className: "content-wrapper" }, /* @__PURE__ */ React.createElement("div", { className: "content-card" }, moduloSeleccionado ? /* @__PURE__ */ React.createElement(
-      "iframe",
-      {
-        key: `${moduloSeleccionado.id}-${empresaActualId || "sin-empresa"}`,
-        src: moduloSeleccionado.path,
-        title: moduloSeleccionado.label,
-        className: "content-iframe",
-        allow: "clipboard-read; clipboard-write"
-      }
-    ) : /* @__PURE__ */ React.createElement("div", { className: "empty-state" })))));
+    return /* @__PURE__ */ React.createElement(
+      "div",
+      { className: layoutClassName },
+      mostrarBackdrop &&
+        /* @__PURE__ */ React.createElement("button", {
+          type: "button",
+          className: "sidebar-backdrop",
+          onClick: () => setSidebarOculta(true),
+          "aria-label": "Cerrar men\xFA lateral",
+        }),
+      /* @__PURE__ */ React.createElement(
+        "aside",
+        { className: "app-sidebar", "aria-label": "Navegaci\xF3n principal" },
+        /* @__PURE__ */ React.createElement(
+          "div",
+          { className: "sidebar-header" },
+          /* @__PURE__ */ React.createElement("img", {
+            src: "icono/amcham.png",
+            alt: "AmCham",
+            className: "sidebar-logo",
+          })
+        ),
+        /* @__PURE__ */ React.createElement(
+          "div",
+          { className: "sidebar-menu" },
+          gruposDisponibles.map((group) =>
+            /* @__PURE__ */ React.createElement(SidebarGroup, {
+              key: group.id,
+              group,
+              modules: group.items,
+              selectedModule: moduloSeleccionado,
+              onSelect: seleccionarModulo,
+              open: gruposAbiertos.has(group.id),
+              onToggle: toggleGrupo,
+              gruposAbiertos,
+              toggleGrupo: toggleGrupo,
+            })
+          )
+        ),
+        /* @__PURE__ */ React.createElement(
+          "footer",
+          { className: "sidebar-footer" },
+          /* @__PURE__ */ React.createElement(
+            "div",
+            { className: "user-info mb-2" },
+            /* @__PURE__ */ React.createElement(
+              "span",
+              {
+                className:
+                  "text-muted text-uppercase fw-semibold sidebar-session-label",
+              },
+              "Sesi\xF3n activa"
+            ),
+            /* @__PURE__ */ React.createElement(
+              "strong",
+              { className: "sidebar-user-name" },
+              obtenerNombreUsuario(sesion)
+            ),
+            /* @__PURE__ */ React.createElement(
+              "span",
+              { className: "text-muted sidebar-user-handle" },
+              sesion?.usuario?.usuario || "\u2014"
+            )
+          ),
+          /* @__PURE__ */ React.createElement(
+            "button",
+            {
+              type: "button",
+              className: "btn btn-outline-secondary w-100 btn-logout",
+              onClick: onLogout,
+            },
+            "Cerrar sesi\xF3n"
+          )
+        )
+      ),
+      /* @__PURE__ */ React.createElement(
+        "main",
+        { className: "app-content" },
+        /* @__PURE__ */ React.createElement(
+          "div",
+          { className: "top-bar" },
+          /* @__PURE__ */ React.createElement(
+            "div",
+            { className: "top-bar-left" },
+            /* @__PURE__ */ React.createElement(
+              "button",
+              {
+                type: "button",
+                className: `sidebar-toggle-btn${
+                  sidebarOculta ? " collapsed" : ""
+                }`,
+                onClick: alternarSidebar,
+                "aria-label": sidebarOculta
+                  ? "Mostrar men\xFA lateral"
+                  : "Ocultar men\xFA lateral",
+                "aria-expanded": !sidebarOculta,
+              },
+              /* @__PURE__ */ React.createElement(
+                "span",
+                { "aria-hidden": "true" },
+                "\u2630"
+              )
+            ),
+            /* @__PURE__ */ React.createElement(
+              "div",
+              null,
+              /* @__PURE__ */ React.createElement(
+                "h2",
+                null,
+                moduloSeleccionado
+                  ? moduloSeleccionado.label
+                  : "Selecciona un m\xF3dulo"
+              ),
+              moduloSeleccionado?.badge &&
+                /* @__PURE__ */ React.createElement(
+                  "span",
+                  { className: "badge rounded-pill mt-2" },
+                  moduloSeleccionado.badge
+                )
+            )
+          ),
+          /* @__PURE__ */ React.createElement(
+            "div",
+            { className: "top-bar-right d-flex align-items-center gap-3" },
+            /* @__PURE__ */ React.createElement(NotificationBell, {
+              notifications,
+              onRefresh: manejarActualizarNotificaciones,
+              onMarkAsRead: manejarMarcarNotificacion,
+            }),
+            /* @__PURE__ */ React.createElement(
+              "div",
+              { className: "company-selector" },
+              /* @__PURE__ */ React.createElement(
+                "label",
+                { htmlFor: "companyFilter", className: "fw-semibold mb-0" },
+                "Empresa:"
+              ),
+              /* @__PURE__ */ React.createElement(
+                "select",
+                {
+                  id: "companyFilter",
+                  className: "form-select form-select-sm",
+                  value: empresaActualId,
+                  onChange: manejarCambioEmpresa,
+                  disabled:
+                    !puedeCambiarEmpresa || empresasDisponibles.length === 0,
+                },
+                empresasDisponibles.length === 0 &&
+                  /* @__PURE__ */ React.createElement(
+                    "option",
+                    { value: "" },
+                    "Sin empresas disponibles"
+                  ),
+                empresasDisponibles.map((empresa) =>
+                  /* @__PURE__ */ React.createElement(
+                    "option",
+                    { key: empresa.id, value: empresa.id },
+                    empresa.etiqueta ||
+                      empresa.nombre ||
+                      "Selecciona una empresa"
+                  )
+                )
+              )
+            )
+          )
+        ),
+        /* @__PURE__ */ React.createElement(
+          "div",
+          { className: "content-wrapper" },
+          /* @__PURE__ */ React.createElement(
+            "div",
+            { className: "content-card" },
+            moduloSeleccionado
+              ? /* @__PURE__ */ React.createElement("iframe", {
+                  key: `${moduloSeleccionado.id}-${
+                    empresaActualId || "sin-empresa"
+                  }`,
+                  src: moduloSeleccionado.path,
+                  title: moduloSeleccionado.label,
+                  className: "content-iframe",
+                  allow: "clipboard-read; clipboard-write",
+                })
+              : /* @__PURE__ */ React.createElement("div", {
+                  className: "empty-state",
+                })
+          )
+        )
+      )
+    );
   };
   const App = () => {
     // Verificación crítica de sesión al montar
     const [sesion, setSesion] = useState(() => {
       const s = Sesion.obtener();
       if (!s || !s.tokenAcceso || !s.usuario) {
-        console.error('❌ No hay sesión válida al montar App');
-        window.location.replace('login.html');
+        console.error("❌ No hay sesión válida al montar App");
+        window.location.replace("login.html");
         return null;
       }
       return s;
     });
-    
-    const [empresaActiva, setEmpresaActiva] = useState(() => Sesion.obtenerEmpresaActiva());
+
+    const [empresaActiva, setEmpresaActiva] = useState(() =>
+      Sesion.obtenerEmpresaActiva()
+    );
     const [moduloSeleccionado, setModuloSeleccionado] = useState(null);
     const [notificaciones, setNotificaciones] = useState([]);
-    
+
     // Verificar sesión periódicamente
     useEffect(() => {
       const verificarSesion = () => {
         const s = Sesion.obtener();
         if (!s || !s.tokenAcceso || !s.usuario) {
-          console.warn('⚠️ Sesión perdida, redirigiendo a login');
-          window.location.replace('login.html');
+          console.warn("⚠️ Sesión perdida, redirigiendo a login");
+          window.location.replace("login.html");
         }
       };
-      
+
       // Verificar cada 30 segundos
       const interval = setInterval(verificarSesion, 30000);
       return () => clearInterval(interval);
     }, []);
-    
+
     const seleccionarModulo = useCallback((moduloId) => {
       setModuloSeleccionado(moduloId);
     }, []);
@@ -664,47 +1220,57 @@ const NotificationBell = ({ notifications = [], onRefresh, onMarkAsRead }) => {
     const cargarNotificaciones = useCallback(async () => {
       const sesionActual = Sesion.obtener();
       if (!sesionActual || !sesionActual.tokenAcceso) {
-        console.warn('⚠️ No hay sesión para cargar notificaciones');
+        console.warn("⚠️ No hay sesión para cargar notificaciones");
         setNotificaciones([]);
         return;
       }
       try {
         const respuesta = await fetch(`${API_BASE}/notificaciones?limite=10`, {
-          headers: Sesion.headersAutenticacion()
+          headers: Sesion.headersAutenticacion(),
         });
-        
+
         // Si es 401, sesión expirada
         if (respuesta.status === 401) {
-          console.error('❌ Sesión expirada (401)');
+          console.error("❌ Sesión expirada (401)");
           Sesion.cerrar(); // Limpia sesión y redirige al login
           return;
         }
-        
+
         const datos = await respuesta.json();
         if (!respuesta.ok) {
-          throw new Error(datos.mensaje || "No fue posible obtener las notificaciones.");
+          throw new Error(
+            datos.mensaje || "No fue posible obtener las notificaciones."
+          );
         }
         setNotificaciones(datos.notificaciones || []);
       } catch (error) {
         console.warn("Error al cargar notificaciones", error);
       }
     }, []);
-    const marcarNotificacion = useCallback(async (id) => {
-      if (!id) return;
-      try {
-        const respuesta = await fetch(`${API_BASE}/notificaciones/${id}/leida`, {
-          method: "PATCH",
-          headers: Sesion.headersAutenticacion()
-        });
-        if (!respuesta.ok) {
-          const datos = await respuesta.json();
-          throw new Error(datos.mensaje || "No fue posible actualizar la notificaci\xF3n.");
+    const marcarNotificacion = useCallback(
+      async (id) => {
+        if (!id) return;
+        try {
+          const respuesta = await fetch(
+            `${API_BASE}/notificaciones/${id}/leida`,
+            {
+              method: "PATCH",
+              headers: Sesion.headersAutenticacion(),
+            }
+          );
+          if (!respuesta.ok) {
+            const datos = await respuesta.json();
+            throw new Error(
+              datos.mensaje || "No fue posible actualizar la notificaci\xF3n."
+            );
+          }
+          cargarNotificaciones();
+        } catch (error) {
+          console.warn("Error al marcar notificaci\xF3n como le\xEDda", error);
         }
-        cargarNotificaciones();
-      } catch (error) {
-        console.warn("Error al marcar notificaci\xF3n como le\xEDda", error);
-      }
-    }, [cargarNotificaciones]);
+      },
+      [cargarNotificaciones]
+    );
     useEffect(() => {
       if (!sesion) {
         setNotificaciones([]);
@@ -715,22 +1281,23 @@ const NotificationBell = ({ notifications = [], onRefresh, onMarkAsRead }) => {
       return () => clearInterval(intervalo);
     }, [sesion, empresaActiva, cargarNotificaciones]);
     if (!sesion) {
-      return /* @__PURE__ */ React.createElement(LoginView, { onLogin: manejarLogin });
+      return /* @__PURE__ */ React.createElement(LoginView, {
+        onLogin: manejarLogin,
+      });
     }
-    return /* @__PURE__ */ React.createElement(
-      DashboardLayout,
-      {
-        sesion,
-        selectedModuleId: moduloSeleccionado,
-        onSelectModule: seleccionarModulo,
-        onLogout: manejarLogout,
-        empresaActiva,
-        onChangeEmpresa: manejarCambioEmpresa,
-        notifications: notificaciones,
-        onRefreshNotifications: cargarNotificaciones,
-        onMarkNotification: marcarNotificacion
-      }
-    );
+    return /* @__PURE__ */ React.createElement(DashboardLayout, {
+      sesion,
+      selectedModuleId: moduloSeleccionado,
+      onSelectModule: seleccionarModulo,
+      onLogout: manejarLogout,
+      empresaActiva,
+      onChangeEmpresa: manejarCambioEmpresa,
+      notifications: notificaciones,
+      onRefreshNotifications: cargarNotificaciones,
+      onMarkNotification: marcarNotificacion,
+    });
   };
-  ReactDOM.createRoot(document.getElementById("root")).render(/* @__PURE__ */ React.createElement(App, null));
+  ReactDOM.createRoot(document.getElementById("root")).render(
+    /* @__PURE__ */ React.createElement(App, null)
+  );
 })();

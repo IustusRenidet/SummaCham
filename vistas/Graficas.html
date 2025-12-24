@@ -4,9 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Graficas Resumen</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="css/estilos.css">
-    <link rel="icon" type="image/x-icon" href="icono/icono.ico">
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/estilos.css" />
+    <link rel="icon" type="image/x-icon" href="icono/icono.ico" />
     <style>
       :root {
         --color-primary: #2f5496;
@@ -16,7 +19,7 @@
       body {
         background: #f5f7fb;
         color: #1f2937;
-        font-family: 'Manrope', 'Segoe UI', Tahoma, Verdana, sans-serif;
+        font-family: "Manrope", "Segoe UI", Tahoma, Verdana, sans-serif;
       }
       .header-card {
         background: linear-gradient(120deg, #2f5496 0%, #1f3b6b 100%);
@@ -36,12 +39,12 @@
         font-weight: 700;
       }
       .badge-pill {
-        background: rgba(47,84,150,0.12);
+        background: rgba(47, 84, 150, 0.12);
         color: #2f5496;
         border-radius: 999px;
         padding: 6px 12px;
         font-weight: 700;
-        letter-spacing: .02em;
+        letter-spacing: 0.02em;
       }
     </style>
   </head>
@@ -50,21 +53,39 @@
       <div class="row mb-4">
         <div class="col-12">
           <div class="card header-card">
-            <div class="card-body d-flex flex-column flex-lg-row align-items-center justify-content-between gap-3">
+            <div
+              class="card-body d-flex flex-column flex-lg-row align-items-center justify-content-between gap-3"
+            >
               <div>
                 <h1 class="fw-bold mb-2">Graficas de Resumen</h1>
-                <p class="mb-0 text-white-50">Comparativo de Resultados Operativos y Netos por capitulo</p>
+                <p class="mb-0 text-white-50">
+                  Comparativo de Resultados Operativos y Netos por capitulo
+                </p>
               </div>
               <div class="d-flex gap-3 flex-wrap align-items-center">
                 <div>
-                  <label class="form-label text-white-50 small mb-1" for="grafYearSelect">Ejercicio</label>
-                  <select id="grafYearSelect" class="form-select form-select-sm">
+                  <label
+                    class="form-label text-white-50 small mb-1"
+                    for="grafYearSelect"
+                    >Ejercicio</label
+                  >
+                  <select
+                    id="grafYearSelect"
+                    class="form-select form-select-sm"
+                  >
                     <option value="">Cargando...</option>
                   </select>
                 </div>
                 <div>
-                  <label class="form-label text-white-50 small mb-1" for="grafMonthSelect">Periodo</label>
-                  <select id="grafMonthSelect" class="form-select form-select-sm">
+                  <label
+                    class="form-label text-white-50 small mb-1"
+                    for="grafMonthSelect"
+                    >Periodo</label
+                  >
+                  <select
+                    id="grafMonthSelect"
+                    class="form-select form-select-sm"
+                  >
                     <option value="1">Enero</option>
                     <option value="2">Febrero</option>
                     <option value="3">Marzo</option>
@@ -127,7 +148,10 @@
           <div class="card chart-card p-3">
             <div class="d-flex justify-content-between align-items-center mb-2">
               <h5 class="mb-0">Resultados CDMX por capítulo</h5>
-              <small class="text-muted">Real · Presupuesto · Real acumulado · Presupuesto acumulado</small>
+              <small class="text-muted"
+                >Real · Presupuesto · Real acumulado · Presupuesto
+                acumulado</small
+              >
             </div>
             <canvas id="chartNetCdmx"></canvas>
           </div>
@@ -136,7 +160,9 @@
           <div class="card chart-card p-3">
             <div class="d-flex justify-content-between align-items-center mb-2">
               <h5 class="mb-0">Consolidados Operativos vs Netos</h5>
-              <small class="text-muted">Resultados consolidados por capítulo</small>
+              <small class="text-muted"
+                >Resultados consolidados por capítulo</small
+              >
             </div>
             <canvas id="chartConsolidatedResults"></canvas>
           </div>
@@ -151,42 +177,57 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script>
       (() => {
-        const base = window.location.protocol === 'file:' ? 'http://localhost:3005' : window.location.origin;
+        const base =
+          window.location.protocol === "file:"
+            ? "http://localhost:3005"
+            : window.location.origin;
         const API_ENDPOINT = `${base}/api/reportes/resumen`;
         const API_ANIOS = `${base}/api/saldos/anios`;
-        const MODULO_CLAVE = (document.body.dataset.modulo || 'RESUMEN').toString().toUpperCase();
-        const yearSelect = document.getElementById('grafYearSelect');
-        const monthSelect = document.getElementById('grafMonthSelect');
-        const empresaLabel = document.getElementById('empresaLabel');
+        const MODULO_CLAVE = (document.body.dataset.modulo || "RESUMEN")
+          .toString()
+          .toUpperCase();
+        const yearSelect = document.getElementById("grafYearSelect");
+        const monthSelect = document.getElementById("grafMonthSelect");
+        const empresaLabel = document.getElementById("empresaLabel");
         const charts = {};
 
-        const normalizarLabel = (texto = '') =>
-          texto.toString().trim().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toUpperCase().replace(/\\s+/g, ' ');
+        const normalizarLabel = (texto = "") =>
+          texto
+            .toString()
+            .trim()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .toUpperCase()
+            .replace(/\s+/g, " ");
 
         const MESES = [
-          { etiqueta: 'Enero', clave: 'ene', periodo: 1 },
-          { etiqueta: 'Febrero', clave: 'feb', periodo: 2 },
-          { etiqueta: 'Marzo', clave: 'mar', periodo: 3 },
-          { etiqueta: 'Abril', clave: 'abr', periodo: 4 },
-          { etiqueta: 'Mayo', clave: 'may', periodo: 5 },
-          { etiqueta: 'Junio', clave: 'jun', periodo: 6 },
-          { etiqueta: 'Julio', clave: 'jul', periodo: 7 },
-          { etiqueta: 'Agosto', clave: 'ago', periodo: 8 },
-          { etiqueta: 'Septiembre', clave: 'sep', periodo: 9 },
-          { etiqueta: 'Octubre', clave: 'oct', periodo: 10 },
-          { etiqueta: 'Noviembre', clave: 'nov', periodo: 11 },
-          { etiqueta: 'Diciembre', clave: 'dic', periodo: 12 }
+          { etiqueta: "Enero", clave: "ene", periodo: 1 },
+          { etiqueta: "Febrero", clave: "feb", periodo: 2 },
+          { etiqueta: "Marzo", clave: "mar", periodo: 3 },
+          { etiqueta: "Abril", clave: "abr", periodo: 4 },
+          { etiqueta: "Mayo", clave: "may", periodo: 5 },
+          { etiqueta: "Junio", clave: "jun", periodo: 6 },
+          { etiqueta: "Julio", clave: "jul", periodo: 7 },
+          { etiqueta: "Agosto", clave: "ago", periodo: 8 },
+          { etiqueta: "Septiembre", clave: "sep", periodo: 9 },
+          { etiqueta: "Octubre", clave: "oct", periodo: 10 },
+          { etiqueta: "Noviembre", clave: "nov", periodo: 11 },
+          { etiqueta: "Diciembre", clave: "dic", periodo: 12 },
         ];
 
-        const getMesClave = (num) => MESES.find((m) => m.periodo === Number(num))?.clave || 'dic';
+        const getMesClave = (num) =>
+          MESES.find((m) => m.periodo === Number(num))?.clave || "dic";
 
         const obtenerCapituloSeleccionado = (empresaId) => {
-          const capituloConfig = window.CapitulosModulos?.obtenerCapituloPorEmpresa?.(empresaId);
-          return capituloConfig ? capituloConfig.toString().trim() : '';
+          const capituloConfig =
+            window.CapitulosModulos?.obtenerCapituloPorEmpresa?.(empresaId);
+          return capituloConfig ? capituloConfig.toString().trim() : "";
         };
 
         const obtenerEtiquetaSeleccionada = (empresaId) => {
-          return window.CapitulosModulos?.EMPRESA_CONFIG?.[empresaId]?.etiqueta || '';
+          return (
+            window.CapitulosModulos?.EMPRESA_CONFIG?.[empresaId]?.etiqueta || ""
+          );
         };
 
         const obtenerCapitulosDisponibles = () => {
@@ -194,27 +235,31 @@
           const map = new Map();
           empresas.forEach((empresa) => {
             if (!empresa?.id) return;
-            const capitulo = window.CapitulosModulos?.obtenerCapituloPorEmpresa?.(empresa.id) || '';
+            const capitulo =
+              window.CapitulosModulos?.obtenerCapituloPorEmpresa?.(
+                empresa.id
+              ) || "";
             if (!capitulo) return;
             if (map.has(capitulo)) return;
-            const etiqueta = window.CapitulosModulos?.EMPRESA_CONFIG?.[empresa.id]?.etiqueta
-              || empresa.etiqueta
-              || empresa.nombre
-              || capitulo;
+            const etiqueta =
+              window.CapitulosModulos?.EMPRESA_CONFIG?.[empresa.id]?.etiqueta ||
+              empresa.etiqueta ||
+              empresa.nombre ||
+              capitulo;
             map.set(capitulo, {
               empresaId: empresa.id,
               capitulo,
-              etiqueta
+              etiqueta,
             });
           });
           return Array.from(map.values());
         };
 
         const obtenerSelectorEmpresaGlobal = () =>
-          window.parent?.document?.getElementById('companyFilter')
-          || window.parent?.document?.querySelector('.company-selector select')
-          || document.getElementById('companyFilter')
-          || document.querySelector('.company-selector select');
+          window.parent?.document?.getElementById("companyFilter") ||
+          window.parent?.document?.querySelector(".company-selector select") ||
+          document.getElementById("companyFilter") ||
+          document.querySelector(".company-selector select");
 
         const leerContextoPlaneacion = () => {
           const ctx = window.Sesion?.obtenerContextoPlaneacion?.() || {};
@@ -222,13 +267,17 @@
           const mes = Number(ctx.mes);
           return {
             anio: Number.isInteger(anio) ? anio : null,
-            mes: Number.isInteger(mes) ? mes : null
+            mes: Number.isInteger(mes) ? mes : null,
           };
         };
 
         const persistirContexto = (anio, mes) => {
-          if (typeof window.Sesion?.guardarContextoPlaneacion === 'function') {
-            window.Sesion.guardarContextoPlaneacion({ anio, mes, modulo: MODULO_CLAVE });
+          if (typeof window.Sesion?.guardarContextoPlaneacion === "function") {
+            window.Sesion.guardarContextoPlaneacion({
+              anio,
+              mes,
+              modulo: MODULO_CLAVE,
+            });
           }
         };
 
@@ -253,22 +302,25 @@
 
         const elegirMesValido = (preferido) => {
           const numero = Number(preferido);
-          if (Number.isInteger(numero) && numero >= 1 && numero <= 12) return numero;
+          if (Number.isInteger(numero) && numero >= 1 && numero <= 12)
+            return numero;
           const actual = Number(monthSelect?.value);
-          if (Number.isInteger(actual) && actual >= 1 && actual <= 12) return actual;
+          if (Number.isInteger(actual) && actual >= 1 && actual <= 12)
+            return actual;
           return new Date().getMonth() + 1;
         };
 
         const sincronizarSelectorEmpresaGlobal = (onChange) => {
           const selector = obtenerSelectorEmpresaGlobal();
-          if (!selector || typeof selector.addEventListener !== 'function') return;
-          selector.addEventListener('change', async () => {
+          if (!selector || typeof selector.addEventListener !== "function")
+            return;
+          selector.addEventListener("change", async () => {
             const nuevoId = selector.value;
             if (!nuevoId) return;
             const empresaLocal = window.Sesion?.obtenerEmpresaActiva?.();
             if (empresaLocal?.id === nuevoId) return;
             window.Sesion?.establecerEmpresaActiva?.(nuevoId);
-            if (typeof onChange === 'function') {
+            if (typeof onChange === "function") {
               await onChange();
             }
           });
@@ -278,7 +330,7 @@
           const map = new Map();
           const walk = (arr) => {
             arr.forEach((n) => {
-              const key = normalizarLabel(n.label || '');
+              const key = normalizarLabel(n.label || "");
               if (key) {
                 map.set(key, n.totals || n);
               }
@@ -291,20 +343,63 @@
 
         const toNumber = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 
-        const SNAPSHOT_PREFIX = 'resumen_tabla_snapshot';
-        const buildSnapshotKey = (empresaId, anio, mes) => `${SNAPSHOT_PREFIX}:${empresaId || 'sin'}:${anio || 'sin'}:${mes || 'sin'}`;
+        const SNAPSHOT_PREFIX = "resumen_tabla_snapshot";
+        const buildSnapshotKey = (empresaId, anio, mes) =>
+          `${SNAPSHOT_PREFIX}:${empresaId || "sin"}:${anio || "sin"}:${
+            mes || "sin"
+          }`;
         const leerSnapshotTabla = (empresaId, anio, mes, capituloActual) => {
           try {
             const key = buildSnapshotKey(empresaId, anio, mes);
             const raw = localStorage.getItem(key);
+            console.log(
+              "📊 Graficas: Buscando snapshot",
+              key,
+              "Encontrado:",
+              !!raw
+            );
             if (!raw) return null;
             const data = JSON.parse(raw);
-            const capituloSnap = (data?.capitulo || '').toString().trim().toUpperCase();
-            const capituloNorm = normalizarLabel(capituloActual || '');
-            if (capituloSnap && normalizarLabel(capituloSnap) !== capituloNorm) return null;
+            const capituloSnap = (data?.capitulo || "")
+              .toString()
+              .trim()
+              .toUpperCase();
+            const capituloNorm = normalizarLabel(capituloActual || "");
+            console.log("📊 Graficas: Comparando capítulos", {
+              capituloSnap,
+              capituloNorm,
+              capituloSnapNormalizado: normalizarLabel(capituloSnap),
+              coinciden: normalizarLabel(capituloSnap) === capituloNorm,
+            });
+            // Hacer la comparación más flexible: si ambos contienen la misma palabra clave principal
+            const palabrasClave = [
+              "MEXICO",
+              "GUADALAJARA",
+              "MONTERREY",
+              "NORESTE",
+              "NOROESTE",
+              "NORTHWEST",
+              "CDMX",
+            ];
+            const snapNorm = normalizarLabel(capituloSnap);
+            const actualNorm = capituloNorm;
+            let coinciden = snapNorm === actualNorm;
+            if (!coinciden && capituloSnap && capituloNorm) {
+              // Verificar si comparten una palabra clave principal
+              coinciden = palabrasClave.some(
+                (palabra) =>
+                  snapNorm.includes(palabra) && actualNorm.includes(palabra)
+              );
+            }
+            if (capituloSnap && !coinciden) {
+              console.log(
+                "📊 Graficas: Capítulo no coincide, descartando snapshot"
+              );
+              return null;
+            }
             const map = new Map();
             (data?.filas || []).forEach((fila) => {
-              const lbl = normalizarLabel(fila?.label || '');
+              const lbl = normalizarLabel(fila?.label || "");
               if (!lbl) return;
               map.set(lbl, {
                 actual: toNumber(fila?.totals?.actual),
@@ -312,373 +407,708 @@
                 prev: toNumber(fila?.totals?.prev),
                 actualYTD: toNumber(fila?.totals?.actualYTD),
                 planYTD: toNumber(fila?.totals?.planYTD),
-                prevYTD: toNumber(fila?.totals?.prevYTD)
+                prevYTD: toNumber(fila?.totals?.prevYTD),
               });
             });
+            console.log(
+              "📊 Graficas: Snapshot cargado con",
+              map.size,
+              "filas. Labels:",
+              Array.from(map.keys())
+            );
             return { ...data, map };
           } catch (err) {
-            console.warn('No se pudo leer snapshot de tabla RESUMEN', err);
+            console.warn("No se pudo leer snapshot de tabla RESUMEN", err);
             return null;
           }
         };
 
-          const buildMetrics = (resumen = [], snapshotMap = null) => {
-            if ((!Array.isArray(resumen) || !resumen.length) && snapshotMap) {
-              resumen = [{}];
-            }
-            if (!Array.isArray(resumen) || !resumen.length) return null;
-            const nodo = resumen[0] || {};
+        const buildMetrics = (
+          resumen = [],
+          snapshotMap = null,
+          capituloLabel = ""
+        ) => {
+          const totalsZero = () => ({
+            actual: 0,
+            plan: 0,
+            prev: 0,
+            actualYTD: 0,
+            planYTD: 0,
+            prevYTD: 0,
+          });
 
-            const cloneLayout = (arr) => JSON.parse(JSON.stringify(Array.isArray(arr) ? arr : []));
-            const layout = cloneLayout(nodo.layout || nodo.children || []);
-
-            const normalizeTotals = (data = {}) => ({
-              actual: toNumber(
-                data.actualMonth ?? data.totalActualMonth ?? data.actual ?? data.totalActual ?? data.real ?? data.totalReal
-              ),
-              plan: toNumber(
-                data.planMonth ?? data.totalPlanMonth ?? data.plan ?? data.totalPlan ?? data.presupuesto ?? data.totalPresupuesto
-              ),
-              prev: toNumber(
-                data.prevMonth ?? data.totalPrevMonth ?? data.prev ?? data.totalPrev ?? data.realPrev ?? data.realAnterior
-              ),
-              actualYTD: toNumber(
-                data.actualYTD ?? data.totalActualYTD ?? data.actualAcum ?? data.totalActualAcum ?? data.realAcum
-              ),
-              planYTD: toNumber(
-                data.planYTD ?? data.totalPlanYTD ?? data.planAcum ?? data.totalPlanAcum ?? data.presupuestoAcum
-              ),
-              prevYTD: toNumber(
-                data.prevYTD ?? data.totalPrevYTD ?? data.prevAcum ?? data.totalPrevAcum ?? data.realAcumPrev ?? data.realAcumAnterior
-              )
-            });
-            const totalsZero = () => ({ actual: 0, plan: 0, prev: 0, actualYTD: 0, planYTD: 0, prevYTD: 0 });
-            const sumTotals = (base, add, sign = 1) => ({
-              actual: base.actual + (add.actual || 0) * sign,
-              plan: base.plan + (add.plan || 0) * sign,
-              prev: base.prev + (add.prev || 0) * sign,
-              actualYTD: base.actualYTD + (add.actualYTD || 0) * sign,
-              planYTD: base.planYTD + (add.planYTD || 0) * sign,
-              prevYTD: base.prevYTD + (add.prevYTD || 0) * sign
-            });
-            const hasTotals = (totals) =>
-              [totals?.actual, totals?.plan, totals?.prev, totals?.actualYTD, totals?.planYTD, totals?.prevYTD].some((v) => toNumber(v) !== 0);
-
-            // Replica de la lógica de recalculo de RESUMEN para usar los mismos totales de la tabla
-            const recalcularConsolidados = (layoutArr = [], capituloName = '') => {
-              if (!Array.isArray(layoutArr) || !layoutArr.length) return;
-              const capituloNormalizado = normalizarLabel(capituloName);
-              const esCapituloMexico = capituloNormalizado === 'CIUDAD DE MEXICO';
-              const esCapituloGuadalajara = capituloNormalizado === 'GUADALAJARA';
-              const esCapituloNoreste = capituloNormalizado === 'NORESTE' || capituloNormalizado === 'NE';
-              const esCapituloNoroeste = ['NOROESTE', 'NO', 'NORTHWEST'].includes(capituloNormalizado);
-              const labelMap = new Map(layoutArr.map((b) => [normalizarLabel(b.label || ''), b]));
-              const obtenerPorLabels = (candidatos = []) => {
-                for (const lbl of candidatos) {
-                  const block = labelMap.get(normalizarLabel(lbl));
-                  if (block) return normalizeTotals(block.totals || {});
+          // Si tenemos snapshot de tabla, usarlo directamente (valores exactos mostrados en RESUMEN)
+          if (snapshotMap instanceof Map) {
+            const getFromSnapshot = (labels = []) => {
+              const arr = Array.isArray(labels) ? labels : [labels];
+              for (const lbl of arr) {
+                const normalizado = normalizarLabel(lbl);
+                const hit = snapshotMap.get(normalizado);
+                if (hit) {
+                  console.log("📊 buildMetrics: ENCONTRADO", lbl, "->", hit);
+                  return { ...totalsZero(), ...hit };
                 }
-                return totalsZero();
-              };
-              const asignarPrimero = (labels = [], totals) => {
-                for (const lbl of labels) {
-                  const block = labelMap.get(normalizarLabel(lbl));
-                  if (block && totals) {
-                    block.totals = totals;
-                    return block;
-                  }
-                }
-                return null;
-              };
-
-              const INCOME_LABELS = {
-                mex: ['CDMX INCOME', 'MEXICO INCOME'],
-                gdl: ['GUADALAJARA INCOME', 'GDL INCOME'],
-                mty: ['MONTERREY INCOME', 'MTY INCOME'],
-                nw: ['NORTHWEST INCOME', 'NW INCOME', 'NOROESTE INCOME', 'NO INCOME'],
-                ne: ['NE INCOME', 'NORESTE INCOME']
-              };
-              const EXPENSE_LABELS = {
-                mex: ['CDMX EXPENSE', 'MEXICO EXPENSE'],
-                gdl: ['GUADALAJARA EXPENSE', 'GDL EXPENSE'],
-                mty: ['MONTERREY EXPENSE', 'MTY EXPENSE'],
-                nw: ['NORTHWEST EXPENSE', 'NW EXPENSE', 'NOROESTE EXPENSE', 'NO EXPENSE'],
-                ne: ['NE EXPENSE', 'NORESTE EXPENSE']
-              };
-              const sumaTotales = (dest, src, signo = 1) => {
-                if (!src) return;
-                dest.actual += toNumber(src.actual) * signo;
-                dest.plan += toNumber(src.plan) * signo;
-                dest.prev += toNumber(src.prev) * signo;
-                dest.actualYTD += toNumber(src.actualYTD) * signo;
-                dest.planYTD += toNumber(src.planYTD) * signo;
-                dest.prevYTD += toNumber(src.prevYTD) * signo;
-              };
-              const combinar = (sumarLabels = [], restarLabels = []) => {
-                const res = totalsZero();
-                sumarLabels.forEach((lbl) => sumaTotales(res, labelMap.get(normalizarLabel(lbl))?.totals, 1));
-                restarLabels.forEach((lbl) => sumaTotales(res, labelMap.get(normalizarLabel(lbl))?.totals, -1));
-                return res;
-              };
-              const asignar = (label, totals) => {
-                const block = labelMap.get(normalizarLabel(label));
-                if (block && totals) {
-                  block.totals = totals;
-                }
-              };
-
-              const opResults = {
-                mex: combinar(INCOME_LABELS.mex, EXPENSE_LABELS.mex),
-                gdl: combinar(INCOME_LABELS.gdl, EXPENSE_LABELS.gdl),
-                mty: combinar(INCOME_LABELS.mty, EXPENSE_LABELS.mty),
-                nw: combinar(INCOME_LABELS.nw, EXPENSE_LABELS.nw),
-                ne: combinar(INCOME_LABELS.ne, EXPENSE_LABELS.ne)
-              };
-              asignarPrimero(['OPERATING RESULTS MEXICO'], opResults.mex);
-              asignarPrimero(['OPERATING RESULTS GUADALAJARA', 'GDL OPERATING RESULTS'], opResults.gdl);
-              asignarPrimero(['OPERATING RESULTS MONTERREY', 'MTY OPERATING RESULTS'], opResults.mty);
-              asignarPrimero(['OPERATING RESULTS NORTHWEST', 'OPERATING RESULTS NO', 'OPERATING RESULTS NOROESTE', 'NO OPERATING RESULTS'], opResults.nw);
-              asignarPrimero(['OPERATING RESULTS NE', 'NE OPERATING RESULTS', 'OPERATING RESULTS NORESTE'], opResults.ne);
-
-              const memberCentricityMx = obtenerPorLabels(['MEMBER CENTRICITY', 'Member Centricity', 'Member Centricity CDMX', 'Member Centricity Mexico']);
-              const memberCentricityGdl = obtenerPorLabels(['Member Centricity GDL', 'Member Centricity Guadalajara', 'GDL Member Centricity', 'Guadalajara Member Centricity', 'Member Centricity']);
-              const memberCentricityNe = obtenerPorLabels(['Member Centricity NE', 'Member Centricity Noreste', 'NE Member Centricity', 'NORESTE Member Centricity', 'Member Centricity']);
-              const memberCentricityNw = obtenerPorLabels([
-                'Member Centricity NW',
-                'Member Centricity NorthWest',
-                'Member Centricity NO',
-                'Member Centricity NOROESTE',
-                'NORTHWEST Member Centricity',
-                'NOROESTE Member Centricity',
-                'Member Centricity'
-              ]);
-              const otherMx = obtenerPorLabels(['Other (MEXICO)', 'Other Income Mexico']);
-              const otherGdl = obtenerPorLabels([
-                'Guadalajara Other Income',
-                'GDL Other Income',
-                'Other Guadalajara',
-                'Other GDL',
-                'Other',
-                'Otros ingresos',
-                'OTROS INGRESOS'
-              ]);
-              const otherGdlMexico = obtenerPorLabels([
-                'Guadalajara Other Income',
-                'GDL Other Income',
-                'Other Guadalajara',
-                'Other GDL'
-              ]);
-              const otherMty = obtenerPorLabels(['Monterrey Other Income', 'MTY Other Income']);
-              const otherNw = obtenerPorLabels([
-                'Northwest Other Income',
-                'NW Other Income',
-                'NO Other Income',
-                'NOROESTE Other Income',
-                'Other',
-                'Otros ingresos',
-                'OTROS INGRESOS'
-              ]);
-              const otherNe = obtenerPorLabels([
-                'NE Other Income',
-                'Noreste Other Income',
-                'NE Other',
-                'NORESTE Other Income',
-                'Other',
-                'Otros ingresos',
-                'OTROS INGRESOS'
-              ]);
-
-              const netResultsDefs = [];
-
-              if (esCapituloMexico) {
-                netResultsDefs.push(
-                  { op: ['OPERATING RESULTS MEXICO'], mc: memberCentricityMx, other: otherMx, labels: ['NET RESULTS MEXICO'] },
-                  {
-                    op: ['OPERATING RESULTS GUADALAJARA', 'GDL OPERATING RESULTS'],
-                    mc: totalsZero(),
-                    other: otherGdlMexico,
-                    labels: ['NET RESULTS GUADALAJARA', 'GDL NET RESULTS']
-                  },
-                  { op: ['OPERATING RESULTS MONTERREY', 'MTY OPERATING RESULTS'], mc: totalsZero(), other: otherMty, labels: ['NET RESULTS MONTERREY', 'MTY NET RESULTS'] },
-                  {
-                    op: ['OPERATING RESULTS NORTHWEST', 'OPERATING RESULTS NO', 'OPERATING RESULTS NOROESTE', 'NO OPERATING RESULTS'],
-                    mc: totalsZero(),
-                    other: otherNw,
-                    labels: ['NET RESULTS NORTHWEST', 'NET RESULTS NO', 'NET RESULTS NOROESTE']
-                  }
-                );
-              } else if (esCapituloGuadalajara) {
-                netResultsDefs.push({
-                  op: ['OPERATING RESULTS GUADALAJARA', 'GDL OPERATING RESULTS'],
-                  mc: memberCentricityGdl,
-                  other: otherGdl,
-                  labels: ['NET RESULTS', 'NET RESULTS GUADALAJARA', 'GDL NET RESULTS']
-                });
-              } else if (esCapituloNoreste) {
-                netResultsDefs.push({
-                  op: ['OPERATING RESULTS NE', 'NE OPERATING RESULTS', 'OPERATING RESULTS NORESTE'],
-                  mc: memberCentricityNe,
-                  other: otherNe,
-                  labels: ['NET RESULTS', 'NET RESULTS NE', 'NET RESULTS NORESTE']
-                });
-              } else if (esCapituloNoroeste) {
-                netResultsDefs.push({
-                  op: ['OPERATING RESULTS NORTHWEST', 'OPERATING RESULTS NO', 'OPERATING RESULTS NOROESTE', 'NO OPERATING RESULTS'],
-                  mc: memberCentricityNw,
-                  other: otherNw,
-                  labels: ['NET RESULTS', 'NET RESULTS NORTHWEST', 'NET RESULTS NO', 'NET RESULTS NOROESTE']
-                });
-              } else {
-                netResultsDefs.push(
-                  { op: ['OPERATING RESULTS MEXICO'], mc: memberCentricityMx, other: otherMx, labels: ['NET RESULTS MEXICO'] },
-                  {
-                    op: ['OPERATING RESULTS GUADALAJARA', 'GDL OPERATING RESULTS'],
-                    mc: memberCentricityGdl,
-                    other: otherGdl,
-                    labels: ['NET RESULTS GUADALAJARA', 'GDL NET RESULTS']
-                  },
-                  { op: ['OPERATING RESULTS MONTERREY', 'MTY OPERATING RESULTS'], mc: totalsZero(), other: otherMty, labels: ['NET RESULTS MONTERREY', 'MTY NET RESULTS'] },
-                  {
-                    op: ['OPERATING RESULTS NORTHWEST', 'OPERATING RESULTS NO', 'OPERATING RESULTS NOROESTE', 'NO OPERATING RESULTS'],
-                    mc: memberCentricityNw,
-                    other: otherNw,
-                    labels: ['NET RESULTS NORTHWEST', 'NET RESULTS NO', 'NET RESULTS NOROESTE']
-                  },
-                  { op: ['OPERATING RESULTS NE', 'NE OPERATING RESULTS', 'OPERATING RESULTS NORESTE'], mc: memberCentricityNe, other: otherNe, labels: ['NET RESULTS NE', 'NET RESULTS NORESTE'] }
-                );
               }
-
-              netResultsDefs.forEach(({ op, mc, other, labels }) => {
-                const totals = combinar(op, []);
-                const bloque = asignarPrimero(labels, totals);
-                if (bloque) {
-                  bloque.totals = bloque.totals || totalsZero();
-                  sumaTotales(bloque.totals, mc, -1);
-                  sumaTotales(bloque.totals, other, 1);
-                }
-              });
-
-              if (esCapituloMexico) {
-                asignar('CONSOLIDATED INCOME', combinar(
-                  [...INCOME_LABELS.mex, ...INCOME_LABELS.gdl, ...INCOME_LABELS.mty, ...INCOME_LABELS.nw]
-                ));
-                asignar('CONSOLIDATED EXPENSES', combinar(
-                  [...EXPENSE_LABELS.mex, ...EXPENSE_LABELS.gdl, ...EXPENSE_LABELS.mty, ...EXPENSE_LABELS.nw]
-                ));
-                asignar('CONSOLIDATED OPERATING RESULTS', combinar(
-                  [
-                    'OPERATING RESULTS MEXICO',
-                    'OPERATING RESULTS GUADALAJARA',
-                    'OPERATING RESULTS MONTERREY',
-                    'OPERATING RESULTS NORTHWEST',
-                    'OPERATING RESULTS NO',
-                    'OPERATING RESULTS NOROESTE',
-                    'NO OPERATING RESULTS'
-                  ]
-                ));
-                asignar('CONSOLIDATED NET RESULTS', combinar(
-                  ['NET RESULTS MEXICO', 'NET RESULTS GUADALAJARA', 'NET RESULTS MONTERREY', 'NET RESULTS NORTHWEST', 'NET RESULTS NO', 'NET RESULTS NOROESTE']
-                ));
-              }
+              // Si no encontramos, mostramos qué buscamos
+              console.log(
+                "📊 buildMetrics: NO encontrado para",
+                arr,
+                "en snapshot con keys:",
+                Array.from(snapshotMap.keys()).slice(0, 10),
+                "..."
+              );
+              return totalsZero();
             };
+            const pickFirst = (labels = []) => getFromSnapshot(labels);
+            const buildRegionMetrics = () => ({
+              chapter: capituloLabel || "",
+              operating: pickFirst(["OPERATING RESULTS"]),
+              net: pickFirst(["NET RESULTS"]),
+              consolidatedOperating: pickFirst([
+                "CONSOLIDATED OPERATING RESULTS",
+                "CONSOLIDATED OPERATING RESULT",
+              ]),
+              consolidatedNet: pickFirst([
+                "CONSOLIDATED NET RESULTS",
+                "CONSOLIDATED NET RESULT",
+              ]),
+              regions: {
+                mexico: {
+                  operating: pickFirst(["OPERATING RESULTS MEXICO"]),
+                  net: pickFirst(["NET RESULTS MEXICO"]),
+                },
+                gdl: {
+                  operating: pickFirst([
+                    "OPERATING RESULTS GUADALAJARA",
+                    "GDL OPERATING RESULTS",
+                  ]),
+                  net: pickFirst([
+                    "NET RESULTS GUADALAJARA",
+                    "GDL NET RESULTS",
+                  ]),
+                },
+                mty: {
+                  operating: pickFirst([
+                    "OPERATING RESULTS MONTERREY",
+                    "MTY OPERATING RESULTS",
+                  ]),
+                  net: pickFirst(["NET RESULTS MONTERREY", "MTY NET RESULTS"]),
+                },
+                nw: {
+                  operating: pickFirst([
+                    "OPERATING RESULTS NORTHWEST",
+                    "OPERATING RESULTS NO",
+                    "OPERATING RESULTS NOROESTE",
+                    "NO OPERATING RESULTS",
+                  ]),
+                  net: pickFirst([
+                    "NET RESULTS NORTHWEST",
+                    "NET RESULTS NO",
+                    "NET RESULTS NOROESTE",
+                  ]),
+                },
+              },
+              lookup: (labels) => pickFirst(labels),
+            });
+            return buildRegionMetrics();
+          }
 
-            // recalcular totales usando la misma lógica que RESUMEN
-            recalcularConsolidados(layout, nodo.label || nodo.capitulo || '');
+          if (!Array.isArray(resumen) || !resumen.length) return null;
+          const nodo = resumen[0] || {};
 
-            const mapa = flattenLabels(layout);
-            const get = (lbl) => snapshotMap?.get(normalizarLabel(lbl)) || mapa.get(normalizarLabel(lbl)) || null;
-            const readTotals = (lbl) => normalizeTotals(get(lbl) || {});
-            const sumLabels = (labels = []) => {
-              let res = totalsZero();
-              let found = false;
-              labels.forEach((label) => {
-                const data = get(label);
-                if (data) {
-                  res = sumTotals(res, normalizeTotals(data), 1);
-                  found = true;
-                }
-              });
-              return found ? res : totalsZero();
-            };
-            const pickFirst = (labels = []) => {
-              for (const label of labels) {
-                const data = get(label);
-                if (data) return normalizeTotals(data);
+          const cloneLayout = (arr) =>
+            JSON.parse(JSON.stringify(Array.isArray(arr) ? arr : []));
+          const layout = cloneLayout(nodo.layout || nodo.children || []);
+
+          const normalizeTotals = (data = {}) => ({
+            actual: toNumber(
+              data.actualMonth ??
+                data.totalActualMonth ??
+                data.actual ??
+                data.totalActual ??
+                data.real ??
+                data.totalReal
+            ),
+            plan: toNumber(
+              data.planMonth ??
+                data.totalPlanMonth ??
+                data.plan ??
+                data.totalPlan ??
+                data.presupuesto ??
+                data.totalPresupuesto
+            ),
+            prev: toNumber(
+              data.prevMonth ??
+                data.totalPrevMonth ??
+                data.prev ??
+                data.totalPrev ??
+                data.realPrev ??
+                data.realAnterior
+            ),
+            actualYTD: toNumber(
+              data.actualYTD ??
+                data.totalActualYTD ??
+                data.actualAcum ??
+                data.totalActualAcum ??
+                data.realAcum
+            ),
+            planYTD: toNumber(
+              data.planYTD ??
+                data.totalPlanYTD ??
+                data.planAcum ??
+                data.totalPlanAcum ??
+                data.presupuestoAcum
+            ),
+            prevYTD: toNumber(
+              data.prevYTD ??
+                data.totalPrevYTD ??
+                data.prevAcum ??
+                data.totalPrevAcum ??
+                data.realAcumPrev ??
+                data.realAcumAnterior
+            ),
+          });
+          // totalsZero ya está definida al inicio de buildMetrics
+          const sumTotals = (base, add, sign = 1) => ({
+            actual: base.actual + (add.actual || 0) * sign,
+            plan: base.plan + (add.plan || 0) * sign,
+            prev: base.prev + (add.prev || 0) * sign,
+            actualYTD: base.actualYTD + (add.actualYTD || 0) * sign,
+            planYTD: base.planYTD + (add.planYTD || 0) * sign,
+            prevYTD: base.prevYTD + (add.prevYTD || 0) * sign,
+          });
+          const hasTotals = (totals) =>
+            [
+              totals?.actual,
+              totals?.plan,
+              totals?.prev,
+              totals?.actualYTD,
+              totals?.planYTD,
+              totals?.prevYTD,
+            ].some((v) => toNumber(v) !== 0);
+
+          // Replica de la lógica de recalculo de RESUMEN para usar los mismos totales de la tabla
+          const recalcularConsolidados = (
+            layoutArr = [],
+            capituloName = ""
+          ) => {
+            if (!Array.isArray(layoutArr) || !layoutArr.length) return;
+            const capituloNormalizado = normalizarLabel(capituloName);
+            const esCapituloMexico = capituloNormalizado === "CIUDAD DE MEXICO";
+            const esCapituloGuadalajara = capituloNormalizado === "GUADALAJARA";
+            const esCapituloNoreste =
+              capituloNormalizado === "NORESTE" || capituloNormalizado === "NE";
+            const esCapituloNoroeste = ["NOROESTE", "NO", "NORTHWEST"].includes(
+              capituloNormalizado
+            );
+            const labelMap = new Map(
+              layoutArr.map((b) => [normalizarLabel(b.label || ""), b])
+            );
+            const obtenerPorLabels = (candidatos = []) => {
+              for (const lbl of candidatos) {
+                const block = labelMap.get(normalizarLabel(lbl));
+                if (block) return normalizeTotals(block.totals || {});
               }
               return totalsZero();
             };
-            const opFromIncomeExpense = (incomeLabels, expenseLabels) => {
-              const income = sumLabels(incomeLabels);
-              const expense = sumLabels(expenseLabels);
-              return sumTotals(income, expense, -1);
+            const asignarPrimero = (labels = [], totals) => {
+              for (const lbl of labels) {
+                const block = labelMap.get(normalizarLabel(lbl));
+                if (block && totals) {
+                  block.totals = totals;
+                  return block;
+                }
+              }
+              return null;
             };
-            const netFromParts = (operatingTotals, memberLabels, otherLabels) => {
-              const member = sumLabels(memberLabels);
-              const other = sumLabels(otherLabels);
-              const base = totalsZero();
-              return sumTotals(sumTotals(sumTotals(base, operatingTotals, 1), member, -1), other, 1);
+
+            const INCOME_LABELS = {
+              mex: ["CDMX INCOME", "MEXICO INCOME"],
+              gdl: ["GUADALAJARA INCOME", "GDL INCOME"],
+              mty: ["MONTERREY INCOME", "MTY INCOME"],
+              nw: [
+                "NORTHWEST INCOME",
+                "NW INCOME",
+                "NOROESTE INCOME",
+                "NO INCOME",
+              ],
+              ne: ["NE INCOME", "NORESTE INCOME"],
             };
+            const EXPENSE_LABELS = {
+              mex: ["CDMX EXPENSE", "MEXICO EXPENSE"],
+              gdl: ["GUADALAJARA EXPENSE", "GDL EXPENSE"],
+              mty: ["MONTERREY EXPENSE", "MTY EXPENSE"],
+              nw: [
+                "NORTHWEST EXPENSE",
+                "NW EXPENSE",
+                "NOROESTE EXPENSE",
+                "NO EXPENSE",
+              ],
+              ne: ["NE EXPENSE", "NORESTE EXPENSE"],
+            };
+            const sumaTotales = (dest, src, signo = 1) => {
+              if (!src) return;
+              dest.actual += toNumber(src.actual) * signo;
+              dest.plan += toNumber(src.plan) * signo;
+              dest.prev += toNumber(src.prev) * signo;
+              dest.actualYTD += toNumber(src.actualYTD) * signo;
+              dest.planYTD += toNumber(src.planYTD) * signo;
+              dest.prevYTD += toNumber(src.prevYTD) * signo;
+            };
+            const combinar = (sumarLabels = [], restarLabels = []) => {
+              const res = totalsZero();
+              sumarLabels.forEach((lbl) =>
+                sumaTotales(res, labelMap.get(normalizarLabel(lbl))?.totals, 1)
+              );
+              restarLabels.forEach((lbl) =>
+                sumaTotales(res, labelMap.get(normalizarLabel(lbl))?.totals, -1)
+              );
+              return res;
+            };
+            const asignar = (label, totals) => {
+              const block = labelMap.get(normalizarLabel(label));
+              if (block && totals) {
+                block.totals = totals;
+              }
+            };
+
+            const opResults = {
+              mex: combinar(INCOME_LABELS.mex, EXPENSE_LABELS.mex),
+              gdl: combinar(INCOME_LABELS.gdl, EXPENSE_LABELS.gdl),
+              mty: combinar(INCOME_LABELS.mty, EXPENSE_LABELS.mty),
+              nw: combinar(INCOME_LABELS.nw, EXPENSE_LABELS.nw),
+              ne: combinar(INCOME_LABELS.ne, EXPENSE_LABELS.ne),
+            };
+            asignarPrimero(["OPERATING RESULTS MEXICO"], opResults.mex);
+            asignarPrimero(
+              ["OPERATING RESULTS GUADALAJARA", "GDL OPERATING RESULTS"],
+              opResults.gdl
+            );
+            asignarPrimero(
+              ["OPERATING RESULTS MONTERREY", "MTY OPERATING RESULTS"],
+              opResults.mty
+            );
+            asignarPrimero(
+              [
+                "OPERATING RESULTS NORTHWEST",
+                "OPERATING RESULTS NO",
+                "OPERATING RESULTS NOROESTE",
+                "NO OPERATING RESULTS",
+              ],
+              opResults.nw
+            );
+            asignarPrimero(
+              [
+                "OPERATING RESULTS NE",
+                "NE OPERATING RESULTS",
+                "OPERATING RESULTS NORESTE",
+              ],
+              opResults.ne
+            );
+
+            const memberCentricityMx = obtenerPorLabels([
+              "MEMBER CENTRICITY",
+              "Member Centricity",
+              "Member Centricity CDMX",
+              "Member Centricity Mexico",
+            ]);
+            const memberCentricityGdl = obtenerPorLabels([
+              "Member Centricity GDL",
+              "Member Centricity Guadalajara",
+              "GDL Member Centricity",
+              "Guadalajara Member Centricity",
+              "Member Centricity",
+            ]);
+            const memberCentricityNe = obtenerPorLabels([
+              "Member Centricity NE",
+              "Member Centricity Noreste",
+              "NE Member Centricity",
+              "NORESTE Member Centricity",
+              "Member Centricity",
+            ]);
+            const memberCentricityNw = obtenerPorLabels([
+              "Member Centricity NW",
+              "Member Centricity NorthWest",
+              "Member Centricity NO",
+              "Member Centricity NOROESTE",
+              "NORTHWEST Member Centricity",
+              "NOROESTE Member Centricity",
+              "Member Centricity",
+            ]);
+            const otherMx = obtenerPorLabels([
+              "Other (MEXICO)",
+              "Other Income Mexico",
+            ]);
+            const otherGdl = obtenerPorLabels([
+              "Guadalajara Other Income",
+              "GDL Other Income",
+              "Other Guadalajara",
+              "Other GDL",
+              "Other",
+              "Otros ingresos",
+              "OTROS INGRESOS",
+            ]);
+            const otherGdlMexico = obtenerPorLabels([
+              "Guadalajara Other Income",
+              "GDL Other Income",
+              "Other Guadalajara",
+              "Other GDL",
+            ]);
+            const otherMty = obtenerPorLabels([
+              "Monterrey Other Income",
+              "MTY Other Income",
+            ]);
+            const otherNw = obtenerPorLabels([
+              "Northwest Other Income",
+              "NW Other Income",
+              "NO Other Income",
+              "NOROESTE Other Income",
+              "Other",
+              "Otros ingresos",
+              "OTROS INGRESOS",
+            ]);
+            const otherNe = obtenerPorLabels([
+              "NE Other Income",
+              "Noreste Other Income",
+              "NE Other",
+              "NORESTE Other Income",
+              "Other",
+              "Otros ingresos",
+              "OTROS INGRESOS",
+            ]);
+
+            const netResultsDefs = [];
+
+            if (esCapituloMexico) {
+              netResultsDefs.push(
+                {
+                  op: ["OPERATING RESULTS MEXICO"],
+                  mc: memberCentricityMx,
+                  other: otherMx,
+                  labels: ["NET RESULTS MEXICO"],
+                },
+                {
+                  op: [
+                    "OPERATING RESULTS GUADALAJARA",
+                    "GDL OPERATING RESULTS",
+                  ],
+                  mc: totalsZero(),
+                  other: otherGdlMexico,
+                  labels: ["NET RESULTS GUADALAJARA", "GDL NET RESULTS"],
+                },
+                {
+                  op: ["OPERATING RESULTS MONTERREY", "MTY OPERATING RESULTS"],
+                  mc: totalsZero(),
+                  other: otherMty,
+                  labels: ["NET RESULTS MONTERREY", "MTY NET RESULTS"],
+                },
+                {
+                  op: [
+                    "OPERATING RESULTS NORTHWEST",
+                    "OPERATING RESULTS NO",
+                    "OPERATING RESULTS NOROESTE",
+                    "NO OPERATING RESULTS",
+                  ],
+                  mc: totalsZero(),
+                  other: otherNw,
+                  labels: [
+                    "NET RESULTS NORTHWEST",
+                    "NET RESULTS NO",
+                    "NET RESULTS NOROESTE",
+                  ],
+                }
+              );
+            } else if (esCapituloGuadalajara) {
+              netResultsDefs.push({
+                op: ["OPERATING RESULTS GUADALAJARA", "GDL OPERATING RESULTS"],
+                mc: memberCentricityGdl,
+                other: otherGdl,
+                labels: [
+                  "NET RESULTS",
+                  "NET RESULTS GUADALAJARA",
+                  "GDL NET RESULTS",
+                ],
+              });
+            } else if (esCapituloNoreste) {
+              netResultsDefs.push({
+                op: [
+                  "OPERATING RESULTS NE",
+                  "NE OPERATING RESULTS",
+                  "OPERATING RESULTS NORESTE",
+                ],
+                mc: memberCentricityNe,
+                other: otherNe,
+                labels: [
+                  "NET RESULTS",
+                  "NET RESULTS NE",
+                  "NET RESULTS NORESTE",
+                ],
+              });
+            } else if (esCapituloNoroeste) {
+              netResultsDefs.push({
+                op: [
+                  "OPERATING RESULTS NORTHWEST",
+                  "OPERATING RESULTS NO",
+                  "OPERATING RESULTS NOROESTE",
+                  "NO OPERATING RESULTS",
+                ],
+                mc: memberCentricityNw,
+                other: otherNw,
+                labels: [
+                  "NET RESULTS",
+                  "NET RESULTS NORTHWEST",
+                  "NET RESULTS NO",
+                  "NET RESULTS NOROESTE",
+                ],
+              });
+            } else {
+              netResultsDefs.push(
+                {
+                  op: ["OPERATING RESULTS MEXICO"],
+                  mc: memberCentricityMx,
+                  other: otherMx,
+                  labels: ["NET RESULTS MEXICO"],
+                },
+                {
+                  op: [
+                    "OPERATING RESULTS GUADALAJARA",
+                    "GDL OPERATING RESULTS",
+                  ],
+                  mc: memberCentricityGdl,
+                  other: otherGdl,
+                  labels: ["NET RESULTS GUADALAJARA", "GDL NET RESULTS"],
+                },
+                {
+                  op: ["OPERATING RESULTS MONTERREY", "MTY OPERATING RESULTS"],
+                  mc: totalsZero(),
+                  other: otherMty,
+                  labels: ["NET RESULTS MONTERREY", "MTY NET RESULTS"],
+                },
+                {
+                  op: [
+                    "OPERATING RESULTS NORTHWEST",
+                    "OPERATING RESULTS NO",
+                    "OPERATING RESULTS NOROESTE",
+                    "NO OPERATING RESULTS",
+                  ],
+                  mc: memberCentricityNw,
+                  other: otherNw,
+                  labels: [
+                    "NET RESULTS NORTHWEST",
+                    "NET RESULTS NO",
+                    "NET RESULTS NOROESTE",
+                  ],
+                },
+                {
+                  op: [
+                    "OPERATING RESULTS NE",
+                    "NE OPERATING RESULTS",
+                    "OPERATING RESULTS NORESTE",
+                  ],
+                  mc: memberCentricityNe,
+                  other: otherNe,
+                  labels: ["NET RESULTS NE", "NET RESULTS NORESTE"],
+                }
+              );
+            }
+
+            netResultsDefs.forEach(({ op, mc, other, labels }) => {
+              const totals = combinar(op, []);
+              const bloque = asignarPrimero(labels, totals);
+              if (bloque) {
+                bloque.totals = bloque.totals || totalsZero();
+                sumaTotales(bloque.totals, mc, -1);
+                sumaTotales(bloque.totals, other, 1);
+              }
+            });
+
+            if (esCapituloMexico) {
+              asignar(
+                "CONSOLIDATED INCOME",
+                combinar([
+                  ...INCOME_LABELS.mex,
+                  ...INCOME_LABELS.gdl,
+                  ...INCOME_LABELS.mty,
+                  ...INCOME_LABELS.nw,
+                ])
+              );
+              asignar(
+                "CONSOLIDATED EXPENSES",
+                combinar([
+                  ...EXPENSE_LABELS.mex,
+                  ...EXPENSE_LABELS.gdl,
+                  ...EXPENSE_LABELS.mty,
+                  ...EXPENSE_LABELS.nw,
+                ])
+              );
+              asignar(
+                "CONSOLIDATED OPERATING RESULTS",
+                combinar([
+                  "OPERATING RESULTS MEXICO",
+                  "OPERATING RESULTS GUADALAJARA",
+                  "OPERATING RESULTS MONTERREY",
+                  "OPERATING RESULTS NORTHWEST",
+                  "OPERATING RESULTS NO",
+                  "OPERATING RESULTS NOROESTE",
+                  "NO OPERATING RESULTS",
+                ])
+              );
+              asignar(
+                "CONSOLIDATED NET RESULTS",
+                combinar([
+                  "NET RESULTS MEXICO",
+                  "NET RESULTS GUADALAJARA",
+                  "NET RESULTS MONTERREY",
+                  "NET RESULTS NORTHWEST",
+                  "NET RESULTS NO",
+                  "NET RESULTS NOROESTE",
+                ])
+              );
+            }
+          };
+
+          // recalcular totales usando la misma lógica que RESUMEN
+          recalcularConsolidados(layout, nodo.label || nodo.capitulo || "");
+
+          const mapa = flattenLabels(layout);
+          const get = (lbl) => mapa.get(normalizarLabel(lbl)) || null;
+          const readTotals = (lbl) => normalizeTotals(get(lbl) || {});
+          const sumLabels = (labels = []) => {
+            let res = totalsZero();
+            let found = false;
+            labels.forEach((label) => {
+              const data = get(label);
+              if (data) {
+                res = sumTotals(res, normalizeTotals(data), 1);
+                found = true;
+              }
+            });
+            return found ? res : totalsZero();
+          };
+          const pickFirst = (labels = []) => {
+            for (const label of labels) {
+              const data = get(label);
+              if (data) return normalizeTotals(data);
+            }
+            return totalsZero();
+          };
+          const opFromIncomeExpense = (incomeLabels, expenseLabels) => {
+            const income = sumLabels(incomeLabels);
+            const expense = sumLabels(expenseLabels);
+            return sumTotals(income, expense, -1);
+          };
+          const netFromParts = (operatingTotals, memberLabels, otherLabels) => {
+            const member = sumLabels(memberLabels);
+            const other = sumLabels(otherLabels);
+            const base = totalsZero();
+            return sumTotals(
+              sumTotals(sumTotals(base, operatingTotals, 1), member, -1),
+              other,
+              1
+            );
+          };
 
           const REGION_LABELS = {
             mex: {
-              name: 'Mexico',
-              income: ['CDMX INCOME', 'MEXICO INCOME'],
-              expense: ['CDMX EXPENSE', 'MEXICO EXPENSE'],
-              operating: ['OPERATING RESULTS MEXICO', 'MEXICO OPERATING RESULTS'],
-              net: ['NET RESULTS MEXICO', 'MEXICO NET RESULTS'],
-              member: ['MEMBER CENTRICITY', 'Member Centricity', 'Member Centricity CDMX', 'Member Centricity Mexico'],
-              other: ['Other (MEXICO)', 'Other Income Mexico']
+              name: "Mexico",
+              income: ["CDMX INCOME", "MEXICO INCOME"],
+              expense: ["CDMX EXPENSE", "MEXICO EXPENSE"],
+              operating: [
+                "OPERATING RESULTS MEXICO",
+                "MEXICO OPERATING RESULTS",
+              ],
+              net: ["NET RESULTS MEXICO", "MEXICO NET RESULTS"],
+              member: [
+                "MEMBER CENTRICITY",
+                "Member Centricity",
+                "Member Centricity CDMX",
+                "Member Centricity Mexico",
+              ],
+              other: ["Other (MEXICO)", "Other Income Mexico"],
             },
             gdl: {
-              name: 'Guadalajara',
-              income: ['GUADALAJARA INCOME', 'GDL INCOME'],
-              expense: ['GUADALAJARA EXPENSE', 'GDL EXPENSE'],
-              operating: ['OPERATING RESULTS GUADALAJARA', 'GDL OPERATING RESULTS'],
-              net: ['NET RESULTS GUADALAJARA', 'GDL NET RESULTS'],
-              member: ['Member Centricity GDL', 'Member Centricity Guadalajara', 'GDL Member Centricity'],
-              other: [
-                'Guadalajara Other Income',
-                'GDL Other Income',
-                'Other Guadalajara',
-                'Other GDL',
-                'Other',
-                'Otros ingresos',
-                'OTROS INGRESOS'
-              ]
-            },
-            mty: {
-              name: 'Monterrey',
-              income: ['MONTERREY INCOME', 'MTY INCOME'],
-              expense: ['MONTERREY EXPENSE', 'MTY EXPENSE'],
-              operating: ['OPERATING RESULTS MONTERREY', 'MTY OPERATING RESULTS'],
-              net: ['NET RESULTS MONTERREY', 'MTY NET RESULTS'],
-              member: ['Member Centricity MTY', 'Member Centricity Monterrey', 'MTY Member Centricity'],
-              other: ['Monterrey Other Income', 'MTY Other Income']
-            },
-            nw: {
-              name: 'Northwest',
-              income: ['NORTHWEST INCOME', 'NW INCOME', 'NOROESTE INCOME', 'NO INCOME'],
-              expense: ['NORTHWEST EXPENSE', 'NW EXPENSE', 'NOROESTE EXPENSE', 'NO EXPENSE'],
-              operating: ['OPERATING RESULTS NORTHWEST', 'OPERATING RESULTS NO', 'OPERATING RESULTS NOROESTE', 'NO OPERATING RESULTS'],
-              net: ['NET RESULTS NORTHWEST', 'NET RESULTS NO', 'NET RESULTS NOROESTE'],
+              name: "Guadalajara",
+              income: ["GUADALAJARA INCOME", "GDL INCOME"],
+              expense: ["GUADALAJARA EXPENSE", "GDL EXPENSE"],
+              operating: [
+                "OPERATING RESULTS GUADALAJARA",
+                "GDL OPERATING RESULTS",
+              ],
+              net: ["NET RESULTS GUADALAJARA", "GDL NET RESULTS"],
               member: [
-                'Member Centricity NW',
-                'Member Centricity NorthWest',
-                'Member Centricity NO',
-                'Member Centricity NOROESTE',
-                'NORTHWEST Member Centricity',
-                'NOROESTE Member Centricity'
+                "Member Centricity GDL",
+                "Member Centricity Guadalajara",
+                "GDL Member Centricity",
               ],
               other: [
-                'Northwest Other Income',
-                'NW Other Income',
-                'NO Other Income',
-                'NOROESTE Other Income',
-                'Other',
-                'Otros ingresos',
-                'OTROS INGRESOS'
-              ]
-            }
+                "Guadalajara Other Income",
+                "GDL Other Income",
+                "Other Guadalajara",
+                "Other GDL",
+                "Other",
+                "Otros ingresos",
+                "OTROS INGRESOS",
+              ],
+            },
+            mty: {
+              name: "Monterrey",
+              income: ["MONTERREY INCOME", "MTY INCOME"],
+              expense: ["MONTERREY EXPENSE", "MTY EXPENSE"],
+              operating: [
+                "OPERATING RESULTS MONTERREY",
+                "MTY OPERATING RESULTS",
+              ],
+              net: ["NET RESULTS MONTERREY", "MTY NET RESULTS"],
+              member: [
+                "Member Centricity MTY",
+                "Member Centricity Monterrey",
+                "MTY Member Centricity",
+              ],
+              other: ["Monterrey Other Income", "MTY Other Income"],
+            },
+            nw: {
+              name: "Northwest",
+              income: [
+                "NORTHWEST INCOME",
+                "NW INCOME",
+                "NOROESTE INCOME",
+                "NO INCOME",
+              ],
+              expense: [
+                "NORTHWEST EXPENSE",
+                "NW EXPENSE",
+                "NOROESTE EXPENSE",
+                "NO EXPENSE",
+              ],
+              operating: [
+                "OPERATING RESULTS NORTHWEST",
+                "OPERATING RESULTS NO",
+                "OPERATING RESULTS NOROESTE",
+                "NO OPERATING RESULTS",
+              ],
+              net: [
+                "NET RESULTS NORTHWEST",
+                "NET RESULTS NO",
+                "NET RESULTS NOROESTE",
+              ],
+              member: [
+                "Member Centricity NW",
+                "Member Centricity NorthWest",
+                "Member Centricity NO",
+                "Member Centricity NOROESTE",
+                "NORTHWEST Member Centricity",
+                "NOROESTE Member Centricity",
+              ],
+              other: [
+                "Northwest Other Income",
+                "NW Other Income",
+                "NO Other Income",
+                "NOROESTE Other Income",
+                "Other",
+                "Otros ingresos",
+                "OTROS INGRESOS",
+              ],
+            },
           };
 
           const buildRegion = (region) => {
@@ -694,7 +1124,7 @@
               operating: operatingTotals,
               net: netTotals,
               income: sumLabels(region.income),
-              expense: sumLabels(region.expense)
+              expense: sumLabels(region.expense),
             };
           };
 
@@ -703,29 +1133,40 @@
           const mty = buildRegion(REGION_LABELS.mty);
           const nw = buildRegion(REGION_LABELS.nw);
 
-          const operatingGeneral = hasTotals(readTotals('OPERATING RESULTS'))
-            ? readTotals('OPERATING RESULTS')
+          const operatingGeneral = hasTotals(readTotals("OPERATING RESULTS"))
+            ? readTotals("OPERATING RESULTS")
             : opFromIncomeExpense(
-                ['INCOME', 'TOTAL INCOME', 'TOTAL INCOME GENERAL'],
-                ['EXPENSE', 'TOTAL EXPENSE', 'TOTAL EXPENSE GENERAL']
+                ["INCOME", "TOTAL INCOME", "TOTAL INCOME GENERAL"],
+                ["EXPENSE", "TOTAL EXPENSE", "TOTAL EXPENSE GENERAL"]
               );
-          const netGeneral = hasTotals(readTotals('NET RESULTS'))
-            ? readTotals('NET RESULTS')
-            : netFromParts(operatingGeneral, ['MEMBER CENTRICITY', 'Member Centricity'], ['Other', 'Otros ingresos']);
+          const netGeneral = hasTotals(readTotals("NET RESULTS"))
+            ? readTotals("NET RESULTS")
+            : netFromParts(
+                operatingGeneral,
+                ["MEMBER CENTRICITY", "Member Centricity"],
+                ["Other", "Otros ingresos"]
+              );
 
           return {
-            chapter: nodo.label || '',
+            chapter: nodo.label || "",
             operating: operatingGeneral,
             net: netGeneral,
-            consolidatedOperating: pickFirst(['CONSOLIDATED OPERATING RESULTS', 'CONSOLIDATED OPERATING RESULT']),
-            consolidatedNet: pickFirst(['CONSOLIDATED NET RESULTS', 'CONSOLIDATED NET RESULT']),
+            consolidatedOperating: pickFirst([
+              "CONSOLIDATED OPERATING RESULTS",
+              "CONSOLIDATED OPERATING RESULT",
+            ]),
+            consolidatedNet: pickFirst([
+              "CONSOLIDATED NET RESULTS",
+              "CONSOLIDATED NET RESULT",
+            ]),
             regions: {
               mexico,
               gdl,
               mty,
-              nw
+              nw,
             },
-            lookup: (labels) => pickFirst(Array.isArray(labels) ? labels : [labels])
+            lookup: (labels) =>
+              pickFirst(Array.isArray(labels) ? labels : [labels]),
           };
         };
 
@@ -738,214 +1179,401 @@
 
         const renderCharts = (metrics, capituloLabel, esCdmx) => {
           if (!metrics) return;
-          const capituloNorm = normalizarLabel(capituloLabel || metrics.chapter || '');
+          const capituloNorm = normalizarLabel(
+            capituloLabel || metrics.chapter || ""
+          );
           const columnaDefs = [
-            { key: 'actual', label: 'Real', color: '#2f5496' },
-            { key: 'plan', label: 'Ppto.', color: '#8fb2ff' },
-            { key: 'prev', label: 'Real mes año anterior', color: '#94a3b8' },
-            { key: 'actualYTD', label: 'Real acumulado', color: '#10b981' },
-            { key: 'planYTD', label: 'Ppto. acumulado', color: '#6ee7b7' },
-            { key: 'prevYTD', label: 'Real acumulado año anterior', color: '#f59e0b' }
+            { key: "actual", label: "Real", color: "#2f5496" },
+            { key: "plan", label: "Ppto.", color: "#8fb2ff" },
+            { key: "prev", label: "Real mes año anterior", color: "#94a3b8" },
+            { key: "actualYTD", label: "Real acumulado", color: "#10b981" },
+            { key: "planYTD", label: "Ppto. acumulado", color: "#6ee7b7" },
+            {
+              key: "prevYTD",
+              label: "Real acumulado año anterior",
+              color: "#f59e0b",
+            },
           ];
           const rowsConfig = (() => {
-            if (capituloNorm.includes('CIUDAD DE MEXICO') || capituloNorm.includes('MEXICO')) {
+            if (
+              capituloNorm.includes("CIUDAD DE MEXICO") ||
+              capituloNorm.includes("MEXICO")
+            ) {
               return {
                 operating: [
-                  { label: 'OPERATING RESULTS MEXICO', labels: ['OPERATING RESULTS MEXICO'] },
-                  { label: 'OPERATING RESULTS GUADALAJARA', labels: ['OPERATING RESULTS GUADALAJARA', 'GDL OPERATING RESULTS'] },
-                  { label: 'OPERATING RESULTS MONTERREY', labels: ['OPERATING RESULTS MONTERREY', 'MTY OPERATING RESULTS'] },
                   {
-                    label: 'OPERATING RESULTS NORTHWEST',
-                    labels: ['OPERATING RESULTS NORTHWEST', 'OPERATING RESULTS NO', 'OPERATING RESULTS NOROESTE', 'NO OPERATING RESULTS']
+                    label: "OPERATING RESULTS MEXICO",
+                    labels: ["OPERATING RESULTS MEXICO"],
                   },
-                  { label: 'CONSOLIDATED OPERATING RESULTS', labels: ['CONSOLIDATED OPERATING RESULTS', 'CONSOLIDATED OPERATING RESULT'] }
+                  {
+                    label: "OPERATING RESULTS GUADALAJARA",
+                    labels: [
+                      "OPERATING RESULTS GUADALAJARA",
+                      "GDL OPERATING RESULTS",
+                    ],
+                  },
+                  {
+                    label: "OPERATING RESULTS MONTERREY",
+                    labels: [
+                      "OPERATING RESULTS MONTERREY",
+                      "MTY OPERATING RESULTS",
+                    ],
+                  },
+                  {
+                    label: "OPERATING RESULTS NORTHWEST",
+                    labels: [
+                      "OPERATING RESULTS NORTHWEST",
+                      "OPERATING RESULTS NO",
+                      "OPERATING RESULTS NOROESTE",
+                      "NO OPERATING RESULTS",
+                    ],
+                  },
+                  {
+                    label: "CONSOLIDATED OPERATING RESULTS",
+                    labels: [
+                      "CONSOLIDATED OPERATING RESULTS",
+                      "CONSOLIDATED OPERATING RESULT",
+                    ],
+                  },
                 ],
                 net: [
-                  { label: 'NET RESULTS MEXICO', labels: ['NET RESULTS MEXICO'] },
-                  { label: 'NET RESULTS GUADALAJARA', labels: ['NET RESULTS GUADALAJARA', 'GDL NET RESULTS'] },
-                  { label: 'NET RESULTS MONTERREY', labels: ['NET RESULTS MONTERREY', 'MTY NET RESULTS'] },
-                  { label: 'NET RESULTS NORTHWEST', labels: ['NET RESULTS NORTHWEST', 'NET RESULTS NO', 'NET RESULTS NOROESTE'] },
-                  { label: 'CONSOLIDATED NET RESULTS', labels: ['CONSOLIDATED NET RESULTS', 'CONSOLIDATED NET RESULT'] }
-                ]
+                  {
+                    label: "NET RESULTS MEXICO",
+                    labels: ["NET RESULTS MEXICO"],
+                  },
+                  {
+                    label: "NET RESULTS GUADALAJARA",
+                    labels: ["NET RESULTS GUADALAJARA", "GDL NET RESULTS"],
+                  },
+                  {
+                    label: "NET RESULTS MONTERREY",
+                    labels: ["NET RESULTS MONTERREY", "MTY NET RESULTS"],
+                  },
+                  {
+                    label: "NET RESULTS NORTHWEST",
+                    labels: [
+                      "NET RESULTS NORTHWEST",
+                      "NET RESULTS NO",
+                      "NET RESULTS NOROESTE",
+                    ],
+                  },
+                  {
+                    label: "CONSOLIDATED NET RESULTS",
+                    labels: [
+                      "CONSOLIDATED NET RESULTS",
+                      "CONSOLIDATED NET RESULT",
+                    ],
+                  },
+                ],
               };
             }
-            if (capituloNorm.includes('GUADALAJARA') || capituloNorm.includes('GDL')) {
+            if (
+              capituloNorm.includes("GUADALAJARA") ||
+              capituloNorm.includes("GDL")
+            ) {
               return {
-                operating: [{ label: 'GDL OPERATING RESULTS', labels: ['OPERATING RESULTS GUADALAJARA', 'GDL OPERATING RESULTS'] }],
-                net: [{ label: 'NET RESULTS', labels: ['NET RESULTS', 'NET RESULTS GUADALAJARA', 'GDL NET RESULTS'] }]
+                operating: [
+                  {
+                    label: "GDL OPERATING RESULTS",
+                    labels: [
+                      "OPERATING RESULTS GUADALAJARA",
+                      "GDL OPERATING RESULTS",
+                    ],
+                  },
+                ],
+                net: [
+                  {
+                    label: "NET RESULTS",
+                    labels: [
+                      "NET RESULTS",
+                      "NET RESULTS GUADALAJARA",
+                      "GDL NET RESULTS",
+                    ],
+                  },
+                ],
               };
             }
-            if (capituloNorm.includes('NORESTE') || capituloNorm === 'NE') {
+            if (capituloNorm.includes("NORESTE") || capituloNorm === "NE") {
               return {
-                operating: [{ label: 'NE OPERATING RESULTS', labels: ['NE OPERATING RESULTS', 'OPERATING RESULTS NE', 'OPERATING RESULTS NORESTE'] }],
-                net: [{ label: 'NET RESULTS', labels: ['NET RESULTS', 'NET RESULTS NE', 'NET RESULTS NORESTE'] }]
+                operating: [
+                  {
+                    label: "NE OPERATING RESULTS",
+                    labels: [
+                      "NE OPERATING RESULTS",
+                      "OPERATING RESULTS NE",
+                      "OPERATING RESULTS NORESTE",
+                    ],
+                  },
+                ],
+                net: [
+                  {
+                    label: "NET RESULTS",
+                    labels: [
+                      "NET RESULTS",
+                      "NET RESULTS NE",
+                      "NET RESULTS NORESTE",
+                    ],
+                  },
+                ],
               };
             }
-            if (capituloNorm.includes('NOROESTE') || capituloNorm.includes('NORTHWEST') || capituloNorm === 'NO') {
+            if (
+              capituloNorm.includes("NOROESTE") ||
+              capituloNorm.includes("NORTHWEST") ||
+              capituloNorm === "NO"
+            ) {
               return {
-                operating: [{
-                  label: 'NO OPERATING RESULTS',
-                  labels: ['OPERATING RESULTS NORTHWEST', 'OPERATING RESULTS NO', 'OPERATING RESULTS NOROESTE', 'NO OPERATING RESULTS']
-                }],
-                net: [{ label: 'NET RESULTS', labels: ['NET RESULTS NORTHWEST', 'NET RESULTS NO', 'NET RESULTS NOROESTE'] }]
+                operating: [
+                  {
+                    label: "NO OPERATING RESULTS",
+                    labels: [
+                      "OPERATING RESULTS NORTHWEST",
+                      "OPERATING RESULTS NO",
+                      "OPERATING RESULTS NOROESTE",
+                      "NO OPERATING RESULTS",
+                    ],
+                  },
+                ],
+                net: [
+                  {
+                    label: "NET RESULTS",
+                    labels: [
+                      "NET RESULTS NORTHWEST",
+                      "NET RESULTS NO",
+                      "NET RESULTS NOROESTE",
+                    ],
+                  },
+                ],
               };
             }
             return {
-              operating: [{ label: 'OPERATING RESULTS', labels: ['OPERATING RESULTS'] }],
-              net: [{ label: 'NET RESULTS', labels: ['NET RESULTS'] }]
+              operating: [
+                { label: "OPERATING RESULTS", labels: ["OPERATING RESULTS"] },
+              ],
+              net: [{ label: "NET RESULTS", labels: ["NET RESULTS"] }],
             };
           })();
 
-          const totalsZero = () => ({ actual: 0, plan: 0, prev: 0, actualYTD: 0, planYTD: 0, prevYTD: 0 });
+          const totalsZero = () => ({
+            actual: 0,
+            plan: 0,
+            prev: 0,
+            actualYTD: 0,
+            planYTD: 0,
+            prevYTD: 0,
+          });
           const buildRows = (defs = []) =>
             defs.map((def) => ({
               label: def.label,
-              totals: metrics.lookup ? metrics.lookup(def.labels) : totalsZero()
+              totals: metrics.lookup
+                ? metrics.lookup(def.labels)
+                : totalsZero(),
             }));
           const buildDatasets = (rows) =>
             columnaDefs.map((col) => ({
               label: col.label,
               data: rows.map((row) => toNumber(row.totals?.[col.key])),
-              backgroundColor: col.color
+              backgroundColor: col.color,
             }));
 
           const operatingRows = buildRows(rowsConfig.operating);
           const netRows = buildRows(rowsConfig.net);
 
-          renderChart('chartOperatingByChapter', {
-            type: 'bar',
+          renderChart("chartOperatingByChapter", {
+            type: "bar",
             data: {
               labels: operatingRows.map((row) => row.label),
-              datasets: buildDatasets(operatingRows)
+              datasets: buildDatasets(operatingRows),
             },
             options: {
               responsive: true,
-              plugins: { legend: { position: 'bottom' } },
-              scales: { y: { beginAtZero: true } }
-            }
+              plugins: { legend: { position: "bottom" } },
+              scales: { y: { beginAtZero: true } },
+            },
           });
 
-          renderChart('chartNetByChapter', {
-            type: 'bar',
+          renderChart("chartNetByChapter", {
+            type: "bar",
             data: {
               labels: netRows.map((row) => row.label),
-              datasets: buildDatasets(netRows)
+              datasets: buildDatasets(netRows),
             },
             options: {
               responsive: true,
-              plugins: { legend: { position: 'bottom' } },
-              scales: { y: { beginAtZero: true } }
-            }
+              plugins: { legend: { position: "bottom" } },
+              scales: { y: { beginAtZero: true } },
+            },
           });
 
-          const cdmxCard = document.getElementById('cdmxNetCard');
+          const cdmxCard = document.getElementById("cdmxNetCard");
           if (cdmxCard) {
-            cdmxCard.style.display = esCdmx ? '' : 'none';
+            cdmxCard.style.display = esCdmx ? "" : "none";
           }
           if (esCdmx) {
-            renderChart('chartNetCdmx', {
-              type: 'bar',
+            renderChart("chartNetCdmx", {
+              type: "bar",
               data: {
                 labels: netRows.map((row) => row.label),
-                datasets: buildDatasets(netRows)
+                datasets: buildDatasets(netRows),
               },
               options: {
                 responsive: true,
-                plugins: { legend: { position: 'bottom' } },
-                scales: { y: { beginAtZero: true } }
-              }
+                plugins: { legend: { position: "bottom" } },
+                scales: { y: { beginAtZero: true } },
+              },
             });
           }
 
           const consolidatedRows = buildRows([
-            { label: 'CONSOLIDATED OPERATING RESULTS', labels: ['CONSOLIDATED OPERATING RESULTS', 'CONSOLIDATED OPERATING RESULT'] },
-            { label: 'CONSOLIDATED NET RESULTS', labels: ['CONSOLIDATED NET RESULTS', 'CONSOLIDATED NET RESULT'] }
+            {
+              label: "CONSOLIDATED OPERATING RESULTS",
+              labels: [
+                "CONSOLIDATED OPERATING RESULTS",
+                "CONSOLIDATED OPERATING RESULT",
+              ],
+            },
+            {
+              label: "CONSOLIDATED NET RESULTS",
+              labels: ["CONSOLIDATED NET RESULTS", "CONSOLIDATED NET RESULT"],
+            },
           ]);
 
-          renderChart('chartConsolidatedResults', {
-            type: 'bar',
+          renderChart("chartConsolidatedResults", {
+            type: "bar",
             data: {
               labels: consolidatedRows.map((row) => row.label),
-              datasets: buildDatasets(consolidatedRows)
+              datasets: buildDatasets(consolidatedRows),
             },
             options: {
               responsive: true,
-              plugins: { legend: { position: 'bottom' } },
-              scales: { y: { beginAtZero: true } }
-            }
+              plugins: { legend: { position: "bottom" } },
+              scales: { y: { beginAtZero: true } },
+            },
           });
         };
 
         const renderChapterSummaryCharts = (summaries) => {
           if (!Array.isArray(summaries) || !summaries.length) return;
-          const labels = summaries.map((item) => item.etiqueta || item.capitulo || 'Capítulo');
+          const labels = summaries.map(
+            (item) => item.etiqueta || item.capitulo || "Capítulo"
+          );
           const columnaDefs = [
-            { key: 'actual', label: 'Real', color: '#2f5496' },
-            { key: 'plan', label: 'Ppto.', color: '#8fb2ff' },
-            { key: 'prev', label: 'Real mes año anterior', color: '#94a3b8' },
-            { key: 'actualYTD', label: 'Real acumulado', color: '#10b981' },
-            { key: 'planYTD', label: 'Ppto. acumulado', color: '#6ee7b7' },
-            { key: 'prevYTD', label: 'Real acumulado año anterior', color: '#f59e0b' }
+            { key: "actual", label: "Real", color: "#2f5496" },
+            { key: "plan", label: "Ppto.", color: "#8fb2ff" },
+            { key: "prev", label: "Real mes año anterior", color: "#94a3b8" },
+            { key: "actualYTD", label: "Real acumulado", color: "#10b981" },
+            { key: "planYTD", label: "Ppto. acumulado", color: "#6ee7b7" },
+            {
+              key: "prevYTD",
+              label: "Real acumulado año anterior",
+              color: "#f59e0b",
+            },
           ];
           const pickTotals = (item, key) =>
-            toNumber((item.metrics?.consolidatedOperating?.[key] ?? item.metrics?.operating?.[key]) || 0);
+            toNumber(
+              (item.metrics?.consolidatedOperating?.[key] ??
+                item.metrics?.operating?.[key]) ||
+                0
+            );
           const pickNetTotals = (item, key) =>
-            toNumber((item.metrics?.consolidatedNet?.[key] ?? item.metrics?.net?.[key]) || 0);
+            toNumber(
+              (item.metrics?.consolidatedNet?.[key] ??
+                item.metrics?.net?.[key]) ||
+                0
+            );
           const buildDatasets = (getter) =>
             columnaDefs.map((col) => ({
               label: col.label,
               data: summaries.map((item) => getter(item, col.key)),
-              backgroundColor: col.color
+              backgroundColor: col.color,
             }));
 
-          renderChart('chartOperatingSummaryByChapter', {
-            type: 'bar',
+          renderChart("chartOperatingSummaryByChapter", {
+            type: "bar",
             data: {
               labels,
-              datasets: buildDatasets(pickTotals)
+              datasets: buildDatasets(pickTotals),
             },
             options: {
               responsive: true,
-              plugins: { legend: { position: 'bottom' } },
-              scales: { y: { beginAtZero: true } }
-            }
+              plugins: { legend: { position: "bottom" } },
+              scales: { y: { beginAtZero: true } },
+            },
           });
 
-          renderChart('chartNetSummaryByChapter', {
-            type: 'bar',
+          renderChart("chartNetSummaryByChapter", {
+            type: "bar",
             data: {
               labels,
-              datasets: buildDatasets(pickNetTotals)
+              datasets: buildDatasets(pickNetTotals),
             },
             options: {
               responsive: true,
-              plugins: { legend: { position: 'bottom' } },
-              scales: { y: { beginAtZero: true } }
-            }
+              plugins: { legend: { position: "bottom" } },
+              scales: { y: { beginAtZero: true } },
+            },
           });
         };
 
         const loadChapterSummaries = async (anio, mes) => {
-          const capitulos = obtenerCapitulosDisponibles().filter((item) => item.capitulo);
+          const capitulos = obtenerCapitulosDisponibles().filter(
+            (item) => item.capitulo
+          );
           if (!capitulos.length) return;
           const summaries = await Promise.all(
             capitulos.map(async (item) => {
               try {
+                // Primero intentar usar snapshot si existe
+                const snapshot = leerSnapshotTabla(
+                  item.empresaId,
+                  anio,
+                  mes,
+                  item.capitulo
+                );
+                if (snapshot?.map) {
+                  console.log(
+                    "📊 loadChapterSummaries: Usando snapshot para",
+                    item.capitulo
+                  );
+                  const metrics = buildMetrics(
+                    snapshot.filas || [],
+                    snapshot.map,
+                    item.capitulo
+                  );
+                  return { ...item, metrics };
+                }
+
+                // Si no hay snapshot, usar API
+                console.log(
+                  "📊 loadChapterSummaries: Sin snapshot, usando API para",
+                  item.capitulo
+                );
                 const url = new URL(API_ENDPOINT);
-                url.searchParams.set('empresaId', item.empresaId);
-                url.searchParams.set('anio', anio);
-                url.searchParams.set('mes', mes.toString());
-                if (item.capitulo) url.searchParams.set('capitulo', item.capitulo);
-                const res = await fetch(url.toString(), { headers: window.Sesion?.headersAutenticacion?.() || {} });
+                url.searchParams.set("empresaId", item.empresaId);
+                url.searchParams.set("anio", anio);
+                url.searchParams.set("mes", mes.toString());
+                if (item.capitulo)
+                  url.searchParams.set("capitulo", item.capitulo);
+                const res = await fetch(url.toString(), {
+                  headers: window.Sesion?.headersAutenticacion?.() || {},
+                });
                 if (!res.ok) {
                   const text = await res.text();
-                  console.warn('Graficas resumen por capitulo 400/500', res.status, text);
+                  console.warn(
+                    "Graficas resumen por capitulo 400/500",
+                    res.status,
+                    text
+                  );
                   return { ...item, metrics: null };
                 }
                 const data = await res.json().catch(() => ({}));
                 return { ...item, metrics: buildMetrics(data.resumen || []) };
               } catch (error) {
-                console.warn('No se pudo cargar resumen por capitulo', item, error);
+                console.warn(
+                  "No se pudo cargar resumen por capitulo",
+                  item,
+                  error
+                );
                 return { ...item, metrics: null };
               }
             })
@@ -959,42 +1587,56 @@
           try {
             const empresa = window.Sesion?.obtenerEmpresaActiva?.();
             if (!empresa?.id) {
-              yearSelect.innerHTML = '<option value="">Selecciona empresa</option>';
+              yearSelect.innerHTML =
+                '<option value="">Selecciona empresa</option>';
               yearSelect.disabled = true;
               return { lista: [], seleccionado: null };
             }
-            const res = await fetch(`${API_ANIOS}?empresaId=${encodeURIComponent(empresa.id)}`, {
-              headers: window.Sesion?.headersAutenticacion?.() || {}
-            });
+            const res = await fetch(
+              `${API_ANIOS}?empresaId=${encodeURIComponent(empresa.id)}`,
+              {
+                headers: window.Sesion?.headersAutenticacion?.() || {},
+              }
+            );
             if (!res.ok) {
-              throw new Error('No se pudieron cargar años disponibles');
+              throw new Error("No se pudieron cargar años disponibles");
             }
             const data = await res.json().catch(() => ({}));
             const lista = Array.isArray(data?.anios)
-              ? data.anios.map((anio) => Number(anio)).filter((anio) => Number.isInteger(anio)).sort((a, b) => b - a)
+              ? data.anios
+                  .map((anio) => Number(anio))
+                  .filter((anio) => Number.isInteger(anio))
+                  .sort((a, b) => b - a)
               : [];
-            yearSelect.innerHTML = '';
+            yearSelect.innerHTML = "";
             if (!lista.length) {
-              const opt = document.createElement('option');
-              opt.value = '';
-              opt.textContent = 'Sin años disponibles';
+              const opt = document.createElement("option");
+              opt.value = "";
+              opt.textContent = "Sin años disponibles";
               yearSelect.appendChild(opt);
               yearSelect.disabled = true;
               return { lista: [], seleccionado: null };
             }
             const seleccionado = elegirAnioDisponible(lista, preferido);
             lista.forEach((anio) => {
-              const opt = document.createElement('option');
+              const opt = document.createElement("option");
               opt.value = anio;
               opt.textContent = anio;
               yearSelect.appendChild(opt);
             });
-            yearSelect.value = seleccionado != null ? String(seleccionado) : String(lista[0]);
+            yearSelect.value =
+              seleccionado != null ? String(seleccionado) : String(lista[0]);
             yearSelect.disabled = false;
-            return { lista, seleccionado: yearSelect.value ? Number(yearSelect.value) : seleccionado };
+            return {
+              lista,
+              seleccionado: yearSelect.value
+                ? Number(yearSelect.value)
+                : seleccionado,
+            };
           } catch (e) {
-            console.warn('No se pudieron cargar anos disponibles', e);
-            yearSelect.innerHTML = '<option value="">Error cargando años</option>';
+            console.warn("No se pudieron cargar anos disponibles", e);
+            yearSelect.innerHTML =
+              '<option value="">Error cargando años</option>';
             yearSelect.disabled = true;
             return { lista: [], seleccionado: null };
           }
@@ -1005,43 +1647,68 @@
           const capitulo = obtenerCapituloSeleccionado(empresa?.id);
           const etiqueta = obtenerEtiquetaSeleccionada(empresa?.id);
           if (!empresa?.id || !capitulo) {
-            empresaLabel.textContent = 'Capitulo: -';
+            empresaLabel.textContent = "Capitulo: -";
             return;
           }
-          const etiquetaFinal = etiqueta || empresa.etiqueta || empresa.nombre || capitulo;
+          const etiquetaFinal =
+            etiqueta || empresa.etiqueta || empresa.nombre || capitulo;
           empresaLabel.textContent = `Capitulo: ${etiquetaFinal}`;
           const anio = Number(yearSelect?.value);
           const mes = Number(monthSelect?.value);
-          const anioValido = Number.isInteger(anio) && anio > 0 ? anio : new Date().getFullYear();
+          const anioValido =
+            Number.isInteger(anio) && anio > 0
+              ? anio
+              : new Date().getFullYear();
           const mesValido = elegirMesValido(mes);
           persistirContexto(anioValido, mesValido);
-          const snapshot = leerSnapshotTabla(empresa.id, anioValido, mesValido, capitulo);
+          const snapshot = leerSnapshotTabla(
+            empresa.id,
+            anioValido,
+            mesValido,
+            capitulo
+          );
           if (snapshot?.map) {
-            const metrics = buildMetrics(snapshot.resumen || [], snapshot.map);
-            const esCdmx = normalizarLabel(capitulo).includes('CIUDAD DE MEXICO');
+            console.log("📊 Graficas: USANDO SNAPSHOT para gráficas");
+            const metrics = buildMetrics(
+              snapshot.filas || [],
+              snapshot.map,
+              capitulo
+            );
+            console.log("📊 Graficas: Métricas del snapshot:", {
+              operating: metrics?.operating,
+              net: metrics?.net,
+              consolidatedOperating: metrics?.consolidatedOperating,
+              consolidatedNet: metrics?.consolidatedNet,
+            });
+            const esCdmx =
+              normalizarLabel(capitulo).includes("CIUDAD DE MEXICO");
             renderCharts(metrics, etiqueta || capitulo, esCdmx);
             await loadChapterSummaries(anioValido, mesValido);
             return;
           }
+          console.log("📊 Graficas: NO hay snapshot, usando API");
           try {
             const url = new URL(API_ENDPOINT);
-            url.searchParams.set('empresaId', empresa.id);
-            url.searchParams.set('anio', anioValido);
-            url.searchParams.set('mes', mesValido.toString()); // API espera mes numerico (1-12)
-            if (capitulo) url.searchParams.set('capitulo', capitulo);
-            const res = await fetch(url.toString(), { headers: window.Sesion?.headersAutenticacion?.() || {} });
+            url.searchParams.set("empresaId", empresa.id);
+            url.searchParams.set("anio", anioValido);
+            url.searchParams.set("mes", mesValido.toString()); // API espera mes numerico (1-12)
+            if (capitulo) url.searchParams.set("capitulo", capitulo);
+            const res = await fetch(url.toString(), {
+              headers: window.Sesion?.headersAutenticacion?.() || {},
+            });
             if (!res.ok) {
               const text = await res.text();
-              console.warn('Graficas resumen 400/500', res.status, text);
+              console.warn("Graficas resumen 400/500", res.status, text);
               throw new Error(`No se pudo obtener resumen (${res.status})`);
             }
             const data = await res.json().catch(() => ({}));
             const metrics = buildMetrics(data.resumen || []);
-            const esCdmx = normalizarLabel(capitulo).includes('CIUDAD DE MEXICO');
+            const esCdmx =
+              normalizarLabel(capitulo).includes("CIUDAD DE MEXICO");
             renderCharts(metrics, etiqueta || capitulo, esCdmx);
             await loadChapterSummaries(anioValido, mesValido);
           } catch (e) {
-            console.error('Error cargando resumen para graficas', e);
+            console.error("Error cargando resumen para graficas", e);
           }
         };
 
@@ -1049,15 +1716,18 @@
           const empresa = window.Sesion?.obtenerEmpresaActiva?.();
           if (!empresa?.id) {
             if (yearSelect) {
-              yearSelect.innerHTML = '<option value="">Selecciona empresa</option>';
+              yearSelect.innerHTML =
+                '<option value="">Selecciona empresa</option>';
               yearSelect.disabled = true;
             }
-            empresaLabel.textContent = 'Capitulo: -';
+            empresaLabel.textContent = "Capitulo: -";
             return;
           }
           const contexto = leerContextoPlaneacion();
           const { lista, seleccionado } = await loadYears(contexto.anio);
-          const anioInicial = Number.isInteger(seleccionado) ? seleccionado : elegirAnioDisponible(lista, contexto.anio);
+          const anioInicial = Number.isInteger(seleccionado)
+            ? seleccionado
+            : elegirAnioDisponible(lista, contexto.anio);
           const mesInicial = elegirMesValido(contexto.mes);
           if (yearSelect && anioInicial != null) {
             yearSelect.value = String(anioInicial);
@@ -1066,7 +1736,10 @@
             monthSelect.value = String(mesInicial);
           }
           const anioSeleccionado = Number(yearSelect?.value);
-          const anioParaPersistir = Number.isInteger(anioSeleccionado) && anioSeleccionado > 0 ? anioSeleccionado : anioInicial;
+          const anioParaPersistir =
+            Number.isInteger(anioSeleccionado) && anioSeleccionado > 0
+              ? anioSeleccionado
+              : anioInicial;
           persistirContexto(anioParaPersistir, mesInicial);
           await loadData();
         };
@@ -1074,14 +1747,24 @@
         const handleChangePeriodo = async () => {
           const anioSeleccion = Number(yearSelect?.value);
           const mesSeleccion = Number(monthSelect?.value);
-          const anioValido = Number.isInteger(anioSeleccion) && anioSeleccion > 0 ? anioSeleccion : null;
-          const mesValido = Number.isInteger(mesSeleccion) && mesSeleccion >= 1 && mesSeleccion <= 12 ? mesSeleccion : null;
+          const anioValido =
+            Number.isInteger(anioSeleccion) && anioSeleccion > 0
+              ? anioSeleccion
+              : null;
+          const mesValido =
+            Number.isInteger(mesSeleccion) &&
+            mesSeleccion >= 1 &&
+            mesSeleccion <= 12
+              ? mesSeleccion
+              : null;
           persistirContexto(anioValido, mesValido);
           await loadData();
         };
 
-        if (monthSelect) monthSelect.addEventListener('change', handleChangePeriodo);
-        if (yearSelect) yearSelect.addEventListener('change', handleChangePeriodo);
+        if (monthSelect)
+          monthSelect.addEventListener("change", handleChangePeriodo);
+        if (yearSelect)
+          yearSelect.addEventListener("change", handleChangePeriodo);
 
         (async () => {
           const sesion = window.Sesion?.requerirSesion?.();

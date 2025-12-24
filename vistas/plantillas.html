@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gestor de Plantillas - SummaCham</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css"
+    />
+    <link rel="stylesheet" href="css/estilos.css" />
+    <link rel="stylesheet" href="css/plantillas.css" />
+    <link rel="icon" type="image/x-icon" href="icono/icono.ico" />
+  </head>
+  <body>
+    <div class="plantillas-app">
+      <!-- Header -->
+      <header class="plantillas-header">
+        <div class="header-left">
+          <a href="app.html" class="btn-back" title="Volver">
+            <i class="bi bi-arrow-left"></i>
+          </a>
+          <div class="header-title">
+            <h1>
+              <i class="bi bi-layout-text-window-reverse"></i> Gestor de
+              Plantillas
+            </h1>
+            <span class="header-subtitle"
+              >Crea y personaliza la estructura de tus reportes</span
+            >
+          </div>
+        </div>
+        <div class="header-right">
+          <span id="authStatus" class="status-badge pending">
+            <i class="bi bi-hourglass-split"></i> Verificando...
+          </span>
+          <button
+            type="button"
+            id="btnGuardar"
+            class="btn-action primary"
+            disabled
+          >
+            <i class="bi bi-save"></i> Guardar
+          </button>
+        </div>
+      </header>
+
+      <!-- Main Content -->
+      <main class="plantillas-main">
+        <!-- Sidebar: Contexto y Acciones -->
+        <aside class="plantillas-sidebar">
+          <!-- Contexto -->
+          <section class="sidebar-card">
+            <h3 class="sidebar-card-title">
+              <i class="bi bi-folder2-open"></i> Contexto
+            </h3>
+            <div class="form-group">
+              <label for="moduloSelect">Módulo</label>
+              <select id="moduloSelect" class="form-select">
+                <option value="RESUMEN">RESUMEN</option>
+                <option value="SUMMARY">SUMMARY</option>
+                <option value="Finanzas">Finanzas</option>
+                <option value="Gastos Generales">Gastos Generales</option>
+                <option value="Nomina">Nómina</option>
+                <option value="Membresía">Membresía</option>
+                <option value="Serv Membresía">Serv Membresía</option>
+                <option value="RH">RH</option>
+                <option value="Eventos">Eventos</option>
+                <option value="Comités">Comités</option>
+                <option value="Comunicación">Comunicación</option>
+                <option value="Dirección">Dirección</option>
+                <option value="Gtos Corporativos">Gtos Corporativos</option>
+                <option value="T&IC">T&IC</option>
+                <option value="VPE">VPE</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="anioSelect">Año</label>
+              <select id="anioSelect" class="form-select">
+                <option value="">Cargando...</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="capituloSelect">Capítulo</label>
+              <select id="capituloSelect" class="form-select">
+                <option value="">Sin capítulo</option>
+              </select>
+            </div>
+            <button
+              type="button"
+              id="btnCargar"
+              class="btn-action secondary w-100"
+            >
+              <i class="bi bi-arrow-clockwise"></i> Cargar Layout
+            </button>
+          </section>
+
+          <!-- Acciones -->
+          <section class="sidebar-card">
+            <h3 class="sidebar-card-title">
+              <i class="bi bi-lightning"></i> Acciones Rápidas
+            </h3>
+            <div class="action-buttons">
+              <button
+                type="button"
+                id="btnAgregar"
+                class="btn-action success"
+                disabled
+              >
+                <i class="bi bi-plus-circle"></i> Agregar Elemento
+              </button>
+              <button
+                type="button"
+                id="btnCopiar"
+                class="btn-action secondary"
+                disabled
+              >
+                <i class="bi bi-copy"></i> Copiar a Otro Año
+              </button>
+              <button
+                type="button"
+                id="btnDemo"
+                class="btn-action secondary"
+                disabled
+              >
+                <i class="bi bi-magic"></i> Crear Demo
+              </button>
+            </div>
+          </section>
+
+          <!-- Estadísticas -->
+          <section class="sidebar-card">
+            <h3 class="sidebar-card-title">
+              <i class="bi bi-bar-chart"></i> Estadísticas
+            </h3>
+            <div class="stats-grid">
+              <div class="stat-item">
+                <span class="stat-value" id="statPrincipales">0</span>
+                <span class="stat-label">Principales</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-value" id="statSecundarias">0</span>
+                <span class="stat-label">Secundarias</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-value" id="statCuentas">0</span>
+                <span class="stat-label">Cuentas</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-value" id="statOperaciones">0</span>
+                <span class="stat-label">Operaciones</span>
+              </div>
+            </div>
+          </section>
+        </aside>
+
+        <!-- Content Area -->
+        <div class="plantillas-content">
+          <!-- Placeholder cuando no hay datos -->
+          <div id="placeholderView" class="placeholder-view">
+            <div class="placeholder-icon">
+              <i class="bi bi-layout-text-window"></i>
+            </div>
+            <h2>Selecciona un contexto</h2>
+            <p>
+              Elige un módulo, año y capítulo para comenzar a editar el layout.
+            </p>
+            <div class="placeholder-tips">
+              <div class="tip">
+                <i class="bi bi-lightbulb"></i>
+                <span
+                  >Los layouts definen la estructura de tus reportes
+                  financieros</span
+                >
+              </div>
+              <div class="tip">
+                <i class="bi bi-arrow-repeat"></i>
+                <span>Puedes copiar layouts de un año a otro fácilmente</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Vista del Layout -->
+          <div id="layoutView" class="layout-view" style="display: none">
+            <!-- Toolbar -->
+            <div class="layout-toolbar">
+              <div class="toolbar-left">
+                <button
+                  type="button"
+                  class="btn-tool"
+                  id="btnExpandir"
+                  title="Expandir todo"
+                >
+                  <i class="bi bi-arrows-expand"></i>
+                </button>
+                <button
+                  type="button"
+                  class="btn-tool"
+                  id="btnColapsar"
+                  title="Colapsar todo"
+                >
+                  <i class="bi bi-arrows-collapse"></i>
+                </button>
+                <div class="toolbar-separator"></div>
+                <span class="toolbar-info" id="layoutInfo">Sin datos</span>
+              </div>
+              <div class="toolbar-right">
+                <div class="search-box">
+                  <i class="bi bi-search"></i>
+                  <input
+                    type="text"
+                    id="searchInput"
+                    placeholder="Buscar cuenta..."
+                  />
+                </div>
+              </div>
+            </div>
+
+            <!-- Layout Preview -->
+            <div class="layout-preview" id="layoutPreview">
+              <!-- Contenido dinámico -->
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <!-- Status Bar -->
+      <footer class="plantillas-footer">
+        <span id="statusMessage">Listo</span>
+      </footer>
+    </div>
+
+    <!-- Modal: Agregar Elemento -->
+    <div class="modal fade" id="modalAgregar" tabindex="-1">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">
+              <i class="bi bi-plus-circle me-2"></i>Agregar Elemento
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <!-- Tipo de elemento -->
+            <div class="element-type-selector">
+              <label class="element-type-option">
+                <input
+                  type="radio"
+                  name="tipoElemento"
+                  value="seccion-principal"
+                  checked
+                />
+                <div class="option-card">
+                  <i class="bi bi-folder2 text-primary"></i>
+                  <span>Sección Principal</span>
+                </div>
+              </label>
+              <label class="element-type-option">
+                <input
+                  type="radio"
+                  name="tipoElemento"
+                  value="seccion-secundaria"
+                />
+                <div class="option-card">
+                  <i class="bi bi-folder text-info"></i>
+                  <span>Sección Secundaria</span>
+                </div>
+              </label>
+              <label class="element-type-option">
+                <input type="radio" name="tipoElemento" value="cuenta" />
+                <div class="option-card">
+                  <i class="bi bi-file-earmark-text text-secondary"></i>
+                  <span>Cuenta</span>
+                </div>
+              </label>
+              <label class="element-type-option">
+                <input type="radio" name="tipoElemento" value="operacion" />
+                <div class="option-card">
+                  <i class="bi bi-calculator text-success"></i>
+                  <span>Operación</span>
+                </div>
+              </label>
+            </div>
+
+            <!-- Formulario dinámico -->
+            <div id="formElemento" class="form-elemento mt-4">
+              <!-- Campos según tipo seleccionado -->
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              class="btn btn-success"
+              id="btnConfirmarAgregar"
+            >
+              <i class="bi bi-plus-circle me-1"></i>Agregar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Copiar Layout -->
+    <div class="modal fade" id="modalCopiar" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">
+              <i class="bi bi-copy me-2"></i>Copiar Layout a Otro Año
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <div class="copy-info mb-3">
+              <div class="copy-source">
+                <small class="text-muted">Origen</small>
+                <strong id="copiaOrigen">-</strong>
+              </div>
+              <i class="bi bi-arrow-right text-primary"></i>
+              <div class="copy-target">
+                <small class="text-muted">Destino</small>
+                <input
+                  type="number"
+                  id="anioDestino"
+                  class="form-control"
+                  placeholder="2026"
+                />
+              </div>
+            </div>
+            <div class="alert alert-info">
+              <i class="bi bi-info-circle me-2"></i>
+              Se copiará la estructura completa: cuentas, secciones y
+              operaciones.
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              class="btn btn-primary"
+              id="btnConfirmarCopia"
+            >
+              <i class="bi bi-copy me-1"></i>Copiar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Editar Elemento -->
+    <div class="modal fade" id="modalEditar" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">
+              <i class="bi bi-pencil me-2"></i>Editar Elemento
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <div class="modal-body" id="formEditar">
+            <!-- Contenido dinámico -->
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-outline-danger me-auto"
+              id="btnEliminar"
+            >
+              <i class="bi bi-trash me-1"></i>Eliminar
+            </button>
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              class="btn btn-primary"
+              id="btnConfirmarEditar"
+            >
+              <i class="bi bi-check me-1"></i>Guardar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+      <div id="toastNotification" class="toast" role="alert">
+        <div class="toast-header">
+          <i class="bi bi-info-circle text-primary me-2"></i>
+          <strong class="me-auto">Plantillas</strong>
+          <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="toast"
+          ></button>
+        </div>
+        <div class="toast-body" id="toastMessage">Mensaje</div>
+      </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/sesion.js"></script>
+    <script src="js/verificar-sesion.js"></script>
+    <script src="js/capitulos-modulos.js"></script>
+    <script src="js/modo-edicion-presupuesto.js"></script>
+    <script src="js/flujo-autorizacion.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/plantillas.js"></script>
+  </body>
+</html>
