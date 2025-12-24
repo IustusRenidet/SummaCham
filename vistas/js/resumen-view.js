@@ -1283,7 +1283,7 @@
               "OPERATING RESULTS NOROESTE",
               "NO OPERATING RESULTS",
             ],
-            mc: memberCentricityNw,
+            mc: totalesCero(),
             other: otherNw,
             labels: [
               "NET RESULTS NORTHWEST",
