@@ -181,7 +181,7 @@
       if (!tabla) return null;
       const filas = Array.from(tabla.querySelectorAll("tr"));
       const datos = [];
-      filas.forEach((fila) => {
+      filas.forEach((fila, idx) => {
         const celdas = Array.from(fila.querySelectorAll("td"));
         if (celdas.length < 9) return; // requerimos columnas de valores
         const label = parseText(celdas[6]?.textContent || "");
@@ -198,6 +198,22 @@
             prevYTD: safeNumber(celdas[9]),
           },
         };
+
+        // Debug especial para CONSOLIDATED NET RESULTS
+        if (label.toUpperCase().includes("CONSOLIDATED NET")) {
+          console.log("📸 DEBUG CONSOLIDATED NET:", {
+            row: idx,
+            label,
+            totalCeldas: celdas.length,
+            celda1_raw: celdas[1]?.textContent,
+            celda1_parsed: safeNumber(celdas[1]),
+            celda2_raw: celdas[2]?.textContent,
+            celda6_raw: celdas[6]?.textContent,
+            celda7_raw: celdas[7]?.textContent,
+            registro: registro.totals,
+          });
+        }
+
         datos.push(registro);
       });
       console.log("📸 RESUMEN: Capturando snapshot", {
@@ -206,22 +222,24 @@
         mes,
         capitulo: capituloLabel,
         totalFilas: datos.length,
-        todosLosLabels: datos.map((d) => d.label),
-        labelsOperating: datos
-          .filter((d) => d.label.toUpperCase().includes("OPERATING"))
-          .map((d) => ({
-            label: d.label,
-            actual: d.totals.actual,
-            plan: d.totals.plan,
-          })),
-        labelsNet: datos
-          .filter((d) => d.label.toUpperCase().includes("NET"))
-          .map((d) => ({
-            label: d.label,
-            actual: d.totals.actual,
-            plan: d.totals.plan,
-          })),
       });
+
+      // Logging especial para CONSOLIDATED
+      const consolidated = datos.filter((d) =>
+        d.label.toUpperCase().includes("CONSOLIDATED")
+      );
+      console.log(
+        "📸 RESUMEN: CONSOLIDATED rows:",
+        consolidated.map((d) => ({
+          label: d.label,
+          actual: d.totals.actual,
+          plan: d.totals.plan,
+          prev: d.totals.prev,
+          actualYTD: d.totals.actualYTD,
+          planYTD: d.totals.planYTD,
+          prevYTD: d.totals.prevYTD,
+        }))
+      );
       return {
         empresaId,
         anio,

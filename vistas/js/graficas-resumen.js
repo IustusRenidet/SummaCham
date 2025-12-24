@@ -108,6 +108,14 @@
       (data?.filas || []).forEach((fila) => {
         const lbl = normalizarLabel(fila?.label || "");
         if (!lbl) return;
+
+        // Detectar duplicados
+        if (map.has(lbl)) {
+          console.warn("📊 Graficas: DUPLICADO detectado para label:", lbl);
+          console.warn("📊   Valor anterior:", map.get(lbl));
+          console.warn("📊   Nuevo valor:", fila.totals);
+        }
+
         map.set(lbl, {
           label: fila.label,
           actual: toNumber(fila?.totals?.actual),
@@ -139,7 +147,12 @@
       const normalizado = normalizarLabel(lbl);
       const hit = snapshotMap.get(normalizado);
       if (hit) {
-        console.log("📊 Graficas: ENCONTRADO", lbl, "->", hit);
+        // Para CONSOLIDATED, mostrar valores específicos
+        if (lbl.toUpperCase().includes("CONSOLIDATED")) {
+          console.log(
+            `📊 Graficas: ENCONTRADO ${lbl} -> actual=${hit.actual}, plan=${hit.plan}, actualYTD=${hit.actualYTD}`
+          );
+        }
         return hit;
       }
     }
@@ -648,11 +661,13 @@
 
     if (!snapshot?.map) {
       console.warn(
-        "📊 Graficas: No hay snapshot disponible. Por favor visita primero la página RESUMEN."
+        "📊 Graficas: No hay snapshot disponible para esta empresa/año/mes. Visita primero RESUMEN."
       );
-      alert(
-        "No hay datos disponibles. Por favor visita primero la página RESUMEN con los mismos filtros de año y mes."
-      );
+      // Ocultar gráfica de consolidados si no hay datos
+      if (consolidatedCard) {
+        consolidatedCard.style.display = "none";
+      }
+      // No mostrar alert, el usuario puede navegar a RESUMEN si lo necesita
       return;
     }
 
