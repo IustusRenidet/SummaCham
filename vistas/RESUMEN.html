@@ -6,11 +6,20 @@
     <title>RESUMEN</title>
 
     <!-- Bootstrap & Fonts -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link rel="stylesheet" href="css/estilos.css">
-    <link rel="icon" type="image/x-icon" href="icono/icono.ico">
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+    />
+    <link rel="stylesheet" href="css/estilos.css" />
+    <link rel="icon" type="image/x-icon" href="icono/icono.ico" />
 
     <style>
       :root {
@@ -35,7 +44,7 @@
       body {
         background: var(--color-background);
         color: var(--color-text);
-        font-family: 'Manrope', 'Segoe UI', Tahoma, Verdana, sans-serif;
+        font-family: "Manrope", "Segoe UI", Tahoma, Verdana, sans-serif;
         min-height: 100vh;
         padding-top: 70px;
       }
@@ -44,8 +53,8 @@
         background: var(--color-primary);
         color: #fff;
         border-radius: 16px;
-        border: 1px solid rgba(47, 84, 150, .1);
-        box-shadow: 0 12px 30px rgba(47, 84, 150, .18);
+        border: 1px solid rgba(47, 84, 150, 0.1);
+        box-shadow: 0 12px 30px rgba(47, 84, 150, 0.18);
       }
       .summary-meta span {
         font-weight: 600;
@@ -54,9 +63,9 @@
 
       .filter-card {
         border-radius: 16px;
-        border: 1px solid rgba(47, 84, 150, .08);
+        border: 1px solid rgba(47, 84, 150, 0.08);
         background: #ffffff;
-        box-shadow: 0 10px 24px rgba(47, 84, 150, .12);
+        box-shadow: 0 10px 24px rgba(47, 84, 150, 0.12);
       }
 
       .filter-card label {
@@ -66,20 +75,25 @@
 
       .summary-card {
         border-radius: 18px;
-        border: 1px solid rgba(47, 84, 150, .08);
-        background: linear-gradient(145deg, #ffffff 0%, #f2f2f2 50%, #d9d9d9 100%);
-        box-shadow: 0 14px 36px rgba(47, 84, 150, .14);
+        border: 1px solid rgba(47, 84, 150, 0.08);
+        background: linear-gradient(
+          145deg,
+          #ffffff 0%,
+          #f2f2f2 50%,
+          #d9d9d9 100%
+        );
+        box-shadow: 0 14px 36px rgba(47, 84, 150, 0.14);
       }
 
       .summary-card .card-title {
         font-weight: 700;
         color: var(--color-primary);
-        letter-spacing: .02em;
+        letter-spacing: 0.02em;
       }
 
       .summary-card .metric-label {
-        font-size: .75rem;
-        letter-spacing: .08em;
+        font-size: 0.75rem;
+        letter-spacing: 0.08em;
         text-transform: uppercase;
         color: var(--color-secondary);
       }
@@ -97,8 +111,8 @@
       .table-card {
         background: #fff;
         border-radius: 18px;
-        border: 1px solid rgba(47, 84, 150, .05);
-        box-shadow: 0 18px 40px rgba(47, 84, 150, .16);
+        border: 1px solid rgba(47, 84, 150, 0.05);
+        box-shadow: 0 18px 40px rgba(47, 84, 150, 0.16);
         overflow: hidden;
         width: 100%;
         position: relative;
@@ -128,7 +142,8 @@
         box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
         cursor: pointer;
         pointer-events: auto;
-        transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+        transition: transform 0.2s ease, box-shadow 0.2s ease,
+          background 0.2s ease;
       }
 
       .zoom-toggle:hover {
@@ -174,7 +189,7 @@
         padding: 10px 14px;
         cursor: pointer;
         font-weight: 700;
-        letter-spacing: .01em;
+        letter-spacing: 0.01em;
         transition: all 0.2s ease;
         box-shadow: 0 6px 14px rgba(0, 0, 0, 0.18);
         pointer-events: auto;
@@ -258,8 +273,8 @@
         border: 1px solid #999;
         color: #000;
         text-transform: uppercase;
-        letter-spacing: .03em;
-        font-size: .7rem;
+        letter-spacing: 0.03em;
+        font-size: 0.7rem;
         font-weight: 700;
         padding: 0.4rem 0.3rem;
         text-align: center;
@@ -273,7 +288,7 @@
       .table th {
         border: 1px solid #ccc;
         vertical-align: middle;
-        font-size: .75rem;
+        font-size: 0.75rem;
         padding: 0.3rem 0.4rem;
         cursor: pointer;
         user-select: none;
@@ -320,8 +335,8 @@
 
       .category-cell {
         text-transform: uppercase;
-        letter-spacing: .06em;
-        font-size: .75rem;
+        letter-spacing: 0.06em;
+        font-size: 0.75rem;
         font-weight: 800;
         text-align: left;
         background: #d9d9d9;
@@ -332,13 +347,13 @@
 
       .category-cell::before,
       .label-cell::before {
-        content: '';
+        content: "";
         display: inline-block;
         width: calc(var(--depth, 0) * 18px);
       }
 
       .code-cell {
-        font-size: .65rem;
+        font-size: 0.65rem;
         color: #333;
         font-family: monospace;
         text-align: left;
@@ -353,8 +368,8 @@
 
       .account-column {
         text-align: left;
-        font-family: 'Courier New', monospace;
-        font-size: .65rem;
+        font-family: "Courier New", monospace;
+        font-size: 0.65rem;
         color: #333;
         background-color: #f2f2f2 !important;
         font-weight: 400;
@@ -376,7 +391,7 @@
         font-feature-settings: "tnum";
         text-align: right;
         white-space: nowrap;
-        font-family: 'Courier New', monospace;
+        font-family: "Courier New", monospace;
         color: #000;
         font-weight: 500;
         font-size: 0.7rem;
@@ -402,18 +417,18 @@
       }
 
       .fade-in {
-        animation: fadeIn .5s ease-in;
+        animation: fadeIn 0.5s ease-in;
       }
 
       @keyframes fadeIn {
         from {
           opacity: 0;
-          transform: translateY(20px)
+          transform: translateY(20px);
         }
 
         to {
           opacity: 1;
-          transform: none
+          transform: none;
         }
       }
 
@@ -421,7 +436,7 @@
       .ytd-head {
         background: #8497b0 !important;
         font-weight: 900 !important;
-        letter-spacing: .15em;
+        letter-spacing: 0.15em;
         color: #000 !important;
         text-align: center;
         border: 1px solid #999 !important;
@@ -491,7 +506,11 @@
       /* === TIPOS DE SUMAS - JERARQUÍA VISUAL === */
       /* Nivel 1: sum-row - Suma de cuentas de una sección */
       .sum-row {
-        background: linear-gradient(to right, #fef3c7 0%, #fde68a 100%) !important;
+        background: linear-gradient(
+          to right,
+          #fef3c7 0%,
+          #fde68a 100%
+        ) !important;
         color: #78350f !important;
         font-weight: 600 !important;
         border-left: 4px solid #f59e0b !important;
@@ -504,10 +523,14 @@
       .sum-row td:first-child {
         padding-left: 1.5rem !important;
       }
-      
+
       /* Nivel 2: sum-row-principal - Principal (INCOME, EXPENSE) */
       .sum-row-principal {
-        background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%) !important;
+        background: linear-gradient(
+          135deg,
+          #a78bfa 0%,
+          #8b5cf6 100%
+        ) !important;
         color: white !important;
         font-weight: 700 !important;
         font-size: 1.05rem !important;
@@ -516,13 +539,17 @@
       }
       .sum-row-principal td {
         padding: 0.75rem !important;
-        border: 1px solid rgba(255,255,255,0.25) !important;
+        border: 1px solid rgba(255, 255, 255, 0.25) !important;
         letter-spacing: 0.5px;
       }
-      
+
       /* Nivel 3: highlight-primary - CONSOLIDATED (Income/Expense consolidado) */
       .highlight-primary {
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+        background: linear-gradient(
+          135deg,
+          #10b981 0%,
+          #059669 100%
+        ) !important;
         color: white !important;
         font-weight: 700 !important;
         font-size: 1.08rem !important;
@@ -531,13 +558,17 @@
       }
       .highlight-primary td {
         padding: 0.8rem !important;
-        border: 1px solid rgba(255,255,255,0.3) !important;
+        border: 1px solid rgba(255, 255, 255, 0.3) !important;
         letter-spacing: 0.75px;
       }
-      
+
       /* Nivel 4: highlight-secondary - OPERATING RESULTS */
       .highlight-secondary {
-        background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%) !important;
+        background: linear-gradient(
+          135deg,
+          #0891b2 0%,
+          #0e7490 100%
+        ) !important;
         color: white !important;
         font-weight: 700 !important;
         font-size: 1.1rem !important;
@@ -546,13 +577,17 @@
       }
       .highlight-secondary td {
         padding: 0.85rem !important;
-        border: 1px solid rgba(255,255,255,0.3) !important;
+        border: 1px solid rgba(255, 255, 255, 0.3) !important;
         letter-spacing: 1px;
       }
-      
+
       /* Nivel 5: highlight-bright - NET RESULTS - Máxima jerarquía */
       .highlight-bright {
-        background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%) !important;
+        background: linear-gradient(
+          135deg,
+          #dc2626 0%,
+          #b91c1c 100%
+        ) !important;
         color: white !important;
         font-weight: 800 !important;
         font-size: 1.15rem !important;
@@ -563,11 +598,15 @@
       }
       .highlight-bright td {
         padding: 1rem !important;
-        border: 1px solid rgba(255,255,255,0.35) !important;
+        border: 1px solid rgba(255, 255, 255, 0.35) !important;
         letter-spacing: 1.5px;
       }
       .highlight-bright:hover {
-        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+        background: linear-gradient(
+          135deg,
+          #ef4444 0%,
+          #dc2626 100%
+        ) !important;
         box-shadow: 0 5px 15px rgba(220, 38, 38, 0.6);
       }
 
@@ -676,25 +715,29 @@
         box-shadow: inset 0 0 3px rgba(0, 100, 200, 0.12);
       }
       .editable-real::before {
-        content: '✎';
+        content: "✎";
         position: absolute;
         right: 6px;
         top: 50%;
         transform: translateY(-50%);
         font-size: 0.8rem;
         color: #0064c8;
-        opacity: 0.0;
+        opacity: 0;
         transition: opacity 0.18s;
       }
-      .editable-real:hover::before { opacity: 0.7; }
+      .editable-real:hover::before {
+        opacity: 0.7;
+      }
 
       .read-only-cell {
         background-color: #f5f5f5 !important;
         cursor: not-allowed;
         color: #666;
       }
-      .read-only-cell:hover { background-color: #eeeeee !important; }
-      
+      .read-only-cell:hover {
+        background-color: #eeeeee !important;
+      }
+
       /* === PALETA DE COLORES MODERNA === */
       :root {
         --color-primary: #1e3a8a;
@@ -709,26 +752,34 @@
         --gradient-purple: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%);
         --gradient-orange: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
       }
-      
+
       /* === ESTILOS JERÁRQUICOS SUMMARY === */
       /* Principal: Header de sección principal (INCOME, EXPENSE, etc.) */
       .section-header-row {
-        background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%) !important;
+        background: linear-gradient(
+          135deg,
+          #1e3a8a 0%,
+          #3b82f6 100%
+        ) !important;
         color: white !important;
         font-weight: 700 !important;
         font-size: 1.1rem !important;
         text-transform: uppercase;
         letter-spacing: 1px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       }
       .section-header-row td {
         padding: 0.85rem 0.75rem !important;
-        border: 1px solid rgba(255,255,255,0.2) !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
       }
-      
+
       /* Secundaria: Subsección (Membership, Events, etc.) */
       .subsection-row {
-        background: linear-gradient(to right, #dbeafe 0%, #bfdbfe 100%) !important;
+        background: linear-gradient(
+          to right,
+          #dbeafe 0%,
+          #bfdbfe 100%
+        ) !important;
         color: #1e3a8a !important;
         font-weight: 600 !important;
         font-size: 0.95rem !important;
@@ -744,7 +795,7 @@
         font-style: italic;
         font-weight: 600;
       }
-      
+
       /* Cuenta: Fila de datos individual */
       .account-row {
         background-color: white !important;
@@ -767,7 +818,7 @@
       }
       .account-row td:first-child {
         padding-left: 2.5rem !important;
-        font-family: 'Courier New', monospace;
+        font-family: "Courier New", monospace;
         font-size: 0.85rem;
         color: #6b7280;
         font-weight: 500;
@@ -776,11 +827,15 @@
         padding-left: 2rem !important;
         color: #374151;
       }
-      
+
       /* === TIPOS DE SUMAS - JERARQUÍA VISUAL === */
       /* Nivel 1: sum-row - Suma de cuentas de una sección */
       .sum-row {
-        background: linear-gradient(to right, #fef3c7 0%, #fde68a 100%) !important;
+        background: linear-gradient(
+          to right,
+          #fef3c7 0%,
+          #fde68a 100%
+        ) !important;
         color: #78350f !important;
         font-weight: 600 !important;
         border-left: 4px solid #f59e0b !important;
@@ -793,10 +848,14 @@
       .sum-row td:first-child {
         padding-left: 1.5rem !important;
       }
-      
+
       /* Nivel 2: sum-row-sumavarios - Principal (INCOME, EXPENSE) */
       .sum-row-principal {
-        background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%) !important;
+        background: linear-gradient(
+          135deg,
+          #a78bfa 0%,
+          #8b5cf6 100%
+        ) !important;
         color: white !important;
         font-weight: 700 !important;
         font-size: 1.05rem !important;
@@ -805,13 +864,17 @@
       }
       .sum-row-principal td {
         padding: 0.75rem !important;
-        border: 1px solid rgba(255,255,255,0.25) !important;
+        border: 1px solid rgba(255, 255, 255, 0.25) !important;
         letter-spacing: 0.5px;
       }
-      
+
       /* Nivel 3: CONSOLIDATED (Income/Expense consolidado) */
       .highlight-primary {
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+        background: linear-gradient(
+          135deg,
+          #10b981 0%,
+          #059669 100%
+        ) !important;
         color: white !important;
         font-weight: 700 !important;
         font-size: 1.08rem !important;
@@ -820,13 +883,17 @@
       }
       .highlight-primary td {
         padding: 0.8rem !important;
-        border: 1px solid rgba(255,255,255,0.3) !important;
+        border: 1px solid rgba(255, 255, 255, 0.3) !important;
         letter-spacing: 0.75px;
       }
-      
+
       /* Nivel 4: OPERATING RESULTS */
       .highlight-secondary {
-        background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%) !important;
+        background: linear-gradient(
+          135deg,
+          #0891b2 0%,
+          #0e7490 100%
+        ) !important;
         color: white !important;
         font-weight: 700 !important;
         font-size: 1.1rem !important;
@@ -835,13 +902,17 @@
       }
       .highlight-secondary td {
         padding: 0.85rem !important;
-        border: 1px solid rgba(255,255,255,0.3) !important;
+        border: 1px solid rgba(255, 255, 255, 0.3) !important;
         letter-spacing: 1px;
       }
-      
+
       /* Nivel 5: NET RESULTS - Máxima jerarquía */
       .highlight-bright {
-        background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%) !important;
+        background: linear-gradient(
+          135deg,
+          #dc2626 0%,
+          #b91c1c 100%
+        ) !important;
         color: white !important;
         font-weight: 800 !important;
         font-size: 1.15rem !important;
@@ -852,11 +923,15 @@
       }
       .highlight-bright td {
         padding: 1rem !important;
-        border: 1px solid rgba(255,255,255,0.35) !important;
+        border: 1px solid rgba(255, 255, 255, 0.35) !important;
         letter-spacing: 1.5px;
       }
       .highlight-bright:hover {
-        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+        background: linear-gradient(
+          135deg,
+          #ef4444 0%,
+          #dc2626 100%
+        ) !important;
         box-shadow: 0 5px 15px rgba(220, 38, 38, 0.6);
       }
     </style>
@@ -878,14 +953,20 @@
                 <div>
                   <h1 class="fw-bold display-6 mb-2">Resumen</h1>
                   <p class="mb-0 text-white-50 summary-meta">
-                    Capítulo <span id="empresaLabel">-</span> ·
-                    Periodo <span class="anio text-light" id="periodLabel">-</span>
+                    Capítulo <span id="empresaLabel">-</span> · Periodo
+                    <span class="anio text-light" id="periodLabel">-</span>
                   </p>
                 </div>
-                <button class="workflow-toggle" type="button" data-bs-toggle="offcanvas" data-bs-target="#workflowDrawer"
-                aria-controls="workflowDrawer" aria-label="Ver flujo de autorización">
-                <i class="bi bi-list-task"></i>
-              </button>
+                <button
+                  class="workflow-toggle"
+                  type="button"
+                  data-bs-toggle="offcanvas"
+                  data-bs-target="#workflowDrawer"
+                  aria-controls="workflowDrawer"
+                  aria-label="Ver flujo de autorización"
+                >
+                  <i class="bi bi-list-task"></i>
+                </button>
               </div>
             </div>
           </div>
@@ -904,7 +985,11 @@
           </select>
         </div>
         <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-          <label for="resumenMonthSelect" class="form-label fw-semibold text-muted small mb-2">Periodo</label>
+          <label
+            for="resumenMonthSelect"
+            class="form-label fw-semibold text-muted small mb-2"
+            >Periodo</label
+          >
           <select id="resumenMonthSelect" class="form-select select-scroll">
             <option value="1">Enero</option>
             <option value="2">Febrero</option>
@@ -924,7 +1009,13 @@
 
       <!-- Controles de Zoom -->
       <div class="zoom-menu" id="zoomMenu">
-        <button type="button" class="zoom-toggle" id="zoomMenuToggle" aria-expanded="false" aria-controls="zoomControls">
+        <button
+          type="button"
+          class="zoom-toggle"
+          id="zoomMenuToggle"
+          aria-expanded="false"
+          aria-controls="zoomControls"
+        >
           <i class="bi bi-sliders"></i>
         </button>
         <div class="zoom-controls" id="zoomControls">
@@ -932,7 +1023,7 @@
             <div class="round-toggle-container">
               <label for="roundToggle" class="mb-0">Redondear</label>
               <label class="toggle-switch">
-                <input type="checkbox" id="roundToggle">
+                <input type="checkbox" id="roundToggle" />
                 <span class="toggle-slider"></span>
               </label>
             </div>
@@ -940,18 +1031,38 @@
               Zoom: <span id="zoomDisplay">100%</span>
             </div>
           </div>
-          <div class="btn-group w-100" role="group" aria-label="Controles de colapso">
-            <button type="button" class="zoom-btn btn btn-outline-secondary w-50 d-flex align-items-center justify-content-center gap-2" id="collapseAllBtn">
+          <div
+            class="btn-group w-100"
+            role="group"
+            aria-label="Controles de colapso"
+          >
+            <button
+              type="button"
+              class="zoom-btn btn btn-outline-secondary w-50 d-flex align-items-center justify-content-center gap-2"
+              id="collapseAllBtn"
+            >
               <i class="bi bi-chevron-bar-contract"></i>
               <span>Colapsar</span>
             </button>
-            <button type="button" class="zoom-btn btn btn-outline-secondary w-50 d-flex align-items-center justify-content-center gap-2" id="expandAllBtn">
+            <button
+              type="button"
+              class="zoom-btn btn btn-outline-secondary w-50 d-flex align-items-center justify-content-center gap-2"
+              id="expandAllBtn"
+            >
               <i class="bi bi-chevron-bar-expand"></i>
               <span>Expandir</span>
             </button>
           </div>
           <button class="zoom-btn" id="zoomOut">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              aria-hidden="true"
+            >
               <circle cx="11" cy="11" r="8"></circle>
               <line x1="8" y1="11" x2="14" y2="11"></line>
               <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
@@ -959,7 +1070,15 @@
             Alejar
           </button>
           <button class="zoom-btn" id="zoomIn">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              aria-hidden="true"
+            >
               <circle cx="11" cy="11" r="8"></circle>
               <line x1="11" y1="8" x2="11" y2="14"></line>
               <line x1="8" y1="11" x2="14" y2="11"></line>
@@ -968,15 +1087,33 @@
             Acercar
           </button>
           <button class="zoom-btn" id="zoomReset">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              aria-hidden="true"
+            >
               <path d="M1 4v6h6"></path>
               <path d="M23 20v-6h-6"></path>
-              <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path>
+              <path
+                d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"
+              ></path>
             </svg>
             Restablecer
           </button>
           <button class="zoom-btn" id="toggleAccountColumnBtn">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              aria-hidden="true"
+            >
               <rect x="3" y="3" width="18" height="18" rx="2"></rect>
               <line x1="9" y1="3" x2="9" y2="21"></line>
             </svg>
@@ -1000,40 +1137,71 @@
                   <p class="workflow-meta mb-0" id="workflowMeta"></p>
                 </div>
                 <div class="toolbar-actions" role="group">
-          <button type="button" class="btn btn-chip btn-chip-warning d-none" id="btnGuardarBorrador">
-            <i class="bi bi-upload"></i>
-            <span>Cargar presupuesto</span>
-          </button>
-          <button type="button" class="btn btn-chip btn-chip-warning d-none" id="btnEnviarCambios">
-            <i class="bi bi-send"></i>
-            <span>Enviar presupuesto</span>
-          </button>
-          <button type="button" class="btn btn-chip btn-outline-secondary d-none" id="btnCancelarEdicion">
-            <i class="bi bi-x-circle"></i>
-            <span>Cancelar edición</span>
-          </button>
-          <button type="button" class="btn btn-chip btn-chip-info d-none" id="btnMarcarRevisado">
-            <i class="bi bi-clipboard-check"></i>
-            <span>Marcar como revisado</span>
-          </button>
-          <button type="button" class="btn btn-chip btn-chip-success d-none" id="btnAutorizar">
-            <i class="bi bi-shield-check"></i>
-            <span>Autorizar</span>
-          </button>
-          <button type="button" class="btn btn-chip btn-outline-danger d-none" id="btnRechazar">
-            <i class="bi bi-x-octagon"></i>
-            <span>Rechazar</span>
-          </button>
-          <button type="button" class="btn btn-chip btn-outline-secondary d-none" id="btnVerBorrador">
-            <i class="bi bi-eye"></i>
-            <span>Centro de borradores</span>
-          </button>
-          <button type="button" class="btn btn-chip btn-primario d-none" id="saveBudgetBtn">
-            <i class="bi bi-floppy2"></i>
-            <span>Guardar en COI</span>
-          </button>
-        </div>
-
+                  <button
+                    type="button"
+                    class="btn btn-chip btn-chip-warning d-none"
+                    id="btnGuardarBorrador"
+                  >
+                    <i class="bi bi-upload"></i>
+                    <span>Cargar presupuesto</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-chip btn-chip-warning d-none"
+                    id="btnEnviarCambios"
+                  >
+                    <i class="bi bi-send"></i>
+                    <span>Enviar presupuesto</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-chip btn-outline-secondary d-none"
+                    id="btnCancelarEdicion"
+                  >
+                    <i class="bi bi-x-circle"></i>
+                    <span>Cancelar edición</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-chip btn-chip-info d-none"
+                    id="btnMarcarRevisado"
+                  >
+                    <i class="bi bi-clipboard-check"></i>
+                    <span>Marcar como revisado</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-chip btn-chip-success d-none"
+                    id="btnAutorizar"
+                  >
+                    <i class="bi bi-shield-check"></i>
+                    <span>Autorizar</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-chip btn-outline-danger d-none"
+                    id="btnRechazar"
+                  >
+                    <i class="bi bi-x-octagon"></i>
+                    <span>Rechazar</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-chip btn-outline-secondary d-none"
+                    id="btnVerBorrador"
+                  >
+                    <i class="bi bi-eye"></i>
+                    <span>Centro de borradores</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-chip btn-primario d-none"
+                    id="saveBudgetBtn"
+                  >
+                    <i class="bi bi-floppy2"></i>
+                    <span>Guardar en COI</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -1055,17 +1223,45 @@
                 />
               </div>
             </div>
-            <div class="d-flex flex-row align-items-center gap-2">
-              <div class="btn-group" role="group" aria-label="Colapsar/Expandir secciones">
-                <button type="button" class="btn btn-outline-secondary d-flex align-items-center gap-1" id="collapseAllBtnSecondary">
+            <div class="d-flex flex-row align-items-center gap-2 flex-wrap">
+              <div
+                class="btn-group"
+                role="group"
+                aria-label="Colapsar/Expandir secciones"
+              >
+                <button
+                  type="button"
+                  class="btn btn-outline-secondary d-flex align-items-center gap-1"
+                  id="collapseAllBtnSecondary"
+                >
                   <i class="bi bi-chevron-bar-contract"></i>
                   <span>Colapsar</span>
                 </button>
-                <button type="button" class="btn btn-outline-secondary d-flex align-items-center gap-1" id="expandAllBtnSecondary">
+                <button
+                  type="button"
+                  class="btn btn-outline-secondary d-flex align-items-center gap-1"
+                  id="expandAllBtnSecondary"
+                >
                   <i class="bi bi-chevron-bar-expand"></i>
                   <span>Expandir</span>
                 </button>
               </div>
+              <button
+                type="button"
+                class="btn btn-outline-primary d-flex align-items-center gap-1"
+                id="printResumenBtn"
+              >
+                <i class="bi bi-printer"></i>
+                <span>Imprimir PDF</span>
+              </button>
+              <button
+                type="button"
+                class="btn btn-success d-flex align-items-center gap-1"
+                id="exportResumenBtn"
+              >
+                <i class="bi bi-file-earmark-excel"></i>
+                <span>Exportar XLSX</span>
+              </button>
             </div>
           </div>
         </div>
@@ -1080,38 +1276,64 @@
                   class="table align-middle mb-0 table-comparison"
                   id="tablaComparacion"
                 >
-                <colgroup>
-                  <col class="col-cuenta">
-                  <col class="col-valor" span="5">
-                  <col class="col-descripcion">
-                  <col class="col-valor" span="5">
-                </colgroup>
-                <thead>
-                <tr class="encabezados">
-                  <th scope="col" class="account-column-header" rowspan="2">Cuenta</th>
-                  <th scope="col" colspan="5"><span class="mes-actual">DICIEMBRE</span> <span class="year-act"></span></th>
-                  <th scope="col" class="col-descripcion" rowspan="2">Descripción</th>
-                  <th scope="col" colspan="5">YTD <span class="year-act"></span></th>
-                </tr>
-                <tr class="encabezados-sub">
-                  <th scope="col" class="month-real">Real</th>
-                  <th scope="col" class="month-budget">Ppto.</th>
-                  <th scope="col" class="month-real">Real <span class="mes-actual">DIC</span> <span class="year-prev"></span></th>
-                  <th scope="col" class="total-budget-column">B/(W)% vs. Ppto.</th>
-                  <th scope="col" class="total-real-column">B/(W)% vs. Real <span class="mes-actual">DIC</span> <span class="year-prev"></span></th>
-                  <th scope="col" class="month-real">Real acumulado</th>
-                  <th scope="col" class="month-budget">Ppto. acumulado</th>
-                  <th scope="col" class="month-real">Real acumulado <span class="year-prev"></span></th>
-                  <th scope="col" class="total-budget-column">B/(W)% vs. Ppto. acumulado</th>
-                  <th scope="col" class="total-real-column">B/(W)% vs. Real acumulado <span class="year-prev"></span></th>
-                </tr>
-                </thead>
-                <tbody id="tablaCuentasBody">
-                  <tr class="estado-tabla">
-                    <td colspan="12">Construyendo el resumen financiero, espera un momento...</td>
-                  </tr>
-                </tbody>
-              </table>
+                  <colgroup>
+                    <col class="col-cuenta" />
+                    <col class="col-valor" span="5" />
+                    <col class="col-descripcion" />
+                    <col class="col-valor" span="5" />
+                  </colgroup>
+                  <thead>
+                    <tr class="encabezados">
+                      <th scope="col" class="account-column-header" rowspan="2">
+                        Cuenta
+                      </th>
+                      <th scope="col" colspan="5">
+                        <span class="mes-actual">DICIEMBRE</span>
+                        <span class="year-act"></span>
+                      </th>
+                      <th scope="col" class="col-descripcion" rowspan="2">
+                        Descripción
+                      </th>
+                      <th scope="col" colspan="5">
+                        YTD <span class="year-act"></span>
+                      </th>
+                    </tr>
+                    <tr class="encabezados-sub">
+                      <th scope="col" class="month-real">Real</th>
+                      <th scope="col" class="month-budget">Ppto.</th>
+                      <th scope="col" class="month-real">
+                        Real <span class="mes-actual">DIC</span>
+                        <span class="year-prev"></span>
+                      </th>
+                      <th scope="col" class="total-budget-column">
+                        B/(W)% vs. Ppto.
+                      </th>
+                      <th scope="col" class="total-real-column">
+                        B/(W)% vs. Real <span class="mes-actual">DIC</span>
+                        <span class="year-prev"></span>
+                      </th>
+                      <th scope="col" class="month-real">Real acumulado</th>
+                      <th scope="col" class="month-budget">Ppto. acumulado</th>
+                      <th scope="col" class="month-real">
+                        Real acumulado <span class="year-prev"></span>
+                      </th>
+                      <th scope="col" class="total-budget-column">
+                        B/(W)% vs. Ppto. acumulado
+                      </th>
+                      <th scope="col" class="total-real-column">
+                        B/(W)% vs. Real acumulado
+                        <span class="year-prev"></span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody id="tablaCuentasBody">
+                    <tr class="estado-tabla">
+                      <td colspan="12">
+                        Construyendo el resumen financiero, espera un momento...
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
@@ -1175,112 +1397,128 @@
     <script src="js/insertion-wizard.js"></script>
     <script src="js/context-menu-wizard.js"></script>
     <script src="js/modo-edicion-presupuesto.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <script src="js/resumen-view.js"></script>
     <script>
       // Inicialización de RESUMEN con FlujoAutorizacion
-      document.addEventListener('DOMContentLoaded', () => {
-        const selectorTabla = '#tablaComparacion';
-        
+      document.addEventListener("DOMContentLoaded", () => {
+        const selectorTabla = "#tablaComparacion";
+
         setTimeout(() => {
           // 1. Inicializar edición de presupuesto (solo layout para RESUMEN)
-          if (typeof ModoEdicionPresupuesto !== 'undefined') {
+          if (typeof ModoEdicionPresupuesto !== "undefined") {
             const inicioOK = ModoEdicionPresupuesto.inicializar(selectorTabla, {
-              soloLayout: true // RESUMEN solo edita cuenta/descripción, no valores numéricos
+              soloLayout: true, // RESUMEN solo edita cuenta/descripción, no valores numéricos
             });
             if (!inicioOK) {
-              console.warn('⚠️ No se pudo inicializar edición de layout en RESUMEN');
+              console.warn(
+                "⚠️ No se pudo inicializar edición de layout en RESUMEN"
+              );
             }
           }
-          
+
           // 2. Inicializar FlujoAutorizacion para aprobar cambios de layout
-          if (typeof FlujoAutorizacion !== 'undefined') {
+          if (typeof FlujoAutorizacion !== "undefined") {
             const flujo = new FlujoAutorizacion({
-              tablaId: 'tablaComparacion',
-              modulo: 'RESUMEN',
-              
+              tablaId: "tablaComparacion",
+              modulo: "RESUMEN",
+
               // RESUMEN solo captura cambios de LAYOUT (cuenta/descripción)
               obtenerCambios: () => {
-                const layout = ModoEdicionPresupuesto?.capturarLayout(document.querySelector(selectorTabla));
-                
+                const layout = ModoEdicionPresupuesto?.capturarLayout(
+                  document.querySelector(selectorTabla)
+                );
+
                 return {
                   presupuesto: [], // RESUMEN no edita valores numéricos
                   layout: layout,
                   nombres: [],
-                  hayCambios: layout?.filas?.length > 0 && ModoEdicionPresupuesto.layoutModificado
+                  hayCambios:
+                    layout?.filas?.length > 0 &&
+                    ModoEdicionPresupuesto.layoutModificado,
                 };
               },
-              
-              obtenerHeaders: () => (window.Sesion?.headersAutenticacion?.() || {}),
-              
+
+              obtenerHeaders: () =>
+                window.Sesion?.headersAutenticacion?.() || {},
+
               onCancelEdit: () => {
                 // No hacer nada, el layout se guarda automáticamente
-              }
+              },
             }).init();
-            
+
             window.__flujoAutorizacionInstance = flujo;
-            console.log('✅ FlujoAutorizacion inicializado para RESUMEN (solo layout)');
+            console.log(
+              "✅ FlujoAutorizacion inicializado para RESUMEN (solo layout)"
+            );
           }
         }, 300);
 
         // Toggle del menú de controles de zoom
-        const zoomMenu = document.getElementById('zoomMenu');
-        const zoomMenuToggle = document.getElementById('zoomMenuToggle');
+        const zoomMenu = document.getElementById("zoomMenu");
+        const zoomMenuToggle = document.getElementById("zoomMenuToggle");
 
         const cerrarZoomMenu = () => {
           if (!zoomMenu) return;
-          zoomMenu.classList.remove('open');
+          zoomMenu.classList.remove("open");
           if (zoomMenuToggle) {
-            zoomMenuToggle.setAttribute('aria-expanded', 'false');
+            zoomMenuToggle.setAttribute("aria-expanded", "false");
           }
         };
 
         const alternarZoomMenu = () => {
           if (!zoomMenu || !zoomMenuToggle) return;
-          const abierto = zoomMenu.classList.toggle('open');
-          zoomMenuToggle.setAttribute('aria-expanded', abierto ? 'true' : 'false');
+          const abierto = zoomMenu.classList.toggle("open");
+          zoomMenuToggle.setAttribute(
+            "aria-expanded",
+            abierto ? "true" : "false"
+          );
         };
 
         if (zoomMenuToggle) {
-          zoomMenuToggle.addEventListener('click', (e) => {
+          zoomMenuToggle.addEventListener("click", (e) => {
             e.stopPropagation();
             alternarZoomMenu();
           });
         }
 
-        document.addEventListener('click', (e) => {
+        document.addEventListener("click", (e) => {
           if (!zoomMenu) return;
           if (!zoomMenu.contains(e.target)) {
             cerrarZoomMenu();
           }
         });
 
-        document.addEventListener('keydown', (e) => {
-          if (e.key === 'Escape') {
+        document.addEventListener("keydown", (e) => {
+          if (e.key === "Escape") {
             cerrarZoomMenu();
           }
         });
 
         // Toggle para redondear números
-        const roundToggle = document.getElementById('roundToggle');
-        const ROUND_STORAGE_KEY = 'resumen_redondear_numeros';
-        
-        const formatConSeparador = (valor, redondear) => new Intl.NumberFormat('en-US', {
-          minimumFractionDigits: redondear ? 0 : 2,
-          maximumFractionDigits: redondear ? 0 : 2
-        }).format(valor);
+        const roundToggle = document.getElementById("roundToggle");
+        const ROUND_STORAGE_KEY = "resumen_redondear_numeros";
+
+        const formatConSeparador = (valor, redondear) =>
+          new Intl.NumberFormat("en-US", {
+            minimumFractionDigits: redondear ? 0 : 2,
+            maximumFractionDigits: redondear ? 0 : 2,
+          }).format(valor);
 
         const aplicarRedondeo = (redondear) => {
-          const tabla = document.querySelector('#tablaComparacion tbody');
+          const tabla = document.querySelector("#tablaComparacion tbody");
           if (!tabla) return;
-          
-          const celdas = tabla.querySelectorAll('td:not(.text-start):not(.cuenta-col)');
-          celdas.forEach(celda => {
+
+          const celdas = tabla.querySelectorAll(
+            "td:not(.text-start):not(.cuenta-col)"
+          );
+          celdas.forEach((celda) => {
             const texto = celda.textContent.trim();
-            if (!texto || texto === '-') return;
+            if (!texto || texto === "-") return;
 
             let valorOriginal = celda.dataset.originalValue;
-            if (typeof valorOriginal === 'undefined') {
-              const numerico = parseFloat(texto.replace(/[^0-9.-]/g, ''));
+            if (typeof valorOriginal === "undefined") {
+              const numerico = parseFloat(texto.replace(/[^0-9.-]/g, ""));
               if (Number.isNaN(numerico)) {
                 return;
               }
@@ -1292,9 +1530,11 @@
 
             if (Number.isNaN(valorOriginal)) return;
 
-            const valorMostrar = redondear ? Math.round(valorOriginal) : valorOriginal;
+            const valorMostrar = redondear
+              ? Math.round(valorOriginal)
+              : valorOriginal;
             const contenido = formatConSeparador(valorMostrar, redondear);
-            if (celda.classList.contains('percent-cell')) {
+            if (celda.classList.contains("percent-cell")) {
               celda.textContent = `${contenido} %`;
             } else {
               celda.textContent = contenido;
@@ -1305,13 +1545,13 @@
         if (roundToggle) {
           // Restaurar estado del toggle
           const savedRoundState = localStorage.getItem(ROUND_STORAGE_KEY);
-          if (savedRoundState === 'true') {
+          if (savedRoundState === "true") {
             roundToggle.checked = true;
             // Aplicar redondeo cuando la tabla esté cargada
             setTimeout(() => aplicarRedondeo(true), 500);
           }
-          
-          roundToggle.addEventListener('change', function() {
+
+          roundToggle.addEventListener("change", function () {
             const redondear = this.checked;
             localStorage.setItem(ROUND_STORAGE_KEY, redondear);
             aplicarRedondeo(redondear);
@@ -1320,63 +1560,79 @@
       });
     </script>
 
-  <!-- Menú Contextual -->
-  <div id="contextMenu" class="context-menu" style="display: none; position: absolute; z-index: 10000; background: white; border: 1px solid #ccc; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); min-width: 220px;">
-    <div class="context-menu-item" data-action="add-row">
-      <i class="bi bi-plus-circle me-2"></i>
-      <span>Agregar cuenta</span>
+    <!-- Menú Contextual -->
+    <div
+      id="contextMenu"
+      class="context-menu"
+      style="
+        display: none;
+        position: absolute;
+        z-index: 10000;
+        background: white;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        min-width: 220px;
+      "
+    >
+      <div class="context-menu-item" data-action="add-row">
+        <i class="bi bi-plus-circle me-2"></i>
+        <span>Agregar cuenta</span>
+      </div>
+      <div class="context-menu-item" data-action="add-operation">
+        <i class="bi bi-calculator me-2"></i>
+        <span>Crear operación</span>
+      </div>
+      <div class="context-menu-item" data-action="add-section">
+        <i class="bi bi-folder-plus me-2"></i>
+        <span>Agregar sección</span>
+      </div>
+      <div class="context-menu-divider"></div>
+      <div class="context-menu-item" data-action="edit-row">
+        <i class="bi bi-pencil me-2"></i>
+        <span>Editar</span>
+      </div>
+      <div
+        class="context-menu-item context-menu-danger"
+        data-action="delete-row"
+      >
+        <i class="bi bi-trash me-2"></i>
+        <span>Eliminar</span>
+      </div>
     </div>
-    <div class="context-menu-item" data-action="add-operation">
-      <i class="bi bi-calculator me-2"></i>
-      <span>Crear operación</span>
-    </div>
-    <div class="context-menu-item" data-action="add-section">
-      <i class="bi bi-folder-plus me-2"></i>
-      <span>Agregar sección</span>
-    </div>
-    <div class="context-menu-divider"></div>
-    <div class="context-menu-item" data-action="edit-row">
-      <i class="bi bi-pencil me-2"></i>
-      <span>Editar</span>
-    </div>
-    <div class="context-menu-item context-menu-danger" data-action="delete-row">
-      <i class="bi bi-trash me-2"></i>
-      <span>Eliminar</span>
-    </div>
-  </div>
 
-  <style>
-    .context-menu-item {
-      padding: 10px 16px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      font-size: 0.9rem;
-      transition: background 0.15s;
-      color: #333;
-    }
-    .context-menu-item:hover {
-      background: #f0f0f0;
-    }
-    .context-menu-item:first-child {
-      border-radius: 8px 8px 0 0;
-    }
-    .context-menu-item:last-child {
-      border-radius: 0 0 8px 8px;
-    }
-    .context-menu-divider {
-      height: 1px;
-      background: #e0e0e0;
-      margin: 4px 0;
-    }
-    .context-menu-danger {
-      color: #dc2626;
-    }
-    .context-menu-danger:hover {
-      background: #fee2e2;
-    }
-  </style>
+    <style>
+      .context-menu-item {
+        padding: 10px 16px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        font-size: 0.9rem;
+        transition: background 0.15s;
+        color: #333;
+      }
+      .context-menu-item:hover {
+        background: #f0f0f0;
+      }
+      .context-menu-item:first-child {
+        border-radius: 8px 8px 0 0;
+      }
+      .context-menu-item:last-child {
+        border-radius: 0 0 8px 8px;
+      }
+      .context-menu-divider {
+        height: 1px;
+        background: #e0e0e0;
+        margin: 4px 0;
+      }
+      .context-menu-danger {
+        color: #dc2626;
+      }
+      .context-menu-danger:hover {
+        background: #fee2e2;
+      }
+    </style>
 
-      <script src="js/comentarios-celdas.js"></script>
-</body>
+    <script src="js/comentarios-celdas.js"></script>
+  </body>
 </html>

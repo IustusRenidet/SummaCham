@@ -69,6 +69,8 @@
   const periodLabel = document.getElementById("periodLabel");
   const empresaLabel = document.getElementById("empresaLabel");
   const searchInput = document.getElementById("accountSearch");
+  const exportXlsxBtn = document.getElementById("exportResumenBtn");
+  const printPdfBtn = document.getElementById("printResumenBtn");
 
   const manejarSesionExpirada = (resp) => {
     if (resp?.status === 401) {
@@ -204,12 +206,21 @@
         mes,
         capitulo: capituloLabel,
         totalFilas: datos.length,
+        todosLosLabels: datos.map((d) => d.label),
         labelsOperating: datos
           .filter((d) => d.label.toUpperCase().includes("OPERATING"))
-          .map((d) => ({ label: d.label, actual: d.totals.actual })),
+          .map((d) => ({
+            label: d.label,
+            actual: d.totals.actual,
+            plan: d.totals.plan,
+          })),
         labelsNet: datos
           .filter((d) => d.label.toUpperCase().includes("NET"))
-          .map((d) => ({ label: d.label, actual: d.totals.actual })),
+          .map((d) => ({
+            label: d.label,
+            actual: d.totals.actual,
+            plan: d.totals.plan,
+          })),
       });
       return {
         empresaId,
@@ -1980,6 +1991,357 @@
     });
   };
 
+  const obtenerMesInfo = (mesNumero) =>
+    MESES.find((m) => m.periodo === Number(mesNumero));
+
+  const sanitizeFileName = (texto, fallback = "resumen") =>
+    (texto || fallback || "resumen")
+      .toString()
+      .trim()
+      .replace(/[\\/:*?"<>|]/g, "_")
+      .replace(/\s+/g, "_")
+      .replace(/_+/g, "_");
+
+  const construirMetadataExportacion = () => {
+    const anio = leerAnioSeleccionado();
+    const mes = leerMesSeleccionado();
+    const mesInfo = obtenerMesInfo(mes);
+    const empresaTexto =
+      (empresaLabel?.textContent || "").trim() ||
+      obtenerCapituloEmpresa(empresaActual?.id) ||
+      obtenerEtiquetaEmpresa(empresaActual?.id) ||
+      "Empresa";
+    const mesNombre = mesInfo?.etiqueta || `Mes-${mes || ""}`;
+    const titulo = `${empresaTexto} - ${mesNombre} ${anio || ""}`
+      .replace(/\s+/g, " ")
+      .trim();
+    const baseName = sanitizeFileName(
+      `Resumen_${empresaTexto || "Empresa"}_${mesNombre}_${anio || ""}`,
+      "Resumen"
+    );
+    return { anio, mes, mesNombre, empresaTexto, baseName, titulo };
+  };
+
+  const imprimirTablaPdf = () => {
+    const tabla = document.getElementById("tablaComparacion");
+    if (!tabla) {
+      if (typeof showToast === "function") {
+        showToast("No hay tabla para imprimir.", "text-bg-warning");
+      }
+      return;
+    }
+
+    const { titulo, mesNombre, anio, empresaTexto } =
+      construirMetadataExportacion();
+    const tablaClon = tabla.cloneNode(true);
+    const ventana = window.open("", "_blank", "width=1200,height=900");
+    if (!ventana) {
+      alert("Activa las ventanas emergentes para imprimir el resumen.");
+      return;
+    }
+
+    const estilosImpresion = `
+      * { box-sizing: border-box; }
+      body { font-family: 'Manrope','Segoe UI',sans-serif; padding: 20px; color: #0f172a; }
+      h1 { margin: 0 0 6px 0; font-size: 20px; color: #1e3a8a; }
+      .meta { margin: 0 0 14px 0; color: #334155; font-size: 12px; }
+      table { width: 100%; border-collapse: collapse; font-size: 10px; }
+      th, td { border: 1px solid #cbd5e1; padding: 5px 6px; text-align: right; }
+      th { background: #cbd5e1; color: #0f172a; font-weight: 700; }
+      td.text-start, th.account-column-header, td.account-column { text-align: left; }
+      
+      /* Sección principal - Azul oscuro con texto blanco */
+      .section-header-row td { background: #1e3a8a !important; color: white !important; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+      
+      /* Subsección - Azul claro con texto azul oscuro */
+      .subsection-row td { background: #dbeafe !important; color: #1e3a8a !important; font-weight: 600; font-style: italic; border-left: 3px solid #3b82f6; }
+      
+      /* Filas de cuenta normales */
+      .account-row td { background: #ffffff; }
+      .account-row td:first-child { color: #6b7280; font-family: 'Courier New', monospace; font-size: 9px; }
+      
+      /* Categoría */
+      .category-cell { background: #e5e7eb !important; font-weight: 700; }
+      
+      /* Suma nivel 1 - Amarillo */
+      .sum-row td { background: #fef3c7 !important; font-weight: 700; color: #78350f !important; border-left: 3px solid #f59e0b; }
+      
+      /* Suma principal - Violeta */
+      .sum-row-principal td { background: #ddd6fe !important; font-weight: 700; color: #5b21b6 !important; text-transform: uppercase; }
+      
+      /* Consolidado - Verde */
+      .highlight-primary td { background: #a7f3d0 !important; font-weight: 700; color: #065f46 !important; text-transform: uppercase; }
+      
+      /* Operating Results - Cyan */
+      .highlight-secondary td { background: #a5f3fc !important; font-weight: 700; color: #0e7490 !important; text-transform: uppercase; }
+      
+      /* Net Results - Rojo con borde */
+      .highlight-bright td { background: #fecaca !important; font-weight: 800; color: #991b1b !important; text-transform: uppercase; border-top: 2px solid #dc2626; border-bottom: 2px solid #dc2626; }
+      
+      /* Ocultar columnas de cuenta si está activo */
+      .sin-cuentas .col-cuenta, .sin-cuentas .account-column, .sin-cuentas .account-column-header { display: none; }
+      
+      @media print {
+        body { padding: 10px; }
+        table { font-size: 9px; }
+        th, td { padding: 4px 5px; }
+      }
+    `;
+
+    ventana.document.write(`<!DOCTYPE html>
+    <html>
+      <head>
+        <title>${titulo || "Resumen"}</title>
+        <style>${estilosImpresion}</style>
+      </head>
+      <body>
+        <h1>Resumen financiero</h1>
+        <p class="meta">
+          Empresa: ${empresaTexto || "-"}<br>
+          Periodo: ${mesNombre} ${anio || ""}
+        </p>
+        ${tablaClon.outerHTML}
+        <script>
+          window.onload = function() {
+            window.focus();
+            window.print();
+            setTimeout(function() { window.close(); }, 300);
+          };
+        <\/script>
+      </body>
+    </html>`);
+    ventana.document.close();
+  };
+
+  const exportarTablaXlsx = () => {
+    const tabla = document.getElementById("tablaComparacion");
+    if (!tabla) {
+      if (typeof showToast === "function") {
+        showToast("No hay tabla para exportar.", "text-bg-warning");
+      }
+      return;
+    }
+    if (typeof XLSX === "undefined" || !XLSX.utils?.table_to_sheet) {
+      alert("La libreria XLSX no esta disponible en esta vista.");
+      return;
+    }
+
+    const { baseName } = construirMetadataExportacion();
+    const rows = Array.from(tabla.querySelectorAll("tr"));
+
+    // Construir matriz de celdas considerando colspan/rowspan para alinear estilos con hoja
+    const matrix = [];
+    let maxCols = 0;
+    rows.forEach((row, rIdx) => {
+      if (!matrix[rIdx]) matrix[rIdx] = [];
+      let colCursor = 0;
+      while (matrix[rIdx][colCursor]) colCursor++;
+      Array.from(row.cells).forEach((cell) => {
+        const colSpan = Number(cell.colSpan) || 1;
+        const rowSpan = Number(cell.rowSpan) || 1;
+        const info = { cell, r: rIdx, c: colCursor };
+        for (let rr = 0; rr < rowSpan; rr++) {
+          for (let cc = 0; cc < colSpan; cc++) {
+            const rTarget = rIdx + rr;
+            const cTarget = colCursor + cc;
+            if (!matrix[rTarget]) matrix[rTarget] = [];
+            matrix[rTarget][cTarget] = info;
+            if (cTarget + 1 > maxCols) maxCols = cTarget + 1;
+          }
+        }
+        colCursor += colSpan;
+        while (matrix[rIdx][colCursor]) colCursor++;
+      });
+    });
+
+    const clampWidth = (len) => Math.min(60, Math.max(10, len + 2));
+    const colWidths = Array(maxCols || 1).fill(12);
+
+    // Borde estándar para todas las celdas
+    const borderStyle = {
+      top: { style: "thin", color: { rgb: "CCCCCC" } },
+      bottom: { style: "thin", color: { rgb: "CCCCCC" } },
+      left: { style: "thin", color: { rgb: "CCCCCC" } },
+      right: { style: "thin", color: { rgb: "CCCCCC" } },
+    };
+
+    const classStyleMap = {
+      "category-cell": {
+        fill: { patternType: "solid", fgColor: { rgb: "E5E7EB" } },
+        font: { bold: true },
+        border: borderStyle,
+      },
+      "sum-row": {
+        fill: { patternType: "solid", fgColor: { rgb: "FEF3C7" } },
+        font: { bold: true },
+        border: borderStyle,
+      },
+      "sum-row-principal": {
+        fill: { patternType: "solid", fgColor: { rgb: "DDD6FE" } },
+        font: { bold: true, color: { rgb: "5B21B6" } },
+        border: borderStyle,
+      },
+      "highlight-primary": {
+        fill: { patternType: "solid", fgColor: { rgb: "A7F3D0" } },
+        font: { bold: true, color: { rgb: "065F46" } },
+        border: borderStyle,
+      },
+      "highlight-secondary": {
+        fill: { patternType: "solid", fgColor: { rgb: "A5F3FC" } },
+        font: { bold: true, color: { rgb: "0E7490" } },
+        border: borderStyle,
+      },
+      "highlight-bright": {
+        fill: { patternType: "solid", fgColor: { rgb: "FECACA" } },
+        font: { bold: true, color: { rgb: "991B1B" } },
+        border: {
+          top: { style: "medium", color: { rgb: "DC2626" } },
+          bottom: { style: "medium", color: { rgb: "DC2626" } },
+          left: { style: "thin", color: { rgb: "CCCCCC" } },
+          right: { style: "thin", color: { rgb: "CCCCCC" } },
+        },
+      },
+      "section-header-row": {
+        fill: { patternType: "solid", fgColor: { rgb: "1E3A8A" } },
+        font: { bold: true, color: { rgb: "FFFFFF" } },
+        border: borderStyle,
+      },
+      "subsection-row": {
+        fill: { patternType: "solid", fgColor: { rgb: "DBEAFE" } },
+        font: { italic: true, bold: true, color: { rgb: "1E3A8A" } },
+        border: borderStyle,
+      },
+      "account-row": {
+        fill: { patternType: "solid", fgColor: { rgb: "FFFFFF" } },
+        font: { bold: false },
+        border: borderStyle,
+      },
+    };
+    const headerStyle = {
+      fill: { patternType: "solid", fgColor: { rgb: "CBD5E1" } },
+      font: { bold: true, color: { rgb: "0F172A" } },
+      alignment: { horizontal: "center", vertical: "center", wrapText: true },
+      border: {
+        top: { style: "medium", color: { rgb: "64748B" } },
+        bottom: { style: "medium", color: { rgb: "64748B" } },
+        left: { style: "thin", color: { rgb: "94A3B8" } },
+        right: { style: "thin", color: { rgb: "94A3B8" } },
+      },
+    };
+    // Estilo por defecto para celdas sin clase específica
+    const defaultCellStyle = {
+      border: borderStyle,
+    };
+
+    const mergeStyle = (cell, extra) => {
+      const base = cell || {};
+      base.s = {
+        ...(base.s || {}),
+        ...extra,
+        font: { ...(base.s?.font || {}), ...(extra.font || {}) },
+        fill: { ...(base.s?.fill || {}), ...(extra.fill || {}) },
+        alignment: { ...(base.s?.alignment || {}), ...(extra.alignment || {}) },
+      };
+      return base;
+    };
+
+    try {
+      const hoja = XLSX.utils.table_to_sheet(tabla, { raw: true });
+
+      // Ajustar anchos según contenido visible en DOM
+      matrix.forEach((row) => {
+        (row || []).forEach((info, cIdx) => {
+          const texto = (info?.cell?.textContent || "").trim();
+          if (!texto) return;
+          const width = clampWidth(texto.length);
+          if (width > colWidths[cIdx]) colWidths[cIdx] = width;
+        });
+      });
+      hoja["!cols"] = colWidths.map((wch) => ({ wch }));
+
+      // Estilos de encabezado (primeras dos filas reales)
+      for (let r = 0; r < Math.min(2, matrix.length); r++) {
+        const cols = matrix[r] || [];
+        cols.forEach((info, cIdx) => {
+          const addr = XLSX.utils.encode_cell({ r, c: cIdx });
+          if (hoja[addr]) {
+            hoja[addr] = mergeStyle(hoja[addr], headerStyle);
+          }
+        });
+      }
+
+      // Estilos por clase de fila/celda y alineaciones
+      matrix.forEach((row, rIdx) => {
+        (row || []).forEach((info, cIdx) => {
+          const cellNode = info?.cell;
+          if (!cellNode) return;
+          const addr = XLSX.utils.encode_cell({ r: rIdx, c: cIdx });
+          const sheetCell = hoja[addr];
+          if (!sheetCell) return;
+
+          // Siempre aplicar borde por defecto primero
+          hoja[addr] = mergeStyle(sheetCell, defaultCellStyle);
+
+          // Buscar estilo en la celda primero
+          const clasesCelda = Array.from(cellNode.classList || []);
+          let estiloAplicado = false;
+          for (const cls of clasesCelda) {
+            const estilo = classStyleMap[cls];
+            if (estilo) {
+              hoja[addr] = mergeStyle(hoja[addr], estilo);
+              estiloAplicado = true;
+              break;
+            }
+          }
+
+          // Si no se encontró estilo en la celda, buscar en la fila padre (TR)
+          if (!estiloAplicado) {
+            const filaNode = cellNode.closest("tr");
+            if (filaNode) {
+              const clasesFila = Array.from(filaNode.classList || []);
+              for (const cls of clasesFila) {
+                const estilo = classStyleMap[cls];
+                if (estilo) {
+                  hoja[addr] = mergeStyle(hoja[addr], estilo);
+                  break;
+                }
+              }
+            }
+          }
+
+          const texto = (cellNode.textContent || "").trim();
+          const esNumero =
+            texto && !Number.isNaN(Number(texto.replace(/[%,$\s]/g, "")));
+          if (
+            cellNode.classList.contains("text-start") ||
+            cellNode.classList.contains("account-column") ||
+            cellNode.classList.contains("account-column-header")
+          ) {
+            hoja[addr] = mergeStyle(hoja[addr], {
+              alignment: { horizontal: "left" },
+            });
+          } else if (esNumero) {
+            hoja[addr] = mergeStyle(hoja[addr], {
+              alignment: { horizontal: "right" },
+            });
+          }
+        });
+      });
+
+      const libro = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(libro, hoja, "Resumen");
+      XLSX.writeFile(libro, `${baseName || "Resumen"}.xlsx`);
+      if (typeof showToast === "function") {
+        showToast("Exportado a XLSX.");
+      }
+    } catch (err) {
+      console.error("exportarTablaXlsx", err);
+      if (typeof showToast === "function") {
+        showToast("No fue posible exportar la tabla.", "text-bg-danger");
+      }
+    }
+  };
+
   const initToggleColumns = () => {
     if (!toggleBtn) return;
     const tabla = document.getElementById("tablaComparacion");
@@ -2104,6 +2466,12 @@
       });
     }
     initToggleColumns();
+    if (exportXlsxBtn) {
+      exportXlsxBtn.addEventListener("click", exportarTablaXlsx);
+    }
+    if (printPdfBtn) {
+      printPdfBtn.addEventListener("click", imprimirTablaPdf);
+    }
     // Forzar recarga con los valores actuales (evita desalineos en la primera carga)
     await recargarSeleccionActual();
 
