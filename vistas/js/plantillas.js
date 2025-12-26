@@ -12,8 +12,8 @@
   // ==========================================
   const API_BASE =
     window.location.protocol === "file:"
-      ? "http://localhost:3005/api/layouts"
-      : `${window.location.origin}/api/layouts`;
+      ? "http://localhost:3005/api/layouts-config"
+      : `${window.location.origin}/api/layouts-config`;
 
   // ==========================================
   // STATE
@@ -141,25 +141,10 @@
   }
 
   function checkAuthState() {
-    const flujo =
-      window.__flujoAutorizacionInstance ||
-      window.parent?.__flujoAutorizacionInstance;
-    const modoEdicion =
-      window.ModoEdicionPresupuesto || window.parent?.ModoEdicionPresupuesto;
-
-    let isActive = false;
-    let statusText = "Modo edición inactivo";
-
-    if (flujo?.state?.editMode) {
-      isActive = true;
-      statusText = "Modo edición activo";
-    } else if (modoEdicion?.estaActivo?.()) {
-      isActive = true;
-      statusText = "Modo edición activo";
-    }
-
-    state.editMode = isActive;
-    updateAuthUI(isActive, statusText);
+    // El gestor de plantillas siempre tiene modo edición activo
+    // ya que es una herramienta administrativa
+    state.editMode = true;
+    updateAuthUI(true, "Modo edición activo");
     updateButtonStates();
   }
 
@@ -192,6 +177,15 @@
     state.modulo = dom.moduloSelect.value;
     await loadYears();
     await loadChapters();
+    // Cargar layout automáticamente al iniciar si hay contexto
+    await tryLoadLayout();
+  }
+
+  // Intenta cargar el layout si hay contexto completo
+  async function tryLoadLayout() {
+    if (state.modulo && state.anio && state.capitulo) {
+      await loadLayout();
+    }
   }
 
   async function loadYears() {
@@ -203,15 +197,26 @@
 
       const data = await response.json();
       const years = Array.isArray(data.anios) ? data.anios : [];
+      const currentYear = new Date().getFullYear();
 
-      dom.anioSelect.innerHTML = years.length
-        ? years
-            .sort((a, b) => b - a)
-            .map((y) => `<option value="${y}">${y}</option>`)
+      // Ordenar años descendente
+      const sortedYears = years.sort((a, b) => b - a);
+
+      dom.anioSelect.innerHTML = sortedYears.length
+        ? sortedYears
+            .map(
+              (y) =>
+                `<option value="${y}" ${
+                  y === currentYear ? "selected" : ""
+                }>${y}</option>`
+            )
             .join("")
         : '<option value="">Sin años disponibles</option>';
 
-      state.anio = years[0] || null;
+      // Seleccionar año actual si existe, sino el más reciente
+      state.anio = sortedYears.includes(currentYear)
+        ? currentYear
+        : sortedYears[0] || null;
     } catch (error) {
       console.error("Error loading years:", error);
       dom.anioSelect.innerHTML = '<option value="">Error al cargar</option>';
@@ -261,8 +266,7 @@
 
   async function loadLayout() {
     if (!state.anio || !state.capitulo) {
-      showToast("Selecciona un año y capítulo", "warning");
-      return;
+      return; // Sin contexto completo, no hacer nada
     }
 
     setStatus("Cargando layout...");
@@ -272,6 +276,16 @@
         state.anio
       }/${encodeURIComponent(state.capitulo)}`;
       const response = await fetch(url, { headers: getAuthHeaders() });
+
+      if (response.status === 404) {
+        // No existe layout - mostrar opción para crear
+        state.layout = null;
+        state.cuentas = [];
+        state.operaciones = [];
+        showNewLayoutView();
+        setStatus(`No hay layout para ${state.modulo} ${state.anio}`);
+        return;
+      }
 
       if (!response.ok) throw new Error("No se pudo cargar el layout");
 
@@ -283,13 +297,42 @@
       renderLayout();
       updateStats();
       showLayoutView();
-      setStatus(`Layout ${state.modulo} ${state.anio} cargado`);
-      showToast("Layout cargado correctamente", "success");
+      setStatus(`Layout ${state.modulo} ${state.anio} listo para editar`);
     } catch (error) {
       console.error("Error loading layout:", error);
       setStatus("Error al cargar layout");
       showToast(error.message, "error");
     }
+  }
+
+  // Vista para crear nuevo layout
+  function showNewLayoutView() {
+    dom.placeholderView.style.display = "none";
+    dom.layoutView.style.display = "flex";
+
+    dom.layoutPreview.innerHTML = `
+      <div class="create-layout-prompt">
+        <div class="prompt-icon">
+          <i class="bi bi-file-earmark-plus"></i>
+        </div>
+        <h2>No existe layout para ${state.anio}</h2>
+        <p>Puedes crear un layout nuevo o copiar uno existente de otro año.</p>
+        <div class="prompt-actions">
+          <button class="btn btn-success btn-lg" onclick="document.getElementById('btnDemo').click()">
+            <i class="bi bi-magic me-2"></i>Crear Layout Demo
+          </button>
+          <button class="btn btn-outline-primary btn-lg" onclick="document.getElementById('btnCopiar').click()">
+            <i class="bi bi-copy me-2"></i>Copiar de Otro Año
+          </button>
+        </div>
+        <div class="prompt-hint">
+          <i class="bi bi-lightbulb"></i>
+          <span>El layout demo incluye secciones estándar de ingresos, gastos y resultados</span>
+        </div>
+      </div>
+    `;
+
+    updateButtonStates();
   }
 
   function extractCuentas(layout) {
@@ -321,20 +364,76 @@
       return;
     }
 
+    // Renderizar en orden: cada sección seguida de sus operaciones relacionadas
     const sections = groupBySections(state.cuentas);
+    const usedOperations = new Set();
     let html = "";
 
+    // Para cada sección, renderizarla y luego las operaciones que la suman
     sections.forEach((data, principal) => {
       html += renderSection(principal, data);
+
+      // Buscar operaciones que suman esta sección y renderizarlas después
+      state.operaciones.forEach((op, idx) => {
+        if (usedOperations.has(idx)) return;
+
+        // Verificar si esta operación suma esta sección
+        const sumaSecciones =
+          op.SumaSeccionPrincipal || op.suma_secciones || [];
+        const sumSeccionesArr = Array.isArray(sumaSecciones)
+          ? sumaSecciones
+          : [sumaSecciones];
+
+        // Si la operación referencia esta sección, mostrarla después
+        if (
+          sumSeccionesArr.includes(principal) ||
+          (op.Clase &&
+            op.Clase.toLowerCase().includes(
+              principal.toLowerCase().split(" ")[0]
+            ))
+        ) {
+          html += renderSingleOperation(op);
+          usedOperations.add(idx);
+        }
+      });
     });
 
-    // Render operations at the end
-    if (state.operaciones.length) {
-      html += renderOperationsSection();
-    }
+    // Renderizar operaciones que no fueron asignadas a ninguna sección
+    state.operaciones.forEach((op, idx) => {
+      if (!usedOperations.has(idx)) {
+        html += renderSingleOperation(op);
+      }
+    });
 
     dom.layoutPreview.innerHTML = html;
     bindLayoutEvents();
+  }
+
+  // Renderiza una operación individual
+  function renderSingleOperation(op) {
+    const clase = op.Clase || "Operación";
+    const tipo = detectOperationType(op);
+
+    return `
+      <div class="layout-section operation-section ${tipo}">
+        <div class="operation-row ${tipo}" onclick="editOperation('${escapeAttr(
+      clase
+    )}')">
+          <div class="operation-label">
+            <i class="bi bi-calculator"></i>
+            <span>${escapeHtml(clase)}</span>
+            <span class="operation-type">${tipo}</span>
+          </div>
+          <div class="account-actions">
+            <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); editOperation('${escapeAttr(
+              clase
+            )}')" title="Editar">
+              <i class="bi bi-pencil"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
   }
 
   function groupBySections(cuentas) {
@@ -531,15 +630,18 @@
     state.modulo = dom.moduloSelect.value;
     await loadYears();
     await loadChapters();
+    await tryLoadLayout();
   }
 
   async function handleAnioChange() {
     state.anio = dom.anioSelect.value;
     await loadChapters();
+    await tryLoadLayout();
   }
 
-  function handleCapituloChange() {
+  async function handleCapituloChange() {
     state.capitulo = dom.capituloSelect.value;
+    await tryLoadLayout();
   }
 
   function handleSearch(e) {
@@ -648,22 +750,41 @@
       case "operacion":
         formHtml = `
           <div class="mb-3">
+            <label class="form-label">Etiqueta de la Operación</label>
+            <input type="text" class="form-control" id="inputClase" placeholder="Ej: TOTAL INCOME, NET RESULTS" />
+          </div>
+          <div class="mb-3">
             <label class="form-label">Tipo de Operación</label>
-            <select class="form-select" id="selectTipoOp">
-              <option value="sum-row">Suma de sección</option>
-              <option value="sum-row-sumavarios">Suma varias secciones</option>
-              <option value="result-row">Resultado</option>
-              <option value="net-row">Neto</option>
+            <select class="form-select" id="selectTipoOp" onchange="toggleFormulaBuilder()">
+              <option value="sum-sections">Suma de secciones</option>
+              <option value="custom-formula">Fórmula personalizada</option>
             </select>
           </div>
-          <div class="mb-3">
-            <label class="form-label">Etiqueta</label>
-            <input type="text" class="form-control" id="inputClase" placeholder="Ej: TOTAL INCOME" />
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Secciones a incluir</label>
-            <div id="checkboxSecciones">
+          
+          <!-- Modo simple: checkboxes de secciones -->
+          <div id="simpleFormulaMode" class="mb-3">
+            <label class="form-label">Secciones a sumar</label>
+            <div id="checkboxSecciones" class="sections-checklist">
               ${getSectionCheckboxes()}
+            </div>
+          </div>
+          
+          <!-- Modo avanzado: constructor de fórmulas -->
+          <div id="advancedFormulaMode" style="display:none;">
+            <label class="form-label">Construir Fórmula</label>
+            <div class="formula-builder">
+              <div id="formulaTerms" class="formula-terms">
+                <!-- Los términos se agregan aquí dinámicamente -->
+              </div>
+              <button type="button" class="btn btn-outline-success btn-sm mt-2" onclick="addFormulaTerm()">
+                <i class="bi bi-plus-circle me-1"></i>Agregar término
+              </button>
+            </div>
+            <div class="formula-preview mt-3">
+              <label class="form-label">Fórmula resultante:</label>
+              <div id="formulaPreviewText" class="formula-preview-text">
+                (Sin términos)
+              </div>
             </div>
           </div>
         `;
@@ -1211,6 +1332,204 @@
         showToast("Elemento eliminado", "success");
       }
     }
+  }
+
+  // ==========================================
+  // FORMULA BUILDER FUNCTIONS
+  // ==========================================
+  let formulaTerms = [];
+
+  // Toggle entre modo simple y avanzado
+  window.toggleFormulaBuilder = function () {
+    const tipo = document.getElementById("selectTipoOp")?.value;
+    const simpleMode = document.getElementById("simpleFormulaMode");
+    const advancedMode = document.getElementById("advancedFormulaMode");
+
+    if (tipo === "custom-formula") {
+      simpleMode.style.display = "none";
+      advancedMode.style.display = "block";
+      if (formulaTerms.length === 0) {
+        addFormulaTerm(); // Agregar primer término
+      }
+    } else {
+      simpleMode.style.display = "block";
+      advancedMode.style.display = "none";
+    }
+  };
+
+  // Agregar un término a la fórmula
+  window.addFormulaTerm = function () {
+    const termId = Date.now();
+    formulaTerms.push({
+      id: termId,
+      operator: "+",
+      type: "section",
+      value: "",
+    });
+    renderFormulaTerms();
+  };
+
+  // Eliminar un término
+  window.removeFormulaTerm = function (termId) {
+    formulaTerms = formulaTerms.filter((t) => t.id !== termId);
+    renderFormulaTerms();
+    updateFormulaPreview();
+  };
+
+  // Renderizar los términos
+  function renderFormulaTerms() {
+    const container = document.getElementById("formulaTerms");
+    if (!container) return;
+
+    const elements = getAvailableElements();
+
+    container.innerHTML = formulaTerms
+      .map(
+        (term, idx) => `
+      <div class="formula-term" data-id="${term.id}">
+        ${
+          idx > 0
+            ? `
+          <select class="form-select formula-operator" onchange="updateTermOperator(${
+            term.id
+          }, this.value)">
+            <option value="+" ${
+              term.operator === "+" ? "selected" : ""
+            }>+</option>
+            <option value="-" ${
+              term.operator === "-" ? "selected" : ""
+            }>−</option>
+            <option value="/" ${
+              term.operator === "/" ? "selected" : ""
+            }>/</option>
+          </select>
+        `
+            : '<span class="formula-operator-placeholder">=</span>'
+        }
+        
+        <select class="form-select formula-type" onchange="updateTermType(${
+          term.id
+        }, this.value)">
+          <option value="section" ${
+            term.type === "section" ? "selected" : ""
+          }>Sección</option>
+          <option value="account" ${
+            term.type === "account" ? "selected" : ""
+          }>Cuenta</option>
+        </select>
+        
+        <select class="form-select formula-value" onchange="updateTermValue(${
+          term.id
+        }, this.value)">
+          <option value="">-- Seleccionar --</option>
+          ${
+            term.type === "section"
+              ? elements.sections
+                  .map(
+                    (s) =>
+                      `<option value="${escapeAttr(s)}" ${
+                        term.value === s ? "selected" : ""
+                      }>${escapeHtml(s)}</option>`
+                  )
+                  .join("")
+              : elements.accounts
+                  .map(
+                    (a) =>
+                      `<option value="${escapeAttr(a.code)}" ${
+                        term.value === a.code ? "selected" : ""
+                      }>${escapeHtml(a.code)} - ${escapeHtml(a.name)}</option>`
+                  )
+                  .join("")
+          }
+        </select>
+        
+        <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeFormulaTerm(${
+          term.id
+        })" title="Quitar">
+          <i class="bi bi-x"></i>
+        </button>
+      </div>
+    `
+      )
+      .join("");
+
+    updateFormulaPreview();
+  }
+
+  // Actualizar operador de término
+  window.updateTermOperator = function (termId, operator) {
+    const term = formulaTerms.find((t) => t.id === termId);
+    if (term) term.operator = operator;
+    updateFormulaPreview();
+  };
+
+  // Actualizar tipo de término
+  window.updateTermType = function (termId, type) {
+    const term = formulaTerms.find((t) => t.id === termId);
+    if (term) {
+      term.type = type;
+      term.value = "";
+    }
+    renderFormulaTerms();
+  };
+
+  // Actualizar valor de término
+  window.updateTermValue = function (termId, value) {
+    const term = formulaTerms.find((t) => t.id === termId);
+    if (term) term.value = value;
+    updateFormulaPreview();
+  };
+
+  // Obtener elementos disponibles
+  function getAvailableElements() {
+    const sections = [];
+    const accounts = [];
+
+    groupBySections(state.cuentas).forEach((subs, principal) => {
+      sections.push(principal);
+      subs.forEach((cuentas, secundaria) => {
+        if (secundaria && secundaria !== principal) {
+          sections.push(secundaria);
+        }
+        cuentas.forEach((c) => {
+          if (c.CUENTA) {
+            accounts.push({ code: c.CUENTA, name: c.NOMBRE || c.CUENTA });
+          }
+        });
+      });
+    });
+
+    return { sections: [...new Set(sections)], accounts };
+  }
+
+  // Actualizar preview de la fórmula
+  function updateFormulaPreview() {
+    const preview = document.getElementById("formulaPreviewText");
+    if (!preview) return;
+
+    if (formulaTerms.length === 0) {
+      preview.textContent = "(Sin términos)";
+      return;
+    }
+
+    const formulaStr = formulaTerms
+      .map((term, idx) => {
+        const prefix = idx === 0 ? "" : ` ${term.operator} `;
+        const label = term.value || "???";
+        return prefix + label;
+      })
+      .join("");
+
+    preview.textContent = formulaStr || "(Sin términos)";
+  }
+
+  // Construir fórmula para guardar
+  function buildFormulaFromTerms() {
+    return formulaTerms.map((term) => ({
+      operator: term.operator,
+      type: term.type,
+      value: term.value,
+    }));
   }
 
   // ==========================================

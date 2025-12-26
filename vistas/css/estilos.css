@@ -95,6 +95,25 @@ textarea:not(:disabled),
   position: relative;
 }
 
+/* Asegurar que botones en offcanvas sean siempre clickeables */
+.offcanvas.show .btn,
+.offcanvas.show button:not(:disabled),
+.offcanvas.show [data-borrador-id] {
+  pointer-events: auto !important;
+  position: relative;
+  z-index: 9999 !important;
+  cursor: pointer !important;
+}
+
+/* Tabla de borradores: asegurar clicks */
+#draftsCenterBody button,
+#draftsCenterBody .btn,
+#draftsCenterBody [data-borrador-id] {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  z-index: 9999 !important;
+}
+
 .modal.show .btn,
 .modal.show button {
   pointer-events: auto !important;

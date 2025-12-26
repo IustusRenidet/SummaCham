@@ -14,13 +14,13 @@
 
   /**
    * Estados del flujo de autorización de presupuestos
-   * 
+   *
    * Flujo normal:
    * SIN_CARGAR → EDITANDO → PENDIENTE → REVISADO → APROBADO → GUARDADO
-   * 
+   *
    * Flujo con rechazo:
    * PENDIENTE/REVISADO/APROBADO → RECHAZADO → EDITANDO (corrección)
-   * 
+   *
    * - EDITANDO: Usuario está creando/modificando el presupuesto
    * - PENDIENTE: Enviado a revisión, esperando que un revisor lo marque como revisado
    * - REVISADO: Marcado como revisado por un revisor, esperando autorización
@@ -68,15 +68,19 @@
   ];
 
   const leerContextoPersistido = () => {
-    const ctx = typeof Sesion?.obtenerContextoPlaneacion === "function"
-      ? Sesion.obtenerContextoPlaneacion()
-      : {};
+    const ctx =
+      typeof Sesion?.obtenerContextoPlaneacion === "function"
+        ? Sesion.obtenerContextoPlaneacion()
+        : {};
     const anio = Number(ctx?.anio);
     return Number.isInteger(anio) ? anio : null;
   };
 
   const persistirContexto = (anio, modulo) => {
-    if (typeof Sesion?.guardarContextoPlaneacion === "function" && Number.isInteger(anio)) {
+    if (
+      typeof Sesion?.guardarContextoPlaneacion === "function" &&
+      Number.isInteger(anio)
+    ) {
       Sesion.guardarContextoPlaneacion({ anio, modulo });
     }
   };
@@ -356,22 +360,22 @@
    * Crea el Centro de Borradores con dos vistas:
    * 1. Borradores activos - Lista de borradores en curso para cargar
    * 2. Historial completo - Todos los cambios de estado y acciones (incluso descartados/rechazados)
-   * 
+   *
    * El historial se guarda en BD para auditoría y consulta permanente
-   * 
+   *
    * @returns {HTMLElement} El drawer creado o existente
    */
   const ensureDraftsDrawer = () => {
     const DRAFTS_DRAWER_ID = "workflowDraftsDrawer";
     const existing = document.getElementById(DRAFTS_DRAWER_ID);
     if (existing) return existing;
-    
+
     const drawer = document.createElement("div");
     drawer.className = "offcanvas offcanvas-end drafts-drawer";
     drawer.tabIndex = -1;
     drawer.id = DRAFTS_DRAWER_ID;
     drawer.setAttribute("aria-labelledby", "draftsDrawerLabel");
-    
+
     drawer.innerHTML = `
       <div class="offcanvas-header">
         <h5 class="offcanvas-title" id="draftsDrawerLabel">
@@ -480,45 +484,49 @@
         </div>
       </div>
     `;
-    
+
     document.body.appendChild(drawer);
-    
+
     // Setup filtros de historial
     const setupHistoryFilters = () => {
-      const searchInput = drawer.querySelector('#draftsHistorySearch');
-      const stateSelect = drawer.querySelector('#draftsHistoryState');
-      const actionSelect = drawer.querySelector('#draftsHistoryAction');
-      const fromInput = drawer.querySelector('#draftsHistoryFrom');
-      const toInput = drawer.querySelector('#draftsHistoryTo');
-      const clearBtn = drawer.querySelector('#draftsHistoryClear');
-      
+      const searchInput = drawer.querySelector("#draftsHistorySearch");
+      const stateSelect = drawer.querySelector("#draftsHistoryState");
+      const actionSelect = drawer.querySelector("#draftsHistoryAction");
+      const fromInput = drawer.querySelector("#draftsHistoryFrom");
+      const toInput = drawer.querySelector("#draftsHistoryTo");
+      const clearBtn = drawer.querySelector("#draftsHistoryClear");
+
       let debounceTimer = null;
       const triggerHistoryRefresh = () => {
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(() => {
-          const event = new CustomEvent('draftsHistoryFilterChange');
+          const event = new CustomEvent("draftsHistoryFilterChange");
           drawer.dispatchEvent(event);
         }, 300);
       };
-      
-      if (searchInput) searchInput.addEventListener('input', triggerHistoryRefresh);
-      if (stateSelect) stateSelect.addEventListener('change', triggerHistoryRefresh);
-      if (actionSelect) actionSelect.addEventListener('change', triggerHistoryRefresh);
-      if (fromInput) fromInput.addEventListener('change', triggerHistoryRefresh);
-      if (toInput) toInput.addEventListener('change', triggerHistoryRefresh);
-      
+
+      if (searchInput)
+        searchInput.addEventListener("input", triggerHistoryRefresh);
+      if (stateSelect)
+        stateSelect.addEventListener("change", triggerHistoryRefresh);
+      if (actionSelect)
+        actionSelect.addEventListener("change", triggerHistoryRefresh);
+      if (fromInput)
+        fromInput.addEventListener("change", triggerHistoryRefresh);
+      if (toInput) toInput.addEventListener("change", triggerHistoryRefresh);
+
       if (clearBtn) {
-        clearBtn.addEventListener('click', () => {
-          if (searchInput) searchInput.value = '';
-          if (stateSelect) stateSelect.value = '';
-          if (actionSelect) actionSelect.value = '';
-          if (fromInput) fromInput.value = '';
-          if (toInput) toInput.value = '';
+        clearBtn.addEventListener("click", () => {
+          if (searchInput) searchInput.value = "";
+          if (stateSelect) stateSelect.value = "";
+          if (actionSelect) actionSelect.value = "";
+          if (fromInput) fromInput.value = "";
+          if (toInput) toInput.value = "";
           triggerHistoryRefresh();
         });
       }
     };
-    
+
     setupHistoryFilters();
     return drawer;
   };
@@ -711,7 +719,9 @@
      * @returns {string} Nombre del módulo limpio
      */
     _sanitizarModulo(modulo) {
-      return String(modulo || '').split(':')[0].trim();
+      return String(modulo || "")
+        .split(":")[0]
+        .trim();
     }
 
     /**
@@ -721,20 +731,20 @@
      * @returns {string|null} Capítulo extraído o null
      */
     _extraerCapitulo(modulo) {
-      const partes = String(modulo || '').split(':');
+      const partes = String(modulo || "").split(":");
       return partes.length > 1 ? partes[1].trim() : null;
     }
 
     /**
      * Resuelve los permisos del usuario actual para el flujo de autorización
-     * 
+     *
      * Permisos disponibles:
      * - cargar: Permiso "Cargar y guardar" - permite crear, editar y enviar presupuestos
      * - revisar: Permiso "Revisar" - permite marcar como revisado o rechazar
      * - aprobar: Permiso "Aprobar" - permite autorizar presupuestos revisados y guardar en COI
      * - leer: Permiso de solo lectura (todos los usuarios)
      * - admin: Administrador global (ICONET) - tiene todos los permisos
-     * 
+     *
      * @param {Object} sesion - Sesión actual del usuario
      * @returns {Object} Objeto con los permisos del usuario
      */
@@ -963,7 +973,10 @@
             const nuevo = Number(sel.value);
             if (Number.isFinite(nuevo) && nuevo >= 2000) {
               this.state.contexto.anio = nuevo;
-              persistirContexto(this.state.contexto.anio, this.state.contexto.modulo);
+              persistirContexto(
+                this.state.contexto.anio,
+                this.state.contexto.modulo
+              );
               this._refreshEstado();
             }
           });
@@ -980,7 +993,9 @@
             Sesion.limpiar();
             (window.top || window).location.href = "login.html";
           }
-        } catch (e) { /* ignore */ }
+        } catch (e) {
+          /* ignore */
+        }
         return true;
       }
       return false;
@@ -1002,14 +1017,18 @@
         // Sanitizar módulo: remover sufijos como :1, :2, etc que puedan venir de capítulo
         const moduloLimpio = this._sanitizarModulo(this.state.contexto.modulo);
         const capitulo = this._extraerCapitulo(this.state.contexto.modulo);
-        console.log(`🧹 Módulo sanitizado: "${this.state.contexto.modulo}" → "${moduloLimpio}"${capitulo ? ` [Capítulo: ${capitulo}]` : ''}`);
+        console.log(
+          `🧹 Módulo sanitizado: "${
+            this.state.contexto.modulo
+          }" → "${moduloLimpio}"${capitulo ? ` [Capítulo: ${capitulo}]` : ""}`
+        );
         const params = new URLSearchParams({
           empresaId: this.state.contexto.empresaId,
           anio: String(this.state.contexto.anio),
           modulo: moduloLimpio,
         });
         if (capitulo) {
-          params.set('capitulo', capitulo);
+          params.set("capitulo", capitulo);
         }
         const resp = await fetch(
           `${API_BASE}/borradores/estado?${params.toString()}`,
@@ -1126,11 +1145,13 @@
       window.CuentasModulo?.setEditMode?.(true);
       // Activar ModoEdicionPresupuesto para habilitar edición de celdas numéricas (que SÍ se insertan a COI)
       if (window.ModoEdicionPresupuesto?.activar) {
-        try { 
+        try {
           window.ModoEdicionPresupuesto.activar();
-          console.log('?? Flujo Autorizaci¢n: modo edici¢n ACTIVADO (celdas numéricas editables)');
-        } catch (e) { 
-          console.warn('Error activando ModoEdicionPresupuesto:', e);
+          console.log(
+            "?? Flujo Autorizaci¢n: modo edici¢n ACTIVADO (celdas numéricas editables)"
+          );
+        } catch (e) {
+          console.warn("Error activando ModoEdicionPresupuesto:", e);
         }
       }
       this._renderInfo();
@@ -1155,9 +1176,9 @@
       if (window.ModoEdicionPresupuesto?.desactivar) {
         try {
           window.ModoEdicionPresupuesto.desactivar();
-          console.log('🔴 Flujo Autorización: modo edición DESACTIVADO');
+          console.log("🔴 Flujo Autorización: modo edición DESACTIVADO");
         } catch (e) {
-          console.warn('Error desactivando ModoEdicionPresupuesto:', e);
+          console.warn("Error desactivando ModoEdicionPresupuesto:", e);
         }
       }
       this._renderBotones();
@@ -1310,11 +1331,11 @@
 
     /**
      * Maneja el clic en el botón "Cargar presupuesto" o "Guardar para más tarde"
-     * 
+     *
      * Comportamiento dual:
      * - Si NO está en modo edición: Activa el modo edición para cargar/crear presupuesto
      * - Si YA está en modo edición: Guarda los cambios actuales como borrador temporal
-     * 
+     *
      * El botón cambia su texto según el estado:
      * - "Cargar presupuesto" cuando no hay borrador y no está editando
      * - "Guardar para más tarde" cuando está en modo edición
@@ -1333,12 +1354,12 @@
 
     /**
      * Guarda los cambios actuales como borrador temporal (estado: EDITANDO)
-     * 
+     *
      * Permite al usuario:
      * - Guardar su progreso sin finalizar
      * - Continuar editando después
      * - No pierde cambios si cierra la sesión
-     * 
+     *
      * Los cambios se almacenan en la base de datos pero el estado permanece en EDITANDO.
      * El usuario puede seguir editando o enviar a revisión cuando termine.
      */
@@ -1389,19 +1410,19 @@
 
     /**
      * Envía el presupuesto a revisión (transición: EDITANDO → PENDIENTE o APROBADO)
-     * 
+     *
      * Proceso normal (usuario con permiso "Cargar y guardar"):
      * 1. Guarda los cambios actuales como borrador
      * 2. Cambia el estado a PENDIENTE
      * 3. Sale del modo edición
      * 4. Notifica a los revisores
-     * 
+     *
      * Proceso para ADMINISTRADOR GLOBAL (ICONET):
      * 1. Guarda los cambios actuales como borrador
      * 2. Cambia el estado DIRECTAMENTE a APROBADO (omite PENDIENTE y REVISADO)
      * 3. Sale del modo edición
      * 4. El presupuesto queda listo para "Guardar en COI"
-     * 
+     *
      * El administrador global NO depende de revisores configurados, siempre auto-aprueba.
      */
     async _handleEnviar() {
@@ -1569,11 +1590,11 @@
 
     /**
      * Marca el presupuesto como revisado o cancela la revisión
-     * 
+     *
      * Acciones según el estado actual:
      * - Si está en PENDIENTE → pasa a REVISADO (marca como revisado)
      * - Si está en REVISADO → regresa a PENDIENTE (cancela revisión)
-     * 
+     *
      * Solo usuarios con permiso "Revisar" pueden ejecutar esta acción.
      * Un presupuesto debe estar REVISADO para poder ser autorizado.
      */
@@ -1620,11 +1641,11 @@
 
     /**
      * Autoriza el presupuesto (transición: REVISADO → APROBADO)
-     * 
+     *
      * Requisitos:
      * - El presupuesto debe estar en estado REVISADO
      * - El usuario debe tener permiso "Aprobar"
-     * 
+     *
      * Una vez aprobado, el presupuesto puede ser guardado en la base de datos COI.
      * Solo los usuarios con permiso "Aprobar" pueden guardar en COI.
      */
@@ -1667,12 +1688,12 @@
 
     /**
      * Rechaza el presupuesto y lo devuelve al autor para correcciones
-     * 
+     *
      * Puede rechazarse desde los estados:
      * - PENDIENTE (por revisor)
      * - REVISADO (por revisor o autorizador)
      * - APROBADO (por autorizador)
-     * 
+     *
      * Al rechazar:
      * 1. El estado cambia a RECHAZADO
      * 2. Se registra el motivo del rechazo
@@ -1721,13 +1742,13 @@
 
     /**
      * Guarda el presupuesto autorizado en la base de datos COI (transición: APROBADO → GUARDADO)
-     * 
+     *
      * Esta es la acción FINAL del flujo de autorización.
-     * 
+     *
      * Requisitos:
      * - El presupuesto debe estar en estado APROBADO
      * - El usuario debe tener permiso "Aprobar"
-     * 
+     *
      * Efectos:
      * 1. Guarda el presupuesto en las tablas de Firebird (COI)
      * 2. Cambia el estado a GUARDADO
@@ -2173,7 +2194,7 @@
           anio: this.state.contexto.anio,
         });
         if (capitulo) {
-          params.set('capitulo', capitulo);
+          params.set("capitulo", capitulo);
         }
         const resp = await fetch(
           `${API_BASE}/borradores/listar?${params.toString()}`,
@@ -2199,57 +2220,82 @@
     /**
      * _renderizarCentroBorradores
      * Pinta la lista de borradores en la tabla simplificada
-     * 
+     *
      * Tabla simplificada con 4 columnas:
      * 1. Estado - Badge con el estado actual del borrador
      * 2. Autor - Nombre del usuario que creó el borrador
      * 3. Fecha - Última actualización
      * 4. Acción - Botón para cargar el borrador en la tabla
-     * 
+     *
      * @param {Array} lista - Array de borradores a mostrar
      * @param {HTMLElement} status - Elemento para mensajes de estado
      * @param {HTMLElement} body - tbody donde se pintarán las filas
      */
     _renderizarCentroBorradores(lista, status, body) {
       body.innerHTML = "";
-      
+
       // Validar que hay borradores
       if (!Array.isArray(lista) || !lista.length) {
         status.className = "alert alert-warning";
-        status.innerHTML = '<i class="bi bi-exclamation-triangle me-2"></i>No hay borradores disponibles para este contexto.';
-        body.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-4">Sin borradores</td></tr>';
+        status.innerHTML =
+          '<i class="bi bi-exclamation-triangle me-2"></i>No hay borradores disponibles para este contexto.';
+        body.innerHTML =
+          '<tr><td colspan="4" class="text-center text-muted py-4">Sin borradores</td></tr>';
         return;
       }
-      
+
       // Actualizar mensaje de estado
       status.className = "alert alert-success";
       status.innerHTML = `<i class="bi bi-check-circle me-2"></i>Se encontraron <strong>${lista.length}</strong> borrador(es). Haz clic en "Cargar" para visualizarlo.`;
-      
+
       // Configurar evento delegado una sola vez
       if (!body.dataset.delegadoClick) {
         body.dataset.delegadoClick = "1";
-        body.addEventListener("click", (ev) => {
-          const boton = ev.target.closest("[data-borrador-id]");
-          if (!boton) return;
-          const id = Number(boton.dataset.borradorId);
-          if (Number.isFinite(id)) this._verBorradorDesdeCentro(id);
-        });
+        body.addEventListener(
+          "click",
+          (ev) => {
+            ev.stopPropagation(); // Prevenir propagación
+
+            // Buscar el botón con data-borrador-id (puede ser el target o un ancestro)
+            let boton = ev.target;
+            if (!boton.hasAttribute("data-borrador-id")) {
+              boton = ev.target.closest("[data-borrador-id]");
+            }
+
+            if (!boton) {
+              console.log(
+                "[Borradores] Click no fue en botón con data-borrador-id:",
+                ev.target
+              );
+              return;
+            }
+
+            const id = Number(boton.dataset.borradorId);
+            console.log("[Borradores] Click en botón Cargar, ID:", id);
+
+            if (Number.isFinite(id)) {
+              this._verBorradorDesdeCentro(id);
+            }
+          },
+          true
+        ); // useCapture para capturar antes
       }
-      
+
       // Crear filas de la tabla (simplificadas)
       const frag = document.createDocumentFragment();
       lista.forEach((item) => {
         const row = document.createElement("tr");
         const etiquetaEstado = ETIQUETAS_ESTADO[item.estado] || item.estado;
-        
+
         // Determinar color del badge según el estado
         let badgeClass = "bg-secondary";
         if (item.estado === "EDITANDO") badgeClass = "bg-info";
-        else if (item.estado === "PENDIENTE") badgeClass = "bg-warning text-dark";
+        else if (item.estado === "PENDIENTE")
+          badgeClass = "bg-warning text-dark";
         else if (item.estado === "REVISADO") badgeClass = "bg-primary";
         else if (item.estado === "APROBADO") badgeClass = "bg-success";
         else if (item.estado === "RECHAZADO") badgeClass = "bg-danger";
-        
+
         row.innerHTML = `
           <td>
             <span class="badge ${badgeClass}">${etiquetaEstado}</span>
@@ -2259,30 +2305,46 @@
             <small class="text-muted">${item.autorUsuario || ""}</small>
           </td>
           <td>
-            <small>${formatDateTime(item.fechaEnvio || item.fechaCreacion)}</small>
+            <small>${formatDateTime(
+              item.fechaEnvio || item.fechaCreacion
+            )}</small>
           </td>
           <td class="text-end">
-            <button class="btn btn-sm btn-primary" data-borrador-id="${item.id}">
+            <button class="btn btn-sm btn-primary btn-cargar-borrador" 
+                    data-borrador-id="${item.id}"
+                    style="pointer-events: auto !important; cursor: pointer !important; position: relative; z-index: 9999;">
               <i class="bi bi-box-arrow-in-down me-1"></i>Cargar
             </button>
           </td>
         `;
+
+        // Agregar handler directo al botón después de crear la fila
+        const btn = row.querySelector(".btn-cargar-borrador");
+        if (btn) {
+          btn.onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log("[Borradores] onclick directo - ID:", item.id);
+            this._verBorradorDesdeCentro(item.id);
+          };
+        }
+
         frag.appendChild(row);
       });
-      
+
       body.appendChild(frag);
     }
 
     /**
      * _verBorradorDesdeCentro
      * Carga un borrador desde el Centro de Borradores y lo aplica a la tabla
-     * 
+     *
      * Proceso:
      * 1. Solicita el detalle completo del borrador al servidor
      * 2. Cierra el drawer de borradores
      * 3. Pinta el borrador en la tabla (celdas en amarillo)
      * 4. Actualiza la información y botones del flujo
-     * 
+     *
      * @param {number} borradorId - ID del borrador a cargar
      */
     async _verBorradorDesdeCentro(borradorId) {
@@ -2293,47 +2355,63 @@
           { headers: this._construirHeaders() }
         );
         const data = await resp.json().catch(() => ({}));
-        
+
         if (!resp.ok)
           throw new Error(
             data.mensaje || "No fue posible cargar ese borrador."
           );
-          
+
         this.state.borrador = data.borrador || null;
         if (!this.state.borrador)
           throw new Error("No se recibió información del borrador.");
-        
+
         // Cerrar el drawer
         const drawer = document.getElementById("workflowDraftsDrawer");
         const offcanvas = drawer
           ? window.bootstrap?.Offcanvas?.getInstance(drawer)
           : null;
         offcanvas?.hide();
-        
+
+        // Diagnóstico: verificar que tenemos tabla válida
+        console.log("[Borradores] Intentando pintar borrador:", {
+          tableElement: this.tableElement ? "OK" : "NULL",
+          borradorId: this.state.borrador?.id,
+          datosPresupuesto: this.state.borrador?.data?.presupuesto?.length || 0,
+        });
+
         // Pintar el borrador en la tabla
         const pintado = FlujoAutorizacion.pintarBorrador(
           this.tableElement,
           this.state.borrador
         );
-        
+
+        // Actualizar interfaz siempre
+        this._renderInfo();
+        this._renderBotones();
+
         if (!pintado) {
+          // Diagnóstico detallado
+          console.warn("[Borradores] No se pudo pintar:", {
+            tieneTabla: !!this.tableElement,
+            tieneDatos: !!this.state.borrador?.data?.presupuesto?.length,
+            filasEnTabla:
+              this.tableElement?.querySelectorAll("tbody tr").length || 0,
+          });
+
           this._toast(
-            "Borrador obtenido pero no se pudo aplicar sobre la tabla. Verifica data-columna-clave y cuentas coincidentes.",
-            "warning"
+            `Borrador "${
+              this.state.borrador?.autorNombre || "ID:" + borradorId
+            }" cargado. Revisa los datos del borrador en el panel de información.`,
+            "info"
           );
           return;
         }
-        
-        // Actualizar interfaz
-        this._renderInfo();
-        this._renderBotones();
-        
+
         // Notificar éxito
         this._toast(
           `✓ Borrador cargado correctamente. Las celdas resaltadas muestran los cambios.`,
           "success"
         );
-        
       } catch (error) {
         console.error("Ver borrador", error);
         this._toast(
@@ -2344,8 +2422,20 @@
     }
 
     async _descartarBorrador() {
-      const contexto = { ...this.state.contexto };
+      // Protección contra llamadas duplicadas
+      if (this._descartandoBorrador) {
+        console.log("[Borradores] Descarte ya en progreso, ignorando");
+        return;
+      }
+
       const borradorId = this.state.borrador?.id || null;
+      if (!borradorId) {
+        console.log("[Borradores] No hay borrador para descartar");
+        return;
+      }
+
+      const contexto = { ...this.state.contexto };
+
       // Mostrar modal de confirmación mejorado
       const confirmado = await this._mostrarConfirmacion({
         titulo: "🗑️ Descartar Borrador",
@@ -2354,6 +2444,8 @@
         tipoBoton: "danger",
       });
       if (!confirmado) return;
+
+      this._descartandoBorrador = true;
       try {
         const body = JSON.stringify({
           borradorId,
@@ -2389,6 +2481,8 @@
           error.message || "No se pudo descartar el borrador.",
           "danger"
         );
+      } finally {
+        this._descartandoBorrador = false;
       }
     }
   }
@@ -2605,21 +2699,21 @@
 
     const cargarHistorial = async (target, filtros) => {
       hidratarContexto();
-    if (!contexto.empresaId || !Number.isInteger(contexto.anio)) {
-      if (target?.status) {
-        target.status.className = "alert alert-info";
-        target.status.textContent =
-          "Selecciona empresa y ejercicio para consultar el historial.";
-      }
-      if (typeof target?.onData === "function") {
-        try {
-          target.onData([]);
-        } catch (e) {
-          console.warn("onData workflow (sin contexto)", e);
+      if (!contexto.empresaId || !Number.isInteger(contexto.anio)) {
+        if (target?.status) {
+          target.status.className = "alert alert-info";
+          target.status.textContent =
+            "Selecciona empresa y ejercicio para consultar el historial.";
         }
+        if (typeof target?.onData === "function") {
+          try {
+            target.onData([]);
+          } catch (e) {
+            console.warn("onData workflow (sin contexto)", e);
+          }
+        }
+        return null;
       }
-      return null;
-    }
       try {
         if (target?.status) {
           target.status.className = "alert alert-secondary";
@@ -3117,7 +3211,7 @@
       // CRÍTICO: Agregar throttle para evitar congelamiento
       let pendingNodes = [];
       let processTimeout = null;
-      
+
       const processBatch = () => {
         const batch = pendingNodes.splice(0, 20);
         batch.forEach((node) => {
@@ -3170,7 +3264,9 @@
         if (intentarInicializar() || intentos >= maxIntentos) {
           clearInterval(esperaBootstrap);
           if (intentos >= maxIntentos) {
-            console.warn('[FlujoAutorizacion] Bootstrap no disponible después de esperar');
+            console.warn(
+              "[FlujoAutorizacion] Bootstrap no disponible después de esperar"
+            );
           }
         }
       }, 100);
@@ -3184,7 +3280,7 @@
   }
 
   aplicarFixModalesPointerEvents();
-  
+
   // Exportar la clase FlujoAutorizacion para uso externo
   window.FlujoAutorizacion = FlujoAutorizacion;
 })();
