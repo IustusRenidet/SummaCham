@@ -17,21 +17,29 @@ try {
 } catch (err) {
   try {
     // Si falla, intentar desde .asar.unpacked
-    const unpackedPath = __dirname.replace('app.asar', 'app.asar.unpacked');
-    const betterSqlite3Path = path.join(unpackedPath, '../../node_modules/better-sqlite3');
+    const unpackedPath = __dirname.replace("app.asar", "app.asar.unpacked");
+    const betterSqlite3Path = path.join(
+      unpackedPath,
+      "../../node_modules/better-sqlite3"
+    );
     Database = require(betterSqlite3Path);
   } catch (err2) {
     // No es posible cargar better-sqlite3. Crash early and give instructions.
-    const mensaje = `\n\n❌ better-sqlite3 no pudo ser cargado: ${err2 && err2.message ? err2.message : err2}\n\n` +
-      'Para usar SQLite (obligatorio), reconstruye los módulos nativos para el runtime de Electron y la versión objetivo.\n' +
-      'Ejemplos:\n' +
-      '  npm ci\n' +
-      '  npx electron-rebuild -f -v 30.0.0\n' +
-      '  npm rebuild better-sqlite3 --runtime=electron --target=30.0.0 --disturl=https://electronjs.org/headers\n\n' +
-      'Si estás construyendo el paquete, asegúrate de ejecutar `electron-builder install-app-deps` antes de empaquetar.\n\n';
+    const mensaje =
+      `\n\n❌ better-sqlite3 no pudo ser cargado: ${
+        err2 && err2.message ? err2.message : err2
+      }\n\n` +
+      "Para usar SQLite (obligatorio), reconstruye los módulos nativos para el runtime de Electron y la versión objetivo.\n" +
+      "Ejemplos:\n" +
+      "  npm ci\n" +
+      "  npx electron-rebuild -f -v 30.0.0\n" +
+      "  npm rebuild better-sqlite3 --runtime=electron --target=30.0.0 --disturl=https://electronjs.org/headers\n\n" +
+      "Si estás construyendo el paquete, asegúrate de ejecutar `electron-builder install-app-deps` antes de empaquetar.\n\n";
     console.error(mensaje);
     // Throw an explicit error - SQLite is required for full functionality and we don't fall back to JSON
-    throw new Error('better-sqlite3 no pudo ser cargado; reconstruye módulos nativos para Electron.');
+    throw new Error(
+      "better-sqlite3 no pudo ser cargado; reconstruye módulos nativos para Electron."
+    );
   }
 }
 
@@ -45,24 +53,18 @@ const {
   esUsuarioPermitidoResumen,
   esAdministradorHistorico,
   esModuloRestringido,
-  MODULOS_RESTRINGIDOS
+  MODULOS_RESTRINGIDOS,
 } = require("../services/usuariosPolicy");
 
 const VISTAS_POR_CAPITULO = {
   empresa1: [
-    { vista: 'Finanzas', archivo: 'Finanzas.html' },
-    { vista: 'GastosGenerales', archivo: 'GastosGenerales.html' },
-    { vista: 'Nomina', archivo: 'Nomina.html' }
+    { vista: "Finanzas", archivo: "Finanzas.html" },
+    { vista: "GastosGenerales", archivo: "GastosGenerales.html" },
+    { vista: "Nomina", archivo: "Nomina.html" },
   ],
-  empresa2: [
-    { vista: 'GastosGenerales', archivo: 'GastosGenerales.html' }
-  ],
-  empresa3: [
-    { vista: 'GastosGenerales', archivo: 'GastosGenerales.html' }
-  ],
-  empresa4: [
-    { vista: 'GastosGenerales', archivo: 'GastosGenerales.html' }
-  ]
+  empresa2: [{ vista: "GastosGenerales", archivo: "GastosGenerales.html" }],
+  empresa3: [{ vista: "GastosGenerales", archivo: "GastosGenerales.html" }],
+  empresa4: [{ vista: "GastosGenerales", archivo: "GastosGenerales.html" }],
 };
 
 const NOMBRE_DB = "panel.sqlite";
@@ -126,7 +128,9 @@ const obtenerRutasDbSemilla = () => {
   try {
     const electronModule = require("electron");
     if (electronModule?.app?.getAppPath) {
-      rutas.push(path.join(electronModule.app.getAppPath(), "datos", NOMBRE_DB));
+      rutas.push(
+        path.join(electronModule.app.getAppPath(), "datos", NOMBRE_DB)
+      );
     }
   } catch (_) {
     // Ignorar: electron no disponible fuera de app empaquetada
@@ -139,7 +143,11 @@ const resolverRutaSemillaDisponible = () => {
   const candidatos = obtenerRutasDbSemilla();
   for (const candidato of candidatos) {
     try {
-      if (candidato && fs.existsSync(candidato) && fs.statSync(candidato).size > 0) {
+      if (
+        candidato &&
+        fs.existsSync(candidato) &&
+        fs.statSync(candidato).size > 0
+      ) {
         return candidato;
       }
     } catch (_) {
@@ -167,7 +175,9 @@ const copiarLayoutsDesdeSemillaSiFaltan = () => {
 
   let layoutActual = 0;
   try {
-    const row = db.prepare(`SELECT COUNT(*) as total FROM layout_cuentas`).get();
+    const row = db
+      .prepare(`SELECT COUNT(*) as total FROM layout_cuentas`)
+      .get();
     layoutActual = row ? row.total : 0;
   } catch (err) {
     console.warn("No fue posible verificar layout_cuentas:", err.message);
@@ -180,11 +190,16 @@ const copiarLayoutsDesdeSemillaSiFaltan = () => {
 
   const rutaSemilla = resolverRutaSemillaDisponible();
   if (!rutaSemilla) {
-    console.warn("No se encontr¢ base de datos semilla para poblar layouts iniciales.");
+    console.warn(
+      "No se encontr¢ base de datos semilla para poblar layouts iniciales."
+    );
     return;
   }
 
-  if (rutaDbActiva && path.resolve(rutaSemilla) === path.resolve(rutaDbActiva)) {
+  if (
+    rutaDbActiva &&
+    path.resolve(rutaSemilla) === path.resolve(rutaDbActiva)
+  ) {
     return;
   }
 
@@ -198,7 +213,9 @@ const copiarLayoutsDesdeSemillaSiFaltan = () => {
 
   let layoutsSemilla = 0;
   try {
-    const row = seedDb.prepare(`SELECT COUNT(*) as total FROM layout_cuentas`).get();
+    const row = seedDb
+      .prepare(`SELECT COUNT(*) as total FROM layout_cuentas`)
+      .get();
     layoutsSemilla = row ? row.total : 0;
   } catch (err) {
     console.warn("La base semilla no tiene layout_cuentas:", err.message);
@@ -209,11 +226,7 @@ const copiarLayoutsDesdeSemillaSiFaltan = () => {
     return;
   }
 
-  const tablas = [
-    "layout_cuentas",
-    "layout_operaciones",
-    "layout_secciones",
-  ];
+  const tablas = ["layout_cuentas", "layout_operaciones", "layout_secciones"];
 
   const copias = [];
   try {
@@ -229,7 +242,9 @@ const copiarLayoutsDesdeSemillaSiFaltan = () => {
         const columnas = Object.keys(registros[0]);
         const placeholders = columnas.map(() => "?").join(",");
         const insert = db.prepare(
-          `INSERT INTO ${tabla} (${columnas.join(",")}) VALUES (${placeholders})`
+          `INSERT INTO ${tabla} (${columnas.join(
+            ","
+          )}) VALUES (${placeholders})`
         );
         registros.forEach((registro) => {
           insert.run(columnas.map((columna) => registro[columna]));
@@ -244,15 +259,21 @@ const copiarLayoutsDesdeSemillaSiFaltan = () => {
   }
 
   if (copias.length) {
-    console.log(`? Layouts iniciales restaurados (${copias.join(", ")}) desde ${rutaSemilla}`);
+    console.log(
+      `? Layouts iniciales restaurados (${copias.join(
+        ", "
+      )}) desde ${rutaSemilla}`
+    );
   } else {
-    console.warn("No se copiaron layouts desde la base semilla (posiblemente ya exist¡an datos).");
+    console.warn(
+      "No se copiaron layouts desde la base semilla (posiblemente ya exist¡an datos)."
+    );
   }
 };
 
 const crearConexion = () => {
   if (!SQLITE_AVAILABLE) {
-    throw new Error('better-sqlite3 no disponible: no se puede crear conexion');
+    throw new Error("better-sqlite3 no disponible: no se puede crear conexion");
   }
   const rutaBase = obtenerRutaBaseDatos();
   asegurarDirectorio(rutaBase);
@@ -270,13 +291,15 @@ const getDb = () => {
   if (db) {
     return db;
   }
-  throw new Error('SQLite no inicializada; inicializa la base antes de usarla.');
+  throw new Error(
+    "SQLite no inicializada; inicializa la base antes de usarla."
+  );
 };
 
 const crearTablas = () => {
   // Must have a valid DB connection
   if (!db) {
-    throw new Error('crearTablas: DB no inicializada');
+    throw new Error("crearTablas: DB no inicializada");
   }
   db.prepare(
     `
@@ -349,10 +372,12 @@ const crearTablas = () => {
 
   // Agregar columna capitulo si no existe (migración)
   const infoEstado = db.prepare(`PRAGMA table_info(presupuestos_estado)`).all();
-  const tieneCapituloEstado = infoEstado.some(col => col.name === 'capitulo');
+  const tieneCapituloEstado = infoEstado.some((col) => col.name === "capitulo");
   if (!tieneCapituloEstado) {
-    db.prepare(`ALTER TABLE presupuestos_estado ADD COLUMN capitulo TEXT NOT NULL DEFAULT 'DEFAULT'`).run();
-    console.log('✅ Columna capitulo agregada a presupuestos_estado');
+    db.prepare(
+      `ALTER TABLE presupuestos_estado ADD COLUMN capitulo TEXT NOT NULL DEFAULT 'DEFAULT'`
+    ).run();
+    console.log("✅ Columna capitulo agregada a presupuestos_estado");
   }
 
   db.prepare(
@@ -372,11 +397,17 @@ const crearTablas = () => {
   ).run();
 
   // Agregar columna capitulo si no existe (migración)
-  const infoEstadoHist = db.prepare(`PRAGMA table_info(presupuestos_estado_historial)`).all();
-  const tieneCapituloEstadoHist = infoEstadoHist.some(col => col.name === 'capitulo');
+  const infoEstadoHist = db
+    .prepare(`PRAGMA table_info(presupuestos_estado_historial)`)
+    .all();
+  const tieneCapituloEstadoHist = infoEstadoHist.some(
+    (col) => col.name === "capitulo"
+  );
   if (!tieneCapituloEstadoHist) {
-    db.prepare(`ALTER TABLE presupuestos_estado_historial ADD COLUMN capitulo TEXT NOT NULL DEFAULT 'DEFAULT'`).run();
-    console.log('✅ Columna capitulo agregada a presupuestos_estado_historial');
+    db.prepare(
+      `ALTER TABLE presupuestos_estado_historial ADD COLUMN capitulo TEXT NOT NULL DEFAULT 'DEFAULT'`
+    ).run();
+    console.log("✅ Columna capitulo agregada a presupuestos_estado_historial");
   }
 
   db.prepare(
@@ -453,10 +484,12 @@ const crearTablas = () => {
 
   // Agregar columna capitulo si no existe (migración)
   const infoBorradores = db.prepare(`PRAGMA table_info(PLAN_BORRADORES)`).all();
-  const tieneCapitulo = infoBorradores.some(col => col.name === 'capitulo');
+  const tieneCapitulo = infoBorradores.some((col) => col.name === "capitulo");
   if (!tieneCapitulo) {
-    db.prepare(`ALTER TABLE PLAN_BORRADORES ADD COLUMN capitulo TEXT NOT NULL DEFAULT 'DEFAULT'`).run();
-    console.log('✅ Columna capitulo agregada a PLAN_BORRADORES');
+    db.prepare(
+      `ALTER TABLE PLAN_BORRADORES ADD COLUMN capitulo TEXT NOT NULL DEFAULT 'DEFAULT'`
+    ).run();
+    console.log("✅ Columna capitulo agregada a PLAN_BORRADORES");
   }
 
   db.prepare(
@@ -479,11 +512,17 @@ const crearTablas = () => {
   ).run();
 
   // Agregar columna capitulo si no existe (migración)
-  const infoHistorial = db.prepare(`PRAGMA table_info(PLAN_BORRADORES_HISTORIAL)`).all();
-  const tieneCapituloHistorial = infoHistorial.some(col => col.name === 'capitulo');
+  const infoHistorial = db
+    .prepare(`PRAGMA table_info(PLAN_BORRADORES_HISTORIAL)`)
+    .all();
+  const tieneCapituloHistorial = infoHistorial.some(
+    (col) => col.name === "capitulo"
+  );
   if (!tieneCapituloHistorial) {
-    db.prepare(`ALTER TABLE PLAN_BORRADORES_HISTORIAL ADD COLUMN capitulo TEXT NOT NULL DEFAULT 'DEFAULT'`).run();
-    console.log('✅ Columna capitulo agregada a PLAN_BORRADORES_HISTORIAL');
+    db.prepare(
+      `ALTER TABLE PLAN_BORRADORES_HISTORIAL ADD COLUMN capitulo TEXT NOT NULL DEFAULT 'DEFAULT'`
+    ).run();
+    console.log("✅ Columna capitulo agregada a PLAN_BORRADORES_HISTORIAL");
   }
 
   db.prepare(
@@ -560,25 +599,72 @@ const crearTablas = () => {
   ).run();
 
   // Índices para optimizar consultas de layouts
-  db.prepare(`
+  db.prepare(
+    `
     CREATE INDEX IF NOT EXISTS idx_layout_cuentas_lookup 
     ON layout_cuentas(empresa_id, modulo, anio, capitulo)
-  `).run();
+  `
+  ).run();
 
-  db.prepare(`
+  db.prepare(
+    `
     CREATE INDEX IF NOT EXISTS idx_layout_operaciones_lookup 
     ON layout_operaciones(empresa_id, modulo, anio, capitulo)
-  `).run();
+  `
+  ).run();
 
-  db.prepare(`
+  db.prepare(
+    `
     CREATE INDEX IF NOT EXISTS idx_layout_secciones_lookup 
     ON layout_secciones(empresa_id, modulo, anio, capitulo)
-  `).run();
+  `
+  ).run();
 
-  db.prepare(`
+  db.prepare(
+    `
     CREATE INDEX IF NOT EXISTS idx_comentarios_celda_lookup
     ON comentarios_celdas(empresa_id, modulo, anio, celda_id, estado, creado_en)
-  `).run();
+  `
+  ).run();
+
+  // Tabla para permisos granulares por capítulo en el gestor de plantillas
+  db.prepare(
+    `
+    CREATE TABLE IF NOT EXISTS permisos_edicion_capitulo (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      usuario_id INTEGER NOT NULL,
+      capitulo TEXT NOT NULL,
+      puede_editar INTEGER NOT NULL DEFAULT 1,
+      UNIQUE(usuario_id, capitulo),
+      FOREIGN KEY(usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+    )
+  `
+  ).run();
+
+  // Tabla para bitácora de cambios en layouts
+  db.prepare(
+    `
+    CREATE TABLE IF NOT EXISTS layout_bitacora (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      empresa_id TEXT NOT NULL,
+      modulo TEXT NOT NULL,
+      anio INTEGER NOT NULL,
+      capitulo TEXT NOT NULL,
+      usuario_id INTEGER,
+      accion TEXT NOT NULL,
+      detalles TEXT,
+      fecha TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(usuario_id) REFERENCES usuarios(id) ON DELETE SET NULL
+    )
+  `
+  ).run();
+
+  db.prepare(
+    `
+    CREATE INDEX IF NOT EXISTS idx_layout_bitacora_lookup
+    ON layout_bitacora(empresa_id, modulo, anio, capitulo)
+  `
+  ).run();
 };
 
 const permisosCompletos = (permiso = {}) => ({
@@ -586,7 +672,7 @@ const permisosCompletos = (permiso = {}) => ({
   puede_leer: 1,
   puede_cargar_guardar: 1,
   puede_revisar: 1,
-  puede_aprobar: 1
+  puede_aprobar: 1,
 });
 
 const sembrarUsuariosDesdeJson = () => {
@@ -626,25 +712,27 @@ const sembrarUsuariosDesdeJson = () => {
         const usuarioNormalizado = normalizarUsuario(u.username);
         const permisosFiltrados = limpiarPermisosLista({
           lista: Array.isArray(u.permissions) ? u.permissions : [],
-          usuario: usuarioNormalizado
+          usuario: usuarioNormalizado,
         });
         const apellido1 = u.apellidoPrimero || u.username;
-        const apellido2 = u.apellidoSegundo || '';
-        const apellidosCompletos = [apellido1, apellido2].filter(Boolean).join(' ');
+        const apellido2 = u.apellidoSegundo || "";
+        const apellidosCompletos = [apellido1, apellido2]
+          .filter(Boolean)
+          .join(" ");
         const esAdminHistorico = esAdministradorHistorico(usuarioNormalizado);
         const permisosNormalizados = esAdminHistorico
           ? permisosFiltrados.map((permiso) => permisosCompletos(permiso))
           : permisosFiltrados;
-        const esAdminGlobal = (u.esAdminGlobal || esAdminHistorico) ? 1 : 0;
-        const puedeAgregar = esAdminGlobal ? 1 : (u.puedeAgregar ? 1 : 0);
-        const puedeModificar = esAdminGlobal ? 1 : (u.puedeModificar ? 1 : 0);
-        const puedeEliminar = esAdminGlobal ? 1 : (u.puedeEliminar ? 1 : 0);
+        const esAdminGlobal = u.esAdminGlobal || esAdminHistorico ? 1 : 0;
+        const puedeAgregar = esAdminGlobal ? 1 : u.puedeAgregar ? 1 : 0;
+        const puedeModificar = esAdminGlobal ? 1 : u.puedeModificar ? 1 : 0;
+        const puedeEliminar = esAdminGlobal ? 1 : u.puedeEliminar ? 1 : 0;
         console.log(
           `Seeding user: ${usuarioNormalizado}`,
           u.nombres,
           apellido1,
           apellido2,
-          esAdminGlobal ? '(ADMIN)' : ''
+          esAdminGlobal ? "(ADMIN)" : ""
         );
         insertUser.run(
           usuarioNormalizado,
@@ -684,7 +772,11 @@ const sembrarUsuariosDesdeJson = () => {
           );
         } catch (err) {
           // No bloquear el seeding por un error de actualización
-          console.warn('No fue posible actualizar usuario desde seed:', usuarioNormalizado, err?.message || err);
+          console.warn(
+            "No fue posible actualizar usuario desde seed:",
+            usuarioNormalizado,
+            err?.message || err
+          );
         }
 
         const userRow = getUser.get(usuarioNormalizado);
@@ -705,7 +797,9 @@ const sembrarUsuariosDesdeJson = () => {
 
         // Si el usuario es administrador global, asignar todos los permisos (por empresa y módulo)
         if (esAdminGlobal) {
-          console.log(`Seeding admin global: asignando permisos completos a ${usuarioNormalizado}`);
+          console.log(
+            `Seeding admin global: asignando permisos completos a ${usuarioNormalizado}`
+          );
           const puedeVerResumen = esUsuarioPermitidoResumen(usuarioNormalizado);
           EMPRESAS.forEach((empresa) => {
             MODULOS.forEach((modulo) => {
@@ -722,7 +816,9 @@ const sembrarUsuariosDesdeJson = () => {
     transaction(); // Execute
     // Asegurar que cualquier usuario marcado como admin global tenga permisos completos
     try {
-      const admins = db.prepare('SELECT id, usuario FROM usuarios WHERE es_admin_global = 1').all();
+      const admins = db
+        .prepare("SELECT id, usuario FROM usuarios WHERE es_admin_global = 1")
+        .all();
       const insertarPermiso = db.prepare(`
         INSERT OR IGNORE INTO permisos_modulo (
           usuario_id, empresa_id, modulo, puede_leer, puede_cargar_guardar, puede_revisar, puede_aprobar
@@ -743,10 +839,15 @@ const sembrarUsuariosDesdeJson = () => {
             }
           });
         });
-        console.log(`Permisos completos asegurados (seed) para administrador global: ${a.usuario}`);
+        console.log(
+          `Permisos completos asegurados (seed) para administrador global: ${a.usuario}`
+        );
       });
     } catch (err) {
-      console.warn('No fue posible asegurar permisos completos post-seed:', err?.message || err);
+      console.warn(
+        "No fue posible asegurar permisos completos post-seed:",
+        err?.message || err
+      );
     }
     console.log(`Seeding completed: ${seedUsers.length} users processed.`);
   } catch (error) {
@@ -757,7 +858,7 @@ const sembrarUsuariosDesdeJson = () => {
 const limpiarPermisosResumenNoAutorizados = () => {
   if (!db) return;
   try {
-    const usuarios = db.prepare('SELECT id, usuario FROM usuarios').all();
+    const usuarios = db.prepare("SELECT id, usuario FROM usuarios").all();
     if (!usuarios || !usuarios.length) return;
     const eliminarPermiso = db.prepare(`
       DELETE FROM permisos_modulo
@@ -773,14 +874,20 @@ const limpiarPermisosResumenNoAutorizados = () => {
           try {
             eliminarPermiso.run(registro.id, modulo);
           } catch (err) {
-            console.warn('No fue posible eliminar permiso restringido:', err?.message || err);
+            console.warn(
+              "No fue posible eliminar permiso restringido:",
+              err?.message || err
+            );
           }
         });
       });
     });
     transaction(usuarios);
   } catch (err) {
-    console.warn('No fue posible limpiar permisos restringidos:', err?.message || err);
+    console.warn(
+      "No fue posible limpiar permisos restringidos:",
+      err?.message || err
+    );
   }
 };
 
@@ -803,7 +910,10 @@ const sembrarVistasPorCapitulo = () => {
       });
     })();
   } catch (error) {
-    console.warn('No fue posible sembrar la tabla empresa_vistas:', error?.message || error);
+    console.warn(
+      "No fue posible sembrar la tabla empresa_vistas:",
+      error?.message || error
+    );
   }
 };
 
@@ -893,16 +1003,33 @@ const crearAdministradorGlobal = () => {
   const resultado = insertarUsuario.run("ICONET", hash);
   const usuarioId = resultado.lastInsertRowid;
 
-  const insertarPermiso = db.prepare(`
+  const insertarPermisoModulo = db.prepare(`
     INSERT OR IGNORE INTO permisos_modulo (
       usuario_id, empresa_id, modulo, puede_leer, puede_cargar_guardar, puede_revisar, puede_aprobar
     ) VALUES (?, ?, ?, 1, 1, 1, 1)
   `);
 
+  const insertarPermisoCapitulo = db.prepare(`
+    INSERT OR IGNORE INTO permisos_edicion_capitulo (
+      usuario_id, capitulo, puede_editar
+    ) VALUES (?, ?, 1)
+  `);
+
   EMPRESAS.forEach((empresa) => {
     MODULOS.forEach((modulo) => {
-      insertarPermiso.run(usuarioId, empresa.id, modulo);
+      insertarPermisoModulo.run(usuarioId, empresa.id, modulo);
     });
+  });
+
+  const CAPITULOS = [
+    "CIUDAD DE MÉXICO",
+    "GUADALAJARA",
+    "NORESTE",
+    "NOROESTE",
+    "DEFAULT",
+  ];
+  CAPITULOS.forEach((cap) => {
+    insertarPermisoCapitulo.run(usuarioId, cap);
   });
 
   // Helpful developer debugging: if the fallback constant is used and not supplied via env,
@@ -965,7 +1092,7 @@ const intentarSembrarLayoutsIniciales = () => {
       baseDir,
       empresaId: "EMPRESA01",
       capitulo: "CIUDAD DE MEXICO",
-      anios: aniosCdMx
+      anios: aniosCdMx,
     });
     if (resultadoExcel?.ejecutado) {
       console.log(
@@ -982,7 +1109,9 @@ const intentarSembrarLayoutsIniciales = () => {
 
 const inicializarBaseDatos = () => {
   if (!SQLITE_AVAILABLE) {
-    throw new Error('better-sqlite3 no disponible; inicialización de SQLite fallida');
+    throw new Error(
+      "better-sqlite3 no disponible; inicialización de SQLite fallida"
+    );
   }
   if (db) {
     return db;
@@ -995,7 +1124,7 @@ const inicializarBaseDatos = () => {
   // Asegurar que ciertos usuarios históricos sean administradores globales
   const asegurarAdministradoresHistoricos = () => {
     try {
-      const nombres = ['AA', 'AMB'];
+      const nombres = ["AA", "AMB"];
       const actualizar = db.prepare(`
         UPDATE usuarios
         SET es_admin_global = 1, puede_agregar = 1, puede_modificar = 1, puede_eliminar = 1
@@ -1005,7 +1134,9 @@ const inicializarBaseDatos = () => {
         const usuarioUpper = n.toUpperCase();
         const res = actualizar.run(usuarioUpper);
         if (res.changes) {
-          console.log(`Usuarios: '${usuarioUpper}' marcado como administrador global.`);
+          console.log(
+            `Usuarios: '${usuarioUpper}' marcado como administrador global.`
+          );
 
           // Asignar permisos completos por empresa y módulo (si no existen)
           try {
@@ -1014,7 +1145,9 @@ const inicializarBaseDatos = () => {
                 usuario_id, empresa_id, modulo, puede_leer, puede_cargar_guardar, puede_revisar, puede_aprobar
               ) VALUES (?, ?, ?, 1, 1, 1, 1)
             `);
-            const idRow = db.prepare('SELECT id FROM usuarios WHERE usuario = ?').get(usuarioUpper);
+            const idRow = db
+              .prepare("SELECT id FROM usuarios WHERE usuario = ?")
+              .get(usuarioUpper);
             if (idRow && idRow.id) {
               const usuarioId = idRow.id;
               const puedeVerResumen = esUsuarioPermitidoResumen(usuarioUpper);
@@ -1032,46 +1165,83 @@ const inicializarBaseDatos = () => {
               });
             }
           } catch (err2) {
-            console.warn('No fue posible insertar permisos para administrador histórico:', err2?.message || err2);
+            console.warn(
+              "No fue posible insertar permisos para administrador histórico:",
+              err2?.message || err2
+            );
           }
         }
       });
     } catch (err) {
-      console.warn('No fue posible aplicar administradores históricos:', err?.message || err);
+      console.warn(
+        "No fue posible aplicar administradores históricos:",
+        err?.message || err
+      );
     }
   };
   asegurarAdministradoresHistoricos();
   // Asegurar que todos los usuarios con es_admin_global = 1 tengan permisos completos
   const asegurarPermisosParaAdminsGlobales = () => {
     try {
-      const admins = db.prepare(`SELECT id, usuario FROM usuarios WHERE es_admin_global = 1`).all();
+      const admins = db
+        .prepare(`SELECT id, usuario FROM usuarios WHERE es_admin_global = 1`)
+        .all();
       if (!admins || !admins.length) return;
-      const insertarPermiso = db.prepare(`
+      const insertarPermisoModulo = db.prepare(`
         INSERT OR IGNORE INTO permisos_modulo (
           usuario_id, empresa_id, modulo, puede_leer, puede_cargar_guardar, puede_revisar, puede_aprobar
         ) VALUES (?, ?, ?, 1, 1, 1, 1)
       `);
+      const insertarPermisoCapitulo = db.prepare(`
+        INSERT OR IGNORE INTO permisos_edicion_capitulo (
+          usuario_id, capitulo, puede_editar
+        ) VALUES (?, ?, 1)
+      `);
+
+      const CAPITULOS = [
+        "CIUDAD DE MÉXICO",
+        "GUADALAJARA",
+        "NORESTE",
+        "NOROESTE",
+        "DEFAULT",
+      ];
+
       admins.forEach((a) => {
         try {
+          // Permisos de módulos
           EMPRESAS.forEach((empresa) => {
             MODULOS.forEach((modulo) => {
-              insertarPermiso.run(a.id, empresa.id, modulo);
+              insertarPermisoModulo.run(a.id, empresa.id, modulo);
             });
           });
-          console.log(`Permisos completos asegurados para administrador global: ${a.usuario}`);
+
+          // Permisos de capítulos (plantillas)
+          CAPITULOS.forEach((cap) => {
+            insertarPermisoCapitulo.run(a.id, cap);
+          });
+
+          console.log(
+            `Permisos completos (módulos y capítulos) asegurados para administrador global: ${a.usuario}`
+          );
         } catch (err) {
-          console.warn(`No fue posible asegurar permisos para ${a.usuario}:`, err?.message || err);
+          console.warn(
+            `No fue posible asegurar permisos para ${a.usuario}:`,
+            err?.message || err
+          );
         }
       });
     } catch (err) {
-      console.warn('Error al asegurar permisos para admins globales:', err?.message || err);
+      console.warn(
+        "Error al asegurar permisos para admins globales:",
+        err?.message || err
+      );
     }
   };
   asegurarPermisosParaAdminsGlobales();
   limpiarPermisosResumenNoAutorizados();
   sembrarUsuariosDesdeJson();
   sembrarVistasPorCapitulo();
-  console.log('✓ Base de datos SQLite inicializada');
+  console.log("✓ Base de datos SQLite inicializada");
   return db;
 };
 
@@ -1081,7 +1251,7 @@ if (require.main !== module) {
   try {
     inicializarBaseDatos();
   } catch (error) {
-    console.error('Error al inicializar base de datos:', error);
+    console.error("Error al inicializar base de datos:", error);
     throw error;
   }
 }

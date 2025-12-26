@@ -32,6 +32,20 @@
           </span>
           <button
             type="button"
+            id="btnPreview"
+            class="btn-action secondary d-none"
+          >
+            <i class="bi bi-eye"></i> Vista Previa
+          </button>
+          <button
+            type="button"
+            id="btnBitacora"
+            class="btn-action secondary d-none"
+          >
+            <i class="bi bi-clock-history"></i> Bitácora
+          </button>
+          <button
+            type="button"
             id="btnGuardar"
             class="btn-action primary"
             disabled
@@ -113,15 +127,21 @@
               >
                 <i class="bi bi-copy"></i> Copiar a Otro Año
               </button>
-              <button
-                type="button"
-                id="btnDemo"
-                class="btn-action secondary"
-                disabled
-              >
-                <i class="bi bi-magic"></i> Crear Demo
-              </button>
             </div>
+          </section>
+
+          <!-- Gestión de Permisos (Solo Admin) -->
+          <section class="sidebar-card d-none" id="adminPermissionsSection">
+            <h3 class="sidebar-card-title">
+              <i class="bi bi-shield-lock"></i> Administración
+            </h3>
+            <button
+              type="button"
+              id="btnGestionPermisos"
+              class="btn-action secondary w-100"
+            >
+              <i class="bi bi-people"></i> Gestión de Permisos
+            </button>
           </section>
 
           <!-- Estadísticas -->
@@ -404,6 +424,105 @@
               <i class="bi bi-check me-1"></i>Guardar
             </button>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Vista Previa -->
+    <div class="modal fade" id="modalPreview" tabindex="-1">
+      <div class="modal-dialog modal-fullscreen">
+        <div class="modal-content">
+          <div class="modal-header bg-dark text-white">
+            <h5 class="modal-title">
+              <i class="bi bi-eye me-2"></i>Vista Previa del Módulo
+            </h5>
+            <div class="ms-auto me-3 d-flex align-items-center gap-3">
+              <span id="previewContextInfo" class="text-white-50 small"></span>
+              <button
+                type="button"
+                class="btn btn-sm btn-outline-light"
+                id="btnPrintPreview"
+              >
+                <i class="bi bi-printer"></i> Imprimir
+              </button>
+            </div>
+            <button
+              type="button"
+              class="btn-close btn-close-white"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <div class="modal-body p-0 bg-light">
+            <div id="previewContainer" class="p-4">
+              <!-- Contenido generado dinámicamente -->
+              <div class="alert alert-info m-4">Cargando vista previa...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Gestión de Permisos -->
+    <div class="modal fade" id="modalPermisos" tabindex="-1">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">
+              <i class="bi bi-shield-lock me-2"></i>Gestión de Permisos por
+              Capítulo
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <div class="alert alert-info small mb-3">
+              <i class="bi bi-info-circle me-2"></i>
+              Aquí puedes asignar qué usuarios (que no son administradores
+              globales) pueden editar layouts para cada capítulo.
+            </div>
+
+            <div class="table-responsive">
+              <table class="table table-hover align-middle">
+                <thead class="table-light">
+                  <tr>
+                    <th>Usuario</th>
+                    <th>Capítulo</th>
+                    <th class="text-center">Permiso</th>
+                  </tr>
+                </thead>
+                <tbody id="permisosUsuariosBody">
+                  <tr>
+                    <td colspan="3" class="text-center p-4 text-muted">
+                      Cargando usuarios...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Offcanvas: Bitácora -->
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="drawerBitacora">
+      <div class="offcanvas-header bg-light">
+        <h5 class="offcanvas-title">
+          <i class="bi bi-clock-history me-2"></i>Bitácora de Cambios
+        </h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="offcanvas"
+        ></button>
+      </div>
+      <div class="offcanvas-body p-0">
+        <div id="bitacoraList" class="list-group list-group-flush">
+          <!-- Historial dinámico -->
+          <div class="p-4 text-center text-muted">Cargando bitácora...</div>
         </div>
       </div>
     </div>

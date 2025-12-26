@@ -1,952 +1,1257 @@
 <!DOCTYPE html>
 <html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Crear usuario</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/estilos.css" />
+    <style>
+      :root {
+        --bs-primary: #2f5496;
+        --bs-primary-rgb: 47, 84, 150;
+        --bs-success: #2f5496;
+        --bs-success-rgb: 47, 84, 150;
+        --bs-success-bg-subtle: rgba(47, 84, 150, 0.16);
+        --bs-success-border-subtle: rgba(47, 84, 150, 0.35);
+      }
 
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Crear usuario</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/estilos.css">
-  <style>
- :root {
-      --bs-primary: #2f5496;
-      --bs-primary-rgb: 47, 84, 150;
-      --bs-success: #2f5496;
-      --bs-success-rgb: 47, 84, 150;
-      --bs-success-bg-subtle: rgba(47, 84, 150, 0.16);
-      --bs-success-border-subtle: rgba(47, 84, 150, 0.35);
-    }
+      body {
+        background: #f2f2f2;
+        font-family: "Manrope", system-ui, sans-serif;
+        color: #2f5496;
+        min-height: 100vh;
+      }
 
-    body {
-      background: #f2f2f2;
-      font-family: 'Manrope', system-ui, sans-serif;
-      color: #2f5496;
-      min-height: 100vh;
-    }
+      .contenedor {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: clamp(1rem, 2vw, 2rem);
+      }
 
-    .contenedor {
-      max-width: 1280px;
-      margin: 0 auto;
-      padding: clamp(1rem, 2vw, 2rem);
-    }
+      .panel-card {
+        background: #fff;
+        border-radius: 20px;
+        box-shadow: 0 18px 50px rgba(47, 84, 150, 0.12);
+        padding: clamp(1rem, 2.5vw, 2rem);
+      }
 
-    .panel-card {
-      background: #fff;
-      border-radius: 20px;
-      box-shadow: 0 18px 50px rgba(47, 84, 150, 0.12);
-      padding: clamp(1rem, 2.5vw, 2rem);
-    }
+      .permiso-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1rem;
+      }
 
-    .permiso-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 1rem;
-    }
+      .chip-empresa {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        border-radius: 999px;
+        padding: 0.35rem 0.75rem;
+        background: rgba(47, 84, 150, 0.12);
+        color: #8497b0;
+        font-weight: 600;
+        font-size: 0.85rem;
+      }
 
-    .chip-empresa {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      border-radius: 999px;
-      padding: 0.35rem 0.75rem;
-      background: rgba(47, 84, 150, 0.12);
-      color: #8497b0;
-      font-weight: 600;
-      font-size: 0.85rem;
-    }
+      .modulo-card {
+        border: 1px solid rgba(47, 84, 150, 0.12);
+        border-radius: 16px;
+        padding: 1rem;
+        background: #f2f2f2;
+        transition: border 0.2s ease;
+      }
 
-    .modulo-card {
-      border: 1px solid rgba(47, 84, 150, 0.12);
-      border-radius: 16px;
-      padding: 1rem;
-      background: #f2f2f2;
-      transition: border 0.2s ease;
-    }
+      .modulo-card.inactivo {
+        opacity: 0.55;
+      }
 
-    .modulo-card.inactivo {
-      opacity: 0.55;
-    }
+      .alerta-global {
+        border-radius: 16px;
+      }
+    </style>
+  </head>
 
-    .alerta-global {
-      border-radius: 16px;
-    }
-  </style>
-</head>
+  <body>
+    <div class="contenedor">
+      <div id="alerta" class="alerta-global visually-hidden"></div>
 
-<body>
-  <div class="contenedor">
+      <!-- Toasts flotantes de estado -->
+      <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1080">
+        <div
+          id="toastUsuario"
+          class="toast align-items-center text-white bg-success border-0"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          <div class="d-flex">
+            <div class="toast-body" id="toastUsuarioBody">
+              Operación realizada correctamente.
+            </div>
+            <button
+              type="button"
+              class="btn-close btn-close-white me-2 m-auto"
+              data-bs-dismiss="toast"
+              aria-label="Cerrar"
+            ></button>
+          </div>
+        </div>
+      </div>
 
-    <div id="alerta" class="alerta-global visually-hidden"></div>
+      <form id="formularioUsuario" class="panel-card" novalidate>
+        <section class="mb-4">
+          <h2 class="h5 fw-bold text-success mb-3">Información general</h2>
+          <div class="row g-3">
+            <div class="col-12 col-md-6">
+              <label for="nombres" class="form-label fw-semibold"
+                >Nombre(s) <span class="text-danger">*</span></label
+              >
+              <input
+                type="text"
+                id="nombres"
+                name="nombres"
+                class="form-control"
+                maxlength="80"
+                required
+              />
+              <div class="invalid-feedback">Ingresa el nombre.</div>
+            </div>
+            <div class="col-12 col-md-6">
+              <label for="primer-apellido" class="form-label fw-semibold"
+                >Primer Apellido <span class="text-danger">*</span></label
+              >
+              <input
+                type="text"
+                id="primer-apellido"
+                name="primer-apellido"
+                class="form-control"
+                maxlength="120"
+                required
+              />
+              <div class="invalid-feedback">Ingresa el primer apellido.</div>
+            </div>
+            <div class="col-12 col-md-6">
+              <label for="segundo-apellido" class="form-label fw-semibold"
+                >Segundo Apellido</label
+              >
+              <input
+                type="text"
+                id="segundo-apellido"
+                name="segundo-apellido"
+                class="form-control"
+                maxlength="120"
+              />
+            </div>
+            <div class="col-12 col-md-4">
+              <label for="usuario" class="form-label fw-semibold"
+                >Usuario <span class="text-danger">*</span></label
+              >
+              <input
+                type="text"
+                id="usuario"
+                name="usuario"
+                class="form-control"
+                required
+                maxlength="32"
+                autocomplete="off"
+              />
+              <div class="invalid-feedback">
+                Ingresa el identificador del usuario.
+              </div>
+            </div>
+            <div class="col-12 col-md-4">
+              <label for="correo" class="form-label fw-semibold"
+                >Correo electrónico <span class="text-danger">*</span></label
+              >
+              <input
+                type="email"
+                id="correo"
+                name="correo"
+                class="form-control"
+                maxlength="120"
+                autocomplete="off"
+                required
+              />
+              <div class="invalid-feedback">
+                Ingresa un correo electrónico válido.
+              </div>
+            </div>
+            <div class="col-12 col-md-4">
+              <label for="contrasena" class="form-label fw-semibold"
+                >Contraseña
+                <span id="indicadorContrasena" class="text-danger"
+                  >*</span
+                ></label
+              >
+              <div class="input-group">
+                <input
+                  type="password"
+                  id="contrasena"
+                  name="contrasena"
+                  class="form-control"
+                  autocomplete="new-password"
+                  minlength="8"
+                />
+                <button
+                  type="button"
+                  class="btn btn-outline-secondary"
+                  id="toggleContrasena"
+                  aria-pressed="false"
+                  aria-label="Mostrar contraseña"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    fill="currentColor"
+                    class="bi bi-eye"
+                    viewBox="0 0 16 16"
+                  >
+                    <path
+                      d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z"
+                    />
+                    <path
+                      d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0"
+                    />
+                  </svg>
+                </button>
+              </div>
+              <div class="invalid-feedback">
+                La contraseña debe tener al menos 8 caracteres.
+              </div>
+            </div>
+            <div class="col-12 col-lg-4">
+              <div class="form-check form-switch mt-4 pt-2">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  role="switch"
+                  id="esAdminGlobal"
+                />
+                <label class="form-check-label fw-semibold" for="esAdminGlobal"
+                  >Administrador global</label
+                >
+              </div>
+            </div>
+          </div>
+        </section>
 
-    <!-- Toasts flotantes de estado -->
-    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1080">
-      <div id="toastUsuario" class="toast align-items-center text-white bg-success border-0" role="status" aria-live="polite" aria-atomic="true">
-        <div class="d-flex">
-          <div class="toast-body" id="toastUsuarioBody">Operación realizada correctamente.</div>
-          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Cerrar"></button>
+        <section class="mb-4">
+          <h2 class="h5 fw-bold text-success mb-3">Permisos generales</h2>
+          <div class="row g-3">
+            <div class="col-12 col-md-4">
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  id="permAgregar"
+                />
+                <label class="form-check-label" for="permAgregar"
+                  >Agregar usuario</label
+                >
+              </div>
+            </div>
+            <div class="col-12 col-md-4">
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  id="permModificar"
+                />
+                <label class="form-check-label" for="permModificar"
+                  >Modificar usuario</label
+                >
+              </div>
+            </div>
+            <div class="col-12 col-md-4">
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  id="permEliminar"
+                />
+                <label class="form-check-label" for="permEliminar"
+                  >Eliminar usuario</label
+                >
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <h2 class="h5 fw-bold text-success mb-3">Permisos por empresa</h2>
+          <p class="text-muted">
+            Activa las empresas y especifica las acciones permitidas por vista.
+          </p>
+          <div id="contenedorEmpresas" class="d-flex flex-column gap-4"></div>
+        </section>
+
+        <div
+          class="d-flex flex-column flex-md-row gap-3 justify-content-end mt-5"
+        >
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            id="cancelarBtn"
+          >
+            Cancelar
+          </button>
+          <button type="submit" class="btn btn-primario">Guardar</button>
+        </div>
+      </form>
+    </div>
+
+    <div
+      class="modal fade"
+      id="modalPrevisualizacion"
+      tabindex="-1"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Datos recopilados</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Cerrar"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <pre
+              id="previsualizacionJson"
+              class="bg-dark text-light p-3 rounded"
+              style="max-height: 60vh"
+            ></pre>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Cerrar
+            </button>
+          </div>
         </div>
       </div>
     </div>
 
-    <form id="formularioUsuario" class="panel-card" novalidate>
-      <section class="mb-4">
-        <h2 class="h5 fw-bold text-success mb-3">Información general</h2>
-        <div class="row g-3">
-          <div class="col-12 col-md-6">
-            <label for="nombres" class="form-label fw-semibold">Nombre(s) <span class="text-danger">*</span></label>
-            <input type="text" id="nombres" name="nombres" class="form-control" maxlength="80" required />
-            <div class="invalid-feedback">Ingresa el nombre.</div>
-          </div>
-          <div class="col-12 col-md-6">
-            <label for="primer-apellido" class="form-label fw-semibold">Primer Apellido <span class="text-danger">*</span></label>
-            <input type="text" id="primer-apellido" name="primer-apellido" class="form-control" maxlength="120" required />
-            <div class="invalid-feedback">Ingresa el primer apellido.</div>
-          </div>
-          <div class="col-12 col-md-6">
-            <label for="segundo-apellido" class="form-label fw-semibold">Segundo Apellido</label>
-            <input type="text" id="segundo-apellido" name="segundo-apellido" class="form-control" maxlength="120" />
-          </div>
-          <div class="col-12 col-md-4">
-            <label for="usuario" class="form-label fw-semibold">Usuario <span class="text-danger">*</span></label>
-            <input type="text" id="usuario" name="usuario" class="form-control" required maxlength="32"
-              autocomplete="off" />
-            <div class="invalid-feedback">Ingresa el identificador del usuario.</div>
-          </div>
-          <div class="col-12 col-md-4">
-            <label for="correo" class="form-label fw-semibold">Correo electrónico <span class="text-danger">*</span></label>
-            <input type="email" id="correo" name="correo" class="form-control" maxlength="120" autocomplete="off" required />
-            <div class="invalid-feedback">Ingresa un correo electrónico válido.</div>
-          </div>
-          <div class="col-12 col-md-4">
-            <label for="contrasena" class="form-label fw-semibold">Contraseña <span id="indicadorContrasena"
-                class="text-danger">*</span></label>
-            <div class="input-group">
-              <input type="password" id="contrasena" name="contrasena" class="form-control" autocomplete="new-password"
-                minlength="8" />
-              <button type="button" class="btn btn-outline-secondary" id="toggleContrasena" aria-pressed="false"
-                aria-label="Mostrar contraseña"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
-                  fill="currentColor" class="bi bi-eye" viewBox="0 0 16 16">
-                  <path
-                    d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z" />
-                  <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0" />
-                </svg></button>
-            </div>
-            <div class="invalid-feedback">La contraseña debe tener al menos 8 caracteres.</div>
-          </div>
-          <div class="col-12 col-lg-4">
-            <div class="form-check form-switch mt-4 pt-2">
-              <input class="form-check-input" type="checkbox" role="switch" id="esAdminGlobal">
-              <label class="form-check-label fw-semibold" for="esAdminGlobal">Administrador global</label>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="mb-4">
-        <h2 class="h5 fw-bold text-success mb-3">Permisos generales</h2>
-        <div class="row g-3">
-          <div class="col-12 col-md-4">
-            <div class="form-check">
-              <input class="form-check-input" type="checkbox" id="permAgregar">
-              <label class="form-check-label" for="permAgregar">Agregar usuario</label>
-            </div>
-          </div>
-          <div class="col-12 col-md-4">
-            <div class="form-check">
-              <input class="form-check-input" type="checkbox" id="permModificar">
-              <label class="form-check-label" for="permModificar">Modificar usuario</label>
-            </div>
-          </div>
-          <div class="col-12 col-md-4">
-            <div class="form-check">
-              <input class="form-check-input" type="checkbox" id="permEliminar">
-              <label class="form-check-label" for="permEliminar">Eliminar usuario</label>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section>
-        <h2 class="h5 fw-bold text-success mb-3">Permisos por empresa</h2>
-        <p class="text-muted">Activa las empresas y especifica las acciones permitidas por vista.</p>
-        <div id="contenedorEmpresas" class="d-flex flex-column gap-4"></div>
-      </section>
-
-      <div class="d-flex flex-column flex-md-row gap-3 justify-content-end mt-5">
-        <button type="button" class="btn btn-outline-secondary" id="cancelarBtn">Cancelar</button>
-        <button type="submit" class="btn btn-primario">Guardar</button>
-      </div>
-    </form>
-  </div>
-
-  <div class="modal fade" id="modalPrevisualizacion" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Datos recopilados</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-        </div>
-        <div class="modal-body">
-          <pre id="previsualizacionJson" class="bg-dark text-light p-3 rounded" style="max-height: 60vh;"></pre>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="js/sesion.js"></script>
     <script src="js/capitulos-modulos.js"></script>
 
-  <script>
-    // Detectar API_BASE dinámicamente según el entorno
-    const API_BASE = (() => {
-      const origin = window.location.protocol === 'file:' 
-        ? 'http://localhost:3005'
-        : window.location.origin;
-      return `${origin}/api`;
-    })();
-    
-    const MODULOS = [
-      'Membresía',
-      'Eventos',
-      'Comunicación',
-      'Dirección',
-      'Serv Membresía',
-      'Comités',
-      'T&IC',
-      'RH',
-      'VPE',
-      'Finanzas',
-      'Gastos Generales',
-      'Nomina',
-      'Gtos Corporativos',
-      'Presupuestos',
-      'RESUMEN'
-    ];
-    const ACCIONES = ['Ver', 'Cargar y guardar', 'Revisar', 'Aprobar'];
-    const normalizarUsuarioEntrada = (valor = '') => valor.toString().trim().toUpperCase();
+    <script>
+      // Detectar API_BASE dinámicamente según el entorno
+      const API_BASE = (() => {
+        const origin =
+          window.location.protocol === "file:"
+            ? "http://localhost:3005"
+            : window.location.origin;
+        return `${origin}/api`;
+      })();
 
-    const formulario = document.getElementById('formularioUsuario');
-    const alerta = document.getElementById('alerta');
-    const modalPrevisualizacion = new bootstrap.Modal(document.getElementById('modalPrevisualizacion'));
-    const previsualizacion = document.getElementById('previsualizacionJson');
-    const contenedorEmpresas = document.getElementById('contenedorEmpresas');
-    const indicadorContrasena = document.getElementById('indicadorContrasena');
-    const inputContrasena = document.getElementById('contrasena');
-    const toggleContrasena = document.getElementById('toggleContrasena');
-    const botonCancelar = document.getElementById('cancelarBtn');
-    const inputPrimerApellido = document.getElementById('primer-apellido');
-    const inputSegundoApellido = document.getElementById('segundo-apellido');
-    const inputNombres = document.getElementById('nombres');
-    const inputUsuario = document.getElementById('usuario');
-    const inputCorreo = document.getElementById('correo');
-    const checkPermAgregar = document.getElementById('permAgregar');
-    const checkPermModificar = document.getElementById('permModificar');
-    const checkPermEliminar = document.getElementById('permEliminar');
-    const switchAdminGlobal = document.getElementById('esAdminGlobal');
+      const MODULOS = [
+        "Membresía",
+        "Eventos",
+        "Comunicación",
+        "Dirección",
+        "Serv Membresía",
+        "Comités",
+        "T&IC",
+        "RH",
+        "VPE",
+        "Finanzas",
+        "Gastos Generales",
+        "Nomina",
+        "Gtos Corporativos",
+        "SUMMARY",
+        "Presupuestos",
+        "RESUMEN",
+        "Layouts",
+      ];
+      const ACCIONES = ["Ver", "Cargar y guardar", "Revisar", "Aprobar"];
+      const normalizarUsuarioEntrada = (valor = "") =>
+        valor.toString().trim().toUpperCase();
 
-    let contrasenaOriginal = '';
+      const formulario = document.getElementById("formularioUsuario");
+      const alerta = document.getElementById("alerta");
+      const modalPrevisualizacion = new bootstrap.Modal(
+        document.getElementById("modalPrevisualizacion")
+      );
+      const previsualizacion = document.getElementById("previsualizacionJson");
+      const contenedorEmpresas = document.getElementById("contenedorEmpresas");
+      const indicadorContrasena = document.getElementById(
+        "indicadorContrasena"
+      );
+      const inputContrasena = document.getElementById("contrasena");
+      const toggleContrasena = document.getElementById("toggleContrasena");
+      const botonCancelar = document.getElementById("cancelarBtn");
+      const inputPrimerApellido = document.getElementById("primer-apellido");
+      const inputSegundoApellido = document.getElementById("segundo-apellido");
+      const inputNombres = document.getElementById("nombres");
+      const inputUsuario = document.getElementById("usuario");
+      const inputCorreo = document.getElementById("correo");
+      const checkPermAgregar = document.getElementById("permAgregar");
+      const checkPermModificar = document.getElementById("permModificar");
+      const checkPermEliminar = document.getElementById("permEliminar");
+      const switchAdminGlobal = document.getElementById("esAdminGlobal");
 
-    const sesion = Sesion.requerirSesion({ requireAdmin: true });
-    if (!sesion) {
-      throw new Error('Redireccionando al inicio de sesión.');
-    }
+      let contrasenaOriginal = "";
 
-    const permisosGeneralesSesion = sesion.usuario?.permisosGenerales || {};
-    const puedeAgregar = Boolean(permisosGeneralesSesion.puedeAgregar);
-    const puedeModificar = Boolean(permisosGeneralesSesion.puedeModificar);
-    let modoIconetActivo = false;
-    let empresasDisponibles = [];
-    const esIconetObjetivo = () => normalizarUsuarioEntrada(inputUsuario.value) === 'ICONET';
-
-    if (toggleContrasena) {
-      toggleContrasena.addEventListener('click', () => {
-        const mostrando = inputContrasena.type === 'text';
-        inputContrasena.type = mostrando ? 'password' : 'text';
-        toggleContrasena.setAttribute('aria-pressed', String(!mostrando));
-        toggleContrasena.setAttribute('aria-label', mostrando ? 'Mostrar contraseña' : 'Ocultar contraseña');
-        toggleContrasena.innerHTML = mostrando
-          ? `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eye" viewBox="0 0 16 16"><path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z"/><path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0"/></svg>`
-          : `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eye-slash" viewBox="0 0 16 16"><path d="M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5a7 7 0 0 0-2.79.588l.77.771A6 6 0 0 1 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755q-.247.248-.517.486z"/><path d="M11.297 9.176a3.5 3.5 0 0 0-4.474-4.474l.823.823a2.5 2.5 0 0 1 2.829 2.829zm-2.943 1.299.822.822a3.5 3.5 0 0 1-4.474-4.474l.823.823a2.5 2.5 0 0 0 2.829 2.829"/><path d="M3.35 5.47q-.27.24-.518.487A13 13 0 0 0 1.172 8l.195.288c.335.48.83 1.12 1.465 1.755C4.121 11.332 5.881 12.5 8 12.5c.716 0 1.39-.133 2.02-.36l.772.772A7 7 0 0 1 8 13.5C3 13.5 0 8 0 8s.939-1.721 2.641-3.238l.708.709zm10.296 8.884-12-12 .708-.708 12 12z"/></svg>`;
-
-      });
-    }
-
-    const actualizarEstadoPermisosGenerales = (esAdminDestino) => {
-      const campos = [checkPermAgregar, checkPermModificar, checkPermEliminar];
-
-      campos.forEach((campo) => {
-        if (!campo) return;
-        if (esAdminDestino) {
-          campo.dataset.prevChecked = campo.checked ? '1' : '0';
-          campo.checked = true;
-          campo.disabled = true;
-        } else {
-          if (campo.dataset.prevChecked !== undefined) {
-            campo.checked = campo.dataset.prevChecked === '1';
-            delete campo.dataset.prevChecked;
-          }
-          campo.disabled = false;
-        }
-      });
-    };
-
-
-    const mostrarToast = (mensaje, tipo = 'success') => {
-      const toastEl = document.getElementById('toastUsuario');
-      const body = document.getElementById('toastUsuarioBody');
-      if (!toastEl) return;
-      if (body) body.textContent = mensaje;
-      // Ajusta color segun tipo
-      toastEl.classList.remove('bg-success', 'bg-danger');
-      toastEl.classList.add(tipo === 'success' ? 'bg-success' : 'bg-danger');
-      const ctor = (window.bootstrap && window.bootstrap.Toast) ? window.bootstrap.Toast : null;
-      if (ctor) {
-        const toast = new ctor(toastEl);
-        toast.show();
-      } else {
-        toastEl.classList.add('show');
-        setTimeout(() => toastEl.classList.remove('show'), 1800);
+      const sesion = Sesion.requerirSesion({ requireAdmin: true });
+      if (!sesion) {
+        throw new Error("Redireccionando al inicio de sesión.");
       }
-    };
 
-    const mostrarAlerta = (mensaje, tipo = 'danger') => {
-      // Mantiene compatibilidad: ahora usa toast para que sea visible aunque la pagina este scrolleada
-      mostrarToast(mensaje, tipo === 'success' ? 'success' : 'danger');
-    };
+      const permisosGeneralesSesion = sesion.usuario?.permisosGenerales || {};
+      const puedeAgregar = Boolean(permisosGeneralesSesion.puedeAgregar);
+      const puedeModificar = Boolean(permisosGeneralesSesion.puedeModificar);
+      let modoIconetActivo = false;
+      let empresasDisponibles = [];
+      const esIconetObjetivo = () =>
+        normalizarUsuarioEntrada(inputUsuario.value) === "ICONET";
 
-    const limpiarAlerta = () => {
-      alerta.textContent = '';
-      alerta.className = 'alerta-global visually-hidden';
-    };
+      if (toggleContrasena) {
+        toggleContrasena.addEventListener("click", () => {
+          const mostrando = inputContrasena.type === "text";
+          inputContrasena.type = mostrando ? "password" : "text";
+          toggleContrasena.setAttribute("aria-pressed", String(!mostrando));
+          toggleContrasena.setAttribute(
+            "aria-label",
+            mostrando ? "Mostrar contraseña" : "Ocultar contraseña"
+          );
+          toggleContrasena.innerHTML = mostrando
+            ? `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eye" viewBox="0 0 16 16"><path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z"/><path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0"/></svg>`
+            : `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eye-slash" viewBox="0 0 16 16"><path d="M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5a7 7 0 0 0-2.79.588l.77.771A6 6 0 0 1 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755q-.247.248-.517.486z"/><path d="M11.297 9.176a3.5 3.5 0 0 0-4.474-4.474l.823.823a2.5 2.5 0 0 1 2.829 2.829zm-2.943 1.299.822.822a3.5 3.5 0 0 1-4.474-4.474l.823.823a2.5 2.5 0 0 0 2.829 2.829"/><path d="M3.35 5.47q-.27.24-.518.487A13 13 0 0 0 1.172 8l.195.288c.335.48.83 1.12 1.465 1.755C4.121 11.332 5.881 12.5 8 12.5c.716 0 1.39-.133 2.02-.36l.772.772A7 7 0 0 1 8 13.5C3 13.5 0 8 0 8s.939-1.721 2.641-3.238l.708.709zm10.296 8.884-12-12 .708-.708 12 12z"/></svg>`;
+        });
+      }
 
-    const obtenerParametroEdicion = () => {
-      const params = new URLSearchParams(window.location.search);
-      const id = params.get('editar');
-      return id ? Number(id) : null;
-    };
+      const actualizarEstadoPermisosGenerales = (esAdminDestino) => {
+        const campos = [
+          checkPermAgregar,
+          checkPermModificar,
+          checkPermEliminar,
+        ];
 
-    const normalizarModulo = (valor) => {
-      return (valor || '')
-        .toString()
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '') // quita acentos/diacríticos
-        .replace(/\s+/g, '_')
-        .replace(/[^a-z0-9_]/g, '');
-    };
+        campos.forEach((campo) => {
+          if (!campo) return;
+          if (esAdminDestino) {
+            campo.dataset.prevChecked = campo.checked ? "1" : "0";
+            campo.checked = true;
+            campo.disabled = true;
+          } else {
+            if (campo.dataset.prevChecked !== undefined) {
+              campo.checked = campo.dataset.prevChecked === "1";
+              delete campo.dataset.prevChecked;
+            }
+            campo.disabled = false;
+          }
+        });
+      };
 
-    const MODULO_LABELS = MODULOS.reduce((map, mod) => {
-      map[normalizarModulo(mod)] = mod;
-      return map;
-    }, {});
+      const mostrarToast = (mensaje, tipo = "success") => {
+        const toastEl = document.getElementById("toastUsuario");
+        const body = document.getElementById("toastUsuarioBody");
+        if (!toastEl) return;
+        if (body) body.textContent = mensaje;
+        // Ajusta color segun tipo
+        toastEl.classList.remove("bg-success", "bg-danger");
+        toastEl.classList.add(tipo === "success" ? "bg-success" : "bg-danger");
+        const ctor =
+          window.bootstrap && window.bootstrap.Toast
+            ? window.bootstrap.Toast
+            : null;
+        if (ctor) {
+          const toast = new ctor(toastEl);
+          toast.show();
+        } else {
+          toastEl.classList.add("show");
+          setTimeout(() => toastEl.classList.remove("show"), 1800);
+        }
+      };
 
-    // Configuración explícita por empresa según solicitud
-    const MAPA_MODULOS_EMPRESA = {
-      // CIUDAD DE MÉXICO
-      empresa1: [
-        'Membresía',
-        'Eventos',
-        'Comunicación',
-        'Serv Membresía',
-        'Comités',
-        'T&IC',
-        'RH',
-        'VPE',
-        'Finanzas',
-        'Gastos Generales',
-        'Nomina',
-        'Gtos Corporativos',
-        'Presupuestos',
-        'RESUMEN'
-      ],
-      // GUADALAJARA, NORESTE, NOROESTE
-      empresa2: [
-        'Membresía',
-        'Eventos',
-        'Comunicación',
-        'Dirección',
-        'Serv Membresía',
-        'Comités',
-        'T&IC',
-        'RH',
-        'Gastos Generales',
-        'Gtos Corporativos',
-        'Presupuestos',
-        'RESUMEN'
-      ],
-      empresa3: [
-        'Membresía',
-        'Eventos',
-        'Comunicación',
-        'Dirección',
-        'Serv Membresía',
-        'Comités',
-        'T&IC',
-        'RH',
-        'Gastos Generales',
-        'Gtos Corporativos',
-        'Presupuestos',
-        'RESUMEN'
-      ],
-      empresa4: [
-        'Membresía',
-        'Eventos',
-        'Comunicación',
-        'Dirección',
-        'Serv Membresía',
-        'Comités',
-        'T&IC',
-        'RH',
-        'Gastos Generales',
-        'Gtos Corporativos',
-        'Presupuestos',
-        'RESUMEN'
-      ]
-    };
+      const mostrarAlerta = (mensaje, tipo = "danger") => {
+        // Mantiene compatibilidad: ahora usa toast para que sea visible aunque la pagina este scrolleada
+        mostrarToast(mensaje, tipo === "success" ? "success" : "danger");
+      };
 
-    const modulosDisponiblesParaEmpresa = (empresaId) => {
-      const lista = MAPA_MODULOS_EMPRESA[empresaId] || [];
-      if (lista.length) return lista;
+      const limpiarAlerta = () => {
+        alerta.textContent = "";
+        alerta.className = "alerta-global visually-hidden";
+      };
 
-      // Fallback a CapitulosModulos si no hay configuración explícita
-      const listaCfg = window.CapitulosModulos?.EMPRESA_CONFIG?.[empresaId]?.modulos || [];
-      const normalizados = listaCfg
-        .map((m) => normalizarModulo(m))
-        .filter((m) => m && m !== 'summary');
-      const labels = normalizados.map((clave) => MODULO_LABELS[clave]).filter(Boolean);
-      return labels.length
-        ? labels
-        : MODULOS.filter((m) => normalizarModulo(m) !== 'summary');
-    };
+      const obtenerParametroEdicion = () => {
+        const params = new URLSearchParams(window.location.search);
+        const id = params.get("editar");
+        return id ? Number(id) : null;
+      };
 
-    const crearCheckbox = (empresaId, modulo, accion) => {
-      const id = normalizarModulo(`${empresaId}_${modulo}_${accion}`);
-      return `
+      const normalizarModulo = (valor) => {
+        return (valor || "")
+          .toString()
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "") // quita acentos/diacríticos
+          .replace(/\s+/g, "_")
+          .replace(/[^a-z0-9_]/g, "");
+      };
+
+      const MODULO_LABELS = MODULOS.reduce((map, mod) => {
+        map[normalizarModulo(mod)] = mod;
+        return map;
+      }, {});
+
+      // Configuración explícita por empresa según solicitud
+      const MAPA_MODULOS_EMPRESA = {
+        // CIUDAD DE MÉXICO
+        empresa1: [
+          "Membresía",
+          "Eventos",
+          "Comunicación",
+          "Serv Membresía",
+          "Comités",
+          "T&IC",
+          "RH",
+          "VPE",
+          "Finanzas",
+          "Gastos Generales",
+          "Nomina",
+          "Gtos Corporativos",
+          "Presupuestos",
+          "RESUMEN",
+          "SUMMARY",
+          "Layouts",
+        ],
+        // GUADALAJARA, NORESTE, NOROESTE
+        empresa2: [
+          "Membresía",
+          "Eventos",
+          "Comunicación",
+          "Dirección",
+          "Serv Membresía",
+          "Comités",
+          "T&IC",
+          "RH",
+          "Gastos Generales",
+          "Gtos Corporativos",
+          "Presupuestos",
+          "RESUMEN",
+          "SUMMARY",
+          "Layouts",
+        ],
+        empresa3: [
+          "Membresía",
+          "Eventos",
+          "Comunicación",
+          "Dirección",
+          "Serv Membresía",
+          "Comités",
+          "T&IC",
+          "RH",
+          "Gastos Generales",
+          "Gtos Corporativos",
+          "Presupuestos",
+          "RESUMEN",
+          "SUMMARY",
+          "Layouts",
+        ],
+        empresa4: [
+          "Membresía",
+          "Eventos",
+          "Comunicación",
+          "Dirección",
+          "Serv Membresía",
+          "Comités",
+          "T&IC",
+          "RH",
+          "Gastos Generales",
+          "Gtos Corporativos",
+          "Presupuestos",
+          "RESUMEN",
+          "SUMMARY",
+          "Layouts",
+        ],
+      };
+
+      const modulosDisponiblesParaEmpresa = (empresaId) => {
+        const lista = MAPA_MODULOS_EMPRESA[empresaId] || [];
+        if (lista.length) return lista;
+
+        // Fallback a CapitulosModulos si no hay configuración explícita
+        const listaCfg =
+          window.CapitulosModulos?.EMPRESA_CONFIG?.[empresaId]?.modulos || [];
+        const normalizados = listaCfg
+          .map((m) => normalizarModulo(m))
+          .filter((m) => m && m !== "summary");
+        const labels = normalizados
+          .map((clave) => MODULO_LABELS[clave])
+          .filter(Boolean);
+        return labels.length
+          ? labels
+          : MODULOS.filter((m) => normalizarModulo(m) !== "summary");
+      };
+
+      const crearCheckbox = (empresaId, modulo, accion) => {
+        const id = normalizarModulo(`${empresaId}_${modulo}_${accion}`);
+        return `
         <div class="form-check">
           <input class="form-check-input permiso" type="checkbox" id="${id}" data-empresa="${empresaId}" data-modulo="${modulo}" data-accion="${accion}">
           <label class="form-check-label" for="${id}">${accion}</label>
         </div>`;
-    };
+      };
 
-    const construirSeccionEmpresas = (empresas) => {
-      contenedorEmpresas.innerHTML = '';
-      empresas.forEach((empresa) => {
-        const modulosEmpresa = modulosDisponiblesParaEmpresa(empresa.id);
-        const envoltura = document.createElement('section');
-        envoltura.className = 'panel-card';
-        envoltura.innerHTML = `
+      const construirSeccionEmpresas = (empresas) => {
+        contenedorEmpresas.innerHTML = "";
+        empresas.forEach((empresa) => {
+          const modulosEmpresa = modulosDisponiblesParaEmpresa(empresa.id);
+          const envoltura = document.createElement("section");
+          envoltura.className = "panel-card";
+          envoltura.innerHTML = `
           <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3">
             <div>
               <h3 class="h5 fw-bold text-success mb-1">${empresa.nombre}</h3>
               <span class="chip-empresa">${empresa.etiqueta}</span>
             </div>
             <div class="form-check form-switch">
-              <input class="form-check-input activar-empresa" type="checkbox" role="switch" id="activar_${empresa.id}" data-empresa="${empresa.id}">
-              <label class="form-check-label" for="activar_${empresa.id}">Habilitar empresa</label>
+              <input class="form-check-input activar-empresa" type="checkbox" role="switch" id="activar_${
+                empresa.id
+              }" data-empresa="${empresa.id}">
+              <label class="form-check-label" for="activar_${
+                empresa.id
+              }">Habilitar empresa</label>
             </div>
           </div>
           <div class="permiso-grid">
-            ${modulosEmpresa.map((modulo) => `
-              <article class="modulo-card" data-empresa="${empresa.id}" data-modulo="${modulo}" data-modulo-key="${normalizarModulo(modulo)}">
+            ${modulosEmpresa
+              .map(
+                (modulo) => `
+              <article class="modulo-card" data-empresa="${
+                empresa.id
+              }" data-modulo="${modulo}" data-modulo-key="${normalizarModulo(
+                  modulo
+                )}">
                 <div class="d-flex align-items-center justify-content-between mb-2">
                   <h4 class="h6 fw-bold mb-0">${modulo}</h4>
                   <div class="form-check">
-                    <input class="form-check-input select-all" type="checkbox" id="selall_${empresa.id}_${normalizarModulo(modulo)}">
-                    <label class="form-check-label small" for="selall_${empresa.id}_${normalizarModulo(modulo)}">Seleccionar todo</label>
+                    <input class="form-check-input select-all" type="checkbox" id="selall_${
+                      empresa.id
+                    }_${normalizarModulo(modulo)}">
+                    <label class="form-check-label small" for="selall_${
+                      empresa.id
+                    }_${normalizarModulo(modulo)}">Seleccionar todo</label>
                   </div>
                 </div>
-                ${ACCIONES.map((accion) => crearCheckbox(empresa.id, modulo, accion)).join('')}
-              </article>`).join('')}
+                ${ACCIONES.map((accion) =>
+                  crearCheckbox(empresa.id, modulo, accion)
+                ).join("")}
+              </article>`
+              )
+              .join("")}
           </div>
         `;
-        contenedorEmpresas.appendChild(envoltura);
-        // Iniciar las empresas desactivadas por defecto
-        const switchEmpresa = document.getElementById(`activar_${empresa.id}`);
-        if (switchEmpresa) {
-          switchEmpresa.checked = false;
-          sincronizarEstadoEmpresa(empresa.id, false);
-        }
-      });
-    };
-
-    const sincronizarEstadoEmpresa = (empresaId, activa) => {
-      contenedorEmpresas.querySelectorAll(`[data-empresa="${empresaId}"]`).forEach((elemento) => {
-        if (elemento.classList.contains('modulo-card')) {
-          elemento.classList.toggle('inactivo', !activa);
-        } else if (elemento.classList.contains('permiso')) {
-          elemento.disabled = !activa;
-          if (!activa) elemento.checked = false;
-        }
-      });
-    };
-
-    const obtenerPermisosDelFormulario = () => {
-      const permisos = {};
-      contenedorEmpresas.querySelectorAll('.modulo-card').forEach((card) => {
-        const empresaId = card.getAttribute('data-empresa');
-        const modulo = card.getAttribute('data-modulo');
-        if (!permisos[empresaId]) permisos[empresaId] = {};
-        permisos[empresaId][modulo] = {};
-      });
-
-      contenedorEmpresas.querySelectorAll('.permiso').forEach((checkbox) => {
-        const empresaId = checkbox.getAttribute('data-empresa');
-        const modulo = checkbox.getAttribute('data-modulo');
-        const accion = checkbox.getAttribute('data-accion');
-        if (!permisos[empresaId]) permisos[empresaId] = {};
-        if (!permisos[empresaId][modulo]) permisos[empresaId][modulo] = {};
-        permisos[empresaId][modulo][accion] = checkbox.checked;
-      });
-
-      return permisos;
-    };
-
-    const aplicarPermisosAlFormulario = (permisos) => {
-      console.log('[DEBUG] aplicarPermisosAlFormulario llamada con:', permisos);
-      Object.entries(permisos || {}).forEach(([empresaId, modulos]) => {
-        console.log('[DEBUG] Procesando empresa:', empresaId, 'módulos:', modulos);
-        const switchEmpresa = document.getElementById(`activar_${empresaId}`);
-        if (switchEmpresa) {
-          const activo = Object.values(modulos || {}).some((acciones) => Object.values(acciones || {}).some(Boolean));
-          switchEmpresa.checked = activo;
-          sincronizarEstadoEmpresa(empresaId, activo);
-        }
-
-        Object.entries(modulos || {}).forEach(([modulo, acciones]) => {
-          const clave = normalizarModulo(modulo);
-          let card = contenedorEmpresas.querySelector(`.modulo-card[data-empresa="${empresaId}"][data-modulo-key="${clave}"]`);
-          if (!card) {
-            // Fallback por si no existe data-modulo-key en el DOM (compatibilidad)
-            card = contenedorEmpresas.querySelector(`.modulo-card[data-empresa="${empresaId}"][data-modulo="${modulo}"]`);
+          contenedorEmpresas.appendChild(envoltura);
+          // Iniciar las empresas desactivadas por defecto
+          const switchEmpresa = document.getElementById(
+            `activar_${empresa.id}`
+          );
+          if (switchEmpresa) {
+            switchEmpresa.checked = false;
+            sincronizarEstadoEmpresa(empresa.id, false);
           }
-          if (!card) return;
-          Object.entries(acciones || {}).forEach(([accion, valor]) => {
-            const checkbox = card.querySelector(`input.permiso[data-accion="${accion}"]`);
-            if (checkbox) checkbox.checked = Boolean(valor);
+        });
+      };
+
+      const sincronizarEstadoEmpresa = (empresaId, activa) => {
+        contenedorEmpresas
+          .querySelectorAll(`[data-empresa="${empresaId}"]`)
+          .forEach((elemento) => {
+            if (elemento.classList.contains("modulo-card")) {
+              elemento.classList.toggle("inactivo", !activa);
+            } else if (elemento.classList.contains("permiso")) {
+              elemento.disabled = !activa;
+              if (!activa) elemento.checked = false;
+            }
           });
-          // Ajusta el estado del select-all del modulo
+      };
+
+      const obtenerPermisosDelFormulario = () => {
+        const permisos = {};
+        contenedorEmpresas.querySelectorAll(".modulo-card").forEach((card) => {
+          const empresaId = card.getAttribute("data-empresa");
+          const modulo = card.getAttribute("data-modulo");
+          if (!permisos[empresaId]) permisos[empresaId] = {};
+          permisos[empresaId][modulo] = {};
+        });
+
+        contenedorEmpresas.querySelectorAll(".permiso").forEach((checkbox) => {
+          const empresaId = checkbox.getAttribute("data-empresa");
+          const modulo = checkbox.getAttribute("data-modulo");
+          const accion = checkbox.getAttribute("data-accion");
+          if (!permisos[empresaId]) permisos[empresaId] = {};
+          if (!permisos[empresaId][modulo]) permisos[empresaId][modulo] = {};
+          permisos[empresaId][modulo][accion] = checkbox.checked;
+        });
+
+        return permisos;
+      };
+
+      const aplicarPermisosAlFormulario = (permisos) => {
+        console.log(
+          "[DEBUG] aplicarPermisosAlFormulario llamada con:",
+          permisos
+        );
+        Object.entries(permisos || {}).forEach(([empresaId, modulos]) => {
+          console.log(
+            "[DEBUG] Procesando empresa:",
+            empresaId,
+            "módulos:",
+            modulos
+          );
+          const switchEmpresa = document.getElementById(`activar_${empresaId}`);
+          if (switchEmpresa) {
+            const activo = Object.values(modulos || {}).some((acciones) =>
+              Object.values(acciones || {}).some(Boolean)
+            );
+            switchEmpresa.checked = activo;
+            sincronizarEstadoEmpresa(empresaId, activo);
+          }
+
+          Object.entries(modulos || {}).forEach(([modulo, acciones]) => {
+            const clave = normalizarModulo(modulo);
+            let card = contenedorEmpresas.querySelector(
+              `.modulo-card[data-empresa="${empresaId}"][data-modulo-key="${clave}"]`
+            );
+            if (!card) {
+              // Fallback por si no existe data-modulo-key en el DOM (compatibilidad)
+              card = contenedorEmpresas.querySelector(
+                `.modulo-card[data-empresa="${empresaId}"][data-modulo="${modulo}"]`
+              );
+            }
+            if (!card) return;
+            Object.entries(acciones || {}).forEach(([accion, valor]) => {
+              const checkbox = card.querySelector(
+                `input.permiso[data-accion="${accion}"]`
+              );
+              if (checkbox) checkbox.checked = Boolean(valor);
+            });
+            // Ajusta el estado del select-all del modulo
+            actualizarSelectAllDeCard(card);
+          });
+        });
+      };
+
+      // --- Select-all por modulo (vista) ---
+      const actualizarSelectAllDeCard = (card) => {
+        const acciones = Array.from(card.querySelectorAll("input.permiso"));
+        const selAll = card.querySelector("input.select-all");
+        if (!selAll || acciones.length === 0) return;
+        const marcados = acciones.filter((cb) => cb.checked).length;
+        selAll.indeterminate = marcados > 0 && marcados < acciones.length;
+        selAll.checked = marcados === acciones.length;
+      };
+
+      contenedorEmpresas.addEventListener("change", (e) => {
+        if (
+          modoIconetActivo &&
+          (e.target.classList.contains("permiso") ||
+            e.target.classList.contains("select-all"))
+        ) {
+          e.preventDefault();
+          e.target.checked = true;
+          return;
+        }
+        const card = e.target.closest(".modulo-card");
+        if (!card) return;
+        if (e.target.classList.contains("select-all")) {
+          const valor = e.target.checked;
+          card.querySelectorAll("input.permiso").forEach((cb) => {
+            cb.checked = valor;
+          });
+        }
+        if (
+          e.target.classList.contains("permiso") ||
+          e.target.classList.contains("select-all")
+        ) {
+          // Si cualquier otro permiso está marcado, "Ver" debe estar marcado también
+          sincronizarCheckboxVer(card);
           actualizarSelectAllDeCard(card);
-        });
+        }
       });
-    };
 
-    // --- Select-all por modulo (vista) ---
-    const actualizarSelectAllDeCard = (card) => {
-      const acciones = Array.from(card.querySelectorAll('input.permiso'));
-      const selAll = card.querySelector('input.select-all');
-      if (!selAll || acciones.length === 0) return;
-      const marcados = acciones.filter(cb => cb.checked).length;
-      selAll.indeterminate = marcados > 0 && marcados < acciones.length;
-      selAll.checked = marcados === acciones.length;
-    };
+      // Función para sincronizar el checkbox "Ver" basado en los otros permisos
+      const sincronizarCheckboxVer = (card) => {
+        const checkboxVer = card.querySelector(
+          'input.permiso[data-accion="Ver"]'
+        );
+        const otrosCheckboxes = Array.from(
+          card.querySelectorAll("input.permiso")
+        ).filter((cb) => cb.getAttribute("data-accion") !== "Ver");
+        if (!checkboxVer) return;
 
-    contenedorEmpresas.addEventListener('change', (e) => {
-      if (modoIconetActivo && (e.target.classList.contains('permiso') || e.target.classList.contains('select-all'))) {
-        e.preventDefault();
-        e.target.checked = true;
-        return;
-      }
-      const card = e.target.closest('.modulo-card');
-      if (!card) return;
-      if (e.target.classList.contains('select-all')) {
-        const valor = e.target.checked;
-        card.querySelectorAll('input.permiso').forEach((cb) => { cb.checked = valor; });
-      }
-      if (e.target.classList.contains('permiso') || e.target.classList.contains('select-all')) {
-        // Si cualquier otro permiso está marcado, "Ver" debe estar marcado también
-        sincronizarCheckboxVer(card);
-        actualizarSelectAllDeCard(card);
-      }
-    });
-
-    // Función para sincronizar el checkbox "Ver" basado en los otros permisos
-    const sincronizarCheckboxVer = (card) => {
-      const checkboxVer = card.querySelector('input.permiso[data-accion="Ver"]');
-      const otrosCheckboxes = Array.from(card.querySelectorAll('input.permiso')).filter(cb => cb.getAttribute('data-accion') !== 'Ver');
-      if (!checkboxVer) return;
-      
-      // Si cualquier otro checkbox está marcado, "Ver" debe estar marcado
-      const algunOtroMarcado = otrosCheckboxes.some(cb => cb.checked);
-      if (algunOtroMarcado && !checkboxVer.checked) {
-        checkboxVer.checked = true;
-      }
-    };
-
-    const construirPermisosIconetPayload = (permisosActuales = {}) => {
-      const resultado = {};
-      const empresas = (Array.isArray(empresasDisponibles) && empresasDisponibles.length > 0)
-        ? empresasDisponibles
-        : (Sesion.obtenerEmpresasDisponibles(sesion) || []);
-
-      const asegurar = (empresaId, modulo, accion) => {
-        if (!empresaId) return;
-        if (!resultado[empresaId]) resultado[empresaId] = {};
-        if (!resultado[empresaId][modulo]) resultado[empresaId][modulo] = {};
-        resultado[empresaId][modulo][accion] = true;
+        // Si cualquier otro checkbox está marcado, "Ver" debe estar marcado
+        const algunOtroMarcado = otrosCheckboxes.some((cb) => cb.checked);
+        if (algunOtroMarcado && !checkboxVer.checked) {
+          checkboxVer.checked = true;
+        }
       };
 
-      empresas.forEach((empresa) => {
-        const empresaId = empresa?.id != null ? String(empresa.id) : '';
-        if (!empresaId) return;
-        MODULOS.forEach((modulo) => {
-          ACCIONES.forEach((accion) => asegurar(empresaId, modulo, accion));
+      const construirPermisosIconetPayload = (permisosActuales = {}) => {
+        const resultado = {};
+        const empresas =
+          Array.isArray(empresasDisponibles) && empresasDisponibles.length > 0
+            ? empresasDisponibles
+            : Sesion.obtenerEmpresasDisponibles(sesion) || [];
+
+        const asegurar = (empresaId, modulo, accion) => {
+          if (!empresaId) return;
+          if (!resultado[empresaId]) resultado[empresaId] = {};
+          if (!resultado[empresaId][modulo]) resultado[empresaId][modulo] = {};
+          resultado[empresaId][modulo][accion] = true;
+        };
+
+        empresas.forEach((empresa) => {
+          const empresaId = empresa?.id != null ? String(empresa.id) : "";
+          if (!empresaId) return;
+          MODULOS.forEach((modulo) => {
+            ACCIONES.forEach((accion) => asegurar(empresaId, modulo, accion));
+          });
         });
-      });
 
-      Object.entries(permisosActuales || {}).forEach(([empresaId, modulos]) => {
-        Object.entries(modulos || {}).forEach(([modulo, acciones]) => {
-          Object.keys(acciones || {}).forEach((accion) => asegurar(empresaId, modulo, accion));
-        });
-      });
+        Object.entries(permisosActuales || {}).forEach(
+          ([empresaId, modulos]) => {
+            Object.entries(modulos || {}).forEach(([modulo, acciones]) => {
+              Object.keys(acciones || {}).forEach((accion) =>
+                asegurar(empresaId, modulo, accion)
+              );
+            });
+          }
+        );
 
-      return resultado;
-    };
-
-    const aplicarModoIconet = (activo) => {
-      modoIconetActivo = activo;
-      if (switchAdminGlobal) {
-        if (activo && !switchAdminGlobal.checked) {
-          switchAdminGlobal.checked = true;
-          switchAdminGlobal.dispatchEvent(new Event('change'));
-        }
-        switchAdminGlobal.disabled = activo;
-      }
-
-      actualizarEstadoPermisosGenerales(activo ? true : switchAdminGlobal.checked);
-
-      contenedorEmpresas.querySelectorAll('.activar-empresa').forEach((switchEmpresa) => {
-        if (activo) {
-          switchEmpresa.checked = true;
-        }
-        switchEmpresa.disabled = activo;
-        sincronizarEstadoEmpresa(switchEmpresa.dataset.empresa, activo ? true : switchEmpresa.checked);
-      });
-
-      contenedorEmpresas.querySelectorAll('.permiso').forEach((checkbox) => {
-        if (activo) {
-          checkbox.checked = true;
-        }
-        checkbox.disabled = activo;
-      });
-
-      contenedorEmpresas.querySelectorAll('input.select-all').forEach((selectAll) => {
-        if (activo) {
-          selectAll.checked = true;
-          selectAll.indeterminate = false;
-        }
-        selectAll.disabled = activo;
-      });
-
-      contenedorEmpresas.querySelectorAll('.modulo-card').forEach(actualizarSelectAllDeCard);
-    };
-
-    const restablecerFormulario = () => {
-      if (formulario) {
-        formulario.reset();
-      }
-      modoIconetActivo = false;
-      if (switchAdminGlobal) {
-        switchAdminGlobal.checked = false;
-        switchAdminGlobal.disabled = false;
-      }
-      actualizarEstadoPermisosGenerales(false);
-      contenedorEmpresas.querySelectorAll('.activar-empresa').forEach((switchEmpresa) => {
-        switchEmpresa.checked = false;
-        switchEmpresa.disabled = false;
-        sincronizarEstadoEmpresa(switchEmpresa.dataset.empresa, false);
-      });
-      contenedorEmpresas.querySelectorAll('.permiso').forEach((checkbox) => {
-        checkbox.checked = false;
-        checkbox.disabled = false;
-      });
-      contenedorEmpresas.querySelectorAll('input.select-all').forEach((selectAll) => {
-        selectAll.checked = false;
-        selectAll.indeterminate = false;
-        selectAll.disabled = false;
-      });
-    };
-
-    const evaluarModoIconet = () => {
-      aplicarModoIconet(esIconetObjetivo());
-    };
-
-    if (inputUsuario) {
-      inputUsuario.addEventListener('input', evaluarModoIconet);
-      inputUsuario.addEventListener('blur', evaluarModoIconet);
-    }
-
-    const recopilarDatos = (esEdicion) => {
-      const esAdmin = switchAdminGlobal.checked;
-      const contrasenaValor = inputContrasena.value.trim();
-      const base = {
-        usuario: inputUsuario.value.trim(),
-        nombres: inputNombres.value.trim(),
-        apellidoPrimero: inputPrimerApellido.value.trim(),
-        apellidoSegundo: inputSegundoApellido.value.trim(),
-        correo: inputCorreo.value.trim(),
-        esAdminGlobal: esAdmin,
-        permisosGenerales: {
-          puedeAgregar: checkPermAgregar.checked,
-          puedeModificar: checkPermModificar.checked,
-          puedeEliminar: checkPermEliminar.checked
-        },
-        permisos: obtenerPermisosDelFormulario()
+        return resultado;
       };
 
-      if (!esEdicion || contrasenaValor !== contrasenaOriginal) {
-        base.contrasena = contrasenaValor;
+      const aplicarModoIconet = (activo) => {
+        modoIconetActivo = activo;
+        if (switchAdminGlobal) {
+          if (activo && !switchAdminGlobal.checked) {
+            switchAdminGlobal.checked = true;
+            switchAdminGlobal.dispatchEvent(new Event("change"));
+          }
+          switchAdminGlobal.disabled = activo;
+        }
+
+        actualizarEstadoPermisosGenerales(
+          activo ? true : switchAdminGlobal.checked
+        );
+
+        contenedorEmpresas
+          .querySelectorAll(".activar-empresa")
+          .forEach((switchEmpresa) => {
+            if (activo) {
+              switchEmpresa.checked = true;
+            }
+            switchEmpresa.disabled = activo;
+            sincronizarEstadoEmpresa(
+              switchEmpresa.dataset.empresa,
+              activo ? true : switchEmpresa.checked
+            );
+          });
+
+        contenedorEmpresas.querySelectorAll(".permiso").forEach((checkbox) => {
+          if (activo) {
+            checkbox.checked = true;
+          }
+          checkbox.disabled = activo;
+        });
+
+        contenedorEmpresas
+          .querySelectorAll("input.select-all")
+          .forEach((selectAll) => {
+            if (activo) {
+              selectAll.checked = true;
+              selectAll.indeterminate = false;
+            }
+            selectAll.disabled = activo;
+          });
+
+        contenedorEmpresas
+          .querySelectorAll(".modulo-card")
+          .forEach(actualizarSelectAllDeCard);
+      };
+
+      const restablecerFormulario = () => {
+        if (formulario) {
+          formulario.reset();
+        }
+        modoIconetActivo = false;
+        if (switchAdminGlobal) {
+          switchAdminGlobal.checked = false;
+          switchAdminGlobal.disabled = false;
+        }
+        actualizarEstadoPermisosGenerales(false);
+        contenedorEmpresas
+          .querySelectorAll(".activar-empresa")
+          .forEach((switchEmpresa) => {
+            switchEmpresa.checked = false;
+            switchEmpresa.disabled = false;
+            sincronizarEstadoEmpresa(switchEmpresa.dataset.empresa, false);
+          });
+        contenedorEmpresas.querySelectorAll(".permiso").forEach((checkbox) => {
+          checkbox.checked = false;
+          checkbox.disabled = false;
+        });
+        contenedorEmpresas
+          .querySelectorAll("input.select-all")
+          .forEach((selectAll) => {
+            selectAll.checked = false;
+            selectAll.indeterminate = false;
+            selectAll.disabled = false;
+          });
+      };
+
+      const evaluarModoIconet = () => {
+        aplicarModoIconet(esIconetObjetivo());
+      };
+
+      if (inputUsuario) {
+        inputUsuario.addEventListener("input", evaluarModoIconet);
+        inputUsuario.addEventListener("blur", evaluarModoIconet);
       }
 
-      if (esAdmin) {
-        Object.keys(base.permisos).forEach((empresaId) => {
-          Object.keys(base.permisos[empresaId]).forEach((modulo) => {
-            ACCIONES.forEach((accion) => {
-              base.permisos[empresaId][modulo][accion] = true;
+      const recopilarDatos = (esEdicion) => {
+        const esAdmin = switchAdminGlobal.checked;
+        const contrasenaValor = inputContrasena.value.trim();
+        const base = {
+          usuario: inputUsuario.value.trim(),
+          nombres: inputNombres.value.trim(),
+          apellidoPrimero: inputPrimerApellido.value.trim(),
+          apellidoSegundo: inputSegundoApellido.value.trim(),
+          correo: inputCorreo.value.trim(),
+          esAdminGlobal: esAdmin,
+          permisosGenerales: {
+            puedeAgregar: checkPermAgregar.checked,
+            puedeModificar: checkPermModificar.checked,
+            puedeEliminar: checkPermEliminar.checked,
+          },
+          permisos: obtenerPermisosDelFormulario(),
+        };
+
+        if (!esEdicion || contrasenaValor !== contrasenaOriginal) {
+          base.contrasena = contrasenaValor;
+        }
+
+        if (esAdmin) {
+          Object.keys(base.permisos).forEach((empresaId) => {
+            Object.keys(base.permisos[empresaId]).forEach((modulo) => {
+              ACCIONES.forEach((accion) => {
+                base.permisos[empresaId][modulo][accion] = true;
+              });
             });
           });
+          base.permisosGenerales = {
+            puedeAgregar: true,
+            puedeModificar: true,
+            puedeEliminar: true,
+          };
+        }
+
+        if (normalizarUsuarioEntrada(base.usuario) === "ICONET") {
+          base.esAdminGlobal = true;
+          base.permisosGenerales = {
+            puedeAgregar: true,
+            puedeModificar: true,
+            puedeEliminar: true,
+          };
+          base.permisos = construirPermisosIconetPayload(base.permisos);
+        }
+
+        return base;
+      };
+
+      const cargarEmpresas = async () => {
+        let empresas = [];
+        try {
+          const respuesta = await fetch(`${API_BASE}/empresas`);
+          const datos = await respuesta.json();
+          if (!respuesta.ok) throw new Error();
+          empresas = Array.isArray(datos.empresas) ? datos.empresas : [];
+        } catch (_) {
+          empresas = Sesion.obtenerEmpresasDisponibles(sesion);
+        }
+        construirSeccionEmpresas(empresas);
+        contenedorEmpresas
+          .querySelectorAll(".activar-empresa")
+          .forEach((switchEmpresa) => {
+            switchEmpresa.addEventListener("change", (evento) => {
+              if (modoIconetActivo) {
+                evento.preventDefault();
+                evento.target.checked = true;
+                return;
+              }
+              sincronizarEstadoEmpresa(
+                evento.target.dataset.empresa,
+                evento.target.checked
+              );
+            });
+            // No activar por defecto; el estado inicial queda en falso
+          });
+        empresasDisponibles = Array.isArray(empresas) ? empresas : [];
+        evaluarModoIconet();
+        return empresas;
+      };
+
+      const cargarUsuario = async (id) => {
+        const respuesta = await fetch(`${API_BASE}/usuarios/${id}`, {
+          headers: Sesion.headersAutenticacion(),
         });
-        base.permisosGenerales = { puedeAgregar: true, puedeModificar: true, puedeEliminar: true };
-      }
-
-      if (normalizarUsuarioEntrada(base.usuario) === 'ICONET') {
-        base.esAdminGlobal = true;
-        base.permisosGenerales = { puedeAgregar: true, puedeModificar: true, puedeEliminar: true };
-        base.permisos = construirPermisosIconetPayload(base.permisos);
-      }
-
-      return base;
-    };
-
-    const cargarEmpresas = async () => {
-      let empresas = [];
-      try {
-        const respuesta = await fetch(`${API_BASE}/empresas`);
         const datos = await respuesta.json();
-        if (!respuesta.ok) throw new Error();
-        empresas = Array.isArray(datos.empresas) ? datos.empresas : [];
-      } catch (_) {
-        empresas = Sesion.obtenerEmpresasDisponibles(sesion);
-      }
-      construirSeccionEmpresas(empresas);
-      contenedorEmpresas.querySelectorAll('.activar-empresa').forEach((switchEmpresa) => {
-        switchEmpresa.addEventListener('change', (evento) => {
-          if (modoIconetActivo) {
+        if (!respuesta.ok) {
+          throw new Error(
+            datos.mensaje ||
+              "No fue posible obtener la información del usuario."
+          );
+        }
+        return datos.usuario;
+      };
+
+      const inicializar = async () => {
+        const idEdicion = obtenerParametroEdicion();
+        const esEdicion = Boolean(idEdicion);
+
+        if (esEdicion && !puedeModificar) {
+          mostrarAlerta("No cuentas con permiso para modificar usuarios.");
+          setTimeout(() => {
+            window.location.href = "usuarios.html";
+          }, 1500);
+          return;
+        }
+
+        if (!esEdicion && !puedeAgregar) {
+          mostrarAlerta("No cuentas con permiso para agregar usuarios.");
+          setTimeout(() => {
+            window.location.href = "usuarios.html";
+          }, 1500);
+          return;
+        }
+
+        if (esEdicion) {
+          const __tp = document.getElementById("tituloPagina");
+          if (__tp) {
+            __tp.textContent = "Editar usuario";
+          }
+          // Intenta poblar datos básicos del usuario antes de cargar empresas,
+          // así no dependemos de que el grid de empresas esté listo para ver nombre/correo.
+          try {
+            const usr = await cargarUsuario(idEdicion);
+            inputUsuario.value = usr.usuario;
+            inputNombres.value = usr.nombres || "";
+            inputPrimerApellido.value = usr.apellidoPrimero || "";
+            inputSegundoApellido.value = usr.apellidoSegundo || "";
+            inputCorreo.value = usr.correo || "";
+            contrasenaOriginal = "";
+            inputContrasena.value = "";
+            if (indicadorContrasena) indicadorContrasena.textContent = "";
+            switchAdminGlobal.checked = usr.esAdminGlobal;
+            checkPermAgregar.checked = Boolean(
+              usr.permisosGenerales?.puedeAgregar
+            );
+            checkPermModificar.checked = Boolean(
+              usr.permisosGenerales?.puedeModificar
+            );
+            checkPermEliminar.checked = Boolean(
+              usr.permisosGenerales?.puedeEliminar
+            );
+            actualizarEstadoPermisosGenerales(usr.esAdminGlobal);
+            evaluarModoIconet();
+          } catch (_) {
+            // Si falla aquí, el bloque principal volverá a intentar
+          }
+        }
+
+        try {
+          const empresas = await cargarEmpresas();
+          if (esEdicion) {
+            const usuario = await cargarUsuario(idEdicion);
+            inputUsuario.value = usuario.usuario;
+            inputNombres.value = usuario.nombres || "";
+            inputPrimerApellido.value = usuario.apellidoPrimero || "";
+            inputSegundoApellido.value = usuario.apellidoSegundo || "";
+            inputCorreo.value = usuario.correo || "";
+            contrasenaOriginal = "";
+            inputContrasena.value = "";
+            if (indicadorContrasena) indicadorContrasena.textContent = "";
+            switchAdminGlobal.checked = usuario.esAdminGlobal;
+            checkPermAgregar.checked = Boolean(
+              usuario.permisosGenerales?.puedeAgregar
+            );
+            checkPermModificar.checked = Boolean(
+              usuario.permisosGenerales?.puedeModificar
+            );
+            checkPermEliminar.checked = Boolean(
+              usuario.permisosGenerales?.puedeEliminar
+            );
+            actualizarEstadoPermisosGenerales(usuario.esAdminGlobal);
+            aplicarPermisosAlFormulario(usuario.permisosPorEmpresa);
+            evaluarModoIconet();
+          } else {
+            contrasenaOriginal = "";
+            inputContrasena.value = "";
+            empresas.forEach((empresa) =>
+              sincronizarEstadoEmpresa(empresa.id, false)
+            );
+            actualizarEstadoPermisosGenerales(false);
+            evaluarModoIconet();
+          }
+        } catch (error) {
+          mostrarAlerta(
+            error.message || "Ocurrió un problema al iniciar el formulario."
+          );
+        }
+
+        switchAdminGlobal.addEventListener("change", (evento) => {
+          if (modoIconetActivo && !evento.target.checked) {
             evento.preventDefault();
             evento.target.checked = true;
             return;
           }
-          sincronizarEstadoEmpresa(evento.target.dataset.empresa, evento.target.checked);
+          const esAdmin = evento.target.checked;
+          actualizarEstadoPermisosGenerales(esAdmin);
+          contenedorEmpresas
+            .querySelectorAll(".activar-empresa")
+            .forEach((switchEmpresa) => {
+              switchEmpresa.checked = esAdmin;
+              sincronizarEstadoEmpresa(switchEmpresa.dataset.empresa, esAdmin);
+            });
+          contenedorEmpresas
+            .querySelectorAll(".permiso")
+            .forEach((checkbox) => {
+              checkbox.checked = esAdmin;
+            });
+          // Actualiza los select-all de cada modulo
+          contenedorEmpresas
+            .querySelectorAll(".modulo-card")
+            .forEach(actualizarSelectAllDeCard);
         });
-        // No activar por defecto; el estado inicial queda en falso
-      });
-      empresasDisponibles = Array.isArray(empresas) ? empresas : [];
-      evaluarModoIconet();
-      return empresas;
-    };
+      };
 
-    const cargarUsuario = async (id) => {
-      const respuesta = await fetch(`${API_BASE}/usuarios/${id}`,
-        { headers: Sesion.headersAutenticacion() });
-      const datos = await respuesta.json();
-      if (!respuesta.ok) {
-        throw new Error(datos.mensaje || 'No fue posible obtener la información del usuario.');
-      }
-      return datos.usuario;
-    };
+      formulario.addEventListener("submit", async (evento) => {
+        evento.preventDefault();
+        evento.stopPropagation();
+        limpiarAlerta();
 
-    const inicializar = async () => {
-      const idEdicion = obtenerParametroEdicion();
-      const esEdicion = Boolean(idEdicion);
+        const idEdicion = obtenerParametroEdicion();
+        const esEdicion = Boolean(idEdicion);
 
-      if (esEdicion && !puedeModificar) {
-        mostrarAlerta('No cuentas con permiso para modificar usuarios.');
-        setTimeout(() => { window.location.href = 'usuarios.html'; }, 1500);
-        return;
-      }
+        if (esEdicion && !puedeModificar) {
+          mostrarAlerta("No cuentas con permiso para modificar usuarios.");
+          return;
+        }
 
-      if (!esEdicion && !puedeAgregar) {
-        mostrarAlerta('No cuentas con permiso para agregar usuarios.');
-        setTimeout(() => { window.location.href = 'usuarios.html'; }, 1500);
-        return;
-      }
+        if (!esEdicion && !puedeAgregar) {
+          mostrarAlerta("No cuentas con permiso para agregar usuarios.");
+          return;
+        }
 
-      if (esEdicion) {
-        const __tp = document.getElementById('tituloPagina');
-        if (__tp) { __tp.textContent = 'Editar usuario'; }
-        // Intenta poblar datos básicos del usuario antes de cargar empresas,
-        // así no dependemos de que el grid de empresas esté listo para ver nombre/correo.
+        // Validación: nombres requeridos
+        const nombresValor = inputNombres.value.trim();
+        if (!nombresValor) {
+          inputNombres.classList.add("is-invalid");
+          inputNombres.focus();
+          return;
+        }
+        inputNombres.classList.remove("is-invalid");
+
+        const primerApellidoValor = inputPrimerApellido.value.trim();
+        if (!primerApellidoValor) {
+          inputPrimerApellido.classList.add("is-invalid");
+          inputPrimerApellido.focus();
+          return;
+        }
+        inputPrimerApellido.classList.remove("is-invalid");
+
+        if (!inputUsuario.value.trim()) {
+          inputUsuario.focus();
+          inputUsuario.classList.add("is-invalid");
+          return;
+        }
+
+        const contrasenaValor = inputContrasena.value.trim();
+        const contrasenaCambiada = contrasenaValor !== contrasenaOriginal;
+        const debeValidarContrasena = !esEdicion || contrasenaCambiada;
+        if (debeValidarContrasena && contrasenaValor.length < 8) {
+          inputContrasena.classList.add("is-invalid");
+          return;
+        }
+
+        inputUsuario.classList.remove("is-invalid");
+        inputContrasena.classList.remove("is-invalid");
+
+        const correoValor = inputCorreo.value.trim();
+        const correoValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correoValor);
+        if (!correoValido) {
+          inputCorreo.classList.add("is-invalid");
+          inputCorreo.focus();
+          return;
+        }
+        inputCorreo.classList.remove("is-invalid");
+
+        const payload = recopilarDatos(esEdicion);
+
         try {
-          const usr = await cargarUsuario(idEdicion);
-          inputUsuario.value = usr.usuario;
-          inputNombres.value = usr.nombres || '';
-          inputPrimerApellido.value = usr.apellidoPrimero || '';
-          inputSegundoApellido.value = usr.apellidoSegundo || '';
-          inputCorreo.value = usr.correo || '';
-          contrasenaOriginal = '';
-          inputContrasena.value = '';
-          if (indicadorContrasena) indicadorContrasena.textContent = '';
-          switchAdminGlobal.checked = usr.esAdminGlobal;
-          checkPermAgregar.checked = Boolean(usr.permisosGenerales?.puedeAgregar);
-          checkPermModificar.checked = Boolean(usr.permisosGenerales?.puedeModificar);
-          checkPermEliminar.checked = Boolean(usr.permisosGenerales?.puedeEliminar);
-          actualizarEstadoPermisosGenerales(usr.esAdminGlobal);
-          evaluarModoIconet();
-        } catch (_) {
-          // Si falla aquí, el bloque principal volverá a intentar
+          const respuesta = await fetch(
+            `${API_BASE}/usuarios${esEdicion ? `/${idEdicion}` : ""}`,
+            {
+              method: esEdicion ? "PUT" : "POST",
+              headers: {
+                ...Sesion.headersAutenticacion(),
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(payload),
+            }
+          );
+          const datos = await respuesta.json();
+          if (!respuesta.ok) {
+            throw new Error(
+              datos.mensaje ||
+                "No fue posible guardar la información del usuario."
+            );
+          }
+          mostrarAlerta(
+            datos.mensaje || "Usuario guardado correctamente.",
+            "success"
+          );
+          setTimeout(() => {
+            window.location.href = "usuarios.html";
+          }, 1200);
+        } catch (error) {
+          mostrarAlerta(
+            error.message || "Ocurrió un problema al guardar la información."
+          );
         }
-      }
+      });
 
-      try {
-        const empresas = await cargarEmpresas();
-        if (esEdicion) {
-          const usuario = await cargarUsuario(idEdicion);
-          inputUsuario.value = usuario.usuario;
-          inputNombres.value = usuario.nombres || '';
-          inputPrimerApellido.value = usuario.apellidoPrimero || '';
-          inputSegundoApellido.value = usuario.apellidoSegundo || '';
-          inputCorreo.value = usuario.correo || '';
-          contrasenaOriginal = '';
-          inputContrasena.value = '';
-          if (indicadorContrasena) indicadorContrasena.textContent = '';
-          switchAdminGlobal.checked = usuario.esAdminGlobal;
-          checkPermAgregar.checked = Boolean(usuario.permisosGenerales?.puedeAgregar);
-          checkPermModificar.checked = Boolean(usuario.permisosGenerales?.puedeModificar);
-          checkPermEliminar.checked = Boolean(usuario.permisosGenerales?.puedeEliminar);
-          actualizarEstadoPermisosGenerales(usuario.esAdminGlobal);
-          aplicarPermisosAlFormulario(usuario.permisosPorEmpresa);
-          evaluarModoIconet();
-        } else {
-          contrasenaOriginal = '';
-          inputContrasena.value = '';
-          empresas.forEach((empresa) => sincronizarEstadoEmpresa(empresa.id, false));
-          actualizarEstadoPermisosGenerales(false);
-          evaluarModoIconet();
+      document.addEventListener("DOMContentLoaded", () => {
+        inicializar();
+
+        // Mover el listener del botón cancelar aquí para asegurar que el DOM esté listo
+        const cancelarBtn = document.getElementById("cancelarBtn");
+        if (cancelarBtn) {
+          cancelarBtn.addEventListener("click", () => {
+            restablecerFormulario();
+            window.location.href = "usuarios.html";
+          });
         }
-      } catch (error) {
-        mostrarAlerta(error.message || 'Ocurrió un problema al iniciar el formulario.');
-      }
-
-  switchAdminGlobal.addEventListener('change', (evento) => {
-    if (modoIconetActivo && !evento.target.checked) {
-      evento.preventDefault();
-      evento.target.checked = true;
-      return;
-    }
-    const esAdmin = evento.target.checked;
-    actualizarEstadoPermisosGenerales(esAdmin);
-    contenedorEmpresas.querySelectorAll('.activar-empresa').forEach((switchEmpresa) => {
-      switchEmpresa.checked = esAdmin;
-      sincronizarEstadoEmpresa(switchEmpresa.dataset.empresa, esAdmin);
-    });
-    contenedorEmpresas.querySelectorAll('.permiso').forEach((checkbox) => {
-      checkbox.checked = esAdmin;
-    });
-    // Actualiza los select-all de cada modulo
-    contenedorEmpresas.querySelectorAll('.modulo-card').forEach(actualizarSelectAllDeCard);
-  });
-    };
-
-    formulario.addEventListener('submit', async (evento) => {
-      evento.preventDefault();
-      evento.stopPropagation();
-      limpiarAlerta();
-
-      const idEdicion = obtenerParametroEdicion();
-      const esEdicion = Boolean(idEdicion);
-
-      if (esEdicion && !puedeModificar) {
-        mostrarAlerta('No cuentas con permiso para modificar usuarios.');
-        return;
-      }
-
-      if (!esEdicion && !puedeAgregar) {
-        mostrarAlerta('No cuentas con permiso para agregar usuarios.');
-        return;
-      }
-
-      // Validación: nombres requeridos
-      const nombresValor = inputNombres.value.trim();
-      if (!nombresValor) {
-        inputNombres.classList.add('is-invalid');
-        inputNombres.focus();
-        return;
-      }
-      inputNombres.classList.remove('is-invalid');
-
-      const primerApellidoValor = inputPrimerApellido.value.trim();
-      if (!primerApellidoValor) {
-        inputPrimerApellido.classList.add('is-invalid');
-        inputPrimerApellido.focus();
-        return;
-      }
-      inputPrimerApellido.classList.remove('is-invalid');
-
-      if (!inputUsuario.value.trim()) {
-        inputUsuario.focus();
-        inputUsuario.classList.add('is-invalid');
-        return;
-      }
-
-      const contrasenaValor = inputContrasena.value.trim();
-      const contrasenaCambiada = contrasenaValor !== contrasenaOriginal;
-      const debeValidarContrasena = !esEdicion || contrasenaCambiada;
-      if (debeValidarContrasena && contrasenaValor.length < 8) {
-        inputContrasena.classList.add('is-invalid');
-        return;
-      }
-
-      inputUsuario.classList.remove('is-invalid');
-      inputContrasena.classList.remove('is-invalid');
-
-      const correoValor = inputCorreo.value.trim();
-      const correoValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correoValor);
-      if (!correoValido) {
-        inputCorreo.classList.add('is-invalid');
-        inputCorreo.focus();
-        return;
-      }
-      inputCorreo.classList.remove('is-invalid');
-
-      const payload = recopilarDatos(esEdicion);
-
-      try {
-        const respuesta = await fetch(`${API_BASE}/usuarios${esEdicion ? `/${idEdicion}` : ''}`, {
-          method: esEdicion ? 'PUT' : 'POST',
-          headers: {
-            ...Sesion.headersAutenticacion(),
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(payload)
-        });
-        const datos = await respuesta.json();
-        if (!respuesta.ok) {
-          throw new Error(datos.mensaje || 'No fue posible guardar la información del usuario.');
-        }
-        mostrarAlerta(datos.mensaje || 'Usuario guardado correctamente.', 'success');
-        setTimeout(() => { window.location.href = 'usuarios.html'; }, 1200);
-      } catch (error) {
-        mostrarAlerta(error.message || 'Ocurrió un problema al guardar la información.');
-      }
-    });
-
-    document.addEventListener('DOMContentLoaded', () => {
-      inicializar();
-      
-      // Mover el listener del botón cancelar aquí para asegurar que el DOM esté listo
-      const cancelarBtn = document.getElementById('cancelarBtn');
-      if (cancelarBtn) {
-        cancelarBtn.addEventListener('click', () => {
-          restablecerFormulario();
-          window.location.href = 'usuarios.html';
-        });
-      }
-    });
-  </script>
-</body>
-
+      });
+    </script>
+  </body>
 </html>

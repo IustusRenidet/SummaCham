@@ -392,6 +392,12 @@
             >
               Ocultar cuentas
             </button>
+            <button type="button" class="btn btn-outline-success btn-sm" id="btnExportExcel" title="Exportar a Excel">
+              <i class="bi bi-file-earmark-excel"></i> Excel
+            </button>
+            <button type="button" class="btn btn-outline-danger btn-sm" id="btnPrintPDF" title="Imprimir PDF">
+              <i class="bi bi-file-earmark-pdf"></i> PDF
+            </button>
           </div>
         </div>
       </div>
@@ -634,6 +640,18 @@
     }
   </script>
     <script src="js/comentarios-celdas.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <script src="js/export-utils.js"></script>
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('btnExportExcel')?.addEventListener('click', () => {
+          ExportUtils.exportarExcel({ tabla: '#tablaComparacion', nombreArchivo: 'Gastos_Generales', nombreHoja: 'Gastos_Generales' });
+        });
+        document.getElementById('btnPrintPDF')?.addEventListener('click', () => {
+          ExportUtils.imprimirPDF({ tabla: '#tablaComparacion', titulo: 'Gastos Generales' });
+        });
+      });
+    </script>
 </body>
 </html>
 

@@ -957,16 +957,6 @@
                     <span class="anio text-light" id="periodLabel">-</span>
                   </p>
                 </div>
-                <button
-                  class="workflow-toggle"
-                  type="button"
-                  data-bs-toggle="offcanvas"
-                  data-bs-target="#workflowDrawer"
-                  aria-controls="workflowDrawer"
-                  aria-label="Ver flujo de autorización"
-                >
-                  <i class="bi bi-list-task"></i>
-                </button>
               </div>
             </div>
           </div>
@@ -1122,89 +1112,10 @@
         </div>
       </div>
 
-      <div class="row mb-4">
+      <!-- Sección de Toolbar simplificada -->
+      <div class="row mb-3 d-none">
         <div class="col-12">
-          <div class="card table-card fade-in">
-            <div class="card-body p-3">
-              <div class="workflow-toolbar">
-                <div>
-                  <p class="text-muted fw-semibold mb-1">
-                    Estado del presupuesto
-                  </p>
-                  <div class="workflow-badge" id="workflowBadge">
-                    Sin cargar
-                  </div>
-                  <p class="workflow-meta mb-0" id="workflowMeta"></p>
-                </div>
-                <div class="toolbar-actions" role="group">
-                  <button
-                    type="button"
-                    class="btn btn-chip btn-chip-warning d-none"
-                    id="btnGuardarBorrador"
-                  >
-                    <i class="bi bi-upload"></i>
-                    <span>Cargar presupuesto</span>
-                  </button>
-                  <button
-                    type="button"
-                    class="btn btn-chip btn-chip-warning d-none"
-                    id="btnEnviarCambios"
-                  >
-                    <i class="bi bi-send"></i>
-                    <span>Enviar presupuesto</span>
-                  </button>
-                  <button
-                    type="button"
-                    class="btn btn-chip btn-outline-secondary d-none"
-                    id="btnCancelarEdicion"
-                  >
-                    <i class="bi bi-x-circle"></i>
-                    <span>Cancelar edición</span>
-                  </button>
-                  <button
-                    type="button"
-                    class="btn btn-chip btn-chip-info d-none"
-                    id="btnMarcarRevisado"
-                  >
-                    <i class="bi bi-clipboard-check"></i>
-                    <span>Marcar como revisado</span>
-                  </button>
-                  <button
-                    type="button"
-                    class="btn btn-chip btn-chip-success d-none"
-                    id="btnAutorizar"
-                  >
-                    <i class="bi bi-shield-check"></i>
-                    <span>Autorizar</span>
-                  </button>
-                  <button
-                    type="button"
-                    class="btn btn-chip btn-outline-danger d-none"
-                    id="btnRechazar"
-                  >
-                    <i class="bi bi-x-octagon"></i>
-                    <span>Rechazar</span>
-                  </button>
-                  <button
-                    type="button"
-                    class="btn btn-chip btn-outline-secondary d-none"
-                    id="btnVerBorrador"
-                  >
-                    <i class="bi bi-eye"></i>
-                    <span>Centro de borradores</span>
-                  </button>
-                  <button
-                    type="button"
-                    class="btn btn-chip btn-primario d-none"
-                    id="saveBudgetBtn"
-                  >
-                    <i class="bi bi-floppy2"></i>
-                    <span>Guardar en COI</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
+          <!-- Toolbar eliminado -->
         </div>
       </div>
 
@@ -1341,28 +1252,6 @@
       </div>
     </div>
 
-    <div
-      class="offcanvas offcanvas-end workflow-drawer"
-      tabindex="-1"
-      id="workflowDrawer"
-      aria-labelledby="workflowDrawerLabel"
-    >
-      <div class="offcanvas-header">
-        <h5 class="offcanvas-title" id="workflowDrawerLabel">
-          Flujo de autorización
-        </h5>
-        <button
-          type="button"
-          class="btn-close text-reset"
-          data-bs-dismiss="offcanvas"
-          aria-label="Cerrar"
-        ></button>
-      </div>
-      <div class="offcanvas-body">
-        <ul class="list-group list-group-flush" id="workflowHistory"></ul>
-      </div>
-    </div>
-
     <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1080">
       <div
         id="actionToast"
@@ -1393,7 +1282,6 @@
       crossorigin="anonymous"
     ></script>
     <script src="js/capitulos-modulos.js"></script>
-    <script src="js/flujo-autorizacion.js?v=20251208-1"></script>
     <script src="js/insertion-wizard.js"></script>
     <script src="js/context-menu-wizard.js"></script>
     <script src="js/modo-edicion-presupuesto.js"></script>
@@ -1417,41 +1305,9 @@
             }
           }
 
-          // 2. Inicializar FlujoAutorizacion para aprobar cambios de layout
-          if (typeof FlujoAutorizacion !== "undefined") {
-            const flujo = new FlujoAutorizacion({
-              tablaId: "tablaComparacion",
-              modulo: "RESUMEN",
-
-              // RESUMEN solo captura cambios de LAYOUT (cuenta/descripción)
-              obtenerCambios: () => {
-                const layout = ModoEdicionPresupuesto?.capturarLayout(
-                  document.querySelector(selectorTabla)
-                );
-
-                return {
-                  presupuesto: [], // RESUMEN no edita valores numéricos
-                  layout: layout,
-                  nombres: [],
-                  hayCambios:
-                    layout?.filas?.length > 0 &&
-                    ModoEdicionPresupuesto.layoutModificado,
-                };
-              },
-
-              obtenerHeaders: () =>
-                window.Sesion?.headersAutenticacion?.() || {},
-
-              onCancelEdit: () => {
-                // No hacer nada, el layout se guarda automáticamente
-              },
-            }).init();
-
-            window.__flujoAutorizacionInstance = flujo;
-            console.log(
-              "✅ FlujoAutorizacion inicializado para RESUMEN (solo layout)"
-            );
-          }
+          // 2. Modo edición en RESUMEN está deshabilitado visualmente por ahora
+          // ya que se requiere el flujo para guardar borradores de layout.
+          console.log("RESUMEN cargado sin flujo de autorización.");
         }, 300);
 
         // Toggle del menú de controles de zoom

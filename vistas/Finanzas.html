@@ -392,6 +392,12 @@
             >
               Ocultar cuentas
             </button>
+            <button type="button" class="btn btn-outline-success btn-sm" id="btnExportExcel" title="Exportar a Excel">
+              <i class="bi bi-file-earmark-excel"></i> Excel
+            </button>
+            <button type="button" class="btn btn-outline-danger btn-sm" id="btnPrintPDF" title="Imprimir PDF">
+              <i class="bi bi-file-earmark-pdf"></i> PDF
+            </button>
           </div>
         </div>
       </div>
@@ -634,6 +640,35 @@
     }
   </script>
     <script src="js/comentarios-celdas.js"></script>
+    <!-- Librería XLSX para exportar a Excel -->
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <script src="js/export-utils.js"></script>
+    <script>
+      // Inicializar botones de exportación
+      document.addEventListener('DOMContentLoaded', function() {
+        const btnExcel = document.getElementById('btnExportExcel');
+        const btnPDF = document.getElementById('btnPrintPDF');
+        
+        if (btnExcel && window.ExportUtils) {
+          btnExcel.addEventListener('click', function() {
+            ExportUtils.exportarExcel({
+              tabla: '#tablaComparacion',
+              nombreArchivo: 'Finanzas',
+              nombreHoja: 'Finanzas'
+            });
+          });
+        }
+        
+        if (btnPDF && window.ExportUtils) {
+          btnPDF.addEventListener('click', function() {
+            ExportUtils.imprimirPDF({
+              tabla: '#tablaComparacion',
+              titulo: 'Finanzas'
+            });
+          });
+        }
+      });
+    </script>
 </body>
 </html>
 

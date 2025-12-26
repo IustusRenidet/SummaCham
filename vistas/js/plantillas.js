@@ -57,14 +57,19 @@
     dom.btnGuardar = document.getElementById("btnGuardar");
     dom.btnAgregar = document.getElementById("btnAgregar");
     dom.btnCopiar = document.getElementById("btnCopiar");
-    dom.btnDemo = document.getElementById("btnDemo");
     dom.btnExpandir = document.getElementById("btnExpandir");
     dom.btnColapsar = document.getElementById("btnColapsar");
+    dom.btnPreview = document.getElementById("btnPreview");
+    dom.btnBitacora = document.getElementById("btnBitacora");
+    dom.btnGestionPermisos = document.getElementById("btnGestionPermisos");
 
     // Views
     dom.placeholderView = document.getElementById("placeholderView");
     dom.layoutView = document.getElementById("layoutView");
     dom.layoutPreview = document.getElementById("layoutPreview");
+    dom.adminPermissionsSection = document.getElementById(
+      "adminPermissionsSection"
+    );
 
     // Stats
     dom.statPrincipales = document.getElementById("statPrincipales");
@@ -82,10 +87,17 @@
     dom.modalAgregar = document.getElementById("modalAgregar");
     dom.modalCopiar = document.getElementById("modalCopiar");
     dom.modalEditar = document.getElementById("modalEditar");
+    dom.modalPreview = document.getElementById("modalPreview");
+    dom.modalPermisos = document.getElementById("modalPermisos");
+    dom.drawerBitacora = document.getElementById("drawerBitacora");
+
     dom.formElemento = document.getElementById("formElemento");
     dom.formEditar = document.getElementById("formEditar");
     dom.copiaOrigen = document.getElementById("copiaOrigen");
     dom.anioDestino = document.getElementById("anioDestino");
+    dom.previewContainer = document.getElementById("previewContainer");
+    dom.permisosUsuariosBody = document.getElementById("permisosUsuariosBody");
+    dom.bitacoraList = document.getElementById("bitacoraList");
 
     // Toast
     dom.toastNotification = document.getElementById("toastNotification");
@@ -103,9 +115,11 @@
     dom.btnGuardar.addEventListener("click", saveLayout);
     dom.btnAgregar.addEventListener("click", openAddModal);
     dom.btnCopiar.addEventListener("click", openCopyModal);
-    dom.btnDemo.addEventListener("click", createDemo);
     dom.btnExpandir?.addEventListener("click", expandAll);
     dom.btnColapsar?.addEventListener("click", collapseAll);
+    dom.btnPreview?.addEventListener("click", showPreview);
+    dom.btnBitacora?.addEventListener("click", showBitacora);
+    dom.btnGestionPermisos?.addEventListener("click", openPermisosModal);
 
     // Search
     dom.searchInput?.addEventListener("input", handleSearch);
@@ -140,12 +154,86 @@
     return {};
   }
 
-  function checkAuthState() {
-    // El gestor de plantillas siempre tiene modo edición activo
-    // ya que es una herramienta administrativa
-    state.editMode = true;
-    updateAuthUI(true, "Modo edición activo");
+  async function checkAuthState() {
+    const esAdminGlobal = window.Sesion?.esAdminGlobal?.() || false;
+    const usuarioId = window.Sesion?.obtenerUsuarioId?.();
+    const token = window.Sesion?.token;
+
+    if (!token) {
+      updateAuthUI(false, "Sesión no válida");
+      return;
+    }
+
+    if (esAdminGlobal) {
+      state.editMode = true;
+      state.esAdminGlobal = true;
+      updateAuthUI(true, "Administrador Global - Modo edición activo");
+      dom.adminPermissionsSection?.classList.remove("d-none");
+      dom.btnPreview?.classList.remove("d-none");
+      dom.btnBitacora?.classList.remove("d-none");
+    } else {
+      // Si no es admin global, verificar si tiene algún permiso de capítulo
+      const { capitulo } = state;
+      if (capitulo) {
+        // Optimización: Solo verificar si cambió el capítulo o el usuario
+        const tienePermiso = await verificarPermisoCapitulo(
+          usuarioId,
+          capitulo
+        );
+        state.editMode = tienePermiso;
+        state.esAdminGlobal = false;
+        updateAuthUI(
+          tienePermiso,
+          tienePermiso
+            ? `Editor de ${capitulo} - Edición activa`
+            : "Consulta - Sin permiso para editar este capítulo"
+        );
+      } else {
+        state.editMode = false;
+        updateAuthUI(false, "Selecciona un capítulo");
+      }
+      dom.adminPermissionsSection?.classList.add("d-none");
+
+      // Los editores también pueden ver vista previa y bitácora
+      const canSeeTools = state.editMode;
+      dom.btnPreview?.classList.toggle("d-none", !canSeeTools);
+      dom.btnBitacora?.classList.toggle("d-none", !canSeeTools);
+    }
+
     updateButtonStates();
+  }
+
+  // Caché simple para no saturar la API
+  const permisosCache = new Map();
+  async function verificarPermisoCapitulo(usuarioId, capitulo) {
+    if (!usuarioId || !capitulo) return false;
+    const cacheKey = `${usuarioId}:${capitulo}`;
+
+    // Si ya lo pedimos hace menos de 30 segundos, usar cache
+    const cached = permisosCache.get(cacheKey);
+    if (cached && Date.now() - cached.ts < 30000) {
+      return cached.permiso;
+    }
+
+    try {
+      // Reutilizamos el endpoint de años o capítulos para no crear uno nuevo si es posible,
+      // o simplemente intentamos cargar el layout. Si el servidor devuelve 403 al guardar,
+      // ahí es donde realmente importa. Pero para UI:
+      const response = await fetch(`${API_BASE}/permisos/capitulos`, {
+        headers: getAuthHeaders(),
+      });
+      if (!response.ok) return false;
+      const data = await response.json();
+      const miPermiso = data.permisos?.find(
+        (p) => p.usuario_id === usuarioId && p.capitulo === capitulo
+      );
+      const tiene = miPermiso ? miPermiso.puede_editar === 1 : false;
+
+      permisosCache.set(cacheKey, { permiso: tiene, ts: Date.now() });
+      return tiene;
+    } catch (err) {
+      return false;
+    }
   }
 
   function updateAuthUI(isActive, statusText) {
@@ -167,7 +255,6 @@
     dom.btnGuardar.disabled = !canEdit || !state.unsavedChanges;
     dom.btnAgregar.disabled = !canEdit;
     dom.btnCopiar.disabled = !state.editMode || !hasLayout;
-    dom.btnDemo.disabled = !state.editMode;
   }
 
   // ==========================================
@@ -364,45 +451,25 @@
       return;
     }
 
-    // Renderizar en orden: cada sección seguida de sus operaciones relacionadas
+    // Renderizar secciones primero, luego operaciones en su orden original
     const sections = groupBySections(state.cuentas);
-    const usedOperations = new Set();
     let html = "";
 
-    // Para cada sección, renderizarla y luego las operaciones que la suman
+    // Renderizar todas las secciones
     sections.forEach((data, principal) => {
       html += renderSection(principal, data);
-
-      // Buscar operaciones que suman esta sección y renderizarlas después
-      state.operaciones.forEach((op, idx) => {
-        if (usedOperations.has(idx)) return;
-
-        // Verificar si esta operación suma esta sección
-        const sumaSecciones =
-          op.SumaSeccionPrincipal || op.suma_secciones || [];
-        const sumSeccionesArr = Array.isArray(sumaSecciones)
-          ? sumaSecciones
-          : [sumaSecciones];
-
-        // Si la operación referencia esta sección, mostrarla después
-        if (
-          sumSeccionesArr.includes(principal) ||
-          (op.Clase &&
-            op.Clase.toLowerCase().includes(
-              principal.toLowerCase().split(" ")[0]
-            ))
-        ) {
-          html += renderSingleOperation(op);
-          usedOperations.add(idx);
-        }
-      });
     });
 
-    // Renderizar operaciones que no fueron asignadas a ninguna sección
-    state.operaciones.forEach((op, idx) => {
-      if (!usedOperations.has(idx)) {
-        html += renderSingleOperation(op);
-      }
+    // Renderizar operaciones en su orden original (según índice en el array)
+    // Ordenar por el campo 'orden' si existe, o por índice
+    const operacionesOrdenadas = [...state.operaciones].sort((a, b) => {
+      const ordenA = a.orden ?? a.Orden ?? a.index ?? 999;
+      const ordenB = b.orden ?? b.Orden ?? b.index ?? 999;
+      return ordenA - ordenB;
+    });
+
+    operacionesOrdenadas.forEach((op) => {
+      html += renderSingleOperation(op);
     });
 
     dom.layoutPreview.innerHTML = html;
@@ -645,8 +712,21 @@
   }
 
   function handleSearch(e) {
-    const query = e.target.value.toLowerCase();
+    const query = e.target.value.toLowerCase().trim();
     const rows = document.querySelectorAll(".account-row");
+
+    // Quitar resaltado anterior
+    document.querySelectorAll(".search-highlight").forEach((el) => {
+      el.classList.remove("search-highlight");
+    });
+
+    if (!query) {
+      // Mostrar todas las filas si no hay búsqueda
+      rows.forEach((row) => (row.style.display = ""));
+      return;
+    }
+
+    let firstMatch = null;
 
     rows.forEach((row) => {
       const code =
@@ -655,7 +735,37 @@
         row.querySelector(".account-name")?.textContent?.toLowerCase() || "";
       const match = code.includes(query) || name.includes(query);
       row.style.display = match ? "" : "none";
+
+      // Guardar primera coincidencia
+      if (match && !firstMatch) {
+        firstMatch = row;
+      }
     });
+
+    // Scroll al primer resultado y resaltarlo
+    if (firstMatch) {
+      // Expandir sección padre si está colapsada
+      const section = firstMatch.closest(".layout-section");
+      if (section) {
+        const body = section.querySelector(".section-body");
+        const toggle = section.querySelector(".section-toggle");
+        if (body && body.style.display === "none") {
+          body.style.display = "";
+          if (toggle) toggle.classList.remove("collapsed");
+        }
+      }
+
+      // Scroll suave al elemento
+      firstMatch.scrollIntoView({ behavior: "smooth", block: "center" });
+
+      // Resaltar visualmente
+      firstMatch.classList.add("search-highlight");
+
+      // Quitar resaltado después de 3 segundos
+      setTimeout(() => {
+        firstMatch.classList.remove("search-highlight");
+      }, 3000);
+    }
   }
 
   // ==========================================
@@ -736,8 +846,9 @@
           </div>
           <div class="row">
             <div class="col-md-4 mb-3">
-              <label class="form-label">Código de Cuenta</label>
-              <input type="text" class="form-control" id="inputCuenta" placeholder="4100" />
+              <label class="form-label">Número de Cuenta</label>
+              <input type="text" class="form-control" id="inputCuenta" placeholder="401-001-000-00" list="datalistCuentas" oninput="buscarCuentasDinamicas(this.value)" />
+              <datalist id="datalistCuentas"></datalist>
             </div>
             <div class="col-md-8 mb-3">
               <label class="form-label">Nombre</label>
@@ -1003,6 +1114,13 @@
 
       bootstrap.Modal.getInstance(dom.modalCopiar)?.hide();
       showToast(`Layout copiado a ${anioDestino}`, "success");
+
+      // Registrar en bitácora
+      await addToBitacora(
+        "COPIAR",
+        `Se copió el layout de ${state.anio} a ${anioDestino} para el capítulo ${state.capitulo}`
+      );
+
       await loadYears();
     } catch (error) {
       console.error("Error copying layout:", error);
@@ -1068,6 +1186,12 @@
       updateButtonStates();
       setStatus("Guardado correctamente");
       showToast("Layout guardado", "success");
+
+      // Registrar en bitácora
+      await addToBitacora(
+        "GUARDAR",
+        `Se guardaron cambios en el layout de ${state.modulo} ${state.anio}`
+      );
     } catch (error) {
       console.error("Error saving layout:", error);
       setStatus("Error al guardar");
@@ -1109,6 +1233,13 @@
       if (!response.ok) throw new Error("No se pudo crear la demo");
 
       showToast(`Demo creada para ${anio}`, "success");
+
+      // Registrar en bitácora
+      await addToBitacora(
+        "CREAR",
+        `Se generó un layout demo para el año ${anio} en el módulo ${state.modulo}`
+      );
+
       await loadYears();
       dom.anioSelect.value = anio;
       state.anio = anio;
@@ -1540,4 +1671,340 @@
   } else {
     init();
   }
+
+  // Cache de cuentas para autocompletar
+  let cuentasCache = null;
+  let cuentasCacheAnio = null;
+
+  // Función global para buscar cuentas dinámicamente
+  window.buscarCuentasDinamicas = async function (query) {
+    if (!query || query.length < 2) return;
+
+    const datalist = document.getElementById("datalistCuentas");
+    if (!datalist) return;
+
+    const anioActual = state.anio || new Date().getFullYear();
+
+    // Cargar cache si no existe o cambió el año
+    if (!cuentasCache || cuentasCacheAnio !== anioActual) {
+      try {
+        const headers = getAuthHeaders();
+        const response = await fetch(
+          `/api/cuentas-activas?anio=${anioActual}`,
+          { headers }
+        );
+        if (response.ok) {
+          cuentasCache = await response.json();
+          cuentasCacheAnio = anioActual;
+        } else {
+          cuentasCache = [];
+        }
+      } catch (err) {
+        console.warn("Error al cargar cuentas:", err);
+        cuentasCache = [];
+      }
+    }
+
+    // Filtrar cuentas que coincidan
+    const queryLower = query.toLowerCase();
+    const matches = (cuentasCache || [])
+      .filter(
+        (c) =>
+          (c.CUENTA || "").toLowerCase().includes(queryLower) ||
+          (c.NOMBRE || "").toLowerCase().includes(queryLower)
+      )
+      .slice(0, 20); // Limitar a 20 resultados
+
+    // Actualizar datalist
+    // Actualizar datalist
+    datalist.innerHTML = matches
+      .map(
+        (c) =>
+          `<option value="${c.CUENTA}" label="${c.NOMBRE || c.CUENTA}">${
+            c.CUENTA
+          } - ${c.NOMBRE || ""}</option>`
+      )
+      .join("");
+  };
+
+  // ==========================================
+  // BITÁCORA
+  // ==========================================
+  async function showBitacora() {
+    if (!state.modulo || !state.anio || !state.capitulo) return;
+
+    const bitacoraDrawer = new bootstrap.Offcanvas(dom.drawerBitacora);
+    bitacoraDrawer.show();
+
+    try {
+      const url = `${API_BASE}/${encodeURIComponent(state.modulo)}/${
+        state.anio
+      }/${encodeURIComponent(state.capitulo)}/bitacora?empresaId=EMPRESA01`;
+      const response = await fetch(url, { headers: getAuthHeaders() });
+      if (!response.ok) throw new Error("Error al cargar bitácora");
+
+      const data = await response.json();
+      renderBitacora(data.bitacora || []);
+    } catch (error) {
+      console.error("Bitacora error:", error);
+      dom.bitacoraList.innerHTML = `<div class="p-4 text-center text-danger">Error: ${error.message}</div>`;
+    }
+  }
+
+  function renderBitacora(items) {
+    if (!items.length) {
+      dom.bitacoraList.innerHTML =
+        '<div class="p-4 text-center text-muted">No hay registros aún</div>';
+      return;
+    }
+
+    dom.bitacoraList.innerHTML = items
+      .map((item) => {
+        const fecha = new Date(item.fecha).toLocaleString();
+        const icono =
+          item.accion === "GUARDAR"
+            ? "save"
+            : item.accion === "CREAR"
+            ? "plus-circle"
+            : "pencil";
+        const color =
+          item.accion === "GUARDAR"
+            ? "primary"
+            : item.accion === "CREAR"
+            ? "success"
+            : "info";
+
+        return `
+        <div class="list-group-item p-3 border-0 border-bottom">
+          <div class="d-flex w-100 justify-content-between mb-1">
+            <h6 class="mb-1 text-${color}"><i class="bi bi-${icono} me-2"></i>${
+          item.accion
+        }</h6>
+            <small class="text-muted">${fecha}</small>
+          </div>
+          <p class="mb-1 small">${escapeHtml(item.detalles || "")}</p>
+          <small class="text-muted"><i class="bi bi-person me-1"></i>${
+            item.nombre_usuario || "Sistema"
+          }</small>
+        </div>
+      `;
+      })
+      .join("");
+  }
+
+  async function addToBitacora(accion, detalles) {
+    try {
+      await fetch(`${API_BASE}/bitacora`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify({
+          empresaId: "EMPRESA01",
+          modulo: state.modulo,
+          anio: state.anio,
+          capitulo: state.capitulo,
+          accion,
+          detalles,
+        }),
+      });
+    } catch (err) {
+      console.warn("No se pudo registrar en bitácora:", err);
+    }
+  }
+
+  // ==========================================
+  // VISTA PREVIA
+  // ==========================================
+  function showPreview() {
+    if (!state.cuentas.length) return;
+
+    document.getElementById(
+      "previewContextInfo"
+    ).textContent = `${state.modulo} · ${state.anio} · ${state.capitulo}`;
+    const modal = new bootstrap.Modal(dom.modalPreview);
+    modal.show();
+
+    renderPreviewTable();
+  }
+
+  function renderPreviewTable() {
+    const sections = groupBySections(state.cuentas);
+    let html = `
+      <div class="preview-table-container shadow-sm bg-white rounded overflow-hidden">
+        <table class="table table-sm table-bordered mb-0">
+          <thead class="table-dark">
+            <tr>
+              <th style="width: 120px">Cuenta</th>
+              <th>Descripción</th>
+              <th class="text-end" style="width: 150px">Enero</th>
+              <th class="text-end" style="width: 100px">...</th>
+              <th class="text-end" style="width: 150px">Diciembre</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    sections.forEach((subsections, principal) => {
+      html += `<tr class="table-primary"><td colspan="5"><strong>${escapeHtml(
+        principal
+      )}</strong></td></tr>`;
+
+      subsections.forEach((accounts, secundaria) => {
+        if (secundaria && secundaria !== principal) {
+          html += `<tr class="table-light"><td colspan="5" class="ps-4"><em>${escapeHtml(
+            secundaria
+          )}</em></td></tr>`;
+        }
+
+        accounts.forEach((acc) => {
+          html += `
+            <tr>
+              <td class="ps-4 small text-muted">${escapeHtml(
+                acc.CUENTA || ""
+              )}</td>
+              <td class="ps-${secundaria ? "5" : "4"}">${escapeHtml(
+            acc.NOMBRE || ""
+          )}</td>
+              <td class="text-end text-muted small">0.00</td>
+              <td class="text-end text-muted small">...</td>
+              <td class="text-end text-muted small">0.00</td>
+            </tr>
+          `;
+        });
+      });
+    });
+
+    // Operaciones
+    state.operaciones.forEach((op) => {
+      const tipo = detectOperationType(op);
+      const claseColor =
+        tipo === "net"
+          ? "table-info"
+          : tipo === "result"
+          ? "table-success"
+          : "table-warning";
+      html += `
+        <tr class="${claseColor} font-weight-bold">
+          <td colspan="2"><strong>${escapeHtml(op.Clase || "")}</strong></td>
+          <td class="text-end">0.00</td>
+          <td class="text-end">...</td>
+          <td class="text-end">0.00</td>
+        </tr>
+      `;
+    });
+
+    html += `
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    dom.previewContainer.innerHTML = html;
+  }
+
+  // ==========================================
+  // GESTIÓN DE PERMISOS
+  // ==========================================
+  async function openPermisosModal() {
+    const modal = new bootstrap.Modal(dom.modalPermisos);
+    modal.show();
+    await cargarUsuariosPermisos();
+  }
+
+  async function cargarUsuariosPermisos() {
+    const tbody = dom.permisosUsuariosBody;
+    tbody.innerHTML =
+      '<tr><td colspan="3" class="text-center p-4">Cargando...</td></tr>';
+
+    try {
+      const res = await fetch(`${API_BASE}/permisos/capitulos`, {
+        headers: getAuthHeaders(),
+      });
+      if (!res.ok) throw new Error("Error al cargar usuarios");
+
+      const { usuarios, permisos } = await res.json();
+
+      // Obtener lista de capítulos disponibles
+      const capitulos = await fetchCapitulosUnicos();
+
+      let html = "";
+      usuarios.forEach((user) => {
+        capitulos.forEach((cap) => {
+          const p = permisos.find(
+            (p) => p.usuario_id === user.id && p.capitulo === cap
+          );
+          const tienePermiso = p ? p.puede_editar === 1 : false;
+
+          html += `
+            <tr>
+              <td><strong>${escapeHtml(
+                user.usuario
+              )}</strong><br><small class="text-muted">${escapeHtml(
+            user.nombres || ""
+          )}</small></td>
+              <td><span class="badge bg-light text-dark border">${escapeHtml(
+                cap
+              )}</span></td>
+              <td class="text-center">
+                <div class="form-check form-switch d-inline-block">
+                  <input class="form-check-input" type="checkbox" ${
+                    tienePermiso ? "checked" : ""
+                  } 
+                    onchange="cambiarPermisoCapitulo(${user.id}, '${escapeAttr(
+            cap
+          )}', this.checked)">
+                </div>
+              </td>
+            </tr>
+          `;
+        });
+      });
+
+      tbody.innerHTML =
+        html ||
+        '<tr><td colspan="3" class="text-center p-4">No hay usuarios para gestionar</td></tr>';
+    } catch (err) {
+      tbody.innerHTML = `<tr class="table-danger"><td colspan="3">${err.message}</td></tr>`;
+    }
+  }
+
+  async function fetchCapitulosUnicos() {
+    // Definimos los capítulos estándar de la empresa 1 (que son los que tienen plantillas)
+    return [
+      "Finanzas",
+      "GastosGenerales",
+      "Nomina",
+      "Membresía",
+      "SUMA",
+      "Otros",
+    ];
+  }
+
+  window.cambiarPermisoCapitulo = async function (
+    usuarioId,
+    capitulo,
+    puedeEditar
+  ) {
+    try {
+      const res = await fetch(`${API_BASE}/permisos/capitulos`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify({ usuarioId, capitulo, puedeEditar }),
+      });
+
+      if (!res.ok) throw new Error("Error al actualizar permiso");
+      showToast(`Permiso actualizado para ${capitulo}`, "success");
+
+      // Limpiar caché local de permisos
+      permisosCache.clear();
+      checkAuthState();
+    } catch (err) {
+      showToast(err.message, "error");
+    }
+  };
 })();

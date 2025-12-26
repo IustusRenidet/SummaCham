@@ -121,6 +121,12 @@
       .modo-edicion td.editable:hover {
         background-color: #e6f2ff !important;
       }
+      .modo-edicion td.editable:focus,
+      .modo-edicion td.editable:active {
+        outline: 2px solid #2f5496 !important;
+        background-color: #ffffff !important;
+        box-shadow: 0 0 0 3px rgba(47, 84, 150, 0.25) !important;
+      }
       .workflow-info-panel {
         background: rgba(47, 84, 150, 0.05);
         border-radius: 12px;
@@ -858,6 +864,13 @@
     }
 
     _bindButtonHandlers() {
+      // Protección contra listeners duplicados
+      if (this._handlersBindeados) {
+        console.log("[FlujoAutorizacion] Handlers ya bindados, ignorando");
+        return;
+      }
+      this._handlersBindeados = true;
+
       const agregarListener = (btn, handler) => {
         if (!btn) return;
         btn.addEventListener("click", handler, { once: false });
@@ -910,6 +923,8 @@
         btn.parentNode.replaceChild(clone, btn);
         this.buttons[key] = clone;
       });
+      // Resetear flag para permitir re-binding después de clone
+      this._handlersBindeados = false;
       this._bindButtonHandlers();
     }
 

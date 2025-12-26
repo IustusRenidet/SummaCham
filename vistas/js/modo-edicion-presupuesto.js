@@ -1,6 +1,6 @@
 /**
  * Módulo: Modo Edición de Presupuestos
- * 
+ *
  * Transforma una tabla estática en editable con:
  * - Celdas clickeables
  * - Captura de cambios
@@ -8,26 +8,26 @@
  * - Autocompletado de cuentas
  */
 
-(function() {
+(function () {
   const MESES = [
-    { id: 'budget-ene', label: 'ENE', numero: 1 },
-    { id: 'budget-feb', label: 'FEB', numero: 2 },
-    { id: 'budget-mar', label: 'MAR', numero: 3 },
-    { id: 'budget-abr', label: 'ABR', numero: 4 },
-    { id: 'budget-may', label: 'MAY', numero: 5 },
-    { id: 'budget-jun', label: 'JUN', numero: 6 },
-    { id: 'budget-jul', label: 'JUL', numero: 7 },
-    { id: 'budget-ago', label: 'AGO', numero: 8 },
-    { id: 'budget-sep', label: 'SEP', numero: 9 },
-    { id: 'budget-oct', label: 'OCT', numero: 10 },
-    { id: 'budget-nov', label: 'NOV', numero: 11 },
-    { id: 'budget-dic', label: 'DIC', numero: 12 }
+    { id: "budget-ene", label: "ENE", numero: 1 },
+    { id: "budget-feb", label: "FEB", numero: 2 },
+    { id: "budget-mar", label: "MAR", numero: 3 },
+    { id: "budget-abr", label: "ABR", numero: 4 },
+    { id: "budget-may", label: "MAY", numero: 5 },
+    { id: "budget-jun", label: "JUN", numero: 6 },
+    { id: "budget-jul", label: "JUL", numero: 7 },
+    { id: "budget-ago", label: "AGO", numero: 8 },
+    { id: "budget-sep", label: "SEP", numero: 9 },
+    { id: "budget-oct", label: "OCT", numero: 10 },
+    { id: "budget-nov", label: "NOV", numero: 11 },
+    { id: "budget-dic", label: "DIC", numero: 12 },
   ];
 
-  const SELECTOR_TABLA = '#tablaComparacion';
-  const CLASE_EDITABLE = 'editable-cell';
-  const CLASE_EDITANDO = 'cell-editing';
-  const CLASE_MODIFICADO = 'cell-modified';
+  const SELECTOR_TABLA = "#tablaComparacion";
+  const CLASE_EDITABLE = "editable-cell";
+  const CLASE_EDITANDO = "cell-editing";
+  const CLASE_MODIFICADO = "cell-modified";
 
   // Estado global del módulo
   const estado = {
@@ -36,37 +36,42 @@
     cuentasDisponibles: [],
     selectorTabla: SELECTOR_TABLA,
     soloLayout: false, // Nueva opción: solo editar cuenta/descripción, no valores numéricos
-    persistiendo: false // Flag para evitar recursión infinita
+    persistiendo: false, // Flag para evitar recursión infinita
   };
 
   const editorState = {
     input: null,
     celda: null,
     tipo: null,
-    valorOriginal: '',
+    valorOriginal: "",
     valorNumericoOriginal: null,
-    commitEnProgreso: false
+    commitEnProgreso: false,
   };
 
   function obtenerNumeroDesdeCelda(celda) {
     if (!celda) return 0;
     const texto =
       celda.dataset.valorPlano ??
-      (celda.textContent || '').toString().replace(/\s/g, '');
-    const numero = parseFloat(texto.replace(/[^0-9,.-]/g, '').replace(/,/g, ''));
+      (celda.textContent || "").toString().replace(/\s/g, "");
+    const numero = parseFloat(
+      texto.replace(/[^0-9,.-]/g, "").replace(/,/g, "")
+    );
     return Number.isFinite(numero) ? numero : 0;
   }
 
   function obtenerNumeroDesdeTexto(texto) {
-    const limpio = (texto || '').toString().replace(/[^0-9,.-]/g, '').replace(/,/g, '');
+    const limpio = (texto || "")
+      .toString()
+      .replace(/[^0-9,.-]/g, "")
+      .replace(/,/g, "");
     const numero = parseFloat(limpio);
     return Number.isFinite(numero) ? numero : 0;
   }
 
   function ensureEditorInlineStyles() {
-    if (document.getElementById('excel-inline-style')) return;
-    const style = document.createElement('style');
-    style.id = 'excel-inline-style';
+    if (document.getElementById("excel-inline-style")) return;
+    const style = document.createElement("style");
+    style.id = "excel-inline-style";
     style.textContent = `
       .excel-inline-input {
         width: 100%;
@@ -79,7 +84,7 @@
         background: #fffef5;
       }
       .excel-inline-input:focus {
-        outline: none;
+        outline: 2px solid #2f5496 !important;
       }
     `;
     document.head.appendChild(style);
@@ -88,13 +93,13 @@
   function obtenerEditorInline() {
     if (editorState.input) return editorState.input;
     ensureEditorInlineStyles();
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.className = 'excel-inline-input';
+    const input = document.createElement("input");
+    input.type = "text";
+    input.className = "excel-inline-input";
     input.spellcheck = false;
-    input.autocomplete = 'off';
-    input.addEventListener('keydown', manejarTeclasEditor);
-    input.addEventListener('blur', () => {
+    input.autocomplete = "off";
+    input.addEventListener("keydown", manejarTeclasEditor);
+    input.addEventListener("blur", () => {
       // CRÍTICO: Evitar recursión infinita - verificar múltiples flags
       if (editorState.commitEnProgreso) return;
       if (!editorState.celda) return;
@@ -112,23 +117,23 @@
   function iniciarEdicionInline(celda, valor, opciones = {}) {
     const input = obtenerEditorInline();
     editorState.celda = celda;
-    editorState.tipo = opciones.tipo || 'texto';
+    editorState.tipo = opciones.tipo || "texto";
     editorState.valorOriginal = opciones.valorRestauracion ?? valor;
     editorState.valorNumericoOriginal = opciones.valorNumerico ?? null;
-    celda.classList.add('celda-editando');
+    celda.classList.add("celda-editando");
     celda.classList.add(CLASE_EDITANDO);
     if (opciones.placeholder) {
       input.placeholder = opciones.placeholder;
     } else {
-      input.removeAttribute('placeholder');
+      input.removeAttribute("placeholder");
     }
     if (opciones.datalistId) {
-      input.setAttribute('list', opciones.datalistId);
+      input.setAttribute("list", opciones.datalistId);
     } else {
-      input.removeAttribute('list');
+      input.removeAttribute("list");
     }
     if (input.parentElement !== celda) {
-      celda.textContent = '';
+      celda.textContent = "";
       celda.appendChild(input);
     }
     input.value = valor;
@@ -144,17 +149,26 @@
       editorState.input.parentElement.removeChild(editorState.input);
     }
     if (editorState.celda) {
-      editorState.celda.classList.remove('celda-editando');
+      editorState.celda.classList.remove("celda-editando");
       editorState.celda.classList.remove(CLASE_EDITANDO);
     }
     editorState.celda = null;
     editorState.tipo = null;
-    editorState.valorOriginal = '';
+    editorState.valorOriginal = "";
     editorState.valorNumericoOriginal = null;
   }
 
-  const normalizeString = (s) => (s || '').toString().normalize('NFD').replace(/\p{Diacritic}/gu, '').toUpperCase().trim();
-  const API_BASE = window.location.protocol === 'file:' ? 'http://localhost:3005' : window.location.origin;
+  const normalizeString = (s) =>
+    (s || "")
+      .toString()
+      .normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "")
+      .toUpperCase()
+      .trim();
+  const API_BASE =
+    window.location.protocol === "file:"
+      ? "http://localhost:3005"
+      : window.location.origin;
 
   /**
    * Cargar catálogo completo de cuentas desde CUENTASYY (Firebird)
@@ -162,29 +176,35 @@
   async function cargarCatalogoCuentas(empresaId, anio) {
     try {
       if (!empresaId || !Number.isInteger(Number(anio))) {
-        console.warn('⚠️ Parámetros inválidos para cargar catálogo de cuentas');
+        console.warn("⚠️ Parámetros inválidos para cargar catálogo de cuentas");
         return [];
       }
-      
-      const ruta = `${API_BASE}/api/saldos/catalogo?empresaId=${encodeURIComponent(empresaId)}&anio=${Number(anio)}`;
-      const headers = (typeof Sesion !== 'undefined' && typeof Sesion.headersAutenticacion === 'function') 
-        ? Sesion.headersAutenticacion() 
-        : {};
-      
+
+      const ruta = `${API_BASE}/api/saldos/catalogo?empresaId=${encodeURIComponent(
+        empresaId
+      )}&anio=${Number(anio)}`;
+      const headers =
+        typeof Sesion !== "undefined" &&
+        typeof Sesion.headersAutenticacion === "function"
+          ? Sesion.headersAutenticacion()
+          : {};
+
       const resp = await fetch(ruta, { headers });
       if (!resp.ok) {
         console.warn(`⚠️ Error al cargar catálogo: ${resp.status}`);
         return [];
       }
-      
+
       const data = await resp.json();
       const cuentas = data.cuentas || [];
-      
-      console.log(`✅ Catálogo cargado: ${cuentas.length} cuentas de CUENTASYY ${anio}`);
+
+      console.log(
+        `✅ Catálogo cargado: ${cuentas.length} cuentas de CUENTASYY ${anio}`
+      );
       estado.cuentasDisponibles = cuentas;
       return cuentas;
     } catch (err) {
-      console.error('❌ Error cargando catálogo de cuentas:', err);
+      console.error("❌ Error cargando catálogo de cuentas:", err);
       return [];
     }
   }
@@ -193,25 +213,25 @@
    * Crear/actualizar datalist con las cuentas disponibles
    */
   function crearDatalistCuentas() {
-    let datalist = document.getElementById('datalist-cuentas-autocomplete');
+    let datalist = document.getElementById("datalist-cuentas-autocomplete");
     if (!datalist) {
-      datalist = document.createElement('datalist');
-      datalist.id = 'datalist-cuentas-autocomplete';
+      datalist = document.createElement("datalist");
+      datalist.id = "datalist-cuentas-autocomplete";
       document.body.appendChild(datalist);
     }
-    
-    datalist.innerHTML = '';
-    
-    estado.cuentasDisponibles.forEach(cta => {
-      const option = document.createElement('option');
+
+    datalist.innerHTML = "";
+
+    estado.cuentasDisponibles.forEach((cta) => {
+      const option = document.createElement("option");
       // Formato: "401-001-000-00 - Renovaciones"
-      const cuenta = cta.cuenta || '';
-      const nombre = cta.nombre || '';
+      const cuenta = cta.cuenta || "";
+      const nombre = cta.nombre || "";
       option.value = cuenta;
       option.textContent = nombre ? `${cuenta} - ${nombre}` : cuenta;
       datalist.appendChild(option);
     });
-    
+
     return datalist.id;
   }
 
@@ -228,7 +248,7 @@
       const crudo = window.localStorage.getItem(clave);
       return crudo ? JSON.parse(crudo) : null;
     } catch (err) {
-      console.warn('No fue posible leer layout local', err);
+      console.warn("No fue posible leer layout local", err);
       return null;
     }
   };
@@ -240,39 +260,70 @@
       window.localStorage.setItem(clave, JSON.stringify(layout));
       return true;
     } catch (err) {
-      console.warn('No fue posible guardar layout local', err);
+      console.warn("No fue posible guardar layout local", err);
       return false;
     }
   };
 
-  async function guardarLayoutServidor({ moduloClave, empresaId, anio, layout }) {
+  async function guardarLayoutServidor({
+    moduloClave,
+    empresaId,
+    anio,
+    layout,
+  }) {
     try {
       const ruta = `${API_BASE}/api/layouts`;
-      const headers = (typeof Sesion !== 'undefined' && typeof Sesion.headersAutenticacion === 'function') ? { 'Content-Type': 'application/json', ...Sesion.headersAutenticacion() } : { 'Content-Type': 'application/json' };
-      const resp = await fetch(ruta, { method: 'POST', headers, body: JSON.stringify({ empresaId, modulo: moduloClave, anio, datos: layout }) });
+      const headers =
+        typeof Sesion !== "undefined" &&
+        typeof Sesion.headersAutenticacion === "function"
+          ? {
+              "Content-Type": "application/json",
+              ...Sesion.headersAutenticacion(),
+            }
+          : { "Content-Type": "application/json" };
+      const resp = await fetch(ruta, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          empresaId,
+          modulo: moduloClave,
+          anio,
+          datos: layout,
+        }),
+      });
       if (!resp.ok) {
-        const data = await resp.json().catch(()=>({}));
-        console.warn('Guardar layout servidor fallo:', data.mensaje || resp.status);
+        const data = await resp.json().catch(() => ({}));
+        console.warn(
+          "Guardar layout servidor fallo:",
+          data.mensaje || resp.status
+        );
         return false;
       }
       return true;
     } catch (err) {
-      console.warn('Error al guardar layout en servidor', err);
+      console.warn("Error al guardar layout en servidor", err);
       return false;
     }
   }
 
   async function cargarLayoutServidor({ moduloClave, empresaId, anio }) {
     try {
-      if (!empresaId || !moduloClave || !Number.isInteger(Number(anio))) return null;
-      const ruta = `${API_BASE}/api/layouts?empresaId=${encodeURIComponent(empresaId)}&modulo=${encodeURIComponent(moduloClave)}&anio=${Number(anio)}`;
-      const headers = (typeof Sesion !== 'undefined' && typeof Sesion.headersAutenticacion === 'function') ? Sesion.headersAutenticacion() : null;
+      if (!empresaId || !moduloClave || !Number.isInteger(Number(anio)))
+        return null;
+      const ruta = `${API_BASE}/api/layouts?empresaId=${encodeURIComponent(
+        empresaId
+      )}&modulo=${encodeURIComponent(moduloClave)}&anio=${Number(anio)}`;
+      const headers =
+        typeof Sesion !== "undefined" &&
+        typeof Sesion.headersAutenticacion === "function"
+          ? Sesion.headersAutenticacion()
+          : null;
       const resp = await fetch(ruta, { headers });
       if (!resp.ok) return null;
-      const data = await resp.json().catch(()=>({}));
+      const data = await resp.json().catch(() => ({}));
       return data.layout || null;
     } catch (err) {
-      console.warn('Error cargar layout servidor', err);
+      console.warn("Error cargar layout servidor", err);
       return null;
     }
   }
@@ -283,18 +334,18 @@
    */
   function capturarLayoutTabla(tabla) {
     if (!tabla) return null;
-    
+
     const filas = [];
-    const tbody = tabla.querySelector('tbody');
+    const tbody = tabla.querySelector("tbody");
     if (!tbody) return null;
-    
-    Array.from(tbody.querySelectorAll('tr')).forEach((fila, idx) => {
+
+    Array.from(tbody.querySelectorAll("tr")).forEach((fila, idx) => {
       const celdas = fila.cells;
       if (!celdas || celdas.length < 2) return;
-      
-      const cuenta = (celdas[0]?.textContent || '').trim();
-      const descripcion = (celdas[1]?.textContent || '').trim();
-      
+
+      const cuenta = (celdas[0]?.textContent || "").trim();
+      const descripcion = (celdas[1]?.textContent || "").trim();
+
       // Solo capturar filas con cuenta
       if (cuenta) {
         filas.push({
@@ -302,30 +353,39 @@
           cuenta: cuenta,
           descripcion: descripcion,
           nivel: fila.dataset.nivel || detectarNivel(cuenta),
-          tipo: fila.dataset.tipo || detectarTipo(fila)
+          tipo: fila.dataset.tipo || detectarTipo(fila),
         });
       }
     });
-    
+
     return {
       filas: filas,
       total: filas.length,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
   }
-  
+
   function detectarNivel(cuenta) {
     // Detectar nivel basado en estructura de cuenta
-    const partes = cuenta.split('-').filter(p => p && p !== '00');
+    const partes = cuenta.split("-").filter((p) => p && p !== "00");
     return partes.length;
   }
-  
+
   function detectarTipo(fila) {
     // Detectar tipo de fila (CAPÍTULO, SECUNDARIA, etc.)
-    if (fila.classList.contains('capitulo') || fila.classList.contains('nivel-1')) return 'CAPÍTULO';
-    if (fila.classList.contains('secundaria') || fila.classList.contains('nivel-2')) return 'SECUNDARIA';
-    if (fila.classList.contains('cuenta') || fila.classList.contains('nivel-3')) return 'CUENTA';
-    return 'CUENTA';
+    if (
+      fila.classList.contains("capitulo") ||
+      fila.classList.contains("nivel-1")
+    )
+      return "CAPÍTULO";
+    if (
+      fila.classList.contains("secundaria") ||
+      fila.classList.contains("nivel-2")
+    )
+      return "SECUNDARIA";
+    if (fila.classList.contains("cuenta") || fila.classList.contains("nivel-3"))
+      return "CUENTA";
+    return "CUENTA";
   }
 
   /**
@@ -340,16 +400,16 @@
 
     const dataTabla = document.body?.dataset?.tabla;
     if (dataTabla) {
-      candidatos.push(dataTabla.startsWith('#') ? dataTabla : `#${dataTabla}`);
+      candidatos.push(dataTabla.startsWith("#") ? dataTabla : `#${dataTabla}`);
     }
 
     candidatos.push(
       estado.selectorTabla || SELECTOR_TABLA,
       SELECTOR_TABLA,
-      '#mainTable',
-      '#tablaPresupuestos',
-      'table.table-comparison',
-      'table'
+      "#mainTable",
+      "#tablaPresupuestos",
+      "table.table-comparison",
+      "table"
     );
 
     for (const sel of candidatos) {
@@ -370,56 +430,71 @@
     // Si NO es modo soloLayout, permitir editar celdas numéricas
     if (!estado.soloLayout) {
       // Buscar todas las celdas de presupuesto (numeros)
-      const selectorCeldasBudget = 'td[data-mes], td[data-columna-clave^="budget-"]';
+      const selectorCeldasBudget =
+        'td[data-mes], td[data-columna-clave^="budget-"]';
       const celdas = tabla.querySelectorAll(selectorCeldasBudget);
-      
+
       celdas.forEach((celda) => {
         // CRÍTICO: Verificar si ya se inicializó para evitar listeners duplicados
         if (celda.dataset.modoEdicionInit) return;
-        celda.dataset.modoEdicionInit = 'true';
-        
+        celda.dataset.modoEdicionInit = "true";
+
         celda.classList.add(CLASE_EDITABLE);
-        celda.style.cursor = 'pointer';
-        
-        celda.addEventListener('click', (evento) => {
+        celda.style.cursor = "pointer";
+
+        celda.addEventListener("click", (evento) => {
           if (!estado.modoEdicionActivo) return;
           evento.stopPropagation();
           activarEdicionEnCelda(celda);
         });
 
-        // Detectar cambios directamente (por si el código carga datos vía JS)
-        celda.addEventListener('change', () => {
-          marcarComoModificado(celda);
-        });
+        // NOTA: No agregar listener 'change' aquí - los cambios se capturan
+        // en commitEditor() donde se verifica si el valor realmente cambió
       });
     }
 
     // Celdas de texto (codigo / descripcion / nombre) - click to edit
     // IMPORTANTE: Estas columnas NO requieren modo edición activo porque NO se insertan a COI
     // Detectar por posición: columna 0 = cuenta/código, columna 1 = descripción/nombre
-    const filas = Array.from(tabla.querySelectorAll('tbody tr'));
-    filas.forEach(fila => {
+    const esPlantillas = window.location.pathname.includes("plantillas.html");
+    const filas = Array.from(tabla.querySelectorAll("tbody tr"));
+
+    filas.forEach((fila) => {
       const celdaCuenta = fila.cells[0]; // Primera columna = cuenta
       const celdaNombre = fila.cells[1]; // Segunda columna = descripción/nombre
-      
+
       // CRÍTICO: Verificar si ya se inicializó
-      if (celdaCuenta && !celdaCuenta.dataset.mes && !celdaCuenta.dataset.textoEdicionInit) {
-        celdaCuenta.dataset.textoEdicionInit = 'true';
-        celdaCuenta.style.cursor = 'text';
-        celdaCuenta.dataset.columnaClave = 'cuenta';
-        celdaCuenta.addEventListener('click', (ev) => {
+      if (
+        celdaCuenta &&
+        !celdaCuenta.dataset.mes &&
+        !celdaCuenta.dataset.textoEdicionInit
+      ) {
+        celdaCuenta.dataset.textoEdicionInit = "true";
+        if (esPlantillas) {
+          celdaCuenta.style.cursor = "text";
+          celdaCuenta.dataset.columnaClave = "cuenta";
+        }
+        celdaCuenta.addEventListener("click", (ev) => {
           if (!estado.modoEdicionActivo) return;
+          if (!esPlantillas) return; // Solo editable en plantillas.html
           ev.stopPropagation();
           activarEdicionTextoEnCelda(celdaCuenta);
         });
       }
-      
-      if (celdaNombre && !celdaNombre.dataset.mes && !celdaNombre.dataset.textoEdicionInit) {
-        celdaNombre.dataset.textoEdicionInit = 'true';
-        celdaNombre.style.cursor = 'text';
-        celdaNombre.dataset.columnaClave = 'descripcion';
-        celdaNombre.addEventListener('click', (ev) => {
+
+      if (
+        celdaNombre &&
+        !celdaNombre.dataset.mes &&
+        !celdaNombre.dataset.textoEdicionInit
+      ) {
+        celdaNombre.dataset.textoEdicionInit = "true";
+        if (esPlantillas) {
+          celdaNombre.style.cursor = "text";
+          celdaNombre.dataset.columnaClave = "descripcion";
+        }
+        celdaNombre.addEventListener("click", (ev) => {
           if (!estado.modoEdicionActivo) return;
+          if (!esPlantillas) return; // Solo editable en plantillas.html
           ev.stopPropagation();
           activarEdicionTextoEnCelda(celdaNombre);
         });
@@ -436,9 +511,9 @@
     const numero = obtenerNumeroDesdeCelda(celda);
     const display = celda.textContent?.trim() || formatearNumero(numero);
     iniciarEdicionInline(celda, `${numero}`, {
-      tipo: 'numero',
+      tipo: "numero",
       valorNumerico: numero,
-      valorRestauracion: display
+      valorRestauracion: display,
     });
   }
   /**
@@ -447,15 +522,19 @@
    */
   function activarEdicionTextoEnCelda(celda) {
     if (!celda || !estado.modoEdicionActivo) return;
+    // Solo permitir editar texto (cuenta/descripción) en plantillas.html
+    const esPlantillas = window.location.pathname.includes("plantillas.html");
+    if (!esPlantillas) return;
+
     if (editorState.celda === celda) return;
-    const valor = celda.textContent?.trim() || '';
-    const opciones = { tipo: 'texto' };
-    const columna = celda.dataset.columnaClave || '';
-    if (columna === 'cuenta' && estado.cuentasDisponibles?.length > 0) {
+    const valor = celda.textContent?.trim() || "";
+    const opciones = { tipo: "texto" };
+    const columna = celda.dataset.columnaClave || "";
+    if (columna === "cuenta" && estado.cuentasDisponibles?.length > 0) {
       opciones.datalistId = crearDatalistCuentas();
-      opciones.placeholder = 'Buscar cuenta...';
-    } else if (columna === 'descripcion') {
-      opciones.placeholder = 'Descripción...';
+      opciones.placeholder = "Buscar cuenta...";
+    } else if (columna === "descripcion") {
+      opciones.placeholder = "Descripción...";
     }
     iniciarEdicionInline(celda, valor, opciones);
   }
@@ -463,31 +542,31 @@
   function manejarTeclasEditor(evento) {
     if (!editorState.celda) return;
     switch (evento.key) {
-      case 'Enter':
+      case "Enter":
         evento.preventDefault();
-        commitEditor({ mover: evento.shiftKey ? 'up' : 'down' });
+        commitEditor({ mover: evento.shiftKey ? "up" : "down" });
         break;
-      case 'Tab':
+      case "Tab":
         evento.preventDefault();
-        commitEditor({ mover: evento.shiftKey ? 'left' : 'right' });
+        commitEditor({ mover: evento.shiftKey ? "left" : "right" });
         break;
-      case 'ArrowRight':
+      case "ArrowRight":
         evento.preventDefault();
-        commitEditor({ mover: 'right' });
+        commitEditor({ mover: "right" });
         break;
-      case 'ArrowLeft':
+      case "ArrowLeft":
         evento.preventDefault();
-        commitEditor({ mover: 'left' });
+        commitEditor({ mover: "left" });
         break;
-      case 'ArrowUp':
+      case "ArrowUp":
         evento.preventDefault();
-        commitEditor({ mover: 'up' });
+        commitEditor({ mover: "up" });
         break;
-      case 'ArrowDown':
+      case "ArrowDown":
         evento.preventDefault();
-        commitEditor({ mover: 'down' });
+        commitEditor({ mover: "down" });
         break;
-      case 'Escape':
+      case "Escape":
         evento.preventDefault();
         cancelarEditor();
         break;
@@ -500,15 +579,17 @@
     if (!editorState.celda || !editorState.input) return;
     const celda = editorState.celda;
     const tipo = editorState.tipo;
-    const valorAnterior = editorState.valorOriginal || '';
+    const valorAnterior = editorState.valorOriginal || "";
     const numeroAnterior = editorState.valorNumericoOriginal;
-    const valorIngresado = editorState.input.value || '';
+    const valorIngresado = editorState.input.value || "";
 
     editorState.commitEnProgreso = true;
     try {
-      if (tipo === 'numero') {
+      if (tipo === "numero") {
         const numero = obtenerNumeroDesdeTexto(valorIngresado);
-        const previo = Number.isFinite(numeroAnterior) ? numeroAnterior : obtenerNumeroDesdeCelda(celda);
+        const previo = Number.isFinite(numeroAnterior)
+          ? numeroAnterior
+          : obtenerNumeroDesdeCelda(celda);
         celda.dataset.valorPlano = `${numero}`;
         celda.textContent = formatearNumero(numero);
         celda.classList.remove(CLASE_EDITANDO);
@@ -523,9 +604,9 @@
         celda.textContent = nuevo || previo;
         if (nuevo !== previo) {
           marcarComoModificado(celda);
-          const fila = celda.closest('tr');
-          if (fila && celda.dataset.columnaClave === 'cuenta') {
-            fila.dataset.cuenta = nuevo || '';
+          const fila = celda.closest("tr");
+          if (fila && celda.dataset.columnaClave === "cuenta") {
+            fila.dataset.cuenta = nuevo || "";
           }
           // NO persistir automáticamente - solo marcar como modificado
           // El usuario debe guardar explícitamente el borrador
@@ -559,17 +640,17 @@
 
   function obtenerCeldaVecina(celda, direccion) {
     if (!celda) return null;
-    const fila = celda.closest('tr');
+    const fila = celda.closest("tr");
     if (!fila) return null;
     const cuerpo = fila.parentElement;
-    const filas = Array.from(cuerpo?.querySelectorAll('tr') || []);
+    const filas = Array.from(cuerpo?.querySelectorAll("tr") || []);
     const filaIndex = filas.indexOf(fila);
     if (filaIndex === -1) return null;
     const esNumerica = Boolean(celda.dataset.mes);
 
     const buscarHorizontal = (paso) => {
       if (esNumerica) {
-        const numericas = Array.from(fila.querySelectorAll('td[data-mes]'));
+        const numericas = Array.from(fila.querySelectorAll("td[data-mes]"));
         const posicion = numericas.indexOf(celda);
         const destino = numericas[posicion + paso];
         if (destino && destino.offsetParent !== null) return destino;
@@ -579,7 +660,9 @@
             fila.querySelector('td[data-columna-clave="descripcion"]'),
             fila.querySelector('td[data-columna-clave="cuenta"]'),
           ].filter(Boolean);
-          const destinoTexto = preferidas.find((cel) => cel && cel.offsetParent !== null);
+          const destinoTexto = preferidas.find(
+            (cel) => cel && cel.offsetParent !== null
+          );
           return destinoTexto || fila.cells[0] || null;
         }
         return null;
@@ -610,10 +693,10 @@
       return null;
     };
 
-    if (direccion === 'left') return buscarHorizontal(-1);
-    if (direccion === 'right') return buscarHorizontal(1);
-    if (direccion === 'up') return buscarVertical(-1);
-    if (direccion === 'down') return buscarVertical(1);
+    if (direccion === "left") return buscarHorizontal(-1);
+    if (direccion === "right") return buscarHorizontal(1);
+    if (direccion === "up") return buscarVertical(-1);
+    if (direccion === "down") return buscarVertical(1);
     return null;
   }
 
@@ -621,10 +704,10 @@
    * Formatear número con separadores de miles
    */
   function formatearNumero(numero) {
-    if (!Number.isFinite(numero)) return '0.00';
-    return numero.toLocaleString('es-MX', {
+    if (!Number.isFinite(numero)) return "0.00";
+    return numero.toLocaleString("es-MX", {
       minimumFractionDigits: 2,
-      maximumFractionDigits: 2
+      maximumFractionDigits: 2,
     });
   }
 
@@ -633,10 +716,10 @@
    */
   function marcarComoModificado(celda) {
     celda.classList.add(CLASE_MODIFICADO);
-    
+
     // Cambiar color de fondo para visual feedback
     if (!celda.style.backgroundColor) {
-      celda.style.backgroundColor = '#ffffcc'; // Amarillo claro
+      celda.style.backgroundColor = "#ffffcc"; // Amarillo claro
     }
   }
 
@@ -644,13 +727,14 @@
    * Capturar cambio de una celda
    */
   function capturarCambio(celda, nuevoValor) {
-    const fila = celda.closest('tr');
+    const fila = celda.closest("tr");
     if (!fila) return;
 
     // Obtener cuenta de varias formas posibles
-    let cuenta = fila.dataset.cuenta || 
-                 fila.querySelector('[data-cuenta]')?.dataset.cuenta ||
-                 fila.cells[0]?.textContent.trim();
+    let cuenta =
+      fila.dataset.cuenta ||
+      fila.querySelector("[data-cuenta]")?.dataset.cuenta ||
+      fila.cells[0]?.textContent.trim();
 
     const mes = celda.dataset.mes;
 
@@ -660,12 +744,12 @@
     if (!estado.cambiosCapturados[cuenta]) {
       estado.cambiosCapturados[cuenta] = {
         cuenta,
-        valores: {}
+        valores: {},
       };
     }
 
     estado.cambiosCapturados[cuenta].valores[mes] = nuevoValor;
-    
+
     console.log(`📝 Capturado: ${cuenta} ${mes} = ${nuevoValor}`);
   }
 
@@ -674,13 +758,15 @@
    */
   function obtenerTodosCambios() {
     const presupuesto = Object.values(estado.cambiosCapturados);
-    
+
     if (presupuesto.length === 0) {
-      console.warn('⚠️ No hay cambios capturados en modo edición');
+      console.warn("⚠️ No hay cambios capturados en modo edición");
     } else {
-      console.log(`✅ Cambios capturados: ${presupuesto.length} cuentas modificadas`);
+      console.log(
+        `✅ Cambios capturados: ${presupuesto.length} cuentas modificadas`
+      );
     }
-    
+
     return { presupuesto };
   }
 
@@ -693,14 +779,31 @@
     if (!tabla) return null;
     const filas = Array.from(tabla.tBodies[0]?.rows || []);
     const layout = filas.map((fila, idx) => {
-      const cuenta = (fila.dataset.cuenta || fila.querySelector('[data-cuenta]')?.dataset.cuenta || fila.cells[0]?.textContent || '').toString().trim();
-      const descripcion = (fila.querySelector('[data-role="descripcion"]')?.textContent || fila.cells[1]?.textContent || '').toString().trim();
-      const role = fila.dataset.rowRole || fila.dataset.rowRole?.trim() || fila.dataset.role || '';
+      const cuenta = (
+        fila.dataset.cuenta ||
+        fila.querySelector("[data-cuenta]")?.dataset.cuenta ||
+        fila.cells[0]?.textContent ||
+        ""
+      )
+        .toString()
+        .trim();
+      const descripcion = (
+        fila.querySelector('[data-role="descripcion"]')?.textContent ||
+        fila.cells[1]?.textContent ||
+        ""
+      )
+        .toString()
+        .trim();
+      const role =
+        fila.dataset.rowRole ||
+        fila.dataset.rowRole?.trim() ||
+        fila.dataset.role ||
+        "";
       return {
         id: fila.id || `r${idx}`,
         cuenta,
         descripcion,
-        role
+        role,
       };
     });
     return { filas: layout };
@@ -709,56 +812,89 @@
   function persistirLayoutActual() {
     // Evitar recursión infinita
     if (estado.persistiendo) {
-      console.log('⚠️ Ya hay una persistencia en curso, omitiendo...');
+      console.log("⚠️ Ya hay una persistencia en curso, omitiendo...");
       return false;
     }
     estado.persistiendo = true;
-    
+
     try {
       const { tabla } = resolverTabla(estado.selectorTabla);
-      
+
       // NO hacer blur aquí para evitar recursión
       // El blur ya se manejó en la función guardar()
-      
+
       if (!tabla) {
         return false;
       }
       const empresa = Sesion.obtenerEmpresaActiva();
-      const selectAnioElem = document.getElementById('selectAnio') || document.getElementById('resumenYearSelect') || document.getElementById('yearSelect') || document.querySelector('[name="anio"]');
-      const anioSeleccion = Number(selectAnioElem?.value || new Date().getFullYear());
+      const selectAnioElem =
+        document.getElementById("selectAnio") ||
+        document.getElementById("resumenYearSelect") ||
+        document.getElementById("yearSelect") ||
+        document.querySelector('[name="anio"]');
+      const anioSeleccion = Number(
+        selectAnioElem?.value || new Date().getFullYear()
+      );
       const anio = Number.isInteger(anioSeleccion) ? anioSeleccion : null;
-      const moduloClave = (document.body?.dataset?.modulo || document.body?.dataset?.moduloId || 'resumen').toString().trim();
+      const moduloClave = (
+        document.body?.dataset?.modulo ||
+        document.body?.dataset?.moduloId ||
+        "resumen"
+      )
+        .toString()
+        .trim();
       if (!empresa?.id || !Number.isInteger(anio) || !moduloClave) {
-        console.warn('No fue posible persistir layout: falta empresa/anio/modulo', { empresa: empresa?.id, anio, moduloClave });
+        console.warn(
+          "No fue posible persistir layout: falta empresa/anio/modulo",
+          { empresa: empresa?.id, anio, moduloClave }
+        );
         return false;
       }
       const layout = capturarLayoutDesdeTabla(tabla);
       if (!layout) {
         return false;
       }
-      const guardadoLocal = guardarLayoutLocal({ moduloClave, empresaId: empresa.id, anio, layout });
-      
+      const guardadoLocal = guardarLayoutLocal({
+        moduloClave,
+        empresaId: empresa.id,
+        anio,
+        layout,
+      });
+
       // Try server-side persist; fallback silently if server fails
-      guardarLayoutServidor({ moduloClave, empresaId: empresa.id, anio, layout })
-        .then((srv) => { 
+      guardarLayoutServidor({
+        moduloClave,
+        empresaId: empresa.id,
+        anio,
+        layout,
+      })
+        .then((srv) => {
           if (srv) {
-            console.log('✅ Layout guardado en servidor', { moduloClave, empresaId: empresa.id, anio });
+            console.log("✅ Layout guardado en servidor", {
+              moduloClave,
+              empresaId: empresa.id,
+              anio,
+            });
           } else {
-            console.error('❌ Error guardando layout en servidor');
+            console.error("❌ Error guardando layout en servidor");
           }
         })
         .catch((err) => {
-          console.error('❌ Error guardando layout en servidor:', err);
+          console.error("❌ Error guardando layout en servidor:", err);
         });
-      
+
       if (guardadoLocal) {
-        console.log('✅ Layout persistido (localStorage)', { moduloClave, empresaId: empresa.id, anio, filasCapturadas: layout?.filas?.length || 0 });
+        console.log("✅ Layout persistido (localStorage)", {
+          moduloClave,
+          empresaId: empresa.id,
+          anio,
+          filasCapturadas: layout?.filas?.length || 0,
+        });
       }
-      
+
       return guardadoLocal;
-      
     } catch (err) {
-      console.error('❌ Error en persistirLayoutActual:', err);
+      console.error("❌ Error en persistirLayoutActual:", err);
       return false;
     } finally {
       // Liberar flag de persistencia SIEMPRE
@@ -770,23 +906,37 @@
     if (!layout || !Array.isArray(layout.filas) || !tabla) return false;
     const filas = Array.from(tabla.tBodies[0]?.rows || []);
     layout.filas.forEach((filaLayout) => {
-      const { cuenta: cuentaLayout, descripcion: descripcionLayout } = filaLayout || {};
+      const { cuenta: cuentaLayout, descripcion: descripcionLayout } =
+        filaLayout || {};
       if (!cuentaLayout) return;
       // Buscar fila por dataset.cuenta o por primera celda coincidente
-      const filaMatch = filas.find(f => (f.dataset.cuenta && normalizeString(f.dataset.cuenta) === normalizeString(cuentaLayout))
-        || ((f.cells[0]?.textContent || '').trim() === (cuentaLayout || '').trim()));
+      const filaMatch = filas.find(
+        (f) =>
+          (f.dataset.cuenta &&
+            normalizeString(f.dataset.cuenta) ===
+              normalizeString(cuentaLayout)) ||
+          (f.cells[0]?.textContent || "").trim() === (cuentaLayout || "").trim()
+      );
       if (filaMatch) {
-        const celdaDescripcion = filaMatch.querySelector('[data-role="descripcion"]') || filaMatch.cells[1];
+        const celdaDescripcion =
+          filaMatch.querySelector('[data-role="descripcion"]') ||
+          filaMatch.cells[1];
         if (celdaDescripcion && descripcionLayout != null) {
           celdaDescripcion.textContent = descripcionLayout;
         }
         // Si el layout contiene un valor de cuenta diferente, actualizar el dataset
         try {
           if (cuentaLayout) {
-            const actual = (filaMatch.dataset.cuenta || (filaMatch.querySelector('[data-cuenta]')?.dataset.cuenta || '')).toString().trim();
-            if (actual !== (cuentaLayout || '').toString().trim()) {
-              filaMatch.dataset.cuenta = cuentaLayout || '';
-              filaMatch.dataset.cuentaVisible = cuentaLayout || '';
+            const actual = (
+              filaMatch.dataset.cuenta ||
+              filaMatch.querySelector("[data-cuenta]")?.dataset.cuenta ||
+              ""
+            )
+              .toString()
+              .trim();
+            if (actual !== (cuentaLayout || "").toString().trim()) {
+              filaMatch.dataset.cuenta = cuentaLayout || "";
+              filaMatch.dataset.cuentaVisible = cuentaLayout || "";
             }
           }
         } catch (err) {
@@ -802,17 +952,17 @@
    */
   function limpiarCambios() {
     estado.cambiosCapturados = {};
-    
+
     // Remover estilos de modificado
     const { tabla } = resolverTabla(estado.selectorTabla);
     if (tabla) {
       tabla.querySelectorAll(`.${CLASE_MODIFICADO}`).forEach((celda) => {
         celda.classList.remove(CLASE_MODIFICADO);
-        celda.style.backgroundColor = '';
+        celda.style.backgroundColor = "";
       });
     }
-    
-    console.log('🧹 Cambios limpiados');
+
+    console.log("🧹 Cambios limpiados");
   }
   /**
    * Activar modo edicion global.
@@ -822,18 +972,18 @@
     if (!tabla) return;
 
     estado.modoEdicionActivo = true;
-    tabla.classList.add('modo-edicion-activo');
+    tabla.classList.add("modo-edicion-activo");
 
     const celdas = tabla.querySelectorAll(`.${CLASE_EDITABLE}`);
     celdas.forEach((celda) => {
       if (estado.soloLayout && celda.dataset.mes) return;
-      celda.style.cursor = 'pointer';
-      celda.title = 'Click para editar';
+      celda.style.cursor = "pointer";
+      celda.title = "Click para editar";
     });
 
     const mensaje = estado.soloLayout
-      ? 'ModoEdicionPresupuesto: ACTIVADO (solo layout: cuenta/descripcion editables)'
-      : 'ModoEdicionPresupuesto: ACTIVADO (celdas numericas editables)';
+      ? "ModoEdicionPresupuesto: ACTIVADO (solo layout: cuenta/descripcion editables)"
+      : "ModoEdicionPresupuesto: ACTIVADO (celdas numericas editables)";
     console.log(mensaje);
   }
 
@@ -844,15 +994,15 @@
     if (!tabla) return;
 
     estado.modoEdicionActivo = false;
-    tabla.classList.remove('modo-edicion-activo');
+    tabla.classList.remove("modo-edicion-activo");
 
     const editando = tabla.querySelector(`.${CLASE_EDITANDO}`);
     if (editando) {
-      editando.textContent = editando.querySelector('input')?.value || '';
+      editando.textContent = editando.querySelector("input")?.value || "";
       editando.classList.remove(CLASE_EDITANDO);
     }
 
-    console.log('ModoEdicionPresupuesto: modo edicion desactivado');
+    console.log("ModoEdicionPresupuesto: modo edicion desactivado");
   }
 
   // CONTEXT MENU: Agregar/Eliminar filas y secciones
@@ -863,18 +1013,24 @@
     if (!menuContextual) return;
     // remove keyboard handler
     try {
-      if (menuContextual._keyHandler) menuContextual.removeEventListener('keydown', menuContextual._keyHandler);
+      if (menuContextual._keyHandler)
+        menuContextual.removeEventListener(
+          "keydown",
+          menuContextual._keyHandler
+        );
     } catch (err) {}
     menuContextual.hidden = true;
     // return focus to the table or last active element
-    try { document.activeElement?.blur(); } catch (err) {}
+    try {
+      document.activeElement?.blur();
+    } catch (err) {}
   }
 
   function mostrarMenuContextual(x, y, opciones) {
     // Ensure we have base styles injected
-    if (!document.getElementById('modoedicion-style')) {
-      const style = document.createElement('style');
-      style.id = 'modoedicion-style';
+    if (!document.getElementById("modoedicion-style")) {
+      const style = document.createElement("style");
+      style.id = "modoedicion-style";
       style.textContent = `
         .modoedicion-context-menu { position: absolute; z-index: 99999; background: #fff; border: 1px solid #dcdcdc; padding: 4px; box-shadow: 0 3px 8px rgba(0,0,0,0.12); min-width: 140px; }
         .modoedicion-context-menu button { display:block; width:100%; border: none; background: transparent; padding:6px 10px; text-align: left; cursor: pointer; }
@@ -883,29 +1039,38 @@
       document.head.appendChild(style);
     }
 
-    const menu = menuContextual || Object.assign(document.createElement('div'), { className: 'modoedicion-context-menu', role: 'menu', 'aria-label': 'Acciones de edición' });
+    const menu =
+      menuContextual ||
+      Object.assign(document.createElement("div"), {
+        className: "modoedicion-context-menu",
+        role: "menu",
+        "aria-label": "Acciones de edición",
+      });
     menuContextual = menu;
-    menu.innerHTML = '';
+    menu.innerHTML = "";
     opciones.forEach((opcion, idx) => {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'btn btn-sm btn-light w-100 text-start';
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "btn btn-sm btn-light w-100 text-start";
       btn.textContent = opcion.texto || opcion.label;
-      btn.setAttribute('role', 'menuitem');
-      btn.setAttribute('tabindex', '-1');
-      btn.addEventListener('click', () => {
+      btn.setAttribute("role", "menuitem");
+      btn.setAttribute("tabindex", "-1");
+      btn.addEventListener("click", () => {
         switch (opcion.clave) {
-          case 'add_row':
+          case "add_row":
             // Usar InsertionWizard si está disponible
-            if (typeof window.InsertionWizard !== 'undefined') {
+            if (typeof window.InsertionWizard !== "undefined") {
               window.InsertionWizard.open(filaContextual);
             } else {
               // Fallback al sistema simple
-              insertarFilaNueva('abajo');
+              insertarFilaNueva("abajo");
             }
             break;
-          case 'delete_row': eliminarFilaSeleccionada(); break;
-          default: break;
+          case "delete_row":
+            eliminarFilaSeleccionada();
+            break;
+          default:
+            break;
         }
         ocultarMenuContextual();
       });
@@ -918,45 +1083,52 @@
     menu.style.top = `${y}px`;
     requestAnimationFrame(() => {
       const rect = menu.getBoundingClientRect();
-      let nx = x, ny = y;
+      let nx = x,
+        ny = y;
       if (rect.right > window.innerWidth) nx = Math.max(6, x - rect.width);
       if (rect.bottom > window.innerHeight) ny = Math.max(6, y - rect.height);
       menu.style.left = `${nx}px`;
       menu.style.top = `${ny}px`;
       menu.hidden = false;
       // Setup keyboard navigation
-      const botones = Array.from(menu.querySelectorAll('button'));
+      const botones = Array.from(menu.querySelectorAll("button"));
       if (botones.length) {
-        botones.forEach((b, i) => b.setAttribute('data-idx', i));
-        botones[0].setAttribute('tabindex', '0');
+        botones.forEach((b, i) => b.setAttribute("data-idx", i));
+        botones[0].setAttribute("tabindex", "0");
         botones[0].focus();
         const keyHandler = (e) => {
           if (!menu || menu.hidden) return;
           const current = document.activeElement;
-          const idx = Number(current?.getAttribute('data-idx') || 0);
-          if (e.key === 'ArrowDown') {
-            const next = botones[(idx + 1) % botones.length]; next.focus(); e.preventDefault();
-          } else if (e.key === 'ArrowUp') {
-            const prev = botones[(idx - 1 + botones.length) % botones.length]; prev.focus(); e.preventDefault();
-          } else if (e.key === 'Escape') {
-            ocultarMenuContextual(); e.preventDefault();
+          const idx = Number(current?.getAttribute("data-idx") || 0);
+          if (e.key === "ArrowDown") {
+            const next = botones[(idx + 1) % botones.length];
+            next.focus();
+            e.preventDefault();
+          } else if (e.key === "ArrowUp") {
+            const prev = botones[(idx - 1 + botones.length) % botones.length];
+            prev.focus();
+            e.preventDefault();
+          } else if (e.key === "Escape") {
+            ocultarMenuContextual();
+            e.preventDefault();
           }
         };
         menu._keyHandler = keyHandler;
-        menu.addEventListener('keydown', keyHandler);
+        menu.addEventListener("keydown", keyHandler);
       }
     });
     menuContextual = menu;
   }
 
-  function insertarFilaNueva(pos = 'abajo') {
+  function insertarFilaNueva(pos = "abajo") {
     const { tabla } = resolverTabla(estado.selectorTabla);
     if (!tabla || !filaContextual) return;
     const nueva = filaContextual.cloneNode(true);
     // limpiar valores y IDs
-    nueva.id = '';
-    Array.from(nueva.cells).forEach((c) => c.textContent = '');
-    if (pos === 'abajo') filaContextual.parentNode.insertBefore(nueva, filaContextual.nextSibling);
+    nueva.id = "";
+    Array.from(nueva.cells).forEach((c) => (c.textContent = ""));
+    if (pos === "abajo")
+      filaContextual.parentNode.insertBefore(nueva, filaContextual.nextSibling);
     else filaContextual.parentNode.insertBefore(nueva, filaContextual);
     // rebind
     inicializarCeldasEditables(tabla);
@@ -973,33 +1145,38 @@
     if (!tabla || !filaContextual) return;
     const thead = tabla.tHead;
     const tbody = tabla.tBodies[0];
-    const nueva = document.createElement('tr');
-    nueva.className = 'section-header-row';
-    const c1 = document.createElement('td');
+    const nueva = document.createElement("tr");
+    nueva.className = "section-header-row";
+    const c1 = document.createElement("td");
     c1.colSpan = tabla.tHead.rows[0]?.cells.length || 2;
-    c1.textContent = 'Nueva Seccion';
+    c1.textContent = "Nueva Seccion";
     nueva.appendChild(c1);
     filaContextual.parentNode.insertBefore(nueva, filaContextual);
     inicializarCeldasEditables(tabla);
   }
 
-  document.addEventListener('contextmenu', (evt) => {
+  document.addEventListener("contextmenu", (evt) => {
     if (!estado.modoEdicionActivo) return;
     if (window.ContextMenuWizard || window.InsertionWizard) return;
     const res = resolverTabla(estado.selectorTabla);
     if (!res || !res.tabla) return;
     const tabla = res.tabla;
     if (!tabla.contains(evt.target)) return;
-    const fila = evt.target.closest('tr');
+    const fila = evt.target.closest("tr");
     if (!fila) return;
     filaContextual = fila;
     const opciones = [];
     // Si es fila de cuenta o sección
-    if (fila.querySelector('[data-cuenta]') || fila.dataset.cuenta || fila.classList.contains('fila-cuenta') || fila.classList.contains('section-header-row')) {
-      opciones.push({ clave: 'add_row', texto: 'Agregar cuenta/sección...' });
-      opciones.push({ clave: 'delete_row', texto: 'Eliminar fila' });
+    if (
+      fila.querySelector("[data-cuenta]") ||
+      fila.dataset.cuenta ||
+      fila.classList.contains("fila-cuenta") ||
+      fila.classList.contains("section-header-row")
+    ) {
+      opciones.push({ clave: "add_row", texto: "Agregar cuenta/sección..." });
+      opciones.push({ clave: "delete_row", texto: "Eliminar fila" });
     } else {
-      opciones.push({ clave: 'add_row', texto: 'Agregar cuenta/sección...' });
+      opciones.push({ clave: "add_row", texto: "Agregar cuenta/sección..." });
     }
     if (!opciones.length) return;
     evt.preventDefault();
@@ -1017,21 +1194,23 @@
      */
     // Referencia al timer de reintento para evitar acumulación
     _pendingRetryTimer: null,
-    
-    inicializar: function(selectorTabla, opciones = {}) {
+
+    inicializar: function (selectorTabla, opciones = {}) {
       // CRÍTICO: Limpiar timer de reintento anterior si existe
       if (this._pendingRetryTimer) {
         clearInterval(this._pendingRetryTimer);
         this._pendingRetryTimer = null;
       }
-      
+
       // Configurar modo soloLayout (para SUMMARY/RESUMEN)
       estado.soloLayout = opciones.soloLayout === true;
-      
+
       if (estado.soloLayout) {
-        console.log('📝 Modo SOLO LAYOUT: cuenta/descripción editables, NO valores numéricos');
+        console.log(
+          "📝 Modo SOLO LAYOUT: cuenta/descripción editables, NO valores numéricos"
+        );
       }
-      
+
       const { tabla, selectorUsado } = resolverTabla(selectorTabla);
       if (!tabla) {
         console.error(`❌ No se encontró tabla en selector: ${selectorUsado}`);
@@ -1045,11 +1224,13 @@
             self._pendingRetryTimer = null;
             estado.selectorTabla = intento.selectorUsado;
             inicializarCeldasEditables(intento.tabla);
-            console.log(`✅ Modo edición inicializado (reintento) sobre ${intento.selectorUsado}`);
+            console.log(
+              `✅ Modo edición inicializado (reintento) sobre ${intento.selectorUsado}`
+            );
           } else if (--reintentos <= 0) {
             clearInterval(self._pendingRetryTimer);
             self._pendingRetryTimer = null;
-            console.warn('⚠️ No se encontró tabla después de 4 reintentos');
+            console.warn("⚠️ No se encontró tabla después de 4 reintentos");
           }
         }, 400);
         return false;
@@ -1057,21 +1238,24 @@
 
       estado.selectorTabla = selectorUsado;
       inicializarCeldasEditables(tabla);
-      
+
       // Cargar catálogo de cuentas desde CUENTASYY (Firebird)
       try {
         const empresa = Sesion?.obtenerEmpresaActiva?.();
-        const anioSeleccion = Number(document.getElementById('selectAnio')?.value || new Date().getFullYear());
+        const anioSeleccion = Number(
+          document.getElementById("selectAnio")?.value ||
+            new Date().getFullYear()
+        );
         const anio = Number.isInteger(anioSeleccion) ? anioSeleccion : null;
-        
+
         if (empresa?.id && Number.isInteger(anio)) {
           cargarCatalogoCuentas(empresa.id, anio);
-          
+
           // Escuchar cambios de año para recargar catálogo
-          const selectAnio = document.getElementById('selectAnio');
+          const selectAnio = document.getElementById("selectAnio");
           if (selectAnio && !selectAnio.dataset.catalogoListener) {
-            selectAnio.dataset.catalogoListener = 'true';
-            selectAnio.addEventListener('change', () => {
+            selectAnio.dataset.catalogoListener = "true";
+            selectAnio.addEventListener("change", () => {
               const nuevoAnio = Number(selectAnio.value);
               if (Number.isInteger(nuevoAnio) && empresa?.id) {
                 cargarCatalogoCuentas(empresa.id, nuevoAnio);
@@ -1080,29 +1264,46 @@
           }
         }
       } catch (err) {
-        console.warn('⚠️ Error cargando catálogo de cuentas:', err);
+        console.warn("⚠️ Error cargando catálogo de cuentas:", err);
       }
-      
+
       // Intentar cargar layout guardado localmente y aplicarlo
       try {
         const empresa = Sesion.obtenerEmpresaActiva();
-        const anioSeleccion = Number(document.getElementById('selectAnio')?.value || new Date().getFullYear());
+        const anioSeleccion = Number(
+          document.getElementById("selectAnio")?.value ||
+            new Date().getFullYear()
+        );
         const anio = Number.isInteger(anioSeleccion) ? anioSeleccion : null;
-        const moduloClave = (document.body?.dataset?.modulo || document.body?.dataset?.moduloId || 'resumen').toString().trim();
+        const moduloClave = (
+          document.body?.dataset?.modulo ||
+          document.body?.dataset?.moduloId ||
+          "resumen"
+        )
+          .toString()
+          .trim();
         if (empresa?.id && Number.isInteger(anio) && moduloClave) {
           // Prefer server layout; fallback to local layout
           (async () => {
-            const serverLayout = await cargarLayoutServidor({ moduloClave, empresaId: empresa.id, anio });
+            const serverLayout = await cargarLayoutServidor({
+              moduloClave,
+              empresaId: empresa.id,
+              anio,
+            });
             if (serverLayout && aplicarLayoutLocal(serverLayout, tabla)) return;
-            const localLayout = cargarLayoutLocal({ moduloClave, empresaId: empresa.id, anio });
+            const localLayout = cargarLayoutLocal({
+              moduloClave,
+              empresaId: empresa.id,
+              anio,
+            });
             if (localLayout) aplicarLayoutLocal(localLayout, tabla);
           })();
         }
       } catch (err) {
-        console.warn('Error aplicando layout local', err);
+        console.warn("Error aplicando layout local", err);
       }
-      
-      const mensajeInicial = estado.soloLayout 
+
+      const mensajeInicial = estado.soloLayout
         ? `✅ ModoEdicionPresupuesto (soloLayout): cuenta/descripción editables en ${selectorUsado}`
         : `✅ ModoEdicionPresupuesto: listeners inicializados (NO activo) en ${selectorUsado}`;
       console.log(mensajeInicial);
@@ -1112,13 +1313,15 @@
     /**
      * Activar modo edicion (wrapper publico).
      */
-    activar: function(selectorTabla) {
-      const { tabla, selectorUsado } = resolverTabla(selectorTabla || estado.selectorTabla);
+    activar: function (selectorTabla) {
+      const { tabla, selectorUsado } = resolverTabla(
+        selectorTabla || estado.selectorTabla
+      );
       if (!tabla) {
         console.error(`❌ No se encontró tabla: ${selectorUsado}`);
         return false;
       }
-      
+
       estado.selectorTabla = selectorUsado;
       // Reaplicar listeners en caso de rerender
       inicializarCeldasEditables(tabla);
@@ -1129,10 +1332,12 @@
     /**
      * Desactivar modo edición
      */
-    desactivar: function(selectorTabla) {
-      const { tabla, selectorUsado } = resolverTabla(selectorTabla || estado.selectorTabla);
+    desactivar: function (selectorTabla) {
+      const { tabla, selectorUsado } = resolverTabla(
+        selectorTabla || estado.selectorTabla
+      );
       if (!tabla) return false;
-      
+
       estado.selectorTabla = selectorUsado;
       desactivarModoEdicion(tabla);
       return true;
@@ -1141,64 +1346,72 @@
     /**
      * Obtener cambios capturados
      */
-    obtenerCambios: function() {
+    obtenerCambios: function () {
       return obtenerTodosCambios();
     },
 
     /**
      * Limpiar cambios
      */
-    limpiar: function() {
+    limpiar: function () {
       limpiarCambios();
     },
 
     /**
      * Obtener estado
      */
-    estaActivo: function() {
+    estaActivo: function () {
       return estado.modoEdicionActivo;
     },
 
     /**
      * Obtener número de cambios
      */
-    obtenerNumCambios: function() {
+    obtenerNumCambios: function () {
       return Object.keys(estado.cambiosCapturados).length;
     },
     // Persiste layout actual como plantilla local (por empresa/anio/modulo)
-    guardarLayout: function() {
+    guardarLayout: function () {
       return persistirLayoutActual();
     },
-    cargarLayoutLocal: function() {
+    cargarLayoutLocal: function () {
       const empresa = Sesion.obtenerEmpresaActiva();
-      const anioSeleccion = Number(document.getElementById('selectAnio')?.value || new Date().getFullYear());
+      const anioSeleccion = Number(
+        document.getElementById("selectAnio")?.value || new Date().getFullYear()
+      );
       const anio = Number.isInteger(anioSeleccion) ? anioSeleccion : null;
-      const moduloClave = (document.body?.dataset?.modulo || document.body?.dataset?.moduloId || 'resumen').toString().trim();
+      const moduloClave = (
+        document.body?.dataset?.modulo ||
+        document.body?.dataset?.moduloId ||
+        "resumen"
+      )
+        .toString()
+        .trim();
       if (!empresa?.id || !Number.isInteger(anio) || !moduloClave) return null;
       return cargarLayoutLocal({ moduloClave, empresaId: empresa.id, anio });
     },
-    
+
     /**
      * Capturar layout actual de la tabla
      */
-    capturarLayout: function(tabla) {
+    capturarLayout: function (tabla) {
       const tablaResuelta = tabla || resolverTabla(estado.selectorTabla).tabla;
       return capturarLayoutTabla(tablaResuelta);
     },
-    
-    aplicarLayoutLocal: function(layout) {
+
+    aplicarLayoutLocal: function (layout) {
       const { tabla } = resolverTabla(estado.selectorTabla);
       return aplicarLayoutLocal(layout, tabla);
     },
-    
+
     /**
      * Propiedad para verificar si hay cambios en layout
      */
     get layoutModificado() {
       // Por ahora siempre retornar true si hay un layout capturado
       return true;
-    }
+    },
   };
 
-  console.log('📦 Módulo ModoEdicionPresupuesto cargado');
+  console.log("📦 Módulo ModoEdicionPresupuesto cargado");
 })();

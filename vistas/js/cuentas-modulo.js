@@ -1,39 +1,59 @@
 (() => {
   const API_BASE = (() => {
-    if (window.location.protocol === 'file:') return 'http://localhost:3005/api';
-    return `${window.location.origin.replace(/\/$/, '')}/api`;
+    if (window.location.protocol === "file:")
+      return "http://localhost:3005/api";
+    return `${window.location.origin.replace(/\/$/, "")}/api`;
   })();
-  const EVENTO_TABLA_ACTUALIZADA = 'modulo-planeacion:tabla-actualizada';
-  const EVENTO_CONTEXTO = 'planeacion:contexto-actualizado';
-  const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
-  const CLAVE_MES_A_PERIODO = new Map(MESES.map((clave, idx) => [clave, idx + 1]));
+  const EVENTO_TABLA_ACTUALIZADA = "modulo-planeacion:tabla-actualizada";
+  const EVENTO_CONTEXTO = "planeacion:contexto-actualizado";
+  const MESES = [
+    "ene",
+    "feb",
+    "mar",
+    "abr",
+    "may",
+    "jun",
+    "jul",
+    "ago",
+    "sep",
+    "oct",
+    "nov",
+    "dic",
+  ];
+  const CLAVE_MES_A_PERIODO = new Map(
+    MESES.map((clave, idx) => [clave, idx + 1])
+  );
 
   const normalizarTexto = (valor) => {
-    if (valor == null) return '';
+    if (valor == null) return "";
     return valor
       .toString()
       .trim()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
       .toUpperCase();
   };
 
-  const normalizarSheetId = (texto) => normalizarTexto(texto).replace(/[\s._]+/g, '');
-  const normalizarModuloClave = (valor) => normalizarTexto(valor || '').replace(/[^A-Z0-9]/g, '').toLowerCase();
+  const normalizarSheetId = (texto) =>
+    normalizarTexto(texto).replace(/[\s._]+/g, "");
+  const normalizarModuloClave = (valor) =>
+    normalizarTexto(valor || "")
+      .replace(/[^A-Z0-9]/g, "")
+      .toLowerCase();
 
   const obtenerTabla = (selector) => {
     if (selector) {
       const desdeSelector = document.querySelector(selector);
       if (desdeSelector) return desdeSelector;
     }
-    return document.querySelector('#tablaComparacion');
+    return document.querySelector("#tablaComparacion");
   };
 
   const contarColumnas = (tabla) => {
     if (!tabla || !tabla.tHead) return 2;
     const filas = Array.from(tabla.tHead.rows || []);
     if (!filas.length) {
-      return tabla.tHead.querySelectorAll('th').length || 2;
+      return tabla.tHead.querySelectorAll("th").length || 2;
     }
     const ultima = filas[filas.length - 1];
     return (ultima && ultima.cells.length) || filas[0].cells.length || 2;
@@ -41,22 +61,22 @@
 
   /**
    * Crea una fila de estado para mostrar mensajes informativos en la tabla
-   * 
+   *
    * Se usa cuando la tabla está vacía o hay algún error, por ejemplo:
    * - "El capitulo seleccionado no tiene esta vista asignada."
    * - "No hay informacion disponible para esta vista."
    * - "El capitulo no tiene cuentas configuradas en el libro."
-   * 
+   *
    * La fila ocupa todo el ancho de la tabla con una sola celda.
-   * 
+   *
    * @param {string} mensaje - Mensaje a mostrar al usuario
    * @param {number} colspan - Número de columnas que debe abarcar la celda
    * @returns {HTMLTableRowElement} Fila HTML con el mensaje
    */
   const crearFilaEstado = (mensaje, colspan) => {
-    const fila = document.createElement('tr');
-    fila.className = 'estado-tabla';
-    const celda = document.createElement('td');
+    const fila = document.createElement("tr");
+    fila.className = "estado-tabla";
+    const celda = document.createElement("td");
     celda.colSpan = colspan;
     celda.textContent = mensaje;
     fila.appendChild(celda);
@@ -71,99 +91,105 @@
 
   const obtenerConfigModulo = () => {
     const dataset = document.body?.dataset || {};
-    const moduloId = dataset.moduloId || dataset.modulo || '';
-    const moduloSheet = dataset.moduloSheet || '';
+    const moduloId = dataset.moduloId || dataset.modulo || "";
+    const moduloSheet = dataset.moduloSheet || "";
     return { moduloId, moduloSheet };
   };
 
   const MODULOS_SOPORTADOS = new Set([
-    'comites',
-    'comunicacion',
-    'direccion',
-    'eventos',
-    'finanzas',
-    'gastosgenerales',
-    'gtoscorporativos',
-    'nomina',
-    'membresia',
-    'rh',
-    'servmembresia',
-    'tic',
-    'presupuestos',
-    'vpe'
+    "comites",
+    "comunicacion",
+    "direccion",
+    "eventos",
+    "finanzas",
+    "gastosgenerales",
+    "gtoscorporativos",
+    "nomina",
+    "membresia",
+    "rh",
+    "servmembresia",
+    "tic",
+    "presupuestos",
+    "vpe",
   ]);
 
   const MODULOS_LAYOUT_EDITABLE = new Set([
-    'presupuestos',
-    'presupuestoshtml',
-    'vpe',
-    'servmembresia',
-    'serviciosalamembresia',
-    'membresia',
-    'comunicacion',
-    'gtoscorporativos',
-    'tic',
-    'comites',
-    'finanzas',
-    'gastosgenerales',
-    'rh',
-    'recursoshumanos',
-    'eventos',
-    'nomina'
+    "presupuestos",
+    "presupuestoshtml",
+    "vpe",
+    "servmembresia",
+    "serviciosalamembresia",
+    "membresia",
+    "comunicacion",
+    "gtoscorporativos",
+    "tic",
+    "comites",
+    "finanzas",
+    "gastosgenerales",
+    "rh",
+    "recursoshumanos",
+    "eventos",
+    "nomina",
   ]);
 
   // Módulos sin operaciones automáticas (se usa la configuración tal como viene del layout/DB)
   const MODULOS_SIN_OPERACIONES_AUTOMATICAS = new Set([
-    'membresia',
-    'eventos',
-    'comites',
-    'comunicacion',
-    'direccion',
-    'finanzas',
-    'rh',
-    'servmembresia',
-    'serviciosalamembresia',
-    'tic',
-    'vpe',
-    'gastosgenerales',
-    'gtoscorporativos',
-    'nomina',
-    'presupuestos'
+    "membresia",
+    "eventos",
+    "comites",
+    "comunicacion",
+    "direccion",
+    "finanzas",
+    "rh",
+    "servmembresia",
+    "serviciosalamembresia",
+    "tic",
+    "vpe",
+    "gastosgenerales",
+    "gtoscorporativos",
+    "nomina",
+    "presupuestos",
   ]);
 
   const normalizarEtiquetaExclusion = (texto) =>
-    normalizarTexto(texto || '').replace(/\s+/g, ' ');
+    normalizarTexto(texto || "").replace(/\s+/g, " ");
 
   const ETIQUETAS_EXCLUIDAS_POR_MODULO = {
-    servmembresia: new Set([
-      'TOTAL INGRESOS Serv Membresía',
-      'TOTAL GASTOS Serv Membresía',
-      'RESULTADO OPERATIVO Serv Membresía',
-      'RESULTADO Serv Membresía',
-      'Resultado Serv Membresía'
-    ].map(normalizarEtiquetaExclusion)),
-    tic: new Set([
-      'TOTAL INGRESOS T&IC',
-      'TOTAL GASTOS T&IC',
-      'RESULTADO T&IC',
-      'Resultado T&IC'
-    ].map(normalizarEtiquetaExclusion)),
-    vpe: new Set([
-      'TOTAL INGRESOS VPE',
-      'TOTAL GASTOS VPE',
-      'RESULTADO VPE',
-      'Resultado VPE'
-    ].map(normalizarEtiquetaExclusion))
+    servmembresia: new Set(
+      [
+        "TOTAL INGRESOS Serv Membresía",
+        "TOTAL GASTOS Serv Membresía",
+        "RESULTADO OPERATIVO Serv Membresía",
+        "RESULTADO Serv Membresía",
+        "Resultado Serv Membresía",
+      ].map(normalizarEtiquetaExclusion)
+    ),
+    tic: new Set(
+      [
+        "TOTAL INGRESOS T&IC",
+        "TOTAL GASTOS T&IC",
+        "RESULTADO T&IC",
+        "Resultado T&IC",
+      ].map(normalizarEtiquetaExclusion)
+    ),
+    vpe: new Set(
+      [
+        "TOTAL INGRESOS VPE",
+        "TOTAL GASTOS VPE",
+        "RESULTADO VPE",
+        "Resultado VPE",
+      ].map(normalizarEtiquetaExclusion)
+    ),
   };
 
   const limpiarSumasPorModulo = (configuracionActual, moduloClave) => {
-    const moduloNormalizado = normalizarModuloClave(moduloClave || '');
+    const moduloNormalizado = normalizarModuloClave(moduloClave || "");
     const excluidas = ETIQUETAS_EXCLUIDAS_POR_MODULO[moduloNormalizado];
     if (!excluidas || !configuracionActual) return configuracionActual;
 
     const limpiarEtiqueta = (texto) => {
       if (!texto) return texto;
-      return excluidas.has(normalizarEtiquetaExclusion(texto)) ? '' : texto;
+      return excluidas.has(normalizarEtiquetaExclusion(texto)) ? "" : texto;
     };
 
     const limpio = { ...configuracionActual };
@@ -171,7 +197,10 @@
     limpio.sumRowSumavarios = limpiarEtiqueta(limpio.sumRowSumavarios);
     limpio.sumRowSumavarios2 = limpiarEtiqueta(limpio.sumRowSumavarios2);
 
-    if (limpio.resultRow && excluidas.has(normalizarEtiquetaExclusion(limpio.resultRow))) {
+    if (
+      limpio.resultRow &&
+      excluidas.has(normalizarEtiquetaExclusion(limpio.resultRow))
+    ) {
       delete limpio.resultRow;
     }
 
@@ -184,40 +213,57 @@
     return limpio;
   };
 
-
   // Reglas manuales: solo aplicamos para Eventos, el resto respeta el layout/DB.
   const REGLAS_OPERACIONES_MODULO = {
     eventos: {
       default: [
         // Ingresos Boletaje/Patrocinios -> resultado operativo y final
-        { match: /INGRESOS/i, sumavarios: 'Resultado Operativo Eventos', sumavarios2: 'Resultado Eventos' },
+        {
+          match: /INGRESOS/i,
+          sumavarios: "Resultado Operativo Eventos",
+          sumavarios2: "Resultado Eventos",
+        },
         // Costos y Gastos Eventos -> resultado operativo y final (signo de gasto lo maneja el nombre)
-        { match: /COSTOS\s+Y\s+GASTOS\s+EVENTOS/i, sumavarios: 'Resultado Operativo Eventos', sumavarios2: 'Resultado Eventos' },
+        {
+          match: /COSTOS\s+Y\s+GASTOS\s+EVENTOS/i,
+          sumavarios: "Resultado Operativo Eventos",
+          sumavarios2: "Resultado Eventos",
+        },
         // Gastos Administrativos -> afecta solo el resultado final
-        { match: /GASTOS\s+ADMINISTRATIVOS/i, sumavarios2: 'Resultado Eventos' }
-      ]
-    }
+        {
+          match: /GASTOS\s+ADMINISTRATIVOS/i,
+          sumavarios2: "Resultado Eventos",
+        },
+      ],
+    },
   };
 
   const obtenerReglaModulo = (moduloClave) => {
-    const clave = normalizarModuloClave(moduloClave || '');
+    const clave = normalizarModuloClave(moduloClave || "");
     return REGLAS_OPERACIONES_MODULO[clave] || null;
   };
 
-  const construirEtiquetasOperacion = (etiquetaVisible = 'Módulo') => ({
+  const construirEtiquetasOperacion = (etiquetaVisible = "Módulo") => ({
     totalIngresos: `TOTAL INGRESOS ${etiquetaVisible}`,
     totalGastos: `TOTAL GASTOS ${etiquetaVisible}`,
-    resultado: `RESULTADO ${etiquetaVisible}`
+    resultado: `RESULTADO ${etiquetaVisible}`,
   });
 
   // Aplica reglas manuales (solo Eventos); el resto se respeta tal como viene del layout/DB.
-  const aplicarOperacionesPorModulo = (moduloClave, seccionNombre, configuracionActual = null) => {
+  const aplicarOperacionesPorModulo = (
+    moduloClave,
+    seccionNombre,
+    configuracionActual = null
+  ) => {
     if (!configuracionActual) return configuracionActual;
     const reglasModulo = obtenerReglaModulo(moduloClave);
-    if (!reglasModulo || !Array.isArray(reglasModulo.default)) return configuracionActual;
+    if (!reglasModulo || !Array.isArray(reglasModulo.default))
+      return configuracionActual;
 
     const seccionNorm = normalizarTexto(seccionNombre);
-    const regla = reglasModulo.default.find((r) => r.match && r.match.test(seccionNorm));
+    const regla = reglasModulo.default.find(
+      (r) => r.match && r.match.test(seccionNorm)
+    );
     if (!regla) return configuracionActual;
 
     const limpio = { ...configuracionActual };
@@ -230,7 +276,8 @@
     return limpio;
   };
 
-  const esModuloEditable = (moduloClave) => MODULOS_LAYOUT_EDITABLE.has(normalizarModuloClave(moduloClave || ''));
+  const esModuloEditable = (moduloClave) =>
+    MODULOS_LAYOUT_EDITABLE.has(normalizarModuloClave(moduloClave || ""));
 
   const obtenerClaveLayoutLocal = ({ moduloClave, empresaId, anio }) => {
     if (!moduloClave || !empresaId || !Number.isInteger(anio)) {
@@ -248,7 +295,7 @@
       const crudo = window.localStorage.getItem(clave);
       return crudo ? JSON.parse(crudo) : null;
     } catch (error) {
-      console.warn('No fue posible leer el layout local', error);
+      console.warn("No fue posible leer el layout local", error);
       return null;
     }
   };
@@ -262,15 +309,15 @@
       window.localStorage.setItem(clave, JSON.stringify(layout));
       return true;
     } catch (error) {
-      console.warn('No fue posible guardar el layout local', error);
+      console.warn("No fue posible guardar el layout local", error);
       return false;
     }
   };
 
   const estadoModulo = {
-    moduloId: '',
-    moduloClave: '',
-    sheet: '',
+    moduloId: "",
+    moduloClave: "",
+    sheet: "",
     columnas: {},
     tabla: null,
     ultimaSolicitud: 0,
@@ -284,11 +331,11 @@
     sumas: {
       secciones: [],
       sumavariosRows: new Map(),
-      resultRows: new Map()
+      resultRows: new Map(),
     },
     valoresPorCuenta: new Map(),
     nombresPorCuenta: new Map(),
-    capitulo: '',
+    capitulo: "",
     placeholdersPorFila: 0,
     layoutActual: null,
     layoutSnapshot: null,
@@ -298,8 +345,8 @@
     catalogoPromesas: new Map(),
     catalogoFallido: new Set(),
     sugerencias: {
-      contenedor: null
-    }
+      contenedor: null,
+    },
   };
   let moduloReadyDispatched = false;
   let panelPrincipales = null;
@@ -312,7 +359,8 @@
     return null;
   };
 
-  const obtenerPeriodoCerrado = () => normalizarPeriodo(estadoModulo.periodoCerrado);
+  const obtenerPeriodoCerrado = () =>
+    normalizarPeriodo(estadoModulo.periodoCerrado);
 
   const obtenerIndiceMesSistema = () => new Date().getMonth();
 
@@ -326,7 +374,9 @@
     const periodo = obtenerPeriodoCerrado();
     const indiceDesdeContexto = Number.isInteger(periodo) ? periodo - 1 : null;
     const indiceMesActual = obtenerIndiceMesSistema();
-    const anioSeleccionado = Number.isInteger(estadoModulo.anio) ? estadoModulo.anio : null;
+    const anioSeleccionado = Number.isInteger(estadoModulo.anio)
+      ? estadoModulo.anio
+      : null;
     const anioActual = new Date().getFullYear();
     // Para ejercicios distintos al actual se permite ver el año completo
     const limitePorFecha =
@@ -334,7 +384,9 @@
         ? MESES.length - 1
         : indiceMesActual - 1; // Excluir mes en curso
     const limiteCalculadoBase =
-      indiceDesdeContexto != null ? Math.min(indiceDesdeContexto, limitePorFecha) : limitePorFecha;
+      indiceDesdeContexto != null
+        ? Math.min(indiceDesdeContexto, limitePorFecha)
+        : limitePorFecha;
     const limiteMaximo = MESES.length - 1;
     return Math.max(-1, Math.min(limiteCalculadoBase, limiteMaximo));
   };
@@ -344,11 +396,11 @@
     return indice >= 0 ? indice + 1 : null;
   };
 
-  const MODAL_SECCION_ID = 'sectionModal';
+  const MODAL_SECCION_ID = "sectionModal";
   const crearModalSeccion = () => {
-    const modalWrapper = document.createElement('div');
+    const modalWrapper = document.createElement("div");
     modalWrapper.id = MODAL_SECCION_ID;
-    modalWrapper.className = 'section-modal';
+    modalWrapper.className = "section-modal";
     modalWrapper.hidden = true;
     modalWrapper.innerHTML = `
       <div class="section-modal__overlay"></div>
@@ -402,9 +454,9 @@
   };
 
   const asegurarEstilosModal = () => {
-    if (document.getElementById('sectionModalStyles')) return;
-    const style = document.createElement('style');
-    style.id = 'sectionModalStyles';
+    if (document.getElementById("sectionModalStyles")) return;
+    const style = document.createElement("style");
+    style.id = "sectionModalStyles";
     style.textContent = `
       .section-modal {
         position: fixed;
@@ -529,8 +581,8 @@
   let pendingSectionReferencia = null;
 
   const crearCampoCuentaFormulario = () => {
-    const fila = document.createElement('div');
-    fila.className = 'section-account-row';
+    const fila = document.createElement("div");
+    fila.className = "section-account-row";
     fila.innerHTML = `
       <input type="text" class="form-control section-account-input" placeholder="Cuenta" maxlength="25" />
       <input type="text" class="form-control section-account-input" placeholder="Descripcion" maxlength="120" />
@@ -545,42 +597,45 @@
       </div>
       <button type="button" aria-label="Eliminar cuenta">&times;</button>
     `;
-    const factorSelect = fila.querySelector('.section-account-factor');
-    const factorCustom = fila.querySelector('.section-account-factor-custom');
-    factorSelect.addEventListener('change', () => {
-      const usarCustom = factorSelect.value === 'custom';
-      factorCustom.classList.toggle('d-none', !usarCustom);
+    const factorSelect = fila.querySelector(".section-account-factor");
+    const factorCustom = fila.querySelector(".section-account-factor-custom");
+    factorSelect.addEventListener("change", () => {
+      const usarCustom = factorSelect.value === "custom";
+      factorCustom.classList.toggle("d-none", !usarCustom);
       if (!usarCustom) {
-        factorCustom.value = '';
+        factorCustom.value = "";
       }
     });
-    fila.querySelector('button').addEventListener('click', () => fila.remove());
+    fila.querySelector("button").addEventListener("click", () => fila.remove());
     return fila;
   };
 
   const poblarSelectSeccionesModal = () => {
     if (!sectionModalInstance) return;
-    const startSelect = sectionModalInstance.querySelector('#sectionGroupStart');
-    const endSelect = sectionModalInstance.querySelector('#sectionGroupEnd');
+    const startSelect =
+      sectionModalInstance.querySelector("#sectionGroupStart");
+    const endSelect = sectionModalInstance.querySelector("#sectionGroupEnd");
     if (!startSelect || !endSelect) return;
-    startSelect.innerHTML = '';
-    endSelect.innerHTML = '';
+    startSelect.innerHTML = "";
+    endSelect.innerHTML = "";
     const secciones = (estadoModulo.sumas.secciones || []).map((meta, idx) => ({
       idx,
-      label: meta?.tituloVisible || meta?.seccion || `Sección ${idx + 1}`
+      label: meta?.tituloVisible || meta?.seccion || `Sección ${idx + 1}`,
     }));
-    const groupToggle = sectionModalInstance.querySelector('#sectionGroupToggle');
+    const groupToggle = sectionModalInstance.querySelector(
+      "#sectionGroupToggle"
+    );
     if (!secciones.length) {
-      const option = document.createElement('option');
-      option.value = '';
-      option.textContent = 'Sin secciones disponibles';
+      const option = document.createElement("option");
+      option.value = "";
+      option.textContent = "Sin secciones disponibles";
       option.disabled = true;
       startSelect.appendChild(option);
       endSelect.appendChild(option.cloneNode(true));
       if (groupToggle) {
         groupToggle.checked = false;
         groupToggle.disabled = true;
-        sectionModalInstance.querySelector('#sectionGroupFields').hidden = true;
+        sectionModalInstance.querySelector("#sectionGroupFields").hidden = true;
       }
       return;
     }
@@ -588,7 +643,7 @@
       groupToggle.disabled = false;
     }
     secciones.forEach(({ idx, label }) => {
-      const optionStart = document.createElement('option');
+      const optionStart = document.createElement("option");
       optionStart.value = String(idx);
       optionStart.textContent = label;
       startSelect.appendChild(optionStart);
@@ -600,15 +655,19 @@
   const obtenerPrincipalesResumen = () => {
     const mapa = new Map();
     (estadoModulo.sumas.secciones || []).forEach((meta) => {
-      const label = meta?.sumRowSumavariosLabel || '';
+      const label = meta?.sumRowSumavariosLabel || "";
       if (!label) return;
       const clave = normalizarTexto(label);
       if (!mapa.has(clave)) {
         mapa.set(clave, { label, secciones: [] });
       }
       mapa.get(clave).secciones.push({
-        nombre: meta.tituloVisible || meta.seccion || 'Sin título',
-        factor: Number.isFinite(meta.factor) ? meta.factor : (Number.isFinite(meta.operacionFactor) ? meta.operacionFactor : 1)
+        nombre: meta.tituloVisible || meta.seccion || "Sin título",
+        factor: Number.isFinite(meta.factor)
+          ? meta.factor
+          : Number.isFinite(meta.operacionFactor)
+          ? meta.operacionFactor
+          : 1,
       });
     });
     return Array.from(mapa.values());
@@ -619,20 +678,20 @@
     if (!elems?.principalSelect) return;
     const select = elems.principalSelect;
     const resumen = obtenerPrincipalesResumen();
-    select.innerHTML = '';
-    const optionDefault = document.createElement('option');
-    optionDefault.value = '';
-    optionDefault.textContent = 'Selecciona principal';
+    select.innerHTML = "";
+    const optionDefault = document.createElement("option");
+    optionDefault.value = "";
+    optionDefault.textContent = "Selecciona principal";
     select.appendChild(optionDefault);
     resumen.forEach((item) => {
-      const opt = document.createElement('option');
+      const opt = document.createElement("option");
       opt.value = item.label;
       opt.textContent = `${item.label} (${item.secciones.length})`;
       select.appendChild(opt);
     });
-    const optNuevo = document.createElement('option');
-    optNuevo.value = '__custom__';
-    optNuevo.textContent = 'Crear nuevo principal...';
+    const optNuevo = document.createElement("option");
+    optNuevo.value = "__custom__";
+    optNuevo.textContent = "Crear nuevo principal...";
     select.appendChild(optNuevo);
   };
 
@@ -641,7 +700,8 @@
     if (!elems?.principalInfo) return;
     const resumen = obtenerPrincipalesResumen();
     if (!resumen.length) {
-      elems.principalInfo.innerHTML = '<p class="text-muted small mb-0">Aún no hay principales configurados.</p>';
+      elems.principalInfo.innerHTML =
+        '<p class="text-muted small mb-0">Aún no hay principales configurados.</p>';
       return;
     }
     const contenido = resumen
@@ -649,15 +709,17 @@
         const lista = item.secciones
           .map(
             (sec) =>
-              `<li>${sec.nombre} <span class="badge bg-light text-dark ms-1">${sec.factor >= 0 ? '+' : ''}${sec.factor}</span></li>`
+              `<li>${sec.nombre} <span class="badge bg-light text-dark ms-1">${
+                sec.factor >= 0 ? "+" : ""
+              }${sec.factor}</span></li>`
           )
-          .join('');
+          .join("");
         return `<div class="mb-2">
           <h6>${item.label}</h6>
           <ul class="mb-0">${lista}</ul>
         </div>`;
       })
-      .join('');
+      .join("");
     elems.principalInfo.innerHTML = contenido;
   };
 
@@ -667,37 +729,38 @@
     pendingSectionReferencia = referencia || null;
     if (!sectionModalInstance) return;
     const modal = sectionModalInstance;
-    const form = modal.querySelector('form');
-    const accountsContainer = modal.querySelector('#sectionAccountsContainer');
-    const groupToggle = modal.querySelector('#sectionGroupToggle');
-    const groupFields = modal.querySelector('#sectionGroupFields');
-    const titleInput = modal.querySelector('#sectionTitleInput');
-    const sumLabelInput = modal.querySelector('#sectionSumLabelInput');
-    const groupLabelInput = modal.querySelector('#sectionGroupLabel');
-    const factorInput = modal.querySelector('#sectionPrincipalFactor');
+    const form = modal.querySelector("form");
+    const accountsContainer = modal.querySelector("#sectionAccountsContainer");
+    const groupToggle = modal.querySelector("#sectionGroupToggle");
+    const groupFields = modal.querySelector("#sectionGroupFields");
+    const titleInput = modal.querySelector("#sectionTitleInput");
+    const sumLabelInput = modal.querySelector("#sectionSumLabelInput");
+    const groupLabelInput = modal.querySelector("#sectionGroupLabel");
+    const factorInput = modal.querySelector("#sectionPrincipalFactor");
     if (!form || !accountsContainer || !groupToggle || !groupFields) return;
-    titleInput.value = '';
-    sumLabelInput.value = '';
+    titleInput.value = "";
+    sumLabelInput.value = "";
     groupToggle.checked = false;
     groupFields.hidden = true;
-    groupLabelInput.value = '';
+    groupLabelInput.value = "";
     if (factorInput) {
-      factorInput.value = '';
+      factorInput.value = "";
     }
-    accountsContainer.innerHTML = '';
+    accountsContainer.innerHTML = "";
     accountsContainer.appendChild(crearCampoCuentaFormulario());
-    abrirModalAgregarSeccion.actualizarSecciones = () => poblarSelectSeccionesModal();
+    abrirModalAgregarSeccion.actualizarSecciones = () =>
+      poblarSelectSeccionesModal();
     poblarSelectSeccionesModal();
     modal.hidden = false;
-    modal.removeAttribute('hidden');
-    modal.style.display = 'flex';
-    modal.style.pointerEvents = 'auto';
-    const overlay = modal.querySelector('.section-modal__overlay');
+    modal.removeAttribute("hidden");
+    modal.style.display = "flex";
+    modal.style.pointerEvents = "auto";
+    const overlay = modal.querySelector(".section-modal__overlay");
     if (overlay) {
-      overlay.style.pointerEvents = 'auto';
+      overlay.style.pointerEvents = "auto";
     }
     void modal.offsetHeight;
-    const primerInput = modal.querySelector('input, select, textarea');
+    const primerInput = modal.querySelector("input, select, textarea");
     if (primerInput) {
       setTimeout(() => primerInput.focus(), 100);
     }
@@ -706,14 +769,16 @@
   const cerrarModalSeccion = () => {
     if (!sectionModalInstance) return;
     sectionModalInstance.hidden = true;
-    sectionModalInstance.setAttribute('hidden', 'hidden');
-    sectionModalInstance.style.display = 'none';
-    sectionModalInstance.style.pointerEvents = 'none';
-    const overlay = sectionModalInstance.querySelector('.section-modal__overlay');
+    sectionModalInstance.setAttribute("hidden", "hidden");
+    sectionModalInstance.style.display = "none";
+    sectionModalInstance.style.pointerEvents = "none";
+    const overlay = sectionModalInstance.querySelector(
+      ".section-modal__overlay"
+    );
     if (overlay) {
-      overlay.style.pointerEvents = 'none';
+      overlay.style.pointerEvents = "none";
     }
-    const form = sectionModalInstance.querySelector('form');
+    const form = sectionModalInstance.querySelector("form");
     if (form) {
       form.reset();
     }
@@ -722,21 +787,35 @@
   const getSectionModalElements = () => {
     if (!sectionModalInstance) return null;
     return {
-      form: sectionModalInstance.querySelector('form'),
-      titleInput: sectionModalInstance.querySelector('#sectionTitleInput'),
-      sumLabelInput: sectionModalInstance.querySelector('#sectionSumLabelInput'),
-      accountsContainer: sectionModalInstance.querySelector('#sectionAccountsContainer'),
-      addAccountBtn: sectionModalInstance.querySelector('#sectionAddAccountBtn'),
-      groupToggle: sectionModalInstance.querySelector('#sectionGroupToggle'),
-      groupFields: sectionModalInstance.querySelector('#sectionGroupFields'),
-      groupStart: sectionModalInstance.querySelector('#sectionGroupStart'),
-      groupEnd: sectionModalInstance.querySelector('#sectionGroupEnd'),
-      groupLabel: sectionModalInstance.querySelector('#sectionGroupLabel'),
-      cancelBtn: sectionModalInstance.querySelector('#sectionModalCancel'),
-      principalSelect: sectionModalInstance.querySelector('#sectionPrincipalSelect'),
-      principalCustom: sectionModalInstance.querySelector('#sectionPrincipalCustom'),
-      principalFactor: sectionModalInstance.querySelector('#sectionPrincipalFactor'),
-      principalInfo: sectionModalInstance.querySelector('#sectionPrincipalInfo')
+      form: sectionModalInstance.querySelector("form"),
+      titleInput: sectionModalInstance.querySelector("#sectionTitleInput"),
+      sumLabelInput: sectionModalInstance.querySelector(
+        "#sectionSumLabelInput"
+      ),
+      accountsContainer: sectionModalInstance.querySelector(
+        "#sectionAccountsContainer"
+      ),
+      addAccountBtn: sectionModalInstance.querySelector(
+        "#sectionAddAccountBtn"
+      ),
+      groupToggle: sectionModalInstance.querySelector("#sectionGroupToggle"),
+      groupFields: sectionModalInstance.querySelector("#sectionGroupFields"),
+      groupStart: sectionModalInstance.querySelector("#sectionGroupStart"),
+      groupEnd: sectionModalInstance.querySelector("#sectionGroupEnd"),
+      groupLabel: sectionModalInstance.querySelector("#sectionGroupLabel"),
+      cancelBtn: sectionModalInstance.querySelector("#sectionModalCancel"),
+      principalSelect: sectionModalInstance.querySelector(
+        "#sectionPrincipalSelect"
+      ),
+      principalCustom: sectionModalInstance.querySelector(
+        "#sectionPrincipalCustom"
+      ),
+      principalFactor: sectionModalInstance.querySelector(
+        "#sectionPrincipalFactor"
+      ),
+      principalInfo: sectionModalInstance.querySelector(
+        "#sectionPrincipalInfo"
+      ),
     };
   };
 
@@ -745,25 +824,29 @@
     sectionModalInstance = sectionModalInstance || crearModalSeccion();
     const elems = getSectionModalElements();
     if (!elems) return;
-    elems.groupToggle.addEventListener('change', () => {
+    elems.groupToggle.addEventListener("change", () => {
       elems.groupFields.hidden = !elems.groupToggle.checked;
     });
-    elems.addAccountBtn.addEventListener('click', () => {
+    elems.addAccountBtn.addEventListener("click", () => {
       elems.accountsContainer.appendChild(crearCampoCuentaFormulario());
     });
-    elems.cancelBtn.addEventListener('click', () => {
+    elems.cancelBtn.addEventListener("click", () => {
       cerrarModalSeccion();
     });
-    elems.form.addEventListener('submit', (event) => {
+    elems.form.addEventListener("submit", (event) => {
       event.preventDefault();
       const cuentas = [];
       let factorInvalido = false;
-      Array.from(elems.accountsContainer.querySelectorAll('.section-account-row')).forEach((row) => {
-        const inputs = row.querySelectorAll('input');
-        const factorSelect = row.querySelector('.section-account-factor');
-        const factorCustomInput = row.querySelector('.section-account-factor-custom');
-        const cuentaValor = inputs[0]?.value.trim() || '';
-        const descripcionValor = inputs[1]?.value.trim() || '';
+      Array.from(
+        elems.accountsContainer.querySelectorAll(".section-account-row")
+      ).forEach((row) => {
+        const inputs = row.querySelectorAll("input");
+        const factorSelect = row.querySelector(".section-account-factor");
+        const factorCustomInput = row.querySelector(
+          ".section-account-factor-custom"
+        );
+        const cuentaValor = inputs[0]?.value.trim() || "";
+        const descripcionValor = inputs[1]?.value.trim() || "";
         if (!cuentaValor && !descripcionValor) return;
         const seleccion = factorSelect?.value;
         if (!seleccion) {
@@ -771,9 +854,13 @@
           return;
         }
         let factorValor = null;
-        if (seleccion === 'custom') {
+        if (seleccion === "custom") {
           const customRaw = factorCustomInput?.value;
-          if (customRaw === undefined || customRaw === null || customRaw === '') {
+          if (
+            customRaw === undefined ||
+            customRaw === null ||
+            customRaw === ""
+          ) {
             factorInvalido = true;
             return;
           }
@@ -788,41 +875,46 @@
         cuentas.push({
           cuenta: cuentaValor,
           descripcion: descripcionValor,
-          factor: factorValor
+          factor: factorValor,
         });
       });
       if (!cuentas.length) {
-        window.alert('Debes agregar al menos una cuenta para la sección.');
+        window.alert("Debes agregar al menos una cuenta para la sección.");
         return;
       }
       if (factorInvalido) {
-        window.alert('Define la operación (sumar, restar o factor personalizado) para cada cuenta.');
+        window.alert(
+          "Define la operación (sumar, restar o factor personalizado) para cada cuenta."
+        );
         return;
       }
       const titulo = elems.titleInput.value.trim();
       const sumLabel = elems.sumLabelInput.value.trim();
       if (!titulo || !sumLabel) {
-        window.alert('El título y la etiqueta del sum row son obligatorios.');
+        window.alert("El título y la etiqueta del sum row son obligatorios.");
         return;
       }
       const factorSeccionRaw = elems.principalFactor?.value;
-      const factorSeccionValor = factorSeccionRaw === undefined ? NaN : Number(factorSeccionRaw);
-      if (factorSeccionRaw === '' || !Number.isFinite(factorSeccionValor)) {
-        window.alert('Indica cómo opera la sección (factor de suma/resta).');
+      const factorSeccionValor =
+        factorSeccionRaw === undefined ? NaN : Number(factorSeccionRaw);
+      if (factorSeccionRaw === "" || !Number.isFinite(factorSeccionValor)) {
+        window.alert("Indica cómo opera la sección (factor de suma/resta).");
         return;
       }
       let range = null;
-      let sumavariosLabel = '';
+      let sumavariosLabel = "";
       if (elems.groupToggle.checked) {
         const start = Number(elems.groupStart.value);
         const end = Number(elems.groupEnd.value);
         sumavariosLabel = elems.groupLabel.value.trim();
         if (Number.isNaN(start) || Number.isNaN(end) || start > end) {
-          window.alert('Selecciona un rango válido para las secciones contiguas.');
+          window.alert(
+            "Selecciona un rango válido para las secciones contiguas."
+          );
           return;
         }
         if (!sumavariosLabel) {
-          window.alert('Proporciona una etiqueta para el sum row varios.');
+          window.alert("Proporciona una etiqueta para el sum row varios.");
           return;
         }
         range = { start, end };
@@ -834,7 +926,7 @@
         cuentas,
         sumavariosLabel,
         range,
-        factorSeccion: factorSeccionValor
+        factorSeccion: factorSeccionValor,
       });
       cerrarModalSeccion();
     });
@@ -846,13 +938,16 @@
   };
 
   const obtenerYearSelect = () => {
-    return document.querySelector('[data-role="module-year-select"]') || document.querySelector('select[id$="YearSelect"]');
+    return (
+      document.querySelector('[data-role="module-year-select"]') ||
+      document.querySelector('select[id$="YearSelect"]')
+    );
   };
 
   const obtenerAnioSeleccionado = () => {
     const select = obtenerYearSelect();
     if (select) {
-      const crudo = (select.value || '').trim();
+      const crudo = (select.value || "").trim();
       if (crudo) {
         const valor = Number(crudo);
         if (Number.isInteger(valor)) {
@@ -872,25 +967,25 @@
       return {};
     }
     const mapa = {};
-    const cabeceras = Array.from(tabla.tHead.querySelectorAll('th'));
+    const cabeceras = Array.from(tabla.tHead.querySelectorAll("th"));
     cabeceras.forEach((th, indice) => {
-      if (th.classList.contains('budget-annual-column')) {
-        mapa['budget-annual'] = indice;
-      } else if (th.classList.contains('budget-monthly-column')) {
-        mapa['budget-monthly'] = indice;
+      if (th.classList.contains("budget-annual-column")) {
+        mapa["budget-annual"] = indice;
+      } else if (th.classList.contains("budget-monthly-column")) {
+        mapa["budget-monthly"] = indice;
       }
-      if (th.classList.contains('month-budget')) {
-        const clave = th.dataset.mes || '';
+      if (th.classList.contains("month-budget")) {
+        const clave = th.dataset.mes || "";
         mapa[`budget-${clave}`] = indice;
-      } else if (th.classList.contains('month-real')) {
-        const clave = th.dataset.mes || '';
+      } else if (th.classList.contains("month-real")) {
+        const clave = th.dataset.mes || "";
         mapa[`real-${clave}`] = indice;
-      } else if (th.classList.contains('year-column')) {
+      } else if (th.classList.contains("year-column")) {
         mapa.year = indice;
-      } else if (th.classList.contains('total-budget-column')) {
-        mapa['total-budget'] = indice;
-      } else if (th.classList.contains('total-real-column')) {
-        mapa['total-real'] = indice;
+      } else if (th.classList.contains("total-budget-column")) {
+        mapa["total-budget"] = indice;
+      } else if (th.classList.contains("total-real-column")) {
+        mapa["total-real"] = indice;
       }
     });
     return mapa;
@@ -904,44 +999,33 @@
     return reverse;
   };
 
-  const esClaveBudget = (clave) => clave && clave.startsWith('budget-');
+  const esClaveBudget = (clave) => clave && clave.startsWith("budget-");
 
   const parsearNumero = (texto) => {
-    const limpio = (texto || '').toString().replace(/[^0-9+.,-]/g, '').replace(',', '.');
-    const numero = Number(limpio);
+    const limpio = (texto || "")
+      .toString()
+      .replace(/[^0-9+.,-]/g, "")
+      .replace(/,/g, "");
+    const numero = parseFloat(limpio);
     return Number.isFinite(numero) ? numero : 0;
   };
 
   const formatearNumero = (valor) => {
     const numero = Number(valor);
-    if (!Number.isFinite(numero)) return '0.00';
+    if (!Number.isFinite(numero)) return "0.00";
     const fijo = numero.toFixed(2);
-    const [entero, decimales] = fijo.split('.');
-    const enteroConComas = entero.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    const [entero, decimales] = fijo.split(".");
+    const enteroConComas = entero.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
     return `${enteroConComas}.${decimales}`;
   };
 
   const obtenerFilasCuenta = () => {
     if (!estadoModulo.tabla) {
       return [];
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     }
-    return Array.from(estadoModulo.tabla.querySelectorAll('tbody tr.fila-cuenta'));
+    return Array.from(
+      estadoModulo.tabla.querySelectorAll("tbody tr.fila-cuenta")
+    );
   };
 
   const actualizarNombreFila = (fila, nombre) => {
@@ -975,21 +1059,18 @@
    */
 
   const recalcularTotalesFilaPresupuesto = (fila) => {
-
     if (!fila) return;
 
-    const cuenta = fila.dataset.cuenta21 || '';
+    const cuenta = fila.dataset.cuenta21 || "";
 
     const almacen = estadoModulo.valoresPorCuenta.get(cuenta) || {};
 
-
-
     // Obtener el mes actual (0-11, donde 0=enero, 11=diciembre)
 
-    const limiteMes = estadoModulo.mesActualIndex ?? obtenerIndicePeriodoActual();
+    const limiteMes =
+      estadoModulo.mesActualIndex ?? obtenerIndicePeriodoActual();
     const mesActualIndex = Number.isInteger(limiteMes) ? limiteMes : -1;
     const mesActualClave = mesActualIndex >= 0 ? MESES[mesActualIndex] : null;
-
 
     let totalPresupuestoAcumulado = 0;
 
@@ -997,12 +1078,9 @@
 
     let totalRealAcumulado = 0;
 
-
-
     // Sumar todos los meses desde enero hasta el mes actual
 
     MESES.forEach((mes, index) => {
-
       const presupuestoMes = Number(almacen[`budget-${mes}`]) || 0;
 
       const realMes = Number(almacen[`real-${mes}`]) || 0;
@@ -1019,86 +1097,60 @@
 
     // Obtener valor del mes actual especificamente
 
-    const realMesActual = mesActualClave ? Number(almacen[`real-${mesActualClave}`]) || 0 : 0;
-
+    const realMesActual = mesActualClave
+      ? Number(almacen[`real-${mesActualClave}`]) || 0
+      : 0;
 
     // Actualizar celda de total-budget: acumulado desde enero hasta mes actual
 
-    if (estadoModulo.columnas['total-budget'] != null) {
-
-      const celdaTotal = fila.cells[estadoModulo.columnas['total-budget']];
+    if (estadoModulo.columnas["total-budget"] != null) {
+      const celdaTotal = fila.cells[estadoModulo.columnas["total-budget"]];
 
       if (celdaTotal) {
-
         celdaTotal.textContent = formatearNumero(totalPresupuestoAcumulado);
-
       }
-
     }
-
-
 
     // Actualizar celda budget-annual: suma total del presupuesto anual
 
-    if (estadoModulo.columnas['budget-annual'] != null) {
-
-      const celdaAnnual = fila.cells[estadoModulo.columnas['budget-annual']];
+    if (estadoModulo.columnas["budget-annual"] != null) {
+      const celdaAnnual = fila.cells[estadoModulo.columnas["budget-annual"]];
 
       if (celdaAnnual) {
-
         celdaAnnual.textContent = formatearNumero(totalPresupuestoAnual);
-
       }
-
     }
-
-
 
     // Actualizar celda budget-monthly: real del mes actual
 
-    if (estadoModulo.columnas['budget-monthly'] != null) {
-
-      const celdaMensual = fila.cells[estadoModulo.columnas['budget-monthly']];
+    if (estadoModulo.columnas["budget-monthly"] != null) {
+      const celdaMensual = fila.cells[estadoModulo.columnas["budget-monthly"]];
 
       if (celdaMensual) {
-
         celdaMensual.textContent = formatearNumero(realMesActual);
-
       }
-
     }
-
-
 
     // Actualizar celda total-real: acumulado desde enero hasta mes actual
 
-    if (estadoModulo.columnas['total-real'] != null) {
-
-      const celdaRealTotal = fila.cells[estadoModulo.columnas['total-real']];
+    if (estadoModulo.columnas["total-real"] != null) {
+      const celdaRealTotal = fila.cells[estadoModulo.columnas["total-real"]];
 
       if (celdaRealTotal) {
-
         celdaRealTotal.textContent = formatearNumero(totalRealAcumulado);
-
       }
-
     }
 
+    almacen["total-budget"] = totalPresupuestoAcumulado;
 
+    almacen["budget-annual"] = totalPresupuestoAnual;
 
-    almacen['total-budget'] = totalPresupuestoAcumulado;
+    almacen["budget-monthly"] = realMesActual;
 
-    almacen['budget-annual'] = totalPresupuestoAnual;
-
-    almacen['budget-monthly'] = realMesActual;
-
-    almacen['total-real'] = totalRealAcumulado;
+    almacen["total-real"] = totalRealAcumulado;
 
     estadoModulo.valoresPorCuenta.set(cuenta, almacen);
-
   };
-
-
 
   const establecerValorCelda = (fila, clave, valor) => {
     const indice = estadoModulo.columnas[clave];
@@ -1119,10 +1171,10 @@
         establecerValorCelda(fila, `budget-${mes}`, 0);
         establecerValorCelda(fila, `real-${mes}`, 0);
       });
-      establecerValorCelda(fila, 'total-budget', 0);
-      establecerValorCelda(fila, 'total-real', 0);
-      establecerValorCelda(fila, 'budget-annual', 0);
-      establecerValorCelda(fila, 'budget-monthly', 0);
+      establecerValorCelda(fila, "total-budget", 0);
+      establecerValorCelda(fila, "total-real", 0);
+      establecerValorCelda(fila, "budget-annual", 0);
+      establecerValorCelda(fila, "budget-monthly", 0);
     });
     recalcularSumas();
     estadoModulo.hayCambios = false;
@@ -1130,7 +1182,9 @@
   };
 
   const contarSaldos = (registros = []) => {
-    const mapa = new Map(registros.map((registro) => [registro.cuenta, registro]));
+    const mapa = new Map(
+      registros.map((registro) => [registro.cuenta, registro])
+    );
     estadoModulo.valoresPorCuenta = new Map();
     const numeroSeguro = (valor) => {
       const n = Number(valor);
@@ -1139,51 +1193,53 @@
     // Obtener mes actual (0-11, donde 0=enero, 11=diciembre)
     const mesActualIndex = obtenerIndicePeriodoActual();
     const mesActualClave = mesActualIndex >= 0 ? MESES[mesActualIndex] : null; // ene, feb, mar, etc.
-    
+
     obtenerFilasCuenta().forEach((fila) => {
-      const cuenta = fila.dataset.cuenta21 || '';
+      const cuenta = fila.dataset.cuenta21 || "";
       const registro = mapa.get(cuenta);
       let totalPresupuestoAcumulado = 0;
       let totalPresupuestoAnual = 0;
       let totalRealAcumulado = 0;
       const almacen = {};
-      
+
       MESES.forEach((mes, index) => {
         const presupuesto = numeroSeguro(registro?.presupuesto?.[mes]);
         const real = numeroSeguro(registro?.real?.[mes]);
-        
+
         totalPresupuestoAnual += presupuesto;
         // Acumular solo hasta el mes actual
         if (mesActualIndex >= 0 && index <= mesActualIndex) {
           totalPresupuestoAcumulado += presupuesto;
           totalRealAcumulado += real;
         }
-        
+
         establecerValorCelda(fila, `budget-${mes}`, presupuesto);
         establecerValorCelda(fila, `real-${mes}`, real);
         almacen[`budget-${mes}`] = presupuesto;
         almacen[`real-${mes}`] = real;
       });
-      
+
       // Real del mes actual (para Gastos Corporativos: "Mensual")
-      const realMesActual = mesActualClave ? numeroSeguro(registro?.real?.[mesActualClave]) : 0;
-      
+      const realMesActual = mesActualClave
+        ? numeroSeguro(registro?.real?.[mesActualClave])
+        : 0;
+
       // total-budget y total-real: acumulados desde enero hasta mes actual
-      establecerValorCelda(fila, 'total-budget', totalPresupuestoAcumulado);
-      establecerValorCelda(fila, 'total-real', totalRealAcumulado);
+      establecerValorCelda(fila, "total-budget", totalPresupuestoAcumulado);
+      establecerValorCelda(fila, "total-real", totalRealAcumulado);
       // budget-annual: suma del presupuesto anual (todas las columnas budget-[mes])
-      establecerValorCelda(fila, 'budget-annual', totalPresupuestoAnual);
+      establecerValorCelda(fila, "budget-annual", totalPresupuestoAnual);
       // budget-monthly: real del mes actual (Gastos Corporativos)
-      establecerValorCelda(fila, 'budget-monthly', realMesActual);
-      
-      almacen['total-budget'] = totalPresupuestoAcumulado;
-      almacen['budget-annual'] = totalPresupuestoAnual;
-      almacen['budget-monthly'] = realMesActual;
-      almacen['total-real'] = totalRealAcumulado;
+      establecerValorCelda(fila, "budget-monthly", realMesActual);
+
+      almacen["total-budget"] = totalPresupuestoAcumulado;
+      almacen["budget-annual"] = totalPresupuestoAnual;
+      almacen["budget-monthly"] = realMesActual;
+      almacen["total-real"] = totalRealAcumulado;
       estadoModulo.valoresPorCuenta.set(cuenta, almacen);
     });
-      estadoModulo.mesActual = mesActualClave || '';
-      estadoModulo.mesActualIndex = mesActualIndex;
+    estadoModulo.mesActual = mesActualClave || "";
+    estadoModulo.mesActualIndex = mesActualIndex;
     recalcularSumas();
     estadoModulo.hayCambios = false;
     estadoModulo.editSnapshot = null;
@@ -1193,7 +1249,7 @@
     const filas = obtenerFilasCuenta();
     const conjunto = new Set();
     filas.forEach((fila) => {
-      const cuenta = (fila.dataset.cuenta21 || '').trim();
+      const cuenta = (fila.dataset.cuenta21 || "").trim();
       if (cuenta) {
         conjunto.add(cuenta);
       }
@@ -1202,32 +1258,51 @@
   };
 
   const clonarMapaValores = (mapa) =>
-    new Map(Array.from(mapa.entries()).map(([clave, valores]) => [clave, { ...(valores || {}) }]));
+    new Map(
+      Array.from(mapa.entries()).map(([clave, valores]) => [
+        clave,
+        { ...(valores || {}) },
+      ])
+    );
 
   const tomarSnapshotEdicion = () => ({
     valores: clonarMapaValores(estadoModulo.valoresPorCuenta),
-    nombres: new Map(estadoModulo.nombresPorCuenta)
+    nombres: new Map(estadoModulo.nombresPorCuenta),
   });
 
   const restablecerDesdeSnapshot = (snap) => {
     if (!snap) return;
-    estadoModulo.valoresPorCuenta = clonarMapaValores(snap.valores || new Map());
+    estadoModulo.valoresPorCuenta = clonarMapaValores(
+      snap.valores || new Map()
+    );
     estadoModulo.nombresPorCuenta = new Map(snap.nombres || []);
     obtenerFilasCuenta().forEach((fila) => {
-      const cuenta = fila.dataset.cuenta21 || '';
-      const nombre = estadoModulo.nombresPorCuenta.get(cuenta) || '';
+      const cuenta = fila.dataset.cuenta21 || "";
+      const nombre = estadoModulo.nombresPorCuenta.get(cuenta) || "";
       if (nombre) {
         actualizarNombreFila(fila, nombre);
       }
       const valores = estadoModulo.valoresPorCuenta.get(cuenta) || {};
       MESES.forEach((mes) => {
-        establecerValorCelda(fila, `budget-${mes}`, valores[`budget-${mes}`] ?? 0);
+        establecerValorCelda(
+          fila,
+          `budget-${mes}`,
+          valores[`budget-${mes}`] ?? 0
+        );
         establecerValorCelda(fila, `real-${mes}`, valores[`real-${mes}`] ?? 0);
       });
-      establecerValorCelda(fila, 'total-budget', valores['total-budget'] ?? 0);
-      establecerValorCelda(fila, 'total-real', valores['total-real'] ?? 0);
-      establecerValorCelda(fila, 'budget-annual', valores['budget-annual'] ?? 0);
-      establecerValorCelda(fila, 'budget-monthly', valores['budget-monthly'] ?? 0);
+      establecerValorCelda(fila, "total-budget", valores["total-budget"] ?? 0);
+      establecerValorCelda(fila, "total-real", valores["total-real"] ?? 0);
+      establecerValorCelda(
+        fila,
+        "budget-annual",
+        valores["budget-annual"] ?? 0
+      );
+      establecerValorCelda(
+        fila,
+        "budget-monthly",
+        valores["budget-monthly"] ?? 0
+      );
     });
     recalcularSumas();
   };
@@ -1261,15 +1336,15 @@
 
   // CRÍTICO: Flag para evitar recursión infinita en notificaciones
   let notificandoCambios = false;
-  
+
   const notificarCambios = () => {
     // Evitar recursión infinita
     if (notificandoCambios) {
-      console.warn('⚠️ notificarCambios: evitando recursión');
+      console.warn("⚠️ notificarCambios: evitando recursión");
       return;
     }
     notificandoCambios = true;
-    
+
     try {
       const cambios = obtenerCambiosPendientes();
       // NO persistir automáticamente - solo notificar que hay cambios pendientes
@@ -1278,30 +1353,36 @@
         ...cambios,
         hayCambios: estadoModulo.hayCambios,
         layoutModificado: estadoModulo.layoutModificado || false,
-        borradorGuardado: false // Ya no se guarda automáticamente
+        borradorGuardado: false, // Ya no se guarda automáticamente
       };
-      window.dispatchEvent(new CustomEvent('modulo-planeacion:presupuesto-editado', { detail: detalle }));
+      window.dispatchEvent(
+        new CustomEvent("modulo-planeacion:presupuesto-editado", {
+          detail: detalle,
+        })
+      );
     } finally {
       // Liberar flag con un pequeño delay para evitar llamadas inmediatas
-      setTimeout(() => { notificandoCambios = false; }, 50);
+      setTimeout(() => {
+        notificandoCambios = false;
+      }, 50);
     }
   };
 
   const indicesMesReal = () =>
     Object.entries(estadoModulo.columnas || {})
-      .filter(([clave]) => clave.startsWith('real-'))
+      .filter(([clave]) => clave.startsWith("real-"))
       .map(([, idx]) => idx);
 
   const ocultarColumnasReal = (ocultar) => {
     if (!estadoModulo.tabla) return;
     const indices = indicesMesReal();
     if (!indices.length) return;
-    const filas = Array.from(estadoModulo.tabla.querySelectorAll('tr'));
+    const filas = Array.from(estadoModulo.tabla.querySelectorAll("tr"));
     filas.forEach((fila) => {
       indices.forEach((idx) => {
         const celda = fila.cells[idx];
         if (celda) {
-          celda.style.display = ocultar ? 'none' : '';
+          celda.style.display = ocultar ? "none" : "";
         }
       });
     });
@@ -1310,16 +1391,17 @@
   const aplicarFiltroColumnasPorPeriodo = () => {
     if (!estadoModulo.tabla) return;
     const periodoLimite = obtenerPeriodoVisible();
-    const filas = Array.from(estadoModulo.tabla.querySelectorAll('tr'));
+    const filas = Array.from(estadoModulo.tabla.querySelectorAll("tr"));
     Object.entries(estadoModulo.columnas || {}).forEach(([clave, idx]) => {
-      if (!clave.startsWith('real-')) return;
-      const mesClave = clave.replace('real-', '');
+      if (!clave.startsWith("real-")) return;
+      const mesClave = clave.replace("real-", "");
       const mesNumero = CLAVE_MES_A_PERIODO.get(mesClave) || null;
-      const debeOcultar = periodoLimite == null || (mesNumero && mesNumero > periodoLimite);
+      const debeOcultar =
+        periodoLimite == null || (mesNumero && mesNumero > periodoLimite);
       filas.forEach((fila) => {
         const celda = fila.cells[idx];
         if (celda) {
-          celda.style.display = debeOcultar ? 'none' : '';
+          celda.style.display = debeOcultar ? "none" : "";
         }
       });
     });
@@ -1328,7 +1410,7 @@
   const aplicarNombresTabla = (mapaNombres = new Map()) => {
     if (!mapaNombres.size) return;
     obtenerFilasCuenta().forEach((fila) => {
-      const cuenta = fila.dataset.cuenta21 || '';
+      const cuenta = fila.dataset.cuenta21 || "";
       const nombre = mapaNombres.get(cuenta);
       if (nombre) {
         actualizarNombreFila(fila, nombre);
@@ -1338,18 +1420,34 @@
 
   const cargarNombresCuentas = async ({ empresaId, anio, cuentas } = {}) => {
     const lista = Array.isArray(cuentas) ? Array.from(new Set(cuentas)) : [];
-    if (!empresaId || !Number.isInteger(anio) || !lista.length) return new Map();
+    if (!empresaId || !Number.isInteger(anio) || !lista.length)
+      return new Map();
     try {
-      const params = new URLSearchParams({ empresaId, anio, cuentas: lista.join(',') });
-      const resp = await fetch(`${API_BASE}/saldos/cuentas?${params.toString()}`, {
-        headers: Sesion.headersAutenticacion()
+      const params = new URLSearchParams({
+        empresaId,
+        anio,
+        cuentas: lista.join(","),
       });
+      const resp = await fetch(
+        `${API_BASE}/saldos/cuentas?${params.toString()}`,
+        {
+          headers: Sesion.headersAutenticacion(),
+        }
+      );
       const datos = await resp.json();
-      if (!resp.ok) throw new Error(datos.mensaje || 'No fue posible obtener nombres.');
+      if (!resp.ok)
+        throw new Error(datos.mensaje || "No fue posible obtener nombres.");
       const mapa = new Map();
       (datos.cuentas || []).forEach((registro) => {
-        const clave = convertirCuenta21(registro.cuenta || registro.numCta || registro.NUM_CTA || '');
-        const nombre = (registro.nombre || registro.nombreCuenta || registro.NOMBRE || '').trim();
+        const clave = convertirCuenta21(
+          registro.cuenta || registro.numCta || registro.NUM_CTA || ""
+        );
+        const nombre = (
+          registro.nombre ||
+          registro.nombreCuenta ||
+          registro.NOMBRE ||
+          ""
+        ).trim();
         if (clave && nombre) {
           mapa.set(clave, nombre);
           estadoModulo.nombresPorCuenta.set(clave, nombre);
@@ -1358,50 +1456,72 @@
       aplicarNombresTabla(mapa);
       return mapa;
     } catch (error) {
-      console.warn('No fue posible cargar nombres de cuentas', error);
+      console.warn("No fue posible cargar nombres de cuentas", error);
       return new Map();
     }
   };
 
   const cargarCuentasPresupuestos = async ({ anio } = {}) => {
-    const params = new URLSearchParams({ anio: Number.isInteger(anio) ? anio : new Date().getFullYear() });
+    const params = new URLSearchParams({
+      anio: Number.isInteger(anio) ? anio : new Date().getFullYear(),
+    });
     const normalizarNumero = (valor) => {
       const numerico = Number(valor);
       return Number.isFinite(numerico) ? numerico : 0;
     };
-    const esAcreedora = (naturaleza) => ['A', 'C'].includes((naturaleza || '').toString().trim().toUpperCase());
+    const esAcreedora = (naturaleza) =>
+      ["A", "C"].includes((naturaleza || "").toString().trim().toUpperCase());
 
     try {
-      const resp = await fetch(`${API_BASE}/presupuestos?${params.toString()}`, {
-        headers: Sesion.headersAutenticacion()
-      });
+      const resp = await fetch(
+        `${API_BASE}/presupuestos?${params.toString()}`,
+        {
+          headers: Sesion.headersAutenticacion(),
+        }
+      );
       const datos = await resp.json();
       if (!resp.ok) {
-        throw new Error(datos.mensaje || 'No fue posible obtener las cuentas de presupuestos.');
+        throw new Error(
+          datos.mensaje || "No fue posible obtener las cuentas de presupuestos."
+        );
       }
       const cuentas = Array.isArray(datos.cuentas) ? datos.cuentas : [];
       return cuentas
         .map((cuenta) => {
-          const naturaleza = (cuenta.naturaleza || cuenta.NATURALEZA || '').toString().trim().toUpperCase();
-          const cuentaVisible = cuenta.numCta || cuenta.num_cta || cuenta.CUENTA || cuenta.cuenta || '';
+          const naturaleza = (cuenta.naturaleza || cuenta.NATURALEZA || "")
+            .toString()
+            .trim()
+            .toUpperCase();
+          const cuentaVisible =
+            cuenta.numCta ||
+            cuenta.num_cta ||
+            cuenta.CUENTA ||
+            cuenta.cuenta ||
+            "";
           const cuenta21 = convertirCuenta21(cuentaVisible);
           if (!cuenta21) return null;
           const presupuesto = {};
           const real = {};
           MESES.forEach((mes, idxMes) => {
-            const sufijoMes = String(idxMes + 1).padStart(2, '0');
+            const sufijoMes = String(idxMes + 1).padStart(2, "0");
             const presupuestoCampo =
               cuenta[`PRESUP${sufijoMes}`] ??
               cuenta[`presup${sufijoMes}`] ??
-              (cuenta.presupuesto && cuenta.presupuesto[mes] != null ? cuenta.presupuesto[mes] : undefined) ??
+              (cuenta.presupuesto && cuenta.presupuesto[mes] != null
+                ? cuenta.presupuesto[mes]
+                : undefined) ??
               cuenta[`presupuesto_${mes}`] ??
               cuenta[`presupuesto${mes}`] ??
               cuenta[mes];
             const realCampo =
-              (cuenta.contabilizacion && cuenta.contabilizacion[mes] != null ? cuenta.contabilizacion[mes] : undefined) ??
+              (cuenta.contabilizacion && cuenta.contabilizacion[mes] != null
+                ? cuenta.contabilizacion[mes]
+                : undefined) ??
               cuenta[`contabilizacion_${mes}`] ??
               cuenta[`contabilizacion${mes}`] ??
-              (cuenta.real && cuenta.real[mes] != null ? cuenta.real[mes] : undefined) ??
+              (cuenta.real && cuenta.real[mes] != null
+                ? cuenta.real[mes]
+                : undefined) ??
               cuenta[`real_${mes}`] ??
               cuenta[`real${mes}`] ??
               cuenta[`REAL_${mes}`] ??
@@ -1417,28 +1537,32 @@
           return {
             cuenta21,
             cuentaVisible,
-            nombre: cuenta.descripcion || cuenta.nombre || cuenta.DESCRIPCION || '',
+            nombre:
+              cuenta.descripcion || cuenta.nombre || cuenta.DESCRIPCION || "",
             presupuesto,
-            real
+            real,
           };
         })
         .filter(Boolean);
     } catch (error) {
-      console.warn('No fue posible obtener cuentas para presupuestos', error);
+      console.warn("No fue posible obtener cuentas para presupuestos", error);
       return [];
     }
   };
 
   const esCuentaPresupuestoValida = (valorCuenta) => {
-    const canonica = convertirCuenta21(valorCuenta || '');
-    const prefijo = Number.parseInt((canonica || '').slice(0, 3), 10);
+    const canonica = convertirCuenta21(valorCuenta || "");
+    const prefijo = Number.parseInt((canonica || "").slice(0, 3), 10);
     return Number.isFinite(prefijo) && prefijo >= 400 && prefijo < 800;
   };
 
   const cuentaVisibleDesdeLarga = (cuentaLarga) => {
-    const base = normalizarCuentaBase(cuentaLarga).padEnd(21, '0');
+    const base = normalizarCuentaBase(cuentaLarga).padEnd(21, "0");
     const visible = base.slice(0, 11);
-    return `${visible.slice(0, 3)}-${visible.slice(3, 6)}-${visible.slice(6, 9)}-${visible.slice(9, 11)}`;
+    return `${visible.slice(0, 3)}-${visible.slice(3, 6)}-${visible.slice(
+      6,
+      9
+    )}-${visible.slice(9, 11)}`;
   };
 
   const obtenerAnioSugerencias = (anio) => {
@@ -1479,10 +1603,13 @@
     }
     const previo = usarReset ? new Set() : baseSet;
     lista.forEach((cuenta) => {
-      const limpia = (cuenta || '').toString().trim();
+      const limpia = (cuenta || "").toString().trim();
       const canonica = convertirCuenta21(limpia);
       if (canonica) {
-        if (normalizarModuloClave(estadoModulo.moduloClave) === 'presupuestos' && !esCuentaPresupuestoValida(canonica)) {
+        if (
+          normalizarModuloClave(estadoModulo.moduloClave) === "presupuestos" &&
+          !esCuentaPresupuestoValida(canonica)
+        ) {
           return;
         }
         previo.add(canonica);
@@ -1501,7 +1628,11 @@
     }
     const registros = await cargarCuentasPresupuestos({ anio });
     const cuentas = registros
-      .map((item) => convertirCuenta21(item.cuentaVisible || item.cuenta21 || item.cuenta || ''))
+      .map((item) =>
+        convertirCuenta21(
+          item.cuentaVisible || item.cuenta21 || item.cuenta || ""
+        )
+      )
       .filter(Boolean);
     // Reiniciar con las de presupuestos del año
     unificarCuentasDisponibles(cuentas, { anio, reset: true });
@@ -1528,26 +1659,40 @@
     const rutas = [
       `${API_BASE}/cuentas/catalogo`,
       `${API_BASE}/planeacion/catalogo`,
-      `${API_BASE}/saldos/catalogo`
+      `${API_BASE}/saldos/catalogo`,
     ];
     const params = new URLSearchParams({ anio });
-    const empresaActiva = typeof Sesion?.obtenerEmpresaActiva === 'function' ? Sesion.obtenerEmpresaActiva() : null;
+    const empresaActiva =
+      typeof Sesion?.obtenerEmpresaActiva === "function"
+        ? Sesion.obtenerEmpresaActiva()
+        : null;
     if (empresaActiva?.id) {
-      params.set('empresaId', empresaActiva.id);
+      params.set("empresaId", empresaActiva.id);
     }
     const promesa = (async () => {
       const acumuladas = new Set();
       for (const ruta of rutas) {
         try {
-          const resp = await fetch(`${ruta}?${params.toString()}`, { headers: Sesion.headersAutenticacion() });
+          const resp = await fetch(`${ruta}?${params.toString()}`, {
+            headers: Sesion.headersAutenticacion(),
+          });
           const datos = await resp.json();
           if (!resp.ok) {
             continue;
           }
-          const cuentas = Array.isArray(datos.cuentas) ? datos.cuentas : Array.isArray(datos) ? datos : [];
+          const cuentas = Array.isArray(datos.cuentas)
+            ? datos.cuentas
+            : Array.isArray(datos)
+            ? datos
+            : [];
           cuentas.forEach((item) => {
             const canonica = convertirCuenta21(
-              item.numCta || item.NUM_CTA || item.cuenta || item.CUENTA || item.num_cta || ''
+              item.numCta ||
+                item.NUM_CTA ||
+                item.cuenta ||
+                item.CUENTA ||
+                item.num_cta ||
+                ""
             );
             if (canonica) {
               acumuladas.add(canonica);
@@ -1584,7 +1729,7 @@
 
   const destruirTooltips = () => {
     estadoModulo.tooltips.forEach((tooltip) => {
-      if (typeof tooltip?.dispose === 'function') {
+      if (typeof tooltip?.dispose === "function") {
         tooltip.dispose();
       }
     });
@@ -1596,19 +1741,22 @@
     if (!estadoModulo.tabla || !window.bootstrap?.Tooltip) {
       return;
     }
-    const celdas = estadoModulo.tabla.querySelectorAll('tbody tr.fila-cuenta td[data-bs-toggle="tooltip"]');
+    const celdas = estadoModulo.tabla.querySelectorAll(
+      'tbody tr.fila-cuenta td[data-bs-toggle="tooltip"]'
+    );
     celdas.forEach((celda) => {
       const tooltip = window.bootstrap.Tooltip.getOrCreateInstance(celda, {
-        placement: 'top',
-        trigger: 'hover',
-        container: 'body'
+        placement: "top",
+        trigger: "hover",
+        container: "body",
       });
       estadoModulo.tooltips.push(tooltip);
     });
   };
 
   const solicitarDatos = async () => {
-    const moduloClave = estadoModulo.moduloClave || normalizarModuloClave(estadoModulo.moduloId);
+    const moduloClave =
+      estadoModulo.moduloClave || normalizarModuloClave(estadoModulo.moduloId);
     if (!MODULOS_SOPORTADOS.has(moduloClave)) {
       return;
     }
@@ -1634,32 +1782,37 @@
       empresaId: empresa.id,
       anio,
       modulo: moduloClave || estadoModulo.moduloId,
-      cuentas
+      cuentas,
     };
     // eslint-disable-next-line no-console
-    console.debug('[planeacion] payload', payload);
+    console.debug("[planeacion] payload", payload);
     estadoModulo.ultimaSolicitud += 1;
     const folio = estadoModulo.ultimaSolicitud;
     try {
       const respuesta = await fetch(`${API_BASE}/planeacion/cuentas`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          ...Sesion.headersAutenticacion()
+          "Content-Type": "application/json",
+          ...Sesion.headersAutenticacion(),
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       });
       const datos = await respuesta.json();
       if (!respuesta.ok) {
-        const detalles = Array.isArray(datos.detalles) ? ` (${datos.detalles.join('; ')})` : '';
-        throw new Error((datos.mensaje || 'No fue posible obtener la información contable.') + detalles);
+        const detalles = Array.isArray(datos.detalles)
+          ? ` (${datos.detalles.join("; ")})`
+          : "";
+        throw new Error(
+          (datos.mensaje || "No fue posible obtener la información contable.") +
+            detalles
+        );
       }
       if (folio !== estadoModulo.ultimaSolicitud) {
         return;
       }
       contarSaldos(datos.cuentas || []);
     } catch (error) {
-      console.error('Error al cargar datos de planeación', error);
+      console.error("Error al cargar datos de planeación", error);
       if (folio === estadoModulo.ultimaSolicitud) {
         limpiarValores();
       }
@@ -1679,60 +1832,70 @@
     return porCapitulo[normalizarTexto(seccion)] || null;
   };
 
-  const limpiarSeparadoresNomina = (texto = '') =>
+  const limpiarSeparadoresNomina = (texto = "") =>
     texto
-      .replace(/,\s*,+/g, ', ')
-      .replace(/\s+,/g, ', ')
-      .replace(/,\s+/g, ', ')
-      .replace(/\s{2,}/g, ' ')
-      .replace(/^\s+|\s+$/g, '')
-      .replace(/^,\s*/, '')
-      .replace(/,\s*$/, '');
+      .replace(/,\s*,+/g, ", ")
+      .replace(/\s+,/g, ", ")
+      .replace(/,\s+/g, ", ")
+      .replace(/\s{2,}/g, " ")
+      .replace(/^\s+|\s+$/g, "")
+      .replace(/^,\s*/, "")
+      .replace(/,\s*$/, "");
 
-  const limpiarEtiquetaNomina = (texto = '') => {
-    const base = (texto || '').toString();
-    const partes = base.split(',').map((p) => p.trim()).filter(Boolean);
+  const limpiarEtiquetaNomina = (texto = "") => {
+    const base = (texto || "").toString();
+    const partes = base
+      .split(",")
+      .map((p) => p.trim())
+      .filter(Boolean);
     const prohibidas = [/BONO\s+ANUAL\s+VPE/i, /CORPORATIVO/i];
-    const filtradas = partes.filter((p) => !prohibidas.some((rx) => rx.test(p)));
+    const filtradas = partes.filter(
+      (p) => !prohibidas.some((rx) => rx.test(p))
+    );
     const reconstruido =
       filtradas.length > 0
-        ? filtradas.join(', ')
-        : base.replace(/BONO\s+ANUAL\s+VPE/gi, '').replace(/CORPORATIVO/gi, '');
+        ? filtradas.join(", ")
+        : base.replace(/BONO\s+ANUAL\s+VPE/gi, "").replace(/CORPORATIVO/gi, "");
     const normalizado = limpiarSeparadoresNomina(reconstruido);
-    return normalizado || 'Nomina';
+    return normalizado || "Nomina";
   };
 
   const normalizarRegistrosNomina = (registros = []) =>
     registros.map((item) => {
-      const seccionOriginal = item.seccion || 'SIN SECCION';
+      const seccionOriginal = item.seccion || "SIN SECCION";
       const seccionLimpia = limpiarEtiquetaNomina(seccionOriginal);
       return {
         ...item,
         seccionOriginal,
         seccion: seccionLimpia,
-        nombre: seccionLimpia
+        nombre: seccionLimpia,
       };
     });
 
   const limpiarSumasNomina = (sumas, seccionLimpia) => {
     if (!sumas) return sumas;
-    const limpiarCampo = (valor, fallback = '') => {
+    const limpiarCampo = (valor, fallback = "") => {
       if (valor == null) return valor;
       const limpio = limpiarEtiquetaNomina(valor);
       return limpiarSeparadoresNomina(limpio || fallback);
     };
     const copia = { ...sumas };
-    if ('sumRow' in copia) {
-      copia.sumRow = limpiarCampo(copia.sumRow, seccionLimpia ? `Suma ${seccionLimpia}` : '');
+    if ("sumRow" in copia) {
+      copia.sumRow = limpiarCampo(
+        copia.sumRow,
+        seccionLimpia ? `Suma ${seccionLimpia}` : ""
+      );
     }
-    if ('sumRowSumavarios' in copia) {
+    if ("sumRowSumavarios" in copia) {
       copia.sumRowSumavarios = limpiarCampo(copia.sumRowSumavarios);
     }
-    if ('sumRowSumavarios2' in copia) {
+    if ("sumRowSumavarios2" in copia) {
       copia.sumRowSumavarios2 = limpiarCampo(copia.sumRowSumavarios2);
     }
     if (Array.isArray(copia.resultRows)) {
-      copia.resultRows = copia.resultRows.map((texto) => limpiarCampo(texto)).filter(Boolean);
+      copia.resultRows = copia.resultRows
+        .map((texto) => limpiarCampo(texto))
+        .filter(Boolean);
     } else if (copia.resultRow) {
       copia.resultRows = [limpiarCampo(copia.resultRow)].filter(Boolean);
       delete copia.resultRow;
@@ -1744,31 +1907,36 @@
     if (Number.isInteger(placeholdersPorFila) && placeholdersPorFila >= 0) {
       return placeholdersPorFila;
     }
-    if (Number.isInteger(estadoModulo.placeholdersPorFila) && estadoModulo.placeholdersPorFila >= 0) {
+    if (
+      Number.isInteger(estadoModulo.placeholdersPorFila) &&
+      estadoModulo.placeholdersPorFila >= 0
+    ) {
       return estadoModulo.placeholdersPorFila;
     }
-    const tabla = cuerpo?.closest ? cuerpo.closest('table') : estadoModulo.tabla;
+    const tabla = cuerpo?.closest
+      ? cuerpo.closest("table")
+      : estadoModulo.tabla;
     const columnas = contarColumnas(tabla);
     return Math.max(0, columnas - 2);
   };
 
   /**
    * Agrega una fila de resumen/suma al cuerpo de la tabla
-   * 
+   *
    * Estas filas especiales muestran totales calculados y pueden ser de varios tipos:
    * - sum-row: Suma de todas las cuentas de una sección
    * - sum-row-sumavarios: Suma de varios sum-rows agrupados
    * - result-row: Resultado final del módulo
-   * 
+   *
    * ESTRUCTURA DE FILA:
    * | (vacío) | Texto descriptivo | val1 | val2 | ... | val12 |
-   * 
+   *
    * La primera columna (cuenta) está vacía porque las filas de suma
    * no representan una cuenta específica sino un total.
-   * 
+   *
    * Los valores se inicializan en "-" y luego se actualizan con
    * recalcularSumas() que calcula los totales reales.
-   * 
+   *
    * @param {Object} params - Parámetros
    * @param {string} params.texto - Texto descriptivo (ej: "Suma INGRESOS")
    * @param {string} params.clase - Clase CSS (sum-row, sum-row-sumavarios, result-row)
@@ -1776,23 +1944,31 @@
    * @param {number} params.placeholdersPorFila - Cantidad de columnas de valores (12 meses)
    * @returns {HTMLTableRowElement|null} Fila creada o null si faltan parámetros
    */
-  const agregarFilaResumen = ({ texto, clase, cuerpo, placeholdersPorFila }) => {
+  const agregarFilaResumen = ({
+    texto,
+    clase,
+    cuerpo,
+    placeholdersPorFila,
+  }) => {
     if (!texto || !cuerpo) {
       return null;
     }
-    const placeholders = resolverPlaceholdersPorFila(placeholdersPorFila, cuerpo);
-    const fila = document.createElement('tr');
+    const placeholders = resolverPlaceholdersPorFila(
+      placeholdersPorFila,
+      cuerpo
+    );
+    const fila = document.createElement("tr");
     fila.className = clase;
-    const celdaCuenta = document.createElement('td');
-    celdaCuenta.textContent = '';
+    const celdaCuenta = document.createElement("td");
+    celdaCuenta.textContent = "";
     fila.appendChild(celdaCuenta);
-    const celdaDescripcion = document.createElement('td');
+    const celdaDescripcion = document.createElement("td");
     celdaDescripcion.textContent = texto;
     fila.appendChild(celdaDescripcion);
     for (let i = 0; i < placeholders; i += 1) {
-      const celda = document.createElement('td');
-      celda.className = 'budget-value';
-      celda.textContent = '-';
+      const celda = document.createElement("td");
+      celda.className = "budget-value";
+      celda.textContent = "-";
       fila.appendChild(celda);
     }
     cuerpo.appendChild(fila);
@@ -1801,10 +1977,10 @@
 
   /**
    * Renderiza las secciones y filas de cuentas en el tbody de la tabla
-   * 
+   *
    * Esta función toma la lista de cuentas filtradas por capitulo y las
    * organiza visualmente en secciones con sus respectivas filas.
-   * 
+   *
    * PROCESO:
    * 1. Agrupa registros por sección (ej: "INGRESOS", "GASTOS", etc.)
    * 2. Para cada sección:
@@ -1813,15 +1989,15 @@
    *    c. Agrega fila sum-row si la configuración de sumas lo indica
    * 3. Construye metadata de sumas (sumavarios, result-row)
    * 4. Retorna información para que renderizarTabla agregue las filas especiales
-   * 
+   *
    * ESTRUCTURA DE FILA DE CUENTA:
    * | Cuenta (ej: 4101-010) | Nombre (ej: VENTAS) | ene | feb | ... | dic |
-   * 
+   *
    * METADATA DE SUMAS:
    * - sumRowTexto: etiqueta normalizada del sum-row (ej: "suma ingresos")
    * - sumRowSumavariosTexto: etiqueta del sumavarios al que pertenece
    * - resultRowTexto: etiqueta del result-row final
-   * 
+   *
    * @param {Object} params - Parámetros de renderizado
    * @param {Array} params.registros - Array de objetos {cuenta, nombre, seccion, capitulo}
    * @param {HTMLElement} params.cuerpo - Elemento tbody donde insertar filas
@@ -1842,21 +2018,26 @@
     sumasPersonalizadas,
     resultadoForzado,
     mostrarCuentaVisible = false,
-    moduloClave
+    moduloClave,
   }) => {
     const moduloNormalizado = normalizarModuloClave(moduloClave);
     const registrosBase = Array.isArray(registros) ? registros : [];
-    const placeholders = resolverPlaceholdersPorFila(placeholdersPorFila, cuerpo);
+    const placeholders = resolverPlaceholdersPorFila(
+      placeholdersPorFila,
+      cuerpo
+    );
     const registrosProcesados =
-      moduloNormalizado === 'nomina' ? normalizarRegistrosNomina(registrosBase) : registrosBase;
+      moduloNormalizado === "nomina"
+        ? normalizarRegistrosNomina(registrosBase)
+        : registrosBase;
     const secciones = new Map();
     const seccionOriginalPorClave = new Map();
     const faltantesNombre = new Set();
-    const moduloEsGastosGenerales = moduloNormalizado === 'gastosgenerales';
-    const esModuloNomina = moduloNormalizado === 'nomina';
-    const esModuloResumen = moduloNormalizado === 'resumen';
+    const moduloEsGastosGenerales = moduloNormalizado === "gastosgenerales";
+    const esModuloNomina = moduloNormalizado === "nomina";
+    const esModuloResumen = moduloNormalizado === "resumen";
     registrosProcesados.forEach((item) => {
-      const clave = item.seccion || 'SIN SECCION';
+      const clave = item.seccion || "SIN SECCION";
       if (esModuloResumen && /OPERATING RESULTS/i.test(clave)) {
         return;
       }
@@ -1865,27 +2046,34 @@
       }
       secciones.get(clave).push(item);
       if (!seccionOriginalPorClave.has(clave)) {
-        seccionOriginalPorClave.set(clave, item.seccionOriginal || item.seccion || 'SIN SECCION');
+        seccionOriginalPorClave.set(
+          clave,
+          item.seccionOriginal || item.seccion || "SIN SECCION"
+        );
       }
     });
 
     const resultRows = new Map();
     const sumasSecciones = [];
     const sumavariosData = new Map();
-    const forcedResultTexto = (resultadoForzado || '').toString().trim();
+    const forcedResultTexto = (resultadoForzado || "").toString().trim();
 
     secciones.forEach((lista, seccion) => {
-      const seccionOriginal = esModuloNomina ? seccionOriginalPorClave.get(seccion) || seccion : seccion;
-      const claveSeccion = normalizarTexto(seccion || 'SIN SECCION');
-      const claveSeccionOriginal = normalizarTexto(seccionOriginal || 'SIN SECCION');
+      const seccionOriginal = esModuloNomina
+        ? seccionOriginalPorClave.get(seccion) || seccion
+        : seccion;
+      const claveSeccion = normalizarTexto(seccion || "SIN SECCION");
+      const claveSeccionOriginal = normalizarTexto(
+        seccionOriginal || "SIN SECCION"
+      );
       const filasCuenta = [];
       let headerRow = null;
-      if (seccion && seccion !== 'SIN SECCION') {
-        const filaSeccion = document.createElement('tr');
-        filaSeccion.className = 'section-header-row';
+      if (seccion && seccion !== "SIN SECCION") {
+        const filaSeccion = document.createElement("tr");
+        filaSeccion.className = "section-header-row";
         filaSeccion.dataset.seccion = claveSeccion;
         filaSeccion.dataset.sectionName = seccion;
-        const celda = document.createElement('td');
+        const celda = document.createElement("td");
         celda.colSpan = placeholders + 2;
         celda.textContent = seccion;
         filaSeccion.appendChild(celda);
@@ -1894,38 +2082,41 @@
       }
 
       lista.forEach((item) => {
-        const fila = document.createElement('tr');
-        fila.className = 'fila-cuenta account-row';
-        const celdaCuenta = document.createElement('td');
-        const cuenta21 = convertirCuenta21(item.cuenta || '');
+        const fila = document.createElement("tr");
+        fila.className = "fila-cuenta account-row";
+        const celdaCuenta = document.createElement("td");
+        const cuenta21 = convertirCuenta21(item.cuenta || "");
         const cuentaTexto = mostrarCuentaVisible
           ? cuenta21
             ? cuentaVisibleDesdeLarga(cuenta21)
-            : item.cuenta || '-'
-          : item.cuenta || '-';
+            : item.cuenta || "-"
+          : item.cuenta || "-";
         celdaCuenta.textContent = cuentaTexto;
         if (cuenta21) {
           celdaCuenta.title = cuenta21;
-          celdaCuenta.dataset.bsToggle = 'tooltip';
-          celdaCuenta.dataset.bsPlacement = 'top';
+          celdaCuenta.dataset.bsToggle = "tooltip";
+          celdaCuenta.dataset.bsPlacement = "top";
         }
         fila.appendChild(celdaCuenta);
-        const celdaNombre = document.createElement('td');
-        const nombreMostrar = item.nombre || estadoModulo.nombresPorCuenta.get(cuenta21) || '';
-        celdaNombre.textContent = nombreMostrar || '-';
+        const celdaNombre = document.createElement("td");
+        const nombreMostrar =
+          item.nombre || estadoModulo.nombresPorCuenta.get(cuenta21) || "";
+        celdaNombre.textContent = nombreMostrar || "-";
         if (!nombreMostrar) {
           faltantesNombre.add(cuenta21);
         }
         fila.appendChild(celdaNombre);
-        const factorCuenta = Number.isFinite(Number(item.factor)) ? Number(item.factor) : 1;
+        const factorCuenta = Number.isFinite(Number(item.factor))
+          ? Number(item.factor)
+          : 1;
         fila.dataset.operacionFactor = String(factorCuenta);
-        fila.dataset.cuenta = item.cuenta || '';
+        fila.dataset.cuenta = item.cuenta || "";
         fila.dataset.cuenta21 = cuenta21;
         fila.dataset.seccion = claveSeccion;
         for (let i = 0; i < placeholders; i += 1) {
-          const celda = document.createElement('td');
-          celda.className = 'budget-value';
-          celda.textContent = '-';
+          const celda = document.createElement("td");
+          celda.className = "budget-value";
+          celda.textContent = "-";
           fila.appendChild(celda);
         }
         cuerpo.appendChild(fila);
@@ -1934,22 +2125,27 @@
 
       const sumasBase =
         (sumasPersonalizadas instanceof Map
-          ? sumasPersonalizadas.get(claveSeccion) || sumasPersonalizadas.get(claveSeccionOriginal)
-      : null) ||
+          ? sumasPersonalizadas.get(claveSeccion) ||
+            sumasPersonalizadas.get(claveSeccionOriginal)
+          : null) ||
         (sheetName && capitulo
           ? obtenerSumasConfig(sheetName, capitulo, seccionOriginal) ||
             obtenerSumasConfig(sheetName, capitulo, seccion)
           : null);
-      let sumas = aplicarOperacionesPorModulo(moduloClave, seccion, sumasBase) || sumasBase;
+      let sumas =
+        aplicarOperacionesPorModulo(moduloClave, seccion, sumasBase) ||
+        sumasBase;
       sumas = limpiarSumasPorModulo(sumas, moduloClave) || sumasBase;
       if (esModuloResumen) {
-        const limpiarOper = (texto) => (texto || '').trim();
+        const limpiarOper = (texto) => (texto || "").trim();
         const isOperating =
           /OPERATING RESULTS/i.test(limpiarOper(sumas?.sumRow)) ||
           /OPERATING RESULTS/i.test(limpiarOper(sumas?.sumRowSumavarios)) ||
           /OPERATING RESULTS/i.test(limpiarOper(sumas?.sumRowSumavarios2)) ||
           (Array.isArray(sumas?.resultRows) &&
-            sumas.resultRows.some((t) => /OPERATING RESULTS/i.test(limpiarOper(t))));
+            sumas.resultRows.some((t) =>
+              /OPERATING RESULTS/i.test(limpiarOper(t))
+            ));
         if (isOperating) {
           return;
         }
@@ -1957,61 +2153,72 @@
       if (esModuloNomina) {
         sumas = limpiarSumasNomina(sumas, seccion);
       }
-      const etiquetaSumRow = (sumas?.sumRow || '').trim() || `Suma ${seccion}`;
+      const etiquetaSumRow = (sumas?.sumRow || "").trim() || `Suma ${seccion}`;
       const seccionNormalizada = normalizarTexto(seccion);
       const sumRowNormalizada = normalizarTexto(etiquetaSumRow);
-      const requiereAjusteUtilidad = moduloEsGastosGenerales &&
-        (seccionNormalizada.includes('GASTOS FINANCIEROS') || sumRowNormalizada.includes('GASTOS FINANCIEROS'));
+      const requiereAjusteUtilidad =
+        moduloEsGastosGenerales &&
+        (seccionNormalizada.includes("GASTOS FINANCIEROS") ||
+          sumRowNormalizada.includes("GASTOS FINANCIEROS"));
       const resultRowTexts = [];
       if (forcedResultTexto) {
         resultRowTexts.push(forcedResultTexto);
       }
       if (Array.isArray(sumas?.resultRows)) {
         sumas.resultRows.forEach((texto) => {
-          const limpio = (texto || '').toString().trim();
+          const limpio = (texto || "").toString().trim();
           if (limpio) resultRowTexts.push(limpio);
         });
       } else if (sumas?.resultRow) {
         const texto = sumas.resultRow.toString().trim();
         if (texto) resultRowTexts.push(texto);
       }
-      const factorManual = Number.isFinite(Number(sumas?.operacionFactor)) ? Number(sumas.operacionFactor) : null;
+      const factorManual = Number.isFinite(Number(sumas?.operacionFactor))
+        ? Number(sumas.operacionFactor)
+        : null;
       const heuristicasPermitidas =
-        (window.PlaneacionConfig && window.PlaneacionConfig.habilitarOperacionesAutomaticas === true) ||
-        moduloNormalizado === 'gastosgenerales' ||
-        moduloNormalizado === 'comites' ||
-        moduloNormalizado === 'comunicacion' ||
-        moduloNormalizado === 'eventos' ||
-        moduloNormalizado === 'direccion' ||
-        moduloNormalizado === 'finanzas' ||
-        moduloNormalizado === 'nomina' ||
-        moduloNormalizado === 'gtoscorporativos' ||
-        moduloNormalizado === 'membresia' ||
-        moduloNormalizado === 'rh' ||
-        moduloNormalizado === 'recursoshumanos' ||
-        moduloNormalizado === 'servmembresia' ||
-        moduloNormalizado === 'serviciosalamembresia' ||
-        moduloNormalizado === 'tic' ||
-        moduloNormalizado === 'vpe';
+        (window.PlaneacionConfig &&
+          window.PlaneacionConfig.habilitarOperacionesAutomaticas === true) ||
+        moduloNormalizado === "gastosgenerales" ||
+        moduloNormalizado === "comites" ||
+        moduloNormalizado === "comunicacion" ||
+        moduloNormalizado === "eventos" ||
+        moduloNormalizado === "direccion" ||
+        moduloNormalizado === "finanzas" ||
+        moduloNormalizado === "nomina" ||
+        moduloNormalizado === "gtoscorporativos" ||
+        moduloNormalizado === "membresia" ||
+        moduloNormalizado === "rh" ||
+        moduloNormalizado === "recursoshumanos" ||
+        moduloNormalizado === "servmembresia" ||
+        moduloNormalizado === "serviciosalamembresia" ||
+        moduloNormalizado === "tic" ||
+        moduloNormalizado === "vpe";
       const metaSeccion = {
         seccion: claveSeccion,
         tituloVisible: seccion,
         filasCuenta,
-        sumRowTexto: etiquetaSumRow ? normalizarTexto(etiquetaSumRow) : '',
-        sumRowSumavariosTexto: sumas?.sumRowSumavarios ? normalizarTexto(sumas.sumRowSumavarios) : '',
-        sumRowSumavarios2Texto: sumas?.sumRowSumavarios2 ? normalizarTexto(sumas.sumRowSumavarios2) : '',
-        sumRowSumavariosLabel: sumas?.sumRowSumavarios || '',
-        sumRowSumavarios2Label: sumas?.sumRowSumavarios2 || '',
-        resultRowTexto: resultRowTexts[0] ? normalizarTexto(resultRowTexts[0]) : '',
+        sumRowTexto: etiquetaSumRow ? normalizarTexto(etiquetaSumRow) : "",
+        sumRowSumavariosTexto: sumas?.sumRowSumavarios
+          ? normalizarTexto(sumas.sumRowSumavarios)
+          : "",
+        sumRowSumavarios2Texto: sumas?.sumRowSumavarios2
+          ? normalizarTexto(sumas.sumRowSumavarios2)
+          : "",
+        sumRowSumavariosLabel: sumas?.sumRowSumavarios || "",
+        sumRowSumavarios2Label: sumas?.sumRowSumavarios2 || "",
+        resultRowTexto: resultRowTexts[0]
+          ? normalizarTexto(resultRowTexts[0])
+          : "",
         resultRows: resultRowTexts,
         seccionOriginal,
         elementos: {
-          header: headerRow
+          header: headerRow,
         },
         // Factor definido manualmente en el layout (default: 1)
         factor: factorManual != null ? factorManual : 1,
         operacionFactor: factorManual != null ? factorManual : 1,
-        restarUtilidadCambiaria: requiereAjusteUtilidad
+        restarUtilidadCambiaria: requiereAjusteUtilidad,
       };
       // Ajustes de operaciones conforme a info IMPORTANTE/logica operaciones.json
       const agregarResultRow = (meta, texto) => {
@@ -2024,251 +2231,304 @@
         meta.resultRowTexto = meta.resultRowTexto || clave;
       };
       const capituloNormalizado = normalizarTexto(capitulo);
-      const aplicarHeuristicas = heuristicasPermitidas && (factorManual == null || moduloNormalizado === 'direccion');
-      const esCapituloMexico = capituloNormalizado === normalizarTexto('CIUDAD DE MÉXICO') || capituloNormalizado === normalizarTexto('CIUDAD DE MEXICO');
+      const aplicarHeuristicas =
+        heuristicasPermitidas &&
+        (factorManual == null || moduloNormalizado === "direccion");
+      const esCapituloMexico =
+        capituloNormalizado === normalizarTexto("CIUDAD DE MÉXICO") ||
+        capituloNormalizado === normalizarTexto("CIUDAD DE MEXICO");
       if (aplicarHeuristicas) {
         switch (moduloNormalizado) {
-        case 'comites': {
-          const seccionNormTexto = normalizarTexto(seccion || '');
-          const esComisiones = /COMISIONES/i.test(seccionNormTexto);
-          const esGastosAdmin = /GASTOS\s+ADMINISTRATIVOS/i.test(seccionNormTexto);
-          const esGastoGenerico = /GASTOS/i.test(seccionNormTexto);
-          const esIngreso = /INGRESOS/i.test(seccionNormTexto);
-          const etiquetaResultado = 'Resultado Comites';
-          const etiquetaResultadoNorm = normalizarTexto(etiquetaResultado);
-          let habilitarResultado = true;
+          case "comites": {
+            const seccionNormTexto = normalizarTexto(seccion || "");
+            const esComisiones = /COMISIONES/i.test(seccionNormTexto);
+            const esGastosAdmin = /GASTOS\s+ADMINISTRATIVOS/i.test(
+              seccionNormTexto
+            );
+            const esGastoGenerico = /GASTOS/i.test(seccionNormTexto);
+            const esIngreso = /INGRESOS/i.test(seccionNormTexto);
+            const etiquetaResultado = "Resultado Comites";
+            const etiquetaResultadoNorm = normalizarTexto(etiquetaResultado);
+            let habilitarResultado = true;
 
-          // Resultado Operativo Comites = Ingresos - Gastos (sumavarios ya lo agrupa)
-          // Resultado Comites:
-          // - CDMX: Resultado Operativo - Gastos Administrativos
-          // - GDL/NE/NO: Resultado Operativo - Comisiones
-          if (esComisiones) {
-            metaSeccion.factor = -1;
-            habilitarResultado = !esCapituloMexico;
-            // No debe entrar en el sumavarios de Resultado Operativo
-            metaSeccion.sumRowSumavariosTexto = '';
-            metaSeccion.sumRowSumavarios2Texto = '';
-            metaSeccion.sumRowSumavariosLabel = '';
-            metaSeccion.sumRowSumavarios2Label = '';
-          } else if (esGastosAdmin) {
-            metaSeccion.factor = -1;
-            habilitarResultado = esCapituloMexico;
-            metaSeccion.sumRowSumavariosTexto = '';
-            metaSeccion.sumRowSumavarios2Texto = '';
-            metaSeccion.sumRowSumavariosLabel = '';
-            metaSeccion.sumRowSumavarios2Label = '';
-          } else if (esGastoGenerico) {
-            metaSeccion.factor = -1; // gastos comites
-          } else if (esIngreso) {
-            metaSeccion.factor = 1;
+            // Resultado Operativo Comites = Ingresos - Gastos (sumavarios ya lo agrupa)
+            // Resultado Comites:
+            // - CDMX: Resultado Operativo - Gastos Administrativos
+            // - GDL/NE/NO: Resultado Operativo - Comisiones
+            if (esComisiones) {
+              metaSeccion.factor = -1;
+              habilitarResultado = !esCapituloMexico;
+              // No debe entrar en el sumavarios de Resultado Operativo
+              metaSeccion.sumRowSumavariosTexto = "";
+              metaSeccion.sumRowSumavarios2Texto = "";
+              metaSeccion.sumRowSumavariosLabel = "";
+              metaSeccion.sumRowSumavarios2Label = "";
+            } else if (esGastosAdmin) {
+              metaSeccion.factor = -1;
+              habilitarResultado = esCapituloMexico;
+              metaSeccion.sumRowSumavariosTexto = "";
+              metaSeccion.sumRowSumavarios2Texto = "";
+              metaSeccion.sumRowSumavariosLabel = "";
+              metaSeccion.sumRowSumavarios2Label = "";
+            } else if (esGastoGenerico) {
+              metaSeccion.factor = -1; // gastos comites
+            } else if (esIngreso) {
+              metaSeccion.factor = 1;
+            }
+
+            if (habilitarResultado) {
+              if (
+                !metaSeccion.resultRows.some(
+                  (t) => normalizarTexto(t) === etiquetaResultadoNorm
+                )
+              ) {
+                metaSeccion.resultRows.push(etiquetaResultado);
+              }
+              metaSeccion.resultRowTexto = etiquetaResultadoNorm;
+            } else {
+              metaSeccion.resultRows = [];
+              metaSeccion.resultRowTexto = "";
+            }
+            break;
           }
-
-          if (habilitarResultado) {
-            if (!metaSeccion.resultRows.some((t) => normalizarTexto(t) === etiquetaResultadoNorm)) {
+          case "gastosgenerales": {
+            const totalLabel =
+              capituloNormalizado === normalizarTexto("CIUDAD DE MEXICO")
+                ? "Total GA CdMx"
+                : "Total";
+            const seccionNormTexto = normalizarTexto(seccion || "");
+            const esDepreciaciones = /DEPRECIACIONES/i.test(seccionNormTexto);
+            const esGaCapitulo = /GA\s+CAPITULO/i.test(seccionNormTexto);
+            const esMemberCentricity = /MEMBER\s+CENTRICITY/i.test(
+              seccionNormTexto
+            );
+            const esGastosCorporativos = /GASTOS\s+CORPORATIVOS/i.test(
+              seccionNormTexto
+            );
+            const esGastosGenerales = /GASTOS\s+GENERALES/i.test(
+              seccionNormTexto
+            );
+            const esGastosFinancieros = /GASTOS\s+FINANCIEROS/i.test(
+              seccionNormTexto
+            );
+            if (
+              esDepreciaciones ||
+              esGaCapitulo ||
+              esMemberCentricity ||
+              esGastosCorporativos ||
+              esGastosGenerales
+            ) {
+              metaSeccion.factor = -1;
+              agregarResultRow(metaSeccion, totalLabel);
+            } else if (esGastosFinancieros) {
+              // Para "Otros Ingresos vs Gastos": restar gastos financieros de otros ingresos
+              metaSeccion.factor = -1;
+            }
+            break;
+          }
+          case "eventos": {
+            const seccionNorm = normalizarTexto(seccion || "");
+            const esGastoAdmin = /GASTOS\s+ADMINISTRATIVOS/i.test(
+              seccion || ""
+            );
+            const esCostosYGastos =
+              /COSTOS\s+Y\s+GASTOS\s+EVENTOS/i.test(seccionNorm) ||
+              /GASTOS\s+EVENTOS/i.test(seccionNorm);
+            if (esGastoAdmin || esCostosYGastos) {
+              metaSeccion.factor = -1;
+              agregarResultRow(metaSeccion, "Resultado  Eventos");
+              if (esGastoAdmin) {
+                // Excluir de la suma operativa (solo debe restarse al resultado final)
+                metaSeccion.sumRowSumavariosTexto = "";
+                metaSeccion.sumRowSumavarios2Texto = "";
+                metaSeccion.sumRowSumavariosLabel = "";
+                metaSeccion.sumRowSumavarios2Label = "";
+              }
+            }
+            break;
+          }
+          case "comunicacion": {
+            const seccionNormTexto = normalizarTexto(seccion || "");
+            const esGasto = /GASTOS/i.test(seccionNormTexto);
+            if (esGasto) {
+              metaSeccion.factor = -1;
+            }
+            const etiquetaResultado = "Resultado Operativo Comunicacion";
+            const etiquetaResultadoNorm = normalizarTexto(etiquetaResultado);
+            if (
+              !metaSeccion.resultRows.some(
+                (t) => normalizarTexto(t) === etiquetaResultadoNorm
+              )
+            ) {
               metaSeccion.resultRows.push(etiquetaResultado);
             }
             metaSeccion.resultRowTexto = etiquetaResultadoNorm;
-          } else {
-            metaSeccion.resultRows = [];
-            metaSeccion.resultRowTexto = '';
+            break;
           }
-          break;
-        }
-        case 'gastosgenerales': {
-          const totalLabel = capituloNormalizado === normalizarTexto('CIUDAD DE MEXICO') ? 'Total GA CdMx' : 'Total';
-          const seccionNormTexto = normalizarTexto(seccion || '');
-          const esDepreciaciones = /DEPRECIACIONES/i.test(seccionNormTexto);
-          const esGaCapitulo = /GA\s+CAPITULO/i.test(seccionNormTexto);
-          const esMemberCentricity = /MEMBER\s+CENTRICITY/i.test(seccionNormTexto);
-          const esGastosCorporativos = /GASTOS\s+CORPORATIVOS/i.test(seccionNormTexto);
-          const esGastosGenerales = /GASTOS\s+GENERALES/i.test(seccionNormTexto);
-          const esGastosFinancieros = /GASTOS\s+FINANCIEROS/i.test(seccionNormTexto);
-          if (esDepreciaciones || esGaCapitulo || esMemberCentricity || esGastosCorporativos || esGastosGenerales) {
-            metaSeccion.factor = -1;
-            agregarResultRow(metaSeccion, totalLabel);
-          } else if (esGastosFinancieros) {
-            // Para "Otros Ingresos vs Gastos": restar gastos financieros de otros ingresos
-            metaSeccion.factor = -1;
-          }
-          break;
-        }
-        case 'eventos': {
-          const seccionNorm = normalizarTexto(seccion || '');
-          const esGastoAdmin = /GASTOS\s+ADMINISTRATIVOS/i.test(seccion || '');
-          const esCostosYGastos = /COSTOS\s+Y\s+GASTOS\s+EVENTOS/i.test(seccionNorm) || /GASTOS\s+EVENTOS/i.test(seccionNorm);
-          if (esGastoAdmin || esCostosYGastos) {
-            metaSeccion.factor = -1;
-            agregarResultRow(metaSeccion, 'Resultado  Eventos');
-            if (esGastoAdmin) {
-              // Excluir de la suma operativa (solo debe restarse al resultado final)
-              metaSeccion.sumRowSumavariosTexto = '';
-              metaSeccion.sumRowSumavarios2Texto = '';
-              metaSeccion.sumRowSumavariosLabel = '';
-              metaSeccion.sumRowSumavarios2Label = '';
-            }
-          }
-          break;
-        }
-        case 'comunicacion': {
-          const seccionNormTexto = normalizarTexto(seccion || '');
-          const esGasto = /GASTOS/i.test(seccionNormTexto);
-          if (esGasto) {
-            metaSeccion.factor = -1;
-          }
-          const etiquetaResultado = 'Resultado Operativo Comunicacion';
-          const etiquetaResultadoNorm = normalizarTexto(etiquetaResultado);
-          if (!metaSeccion.resultRows.some((t) => normalizarTexto(t) === etiquetaResultadoNorm)) {
-            metaSeccion.resultRows.push(etiquetaResultado);
-          }
-          metaSeccion.resultRowTexto = etiquetaResultadoNorm;
-          break;
-        }
-        case 'finanzas': {
-          const seccionNormTexto = normalizarTexto(seccion || '');
-          if (/GASTOS/i.test(seccionNormTexto)) {
-            metaSeccion.factor = -1;
-          } else if (/INGRESOS/i.test(seccionNormTexto)) {
-            metaSeccion.factor = 1;
-          }
-          const etiquetaResultado = 'Resultado Admon y Finanzas';
-          const etiquetaResultadoNorm = normalizarTexto(etiquetaResultado);
-          if (!metaSeccion.resultRows.some((t) => normalizarTexto(t) === etiquetaResultadoNorm)) {
-            metaSeccion.resultRows.push(etiquetaResultado);
-          }
-          metaSeccion.resultRowTexto = etiquetaResultadoNorm;
-          break;
-        }
-        case 'nomina': {
-          const seccionNormTexto = normalizarTexto(seccion || '');
-          if (/GASTOS|DEDUC|IMPUEST/i.test(seccionNormTexto)) {
-            metaSeccion.factor = -1;
-          } else if (/INGRESOS/i.test(seccionNormTexto)) {
-            metaSeccion.factor = 1;
-          }
-          break;
-        }
-        case 'gtoscorporativos': {
-          const seccionNormTexto = normalizarTexto(seccion || '');
-          if (/GASTOS/i.test(seccionNormTexto)) {
-            metaSeccion.factor = -1;
-          } else if (/INGRESOS/i.test(seccionNormTexto)) {
-            metaSeccion.factor = 1;
-          }
-          break;
-        }
-        case 'rh':
-        case 'recursoshumanos': {
-          const seccionNormTexto = normalizarTexto(seccion || '');
-          if (/GASTOS|DEDUC|IMPUEST|NOMINA/i.test(seccionNormTexto)) {
-            metaSeccion.factor = -1;
-          } else if (/INGRESOS/i.test(seccionNormTexto)) {
-            metaSeccion.factor = 1;
-          }
-          break;
-        }
-        case 'membresia': {
-          if (/GASTOS\s+ADMIN/i.test(seccion || '')) {
-            metaSeccion.factor = -1;
-            agregarResultRow(metaSeccion, 'Resultado  Membresía');
-            // Excluir de la suma operativa (solo debe restarse al resultado final)
-            metaSeccion.sumRowSumavariosTexto = '';
-            metaSeccion.sumRowSumavarios2Texto = '';
-            metaSeccion.sumRowSumavariosLabel = '';
-            metaSeccion.sumRowSumavarios2Label = '';
-          } else {
-            const seccionNormTexto = normalizarTexto(seccion || '');
+          case "finanzas": {
+            const seccionNormTexto = normalizarTexto(seccion || "");
             if (/GASTOS/i.test(seccionNormTexto)) {
               metaSeccion.factor = -1;
             } else if (/INGRESOS/i.test(seccionNormTexto)) {
               metaSeccion.factor = 1;
             }
+            const etiquetaResultado = "Resultado Admon y Finanzas";
+            const etiquetaResultadoNorm = normalizarTexto(etiquetaResultado);
+            if (
+              !metaSeccion.resultRows.some(
+                (t) => normalizarTexto(t) === etiquetaResultadoNorm
+              )
+            ) {
+              metaSeccion.resultRows.push(etiquetaResultado);
+            }
+            metaSeccion.resultRowTexto = etiquetaResultadoNorm;
+            break;
           }
-          break;
-        }
-        case 'servmembresia':
-        case 'serviciosalamembresia': {
-          const seccionNormTexto = normalizarTexto(seccion || '');
-          if (/GASTOS/i.test(seccionNormTexto)) {
-            metaSeccion.factor = -1;
-          } else if (/INGRESOS/i.test(seccionNormTexto)) {
-            metaSeccion.factor = 1;
+          case "nomina": {
+            const seccionNormTexto = normalizarTexto(seccion || "");
+            if (/GASTOS|DEDUC|IMPUEST/i.test(seccionNormTexto)) {
+              metaSeccion.factor = -1;
+            } else if (/INGRESOS/i.test(seccionNormTexto)) {
+              metaSeccion.factor = 1;
+            }
+            break;
           }
-          break;
-        }
-        case 'tic':
-        case 'vpe': {
-          const seccionNormTexto = normalizarTexto(seccion || '');
-          if (/GASTOS/i.test(seccionNormTexto)) {
-            metaSeccion.factor = -1;
-          } else if (/INGRESOS/i.test(seccionNormTexto)) {
-            metaSeccion.factor = 1;
+          case "gtoscorporativos": {
+            const seccionNormTexto = normalizarTexto(seccion || "");
+            if (/GASTOS/i.test(seccionNormTexto)) {
+              metaSeccion.factor = -1;
+            } else if (/INGRESOS/i.test(seccionNormTexto)) {
+              metaSeccion.factor = 1;
+            }
+            break;
           }
-          break;
-        }
-        case 'rh': {
-          if (/GASTOS\s+ADMIN/i.test(seccion || '')) {
-            metaSeccion.factor = -1;
-            agregarResultRow(metaSeccion, 'Resultado  RH');
-            // Excluir de la suma operativa (solo debe restarse al resultado final)
-            metaSeccion.sumRowSumavariosTexto = '';
-            metaSeccion.sumRowSumavarios2Texto = '';
-            metaSeccion.sumRowSumavariosLabel = '';
-            metaSeccion.sumRowSumavarios2Label = '';
+          case "rh":
+          case "recursoshumanos": {
+            const seccionNormTexto = normalizarTexto(seccion || "");
+            if (/GASTOS|DEDUC|IMPUEST|NOMINA/i.test(seccionNormTexto)) {
+              metaSeccion.factor = -1;
+            } else if (/INGRESOS/i.test(seccionNormTexto)) {
+              metaSeccion.factor = 1;
+            }
+            break;
           }
-          break;
-        }
-        case 'direccion': {
-          const seccionNormTexto = normalizarTexto(seccion || '');
-          const esGastosAdminDir = /GASTOS\s+DE\s+ADMINISTRACION|GASTOS\s+ADMINISTRATIVOS/i.test(seccion || '');
-          const esGasto = /GASTOS/i.test(seccionNormTexto);
-          if (esGasto) {
-            metaSeccion.factor = -1;
-          } else if (/INGRESOS/i.test(seccionNormTexto)) {
-            metaSeccion.factor = 1;
+          case "membresia": {
+            if (/GASTOS\s+ADMIN/i.test(seccion || "")) {
+              metaSeccion.factor = -1;
+              agregarResultRow(metaSeccion, "Resultado  Membresía");
+              // Excluir de la suma operativa (solo debe restarse al resultado final)
+              metaSeccion.sumRowSumavariosTexto = "";
+              metaSeccion.sumRowSumavarios2Texto = "";
+              metaSeccion.sumRowSumavariosLabel = "";
+              metaSeccion.sumRowSumavarios2Label = "";
+            } else {
+              const seccionNormTexto = normalizarTexto(seccion || "");
+              if (/GASTOS/i.test(seccionNormTexto)) {
+                metaSeccion.factor = -1;
+              } else if (/INGRESOS/i.test(seccionNormTexto)) {
+                metaSeccion.factor = 1;
+              }
+            }
+            break;
           }
+          case "servmembresia":
+          case "serviciosalamembresia": {
+            const seccionNormTexto = normalizarTexto(seccion || "");
+            if (/GASTOS/i.test(seccionNormTexto)) {
+              metaSeccion.factor = -1;
+            } else if (/INGRESOS/i.test(seccionNormTexto)) {
+              metaSeccion.factor = 1;
+            }
+            break;
+          }
+          case "tic":
+          case "vpe": {
+            const seccionNormTexto = normalizarTexto(seccion || "");
+            if (/GASTOS/i.test(seccionNormTexto)) {
+              metaSeccion.factor = -1;
+            } else if (/INGRESOS/i.test(seccionNormTexto)) {
+              metaSeccion.factor = 1;
+            }
+            break;
+          }
+          case "rh": {
+            if (/GASTOS\s+ADMIN/i.test(seccion || "")) {
+              metaSeccion.factor = -1;
+              agregarResultRow(metaSeccion, "Resultado  RH");
+              // Excluir de la suma operativa (solo debe restarse al resultado final)
+              metaSeccion.sumRowSumavariosTexto = "";
+              metaSeccion.sumRowSumavarios2Texto = "";
+              metaSeccion.sumRowSumavariosLabel = "";
+              metaSeccion.sumRowSumavarios2Label = "";
+            }
+            break;
+          }
+          case "direccion": {
+            const seccionNormTexto = normalizarTexto(seccion || "");
+            const esGastosAdminDir =
+              /GASTOS\s+DE\s+ADMINISTRACION|GASTOS\s+ADMINISTRATIVOS/i.test(
+                seccion || ""
+              );
+            const esGasto = /GASTOS/i.test(seccionNormTexto);
+            if (esGasto) {
+              metaSeccion.factor = -1;
+            } else if (/INGRESOS/i.test(seccionNormTexto)) {
+              metaSeccion.factor = 1;
+            }
 
-          const etiquetaOperativo = 'Resultado Operativo';
-          const etiquetaOperativoNorm = normalizarTexto(etiquetaOperativo);
-          let etiquetaDir = 'Resultado Director Capítulo';
-          if (/GUADALAJARA/i.test(capituloNormalizado)) etiquetaDir = 'Resultado Director Capítulo';
-          else if (/NORESTE|NE/i.test(capituloNormalizado)) etiquetaDir = 'Resultado Director Capítulo';
-          else if (/NOROESTE|NO/i.test(capituloNormalizado)) etiquetaDir = 'Resultado Director Capítulo';
-          const etiquetaDirNorm = normalizarTexto(etiquetaDir);
+            const etiquetaOperativo = "Resultado Operativo";
+            const etiquetaOperativoNorm = normalizarTexto(etiquetaOperativo);
+            let etiquetaDir = "Resultado Director Capítulo";
+            if (/GUADALAJARA/i.test(capituloNormalizado))
+              etiquetaDir = "Resultado Director Capítulo";
+            else if (/NORESTE|NE/i.test(capituloNormalizado))
+              etiquetaDir = "Resultado Director Capítulo";
+            else if (/NOROESTE|NO/i.test(capituloNormalizado))
+              etiquetaDir = "Resultado Director Capítulo";
+            const etiquetaDirNorm = normalizarTexto(etiquetaDir);
 
-          if (esGastosAdminDir) {
-            metaSeccion.factor = -1;
-            // Excluir de la suma operativa; se resta solo en el resultado del director
-            metaSeccion.sumRowSumavariosTexto = '';
-            metaSeccion.sumRowSumavarios2Texto = '';
-            metaSeccion.sumRowSumavariosLabel = '';
-            metaSeccion.sumRowSumavarios2Label = '';
-            metaSeccion.resultRowTexto = etiquetaDirNorm;
-            if (!metaSeccion.resultRows.some((t) => normalizarTexto(t) === etiquetaDirNorm)) {
-              metaSeccion.resultRows.push(etiquetaDir);
+            if (esGastosAdminDir) {
+              metaSeccion.factor = -1;
+              // Excluir de la suma operativa; se resta solo en el resultado del director
+              metaSeccion.sumRowSumavariosTexto = "";
+              metaSeccion.sumRowSumavarios2Texto = "";
+              metaSeccion.sumRowSumavariosLabel = "";
+              metaSeccion.sumRowSumavarios2Label = "";
+              metaSeccion.resultRowTexto = etiquetaDirNorm;
+              if (
+                !metaSeccion.resultRows.some(
+                  (t) => normalizarTexto(t) === etiquetaDirNorm
+                )
+              ) {
+                metaSeccion.resultRows.push(etiquetaDir);
+              }
+            } else {
+              // Ingresos/Gastos CE/Board/Dirección aportan al operativo y al resultado director
+              if (!metaSeccion.sumRowSumavariosLabel) {
+                metaSeccion.sumRowSumavariosLabel = etiquetaOperativo;
+                metaSeccion.sumRowSumavariosTexto = etiquetaOperativoNorm;
+              }
+              metaSeccion.resultRowTexto = etiquetaDirNorm;
+              if (
+                !metaSeccion.resultRows.some(
+                  (t) => normalizarTexto(t) === etiquetaDirNorm
+                )
+              ) {
+                metaSeccion.resultRows.push(etiquetaDir);
+              }
             }
-          } else {
-            // Ingresos/Gastos CE/Board/Dirección aportan al operativo y al resultado director
-            if (!metaSeccion.sumRowSumavariosLabel) {
-              metaSeccion.sumRowSumavariosLabel = etiquetaOperativo;
-              metaSeccion.sumRowSumavariosTexto = etiquetaOperativoNorm;
-            }
-            metaSeccion.resultRowTexto = etiquetaDirNorm;
-            if (!metaSeccion.resultRows.some((t) => normalizarTexto(t) === etiquetaDirNorm)) {
-              metaSeccion.resultRows.push(etiquetaDir);
-            }
+            break;
           }
-          break;
+          default:
+            break;
         }
-        default:
-          break;
-      }
       }
       if (etiquetaSumRow) {
         metaSeccion.elementos.sumRow = agregarFilaResumen({
           texto: etiquetaSumRow,
-          clase: 'sum-row',
+          clase: "sum-row",
           cuerpo,
-          placeholdersPorFila: placeholders
+          placeholdersPorFila: placeholders,
         });
         if (metaSeccion.elementos.sumRow) {
           metaSeccion.elementos.sumRow.dataset.seccion = claveSeccion;
@@ -2302,7 +2562,7 @@
 
     let resultadoFilas = Array.from(resultRows.values()).map((texto) => ({
       texto,
-      clase: 'result-row'
+      clase: "result-row",
     }));
     if (resultadoFilas.length > 1) {
       resultadoFilas = resultadoFilas.slice(0, 1);
@@ -2312,28 +2572,33 @@
       resultadoFilas,
       sumasSecciones,
       sumavarios: sumavariosData,
-      faltantesNombre: Array.from(faltantesNombre)
+      faltantesNombre: Array.from(faltantesNombre),
     };
   };
 
-  const limpiarCuentaTexto = (valor) => (valor || '').toString().replace(/[^0-9A-Za-z]/g, '').toUpperCase();
+  const limpiarCuentaTexto = (valor) =>
+    (valor || "")
+      .toString()
+      .replace(/[^0-9A-Za-z]/g, "")
+      .toUpperCase();
 
   const asegurarContenedorSugerencias = () => {
-    if (estadoModulo.sugerencias.contenedor) return estadoModulo.sugerencias.contenedor;
-    const div = document.createElement('div');
-    div.className = 'sugerencias-cuentas';
+    if (estadoModulo.sugerencias.contenedor)
+      return estadoModulo.sugerencias.contenedor;
+    const div = document.createElement("div");
+    div.className = "sugerencias-cuentas";
     Object.assign(div.style, {
-      position: 'absolute',
-      background: '#fff',
-      border: '1px solid #d0d7de',
-      borderRadius: '6px',
-      boxShadow: '0 6px 20px rgba(0,0,0,0.15)',
-      padding: '4px',
-      minWidth: '200px',
+      position: "absolute",
+      background: "#fff",
+      border: "1px solid #d0d7de",
+      borderRadius: "6px",
+      boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
+      padding: "4px",
+      minWidth: "200px",
       zIndex: 9999,
-      display: 'none',
-      maxHeight: '240px',
-      overflowY: 'auto'
+      display: "none",
+      maxHeight: "240px",
+      overflowY: "auto",
     });
     document.body.appendChild(div);
     estadoModulo.sugerencias.contenedor = div;
@@ -2343,8 +2608,8 @@
   const ocultarSugerencias = () => {
     const contenedor = estadoModulo.sugerencias.contenedor;
     if (contenedor) {
-      contenedor.style.display = 'none';
-      contenedor.innerHTML = '';
+      contenedor.style.display = "none";
+      contenedor.innerHTML = "";
     }
   };
 
@@ -2361,7 +2626,10 @@
       .filter((cuenta) => {
         if (!objetivo) return true;
         const visible = cuentaVisibleDesdeLarga(cuenta);
-        return normalizarTexto(cuenta).includes(objetivo) || normalizarTexto(visible).includes(objetivo);
+        return (
+          normalizarTexto(cuenta).includes(objetivo) ||
+          normalizarTexto(visible).includes(objetivo)
+        );
       });
     if (!lista.length) {
       // Si no hay sugerencias, recargar catálogo del año y reintentar una vez.
@@ -2378,27 +2646,27 @@
         .catch(() => ocultarSugerencias());
       return;
     }
-    contenedor.innerHTML = '';
+    contenedor.innerHTML = "";
     lista.forEach((cuenta) => {
-      const boton = document.createElement('button');
-      boton.type = 'button';
+      const boton = document.createElement("button");
+      boton.type = "button";
       boton.textContent = cuentaVisibleDesdeLarga(cuenta);
       Object.assign(boton.style, {
-        display: 'block',
-        width: '100%',
-        textAlign: 'left',
-        padding: '6px 8px',
-        border: 'none',
-        background: 'transparent',
-        cursor: 'pointer'
+        display: "block",
+        width: "100%",
+        textAlign: "left",
+        padding: "6px 8px",
+        border: "none",
+        background: "transparent",
+        cursor: "pointer",
       });
-      boton.addEventListener('mouseenter', () => {
-        boton.style.backgroundColor = '#f6f8fa';
+      boton.addEventListener("mouseenter", () => {
+        boton.style.backgroundColor = "#f6f8fa";
       });
-      boton.addEventListener('mouseleave', () => {
-        boton.style.backgroundColor = 'transparent';
+      boton.addEventListener("mouseleave", () => {
+        boton.style.backgroundColor = "transparent";
       });
-      boton.addEventListener('mousedown', (evt) => {
+      boton.addEventListener("mousedown", (evt) => {
         evt.preventDefault();
         celda.textContent = cuentaVisibleDesdeLarga(cuenta);
         manejarCambioCuenta(celda.parentElement, celda);
@@ -2409,23 +2677,25 @@
     const rect = celda.getBoundingClientRect();
     contenedor.style.left = `${rect.left + window.scrollX}px`;
     contenedor.style.top = `${rect.bottom + window.scrollY + 2}px`;
-    contenedor.style.display = 'block';
+    contenedor.style.display = "block";
   };
 
-  const normalizarClave = (valor) => normalizarTexto(valor || '');
+  const normalizarClave = (valor) => normalizarTexto(valor || "");
 
   const construirRegistrosDesdeLayout = (layout, capituloDestino) => {
     if (!layout || !Array.isArray(layout.secciones)) return [];
-    const capitulo = layout.capitulo || capituloDestino || '';
+    const capitulo = layout.capitulo || capituloDestino || "";
     return layout.secciones.flatMap((seccion) => {
-      const titulo = seccion.titulo || seccion.seccion || seccion.nombre || '';
+      const titulo = seccion.titulo || seccion.seccion || seccion.nombre || "";
       if (!titulo || !Array.isArray(seccion.cuentas)) return [];
       return seccion.cuentas.map((fila) => ({
         capitulo,
         seccion: titulo,
-        cuenta: fila.cuenta || '',
-        nombre: fila.nombre || '',
-        factor: Number.isFinite(Number(fila.factor ?? fila.operacionFactor)) ? Number(fila.factor ?? fila.operacionFactor) : 1
+        cuenta: fila.cuenta || "",
+        nombre: fila.nombre || "",
+        factor: Number.isFinite(Number(fila.factor ?? fila.operacionFactor))
+          ? Number(fila.factor ?? fila.operacionFactor)
+          : 1,
       }));
     });
   };
@@ -2433,18 +2703,20 @@
   const construirSumasDesdeLayout = (layout) => {
     const mapa = new Map();
     if (!layout || !Array.isArray(layout.secciones)) return mapa;
-    const resultadoGlobal = layout.resultRow || '';
+    const resultadoGlobal = layout.resultRow || "";
     layout.secciones.forEach((seccion) => {
-      const clave = normalizarTexto(seccion.titulo || seccion.seccion || '');
+      const clave = normalizarTexto(seccion.titulo || seccion.seccion || "");
       if (!clave) return;
       mapa.set(clave, {
-        sumRow: seccion.sumRowLabel || seccion.sumRow || '',
-        sumRowSumavarios: seccion.sumRowSumavarios || '',
-        sumRowSumavarios2: seccion.sumRowSumavarios2 || '',
-        resultRow: seccion.resultRow || resultadoGlobal || '',
-        operacionFactor: Number.isFinite(Number(seccion.factor ?? seccion.operacionFactor))
+        sumRow: seccion.sumRowLabel || seccion.sumRow || "",
+        sumRowSumavarios: seccion.sumRowSumavarios || "",
+        sumRowSumavarios2: seccion.sumRowSumavarios2 || "",
+        resultRow: seccion.resultRow || resultadoGlobal || "",
+        operacionFactor: Number.isFinite(
+          Number(seccion.factor ?? seccion.operacionFactor)
+        )
           ? Number(seccion.factor ?? seccion.operacionFactor)
-          : 1
+          : 1,
       });
     });
     return mapa;
@@ -2455,7 +2727,10 @@
     for (let idx = 0; idx < secciones.length; idx += 1) {
       const seccion = secciones[idx] || {};
       const etiqueta = normalizarClave(
-        seccion.sumRowSumavarios || seccion.sumRowSumavarios2 || seccion.sumRowSumavariosLabel || ''
+        seccion.sumRowSumavarios ||
+          seccion.sumRowSumavarios2 ||
+          seccion.sumRowSumavariosLabel ||
+          ""
       );
       if (!etiqueta) continue;
       const actual = bloques.get(etiqueta);
@@ -2472,11 +2747,14 @@
   };
 
   const validarLayout = (layout) => {
-    if (!layout || !Array.isArray(layout.secciones) || !layout.secciones.length) return false;
+    if (!layout || !Array.isArray(layout.secciones) || !layout.secciones.length)
+      return false;
     if (!layout.resultRow) return false;
     const resultadoSet = new Set();
     layout.secciones.forEach((seccion) => {
-      const resultadoSeccion = normalizarClave(seccion.resultRow || layout.resultRow);
+      const resultadoSeccion = normalizarClave(
+        seccion.resultRow || layout.resultRow
+      );
       if (resultadoSeccion) {
         resultadoSet.add(resultadoSeccion);
       }
@@ -2485,9 +2763,14 @@
       return false;
     }
     const seccionesValidas = layout.secciones.every((seccion) => {
-      const titulo = (seccion.titulo || seccion.seccion || '').trim();
-      const sumLabel = (seccion.sumRowLabel || seccion.sumRow || '').trim();
-      return Boolean(titulo && sumLabel && Array.isArray(seccion.cuentas) && seccion.cuentas.length);
+      const titulo = (seccion.titulo || seccion.seccion || "").trim();
+      const sumLabel = (seccion.sumRowLabel || seccion.sumRow || "").trim();
+      return Boolean(
+        titulo &&
+          sumLabel &&
+          Array.isArray(seccion.cuentas) &&
+          seccion.cuentas.length
+      );
     });
     if (!seccionesValidas) {
       return false;
@@ -2495,77 +2778,102 @@
     return validarSumavariosContiguos(layout.secciones);
   };
 
-  const obtenerTextoCeldaDescripcion = (fila) => (fila?.cells?.[1]?.textContent || '').toString().trim();
+  const obtenerTextoCeldaDescripcion = (fila) =>
+    (fila?.cells?.[1]?.textContent || "").toString().trim();
 
-  const construirLayoutDesdeMeta = ({ seccionesMeta, resultadoFilas, placeholdersPorFila, capitulo }) => {
-    const resultadoTexto = resultadoFilas?.[0]?.texto || '';
+  const construirLayoutDesdeMeta = ({
+    seccionesMeta,
+    resultadoFilas,
+    placeholdersPorFila,
+    capitulo,
+  }) => {
+    const resultadoTexto = resultadoFilas?.[0]?.texto || "";
     const secciones = (seccionesMeta || []).map((meta) => {
-      const titulo = meta.tituloVisible || meta.seccion || '';
-      const sumRowLabel = obtenerTextoCeldaDescripcion(meta.elementos.sumRow) || meta.sumRowSumavariosLabel || '';
+      const titulo = meta.tituloVisible || meta.seccion || "";
+      const sumRowLabel =
+        obtenerTextoCeldaDescripcion(meta.elementos.sumRow) ||
+        meta.sumRowSumavariosLabel ||
+        "";
       return {
         titulo,
-        sumRowLabel: sumRowLabel || (titulo ? `Suma ${titulo}` : ''),
-        sumRowSumavarios: meta.sumRowSumavariosTexto || '',
-        sumRowSumavarios2: meta.sumRowSumavarios2Texto || '',
-        sumRowSumavariosLabel: meta.sumRowSumavariosLabel || '',
-        resultRow: resultadoTexto || meta.resultRowTexto || '',
+        sumRowLabel: sumRowLabel || (titulo ? `Suma ${titulo}` : ""),
+        sumRowSumavarios: meta.sumRowSumavariosTexto || "",
+        sumRowSumavarios2: meta.sumRowSumavarios2Texto || "",
+        sumRowSumavariosLabel: meta.sumRowSumavariosLabel || "",
+        resultRow: resultadoTexto || meta.resultRowTexto || "",
         factor: Number.isFinite(Number(meta.factor)) ? Number(meta.factor) : 1,
         cuentas: (meta.filasCuenta || []).map((fila) => ({
-          cuenta: fila.dataset.cuenta || '',
+          cuenta: fila.dataset.cuenta || "",
           nombre: obtenerTextoCeldaDescripcion(fila),
-          factor: Number.isFinite(Number(fila.dataset.operacionFactor)) ? Number(fila.dataset.operacionFactor) : 1
-        }))
+          factor: Number.isFinite(Number(fila.dataset.operacionFactor))
+            ? Number(fila.dataset.operacionFactor)
+            : 1,
+        })),
       };
     });
     return {
-      capitulo: capitulo || '',
-      placeholdersPorFila: Number.isInteger(placeholdersPorFila) ? placeholdersPorFila : 0,
+      capitulo: capitulo || "",
+      placeholdersPorFila: Number.isInteger(placeholdersPorFila)
+        ? placeholdersPorFila
+        : 0,
       resultRow: resultadoTexto,
-      secciones
+      secciones,
     };
   };
 
   const capturarLayoutDesdeTabla = () => {
     if (!estadoModulo.sumas?.secciones?.length) return null;
-    const resultadoFilas = Array.from(estadoModulo.sumas.resultRows?.values?.() || []).map((fila) => ({
+    const resultadoFilas = Array.from(
+      estadoModulo.sumas.resultRows?.values?.() || []
+    ).map((fila) => ({
       texto: obtenerTextoCeldaDescripcion(fila),
-      clase: 'result-row'
+      clase: "result-row",
     }));
     if (!resultadoFilas.length && estadoModulo.layoutActual?.resultRow) {
-      resultadoFilas.push({ texto: estadoModulo.layoutActual.resultRow, clase: 'result-row' });
+      resultadoFilas.push({
+        texto: estadoModulo.layoutActual.resultRow,
+        clase: "result-row",
+      });
     }
     return construirLayoutDesdeMeta({
       seccionesMeta: estadoModulo.sumas.secciones,
       resultadoFilas,
       placeholdersPorFila: estadoModulo.placeholdersPorFila,
-      capitulo: estadoModulo.capitulo
+      capitulo: estadoModulo.capitulo,
     });
   };
 
   const persistirLayoutActual = () => {
     const empresa = Sesion.obtenerEmpresaActiva();
     const anioSeleccion = obtenerAnioSeleccionado();
-    const anio = Number.isInteger(anioSeleccion) ? anioSeleccion : estadoModulo.anio;
-    if (!empresa?.id || !Number.isInteger(anio) || !estadoModulo.moduloClave || !esModuloEditable(estadoModulo.moduloClave)) {
+    const anio = Number.isInteger(anioSeleccion)
+      ? anioSeleccion
+      : estadoModulo.anio;
+    if (
+      !empresa?.id ||
+      !Number.isInteger(anio) ||
+      !estadoModulo.moduloClave ||
+      !esModuloEditable(estadoModulo.moduloClave)
+    ) {
       return false;
     }
     const layout = capturarLayoutDesdeTabla();
     if (!validarLayout(layout)) {
-      console.warn('Layout no v\u00e1lido, no se guard\u00f3.');
+      console.warn("Layout no v\u00e1lido, no se guard\u00f3.");
       return false;
     }
     const guardado = guardarLayoutLocal({
       layout,
       moduloClave: estadoModulo.moduloClave,
       empresaId: empresa.id,
-      anio
+      anio,
     });
     if (guardado) {
       estadoModulo.layoutActual = layout;
       estadoModulo.layoutEsPersonalizado = true;
       // Resetear flag de modificación ya que se guardó exitosamente
       estadoModulo.layoutModificado = false;
-      console.log('✅ Layout guardado explícitamente por el usuario');
+      console.log("✅ Layout guardado explícitamente por el usuario");
     }
     return guardado;
   };
@@ -2574,9 +2882,13 @@
   let filaContextual = null;
 
   const obtenerMetaSeccionPorFila = (fila) => {
-    const clave = normalizarClave(fila?.dataset?.seccion || '');
+    const clave = normalizarClave(fila?.dataset?.seccion || "");
     if (!clave) return null;
-    return estadoModulo.sumas.secciones.find((seccion) => normalizarClave(seccion.seccion) === clave) || null;
+    return (
+      estadoModulo.sumas.secciones.find(
+        (seccion) => normalizarClave(seccion.seccion) === clave
+      ) || null
+    );
   };
 
   const obtenerMetaPorSumavariosFila = (fila) => {
@@ -2589,20 +2901,29 @@
 
   const abrirModalEdicionFila = (fila) => {
     if (!fila) return;
-    const esCuenta = fila.classList.contains('fila-cuenta') || fila.classList.contains('account-row');
+    const esCuenta =
+      fila.classList.contains("fila-cuenta") ||
+      fila.classList.contains("account-row");
     const meta = obtenerMetaSeccionPorFila(fila);
     if (!esCuenta && !meta) return;
     const factorActual = esCuenta
       ? Number(fila.dataset.operacionFactor ?? 1)
       : Number(meta?.factor ?? meta?.operacionFactor ?? 1);
-    const factorChoice = factorActual === -1 ? '-1' : factorActual === 1 ? '1' : 'custom';
-    const factorCustom = factorChoice === 'custom' ? factorActual : '';
-    const descripcionActual = esCuenta ? obtenerTextoCeldaDescripcion(fila) : meta?.tituloVisible || '';
-    const etiqueta = esCuenta ? (fila.dataset.cuenta || fila.cells?.[0]?.textContent || '') : (meta?.seccion || '');
+    const factorChoice =
+      factorActual === -1 ? "-1" : factorActual === 1 ? "1" : "custom";
+    const factorCustom = factorChoice === "custom" ? factorActual : "";
+    const descripcionActual = esCuenta
+      ? obtenerTextoCeldaDescripcion(fila)
+      : meta?.tituloVisible || "";
+    const etiqueta = esCuenta
+      ? fila.dataset.cuenta || fila.cells?.[0]?.textContent || ""
+      : meta?.seccion || "";
 
     // Fallback sencillo si no hay Bootstrap
     if (!window.bootstrap?.Modal) {
-      const entrada = Number(window.prompt('Define el factor (+ suma / - resta):', factorActual || 1));
+      const entrada = Number(
+        window.prompt("Define el factor (+ suma / - resta):", factorActual || 1)
+      );
       if (!Number.isFinite(entrada)) return;
       if (esCuenta) {
         fila.dataset.operacionFactor = String(entrada);
@@ -2618,7 +2939,7 @@
       return;
     }
 
-    const modalId = 'editFactorModal';
+    const modalId = "editFactorModal";
     const existente = document.getElementById(modalId);
     if (existente) existente.remove();
 
@@ -2628,28 +2949,48 @@
           <div class="modal-content">
             <form id="editFactorForm">
               <div class="modal-header">
-                <h5 class="modal-title">Editar ${esCuenta ? 'cuenta' : 'secci¢n'}</h5>
+                <h5 class="modal-title">Editar ${
+                  esCuenta ? "cuenta" : "secci¢n"
+                }</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
               </div>
               <div class="modal-body">
                 <div class="mb-3">
-                  <label class="form-label">${esCuenta ? 'Cuenta' : 'Secci¢n'}</label>
-                  <input type="text" class="form-control" value="${etiqueta || ''}" readonly>
+                  <label class="form-label">${
+                    esCuenta ? "Cuenta" : "Secci¢n"
+                  }</label>
+                  <input type="text" class="form-control" value="${
+                    etiqueta || ""
+                  }" readonly>
                 </div>
-                ${esCuenta ? `
+                ${
+                  esCuenta
+                    ? `
                 <div class="mb-3">
                   <label class="form-label">Descripci¢n</label>
-                  <input type="text" class="form-control" id="editDescripcion" value="${descripcionActual || ''}">
-                </div>` : ''}
+                  <input type="text" class="form-control" id="editDescripcion" value="${
+                    descripcionActual || ""
+                  }">
+                </div>`
+                    : ""
+                }
                 <div class="mb-3">
                   <label class="form-label">Operacion / factor</label>
                   <select class="form-select" id="editFactorSelect">
-                    <option value="1" ${factorChoice === '1' ? 'selected' : ''}>Sumar (+1)</option>
-                    <option value="-1" ${factorChoice === '-1' ? 'selected' : ''}>Restar (-1)</option>
-                    <option value="custom" ${factorChoice === 'custom' ? 'selected' : ''}>Personalizado</option>
+                    <option value="1" ${
+                      factorChoice === "1" ? "selected" : ""
+                    }>Sumar (+1)</option>
+                    <option value="-1" ${
+                      factorChoice === "-1" ? "selected" : ""
+                    }>Restar (-1)</option>
+                    <option value="custom" ${
+                      factorChoice === "custom" ? "selected" : ""
+                    }>Personalizado</option>
                   </select>
                 </div>
-                <div class="mb-3 ${factorChoice === 'custom' ? '' : 'd-none'}" id="editFactorCustomGroup">
+                <div class="mb-3 ${
+                  factorChoice === "custom" ? "" : "d-none"
+                }" id="editFactorCustomGroup">
                   <label class="form-label">Factor personalizado</label>
                   <input type="number" step="0.01" class="form-control" id="editFactorCustom" value="${factorCustom}">
                 </div>
@@ -2665,50 +3006,59 @@
       </div>
     `;
 
-    document.body.insertAdjacentHTML('beforeend', html);
+    document.body.insertAdjacentHTML("beforeend", html);
     const modalEl = document.getElementById(modalId);
     const modal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
-    const factorSelect = modalEl.querySelector('#editFactorSelect');
-    const customGroup = modalEl.querySelector('#editFactorCustomGroup');
-    const customInput = modalEl.querySelector('#editFactorCustom');
-    const descInput = modalEl.querySelector('#editDescripcion');
+    const factorSelect = modalEl.querySelector("#editFactorSelect");
+    const customGroup = modalEl.querySelector("#editFactorCustomGroup");
+    const customInput = modalEl.querySelector("#editFactorCustom");
+    const descInput = modalEl.querySelector("#editDescripcion");
 
     const toggleCustom = (valor) => {
       if (!customGroup) return;
-      const mostrar = valor === 'custom';
-      customGroup.classList.toggle('d-none', !mostrar);
+      const mostrar = valor === "custom";
+      customGroup.classList.toggle("d-none", !mostrar);
       if (mostrar && !customInput.value) {
-        customInput.value = factorCustom || '';
+        customInput.value = factorCustom || "";
       }
     };
-    factorSelect.addEventListener('change', (ev) => toggleCustom(ev.target.value));
+    factorSelect.addEventListener("change", (ev) =>
+      toggleCustom(ev.target.value)
+    );
 
-    modalEl.querySelector('#editFactorForm')?.addEventListener('submit', (ev) => {
-      ev.preventDefault();
-      const seleccion = factorSelect.value;
-      const factor = seleccion === 'custom' ? Number(customInput.value) : Number(seleccion);
-      if (!Number.isFinite(factor)) {
-        window.alert('Define un factor v lido (usa 1 para sumar, -1 para restar).');
-        return;
-      }
-      if (esCuenta && descInput) {
-        const nuevoNombre = descInput.value.trim();
-        if (nuevoNombre) {
-          actualizarNombreFila(fila, nuevoNombre);
+    modalEl
+      .querySelector("#editFactorForm")
+      ?.addEventListener("submit", (ev) => {
+        ev.preventDefault();
+        const seleccion = factorSelect.value;
+        const factor =
+          seleccion === "custom"
+            ? Number(customInput.value)
+            : Number(seleccion);
+        if (!Number.isFinite(factor)) {
+          window.alert(
+            "Define un factor v lido (usa 1 para sumar, -1 para restar)."
+          );
+          return;
         }
-      }
-      if (esCuenta) {
-        fila.dataset.operacionFactor = String(factor);
-      } else if (meta) {
-        meta.factor = factor;
-        meta.operacionFactor = factor;
-      }
-      estadoModulo.layoutModificado = true;
-      recalcularSumas();
-      modal.hide();
-    });
+        if (esCuenta && descInput) {
+          const nuevoNombre = descInput.value.trim();
+          if (nuevoNombre) {
+            actualizarNombreFila(fila, nuevoNombre);
+          }
+        }
+        if (esCuenta) {
+          fila.dataset.operacionFactor = String(factor);
+        } else if (meta) {
+          meta.factor = factor;
+          meta.operacionFactor = factor;
+        }
+        estadoModulo.layoutModificado = true;
+        recalcularSumas();
+        modal.hide();
+      });
 
-    modalEl.addEventListener('hidden.bs.modal', () => modalEl.remove());
+    modalEl.addEventListener("hidden.bs.modal", () => modalEl.remove());
     toggleCustom(factorChoice);
     modal.show();
   };
@@ -2723,31 +3073,31 @@
   };
 
   const crearFilaCuentaVacia = (seccionClave) => {
-    const fila = document.createElement('tr');
-    fila.className = 'fila-cuenta account-row';
-    const celdaCuenta = document.createElement('td');
-    celdaCuenta.textContent = '-';
+    const fila = document.createElement("tr");
+    fila.className = "fila-cuenta account-row";
+    const celdaCuenta = document.createElement("td");
+    celdaCuenta.textContent = "-";
     fila.appendChild(celdaCuenta);
-    const celdaNombre = document.createElement('td');
-    celdaNombre.textContent = '-';
+    const celdaNombre = document.createElement("td");
+    celdaNombre.textContent = "-";
     fila.appendChild(celdaNombre);
     for (let i = 0; i < estadoModulo.placeholdersPorFila; i += 1) {
-      const celda = document.createElement('td');
-      celda.className = 'budget-value';
-      celda.textContent = '-';
+      const celda = document.createElement("td");
+      celda.className = "budget-value";
+      celda.textContent = "-";
       fila.appendChild(celda);
     }
-    fila.dataset.seccion = seccionClave || '';
-    fila.dataset.cuenta = '';
-    fila.dataset.cuenta21 = '';
-    fila.dataset.operacionFactor = '1';
+    fila.dataset.seccion = seccionClave || "";
+    fila.dataset.cuenta = "";
+    fila.dataset.cuenta21 = "";
+    fila.dataset.operacionFactor = "1";
     return fila;
   };
 
   const crearFilaCuentaDesdeDatos = (datos, seccionClave) => {
     const fila = crearFilaCuentaVacia(seccionClave);
-    const cuentaTexto = datos.cuenta || '-';
-    const descripcionTexto = datos.descripcion || '-';
+    const cuentaTexto = datos.cuenta || "-";
+    const descripcionTexto = datos.descripcion || "-";
     const cuentaCelda = fila.children[0];
     const descripcionCelda = fila.children[1];
     if (cuentaCelda) {
@@ -2756,25 +3106,29 @@
     if (descripcionCelda) {
       descripcionCelda.textContent = descripcionTexto;
     }
-    fila.dataset.cuenta = datos.cuenta || '';
-    fila.dataset.cuenta21 = datos.cuenta ? convertirCuenta21(datos.cuenta) : '';
-    const factorCuenta = Number.isFinite(Number(datos.factor)) ? Number(datos.factor) : 1;
+    fila.dataset.cuenta = datos.cuenta || "";
+    fila.dataset.cuenta21 = datos.cuenta ? convertirCuenta21(datos.cuenta) : "";
+    const factorCuenta = Number.isFinite(Number(datos.factor))
+      ? Number(datos.factor)
+      : 1;
     fila.dataset.operacionFactor = String(factorCuenta);
     return fila;
   };
 
   const actualizarSumavariosParaRango = (label, indices, insertIdx) => {
     if (!label || !Array.isArray(indices) || indices.length < 2) {
-      console.warn('⚠️ Sumavarios requiere al menos 2 secciones');
+      console.warn("⚠️ Sumavarios requiere al menos 2 secciones");
       return;
     }
     const clave = normalizarTexto(label);
     if (!clave) return;
     if (!estadoModulo || !estadoModulo.tabla) {
-      console.error('❌ actualizarSumavariosParaRango: estadoModulo.tabla no disponible');
+      console.error(
+        "❌ actualizarSumavariosParaRango: estadoModulo.tabla no disponible"
+      );
       return;
     }
-    const cuerpo = estadoModulo.tabla.querySelector('tbody');
+    const cuerpo = estadoModulo.tabla.querySelector("tbody");
     if (!cuerpo) return;
 
     // Eliminar fila existente si hay
@@ -2784,18 +3138,19 @@
         existente.parentNode.removeChild(existente);
         estadoModulo.sumas.sumavariosRows.delete(clave);
       } catch (e) {
-        console.warn('⚠️ Error eliminando sumavarios existente:', e);
+        console.warn("⚠️ Error eliminando sumavarios existente:", e);
       }
     }
 
     const filaSumario = agregarFilaResumen({
       texto: label,
-      clase: 'sum-row-sumavarios',
+      clase: "sum-row-sumavarios",
       cuerpo,
-      placeholdersPorFila: estadoModulo.placeholdersPorFila
+      placeholdersPorFila: estadoModulo.placeholdersPorFila,
     });
     if (!filaSumario) return;
-    if (!estadoModulo.sumas.sumavariosRows) estadoModulo.sumas.sumavariosRows = new Map();
+    if (!estadoModulo.sumas.sumavariosRows)
+      estadoModulo.sumas.sumavariosRows = new Map();
     estadoModulo.sumas.sumavariosRows.set(clave, filaSumario);
 
     // Normalizar y validar índices
@@ -2804,7 +3159,10 @@
     indicesOrdenados.forEach((idx) => {
       if (!Number.isInteger(idx)) return;
       const idxReal = idx >= insertIdx ? idx + 1 : idx;
-      if (idxReal >= 0 && idxReal < (estadoModulo.sumas.secciones || []).length) {
+      if (
+        idxReal >= 0 &&
+        idxReal < (estadoModulo.sumas.secciones || []).length
+      ) {
         const meta = estadoModulo.sumas.secciones[idxReal];
         if (meta) metasAfectadas.push(meta);
       }
@@ -2812,9 +3170,13 @@
 
     if (metasAfectadas.length < 2) {
       // No tiene sentido crear sumavarios para menos de 2 secciones
-      console.warn('⚠️ Menos de 2 secciones en sumavarios, se omite la creación');
+      console.warn(
+        "⚠️ Menos de 2 secciones en sumavarios, se omite la creación"
+      );
       estadoModulo.sumas.sumavariosRows.delete(clave);
-      try { filaSumario.remove(); } catch (e) {}
+      try {
+        filaSumario.remove();
+      } catch (e) {}
       return;
     }
 
@@ -2825,12 +3187,14 @@
 
     const ultimaMeta = metasAfectadas[metasAfectadas.length - 1];
     const referencia =
-      ultimaMeta?.elementos?.sumRow || ultimaMeta?.filasCuenta?.[ultimaMeta.filasCuenta.length - 1] || null;
+      ultimaMeta?.elementos?.sumRow ||
+      ultimaMeta?.filasCuenta?.[ultimaMeta.filasCuenta.length - 1] ||
+      null;
     if (referencia && referencia.parentNode) {
       try {
         referencia.parentNode.insertBefore(filaSumario, referencia.nextSibling);
       } catch (e) {
-        console.warn('⚠️ Error insertando fila sumavarios en DOM:', e);
+        console.warn("⚠️ Error insertando fila sumavarios en DOM:", e);
         cuerpo.appendChild(filaSumario);
       }
     } else {
@@ -2845,45 +3209,52 @@
     cuentas,
     sumavariosLabel,
     range,
-    factorSeccion = 1
+    factorSeccion = 1,
   }) => {
     // VALIDACIONES
     if (!estadoModulo || !estadoModulo.tabla) {
-      console.error('❌ crearSeccionDesdeFormulario: tabla no disponible');
+      console.error("❌ crearSeccionDesdeFormulario: tabla no disponible");
       return;
     }
-    const cuerpo = estadoModulo.tabla.querySelector('tbody');
+    const cuerpo = estadoModulo.tabla.querySelector("tbody");
     if (!cuerpo) {
-      console.error('❌ crearSeccionDesdeFormulario: tbody no encontrado');
+      console.error("❌ crearSeccionDesdeFormulario: tbody no encontrado");
       return;
     }
-    if (!titulo || typeof titulo !== 'string' || !titulo.trim()) {
-      console.error('❌ crearSeccionDesdeFormulario: titulo inválido');
+    if (!titulo || typeof titulo !== "string" || !titulo.trim()) {
+      console.error("❌ crearSeccionDesdeFormulario: titulo inválido");
       return;
     }
     const cuentasLista = Array.isArray(cuentas) ? cuentas.slice() : [];
     if (cuentasLista.length === 0) {
-      console.error('❌ crearSeccionDesdeFormulario: Se requiere al menos una cuenta');
+      console.error(
+        "❌ crearSeccionDesdeFormulario: Se requiere al menos una cuenta"
+      );
       return;
     }
 
-  const seccionClave = normalizarTexto(titulo);
-    const header = document.createElement('tr');
-    header.className = 'section-header-row';
+    const seccionClave = normalizarTexto(titulo);
+    const header = document.createElement("tr");
+    header.className = "section-header-row";
     header.dataset.seccion = seccionClave;
     header.dataset.sectionName = titulo;
-    const celdaHeader = document.createElement('td');
+    const celdaHeader = document.createElement("td");
     celdaHeader.colSpan = estadoModulo.placeholdersPorFila + 2;
     celdaHeader.textContent = titulo;
     header.appendChild(celdaHeader);
 
-    const cuentasFilas = cuentasLista.map((datos) => crearFilaCuentaDesdeDatos(datos, seccionClave));
-    const textoSumRow = sumLabel && typeof sumLabel === 'string' && sumLabel.trim() ? sumLabel.trim() : `Suma ${titulo}`;
+    const cuentasFilas = cuentasLista.map((datos) =>
+      crearFilaCuentaDesdeDatos(datos, seccionClave)
+    );
+    const textoSumRow =
+      sumLabel && typeof sumLabel === "string" && sumLabel.trim()
+        ? sumLabel.trim()
+        : `Suma ${titulo}`;
     const filaSumRow = agregarFilaResumen({
       texto: textoSumRow,
-      clase: 'sum-row',
+      clase: "sum-row",
       cuerpo,
-      placeholdersPorFila: estadoModulo.placeholdersPorFila
+      placeholdersPorFila: estadoModulo.placeholdersPorFila,
     });
     if (filaSumRow) {
       filaSumRow.dataset.seccion = seccionClave;
@@ -2893,23 +3264,40 @@
     // Determinar índice de inserción con validaciones
     let idxInsercion = estadoModulo.sumas.secciones.length;
     try {
-      const metaBase = referenciaFila?.classList.contains('sum-row-sumavarios') && obtenerMetaPorSumavariosFila(referenciaFila)
-        ? obtenerMetaPorSumavariosFila(referenciaFila)
-        : obtenerMetaSeccionPorFila(referenciaFila);
+      const metaBase =
+        referenciaFila?.classList.contains("sum-row-sumavarios") &&
+        obtenerMetaPorSumavariosFila(referenciaFila)
+          ? obtenerMetaPorSumavariosFila(referenciaFila)
+          : obtenerMetaSeccionPorFila(referenciaFila);
       if (metaBase) {
         const idxTent = obtenerIndiceInsercionSeccion(metaBase);
-        if (Number.isInteger(idxTent) && idxTent >= 0 && idxTent <= estadoModulo.sumas.secciones.length) {
+        if (
+          Number.isInteger(idxTent) &&
+          idxTent >= 0 &&
+          idxTent <= estadoModulo.sumas.secciones.length
+        ) {
           idxInsercion = idxTent;
         } else {
-          console.warn('⚠️ crearSeccionDesdeFormulario: índice de inserción inválido, se usará al final');
+          console.warn(
+            "⚠️ crearSeccionDesdeFormulario: índice de inserción inválido, se usará al final"
+          );
         }
       }
     } catch (e) {
-      console.warn('⚠️ crearSeccionDesdeFormulario: error determinando índice inserción', e);
+      console.warn(
+        "⚠️ crearSeccionDesdeFormulario: error determinando índice inserción",
+        e
+      );
     }
 
-    const referenciaMeta = estadoModulo.sumas.secciones[idxInsercion] || estadoModulo.sumas.secciones[idxInsercion - 1] || null;
-    let anchor = referenciaMeta?.elementos?.sumRow || referenciaMeta?.filasCuenta?.[0] || obtenerPrimerResultadoFila();
+    const referenciaMeta =
+      estadoModulo.sumas.secciones[idxInsercion] ||
+      estadoModulo.sumas.secciones[idxInsercion - 1] ||
+      null;
+    let anchor =
+      referenciaMeta?.elementos?.sumRow ||
+      referenciaMeta?.filasCuenta?.[0] ||
+      obtenerPrimerResultadoFila();
     if (!anchor) anchor = cuerpo.lastElementChild?.nextSibling || null;
 
     try {
@@ -2923,7 +3311,10 @@
         if (filaSumRow) cuerpo.appendChild(filaSumRow);
       }
     } catch (err) {
-      console.error('❌ crearSeccionDesdeFormulario: error insertando en DOM', err);
+      console.error(
+        "❌ crearSeccionDesdeFormulario: error insertando en DOM",
+        err
+      );
       return;
     }
 
@@ -2932,36 +3323,47 @@
       tituloVisible: titulo,
       filasCuenta: cuentasFilas,
       sumRowTexto: normalizarTexto(textoSumRow),
-      sumRowSumavariosTexto: '',
-      sumRowSumavarios2Texto: '',
-      sumRowSumavariosLabel: '',
-      sumRowSumavarios2Label: '',
-      resultRowTexto: '',
+      sumRowSumavariosTexto: "",
+      sumRowSumavarios2Texto: "",
+      sumRowSumavariosLabel: "",
+      sumRowSumavarios2Label: "",
+      resultRowTexto: "",
       resultRows: [],
-      factor: Number.isFinite(Number(factorSeccion)) ? Number(factorSeccion) : 1,
-      operacionFactor: Number.isFinite(Number(factorSeccion)) ? Number(factorSeccion) : 1,
-      elementos: { header, sumRow: filaSumRow }
+      factor: Number.isFinite(Number(factorSeccion))
+        ? Number(factorSeccion)
+        : 1,
+      operacionFactor: Number.isFinite(Number(factorSeccion))
+        ? Number(factorSeccion)
+        : 1,
+      elementos: { header, sumRow: filaSumRow },
     };
 
     try {
-      if (idxInsercion >= 0 && idxInsercion <= estadoModulo.sumas.secciones.length) {
+      if (
+        idxInsercion >= 0 &&
+        idxInsercion <= estadoModulo.sumas.secciones.length
+      ) {
         estadoModulo.sumas.secciones.splice(idxInsercion, 0, metaNueva);
       } else {
         estadoModulo.sumas.secciones.push(metaNueva);
       }
     } catch (err) {
-      console.error('❌ crearSeccionDesdeFormulario: error insertando metaSeccion', err);
+      console.error(
+        "❌ crearSeccionDesdeFormulario: error insertando metaSeccion",
+        err
+      );
       return;
     }
 
-    if (sumavariosLabel && range && typeof range === 'object') {
+    if (sumavariosLabel && range && typeof range === "object") {
       const indices = [];
       const start = Number.isInteger(range.start) ? range.start : null;
       const end = Number.isInteger(range.end) ? range.end : null;
       if (start !== null && end !== null && start <= end) {
         for (let i = start; i <= end; i += 1) indices.push(i);
       }
-      if (indices.length > 1) actualizarSumavariosParaRango(sumavariosLabel, indices, idxInsercion);
+      if (indices.length > 1)
+        actualizarSumavariosParaRango(sumavariosLabel, indices, idxInsercion);
     }
 
     actualizarEstructuraDespuesCambio();
@@ -2975,9 +3377,12 @@
     estadoModulo.layoutModificado = true;
     estadoModulo.hayCambios = true;
     notificarCambios();
-    
+
     // Actualizar componente de colapso de secciones si existe
-    if (window.SeccionCollapse && typeof window.SeccionCollapse.actualizar === 'function') {
+    if (
+      window.SeccionCollapse &&
+      typeof window.SeccionCollapse.actualizar === "function"
+    ) {
       window.SeccionCollapse.actualizar();
     }
   };
@@ -2988,7 +3393,7 @@
     if (!meta) return;
     const idx = meta.filasCuenta.indexOf(referencia);
     if (idx < 0) return;
-    const cuerpo = estadoModulo.tabla.querySelector('tbody');
+    const cuerpo = estadoModulo.tabla.querySelector("tbody");
     const nuevaFila = crearFilaCuentaVacia(meta.seccion);
     const insertarAntesDe = (nodo) => {
       if (nodo) {
@@ -2997,7 +3402,7 @@
         cuerpo.appendChild(nuevaFila);
       }
     };
-    if (posicion === 'arriba') {
+    if (posicion === "arriba") {
       insertarAntesDe(referencia);
       meta.filasCuenta.splice(idx, 0, nuevaFila);
     } else {
@@ -3019,14 +3424,14 @@
     if (!fila) return;
 
     // Caso: fila de cuenta
-    if (fila.classList.contains('fila-cuenta')) {
+    if (fila.classList.contains("fila-cuenta")) {
       const meta = obtenerMetaSeccionPorFila(fila);
       if (!meta) {
-        console.warn('⚠️ eliminarFilaSeleccionada: meta no encontrada');
+        console.warn("⚠️ eliminarFilaSeleccionada: meta no encontrada");
         return;
       }
       if ((meta.filasCuenta || []).length <= 1) {
-        window.alert('La sección debe tener al menos una cuenta.');
+        window.alert("La sección debe tener al menos una cuenta.");
         return;
       }
       const cuenta = fila.dataset.cuenta21 || fila.dataset.cuenta;
@@ -3034,7 +3439,11 @@
         estadoModulo.valoresPorCuenta?.delete(cuenta);
         estadoModulo.nombresPorCuenta?.delete(cuenta);
       }
-      try { fila.remove(); } catch (e) { console.warn('⚠️ Error removiendo fila del DOM', e); }
+      try {
+        fila.remove();
+      } catch (e) {
+        console.warn("⚠️ Error removiendo fila del DOM", e);
+      }
       const idx = meta.filasCuenta.indexOf(fila);
       if (idx >= 0) meta.filasCuenta.splice(idx, 1);
       actualizarEstructuraDespuesCambio();
@@ -3043,31 +3452,41 @@
     }
 
     // Caso: fila sum-row-sumavarios
-    if (fila.classList.contains('sum-row-sumavarios')) {
+    if (fila.classList.contains("sum-row-sumavarios")) {
       if (!estadoModulo || !estadoModulo.tabla) return;
-      const cuerpo = estadoModulo.tabla.querySelector('tbody');
+      const cuerpo = estadoModulo.tabla.querySelector("tbody");
       if (!cuerpo) return;
 
       // Buscar clave asociada
       let claveAux = null;
-      for (const [k, f] of (estadoModulo.sumas.sumavariosRows || new Map()).entries()) {
+      for (const [k, f] of (
+        estadoModulo.sumas.sumavariosRows || new Map()
+      ).entries()) {
         if (f === fila) {
-          claveAux = k; break;
+          claveAux = k;
+          break;
         }
       }
       if (claveAux) {
         // Limpiar referencias en metas
         (estadoModulo.sumas.secciones || []).forEach((meta) => {
-          if (normalizarTexto(meta.sumRowSumavariosLabel) === normalizarTexto(claveAux)) {
-            meta.sumRowSumavariosLabel = '';
-            meta.sumRowSumavariosTexto = '';
+          if (
+            normalizarTexto(meta.sumRowSumavariosLabel) ===
+            normalizarTexto(claveAux)
+          ) {
+            meta.sumRowSumavariosLabel = "";
+            meta.sumRowSumavariosTexto = "";
           }
         });
         estadoModulo.sumas.sumavariosRows.delete(claveAux);
       }
-      try { fila.remove(); } catch (e) { console.warn('⚠️ Error al eliminar sumavarios del DOM', e); }
+      try {
+        fila.remove();
+      } catch (e) {
+        console.warn("⚠️ Error al eliminar sumavarios del DOM", e);
+      }
       actualizarEstructuraDespuesCambio();
-      console.log(`✅ Sumavarios ${claveAux || ''} eliminado`);
+      console.log(`✅ Sumavarios ${claveAux || ""} eliminado`);
       return;
     }
   };
@@ -3076,12 +3495,12 @@
     const lista = estadoModulo.sumas.secciones || [];
     const idxBase = lista.indexOf(metaBase);
     if (idxBase < 0) return lista.length;
-    const etiqueta = normalizarClave(metaBase?.sumRowSumavariosLabel || '');
+    const etiqueta = normalizarClave(metaBase?.sumRowSumavariosLabel || "");
     if (!etiqueta) return idxBase + 1;
     let fin = idxBase;
     while (
       fin + 1 < lista.length &&
-      normalizarClave(lista[fin + 1]?.sumRowSumavariosLabel || '') === etiqueta
+      normalizarClave(lista[fin + 1]?.sumRowSumavariosLabel || "") === etiqueta
     ) {
       fin += 1;
     }
@@ -3100,65 +3519,65 @@
   };
 
   const mostrarMenuContextual = (x, y, opciones) => {
-    const menu = menuContextual || document.createElement('div');
+    const menu = menuContextual || document.createElement("div");
     menuContextual = menu;
-    menu.className = 'planeacion-context-menu';
-    menu.innerHTML = '';
+    menu.className = "planeacion-context-menu";
+    menu.innerHTML = "";
     Object.assign(menu.style, {
-      position: 'absolute',
-      background: '#fff',
-      border: '1px solid #d0d7de',
-      borderRadius: '6px',
-      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-      padding: '4px',
-      minWidth: '200px',
-      fontSize: '0.9rem',
-      zIndex: 9999
+      position: "absolute",
+      background: "#fff",
+      border: "1px solid #d0d7de",
+      borderRadius: "6px",
+      boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+      padding: "4px",
+      minWidth: "200px",
+      fontSize: "0.9rem",
+      zIndex: 9999,
     });
     opciones.forEach((opcion) => {
-      const boton = document.createElement('button');
-      boton.type = 'button';
+      const boton = document.createElement("button");
+      boton.type = "button";
       boton.textContent = opcion.texto;
       Object.assign(boton.style, {
-        display: 'block',
-        width: '100%',
-        textAlign: 'left',
-        padding: '8px 10px',
-        border: 'none',
-        background: 'transparent',
-        cursor: 'pointer',
-        borderRadius: '4px'
+        display: "block",
+        width: "100%",
+        textAlign: "left",
+        padding: "8px 10px",
+        border: "none",
+        background: "transparent",
+        cursor: "pointer",
+        borderRadius: "4px",
       });
-      boton.addEventListener('mouseenter', () => {
-        boton.style.backgroundColor = '#f6f8fa';
+      boton.addEventListener("mouseenter", () => {
+        boton.style.backgroundColor = "#f6f8fa";
       });
-      boton.addEventListener('mouseleave', () => {
-        boton.style.backgroundColor = 'transparent';
+      boton.addEventListener("mouseleave", () => {
+        boton.style.backgroundColor = "transparent";
       });
-      boton.addEventListener('click', () => {
+      boton.addEventListener("click", () => {
         switch (opcion.clave) {
-          case 'add_wizard':
+          case "add_wizard":
             // Usar InsertionWizard si está disponible
-            if (typeof window.InsertionWizard !== 'undefined') {
+            if (typeof window.InsertionWizard !== "undefined") {
               window.InsertionWizard.open(filaContextual);
             } else {
-              console.warn('InsertionWizard no disponible');
+              console.warn("InsertionWizard no disponible");
             }
             break;
-          case 'edit_row':
-          case 'edit_section':
+          case "edit_row":
+          case "edit_section":
             abrirModalEdicionFila(filaContextual);
             break;
-          case 'add_above':
-            insertarFilaCuentaNueva(filaContextual, 'arriba');
+          case "add_above":
+            insertarFilaCuentaNueva(filaContextual, "arriba");
             break;
-          case 'add_below':
-            insertarFilaCuentaNueva(filaContextual, 'abajo');
+          case "add_below":
+            insertarFilaCuentaNueva(filaContextual, "abajo");
             break;
-          case 'delete_row':
+          case "delete_row":
             eliminarFilaSeleccionada(filaContextual);
             break;
-          case 'add_section':
+          case "add_section":
             agregarSeccionNueva(filaContextual);
             break;
           default:
@@ -3176,15 +3595,15 @@
     }
   };
 
-  document.addEventListener('click', (evt) => {
+  document.addEventListener("click", (evt) => {
     if (menuContextual && !menuContextual.contains(evt.target)) {
       ocultarMenuContextual();
     }
   });
-  window.addEventListener('scroll', () => ocultarMenuContextual(), true);
-  window.addEventListener('resize', () => ocultarMenuContextual());
+  window.addEventListener("scroll", () => ocultarMenuContextual(), true);
+  window.addEventListener("resize", () => ocultarMenuContextual());
 
-  document.addEventListener('contextmenu', (evt) => {
+  document.addEventListener("contextmenu", (evt) => {
     if (!estadoModulo.editMode || !esModuloEditable(estadoModulo.moduloClave)) {
       return;
     }
@@ -3196,30 +3615,43 @@
     if (!tabla || !tabla.contains(evt.target)) {
       return;
     }
-    const fila = evt.target.closest('tr');
+    const fila = evt.target.closest("tr");
     if (!fila) {
       return;
     }
-    const esCuenta = fila.classList.contains('fila-cuenta') || fila.classList.contains('account-row');
-    const esSeccion = fila.classList.contains('section-header-row') || fila.classList.contains('sum-row');
+    const esCuenta =
+      fila.classList.contains("fila-cuenta") ||
+      fila.classList.contains("account-row");
+    const esSeccion =
+      fila.classList.contains("section-header-row") ||
+      fila.classList.contains("sum-row");
     const opciones = [];
     // Priorizar InsertionWizard si está disponible
-    if (typeof window.InsertionWizard !== 'undefined') {
-      opciones.push({ clave: 'add_wizard', texto: '✨ Agregar cuenta/sección...' });
+    if (typeof window.InsertionWizard !== "undefined") {
+      opciones.push({
+        clave: "add_wizard",
+        texto: "✨ Agregar cuenta/sección...",
+      });
     }
     if (esCuenta) {
-      opciones.push({ clave: 'edit_row', texto: 'Editar operación / factor' });
-      opciones.push({ clave: 'add_above', texto: 'Agregar cuenta arriba' });
-      opciones.push({ clave: 'add_below', texto: 'Agregar cuenta abajo' });
-      opciones.push({ clave: 'delete_row', texto: 'Eliminar fila' });
+      opciones.push({ clave: "edit_row", texto: "Editar operación / factor" });
+      opciones.push({ clave: "add_above", texto: "Agregar cuenta arriba" });
+      opciones.push({ clave: "add_below", texto: "Agregar cuenta abajo" });
+      opciones.push({ clave: "delete_row", texto: "Eliminar fila" });
     } else if (esSeccion) {
-      opciones.push({ clave: 'edit_section', texto: 'Editar operación de sección' });
-    } else if (fila.classList.contains('sum-row-sumavarios')) {
-      opciones.push({ clave: 'delete_row', texto: 'Eliminar sum-row-sumavarios' });
+      opciones.push({
+        clave: "edit_section",
+        texto: "Editar operación de sección",
+      });
+    } else if (fila.classList.contains("sum-row-sumavarios")) {
+      opciones.push({
+        clave: "delete_row",
+        texto: "Eliminar sum-row-sumavarios",
+      });
     }
     // Agregar sección (legacy) solo si no hay wizard
-    if (typeof window.InsertionWizard === 'undefined') {
-      opciones.push({ clave: 'add_section', texto: 'Agregar sección' });
+    if (typeof window.InsertionWizard === "undefined") {
+      opciones.push({ clave: "add_section", texto: "Agregar sección" });
     }
     if (!opciones.length) return;
     evt.preventDefault();
@@ -3229,11 +3661,11 @@
 
   /**
    * Extrae valores numéricos de las celdas de una fila
-   * 
+   *
    * Lee el textContent de cada celda (empezando desde la columna 'inicio'),
    * limpia el texto eliminando símbolos de moneda y formato,
    * y convierte cada valor a número.
-   * 
+   *
    * @param {HTMLTableRowElement} fila - Fila de la cual extraer valores
    * @param {number} inicio - Índice de celda inicial (default: 2, saltando nombre y cuenta)
    * @returns {Array<number>} Array con los valores numéricos extraídos
@@ -3241,37 +3673,37 @@
   const extraerValoresNumericos = (fila, inicio = 2) => {
     const valores = [];
     for (let i = inicio; i < fila.cells.length; i += 1) {
-      let texto = (fila.cells[i].textContent || '').replace(/[^0-9+.,-]/g, '');
+      let texto = (fila.cells[i].textContent || "").replace(/[^0-9+.,-]/g, "");
       // Determine locale/format heuristics:
-      const hasComma = texto.indexOf(',') >= 0;
-      const hasDot = texto.indexOf('.') >= 0;
+      const hasComma = texto.indexOf(",") >= 0;
+      const hasDot = texto.indexOf(".") >= 0;
       if (hasComma && hasDot) {
         // Use position of last separator to determine decimal separator
-        const lastDot = texto.lastIndexOf('.');
-        const lastComma = texto.lastIndexOf(',');
+        const lastDot = texto.lastIndexOf(".");
+        const lastComma = texto.lastIndexOf(",");
         if (lastDot > lastComma) {
           // dot is decimal, remove commas
-          texto = texto.replace(/,/g, '');
+          texto = texto.replace(/,/g, "");
         } else {
           // comma is decimal, remove dots (thousands) and convert comma to dot
-          texto = texto.replace(/\./g, '');
-          texto = texto.replace(/,/g, '.');
+          texto = texto.replace(/\./g, "");
+          texto = texto.replace(/,/g, ".");
         }
       } else if (hasComma && !hasDot) {
         // Only comma exists: heuristic
-        const partes = texto.split(',');
+        const partes = texto.split(",");
         // If part after comma is length 3, likely thousands -> remove commas, else comma likely decimal
         if (partes.length > 1 && partes[1].length === 3) {
-          texto = texto.replace(/,/g, '');
+          texto = texto.replace(/,/g, "");
         } else {
-          texto = texto.replace(/,/g, '.');
+          texto = texto.replace(/,/g, ".");
         }
       }
       // If multiple dots remain, keep last as decimal and remove others
       if ((texto.match(/\./g) || []).length > 1) {
-        const partes = texto.split('.');
+        const partes = texto.split(".");
         const decimal = partes.pop();
-        texto = partes.join('') + '.' + decimal;
+        texto = partes.join("") + "." + decimal;
       }
       const numero = Number(texto);
       valores.push(Number.isFinite(numero) ? numero : 0);
@@ -3281,27 +3713,31 @@
 
   /**
    * Asigna valores numéricos formateados a las celdas de una fila
-   * 
+   *
    * Toma un array de números y los escribe en las celdas de la fila
    * aplicando el formato numérico (separadores de miles, decimales, etc.)
-   * 
+   *
    * @param {HTMLTableRowElement} fila - Fila donde asignar los valores
    * @param {Array<number>} valores - Array con los valores a asignar
    * @param {number} inicio - Índice de celda inicial (default: 2, saltando nombre y cuenta)
    */
   const asignarValoresNumericos = (fila, valores, inicio = 2) => {
     if (!fila || !Array.isArray(valores)) return;
-    for (let i = inicio; i < fila.cells.length && i - inicio < valores.length; i += 1) {
+    for (
+      let i = inicio;
+      i < fila.cells.length && i - inicio < valores.length;
+      i += 1
+    ) {
       fila.cells[i].textContent = formatearNumero(valores[i - inicio]);
     }
   };
 
   /**
    * Suma múltiples listas de valores numéricos columna por columna
-   * 
+   *
    * Ejemplo: Si tienes 3 filas con valores [10, 20, 30] cada una,
    * esta función retorna [30, 60, 90] (suma vertical por columna)
-   * 
+   *
    * @param {Array<Array<number>>} listas - Array de arrays con valores numéricos
    * @param {number} longitud - Cantidad de columnas esperadas
    * @returns {Array<number>} Array con la suma de cada columna
@@ -3318,21 +3754,21 @@
 
   /**
    * Recalcula las sumas de todas las secciones del módulo
-   * 
+   *
    * Esta función realiza DOS tipos de suma:
-   * 
+   *
    * 1. SUMA DE SECCIÓN (sum-row):
    *    - Suma verticalmente todas las cuentas dentro de una sección
    *    - Ejemplo: Si una sección tiene cuentas con presupuestos [100, 200, 300]
    *      la fila sum-row mostrará 600
-   * 
+   *
    * 2. SUMA DE VARIAS SECCIONES (sumavarios):
    *    - Agrupa secciones que tienen el mismo sumRowSumavariosTexto
    *    - Suma los sum-row de todas esas secciones
    *    - Ejemplo: Si 3 secciones tienen sum-row [100], [200], [300]
    *      y todas están agrupadas bajo "GASTOS TOTALES",
    *      la fila sumavarios mostrará 600
-   * 
+   *
    * El proceso es:
    * - Para cada sección, extrae valores de todas sus filas (cuentas)
    * - Suma esos valores columna por columna usando sumarListas()
@@ -3342,37 +3778,46 @@
    * - Suma los sumValues de secciones agrupadas
    * - Actualiza las filas sumavarios en el DOM
    */
-  const descripcionUtilidadCambiaria = (fila) => normalizarTexto(obtenerTextoCeldaDescripcion(fila)) === 'UTILIDAD CAMBIARIA';
+  const descripcionUtilidadCambiaria = (fila) =>
+    normalizarTexto(obtenerTextoCeldaDescripcion(fila)) ===
+    "UTILIDAD CAMBIARIA";
 
   const recalcularSumas = () => {
     const meta = estadoModulo.sumas;
-    if (!meta || !Array.isArray(meta.secciones) || meta.secciones.length === 0) {
-      if (!meta || !meta.secciones) console.warn('⚠️ recalcularSumas: sin meta.secciones');
+    if (
+      !meta ||
+      !Array.isArray(meta.secciones) ||
+      meta.secciones.length === 0
+    ) {
+      if (!meta || !meta.secciones)
+        console.warn("⚠️ recalcularSumas: sin meta.secciones");
       return;
     }
-    
+
     // Obtener todas las columnas ordenadas por su posición (excepto 'year')
     const clavesOrdenadas = Object.entries(estadoModulo.columnas || {})
       .sort((a, b) => a[1] - b[1])
       .map(([clave]) => clave)
-      .filter((clave) => clave !== 'year');
+      .filter((clave) => clave !== "year");
     const longitud = clavesOrdenadas.length;
     if (!longitud) {
-      console.warn('⚠️ recalcularSumas: sin columnas válidas');
+      console.warn("⚠️ recalcularSumas: sin columnas válidas");
       return;
     }
     const secciones = meta.secciones;
 
     const errores = [];
     const periodoVisible = obtenerPeriodoVisible();
-    const limitePeriodo = Number.isInteger(periodoVisible) ? periodoVisible : null;
+    const limitePeriodo = Number.isInteger(periodoVisible)
+      ? periodoVisible
+      : null;
     const ajustarPorPeriodo = (valores) => {
       if (limitePeriodo == null) return valores;
       const ajustados = valores.slice();
       const indicesReales = [];
       clavesOrdenadas.forEach((clave, idx) => {
-        if (!clave.startsWith('real-')) return;
-        const mesClave = clave.replace('real-', '');
+        if (!clave.startsWith("real-")) return;
+        const mesClave = clave.replace("real-", "");
         const mesNum = CLAVE_MES_A_PERIODO.get(mesClave) || null;
         if (mesNum && mesNum > limitePeriodo) {
           ajustados[idx] = 0;
@@ -3381,7 +3826,7 @@
           indicesReales.push({ idx, mesNum });
         }
       });
-      const totalRealIdx = clavesOrdenadas.indexOf('total-real');
+      const totalRealIdx = clavesOrdenadas.indexOf("total-real");
       if (totalRealIdx >= 0 && indicesReales.length) {
         const suma = indicesReales
           .filter(({ mesNum }) => mesNum <= limitePeriodo)
@@ -3390,7 +3835,7 @@
       }
       return ajustados;
     };
-    
+
     // PASO 1: Calcular sum-row para cada sección (suma vertical de todas las cuentas)
     secciones.forEach((seccion, idxSeccion) => {
       try {
@@ -3399,12 +3844,15 @@
           seccion.sumValues = Array.from({ length: longitud }, () => 0);
           return;
         }
-        
+
         // Extraer valores de cada fila de cuenta en la sección
         const listas = seccion.filasCuenta.map((fila) => {
-          if (!fila || !fila.dataset) return Array.from({ length: longitud }, () => 0);
-          const cuenta = fila.dataset.cuenta21 || '';
-          const factorCuenta = Number.isFinite(Number(fila.dataset.operacionFactor))
+          if (!fila || !fila.dataset)
+            return Array.from({ length: longitud }, () => 0);
+          const cuenta = fila.dataset.cuenta21 || "";
+          const factorCuenta = Number.isFinite(
+            Number(fila.dataset.operacionFactor)
+          )
             ? Number(fila.dataset.operacionFactor)
             : 1;
           const almacenados = estadoModulo.valoresPorCuenta?.get(cuenta);
@@ -3412,37 +3860,46 @@
             ? clavesOrdenadas.map((clave) => almacenados[clave] ?? 0)
             : extraerValoresNumericos(fila);
           valoresBase = ajustarPorPeriodo(valoresBase);
-          const valoresAjustados = seccion.restarUtilidadCambiaria && descripcionUtilidadCambiaria(fila)
-            ? valoresBase.map((valor) => (Number(valor) || 0) * -1)
-            : valoresBase;
-          return valoresAjustados.map((valor) => (Number(valor) || 0) * factorCuenta);
+          const valoresAjustados =
+            seccion.restarUtilidadCambiaria &&
+            descripcionUtilidadCambiaria(fila)
+              ? valoresBase.map((valor) => (Number(valor) || 0) * -1)
+              : valoresBase;
+          return valoresAjustados.map(
+            (valor) => (Number(valor) || 0) * factorCuenta
+          );
         });
-        
+
         // Sumar todas las filas columna por columna
         const valores = sumarListas(listas, longitud);
         // Recalcular total-real con la suma de todos los month-real visibles de la secci¢n
-        const idxTotalReal = clavesOrdenadas.indexOf('total-real');
+        const idxTotalReal = clavesOrdenadas.indexOf("total-real");
         if (idxTotalReal >= 0) {
           const sumaReal = clavesOrdenadas.reduce((acc, clave, idx) => {
-            if (!clave.startsWith('real-')) return acc;
+            if (!clave.startsWith("real-")) return acc;
             return acc + (Number(valores[idx]) || 0);
           }, 0);
           valores[idxTotalReal] = sumaReal;
         }
         seccion.sumValues = valores;
-        
+
         // Actualizar la fila sum-row en el DOM
         if (seccion.elementos?.sumRow && seccion.elementos.sumRow.parentNode) {
           asignarValoresNumericos(seccion.elementos.sumRow, valores);
         } else {
-          console.warn(`⚠️ Sección ${seccion.seccion || idxSeccion}: sumRow no presente en DOM`);
+          console.warn(
+            `⚠️ Sección ${
+              seccion.seccion || idxSeccion
+            }: sumRow no presente en DOM`
+          );
         }
       } catch (err) {
-        errores.push(`Error sumando sección ${idxSeccion}: ${err?.message || err}`);
+        errores.push(
+          `Error sumando sección ${idxSeccion}: ${err?.message || err}`
+        );
       }
     });
-    if (errores.length) console.warn('⚠️ Errores en recalcularSumas:', errores);
-
+    if (errores.length) console.warn("⚠️ Errores en recalcularSumas:", errores);
 
     // PASO 2: Calcular sumavarios (suma de sum-rows agrupados por etiqueta)
     try {
@@ -3459,26 +3916,31 @@
         });
         acumuladosSumavarios.set(clave, prev);
       };
-      
+
       // Agrupar secciones por sus etiquetas sumavarios (incluye sumRowSumavarios y sumRowSumavarios2)
       secciones.forEach((seccion) => {
-        const esAdmin = /ADMIN/i.test(normalizarTexto(seccion.tituloVisible || seccion.seccion || ''));
+        const esAdmin = /ADMIN/i.test(
+          normalizarTexto(seccion.tituloVisible || seccion.seccion || "")
+        );
         if (esAdmin) return; // no contar admin en el resultado operativo
         const claves = [
           normalizarClave(seccion.sumRowSumavariosTexto),
-          normalizarClave(seccion.sumRowSumavarios2Texto)
+          normalizarClave(seccion.sumRowSumavarios2Texto),
         ].filter(Boolean);
         if (!claves.length) return;
-        Array.from(new Set(claves)).forEach((clave) => acumularEnClave(clave, seccion));
+        Array.from(new Set(claves)).forEach((clave) =>
+          acumularEnClave(clave, seccion)
+        );
       });
-      
+
       // Actualizar filas sumavarios en el DOM
       secciones.forEach((seccion) => {
         const clavePreferida =
           normalizarClave(seccion.sumRowSumavariosTexto) ||
           normalizarClave(seccion.sumRowSumavarios2Texto);
         if (!clavePreferida) return;
-        const valores = acumuladosSumavarios.get(clavePreferida) || obtenerCeros();
+        const valores =
+          acumuladosSumavarios.get(clavePreferida) || obtenerCeros();
         seccion.sumavariosValues = valores;
       });
       meta.sumavariosRows?.forEach((fila, clave) => {
@@ -3486,13 +3948,12 @@
           const valores = acumuladosSumavarios.get(clave) || obtenerCeros();
           if (fila && fila.parentNode) asignarValoresNumericos(fila, valores);
         } catch (e) {
-          console.warn('?? Error asignando sumavarios a fila:', e);
+          console.warn("?? Error asignando sumavarios a fila:", e);
         }
       });
     } catch (e) {
-      console.warn('?? Error en fase sumavarios:', e);
+      console.warn("?? Error en fase sumavarios:", e);
     }
-
 
     // result-row: suma solamente los sum-row de todas las secciones con la misma etiqueta de resultado
     // Aplicar factor por sección (ingresos = +1, gastos = -1 o user-defined operacionFactor)
@@ -3501,9 +3962,12 @@
       secciones.forEach((seccion) => {
         const clave = normalizarClave(seccion.resultRowTexto);
         if (!clave) return;
-        const origen = seccion.sumValues || Array.from({ length: longitud }, () => 0);
+        const origen =
+          seccion.sumValues || Array.from({ length: longitud }, () => 0);
         const factor = Number.isFinite(seccion.factor) ? seccion.factor : 1;
-        const prev = acumuladosResultado.get(clave) || Array.from({ length: longitud }, () => 0);
+        const prev =
+          acumuladosResultado.get(clave) ||
+          Array.from({ length: longitud }, () => 0);
         origen.forEach((valor, idx) => {
           prev[idx] += (Number(valor) || 0) * factor;
         });
@@ -3512,24 +3976,26 @@
 
       meta.resultRows?.forEach((fila, clave) => {
         try {
-          const valores = acumuladosResultado.get(clave) || Array.from({ length: longitud }, () => 0);
+          const valores =
+            acumuladosResultado.get(clave) ||
+            Array.from({ length: longitud }, () => 0);
           if (fila && fila.parentNode) asignarValoresNumericos(fila, valores);
         } catch (e) {
-          console.warn('?? Error asignando result-row:', e);
+          console.warn("?? Error asignando result-row:", e);
         }
       });
     } catch (e) {
-      console.warn('?? Error en fase resultado:', e);
+      console.warn("?? Error en fase resultado:", e);
     }
-
   };
 
   const manejarCambioCuenta = (fila, celda) => {
     if (!fila || !celda) return;
-    const texto = (celda.textContent || '').trim();
+    const texto = (celda.textContent || "").trim();
     const nuevaCuenta21 = convertirCuenta21(texto);
-    const cuentaAnterior = fila.dataset.cuenta21 || '';
-    const valoresPrevios = estadoModulo.valoresPorCuenta.get(cuentaAnterior) || {};
+    const cuentaAnterior = fila.dataset.cuenta21 || "";
+    const valoresPrevios =
+      estadoModulo.valoresPorCuenta.get(cuentaAnterior) || {};
     const nombrePrevio = estadoModulo.nombresPorCuenta.get(cuentaAnterior);
     if (cuentaAnterior && cuentaAnterior !== nuevaCuenta21) {
       estadoModulo.valoresPorCuenta.delete(cuentaAnterior);
@@ -3545,12 +4011,12 @@
         actualizarNombreFila(fila, nombrePrevio);
       }
       celda.title = nuevaCuenta21;
-      celda.dataset.bsToggle = 'tooltip';
-      celda.dataset.bsPlacement = 'top';
+      celda.dataset.bsToggle = "tooltip";
+      celda.dataset.bsPlacement = "top";
     } else {
-      celda.title = '';
-      celda.removeAttribute('data-bs-toggle');
-      celda.removeAttribute('data-bs-placement');
+      celda.title = "";
+      celda.removeAttribute("data-bs-toggle");
+      celda.removeAttribute("data-bs-placement");
     }
     recalcularTotalesFilaPresupuesto(fila);
     recalcularSumas();
@@ -3562,8 +4028,8 @@
 
   const manejarCambioNombre = (fila, celda) => {
     if (!fila || !celda) return;
-    const nombre = (celda.textContent || '').trim();
-    const cuenta = fila.dataset.cuenta21 || '';
+    const nombre = (celda.textContent || "").trim();
+    const cuenta = fila.dataset.cuenta21 || "";
     if (cuenta) {
       estadoModulo.nombresPorCuenta.set(cuenta, nombre);
     }
@@ -3576,27 +4042,27 @@
   const resaltarCeldaPresupuesto = (celda) => {
     if (!celda) return;
     if (celda.dataset.originalBgColor === undefined) {
-      celda.dataset.originalBgColor = celda.style.backgroundColor || '';
+      celda.dataset.originalBgColor = celda.style.backgroundColor || "";
     }
-    celda.classList.add('cell-modified');
-    celda.dataset.valorModificado = 'true';
-    celda.style.backgroundColor = '#fff4cc';
+    celda.classList.add("cell-modified");
+    celda.dataset.valorModificado = "true";
+    celda.style.backgroundColor = "#fff4cc";
   };
 
   const limpiarResaltadoCeldaPresupuesto = (celda) => {
     if (!celda) return;
-    celda.classList.remove('cell-modified');
+    celda.classList.remove("cell-modified");
     delete celda.dataset.valorModificado;
     if (celda.dataset.originalBgColor !== undefined) {
       celda.style.backgroundColor = celda.dataset.originalBgColor;
     } else {
-      celda.style.backgroundColor = '';
+      celda.style.backgroundColor = "";
     }
   };
 
   const actualizarPresupuestoCelda = (fila, clave, celda) => {
     if (!fila || !clave || !celda) return;
-    const cuenta = fila.dataset.cuenta21 || '';
+    const cuenta = fila.dataset.cuenta21 || "";
     const almacen = estadoModulo.valoresPorCuenta.get(cuenta) || {};
     const previo = Object.prototype.hasOwnProperty.call(almacen, clave)
       ? Number(almacen[clave])
@@ -3625,9 +4091,9 @@
         if (esClaveBudget(clave)) {
           celda.dataset.columnaClave = clave;
         } else if (idx === 0 && !celda.dataset.columnaClave) {
-          celda.dataset.columnaClave = 'cuenta';
+          celda.dataset.columnaClave = "cuenta";
         } else if (idx === 1 && !celda.dataset.columnaClave) {
-          celda.dataset.columnaClave = 'descripcion';
+          celda.dataset.columnaClave = "descripcion";
         }
       });
     });
@@ -3639,14 +4105,14 @@
     aplicarFiltroColumnasPorPeriodo();
     obtenerFilasCuenta().forEach((fila) => {
       Array.from(fila.cells).forEach((celda) => {
-        celda.contentEditable = 'false';
+        celda.contentEditable = "false";
         if (celda.dataset.editable) {
           delete celda.dataset.editable;
         }
         delete celda.dataset.listenersBound;
       });
     });
-    estadoModulo.tabla.classList.remove('modo-edicion');
+    estadoModulo.tabla.classList.remove("modo-edicion");
   };
 
   const aplicarModoEdicionEnTabla = () => {
@@ -3656,12 +4122,14 @@
       limpiarModoEdicionEnTabla();
       return;
     }
-    estadoModulo.tabla.classList.add('modo-edicion');
+    estadoModulo.tabla.classList.add("modo-edicion");
     ocultarColumnasReal(true);
     const reverse = invertirColumnas();
     const filas = obtenerFilasCuenta();
+    const esPlantillas = window.location.pathname.includes("plantillas.html");
 
-    const obtenerCeldasEditablesFila = (fila) => Array.from(fila.cells).filter((celda) => celda.dataset.editable);
+    const obtenerCeldasEditablesFila = (fila) =>
+      Array.from(fila.cells).filter((celda) => celda.dataset.editable);
     const enfocarCelda = (celda) => {
       if (!celda) return;
       celda.focus();
@@ -3679,20 +4147,21 @@
       const filaIndex = filasEdit.indexOf(fila);
       const colIndex = Array.from(fila.cells).indexOf(celdaActual);
       if (filaIndex < 0 || colIndex < 0) return;
-      if (direccion === 'arriba' && filaIndex > 0) {
+      if (direccion === "arriba" && filaIndex > 0) {
         const target = filasEdit[filaIndex - 1].cells[colIndex];
         if (target?.dataset.editable) enfocarCelda(target);
-      } else if (direccion === 'abajo' && filaIndex < filasEdit.length - 1) {
+      } else if (direccion === "abajo" && filaIndex < filasEdit.length - 1) {
         const target = filasEdit[filaIndex + 1].cells[colIndex];
         if (target?.dataset.editable) enfocarCelda(target);
-      } else if (direccion === 'izquierda') {
+      } else if (direccion === "izquierda") {
         const editables = obtenerCeldasEditablesFila(fila);
         const idx = editables.indexOf(celdaActual);
         if (idx > 0) enfocarCelda(editables[idx - 1]);
-      } else if (direccion === 'derecha') {
+      } else if (direccion === "derecha") {
         const editables = obtenerCeldasEditablesFila(fila);
         const idx = editables.indexOf(celdaActual);
-        if (idx >= 0 && idx < editables.length - 1) enfocarCelda(editables[idx + 1]);
+        if (idx >= 0 && idx < editables.length - 1)
+          enfocarCelda(editables[idx + 1]);
       }
     };
 
@@ -3700,53 +4169,69 @@
       const celdaCuenta = fila.cells[0];
       const celdaNombre = fila.cells[1];
       // CRÍTICO: Usar flag listenersBound para evitar agregar listeners múltiples veces
-      if (celdaCuenta && !celdaCuenta.dataset.editable && !celdaCuenta.dataset.listenersBound) {
-        celdaCuenta.contentEditable = 'true';
-        celdaCuenta.dataset.editable = 'cuenta';
-        celdaCuenta.dataset.listenersBound = 'true';
-        celdaCuenta.addEventListener('blur', () => {
+      if (
+        celdaCuenta &&
+        !celdaCuenta.dataset.editable &&
+        !celdaCuenta.dataset.listenersBound &&
+        esPlantillas
+      ) {
+        celdaCuenta.contentEditable = "true";
+        celdaCuenta.dataset.editable = "cuenta";
+        celdaCuenta.dataset.listenersBound = "true";
+        celdaCuenta.addEventListener("blur", () => {
           manejarCambioCuenta(fila, celdaCuenta);
           setTimeout(() => ocultarSugerencias(), 150);
         });
-        celdaCuenta.addEventListener('keydown', (evt) => {
-          if (evt.key === 'Enter') {
+        celdaCuenta.addEventListener("keydown", (evt) => {
+          if (evt.key === "Enter") {
             evt.preventDefault();
             celdaCuenta.blur();
-          } else if (evt.key === 'ArrowRight') {
+          } else if (evt.key === "ArrowRight") {
             evt.preventDefault();
-            moverFocus(celdaCuenta, 'derecha');
-          } else if (evt.key === 'ArrowDown') {
+            moverFocus(celdaCuenta, "derecha");
+          } else if (evt.key === "ArrowDown") {
             evt.preventDefault();
-            moverFocus(celdaCuenta, 'abajo');
-          } else if (evt.key === 'ArrowUp') {
+            moverFocus(celdaCuenta, "abajo");
+          } else if (evt.key === "ArrowUp") {
             evt.preventDefault();
-            moverFocus(celdaCuenta, 'arriba');
+            moverFocus(celdaCuenta, "arriba");
           }
         });
-        celdaCuenta.addEventListener('input', () => mostrarSugerenciasCuenta(celdaCuenta, celdaCuenta.textContent));
-        celdaCuenta.addEventListener('focus', () => mostrarSugerenciasCuenta(celdaCuenta, celdaCuenta.textContent));
+        celdaCuenta.addEventListener("input", () =>
+          mostrarSugerenciasCuenta(celdaCuenta, celdaCuenta.textContent)
+        );
+        celdaCuenta.addEventListener("focus", () =>
+          mostrarSugerenciasCuenta(celdaCuenta, celdaCuenta.textContent)
+        );
       }
-      if (celdaNombre && !celdaNombre.dataset.editable && !celdaNombre.dataset.listenersBound) {
-        celdaNombre.contentEditable = 'true';
-        celdaNombre.dataset.editable = 'nombre';
-        celdaNombre.dataset.listenersBound = 'true';
-        celdaNombre.addEventListener('blur', () => manejarCambioNombre(fila, celdaNombre));
-        celdaNombre.addEventListener('keydown', (evt) => {
-          if (evt.key === 'Enter') {
+      if (
+        celdaNombre &&
+        !celdaNombre.dataset.editable &&
+        !celdaNombre.dataset.listenersBound &&
+        esPlantillas
+      ) {
+        celdaNombre.contentEditable = "true";
+        celdaNombre.dataset.editable = "nombre";
+        celdaNombre.dataset.listenersBound = "true";
+        celdaNombre.addEventListener("blur", () =>
+          manejarCambioNombre(fila, celdaNombre)
+        );
+        celdaNombre.addEventListener("keydown", (evt) => {
+          if (evt.key === "Enter") {
             evt.preventDefault();
             celdaNombre.blur();
-          } else if (evt.key === 'ArrowLeft') {
+          } else if (evt.key === "ArrowLeft") {
             evt.preventDefault();
-            moverFocus(celdaNombre, 'izquierda');
-          } else if (evt.key === 'ArrowRight') {
+            moverFocus(celdaNombre, "izquierda");
+          } else if (evt.key === "ArrowRight") {
             evt.preventDefault();
-            moverFocus(celdaNombre, 'derecha');
-          } else if (evt.key === 'ArrowDown') {
+            moverFocus(celdaNombre, "derecha");
+          } else if (evt.key === "ArrowDown") {
             evt.preventDefault();
-            moverFocus(celdaNombre, 'abajo');
-          } else if (evt.key === 'ArrowUp') {
+            moverFocus(celdaNombre, "abajo");
+          } else if (evt.key === "ArrowUp") {
             evt.preventDefault();
-            moverFocus(celdaNombre, 'arriba');
+            moverFocus(celdaNombre, "arriba");
           }
         });
       }
@@ -3755,27 +4240,29 @@
         if (!esClaveBudget(clave)) return;
         // CRÍTICO: Verificar ambos flags para evitar duplicados
         if (celda.dataset.editable || celda.dataset.listenersBound) return;
-        celda.contentEditable = 'true';
-        celda.dataset.editable = 'budget';
+        celda.contentEditable = "true";
+        celda.dataset.editable = "budget";
         celda.dataset.columnaClave = clave;
-        celda.dataset.listenersBound = 'true';
-        celda.addEventListener('blur', () => actualizarPresupuestoCelda(fila, clave, celda));
-        celda.addEventListener('keydown', (evt) => {
-          if (evt.key === 'Enter') {
+        celda.dataset.listenersBound = "true";
+        celda.addEventListener("blur", () =>
+          actualizarPresupuestoCelda(fila, clave, celda)
+        );
+        celda.addEventListener("keydown", (evt) => {
+          if (evt.key === "Enter") {
             evt.preventDefault();
             celda.blur();
-          } else if (evt.key === 'ArrowLeft') {
+          } else if (evt.key === "ArrowLeft") {
             evt.preventDefault();
-            moverFocus(celda, 'izquierda');
-          } else if (evt.key === 'ArrowRight') {
+            moverFocus(celda, "izquierda");
+          } else if (evt.key === "ArrowRight") {
             evt.preventDefault();
-            moverFocus(celda, 'derecha');
-          } else if (evt.key === 'ArrowDown') {
+            moverFocus(celda, "derecha");
+          } else if (evt.key === "ArrowDown") {
             evt.preventDefault();
-            moverFocus(celda, 'abajo');
-          } else if (evt.key === 'ArrowUp') {
+            moverFocus(celda, "abajo");
+          } else if (evt.key === "ArrowUp") {
             evt.preventDefault();
-            moverFocus(celda, 'arriba');
+            moverFocus(celda, "arriba");
           }
         });
       });
@@ -3817,17 +4304,25 @@
     notificarCambios();
     ocultarMenuContextual();
     const empresa = Sesion.obtenerEmpresaActiva();
-    if (estadoModulo.layoutSnapshot && empresa?.id && Number.isInteger(estadoModulo.anio)) {
+    if (
+      estadoModulo.layoutSnapshot &&
+      empresa?.id &&
+      Number.isInteger(estadoModulo.anio)
+    ) {
       guardarLayoutLocal({
         layout: estadoModulo.layoutSnapshot,
         moduloClave: estadoModulo.moduloClave,
         empresaId: empresa.id,
-        anio: estadoModulo.anio
+        anio: estadoModulo.anio,
       });
       renderizarTabla({
         moduloId: estadoModulo.moduloId,
-        tablaSelector: estadoModulo.tabla ? `#${estadoModulo.tabla.id}` : undefined,
-        totalColumnas: estadoModulo.tabla ? contarColumnas(estadoModulo.tabla) : undefined
+        tablaSelector: estadoModulo.tabla
+          ? `#${estadoModulo.tabla.id}`
+          : undefined,
+        totalColumnas: estadoModulo.tabla
+          ? contarColumnas(estadoModulo.tabla)
+          : undefined,
       });
     }
   };
@@ -3843,13 +4338,14 @@
     if (!nombre || !dataset) {
       return null;
     }
-    const buscarClave = (clave) => (clave && Object.hasOwn(dataset, clave) ? dataset[clave] : null);
+    const buscarClave = (clave) =>
+      clave && Object.hasOwn(dataset, clave) ? dataset[clave] : null;
     const directo = buscarClave(nombre);
     if (directo) {
       return directo;
     }
-    if (nombre.includes('&')) {
-      const reemplazo = nombre.replace(/&/g, '&amp;');
+    if (nombre.includes("&")) {
+      const reemplazo = nombre.replace(/&/g, "&amp;");
       const conAmp = buscarClave(reemplazo);
       if (conAmp) {
         return conAmp;
@@ -3857,7 +4353,9 @@
     }
     const identificador = normalizarSheetId(nombre);
     if (identificador) {
-      const coincidencia = Object.keys(dataset).find((clave) => normalizarSheetId(clave) === identificador);
+      const coincidencia = Object.keys(dataset).find(
+        (clave) => normalizarSheetId(clave) === identificador
+      );
       if (coincidencia) {
         return dataset[coincidencia];
       }
@@ -3867,9 +4365,9 @@
 
   /**
    * Función principal que renderiza/pinta la tabla completa de un módulo
-   * 
+   *
    * Esta es la función maestra que coordina todo el proceso de renderizado:
-   * 
+   *
    * FLUJO DE RENDERIZADO:
    * 1. Validación inicial: verifica que exista tabla y tbody
    * 2. Configuración de módulo: identifica qué módulo renderizar (Finanzas, Dirección, etc.)
@@ -3880,13 +4378,13 @@
    * 7. Filas de suma: agrega sum-row, sumavarios, result-row según configuración
    * 8. Carga de valores: obtiene datos de Firebird para llenar las celdas
    * 9. Recálculo: ejecuta recalcularSumas() para actualizar totales
-   * 
+   *
    * TIPOS DE FILA:
    * - fila-cuenta: Fila normal con datos de una cuenta contable
    * - sum-row: Suma de todas las cuentas de una sección
    * - sum-row-sumavarios: Suma de varios sum-rows agrupados
    * - result-row: Resultado final (ej: "Resultado Presupuestos")
-   * 
+   *
    * @param {Object} opciones - Configuración de renderizado
    * @param {string} opciones.tablaSelector - Selector CSS de la tabla
    * @param {number} opciones.totalColumnas - Número total de columnas
@@ -3896,7 +4394,7 @@
    */
   const renderizarTabla = async (opciones = {}) => {
     const tabla = obtenerTabla(opciones.tablaSelector);
-    const cuerpo = tabla?.querySelector('tbody');
+    const cuerpo = tabla?.querySelector("tbody");
     if (!tabla || !cuerpo) {
       return Promise.resolve(false);
     }
@@ -3911,100 +4409,148 @@
     estadoModulo.placeholdersPorFila = placeholdersPorFila;
 
     const { moduloId, moduloSheet } = obtenerConfigModulo();
-    const moduloNormalizado = (opciones.moduloId || moduloId || '').toString().trim();
+    const moduloNormalizado = (opciones.moduloId || moduloId || "")
+      .toString()
+      .trim();
     const moduloClave = normalizarModuloClave(moduloNormalizado || moduloId);
     const sheetPorConfig = window.CapitulosModulos?.obtenerSheetPorModulo
       ? window.CapitulosModulos.obtenerSheetPorModulo(moduloNormalizado)
       : null;
-    const sheetConfigurada = opciones.sheet || moduloSheet || sheetPorConfig || moduloNormalizado;
+    const sheetConfigurada =
+      opciones.sheet || moduloSheet || sheetPorConfig || moduloNormalizado;
     const dataset = window.CUENTAS_POR_MODULO || {};
     let hoja = obtenerHojaDatos(sheetConfigurada, dataset);
     limpiarBody(cuerpo);
     compilarCatalogoGlobal();
 
     const anioSeleccionTemp = obtenerAnioSeleccionado();
-    const anioSeleccionado = Number.isInteger(anioSeleccionTemp) ? anioSeleccionTemp : estadoModulo.anio;
+    const anioSeleccionado = Number.isInteger(anioSeleccionTemp)
+      ? anioSeleccionTemp
+      : estadoModulo.anio;
     const empresa = Sesion.obtenerEmpresaActiva();
     const empresaId = empresa?.id;
-    const capituloDestino = window.CapitulosModulos?.obtenerCapituloPorEmpresa(empresaId) || null;
+    const capituloDestino =
+      window.CapitulosModulos?.obtenerCapituloPorEmpresa(empresaId) || null;
     const moduloHabilitado = window.CapitulosModulos?.moduloDisponible
       ? window.CapitulosModulos.moduloDisponible(empresaId, moduloNormalizado)
       : true;
 
     if (!moduloHabilitado) {
-      cuerpo.appendChild(crearFilaEstado('El capitulo seleccionado no tiene esta vista asignada.', columnas));
+      cuerpo.appendChild(
+        crearFilaEstado(
+          "El capitulo seleccionado no tiene esta vista asignada.",
+          columnas
+        )
+      );
       return Promise.resolve(false);
     }
 
-    if ((!hoja || !Array.isArray(hoja)) && moduloClave === 'presupuestos' && capituloDestino) {
-      const anioPresupuesto = obtenerAnioSeleccionado() || new Date().getFullYear();
-      const cuentasPresupuesto = await cargarCuentasPresupuestos({ anio: anioPresupuesto });
+    if (
+      (!hoja || !Array.isArray(hoja)) &&
+      moduloClave === "presupuestos" &&
+      capituloDestino
+    ) {
+      const anioPresupuesto =
+        obtenerAnioSeleccionado() || new Date().getFullYear();
+      const cuentasPresupuesto = await cargarCuentasPresupuestos({
+        anio: anioPresupuesto,
+      });
       const cuentasFiltradas = cuentasPresupuesto.filter((registro) =>
-        esCuentaPresupuestoValida(registro.cuentaVisible || registro.cuenta21 || registro.cuenta)
+        esCuentaPresupuestoValida(
+          registro.cuentaVisible || registro.cuenta21 || registro.cuenta
+        )
       );
       if (cuentasFiltradas.length) {
         hoja = cuentasFiltradas
           .map((registro) => ({
             capitulo: capituloDestino,
-            seccion: 'Presupuestos',
-            cuenta: registro.cuentaVisible || '',
-            nombre: registro.nombre || ''
+            seccion: "Presupuestos",
+            cuenta: registro.cuentaVisible || "",
+            nombre: registro.nombre || "",
           }))
           .filter((registro) => registro.cuenta);
       }
     }
 
     if (!hoja || !Array.isArray(hoja) || !capituloDestino) {
-      cuerpo.appendChild(crearFilaEstado('No hay informacion disponible para esta vista.', columnas));
+      cuerpo.appendChild(
+        crearFilaEstado(
+          "No hay informacion disponible para esta vista.",
+          columnas
+        )
+      );
       return Promise.resolve(false);
     }
 
     const objetivo = normalizarTexto(capituloDestino);
-    let registros = hoja.filter((registro) => normalizarTexto(registro.capitulo) === objetivo);
-    if (moduloClave === 'presupuestos') {
+    let registros = hoja.filter(
+      (registro) => normalizarTexto(registro.capitulo) === objetivo
+    );
+    if (moduloClave === "presupuestos") {
       registros = registros.filter((registro) => {
         if (!registro?.cuenta) return true;
         return esCuentaPresupuestoValida(registro.cuenta);
       });
     }
     let sumasPersonalizadas = null;
-    let resultadoForzado = '';
+    let resultadoForzado = "";
     let layoutPersonalizado = null;
 
     if (esModuloEditable(moduloClave) && Number.isInteger(anioSeleccionado)) {
       const layoutGuardado = cargarLayoutLocal({
         moduloClave,
         empresaId,
-        anio: anioSeleccionado
+        anio: anioSeleccionado,
       });
       if (validarLayout(layoutGuardado)) {
         layoutPersonalizado = layoutGuardado;
-        const registrosDesdeLayout = construirRegistrosDesdeLayout(layoutGuardado, capituloDestino);
+        const registrosDesdeLayout = construirRegistrosDesdeLayout(
+          layoutGuardado,
+          capituloDestino
+        );
         if (registrosDesdeLayout.length) {
           registros = registrosDesdeLayout;
           sumasPersonalizadas = construirSumasDesdeLayout(layoutGuardado);
-          resultadoForzado = layoutGuardado.resultRow || '';
+          resultadoForzado = layoutGuardado.resultRow || "";
         }
       }
     }
 
     if (!registros.length) {
-      cuerpo.appendChild(crearFilaEstado('El capitulo no tiene cuentas configuradas en el libro.', columnas));
+      cuerpo.appendChild(
+        crearFilaEstado(
+          "El capitulo no tiene cuentas configuradas en el libro.",
+          columnas
+        )
+      );
       return Promise.resolve(false);
     }
 
     const cuentasCapitulo = registros
-      .map((registro) => convertirCuenta21(registro.cuenta || ''))
+      .map((registro) => convertirCuenta21(registro.cuenta || ""))
       .filter(Boolean);
-    unificarCuentasDisponibles(registros.map((registro) => registro.cuenta).filter((cuenta) => (cuenta || '').trim()), {
-      anio: anioSeleccionado
-    });
-    if (empresaId && cuentasCapitulo.length && moduloClave !== 'presupuestos') {
+    unificarCuentasDisponibles(
+      registros
+        .map((registro) => registro.cuenta)
+        .filter((cuenta) => (cuenta || "").trim()),
+      {
+        anio: anioSeleccionado,
+      }
+    );
+    if (empresaId && cuentasCapitulo.length && moduloClave !== "presupuestos") {
       const anioNombres = obtenerAnioSeleccionado() || new Date().getFullYear();
-      await cargarNombresCuentas({ empresaId, anio: anioNombres, cuentas: cuentasCapitulo });
+      await cargarNombresCuentas({
+        empresaId,
+        anio: anioNombres,
+        cuentas: cuentasCapitulo,
+      });
     }
 
-    estadoModulo.sumas = { secciones: [], sumavariosRows: new Map(), resultRows: new Map() };
+    estadoModulo.sumas = {
+      secciones: [],
+      sumavariosRows: new Map(),
+      resultRows: new Map(),
+    };
     const pendientes = renderizarSecciones({
       registros,
       cuerpo,
@@ -4013,16 +4559,23 @@
       capitulo: capituloDestino,
       sumasPersonalizadas,
       resultadoForzado,
-      mostrarCuentaVisible: moduloClave === 'presupuestos',
-      moduloClave
+      mostrarCuentaVisible: moduloClave === "presupuestos",
+      moduloClave,
     });
-    if (moduloClave === 'presupuestos' && pendientes?.sumasSecciones && !layoutPersonalizado) {
-      const claveResultado = normalizarTexto('Resultado Presupuestos');
+    if (
+      moduloClave === "presupuestos" &&
+      pendientes?.sumasSecciones &&
+      !layoutPersonalizado
+    ) {
+      const claveResultado = normalizarTexto("Resultado Presupuestos");
       pendientes.sumasSecciones.forEach((seccion) => {
         seccion.resultRowTexto = claveResultado;
       });
       if (!pendientes.resultadoFilas.length) {
-        pendientes.resultadoFilas.push({ texto: 'Resultado Presupuestos', clase: 'result-row' });
+        pendientes.resultadoFilas.push({
+          texto: "Resultado Presupuestos",
+          clase: "result-row",
+        });
       }
     }
 
@@ -4032,18 +4585,24 @@
       // Insertar justo debajo de la sección sobre la que opera
       const filaSumario = agregarFilaResumen({
         texto: info.texto,
-        clase: 'sum-row-sumavarios',
+        clase: "sum-row-sumavarios",
         cuerpo,
-        placeholdersPorFila
+        placeholdersPorFila,
       });
       if (filaSumario) {
-        estadoModulo.sumas.sumavariosRows.set(normalizarTexto(clave), filaSumario);
+        estadoModulo.sumas.sumavariosRows.set(
+          normalizarTexto(clave),
+          filaSumario
+        );
         const referencia =
           info.meta.elementos.sumRow ||
           info.meta.filasCuenta[info.meta.filasCuenta.length - 1] ||
           cuerpo.lastChild;
         if (referencia && referencia.parentNode) {
-          referencia.parentNode.insertBefore(filaSumario, referencia.nextSibling);
+          referencia.parentNode.insertBefore(
+            filaSumario,
+            referencia.nextSibling
+          );
         }
       }
     });
@@ -4053,21 +4612,24 @@
         texto: fila.texto,
         clase: fila.clase,
         cuerpo,
-        placeholdersPorFila
+        placeholdersPorFila,
       });
       if (resultadoFila) {
-        estadoModulo.sumas.resultRows.set(normalizarTexto(fila.texto), resultadoFila);
+        estadoModulo.sumas.resultRows.set(
+          normalizarTexto(fila.texto),
+          resultadoFila
+        );
       }
     });
 
     estadoModulo.sumas.secciones = pendientes.sumasSecciones;
-    estadoModulo.capitulo = capituloDestino || '';
+    estadoModulo.capitulo = capituloDestino || "";
     estadoModulo.layoutEsPersonalizado = Boolean(layoutPersonalizado);
     estadoModulo.layoutActual = construirLayoutDesdeMeta({
       seccionesMeta: pendientes.sumasSecciones,
       resultadoFilas: pendientes.resultadoFilas,
       placeholdersPorFila,
-      capitulo: capituloDestino
+      capitulo: capituloDestino,
     });
     estadoModulo.tabla = tabla;
     estadoModulo.columnas = construirMapaColumnas(tabla);
@@ -4084,7 +4646,11 @@
     );
     const anioNombres = obtenerAnioSeleccionado() || new Date().getFullYear();
     if (pendientes.faltantesNombre?.length && empresaId) {
-      cargarNombresCuentas({ empresaId, anio: anioNombres, cuentas: pendientes.faltantesNombre });
+      cargarNombresCuentas({
+        empresaId,
+        anio: anioNombres,
+        cuentas: pendientes.faltantesNombre,
+      });
     }
     solicitarDatos();
     activarTooltipsCuentas();
@@ -4092,7 +4658,10 @@
     aplicarFiltroColumnasPorPeriodo();
 
     // Actualizar SeccionCollapse después de renderizar la tabla
-    if (window.SeccionCollapse && typeof window.SeccionCollapse.actualizar === 'function') {
+    if (
+      window.SeccionCollapse &&
+      typeof window.SeccionCollapse.actualizar === "function"
+    ) {
       setTimeout(() => {
         window.SeccionCollapse.actualizar();
       }, 100);
@@ -4100,12 +4669,14 @@
 
     if (!moduloReadyDispatched) {
       moduloReadyDispatched = true;
-      window.dispatchEvent(new CustomEvent('modulo:ready', {
-        detail: {
-          modulo: estadoModulo.moduloClave || estadoModulo.moduloId || '',
-          anio: estadoModulo.anio
-        }
-      }));
+      window.dispatchEvent(
+        new CustomEvent("modulo:ready", {
+          detail: {
+            modulo: estadoModulo.moduloClave || estadoModulo.moduloId || "",
+            anio: estadoModulo.anio,
+          },
+        })
+      );
     }
 
     return Promise.resolve(true);
@@ -4127,24 +4698,24 @@
     };
     window.addEventListener(Sesion.EVENTO_EMPRESA, listener);
     const contextoListener = (evento) => {
-      const moduloEvento = normalizarModuloClave(evento?.detail?.modulo || '');
+      const moduloEvento = normalizarModuloClave(evento?.detail?.modulo || "");
       const moduloActual = estadoModulo.moduloClave;
       if (moduloEvento && moduloEvento !== moduloActual) {
         return;
       }
-    const anioEvento = Number(evento?.detail?.anio);
-    if (Number.isInteger(anioEvento)) {
-      estadoModulo.anio = anioEvento;
-      poblarSugerenciasDesdeAnio(anioEvento);
-    }
-    const periodoEvento = normalizarPeriodo(evento?.detail?.periodo);
-    if (periodoEvento != null) {
-      estadoModulo.periodoCerrado = periodoEvento;
-      estadoModulo.mesActualIndex = obtenerIndicePeriodoActual();
-      aplicarFiltroColumnasPorPeriodo();
-    }
-    solicitarDatos();
-  };
+      const anioEvento = Number(evento?.detail?.anio);
+      if (Number.isInteger(anioEvento)) {
+        estadoModulo.anio = anioEvento;
+        poblarSugerenciasDesdeAnio(anioEvento);
+      }
+      const periodoEvento = normalizarPeriodo(evento?.detail?.periodo);
+      if (periodoEvento != null) {
+        estadoModulo.periodoCerrado = periodoEvento;
+        estadoModulo.mesActualIndex = obtenerIndicePeriodoActual();
+        aplicarFiltroColumnasPorPeriodo();
+      }
+      solicitarDatos();
+    };
     window.addEventListener(EVENTO_CONTEXTO, contextoListener);
     return {
       ready,
@@ -4164,7 +4735,7 @@
         window.removeEventListener(Sesion.EVENTO_EMPRESA, listener);
         window.removeEventListener(EVENTO_CONTEXTO, contextoListener);
         destruirTooltips();
-      }
+      },
     };
   };
 
@@ -4189,53 +4760,61 @@
     },
     cargarBorradorLocal() {
       const empresa = Sesion.obtenerEmpresaActiva();
-      const anioSeleccionado = Number.isInteger(estadoModulo.anio) ? estadoModulo.anio : null;
+      const anioSeleccionado = Number.isInteger(estadoModulo.anio)
+        ? estadoModulo.anio
+        : null;
       if (!empresa?.id || !anioSeleccionado || !estadoModulo.moduloClave) {
         return null;
       }
       return cargarLayoutLocal({
         moduloClave: estadoModulo.moduloClave,
         empresaId: empresa.id,
-        anio: anioSeleccionado
+        anio: anioSeleccionado,
       });
     },
     getCambios() {
       return obtenerCambiosPendientes();
-    }
+    },
   };
 })();
-  const normalizarCuentaBase = (cuenta) => {
-    if (!cuenta) return '';
-    return cuenta.toString().replace(/[^0-9A-Za-z]/g, '').toUpperCase().trim();
-  };
+const normalizarCuentaBase = (cuenta) => {
+  if (!cuenta) return "";
+  return cuenta
+    .toString()
+    .replace(/[^0-9A-Za-z]/g, "")
+    .toUpperCase()
+    .trim();
+};
 
-  const deducirNivel = (baseVisible) => {
-    const visible = normalizarCuentaBase(baseVisible).slice(0, 11).padEnd(11, '0');
-    const b = visible.slice(3, 6);
-    const c = visible.slice(6, 9);
-    const d = visible.slice(9, 11);
-    if (b === '000' && c === '000' && d === '00') return '1';
-    if (c === '000' && d === '00') return '2';
-    if (d === '00') return '3';
-    return '4';
-  };
+const deducirNivel = (baseVisible) => {
+  const visible = normalizarCuentaBase(baseVisible)
+    .slice(0, 11)
+    .padEnd(11, "0");
+  const b = visible.slice(3, 6);
+  const c = visible.slice(6, 9);
+  const d = visible.slice(9, 11);
+  if (b === "000" && c === "000" && d === "00") return "1";
+  if (c === "000" && d === "00") return "2";
+  if (d === "00") return "3";
+  return "4";
+};
 
-  const convertirCuenta21 = (cuentaLegible) => {
-    const entrada = normalizarCuentaBase(cuentaLegible);
-    if (!entrada) return '';
+const convertirCuenta21 = (cuentaLegible) => {
+  const entrada = normalizarCuentaBase(cuentaLegible);
+  if (!entrada) return "";
 
-    // Si ya viene en formato COI de 21 caracteres, respétalo.
-    if (entrada.length >= 21) {
-      return entrada.slice(0, 21);
-    }
+  // Si ya viene en formato COI de 21 caracteres, respétalo.
+  if (entrada.length >= 21) {
+    return entrada.slice(0, 21);
+  }
 
-    // Usa la conversión compartida si está disponible en la vista.
-    if (typeof window.cuentaLarga === 'function') {
-      const desdeVista = window.cuentaLarga(entrada);
-      if (desdeVista) return desdeVista;
-    }
+  // Usa la conversión compartida si está disponible en la vista.
+  if (typeof window.cuentaLarga === "function") {
+    const desdeVista = window.cuentaLarga(entrada);
+    if (desdeVista) return desdeVista;
+  }
 
-    const visible = entrada.slice(0, 11).padEnd(11, '0');
-    const nivel = deducirNivel(visible);
-    return visible.padEnd(20, '0') + nivel;
-  };
+  const visible = entrada.slice(0, 11).padEnd(11, "0");
+  const nivel = deducirNivel(visible);
+  return visible.padEnd(20, "0") + nivel;
+};
