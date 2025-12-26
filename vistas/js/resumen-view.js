@@ -1210,7 +1210,8 @@
         "Member Centricity NOROESTE",
         "NORTHWEST Member Centricity",
         "NOROESTE Member Centricity",
-        "Member Centricity",
+        // NO incluir fallback genérico "Member Centricity" aquí
+        // porque capturaría el Member Centricity de México en vistas consolidadas
       ]);
       const otherMx = obtenerPorLabels([
         "Other (MEXICO)",
@@ -1240,9 +1241,7 @@
         "NW Other Income",
         "NO Other Income",
         "NOROESTE Other Income",
-        "Other",
-        "Otros ingresos",
-        "OTROS INGRESOS",
+        // NO incluir fallbacks genéricos aquí para evitar capturar valores incorrectos
       ]);
       const otherNe = obtenerPorLabels([
         "NE Other Income",
