@@ -155,11 +155,12 @@
   }
 
   async function checkAuthState() {
+    const sesion = window.Sesion?.obtener?.() || null;
     const esAdminGlobal = window.Sesion?.esAdminGlobal?.() || false;
     const usuarioId = window.Sesion?.obtenerUsuarioId?.();
-    const token = window.Sesion?.token;
+    const token = sesion?.tokenAcceso || window.Sesion?.token;
 
-    if (!token) {
+    if (!token || !sesion) {
       updateAuthUI(false, "Sesión no válida");
       return;
     }
@@ -379,7 +380,7 @@
       const data = await response.json();
       state.layout = data.layout || {};
       state.cuentas = extractCuentas(state.layout);
-      state.operaciones = state.layout.operaciones || [];
+      state.operaciones = sortOperations(state.layout.operaciones || []);
 
       renderLayout();
       updateStats();
@@ -428,6 +429,32 @@
     return [];
   }
 
+  function getAccountOrder(cuenta, fallback = 0) {
+    const raw = cuenta?.orden ?? cuenta?.Orden;
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  }
+
+  function getOperationOrder(op, fallback = 0) {
+    const raw = op?.orden ?? op?.Orden ?? op?.index;
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  }
+
+  function sortOperations(list = []) {
+    return [...list].sort(
+      (a, b) => getOperationOrder(a) - getOperationOrder(b)
+    );
+  }
+
+  function nextOperationOrder() {
+    if (!state.operaciones.length) return 0;
+    const maxOrden = Math.max(
+      ...state.operaciones.map((op, idx) => getOperationOrder(op, idx))
+    );
+    return Number.isFinite(maxOrden) ? maxOrden + 1 : 0;
+  }
+
   // ==========================================
   // RENDERING
   // ==========================================
@@ -462,11 +489,7 @@
 
     // Renderizar operaciones en su orden original (según índice en el array)
     // Ordenar por el campo 'orden' si existe, o por índice
-    const operacionesOrdenadas = [...state.operaciones].sort((a, b) => {
-      const ordenA = a.orden ?? a.Orden ?? a.index ?? 999;
-      const ordenB = b.orden ?? b.Orden ?? b.index ?? 999;
-      return ordenA - ordenB;
-    });
+    const operacionesOrdenadas = sortOperations(state.operaciones);
 
     operacionesOrdenadas.forEach((op) => {
       html += renderSingleOperation(op);
@@ -491,11 +514,19 @@
             <span>${escapeHtml(clase)}</span>
             <span class="operation-type">${tipo}</span>
           </div>
+          <div class="operation-formula small text-muted ms-3 d-none d-md-block" style="flex: 2; font-style: italic;">
+            ${escapeHtml(formatFormula(op))}
+          </div>
           <div class="account-actions">
             <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); editOperation('${escapeAttr(
               clase
             )}')" title="Editar">
               <i class="bi bi-pencil"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); deleteOperation('${escapeAttr(
+              clase
+            )}')" title="Eliminar">
+              <i class="bi bi-trash"></i>
             </button>
           </div>
         </div>
@@ -503,10 +534,53 @@
     `;
   }
 
+  function formatFormula(op) {
+    if (op.formula_terms && op.formula_terms.length) {
+      return op.formula_terms
+        .map((term, idx) => {
+          const prefix =
+            idx === 0
+              ? term.operator === "-"
+                ? "-"
+                : ""
+              : ` ${term.operator} `;
+          const val =
+            term.value || (term.type === "const" ? term.constValue : "???");
+          return prefix + val;
+        })
+        .join("");
+    } else if (op.signos && Object.keys(op.signos).length) {
+      // Reconstruir descripción legible desde campos dinámicos
+      const terms = [];
+      Object.entries(op.signos).forEach(([key, signo]) => {
+        const valor = op[key];
+        if (valor) {
+          const prefix =
+            terms.length === 0
+              ? signo < 0
+                ? "-"
+                : ""
+              : signo < 0
+              ? " - "
+              : " + ";
+          terms.push(prefix + valor);
+        }
+      });
+      return terms.join("") || "Suma de secciones";
+    } else if (op.SECCION) {
+      return op.SECCION;
+    }
+    return "Consolidado";
+  }
+
   function groupBySections(cuentas) {
     const sections = new Map();
 
-    cuentas.forEach((cuenta) => {
+    const cuentasOrdenadas = [...(cuentas || [])].sort(
+      (a, b) => getAccountOrder(a) - getAccountOrder(b)
+    );
+
+    cuentasOrdenadas.forEach((cuenta) => {
       const principal =
         cuenta["SECCIÓN Principal"] ||
         cuenta["SECCIàN Principal"] ||
@@ -565,6 +639,11 @@
             )}')" title="Editar">
               <i class="bi bi-pencil"></i>
             </button>
+             <button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); deleteSection('${escapeAttr(
+               principal
+             )}')" title="Eliminar">
+              <i class="bi bi-trash"></i>
+            </button>
             <button class="btn btn-sm btn-outline-success" onclick="event.stopPropagation(); addToSection('${escapeAttr(
               principal
             )}')" title="Agregar">
@@ -581,7 +660,7 @@
 
   function renderSubsection(name, accounts, principal) {
     const accountsHtml = accounts
-      .sort((a, b) => (a.orden || 0) - (b.orden || 0))
+      .sort((a, b) => getAccountOrder(a) - getAccountOrder(b))
       .map((acc) => renderAccount(acc, principal, name))
       .join("");
 
@@ -595,6 +674,16 @@
             <span class="badge bg-light text-dark">${accounts.length}</span>
           </div>
           <div class="section-actions">
+            <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); editSubsection('${escapeAttr(
+              principal
+            )}', '${escapeAttr(name)}')" title="Editar subsección">
+              <i class="bi bi-pencil"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); deleteSubsection('${escapeAttr(
+              principal
+            )}', '${escapeAttr(name)}')" title="Eliminar subsección">
+              <i class="bi bi-trash"></i>
+            </button>
             <button class="btn btn-sm btn-outline-secondary" onclick="event.stopPropagation(); addAccount('${escapeAttr(
               principal
             )}', '${escapeAttr(name)}')" title="Agregar cuenta">
@@ -1057,6 +1146,7 @@
       SECCION: checkedSections[0] || "",
       tipo,
       signos: {},
+      orden: nextOperationOrder(),
     };
 
     checkedSections.forEach((sec, i) => {
@@ -1162,6 +1252,8 @@
 
       // Save operations
       if (state.operaciones.length) {
+        const operacionesOrdenadas = sortOperations(state.operaciones);
+        state.operaciones = operacionesOrdenadas;
         const opResponse = await fetch(
           `${API_BASE}/${encodeURIComponent(state.modulo)}/${
             state.anio
@@ -1174,7 +1266,7 @@
             },
             body: JSON.stringify({
               empresaId: "EMPRESA01",
-              operaciones: state.operaciones,
+              operaciones: operacionesOrdenadas,
             }),
           }
         );
@@ -1319,7 +1411,99 @@
   };
 
   window.editSection = function (name) {
-    showToast("Función de edición de sección en desarrollo", "info");
+    dom.formEditar.innerHTML = `
+      <div class="mb-3">
+        <label class="form-label">Nombre de la Sección</label>
+        <input type="text" class="form-control" id="editNombreSeccion" value="${escapeHtml(
+          name
+        )}" />
+      </div>
+      <div class="alert alert-warning small">
+        <i class="bi bi-exclamation-triangle me-1"></i>
+        Cambiar el nombre de la sección afectará a todas las cuentas dentro de ella.
+      </div>
+    `;
+
+    state.selectedElement = { type: "section", name };
+    new bootstrap.Modal(dom.modalEditar).show();
+  };
+
+  window.deleteSection = function (name) {
+    if (
+      !confirm(
+        `¿Eliminar la sección "${name}" y TODAS sus cuentas? Esta acción no se puede deshacer.`
+      )
+    )
+      return;
+
+    state.cuentas = state.cuentas.filter((c) => {
+      const principal =
+        c["SECCIÓN Principal"] ||
+        c["SECCIàN Principal"] ||
+        c["SECCION Principal"] ||
+        c.SECCION ||
+        c.seccion_principal;
+      return principal !== name;
+    });
+
+    state.unsavedChanges = true;
+    updateButtonStates();
+    renderLayout();
+    updateStats();
+    showToast(`Sección "${name}" eliminada`, "success");
+  };
+
+  window.editSubsection = function (principal, name) {
+    dom.formEditar.innerHTML = `
+      <div class="mb-3">
+        <label class="form-label">Sección Principal</label>
+        <input type="text" class="form-control" value="${escapeHtml(
+          principal
+        )}" readonly disabled />
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Nombre de la Subsección</label>
+        <input type="text" class="form-control" id="editNombreSubseccion" value="${escapeHtml(
+          name
+        )}" />
+      </div>
+      <div class="alert alert-warning small">
+        <i class="bi bi-exclamation-triangle me-1"></i>
+        Cambiar el nombre de la subsección afectará a todas las cuentas dentro de ella.
+      </div>
+    `;
+
+    state.selectedElement = { type: "subsection", principal, name };
+    new bootstrap.Modal(dom.modalEditar).show();
+  };
+
+  window.deleteSubsection = function (principal, name) {
+    if (
+      !confirm(
+        `¿Eliminar la subsección "${name}" y TODAS sus cuentas? Esta acción no se puede deshacer.`
+      )
+    )
+      return;
+
+    state.cuentas = state.cuentas.filter((c) => {
+      const p =
+        c["SECCIÓN Principal"] ||
+        c["SECCIàN Principal"] ||
+        c["SECCION Principal"] ||
+        c.SECCION ||
+        c.seccion_principal;
+      const s =
+        c["SECCION Secundaria"] ||
+        c["SECCIÓN Secundaria"] ||
+        c.seccion_secondary;
+      return !(p === principal && s === name);
+    });
+
+    state.unsavedChanges = true;
+    updateButtonStates();
+    renderLayout();
+    updateStats();
+    showToast(`Subsección "${name}" eliminada`, "success");
   };
 
   window.addToSection = function (principal) {
@@ -1383,7 +1567,105 @@
   };
 
   window.editOperation = function (clase) {
-    showToast("Función de edición de operación en desarrollo", "info");
+    const op = state.operaciones.find((o) => o.Clase === clase);
+    if (!op) return;
+
+    // Poblar formulaTerms desde el objeto op
+    formulaTerms = [];
+    if (op.tipo === "custom-formula" || op.formula_terms) {
+      // Si ya tiene términos definidos explícitamente
+      formulaTerms = (op.formula_terms || []).map((term, i) => ({
+        id: Date.now() + i,
+        ...term,
+      }));
+    } else if (op.signos) {
+      // Reconstruir desde el formato antiguo de signos
+      let i = 0;
+      Object.entries(op.signos).forEach(([clave, signo]) => {
+        const valorReal = op[clave];
+        if (valorReal) {
+          formulaTerms.push({
+            id: Date.now() + i++,
+            operator: signo < 0 ? "-" : "+",
+            type: "section", // Asumimos sección por defecto para el formato antiguo
+            value: valorReal,
+          });
+        }
+      });
+    }
+
+    if (formulaTerms.length === 0) {
+      // Fallback: sección única
+      formulaTerms.push({
+        id: Date.now(),
+        operator: "+",
+        type: "section",
+        value: op.SECCION || "",
+      });
+    }
+
+    dom.formEditar.innerHTML = `
+      <div class="mb-3">
+        <label class="form-label">Etiqueta de la Operación</label>
+        <input type="text" class="form-control" id="editClaseOp" value="${escapeHtml(
+          op.Clase
+        )}" />
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Tipo de Operación</label>
+        <select class="form-select" id="editTipoOp" onchange="toggleEditFormulaBuilder()">
+          <option value="sum-sections" ${
+            op.tipo === "sum-sections" || !op.tipo ? "selected" : ""
+          }>Suma de secciones</option>
+          <option value="custom-formula" ${
+            op.tipo === "custom-formula" ? "selected" : ""
+          }>Fórmula personalizada</option>
+        </select>
+      </div>
+      
+      <div id="editFormulaBuilder" class="mt-3">
+        <label class="form-label">Mapa de Operación (Fórmula)</label>
+        <div id="formulaTerms" class="formula-terms mb-2">
+          <!-- Se poblará dinámicamente -->
+        </div>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-outline-success btn-sm" onclick="addFormulaTerm()">
+            <i class="bi bi-plus-circle me-1"></i>Agregar término
+          </button>
+          <button type="button" class="btn btn-outline-info btn-sm" onclick="suggestTermsForOperation()">
+            <i class="bi bi-magic me-1"></i>Sugerir sub-secciones
+          </button>
+        </div>
+      </div>
+
+      <div class="formula-preview mt-3">
+        <label class="form-label">Vista previa:</label>
+        <div id="formulaPreviewText" class="formula-preview-text bg-light p-2 rounded border">
+          ${op.Clase} = ...
+        </div>
+      </div>
+    `;
+
+    state.selectedElement = { type: "operation", op };
+    renderFormulaTerms();
+    new bootstrap.Modal(dom.modalEditar).show();
+  };
+
+  // Helper para el toggle en edición
+  window.toggleEditFormulaBuilder = function () {
+    // Realmente siempre mostramos el builder en edición para que vean el mapa
+    updateFormulaPreview();
+  };
+
+  window.deleteOperation = function (clase) {
+    if (!confirm(`¿Eliminar la operación "${clase}"?`)) return;
+
+    state.operaciones = state.operaciones.filter((o) => o.Clase !== clase);
+    state.unsavedChanges = true;
+    updateButtonStates();
+    renderLayout();
+    updateStats();
+    showToast(`Operación "${clase}" eliminada`, "success");
   };
 
   window.updateSubsectionOptions = function () {
@@ -1437,12 +1719,115 @@
 
       if (newCodigo) cuenta.CUENTA = newCodigo;
       if (newNombre) cuenta.NOMBRE = newNombre;
+    } else if (state.selectedElement.type === "section") {
+      const oldName = state.selectedElement.name;
+      const newName = document
+        .getElementById("editNombreSeccion")
+        ?.value?.trim();
 
-      state.unsavedChanges = true;
-      updateButtonStates();
-      renderLayout();
-      updateStats();
+      if (newName && newName !== oldName) {
+        state.cuentas.forEach((c) => {
+          const principal =
+            c["SECCIÓN Principal"] ||
+            c["SECCIàN Principal"] ||
+            c["SECCION Principal"] ||
+            c.SECCION ||
+            c.seccion_principal;
+
+          if (principal === oldName) {
+            // Actualizar todos los posibles nombres de campo
+            if (c["SECCIÓN Principal"] !== undefined)
+              c["SECCIÓN Principal"] = newName;
+            if (c["SECCIàN Principal"] !== undefined)
+              c["SECCIàN Principal"] = newName;
+            if (c["SECCION Principal"] !== undefined)
+              c["SECCION Principal"] = newName;
+            if (c.SECCION !== undefined) c.SECCION = newName;
+            if (c.seccion_principal !== undefined)
+              c.seccion_principal = newName;
+          }
+        });
+
+        // También actualizar en operaciones si la sección es referenciada
+        state.operaciones.forEach((op) => {
+          if (op.SECCION === oldName) op.SECCION = newName;
+          for (let i = 1; i <= 20; i++) {
+            if (op[`seccion_${i}`] === oldName) op[`seccion_${i}`] = newName;
+          }
+        });
+      }
+    } else if (state.selectedElement.type === "subsection") {
+      const principal = state.selectedElement.principal;
+      const oldName = state.selectedElement.name;
+      const newName = document
+        .getElementById("editNombreSubseccion")
+        ?.value?.trim();
+
+      if (newName && newName !== oldName) {
+        state.cuentas.forEach((c) => {
+          const p =
+            c["SECCIÓN Principal"] ||
+            c["SECCIàN Principal"] ||
+            c["SECCION Principal"] ||
+            c.SECCION ||
+            c.seccion_principal;
+
+          const s =
+            c["SECCION Secundaria"] ||
+            c["SECCIÓN Secundaria"] ||
+            c.seccion_secondary;
+
+          if (p === principal && s === oldName) {
+            if (c["SECCION Secundaria"] !== undefined)
+              c["SECCION Secundaria"] = newName;
+            if (c["SECCIÓN Secundaria"] !== undefined)
+              c["SECCIÓN Secundaria"] = newName;
+            if (c.seccion_secondary !== undefined)
+              c.seccion_secondary = newName;
+          }
+        });
+      }
+    } else if (state.selectedElement.type === "operation") {
+      const op = state.selectedElement.op;
+      const newClase = document.getElementById("editClaseOp")?.value?.trim();
+      const newTipo = document.getElementById("editTipoOp")?.value;
+
+      if (newClase) op.Clase = newClase;
+      op.tipo = newTipo;
+
+      // Actualizar la estructura de la operación basado en los términos de la fórmula
+      op.formula_terms = formulaTerms.map((t) => ({
+        operator: t.operator,
+        type: t.type,
+        value: t.value,
+      }));
+
+      // Mantener compatibilidad con el formato antiguo de signos
+      op.signos = {};
+      // Limpiar campos de sección antiguos
+      for (let i = 1; i <= 20; i++) {
+        delete op[`seccion_${i}`];
+      }
+
+      op.formula_terms.forEach((term, i) => {
+        const key = `seccion_${i + 1}`;
+        op[key] = term.value;
+        op.signos[key] = term.operator === "-" ? -1 : 1;
+      });
+
+      // Si es una sola sección y modo simple, asegurar SECCION
+      if (
+        op.formula_terms.length === 1 &&
+        op.formula_terms[0].type === "section"
+      ) {
+        op.SECCION = op.formula_terms[0].value;
+      }
     }
+
+    state.unsavedChanges = true;
+    updateButtonStates();
+    renderLayout();
+    updateStats();
 
     bootstrap.Modal.getInstance(dom.modalEditar)?.hide();
     showToast("Cambios aplicados", "success");
@@ -1451,18 +1836,48 @@
   function deleteElement() {
     if (!state.selectedElement) return;
 
-    if (state.selectedElement.type === "account") {
+    const type = state.selectedElement.type;
+
+    if (type === "account") {
       const codigo = state.selectedElement.cuenta?.CUENTA;
       if (codigo && confirm(`¿Eliminar la cuenta ${codigo}?`)) {
         state.cuentas = state.cuentas.filter((c) => c.CUENTA !== codigo);
-        state.unsavedChanges = true;
-        updateButtonStates();
-        renderLayout();
-        updateStats();
-        bootstrap.Modal.getInstance(dom.modalEditar)?.hide();
-        showToast("Elemento eliminado", "success");
+        finalizeDeletion();
+      }
+    } else if (type === "section") {
+      const name = state.selectedElement.name;
+      if (
+        confirm(
+          `¿Eliminar la sección "${name}" y TODAS sus cuentas? Esta acción no se puede deshacer.`
+        )
+      ) {
+        state.cuentas = state.cuentas.filter((c) => {
+          const principal =
+            c["SECCIÓN Principal"] ||
+            c["SECCIàN Principal"] ||
+            c["SECCION Principal"] ||
+            c.SECCION ||
+            c.seccion_principal;
+          return principal !== name;
+        });
+        finalizeDeletion();
+      }
+    } else if (type === "operation") {
+      const clase = state.selectedElement.op?.Clase;
+      if (clase && confirm(`¿Eliminar la operación "${clase}"?`)) {
+        state.operaciones = state.operaciones.filter((o) => o.Clase !== clase);
+        finalizeDeletion();
       }
     }
+  }
+
+  function finalizeDeletion() {
+    state.unsavedChanges = true;
+    updateButtonStates();
+    renderLayout();
+    updateStats();
+    bootstrap.Modal.getInstance(dom.modalEditar)?.hide();
+    showToast("Elemento eliminado", "success");
   }
 
   // ==========================================
@@ -1538,12 +1953,15 @@
             : '<span class="formula-operator-placeholder">=</span>'
         }
         
-        <select class="form-select formula-type" onchange="updateTermType(${
+        <select class="form-select formula-type" style="width: 120px;" onchange="updateTermType(${
           term.id
         }, this.value)">
           <option value="section" ${
             term.type === "section" ? "selected" : ""
           }>Sección</option>
+          <option value="operation" ${
+            term.type === "operation" ? "selected" : ""
+          }>Operación</option>
           <option value="account" ${
             term.type === "account" ? "selected" : ""
           }>Cuenta</option>
@@ -1561,6 +1979,15 @@
                       `<option value="${escapeAttr(s)}" ${
                         term.value === s ? "selected" : ""
                       }>${escapeHtml(s)}</option>`
+                  )
+                  .join("")
+              : term.type === "operation"
+              ? elements.operations
+                  .map(
+                    (o) =>
+                      `<option value="${escapeAttr(o)}" ${
+                        term.value === o ? "selected" : ""
+                      }>${escapeHtml(o)}</option>`
                   )
                   .join("")
               : elements.accounts
@@ -1615,7 +2042,9 @@
   function getAvailableElements() {
     const sections = [];
     const accounts = [];
+    const operations = [];
 
+    // Secciones y Cuentas
     groupBySections(state.cuentas).forEach((subs, principal) => {
       sections.push(principal);
       subs.forEach((cuentas, secundaria) => {
@@ -1630,8 +2059,70 @@
       });
     });
 
-    return { sections: [...new Set(sections)], accounts };
+    // Otras Operaciones (excepto la que se está editando)
+    const currentOpClase = state.selectedElement?.op?.Clase;
+    state.operaciones.forEach((op) => {
+      if (op.Clase && op.Clase !== currentOpClase) {
+        operations.push(op.Clase);
+      }
+    });
+
+    return {
+      sections: [...new Set(sections)],
+      accounts,
+      operations: [...new Set(operations)],
+    };
   }
+
+  // Sugerir términos basados en el nombre de la operación
+  window.suggestTermsForOperation = function () {
+    const claseInput = document.getElementById("editClaseOp") || { value: "" };
+    const label = claseInput.value.trim();
+    if (!label) {
+      showToast("Ingresa un nombre de operación primero", "warning");
+      return;
+    }
+
+    // Buscar si existe una sección principal con este nombre
+    const sections = groupBySections(state.cuentas);
+    const subSectionsMap = sections.get(label);
+
+    if (!subSectionsMap || subSectionsMap.size === 0) {
+      // Intentar búsqueda borrosa o parcial si el nombre es tipo "CDMX INCOME" -> buscar "CDMX"
+      showToast("No se encontraron sub-secciones para este nombre", "info");
+      return;
+    }
+
+    // Limpiar términos actuales (o preguntar si quieren añadir)
+    if (
+      formulaTerms.length > 0 &&
+      !confirm(
+        "¿Reemplazar los términos actuales por las sub-secciones detectadas?"
+      )
+    ) {
+      return;
+    }
+
+    formulaTerms = [];
+    let i = 0;
+    subSectionsMap.forEach((accounts, subName) => {
+      if (subName && subName !== label) {
+        formulaTerms.push({
+          id: Date.now() + i++,
+          operator: "+",
+          type: "section",
+          value: subName,
+        });
+      }
+    });
+
+    if (formulaTerms.length === 0) {
+      showToast("No se detectaron sub-secciones hijas", "info");
+    } else {
+      renderFormulaTerms();
+      showToast(`Se agregaron ${formulaTerms.length} términos`, "success");
+    }
+  };
 
   // Actualizar preview de la fórmula
   function updateFormulaPreview() {

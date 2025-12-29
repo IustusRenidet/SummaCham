@@ -27,7 +27,6 @@
       } = options;
 
       try {
-        // Obtener elemento tabla
         const tablaElement =
           typeof tabla === "string"
             ? document.querySelector(tabla)
@@ -37,14 +36,12 @@
           throw new Error("No se encontró la tabla para exportar");
         }
 
-        // Verificar que XLSX esté disponible
-        if (typeof XLSX === "undefined" || !XLSX.utils?.table_to_sheet) {
+        if (typeof XLSX === "undefined") {
           throw new Error(
-            "La librería XLSX no está disponible. Incluye sheetjs en la página."
+            "La librería XLSX no está disponible. Incluye xlsx-js-style para soporte de colores."
           );
         }
 
-        // Obtener metadata del contexto
         const metadata = this._obtenerMetadata();
         const baseName = `${nombreArchivo}_${
           metadata.empresaTexto || "Reporte"
@@ -53,22 +50,12 @@
           "_"
         );
 
-        // Convertir tabla a hoja de Excel
-        const hoja = XLSX.utils.table_to_sheet(tablaElement, { raw: true });
+        // Usar método mejorado para construir la hoja con estilos
+        const hoja = this._tableToSheetWithStyles(tablaElement);
 
-        // Aplicar estilos básicos (anchos de columna)
-        const range = XLSX.utils.decode_range(hoja["!ref"] || "A1");
-        const colWidths = [];
-        for (let c = range.s.c; c <= range.e.c; c++) {
-          colWidths.push({ wch: 15 }); // Ancho por defecto
-        }
-        hoja["!cols"] = colWidths;
-
-        // Crear libro y agregar hoja
         const libro = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(libro, hoja, nombreHoja);
 
-        // Descargar archivo
         XLSX.writeFile(libro, `${baseName}.xlsx`);
 
         if (onSuccess) onSuccess();
@@ -78,6 +65,200 @@
         if (onError) onError(error);
         this._showToast("Error al exportar: " + error.message, "error");
       }
+    },
+
+    /**
+     * Construye una hoja de Excel desde la tabla DOM
+     * Primero simplifica la estructura, luego aplica estilos
+     * @param {HTMLElement} tabla - Elemento tabla
+     */
+    _tableToSheetWithStyles(tabla) {
+      // PASO 1: Clonar la tabla y simplificar estructura para evitar problemas con rowspan/colspan
+      const tablaClone = tabla.cloneNode(true);
+
+      // Eliminar rowspan de celdas de encabezado para evitar problemas de merge
+      tablaClone.querySelectorAll("[rowspan]").forEach((cell) => {
+        cell.removeAttribute("rowspan");
+      });
+
+      // Mantener colspan pero asegurar que no cause problemas
+      // XLSX.utils.table_to_sheet maneja colspan mejor que rowspan
+
+      // PASO 2: Usar el parser nativo de XLSX para estructura correcta
+      const sheet = XLSX.utils.table_to_sheet(tablaClone, { raw: false });
+
+      // PASO 2: Definir estilos
+      const borderStyle = {
+        top: { style: "thin", color: { rgb: "CCCCCC" } },
+        bottom: { style: "thin", color: { rgb: "CCCCCC" } },
+        left: { style: "thin", color: { rgb: "CCCCCC" } },
+        right: { style: "thin", color: { rgb: "CCCCCC" } },
+      };
+
+      const classStyleMap = {
+        "section-header-row": {
+          fill: { patternType: "solid", fgColor: { rgb: "1E3A8A" } },
+          font: { bold: true, color: { rgb: "FFFFFF" } },
+          border: borderStyle,
+        },
+        "subsection-row": {
+          fill: { patternType: "solid", fgColor: { rgb: "DBEAFE" } },
+          font: { bold: true, color: { rgb: "1E3A8A" }, italic: true },
+          border: borderStyle,
+        },
+        "account-row": {
+          fill: { patternType: "solid", fgColor: { rgb: "FFFFFF" } },
+          border: borderStyle,
+        },
+        "sum-row": {
+          fill: { patternType: "solid", fgColor: { rgb: "FEF3C7" } },
+          font: { bold: true, color: { rgb: "78350F" } },
+          border: borderStyle,
+        },
+        "sum-row-principal": {
+          fill: { patternType: "solid", fgColor: { rgb: "DDD6FE" } },
+          font: { bold: true, color: { rgb: "5B21B6" } },
+          border: borderStyle,
+        },
+        "highlight-primary": {
+          fill: { patternType: "solid", fgColor: { rgb: "A7F3D0" } },
+          font: { bold: true, color: { rgb: "065F46" } },
+          border: borderStyle,
+        },
+        "highlight-secondary": {
+          fill: { patternType: "solid", fgColor: { rgb: "A5F3FC" } },
+          font: { bold: true, color: { rgb: "0E7490" } },
+          border: borderStyle,
+        },
+        "highlight-bright": {
+          fill: { patternType: "solid", fgColor: { rgb: "FECACA" } },
+          font: { bold: true, color: { rgb: "991B1B" } },
+          border: {
+            top: { style: "medium", color: { rgb: "DC2626" } },
+            bottom: { style: "medium", color: { rgb: "DC2626" } },
+            left: { style: "thin", color: { rgb: "CCCCCC" } },
+            right: { style: "thin", color: { rgb: "CCCCCC" } },
+          },
+        },
+        "result-row": {
+          fill: { patternType: "solid", fgColor: { rgb: "C0C0C0" } },
+          font: { bold: true, color: { rgb: "000000" } },
+          border: borderStyle,
+        },
+        "sum-row-sumavarios": {
+          fill: { patternType: "solid", fgColor: { rgb: "E2EFDA" } },
+          font: { bold: true, color: { rgb: "375623" } },
+          border: borderStyle,
+        },
+        "category-cell": {
+          fill: { patternType: "solid", fgColor: { rgb: "E5E7EB" } },
+          font: { bold: true },
+          border: borderStyle,
+        },
+      };
+
+      const defaultHeaderStyle = {
+        fill: { patternType: "solid", fgColor: { rgb: "CBD5E1" } },
+        font: { bold: true, color: { rgb: "0F172A" } },
+        alignment: { horizontal: "center", vertical: "center", wrapText: true },
+        border: {
+          top: { style: "medium", color: { rgb: "64748B" } },
+          bottom: { style: "medium", color: { rgb: "64748B" } },
+          left: { style: "thin", color: { rgb: "94A3B8" } },
+          right: { style: "thin", color: { rgb: "94A3B8" } },
+        },
+      };
+
+      // PASO 3: Obtener las filas DOM para mapear estilos
+      const rows = Array.from(tabla.querySelectorAll("tr"));
+
+      // Crear mapa de fila DOM -> índice Excel (considerando thead/tbody)
+      const rowStyleInfo = rows.map((tr, idx) => {
+        const classes = Array.from(tr.classList);
+        const isHeader = tr.parentElement?.tagName === "THEAD";
+        return { classes, isHeader, domRow: tr };
+      });
+
+      // PASO 4: Aplicar estilos a cada celda existente en la hoja
+      const range = XLSX.utils.decode_range(sheet["!ref"] || "A1");
+
+      for (let r = range.s.r; r <= range.e.r; r++) {
+        for (let c = range.s.c; c <= range.e.c; c++) {
+          const addr = XLSX.utils.encode_cell({ r, c });
+          let cell = sheet[addr];
+
+          if (!cell) {
+            // Celda vacía o parte de merge - crear celda vacía con estilo
+            cell = { v: "", t: "s" };
+            sheet[addr] = cell;
+          }
+
+          // Estilo base
+          let finalStyle = { border: borderStyle, font: { sz: 10 } };
+
+          // Obtener info de fila si existe
+          if (r < rowStyleInfo.length) {
+            const rowInfo = rowStyleInfo[r];
+
+            // Aplicar estilo de header si está en THEAD
+            if (rowInfo.isHeader) {
+              finalStyle = { ...finalStyle, ...defaultHeaderStyle };
+            }
+
+            // Aplicar estilos por clase de fila
+            rowInfo.classes.forEach((cls) => {
+              if (classStyleMap[cls]) {
+                finalStyle = { ...finalStyle, ...classStyleMap[cls] };
+              }
+            });
+
+            // Intentar obtener estilo de celda específica
+            const domCell = rowInfo.domRow.cells[c];
+            if (domCell) {
+              const cellClasses = Array.from(domCell.classList);
+              cellClasses.forEach((cls) => {
+                if (classStyleMap[cls]) {
+                  finalStyle = { ...finalStyle, ...classStyleMap[cls] };
+                }
+              });
+
+              // Alineación según clase o tipo de dato
+              const horizontal =
+                domCell.classList.contains("text-start") ||
+                domCell.classList.contains("account-column")
+                  ? "left"
+                  : cell.t === "n"
+                  ? "right"
+                  : "center";
+              finalStyle.alignment = {
+                ...(finalStyle.alignment || {}),
+                horizontal,
+                vertical: "center",
+              };
+            }
+          }
+
+          cell.s = finalStyle;
+        }
+      }
+
+      // PASO 5: Ajustar anchos de columna
+      const colWidths = [];
+      for (let c = range.s.c; c <= range.e.c; c++) {
+        let maxWidth = 10;
+        for (let r = range.s.r; r <= range.e.r; r++) {
+          const addr = XLSX.utils.encode_cell({ r, c });
+          const cell = sheet[addr];
+          if (cell && cell.v) {
+            const len = String(cell.v).length;
+            if (len > maxWidth) maxWidth = Math.min(60, len + 2);
+          }
+        }
+        colWidths.push({ wch: maxWidth });
+      }
+      sheet["!cols"] = colWidths;
+
+      return sheet;
     },
 
     /**
@@ -197,8 +378,16 @@
      */
     _getEstilosImpresion() {
       return `
-        * { box-sizing: border-box; }
-        body { font-family: 'Manrope','Segoe UI',sans-serif; padding: 20px; color: #0f172a; }
+        * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+        body { font-family: 'Manrope','Segoe UI',sans-serif; padding: 15px; color: #0f172a; font-size: 8px; }
+        
+        /* Page break rules to prevent sections from being cut */
+        tr { page-break-inside: avoid; }
+        .section-header-row, .subsection-row, .sum-row, .highlight-primary, .highlight-secondary, .highlight-bright {
+          page-break-before: auto;
+          page-break-after: auto;
+          page-break-inside: avoid;
+        }
         h1 { margin: 0 0 6px 0; font-size: 20px; color: #1e3a8a; }
         .meta { margin: 0 0 14px 0; color: #334155; font-size: 12px; }
         table { width: 100%; border-collapse: collapse; font-size: 10px; }

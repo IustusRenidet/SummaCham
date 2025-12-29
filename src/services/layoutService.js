@@ -453,7 +453,10 @@ const obtenerLayout = ({ empresaId = 'EMPRESA01', modulo, anio, capitulo }) => {
   `).all(empresaConsulta, modulo, anioUsado, capituloObjetivo);
 
   const operacionesMap = {};
-  operaciones.forEach(op => {
+  operaciones.forEach((op, idx) => {
+    const ordenBase = Number.isFinite(Number(op.orden))
+      ? Math.floor(Number(op.orden) / 100)
+      : idx;
     if (!operacionesMap[op.Clase]) {
       operacionesMap[op.Clase] = {
         HOJA: modulo, // Agregar HOJA para que el filtro en planeacionReportesEngine funcione
@@ -461,12 +464,23 @@ const obtenerLayout = ({ empresaId = 'EMPRESA01', modulo, anio, capitulo }) => {
         Clase: op.Clase,
         SECCION: op.SECCION,
         signo: op.signo ?? 1,
-        signos: {}
+        signos: {},
+        orden: ordenBase
       };
+    } else if (
+      Number.isFinite(ordenBase) &&
+      (operacionesMap[op.Clase].orden == null ||
+        ordenBase < operacionesMap[op.Clase].orden)
+    ) {
+      operacionesMap[op.Clase].orden = ordenBase;
     }
     operacionesMap[op.Clase][op.operacion_tipo] = op.operacion_label;
     operacionesMap[op.Clase].signos[op.operacion_tipo] = op.signo ?? 1;
   });
+
+  const operacionesOrdenadas = Object.values(operacionesMap).sort(
+    (a, b) => (a.orden ?? 0) - (b.orden ?? 0)
+  );
 
   return construirRespuestaLayout({
     empresaId: empresaConsulta,
@@ -474,7 +488,7 @@ const obtenerLayout = ({ empresaId = 'EMPRESA01', modulo, anio, capitulo }) => {
     anio: anioUsado,
     capitulo: capituloObjetivo,
     cuentas,
-    operaciones: Object.values(operacionesMap)
+    operaciones: operacionesOrdenadas
   });
 };
 
@@ -607,6 +621,10 @@ const guardarOperaciones = ({ empresaId = 'EMPRESA01', modulo, anio, operaciones
         .filter((key) => !tiposOperacionBase.includes(key));
       const tiposOperacion = [...tiposOperacionBase, ...tiposOperacionExtra];
 
+      const baseOrden = Number.isFinite(Number(op.orden))
+        ? Number(op.orden)
+        : index;
+
       tiposOperacion.forEach((tipo, tipoIndex) => {
         if (op[tipo]) {
           const signoDesdeMapa = op.signos?.[tipo];
@@ -628,7 +646,7 @@ const guardarOperaciones = ({ empresaId = 'EMPRESA01', modulo, anio, operaciones
             tipo,
             op[tipo],
             signo,
-            index * 100 + tipoIndex
+            baseOrden * 100 + tipoIndex
           );
         }
       });

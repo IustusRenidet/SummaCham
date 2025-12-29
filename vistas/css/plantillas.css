@@ -563,7 +563,8 @@ body {
   transition: opacity 0.2s ease;
 }
 
-.section-header:hover .section-actions {
+.section-header:hover .section-actions,
+.subsection-header:hover .section-actions {
   opacity: 1;
 }
 
@@ -646,7 +647,8 @@ body {
   transition: opacity 0.2s ease;
 }
 
-.account-row:hover .account-actions {
+.account-row:hover .account-actions,
+.operation-row:hover .account-actions {
   opacity: 1;
 }
 

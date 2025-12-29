@@ -656,6 +656,7 @@
     notifications = [],
     onRefresh,
     onMarkAsRead,
+    onMarkAllAsRead,
   }) => {
     const [open, setOpen] = useState(false);
     const bellRef = React.useRef(null);
@@ -745,7 +746,17 @@
                 onClick: onRefresh,
               },
               "Actualizar"
-            )
+            ),
+            unread > 0 &&
+              /* @__PURE__ */ React.createElement(
+                "button",
+                {
+                  type: "button",
+                  className: "btn btn-link btn-sm p-0 ms-2 text-success",
+                  onClick: onMarkAllAsRead,
+                },
+                "Limpiar"
+              )
           ),
           /* @__PURE__ */ React.createElement(
             "div",
@@ -814,6 +825,7 @@
     notifications = [],
     onRefreshNotifications,
     onMarkNotification,
+    onMarkAllNotifications,
   }) => {
     const puedeAdministrar = useMemo(
       () => Sesion.puedeAdministrarUsuarios(sesion),
@@ -1102,6 +1114,7 @@
               notifications,
               onRefresh: manejarActualizarNotificaciones,
               onMarkAsRead: manejarMarcarNotificacion,
+              onMarkAllAsRead: onMarkAllNotifications,
             }),
             /* @__PURE__ */ React.createElement(
               "div",
@@ -1271,6 +1284,23 @@
       },
       [cargarNotificaciones]
     );
+    const limpiarTodasNotificaciones = useCallback(async () => {
+      try {
+        const respuesta = await fetch(`${API_BASE}/notificaciones/limpiar`, {
+          method: "PATCH",
+          headers: Sesion.headersAutenticacion(),
+        });
+        if (!respuesta.ok) {
+          const datos = await respuesta.json();
+          throw new Error(
+            datos.mensaje || "No fue posible limpiar las notificaciones."
+          );
+        }
+        cargarNotificaciones();
+      } catch (error) {
+        console.warn("Error al limpiar notificaciones", error);
+      }
+    }, [cargarNotificaciones]);
     useEffect(() => {
       if (!sesion) {
         setNotificaciones([]);
@@ -1295,6 +1325,7 @@
       notifications: notificaciones,
       onRefreshNotifications: cargarNotificaciones,
       onMarkNotification: marcarNotificacion,
+      onMarkAllNotifications: limpiarTodasNotificaciones,
     });
   };
   ReactDOM.createRoot(document.getElementById("root")).render(
