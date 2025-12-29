@@ -73,19 +73,12 @@
      * @param {HTMLElement} tabla - Elemento tabla
      */
     _tableToSheetWithStyles(tabla) {
-      // PASO 1: Clonar la tabla y simplificar estructura para evitar problemas con rowspan/colspan
+      // PASO 1: Clonar la tabla y normalizar spans para conservar todas las columnas
       const tablaClone = tabla.cloneNode(true);
+      const { matriz, aoa } = this._extraerTablaComoMatriz(tablaClone);
 
-      // Eliminar rowspan de celdas de encabezado para evitar problemas de merge
-      tablaClone.querySelectorAll("[rowspan]").forEach((cell) => {
-        cell.removeAttribute("rowspan");
-      });
-
-      // Mantener colspan pero asegurar que no cause problemas
-      // XLSX.utils.table_to_sheet maneja colspan mejor que rowspan
-
-      // PASO 2: Usar el parser nativo de XLSX para estructura correcta
-      const sheet = XLSX.utils.table_to_sheet(tablaClone, { raw: false });
+      // PASO 2: Construir la hoja desde la matriz (sin perder encabezados)
+      const sheet = XLSX.utils.aoa_to_sheet(aoa);
 
       // PASO 2: Definir estilos
       const borderStyle = {
@@ -196,47 +189,40 @@
           // Estilo base
           let finalStyle = { border: borderStyle, font: { sz: 10 } };
 
-          // Obtener info de fila si existe
-          if (r < rowStyleInfo.length) {
-            const rowInfo = rowStyleInfo[r];
+          const metaCell = matriz[r]?.[c] || {};
+          const rowInfo = rowStyleInfo[r];
 
-            // Aplicar estilo de header si está en THEAD
-            if (rowInfo.isHeader) {
-              finalStyle = { ...finalStyle, ...defaultHeaderStyle };
-            }
-
-            // Aplicar estilos por clase de fila
-            rowInfo.classes.forEach((cls) => {
-              if (classStyleMap[cls]) {
-                finalStyle = { ...finalStyle, ...classStyleMap[cls] };
-              }
-            });
-
-            // Intentar obtener estilo de celda específica
-            const domCell = rowInfo.domRow.cells[c];
-            if (domCell) {
-              const cellClasses = Array.from(domCell.classList);
-              cellClasses.forEach((cls) => {
-                if (classStyleMap[cls]) {
-                  finalStyle = { ...finalStyle, ...classStyleMap[cls] };
-                }
-              });
-
-              // Alineación según clase o tipo de dato
-              const horizontal =
-                domCell.classList.contains("text-start") ||
-                domCell.classList.contains("account-column")
-                  ? "left"
-                  : cell.t === "n"
-                  ? "right"
-                  : "center";
-              finalStyle.alignment = {
-                ...(finalStyle.alignment || {}),
-                horizontal,
-                vertical: "center",
-              };
-            }
+          if (rowInfo?.isHeader || metaCell.isHeader) {
+            finalStyle = { ...finalStyle, ...defaultHeaderStyle };
           }
+
+          const clasesCelda = [
+            ...(rowInfo?.classes || []),
+            ...(metaCell.classes || []),
+          ];
+
+          clasesCelda.forEach((cls) => {
+            if (classStyleMap[cls]) {
+              finalStyle = { ...finalStyle, ...classStyleMap[cls] };
+            }
+          });
+
+          // Alineación según clase o tipo de dato
+          const domCell = metaCell.domCell;
+          const esTextoIzquierda = clasesCelda.some((cls) =>
+            ["text-start", "account-column", "account-column-header"].includes(cls)
+          );
+          const horizontal = esTextoIzquierda
+            ? "left"
+            : cell.t === "n"
+            ? "right"
+            : "center";
+          finalStyle.alignment = {
+            ...(finalStyle.alignment || {}),
+            horizontal,
+            vertical: "center",
+            wrapText: metaCell.isHeader || (domCell?.textContent || "").length > 18,
+          };
 
           cell.s = finalStyle;
         }
@@ -245,20 +231,120 @@
       // PASO 5: Ajustar anchos de columna
       const colWidths = [];
       for (let c = range.s.c; c <= range.e.c; c++) {
-        let maxWidth = 10;
+        let maxWidth = 0;
         for (let r = range.s.r; r <= range.e.r; r++) {
-          const addr = XLSX.utils.encode_cell({ r, c });
-          const cell = sheet[addr];
-          if (cell && cell.v) {
-            const len = String(cell.v).length;
-            if (len > maxWidth) maxWidth = Math.min(60, len + 2);
-          }
+          const metaCell = matriz[r]?.[c];
+          const texto = metaCell?.value ?? sheet[XLSX.utils.encode_cell({ r, c })]?.v;
+          if (texto === undefined || texto === null) continue;
+
+          const anchoEstimado = this._estimarAnchoColumna(String(texto));
+          if (anchoEstimado > maxWidth) maxWidth = anchoEstimado;
         }
-        colWidths.push({ wch: maxWidth });
+
+        const esCuenta = matriz[0]?.[c]?.classes?.includes("account-column-header");
+        const esDescripcion = matriz[0]?.[c]?.classes?.includes("col-descripcion");
+        const minWidth = esDescripcion ? 20 : esCuenta ? 14 : 10;
+        const maxPermitido = esDescripcion ? 42 : 32;
+        const ajuste = Math.min(maxPermitido, Math.max(minWidth, maxWidth + 2));
+
+        colWidths.push({ wch: ajuste });
       }
       sheet["!cols"] = colWidths;
 
       return sheet;
+    },
+
+    _extraerTablaComoMatriz(tabla) {
+      const filas = Array.from(tabla.querySelectorAll("tr"));
+      const matriz = [];
+      const pendientes = {};
+
+      filas.forEach((tr, filaIdx) => {
+        const esHeader = tr.parentElement?.tagName === "THEAD";
+        const filaMatriz = [];
+        let colIdx = 0;
+
+        const consumirPendientes = () => {
+          while (pendientes[colIdx]?.restante > 0) {
+            const spanInfo = pendientes[colIdx];
+            filaMatriz[colIdx] = {
+              value: "",
+              isHeader: spanInfo.isHeader,
+              classes: spanInfo.classes,
+              domCell: spanInfo.domCell,
+            };
+            spanInfo.restante -= 1;
+            if (spanInfo.restante <= 0) delete pendientes[colIdx];
+            colIdx += 1;
+          }
+        };
+
+        consumirPendientes();
+
+        Array.from(tr.cells).forEach((celda) => {
+          consumirPendientes();
+
+          const colspan = parseInt(celda.getAttribute("colspan") || "1", 10);
+          const rowspan = parseInt(celda.getAttribute("rowspan") || "1", 10);
+          const classes = Array.from(celda.classList);
+
+          filaMatriz[colIdx] = {
+            value: this._obtenerValorCeldaExcel(celda),
+            isHeader,
+            classes,
+            domCell: celda,
+          };
+
+          // Rellenar columnas adicionales si tiene colspan
+          for (let extra = 1; extra < colspan; extra++) {
+            filaMatriz[colIdx + extra] = {
+              value: "",
+              isHeader,
+              classes,
+              domCell: celda,
+            };
+          }
+
+          if (rowspan > 1) {
+            for (let spanCol = 0; spanCol < colspan; spanCol++) {
+              pendientes[colIdx + spanCol] = {
+                restante: rowspan - 1,
+                isHeader,
+                classes,
+                domCell: celda,
+              };
+            }
+          }
+
+          colIdx += colspan;
+        });
+
+        consumirPendientes();
+        matriz[filaIdx] = filaMatriz;
+      });
+
+      const aoa = matriz.map((fila) => fila.map((celda) => celda?.value ?? ""));
+      return { matriz, aoa };
+    },
+
+    _obtenerValorCeldaExcel(celda) {
+      const texto = (celda.textContent || "").trim();
+      const numeroNormalizado = texto
+        .replace(/[^0-9,.-]/g, "")
+        .replace(/,(?=\d{3}(\D|$))/g, "")
+        .replace(/,/g, ".");
+
+      const numero = Number(numeroNormalizado);
+      if (!Number.isNaN(numero) && texto !== "") return numero;
+      return texto;
+    },
+
+    _estimarAnchoColumna(texto) {
+      if (!texto) return 10;
+      const lineas = String(texto).split(/\r?\n/);
+      const maxLinea = lineas.reduce((max, linea) => Math.max(max, linea.length), 0);
+      const anchoBase = maxLinea * 0.9;
+      return Math.max(8, Math.min(60, anchoBase));
     },
 
     /**
@@ -379,7 +465,7 @@
     _getEstilosImpresion() {
       return `
         * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
-        body { font-family: 'Manrope','Segoe UI',sans-serif; padding: 15px; color: #0f172a; font-size: 8px; }
+        body { font-family: 'Manrope','Segoe UI',sans-serif; padding: 15px; color: #0f172a; font-size: 10px; line-height: 1.3; }
         
         /* Page break rules to prevent sections from being cut */
         tr { page-break-inside: avoid; }
@@ -390,8 +476,8 @@
         }
         h1 { margin: 0 0 6px 0; font-size: 20px; color: #1e3a8a; }
         .meta { margin: 0 0 14px 0; color: #334155; font-size: 12px; }
-        table { width: 100%; border-collapse: collapse; font-size: 10px; }
-        th, td { border: 1px solid #cbd5e1; padding: 5px 6px; text-align: right; }
+        table { width: 100%; border-collapse: collapse; font-size: 11px; table-layout: auto; }
+        th, td { border: 1px solid #cbd5e1; padding: 6px 7px; text-align: right; white-space: normal; word-break: break-word; }
         th { background: #cbd5e1; color: #0f172a; font-weight: 700; }
         td.text-start, th.account-column-header, td.account-column { text-align: left; }
         
@@ -418,7 +504,7 @@
         
         @media print {
           body { padding: 10px; }
-          table { font-size: 9px; }
+          table { font-size: 10px; }
         }
       `;
     },
