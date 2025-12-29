@@ -381,6 +381,7 @@
       state.layout = data.layout || {};
       state.cuentas = extractCuentas(state.layout);
       state.operaciones = sortOperations(state.layout.operaciones || []);
+      hydrateOperationsFromParents();
 
       renderLayout();
       updateStats();
@@ -442,9 +443,12 @@
   }
 
   function sortOperations(list = []) {
-    return [...list].sort(
-      (a, b) => getOperationOrder(a) - getOperationOrder(b)
-    );
+    return [...(list || [])]
+      .map((op, idx) => ({ op, idx }))
+      .sort(
+        (a, b) => getOperationOrder(a.op, a.idx) - getOperationOrder(b.op, b.idx)
+      )
+      .map((item) => item.op);
   }
 
   function nextOperationOrder() {
@@ -453,6 +457,31 @@
       ...state.operaciones.map((op, idx) => getOperationOrder(op, idx))
     );
     return Number.isFinite(maxOrden) ? maxOrden + 1 : 0;
+  }
+
+  function hydrateOperationsFromParents() {
+    state.operaciones = state.operaciones.map((op, idx) => {
+      if (op?.formula_terms?.length) return op;
+
+      const derived = normalizeFormulaTerms(
+        buildFormulaTermsFromParent(op?.SECCION || op?.Clase)
+      );
+
+      if (!derived.length) return op;
+
+      const hydrated = { ...op, formula_terms: derived, signos: {} };
+
+      derived.forEach((term, termIdx) => {
+        const key = `seccion_${termIdx + 1}`;
+        hydrated[key] = term.value;
+        hydrated.signos[key] = term.operator === "-" ? -1 : 1;
+      });
+
+      // Mantener orden original si no existía
+      if (hydrated.orden === undefined) hydrated.orden = idx;
+
+      return hydrated;
+    });
   }
 
   // ==========================================
@@ -1149,9 +1178,27 @@
       orden: nextOperationOrder(),
     };
 
-    checkedSections.forEach((sec, i) => {
-      newOp[`seccion_${i + 1}`] = sec;
-      newOp.signos[`seccion_${i + 1}`] = 1;
+    // Poblamos la fórmula a partir de su "papá" (sección) respetando orden
+    const derivedTerms = buildFormulaTermsFromParent(newOp.SECCION);
+    const fallbackTerms = (checkedSections.length ? checkedSections : [newOp.SECCION])
+      .filter(Boolean)
+      .map((sec, i) => ({
+        id: Date.now() + i,
+        operator: "+",
+        type: "section",
+        value: sec,
+      }));
+
+    const termsToPersist = normalizeFormulaTerms(
+      derivedTerms.length ? derivedTerms : fallbackTerms
+    );
+
+    newOp.formula_terms = termsToPersist;
+
+    termsToPersist.forEach((term, i) => {
+      const key = `seccion_${i + 1}`;
+      newOp[key] = term.value;
+      newOp.signos[key] = term.operator === "-" ? -1 : 1;
     });
 
     state.operaciones.push(newOp);
@@ -1252,6 +1299,7 @@
 
       // Save operations
       if (state.operaciones.length) {
+        hydrateOperationsFromParents();
         const operacionesOrdenadas = sortOperations(state.operaciones);
         state.operaciones = operacionesOrdenadas;
         const opResponse = await fetch(
@@ -1595,13 +1643,17 @@
     }
 
     if (formulaTerms.length === 0) {
-      // Fallback: sección única
-      formulaTerms.push({
-        id: Date.now(),
-        operator: "+",
-        type: "section",
-        value: op.SECCION || "",
-      });
+      const derivedFromParent = buildFormulaTermsFromParent(op.SECCION || op.Clase);
+      if (derivedFromParent.length) {
+        formulaTerms = derivedFromParent;
+      } else {
+        formulaTerms.push({
+          id: Date.now(),
+          operator: "+",
+          type: "section",
+          value: op.SECCION || "",
+        });
+      }
     }
 
     dom.formEditar.innerHTML = `
@@ -1796,11 +1848,7 @@
       op.tipo = newTipo;
 
       // Actualizar la estructura de la operación basado en los términos de la fórmula
-      op.formula_terms = formulaTerms.map((t) => ({
-        operator: t.operator,
-        type: t.type,
-        value: t.value,
-      }));
+      op.formula_terms = normalizeFormulaTerms(formulaTerms);
 
       // Mantener compatibilidad con el formato antiguo de signos
       op.signos = {};
@@ -1884,6 +1932,41 @@
   // FORMULA BUILDER FUNCTIONS
   // ==========================================
   let formulaTerms = [];
+
+  function buildFormulaTermsFromParent(parentName) {
+    if (!parentName) return [];
+
+    const sections = groupBySections(state.cuentas);
+    const subsections = sections.get(parentName);
+    if (!subsections) return [];
+
+    const seen = new Set();
+    const terms = [];
+    let counter = 0;
+
+    subsections.forEach((_, secundaria) => {
+      const label = secundaria || parentName;
+      if (!label || seen.has(label)) return;
+      seen.add(label);
+
+      terms.push({
+        id: Date.now() + counter++,
+        operator: "+",
+        type: "section",
+        value: label,
+      });
+    });
+
+    return terms;
+  }
+
+  function normalizeFormulaTerms(terms = []) {
+    return (terms || []).map((t) => ({
+      operator: t.operator || "+",
+      type: t.type || "section",
+      value: t.value || "",
+    }));
+  }
 
   // Toggle entre modo simple y avanzado
   window.toggleFormulaBuilder = function () {
@@ -2061,7 +2144,7 @@
 
     // Otras Operaciones (excepto la que se está editando)
     const currentOpClase = state.selectedElement?.op?.Clase;
-    state.operaciones.forEach((op) => {
+    sortOperations(state.operaciones).forEach((op) => {
       if (op.Clase && op.Clase !== currentOpClase) {
         operations.push(op.Clase);
       }
@@ -2083,17 +2166,13 @@
       return;
     }
 
-    // Buscar si existe una sección principal con este nombre
-    const sections = groupBySections(state.cuentas);
-    const subSectionsMap = sections.get(label);
+    const suggested = buildFormulaTermsFromParent(label);
 
-    if (!subSectionsMap || subSectionsMap.size === 0) {
-      // Intentar búsqueda borrosa o parcial si el nombre es tipo "CDMX INCOME" -> buscar "CDMX"
+    if (!suggested.length) {
       showToast("No se encontraron sub-secciones para este nombre", "info");
       return;
     }
 
-    // Limpiar términos actuales (o preguntar si quieren añadir)
     if (
       formulaTerms.length > 0 &&
       !confirm(
@@ -2103,25 +2182,9 @@
       return;
     }
 
-    formulaTerms = [];
-    let i = 0;
-    subSectionsMap.forEach((accounts, subName) => {
-      if (subName && subName !== label) {
-        formulaTerms.push({
-          id: Date.now() + i++,
-          operator: "+",
-          type: "section",
-          value: subName,
-        });
-      }
-    });
-
-    if (formulaTerms.length === 0) {
-      showToast("No se detectaron sub-secciones hijas", "info");
-    } else {
-      renderFormulaTerms();
-      showToast(`Se agregaron ${formulaTerms.length} términos`, "success");
-    }
+    formulaTerms = suggested;
+    renderFormulaTerms();
+    showToast(`Se agregaron ${formulaTerms.length} términos`, "success");
   };
 
   // Actualizar preview de la fórmula
