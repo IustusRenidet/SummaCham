@@ -170,9 +170,11 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3005)) => {
   });
 
   // Endpoint para buscar cuentas activas (STATUS='A') para autocompletar
-  app.get("/api/cuentas-activas", async (req, res) => {
+  const { requireAuth } = require("./middleware/auth");
+  app.get("/api/cuentas-activas", requireAuth, async (req, res) => {
     try {
       const anio = parseInt(req.query.anio) || new Date().getFullYear();
+      const empresaId = req.query.empresaId || "EMPRESA01";
       const firebirdService = require("./services/firebirdService");
 
       // Consultar cuentas activas del catálogo
@@ -183,7 +185,7 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3005)) => {
         ORDER BY CUENTA
       `;
 
-      const cuentas = await firebirdService.ejecutarConsulta(query);
+      const cuentas = await firebirdService.ejecutarConsulta(empresaId, query);
       res.json(cuentas || []);
     } catch (error) {
       console.error("Error al obtener cuentas activas:", error);

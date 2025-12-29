@@ -321,11 +321,15 @@
     const selector = parentSelector || localSelector;
 
     if (selector?.value) {
-      const chapter =
-        window.CapitulosModulos?.empresaACapitulo?.(selector.value) ||
-        selector.value;
-      state.capitulo = chapter;
+      let chapter = window.CapitulosModulos?.empresaACapitulo?.(selector.value);
 
+      // empresaACapitulo might return an object {capitulo: "...", etiqueta: "..."} or a string
+      if (chapter && typeof chapter === "object") {
+        chapter = chapter.capitulo || chapter.etiqueta || String(chapter);
+      }
+      chapter = chapter || selector.value;
+
+      state.capitulo = chapter;
       dom.capituloSelect.innerHTML = `<option value="${chapter}">${chapter}</option>`;
     } else {
       // Load chapters from API
@@ -340,10 +344,22 @@
           const chapters = data.capitulos || [];
 
           if (chapters.length) {
+            // API returns chapters as objects {capitulo: "..."} - extract string value
             dom.capituloSelect.innerHTML = chapters
-              .map((c) => `<option value="${c}">${c}</option>`)
+              .map((c) => {
+                const name =
+                  typeof c === "object"
+                    ? c.capitulo || c.etiqueta || String(c)
+                    : c;
+                return `<option value="${name}">${name}</option>`;
+              })
               .join("");
-            state.capitulo = chapters[0];
+            // Also extract string from first chapter
+            const first = chapters[0];
+            state.capitulo =
+              typeof first === "object"
+                ? first.capitulo || first.etiqueta || String(first)
+                : first;
           }
         }
       } catch (error) {
@@ -507,31 +523,229 @@
       return;
     }
 
-    // Renderizar secciones primero, luego operaciones en su orden original
+    // Group sections with their inline operations
     const sections = groupBySections(state.cuentas);
     let html = "";
 
-    // Renderizar todas las secciones
+    // Track operations that have been rendered inline
+    const renderedInlineOps = new Set();
+
+    // Render sections with inline operations (and track which ops are rendered)
     sections.forEach((data, principal) => {
+      const principalLower = principal.toLowerCase();
+      const isIncomeSection = principalLower.includes("income");
+      const isExpenseSection = principalLower.includes("expense");
+
+      // Find all operations that belong to subsections in this section
+      data.forEach((accounts, subsectionName) => {
+        const matchingOps = state.operaciones.filter((op) => {
+          const clase = (op.Clase || "").toLowerCase();
+
+          // Check if operation type matches section type
+          const isIncomeOp = clase.includes("income");
+          const isExpenseOp = clase.includes("expense");
+
+          // Only match if section type matches operation type
+          if (isIncomeSection && isExpenseOp) return false;
+          if (isExpenseSection && isIncomeOp) return false;
+
+          // Match by parentSubsection field
+          if (
+            op.parentSubsection &&
+            op.parentSubsection.toLowerCase() === subsectionName.toLowerCase()
+          ) {
+            if (op.parentSection) {
+              return op.parentSection.toLowerCase() === principalLower;
+            }
+            return true;
+          }
+
+          // Match by Clase containing subsection name
+          const claseNorm = clase.replace(/[-_\s]/g, "");
+          const subsectionNorm = subsectionName
+            .toLowerCase()
+            .replace(/[-_\s]/g, "");
+          if (
+            claseNorm.includes(subsectionNorm) ||
+            subsectionNorm.includes(claseNorm)
+          ) {
+            if (!op.secciones || op.secciones.length <= 1) {
+              return true;
+            }
+          }
+          return false;
+        });
+        matchingOps.forEach((op) => renderedInlineOps.add(op.Clase || op));
+      });
       html += renderSection(principal, data);
     });
 
-    // Renderizar operaciones en su orden original (según índice en el array)
-    // Ordenar por el campo 'orden' si existe, o por índice
-    const operacionesOrdenadas = sortOperations(state.operaciones);
-
-    operacionesOrdenadas.forEach((op) => {
-      html += renderSingleOperation(op);
+    // Render section-level operations (only those NOT already rendered inline)
+    const sectionLevelOps = state.operaciones.filter((op) => {
+      // Skip if already rendered inline
+      if (renderedInlineOps.has(op.Clase)) {
+        return false;
+      }
+      // Include operations that are multi-section totals (Consolidated Income, etc.)
+      return true;
     });
+
+    // ALSO extract unique consolidated labels from all operations
+    // These are the GENERATED rows like CDMX INCOME, CONSOLIDATED INCOME, NET RESULTS, etc.
+    const consolidatedLabels = new Map(); // label -> { type, operations that contribute }
+    const labelTypes = [
+      {
+        field: "sum-row-sumavarios",
+        type: "section-total",
+        icon: "bi-bar-chart-fill",
+        color: "primary",
+      },
+      {
+        field: "sum-row-sumavarios-consolidado",
+        type: "consolidated-total",
+        icon: "bi-collection-fill",
+        color: "success",
+      },
+      {
+        field: "sum-row-operativo",
+        type: "operating-result",
+        icon: "bi-graph-up-arrow",
+        color: "info",
+      },
+      {
+        field: "result-row",
+        type: "result",
+        icon: "bi-calculator-fill",
+        color: "warning",
+      },
+      {
+        field: "net-row",
+        type: "net-result",
+        icon: "bi-cash-stack",
+        color: "danger",
+      },
+      {
+        field: "result-net-row",
+        type: "net-consolidated",
+        icon: "bi-bank",
+        color: "danger",
+      },
+    ];
+
+    state.operaciones.forEach((op, opIndex) => {
+      labelTypes.forEach(({ field, type, icon, color }) => {
+        const label = op[field];
+        if (label && label.trim()) {
+          if (!consolidatedLabels.has(label)) {
+            consolidatedLabels.set(label, {
+              type,
+              field,
+              icon,
+              color,
+              operations: [],
+              firstIndex: opIndex, // Track order of first appearance
+            });
+          }
+          consolidatedLabels.get(label).operations.push(op.Clase || op.SECCION);
+        }
+      });
+    });
+
+    // Convert to array and sort by first appearance order
+    const sortedLabels = Array.from(consolidatedLabels.entries()).sort(
+      (a, b) => a[1].firstIndex - b[1].firstIndex
+    );
+
+    // Render both: non-inline operations AND extracted consolidated labels
+    const hasConsolidatedContent =
+      sectionLevelOps.length > 0 || sortedLabels.length > 0;
+
+    if (hasConsolidatedContent) {
+      html += `<div class="section-level-operations">
+        <div class="section-level-header">
+          <i class="bi bi-calculator-fill text-primary me-2"></i>
+          <span>Operaciones Generadas (Consolidación)</span>
+          <span class="badge bg-primary ms-2">${sortedLabels.length}</span>
+        </div>`;
+
+      // Render non-inline operations first
+      sortOperations(sectionLevelOps).forEach((op) => {
+        html += renderSectionOperation(op);
+      });
+
+      // Render extracted consolidated labels as special rows (in order of appearance)
+      sortedLabels.forEach(([label, info]) => {
+        const formulaStr =
+          info.operations.slice(0, 5).join(" + ") +
+          (info.operations.length > 5 ? " + ..." : "");
+        html += `
+          <div class="consolidated-label-row consolidated-${
+            info.type
+          }" data-label="${escapeAttr(label)}" data-field="${info.field}">
+            <div class="label-icon bg-${info.color}">
+              <i class="bi ${info.icon}"></i>
+            </div>
+            <div class="label-content">
+              <span class="label-name">${escapeHtml(label)}</span>
+              <span class="label-type badge bg-${
+                info.color
+              } ms-2">${info.type.replace(/-/g, " ")}</span>
+            </div>
+            <div class="label-formula text-muted">
+              <i class="bi bi-equation me-1"></i>
+              <span class="formula-text">= ${escapeHtml(formulaStr)}</span>
+              <span class="operation-count ms-2">(${
+                info.operations.length
+              } operaciones)</span>
+            </div>
+            <div class="label-actions">
+              <button class="btn btn-sm btn-outline-primary" onclick="editConsolidatedLabel('${escapeAttr(
+                label
+              )}', '${info.field}')" title="Editar">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <button class="btn btn-sm btn-outline-danger" onclick="deleteConsolidatedLabel('${escapeAttr(
+                label
+              )}', '${info.field}')" title="Eliminar">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+          </div>
+        `;
+      });
+
+      html += `</div>`;
+    }
 
     dom.layoutPreview.innerHTML = html;
     bindLayoutEvents();
   }
 
-  // Renderiza una operación individual
-  function renderSingleOperation(op) {
+  // Find if an operation matches a specific subsection
+  function findMatchingSubsection(op) {
+    const clase = (op.Clase || "").toLowerCase();
+    // Check if class name contains a subsection name
+    const allSubsections = new Set();
+    state.cuentas.forEach((c) => {
+      if (c.seccion_secundaria || c["SECCION Secundaria"]) {
+        allSubsections.add(
+          (c.seccion_secundaria || c["SECCION Secundaria"]).toLowerCase()
+        );
+      }
+    });
+    for (const sub of allSubsections) {
+      if (clase.includes(sub.toLowerCase().replace(/\s+/g, ""))) {
+        return sub;
+      }
+    }
+    return null;
+  }
+
+  // Renderiza una operación de nivel de sección (sum de múltiples secciones)
+  function renderSectionOperation(op) {
     const clase = op.Clase || "Operación";
     const tipo = detectOperationType(op);
+    const formula = formatFormula(op);
 
     return `
       <div class="layout-section operation-section ${tipo}">
@@ -541,10 +755,10 @@
           <div class="operation-label">
             <i class="bi bi-calculator"></i>
             <span>${escapeHtml(clase)}</span>
-            <span class="operation-type">${tipo}</span>
+            <span class="operation-type badge bg-warning text-dark">SUM</span>
           </div>
-          <div class="operation-formula small text-muted ms-3 d-none d-md-block" style="flex: 2; font-style: italic;">
-            ${escapeHtml(formatFormula(op))}
+          <div class="operation-formula small text-muted ms-3" style="flex: 2; font-style: italic;">
+            ${escapeHtml(formula)}
           </div>
           <div class="account-actions">
             <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); editOperation('${escapeAttr(
@@ -561,6 +775,44 @@
         </div>
       </div>
     `;
+  }
+
+  // Renderiza una operación inline dentro de una subsección
+  function renderInlineOperation(op, accounts) {
+    const clase = op.Clase || "Operación";
+    // Build formula from actual account names
+    const formula = accounts
+      .map((a) => a.NOMBRE || a.nombre || a.CUENTA)
+      .join(" + ");
+
+    return `
+      <div class="inline-operation-row" onclick="editOperation('${escapeAttr(
+        clase
+      )}')">
+        <div class="inline-op-icon">
+          <i class="bi bi-calculator"></i>
+        </div>
+        <div class="inline-op-label">
+          <span class="op-name">${escapeHtml(clase)}</span>
+          <span class="op-badge badge bg-warning text-dark ms-2">SUM</span>
+        </div>
+        <div class="inline-op-formula">
+          = ${escapeHtml(formula)}
+        </div>
+        <div class="inline-op-actions">
+          <button class="btn btn-sm btn-link p-0" onclick="event.stopPropagation(); editOperation('${escapeAttr(
+            clase
+          )}')" title="Editar">
+            <i class="bi bi-pencil"></i>
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  // Legacy function for backwards compatibility
+  function renderSingleOperation(op) {
+    return renderSectionOperation(op);
   }
 
   function formatFormula(op) {
@@ -693,6 +945,55 @@
       .map((acc) => renderAccount(acc, principal, name))
       .join("");
 
+    // Find operations that match this subsection AND parent section (INCOME/EXPENSE)
+    const principalLower = principal.toLowerCase();
+    const isIncomeSection = principalLower.includes("income");
+    const isExpenseSection = principalLower.includes("expense");
+
+    const matchingOps = state.operaciones.filter((op) => {
+      const clase = (op.Clase || "").toLowerCase();
+
+      // Check if operation type matches section type
+      const isIncomeOp = clase.includes("income");
+      const isExpenseOp = clase.includes("expense");
+
+      // Only match if section type matches operation type
+      if (isIncomeSection && isExpenseOp) return false;
+      if (isExpenseSection && isIncomeOp) return false;
+
+      // Match by parentSubsection field
+      if (
+        op.parentSubsection &&
+        op.parentSubsection.toLowerCase() === name.toLowerCase()
+      ) {
+        // Also check parentSection if available
+        if (op.parentSection) {
+          return op.parentSection.toLowerCase() === principalLower;
+        }
+        return true;
+      }
+
+      // Match by Clase containing subsection name (e.g., "income-Membership" matches "Membership")
+      const claseNorm = clase.replace(/[-_\s]/g, "");
+      const subsectionNorm = name.toLowerCase().replace(/[-_\s]/g, "");
+
+      if (
+        claseNorm.includes(subsectionNorm) ||
+        subsectionNorm.includes(claseNorm)
+      ) {
+        // Make sure it's not a section-level operation (multi-section)
+        if (!op.secciones || op.secciones.length <= 1) {
+          return true;
+        }
+      }
+      return false;
+    });
+
+    // Render inline operations
+    const inlineOpsHtml = matchingOps
+      .map((op) => renderInlineOperation(op, accounts))
+      .join("");
+
     return `
       <div class="subsection" data-subsection="${escapeHtml(name)}">
         <div class="subsection-header" onclick="toggleSubsection(this)">
@@ -722,6 +1023,7 @@
         </div>
         <div class="account-list">
           ${accountsHtml}
+          ${inlineOpsHtml}
         </div>
       </div>
     `;
@@ -1170,12 +1472,24 @@
       document.querySelectorAll("#checkboxSecciones input:checked")
     ).map((cb) => cb.value);
 
+    // Determine if this is a subsection-level or section-level operation
+    // Subsection-level: operates on 1 subsection (sums accounts in that subsection)
+    // Section-level: operates on multiple subsections (sums across sections)
+    const isSubsectionOp = checkedSections.length === 1;
+
+    // Create operation with all required fields including CAPITULO
     const newOp = {
+      CAPITULO: state.capitulo || "DEFAULT",
       Clase: clase,
-      SECCION: checkedSections[0] || "",
-      tipo,
+      SECCION: checkedSections.join(" + "),
+      tipo: tipo || "sum-sections",
       signos: {},
       orden: nextOperationOrder(),
+      // Store sections for formula display
+      secciones: checkedSections,
+      // Link to parent subsection for inline display
+      parentSubsection: isSubsectionOp ? checkedSections[0] : null,
+      parentSection: getParentSection(checkedSections[0]),
     };
 
     // Poblamos la fórmula a partir de su "papá" (sección) respetando orden
@@ -1204,7 +1518,20 @@
     state.operaciones.push(newOp);
     state.unsavedChanges = true;
     updateButtonStates();
+    renderLayout(); // Re-render to show inline
     showToast(`Operación "${clase}" creada`, "success");
+  }
+
+  // Helper to find parent section of a subsection
+  function getParentSection(subsectionName) {
+    if (!subsectionName) return null;
+    const account = state.cuentas.find(
+      (c) =>
+        (c["SECCION Secundaria"] || c.seccion_secundaria) === subsectionName
+    );
+    return account
+      ? account["SECCIÓN Principal"] || account.seccion_principal
+      : null;
   }
 
   // ==========================================
@@ -1614,28 +1941,166 @@
     showToast(`Cuenta ${codigo} eliminada`, "success");
   };
 
+  // Helper function to get HTML list of accounts in a section
+  function getSectionAccountsHTML(sectionName) {
+    if (!sectionName)
+      return '<span class="text-muted">Sin sección definida</span>';
+
+    if (!state.cuentas || state.cuentas.length === 0) {
+      return '<span class="text-muted">No hay cuentas cargadas en este layout</span>';
+    }
+
+    const sectionLower = sectionName.toLowerCase().trim();
+
+    // Find accounts that belong to this section (check secondary section first, then primary)
+    let matchingAccounts = state.cuentas.filter((c) => {
+      const secondary = (
+        c.seccion_secundaria ||
+        c["SECCION Secundaria"] ||
+        c["SECCIàN Secundaria"] ||
+        ""
+      )
+        .toLowerCase()
+        .trim();
+      const primary = (
+        c["SECCIÓN Principal"] ||
+        c["SECCIàN Principal"] ||
+        c["SECCION Principal"] ||
+        c.SECCION ||
+        c.seccion_principal ||
+        ""
+      )
+        .toLowerCase()
+        .trim();
+
+      return secondary === sectionLower || primary === sectionLower;
+    });
+
+    // If no exact match, try partial match
+    if (matchingAccounts.length === 0) {
+      matchingAccounts = state.cuentas.filter((c) => {
+        const secondary = (
+          c.seccion_secundaria ||
+          c["SECCION Secundaria"] ||
+          c["SECCIàN Secundaria"] ||
+          ""
+        )
+          .toLowerCase()
+          .trim();
+        const primary = (
+          c["SECCIÓN Principal"] ||
+          c["SECCIàN Principal"] ||
+          c["SECCION Principal"] ||
+          c.SECCION ||
+          c.seccion_principal ||
+          ""
+        )
+          .toLowerCase()
+          .trim();
+
+        return (
+          secondary.includes(sectionLower) ||
+          primary.includes(sectionLower) ||
+          sectionLower.includes(secondary) ||
+          sectionLower.includes(primary)
+        );
+      });
+    }
+
+    if (matchingAccounts.length === 0) {
+      return `<span class="text-muted">No se encontraron cuentas en la sección "${escapeHtml(
+        sectionName
+      )}" (${state.cuentas.length} cuentas en total)</span>`;
+    }
+
+    return matchingAccounts
+      .map(
+        (c) => `
+      <div class="d-flex align-items-center mb-1">
+        <i class="bi bi-journal-text text-primary me-2"></i>
+        <code class="me-2">${escapeHtml(c.CUENTA)}</code>
+        <span class="text-muted small">${escapeHtml(
+          c.NOMBRE || c.nombre || ""
+        )}</span>
+      </div>
+    `
+      )
+      .join("");
+  }
+
   window.editOperation = function (clase) {
     const op = state.operaciones.find((o) => o.Clase === clase);
     if (!op) return;
 
+    // Get available elements to determine correct types
+    const elements = getAvailableElements();
+    const operationNames = elements.operations.map((o) => o.toLowerCase());
+    const sectionNames = elements.sections.map((s) => s.toLowerCase());
+
+    // Helper to detect if a value is an operation or section
+    // Priority: exact match in sections > exact match in operations > fuzzy section > default to section
+    function detectValueType(value) {
+      if (!value) return "section";
+      const lower = value.toLowerCase().trim();
+
+      // First check EXACT match in sections (most common case)
+      if (sectionNames.includes(lower)) {
+        return "section";
+      }
+
+      // Then check EXACT match in operations (Clase names)
+      if (operationNames.includes(lower)) {
+        return "operation";
+      }
+
+      // Check case-insensitive partial match in sections
+      const sectionMatch = sectionNames.find(
+        (s) => s.includes(lower) || lower.includes(s)
+      );
+      if (sectionMatch) {
+        return "section";
+      }
+
+      // Default to section since that's the most common formula term type
+      return "section";
+    }
+
     // Poblar formulaTerms desde el objeto op
     formulaTerms = [];
-    if (op.tipo === "custom-formula" || op.formula_terms) {
-      // Si ya tiene términos definidos explícitamente
-      formulaTerms = (op.formula_terms || []).map((term, i) => ({
+
+    // Check for explicitly defined formula_terms first
+    if (op.formula_terms && op.formula_terms.length > 0) {
+      formulaTerms = op.formula_terms.map((term, i) => ({
         id: Date.now() + i,
         ...term,
+        // Ensure type is correctly set based on value
+        type: term.type || detectValueType(term.value),
       }));
-    } else if (op.signos) {
-      // Reconstruir desde el formato antiguo de signos
+    }
+    // Then check for signos/seccion_n format (only regular formula sections, not row labels)
+    else if (op.signos && Object.keys(op.signos).length > 0) {
       let i = 0;
+      // Only process seccion_n fields, not row-type fields like sum-row, sum-row-sumavarios, etc.
+      const rowTypeFields = [
+        "sum-row",
+        "sum-row-sumavarios",
+        "sum-row-sumavarios-consolidado",
+        "sum-row-operativo",
+        "result-row",
+        "net-row",
+        "result-net-row",
+      ];
       Object.entries(op.signos).forEach(([clave, signo]) => {
+        // Skip if this is a row-type field, not a formula section reference
+        if (rowTypeFields.includes(clave) || !clave.startsWith("seccion_")) {
+          return;
+        }
         const valorReal = op[clave];
         if (valorReal) {
           formulaTerms.push({
             id: Date.now() + i++,
             operator: signo < 0 ? "-" : "+",
-            type: "section", // Asumimos sección por defecto para el formato antiguo
+            type: detectValueType(valorReal),
             value: valorReal,
           });
         }
@@ -1652,6 +2117,38 @@
           operator: "+",
           type: "section",
           value: op.SECCION || "",
+        });
+      }
+    }
+
+    // Also add references from operation types (sum-row, etc) that may reference sections
+    const opTypes = [
+      "sum-row",
+      "sum-row-sumavarios",
+      "sum-row-sumavarios-consolidado",
+      "sum-row-operativo",
+      "result-row",
+      "net-row",
+      "result-net-row",
+    ];
+
+    // If we still have no terms, create from SECCION or operation types
+    if (formulaTerms.length === 0) {
+      // Use SECCION as primary
+      if (op.SECCION) {
+        formulaTerms.push({
+          id: Date.now(),
+          operator: "+",
+          type: detectValueType(op.SECCION),
+          value: op.SECCION,
+        });
+      } else {
+        // Fallback: add a placeholder
+        formulaTerms.push({
+          id: Date.now(),
+          operator: "+",
+          type: "section",
+          value: "",
         });
       }
     }
@@ -1696,6 +2193,58 @@
           ${op.Clase} = ...
         </div>
       </div>
+      
+      <div class="module-preview mt-3">
+        <label class="form-label">Vista Previa en Módulos:</label>
+        <div class="bg-info bg-opacity-10 p-2 rounded border">
+          <div class="row-preview mb-2">
+            <strong class="text-primary">${escapeHtml(
+              op["sum-row"] || op.Clase
+            )}</strong>
+            <span class="badge bg-secondary ms-2">Fila de Suma</span>
+          </div>
+          ${
+            op["sum-row-sumavarios"]
+              ? `
+          <div class="row-preview mb-1">
+            <i class="bi bi-arrow-return-right me-2"></i>
+            <span class="text-success">${escapeHtml(
+              op["sum-row-sumavarios"]
+            )}</span>
+            <span class="badge bg-success ms-2">Consolidado</span>
+          </div>`
+              : ""
+          }
+          ${
+            op["sum-row-sumavarios-consolidado"]
+              ? `
+          <div class="row-preview mb-1">
+            <i class="bi bi-arrow-return-right me-2"></i>
+            <span class="text-info">${escapeHtml(
+              op["sum-row-sumavarios-consolidado"]
+            )}</span>
+            <span class="badge bg-info ms-2">Consolidado Total</span>
+          </div>`
+              : ""
+          }
+          ${
+            op["result-row"] || op["net-row"]
+              ? `
+          <div class="row-preview">
+            <i class="bi bi-calculator me-2"></i>
+            <span class="text-warning">${escapeHtml(
+              op["result-row"] || op["net-row"] || ""
+            )}</span>
+            <span class="badge bg-warning text-dark ms-2">Resultado</span>
+          </div>`
+              : ""
+          }
+          <div class="mt-2 small text-muted">
+            <i class="bi bi-info-circle me-1"></i>
+            Módulos: ${state.modulo || "SUMMARY, RESUMEN"}
+          </div>
+        </div>
+      </div>
     `;
 
     state.selectedElement = { type: "operation", op };
@@ -1718,6 +2267,98 @@
     renderLayout();
     updateStats();
     showToast(`Operación "${clase}" eliminada`, "success");
+  };
+
+  // Edit a consolidated label (updates the label name across all operations that use it)
+  window.editConsolidatedLabel = function (label, field) {
+    // Find all operations that have this label for this field
+    const affectedOps = state.operaciones.filter((op) => op[field] === label);
+
+    if (affectedOps.length === 0) {
+      showToast("No se encontraron operaciones para esta etiqueta", "error");
+      return;
+    }
+
+    // Build modal content showing affected operations
+    const opsList = affectedOps.map((op) => op.Clase || op.SECCION).join(", ");
+
+    dom.formEditar.innerHTML = `
+      <div class="mb-3">
+        <label class="form-label">Etiqueta Actual</label>
+        <input type="text" class="form-control" id="editConsolidatedLabelName" value="${escapeHtml(
+          label
+        )}" />
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Tipo de Campo</label>
+        <input type="text" class="form-control" value="${escapeHtml(
+          field
+        )}" readonly disabled />
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Operaciones que contribuyen (${
+          affectedOps.length
+        })</label>
+        <div class="bg-light p-2 rounded border" style="max-height: 150px; overflow-y: auto;">
+          ${affectedOps
+            .map(
+              (op) => `
+            <div class="d-flex align-items-center mb-1">
+              <i class="bi bi-arrow-right-short text-muted me-1"></i>
+              <span class="small">${escapeHtml(op.Clase || op.SECCION)}</span>
+            </div>
+          `
+            )
+            .join("")}
+        </div>
+      </div>
+    `;
+
+    state.selectedElement = {
+      type: "consolidatedLabel",
+      label,
+      field,
+      affectedOps,
+    };
+    new bootstrap.Modal(dom.modalEditar).show();
+  };
+
+  // Delete a consolidated label (removes it from all operations)
+  window.deleteConsolidatedLabel = function (label, field) {
+    const affectedOps = state.operaciones.filter((op) => op[field] === label);
+
+    if (affectedOps.length === 0) {
+      showToast("No se encontraron operaciones para esta etiqueta", "error");
+      return;
+    }
+
+    const opsList = affectedOps
+      .map((op) => op.Clase || op.SECCION)
+      .slice(0, 5)
+      .join(", ");
+    const more =
+      affectedOps.length > 5 ? ` y ${affectedOps.length - 5} más...` : "";
+
+    if (
+      !confirm(
+        `¿Eliminar la etiqueta "${label}" de ${affectedOps.length} operaciones?\n\nOperaciones afectadas: ${opsList}${more}`
+      )
+    )
+      return;
+
+    // Remove the field from all affected operations
+    affectedOps.forEach((op) => {
+      delete op[field];
+    });
+
+    state.unsavedChanges = true;
+    updateButtonStates();
+    renderLayout();
+    updateStats();
+    showToast(
+      `Etiqueta "${label}" eliminada de ${affectedOps.length} operaciones`,
+      "success"
+    );
   };
 
   window.updateSubsectionOptions = function () {
@@ -1870,6 +2511,26 @@
       ) {
         op.SECCION = op.formula_terms[0].value;
       }
+    } else if (state.selectedElement.type === "consolidatedLabel") {
+      // Handle consolidated label edit
+      const oldLabel = state.selectedElement.label;
+      const field = state.selectedElement.field;
+      const affectedOps = state.selectedElement.affectedOps;
+      const newLabel = document
+        .getElementById("editConsolidatedLabelName")
+        ?.value?.trim();
+
+      if (newLabel && newLabel !== oldLabel) {
+        affectedOps.forEach((op) => {
+          if (op[field] === oldLabel) {
+            op[field] = newLabel;
+          }
+        });
+        showToast(
+          `Etiqueta actualizada en ${affectedOps.length} operaciones`,
+          "success"
+        );
+      }
     }
 
     state.unsavedChanges = true;
@@ -2005,6 +2666,64 @@
     updateFormulaPreview();
   };
 
+  // Helper to get accounts for a section name
+  function getAccountsForSection(sectionName) {
+    if (!sectionName || !state.cuentas || state.cuentas.length === 0) return [];
+
+    const sectionLower = sectionName.toLowerCase().trim();
+
+    let accounts = state.cuentas.filter((c) => {
+      const secondary = (
+        c.seccion_secundaria ||
+        c["SECCION Secundaria"] ||
+        c["SECCIàN Secundaria"] ||
+        ""
+      )
+        .toLowerCase()
+        .trim();
+      const primary = (
+        c["SECCIÓN Principal"] ||
+        c["SECCIàN Principal"] ||
+        c["SECCION Principal"] ||
+        c.SECCION ||
+        c.seccion_principal ||
+        ""
+      )
+        .toLowerCase()
+        .trim();
+      return secondary === sectionLower || primary === sectionLower;
+    });
+
+    // Try partial match if no exact match
+    if (accounts.length === 0) {
+      accounts = state.cuentas.filter((c) => {
+        const secondary = (
+          c.seccion_secundaria ||
+          c["SECCION Secundaria"] ||
+          c["SECCIàN Secundaria"] ||
+          ""
+        )
+          .toLowerCase()
+          .trim();
+        const primary = (
+          c["SECCIÓN Principal"] ||
+          c["SECCIàN Principal"] ||
+          c["SECCION Principal"] ||
+          c.SECCION ||
+          c.seccion_principal ||
+          ""
+        )
+          .toLowerCase()
+          .trim();
+        return (
+          secondary.includes(sectionLower) || primary.includes(sectionLower)
+        );
+      });
+    }
+
+    return accounts;
+  }
+
   // Renderizar los términos
   function renderFormulaTerms() {
     const container = document.getElementById("formulaTerms");
@@ -2012,86 +2731,156 @@
 
     const elements = getAvailableElements();
 
+    // Helper for case-insensitive value matching - returns the exact option value that matches
+    function findMatchingValue(termValue, options) {
+      if (!termValue) return null;
+      const lower = termValue.toLowerCase().trim();
+      // First try exact match
+      let match = options.find((o) => o === termValue);
+      if (match) return match;
+      // Then try case-insensitive match
+      match = options.find((o) => o.toLowerCase().trim() === lower);
+      if (match) return match;
+      // Then try partial match (contains)
+      match = options.find(
+        (o) =>
+          o.toLowerCase().includes(lower) || lower.includes(o.toLowerCase())
+      );
+      return match || null;
+    }
+
+    // Pre-process terms to find matching values
+    formulaTerms.forEach((term) => {
+      let options = [];
+      if (term.type === "section") options = elements.sections;
+      else if (term.type === "operation") options = elements.operations;
+      else options = elements.accounts.map((a) => a.code);
+
+      const matchedValue = findMatchingValue(term.value, options);
+      if (matchedValue) {
+        term.value = matchedValue; // Update to exact matched value
+      }
+    });
+
     container.innerHTML = formulaTerms
-      .map(
-        (term, idx) => `
-      <div class="formula-term" data-id="${term.id}">
-        ${
-          idx > 0
-            ? `
-          <select class="form-select formula-operator" onchange="updateTermOperator(${
+      .map((term, idx) => {
+        // Get accounts for this term if it's a section with a value
+        const termAccounts =
+          term.type === "section" && term.value
+            ? getAccountsForSection(term.value)
+            : [];
+        const accountsHtml =
+          termAccounts.length > 0
+            ? `<div class="term-accounts mt-1 ps-4">
+                 <small class="text-muted">${
+                   termAccounts.length
+                 } cuentas:</small>
+                 <div class="accounts-list small" style="max-height: 80px; overflow-y: auto;">
+                   ${termAccounts
+                     .slice(0, 10)
+                     .map(
+                       (a) =>
+                         `<span class="badge bg-light text-dark me-1 mb-1">${escapeHtml(
+                           a.CUENTA
+                         )}</span>`
+                     )
+                     .join("")}
+                   ${
+                     termAccounts.length > 10
+                       ? `<span class="text-muted">+${
+                           termAccounts.length - 10
+                         } más...</span>`
+                       : ""
+                   }
+                 </div>
+               </div>`
+            : "";
+
+        return `
+      <div class="formula-term-wrapper mb-2">
+        <div class="formula-term d-flex align-items-center gap-2" data-id="${
+          term.id
+        }">
+          ${
+            idx > 0
+              ? `
+            <select class="form-select formula-operator" style="width: 60px;" onchange="updateTermOperator(${
+              term.id
+            }, this.value)">
+              <option value="+" ${
+                term.operator === "+" ? "selected" : ""
+              }>+</option>
+              <option value="-" ${
+                term.operator === "-" ? "selected" : ""
+              }>−</option>
+              <option value="/" ${
+                term.operator === "/" ? "selected" : ""
+              }>/</option>
+            </select>
+          `
+              : '<span class="formula-operator-placeholder" style="width: 60px; text-align: center;">=</span>'
+          }
+          
+          <select class="form-select formula-type" style="width: 110px;" onchange="updateTermType(${
             term.id
           }, this.value)">
-            <option value="+" ${
-              term.operator === "+" ? "selected" : ""
-            }>+</option>
-            <option value="-" ${
-              term.operator === "-" ? "selected" : ""
-            }>−</option>
-            <option value="/" ${
-              term.operator === "/" ? "selected" : ""
-            }>/</option>
+            <option value="section" ${
+              term.type === "section" ? "selected" : ""
+            }>Sección</option>
+            <option value="operation" ${
+              term.type === "operation" ? "selected" : ""
+            }>Operación</option>
+            <option value="account" ${
+              term.type === "account" ? "selected" : ""
+            }>Cuenta</option>
           </select>
-        `
-            : '<span class="formula-operator-placeholder">=</span>'
-        }
-        
-        <select class="form-select formula-type" style="width: 120px;" onchange="updateTermType(${
-          term.id
-        }, this.value)">
-          <option value="section" ${
-            term.type === "section" ? "selected" : ""
-          }>Sección</option>
-          <option value="operation" ${
-            term.type === "operation" ? "selected" : ""
-          }>Operación</option>
-          <option value="account" ${
-            term.type === "account" ? "selected" : ""
-          }>Cuenta</option>
-        </select>
-        
-        <select class="form-select formula-value" onchange="updateTermValue(${
-          term.id
-        }, this.value)">
-          <option value="">-- Seleccionar --</option>
-          ${
-            term.type === "section"
-              ? elements.sections
-                  .map(
-                    (s) =>
-                      `<option value="${escapeAttr(s)}" ${
-                        term.value === s ? "selected" : ""
-                      }>${escapeHtml(s)}</option>`
-                  )
-                  .join("")
-              : term.type === "operation"
-              ? elements.operations
-                  .map(
-                    (o) =>
-                      `<option value="${escapeAttr(o)}" ${
-                        term.value === o ? "selected" : ""
-                      }>${escapeHtml(o)}</option>`
-                  )
-                  .join("")
-              : elements.accounts
-                  .map(
-                    (a) =>
-                      `<option value="${escapeAttr(a.code)}" ${
-                        term.value === a.code ? "selected" : ""
-                      }>${escapeHtml(a.code)} - ${escapeHtml(a.name)}</option>`
-                  )
-                  .join("")
-          }
-        </select>
-        
-        <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeFormulaTerm(${
-          term.id
-        })" title="Quitar">
-          <i class="bi bi-x"></i>
-        </button>
+          
+          <select class="form-select formula-value flex-grow-1" onchange="updateTermValue(${
+            term.id
+          }, this.value)">
+            <option value="">-- Seleccionar --</option>
+            ${
+              term.type === "section"
+                ? elements.sections
+                    .map(
+                      (s) =>
+                        `<option value="${escapeAttr(s)}" ${
+                          term.value === s ? "selected" : ""
+                        }>${escapeHtml(s)}</option>`
+                    )
+                    .join("")
+                : term.type === "operation"
+                ? elements.operations
+                    .map(
+                      (o) =>
+                        `<option value="${escapeAttr(o)}" ${
+                          term.value === o ? "selected" : ""
+                        }>${escapeHtml(o)}</option>`
+                    )
+                    .join("")
+                : elements.accounts
+                    .map(
+                      (a) =>
+                        `<option value="${escapeAttr(a.code)}" ${
+                          term.value === a.code ? "selected" : ""
+                        }>${escapeHtml(a.code)} - ${escapeHtml(
+                          a.name
+                        )}</option>`
+                    )
+                    .join("")
+            }
+          </select>
+          
+          <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeFormulaTerm(${
+            term.id
+          })" title="Quitar">
+            <i class="bi bi-x"></i>
+          </button>
+        </div>
+        ${accountsHtml}
       </div>
-    `
-      )
+    `;
+      })
       .join("");
 
     updateFormulaPreview();

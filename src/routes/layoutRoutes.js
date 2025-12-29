@@ -978,4 +978,157 @@ router.post("/permisos/capitulos", requireAuth, (req, res) => {
   }
 });
 
+/**
+ * GET /api/layouts-config/:modulo/:anio/exportar-json
+ * Exportar layout completo a JSON para seed
+ */
+router.get("/:modulo/:anio/exportar-json", requireAuth, (req, res) => {
+  try {
+    const { modulo, anio } = req.params;
+    const { empresaId = "EMPRESA01" } = req.query;
+    const fs = require("fs");
+    const path = require("path");
+
+    // Obtener cuentas del layout
+    const cuentas = db
+      .prepare(
+        `
+      SELECT capitulo as CAPITULO, seccion_principal as "SECCIÓN Principal", 
+             seccion_secundaria as "SECCION Secundaria", cuenta as CUENTA, 
+             nombre as NOMBRE, orden
+      FROM layout_cuentas
+      WHERE empresa_id = ? AND modulo = ? AND anio = ?
+      ORDER BY orden, capitulo, seccion_principal, seccion_secundaria
+    `
+      )
+      .all(empresaId, modulo, parseInt(anio));
+
+    // Obtener operaciones del layout
+    const operaciones = db
+      .prepare(
+        `
+      SELECT capitulo as CAPITULO, clase as Clase, seccion as SECCION,
+             operacion_tipo, operacion_label, signo, orden
+      FROM layout_operaciones
+      WHERE empresa_id = ? AND modulo = ? AND anio = ?
+      ORDER BY orden
+    `
+      )
+      .all(empresaId, modulo, parseInt(anio));
+
+    // Agrupar operaciones por clase
+    const operacionesAgrupadas = [];
+    const operacionesPorClase = {};
+    operaciones.forEach((op) => {
+      if (!operacionesPorClase[op.Clase]) {
+        operacionesPorClase[op.Clase] = {
+          CAPITULO: op.CAPITULO,
+          Clase: op.Clase,
+          SECCION: op.SECCION,
+          orden: op.orden,
+          signos: {},
+        };
+        operacionesAgrupadas.push(operacionesPorClase[op.Clase]);
+      }
+      operacionesPorClase[op.Clase][op.operacion_tipo] = op.operacion_label;
+      operacionesPorClase[op.Clase].signos[op.operacion_tipo] = op.signo;
+    });
+
+    const resultado = {
+      [modulo]: cuentas,
+      [`${modulo}_OPERACIONES`]: operacionesAgrupadas,
+    };
+
+    // Guardar archivo JSON
+    const infoDir = path.join(process.cwd(), "info IMPORTANTE");
+    if (!fs.existsSync(infoDir)) {
+      fs.mkdirSync(infoDir, { recursive: true });
+    }
+    const fileName = `${modulo}_LAYOUT_${anio}_export.json`;
+    const filePath = path.join(infoDir, fileName);
+    fs.writeFileSync(filePath, JSON.stringify(resultado, null, 2), "utf8");
+
+    res.json({
+      success: true,
+      mensaje: `Layout exportado a ${fileName}`,
+      archivo: filePath,
+      cuentas: cuentas.length,
+      operaciones: operacionesAgrupadas.length,
+      data: resultado,
+    });
+  } catch (error) {
+    console.error("Error al exportar layout:", error);
+    res.status(500).json({
+      success: false,
+      mensaje: "Error al exportar layout",
+      error: error.message,
+    });
+  }
+});
+
+/**
+ * POST /api/layouts-config/:modulo/:anio/seed-operaciones
+ * Seed operations from JSON file to SQLite database
+ */
+router.post("/:modulo/:anio/seed-operaciones", requireAuth, (req, res) => {
+  try {
+    const { modulo, anio } = req.params;
+    const { empresaId = "EMPRESA01" } = req.body;
+    const fs = require("fs");
+    const path = require("path");
+
+    // Read operations from JSON file
+    const jsonPath = path.join(
+      process.cwd(),
+      "info IMPORTANTE",
+      "CUENTAS SUMMARY y RESUMEN 2025.json"
+    );
+
+    if (!fs.existsSync(jsonPath)) {
+      return res.status(404).json({
+        success: false,
+        mensaje: "Archivo JSON no encontrado: " + jsonPath,
+      });
+    }
+
+    const contenido = JSON.parse(fs.readFileSync(jsonPath, "utf8"));
+    const operacionesJSON = contenido["SUMA DE VARIAS SECCIONES"] || [];
+
+    if (operacionesJSON.length === 0) {
+      return res.status(400).json({
+        success: false,
+        mensaje: "No se encontraron operaciones en el archivo JSON",
+      });
+    }
+
+    // Filter operations for the requested module
+    const operacionesFiltradas = operacionesJSON.filter(
+      (op) => op.HOJA === modulo || op.HOJA === undefined // Include if matches module or is global
+    );
+
+    // Save to SQLite using existing service
+    const resultado = layoutService.guardarOperaciones({
+      empresaId,
+      modulo,
+      anio: parseInt(anio),
+      operaciones: operacionesFiltradas,
+    });
+
+    res.json({
+      success: true,
+      mensaje: `Seeded ${operacionesFiltradas.length} operaciones for ${modulo} ${anio}`,
+      operacionesEnJSON: operacionesJSON.length,
+      operacionesFiltradas: operacionesFiltradas.length,
+      ...resultado,
+    });
+  } catch (error) {
+    console.error("Error seeding operaciones:", error);
+    res.status(500).json({
+      success: false,
+      mensaje: "Error al hacer seed de operaciones",
+      error: error.message,
+    });
+  }
+});
+
 module.exports = router;
