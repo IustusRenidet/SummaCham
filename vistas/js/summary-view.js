@@ -1073,10 +1073,7 @@
   const btnRevisar = document.getElementById('btnMarcarRevisado');
   const btnAutorizar = document.getElementById('btnAutorizar');
   const btnGuardarCoi = document.getElementById('saveBudgetBtn');
-  const toastEl = document.getElementById('actionToast');
-  const toastBody = document.getElementById('actionToastBody');
-  const toastInst = toastEl ? window.bootstrap?.Toast.getOrCreateInstance(toastEl, { delay: 3000 }) : null;
-  
+
   // Normalizar estado del backend (MAYÚSCULAS) a formato frontend (minúsculas-guiones)
   const normalizarEstado = (estado) => {
     if (!estado) return 'sin-cargar';
@@ -1105,10 +1102,11 @@
   };
 
   const showToast = (msg, variant = 'text-bg-success') => {
-    if (!toastEl || !toastInst) return;
-    toastEl.className = `toast align-items-center border-0 ${variant}`;
-    if (toastBody) toastBody.textContent = msg;
-    toastInst.show();
+    if (window.ToastManager?.show) {
+      window.ToastManager.show(msg, variant);
+      return;
+    }
+    console.warn('[SummaryView] Toast no disponible', msg);
   };
 
   const workflowEstado = {

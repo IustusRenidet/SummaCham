@@ -358,18 +358,11 @@
       workflowBadge: document.getElementById("workflowBadge"),
       workflowMeta: document.getElementById("workflowMeta"),
       workflowHistory: document.getElementById("workflowHistory"),
-      toastElement: document.getElementById("actionToast"),
-      toastBody: document.getElementById("actionToastBody"),
       yearLabel: document.getElementById("yearLabel"),
       yearColumn: document.getElementById("yearColumn"),
       empresaLabel: document.getElementById("empresaLabel"),
       yearSelect: obtenerSelectEjercicio(),
     };
-
-    const toastInstance = window.bootstrap?.Toast.getOrCreateInstance(
-      elementos.toastElement,
-      { delay: 3000 }
-    );
 
     const EVENTO_CONTEXTO = "planeacion:contexto-actualizado";
     const workflowControlExterno = true; // workflow lo maneja flujo-autorizacion.js
@@ -518,14 +511,11 @@
     actualizarEncabezadosMes();
 
     const showToast = (mensaje, clase = "text-bg-success") => {
-      if (!elementos.toastElement || !toastInstance) {
+      if (window.ToastManager?.show) {
+        window.ToastManager.show(mensaje, clase);
         return;
       }
-      elementos.toastElement.className = `toast align-items-center border-0 ${clase}`;
-      if (elementos.toastBody) {
-        elementos.toastBody.textContent = mensaje;
-      }
-      toastInstance.show();
+      console.warn("[PlaneacionVista] Toast no disponible", mensaje);
     };
 
     const actualizarEncabezadoEmpresa = () => {

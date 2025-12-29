@@ -299,6 +299,92 @@
     redirigir(redirectTo, usarTop);
   };
 
+  // Gestor centralizado de toasts para evitar duplicados y mantener
+  // un solo punto de control sobre los avisos visuales.
+  const ToastManager = (() => {
+    const TOAST_ID = "actionToast";
+    const BODY_ID = "actionToastBody";
+    const DEDUP_MS = 600;
+    const opcionesPorDefecto = { delay: 3200 };
+
+    let cache = null;
+    let ultimoMensaje = "";
+    let ultimaClase = "";
+    let ultimaEmision = 0;
+
+    const normalizarClase = (variant = "success") => {
+      const raw = variant.toString().trim();
+      if (!raw) return "text-bg-success";
+      if (raw.includes("bg-")) return raw;
+      switch (raw.toLowerCase()) {
+        case "error":
+        case "danger":
+          return "text-bg-danger";
+        case "warn":
+        case "warning":
+          return "text-bg-warning";
+        case "info":
+          return "text-bg-info";
+        default:
+          return "text-bg-success";
+      }
+    };
+
+    const resolverElementos = () => {
+      const toastEl = document.getElementById(TOAST_ID);
+      const toastBody = document.getElementById(BODY_ID);
+      if (!toastEl || !toastBody) return null;
+
+      const wrapper = toastEl.closest(".position-fixed, .toast-global") || toastEl;
+      if (wrapper.parentElement && wrapper.parentElement !== document.body) {
+        wrapper.classList.add("toast-global");
+        document.body.appendChild(wrapper);
+      }
+
+      const instance =
+        typeof window.bootstrap?.Toast?.getOrCreateInstance === "function"
+          ? window.bootstrap.Toast.getOrCreateInstance(toastEl, opcionesPorDefecto)
+          : null;
+
+      return { element: toastEl, body: toastBody, instance };
+    };
+
+    const obtenerToast = () => {
+      if (!cache || !document.body.contains(cache.element)) {
+        cache = resolverElementos();
+      }
+      return cache;
+    };
+
+    const mostrar = (mensaje, variante = "success") => {
+      const toast = obtenerToast();
+      if (!toast?.instance || !toast.body) {
+        console.info("[ToastManager] Toast no disponible", mensaje);
+        return;
+      }
+
+      const clase = normalizarClase(variante);
+      const ahora = Date.now();
+      if (mensaje === ultimoMensaje && clase === ultimaClase && ahora - ultimaEmision < DEDUP_MS) {
+        return;
+      }
+
+      ultimoMensaje = mensaje;
+      ultimaClase = clase;
+      ultimaEmision = ahora;
+
+      toast.element.className = `toast align-items-center border-0 ${clase}`;
+      toast.body.textContent = mensaje || "Aviso";
+      toast.instance.show();
+    };
+
+    const ensure = () => obtenerToast();
+
+    return { show: mostrar, ensure };
+  })();
+
+  window.ToastManager = ToastManager;
+
   window.Sesion = {
     obtener,
     guardar,
