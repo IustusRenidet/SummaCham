@@ -25,6 +25,7 @@
             <i class="bi bi-layout-text-window-reverse"></i>
             Gestor de Plantillas
           </h1>
+          <p class="header-subtitle">Define la estructura de los layouts de forma clara</p>
         </div>
         <div class="header-right">
           <span id="authStatus" class="status-badge active">
@@ -32,25 +33,11 @@
           </span>
           <button
             type="button"
-            id="btnPreview"
-            class="btn-action secondary d-none"
-          >
-            <i class="bi bi-eye"></i> Vista Previa
-          </button>
-          <button
-            type="button"
-            id="btnBitacora"
-            class="btn-action secondary d-none"
-          >
-            <i class="bi bi-clock-history"></i> Bitácora
-          </button>
-          <button
-            type="button"
             id="btnGuardar"
             class="btn-action primary"
             disabled
           >
-            <i class="bi bi-save"></i> Guardar
+            <i class="bi bi-save"></i> Guardar cambios
           </button>
         </div>
       </header>
@@ -62,8 +49,12 @@
           <!-- Contexto -->
           <section class="sidebar-card">
             <h3 class="sidebar-card-title">
-              <i class="bi bi-folder2-open"></i> Contexto
+              <i class="bi bi-folder2-open"></i> Selecciona el contexto
             </h3>
+            <p class="sidebar-helper">
+              Elige el módulo, año y capítulo para trabajar sobre un solo layout
+              a la vez.
+            </p>
             <div class="form-group">
               <label for="moduloSelect">Módulo</label>
               <select id="moduloSelect" class="form-select">
@@ -96,77 +87,44 @@
                 <option value="">Sin capítulo</option>
               </select>
             </div>
-            <button
-              type="button"
-              id="btnCargar"
-              class="btn-action secondary w-100"
-            >
-              <i class="bi bi-arrow-clockwise"></i> Cargar Layout
-            </button>
-          </section>
-
-          <!-- Acciones -->
-          <section class="sidebar-card">
-            <h3 class="sidebar-card-title">
-              <i class="bi bi-lightning"></i> Acciones Rápidas
-            </h3>
-            <div class="action-buttons">
+            <div class="sidebar-actions">
+              <button
+                type="button"
+                id="btnCargar"
+                class="btn-action secondary w-100"
+              >
+                <i class="bi bi-arrow-clockwise"></i> Cargar Layout
+              </button>
               <button
                 type="button"
                 id="btnAgregar"
                 class="btn-action success"
                 disabled
               >
-                <i class="bi bi-plus-circle"></i> Agregar Elemento
+                <i class="bi bi-plus-circle"></i> Agregar elemento
               </button>
               <button
                 type="button"
                 id="btnCopiar"
-                class="btn-action secondary"
+                class="btn-action ghost"
                 disabled
               >
-                <i class="bi bi-copy"></i> Copiar a Otro Año
+                <i class="bi bi-copy"></i> Copiar a otro año
               </button>
             </div>
           </section>
 
-          <!-- Gestión de Permisos (Solo Admin) -->
-          <section class="sidebar-card d-none" id="adminPermissionsSection">
+          <section class="sidebar-card info-card">
             <h3 class="sidebar-card-title">
-              <i class="bi bi-shield-lock"></i> Administración
+              <i class="bi bi-shield-check"></i> Permisos de edición
             </h3>
-            <button
-              type="button"
-              id="btnGestionPermisos"
-              class="btn-action secondary w-100"
-            >
-              <i class="bi bi-people"></i> Gestión de Permisos
-            </button>
-          </section>
-
-          <!-- Estadísticas -->
-          <section class="sidebar-card">
-            <h3 class="sidebar-card-title">
-              <i class="bi bi-bar-chart"></i> Estadísticas
-            </h3>
-            <div class="stats-grid">
-              <div class="stat-item">
-                <span class="stat-value" id="statPrincipales">0</span>
-                <span class="stat-label">Principales</span>
-              </div>
-              <div class="stat-item">
-                <span class="stat-value" id="statSecundarias">0</span>
-                <span class="stat-label">Secundarias</span>
-              </div>
-              <div class="stat-item">
-                <span class="stat-value" id="statCuentas">0</span>
-                <span class="stat-label">Cuentas</span>
-              </div>
-              <div class="stat-item">
-                <span class="stat-value" id="statOperaciones">0</span>
-                <span class="stat-label">Operaciones</span>
-              </div>
-            </div>
+            <p class="sidebar-helper">
+              Solo existe el permiso de <strong>editar layouts</strong>. La
+              asignación se realiza desde la administración de usuarios.
+            </p>
+            <p class="sidebar-helper text-muted">
+              Si no tienes permiso, podrás ver el layout en modo lectura.
+            </p>
           </section>
         </aside>
 
@@ -184,14 +142,14 @@
             <div class="placeholder-tips">
               <div class="tip">
                 <i class="bi bi-lightbulb"></i>
-                <span
-                  >Los layouts definen la estructura de tus reportes
-                  financieros</span
-                >
+                <span>Primero carga el layout para habilitar las acciones.</span>
               </div>
               <div class="tip">
-                <i class="bi bi-arrow-repeat"></i>
-                <span>Puedes copiar layouts de un año a otro fácilmente</span>
+                <i class="bi bi-shield-lock"></i>
+                <span>
+                  Los permisos de edición se manejan únicamente en la
+                  administración de usuarios.
+                </span>
               </div>
             </div>
           </div>
@@ -217,7 +175,6 @@
                 >
                   <i class="bi bi-arrows-collapse"></i>
                 </button>
-                <div class="toolbar-separator"></div>
                 <span class="toolbar-info" id="layoutInfo">Sin datos</span>
               </div>
               <div class="toolbar-right">
@@ -226,7 +183,7 @@
                   <input
                     type="text"
                     id="searchInput"
-                    placeholder="Buscar cuenta..."
+                    placeholder="Buscar en el layout"
                   />
                 </div>
               </div>
@@ -458,71 +415,6 @@
               <div class="alert alert-info m-4">Cargando vista previa...</div>
             </div>
           </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Modal: Gestión de Permisos -->
-    <div class="modal fade" id="modalPermisos" tabindex="-1">
-      <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">
-              <i class="bi bi-shield-lock me-2"></i>Gestión de Permisos por
-              Capítulo
-            </h5>
-            <button
-              type="button"
-              class="btn-close"
-              data-bs-dismiss="modal"
-            ></button>
-          </div>
-          <div class="modal-body">
-            <div class="alert alert-info small mb-3">
-              <i class="bi bi-info-circle me-2"></i>
-              Aquí puedes asignar qué usuarios (que no son administradores
-              globales) pueden editar layouts para cada capítulo.
-            </div>
-
-            <div class="table-responsive">
-              <table class="table table-hover align-middle">
-                <thead class="table-light">
-                  <tr>
-                    <th>Usuario</th>
-                    <th>Capítulo</th>
-                    <th class="text-center">Permiso</th>
-                  </tr>
-                </thead>
-                <tbody id="permisosUsuariosBody">
-                  <tr>
-                    <td colspan="3" class="text-center p-4 text-muted">
-                      Cargando usuarios...
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Offcanvas: Bitácora -->
-    <div class="offcanvas offcanvas-end" tabindex="-1" id="drawerBitacora">
-      <div class="offcanvas-header bg-light">
-        <h5 class="offcanvas-title">
-          <i class="bi bi-clock-history me-2"></i>Bitácora de Cambios
-        </h5>
-        <button
-          type="button"
-          class="btn-close"
-          data-bs-dismiss="offcanvas"
-        ></button>
-      </div>
-      <div class="offcanvas-body p-0">
-        <div id="bitacoraList" class="list-group list-group-flush">
-          <!-- Historial dinámico -->
-          <div class="p-4 text-center text-muted">Cargando bitácora...</div>
         </div>
       </div>
     </div>
