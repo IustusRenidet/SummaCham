@@ -146,8 +146,6 @@
       authorizeBudgetBtn: document.getElementById('authorizeBudgetBtn'),
       approveBudgetBtn: document.getElementById('approveBudgetBtn'),
       budgetFileInput: document.getElementById('budgetFileInput'),
-      toastElement: document.getElementById('actionToast'),
-      toastBody: document.getElementById('actionToastBody'),
       presupuestoStatus: document.getElementById('presupuestoStatus'),
       yearLabel: document.getElementById('yearLabel'),
       yearColumn: document.getElementById('yearColumn'),
@@ -158,8 +156,6 @@
       moduleTitle: document.getElementById('moduleTitle'),
       moduleDescription: document.getElementById('moduleDescription')
     };
-
-    const toastInstance = window.bootstrap?.Toast.getOrCreateInstance(elementos.toastElement, { delay: 3000 });
 
     if (elementos.yearLabel) elementos.yearLabel.textContent = anio;
     if (elementos.yearColumn) elementos.yearColumn.textContent = anio;
@@ -179,10 +175,11 @@
     let moduloReadyDispatched = false;
 
     const showToast = (mensaje, clase = 'text-bg-success') => {
-      if (!elementos.toastElement || !toastInstance || !elementos.toastBody) return;
-      elementos.toastElement.className = `toast align-items-center ${clase} border-0`;
-      elementos.toastBody.textContent = mensaje;
-      toastInstance.show();
+      if (window.ToastManager?.show) {
+        window.ToastManager.show(mensaje, clase);
+        return;
+      }
+      console.warn('[PresupuestoVista] Toast no disponible', mensaje);
     };
 
     const mostrarEstado = (mensaje, tipo = 'info') => {

@@ -649,8 +649,6 @@
         hayCambios: false,
       };
       this.tableElement = null;
-      this.toastInstance = null;
-      this.toastBody = null;
       this.buttons = {};
       this._contextRetry = 0;
       this._modalConfirmacionActiva = false;
@@ -929,23 +927,11 @@
     }
 
     _prepareToast() {
-      const toastElement = document.getElementById("actionToast");
-      const toastBody = document.getElementById("actionToastBody");
-      if (toastElement && toastBody && window.bootstrap?.Toast) {
-        const wrapper = toastElement.closest(".position-fixed, .toast-global");
-        if (wrapper) {
-          wrapper.classList.add("toast-global");
-          document.body.appendChild(wrapper);
-        } else if (toastElement.parentElement !== document.body) {
-          toastElement.classList.add("toast-global");
-          document.body.appendChild(toastElement);
-        }
-        this.toastInstance = window.bootstrap.Toast.getOrCreateInstance(
-          toastElement,
-          { delay: 3200 }
-        );
-        this.toastBody = toastBody;
+      if (window.ToastManager?.ensure) {
+        const ctx = window.ToastManager.ensure();
+        if (ctx?.instance) return;
       }
+      console.warn("Bootstrap no está cargado correctamente para toasts.");
     }
 
     _bindGlobalEvents() {
@@ -1817,18 +1803,8 @@
 
     _toast(mensaje, tipo = "success") {
       if (!mensaje) return;
-      if (this.toastInstance && this.toastBody) {
-        const clase =
-          tipo === "danger"
-            ? "text-bg-danger"
-            : tipo === "warning"
-            ? "text-bg-warning"
-            : "text-bg-success";
-        const toastEl = this.toastInstance._element;
-        if (toastEl)
-          toastEl.className = `toast align-items-center border-0 ${clase}`;
-        this.toastBody.textContent = mensaje;
-        this.toastInstance.show();
+      if (window.ToastManager?.show) {
+        window.ToastManager.show(mensaje, tipo);
         return;
       }
       console.info(`[Flujo AUT] ${mensaje}`);

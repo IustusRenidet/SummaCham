@@ -513,14 +513,17 @@
      * Mostrar toast de notificación
      */
     _showToast(message, type = "success") {
-      // Intentar usar toast global
+      const bgClass =
+        type === "error"
+          ? "text-bg-danger"
+          : type === "warning"
+          ? "text-bg-warning"
+          : "text-bg-success";
+      if (window.ToastManager?.show) {
+        window.ToastManager.show(message, bgClass);
+        return;
+      }
       if (typeof showToast === "function") {
-        const bgClass =
-          type === "error"
-            ? "text-bg-danger"
-            : type === "warning"
-            ? "text-bg-warning"
-            : "text-bg-success";
         showToast(message, bgClass);
         return;
       }
