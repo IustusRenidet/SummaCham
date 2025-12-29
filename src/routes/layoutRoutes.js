@@ -989,6 +989,9 @@ router.get("/:modulo/:anio/exportar-json", requireAuth, (req, res) => {
     const fs = require("fs");
     const path = require("path");
 
+    const empresaCanonica = layoutService.obtenerEmpresaCanonica(empresaId);
+    const anioNumero = parseInt(anio);
+
     // Obtener cuentas del layout
     const cuentas = db
       .prepare(
@@ -1001,7 +1004,7 @@ router.get("/:modulo/:anio/exportar-json", requireAuth, (req, res) => {
       ORDER BY orden, capitulo, seccion_principal, seccion_secundaria
     `
       )
-      .all(empresaId, modulo, parseInt(anio));
+      .all(empresaCanonica, modulo, anioNumero);
 
     // Obtener operaciones del layout
     const operaciones = db
@@ -1014,7 +1017,27 @@ router.get("/:modulo/:anio/exportar-json", requireAuth, (req, res) => {
       ORDER BY orden
     `
       )
-      .all(empresaId, modulo, parseInt(anio));
+      .all(empresaCanonica, modulo, anioNumero);
+
+    // Desglosar operaciones con toda la metadata (sin agrupar)
+    const operacionesDetalladas = operaciones.map((op) => ({
+      CAPITULO: op.CAPITULO,
+      Clase: op.Clase,
+      SECCION: op.SECCION,
+      tipo: op.operacion_tipo,
+      etiqueta: op.operacion_label,
+      signo: op.signo,
+      orden: op.orden,
+    }));
+
+    // Organizar operaciones por capítulo para navegación rápida
+    const operacionesPorCapitulo = {};
+    operacionesDetalladas.forEach((op) => {
+      if (!operacionesPorCapitulo[op.CAPITULO]) {
+        operacionesPorCapitulo[op.CAPITULO] = [];
+      }
+      operacionesPorCapitulo[op.CAPITULO].push(op);
+    });
 
     // Agrupar operaciones por clase
     const operacionesAgrupadas = [];
@@ -1035,25 +1058,52 @@ router.get("/:modulo/:anio/exportar-json", requireAuth, (req, res) => {
     });
 
     const resultado = {
-      [modulo]: cuentas,
-      [`${modulo}_OPERACIONES`]: operacionesAgrupadas,
+      empresaId: empresaCanonica,
+      modulo,
+      anio: anioNumero,
+      cuentasPorCapitulo: cuentas.reduce((acc, cuenta) => {
+        if (!acc[cuenta.CAPITULO]) acc[cuenta.CAPITULO] = [];
+        acc[cuenta.CAPITULO].push(cuenta);
+        return acc;
+      }, {}),
+      operacionesAgrupadas,
+      operacionesDetalladas,
+      operacionesPorCapitulo,
+      generadoEn: new Date().toISOString(),
     };
 
-    // Guardar archivo JSON
-    const infoDir = path.join(process.cwd(), "info IMPORTANTE");
-    if (!fs.existsSync(infoDir)) {
-      fs.mkdirSync(infoDir, { recursive: true });
+    // Guardar archivos JSON centralizados por empresa/año
+    const baseDir = path.join(
+      process.cwd(),
+      "info IMPORTANTE",
+      "layouts",
+      empresaCanonica,
+      String(anioNumero)
+    );
+    if (!fs.existsSync(baseDir)) {
+      fs.mkdirSync(baseDir, { recursive: true });
     }
-    const fileName = `${modulo}_LAYOUT_${anio}_export.json`;
-    const filePath = path.join(infoDir, fileName);
-    fs.writeFileSync(filePath, JSON.stringify(resultado, null, 2), "utf8");
+
+    const layoutFileName = `${modulo}_layout.json`;
+    const layoutFilePath = path.join(baseDir, layoutFileName);
+    fs.writeFileSync(layoutFilePath, JSON.stringify(resultado, null, 2), "utf8");
+
+    const operacionesFileName = `${modulo}_operaciones_detalle.json`;
+    const operacionesFilePath = path.join(baseDir, operacionesFileName);
+    fs.writeFileSync(
+      operacionesFilePath,
+      JSON.stringify({ operaciones: operacionesDetalladas }, null, 2),
+      "utf8"
+    );
 
     res.json({
       success: true,
-      mensaje: `Layout exportado a ${fileName}`,
-      archivo: filePath,
+      mensaje: `Layout exportado y centralizado en ${baseDir}`,
+      carpeta: baseDir,
+      archivoLayout: layoutFilePath,
+      archivoOperaciones: operacionesFilePath,
       cuentas: cuentas.length,
-      operaciones: operacionesAgrupadas.length,
+      operaciones: operacionesDetalladas.length,
       data: resultado,
     });
   } catch (error) {
