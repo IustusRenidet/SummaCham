@@ -60,23 +60,13 @@
     dom.btnExpandir = document.getElementById("btnExpandir");
     dom.btnColapsar = document.getElementById("btnColapsar");
     dom.btnPreview = document.getElementById("btnPreview");
-    dom.btnBitacora = document.getElementById("btnBitacora");
-    dom.btnGestionPermisos = document.getElementById("btnGestionPermisos");
 
     // Views
     dom.placeholderView = document.getElementById("placeholderView");
     dom.layoutView = document.getElementById("layoutView");
     dom.layoutPreview = document.getElementById("layoutPreview");
-    dom.adminPermissionsSection = document.getElementById(
-      "adminPermissionsSection"
-    );
 
     // Stats
-    dom.statPrincipales = document.getElementById("statPrincipales");
-    dom.statSecundarias = document.getElementById("statSecundarias");
-    dom.statCuentas = document.getElementById("statCuentas");
-    dom.statOperaciones = document.getElementById("statOperaciones");
-
     // Status
     dom.authStatus = document.getElementById("authStatus");
     dom.statusMessage = document.getElementById("statusMessage");
@@ -88,16 +78,12 @@
     dom.modalCopiar = document.getElementById("modalCopiar");
     dom.modalEditar = document.getElementById("modalEditar");
     dom.modalPreview = document.getElementById("modalPreview");
-    dom.modalPermisos = document.getElementById("modalPermisos");
-    dom.drawerBitacora = document.getElementById("drawerBitacora");
 
     dom.formElemento = document.getElementById("formElemento");
     dom.formEditar = document.getElementById("formEditar");
     dom.copiaOrigen = document.getElementById("copiaOrigen");
     dom.anioDestino = document.getElementById("anioDestino");
     dom.previewContainer = document.getElementById("previewContainer");
-    dom.permisosUsuariosBody = document.getElementById("permisosUsuariosBody");
-    dom.bitacoraList = document.getElementById("bitacoraList");
 
     // Toast
     dom.toastNotification = document.getElementById("toastNotification");
@@ -117,9 +103,6 @@
     dom.btnCopiar.addEventListener("click", openCopyModal);
     dom.btnExpandir?.addEventListener("click", expandAll);
     dom.btnColapsar?.addEventListener("click", collapseAll);
-    dom.btnPreview?.addEventListener("click", showPreview);
-    dom.btnBitacora?.addEventListener("click", showBitacora);
-    dom.btnGestionPermisos?.addEventListener("click", openPermisosModal);
 
     // Search
     dom.searchInput?.addEventListener("input", handleSearch);
@@ -168,10 +151,7 @@
     if (esAdminGlobal) {
       state.editMode = true;
       state.esAdminGlobal = true;
-      updateAuthUI(true, "Administrador Global - Modo edición activo");
-      dom.adminPermissionsSection?.classList.remove("d-none");
-      dom.btnPreview?.classList.remove("d-none");
-      dom.btnBitacora?.classList.remove("d-none");
+      updateAuthUI(true, "Administrador Global - Edición disponible");
     } else {
       // Si no es admin global, verificar si tiene algún permiso de capítulo
       const { capitulo } = state;
@@ -187,18 +167,12 @@
           tienePermiso,
           tienePermiso
             ? `Editor de ${capitulo} - Edición activa`
-            : "Consulta - Sin permiso para editar este capítulo"
+            : "Consulta - solicita permiso de edición en administración de usuarios"
         );
       } else {
         state.editMode = false;
         updateAuthUI(false, "Selecciona un capítulo");
       }
-      dom.adminPermissionsSection?.classList.add("d-none");
-
-      // Los editores también pueden ver vista previa y bitácora
-      const canSeeTools = state.editMode;
-      dom.btnPreview?.classList.toggle("d-none", !canSeeTools);
-      dom.btnBitacora?.classList.toggle("d-none", !canSeeTools);
     }
 
     updateButtonStates();
@@ -815,9 +789,57 @@
     return renderSectionOperation(op);
   }
 
+  function extractFormulaTerms(op) {
+    if (!op) return [];
+
+    // Prefer already normalized terms
+    if (Array.isArray(op.formula_terms) && op.formula_terms.length) {
+      return op.formula_terms.map((term) => ({
+        operator: term.operator || "+",
+        type: term.type || "section",
+        value: term.value || "",
+      }));
+    }
+
+    const terms = [];
+
+    // Helper to sort by numeric suffix (seccion_1, operacion_2, etc.)
+    function extractIndex(key) {
+      const match = key.match(/_(\d+)/);
+      return match ? Number(match[1]) : Number.MAX_SAFE_INTEGER;
+    }
+
+    const candidateKeys = Object.keys(op || {}).filter((k) =>
+      /^(seccion|operacion)_\d+$/i.test(k)
+    );
+
+    candidateKeys
+      .sort((a, b) => extractIndex(a) - extractIndex(b))
+      .forEach((key) => {
+        const value = op[key];
+        if (!value) return;
+
+        const signo = op.signos?.[key];
+        const operator = signo < 0 ? "-" : "+";
+        const type = key.toLowerCase().startsWith("operacion_")
+          ? "operation"
+          : "section";
+
+        terms.push({ operator, type, value });
+      });
+
+    if (!terms.length && op.SECCION) {
+      terms.push({ operator: "+", type: "section", value: op.SECCION });
+    }
+
+    return terms;
+  }
+
   function formatFormula(op) {
-    if (op.formula_terms && op.formula_terms.length) {
-      return op.formula_terms
+    const normalizedTerms = extractFormulaTerms(op);
+
+    if (normalizedTerms.length) {
+      return normalizedTerms
         .map((term, idx) => {
           const prefix =
             idx === 0
@@ -825,30 +847,13 @@
                 ? "-"
                 : ""
               : ` ${term.operator} `;
-          const val =
-            term.value || (term.type === "const" ? term.constValue : "???");
+          const val = term.value || (term.type === "const" ? term.constValue : "???");
           return prefix + val;
         })
         .join("");
-    } else if (op.signos && Object.keys(op.signos).length) {
-      // Reconstruir descripción legible desde campos dinámicos
-      const terms = [];
-      Object.entries(op.signos).forEach(([key, signo]) => {
-        const valor = op[key];
-        if (valor) {
-          const prefix =
-            terms.length === 0
-              ? signo < 0
-                ? "-"
-                : ""
-              : signo < 0
-              ? " - "
-              : " + ";
-          terms.push(prefix + valor);
-        }
-      });
-      return terms.join("") || "Suma de secciones";
-    } else if (op.SECCION) {
+    }
+
+    if (op.SECCION) {
       return op.SECCION;
     }
     return "Consolidado";
@@ -1192,15 +1197,6 @@
   // STATS
   // ==========================================
   function updateStats() {
-    const sections = groupBySections(state.cuentas);
-    let subsectionCount = 0;
-    sections.forEach((subs) => (subsectionCount += subs.size));
-
-    dom.statPrincipales.textContent = sections.size;
-    dom.statSecundarias.textContent = subsectionCount;
-    dom.statCuentas.textContent = state.cuentas.length;
-    dom.statOperaciones.textContent = state.operaciones.length;
-
     dom.layoutInfo.textContent = `${state.modulo} · ${state.anio} · ${state.capitulo}`;
   }
 
@@ -2036,6 +2032,7 @@
     const elements = getAvailableElements();
     const operationNames = elements.operations.map((o) => o.toLowerCase());
     const sectionNames = elements.sections.map((s) => s.toLowerCase());
+    const extractedFromFields = extractFormulaTerms(op);
 
     // Helper to detect if a value is an operation or section
     // Priority: exact match in sections > exact match in operations > fuzzy section > default to section
@@ -2105,6 +2102,15 @@
           });
         }
       });
+    }
+
+    if (formulaTerms.length === 0 && extractedFromFields.length > 0) {
+      formulaTerms = extractedFromFields.map((term, i) => ({
+        id: Date.now() + i,
+        operator: term.operator || "+",
+        type: term.type || detectValueType(term.value),
+        value: term.value || "",
+      }));
     }
 
     if (formulaTerms.length === 0) {
@@ -3073,68 +3079,6 @@
   // ==========================================
   // BITÁCORA
   // ==========================================
-  async function showBitacora() {
-    if (!state.modulo || !state.anio || !state.capitulo) return;
-
-    const bitacoraDrawer = new bootstrap.Offcanvas(dom.drawerBitacora);
-    bitacoraDrawer.show();
-
-    try {
-      const url = `${API_BASE}/${encodeURIComponent(state.modulo)}/${
-        state.anio
-      }/${encodeURIComponent(state.capitulo)}/bitacora?empresaId=EMPRESA01`;
-      const response = await fetch(url, { headers: getAuthHeaders() });
-      if (!response.ok) throw new Error("Error al cargar bitácora");
-
-      const data = await response.json();
-      renderBitacora(data.bitacora || []);
-    } catch (error) {
-      console.error("Bitacora error:", error);
-      dom.bitacoraList.innerHTML = `<div class="p-4 text-center text-danger">Error: ${error.message}</div>`;
-    }
-  }
-
-  function renderBitacora(items) {
-    if (!items.length) {
-      dom.bitacoraList.innerHTML =
-        '<div class="p-4 text-center text-muted">No hay registros aún</div>';
-      return;
-    }
-
-    dom.bitacoraList.innerHTML = items
-      .map((item) => {
-        const fecha = new Date(item.fecha).toLocaleString();
-        const icono =
-          item.accion === "GUARDAR"
-            ? "save"
-            : item.accion === "CREAR"
-            ? "plus-circle"
-            : "pencil";
-        const color =
-          item.accion === "GUARDAR"
-            ? "primary"
-            : item.accion === "CREAR"
-            ? "success"
-            : "info";
-
-        return `
-        <div class="list-group-item p-3 border-0 border-bottom">
-          <div class="d-flex w-100 justify-content-between mb-1">
-            <h6 class="mb-1 text-${color}"><i class="bi bi-${icono} me-2"></i>${
-          item.accion
-        }</h6>
-            <small class="text-muted">${fecha}</small>
-          </div>
-          <p class="mb-1 small">${escapeHtml(item.detalles || "")}</p>
-          <small class="text-muted"><i class="bi bi-person me-1"></i>${
-            item.nombre_usuario || "Sistema"
-          }</small>
-        </div>
-      `;
-      })
-      .join("");
-  }
-
   async function addToBitacora(accion, detalles) {
     try {
       await fetch(`${API_BASE}/bitacora`, {
@@ -3247,107 +3191,4 @@
     dom.previewContainer.innerHTML = html;
   }
 
-  // ==========================================
-  // GESTIÓN DE PERMISOS
-  // ==========================================
-  async function openPermisosModal() {
-    const modal = new bootstrap.Modal(dom.modalPermisos);
-    modal.show();
-    await cargarUsuariosPermisos();
-  }
-
-  async function cargarUsuariosPermisos() {
-    const tbody = dom.permisosUsuariosBody;
-    tbody.innerHTML =
-      '<tr><td colspan="3" class="text-center p-4">Cargando...</td></tr>';
-
-    try {
-      const res = await fetch(`${API_BASE}/permisos/capitulos`, {
-        headers: getAuthHeaders(),
-      });
-      if (!res.ok) throw new Error("Error al cargar usuarios");
-
-      const { usuarios, permisos } = await res.json();
-
-      // Obtener lista de capítulos disponibles
-      const capitulos = await fetchCapitulosUnicos();
-
-      let html = "";
-      usuarios.forEach((user) => {
-        capitulos.forEach((cap) => {
-          const p = permisos.find(
-            (p) => p.usuario_id === user.id && p.capitulo === cap
-          );
-          const tienePermiso = p ? p.puede_editar === 1 : false;
-
-          html += `
-            <tr>
-              <td><strong>${escapeHtml(
-                user.usuario
-              )}</strong><br><small class="text-muted">${escapeHtml(
-            user.nombres || ""
-          )}</small></td>
-              <td><span class="badge bg-light text-dark border">${escapeHtml(
-                cap
-              )}</span></td>
-              <td class="text-center">
-                <div class="form-check form-switch d-inline-block">
-                  <input class="form-check-input" type="checkbox" ${
-                    tienePermiso ? "checked" : ""
-                  } 
-                    onchange="cambiarPermisoCapitulo(${user.id}, '${escapeAttr(
-            cap
-          )}', this.checked)">
-                </div>
-              </td>
-            </tr>
-          `;
-        });
-      });
-
-      tbody.innerHTML =
-        html ||
-        '<tr><td colspan="3" class="text-center p-4">No hay usuarios para gestionar</td></tr>';
-    } catch (err) {
-      tbody.innerHTML = `<tr class="table-danger"><td colspan="3">${err.message}</td></tr>`;
-    }
-  }
-
-  async function fetchCapitulosUnicos() {
-    // Definimos los capítulos estándar de la empresa 1 (que son los que tienen plantillas)
-    return [
-      "Finanzas",
-      "GastosGenerales",
-      "Nomina",
-      "Membresía",
-      "SUMA",
-      "Otros",
-    ];
-  }
-
-  window.cambiarPermisoCapitulo = async function (
-    usuarioId,
-    capitulo,
-    puedeEditar
-  ) {
-    try {
-      const res = await fetch(`${API_BASE}/permisos/capitulos`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...getAuthHeaders(),
-        },
-        body: JSON.stringify({ usuarioId, capitulo, puedeEditar }),
-      });
-
-      if (!res.ok) throw new Error("Error al actualizar permiso");
-      showToast(`Permiso actualizado para ${capitulo}`, "success");
-
-      // Limpiar caché local de permisos
-      permisosCache.clear();
-      checkAuthState();
-    } catch (err) {
-      showToast(err.message, "error");
-    }
-  };
 })();

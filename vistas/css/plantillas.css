@@ -89,6 +89,12 @@ body {
   color: var(--plt-primary);
 }
 
+.header-subtitle {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #475569;
+}
+
 .plantillas-header.compact .status-badge.active {
   background: rgba(16, 185, 129, 0.1);
   color: #059669;
@@ -166,6 +172,11 @@ body {
   color: #fca5a5;
 }
 
+.status-badge.info {
+  background: #e2e8f0;
+  color: #475569;
+}
+
 /* ===== BUTTONS ===== */
 .btn-action {
   display: inline-flex;
@@ -216,6 +227,18 @@ body {
   transform: translateY(-1px);
 }
 
+.btn-action.ghost {
+  background: transparent;
+  color: #475569;
+  border: 1px dashed var(--plt-border);
+}
+
+.btn-action.ghost:hover:not(:disabled) {
+  color: var(--plt-primary);
+  border-color: var(--plt-primary);
+  background: #f8fafc;
+}
+
 /* ===== MAIN LAYOUT ===== */
 .plantillas-main {
   display: flex;
@@ -241,6 +264,11 @@ body {
   border-radius: var(--plt-radius);
   padding: 16px;
   border: 1px solid var(--plt-border);
+}
+
+.sidebar-card.info-card {
+  background: #f8fafc;
+  border-style: dashed;
 }
 
 .sidebar-card-title {
@@ -272,6 +300,19 @@ body {
   margin-bottom: 6px;
   text-transform: uppercase;
   letter-spacing: 0.3px;
+}
+
+.sidebar-helper {
+  margin: 0 0 12px 0;
+  color: #475569;
+  font-size: 0.9rem;
+}
+
+.sidebar-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
 }
 
 .form-select,
