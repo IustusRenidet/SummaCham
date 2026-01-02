@@ -3418,16 +3418,16 @@
 
   // Obtener elementos disponibles
   function getAvailableElements() {
-    const sections = [];
+    const sections = new Set();
     const accounts = [];
-    const operations = [];
+    const operations = new Set();
 
     // Secciones y Cuentas
     groupBySections(state.cuentas).forEach((subs, principal) => {
-      sections.push(principal);
+      sections.add(principal);
       subs.forEach((cuentas, secundaria) => {
         if (secundaria && secundaria !== principal) {
-          sections.push(secundaria);
+          sections.add(secundaria);
         }
         cuentas.forEach((c) => {
           if (c.CUENTA) {
@@ -3441,14 +3441,40 @@
     const currentOpClase = state.selectedElement?.op?.Clase;
     sortOperations(state.operaciones).forEach((op) => {
       if (op.Clase && op.Clase !== currentOpClase) {
-        operations.push(op.Clase);
+        operations.add(op.Clase);
       }
     });
 
+    // Etiquetas generadas por filas especiales (sum-row, net-row, etc.)
+    const rowLabelFields = [
+      "sum-row",
+      "sum-row-sumavarios",
+      "sum-row-sumavarios-consolidado",
+      "sum-row-operativo",
+      "result-row",
+      "net-row",
+      "result-net-row",
+    ];
+
+    state.operaciones.forEach((op) => {
+      // Poblar secciones aún cuando no existan cuentas cargadas
+      [op.SECCION, op.parentSection, op.parentSubsection]
+        .filter(Boolean)
+        .forEach((sec) => sections.add(sec));
+
+      // Poblar operaciones con etiquetas de filas generadas
+      rowLabelFields.forEach((field) => {
+        const label = op[field];
+        if (label && label.trim()) {
+          operations.add(label.trim());
+        }
+      });
+    });
+
     return {
-      sections: [...new Set(sections)],
+      sections: [...sections],
       accounts,
-      operations: [...new Set(operations)],
+      operations: [...operations],
     };
   }
 
