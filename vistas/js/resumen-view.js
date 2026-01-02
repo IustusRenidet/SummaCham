@@ -2328,6 +2328,20 @@
                 },
                 title: {
                   display: false
+                },
+                datalabels: {
+                  display: true,
+                  color: '#000',
+                  anchor: 'end',
+                  align: 'top',
+                  offset: 4,
+                  font: {
+                    size: 14,
+                    weight: 'bold'
+                  },
+                  formatter: function(value) {
+                    return value.toLocaleString('es-MX', { maximumFractionDigits: 0 });
+                  }
                 }
               },
               scales: {
@@ -2353,12 +2367,33 @@
                 padding: {
                   left: 20,
                   right: 20,
-                  top: 20,
+                  top: 50,
                   bottom: 20
                 }
               },
               barPercentage: 0.7
-            }
+            },
+            plugins: [{
+              id: 'customDataLabels',
+              afterDatasetsDraw: function(chart) {
+                const ctx = chart.ctx;
+                chart.data.datasets.forEach(function(dataset, i) {
+                  const meta = chart.getDatasetMeta(i);
+                  if (!meta.hidden) {
+                    meta.data.forEach(function(element, index) {
+                      ctx.fillStyle = '#000';
+                      ctx.font = 'bold 14px Arial';
+                      ctx.textAlign = 'center';
+                      ctx.textBaseline = 'bottom';
+                      
+                      const dataString = dataset.data[index].toLocaleString('es-MX', { maximumFractionDigits: 0 });
+                      const position = element.tooltipPosition();
+                      ctx.fillText(dataString, position.x, position.y - 5);
+                    });
+                  }
+                });
+              }
+            }]
           });
 
           await new Promise(resolve => setTimeout(resolve, 200));
@@ -2431,12 +2466,20 @@
           const headerRows = Array.from(thead.querySelectorAll('tr'));
           let excelRowIndex = 1;
           
+          // Mapa para rastrear celdas ocupadas por merges
+          const occupiedCells = new Map();
+          
           headerRows.forEach((row, rowIdx) => {
             const cells = Array.from(row.querySelectorAll('th'));
             const excelRow = wsResumen.getRow(excelRowIndex);
             let colIndex = 1;
             
             cells.forEach(cell => {
+              // Saltar columnas ocupadas por merges anteriores
+              while (occupiedCells.has(`${excelRowIndex},${colIndex}`)) {
+                colIndex++;
+              }
+              
               const texto = cell.textContent.trim();
               const colspan = parseInt(cell.getAttribute('colspan')) || 1;
               const rowspan = parseInt(cell.getAttribute('rowspan')) || 1;
@@ -2456,12 +2499,19 @@
               
               // Aplicar merge si hay colspan o rowspan
               if (colspan > 1 || rowspan > 1) {
-                wsResumen.mergeCells(
-                  excelRowIndex,
-                  colIndex,
-                  excelRowIndex + rowspan - 1,
-                  colIndex + colspan - 1
-                );
+                const endRow = excelRowIndex + rowspan - 1;
+                const endCol = colIndex + colspan - 1;
+                
+                wsResumen.mergeCells(excelRowIndex, colIndex, endRow, endCol);
+                
+                // Marcar todas las celdas ocupadas por este merge
+                for (let r = excelRowIndex; r <= endRow; r++) {
+                  for (let c = colIndex; c <= endCol; c++) {
+                    occupiedCells.set(`${r},${c}`, true);
+                  }
+                }
+              } else {
+                occupiedCells.set(`${excelRowIndex},${colIndex}`, true);
               }
               
               colIndex += colspan;
@@ -2580,12 +2630,7 @@
         let currentRow = 7;
 
         for (const data of graficaData) {
-          // Agregar título de la gráfica
-          const titleRow = wsGraficas.addRow([data.titulo]);
-          titleRow.font = { bold: true, size: 14 };
-          currentRow++;
-
-          // Generar gráfica con Chart.js
+          // Generar gráfica con Chart.js (el título está incluido en la gráfica)
           const ctx = canvas.getContext('2d');
           ctx.clearRect(0, 0, canvas.width, canvas.height);
           
@@ -2616,6 +2661,20 @@
                   font: { size: 22, weight: 'bold' },
                   padding: { top: 15, bottom: 25 },
                   color: '#1e3a8a'
+                },
+                datalabels: {
+                  display: true,
+                  color: '#000',
+                  anchor: 'end',
+                  align: 'top',
+                  offset: 4,
+                  font: {
+                    size: 14,
+                    weight: 'bold'
+                  },
+                  formatter: function(value) {
+                    return value.toLocaleString('es-MX', { maximumFractionDigits: 0 });
+                  }
                 }
               },
               scales: {
@@ -2641,13 +2700,34 @@
                 padding: {
                   left: 20,
                   right: 20,
-                  top: 20,
+                  top: 50,
                   bottom: 20
                 }
               },
               barPercentage: 0.7,
               categoryPercentage: 0.8
-            }
+            },
+            plugins: [{
+              id: 'customDataLabels',
+              afterDatasetsDraw: function(chart) {
+                const ctx = chart.ctx;
+                chart.data.datasets.forEach(function(dataset, i) {
+                  const meta = chart.getDatasetMeta(i);
+                  if (!meta.hidden) {
+                    meta.data.forEach(function(element, index) {
+                      ctx.fillStyle = '#000';
+                      ctx.font = 'bold 14px Arial';
+                      ctx.textAlign = 'center';
+                      ctx.textBaseline = 'bottom';
+                      
+                      const dataString = dataset.data[index].toLocaleString('es-MX', { maximumFractionDigits: 0 });
+                      const position = element.tooltipPosition();
+                      ctx.fillText(dataString, position.x, position.y - 5);
+                    });
+                  }
+                });
+              }
+            }]
           });
 
           // Esperar a que se renderice
@@ -2705,56 +2785,156 @@
     const snapshot = window.RESUMEN_SNAPSHOT;
     if (!snapshot || !snapshot.filas) return [];
 
-    // Buscar filas clave para las gráficas
-    const filasClave = [
-      { key: 'CONSOLIDATED INCOME', titulo: 'CONSOLIDATED INCOME' },
-      { key: 'CONSOLIDATED EXPENSE', titulo: 'CONSOLIDATED EXPENSES' },
-      { key: 'CONSOLIDATED OPERATING RESULTS', titulo: 'CONSOLIDATED OPERATING RESULTS' },
-      { key: 'CONSOLIDATED NET RESULTS', titulo: 'CONSOLIDATED NET RESULTS' }
-    ];
-
     const datos = [];
 
-    // Generar una gráfica para cada concepto consolidado
-    filasClave.forEach(({ key, titulo }) => {
+    // === GRÁFICA 1: Resultado Operativo por Capítulo ===
+    const regiones = [
+      { label: 'Ciudad de México', key: 'OPERATING RESULTS MEXICO' },
+      { label: 'Guadalajara', key: 'OPERATING RESULTS GUADALAJARA' },
+      { label: 'Noreste', key: 'OPERATING RESULTS MONTERREY' },
+      { label: 'Noroeste', key: 'OPERATING RESULTS NORTHWEST' }
+    ];
+
+    const operatingLabels = [];
+    const operatingReal = [];
+    const operatingPpto = [];
+    const operatingPrev = [];
+
+    regiones.forEach(region => {
       const fila = snapshot.filas.find(f => 
-        f.label.toUpperCase().includes(key.toUpperCase())
+        f.label.toUpperCase().includes(region.key.toUpperCase())
       );
+      if (fila) {
+        operatingLabels.push(region.label);
+        operatingReal.push(fila.totals.actualYTD || 0);
+        operatingPpto.push(fila.totals.planYTD || 0);
+        operatingPrev.push(fila.totals.prevYTD || 0);
+      }
+    });
 
-      if (!fila) return;
-
-      const realData = fila.totals.actualYTD || 0;
-      const pptoData = fila.totals.planYTD || 0;
-      const prevData = fila.totals.prevYTD || 0;
-
+    if (operatingLabels.length > 0) {
       datos.push({
-        titulo: titulo,
-        labels: [''],
+        titulo: 'Resultado Operativo por Capítulo',
+        labels: operatingLabels,
         datasets: [
           {
             label: 'Real Acumulado',
-            data: [realData],
+            data: operatingReal,
             backgroundColor: '#0d47a1',
             borderColor: '#0d47a1',
             borderWidth: 2
           },
           {
             label: 'Ppto. Acumulado',
-            data: [pptoData],
+            data: operatingPpto,
             backgroundColor: '#60a5fa',
             borderColor: '#60a5fa',
             borderWidth: 2
           },
           {
             label: 'Real Acum. Año Anterior',
-            data: [prevData],
+            data: operatingPrev,
             backgroundColor: '#94a3b8',
             borderColor: '#94a3b8',
             borderWidth: 2
           }
         ]
       });
+    }
+
+    // === GRÁFICA 2: Resumen Neto por Capítulo ===
+    const netLabels = [];
+    const netReal = [];
+    const netPpto = [];
+    const netPrev = [];
+
+    const regionesNet = [
+      { label: 'Ciudad de México', key: 'NET RESULTS MEXICO' },
+      { label: 'Guadalajara', key: 'NET RESULTS GUADALAJARA' },
+      { label: 'Noreste', key: 'NET RESULTS MONTERREY' },
+      { label: 'Noroeste', key: 'NET RESULTS NORTHWEST' }
+    ];
+
+    regionesNet.forEach(region => {
+      const fila = snapshot.filas.find(f => 
+        f.label.toUpperCase().includes(region.key.toUpperCase())
+      );
+      if (fila) {
+        netLabels.push(region.label);
+        netReal.push(fila.totals.actualYTD || 0);
+        netPpto.push(fila.totals.planYTD || 0);
+        netPrev.push(fila.totals.prevYTD || 0);
+      }
     });
+
+    if (netLabels.length > 0) {
+      datos.push({
+        titulo: 'Resumen Neto por Capítulo',
+        labels: netLabels,
+        datasets: [
+          {
+            label: 'Real Acumulado',
+            data: netReal,
+            backgroundColor: '#0d47a1',
+            borderColor: '#0d47a1',
+            borderWidth: 2
+          },
+          {
+            label: 'Ppto. Acumulado',
+            data: netPpto,
+            backgroundColor: '#60a5fa',
+            borderColor: '#60a5fa',
+            borderWidth: 2
+          },
+          {
+            label: 'Real Acum. Año Anterior',
+            data: netPrev,
+            backgroundColor: '#94a3b8',
+            borderColor: '#94a3b8',
+            borderWidth: 2
+          }
+        ]
+      });
+    }
+
+    // === GRÁFICA 3: Consolidados Operativos vs Netos ===
+    const consolidatedOp = snapshot.filas.find(f => 
+      f.label.toUpperCase().includes('CONSOLIDATED OPERATING RESULTS')
+    );
+    const consolidatedNet = snapshot.filas.find(f => 
+      f.label.toUpperCase().includes('CONSOLIDATED NET RESULTS')
+    );
+
+    if (consolidatedOp && consolidatedNet) {
+      datos.push({
+        titulo: 'CONSOLIDATED OPERATING RESULTS vs CONSOLIDATED NET RESULTS (Acumulados)',
+        labels: ['Real Acumulado', 'Ppto. Acumulado', 'Real Acumulado AA'],
+        datasets: [
+          {
+            label: 'CONSOLIDATED OPERATING RESULTS',
+            data: [
+              consolidatedOp.totals.actualYTD || 0,
+              consolidatedOp.totals.planYTD || 0,
+              consolidatedOp.totals.prevYTD || 0
+            ],
+            backgroundColor: '#0d47a1',
+            borderColor: '#0d47a1',
+            borderWidth: 2
+          },
+          {
+            label: 'CONSOLIDATED NET RESULTS',
+            data: [
+              consolidatedNet.totals.actualYTD || 0,
+              consolidatedNet.totals.planYTD || 0,
+              consolidatedNet.totals.prevYTD || 0
+            ],
+            backgroundColor: '#94a3b8',
+            borderColor: '#94a3b8',
+            borderWidth: 2
+          }
+        ]
+      });
+    }
 
     return datos;
   };
