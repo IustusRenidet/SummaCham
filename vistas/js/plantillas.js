@@ -28,6 +28,7 @@
     unsavedChanges: false,
     editMode: false,
     selectedElement: null,
+    changeLog: [], // Registro de cambios
   };
 
   // ==========================================
@@ -723,7 +724,262 @@
       html += renderSection(section);
     });
 
-    // Render section-level operations (only those NOT already rendered inline)
+    // SECCIÓN ROBUSTA: Mostrar TODAS las operaciones organizadas por tabla de aparición
+    html += renderAllOperationsByTable(renderedInlineOps);
+
+    dom.layoutPreview.innerHTML = html;
+    bindLayoutEvents();
+  }
+
+  // Renderizar TODAS las operaciones organizadas por su tabla de aparición
+  function renderAllOperationsByTable(renderedInlineOps) {
+    let html = "";
+
+    // Agrupar operaciones por tabla donde aparecen
+    const operationsByTable = {
+      sectionTotals: [], // Totales de sección (CDMX INCOME, etc.)
+      consolidated: [], // Consolidados (CONSOLIDATED INCOME, EXPENSE, etc.)
+      operating: [], // Resultados operativos
+      results: [], // Resultados
+      netResults: [], // Resultados netos
+    };
+
+    // Clasificar TODAS las operaciones sin filtrar ninguna
+    sortOperations(state.operaciones).forEach((op) => {
+      // Clasificar por tipo de fila donde aparece (prioridad: más específico primero)
+      if (op["result-net-row"] || op["net-row"]) {
+        operationsByTable.netResults.push(op);
+      } else if (op["result-row"]) {
+        operationsByTable.results.push(op);
+      } else if (op["sum-row-operativo"]) {
+        operationsByTable.operating.push(op);
+      } else if (op["sum-row-sumavarios-consolidado"]) {
+        operationsByTable.consolidated.push(op);
+      } else if (op["sum-row-sumavarios"] || op["sum-row"]) {
+        operationsByTable.sectionTotals.push(op);
+      } else {
+        // Si no tiene ninguna etiqueta, revisar el nombre de la clase
+        const clase = (op.Clase || "").toLowerCase();
+        if (clase.includes("net") || clase.includes("neto")) {
+          operationsByTable.netResults.push(op);
+        } else if (clase.includes("result") || clase.includes("resultado")) {
+          operationsByTable.results.push(op);
+        } else if (clase.includes("operating") || clase.includes("operativo")) {
+          operationsByTable.operating.push(op);
+        } else if (
+          clase.includes("consolidated") ||
+          clase.includes("consolidado")
+        ) {
+          operationsByTable.consolidated.push(op);
+        } else {
+          operationsByTable.sectionTotals.push(op);
+        }
+      }
+    });
+
+    // Renderizar cada tabla en orden
+    const tableSections = [
+      {
+        key: "sectionTotals",
+        title: "Totales de Sección",
+        icon: "bi-bar-chart-fill",
+        color: "primary",
+        description: "Sumas de cada capítulo (CDMX INCOME, MTY EXPENSE, etc.)",
+      },
+      {
+        key: "consolidated",
+        title: "Consolidados",
+        icon: "bi-collection-fill",
+        color: "success",
+        description:
+          "Consolidación de múltiples capítulos (CONSOLIDATED INCOME)",
+      },
+      {
+        key: "operating",
+        title: "Resultados Operativos",
+        icon: "bi-graph-up-arrow",
+        color: "info",
+        description: "Resultados de operación (OPERATING RESULTS)",
+      },
+      {
+        key: "results",
+        title: "Resultados",
+        icon: "bi-calculator-fill",
+        color: "warning",
+        description: "Resultados antes de impuestos (RESULTS)",
+      },
+      {
+        key: "netResults",
+        title: "Resultados Netos",
+        icon: "bi-cash-stack",
+        color: "danger",
+        description: "Resultado neto final (NET RESULTS)",
+      },
+    ];
+
+    // Contar total de operaciones
+    const totalOps = state.operaciones.length;
+
+    // Agregar encabezado general
+    if (totalOps > 0) {
+      html += `
+        <div class="all-operations-header mt-4 mb-3">
+          <div class="card border-0 shadow-sm">
+            <div class="card-body bg-gradient" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+              <div class="d-flex align-items-center justify-content-between text-white">
+                <div>
+                  <h4 class="mb-1 fw-bold"><i class="bi bi-calculator-fill me-2"></i>Todas las Operaciones</h4>
+                  <p class="mb-0 opacity-75">Vista completa organizada por tabla de aparición</p>
+                </div>
+                <div class="text-end">
+                  <div class="display-4 fw-bold">${totalOps}</div>
+                  <small>Operaciones totales</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    tableSections.forEach((section) => {
+      const ops = operationsByTable[section.key];
+      if (ops && ops.length > 0) {
+        html += `
+          <div class="operations-table-section mt-4">
+            <div class="table-section-header bg-${
+              section.color
+            } bg-opacity-10 border-${
+          section.color
+        } border-start border-4 p-3 rounded">
+              <div class="d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center gap-2">
+                  <i class="bi ${section.icon} text-${section.color} fs-4"></i>
+                  <div>
+                    <h5 class="mb-0 text-${section.color}">${section.title}</h5>
+                    <small class="text-muted">${section.description}</small>
+                  </div>
+                </div>
+                <span class="badge bg-${section.color}">${
+          ops.length
+        } operaciones</span>
+              </div>
+            </div>
+            <div class="table-section-content mt-2">
+              ${ops
+                .map((op) => renderOperationCard(op, section.color))
+                .join("")}
+            </div>
+          </div>
+        `;
+      }
+    });
+
+    return html;
+  }
+
+  // Renderizar tarjeta de operación con detalles completos
+  function renderOperationCard(op, colorTheme) {
+    const clase = op.Clase || "Operación";
+    const displayName = getOperationDisplayName(op);
+    const formula = formatFormula(op);
+    const termsCount = op.formula_terms?.length || 0;
+
+    // Obtener el nombre de la fila donde aparece
+    const rowLabels = [];
+    const rowFields = [
+      { field: "sum-row", label: "Fila de Suma" },
+      { field: "sum-row-sumavarios", label: "Suma Varios" },
+      { field: "sum-row-sumavarios-consolidado", label: "Consolidado" },
+      { field: "sum-row-operativo", label: "Operativo" },
+      { field: "result-row", label: "Resultado" },
+      { field: "net-row", label: "Neto" },
+      { field: "result-net-row", label: "Resultado Neto" },
+    ];
+
+    rowFields.forEach(({ field, label }) => {
+      if (op[field]) {
+        rowLabels.push(
+          `<span class="badge bg-${colorTheme} bg-opacity-75">${label}: ${escapeHtml(
+            op[field]
+          )}</span>`
+        );
+      }
+    });
+
+    // Mostrar términos de la fórmula
+    let termsHtml = "";
+    if (op.formula_terms && op.formula_terms.length > 0) {
+      termsHtml = `
+        <div class="formula-terms-preview mt-2">
+          <small class="text-muted d-block mb-1"><i class="bi bi-equation"></i> Fórmula:</small>
+          <div class="d-flex flex-wrap gap-1">
+            ${op.formula_terms
+              .map(
+                (term, idx) => `
+              <span class="badge bg-light text-dark border">
+                ${idx > 0 ? term.operator + " " : ""}${escapeHtml(
+                  term.value || "???"
+                )}
+              </span>
+            `
+              )
+              .join("")}
+          </div>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="operation-card border-${colorTheme} mb-2 p-3 rounded border-start border-3 bg-white shadow-sm hover-shadow">
+        <div class="d-flex align-items-start justify-content-between">
+          <div class="flex-grow-1">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <i class="bi bi-calculator text-${colorTheme}"></i>
+              <strong class="text-${colorTheme}">${escapeHtml(
+      displayName
+    )}</strong>
+              ${
+                termsCount > 0
+                  ? `<span class="badge bg-secondary">${termsCount} términos</span>`
+                  : ""
+              }
+            </div>
+            <div class="mb-2">
+              <small class="text-muted">Clase: </small>
+              <code class="text-dark">${escapeHtml(clase)}</code>
+            </div>
+            ${
+              rowLabels.length > 0
+                ? `
+              <div class="d-flex flex-wrap gap-1 mb-2">
+                ${rowLabels.join("")}
+              </div>
+            `
+                : ""
+            }
+            ${termsHtml}
+          </div>
+          <div class="d-flex flex-column gap-1">
+            <button class="btn btn-sm btn-outline-primary" onclick="window.editOperation('${escapeAttr(
+              clase
+            ).replace(/'/g, "\\'")}')">
+              <i class="bi bi-pencil"></i> Editar
+            </button>
+            <button class="btn btn-sm btn-outline-danger" onclick="window.deleteOperation('${escapeAttr(
+              clase
+            ).replace(/'/g, "\\'")}')">
+              <i class="bi bi-trash"></i> Eliminar
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // Render section-level operations (only those NOT already rendered inline) - LEGACY
+  function renderSectionLevelOperationsLegacy(renderedInlineOps) {
+    let html = "";
     const sectionLevelOps = state.operaciones.filter((op) => {
       // Skip if already rendered inline
       if (renderedInlineOps.has(op.Clase)) {
@@ -860,8 +1116,7 @@
       html += `</div>`;
     }
 
-    dom.layoutPreview.innerHTML = html;
-    bindLayoutEvents();
+    return html;
   }
 
   // Find if an operation matches a specific subsection
@@ -1289,15 +1544,15 @@
             }
           </div>
           <div class="account-actions">
-            <button class="btn btn-sm btn-outline-info" onclick="event.stopPropagation(); showOperationMap('${escapeAttr(
-              clase
-            )}')" title="Ver Mapa">
-              <i class="bi bi-diagram-3"></i>
-            </button>
             <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); editOperation('${escapeAttr(
               clase
             )}')" title="Editar">
               <i class="bi bi-pencil"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); deleteOperation('${escapeAttr(
+              clase
+            )}')" title="Eliminar">
+              <i class="bi bi-trash"></i>
             </button>
           </div>
         </div>
@@ -1629,8 +1884,10 @@
     };
 
     state.cuentas.push(newAccount);
-    state.unsavedChanges = true;
-    updateButtonStates();
+    logChange("add", `Sección Principal "${nombre}"`, {
+      nombre,
+      type: "section",
+    });
     showToast(`Sección "${nombre}" creada`, "success");
   }
 
@@ -1651,8 +1908,11 @@
     };
 
     state.cuentas.push(newAccount);
-    state.unsavedChanges = true;
-    updateButtonStates();
+    logChange("add", `Subsección "${nombre}" en ${principal}`, {
+      nombre,
+      principal,
+      type: "subsection",
+    });
     showToast(`Subsección "${nombre}" creada`, "success");
   }
 
@@ -1674,8 +1934,12 @@
     };
 
     state.cuentas.push(newAccount);
-    state.unsavedChanges = true;
-    updateButtonStates();
+    logChange("add", `Cuenta ${cuenta} - ${nombre}`, {
+      cuenta,
+      nombre,
+      principal,
+      secundaria,
+    });
     showToast(`Cuenta ${cuenta} agregada`, "success");
   }
 
@@ -1735,8 +1999,11 @@
     });
 
     state.operaciones.push(newOp);
-    state.unsavedChanges = true;
-    updateButtonStates();
+    logChange("add", `Operación "${clase}" (${tipo})`, {
+      clase,
+      tipo,
+      sections: checkedSections.length,
+    });
     renderLayout(); // Re-render to show inline
     showToast(`Operación "${clase}" creada`, "success");
   }
@@ -1814,9 +2081,303 @@
   // ==========================================
   // SAVE
   // ==========================================
+
+  /**
+   * Registrar un cambio en el log
+   */
+  function logChange(type, description, data = {}) {
+    state.changeLog.push({
+      type, // 'add', 'edit', 'delete', 'move', 'rename'
+      description,
+      timestamp: new Date().toISOString(),
+      data,
+    });
+    state.unsavedChanges = true;
+    updateButtonStates();
+  }
+
+  /**
+   * Generar resumen de cambios
+   */
+  function generateChangesSummary() {
+    const summary = {
+      added: [],
+      edited: [],
+      deleted: [],
+      moved: [],
+      renamed: [],
+      total: 0,
+    };
+
+    state.changeLog.forEach((change) => {
+      switch (change.type) {
+        case "add":
+          summary.added.push(change.description);
+          break;
+        case "edit":
+          summary.edited.push(change.description);
+          break;
+        case "delete":
+          summary.deleted.push(change.description);
+          break;
+        case "move":
+          summary.moved.push(change.description);
+          break;
+        case "rename":
+          summary.renamed.push(change.description);
+          break;
+      }
+      summary.total++;
+    });
+
+    // Generar resumen textual
+    const parts = [];
+    if (summary.added.length) parts.push(`${summary.added.length} agregados`);
+    if (summary.edited.length) parts.push(`${summary.edited.length} editados`);
+    if (summary.deleted.length)
+      parts.push(`${summary.deleted.length} eliminados`);
+    if (summary.moved.length) parts.push(`${summary.moved.length} movidos`);
+    if (summary.renamed.length)
+      parts.push(`${summary.renamed.length} renombrados`);
+
+    summary.summary = parts.join(", ");
+    return summary;
+  }
+
+  /**
+   * Mostrar modal de confirmación con resumen de cambios
+   */
+  async function showSaveConfirmation(summary) {
+    return new Promise((resolve) => {
+      const modal = document.createElement("div");
+      modal.className = "modal fade";
+      modal.innerHTML = `
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+          <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+              <h5 class="modal-title">
+                <i class="bi bi-save me-2"></i>Confirmar Guardado
+              </h5>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+              <div class="alert alert-info mb-3">
+                <i class="bi bi-info-circle me-2"></i>
+                <strong>Total de cambios:</strong> ${summary.total}
+              </div>
+
+              ${
+                summary.added.length
+                  ? `
+                <div class="mb-3">
+                  <h6 class="text-success"><i class="bi bi-plus-circle me-2"></i>Agregados (${
+                    summary.added.length
+                  })</h6>
+                  <ul class="list-unstyled ms-3">
+                    ${summary.added
+                      .slice(0, 5)
+                      .map(
+                        (item) =>
+                          `<li class="text-muted small">✓ ${escapeHtml(
+                            item
+                          )}</li>`
+                      )
+                      .join("")}
+                    ${
+                      summary.added.length > 5
+                        ? `<li class="text-muted small fst-italic">...y ${
+                            summary.added.length - 5
+                          } más</li>`
+                        : ""
+                    }
+                  </ul>
+                </div>
+              `
+                  : ""
+              }
+
+              ${
+                summary.edited.length
+                  ? `
+                <div class="mb-3">
+                  <h6 class="text-primary"><i class="bi bi-pencil me-2"></i>Editados (${
+                    summary.edited.length
+                  })</h6>
+                  <ul class="list-unstyled ms-3">
+                    ${summary.edited
+                      .slice(0, 5)
+                      .map(
+                        (item) =>
+                          `<li class="text-muted small">✓ ${escapeHtml(
+                            item
+                          )}</li>`
+                      )
+                      .join("")}
+                    ${
+                      summary.edited.length > 5
+                        ? `<li class="text-muted small fst-italic">...y ${
+                            summary.edited.length - 5
+                          } más</li>`
+                        : ""
+                    }
+                  </ul>
+                </div>
+              `
+                  : ""
+              }
+
+              ${
+                summary.deleted.length
+                  ? `
+                <div class="mb-3">
+                  <h6 class="text-danger"><i class="bi bi-trash me-2"></i>Eliminados (${
+                    summary.deleted.length
+                  })</h6>
+                  <ul class="list-unstyled ms-3">
+                    ${summary.deleted
+                      .slice(0, 5)
+                      .map(
+                        (item) =>
+                          `<li class="text-muted small">✓ ${escapeHtml(
+                            item
+                          )}</li>`
+                      )
+                      .join("")}
+                    ${
+                      summary.deleted.length > 5
+                        ? `<li class="text-muted small fst-italic">...y ${
+                            summary.deleted.length - 5
+                          } más</li>`
+                        : ""
+                    }
+                  </ul>
+                </div>
+              `
+                  : ""
+              }
+
+              ${
+                summary.renamed.length
+                  ? `
+                <div class="mb-3">
+                  <h6 class="text-warning"><i class="bi bi-arrow-left-right me-2"></i>Renombrados (${
+                    summary.renamed.length
+                  })</h6>
+                  <ul class="list-unstyled ms-3">
+                    ${summary.renamed
+                      .slice(0, 5)
+                      .map(
+                        (item) =>
+                          `<li class="text-muted small">✓ ${escapeHtml(
+                            item
+                          )}</li>`
+                      )
+                      .join("")}
+                    ${
+                      summary.renamed.length > 5
+                        ? `<li class="text-muted small fst-italic">...y ${
+                            summary.renamed.length - 5
+                          } más</li>`
+                        : ""
+                    }
+                  </ul>
+                </div>
+              `
+                  : ""
+              }
+
+              ${
+                summary.moved.length
+                  ? `
+                <div class="mb-3">
+                  <h6 class="text-info"><i class="bi bi-arrows-move me-2"></i>Movidos (${
+                    summary.moved.length
+                  })</h6>
+                  <ul class="list-unstyled ms-3">
+                    ${summary.moved
+                      .slice(0, 5)
+                      .map(
+                        (item) =>
+                          `<li class="text-muted small">✓ ${escapeHtml(
+                            item
+                          )}</li>`
+                      )
+                      .join("")}
+                    ${
+                      summary.moved.length > 5
+                        ? `<li class="text-muted small fst-italic">...y ${
+                            summary.moved.length - 5
+                          } más</li>`
+                        : ""
+                    }
+                  </ul>
+                </div>
+              `
+                  : ""
+              }
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                <i class="bi bi-x-circle me-1"></i>Cancelar
+              </button>
+              <button type="button" class="btn btn-primary" id="btnConfirmSave">
+                <i class="bi bi-check-circle me-1"></i>Guardar Cambios
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(modal);
+      const bsModal = new bootstrap.Modal(modal);
+      bsModal.show();
+
+      // Manejar confirmación
+      document
+        .getElementById("btnConfirmSave")
+        .addEventListener("click", () => {
+          bsModal.hide();
+          resolve(true);
+        });
+
+      // Manejar cancelación
+      modal.addEventListener("hidden.bs.modal", () => {
+        document.body.removeChild(modal);
+        resolve(false);
+      });
+    });
+  }
   async function saveLayout() {
     if (!state.editMode) {
       showToast("Activa el modo edición primero", "warning");
+      return;
+    }
+
+    // Validar contexto
+    if (!state.modulo || !state.anio || !state.capitulo) {
+      showToast(
+        "⚠️ Falta información: módulo, año o capítulo no definido",
+        "error"
+      );
+      console.error("Contexto incompleto:", {
+        modulo: state.modulo,
+        anio: state.anio,
+        capitulo: state.capitulo,
+      });
+      return;
+    }
+
+    // Generar resumen de cambios
+    const changesSummary = generateChangesSummary();
+
+    if (changesSummary.total === 0) {
+      showToast("ℹ️ No hay cambios para guardar", "info");
+      return;
+    }
+
+    // Mostrar modal de confirmación con resumen
+    const confirmed = await showSaveConfirmation(changesSummary);
+    if (!confirmed) {
       return;
     }
 
@@ -1841,7 +2402,12 @@
         }
       );
 
-      if (!accResponse.ok) throw new Error("Error al guardar cuentas");
+      if (!accResponse.ok) {
+        const errorData = await accResponse.json().catch(() => ({}));
+        throw new Error(
+          errorData.mensaje || `Error ${accResponse.status} al guardar cuentas`
+        );
+      }
 
       // Save operations
       if (state.operaciones.length) {
@@ -1865,18 +2431,25 @@
           }
         );
 
-        if (!opResponse.ok) throw new Error("Error al guardar operaciones");
+        if (!opResponse.ok) {
+          const errorData = await opResponse.json().catch(() => ({}));
+          throw new Error(
+            errorData.mensaje ||
+              `Error ${opResponse.status} al guardar operaciones`
+          );
+        }
       }
 
       state.unsavedChanges = false;
+      state.changeLog = []; // Limpiar log de cambios
       updateButtonStates();
       setStatus("Guardado correctamente");
-      showToast("Layout guardado", "success");
+      showToast("✅ Layout guardado exitosamente", "success");
 
       // Registrar en bitácora
       await addToBitacora(
         "GUARDAR",
-        `Se guardaron cambios en el layout de ${state.modulo} ${state.anio}`
+        `Se guardaron ${changesSummary.total} cambios en ${state.modulo} ${state.anio}: ${changesSummary.summary}`
       );
     } catch (error) {
       console.error("Error saving layout:", error);
@@ -2223,9 +2796,14 @@
   window.deleteAccount = function (codigo) {
     if (!confirm(`¿Eliminar la cuenta ${codigo}?`)) return;
 
+    const cuenta = state.cuentas.find((c) => c.CUENTA === codigo);
+    const nombre = cuenta?.NOMBRE || "";
+
     state.cuentas = state.cuentas.filter((c) => c.CUENTA !== codigo);
-    state.unsavedChanges = true;
-    updateButtonStates();
+    logChange("delete", `Cuenta ${codigo}${nombre ? " - " + nombre : ""}`, {
+      codigo,
+      nombre,
+    });
     renderLayout();
     updateStats();
     showToast(`Cuenta ${codigo} eliminada`, "success");
@@ -2316,6 +2894,111 @@
     `
       )
       .join("");
+  }
+
+  // Renderizar vista previa de en qué tablas aparecerá la operación
+  function renderOperationTablePreview(op) {
+    const tables = [];
+
+    // Detectar todas las tablas donde aparecerá esta operación
+    const rowFields = [
+      {
+        field: "sum-row",
+        label: "Fila de Suma",
+        color: "primary",
+        icon: "bi-bar-chart",
+      },
+      {
+        field: "sum-row-sumavarios",
+        label: "Totales de Sección",
+        color: "primary",
+        icon: "bi-bar-chart-fill",
+      },
+      {
+        field: "sum-row-sumavarios-consolidado",
+        label: "Consolidados",
+        color: "success",
+        icon: "bi-collection-fill",
+      },
+      {
+        field: "sum-row-operativo",
+        label: "Resultados Operativos",
+        color: "info",
+        icon: "bi-graph-up-arrow",
+      },
+      {
+        field: "result-row",
+        label: "Resultados",
+        color: "warning",
+        icon: "bi-calculator-fill",
+      },
+      {
+        field: "net-row",
+        label: "Resultados Netos",
+        color: "danger",
+        icon: "bi-cash-stack",
+      },
+      {
+        field: "result-net-row",
+        label: "Resultado Neto Consolidado",
+        color: "danger",
+        icon: "bi-bank",
+      },
+    ];
+
+    rowFields.forEach(({ field, label, color, icon }) => {
+      if (op[field]) {
+        tables.push({
+          field,
+          label,
+          color,
+          icon,
+          value: op[field],
+        });
+      }
+    });
+
+    if (tables.length === 0) {
+      return `<div class="alert alert-warning mb-0">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        Esta operación no tiene filas de resultado definidas. Agrega al menos una etiqueta de fila.
+      </div>`;
+    }
+
+    return `
+      <div class="operation-preview-tables">
+        <div class="alert alert-info mb-2">
+          <i class="bi bi-info-circle me-2"></i>
+          Esta operación aparecerá en <strong>${
+            tables.length
+          }</strong> tabla(s):
+        </div>
+        ${tables
+          .map(
+            (table) => `
+          <div class="table-preview-item bg-${
+            table.color
+          } bg-opacity-10 border-${
+              table.color
+            } border-start border-3 p-2 rounded mb-2">
+            <div class="d-flex align-items-center gap-2">
+              <i class="bi ${table.icon} text-${table.color} fs-5"></i>
+              <div class="flex-grow-1">
+                <div class="fw-semibold text-${table.color}">${
+              table.label
+            }</div>
+                <div class="small text-muted">Como: <code class="text-dark">${escapeHtml(
+                  table.value
+                )}</code></div>
+              </div>
+              <span class="badge bg-${table.color}">Visible</span>
+            </div>
+          </div>
+        `
+          )
+          .join("")}
+      </div>
+    `;
   }
 
   window.editOperation = function (clase) {
@@ -2508,8 +3191,7 @@
     if (!confirm(`¿Eliminar la operación "${clase}"?`)) return;
 
     state.operaciones = state.operaciones.filter((o) => o.Clase !== clase);
-    state.unsavedChanges = true;
-    updateButtonStates();
+    logChange("delete", `Operación "${clase}"`, { clase });
     renderLayout();
     updateStats();
     showToast(`Operación "${clase}" eliminada`, "success");
@@ -2648,39 +3330,45 @@
     if (!selectS) return;
 
     const sections = groupBySections(state.cuentas);
-    const subs = sections.get(principal);
+    const section = sections.find((s) => s.name === principal);
+    const subs = section?.subsections || [];
 
-    if (subs) {
+    if (subs.length > 0) {
       selectS.innerHTML =
-        Array.from(subs.keys())
-          .filter((s) => s)
+        subs
+          .filter((subsection) => subsection.name)
           .map(
-            (s) => `<option value="${escapeAttr(s)}">${escapeHtml(s)}</option>`
+            (subsection) =>
+              `<option value="${escapeAttr(subsection.name)}">${escapeHtml(
+                subsection.name
+              )}</option>`
           )
           .join("") || '<option value="">Sin subsecciones</option>';
+    } else {
+      selectS.innerHTML = '<option value="">Sin subsecciones</option>';
     }
   };
 
   function expandAll() {
-    document
-      .querySelectorAll(
-        ".section-header.collapsed, .subsection-header.collapsed"
-      )
-      .forEach((h) => {
-        h.classList.remove("collapsed");
-        h.nextElementSibling.style.display = "";
-      });
+    const collapsibles = document.querySelectorAll(".collapse");
+    collapsibles.forEach((element) => {
+      const bsCollapse =
+        bootstrap.Collapse.getInstance(element) ||
+        new bootstrap.Collapse(element, { toggle: false });
+      bsCollapse.show();
+    });
+    showToast("✅ Todas las secciones expandidas", "success");
   }
 
   function collapseAll() {
-    document
-      .querySelectorAll(
-        ".section-header:not(.collapsed), .subsection-header:not(.collapsed)"
-      )
-      .forEach((h) => {
-        h.classList.add("collapsed");
-        h.nextElementSibling.style.display = "none";
-      });
+    const collapsibles = document.querySelectorAll(".collapse");
+    collapsibles.forEach((element) => {
+      const bsCollapse =
+        bootstrap.Collapse.getInstance(element) ||
+        new bootstrap.Collapse(element, { toggle: false });
+      bsCollapse.hide();
+    });
+    showToast("✅ Todas las secciones colapsadas", "success");
   }
 
   function confirmEdit() {
@@ -2688,11 +3376,35 @@
 
     if (state.selectedElement.type === "account") {
       const cuenta = state.selectedElement.cuenta;
+      const oldCodigo = cuenta.CUENTA;
+      const oldNombre = cuenta.NOMBRE;
       const newCodigo = document.getElementById("editCodigo")?.value?.trim();
       const newNombre = document.getElementById("editNombre")?.value?.trim();
 
-      if (newCodigo) cuenta.CUENTA = newCodigo;
-      if (newNombre) cuenta.NOMBRE = newNombre;
+      let changed = false;
+      if (newCodigo && newCodigo !== oldCodigo) {
+        cuenta.CUENTA = newCodigo;
+        logChange("edit", `Cuenta ${oldCodigo} → ${newCodigo}`, {
+          oldCodigo,
+          newCodigo,
+          type: "codigo",
+        });
+        changed = true;
+      }
+      if (newNombre && newNombre !== oldNombre) {
+        cuenta.NOMBRE = newNombre;
+        logChange(
+          "edit",
+          `Cuenta ${cuenta.CUENTA}: "${oldNombre}" → "${newNombre}"`,
+          { codigo: cuenta.CUENTA, oldNombre, newNombre }
+        );
+        changed = true;
+      }
+
+      if (changed) {
+        renderLayout();
+        showToast("✅ Cuenta actualizada", "success");
+      }
     } else if (state.selectedElement.type === "section") {
       const oldName = state.selectedElement.name;
       const newName = document
@@ -2700,6 +3412,7 @@
         ?.value?.trim();
 
       if (newName && newName !== oldName) {
+        let affectedCount = 0;
         state.cuentas.forEach((c) => {
           const principal =
             c["SECCIÓN Principal"] ||
@@ -2719,6 +3432,7 @@
             if (c.SECCION !== undefined) c.SECCION = newName;
             if (c.seccion_principal !== undefined)
               c.seccion_principal = newName;
+            affectedCount++;
           }
         });
 
@@ -2729,6 +3443,17 @@
             if (op[`seccion_${i}`] === oldName) op[`seccion_${i}`] = newName;
           }
         });
+
+        logChange(
+          "rename",
+          `Sección "${oldName}" → "${newName}" (${affectedCount} cuentas afectadas)`,
+          { oldName, newName, affectedCount }
+        );
+        renderLayout();
+        showToast(
+          `✅ Sección renombrada (${affectedCount} cuentas actualizadas)`,
+          "success"
+        );
       }
     } else if (state.selectedElement.type === "subsection") {
       const principal = state.selectedElement.principal;
@@ -2910,14 +3635,16 @@
 
     // Primero intentar con subsecciones del layout actual
     const sections = groupBySections(state.cuentas);
-    const subsections = sections.get(parentName);
+    const section = sections.find((s) => s.name === parentName);
+    const subsections = section?.subsections || [];
 
-    if (subsections && subsections.size > 0) {
+    if (subsections && subsections.length > 0) {
       const seen = new Set();
       const terms = [];
       let counter = 0;
 
-      subsections.forEach((_, secundaria) => {
+      subsections.forEach((subsection) => {
+        const secundaria = subsection.name;
         const label = secundaria || parentName;
         if (!label || seen.has(label)) return;
         seen.add(label);
@@ -3038,7 +3765,9 @@
 
       foundKeywords.forEach((keyword) => {
         // Buscar secciones que contengan este keyword
-        sections.forEach((subsecs, principal) => {
+        sections.forEach((section) => {
+          const principal = section.name;
+          const subsecs = section.subsections || [];
           const principalLower = principal.toLowerCase();
           if (principalLower.includes(keyword)) {
             // Si es income/expense, agregar la sección principal
@@ -3056,7 +3785,8 @@
               });
             } else {
               // Agregar subsecciones
-              subsecs.forEach((_, secundaria) => {
+              subsecs.forEach((subsection) => {
+                const secundaria = subsection.name;
                 if (secundaria) {
                   terms.push({
                     id: Date.now() + counter++,
@@ -3146,7 +3876,7 @@
     formulaTerms.push({
       id: termId,
       operator: "+",
-      type: "section",
+      type: "account", // CHANGED: ahora por defecto es cuenta
       value: "",
     });
     renderFormulaTerms();
@@ -3217,74 +3947,47 @@
     return accounts;
   }
 
+  /**
+   * Obtener catálogo completo de cuentas disponibles
+   */
+  function getAccountCatalog() {
+    const accounts = [];
+
+    if (state.cuentas && Array.isArray(state.cuentas)) {
+      state.cuentas.forEach((cuenta) => {
+        const code = cuenta.CUENTA || cuenta.cuenta || cuenta.num_cta;
+        const name = cuenta.NOMBRE || cuenta.nombre || "";
+
+        if (code) {
+          accounts.push({
+            code: String(code).trim(),
+            name: String(name).trim(),
+            display: `${code}${name ? " - " + name : ""}`,
+          });
+        }
+      });
+    }
+
+    accounts.sort((a, b) => a.code.localeCompare(b.code));
+    return accounts;
+  }
+
   // Renderizar los términos
   function renderFormulaTerms() {
     const container = document.getElementById("formulaTerms");
     if (!container) return;
 
-    const elements = getAvailableElements();
+    const accountCatalog = getAccountCatalog();
 
-    // Helper for case-insensitive value matching
-    function findMatchingValue(termValue, options) {
-      if (!termValue) return null;
-      const lower = termValue.toLowerCase().trim();
-      let match = options.find((o) => o === termValue);
-      if (match) return match;
-      match = options.find((o) => o.toLowerCase().trim() === lower);
-      if (match) return match;
-      match = options.find(
-        (o) =>
-          o.toLowerCase().includes(lower) || lower.includes(o.toLowerCase())
-      );
-      return match || null;
-    }
-
-    // Pre-process terms to find matching values
+    // Ensure all terms are type "account" (migration)
     formulaTerms.forEach((term) => {
-      let options = [];
-      if (term.type === "section") options = elements.sections;
-      else if (term.type === "operation") options = elements.operations;
-      else options = elements.accounts.map((a) => a.code);
-
-      const matchedValue = findMatchingValue(term.value, options);
-      if (matchedValue) {
-        term.value = matchedValue;
-      }
+      term.type = "account";
     });
 
-    // Generate formula rows with dropdowns for type and value selection
+    // Generate formula rows - ONLY account selector (no type selector)
     container.innerHTML = formulaTerms
       .map((term, idx) => {
-        // Build options for value dropdown based on type
-        let valueOptions = "";
-        if (term.type === "section") {
-          valueOptions = elements.sections
-            .map(
-              (sec) =>
-                `<option value="${escapeAttr(sec)}" ${
-                  term.value === sec ? "selected" : ""
-                }>${escapeHtml(sec)}</option>`
-            )
-            .join("");
-        } else if (term.type === "account") {
-          valueOptions = elements.accounts
-            .map((acc) => {
-              const display = `${acc.code} ${acc.name}`;
-              return `<option value="${escapeAttr(acc.code)}" ${
-                term.value === acc.code ? "selected" : ""
-              }>${escapeHtml(display)}</option>`;
-            })
-            .join("");
-        } else if (term.type === "operation") {
-          valueOptions = elements.operations
-            .map(
-              (op) =>
-                `<option value="${escapeAttr(op)}" ${
-                  term.value === op ? "selected" : ""
-                }>${escapeHtml(op)}</option>`
-            )
-            .join("");
-        }
+        const isFirst = idx === 0;
 
         return `
       <div class="formula-term-row d-flex align-items-center gap-2 mb-2 p-2 bg-light rounded" data-id="${
@@ -3292,7 +3995,10 @@
       }">
         <select class="form-select" style="width: 60px;" onchange="updateTermOperator(${
           term.id
-        }, this.value)">
+        }, this.value)" ${isFirst ? "disabled" : ""}>
+          <option value="" ${
+            term.operator === "" ? "selected" : ""
+          }>Inicio</option>
           <option value="+" ${
             term.operator === "+" ? "selected" : ""
           }>+</option>
@@ -3301,25 +4007,21 @@
           }>−</option>
         </select>
         
-        <select class="form-select" style="width: 120px;" onchange="updateTermType(${
+        <select class="form-select flex-grow-1 account-select" onchange="updateTermValue(${
           term.id
         }, this.value)">
-          <option value="section" ${
-            term.type === "section" ? "selected" : ""
-          }>Sección</option>
-          <option value="account" ${
-            term.type === "account" ? "selected" : ""
-          }>Cuenta</option>
-          <option value="operation" ${
-            term.type === "operation" ? "selected" : ""
-          }>Operación</option>
-        </select>
-        
-        <select class="form-select flex-grow-1" onchange="updateTermValue(${
-          term.id
-        }, this.value)">
-          <option value="">Seleccionar...</option>
-          ${valueOptions}
+          <option value="">Seleccionar cuenta...</option>
+          ${accountCatalog
+            .map(
+              (acc) => `
+            <option value="${escapeAttr(acc.code)}" ${
+                term.value === acc.code ? "selected" : ""
+              }>
+              ${escapeHtml(acc.display)}
+            </option>
+          `
+            )
+            .join("")}
         </select>
         
         <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeFormulaTerm(${
@@ -3332,24 +4034,53 @@
       })
       .join("");
 
-    // Removed updateFormulaPreview() - not needed
+    // Show formula preview
+    updateFormulaPreview();
+  }
+
+  // Update formula preview
+  function updateFormulaPreview() {
+    const previewContainer = document.getElementById("formulaPreview");
+    if (!previewContainer) return;
+
+    if (formulaTerms.length === 0) {
+      previewContainer.innerHTML =
+        '<div class="text-muted small fst-italic">Agrega cuentas para construir la fórmula...</div>';
+      return;
+    }
+
+    const preview = formulaTerms
+      .map((term, i) => {
+        const operator = i === 0 ? "" : ` ${term.operator || "+"} `;
+        return `${operator}<code class="text-primary fw-bold">${escapeHtml(
+          term.value || "???"
+        )}</code>`;
+      })
+      .join("");
+
+    previewContainer.innerHTML = `
+      <div class="alert alert-info mb-0 small">
+        <strong><i class="bi bi-calculator me-1"></i>Fórmula:</strong>
+        <div class="mt-1">${preview}</div>
+      </div>
+    `;
   }
 
   // Actualizar operador de término
   window.updateTermOperator = function (termId, operator) {
     const term = formulaTerms.find((t) => t.id === termId);
-    if (term) term.operator = operator;
-    // Removed updateFormulaPreview() - not needed
+    if (term) {
+      term.operator = operator;
+      updateFormulaPreview();
+    }
   };
 
-  // Actualizar tipo de término
+  // Actualizar tipo de término - DEPRECATED (ahora solo cuentas)
   window.updateTermType = function (termId, newType) {
-    const term = formulaTerms.find((t) => t.id === termId);
-    if (term) {
-      term.type = newType;
-      term.value = "";
-    }
-    renderFormulaTerms();
+    // No-op: tipo siempre es "account" ahora
+    console.warn(
+      "updateTermType is deprecated - all terms are now account type"
+    );
   };
 
   // Actualizar valor de término
@@ -3401,18 +4132,31 @@
     const operations = new Set();
 
     // Secciones y Cuentas - SOLO desde cuentas cargadas
-    groupBySections(state.cuentas).forEach((subs, principal) => {
-      sections.add(principal);
-      subs.forEach((cuentas, secundaria) => {
-        if (secundaria && secundaria !== principal) {
-          sections.add(secundaria);
-        }
-        cuentas.forEach((c) => {
-          if (c.CUENTA) {
-            accounts.push({ code: c.CUENTA, name: c.NOMBRE || c.CUENTA });
+    const groupedSections = groupBySections(state.cuentas);
+    groupedSections.forEach((section) => {
+      // Agregar sección principal
+      if (section.name) {
+        sections.add(section.name);
+      }
+
+      // Procesar subsecciones
+      if (section.subsections && Array.isArray(section.subsections)) {
+        section.subsections.forEach((subsection) => {
+          // Agregar subsección
+          if (subsection.name && subsection.name !== section.name) {
+            sections.add(subsection.name);
+          }
+
+          // Procesar cuentas de la subsección
+          if (subsection.accounts && Array.isArray(subsection.accounts)) {
+            subsection.accounts.forEach((c) => {
+              if (c.CUENTA) {
+                accounts.push({ code: c.CUENTA, name: c.NOMBRE || c.CUENTA });
+              }
+            });
           }
         });
-      });
+      }
     });
 
     // Operaciones - Clase de operaciones (excepto la que se está editando)

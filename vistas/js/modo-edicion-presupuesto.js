@@ -1224,9 +1224,12 @@
         const empresa = Sesion?.obtenerEmpresaActiva?.();
         const selectAnio = obtenerSelectorAnio();
         const anioSeleccion = Number(selectAnio?.value);
-        const anio = Number.isInteger(anioSeleccion) ? anioSeleccion : null;
+        const anio =
+          Number.isInteger(anioSeleccion) && anioSeleccion > 0
+            ? anioSeleccion
+            : null;
 
-        if (empresa?.id && Number.isInteger(anio)) {
+        if (empresa?.id && anio && anio > 0) {
           cargarCatalogoCuentas(empresa.id, anio);
 
           // Escuchar cambios de año para recargar catálogo
@@ -1234,7 +1237,7 @@
             selectAnio.dataset.catalogoListener = "true";
             selectAnio.addEventListener("change", () => {
               const nuevoAnio = Number(selectAnio.value);
-              if (Number.isInteger(nuevoAnio) && empresa?.id) {
+              if (Number.isInteger(nuevoAnio) && nuevoAnio > 0 && empresa?.id) {
                 cargarCatalogoCuentas(empresa.id, nuevoAnio);
               }
             });
@@ -1245,7 +1248,9 @@
             {
               empresaId: empresa?.id,
               anio,
+              anioSeleccion,
               selectorEncontrado: !!selectAnio,
+              selectorValue: selectAnio?.value,
             }
           );
         }

@@ -148,7 +148,8 @@
       const term = this.terms.find((t) => t.id === termId);
       if (term) {
         term.operator = operator;
-        this.updatePreview();
+        // Re-renderizar para actualizar el desglose
+        this.render();
       }
     },
 
@@ -161,6 +162,7 @@
         term.type = type;
         term.value = "";
         term.constant = null;
+        // Re-renderizar para actualizar el desglose
         this.render();
       }
     },
@@ -178,7 +180,8 @@
           term.value = value;
           term.constant = null;
         }
-        this.updatePreview();
+        // Re-renderizar para actualizar el desglose
+        this.render();
       }
     },
 
@@ -242,6 +245,10 @@
 
       const html = `
         <div class="formula-builder-wrapper">
+          <div class="alert alert-info mb-3">
+            <i class="bi bi-info-circle me-2"></i>
+            <strong>Constructor de Fórmula:</strong> Define qué suma esta operación. Ejemplo: "Resultado Operativo = (Suma de Ingresos) - (Suma de Gastos)"
+          </div>
           <div class="formula-terms-list">
             ${this.terms.map((term, idx) => this._renderTerm(term, idx)).join("")}
           </div>
@@ -249,15 +256,6 @@
             <button type="button" class="btn btn-sm btn-outline-success" onclick="FormulaBuilder.addTerm()">
               <i class="bi bi-plus-circle me-1"></i>Agregar término
             </button>
-            <button type="button" class="btn btn-sm btn-outline-info" onclick="FormulaBuilder.showMap()">
-              <i class="bi bi-diagram-3 me-1"></i>Ver mapa visual
-            </button>
-          </div>
-          <div class="formula-preview mt-4">
-            <label class="form-label fw-bold">Vista previa de fórmula:</label>
-            <div class="formula-preview-box" id="formulaPreviewBox">
-              ${this.getFormulaText() || "(vacío)"}
-            </div>
           </div>
         </div>
       `;
@@ -279,10 +277,10 @@
       ];
 
       const types = [
-        { value: "section", label: "Sección" },
+        { value: "section", label: "Sección/Suma" },
         { value: "account", label: "Cuenta" },
         { value: "operation", label: "Operación" },
-        { value: "constant", label: "Número fijo" },
+        { value: "constant", label: "Número" },
       ];
 
       // Opciones según el tipo
@@ -364,9 +362,18 @@
           break;
       }
 
+      // Generar desglose si el término tiene valor
+      let breakdownHtml = "";
+      if (term.value || term.constant) {
+        const breakdown = this._getTermBreakdown(term);
+        if (breakdown) {
+          breakdownHtml = breakdown;
+        }
+      }
+
       return `
-        <div class="formula-term-row mb-3" data-term-id="${term.id}">
-          <div class="row g-2">
+        <div class="formula-term-row mb-4" data-term-id="${term.id}">
+          <div class="row g-2 align-items-start">
             <div class="col-auto" style="width: 80px;">
               <select class="form-select" 
                       onchange="FormulaBuilder.updateOperator(${term.id}, this.value)"
@@ -404,6 +411,7 @@
               </button>
             </div>
           </div>
+          ${breakdownHtml}
         </div>
       `;
     },
@@ -548,6 +556,66 @@
           </div>
         </div>
       `;
+    },
+
+    /**
+     * Obtener descripción del término (como aparece en las tablas)
+     * Muestra solo el texto descriptivo de lo que representa el término
+     * Como en Membresía.html, Eventos.html, etc: la columna DESCRIPCIÓN
+     */
+    _getTermBreakdown(term) {
+      if (!term.value && !term.constant) return null;
+
+      switch (term.type) {
+        case "section":
+          return `
+            <div class="term-breakdown">
+              <div class="fw-semibold" style="font-size: 13px; color: #1e3a8a;">
+                ${this._escapeHtml(term.value)}
+              </div>
+            </div>
+          `;
+
+        case "operation":
+          return `
+            <div class="term-breakdown">
+              <div class="fw-semibold" style="font-size: 13px; color: #7c3aed;">
+                ${this._escapeHtml(term.value)}
+              </div>
+            </div>
+          `;
+
+        case "account": {
+          // Buscar el nombre de la cuenta en el estado
+          const state = window.state || (window.parent && window.parent.state);
+          let accountName = "";
+          if (state && state.cuentas) {
+            const cuenta = state.cuentas.find((c) => c.CUENTA === term.value || c.cuenta === term.value);
+            if (cuenta) {
+              accountName = cuenta.NOMBRE || cuenta.nombre || cuenta.DESCRIPCION || "";
+            }
+          }
+          return `
+            <div class="term-breakdown">
+              <div class="fw-semibold" style="font-size: 13px; color: #059669;">
+                ${this._escapeHtml(accountName || term.value)}
+              </div>
+            </div>
+          `;
+        }
+
+        case "constant":
+          return `
+            <div class="term-breakdown">
+              <div class="fw-semibold" style="font-size: 13px; color: #6b7280;">
+                Constante: ${this._escapeHtml(String(term.constant || term.value))}
+              </div>
+            </div>
+          `;
+
+        default:
+          return null;
+      }
     },
 
     // Utilidades

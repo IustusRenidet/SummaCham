@@ -36,6 +36,64 @@
   box-shadow: 0 2px 8px rgba(13, 110, 253, 0.1);
 }
 
+/* Desglose de término - Muestra solo la descripción como en las tablas */
+.term-breakdown {
+  background: #f8f9fa !important;
+  border: 1px solid #dee2e6 !important;
+  border-left: 3px solid #0d6efd !important;
+  border-radius: 4px !important;
+  padding: 8px 12px !important;
+  margin-top: 8px !important;
+  font-size: 13px;
+}
+
+.term-breakdown .fw-semibold {
+  color: #495057;
+  font-weight: 500;
+}
+
+.term-breakdown code {
+  font-size: 0.9rem;
+  padding: 4px 10px;
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 5px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+}
+
+.term-breakdown .fw-semibold {
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  font-size: 11px !important;
+  opacity: 0.85;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.term-breakdown .d-flex {
+  transition: background 0.2s ease;
+  padding: 4px 6px;
+  border-radius: 4px;
+}
+
+.term-breakdown .d-flex:hover {
+  background: rgba(13, 110, 253, 0.05);
+}
+
+/* Mejorar espaciado de términos */
+.formula-term-row {
+  margin-bottom: 1.5rem !important;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.formula-term-row:last-child {
+  border-bottom: none;
+}
+
 /* Vista previa */
 .formula-preview-box {
   background: #ffffff;

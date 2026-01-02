@@ -506,3 +506,73 @@ body {
   border-color: #dc3545;
   color: white;
 }
+/* ===== OPERATIONS TABLE SECTIONS ===== */
+.operations-table-section {
+  margin-bottom: 2rem;
+}
+
+.table-section-header {
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.table-section-header h5 {
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.table-section-content {
+  padding: 0 0.5rem;
+}
+
+/* ===== OPERATION CARDS ===== */
+.operation-card {
+  background: white;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.operation-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+.hover-shadow {
+  transition: box-shadow 0.2s ease;
+}
+
+.operation-card .btn {
+  font-size: 0.85rem;
+  padding: 0.35rem 0.75rem;
+  white-space: nowrap;
+}
+
+.formula-terms-preview {
+  background: #f8f9fa;
+  padding: 0.5rem;
+  border-radius: 4px;
+  border: 1px dashed #dee2e6;
+}
+
+.formula-terms-preview .badge {
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.3rem 0.5rem;
+}
+
+/* ===== RESPONSIVE ADJUSTMENTS ===== */
+@media (max-width: 768px) {
+  .operation-card {
+    padding: 1rem !important;
+  }
+  
+  .operation-card .btn {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+  }
+  
+  .table-section-header h5 {
+    font-size: 0.95rem;
+  }
+}
