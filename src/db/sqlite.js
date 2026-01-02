@@ -627,6 +627,52 @@ const crearTablas = () => {
   `
   ).run();
 
+  // Migración: Agregar campos de visibilidad y orden de presentación
+  const columnasCuentas = db
+    .prepare("PRAGMA table_info(layout_cuentas)")
+    .all()
+    .map((c) => c.name);
+
+  if (!columnasCuentas.includes("visible")) {
+    db.prepare(
+      "ALTER TABLE layout_cuentas ADD COLUMN visible INTEGER DEFAULT 1"
+    ).run();
+    console.log("✅ Columna 'visible' agregada a layout_cuentas");
+  }
+
+  if (!columnasCuentas.includes("orden_presentacion")) {
+    db.prepare(
+      "ALTER TABLE layout_cuentas ADD COLUMN orden_presentacion INTEGER"
+    ).run();
+    console.log("✅ Columna 'orden_presentacion' agregada a layout_cuentas");
+  }
+
+  const columnasOperaciones = db
+    .prepare("PRAGMA table_info(layout_operaciones)")
+    .all()
+    .map((c) => c.name);
+
+  if (!columnasOperaciones.includes("visible")) {
+    db.prepare(
+      "ALTER TABLE layout_operaciones ADD COLUMN visible INTEGER DEFAULT 1"
+    ).run();
+    console.log("✅ Columna 'visible' agregada a layout_operaciones");
+  }
+
+  if (!columnasOperaciones.includes("orden_presentacion")) {
+    db.prepare(
+      "ALTER TABLE layout_operaciones ADD COLUMN orden_presentacion INTEGER"
+    ).run();
+    console.log("✅ Columna 'orden_presentacion' agregada a layout_operaciones");
+  }
+
+  if (!columnasOperaciones.includes("formula_json")) {
+    db.prepare(
+      "ALTER TABLE layout_operaciones ADD COLUMN formula_json TEXT"
+    ).run();
+    console.log("✅ Columna 'formula_json' agregada a layout_operaciones");
+  }
+
   // Tabla para permisos granulares por capítulo en el gestor de plantillas
   db.prepare(
     `

@@ -345,11 +345,8 @@
     };
   };
 
-  // === DEFINICIÓN DE COLUMNAS PARA GRÁFICAS (Escalas de Azules y Grises) ===
+  // === DEFINICIÓN DE COLUMNAS PARA GRÁFICAS (Solo Acumulados) ===
   const COLUMN_DEFS = [
-    { key: "actual", label: "Real", color: "#1e3a5f" }, // Azul oscuro
-    { key: "plan", label: "Ppto.", color: "#3b82f6" }, // Azul medio
-    { key: "prev", label: "Real mes año anterior", color: "#64748b" }, // Gris azulado
     { key: "actualYTD", label: "Real acumulado", color: "#0d47a1" }, // Azul corporativo
     { key: "planYTD", label: "Ppto. acumulado", color: "#60a5fa" }, // Azul claro
     { key: "prevYTD", label: "Real acumulado año anterior", color: "#94a3b8" }, // Gris
@@ -419,50 +416,80 @@
         type: "bar",
         data: {
           labels: [
-            "Real",
-            "Ppto.",
-            "Real mes AA",
-            "Real Acum",
-            "Ppto. Acum",
-            "Real Acum AA",
+            "Real Acumulado",
+            "Ppto. Acumulado",
+            "Real Acumulado AA",
           ],
           datasets: [
             {
               label: "CONSOLIDATED OPERATING RESULTS",
               data: [
-                consolidatedOp.actual,
-                consolidatedOp.plan,
-                consolidatedOp.prev,
                 consolidatedOp.actualYTD,
                 consolidatedOp.planYTD,
                 consolidatedOp.prevYTD,
               ],
-              backgroundColor: "#1e3a5f", // Azul oscuro
+              backgroundColor: "#0d47a1",
+              borderColor: "#0d47a1",
+              borderWidth: 1,
             },
             {
               label: "CONSOLIDATED NET RESULTS",
               data: [
-                consolidatedNet.actual,
-                consolidatedNet.plan,
-                consolidatedNet.prev,
                 consolidatedNet.actualYTD,
                 consolidatedNet.planYTD,
                 consolidatedNet.prevYTD,
               ],
-              backgroundColor: "#64748b", // Gris azulado
+              backgroundColor: "#94a3b8",
+              borderColor: "#94a3b8",
+              borderWidth: 1,
             },
           ],
         },
         options: {
           responsive: true,
+          maintainAspectRatio: false,
           plugins: {
-            legend: { position: "bottom" },
+            legend: { 
+              position: "bottom",
+              labels: {
+                padding: 15,
+                font: { size: 12 }
+              }
+            },
             title: {
               display: true,
-              text: "CONSOLIDATED OPERATING RESULTS vs CONSOLIDATED NET RESULTS",
+              text: "CONSOLIDATED OPERATING RESULTS vs CONSOLIDATED NET RESULTS (Acumulados)",
+              font: { size: 16, weight: 'bold' },
+              padding: 20
             },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  let label = context.dataset.label || '';
+                  if (label) {
+                    label += ': ';
+                  }
+                  label += formatNumber(context.parsed.y);
+                  return label;
+                }
+              }
+            }
           },
-          scales: { y: { beginAtZero: false } },
+          scales: { 
+            y: { 
+              beginAtZero: false,
+              ticks: {
+                callback: function(value) {
+                  return formatNumber(value);
+                }
+              }
+            },
+            x: {
+              ticks: {
+                font: { size: 11 }
+              }
+            }
+          },
         },
       });
     }
@@ -519,15 +546,55 @@
             label: col.label,
             data: summaries.map((s) => toNumber(s.operating[col.key])),
             backgroundColor: col.color,
+            borderColor: col.color,
+            borderWidth: 1,
           })),
         },
         options: {
           responsive: true,
+          maintainAspectRatio: false,
           plugins: {
-            legend: { position: "bottom" },
-            title: { display: true, text: "Resumen Operativo por Región" },
+            legend: { 
+              position: "bottom",
+              labels: {
+                padding: 15,
+                font: { size: 12 }
+              }
+            },
+            title: { 
+              display: true, 
+              text: "Resumen Operativo por Región",
+              font: { size: 16, weight: 'bold' },
+              padding: 20
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  let label = context.dataset.label || '';
+                  if (label) {
+                    label += ': ';
+                  }
+                  label += formatNumber(context.parsed.y);
+                  return label;
+                }
+              }
+            }
           },
-          scales: { y: { beginAtZero: false } },
+          scales: { 
+            y: { 
+              beginAtZero: false,
+              ticks: {
+                callback: function(value) {
+                  return formatNumber(value);
+                }
+              }
+            },
+            x: {
+              ticks: {
+                font: { size: 11 }
+              }
+            }
+          },
         },
       });
 
@@ -540,15 +607,55 @@
             label: col.label,
             data: summaries.map((s) => toNumber(s.net[col.key])),
             backgroundColor: col.color,
+            borderColor: col.color,
+            borderWidth: 1,
           })),
         },
         options: {
           responsive: true,
+          maintainAspectRatio: false,
           plugins: {
-            legend: { position: "bottom" },
-            title: { display: true, text: "Resumen Neto por Región" },
+            legend: { 
+              position: "bottom",
+              labels: {
+                padding: 15,
+                font: { size: 12 }
+              }
+            },
+            title: { 
+              display: true, 
+              text: "Resumen Neto por Región",
+              font: { size: 16, weight: 'bold' },
+              padding: 20
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  let label = context.dataset.label || '';
+                  if (label) {
+                    label += ': ';
+                  }
+                  label += formatNumber(context.parsed.y);
+                  return label;
+                }
+              }
+            }
           },
-          scales: { y: { beginAtZero: false } },
+          scales: { 
+            y: { 
+              beginAtZero: false,
+              ticks: {
+                callback: function(value) {
+                  return formatNumber(value);
+                }
+              }
+            },
+            x: {
+              ticks: {
+                font: { size: 11 }
+              }
+            }
+          },
         },
       });
 
@@ -587,12 +694,49 @@
             label: col.label,
             data: summaries.map((s) => toNumber(s.operating[col.key])),
             backgroundColor: col.color,
+            borderColor: col.color,
+            borderWidth: 1,
           })),
         },
         options: {
           responsive: true,
-          plugins: { legend: { position: "bottom" } },
-          scales: { y: { beginAtZero: false } },
+          maintainAspectRatio: false,
+          plugins: { 
+            legend: { 
+              position: "bottom",
+              labels: {
+                padding: 15,
+                font: { size: 12 }
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  let label = context.dataset.label || '';
+                  if (label) {
+                    label += ': ';
+                  }
+                  label += formatNumber(context.parsed.y);
+                  return label;
+                }
+              }
+            }
+          },
+          scales: { 
+            y: { 
+              beginAtZero: false,
+              ticks: {
+                callback: function(value) {
+                  return formatNumber(value);
+                }
+              }
+            },
+            x: {
+              ticks: {
+                font: { size: 11 }
+              }
+            }
+          },
         },
       });
 
@@ -605,12 +749,49 @@
             label: col.label,
             data: summaries.map((s) => toNumber(s.net[col.key])),
             backgroundColor: col.color,
+            borderColor: col.color,
+            borderWidth: 1,
           })),
         },
         options: {
           responsive: true,
-          plugins: { legend: { position: "bottom" } },
-          scales: { y: { beginAtZero: false } },
+          maintainAspectRatio: false,
+          plugins: { 
+            legend: { 
+              position: "bottom",
+              labels: {
+                padding: 15,
+                font: { size: 12 }
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  let label = context.dataset.label || '';
+                  if (label) {
+                    label += ': ';
+                  }
+                  label += formatNumber(context.parsed.y);
+                  return label;
+                }
+              }
+            }
+          },
+          scales: { 
+            y: { 
+              beginAtZero: false,
+              ticks: {
+                callback: function(value) {
+                  return formatNumber(value);
+                }
+              }
+            },
+            x: {
+              ticks: {
+                font: { size: 11 }
+              }
+            }
+          },
         },
       });
     }
@@ -769,6 +950,371 @@
         await loadData();
       });
     }
+  };
+
+  // === EXPORTACIÓN A EXCEL Y PDF ===
+  
+  /**
+   * Obtiene los datos actuales de las gráficas para exportación
+   */
+  const obtenerDatosParaExportar = () => {
+    const empresa = window.Sesion?.obtenerEmpresaActiva?.();
+    const capitulo = window.CapitulosModulos?.obtenerCapituloPorEmpresa?.(empresa?.id);
+    const anio = Number(yearSelect?.value);
+    const mes = Number(monthSelect?.value);
+    
+    const snapshot = leerSnapshot(empresa?.id, anio, mes);
+    if (!snapshot?.map) {
+      alert('No hay datos disponibles para exportar. Por favor, visita primero la vista RESUMEN.');
+      return null;
+    }
+    
+    const config = getRowsConfig(capitulo);
+    
+    // Preparar datos para exportación
+    const datos = {
+      empresa: empresa?.nombre || empresa?.id,
+      capitulo: capitulo,
+      anio: anio,
+      mes: mes,
+      fecha: new Date().toLocaleString('es-MX'),
+      operativos: [],
+      netos: [],
+      consolidados: config.isCdmx ? [] : null
+    };
+    
+    // Datos operativos
+    config.operating.forEach(row => {
+      const data = getRowData(snapshot.map, row.variants);
+      datos.operativos.push({
+        concepto: row.label,
+        realAcumulado: data.actualYTD,
+        pptoAcumulado: data.planYTD,
+        realAcumAA: data.prevYTD
+      });
+    });
+    
+    // Datos netos
+    config.net.forEach(row => {
+      const data = getRowData(snapshot.map, row.variants);
+      datos.netos.push({
+        concepto: row.label,
+        realAcumulado: data.actualYTD,
+        pptoAcumulado: data.planYTD,
+        realAcumAA: data.prevYTD
+      });
+    });
+    
+    // Datos consolidados (solo CDMX)
+    if (config.isCdmx) {
+      const consolidatedOp = getRowData(snapshot.map, ['CONSOLIDATED OPERATING RESULTS']);
+      const consolidatedNet = getRowData(snapshot.map, ['CONSOLIDATED NET RESULTS']);
+      
+      datos.consolidados.push(
+        {
+          concepto: 'CONSOLIDATED OPERATING RESULTS',
+          realAcumulado: consolidatedOp.actualYTD,
+          pptoAcumulado: consolidatedOp.planYTD,
+          realAcumAA: consolidatedOp.prevYTD
+        },
+        {
+          concepto: 'CONSOLIDATED NET RESULTS',
+          realAcumulado: consolidatedNet.actualYTD,
+          pptoAcumulado: consolidatedNet.planYTD,
+          realAcumAA: consolidatedNet.prevYTD
+        }
+      );
+    }
+    
+    return datos;
+  };
+  
+  /**
+   * Exporta los datos a Excel usando SheetJS (xlsx)
+   */
+  window.exportarGraficasExcel = async () => {
+    const datos = obtenerDatosParaExportar();
+    if (!datos) return;
+    
+    // Verificar que SheetJS esté disponible
+    if (typeof XLSX === 'undefined') {
+      alert('La librería de exportación no está disponible.');
+      return;
+    }
+    
+    const workbook = XLSX.utils.book_new();
+    
+    // Información general
+    const info = [
+      ['GRÁFICAS DE RESUMEN - DATOS ACUMULADOS'],
+      ['Empresa:', datos.empresa],
+      ['Capítulo:', datos.capitulo],
+      ['Año:', datos.anio],
+      ['Mes:', datos.mes],
+      ['Fecha de exportación:', datos.fecha],
+      []
+    ];
+    
+    // Hoja 1: Resultados Operativos
+    const wsOperativos = XLSX.utils.aoa_to_sheet([
+      ...info,
+      ['RESULTADOS OPERATIVOS POR CAPÍTULO'],
+      ['Concepto', 'Real Acumulado', 'Ppto. Acumulado', 'Real Acum. Año Anterior']
+    ]);
+    
+    XLSX.utils.sheet_add_json(wsOperativos, datos.operativos, {
+      origin: -1,
+      skipHeader: true,
+      header: ['concepto', 'realAcumulado', 'pptoAcumulado', 'realAcumAA']
+    });
+    
+    // Ajustar ancho de columnas
+    wsOperativos['!cols'] = [
+      { wch: 40 }, // Concepto
+      { wch: 18 }, // Real Acumulado
+      { wch: 18 }, // Ppto. Acumulado
+      { wch: 25 }  // Real Acum. Año Anterior
+    ];
+    
+    // Formato de encabezados con wrap
+    const rangeOp = XLSX.utils.decode_range(wsOperativos['!ref']);
+    for (let C = rangeOp.s.c; C <= rangeOp.e.c; C++) {
+      const address = XLSX.utils.encode_col(C) + '9'; // Fila de encabezados
+      if (!wsOperativos[address]) continue;
+      wsOperativos[address].s = {
+        font: { bold: true },
+        alignment: { wrapText: true, vertical: 'center', horizontal: 'center' },
+        fill: { fgColor: { rgb: '0D47A1' } }
+      };
+    }
+    
+    XLSX.utils.book_append_sheet(workbook, wsOperativos, 'Resultados Operativos');
+    
+    // Hoja 2: Resultados Netos
+    const wsNetos = XLSX.utils.aoa_to_sheet([
+      ...info,
+      ['RESULTADOS NETOS POR CAPÍTULO'],
+      ['Concepto', 'Real Acumulado', 'Ppto. Acumulado', 'Real Acum. Año Anterior']
+    ]);
+    
+    XLSX.utils.sheet_add_json(wsNetos, datos.netos, {
+      origin: -1,
+      skipHeader: true,
+      header: ['concepto', 'realAcumulado', 'pptoAcumulado', 'realAcumAA']
+    });
+    
+    wsNetos['!cols'] = [
+      { wch: 40 },
+      { wch: 18 },
+      { wch: 18 },
+      { wch: 25 }
+    ];
+    
+    XLSX.utils.book_append_sheet(workbook, wsNetos, 'Resultados Netos');
+    
+    // Hoja 3: Consolidados (solo si es CDMX)
+    if (datos.consolidados) {
+      const wsConsolidados = XLSX.utils.aoa_to_sheet([
+        ...info,
+        ['RESULTADOS CONSOLIDADOS'],
+        ['Concepto', 'Real Acumulado', 'Ppto. Acumulado', 'Real Acum. Año Anterior']
+      ]);
+      
+      XLSX.utils.sheet_add_json(wsConsolidados, datos.consolidados, {
+        origin: -1,
+        skipHeader: true,
+        header: ['concepto', 'realAcumulado', 'pptoAcumulado', 'realAcumAA']
+      });
+      
+      wsConsolidados['!cols'] = [
+        { wch: 40 },
+        { wch: 18 },
+        { wch: 18 },
+        { wch: 25 }
+      ];
+      
+      XLSX.utils.book_append_sheet(workbook, wsConsolidados, 'Consolidados');
+    }
+    
+    // Descargar archivo
+    const fileName = `Graficas_Resumen_${datos.anio}_${datos.mes}_${Date.now()}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
+  };
+  
+  /**
+   * Exporta las gráficas a PDF usando jsPDF y html2canvas
+   */
+  window.exportarGraficasPDF = async () => {
+    const datos = obtenerDatosParaExportar();
+    if (!datos) return;
+    
+    // Verificar que las librerías estén disponibles
+    if (typeof jspdf === 'undefined' || typeof html2canvas === 'undefined') {
+      alert('Las librerías de exportación no están disponibles.');
+      return;
+    }
+    
+    try {
+      const { jsPDF } = jspdf;
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 15;
+      let yPosition = margin;
+      
+      // Título y metadatos
+      pdf.setFontSize(16);
+      pdf.setFont(undefined, 'bold');
+      pdf.text('GRÁFICAS DE RESUMEN - DATOS ACUMULADOS', pageWidth / 2, yPosition, { align: 'center' });
+      yPosition += 10;
+      
+      pdf.setFontSize(10);
+      pdf.setFont(undefined, 'normal');
+      pdf.text(`Empresa: ${datos.empresa}`, margin, yPosition);
+      yPosition += 6;
+      pdf.text(`Capítulo: ${datos.capitulo}`, margin, yPosition);
+      yPosition += 6;
+      pdf.text(`Año: ${datos.anio} - Mes: ${datos.mes}`, margin, yPosition);
+      yPosition += 6;
+      pdf.text(`Fecha: ${datos.fecha}`, margin, yPosition);
+      yPosition += 10;
+      
+      // Función para agregar tabla al PDF
+      const agregarTabla = (titulo, datos, startY) => {
+        pdf.setFontSize(12);
+        pdf.setFont(undefined, 'bold');
+        pdf.text(titulo, margin, startY);
+        startY += 8;
+        
+        // Encabezados de tabla con wrap text
+        const headers = [['Concepto', 'Real\nAcumulado', 'Ppto.\nAcumulado', 'Real Acum.\nAño Anterior']];
+        const rows = datos.map(item => [
+          item.concepto,
+          formatNumber(item.realAcumulado),
+          formatNumber(item.pptoAcumulado),
+          formatNumber(item.realAcumAA)
+        ]);
+        
+        pdf.autoTable({
+          startY: startY,
+          head: headers,
+          body: rows,
+          theme: 'grid',
+          headStyles: {
+            fillColor: [13, 71, 161],
+            textColor: 255,
+            fontSize: 9,
+            fontStyle: 'bold',
+            halign: 'center',
+            valign: 'middle',
+            cellPadding: 3,
+            minCellHeight: 12
+          },
+          bodyStyles: {
+            fontSize: 8,
+            cellPadding: 2,
+            valign: 'middle'
+          },
+          columnStyles: {
+            0: { cellWidth: 80, halign: 'left' },
+            1: { cellWidth: 30, halign: 'right' },
+            2: { cellWidth: 30, halign: 'right' },
+            3: { cellWidth: 35, halign: 'right' }
+          },
+          margin: { left: margin, right: margin },
+          styles: {
+            overflow: 'linebreak',
+            cellWidth: 'wrap'
+          }
+        });
+        
+        return pdf.lastAutoTable.finalY + 10;
+      };
+      
+      // Agregar tablas
+      yPosition = agregarTabla('RESULTADOS OPERATIVOS POR CAPÍTULO', datos.operativos, yPosition);
+      
+      // Nueva página si es necesario
+      if (yPosition > pageHeight - 60) {
+        pdf.addPage();
+        yPosition = margin;
+      }
+      
+      yPosition = agregarTabla('RESULTADOS NETOS POR CAPÍTULO', datos.netos, yPosition);
+      
+      // Consolidados (solo CDMX)
+      if (datos.consolidados) {
+        if (yPosition > pageHeight - 60) {
+          pdf.addPage();
+          yPosition = margin;
+        }
+        yPosition = agregarTabla('RESULTADOS CONSOLIDADOS', datos.consolidados, yPosition);
+      }
+      
+      // Agregar gráficas como imágenes
+      const capturaGraficas = async () => {
+        pdf.addPage();
+        yPosition = margin;
+        
+        pdf.setFontSize(14);
+        pdf.setFont(undefined, 'bold');
+        pdf.text('GRÁFICAS VISUALES', pageWidth / 2, yPosition, { align: 'center' });
+        yPosition += 10;
+        
+        // Capturar cada gráfica
+        const graficas = [
+          { id: 'chartOperatingSummaryByChapter', titulo: 'Resultado Operativo por Capítulo' },
+          { id: 'chartNetSummaryByChapter', titulo: 'Resumen Neto por Capítulo' }
+        ];
+        
+        if (datos.consolidados) {
+          graficas.push({ id: 'chartConsolidatedResults', titulo: 'Consolidados Operativos vs Netos' });
+        }
+        
+        for (const grafica of graficas) {
+          const canvas = document.getElementById(grafica.id);
+          if (canvas) {
+            const imgData = await html2canvas(canvas, {
+              scale: 2,
+              backgroundColor: '#ffffff'
+            });
+            
+            const imgWidth = pageWidth - 2 * margin;
+            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+            
+            if (yPosition + imgHeight > pageHeight - margin) {
+              pdf.addPage();
+              yPosition = margin;
+            }
+            
+            pdf.setFontSize(10);
+            pdf.setFont(undefined, 'bold');
+            pdf.text(grafica.titulo, margin, yPosition);
+            yPosition += 5;
+            
+            pdf.addImage(imgData.toDataURL('image/png'), 'PNG', margin, yPosition, imgWidth, imgHeight);
+            yPosition += imgHeight + 10;
+          }
+        }
+      };
+      
+      await capturaGraficas();
+      
+      // Descargar PDF
+      const fileName = `Graficas_Resumen_${datos.anio}_${datos.mes}_${Date.now()}.pdf`;
+      pdf.save(fileName);
+      
+    } catch (error) {
+      console.error('Error al exportar PDF:', error);
+      alert('Error al generar el PDF. Por favor, intente nuevamente.');
+    }
+  };
+  
+  /**
+   * Imprime las gráficas
+   */
+  window.imprimirGraficas = () => {
+    window.print();
   };
 
   // Iniciar

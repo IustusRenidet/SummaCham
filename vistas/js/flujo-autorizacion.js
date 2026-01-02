@@ -666,6 +666,10 @@
           typeof options.obtenerHeaders === "function"
             ? options.obtenerHeaders
             : null,
+        cargarBorrador:
+          typeof options.cargarBorrador === "function"
+            ? options.cargarBorrador
+            : null,
       };
       this.buttonIds = options.buttonIds || {
         guardar: "btnGuardarBorrador",
@@ -868,10 +872,17 @@
         return;
       }
       this._handlersBindeados = true;
+      console.log("[FlujoAutorizacion] Bindeando handlers por primera vez");
 
       const agregarListener = (btn, handler) => {
         if (!btn) return;
         btn.addEventListener("click", handler, { once: false });
+      };
+      
+      // Helper para handlers críticos que deben ejecutarse solo una vez por click
+      const agregarListenerUnico = (btn, handler) => {
+        if (!btn) return;
+        btn.addEventListener("click", handler, { once: true });
       };
 
       agregarListener(this.buttons.guardar, () => this._handleGuardar());
@@ -912,6 +923,7 @@
 
     _limpiarEventListeners() {
       if (!this.buttons) return;
+      console.log("[FlujoAutorizacion] Limpiando event listeners sin re-binding");
       Object.entries(this.buttons).forEach(([key, btn]) => {
         if (!btn || !btn.parentNode) return;
         const clone = btn.cloneNode(true);
@@ -921,9 +933,8 @@
         btn.parentNode.replaceChild(clone, btn);
         this.buttons[key] = clone;
       });
-      // Resetear flag para permitir re-binding después de clone
-      this._handlersBindeados = false;
-      this._bindButtonHandlers();
+      // NO resetear la flag - mantener protección contra duplicados
+      // El re-binding debe ser manual cuando sea necesario
     }
 
     _prepareToast() {
@@ -1115,8 +1126,65 @@
       );
     }
 
+    /**
+     * Carga los datos del borrador en la tabla
+     * Se ejecuta cuando existe un borrador EDITANDO y el usuario hace clic en "Cargar presupuesto"
+     */
+    async _cargarBorradorEnTabla() {
+      if (!this.state.borrador?.data?.presupuesto) {
+        console.log("⚠️ No hay datos en el borrador para cargar");
+        return;
+      }
+      
+      try {
+        const presupuesto = this.state.borrador.data.presupuesto;
+        console.log(`📥 Cargando ${presupuesto.length} cambios del borrador en la tabla...`);
+        
+        // Intentar usar el callback personalizado si existe
+        if (typeof this.callbacks.cargarBorrador === 'function') {
+          await this.callbacks.cargarBorrador(presupuesto);
+          console.log("✅ Borrador cargado usando callback personalizado");
+          return;
+        }
+        
+        // Fallback: cargar usando CuentasModulo si está disponible
+        if (window.CuentasModulo?.cargarBorrador) {
+          await window.CuentasModulo.cargarBorrador(presupuesto);
+          console.log("✅ Borrador cargado usando CuentasModulo");
+          return;
+        }
+        
+        // Fallback manual: actualizar celdas directamente
+        presupuesto.forEach(item => {
+          if (!item.cuenta || !item.mes) return;
+          
+          const selector = `td[data-cuenta="${item.cuenta}"][data-mes="${item.mes}"]`;
+          const celda = this.tableElement?.querySelector(selector);
+          
+          if (celda && item.valor !== undefined) {
+            celda.textContent = typeof item.valor === 'number' 
+              ? item.valor.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+              : item.valor;
+            celda.classList.add('celda-modificada');
+          }
+        });
+        
+        console.log("✅ Borrador cargado manualmente en la tabla");
+        this._toast("Borrador cargado. Puedes continuar editando.", "success");
+      } catch (error) {
+        console.error("Error cargando borrador en tabla:", error);
+        this._toast("Advertencia: No se pudo cargar completamente el borrador", "warning");
+      }
+    }
+
     _enterEditMode(silent = false) {
-      if (this.state.editMode) return;
+      if (this.state.editMode) {
+        console.log("⚠️ Modo edición ya está activo");
+        return;
+      }
+      
+      console.log("🟬 Activando modo edición...");
+      
       this.state.editMode = true;
       if (!silent) this.state.hayCambios = false;
       const borradorPrevio = this.state.borrador || {};
@@ -1142,14 +1210,20 @@
         data: dataActual,
         esTemporal: borradorPrevio.esTemporal ?? !borradorPrevio.id,
       };
-      this.tableElement?.classList.add("modo-edicion");
+      
+      // Agregar clase a la tabla
+      if (this.tableElement) {
+        this.tableElement.classList.add("modo-edicion", "modo-edicion-activo");
+      }
+      
       window.CuentasModulo?.setEditMode?.(true);
-      // Activar ModoEdicionPresupuesto para habilitar edición de celdas numéricas (que SÍ se insertan a COI)
+      
+      // Activar ModoEdicionPresupuesto para habilitar edición de celdas numéricas
       if (window.ModoEdicionPresupuesto?.activar) {
         try {
           window.ModoEdicionPresupuesto.activar();
           console.log(
-            "?? Flujo Autorizaci¢n: modo edici¢n ACTIVADO (celdas numéricas editables)"
+            "🟢 Flujo Autorización: modo edición ACTIVADO (solo month-budget editable)"
           );
         } catch (e) {
           console.warn("Error activando ModoEdicionPresupuesto:", e);
@@ -1161,10 +1235,21 @@
     }
 
     _exitEditMode(skipCancel = false) {
-      if (!this.state.editMode) return;
+      if (!this.state.editMode) {
+        console.log("⚠️ Modo edición ya está desactivado");
+        return;
+      }
+      
+      console.log("🚫 Desactivando modo edición...");
+      
       this.state.editMode = false;
       this.state.hayCambios = false;
-      this.tableElement?.classList.remove("modo-edicion");
+      
+      // Remover clases de la tabla
+      if (this.tableElement) {
+        this.tableElement.classList.remove("modo-edicion", "modo-edicion-activo");
+      }
+      
       if (!skipCancel) {
         if (typeof this.callbacks.onCancelEdit === "function") {
           this.callbacks.onCancelEdit();
@@ -1172,7 +1257,9 @@
           window.CuentasModulo?.cancelEdit?.();
         }
       }
+      
       window.CuentasModulo?.setEditMode?.(false);
+      
       // Desactivar ModoEdicionPresupuesto
       if (window.ModoEdicionPresupuesto?.desactivar) {
         try {
@@ -1350,19 +1437,32 @@
         this._toast("No cuentas con permisos para editar.", "warning");
         return;
       }
+      
+      // Si existe un borrador EDITANDO, cargarlo en la tabla antes de activar modo edición
+      if (this.state.borrador?.estado === ESTADOS.EDITANDO) {
+        console.log("📥 Cargando borrador existente antes de activar modo edición...");
+        await this._cargarBorradorEnTabla();
+      }
+      
+      // SIEMPRE activar modo edición después de cargar el borrador
       this._enterEditMode();
+      console.log("✅ Modo edición activado");
     }
 
     /**
      * Guarda los cambios actuales como borrador temporal (estado: EDITANDO)
      *
-     * Permite al usuario:
-     * - Guardar su progreso sin finalizar
-     * - Continuar editando después
-     * - No pierde cambios si cierra la sesión
+     * Comportamiento:
+     * 1. Guarda los cambios en la base de datos
+     * 2. SALE del modo edición (desactiva edición de celdas)
+     * 3. El borrador permanece en estado EDITANDO en la BD
+     * 4. El usuario puede hacer clic en "Cargar presupuesto" para continuar editando
      *
-     * Los cambios se almacenan en la base de datos pero el estado permanece en EDITANDO.
-     * El usuario puede seguir editando o enviar a revisión cuando termine.
+     * Este flujo permite al usuario:
+     * - Guardar su progreso sin finalizar
+     * - Salir del modo edición
+     * - Volver más tarde y continuar desde donde se quedó
+     * - No perder cambios si cierra la sesión
      */
     async _guardarBorradorTemporal() {
       const cambios = this._obtenerCambios();
@@ -1397,9 +1497,49 @@
           );
         this.state.borrador = data.borrador || this.state.borrador;
         this.state.hayCambios = false;
+        
+        console.log("💾 1. Saliendo del modo edición...");
+        // CRÍTICO: Salir del modo edición después de guardar
+        this._exitEditMode(true); // skipCancel=true para no limpiar el borrador
+        
+        console.log("🧽 2. Limpiando tabla visualmente...");
+        // Limpiar visualmente la tabla (remover TODAS las marcas)
+        if (this.tableElement) {
+          // Limpiar clases de borrador
+          FlujoAutorizacion.limpiarBorrador(this.tableElement);
+          
+          // Limpiar clases de modificación
+          const celdasModificadas = this.tableElement.querySelectorAll('.celda-modificada, .celda-editada, .celda-borrador');
+          celdasModificadas.forEach(celda => {
+            celda.classList.remove('celda-modificada', 'celda-editada', 'celda-borrador');
+          });
+          
+          // Remover clase de modo edición de la tabla
+          this.tableElement.classList.remove('modo-edicion', 'modo-edicion-activo');
+          
+          console.log(`✅ Tabla limpiada: ${celdasModificadas.length} celdas restauradas`);
+        }
+        
+        // Forzar limpieza con ModoEdicionPresupuesto si existe
+        if (window.ModoEdicionPresupuesto?.limpiarCambios) {
+          try {
+            window.ModoEdicionPresupuesto.limpiarCambios();
+            console.log("🧽 Limpieza forzada con ModoEdicionPresupuesto");
+          } catch (e) {
+            console.warn("Error limpiando con ModoEdicionPresupuesto:", e);
+          }
+        }
+        
+        console.log("🔄 3. Actualizando UI...");
         this._renderInfo();
         this._renderBotones();
-        this._toast("Borrador guardado para continuar editando.");
+        this._toast("Borrador guardado. Haz clic en 'Cargar presupuesto' para continuar editando.");
+        
+        console.log("📝 4. Abriendo drawer de flujo...");
+        // Abrir drawer de flujo de autorización para mostrar el estado
+        this._abrirDrawerFlujo();
+        
+        console.log("✅ Borrador guardado completamente");
       } catch (error) {
         console.error("Guardar borrador", error);
         this._toast(
@@ -1480,6 +1620,9 @@
           ? "Presupuesto autorizado automáticamente."
           : "Presupuesto enviado a revisión.";
         this._toast(mensaje);
+        
+        // Abrir drawer de flujo para mostrar el progreso
+        this._abrirDrawerFlujo();
       } catch (error) {
         console.error("Enviar", error);
         this._toast(
@@ -1555,6 +1698,10 @@
       }
 
       this._limpiarEventListeners();
+      // Resetear flag y re-bindear después de limpiar
+      this._handlersBindeados = false;
+      this._bindButtonHandlers();
+      
       this._exitEditMode(true);
       this.state.borrador = null;
       this.state.hayCambios = false;
@@ -1756,6 +1903,50 @@
      * 3. El presupuesto se vuelve INMUTABLE (no se puede editar más)
      * 4. Se elimina el borrador de la base de datos
      */
+    /**
+     * Abre el drawer del flujo de autorización para mostrar el progreso
+     */
+    _abrirDrawerFlujo() {
+      try {
+        const drawer = ensureWorkflowDrawer();
+        if (!drawer) {
+          console.warn("⚠️ No se encontró el drawer de flujo de autorización");
+          return;
+        }
+        
+        if (!window.bootstrap?.Offcanvas) {
+          console.warn("⚠️ Bootstrap Offcanvas no está disponible");
+          return;
+        }
+        
+        const offcanvas = window.bootstrap.Offcanvas.getOrCreateInstance(drawer);
+        offcanvas.show();
+        console.log("📝 Drawer de flujo de autorización abierto");
+      } catch (error) {
+        console.error("Error abriendo drawer de flujo:", error);
+      }
+    }
+    
+    /**
+     * Cierra el drawer del flujo de autorización
+     */
+    _cerrarDrawerFlujo() {
+      try {
+        const drawer = document.getElementById("workflowDrawer");
+        if (!drawer) return;
+        
+        if (!window.bootstrap?.Offcanvas) return;
+        
+        const offcanvas = window.bootstrap.Offcanvas.getInstance(drawer);
+        if (offcanvas) {
+          offcanvas.hide();
+          console.log("❌ Drawer de flujo de autorización cerrado");
+        }
+      } catch (error) {
+        console.error("Error cerrando drawer de flujo:", error);
+      }
+    }
+
     async _handleGuardarCOI() {
       if (!this._puede({ accion: "guardarCoi" })) {
         this._toast("No cuentas con permisos para guardar en COI.", "warning");
@@ -1792,6 +1983,11 @@
         this._renderInfo();
         this._renderBotones();
         this._toast(data.mensaje || "Presupuesto guardado en COI.", "success");
+        
+        // Cerrar drawer de flujo al completar el guardado exitosamente
+        setTimeout(() => {
+          this._cerrarDrawerFlujo();
+        }, 2000); // Esperar 2 segundos para que el usuario vea el mensaje
       } catch (error) {
         console.error("Guardar COI", error);
         this._toast(
@@ -2134,8 +2330,57 @@
             detail: { borrador: borrador || null },
           })
         );
+        
+        // Refrescar el timeline del drawer si está visible
+        if (typeof window.__workflowRefreshTimeline === 'function') {
+          window.__workflowRefreshTimeline();
+        }
       } catch (error) {
         console.warn("No fue posible notificar el estado del borrador.", error);
+      }
+    }
+
+    /**
+     * Abre el drawer del flujo de autorización para mostrar el progreso
+     */
+    _abrirDrawerFlujo() {
+      try {
+        const drawer = ensureWorkflowDrawer();
+        if (!drawer) {
+          console.warn("⚠️ No se encontró el drawer de flujo de autorización");
+          return;
+        }
+        
+        if (!window.bootstrap?.Offcanvas) {
+          console.warn("⚠️ Bootstrap Offcanvas no está disponible");
+          return;
+        }
+        
+        const offcanvas = window.bootstrap.Offcanvas.getOrCreateInstance(drawer);
+        offcanvas.show();
+        console.log("📝 Drawer de flujo de autorización abierto");
+      } catch (error) {
+        console.error("Error abriendo drawer de flujo:", error);
+      }
+    }
+    
+    /**
+     * Cierra el drawer del flujo de autorización
+     */
+    _cerrarDrawerFlujo() {
+      try {
+        const drawer = document.getElementById("workflowDrawer");
+        if (!drawer) return;
+        
+        if (!window.bootstrap?.Offcanvas) return;
+        
+        const offcanvas = window.bootstrap.Offcanvas.getInstance(drawer);
+        if (offcanvas) {
+          offcanvas.hide();
+          console.log("❌ Drawer de flujo de autorización cerrado");
+        }
+      } catch (error) {
+        console.error("Error cerrando drawer de flujo:", error);
       }
     }
 

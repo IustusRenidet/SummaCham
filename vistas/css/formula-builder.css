@@ -1,0 +1,285 @@
+/**
+ * formula-builder.css
+ * Estilos para el constructor avanzado de fórmulas
+ */
+
+/* Contenedor principal */
+.formula-builder-wrapper {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 20px;
+  margin: 15px 0;
+}
+
+/* Lista de términos */
+.formula-terms-list {
+  max-height: 500px;
+  overflow-y: auto;
+  padding: 10px;
+  background: white;
+  border-radius: 6px;
+  margin-bottom: 15px;
+}
+
+/* Término individual */
+.formula-term-row {
+  background: #ffffff;
+  padding: 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.formula-term-row:hover {
+  border-color: #0d6efd;
+  box-shadow: 0 2px 8px rgba(13, 110, 253, 0.1);
+}
+
+/* Vista previa */
+.formula-preview-box {
+  background: #ffffff;
+  border: 2px dashed #6c757d;
+  padding: 15px 20px;
+  border-radius: 6px;
+  font-family: "Courier New", monospace;
+  font-size: 1.1rem;
+  color: #212529;
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+}
+
+/* Mapa visual */
+.formula-map {
+  padding: 10px 0;
+}
+
+.map-term-row {
+  background: #f8f9fa;
+  transition: all 0.2s ease;
+}
+
+.map-term-row:hover {
+  background: #e9ecef;
+  transform: translateX(5px);
+}
+
+.map-operator {
+  min-width: 40px;
+  text-align: center;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.map-icon {
+  min-width: 40px;
+  text-align: center;
+}
+
+.formula-result {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-size: 1.1rem;
+}
+
+.formula-result .font-monospace {
+  background: rgba(255, 255, 255, 0.9);
+  color: #333;
+  padding: 10px;
+  border-radius: 4px;
+}
+
+/* Controles de visibilidad y orden */
+.visibility-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+.visibility-control:hover {
+  background: #e9ecef;
+  border-color: #adb5bd;
+}
+
+.visibility-control .form-check-input {
+  margin: 0;
+  cursor: pointer;
+}
+
+.order-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.order-control input[type="number"] {
+  width: 70px;
+  text-align: center;
+  font-size: 0.875rem;
+}
+
+.order-control button {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Estados de filas */
+.account-row.hidden-row,
+.operation-row.hidden-row {
+  opacity: 0.5;
+  background: repeating-linear-gradient(
+    45deg,
+    #ffffff,
+    #ffffff 10px,
+    #f8f9fa 10px,
+    #f8f9fa 20px
+  );
+}
+
+.account-row.hidden-row::before,
+.operation-row.hidden-row::before {
+  content: "🔒";
+  margin-right: 8px;
+  opacity: 0.6;
+}
+
+/* Vista previa realista */
+.preview-table-realistic {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 0.9rem;
+}
+
+.preview-table-realistic thead {
+  background: linear-gradient(to bottom, #f8f9fa, #e9ecef);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.preview-table-realistic tbody tr:nth-child(even) {
+  background: #f8f9fa;
+}
+
+.preview-table-realistic .section-row {
+  background: #e3f2fd;
+  font-weight: 600;
+}
+
+.preview-table-realistic .subsection-row {
+  background: #f1f8e9;
+  font-weight: 500;
+  font-style: italic;
+}
+
+.preview-table-realistic .operation-row {
+  background: #fff3e0;
+  font-weight: 600;
+  border-top: 2px solid #ff9800;
+  border-bottom: 2px solid #ff9800;
+}
+
+.preview-table-realistic .hidden-preview-row {
+  display: none !important;
+}
+
+/* Drag handle para reordenar */
+.drag-handle {
+  cursor: move;
+  color: #6c757d;
+  opacity: 0.4;
+  transition: opacity 0.2s ease;
+}
+
+.drag-handle:hover {
+  opacity: 1;
+  color: #0d6efd;
+}
+
+.dragging {
+  opacity: 0.5;
+  background: #e9ecef;
+}
+
+.drop-zone {
+  border: 2px dashed #0d6efd;
+  background: #e7f1ff;
+  min-height: 50px;
+}
+
+/* Responsivo */
+@media (max-width: 768px) {
+  .formula-term-row .row {
+    flex-direction: column;
+  }
+
+  .formula-term-row .col-auto {
+    width: 100% !important;
+  }
+
+  .formula-term-row .col {
+    width: 100%;
+  }
+
+  .order-control input[type="number"] {
+    width: 100%;
+  }
+}
+
+/* Animaciones */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.formula-term-row {
+  animation: fadeInUp 0.3s ease;
+}
+
+/* Badges mejorados */
+.operator-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
+.operator-badge.op-add {
+  background: #d4edda;
+  color: #155724;
+}
+
+.operator-badge.op-subtract {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.operator-badge.op-multiply {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.operator-badge.op-divide {
+  background: #d1ecf1;
+  color: #0c5460;
+}

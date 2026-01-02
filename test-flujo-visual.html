@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Flujo Autorización - SummaCham</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+    }
+    
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+    }
+    
+    .status {
+      padding: 15px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      border-left: 4px solid;
+    }
+    
+    .status.info {
+      background: #e3f2fd;
+      border-color: #2196f3;
+      color: #1976d2;
+    }
+    
+    .status.success {
+      background: #e8f5e9;
+      border-color: #4caf50;
+      color: #388e3c;
+    }
+    
+    .status.warning {
+      background: #fff3e0;
+      border-color: #ff9800;
+      color: #f57c00;
+    }
+    
+    .status.error {
+      background: #ffebee;
+      border-color: #f44336;
+      color: #d32f2f;
+    }
+    
+    .controls {
+      margin: 30px 0;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    
+    button {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    button:active {
+      transform: translateY(0);
+    }
+    
+    .btn-primary {
+      background: #2196f3;
+      color: white;
+    }
+    
+    .btn-success {
+      background: #4caf50;
+      color: white;
+    }
+    
+    .btn-warning {
+      background: #ff9800;
+      color: white;
+    }
+    
+    .btn-secondary {
+      background: #9e9e9e;
+      color: white;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+    }
+    
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border: 1px solid #ddd;
+    }
+    
+    th {
+      background: #f5f5f5;
+      font-weight: 600;
+      color: #333;
+    }
+    
+    td[data-mes] {
+      cursor: default;
+      transition: background 0.2s;
+    }
+    
+    td[data-mes].celda-editable {
+      cursor: pointer;
+    }
+    
+    td[data-mes].celda-editable:hover {
+      background: #e3f2fd;
+    }
+    
+    .modo-edicion-activo td[data-mes].celda-editable {
+      background: #fff9c4;
+    }
+    
+    .modo-edicion-activo td[data-mes].celda-editable:hover {
+      background: #fff59d;
+    }
+    
+    .test-results {
+      margin-top: 30px;
+    }
+    
+    .test-item {
+      padding: 10px;
+      margin: 5px 0;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .test-item.passed {
+      background: #e8f5e9;
+      color: #2e7d32;
+    }
+    
+    .test-item.failed {
+      background: #ffebee;
+      color: #c62828;
+    }
+    
+    .test-item.skipped {
+      background: #f5f5f5;
+      color: #757575;
+    }
+    
+    .icon {
+      font-size: 20px;
+    }
+    
+    .console {
+      background: #263238;
+      color: #aed581;
+      padding: 15px;
+      border-radius: 6px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      max-height: 300px;
+      overflow-y: auto;
+      margin-top: 20px;
+    }
+    
+    .console-line {
+      margin: 3px 0;
+    }
+    
+    .console-info { color: #81d4fa; }
+    .console-success { color: #a5d6a7; }
+    .console-warning { color: #ffb74d; }
+    .console-error { color: #e57373; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧪 Test Flujo de Autorización</h1>
+    <p class="subtitle">Verificación de correcciones implementadas</p>
+    
+    <div id="statusBox" class="status info">
+      <strong>Estado:</strong> Listo para pruebas
+    </div>
+    
+    <div class="controls">
+      <button class="btn-primary" onclick="activarModoEdicion()">
+        📝 Cargar presupuesto (Activar modo edición)
+      </button>
+      <button class="btn-secondary" onclick="desactivarModoEdicion()">
+        ❌ Cancelar edición (Desactivar)
+      </button>
+      <button class="btn-success" onclick="ejecutarTests()">
+        ✅ Ejecutar Tests Automáticos
+      </button>
+      <button class="btn-warning" onclick="limpiarConsola()">
+        🧹 Limpiar consola
+      </button>
+    </div>
+    
+    <h3>Tabla de Ejemplo</h3>
+    <table id="mainTable">
+      <thead>
+        <tr>
+          <th>CUENTAS</th>
+          <th>DESCRIPCIÓN</th>
+          <th data-mes="01">Enero</th>
+          <th data-mes="02">Febrero</th>
+          <th data-mes="03">Marzo</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1001</td>
+          <td>Ventas</td>
+          <td data-mes="01">100000</td>
+          <td data-mes="02">150000</td>
+          <td data-mes="03">120000</td>
+        </tr>
+        <tr>
+          <td>2001</td>
+          <td>Costos</td>
+          <td data-mes="01">50000</td>
+          <td data-mes="02">75000</td>
+          <td data-mes="03">60000</td>
+        </tr>
+        <tr>
+          <td>3001</td>
+          <td>Gastos</td>
+          <td data-mes="01">30000</td>
+          <td data-mes="02">35000</td>
+          <td data-mes="03">32000</td>
+        </tr>
+      </tbody>
+    </table>
+    
+    <div class="test-results" id="testResults" style="display:none;">
+      <h3>Resultados de Pruebas</h3>
+      <div id="testList"></div>
+    </div>
+    
+    <div class="console" id="console">
+      <div class="console-line console-info">💡 Consola de pruebas lista</div>
+      <div class="console-line">Intenta hacer click en diferentes celdas para probar</div>
+    </div>
+  </div>
+  
+  <script>
+    const CLASE_EDITABLE = 'celda-editable';
+    let modoEdicionActivo = false;
+    
+    // Simular estado
+    const estado = {
+      modoEdicionActivo: false
+    };
+    
+    // Función de log
+    function log(message, type = 'info') {
+      const console = document.getElementById('console');
+      const line = document.createElement('div');
+      line.className = `console-line console-${type}`;
+      line.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      console.appendChild(line);
+      console.scrollTop = console.scrollHeight;
+    }
+    
+    function limpiarConsola() {
+      document.getElementById('console').innerHTML = '<div class="console-line console-info">💡 Consola limpia</div>';
+    }
+    
+    function updateStatus(message, type = 'info') {
+      const box = document.getElementById('statusBox');
+      box.className = `status ${type}`;
+      box.innerHTML = `<strong>Estado:</strong> ${message}`;
+    }
+    
+    // Inicializar celdas editables
+    function inicializarCeldasEditables() {
+      const tabla = document.getElementById('mainTable');
+      const celdas = tabla.querySelectorAll('td[data-mes]');
+      
+      log(`Inicializando ${celdas.length} celdas editables...`);
+      
+      celdas.forEach((celda, idx) => {
+        if (celda.dataset.init) return;
+        celda.dataset.init = 'true';
+        
+        celda.classList.add(CLASE_EDITABLE);
+        
+        celda.addEventListener('click', (e) => {
+          if (!estado.modoEdicionActivo) {
+            log('❌ Click bloqueado: modo edición no activo', 'warning');
+            updateStatus('Debes activar el modo edición primero', 'warning');
+            return;
+          }
+          
+          log(`✅ Celda editable clickeada: ${celda.textContent}`, 'success');
+          updateStatus('Celda editable clickeada correctamente', 'success');
+          e.stopPropagation();
+        });
+      });
+      
+      // Agregar listeners a CUENTAS y DESCRIPCIÓN (columnas 0 y 1)
+      const filas = tabla.querySelectorAll('tbody tr');
+      filas.forEach((fila, filaIdx) => {
+        const celdaCuenta = fila.cells[0];
+        const celdaDesc = fila.cells[1];
+        
+        if (celdaCuenta && !celdaCuenta.dataset.init) {
+          celdaCuenta.dataset.init = 'true';
+          celdaCuenta.addEventListener('click', () => {
+            log(`❌ Click en CUENTAS (fila ${filaIdx + 1}) - NO debe ser editable`, 'error');
+            updateStatus('ERROR: CUENTAS no debe ser editable', 'error');
+          });
+        }
+        
+        if (celdaDesc && !celdaDesc.dataset.init) {
+          celdaDesc.dataset.init = 'true';
+          celdaDesc.addEventListener('click', () => {
+            log(`❌ Click en DESCRIPCIÓN (fila ${filaIdx + 1}) - NO debe ser editable`, 'error');
+            updateStatus('ERROR: DESCRIPCIÓN no debe ser editable', 'error');
+          });
+        }
+      });
+      
+      log('✅ Inicialización completada');
+    }
+    
+    function activarModoEdicion() {
+      if (estado.modoEdicionActivo) {
+        log('⚠️ Modo edición ya está activo', 'warning');
+        return;
+      }
+      
+      estado.modoEdicionActivo = true;
+      modoEdicionActivo = true;
+      
+      const tabla = document.getElementById('mainTable');
+      tabla.classList.add('modo-edicion-activo');
+      
+      log('🟢 Modo edición ACTIVADO (solo month-budget editable)', 'success');
+      updateStatus('Modo edición ACTIVO - Prueba hacer click en diferentes celdas', 'success');
+    }
+    
+    function desactivarModoEdicion() {
+      if (!estado.modoEdicionActivo) {
+        log('⚠️ Modo edición ya está inactivo', 'warning');
+        return;
+      }
+      
+      estado.modoEdicionActivo = false;
+      modoEdicionActivo = false;
+      
+      const tabla = document.getElementById('mainTable');
+      tabla.classList.remove('modo-edicion-activo');
+      
+      log('🔴 Modo edición DESACTIVADO', 'info');
+      updateStatus('Modo edición DESACTIVADO', 'info');
+    }
+    
+    function ejecutarTests() {
+      log('🧪 Ejecutando tests automáticos...', 'info');
+      const resultados = [];
+      
+      // Test 1: Verificar que hay celdas editables
+      const celdasEditables = document.querySelectorAll('.celda-editable');
+      if (celdasEditables.length > 0) {
+        resultados.push({ nombre: 'Celdas editables encontradas', passed: true });
+        log(`✅ Test 1: ${celdasEditables.length} celdas editables encontradas`, 'success');
+      } else {
+        resultados.push({ nombre: 'Celdas editables encontradas', passed: false });
+        log('❌ Test 1: No se encontraron celdas editables', 'error');
+      }
+      
+      // Test 2: Verificar que solo celdas con data-mes son editables
+      let todasTienenDataMes = true;
+      celdasEditables.forEach(celda => {
+        if (!celda.dataset.mes) {
+          todasTienenDataMes = false;
+        }
+      });
+      
+      if (todasTienenDataMes) {
+        resultados.push({ nombre: 'Solo celdas month-budget son editables', passed: true });
+        log('✅ Test 2: Solo celdas con data-mes son editables', 'success');
+      } else {
+        resultados.push({ nombre: 'Solo celdas month-budget son editables', passed: false });
+        log('❌ Test 2: Hay celdas editables sin data-mes', 'error');
+      }
+      
+      // Test 3: Verificar que columnas 0 y 1 NO son editables
+      const filas = document.querySelectorAll('tbody tr');
+      let cuentasDescNoEditables = true;
+      filas.forEach(fila => {
+        if (fila.cells[0]?.classList.contains(CLASE_EDITABLE) ||
+            fila.cells[1]?.classList.contains(CLASE_EDITABLE)) {
+          cuentasDescNoEditables = false;
+        }
+      });
+      
+      if (cuentasDescNoEditables) {
+        resultados.push({ nombre: 'CUENTAS/DESCRIPCIÓN NO editables', passed: true });
+        log('✅ Test 3: CUENTAS y DESCRIPCIÓN NO son editables', 'success');
+      } else {
+        resultados.push({ nombre: 'CUENTAS/DESCRIPCIÓN NO editables', passed: false });
+        log('❌ Test 3: CUENTAS o DESCRIPCIÓN son editables (ERROR)', 'error');
+      }
+      
+      // Test 4: Verificar estado
+      if (typeof estado.modoEdicionActivo === 'boolean') {
+        resultados.push({ nombre: 'Estado modoEdicionActivo existe', passed: true });
+        log('✅ Test 4: Estado modoEdicionActivo correcto', 'success');
+      } else {
+        resultados.push({ nombre: 'Estado modoEdicionActivo existe', passed: false });
+        log('❌ Test 4: Estado modoEdicionActivo no existe', 'error');
+      }
+      
+      // Mostrar resultados
+      mostrarResultados(resultados);
+    }
+    
+    function mostrarResultados(resultados) {
+      const testResults = document.getElementById('testResults');
+      const testList = document.getElementById('testList');
+      
+      testList.innerHTML = '';
+      testResults.style.display = 'block';
+      
+      const passed = resultados.filter(r => r.passed).length;
+      const total = resultados.length;
+      
+      resultados.forEach(test => {
+        const item = document.createElement('div');
+        item.className = `test-item ${test.passed ? 'passed' : 'failed'}`;
+        item.innerHTML = `
+          <span class="icon">${test.passed ? '✅' : '❌'}</span>
+          <span>${test.name || test.nombre}</span>
+        `;
+        testList.appendChild(item);
+      });
+      
+      const summary = document.createElement('div');
+      summary.className = `test-item ${passed === total ? 'passed' : 'failed'}`;
+      summary.innerHTML = `
+        <strong>Resumen: ${passed}/${total} tests pasados</strong>
+      `;
+      testList.appendChild(summary);
+      
+      log(`📊 Tests completados: ${passed}/${total} pasados`, passed === total ? 'success' : 'error');
+      updateStatus(`Tests: ${passed}/${total} pasados`, passed === total ? 'success' : 'warning');
+    }
+    
+    // Inicializar al cargar
+    window.addEventListener('DOMContentLoaded', () => {
+      log('🚀 Inicializando test...', 'info');
+      inicializarCeldasEditables();
+      log('✅ Test listo para usar', 'success');
+      updateStatus('Listo - Haz click en "Cargar presupuesto" para activar modo edición', 'info');
+    });
+  </script>
+</body>
+</html>

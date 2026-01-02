@@ -20,6 +20,7 @@
     />
     <link rel="stylesheet" href="css/estilos.css" />
     <link rel="stylesheet" href="css/plantillas.css" />
+    <link rel="stylesheet" href="css/formula-builder.css" />
     <link rel="icon" type="image/x-icon" href="icono/icono.ico" />
   </head>
 
@@ -144,6 +145,24 @@
                   disabled
                 >
                   <i class="bi bi-arrows-collapse me-1"></i> Colapsar
+                </button>
+                <button
+                  type="button"
+                  id="btnVerificar"
+                  class="btn btn-outline-info"
+                  onclick="checkOperationsSync()"
+                  title="Verificar sincronización de operaciones"
+                >
+                  <i class="bi bi-gear me-1"></i> Verificar
+                </button>
+                <button
+                  type="button"
+                  id="btnDebug"
+                  class="btn btn-outline-warning"
+                  onclick="showConsolidatedOperations()"
+                  title="Diagnosticar operaciones consolidadas"
+                >
+                  <i class="bi bi-bug me-1"></i> Diagnosticar
                 </button>
                 <button
                   type="button"
@@ -463,6 +482,10 @@
     <script src="js/modo-edicion-presupuesto.js"></script>
     <script src="js/flujo-autorizacion.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/formula-builder.js"></script>
+    <script src="js/layout-controls.js"></script>
+    <script src="js/operation-sync.js"></script>
+    <script src="js/operation-debugger.js"></script>
     <script src="js/plantillas.js"></script>
   </body>
 </html>

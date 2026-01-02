@@ -427,11 +427,11 @@
   function inicializarCeldasEditables(tabla) {
     if (!tabla) return;
 
-    // Si NO es modo soloLayout, permitir editar celdas numéricas
+    // Solo permitir editar celdas numéricas de presupuesto (month-budget)
+    // NUNCA editar CUENTAS o DESCRIPCIÓN
     if (!estado.soloLayout) {
-      // Buscar todas las celdas de presupuesto (numeros)
-      const selectorCeldasBudget =
-        'td[data-mes], td[data-columna-clave^="budget-"]';
+      // Buscar solo celdas con data-mes (month-budget columns)
+      const selectorCeldasBudget = 'td[data-mes]';
       const celdas = tabla.querySelectorAll(selectorCeldasBudget);
 
       celdas.forEach((celda) => {
@@ -453,53 +453,8 @@
       });
     }
 
-    // Celdas de texto (codigo / descripcion / nombre) - click to edit
-    // IMPORTANTE: Estas columnas NO requieren modo edición activo porque NO se insertan a COI
-    // Detectar por posición: columna 0 = cuenta/código, columna 1 = descripción/nombre
-    const esPlantillas = window.location.pathname.includes("plantillas.html");
-    const filas = Array.from(tabla.querySelectorAll("tbody tr"));
-
-    filas.forEach((fila) => {
-      const celdaCuenta = fila.cells[0]; // Primera columna = cuenta
-      const celdaNombre = fila.cells[1]; // Segunda columna = descripción/nombre
-
-      // CRÍTICO: Verificar si ya se inicializó
-      if (
-        celdaCuenta &&
-        !celdaCuenta.dataset.mes &&
-        !celdaCuenta.dataset.textoEdicionInit
-      ) {
-        celdaCuenta.dataset.textoEdicionInit = "true";
-        if (esPlantillas) {
-          celdaCuenta.style.cursor = "text";
-          celdaCuenta.dataset.columnaClave = "cuenta";
-        }
-        celdaCuenta.addEventListener("click", (ev) => {
-          if (!estado.modoEdicionActivo) return;
-          if (!esPlantillas) return; // Solo editable en plantillas.html
-          ev.stopPropagation();
-          activarEdicionTextoEnCelda(celdaCuenta);
-        });
-      }
-
-      if (
-        celdaNombre &&
-        !celdaNombre.dataset.mes &&
-        !celdaNombre.dataset.textoEdicionInit
-      ) {
-        celdaNombre.dataset.textoEdicionInit = "true";
-        if (esPlantillas) {
-          celdaNombre.style.cursor = "text";
-          celdaNombre.dataset.columnaClave = "descripcion";
-        }
-        celdaNombre.addEventListener("click", (ev) => {
-          if (!estado.modoEdicionActivo) return;
-          if (!esPlantillas) return; // Solo editable en plantillas.html
-          ev.stopPropagation();
-          activarEdicionTextoEnCelda(celdaNombre);
-        });
-      }
-    });
+    // IMPORTANTE: Las columnas CUENTAS y DESCRIPCIÓN NO deben ser editables NUNCA
+    // Solo las columnas month-budget son editables cuando el modo edición está activo
   }
   /**
    * Activar modo edicion en una celda numerica.
@@ -982,8 +937,8 @@
     });
 
     const mensaje = estado.soloLayout
-      ? "ModoEdicionPresupuesto: ACTIVADO (solo layout: cuenta/descripcion editables)"
-      : "ModoEdicionPresupuesto: ACTIVADO (celdas numericas editables)";
+      ? "ModoEdicionPresupuesto: ACTIVADO (modo solo layout)"
+      : "ModoEdicionPresupuesto: ACTIVADO (solo month-budget editable)";
     console.log(mensaje);
   }
 

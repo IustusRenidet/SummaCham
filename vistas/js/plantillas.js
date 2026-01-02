@@ -52,6 +52,11 @@
     dom.anioSelect = document.getElementById("anioSelect");
     dom.capituloSelect = document.getElementById("capituloSelect");
 
+    // Labels
+    dom.moduloLabel = document.getElementById("moduloLabel");
+    dom.anioLabel = document.getElementById("anioLabel");
+    dom.capituloLabel = document.getElementById("capituloLabel");
+
     // Buttons
     dom.btnCargar = document.getElementById("btnCargar");
     dom.btnGuardar = document.getElementById("btnGuardar");
@@ -374,6 +379,7 @@
 
       renderLayout();
       updateStats();
+      updateHeaderLabels();
       showLayoutView();
       setStatus(`Layout ${state.modulo} ${state.anio} listo para editar`);
     } catch (error) {
@@ -384,6 +390,12 @@
   }
 
   // Vista para crear nuevo layout
+  function updateHeaderLabels() {
+    if (dom.moduloLabel) dom.moduloLabel.textContent = state.modulo || "-";
+    if (dom.anioLabel) dom.anioLabel.textContent = state.anio || "-";
+    if (dom.capituloLabel) dom.capituloLabel.textContent = state.capitulo || "-";
+  }
+
   function showNewLayoutView() {
     dom.placeholderView.style.display = "none";
     dom.layoutView.style.display = "flex";
@@ -449,15 +461,138 @@
     return Number.isFinite(maxOrden) ? maxOrden + 1 : 0;
   }
 
+  // Detectar tipo de término basado en el valor
+  function detectTermType(value) {
+    if (!value) return "section";
+    
+    // Si es un número, es constante
+    if (!isNaN(parseFloat(value)) && isFinite(value)) {
+      return "constant";
+    }
+
+    // Si parece código de cuenta (tiene guiones o números)
+    if (/^\d{3}[-\d]/.test(value)) {
+      return "account";
+    }
+
+    // Si existe en la lista de operaciones, es operación
+    const isOperation = state.operaciones.some(op => 
+      op.Clase && op.Clase.toLowerCase() === value.toLowerCase()
+    );
+    if (isOperation) return "operation";
+
+    // Por defecto, es sección
+    return "section";
+  }
+
   function hydrateOperationsFromParents() {
     state.operaciones = state.operaciones.map((op, idx) => {
-      if (op?.formula_terms?.length) return op;
+      const parentName = op?.SECCION || op?.Clase;
 
+      // PRIORIDAD 1: Detectar y SIEMPRE reconstruir operaciones consolidadas
+      if (parentName && (
+        parentName.toLowerCase().includes('consolidated') ||
+        parentName.toLowerCase().includes('consolidado') ||
+        parentName.toLowerCase().includes('total')
+      )) {
+        // Buscar todas las secciones que coincidan con el tipo
+        const isIncome = parentName.toLowerCase().includes('income') || 
+                        parentName.toLowerCase().includes('ingreso');
+        const isExpense = parentName.toLowerCase().includes('expense') || 
+                         parentName.toLowerCase().includes('gasto');
+
+        if (isIncome || isExpense) {
+          const allSections = new Set();
+          state.cuentas.forEach(cuenta => {
+            const secPrincipal = cuenta['SECCIÓN Principal'] || 
+                                cuenta['SECCION Principal'] || 
+                                cuenta.seccion_principal || '';
+            if (secPrincipal) {
+              const secLower = secPrincipal.toLowerCase();
+              if ((isIncome && secLower.includes('income')) ||
+                  (isExpense && secLower.includes('expense'))) {
+                allSections.add(secPrincipal);
+              }
+            }
+          });
+
+          if (allSections.size > 0) {
+            const consolidatedTerms = Array.from(allSections)
+              .sort() // Ordenar alfabéticamente para consistencia
+              .map((sec, i) => ({
+                id: Date.now() + i,
+                operator: isExpense ? "-" : "+",
+                type: "section",
+                value: sec,
+              }));
+            
+            op.formula_terms = consolidatedTerms;
+            op.signos = {};
+            consolidatedTerms.forEach((term, i) => {
+              const key = `seccion_${i + 1}`;
+              op[key] = term.value;
+              op.signos[key] = term.operator === "-" ? -1 : 1;
+            });
+            if (op.orden === undefined) op.orden = idx;
+            
+            // Marcar como auto-construido para debugging
+            op._autoBuilt = true;
+            
+            return op;
+          }
+        }
+      }
+
+      // PRIORIDAD 2: Si ya tiene formula_terms definidos manualmente, respetarlos
+      if (op?.formula_terms?.length && !op._autoBuilt) return op;
+
+      // PRIORIDAD 3: Si tiene formula_json guardado, parsearlo
+      if (op?.formula_json) {
+        try {
+          op.formula_terms = JSON.parse(op.formula_json);
+          return op;
+        } catch (e) {
+          console.warn("Error parsing formula_json:", e);
+        }
+      }
+
+      // PRIORIDAD 4: Si tiene signos explícitos en seccion_1, seccion_2, etc.
+      if (op?.signos && Object.keys(op.signos).length > 0) {
+        const terms = [];
+        const seccionKeys = Object.keys(op.signos)
+          .filter(k => k.startsWith('seccion_'))
+          .sort((a, b) => {
+            const numA = parseInt(a.split('_')[1]) || 0;
+            const numB = parseInt(b.split('_')[1]) || 0;
+            return numA - numB;
+          });
+
+        seccionKeys.forEach((key, i) => {
+          const value = op[key];
+          if (value) {
+            terms.push({
+              id: Date.now() + i,
+              operator: op.signos[key] < 0 ? "-" : "+",
+              type: detectTermType(value),
+              value: value,
+            });
+          }
+        });
+
+        if (terms.length > 0) {
+          op.formula_terms = terms;
+          return op;
+        }
+      }
+
+      // PRIORIDAD 5: Construir desde SECCION o Clase usando buildFormulaTermsFromParent
       const derived = normalizeFormulaTerms(
-        buildFormulaTermsFromParent(op?.SECCION || op?.Clase)
+        buildFormulaTermsFromParent(parentName)
       );
 
-      if (!derived.length) return op;
+      if (!derived.length) {
+        return op;
+      }
 
       const hydrated = { ...op, formula_terms: derived, signos: {} };
 
@@ -1038,14 +1173,30 @@
   function renderAccount(account, principal, secundaria) {
     const codigo = account.CUENTA || "";
     const nombre = account.NOMBRE || account.nombre || "";
+    const isVisible = account.visible !== false;
+    const hiddenClass = !isVisible ? "hidden-row" : "";
 
     return `
-      <div class="account-row" data-cuenta="${escapeHtml(
+      <div class="account-row ${hiddenClass}" data-cuenta="${escapeHtml(
         codigo
       )}" onclick="selectAccount(this, '${escapeAttr(codigo)}')">
+        <span class="drag-handle" title="Arrastrar para reordenar">⋮⋮</span>
         <span class="account-code">${escapeHtml(codigo)}</span>
         <span class="account-name">${escapeHtml(nombre)}</span>
-        <div class="account-actions">
+        <div class="account-actions d-flex gap-2 align-items-center">
+          ${
+            window.LayoutControls
+              ? window.LayoutControls.renderVisibilityControl(
+                  account,
+                  "account"
+                )
+              : ""
+          }
+          ${
+            window.LayoutControls
+              ? window.LayoutControls.renderOrderControl(account, "account")
+              : ""
+          }
           <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); editAccount('${escapeAttr(
             codigo
           )}')" title="Editar">
@@ -1121,6 +1272,7 @@
   // ==========================================
   async function handleModuloChange() {
     state.modulo = dom.moduloSelect.value;
+    updateHeaderLabels();
     await loadYears();
     await loadChapters();
     await tryLoadLayout();
@@ -1128,12 +1280,14 @@
 
   async function handleAnioChange() {
     state.anio = dom.anioSelect.value;
+    updateHeaderLabels();
     await loadChapters();
     await tryLoadLayout();
   }
 
   async function handleCapituloChange() {
     state.capitulo = dom.capituloSelect.value;
+    updateHeaderLabels();
     await tryLoadLayout();
   }
 
@@ -2171,37 +2325,27 @@
           op.Clase
         )}" />
       </div>
-      <div class="mb-3">
-        <label class="form-label">Tipo de Operación</label>
-        <select class="form-select" id="editTipoOp" onchange="toggleEditFormulaBuilder()">
-          <option value="sum-sections" ${
-            op.tipo === "sum-sections" || !op.tipo ? "selected" : ""
-          }>Suma de secciones</option>
-          <option value="custom-formula" ${
-            op.tipo === "custom-formula" ? "selected" : ""
-          }>Fórmula personalizada</option>
-        </select>
-      </div>
       
-      <div id="editFormulaBuilder" class="mt-3">
-        <label class="form-label">Mapa de Operación (Fórmula)</label>
-        <div id="formulaTerms" class="formula-terms mb-2">
-          <!-- Se poblará dinámicamente -->
-        </div>
-        <div class="d-flex gap-2">
-          <button type="button" class="btn btn-outline-success btn-sm" onclick="addFormulaTerm()">
-            <i class="bi bi-plus-circle me-1"></i>Agregar término
-          </button>
-          <button type="button" class="btn btn-outline-info btn-sm" onclick="suggestTermsForOperation()">
-            <i class="bi bi-magic me-1"></i>Sugerir sub-secciones
-          </button>
+      <div class="mb-3">
+        <label class="form-label">Controles de Presentación</label>
+        <div class="d-flex gap-3 align-items-center">
+          ${
+            window.LayoutControls
+              ? window.LayoutControls.renderVisibilityControl(op, "operation")
+              : ""
+          }
+          ${
+            window.LayoutControls
+              ? window.LayoutControls.renderOrderControl(op, "operation")
+              : ""
+          }
         </div>
       </div>
 
-      <div class="formula-preview mt-3">
-        <label class="form-label">Vista previa:</label>
-        <div id="formulaPreviewText" class="formula-preview-text bg-light p-2 rounded border">
-          ${op.Clase} = ...
+      <div class="mb-3">
+        <label class="form-label fw-bold">Constructor de Fórmula</label>
+        <div id="formulaBuilderContainer">
+          <!-- El FormulaBuilder se renderizará aquí -->
         </div>
       </div>
       
@@ -2261,9 +2405,16 @@
     state.selectedElement = { type: "operation", op };
 
     // Expand section terms to individual accounts for display
-    expandSectionTermsToAccounts();
+    // Inicializar FormulaBuilder si está disponible
+    if (window.FormulaBuilder) {
+      const availableElements = getAvailableElements();
+      window.FormulaBuilder.init(op, availableElements);
+    } else {
+      // Fallback: renderizar términos manualmente
+      expandSectionTermsToAccounts();
+      renderFormulaTerms();
+    }
 
-    renderFormulaTerms();
     new bootstrap.Modal(dom.modalEditar).show();
   };
 
@@ -2528,33 +2679,63 @@
     } else if (state.selectedElement.type === "operation") {
       const op = state.selectedElement.op;
       const newClase = document.getElementById("editClaseOp")?.value?.trim();
-      const newTipo = document.getElementById("editTipoOp")?.value;
 
       if (newClase) op.Clase = newClase;
-      op.tipo = newTipo;
 
-      // Actualizar la estructura de la operación basado en los términos de la fórmula
-      op.formula_terms = normalizeFormulaTerms(formulaTerms);
+      // Usar FormulaBuilder si está disponible
+      if (window.FormulaBuilder) {
+        const validation = window.FormulaBuilder.validate();
+        if (!validation.isValid) {
+          showToast(
+            "Fórmula incompleta:\n" + validation.errors.join("\n"),
+            "error"
+          );
+          return;
+        }
 
-      // Mantener compatibilidad con el formato antiguo de signos
-      op.signos = {};
-      // Limpiar campos de sección antiguos
-      for (let i = 1; i <= 20; i++) {
-        delete op[`seccion_${i}`];
-      }
+        // Guardar fórmula en formato JSON
+        op.formula_json = window.FormulaBuilder.getFormulaJSON();
+        op.formula_terms = JSON.parse(op.formula_json);
 
-      op.formula_terms.forEach((term, i) => {
-        const key = `seccion_${i + 1}`;
-        op[key] = term.value;
-        op.signos[key] = term.operator === "-" ? -1 : 1;
-      });
+        // Mantener compatibilidad con formato legacy
+        op.signos = {};
+        for (let i = 1; i <= 20; i++) {
+          delete op[`seccion_${i}`];
+        }
 
-      // Si es una sola sección y modo simple, asegurar SECCION
-      if (
-        op.formula_terms.length === 1 &&
-        op.formula_terms[0].type === "section"
-      ) {
-        op.SECCION = op.formula_terms[0].value;
+        op.formula_terms.forEach((term, i) => {
+          const key = `seccion_${i + 1}`;
+          op[key] = term.value;
+          op.signos[key] = term.operator === "-" ? -1 : 1;
+        });
+
+        // Si es una sola sección, asegurar SECCION
+        if (
+          op.formula_terms.length === 1 &&
+          op.formula_terms[0].type === "section"
+        ) {
+          op.SECCION = op.formula_terms[0].value;
+        }
+      } else {
+        // Fallback: usar formulaTerms global
+        op.formula_terms = normalizeFormulaTerms(formulaTerms);
+        op.signos = {};
+        for (let i = 1; i <= 20; i++) {
+          delete op[`seccion_${i}`];
+        }
+
+        op.formula_terms.forEach((term, i) => {
+          const key = `seccion_${i + 1}`;
+          op[key] = term.value;
+          op.signos[key] = term.operator === "-" ? -1 : 1;
+        });
+
+        if (
+          op.formula_terms.length === 1 &&
+          op.formula_terms[0].type === "section"
+        ) {
+          op.SECCION = op.formula_terms[0].value;
+        }
       }
     } else if (state.selectedElement.type === "consolidatedLabel") {
       // Handle consolidated label edit
@@ -2642,28 +2823,151 @@
   function buildFormulaTermsFromParent(parentName) {
     if (!parentName) return [];
 
+    // Primero intentar con subsecciones del layout actual
     const sections = groupBySections(state.cuentas);
     const subsections = sections.get(parentName);
-    if (!subsections) return [];
+    
+    if (subsections && subsections.size > 0) {
+      const seen = new Set();
+      const terms = [];
+      let counter = 0;
 
-    const seen = new Set();
-    const terms = [];
-    let counter = 0;
+      subsections.forEach((_, secundaria) => {
+        const label = secundaria || parentName;
+        if (!label || seen.has(label)) return;
+        seen.add(label);
 
-    subsections.forEach((_, secundaria) => {
-      const label = secundaria || parentName;
-      if (!label || seen.has(label)) return;
-      seen.add(label);
-
-      terms.push({
-        id: Date.now() + counter++,
-        operator: "+",
-        type: "section",
-        value: label,
+        terms.push({
+          id: Date.now() + counter++,
+          operator: "+",
+          type: "section",
+          value: label,
+        });
       });
-    });
 
-    return terms;
+      if (terms.length > 0) return terms;
+    }
+
+    // Si no encontró subsecciones, buscar patrón de consolidación
+    const nameLower = parentName.toLowerCase();
+    
+    // Detectar si es operación consolidada
+    if (nameLower.includes('consolidated') || 
+        nameLower.includes('consolidado') ||
+        nameLower.includes('total')) {
+      
+      const isIncome = nameLower.includes('income') || nameLower.includes('ingreso');
+      const isExpense = nameLower.includes('expense') || nameLower.includes('gasto');
+      const isResult = nameLower.includes('result') || nameLower.includes('resultado');
+      const isOperating = nameLower.includes('operating') || nameLower.includes('operativo');
+
+      if (isIncome || isExpense) {
+        // Buscar todas las secciones del tipo correspondiente
+        const matchingSections = new Set();
+        
+        sections.forEach((_, seccionPrincipal) => {
+          const secLower = seccionPrincipal.toLowerCase();
+          if ((isIncome && secLower.includes('income')) ||
+              (isExpense && secLower.includes('expense'))) {
+            matchingSections.add(seccionPrincipal);
+          }
+        });
+
+        if (matchingSections.size > 0) {
+          return Array.from(matchingSections).map((sec, i) => ({
+            id: Date.now() + i,
+            operator: isExpense ? "-" : "+",
+            type: "section",
+            value: sec,
+          }));
+        }
+      }
+
+      if (isResult || isOperating) {
+        // Para resultados, buscar operaciones consolidadas de income y expense
+        const terms = [];
+        let counter = 0;
+
+        // Buscar operación consolidada de income
+        const incomeOp = state.operaciones.find(op => {
+          const claseL = (op.Clase || '').toLowerCase();
+          return (claseL.includes('consolidated') || claseL.includes('total')) && 
+                 claseL.includes('income');
+        });
+
+        if (incomeOp) {
+          terms.push({
+            id: Date.now() + counter++,
+            operator: "+",
+            type: "operation",
+            value: incomeOp.Clase,
+          });
+        }
+
+        // Buscar operación consolidada de expense
+        const expenseOp = state.operaciones.find(op => {
+          const claseL = (op.Clase || '').toLowerCase();
+          return (claseL.includes('consolidated') || claseL.includes('total')) && 
+                 claseL.includes('expense');
+        });
+
+        if (expenseOp) {
+          terms.push({
+            id: Date.now() + counter++,
+            operator: "-",
+            type: "operation",
+            value: expenseOp.Clase,
+          });
+        }
+
+        if (terms.length > 0) return terms;
+      }
+    }
+
+    // Si tiene "of" o "de", intentar buscar secciones específicas
+    // Ejemplo: "Income of CDMX" o "CDMX Income"
+    const keywords = ['cdmx', 'guadalajara', 'monterrey', 'northwest', 'queretaro', 'merida'];
+    const foundKeywords = keywords.filter(kw => nameLower.includes(kw));
+
+    if (foundKeywords.length > 0) {
+      const terms = [];
+      let counter = 0;
+
+      foundKeywords.forEach(keyword => {
+        // Buscar secciones que contengan este keyword
+        sections.forEach((subsecs, principal) => {
+          const principalLower = principal.toLowerCase();
+          if (principalLower.includes(keyword)) {
+            // Si es income/expense, agregar la sección principal
+            if ((nameLower.includes('income') && principalLower.includes('income')) ||
+                (nameLower.includes('expense') && principalLower.includes('expense'))) {
+              terms.push({
+                id: Date.now() + counter++,
+                operator: nameLower.includes('expense') ? "-" : "+",
+                type: "section",
+                value: principal,
+              });
+            } else {
+              // Agregar subsecciones
+              subsecs.forEach((_, secundaria) => {
+                if (secundaria) {
+                  terms.push({
+                    id: Date.now() + counter++,
+                    operator: "+",
+                    type: "section",
+                    value: secundaria,
+                  });
+                }
+              });
+            }
+          }
+        });
+      });
+
+      if (terms.length > 0) return terms;
+    }
+
+    return [];
   }
 
   function normalizeFormulaTerms(terms = []) {
@@ -3116,77 +3420,61 @@
   }
 
   function renderPreviewTable() {
-    const sections = groupBySections(state.cuentas);
-    let html = `
-      <div class="preview-table-container shadow-sm bg-white rounded overflow-hidden">
-        <table class="table table-sm table-bordered mb-0">
-          <thead class="table-dark">
-            <tr>
-              <th style="width: 120px">Cuenta</th>
-              <th>Descripción</th>
-              <th class="text-end" style="width: 150px">Enero</th>
-              <th class="text-end" style="width: 100px">...</th>
-              <th class="text-end" style="width: 150px">Diciembre</th>
-            </tr>
-          </thead>
-          <tbody>
-    `;
-
-    sections.forEach((subsections, principal) => {
-      html += `<tr class="table-primary"><td colspan="5"><strong>${escapeHtml(
-        principal
-      )}</strong></td></tr>`;
-
-      subsections.forEach((accounts, secundaria) => {
-        if (secundaria && secundaria !== principal) {
-          html += `<tr class="table-light"><td colspan="5" class="ps-4"><em>${escapeHtml(
-            secundaria
-          )}</em></td></tr>`;
-        }
-
-        accounts.forEach((acc) => {
-          html += `
-            <tr>
-              <td class="ps-4 small text-muted">${escapeHtml(
-                acc.CUENTA || ""
-              )}</td>
-              <td class="ps-${secundaria ? "5" : "4"}">${escapeHtml(
-            acc.NOMBRE || ""
-          )}</td>
-              <td class="text-end text-muted small">0.00</td>
-              <td class="text-end text-muted small">...</td>
-              <td class="text-end text-muted small">0.00</td>
-            </tr>
-          `;
-        });
-      });
-    });
-
-    // Operaciones
-    state.operaciones.forEach((op) => {
-      const tipo = detectOperationType(op);
-      const claseColor =
-        tipo === "net"
-          ? "table-info"
-          : tipo === "result"
-          ? "table-success"
-          : "table-warning";
-      html += `
-        <tr class="${claseColor} font-weight-bold">
-          <td colspan="2"><strong>${escapeHtml(op.Clase || "")}</strong></td>
-          <td class="text-end">0.00</td>
-          <td class="text-end">...</td>
-          <td class="text-end">0.00</td>
-        </tr>
+    if (!window.LayoutControls) {
+      // Fallback si LayoutControls no está cargado
+      dom.previewContainer.innerHTML = `
+        <div class="alert alert-warning">
+          El módulo de vista previa no está disponible. 
+          Asegúrate de que layout-controls.js esté cargado.
+        </div>
       `;
-    });
+      return;
+    }
 
-    html += `
-          </tbody>
-        </table>
-      </div>
-    `;
+    const layoutData = {
+      cuentas: state.cuentas || [],
+      operaciones: state.operaciones || [],
+    };
 
-    dom.previewContainer.innerHTML = html;
+    const previewHtml = window.LayoutControls.renderRealisticPreview(
+      layoutData,
+      {
+        showHiddenRows: false,
+        showSampleData: true,
+        monthsToShow: 3,
+      }
+    );
+
+    dom.previewContainer.innerHTML = previewHtml;
+
+    // Agregar listeners para los controles interactivos
+    const toggleHidden = document.getElementById("toggleHidden");
+    const toggleData = document.getElementById("toggleData");
+
+    if (toggleHidden) {
+      toggleHidden.addEventListener("change", (e) => {
+        const html = window.LayoutControls.renderRealisticPreview(layoutData, {
+          showHiddenRows: e.target.checked,
+          showSampleData: toggleData?.checked || true,
+          monthsToShow: 3,
+        });
+        dom.previewContainer.innerHTML = html;
+        // Re-bind listeners
+        renderPreviewTable();
+      });
+    }
+
+    if (toggleData) {
+      toggleData.addEventListener("change", (e) => {
+        const html = window.LayoutControls.renderRealisticPreview(layoutData, {
+          showHiddenRows: toggleHidden?.checked || false,
+          showSampleData: e.target.checked,
+          monthsToShow: 3,
+        });
+        dom.previewContainer.innerHTML = html;
+        // Re-bind listeners
+        renderPreviewTable();
+      });
+    }
   }
 })();
