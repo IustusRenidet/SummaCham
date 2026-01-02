@@ -7,6 +7,19 @@
 (() => {
   "use strict";
 
+  const ROW_LABEL_FIELDS =
+    window.ROW_LABEL_FIELDS || [
+      "sum-row",
+      "sum-row-sumavarios",
+      "sum-row-sumavarios-consolidado",
+      "sum-row-operativo",
+      "sum-row-operativo-consolidado",
+      "result-row",
+      "net-row",
+      "net-row-adicional",
+      "result-net-row",
+    ];
+
   window.LayoutControls = {
     /**
      * Agregar controles de visibilidad a una fila de cuenta
@@ -269,8 +282,10 @@
             <tbody>
       `;
 
-      // Organizar cuentas por sección
+      // Organizar cuentas por sección y preparar operaciones ordenadas
       const sections = this._groupBySections(layoutData.cuentas || []);
+      const orderedOps = this._sortOperations(layoutData.operaciones || []);
+      const renderedOps = new Set();
 
       sections.forEach(({ principal, subsections }) => {
         // Fila de sección principal
@@ -298,64 +313,80 @@
             `;
           }
 
-          // Cuentas
-          cuentas.forEach((cuenta) => {
-            const isVisible = cuenta.visible !== false;
-            const hideClass =
-              !isVisible && !showHiddenRows ? "hidden-preview-row" : "";
-            const dimClass = !isVisible ? "text-muted" : "";
+          const matchingOps = this._findInlineOperations(
+            orderedOps,
+            principal,
+            secundaria || principal
+          );
 
-            const sampleValues = showSampleData
-              ? this._generateSampleData(selectedMonths.length)
-              : Array(selectedMonths.length).fill(0);
+          const combinedRows = [
+            ...cuentas.map((cuenta, idx) => ({
+              type: "account",
+              order: cuenta.orden_presentacion ?? cuenta.orden ?? idx + 1,
+              data: cuenta,
+            })),
+            ...matchingOps.map((op, idx) => ({
+              type: "operation",
+              order: this._getOperationOrder(op, idx),
+              data: op,
+            })),
+          ].sort((a, b) => a.order - b.order);
 
-            const total = sampleValues.reduce((a, b) => a + b, 0);
+          combinedRows.forEach((row) => {
+            if (row.type === "account") {
+              const cuenta = row.data;
+              const isVisible = cuenta.visible !== false;
+              const hideClass =
+                !isVisible && !showHiddenRows ? "hidden-preview-row" : "";
+              const dimClass = !isVisible ? "text-muted" : "";
 
-            html += `
-              <tr class="${hideClass} ${dimClass}">
-                <td class="ps-5 small">${
-                  isVisible ? "" : '🔒 '
-                }${this._escapeHtml(cuenta.CUENTA || "")}</td>
-                <td class="ps-5">${this._escapeHtml(
-                  cuenta.NOMBRE || cuenta.nombre || ""
-                )}</td>
-                ${sampleValues
-                  .map((v) => `<td class="text-end">${this._formatMoney(v)}</td>`)
-                  .join("")}
-                <td class="text-end fw-bold">${this._formatMoney(total)}</td>
-              </tr>
-            `;
+              const sampleValues = showSampleData
+                ? this._generateSampleData(selectedMonths.length)
+                : Array(selectedMonths.length).fill(0);
+
+              const total = sampleValues.reduce((a, b) => a + b, 0);
+
+              html += `
+                <tr class="${hideClass} ${dimClass}">
+                  <td class="ps-5 small">${
+                    isVisible ? "" : '🔒 '
+                  }${this._escapeHtml(cuenta.CUENTA || "")}</td>
+                  <td class="ps-5">${this._escapeHtml(
+                    cuenta.NOMBRE || cuenta.nombre || ""
+                  )}</td>
+                  ${sampleValues
+                    .map((v) => `<td class="text-end">${this._formatMoney(v)}</td>`)
+                    .join("")}
+                  <td class="text-end fw-bold">${this._formatMoney(total)}</td>
+                </tr>
+              `;
+            } else {
+              const op = row.data;
+              renderedOps.add(op.Clase || op.SECCION || op.id);
+              html += this._renderOperationRow(
+                op,
+                selectedMonths.length,
+                showSampleData,
+                showHiddenRows,
+                true
+              );
+            }
           });
         });
       });
 
-      // Operaciones
-      (layoutData.operaciones || []).forEach((op) => {
-        const isVisible = op.visible !== false;
-        const hideClass =
-          !isVisible && !showHiddenRows ? "hidden-preview-row" : "";
-
-        const sampleValues = showSampleData
-          ? this._generateSampleData(selectedMonths.length, true)
-          : Array(selectedMonths.length).fill(0);
-
-        const total = sampleValues.reduce((a, b) => a + b, 0);
-
-        html += `
-          <tr class="operation-row ${hideClass}">
-            <td colspan="2" class="fw-bold">
-              ${isVisible ? "" : "🔒 "}
-              <i class="bi bi-calculator me-2"></i>${this._escapeHtml(
-                op.Clase || ""
-              )}
-            </td>
-            ${sampleValues
-              .map((v) => `<td class="text-end">${this._formatMoney(v)}</td>`)
-              .join("")}
-            <td class="text-end fw-bold">${this._formatMoney(total)}</td>
-          </tr>
-        `;
-      });
+      // Operaciones restantes (sección/global) en orden de aparición
+      orderedOps
+        .filter((op) => !renderedOps.has(op.Clase || op.SECCION || op.id))
+        .forEach((op) => {
+          html += this._renderOperationRow(
+            op,
+            selectedMonths.length,
+            showSampleData,
+            showHiddenRows,
+            false
+          );
+        });
 
       html += `
             </tbody>
@@ -415,6 +446,155 @@
       });
 
       return result;
+    },
+
+    _findInlineOperations(operaciones, principal, subseccion) {
+      const principalLower = (principal || "").toLowerCase();
+      const subsectionLower = (subseccion || "").toLowerCase();
+      const isIncomeSection = principalLower.includes("income");
+      const isExpenseSection = principalLower.includes("expense");
+
+      return (operaciones || []).filter((op) => {
+        const clase = (op.Clase || "").toLowerCase();
+        const isIncomeOp = clase.includes("income");
+        const isExpenseOp = clase.includes("expense");
+
+        if (isIncomeSection && isExpenseOp) return false;
+        if (isExpenseSection && isIncomeOp) return false;
+
+        if (
+          op.parentSubsection &&
+          op.parentSubsection.toLowerCase() === subsectionLower
+        ) {
+          if (op.parentSection) {
+            return op.parentSection.toLowerCase() === principalLower;
+          }
+          return true;
+        }
+
+        const claseNorm = clase.replace(/[-_\s]/g, "");
+        const subsectionNorm = subsectionLower.replace(/[-_\s]/g, "");
+
+        if (claseNorm.includes(subsectionNorm) || subsectionNorm.includes(claseNorm)) {
+          if (!op.secciones || op.secciones.length <= 1) {
+            return true;
+          }
+        }
+
+        if (Array.isArray(op.secciones)) {
+          return op.secciones.some(
+            (sec) => sec && sec.toLowerCase() === subseccion.toLowerCase()
+          );
+        }
+
+        return false;
+      });
+    },
+
+    _getOperationOrder(op, fallback = 0) {
+      const raw = op?.orden_presentacion ?? op?.orden ?? op?.Orden ?? op?.index;
+      const parsed = Number(raw);
+      return Number.isFinite(parsed) ? parsed : fallback;
+    },
+
+    _sortOperations(list = []) {
+      return [...(list || [])]
+        .map((op, idx) => ({ op, idx }))
+        .sort(
+          (a, b) =>
+            this._getOperationOrder(a.op, a.idx) -
+            this._getOperationOrder(b.op, b.idx)
+        )
+        .map((item) => item.op);
+    },
+
+    _renderOperationRow(op, monthCount, showSampleData, showHiddenRows, isInline) {
+      const isVisible = op.visible !== false;
+      const hideClass = !isVisible && !showHiddenRows ? "hidden-preview-row" : "";
+      const sampleValues = showSampleData
+        ? this._generateSampleData(monthCount, true)
+        : Array(monthCount).fill(0);
+      const total = sampleValues.reduce((a, b) => a + b, 0);
+
+      const label = this._getOperationLabel(op);
+      const badges = this._buildOperationBadges(op);
+      const formula = this._buildFormulaSummary(op);
+
+      return `
+        <tr class="operation-row ${hideClass}">
+          <td colspan="2" class="fw-bold ${isInline ? "ps-5" : ""}">
+            ${isVisible ? "" : "🔒 "}
+            <i class="bi bi-calculator me-2"></i>${label}
+            ${badges}
+            <div class="small text-muted fw-normal">${formula}</div>
+          </td>
+          ${sampleValues
+            .map((v) => `<td class="text-end">${this._formatMoney(v)}</td>`)
+            .join("")}
+          <td class="text-end fw-bold">${this._formatMoney(total)}</td>
+        </tr>
+      `;
+    },
+
+    _getOperationLabel(op) {
+      for (const field of ROW_LABEL_FIELDS) {
+        if (op[field]) {
+          return this._escapeHtml(op[field]);
+        }
+      }
+      return this._escapeHtml(op.Clase || op.SECCION || "Operación");
+    },
+
+    _buildOperationBadges(op) {
+      const badges = [];
+      ROW_LABEL_FIELDS.forEach((field) => {
+        if (op[field]) {
+          const color = field.includes("net")
+            ? "danger"
+            : field.includes("operativo")
+              ? "primary"
+              : field.includes("consolidado")
+                ? "info"
+                : field.includes("sumavarios")
+                  ? "success"
+                  : "secondary";
+          badges.push(
+            `<span class="badge bg-${color} ms-1 text-uppercase">${field}</span>`
+          );
+        }
+      });
+
+      if (!badges.length && op.tipo) {
+        badges.push(
+          `<span class="badge bg-warning text-dark ms-1">${this._escapeHtml(
+            op.tipo
+          )}</span>`
+        );
+      }
+
+      return badges.join("");
+    },
+
+    _buildFormulaSummary(op) {
+      if (Array.isArray(op.formula_terms) && op.formula_terms.length) {
+        return op.formula_terms
+          .map((term, idx) => {
+            const prefix =
+              idx === 0
+                ? term.operator === "-"
+                  ? "-"
+                  : ""
+                : ` ${term.operator} `;
+            return `${prefix}${term.value || term.constValue || ""}`;
+          })
+          .join("");
+      }
+
+      if (Array.isArray(op.secciones) && op.secciones.length) {
+        return op.secciones.join(" + ");
+      }
+
+      return op.SECCION || op.Clase || "";
     },
 
     /**
