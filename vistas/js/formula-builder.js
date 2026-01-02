@@ -274,6 +274,47 @@
       container.innerHTML = html;
     },
 
+    _normalizeKey(value) {
+      return (value || "")
+        .toString()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/\s+/g, " ")
+        .trim()
+        .toLowerCase();
+    },
+
+    _sortByTableOrder(items, valueGetter) {
+      if (!Array.isArray(items)) return items || [];
+      if (!Array.isArray(this.orderedElements) || !this.orderedElements.length) {
+        return items;
+      }
+
+      const orderMap = new Map();
+      this.orderedElements.forEach((value, idx) => {
+        const key = this._normalizeKey(value);
+        if (key && !orderMap.has(key)) {
+          orderMap.set(key, idx);
+        }
+      });
+
+      return items
+        .map((item, idx) => ({
+          item,
+          idx,
+          order: orderMap.get(this._normalizeKey(valueGetter(item))),
+        }))
+        .sort((a, b) => {
+          const aOrder =
+            Number.isFinite(a.order) ? a.order : Number.MAX_SAFE_INTEGER;
+          const bOrder =
+            Number.isFinite(b.order) ? b.order : Number.MAX_SAFE_INTEGER;
+          if (aOrder === bOrder) return a.idx - b.idx;
+          return aOrder - bOrder;
+        })
+        .map((entry) => entry.item);
+    },
+
     /**
      * Renderizar un término individual
      */
@@ -299,10 +340,14 @@
       switch (term.type) {
         case "section":
           // Garantizar que la opción actual exista aunque no esté en el catálogo
-          const sectionOptions = [...this.availableElements.sections];
+          let sectionOptions = [...this.availableElements.sections];
           if (term.value && !sectionOptions.includes(term.value)) {
             sectionOptions.unshift(term.value);
           }
+          sectionOptions = this._sortByTableOrder(
+            sectionOptions,
+            (value) => value
+          );
           valueInput = `
             <select class="form-select" onchange="FormulaBuilder.updateValue(${
               term.id
@@ -321,13 +366,17 @@
           break;
 
         case "account":
-          const accountOptions = [...this.availableElements.accounts];
+          let accountOptions = [...this.availableElements.accounts];
           if (
             term.value &&
             !accountOptions.some((a) => a.code === term.value)
           ) {
             accountOptions.unshift({ code: term.value, name: term.value });
           }
+          accountOptions = this._sortByTableOrder(
+            accountOptions,
+            (value) => value.code
+          );
           valueInput = `
             <select class="form-select" onchange="FormulaBuilder.updateValue(${
               term.id
@@ -348,10 +397,14 @@
           break;
 
         case "operation":
-          const operationOptions = [...this.availableElements.operations];
+          let operationOptions = [...this.availableElements.operations];
           if (term.value && !operationOptions.includes(term.value)) {
             operationOptions.unshift(term.value);
           }
+          operationOptions = this._sortByTableOrder(
+            operationOptions,
+            (value) => value
+          );
           valueInput = `
             <select class="form-select" onchange="FormulaBuilder.updateValue(${
               term.id

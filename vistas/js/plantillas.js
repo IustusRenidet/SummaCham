@@ -4524,6 +4524,22 @@
    * Cargadas dinámicamente desde el archivo JSON
    */
   let OPERACIONES_PREDEFINIDAS = {};
+  const normalizeKey = (value) =>
+    (value || "")
+      .toString()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-zA-Z0-9]+/g, "")
+      .toUpperCase();
+
+  const normalizeModuloKey = (value) => normalizeKey(value);
+
+  const normalizeCapituloKey = (value) => {
+    const base = normalizeKey(value);
+    if (base === "NORESTE") return "NE";
+    if (base === "NOROESTE") return "NO";
+    return base;
+  };
 
   /**
    * Cargar operaciones desde el archivo JSON
