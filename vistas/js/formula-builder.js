@@ -17,6 +17,8 @@
      * Inicializar constructor con operación existente
      */
     init(operation, availableElements) {
+      console.log("FormulaBuilder.init llamado con:", operation);
+      
       this.currentOperationId = operation?.id || null;
       this.availableElements = availableElements || {
         sections: [],
@@ -24,21 +26,42 @@
         operations: [],
       };
 
-      // Cargar términos existentes o crear uno vacío
-      if (operation?.formula_json) {
+      console.log("Elementos disponibles:", this.availableElements);
+
+      // PRIORIDAD 1: Si la operación ya tiene formula_terms poblados, usarlos directamente
+      if (operation?.formula_terms && Array.isArray(operation.formula_terms) && operation.formula_terms.length > 0) {
+        console.log("✅ Usando formula_terms directamente:", operation.formula_terms);
+        this.terms = operation.formula_terms.map((t, idx) => ({
+          id: t.id || Date.now() + idx,
+          operator: t.operator || "+",
+          type: t.type || "section",
+          value: t.value || "",
+          constant: t.constant || null,
+        }));
+      }
+      // PRIORIDAD 2: Intentar parsear formula_json
+      else if (operation?.formula_json) {
+        console.log("📋 Parseando formula_json:", operation.formula_json);
         try {
           this.terms = JSON.parse(operation.formula_json);
         } catch (e) {
+          console.warn("Error parseando formula_json, usando _parseFromLegacy");
           this.terms = this._parseFromLegacy(operation);
         }
-      } else if (operation) {
+      }
+      // PRIORIDAD 3: Parsear desde formato legacy
+      else if (operation) {
+        console.log("🔄 Parseando desde formato legacy");
         this.terms = this._parseFromLegacy(operation);
       } else {
         this.terms = [];
       }
 
+      console.log("✨ Términos finales cargados:", this.terms);
+
       // Si no hay términos, agregar uno inicial
       if (this.terms.length === 0) {
+        console.warn("⚠️ No hay términos, agregando uno por defecto");
         this.addTerm();
       }
 
@@ -208,8 +231,14 @@
      * Renderizar constructor en el DOM
      */
     render() {
+      console.log("🎨 render() - Renderizando términos:", this.terms);
       const container = document.getElementById("formulaBuilderContainer");
-      if (!container) return;
+      if (!container) {
+        console.error("❌ No se encontró #formulaBuilderContainer");
+        return;
+      }
+
+      console.log("✅ Container encontrado, renderizando", this.terms.length, "términos");
 
       const html = `
         <div class="formula-builder-wrapper">
@@ -243,6 +272,7 @@
      * Renderizar un término individual
      */
     _renderTerm(term, index) {
+      console.log(`🔨 _renderTerm[${index}]:`, term);
       const isFirst = index === 0;
       const operators = [
         { value: "+", label: "+", title: "Sumar" },
@@ -419,24 +449,21 @@
         return;
       }
 
-      // Crear modal SIMPLE con solo visualización
+      // Crear modal LIMPIO con solo visualización
       const mapHtml = this._generateMapVisualization();
       const modal = document.createElement("div");
       modal.className = "modal fade";
       modal.innerHTML = `
-        <div class="modal-dialog modal-lg">
-          <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-              <h5 class="modal-title">
-                <i class="bi bi-diagram-3 me-2"></i>Mapa de Operación
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header border-0 pb-0">
+              <h5 class="modal-title fw-bold">
+                <i class="bi bi-diagram-3 me-2 text-primary"></i>Mapa de Operación
               </h5>
-              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body p-4">
+            <div class="modal-body px-4 py-3">
               ${mapHtml}
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
             </div>
           </div>
         </div>
@@ -477,15 +504,25 @@
           "/": "info",
         }[term.operator] || "secondary";
 
+        const operatorBg = {
+          "+": "#28a745",
+          "-": "#dc3545",
+          "*": "#ffc107",
+          "/": "#17a2b8",
+        }[term.operator] || "#6c757d";
+
         return `
-          <div class="d-flex align-items-center gap-3 p-2 mb-2 bg-light rounded">
+          <div class="d-flex align-items-center gap-3 mb-2">
             ${
               idx > 0
-                ? `<span class="badge bg-${colorClass} fs-5 px-3 py-2">${operator}</span>`
-                : '<span style="width: 42px;"></span>'
+                ? `<div class="d-flex align-items-center justify-content-center rounded-circle text-white fw-bold" style="width: 40px; height: 40px; background: ${operatorBg}; font-size: 20px; flex-shrink: 0;">
+                    ${operator}
+                  </div>`
+                : '<div style="width: 40px; flex-shrink: 0;"></div>'
             }
-            <i class="bi ${iconClass} text-primary fs-4"></i>
-            <span class="fw-semibold">${this._escapeHtml(valueLabel)}</span>
+            <div class="flex-grow-1 p-2 px-3 bg-light rounded-2">
+              <span class="fw-semibold" style="font-size: 14px;">${this._escapeHtml(valueLabel)}</span>
+            </div>
           </div>
         `;
       });
@@ -493,9 +530,8 @@
       return `
         <div class="formula-map">
           ${rows.join("")}
-          <div class="mt-3 p-3 bg-primary bg-opacity-10 border border-primary rounded">
-            <div class="fw-bold mb-2">Resultado:</div>
-            <code class="fs-6">${this.getFormulaText()}</code>
+          <div class="mt-3 p-3 rounded-2" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+            <code class="text-white d-block fw-semibold" style="font-size: 14px; background: transparent; border: 0;">${this.getFormulaText()}</code>
           </div>
         </div>
       `;

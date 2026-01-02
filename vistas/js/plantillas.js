@@ -393,7 +393,8 @@
   function updateHeaderLabels() {
     if (dom.moduloLabel) dom.moduloLabel.textContent = state.modulo || "-";
     if (dom.anioLabel) dom.anioLabel.textContent = state.anio || "-";
-    if (dom.capituloLabel) dom.capituloLabel.textContent = state.capitulo || "-";
+    if (dom.capituloLabel)
+      dom.capituloLabel.textContent = state.capitulo || "-";
   }
 
   function showNewLayoutView() {
@@ -464,7 +465,7 @@
   // Detectar tipo de término basado en el valor
   function detectTermType(value) {
     if (!value) return "section";
-    
+
     // Si es un número, es constante
     if (!isNaN(parseFloat(value)) && isFinite(value)) {
       return "constant";
@@ -476,8 +477,8 @@
     }
 
     // Si existe en la lista de operaciones, es operación
-    const isOperation = state.operaciones.some(op => 
-      op.Clase && op.Clase.toLowerCase() === value.toLowerCase()
+    const isOperation = state.operaciones.some(
+      (op) => op.Clase && op.Clase.toLowerCase() === value.toLowerCase()
     );
     if (isOperation) return "operation";
 
@@ -490,27 +491,34 @@
       const parentName = op?.SECCION || op?.Clase;
 
       // PRIORIDAD 1: Detectar y SIEMPRE reconstruir operaciones consolidadas
-      if (parentName && (
-        parentName.toLowerCase().includes('consolidated') ||
-        parentName.toLowerCase().includes('consolidado') ||
-        parentName.toLowerCase().includes('total')
-      )) {
+      if (
+        parentName &&
+        (parentName.toLowerCase().includes("consolidated") ||
+          parentName.toLowerCase().includes("consolidado") ||
+          parentName.toLowerCase().includes("total"))
+      ) {
         // Buscar todas las secciones que coincidan con el tipo
-        const isIncome = parentName.toLowerCase().includes('income') || 
-                        parentName.toLowerCase().includes('ingreso');
-        const isExpense = parentName.toLowerCase().includes('expense') || 
-                         parentName.toLowerCase().includes('gasto');
+        const isIncome =
+          parentName.toLowerCase().includes("income") ||
+          parentName.toLowerCase().includes("ingreso");
+        const isExpense =
+          parentName.toLowerCase().includes("expense") ||
+          parentName.toLowerCase().includes("gasto");
 
         if (isIncome || isExpense) {
           const allSections = new Set();
-          state.cuentas.forEach(cuenta => {
-            const secPrincipal = cuenta['SECCIÓN Principal'] || 
-                                cuenta['SECCION Principal'] || 
-                                cuenta.seccion_principal || '';
+          state.cuentas.forEach((cuenta) => {
+            const secPrincipal =
+              cuenta["SECCIÓN Principal"] ||
+              cuenta["SECCION Principal"] ||
+              cuenta.seccion_principal ||
+              "";
             if (secPrincipal) {
               const secLower = secPrincipal.toLowerCase();
-              if ((isIncome && secLower.includes('income')) ||
-                  (isExpense && secLower.includes('expense'))) {
+              if (
+                (isIncome && secLower.includes("income")) ||
+                (isExpense && secLower.includes("expense"))
+              ) {
                 allSections.add(secPrincipal);
               }
             }
@@ -525,7 +533,7 @@
                 type: "section",
                 value: sec,
               }));
-            
+
             op.formula_terms = consolidatedTerms;
             op.signos = {};
             consolidatedTerms.forEach((term, i) => {
@@ -534,22 +542,33 @@
               op.signos[key] = term.operator === "-" ? -1 : 1;
             });
             if (op.orden === undefined) op.orden = idx;
-            
+
             // Marcar como auto-construido para debugging
             op._autoBuilt = true;
-            
+
             return op;
           }
         }
       }
 
       // PRIORIDAD 2: Si ya tiene formula_terms definidos manualmente, respetarlos
-      if (op?.formula_terms?.length && !op._autoBuilt) return op;
+      if (op?.formula_terms?.length && !op._autoBuilt) {
+        // Asegurar que cada término tenga el tipo correcto
+        op.formula_terms = op.formula_terms.map((term) => ({
+          ...term,
+          type: term.type || detectTermType(term.value),
+        }));
+        return op;
+      }
 
       // PRIORIDAD 3: Si tiene formula_json guardado, parsearlo
       if (op?.formula_json) {
         try {
-          op.formula_terms = JSON.parse(op.formula_json);
+          const parsed = JSON.parse(op.formula_json);
+          op.formula_terms = parsed.map((term) => ({
+            ...term,
+            type: term.type || detectTermType(term.value),
+          }));
           return op;
         } catch (e) {
           console.warn("Error parsing formula_json:", e);
@@ -560,10 +579,10 @@
       if (op?.signos && Object.keys(op.signos).length > 0) {
         const terms = [];
         const seccionKeys = Object.keys(op.signos)
-          .filter(k => k.startsWith('seccion_'))
+          .filter((k) => k.startsWith("seccion_"))
           .sort((a, b) => {
-            const numA = parseInt(a.split('_')[1]) || 0;
-            const numB = parseInt(b.split('_')[1]) || 0;
+            const numA = parseInt(a.split("_")[1]) || 0;
+            const numB = parseInt(b.split("_")[1]) || 0;
             return numA - numB;
           });
 
@@ -1178,8 +1197,8 @@
 
     return `
       <div class="account-row ${hiddenClass}" data-cuenta="${escapeHtml(
-        codigo
-      )}" onclick="selectAccount(this, '${escapeAttr(codigo)}')">
+      codigo
+    )}" onclick="selectAccount(this, '${escapeAttr(codigo)}')">
         <span class="drag-handle" title="Arrastrar para reordenar">⋮⋮</span>
         <span class="account-code">${escapeHtml(codigo)}</span>
         <span class="account-name">${escapeHtml(nombre)}</span>
@@ -1217,17 +1236,28 @@
       .map((op) => {
         const clase = op.Clase || "Operación";
         const tipo = detectOperationType(op);
+        const termsCount = op.formula_terms?.length || 0;
 
         return `
-        <div class="operation-row ${tipo}" onclick="editOperation('${escapeAttr(
-          clase
-        )}')">
-          <div class="operation-label">
+        <div class="operation-row ${tipo}">
+          <div class="operation-label" onclick="editOperation('${escapeAttr(
+            clase
+          )}')">
             <i class="bi bi-calculator"></i>
             <span>${escapeHtml(clase)}</span>
             <span class="operation-type">${tipo}</span>
+            ${
+              termsCount > 0
+                ? `<span class="badge bg-secondary ms-2">${termsCount} términos</span>`
+                : ""
+            }
           </div>
           <div class="account-actions">
+            <button class="btn btn-sm btn-outline-info" onclick="event.stopPropagation(); showOperationMap('${escapeAttr(
+              clase
+            )}')" title="Ver Mapa">
+              <i class="bi bi-diagram-3"></i>
+            </button>
             <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); editOperation('${escapeAttr(
               clase
             )}')" title="Editar">
@@ -1922,6 +1952,77 @@
       : "";
   };
 
+  window.showOperationMap = function (clase) {
+    const op = state.operaciones.find((o) => o.Clase === clase);
+    if (!op) {
+      alert("Operación no encontrada");
+      return;
+    }
+
+    // Asegurarse de que la operación tenga formula_terms poblados
+    if (!op.formula_terms || op.formula_terms.length === 0) {
+      // Intentar construir los términos ahora
+      console.log("Operación sin términos, intentando construir:", op);
+
+      // Intentar desde signos
+      if (op.signos && Object.keys(op.signos).length > 0) {
+        const terms = [];
+        Object.keys(op.signos)
+          .filter((k) => k.startsWith("seccion_"))
+          .sort((a, b) => {
+            const numA = parseInt(a.split("_")[1]) || 0;
+            const numB = parseInt(b.split("_")[1]) || 0;
+            return numA - numB;
+          })
+          .forEach((key, i) => {
+            const value = op[key];
+            if (value) {
+              terms.push({
+                id: Date.now() + i,
+                operator: op.signos[key] < 0 ? "-" : "+",
+                type: detectTermType(value),
+                value: value,
+              });
+            }
+          });
+
+        if (terms.length > 0) {
+          op.formula_terms = terms;
+        }
+      }
+
+      // Si aún no hay términos, mostrar error
+      if (!op.formula_terms || op.formula_terms.length === 0) {
+        alert(
+          "Esta operación no tiene términos definidos.\n\nDatos disponibles:\n" +
+            "- signos: " +
+            JSON.stringify(op.signos || {}) +
+            "\n" +
+            "- SECCION: " +
+            (op.SECCION || "ninguno") +
+            "\n\n" +
+            "Usa el botón de editar para configurar la fórmula."
+        );
+        return;
+      }
+    }
+
+    console.log("Mostrando mapa para:", clase, "términos:", op.formula_terms);
+
+    // Usar FormulaBuilder para mostrar el mapa
+    if (
+      window.FormulaBuilder &&
+      typeof window.FormulaBuilder.showMap === "function"
+    ) {
+      // Temporalmente setear los términos en FormulaBuilder
+      window.FormulaBuilder.terms = op.formula_terms || [];
+      window.FormulaBuilder.currentOperationId = op.id;
+      window.FormulaBuilder.showMap();
+    } else {
+      alert("Error: FormulaBuilder no está disponible");
+    }
+  };
+
   window.toggleSubsection = function (header) {
     header.classList.toggle("collapsed");
     const content = header.nextElementSibling;
@@ -2404,10 +2505,16 @@
 
     state.selectedElement = { type: "operation", op };
 
+    // Asegurar que op tenga formula_terms poblados antes de pasarlo a FormulaBuilder
+    console.log("📝 editOperation - formulaTerms construidos:", formulaTerms);
+    op.formula_terms = formulaTerms;
+    console.log("📝 editOperation - op completo:", op);
+
     // Expand section terms to individual accounts for display
     // Inicializar FormulaBuilder si está disponible
     if (window.FormulaBuilder) {
       const availableElements = getAvailableElements();
+      console.log("🎯 Llamando FormulaBuilder.init con op:", op);
       window.FormulaBuilder.init(op, availableElements);
     } else {
       // Fallback: renderizar términos manualmente
@@ -2826,7 +2933,7 @@
     // Primero intentar con subsecciones del layout actual
     const sections = groupBySections(state.cuentas);
     const subsections = sections.get(parentName);
-    
+
     if (subsections && subsections.size > 0) {
       const seen = new Set();
       const terms = [];
@@ -2850,25 +2957,32 @@
 
     // Si no encontró subsecciones, buscar patrón de consolidación
     const nameLower = parentName.toLowerCase();
-    
+
     // Detectar si es operación consolidada
-    if (nameLower.includes('consolidated') || 
-        nameLower.includes('consolidado') ||
-        nameLower.includes('total')) {
-      
-      const isIncome = nameLower.includes('income') || nameLower.includes('ingreso');
-      const isExpense = nameLower.includes('expense') || nameLower.includes('gasto');
-      const isResult = nameLower.includes('result') || nameLower.includes('resultado');
-      const isOperating = nameLower.includes('operating') || nameLower.includes('operativo');
+    if (
+      nameLower.includes("consolidated") ||
+      nameLower.includes("consolidado") ||
+      nameLower.includes("total")
+    ) {
+      const isIncome =
+        nameLower.includes("income") || nameLower.includes("ingreso");
+      const isExpense =
+        nameLower.includes("expense") || nameLower.includes("gasto");
+      const isResult =
+        nameLower.includes("result") || nameLower.includes("resultado");
+      const isOperating =
+        nameLower.includes("operating") || nameLower.includes("operativo");
 
       if (isIncome || isExpense) {
         // Buscar todas las secciones del tipo correspondiente
         const matchingSections = new Set();
-        
+
         sections.forEach((_, seccionPrincipal) => {
           const secLower = seccionPrincipal.toLowerCase();
-          if ((isIncome && secLower.includes('income')) ||
-              (isExpense && secLower.includes('expense'))) {
+          if (
+            (isIncome && secLower.includes("income")) ||
+            (isExpense && secLower.includes("expense"))
+          ) {
             matchingSections.add(seccionPrincipal);
           }
         });
@@ -2889,10 +3003,12 @@
         let counter = 0;
 
         // Buscar operación consolidada de income
-        const incomeOp = state.operaciones.find(op => {
-          const claseL = (op.Clase || '').toLowerCase();
-          return (claseL.includes('consolidated') || claseL.includes('total')) && 
-                 claseL.includes('income');
+        const incomeOp = state.operaciones.find((op) => {
+          const claseL = (op.Clase || "").toLowerCase();
+          return (
+            (claseL.includes("consolidated") || claseL.includes("total")) &&
+            claseL.includes("income")
+          );
         });
 
         if (incomeOp) {
@@ -2905,10 +3021,12 @@
         }
 
         // Buscar operación consolidada de expense
-        const expenseOp = state.operaciones.find(op => {
-          const claseL = (op.Clase || '').toLowerCase();
-          return (claseL.includes('consolidated') || claseL.includes('total')) && 
-                 claseL.includes('expense');
+        const expenseOp = state.operaciones.find((op) => {
+          const claseL = (op.Clase || "").toLowerCase();
+          return (
+            (claseL.includes("consolidated") || claseL.includes("total")) &&
+            claseL.includes("expense")
+          );
         });
 
         if (expenseOp) {
@@ -2926,24 +3044,35 @@
 
     // Si tiene "of" o "de", intentar buscar secciones específicas
     // Ejemplo: "Income of CDMX" o "CDMX Income"
-    const keywords = ['cdmx', 'guadalajara', 'monterrey', 'northwest', 'queretaro', 'merida'];
-    const foundKeywords = keywords.filter(kw => nameLower.includes(kw));
+    const keywords = [
+      "cdmx",
+      "guadalajara",
+      "monterrey",
+      "northwest",
+      "queretaro",
+      "merida",
+    ];
+    const foundKeywords = keywords.filter((kw) => nameLower.includes(kw));
 
     if (foundKeywords.length > 0) {
       const terms = [];
       let counter = 0;
 
-      foundKeywords.forEach(keyword => {
+      foundKeywords.forEach((keyword) => {
         // Buscar secciones que contengan este keyword
         sections.forEach((subsecs, principal) => {
           const principalLower = principal.toLowerCase();
           if (principalLower.includes(keyword)) {
             // Si es income/expense, agregar la sección principal
-            if ((nameLower.includes('income') && principalLower.includes('income')) ||
-                (nameLower.includes('expense') && principalLower.includes('expense'))) {
+            if (
+              (nameLower.includes("income") &&
+                principalLower.includes("income")) ||
+              (nameLower.includes("expense") &&
+                principalLower.includes("expense"))
+            ) {
               terms.push({
                 id: Date.now() + counter++,
-                operator: nameLower.includes('expense') ? "-" : "+",
+                operator: nameLower.includes("expense") ? "-" : "+",
                 type: "section",
                 value: principal,
               });
@@ -3145,27 +3274,45 @@
       }
     });
 
-    // Generate simple formula rows like in the mockup: "+ 401-000-000-00 Cuotas Netas"
+    // Generate formula rows with dropdowns for type and value selection
     container.innerHTML = formulaTerms
       .map((term, idx) => {
-        // Get display text for the term value
-        // First check if displayName was set by expandSectionTermsToAccounts
-        let displayText = term.displayName || term.value || "(vacío)";
-
-        // If it's an account code and no displayName, find the full name
-        if (term.type === "account" && term.value && !term.displayName) {
-          const account = elements.accounts.find((a) => a.code === term.value);
-          if (account) {
-            displayText = `${account.code} ${account.name}`;
-          }
+        // Build options for value dropdown based on type
+        let valueOptions = "";
+        if (term.type === "section") {
+          valueOptions = elements.sections
+            .map(
+              (sec) =>
+                `<option value="${escapeAttr(sec)}" ${
+                  term.value === sec ? "selected" : ""
+                }>${escapeHtml(sec)}</option>`
+            )
+            .join("");
+        } else if (term.type === "account") {
+          valueOptions = elements.accounts
+            .map((acc) => {
+              const display = `${acc.code} ${acc.name}`;
+              return `<option value="${escapeAttr(acc.code)}" ${
+                term.value === acc.code ? "selected" : ""
+              }>${escapeHtml(display)}</option>`;
+            })
+            .join("");
+        } else if (term.type === "operation") {
+          valueOptions = elements.operations
+            .map(
+              (op) =>
+                `<option value="${escapeAttr(op)}" ${
+                  term.value === op ? "selected" : ""
+                }>${escapeHtml(op)}</option>`
+            )
+            .join("");
         }
-        // If it's a section, the value is already the section name
 
         return `
       <div class="formula-term-row d-flex align-items-center gap-2 mb-2 p-2 bg-light rounded" data-id="${
         term.id
       }">
-        <select class="form-select" style="width: 50px;" onchange="updateTermOperator(${
+        <select class="form-select" style="width: 60px;" onchange="updateTermOperator(${
           term.id
         }, this.value)">
           <option value="+" ${
@@ -3176,11 +3323,26 @@
           }>−</option>
         </select>
         
-        <input type="text" class="form-control flex-grow-1" value="${escapeAttr(
-          displayText
-        )}" readonly 
-               style="background: white; cursor: default;" 
-               title="Tipo: ${term.type}, Valor: ${term.value || "vacío"}" />
+        <select class="form-select" style="width: 120px;" onchange="updateTermType(${
+          term.id
+        }, this.value)">
+          <option value="section" ${
+            term.type === "section" ? "selected" : ""
+          }>Sección</option>
+          <option value="account" ${
+            term.type === "account" ? "selected" : ""
+          }>Cuenta</option>
+          <option value="operation" ${
+            term.type === "operation" ? "selected" : ""
+          }>Operación</option>
+        </select>
+        
+        <select class="form-select flex-grow-1" onchange="updateTermValue(${
+          term.id
+        }, this.value)">
+          <option value="">Seleccionar...</option>
+          ${valueOptions}
+        </select>
         
         <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeFormulaTerm(${
           term.id
@@ -3203,10 +3365,10 @@
   };
 
   // Actualizar tipo de término
-  window.updateTermType = function (termId, type) {
+  window.updateTermType = function (termId, newType) {
     const term = formulaTerms.find((t) => t.id === termId);
     if (term) {
-      term.type = type;
+      term.type = newType;
       term.value = "";
     }
     renderFormulaTerms();
@@ -3215,7 +3377,42 @@
   // Actualizar valor de término
   window.updateTermValue = function (termId, value) {
     const term = formulaTerms.find((t) => t.id === termId);
-    if (term) term.value = value;
+    if (!term) return;
+
+    // Si es una sección, expandirla automáticamente a cuentas individuales
+    if (term.type === "section" && value) {
+      const sectionAccounts = getAccountsForSection(value);
+
+      if (sectionAccounts.length > 0) {
+        // Encontrar el índice del término actual
+        const termIndex = formulaTerms.findIndex((t) => t.id === termId);
+
+        // Remover el término de sección
+        formulaTerms.splice(termIndex, 1);
+
+        // Agregar un término por cada cuenta de la sección
+        const newTerms = sectionAccounts.map((account, idx) => ({
+          id: Date.now() + idx,
+          operator: term.operator, // Mantener el mismo operador
+          type: "account",
+          value: account.CUENTA,
+          displayName: `${account.CUENTA} ${account.NOMBRE || account.CUENTA}`,
+        }));
+
+        // Insertar los nuevos términos en el mismo lugar
+        formulaTerms.splice(termIndex, 0, ...newTerms);
+
+        renderFormulaTerms();
+        showToast(
+          `Sección "${value}" expandida a ${sectionAccounts.length} cuentas`,
+          "success"
+        );
+        return;
+      }
+    }
+
+    // Para cuentas y operaciones, simplemente actualizar el valor
+    term.value = value;
     updateFormulaPreview();
   };
 

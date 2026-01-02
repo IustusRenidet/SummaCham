@@ -109,33 +109,32 @@
       const modal = document.createElement("div");
       modal.className = "modal fade";
       modal.innerHTML = `
-        <div class="modal-dialog modal-xl">
-          <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-              <h5 class="modal-title">
-                <i class="bi bi-bug me-2"></i>Diagnóstico: ${this._escapeHtml(
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header border-0 pb-0">
+              <h5 class="modal-title fw-bold">
+                <i class="bi bi-diagram-3 me-2 text-primary"></i>${this._escapeHtml(
                   analysis.name
                 )}
               </h5>
-              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body px-4 py-3">
               ${this._renderAnalysisReport(analysis)}
             </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-              ${
-                !analysis.validation.isValid
-                  ? `
-                <button type="button" class="btn btn-warning" onclick="OperationDebugger.repairOperation('${this._escapeAttr(
-                  analysis.name
-                )}')">
-                  <i class="bi bi-wrench me-2"></i>Intentar Reparar
-                </button>
-              `
-                  : ""
-              }
+            ${
+              !analysis.validation.isValid
+                ? `
+            <div class="modal-footer border-0 pt-0">
+              <button type="button" class="btn btn-warning" onclick="OperationDebugger.repairOperation('${this._escapeAttr(
+                analysis.name
+              )}')">
+                <i class="bi bi-wrench me-2"></i>Reparar
+              </button>
             </div>
+            `
+                : ""
+            }
           </div>
         </div>
       `;
@@ -333,7 +332,7 @@
       const statusClass = analysis.validation.isValid ? "success" : "warning";
       const statusIcon = analysis.validation.isValid ? "check-circle-fill" : "exclamation-triangle-fill";
 
-      // Renderizar solo el mapa visual
+      // Renderizar solo el mapa visual mejorado
       const mapRows = analysis.formulaTerms.map((term, idx) => {
         const validation = this._validateTerm(term, idx);
         const statusBadge = validation.isValid
@@ -347,6 +346,13 @@
           "/": "info",
         }[term.operator] || "secondary";
 
+        const operatorBg = {
+          "+": "#28a745",
+          "-": "#dc3545",
+          "*": "#ffc107",
+          "/": "#17a2b8",
+        }[term.operator] || "#6c757d";
+
         const iconClass = {
           section: "bi-folder2",
           account: "bi-file-text",
@@ -355,55 +361,35 @@
         }[term.type] || "bi-question";
 
         return `
-          <div class="d-flex align-items-center gap-3 p-2 mb-2 bg-light rounded">
+          <div class="d-flex align-items-center gap-3 mb-2">
             ${
               idx > 0
-                ? `<span class="badge bg-${colorClass} fs-5 px-3 py-2">${term.operator}</span>`
-                : '<span style="width: 42px;"></span>'
+                ? `<div class="d-flex align-items-center justify-content-center rounded-circle text-white fw-bold" style="width: 40px; height: 40px; background: ${operatorBg}; font-size: 20px; flex-shrink: 0;">
+                    ${term.operator}
+                  </div>`
+                : '<div style="width: 40px; flex-shrink: 0;"></div>'
             }
-            <i class="bi ${iconClass} text-primary fs-4"></i>
-            <span class="fw-semibold flex-grow-1">${this._escapeHtml(term.value || term.constant || "(vacío)")}</span>
-            ${statusBadge}
+            <div class="flex-grow-1 d-flex align-items-center gap-2 p-2 px-3 bg-light rounded-2">
+              <span class="fw-semibold flex-grow-1" style="font-size: 14px;">${this._escapeHtml(term.value || term.constant || "(vacío)")}</span>
+              ${statusBadge}
+            </div>
           </div>
         `;
       }).join("");
 
       return `
         <div class="analysis-report">
-          <!-- Estado General -->
-          <div class="alert alert-${statusClass} mb-3">
-            <div class="d-flex align-items-center gap-2">
-              <i class="bi bi-${statusIcon} fs-4"></i>
-              <div>
-                <strong>${analysis.validation.isValid ? "Válida ✓" : "Requiere Atención ⚠"}</strong>
-                <div class="small">
-                  ${analysis.formulaTerms.length} términos · ${analysis.type}
-                  ${analysis.isAutoBuilt ? ' · <span class="badge bg-info"><i class="bi bi-lightning-fill"></i> Auto-construido</span>' : ''}
-                </div>
-              </div>
-            </div>
+          ${mapRows || '<p class="text-muted">No hay términos definidos</p>'}
+          
+          <div class="mt-3 p-3 rounded-2" style="background: linear-gradient(135deg, ${analysis.validation.isValid ? '#667eea' : '#f093fb'} 0%, ${analysis.validation.isValid ? '#764ba2' : '#f5576c'} 100%);">
+            <code class="text-white d-block fw-semibold" style="font-size: 14px; background: transparent; border: 0;">${this._escapeHtml(analysis.calculation.formula)}</code>
           </div>
 
-          <!-- Mapa Visual -->
-          <div class="mb-3">
-            ${mapRows || '<p class="text-muted">No hay términos definidos</p>'}
-          </div>
-
-          <!-- Fórmula Resultante -->
-          <div class="p-3 bg-primary bg-opacity-10 border border-primary rounded">
-            <div class="fw-bold mb-2">Resultado:</div>
-            <code class="fs-6">${this._escapeHtml(analysis.calculation.formula)}</code>
-          </div>
-
-          <!-- Problemas (si hay) -->
           ${
             analysis.validation.issues.length > 0
               ? `
-            <div class="alert alert-warning mt-3">
-              <strong>⚠️ Problemas:</strong>
-              <ul class="mb-0 mt-2">
-                ${analysis.validation.issues.map((issue) => `<li>${this._escapeHtml(issue)}</li>`).join("")}
-              </ul>
+            <div class="alert alert-warning mt-2 mb-0 py-2 small">
+              ${analysis.validation.issues.map((issue) => `• ${this._escapeHtml(issue)}`).join("<br>")}
             </div>
           `
               : ""
