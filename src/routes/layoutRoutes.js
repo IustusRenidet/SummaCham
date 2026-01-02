@@ -1086,7 +1086,11 @@ router.get("/:modulo/:anio/exportar-json", requireAuth, (req, res) => {
 
     const layoutFileName = `${modulo}_layout.json`;
     const layoutFilePath = path.join(baseDir, layoutFileName);
-    fs.writeFileSync(layoutFilePath, JSON.stringify(resultado, null, 2), "utf8");
+    fs.writeFileSync(
+      layoutFilePath,
+      JSON.stringify(resultado, null, 2),
+      "utf8"
+    );
 
     const operacionesFileName = `${modulo}_operaciones_detalle.json`;
     const operacionesFilePath = path.join(baseDir, operacionesFileName);
@@ -1096,12 +1100,26 @@ router.get("/:modulo/:anio/exportar-json", requireAuth, (req, res) => {
       "utf8"
     );
 
+    // Also export cuentas separately
+    const cuentasFileName = `${modulo}_cuentas.json`;
+    const cuentasFilePath = path.join(baseDir, cuentasFileName);
+    fs.writeFileSync(
+      cuentasFilePath,
+      JSON.stringify(
+        { cuentas, cuentasPorCapitulo: resultado.cuentasPorCapitulo },
+        null,
+        2
+      ),
+      "utf8"
+    );
+
     res.json({
       success: true,
       mensaje: `Layout exportado y centralizado en ${baseDir}`,
       carpeta: baseDir,
       archivoLayout: layoutFilePath,
       archivoOperaciones: operacionesFilePath,
+      archivoCuentas: cuentasFilePath,
       cuentas: cuentas.length,
       operaciones: operacionesDetalladas.length,
       data: resultado,

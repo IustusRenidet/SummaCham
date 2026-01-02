@@ -3,204 +3,224 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Gestor de Plantillas - SummaCham</title>
+    <title>Gestor de Plantillas</title>
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
       rel="stylesheet"
     />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
     <link
       rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
     />
     <link rel="stylesheet" href="css/estilos.css" />
     <link rel="stylesheet" href="css/plantillas.css" />
     <link rel="icon" type="image/x-icon" href="icono/icono.ico" />
   </head>
+
   <body>
-    <div class="plantillas-app">
-      <!-- Header Compacto -->
-      <header class="plantillas-header compact">
-        <div class="header-left">
-          <h1 class="header-title-compact">
-            <i class="bi bi-layout-text-window-reverse"></i>
-            Gestor de Plantillas
-          </h1>
-          <p class="header-subtitle">Define la estructura de los layouts de forma clara</p>
+    <div class="container py-4 py-lg-5">
+      <!-- Header Card -->
+      <div class="row mb-4">
+        <div class="col-12">
+          <div class="card header-card fade-in">
+            <div class="card-body text-center text-lg-start">
+              <div
+                class="d-flex flex-column flex-lg-row align-items-center justify-content-between gap-3"
+              >
+                <div>
+                  <h1 class="fw-bold display-6 mb-2">Gestor de Plantillas</h1>
+                  <p class="mb-0 text-white-50">
+                    <span id="moduloLabel">-</span> ·
+                    <span class="anio" id="anioLabel">-</span> ·
+                    <span id="capituloLabel">-</span>
+                  </p>
+                </div>
+                <span id="authStatus" class="status-badge active">
+                  <i class="bi bi-pencil-square"></i> Listo para editar
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="header-right">
-          <span id="authStatus" class="status-badge active">
-            <i class="bi bi-pencil-square"></i> Listo para editar
-          </span>
-          <button
-            type="button"
-            id="btnGuardar"
-            class="btn-action primary"
-            disabled
+      </div>
+
+      <!-- Selectores de Contexto -->
+      <div class="row mb-3">
+        <div class="col-md-3 col-sm-6 mb-2">
+          <label
+            for="moduloSelect"
+            class="form-label fw-semibold text-muted small mb-2"
+            >Módulo</label
           >
-            <i class="bi bi-save"></i> Guardar cambios
+          <select id="moduloSelect" class="form-select">
+            <option value="RESUMEN">RESUMEN</option>
+            <option value="SUMMARY">SUMMARY</option>
+            <option value="Finanzas">Finanzas</option>
+            <option value="Gastos Generales">Gastos Generales</option>
+            <option value="Nomina">Nómina</option>
+            <option value="Membresía">Membresía</option>
+            <option value="Serv Membresía">Serv Membresía</option>
+            <option value="RH">RH</option>
+            <option value="Eventos">Eventos</option>
+            <option value="Comités">Comités</option>
+            <option value="Comunicación">Comunicación</option>
+            <option value="Dirección">Dirección</option>
+            <option value="Gtos Corporativos">Gtos Corporativos</option>
+            <option value="T&IC">T&IC</option>
+            <option value="VPE">VPE</option>
+          </select>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-2">
+          <label
+            for="anioSelect"
+            class="form-label fw-semibold text-muted small mb-2"
+            >Año</label
+          >
+          <select id="anioSelect" class="form-select">
+            <option value="">Cargando...</option>
+          </select>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-2">
+          <label
+            for="capituloSelect"
+            class="form-label fw-semibold text-muted small mb-2"
+            >Capítulo</label
+          >
+          <select id="capituloSelect" class="form-select">
+            <option value="">Sin capítulo</option>
+          </select>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-2 d-flex align-items-end">
+          <button type="button" id="btnCargar" class="btn btn-primary w-100">
+            <i class="bi bi-arrow-clockwise me-1"></i> Cargar Layout
           </button>
         </div>
-      </header>
+      </div>
 
-      <!-- Main Content -->
-      <main class="plantillas-main">
-        <!-- Sidebar: Contexto y Acciones -->
-        <aside class="plantillas-sidebar">
-          <!-- Contexto -->
-          <section class="sidebar-card">
-            <h3 class="sidebar-card-title">
-              <i class="bi bi-folder2-open"></i> Selecciona el contexto
-            </h3>
-            <p class="sidebar-helper">
-              Elige el módulo, año y capítulo para trabajar sobre un solo layout
-              a la vez.
-            </p>
-            <div class="form-group">
-              <label for="moduloSelect">Módulo</label>
-              <select id="moduloSelect" class="form-select">
-                <option value="RESUMEN">RESUMEN</option>
-                <option value="SUMMARY">SUMMARY</option>
-                <option value="Finanzas">Finanzas</option>
-                <option value="Gastos Generales">Gastos Generales</option>
-                <option value="Nomina">Nómina</option>
-                <option value="Membresía">Membresía</option>
-                <option value="Serv Membresía">Serv Membresía</option>
-                <option value="RH">RH</option>
-                <option value="Eventos">Eventos</option>
-                <option value="Comités">Comités</option>
-                <option value="Comunicación">Comunicación</option>
-                <option value="Dirección">Dirección</option>
-                <option value="Gtos Corporativos">Gtos Corporativos</option>
-                <option value="T&IC">T&IC</option>
-                <option value="VPE">VPE</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="anioSelect">Año</label>
-              <select id="anioSelect" class="form-select">
-                <option value="">Cargando...</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="capituloSelect">Capítulo</label>
-              <select id="capituloSelect" class="form-select">
-                <option value="">Sin capítulo</option>
-              </select>
-            </div>
-            <div class="sidebar-actions">
-              <button
-                type="button"
-                id="btnCargar"
-                class="btn-action secondary w-100"
+      <!-- Toolbar y Botones de Acción -->
+      <div class="row mb-3">
+        <div class="col-12">
+          <div class="card table-card fade-in">
+            <div class="card-body p-3">
+              <div
+                class="d-flex flex-column flex-md-row gap-2 align-items-stretch align-items-md-center"
               >
-                <i class="bi bi-arrow-clockwise"></i> Cargar Layout
-              </button>
-              <button
-                type="button"
-                id="btnAgregar"
-                class="btn-action success"
-                disabled
-              >
-                <i class="bi bi-plus-circle"></i> Agregar elemento
-              </button>
-              <button
-                type="button"
-                id="btnCopiar"
-                class="btn-action ghost"
-                disabled
-              >
-                <i class="bi bi-copy"></i> Copiar a otro año
-              </button>
-            </div>
-          </section>
-
-          <section class="sidebar-card info-card">
-            <h3 class="sidebar-card-title">
-              <i class="bi bi-shield-check"></i> Permisos de edición
-            </h3>
-            <p class="sidebar-helper">
-              Solo existe el permiso de <strong>editar layouts</strong>. La
-              asignación se realiza desde la administración de usuarios.
-            </p>
-            <p class="sidebar-helper text-muted">
-              Si no tienes permiso, podrás ver el layout en modo lectura.
-            </p>
-          </section>
-        </aside>
-
-        <!-- Content Area -->
-        <div class="plantillas-content">
-          <!-- Placeholder cuando no hay datos -->
-          <div id="placeholderView" class="placeholder-view">
-            <div class="placeholder-icon">
-              <i class="bi bi-layout-text-window"></i>
-            </div>
-            <h2>Selecciona un contexto</h2>
-            <p>
-              Elige un módulo, año y capítulo para comenzar a editar el layout.
-            </p>
-            <div class="placeholder-tips">
-              <div class="tip">
-                <i class="bi bi-lightbulb"></i>
-                <span>Primero carga el layout para habilitar las acciones.</span>
+                <div class="flex-grow-1">
+                  <div class="search-container">
+                    <input
+                      type="text"
+                      id="searchInput"
+                      class="search-input"
+                      placeholder="Buscar en el layout..."
+                    />
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  id="btnAgregar"
+                  class="btn btn-success"
+                  disabled
+                >
+                  <i class="bi bi-plus-circle me-1"></i> Agregar
+                </button>
+                <button
+                  type="button"
+                  id="btnExpandir"
+                  class="btn btn-outline-secondary"
+                  disabled
+                >
+                  <i class="bi bi-arrows-expand me-1"></i> Expandir
+                </button>
+                <button
+                  type="button"
+                  id="btnColapsar"
+                  class="btn btn-outline-secondary"
+                  disabled
+                >
+                  <i class="bi bi-arrows-collapse me-1"></i> Colapsar
+                </button>
+                <button
+                  type="button"
+                  id="btnCopiar"
+                  class="btn btn-outline-primary"
+                  disabled
+                >
+                  <i class="bi bi-copy me-1"></i> Copiar a otro año
+                </button>
+                <button
+                  type="button"
+                  id="btnGuardar"
+                  class="btn btn-primary"
+                  disabled
+                >
+                  <i class="bi bi-save me-1"></i> Guardar
+                </button>
               </div>
-              <div class="tip">
-                <i class="bi bi-shield-lock"></i>
-                <span>
-                  Los permisos de edición se manejan únicamente en la
-                  administración de usuarios.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Layout Preview -->
+      <div class="row">
+        <div class="col-12">
+          <!-- Placeholder View -->
+          <div id="placeholderView" class="card table-card fade-in">
+            <div class="card-body p-5 text-center">
+              <div class="placeholder-icon mx-auto mb-4">
+                <i class="bi bi-layout-text-window"></i>
+              </div>
+              <h2>Selecciona un contexto</h2>
+              <p class="text-muted">
+                Elige un módulo, año y capítulo para comenzar a editar el
+                layout.
+              </p>
+              <div class="mt-4">
+                <span class="badge bg-light text-primary me-2">
+                  <i class="bi bi-lightbulb me-1"></i> Carga el layout primero
+                </span>
+                <span class="badge bg-light text-primary">
+                  <i class="bi bi-shield-lock me-1"></i> Permisos en
+                  administración
                 </span>
               </div>
             </div>
           </div>
 
-          <!-- Vista del Layout -->
-          <div id="layoutView" class="layout-view" style="display: none">
-            <!-- Toolbar -->
-            <div class="layout-toolbar">
-              <div class="toolbar-left">
-                <button
-                  type="button"
-                  class="btn-tool"
-                  id="btnExpandir"
-                  title="Expandir todo"
-                >
-                  <i class="bi bi-arrows-expand"></i>
-                </button>
-                <button
-                  type="button"
-                  class="btn-tool"
-                  id="btnColapsar"
-                  title="Colapsar todo"
-                >
-                  <i class="bi bi-arrows-collapse"></i>
-                </button>
-                <span class="toolbar-info" id="layoutInfo">Sin datos</span>
+          <!-- Layout View -->
+          <div
+            id="layoutView"
+            class="card table-card fade-in"
+            style="display: none"
+          >
+            <div class="card-body p-3">
+              <div
+                class="d-flex justify-content-between align-items-center mb-3"
+              >
+                <span class="text-muted small" id="layoutInfo">Sin datos</span>
               </div>
-              <div class="toolbar-right">
-                <div class="search-box">
-                  <i class="bi bi-search"></i>
-                  <input
-                    type="text"
-                    id="searchInput"
-                    placeholder="Buscar en el layout"
-                  />
-                </div>
+              <div id="layoutPreview" class="layout-preview">
+                <!-- Contenido dinámico -->
               </div>
-            </div>
-
-            <!-- Layout Preview -->
-            <div class="layout-preview" id="layoutPreview">
-              <!-- Contenido dinámico -->
             </div>
           </div>
         </div>
-      </main>
+      </div>
 
-      <!-- Status Bar -->
-      <footer class="plantillas-footer">
-        <span id="statusMessage">Listo</span>
-      </footer>
+      <!-- Status Message -->
+      <div class="row mt-3">
+        <div class="col-12">
+          <p class="text-muted small text-center mb-0" id="statusMessage">
+            Listo
+          </p>
+        </div>
+      </div>
     </div>
 
     <!-- Modal: Agregar Elemento -->
@@ -219,7 +239,7 @@
           </div>
           <div class="modal-body">
             <!-- Tipo de elemento -->
-            <div class="element-type-selector">
+            <div class="element-type-selector mb-4">
               <label class="element-type-option">
                 <input
                   type="radio"
@@ -260,7 +280,7 @@
             </div>
 
             <!-- Formulario dinámico -->
-            <div id="formElemento" class="form-elemento mt-4">
+            <div id="formElemento" class="form-elemento">
               <!-- Campos según tipo seleccionado -->
             </div>
           </div>
@@ -299,13 +319,15 @@
             ></button>
           </div>
           <div class="modal-body">
-            <div class="copy-info mb-3">
-              <div class="copy-source">
+            <div class="row mb-3">
+              <div class="col-5">
                 <small class="text-muted">Origen</small>
-                <strong id="copiaOrigen">-</strong>
+                <div class="fw-bold" id="copiaOrigen">-</div>
               </div>
-              <i class="bi bi-arrow-right text-primary"></i>
-              <div class="copy-target">
+              <div class="col-2 text-center">
+                <i class="bi bi-arrow-right text-primary fs-4"></i>
+              </div>
+              <div class="col-5">
                 <small class="text-muted">Destino</small>
                 <input
                   type="number"
@@ -343,7 +365,7 @@
 
     <!-- Modal: Editar Elemento -->
     <div class="modal fade" id="modalEditar" tabindex="-1">
-      <div class="modal-dialog">
+      <div class="modal-dialog modal-lg">
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title">
@@ -411,7 +433,6 @@
           </div>
           <div class="modal-body p-0 bg-light">
             <div id="previewContainer" class="p-4">
-              <!-- Contenido generado dinámicamente -->
               <div class="alert alert-info m-4">Cargando vista previa...</div>
             </div>
           </div>

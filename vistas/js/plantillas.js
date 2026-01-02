@@ -59,7 +59,6 @@
     dom.btnCopiar = document.getElementById("btnCopiar");
     dom.btnExpandir = document.getElementById("btnExpandir");
     dom.btnColapsar = document.getElementById("btnColapsar");
-    dom.btnPreview = document.getElementById("btnPreview");
 
     // Views
     dom.placeholderView = document.getElementById("placeholderView");
@@ -436,7 +435,8 @@
     return [...(list || [])]
       .map((op, idx) => ({ op, idx }))
       .sort(
-        (a, b) => getOperationOrder(a.op, a.idx) - getOperationOrder(b.op, b.idx)
+        (a, b) =>
+          getOperationOrder(a.op, a.idx) - getOperationOrder(b.op, b.idx)
       )
       .map((item) => item.op);
   }
@@ -847,7 +847,8 @@
                 ? "-"
                 : ""
               : ` ${term.operator} `;
-          const val = term.value || (term.type === "const" ? term.constValue : "???");
+          const val =
+            term.value || (term.type === "const" ? term.constValue : "???");
           return prefix + val;
         })
         .join("");
@@ -1490,7 +1491,9 @@
 
     // Poblamos la fórmula a partir de su "papá" (sección) respetando orden
     const derivedTerms = buildFormulaTermsFromParent(newOp.SECCION);
-    const fallbackTerms = (checkedSections.length ? checkedSections : [newOp.SECCION])
+    const fallbackTerms = (
+      checkedSections.length ? checkedSections : [newOp.SECCION]
+    )
       .filter(Boolean)
       .map((sec, i) => ({
         id: Date.now() + i,
@@ -2114,7 +2117,9 @@
     }
 
     if (formulaTerms.length === 0) {
-      const derivedFromParent = buildFormulaTermsFromParent(op.SECCION || op.Clase);
+      const derivedFromParent = buildFormulaTermsFromParent(
+        op.SECCION || op.Clase
+      );
       if (derivedFromParent.length) {
         formulaTerms = derivedFromParent;
       } else {
@@ -2254,6 +2259,10 @@
     `;
 
     state.selectedElement = { type: "operation", op };
+
+    // Expand section terms to individual accounts for display
+    expandSectionTermsToAccounts();
+
     renderFormulaTerms();
     new bootstrap.Modal(dom.modalEditar).show();
   };
@@ -2275,7 +2284,7 @@
     showToast(`Operación "${clase}" eliminada`, "success");
   };
 
-  // Edit a consolidated label (updates the label name across all operations that use it)
+  // Edit a consolidated label (shows all contributing operations and accounts)
   window.editConsolidatedLabel = function (label, field) {
     // Find all operations that have this label for this field
     const affectedOps = state.operaciones.filter((op) => op[field] === label);
@@ -2285,27 +2294,44 @@
       return;
     }
 
-    // Build modal content showing affected operations
-    const opsList = affectedOps.map((op) => op.Clase || op.SECCION).join(", ");
+    // Collect all formula terms from all affected operations
+    formulaTerms = [];
+    let idCounter = Date.now();
 
+    affectedOps.forEach((op) => {
+      // Extract formula terms from this operation
+      const opTerms = extractFormulaTerms(op);
+
+      // Add each term with unique ID and the operation operator
+      opTerms.forEach((term) => {
+        formulaTerms.push({
+          id: idCounter++,
+          operator: term.operator || "+",
+          type: term.type || "section",
+          value: term.value || "",
+          sourceOperation: op.Clase || op.SECCION, // Track which operation this came from
+        });
+      });
+    });
+
+    // Expand section terms to individual accounts
+    expandSectionTermsToAccounts();
+
+    // Build modal content
     dom.formEditar.innerHTML = `
       <div class="mb-3">
-        <label class="form-label">Etiqueta Actual</label>
+        <label class="form-label">Etiqueta Consolidada</label>
         <input type="text" class="form-control" id="editConsolidatedLabelName" value="${escapeHtml(
           label
         )}" />
+        <small class="text-muted">Tipo: ${escapeHtml(field)}</small>
       </div>
-      <div class="mb-3">
-        <label class="form-label">Tipo de Campo</label>
-        <input type="text" class="form-control" value="${escapeHtml(
-          field
-        )}" readonly disabled />
-      </div>
+      
       <div class="mb-3">
         <label class="form-label">Operaciones que contribuyen (${
           affectedOps.length
         })</label>
-        <div class="bg-light p-2 rounded border" style="max-height: 150px; overflow-y: auto;">
+        <div class="bg-light p-2 rounded border" style="max-height: 100px; overflow-y: auto;">
           ${affectedOps
             .map(
               (op) => `
@@ -2318,6 +2344,17 @@
             .join("")}
         </div>
       </div>
+
+      <div class="mt-3">
+        <label class="form-label">Mapa de Operación (Fórmula Expandida)</label>
+        <div id="formulaTerms" class="formula-terms mb-2">
+          <!-- Se poblará dinámicamente -->
+        </div>
+        <div class="alert alert-info small">
+          <i class="bi bi-info-circle me-1"></i>
+          Esta vista muestra todas las cuentas que contribuyen al total consolidado.
+        </div>
+      </div>
     `;
 
     state.selectedElement = {
@@ -2326,6 +2363,8 @@
       field,
       affectedOps,
     };
+
+    renderFormulaTerms();
     new bootstrap.Modal(dom.modalEditar).show();
   };
 
@@ -2653,6 +2692,43 @@
     }
   };
 
+  // Expand section terms to individual account terms for display
+  function expandSectionTermsToAccounts() {
+    const expandedTerms = [];
+
+    formulaTerms.forEach((term) => {
+      if (term.type === "section" && term.value) {
+        // Get all accounts in this section
+        const accounts = getAccountsForSection(term.value);
+
+        if (accounts.length === 0) {
+          // Keep the section term if no accounts found
+          expandedTerms.push(term);
+        } else {
+          // Create individual account terms
+          accounts.forEach((account, idx) => {
+            expandedTerms.push({
+              id: Date.now() + expandedTerms.length + idx,
+              operator: term.operator, // Keep the original operator
+              type: "account",
+              value: account.CUENTA,
+              displayName: `${account.CUENTA} ${account.NOMBRE || ""}`.trim(),
+              originalSection: term.value, // Keep reference to parent section
+            });
+          });
+        }
+      } else if (term.type === "account" && term.value) {
+        // Account term - keep as is
+        expandedTerms.push(term);
+      } else {
+        // Other types (operation, etc) - keep as is
+        expandedTerms.push(term);
+      }
+    });
+
+    formulaTerms = expandedTerms;
+  }
+
   // Agregar un término a la fórmula
   window.addFormulaTerm = function () {
     const termId = Date.now();
@@ -2737,17 +2813,14 @@
 
     const elements = getAvailableElements();
 
-    // Helper for case-insensitive value matching - returns the exact option value that matches
+    // Helper for case-insensitive value matching
     function findMatchingValue(termValue, options) {
       if (!termValue) return null;
       const lower = termValue.toLowerCase().trim();
-      // First try exact match
       let match = options.find((o) => o === termValue);
       if (match) return match;
-      // Then try case-insensitive match
       match = options.find((o) => o.toLowerCase().trim() === lower);
       if (match) return match;
-      // Then try partial match (contains)
       match = options.find(
         (o) =>
           o.toLowerCase().includes(lower) || lower.includes(o.toLowerCase())
@@ -2764,126 +2837,52 @@
 
       const matchedValue = findMatchingValue(term.value, options);
       if (matchedValue) {
-        term.value = matchedValue; // Update to exact matched value
+        term.value = matchedValue;
       }
     });
 
+    // Generate simple formula rows like in the mockup: "+ 401-000-000-00 Cuotas Netas"
     container.innerHTML = formulaTerms
       .map((term, idx) => {
-        // Get accounts for this term if it's a section with a value
-        const termAccounts =
-          term.type === "section" && term.value
-            ? getAccountsForSection(term.value)
-            : [];
-        const accountsHtml =
-          termAccounts.length > 0
-            ? `<div class="term-accounts mt-1 ps-4">
-                 <small class="text-muted">${
-                   termAccounts.length
-                 } cuentas:</small>
-                 <div class="accounts-list small" style="max-height: 80px; overflow-y: auto;">
-                   ${termAccounts
-                     .slice(0, 10)
-                     .map(
-                       (a) =>
-                         `<span class="badge bg-light text-dark me-1 mb-1">${escapeHtml(
-                           a.CUENTA
-                         )}</span>`
-                     )
-                     .join("")}
-                   ${
-                     termAccounts.length > 10
-                       ? `<span class="text-muted">+${
-                           termAccounts.length - 10
-                         } más...</span>`
-                       : ""
-                   }
-                 </div>
-               </div>`
-            : "";
+        // Get display text for the term value
+        // First check if displayName was set by expandSectionTermsToAccounts
+        let displayText = term.displayName || term.value || "(vacío)";
+
+        // If it's an account code and no displayName, find the full name
+        if (term.type === "account" && term.value && !term.displayName) {
+          const account = elements.accounts.find((a) => a.code === term.value);
+          if (account) {
+            displayText = `${account.code} ${account.name}`;
+          }
+        }
+        // If it's a section, the value is already the section name
 
         return `
-      <div class="formula-term-wrapper mb-2">
-        <div class="formula-term d-flex align-items-center gap-2" data-id="${
+      <div class="formula-term-row d-flex align-items-center gap-2 mb-2 p-2 bg-light rounded" data-id="${
+        term.id
+      }">
+        <select class="form-select" style="width: 50px;" onchange="updateTermOperator(${
           term.id
-        }">
-          ${
-            idx > 0
-              ? `
-            <select class="form-select formula-operator" style="width: 60px;" onchange="updateTermOperator(${
-              term.id
-            }, this.value)">
-              <option value="+" ${
-                term.operator === "+" ? "selected" : ""
-              }>+</option>
-              <option value="-" ${
-                term.operator === "-" ? "selected" : ""
-              }>−</option>
-              <option value="/" ${
-                term.operator === "/" ? "selected" : ""
-              }>/</option>
-            </select>
-          `
-              : '<span class="formula-operator-placeholder" style="width: 60px; text-align: center;">=</span>'
-          }
-          
-          <select class="form-select formula-type" style="width: 110px;" onchange="updateTermType(${
-            term.id
-          }, this.value)">
-            <option value="section" ${
-              term.type === "section" ? "selected" : ""
-            }>Sección</option>
-            <option value="operation" ${
-              term.type === "operation" ? "selected" : ""
-            }>Operación</option>
-            <option value="account" ${
-              term.type === "account" ? "selected" : ""
-            }>Cuenta</option>
-          </select>
-          
-          <select class="form-select formula-value flex-grow-1" onchange="updateTermValue(${
-            term.id
-          }, this.value)">
-            <option value="">-- Seleccionar --</option>
-            ${
-              term.type === "section"
-                ? elements.sections
-                    .map(
-                      (s) =>
-                        `<option value="${escapeAttr(s)}" ${
-                          term.value === s ? "selected" : ""
-                        }>${escapeHtml(s)}</option>`
-                    )
-                    .join("")
-                : term.type === "operation"
-                ? elements.operations
-                    .map(
-                      (o) =>
-                        `<option value="${escapeAttr(o)}" ${
-                          term.value === o ? "selected" : ""
-                        }>${escapeHtml(o)}</option>`
-                    )
-                    .join("")
-                : elements.accounts
-                    .map(
-                      (a) =>
-                        `<option value="${escapeAttr(a.code)}" ${
-                          term.value === a.code ? "selected" : ""
-                        }>${escapeHtml(a.code)} - ${escapeHtml(
-                          a.name
-                        )}</option>`
-                    )
-                    .join("")
-            }
-          </select>
-          
-          <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeFormulaTerm(${
-            term.id
-          })" title="Quitar">
-            <i class="bi bi-x"></i>
-          </button>
-        </div>
-        ${accountsHtml}
+        }, this.value)">
+          <option value="+" ${
+            term.operator === "+" ? "selected" : ""
+          }>+</option>
+          <option value="-" ${
+            term.operator === "-" ? "selected" : ""
+          }>−</option>
+        </select>
+        
+        <input type="text" class="form-control flex-grow-1" value="${escapeAttr(
+          displayText
+        )}" readonly 
+               style="background: white; cursor: default;" 
+               title="Tipo: ${term.type}, Valor: ${term.value || "vacío"}" />
+        
+        <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeFormulaTerm(${
+          term.id
+        })" title="Quitar">
+          <i class="bi bi-x"></i>
+        </button>
       </div>
     `;
       })
@@ -3190,5 +3189,4 @@
 
     dom.previewContainer.innerHTML = html;
   }
-
 })();
