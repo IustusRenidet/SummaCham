@@ -12,13 +12,13 @@
   window.FormulaBuilder = {
     terms: [],
     currentOperationId: null,
-    
+
     /**
      * Inicializar constructor con operación existente
      */
     init(operation, availableElements) {
       console.log("FormulaBuilder.init llamado con:", operation);
-      
+
       this.currentOperationId = operation?.id || null;
       this.availableElements = availableElements || {
         sections: [],
@@ -29,8 +29,15 @@
       console.log("Elementos disponibles:", this.availableElements);
 
       // PRIORIDAD 1: Si la operación ya tiene formula_terms poblados, usarlos directamente
-      if (operation?.formula_terms && Array.isArray(operation.formula_terms) && operation.formula_terms.length > 0) {
-        console.log("✅ Usando formula_terms directamente:", operation.formula_terms);
+      if (
+        operation?.formula_terms &&
+        Array.isArray(operation.formula_terms) &&
+        operation.formula_terms.length > 0
+      ) {
+        console.log(
+          "✅ Usando formula_terms directamente:",
+          operation.formula_terms
+        );
         this.terms = operation.formula_terms.map((t, idx) => ({
           id: t.id || Date.now() + idx,
           operator: t.operator || "+",
@@ -73,7 +80,7 @@
      */
     _parseFromLegacy(op) {
       const terms = [];
-      
+
       if (op.formula_terms && Array.isArray(op.formula_terms)) {
         return op.formula_terms.map((t, idx) => ({
           id: Date.now() + idx,
@@ -222,9 +229,7 @@
         .map((term, idx) => {
           const op = idx === 0 && term.operator === "+" ? "" : term.operator;
           const val =
-            term.type === "constant"
-              ? term.constant
-              : term.value || "(vacío)";
+            term.type === "constant" ? term.constant : term.value || "(vacío)";
           return `${op} ${val}`.trim();
         })
         .join(" ");
@@ -241,7 +246,11 @@
         return;
       }
 
-      console.log("✅ Container encontrado, renderizando", this.terms.length, "términos");
+      console.log(
+        "✅ Container encontrado, renderizando",
+        this.terms.length,
+        "términos"
+      );
 
       const html = `
         <div class="formula-builder-wrapper">
@@ -250,7 +259,9 @@
             <strong>Constructor de Fórmula:</strong> Define qué suma esta operación. Ejemplo: "Resultado Operativo = (Suma de Ingresos) - (Suma de Gastos)"
           </div>
           <div class="formula-terms-list">
-            ${this.terms.map((term, idx) => this._renderTerm(term, idx)).join("")}
+            ${this.terms
+              .map((term, idx) => this._renderTerm(term, idx))
+              .join("")}
           </div>
           <div class="formula-actions mt-3">
             <button type="button" class="btn btn-sm btn-outline-success" onclick="FormulaBuilder.addTerm()">
@@ -293,7 +304,9 @@
             sectionOptions.unshift(term.value);
           }
           valueInput = `
-            <select class="form-select" onchange="FormulaBuilder.updateValue(${term.id}, this.value)">
+            <select class="form-select" onchange="FormulaBuilder.updateValue(${
+              term.id
+            }, this.value)">
               <option value="">Seleccionar sección...</option>
               ${sectionOptions
                 .map(
@@ -316,7 +329,9 @@
             accountOptions.unshift({ code: term.value, name: term.value });
           }
           valueInput = `
-            <select class="form-select" onchange="FormulaBuilder.updateValue(${term.id}, this.value)">
+            <select class="form-select" onchange="FormulaBuilder.updateValue(${
+              term.id
+            }, this.value)">
               <option value="">Seleccionar cuenta...</option>
               ${accountOptions
                 .map(
@@ -338,7 +353,9 @@
             operationOptions.unshift(term.value);
           }
           valueInput = `
-            <select class="form-select" onchange="FormulaBuilder.updateValue(${term.id}, this.value)">
+            <select class="form-select" onchange="FormulaBuilder.updateValue(${
+              term.id
+            }, this.value)">
               <option value="">Seleccionar operación...</option>
               ${operationOptions
                 .map(
@@ -357,7 +374,9 @@
             <input type="number" class="form-control" step="0.01" 
                    value="${term.constant || ""}" 
                    placeholder="0.00"
-                   onchange="FormulaBuilder.updateValue(${term.id}, this.value)" />
+                   onchange="FormulaBuilder.updateValue(${
+                     term.id
+                   }, this.value)" />
           `;
           break;
       }
@@ -376,8 +395,14 @@
           <div class="row g-2 align-items-start">
             <div class="col-auto" style="width: 80px;">
               <select class="form-select" 
-                      onchange="FormulaBuilder.updateOperator(${term.id}, this.value)"
-                      ${isFirst ? 'disabled title="Primer término siempre positivo"' : ""}>
+                      onchange="FormulaBuilder.updateOperator(${
+                        term.id
+                      }, this.value)"
+                      ${
+                        isFirst
+                          ? 'disabled title="Primer término siempre positivo"'
+                          : ""
+                      }>
                 ${operators
                   .map(
                     (o) =>
@@ -389,7 +414,9 @@
               </select>
             </div>
             <div class="col-auto" style="width: 140px;">
-              <select class="form-select" onchange="FormulaBuilder.updateType(${term.id}, this.value)">
+              <select class="form-select" onchange="FormulaBuilder.updateType(${
+                term.id
+              }, this.value)">
                 ${types
                   .map(
                     (t) =>
@@ -466,7 +493,10 @@
     showMap() {
       const validation = this.validate();
       if (!validation.isValid) {
-        alert("Completa todos los términos primero:\n" + validation.errors.join("\n"));
+        alert(
+          "Completa todos los términos primero:\n" +
+            validation.errors.join("\n")
+        );
         return;
       }
 
@@ -511,26 +541,29 @@
             ? term.constant
             : term.value || "(sin valor)";
 
-        const iconClass = {
-          section: "bi-folder2",
-          account: "bi-file-text",
-          operation: "bi-calculator",
-          constant: "bi-hash",
-        }[term.type] || "bi-question";
+        const iconClass =
+          {
+            section: "bi-folder2",
+            account: "bi-file-text",
+            operation: "bi-calculator",
+            constant: "bi-hash",
+          }[term.type] || "bi-question";
 
-        const colorClass = {
-          "+": "success",
-          "-": "danger",
-          "*": "warning",
-          "/": "info",
-        }[term.operator] || "secondary";
+        const colorClass =
+          {
+            "+": "success",
+            "-": "danger",
+            "*": "warning",
+            "/": "info",
+          }[term.operator] || "secondary";
 
-        const operatorBg = {
-          "+": "#28a745",
-          "-": "#dc3545",
-          "*": "#ffc107",
-          "/": "#17a2b8",
-        }[term.operator] || "#6c757d";
+        const operatorBg =
+          {
+            "+": "#28a745",
+            "-": "#dc3545",
+            "*": "#ffc107",
+            "/": "#17a2b8",
+          }[term.operator] || "#6c757d";
 
         return `
           <div class="d-flex align-items-center gap-3 mb-2">
@@ -542,7 +575,9 @@
                 : '<div style="width: 40px; flex-shrink: 0;"></div>'
             }
             <div class="flex-grow-1 p-2 px-3 bg-light rounded-2">
-              <span class="fw-semibold" style="font-size: 14px;">${this._escapeHtml(valueLabel)}</span>
+              <span class="fw-semibold" style="font-size: 14px;">${this._escapeHtml(
+                valueLabel
+              )}</span>
             </div>
           </div>
         `;
@@ -590,9 +625,12 @@
           const state = window.state || (window.parent && window.parent.state);
           let accountName = "";
           if (state && state.cuentas) {
-            const cuenta = state.cuentas.find((c) => c.CUENTA === term.value || c.cuenta === term.value);
+            const cuenta = state.cuentas.find(
+              (c) => c.CUENTA === term.value || c.cuenta === term.value
+            );
             if (cuenta) {
-              accountName = cuenta.NOMBRE || cuenta.nombre || cuenta.DESCRIPCION || "";
+              accountName =
+                cuenta.NOMBRE || cuenta.nombre || cuenta.DESCRIPCION || "";
             }
           }
           return `
@@ -608,7 +646,9 @@
           return `
             <div class="term-breakdown">
               <div class="fw-semibold" style="font-size: 13px; color: #6b7280;">
-                Constante: ${this._escapeHtml(String(term.constant || term.value))}
+                Constante: ${this._escapeHtml(
+                  String(term.constant || term.value)
+                )}
               </div>
             </div>
           `;
@@ -633,3 +673,25 @@
     },
   };
 })();
+
+/**
+ * Actualizar términos disponibles en los dropdowns del constructor
+ * Recibe un array de elementos en orden visual de la tabla
+ */
+window.FormulaBuilder.updateAvailableTerms = function (orderedElements) {
+  if (!Array.isArray(orderedElements)) return;
+
+  // Guardar para uso posterior en los dropdowns
+  this.orderedElements = orderedElements;
+
+  // Si hay términos actualmente renderizados, re-renderizar para actualizar dropdowns
+  if (this.terms && this.terms.length > 0) {
+    this.render();
+  }
+
+  console.log(
+    "✅ FormulaBuilder: Términosextualizados en orden de tabla:",
+    orderedElements.length,
+    "elementos"
+  );
+};

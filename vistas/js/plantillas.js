@@ -3009,6 +3009,29 @@
     const op = state.operaciones.find((o) => o.Clase === clase);
     if (!op) return;
 
+    // AUTO-LOAD: Buscar operación predefinida y pre-cargar si existe
+    const opPredefinida = OPERACIONES_PREDEFINIDAS[state.capitulo]?.[
+      state.modulo
+    ]?.find(
+      (pred) =>
+        pred.nombre.toLowerCase() === clase.toLowerCase() ||
+        pred.nombre.toLowerCase() === (op.Clase || "").toLowerCase()
+    );
+
+    if (opPredefinida && (!op.formula_terms || op.formula_terms.length === 0)) {
+      console.log(
+        "✨ Auto-cargando operación predefinida:",
+        opPredefinida.nombre
+      );
+      // Pre-cargar fórmula y ubicación desde mapa
+      op.SECCION = opPredefinida.formula;
+      if (opPredefinida.aparece && opPredefinida.aparece.length > 0) {
+        opPredefinida.aparece.forEach((fieldName) => {
+          op[fieldName] = opPredefinida.nombre;
+        });
+      }
+    }
+
     const modalTitle = dom.modalEditar?.querySelector(".modal-title");
     if (modalTitle) {
       modalTitle.textContent = `Editar: ${getOperationDisplayName(op)}`;
@@ -3153,6 +3176,70 @@
         <input type="text" class="form-control" id="editClaseOp" value="${escapeHtml(
           op["sum-row"] || op.Clase
         )}" />
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label fw-bold">Dónde aparece esta operación</label>
+        <div class="alert alert-info small mb-2">
+          <i class="bi bi-info-circle me-1"></i>
+          Selecciona en cuáles tablas/secciones aparecerá esta operación
+        </div>
+        <div class="row g-2">
+          <div class="col-md-6">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="check-sum-row" 
+                     ${op["sum-row"] ? "checked" : ""}>
+              <label class="form-check-label" for="check-sum-row">
+                <i class="bi bi-bar-chart text-primary"></i> Fila de Suma
+              </label>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="check-sum-row-sumavarios" 
+                     ${op["sum-row-sumavarios"] ? "checked" : ""}>
+              <label class="form-check-label" for="check-sum-row-sumavarios">
+                <i class="bi bi-bar-chart-fill text-primary"></i> Totales de Sección
+              </label>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="check-sum-row-operativo" 
+                     ${op["sum-row-operativo"] ? "checked" : ""}>
+              <label class="form-check-label" for="check-sum-row-operativo">
+                <i class="bi bi-graph-up-arrow text-info"></i> Resultados Operativos
+              </label>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="check-result-row" 
+                     ${op["result-row"] ? "checked" : ""}>
+              <label class="form-check-label" for="check-result-row">
+                <i class="bi bi-calculator-fill text-warning"></i> Resultados
+              </label>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="check-net-row" 
+                     ${op["net-row"] ? "checked" : ""}>
+              <label class="form-check-label" for="check-net-row">
+                <i class="bi bi-cash-stack text-danger"></i> Resultados Netos
+              </label>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="check-sum-row-consolidado" 
+                     ${op["sum-row-sumavarios-consolidado"] ? "checked" : ""}>
+              <label class="form-check-label" for="check-sum-row-consolidado">
+                <i class="bi bi-collection-fill text-success"></i> Consolidados
+              </label>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="mb-3">
@@ -3495,6 +3582,31 @@
       const newClase = document.getElementById("editClaseOp")?.value?.trim();
 
       if (newClase) op.Clase = newClase;
+
+      // GUARDAR UBICACIONES (dónde aparece la operación)
+      const placementFields = [
+        "sum-row",
+        "sum-row-sumavarios",
+        "sum-row-operativo",
+        "result-row",
+        "net-row",
+        "sum-row-sumavarios-consolidado",
+      ];
+
+      placementFields.forEach((fieldName) => {
+        const checkId = `check-${fieldName.replace(
+          /sumavarios-consolidado/,
+          "consolidado"
+        )}`;
+        const checkbox = document.getElementById(checkId);
+        if (checkbox) {
+          if (checkbox.checked) {
+            op[fieldName] = newClase || op.Clase;
+          } else {
+            delete op[fieldName];
+          }
+        }
+      });
 
       // Usar FormulaBuilder si está disponible
       if (window.FormulaBuilder) {
@@ -4402,4 +4514,357 @@
       });
     }
   }
+
+  // ==========================================
+  // ENHANCED FEATURES - Auto-Population & Context
+  // ==========================================
+
+  /**
+   * Mapa de operaciones predefinidas por capítulo y módulo
+   * Cargadas dinámicamente desde el archivo JSON
+   */
+  let OPERACIONES_PREDEFINIDAS = {};
+
+  /**
+   * Cargar operaciones desde el archivo JSON
+   * @returns {Promise<Object>} Operaciones organizadas por capítulo y módulo
+   */
+  const cargarOperacionesDesdeJSON = async () => {
+    try {
+      const response = await fetch('../info IMPORTANTE/logica operaciones.json');
+      if (!response.ok) {
+        console.warn('No se pudo cargar logica operaciones.json');
+        return {};
+      }
+      
+      const operacionesArray = await response.json();
+      const operacionesMap = {};
+      
+      // Procesar cada operación del JSON
+      operacionesArray.forEach(item => {
+        const capitulo = item.Capítulo;
+        const moduloCompleto = item.Módulo; // "Comités.html", "Membresía.html", etc.
+        const modulo = moduloCompleto.replace('.html', ''); // "Comités", "Membresía", etc.
+        const operacion = item.Operaciones;
+        
+        // Parsear la operación: "Nombre= Fórmula"
+        const match = operacion.match(/^(.+?)=\s*(.+)$/);
+        if (!match) return;
+        
+        const nombre = match[1].trim();
+        const formula = match[2].trim();
+        
+        // Determinar tipo de operación por nombre
+        let aparece = ['sum-row'];
+        if (nombre.toLowerCase().includes('resultado operativo')) {
+          aparece = ['sum-row-operativo'];
+        } else if (nombre.toLowerCase().includes('resultado') && !nombre.toLowerCase().includes('operativo')) {
+          aparece = ['result-row'];
+        }
+        
+        // Inicializar estructura si no existe
+        if (!operacionesMap[capitulo]) {
+          operacionesMap[capitulo] = {};
+        }
+        if (!operacionesMap[capitulo][modulo]) {
+          operacionesMap[capitulo][modulo] = [];
+        }
+        
+        // Agregar operación
+        operacionesMap[capitulo][modulo].push({
+          nombre: nombre,
+          formula: formula,
+          aparece: aparece
+        });
+      });
+      
+      console.log('✅ Operaciones cargadas desde JSON:', operacionesMap);
+      return operacionesMap;
+    } catch (error) {
+      console.error('Error cargando operaciones desde JSON:', error);
+      return {};
+    }
+  };
+
+  /**
+   * Inicializar operaciones predefinidas al cargar la página
+   */
+  (async () => {
+    OPERACIONES_PREDEFINIDAS = await cargarOperacionesDesdeJSON();
+  })();
+
+  /**
+   * Cargar operaciones predefinidas para el contexto actual
+   * Muestra una lista de operaciones sugeridas y permite poblarlas automáticamente
+   */
+  window.cargarOperacionesPredefinidas = async function () {
+    if (!state.capitulo || !state.modulo) {
+      showToast("Selecciona un capítulo y módulo primero", "warning");
+      return;
+    }
+
+    const operaciones =
+      OPERACIONES_PREDEFINIDAS[state.capitulo]?.[state.modulo] || [];
+
+    if (operaciones.length === 0) {
+      showToast(
+        `No hay operaciones predefinidas para ${state.modulo} en ${state.capitulo}`,
+        "info"
+      );
+      return;
+    }
+
+    // Mostrar modal con las operaciones disponibles
+    const modal = document.createElement("div");
+    modal.className = "modal fade";
+    modal.innerHTML = `
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header bg-primary text-white">
+            <h5 class="modal-title">
+              <i class="bi bi-magic me-2"></i>Operaciones Predefinidas
+            </h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <div class="alert alert-info">
+              <i class="bi bi-info-circle me-2"></i>
+              Se encontraron <strong>${
+                operaciones.length
+              } operaciones</strong> predefinidas para 
+              <strong>${state.modulo}</strong> en <strong>${
+      state.capitulo
+    }</strong>
+            </div>
+            <div class="list-group">
+              ${operaciones
+                .map(
+                  (op, idx) => `
+                <div class="list-group-item">
+                  <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                      <h6 class="mb-1">${escapeHtml(op.nombre)}</h6>
+                      <small class="text-muted"><code>${escapeHtml(
+                        op.formula
+                      )}</code></small>
+                    </div>
+                    <button class="btn btn-sm btn-outline-primary" onclick="window.poblarOperacion(${idx})">
+                      <i class="bi bi-plus-circle me-1"></i>Agregar
+                    </button>
+                  </div>
+                </div>
+              `
+                )
+                .join("")}
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class= "btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            <button type="button" class="btn btn-primary" onclick="window.poblarTodasOperaciones()">
+              <i class="bi bi-magic me-1"></i>Poblar Todas
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+    const bsModal = new bootstrap.Modal(modal);
+    bsModal.show();
+
+    modal.addEventListener("hidden.bs.modal", () => {
+      document.body.removeChild(modal);
+    });
+  };
+
+  /**
+   * Poblar una operación específica
+   */
+  window.poblarOperacion = function (index) {
+    const operaciones =
+      OPERACIONES_PREDEFINIDAS[state.capitulo]?.[state.modulo] || [];
+    const op = operaciones[index];
+    if (!op) return;
+
+    // Crear operación básica
+    const newOp = {
+      CAPITULO: state.capitulo,
+      Clase: op.nombre,
+      SECCION: op.formula,
+      tipo: "predefined",
+      signos: { seccion_1: 1 },
+      orden: nextOperationOrder(),
+      "sum-row": op.nombre,
+      formula_terms: [
+        {
+          id: Date.now(),
+          operator: "+",
+          type: "section",
+          value: op.formula,
+        },
+      ],
+      seccion_1: op.formula,
+    };
+
+    state.operaciones.push(newOp);
+    state.unsavedChanges = true;
+    updateButtonStates();
+    renderLayout();
+    showToast(`Operación "${op.nombre}" agregada`, "success");
+  };
+
+  /**
+   * Poblar todas las operaciones predefinidas
+   */
+  window.poblarTodasOperaciones = function () {
+    const operaciones =
+      OPERACIONES_PREDEFINIDAS[state.capitulo]?.[state.modulo] || [];
+
+    operaciones.forEach((op, idx) => {
+      window.poblarOperacion(idx);
+    });
+
+    bootstrap.Modal.getInstance(document.querySelector(".modal.show"))?.hide();
+    showToast(`${operaciones.length} operaciones agregadas`, "success");
+  };
+
+  /**
+   * Actualizar elementos disponibles desde el orden de la tabla
+   * Recorre la preview table y extrae elementos en orden DOM
+   */
+  window.updateAvailableElementsFromTable = function (
+    tableSelector = "#layoutPreview"
+  ) {
+    const container =
+      document.querySelector(tableSelector) || dom.layoutPreview;
+    if (!container) return [];
+
+    const availableElements = {
+      sections: [],
+      accounts: [],
+      operations: [],
+      orderedLabels: [], // Orden exacto como aparece visualmente
+    };
+
+    // Extraer de secciones renderizadas
+    container
+      .querySelectorAll(".section-header .section-title span")
+      .forEach((el) => {
+        const text = el.textContent.trim();
+        if (text && !availableElements.orderedLabels.includes(text)) {
+          availableElements.sections.push(text);
+          availableElements.orderedLabels.push(text);
+        }
+      });
+
+    // Extraer de cuentas renderizadas
+    container.querySelectorAll(".account-row").forEach((row) => {
+      const code = row.querySelector(".account-code")?.textContent?.trim();
+      const name = row.querySelector(".account-name")?.textContent?.trim();
+      if (code) {
+        availableElements.accounts.push({ code, name: name || code });
+        availableElements.orderedLabels.push(code);
+      }
+    });
+
+    // Extraer de operaciones renderizadas
+    container
+      .querySelectorAll(".operation-row .operation-label span")
+      .forEach((el) => {
+        const text = el.textContent.trim();
+        if (text && !availableElements.orderedLabels.includes(text)) {
+          availableElements.operations.push(text);
+          availableElements.orderedLabels.push(text);
+        }
+      });
+
+    // Actualizar FormulaBuilder si existe
+    if (
+      window.FormulaBuilder &&
+      typeof window.FormulaBuilder.updateAvailableTerms === "function"
+    ) {
+      window.FormulaBuilder.updateAvailableTerms(
+        availableElements.orderedLabels
+      );
+    }
+
+    return availableElements;
+  };
+
+  /**
+   * Guardar contexto actual en URL params
+   */
+  function saveContextToURL() {
+    if (!window.history?.pushState) return;
+
+    const params = new URLSearchParams();
+    if (state.modulo) params.set("module", state.modulo);
+    if (state.capitulo) params.set("chapter", state.capitulo);
+    if (state.anio) params.set("year", state.anio);
+
+    const newURL = `${window.location.pathname}?${params.toString()}`;
+    window.history.pushState({ path: newURL }, "", newURL);
+  }
+
+  /**
+   * Cargar contexto desde URL params
+   */
+  function loadContextFromURL() {
+    const params = new URLSearchParams(window.location.search);
+
+    const module = params.get("module");
+    const chapter = params.get("chapter");
+    const year = params.get("year");
+
+    if (module && dom.moduloSelect) {
+      dom.moduloSelect.value = module;
+      state.modulo = module;
+    }
+
+    if (chapter && dom.capituloSelect) {
+      dom.capituloSelect.value = chapter;
+      state.capitulo = chapter;
+    }
+
+    if (year && dom.anioSelect) {
+      dom.anioSelect.value = year;
+      state.anio = parseInt(year);
+    }
+
+    if (module || chapter || year) {
+      updateHeaderLabels();
+      tryLoadLayout();
+    }
+  }
+
+  // Guardar contexto cuando cambie
+  const originalHandleModuloChange = handleModuloChange;
+  const originalHandleCapituloChange = handleCapituloChange;
+  const originalHandleAnioChange = handleAnioChange;
+
+  async function handleModuloChange() {
+    await originalHandleModuloChange();
+    saveContextToURL();
+  }
+
+  async function handleCapituloChange() {
+    await originalHandleCapituloChange();
+    saveContextToURL();
+  }
+
+  async function handleAnioChange() {
+    await originalHandleAnioChange();
+    saveContextToURL();
+  }
+
+  // Cargar contexto al iniciar
+  loadContextFromURL();
+
+  // Exponer API pública
+  window.TemplateManager = {
+    cargarOperacionesPredefinidas,
+    updateAvailableElementsFromTable,
+    saveContextToURL,
+    loadContextFromURL,
+  };
 })();

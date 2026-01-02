@@ -2039,7 +2039,7 @@
     return { anio, mes, mesNombre, empresaTexto, baseName, titulo };
   };
 
-  const imprimirTablaPdf = () => {
+  const imprimirTablaPdf = async () => {
     const tabla = document.getElementById("tablaComparacion");
     if (!tabla) {
       if (typeof showToast === "function") {
@@ -2048,6 +2048,13 @@
       return;
     }
 
+    // Verificar si html2canvas y jsPDF están disponibles para incluir gráficas
+    if (typeof html2canvas !== 'undefined' && typeof jspdf !== 'undefined') {
+      await imprimirPdfConGraficas();
+      return;
+    }
+
+    // Fallback a impresión simple sin gráficas
     const { titulo, mesNombre, anio, empresaTexto } =
       construirMetadataExportacion();
     const tablaClon = tabla.cloneNode(true);
@@ -2130,23 +2137,626 @@
     ventana.document.close();
   };
 
-  const exportarTablaXlsx = (event) => {
+  const imprimirPdfConGraficas = async () => {
+    try {
+      const { jsPDF } = jspdf;
+      const doc = new jsPDF('l', 'mm', 'a4'); // Landscape
+      
+      const { titulo, mesNombre, anio, empresaTexto } = construirMetadataExportacion();
+      
+      // === PÁGINA 1: Tabla de Resumen ===
+      const tabla = document.getElementById('tablaComparacion');
+      
+      // Título
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      doc.text('RESUMEN FINANCIERO', 15, 15);
+      
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Empresa: ${empresaTexto}`, 15, 22);
+      doc.text(`Periodo: ${mesNombre} ${anio}`, 15, 27);
+      
+      // Usar autoTable para la tabla con encabezados HTML completos
+      if (typeof doc.autoTable === 'function' && tabla) {
+        const thead = tabla.querySelector('thead');
+        const tbody = tabla.querySelector('tbody');
+        
+        // Procesar encabezados respetando colspan, rowspan, y saltos de línea
+        const headers = [];
+        if (thead) {
+          const headerRows = Array.from(thead.querySelectorAll('tr'));
+          headerRows.forEach(row => {
+            const headerRow = [];
+            const cells = Array.from(row.querySelectorAll('th'));
+            
+            cells.forEach(cell => {
+              // Extraer texto con saltos de línea preservados
+              let texto = cell.textContent.trim();
+              // Reemplazar múltiples espacios/saltos por salto simple
+              texto = texto.replace(/\s+/g, ' ').trim();
+              
+              const colspan = parseInt(cell.getAttribute('colspan')) || 1;
+              const rowspan = parseInt(cell.getAttribute('rowspan')) || 1;
+              
+              // Configurar celda con formato
+              const cellConfig = {
+                content: texto,
+                colSpan: colspan,
+                rowSpan: rowspan,
+                styles: { 
+                  halign: 'center', 
+                  valign: 'middle',
+                  fontStyle: 'bold',
+                  fontSize: 7,
+                  cellPadding: 2,
+                  lineColor: [200, 200, 200],
+                  lineWidth: 0.1
+                }
+              };
+              
+              headerRow.push(cellConfig);
+            });
+            
+            headers.push(headerRow);
+          });
+        }
+
+        // Procesar cuerpo de la tabla
+        const body = [];
+        if (tbody) {
+          const bodyRows = Array.from(tbody.querySelectorAll('tr')).slice(0, 100); // Más filas
+          bodyRows.forEach(row => {
+            const rowData = [];
+            const cells = Array.from(row.querySelectorAll('td'));
+            
+            cells.forEach((cell, idx) => {
+              let texto = cell.textContent.trim();
+              
+              // Configurar estilo según clase de fila
+              let styles = { fontSize: 6, cellPadding: 1.5 };
+              
+              // Detectar tipo de fila por clases
+              if (row.classList.contains('section-header-row')) {
+                styles.fillColor = [30, 58, 138]; // Azul oscuro
+                styles.textColor = 255;
+                styles.fontStyle = 'bold';
+                styles.fontSize = 7;
+              } else if (row.classList.contains('subsection-row')) {
+                styles.fillColor = [219, 234, 254]; // Azul claro
+                styles.textColor = [30, 58, 138];
+                styles.fontStyle = 'bolditalic';
+              } else if (row.classList.contains('sum-row')) {
+                styles.fillColor = [254, 243, 199]; // Amarillo
+                styles.textColor = [120, 53, 15];
+                styles.fontStyle = 'bold';
+              } else if (row.classList.contains('highlight-bright')) {
+                styles.fillColor = [254, 202, 202]; // Rojo
+                styles.textColor = [153, 27, 27];
+                styles.fontStyle = 'bold';
+                styles.fontSize = 7;
+              } else if (row.classList.contains('highlight-primary')) {
+                styles.fillColor = [167, 243, 208]; // Verde
+                styles.textColor = [6, 95, 70];
+                styles.fontStyle = 'bold';
+              } else if (row.classList.contains('highlight-secondary')) {
+                styles.fillColor = [165, 243, 252]; // Cyan
+                styles.textColor = [14, 116, 144];
+                styles.fontStyle = 'bold';
+              }
+              
+              // Alineación: primera y segunda columna a la izquierda, resto a la derecha
+              if (idx <= 1 || idx === 6) {
+                styles.halign = 'left';
+              } else {
+                styles.halign = 'right';
+              }
+              
+              rowData.push({ content: texto, styles: styles });
+            });
+            
+            body.push(rowData);
+          });
+        }
+
+        doc.autoTable({
+          head: headers,
+          body: body,
+          startY: 35,
+          styles: { 
+            fontSize: 6,
+            cellPadding: 1.5,
+            lineColor: [200, 200, 200],
+            lineWidth: 0.1
+          },
+          headStyles: { 
+            fillColor: [13, 71, 161],
+            textColor: 255,
+            fontStyle: 'bold',
+            halign: 'center',
+            valign: 'middle',
+            fontSize: 7,
+            cellPadding: 2
+          },
+          margin: { left: 5, right: 5, top: 35 },
+          theme: 'grid'
+        });
+      }
+
+      // === ÚLTIMAS PÁGINAS: Gráficas (una por página) ===
+      const graficaData = generarDatosGraficas();
+      
+      if (graficaData && graficaData.length > 0) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 1200;
+        canvas.height = 600;
+        canvas.style.display = 'none';
+        document.body.appendChild(canvas);
+
+        for (const data of graficaData) {
+          doc.addPage();
+          
+          doc.setFontSize(16);
+          doc.setFont('helvetica', 'bold');
+          doc.text('GRÁFICAS DE ANÁLISIS', 15, 15);
+          
+          doc.setFontSize(14);
+          doc.text(data.titulo, 15, 25);
+          
+          const ctx = canvas.getContext('2d');
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          
+          const chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: data.labels,
+              datasets: data.datasets
+            },
+            options: {
+              responsive: false,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { 
+                  display: true,
+                  position: 'bottom',
+                  labels: { 
+                    font: { size: 16, weight: 'bold' },
+                    padding: 20,
+                    usePointStyle: true,
+                    boxWidth: 15
+                  }
+                },
+                title: {
+                  display: false
+                }
+              },
+              scales: {
+                y: { 
+                  beginAtZero: false,
+                  ticks: { 
+                    font: { size: 14 },
+                    callback: function(value) {
+                      return value.toLocaleString('es-MX', { maximumFractionDigits: 0 });
+                    }
+                  },
+                  grid: { 
+                    color: 'rgba(0,0,0,0.08)',
+                    lineWidth: 1
+                  }
+                },
+                x: {
+                  display: false,
+                  grid: { display: false }
+                }
+              },
+              layout: {
+                padding: {
+                  left: 20,
+                  right: 20,
+                  top: 20,
+                  bottom: 20
+                }
+              },
+              barPercentage: 0.7
+            }
+          });
+
+          await new Promise(resolve => setTimeout(resolve, 200));
+
+          const imgData = canvas.toDataURL('image/png');
+          doc.addImage(imgData, 'PNG', 15, 35, 270, 160);
+
+          chart.destroy();
+        }
+
+        document.body.removeChild(canvas);
+      }
+
+      // Guardar PDF
+      doc.save(`RESUMEN_${empresaTexto}_${anio}_${mesNombre}.pdf`);
+      
+      if (typeof showToast === "function") {
+        showToast("✅ PDF con gráficas generado correctamente.");
+      }
+    } catch (error) {
+      console.error('Error al generar PDF con gráficas:', error);
+      if (typeof showToast === "function") {
+        showToast("Error al generar PDF. Verifica la consola.", "text-bg-danger");
+      }
+    }
+  };
+
+  const exportarTablaXlsx = async (event) => {
     if (event) event.preventDefault();
     const selector = "#tablaComparacion";
     const anio = leerAnioSeleccionado();
     const mes = leerMesSeleccionado();
     const nombreEmpresa = obtenerEtiquetaEmpresa(empresaActual?.id);
 
-    ExportUtils.exportarExcel({
-      tabla: selector,
-      nombreArchivo: `RESUMEN_${nombreEmpresa}`,
-      nombreHoja: "Resumen",
-      onSuccess: () => {
-        if (typeof showToast === "function") {
-          showToast("Resumen exportado correctamente.");
+    // Verificar si ExcelJS está disponible
+    if (typeof ExcelJS !== 'undefined') {
+      await exportarResumenConGraficas(nombreEmpresa, anio, mes);
+    } else {
+      // Fallback a exportación simple sin gráficas
+      ExportUtils.exportarExcel({
+        tabla: selector,
+        nombreArchivo: `RESUMEN_${nombreEmpresa}`,
+        nombreHoja: "Resumen",
+        onSuccess: () => {
+          if (typeof showToast === "function") {
+            showToast("Resumen exportado correctamente.");
+          }
+        },
+      });
+    }
+  };
+
+  const exportarResumenConGraficas = async (nombreEmpresa, anio, mes) => {
+    try {
+      const workbook = new ExcelJS.Workbook();
+      workbook.creator = 'SummaCham';
+      workbook.created = new Date();
+
+      // === HOJA 1: Tabla de Resumen ===
+      const wsResumen = workbook.addWorksheet('Resumen');
+      const tabla = document.getElementById('tablaComparacion');
+      
+      if (tabla) {
+        // Extraer datos de la tabla
+        const thead = tabla.querySelector('thead');
+        const tbody = tabla.querySelector('tbody');
+        
+        // Procesar encabezados respetando colspan y rowspan
+        if (thead) {
+          const headerRows = Array.from(thead.querySelectorAll('tr'));
+          let excelRowIndex = 1;
+          
+          headerRows.forEach((row, rowIdx) => {
+            const cells = Array.from(row.querySelectorAll('th'));
+            const excelRow = wsResumen.getRow(excelRowIndex);
+            let colIndex = 1;
+            
+            cells.forEach(cell => {
+              const texto = cell.textContent.trim();
+              const colspan = parseInt(cell.getAttribute('colspan')) || 1;
+              const rowspan = parseInt(cell.getAttribute('rowspan')) || 1;
+              
+              // Escribir valor en la celda
+              const cellAddr = wsResumen.getCell(excelRowIndex, colIndex);
+              cellAddr.value = texto;
+              cellAddr.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10 };
+              cellAddr.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0D47A1' } };
+              cellAddr.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+              cellAddr.border = {
+                top: { style: 'thin', color: { argb: 'FFFFFFFF' } },
+                bottom: { style: 'thin', color: { argb: 'FFFFFFFF' } },
+                left: { style: 'thin', color: { argb: 'FFFFFFFF' } },
+                right: { style: 'thin', color: { argb: 'FFFFFFFF' } }
+              };
+              
+              // Aplicar merge si hay colspan o rowspan
+              if (colspan > 1 || rowspan > 1) {
+                wsResumen.mergeCells(
+                  excelRowIndex,
+                  colIndex,
+                  excelRowIndex + rowspan - 1,
+                  colIndex + colspan - 1
+                );
+              }
+              
+              colIndex += colspan;
+            });
+            
+            excelRow.height = 25;
+            excelRowIndex++;
+          });
         }
-      },
+
+        // Datos del cuerpo
+        if (tbody) {
+          const bodyRows = Array.from(tbody.querySelectorAll('tr'));
+          bodyRows.forEach(row => {
+            const cells = Array.from(row.querySelectorAll('td'));
+            const rowData = cells.map((cell, idx) => {
+              const text = cell.textContent.trim();
+              // Columnas numéricas (excepto cuenta, descripción)
+              if (idx !== 0 && idx !== 1 && idx !== 6) {
+                const num = parseFloat(text.replace(/[,$]/g, ''));
+                return isNaN(num) ? text : num;
+              }
+              return text;
+            });
+            const excelRow = wsResumen.addRow(rowData);
+            
+            // Aplicar estilos según clases de fila
+            if (row.classList.contains('section-header-row')) {
+              excelRow.eachCell(cell => {
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A8A' } };
+                cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 };
+                cell.alignment = { horizontal: 'left', vertical: 'middle' };
+              });
+            } else if (row.classList.contains('subsection-row')) {
+              excelRow.eachCell(cell => {
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDBEAFE' } };
+                cell.font = { bold: true, color: { argb: 'FF1E3A8A' }, italic: true };
+                cell.alignment = { horizontal: 'left', vertical: 'middle' };
+              });
+            } else if (row.classList.contains('highlight-bright')) {
+              excelRow.eachCell(cell => {
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFECACA' } };
+                cell.font = { bold: true, color: { argb: 'FF991B1B' }, size: 11 };
+              });
+            } else if (row.classList.contains('highlight-primary')) {
+              excelRow.eachCell(cell => {
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFA7F3D0' } };
+                cell.font = { bold: true, color: { argb: 'FF065F46' } };
+              });
+            } else if (row.classList.contains('highlight-secondary')) {
+              excelRow.eachCell(cell => {
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFA5F3FC' } };
+                cell.font = { bold: true, color: { argb: 'FF0E7490' } };
+              });
+            } else if (row.classList.contains('sum-row')) {
+              excelRow.eachCell(cell => {
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEF3C7' } };
+                cell.font = { bold: true, color: { argb: 'FF78350F' } };
+              });
+            }
+            
+            // Formato de números y alineación
+            excelRow.eachCell((cell, colNum) => {
+              if (colNum === 1 || colNum === 2 || colNum === 7) {
+                cell.alignment = { horizontal: 'left', vertical: 'middle' };
+              } else {
+                cell.alignment = { horizontal: 'right', vertical: 'middle' };
+                if (typeof cell.value === 'number') {
+                  cell.numFmt = '#,##0.00';
+                }
+              }
+            });
+          });
+        }
+
+        // Ajustar anchos de columnas
+        wsResumen.columns = [
+          { width: 12 }, // Cuenta
+          { width: 15 }, // Descripción
+          { width: 15 }, // Real
+          { width: 15 }, // Ppto
+          { width: 15 }, // Real DIC
+          { width: 15 }, // B/(W)% vs Ppto
+          { width: 15 }, // B/(W)% vs Real
+          { width: 25 }, // Descripción
+          { width: 18 }, // Real acumulado
+          { width: 18 }, // Ppto acumulado
+          { width: 18 }, // Real acum 2024
+          { width: 16 }, // B/(W)%
+          { width: 16 }  // B/(W)%
+        ];
+      }
+
+      // === HOJA 2: Gráficas ===
+      const wsGraficas = workbook.addWorksheet('Gráficas');
+      
+      // Información del contexto
+      wsGraficas.addRow(['GRÁFICAS DE RESUMEN']);
+      wsGraficas.addRow(['Empresa:', nombreEmpresa]);
+      wsGraficas.addRow(['Año:', anio]);
+      wsGraficas.addRow(['Mes:', mes]);
+      wsGraficas.addRow(['Fecha:', new Date().toLocaleString('es-MX')]);
+      wsGraficas.addRow([]);
+
+      // Generar gráficas dinámicamente
+      const graficaData = generarDatosGraficas();
+      
+      if (graficaData && graficaData.length > 0) {
+        // Crear canvas temporal para las gráficas
+        const canvas = document.createElement('canvas');
+        canvas.width = 1200;
+        canvas.height = 600;
+        canvas.style.display = 'none';
+        document.body.appendChild(canvas);
+
+        let currentRow = 7;
+
+        for (const data of graficaData) {
+          // Agregar título de la gráfica
+          const titleRow = wsGraficas.addRow([data.titulo]);
+          titleRow.font = { bold: true, size: 14 };
+          currentRow++;
+
+          // Generar gráfica con Chart.js
+          const ctx = canvas.getContext('2d');
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          
+          const chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: data.labels,
+              datasets: data.datasets
+            },
+            options: {
+              responsive: false,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { 
+                  display: true,
+                  position: 'bottom',
+                  labels: {
+                    font: { size: 16, weight: 'bold' },
+                    padding: 20,
+                    usePointStyle: true,
+                    boxWidth: 15,
+                    boxHeight: 15
+                  }
+                },
+                title: {
+                  display: true,
+                  text: data.titulo,
+                  font: { size: 22, weight: 'bold' },
+                  padding: { top: 15, bottom: 25 },
+                  color: '#1e3a8a'
+                }
+              },
+              scales: {
+                y: { 
+                  beginAtZero: false,
+                  ticks: {
+                    font: { size: 14 },
+                    callback: function(value) {
+                      return value.toLocaleString('es-MX', { maximumFractionDigits: 0 });
+                    }
+                  },
+                  grid: { 
+                    color: 'rgba(0,0,0,0.08)',
+                    lineWidth: 1
+                  }
+                },
+                x: {
+                  display: false,
+                  grid: { display: false }
+                }
+              },
+              layout: {
+                padding: {
+                  left: 20,
+                  right: 20,
+                  top: 20,
+                  bottom: 20
+                }
+              },
+              barPercentage: 0.7,
+              categoryPercentage: 0.8
+            }
+          });
+
+          // Esperar a que se renderice
+          await new Promise(resolve => setTimeout(resolve, 100));
+
+          // Convertir canvas a imagen
+          const imageBase64 = canvas.toDataURL('image/png');
+          
+          // Agregar imagen al Excel
+          const imageId = workbook.addImage({
+            base64: imageBase64,
+            extension: 'png',
+          });
+
+          wsGraficas.addImage(imageId, {
+            tl: { col: 0, row: currentRow },
+            ext: { width: 1000, height: 500 }
+          });
+
+          // Destruir gráfica y avanzar filas
+          chart.destroy();
+          currentRow += 30; // Espacio para la imagen (más espacio)
+          wsGraficas.addRow([]);
+          wsGraficas.addRow([]);
+          wsGraficas.addRow([]);
+          currentRow += 3;
+        }
+
+        // Limpiar canvas temporal
+        document.body.removeChild(canvas);
+      }
+
+      // Descargar archivo
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `RESUMEN_${nombreEmpresa}_${anio}_${mes}.xlsx`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+
+      if (typeof showToast === "function") {
+        showToast("✅ Resumen con gráficas exportado correctamente.");
+      }
+    } catch (error) {
+      console.error('Error al exportar con gráficas:', error);
+      if (typeof showToast === "function") {
+        showToast("Error al exportar. Verifica la consola.", "text-bg-danger");
+      }
+    }
+  };
+
+  const generarDatosGraficas = () => {
+    const snapshot = window.RESUMEN_SNAPSHOT;
+    if (!snapshot || !snapshot.filas) return [];
+
+    // Buscar filas clave para las gráficas
+    const filasClave = [
+      { key: 'CONSOLIDATED INCOME', titulo: 'CONSOLIDATED INCOME' },
+      { key: 'CONSOLIDATED EXPENSE', titulo: 'CONSOLIDATED EXPENSES' },
+      { key: 'CONSOLIDATED OPERATING RESULTS', titulo: 'CONSOLIDATED OPERATING RESULTS' },
+      { key: 'CONSOLIDATED NET RESULTS', titulo: 'CONSOLIDATED NET RESULTS' }
+    ];
+
+    const datos = [];
+
+    // Generar una gráfica para cada concepto consolidado
+    filasClave.forEach(({ key, titulo }) => {
+      const fila = snapshot.filas.find(f => 
+        f.label.toUpperCase().includes(key.toUpperCase())
+      );
+
+      if (!fila) return;
+
+      const realData = fila.totals.actualYTD || 0;
+      const pptoData = fila.totals.planYTD || 0;
+      const prevData = fila.totals.prevYTD || 0;
+
+      datos.push({
+        titulo: titulo,
+        labels: [''],
+        datasets: [
+          {
+            label: 'Real Acumulado',
+            data: [realData],
+            backgroundColor: '#0d47a1',
+            borderColor: '#0d47a1',
+            borderWidth: 2
+          },
+          {
+            label: 'Ppto. Acumulado',
+            data: [pptoData],
+            backgroundColor: '#60a5fa',
+            borderColor: '#60a5fa',
+            borderWidth: 2
+          },
+          {
+            label: 'Real Acum. Año Anterior',
+            data: [prevData],
+            backgroundColor: '#94a3b8',
+            borderColor: '#94a3b8',
+            borderWidth: 2
+          }
+        ]
+      });
     });
+
+    return datos;
   };
 
   const initToggleColumns = () => {

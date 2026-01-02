@@ -1030,18 +1030,177 @@
   };
   
   /**
-   * Exporta los datos a Excel usando SheetJS (xlsx)
+   * Exporta los datos y gráficas a Excel usando ExcelJS
    */
   window.exportarGraficasExcel = async () => {
     const datos = obtenerDatosParaExportar();
     if (!datos) return;
     
-    // Verificar que SheetJS esté disponible
-    if (typeof XLSX === 'undefined') {
-      alert('La librería de exportación no está disponible.');
+    // Verificar que ExcelJS esté disponible
+    if (typeof ExcelJS === 'undefined') {
+      // Fallback a SheetJS si ExcelJS no está disponible
+      if (typeof XLSX === 'undefined') {
+        alert('La librería de exportación no está disponible.');
+        return;
+      }
+      await exportarGraficasExcelLegacy(datos);
       return;
     }
-    
+
+    try {
+      const workbook = new ExcelJS.Workbook();
+      workbook.creator = 'SummaCham';
+      workbook.created = new Date();
+
+      // === HOJA 1: Resultados Operativos con Gráfica ===
+      const wsOperativos = workbook.addWorksheet('Resultados Operativos');
+      
+      // Información general
+      wsOperativos.addRow(['GRÁFICAS DE RESUMEN - DATOS ACUMULADOS']);
+      wsOperativos.addRow(['Empresa:', datos.empresa]);
+      wsOperativos.addRow(['Capítulo:', datos.capitulo]);
+      wsOperativos.addRow(['Año:', datos.anio]);
+      wsOperativos.addRow(['Mes:', datos.mes]);
+      wsOperativos.addRow(['Fecha de exportación:', datos.fecha]);
+      wsOperativos.addRow([]);
+
+      // Tabla de datos
+      wsOperativos.addRow(['RESULTADOS OPERATIVOS POR CAPÍTULO']);
+      const headerRowOp = wsOperativos.addRow(['Concepto', 'Real Acumulado', 'Ppto. Acumulado', 'Real Acum. Año Anterior']);
+      headerRowOp.font = { bold: true };
+      headerRowOp.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0D47A1' } };
+      headerRowOp.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+
+      datos.operativos.forEach(row => {
+        wsOperativos.addRow([row.concepto, row.realAcumulado, row.pptoAcumulado, row.realAcumAA]);
+      });
+
+      // Ajustar anchos
+      wsOperativos.columns = [
+        { width: 40 },
+        { width: 18 },
+        { width: 18 },
+        { width: 25 }
+      ];
+
+      // Agregar gráfica como imagen
+      const chartOp = document.getElementById('chartOperatingSummaryByChapter');
+      if (chartOp) {
+        const imageId = workbook.addImage({
+          base64: chartOp.toDataURL('image/png'),
+          extension: 'png',
+        });
+        wsOperativos.addImage(imageId, {
+          tl: { col: 0, row: datos.operativos.length + 11 },
+          ext: { width: 800, height: 400 }
+        });
+      }
+
+      // === HOJA 2: Resultados Netos con Gráfica ===
+      const wsNetos = workbook.addWorksheet('Resultados Netos');
+      
+      wsNetos.addRow(['GRÁFICAS DE RESUMEN - DATOS ACUMULADOS']);
+      wsNetos.addRow(['Empresa:', datos.empresa]);
+      wsNetos.addRow(['Capítulo:', datos.capitulo]);
+      wsNetos.addRow(['Año:', datos.anio]);
+      wsNetos.addRow(['Mes:', datos.mes]);
+      wsNetos.addRow(['Fecha de exportación:', datos.fecha]);
+      wsNetos.addRow([]);
+
+      wsNetos.addRow(['RESULTADOS NETOS POR CAPÍTULO']);
+      const headerRowNet = wsNetos.addRow(['Concepto', 'Real Acumulado', 'Ppto. Acumulado', 'Real Acum. Año Anterior']);
+      headerRowNet.font = { bold: true };
+      headerRowNet.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0D47A1' } };
+      headerRowNet.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+
+      datos.netos.forEach(row => {
+        wsNetos.addRow([row.concepto, row.realAcumulado, row.pptoAcumulado, row.realAcumAA]);
+      });
+
+      wsNetos.columns = [
+        { width: 40 },
+        { width: 18 },
+        { width: 18 },
+        { width: 25 }
+      ];
+
+      // Agregar gráfica
+      const chartNet = document.getElementById('chartNetSummaryByChapter');
+      if (chartNet) {
+        const imageId = workbook.addImage({
+          base64: chartNet.toDataURL('image/png'),
+          extension: 'png',
+        });
+        wsNetos.addImage(imageId, {
+          tl: { col: 0, row: datos.netos.length + 11 },
+          ext: { width: 800, height: 400 }
+        });
+      }
+
+      // === HOJA 3: Consolidados (solo CDMX) ===
+      if (datos.consolidados) {
+        const wsConsolidados = workbook.addWorksheet('Consolidados');
+        
+        wsConsolidados.addRow(['GRÁFICAS DE RESUMEN - DATOS ACUMULADOS']);
+        wsConsolidados.addRow(['Empresa:', datos.empresa]);
+        wsConsolidados.addRow(['Capítulo:', datos.capitulo]);
+        wsConsolidados.addRow(['Año:', datos.anio]);
+        wsConsolidados.addRow(['Mes:', datos.mes]);
+        wsConsolidados.addRow(['Fecha de exportación:', datos.fecha]);
+        wsConsolidados.addRow([]);
+
+        wsConsolidados.addRow(['RESULTADOS CONSOLIDADOS']);
+        const headerRowCons = wsConsolidados.addRow(['Concepto', 'Real Acumulado', 'Ppto. Acumulado', 'Real Acum. Año Anterior']);
+        headerRowCons.font = { bold: true };
+        headerRowCons.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0D47A1' } };
+        headerRowCons.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+
+        datos.consolidados.forEach(row => {
+          wsConsolidados.addRow([row.concepto, row.realAcumulado, row.pptoAcumulado, row.realAcumAA]);
+        });
+
+        wsConsolidados.columns = [
+          { width: 40 },
+          { width: 18 },
+          { width: 18 },
+          { width: 25 }
+        ];
+
+        // Agregar gráfica consolidada
+        const chartCons = document.getElementById('chartConsolidatedResults');
+        if (chartCons) {
+          const imageId = workbook.addImage({
+            base64: chartCons.toDataURL('image/png'),
+            extension: 'png',
+          });
+          wsConsolidados.addImage(imageId, {
+            tl: { col: 0, row: datos.consolidados.length + 11 },
+            ext: { width: 800, height: 400 }
+          });
+        }
+      }
+
+      // Descargar archivo
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Graficas_Resumen_${datos.anio}_${datos.mes}_${Date.now()}.xlsx`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+
+      console.log('✅ Excel con gráficas exportado correctamente');
+    } catch (error) {
+      console.error('Error al exportar con ExcelJS:', error);
+      alert('Error al generar el archivo Excel. Verifica la consola para más detalles.');
+    }
+  };
+
+  /**
+   * Exportación legacy usando SheetJS (sin gráficas)
+   */
+  async function exportarGraficasExcelLegacy(datos) {
     const workbook = XLSX.utils.book_new();
     
     // Información general
@@ -1068,25 +1227,12 @@
       header: ['concepto', 'realAcumulado', 'pptoAcumulado', 'realAcumAA']
     });
     
-    // Ajustar ancho de columnas
     wsOperativos['!cols'] = [
-      { wch: 40 }, // Concepto
-      { wch: 18 }, // Real Acumulado
-      { wch: 18 }, // Ppto. Acumulado
-      { wch: 25 }  // Real Acum. Año Anterior
+      { wch: 40 },
+      { wch: 18 },
+      { wch: 18 },
+      { wch: 25 }
     ];
-    
-    // Formato de encabezados con wrap
-    const rangeOp = XLSX.utils.decode_range(wsOperativos['!ref']);
-    for (let C = rangeOp.s.c; C <= rangeOp.e.c; C++) {
-      const address = XLSX.utils.encode_col(C) + '9'; // Fila de encabezados
-      if (!wsOperativos[address]) continue;
-      wsOperativos[address].s = {
-        font: { bold: true },
-        alignment: { wrapText: true, vertical: 'center', horizontal: 'center' },
-        fill: { fgColor: { rgb: '0D47A1' } }
-      };
-    }
     
     XLSX.utils.book_append_sheet(workbook, wsOperativos, 'Resultados Operativos');
     
@@ -1112,7 +1258,7 @@
     
     XLSX.utils.book_append_sheet(workbook, wsNetos, 'Resultados Netos');
     
-    // Hoja 3: Consolidados (solo si es CDMX)
+    // Hoja 3: Consolidados
     if (datos.consolidados) {
       const wsConsolidados = XLSX.utils.aoa_to_sheet([
         ...info,
@@ -1136,10 +1282,9 @@
       XLSX.utils.book_append_sheet(workbook, wsConsolidados, 'Consolidados');
     }
     
-    // Descargar archivo
     const fileName = `Graficas_Resumen_${datos.anio}_${datos.mes}_${Date.now()}.xlsx`;
     XLSX.writeFile(workbook, fileName);
-  };
+  }
   
   /**
    * Exporta las gráficas a PDF usando jsPDF y html2canvas
