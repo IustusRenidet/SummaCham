@@ -334,6 +334,22 @@
           <button type="button" class="btn btn-chip btn-chip-outline" id="toggleAccountsBtn" aria-pressed="true">
             Ocultar cuentas
           </button>
+          <button
+            type="button"
+            class="btn btn-outline-success btn-sm"
+            id="btnExportExcel"
+            title="Exportar a Excel"
+          >
+            <i class="bi bi-file-earmark-excel"></i> Excel
+          </button>
+          <button
+            type="button"
+            class="btn btn-outline-danger btn-sm"
+            id="btnPrintPDF"
+            title="Imprimir PDF"
+          >
+            <i class="bi bi-file-earmark-pdf"></i> PDF
+          </button>
         </div>
       </div>
     </div>
@@ -525,7 +541,30 @@
     }
   </style>
 
-    <script src="js/comentarios-celdas.js"></script>
+  <script src="js/comentarios-celdas.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+  <script src="js/export-utils.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      document
+        .getElementById("btnExportExcel")
+        ?.addEventListener("click", () => {
+          ExportUtils.exportarExcel({
+            tabla: "#tablaComparacion",
+            nombreArchivo: "Serv_Membresía",
+            nombreHoja: "Serv_Membresía",
+          });
+        });
+      document
+        .getElementById("btnPrintPDF")
+        ?.addEventListener("click", () => {
+          ExportUtils.imprimirPDF({
+            tabla: "#tablaComparacion",
+            titulo: "Serv Membresía",
+          });
+        });
+    });
+  </script>
 </body>
 
 </html>

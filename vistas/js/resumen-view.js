@@ -153,11 +153,16 @@
     return lista[0];
   };
 
-  const elegirMesValido = (preferido) => {
+  const elegirMesValido = (preferido, anioSeleccionado) => {
     const numero = Number(preferido);
+    const anio = Number(anioSeleccionado);
+    const anioActual = new Date().getFullYear();
+    
+    // Si hay un mes preferido válido, usarlo
     if (Number.isInteger(numero) && numero >= 1 && numero <= MESES.length) {
       return numero;
     }
+    
     const actualSelect = Number(monthSelect?.value);
     if (
       Number.isInteger(actualSelect) &&
@@ -166,7 +171,15 @@
     ) {
       return actualSelect;
     }
-    return new Date().getMonth() + 1;
+    
+    // Determinar mes por defecto según el año
+    // Si es año actual o no hay año definido: mes actual
+    // Si es año pasado: diciembre (mes 12)
+    if (!Number.isInteger(anio) || anio >= anioActual) {
+      return new Date().getMonth() + 1; // Mes actual
+    } else {
+      return 12; // Diciembre para años pasados
+    }
   };
 
   const parseText = (texto) => (texto || "").toString().trim();
@@ -1901,16 +1914,21 @@
   const fetchResumen = async (empresaId, anio, mes) => {
     if (!empresaId || !anio) return;
     const mesEntero = Number(mes);
+    
+    // Validar que el mes sea un número válido entre 1 y 12
+    if (!Number.isInteger(mesEntero) || mesEntero < 1 || mesEntero > 12) {
+      console.error('fetchResumen: mes inválido', mes, mesEntero);
+      return;
+    }
+    
     setStatusRow("Cargando resumen financiero...");
-    actualizarMesContexto(Number.isInteger(mesEntero) ? mesEntero : mes);
+    actualizarMesContexto(mesEntero);
     try {
       const params = new URLSearchParams({
         empresaId: empresaId,
         anio: Number(anio),
       });
-      if (Number.isInteger(mesEntero)) {
-        params.set("mes", String(mesEntero));
-      }
+      params.set("mes", String(mesEntero));
 
       // Usar capítulo derivado de la empresa activa
       const capitulo = obtenerCapituloEmpresa(empresaId);
@@ -1977,7 +1995,7 @@
       anios,
       ctxAnio ?? leerAnioSeleccionado()
     );
-    const mesInicial = elegirMesValido(ctxMes ?? leerMesSeleccionado());
+    const mesInicial = elegirMesValido(ctxMes ?? leerMesSeleccionado(), valorInicial);
     if (yearSelect) yearSelect.value = String(valorInicial);
     if (monthSelect) monthSelect.value = String(mesInicial);
 
@@ -2262,12 +2280,16 @@
         doc.autoTable({
           head: headers,
           body: body,
-          startY: 35,
+          startY: 30,
           styles: { 
-            fontSize: 6,
-            cellPadding: 1.5,
+            fontSize: 7,
+            cellPadding: 2,
             lineColor: [200, 200, 200],
-            lineWidth: 0.1
+            lineWidth: 0.1,
+            overflow: 'linebreak',
+            halign: 'center',
+            minCellHeight: 8,
+            valign: 'middle'
           },
           headStyles: { 
             fillColor: [13, 71, 161],
@@ -2275,10 +2297,18 @@
             fontStyle: 'bold',
             halign: 'center',
             valign: 'middle',
-            fontSize: 7,
-            cellPadding: 2
+            fontSize: 8,
+            cellPadding: 2.5,
+            minCellHeight: 10,
+            overflow: 'linebreak'
           },
-          margin: { left: 5, right: 5, top: 35 },
+          columnStyles: {
+            0: { halign: 'left' },     // Cuenta
+            1: { halign: 'left' },     // Descripción
+            7: { halign: 'left' }      // Descripción YTD
+          },
+          margin: { left: 30, right: 30, top: 25, bottom: 25 },
+          tableWidth: 'auto',
           theme: 'grid'
         });
       }
@@ -2945,19 +2975,21 @@
     const anio = leerAnioSeleccionado();
     const moduloClave = "RESUMEN";
 
-    try {
-      const layoutServidor = await fetch(
-        `${base}/api/layouts?empresaId=${empresa.id}&modulo=${moduloClave}&anio=${anio}`
-      )
-        .then((r) => (r.ok ? r.json() : null))
-        .catch(() => null);
+    // Solo intentar cargar layout si el año es válido
+    if (anio && Number(anio) > 0) {
+      try {
+        const layoutServidor = await fetch(
+          `${base}/api/layouts?empresaId=${empresa.id}&modulo=${moduloClave}&anio=${anio}`
+        )
+          .then((r) => (r.ok ? r.json() : null))
+          .catch(() => null);
 
-      if (layoutServidor?.datos) {
-        console.log(
-          "✅ Layout cargado desde servidor (RESUMEN):",
-          layoutServidor
-        );
-        if (window.ModoEdicionPresupuesto?.aplicarLayoutLocal) {
+        if (layoutServidor?.datos) {
+          console.log(
+            "✅ Layout cargado desde servidor (RESUMEN):",
+            layoutServidor
+          );
+          if (window.ModoEdicionPresupuesto?.aplicarLayoutLocal) {
           window.ModoEdicionPresupuesto.aplicarLayoutLocal(
             layoutServidor.datos
           );
@@ -2972,8 +3004,9 @@
           console.log("✅ Layout aplicado desde localStorage");
         }
       }
-    } catch (err) {
-      console.warn("⚠️ Error cargando layout en RESUMEN:", err);
+      } catch (err) {
+        console.warn("⚠️ Error cargando layout en RESUMEN:", err);
+      }
     }
 
     sincronizarSelectorEmpresaGlobal();

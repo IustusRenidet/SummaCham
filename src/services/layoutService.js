@@ -491,12 +491,14 @@ const obtenerLayout = ({ empresaId = "EMPRESA01", modulo, anio, capitulo }) => {
       `
     SELECT 
       capitulo AS CAPITULO,
-      clase AS Clase,
+      clase AS OperacionId,
+      operacion_etiqueta,
       seccion AS SECCION,
       operacion_tipo,
       operacion_label,
       signo,
-      orden
+      orden,
+      formula_json
     FROM layout_operaciones
     WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ?
     ORDER BY orden ASC
@@ -509,11 +511,17 @@ const obtenerLayout = ({ empresaId = "EMPRESA01", modulo, anio, capitulo }) => {
     const ordenBase = Number.isFinite(Number(op.orden))
       ? Math.floor(Number(op.orden) / 100)
       : idx;
-    if (!operacionesMap[op.Clase]) {
-      operacionesMap[op.Clase] = {
+    const operacionId = op.OperacionId || op.Clase || op.clase;
+    const operacionEtiqueta =
+      op.operacion_etiqueta || op.Clase || operacionId || "Operacion";
+    const mapKey = operacionId || operacionEtiqueta;
+
+    if (!operacionesMap[mapKey]) {
+      operacionesMap[mapKey] = {
         HOJA: modulo, // Agregar HOJA para que el filtro en planeacionReportesEngine funcione
         CAPITULO: op.CAPITULO,
-        Clase: op.Clase,
+        Clase: operacionEtiqueta,
+        OperacionId: operacionId || operacionEtiqueta,
         SECCION: op.SECCION,
         signo: op.signo ?? 1,
         signos: {},
@@ -521,13 +529,16 @@ const obtenerLayout = ({ empresaId = "EMPRESA01", modulo, anio, capitulo }) => {
       };
     } else if (
       Number.isFinite(ordenBase) &&
-      (operacionesMap[op.Clase].orden == null ||
-        ordenBase < operacionesMap[op.Clase].orden)
+      (operacionesMap[mapKey].orden == null ||
+        ordenBase < operacionesMap[mapKey].orden)
     ) {
-      operacionesMap[op.Clase].orden = ordenBase;
+      operacionesMap[mapKey].orden = ordenBase;
     }
-    operacionesMap[op.Clase][op.operacion_tipo] = op.operacion_label;
-    operacionesMap[op.Clase].signos[op.operacion_tipo] = op.signo ?? 1;
+    operacionesMap[mapKey][op.operacion_tipo] = op.operacion_label;
+    operacionesMap[mapKey].signos[op.operacion_tipo] = op.signo ?? 1;
+    if (op.formula_json && !operacionesMap[mapKey].formula_json) {
+      operacionesMap[mapKey].formula_json = op.formula_json;
+    }
   });
 
   const operacionesOrdenadas = Object.values(operacionesMap).sort(
@@ -679,9 +690,9 @@ const guardarOperaciones = ({
   const empresaCanonica = obtenerEmpresaCanonica(empresaId);
   const insertOperacion = db.prepare(`
     INSERT OR REPLACE INTO layout_operaciones (
-      empresa_id, modulo, anio, capitulo, clase, seccion,
-      operacion_tipo, operacion_label, signo, orden, actualizado_en
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+      empresa_id, modulo, anio, capitulo, clase, operacion_etiqueta, seccion,
+      operacion_tipo, operacion_label, signo, orden, formula_json, actualizado_en
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
   `);
 
   const transaction = db.transaction((operacionesArray) => {
@@ -702,8 +713,15 @@ const guardarOperaciones = ({
         "CAPITULO",
         "Clase",
         "clase",
+        "OperacionId",
+        "operacion_id",
+        "operacion_etiqueta",
+        "Etiqueta",
+        "etiqueta",
         "SECCION",
         "seccion",
+        "formula_json",
+        "formula_terms",
         "signo",
         "signos",
         "orden",
@@ -714,6 +732,11 @@ const guardarOperaciones = ({
         .filter((key) => key && !clavesReservadas.has(key))
         .filter((key) => !tiposOperacionBase.includes(key));
       const tiposOperacion = [...tiposOperacionBase, ...tiposOperacionExtra];
+      const formulaJson =
+        op.formula_json ||
+        (Array.isArray(op.formula_terms)
+          ? JSON.stringify(op.formula_terms)
+          : null);
 
       const baseOrden = Number.isFinite(Number(op.orden))
         ? Number(op.orden)
@@ -738,7 +761,17 @@ const guardarOperaciones = ({
           }
 
           const capitulo = op.CAPITULO || op.HOJA || "DEFAULT";
-          const clase = op.Clase || op.clase || `Operación ${index + 1}`;
+          const operacionId =
+            op.OperacionId || op.operacion_id || op.id || op.clase || op.Clase;
+          const operacionEtiqueta =
+            op.Etiqueta ||
+            op.etiqueta ||
+            op.operacion_etiqueta ||
+            op.Clase ||
+            op.clase ||
+            operacionId ||
+            `Operacion ${index + 1}`;
+          const clase = operacionId || operacionEtiqueta;
           const seccion = op.SECCION || op.seccion || "";
           try {
             insertOperacion.run(
@@ -747,11 +780,13 @@ const guardarOperaciones = ({
               anio,
               capitulo,
               clase,
+              operacionEtiqueta,
               seccion,
               tipo,
               op[tipo],
               signo,
-              baseOrden * 100 + tipoIndex
+              baseOrden * 100 + tipoIndex,
+              formulaJson
             );
           } catch (err) {
             console.error(
@@ -805,12 +840,12 @@ const copiarLayout = ({
 
   const copiarOperaciones = db.prepare(`
     INSERT INTO layout_operaciones (
-      empresa_id, modulo, anio, capitulo, clase, seccion,
-      operacion_tipo, operacion_label, signo, orden
+      empresa_id, modulo, anio, capitulo, clase, operacion_etiqueta, seccion,
+      operacion_tipo, operacion_label, signo, orden, formula_json
     )
     SELECT 
-      empresa_id, modulo, ?, capitulo, clase, seccion,
-      operacion_tipo, operacion_label, signo, orden
+      empresa_id, modulo, ?, capitulo, clase, operacion_etiqueta, seccion,
+      operacion_tipo, operacion_label, signo, orden, formula_json
     FROM layout_operaciones
     WHERE empresa_id = ? AND modulo = ? AND anio = ?
   `);
@@ -1040,18 +1075,44 @@ const actualizarOperacion = ({
   // Primero eliminar la operación existente
   const del = db.prepare(`
     DELETE FROM layout_operaciones
-    WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ? AND clase = ?
+    WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ? AND (clase = ? OR operacion_etiqueta = ?)
   `);
-  del.run(empresaCanonica, modulo, anio, capitulo || "DEFAULT", claseOriginal);
+  del.run(
+    empresaCanonica,
+    modulo,
+    anio,
+    capitulo || "DEFAULT",
+    claseOriginal,
+    claseOriginal
+  );
 
   // Luego insertar la actualizada
   const insert = db.prepare(`
-    INSERT INTO layout_operaciones (empresa_id, modulo, anio, capitulo, clase, seccion, operacion_tipo, operacion_label, signo, orden)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO layout_operaciones (empresa_id, modulo, anio, capitulo, clase, operacion_etiqueta, seccion, operacion_tipo, operacion_label, signo, orden, formula_json)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   // Process operaciones object
   const operaciones = datos.operaciones || {};
+  const formulaJson =
+    datos.formula_json ||
+    (Array.isArray(datos.formula_terms)
+      ? JSON.stringify(datos.formula_terms)
+      : null);
+  const operacionId =
+    datos.OperacionId ||
+    datos.operacion_id ||
+    datos.id ||
+    claseOriginal ||
+    datos.clase;
+  const operacionEtiqueta =
+    datos.Etiqueta ||
+    datos.etiqueta ||
+    datos.operacion_etiqueta ||
+    datos.Clase ||
+    datos.clase ||
+    operacionId ||
+    claseOriginal;
   let orden = 1;
   Object.entries(operaciones).forEach(([tipo, label]) => {
     if (label) {
@@ -1060,12 +1121,14 @@ const actualizarOperacion = ({
         modulo,
         anio,
         capitulo || "DEFAULT",
-        datos.clase || claseOriginal,
+        operacionId,
+        operacionEtiqueta,
         datos.seccion || "",
         tipo,
         label,
         datos.signo || 1,
-        orden++
+        orden++,
+        formulaJson
       );
     }
   });
@@ -1087,7 +1150,7 @@ const eliminarOperacion = ({
 
   const del = db.prepare(`
     DELETE FROM layout_operaciones
-    WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ? AND clase = ?
+    WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ? AND (clase = ? OR operacion_etiqueta = ?)
   `);
 
   const result = del.run(
@@ -1095,6 +1158,7 @@ const eliminarOperacion = ({
     modulo,
     anio,
     capitulo || "DEFAULT",
+    clase,
     clase
   );
   return { success: true, changes: result.changes };

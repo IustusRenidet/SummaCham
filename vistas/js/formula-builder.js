@@ -64,6 +64,8 @@
         this.terms = [];
       }
 
+      this.terms = this._normalizeOperationTerms(this.terms);
+
       console.log("✨ Términos finales cargados:", this.terms);
 
       // Si no hay términos, agregar uno inicial
@@ -228,8 +230,7 @@
       return this.terms
         .map((term, idx) => {
           const op = idx === 0 && term.operator === "+" ? "" : term.operator;
-          const val =
-            term.type === "constant" ? term.constant : term.value || "(vacío)";
+          const val = this._formatTermValue(term);
           return `${op} ${val}`.trim();
         })
         .join(" ");
@@ -282,6 +283,140 @@
         .replace(/\s+/g, " ")
         .trim()
         .toLowerCase();
+    },
+
+    _normalizeMatchKey(value) {
+      return (value || "")
+        .toString()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-zA-Z0-9]+/g, "")
+        .toLowerCase();
+    },
+
+    _coerceOperationOption(op) {
+      if (!op) return null;
+      if (typeof op === "string") {
+        const trimmed = op.toString().trim();
+        if (!trimmed) return null;
+        return { id: trimmed, label: trimmed };
+      }
+      if (typeof op === "object") {
+        const id =
+          op.id ||
+          op.OperacionId ||
+          op.operacion_id ||
+          op.clase ||
+          op.Clase ||
+          "";
+        const label =
+          op.label ||
+          op.etiqueta ||
+          op.operacion_etiqueta ||
+          op.Etiqueta ||
+          op.Clase ||
+          op.clase ||
+          id ||
+          "";
+        if (!id && !label) return null;
+        return {
+          id: (id || label).toString().trim(),
+          label: (label || id).toString().trim(),
+        };
+      }
+      return null;
+    },
+
+    _getOperationOptions() {
+      const source = Array.isArray(this.availableElements?.operations)
+        ? this.availableElements.operations
+        : [];
+      const options = [];
+      const seen = new Set();
+      source.forEach((op) => {
+        const option = this._coerceOperationOption(op);
+        if (!option) return;
+        const key = this._normalizeMatchKey(option.id || option.label);
+        if (!key || seen.has(key)) return;
+        seen.add(key);
+        options.push(option);
+      });
+      return options;
+    },
+
+    _findOperationOption(value) {
+      if (!value) return null;
+      const target = this._normalizeMatchKey(value);
+      if (!target) return null;
+      const options = this._getOperationOptions();
+      return (
+        options.find((op) => this._normalizeMatchKey(op.id) === target) ||
+        options.find((op) => this._normalizeMatchKey(op.label) === target)
+      );
+    },
+
+    _isOperationValueSelected(termValue, option) {
+      const target = this._normalizeMatchKey(termValue);
+      if (!target || !option) return false;
+      return (
+        this._normalizeMatchKey(option.id) === target ||
+        this._normalizeMatchKey(option.label) === target
+      );
+    },
+
+    _formatOperationOptionDisplay(option) {
+      if (!option) return "";
+      const label = option.label || option.id || "";
+      const id = option.id || "";
+      if (
+        label &&
+        id &&
+        this._normalizeMatchKey(label) !== this._normalizeMatchKey(id)
+      ) {
+        return `${label} (${id})`;
+      }
+      return label || id;
+    },
+
+    _formatOperationReference(value) {
+      const option = this._findOperationOption(value);
+      if (!option) return value || "";
+      return this._formatOperationOptionDisplay(option);
+    },
+
+    _getOperationLabel(value) {
+      const option = this._findOperationOption(value);
+      if (!option) return value || "";
+      return option.label || option.id || value || "";
+    },
+
+    _normalizeOperationTerms(terms) {
+      if (!Array.isArray(terms)) return terms || [];
+      return terms.map((term) => {
+        if (!term || term.type !== "operation" || !term.value) {
+          return term;
+        }
+        const option = this._findOperationOption(term.value);
+        if (option && option.id && term.value !== option.id) {
+          return { ...term, value: option.id };
+        }
+        return term;
+      });
+    },
+
+    _formatTermValue(term) {
+      if (!term) return "(vacio)";
+      if (term.type === "constant") {
+        if (term.constant === null || term.constant === undefined) {
+          return "(vacio)";
+        }
+        return term.constant;
+      }
+      if (term.type === "operation") {
+        const formatted = this._formatOperationReference(term.value);
+        return formatted || term.value || "(vacio)";
+      }
+      return term.value || "(vacio)";
     },
 
     _sortByTableOrder(items, valueGetter) {
@@ -396,31 +531,38 @@
           `;
           break;
 
-        case "operation":
-          let operationOptions = [...this.availableElements.operations];
-          if (term.value && !operationOptions.includes(term.value)) {
-            operationOptions.unshift(term.value);
+        case "operation": {
+          let operationOptions = this._getOperationOptions();
+          const currentOption = this._findOperationOption(term.value);
+          if (term.value && !currentOption) {
+            operationOptions.unshift({ id: term.value, label: term.value });
           }
           operationOptions = this._sortByTableOrder(
             operationOptions,
-            (value) => value
+            (value) => value.label || value.id
           );
           valueInput = `
             <select class="form-select" onchange="FormulaBuilder.updateValue(${
               term.id
             }, this.value)">
-              <option value="">Seleccionar operación...</option>
+              <option value="">Seleccionar operacion...</option>
               ${operationOptions
-                .map(
-                  (op) =>
-                    `<option value="${this._escapeAttr(op)}" ${
-                      term.value === op ? "selected" : ""
-                    }>${this._escapeHtml(op)}</option>`
-                )
+                .map((op) => {
+                  const optionValue = this._escapeAttr(op.id || op.label);
+                  const optionLabel = this._formatOperationOptionDisplay(op);
+                  const isSelected = this._isOperationValueSelected(
+                    term.value,
+                    op
+                  );
+                  return `<option value="${optionValue}" ${
+                    isSelected ? "selected" : ""
+                  }>${this._escapeHtml(optionLabel)}</option>`;
+                })
                 .join("")}
             </select>
           `;
           break;
+        }
 
         case "constant":
           valueInput = `
@@ -589,10 +731,7 @@
       const rows = this.terms.map((term, idx) => {
         const operator = idx === 0 ? "" : term.operator;
 
-        const valueLabel =
-          term.type === "constant"
-            ? term.constant
-            : term.value || "(sin valor)";
+        const valueLabel = this._formatTermValue(term) || "(sin valor)";
 
         const iconClass =
           {
@@ -664,14 +803,16 @@
             </div>
           `;
 
-        case "operation":
+        case "operation": {
+          const label = this._getOperationLabel(term.value);
           return `
             <div class="term-breakdown">
               <div class="fw-semibold" style="font-size: 13px; color: #7c3aed;">
-                ${this._escapeHtml(term.value)}
+                ${this._escapeHtml(label || term.value)}
               </div>
             </div>
           `;
+        }
 
         case "account": {
           // Buscar el nombre de la cuenta en el estado
@@ -739,6 +880,7 @@ window.FormulaBuilder.updateAvailableTerms = function (orderedElements) {
 
   // Si hay términos actualmente renderizados, re-renderizar para actualizar dropdowns
   if (this.terms && this.terms.length > 0) {
+    this.terms = this._normalizeOperationTerms(this.terms);
     this.render();
   }
 

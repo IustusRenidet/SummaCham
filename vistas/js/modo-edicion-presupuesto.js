@@ -336,11 +336,15 @@
 
   async function cargarLayoutServidor({ moduloClave, empresaId, anio }) {
     try {
-      if (!empresaId || !moduloClave || !Number.isInteger(Number(anio)))
+      const anioNum = Number(anio);
+      // Validar que todos los parámetros sean válidos
+      if (!empresaId || !moduloClave || !Number.isInteger(anioNum) || anioNum <= 0) {
+        console.warn('cargarLayoutServidor: parámetros inválidos', { empresaId, moduloClave, anio });
         return null;
+      }
       const ruta = `${API_BASE}/api/layouts?empresaId=${encodeURIComponent(
         empresaId
-      )}&modulo=${encodeURIComponent(moduloClave)}&anio=${Number(anio)}`;
+      )}&modulo=${encodeURIComponent(moduloClave)}&anio=${anioNum}`;
       const headers =
         typeof Sesion !== "undefined" &&
         typeof Sesion.headersAutenticacion === "function"

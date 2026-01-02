@@ -380,7 +380,10 @@
       state.layout = data.layout || {};
       state.cuentas = extractCuentas(state.layout);
       state.operaciones = sortOperations(state.layout.operaciones || []);
+      await syncOperacionesPredefinidas({ autoCreate: true, force: true });
       hydrateOperationsFromParents();
+      ensureOperationIds();
+      normalizeOperationReferences();
 
       renderLayout();
       updateStats();
@@ -458,11 +461,129 @@
       op?.["result-row"] ||
       op?.["net-row"] ||
       op?.["result-net-row"] ||
-      op?.Clase ||
-      "Operación"
+      getOperationLabel(op) ||
+      "Operacion"
     );
   }
 
+
+  function normalizeOperationId(value) {
+    return (value || "")
+      .toString()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-zA-Z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "")
+      .toUpperCase();
+  }
+
+  function normalizeOperationMatch(value) {
+    return (value || "")
+      .toString()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-zA-Z0-9]+/g, "")
+      .toLowerCase();
+  }
+
+  function getOperationId(op) {
+    return (
+      op?.OperacionId ||
+      op?.operacion_id ||
+      op?.id ||
+      op?.clase ||
+      op?.Clase ||
+      ""
+    );
+  }
+
+  function getOperationLabel(op) {
+    return (
+      op?.Etiqueta ||
+      op?.operacion_etiqueta ||
+      op?.Clase ||
+      op?.clase ||
+      op?.OperacionId ||
+      ""
+    );
+  }
+
+  function findOperationByIdOrLabel(value) {
+    if (!value) return null;
+    const target = normalizeOperationMatch(value);
+    return (
+      state.operaciones.find(
+        (op) => normalizeOperationMatch(getOperationId(op)) === target
+      ) ||
+      state.operaciones.find(
+        (op) => normalizeOperationMatch(getOperationLabel(op)) === target
+      )
+    );
+  }
+
+  function formatOperationReference(value) {
+    const op = findOperationByIdOrLabel(value);
+    if (!op) return value;
+    const label = getOperationLabel(op);
+    const id = getOperationId(op);
+    if (
+      label &&
+      id &&
+      normalizeOperationMatch(label) !== normalizeOperationMatch(id)
+    ) {
+      return `${label} (${id})`;
+    }
+    return label || id || value;
+  }
+
+  function buildUniqueOperationId(baseId, currentOp = null) {
+    const cleanBase = normalizeOperationId(baseId);
+    const used = new Set(
+      state.operaciones
+        .filter((op) => op !== currentOp)
+        .map((op) => normalizeOperationId(getOperationId(op)))
+        .filter(Boolean)
+    );
+    let candidate = cleanBase || "OPERACION";
+    let counter = 2;
+    while (used.has(candidate)) {
+      candidate = `${cleanBase || "OPERACION"}_${counter++}`;
+    }
+    return candidate;
+  }
+
+  function ensureOperationIds() {
+    const used = new Set();
+    state.operaciones.forEach((op, idx) => {
+      const label = getOperationLabel(op);
+      let id = getOperationId(op) || normalizeOperationId(label);
+      id = normalizeOperationId(id) || `OPERACION_${idx + 1}`;
+      let candidate = id;
+      let counter = 2;
+      while (used.has(candidate)) {
+        candidate = `${id}_${counter++}`;
+      }
+      used.add(candidate);
+      op.OperacionId = candidate;
+      if (!op.Clase && label) {
+        op.Clase = label;
+      }
+    });
+  }
+
+  function resolveOperationId(value) {
+    if (!value) return value;
+    const target = normalizeOperationMatch(value);
+    const byId = state.operaciones.find(
+      (op) => normalizeOperationMatch(getOperationId(op)) === target
+    );
+    if (byId) return getOperationId(byId);
+    const matches = state.operaciones.filter(
+      (op) => normalizeOperationMatch(getOperationLabel(op)) === target
+    );
+    if (matches.length === 1) return getOperationId(matches[0]);
+    return value;
+  }
   function sortOperations(list = []) {
     return [...(list || [])]
       .map((op, idx) => ({ op, idx }))
@@ -496,9 +617,12 @@
     }
 
     // Si existe en la lista de operaciones, es operación
-    const isOperation = state.operaciones.some(
-      (op) => op.Clase && op.Clase.toLowerCase() === value.toLowerCase()
-    );
+    const target = normalizeOperationMatch(value);
+    const isOperation = state.operaciones.some((op) => {
+      const opId = normalizeOperationMatch(getOperationId(op));
+      const opLabel = normalizeOperationMatch(getOperationLabel(op));
+      return opId === target || opLabel === target;
+    });
     if (isOperation) return "operation";
 
     // Por defecto, es sección
@@ -687,7 +811,7 @@
       // Find all operations that belong to subsections in this section
       section.subsections.forEach(({ accounts, name: subsectionName }) => {
         const matchingOps = state.operaciones.filter((op) => {
-          const clase = (op.Clase || "").toLowerCase();
+          const clase = (getOperationLabel(op) || "").toLowerCase();
 
           // Check if operation type matches section type
           const isIncomeOp = clase.includes("income");
@@ -723,7 +847,7 @@
           }
           return false;
         });
-        matchingOps.forEach((op) => renderedInlineOps.add(op.Clase || op));
+        matchingOps.forEach((op) => renderedInlineOps.add(getOperationId(op) || op.Clase || op));
       });
       html += renderSection(section);
     });
@@ -733,6 +857,7 @@
 
     dom.layoutPreview.innerHTML = html;
     bindLayoutEvents();
+    window.updateAvailableElementsFromTable?.("#layoutPreview");
   }
 
   // Renderizar TODAS las operaciones organizadas por su tabla de aparición
@@ -763,7 +888,7 @@
         operationsByTable.sectionTotals.push(op);
       } else {
         // Si no tiene ninguna etiqueta, revisar el nombre de la clase
-        const clase = (op.Clase || "").toLowerCase();
+        const clase = (getOperationLabel(op) || "").toLowerCase();
         if (clase.includes("net") || clase.includes("neto")) {
           operationsByTable.netResults.push(op);
         } else if (clase.includes("result") || clase.includes("resultado")) {
@@ -884,7 +1009,8 @@
 
   // Renderizar tarjeta de operación con detalles completos
   function renderOperationCard(op, colorTheme) {
-    const clase = op.Clase || "Operación";
+    const opId = getOperationId(op);
+        const clase = getOperationLabel(op) || "Operacion";
     const displayName = getOperationDisplayName(op);
     const formula = formatFormula(op);
     const termsCount = op.formula_terms?.length || 0;
@@ -923,7 +1049,7 @@
                 (term, idx) => `
               <span class="badge bg-light text-dark border">
                 ${idx > 0 ? term.operator + " " : ""}${escapeHtml(
-                  term.value || "???"
+                  term.type === "operation" ? formatOperationReference(term.value) : (term.value || "???")
                 )}
               </span>
             `
@@ -950,8 +1076,10 @@
               }
             </div>
             <div class="mb-2">
-              <small class="text-muted">Clase: </small>
+              <small class="text-muted">Etiqueta: </small>
               <code class="text-dark">${escapeHtml(clase)}</code>
+              <small class="text-muted ms-2">ID: </small>
+              <code class="text-dark">${escapeHtml(opId || "")}</code>
             </div>
             ${
               rowLabels.length > 0
@@ -966,12 +1094,12 @@
           </div>
           <div class="d-flex flex-column gap-1">
             <button class="btn btn-sm btn-outline-primary" onclick="window.editOperation('${escapeAttr(
-              clase
+              opId || clase
             ).replace(/'/g, "\\'")}')">
               <i class="bi bi-pencil"></i> Editar
             </button>
             <button class="btn btn-sm btn-outline-danger" onclick="window.deleteOperation('${escapeAttr(
-              clase
+              opId || clase
             ).replace(/'/g, "\\'")}')">
               <i class="bi bi-trash"></i> Eliminar
             </button>
@@ -986,7 +1114,7 @@
     let html = "";
     const sectionLevelOps = state.operaciones.filter((op) => {
       // Skip if already rendered inline
-      if (renderedInlineOps.has(op.Clase)) {
+      if (renderedInlineOps.has(getOperationId(op) || op.Clase)) {
         return false;
       }
       // Include operations that are multi-section totals (Consolidated Income, etc.)
@@ -1049,7 +1177,7 @@
               firstIndex: opIndex, // Track order of first appearance
             });
           }
-          consolidatedLabels.get(label).operations.push(op.Clase || op.SECCION);
+          consolidatedLabels.get(label).operations.push(getOperationLabel(op) || op.SECCION);
         }
       });
     });
@@ -1125,7 +1253,7 @@
 
   // Find if an operation matches a specific subsection
   function findMatchingSubsection(op) {
-    const clase = (op.Clase || "").toLowerCase();
+    const clase = (getOperationLabel(op) || "").toLowerCase();
     // Check if class name contains a subsection name
     const allSubsections = new Set();
     state.cuentas.forEach((c) => {
@@ -1145,15 +1273,18 @@
 
   // Renderiza una operación de nivel de sección (sum de múltiples secciones)
   function renderSectionOperation(op) {
-    const clase = op.Clase || "Operación";
+    const opId = getOperationId(op);
+    const clase = getOperationLabel(op) || "Operacion";
     const displayName = getOperationDisplayName(op);
     const tipo = detectOperationType(op);
     const formula = formatFormula(op);
 
     return `
       <div class="layout-section operation-section ${tipo}">
-        <div class="operation-row ${tipo}" onclick="editOperation('${escapeAttr(
-      clase
+        <div class="operation-row ${tipo}" data-operation-id="${escapeAttr(
+          opId || ""
+        )}" data-operation-label="${escapeAttr(clase)}" onclick="editOperation('${escapeAttr(
+      opId || clase
     )}')">
           <div class="operation-label">
             <i class="bi bi-calculator"></i>
@@ -1165,12 +1296,12 @@
           </div>
           <div class="account-actions">
             <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); editOperation('${escapeAttr(
-              clase
+              opId || clase
             )}')" title="Editar">
               <i class="bi bi-pencil"></i>
             </button>
             <button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); deleteOperation('${escapeAttr(
-              clase
+              opId || clase
             )}')" title="Eliminar">
               <i class="bi bi-trash"></i>
             </button>
@@ -1182,7 +1313,8 @@
 
   // Renderiza una operación inline dentro de una subsección
   function renderInlineOperation(op, accounts) {
-    const clase = op.Clase || "Operación";
+    const opId = getOperationId(op);
+    const clase = getOperationLabel(op) || "Operacion";
     const displayName = getOperationDisplayName(op);
     // Build formula from actual account names
     const formula = accounts
@@ -1190,8 +1322,10 @@
       .join(" + ");
 
     return `
-      <div class="inline-operation-row" onclick="editOperation('${escapeAttr(
-        clase
+      <div class="inline-operation-row" data-operation-id="${escapeAttr(
+        opId || ""
+      )}" data-operation-label="${escapeAttr(clase)}" onclick="editOperation('${escapeAttr(
+        opId || clase
       )}')">
         <div class="inline-op-icon">
           <i class="bi bi-calculator"></i>
@@ -1205,7 +1339,7 @@
         </div>
         <div class="inline-op-actions">
           <button class="btn btn-sm btn-link p-0" onclick="event.stopPropagation(); editOperation('${escapeAttr(
-            clase
+            opId || clase
           )}')" title="Editar">
             <i class="bi bi-pencil"></i>
           </button>
@@ -1278,7 +1412,9 @@
                 : ""
               : ` ${term.operator} `;
           const val =
-            term.value || (term.type === "const" ? term.constValue : "???");
+            term.type === "operation"
+              ? formatOperationReference(term.value)
+              : term.value || (term.type === "const" ? term.constValue : "???");
           return prefix + val;
         })
         .join("");
@@ -1405,7 +1541,7 @@
     const isExpenseSection = principalLower.includes("expense");
 
     const matchingOps = state.operaciones.filter((op) => {
-      const clase = (op.Clase || "").toLowerCase();
+      const clase = (getOperationLabel(op) || "").toLowerCase();
 
       // Check if operation type matches section type
       const isIncomeOp = clase.includes("income");
@@ -1529,14 +1665,17 @@
   function renderOperationsSection() {
     const opsHtml = state.operaciones
       .map((op) => {
-        const clase = op.Clase || "Operación";
+        const opId = getOperationId(op);
+        const clase = getOperationLabel(op) || "Operacion";
         const tipo = detectOperationType(op);
         const termsCount = op.formula_terms?.length || 0;
 
         return `
-        <div class="operation-row ${tipo}">
+        <div class="operation-row ${tipo}" data-operation-id="${escapeAttr(
+          opId || ""
+        )}" data-operation-label="${escapeAttr(clase)}">
           <div class="operation-label" onclick="editOperation('${escapeAttr(
-            clase
+            opId || clase
           )}')">
             <i class="bi bi-calculator"></i>
             <span>${escapeHtml(clase)}</span>
@@ -1549,12 +1688,12 @@
           </div>
           <div class="account-actions">
             <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); editOperation('${escapeAttr(
-              clase
+              opId || clase
             )}')" title="Editar">
               <i class="bi bi-pencil"></i>
             </button>
             <button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); deleteOperation('${escapeAttr(
-              clase
+              opId || clase
             )}')" title="Eliminar">
               <i class="bi bi-trash"></i>
             </button>
@@ -1582,7 +1721,7 @@
   }
 
   function detectOperationType(op) {
-    const clase = (op.Clase || "").toLowerCase();
+    const clase = (getOperationLabel(op) || "").toLowerCase();
     if (clase.includes("net")) return "net";
     if (clase.includes("result")) return "result";
     return "sum";
@@ -1756,6 +1895,11 @@
 
       case "operacion":
         formHtml = `
+          <div class="mb-3">
+            <label class="form-label">Identificador unico</label>
+            <input type="text" class="form-control" id="inputOperacionId" placeholder="Ej: CDMX_INCOME" />
+            <div class="form-text">Si lo dejas vacio se genera automaticamente.</div>
+          </div>
           <div class="mb-3">
             <label class="form-label">Etiqueta de la Operación</label>
             <input type="text" class="form-control" id="inputClase" placeholder="Ej: TOTAL INCOME, NET RESULTS" />
@@ -1950,8 +2094,12 @@
   async function addOperation() {
     const tipo = document.getElementById("selectTipoOp")?.value;
     const clase = document.getElementById("inputClase")?.value?.trim();
+    const operacionIdInput = document
+      .getElementById("inputOperacionId")
+      ?.value?.trim();
 
     if (!clase) throw new Error("Ingresa una etiqueta para la operación");
+    const operacionId = buildUniqueOperationId(operacionIdInput || clase);
 
     const checkedSections = Array.from(
       document.querySelectorAll("#checkboxSecciones input:checked")
@@ -1965,6 +2113,7 @@
     // Create operation with all required fields including CAPITULO
     const newOp = {
       CAPITULO: state.capitulo || "DEFAULT",
+      OperacionId: operacionId,
       Clase: clase,
       SECCION: checkedSections.join(" + "),
       tipo: tipo || "sum-sections",
@@ -2003,8 +2152,9 @@
     });
 
     state.operaciones.push(newOp);
-    logChange("add", `Operación "${clase}" (${tipo})`, {
+    logChange("add", `Operación "${clase}" (${operacionId})`, {
       clase,
+      operacionId,
       tipo,
       sections: checkedSections.length,
     });
@@ -2173,6 +2323,11 @@
               ${
                 summary.added.length
                   ? `
+                <div class="mb-3">
+                  <label class="form-label">Identificador unico</label>
+                  <input type="text" class="form-control" id="inputOperacionId" placeholder="Ej: CDMX_INCOME" />
+                  <div class="form-text">Si lo dejas vacio se genera automaticamente.</div>
+                </div>
                 <div class="mb-3">
                   <h6 class="text-success"><i class="bi bi-plus-circle me-2"></i>Agregados (${
                     summary.added.length
@@ -2416,6 +2571,8 @@
       // Save operations
       if (state.operaciones.length) {
         hydrateOperationsFromParents();
+        ensureOperationIds();
+        normalizeOperationReferences();
         const operacionesOrdenadas = sortOperations(state.operaciones);
         state.operaciones = operacionesOrdenadas;
         const opResponse = await fetch(
@@ -2565,8 +2722,8 @@
       : "";
   };
 
-  window.showOperationMap = function (clase) {
-    const op = state.operaciones.find((o) => o.Clase === clase);
+  window.showOperationMap = function (operationId) {
+    const op = findOperationByIdOrLabel(operationId);
     if (!op) {
       alert("Operación no encontrada");
       return;
@@ -2620,7 +2777,7 @@
       }
     }
 
-    console.log("Mostrando mapa para:", clase, "términos:", op.formula_terms);
+    console.log("Mostrando mapa para:", getOperationLabel(op) || operationId, "términos:", op.formula_terms);
 
     // Usar FormulaBuilder para mostrar el mapa
     if (
@@ -2629,7 +2786,7 @@
     ) {
       // Temporalmente setear los términos en FormulaBuilder
       window.FormulaBuilder.terms = op.formula_terms || [];
-      window.FormulaBuilder.currentOperationId = op.id;
+      window.FormulaBuilder.currentOperationId = getOperationId(op);
       window.FormulaBuilder.showMap();
     } else {
       alert("Error: FormulaBuilder no está disponible");
@@ -3005,49 +3162,62 @@
     `;
   }
 
-  window.editOperation = function (clase) {
-    const op = state.operaciones.find((o) => o.Clase === clase);
+  window.editOperation = async function (operationId) {
+    const op = findOperationByIdOrLabel(operationId);
     if (!op) return;
 
+    const opId = getOperationId(op);
+    const opLabel = getOperationLabel(op);
+
     // AUTO-LOAD: Buscar operación predefinida y pre-cargar si existe
-    const opPredefinida = OPERACIONES_PREDEFINIDAS[state.capitulo]?.[
-      state.modulo
-    ]?.find(
+    await ensureOperacionesPredefinidas();
+    const operacionesContexto = getOperacionesPredefinidasContexto();
+    const opPredefinida = operacionesContexto.find(
       (pred) =>
-        pred.nombre.toLowerCase() === clase.toLowerCase() ||
-        pred.nombre.toLowerCase() === (op.Clase || "").toLowerCase()
+        normalizeOperacionKey(pred.nombre) === normalizeOperacionKey(opLabel) ||
+        normalizeOperacionKey(pred.nombre) ===
+          normalizeOperacionKey(op.Clase || "")
     );
 
-    if (opPredefinida && (!op.formula_terms || op.formula_terms.length === 0)) {
-      console.log(
-        "✨ Auto-cargando operación predefinida:",
-        opPredefinida.nombre
-      );
-      // Pre-cargar fórmula y ubicación desde mapa
-      op.SECCION = opPredefinida.formula;
-      if (opPredefinida.aparece && opPredefinida.aparece.length > 0) {
-        opPredefinida.aparece.forEach((fieldName) => {
-          op[fieldName] = opPredefinida.nombre;
-        });
-      }
+    if (opPredefinida) {
+      const knownOperations = new Set();
+      operacionesContexto.forEach((item) => {
+        if (item?.nombre) knownOperations.add(normalizeOperacionKey(item.nombre));
+        if (item?.id) knownOperations.add(normalizeOperacionKey(item.id));
+        if (item?.identificador) knownOperations.add(normalizeOperacionKey(item.identificador));
+      });
+      applyPredefinedToExisting(op, opPredefinida, op.orden, knownOperations, {
+        force: true,
+      });
     }
 
     const modalTitle = dom.modalEditar?.querySelector(".modal-title");
     if (modalTitle) {
-      modalTitle.textContent = `Editar: ${getOperationDisplayName(op)}`;
+      modalTitle.textContent = `Editar: ${getOperationDisplayName(op)} (${opId})`;
     }
 
     // Get available elements to determine correct types
     const elements = getAvailableElements();
-    const operationNames = elements.operations.map((o) => o.toLowerCase());
-    const sectionNames = elements.sections.map((s) => s.toLowerCase());
+    const operationKeys = new Set();
+    elements.operations.forEach((opItem) => {
+      if (!opItem) return;
+      if (typeof opItem === "string") {
+        operationKeys.add(normalizeOperationMatch(opItem));
+        return;
+      }
+      if (opItem.id) operationKeys.add(normalizeOperationMatch(opItem.id));
+      if (opItem.label) operationKeys.add(normalizeOperationMatch(opItem.label));
+    });
+    const sectionNames = elements.sections.map((s) =>
+      normalizeOperationMatch(s)
+    );
     const extractedFromFields = extractFormulaTerms(op);
 
     // Helper to detect if a value is an operation or section
     // Priority: exact match in sections > exact match in operations > fuzzy section > default to section
     function detectValueType(value) {
       if (!value) return "section";
-      const lower = value.toLowerCase().trim();
+      const lower = normalizeOperationMatch(value);
 
       // First check EXACT match in sections (most common case)
       if (sectionNames.includes(lower)) {
@@ -3055,7 +3225,7 @@
       }
 
       // Then check EXACT match in operations (Clase names)
-      if (operationNames.includes(lower)) {
+      if (operationKeys.has(lower)) {
         return "operation";
       }
 
@@ -3170,7 +3340,19 @@
       }
     }
 
+    formulaTerms = formulaTerms.map((term) => ({
+      ...term,
+      value:
+        term.type === "operation" ? resolveOperationId(term.value) : term.value,
+    }));
+
     dom.formEditar.innerHTML = `
+      <div class="mb-3">
+        <label class="form-label">Identificador unico</label>
+        <input type="text" class="form-control" id="editOperacionId" value="${escapeHtml(opId)}" />
+        <div class="form-text">Usa un ID unico para referenciar en formulas.</div>
+      </div>
+
       <div class="mb-3">
         <label class="form-label">Etiqueta de la Operación</label>
         <input type="text" class="form-control" id="editClaseOp" value="${escapeHtml(
@@ -3254,7 +3436,19 @@
 
     // Asegurar que op tenga formula_terms poblados antes de pasarlo a FormulaBuilder
     console.log("📝 editOperation - formulaTerms construidos:", formulaTerms);
-    op.formula_terms = formulaTerms;
+    let termsForBuilder = formulaTerms;
+    if (
+      termsForBuilder.length === 1 &&
+      termsForBuilder[0].type === "section"
+    ) {
+      const expanded = expandSectionTerms(termsForBuilder);
+      if (expanded.some((term) => term.type === "account")) {
+        termsForBuilder = expanded;
+      }
+    }
+    formulaTerms = termsForBuilder;
+    op.formula_terms = termsForBuilder;
+    op.formula_json = JSON.stringify(normalizeFormulaTerms(termsForBuilder));
     console.log("📝 editOperation - op completo:", op);
 
     // Expand section terms to individual accounts for display
@@ -3278,14 +3472,21 @@
     // Removed updateFormulaPreview() - not needed
   };
 
-  window.deleteOperation = function (clase) {
-    if (!confirm(`¿Eliminar la operación "${clase}"?`)) return;
+  window.deleteOperation = function (operationId) {
+    const op = findOperationByIdOrLabel(operationId);
+    if (!op) return;
+    const label = getOperationLabel(op);
+    const opId = getOperationId(op);
+    if (!confirm(`Eliminar la operacion "${label}"?`)) return;
 
-    state.operaciones = state.operaciones.filter((o) => o.Clase !== clase);
-    logChange("delete", `Operación "${clase}"`, { clase });
+    state.operaciones = state.operaciones.filter((o) => getOperationId(o) !== opId);
+    logChange("delete", `Operación "${label}" (${opId})`, {
+      clase: label,
+      operacionId: opId,
+    });
     renderLayout();
     updateStats();
-    showToast(`Operación "${clase}" eliminada`, "success");
+    showToast(`Operación "${label}" eliminada`, "success");
   };
 
   // Edit a consolidated label (shows all contributing operations and accounts)
@@ -3580,10 +3781,63 @@
     } else if (state.selectedElement.type === "operation") {
       const op = state.selectedElement.op;
       const newClase = document.getElementById("editClaseOp")?.value?.trim();
+      const newIdInput = document
+        .getElementById("editOperacionId")
+        ?.value?.trim();
+
+      const oldId = getOperationId(op);
+      const oldLabel = getOperationLabel(op);
+      const desiredId = normalizeOperationId(
+        newIdInput || oldId || newClase || oldLabel
+      );
+
+      if (!desiredId) {
+        showToast("Identificador invalido", "error");
+        return;
+      }
+
+      const idConflict = state.operaciones.some(
+        (o) =>
+          o !== op &&
+          normalizeOperationMatch(getOperationId(o)) ===
+            normalizeOperationMatch(desiredId)
+      );
+      if (idConflict) {
+        showToast("El identificador ya existe en otra operacion", "error");
+        return;
+      }
 
       if (newClase) op.Clase = newClase;
+      op.OperacionId = desiredId;
 
-      // GUARDAR UBICACIONES (dónde aparece la operación)
+      if (
+        oldId &&
+        normalizeOperationMatch(desiredId) !== normalizeOperationMatch(oldId)
+      ) {
+        state.operaciones.forEach((other) => {
+          if (!Array.isArray(other.formula_terms)) return;
+          let changed = false;
+          other.formula_terms = other.formula_terms.map((term) => {
+            if (term.type !== "operation") return term;
+            const termKey = normalizeOperationMatch(term.value);
+            if (
+              termKey === normalizeOperationMatch(oldId) ||
+              termKey === normalizeOperationMatch(oldLabel)
+            ) {
+              changed = true;
+              return { ...term, value: desiredId };
+            }
+            return term;
+          });
+          if (changed) {
+            other.formula_json = JSON.stringify(
+              normalizeFormulaTerms(other.formula_terms)
+            );
+          }
+        });
+      }
+
+      // GUARDAR UBICACIONES (donde aparece la operacion)
       const placementFields = [
         "sum-row",
         "sum-row-sumavarios",
@@ -3608,18 +3862,18 @@
         }
       });
 
-      // Usar FormulaBuilder si está disponible
+      // Usar FormulaBuilder si esta disponible
       if (window.FormulaBuilder) {
         const validation = window.FormulaBuilder.validate();
         if (!validation.isValid) {
           showToast(
-            "Fórmula incompleta:\n" + validation.errors.join("\n"),
+            "Formula incompleta:\n" + validation.errors.join("\n"),
             "error"
           );
           return;
         }
 
-        // Guardar fórmula en formato JSON
+        // Guardar formula en formato JSON
         op.formula_json = window.FormulaBuilder.getFormulaJSON();
         op.formula_terms = JSON.parse(op.formula_json);
 
@@ -3629,13 +3883,14 @@
           delete op[`seccion_${i}`];
         }
 
+        op.formula_terms = normalizeFormulaTerms(op.formula_terms);
         op.formula_terms.forEach((term, i) => {
           const key = `seccion_${i + 1}`;
           op[key] = term.value;
           op.signos[key] = term.operator === "-" ? -1 : 1;
         });
 
-        // Si es una sola sección, asegurar SECCION
+        // Si es una sola seccion, asegurar SECCION
         if (
           op.formula_terms.length === 1 &&
           op.formula_terms[0].type === "section"
@@ -3701,7 +3956,7 @@
 
     if (type === "account") {
       const codigo = state.selectedElement.cuenta?.CUENTA;
-      if (codigo && confirm(`¿Eliminar la cuenta ${codigo}?`)) {
+      if (codigo && confirm(`Eliminar la cuenta ${codigo}?`)) {
         state.cuentas = state.cuentas.filter((c) => c.CUENTA !== codigo);
         finalizeDeletion();
       }
@@ -3709,13 +3964,13 @@
       const name = state.selectedElement.name;
       if (
         confirm(
-          `¿Eliminar la sección "${name}" y TODAS sus cuentas? Esta acción no se puede deshacer.`
+          `Eliminar la seccion "${name}" y TODAS sus cuentas? Esta accion no se puede deshacer.`
         )
       ) {
         state.cuentas = state.cuentas.filter((c) => {
           const principal =
-            c["SECCIÓN Principal"] ||
             c["SECCIàN Principal"] ||
+            c["SECCI…N Principal"] ||
             c["SECCION Principal"] ||
             c.SECCION ||
             c.seccion_principal;
@@ -3724,9 +3979,13 @@
         finalizeDeletion();
       }
     } else if (type === "operation") {
-      const clase = state.selectedElement.op?.Clase;
-      if (clase && confirm(`¿Eliminar la operación "${clase}"?`)) {
-        state.operaciones = state.operaciones.filter((o) => o.Clase !== clase);
+      const op = state.selectedElement.op;
+      const opId = getOperationId(op);
+      const label = getOperationLabel(op);
+      if (opId && confirm(`Eliminar la operacion "${label}"?`)) {
+        state.operaciones = state.operaciones.filter(
+          (o) => getOperationId(o) !== opId
+        );
         finalizeDeletion();
       }
     }
@@ -3837,7 +4096,7 @@
             id: Date.now() + counter++,
             operator: "+",
             type: "operation",
-            value: incomeOp.Clase,
+            value: getOperationId(incomeOp) || incomeOp.Clase,
           });
         }
 
@@ -3855,7 +4114,7 @@
             id: Date.now() + counter++,
             operator: "-",
             type: "operation",
-            value: expenseOp.Clase,
+            value: getOperationId(expenseOp) || expenseOp.Clase,
           });
         }
 
@@ -3924,11 +4183,40 @@
   }
 
   function normalizeFormulaTerms(terms = []) {
-    return (terms || []).map((t) => ({
-      operator: t.operator || "+",
-      type: t.type || "section",
-      value: t.value || "",
-    }));
+    return (terms || []).map((t) => {
+      const normalized = {
+        operator: t.operator || "+",
+        type: t.type || "section",
+        value:
+          (t.type || "section") === "operation"
+            ? resolveOperationId(t.value || "")
+            : t.value || "",
+      };
+      if (t.parentSection) {
+        normalized.parentSection = t.parentSection;
+      }
+      return normalized;
+    });
+  }
+
+  function normalizeOperationReferences() {
+    state.operaciones.forEach((op) => {
+      if (!Array.isArray(op.formula_terms) || op.formula_terms.length === 0) {
+        return;
+      }
+      const normalized = op.formula_terms.map((term, idx) => ({
+        id: term.id || Date.now() + idx,
+        operator: term.operator || "+",
+        type: term.type || "section",
+        value:
+          (term.type || "section") === "operation"
+            ? resolveOperationId(term.value || "")
+            : term.value || "",
+        parentSection: term.parentSection,
+      }));
+      op.formula_terms = normalized;
+      op.formula_json = JSON.stringify(normalizeFormulaTerms(normalized));
+    });
   }
 
   // Toggle entre modo simple y avanzado
@@ -3956,7 +4244,7 @@
     formulaTerms.forEach((term) => {
       if (term.type === "section" && term.value) {
         // Get all accounts in this section
-        const accounts = getAccountsForSection(term.value);
+        const accounts = getAccountsForSection(term.value, term.parentSection);
 
         if (accounts.length === 0) {
           // Keep the section term if no accounts found
@@ -4006,23 +4294,34 @@
   };
 
   // Helper to get accounts for a section name
-  function getAccountsForSection(sectionName) {
+  function getAccountsForSection(sectionName, parentSectionName = "") {
     if (!sectionName || !state.cuentas || state.cuentas.length === 0) return [];
 
     const sectionLower = sectionName.toLowerCase().trim();
+    const parentLower = (parentSectionName || "").toLowerCase().trim();
+
+    const matchesParent = (primary) => {
+      if (!parentLower) return true;
+      if (!primary) return false;
+      return (
+        primary === parentLower ||
+        primary.includes(parentLower) ||
+        parentLower.includes(primary)
+      );
+    };
 
     let accounts = state.cuentas.filter((c) => {
       const secondary = (
         c.seccion_secundaria ||
         c["SECCION Secundaria"] ||
-        c["SECCIàN Secundaria"] ||
+        c["SECCI…N Secundaria"] ||
         ""
       )
         .toLowerCase()
         .trim();
       const primary = (
-        c["SECCIÓN Principal"] ||
         c["SECCIàN Principal"] ||
+        c["SECCI…N Principal"] ||
         c["SECCION Principal"] ||
         c.SECCION ||
         c.seccion_principal ||
@@ -4030,6 +4329,7 @@
       )
         .toLowerCase()
         .trim();
+      if (!matchesParent(primary)) return false;
       return secondary === sectionLower || primary === sectionLower;
     });
 
@@ -4039,14 +4339,14 @@
         const secondary = (
           c.seccion_secundaria ||
           c["SECCION Secundaria"] ||
-          c["SECCIàN Secundaria"] ||
+          c["SECCI…N Secundaria"] ||
           ""
         )
           .toLowerCase()
           .trim();
         const primary = (
-          c["SECCIÓN Principal"] ||
           c["SECCIàN Principal"] ||
+          c["SECCI…N Principal"] ||
           c["SECCION Principal"] ||
           c.SECCION ||
           c.seccion_principal ||
@@ -4054,6 +4354,7 @@
         )
           .toLowerCase()
           .trim();
+        if (!matchesParent(primary)) return false;
         return (
           secondary.includes(sectionLower) || primary.includes(sectionLower)
         );
@@ -4169,7 +4470,7 @@
       .map((term, i) => {
         const operator = i === 0 ? "" : ` ${term.operator || "+"} `;
         return `${operator}<code class="text-primary fw-bold">${escapeHtml(
-          term.value || "???"
+          term.type === "operation" ? formatOperationReference(term.value) : (term.value || "???")
         )}</code>`;
       })
       .join("");
@@ -4206,7 +4507,7 @@
 
     // Si es una sección, expandirla automáticamente a cuentas individuales
     if (term.type === "section" && value) {
-      const sectionAccounts = getAccountsForSection(value);
+      const sectionAccounts = getAccountsForSection(value, term.parentSection);
 
       if (sectionAccounts.length > 0) {
         // Encontrar el índice del término actual
@@ -4245,12 +4546,12 @@
   function getAvailableElements() {
     const sections = new Set();
     const accounts = [];
-    const operations = new Set();
+    const operationsMap = new Map();
 
     // Secciones y Cuentas - SOLO desde cuentas cargadas
     const groupedSections = groupBySections(state.cuentas);
     groupedSections.forEach((section) => {
-      // Agregar sección principal
+      // Agregar seccion principal
       if (section.name) {
         sections.add(section.name);
       }
@@ -4258,12 +4559,12 @@
       // Procesar subsecciones
       if (section.subsections && Array.isArray(section.subsections)) {
         section.subsections.forEach((subsection) => {
-          // Agregar subsección
+          // Agregar subseccion
           if (subsection.name && subsection.name !== section.name) {
             sections.add(subsection.name);
           }
 
-          // Procesar cuentas de la subsección
+          // Procesar cuentas de la subseccion
           if (subsection.accounts && Array.isArray(subsection.accounts)) {
             subsection.accounts.forEach((c) => {
               if (c.CUENTA) {
@@ -4275,11 +4576,14 @@
       }
     });
 
-    // Operaciones - Clase de operaciones (excepto la que se está editando)
-    const currentOpClase = state.selectedElement?.op?.Clase;
+    // Operaciones - identificadores unicos (excepto la que se esta editando)
+    const currentOpId = getOperationId(state.selectedElement?.op);
     sortOperations(state.operaciones).forEach((op) => {
-      if (op.Clase && op.Clase !== currentOpClase) {
-        operations.add(op.Clase);
+      const opId = getOperationId(op);
+      const opLabel = getOperationLabel(op);
+      if (!opId || opId === currentOpId) return;
+      if (!operationsMap.has(opId)) {
+        operationsMap.set(opId, opLabel || opId);
       }
     });
 
@@ -4299,7 +4603,10 @@
       rowLabelFields.forEach((field) => {
         const label = op[field];
         if (label && label.trim()) {
-          operations.add(label.trim());
+          const key = label.trim();
+          if (!operationsMap.has(key)) {
+            operationsMap.set(key, key);
+          }
         }
       });
     });
@@ -4307,7 +4614,7 @@
     return {
       sections: [...sections],
       accounts,
-      operations: [...operations],
+      operations: Array.from(operationsMap, ([id, label]) => ({ id, label })),
     };
   }
 
@@ -4536,9 +4843,65 @@
 
   const normalizeCapituloKey = (value) => {
     const base = normalizeKey(value);
+    if (base === "CDMX") return "CIUDADDEMEXICO";
     if (base === "NORESTE") return "NE";
     if (base === "NOROESTE") return "NO";
     return base;
+  };
+
+  const parseCsvLines = (text) => {
+    const lines = (text || "").split(/\r?\n/).filter((line) => line.trim());
+    if (!lines.length) return { headerIndex: {}, rows: [] };
+    const headers = lines[0].split(",").map((h) => h.trim());
+    const headerIndex = {};
+    headers.forEach((header, idx) => {
+      const key = normalizeKey(header);
+      if (key && headerIndex[key] === undefined) {
+        headerIndex[key] = idx;
+      }
+    });
+    const rows = lines.slice(1).map((line) =>
+      line.split(",").map((col) => col.trim())
+    );
+    return { headerIndex, rows };
+  };
+
+  const getCsvValue = (cols, headerIndex, key) => {
+    const idx = headerIndex[normalizeKey(key)];
+    if (idx === undefined) return "";
+    return (cols[idx] || "").trim();
+  };
+
+  const parseSumasSign = (value) => {
+    if (!value) return 1;
+    const normalized = String(value).toLowerCase();
+    if (normalized.includes("resta") || normalized.includes("-")) {
+      return -1;
+    }
+    return 1;
+  };
+
+  const resolveSumasParent = (clase, sumRowLabel) => {
+    const key = normalizeKey(clase);
+    if (key.startsWith("OTHERINCOME")) return "Other Income";
+    if (key.startsWith("OTHER")) return "Other";
+    if (key.startsWith("INCOME") || key.startsWith("EXPENSE")) {
+      return sumRowLabel || "";
+    }
+    return sumRowLabel || "";
+  };
+
+  const mergeOperacionesMap = (base = {}, extra = {}) => {
+    const merged = { ...(base || {}) };
+    Object.keys(extra || {}).forEach((capitulo) => {
+      merged[capitulo] = merged[capitulo] || {};
+      Object.keys(extra[capitulo] || {}).forEach((modulo) => {
+        const baseList = merged[capitulo][modulo] || [];
+        const extraList = extra[capitulo][modulo] || [];
+        merged[capitulo][modulo] = baseList.concat(extraList);
+      });
+    });
+    return merged;
   };
 
   /**
@@ -4557,11 +4920,14 @@
       const operacionesMap = {};
       
       // Procesar cada operación del JSON
-      operacionesArray.forEach(item => {
-        const capitulo = item.Capítulo;
-        const moduloCompleto = item.Módulo; // "Comités.html", "Membresía.html", etc.
-        const modulo = moduloCompleto.replace('.html', ''); // "Comités", "Membresía", etc.
+      operacionesArray.forEach((item) => {
+        const capituloKey = normalizeCapituloKey(item.Capítulo);
+        const moduloCompleto = item.Módulo || "";
+        const moduloKey = normalizeModuloKey(
+          String(moduloCompleto).replace(".html", "")
+        );
         const operacion = item.Operaciones;
+        if (!operacion) return;
         
         // Parsear la operación: "Nombre= Fórmula"
         const match = operacion.match(/^(.+?)=\s*(.+)$/);
@@ -4579,15 +4945,17 @@
         }
         
         // Inicializar estructura si no existe
-        if (!operacionesMap[capitulo]) {
-          operacionesMap[capitulo] = {};
+        if (!capituloKey || !moduloKey) return;
+
+        if (!operacionesMap[capituloKey]) {
+          operacionesMap[capituloKey] = {};
         }
-        if (!operacionesMap[capitulo][modulo]) {
-          operacionesMap[capitulo][modulo] = [];
+        if (!operacionesMap[capituloKey][moduloKey]) {
+          operacionesMap[capituloKey][moduloKey] = [];
         }
         
         // Agregar operación
-        operacionesMap[capitulo][modulo].push({
+        operacionesMap[capituloKey][moduloKey].push({
           nombre: nombre,
           formula: formula,
           aparece: aparece
@@ -4602,12 +4970,506 @@
     }
   };
 
+  const cargarOperacionesDesdeSumasCSV = async () => {
+    const archivos = [
+      "SUMAS CIUDAD DE MEXICO.csv",
+      "SUMAS GUADALAJARA.csv",
+      "SUMAS NOROESTE.csv",
+    ];
+    const operacionesMap = {};
+    const moduloKeys = ["SUMMARY", "RESUMEN"].map((m) => normalizeModuloKey(m));
+
+    for (const archivo of archivos) {
+      try {
+        const response = await fetch(
+          encodeURI(`../info IMPORTANTE/${archivo}`)
+        );
+        if (!response.ok) {
+          console.warn(`No se pudo cargar ${archivo}`);
+          continue;
+        }
+        const text = await response.text();
+        const { headerIndex, rows } = parseCsvLines(text);
+        if (!rows.length) continue;
+
+        rows.forEach((cols, idx) => {
+          const capituloRaw = getCsvValue(cols, headerIndex, "CAPITULO") || "";
+          const clase = getCsvValue(cols, headerIndex, "CLASE");
+          const seccion = getCsvValue(cols, headerIndex, "SECCION");
+
+          if (!clase || !seccion) return;
+
+          const sumRowLabel = getCsvValue(cols, headerIndex, "UNNAMED4");
+          const sumRowSumavariosLabel = getCsvValue(
+            cols,
+            headerIndex,
+            "UNNAMED6"
+          );
+          const sumRowOperativoLabel = getCsvValue(
+            cols,
+            headerIndex,
+            "UNNAMED8"
+          );
+          const resultNetLabel = getCsvValue(cols, headerIndex, "UNNAMED10");
+
+          const op0 = getCsvValue(cols, headerIndex, "OPERACION");
+          const op1 = getCsvValue(cols, headerIndex, "OPERACION1");
+          const op2 = getCsvValue(cols, headerIndex, "OPERACION2");
+          const op3 = getCsvValue(cols, headerIndex, "OPERACION3");
+
+          const capituloKey = normalizeCapituloKey(capituloRaw);
+          if (!capituloKey) return;
+
+          const placementLabels = {};
+          const placementSigns = {};
+
+          if (sumRowLabel) {
+            placementLabels["sum-row"] = sumRowLabel;
+            placementSigns["sum-row"] = parseSumasSign(op0);
+          }
+          if (sumRowSumavariosLabel) {
+            placementLabels["sum-row-sumavarios"] = sumRowSumavariosLabel;
+            placementSigns["sum-row-sumavarios"] = parseSumasSign(op1);
+          }
+          if (sumRowOperativoLabel) {
+            placementLabels["sum-row-operativo"] = sumRowOperativoLabel;
+            placementSigns["sum-row-operativo"] = parseSumasSign(op2);
+          }
+          if (resultNetLabel) {
+            placementLabels["result-net-row"] = resultNetLabel;
+            placementSigns["result-net-row"] = parseSumasSign(op3);
+          }
+
+          const predef = {
+            id: clase,
+            nombre: clase,
+            formula: seccion,
+            section: seccion,
+            orden: idx,
+            source: "sumas",
+            placementLabels,
+            placementSigns,
+            parentSection: resolveSumasParent(clase, sumRowLabel),
+          };
+
+          moduloKeys.forEach((moduloKey) => {
+            if (!moduloKey) return;
+            if (!operacionesMap[capituloKey]) {
+              operacionesMap[capituloKey] = {};
+            }
+            if (!operacionesMap[capituloKey][moduloKey]) {
+              operacionesMap[capituloKey][moduloKey] = [];
+            }
+            operacionesMap[capituloKey][moduloKey].push(predef);
+          });
+        });
+      } catch (error) {
+        console.error(`Error cargando ${archivo}:`, error);
+      }
+    }
+
+    console.log("? Operaciones cargadas desde SUMAS CSV:", operacionesMap);
+    return operacionesMap;
+  };
+
   /**
    * Inicializar operaciones predefinidas al cargar la página
    */
-  (async () => {
-    OPERACIONES_PREDEFINIDAS = await cargarOperacionesDesdeJSON();
-  })();
+  let operacionesPredefinidasPromise = null;
+  const ensureOperacionesPredefinidas = async () => {
+    if (operacionesPredefinidasPromise) return operacionesPredefinidasPromise;
+    operacionesPredefinidasPromise = Promise.all([
+      cargarOperacionesDesdeJSON(),
+      cargarOperacionesDesdeSumasCSV(),
+    ]).then(([jsonMap, sumasMap]) => {
+      OPERACIONES_PREDEFINIDAS = mergeOperacionesMap(jsonMap || {}, sumasMap || {});
+      return OPERACIONES_PREDEFINIDAS;
+    });
+    return operacionesPredefinidasPromise;
+  };
+  ensureOperacionesPredefinidas();
+
+  const getOperacionesPredefinidasContexto = () => {
+    const capituloKey = normalizeCapituloKey(state.capitulo);
+    const moduloKey = normalizeModuloKey(state.modulo);
+    if (!capituloKey || !moduloKey) return [];
+    return OPERACIONES_PREDEFINIDAS[capituloKey]?.[moduloKey] || [];
+  };
+
+  const normalizeOperacionKey = (value) => normalizeKey(value);
+
+  const hasExplicitFormula = (op) => {
+    if (!op) return false;
+    if (Array.isArray(op.formula_terms) && op.formula_terms.length) return true;
+    if (op.formula_json) return true;
+    return Object.keys(op).some(
+      (key) =>
+        /^(seccion|operacion|cuenta)_\d+$/i.test(key) && Boolean(op[key])
+    );
+  };
+
+  const inferPredefinedTermType = (value, knownOperations) => {
+    const key = normalizeOperacionKey(value);
+    if (knownOperations && knownOperations.has(key)) return "operation";
+    return detectTermType(value);
+  };
+
+  const parseFormulaTermsFromString = (formula, knownOperations) => {
+    if (!formula || typeof formula !== "string") return [];
+    const text = formula.replace(/\s+/g, " ").trim();
+    const terms = [];
+    let buffer = "";
+    let operator = "+";
+    let depth = 0;
+
+    const pushTerm = () => {
+      const value = buffer.trim();
+      if (!value) return;
+      terms.push({
+        operator,
+        type: inferPredefinedTermType(value, knownOperations),
+        value,
+      });
+    };
+
+    for (let i = 0; i < text.length; i++) {
+      const char = text[i];
+      if (char === "(") {
+        depth += 1;
+        continue;
+      }
+      if (char === ")") {
+        if (depth > 0) depth -= 1;
+        continue;
+      }
+      if (depth === 0 && "+-*/".includes(char)) {
+        pushTerm();
+        operator = char;
+        buffer = "";
+        continue;
+      }
+      buffer += char;
+    }
+    pushTerm();
+    return terms;
+  };
+
+  const PLACEMENT_FIELDS = [
+    "sum-row",
+    "sum-row-sumavarios",
+    "sum-row-operativo",
+    "result-row",
+    "net-row",
+    "result-net-row",
+    "sum-row-sumavarios-consolidado",
+  ];
+
+  const normalizeTermsForCompare = (terms) =>
+    (terms || []).map((term) => ({
+      operator: term.operator || "+",
+      type: term.type || "section",
+      value: normalizeKey(term.value),
+    }));
+
+  const buildPredefinedTerms = (predef, knownOperations) => {
+    if (predef?.source === "sumas") {
+      const sectionName = predef.section || predef.formula || "";
+      const parentSection = predef.parentSection || "";
+      if (sectionName) {
+        const accounts = getAccountsForSection(sectionName, parentSection);
+        if (accounts.length) {
+          return accounts.map((account, idx) => ({
+            operator: "+",
+            type: "account",
+            value: account.CUENTA,
+            id: Date.now() + idx,
+          }));
+        }
+        return [
+          {
+            operator: "+",
+            type: "section",
+            value: sectionName,
+            parentSection,
+          },
+        ];
+      }
+    }
+    const parsed = parseFormulaTermsFromString(
+      predef.formula,
+      knownOperations
+    );
+    if (parsed.length) return parsed;
+    if (predef.formula) {
+      return [{ operator: "+", type: "section", value: predef.formula }];
+    }
+    return [];
+  };
+
+  const formulasMatch = (op, desiredTerms) => {
+    const current = normalizeTermsForCompare(extractFormulaTerms(op));
+    const desired = normalizeTermsForCompare(desiredTerms);
+    if (current.length !== desired.length) return false;
+    for (let i = 0; i < current.length; i += 1) {
+      if (
+        current[i].operator !== desired[i].operator ||
+        current[i].type !== desired[i].type ||
+        current[i].value !== desired[i].value
+      ) {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const expandSectionTerms = (terms) => {
+    const expanded = [];
+    (terms || []).forEach((term) => {
+      if (term.type === "section" && term.value) {
+        const accounts = getAccountsForSection(term.value, term.parentSection);
+        if (accounts.length > 0) {
+          accounts.forEach((account, index) => {
+            expanded.push({
+              operator: term.operator,
+              type: "account",
+              value: account.CUENTA,
+              id: Date.now() + expanded.length + index,
+            });
+          });
+        } else {
+          expanded.push(term);
+        }
+        return;
+      }
+      expanded.push(term);
+    });
+    return expanded;
+  };
+
+  const applyFormulaTermsToOperation = (op, terms) => {
+    if (!op) return false;
+    const normalized = normalizeFormulaTerms(terms);
+    if (!normalized.length) return false;
+
+    op.formula_terms = normalized.map((term, idx) => ({
+      id: term.id || Date.now() + idx,
+      ...term,
+    }));
+    op.formula_json = JSON.stringify(normalized);
+    op.signos = {};
+    for (let i = 1; i <= 20; i++) {
+      delete op[`seccion_${i}`];
+    }
+    normalized.forEach((term, idx) => {
+      const key = `seccion_${idx + 1}`;
+      op[key] = term.value;
+      op.signos[key] = term.operator === "-" ? -1 : 1;
+    });
+
+    if (normalized.length === 1 && normalized[0].type === "section") {
+      op.SECCION = normalized[0].value;
+    }
+
+    return true;
+  };
+
+  const applyPredefinedPlacement = (op, predef, { force = false } = {}) => {
+    if (!op || !predef) return false;
+    const placementLabels = predef.placementLabels || null;
+    const placementSigns = predef.placementSigns || predef.signos || {};
+    const placements =
+      placementLabels && Object.keys(placementLabels).length
+        ? Object.keys(placementLabels)
+        : Array.isArray(predef.aparece) && predef.aparece.length
+        ? predef.aparece
+        : ["sum-row"];
+    let changed = false;
+
+    if (force) {
+      PLACEMENT_FIELDS.forEach((fieldName) => {
+        if (op[fieldName]) {
+          delete op[fieldName];
+          changed = true;
+        }
+      });
+    }
+
+    placements.forEach((fieldName) => {
+      const label = placementLabels?.[fieldName] || predef.nombre;
+      if (!op[fieldName] || force) {
+        op[fieldName] = label;
+        changed = true;
+      }
+      const signo = placementSigns?.[fieldName];
+      if (Number.isFinite(Number(signo))) {
+        if (!op.signos) op.signos = {};
+        op.signos[fieldName] = Number(signo);
+      }
+    });
+
+    return changed;
+  };
+
+  const createOperationFromPredefined = (
+    predef,
+    orderIndex,
+    knownOperations
+  ) => {
+    const opId = buildUniqueOperationId(
+      predef.id || predef.identificador || predef.nombre
+    );
+    const orderValue = Number.isFinite(predef.orden)
+      ? predef.orden
+      : orderIndex;
+    const parentSubsection = predef.section || predef.formula || null;
+    const parentSection = predef.parentSection || null;
+    const op = {
+      CAPITULO: state.capitulo || "DEFAULT",
+      OperacionId: opId,
+      Clase: predef.nombre,
+      SECCION: predef.formula,
+      tipo: "predefined",
+      signos: {},
+      orden: Number.isFinite(orderValue) ? orderValue : nextOperationOrder(),
+      secciones: parentSubsection ? [parentSubsection] : [],
+      parentSubsection,
+      parentSection,
+    };
+
+    applyPredefinedPlacement(op, predef);
+
+    const termsToApply = buildPredefinedTerms(predef, knownOperations);
+    applyFormulaTermsToOperation(op, termsToApply);
+
+    return op;
+  };
+
+  const applyPredefinedToExisting = (
+    op,
+    predef,
+    orderIndex,
+    knownOperations,
+    { force = false } = {}
+  ) => {
+    let changed = false;
+    const orderValue = Number.isFinite(predef.orden)
+      ? predef.orden
+      : orderIndex;
+    const parentSubsection = predef.section || predef.formula || null;
+    const parentSection = predef.parentSection || null;
+
+    if (!op.CAPITULO && state.capitulo) {
+      op.CAPITULO = state.capitulo;
+      changed = true;
+    }
+
+    if (Number.isFinite(orderValue) && op.orden !== orderValue) {
+      op.orden = orderValue;
+      changed = true;
+    }
+
+    if (parentSubsection && (force || op.parentSubsection !== parentSubsection)) {
+      op.parentSubsection = parentSubsection;
+      changed = true;
+    }
+
+    if (parentSection && (force || op.parentSection !== parentSection)) {
+      op.parentSection = parentSection;
+      changed = true;
+    }
+
+    if (parentSubsection && (!Array.isArray(op.secciones) || force)) {
+      op.secciones = [parentSubsection];
+      changed = true;
+    }
+
+    const desiredTerms = buildPredefinedTerms(predef, knownOperations);
+    const formulaIsSame = desiredTerms.length
+      ? formulasMatch(op, desiredTerms)
+      : true;
+
+    if ((force || !formulaIsSame) && desiredTerms.length) {
+      if (applyFormulaTermsToOperation(op, desiredTerms)) {
+        changed = true;
+      }
+    }
+
+    if (predef.formula && (force || !op.SECCION || !formulaIsSame)) {
+      op.SECCION = predef.formula;
+      changed = true;
+    }
+
+    if (applyPredefinedPlacement(op, predef, { force })) {
+      changed = true;
+    }
+
+    return changed;
+  };
+
+  async function syncOperacionesPredefinidas({
+    autoCreate = true,
+    force = false,
+  } = {}) {
+    await ensureOperacionesPredefinidas();
+    const operaciones = getOperacionesPredefinidasContexto();
+    if (!operaciones.length) return { added: 0, updated: 0 };
+
+    const existingByKey = new Map();
+    (state.operaciones || []).forEach((op) => {
+      const key = normalizeOperacionKey(
+        op.Clase || getOperationDisplayName(op)
+      );
+      if (key) {
+        existingByKey.set(key, op);
+      }
+    });
+
+    const knownOperations = new Set();
+    operaciones.forEach((op) => {
+      if (op?.nombre) knownOperations.add(normalizeOperacionKey(op.nombre));
+      if (op?.id) knownOperations.add(normalizeOperacionKey(op.id));
+      if (op?.identificador) knownOperations.add(normalizeOperacionKey(op.identificador));
+    });
+
+    let added = 0;
+    let updated = 0;
+
+    operaciones.forEach((predef, idx) => {
+      const orderIndex = Number.isFinite(predef.orden) ? predef.orden : idx;
+      const key = normalizeOperacionKey(predef.nombre);
+      const existing = existingByKey.get(key);
+      if (!existing) {
+        if (!autoCreate) return;
+        const newOp = createOperationFromPredefined(
+          predef,
+          orderIndex,
+          knownOperations
+        );
+        state.operaciones.push(newOp);
+        existingByKey.set(key, newOp);
+        added += 1;
+        return;
+      }
+
+      if (
+        applyPredefinedToExisting(existing, predef, orderIndex, knownOperations, {
+          force,
+        })
+      ) {
+        updated += 1;
+      }
+    });
+
+    if (added || updated) {
+      state.operaciones = sortOperations(state.operaciones);
+      ensureOperationIds();
+      normalizeOperationReferences();
+      state.unsavedChanges = true;
+      updateButtonStates();
+    }
+
+    return { added, updated };
+  }
 
   /**
    * Cargar operaciones predefinidas para el contexto actual
@@ -4619,8 +5481,8 @@
       return;
     }
 
-    const operaciones =
-      OPERACIONES_PREDEFINIDAS[state.capitulo]?.[state.modulo] || [];
+    await ensureOperacionesPredefinidas();
+    const operaciones = getOperacionesPredefinidasContexto();
 
     if (operaciones.length === 0) {
       showToast(
@@ -4696,33 +5558,25 @@
   /**
    * Poblar una operación específica
    */
-  window.poblarOperacion = function (index) {
-    const operaciones =
-      OPERACIONES_PREDEFINIDAS[state.capitulo]?.[state.modulo] || [];
+  window.poblarOperacion = async function (index) {
+    await ensureOperacionesPredefinidas();
+    const operaciones = getOperacionesPredefinidasContexto();
     const op = operaciones[index];
     if (!op) return;
 
-    // Crear operación básica
-    const newOp = {
-      CAPITULO: state.capitulo,
-      Clase: op.nombre,
-      SECCION: op.formula,
-      tipo: "predefined",
-      signos: { seccion_1: 1 },
-      orden: nextOperationOrder(),
-      "sum-row": op.nombre,
-      formula_terms: [
-        {
-          id: Date.now(),
-          operator: "+",
-          type: "section",
-          value: op.formula,
-        },
-      ],
-      seccion_1: op.formula,
-    };
+    const knownOperations = new Set();
+    operaciones.forEach((item) => {
+      if (item?.nombre) knownOperations.add(normalizeOperacionKey(item.nombre));
+      if (item?.id) knownOperations.add(normalizeOperacionKey(item.id));
+      if (item?.identificador) knownOperations.add(normalizeOperacionKey(item.identificador));
+    });
+    const orderIndex = Number.isFinite(op.orden) ? op.orden : index;
+    const newOp = createOperationFromPredefined(op, orderIndex, knownOperations);
 
     state.operaciones.push(newOp);
+    state.operaciones = sortOperations(state.operaciones);
+    ensureOperationIds();
+    normalizeOperationReferences();
     state.unsavedChanges = true;
     updateButtonStates();
     renderLayout();
@@ -4732,16 +5586,15 @@
   /**
    * Poblar todas las operaciones predefinidas
    */
-  window.poblarTodasOperaciones = function () {
-    const operaciones =
-      OPERACIONES_PREDEFINIDAS[state.capitulo]?.[state.modulo] || [];
-
-    operaciones.forEach((op, idx) => {
-      window.poblarOperacion(idx);
+  window.poblarTodasOperaciones = async function () {
+    const result = await syncOperacionesPredefinidas({
+      autoCreate: true,
+      force: true,
     });
 
+    renderLayout();
     bootstrap.Modal.getInstance(document.querySelector(".modal.show"))?.hide();
-    showToast(`${operaciones.length} operaciones agregadas`, "success");
+    showToast(`${result.added} operaciones agregadas`, "success");
   };
 
   /**
@@ -4783,14 +5636,30 @@
       }
     });
 
+    const operationKeys = new Set();
+
     // Extraer de operaciones renderizadas
     container
-      .querySelectorAll(".operation-row .operation-label span")
-      .forEach((el) => {
-        const text = el.textContent.trim();
-        if (text && !availableElements.orderedLabels.includes(text)) {
-          availableElements.operations.push(text);
-          availableElements.orderedLabels.push(text);
+      .querySelectorAll(".operation-row, .inline-operation-row")
+      .forEach((row) => {
+        const opId = row.getAttribute("data-operation-id")?.trim();
+        const opLabel =
+          row.getAttribute("data-operation-label")?.trim() ||
+          row.querySelector(".operation-label span")?.textContent?.trim() ||
+          row.querySelector(".op-name")?.textContent?.trim() ||
+          "";
+        const label = opLabel || opId;
+        if (label && !availableElements.orderedLabels.includes(label)) {
+          availableElements.orderedLabels.push(label);
+        }
+        const id = opId || label;
+        const key = normalizeOperationMatch(id || label);
+        if (key && !operationKeys.has(key)) {
+          availableElements.operations.push({
+            id: id || label,
+            label: label || id,
+          });
+          operationKeys.add(key);
         }
       });
 

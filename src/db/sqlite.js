@@ -567,6 +567,7 @@ const crearTablas = () => {
       anio INTEGER NOT NULL,
       capitulo TEXT NOT NULL,
       clase TEXT NOT NULL,
+      operacion_etiqueta TEXT,
       seccion TEXT NOT NULL,
       operacion_tipo TEXT NOT NULL,
       operacion_label TEXT NOT NULL,
@@ -671,6 +672,13 @@ const crearTablas = () => {
       "ALTER TABLE layout_operaciones ADD COLUMN formula_json TEXT"
     ).run();
     console.log("✅ Columna 'formula_json' agregada a layout_operaciones");
+  }
+
+  if (!columnasOperaciones.includes("operacion_etiqueta")) {
+    db.prepare(
+      "ALTER TABLE layout_operaciones ADD COLUMN operacion_etiqueta TEXT"
+    ).run();
+    console.log("✅ Columna 'operacion_etiqueta' agregada a layout_operaciones");
   }
 
   // Tabla para permisos granulares por capítulo en el gestor de plantillas

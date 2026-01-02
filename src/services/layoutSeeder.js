@@ -168,9 +168,9 @@ const prepararInsertarOperacion = (db) =>
   db.prepare(
     `
     INSERT OR IGNORE INTO layout_operaciones (
-      empresa_id, modulo, anio, capitulo, clase, seccion,
+      empresa_id, modulo, anio, capitulo, clase, operacion_etiqueta, seccion,
       operacion_tipo, operacion_label, signo, orden, creado_en, actualizado_en
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
   `
   );
 
@@ -309,14 +309,37 @@ const sembrarOperaciones = ({
   const tx = db.transaction(() => {
     operaciones.forEach((operacion, indice) => {
       const capitulo = normalizarCapitulo(operacion.CAPITULO);
-      const clase = normalizarTexto(operacion.Clase || operacion.clase || "");
+      const operacionId = normalizarTexto(
+        preferirValor(operacion, [
+          "OperacionId",
+          "operacion_id",
+          "ID",
+          "Id",
+          "clase_id",
+          "ClaseId",
+          "Clase",
+          "clase",
+        ])
+      );
+      const operacionEtiqueta = normalizarTexto(
+        preferirValor(operacion, [
+          "Etiqueta",
+          "etiqueta",
+          "operacion_etiqueta",
+          "Nombre",
+          "Clase",
+          "clase",
+        ])
+      );
+      const clase = operacionId || operacionEtiqueta || `operacion-${indice}`;
+      const etiquetaOperacion = operacionEtiqueta || operacionId || clase;
       const seccion = normalizarTexto(
         operacion.SECCION || operacion.seccion || ""
       );
       const signo =
         Number.isInteger(operacion.signo) && operacion.signo !== 0
           ? operacion.signo
-          : inferirSigno(clase);
+          : inferirSigno(etiquetaOperacion);
 
       OPERACION_TIPOS.forEach((tipo, tipoIndex) => {
         const etiqueta = operacion[tipo];
@@ -328,7 +351,8 @@ const sembrarOperaciones = ({
           modulo,
           anio,
           capitulo,
-          clase || `operacion-${indice}`,
+          clase,
+          etiquetaOperacion,
           seccion,
           tipo,
           etiqueta,

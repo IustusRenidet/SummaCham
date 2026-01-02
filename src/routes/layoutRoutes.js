@@ -1010,7 +1010,7 @@ router.get("/:modulo/:anio/exportar-json", requireAuth, (req, res) => {
     const operaciones = db
       .prepare(
         `
-      SELECT capitulo as CAPITULO, clase as Clase, seccion as SECCION,
+      SELECT capitulo as CAPITULO, clase as OperacionId, operacion_etiqueta, clase as Clase, seccion as SECCION,
              operacion_tipo, operacion_label, signo, orden
       FROM layout_operaciones
       WHERE empresa_id = ? AND modulo = ? AND anio = ?
@@ -1022,7 +1022,8 @@ router.get("/:modulo/:anio/exportar-json", requireAuth, (req, res) => {
     // Desglosar operaciones con toda la metadata (sin agrupar)
     const operacionesDetalladas = operaciones.map((op) => ({
       CAPITULO: op.CAPITULO,
-      Clase: op.Clase,
+      OperacionId: op.OperacionId || op.Clase,
+      Clase: op.operacion_etiqueta || op.Clase,
       SECCION: op.SECCION,
       tipo: op.operacion_tipo,
       etiqueta: op.operacion_label,
@@ -1043,18 +1044,21 @@ router.get("/:modulo/:anio/exportar-json", requireAuth, (req, res) => {
     const operacionesAgrupadas = [];
     const operacionesPorClase = {};
     operaciones.forEach((op) => {
-      if (!operacionesPorClase[op.Clase]) {
-        operacionesPorClase[op.Clase] = {
+      const operacionId = op.OperacionId || op.Clase;
+      const operacionEtiqueta = op.operacion_etiqueta || op.Clase;
+      if (!operacionesPorClase[operacionId]) {
+        operacionesPorClase[operacionId] = {
           CAPITULO: op.CAPITULO,
-          Clase: op.Clase,
+          OperacionId: operacionId,
+          Clase: operacionEtiqueta,
           SECCION: op.SECCION,
           orden: op.orden,
           signos: {},
         };
-        operacionesAgrupadas.push(operacionesPorClase[op.Clase]);
+        operacionesAgrupadas.push(operacionesPorClase[operacionId]);
       }
-      operacionesPorClase[op.Clase][op.operacion_tipo] = op.operacion_label;
-      operacionesPorClase[op.Clase].signos[op.operacion_tipo] = op.signo;
+      operacionesPorClase[operacionId][op.operacion_tipo] = op.operacion_label;
+      operacionesPorClase[operacionId].signos[op.operacion_tipo] = op.signo;
     });
 
     const resultado = {

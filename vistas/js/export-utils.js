@@ -75,10 +75,15 @@
     _tableToSheetWithStyles(tabla) {
       // PASO 1: Clonar la tabla y normalizar spans para conservar todas las columnas
       const tablaClone = tabla.cloneNode(true);
-      const { matriz, aoa } = this._extraerTablaComoMatriz(tablaClone);
+      const { matriz, aoa, merges } = this._extraerTablaComoMatriz(tablaClone);
 
       // PASO 2: Construir la hoja desde la matriz (sin perder encabezados)
       const sheet = XLSX.utils.aoa_to_sheet(aoa);
+      
+      // PASO 2.5: Aplicar merges (rowspan/colspan)
+      if (merges && merges.length > 0) {
+        sheet["!merges"] = merges;
+      }
 
       // PASO 2: Definir estilos
       const borderStyle = {
@@ -258,6 +263,7 @@
       const filas = Array.from(tabla.querySelectorAll("tr"));
       const matriz = [];
       const pendientes = {};
+      const merges = []; // Array para almacenar los merges
 
       filas.forEach((tr, filaIdx) => {
         const esHeader = tr.parentElement?.tagName === "THEAD";
@@ -290,16 +296,24 @@
 
           filaMatriz[colIdx] = {
             value: this._obtenerValorCeldaExcel(celda),
-            isHeader,
+            isHeader: esHeader,
             classes,
             domCell: celda,
           };
+
+          // Registrar merge si hay colspan o rowspan > 1
+          if (colspan > 1 || rowspan > 1) {
+            merges.push({
+              s: { r: filaIdx, c: colIdx }, // start: row, col
+              e: { r: filaIdx + rowspan - 1, c: colIdx + colspan - 1 } // end: row, col
+            });
+          }
 
           // Rellenar columnas adicionales si tiene colspan
           for (let extra = 1; extra < colspan; extra++) {
             filaMatriz[colIdx + extra] = {
               value: "",
-              isHeader,
+              isHeader: esHeader,
               classes,
               domCell: celda,
             };
@@ -309,7 +323,7 @@
             for (let spanCol = 0; spanCol < colspan; spanCol++) {
               pendientes[colIdx + spanCol] = {
                 restante: rowspan - 1,
-                isHeader,
+                isHeader: esHeader,
                 classes,
                 domCell: celda,
               };
@@ -324,7 +338,7 @@
       });
 
       const aoa = matriz.map((fila) => fila.map((celda) => celda?.value ?? ""));
-      return { matriz, aoa };
+      return { matriz, aoa, merges };
     },
 
     _obtenerValorCeldaExcel(celda) {

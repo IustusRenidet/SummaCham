@@ -1477,8 +1477,10 @@
   };
 
   const cargarCuentasPresupuestos = async ({ anio } = {}) => {
+    let anioConsulta = Number.isInteger(anio) ? anio : new Date().getFullYear();
+    
     const params = new URLSearchParams({
-      anio: Number.isInteger(anio) ? anio : new Date().getFullYear(),
+      anio: anioConsulta,
     });
     const normalizarNumero = (valor) => {
       const numerico = Number(valor);
@@ -1495,13 +1497,50 @@
         }
       );
       const datos = await resp.json();
+      
+      // Si el año solicitado no tiene datos (404), intentar con el año anterior
       if (!resp.ok) {
+        if (resp.status === 404 && anioConsulta === new Date().getFullYear()) {
+          console.log(`⚠️ No hay datos de presupuestos para ${anioConsulta}, intentando con ${anioConsulta - 1}`);
+          const paramsAnterior = new URLSearchParams({
+            anio: anioConsulta - 1,
+          });
+          const respAnterior = await fetch(
+            `${API_BASE}/presupuestos?${paramsAnterior.toString()}`,
+            {
+              headers: Sesion.headersAutenticacion(),
+            }
+          );
+          const datosAnterior = await respAnterior.json();
+          if (!respAnterior.ok) {
+            throw new Error(
+              datosAnterior.mensaje || "No fue posible obtener las cuentas de presupuestos."
+            );
+          }
+          const cuentasAnterior = Array.isArray(datosAnterior.cuentas) ? datosAnterior.cuentas : [];
+          return procesarCuentasPresupuesto(cuentasAnterior);
+        }
         throw new Error(
           datos.mensaje || "No fue posible obtener las cuentas de presupuestos."
         );
       }
       const cuentas = Array.isArray(datos.cuentas) ? datos.cuentas : [];
-      return cuentas
+      return procesarCuentasPresupuesto(cuentas);
+    } catch (error) {
+      console.warn("Error al cargar cuentas de presupuestos:", error);
+      return [];
+    }
+  };
+  
+  const procesarCuentasPresupuesto = (cuentas) => {
+    const normalizarNumero = (valor) => {
+      const numerico = Number(valor);
+      return Number.isFinite(numerico) ? numerico : 0;
+    };
+    const esAcreedora = (naturaleza) =>
+      ["A", "C"].includes((naturaleza || "").toString().trim().toUpperCase());
+      
+    return cuentas
         .map((cuenta) => {
           const naturaleza = (cuenta.naturaleza || cuenta.NATURALEZA || "")
             .toString()
@@ -1559,10 +1598,6 @@
           };
         })
         .filter(Boolean);
-    } catch (error) {
-      console.warn("No fue posible obtener cuentas para presupuestos", error);
-      return [];
-    }
   };
 
   const esCuentaPresupuestoValida = (valorCuenta) => {

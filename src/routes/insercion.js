@@ -115,12 +115,16 @@ function verificarDuplicado(tipo, data, config, moduleType) {
     const operaciones = config['SUMA DE VARIAS SECCIONES'] || [];
     const capitulo = data.capitulo || '';
     const seccion = data.seccion || data.secundaria || '';
-    const clase = data.clase || '';
-    const existe = operaciones.some((item) =>
-      item.CAPITULO === capitulo &&
-      item.SECCION === seccion &&
-      item.Clase === clase
-    );
+    const operacionId = data.operacion_id || data.OperacionId || data.clase || '';
+    const clase = data.clase || data.Clase || '';
+    const existe = operaciones.some((item) => {
+      const itemId =
+        item.OperacionId || item.operacion_id || item.clase || item.Clase || '';
+      const itemLabel = item.Clase || item.clase || '';
+      if (item.CAPITULO !== capitulo || item.SECCION !== seccion) return false;
+      if (operacionId) return itemId === operacionId;
+      return itemLabel === clase;
+    });
     if (existe) {
       return { duplicado: true, mensaje: 'Ya existe una operación de sumas con esa sección y clase' };
     }
