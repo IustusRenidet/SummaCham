@@ -444,6 +444,20 @@
     return Number.isFinite(parsed) ? parsed : fallback;
   }
 
+  function getOperationDisplayName(op) {
+    return (
+      op?.["sum-row"] ||
+      op?.["sum-row-sumavarios"] ||
+      op?.["sum-row-sumavarios-consolidado"] ||
+      op?.["sum-row-operativo"] ||
+      op?.["result-row"] ||
+      op?.["net-row"] ||
+      op?.["result-net-row"] ||
+      op?.Clase ||
+      "Operación"
+    );
+  }
+
   function sortOperations(list = []) {
     return [...(list || [])]
       .map((op, idx) => ({ op, idx }))
@@ -659,13 +673,14 @@
     const renderedInlineOps = new Set();
 
     // Render sections with inline operations (and track which ops are rendered)
-    sections.forEach((data, principal) => {
+    sections.forEach((section) => {
+      const principal = section.name;
       const principalLower = principal.toLowerCase();
       const isIncomeSection = principalLower.includes("income");
       const isExpenseSection = principalLower.includes("expense");
 
       // Find all operations that belong to subsections in this section
-      data.forEach((accounts, subsectionName) => {
+      section.subsections.forEach(({ accounts, name: subsectionName }) => {
         const matchingOps = state.operaciones.filter((op) => {
           const clase = (op.Clase || "").toLowerCase();
 
@@ -705,7 +720,7 @@
         });
         matchingOps.forEach((op) => renderedInlineOps.add(op.Clase || op));
       });
-      html += renderSection(principal, data);
+      html += renderSection(section);
     });
 
     // Render section-level operations (only those NOT already rendered inline)
@@ -872,6 +887,7 @@
   // Renderiza una operación de nivel de sección (sum de múltiples secciones)
   function renderSectionOperation(op) {
     const clase = op.Clase || "Operación";
+    const displayName = getOperationDisplayName(op);
     const tipo = detectOperationType(op);
     const formula = formatFormula(op);
 
@@ -882,7 +898,7 @@
     )}')">
           <div class="operation-label">
             <i class="bi bi-calculator"></i>
-            <span>${escapeHtml(clase)}</span>
+            <span>${escapeHtml(displayName)}</span>
             <span class="operation-type badge bg-warning text-dark">SUM</span>
           </div>
           <div class="operation-formula small text-muted ms-3" style="flex: 2; font-style: italic;">
@@ -908,6 +924,7 @@
   // Renderiza una operación inline dentro de una subsección
   function renderInlineOperation(op, accounts) {
     const clase = op.Clase || "Operación";
+    const displayName = getOperationDisplayName(op);
     // Build formula from actual account names
     const formula = accounts
       .map((a) => a.NOMBRE || a.nombre || a.CUENTA)
@@ -921,7 +938,7 @@
           <i class="bi bi-calculator"></i>
         </div>
         <div class="inline-op-label">
-          <span class="op-name">${escapeHtml(clase)}</span>
+          <span class="op-name">${escapeHtml(displayName)}</span>
           <span class="op-badge badge bg-warning text-dark ms-2">SUM</span>
         </div>
         <div class="inline-op-formula">
@@ -1015,13 +1032,14 @@
   }
 
   function groupBySections(cuentas) {
-    const sections = new Map();
+    const sections = [];
+    const sectionMap = new Map();
 
     const cuentasOrdenadas = [...(cuentas || [])].sort(
       (a, b) => getAccountOrder(a) - getAccountOrder(b)
     );
 
-    cuentasOrdenadas.forEach((cuenta) => {
+    cuentasOrdenadas.forEach((cuenta, index) => {
       const principal =
         cuenta["SECCIÓN Principal"] ||
         cuenta["SECCIàN Principal"] ||
@@ -1036,33 +1054,49 @@
         cuenta.seccion_secundaria ||
         "";
 
-      if (!sections.has(principal)) {
-        sections.set(principal, new Map());
+      if (!sectionMap.has(principal)) {
+        sectionMap.set(principal, {
+          name: principal,
+          order: getAccountOrder(cuenta, index),
+          subsections: [],
+          subsectionMap: new Map(),
+        });
+        sections.push(sectionMap.get(principal));
       }
 
-      const subsections = sections.get(principal);
-      if (!subsections.has(secundaria)) {
-        subsections.set(secundaria, []);
+      const section = sectionMap.get(principal);
+      if (!section.subsectionMap.has(secundaria)) {
+        const subsection = {
+          name: secundaria || principal,
+          order: getAccountOrder(cuenta, index),
+          accounts: [],
+        };
+        section.subsectionMap.set(secundaria, subsection);
+        section.subsections.push(subsection);
       }
 
-      subsections.get(secundaria).push(cuenta);
+      section.subsectionMap.get(secundaria).accounts.push(cuenta);
     });
+
+    sections.sort((a, b) => a.order - b.order);
+    sections.forEach((section) =>
+      section.subsections.sort((a, b) => a.order - b.order)
+    );
 
     return sections;
   }
 
-  function renderSection(principal, subsections) {
-    const subsectionCount = subsections.size;
-    let accountCount = 0;
-    subsections.forEach((accounts) => (accountCount += accounts.length));
+  function renderSection(section) {
+    const { name: principal, subsections } = section;
+    const subsectionCount = subsections.length;
+    const accountCount = subsections.reduce(
+      (acc, subsection) => acc + subsection.accounts.length,
+      0
+    );
 
     let subsectionsHtml = "";
-    subsections.forEach((accounts, secundaria) => {
-      subsectionsHtml += renderSubsection(
-        secundaria || principal,
-        accounts,
-        principal
-      );
+    subsections.forEach((subsection) => {
+      subsectionsHtml += renderSubsection(subsection, principal);
     });
 
     return `
@@ -1099,7 +1133,8 @@
     `;
   }
 
-  function renderSubsection(name, accounts, principal) {
+  function renderSubsection(subsection, principal) {
+    const { name, accounts } = subsection;
     const accountsHtml = accounts
       .sort((a, b) => getAccountOrder(a) - getAccountOrder(b))
       .map((acc) => renderAccount(acc, principal, name))
@@ -1149,8 +1184,9 @@
       return false;
     });
 
-    // Render inline operations
+    // Render inline operations respetando el orden definido
     const inlineOpsHtml = matchingOps
+      .sort((a, b) => getOperationOrder(a) - getOperationOrder(b))
       .map((op) => renderInlineOperation(op, accounts))
       .join("");
 
@@ -2286,6 +2322,11 @@
     const op = state.operaciones.find((o) => o.Clase === clase);
     if (!op) return;
 
+    const modalTitle = dom.modalEditar?.querySelector(".modal-title");
+    if (modalTitle) {
+      modalTitle.textContent = `Editar: ${getOperationDisplayName(op)}`;
+    }
+
     // Get available elements to determine correct types
     const elements = getAvailableElements();
     const operationNames = elements.operations.map((o) => o.toLowerCase());
@@ -2476,6 +2517,11 @@
 
   // Edit a consolidated label (shows all contributing operations and accounts)
   window.editConsolidatedLabel = function (label, field) {
+    const modalTitle = dom.modalEditar?.querySelector(".modal-title");
+    if (modalTitle) {
+      modalTitle.textContent = `Editar etiqueta: ${label}`;
+    }
+
     // Find all operations that have this label for this field
     const affectedOps = state.operaciones.filter((op) => op[field] === label);
 
