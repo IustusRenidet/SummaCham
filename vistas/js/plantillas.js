@@ -15,6 +15,21 @@
       ? "http://localhost:3005/api/layouts-config"
       : `${window.location.origin}/api/layouts-config`;
 
+  // Campos de etiquetas especiales generadas por las tablas operativas
+  const ROW_LABEL_FIELDS = [
+    "sum-row",
+    "sum-row-sumavarios",
+    "sum-row-sumavarios-consolidado",
+    "sum-row-operativo",
+    "sum-row-operativo-consolidado",
+    "result-row",
+    "net-row",
+    "net-row-adicional",
+    "result-net-row",
+  ];
+  // Exponer para utilidades compartidas (vista previa realista)
+  window.ROW_LABEL_FIELDS = ROW_LABEL_FIELDS;
+
   // ==========================================
   // STATE
   // ==========================================
@@ -741,6 +756,12 @@
         color: "info",
       },
       {
+        field: "sum-row-operativo-consolidado",
+        type: "operating-consolidated",
+        icon: "bi-graph-up",
+        color: "info",
+      },
+      {
         field: "result-row",
         type: "result",
         icon: "bi-calculator-fill",
@@ -750,6 +771,12 @@
         field: "net-row",
         type: "net-result",
         icon: "bi-cash-stack",
+        color: "danger",
+      },
+      {
+        field: "net-row-adicional",
+        type: "net-additional",
+        icon: "bi-cash-coin",
         color: "danger",
       },
       {
@@ -2336,15 +2363,7 @@
     else if (op.signos && Object.keys(op.signos).length > 0) {
       let i = 0;
       // Only process seccion_n fields, not row-type fields like sum-row, sum-row-sumavarios, etc.
-      const rowTypeFields = [
-        "sum-row",
-        "sum-row-sumavarios",
-        "sum-row-sumavarios-consolidado",
-        "sum-row-operativo",
-        "result-row",
-        "net-row",
-        "result-net-row",
-      ];
+      const rowTypeFields = [...ROW_LABEL_FIELDS];
       Object.entries(op.signos).forEach(([clave, signo]) => {
         // Skip if this is a row-type field, not a formula section reference
         if (rowTypeFields.includes(clave) || !clave.startsWith("seccion_")) {
@@ -2388,15 +2407,7 @@
     }
 
     // Also add references from operation types (sum-row, etc) that may reference sections
-    const opTypes = [
-      "sum-row",
-      "sum-row-sumavarios",
-      "sum-row-sumavarios-consolidado",
-      "sum-row-operativo",
-      "result-row",
-      "net-row",
-      "result-net-row",
-    ];
+    const opTypes = [...ROW_LABEL_FIELDS];
 
     // If we still have no terms, create from SECCION or operation types
     if (formulaTerms.length === 0) {
@@ -2418,6 +2429,85 @@
         });
       }
     }
+
+    const rowLabelMeta = [
+      {
+        field: "sum-row",
+        label: "Suma de subsección",
+        badge: "Suma",
+        color: "secondary",
+        icon: "bi-plus-square",
+      },
+      {
+        field: "sum-row-sumavarios",
+        label: "Suma variaciones",
+        badge: "Suma Varios",
+        color: "success",
+        icon: "bi-collection",
+      },
+      {
+        field: "sum-row-sumavarios-consolidado",
+        label: "Suma variaciones consolidado",
+        badge: "Consolidado",
+        color: "info",
+        icon: "bi-collection-fill",
+      },
+      {
+        field: "sum-row-operativo",
+        label: "Resultado operativo",
+        badge: "Operativo",
+        color: "primary",
+        icon: "bi-graph-up-arrow",
+      },
+      {
+        field: "sum-row-operativo-consolidado",
+        label: "Resultado operativo consolidado",
+        badge: "Operativo Cons.",
+        color: "primary",
+        icon: "bi-graph-up",
+      },
+      {
+        field: "result-row",
+        label: "Resultado final",
+        badge: "Resultado",
+        color: "warning",
+        icon: "bi-calculator-fill",
+      },
+      {
+        field: "net-row",
+        label: "Resultado neto",
+        badge: "Neto",
+        color: "danger",
+        icon: "bi-cash-stack",
+      },
+      {
+        field: "net-row-adicional",
+        label: "Resultado neto adicional",
+        badge: "Neto Adic.",
+        color: "danger",
+        icon: "bi-cash-coin",
+      },
+      {
+        field: "result-net-row",
+        label: "Resultado neto consolidado",
+        badge: "Neto Cons.",
+        color: "danger",
+        icon: "bi-bank",
+      },
+    ];
+
+    const rowLabelPreview = rowLabelMeta
+      .filter(({ field }) => op[field])
+      .map(
+        ({ field, label, badge, color, icon }) => `
+        <div class="row-preview mb-2">
+          <i class="bi ${icon} me-2 text-${color}"></i>
+          <strong class="text-${color}">${escapeHtml(op[field])}</strong>
+          <span class="badge bg-${color} ms-2">${badge}</span>
+          <div class="small text-muted">${escapeHtml(label)}</div>
+        </div>`
+      )
+      .join("");
 
     dom.formEditar.innerHTML = `
       <div class="mb-3">
@@ -2453,47 +2543,13 @@
       <div class="module-preview mt-3">
         <label class="form-label">Vista Previa en Módulos:</label>
         <div class="bg-info bg-opacity-10 p-2 rounded border">
-          <div class="row-preview mb-2">
-            <strong class="text-primary">${escapeHtml(
-              op["sum-row"] || op.Clase
-            )}</strong>
-            <span class="badge bg-secondary ms-2">Fila de Suma</span>
-          </div>
           ${
-            op["sum-row-sumavarios"]
-              ? `
-          <div class="row-preview mb-1">
-            <i class="bi bi-arrow-return-right me-2"></i>
-            <span class="text-success">${escapeHtml(
-              op["sum-row-sumavarios"]
-            )}</span>
-            <span class="badge bg-success ms-2">Consolidado</span>
-          </div>`
-              : ""
-          }
-          ${
-            op["sum-row-sumavarios-consolidado"]
-              ? `
-          <div class="row-preview mb-1">
-            <i class="bi bi-arrow-return-right me-2"></i>
-            <span class="text-info">${escapeHtml(
-              op["sum-row-sumavarios-consolidado"]
-            )}</span>
-            <span class="badge bg-info ms-2">Consolidado Total</span>
-          </div>`
-              : ""
-          }
-          ${
-            op["result-row"] || op["net-row"]
-              ? `
-          <div class="row-preview">
-            <i class="bi bi-calculator me-2"></i>
-            <span class="text-warning">${escapeHtml(
-              op["result-row"] || op["net-row"] || ""
-            )}</span>
-            <span class="badge bg-warning text-dark ms-2">Resultado</span>
-          </div>`
-              : ""
+            rowLabelPreview ||
+            `<div class="row-preview mb-2">
+              <i class="bi bi-calculator text-primary me-2"></i>
+              <strong class="text-primary">${escapeHtml(op.Clase)}</strong>
+              <span class="badge bg-secondary ms-2">Operación</span>
+            </div>`
           }
           <div class="mt-2 small text-muted">
             <i class="bi bi-info-circle me-1"></i>
@@ -3446,16 +3502,6 @@
     });
 
     // Etiquetas generadas por filas especiales (sum-row, net-row, etc.)
-    const rowLabelFields = [
-      "sum-row",
-      "sum-row-sumavarios",
-      "sum-row-sumavarios-consolidado",
-      "sum-row-operativo",
-      "result-row",
-      "net-row",
-      "result-net-row",
-    ];
-
     state.operaciones.forEach((op) => {
       // Poblar secciones aún cuando no existan cuentas cargadas
       [op.SECCION, op.parentSection, op.parentSubsection]
@@ -3463,7 +3509,7 @@
         .forEach((sec) => sections.add(sec));
 
       // Poblar operaciones con etiquetas de filas generadas
-      rowLabelFields.forEach((field) => {
+      ROW_LABEL_FIELDS.forEach((field) => {
         const label = op[field];
         if (label && label.trim()) {
           operations.add(label.trim());
