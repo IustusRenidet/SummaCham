@@ -1390,14 +1390,29 @@
 
   const aplicarFiltroColumnasPorPeriodo = () => {
     if (!estadoModulo.tabla) return;
-    const periodoLimite = obtenerPeriodoVisible();
+
+    // Obtener año seleccionado
+    const anioSeleccionado = obtenerAnioSeleccionado();
+    const anioActual = new Date().getFullYear();
+
+    // Solo aplicar filtro de periodo para el año EN CURSO
+    // Años anteriores muestran TODOS los meses
+    const esAnioActual = anioSeleccionado === anioActual;
+
+    const periodoLimite = esAnioActual ? obtenerPeriodoVisible() : null;
     const filas = Array.from(estadoModulo.tabla.querySelectorAll("tr"));
+
     Object.entries(estadoModulo.columnas || {}).forEach(([clave, idx]) => {
       if (!clave.startsWith("real-")) return;
       const mesClave = clave.replace("real-", "");
       const mesNumero = CLAVE_MES_A_PERIODO.get(mesClave) || null;
+
+      // Lógica de filtrado:
+      // - Años anteriores (periodoLimite = null): Mostrar TODO
+      // - Año actual (periodoLimite != null): Ocultar meses > periodo
       const debeOcultar =
-        periodoLimite == null || (mesNumero && mesNumero > periodoLimite);
+        periodoLimite != null && mesNumero && mesNumero > periodoLimite;
+
       filas.forEach((fila) => {
         const celda = fila.cells[idx];
         if (celda) {

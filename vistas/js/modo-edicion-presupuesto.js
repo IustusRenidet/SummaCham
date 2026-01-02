@@ -171,6 +171,34 @@
       : window.location.origin;
 
   /**
+   * Helper para obtener el selector de año del módulo actual
+   * Busca en todos los posibles IDs de selectores de año de los diferentes módulos
+   */
+  function obtenerSelectorAnio() {
+    return (
+      document.getElementById("selectAnio") ||
+      document.getElementById("resumenYearSelect") ||
+      document.getElementById("summaryYear Select") ||
+      document.getElementById("eventosYearSelect") ||
+      document.getElementById("comitesYearSelect") ||
+      document.getElementById("comunicacionYearSelect") ||
+      document.getElementById("gtoscorporativosYearSelect") ||
+      document.getElementById("gastosgeneralesYearSelect") ||
+      document.getElementById("finanzasYearSelect") ||
+      document.getElementById("rhYearSelect") ||
+      document.getElementById("membresiaYearSelect") ||
+      document.getElementById("servmembresiaYearSelect") ||
+      document.getElementById("ticYearSelect") ||
+      document.getElementById("direccionYearSelect") ||
+      document.getElementById("vpeYearSelect") ||
+      document.getElementById("nominaYearSelect") ||
+      document.querySelector('[data-role="module-year-select"]') ||
+      document.querySelector('select[id$="YearSelect"]') ||
+      document.querySelector('select[name="anio"]')
+    );
+  }
+
+  /**
    * Cargar catálogo completo de cuentas desde CUENTASYY (Firebird)
    */
   async function cargarCatalogoCuentas(empresaId, anio) {
@@ -431,7 +459,7 @@
     // NUNCA editar CUENTAS o DESCRIPCIÓN
     if (!estado.soloLayout) {
       // Buscar solo celdas con data-mes (month-budget columns)
-      const selectorCeldasBudget = 'td[data-mes]';
+      const selectorCeldasBudget = "td[data-mes]";
       const celdas = tabla.querySelectorAll(selectorCeldasBudget);
 
       celdas.forEach((celda) => {
@@ -783,10 +811,7 @@
       }
       const empresa = Sesion.obtenerEmpresaActiva();
       const selectAnioElem =
-        document.getElementById("selectAnio") ||
-        document.getElementById("resumenYearSelect") ||
-        document.getElementById("yearSelect") ||
-        document.querySelector('[name="anio"]');
+        obtenerSelectorAnio() || document.querySelector('[name="anio"]');
       const anioSeleccion = Number(
         selectAnioElem?.value || new Date().getFullYear()
       );
@@ -1197,17 +1222,14 @@
       // Cargar catálogo de cuentas desde CUENTASYY (Firebird)
       try {
         const empresa = Sesion?.obtenerEmpresaActiva?.();
-        const anioSeleccion = Number(
-          document.getElementById("selectAnio")?.value ||
-            new Date().getFullYear()
-        );
+        const selectAnio = obtenerSelectorAnio();
+        const anioSeleccion = Number(selectAnio?.value);
         const anio = Number.isInteger(anioSeleccion) ? anioSeleccion : null;
 
         if (empresa?.id && Number.isInteger(anio)) {
           cargarCatalogoCuentas(empresa.id, anio);
 
           // Escuchar cambios de año para recargar catálogo
-          const selectAnio = document.getElementById("selectAnio");
           if (selectAnio && !selectAnio.dataset.catalogoListener) {
             selectAnio.dataset.catalogoListener = "true";
             selectAnio.addEventListener("change", () => {
@@ -1217,6 +1239,15 @@
               }
             });
           }
+        } else {
+          console.warn(
+            "⚠️ No se pudo determinar año o empresa para cargar catálogo",
+            {
+              empresaId: empresa?.id,
+              anio,
+              selectorEncontrado: !!selectAnio,
+            }
+          );
         }
       } catch (err) {
         console.warn("⚠️ Error cargando catálogo de cuentas:", err);
@@ -1225,10 +1256,8 @@
       // Intentar cargar layout guardado localmente y aplicarlo
       try {
         const empresa = Sesion.obtenerEmpresaActiva();
-        const anioSeleccion = Number(
-          document.getElementById("selectAnio")?.value ||
-            new Date().getFullYear()
-        );
+        const selectAnio = obtenerSelectorAnio();
+        const anioSeleccion = Number(selectAnio?.value);
         const anio = Number.isInteger(anioSeleccion) ? anioSeleccion : null;
         const moduloClave = (
           document.body?.dataset?.modulo ||

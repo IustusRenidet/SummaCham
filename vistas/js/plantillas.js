@@ -2423,82 +2423,14 @@
       <div class="mb-3">
         <label class="form-label">Etiqueta de la Operación</label>
         <input type="text" class="form-control" id="editClaseOp" value="${escapeHtml(
-          op.Clase
+          op["sum-row"] || op.Clase
         )}" />
-      </div>
-      
-      <div class="mb-3">
-        <label class="form-label">Controles de Presentación</label>
-        <div class="d-flex gap-3 align-items-center">
-          ${
-            window.LayoutControls
-              ? window.LayoutControls.renderVisibilityControl(op, "operation")
-              : ""
-          }
-          ${
-            window.LayoutControls
-              ? window.LayoutControls.renderOrderControl(op, "operation")
-              : ""
-          }
-        </div>
       </div>
 
       <div class="mb-3">
         <label class="form-label fw-bold">Constructor de Fórmula</label>
         <div id="formulaBuilderContainer">
           <!-- El FormulaBuilder se renderizará aquí -->
-        </div>
-      </div>
-      
-      <div class="module-preview mt-3">
-        <label class="form-label">Vista Previa en Módulos:</label>
-        <div class="bg-info bg-opacity-10 p-2 rounded border">
-          <div class="row-preview mb-2">
-            <strong class="text-primary">${escapeHtml(
-              op["sum-row"] || op.Clase
-            )}</strong>
-            <span class="badge bg-secondary ms-2">Fila de Suma</span>
-          </div>
-          ${
-            op["sum-row-sumavarios"]
-              ? `
-          <div class="row-preview mb-1">
-            <i class="bi bi-arrow-return-right me-2"></i>
-            <span class="text-success">${escapeHtml(
-              op["sum-row-sumavarios"]
-            )}</span>
-            <span class="badge bg-success ms-2">Consolidado</span>
-          </div>`
-              : ""
-          }
-          ${
-            op["sum-row-sumavarios-consolidado"]
-              ? `
-          <div class="row-preview mb-1">
-            <i class="bi bi-arrow-return-right me-2"></i>
-            <span class="text-info">${escapeHtml(
-              op["sum-row-sumavarios-consolidado"]
-            )}</span>
-            <span class="badge bg-info ms-2">Consolidado Total</span>
-          </div>`
-              : ""
-          }
-          ${
-            op["result-row"] || op["net-row"]
-              ? `
-          <div class="row-preview">
-            <i class="bi bi-calculator me-2"></i>
-            <span class="text-warning">${escapeHtml(
-              op["result-row"] || op["net-row"] || ""
-            )}</span>
-            <span class="badge bg-warning text-dark ms-2">Resultado</span>
-          </div>`
-              : ""
-          }
-          <div class="mt-2 small text-muted">
-            <i class="bi bi-info-circle me-1"></i>
-            Módulos: ${state.modulo || "SUMMARY, RESUMEN"}
-          </div>
         </div>
       </div>
     `;
@@ -2527,8 +2459,8 @@
 
   // Helper para el toggle en edición
   window.toggleEditFormulaBuilder = function () {
-    // Realmente siempre mostramos el builder en edición para que vean el mapa
-    updateFormulaPreview();
+    // Builder always shown in edit mode
+    // Removed updateFormulaPreview() - not needed
   };
 
   window.deleteOperation = function (clase) {
@@ -3178,7 +3110,7 @@
   window.removeFormulaTerm = function (termId) {
     formulaTerms = formulaTerms.filter((t) => t.id !== termId);
     renderFormulaTerms();
-    updateFormulaPreview();
+    // Removed updateFormulaPreview() - not needed
   };
 
   // Helper to get accounts for a section name
@@ -3354,14 +3286,14 @@
       })
       .join("");
 
-    updateFormulaPreview();
+    // Removed updateFormulaPreview() - not needed
   }
 
   // Actualizar operador de término
   window.updateTermOperator = function (termId, operator) {
     const term = formulaTerms.find((t) => t.id === termId);
     if (term) term.operator = operator;
-    updateFormulaPreview();
+    // Removed updateFormulaPreview() - not needed
   };
 
   // Actualizar tipo de término
@@ -3413,7 +3345,7 @@
 
     // Para cuentas y operaciones, simplemente actualizar el valor
     term.value = value;
-    updateFormulaPreview();
+    // Removed updateFormulaPreview() - not needed
   };
 
   // Obtener elementos disponibles
@@ -3422,7 +3354,7 @@
     const accounts = [];
     const operations = new Set();
 
-    // Secciones y Cuentas
+    // Secciones y Cuentas - SOLO desde cuentas cargadas
     groupBySections(state.cuentas).forEach((subs, principal) => {
       sections.add(principal);
       subs.forEach((cuentas, secundaria) => {
@@ -3437,7 +3369,7 @@
       });
     });
 
-    // Otras Operaciones (excepto la que se está editando)
+    // Operaciones - Clase de operaciones (excepto la que se está editando)
     const currentOpClase = state.selectedElement?.op?.Clase;
     sortOperations(state.operaciones).forEach((op) => {
       if (op.Clase && op.Clase !== currentOpClase) {
@@ -3457,11 +3389,6 @@
     ];
 
     state.operaciones.forEach((op) => {
-      // Poblar secciones aún cuando no existan cuentas cargadas
-      [op.SECCION, op.parentSection, op.parentSubsection]
-        .filter(Boolean)
-        .forEach((sec) => sections.add(sec));
-
       // Poblar operaciones con etiquetas de filas generadas
       rowLabelFields.forEach((field) => {
         const label = op[field];
@@ -3508,26 +3435,7 @@
     showToast(`Se agregaron ${formulaTerms.length} términos`, "success");
   };
 
-  // Actualizar preview de la fórmula
-  function updateFormulaPreview() {
-    const preview = document.getElementById("formulaPreviewText");
-    if (!preview) return;
-
-    if (formulaTerms.length === 0) {
-      preview.textContent = "(Sin términos)";
-      return;
-    }
-
-    const formulaStr = formulaTerms
-      .map((term, idx) => {
-        const prefix = idx === 0 ? "" : ` ${term.operator} `;
-        const label = term.value || "???";
-        return prefix + label;
-      })
-      .join("");
-
-    preview.textContent = formulaStr || "(Sin términos)";
-  }
+  // Formula preview removed - not needed in modal
 
   // Construir fórmula para guardar
   function buildFormulaFromTerms() {

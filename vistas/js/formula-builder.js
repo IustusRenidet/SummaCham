@@ -249,9 +249,6 @@
             <button type="button" class="btn btn-sm btn-outline-success" onclick="FormulaBuilder.addTerm()">
               <i class="bi bi-plus-circle me-1"></i>Agregar término
             </button>
-            <button type="button" class="btn btn-sm btn-outline-primary" onclick="FormulaBuilder.suggestFromName()">
-              <i class="bi bi-magic me-1"></i>Sugerir desde nombre
-            </button>
             <button type="button" class="btn btn-sm btn-outline-info" onclick="FormulaBuilder.showMap()">
               <i class="bi bi-diagram-3 me-1"></i>Ver mapa visual
             </button>
@@ -292,10 +289,15 @@
       let valueInput = "";
       switch (term.type) {
         case "section":
+          // Garantizar que la opción actual exista aunque no esté en el catálogo
+          const sectionOptions = [...this.availableElements.sections];
+          if (term.value && !sectionOptions.includes(term.value)) {
+            sectionOptions.unshift(term.value);
+          }
           valueInput = `
             <select class="form-select" onchange="FormulaBuilder.updateValue(${term.id}, this.value)">
               <option value="">Seleccionar sección...</option>
-              ${this.availableElements.sections
+              ${sectionOptions
                 .map(
                   (s) =>
                     `<option value="${this._escapeAttr(s)}" ${
@@ -308,10 +310,17 @@
           break;
 
         case "account":
+          const accountOptions = [...this.availableElements.accounts];
+          if (
+            term.value &&
+            !accountOptions.some((a) => a.code === term.value)
+          ) {
+            accountOptions.unshift({ code: term.value, name: term.value });
+          }
           valueInput = `
             <select class="form-select" onchange="FormulaBuilder.updateValue(${term.id}, this.value)">
               <option value="">Seleccionar cuenta...</option>
-              ${this.availableElements.accounts
+              ${accountOptions
                 .map(
                   (acc) =>
                     `<option value="${this._escapeAttr(acc.code)}" ${
@@ -326,10 +335,14 @@
           break;
 
         case "operation":
+          const operationOptions = [...this.availableElements.operations];
+          if (term.value && !operationOptions.includes(term.value)) {
+            operationOptions.unshift(term.value);
+          }
           valueInput = `
             <select class="form-select" onchange="FormulaBuilder.updateValue(${term.id}, this.value)">
               <option value="">Seleccionar operación...</option>
-              ${this.availableElements.operations
+              ${operationOptions
                 .map(
                   (op) =>
                     `<option value="${this._escapeAttr(op)}" ${
