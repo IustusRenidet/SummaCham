@@ -2608,29 +2608,21 @@
       // === HOJA 2: Gráficas ===
       const wsGraficas = workbook.addWorksheet('Gráficas');
       
-      // Información del contexto
-      wsGraficas.addRow(['GRÁFICAS DE RESUMEN']);
-      wsGraficas.addRow(['Empresa:', nombreEmpresa]);
-      wsGraficas.addRow(['Año:', anio]);
-      wsGraficas.addRow(['Mes:', mes]);
-      wsGraficas.addRow(['Fecha:', new Date().toLocaleString('es-MX')]);
-      wsGraficas.addRow([]);
-
       // Generar gráficas dinámicamente
       const graficaData = generarDatosGraficas();
       
       if (graficaData && graficaData.length > 0) {
-        // Crear canvas temporal para las gráficas
+        // Crear canvas temporal con alta resolución para mejor calidad
         const canvas = document.createElement('canvas');
-        canvas.width = 1200;
-        canvas.height = 600;
+        canvas.width = 2400;  // Alta resolución
+        canvas.height = 1200;
         canvas.style.display = 'none';
         document.body.appendChild(canvas);
 
-        let currentRow = 7;
+        let currentRow = 2;
 
         for (const data of graficaData) {
-          // Generar gráfica con Chart.js (el título está incluido en la gráfica)
+          // Generar gráfica con Chart.js
           const ctx = canvas.getContext('2d');
           ctx.clearRect(0, 0, canvas.width, canvas.height);
           
@@ -2648,64 +2640,48 @@
                   display: true,
                   position: 'bottom',
                   labels: {
-                    font: { size: 16, weight: 'bold' },
-                    padding: 20,
+                    font: { size: 24, weight: 'bold' },  // Fuentes más grandes
+                    padding: 30,
                     usePointStyle: true,
-                    boxWidth: 15,
-                    boxHeight: 15
+                    boxWidth: 20,
+                    boxHeight: 20
                   }
                 },
                 title: {
                   display: true,
                   text: data.titulo,
-                  font: { size: 22, weight: 'bold' },
-                  padding: { top: 15, bottom: 25 },
+                  font: { size: 32, weight: 'bold' },  // Título más grande
+                  padding: { top: 20, bottom: 35 },
                   color: '#1e3a8a'
-                },
-                datalabels: {
-                  display: true,
-                  color: '#000',
-                  anchor: 'end',
-                  align: 'top',
-                  offset: 4,
-                  font: {
-                    size: 14,
-                    weight: 'bold'
-                  },
-                  formatter: function(value) {
-                    return value.toLocaleString('es-MX', { maximumFractionDigits: 0 });
-                  }
                 }
               },
               scales: {
                 y: { 
-                  beginAtZero: false,
+                  beginAtZero: true,
                   ticks: {
-                    font: { size: 14 },
+                    font: { size: 20 },  // Números más grandes
                     callback: function(value) {
                       return value.toLocaleString('es-MX', { maximumFractionDigits: 0 });
                     }
                   },
                   grid: { 
                     color: 'rgba(0,0,0,0.08)',
-                    lineWidth: 1
+                    lineWidth: 2
                   }
                 },
                 x: {
-                  display: false,
+                  ticks: { font: { size: 18 } },  // Etiquetas más grandes
                   grid: { display: false }
                 }
               },
               layout: {
                 padding: {
-                  left: 20,
-                  right: 20,
-                  top: 50,
-                  bottom: 20
+                  left: 30,
+                  right: 30,
+                  top: 100,
+                  bottom: 30
                 }
-              },
-              barPercentage: 0.7,
-              categoryPercentage: 0.8
+              }
             },
             plugins: [{
               id: 'customDataLabels',
@@ -2715,14 +2691,19 @@
                   const meta = chart.getDatasetMeta(i);
                   if (!meta.hidden) {
                     meta.data.forEach(function(element, index) {
+                      const value = dataset.data[index];
+                      if (value === 0) return;
+                      
                       ctx.fillStyle = '#000';
-                      ctx.font = 'bold 14px Arial';
+                      ctx.font = 'bold 22px Arial';  // Texto más grande
                       ctx.textAlign = 'center';
                       ctx.textBaseline = 'bottom';
                       
-                      const dataString = dataset.data[index].toLocaleString('es-MX', { maximumFractionDigits: 0 });
-                      const position = element.tooltipPosition();
-                      ctx.fillText(dataString, position.x, position.y - 5);
+                      const dataString = value.toLocaleString('es-MX', { maximumFractionDigits: 0 });
+                      
+                      // Colocar el texto arriba de la barra (fuera)
+                      const yOffset = value >= 0 ? -15 : 30;
+                      ctx.fillText(dataString, element.x, element.y + yOffset);
                     });
                   }
                 });
@@ -2731,7 +2712,7 @@
           });
 
           // Esperar a que se renderice
-          await new Promise(resolve => setTimeout(resolve, 100));
+          await new Promise(resolve => setTimeout(resolve, 200));
 
           // Convertir canvas a imagen
           const imageBase64 = canvas.toDataURL('image/png');
@@ -2749,11 +2730,7 @@
 
           // Destruir gráfica y avanzar filas
           chart.destroy();
-          currentRow += 30; // Espacio para la imagen (más espacio)
-          wsGraficas.addRow([]);
-          wsGraficas.addRow([]);
-          wsGraficas.addRow([]);
-          currentRow += 3;
+          currentRow += 30;
         }
 
         // Limpiar canvas temporal
