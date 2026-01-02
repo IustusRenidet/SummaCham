@@ -235,6 +235,10 @@
     dom.btnGuardar.disabled = !canEdit || !state.unsavedChanges;
     dom.btnAgregar.disabled = !canEdit;
     dom.btnCopiar.disabled = !state.editMode || !hasLayout;
+
+    // Expandir/Colapsar disponibles cuando hay layout cargado
+    if (dom.btnExpandir) dom.btnExpandir.disabled = !hasLayout;
+    if (dom.btnColapsar) dom.btnColapsar.disabled = !hasLayout;
   }
 
   // ==========================================
