@@ -1358,11 +1358,13 @@
 
     // Prefer already normalized terms
     if (Array.isArray(op.formula_terms) && op.formula_terms.length) {
-      return op.formula_terms.map((term) => ({
+      const terms = op.formula_terms.map((term) => ({
         operator: term.operator || "+",
         type: term.type || "section",
         value: term.value || "",
+        parentSection: term.parentSection,
       }));
+      return applyParentSectionHints(op, terms);
     }
 
     const terms = [];
@@ -1396,7 +1398,7 @@
       terms.push({ operator: "+", type: "section", value: op.SECCION });
     }
 
-    return terms;
+    return applyParentSectionHints(op, terms);
   }
 
   function formatFormula(op) {
@@ -2172,6 +2174,115 @@
     return account
       ? account["SECCIÓN Principal"] || account.seccion_principal
       : null;
+  }
+
+
+  function buildSectionIndexes() {
+    const primaryIndex = new Map();
+    const subsectionIndex = new Map();
+    const sections = groupBySections(state.cuentas);
+
+    sections.forEach((section) => {
+      const primary = section?.name || "";
+      const primaryKey = normalizeKey(primary);
+      if (primaryKey && !primaryIndex.has(primaryKey)) {
+        primaryIndex.set(primaryKey, primary);
+      }
+      (section.subsections || []).forEach((subsection) => {
+        const subName = subsection?.name || "";
+        const subKey = normalizeKey(subName);
+        if (!subKey) return;
+        if (!subsectionIndex.has(subKey)) {
+          subsectionIndex.set(subKey, new Set());
+        }
+        subsectionIndex.get(subKey).add(primary);
+      });
+    });
+
+    return { primaryIndex, subsectionIndex };
+  }
+
+  function resolveOperationParentSection(op, primaryIndex) {
+    if (!op) return "";
+    const candidates = [
+      op.parentSection,
+      op["sum-row"],
+      op["sum-row-sumavarios"],
+      op["sum-row-operativo"],
+      op["result-row"],
+      op["net-row"],
+      op["result-net-row"],
+    ].filter(Boolean);
+
+    for (const candidate of candidates) {
+      const key = normalizeKey(candidate);
+      const match = primaryIndex.get(key);
+      if (match) return match;
+    }
+    return "";
+  }
+
+  function inferParentSectionForTerm(op, termValue, indexes) {
+    if (!termValue) return "";
+    const termKey = normalizeKey(termValue);
+    if (!termKey) return "";
+    const primaryIndex = indexes?.primaryIndex || new Map();
+    const subsectionIndex = indexes?.subsectionIndex || new Map();
+
+    if (primaryIndex.has(termKey)) return "";
+
+    const opParent = resolveOperationParentSection(op, primaryIndex);
+    if (opParent) return opParent;
+
+    const parents = subsectionIndex.get(termKey);
+    if (!parents || parents.size === 0) return "";
+    if (parents.size === 1) return Array.from(parents)[0];
+
+
+    const claseLower = (getOperationLabel(op) || "").toLowerCase();
+    if (claseLower.includes("income")) {
+      const match = Array.from(parents).find((p) =>
+        p.toLowerCase().includes("income")
+      );
+      if (match) return match;
+    }
+    if (claseLower.includes("expense") || claseLower.includes("gasto")) {
+      const match = Array.from(parents).find((p) => {
+        const lower = p.toLowerCase();
+        return lower.includes("expense") || lower.includes("gasto");
+      });
+      if (match) return match;
+    }
+    if (claseLower.includes("other") && claseLower.includes("income")) {
+      const match = Array.from(parents).find((p) =>
+        p.toLowerCase().includes("other income")
+      );
+      if (match) return match;
+    }
+
+    return "";
+  }
+
+  function applyParentSectionHints(op, terms) {
+    if (!op || !Array.isArray(terms) || terms.length === 0) {
+      return terms || [];
+    }
+    const indexes = buildSectionIndexes();
+    if (!indexes.primaryIndex.size && !indexes.subsectionIndex.size) {
+      return terms;
+    }
+    return terms.map((term) => {
+      if (!term || term.type !== "section" || term.parentSection) {
+        return term;
+      }
+      const parentSection = inferParentSectionForTerm(
+        op,
+        term.value,
+        indexes
+      );
+      if (!parentSection) return term;
+      return { ...term, parentSection };
+    });
   }
 
   // ==========================================
@@ -3345,6 +3456,7 @@
       value:
         term.type === "operation" ? resolveOperationId(term.value) : term.value,
     }));
+    formulaTerms = applyParentSectionHints(op, formulaTerms);
 
     dom.formEditar.innerHTML = `
       <div class="mb-3">
@@ -4029,6 +4141,7 @@
           operator: "+",
           type: "section",
           value: label,
+          parentSection: parentName,
         });
       });
 
@@ -4168,6 +4281,7 @@
                     operator: "+",
                     type: "section",
                     value: secundaria,
+                    parentSection: principal,
                   });
                 }
               });
@@ -4297,66 +4411,68 @@
   function getAccountsForSection(sectionName, parentSectionName = "") {
     if (!sectionName || !state.cuentas || state.cuentas.length === 0) return [];
 
-    const sectionLower = sectionName.toLowerCase().trim();
-    const parentLower = (parentSectionName || "").toLowerCase().trim();
+    const sectionKey = normalizeKey(sectionName);
+    if (!sectionKey) return [];
+    const parentKey = normalizeKey(parentSectionName);
 
-    const matchesParent = (primary) => {
-      if (!parentLower) return true;
-      if (!primary) return false;
+    const matchesParent = (primaryKey) => {
+      if (!parentKey) return true;
+      if (!primaryKey) return false;
       return (
-        primary === parentLower ||
-        primary.includes(parentLower) ||
-        parentLower.includes(primary)
+        primaryKey === parentKey ||
+        primaryKey.includes(parentKey) ||
+        parentKey.includes(primaryKey)
       );
     };
 
     let accounts = state.cuentas.filter((c) => {
-      const secondary = (
+      const secondaryKey = normalizeKey(
         c.seccion_secundaria ||
-        c["SECCION Secundaria"] ||
-        c["SECCI…N Secundaria"] ||
-        ""
-      )
-        .toLowerCase()
-        .trim();
-      const primary = (
-        c["SECCIàN Principal"] ||
+          c["SECCION Secundaria"] ||
+          c["SECCIÓN Secundaria"] ||
+          c["SECCIàN Secundaria"] ||
+          c["SECCI.N Secundaria"] ||
+          ""
+      );
+      const primaryKey = normalizeKey(
         c["SECCI…N Principal"] ||
-        c["SECCION Principal"] ||
-        c.SECCION ||
-        c.seccion_principal ||
-        ""
-      )
-        .toLowerCase()
-        .trim();
-      if (!matchesParent(primary)) return false;
-      return secondary === sectionLower || primary === sectionLower;
+          c["SECCIÓN Principal"] ||
+          c["SECCIàN Principal"] ||
+          c["SECCI.N Principal"] ||
+          c["SECCION Principal"] ||
+          c.SECCION ||
+          c.seccion_principal ||
+          ""
+      );
+      if (!matchesParent(primaryKey)) return false;
+      return secondaryKey === sectionKey || primaryKey === sectionKey;
     });
 
     // Try partial match if no exact match
     if (accounts.length === 0) {
       accounts = state.cuentas.filter((c) => {
-        const secondary = (
+        const secondaryKey = normalizeKey(
           c.seccion_secundaria ||
-          c["SECCION Secundaria"] ||
-          c["SECCI…N Secundaria"] ||
-          ""
-        )
-          .toLowerCase()
-          .trim();
-        const primary = (
-          c["SECCIàN Principal"] ||
+            c["SECCION Secundaria"] ||
+            c["SECCIÓN Secundaria"] ||
+            c["SECCIàN Secundaria"] ||
+            c["SECCI.N Secundaria"] ||
+            ""
+        );
+        const primaryKey = normalizeKey(
           c["SECCI…N Principal"] ||
-          c["SECCION Principal"] ||
-          c.SECCION ||
-          c.seccion_principal ||
-          ""
-        )
-          .toLowerCase()
-          .trim();
-        if (!matchesParent(primary)) return false;
+            c["SECCIÓN Principal"] ||
+            c["SECCIàN Principal"] ||
+            c["SECCI.N Principal"] ||
+            c["SECCION Principal"] ||
+            c.SECCION ||
+            c.seccion_principal ||
+            ""
+        );
+        if (!matchesParent(primaryKey)) return false;
         return (
-          secondary.includes(sectionLower) || primary.includes(sectionLower)
+          secondaryKey.includes(sectionKey) ||
+          primaryKey.includes(sectionKey)
         );
       });
     }
