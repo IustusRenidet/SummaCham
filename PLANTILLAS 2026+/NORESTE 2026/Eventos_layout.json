@@ -1,0 +1,246 @@
+{
+  "Eventos": [
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "406-001-000-00",
+      "NOMBRE": "Asamblea Anual",
+      "SECCION Principal": "Boletaje",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "406-002-000-00",
+      "NOMBRE": "Torneo Golf",
+      "SECCION Principal": "Boletaje",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "406-003-000-00",
+      "NOMBRE": "Secretarias",
+      "SECCION Principal": "Boletaje",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "406-004-000-00",
+      "NOMBRE": "Foro Económico y otros foros",
+      "SECCION Principal": "Boletaje",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "406-005-000-00",
+      "NOMBRE": "Chamber day / B2B ",
+      "SECCION Principal": "Boletaje",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "406-006-000-00",
+      "NOMBRE": "Eventos especiales",
+      "SECCION Principal": "Boletaje",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "406-009-000-00",
+      "NOMBRE": "Innovation Summit",
+      "SECCION Principal": "Boletaje",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "406-0010-00-00",
+      "NOMBRE": "North American Week ",
+      "SECCION Principal": "Boletaje",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "406-011-000-00",
+      "NOMBRE": "Talent Meetpoint",
+      "SECCION Principal": "Boletaje",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "406-012-000-00",
+      "NOMBRE": "Extend Our Reach (EOR)",
+      "SECCION Principal": "Boletaje",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "414-001-000-00",
+      "NOMBRE": "Asamblea Anual",
+      "SECCION Principal": "Patrocinios",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "414-002-000-00",
+      "NOMBRE": "Torneo Golf",
+      "SECCION Principal": "Patrocinios",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "414-003-000-00",
+      "NOMBRE": "Secretarias",
+      "SECCION Principal": "Patrocinios",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "414-004-000-00",
+      "NOMBRE": "Foro Económico y otros foros",
+      "SECCION Principal": "Patrocinios",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "414-005-000-00",
+      "NOMBRE": "Chamber day / B2B ",
+      "SECCION Principal": "Patrocinios",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "414-006-000-00",
+      "NOMBRE": "Eventos especiales",
+      "SECCION Principal": "Patrocinios",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "414-009-000-00",
+      "NOMBRE": "Innovation Summit",
+      "SECCION Principal": "Patrocinios",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "414-010-000-00",
+      "NOMBRE": "North American Week ",
+      "SECCION Principal": "Patrocinios",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "414-011-000-00",
+      "NOMBRE": "Talent Meetpoint",
+      "SECCION Principal": "Patrocinios",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "414-012-000-00",
+      "NOMBRE": "Extend Our Reach (EOR)",
+      "SECCION Principal": "Patrocinios",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "705-001-000-00",
+      "NOMBRE": "Asamblea Anual",
+      "SECCION Principal": "Costos y Gastos Eventos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "705-002-000-00",
+      "NOMBRE": "Torneo Golf",
+      "SECCION Principal": "Costos y Gastos Eventos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "705-003-000-00",
+      "NOMBRE": "Secretarias",
+      "SECCION Principal": "Costos y Gastos Eventos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "705-004-000-00",
+      "NOMBRE": "Foro Económico",
+      "SECCION Principal": "Costos y Gastos Eventos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "705-005-000-00",
+      "NOMBRE": "Chamber day / B2B ",
+      "SECCION Principal": "Costos y Gastos Eventos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "705-006-000-00",
+      "NOMBRE": "Eventos especiales",
+      "SECCION Principal": "Costos y Gastos Eventos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "705-009-000-00",
+      "NOMBRE": "Innovation Summit",
+      "SECCION Principal": "Costos y Gastos Eventos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "705-010-000-00",
+      "NOMBRE": "North American Week ",
+      "SECCION Principal": "Costos y Gastos Eventos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "705-011-000-00",
+      "NOMBRE": "Talent Meetpoint",
+      "SECCION Principal": "Costos y Gastos Eventos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "705-012-000-00",
+      "NOMBRE": "Extend Our Reach (EOR)",
+      "SECCION Principal": "Costos y Gastos Eventos",
+      "SECCION Secundaria": ""
+    }
+  ],
+  "Operaciones": [
+    {
+      "nombre": "Suma Costos y Gastos Eventos",
+      "tipo": "cuentas",
+      "expresion": "705-001-000-00 + 705-002-000-00 + 705-003-000-00 + 705-004-000-00 + 705-005-000-00 + 705-006-000-00 + 705-009-000-00 + 705-010-000-00 + 705-011-000-00 + 705-012-000-00",
+      "seccion": "Costos y Gastos Eventos"
+    },
+    {
+      "nombre": "Ingresos Boletaje",
+      "tipo": "cuentas",
+      "expresion": "406-001-000-00 + 406-002-000-00 + 406-003-000-00 + 406-004-000-00 + 406-005-000-00 + 406-006-000-00 + 406-009-000-00 + 406-0010-00-00 + 406-011-000-00 + 406-012-000-00",
+      "seccion": "Boletaje"
+    },
+    {
+      "nombre": "Ingresos Patrocinios",
+      "tipo": "cuentas",
+      "expresion": "414-001-000-00 + 414-002-000-00 + 414-003-000-00 + 414-004-000-00 + 414-005-000-00 + 414-006-000-00 + 414-009-000-00 + 414-010-000-00 + 414-011-000-00 + 414-012-000-00",
+      "seccion": "Patrocinios"
+    },
+    {
+      "nombre": "Suma Ingresos Eventos",
+      "tipo": "cuentas",
+      "expresion": "406-001-000-00 + 406-002-000-00 + 406-003-000-00 + 406-004-000-00 + 406-005-000-00 + 406-006-000-00 + 406-009-000-00 + 406-0010-00-00 + 406-011-000-00 + 406-012-000-00 + 414-001-000-00 + 414-002-000-00 + 414-003-000-00 + 414-004-000-00 + 414-005-000-00 + 414-006-000-00 + 414-009-000-00 + 414-010-000-00 + 414-011-000-00 + 414-012-000-00",
+      "seccion": ""
+    },
+    {
+      "nombre": "Resultado Eventos",
+      "tipo": "cuentas",
+      "expresion": "406-001-000-00 + 406-002-000-00 + 406-003-000-00 + 406-004-000-00 + 406-005-000-00 + 406-006-000-00 + 406-009-000-00 + 406-0010-00-00 + 406-011-000-00 + 406-012-000-00 + 414-001-000-00 + 414-002-000-00 + 414-003-000-00 + 414-004-000-00 + 414-005-000-00 + 414-006-000-00 + 414-009-000-00 + 414-010-000-00 + 414-011-000-00 + 414-012-000-00 - 705-001-000-00 - 705-002-000-00 - 705-003-000-00 - 705-004-000-00 - 705-005-000-00 - 705-006-000-00 - 705-009-000-00 - 705-010-000-00 - 705-011-000-00 - 705-012-000-00",
+      "seccion": ""
+    }
+  ]
+}

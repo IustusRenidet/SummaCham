@@ -1,0 +1,307 @@
+{
+  "Gastos Generales": [
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "403-000-000-00",
+      "NOMBRE": "Otros Ingresos",
+      "SECCION Principal": "Otros ingresos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "409-000-000-00",
+      "NOMBRE": "Utilidad Cambiaria",
+      "SECCION Principal": "Otros ingresos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "802-032-000-00",
+      "NOMBRE": "Gtos Financieros (comisiones)",
+      "SECCION Principal": "Gastos Financieros",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "804-000-000-00",
+      "NOMBRE": "Pérdida Cambiaria",
+      "SECCION Principal": "Gastos Financieros",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "802-001-000-00",
+      "NOMBRE": "Renta de oficinas",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "802-004-000-00",
+      "NOMBRE": "Energía Eléctrica ",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "802-016-000-00",
+      "NOMBRE": "Agua potable / Drenaje",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "802-005-000-00",
+      "NOMBRE": "Telefonos (TELMEX)",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "802-017-000-00",
+      "NOMBRE": "Rta Copiadora",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "802-018-000-00",
+      "NOMBRE": "Servicio de Mensajeria Fedex /local",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "802-019-000-00",
+      "NOMBRE": "Despensa y artículos de limpieza",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "802-020-000-00",
+      "NOMBRE": "Becarios",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "802-010-000-00",
+      "NOMBRE": "Mtto. de  Oficina (extintores, mtto, alarmas, sensores, etc)",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "802-008-000-00",
+      "NOMBRE": "Matto. Equipo de Computo y Red",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "802-021-000-00",
+      "NOMBRE": "Gtos. Promocionales (libretas, tazas, Roll ups, dipticos y lonas, marcos y reconocimientos",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "802-007-000-00",
+      "NOMBRE": "Cuotas y suscripciones",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "802-014-000-00",
+      "NOMBRE": "Cuota mtto Club Indl",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "802-022-000-00",
+      "NOMBRE": "Tenencias autos AmCham",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "802-003-005-00",
+      "NOMBRE": "Auto utilitario (seguro)",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "802-025-000-00",
+      "NOMBRE": "Voluntariado",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "802-023-000-00",
+      "NOMBRE": "Gastos Extraordinarios (abituarios y envía flores)",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "802-024-000-00",
+      "NOMBRE": "Reunión fin de año",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "802-026-000-00",
+      "NOMBRE": "IVA a Prorrata No Acreditable",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "802-029-000-00",
+      "NOMBRE": "Ajustes y Diferencias",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "802-028-000-00",
+      "NOMBRE": "Otros gastos  (global entry y atenciones)",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "802-027-000-00",
+      "NOMBRE": "No Deducibles",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "501-000-000-00",
+      "NOMBRE": "Nómina total capítulo",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "803-001-000-00",
+      "NOMBRE": "Reembolso celulares",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "803-003-000-00",
+      "NOMBRE": "Gasolina Kam´s",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "803-007-000-00",
+      "NOMBRE": "Pasajes y Estacionamientos",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "803-008-000-00",
+      "NOMBRE": "Papelería, impresiones  y arts oficina",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "803-009-000-00",
+      "NOMBRE": "Consumos juntas trabajo",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "803-010-000-00",
+      "NOMBRE": "Herramientas TELE-TRABAJO",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "802-002-000-00",
+      "NOMBRE": "Depreciaciones de equipo",
+      "SECCION Principal": "Depreciaciones y Amortizaciones",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "802-015-000-00",
+      "NOMBRE": "Amortizaciones (CRM y Mejoras a locales arrendados)",
+      "SECCION Principal": "Depreciaciones y Amortizaciones",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "900-000-000-00",
+      "NOMBRE": "Gastos Corporativos Mty",
+      "SECCION Principal": "GA Capítulo",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "901-000-000-00",
+      "NOMBRE": "Member Centricity",
+      "SECCION Principal": "GA Capítulo",
+      "SECCION Secundaria": ""
+    }
+  ],
+  "Operaciones": [
+    {
+      "nombre": "Suma Otros Ingresos",
+      "tipo": "cuentas",
+      "expresion": "403-000-000-00 + 409-000-000-00",
+      "seccion": "Otros ingresos"
+    },
+    {
+      "nombre": "Suma Gastos Financieros",
+      "tipo": "cuentas",
+      "expresion": "802-032-000-00 + 804-000-000-00",
+      "seccion": "Gastos Financieros"
+    },
+    {
+      "nombre": "Suma de Gastos Generales",
+      "tipo": "cuentas",
+      "expresion": "802-001-000-00 + 802-004-000-00 + 802-016-000-00 + 802-005-000-00 + 802-017-000-00 + 802-018-000-00 + 802-019-000-00 + 802-020-000-00 + 802-010-000-00 + 802-008-000-00 + 802-021-000-00 + 802-007-000-00 + 802-014-000-00 + 802-022-000-00 + 802-003-005-00 + 802-025-000-00 + 802-023-000-00 + 802-024-000-00 + 802-026-000-00 + 802-029-000-00 + 802-028-000-00 + 802-027-000-00 + 501-000-000-00 + 803-001-000-00 + 803-003-000-00 + 803-007-000-00 + 803-008-000-00 + 803-009-000-00 + 803-010-000-00",
+      "seccion": "Gastos Generales"
+    },
+    {
+      "nombre": "Suma Depreciaciones y Amortizaciones",
+      "tipo": "cuentas",
+      "expresion": "802-002-000-00 + 802-015-000-00",
+      "seccion": "Depreciaciones y Amortizaciones"
+    },
+    {
+      "nombre": "Otros Ingresos vs Gastos",
+      "tipo": "cuentas",
+      "expresion": "403-000-000-00 + 409-000-000-00 - 802-032-000-00 - 804-000-000-00",
+      "seccion": ""
+    },
+    {
+      "nombre": "Total GA",
+      "tipo": "cuentas",
+      "expresion": "900-000-000-00 + 901-000-000-00",
+      "seccion": "GA Capítulo"
+    },
+    {
+      "nombre": "Total",
+      "tipo": "cuentas",
+      "expresion": "403-000-000-00 + 409-000-000-00 - 802-032-000-00 - 804-000-000-00 - 802-001-000-00 - 802-004-000-00 - 802-016-000-00 - 802-005-000-00 - 802-017-000-00 - 802-018-000-00 - 802-019-000-00 - 802-020-000-00 - 802-010-000-00 - 802-008-000-00 - 802-021-000-00 - 802-007-000-00 - 802-014-000-00 - 802-022-000-00 - 802-003-005-00 - 802-025-000-00 - 802-023-000-00 - 802-024-000-00 - 802-026-000-00 - 802-029-000-00 - 802-028-000-00 - 802-027-000-00 - 501-000-000-00 - 803-001-000-00 - 803-003-000-00 - 803-007-000-00 - 803-008-000-00 - 803-009-000-00 - 803-010-000-00 - 802-002-000-00 - 802-015-000-00 - 900-000-000-00 - 901-000-000-00",
+      "seccion": ""
+    }
+  ]
+}

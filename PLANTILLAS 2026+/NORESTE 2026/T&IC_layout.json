@@ -1,0 +1,46 @@
+{
+  "T&IC": [
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "405-001-000-00",
+      "NOMBRE": "SemiconWest",
+      "SECCION Principal": "Ingresos T&IC",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "405-002-000-00",
+      "NOMBRE": "Select USA",
+      "SECCION Principal": "Ingresos T&IC",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "602-001-000-00",
+      "NOMBRE": "SemiconWest",
+      "SECCION Principal": "Gastos T&IC",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "602-002-000-00",
+      "NOMBRE": "Select USA",
+      "SECCION Principal": "Gastos T&IC",
+      "SECCION Secundaria": ""
+    }
+  ],
+  "Operaciones": [
+    {
+      "nombre": "Suma de Ingresos T&IC",
+      "tipo": "cuentas",
+      "expresion": "405-001-000-00 + 405-002-000-00",
+      "seccion": "Ingresos T&IC"
+    },
+    {
+      "nombre": "Suma de Gastos T&IC",
+      "tipo": "cuentas",
+      "expresion": "602-001-000-00 + 602-002-000-00",
+      "seccion": "Gastos T&IC"
+    }
+  ]
+}

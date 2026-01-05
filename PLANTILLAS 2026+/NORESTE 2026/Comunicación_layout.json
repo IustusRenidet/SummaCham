@@ -1,0 +1,42 @@
+{
+  "Comunicación": [
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "802-031-001-00",
+      "NOMBRE": "Agencias de Comunicación",
+      "SECCION": "Gastos Comunicación"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "802-031-002-00",
+      "NOMBRE": "Contenidos multimedia",
+      "SECCION": "Gastos Comunicación"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "802-031-003-00",
+      "NOMBRE": "Marketing Licencias",
+      "SECCION": "Gastos Comunicación"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "802-031-004-00",
+      "NOMBRE": "Traductor",
+      "SECCION": "Gastos Comunicación"
+    }
+  ],
+  "Operaciones": [
+    {
+      "nombre": "Suma de Gastos Comunicación",
+      "tipo": "cuentas",
+      "expresion": "802-031-001-00 + 802-031-002-00 + 802-031-003-00 + 802-031-004-00",
+      "seccion": "Gastos Comunicación"
+    },
+    {
+      "nombre": "Resultado Operativo Comunicación",
+      "tipo": "cuentas",
+      "expresion": "- 802-031-001-00 - 802-031-002-00 - 802-031-003-00 - 802-031-004-00",
+      "seccion": ""
+    }
+  ]
+}

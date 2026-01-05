@@ -1,0 +1,91 @@
+{
+  "Dirección": [
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "408-002-000-00",
+      "NOMBRE": "Juntas de Consejo y cena navideña",
+      "SECCION Principal": "Ingresos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "701-001-002-00",
+      "NOMBRE": "Juntas de Consejo y cena navideña",
+      "SECCION Principal": "Gastos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "803-004-000-00",
+      "NOMBRE": "Gastos de Viaje",
+      "SECCION Principal": "Gastos de Administración",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "802-013-003-00",
+      "NOMBRE": "Gtos de Viaje Presidente",
+      "SECCION Principal": "Gastos de Administración",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "803-002-000-00",
+      "NOMBRE": "Gasolina Administración",
+      "SECCION Principal": "Gastos de Administración",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "803-005-000-00",
+      "NOMBRE": "Mtto. Equipo de Transporte",
+      "SECCION Principal": "Gastos de Administración",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "803-006-000-00",
+      "NOMBRE": "Gastos de Representación",
+      "SECCION Principal": "Gastos de Administración",
+      "SECCION Secundaria": ""
+    }
+  ],
+  "Operaciones": [
+    {
+      "nombre": "Suma de Ingresos Dirección",
+      "tipo": "cuentas",
+      "expresion": "408-002-000-00",
+      "seccion": "Ingresos Comités"
+    },
+    {
+      "nombre": "Suma de Gastos Dirección",
+      "tipo": "cuentas",
+      "expresion": "701-001-002-00",
+      "seccion": "Gastos Comités"
+    },
+    {
+      "nombre": "Suma Gastos Administrativos",
+      "tipo": "cuentas",
+      "expresion": "803-004-000-00 + 802-013-003-00 + 803-002-000-00 + 803-005-000-00 + 803-006-000-00",
+      "seccion": "Gastos de Administración"
+    },
+    {
+      "nombre": "Resultado Juntas de Consejo y cena navideña",
+      "tipo": "cuentas",
+      "expresion": "408-002-000-00 - 701-001-002-00",
+      "seccion": ""
+    },
+    {
+      "nombre": "Resultado Director Capítulo",
+      "tipo": "cuentas",
+      "expresion": "408-002-000-00 - 701-001-002-00 - 803-004-000-00 - 802-013-003-00 - 803-002-000-00 - 803-005-000-00 - 803-006-000-00",
+      "seccion": ""
+    },
+    {
+      "nombre": "Resultado Operativo",
+      "tipo": "cuentas",
+      "expresion": "408-002-000-00 - 701-001-002-00 - 803-004-000-00 - 802-013-003-00 - 803-002-000-00 - 803-005-000-00 - 803-006-000-00",
+      "seccion": ""
+    }
+  ]
+}

@@ -1,0 +1,296 @@
+{
+  "RESUMEN": [
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "400000000000000000001",
+      "NOMBRE": "Cuotas Netas",
+      "SECCION Principal": "INCOME",
+      "SECCION Secundaria": "Membership"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "401000000000000000001",
+      "NOMBRE": "Ingresos socios nuevos",
+      "SECCION Principal": "INCOME",
+      "SECCION Secundaria": "Membership"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "406000000000000000000",
+      "NOMBRE": "Eventos",
+      "SECCION Principal": "INCOME",
+      "SECCION Secundaria": "Events"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "414000000000000000001",
+      "NOMBRE": "Patrocinios",
+      "SECCION Principal": "INCOME",
+      "SECCION Secundaria": "Events"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "408000000000000000000",
+      "NOMBRE": "Comités",
+      "SECCION Principal": "INCOME",
+      "SECCION Secundaria": "Committees"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "405000000000000000001",
+      "NOMBRE": "Trade & InvestmentCenter",
+      "SECCION Principal": "INCOME",
+      "SECCION Secundaria": "T&IC"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "410000000000000000001",
+      "NOMBRE": "Venta de publicaciones",
+      "SECCION Principal": "INCOME",
+      "SECCION Secundaria": "Services to Members"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "412000000000000000001",
+      "NOMBRE": "Visas",
+      "SECCION Principal": "INCOME",
+      "SECCION Secundaria": "Services to Members"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "502000000000000000000",
+      "NOMBRE": "Comsiones por venta de membresía",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Membership"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "708000000000000000000",
+      "NOMBRE": "Gastos de Promoción",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Membership"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "705000000000000000001",
+      "NOMBRE": "Eventos",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Events"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "701000000000000000001",
+      "NOMBRE": "Costo Comités",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Committees"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "504000000000000000000",
+      "NOMBRE": "Comisiones EWDP",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Committees"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "602000000000000000000",
+      "NOMBRE": "CostoTrade&InvestmentCenter",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "T&IC"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "706000000000000000001",
+      "NOMBRE": "Visas",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Services to Members"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "600000000000000000001",
+      "NOMBRE": "Costo de publicaciones",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Services to Members"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "803000000000000000000",
+      "NOMBRE": "Gastos administrativos",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Gastos G&A"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "802000000000000000001",
+      "NOMBRE": "Gastos Generales",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Gastos G&A"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "501000000000000000001",
+      "NOMBRE": "Nómina",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Nómina"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "900000000000000000001",
+      "NOMBRE": "Gastos Corporativos",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Gastos Corporativos"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "900001000000000000000",
+      "NOMBRE": "Cargos Administrativos",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Cargos Administrativos"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "901000000000000000001",
+      "NOMBRE": "Member Centricity",
+      "SECCION Principal": "Member Centricity",
+      "SECCION Secundaria": "Member Centricity"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "403000000000000000001",
+      "NOMBRE": "Otros ingresos",
+      "SECCION Principal": "Other",
+      "SECCION Secundaria": "Other"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "409000000000000000001",
+      "NOMBRE": "Utilidad cambiaria",
+      "SECCION Principal": "Other",
+      "SECCION Secundaria": "Other"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "413000000000000000001",
+      "NOMBRE": "Rendimientos bancarios",
+      "SECCION Principal": "Other",
+      "SECCION Secundaria": "Other"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "804000000000000000000",
+      "NOMBRE": "Pérdida cambiaria",
+      "SECCION Principal": "Other",
+      "SECCION Secundaria": "Other"
+    }
+  ],
+  "Operaciones": [
+    {
+      "nombre": "Membership",
+      "tipo": "cuentas",
+      "expresion": "400000000000000000001 + 401000000000000000001",
+      "seccion": "INCOME"
+    },
+    {
+      "nombre": "Events",
+      "tipo": "cuentas",
+      "expresion": "406000000000000000000 + 414000000000000000001",
+      "seccion": "INCOME"
+    },
+    {
+      "nombre": "Committees",
+      "tipo": "cuentas",
+      "expresion": "408000000000000000000",
+      "seccion": "INCOME"
+    },
+    {
+      "nombre": "T&IC",
+      "tipo": "cuentas",
+      "expresion": "405000000000000000001",
+      "seccion": "INCOME"
+    },
+    {
+      "nombre": "Services to Members",
+      "tipo": "cuentas",
+      "expresion": "410000000000000000001 + 412000000000000000001",
+      "seccion": "INCOME"
+    },
+    {
+      "nombre": "Membership",
+      "tipo": "cuentas",
+      "expresion": "502000000000000000000 + 708000000000000000000",
+      "seccion": "EXPENSE"
+    },
+    {
+      "nombre": "Events",
+      "tipo": "cuentas",
+      "expresion": "705000000000000000001",
+      "seccion": "EXPENSE"
+    },
+    {
+      "nombre": "Committees",
+      "tipo": "cuentas",
+      "expresion": "701000000000000000001 + 504000000000000000000",
+      "seccion": "EXPENSE"
+    },
+    {
+      "nombre": "T&IC",
+      "tipo": "cuentas",
+      "expresion": "602000000000000000000",
+      "seccion": "EXPENSE"
+    },
+    {
+      "nombre": "Services to Members",
+      "tipo": "cuentas",
+      "expresion": "706000000000000000001 + 600000000000000000001",
+      "seccion": "EXPENSE"
+    },
+    {
+      "nombre": "Gastos G&A",
+      "tipo": "cuentas",
+      "expresion": "803000000000000000000 + 802000000000000000001",
+      "seccion": "EXPENSE"
+    },
+    {
+      "nombre": "Nómina",
+      "tipo": "cuentas",
+      "expresion": "501000000000000000001",
+      "seccion": "EXPENSE"
+    },
+    {
+      "nombre": "Gastos Corporativos",
+      "tipo": "cuentas",
+      "expresion": "900000000000000000001",
+      "seccion": "EXPENSE"
+    },
+    {
+      "nombre": "Cargos Administrativos",
+      "tipo": "cuentas",
+      "expresion": "900001000000000000000",
+      "seccion": "EXPENSE"
+    },
+    {
+      "nombre": "Member Centricity",
+      "tipo": "cuentas",
+      "expresion": "901000000000000000001",
+      "seccion": "Member Centricity"
+    },
+    {
+      "nombre": "Other",
+      "tipo": "cuentas",
+      "expresion": "403000000000000000001 + 409000000000000000001 + 413000000000000000001 + 804000000000000000000",
+      "seccion": "Other"
+    },
+    {
+      "nombre": "OPERATING RESULTS",
+      "tipo": "cuentas",
+      "expresion": "INCOME - EXPENSE",
+      "seccion": ""
+    },
+    {
+      "nombre": "NET RESULTS",
+      "tipo": "cuentas",
+      "expresion": "OPERATING RESULTS + Other - Member Centricity",
+      "seccion": ""
+    }
+  ]
+}

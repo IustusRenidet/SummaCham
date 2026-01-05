@@ -1,0 +1,144 @@
+{
+  "Gtos. Corporativos": [
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "900-022-000-00",
+      "NOMBRE": "Seguro Gtos Médicos Mayores",
+      "SECCION": "GASTOS CORPORATIVOS"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "900-021-000-00",
+      "NOMBRE": "Seguro de Vida",
+      "SECCION": "GASTOS CORPORATIVOS"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "900-023-000-00",
+      "NOMBRE": "Seguro Empresarial",
+      "SECCION": "GASTOS CORPORATIVOS"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "900-028-000-00",
+      "NOMBRE": "Seguro Gobierno Corporativo",
+      "SECCION": "GASTOS CORPORATIVOS"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "900-008-000-00",
+      "NOMBRE": "Programa de Asistencia Empresarial (PAE)",
+      "SECCION": "GASTOS CORPORATIVOS"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "900-019-000-00",
+      "NOMBRE": "Dominios",
+      "SECCION": "GASTOS CORPORATIVOS"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "900-020-000-00",
+      "NOMBRE": "CRM",
+      "SECCION": "GASTOS CORPORATIVOS"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "900-002-000-00",
+      "NOMBRE": "Servicios de Telecomunicaciones",
+      "SECCION": "GASTOS CORPORATIVOS"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "900-013-000-00",
+      "NOMBRE": "Licencias Generales",
+      "SECCION": "GASTOS CORPORATIVOS"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "900-025-000-00",
+      "NOMBRE": "Licencias Correos Corporativos",
+      "SECCION": "GASTOS CORPORATIVOS"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "900-011-000-00",
+      "NOMBRE": "Estudio actuarial",
+      "SECCION": "GASTOS CORPORATIVOS"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "900-012-000-00",
+      "NOMBRE": "Gtos Notariales",
+      "SECCION": "GASTOS CORPORATIVOS"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "900-003-000-00",
+      "NOMBRE": "Auditorías Externas",
+      "SECCION": "GASTOS CORPORATIVOS"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "900-005-000-00",
+      "NOMBRE": "Registro de Marcas",
+      "SECCION": "GASTOS CORPORATIVOS"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "900-006-000-00",
+      "NOMBRE": "Membresía AACCLA",
+      "SECCION": "GASTOS CORPORATIVOS"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "900-001-000-00",
+      "NOMBRE": "Sueldos y Salarios VPE/Nacionales",
+      "SECCION": "GASTOS CORPORATIVOS"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "900-009-000-00",
+      "NOMBRE": "LinkedIn Herramienta",
+      "SECCION": "GASTOS CORPORATIVOS"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "900-018-000-00",
+      "NOMBRE": "Zoom Herramienta",
+      "SECCION": "GASTOS CORPORATIVOS"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "900-024-000-00",
+      "NOMBRE": "T&IC Licencias",
+      "SECCION": "GASTOS CORPORATIVOS"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "900-030-000-00",
+      "NOMBRE": "NarwhalHub Herramienta",
+      "SECCION": "GASTOS CORPORATIVOS"
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "900-032-000-00",
+      "NOMBRE": "Posicionamiento",
+      "SECCION": "GASTOS CORPORATIVOS"
+    }
+  ],
+  "Operaciones": [
+    {
+      "nombre": "Suma GASTOS",
+      "tipo": "cuentas",
+      "expresion": "900-022-000-00 + 900-021-000-00 + 900-023-000-00 + 900-028-000-00 + 900-008-000-00 + 900-019-000-00 + 900-020-000-00 + 900-002-000-00 + 900-013-000-00 + 900-025-000-00 + 900-011-000-00 + 900-012-000-00 + 900-003-000-00 + 900-005-000-00 + 900-006-000-00 + 900-001-000-00 + 900-009-000-00 + 900-018-000-00 + 900-024-000-00 + 900-030-000-00 + 900-032-000-00",
+      "seccion": "GASTOS CORPORATIVOS"
+    },
+    {
+      "nombre": "Resultado Gastos Corporativos",
+      "tipo": "cuentas",
+      "expresion": "900-022-000-00 + 900-021-000-00 + 900-023-000-00 + 900-028-000-00 + 900-008-000-00 + 900-019-000-00 + 900-020-000-00 + 900-002-000-00 + 900-013-000-00 + 900-025-000-00 + 900-011-000-00 + 900-012-000-00 + 900-003-000-00 + 900-005-000-00 + 900-006-000-00 + 900-001-000-00 + 900-009-000-00 + 900-018-000-00 + 900-024-000-00 + 900-030-000-00 + 900-032-000-00",
+      "seccion": "GASTOS CORPORATIVOS"
+    }
+  ]
+}

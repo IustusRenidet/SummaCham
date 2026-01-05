@@ -1,0 +1,79 @@
+{
+  "DN": [
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "400-001-000-00",
+      "NOMBRE": "Renovaciones",
+      "SECCION Principal": "Ingresos Membresía",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "400-002-000-00",
+      "NOMBRE": "Descuentos",
+      "SECCION Principal": "Ingresos Membresía",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "400-004-000-00",
+      "NOMBRE": "Socios Nuevos",
+      "SECCION Principal": "Ingresos Membresía",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "401-000-000-00",
+      "NOMBRE": "Cuotas Suscripción",
+      "SECCION Principal": "Ingresos Membresía",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "502-000-000-00",
+      "NOMBRE": "Comisiones KAM´s",
+      "SECCION Principal": "Gastos Membresía",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "708-001-000-00",
+      "NOMBRE": "Herramienta Sales Force",
+      "SECCION Principal": "Gastos Membresía",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NORESTE",
+      "CUENTA": "708-002-000-00",
+      "NOMBRE": "Juntas prospección socios nuevos",
+      "SECCION Principal": "Gastos Membresía",
+      "SECCION Secundaria": ""
+    }
+  ],
+  "Operaciones": [
+    {
+      "nombre": "Suma de Ingresos Membresía",
+      "tipo": "cuentas",
+      "expresion": "400-001-000-00 + 400-002-000-00 + 400-004-000-00 + 401-000-000-00",
+      "seccion": "Ingresos Membresía"
+    },
+    {
+      "nombre": "Suma de Gastos Membresía",
+      "tipo": "cuentas",
+      "expresion": "502-000-000-00 + 708-001-000-00 + 708-002-000-00",
+      "seccion": "Gastos Membresía"
+    },
+    {
+      "nombre": "Resultado Operativo Membresía",
+      "tipo": "cuentas",
+      "expresion": "400-001-000-00 + 400-002-000-00 + 400-004-000-00 + 401-000-000-00 - 502-000-000-00 - 708-001-000-00 - 708-002-000-00",
+      "seccion": ""
+    },
+    {
+      "nombre": "Resultado Membresía",
+      "tipo": "cuentas",
+      "expresion": "400-001-000-00 + 400-002-000-00 + 400-004-000-00 + 401-000-000-00 - 502-000-000-00 - 708-001-000-00 - 708-002-000-00",
+      "seccion": ""
+    }
+  ]
+}
