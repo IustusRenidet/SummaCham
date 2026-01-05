@@ -1,0 +1,314 @@
+{
+  "Gastos Generales": [
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "402-000-000-00",
+      "NOMBRE": "Otros Ingresos",
+      "SECCION Principal": "Otros ingresos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "410-000-000-00",
+      "NOMBRE": "Utilidad Cambiaria",
+      "SECCION Principal": "Gastos Financieros",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "901-019-000-00",
+      "NOMBRE": "Perdida Cambiaria",
+      "SECCION Principal": "Gastos Financieros",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "901-020-000-00",
+      "NOMBRE": "Gtos Financieros (comisiones)",
+      "SECCION Principal": "Gastos Financieros",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "901-011-007-00",
+      "NOMBRE": "MONITOREO ALARMA",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "901-016-001-00",
+      "NOMBRE": "ENERGIA ELECTRICA",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "901-016-002-00",
+      "NOMBRE": "AGUA POTABLE",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "901-016-003-00",
+      "NOMBRE": "PREDIAL",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "901-011-013-00",
+      "NOMBRE": "ASEO OFICINAS",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "901-009-000-00",
+      "NOMBRE": "DESPENSA, ARTS. CAFETERIA",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "901-011-006-00",
+      "NOMBRE": "LAVANDERIA, TINTORERIA",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "901-014-001-00",
+      "NOMBRE": "MANTENIMIENTO DE OFICINA",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "901-014-002-00",
+      "NOMBRE": "MANTTO EQ DE COMPUTO",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "901-003-000-00",
+      "NOMBRE": "RENTA IMPRESORAS / COPIADORAS",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "901-006-003-00",
+      "NOMBRE": "TELEFONOS DE MEXICO",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "901-011-002-00",
+      "NOMBRE": "PAQUETERIA Y MENSAJERIA",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "901-002-000-00",
+      "NOMBRE": "CUOTAS y SUSCRIPCIONES",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "901-011-011-00",
+      "NOMBRE": "GTOS EXP PERMISOS",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "901-011-015-00",
+      "NOMBRE": "ADMINISTRACION DE FIDEICOMISOS",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "901-023-000-00",
+      "NOMBRE": "GASTOS PROMOCIONALES (termos, libretas, plumas)",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "901-013-000-00",
+      "NOMBRE": "SERVICIOS DE CONSULTORIA EN COMUNICACIÓN",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "901-011-012-00",
+      "NOMBRE": "GASTOS EXTRAORDINARIOS",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "901-024-000-00",
+      "NOMBRE": "REUNION FIN DE AÑO",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "901-022-000-00",
+      "NOMBRE": "IVA A PRORRATA NO ACREDITABLE",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "901-099-000-00",
+      "NOMBRE": "AJUSTES Y DIFERENCIAS",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "901-011-004-00",
+      "NOMBRE": "OTROS GASTOS",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "901-011-005-00",
+      "NOMBRE": "NO DEDUCIBLES",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "501-000-000-00",
+      "NOMBRE": "NOMINA GDL",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "801-006-001-00",
+      "NOMBRE": "REEMBOLSO TELEFONO",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "801-006-003-00",
+      "NOMBRE": "GASOLINA KAM´S",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "801-006-007-00",
+      "NOMBRE": "PASAJES y ESTACIONAMIENTOS",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "801-006-008-00",
+      "NOMBRE": "PAPELERIA Y  ARTS OFICINA",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "801-006-009-00",
+      "NOMBRE": "CONSUMOS REUNIONES DE TRABAJO",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "801-006-010-00",
+      "NOMBRE": "HERRAMIENTAS TELE-TRABAJO",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "901-008-000-00",
+      "NOMBRE": "Depreciaciones de equipo",
+      "SECCION Principal": "Depreciaciones y Amortizaciones",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "901-015-000-00",
+      "NOMBRE": "Amortizaciones",
+      "SECCION Principal": "Depreciaciones y Amortizaciones",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "903-000-000-00",
+      "NOMBRE": "Gastos Corporativos Gdl",
+      "SECCION Principal": "GA CAPÍTULO",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "904-000-000-00",
+      "NOMBRE": "Member Centricity",
+      "SECCION Principal": "GA CAPÍTULO",
+      "SECCION Secundaria": ""
+    }
+  ],
+  "Operaciones": [
+    {
+      "nombre": "Suma Otros Ingresos",
+      "tipo": "cuentas",
+      "expresion": "402-000-000-00",
+      "seccion": "Otros ingresos"
+    },
+    {
+      "nombre": "Suma Gastos Financieros",
+      "tipo": "cuentas",
+      "expresion": "410-000-000-00 + 901-019-000-00 + 901-020-000-00",
+      "seccion": "Gastos Financieros"
+    },
+    {
+      "nombre": "Suma de Gastos Generales",
+      "tipo": "cuentas",
+      "expresion": "901-011-007-00 + 901-016-001-00 + 901-016-002-00 + 901-016-003-00 + 901-011-013-00 + 901-009-000-00 + 901-011-006-00 + 901-014-001-00 + 901-014-002-00 + 901-003-000-00 + 901-006-003-00 + 901-011-002-00 + 901-002-000-00 + 901-011-011-00 + 901-011-015-00 + 901-023-000-00 + 901-013-000-00 + 901-011-012-00 + 901-024-000-00 + 901-022-000-00 + 901-099-000-00 + 901-011-004-00 + 901-011-005-00 + 501-000-000-00 + 801-006-001-00 + 801-006-003-00 + 801-006-007-00 + 801-006-008-00 + 801-006-009-00 + 801-006-010-00",
+      "seccion": "Gastos Generales"
+    },
+    {
+      "nombre": "Suma Depreciaciones y Amortizaciones",
+      "tipo": "cuentas",
+      "expresion": "901-008-000-00 + 901-015-000-00",
+      "seccion": "Depreciaciones y Amortizaciones"
+    },
+    {
+      "nombre": "Otros Ingresos vs Gastos",
+      "tipo": "cuentas",
+      "expresion": "402-000-000-00 - 410-000-000-00 - 901-019-000-00 - 901-020-000-00",
+      "seccion": ""
+    },
+    {
+      "nombre": "Total GA",
+      "tipo": "cuentas",
+      "expresion": "903-000-000-00 + 904-000-000-00",
+      "seccion": ""
+    },
+    {
+      "nombre": "Total",
+      "tipo": "cuentas",
+      "expresion": "402-000-000-00 - 410-000-000-00 - 901-019-000-00 - 901-020-000-00 - 901-011-007-00 - 901-016-001-00 - 901-016-002-00 - 901-016-003-00 - 901-011-013-00 - 901-009-000-00 - 901-011-006-00 - 901-014-001-00 - 901-014-002-00 - 901-003-000-00 - 901-006-003-00 - 901-011-002-00 - 901-002-000-00 - 901-011-011-00 - 901-011-015-00 - 901-023-000-00 - 901-013-000-00 - 901-011-012-00 - 901-024-000-00 - 901-022-000-00 - 901-099-000-00 - 901-011-004-00 - 901-011-005-00 - 501-000-000-00 - 801-006-001-00 - 801-006-003-00 - 801-006-007-00 - 801-006-008-00 - 801-006-009-00 - 801-006-010-00 - 901-008-000-00 - 901-015-000-00 - 903-000-000-00 - 904-000-000-00",
+      "seccion": ""
+    }
+  ]
+}

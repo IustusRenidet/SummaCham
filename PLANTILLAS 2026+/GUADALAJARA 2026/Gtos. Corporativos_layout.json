@@ -1,0 +1,144 @@
+{
+  "Gtos. Corporativos": [
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "903-034-000-00",
+      "NOMBRE": "Seguro Gtos Médicos Mayores",
+      "SECCION": "GASTOS CORPORATIVOS"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "903-033-000-00",
+      "NOMBRE": "Seguro de Vida",
+      "SECCION": "GASTOS CORPORATIVOS"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "903-002-000-00",
+      "NOMBRE": "Seguro Empresarial",
+      "SECCION": "GASTOS CORPORATIVOS"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "903-029-000-00",
+      "NOMBRE": "Seguro Gobierno Corporativo",
+      "SECCION": "GASTOS CORPORATIVOS"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "903-003-000-00",
+      "NOMBRE": "Programa de Asistencia Empresarial (PAE)",
+      "SECCION": "GASTOS CORPORATIVOS"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "903-030-000-00",
+      "NOMBRE": "Dominios",
+      "SECCION": "GASTOS CORPORATIVOS"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "903-032-000-00",
+      "NOMBRE": "CRM",
+      "SECCION": "GASTOS CORPORATIVOS"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "903-018-000-00",
+      "NOMBRE": "Servicios de Telecomunicaciones",
+      "SECCION": "GASTOS CORPORATIVOS"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "903-031-000-00",
+      "NOMBRE": "Licencias Generales",
+      "SECCION": "GASTOS CORPORATIVOS"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "903-028-000-00",
+      "NOMBRE": "Licencias Correos Corporativos",
+      "SECCION": "GASTOS CORPORATIVOS"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "903-011-000-00",
+      "NOMBRE": "Estudio actuarial",
+      "SECCION": "GASTOS CORPORATIVOS"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "903-012-000-00",
+      "NOMBRE": "Gtos Notariales",
+      "SECCION": "GASTOS CORPORATIVOS"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "903-017-000-00",
+      "NOMBRE": "Auditorías Externas",
+      "SECCION": "GASTOS CORPORATIVOS"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "903-014-000-00",
+      "NOMBRE": "Registro de Marcas",
+      "SECCION": "GASTOS CORPORATIVOS"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "903-015-000-00",
+      "NOMBRE": "Membresía AACCLA",
+      "SECCION": "GASTOS CORPORATIVOS"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "903-005-000-00",
+      "NOMBRE": "LinkedIn Herramienta",
+      "SECCION": "GASTOS CORPORATIVOS"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "903-008-000-00",
+      "NOMBRE": "Zoom Herramienta",
+      "SECCION": "GASTOS CORPORATIVOS"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "903-016-000-00",
+      "NOMBRE": "Sueldos y Salarios VPE/Nacionales",
+      "SECCION": "GASTOS CORPORATIVOS"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "903-019-000-00",
+      "NOMBRE": "NarwhalHub Herramienta",
+      "SECCION": "GASTOS CORPORATIVOS"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "903-024-000-00",
+      "NOMBRE": "T&IC Licencias",
+      "SECCION": "GASTOS CORPORATIVOS"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "903-026-000-00",
+      "NOMBRE": "Posicionamiento",
+      "SECCION": "GASTOS CORPORATIVOS"
+    }
+  ],
+  "Operaciones": [
+    {
+      "nombre": "Suma GASTOS",
+      "tipo": "cuentas",
+      "expresion": "903-034-000-00 + 903-033-000-00 + 903-002-000-00 + 903-029-000-00 + 903-003-000-00 + 903-030-000-00 + 903-032-000-00 + 903-018-000-00 + 903-031-000-00 + 903-028-000-00 + 903-011-000-00 + 903-012-000-00 + 903-017-000-00 + 903-014-000-00 + 903-015-000-00 + 903-005-000-00 + 903-008-000-00 + 903-016-000-00 + 903-019-000-00 + 903-024-000-00 + 903-026-000-00",
+      "seccion": "GASTOS CORPORATIVOS"
+    },
+    {
+      "nombre": "Resultado Gastos Corporativos",
+      "tipo": "cuentas",
+      "expresion": "903-034-000-00 + 903-033-000-00 + 903-002-000-00 + 903-029-000-00 + 903-003-000-00 + 903-030-000-00 + 903-032-000-00 + 903-018-000-00 + 903-031-000-00 + 903-028-000-00 + 903-011-000-00 + 903-012-000-00 + 903-017-000-00 + 903-014-000-00 + 903-015-000-00 + 903-005-000-00 + 903-008-000-00 + 903-016-000-00 + 903-019-000-00 + 903-024-000-00 + 903-026-000-00",
+      "seccion": "GASTOS CORPORATIVOS"
+    }
+  ]
+}

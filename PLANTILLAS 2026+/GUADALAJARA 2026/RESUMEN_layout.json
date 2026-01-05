@@ -1,0 +1,275 @@
+{
+  "RESUMEN": [
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "400000000000000000000",
+      "NOMBRE": "Cuotas Netas",
+      "SECCION Principal": "INCOME",
+      "SECCION Secundaria": "Membership"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "401000000000000000000",
+      "NOMBRE": "Ingresos socios nuevos",
+      "SECCION Principal": "INCOME",
+      "SECCION Secundaria": "Membership"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "405000000000000000000",
+      "NOMBRE": "Eventos",
+      "SECCION Principal": "INCOME",
+      "SECCION Secundaria": "Events"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "406000000000000000000",
+      "NOMBRE": "Patrocinios",
+      "SECCION Principal": "INCOME",
+      "SECCION Secundaria": "Events"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "404000000000000000000",
+      "NOMBRE": "Comités",
+      "SECCION Principal": "INCOME",
+      "SECCION Secundaria": "Committees"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "407000000000000000000",
+      "NOMBRE": "Trade & Investment Center",
+      "SECCION Principal": "INCOME",
+      "SECCION Secundaria": "T&IC"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "403000000000000000000",
+      "NOMBRE": "Venta Publicaciones",
+      "SECCION Principal": "INCOME",
+      "SECCION Secundaria": "Services to Members"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "408000000000000000000",
+      "NOMBRE": "Visas",
+      "SECCION Principal": "INCOME",
+      "SECCION Secundaria": "Services to Members"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "702000000000000000000",
+      "NOMBRE": "Gastos Promoción",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Membership"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "503000000000000000000",
+      "NOMBRE": "Comisiones por venta de membresías",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Membership"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "701000000000000000000",
+      "NOMBRE": "Costo Eventos",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Events"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "502000000000000000000",
+      "NOMBRE": "Costo comités",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Committees"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "504000000000000000000",
+      "NOMBRE": "Comisiones EWDP",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Committees"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "703000000000000000000",
+      "NOMBRE": "Costo Trade & Investment Center",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "T&IC"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "601000000000000000000",
+      "NOMBRE": "Gastos Venta Publicaciones",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Services to Members"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "801000000000000000000",
+      "NOMBRE": "Gasto de Administración",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Gastos G&A"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "901000000000000000000",
+      "NOMBRE": "Gastos Generales",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Gastos G&A"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "501000000000000000000",
+      "NOMBRE": "Nómina",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Nómina"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "903000000000000000000",
+      "NOMBRE": "Gastos Corporativos",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Gastos Corporativos"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "903016000000000000000",
+      "NOMBRE": "Cargos Administrativos",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Cargos Administrativos"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "904000000000000000000",
+      "NOMBRE": "Member Centricity",
+      "SECCION Principal": "Member Centricity",
+      "SECCION Secundaria": "Member Centricity"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "402000000000000000000",
+      "NOMBRE": "Otros ingresos",
+      "SECCION Principal": "Other",
+      "SECCION Secundaria": "Other"
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "410000000000000000000",
+      "NOMBRE": "Utilidad cambiaria",
+      "SECCION Principal": "Other",
+      "SECCION Secundaria": "Other"
+    }
+  ],
+  "Operaciones": [
+    {
+      "nombre": "Membership",
+      "tipo": "cuentas",
+      "expresion": "400000000000000000000 + 401000000000000000000",
+      "seccion": "INCOME"
+    },
+    {
+      "nombre": "Events",
+      "tipo": "cuentas",
+      "expresion": "405000000000000000000 + 406000000000000000000",
+      "seccion": "INCOME"
+    },
+    {
+      "nombre": "Committees",
+      "tipo": "cuentas",
+      "expresion": "404000000000000000000",
+      "seccion": "INCOME"
+    },
+    {
+      "nombre": "T&IC",
+      "tipo": "cuentas",
+      "expresion": "407000000000000000000",
+      "seccion": "INCOME"
+    },
+    {
+      "nombre": "Services to Members",
+      "tipo": "cuentas",
+      "expresion": "403000000000000000000 + 408000000000000000000",
+      "seccion": "INCOME"
+    },
+    {
+      "nombre": "Membership",
+      "tipo": "cuentas",
+      "expresion": "702000000000000000000 + 503000000000000000000",
+      "seccion": "EXPENSE"
+    },
+    {
+      "nombre": "Events",
+      "tipo": "cuentas",
+      "expresion": "701000000000000000000",
+      "seccion": "EXPENSE"
+    },
+    {
+      "nombre": "Committees",
+      "tipo": "cuentas",
+      "expresion": "502000000000000000000 + 504000000000000000000",
+      "seccion": "EXPENSE"
+    },
+    {
+      "nombre": "T&IC",
+      "tipo": "cuentas",
+      "expresion": "703000000000000000000",
+      "seccion": "EXPENSE"
+    },
+    {
+      "nombre": "Services to Members",
+      "tipo": "cuentas",
+      "expresion": "601000000000000000000",
+      "seccion": "EXPENSE"
+    },
+    {
+      "nombre": "Gastos G&A",
+      "tipo": "cuentas",
+      "expresion": "801000000000000000000 + 901000000000000000000",
+      "seccion": "EXPENSE"
+    },
+    {
+      "nombre": "Nómina",
+      "tipo": "cuentas",
+      "expresion": "501000000000000000000",
+      "seccion": "EXPENSE"
+    },
+    {
+      "nombre": "Gastos Corporativos",
+      "tipo": "cuentas",
+      "expresion": "903000000000000000000",
+      "seccion": "EXPENSE"
+    },
+    {
+      "nombre": "Cargos Administrativos",
+      "tipo": "cuentas",
+      "expresion": "903016000000000000000",
+      "seccion": "EXPENSE"
+    },
+    {
+      "nombre": "OPERATING RESULTS",
+      "tipo": "cuentas",
+      "expresion": "INCOME-EXPENSE",
+      "seccion": ""
+    },
+    {
+      "nombre": "Member Centricity",
+      "tipo": "cuentas",
+      "expresion": "904000000000000000000",
+      "seccion": "Member Centricity"
+    },
+    {
+      "nombre": "Other",
+      "tipo": "cuentas",
+      "expresion": "402000000000000000000 + 410000000000000000000",
+      "seccion": "Other"
+    },
+    {
+      "nombre": "NET RESULTS",
+      "tipo": "cuentas",
+      "expresion": "OPERATING RESULTS -  Member Centricity - Other",
+      "seccion": ""
+    }
+  ]
+}

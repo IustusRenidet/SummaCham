@@ -1,0 +1,52 @@
+{
+  "T&IC": [
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "407-001-000-00",
+      "NOMBRE": "SemiconWest",
+      "SECCION Principal": "Ingresos T&IC",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "407-002-000-00",
+      "NOMBRE": "Ingresos 2",
+      "SECCION Principal": "Ingresos T&IC",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "703-001-000-00",
+      "NOMBRE": "SemiconWest",
+      "SECCION Principal": "Gastos T&IC",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "703-002-000-00",
+      "NOMBRE": "Gastos 2",
+      "SECCION Principal": "Gastos T&IC",
+      "SECCION Secundaria": ""
+    }
+  ],
+  "Operaciones": [
+    {
+      "nombre": "Suma de Ingresos T&IC",
+      "tipo": "cuentas",
+      "expresion": "407-001-000-00 + 407-002-000-00",
+      "seccion": "Ingresos T&IC"
+    },
+    {
+      "nombre": "Suma de Gastos T&IC",
+      "tipo": "cuentas",
+      "expresion": "703-001-000-00 + 703-002-000-00",
+      "seccion": "Gastos T&IC"
+    },
+    {
+      "nombre": "Resultado  T&IC",
+      "tipo": "cuentas",
+      "expresion": "407-001-000-00 + 407-002-000-00 - 703-001-000-00 - 703-002-000-00",
+      "seccion": ""
+    }
+  ]
+}

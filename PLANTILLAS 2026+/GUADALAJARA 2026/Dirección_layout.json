@@ -1,0 +1,99 @@
+{
+  "Dirección": [
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "404-006-000-00",
+      "NOMBRE": "Board Of Directors",
+      "SECCION Principal": "Ingresos CE/Board",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "404-011-000-00",
+      "NOMBRE": "Executive Committee",
+      "SECCION Principal": "Ingresos CE/Board",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "502-006-000-00",
+      "NOMBRE": "Board of Directors",
+      "SECCION Principal": "Gastos CE/Board",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "502-012-000-00",
+      "NOMBRE": "Executive Committee",
+      "SECCION Principal": "Gastos CE/Board",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "801-006-004-00",
+      "NOMBRE": "Gastos de Viaje",
+      "SECCION Principal": "Gastos de Administración",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "901-007-000-00",
+      "NOMBRE": "Viajes Presidente Capítulo",
+      "SECCION Principal": "Gastos de Administración",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "801-006-002-00",
+      "NOMBRE": "Gasolina Administración",
+      "SECCION Principal": "Gastos de Administración",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "801-006-005-00",
+      "NOMBRE": "Mtto. Equipo de Transporte",
+      "SECCION Principal": "Gastos de Administración",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "801-006-006-00",
+      "NOMBRE": "Gastos de representacion",
+      "SECCION Principal": "Gastos de Administración",
+      "SECCION Secundaria": ""
+    }
+  ],
+  "Operaciones": [
+    {
+      "nombre": "Suma de Ingresos CE/Board",
+      "tipo": "cuentas",
+      "expresion": "404-006-000-00 + 404-011-000-00",
+      "seccion": "Ingresos CE/Board"
+    },
+    {
+      "nombre": "Suma de Gastos CE/Board",
+      "tipo": "cuentas",
+      "expresion": "502-006-000-00 + 502-012-000-00",
+      "seccion": "Gastos CE/Board"
+    },
+    {
+      "nombre": "Suma Gastos Administrativos",
+      "tipo": "cuentas",
+      "expresion": "801-006-004-00 + 901-007-000-00 + 801-006-002-00 + 801-006-005-00 + 801-006-006-00",
+      "seccion": "Gastos de Administración"
+    },
+    {
+      "nombre": "Resultado Board y Executive",
+      "tipo": "cuentas",
+      "expresion": "404-006-000-00 + 404-011-000-00 - 502-006-000-00 - 502-012-000-00",
+      "seccion": ""
+    },
+    {
+      "nombre": "Resultado Director Capítulo",
+      "tipo": "cuentas",
+      "expresion": "404-006-000-00 + 404-011-000-00 - 502-006-000-00 - 502-012-000-00 - 801-006-004-00 - 901-007-000-00 - 801-006-002-00 - 801-006-005-00 - 801-006-006-00",
+      "seccion": ""
+    }
+  ]
+}

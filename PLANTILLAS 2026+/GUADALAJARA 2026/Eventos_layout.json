@@ -1,0 +1,288 @@
+{
+  "Eventos": [
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "405-002-000-00",
+      "NOMBRE": "Asamblea Anual",
+      "SECCION Principal": "Boletaje",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "405-001-000-00",
+      "NOMBRE": "Torneo Golf",
+      "SECCION Principal": "Boletaje",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "405-009-000-00",
+      "NOMBRE": "Cumbre Empresarios",
+      "SECCION Principal": "Boletaje",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "405-003-000-00",
+      "NOMBRE": "Foros (Economico, Jalisco Visión, etc.)",
+      "SECCION Principal": "Boletaje",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "405-013-000-00",
+      "NOMBRE": "The North America Week",
+      "SECCION Principal": "Boletaje",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "405-012-000-00",
+      "NOMBRE": "Jalisco Travel  Fest",
+      "SECCION Principal": "Boletaje",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "405-008-000-00",
+      "NOMBRE": "Secretarias",
+      "SECCION Principal": "Boletaje",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "405-010-000-00",
+      "NOMBRE": "Empower Your People",
+      "SECCION Principal": "Boletaje",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "405-005-000-00",
+      "NOMBRE": "Meet the consulate",
+      "SECCION Principal": "Boletaje",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "405-007-000-00",
+      "NOMBRE": "Extend Our Reach",
+      "SECCION Principal": "Boletaje",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "405-004-000-00",
+      "NOMBRE": "Cocteles",
+      "SECCION Principal": "Boletaje",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "405-011-000-00",
+      "NOMBRE": "Global Entry",
+      "SECCION Principal": "Boletaje",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "406-002-000-00",
+      "NOMBRE": "Asamblea Anual",
+      "SECCION Principal": "Patrocinios",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "406-001-000-00",
+      "NOMBRE": "Torneo Golf",
+      "SECCION Principal": "Patrocinios",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "406-003-000-00",
+      "NOMBRE": "Cumbre Empresarios",
+      "SECCION Principal": "Patrocinios",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "406-004-000-00",
+      "NOMBRE": "Foros (Economico, Jalisco Visión, etc.)",
+      "SECCION Principal": "Patrocinios",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "406-005-000-00",
+      "NOMBRE": "The North America Week",
+      "SECCION Principal": "Patrocinios",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "406-006-000-00",
+      "NOMBRE": "Jalisco Travel  Fest",
+      "SECCION Principal": "Patrocinios",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "406-007-000-00",
+      "NOMBRE": "Secretarias",
+      "SECCION Principal": "Patrocinios",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "406-008-000-00",
+      "NOMBRE": "Empower Your People",
+      "SECCION Principal": "Patrocinios",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "406-009-000-00",
+      "NOMBRE": "Meet the consulate",
+      "SECCION Principal": "Patrocinios",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "406-010-000-00",
+      "NOMBRE": "Extend Our Reach",
+      "SECCION Principal": "Patrocinios",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "406-011-000-00",
+      "NOMBRE": "Cocteles",
+      "SECCION Principal": "Patrocinios",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "406-012-000-00",
+      "NOMBRE": "Global Entry",
+      "SECCION Principal": "Patrocinios",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "701-002-000-00",
+      "NOMBRE": "Asamblea Anual",
+      "SECCION Principal": "Costos y Gastos Eventos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "701-001-000-00",
+      "NOMBRE": "Torneo Golf",
+      "SECCION Principal": "Costos y Gastos Eventos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "701-011-000-00",
+      "NOMBRE": "Cumbre Empresarios",
+      "SECCION Principal": "Costos y Gastos Eventos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "701-007-000-00",
+      "NOMBRE": "Foros (Economico, Jalisco Visión, etc.)",
+      "SECCION Principal": "Costos y Gastos Eventos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "701-012-000-00",
+      "NOMBRE": "The North America Week",
+      "SECCION Principal": "Costos y Gastos Eventos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "701-010-000-00",
+      "NOMBRE": "Jalisco Travel Fest",
+      "SECCION Principal": "Costos y Gastos Eventos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "701-008-000-00",
+      "NOMBRE": "Secretarias",
+      "SECCION Principal": "Costos y Gastos Eventos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "701-014-000-00",
+      "NOMBRE": "Empower Your People",
+      "SECCION Principal": "Costos y Gastos Eventos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "701-005-000-00",
+      "NOMBRE": "Meet the consulate",
+      "SECCION Principal": "Costos y Gastos Eventos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "701-009-000-00",
+      "NOMBRE": "Extend Our Reach",
+      "SECCION Principal": "Costos y Gastos Eventos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "701-004-000-00",
+      "NOMBRE": "Cocteles",
+      "SECCION Principal": "Costos y Gastos Eventos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "701-013-000-00",
+      "NOMBRE": "Global Entry",
+      "SECCION Principal": "Costos y Gastos Eventos",
+      "SECCION Secundaria": ""
+    }
+  ],
+  "Operaciones": [
+    {
+      "nombre": "Suma Costos y Gastos Eventos",
+      "tipo": "cuentas",
+      "expresion": "701-002-000-00 + 701-001-000-00 + 701-011-000-00 + 701-007-000-00 + 701-012-000-00 + 701-010-000-00 + 701-008-000-00 + 701-014-000-00 + 701-005-000-00 + 701-009-000-00 + 701-004-000-00 + 701-013-000-00",
+      "seccion": "Costos y Gastos Eventos"
+    },
+    {
+      "nombre": "Ingresos Boletaje",
+      "tipo": "cuentas",
+      "expresion": "405-002-000-00 + 405-001-000-00 + 405-009-000-00 + 405-003-000-00 + 405-013-000-00 + 405-012-000-00 + 405-008-000-00 + 405-010-000-00 + 405-005-000-00 + 405-007-000-00 + 405-004-000-00 + 405-011-000-00",
+      "seccion": "Boletaje"
+    },
+    {
+      "nombre": "Ingresos Patrocinios",
+      "tipo": "cuentas",
+      "expresion": "406-002-000-00 + 406-001-000-00 + 406-003-000-00 + 406-004-000-00 + 406-005-000-00 + 406-006-000-00 + 406-007-000-00 + 406-008-000-00 + 406-009-000-00 + 406-010-000-00 + 406-011-000-00 + 406-012-000-00",
+      "seccion": "Patrocinios"
+    },
+    {
+      "nombre": "Suma Ingresos Eventos",
+      "tipo": "cuentas",
+      "expresion": "405-002-000-00 + 405-001-000-00 + 405-009-000-00 + 405-003-000-00 + 405-013-000-00 + 405-012-000-00 + 405-008-000-00 + 405-010-000-00 + 405-005-000-00 + 405-007-000-00 + 405-004-000-00 + 405-011-000-00 + 406-002-000-00 + 406-001-000-00 + 406-003-000-00 + 406-004-000-00 + 406-005-000-00 + 406-006-000-00 + 406-007-000-00 + 406-008-000-00 + 406-009-000-00 + 406-010-000-00 + 406-011-000-00 + 406-012-000-00",
+      "seccion": ""
+    },
+    {
+      "nombre": "Resultado Eventos",
+      "tipo": "cuentas",
+      "expresion": "405-002-000-00 + 405-001-000-00 + 405-009-000-00 + 405-003-000-00 + 405-013-000-00 + 405-012-000-00 + 405-008-000-00 + 405-010-000-00 + 405-005-000-00 + 405-007-000-00 + 405-004-000-00 + 405-011-000-00 + 406-002-000-00 + 406-001-000-00 + 406-003-000-00 + 406-004-000-00 + 406-005-000-00 + 406-006-000-00 + 406-007-000-00 + 406-008-000-00 + 406-009-000-00 + 406-010-000-00 + 406-011-000-00 + 406-012-000-00 - 701-002-000-00 - 701-001-000-00 - 701-011-000-00 - 701-007-000-00 - 701-012-000-00 - 701-010-000-00 - 701-008-000-00 - 701-014-000-00 - 701-005-000-00 - 701-009-000-00 - 701-004-000-00 - 701-013-000-00",
+      "seccion": ""
+    }
+  ]
+}

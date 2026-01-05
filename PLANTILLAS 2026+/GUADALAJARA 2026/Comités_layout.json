@@ -1,0 +1,197 @@
+{
+  "Comités": [
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "404-017-000-00",
+      "NOMBRE": "Agroindustria",
+      "SECCION Principal": "Ingresos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "404-005-000-00",
+      "NOMBRE": "Asuntos Fiscales",
+      "SECCION Principal": "Ingresos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "404-001-000-00",
+      "NOMBRE": "Capital Humano y Asuntos Laborales",
+      "SECCION Principal": "Ingresos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "404-003-000-00",
+      "NOMBRE": "Comercio Exterior y Logística",
+      "SECCION Principal": "Ingresos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "404-013-000-00",
+      "NOMBRE": "Innovación y TICs",
+      "SECCION Principal": "Ingresos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "404-007-000-00",
+      "NOMBRE": "Legalidad y Estado de Derecho",
+      "SECCION Principal": "Ingresos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "404-016-000-00",
+      "NOMBRE": "Salud",
+      "SECCION Principal": "Ingresos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "404-004-000-00",
+      "NOMBRE": "Seguridad",
+      "SECCION Principal": "Ingresos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "404-008-000-00",
+      "NOMBRE": "Sustentabilidad y Responsabilidad Social",
+      "SECCION Principal": "Ingresos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "404-009-000-00",
+      "NOMBRE": "Turismo",
+      "SECCION Principal": "Ingresos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "404-018-000-00",
+      "NOMBRE": "Programa de Mentoría (EWDP)",
+      "SECCION Principal": "Ingresos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "502-014-000-00",
+      "NOMBRE": "Agroindustria",
+      "SECCION Principal": "Gastos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "502-005-000-00",
+      "NOMBRE": "Asuntos Fiscales",
+      "SECCION Principal": "Gastos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "502-001-000-00",
+      "NOMBRE": "Capital Humano y Asuntos Laborales",
+      "SECCION Principal": "Gastos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "502-003-000-00",
+      "NOMBRE": "Comercio Exterior y Logística",
+      "SECCION Principal": "Gastos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "502-013-000-00",
+      "NOMBRE": "Innovación y TICs",
+      "SECCION Principal": "Gastos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "502-007-000-00",
+      "NOMBRE": "Legalidad y Estado de Derecho",
+      "SECCION Principal": "Gastos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "502-016-000-00",
+      "NOMBRE": "Salud",
+      "SECCION Principal": "Gastos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "502-004-000-00",
+      "NOMBRE": "Seguridad",
+      "SECCION Principal": "Gastos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "502-002-000-00",
+      "NOMBRE": "Sustentabilidad y Responsabilidad Social",
+      "SECCION Principal": "Gastos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "502-009-000-00",
+      "NOMBRE": "Turismo",
+      "SECCION Principal": "Gastos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "502-017-000-00",
+      "NOMBRE": "Programa de Mentoría (EWDP)",
+      "SECCION Principal": "Gastos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "504-000-000-00",
+      "NOMBRE": "Comisiones EWDP",
+      "SECCION Principal": "COMISIONES",
+      "SECCION Secundaria": ""
+    }
+  ],
+  "Operaciones": [
+    {
+      "nombre": "Suma de Ingresos Comités",
+      "tipo": "cuentas",
+      "expresion": "404-017-000-00 + 404-005-000-00 + 404-001-000-00 + 404-003-000-00 + 404-013-000-00 + 404-007-000-00 + 404-016-000-00 + 404-004-000-00 + 404-008-000-00 + 404-009-000-00 + 404-018-000-00",
+      "seccion": "Ingresos Comités"
+    },
+    {
+      "nombre": "Suma de Gastos Comités",
+      "tipo": "cuentas",
+      "expresion": "502-014-000-00 + 502-005-000-00 + 502-001-000-00 + 502-003-000-00 + 502-013-000-00 + 502-007-000-00 + 502-016-000-00 + 502-004-000-00 + 502-002-000-00 + 502-009-000-00 + 502-017-000-00",
+      "seccion": "Gastos Comités"
+    },
+    {
+      "nombre": "Resultado Operativo Comités",
+      "tipo": "cuentas",
+      "expresion": "404-017-000-00 + 404-005-000-00 + 404-001-000-00 + 404-003-000-00 + 404-013-000-00 + 404-007-000-00 + 404-016-000-00 + 404-004-000-00 + 404-008-000-00 + 404-009-000-00 + 404-018-000-00 - 502-014-000-00 - 502-005-000-00 - 502-001-000-00 - 502-003-000-00 - 502-013-000-00 - 502-007-000-00 - 502-016-000-00 - 502-004-000-00 - 502-002-000-00 - 502-009-000-00 - 502-017-000-00",
+      "seccion": ""
+    },
+    {
+      "nombre": "Suma de Comisiones",
+      "tipo": "cuentas",
+      "expresion": "504-000-000-00",
+      "seccion": "COMISIONES"
+    },
+    {
+      "nombre": "Resultado Comités",
+      "tipo": "cuentas",
+      "expresion": "404-017-000-00 + 404-005-000-00 + 404-001-000-00 + 404-003-000-00 + 404-013-000-00 + 404-007-000-00 + 404-016-000-00 + 404-004-000-00 + 404-008-000-00 + 404-009-000-00 + 404-018-000-00 - 502-014-000-00 - 502-005-000-00 - 502-001-000-00 - 502-003-000-00 - 502-013-000-00 - 502-007-000-00 - 502-016-000-00 - 502-004-000-00 - 502-002-000-00 - 502-009-000-00 - 502-017-000-00 + 504-000-000-00",
+      "seccion": ""
+    }
+  ]
+}

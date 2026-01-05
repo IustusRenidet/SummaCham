@@ -1,0 +1,38 @@
+{
+  "Serv Membresía": [
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "403-002-000-00",
+      "NOMBRE": "Encuesta de Sueldos y Prestaciones",
+      "SECCION Principal": "Ingresos Serv a la Membresía",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "GUADALAJARA",
+      "CUENTA": "601-003-004-00",
+      "NOMBRE": "Encuesta de Sueldos y Prestaciones",
+      "SECCION Principal": "Gastos  Serv a la Membresía",
+      "SECCION Secundaria": ""
+    }
+  ],
+  "Operaciones": [
+    {
+      "nombre": "Suma de Ingresos Serv a la Membresía",
+      "tipo": "cuentas",
+      "expresion": "403-002-000-00",
+      "seccion": "Ingresos Serv a la Membresía"
+    },
+    {
+      "nombre": "Suma de Gastos Serv a la Membresía",
+      "tipo": "cuentas",
+      "expresion": "601-003-004-00",
+      "seccion": "Gastos  Serv a la Membresía"
+    },
+    {
+      "nombre": "Resultado Serv Membresía",
+      "tipo": "cuentas",
+      "expresion": "403-002-000-00 - 601-003-004-00",
+      "seccion": ""
+    }
+  ]
+}
