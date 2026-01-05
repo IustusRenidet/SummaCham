@@ -173,10 +173,10 @@
     }
     
     // Determinar mes por defecto según el año
-    // Si es año actual o no hay año definido: mes actual
-    // Si es año pasado: diciembre (mes 12)
+    // Si es año actual: mes actual del sistema
+    // Si es año pasado: último mes disponible (diciembre)
     if (!Number.isInteger(anio) || anio >= anioActual) {
-      return new Date().getMonth() + 1; // Mes actual
+      return new Date().getMonth() + 1; // Mes actual (enero = 1)
     } else {
       return 12; // Diciembre para años pasados
     }

@@ -365,9 +365,9 @@
   const obtenerIndiceMesSistema = () => new Date().getMonth();
 
   /**
-   * Determina el último mes que debe mostrarse/contarse.
+   * Determina el último mes cerrado que debe mostrarse en las columnas month-real.
    * - Si el contexto indica un periodo cerrado, lo usa como límite superior.
-   * - Siempre excluye el mes en curso (solo se permiten meses anteriores).
+   * - Siempre EXCLUYE el mes en curso (solo se permiten meses anteriores cerrados).
    * - Puede regresar -1 cuando no hay ningún mes cerrado en el ejercicio.
    */
   const obtenerIndicePeriodoActual = () => {
@@ -378,15 +378,18 @@
       ? estadoModulo.anio
       : null;
     const anioActual = new Date().getFullYear();
+    
     // Para ejercicios distintos al actual se permite ver el año completo
     const limitePorFecha =
       anioSeleccionado != null && anioSeleccionado !== anioActual
         ? MESES.length - 1
-        : indiceMesActual - 1; // Excluir mes en curso
+        : indiceMesActual - 1; // EXCLUIR mes en curso (solo meses cerrados)
+    
     const limiteCalculadoBase =
       indiceDesdeContexto != null
         ? Math.min(indiceDesdeContexto, limitePorFecha)
         : limitePorFecha;
+    
     const limiteMaximo = MESES.length - 1;
     return Math.max(-1, Math.min(limiteCalculadoBase, limiteMaximo));
   };
