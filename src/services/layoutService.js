@@ -438,15 +438,40 @@ const obtenerLayout = ({ empresaId = "EMPRESA01", modulo, anio, capitulo }) => {
       capitulo AS CAPITULO,
       seccion_principal AS "SECCIàN Principal",
       seccion_secundaria AS "SECCION Secundaria",
-      orden
+      orden,
+      orden_presentacion,
+      visible
     FROM layout_cuentas
     WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ?
-    ORDER BY orden ASC, cuenta ASC
+    ORDER BY COALESCE(orden_presentacion, orden) ASC, cuenta ASC
   `
       )
       .all(empresaConsulta, modulo, anioObjetivo, capituloObjetivo);
 
-  let cuentas = consultarCuentas(anioNumero);
+  const normalizarVisible = (value) => {
+    if (value === null || value === undefined) return true;
+    if (typeof value === "boolean") return value;
+    return Number(value) !== 0;
+  };
+
+  const normalizarOrden = (value) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  };
+
+  const normalizarCuentas = (list) =>
+    (list || []).map((cuenta) => {
+      const orden = normalizarOrden(cuenta.orden);
+      const ordenPresentacion = normalizarOrden(cuenta.orden_presentacion);
+      return {
+        ...cuenta,
+        orden_presentacion:
+          ordenPresentacion === undefined ? orden : ordenPresentacion,
+        visible: normalizarVisible(cuenta.visible),
+      };
+    });
+
+  let cuentas = normalizarCuentas(consultarCuentas(anioNumero));
   let anioUsado = anioNumero;
 
   const requiereFallback =
@@ -467,7 +492,7 @@ const obtenerLayout = ({ empresaId = "EMPRESA01", modulo, anio, capitulo }) => {
       .get(empresaConsulta, modulo, 2025);
     const fallbackYear = row && row.anio ? Number(row.anio) : 2025;
     if (fallbackYear) {
-      const cuentasFallback = consultarCuentas(fallbackYear);
+      const cuentasFallback = normalizarCuentas(consultarCuentas(fallbackYear));
       if (cuentasFallback && cuentasFallback.length) {
         cuentas = cuentasFallback;
         anioUsado = fallbackYear;
@@ -498,17 +523,22 @@ const obtenerLayout = ({ empresaId = "EMPRESA01", modulo, anio, capitulo }) => {
       operacion_label,
       signo,
       orden,
+      orden_presentacion,
+      visible,
       formula_json
     FROM layout_operaciones
     WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ?
-    ORDER BY orden ASC
+    ORDER BY COALESCE(orden_presentacion, orden) ASC, orden ASC
   `
     )
     .all(empresaConsulta, modulo, anioUsado, capituloObjetivo);
 
   const operacionesMap = {};
   operaciones.forEach((op, idx) => {
-    const ordenBase = Number.isFinite(Number(op.orden))
+    const ordenPresentacion = normalizarOrden(op.orden_presentacion);
+    const ordenBase = Number.isFinite(ordenPresentacion)
+      ? ordenPresentacion
+      : Number.isFinite(Number(op.orden))
       ? Math.floor(Number(op.orden) / 100)
       : idx;
     const operacionId = op.OperacionId || op.Clase || op.clase;
@@ -526,6 +556,9 @@ const obtenerLayout = ({ empresaId = "EMPRESA01", modulo, anio, capitulo }) => {
         signo: op.signo ?? 1,
         signos: {},
         orden: ordenBase,
+        orden_presentacion:
+          ordenPresentacion === undefined ? ordenBase : ordenPresentacion,
+        visible: normalizarVisible(op.visible),
       };
     } else if (
       Number.isFinite(ordenBase) &&
@@ -539,10 +572,19 @@ const obtenerLayout = ({ empresaId = "EMPRESA01", modulo, anio, capitulo }) => {
     if (op.formula_json && !operacionesMap[mapKey].formula_json) {
       operacionesMap[mapKey].formula_json = op.formula_json;
     }
+    if (operacionesMap[mapKey].orden_presentacion === undefined) {
+      operacionesMap[mapKey].orden_presentacion =
+        ordenPresentacion === undefined ? ordenBase : ordenPresentacion;
+    }
+    if (operacionesMap[mapKey].visible === undefined) {
+      operacionesMap[mapKey].visible = normalizarVisible(op.visible);
+    }
   });
 
   const operacionesOrdenadas = Object.values(operacionesMap).sort(
-    (a, b) => (a.orden ?? 0) - (b.orden ?? 0)
+    (a, b) =>
+      (a.orden_presentacion ?? a.orden ?? 0) -
+      (b.orden_presentacion ?? b.orden ?? 0)
   );
 
   return construirRespuestaLayout({
@@ -638,8 +680,8 @@ const guardarCuentas = ({
   const insertCuenta = db.prepare(`
     INSERT OR REPLACE INTO layout_cuentas (
       empresa_id, modulo, anio, cuenta, nombre, capitulo, 
-      seccion_principal, seccion_secundaria, orden, actualizado_en
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+      seccion_principal, seccion_secundaria, orden, orden_presentacion, visible, actualizado_en
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
   `);
 
   const transaction = db.transaction((cuentasArray) => {
@@ -658,6 +700,14 @@ const guardarCuentas = ({
         cuenta["SECCION Secundaria"] || cuenta.seccion_secundaria || null;
       const nombre =
         cuenta.NOMBRE || cuenta.nombre || cuenta.CUENTA || "Sin nombre";
+      const ordenPresentacion = Number.isFinite(
+        Number(cuenta.orden_presentacion)
+      )
+        ? Number(cuenta.orden_presentacion)
+        : Number.isFinite(Number(cuenta.orden))
+        ? Number(cuenta.orden)
+        : index;
+      const visible = cuenta.visible === false ? 0 : 1;
 
       insertCuenta.run(
         empresaCanonica,
@@ -668,7 +718,9 @@ const guardarCuentas = ({
         capitulo,
         seccionPrincipal,
         seccionSecundaria,
-        cuenta.orden || index
+        ordenPresentacion,
+        ordenPresentacion,
+        visible
       );
     });
   });
@@ -691,8 +743,8 @@ const guardarOperaciones = ({
   const insertOperacion = db.prepare(`
     INSERT OR REPLACE INTO layout_operaciones (
       empresa_id, modulo, anio, capitulo, clase, operacion_etiqueta, seccion,
-      operacion_tipo, operacion_label, signo, orden, formula_json, actualizado_en
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+      operacion_tipo, operacion_label, signo, orden, orden_presentacion, visible, formula_json, actualizado_en
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
   `);
 
   const transaction = db.transaction((operacionesArray) => {
@@ -738,9 +790,15 @@ const guardarOperaciones = ({
           ? JSON.stringify(op.formula_terms)
           : null);
 
-      const baseOrden = Number.isFinite(Number(op.orden))
+      const ordenPresentacion = Number.isFinite(
+        Number(op.orden_presentacion)
+      )
+        ? Number(op.orden_presentacion)
+        : Number.isFinite(Number(op.orden))
         ? Number(op.orden)
         : index;
+      const baseOrden = ordenPresentacion;
+      const visible = op.visible === false ? 0 : 1;
 
       tiposOperacion.forEach((tipo, tipoIndex) => {
         if (op[tipo]) {
@@ -786,6 +844,8 @@ const guardarOperaciones = ({
               op[tipo],
               signo,
               baseOrden * 100 + tipoIndex,
+              ordenPresentacion,
+              visible,
               formulaJson
             );
           } catch (err) {
@@ -829,11 +889,11 @@ const copiarLayout = ({
   const copiarCuentas = db.prepare(`
     INSERT INTO layout_cuentas (
       empresa_id, modulo, anio, cuenta, nombre, capitulo,
-      seccion_principal, seccion_secundaria, orden
+      seccion_principal, seccion_secundaria, orden, orden_presentacion, visible
     )
     SELECT 
       empresa_id, modulo, ?, cuenta, nombre, capitulo,
-      seccion_principal, seccion_secundaria, orden
+      seccion_principal, seccion_secundaria, orden, orden_presentacion, visible
     FROM layout_cuentas
     WHERE empresa_id = ? AND modulo = ? AND anio = ?
   `);
@@ -841,11 +901,11 @@ const copiarLayout = ({
   const copiarOperaciones = db.prepare(`
     INSERT INTO layout_operaciones (
       empresa_id, modulo, anio, capitulo, clase, operacion_etiqueta, seccion,
-      operacion_tipo, operacion_label, signo, orden, formula_json
+      operacion_tipo, operacion_label, signo, orden, orden_presentacion, visible, formula_json
     )
     SELECT 
       empresa_id, modulo, ?, capitulo, clase, operacion_etiqueta, seccion,
-      operacion_tipo, operacion_label, signo, orden, formula_json
+      operacion_tipo, operacion_label, signo, orden, orden_presentacion, visible, formula_json
     FROM layout_operaciones
     WHERE empresa_id = ? AND modulo = ? AND anio = ?
   `);

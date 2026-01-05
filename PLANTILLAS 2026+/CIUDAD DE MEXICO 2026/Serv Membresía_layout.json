@@ -1,0 +1,52 @@
+{
+  "Serv Membresía": [
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "406-001-000-00",
+      "NOMBRE": "Encuesta de Sueldos y Prestaciones",
+      "SECCION Principal": "Ingresos Serv Membresía",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "406-002-000-00",
+      "NOMBRE": "Digital Training",
+      "SECCION Principal": "Ingresos Serv Membresía",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "601-002-003-00",
+      "NOMBRE": "Encuesta de Sueldos y Prestaciones",
+      "SECCION Principal": "Gastos  Serv Membresía",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "601-003-001-00",
+      "NOMBRE": "Digital Training",
+      "SECCION Principal": "Gastos  Serv Membresía",
+      "SECCION Secundaria": ""
+    }
+  ],
+  "Operaciones": [
+    {
+      "nombre": "Suma de Ingresos Serv Membresía",
+      "tipo": "cuentas",
+      "expresion": "406-001-000-00 + 406-002-000-00",
+      "seccion": "Ingresos Serv Membresía"
+    },
+    {
+      "nombre": "Suma de Gastos Serv Membresía",
+      "tipo": "cuentas",
+      "expresion": "601-002-003-00 + 601-003-001-00",
+      "seccion": "Gastos  Serv Membresía"
+    },
+    {
+      "nombre": "Resultado Serv Membresía",
+      "tipo": "cuentas",
+      "expresion": "406-001-000-00 + 406-002-000-00 - 601-002-003-00 - 601-003-001-00",
+      "seccion": ""
+    }
+  ]
+}

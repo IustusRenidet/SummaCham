@@ -1,0 +1,80 @@
+{
+  "T&IC": [
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "405-001-000-00",
+      "NOMBRE": "SemiconWest",
+      "SECCION Principal": "Ingresos T&IC",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "405-002-000-00",
+      "NOMBRE": "North American Week",
+      "SECCION Principal": "Ingresos T&IC",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "405-003-000-00",
+      "NOMBRE": "Selec USA",
+      "SECCION Principal": "Ingresos T&IC",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "405-004-000-00",
+      "NOMBRE": "Briefing T&IC",
+      "SECCION Principal": "Ingresos T&IC",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "703-002-000-00",
+      "NOMBRE": "SemiconWest",
+      "SECCION Principal": "Gastos T&IC",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "703-003-000-00",
+      "NOMBRE": "North American Week",
+      "SECCION Principal": "Gastos T&IC",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "703-004-000-00",
+      "NOMBRE": "Selec USA",
+      "SECCION Principal": "Gastos T&IC",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "703-005-000-00",
+      "NOMBRE": "Briefing T&IC",
+      "SECCION Principal": "Gastos T&IC",
+      "SECCION Secundaria": ""
+    }
+  ],
+  "Operaciones": [
+    {
+      "nombre": "Suma de Ingresos T&IC",
+      "tipo": "cuentas",
+      "expresion": "405-001-000-00 + 405-002-000-00 + 405-003-000-00 + 405-004-000-00",
+      "seccion": "Ingresos T&IC"
+    },
+    {
+      "nombre": "Suma de Gastos T&IC",
+      "tipo": "cuentas",
+      "expresion": "703-002-000-00 + 703-003-000-00 + 703-004-000-00 + 703-005-000-00",
+      "seccion": "Gastos T&IC"
+    },
+    {
+      "nombre": "Resultado  T&IC",
+      "tipo": "cuentas",
+      "expresion": "405-001-000-00 + 405-002-000-00 + 405-003-000-00 + 405-004-000-00 - 703-002-000-00 - 703-003-000-00 - 703-004-000-00 - 703-005-000-00",
+      "seccion": ""
+    }
+  ]
+}

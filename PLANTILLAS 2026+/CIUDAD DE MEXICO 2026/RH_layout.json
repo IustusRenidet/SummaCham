@@ -1,0 +1,114 @@
+{
+  "RH": [
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "901-008-000-00",
+      "NOMBRE": "Capacitación, Intercambio de talento y Team building",
+      "SECCION Principal": "Gastos RH",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-006-012-00",
+      "NOMBRE": "Programa  de reconocimientos, Regalos",
+      "SECCION Principal": "Gastos RH",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-006-020-00",
+      "NOMBRE": "Encuesta NOM035 y Clima Org., Voluntariados corporativos",
+      "SECCION Principal": "Gastos RH",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-006-001-00",
+      "NOMBRE": "Teléfono Móvil ",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-006-004-00",
+      "NOMBRE": "Mantenimiento de Automóvil ",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-006-003-00",
+      "NOMBRE": "Gasolina ",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-006-005-00",
+      "NOMBRE": "Pasajes y Taxis",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-006-006-00",
+      "NOMBRE": "Estacionamientos",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-006-011-00",
+      "NOMBRE": "Impresión Tarjetas",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-006-019-00",
+      "NOMBRE": "Gastos de viaje",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-006-007-00",
+      "NOMBRE": "Papelería y Artículos de oficina",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-006-018-00",
+      "NOMBRE": "Herramientas Tele-trabajo",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    }
+  ],
+  "Operaciones": [
+    {
+      "nombre": "Suma de Gastos RH",
+      "tipo": "cuentas",
+      "expresion": "901-008-000-00 + 801-006-012-00 + 801-006-020-00",
+      "seccion": "Gastos RH"
+    },
+    {
+      "nombre": "Suma Gastos Administrativos",
+      "tipo": "cuentas",
+      "expresion": "801-006-001-00 + 801-006-004-00 + 801-006-003-00 + 801-006-005-00 + 801-006-006-00 + 801-006-011-00 + 801-006-019-00 + 801-006-007-00 + 801-006-018-00",
+      "seccion": "Gastos Administrativos"
+    },
+    {
+      "nombre": "Resultado Operativo RH",
+      "tipo": "cuentas",
+      "expresion": "-901-008-000-00 - 801-006-012-00 - 801-006-020-00",
+      "seccion": ""
+    },
+    {
+      "nombre": "Resultado RH",
+      "tipo": "cuentas",
+      "expresion": "- 901-008-000-00 - 801-006-012-00 - 801-006-020-00 - 801-006-001-00 - 801-006-004-00 - 801-006-003-00 - 801-006-005-00 - 801-006-006-00 - 801-006-011-00 - 801-006-019-00 - 801-006-007-00 - 801-006-018-00",
+      "seccion": ""
+    }
+  ]
+}

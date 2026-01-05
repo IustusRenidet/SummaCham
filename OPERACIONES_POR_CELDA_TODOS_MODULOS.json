@@ -1,0 +1,1335 @@
+{
+  "descripcion": "Mapa COMPLETO de operaciones por cada celda de cada módulo HTML",
+  "version": "2.0.0",
+  "fecha": "2026-01-04",
+  "estructura_columnas_comun": {
+    "0": {"tipo": "cuenta", "nombre": "Número de Cuenta", "editable": false, "operacion": "ninguna"},
+    "1": {"tipo": "nombre", "nombre": "Descripción", "editable": false, "operacion": "ninguna"},
+    "2": {"tipo": "budget-ene", "nombre": "Presupuesto Enero", "editable": true, "fuente": "API /planeacion/cuentas"},
+    "3": {"tipo": "real-ene", "nombre": "Real Enero", "editable": false, "fuente": "API /saldos/cuentas"},
+    "4": {"tipo": "budget-feb", "nombre": "Presupuesto Febrero", "editable": true, "fuente": "API /planeacion/cuentas"},
+    "5": {"tipo": "real-feb", "nombre": "Real Febrero", "editable": false, "fuente": "API /saldos/cuentas"},
+    "continua_hasta": "dic (columnas 26 y 27)",
+    "26": {"tipo": "total-budget", "nombre": "Total Presupuesto Acumulado", "editable": false, "operacion": "SUM_HORIZONTAL"},
+    "27": {"tipo": "total-real", "nombre": "Total Real Acumulado", "editable": false, "operacion": "SUM_HORIZONTAL"},
+    "28": {"tipo": "budget-annual", "nombre": "Presupuesto Anual", "editable": false, "operacion": "SUM_HORIZONTAL"},
+    "29": {"tipo": "budget-monthly", "nombre": "Real Mes Actual", "editable": false, "operacion": "LOOKUP"}
+  },
+
+  "modulos": {
+    "Membresia.html": {
+      "capitulos": ["CIUDAD DE MÉXICO", "GUADALAJARA", "NORESTE", "NOROESTE"],
+      "CIUDAD DE MÉXICO": {
+        "seccion_INGRESOS_MEMBRESIA": {
+          "tipo_seccion": "INGRESOS",
+          "factor_seccion": 1,
+          "cuentas": [
+            {"cuenta": "401-004-000-00", "nombre": "Renovaciones", "factor": 1},
+            {"cuenta": "401-003-000-00", "nombre": "Descuentos por pronto pago", "factor": 1},
+            {"cuenta": "401-001-004-00", "nombre": "Socios Nuevos", "factor": 1},
+            {"cuenta": "402-002-000-00", "nombre": "Cuotas Suscripción", "factor": 1},
+            {"cuenta": "408-020-000-00", "nombre": "Diamond Publicidad en Publicaciones", "factor": 1}
+          ],
+          "filas_cuenta": {
+            "descripcion": "5 filas de cuenta con valores editables en columnas budget-*",
+            "operaciones_por_celda": {
+              "columna_0": {"tipo": "cuenta", "valor": "Tomado de campo 'cuenta'", "operacion": "ninguna"},
+              "columna_1": {"tipo": "nombre", "valor": "Tomado de campo 'nombre'", "operacion": "ninguna"},
+              "columna_2_budget_ene": {
+                "tipo": "input",
+                "editable": true,
+                "valor_inicial": "API /planeacion/cuentas → presupuesto.ene",
+                "al_editar": [
+                  "1. Usuario hace doble click",
+                  "2. Celda se vuelve contentEditable",
+                  "3. Usuario escribe valor",
+                  "4. Al presionar Enter:",
+                  "   a. parsearNumero(celda.textContent)",
+                  "   b. actualizar estadoModulo.valoresPorCuenta",
+                  "   c. llamar recalcularTotalesFilaPresupuesto()",
+                  "   d. llamar recalcularSumas()",
+                  "   e. marcar hayCambios = true"
+                ],
+                "validacion": "Número válido, acepta negativos"
+              },
+              "columna_3_real_ene": {
+                "tipo": "readonly",
+                "editable": false,
+                "valor_inicial": "API /saldos/cuentas → real.ene",
+                "calculo": "Traído del backend (contabilización YTD)",
+                "nota": "NO editable, solo lectura"
+              },
+              "columnas_4_a_25": {
+                "patron": "Igual que columnas 2 y 3, alternando budget/real para cada mes"
+              },
+              "columna_26_total_budget": {
+                "tipo": "calculado",
+                "operacion": "SUM_HORIZONTAL",
+                "formula": "SUM(budget-ene hasta budget-[periodo_cerrado])",
+                "dependencias": ["columnas 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24"],
+                "trigger": "recalcularTotalesFilaPresupuesto()",
+                "pseudocodigo": [
+                  "let total = 0;",
+                  "for (let i = 0; i <= periodoCerrado; i++) {",
+                  "  total += valores[`budget-${MESES[i]}`] || 0;",
+                  "}",
+                  "celda.textContent = formatearNumero(total);"
+                ]
+              },
+              "columna_27_total_real": {
+                "tipo": "calculado",
+                "operacion": "SUM_HORIZONTAL",
+                "formula": "SUM(real-ene hasta real-[periodo_cerrado])",
+                "dependencias": ["columnas 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25"],
+                "trigger": "recalcularTotalesFilaPresupuesto()"
+              },
+              "columna_28_budget_annual": {
+                "tipo": "calculado",
+                "operacion": "SUM_HORIZONTAL",
+                "formula": "SUM(budget-ene hasta budget-dic) [12 meses completos]",
+                "nota": "Suma completa independiente del periodo cerrado"
+              },
+              "columna_29_budget_monthly": {
+                "tipo": "calculado",
+                "operacion": "LOOKUP",
+                "formula": "real-[mes_actual]",
+                "nota": "Solo para Gastos Corporativos normalmente"
+              }
+            }
+          },
+          "fila_sum_row": {
+            "descripcion": "Suma vertical de todas las cuentas de la sección",
+            "clase_css": "sum-row",
+            "texto": "Suma de Ingresos Membresía",
+            "operaciones_por_celda": {
+              "columna_0": {"valor": "", "operacion": "ninguna"},
+              "columna_1": {"valor": "Suma de Ingresos Membresía", "operacion": "ninguna"},
+              "columna_2_budget_ene": {
+                "tipo": "calculado",
+                "operacion": "SUM_VERTICAL",
+                "formula": "SUM(cuenta1.budget-ene * factor1, cuenta2.budget-ene * factor2, ...)",
+                "dependencias": ["Todas las filas-cuenta de la sección"],
+                "trigger": "recalcularSumas() → PASO 1",
+                "proceso_detallado": [
+                  "1. Extraer valores de cada fila-cuenta:",
+                  "   - fila1: 50000 * 1 = 50000",
+                  "   - fila2: 5000 * 1 = 5000",
+                  "   - fila3: 3000 * 1 = 3000",
+                  "   - fila4: 2000 * 1 = 2000",
+                  "   - fila5: 1000 * 1 = 1000",
+                  "2. Sumar: 50000 + 5000 + 3000 + 2000 + 1000 = 61000",
+                  "3. Asignar a celda: formatearNumero(61000) → '61,000.00'"
+                ],
+                "linea_codigo": "3890-3920 en cuentas-modulo.js"
+              },
+              "columnas_3_a_29": {
+                "patron": "Mismo cálculo para cada columna (real-ene, budget-feb, etc.)"
+              }
+            }
+          },
+          "fila_sumavarios": {
+            "descripcion": "Resultado Operativo Membresía (suma de múltiples secciones)",
+            "clase_css": "sum-row-sumavarios",
+            "texto": "Resultado Operativo Membresía",
+            "etiqueta_configuracion": "sumRowSumavarios",
+            "secciones_que_agrupan": ["INGRESOS MEMBRESIA", "GASTOS MEMBRESIA"],
+            "operaciones_por_celda": {
+              "columna_2_budget_ene": {
+                "tipo": "calculado",
+                "operacion": "SUM_DE_SUM",
+                "formula": "SUM(seccion1.sumRow * factor1, seccion2.sumRow * factor2)",
+                "ejemplo_calculo": [
+                  "seccion INGRESOS MEMBRESIA: sumRow.budget-ene = 61000, factor = 1",
+                  "seccion GASTOS MEMBRESIA: sumRow.budget-ene = 15000, factor = -1",
+                  "Resultado: (61000 * 1) + (15000 * -1) = 46000"
+                ],
+                "trigger": "recalcularSumas() → PASO 2",
+                "linea_codigo": "3925-3990"
+              }
+            }
+          },
+          "fila_result_row": {
+            "descripcion": "Resultado Membresía (resultado final incluyendo gastos admin)",
+            "clase_css": "result-row",
+            "texto": "Resultado  Membresía",
+            "secciones_que_suman": ["INGRESOS MEMBRESIA", "GASTOS MEMBRESIA", "GASTOS ADMINISTRATIVOS"],
+            "operaciones_por_celda": {
+              "columna_2_budget_ene": {
+                "tipo": "calculado",
+                "operacion": "SUM_DE_SUM_CON_FACTOR",
+                "formula": "SUM(todas las secciones.sumRow * factor_seccion)",
+                "ejemplo_calculo": [
+                  "INGRESOS MEMBRESIA: 61000 * 1 = 61000",
+                  "GASTOS MEMBRESIA: 15000 * -1 = -15000",
+                  "GASTOS ADMINISTRATIVOS: 8000 * -1 = -8000",
+                  "Resultado: 61000 - 15000 - 8000 = 38000"
+                ],
+                "trigger": "recalcularSumas() → PASO 3",
+                "linea_codigo": "3995-4020"
+              }
+            }
+          }
+        },
+        "seccion_GASTOS_MEMBRESIA": {
+          "tipo_seccion": "GASTOS",
+          "factor_seccion": -1,
+          "cuentas": [
+            {"cuenta": "705-002-000-00", "nombre": "Intercambios membresía-especie", "factor": 1},
+            {"cuenta": "705-003-000-00", "nombre": "Intercambios membresía", "factor": 1},
+            {"cuenta": "520-000-000-00", "nombre": "Comisiones KAM´s", "factor": 1},
+            {"cuenta": "705-001-000-00", "nombre": "Promoción Servicios Membresías (Representación)", "factor": 1},
+            {"cuenta": "705-004-000-00", "nombre": "Onboarding", "factor": 1}
+          ],
+          "filas_cuenta": {
+            "descripcion": "5 filas de cuenta, operaciones idénticas a INGRESOS MEMBRESIA"
+          },
+          "fila_sum_row": {
+            "texto": "Suma de Gastos Membresía",
+            "operaciones": "Idénticas a sum-row de ingresos pero con valores negativos"
+          }
+        },
+        "seccion_GASTOS_ADMINISTRATIVOS": {
+          "tipo_seccion": "GASTOS",
+          "factor_seccion": -1,
+          "cuentas": [
+            {"cuenta": "801-001-001-00", "nombre": "Teléfono Móvil", "factor": 1},
+            {"cuenta": "801-001-004-00", "nombre": "Mantenimientos de automóvil", "factor": 1},
+            {"cuenta": "801-001-003-00", "nombre": "Gasolina", "factor": 1},
+            "... (más cuentas administrativas)"
+          ],
+          "fila_sum_row": {
+            "texto": "Suma Gastos Administrativos"
+          },
+          "nota": "Esta sección NO tiene sumavarios (excluida del operativo), solo entra en result-row"
+        }
+      },
+      "GUADALAJARA": {
+        "estructura_identica": "Similar a CIUDAD DE MÉXICO pero con menos cuentas",
+        "sin_seccion": "GASTOS ADMINISTRATIVOS (solo tiene INGRESOS y GASTOS MEMBRESIA)"
+      }
+    },
+
+    "Eventos.html": {
+      "capitulos": ["CIUDAD DE MÉXICO", "GUADALAJARA", "NORESTE", "NOROESTE"],
+      "CIUDAD DE MÉXICO": {
+        "seccion_BOLETAJE": {
+          "tipo_seccion": "INGRESOS",
+          "factor_seccion": 1,
+          "cuentas": [
+            {"cuenta": "407-005-000-00", "nombre": "Asamblea Anual", "factor": 1},
+            {"cuenta": "407-010-000-00", "nombre": "Torneo Golf", "factor": 1},
+            {"cuenta": "407-002-000-00", "nombre": "Secretarias", "factor": 1},
+            {"cuenta": "407-008-000-00", "nombre": "Foro Económico", "factor": 1},
+            {"cuenta": "407-009-000-00", "nombre": "Foros Comités", "factor": 1},
+            {"cuenta": "407-012-000-00", "nombre": "Cena Gala", "factor": 1},
+            {"cuenta": "407-013-000-00", "nombre": "AmCham Connect", "factor": 1},
+            {"cuenta": "407-014-000-00", "nombre": "North America Week", "factor": 1},
+            {"cuenta": "407-007-000-00", "nombre": "Sondeo de Seguridad", "factor": 1}
+          ],
+          "fila_sum_row": {
+            "texto": "Ingresos Boletaje",
+            "operaciones_por_celda": {
+              "columna_2_budget_ene": {
+                "formula": "SUM(9 cuentas * sus factores)",
+                "ejemplo": "Si Asamblea=50000, Torneo=30000, Secretarias=20000, etc.",
+                "resultado": "Suma de todos los valores"
+              }
+            }
+          },
+          "fila_sumavarios_nivel1": {
+            "texto": "Suma Ingresos Eventos",
+            "etiqueta": "sumRowSumavarios",
+            "agrupa": ["BOLETAJE", "PATROCINIOS"]
+          },
+          "fila_sumavarios_nivel2": {
+            "texto": "Resultado Operativo Eventos",
+            "etiqueta": "sumRowSumavarios2",
+            "agrupa": ["BOLETAJE", "PATROCINIOS", "COSTOS Y GASTOS EVENTOS"]
+          }
+        },
+        "seccion_PATROCINIOS": {
+          "tipo_seccion": "INGRESOS",
+          "factor_seccion": 1,
+          "cuentas": [
+            {"cuenta": "408-005-000-00", "nombre": "Asamblea Anual", "factor": 1},
+            {"cuenta": "408-010-000-00", "nombre": "Torneo Golf", "factor": 1},
+            {"cuenta": "408-002-000-00", "nombre": "Secretarias", "factor": 1},
+            {"cuenta": "408-008-000-00", "nombre": "Foro Económico", "factor": 1},
+            {"cuenta": "408-009-000-00", "nombre": "Sondeo de Seguridad", "factor": 1},
+            {"cuenta": "408-003-000-00", "nombre": "Foros Comités", "factor": 1},
+            {"cuenta": "408-016-000-00", "nombre": "Select USA Conference", "factor": 1},
+            {"cuenta": "408-006-000-00", "nombre": "AmCham Connect", "factor": 1},
+            {"cuenta": "408-013-000-00", "nombre": "Cena Gala", "factor": 1},
+            {"cuenta": "408-004-000-00", "nombre": "CEO Talk", "factor": 1},
+            {"cuenta": "408-015-000-00", "nombre": "AmCham B2B", "factor": 1},
+            {"cuenta": "408-014-000-00", "nombre": "North America Week", "factor": 1},
+            {"cuenta": "408-018-000-00", "nombre": "Incidencia", "factor": 1}
+          ],
+          "fila_sum_row": {
+            "texto": "Ingresos Patrocinios"
+          }
+        },
+        "seccion_COSTOS_Y_GASTOS_EVENTOS": {
+          "tipo_seccion": "GASTOS",
+          "factor_seccion": -1,
+          "cuentas": [
+            {"cuenta": "701-001-004-00", "nombre": "Asamblea Anual", "factor": 1},
+            {"cuenta": "701-001-013-00", "nombre": "Torneo Golf", "factor": 1},
+            {"cuenta": "701-001-011-00", "nombre": "Secretarias", "factor": 1},
+            {"cuenta": "701-001-006-00", "nombre": "Foro Económico", "factor": 1},
+            {"cuenta": "701-001-014-00", "nombre": "Foros de Comités", "factor": 1},
+            {"cuenta": "701-001-017-00", "nombre": "AmCham Connect", "factor": 1},
+            {"cuenta": "701-001-012-00", "nombre": "Cena Gala", "factor": 1},
+            {"cuenta": "701-001-003-00", "nombre": "CEO Talk", "factor": 1},
+            {"cuenta": "701-001-018-00", "nombre": "AmCham B2B", "factor": 1},
+            {"cuenta": "701-001-008-00", "nombre": "Sondeo de Seguridad", "factor": 1},
+            {"cuenta": "701-001-015-00", "nombre": "NORTH AMERICA WEEK", "factor": 1},
+            {"cuenta": "701-001-002-00", "nombre": "Incidencia", "factor": 1},
+            {"cuenta": "701-001-016-00", "nombre": "Ppto Marketing", "factor": 1}
+          ],
+          "fila_sum_row": {
+            "texto": "Suma Costos y Gastos Eventos",
+            "nota": "Valores negativos por factor_seccion = -1"
+          }
+        },
+        "seccion_GASTOS_ADMINISTRATIVOS": {
+          "tipo_seccion": "GASTOS",
+          "factor_seccion": -1,
+          "cuentas": [
+            {"cuenta": "801-010-001-00", "nombre": "Teléfono Móvil", "factor": 1},
+            {"cuenta": "801-010-003-00", "nombre": "Gasolina", "factor": 1},
+            {"cuenta": "801-010-004-00", "nombre": "Mantenimiento auto", "factor": 1},
+            "... (más cuentas)"
+          ],
+          "fila_sum_row": {
+            "texto": "Suma Gastos Administrativos"
+          },
+          "nota": "NO entra en sumavarios (operativo), solo en result-row"
+        },
+        "resultado_operativo": {
+          "texto": "Resultado Operativo Eventos",
+          "formula": "BOLETAJE + PATROCINIOS - COSTOS_Y_GASTOS_EVENTOS",
+          "excluye": "GASTOS ADMINISTRATIVOS"
+        },
+        "resultado_final": {
+          "texto": "Resultado  Eventos",
+          "formula": "BOLETAJE + PATROCINIOS - COSTOS_Y_GASTOS_EVENTOS - GASTOS_ADMINISTRATIVOS",
+          "incluye": "Todo"
+        }
+      }
+    },
+
+    "Comunicacion.html": {
+      "capitulos": ["CIUDAD DE MÉXICO", "GUADALAJARA", "NORESTE", "NOROESTE"],
+      "estructura_simple": "Solo 2 secciones por capítulo",
+      "CIUDAD DE MÉXICO": {
+        "seccion_GASTOS_COMUNICACION": {
+          "tipo_seccion": "GASTOS",
+          "factor_seccion": -1,
+          "cuentas": [
+            {"cuenta": "801-013-006-00", "nombre": "Agencias de Comunicación", "factor": 1},
+            {"cuenta": "801-013-016-00", "nombre": "Contenidos multimedia", "factor": 1},
+            {"cuenta": "801-013-015-00", "nombre": "Marketing Licencias", "factor": 1},
+            {"cuenta": "801-013-010-00", "nombre": "Traductor", "factor": 1}
+          ],
+          "fila_sum_row": {
+            "texto": "Suma de Gastos Comunicación"
+          }
+        },
+        "resultado_final": {
+          "texto": "Resultado Operativo Comunicación",
+          "formula": "INGRESOS_COMUNICACION (si existe) - GASTOS_COMUNICACION",
+          "nota": "Normalmente solo gastos, ingresos vacíos"
+        }
+      }
+    },
+
+    "Direccion.html": {
+      "capitulos": ["GUADALAJARA", "NORESTE", "NOROESTE"],
+      "nota": "NO tiene capítulo CIUDAD DE MÉXICO",
+      "GUADALAJARA": {
+        "seccion_INGRESOS_CE_BOARD": {
+          "cuentas": [
+            {"cuenta": "404-006-000-00", "nombre": "Board Of Directors", "factor": 1},
+            {"cuenta": "404-011-000-00", "nombre": "Executive Committee", "factor": 1}
+          ]
+        },
+        "seccion_GASTOS_CE_BOARD": {
+          "cuentas": [
+            {"cuenta": "502-006-000-00", "nombre": "Board of Directors", "factor": 1},
+            {"cuenta": "502-012-000-00", "nombre": "Executive Committee", "factor": 1}
+          ]
+        },
+        "seccion_GASTOS_DE_ADMINISTRACION": {
+          "cuentas": [
+            {"cuenta": "801-006-004-00", "nombre": "Gastos de Viaje", "factor": 1},
+            {"cuenta": "901-007-000-00", "nombre": "Viajes Presidente Capítulo", "factor": 1},
+            {"cuenta": "801-006-002-00", "nombre": "Gasolina Administración", "factor": 1},
+            {"cuenta": "801-006-005-00", "nombre": "Mtto. Equipo de Transporte", "factor": 1},
+            {"cuenta": "801-006-006-00", "nombre": "Gastos de representacion", "factor": 1}
+          ]
+        },
+        "sumavarios": {
+          "texto": "Resultado Board y Executive",
+          "agrupa": ["INGRESOS_CE_BOARD", "GASTOS_CE_BOARD"]
+        },
+        "resultado_final": {
+          "texto": "Resultado Director Capítulo",
+          "incluye": "Todas las secciones"
+        }
+      }
+    },
+
+    "Serv_Membresia.html": {
+      "capitulos": ["CIUDAD DE MÉXICO", "GUADALAJARA", "NORESTE", "NOROESTE"],
+      "CIUDAD DE MÉXICO": {
+        "seccion_INGRESOS_SERV_MEMBRESIA": {
+          "cuentas": [
+            {"cuenta": "406-001-000-00", "nombre": "Encuesta de Sueldos y Prestaciones", "factor": 1},
+            {"cuenta": "406-002-000-00", "nombre": "Digital Training", "factor": 1}
+          ]
+        },
+        "seccion_GASTOS_SERV_MEMBRESIA": {
+          "cuentas": [
+            {"cuenta": "601-002-003-00", "nombre": "Encuesta de Sueldos y Prestaciones", "factor": 1},
+            {"cuenta": "601-003-001-00", "nombre": "Digital Training", "factor": 1}
+          ]
+        },
+        "sumavarios": {
+          "texto": "Resultado Operativo Serv Membresía"
+        },
+        "resultado_final": {
+          "texto": "Resultado Serv Membresía"
+        }
+      }
+    },
+
+    "Comites.html": {
+      "capitulos": ["CIUDAD DE MÉXICO", "GUADALAJARA", "NORESTE", "NOROESTE"],
+      "CIUDAD DE MÉXICO": {
+        "seccion_INGRESOS_COMITES": {
+          "cuentas": [
+            {"cuenta": "417-015-000-00", "nombre": "Programa de Mentoría", "factor": 1},
+            {"cuenta": "417-001-000-00", "nombre": "Steering Group", "factor": 1},
+            {"cuenta": "417-018-000-00", "nombre": "Asuntos Fiscales", "factor": 1},
+            {"cuenta": "417-003-000-00", "nombre": "Capital Humano y Asuntos Laborales", "factor": 1},
+            {"cuenta": "417-005-000-00", "nombre": "Seguridad", "factor": 1},
+            {"cuenta": "417-004-000-00", "nombre": "Comercio Exterior y Logística", "factor": 1},
+            {"cuenta": "417-020-000-00", "nombre": "Diversidad", "factor": 1},
+            {"cuenta": "417-009-000-00", "nombre": "IPR", "factor": 1},
+            {"cuenta": "417-014-000-00", "nombre": "Talleres (IPR)", "factor": 1},
+            {"cuenta": "417-010-000-00", "nombre": "Energía", "factor": 1},
+            {"cuenta": "417-002-002-00", "nombre": "Legalidad y Estado de Derecho", "factor": 1},
+            {"cuenta": "417-021-000-00", "nombre": "Servicios Financieros", "factor": 1},
+            {"cuenta": "417-023-000-00", "nombre": "Innovación y TIC´s", "factor": 1},
+            {"cuenta": "417-012-000-00", "nombre": "Sustentabilidad y Responsabilidad Social", "factor": 1},
+            {"cuenta": "417-025-000-00", "nombre": "Salud", "factor": 1},
+            {"cuenta": "417-024-000-00", "nombre": "Task Force lideres Rel. Con Gobierno", "factor": 1},
+            {"cuenta": "412-001-000-00", "nombre": "Economex: Diamond + Membresías", "factor": 1},
+            {"cuenta": "412-002-000-00", "nombre": "Economex: Sesiones", "factor": 1},
+            {"cuenta": "412-003-000-00", "nombre": "Economex: Breafings y cocteles", "factor": 1},
+            {"cuenta": "417-002-001-00", "nombre": "Misiones DC (CEOs y SG)", "factor": 1}
+          ],
+          "nota": "20 cuentas diferentes de ingresos de comités"
+        },
+        "seccion_GASTOS_COMITES": {
+          "cuentas": [
+            {"cuenta": "702-002-001-00", "nombre": "Steering Group", "factor": 1},
+            {"cuenta": "702-002-023-00", "nombre": "Asuntos Fiscales", "factor": 1},
+            "... (corresponden 1 a 1 con ingresos)"
+          ]
+        },
+        "seccion_GASTOS_ADMINISTRATIVOS": {
+          "cuentas": [
+            {"cuenta": "801-011-001-00", "nombre": "Teléfono Móvil", "factor": 1},
+            {"cuenta": "801-011-004-00", "nombre": "Mantenimiento de Automóvil", "factor": 1},
+            "... (gastos operativos del área)"
+          ]
+        }
+      }
+    },
+
+    "T&IC.html": {
+      "capitulos": ["CIUDAD DE MÉXICO", "GUADALAJARA", "NORESTE", "NOROESTE"],
+      "CIUDAD DE MÉXICO": {
+        "seccion_INGRESOS_T_IC": {
+          "cuentas": [
+            {"cuenta": "405-001-000-00", "nombre": "Ingresos 1", "factor": 1},
+            {"cuenta": "405-002-000-00", "nombre": "Ingresos 2", "factor": 1}
+          ]
+        },
+        "seccion_GASTOS_T_IC": {
+          "cuentas": [
+            {"cuenta": "703-002-000-00", "nombre": "Gastos 1", "factor": 1},
+            {"cuenta": "703-003-000-00", "nombre": "Gastos 2", "factor": 1}
+          ]
+        },
+        "resultado": {
+          "texto": "Resultado  T&IC"
+        }
+      }
+    },
+
+    "RH.html": {
+      "capitulos": ["CIUDAD DE MÉXICO", "GUADALAJARA", "NORESTE", "NOROESTE"],
+      "CIUDAD DE MÉXICO": {
+        "seccion_GASTOS_RH": {
+          "cuentas": [
+            {"cuenta": "901-008-000-00", "nombre": "Capacitación, Intercambio de talento y Team building", "factor": 1},
+            {"cuenta": "801-006-012-00", "nombre": "Programa  de reconocimientos, Snacks, Regalos, flores getwell", "factor": 1},
+            {"cuenta": "801-006-020-00", "nombre": "Encuesta NOM035 y Voluntariados corporativos", "factor": 1}
+          ]
+        },
+        "seccion_GASTOS_ADMINISTRATIVOS": {
+          "cuentas": [
+            {"cuenta": "801-006-001-00", "nombre": "Teléfono Móvil", "factor": 1},
+            {"cuenta": "801-006-004-00", "nombre": "Mantenimiento de Automóvil", "factor": 1},
+            "... (más gastos admin)"
+          ]
+        },
+        "resultado": {
+          "texto": "Resultado  RH"
+        }
+      }
+    },
+
+    "VPE.html": {
+      "capitulos": ["CIUDAD DE MÉXICO"],
+      "CIUDAD DE MÉXICO": {
+        "seccion_INGRESOS_CEN_BOARD": {
+          "cuentas": [
+            {"cuenta": "417-017-000-00", "nombre": "Board Of Directors", "factor": 1},
+            {"cuenta": "417-019-000-00", "nombre": "Executive Committee", "factor": 1},
+            {"cuenta": "417-008-000-00", "nombre": "Comité Expresidentes", "factor": 1}
+          ]
+        },
+        "seccion_GASTOS_CEN_BOARD": {
+          "cuentas": [
+            {"cuenta": "702-002-019-00", "nombre": "Board of Directors", "factor": 1},
+            {"cuenta": "702-002-020-00", "nombre": "Executive Committee", "factor": 1},
+            {"cuenta": "702-004-000-00", "nombre": "Comité Expresidentes", "factor": 1}
+          ]
+        },
+        "seccion_GASTOS_ADMINISTRATIVOS": {
+          "cuentas": [
+            {"cuenta": "801-004-001-00", "nombre": "Teléfono Móvil", "factor": 1},
+            "... (20+ cuentas administrativas)"
+          ]
+        },
+        "sumavarios": {
+          "texto": "Resultado CEN/Board"
+        },
+        "resultado": {
+          "texto": "Resultado  VPE"
+        }
+      }
+    },
+
+    "Finanzas.html": {
+      "capitulos": ["CIUDAD DE MÉXICO"],
+      "CIUDAD DE MÉXICO": {
+        "seccion_GASTOS_ADMINISTRATIVOS": {
+          "cuentas": [
+            {"cuenta": "801-005-001-00", "nombre": "Teléfono Móvil ", "factor": 1},
+            {"cuenta": "801-005-004-00", "nombre": "Mantenimiento de Automóvil ", "factor": 1},
+            {"cuenta": "801-005-003-00", "nombre": "Gasolina ", "factor": 1},
+            {"cuenta": "801-005-010-00", "nombre": "Becarios", "factor": 1},
+            "... (14 cuentas totales)"
+          ]
+        },
+        "resultado": {
+          "texto": "Resultado Admon y Finanzas "
+        }
+      }
+    },
+
+    "GastosGenerales.html": {
+      "capitulos": ["GUADALAJARA", "NORESTE", "NOROESTE", "CIUDAD DE MÉXICO"],
+      "CIUDAD DE MÉXICO": {
+        "seccion_OTROS_INGRESOS": {
+          "cuentas": [
+            {"cuenta": "414-000-000-00", "nombre": "Rendimientos de Inversión", "factor": 1},
+            {"cuenta": "418-000-000-00", "nombre": "Plusvalía/Minusvalía Portafolio de Inversiones", "factor": 1},
+            {"cuenta": "413-014-001-00", "nombre": "Renta oficinas Reforma", "factor": 1},
+            {"cuenta": "413-006-000-00", "nombre": "Vta. De activo fijo", "factor": 1},
+            {"cuenta": "413-001-000-00", "nombre": "Regalias", "factor": 1},
+            {"cuenta": "413-002-000-00", "nombre": "Miscelaneos", "factor": 1},
+            {"cuenta": "413-003-000-00", "nombre": "Trade & Investment Center", "factor": 1},
+            {"cuenta": "413-007-000-00", "nombre": "Otros ingresos", "factor": 1}
+          ]
+        },
+        "seccion_GASTOS_FINANCIEROS": {
+          "cuentas": [
+            {"cuenta": "416-000-000-00", "nombre": "Utilidad cambiaria", "factor": 1},
+            {"cuenta": "901-096-000-00", "nombre": "Pérdida cambiaria", "factor": 1},
+            {"cuenta": "901-020-000-00", "nombre": "Gtos Financieros (comisiones)", "factor": 1}
+          ]
+        },
+        "seccion_GASTOS_GENERALES": {
+          "cuentas": [
+            {"cuenta": "901-001-001-00", "nombre": "Oficinas", "factor": 1},
+            {"cuenta": "901-001-002-00", "nombre": "Biblioteca AmCham", "factor": 1},
+            {"cuenta": "901-002-001-00", "nombre": "Oficinas", "factor": 1},
+            "... (30+ cuentas de gastos generales)"
+          ]
+        },
+        "seccion_DEPRECIACIONES_Y_AMORTIZACIONES": {
+          "cuentas": [
+            {"cuenta": "901-004-000-00", "nombre": "Depreciaciones de equipo", "factor": 1},
+            {"cuenta": "901-005-002-00", "nombre": "Gastos de instalación oficina/BA", "factor": 1},
+            {"cuenta": "901-005-004-00", "nombre": "Software Activo fijo", "factor": 1},
+            {"cuenta": "901-005-001-00", "nombre": "CRM", "factor": 1}
+          ]
+        },
+        "seccion_GASTOS_CORPORATIVOS_CDMX": {
+          "cuentas": [
+            {"cuenta": "903-000-000-00", "nombre": "Gastos Corporativos CdMx", "factor": 1}
+          ]
+        },
+        "seccion_MEMBER_CENTRICITY": {
+          "cuentas": [
+            {"cuenta": "902-000-000-00", "nombre": "Member Centricity", "factor": 1}
+          ]
+        },
+        "sumavarios": {
+          "texto": "Otros Ingresos vs Gastos",
+          "agrupa": ["OTROS_INGRESOS", "GASTOS_FINANCIEROS"]
+        },
+        "resultado": {
+          "texto": "Total GA CdMx",
+          "incluye": "Todas las secciones"
+        }
+      },
+      "GUADALAJARA": {
+        "estructura_similar": "Mismas secciones pero con 'GA Capítulo' en vez de GASTOS_CORPORATIVOS_CDMX"
+      }
+    },
+
+    "Nomina.html": {
+      "capitulos": ["CIUDAD DE MÉXICO"],
+      "CIUDAD DE MÉXICO": {
+        "seccion_SUELDOS_DN_INDEM_Y_PRIMA_DE_ANT": {
+          "cuentas": [
+            {"cuenta": "517-000-000-00", "nombre": "Sueldos DN, Indem. y Prima de Ant.", "factor": 1}
+          ]
+        },
+        "seccion_INDEM_Y_PRIMA_DE_ANT_SUELDOS_SERVICIOS_A_LA_MEMBRESIA": {
+          "cuentas": [
+            {"cuenta": "515-000-000-00", "nombre": "Indem. y Prima de Ant., Sueldos Servicios a la membresia", "factor": 1}
+          ]
+        },
+        "seccion_SUELDOS_EVENTOS_INDEM_Y_PRIMA_DE_ANT": {
+          "cuentas": [
+            {"cuenta": "518-000-000-00", "nombre": "Sueldos eventos, Indem. y Prima de Ant.", "factor": 1}
+          ]
+        },
+        "seccion_SUELDOS_COMITES_INDEM_Y_PRIMA_DE_ANT": {
+          "cuentas": [
+            {"cuenta": "516-000-000-00", "nombre": "Sueldos Comités, Indem. y Prima de Ant.", "factor": 1}
+          ]
+        },
+        "seccion_SUELDOS_COMUNICACION_INDEM_Y_PRIMA_DE_ANT": {
+          "cuentas": [
+            {"cuenta": "519-000-000-00", "nombre": "Sueldos Comunicación, Indem. y Prima de Ant.", "factor": 1}
+          ]
+        },
+        "seccion_SUELDOS_ADMON_Y_FINANZAS_SUELDOS_RH_INDEM_Y_PRIMA_DE_ANT": {
+          "cuentas": [
+            {"cuenta": "514-000-000-00", "nombre": "Sueldos Admon y Finanzas, Sueldos RH, Indem. y Prima de Ant.", "factor": 1}
+          ]
+        },
+        "seccion_SUELDOS_VPE_INDEM_Y_PRIMA_DE_ANT": {
+          "cuentas": [
+            {"cuenta": "513-000-000-00", "nombre": "Sueldos VPE, Indem. y Prima de Ant.", "factor": 1}
+          ]
+        },
+        "resultado": {
+          "texto": "Resultado Nómina ",
+          "formula": "Suma de todas las secciones (todas negativas)",
+          "nota": "Solo gastos, no hay ingresos"
+        }
+      }
+    },
+
+    "Gtos_Corporativos.html": {
+      "capitulos": ["CIUDAD DE MÉXICO", "GUADALAJARA", "NORESTE", "NOROESTE"],
+      "CIUDAD DE MÉXICO": {
+        "seccion_GASTOS": {
+          "cuentas": [
+            {"cuenta": "903-002-000-00", "nombre": "Seguro Gtos Médicos Mayores", "factor": 1},
+            {"cuenta": "903-003-000-00", "nombre": "Seguro de Vida", "factor": 1},
+            {"cuenta": "903-004-000-00", "nombre": "Seguro Empresarial", "factor": 1},
+            {"cuenta": "903-005-000-00", "nombre": "Seguro Gobierno Corporativo", "factor": 1},
+            {"cuenta": "903-006-000-00", "nombre": "Programa de Asistencia Empresarial (PAE)", "factor": 1},
+            {"cuenta": "903-007-000-00", "nombre": "Dominios", "factor": 1},
+            {"cuenta": "903-008-000-00", "nombre": "CRM", "factor": 1},
+            {"cuenta": "903-009-000-00", "nombre": "Servicios de Telecomunicaciones", "factor": 1},
+            {"cuenta": "903-010-000-00", "nombre": "Licencias Generales", "factor": 1},
+            {"cuenta": "903-011-000-00", "nombre": "Licencias Correos Corporativos", "factor": 1},
+            {"cuenta": "903-012-000-00", "nombre": "Estudio Actuarial", "factor": 1},
+            {"cuenta": "903-013-000-00", "nombre": "Gastos Notariales", "factor": 1},
+            {"cuenta": "903-014-000-00", "nombre": "Auditorías Externas", "factor": 1},
+            {"cuenta": "903-015-000-00", "nombre": "Registro de Marcas", "factor": 1},
+            {"cuenta": "903-016-000-00", "nombre": "Membresía AACCLA", "factor": 1},
+            {"cuenta": "903-017-000-00", "nombre": "T&IC Licencias", "factor": 1},
+            {"cuenta": "903-018-000-00", "nombre": "LinkedIn Herramienta", "factor": 1},
+            {"cuenta": "903-019-000-00", "nombre": "Zoom Herramienta", "factor": 1},
+            {"cuenta": "903-020-000-00", "nombre": "NarwhalHub Herramienta", "factor": 1},
+            {"cuenta": "903-021-000-00", "nombre": "Posicionamiento", "factor": 1},
+            {"cuenta": "903-001-000-00", "nombre": "Sueldos y Salarios VPE/Nacionales", "factor": 1}
+          ],
+          "nota": "21 cuentas de gastos corporativos compartidos"
+        },
+        "resultado": {
+          "texto": "Resultado Gastos Corporativos",
+          "nota": "IMPORTANTE: En este módulo NO hay sum-row, va directo a result-row"
+        },
+        "columna_especial_29": {
+          "tipo": "budget-monthly",
+          "formula": "real-[mes_actual]",
+          "nota": "Este módulo USA la columna 29 (budget-monthly) con el real del mes actual"
+        }
+      }
+    },
+
+    "RESUMEN.html": {
+      "descripcion": "Módulo especial que consolida TODOS los módulos",
+      "motor": "summary.js en vez de cuentas-modulo.js",
+      "filas_especiales": [
+        {
+          "tipo": "fila-modulo",
+          "clase_css": "module-row",
+          "data-module": "membresia",
+          "texto": "Membresía",
+          "fuente": "Resultado final del módulo Membresía",
+          "operacion": "LOOKUP directo sin cálculo adicional"
+        },
+        {
+          "tipo": "fila-modulo",
+          "clase_css": "module-row",
+          "data-module": "eventos",
+          "texto": "Eventos",
+          "fuente": "Resultado final del módulo Eventos"
+        },
+        {
+          "tipo": "fila-modulo",
+          "clase_css": "module-row",
+          "data-module": "comites",
+          "texto": "Comités"
+        },
+        {
+          "tipo": "fila-modulo",
+          "clase_css": "module-row",
+          "data-module": "servmembresia",
+          "texto": "Serv Membresía"
+        },
+        {
+          "tipo": "fila-modulo",
+          "clase_css": "module-row",
+          "data-module": "tic",
+          "texto": "T&IC"
+        },
+        {
+          "tipo": "fila-modulo",
+          "clase_css": "module-row",
+          "data-module": "comunicacion",
+          "texto": "Comunicación"
+        },
+        {
+          "tipo": "fila-modulo",
+          "clase_css": "module-row",
+          "data-module": "rh",
+          "texto": "RH"
+        },
+        {
+          "tipo": "fila-modulo",
+          "clase_css": "module-row",
+          "data-module": "direccion",
+          "texto": "Dirección"
+        },
+        {
+          "tipo": "fila-modulo",
+          "clase_css": "module-row",
+          "data-module": "vpe",
+          "texto": "VPE"
+        },
+        {
+          "tipo": "fila-modulo",
+          "clase_css": "module-row",
+          "data-module": "finanzas",
+          "texto": "Finanzas"
+        },
+        {
+          "tipo": "fila-modulo",
+          "clase_css": "module-row",
+          "data-module": "gastosgenerales",
+          "texto": "Gastos Generales"
+        }
+      ],
+      "filas_calculadas": [
+        {
+          "tipo": "operating-result",
+          "clase_css": "operating-result-row",
+          "texto": "Resultado Operativo",
+          "formula": "SUM(todos los módulos EXCEPTO Gastos Generales y Gastos Corporativos)",
+          "celdas": {
+            "columna_2_budget_ene": {
+              "operacion": "SUM_VERTICAL",
+              "dependencias": ["membresia", "eventos", "comites", "servmembresia", "tic", "comunicacion", "rh", "direccion", "vpe", "finanzas"],
+              "formula": "SUM(modulo1.budget-ene, modulo2.budget-ene, ..., modulo10.budget-ene)"
+            }
+          }
+        },
+        {
+          "tipo": "net-result",
+          "clase_css": "net-result-row",
+          "texto": "Resultado Neto",
+          "formula": "Resultado Operativo + Gastos Generales",
+          "celdas": {
+            "columna_2_budget_ene": {
+              "operacion": "SUM",
+              "formula": "operatingResult.budget-ene + gastosGenerales.budget-ene"
+            }
+          }
+        },
+        {
+          "tipo": "consolidated-net-result",
+          "clase_css": "consolidated-net-result-row",
+          "texto": "Resultado Neto Consolidado",
+          "formula": "Resultado Neto - Gastos Corporativos",
+          "celdas": {
+            "columna_2_budget_ene": {
+              "operacion": "SUM",
+              "formula": "netResult.budget-ene - gastosCorporativos.budget-ene"
+            }
+          }
+        }
+      ],
+      "formulas_especiales": {
+        "ROW_FORMULAS": {
+          "descripcion": "Fórmulas que calculan filas completas",
+          "operating-result": {
+            "formula": "SUM de todos los módulos operativos",
+            "excluye": ["gastosgenerales", "gtoscorporativos"]
+          },
+          "net-result": {
+            "formula": "operating-result + gastosgenerales"
+          },
+          "consolidated-net-result": {
+            "formula": "net-result - gtoscorporativos"
+          }
+        },
+        "CELL_FORMULAS": {
+          "descripcion": "Fórmulas para celdas específicas (no usadas en versión actual)"
+        },
+        "COLUMN_FORMULAS": {
+          "descripcion": "Fórmulas que calculan columnas completas (no usadas en versión actual)"
+        }
+      },
+      "columnas": {
+        "estructura": "Igual que otros módulos (30 columnas)",
+        "operaciones_idénticas": "Cada celda funciona igual que en módulos operativos"
+      }
+    },
+
+    "Presupuestos.html": {
+      "descripcion": "Vista de comparación entre capítulos (NO es un módulo de cálculo)",
+      "funcion": "Muestra presupuestos de múltiples capítulos lado a lado",
+      "operaciones": "Solo lectura, no tiene cálculos propios",
+      "fuente_datos": "API /presupuestos/comparar",
+      "estructura": {
+        "columnas_dinamicas": "Según capítulos seleccionados",
+        "filas": "Una por cada módulo",
+        "celdas": {
+          "operacion": "LOOKUP",
+          "fuente": "Resultado final de cada módulo para cada capítulo"
+        }
+      }
+    }
+  },
+
+  "operaciones_comunes_a_todas_las_celdas": {
+    "lectura_valor": {
+      "funcion": "extraerValoresNumericos()",
+      "ubicacion": "cuentas-modulo.js líneas 3100-3150",
+      "proceso": [
+        "1. Seleccionar todas las celdas numéricas de la fila",
+        "2. Para cada celda:",
+        "   a. Leer celda.textContent",
+        "   b. Eliminar símbolos: $ , ( )",
+        "   c. Convertir paréntesis en negativo",
+        "   d. parseFloat(valor)",
+        "3. Retornar array de números"
+      ]
+    },
+    "escritura_valor": {
+      "funcion": "asignarValoresNumericos()",
+      "ubicacion": "cuentas-modulo.js líneas 3150-3180",
+      "proceso": [
+        "1. Para cada valor en el array:",
+        "   a. formatearNumero(valor) → '1,234.56'",
+        "   b. Asignar a celda.textContent",
+        "   c. Aplicar clase CSS si es negativo"
+      ]
+    },
+    "formato_numero": {
+      "funcion": "formatearNumero()",
+      "formato": "1,234.56 (separador miles: coma, decimales: punto)",
+      "negativos": "Sin símbolo menos, se usa clase CSS para color rojo"
+    },
+    "validacion": {
+      "tipo": "número",
+      "permite_negativos": true,
+      "permite_decimales": true,
+      "max_decimales": 2
+    }
+  },
+
+  "triggers_recalculo": {
+    "1_carga_inicial": {
+      "descripcion": "Al cargar página por primera vez",
+      "secuencia": [
+        "1. cargarYRenderizarDatos()",
+        "2. Fetch API /planeacion/cuentas",
+        "3. Fetch API /saldos/cuentas",
+        "4. renderizarFilas()",
+        "5. recalcularTotalesFilaPresupuesto() para cada fila",
+        "6. recalcularSumas() COMPLETO"
+      ]
+    },
+    "2_edicion_celda": {
+      "descripcion": "Usuario edita una celda budget-*",
+      "secuencia": [
+        "1. Usuario hace doble click → celda editable",
+        "2. Usuario escribe valor",
+        "3. Usuario presiona Enter o click fuera",
+        "4. parsearNumero(valor)",
+        "5. actualizar estadoModulo.valoresPorCuenta",
+        "6. recalcularTotalesFilaPresupuesto(fila actual)",
+        "7. recalcularSumas() COMPLETO",
+        "8. marcar hayCambios = true"
+      ]
+    },
+    "3_insertar_fila": {
+      "descripcion": "Usuario inserta nueva fila de cuenta",
+      "secuencia": [
+        "1. Crear elemento <tr>",
+        "2. Insertar en posición",
+        "3. Actualizar estadoModulo.sumas.secciones",
+        "4. recalcularSumas() COMPLETO"
+      ]
+    },
+    "4_eliminar_fila": {
+      "descripcion": "Usuario elimina fila de cuenta",
+      "secuencia": [
+        "1. Remover elemento del DOM",
+        "2. Actualizar estadoModulo",
+        "3. recalcularSumas() COMPLETO"
+      ]
+    },
+    "5_cambio_ano_periodo": {
+      "descripcion": "Usuario cambia año o periodo seleccionado",
+      "secuencia": [
+        "1. Actualizar estadoModulo.anioSeleccionado",
+        "2. Actualizar estadoModulo.periodoCerrado",
+        "3. cargarYRenderizarDatos() COMPLETO (recarga desde API)",
+        "4. aplicarFiltroColumnasPorPeriodo()"
+      ]
+    }
+  },
+
+  "OPERACIONES_CONSOLIDACION": {
+    "descripcion": "Filas especiales que consolidan valores entre capítulos y secciones",
+    "tipo": "Filas insertadas dinámicamente que NO son cuentas",
+    
+    "operaciones_por_capitulo": {
+      "descripcion": "Cada capítulo puede tener operaciones que suman sus secciones",
+      "ejemplos": [
+        {
+          "id": "CDMX_INCOME",
+          "Clase": "CDMX INCOME",
+          "aparece_en": "RESUMEN.html y SUMMARY.html",
+          "formula": "SUM(secciones INCOME del capítulo CDMX)",
+          "secciones": ["seccion_1", "seccion_2", "..."],
+          "signos": {"seccion_1": 1, "seccion_2": 1},
+          "factor": 1,
+          "tipo_fila": "sum-row-sumavarios",
+          "operaciones_por_celda": {
+            "columna_0": {"valor": "", "tipo": "vacio"},
+            "columna_1": {"valor": "CDMX INCOME", "tipo": "label", "clase": "sum-row-sumavarios"},
+            "columnas_2_a_29": {
+              "formula": "SUM(valores de secciones especificadas * signos * factor)",
+              "ejemplo": "Si seccion_INCOME_MEMBRESIA=100000 y seccion_INCOME_EVENTOS=50000",
+              "resultado": "150000 (ambas con signo positivo)",
+              "trigger": "recalcularSumas() → al detectar sum-row-sumavarios"
+            }
+          }
+        },
+        {
+          "id": "MTY_INCOME",
+          "Clase": "MTY INCOME",
+          "formula": "SUM(secciones INCOME del capítulo MONTERREY)"
+        },
+        {
+          "id": "GDL_INCOME",
+          "Clase": "GDL INCOME",
+          "formula": "SUM(secciones INCOME del capítulo GUADALAJARA)"
+        },
+        {
+          "id": "CDMX_EXPENSE",
+          "Clase": "CDMX EXPENSE",
+          "formula": "SUM(secciones EXPENSE del capítulo CDMX con factor -1)"
+        },
+        {
+          "id": "MTY_EXPENSE",
+          "Clase": "MTY EXPENSE",
+          "formula": "SUM(secciones EXPENSE del capítulo MONTERREY con factor -1)"
+        },
+        {
+          "id": "GDL_EXPENSE",
+          "Clase": "GDL EXPENSE",
+          "formula": "SUM(secciones EXPENSE del capítulo GUADALAJARA con factor -1)"
+        },
+        {
+          "id": "NORESTE_INCOME",
+          "Clase": "NORESTE INCOME",
+          "formula": "SUM(secciones INCOME del capítulo NORESTE)"
+        },
+        {
+          "id": "NORESTE_EXPENSE",
+          "Clase": "NORESTE EXPENSE",
+          "formula": "SUM(secciones EXPENSE del capítulo NORESTE con factor -1)"
+        },
+        {
+          "id": "NOROESTE_INCOME",
+          "Clase": "NOROESTE INCOME",
+          "formula": "SUM(secciones INCOME del capítulo NOROESTE)"
+        },
+        {
+          "id": "NOROESTE_EXPENSE",
+          "Clase": "NOROESTE EXPENSE",
+          "formula": "SUM(secciones EXPENSE del capítulo NOROESTE con factor -1)"
+        }
+      ]
+    },
+
+    "operaciones_operativo_por_capitulo": {
+      "descripcion": "Resultado operativo de cada capítulo individual",
+      "ejemplos": [
+        {
+          "id": "CDMX_OPERATING",
+          "Clase": "CDMX OPERATING RESULTS",
+          "aparece_en": "RESUMEN.html y SUMMARY.html",
+          "formula": "CDMX_INCOME - CDMX_EXPENSE (solo operativo)",
+          "secciones": ["CDMX_INCOME", "CDMX_EXPENSE"],
+          "signos": {"CDMX_INCOME": 1, "CDMX_EXPENSE": -1},
+          "tipo_fila": "sum-row-operativo",
+          "operaciones_por_celda": {
+            "columna_1": {"valor": "CDMX OPERATING RESULTS", "clase": "sum-row-operativo"},
+            "columnas_2_a_29": {
+              "formula": "CDMX_INCOME - CDMX_EXPENSE",
+              "ejemplo": "Si CDMX_INCOME=300000, CDMX_EXPENSE=200000",
+              "resultado": "100000"
+            }
+          }
+        },
+        {
+          "id": "MTY_OPERATING",
+          "Clase": "MTY OPERATING RESULTS",
+          "formula": "MTY_INCOME - MTY_EXPENSE"
+        },
+        {
+          "id": "GDL_OPERATING",
+          "Clase": "GDL OPERATING RESULTS",
+          "formula": "GDL_INCOME - GDL_EXPENSE"
+        },
+        {
+          "id": "NORESTE_OPERATING",
+          "Clase": "NORESTE OPERATING RESULTS",
+          "formula": "NORESTE_INCOME - NORESTE_EXPENSE"
+        },
+        {
+          "id": "NOROESTE_OPERATING",
+          "Clase": "NOROESTE OPERATING RESULTS",
+          "formula": "NOROESTE_INCOME - NOROESTE_EXPENSE"
+        }
+      ]
+    },
+
+    "operaciones_results_por_capitulo": {
+      "descripcion": "Resultado total de cada capítulo (incluyendo gastos administrativos)",
+      "ejemplos": [
+        {
+          "id": "CDMX_RESULTS",
+          "Clase": "CDMX RESULTS",
+          "aparece_en": "RESUMEN.html",
+          "formula": "CDMX_OPERATING + CDMX_OTHER_INCOME - CDMX_ADMIN_EXPENSES",
+          "tipo_fila": "result-row",
+          "operaciones_por_celda": {
+            "columna_1": {"valor": "CDMX RESULTS", "clase": "result-row"},
+            "columnas_2_a_29": {
+              "formula": "Ingresos totales - Gastos totales del capítulo CDMX",
+              "incluye": "Gastos administrativos y operativos"
+            }
+          }
+        },
+        {
+          "id": "MTY_RESULTS",
+          "Clase": "MTY RESULTS",
+          "formula": "MTY_OPERATING + MTY_OTHER - MTY_ADMIN"
+        },
+        {
+          "id": "GDL_RESULTS",
+          "Clase": "GDL RESULTS",
+          "formula": "GDL_OPERATING + GDL_OTHER - GDL_ADMIN"
+        }
+      ]
+    },
+
+    "operaciones_consolidadas": {
+      "descripcion": "Operaciones que suman múltiples capítulos",
+      "ejemplos": [
+        {
+          "id": "CONSOLIDATED_INCOME",
+          "Clase": "CONSOLIDATED INCOME",
+          "aparece_en": "RESUMEN.html y SUMMARY.html",
+          "formula": "SUM(CDMX_INCOME + MTY_INCOME + GDL_INCOME + NORESTE_INCOME + NOROESTE_INCOME)",
+          "secciones": ["CDMX_INCOME", "MTY_INCOME", "GDL_INCOME", "NORESTE_INCOME", "NOROESTE_INCOME"],
+          "signos": {"CDMX_INCOME": 1, "MTY_INCOME": 1, "GDL_INCOME": 1, "NORESTE_INCOME": 1, "NOROESTE_INCOME": 1},
+          "factor": 1,
+          "tipo_fila": "sum-row-sumavarios-consolidado",
+          "operaciones_por_celda": {
+            "columna_1": {"valor": "CONSOLIDATED INCOME", "clase": "sum-row-sumavarios-consolidado"},
+            "columnas_2_a_29": {
+              "formula": "SUM(todas las operaciones *_INCOME de todos los capítulos)",
+              "ejemplo": "Si CDMX_INCOME=500000, MTY_INCOME=300000, GDL_INCOME=200000",
+              "resultado": "1000000"
+            }
+          }
+        },
+        {
+          "id": "CONSOLIDATED_EXPENSE",
+          "Clase": "CONSOLIDATED EXPENSE",
+          "formula": "SUM(CDMX_EXPENSE + MTY_EXPENSE + GDL_EXPENSE + NORESTE_EXPENSE + NOROESTE_EXPENSE)",
+          "tipo_fila": "sum-row-sumavarios-consolidado"
+        },
+        {
+          "id": "CONSOLIDATED_OTHER_INCOME",
+          "Clase": "CONSOLIDATED OTHER INCOME",
+          "aparece_en": "RESUMEN.html",
+          "formula": "SUM(otros ingresos de todos los capítulos)",
+          "tipo_fila": "sum-row-sumavarios-consolidado",
+          "operaciones_por_celda": {
+            "columna_1": {"valor": "CONSOLIDATED OTHER INCOME", "clase": "sum-row-sumavarios-consolidado"},
+            "columnas_2_a_29": {
+              "formula": "Suma de ingresos adicionales (no operativos) de todos los capítulos"
+            }
+          }
+        },
+        {
+          "id": "CONSOLIDATED_ADMIN_EXPENSES",
+          "Clase": "CONSOLIDATED ADMINISTRATIVE EXPENSES",
+          "aparece_en": "RESUMEN.html",
+          "formula": "SUM(gastos administrativos de todos los capítulos)",
+          "tipo_fila": "sum-row-sumavarios-consolidado"
+        }
+      ]
+    },
+
+    "operaciones_resultados": {
+      "descripcion": "Operaciones que calculan resultados operativos y finales",
+      "ejemplos": [
+        {
+          "id": "CONSOLIDATED_OPERATING_RESULTS",
+          "Clase": "CONSOLIDATED OPERATING RESULTS",
+          "aparece_en": "RESUMEN.html y SUMMARY.html",
+          "formula": "CONSOLIDATED_INCOME - CONSOLIDATED_EXPENSE (solo operativo, sin gastos admin)",
+          "secciones": ["CONSOLIDATED_INCOME", "CONSOLIDATED_EXPENSE"],
+          "signos": {"CONSOLIDATED_INCOME": 1, "CONSOLIDATED_EXPENSE": -1},
+          "factor": 1,
+          "tipo_fila": "sum-row-operativo",
+          "operaciones_por_celda": {
+            "columna_1": {"valor": "CONSOLIDATED OPERATING RESULTS", "clase": "sum-row-operativo"},
+            "columnas_2_a_29": {
+              "formula": "CONSOLIDATED_INCOME - CONSOLIDATED_EXPENSE",
+              "ejemplo": "Si INCOME=1000000, EXPENSE=800000",
+              "resultado": "200000"
+            }
+          }
+        },
+        {
+          "id": "OPERATING_RESULTS",
+          "Clase": "OPERATING RESULTS",
+          "nota": "Alias de CONSOLIDATED_OPERATING_RESULTS",
+          "formula": "Igual que CONSOLIDATED_OPERATING_RESULTS"
+        },
+        {
+          "id": "RESULTS",
+          "Clase": "RESULTS",
+          "aparece_en": "RESUMEN.html",
+          "formula": "OPERATING_RESULTS + OTHER_INCOME - ADMINISTRATIVE_EXPENSES",
+          "tipo_fila": "result-row",
+          "operaciones_por_celda": {
+            "columna_1": {"valor": "RESULTS", "clase": "result-row"},
+            "columnas_2_a_29": {
+              "formula": "Suma algebraica de ingresos y gastos totales",
+              "ejemplo": "OPERATING=200000, OTHER_INCOME=50000, ADMIN=-100000",
+              "resultado": "150000"
+            }",
+          "formula": "RESULTS - TAXES - OTHER_EXPENSES",
+          "tipo_fila": "result-net-row",
+          "operaciones_por_celda": {
+            "columna_1": {"valor": "NET RESULTS", "clase": "result-net-row"},
+            "columnas_2_a_29": {
+              "formula": "Resultado neto final después de impuestos y ajustes",
+              "ejemplo": "RESULTS=150000, TAXES=-20000",
+              "resultado": "130000"
+            }
+          }
+        },
+        {
+          "id": "CONSOLIDATED_NET_RESULTS",
+          "Clase": "CONSOLIDATED NET RESULTS",
+          "aparece_en": "SUMMARY.html",
+          "formula": "CONSOLIDATED_INCOME + CONSOLIDATED_OTHER_INCOME - CONSOLIDATED_EXPENSE - CONSOLIDATED_ADMIN_EXPENSES - TAXES",
+          "secciones": ["CONSOLIDATED_INCOME", "CONSOLIDATED_OTHER_INCOME", "CONSOLIDATED_EXPENSE", "CONSOLIDATED_ADMIN_EXPENSES", "TAXES"],
+          "signos": {
+            "CONSOLIDATED_INCOME": 1,
+            "CONSOLIDATED_OTHER_INCOME": 1,
+            "CONSOLIDATED_EXPENSE": -1,
+            "CONSOLIDATED_ADMIN_EXPENSES": -1,
+            "TAXES": -1
+          },
+          "tipo_fila": "result-net-row",
+          "operaciones_por_celda": {
+            "columna_1": {"valor": "CONSOLIDATED NET RESULTS", "clase": "result-net-row"},
+            "columnas_2_a_29": {
+              "formula": "Resultado neto consolidado final de todos los capítulos",
+              "ejemplo": "INCOME=1000000, OTHER=50000, EXPENSE=700000, ADMIN=200000, TAXES=30000",
+              "resultado": "120000",
+              "nota": "Este es el resultado final más importante del sistema"
+            }
+          }
+        }
+      ]
+    },
+
+    "operaciones_especiales": {
+      "descripcion": "Operaciones adicionales específicas de algunos módulos",
+      "ejemplos": [
+        {
+          "id": "TOTAL_MEMBERSHIP_INCOME",
+          "Clase": "TOTAL MEMBERSHIP INCOME",
+          "aparece_en": "Membresia.html",
+          "formula": "SUM(todas las subcuentas de membresía)",
+          "tipo_fila": "sum-row"
+        },
+        {
+          "id": "TOTAL_EVENTS_INCOME",
+          "Clase": "TOTAL EVENTS INCOME",
+          "aparece_en": "Eventos.html",
+          "formula": "BOLETAJE + PATROCINIOS",
+          "tipo_fila": "sum-row-sumavarios"
+        },
+        {
+          "id": "EVENTS_OPERATING_RESULTS",
+          "Clase": "EVENTS OPERATING RESULTS",
+          "aparece_en": "Eventos.html",
+          "formula": "TOTAL_EVENTS_INCOME - EVENTS_COSTS",
+          "tipo_fila": "sum-row-operativo"
+        },
+        {
+          "id": "NATIONAL_CORPORATE_EXPENSES",
+          "Clase": "NATIONAL CORPORATE EXPENSES",
+          "aparece_en": "Gtos_Corporativos.html",
+          "formula": "SUM(gastos corporativos nacionales)",
+          "tipo_fila": "sum-row",
+          "nota": "Estos gastos se distribuyen proporcionalmente a cada capítulo" "columna_1": {"valor": "NET RESULTS", "clase": "result-net-row"},
+            "columnas_2_a_29": {
+              "formula": "Resultado neto final después de impuestos y ajustes",
+              "ejemplo": "RESULTS=150000, TAXES=-20000",
+              "resultado": "130000"
+            }
+          }
+        }
+      ]
+    },
+
+    "formula_terms": {
+      "descripcion": "Estructura interna para definir fórmulas complejas",
+      "ejemplo": {
+        "Clase": "CONSOLIDATED INCOME",
+        "formula_terms": [
+          {"value": "CDMX_INCOME", "operator": "+"},
+          {"value": "MTY_INCOME", "operator": "+"},
+          {"value": "GDL_INCOME", "operator": "+"},
+          {"value": "NORESTE_INCOME", "operator": "+"},
+          {"value": "NOROESTE_INCOME", "operator": "+"}
+        ]
+      },
+      "proceso_calculo": {
+        "1": "recalcularSumas() encuentra la fila con clase 'sum-row-sumavarios-consolidado'",
+        "2": "Lee formula_terms para saber qué operaciones sumar",
+        "3": "Para cada celda (columna 2-29):",
+        "4": "  a. Busca el valor de CDMX_INCOME en esa columna",
+        "5": "  b. Busca el valor de MTY_INCOME en esa columna",
+        "6": "  c. Suma todos con sus operadores (+/-)",
+        "7": "  d. Escribe el resultado en la celda"
+      }
+    },
+
+    "atributos_fila_operacion": {
+      "data-operacion-id": "Identificador único de la operación (ej: CDMX_INCOME)",
+      "data-clase": "Etiqueta visible (ej: CDMX INCOME)",
+      "data-formula-terms": "JSON con términos de la fórmula",
+      "data-signos": "JSON con signos por cada término",
+      "data-factor": "Factor multiplicador global (normalmente 1)",
+      "class": "sum-row-sumavarios | sum-row-sumavarios-consolidado | sum-row-operativo | result-row | result-net-row"
+    },
+
+    "clases_css_operaciones": {
+      "sum-row": "Suma simple de cuentas en una sección",
+      "sum-row-sumavarios": "Suma de secciones dentro de un capítulo (CDMX INCOME)",
+      "sum-row-sumavarios-consolidado": "Suma de capítulos (CONSOLIDATED INCOME)",
+      "sum-row-operativo": "Resultado operativo (OPERATING RESULTS)",
+      "result-row": "Resultado antes de neto (RESULTS)",
+      "result-net-row": "Resultado neto final (NET RESULTS)"
+    },
+
+    "ejemplo_completo_flujo": {
+      "paso_1": "Usuario edita celda budget-ene de cuenta 401-001-000-00 (Membresía CDMX)",
+      "paso_2": "recalcularTotalesFilaPresupuesto() actualiza totales horizontales de esa cuenta",
+      "paso_3": "recalcularSumas() es llamado",
+      "paso_4": "Encuentra fila sum-row de 'Ingresos Membresía' y suma todas las cuentas",
+      "paso_5": "Encuentra fila sum-row-sumavarios 'CDMX INCOME' y suma todas las secciones INCOME de CDMX",
+      "paso_6": "Encuentra fila sum-row-sumavarios-consolidado 'CONSOLIDATED INCOME' y suma CDMX_INCOME + MTY_INCOME + ...",
+      "paso_7": "Encuentra fila sum-row-operativo 'OPERATING RESULTS' y calcula INCOME - EXPENSE",
+      "paso_8": "Encuentra fila result-row 'RESULTS' y suma operativo + otros ajustes",
+      "paso_9": "Encuentra fila result-net-row 'NET RESULTS' y calcula resultado final"
+    }
+  },
+
+  "notas_importantes": {
+    "orden_ejecucion": "SIEMPRE: recalcularTotalesFilaPresupuesto() ANTES de recalcularSumas()",
+    "factores": {
+      "operacion_factor_cuenta": "Nivel fila-cuenta (data-operacionFactor)",
+      "factor_seccion": "Nivel sección (operacionFactor en configuración)",
+      "aplicacion": "Se MULTIPLICAN: valor * factor_cuenta * factor_seccion"
+    },
+    "periodo_cerrado": {
+      "regla": "Solo mostrar real-* hasta periodo cerrado",
+      "implementacion": "aplicarFiltroColumnasPorPeriodo() oculta columnas futuras"
+    },
+    "guardado": {
+      "trigger": "Usuario hace click en botón 'Guardar'",
+      "validacion": "Verificar hayCambios = true",
+      "envio": "POST /planeacion/guardar con estadoModulo.valoresPorCuenta"
+    },
+    "operaciones_dinamicas": {
+      "nota": "Las operaciones NO son cuentas contables",
+      "creacion": "Se insertan dinámicamente al cargar el módulo",
+      "fuente": "window.CUENTAS_SUMAS o API layouts-config",
+      "identificacion": "Por atributos data-operacion-id y clases CSS específicas"
+    }
+  }
+}

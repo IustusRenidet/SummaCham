@@ -1,0 +1,96 @@
+{
+  "Finanzas": [
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-005-001-00",
+      "NOMBRE": "Teléfono Móvil ",
+      "SECCION": "Gastos Administrativos"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-005-004-00",
+      "NOMBRE": "Mantenimiento de Automóvil ",
+      "SECCION": "Gastos Administrativos"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-005-003-00",
+      "NOMBRE": "Gasolina ",
+      "SECCION": "Gastos Administrativos"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-005-010-00",
+      "NOMBRE": "Becarios",
+      "SECCION": "Gastos Administrativos"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-005-005-00",
+      "NOMBRE": "Pasajes y taxis",
+      "SECCION": "Gastos Administrativos"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-005-006-00",
+      "NOMBRE": "Estacionamientos",
+      "SECCION": "Gastos Administrativos"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-005-011-00",
+      "NOMBRE": "Impresión Tarjetas",
+      "SECCION": "Gastos Administrativos"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-005-008-00",
+      "NOMBRE": "Suscripciones y varios",
+      "SECCION": "Gastos Administrativos"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-005-017-00",
+      "NOMBRE": "Gastos de viaje",
+      "SECCION": "Gastos Administrativos"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-005-012-00",
+      "NOMBRE": "Gastos varios",
+      "SECCION": "Gastos Administrativos"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-005-013-00",
+      "NOMBRE": "No deducibles",
+      "SECCION": "Gastos Administrativos"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-005-015-00",
+      "NOMBRE": "PAPELERIA Y ARTICULOS DE OFICINA",
+      "SECCION": "Gastos Administrativos"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-005-009-00",
+      "NOMBRE": "SERVICIOS ADMINISTRATIVOS (PERSONAL)",
+      "SECCION": "Gastos Administrativos"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-005-007-00",
+      "NOMBRE": "HERRAMIENTAS TELE-TRABAJO",
+      "SECCION": "Gastos Administrativos"
+    }
+  ],
+  "Operaciones": [
+    {
+      "nombre": "Suma Gastos Administrativos",
+      "tipo": "secciones",
+      "expresion": "- 801-005-001-00 - 801-005-004-00 - 801-005-003-00 - 801-005-010-00 - 801-005-005-00 - 801-005-006-00 - 801-005-011-00 - 801-005-008-00 - 801-005-017-00 - 801-005-012-00 - 801-005-013-00 - 801-005-015-00 - 801-005-009-00 - 801-005-007-00",
+      "seccion": ""
+    }
+  ]
+}

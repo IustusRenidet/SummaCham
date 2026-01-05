@@ -1,0 +1,97 @@
+{
+  "Nómina": [
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "517-000-000-00",
+      "NOMBRE": "Sueldos DN Indem. y Prima de Ant.",
+      "SECCION Principal": "Sueldos DN Indem. y Prima de Ant.",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "515-000-000-00",
+      "NOMBRE": "Indem. y Prima de Ant. Sueldos Servicios a la membresía",
+      "SECCION Principal": "Indem. y Prima de Ant. Sueldos Servicios a la membresía",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "518-000-000-00",
+      "NOMBRE": "Sueldos eventos, Indem. y Prima de Ant.",
+      "SECCION Principal": "Sueldos eventos, Indem. y Prima de Ant.",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "516-000-000-00",
+      "NOMBRE": "Sueldos Comités, Indem. y Prima de Ant.",
+      "SECCION Principal": "Sueldos Comités, Indem. y Prima de Ant.",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "519-000-000-00",
+      "NOMBRE": "Sueldos Comunicación, Indem. y Prima de Ant.",
+      "SECCION Principal": "Sueldos Comunicación, Indem. y Prima de Ant.",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "514-000-000-00",
+      "NOMBRE": "Sueldos Admon y Finanzas, Sueldos RH, Indem. y Prima de Ant.",
+      "SECCION Principal": "Sueldos Admon y Finanzas, Sueldos RH, Indem. y Prima de Ant.",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "513-000-000-00",
+      "NOMBRE": "Sueldos VPE, Indem. y Prima de Ant.",
+      "SECCION Principal": "Sueldos VPE, Indem. y Prima de Ant.",
+      "SECCION Secundaria": ""
+    }
+  ],
+  "Operaciones": [
+    {
+      "nombre": "Suma Sueldos DN Indem. y Prima de Ant.",
+      "tipo": "cuentas",
+      "expresion": "517-000-000-00",
+      "seccion": "Sueldos DN Indem. y Prima de Ant."
+    },
+    {
+      "nombre": "Suma Indem. y Prima de Ant. Sueldos Servicios a la membresía",
+      "tipo": "cuentas",
+      "expresion": "515-000-000-00",
+      "seccion": "Indem. y Prima de Ant. Sueldos Servicios a la membresía"
+    },
+    {
+      "nombre": "Suma Sueldos eventos, Indem. y Prima de Ant.",
+      "tipo": "cuentas",
+      "expresion": "518-000-000-00",
+      "seccion": "Sueldos eventos, Indem. y Prima de Ant."
+    },
+    {
+      "nombre": "Suma Comités, Indem. y Prima de Ant.",
+      "tipo": "cuentas",
+      "expresion": "516-000-000-00",
+      "seccion": "Sueldos Comités, Indem. y Prima de Ant."
+    },
+    {
+      "nombre": "Suma Comunicación, Indem. y Prima de Ant.",
+      "tipo": "cuentas",
+      "expresion": "519-000-000-00",
+      "seccion": "Sueldos Comunicación, Indem. y Prima de Ant."
+    },
+    {
+      "nombre": "Suma Sueldos Admon y Finanzas, Sueldos RH, Indem. y Prima de Ant.",
+      "tipo": "cuentas",
+      "expresion": "514-000-000-00",
+      "seccion": "Sueldos Admon y Finanzas, Sueldos RH, Indem. y Prima de Ant."
+    },
+    {
+      "nombre": "Suma Sueldos VPE, Indem. y Prima de Ant.",
+      "tipo": "cuentas",
+      "expresion": "513-000-000-00",
+      "seccion": "Sueldos VPE, Indem. y Prima de Ant."
+    }
+  ]
+}

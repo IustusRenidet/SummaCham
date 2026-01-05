@@ -1,0 +1,272 @@
+{
+  "Gastos Generales": [
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "414-000-000-00",
+      "NOMBRE": "Rendimientos de Inversión",
+      "SECCION Principal": "Otros ingresos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "418-000-000-00",
+      "NOMBRE": "Plusvalía/Minusvalía Portafolio de Inversiones",
+      "SECCION Principal": "Otros ingresos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "413-014-001-00",
+      "NOMBRE": "Renta oficinas Reforma",
+      "SECCION Principal": "Otros ingresos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "413-006-000-00",
+      "NOMBRE": "Vta. De activo fijo",
+      "SECCION Principal": "Otros ingresos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "413-007-000-00",
+      "NOMBRE": "Otros ingresos",
+      "SECCION Principal": "Otros ingresos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "416-000-000-00",
+      "NOMBRE": "Utilidad cambiaria",
+      "SECCION Principal": "Gastos Financieros",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "901-096-000-00",
+      "NOMBRE": "Pérdida cambiaria",
+      "SECCION Principal": "Gastos Financieros",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "901-020-000-00",
+      "NOMBRE": "Gtos Financieros (comisiones)",
+      "SECCION Principal": "Gastos Financieros",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "901-002-001-00",
+      "NOMBRE": "Oficinas",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "901-002-002-00",
+      "NOMBRE": "Biblioteca AmCham",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "901-022-000-00",
+      "NOMBRE": "Agua",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "901-009-001-00",
+      "NOMBRE": "Matto. de Local ",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "901-009-003-00",
+      "NOMBRE": "Matto. de Biblioteca",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "901-009-002-00",
+      "NOMBRE": "Pólizas de Mantenimiento",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "901-021-000-00",
+      "NOMBRE": "Predial oficinas Reforma 295",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "901-016-002-00",
+      "NOMBRE": "Papeleria Oficina y Almacén",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "901-016-004-00",
+      "NOMBRE": "Servicio de Mensajeria Fedex",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "901-013-007-00",
+      "NOMBRE": "Artículos de Limpieza y cafetería",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "901-010-000-00",
+      "NOMBRE": "Matto. Equipo de Computo y Red",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "901-016-006-00",
+      "NOMBRE": "Gtos Diversos/Eventos internos",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "901-099-000-00",
+      "NOMBRE": "Ajustes y diferencias",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "901-014-002-00",
+      "NOMBRE": "Gastos Extraordinarios",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "901-014-007-00",
+      "NOMBRE": "Otros gastos de operación no presupuestados",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "901-014-003-00",
+      "NOMBRE": "Dif. De impuestos de ejercicios anteriores",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "901-017-000-00",
+      "NOMBRE": "IVA  a Prorrata No Acreditable",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "901-098-000-00",
+      "NOMBRE": "No Deducibles",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "901-001-001-00",
+      "NOMBRE": "Oficinas",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "901-001-002-00",
+      "NOMBRE": "Biblioteca AmCham",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "901-004-000-00",
+      "NOMBRE": "Depreciaciones de equipo",
+      "SECCION Principal": "Depreciaciones y Amortizaciones",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "901-005-000-00",
+      "NOMBRE": "Amortizaciones",
+      "SECCION Principal": "Depreciaciones y Amortizaciones",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "903-000-000-00",
+      "NOMBRE": "Gastos Corporativos CdMx",
+      "SECCION Principal": "Gastos Corporativos CdMx",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "902-000-000-00",
+      "NOMBRE": "Member Centricity",
+      "SECCION Principal": "Member Centricity",
+      "SECCION Secundaria": ""
+    }
+  ],
+  "Operaciones": [
+    {
+      "nombre": "Suma Otros Ingresos",
+      "tipo": "cuentas",
+      "expresion": "414-000-000-00 + 418-000-000-00 + 413-014-001-00 + 413-006-000-00 + 413-007-000-00",
+      "seccion": "Otros ingresos"
+    },
+    {
+      "nombre": "Suma Gastos Financieros",
+      "tipo": "cuentas",
+      "expresion": "416-000-000-00 + 901-096-000-00 + 901-020-000-00",
+      "seccion": "Gastos Financieros"
+    },
+    {
+      "nombre": "Suma de Gastos Generales",
+      "tipo": "cuentas",
+      "expresion": "901-002-001-00 + 901-002-002-00 + 901-022-000-00 + 901-009-001-00 + 901-009-003-00 + 901-009-002-00 + 901-021-000-00 + 901-016-002-00 + 901-016-004-00 + 901-013-007-00 + 901-010-000-00 + 901-016-006-00 + 901-099-000-00 + 901-014-002-00 + 901-014-007-00 + 901-014-003-00 + 901-017-000-00 + 901-098-000-00",
+      "seccion": "Gastos Generales"
+    },
+    {
+      "nombre": "Suma Depreciaciones y Amortizaciones",
+      "tipo": "cuentas",
+      "expresion": "901-004-000-00 + 901-005-000-00",
+      "seccion": "Depreciaciones y Amortizaciones"
+    },
+    {
+      "nombre": "Suma Gastos Corporativos CdMx",
+      "tipo": "cuentas",
+      "expresion": "903-000-000-00",
+      "seccion": "Gastos Corporativos CdMx"
+    },
+    {
+      "nombre": "Suma Member Centricity",
+      "tipo": "cuentas",
+      "expresion": "902-000-000-00",
+      "seccion": "Member Centricity"
+    },
+    {
+      "nombre": "Total GA CdMx",
+      "tipo": "secciones",
+      "expresion": "- 414-000-000-00 - 418-000-000-00 - 413-014-001-00 - 413-006-000-00 - 413-007-000-00 - 416-000-000-00 - 901-096-000-00 - 901-020-000-00 - 901-002-001-00 - 901-002-002-00 - 901-022-000-00 - 901-009-001-00 - 901-009-003-00 - 901-009-002-00 - 901-021-000-00 - 901-016-002-00 - 901-016-004-00 - 901-013-007-00 - 901-010-000-00 - 901-016-006-00 - 901-099-000-00 - 901-014-002-00 - 901-014-007-00 - 901-014-003-00 - 901-017-000-00 - 901-098-000-00 - 901-001-001-00 - 901-001-002-00 - 901-004-000-00 - 901-005-000-00 - 903-000-000-00 - 902-000-000-00",
+      "seccion": ""
+    }
+  ]
+}

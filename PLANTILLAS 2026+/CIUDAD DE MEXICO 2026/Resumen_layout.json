@@ -1,0 +1,586 @@
+{
+  "Resumen": [
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "401-000-000-00",
+      "NOMBRE": "Cuotas Netas",
+      "SECCION Principal": "INCOME",
+      "SECCION Secundaria": "Membership"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "402-000-000-00",
+      "NOMBRE": "Ingresos socios nuevos",
+      "SECCION Principal": "INCOME",
+      "SECCION Secundaria": "Membership"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "407-000-000-00",
+      "NOMBRE": "Eventos ",
+      "SECCION Principal": "INCOME",
+      "SECCION Secundaria": "Events"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "408-000-000-00",
+      "NOMBRE": "Patrocinios",
+      "SECCION Principal": "INCOME",
+      "SECCION Secundaria": "Events"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "417-000-000-00",
+      "NOMBRE": "Comités",
+      "SECCION Principal": "INCOME",
+      "SECCION Secundaria": "Committees"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "412-000-000-00",
+      "NOMBRE": "Economex",
+      "SECCION Principal": "INCOME",
+      "SECCION Secundaria": "Committees"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "405-000-000-00",
+      "NOMBRE": "Trade & Investment Center",
+      "SECCION Principal": "INCOME",
+      "SECCION Secundaria": "T&IC"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "406-001-000-00",
+      "NOMBRE": "Venta Publicaciones",
+      "SECCION Principal": "INCOME",
+      "SECCION Secundaria": "Services to Members"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "406-002-000-00",
+      "NOMBRE": "Digital Training",
+      "SECCION Principal": "INCOME",
+      "SECCION Secundaria": "Services to Members"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "409-000-000-00",
+      "NOMBRE": "Visas",
+      "SECCION Principal": "INCOME",
+      "SECCION Secundaria": "Services to Members"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "450-001-000-00",
+      "NOMBRE": "Guadalajara Income",
+      "SECCION Principal": "Guadalajara Income",
+      "SECCION Secundaria": "Guadalajara Income"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "450-002-000-00",
+      "NOMBRE": "Monterrey Income",
+      "SECCION Principal": "Monterrey Income",
+      "SECCION Secundaria": "Monterrey Income"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "450-003-000-00",
+      "NOMBRE": "Northwest Income",
+      "SECCION Principal": "Northwest Income",
+      "SECCION Secundaria": "Northwest Income"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "705-000-000-00",
+      "NOMBRE": "Gastos Promoción",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Membership"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "520-000-000-00",
+      "NOMBRE": "Comsiones por venta de membresía",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Membership"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "701-000-000-00",
+      "NOMBRE": "Costo Eventos",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Events"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "702-000-000-00",
+      "NOMBRE": "Costo Comités",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Committees"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "704-000-000-00",
+      "NOMBRE": "Costo Economex",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Committees"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "521-000-000-00",
+      "NOMBRE": "Comisiones EWDP y Economex",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Committees"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "703-000-000-00",
+      "NOMBRE": "Costo Trade & Investment Center",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "T&IC"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "601-002-003-00",
+      "NOMBRE": "Costo Venta Publicaciones",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Services to Members"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "601-003-001-00",
+      "NOMBRE": "Costo Digital Training",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Services to Members"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-001-000-00",
+      "NOMBRE": "Desarrollo de Negocios",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Gastos Administrativos"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-002-000-00",
+      "NOMBRE": "Relaciones Externas",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Gastos Administrativos"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-003-000-00",
+      "NOMBRE": "Servicios a las membresia",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Gastos Administrativos"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-004-000-00",
+      "NOMBRE": "Vicepresidencia",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Gastos Administrativos"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-005-000-00",
+      "NOMBRE": "Finanzas",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Gastos Administrativos"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-006-000-00",
+      "NOMBRE": "Administración",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Gastos Administrativos"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-007-000-00",
+      "NOMBRE": "Sistemas",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Gastos Administrativos"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-008-000-00",
+      "NOMBRE": "Empleos",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Gastos Administrativos"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-009-000-00",
+      "NOMBRE": "Servicios Generales (Almacén)",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Gastos Administrativos"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-010-000-00",
+      "NOMBRE": "Eventos",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Gastos Administrativos"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-011-000-00",
+      "NOMBRE": "Comites",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Gastos Administrativos"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-012-000-00",
+      "NOMBRE": "Renta de Salas",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Gastos Administrativos"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-013-000-00",
+      "NOMBRE": "Comunicación",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Gastos Administrativos"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "901-000-000-00",
+      "NOMBRE": "Gastos Generales",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Gastos Administrativos"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "513-000-000-00",
+      "NOMBRE": "Nomina Vicepresidencia",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Nómina"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "517-000-000-00",
+      "NOMBRE": "Nomina Desarrollo de Negocios",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Nómina"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "516-000-000-00",
+      "NOMBRE": "Nomina Comites y Relaciones Externas",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Nómina"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "519-000-000-00",
+      "NOMBRE": "Nomina Comunicación",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Nómina"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "515-000-000-00",
+      "NOMBRE": "Nomina Servicios a la Membresia",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Nómina"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "518-000-000-00",
+      "NOMBRE": "Nomina Eventos y Mercadotecnia",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Nómina"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "514-000-000-00",
+      "NOMBRE": "Nomina Administración y Finanzas",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Nómina"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "903-000-000-00",
+      "NOMBRE": "Gastos Corporativos",
+      "SECCION Principal": "Gastos Corporativos",
+      "SECCION Secundaria": "Gastos Corporativos"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "950-001-000-00",
+      "NOMBRE": "Guadalajara Expense",
+      "SECCION Principal": "Guadalajara Expense",
+      "SECCION Secundaria": "Guadalajara Expense"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "950-002-000-00",
+      "NOMBRE": "Monterrey Expense",
+      "SECCION Principal": "Monterrey Expense",
+      "SECCION Secundaria": "Monterrey Expense"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "950-003-000-00",
+      "NOMBRE": "Northwest Expense",
+      "SECCION Principal": "Northwest Expense",
+      "SECCION Secundaria": "Northwest Expense"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "902-000-000-00",
+      "NOMBRE": "Member Centricity",
+      "SECCION Principal": "Member Centricity",
+      "SECCION Secundaria": "Member Centricity"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "413-000-000-00",
+      "NOMBRE": "Otros Ingresos",
+      "SECCION Principal": "Other (MEXICO)",
+      "SECCION Secundaria": "Other"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "414-000-000-00",
+      "NOMBRE": "Intereses Bancos",
+      "SECCION Principal": "Other (MEXICO)",
+      "SECCION Secundaria": "Other"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "416-000-000-00",
+      "NOMBRE": "Utilidad Cambiaria Inversiones",
+      "SECCION Principal": "Other (MEXICO)",
+      "SECCION Secundaria": "Other"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "418-000-000-00",
+      "NOMBRE": "Plusvalia/Minusvalia Portafolio Inversiones ",
+      "SECCION Principal": "Other (MEXICO)",
+      "SECCION Secundaria": "Other"
+    }
+  ],
+  "Operaciones": [
+    {
+      "nombre": "Membership",
+      "tipo": "cuentas",
+      "expresion": "401-000-000-00 + 402-000-000-00",
+      "seccion": "INCOME"
+    },
+    {
+      "nombre": "Events",
+      "tipo": "cuentas",
+      "expresion": "407-000-000-00 + 408-000-000-00",
+      "seccion": "INCOME"
+    },
+    {
+      "nombre": "Committees",
+      "tipo": "cuentas",
+      "expresion": "417-000-000-00 + 412-000-000-00",
+      "seccion": "INCOME"
+    },
+    {
+      "nombre": "T&IC",
+      "tipo": "cuentas",
+      "expresion": "405-000-000-00",
+      "seccion": "INCOME"
+    },
+    {
+      "nombre": "Services to Members",
+      "tipo": "cuentas",
+      "expresion": "406-001-000-00 + 406-002-000-00 + 409-000-000-00",
+      "seccion": "INCOME"
+    },
+    {
+      "nombre": "Guadalajara Income",
+      "tipo": "cuentas",
+      "expresion": "450-001-000-00",
+      "seccion": "Guadalajara Income"
+    },
+    {
+      "nombre": "Monterrey Income",
+      "tipo": "cuentas",
+      "expresion": "450-002-000-00",
+      "seccion": "Monterrey Income"
+    },
+    {
+      "nombre": "Northwest Income",
+      "tipo": "cuentas",
+      "expresion": "450-003-000-00",
+      "seccion": "Northwest Income"
+    },
+    {
+      "nombre": "Membership",
+      "tipo": "cuentas",
+      "expresion": "705-000-000-00 + 520-000-000-00",
+      "seccion": "EXPENSE"
+    },
+    {
+      "nombre": "Events",
+      "tipo": "cuentas",
+      "expresion": "701-000-000-00",
+      "seccion": "EXPENSE"
+    },
+    {
+      "nombre": "Committees",
+      "tipo": "cuentas",
+      "expresion": "702-000-000-00 + 704-000-000-00 + 521-000-000-00",
+      "seccion": "EXPENSE"
+    },
+    {
+      "nombre": "T&IC",
+      "tipo": "cuentas",
+      "expresion": "703-000-000-00",
+      "seccion": "EXPENSE"
+    },
+    {
+      "nombre": "Services to Members",
+      "tipo": "cuentas",
+      "expresion": "601-002-003-00 + 601-003-001-00",
+      "seccion": "EXPENSE"
+    },
+    {
+      "nombre": "Gastos Administrativos",
+      "tipo": "cuentas",
+      "expresion": "801-001-000-00 + 801-002-000-00 + 801-003-000-00 + 801-004-000-00 + 801-005-000-00 + 801-006-000-00 + 801-007-000-00 + 801-008-000-00 + 801-009-000-00 + 801-010-000-00 + 801-011-000-00 + 801-012-000-00 + 801-013-000-00 + 901-000-000-00",
+      "seccion": "EXPENSE"
+    },
+    {
+      "nombre": "Nómina",
+      "tipo": "cuentas",
+      "expresion": "513-000-000-00 + 517-000-000-00 + 516-000-000-00 + 519-000-000-00 + 515-000-000-00 + 518-000-000-00 + 514-000-000-00",
+      "seccion": "EXPENSE"
+    },
+    {
+      "nombre": "Gastos Corporativos",
+      "tipo": "cuentas",
+      "expresion": "903-000-000-00",
+      "seccion": "Gastos Corporativos"
+    },
+    {
+      "nombre": "Guadalajara Expense",
+      "tipo": "cuentas",
+      "expresion": "950-001-000-00",
+      "seccion": "Guadalajara Expense"
+    },
+    {
+      "nombre": "Monterrey Expense",
+      "tipo": "cuentas",
+      "expresion": "950-002-000-00",
+      "seccion": "Monterrey Expense"
+    },
+    {
+      "nombre": "Northwest Expense",
+      "tipo": "cuentas",
+      "expresion": "950-003-000-00",
+      "seccion": "Northwest Expense"
+    },
+    {
+      "nombre": "Member Centricity",
+      "tipo": "cuentas",
+      "expresion": "902-000-000-00",
+      "seccion": "Member Centricity"
+    },
+    {
+      "nombre": "Other",
+      "tipo": "cuentas",
+      "expresion": "413-000-000-00 + 414-000-000-00 + 416-000-000-00 + 418-000-000-00",
+      "seccion": "Other (MEXICO)"
+    },
+    {
+      "nombre": "CONSOLIDATED INCOME",
+      "tipo": "cuentas",
+      "expresion": "INCOME  + Guadalajara Income  +  Monterrey Income  +  Northwest Income",
+      "seccion": ""
+    },
+    {
+      "nombre": "CONSOLIDATED EXPENSES",
+      "tipo": "cuentas",
+      "expresion": "EXPENSE + Guadalajara Expense +  Monterrey Expense +  Northwest Expense",
+      "seccion": ""
+    },
+    {
+      "nombre": "OPERATING RESULTS MEXICO",
+      "tipo": "cuentas",
+      "expresion": "INCOME - EXPENSE",
+      "seccion": ""
+    },
+    {
+      "nombre": "OPERATING RESULTS GUADALAJARA",
+      "tipo": "cuentas",
+      "expresion": "Guadalajara Income -  Guadalajara Expense",
+      "seccion": ""
+    },
+    {
+      "nombre": "OPERATING RESULTS MONTERREY",
+      "tipo": "cuentas",
+      "expresion": "Monterrey Income - Monterrey Expense",
+      "seccion": ""
+    },
+    {
+      "nombre": "OPERATING RESULTS NORTHWEST",
+      "tipo": "cuentas",
+      "expresion": "Northwest Income - Northwest Expense",
+      "seccion": ""
+    },
+    {
+      "nombre": "CONSOLIDATED OPERATING RESULTS",
+      "tipo": "cuentas",
+      "expresion": "OPERATING RESULTS MEXICO  +  OPERATING RESULTS GUADALAJARA +  OPERATING RESULTS MONTERREY + OPERATING RESULTS NORTHWEST",
+      "seccion": ""
+    },
+    {
+      "nombre": "Guadalajara Other Income",
+      "tipo": "cuentas",
+      "expresion": "",
+      "seccion": ""
+    },
+    {
+      "nombre": "Monterrey Other Income",
+      "tipo": "cuentas",
+      "expresion": "",
+      "seccion": ""
+    },
+    {
+      "nombre": "Northwest Other Income",
+      "tipo": "cuentas",
+      "expresion": "",
+      "seccion": ""
+    },
+    {
+      "nombre": "NET RESULTS MEXICO",
+      "tipo": "cuentas",
+      "expresion": "OPERATING RESULTS MEXICO -  Member Centricity +  Other (MEXICO)",
+      "seccion": ""
+    },
+    {
+      "nombre": "NET RESULTS GUADALAJARA",
+      "tipo": "cuentas",
+      "expresion": "OPERATING RESULTS GUADALAJARA + Guadalajara Other Income",
+      "seccion": ""
+    },
+    {
+      "nombre": "NET RESULTS MONTERREY",
+      "tipo": "cuentas",
+      "expresion": "OPERATING RESULTS MONTERREY +  Monterrey Other Income",
+      "seccion": ""
+    },
+    {
+      "nombre": "NET RESULTS NORTHWEST",
+      "tipo": "cuentas",
+      "expresion": "OPERATING RESULTS NORTHWEST +  Northwest Other Income",
+      "seccion": ""
+    },
+    {
+      "nombre": "CONSOLIDATED NET RESULTS",
+      "tipo": "cuentas",
+      "expresion": "NET RESULTS MEXICO + NET RESULTS GUADALAJARA + NET RESULTS MONTERREY + NET RESULTS NORTHWEST",
+      "seccion": ""
+    }
+  ]
+}

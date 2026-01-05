@@ -1,0 +1,185 @@
+{
+  "VPE": [
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "417-017-000-00",
+      "NOMBRE": "Board Of Directors",
+      "SECCION Principal": "Ingresos CEN/Board",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "417-019-000-00",
+      "NOMBRE": "Executive Committee",
+      "SECCION Principal": "Ingresos CEN/Board",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "417-008-000-00",
+      "NOMBRE": "Comité Expresidentes",
+      "SECCION Principal": "Ingresos CEN/Board",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "702-002-019-00",
+      "NOMBRE": "Board of Directors",
+      "SECCION Principal": "Gastos CEN/Board",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "702-002-020-00",
+      "NOMBRE": "Executive Committee",
+      "SECCION Principal": "Gastos CEN/Board",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "702-004-000-00",
+      "NOMBRE": "Comité Expresidentes",
+      "SECCION Principal": "Gastos CEN/Board",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-004-001-00",
+      "NOMBRE": "Teléfono Móvil ",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-004-003-00",
+      "NOMBRE": "Gasolina ",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-004-005-00",
+      "NOMBRE": "Pasajes y taxis",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-004-006-00",
+      "NOMBRE": "Estacionamientos",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-004-011-00",
+      "NOMBRE": "Impresión Tarjetas",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-004-014-00",
+      "NOMBRE": "Gastos de representación",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-004-016-00",
+      "NOMBRE": "Cuotas Club de Industriales",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-004-002-00",
+      "NOMBRE": "Auto utilitario",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-004-004-00",
+      "NOMBRE": "Mantenimiento Automóvil",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-004-007-00",
+      "NOMBRE": "Papelería y Arts. de oficina",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-004-008-00",
+      "NOMBRE": "Suscripciones y libros",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-004-019-00",
+      "NOMBRE": "Gastos de viaje VPE",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-004-018-00",
+      "NOMBRE": "Gastos de Viajes Presidenciales",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-004-015-00",
+      "NOMBRE": "Servicios administrativos (Personal)",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-004-012-00",
+      "NOMBRE": "Varios",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-004-013-00",
+      "NOMBRE": "No deducibles",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-004-010-00",
+      "NOMBRE": "Herramientas Tele-trabajo",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    }
+  ],
+  "Operaciones": [
+    {
+      "nombre": "Suma de Ingresos CEN/Board",
+      "tipo": "cuentas",
+      "expresion": "417-017-000-00 + 417-019-000-00 + 417-008-000-00",
+      "seccion": "Ingresos CEN/Board"
+    },
+    {
+      "nombre": "Suma de Gastos CEN/Board",
+      "tipo": "cuentas",
+      "expresion": "702-002-019-00 + 702-002-020-00 + 702-004-000-00",
+      "seccion": "Gastos CEN/Board"
+    },
+    {
+      "nombre": "Suma Gastos Administrativos",
+      "tipo": "cuentas",
+      "expresion": "801-004-001-00 + 801-004-003-00 + 801-004-005-00 + 801-004-006-00 + 801-004-011-00 + 801-004-014-00 + 801-004-016-00 + 801-004-002-00 + 801-004-004-00 + 801-004-007-00 + 801-004-008-00 + 801-004-019-00 + 801-004-018-00 + 801-004-015-00 + 801-004-012-00 + 801-004-013-00 + 801-004-010-00",
+      "seccion": "Gastos Administrativos"
+    }
+  ]
+}

@@ -1,0 +1,138 @@
+{
+  "Gtos. Corporativos": [
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "903-002-000-00",
+      "NOMBRE": "Seguro Gtos Médicos Mayores",
+      "SECCION": "GASTOS CORPORATIVOS 2026"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "903-003-000-00",
+      "NOMBRE": "Seguro de Vida",
+      "SECCION": "GASTOS CORPORATIVOS 2026"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "903-004-000-00",
+      "NOMBRE": "Seguro Empresarial",
+      "SECCION": "GASTOS CORPORATIVOS 2026"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "903-005-000-00",
+      "NOMBRE": "Seguro Gobierno Corporativo",
+      "SECCION": "GASTOS CORPORATIVOS 2026"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "903-006-000-00",
+      "NOMBRE": "Programa de Asistencia Empresarial (PAE)",
+      "SECCION": "GASTOS CORPORATIVOS 2026"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "903-007-000-00",
+      "NOMBRE": "Dominios",
+      "SECCION": "GASTOS CORPORATIVOS 2026"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "903-008-000-00",
+      "NOMBRE": "CRM",
+      "SECCION": "GASTOS CORPORATIVOS 2026"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "903-009-000-00",
+      "NOMBRE": "Servicios de Telecomunicaciones",
+      "SECCION": "GASTOS CORPORATIVOS 2026"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "903-010-000-00",
+      "NOMBRE": "Licencias Generales",
+      "SECCION": "GASTOS CORPORATIVOS 2026"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "903-011-000-00",
+      "NOMBRE": "Licencias Correos Corporativos",
+      "SECCION": "GASTOS CORPORATIVOS 2026"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "903-012-000-00",
+      "NOMBRE": "Estudio Actuarial",
+      "SECCION": "GASTOS CORPORATIVOS 2026"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "903-013-000-00",
+      "NOMBRE": "Gastos Notariales",
+      "SECCION": "GASTOS CORPORATIVOS 2026"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "903-014-000-00",
+      "NOMBRE": "Auditorías Externas",
+      "SECCION": "GASTOS CORPORATIVOS 2026"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "903-015-000-00",
+      "NOMBRE": "Registro de Marcas",
+      "SECCION": "GASTOS CORPORATIVOS 2026"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "903-016-000-00",
+      "NOMBRE": "Membresía AACCLA",
+      "SECCION": "GASTOS CORPORATIVOS 2026"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "903-017-000-00",
+      "NOMBRE": "T&IC Licencias",
+      "SECCION": "GASTOS CORPORATIVOS 2026"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "903-018-000-00",
+      "NOMBRE": "LinkedIn Herramienta",
+      "SECCION": "GASTOS CORPORATIVOS 2026"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "903-019-000-00",
+      "NOMBRE": "Zoom Herramienta",
+      "SECCION": "GASTOS CORPORATIVOS 2026"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "903-020-000-00",
+      "NOMBRE": "NarwhalHub Herramienta",
+      "SECCION": "GASTOS CORPORATIVOS 2026"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "903-021-000-00",
+      "NOMBRE": "Posicionamiento",
+      "SECCION": "GASTOS CORPORATIVOS 2026"
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "903-001-000-00",
+      "NOMBRE": "Sueldos y Salarios VPE/Nacionales",
+      "SECCION": "GASTOS CORPORATIVOS 2026"
+    }
+  ],
+  "Operaciones": [
+    {
+      "nombre": "TOTAL CARGOS CORPORATIVOS",
+      "tipo": "cuentas",
+      "expresion": "903-002-000-00 + 903-003-000-00 + 903-004-000-00 + 903-005-000-00 + 903-006-000-00 + 903-007-000-00 + 903-008-000-00 + 903-009-000-00 + 903-010-000-00 + 903-011-000-00 + 903-012-000-00 + 903-013-000-00 + 903-014-000-00 + 903-015-000-00 + 903-016-000-00 + 903-017-000-00 + 903-018-000-00 + 903-019-000-00 + 903-020-000-00 + 903-021-000-00 + 903-001-000-00",
+      "seccion": ""
+    }
+  ]
+}

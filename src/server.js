@@ -4,6 +4,7 @@ const path = require("path");
 const session = require("express-session");
 const cookieParser = require("cookie-parser");
 const { inicializarBaseDatos } = require("./db/sqlite");
+const backupService = require("./services/backupService");
 
 let instanciaServidor = null;
 
@@ -27,6 +28,19 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3005)) => {
     throw error;
   }
 
+  // Inicializar y comenzar servicio de backups
+  try {
+    backupService.initialize({
+      enabled: process.env.BACKUP_ENABLED !== "false",
+      intervalMinutes: parseInt(process.env.BACKUP_INTERVAL_MINUTES) || 60,
+      maxBackups: parseInt(process.env.BACKUP_MAX_BACKUPS) || 24,
+      backupPath: process.env.BACKUP_PATH || undefined,
+    });
+    backupService.start();
+  } catch (error) {
+    console.error("⚠ Error iniciando servicio de backups:", error);
+  }
+
   const rutasAuth = require("./routes/auth");
   const rutasUsuarios = require("./routes/usuarios");
   const rutasEmpresas = require("./routes/empresas");
@@ -45,6 +59,7 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3005)) => {
   const rutasEstructura = require("./routes/estructuraRoutes");
   const rutasInsercion = require("./routes/insercion");
   const rutasPerfil = require("./routes/perfil");
+  const rutasBackups = require("./routes/backups");
 
   const app = express();
 
@@ -211,6 +226,7 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3005)) => {
   app.use("/api/perfil", rutasPerfil);
   app.use("/api/saldos", rutasSaldos);
   app.use("/api/cuentas", rutasCuentas);
+  app.use("/api/backups", rutasBackups);
   app.use("/api", rutasEstructura);
   app.use("/api/insercion", rutasInsercion);
 

@@ -1,0 +1,414 @@
+{
+  "Comités": [
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "417-015-000-00",
+      "NOMBRE": "Programa de Mentoría",
+      "SECCION Principal": "Ingresos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "417-001-000-00",
+      "NOMBRE": "Steering Group",
+      "SECCION Principal": "Ingresos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "417-018-000-00",
+      "NOMBRE": "Asuntos Fiscales",
+      "SECCION Principal": "Ingresos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "417-003-000-00",
+      "NOMBRE": "Capital Humano y Asuntos Laborales",
+      "SECCION Principal": "Ingresos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "417-005-000-00",
+      "NOMBRE": "Seguridad",
+      "SECCION Principal": "Ingresos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "417-004-000-00",
+      "NOMBRE": "Comercio Exterior y Logística",
+      "SECCION Principal": "Ingresos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "417-020-000-00",
+      "NOMBRE": "Diversidad",
+      "SECCION Principal": "Ingresos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "417-009-000-00",
+      "NOMBRE": "IPR",
+      "SECCION Principal": "Ingresos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "417-014-000-00",
+      "NOMBRE": "Talleres (IPR)",
+      "SECCION Principal": "Ingresos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "417-010-000-00",
+      "NOMBRE": "Energía",
+      "SECCION Principal": "Ingresos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "417-002-002-00",
+      "NOMBRE": "Legalidad y Estado de Derecho",
+      "SECCION Principal": "Ingresos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "417-021-000-00",
+      "NOMBRE": "Servicios Financieros",
+      "SECCION Principal": "Ingresos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "417-023-000-00",
+      "NOMBRE": "Innovación y TIC´s",
+      "SECCION Principal": "Ingresos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "417-012-000-00",
+      "NOMBRE": "Sustentabilidad y Responsabilidad Social",
+      "SECCION Principal": "Ingresos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "417-025-000-00",
+      "NOMBRE": "Salud",
+      "SECCION Principal": "Ingresos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "417-024-000-00",
+      "NOMBRE": "Task Force lideres Rel. Con Gobierno",
+      "SECCION Principal": "Ingresos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "412-001-000-00",
+      "NOMBRE": "Economex: Diamond + Membresías",
+      "SECCION Principal": "Ingresos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "412-002-000-00",
+      "NOMBRE": "Economex: Sesiones",
+      "SECCION Principal": "Ingresos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "412-003-000-00",
+      "NOMBRE": "Economex: Breafings y cocteles",
+      "SECCION Principal": "Ingresos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "417-002-001-00",
+      "NOMBRE": "DC Training - Georgetown",
+      "SECCION Principal": "Ingresos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "702-002-001-00",
+      "NOMBRE": "Steering Group",
+      "SECCION Principal": "Gastos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "702-002-023-00",
+      "NOMBRE": "Asuntos Fiscales",
+      "SECCION Principal": "Gastos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "702-002-003-00",
+      "NOMBRE": "Capital Humano y Asuntos Laborales",
+      "SECCION Principal": "Gastos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "702-002-005-00",
+      "NOMBRE": "Seguridad",
+      "SECCION Principal": "Gastos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "702-002-004-00",
+      "NOMBRE": "Comercio Exterior y Logística",
+      "SECCION Principal": "Gastos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "702-002-022-00",
+      "NOMBRE": "Diversidad",
+      "SECCION Principal": "Gastos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "702-002-010-00",
+      "NOMBRE": "IPR",
+      "SECCION Principal": "Gastos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "702-005-000-00",
+      "NOMBRE": "Talleres (IPR)",
+      "SECCION Principal": "Gastos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "702-002-011-00",
+      "NOMBRE": "Energía ",
+      "SECCION Principal": "Gastos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "702-002-031-02",
+      "NOMBRE": "Legalidad y Estado de Derecho",
+      "SECCION Principal": "Gastos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "702-002-017-00",
+      "NOMBRE": "Programa Mentoría ",
+      "SECCION Principal": "Gastos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "702-002-013-00",
+      "NOMBRE": "Innovación y TIC´s",
+      "SECCION Principal": "Gastos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "702-002-021-00",
+      "NOMBRE": "Servicios Financieros",
+      "SECCION Principal": "Gastos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "702-002-015-00",
+      "NOMBRE": "Sustentabilidad y Responsabilidad Social ",
+      "SECCION Principal": "Gastos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "702-002-033-00",
+      "NOMBRE": "Salud",
+      "SECCION Principal": "Gastos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "702-002-032-00",
+      "NOMBRE": "Task Force líderes Rel. Con Gobierno",
+      "SECCION Principal": "Gastos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "702-002-028-00",
+      "NOMBRE": "Monitoreo legislativo",
+      "SECCION Principal": "Gastos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "702-003-001-00",
+      "NOMBRE": "Reunión Anual ",
+      "SECCION Principal": "Gastos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "704-001-002-00",
+      "NOMBRE": "Sesiones Economex",
+      "SECCION Principal": "Gastos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "704-001-004-00",
+      "NOMBRE": "Honorarios Asesor Económico (100%)",
+      "SECCION Principal": "Gastos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "704-001-006-00",
+      "NOMBRE": "Economex: Breafings y cocteles",
+      "SECCION Principal": "Gastos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "702-002-031-01",
+      "NOMBRE": "DC Training - Georgetown",
+      "SECCION Principal": "Gastos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-011-001-00",
+      "NOMBRE": "Teléfono Móvil ",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-011-004-00",
+      "NOMBRE": "Mantenimiento de Automóvil ",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-011-003-00",
+      "NOMBRE": "Gasolina ",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "521-000-000-00",
+      "NOMBRE": "Comisiones EWDP y Economex",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-011-019-00",
+      "NOMBRE": "Becarios Comités ",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-011-005-00",
+      "NOMBRE": "Juntas de trabajo",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-011-006-00",
+      "NOMBRE": "Pasajes y Estacionamientos",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-011-012-00",
+      "NOMBRE": "Cuotas Club de Industriales",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-011-014-00",
+      "NOMBRE": "Gastos Administrativos (impresión tarjetas)",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-011-020-00",
+      "NOMBRE": "Gastos de viaje",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-011-007-00",
+      "NOMBRE": "Gastos varios (papelería)",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-011-010-00",
+      "NOMBRE": "Herramientas Tele-trabajo",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    }
+  ],
+  "Operaciones": [
+    {
+      "nombre": "Suma de Ingresos Comités",
+      "tipo": "cuentas",
+      "expresion": "417-015-000-00 + 417-001-000-00 + 417-018-000-00 + 417-003-000-00 + 417-005-000-00 + 417-004-000-00 + 417-020-000-00 + 417-009-000-00 + 417-014-000-00 + 417-010-000-00 + 417-002-002-00 + 417-021-000-00 + 417-023-000-00 + 417-012-000-00 + 417-025-000-00 + 417-024-000-00 + 412-001-000-00 + 412-002-000-00 + 412-003-000-00 + 417-002-001-00",
+      "seccion": "Ingresos Comités"
+    },
+    {
+      "nombre": "Suma de Gastos Comités",
+      "tipo": "cuentas",
+      "expresion": "702-002-001-00 + 702-002-023-00 + 702-002-003-00 + 702-002-005-00 + 702-002-004-00 + 702-002-022-00 + 702-002-010-00 + 702-005-000-00 + 702-002-011-00 + 702-002-031-02 + 702-002-017-00 + 702-002-013-00 + 702-002-021-00 + 702-002-015-00 + 702-002-033-00 + 702-002-032-00 + 702-002-028-00 + 702-003-001-00 + 704-001-002-00 + 704-001-004-00 + 704-001-006-00 + 702-002-031-01",
+      "seccion": "Gastos Comités"
+    },
+    {
+      "nombre": "Suma Gastos Administrativos",
+      "tipo": "cuentas",
+      "expresion": "801-011-001-00 + 801-011-004-00 + 801-011-003-00 + 521-000-000-00 + 801-011-019-00 + 801-011-005-00 + 801-011-006-00 + 801-011-012-00 + 801-011-014-00 + 801-011-020-00 + 801-011-007-00 + 801-011-010-00",
+      "seccion": "Gastos Administrativos"
+    },
+    {
+      "nombre": "Resultado Operativo Comités",
+      "tipo": "cuentas",
+      "expresion": "417-015-000-00 + 417-001-000-00 + 417-018-000-00 + 417-003-000-00 + 417-005-000-00 + 417-004-000-00 + 417-020-000-00 + 417-009-000-00 + 417-014-000-00 + 417-010-000-00 + 417-002-002-00 + 417-021-000-00 + 417-023-000-00 + 417-012-000-00 + 417-025-000-00 + 417-024-000-00 + 412-001-000-00 + 412-002-000-00 + 412-003-000-00 + 417-002-001-00 - 702-002-001-00 - 702-002-023-00 - 702-002-003-00 - 702-002-005-00 - 702-002-004-00 - 702-002-022-00 - 702-002-010-00 - 702-005-000-00 - 702-002-011-00 - 702-002-031-02 - 702-002-017-00 - 702-002-013-00 - 702-002-021-00 - 702-002-015-00 - 702-002-033-00 - 702-002-032-00 - 702-002-028-00 - 702-003-001-00 - 704-001-002-00 - 704-001-004-00 - 704-001-006-00 - 702-002-031-01",
+      "seccion": ""
+    },
+    {
+      "nombre": "Resultado Comités",
+      "tipo": "cuentas",
+      "expresion": "417-015-000-00 + 417-001-000-00 + 417-018-000-00 + 417-003-000-00 + 417-005-000-00 + 417-004-000-00 + 417-020-000-00 + 417-009-000-00 + 417-014-000-00 + 417-010-000-00 + 417-002-002-00 + 417-021-000-00 + 417-023-000-00 + 417-012-000-00 + 417-025-000-00 + 417-024-000-00 + 412-001-000-00 + 412-002-000-00 + 412-003-000-00 + 417-002-001-00 - 702-002-001-00 - 702-002-023-00 - 702-002-003-00 - 702-002-005-00 - 702-002-004-00 - 702-002-022-00 - 702-002-010-00 - 702-005-000-00 - 702-002-011-00 - 702-002-031-02 - 702-002-017-00 - 702-002-013-00 - 702-002-021-00 - 702-002-015-00 - 702-002-033-00 - 702-002-032-00 - 702-002-028-00 - 702-003-001-00 - 704-001-002-00 - 704-001-004-00 - 704-001-006-00 - 702-002-031-01 - 801-011-001-00 - 801-011-004-00 - 801-011-003-00 - 521-000-000-00 - 801-011-019-00 - 801-011-005-00 - 801-011-006-00 - 801-011-012-00 - 801-011-014-00 - 801-011-020-00 - 801-011-007-00 - 801-011-010-00",
+      "seccion": ""
+    }
+  ]
+}

@@ -30,6 +30,7 @@
     selectedElement: null,
     changeLog: [], // Registro de cambios
   };
+  window.state = state;
 
   // ==========================================
   // DOM ELEMENTS
@@ -65,11 +66,21 @@
     dom.btnCopiar = document.getElementById("btnCopiar");
     dom.btnExpandir = document.getElementById("btnExpandir");
     dom.btnColapsar = document.getElementById("btnColapsar");
+    dom.btnPreview = document.getElementById("btnPreview");
+    dom.btnVerificar = null;
+    dom.btnDiagnosticar = null;
+    dom.btnPredefinidas = null;
+    dom.btnDemo = null;
+    dom.btnPrintPreview = document.getElementById("btnPrintPreview");
+    dom.btnRefreshOrder = document.getElementById("btnRefreshOrder");
 
     // Views
     dom.placeholderView = document.getElementById("placeholderView");
     dom.layoutView = document.getElementById("layoutView");
     dom.layoutPreview = document.getElementById("layoutPreview");
+    dom.layoutOrderList = document.getElementById("layoutOrderList");
+    dom.layoutOrderCount = document.getElementById("layoutOrderCount");
+    dom.layoutSelectionInfo = document.getElementById("layoutSelectionInfo");
 
     // Stats
     // Status
@@ -108,6 +119,9 @@
     dom.btnCopiar.addEventListener("click", openCopyModal);
     dom.btnExpandir?.addEventListener("click", expandAll);
     dom.btnColapsar?.addEventListener("click", collapseAll);
+    dom.btnPreview?.addEventListener("click", showPreview);
+    dom.btnPrintPreview?.addEventListener("click", () => window.print());
+    dom.btnRefreshOrder?.addEventListener("click", updateLayoutOrderPanel);
 
     // Search
     dom.searchInput?.addEventListener("input", handleSearch);
@@ -239,6 +253,13 @@
     // Expandir/Colapsar disponibles cuando hay layout cargado
     if (dom.btnExpandir) dom.btnExpandir.disabled = !hasLayout;
     if (dom.btnColapsar) dom.btnColapsar.disabled = !hasLayout;
+    if (dom.btnPreview) dom.btnPreview.disabled = !hasLayout;
+  }
+
+  function requireEditMode() {
+    if (state.editMode) return true;
+    showToast("Modo solo lectura. Solicita permisos de edicion.", "warning");
+    return false;
   }
 
   // ==========================================
@@ -384,6 +405,7 @@
       hydrateOperationsFromParents();
       ensureOperationIds();
       normalizeOperationReferences();
+      state.selectedElement = null;
 
       renderLayout();
       updateStats();
@@ -415,18 +437,18 @@
           <i class="bi bi-file-earmark-plus"></i>
         </div>
         <h2>No existe layout para ${state.anio}</h2>
-        <p>Puedes crear un layout nuevo o copiar uno existente de otro año.</p>
+        <p>Puedes crear un layout manualmente o copiar uno existente de otro año.</p>
         <div class="prompt-actions">
-          <button class="btn btn-success btn-lg" onclick="document.getElementById('btnDemo').click()">
-            <i class="bi bi-magic me-2"></i>Crear Layout Demo
-          </button>
           <button class="btn btn-outline-primary btn-lg" onclick="document.getElementById('btnCopiar').click()">
             <i class="bi bi-copy me-2"></i>Copiar de Otro Año
+          </button>
+          <button class="btn btn-success btn-lg" onclick="document.getElementById('btnAgregar').click()">
+            <i class="bi bi-plus-circle me-2"></i>Agregar manualmente
           </button>
         </div>
         <div class="prompt-hint">
           <i class="bi bi-lightbulb"></i>
-          <span>El layout demo incluye secciones estándar de ingresos, gastos y resultados</span>
+          <span>Agrega secciones, cuentas u operaciones en el orden que necesitas.</span>
         </div>
       </div>
     `;
@@ -441,13 +463,14 @@
   }
 
   function getAccountOrder(cuenta, fallback = 0) {
-    const raw = cuenta?.orden ?? cuenta?.Orden;
+    const raw = cuenta?.orden_presentacion ?? cuenta?.orden ?? cuenta?.Orden;
     const parsed = Number(raw);
     return Number.isFinite(parsed) ? parsed : fallback;
   }
 
   function getOperationOrder(op, fallback = 0) {
-    const raw = op?.orden ?? op?.Orden ?? op?.index;
+    const raw =
+      op?.orden_presentacion ?? op?.orden ?? op?.Orden ?? op?.index;
     const parsed = Number(raw);
     return Number.isFinite(parsed) ? parsed : fallback;
   }
@@ -781,8 +804,15 @@
   }
 
   function renderLayout() {
+    dom.layoutPreview.innerHTML = renderEditableLayout();
+    bindLayoutEvents();
+    window.updateAvailableElementsFromTable?.("#layoutPreview");
+    updateSelectionInfo();
+  }
+
+  function renderEditableLayout() {
     if (!state.cuentas.length && !state.operaciones.length) {
-      dom.layoutPreview.innerHTML = `
+      return `
         <div class="empty-state">
           <i class="bi bi-inbox"></i>
           <p>No hay elementos en este layout</p>
@@ -791,37 +821,27 @@
           </button>
         </div>
       `;
-      return;
     }
 
-    // Group sections with their inline operations
     const sections = groupBySections(state.cuentas);
     let html = "";
-
-    // Track operations that have been rendered inline
     const renderedInlineOps = new Set();
 
-    // Render sections with inline operations (and track which ops are rendered)
     sections.forEach((section) => {
       const principal = section.name;
       const principalLower = principal.toLowerCase();
       const isIncomeSection = principalLower.includes("income");
       const isExpenseSection = principalLower.includes("expense");
 
-      // Find all operations that belong to subsections in this section
       section.subsections.forEach(({ accounts, name: subsectionName }) => {
         const matchingOps = state.operaciones.filter((op) => {
           const clase = (getOperationLabel(op) || "").toLowerCase();
 
-          // Check if operation type matches section type
           const isIncomeOp = clase.includes("income");
           const isExpenseOp = clase.includes("expense");
-
-          // Only match if section type matches operation type
           if (isIncomeSection && isExpenseOp) return false;
           if (isExpenseSection && isIncomeOp) return false;
 
-          // Match by parentSubsection field
           if (
             op.parentSubsection &&
             op.parentSubsection.toLowerCase() === subsectionName.toLowerCase()
@@ -832,7 +852,6 @@
             return true;
           }
 
-          // Match by Clase containing subsection name
           const claseNorm = clase.replace(/[-_\s]/g, "");
           const subsectionNorm = subsectionName
             .toLowerCase()
@@ -847,61 +866,91 @@
           }
           return false;
         });
-        matchingOps.forEach((op) => renderedInlineOps.add(getOperationId(op) || op.Clase || op));
+        matchingOps.forEach((op) =>
+          renderedInlineOps.add(getOperationId(op) || op.Clase || op)
+        );
       });
       html += renderSection(section);
     });
 
-    // SECCIÓN ROBUSTA: Mostrar TODAS las operaciones organizadas por tabla de aparición
     html += renderAllOperationsByTable(renderedInlineOps);
-
-    dom.layoutPreview.innerHTML = html;
-    bindLayoutEvents();
-    window.updateAvailableElementsFromTable?.("#layoutPreview");
+    return html;
   }
 
   // Renderizar TODAS las operaciones organizadas por su tabla de aparición
   function renderAllOperationsByTable(renderedInlineOps) {
     let html = "";
 
-    // Agrupar operaciones por tabla donde aparecen
+    // Obtener operaciones ordenadas
+    const ordenadas = sortOperations(state.operaciones);
+    
+    // Verificar si hay operaciones
+    if (ordenadas.length === 0) {
+      return "";
+    }
+
+    // Agrupar operaciones por tabla donde aparecen (para estadísticas)
     const operationsByTable = {
-      sectionTotals: [], // Totales de sección (CDMX INCOME, etc.)
+      chapterTotals: [], // Totales por capítulo (CDMX INCOME, MTY EXPENSE, etc.)
+      chapterOperating: [], // Operativo por capítulo (CDMX OPERATING, MTY OPERATING, etc.)
+      chapterResults: [], // Resultados por capítulo (CDMX RESULTS, MTY RESULTS, etc.)
       consolidated: [], // Consolidados (CONSOLIDATED INCOME, EXPENSE, etc.)
-      operating: [], // Resultados operativos
-      results: [], // Resultados
-      netResults: [], // Resultados netos
+      consolidatedOperating: [], // CONSOLIDATED OPERATING RESULTS
+      results: [], // Resultados consolidados (RESULTS)
+      netResults: [], // Resultados netos (NET RESULTS, CONSOLIDATED NET RESULTS)
     };
 
-    // Clasificar TODAS las operaciones sin filtrar ninguna
-    sortOperations(state.operaciones).forEach((op) => {
+    // Clasificar TODAS las operaciones para estadísticas
+    ordenadas.forEach((op) => {
+      const clase = (getOperationLabel(op) || "").toLowerCase();
+      const opId = (getOperationId(op) || "").toLowerCase();
+      const combined = `${clase} ${opId}`;
+      
       // Clasificar por tipo de fila donde aparece (prioridad: más específico primero)
-      if (op["result-net-row"] || op["net-row"]) {
+      if (op["result-net-row"] || op["net-row"] || combined.includes("net result")) {
         operationsByTable.netResults.push(op);
-      } else if (op["result-row"]) {
+      } else if (op["result-row"] || combined.includes(" results") && !combined.includes("operating")) {
         operationsByTable.results.push(op);
-      } else if (op["sum-row-operativo"]) {
-        operationsByTable.operating.push(op);
-      } else if (op["sum-row-sumavarios-consolidado"]) {
+      } else if (combined.includes("consolidated operating") || combined.includes("consolidated_operating")) {
+        operationsByTable.consolidatedOperating.push(op);
+      } else if (op["sum-row-operativo"] || combined.includes("operating result")) {
+        // Distinguir entre operativo de capítulo y consolidado
+        if (combined.includes("consolidated")) {
+          operationsByTable.consolidatedOperating.push(op);
+        } else if (combined.match(/(cdmx|mty|gdl|noreste|noroeste).*operating/)) {
+          operationsByTable.chapterOperating.push(op);
+        } else {
+          operationsByTable.chapterOperating.push(op);
+        }
+      } else if (op["sum-row-sumavarios-consolidado"] || combined.includes("consolidated")) {
         operationsByTable.consolidated.push(op);
       } else if (op["sum-row-sumavarios"] || op["sum-row"]) {
-        operationsByTable.sectionTotals.push(op);
-      } else {
-        // Si no tiene ninguna etiqueta, revisar el nombre de la clase
-        const clase = (getOperationLabel(op) || "").toLowerCase();
-        if (clase.includes("net") || clase.includes("neto")) {
-          operationsByTable.netResults.push(op);
-        } else if (clase.includes("result") || clase.includes("resultado")) {
-          operationsByTable.results.push(op);
-        } else if (clase.includes("operating") || clase.includes("operativo")) {
-          operationsByTable.operating.push(op);
-        } else if (
-          clase.includes("consolidated") ||
-          clase.includes("consolidado")
-        ) {
-          operationsByTable.consolidated.push(op);
+        // Distinguir entre totales de capítulo y resultados de capítulo
+        if (combined.match(/(cdmx|mty|gdl|noreste|noroeste).*(income|expense|ingreso|gasto)/)) {
+          operationsByTable.chapterTotals.push(op);
+        } else if (combined.match(/(cdmx|mty|gdl|noreste|noroeste).*results?/)) {
+          operationsByTable.chapterResults.push(op);
         } else {
-          operationsByTable.sectionTotals.push(op);
+          operationsByTable.chapterTotals.push(op);
+        }
+      } else {
+        // Clasificación por nombre cuando no hay etiquetas
+        if (combined.includes("net") || combined.includes("neto")) {
+          operationsByTable.netResults.push(op);
+        } else if (combined.includes("consolidated operating")) {
+          operationsByTable.consolidatedOperating.push(op);
+        } else if (combined.match(/(cdmx|mty|gdl|noreste|noroeste).*operating/)) {
+          operationsByTable.chapterOperating.push(op);
+        } else if (combined.match(/(cdmx|mty|gdl|noreste|noroeste).*results?/)) {
+          operationsByTable.chapterResults.push(op);
+        } else if (combined.includes("consolidated")) {
+          operationsByTable.consolidated.push(op);
+        } else if (combined.includes("result")) {
+          operationsByTable.results.push(op);
+        } else if (combined.match(/(cdmx|mty|gdl|noreste|noroeste)/)) {
+          operationsByTable.chapterTotals.push(op);
+        } else {
+          operationsByTable.chapterTotals.push(op);
         }
       }
     });
@@ -909,45 +958,58 @@
     // Renderizar cada tabla en orden
     const tableSections = [
       {
-        key: "sectionTotals",
-        title: "Totales de Sección",
-        icon: "bi-bar-chart-fill",
+        key: "chapterTotals",
+        title: "Totales por Capítulo",
+        icon: "bi-geo-alt-fill",
+        color: "info",
+        description: "Sumas de cada capítulo (CDMX INCOME, MTY EXPENSE, NORESTE INCOME, etc.)",
+      },
+      {
+        key: "chapterOperating",
+        title: "Operativo por Capítulo",
+        icon: "bi-calculator",
         color: "primary",
-        description: "Sumas de cada capítulo (CDMX INCOME, MTY EXPENSE, etc.)",
+        description: "Resultado operativo de cada capítulo (CDMX OPERATING, MTY OPERATING, etc.)",
+      },
+      {
+        key: "chapterResults",
+        title: "Resultados por Capítulo",
+        icon: "bi-clipboard-data",
+        color: "secondary",
+        description: "Resultados totales de cada capítulo (CDMX RESULTS, MTY RESULTS, etc.)",
       },
       {
         key: "consolidated",
         title: "Consolidados",
         icon: "bi-collection-fill",
         color: "success",
-        description:
-          "Consolidación de múltiples capítulos (CONSOLIDATED INCOME)",
+        description: "Consolidación de múltiples capítulos (CONSOLIDATED INCOME, CONSOLIDATED EXPENSE, etc.)",
       },
       {
-        key: "operating",
-        title: "Resultados Operativos",
+        key: "consolidatedOperating",
+        title: "Operativo Consolidado",
         icon: "bi-graph-up-arrow",
         color: "info",
-        description: "Resultados de operación (OPERATING RESULTS)",
+        description: "Resultado operativo consolidado (CONSOLIDATED OPERATING RESULTS)",
       },
       {
         key: "results",
         title: "Resultados",
         icon: "bi-calculator-fill",
         color: "warning",
-        description: "Resultados antes de impuestos (RESULTS)",
+        description: "Resultados antes de neto (RESULTS)",
       },
       {
         key: "netResults",
         title: "Resultados Netos",
         icon: "bi-cash-stack",
         color: "danger",
-        description: "Resultado neto final (NET RESULTS)",
+        description: "Resultado neto final (NET RESULTS, CONSOLIDATED NET RESULTS)",
       },
     ];
 
     // Contar total de operaciones
-    const totalOps = state.operaciones.length;
+    const totalOps = ordenadas.length;
 
     // Agregar encabezado general
     if (totalOps > 0) {
@@ -958,7 +1020,7 @@
               <div class="d-flex align-items-center justify-content-between text-white">
                 <div>
                   <h4 class="mb-1 fw-bold"><i class="bi bi-calculator-fill me-2"></i>Todas las Operaciones</h4>
-                  <p class="mb-0 opacity-75">Vista completa organizada por tabla de aparición</p>
+                  <p class="mb-0 opacity-75">Orden secuencial de aparición en el layout</p>
                 </div>
                 <div class="text-end">
                   <div class="display-4 fw-bold">${totalOps}</div>
@@ -971,49 +1033,51 @@
       `;
     }
 
-    tableSections.forEach((section) => {
-      const ops = operationsByTable[section.key];
-      if (ops && ops.length > 0) {
-        html += `
-          <div class="operations-table-section mt-4">
-            <div class="table-section-header bg-${
-              section.color
-            } bg-opacity-10 border-${
-          section.color
-        } border-start border-4 p-3 rounded">
-              <div class="d-flex align-items-center justify-content-between">
-                <div class="d-flex align-items-center gap-2">
-                  <i class="bi ${section.icon} text-${section.color} fs-4"></i>
-                  <div>
-                    <h5 class="mb-0 text-${section.color}">${section.title}</h5>
-                    <small class="text-muted">${section.description}</small>
-                  </div>
-                </div>
-                <span class="badge bg-${section.color}">${
-          ops.length
-        } operaciones</span>
-              </div>
-            </div>
-            <div class="table-section-content mt-2">
-              ${ops
-                .map((op) => renderOperationCard(op, section.color))
-                .join("")}
-            </div>
-          </div>
-        `;
-      }
-    });
+    // Renderizar operaciones en ORDEN SECUENCIAL (no agrupadas)
+    html += `
+      <div class="operations-sequential-list mt-3">
+        <div class="table-section-content">
+          ${ordenadas
+            .map((op, idx) => {
+              // Determinar color según tipo
+              let color = "secondary";
+              const clase = (getOperationLabel(op) || "").toLowerCase();
+              const opId = (getOperationId(op) || "").toLowerCase();
+              const combined = `${clase} ${opId}`;
+              
+              if (op["result-net-row"] || combined.includes("net result")) {
+                color = "danger";
+              } else if (op["sum-row-operativo"] || combined.includes("operating")) {
+                color = "primary";
+              } else if (op["sum-row-sumavarios-consolidado"] || combined.includes("consolidated")) {
+                color = "success";
+              } else if (op["sum-row-sumavarios"]) {
+                color = "info";
+              } else if (op["sum-row"]) {
+                color = "warning";
+              }
+              
+              return renderOperationCardWithOrder(op, color, idx + 1);
+            })
+            .join("")}
+        </div>
+      </div>
+    `;
 
     return html;
   }
 
-  // Renderizar tarjeta de operación con detalles completos
-  function renderOperationCard(op, colorTheme) {
+  // Renderizar tarjeta de operación con número de orden
+  function renderOperationCardWithOrder(op, colorTheme, displayOrder) {
     const opId = getOperationId(op);
-        const clase = getOperationLabel(op) || "Operacion";
+    const clase = getOperationLabel(op) || "Operacion";
     const displayName = getOperationDisplayName(op);
-    const formula = formatFormula(op);
+    const orden = getOperationOrder(op, displayOrder);
     const termsCount = op.formula_terms?.length || 0;
+    const isVisible = op.visible !== false;
+    const hiddenClass = !isVisible ? "hidden-row" : "";
+    const canEdit = state.editMode;
+    const disabledAttr = !canEdit ? "disabled" : "";
 
     // Obtener el nombre de la fila donde aparece
     const rowLabels = [];
@@ -1049,7 +1113,158 @@
                 (term, idx) => `
               <span class="badge bg-light text-dark border">
                 ${idx > 0 ? term.operator + " " : ""}${escapeHtml(
-                  term.type === "operation" ? formatOperationReference(term.value) : (term.value || "???")
+                  term.type === "operation"
+                    ? formatOperationReference(term.value)
+                    : term.type === "constant"
+                    ? term.constant ?? term.value ?? "0"
+                    : term.value || "???"
+                )}
+              </span>
+            `
+              )
+              .join("")}
+          </div>
+        </div>
+      `;
+    }
+
+    // Mostrar cuentas si es sum-row
+    let cuentasHtml = "";
+    if (op.SECCION || (op.cuentas && op.cuentas.length > 0)) {
+      const cuentasList = op.cuentas || op.SECCION?.split("+").map(c => c.trim()) || [];
+      if (cuentasList.length > 0) {
+        cuentasHtml = `
+          <div class="cuentas-preview mt-2">
+            <small class="text-muted d-block mb-1"><i class="bi bi-list-ul"></i> Cuentas:</small>
+            <div class="d-flex flex-wrap gap-1">
+              ${cuentasList.slice(0, 5).map(cuenta => `
+                <code class="badge bg-light text-dark border">${escapeHtml(cuenta)}</code>
+              `).join("")}
+              ${cuentasList.length > 5 ? `<span class="badge bg-secondary">+${cuentasList.length - 5} más</span>` : ""}
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    return `
+      <div class="operation-card border-${colorTheme} mb-2 p-3 rounded border-start border-4 bg-white shadow-sm hover-shadow ${hiddenClass}">
+        <div class="d-flex align-items-start justify-content-between">
+          <div class="d-flex gap-3 flex-grow-1">
+            <div class="orden-badge">
+              <div class="badge bg-${colorTheme} rounded-circle" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: bold;">
+                ${orden}
+              </div>
+            </div>
+            <div class="flex-grow-1">
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <i class="bi bi-calculator text-${colorTheme}"></i>
+                <strong class="text-${colorTheme}">${escapeHtml(
+      displayName
+    )}</strong>
+                ${
+                  termsCount > 0
+                    ? `<span class="badge bg-secondary">${termsCount} términos</span>`
+                    : ""
+                }
+              </div>
+              <div class="mb-2">
+                <small class="text-muted">Etiqueta: </small>
+                <code class="text-dark">${escapeHtml(clase)}</code>
+                <small class="text-muted ms-2">ID: </small>
+                <code class="text-dark">${escapeHtml(opId || "")}</code>
+              </div>
+              ${
+                rowLabels.length > 0
+                  ? `
+                <div class="d-flex flex-wrap gap-1 mb-2">
+                  ${rowLabels.join("")}
+                </div>
+              `
+                  : ""
+              }
+              ${termsHtml}
+              ${cuentasHtml}
+            </div>
+          </div>
+          <div class="d-flex flex-column gap-1">
+            ${
+              window.LayoutControls
+                ? window.LayoutControls.renderVisibilityControl(op, "operation")
+                : ""
+            }
+            ${
+              window.LayoutControls
+                ? window.LayoutControls.renderOrderControl(op, "operation")
+                : ""
+            }
+            <button class="btn btn-sm btn-outline-primary" onclick="window.editOperation('${escapeAttr(
+              opId || clase
+            ).replace(/'/g, "\\'")}')" ${disabledAttr}>
+              <i class="bi bi-pencil"></i> Editar
+            </button>
+            <button class="btn btn-sm btn-outline-danger" onclick="window.deleteOperation('${escapeAttr(
+              opId || clase
+            ).replace(/'/g, "\\'")}')" ${disabledAttr}>
+              <i class="bi bi-trash"></i> Eliminar
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // Renderizar tarjeta de operación con detalles completos (función legacy para compatibilidad)
+  function renderOperationCard(op, colorTheme) {
+    const opId = getOperationId(op);
+        const clase = getOperationLabel(op) || "Operacion";
+    const displayName = getOperationDisplayName(op);
+    const formula = formatFormula(op);
+    const termsCount = op.formula_terms?.length || 0;
+    const isVisible = op.visible !== false;
+    const hiddenClass = !isVisible ? "hidden-row" : "";
+    const canEdit = state.editMode;
+    const disabledAttr = !canEdit ? "disabled" : "";
+
+    // Obtener el nombre de la fila donde aparece
+    const rowLabels = [];
+    const rowFields = [
+      { field: "sum-row", label: "Fila de Suma" },
+      { field: "sum-row-sumavarios", label: "Suma Varios" },
+      { field: "sum-row-sumavarios-consolidado", label: "Consolidado" },
+      { field: "sum-row-operativo", label: "Operativo" },
+      { field: "result-row", label: "Resultado" },
+      { field: "net-row", label: "Neto" },
+      { field: "result-net-row", label: "Resultado Neto" },
+    ];
+
+    rowFields.forEach(({ field, label }) => {
+      if (op[field]) {
+        rowLabels.push(
+          `<span class="badge bg-${colorTheme} bg-opacity-75">${label}: ${escapeHtml(
+            op[field]
+          )}</span>`
+        );
+      }
+    });
+
+    // Mostrar términos de la fórmula
+    let termsHtml = "";
+    if (op.formula_terms && op.formula_terms.length > 0) {
+      termsHtml = `
+        <div class="formula-terms-preview mt-2">
+          <small class="text-muted d-block mb-1"><i class="bi bi-equation"></i> Fórmula:</small>
+          <div class="d-flex flex-wrap gap-1">
+            ${op.formula_terms
+              .map(
+                (term, idx) => `
+              <span class="badge bg-light text-dark border">
+                ${idx > 0 ? term.operator + " " : ""}${escapeHtml(
+                  term.type === "operation"
+                    ? formatOperationReference(term.value)
+                    : term.type === "constant"
+                    ? term.constant ?? term.value ?? "0"
+                    : term.value || "???"
                 )}
               </span>
             `
@@ -1061,7 +1276,7 @@
     }
 
     return `
-      <div class="operation-card border-${colorTheme} mb-2 p-3 rounded border-start border-3 bg-white shadow-sm hover-shadow">
+      <div class="operation-card border-${colorTheme} mb-2 p-3 rounded border-start border-3 bg-white shadow-sm hover-shadow ${hiddenClass}">
         <div class="d-flex align-items-start justify-content-between">
           <div class="flex-grow-1">
             <div class="d-flex align-items-center gap-2 mb-2">
@@ -1093,14 +1308,24 @@
             ${termsHtml}
           </div>
           <div class="d-flex flex-column gap-1">
+            ${
+              window.LayoutControls
+                ? window.LayoutControls.renderVisibilityControl(op, "operation")
+                : ""
+            }
+            ${
+              window.LayoutControls
+                ? window.LayoutControls.renderOrderControl(op, "operation")
+                : ""
+            }
             <button class="btn btn-sm btn-outline-primary" onclick="window.editOperation('${escapeAttr(
               opId || clase
-            ).replace(/'/g, "\\'")}')">
+            ).replace(/'/g, "\\'")}')" ${disabledAttr}>
               <i class="bi bi-pencil"></i> Editar
             </button>
             <button class="btn btn-sm btn-outline-danger" onclick="window.deleteOperation('${escapeAttr(
               opId || clase
-            ).replace(/'/g, "\\'")}')">
+            ).replace(/'/g, "\\'")}')" ${disabledAttr}>
               <i class="bi bi-trash"></i> Eliminar
             </button>
           </div>
@@ -1278,10 +1503,14 @@
     const displayName = getOperationDisplayName(op);
     const tipo = detectOperationType(op);
     const formula = formatFormula(op);
+    const isVisible = op.visible !== false;
+    const hiddenClass = !isVisible ? "hidden-row" : "";
+    const canEdit = state.editMode;
+    const disabledAttr = !canEdit ? "disabled" : "";
 
     return `
       <div class="layout-section operation-section ${tipo}">
-        <div class="operation-row ${tipo}" data-operation-id="${escapeAttr(
+        <div class="operation-row ${tipo} ${hiddenClass}" data-operation-id="${escapeAttr(
           opId || ""
         )}" data-operation-label="${escapeAttr(clase)}" onclick="editOperation('${escapeAttr(
       opId || clase
@@ -1297,12 +1526,12 @@
           <div class="account-actions">
             <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); editOperation('${escapeAttr(
               opId || clase
-            )}')" title="Editar">
+            )}')" title="Editar" ${disabledAttr}>
               <i class="bi bi-pencil"></i>
             </button>
             <button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); deleteOperation('${escapeAttr(
               opId || clase
-            )}')" title="Eliminar">
+            )}')" title="Eliminar" ${disabledAttr}>
               <i class="bi bi-trash"></i>
             </button>
           </div>
@@ -1316,13 +1545,17 @@
     const opId = getOperationId(op);
     const clase = getOperationLabel(op) || "Operacion";
     const displayName = getOperationDisplayName(op);
+    const isVisible = op.visible !== false;
+    const hiddenClass = !isVisible ? "hidden-row" : "";
+    const canEdit = state.editMode;
+    const disabledAttr = !canEdit ? "disabled" : "";
     // Build formula from actual account names
     const formula = accounts
       .map((a) => a.NOMBRE || a.nombre || a.CUENTA)
       .join(" + ");
 
     return `
-      <div class="inline-operation-row" data-operation-id="${escapeAttr(
+      <div class="inline-operation-row ${hiddenClass}" data-operation-id="${escapeAttr(
         opId || ""
       )}" data-operation-label="${escapeAttr(clase)}" onclick="editOperation('${escapeAttr(
         opId || clase
@@ -1340,7 +1573,7 @@
         <div class="inline-op-actions">
           <button class="btn btn-sm btn-link p-0" onclick="event.stopPropagation(); editOperation('${escapeAttr(
             opId || clase
-          )}')" title="Editar">
+          )}')" title="Editar" ${disabledAttr}>
             <i class="bi bi-pencil"></i>
           </button>
         </div>
@@ -1362,6 +1595,7 @@
         operator: term.operator || "+",
         type: term.type || "section",
         value: term.value || "",
+        constant: term.constant ?? term.constValue ?? null,
         parentSection: term.parentSection,
       }));
       return applyParentSectionHints(op, terms);
@@ -1416,7 +1650,9 @@
           const val =
             term.type === "operation"
               ? formatOperationReference(term.value)
-              : term.value || (term.type === "const" ? term.constValue : "???");
+              : term.type === "constant"
+              ? term.constant ?? term.value ?? "0"
+              : term.value || "???";
           return prefix + val;
         })
         .join("");
@@ -1627,6 +1863,8 @@
     const nombre = account.NOMBRE || account.nombre || "";
     const isVisible = account.visible !== false;
     const hiddenClass = !isVisible ? "hidden-row" : "";
+    const canEdit = state.editMode;
+    const disabledAttr = !canEdit ? "disabled" : "";
 
     return `
       <div class="account-row ${hiddenClass}" data-cuenta="${escapeHtml(
@@ -1651,12 +1889,12 @@
           }
           <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); editAccount('${escapeAttr(
             codigo
-          )}')" title="Editar">
+          )}')" title="Editar" ${disabledAttr}>
             <i class="bi bi-pencil"></i>
           </button>
           <button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); deleteAccount('${escapeAttr(
             codigo
-          )}')" title="Eliminar">
+          )}')" title="Eliminar" ${disabledAttr}>
             <i class="bi bi-trash"></i>
           </button>
         </div>
@@ -1671,9 +1909,13 @@
         const clase = getOperationLabel(op) || "Operacion";
         const tipo = detectOperationType(op);
         const termsCount = op.formula_terms?.length || 0;
+        const isVisible = op.visible !== false;
+        const hiddenClass = !isVisible ? "hidden-row" : "";
+        const canEdit = state.editMode;
+        const disabledAttr = !canEdit ? "disabled" : "";
 
         return `
-        <div class="operation-row ${tipo}" data-operation-id="${escapeAttr(
+        <div class="operation-row ${tipo} ${hiddenClass}" data-operation-id="${escapeAttr(
           opId || ""
         )}" data-operation-label="${escapeAttr(clase)}">
           <div class="operation-label" onclick="editOperation('${escapeAttr(
@@ -1691,12 +1933,12 @@
           <div class="account-actions">
             <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); editOperation('${escapeAttr(
               opId || clase
-            )}')" title="Editar">
+            )}')" title="Editar" ${disabledAttr}>
               <i class="bi bi-pencil"></i>
             </button>
             <button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); deleteOperation('${escapeAttr(
               opId || clase
-            )}')" title="Eliminar">
+            )}')" title="Eliminar" ${disabledAttr}>
               <i class="bi bi-trash"></i>
             </button>
           </div>
@@ -1819,6 +2061,188 @@
   // ==========================================
   function updateStats() {
     dom.layoutInfo.textContent = `${state.modulo} · ${state.anio} · ${state.capitulo}`;
+  }
+
+  // ==========================================
+  // STATS HELPERS
+  // ==========================================
+  function updateSelectionInfo(selection = state.selectedElement) {
+    if (!dom.layoutSelectionInfo) return;
+    let text = "Seleccion actual: -";
+    if (selection) {
+      const type = selection.type;
+      if (type === "account") {
+        const codigo = selection.cuenta?.CUENTA || selection.codigo;
+        const cuenta = state.cuentas.find((c) => c.CUENTA === codigo);
+        const nombre = cuenta?.NOMBRE || cuenta?.nombre || "";
+        text = `Cuenta: ${codigo || "-"}${nombre ? ` - ${nombre}` : ""}`;
+      } else if (type === "section") {
+        text = `Seccion: ${selection.name || "-"}`;
+      } else if (type === "subsection") {
+        text = `Subseccion: ${selection.name || "-"} (Seccion ${selection.principal || "-"})`;
+      } else if (type === "operation") {
+        const label = getOperationDisplayName(selection.op || {});
+        const opId = getOperationId(selection.op || {});
+        text = `Operacion: ${label || "-"}${opId ? ` (${opId})` : ""}`;
+      } else if (type === "consolidatedLabel") {
+        text = `Etiqueta consolidada: ${selection.label || "-"}`;
+      }
+    }
+    dom.layoutSelectionInfo.textContent = text;
+  }
+
+  function updateLayoutOrderPanel() {
+    if (!dom.layoutOrderList) return;
+    if (!window.LayoutControls || typeof window.LayoutControls._buildPreviewRows !== "function") {
+      dom.layoutOrderList.innerHTML =
+        '<div class="text-muted small p-2">Vista previa de orden no disponible</div>';
+      return;
+    }
+
+    const layoutData = {
+      modulo: state.modulo,
+      capitulo: state.capitulo,
+      cuentas: state.cuentas || [],
+      operaciones: sortOperations(state.operaciones || []),
+    };
+
+    let rows = [];
+    try {
+      rows = window.LayoutControls._buildPreviewRows(layoutData) || [];
+    } catch (err) {
+      console.warn("No se pudo construir el orden de vista previa", err);
+    }
+
+    if (!rows || !rows.length) {
+      rows = buildOrderFromRenderedLayout();
+    }
+
+    const items = rows.filter(
+      (row) =>
+        row &&
+        ["principal", "subsection", "account", "operation"].includes(row.type)
+    );
+
+    if (dom.layoutOrderCount) {
+      dom.layoutOrderCount.textContent = items.length;
+    }
+
+    if (!items.length) {
+      dom.layoutOrderList.innerHTML =
+        '<div class="text-muted small p-2">Sin filas</div>';
+      return;
+    }
+
+    const iconByType = {
+      principal: "folder2",
+      subsection: "folder",
+      account: "journal-text",
+      operation: "calculator",
+    };
+
+    const typeLabel = {
+      principal: "Seccion",
+      subsection: "Subseccion",
+      account: "Cuenta",
+      operation: "Operacion",
+    };
+
+    const html = items
+      .map((row, idx) => {
+        const visible = window.LayoutControls._isVisible
+          ? window.LayoutControls._isVisible(row.visible)
+          : row?.visible !== false;
+        const hiddenClass = visible ? "" : "order-hidden";
+        const icon = iconByType[row.type] || "dot";
+        const mainLabel =
+          row.type === "account"
+            ? row.cuenta || row.label || "Cuenta"
+            : row.label || row.nombre || "Fila";
+        const detail =
+          row.type === "account"
+            ? row.nombre || row.label || ""
+            : row.type === "operation"
+            ? row.kind || ""
+            : "";
+
+        return `
+          <div class="order-item ${hiddenClass}">
+            <span class="order-index">${idx + 1}</span>
+            <i class="bi bi-${icon} order-icon"></i>
+            <div class="order-label">
+              ${escapeHtml(mainLabel)}
+              ${
+                detail
+                  ? `<div class="small text-muted">${escapeHtml(detail)}</div>`
+                  : ""
+              }
+            </div>
+            <div class="order-type">${typeLabel[row.type] || row.type}</div>
+            ${
+              visible
+                ? ""
+                : '<span class="badge bg-light text-muted border">Oculta</span>'
+            }
+          </div>
+        `;
+      })
+      .join("");
+
+    dom.layoutOrderList.innerHTML = html;
+  }
+
+  function buildOrderFromRenderedLayout() {
+    const container = document.getElementById("layoutPreview");
+    if (!container) return [];
+    const items = [];
+    const sections = Array.from(
+      container.querySelectorAll(".layout-section")
+    ).filter(
+      (el) => !el.closest(".live-preview-table") // ignorar vista previa superior
+    );
+
+    sections.forEach((section) => {
+      const header = section.querySelector(".section-header .section-title span");
+      const label = header?.textContent?.trim() || "";
+      items.push({ type: "principal", label, visible: true });
+
+      const subsections = section.querySelectorAll(".subsection");
+      subsections.forEach((sub) => {
+        const subLabel = sub
+          .querySelector(".subsection-title span")
+          ?.textContent?.trim();
+        if (subLabel) {
+          items.push({ type: "subsection", label: subLabel, visible: true });
+        }
+        sub.querySelectorAll(".account-row").forEach((row) => {
+          const code = row.getAttribute("data-cuenta") || "";
+          const name = row.querySelector(".account-name")?.textContent?.trim() || "";
+          const hidden = row.classList.contains("hidden-row");
+          items.push({
+            type: "account",
+            label: code,
+            cuenta: code,
+            nombre: name,
+            visible: !hidden,
+          });
+        });
+        sub.querySelectorAll(".inline-operation-row, .operation-row").forEach((row) => {
+          const opLabel =
+            row.getAttribute("data-operation-label") ||
+            row.querySelector(".op-name")?.textContent?.trim() ||
+            row.querySelector(".operation-label span")?.textContent?.trim() ||
+            "";
+          const hidden = row.classList.contains("hidden-row");
+          items.push({
+            type: "operation",
+            label: opLabel,
+            kind: row.classList.contains("inline-operation-row") ? "inline" : "",
+            visible: !hidden,
+          });
+        });
+      });
+    });
+    return items;
   }
 
   // ==========================================
@@ -2739,46 +3163,232 @@
       return;
     }
 
-    const anio = prompt(
-      "¿Para qué año deseas crear la plantilla demo?",
-      new Date().getFullYear().toString()
-    );
-    if (!anio) return;
+    showToast("Demo deshabilitado en esta vista", "warning");
+  }
 
+  // Crear layout RESUMEN 2025 con estructura completa
+  async function createResumen2025Layout() {
     try {
-      const response = await fetch(
-        `${API_BASE}/${encodeURIComponent(state.modulo)}/${anio}/demo`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...getAuthHeaders(),
-          },
-          body: JSON.stringify({
-            empresaId: "EMPRESA01",
-            capitulo: state.capitulo || "DEFAULT",
-          }),
+      // Cargar estructura desde JSON
+      const estructuraUrl = window.location.protocol === "file:"
+        ? "http://localhost:3005/ESTRUCTURA_OPERACIONES_RESUMEN_2025.json"
+        : `${window.location.origin}/ESTRUCTURA_OPERACIONES_RESUMEN_2025.json`;
+
+      showToast("Cargando estructura predefinida...", "info");
+      
+      const response = await fetch(estructuraUrl);
+      if (!response.ok) {
+        throw new Error("No se pudo cargar la estructura predefinida");
+      }
+
+    const estructura = await response.json();
+    const operaciones = estructura.operaciones_orden_aparicion;
+
+    // Convertir operaciones al formato del sistema
+    state.operaciones = operaciones.map((op, index) => {
+      const newOp = {
+        OperacionId: op.id,
+        Clase: op.nombre,
+        orden: op.orden || index + 1,
+        orden_presentacion: op.orden || index + 1,
+        CAPITULO: state.capitulo || "CIUDAD DE MÉXICO",
+        visible: op.visible !== false,
+      };
+
+      // Asignar tipo de fila
+      switch (op.tipo) {
+        case "sum-row":
+          newOp["sum-row"] = op.nombre;
+          break;
+        case "sum-row-sumavarios":
+          newOp["sum-row-sumavarios"] = op.nombre;
+          break;
+        case "sum-row-sumavarios-consolidado":
+          newOp["sum-row-sumavarios-consolidado"] = op.nombre;
+          break;
+        case "sum-row-operativo":
+          newOp["sum-row-operativo"] = op.nombre;
+          break;
+        case "result-row":
+          newOp["result-row"] = op.nombre;
+          break;
+        case "net-row":
+          newOp["net-row"] = op.nombre;
+          break;
+        case "result-net-row":
+          newOp["result-net-row"] = op.nombre;
+          break;
+        default:
+          newOp[op.tipo] = op.nombre;
+      }
+
+      // Asignar formula_terms
+      const buildSigns = (terms = []) => {
+        newOp.signos = {};
+        terms.forEach((term, idx) => {
+          const key = `seccion_${idx + 1}`;
+          newOp[key] = term.value;
+          newOp.signos[key] = term.operator === "-" ? -1 : 1;
+        });
+      };
+
+      if (op.formula_terms && op.formula_terms.length > 0) {
+        newOp.formula_terms = op.formula_terms.map((term, idx) => ({
+          id: Date.now() + idx,
+          operator: term.operator || "+",
+          type: term.type || "section",
+          value: term.value,
+        }));
+        buildSigns(newOp.formula_terms);
+      } else if (op.cuentas && op.cuentas.length > 0) {
+        newOp.formula_terms = op.cuentas.map((cuenta, idx) => ({
+          id: Date.now() + idx,
+          operator: "+",
+          type: "account",
+          value: cuenta,
+        }));
+        buildSigns(newOp.formula_terms);
+        newOp.SECCION = op.cuentas.join(" + ");
+      } else if (op.formula) {
+        const parsed = [];
+        const cleaned = op.formula.replace(/[()]/g, " ");
+        let currentOp = "+";
+        cleaned
+          .split(/(?=[+-])/)
+          .map((s) => s.trim())
+          .filter(Boolean)
+          .forEach((chunk, idx2) => {
+            let operator = currentOp;
+            if (chunk.startsWith("+") || chunk.startsWith("-")) {
+              operator = chunk[0];
+              chunk = chunk.slice(1).trim();
+            }
+            if (!chunk) return;
+            parsed.push({
+              id: Date.now() + idx2,
+              operator: operator || "+",
+              type: "operation",
+              value: chunk,
+            });
+            currentOp = operator;
+          });
+        if (parsed.length) {
+          newOp.formula_terms = parsed;
+          buildSigns(parsed);
         }
-      );
+      }
 
-      if (!response.ok) throw new Error("No se pudo crear la demo");
+      return newOp;
+    });
 
-      showToast(`Demo creada para ${anio}`, "success");
+      // Guardar el layout
+      const layoutData = {
+        modulo: state.modulo,
+        anio: state.anio,
+        capitulo: state.capitulo,
+        operaciones: state.operaciones,
+        cuentas: state.cuentas || [],
+      };
+
+      const saveResponse = await fetch(`${API_BASE}/${encodeURIComponent(state.modulo)}/${state.anio}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify(layoutData),
+      });
+
+      if (!saveResponse.ok) {
+        throw new Error("No se pudo guardar el layout");
+      }
+
+      showToast(`Layout RESUMEN 2025 creado con ${operaciones.length} operaciones`, "success");
 
       // Registrar en bitácora
       await addToBitacora(
         "CREAR",
-        `Se generó un layout demo para el año ${anio} en el módulo ${state.modulo}`
+        `Se generó layout RESUMEN 2025 con estructura completa de ${operaciones.length} operaciones`
       );
 
-      await loadYears();
-      dom.anioSelect.value = anio;
-      state.anio = anio;
+      // Recargar layout
       await loadLayout();
+
     } catch (error) {
-      console.error("Error creating demo:", error);
-      showToast(error.message, "error");
+      console.error("Error creando RESUMEN 2025:", error);
+      showToast(`Error: ${error.message}`, "error");
+      
+      // Fallback: crear manualmente
+      const usarManual = confirm(
+        "No se pudo cargar la estructura automáticamente. ¿Deseas crear manualmente las operaciones básicas?"
+      );
+      if (usarManual) {
+        await createResumen2025Manual();
+      }
     }
+  }
+
+  // Crear operaciones básicas manualmente si falla la carga automática
+  async function createResumen2025Manual() {
+    showToast("Creando operaciones básicas...", "info");
+
+    // Operaciones mínimas esenciales
+    const operacionesBasicas = [
+      {
+        OperacionId: "CDMX_INCOME",
+        Clase: "CDMX INCOME",
+        "sum-row-sumavarios": "CDMX INCOME",
+        orden: 1,
+      },
+      {
+        OperacionId: "CONSOLIDATED_INCOME",
+        Clase: "CONSOLIDATED INCOME",
+        "sum-row-sumavarios-consolidado": "CONSOLIDATED INCOME",
+        formula_terms: [
+          { value: "CDMX_INCOME", operator: "+", type: "operation" },
+        ],
+        orden: 2,
+      },
+      {
+        OperacionId: "CDMX_EXPENSE",
+        Clase: "CDMX EXPENSE",
+        "sum-row-sumavarios": "CDMX EXPENSE",
+        orden: 3,
+      },
+      {
+        OperacionId: "CONSOLIDATED_EXPENSE",
+        Clase: "CONSOLIDATED EXPENSE",
+        "sum-row-sumavarios-consolidado": "CONSOLIDATED EXPENSE",
+        formula_terms: [
+          { value: "CDMX_EXPENSE", operator: "+", type: "operation" },
+        ],
+        orden: 4,
+      },
+      {
+        OperacionId: "CONSOLIDATED_OPERATING_RESULTS",
+        Clase: "CONSOLIDATED OPERATING RESULTS",
+        "sum-row-operativo": "CONSOLIDATED OPERATING RESULTS",
+        formula_terms: [
+          { value: "CONSOLIDATED_INCOME", operator: "+", type: "operation" },
+          { value: "CONSOLIDATED_EXPENSE", operator: "-", type: "operation" },
+        ],
+        orden: 5,
+      },
+      {
+        OperacionId: "CONSOLIDATED_NET_RESULTS",
+        Clase: "CONSOLIDATED NET RESULTS",
+        "result-net-row": "CONSOLIDATED NET RESULTS",
+        formula_terms: [
+          { value: "CONSOLIDATED_OPERATING_RESULTS", operator: "+", type: "operation" },
+        ],
+        orden: 6,
+      },
+    ];
+
+    state.operaciones = operacionesBasicas;
+
+    showToast("6 operaciones básicas creadas. Edita para agregar más.", "success");
+    renderLayout();
   }
 
   // ==========================================
@@ -2918,9 +3528,11 @@
       .forEach((r) => r.classList.remove("selected"));
     row.classList.add("selected");
     state.selectedElement = { type: "account", codigo };
+    updateSelectionInfo();
   };
 
-  window.editSection = function (name) {
+window.editSection = function (name) {
+    if (!requireEditMode()) return;
     dom.formEditar.innerHTML = `
       <div class="mb-3">
         <label class="form-label">Nombre de la Sección</label>
@@ -2935,10 +3547,12 @@
     `;
 
     state.selectedElement = { type: "section", name };
+    updateSelectionInfo();
     new bootstrap.Modal(dom.modalEditar).show();
   };
 
   window.deleteSection = function (name) {
+    if (!requireEditMode()) return;
     if (
       !confirm(
         `¿Eliminar la sección "${name}" y TODAS sus cuentas? Esta acción no se puede deshacer.`
@@ -2964,6 +3578,7 @@
   };
 
   window.editSubsection = function (principal, name) {
+    if (!requireEditMode()) return;
     dom.formEditar.innerHTML = `
       <div class="mb-3">
         <label class="form-label">Sección Principal</label>
@@ -2984,10 +3599,12 @@
     `;
 
     state.selectedElement = { type: "subsection", principal, name };
+    updateSelectionInfo();
     new bootstrap.Modal(dom.modalEditar).show();
   };
 
   window.deleteSubsection = function (principal, name) {
+    if (!requireEditMode()) return;
     if (
       !confirm(
         `¿Eliminar la subsección "${name}" y TODAS sus cuentas? Esta acción no se puede deshacer.`
@@ -3017,6 +3634,7 @@
   };
 
   window.addToSection = function (principal) {
+    if (!requireEditMode()) return;
     document.querySelector(
       'input[name="tipoElemento"][value="cuenta"]'
     ).checked = true;
@@ -3029,6 +3647,7 @@
   };
 
   window.addAccount = function (principal, secundaria) {
+    if (!requireEditMode()) return;
     document.querySelector(
       'input[name="tipoElemento"][value="cuenta"]'
     ).checked = true;
@@ -3043,6 +3662,7 @@
   };
 
   window.editAccount = function (codigo) {
+    if (!requireEditMode()) return;
     const cuenta = state.cuentas.find((c) => c.CUENTA === codigo);
     if (!cuenta) return;
 
@@ -3062,10 +3682,12 @@
     `;
 
     state.selectedElement = { type: "account", cuenta };
+    updateSelectionInfo();
     new bootstrap.Modal(dom.modalEditar).show();
   };
 
   window.deleteAccount = function (codigo) {
+    if (!requireEditMode()) return;
     if (!confirm(`¿Eliminar la cuenta ${codigo}?`)) return;
 
     const cuenta = state.cuentas.find((c) => c.CUENTA === codigo);
@@ -3274,6 +3896,7 @@
   }
 
   window.editOperation = async function (operationId) {
+    if (!requireEditMode()) return;
     const op = findOperationByIdOrLabel(operationId);
     if (!op) return;
 
@@ -3473,78 +4096,31 @@
       </div>
 
       <div class="mb-3">
-        <label class="form-label fw-bold">Dónde aparece esta operación</label>
-        <div class="alert alert-info small mb-2">
-          <i class="bi bi-info-circle me-1"></i>
-          Selecciona en cuáles tablas/secciones aparecerá esta operación
-        </div>
-        <div class="row g-2">
-          <div class="col-md-6">
-            <div class="form-check">
-              <input class="form-check-input" type="checkbox" id="check-sum-row" 
-                     ${op["sum-row"] ? "checked" : ""}>
-              <label class="form-check-label" for="check-sum-row">
-                <i class="bi bi-bar-chart text-primary"></i> Fila de Suma
-              </label>
-            </div>
-          </div>
-          <div class="col-md-6">
-            <div class="form-check">
-              <input class="form-check-input" type="checkbox" id="check-sum-row-sumavarios" 
-                     ${op["sum-row-sumavarios"] ? "checked" : ""}>
-              <label class="form-check-label" for="check-sum-row-sumavarios">
-                <i class="bi bi-bar-chart-fill text-primary"></i> Totales de Sección
-              </label>
-            </div>
-          </div>
-          <div class="col-md-6">
-            <div class="form-check">
-              <input class="form-check-input" type="checkbox" id="check-sum-row-operativo" 
-                     ${op["sum-row-operativo"] ? "checked" : ""}>
-              <label class="form-check-label" for="check-sum-row-operativo">
-                <i class="bi bi-graph-up-arrow text-info"></i> Resultados Operativos
-              </label>
-            </div>
-          </div>
-          <div class="col-md-6">
-            <div class="form-check">
-              <input class="form-check-input" type="checkbox" id="check-result-row" 
-                     ${op["result-row"] ? "checked" : ""}>
-              <label class="form-check-label" for="check-result-row">
-                <i class="bi bi-calculator-fill text-warning"></i> Resultados
-              </label>
-            </div>
-          </div>
-          <div class="col-md-6">
-            <div class="form-check">
-              <input class="form-check-input" type="checkbox" id="check-net-row" 
-                     ${op["net-row"] ? "checked" : ""}>
-              <label class="form-check-label" for="check-net-row">
-                <i class="bi bi-cash-stack text-danger"></i> Resultados Netos
-              </label>
-            </div>
-          </div>
-          <div class="col-md-6">
-            <div class="form-check">
-              <input class="form-check-input" type="checkbox" id="check-sum-row-consolidado" 
-                     ${op["sum-row-sumavarios-consolidado"] ? "checked" : ""}>
-              <label class="form-check-label" for="check-sum-row-consolidado">
-                <i class="bi bi-collection-fill text-success"></i> Consolidados
-              </label>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="mb-3">
         <label class="form-label fw-bold">Constructor de Fórmula</label>
         <div id="formulaBuilderContainer">
           <!-- El FormulaBuilder se renderizará aquí -->
+        </div>
+        <div class="d-flex flex-wrap gap-2 mt-2">
+          <button
+            type="button"
+            class="btn btn-outline-secondary btn-sm"
+            onclick="window.FormulaBuilder && window.FormulaBuilder.suggestFromName && window.FormulaBuilder.suggestFromName()"
+          >
+            <i class="bi bi-lightbulb me-1"></i>Sugerir desde nombre
+          </button>
+          <button
+            type="button"
+            class="btn btn-outline-info btn-sm"
+            onclick="window.FormulaBuilder && window.FormulaBuilder.showMap && window.FormulaBuilder.showMap()"
+          >
+            <i class="bi bi-diagram-3 me-1"></i>Ver mapa visual
+          </button>
         </div>
       </div>
     `;
 
     state.selectedElement = { type: "operation", op };
+    updateSelectionInfo();
 
     // Asegurar que op tenga formula_terms poblados antes de pasarlo a FormulaBuilder
     console.log("📝 editOperation - formulaTerms construidos:", formulaTerms);
@@ -3585,6 +4161,7 @@
   };
 
   window.deleteOperation = function (operationId) {
+    if (!requireEditMode()) return;
     const op = findOperationByIdOrLabel(operationId);
     if (!op) return;
     const label = getOperationLabel(op);
@@ -3603,6 +4180,7 @@
 
   // Edit a consolidated label (shows all contributing operations and accounts)
   window.editConsolidatedLabel = function (label, field) {
+    if (!requireEditMode()) return;
     const modalTitle = dom.modalEditar?.querySelector(".modal-title");
     if (modalTitle) {
       modalTitle.textContent = `Editar etiqueta: ${label}`;
@@ -3685,6 +4263,7 @@
       field,
       affectedOps,
     };
+    updateSelectionInfo();
 
     renderFormulaTerms();
     new bootstrap.Modal(dom.modalEditar).show();
@@ -3692,6 +4271,7 @@
 
   // Delete a consolidated label (removes it from all operations)
   window.deleteConsolidatedLabel = function (label, field) {
+    if (!requireEditMode()) return;
     const affectedOps = state.operaciones.filter((op) => op[field] === label);
 
     if (affectedOps.length === 0) {
@@ -3949,7 +4529,7 @@
         });
       }
 
-      // GUARDAR UBICACIONES (donde aparece la operacion)
+      // Actualizar etiquetas de ubicacion existentes sin pedir confirmacion
       const placementFields = [
         "sum-row",
         "sum-row-sumavarios",
@@ -3960,17 +4540,8 @@
       ];
 
       placementFields.forEach((fieldName) => {
-        const checkId = `check-${fieldName.replace(
-          /sumavarios-consolidado/,
-          "consolidado"
-        )}`;
-        const checkbox = document.getElementById(checkId);
-        if (checkbox) {
-          if (checkbox.checked) {
-            op[fieldName] = newClase || op.Clase;
-          } else {
-            delete op[fieldName];
-          }
+        if (op[fieldName]) {
+          op[fieldName] = newClase || op.Clase;
         }
       });
 
@@ -4298,14 +4869,29 @@
 
   function normalizeFormulaTerms(terms = []) {
     return (terms || []).map((t) => {
+      const type = t.type || "section";
+      const constantValue =
+        type === "constant"
+          ? Number.isFinite(Number(t.constant))
+            ? Number(t.constant)
+            : Number.isFinite(Number(t.value))
+            ? Number(t.value)
+            : null
+          : null;
+      const value =
+        type === "operation"
+          ? resolveOperationId(t.value || "")
+          : type === "constant"
+          ? t.value || (constantValue !== null ? String(constantValue) : "")
+          : t.value || "";
       const normalized = {
         operator: t.operator || "+",
-        type: t.type || "section",
-        value:
-          (t.type || "section") === "operation"
-            ? resolveOperationId(t.value || "")
-            : t.value || "",
+        type,
+        value,
       };
+      if (constantValue !== null) {
+        normalized.constant = constantValue;
+      }
       if (t.parentSection) {
         normalized.parentSection = t.parentSection;
       }
@@ -4318,18 +4904,13 @@
       if (!Array.isArray(op.formula_terms) || op.formula_terms.length === 0) {
         return;
       }
-      const normalized = op.formula_terms.map((term, idx) => ({
+      const normalizedTerms = normalizeFormulaTerms(op.formula_terms);
+      const normalized = normalizedTerms.map((term, idx) => ({
         id: term.id || Date.now() + idx,
-        operator: term.operator || "+",
-        type: term.type || "section",
-        value:
-          (term.type || "section") === "operation"
-            ? resolveOperationId(term.value || "")
-            : term.value || "",
-        parentSection: term.parentSection,
+        ...term,
       }));
       op.formula_terms = normalized;
-      op.formula_json = JSON.stringify(normalizeFormulaTerms(normalized));
+      op.formula_json = JSON.stringify(normalizedTerms);
     });
   }
 
@@ -4892,50 +5473,51 @@
     }
 
     const layoutData = {
+      modulo: state.modulo,
+      capitulo: state.capitulo,
       cuentas: state.cuentas || [],
-      operaciones: state.operaciones || [],
+      operaciones: sortOperations(state.operaciones || []),
     };
 
-    const previewHtml = window.LayoutControls.renderRealisticPreview(
-      layoutData,
-      {
-        showHiddenRows: false,
-        showSampleData: true,
-        monthsToShow: 3,
+    let currentOptions = {
+      showHiddenRows: false,
+      showSampleData: true,
+      monthsToShow: 3,
+    };
+
+    const renderWithOptions = (options) => {
+      currentOptions = { ...options };
+      dom.previewContainer.innerHTML =
+        window.LayoutControls.renderRealisticPreview(layoutData, currentOptions);
+      bindPreviewControls();
+    };
+
+    const bindPreviewControls = () => {
+      const toggleHidden = document.getElementById("toggleHidden");
+      const toggleData = document.getElementById("toggleData");
+
+      if (toggleHidden) {
+        toggleHidden.addEventListener("change", (e) => {
+          renderWithOptions({
+            ...currentOptions,
+            showHiddenRows: e.target.checked,
+            showSampleData: toggleData?.checked ?? currentOptions.showSampleData,
+          });
+        });
       }
-    );
 
-    dom.previewContainer.innerHTML = previewHtml;
-
-    // Agregar listeners para los controles interactivos
-    const toggleHidden = document.getElementById("toggleHidden");
-    const toggleData = document.getElementById("toggleData");
-
-    if (toggleHidden) {
-      toggleHidden.addEventListener("change", (e) => {
-        const html = window.LayoutControls.renderRealisticPreview(layoutData, {
-          showHiddenRows: e.target.checked,
-          showSampleData: toggleData?.checked || true,
-          monthsToShow: 3,
+      if (toggleData) {
+        toggleData.addEventListener("change", (e) => {
+          renderWithOptions({
+            ...currentOptions,
+            showHiddenRows: toggleHidden?.checked ?? currentOptions.showHiddenRows,
+            showSampleData: e.target.checked,
+          });
         });
-        dom.previewContainer.innerHTML = html;
-        // Re-bind listeners
-        renderPreviewTable();
-      });
-    }
+      }
+    };
 
-    if (toggleData) {
-      toggleData.addEventListener("change", (e) => {
-        const html = window.LayoutControls.renderRealisticPreview(layoutData, {
-          showHiddenRows: toggleHidden?.checked || false,
-          showSampleData: e.target.checked,
-          monthsToShow: 3,
-        });
-        dom.previewContainer.innerHTML = html;
-        // Re-bind listeners
-        renderPreviewTable();
-      });
-    }
+    renderWithOptions(currentOptions);
   }
 
   // ==========================================
@@ -5592,6 +6174,7 @@
    * Muestra una lista de operaciones sugeridas y permite poblarlas automáticamente
    */
   window.cargarOperacionesPredefinidas = async function () {
+    if (!requireEditMode()) return;
     if (!state.capitulo || !state.modulo) {
       showToast("Selecciona un capítulo y módulo primero", "warning");
       return;
@@ -5675,6 +6258,7 @@
    * Poblar una operación específica
    */
   window.poblarOperacion = async function (index) {
+    if (!requireEditMode()) return;
     await ensureOperacionesPredefinidas();
     const operaciones = getOperacionesPredefinidasContexto();
     const op = operaciones[index];
@@ -5703,6 +6287,7 @@
    * Poblar todas las operaciones predefinidas
    */
   window.poblarTodasOperaciones = async function () {
+    if (!requireEditMode()) return;
     const result = await syncOperacionesPredefinidas({
       autoCreate: true,
       force: true,
@@ -5839,21 +6424,21 @@
   }
 
   // Guardar contexto cuando cambie
-  const originalHandleModuloChange = handleModuloChange;
-  const originalHandleCapituloChange = handleCapituloChange;
-  const originalHandleAnioChange = handleAnioChange;
+  const originalHandleModuloChange = window.handleModuloChange || handleModuloChange;
+  const originalHandleCapituloChange = window.handleCapituloChange || handleCapituloChange;
+  const originalHandleAnioChange = window.handleAnioChange || handleAnioChange;
 
-  async function handleModuloChange() {
+  window.handleModuloChange = async function() {
     await originalHandleModuloChange();
     saveContextToURL();
   }
 
-  async function handleCapituloChange() {
+  window.handleCapituloChange = async function() {
     await originalHandleCapituloChange();
     saveContextToURL();
   }
 
-  async function handleAnioChange() {
+  window.handleAnioChange = async function() {
     await originalHandleAnioChange();
     saveContextToURL();
   }

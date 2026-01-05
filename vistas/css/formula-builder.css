@@ -194,7 +194,9 @@
 
 /* Estados de filas */
 .account-row.hidden-row,
-.operation-row.hidden-row {
+.operation-row.hidden-row,
+.inline-operation-row.hidden-row,
+.operation-card.hidden-row {
   opacity: 0.5;
   background: repeating-linear-gradient(
     45deg,
@@ -206,7 +208,8 @@
 }
 
 .account-row.hidden-row::before,
-.operation-row.hidden-row::before {
+.operation-row.hidden-row::before,
+.inline-operation-row.hidden-row::before {
   content: "🔒";
   margin-right: 8px;
   opacity: 0.6;

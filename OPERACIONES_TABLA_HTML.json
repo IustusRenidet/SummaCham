@@ -1,0 +1,870 @@
+{
+  "descripcion": "Mapa completo de TODAS las operaciones que se ejecutan en las tablas HTML del sistema SummaCham",
+  "version": "1.0.0",
+  "fecha": "2026-01-04",
+  "archivo_fuente": "vistas/js/cuentas-modulo.js",
+  
+  "estructura_tabla_html": {
+    "descripcion": "Estructura de una tabla típica de módulo operativo",
+    "elemento": "<table class='table table-sm table-hover'>",
+    "thead": {
+      "fila_encabezado": {
+        "estructura": "<tr><th>Cuenta</th><th>Nombre</th><th colspan='12'>Meses</th><th>Total</th></tr>",
+        "columnas": [
+          {"indice": 0, "clase": "cuenta-column", "contenido": "Número de cuenta (ej: 401-010-000-00)"},
+          {"indice": 1, "clase": "nombre-column", "contenido": "Descripción de la cuenta"},
+          {"indice": 2, "clase": "month-budget", "data-mes": "ene", "contenido": "Presupuesto Enero"},
+          {"indice": 3, "clase": "month-real", "data-mes": "ene", "contenido": "Real Enero"},
+          {"indice": 4, "clase": "month-budget", "data-mes": "feb", "contenido": "Presupuesto Febrero"},
+          {"indice": 5, "clase": "month-real", "data-mes": "feb", "contenido": "Real Febrero"},
+          "... (continúa hasta diciembre)",
+          {"indice": 26, "clase": "total-budget-column", "contenido": "Total Presupuesto (acumulado)"},
+          {"indice": 27, "clase": "total-real-column", "contenido": "Total Real (acumulado)"},
+          {"indice": 28, "clase": "budget-annual-column", "contenido": "Presupuesto Anual (suma completa)"},
+          {"indice": 29, "clase": "budget-monthly-column", "contenido": "Real del mes actual"}
+        ]
+      }
+    },
+    "tbody": {
+      "descripcion": "Cuerpo de la tabla con 5 tipos de filas diferentes",
+      "tipos_de_filas": [
+        "section-header-row",
+        "fila-cuenta (account-row)",
+        "sum-row",
+        "sum-row-sumavarios",
+        "result-row"
+      ]
+    }
+  },
+
+  "tipos_de_filas": {
+    "1_section_header_row": {
+      "descripcion": "Fila de encabezado que identifica una sección",
+      "clase_css": "section-header-row",
+      "estructura_html": "<tr class='section-header-row' data-seccion='ingresos' data-section-name='INGRESOS'><td colspan='30'>INGRESOS MEMBRESÍA</td></tr>",
+      "atributos_data": {
+        "data-seccion": "Clave normalizada de la sección (sin acentos, minúsculas)",
+        "data-section-name": "Nombre visible de la sección"
+      },
+      "operaciones": {
+        "creacion": {
+          "funcion": "renderizarSecciones()",
+          "linea_codigo": 1391,
+          "proceso": [
+            "1. Leer registros del JSON (CUENTAS.json)",
+            "2. Agrupar por 'SECCION'",
+            "3. Crear elemento <tr>",
+            "4. Asignar clase 'section-header-row'",
+            "5. Agregar atributos data-seccion y data-section-name",
+            "6. Crear <td> con colspan igual al número total de columnas",
+            "7. Insertar en <tbody> antes de las filas de cuenta"
+          ]
+        },
+        "contenido": {
+          "tipo": "texto",
+          "fuente": "Campo 'SECCION' del JSON",
+          "ejemplo": "INGRESOS MEMBRESÍA"
+        }
+      },
+      "no_tiene_operaciones_matematicas": true
+    },
+
+    "2_fila_cuenta": {
+      "descripcion": "Fila que representa UNA cuenta contable con sus valores mensuales",
+      "clase_css": "fila-cuenta account-row",
+      "estructura_html": "<tr class='fila-cuenta' data-cuenta='401-010-000-00' data-cuenta21='401010000000000000001' data-seccion='ingresos' data-operacion-factor='1'><td>401-010</td><td>Cuotas Netas</td><td>10,000.00</td>...<td>120,000.00</td></tr>",
+      "atributos_data": {
+        "data-cuenta": "Cuenta en formato visible (401-010-000-00)",
+        "data-cuenta21": "Cuenta normalizada a 21 dígitos con padding de ceros",
+        "data-seccion": "Sección a la que pertenece (normalizada)",
+        "data-operacion-factor": "Factor multiplicador (1 = suma, -1 = resta, 0.5 = mitad, etc.)"
+      },
+      "columnas": [
+        {
+          "indice": 0,
+          "tipo": "cuenta",
+          "contenido": "Número de cuenta abreviado (401-010)",
+          "fuente": "Campo 'CUENTA' del JSON",
+          "operacion": "ninguna",
+          "formato": "texto"
+        },
+        {
+          "indice": 1,
+          "tipo": "nombre",
+          "contenido": "Descripción de la cuenta",
+          "fuente": "Campo 'NOMBRE' del JSON o API /saldos/cuentas",
+          "operacion": "ninguna",
+          "formato": "texto"
+        },
+        {
+          "indice": 2,
+          "tipo": "budget-ene",
+          "contenido": "Presupuesto de enero",
+          "fuente": "API /planeacion/cuentas → campo presupuesto.ene",
+          "operacion": "asignacion_directa",
+          "formato": "moneda (10,000.00)"
+        },
+        {
+          "indice": 3,
+          "tipo": "real-ene",
+          "contenido": "Real de enero (contabilización YTD)",
+          "fuente": "API /planeacion/cuentas → campo real.ene",
+          "operacion": "asignacion_directa",
+          "formato": "moneda (10,000.00)"
+        },
+        "... (se repite para cada mes hasta diciembre)",
+        {
+          "indice": 26,
+          "tipo": "total-budget",
+          "contenido": "Total presupuesto acumulado (enero hasta mes cerrado)",
+          "fuente": "calculado_localmente",
+          "operacion": {
+            "tipo": "SUM_HORIZONTAL",
+            "descripcion": "Suma de budget-ene hasta budget-[mes_cerrado]",
+            "funcion": "recalcularTotalesFilaPresupuesto()",
+            "linea_codigo": 800,
+            "formula": "SUM(budget-ene, budget-feb, ..., budget-[periodo])",
+            "pseudocodigo": [
+              "let totalPresupuestoAcumulado = 0;",
+              "for (mes from 'ene' to periodo_cerrado) {",
+              "  totalPresupuestoAcumulado += presupuesto[mes] || 0;",
+              "}",
+              "celda.textContent = formatearNumero(totalPresupuestoAcumulado);"
+            ]
+          },
+          "formato": "moneda (120,000.00)"
+        },
+        {
+          "indice": 27,
+          "tipo": "total-real",
+          "contenido": "Total real acumulado (enero hasta mes cerrado)",
+          "fuente": "calculado_localmente",
+          "operacion": {
+            "tipo": "SUM_HORIZONTAL",
+            "descripcion": "Suma de real-ene hasta real-[mes_cerrado]",
+            "funcion": "recalcularTotalesFilaPresupuesto()",
+            "linea_codigo": 820,
+            "formula": "SUM(real-ene, real-feb, ..., real-[periodo])",
+            "pseudocodigo": [
+              "let totalRealAcumulado = 0;",
+              "for (mes from 'ene' to periodo_cerrado) {",
+              "  totalRealAcumulado += real[mes] || 0;",
+              "}",
+              "celda.textContent = formatearNumero(totalRealAcumulado);"
+            ]
+          },
+          "formato": "moneda (115,000.00)"
+        },
+        {
+          "indice": 28,
+          "tipo": "budget-annual",
+          "contenido": "Presupuesto anual completo (suma de 12 meses)",
+          "fuente": "calculado_localmente",
+          "operacion": {
+            "tipo": "SUM_HORIZONTAL",
+            "descripcion": "Suma de budget-ene hasta budget-dic (todos los meses)",
+            "funcion": "recalcularTotalesFilaPresupuesto()",
+            "linea_codigo": 810,
+            "formula": "SUM(budget-ene, budget-feb, ..., budget-dic)",
+            "pseudocodigo": [
+              "let totalPresupuestoAnual = 0;",
+              "MESES.forEach((mes) => {",
+              "  totalPresupuestoAnual += presupuesto[mes] || 0;",
+              "});",
+              "celda.textContent = formatearNumero(totalPresupuestoAnual);"
+            ]
+          },
+          "formato": "moneda (144,000.00)"
+        },
+        {
+          "indice": 29,
+          "tipo": "budget-monthly",
+          "contenido": "Real del mes actual (para módulo Gastos Corporativos)",
+          "fuente": "calculado_localmente",
+          "operacion": {
+            "tipo": "LOOKUP",
+            "descripcion": "Valor real del último mes cerrado",
+            "funcion": "recalcularTotalesFilaPresupuesto()",
+            "linea_codigo": 830,
+            "formula": "real[mes_actual]",
+            "pseudocodigo": [
+              "const mesActual = MESES[mesActualIndex];",
+              "const realMesActual = real[mesActual] || 0;",
+              "celda.textContent = formatearNumero(realMesActual);"
+            ]
+          },
+          "formato": "moneda (10,500.00)"
+        }
+      ],
+      "operaciones_sobre_fila": {
+        "edicion": {
+          "descripcion": "Modificar valores de presupuesto en celdas editables",
+          "trigger": "doble click en celda budget-*",
+          "proceso": [
+            "1. Usuario hace doble click en celda",
+            "2. Celda se vuelve contentEditable",
+            "3. Usuario escribe nuevo valor",
+            "4. Al presionar Enter o perder foco:",
+            "   a. Leer valor ingresado",
+            "   b. Parsear número (eliminar símbolos de moneda)",
+            "   c. Actualizar estadoModulo.valoresPorCuenta",
+            "   d. Llamar recalcularTotalesFilaPresupuesto()",
+            "   e. Llamar recalcularSumas()",
+            "   f. Marcar estadoModulo.hayCambios = true"
+          ]
+        },
+        "factor_operacion": {
+          "descripcion": "Aplicar factor multiplicador a valores de la fila",
+          "valores_posibles": {
+            "1": "Suma (valores positivos, ingresos)",
+            "-1": "Resta (valores negativos, gastos)",
+            "0.5": "División entre 2 (promedio)",
+            "1.16": "Multiplicación por 1.16 (aplicar IVA 16%)",
+            "custom": "Cualquier decimal personalizado"
+          },
+          "aplicacion": {
+            "funcion": "recalcularSumas()",
+            "linea_codigo": 3900,
+            "momento": "Al sumar verticalmente en sum-row",
+            "formula": "valor_celda * data-operacion-factor"
+          }
+        }
+      }
+    },
+
+    "3_sum_row": {
+      "descripcion": "Fila que SUMA verticalmente todas las cuentas de UNA sección",
+      "clase_css": "sum-row",
+      "estructura_html": "<tr class='sum-row' data-seccion='ingresos' data-section-name='INGRESOS'><td></td><td>Total Ingresos Membresía</td><td>50,000.00</td>...<td>600,000.00</td></tr>",
+      "atributos_data": {
+        "data-seccion": "Sección a la que pertenece",
+        "data-section-name": "Nombre de la sección"
+      },
+      "columnas": [
+        {
+          "indice": 0,
+          "tipo": "cuenta",
+          "contenido": "Vacío (sin número de cuenta)",
+          "operacion": "ninguna"
+        },
+        {
+          "indice": 1,
+          "tipo": "etiqueta",
+          "contenido": "Texto descriptivo del total",
+          "fuente": "configuracion.sumRow o 'Suma [nombre_seccion]'",
+          "ejemplo": "Total Ingresos Membresía"
+        },
+        {
+          "indice": 2,
+          "tipo": "valor_calculado",
+          "contenido": "Suma vertical de todas las cuentas de la sección para enero presupuesto",
+          "operacion": {
+            "tipo": "SUM_VERTICAL",
+            "descripcion": "Suma de todos los valores budget-ene de las filas-cuenta de la sección",
+            "funcion": "recalcularSumas()",
+            "linea_codigo": 3875,
+            "formula": "SUM(cuenta1.budget-ene * factor1, cuenta2.budget-ene * factor2, ...)",
+            "pseudocodigo": [
+              "// PASO 1: Extraer valores de cada fila-cuenta",
+              "const listas = seccion.filasCuenta.map((fila) => {",
+              "  const cuenta = fila.dataset.cuenta21;",
+              "  const factor = Number(fila.dataset.operacionFactor) || 1;",
+              "  const valores = estadoModulo.valoresPorCuenta.get(cuenta);",
+              "  return valores.map(v => v * factor);",
+              "});",
+              "",
+              "// PASO 2: Sumar columna por columna",
+              "const sumValues = [];",
+              "for (let col = 0; col < numColumnas; col++) {",
+              "  let suma = 0;",
+              "  listas.forEach(lista => {",
+              "    suma += lista[col] || 0;",
+              "  });",
+              "  sumValues[col] = suma;",
+              "}",
+              "",
+              "// PASO 3: Asignar a la fila sum-row",
+              "seccion.sumValues = sumValues;",
+              "asignarValoresNumericos(seccion.elementos.sumRow, sumValues);"
+            ],
+            "detalle_tecnico": {
+              "entrada": [
+                "cuenta 401-010: [10000, 10000, 10000, ...] con factor=1",
+                "cuenta 401-020: [5000, 5000, 5000, ...] con factor=1",
+                "cuenta 401-030: [3000, 3000, 3000, ...] con factor=1"
+              ],
+              "proceso": [
+                "col[0] = (10000*1) + (5000*1) + (3000*1) = 18000",
+                "col[1] = (10000*1) + (5000*1) + (3000*1) = 18000",
+                "..."
+              ],
+              "salida": "sumValues = [18000, 18000, 18000, ...]"
+            }
+          }
+        },
+        "... (se repite para cada mes y columna)"
+      ],
+      "momento_ejecucion": {
+        "trigger": "Llamada a recalcularSumas()",
+        "cuando_se_llama": [
+          "Después de cargar datos (línea 804)",
+          "Después de editar una celda (línea 864)",
+          "Después de insertar/eliminar filas (líneas 909, 2083)",
+          "Al cambiar año o periodo seleccionado"
+        ],
+        "frecuencia": "Cada vez que hay cambios en valores o estructura"
+      },
+      "guardado_en_memoria": {
+        "ubicacion": "estadoModulo.sumas.secciones[indice].sumValues",
+        "tipo": "Array<number>",
+        "ejemplo": "[18000, 18000, 18000, 18000, ..., 216000]"
+      }
+    },
+
+    "4_sum_row_sumavarios": {
+      "descripcion": "Fila que SUMA horizontalmente múltiples sum-row que comparten una etiqueta común",
+      "clase_css": "sum-row-sumavarios",
+      "estructura_html": "<tr class='sum-row-sumavarios'><td></td><td>Resultado Operativo</td><td>100,000.00</td>...<td>1,200,000.00</td></tr>",
+      "ejemplo_real": {
+        "modulo": "Dirección",
+        "capitulo": "Guadalajara",
+        "secciones_agrupadas": [
+          {"seccion": "Ingresos CE", "sum_row": "Total Ingresos CE", "valor": 50000, "factor": 1},
+          {"seccion": "Ingresos Board", "sum_row": "Total Ingresos Board", "valor": 30000, "factor": 1},
+          {"seccion": "Gastos Dirección", "sum_row": "Total Gastos Dirección", "valor": -20000, "factor": -1}
+        ],
+        "etiqueta_comun": "Resultado Operativo",
+        "calculo": "50000*1 + 30000*1 + (-20000)*(-1) = 100000"
+      },
+      "columnas": [
+        {
+          "indice": 0,
+          "tipo": "cuenta",
+          "contenido": "Vacío"
+        },
+        {
+          "indice": 1,
+          "tipo": "etiqueta",
+          "contenido": "Etiqueta del sumavarios",
+          "fuente": "configuracion.sumRowSumavarios o sumRowSumavarios2",
+          "ejemplo": "Resultado Operativo"
+        },
+        {
+          "indice": 2,
+          "tipo": "valor_calculado",
+          "contenido": "Suma de sum-row de todas las secciones con la misma etiqueta",
+          "operacion": {
+            "tipo": "SUM_DE_SUM",
+            "descripcion": "Suma los sumValues de múltiples secciones agrupadas",
+            "funcion": "recalcularSumas()",
+            "linea_codigo": 3920,
+            "formula": "SUM(seccion1.sumValues * factor1, seccion2.sumValues * factor2, ...)",
+            "pseudocodigo": [
+              "// PASO 1: Agrupar secciones por etiqueta sumavarios",
+              "const acumuladosSumavarios = new Map();",
+              "",
+              "secciones.forEach((seccion) => {",
+              "  const clave = normalizarTexto(seccion.sumRowSumavariosLabel);",
+              "  if (!clave) return;",
+              "  ",
+              "  // Obtener o crear acumulador para esta clave",
+              "  const prev = acumuladosSumavarios.get(clave) || Array(numColumnas).fill(0);",
+              "  ",
+              "  // Aplicar factor de la sección",
+              "  const factor = seccion.factor || 1;",
+              "  const origen = seccion.sumValues || [];",
+              "  ",
+              "  // Sumar columna por columna",
+              "  origen.forEach((valor, idx) => {",
+              "    prev[idx] += (valor || 0) * factor;",
+              "  });",
+              "  ",
+              "  acumuladosSumavarios.set(clave, prev);",
+              "});",
+              "",
+              "// PASO 2: Asignar a filas sumavarios en DOM",
+              "meta.sumavariosRows.forEach((fila, clave) => {",
+              "  const valores = acumuladosSumavarios.get(clave) || [];",
+              "  asignarValoresNumericos(fila, valores);",
+              "});"
+            ],
+            "detalle_tecnico": {
+              "entrada": [
+                "Sección 'Ingresos CE': sumValues=[50000, 50000, ...], factor=1",
+                "Sección 'Ingresos Board': sumValues=[30000, 30000, ...], factor=1",
+                "Sección 'Gastos Dirección': sumValues=[20000, 20000, ...], factor=-1"
+              ],
+              "proceso": [
+                "col[0] = (50000*1) + (30000*1) + (20000*-1) = 60000",
+                "col[1] = (50000*1) + (30000*1) + (20000*-1) = 60000",
+                "..."
+              ],
+              "salida": "valores = [60000, 60000, 60000, ...]",
+              "nota": "Los gastos se multiplican por -1 para restarlos del resultado"
+            }
+          }
+        }
+      ],
+      "configuracion": {
+        "fuente": "window.CUENTAS_SUMAS[sheetName][capitulo][seccion]",
+        "campos": {
+          "sumRowSumavarios": "Etiqueta del primer nivel de agrupación",
+          "sumRowSumavarios2": "Etiqueta del segundo nivel (opcional)",
+          "operacionFactor": "Factor multiplicador de la sección"
+        },
+        "ejemplo": {
+          "sumRowSumavarios": "Resultado Operativo",
+          "sumRowSumavarios2": "Resultado Director Capítulo",
+          "operacionFactor": 1
+        }
+      },
+      "almacenamiento": {
+        "mapa": "estadoModulo.sumas.sumavariosRows",
+        "tipo": "Map<clave_normalizada, HTMLTableRowElement>",
+        "valores": "estadoModulo.sumas.secciones[i].sumavariosValues"
+      }
+    },
+
+    "5_result_row": {
+      "descripcion": "Fila con el RESULTADO FINAL del módulo/capítulo (último nivel de suma)",
+      "clase_css": "result-row",
+      "estructura_html": "<tr class='result-row'><td></td><td>Resultado Eventos</td><td>80,000.00</td>...<td>960,000.00</td></tr>",
+      "ejemplo_real": {
+        "modulo": "Eventos",
+        "capitulo": "Ciudad de México",
+        "secciones_que_suman": [
+          {"seccion": "INGRESOS BOLETAJE", "sum_row_value": 200000, "factor": 1},
+          {"seccion": "INGRESOS PATROCINIOS", "sum_row_value": 100000, "factor": 1},
+          {"seccion": "COSTOS Y GASTOS EVENTOS", "sum_row_value": -150000, "factor": -1},
+          {"seccion": "GASTOS ADMINISTRATIVOS", "sum_row_value": -70000, "factor": -1}
+        ],
+        "etiqueta": "Resultado Eventos",
+        "calculo": "200000*1 + 100000*1 + (-150000)*1 + (-70000)*1 = 80000"
+      },
+      "columnas": [
+        {
+          "indice": 0,
+          "tipo": "cuenta",
+          "contenido": "Vacío"
+        },
+        {
+          "indice": 1,
+          "tipo": "etiqueta",
+          "contenido": "Etiqueta del resultado final",
+          "fuente": "configuracion.resultRow o resultadoForzado",
+          "ejemplos": [
+            "Resultado Eventos",
+            "Resultado Comités",
+            "Resultado Membresía",
+            "Resultado Operativo Comunicación",
+            "Resultado Admon y Finanzas",
+            "Resultado Director Capítulo"
+          ]
+        },
+        {
+          "indice": 2,
+          "tipo": "valor_calculado",
+          "contenido": "Suma de sum-row de TODAS las secciones con la misma etiqueta resultRow",
+          "operacion": {
+            "tipo": "SUM_DE_SUM_CON_FACTOR",
+            "descripcion": "Suma los sumValues de todas las secciones aplicando sus factores individuales",
+            "funcion": "recalcularSumas()",
+            "linea_codigo": 3995,
+            "formula": "SUM(seccion1.sumValues * seccion1.factor, seccion2.sumValues * seccion2.factor, ...)",
+            "pseudocodigo": [
+              "// PASO 1: Agrupar secciones por etiqueta resultRow",
+              "const acumuladosResultado = new Map();",
+              "",
+              "secciones.forEach((seccion) => {",
+              "  const clave = normalizarTexto(seccion.resultRowTexto);",
+              "  if (!clave) return; // Saltar secciones sin result-row",
+              "  ",
+              "  // Obtener valores de sum-row de la sección",
+              "  const origen = seccion.sumValues || [];",
+              "  ",
+              "  // Aplicar factor de operación (1 para ingresos, -1 para gastos)",
+              "  const factor = seccion.factor || 1;",
+              "  ",
+              "  // Obtener o crear acumulador",
+              "  const prev = acumuladosResultado.get(clave) || Array(numColumnas).fill(0);",
+              "  ",
+              "  // Sumar columna por columna con factor",
+              "  origen.forEach((valor, idx) => {",
+              "    prev[idx] += (valor || 0) * factor;",
+              "  });",
+              "  ",
+              "  acumuladosResultado.set(clave, prev);",
+              "});",
+              "",
+              "// PASO 2: Asignar a filas result-row en DOM",
+              "meta.resultRows.forEach((fila, clave) => {",
+              "  const valores = acumuladosResultado.get(clave) || [];",
+              "  if (fila && fila.parentNode) {",
+              "    asignarValoresNumericos(fila, valores);",
+              "  }",
+              "});"
+            ],
+            "detalle_tecnico": {
+              "entrada": [
+                "Sección 'INGRESOS BOLETAJE': sumValues=[200000, 200000, ...], factor=1",
+                "Sección 'INGRESOS PATROCINIOS': sumValues=[100000, 100000, ...], factor=1",
+                "Sección 'COSTOS Y GASTOS EVENTOS': sumValues=[150000, 150000, ...], factor=-1",
+                "Sección 'GASTOS ADMINISTRATIVOS': sumValues=[70000, 70000, ...], factor=-1"
+              ],
+              "proceso": [
+                "col[0] = (200000*1) + (100000*1) + (150000*-1) + (70000*-1)",
+                "col[0] = 200000 + 100000 - 150000 - 70000",
+                "col[0] = 80000"
+              ],
+              "salida": "valores = [80000, 80000, 80000, ...]",
+              "interpretacion": "Resultado positivo de $80,000 por mes"
+            }
+          }
+        }
+      ],
+      "reglas_especiales": {
+        "exclusion_gastos_admin": {
+          "descripcion": "En algunos módulos, los gastos administrativos NO se incluyen en el resultado operativo, solo en el resultado final",
+          "modulos_afectados": ["Eventos", "Membresía", "RH", "Dirección"],
+          "implementacion": {
+            "codigo": "metaSeccion.sumRowSumavariosTexto = ''; // Excluir del operativo",
+            "linea": 2750,
+            "efecto": "La sección NO suma en sumavarios pero SÍ suma en result-row"
+          }
+        }
+      },
+      "almacenamiento": {
+        "mapa": "estadoModulo.sumas.resultRows",
+        "tipo": "Map<clave_normalizada, HTMLTableRowElement>",
+        "ejemplo_clave": "resultado eventos"
+      }
+    }
+  },
+
+  "operaciones_globales": {
+    "recalcular_totales_horizontales": {
+      "descripcion": "Recalcula total-budget, total-real, budget-annual y budget-monthly de cada fila-cuenta",
+      "funcion": "recalcularTotalesFilaPresupuesto()",
+      "archivo": "vistas/js/cuentas-modulo.js",
+      "lineas": "800-850",
+      "trigger": "Después de editar valores en celdas de presupuesto",
+      "operaciones": [
+        {
+          "columna": "total-budget",
+          "formula": "SUM(budget-ene, budget-feb, ..., budget-[periodo_cerrado])",
+          "descripcion": "Suma acumulada desde enero hasta el mes cerrado",
+          "nota": "Excluye el mes en curso"
+        },
+        {
+          "columna": "total-real",
+          "formula": "SUM(real-ene, real-feb, ..., real-[periodo_cerrado])",
+          "descripcion": "Suma acumulada desde enero hasta el mes cerrado",
+          "nota": "Excluye el mes en curso"
+        },
+        {
+          "columna": "budget-annual",
+          "formula": "SUM(budget-ene, budget-feb, ..., budget-dic)",
+          "descripcion": "Suma completa de los 12 meses del año",
+          "nota": "Independiente del periodo cerrado"
+        },
+        {
+          "columna": "budget-monthly",
+          "formula": "real-[mes_actual]",
+          "descripcion": "Valor del mes actual para módulo Gastos Corporativos",
+          "nota": "Solo el valor del último mes cerrado"
+        }
+      ],
+      "pseudocodigo": [
+        "function recalcularTotalesFilaPresupuesto(fila) {",
+        "  const cuenta = fila.dataset.cuenta21;",
+        "  const valores = estadoModulo.valoresPorCuenta.get(cuenta);",
+        "  const mesActualIndex = obtenerIndicePeriodoActual();",
+        "  ",
+        "  let totalBudget = 0;",
+        "  let totalReal = 0;",
+        "  let annualBudget = 0;",
+        "  ",
+        "  MESES.forEach((mes, index) => {",
+        "    const budget = valores[`budget-${mes}`] || 0;",
+        "    const real = valores[`real-${mes}`] || 0;",
+        "    ",
+        "    // Annual: sumar todo",
+        "    annualBudget += budget;",
+        "    ",
+        "    // Total: sumar solo hasta mes cerrado",
+        "    if (index <= mesActualIndex) {",
+        "      totalBudget += budget;",
+        "      totalReal += real;",
+        "    }",
+        "  });",
+        "  ",
+        "  // Monthly: solo el mes actual",
+        "  const mesActual = MESES[mesActualIndex];",
+        "  const monthly = valores[`real-${mesActual}`] || 0;",
+        "  ",
+        "  // Actualizar celdas",
+        "  establecerValorCelda(fila, 'total-budget', totalBudget);",
+        "  establecerValorCelda(fila, 'total-real', totalReal);",
+        "  establecerValorCelda(fila, 'budget-annual', annualBudget);",
+        "  establecerValorCelda(fila, 'budget-monthly', monthly);",
+        "}"
+      ]
+    },
+
+    "recalcular_sumas_verticales": {
+      "descripcion": "Recalcula sum-row, sumavarios y result-row de todas las secciones",
+      "funcion": "recalcularSumas()",
+      "archivo": "vistas/js/cuentas-modulo.js",
+      "lineas": "3835-4035",
+      "trigger": [
+        "Después de cargar datos del backend",
+        "Después de editar celdas",
+        "Después de insertar/eliminar filas",
+        "Al cambiar año o periodo"
+      ],
+      "pasos": [
+        {
+          "paso": 1,
+          "nombre": "Preparación",
+          "operaciones": [
+            "Obtener lista de columnas ordenadas por posición",
+            "Calcular longitud de arrays (número de columnas)",
+            "Inicializar mapas para acumuladores"
+          ]
+        },
+        {
+          "paso": 2,
+          "nombre": "Calcular sum-row por sección",
+          "operaciones": [
+            "Para cada sección:",
+            "  1. Extraer valores de cada fila-cuenta",
+            "  2. Multiplicar por operacionFactor de cada fila",
+            "  3. Aplicar ajuste por periodo (ocultar meses futuros)",
+            "  4. Sumar columna por columna con sumarListas()",
+            "  5. Guardar en seccion.sumValues",
+            "  6. Asignar a fila sum-row en DOM"
+          ],
+          "linea_inicio": 3875,
+          "linea_fin": 3920
+        },
+        {
+          "paso": 3,
+          "nombre": "Calcular sumavarios",
+          "operaciones": [
+            "Crear mapa acumuladosSumavarios",
+            "Para cada sección:",
+            "  1. Obtener etiquetas sumavarios (puede tener 2)",
+            "  2. Multiplicar sumValues por factor de sección",
+            "  3. Acumular en el mapa usando etiqueta como clave",
+            "Actualizar filas sumavarios en DOM"
+          ],
+          "linea_inicio": 3925,
+          "linea_fin": 3980,
+          "nota": "Excluye secciones con /ADMIN/i en el nombre para el operativo"
+        },
+        {
+          "paso": 4,
+          "nombre": "Calcular result-row",
+          "operaciones": [
+            "Crear mapa acumuladosResultado",
+            "Para cada sección:",
+            "  1. Obtener etiqueta resultRowTexto",
+            "  2. Multiplicar sumValues por factor de sección",
+            "  3. Acumular en el mapa usando etiqueta como clave",
+            "Actualizar filas result-row en DOM"
+          ],
+          "linea_inicio": 3995,
+          "linea_fin": 4020
+        }
+      ]
+    },
+
+    "ajuste_por_periodo": {
+      "descripcion": "Oculta columnas de meses posteriores al periodo cerrado",
+      "funcion": "aplicarFiltroColumnasPorPeriodo()",
+      "archivo": "vistas/js/cuentas-modulo.js",
+      "lineas": "1400-1450",
+      "logica": {
+        "condicion": "Si año seleccionado === año actual",
+        "accion": "Ocultar columnas real-[mes] donde mes > periodo_cerrado",
+        "ejemplo": "Si periodo cerrado = 6 (junio), ocultar real-jul, real-ago, ..., real-dic"
+      },
+      "implementacion": [
+        "const periodoVisible = obtenerPeriodoVisible();",
+        "Object.entries(estadoModulo.columnas).forEach(([clave, idx]) => {",
+        "  if (!clave.startsWith('real-')) return;",
+        "  const mes = clave.replace('real-', '');",
+        "  const mesNum = CLAVE_MES_A_PERIODO.get(mes);",
+        "  const ocultar = mesNum > periodoVisible;",
+        "  filas.forEach(fila => {",
+        "    fila.cells[idx].style.display = ocultar ? 'none' : '';",
+        "  });",
+        "});"
+      ]
+    }
+  },
+
+  "flujo_completo_ejemplo": {
+    "descripcion": "Ejemplo completo de cálculo para módulo Eventos en Ciudad de México",
+    "estructura_inicial": {
+      "secciones": [
+        {
+          "nombre": "INGRESOS BOLETAJE",
+          "cuentas": [
+            {"cuenta": "407-010", "nombre": "Venta Boletos", "ene_budget": 50000, "ene_real": 48000, "factor": 1},
+            {"cuenta": "407-020", "nombre": "Venta VIP", "ene_budget": 30000, "ene_real": 32000, "factor": 1}
+          ],
+          "sum_row": "Total Ingresos Boletaje",
+          "sumavarios": "Resultado Operativo Eventos",
+          "result_row": "Resultado Eventos"
+        },
+        {
+          "nombre": "INGRESOS PATROCINIOS",
+          "cuentas": [
+            {"cuenta": "408-010", "nombre": "Patrocinios Oro", "ene_budget": 40000, "ene_real": 45000, "factor": 1},
+            {"cuenta": "408-020", "nombre": "Patrocinios Plata", "ene_budget": 20000, "ene_real": 18000, "factor": 1}
+          ],
+          "sum_row": "Total Ingresos Patrocinios",
+          "sumavarios": "Resultado Operativo Eventos",
+          "result_row": "Resultado Eventos"
+        },
+        {
+          "nombre": "COSTOS Y GASTOS EVENTOS",
+          "cuentas": [
+            {"cuenta": "701-010", "nombre": "Renta Salón", "ene_budget": 30000, "ene_real": 28000, "factor": 1},
+            {"cuenta": "701-020", "nombre": "Catering", "ene_budget": 25000, "ene_real": 27000, "factor": 1},
+            {"cuenta": "701-030", "nombre": "Audio/Video", "ene_budget": 15000, "ene_real": 14000, "factor": 1}
+          ],
+          "sum_row": "Total Costos y Gastos",
+          "sumavarios": "Resultado Operativo Eventos",
+          "result_row": "Resultado Eventos",
+          "factor_seccion": -1
+        },
+        {
+          "nombre": "GASTOS ADMINISTRATIVOS",
+          "cuentas": [
+            {"cuenta": "801-010", "nombre": "Nómina Eventos", "ene_budget": 20000, "ene_real": 20000, "factor": 1},
+            {"cuenta": "801-020", "nombre": "Materiales", "ene_budget": 5000, "ene_real": 4500, "factor": 1}
+          ],
+          "sum_row": "Total Gastos Administrativos",
+          "sumavarios": "",
+          "result_row": "Resultado Eventos",
+          "factor_seccion": -1,
+          "nota": "NO entra en Resultado Operativo, solo en Resultado Final"
+        }
+      ]
+    },
+    "calculos_paso_a_paso": {
+      "paso_1_sum_rows": [
+        {
+          "seccion": "INGRESOS BOLETAJE",
+          "calculo": "(50000 * 1) + (30000 * 1) = 80000 (budget)",
+          "resultado": "Total Ingresos Boletaje = 80,000"
+        },
+        {
+          "seccion": "INGRESOS PATROCINIOS",
+          "calculo": "(40000 * 1) + (20000 * 1) = 60000 (budget)",
+          "resultado": "Total Ingresos Patrocinios = 60,000"
+        },
+        {
+          "seccion": "COSTOS Y GASTOS EVENTOS",
+          "calculo": "(30000 * 1) + (25000 * 1) + (15000 * 1) = 70000 (budget)",
+          "resultado": "Total Costos y Gastos = 70,000"
+        },
+        {
+          "seccion": "GASTOS ADMINISTRATIVOS",
+          "calculo": "(20000 * 1) + (5000 * 1) = 25000 (budget)",
+          "resultado": "Total Gastos Administrativos = 25,000"
+        }
+      ],
+      "paso_2_sumavarios": [
+        {
+          "etiqueta": "Resultado Operativo Eventos",
+          "secciones_que_suman": [
+            {"seccion": "INGRESOS BOLETAJE", "valor": 80000, "factor_seccion": 1},
+            {"seccion": "INGRESOS PATROCINIOS", "valor": 60000, "factor_seccion": 1},
+            {"seccion": "COSTOS Y GASTOS EVENTOS", "valor": 70000, "factor_seccion": -1}
+          ],
+          "calculo": "(80000 * 1) + (60000 * 1) + (70000 * -1)",
+          "resultado": "Resultado Operativo Eventos = 70,000",
+          "nota": "Gastos Admin NO incluidos aquí"
+        }
+      ],
+      "paso_3_result_row": [
+        {
+          "etiqueta": "Resultado Eventos",
+          "secciones_que_suman": [
+            {"seccion": "INGRESOS BOLETAJE", "valor": 80000, "factor_seccion": 1},
+            {"seccion": "INGRESOS PATROCINIOS", "valor": 60000, "factor_seccion": 1},
+            {"seccion": "COSTOS Y GASTOS EVENTOS", "valor": 70000, "factor_seccion": -1},
+            {"seccion": "GASTOS ADMINISTRATIVOS", "valor": 25000, "factor_seccion": -1}
+          ],
+          "calculo": "(80000 * 1) + (60000 * 1) + (70000 * -1) + (25000 * -1)",
+          "resultado": "Resultado Eventos = 45,000",
+          "interpretacion": "Ganancia neta de $45,000 después de restar gastos administrativos"
+        }
+      ]
+    },
+    "tabla_html_final": {
+      "vista_previa": [
+        "┌─────────────────────────────────────────────────────────────┐",
+        "│ INGRESOS BOLETAJE                                           │",
+        "│ 407-010  Venta Boletos           50,000.00  48,000.00 ...  │",
+        "│ 407-020  Venta VIP                30,000.00  32,000.00 ...  │",
+        "│          Total Ingresos Boletaje  80,000.00  80,000.00 ...  │ ← sum-row",
+        "├─────────────────────────────────────────────────────────────┤",
+        "│ INGRESOS PATROCINIOS                                        │",
+        "│ 408-010  Patrocinios Oro          40,000.00  45,000.00 ...  │",
+        "│ 408-020  Patrocinios Plata        20,000.00  18,000.00 ...  │",
+        "│          Total Ingresos Patrocinios 60,000.00  63,000.00... │ ← sum-row",
+        "├─────────────────────────────────────────────────────────────┤",
+        "│ COSTOS Y GASTOS EVENTOS                                     │",
+        "│ 701-010  Renta Salón              30,000.00  28,000.00 ...  │",
+        "│ 701-020  Catering                 25,000.00  27,000.00 ...  │",
+        "│ 701-030  Audio/Video              15,000.00  14,000.00 ...  │",
+        "│          Total Costos y Gastos   -70,000.00 -69,000.00 ...  │ ← sum-row (negativo)",
+        "├─────────────────────────────────────────────────────────────┤",
+        "│          Resultado Operativo Eventos 70,000.00  74,000.00..│ ← sumavarios",
+        "├─────────────────────────────────────────────────────────────┤",
+        "│ GASTOS ADMINISTRATIVOS                                      │",
+        "│ 801-010  Nómina Eventos           20,000.00  20,000.00 ...  │",
+        "│ 801-020  Materiales                5,000.00   4,500.00 ...  │",
+        "│          Total Gastos Adm        -25,000.00 -24,500.00 ...  │ ← sum-row (negativo)",
+        "├─────────────────────────────────────────────────────────────┤",
+        "│          Resultado Eventos        45,000.00  49,500.00 ...  │ ← result-row (FINAL)",
+        "└─────────────────────────────────────────────────────────────┘"
+      ]
+    }
+  },
+
+  "notas_tecnicas": {
+    "formato_numeros": {
+      "funcion": "formatearNumero()",
+      "formato": "1,234.56",
+      "separador_miles": ",",
+      "separador_decimales": ".",
+      "decimales": 2
+    },
+    "normalizacion_texto": {
+      "funcion": "normalizarTexto()",
+      "operaciones": [
+        "Convertir a minúsculas",
+        "Eliminar acentos (á→a, é→e, etc.)",
+        "Eliminar espacios múltiples",
+        "Trim espacios laterales"
+      ],
+      "ejemplo": "Resultado Operativo Comunicación → resultado operativo comunicacion"
+    },
+    "conversion_cuenta_21": {
+      "funcion": "convertirCuenta21()",
+      "descripcion": "Convierte cuenta visible a formato de 21 dígitos con padding de ceros",
+      "ejemplo": "401-010-000-00 → 401010000000000000001"
+    },
+    "periodo_cerrado": {
+      "descripcion": "El sistema solo permite ver datos hasta el último mes cerrado",
+      "fuente": "estadoModulo.periodoCerrado",
+      "regla": "No se muestran columnas real-* de meses posteriores al periodo cerrado",
+      "excepcion": "Para años anteriores se muestran todos los meses"
+    }
+  }
+}

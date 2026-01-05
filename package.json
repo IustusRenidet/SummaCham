@@ -29,7 +29,7 @@
     "native:ensure": "node scripts/manage-native.js ensure",
     "import:layouts-2025": "python scripts/import_summary_resumen_2025.py",
     "rebuild-native-node": "npm rebuild better-sqlite3 --build-from-source && npm run native:save-node && npm run native:use-node",
-    "rebuild-native": "npm run rebuild-native-node && npx electron-rebuild -f -v 30.0.0 && npm rebuild better-sqlite3 --runtime=electron --target=30.0.0 --disturl=https://electronjs.org/headers && npm run native:save-electron && npm run native:use-electron",
+    "rebuild-native": "npm run rebuild-native-node && npx @electron/rebuild -f -v 39.2.7 && npm run native:save-electron && npm run native:use-electron",
     "rebuild-native-all": "npm run rebuild-native",
     "preversion": "npm test -s || echo \"(sin tests)\"",
     "version": "git add -A",

@@ -1,0 +1,384 @@
+{
+  "Eventos": [
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "407-005-000-00",
+      "NOMBRE": "Asamblea Anual",
+      "SECCION Principal": "Boletaje",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "407-010-000-00",
+      "NOMBRE": "Torneo Golf",
+      "SECCION Principal": "Boletaje",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "407-002-000-00",
+      "NOMBRE": "Secretarias",
+      "SECCION Principal": "Boletaje",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "407-008-000-00",
+      "NOMBRE": "Foro Económico",
+      "SECCION Principal": "Boletaje",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "407-009-000-00",
+      "NOMBRE": "Foros Comités",
+      "SECCION Principal": "Boletaje",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "407-012-000-00",
+      "NOMBRE": "Cena Gala",
+      "SECCION Principal": "Boletaje",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "407-013-000-00",
+      "NOMBRE": "AmCham Connect",
+      "SECCION Principal": "Boletaje",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "407-014-000-00",
+      "NOMBRE": "North America Week",
+      "SECCION Principal": "Boletaje",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "407-007-000-00",
+      "NOMBRE": "Sondeo de Seguridad",
+      "SECCION Principal": "Boletaje",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "407-016-000-00",
+      "NOMBRE": "Extend Our Reach (EOR)",
+      "SECCION Principal": "Boletaje",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "408-005-000-00",
+      "NOMBRE": "Asamblea Anual",
+      "SECCION Principal": "Patrocinios",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "408-010-000-00",
+      "NOMBRE": "Torneo Golf",
+      "SECCION Principal": "Patrocinios",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "408-002-000-00",
+      "NOMBRE": "Secretarias",
+      "SECCION Principal": "Patrocinios",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "408-008-000-00",
+      "NOMBRE": "Foro Económico",
+      "SECCION Principal": "Patrocinios",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "408-009-000-00",
+      "NOMBRE": "Sondeo de Seguridad",
+      "SECCION Principal": "Patrocinios",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "408-003-000-00",
+      "NOMBRE": "Foros Comités",
+      "SECCION Principal": "Patrocinios",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "408-016-000-00",
+      "NOMBRE": "Select USA Conference ",
+      "SECCION Principal": "Patrocinios",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "408-006-000-00",
+      "NOMBRE": "AmCham Connect",
+      "SECCION Principal": "Patrocinios",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "408-013-000-00",
+      "NOMBRE": "Cena Gala",
+      "SECCION Principal": "Patrocinios",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "408-004-000-00",
+      "NOMBRE": "CEO Talk",
+      "SECCION Principal": "Patrocinios",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "408-015-000-00",
+      "NOMBRE": "AmCham B2B",
+      "SECCION Principal": "Patrocinios",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "408-014-000-00",
+      "NOMBRE": "North America Week",
+      "SECCION Principal": "Patrocinios",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "408-018-000-00",
+      "NOMBRE": "Incidencia",
+      "SECCION Principal": "Patrocinios",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "408-019-000-00",
+      "NOMBRE": "Extend Our Reach (EOR)",
+      "SECCION Principal": "Patrocinios",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "701-001-004-00",
+      "NOMBRE": "Asamblea Anual",
+      "SECCION Principal": "Costos y Gastos Eventos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "701-001-013-00",
+      "NOMBRE": "Torneo Golf",
+      "SECCION Principal": "Costos y Gastos Eventos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "701-001-011-00",
+      "NOMBRE": "Secretarias",
+      "SECCION Principal": "Costos y Gastos Eventos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "701-001-006-00",
+      "NOMBRE": "Foro Económico",
+      "SECCION Principal": "Costos y Gastos Eventos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "701-001-014-00",
+      "NOMBRE": "Foros de Comités",
+      "SECCION Principal": "Costos y Gastos Eventos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "701-001-017-00",
+      "NOMBRE": "AmCham Connect",
+      "SECCION Principal": "Costos y Gastos Eventos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "701-001-012-00",
+      "NOMBRE": "Cena Gala",
+      "SECCION Principal": "Costos y Gastos Eventos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "701-001-003-00",
+      "NOMBRE": "CEO Talk",
+      "SECCION Principal": "Costos y Gastos Eventos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "701-001-018-00",
+      "NOMBRE": "AmCham B2B",
+      "SECCION Principal": "Costos y Gastos Eventos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "701-001-008-00",
+      "NOMBRE": "Sondeo de Seguridad",
+      "SECCION Principal": "Costos y Gastos Eventos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "701-001-015-00",
+      "NOMBRE": "North America Week",
+      "SECCION Principal": "Costos y Gastos Eventos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "701-001-019-00",
+      "NOMBRE": "Extend Our Reach (EOR)",
+      "SECCION Principal": "Costos y Gastos Eventos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "701-001-002-00",
+      "NOMBRE": "Incidencia",
+      "SECCION Principal": "Costos y Gastos Eventos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "701-001-016-00",
+      "NOMBRE": "Ppto Marketing",
+      "SECCION Principal": "Costos y Gastos Eventos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-010-001-00",
+      "NOMBRE": "Teléfono Móvil ",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-010-003-00",
+      "NOMBRE": "Gasolina ",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-010-004-00",
+      "NOMBRE": "Mantenimiento auto",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-010-016-00",
+      "NOMBRE": "Gastos de viaje",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-010-005-00",
+      "NOMBRE": "Pasajes y estacionamientos",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-010-007-00",
+      "NOMBRE": "Papelería",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-010-011-00",
+      "NOMBRE": "Promoción",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-010-010-00",
+      "NOMBRE": "Becarios",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-010-013-00",
+      "NOMBRE": "Gastos Administrativos (impresión tarjetas)",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-010-015-00",
+      "NOMBRE": "Herramientas Tele-trabajo",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    }
+  ],
+  "Operaciones": [
+    {
+      "nombre": "Suma Costos y Gastos Eventos",
+      "tipo": "secciones",
+      "expresion": "701-001-004-00 + 701-001-013-00 + 701-001-011-00 + 701-001-006-00 + 701-001-014-00 + 701-001-017-00 + 701-001-012-00 + 701-001-003-00 + 701-001-018-00 + 701-001-008-00 + 701-001-015-00 + 701-001-019-00 + 701-001-002-00 + 701-001-016-00",
+      "seccion": ""
+    },
+    {
+      "nombre": "Suma Gastos Administrativos",
+      "tipo": "cuentas",
+      "expresion": "801-010-001-00 + 801-010-003-00 + 801-010-004-00 + 801-010-016-00 + 801-010-005-00 + 801-010-007-00 + 801-010-011-00 + 801-010-010-00 + 801-010-013-00 + 801-010-015-00",
+      "seccion": ""
+    },
+    {
+      "nombre": "Ingresos Boletaje",
+      "tipo": "cuentas",
+      "expresion": "407-005-000-00 + 407-010-000-00 + 407-002-000-00 + 407-008-000-00 + 407-009-000-00 + 407-012-000-00 + 407-013-000-00 + 407-014-000-00 + 407-007-000-00 + 407-016-000-00",
+      "seccion": "Boletaje"
+    },
+    {
+      "nombre": "Ingresos Patrocinios",
+      "tipo": "cuentas",
+      "expresion": "408-005-000-00 + 408-010-000-00 + 408-002-000-00 + 408-008-000-00 + 408-009-000-00 + 408-003-000-00 + 408-016-000-00 + 408-006-000-00 + 408-013-000-00 + 408-004-000-00 + 408-015-000-00 + 408-014-000-00 + 408-018-000-00 + 408-019-000-00",
+      "seccion": "Patrocinios"
+    },
+    {
+      "nombre": "Suma Ingresos Eventos",
+      "tipo": "secciones",
+      "expresion": "407-005-000-00 + 407-010-000-00 + 407-002-000-00 + 407-008-000-00 + 407-009-000-00 + 407-012-000-00 + 407-013-000-00 + 407-014-000-00 + 407-007-000-00 + 407-016-000-00 + 408-005-000-00 + 408-010-000-00 + 408-002-000-00 + 408-008-000-00 + 408-009-000-00 + 408-003-000-00 + 408-016-000-00 + 408-006-000-00 + 408-013-000-00 + 408-004-000-00 + 408-015-000-00 + 408-014-000-00 + 408-018-000-00 + 408-019-000-00",
+      "seccion": ""
+    },
+    {
+      "nombre": "Resultado Operativo Eventos",
+      "tipo": "cuentas",
+      "expresion": "407-005-000-00 + 407-010-000-00 + 407-002-000-00 + 407-008-000-00 + 407-009-000-00 + 407-012-000-00 + 407-013-000-00 + 407-014-000-00 + 407-007-000-00 + 407-016-000-00 + 408-005-000-00 + 408-010-000-00 + 408-002-000-00 + 408-008-000-00 + 408-009-000-00 + 408-003-000-00 + 408-016-000-00 + 408-006-000-00 + 408-013-000-00 + 408-004-000-00 + 408-015-000-00 + 408-014-000-00 + 408-018-000-00 + 408-019-000-00 - 701-001-004-00 - 701-001-013-00 - 701-001-011-00 - 701-001-006-00 - 701-001-014-00 - 701-001-017-00 - 701-001-012-00 - 701-001-003-00 - 701-001-018-00 - 701-001-008-00 - 701-001-015-00 - 701-001-019-00 - 701-001-002-00 - 701-001-016-00",
+      "seccion": ""
+    },
+    {
+      "nombre": "Resultado  Eventos y Serv Membresía",
+      "tipo": "cuentas",
+      "expresion": "407-005-000-00 + 407-010-000-00 + 407-002-000-00 + 407-008-000-00 + 407-009-000-00 + 407-012-000-00 + 407-013-000-00 + 407-014-000-00 + 407-007-000-00 + 407-016-000-00 + 408-005-000-00 + 408-010-000-00 + 408-002-000-00 + 408-008-000-00 + 408-009-000-00 + 408-003-000-00 + 408-016-000-00 + 408-006-000-00 + 408-013-000-00 + 408-004-000-00 + 408-015-000-00 + 408-014-000-00 + 408-018-000-00 + 408-019-000-00 - 701-001-004-00 - 701-001-013-00 - 701-001-011-00 - 701-001-006-00 - 701-001-014-00 - 701-001-017-00 - 701-001-012-00 - 701-001-003-00 - 701-001-018-00 - 701-001-008-00 - 701-001-015-00 - 701-001-019-00 - 701-001-002-00 - 701-001-016-00 - 801-010-001-00 - 801-010-003-00 - 801-010-004-00 - 801-010-016-00 - 801-010-005-00 - 801-010-007-00 - 801-010-011-00 - 801-010-010-00 - 801-010-013-00 - 801-010-015-00",
+      "seccion": ""
+    }
+  ]
+}

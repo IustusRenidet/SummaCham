@@ -1,0 +1,680 @@
+/**
+ * plantillas-orden.css
+ * Estilos para el sistema de ordenamiento visual de plantillas
+ */
+
+/* ==========================================
+   CONTENEDOR PRINCIPAL DE ORDEN
+   ========================================== */
+.orden-container {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 20px;
+}
+
+.orden-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.orden-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #495057;
+}
+
+.orden-title i {
+  font-size: 1.5rem;
+  color: #6c757d;
+}
+
+.orden-info {
+  background: white;
+  padding: 12px 20px;
+  border-radius: 8px;
+  border-left: 4px solid #0d6efd;
+  margin-bottom: 20px;
+}
+
+.orden-info h6 {
+  font-weight: 600;
+  color: #0d6efd;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.orden-info p {
+  margin: 0;
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+.orden-info ul {
+  margin: 8px 0 0 0;
+  padding-left: 20px;
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+/* ==========================================
+   LISTA ORDENABLE
+   ========================================== */
+.sortable-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sortable-item {
+  background: white;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  padding: 16px;
+  transition: all 0.2s ease;
+  cursor: move;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sortable-item:hover {
+  border-color: #0d6efd;
+  box-shadow: 0 4px 12px rgba(13, 110, 253, 0.15);
+  transform: translateY(-2px);
+}
+
+.sortable-item.dragging {
+  opacity: 0.5;
+  transform: rotate(2deg);
+  cursor: grabbing;
+}
+
+.sortable-item.drag-over {
+  border-color: #28a745;
+  background: #f0fff4;
+}
+
+/* Indicador de orden (número) */
+.item-order {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-weight: 700;
+  font-size: 1.1rem;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+/* Ícono del tipo de elemento */
+.item-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 1.3rem;
+}
+
+.item-icon.seccion {
+  background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+  color: white;
+}
+
+.item-icon.subseccion {
+  background: linear-gradient(135deg, #0dcaf0 0%, #087990 100%);
+  color: white;
+}
+
+.item-icon.cuenta {
+  background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+  color: white;
+}
+
+.item-icon.operacion {
+  background: linear-gradient(135deg, #198754 0%, #146c43 100%);
+  color: white;
+}
+
+/* Contenido del elemento */
+.item-content {
+  flex-grow: 1;
+  min-width: 0; /* Para que funcione el text-overflow */
+}
+
+.item-label {
+  font-weight: 600;
+  font-size: 1rem;
+  color: #212529;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.item-type-badge {
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.item-type-badge.seccion {
+  background: #cfe2ff;
+  color: #084298;
+}
+
+.item-type-badge.subseccion {
+  background: #cff4fc;
+  color: #055160;
+}
+
+.item-type-badge.cuenta {
+  background: #e2e3e5;
+  color: #383d41;
+}
+
+.item-type-badge.operacion {
+  background: #d1e7dd;
+  color: #0f5132;
+}
+
+.item-details {
+  font-size: 0.85rem;
+  color: #6c757d;
+  margin: 0;
+}
+
+.item-code {
+  font-family: 'Courier New', monospace;
+  background: #f8f9fa;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+  color: #495057;
+}
+
+/* Controles del elemento */
+.item-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.btn-orden {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 2px solid;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 1rem;
+  padding: 0;
+}
+
+.btn-orden:hover {
+  transform: scale(1.1);
+}
+
+.btn-orden:active {
+  transform: scale(0.95);
+}
+
+.btn-orden.up {
+  border-color: #0d6efd;
+  color: #0d6efd;
+}
+
+.btn-orden.up:hover {
+  background: #0d6efd;
+  color: white;
+}
+
+.btn-orden.down {
+  border-color: #6c757d;
+  color: #6c757d;
+}
+
+.btn-orden.down:hover {
+  background: #6c757d;
+  color: white;
+}
+
+.btn-orden.edit {
+  border-color: #ffc107;
+  color: #ffc107;
+}
+
+.btn-orden.edit:hover {
+  background: #ffc107;
+  color: white;
+}
+
+.btn-orden.drag-handle {
+  border-color: #6c757d;
+  color: #6c757d;
+  cursor: grab;
+}
+
+.btn-orden.drag-handle:hover {
+  background: #6c757d;
+  color: white;
+}
+
+.btn-orden.drag-handle:active {
+  cursor: grabbing;
+}
+
+.btn-orden:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.btn-orden:disabled:hover {
+  transform: none;
+  background: white;
+}
+
+/* ==========================================
+   GRUPOS Y JERARQUÍA
+   ========================================== */
+.sortable-group {
+  margin-bottom: 24px;
+}
+
+.group-header {
+  background: linear-gradient(135deg, #495057 0%, #212529 100%);
+  color: white;
+  padding: 12px 20px;
+  border-radius: 8px 8px 0 0;
+  font-weight: 600;
+  font-size: 1.05rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.group-header:hover {
+  background: linear-gradient(135deg, #343a40 0%, #000000 100%);
+}
+
+.group-header i {
+  transition: transform 0.3s ease;
+}
+
+.group-header.collapsed i {
+  transform: rotate(-90deg);
+}
+
+.group-body {
+  background: white;
+  border: 2px solid #e9ecef;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  padding: 16px;
+}
+
+.group-body.collapsed {
+  display: none;
+}
+
+.group-count {
+  margin-left: auto;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* Indentación para subsecciones y cuentas */
+.sortable-item.indent-1 {
+  margin-left: 40px;
+}
+
+.sortable-item.indent-2 {
+  margin-left: 80px;
+}
+
+/* ==========================================
+   VISTA COMPACTA
+   ========================================== */
+.orden-container.compact .sortable-item {
+  padding: 10px 14px;
+}
+
+.orden-container.compact .item-order,
+.orden-container.compact .item-icon {
+  width: 32px;
+  height: 32px;
+  font-size: 0.9rem;
+}
+
+.orden-container.compact .item-label {
+  font-size: 0.9rem;
+}
+
+.orden-container.compact .item-details {
+  font-size: 0.8rem;
+}
+
+.orden-container.compact .btn-orden {
+  width: 30px;
+  height: 30px;
+  font-size: 0.9rem;
+}
+
+/* ==========================================
+   MODO EDICIÓN ACTIVO
+   ========================================== */
+.orden-container.editing {
+  border: 3px dashed #0d6efd;
+  background: linear-gradient(135deg, #e7f1ff 0%, #f8f9fa 100%);
+}
+
+.orden-container.editing .orden-header {
+  border-bottom-color: #0d6efd;
+}
+
+/* ==========================================
+   DRAG PLACEHOLDER
+   ========================================== */
+.drag-placeholder {
+  border: 3px dashed #0d6efd;
+  background: rgba(13, 110, 253, 0.05);
+  border-radius: 8px;
+  height: 72px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0d6efd;
+  font-weight: 600;
+}
+
+/* ==========================================
+   BOTONES DE ACCIÓN
+   ========================================== */
+.orden-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.orden-actions .btn {
+  border-radius: 8px;
+  font-weight: 600;
+  padding: 8px 16px;
+}
+
+/* ==========================================
+   FILTROS
+   ========================================== */
+.orden-filters {
+  background: white;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  border: 1px solid #dee2e6;
+}
+
+.filter-group {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.filter-label {
+  font-weight: 600;
+  color: #495057;
+  font-size: 0.9rem;
+}
+
+.filter-btn {
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 2px solid #dee2e6;
+  background: white;
+  color: #6c757d;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filter-btn:hover {
+  border-color: #0d6efd;
+  color: #0d6efd;
+}
+
+.filter-btn.active {
+  background: #0d6efd;
+  border-color: #0d6efd;
+  color: white;
+}
+
+/* ==========================================
+   TOOLTIPS Y AYUDAS
+   ========================================== */
+.help-tooltip {
+  position: relative;
+  display: inline-block;
+  cursor: help;
+}
+
+.help-tooltip .tooltip-content {
+  visibility: hidden;
+  position: absolute;
+  z-index: 1000;
+  background: #212529;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  bottom: 125%;
+  left: 50%;
+  transform: translateX(-50%);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.help-tooltip .tooltip-content::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: #212529 transparent transparent transparent;
+}
+
+.help-tooltip:hover .tooltip-content {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* ==========================================
+   ANIMACIONES
+   ========================================== */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.sortable-item {
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+.item-order.highlight {
+  animation: pulse 0.5s ease;
+}
+
+/* ==========================================
+   RESPONSIVE
+   ========================================== */
+@media (max-width: 768px) {
+  .orden-container {
+    padding: 15px;
+  }
+
+  .orden-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .orden-actions {
+    width: 100%;
+  }
+
+  .orden-actions .btn {
+    flex: 1;
+  }
+
+  .sortable-item {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .item-controls {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .sortable-item.indent-1,
+  .sortable-item.indent-2 {
+    margin-left: 0;
+    padding-left: 16px;
+    border-left: 4px solid #0d6efd;
+  }
+}
+
+/* ==========================================
+   MODO OSCURO (opcional para futuro)
+   ========================================== */
+@media (prefers-color-scheme: dark) {
+  .orden-container {
+    background: #212529;
+  }
+
+  .sortable-item {
+    background: #343a40;
+    border-color: #495057;
+    color: #f8f9fa;
+  }
+
+  .item-label {
+    color: #f8f9fa;
+  }
+
+  .item-details {
+    color: #adb5bd;
+  }
+
+  .item-code {
+    background: #495057;
+    color: #f8f9fa;
+  }
+
+  .orden-info {
+    background: #343a40;
+    border-left-color: #0d6efd;
+  }
+
+  .orden-info p,
+  .orden-info ul {
+    color: #adb5bd;
+  }
+}
+
+/* ==========================================
+   INDICADORES DE ESTADO
+   ========================================== */
+.item-status {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid white;
+}
+
+.item-status.modified {
+  background: #ffc107;
+}
+
+.item-status.new {
+  background: #28a745;
+}
+
+.item-status.error {
+  background: #dc3545;
+}
+
+/* ==========================================
+   EMPTY STATES
+   ========================================== */
+.empty-orden {
+  text-align: center;
+  padding: 60px 20px;
+  color: #6c757d;
+}
+
+.empty-orden i {
+  font-size: 4rem;
+  margin-bottom: 20px;
+  opacity: 0.3;
+}
+
+.empty-orden h5 {
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.empty-orden p {
+  margin-bottom: 20px;
+}

@@ -281,7 +281,16 @@ const crearConexion = () => {
   rutaDbActiva = rutaDb;
   console.log("Conectando a SQLite en:", rutaDb);
   db = new Database(rutaDb);
+  
+  // Configuración optimizada para multi-usuario concurrente
   db.pragma("foreign_keys = ON");
+  db.pragma("journal_mode = WAL"); // Write-Ahead Logging para mejor concurrencia
+  db.pragma("synchronous = NORMAL"); // Balance entre seguridad y rendimiento
+  db.pragma("cache_size = 10000"); // Cache de 10MB aprox
+  db.pragma("temp_store = MEMORY"); // Tablas temporales en memoria
+  db.pragma("busy_timeout = 5000"); // Esperar hasta 5 segundos si hay lock
+  
+  console.log("✓ SQLite configurado para multi-usuario (modo WAL)");
   return db;
 };
 

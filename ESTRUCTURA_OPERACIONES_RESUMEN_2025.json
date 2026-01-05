@@ -1,0 +1,487 @@
+{
+  "modulo": "RESUMEN",
+  "anio": 2025,
+  "capitulo": "CIUDAD DE MÉXICO",
+  "descripcion": "Estructura exacta de operaciones con su orden de aparición",
+  
+  "operaciones_orden_aparicion": [
+    {
+      "orden": 1,
+      "id": "CDMX_INCOME",
+      "nombre": "CDMX INCOME",
+      "tipo": "sum-row-sumavarios",
+      "formula": "MEMBERSHIP + EVENTS + COMMITTEES + T&IC + Services to Members",
+      "formula_terms": [
+        {"value": "MEMBERSHIP", "operator": "+", "type": "section"},
+        {"value": "EVENTS", "operator": "+", "type": "section"},
+        {"value": "COMMITTEES", "operator": "+", "type": "section"},
+        {"value": "T&IC", "operator": "+", "type": "section"},
+        {"value": "Services to Members", "operator": "+", "type": "section"}
+      ]
+    },
+    {
+      "orden": 2,
+      "id": "MEMBERSHIP_INCOME",
+      "nombre": "MEMBERSHIP",
+      "tipo": "sum-row",
+      "formula": "401-000-000-00 + 402-000-000-00",
+      "cuentas": ["401-000-000-00", "402-000-000-00"]
+    },
+    {
+      "orden": 3,
+      "id": "EVENTS_INCOME",
+      "nombre": "EVENTS",
+      "tipo": "sum-row",
+      "formula": "407-000-000-00 + 408-000-000-00",
+      "cuentas": ["407-000-000-00", "408-000-000-00"]
+    },
+    {
+      "orden": 4,
+      "id": "COMMITTEES_INCOME",
+      "nombre": "COMMITTEES",
+      "tipo": "sum-row",
+      "formula": "417-000-000-00 + 412-000-000-00",
+      "cuentas": ["417-000-000-00", "412-000-000-00"]
+    },
+    {
+      "orden": 5,
+      "id": "TIC_INCOME",
+      "nombre": "T&IC",
+      "tipo": "sum-row",
+      "formula": "405-000-000-00",
+      "cuentas": ["405-000-000-00"]
+    },
+    {
+      "orden": 6,
+      "id": "SERVICES_TO_MEMBERS_INCOME",
+      "nombre": "Services to Members",
+      "tipo": "sum-row",
+      "formula": "406-001-000-00 + 406-002-000-00 + 409-000-000-00",
+      "cuentas": ["406-001-000-00", "406-002-000-00", "409-000-000-00"]
+    },
+    {
+      "orden": 7,
+      "id": "GUADALAJARA_INCOME",
+      "nombre": "GUADALAJARA INCOME",
+      "tipo": "sum-row-sumavarios",
+      "formula": "Guadalajara Income",
+      "formula_terms": [
+        {"value": "Guadalajara Income", "operator": "+", "type": "section"}
+      ]
+    },
+    {
+      "orden": 8,
+      "id": "GUADALAJARA_INCOME_SECTION",
+      "nombre": "Guadalajara Income",
+      "tipo": "sum-row",
+      "formula": "450-001-000-00",
+      "cuentas": ["450-001-000-00"]
+    },
+    {
+      "orden": 9,
+      "id": "MONTERREY_INCOME",
+      "nombre": "MONTERREY INCOME",
+      "tipo": "sum-row-sumavarios",
+      "formula": "Monterrey Income",
+      "formula_terms": [
+        {"value": "Monterrey Income", "operator": "+", "type": "section"}
+      ]
+    },
+    {
+      "orden": 10,
+      "id": "MONTERREY_INCOME_SECTION",
+      "nombre": "Monterrey Income",
+      "tipo": "sum-row",
+      "formula": "450-002-000-00",
+      "cuentas": ["450-002-000-00"]
+    },
+    {
+      "orden": 11,
+      "id": "NORTHWEST_INCOME",
+      "nombre": "NORTHWEST INCOME",
+      "tipo": "sum-row-sumavarios",
+      "formula": "Northwest Income",
+      "formula_terms": [
+        {"value": "Northwest Income", "operator": "+", "type": "section"}
+      ]
+    },
+    {
+      "orden": 12,
+      "id": "NORTHWEST_INCOME_SECTION",
+      "nombre": "Northwest Income",
+      "tipo": "sum-row",
+      "formula": "450-003-000-00",
+      "cuentas": ["450-003-000-00"]
+    },
+    {
+      "orden": 13,
+      "id": "CONSOLIDATED_INCOME",
+      "nombre": "CONSOLIDATED INCOME",
+      "tipo": "sum-row-sumavarios-consolidado",
+      "formula": "CDMX INCOME + GUADALAJARA INCOME + MONTERREY INCOME + NORTHWEST INCOME",
+      "formula_terms": [
+        {"value": "CDMX_INCOME", "operator": "+", "type": "operation"},
+        {"value": "GUADALAJARA_INCOME", "operator": "+", "type": "operation"},
+        {"value": "MONTERREY_INCOME", "operator": "+", "type": "operation"},
+        {"value": "NORTHWEST_INCOME", "operator": "+", "type": "operation"}
+      ]
+    },
+    {
+      "orden": 14,
+      "id": "CDMX_EXPENSE",
+      "nombre": "CDMX EXPENSE",
+      "tipo": "sum-row-sumavarios",
+      "formula": "MEMBERSHIP + EVENTS + COMMITTEES + T&IC + Services to Members + Gastos Administrativos + Gastos Generales + Nómina + Gtos.Corporativos",
+      "formula_terms": [
+        {"value": "MEMBERSHIP", "operator": "+", "type": "section"},
+        {"value": "EVENTS", "operator": "+", "type": "section"},
+        {"value": "COMMITTEES", "operator": "+", "type": "section"},
+        {"value": "T&IC", "operator": "+", "type": "section"},
+        {"value": "Services to Members", "operator": "+", "type": "section"},
+        {"value": "Gastos Administrativos", "operator": "+", "type": "section"},
+        {"value": "Gastos Generales", "operator": "+", "type": "section"},
+        {"value": "Nómina", "operator": "+", "type": "section"},
+        {"value": "Gtos.Corporativos", "operator": "+", "type": "section"}
+      ]
+    },
+    {
+      "orden": 15,
+      "id": "MEMBERSHIP_EXPENSE",
+      "nombre": "MEMBERSHIP",
+      "tipo": "sum-row",
+      "formula": "705-000-000-00 + 502-000-000-00",
+      "cuentas": ["705-000-000-00", "502-000-000-00"]
+    },
+    {
+      "orden": 16,
+      "id": "EVENTS_EXPENSE",
+      "nombre": "EVENTS",
+      "tipo": "sum-row",
+      "formula": "701-000-000-00",
+      "cuentas": ["701-000-000-00"]
+    },
+    {
+      "orden": 17,
+      "id": "COMMITTEES_EXPENSE",
+      "nombre": "COMMITTEES",
+      "tipo": "sum-row",
+      "formula": "702-000-000-00 + 704-000-000-00 + 521-000-000-00",
+      "cuentas": ["702-000-000-00", "704-000-000-00", "521-000-000-00"]
+    },
+    {
+      "orden": 18,
+      "id": "TIC_EXPENSE",
+      "nombre": "T&IC",
+      "tipo": "sum-row",
+      "formula": "703-000-000-00",
+      "cuentas": ["703-000-000-00"]
+    },
+    {
+      "orden": 19,
+      "id": "SERVICES_TO_MEMBERS_EXPENSE",
+      "nombre": "Services to Members",
+      "tipo": "sum-row",
+      "formula": "601-002-003-01 + 601-003-001-00",
+      "cuentas": ["601-002-003-01", "601-003-001-00"]
+    },
+    {
+      "orden": 20,
+      "id": "GASTOS_ADMINISTRATIVOS",
+      "nombre": "Gastos Administrativos",
+      "tipo": "sum-row",
+      "formula": "801-001-000-00 + 801-002-000-00 + 801-003-000-00 + 801-004-000-00 + 801-005-000-00 + 801-006-000-00 + 801-007-000-00 + 801-008-000-00 + 801-009-000-00 + 801-010-000-00 + 801-011-000-00 + 801-012-000-00 + 801-013-000-00",
+      "cuentas": [
+        "801-001-000-00", "801-002-000-00", "801-003-000-00", "801-004-000-00",
+        "801-005-000-00", "801-006-000-00", "801-007-000-00", "801-008-000-00",
+        "801-009-000-00", "801-010-000-00", "801-011-000-00", "801-012-000-00",
+        "801-013-000-00"
+      ]
+    },
+    {
+      "orden": 21,
+      "id": "GASTOS_GENERALES",
+      "nombre": "Gastos Generales",
+      "tipo": "sum-row",
+      "formula": "901-000-000-00",
+      "cuentas": ["901-000-000-00"]
+    },
+    {
+      "orden": 22,
+      "id": "NOMINA",
+      "nombre": "Nómina",
+      "tipo": "sum-row",
+      "formula": "513-000-000-00 + 517-000-000-00 + 516-000-000-00 + 519-000-000-00 + 515-000-000-00 + 518-000-000-00 + 514-000-000-00",
+      "cuentas": [
+        "513-000-000-00", "517-000-000-00", "516-000-000-00", "519-000-000-00",
+        "515-000-000-00", "518-000-000-00", "514-000-000-00"
+      ]
+    },
+    {
+      "orden": 23,
+      "id": "GTOS_CORPORATIVOS",
+      "nombre": "Gtos.Corporativos",
+      "tipo": "sum-row",
+      "formula": "903-000-000-00",
+      "cuentas": ["903-000-000-00"]
+    },
+    {
+      "orden": 24,
+      "id": "GUADALAJARA_EXPENSE",
+      "nombre": "GUADALAJARA EXPENSE",
+      "tipo": "sum-row-sumavarios",
+      "formula": "Guadalajara Expense",
+      "formula_terms": [
+        {"value": "Guadalajara Expense", "operator": "+", "type": "section"}
+      ]
+    },
+    {
+      "orden": 25,
+      "id": "GUADALAJARA_EXPENSE_SECTION",
+      "nombre": "Guadalajara Expense",
+      "tipo": "sum-row",
+      "formula": "950-001-000-00",
+      "cuentas": ["950-001-000-00"]
+    },
+    {
+      "orden": 26,
+      "id": "MONTERREY_EXPENSE",
+      "nombre": "MONTERREY EXPENSE",
+      "tipo": "sum-row-sumavarios",
+      "formula": "Monterrey Expense",
+      "formula_terms": [
+        {"value": "Monterrey Expense", "operator": "+", "type": "section"}
+      ]
+    },
+    {
+      "orden": 27,
+      "id": "MONTERREY_EXPENSE_SECTION",
+      "nombre": "Monterrey Expense",
+      "tipo": "sum-row",
+      "formula": "950-002-000-00",
+      "cuentas": ["950-002-000-00"]
+    },
+    {
+      "orden": 28,
+      "id": "NORTHWEST_EXPENSE",
+      "nombre": "NORTHWEST EXPENSE",
+      "tipo": "sum-row-sumavarios",
+      "formula": "Northwest Expense",
+      "formula_terms": [
+        {"value": "Northwest Expense", "operator": "+", "type": "section"}
+      ]
+    },
+    {
+      "orden": 29,
+      "id": "NORTHWEST_EXPENSE_SECTION",
+      "nombre": "Northwest Expense",
+      "tipo": "sum-row",
+      "formula": "950-003-000-00",
+      "cuentas": ["950-003-000-00"]
+    },
+    {
+      "orden": 30,
+      "id": "CONSOLIDATED_EXPENSE",
+      "nombre": "CONSOLIDATED EXPENSE",
+      "tipo": "sum-row-sumavarios-consolidado",
+      "formula": "CDMX EXPENSE + GUADALAJARA EXPENSE + MONTERREY EXPENSE + NORTHWEST EXPENSE",
+      "formula_terms": [
+        {"value": "CDMX_EXPENSE", "operator": "+", "type": "operation"},
+        {"value": "GUADALAJARA_EXPENSE", "operator": "+", "type": "operation"},
+        {"value": "MONTERREY_EXPENSE", "operator": "+", "type": "operation"},
+        {"value": "NORTHWEST_EXPENSE", "operator": "+", "type": "operation"}
+      ]
+    },
+    {
+      "orden": 31,
+      "id": "OPERATING_RESULTS_MEXICO",
+      "nombre": "OPERATING RESULTS MEXICO",
+      "tipo": "sum-row-operativo",
+      "formula": "CDMX INCOME - CDMX EXPENSE",
+      "formula_terms": [
+        {"value": "CDMX_INCOME", "operator": "+", "type": "operation"},
+        {"value": "CDMX_EXPENSE", "operator": "-", "type": "operation"}
+      ]
+    },
+    {
+      "orden": 32,
+      "id": "OPERATING_RESULTS_GUADALAJARA",
+      "nombre": "OPERATING RESULTS GUADALAJARA",
+      "tipo": "sum-row-operativo",
+      "formula": "GUADALAJARA INCOME - GUADALAJARA EXPENSE",
+      "formula_terms": [
+        {"value": "GUADALAJARA_INCOME", "operator": "+", "type": "operation"},
+        {"value": "GUADALAJARA_EXPENSE", "operator": "-", "type": "operation"}
+      ]
+    },
+    {
+      "orden": 33,
+      "id": "OPERATING_RESULTS_MONTERREY",
+      "nombre": "OPERATING RESULTS MONTERREY",
+      "tipo": "sum-row-operativo",
+      "formula": "MONTERREY INCOME - MONTERREY EXPENSE",
+      "formula_terms": [
+        {"value": "MONTERREY_INCOME", "operator": "+", "type": "operation"},
+        {"value": "MONTERREY_EXPENSE", "operator": "-", "type": "operation"}
+      ]
+    },
+    {
+      "orden": 34,
+      "id": "OPERATING_RESULTS_NORTHWEST",
+      "nombre": "OPERATING RESULTS NORTHWEST",
+      "tipo": "sum-row-operativo",
+      "formula": "NORTHWEST INCOME - NORTHWEST EXPENSE",
+      "formula_terms": [
+        {"value": "NORTHWEST_INCOME", "operator": "+", "type": "operation"},
+        {"value": "NORTHWEST_EXPENSE", "operator": "-", "type": "operation"}
+      ]
+    },
+    {
+      "orden": 35,
+      "id": "CONSOLIDATED_OPERATING_RESULTS",
+      "nombre": "CONSOLIDATED OPERATING RESULTS",
+      "tipo": "sum-row-operativo",
+      "formula": "OPERATING RESULTS MEXICO + OPERATING RESULTS GUADALAJARA + OPERATING RESULTS MONTERREY + OPERATING RESULTS NORTHWEST",
+      "formula_terms": [
+        {"value": "OPERATING_RESULTS_MEXICO", "operator": "+", "type": "operation"},
+        {"value": "OPERATING_RESULTS_GUADALAJARA", "operator": "+", "type": "operation"},
+        {"value": "OPERATING_RESULTS_MONTERREY", "operator": "+", "type": "operation"},
+        {"value": "OPERATING_RESULTS_NORTHWEST", "operator": "+", "type": "operation"}
+      ]
+    },
+    {
+      "orden": 36,
+      "id": "MEMBER_CENTRICITY",
+      "nombre": "MEMBER CENTRICITY",
+      "tipo": "sum-row-sumavarios",
+      "formula": "Member Centricity",
+      "formula_terms": [
+        {"value": "Member Centricity", "operator": "+", "type": "section"}
+      ]
+    },
+    {
+      "orden": 37,
+      "id": "MEMBER_CENTRICITY_SECTION",
+      "nombre": "Member Centricity",
+      "tipo": "sum-row",
+      "formula": "902-000-000-00",
+      "cuentas": ["902-000-000-00"]
+    },
+    {
+      "orden": 38,
+      "id": "OTHER_MEXICO",
+      "nombre": "OTHER (MEXICO)",
+      "tipo": "sum-row-sumavarios",
+      "formula": "Other",
+      "formula_terms": [
+        {"value": "Other", "operator": "+", "type": "section"}
+      ]
+    },
+    {
+      "orden": 39,
+      "id": "OTHER_SECTION",
+      "nombre": "Other",
+      "tipo": "sum-row",
+      "formula": "413-000-000-00 + 414-000-000-00 + 416-000-000-00 + 418-000-000-00",
+      "cuentas": ["413-000-000-00", "414-000-000-00", "416-000-000-00", "418-000-000-00"]
+    },
+    {
+      "orden": 40,
+      "id": "GUADALAJARA_OTHER_INCOME",
+      "nombre": "GUADALAJARA OTHER INCOME",
+      "tipo": "sum-row-sumavarios",
+      "formula": "",
+      "formula_terms": [],
+      "nota": "Vacío - sin cuentas asignadas"
+    },
+    {
+      "orden": 41,
+      "id": "MONTERREY_OTHER_INCOME",
+      "nombre": "MONTERREY OTHER INCOME",
+      "tipo": "sum-row-sumavarios",
+      "formula": "",
+      "formula_terms": [],
+      "nota": "Vacío - sin cuentas asignadas"
+    },
+    {
+      "orden": 42,
+      "id": "NORTHWEST_OTHER_INCOME",
+      "nombre": "NORTHWEST OTHER INCOME",
+      "tipo": "sum-row-sumavarios",
+      "formula": "",
+      "formula_terms": [],
+      "nota": "Vacío - sin cuentas asignadas"
+    },
+    {
+      "orden": 43,
+      "id": "NET_RESULTS_MEXICO",
+      "nombre": "NET RESULTS MEXICO",
+      "tipo": "result-net-row",
+      "formula": "(OPERATING RESULTS MEXICO) - (MEMBER CENTRICITY) + (Other (MEXICO))",
+      "formula_terms": [
+        {"value": "OPERATING_RESULTS_MEXICO", "operator": "+", "type": "operation"},
+        {"value": "MEMBER_CENTRICITY", "operator": "-", "type": "operation"},
+        {"value": "OTHER_MEXICO", "operator": "+", "type": "operation"}
+      ]
+    },
+    {
+      "orden": 44,
+      "id": "NET_RESULTS_GUADALAJARA",
+      "nombre": "NET RESULTS GUADALAJARA",
+      "tipo": "result-net-row",
+      "formula": "(OPERATING RESULTS GUADALAJARA) + (Guadalajara Other Income)",
+      "formula_terms": [
+        {"value": "OPERATING_RESULTS_GUADALAJARA", "operator": "+", "type": "operation"},
+        {"value": "GUADALAJARA_OTHER_INCOME", "operator": "+", "type": "operation"}
+      ]
+    },
+    {
+      "orden": 45,
+      "id": "NET_RESULTS_MONTERREY",
+      "nombre": "NET RESULTS MONTERREY",
+      "tipo": "result-net-row",
+      "formula": "(OPERATING RESULTS MONTERREY) + (Monterrey Other Income)",
+      "formula_terms": [
+        {"value": "OPERATING_RESULTS_MONTERREY", "operator": "+", "type": "operation"},
+        {"value": "MONTERREY_OTHER_INCOME", "operator": "+", "type": "operation"}
+      ]
+    },
+    {
+      "orden": 46,
+      "id": "NET_RESULTS_NORTHWEST",
+      "nombre": "NET RESULTS NORTHWEST",
+      "tipo": "result-net-row",
+      "formula": "(OPERATING RESULTS NORTHWEST) + (Northwest Other Income)",
+      "formula_terms": [
+        {"value": "OPERATING_RESULTS_NORTHWEST", "operator": "+", "type": "operation"},
+        {"value": "NORTHWEST_OTHER_INCOME", "operator": "+", "type": "operation"}
+      ]
+    },
+    {
+      "orden": 47,
+      "id": "CONSOLIDATED_NET_RESULTS",
+      "nombre": "CONSOLIDATED NET RESULTS",
+      "tipo": "result-net-row",
+      "formula": "(NET RESULTS MEXICO) + (NET RESULTS GUADALAJARA) + (NET RESULTS MONTERREY) + (NET RESULTS NORTHWEST)",
+      "formula_terms": [
+        {"value": "NET_RESULTS_MEXICO", "operator": "+", "type": "operation"},
+        {"value": "NET_RESULTS_GUADALAJARA", "operator": "+", "type": "operation"},
+        {"value": "NET_RESULTS_MONTERREY", "operator": "+", "type": "operation"},
+        {"value": "NET_RESULTS_NORTHWEST", "operator": "+", "type": "operation"}
+      ]
+    }
+  ],
+
+  "notas": {
+    "estructura": "Esta es la estructura EXACTA que debe aparecer en el layout RESUMEN 2025 CDMX",
+    "orden_critico": "El orden de aparición es fundamental - cada operación debe aparecer en la posición indicada",
+    "tipos_operacion": {
+      "sum-row": "Suma de cuentas contables directas",
+      "sum-row-sumavarios": "Suma de secciones (agrupaciones)",
+      "sum-row-sumavarios-consolidado": "Suma de operaciones de múltiples capítulos",
+      "sum-row-operativo": "Resultado operativo (INCOME - EXPENSE)",
+      "result-net-row": "Resultado neto final"
+    },
+    "jerarquia": "Las operaciones que referencian a otras deben aparecer DESPUÉS de las referenciadas",
+    "implementacion_gestor": "El gestor de plantillas debe poder crear/editar estas operaciones respetando esta estructura"
+  }
+}

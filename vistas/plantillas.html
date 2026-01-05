@@ -20,6 +20,7 @@
     />
     <link rel="stylesheet" href="css/estilos.css" />
     <link rel="stylesheet" href="css/plantillas.css" />
+    <link rel="stylesheet" href="css/plantillas-orden.css" />
     <link rel="stylesheet" href="css/formula-builder.css" />
     <link rel="icon" type="image/x-icon" href="icono/icono.ico" />
   </head>
@@ -148,11 +149,27 @@
                 </button>
                 <button
                   type="button"
+                  id="btnPreview"
+                  class="btn btn-outline-secondary"
+                  disabled
+                >
+                  <i class="bi bi-eye me-1"></i> Vista Previa
+                </button>
+                <button
+                  type="button"
                   id="btnCopiar"
                   class="btn btn-outline-primary"
                   disabled
                 >
                   <i class="bi bi-copy me-1"></i> Copiar a otro año
+                </button>
+                <button
+                  type="button"
+                  id="btnReordenar"
+                  class="btn btn-warning"
+                  disabled
+                >
+                  <i class="bi bi-arrows-move me-1"></i> Reordenar
                 </button>
                 <button
                   type="button"
@@ -441,6 +458,87 @@
       </div>
     </div>
 
+    <!-- Modal: Reordenar Elementos -->
+    <div class="modal fade" id="modalReordenar" tabindex="-1">
+      <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">
+              <i class="bi bi-arrows-move me-2"></i>Reordenar Elementos de la Plantilla
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <!-- Información de guía -->
+            <div class="orden-info">
+              <h6>
+                <i class="bi bi-info-circle"></i> ¿Cómo usar el reordenamiento?
+              </h6>
+              <p>Esta herramienta te permite organizar visualmente el orden de aparición de todos los elementos en la plantilla:</p>
+              <ul>
+                <li><strong>Arrastrar y soltar:</strong> Haz clic y mantén presionado el ícono <i class="bi bi-grip-vertical"></i> para mover elementos</li>
+                <li><strong>Flechas:</strong> Usa los botones <i class="bi bi-arrow-up"></i> y <i class="bi bi-arrow-down"></i> para mover un elemento</li>
+                <li><strong>Editar:</strong> Haz clic en <i class="bi bi-pencil"></i> para modificar las propiedades del elemento</li>
+                <li><strong>Números:</strong> Los círculos morados muestran la posición actual de cada elemento</li>
+              </ul>
+              <p class="mb-0"><strong>Nota:</strong> Los cambios se guardan al cerrar este modal o al hacer clic en "Guardar".</p>
+            </div>
+
+            <!-- Filtros -->
+            <div class="orden-filters">
+              <div class="filter-group">
+                <span class="filter-label">Mostrar:</span>
+                <button class="filter-btn active" data-filter="all">
+                  <i class="bi bi-layout-text-window me-1"></i>Todos
+                </button>
+                <button class="filter-btn" data-filter="seccion">
+                  <i class="bi bi-folder2 me-1"></i>Secciones
+                </button>
+                <button class="filter-btn" data-filter="cuenta">
+                  <i class="bi bi-file-earmark-text me-1"></i>Cuentas
+                </button>
+                <button class="filter-btn" data-filter="operacion">
+                  <i class="bi bi-calculator me-1"></i>Operaciones
+                </button>
+              </div>
+            </div>
+
+            <!-- Contenedor de orden -->
+            <div class="orden-container" id="ordenContainer">
+              <!-- Contenido dinámico aquí -->
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-outline-secondary"
+              id="btnResetOrden"
+            >
+              <i class="bi bi-arrow-counterclockwise me-1"></i>Resetear Orden
+            </button>
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              class="btn btn-primary"
+              id="btnConfirmarOrden"
+            >
+              <i class="bi bi-check-circle me-1"></i>Aplicar Orden
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Toast Notifications -->
     <div class="toast-container position-fixed bottom-0 end-0 p-3">
       <div id="toastNotification" class="toast" role="alert">
@@ -468,6 +566,8 @@
     <script src="js/layout-controls.js"></script>
     <script src="js/operation-sync.js"></script>
     <script src="js/operation-debugger.js"></script>
+    <script src="js/plantillas-reordenar.js"></script>
+    <script src="js/importar-estructura-resumen.js"></script>
     <script src="js/plantillas.js"></script>
   </body>
 </html>

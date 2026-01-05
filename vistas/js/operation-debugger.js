@@ -13,7 +13,7 @@
     analyzeOperation(operationName) {
       if (!window.state) return null;
 
-      const op = window.state.operaciones.find(
+      let op = window.state.operaciones.find(
         (o) => o.Clase === operationName
       );
       if (!op) {

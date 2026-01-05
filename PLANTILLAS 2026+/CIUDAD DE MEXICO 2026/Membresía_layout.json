@@ -1,0 +1,190 @@
+{
+  "Membresía": [
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "401-004-000-00",
+      "NOMBRE": "Renovaciones ",
+      "SECCION Principal": "Ingresos Membresía",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "401-003-000-00",
+      "NOMBRE": "Descuentos por pronto pago",
+      "SECCION Principal": "Ingresos Membresía",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "401-001-004-00",
+      "NOMBRE": "Socios Nuevos",
+      "SECCION Principal": "Ingresos Membresía",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "402-002-000-00",
+      "NOMBRE": "Cuotas Suscripción",
+      "SECCION Principal": "Ingresos Membresía",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "408-020-000-00",
+      "NOMBRE": "Diamond Publicidad en Publicaciones",
+      "SECCION Principal": "Ingresos Membresía",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "705-002-000-00",
+      "NOMBRE": "Intercambios membresía-especie",
+      "SECCION Principal": "Gastos Membresía",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "705-003-000-00",
+      "NOMBRE": "Intercambios membresía",
+      "SECCION Principal": "Gastos Membresía",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "520-000-000-00",
+      "NOMBRE": "Comisiones KAM´s",
+      "SECCION Principal": "Gastos Membresía",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "705-001-000-00",
+      "NOMBRE": "Promoción Servicios Membresías (Representación)",
+      "SECCION Principal": "Gastos Membresía",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "705-004-000-00",
+      "NOMBRE": "Onboarding",
+      "SECCION Principal": "Gastos Membresía",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-001-001-00",
+      "NOMBRE": "Teléfono Móvil",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-001-004-00",
+      "NOMBRE": "Mantenimientos de automóvil",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-001-003-00",
+      "NOMBRE": "Gasolina",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-001-005-00",
+      "NOMBRE": "Pasajes y taxis",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-001-006-00",
+      "NOMBRE": "Estacionamientos",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-001-010-00",
+      "NOMBRE": "Becario",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-001-018-00",
+      "NOMBRE": "Gastos de viaje",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-001-011-00",
+      "NOMBRE": "Gastos Administrativos (impresión tarjetas)",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-001-007-00",
+      "NOMBRE": "Papelería y Artículos de oficina",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-001-012-00",
+      "NOMBRE": "Juntas de trabajo",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-001-013-00",
+      "NOMBRE": "No deducibles",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "801-001-015-00",
+      "NOMBRE": "Herramientas Tele-trabajo",
+      "SECCION Principal": "Gastos Administrativos",
+      "SECCION Secundaria": ""
+    }
+  ],
+  "Operaciones": [
+    {
+      "nombre": "Suma de Ingresos Membresía",
+      "tipo": "cuentas",
+      "expresion": "401-004-000-00 + 401-003-000-00 + 401-001-004-00 + 402-002-000-00 + 408-020-000-00",
+      "seccion": "Ingresos Membresía"
+    },
+    {
+      "nombre": "Suma de Gastos Membresía",
+      "tipo": "cuentas",
+      "expresion": "705-002-000-00 + 705-003-000-00 + 520-000-000-00 + 705-001-000-00 + 705-004-000-00",
+      "seccion": "Gastos Membresía"
+    },
+    {
+      "nombre": "Suma Gastos Administrativos",
+      "tipo": "cuentas",
+      "expresion": "801-001-001-00 + 801-001-004-00 + 801-001-003-00 + 801-001-005-00 + 801-001-006-00 + 801-001-010-00 + 801-001-018-00 + 801-001-011-00 + 801-001-007-00 + 801-001-012-00 + 801-001-013-00 + 801-001-015-00",
+      "seccion": "Gastos Administrativos"
+    },
+    {
+      "nombre": "Resultado Operativo Membresía",
+      "tipo": "cuentas",
+      "expresion": "401-004-000-00 + 401-003-000-00 + 401-001-004-00 + 402-002-000-00 + 408-020-000-00 - 705-002-000-00 - 705-003-000-00 - 520-000-000-00 - 705-001-000-00 - 705-004-000-00",
+      "seccion": ""
+    },
+    {
+      "nombre": "Resultado  Membresía",
+      "tipo": "cuentas",
+      "expresion": "401-004-000-00 + 401-003-000-00 + 401-001-004-00 + 402-002-000-00 + 408-020-000-00 - 705-002-000-00 - 705-003-000-00 - 520-000-000-00 - 705-001-000-00 - 705-004-000-00 - 801-001-001-00 - 801-001-004-00 - 801-001-003-00 - 801-001-005-00 - 801-001-006-00 - 801-001-010-00 - 801-001-018-00 - 801-001-011-00 - 801-001-007-00 - 801-001-012-00 - 801-001-013-00 - 801-001-015-00",
+      "seccion": ""
+    }
+  ]
+}
