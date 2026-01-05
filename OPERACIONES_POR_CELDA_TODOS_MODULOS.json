@@ -1175,7 +1175,13 @@
               "formula": "Suma algebraica de ingresos y gastos totales",
               "ejemplo": "OPERATING=200000, OTHER_INCOME=50000, ADMIN=-100000",
               "resultado": "150000"
-            }",
+            }
+          }
+        },
+        {
+          "id": "NET_RESULTS",
+          "Clase": "NET RESULTS",
+          "aparece_en": "RESUMEN.html",
           "formula": "RESULTS - TAXES - OTHER_EXPENSES",
           "tipo_fila": "result-net-row",
           "operaciones_por_celda": {
@@ -1244,13 +1250,7 @@
           "aparece_en": "Gtos_Corporativos.html",
           "formula": "SUM(gastos corporativos nacionales)",
           "tipo_fila": "sum-row",
-          "nota": "Estos gastos se distribuyen proporcionalmente a cada capítulo" "columna_1": {"valor": "NET RESULTS", "clase": "result-net-row"},
-            "columnas_2_a_29": {
-              "formula": "Resultado neto final después de impuestos y ajustes",
-              "ejemplo": "RESULTS=150000, TAXES=-20000",
-              "resultado": "130000"
-            }
-          }
+          "nota": "Estos gastos se distribuyen proporcionalmente a cada capítulo"
         }
       ]
     },
