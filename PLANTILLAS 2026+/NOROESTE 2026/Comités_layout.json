@@ -1,0 +1,57 @@
+{
+  "Comités": [
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "403-001-000-00",
+      "NOMBRE": "Comites (Varios)",
+      "SECCION Principal": "Ingresos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "701-001-000-00",
+      "NOMBRE": "Comites (Varios)",
+      "SECCION Principal": "Gastos Comités",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "504-000-000-00",
+      "NOMBRE": "Comisiones EWDP",
+      "SECCION Principal": "Comisiones",
+      "SECCION Secundaria": ""
+    }
+  ],
+  "Operaciones": [
+    {
+      "nombre": "Suma de Ingresos Comités",
+      "tipo": "cuentas",
+      "expresion": "403-001-000-00",
+      "seccion": "Ingresos Comités"
+    },
+    {
+      "nombre": "Suma de Gastos Comités",
+      "tipo": "cuentas",
+      "expresion": "701-001-000-00",
+      "seccion": "Gastos Comités"
+    },
+    {
+      "nombre": "Suma de Comisiones",
+      "tipo": "cuentas",
+      "expresion": "504-000-000-00",
+      "seccion": "Comisiones"
+    },
+    {
+      "nombre": "Resultado Comités",
+      "tipo": "cuentas",
+      "expresion": "403-001-000-00 - 701-001-000-00 - 504-000-000-00",
+      "seccion": ""
+    },
+    {
+      "nombre": "Resultado Operativo Comités",
+      "tipo": "cuentas",
+      "expresion": "403-001-000-00 - 701-001-000-00",
+      "seccion": ""
+    }
+  ]
+}

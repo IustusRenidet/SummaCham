@@ -1,0 +1,106 @@
+{
+  "Dirección": [
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "403-002-000-00",
+      "NOMBRE": "Juntas de Consejo",
+      "SECCION Principal": "Ingresos Dirección",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "701-002-000-00",
+      "NOMBRE": "Juntas de Consejo",
+      "SECCION Principal": "Gastos Dirección",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "801-007-000-00",
+      "NOMBRE": "Gastos de Viaje",
+      "SECCION Principal": "Gastos de Administración",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "801-003-000-00",
+      "NOMBRE": "Reembolso celulares",
+      "SECCION Principal": "Gastos de Administración",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "801-001-000-00",
+      "NOMBRE": "Gasolina",
+      "SECCION Principal": "Gastos de Administración",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "801-002-000-00",
+      "NOMBRE": "Herramientas de Tele-Trabajo",
+      "SECCION Principal": "Gastos de Administración",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "801-008-000-00",
+      "NOMBRE": "Mantto. Auto",
+      "SECCION Principal": "Gastos de Administración",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "801-005-001-00",
+      "NOMBRE": "Papelería, impresiones  y arts oficina",
+      "SECCION Principal": "Gastos de Administración",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "801-004-000-00",
+      "NOMBRE": "Estacionamientos",
+      "SECCION Principal": "Gastos de Administración",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "801-006-000-00",
+      "NOMBRE": "Servicios administrativos (Personal)",
+      "SECCION Principal": "Gastos de Administración",
+      "SECCION Secundaria": ""
+    }
+  ],
+  "Operaciones": [
+    {
+      "nombre": "Suma de Ingresos Dirección",
+      "tipo": "cuentas",
+      "expresion": "403-002-000-00",
+      "seccion": "Ingresos Dirección"
+    },
+    {
+      "nombre": "Suma de Gastos Dirección",
+      "tipo": "cuentas",
+      "expresion": "701-002-000-00",
+      "seccion": "Gastos Dirección"
+    },
+    {
+      "nombre": "Suma Gastos Administrativos",
+      "tipo": "cuentas",
+      "expresion": "801-007-000-00 + 801-003-000-00 + 801-001-000-00 + 801-002-000-00 + 801-008-000-00 + 801-005-001-00 + 801-004-000-00 + 801-006-000-00",
+      "seccion": "Gastos de Administración"
+    },
+    {
+      "nombre": "Resultado Juntas de Consejo",
+      "tipo": "cuentas",
+      "expresion": "403-002-000-00 - 701-002-000-00",
+      "seccion": ""
+    },
+    {
+      "nombre": "Resultado Director Capítulo",
+      "tipo": "cuentas",
+      "expresion": "403-002-000-00 - 701-002-000-00 - 801-007-000-00 - 801-003-000-00 - 801-001-000-00 - 801-002-000-00 - 801-008-000-00 - 801-005-001-00 - 801-004-000-00 - 801-006-000-00",
+      "seccion": ""
+    }
+  ]
+}

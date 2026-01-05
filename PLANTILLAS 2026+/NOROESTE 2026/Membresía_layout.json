@@ -1,0 +1,72 @@
+{
+  "DN": [
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "400-001-000-00",
+      "NOMBRE": "Renovaciones",
+      "SECCION Principal": "Ingresos Membresía",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "400-002-000-00",
+      "NOMBRE": "Descuentos",
+      "SECCION Principal": "Ingresos Membresía",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "400-003-000-00",
+      "NOMBRE": "Socios Nuevos",
+      "SECCION Principal": "Ingresos Membresía",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "401-000-000-00",
+      "NOMBRE": "Cuotas Suscripción",
+      "SECCION Principal": "Ingresos Membresía",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "503-000-000-00",
+      "NOMBRE": "Comisiones KAM´s",
+      "SECCION Principal": "Gastos Membresía",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "605-001-000-00",
+      "NOMBRE": "Onboarding",
+      "SECCION Principal": "Gastos Membresía",
+      "SECCION Secundaria": ""
+    }
+  ],
+  "Operaciones": [
+    {
+      "nombre": "Suma de Ingresos Membresía",
+      "tipo": "cuentas",
+      "expresion": "400-001-000-00 + 400-002-000-00 + 400-003-000-00 + 401-000-000-00",
+      "seccion": "Ingresos Membresía"
+    },
+    {
+      "nombre": "Suma de Gastos Membresía",
+      "tipo": "cuentas",
+      "expresion": "503-000-000-00 + 605-001-000-00",
+      "seccion": "Gastos Membresía"
+    },
+    {
+      "nombre": "Resultado Operativo Membresía",
+      "tipo": "cuentas",
+      "expresion": "400-001-000-00 + 400-002-000-00 + 400-003-000-00 + 401-000-000-00 - 503-000-000-00 - 605-001-000-00",
+      "seccion": ""
+    },
+    {
+      "nombre": "Resultado Membresía",
+      "tipo": "cuentas",
+      "expresion": "400-001-000-00 + 400-002-000-00 + 400-003-000-00 + 401-000-000-00 - 503-000-000-00 - 605-001-000-00",
+      "seccion": ""
+    }
+  ]
+}

@@ -1,0 +1,154 @@
+{
+  "Gastos Generales": [
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "901-006-000-00",
+      "NOMBRE": "Gtos Financieros (comisiones bancarias)",
+      "SECCION Principal": "Gastos Financieros",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "902-003-000-00",
+      "NOMBRE": "Perdida Cambiaria",
+      "SECCION Principal": "Gastos Financieros",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "901-002-001-00",
+      "NOMBRE": "Telefono e Internet",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "901-001-001-00",
+      "NOMBRE": "Energía Eléctrica ",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "901-001-002-00",
+      "NOMBRE": "Agua potable / Drenaje",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "901-008-003-00",
+      "NOMBRE": "Mantenimiento de oficina",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "901-003-000-00",
+      "NOMBRE": "Servicio de Mensajeria Fedex /local",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "901-008-004-00",
+      "NOMBRE": "Matto. Equipo de Computo y Red",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "901-009-000-00",
+      "NOMBRE": "Despensa y cafetería",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "501-000-000-00",
+      "NOMBRE": "Nómina",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "901-013-000-00",
+      "NOMBRE": "Becarios",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "901-007-000-00",
+      "NOMBRE": "IVA a Prorrata No Acreditable",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "901-010-000-00",
+      "NOMBRE": "REUNION FIN DE AÑO",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "901-015-000-00",
+      "NOMBRE": "Gastos Extraordinarios",
+      "SECCION Principal": "Gastos Generales",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "901-004-004-00",
+      "NOMBRE": "Depreciaciones de equipo",
+      "SECCION Principal": "Depreciaciones y Amortizaciones",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "903-000-000-00",
+      "NOMBRE": "Gastos Corporativos NO",
+      "SECCION Principal": "Gastos Corporativos NO",
+      "SECCION Secundaria": ""
+    }
+  ],
+  "Operaciones": [
+    {
+      "nombre": "Suma Gastos Financieros",
+      "tipo": "cuentas",
+      "expresion": "901-006-000-00 + 902-003-000-00",
+      "seccion": "Gastos Financieros"
+    },
+    {
+      "nombre": "Suma de Gastos Generales",
+      "tipo": "cuentas",
+      "expresion": "901-002-001-00 + 901-001-001-00 + 901-001-002-00 + 901-008-003-00 + 901-003-000-00 + 901-008-004-00 + 901-009-000-00 + 501-000-000-00 + 901-013-000-00 + 901-007-000-00 + 901-010-000-00 + 901-015-000-00",
+      "seccion": "Gastos Generales"
+    },
+    {
+      "nombre": "Suma Depreciaciones y Amortizaciones",
+      "tipo": "cuentas",
+      "expresion": "901-004-004-00",
+      "seccion": "Depreciaciones y Amortizaciones"
+    },
+    {
+      "nombre": "Suma Gastos Corporativos NO",
+      "tipo": "cuentas",
+      "expresion": "903-000-000-00",
+      "seccion": "Gastos Corporativos NO"
+    },
+    {
+      "nombre": "Total",
+      "tipo": "cuentas",
+      "expresion": "- 901-006-000-00 - 902-003-000-00 - 901-002-001-00 - 901-001-001-00 - 901-001-002-00 - 901-008-003-00 - 901-003-000-00 - 901-008-004-00 - 901-009-000-00 - 501-000-000-00 - 901-013-000-00 - 901-007-000-00 - 901-010-000-00 - 901-015-000-00 - 901-004-004-00 - 903-000-000-00",
+      "seccion": ""
+    },
+    {
+      "nombre": "Otros Ingresos vs Gastos",
+      "tipo": "cuentas",
+      "expresion": "- 901-006-000-00 - 902-003-000-00",
+      "seccion": ""
+    }
+  ]
+}

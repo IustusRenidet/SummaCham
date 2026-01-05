@@ -1,0 +1,78 @@
+{
+  "Eventos": [
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "404-001-000-00",
+      "NOMBRE": "Eventos especiales",
+      "SECCION Principal": "Boletaje",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "404-002-000-00",
+      "NOMBRE": "Chamber Day",
+      "SECCION Principal": "Boletaje",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "406-001-000-00",
+      "NOMBRE": "Eventos especiales",
+      "SECCION Principal": "Patrocinios",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "406-002-000-00",
+      "NOMBRE": "Chamber Day",
+      "SECCION Principal": "Patrocinios",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "702-001-000-00",
+      "NOMBRE": "Eventos especiales",
+      "SECCION Principal": "Costos y Gastos Eventos",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "702-002-000-00",
+      "NOMBRE": "Chamber Day",
+      "SECCION Principal": "Costos y Gastos Eventos",
+      "SECCION Secundaria": ""
+    }
+  ],
+  "Operaciones": [
+    {
+      "nombre": "Suma Costos y Gastos Eventos",
+      "tipo": "cuentas",
+      "expresion": "702-001-000-00 + 702-002-000-00",
+      "seccion": "Costos y Gastos Eventos"
+    },
+    {
+      "nombre": "Ingresos Boletaje",
+      "tipo": "cuentas",
+      "expresion": "404-001-000-00 + 404-002-000-00",
+      "seccion": "Boletaje"
+    },
+    {
+      "nombre": "Ingresos Patrocinios",
+      "tipo": "cuentas",
+      "expresion": "406-001-000-00 + 406-002-000-00",
+      "seccion": "Patrocinios"
+    },
+    {
+      "nombre": "Suma Ingresos Eventos",
+      "tipo": "cuentas",
+      "expresion": "404-001-000-00 + 404-002-000-00 + 406-001-000-00 + 406-002-000-00",
+      "seccion": ""
+    },
+    {
+      "nombre": "Resultado Eventos",
+      "tipo": "cuentas",
+      "expresion": "404-001-000-00 + 404-002-000-00 + 406-001-000-00 + 406-002-000-00 - 702-001-000-00 - 702-002-000-00",
+      "seccion": ""
+    }
+  ]
+}

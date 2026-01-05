@@ -1,0 +1,36 @@
+{
+  "RH": [
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "901-016-001-00",
+      "NOMBRE": "Capacitación, Intercambio de talento y Team building",
+      "SECCION": "Gastos RH"
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "901-016-002-00",
+      "NOMBRE": "Programa  de reconocimientos, Snacks, Regalos, flores getwell",
+      "SECCION": "Gastos RH"
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "901-016-003-00",
+      "NOMBRE": "Encuesta NOM035 y Voluntariados corporativos",
+      "SECCION": "Gastos RH"
+    }
+  ],
+  "Operaciones": [
+    {
+      "nombre": "Suma de Gastos RH",
+      "tipo": "cuentas",
+      "expresion": "901-016-001-00 + 901-016-002-00 + 901-016-003-00",
+      "seccion": ""
+    },
+    {
+      "nombre": "Resultado Operativo RH",
+      "tipo": "cuentas",
+      "expresion": "- 901-016-001-00 - 901-016-002-00 - 901-016-003-00",
+      "seccion": ""
+    }
+  ]
+}

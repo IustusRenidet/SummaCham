@@ -1,0 +1,32 @@
+{
+  "Serv Membresía": [
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "402-001-000-00",
+      "NOMBRE": "Encuesta de Sueldos y Prestaciones",
+      "SECCION Principal": "Ingresos Servicios a la Membresía",
+      "SECCION Secundaria": ""
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "601-001-000-00",
+      "NOMBRE": "Encuesta de Sueldos y Prestaciones",
+      "SECCION Principal": "Gastos  Servicios a la Membresía",
+      "SECCION Secundaria": ""
+    }
+  ],
+  "Operaciones": [
+    {
+      "nombre": "Suma de Ingresos Servicios a la Membresía",
+      "tipo": "cuentas",
+      "expresion": "402-001-000-00",
+      "seccion": "Ingresos Servicios a la Membresía"
+    },
+    {
+      "nombre": "Suma de Gastos Servicios a la Membresía",
+      "tipo": "cuentas",
+      "expresion": "601-001-000-00",
+      "seccion": "Gastos  Servicios a la Membresía"
+    }
+  ]
+}

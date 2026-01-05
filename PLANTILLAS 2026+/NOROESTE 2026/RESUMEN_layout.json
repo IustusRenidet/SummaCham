@@ -1,0 +1,262 @@
+{
+  "RESUMEN": [
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "400000000000000000000",
+      "NOMBRE": "Cuotas Netas",
+      "SECCION Principal": "INCOME",
+      "SECCION Secundaria": "Membership"
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "401000000000000000000",
+      "NOMBRE": "Cuotas de Inscripción",
+      "SECCION Principal": "INCOME",
+      "SECCION Secundaria": "Membership"
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "404000000000000000000",
+      "NOMBRE": "Eventos",
+      "SECCION Principal": "INCOME",
+      "SECCION Secundaria": "Events"
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "406000000000000000000",
+      "NOMBRE": "Patrocinios",
+      "SECCION Principal": "INCOME",
+      "SECCION Secundaria": "Events"
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "403000000000000000001",
+      "NOMBRE": "Comités",
+      "SECCION Principal": "INCOME",
+      "SECCION Secundaria": "Committees"
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "407000000000000000000",
+      "NOMBRE": "Trade & Investment Center",
+      "SECCION Principal": "INCOME",
+      "SECCION Secundaria": "T&IC"
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "402001000000000000000",
+      "NOMBRE": "Venta Publicaciones",
+      "SECCION Principal": "INCOME",
+      "SECCION Secundaria": "Services to Members"
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "605000000000000000000",
+      "NOMBRE": "Gastos Promoción",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Membership"
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "503000000000000000000",
+      "NOMBRE": "Comisiones por venta de membresías",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Membership"
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "702000000000000000001",
+      "NOMBRE": "Costo Eventos",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Events"
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "701000000000000000001",
+      "NOMBRE": "Costo comités",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Committees"
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "504000000000000000000",
+      "NOMBRE": "Comisiones EWDP",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Committees"
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "703000000000000000000",
+      "NOMBRE": "Costo Trade & Investment Center",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "T&IC"
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "601000000000000000001",
+      "NOMBRE": "Gastos Venta Publicaciones",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Services to Members"
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "801000000000000000001",
+      "NOMBRE": "Gastos de Administracion",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Gastos G&A"
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "901000000000000000001",
+      "NOMBRE": "Gastos Generales",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Gastos G&A"
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "501000000000000000000",
+      "NOMBRE": "Nómina",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Nómina"
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "903000000000000000000",
+      "NOMBRE": "Gtos. Corporativos",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Gtos. Corporativos"
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "903001000000000000000",
+      "NOMBRE": "Cargos Administrativos",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Cargos Administrativos"
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "405000000000000000000",
+      "NOMBRE": "Otros ingresos",
+      "SECCION Principal": "Other",
+      "SECCION Secundaria": "Other"
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "410000000000000000000",
+      "NOMBRE": "Utilidad cambiaria",
+      "SECCION Principal": "Other",
+      "SECCION Secundaria": "Other"
+    },
+    {
+      "CAPITULO": "NOROESTE",
+      "CUENTA": "902000000000000000000",
+      "NOMBRE": "Perdida cambiaria",
+      "SECCION Principal": "Other",
+      "SECCION Secundaria": "Other"
+    }
+  ],
+  "Operaciones": [
+    {
+      "nombre": "Membership",
+      "tipo": "cuentas",
+      "expresion": "400000000000000000000 + 401000000000000000000",
+      "seccion": "INCOME"
+    },
+    {
+      "nombre": "Events",
+      "tipo": "cuentas",
+      "expresion": "404000000000000000000 + 406000000000000000000",
+      "seccion": "INCOME"
+    },
+    {
+      "nombre": "Committees",
+      "tipo": "cuentas",
+      "expresion": "403000000000000000001",
+      "seccion": "INCOME"
+    },
+    {
+      "nombre": "T&IC",
+      "tipo": "cuentas",
+      "expresion": "407000000000000000000",
+      "seccion": "INCOME"
+    },
+    {
+      "nombre": "Services to Members",
+      "tipo": "cuentas",
+      "expresion": "402001000000000000000",
+      "seccion": "INCOME"
+    },
+    {
+      "nombre": "Membership",
+      "tipo": "cuentas",
+      "expresion": "605000000000000000000 + 503000000000000000000",
+      "seccion": "EXPENSE"
+    },
+    {
+      "nombre": "Events",
+      "tipo": "cuentas",
+      "expresion": "702000000000000000001",
+      "seccion": "EXPENSE"
+    },
+    {
+      "nombre": "Committees",
+      "tipo": "cuentas",
+      "expresion": "701000000000000000001 + 504000000000000000000",
+      "seccion": "EXPENSE"
+    },
+    {
+      "nombre": "T&IC",
+      "tipo": "cuentas",
+      "expresion": "703000000000000000000",
+      "seccion": "EXPENSE"
+    },
+    {
+      "nombre": "Services to Members",
+      "tipo": "cuentas",
+      "expresion": "601000000000000000001",
+      "seccion": "EXPENSE"
+    },
+    {
+      "nombre": "Gastos G&A",
+      "tipo": "cuentas",
+      "expresion": "801000000000000000001 + 901000000000000000001",
+      "seccion": "EXPENSE"
+    },
+    {
+      "nombre": "Nómina",
+      "tipo": "cuentas",
+      "expresion": "501000000000000000000",
+      "seccion": "EXPENSE"
+    },
+    {
+      "nombre": "Gtos. Corporativos",
+      "tipo": "cuentas",
+      "expresion": "903000000000000000000",
+      "seccion": "EXPENSE"
+    },
+    {
+      "nombre": "Cargos Administrativos",
+      "tipo": "cuentas",
+      "expresion": "903001000000000000000",
+      "seccion": "EXPENSE"
+    },
+    {
+      "nombre": "Other",
+      "tipo": "cuentas",
+      "expresion": "405000000000000000000 + 410000000000000000000 + 902000000000000000000",
+      "seccion": "Other"
+    },
+    {
+      "nombre": "OPERATING RESULTS",
+      "tipo": "cuentas",
+      "expresion": "INCOME - EXPENSE",
+      "seccion": ""
+    },
+    {
+      "nombre": "NET RESULTS",
+      "tipo": "cuentas",
+      "expresion": "OPERATING RESULTS + Other",
+      "seccion": ""
+    }
+  ]
+}
