@@ -182,6 +182,31 @@
     }
   };
 
+  const obtenerMesPreferidoInicial = (anioSeleccionado, mesContexto) => {
+    const anioNum = Number(anioSeleccionado);
+    const mesNum = Number(mesContexto);
+    const hoy = new Date();
+    const mesSistema = hoy.getMonth() + 1;
+    const anioSistema = hoy.getFullYear();
+
+    if (
+      Number.isInteger(mesNum) &&
+      mesNum >= 1 &&
+      mesNum <= MESES.length
+    ) {
+      if (Number.isInteger(anioNum) && anioNum === anioSistema) {
+        return Math.min(mesNum, mesSistema);
+      }
+      return mesNum;
+    }
+
+    if (Number.isInteger(anioNum) && anioNum < anioSistema) {
+      return 12;
+    }
+
+    return mesSistema;
+  };
+
   const parseText = (texto) => (texto || "").toString().trim();
 
   // Snapshot local de la tabla RESUMEN para que otras vistas (Graficas) usen exactamente lo que ve el usuario
@@ -1995,7 +2020,11 @@
       anios,
       ctxAnio ?? leerAnioSeleccionado()
     );
-    const mesInicial = elegirMesValido(ctxMes ?? leerMesSeleccionado(), valorInicial);
+    const mesPreferido = obtenerMesPreferidoInicial(
+      valorInicial,
+      ctxMes ?? leerMesSeleccionado()
+    );
+    const mesInicial = elegirMesValido(mesPreferido, valorInicial);
     if (yearSelect) yearSelect.value = String(valorInicial);
     if (monthSelect) monthSelect.value = String(mesInicial);
 

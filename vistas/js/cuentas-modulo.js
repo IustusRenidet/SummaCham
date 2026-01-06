@@ -151,6 +151,23 @@
     "presupuestos",
   ]);
 
+  const MODULOS_FILTRA_MESES_REALES = new Set([
+    "membresia",
+    "eventos",
+    "comunicacion",
+    "direccion",
+    "servmembresia",
+    "comites",
+    "tic",
+    "rh",
+    "vpe",
+    "finanzas",
+    "gastosgenerales",
+    "nomina",
+    "gtoscorporativos",
+    "presupuestos",
+  ]);
+
   const normalizarEtiquetaExclusion = (texto) =>
     normalizarTexto(texto || "").replace(/\s+/g, " ");
 
@@ -364,43 +381,50 @@
 
   const obtenerIndiceMesSistema = () => new Date().getMonth();
 
-  /**
-   * Determina el último mes cerrado que debe mostrarse en las columnas month-real.
-   * - Si el contexto indica un periodo cerrado, lo usa como límite superior.
-   * - Para años anteriores (no el actual): asume año completo cerrado (diciembre).
-   * - Para el año actual: solo hasta el mes ANTERIOR al actual (excluye mes en curso).
-   * - Puede regresar -1 cuando no hay ningún mes cerrado en el ejercicio actual.
+  /*
+   * Determina el último mes cerrado visible.
+   * Acepta anioEspecifico para sincronizar con la lógica de quien lo llama.
    */
-  const obtenerIndicePeriodoActual = () => {
+  const obtenerIndicePeriodoActual = (anioEspecifico = null) => {
     const periodo = obtenerPeriodoCerrado();
     const indiceDesdeContexto = Number.isInteger(periodo) ? periodo - 1 : null;
     const indiceMesActual = obtenerIndiceMesSistema();
-    const anioSeleccionado = Number.isInteger(estadoModulo.anio)
-      ? estadoModulo.anio
-      : null;
+
+    // Si nos pasan un año, lo usamos. Si no, inferimos.
     const anioActual = new Date().getFullYear();
-    
-    // Para ejercicios anteriores al actual: mostrar año completo (todos los meses cerrados)
-    if (anioSeleccionado != null && anioSeleccionado < anioActual) {
-      // Si hay periodo cerrado definido, respetarlo; si no, asumir año completo
-      return indiceDesdeContexto != null ? indiceDesdeContexto : MESES.length - 1;
+    let anioSeleccionado = anioEspecifico;
+
+    if (anioSeleccionado === null) {
+      // Fallback a lógica anterior
+      const anioBase = obtenerAnioBaseSeleccionado();
+      anioSeleccionado = Number.isInteger(anioBase) ? anioBase : anioActual;
     }
-    
-    // Para el año actual: excluir mes en curso (solo meses cerrados)
-    const limitePorFecha = indiceMesActual - 1; // -1 en enero = ningún mes cerrado todavía
-    
-    const limiteCalculadoBase =
-      indiceDesdeContexto != null
-        ? Math.min(indiceDesdeContexto, limitePorFecha)
-        : limitePorFecha;
-    
+
+    // Para ejercicios PASADOS (< actual): mostrar año completo (11) SIEMPRE.
+    if (anioSeleccionado < anioActual) {
+      return MESES.length - 1;
+    }
+
+    // Para ejercicios FUTUROS (> actual): nada cerrado, devolver -1
+    if (anioSeleccionado > anioActual) {
+      return -1;
+    }
+
+    // Para el AÑO ACTUAL:
+    const limitePorFecha = indiceMesActual - 1;
+    let limite = limitePorFecha;
+    if (indiceDesdeContexto != null) {
+      limite = Math.min(indiceDesdeContexto, limitePorFecha);
+    }
+
     const limiteMaximo = MESES.length - 1;
-    return Math.max(-1, Math.min(limiteCalculadoBase, limiteMaximo));
+    return Math.max(-1, Math.min(limite, limiteMaximo));
   };
 
-  const obtenerPeriodoVisible = () => {
-    const indice = obtenerIndicePeriodoActual();
-    return indice >= 0 ? indice + 1 : null;
+  const obtenerPeriodoVisible = (anioEspecifico = null) => {
+    const indice = obtenerIndicePeriodoActual(anioEspecifico);
+    if (indice < 0) return 0;
+    return indice + 1;
   };
 
   const MODAL_SECCION_ID = "sectionModal";
@@ -969,6 +993,19 @@
     return null;
   };
 
+  const obtenerAnioBaseSeleccionado = () => {
+    const anioSelect = obtenerAnioSeleccionado();
+    if (Number.isInteger(anioSelect)) return anioSelect;
+    if (Number.isInteger(estadoModulo.anio)) return estadoModulo.anio;
+    return null;
+  };
+
+  const esAnioEnCurso = () => {
+    const anioBase = obtenerAnioBaseSeleccionado();
+    const anioActual = new Date().getFullYear();
+    return Number.isInteger(anioBase) && anioBase === anioActual;
+  };
+
   const construirMapaColumnas = (tabla) => {
     if (!tabla?.tHead) {
       return {};
@@ -1398,28 +1435,66 @@
   const aplicarFiltroColumnasPorPeriodo = () => {
     if (!estadoModulo.tabla) return;
 
-    // Obtener año seleccionado
-    const anioSeleccionado = obtenerAnioSeleccionado();
+    const moduloActual = (
+      estadoModulo.moduloClave ||
+      estadoModulo.moduloId ||
+      ""
+    ).toLowerCase();
+    if (!MODULOS_FILTRA_MESES_REALES.has(moduloActual)) {
+      return;
+    }
+
+    // USAR estadoModulo.anio DIRECTAMENTE para evitar lecturas erróneas del DOM
+    const anioState = Number(estadoModulo.anio);
     const anioActual = new Date().getFullYear();
 
-    // Solo aplicar filtro de periodo para el año EN CURSO
-    // Años anteriores muestran TODOS los meses
-    const esAnioActual = anioSeleccionado === anioActual;
+    // Si no tenemos año en estado, intentamos el select, si falla, null.
+    // IMPORTANTE: NO default a anioActual aquí para la lógica de "mostrar todo".
+    let anioEvaluado = Number.isInteger(anioState) ? anioState : null;
+    if (anioEvaluado === null) {
+      const selectVal = obtenerAnioBaseSeleccionado(); // Fallback
+      if (Number.isInteger(selectVal)) anioEvaluado = selectVal;
+    }
 
-    const periodoLimite = esAnioActual ? obtenerPeriodoVisible() : null;
+    // Si aun así es null, asumimos año actual para seguridad (ocultar futuro)
+    if (anioEvaluado === null) anioEvaluado = anioActual;
+
+    console.debug("[planeacion] filtro columnas", {
+      moduloActual,
+      anioEvaluado,
+      anioActual,
+    });
+
+    let periodoLimite = null;
+
+    if (anioEvaluado < anioActual) {
+      // Pasado: MOSTRAR TODO (mes 13 cubre hasta dic=12)
+      periodoLimite = 13;
+    } else if (anioEvaluado > anioActual) {
+      // Futuro: OCULTAR TODO
+      periodoLimite = 0;
+    } else {
+      // Presente: Usar periodo visible calculado (meses cerrados)
+      // IMPORTANTE: Pasamos anioEvaluado para que la función sepa explícitamente qué año es.
+      periodoLimite = obtenerPeriodoVisible(anioEvaluado);
+    }
+
     const filas = Array.from(estadoModulo.tabla.querySelectorAll("tr"));
+    const headersReales = Array.from(
+      estadoModulo.tabla.tHead?.querySelectorAll("th.month-real") || []
+    );
 
-    Object.entries(estadoModulo.columnas || {}).forEach(([clave, idx]) => {
-      if (!clave.startsWith("real-")) return;
-      const mesClave = clave.replace("real-", "");
+    headersReales.forEach((th) => {
+      const mesClave = th.dataset.mes || "";
       const mesNumero = CLAVE_MES_A_PERIODO.get(mesClave) || null;
+      const idx = th.cellIndex;
 
-      // Lógica de filtrado:
-      // - Años anteriores (periodoLimite = null): Mostrar TODO
-      // - Año actual (periodoLimite != null): Ocultar meses > periodo
-      const debeOcultar =
-        periodoLimite != null && mesNumero && mesNumero > periodoLimite;
+      let debeOcultar = false;
+      if (mesNumero != null && periodoLimite != null) {
+        debeOcultar = mesNumero > periodoLimite;
+      }
 
+      th.style.display = debeOcultar ? "none" : "";
       filas.forEach((fila) => {
         const celda = fila.cells[idx];
         if (celda) {
@@ -1485,7 +1560,7 @@
 
   const cargarCuentasPresupuestos = async ({ anio } = {}) => {
     let anioConsulta = Number.isInteger(anio) ? anio : new Date().getFullYear();
-    
+
     const params = new URLSearchParams({
       anio: anioConsulta,
     });
@@ -1504,11 +1579,15 @@
         }
       );
       const datos = await resp.json();
-      
+
       // Si el año solicitado no tiene datos (404), intentar con el año anterior
       if (!resp.ok) {
         if (resp.status === 404 && anioConsulta === new Date().getFullYear()) {
-          console.log(`⚠️ No hay datos de presupuestos para ${anioConsulta}, intentando con ${anioConsulta - 1}`);
+          console.log(
+            `⚠️ No hay datos de presupuestos para ${anioConsulta}, intentando con ${
+              anioConsulta - 1
+            }`
+          );
           const paramsAnterior = new URLSearchParams({
             anio: anioConsulta - 1,
           });
@@ -1521,10 +1600,13 @@
           const datosAnterior = await respAnterior.json();
           if (!respAnterior.ok) {
             throw new Error(
-              datosAnterior.mensaje || "No fue posible obtener las cuentas de presupuestos."
+              datosAnterior.mensaje ||
+                "No fue posible obtener las cuentas de presupuestos."
             );
           }
-          const cuentasAnterior = Array.isArray(datosAnterior.cuentas) ? datosAnterior.cuentas : [];
+          const cuentasAnterior = Array.isArray(datosAnterior.cuentas)
+            ? datosAnterior.cuentas
+            : [];
           return procesarCuentasPresupuesto(cuentasAnterior);
         }
         throw new Error(
@@ -1538,7 +1620,7 @@
       return [];
     }
   };
-  
+
   const procesarCuentasPresupuesto = (cuentas) => {
     const normalizarNumero = (valor) => {
       const numerico = Number(valor);
@@ -1546,65 +1628,65 @@
     };
     const esAcreedora = (naturaleza) =>
       ["A", "C"].includes((naturaleza || "").toString().trim().toUpperCase());
-      
+
     return cuentas
-        .map((cuenta) => {
-          const naturaleza = (cuenta.naturaleza || cuenta.NATURALEZA || "")
-            .toString()
-            .trim()
-            .toUpperCase();
-          const cuentaVisible =
-            cuenta.numCta ||
-            cuenta.num_cta ||
-            cuenta.CUENTA ||
-            cuenta.cuenta ||
-            "";
-          const cuenta21 = convertirCuenta21(cuentaVisible);
-          if (!cuenta21) return null;
-          const presupuesto = {};
-          const real = {};
-          MESES.forEach((mes, idxMes) => {
-            const sufijoMes = String(idxMes + 1).padStart(2, "0");
-            const presupuestoCampo =
-              cuenta[`PRESUP${sufijoMes}`] ??
-              cuenta[`presup${sufijoMes}`] ??
-              (cuenta.presupuesto && cuenta.presupuesto[mes] != null
-                ? cuenta.presupuesto[mes]
-                : undefined) ??
-              cuenta[`presupuesto_${mes}`] ??
-              cuenta[`presupuesto${mes}`] ??
-              cuenta[mes];
-            const realCampo =
-              (cuenta.contabilizacion && cuenta.contabilizacion[mes] != null
-                ? cuenta.contabilizacion[mes]
-                : undefined) ??
-              cuenta[`contabilizacion_${mes}`] ??
-              cuenta[`contabilizacion${mes}`] ??
-              (cuenta.real && cuenta.real[mes] != null
-                ? cuenta.real[mes]
-                : undefined) ??
-              cuenta[`real_${mes}`] ??
-              cuenta[`real${mes}`] ??
-              cuenta[`REAL_${mes}`] ??
-              cuenta[`REAL${mes}`];
-            // Presupuesto: usar el valor tal cual viene de la tabla PRESUPxx (sin factor).
-            const valorPresupuesto = normalizarNumero(presupuestoCampo);
-            const tieneReal = realCampo != null && realCampo !== undefined;
-            // Real: usar la contabilización tal cual regresa el backend (YTD desde SALDOS).
-            const valorReal = normalizarNumero(tieneReal ? realCampo : 0);
-            presupuesto[mes] = valorPresupuesto;
-            real[mes] = valorReal;
-          });
-          return {
-            cuenta21,
-            cuentaVisible,
-            nombre:
-              cuenta.descripcion || cuenta.nombre || cuenta.DESCRIPCION || "",
-            presupuesto,
-            real,
-          };
-        })
-        .filter(Boolean);
+      .map((cuenta) => {
+        const naturaleza = (cuenta.naturaleza || cuenta.NATURALEZA || "")
+          .toString()
+          .trim()
+          .toUpperCase();
+        const cuentaVisible =
+          cuenta.numCta ||
+          cuenta.num_cta ||
+          cuenta.CUENTA ||
+          cuenta.cuenta ||
+          "";
+        const cuenta21 = convertirCuenta21(cuentaVisible);
+        if (!cuenta21) return null;
+        const presupuesto = {};
+        const real = {};
+        MESES.forEach((mes, idxMes) => {
+          const sufijoMes = String(idxMes + 1).padStart(2, "0");
+          const presupuestoCampo =
+            cuenta[`PRESUP${sufijoMes}`] ??
+            cuenta[`presup${sufijoMes}`] ??
+            (cuenta.presupuesto && cuenta.presupuesto[mes] != null
+              ? cuenta.presupuesto[mes]
+              : undefined) ??
+            cuenta[`presupuesto_${mes}`] ??
+            cuenta[`presupuesto${mes}`] ??
+            cuenta[mes];
+          const realCampo =
+            (cuenta.contabilizacion && cuenta.contabilizacion[mes] != null
+              ? cuenta.contabilizacion[mes]
+              : undefined) ??
+            cuenta[`contabilizacion_${mes}`] ??
+            cuenta[`contabilizacion${mes}`] ??
+            (cuenta.real && cuenta.real[mes] != null
+              ? cuenta.real[mes]
+              : undefined) ??
+            cuenta[`real_${mes}`] ??
+            cuenta[`real${mes}`] ??
+            cuenta[`REAL_${mes}`] ??
+            cuenta[`REAL${mes}`];
+          // Presupuesto: usar el valor tal cual viene de la tabla PRESUPxx (sin factor).
+          const valorPresupuesto = normalizarNumero(presupuestoCampo);
+          const tieneReal = realCampo != null && realCampo !== undefined;
+          // Real: usar la contabilización tal cual regresa el backend (YTD desde SALDOS).
+          const valorReal = normalizarNumero(tieneReal ? realCampo : 0);
+          presupuesto[mes] = valorPresupuesto;
+          real[mes] = valorReal;
+        });
+        return {
+          cuenta21,
+          cuentaVisible,
+          nombre:
+            cuenta.descripcion || cuenta.nombre || cuenta.DESCRIPCION || "",
+          presupuesto,
+          real,
+        };
+      })
+      .filter(Boolean);
   };
 
   const esCuentaPresupuestoValida = (valorCuenta) => {
@@ -3864,10 +3946,18 @@
     const secciones = meta.secciones;
 
     const errores = [];
+    const moduloActual = (
+      estadoModulo.moduloClave ||
+      estadoModulo.moduloId ||
+      ""
+    ).toLowerCase();
+    const aplicaFiltro = MODULOS_FILTRA_MESES_REALES.has(moduloActual);
+
     const periodoVisible = obtenerPeriodoVisible();
-    const limitePeriodo = Number.isInteger(periodoVisible)
-      ? periodoVisible
-      : null;
+    const limitePeriodo =
+      aplicaFiltro && esAnioEnCurso() && Number.isInteger(periodoVisible)
+        ? periodoVisible
+        : null;
     const ajustarPorPeriodo = (valores) => {
       if (limitePeriodo == null) return valores;
       const ajustados = valores.slice();
@@ -4764,6 +4854,8 @@
       if (Number.isInteger(anioEvento)) {
         estadoModulo.anio = anioEvento;
         poblarSugerenciasDesdeAnio(anioEvento);
+        // Force update of filters because year change affects visibility (Past vs Present)
+        aplicarFiltroColumnasPorPeriodo();
       }
       const periodoEvento = normalizarPeriodo(evento?.detail?.periodo);
       if (periodoEvento != null) {
