@@ -1,0 +1,140 @@
+{
+  "configuration": {
+    "chapters": ["CDMX", "GUADALAJARA", "MONTERREY", "NOROESTE"],
+    "years": [2025, 2026]
+  },
+  "RESUMEN": {
+    "operations": [
+        { "label": "MEMBERSHIP",              "type": "sum-row",    "exp": "401-000-000-00 + 402-000-000-00", "section": "INCOME" },
+        { "label": "EVENTS",                  "type": "sum-row",    "exp": "407-000-000-00 + 408-000-000-00", "section": "INCOME" },
+        { "label": "COMMITTEES",              "type": "sum-row",    "exp": "417-000-000-00 + 412-000-000-00", "section": "INCOME" },
+        { "label": "T&IC",                    "type": "sum-row",    "exp": "405-000-000-00", "section": "INCOME" },
+        { "label": "Services to Members",     "type": "sum-row",    "exp": "406-001-000-00 + 406-002-000-00 + 409-000-000-00", "section": "INCOME" },
+        { "label": "Guadalajara Income",      "type": "sum-row",    "exp": "450-001-000-00", "section": "INCOME" },
+        { "label": "Monterrey Income",        "type": "sum-row",    "exp": "450-002-000-00", "section": "INCOME" },
+        { "label": "Northwest Income",        "type": "sum-row",    "exp": "450-003-000-00", "section": "INCOME" },
+        
+        { "label": "CDMX INCOME",             "type": "sum-row",    "exp": "MEMBERSHIP + EVENTS + COMMITTEES + T&IC + Services to Members", "section": "INCOME" },
+        
+        { "label": "CONSOLIDATED INCOME",     "type": "sum-row",    "exp": "CDMX INCOME + Guadalajara Income + Monterrey Income + Northwest Income", "section": "INCOME" },
+
+        { "label": "MEMBERSHIP (EXP)",        "type": "sum-row",    "exp": "705-000-000-00 + 502-000-000-00", "section": "EXPENSE", "alias": "MEMBERSHIP" },
+        { "label": "EVENTS (EXP)",            "type": "sum-row",    "exp": "701-000-000-00", "section": "EXPENSE", "alias": "EVENTS" },
+        { "label": "COMMITTEES (EXP)",        "type": "sum-row",    "exp": "702-000-000-00 + 704-000-000-00 + 521-000-000-00", "section": "EXPENSE", "alias": "COMMITTEES" },
+        { "label": "T&IC (EXP)",              "type": "sum-row",    "exp": "703-000-000-00", "section": "EXPENSE", "alias": "T&IC" },
+        { "label": "Services to Members (EXP)","type": "sum-row",    "exp": "601-002-003-01 + 601-003-001-00", "section": "EXPENSE", "alias": "Services to Members" },
+        { "label": "Gastos Administrativos",  "type": "sum-row",    "exp": "801-001-000-00 + 801-002-000-00 + 801-003-000-00 + 801-004-000-00 + 801-005-000-00 + 801-006-000-00 + 801-007-000-00 + 801-008-000-00 + 801-009-000-00 + 801-010-000-00 + 801-011-000-00 + 801-012-000-00 + 801-013-000-00", "section": "EXPENSE" },
+        { "label": "Gastos Generales",        "type": "sum-row",    "exp": "901-000-000-00", "section": "EXPENSE" },
+        { "label": "Nómina",                  "type": "sum-row",    "exp": "513-000-000-00 + 517-000-000-00 + 516-000-000-00 + 519-000-000-00 + 515-000-000-00 + 518-000-000-00 + 514-000-000-00", "section": "EXPENSE" },
+        { "label": "Gtos.Corporativos",       "type": "sum-row",    "exp": "903-000-000-00", "section": "EXPENSE" },
+        
+        { "label": "Guadalajara Expense",     "type": "sum-row",    "exp": "950-001-000-00", "section": "EXPENSE" },
+        { "label": "Monterrey Expense",       "type": "sum-row",    "exp": "950-002-000-00", "section": "EXPENSE" },
+        { "label": "Northwest Expense",       "type": "sum-row",    "exp": "950-003-000-00", "section": "EXPENSE" },
+
+        { "label": "CDMX EXPENSE",            "type": "sum-row",    "exp": "MEMBERSHIP (EXP) + EVENTS (EXP) + COMMITTEES (EXP) + T&IC (EXP) + Services to Members (EXP) + Gastos Administrativos + Gastos Generales + Nómina + Gtos.Corporativos", "section": "EXPENSE" },
+        { "label": "CONSOLIDATED EXPENSES",   "type": "sum-row",    "exp": "CDMX EXPENSE + Guadalajara Expense + Monterrey Expense + Northwest Expense", "section": "EXPENSE" },
+
+        { "label": "OPERATING RESULTS MEXICO",      "type": "result-row", "exp": "CDMX INCOME - CDMX EXPENSE", "section": "" },
+        { "label": "OPERATING RESULTS GUADALAJARA", "type": "result-row", "exp": "Guadalajara Income - Guadalajara Expense", "section": "" },
+        { "label": "OPERATING RESULTS MONTERREY",   "type": "result-row", "exp": "Monterrey Income - Monterrey Expense", "section": "" },
+        { "label": "OPERATING RESULTS NORTHWEST",   "type": "result-row", "exp": "Northwest Income - Northwest Expense", "section": "" },
+        { "label": "CONSOLIDATED OPERATING RESULTS","type": "result-row", "exp": "OPERATING RESULTS MEXICO + OPERATING RESULTS GUADALAJARA + OPERATING RESULTS MONTERREY + OPERATING RESULTS NORTHWEST", "section": "" },
+
+        { "label": "Member Centricity",       "type": "sum-row",    "exp": "902-000-000-00", "section": "OTHER" },
+        { "label": "Other",                   "type": "sum-row",    "exp": "413-000-000-00 + 414-000-000-00 + 416-000-000-00 + 418-000-000-00", "section": "OTHER", "alias": "Other (MEXICO)" },
+        
+        { "label": "GUADALAJARA OTHER INCOME","type": "sum-row",    "exp": "450-001-002-00", "section": "OTHER" },
+        { "label": "MONTERREY OTHER INCOME",  "type": "sum-row",    "exp": "450-002-002-00", "section": "OTHER" },
+        { "label": "NORTHWEST OTHER INCOME",  "type": "sum-row",    "exp": "450-003-002-00", "section": "OTHER" },
+
+        { "label": "NET RESULTS MEXICO",      "type": "net-row",    "exp": "OPERATING RESULTS MEXICO - Member Centricity + Other", "section": "" },
+        { "label": "NET RESULTS GUADALAJARA", "type": "net-row",    "exp": "OPERATING RESULTS GUADALAJARA + GUADALAJARA OTHER INCOME", "section": "" },
+        { "label": "NET RESULTS MONTERREY",   "type": "net-row",    "exp": "OPERATING RESULTS MONTERREY + MONTERREY OTHER INCOME", "section": "" },
+        { "label": "NET RESULTS NORTHWEST",   "type": "net-row",    "exp": "OPERATING RESULTS NORTHWEST + NORTHWEST OTHER INCOME", "section": "" },
+        { "label": "CONSOLIDATED NET RESULTS","type": "net-row",    "exp": "NET RESULTS MEXICO + NET RESULTS GUADALAJARA + NET RESULTS MONTERREY + NET RESULTS NORTHWEST", "section": "" }
+    ]
+  },
+  "SUMMARY": {
+    "use_resumen": true
+  },
+  "Membresía": {
+    "operations": [
+      { "label": "Suma de Ingresos Membresía", "type": "sum-row", "exp": "400-001-000-00 + 400-002-000-00 + 400-003-000-00 + 401-000-000-00", "section": "Ingresos Membresía" },
+      { "label": "Suma de Gastos Membresía",   "type": "sum-row", "exp": "503-000-000-00 + 605-001-000-00", "section": "Gastos Membresía" },
+      { "label": "Resultado Operativo Membresía", "type": "result-row", "exp": "Suma de Ingresos Membresía - Suma de Gastos Membresía", "section": "" }
+    ]
+  },
+  "Eventos": {
+    "operations": [
+        { "label": "Ingresos Boletaje",        "type": "sum-row", "exp": "404-001-000-00 + 404-002-000-00", "section": "Boletaje" },
+        { "label": "Ingresos Patrocinios",     "type": "sum-row", "exp": "406-001-000-00 + 406-002-000-00", "section": "Patrocinios" },
+        { "label": "Suma Ingresos Eventos",    "type": "sum-row", "exp": "Ingresos Boletaje + Ingresos Patrocinios", "section": ""},
+        { "label": "Suma Costos y Gastos Eventos", "type": "sum-row", "exp": "702-001-000-00 + 702-002-000-00", "section": "Costos y Gastos Eventos" },
+        { "label": "Resultado Eventos",        "type": "result-row", "exp": "Suma Ingresos Eventos - Suma Costos y Gastos Eventos", "section": "" }
+    ]
+  },
+  "Comités": {
+      "operations": [
+          { "label": "Suma de Ingresos Comités", "type": "sum-row", "exp": "403-001-000-00", "section": "Ingresos Comités" },
+          { "label": "Suma de Gastos Comités",   "type": "sum-row", "exp": "701-001-000-00", "section": "Gastos Comités" },
+          { "label": "Suma de Comisiones",       "type": "sum-row", "exp": "504-000-000-00", "section": "Comisiones" },
+          { "label": "Resultado Operativo Comités", "type": "result-row", "exp": "Suma de Ingresos Comités - Suma de Gastos Comités", "section": "" },
+          { "label": "Resultado Comités",        "type": "result-row", "exp": "Suma de Ingresos Comités - Suma de Gastos Comités - Suma de Comisiones", "section": "" }
+      ]
+  },
+  "T&IC": {
+      "operations": [
+          { "label": "Suma de Ingresos T&IC", "type": "sum-row", "exp": "407-001-000-00 + 407-002-000-00", "section": "Ingresos T&IC" },
+          { "label": "Suma de Gastos T&IC",   "type": "sum-row", "exp": "703-001-000-00 + 703-002-000-00", "section": "Gastos T&IC" },
+          { "label": "Resultado T&IC",        "type": "result-row", "exp": "Suma de Ingresos T&IC - Suma de Gastos T&IC", "section": "" }
+      ]
+  },
+  "Comunicación": {
+      "operations": [
+          { "label": "Suma de Gastos Comunicación", "type": "sum-row", "exp": "901-017-001-00 + 901-017-002-00 + 901-017-003-00 + 901-017-004-00", "section": "Gastos Comunicación" },
+          { "label": "Resultado Operativo Comunicación", "type": "result-row", "exp": "- Suma de Gastos Comunicación", "section": "" }
+      ]
+  },
+  "Dirección": {
+      "operations": [
+          { "label": "Suma de Ingresos Dirección", "type": "sum-row", "exp": "403-002-000-00", "section": "Ingresos Dirección" },
+          { "label": "Suma de Gastos Dirección",   "type": "sum-row", "exp": "701-002-000-00", "section": "Gastos Dirección" },
+          { "label": "Suma Gastos Administrativos","type": "sum-row", "exp": "801-007-000-00 + 801-003-000-00 + 801-001-000-00 + 801-002-000-00 + 801-008-000-00 + 801-005-001-00 + 801-004-000-00 + 801-006-000-00", "section": "Gastos de Administración" },
+          { "label": "Resultado Juntas de Consejo","type": "result-row", "exp": "Suma de Ingresos Dirección - Suma de Gastos Dirección", "section": "" },
+          { "label": "Resultado Director Capítulo","type": "result-row", "exp": "Suma de Ingresos Dirección - Suma de Gastos Dirección - Suma Gastos Administrativos", "section": "" }
+      ]
+  },
+  "Serv Membresía": {
+      "operations": [
+          { "label": "Suma de Ingresos Servicios a la Membresía", "type": "sum-row", "exp": "402-001-000-00", "section": "Ingresos Servicios a la Membresía" },
+          { "label": "Suma de Gastos Servicios a la Membresía",   "type": "sum-row", "exp": "601-001-000-00", "section": "Gastos  Servicios a la Membresía" },
+          { "label": "Resultado Servicios Membresía",             "type": "result-row", "exp": "Suma de Ingresos Servicios a la Membresía - Suma de Gastos Servicios a la Membresía", "section": "" }
+      ]
+  },
+  "Gtos. Corporativos": {
+      "operations": [
+          { "label": "Suma GASTOS", "type": "sum-row", "exp": "903-002-000-00 + 903-003-000-00 + 903-004-000-00 + 903-005-000-00 + 903-006-000-00 + 903-007-000-00 + 903-008-000-00 + 903-009-000-00 + 903-010-000-00 + 903-011-000-00 + 903-012-000-00 + 903-013-000-00 + 903-014-000-00 + 903-015-000-00 + 903-016-000-00 + 903-017-000-00 + 903-018-000-00 + 903-019-000-00 + 903-020-000-00 + 903-021-000-00 + 903-001-000-00", "section": "GASTOS CORPORATIVOS" },
+          { "label": "Resultado GASTOS CORPORATIVOS", "type": "result-row", "exp": "- Suma GASTOS", "section": "" }
+      ]
+  },
+  "RH": {
+      "operations": [
+          { "label": "Suma de Gastos RH", "type": "sum-row", "exp": "901-016-001-00 + 901-016-002-00 + 901-016-003-00", "section": "Gastos RH" },
+          { "label": "Resultado Operativo RH", "type": "result-row", "exp": "- Suma de Gastos RH", "section": "" }
+      ]
+  },
+  "Gastos Generales": {
+      "operations": [
+         { "label": "Suma Gastos Financieros", "type": "sum-row", "exp": "901-006-000-00 + 902-003-000-00", "section": "Gastos Financieros" },
+         { "label": "Suma de Gastos Generales", "type": "sum-row", "exp": "901-002-001-00 + 901-001-001-00 + 901-001-002-00 + 901-008-003-00 + 901-003-000-00 + 901-008-004-00 + 901-009-000-00 + 501-000-000-00 + 901-013-000-00 + 901-007-000-00 + 901-010-000-00 + 901-015-000-00", "section": "Gastos Generales" },
+         { "label": "Suma Depreciaciones y Amortizaciones", "type": "sum-row", "exp": "901-004-004-00", "section": "Depreciaciones y Amortizaciones" },
+         { "label": "Suma Gastos Corporativos NO", "type": "sum-row", "exp": "903-000-000-00", "section": "Gastos Corporativos NO" },
+         { "label": "Total", "type": "result-row", "exp": "- Suma Gastos Financieros - Suma de Gastos Generales - Suma Depreciaciones y Amortizaciones - Suma Gastos Corporativos NO", "section": "" },
+         { "label": "Otros Ingresos vs Gastos", "type": "sum-row", "exp": "- 901-006-000-00 - 902-003-000-00", "section": "" }
+      ]
+  },
+  "Nomina": {
+      "operations": []
+  }
+}

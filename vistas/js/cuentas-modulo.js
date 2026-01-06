@@ -367,8 +367,9 @@
   /**
    * Determina el último mes cerrado que debe mostrarse en las columnas month-real.
    * - Si el contexto indica un periodo cerrado, lo usa como límite superior.
-   * - Siempre EXCLUYE el mes en curso (solo se permiten meses anteriores cerrados).
-   * - Puede regresar -1 cuando no hay ningún mes cerrado en el ejercicio.
+   * - Para años anteriores (no el actual): asume año completo cerrado (diciembre).
+   * - Para el año actual: solo hasta el mes ANTERIOR al actual (excluye mes en curso).
+   * - Puede regresar -1 cuando no hay ningún mes cerrado en el ejercicio actual.
    */
   const obtenerIndicePeriodoActual = () => {
     const periodo = obtenerPeriodoCerrado();
@@ -379,11 +380,14 @@
       : null;
     const anioActual = new Date().getFullYear();
     
-    // Para ejercicios distintos al actual se permite ver el año completo
-    const limitePorFecha =
-      anioSeleccionado != null && anioSeleccionado !== anioActual
-        ? MESES.length - 1
-        : indiceMesActual - 1; // EXCLUIR mes en curso (solo meses cerrados)
+    // Para ejercicios anteriores al actual: mostrar año completo (todos los meses cerrados)
+    if (anioSeleccionado != null && anioSeleccionado < anioActual) {
+      // Si hay periodo cerrado definido, respetarlo; si no, asumir año completo
+      return indiceDesdeContexto != null ? indiceDesdeContexto : MESES.length - 1;
+    }
+    
+    // Para el año actual: excluir mes en curso (solo meses cerrados)
+    const limitePorFecha = indiceMesActual - 1; // -1 en enero = ningún mes cerrado todavía
     
     const limiteCalculadoBase =
       indiceDesdeContexto != null
