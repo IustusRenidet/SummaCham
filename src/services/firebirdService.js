@@ -13,6 +13,13 @@ try {
 
 const { obtenerEmpresaPorId } = require('../config/empresas');
 
+// Detectar si es conexión remota (puerto diferente a 3050 o host diferente a localhost/127.0.0.1)
+const esConexionRemota = () => {
+  const host = process.env.FIREBIRD_HOST || '127.0.0.1';
+  const port = Number(process.env.FIREBIRD_PORT) || 3050;
+  return port !== 3050 || (host !== '127.0.0.1' && host !== 'localhost');
+};
+
 // Configuración base desde variables de entorno
 const OPCIONES_BASE = {
   host: process.env.FIREBIRD_HOST || '127.0.0.1',
@@ -20,10 +27,15 @@ const OPCIONES_BASE = {
   user: process.env.FIREBIRD_USER || 'sysdba',
   password: process.env.FIREBIRD_PASSWORD || 'masterkey',
   lowercase_keys: false,
-  pageSize: 4096
+  pageSize: 4096,
+  // Configuración optimizada para conexiones remotas
+  retryLimit: esConexionRemota() ? 3 : 0, // 3 reintentos para remoto, 0 para local
+  connectTimeout: esConexionRemota() ? 60000 : 3000, // 60s remoto, 3s local
+  timeout: esConexionRemota() ? 60000 : 10000 // 60s query timeout remoto, 10s local
 };
 
-console.log(`🔥 Firebird configurado: ${OPCIONES_BASE.host}:${OPCIONES_BASE.port}`);
+const tipoConexion = esConexionRemota() ? '📡 REMOTA' : '🏠 LOCAL';
+console.log(`🔥 Firebird ${tipoConexion}: ${OPCIONES_BASE.host}:${OPCIONES_BASE.port}`);
 
 const crearOpciones = (empresaId) => {
   const empresa = obtenerEmpresaPorId(empresaId);
@@ -46,16 +58,32 @@ const ejecutarConsulta = (empresaId, consulta, parametros = []) => {
       return reject(error);
     }
 
+    const tiempoInicio = Date.now();
+    const esRemoto = esConexionRemota();
+    
     Firebird.attach(opciones, (errorConexion, conexion) => {
       if (errorConexion) {
+        const tiempoTranscurrido = Date.now() - tiempoInicio;
+        console.error(`❌ Error conexión ${esRemoto ? 'REMOTA' : 'LOCAL'} (${tiempoTranscurrido}ms):`, errorConexion.message);
         return reject(errorConexion);
       }
 
       conexion.query(consulta, parametros, (errorConsulta, resultados) => {
+        const tiempoTotal = Date.now() - tiempoInicio;
+        
+        // Detach siempre, incluso si hay error
         conexion.detach();
+        
         if (errorConsulta) {
+          console.error(`❌ Error query ${esRemoto ? 'REMOTA' : 'LOCAL'} (${tiempoTotal}ms):`, errorConsulta.message);
           return reject(errorConsulta);
         }
+        
+        // Log solo si tarda más de 2 segundos
+        if (tiempoTotal > 2000) {
+          console.warn(`⏱️ Query lenta ${esRemoto ? 'REMOTA' : 'LOCAL'}: ${tiempoTotal}ms (${resultados.length} filas)`);
+        }
+        
         resolve(resultados);
       });
     });
