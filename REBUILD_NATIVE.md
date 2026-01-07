@@ -23,26 +23,39 @@ npm ci
 npm run postinstall
 ```
 
-4. Generate the native binaries for **both** runtimes (Node CLI + Electron 30). This command:
+4. Generate the native binaries for **both** runtimes (Node CLI + Electron 39). This command:
    - Rebuilds `better-sqlite3` for your current Node version.
-   - Runs `electron-rebuild` targeting Electron 30.
+   - Runs `electron-rebuild` targeting Electron 39.2.7.
    - Stores each `.node` file inside `native_modules/<variant>` so both runtimes can swap automatically.
 ```pwsh
 npm run rebuild-native
 ```
 
-5. Start the server for local development (Node runtime):
+5. **IMPORTANT:** Before publishing/packaging, ensure Electron binaries are active:
+```pwsh
+npm run rebuild-native-electron
+npm run native:status
+```
+You should see "almacen electron: OK".
+
+6. Start the server for local development (Node runtime):
 ```pwsh
 npm run server
 ```
 
-6. If you need to package the app for Windows (NSIS):
+7. If you need to package the app for Windows (NSIS):
 ```pwsh
 npm run dist
 ```
 
+8. To publish to GitHub releases (automatically recompiles):
+```pwsh
+npm run publish
+```
+
 Common errors and solutions
-- "The module was compiled against a different Node.js version" - Run `npm run rebuild-native` so the project regenerates both variants under `native_modules/` and auto-selects them when `better-sqlite3` is required.
+- **"The module was compiled against a different Node.js version"** - This happens when the wrong binary variant is active. Run `npm run rebuild-native-electron` before packaging/publishing.
+- **NODE_MODULE_VERSION mismatch** - The binary was compiled for a different Electron/Node version. Always run `npm run rebuild-native-electron` before publishing. See `SOLUCION_ERROR_NODE_MODULE_VERSION.md` for details.
 - If `electron-rebuild` fails due to `node-gyp` errors, make sure you installed Build Tools and the Visual Studio SDK.
 - Permission denied when running `electron-rebuild` — run PowerShell as administrator.
 
