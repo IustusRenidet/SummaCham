@@ -158,11 +158,11 @@
         });
       };
 
-      // Restaurar estado del toggle
+      // Estado inicial: siempre desactivado (false) por defecto
+      // Solo activar si el usuario lo cambió manualmente y está guardado como 'true'
       const savedRoundState = localStorage.getItem(storageKey);
-      if (savedRoundState === 'true') {
-        roundToggle.checked = true;
-      }
+      // NOTA: Por defecto el toggle está desactivado, no se aplica redondeo automáticamente
+      roundToggle.checked = savedRoundState === 'true' ? true : false;
       
       // Event listener para el toggle
       roundToggle.addEventListener('change', function() {
@@ -171,29 +171,11 @@
         aplicarRedondeo(redondear);
       });
       
-      // Aplicar redondeo inicial si está activado (inmediatamente y con múltiples intentos)
-      if (savedRoundState === 'true') {
-        // Intento inmediato (por si los datos ya están)
-        setTimeout(() => aplicarRedondeo(true), 0);
-        
-        // Intentos adicionales para datos asíncronos
-        let intentos = 0;
-        const maxIntentos = 10;
-        const checkTable = setInterval(() => {
-          intentos++;
-          const tabla = document.querySelector(tableSelector);
-          const filas = tabla ? tabla.querySelectorAll('tr').length : 0;
-          
-          if (filas > 1) {
-            aplicarRedondeo(true);
-          }
-          
-          // Detener después de max intentos o si ya hay datos
-          if (intentos >= maxIntentos || filas > 1) {
-            clearInterval(checkTable);
-          }
-        }, 300);
-      }
+      // DESACTIVADO: No aplicar redondeo automáticamente al cargar
+      // El usuario debe activarlo manualmente si lo desea
+      // if (savedRoundState === 'true') {
+      //   setTimeout(() => aplicarRedondeo(true), 0);
+      // }
 
       console.log('✅ Toggle de redondeo inicializado para:', storageKey);
     }
