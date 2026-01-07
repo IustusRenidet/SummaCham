@@ -290,7 +290,7 @@ if (!gotTheLock) {
       minHeight: 720,
       backgroundColor: "#f3f6f1",
       autoHideMenuBar: true,
-      icon: iconPath, // Usar ruta directa en lugar de nativeImage
+      icon: appIcon, // Usar nativeImage en lugar de ruta
       title: "Panel AMCHAM",
       webPreferences: {
         contextIsolation: true,
@@ -302,10 +302,13 @@ if (!gotTheLock) {
     // En Windows, establecer el ícono explícitamente después de crear la ventana
     if (process.platform === "win32" && mainWindow && !appIcon.isEmpty()) {
       mainWindow.setIcon(appIcon);
+      
+      // Forzar actualización del overlay icon (para taskbar)
+      mainWindow.setOverlayIcon(appIcon, 'Panel AMCHAM');
 
       // Para Windows 7+: Establecer el AppUserModelId para mejor identificación en taskbar
       if (app.isPackaged) {
-        app.setAppUserModelId("com.amcham.panel");
+        app.setAppUserModelId("com.summa.cham.panelamcham");
       }
     }
 

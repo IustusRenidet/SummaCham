@@ -171,19 +171,28 @@
         aplicarRedondeo(redondear);
       });
       
-      // Aplicar redondeo inicial si está activado (con delay para datos asíncronos)
+      // Aplicar redondeo inicial si está activado (inmediatamente y con múltiples intentos)
       if (savedRoundState === 'true') {
-        // Esperar a que la tabla se llene con datos
+        // Intento inmediato (por si los datos ya están)
+        setTimeout(() => aplicarRedondeo(true), 0);
+        
+        // Intentos adicionales para datos asíncronos
+        let intentos = 0;
+        const maxIntentos = 10;
         const checkTable = setInterval(() => {
+          intentos++;
           const tabla = document.querySelector(tableSelector);
-          if (tabla && tabla.querySelectorAll('tr').length > 1) {
-            clearInterval(checkTable);
+          const filas = tabla ? tabla.querySelectorAll('tr').length : 0;
+          
+          if (filas > 1) {
             aplicarRedondeo(true);
           }
-        }, 200);
-        
-        // Timeout de seguridad
-        setTimeout(() => clearInterval(checkTable), 5000);
+          
+          // Detener después de max intentos o si ya hay datos
+          if (intentos >= maxIntentos || filas > 1) {
+            clearInterval(checkTable);
+          }
+        }, 300);
       }
 
       console.log('✅ Toggle de redondeo inicializado para:', storageKey);
