@@ -31,6 +31,17 @@ async function obtenerResumen({ empresaId, anio, periodo, codigos = [], anioComp
   const usarAjuste = Boolean(usarAjusteEnYTD);
   const listaCodigos = normalizarCodigos(codigos);
 
+  console.log(`\n🔍 [SUMMARY DEBUG] ====================================`);
+  console.log(`📊 Empresa: ${empresaId}`);
+  console.log(`📅 Año actual: ${ejercicio}, Comparativo: ${comp}, Periodo: ${periodoNum}`);
+  console.log(`🔢 Total códigos solicitados: ${listaCodigos.length}`);
+  if (listaCodigos.length > 0 && listaCodigos.length <= 5) {
+    console.log(`📋 Códigos ejemplo:`, listaCodigos);
+  } else if (listaCodigos.length > 5) {
+    console.log(`📋 Primeros 5 códigos:`, listaCodigos.slice(0, 5));
+  }
+  console.log(`================================================\n`);
+
   // Obtener PRESUPUESTO para año actual y comparativo
   const { obtenerPresupuestosPorCuentas } = require('./planeacionCuentasService');
   const [presupuestosActual, presupuestosComp] = await Promise.all([
@@ -42,13 +53,80 @@ async function obtenerResumen({ empresaId, anio, periodo, codigos = [], anioComp
 
   // Consulta ejercicio actual
   const selActual = construirSelectResumen({ anio: ejercicio, periodo: periodoNum, usarAjusteEnYTD: usarAjuste, codigos: listaCodigos });
+  console.log(`📊 [SUMMARY] Consultando ejercicio ${ejercicio} para empresa ${empresaId}`);
+  console.log(`📋 [SUMMARY] SQL: ${selActual.sql.substring(0, 200)}...`);
+  console.log(`🔢 [SUMMARY] Parámetros: ${JSON.stringify(selActual.parametros)}`);
+  
   const filasActual = await ejecutarConsulta(empresaId, selActual.sql, selActual.parametros);
+  console.log(`✅ [SUMMARY] Filas obtenidas para ${ejercicio}: ${filasActual.length}`);
+  
+  if (filasActual.length > 0) {
+    const primerFila = filasActual[0];
+    const tieneDatos = primerFila.MES !== 0 || primerFila.YTD !== 0;
+    console.log(`📝 [SUMMARY] Ejemplo primera fila:`, {
+      codigo: primerFila.CODIGO,
+      descripcion: primerFila.DESCRIPCION?.substring(0, 30),
+      mes: primerFila.MES,
+      ytd: primerFila.YTD,
+      tieneDatos
+    });
+    
+    // Contar cuántas filas tienen datos reales
+    const filasConDatos = filasActual.filter(f => f.MES !== 0 || f.YTD !== 0).length;
+    console.log(`📊 [SUMMARY] Filas con datos (MES o YTD != 0): ${filasConDatos}/${filasActual.length}`);
+    
+    if (filasConDatos === 0) {
+      console.warn(`⚠️ [SUMMARY] TODAS LAS FILAS ESTÁN EN CEROS para año ${ejercicio}`);
+      console.warn(`⚠️ [SUMMARY] Posibles causas:`);
+      console.warn(`   1. Los códigos de cuenta no coinciden con la base (formato diferente)`);
+      console.warn(`   2. La tabla SALDOS${anio.toString().slice(-2)} no tiene EJERCICIO = ${ejercicio}`);
+      console.warn(`   3. Los códigos de cuenta no existen en la base de datos`);
+    }
+  } else {
+    console.warn(`⚠️ [SUMMARY] NO SE ENCONTRARON DATOS para año ${ejercicio}`);
+  }
+  
   const mapaActual = mapearResultados(filasActual);
 
   // Consulta ejercicio comparativo
   const selComp = construirSelectResumen({ anio: comp, periodo: periodoNum, usarAjusteEnYTD: usarAjuste, codigos: listaCodigos });
+  console.log(`📊 [SUMMARY] Consultando ejercicio comparativo ${comp} para empresa ${empresaId}`);
   const filasComp = await ejecutarConsulta(empresaId, selComp.sql, selComp.parametros);
+  console.log(`✅ [SUMMARY] Filas obtenidas para ${comp}: ${filasComp.length}`);
   const mapaComp = mapearResultados(filasComp);
+
+  // 🔍 DIAGNÓSTICO: Verificar qué cuentas SÍ existen en la base si no hay datos
+  const todasEnCeros = filasActual.filter(f => f.MES !== 0 || f.YTD !== 0).length === 0;
+  if (todasEnCeros && filasActual.length > 0) {
+    console.log(`\n🔍 [DIAGNÓSTICO] Verificando cuentas existentes en CUENTAS${ejercicio.toString().slice(-2)}...`);
+    try {
+      const tablaCtas = `CUENTAS${ejercicio.toString().slice(-2)}`;
+      const sqlVerificar = `
+        SELECT FIRST 10
+          NUM_CTA,
+          NOMBRE,
+          NATURALEZA,
+          STATUS
+        FROM ${tablaCtas}
+        WHERE STATUS = 'A'
+        ORDER BY NUM_CTA
+      `;
+      const cuentasReales = await ejecutarConsulta(empresaId, sqlVerificar, []);
+      console.log(`📋 [DIAGNÓSTICO] Cuentas que SÍ existen en la base (primeras 10):`);
+      cuentasReales.forEach((c, i) => {
+        console.log(`   ${i+1}. ${c.NUM_CTA} - ${c.NOMBRE?.substring(0, 40)}`);
+      });
+      
+      console.log(`\n🔍 [DIAGNÓSTICO] Comparando con códigos solicitados:`);
+      const primerosCodigosSolicitados = listaCodigos.slice(0, 3);
+      primerosCodigosSolicitados.forEach(codigo => {
+        const existe = cuentasReales.some(c => c.NUM_CTA.trim() === codigo);
+        console.log(`   ${codigo}: ${existe ? '✅ EXISTE' : '❌ NO ENCONTRADO'}`);
+      });
+    } catch (err) {
+      console.error(`❌ [DIAGNÓSTICO] Error al verificar cuentas:`, err.message);
+    }
+  }
 
   // Armar detalle por código
   const normalizarTexto = (valor) => (valor == null ? '' : String(valor).trim());
