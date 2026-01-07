@@ -928,6 +928,28 @@
         inputUsuario.addEventListener("blur", evaluarModoIconet);
       }
 
+      const construirPermisosCompletos = () => {
+        const resultado = {};
+        const empresas =
+          Array.isArray(empresasDisponibles) && empresasDisponibles.length > 0
+            ? empresasDisponibles
+            : Sesion.obtenerEmpresasDisponibles(sesion) || [];
+
+        empresas.forEach((empresa) => {
+          const empresaId = empresa?.id != null ? String(empresa.id) : "";
+          if (!empresaId) return;
+          resultado[empresaId] = {};
+          MODULOS.forEach((modulo) => {
+            resultado[empresaId][modulo] = {};
+            ACCIONES.forEach((accion) => {
+              resultado[empresaId][modulo][accion] = true;
+            });
+          });
+        });
+
+        return resultado;
+      };
+
       const recopilarDatos = (esEdicion) => {
         const esAdmin = switchAdminGlobal.checked;
         const contrasenaValor = inputContrasena.value.trim();
@@ -943,7 +965,7 @@
             puedeModificar: checkPermModificar.checked,
             puedeEliminar: checkPermEliminar.checked,
           },
-          permisos: obtenerPermisosDelFormulario(),
+          permisos: esAdmin ? construirPermisosCompletos() : obtenerPermisosDelFormulario(),
         };
 
         if (!esEdicion || contrasenaValor !== contrasenaOriginal) {
@@ -951,13 +973,6 @@
         }
 
         if (esAdmin) {
-          Object.keys(base.permisos).forEach((empresaId) => {
-            Object.keys(base.permisos[empresaId]).forEach((modulo) => {
-              ACCIONES.forEach((accion) => {
-                base.permisos[empresaId][modulo][accion] = true;
-              });
-            });
-          });
           base.permisosGenerales = {
             puedeAgregar: true,
             puedeModificar: true,
