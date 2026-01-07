@@ -3,8 +3,12 @@ const Joi = require('joi');
 const { generarSummary } = require('../services/engines/summaryEngine');
 const { generarResumenEjecutivo } = require('../services/engines/resumenEngine');
 const { obtenerEmpresaPorId } = require('../config/empresas');
+const { requireAuth, tienePermisoEmpresa } = require('../middleware/auth');
+const { esUsuarioPermitidoResumen } = require('../services/usuariosPolicy');
 
 const router = express.Router();
+
+router.use(requireAuth);
 
 const esquemaConsulta = Joi.object({
   empresaId: Joi.string().trim().required(),
@@ -49,6 +53,12 @@ router.get('/summary', async (req, res) => {
   if (!empresa) {
     return res.status(404).json({ mensaje: 'Empresa no encontrada.' });
   }
+  if (!req.esAdmin && !tienePermisoEmpresa(req.mapaPermisos, value.empresaId)) {
+    return res.status(403).json({ mensaje: 'No cuentas con permisos para esta empresa.' });
+  }
+  if (!req.esAdmin && !esUsuarioPermitidoResumen(req.usuarioActual?.usuario)) {
+    return res.status(403).json({ mensaje: 'No cuentas con permisos para este reporte.' });
+  }
   try {
     const data = await generarSummary(value.empresaId, normalizarAnio(value.anio), normalizarMes(value.mes), value.capitulo);
     res.json(data);
@@ -66,6 +76,12 @@ router.get('/resumen', async (req, res) => {
   const empresa = obtenerEmpresaPorId(value.empresaId);
   if (!empresa) {
     return res.status(404).json({ mensaje: 'Empresa no encontrada.' });
+  }
+  if (!req.esAdmin && !tienePermisoEmpresa(req.mapaPermisos, value.empresaId)) {
+    return res.status(403).json({ mensaje: 'No cuentas con permisos para esta empresa.' });
+  }
+  if (!req.esAdmin && !esUsuarioPermitidoResumen(req.usuarioActual?.usuario)) {
+    return res.status(403).json({ mensaje: 'No cuentas con permisos para este reporte.' });
   }
   try {
     // Usar el nuevo motor unificado

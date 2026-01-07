@@ -28,6 +28,7 @@
   const CLASE_EDITABLE = "editable-cell";
   const CLASE_EDITANDO = "cell-editing";
   const CLASE_MODIFICADO = "cell-modified";
+  const CLASE_ACTIVA = "cell-active";
 
   // Estado global del módulo
   const estado = {
@@ -35,6 +36,8 @@
     cambiosCapturados: {},
     cuentasDisponibles: [],
     selectorTabla: SELECTOR_TABLA,
+    layoutModificado: false,
+    celdaActiva: null,
     soloLayout: false, // Nueva opción: solo editar cuenta/descripción, no valores numéricos
     persistiendo: false, // Flag para evitar recursión infinita
   };
@@ -68,6 +71,50 @@
     return Number.isFinite(numero) ? numero : 0;
   }
 
+  const TEXT_COLUMNS = new Set(["cuenta", "descripcion", "nombre"]);
+
+  function esCeldaTextoEditable(celda) {
+    if (!celda || !celda.dataset) return false;
+    const clave = (celda.dataset.columnaClave || "").toLowerCase();
+    if (!TEXT_COLUMNS.has(clave)) return false;
+    if (celda.dataset.editableReal === "false") return false;
+    return true;
+  }
+
+  function esCeldaEditable(celda) {
+    if (!celda) return false;
+    if (estado.soloLayout) {
+      return esCeldaTextoEditable(celda);
+    }
+    return Boolean(celda.dataset.mes);
+  }
+
+  function limpiarCeldaActiva() {
+    if (!estado.celdaActiva) return;
+    estado.celdaActiva.classList.remove(CLASE_ACTIVA);
+    estado.celdaActiva = null;
+  }
+
+  function establecerCeldaActiva(celda) {
+    if (!celda) return;
+    ensureEditorInlineStyles();
+    if (estado.celdaActiva && estado.celdaActiva !== celda) {
+      estado.celdaActiva.classList.remove(CLASE_ACTIVA);
+    }
+    estado.celdaActiva = celda;
+    celda.classList.add(CLASE_ACTIVA);
+    if (!celda.hasAttribute("tabindex")) {
+      celda.tabIndex = 0;
+    }
+    try {
+      celda.focus({ preventScroll: true });
+    } catch (err) {
+      try {
+        celda.focus();
+      } catch (err2) {}
+    }
+  }
+
   function ensureEditorInlineStyles() {
     if (document.getElementById("excel-inline-style")) return;
     const style = document.createElement("style");
@@ -85,6 +132,10 @@
       }
       .excel-inline-input:focus {
         outline: 2px solid #2f5496 !important;
+      }
+      .cell-active {
+        outline: 2px solid #2f5496;
+        outline-offset: -2px;
       }
     `;
     document.head.appendChild(style);
@@ -472,7 +523,9 @@
         celda.dataset.modoEdicionInit = "true";
 
         celda.classList.add(CLASE_EDITABLE);
+        celda.classList.add("editable");
         celda.style.cursor = "pointer";
+        prepararCeldaNavegable(celda);
 
         celda.addEventListener("click", (evento) => {
           if (!estado.modoEdicionActivo) return;
@@ -484,6 +537,26 @@
         // en commitEditor() donde se verifica si el valor realmente cambió
       });
     }
+    if (estado.soloLayout) {
+      const celdasTexto = tabla.querySelectorAll("td[data-columna-clave]");
+      celdasTexto.forEach((celda) => {
+        if (!esCeldaTextoEditable(celda)) return;
+        if (celda.dataset.modoEdicionInit) return;
+        celda.dataset.modoEdicionInit = "true";
+
+        celda.classList.add(CLASE_EDITABLE);
+        celda.classList.add("editable");
+        celda.style.cursor = "pointer";
+        prepararCeldaNavegable(celda);
+
+        celda.addEventListener("click", (evento) => {
+          if (!estado.modoEdicionActivo) return;
+          evento.stopPropagation();
+          activarEdicionTextoEnCelda(celda);
+        });
+      });
+    }
+
 
     // IMPORTANTE: Las columnas CUENTAS y DESCRIPCIÓN NO deben ser editables NUNCA
     // Solo las columnas month-budget son editables cuando el modo edición está activo
@@ -495,6 +568,7 @@
   function activarEdicionEnCelda(celda) {
     if (!celda || !estado.modoEdicionActivo) return;
     if (editorState.celda === celda) return;
+    establecerCeldaActiva(celda);
     const numero = obtenerNumeroDesdeCelda(celda);
     const display = celda.textContent?.trim() || formatearNumero(numero);
     iniciarEdicionInline(celda, `${numero}`, {
@@ -511,9 +585,11 @@
     if (!celda || !estado.modoEdicionActivo) return;
     // Solo permitir editar texto (cuenta/descripción) en plantillas.html
     const esPlantillas = window.location.pathname.includes("plantillas.html");
-    if (!esPlantillas) return;
+    if (!esPlantillas && !estado.soloLayout) return;
+    if (estado.soloLayout && !esCeldaTextoEditable(celda)) return;
 
     if (editorState.celda === celda) return;
+    establecerCeldaActiva(celda);
     const valor = celda.textContent?.trim() || "";
     const opciones = { tipo: "texto" };
     const columna = celda.dataset.columnaClave || "";
@@ -528,6 +604,24 @@
 
   function manejarTeclasEditor(evento) {
     if (!editorState.celda) return;
+    const accel = evento.ctrlKey || evento.metaKey;
+    if (accel && !evento.altKey) {
+      const key = (evento.key || "").toLowerCase();
+      if (key === "d") {
+        evento.preventDefault();
+        const celda = editorState.celda;
+        commitEditor();
+        rellenarDireccion(celda, "down", { hastaFinal: evento.shiftKey });
+        return;
+      }
+      if (key === "r") {
+        evento.preventDefault();
+        const celda = editorState.celda;
+        commitEditor();
+        rellenarDireccion(celda, "right", { hastaFinal: evento.shiftKey });
+        return;
+      }
+    }
     switch (evento.key) {
       case "Enter":
         evento.preventDefault();
@@ -602,6 +696,7 @@
       }
     } finally {
       editorState.commitEnProgreso = false;
+      establecerCeldaActiva(celda);
       ocultarEditor();
     }
 
@@ -622,6 +717,7 @@
     const celda = editorState.celda;
     celda.textContent = editorState.valorOriginal;
     celda.classList.remove(CLASE_EDITANDO);
+    establecerCeldaActiva(celda);
     ocultarEditor();
   }
 
@@ -685,6 +781,214 @@
     if (direccion === "up") return buscarVertical(-1);
     if (direccion === "down") return buscarVertical(1);
     return null;
+  }
+
+  function obtenerCeldaVecinaEditable(celda, direccion) {
+    if (!celda) return null;
+    const fila = celda.closest("tr");
+    if (!fila) return null;
+    const cuerpo = fila.parentElement;
+    const filas = Array.from(cuerpo?.querySelectorAll("tr") || []);
+    const filaIndex = filas.indexOf(fila);
+    if (filaIndex < 0) return null;
+
+    if (celda.dataset.mes) {
+      if (direccion === "left" || direccion === "right") {
+        const numericas = Array.from(fila.querySelectorAll("td[data-mes]"));
+        const idx = numericas.indexOf(celda);
+        if (idx < 0) return null;
+        const paso = direccion === "left" ? -1 : 1;
+        for (let i = idx + paso; i >= 0 && i < numericas.length; i += paso) {
+          const candidato = numericas[i];
+          if (candidato && candidato.offsetParent !== null) return candidato;
+        }
+        return null;
+      }
+      if (direccion === "up" || direccion === "down") {
+        const paso = direccion === "up" ? -1 : 1;
+        for (let i = filaIndex + paso; i >= 0 && i < filas.length; i += paso) {
+          const row = filas[i];
+          const candidato = row.querySelector(
+            `td[data-mes="${celda.dataset.mes}"]`
+          );
+          if (candidato && candidato.offsetParent !== null) return candidato;
+        }
+        return null;
+      }
+    }
+
+    if (esCeldaTextoEditable(celda)) {
+      const cells = Array.from(fila.cells || []);
+      const colIndex = cells.indexOf(celda);
+      if (colIndex < 0) return null;
+
+      if (direccion === "left" || direccion === "right") {
+        const paso = direccion === "left" ? -1 : 1;
+        for (let i = colIndex + paso; i >= 0 && i < cells.length; i += paso) {
+          const candidato = cells[i];
+          if (esCeldaTextoEditable(candidato) && candidato.offsetParent !== null)
+            return candidato;
+        }
+        return null;
+      }
+      if (direccion === "up" || direccion === "down") {
+        const paso = direccion === "up" ? -1 : 1;
+        for (let i = filaIndex + paso; i >= 0 && i < filas.length; i += paso) {
+          const row = filas[i];
+          const candidato = row.cells[colIndex];
+          if (esCeldaTextoEditable(candidato) && candidato.offsetParent !== null)
+            return candidato;
+        }
+        return null;
+      }
+    }
+
+    return null;
+  }
+
+  function extraerValorCelda(celda) {
+    if (!celda) return null;
+    if (celda.dataset.mes) {
+      return { tipo: "numero", numero: obtenerNumeroDesdeCelda(celda) };
+    }
+    return { tipo: "texto", texto: (celda.textContent || "").trim() };
+  }
+
+  function aplicarValorEnCelda(celda, valor) {
+    if (!celda || !valor) return false;
+    if (valor.tipo === "numero") {
+      if (!celda.dataset.mes) return false;
+      const previo = obtenerNumeroDesdeCelda(celda);
+      const numero = Number.isFinite(valor.numero) ? valor.numero : 0;
+      celda.dataset.valorPlano = `${numero}`;
+      celda.textContent = formatearNumero(numero);
+      celda.classList.remove(CLASE_EDITANDO);
+      if (Math.abs(numero - previo) > 0.0001) {
+        marcarComoModificado(celda);
+        capturarCambio(celda, numero);
+      }
+      return true;
+    }
+    if (!esCeldaTextoEditable(celda)) return false;
+    const previo = (celda.textContent || "").trim();
+    const nuevo = (valor.texto || "").toString().trim();
+    const textoFinal = nuevo || previo;
+    celda.classList.remove(CLASE_EDITANDO);
+    celda.textContent = textoFinal;
+    if (textoFinal !== previo) {
+      marcarComoModificado(celda);
+      const fila = celda.closest("tr");
+      if (fila && celda.dataset.columnaClave === "cuenta") {
+        fila.dataset.cuenta = textoFinal || "";
+      }
+      estado.layoutModificado = true;
+    }
+    return true;
+  }
+
+  function rellenarDireccion(celda, direccion, opciones = {}) {
+    if (!celda) return null;
+    const valor = opciones.valor || extraerValorCelda(celda);
+    if (!valor) return null;
+    let actual = celda;
+    let destino = obtenerCeldaVecinaEditable(actual, direccion);
+    let ultimo = null;
+
+    while (destino) {
+      if (!aplicarValorEnCelda(destino, valor)) break;
+      ultimo = destino;
+      if (!opciones.hastaFinal) break;
+      actual = destino;
+      destino = obtenerCeldaVecinaEditable(actual, direccion);
+    }
+
+    if (ultimo) {
+      establecerCeldaActiva(ultimo);
+    } else {
+      establecerCeldaActiva(celda);
+    }
+    return ultimo;
+  }
+
+  function manejarTeclasCelda(evento) {
+    if (!estado.modoEdicionActivo) return;
+    const celda = evento.currentTarget;
+    if (!esCeldaEditable(celda)) return;
+
+    const accel = evento.ctrlKey || evento.metaKey;
+    if (accel && !evento.altKey) {
+      const key = (evento.key || "").toLowerCase();
+      if (key === "d") {
+        evento.preventDefault();
+        rellenarDireccion(celda, "down", { hastaFinal: evento.shiftKey });
+        return;
+      }
+      if (key === "r") {
+        evento.preventDefault();
+        rellenarDireccion(celda, "right", { hastaFinal: evento.shiftKey });
+        return;
+      }
+    }
+
+    switch (evento.key) {
+      case "Enter":
+      case "F2": {
+        evento.preventDefault();
+        if (celda.dataset.mes) {
+          activarEdicionEnCelda(celda);
+        } else if (esCeldaTextoEditable(celda)) {
+          activarEdicionTextoEnCelda(celda);
+        }
+        break;
+      }
+      case "ArrowDown": {
+        evento.preventDefault();
+        const siguiente = obtenerCeldaVecinaEditable(celda, "down");
+        if (siguiente) establecerCeldaActiva(siguiente);
+        break;
+      }
+      case "ArrowUp": {
+        evento.preventDefault();
+        const siguiente = obtenerCeldaVecinaEditable(celda, "up");
+        if (siguiente) establecerCeldaActiva(siguiente);
+        break;
+      }
+      case "ArrowLeft": {
+        evento.preventDefault();
+        const siguiente = obtenerCeldaVecinaEditable(celda, "left");
+        if (siguiente) establecerCeldaActiva(siguiente);
+        break;
+      }
+      case "ArrowRight": {
+        evento.preventDefault();
+        const siguiente = obtenerCeldaVecinaEditable(celda, "right");
+        if (siguiente) establecerCeldaActiva(siguiente);
+        break;
+      }
+      case "Tab": {
+        evento.preventDefault();
+        const dir = evento.shiftKey ? "left" : "right";
+        const siguiente = obtenerCeldaVecinaEditable(celda, dir);
+        if (siguiente) establecerCeldaActiva(siguiente);
+        break;
+      }
+      default:
+        break;
+    }
+  }
+
+  function prepararCeldaNavegable(celda) {
+    if (!celda || celda.dataset.modoEdicionNavInit) return;
+    celda.dataset.modoEdicionNavInit = "true";
+    if (!celda.hasAttribute("tabindex")) {
+      celda.tabIndex = 0;
+    }
+    celda.addEventListener("focus", () => {
+      if (!estado.modoEdicionActivo) return;
+      if (!esCeldaEditable(celda)) return;
+      establecerCeldaActiva(celda);
+    });
+    celda.addEventListener("keydown", manejarTeclasCelda);
   }
 
   /**
@@ -868,6 +1172,7 @@
         });
 
       if (guardadoLocal) {
+        estado.layoutModificado = false;
         console.log("✅ Layout persistido (localStorage)", {
           moduloClave,
           empresaId: empresa.id,
@@ -936,6 +1241,7 @@
    */
   function limpiarCambios() {
     estado.cambiosCapturados = {};
+    estado.layoutModificado = false;
 
     // Remover estilos de modificado
     const { tabla } = resolverTabla(estado.selectorTabla);
@@ -985,6 +1291,8 @@
       editando.textContent = editando.querySelector("input")?.value || "";
       editando.classList.remove(CLASE_EDITANDO);
     }
+    ocultarEditor();
+    limpiarCeldaActiva();
 
     console.log("ModoEdicionPresupuesto: modo edicion desactivado");
   }
@@ -1401,8 +1709,7 @@
      * Propiedad para verificar si hay cambios en layout
      */
     get layoutModificado() {
-      // Por ahora siempre retornar true si hay un layout capturado
-      return true;
+      return Boolean(estado.layoutModificado);
     },
   };
 

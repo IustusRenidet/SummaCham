@@ -126,7 +126,7 @@ const construirSesion = async (registro) => {
 };
 
 router.post('/login', async (req, res) => {
-  console.log('🔐 Intento de login:', req.body);
+  console.log('Login intento:', { usuario: req.body?.usuario, ip: req.ip });
   const rateKey = checkRateLimit(req, res);
   if (!rateKey) return;
 
@@ -158,13 +158,8 @@ router.post('/login', async (req, res) => {
     return res.status(401).json({ mensaje: 'Usuario o contrase¤a incorrectos.' });
   }
 
-  console.log('🔑 Comparando contraseñas...');
-  console.log('   Contraseña recibida:', value.contrasena);
-  console.log('   Hash en DB:', registro.contrasena ? registro.contrasena.substring(0, 20) + '...' : 'NULL');
-  
   const contrasenaCorrecta = await bcrypt.compare(value.contrasena, registro.contrasena);
-  console.log('✅ Contraseña correcta:', contrasenaCorrecta);
-  
+
   if (!contrasenaCorrecta) {
     registerAttempt(rateKey, false);
     return res.status(401).json({ mensaje: 'Usuario o contrase¤a incorrectos.' });

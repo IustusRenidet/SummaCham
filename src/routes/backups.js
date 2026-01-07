@@ -8,6 +8,9 @@ const router = express.Router();
 const backupService = require("../services/backupService");
 const { requireAuth } = require("../middleware/auth");
 
+const esAdminGlobal = (req) =>
+  Boolean(req.esAdmin || req.usuarioActual?.esAdminGlobal || req.usuarioActual?.es_admin_global);
+
 /**
  * GET /api/backups/status
  * Obtiene el estado del servicio de backups
@@ -56,7 +59,7 @@ router.get("/list", requireAuth, async (req, res) => {
 router.post("/create", requireAuth, async (req, res) => {
   try {
     // Verificar que el usuario sea administrador
-    if (!req.usuario?.es_admin_global) {
+    if (!esAdminGlobal(req)) {
       return res.status(403).json({
         success: false,
         error: "Acceso denegado. Solo administradores pueden crear backups.",
@@ -85,7 +88,7 @@ router.post("/create", requireAuth, async (req, res) => {
 router.post("/restore", requireAuth, async (req, res) => {
   try {
     // Verificar que el usuario sea administrador
-    if (!req.usuario?.es_admin_global) {
+    if (!esAdminGlobal(req)) {
       return res.status(403).json({
         success: false,
         error: "Acceso denegado. Solo administradores pueden restaurar backups.",
@@ -123,7 +126,7 @@ router.post("/restore", requireAuth, async (req, res) => {
 router.get("/download/:fileName", requireAuth, (req, res) => {
   try {
     // Verificar que el usuario sea administrador
-    if (!req.usuario?.es_admin_global) {
+    if (!esAdminGlobal(req)) {
       return res.status(403).json({
         success: false,
         error: "Acceso denegado",
@@ -171,7 +174,7 @@ router.get("/download/:fileName", requireAuth, (req, res) => {
 router.put("/config", requireAuth, (req, res) => {
   try {
     // Verificar que el usuario sea administrador
-    if (!req.usuario?.es_admin_global) {
+    if (!esAdminGlobal(req)) {
       return res.status(403).json({
         success: false,
         error: "Acceso denegado",

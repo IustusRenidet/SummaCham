@@ -1383,7 +1383,7 @@
   };
 
   document.addEventListener('DOMContentLoaded', async () => {
-    try { window.ModoEdicionPresupuesto?.inicializar?.(); } catch (e) { /* ignore */ }
+    try { window.ModoEdicionPresupuesto?.inicializar?.(undefined, { soloLayout: true }); } catch (e) { /* ignore */ }
     const sesion = Sesion.requerirSesion();
     if (!sesion) return;
 

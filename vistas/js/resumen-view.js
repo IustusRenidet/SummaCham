@@ -2985,7 +2985,7 @@
 
   document.addEventListener("DOMContentLoaded", async () => {
     try {
-      window.ModoEdicionPresupuesto?.inicializar?.();
+      window.ModoEdicionPresupuesto?.inicializar?.(undefined, { soloLayout: true });
     } catch (e) {
       /* ignore */
     }

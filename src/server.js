@@ -3,10 +3,37 @@ const helmet = require("helmet");
 const path = require("path");
 const session = require("express-session");
 const cookieParser = require("cookie-parser");
-const { inicializarBaseDatos } = require("./db/sqlite");
+const { inicializarBaseDatos, getDb } = require("./db/sqlite");
 const backupService = require("./services/backupService");
+const SqliteStore = require("better-sqlite3-session-store")(session);
 
 let instanciaServidor = null;
+
+const JWT_SECRET_DEFAULT = "cambia-este-secreto";
+const SESSION_SECRET_DEFAULT = "cambia-este-secreto-de-sesion-en-produccion";
+
+const asegurarSecretos = () => {
+  const faltantes = [];
+  const jwtSecret = process.env.PANELAMCHAM_JWT_SECRET || "";
+  const sessionSecret = process.env.SESSION_SECRET || "";
+
+  if (!jwtSecret || jwtSecret === JWT_SECRET_DEFAULT) {
+    faltantes.push("PANELAMCHAM_JWT_SECRET");
+  }
+  if (!sessionSecret || sessionSecret === SESSION_SECRET_DEFAULT) {
+    faltantes.push("SESSION_SECRET");
+  }
+
+  if (faltantes.length === 0) {
+    return;
+  }
+
+  const mensaje = `Secrets no configurados o inseguros: ${faltantes.join(", ")}.`;
+  if ((process.env.NODE_ENV || "development") === "production") {
+    throw new Error(mensaje);
+  }
+  console.warn(mensaje);
+};
 
 const iniciarServidor = (puerto = Number(process.env.PORT || 3005)) => {
   if (instanciaServidor) {
@@ -19,6 +46,8 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3005)) => {
   console.log("🚀 Iniciando servidor Express...");
   console.log("  Puerto configurado:", puerto);
   console.log("  NODE_ENV:", process.env.NODE_ENV || "development");
+
+  asegurarSecretos();
 
   try {
     inicializarBaseDatos();
@@ -98,12 +127,21 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3005)) => {
 
   app.use(cookieParser());
 
+  const sessionSecret =
+    process.env.SESSION_SECRET || SESSION_SECRET_DEFAULT;
+  const sessionStore = new SqliteStore({
+    client: getDb(),
+    expired: {
+      clear: true,
+      intervalMs: 15 * 60 * 1000
+    }
+  });
+
   // Configuración de sesiones para múltiples usuarios simultáneos
   app.use(
     session({
-      secret:
-        process.env.SESSION_SECRET ||
-        "cambia-este-secreto-de-sesion-en-produccion",
+      store: sessionStore,
+      secret: sessionSecret,
       name: "panelamcham.sid",
       resave: false,
       saveUninitialized: false,
@@ -116,8 +154,7 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3005)) => {
         sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // 'none' permite cookies cross-site en HTTPS
         domain: process.env.COOKIE_DOMAIN || undefined, // Para túnel: '.iconetcloud.com.mx'
       },
-      // Store en memoria (para producción considera usar connect-sqlite3 o redis)
-      // Esto permite múltiples usuarios con sesiones independientes
+      // Store en SQLite para sesiones persistentes
     })
   );
 

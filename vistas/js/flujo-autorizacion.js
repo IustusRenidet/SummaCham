@@ -114,15 +114,23 @@
         font-size: 0.75rem;
         color: #5f3c1c;
       }
-      .modo-edicion td.editable {
+      .modo-edicion td.editable,
+      .modo-edicion td.editable-cell,
+      .modo-edicion-activo td.editable-cell {
         cursor: pointer;
         background-color: #f0f8ff !important;
       }
-      .modo-edicion td.editable:hover {
+      .modo-edicion td.editable:hover,
+      .modo-edicion td.editable-cell:hover,
+      .modo-edicion-activo td.editable-cell:hover {
         background-color: #e6f2ff !important;
       }
       .modo-edicion td.editable:focus,
-      .modo-edicion td.editable:active {
+      .modo-edicion td.editable:active,
+      .modo-edicion td.editable-cell:focus,
+      .modo-edicion td.editable-cell:active,
+      .modo-edicion-activo td.editable-cell:focus,
+      .modo-edicion-activo td.editable-cell:active {
         outline: 2px solid #2f5496 !important;
         background-color: #ffffff !important;
         box-shadow: 0 0 0 3px rgba(47, 84, 150, 0.25) !important;
@@ -1267,6 +1275,14 @@
           console.log("🔴 Flujo Autorización: modo edición DESACTIVADO");
         } catch (e) {
           console.warn("Error desactivando ModoEdicionPresupuesto:", e);
+        }
+      }
+      
+      if (window.ModoEdicionPresupuesto?.limpiar) {
+        try {
+          window.ModoEdicionPresupuesto.limpiar();
+        } catch (e) {
+          console.warn("Error limpiando ModoEdicionPresupuesto:", e);
         }
       }
       this._renderBotones();

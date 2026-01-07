@@ -4312,6 +4312,66 @@
       }
     };
 
+    const obtenerCeldaVecinaEditable = (celdaActual, direccion) => {
+      if (!celdaActual) return null;
+      const fila = celdaActual.parentElement;
+      const filasEdit = obtenerFilasCuenta();
+      const filaIndex = filasEdit.indexOf(fila);
+      const colIndex = Array.from(fila.cells).indexOf(celdaActual);
+      if (filaIndex < 0 || colIndex < 0) return null;
+
+      if (direccion === "arriba" && filaIndex > 0) {
+        const target = filasEdit[filaIndex - 1].cells[colIndex];
+        return target?.dataset.editable ? target : null;
+      }
+      if (direccion === "abajo" && filaIndex < filasEdit.length - 1) {
+        const target = filasEdit[filaIndex + 1].cells[colIndex];
+        return target?.dataset.editable ? target : null;
+      }
+      if (direccion === "izquierda" || direccion === "derecha") {
+        const editables = obtenerCeldasEditablesFila(fila);
+        const idx = editables.indexOf(celdaActual);
+        if (idx < 0) return null;
+        const paso = direccion === "izquierda" ? -1 : 1;
+        const target = editables[idx + paso];
+        return target || null;
+      }
+      return null;
+    };
+
+    const copiarEnDireccion = (celdaActual, direccion, hastaFinal) => {
+      if (!celdaActual || !celdaActual.dataset.editable) return;
+      const tipo = celdaActual.dataset.editable;
+      const valor = celdaActual.textContent || "";
+      let actual = celdaActual;
+      let destino = obtenerCeldaVecinaEditable(actual, direccion);
+      let ultimo = null;
+
+      while (destino) {
+        if (destino.dataset.editable !== tipo) break;
+        destino.textContent = valor;
+        if (tipo === "budget") {
+          actualizarPresupuestoCelda(
+            destino.parentElement,
+            destino.dataset.columnaClave,
+            destino
+          );
+        } else if (tipo === "cuenta") {
+          manejarCambioCuenta(destino.parentElement, destino);
+        } else if (tipo === "nombre") {
+          manejarCambioNombre(destino.parentElement, destino);
+        }
+        ultimo = destino;
+        if (!hastaFinal) break;
+        actual = destino;
+        destino = obtenerCeldaVecinaEditable(actual, direccion);
+      }
+
+      if (ultimo) {
+        enfocarCelda(ultimo);
+      }
+    };
+
     filas.forEach((fila) => {
       const celdaCuenta = fila.cells[0];
       const celdaNombre = fila.cells[1];
@@ -4330,9 +4390,26 @@
           setTimeout(() => ocultarSugerencias(), 150);
         });
         celdaCuenta.addEventListener("keydown", (evt) => {
+          const accel = evt.ctrlKey || evt.metaKey;
+          if (accel && !evt.altKey) {
+            const key = (evt.key || "").toLowerCase();
+            if (key === "d") {
+              evt.preventDefault();
+              copiarEnDireccion(celdaCuenta, "abajo", evt.shiftKey);
+              return;
+            }
+            if (key === "r") {
+              evt.preventDefault();
+              copiarEnDireccion(celdaCuenta, "derecha", evt.shiftKey);
+              return;
+            }
+          }
           if (evt.key === "Enter") {
             evt.preventDefault();
             celdaCuenta.blur();
+          } else if (evt.key === "Tab") {
+            evt.preventDefault();
+            moverFocus(celdaCuenta, evt.shiftKey ? "izquierda" : "derecha");
           } else if (evt.key === "ArrowRight") {
             evt.preventDefault();
             moverFocus(celdaCuenta, "derecha");
@@ -4364,9 +4441,26 @@
           manejarCambioNombre(fila, celdaNombre)
         );
         celdaNombre.addEventListener("keydown", (evt) => {
+          const accel = evt.ctrlKey || evt.metaKey;
+          if (accel && !evt.altKey) {
+            const key = (evt.key || "").toLowerCase();
+            if (key === "d") {
+              evt.preventDefault();
+              copiarEnDireccion(celdaNombre, "abajo", evt.shiftKey);
+              return;
+            }
+            if (key === "r") {
+              evt.preventDefault();
+              copiarEnDireccion(celdaNombre, "derecha", evt.shiftKey);
+              return;
+            }
+          }
           if (evt.key === "Enter") {
             evt.preventDefault();
             celdaNombre.blur();
+          } else if (evt.key === "Tab") {
+            evt.preventDefault();
+            moverFocus(celdaNombre, evt.shiftKey ? "izquierda" : "derecha");
           } else if (evt.key === "ArrowLeft") {
             evt.preventDefault();
             moverFocus(celdaNombre, "izquierda");
@@ -4395,9 +4489,26 @@
           actualizarPresupuestoCelda(fila, clave, celda)
         );
         celda.addEventListener("keydown", (evt) => {
+          const accel = evt.ctrlKey || evt.metaKey;
+          if (accel && !evt.altKey) {
+            const key = (evt.key || "").toLowerCase();
+            if (key === "d") {
+              evt.preventDefault();
+              copiarEnDireccion(celda, "abajo", evt.shiftKey);
+              return;
+            }
+            if (key === "r") {
+              evt.preventDefault();
+              copiarEnDireccion(celda, "derecha", evt.shiftKey);
+              return;
+            }
+          }
           if (evt.key === "Enter") {
             evt.preventDefault();
             celda.blur();
+          } else if (evt.key === "Tab") {
+            evt.preventDefault();
+            moverFocus(celda, evt.shiftKey ? "izquierda" : "derecha");
           } else if (evt.key === "ArrowLeft") {
             evt.preventDefault();
             moverFocus(celda, "izquierda");
