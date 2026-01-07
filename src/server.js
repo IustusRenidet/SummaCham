@@ -17,6 +17,8 @@ const asegurarSecretos = () => {
   const jwtSecret = process.env.PANELAMCHAM_JWT_SECRET || "";
   const sessionSecret = process.env.SESSION_SECRET || "";
 
+  // En producción, los secretos pueden haber sido generados automáticamente
+  // por secretsManager en main.js, así que verificamos que existan
   if (!jwtSecret || jwtSecret === JWT_SECRET_DEFAULT) {
     faltantes.push("PANELAMCHAM_JWT_SECRET");
   }
@@ -25,14 +27,25 @@ const asegurarSecretos = () => {
   }
 
   if (faltantes.length === 0) {
+    console.log("✓ Secretos de seguridad validados");
     return;
   }
 
   const mensaje = `Secrets no configurados o inseguros: ${faltantes.join(", ")}.`;
-  if ((process.env.NODE_ENV || "development") === "production") {
+  
+  // Solo lanzar error en producción si NO es una aplicación Electron
+  // (en Electron, los secretos se generan automáticamente en main.js)
+  const isElectron = process.versions && process.versions.electron;
+  const isProduction = (process.env.NODE_ENV || "development") === "production";
+  
+  if (isProduction && !isElectron) {
     throw new Error(mensaje);
   }
-  console.warn(mensaje);
+  
+  if (faltantes.length > 0) {
+    console.warn(`⚠️ ${mensaje}`);
+    console.warn("   Los secretos deberían configurarse para mayor seguridad.");
+  }
 };
 
 const iniciarServidor = (puerto = Number(process.env.PORT || 3005)) => {

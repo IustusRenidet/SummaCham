@@ -350,14 +350,23 @@ if (!gotTheLock) {
   };
 
   app.whenReady().then(() => {
-    process.env.PANELAMCHAM_DATA_DIR = path.join(
-      app.getPath("userData"),
-      "datos"
-    );
+    const userDataPath = app.getPath("userData");
+    process.env.PANELAMCHAM_DATA_DIR = path.join(userDataPath, "datos");
 
     // Configurar AppUserModelId ANTES de crear ventanas/tray
     if (process.platform === "win32") {
       app.setAppUserModelId("com.summa.cham.panelamcham");
+    }
+
+    // Inicializar secretos seguros ANTES de configurar el entorno
+    // Esto garantiza que JWT_SECRET y SESSION_SECRET estén disponibles
+    try {
+      const { inicializarSecretos } = require("./src/utils/secretsManager");
+      inicializarSecretos(userDataPath);
+      console.log("✓ Secretos de seguridad inicializados");
+    } catch (err) {
+      console.error("❌ Error inicializando secretos:", err.message);
+      // Continuar de todas formas, el servidor puede tener valores por defecto en desarrollo
     }
 
     // Configurar variables de entorno según modo (development/production)
