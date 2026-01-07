@@ -417,9 +417,13 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
 
     if (!seccion || !cuentaCanonica) return;
 
+    const cuentaVisible = esCuentaVirtual
+      ? (item.NOMBRE || seccion || principalLabel)
+      : cuentaVisibleDesdeCanonica(cuentaCanonica);
+
     definicionCuentas.set(cuentaCanonica, {
       descripcion: item.NOMBRE || '',
-      visible: esCuentaVirtual ? (item.NOMBRE || seccion || principalLabel) : (item.CUENTA || cuentaVisibleDesdeCanonica(cuentaCanonica)),
+      visible: cuentaVisible,
       esVirtual: esCuentaVirtual
     });
 
