@@ -3043,6 +3043,7 @@
     const handleYearChange = () => {
       const anio = leerAnioSeleccionado();
       const mes = leerMesSeleccionado();
+      actualizarEtiquetaMes(mes);
       if (!empresaActual?.id) return;
       actualizarEncabezado(empresaActual.id, anio);
       persistirContextoSeleccion(anio, mes);
