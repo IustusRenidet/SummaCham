@@ -264,11 +264,24 @@
       const matriz = [];
       const pendientes = {};
       const merges = []; // Array para almacenar los merges
+      const rowMeta = new Map();
+      const secciones = Array.from(
+        tabla.querySelectorAll("thead, tbody, tfoot")
+      );
+
+      secciones.forEach((seccion) => {
+        const rows = Array.from(seccion.querySelectorAll("tr"));
+        rows.forEach((tr, idx) => {
+          rowMeta.set(tr, { index: idx, total: rows.length });
+        });
+      });
 
       filas.forEach((tr, filaIdx) => {
         const esHeader = tr.parentElement?.tagName === "THEAD";
         const filaMatriz = [];
         let colIdx = 0;
+        const rowInfo = rowMeta.get(tr);
+        const maxRowspan = rowInfo ? rowInfo.total - rowInfo.index : null;
 
         const consumirPendientes = () => {
           while (pendientes[colIdx]?.restante > 0) {
@@ -291,7 +304,14 @@
           consumirPendientes();
 
           const colspan = parseInt(celda.getAttribute("colspan") || "1", 10);
-          const rowspan = parseInt(celda.getAttribute("rowspan") || "1", 10);
+          const rowspanRaw = parseInt(
+            celda.getAttribute("rowspan") || "1",
+            10
+          );
+          const rowspan =
+            maxRowspan == null
+              ? rowspanRaw
+              : Math.min(rowspanRaw, maxRowspan);
           const classes = Array.from(celda.classList);
 
           filaMatriz[colIdx] = {
@@ -343,10 +363,17 @@
 
     _obtenerValorCeldaExcel(celda) {
       const texto = (celda.textContent || "").trim();
+      if (!texto) return "";
+      const tieneLetras = texto.toLowerCase() !== texto.toUpperCase();
+      if (tieneLetras) return texto;
       const numeroNormalizado = texto
         .replace(/[^0-9,.-]/g, "")
         .replace(/,(?=\d{3}(\D|$))/g, "")
         .replace(/,/g, ".");
+
+      if (!numeroNormalizado || !/[0-9]/.test(numeroNormalizado)) {
+        return texto;
+      }
 
       const numero = Number(numeroNormalizado);
       if (!Number.isNaN(numero) && texto !== "") return numero;

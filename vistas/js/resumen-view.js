@@ -304,9 +304,9 @@
       snapshot.anio,
       snapshot.mes
     );
+    window.RESUMEN_SNAPSHOT = snapshot;
     try {
       localStorage.setItem(key, JSON.stringify(snapshot));
-      window.RESUMEN_SNAPSHOT = snapshot; // acceso inmediato para la misma p�gina
     } catch (err) {
       console.warn("No se pudo guardar snapshot RESUMEN", err);
     }
