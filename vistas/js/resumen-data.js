@@ -1,744 +1,744 @@
-// Generado automaticamente desde info IMPORTANTE/CUENTAS RESUMEN.xlsx
+// Generado automaticamente desde PLANTILLAS 2026+ (cuentas) y info IMPORTANTE/CUENTAS RESUMEN.xlsx (sumas)
 (function () {
   const resumenData = {
   "cuentas": [
     {
-      "capitulo": "GUADALAJARA",
-      "seccion": "Membership (INCOME)",
-      "cuenta": "400-000-000-00",
-      "nombre": "Cuotas Netas"
-    },
-    {
-      "capitulo": "GUADALAJARA",
-      "seccion": "Membership (INCOME)",
-      "cuenta": "401-000-000-00",
-      "nombre": "Ingresos socios nuevos"
-    },
-    {
-      "capitulo": "GUADALAJARA",
-      "seccion": "Events (INCOME)",
-      "cuenta": "405-000-000-00",
-      "nombre": "Eventos"
-    },
-    {
-      "capitulo": "GUADALAJARA",
-      "seccion": "Events (INCOME)",
-      "cuenta": "406-000-000-00",
-      "nombre": "Patrocinios"
-    },
-    {
-      "capitulo": "GUADALAJARA",
-      "seccion": "Commitees (INCOME)",
-      "cuenta": "404-000-000-00",
-      "nombre": "Comités"
-    },
-    {
-      "capitulo": "GUADALAJARA",
-      "seccion": "T&IC (INCOME)",
-      "cuenta": "407-000-000-00",
-      "nombre": "Trade & Investment Center"
-    },
-    {
-      "capitulo": "GUADALAJARA",
-      "seccion": "Services to Members (INCOME)",
-      "cuenta": "403-000-000-00",
-      "nombre": "Venta Publicaciones"
-    },
-    {
-      "capitulo": "GUADALAJARA",
-      "seccion": "Services to Members (INCOME)",
-      "cuenta": "408-000-000-00",
-      "nombre": "Visas"
-    },
-    {
-      "capitulo": "GUADALAJARA",
-      "seccion": "Membership (EXPENSE)",
-      "cuenta": "702-000-000-00",
-      "nombre": "Gastos Promoción"
-    },
-    {
-      "capitulo": "GUADALAJARA",
-      "seccion": "Membership (EXPENSE)",
-      "cuenta": "503-000-000-00",
-      "nombre": "Comisiones por venta de membresías"
-    },
-    {
-      "capitulo": "GUADALAJARA",
-      "seccion": "Events (EXPENSE)",
-      "cuenta": "701-000-000-00",
-      "nombre": "Costo Eventos"
-    },
-    {
-      "capitulo": "GUADALAJARA",
-      "seccion": "Commitees (EXPENSE)",
-      "cuenta": "502-000-000-00",
-      "nombre": "Costo comités"
-    },
-    {
-      "capitulo": "GUADALAJARA",
-      "seccion": "Commitees (EXPENSE)",
-      "cuenta": "504-000-000-00",
-      "nombre": "Comisiones EWDP"
-    },
-    {
-      "capitulo": "GUADALAJARA",
-      "seccion": "T&IC (EXPENSE)",
-      "cuenta": "703-000-000-00",
-      "nombre": "Costo Trade & Investment Center"
-    },
-    {
-      "capitulo": "GUADALAJARA",
-      "seccion": "Services to Members (EXPENSE)",
-      "cuenta": "601-000-000-00",
-      "nombre": "Gastos Venta Publicaciones"
-    },
-    {
-      "capitulo": "GUADALAJARA",
-      "seccion": "Gastos G&A (EXPENSE)",
-      "cuenta": "801-000-000-00",
-      "nombre": "Gasto de Administración"
-    },
-    {
-      "capitulo": "GUADALAJARA",
-      "seccion": "Gastos G&A (EXPENSE)",
-      "cuenta": "901-000-000-00",
-      "nombre": "Gastos Generales"
-    },
-    {
-      "capitulo": "GUADALAJARA",
-      "seccion": "Nómina (EXPENSE)",
-      "cuenta": "501-000-000-00",
-      "nombre": "Nómina"
-    },
-    {
-      "capitulo": "GUADALAJARA",
-      "seccion": "Gastos Corporativos (EXPENSE)",
-      "cuenta": "903-000-000-00",
-      "nombre": "Gastos Corporativos"
-    },
-    {
-      "capitulo": "GUADALAJARA",
-      "seccion": "Cargos Administrativos (EXPENSE)",
-      "cuenta": "903-016-000-00",
-      "nombre": "Cargos Administrativos"
-    },
-    {
-      "capitulo": "GUADALAJARA",
-      "seccion": "Member Centricity (OPERATING RESULTS)",
-      "cuenta": "904-000-000-00",
-      "nombre": "Member Centricity"
-    },
-    {
-      "capitulo": "GUADALAJARA",
-      "seccion": "Other (OPERATING RESULTS)",
-      "cuenta": "402-000-000-00",
-      "nombre": "Otros ingresos"
-    },
-    {
-      "capitulo": "GUADALAJARA",
-      "seccion": "Other (OPERATING RESULTS)",
-      "cuenta": "410-000-000-00",
-      "nombre": "Utilidad cambiaria"
-    },
-    {
-      "capitulo": "CIUDAD DE MÉXICO",
+      "capitulo": "CIUDAD DE MEXICO",
       "seccion": "Membership (INCOME)",
       "cuenta": "401-000-000-00",
       "nombre": "Cuotas Netas"
     },
     {
-      "capitulo": "CIUDAD DE MÉXICO",
+      "capitulo": "CIUDAD DE MEXICO",
       "seccion": "Membership (INCOME)",
       "cuenta": "402-000-000-00",
       "nombre": "Ingresos socios nuevos"
     },
     {
-      "capitulo": "CIUDAD DE MÉXICO",
+      "capitulo": "CIUDAD DE MEXICO",
       "seccion": "Events (INCOME)",
       "cuenta": "407-000-000-00",
       "nombre": "Eventos"
     },
     {
-      "capitulo": "CIUDAD DE MÉXICO",
+      "capitulo": "CIUDAD DE MEXICO",
       "seccion": "Events (INCOME)",
       "cuenta": "408-000-000-00",
       "nombre": "Patrocinios"
     },
     {
-      "capitulo": "CIUDAD DE MÉXICO",
+      "capitulo": "CIUDAD DE MEXICO",
       "seccion": "Committees (INCOME)",
       "cuenta": "417-000-000-00",
       "nombre": "Comités"
     },
     {
-      "capitulo": "CIUDAD DE MÉXICO",
+      "capitulo": "CIUDAD DE MEXICO",
       "seccion": "Committees (INCOME)",
       "cuenta": "412-000-000-00",
       "nombre": "Economex"
     },
     {
-      "capitulo": "CIUDAD DE MÉXICO",
+      "capitulo": "CIUDAD DE MEXICO",
       "seccion": "T&IC (INCOME)",
       "cuenta": "405-000-000-00",
       "nombre": "Trade & Investment Center"
     },
     {
-      "capitulo": "CIUDAD DE MÉXICO",
+      "capitulo": "CIUDAD DE MEXICO",
       "seccion": "Services to Members (INCOME)",
       "cuenta": "406-001-000-00",
       "nombre": "Venta Publicaciones"
     },
     {
-      "capitulo": "CIUDAD DE MÉXICO",
+      "capitulo": "CIUDAD DE MEXICO",
       "seccion": "Services to Members (INCOME)",
       "cuenta": "406-002-000-00",
       "nombre": "Digital Training"
     },
     {
-      "capitulo": "CIUDAD DE MÉXICO",
+      "capitulo": "CIUDAD DE MEXICO",
       "seccion": "Services to Members (INCOME)",
       "cuenta": "409-000-000-00",
       "nombre": "Visas"
     },
     {
-      "capitulo": "CIUDAD DE MÉXICO",
-      "seccion": "Guadalajara Income (INCOME)",
+      "capitulo": "CIUDAD DE MEXICO",
+      "seccion": "Guadalajara Income (GUADALAJARA INCOME)",
       "cuenta": "450-001-000-00",
       "nombre": "Guadalajara Income"
     },
     {
-      "capitulo": "CIUDAD DE MÉXICO",
-      "seccion": "Monterrey Income (INCOME)",
+      "capitulo": "CIUDAD DE MEXICO",
+      "seccion": "Monterrey Income (MONTERREY INCOME)",
       "cuenta": "450-002-000-00",
       "nombre": "Monterrey Income"
     },
     {
-      "capitulo": "CIUDAD DE MÉXICO",
-      "seccion": "Northwest Income (INCOME)",
+      "capitulo": "CIUDAD DE MEXICO",
+      "seccion": "Northwest Income (NORTHWEST INCOME)",
       "cuenta": "450-003-000-00",
       "nombre": "Northwest Income"
     },
     {
-      "capitulo": "CIUDAD DE MÉXICO",
+      "capitulo": "CIUDAD DE MEXICO",
       "seccion": "Membership (EXPENSE)",
       "cuenta": "705-000-000-00",
       "nombre": "Gastos Promoción"
     },
     {
-      "capitulo": "CIUDAD DE MÉXICO",
+      "capitulo": "CIUDAD DE MEXICO",
       "seccion": "Membership (EXPENSE)",
       "cuenta": "520-000-000-00",
       "nombre": "Comsiones por venta de membresía"
     },
     {
-      "capitulo": "CIUDAD DE MÉXICO",
+      "capitulo": "CIUDAD DE MEXICO",
       "seccion": "Events (EXPENSE)",
       "cuenta": "701-000-000-00",
       "nombre": "Costo Eventos"
     },
     {
-      "capitulo": "CIUDAD DE MÉXICO",
+      "capitulo": "CIUDAD DE MEXICO",
       "seccion": "Committees (EXPENSE)",
       "cuenta": "702-000-000-00",
       "nombre": "Costo Comités"
     },
     {
-      "capitulo": "CIUDAD DE MÉXICO",
+      "capitulo": "CIUDAD DE MEXICO",
       "seccion": "Committees (EXPENSE)",
       "cuenta": "704-000-000-00",
       "nombre": "Costo Economex"
     },
     {
-      "capitulo": "CIUDAD DE MÉXICO",
+      "capitulo": "CIUDAD DE MEXICO",
       "seccion": "Committees (EXPENSE)",
       "cuenta": "521-000-000-00",
       "nombre": "Comisiones EWDP y Economex"
     },
     {
-      "capitulo": "CIUDAD DE MÉXICO",
+      "capitulo": "CIUDAD DE MEXICO",
       "seccion": "T&IC (EXPENSE)",
       "cuenta": "703-000-000-00",
       "nombre": "Costo Trade & Investment Center"
     },
     {
-      "capitulo": "CIUDAD DE MÉXICO",
+      "capitulo": "CIUDAD DE MEXICO",
       "seccion": "Services to Members (EXPENSE)",
       "cuenta": "601-002-003-00",
       "nombre": "Costo Venta Publicaciones"
     },
     {
-      "capitulo": "CIUDAD DE MÉXICO",
+      "capitulo": "CIUDAD DE MEXICO",
       "seccion": "Services to Members (EXPENSE)",
       "cuenta": "601-003-001-00",
       "nombre": "Costo Digital Training"
     },
     {
-      "capitulo": "CIUDAD DE MÉXICO",
+      "capitulo": "CIUDAD DE MEXICO",
       "seccion": "Gastos Administrativos (EXPENSE)",
       "cuenta": "801-001-000-00",
       "nombre": "Desarrollo de Negocios"
     },
     {
-      "capitulo": "CIUDAD DE MÉXICO",
+      "capitulo": "CIUDAD DE MEXICO",
       "seccion": "Gastos Administrativos (EXPENSE)",
       "cuenta": "801-002-000-00",
       "nombre": "Relaciones Externas"
     },
     {
-      "capitulo": "CIUDAD DE MÉXICO",
+      "capitulo": "CIUDAD DE MEXICO",
       "seccion": "Gastos Administrativos (EXPENSE)",
       "cuenta": "801-003-000-00",
       "nombre": "Servicios a las membresia"
     },
     {
-      "capitulo": "CIUDAD DE MÉXICO",
+      "capitulo": "CIUDAD DE MEXICO",
       "seccion": "Gastos Administrativos (EXPENSE)",
       "cuenta": "801-004-000-00",
       "nombre": "Vicepresidencia"
     },
     {
-      "capitulo": "CIUDAD DE MÉXICO",
+      "capitulo": "CIUDAD DE MEXICO",
       "seccion": "Gastos Administrativos (EXPENSE)",
       "cuenta": "801-005-000-00",
       "nombre": "Finanzas"
     },
     {
-      "capitulo": "CIUDAD DE MÉXICO",
+      "capitulo": "CIUDAD DE MEXICO",
       "seccion": "Gastos Administrativos (EXPENSE)",
       "cuenta": "801-006-000-00",
       "nombre": "Administración"
     },
     {
-      "capitulo": "CIUDAD DE MÉXICO",
+      "capitulo": "CIUDAD DE MEXICO",
       "seccion": "Gastos Administrativos (EXPENSE)",
       "cuenta": "801-007-000-00",
       "nombre": "Sistemas"
     },
     {
-      "capitulo": "CIUDAD DE MÉXICO",
+      "capitulo": "CIUDAD DE MEXICO",
       "seccion": "Gastos Administrativos (EXPENSE)",
       "cuenta": "801-008-000-00",
       "nombre": "Empleos"
     },
     {
-      "capitulo": "CIUDAD DE MÉXICO",
+      "capitulo": "CIUDAD DE MEXICO",
       "seccion": "Gastos Administrativos (EXPENSE)",
       "cuenta": "801-009-000-00",
       "nombre": "Servicios Generales (Almacén)"
     },
     {
-      "capitulo": "CIUDAD DE MÉXICO",
+      "capitulo": "CIUDAD DE MEXICO",
       "seccion": "Gastos Administrativos (EXPENSE)",
       "cuenta": "801-010-000-00",
       "nombre": "Eventos"
     },
     {
-      "capitulo": "CIUDAD DE MÉXICO",
+      "capitulo": "CIUDAD DE MEXICO",
       "seccion": "Gastos Administrativos (EXPENSE)",
       "cuenta": "801-011-000-00",
       "nombre": "Comites"
     },
     {
-      "capitulo": "CIUDAD DE MÉXICO",
+      "capitulo": "CIUDAD DE MEXICO",
       "seccion": "Gastos Administrativos (EXPENSE)",
       "cuenta": "801-012-000-00",
       "nombre": "Renta de Salas"
     },
     {
-      "capitulo": "CIUDAD DE MÉXICO",
+      "capitulo": "CIUDAD DE MEXICO",
       "seccion": "Gastos Administrativos (EXPENSE)",
       "cuenta": "801-013-000-00",
       "nombre": "Comunicación"
     },
     {
-      "capitulo": "CIUDAD DE MÉXICO",
-      "seccion": "Gastos Generales (EXPENSE)",
+      "capitulo": "CIUDAD DE MEXICO",
+      "seccion": "Gastos Administrativos (EXPENSE)",
       "cuenta": "901-000-000-00",
       "nombre": "Gastos Generales"
     },
     {
-      "capitulo": "CIUDAD DE MÉXICO",
+      "capitulo": "CIUDAD DE MEXICO",
       "seccion": "Nómina (EXPENSE)",
       "cuenta": "513-000-000-00",
       "nombre": "Nomina Vicepresidencia"
     },
     {
-      "capitulo": "CIUDAD DE MÉXICO",
+      "capitulo": "CIUDAD DE MEXICO",
       "seccion": "Nómina (EXPENSE)",
       "cuenta": "517-000-000-00",
       "nombre": "Nomina Desarrollo de Negocios"
     },
     {
-      "capitulo": "CIUDAD DE MÉXICO",
+      "capitulo": "CIUDAD DE MEXICO",
       "seccion": "Nómina (EXPENSE)",
       "cuenta": "516-000-000-00",
       "nombre": "Nomina Comites y Relaciones Externas"
     },
     {
-      "capitulo": "CIUDAD DE MÉXICO",
+      "capitulo": "CIUDAD DE MEXICO",
       "seccion": "Nómina (EXPENSE)",
       "cuenta": "519-000-000-00",
       "nombre": "Nomina Comunicación"
     },
     {
-      "capitulo": "CIUDAD DE MÉXICO",
+      "capitulo": "CIUDAD DE MEXICO",
       "seccion": "Nómina (EXPENSE)",
       "cuenta": "515-000-000-00",
       "nombre": "Nomina Servicios a la Membresia"
     },
     {
-      "capitulo": "CIUDAD DE MÉXICO",
+      "capitulo": "CIUDAD DE MEXICO",
       "seccion": "Nómina (EXPENSE)",
       "cuenta": "518-000-000-00",
       "nombre": "Nomina Eventos y Mercadotecnia"
     },
     {
-      "capitulo": "CIUDAD DE MÉXICO",
+      "capitulo": "CIUDAD DE MEXICO",
       "seccion": "Nómina (EXPENSE)",
       "cuenta": "514-000-000-00",
       "nombre": "Nomina Administración y Finanzas"
     },
     {
-      "capitulo": "CIUDAD DE MÉXICO",
-      "seccion": "Gastos Corporativos (EXPENSE)",
+      "capitulo": "CIUDAD DE MEXICO",
+      "seccion": "Gastos Corporativos (GASTOS CORPORATIVOS)",
       "cuenta": "903-000-000-00",
       "nombre": "Gastos Corporativos"
     },
     {
-      "capitulo": "CIUDAD DE MÉXICO",
-      "seccion": "Guadalajara Expense (EXPENSE)",
+      "capitulo": "CIUDAD DE MEXICO",
+      "seccion": "Guadalajara Expense (GUADALAJARA EXPENSE)",
       "cuenta": "950-001-000-00",
       "nombre": "Guadalajara Expense"
     },
     {
-      "capitulo": "CIUDAD DE MÉXICO",
-      "seccion": "Monterrey Expense (EXPENSE)",
+      "capitulo": "CIUDAD DE MEXICO",
+      "seccion": "Monterrey Expense (MONTERREY EXPENSE)",
       "cuenta": "950-002-000-00",
       "nombre": "Monterrey Expense"
     },
     {
-      "capitulo": "CIUDAD DE MÉXICO",
-      "seccion": "Northwest Expense (EXPENSE)",
+      "capitulo": "CIUDAD DE MEXICO",
+      "seccion": "Northwest Expense (NORTHWEST EXPENSE)",
       "cuenta": "950-003-000-00",
       "nombre": "Northwest Expense"
     },
     {
-      "capitulo": "CIUDAD DE MÉXICO",
-      "seccion": "Member Centricity (MORE)",
+      "capitulo": "CIUDAD DE MEXICO",
+      "seccion": "Member Centricity (MEMBER CENTRICITY)",
       "cuenta": "902-000-000-00",
       "nombre": "Member Centricity"
     },
     {
-      "capitulo": "CIUDAD DE MÉXICO",
-      "seccion": "Other (MORE)",
+      "capitulo": "CIUDAD DE MEXICO",
+      "seccion": "Other (OTHER (MEXICO))",
       "cuenta": "413-000-000-00",
       "nombre": "Otros Ingresos"
     },
     {
-      "capitulo": "CIUDAD DE MÉXICO",
-      "seccion": "Other (MORE)",
+      "capitulo": "CIUDAD DE MEXICO",
+      "seccion": "Other (OTHER (MEXICO))",
       "cuenta": "414-000-000-00",
       "nombre": "Intereses Bancos"
     },
     {
-      "capitulo": "CIUDAD DE MÉXICO",
-      "seccion": "Other (MORE)",
+      "capitulo": "CIUDAD DE MEXICO",
+      "seccion": "Other (OTHER (MEXICO))",
       "cuenta": "416-000-000-00",
       "nombre": "Utilidad Cambiaria Inversiones"
     },
     {
-      "capitulo": "CIUDAD DE MÉXICO",
-      "seccion": "Other (MORE)",
+      "capitulo": "CIUDAD DE MEXICO",
+      "seccion": "Other (OTHER (MEXICO))",
       "cuenta": "418-000-000-00",
       "nombre": "Plusvalia/Minusvalia Portafolio Inversiones"
     },
     {
-      "capitulo": "NOROESTE",
+      "capitulo": "GUADALAJARA",
       "seccion": "Membership (INCOME)",
-      "cuenta": "400-000-000-00",
+      "cuenta": "400000000000000000000",
       "nombre": "Cuotas Netas"
     },
     {
-      "capitulo": "NOROESTE",
+      "capitulo": "GUADALAJARA",
       "seccion": "Membership (INCOME)",
-      "cuenta": "401-000-000-00",
-      "nombre": "Cuotas de Inscripción"
+      "cuenta": "401000000000000000000",
+      "nombre": "Ingresos socios nuevos"
     },
     {
-      "capitulo": "NOROESTE",
+      "capitulo": "GUADALAJARA",
       "seccion": "Events (INCOME)",
-      "cuenta": "404-000-000-00",
+      "cuenta": "405000000000000000000",
       "nombre": "Eventos"
     },
     {
-      "capitulo": "NOROESTE",
+      "capitulo": "GUADALAJARA",
       "seccion": "Events (INCOME)",
-      "cuenta": "406-000-000-00",
+      "cuenta": "406000000000000000000",
       "nombre": "Patrocinios"
     },
     {
-      "capitulo": "NOROESTE",
+      "capitulo": "GUADALAJARA",
       "seccion": "Committees (INCOME)",
-      "cuenta": "403-000-000-00",
+      "cuenta": "404000000000000000000",
       "nombre": "Comités"
     },
     {
-      "capitulo": "NOROESTE",
+      "capitulo": "GUADALAJARA",
       "seccion": "T&IC (INCOME)",
-      "cuenta": "407-000-000-00",
+      "cuenta": "407000000000000000000",
       "nombre": "Trade & Investment Center"
     },
     {
-      "capitulo": "NOROESTE",
+      "capitulo": "GUADALAJARA",
       "seccion": "Services to Members (INCOME)",
-      "cuenta": "402-001-000-00",
+      "cuenta": "403000000000000000000",
       "nombre": "Venta Publicaciones"
     },
     {
-      "capitulo": "NOROESTE",
+      "capitulo": "GUADALAJARA",
+      "seccion": "Services to Members (INCOME)",
+      "cuenta": "408000000000000000000",
+      "nombre": "Visas"
+    },
+    {
+      "capitulo": "GUADALAJARA",
       "seccion": "Membership (EXPENSE)",
-      "cuenta": "605-000-000-00",
+      "cuenta": "702000000000000000000",
       "nombre": "Gastos Promoción"
     },
     {
-      "capitulo": "NOROESTE",
+      "capitulo": "GUADALAJARA",
       "seccion": "Membership (EXPENSE)",
-      "cuenta": "503-000-000-00",
+      "cuenta": "503000000000000000000",
       "nombre": "Comisiones por venta de membresías"
     },
     {
-      "capitulo": "NOROESTE",
+      "capitulo": "GUADALAJARA",
       "seccion": "Events (EXPENSE)",
-      "cuenta": "702-000-000-00",
+      "cuenta": "701000000000000000000",
       "nombre": "Costo Eventos"
     },
     {
-      "capitulo": "NOROESTE",
+      "capitulo": "GUADALAJARA",
       "seccion": "Committees (EXPENSE)",
-      "cuenta": "701-000-000-00",
+      "cuenta": "502000000000000000000",
       "nombre": "Costo comités"
     },
     {
-      "capitulo": "NOROESTE",
+      "capitulo": "GUADALAJARA",
       "seccion": "Committees (EXPENSE)",
-      "cuenta": "504-000-000-00",
+      "cuenta": "504000000000000000000",
       "nombre": "Comisiones EWDP"
     },
     {
-      "capitulo": "NOROESTE",
+      "capitulo": "GUADALAJARA",
       "seccion": "T&IC (EXPENSE)",
-      "cuenta": "703-000-000-00",
+      "cuenta": "703000000000000000000",
       "nombre": "Costo Trade & Investment Center"
     },
     {
-      "capitulo": "NOROESTE",
+      "capitulo": "GUADALAJARA",
       "seccion": "Services to Members (EXPENSE)",
-      "cuenta": "601-000-000-00",
+      "cuenta": "601000000000000000000",
       "nombre": "Gastos Venta Publicaciones"
     },
     {
-      "capitulo": "NOROESTE",
+      "capitulo": "GUADALAJARA",
       "seccion": "Gastos G&A (EXPENSE)",
-      "cuenta": "801-000-000-00",
-      "nombre": "Gastos de Administracion"
+      "cuenta": "801000000000000000000",
+      "nombre": "Gasto de Administración"
     },
     {
-      "capitulo": "NOROESTE",
+      "capitulo": "GUADALAJARA",
       "seccion": "Gastos G&A (EXPENSE)",
-      "cuenta": "901-000-000-00",
+      "cuenta": "901000000000000000000",
       "nombre": "Gastos Generales"
     },
     {
-      "capitulo": "NOROESTE",
+      "capitulo": "GUADALAJARA",
       "seccion": "Nómina (EXPENSE)",
-      "cuenta": "501-000-000-00",
+      "cuenta": "501000000000000000000",
       "nombre": "Nómina"
     },
     {
-      "capitulo": "NOROESTE",
+      "capitulo": "GUADALAJARA",
       "seccion": "Gastos Corporativos (EXPENSE)",
-      "cuenta": "903-000-000-00",
-      "nombre": "Gtos. Corporativos"
+      "cuenta": "903000000000000000000",
+      "nombre": "Gastos Corporativos"
     },
     {
-      "capitulo": "NOROESTE",
+      "capitulo": "GUADALAJARA",
       "seccion": "Cargos Administrativos (EXPENSE)",
-      "cuenta": "903-001-000-00",
+      "cuenta": "903016000000000000000",
       "nombre": "Cargos Administrativos"
     },
     {
-      "capitulo": "NOROESTE",
-      "seccion": "Other (OPERATING RESULTS)",
-      "cuenta": "405-000-000-00",
+      "capitulo": "GUADALAJARA",
+      "seccion": "Member Centricity (MEMBER CENTRICITY)",
+      "cuenta": "904000000000000000000",
+      "nombre": "Member Centricity"
+    },
+    {
+      "capitulo": "GUADALAJARA",
+      "seccion": "Other (OTHER)",
+      "cuenta": "402000000000000000000",
       "nombre": "Otros ingresos"
     },
     {
-      "capitulo": "NOROESTE",
-      "seccion": "Other (OPERATING RESULTS)",
-      "cuenta": "410-000-000-00",
+      "capitulo": "GUADALAJARA",
+      "seccion": "Other (OTHER)",
+      "cuenta": "410000000000000000000",
       "nombre": "Utilidad cambiaria"
-    },
-    {
-      "capitulo": "NOROESTE",
-      "seccion": "Other (OPERATING RESULTS)",
-      "cuenta": "902-000-000-00",
-      "nombre": "Perdida cambiaria"
     },
     {
       "capitulo": "NORESTE",
       "seccion": "Membership (INCOME)",
-      "cuenta": "400-000-000-00",
+      "cuenta": "400000000000000000001",
       "nombre": "Cuotas Netas"
     },
     {
       "capitulo": "NORESTE",
       "seccion": "Membership (INCOME)",
-      "cuenta": "401-000-000-00",
+      "cuenta": "401000000000000000001",
       "nombre": "Ingresos socios nuevos"
     },
     {
       "capitulo": "NORESTE",
       "seccion": "Events (INCOME)",
-      "cuenta": "406-000-000-00",
+      "cuenta": "406000000000000000000",
       "nombre": "Eventos"
     },
     {
       "capitulo": "NORESTE",
       "seccion": "Events (INCOME)",
-      "cuenta": "414-000-000-00",
+      "cuenta": "414000000000000000001",
       "nombre": "Patrocinios"
     },
     {
       "capitulo": "NORESTE",
       "seccion": "Committees (INCOME)",
-      "cuenta": "408-000-000-00",
+      "cuenta": "408000000000000000000",
       "nombre": "Comités"
     },
     {
       "capitulo": "NORESTE",
       "seccion": "T&IC (INCOME)",
-      "cuenta": "405-000-000-00",
-      "nombre": "Trade & Investment Center"
+      "cuenta": "405000000000000000001",
+      "nombre": "Trade & InvestmentCenter"
     },
     {
       "capitulo": "NORESTE",
       "seccion": "Services to Members (INCOME)",
-      "cuenta": "410-000-000-00",
+      "cuenta": "410000000000000000001",
       "nombre": "Venta de publicaciones"
     },
     {
       "capitulo": "NORESTE",
       "seccion": "Services to Members (INCOME)",
-      "cuenta": "412-000-000-00",
+      "cuenta": "412000000000000000001",
       "nombre": "Visas"
     },
     {
       "capitulo": "NORESTE",
       "seccion": "Membership (EXPENSE)",
-      "cuenta": "502-000-000-00",
+      "cuenta": "502000000000000000000",
       "nombre": "Comsiones por venta de membresía"
     },
     {
       "capitulo": "NORESTE",
       "seccion": "Membership (EXPENSE)",
-      "cuenta": "708-000-000-00",
+      "cuenta": "708000000000000000000",
       "nombre": "Gastos de Promoción"
     },
     {
       "capitulo": "NORESTE",
       "seccion": "Events (EXPENSE)",
-      "cuenta": "705-000-000-00",
+      "cuenta": "705000000000000000001",
       "nombre": "Eventos"
     },
     {
       "capitulo": "NORESTE",
       "seccion": "Committees (EXPENSE)",
-      "cuenta": "701-000-000-00",
+      "cuenta": "701000000000000000001",
       "nombre": "Costo Comités"
     },
     {
       "capitulo": "NORESTE",
       "seccion": "Committees (EXPENSE)",
-      "cuenta": "504-000-000-00",
+      "cuenta": "504000000000000000000",
       "nombre": "Comisiones EWDP"
     },
     {
       "capitulo": "NORESTE",
       "seccion": "T&IC (EXPENSE)",
-      "cuenta": "602-000-000-00",
-      "nombre": "Costo Trade&Investment Center"
+      "cuenta": "602000000000000000000",
+      "nombre": "CostoTrade&InvestmentCenter"
     },
     {
       "capitulo": "NORESTE",
       "seccion": "Services to Members (EXPENSE)",
-      "cuenta": "706-000-000-00",
+      "cuenta": "706000000000000000001",
       "nombre": "Visas"
     },
     {
       "capitulo": "NORESTE",
       "seccion": "Services to Members (EXPENSE)",
-      "cuenta": "600-000-000-00",
+      "cuenta": "600000000000000000001",
       "nombre": "Costo de publicaciones"
     },
     {
       "capitulo": "NORESTE",
       "seccion": "Gastos G&A (EXPENSE)",
-      "cuenta": "803-000-000-00",
+      "cuenta": "803000000000000000000",
       "nombre": "Gastos administrativos"
     },
     {
       "capitulo": "NORESTE",
       "seccion": "Gastos G&A (EXPENSE)",
-      "cuenta": "802-000-000-00",
+      "cuenta": "802000000000000000001",
       "nombre": "Gastos Generales"
     },
     {
       "capitulo": "NORESTE",
       "seccion": "Nómina (EXPENSE)",
-      "cuenta": "501-000-000-00",
+      "cuenta": "501000000000000000001",
       "nombre": "Nómina"
     },
     {
       "capitulo": "NORESTE",
       "seccion": "Gastos Corporativos (EXPENSE)",
-      "cuenta": "900-000-000-00",
+      "cuenta": "900000000000000000001",
       "nombre": "Gastos Corporativos"
     },
     {
       "capitulo": "NORESTE",
       "seccion": "Cargos Administrativos (EXPENSE)",
-      "cuenta": "900-001-000-00",
+      "cuenta": "900001000000000000000",
       "nombre": "Cargos Administrativos"
     },
     {
       "capitulo": "NORESTE",
-      "seccion": "Member Centricity (OPERATING RESULTS)",
-      "cuenta": "901-000-000-00",
+      "seccion": "Member Centricity (MEMBER CENTRICITY)",
+      "cuenta": "901000000000000000001",
       "nombre": "Member Centricity"
     },
     {
       "capitulo": "NORESTE",
-      "seccion": "Other (OPERATING RESULTS)",
-      "cuenta": "403-000-000-00",
+      "seccion": "Other (OTHER)",
+      "cuenta": "403000000000000000001",
       "nombre": "Otros ingresos"
     },
     {
       "capitulo": "NORESTE",
-      "seccion": "Other (OPERATING RESULTS)",
-      "cuenta": "409-000-000-00",
+      "seccion": "Other (OTHER)",
+      "cuenta": "409000000000000000001",
       "nombre": "Utilidad cambiaria"
     },
     {
       "capitulo": "NORESTE",
-      "seccion": "Other (OPERATING RESULTS)",
-      "cuenta": "804-000-000-00",
-      "nombre": "Pérdida cambiaria"
+      "seccion": "Other (OTHER)",
+      "cuenta": "413000000000000000001",
+      "nombre": "Rendimientos bancarios"
     },
     {
       "capitulo": "NORESTE",
-      "seccion": "Other (OPERATING RESULTS)",
-      "cuenta": "413-000-000-00",
-      "nombre": "Rendimientos bancarios"
+      "seccion": "Other (OTHER)",
+      "cuenta": "804000000000000000000",
+      "nombre": "Pérdida cambiaria"
+    },
+    {
+      "capitulo": "NOROESTE",
+      "seccion": "Membership (INCOME)",
+      "cuenta": "400000000000000000000",
+      "nombre": "Cuotas Netas"
+    },
+    {
+      "capitulo": "NOROESTE",
+      "seccion": "Membership (INCOME)",
+      "cuenta": "401000000000000000000",
+      "nombre": "Cuotas de Inscripción"
+    },
+    {
+      "capitulo": "NOROESTE",
+      "seccion": "Events (INCOME)",
+      "cuenta": "404000000000000000000",
+      "nombre": "Eventos"
+    },
+    {
+      "capitulo": "NOROESTE",
+      "seccion": "Events (INCOME)",
+      "cuenta": "406000000000000000000",
+      "nombre": "Patrocinios"
+    },
+    {
+      "capitulo": "NOROESTE",
+      "seccion": "Committees (INCOME)",
+      "cuenta": "403000000000000000001",
+      "nombre": "Comités"
+    },
+    {
+      "capitulo": "NOROESTE",
+      "seccion": "T&IC (INCOME)",
+      "cuenta": "407000000000000000000",
+      "nombre": "Trade & Investment Center"
+    },
+    {
+      "capitulo": "NOROESTE",
+      "seccion": "Services to Members (INCOME)",
+      "cuenta": "402001000000000000000",
+      "nombre": "Venta Publicaciones"
+    },
+    {
+      "capitulo": "NOROESTE",
+      "seccion": "Membership (EXPENSE)",
+      "cuenta": "605000000000000000000",
+      "nombre": "Gastos Promoción"
+    },
+    {
+      "capitulo": "NOROESTE",
+      "seccion": "Membership (EXPENSE)",
+      "cuenta": "503000000000000000000",
+      "nombre": "Comisiones por venta de membresías"
+    },
+    {
+      "capitulo": "NOROESTE",
+      "seccion": "Events (EXPENSE)",
+      "cuenta": "702000000000000000001",
+      "nombre": "Costo Eventos"
+    },
+    {
+      "capitulo": "NOROESTE",
+      "seccion": "Committees (EXPENSE)",
+      "cuenta": "701000000000000000001",
+      "nombre": "Costo comités"
+    },
+    {
+      "capitulo": "NOROESTE",
+      "seccion": "Committees (EXPENSE)",
+      "cuenta": "504000000000000000000",
+      "nombre": "Comisiones EWDP"
+    },
+    {
+      "capitulo": "NOROESTE",
+      "seccion": "T&IC (EXPENSE)",
+      "cuenta": "703000000000000000000",
+      "nombre": "Costo Trade & Investment Center"
+    },
+    {
+      "capitulo": "NOROESTE",
+      "seccion": "Services to Members (EXPENSE)",
+      "cuenta": "601000000000000000001",
+      "nombre": "Gastos Venta Publicaciones"
+    },
+    {
+      "capitulo": "NOROESTE",
+      "seccion": "Gastos G&A (EXPENSE)",
+      "cuenta": "801000000000000000001",
+      "nombre": "Gastos de Administracion"
+    },
+    {
+      "capitulo": "NOROESTE",
+      "seccion": "Gastos G&A (EXPENSE)",
+      "cuenta": "901000000000000000001",
+      "nombre": "Gastos Generales"
+    },
+    {
+      "capitulo": "NOROESTE",
+      "seccion": "Nómina (EXPENSE)",
+      "cuenta": "501000000000000000000",
+      "nombre": "Nómina"
+    },
+    {
+      "capitulo": "NOROESTE",
+      "seccion": "Gtos. Corporativos (EXPENSE)",
+      "cuenta": "903000000000000000000",
+      "nombre": "Gtos. Corporativos"
+    },
+    {
+      "capitulo": "NOROESTE",
+      "seccion": "Cargos Administrativos (EXPENSE)",
+      "cuenta": "903001000000000000000",
+      "nombre": "Cargos Administrativos"
+    },
+    {
+      "capitulo": "NOROESTE",
+      "seccion": "Other (OTHER)",
+      "cuenta": "405000000000000000000",
+      "nombre": "Otros ingresos"
+    },
+    {
+      "capitulo": "NOROESTE",
+      "seccion": "Other (OTHER)",
+      "cuenta": "410000000000000000000",
+      "nombre": "Utilidad cambiaria"
+    },
+    {
+      "capitulo": "NOROESTE",
+      "seccion": "Other (OTHER)",
+      "cuenta": "902000000000000000000",
+      "nombre": "Perdida cambiaria"
     }
   ],
   "sumas": {

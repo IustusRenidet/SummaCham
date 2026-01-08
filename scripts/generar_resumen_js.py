@@ -2,12 +2,15 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import re
+import unicodedata
 
 import openpyxl
 
 
 ROOT = Path(__file__).resolve().parents[1]
 EXCEL_PATH = ROOT / 'info IMPORTANTE' / 'CUENTAS RESUMEN.xlsx'
+PLANTILLAS_DIR = ROOT / 'PLANTILLAS 2026+'
 DESTINO = ROOT / 'vistas' / 'js' / 'resumen-data.js'
 AGG_INDICES = [4, 6, 8, 10, 12, 14, 16, 18]
 
@@ -16,6 +19,89 @@ def to_text(value):
     if value is None:
         return ''
     return str(value).strip()
+
+
+def normalizar(texto):
+    valor = to_text(texto)
+    if not valor:
+        return ''
+    nfkd = unicodedata.normalize('NFD', valor)
+    limpio = ''.join(ch for ch in nfkd if unicodedata.category(ch) != 'Mn')
+    return limpio.upper()
+
+
+def leer_json(path: Path):
+    try:
+        return json.loads(path.read_text(encoding='utf-8'))
+    except UnicodeDecodeError:
+        return json.loads(path.read_text(encoding='latin-1'))
+
+
+def obtener_valor(item, claves_normalizadas):
+    for clave, valor in item.items():
+        if normalizar(clave) in claves_normalizadas:
+            texto = to_text(valor)
+            if texto:
+                return texto
+    return ''
+
+
+def extraer_cuentas_desde_plantillas(plantillas_dir: Path):
+    if not plantillas_dir.exists():
+        return None
+
+    registros = []
+    json_paths = sorted(plantillas_dir.rglob('*_layout.json'), key=lambda p: p.name.lower())
+    if not json_paths:
+        return None
+
+    for json_path in json_paths:
+        capitulo_dir = json_path.parent.name.replace(' 2026', '').strip()
+        contenido = leer_json(json_path)
+        if not isinstance(contenido, dict) or not contenido:
+            continue
+
+        for modulo, items in contenido.items():
+            if normalizar(modulo) != 'RESUMEN':
+                continue
+            if not isinstance(items, list):
+                items = [items]
+            for item in items:
+                if not isinstance(item, dict):
+                    continue
+                cuenta = obtener_valor(item, {'CUENTA'})
+                if not cuenta:
+                    continue
+                capitulo = obtener_valor(item, {'CAPITULO'}) or capitulo_dir
+                principal = obtener_valor(item, {'SECCION PRINCIPAL'})
+                secundaria = obtener_valor(item, {'SECCION SECUNDARIA'})
+                if secundaria:
+                    seccion = formatear_seccion(secundaria, principal)
+                else:
+                    seccion = formatear_seccion(principal, '')
+                if not seccion:
+                    continue
+                registros.append({
+                    'capitulo': capitulo,
+                    'seccion': seccion,
+                    'cuenta': cuenta,
+                    'nombre': obtener_valor(item, {'NOMBRE'}) or cuenta
+                })
+
+    return registros or None
+
+
+def leer_resumen_existente(path: Path):
+    if not path.exists():
+        return {}
+    contenido = path.read_text(encoding='utf-8')
+    match = re.search(r'const resumenData = (\{.*?\});', contenido, re.S)
+    if not match:
+        return {}
+    try:
+        return json.loads(match.group(1))
+    except json.JSONDecodeError:
+        return {}
 
 
 def tipo_desde_clase(clase):
@@ -117,12 +203,23 @@ def extraer_sumas(libro):
 
 
 def main():
-    libro = openpyxl.load_workbook(EXCEL_PATH, data_only=True)
-    cuentas = extraer_cuentas(libro)
-    sumas = extraer_sumas(libro)
+    libro = None
+    if EXCEL_PATH.exists():
+        libro = openpyxl.load_workbook(EXCEL_PATH, data_only=True)
+
+    cuentas = extraer_cuentas_desde_plantillas(PLANTILLAS_DIR)
+    if cuentas is None and libro is not None:
+        cuentas = extraer_cuentas(libro)
+    if cuentas is None:
+        cuentas = leer_resumen_existente(DESTINO).get('cuentas', [])
+
+    if libro is not None:
+        sumas = extraer_sumas(libro)
+    else:
+        sumas = leer_resumen_existente(DESTINO).get('sumas', {})
     resumen_data = {'cuentas': cuentas, 'sumas': sumas}
     contenido = (
-        '// Generado automaticamente desde info IMPORTANTE/CUENTAS RESUMEN.xlsx\n'
+        '// Generado automaticamente desde PLANTILLAS 2026+ (cuentas) y info IMPORTANTE/CUENTAS RESUMEN.xlsx (sumas)\n'
         '(function () {\n'
         f'  const resumenData = {json.dumps(resumen_data, ensure_ascii=False, indent=2)};\n'
         '  window.CUENTAS_POR_MODULO = window.CUENTAS_POR_MODULO || {};\n'

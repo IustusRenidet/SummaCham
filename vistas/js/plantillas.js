@@ -489,6 +489,47 @@
     );
   }
 
+  const OP_ROW_FIELDS = [
+    {
+      field: "sum-row",
+      label: "Fila de Suma",
+      placeholder: "SUMA DE ...",
+    },
+    {
+      field: "sum-row-sumavarios",
+      label: "Suma Varios",
+      placeholder: "TOTAL ...",
+    },
+    {
+      field: "sum-row-sumavarios-consolidado",
+      label: "Consolidado",
+      placeholder: "CONSOLIDATED ...",
+    },
+    {
+      field: "sum-row-operativo",
+      label: "Operativo",
+      placeholder: "OPERATING RESULTS ...",
+    },
+    {
+      field: "result-row",
+      label: "Resultado",
+      placeholder: "RESULTADO ...",
+    },
+    {
+      field: "net-row",
+      label: "Neto",
+      placeholder: "NET RESULTS ...",
+    },
+    {
+      field: "result-net-row",
+      label: "Resultado Neto",
+      placeholder: "CONSOLIDATED NET RESULTS ...",
+    },
+  ];
+
+  const rowLabelInputId = (field) =>
+    `editRowLabel_${field.replace(/[^a-z0-9]/gi, "_")}`;
+
 
   function normalizeOperationId(value) {
     return (value || "")
@@ -1148,7 +1189,9 @@
     }
 
     return `
-      <div class="operation-card border-${colorTheme} mb-2 p-3 rounded border-start border-4 bg-white shadow-sm hover-shadow ${hiddenClass}">
+      <div class="operation-card border-${colorTheme} mb-2 p-3 rounded border-start border-4 bg-white shadow-sm hover-shadow ${hiddenClass}" data-operation-id="${escapeAttr(
+      opId || ""
+    )}" data-operation-label="${escapeAttr(displayName)}">
         <div class="d-flex align-items-start justify-content-between">
           <div class="d-flex gap-3 flex-grow-1">
             <div class="orden-badge">
@@ -1276,7 +1319,9 @@
     }
 
     return `
-      <div class="operation-card border-${colorTheme} mb-2 p-3 rounded border-start border-3 bg-white shadow-sm hover-shadow ${hiddenClass}">
+      <div class="operation-card border-${colorTheme} mb-2 p-3 rounded border-start border-3 bg-white shadow-sm hover-shadow ${hiddenClass}" data-operation-id="${escapeAttr(
+      opId || ""
+    )}" data-operation-label="${escapeAttr(displayName)}">
         <div class="d-flex align-items-start justify-content-between">
           <div class="flex-grow-1">
             <div class="d-flex align-items-center gap-2 mb-2">
@@ -4081,6 +4126,21 @@ window.editSection = function (name) {
     }));
     formulaTerms = applyParentSectionHints(op, formulaTerms);
 
+    const opLabelInput =
+      getOperationLabel(op) || getOperationDisplayName(op) || "";
+    const rowLabelsHtml = OP_ROW_FIELDS.map(
+      (row) => `
+        <div class="col-md-6">
+          <label class="form-label small text-muted">${row.label}</label>
+          <input type="text" class="form-control" id="${rowLabelInputId(
+            row.field
+          )}" value="${escapeHtml(op[row.field] || "")}" placeholder="${
+        row.placeholder
+      }" />
+        </div>
+      `
+    ).join("");
+
     dom.formEditar.innerHTML = `
       <div class="mb-3">
         <label class="form-label">Identificador unico</label>
@@ -4091,8 +4151,18 @@ window.editSection = function (name) {
       <div class="mb-3">
         <label class="form-label">Etiqueta de la Operación</label>
         <input type="text" class="form-control" id="editClaseOp" value="${escapeHtml(
-          op["sum-row"] || op.Clase
+          opLabelInput
         )}" />
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Etiquetas en tabla</label>
+        <div class="row g-2">
+          ${rowLabelsHtml}
+        </div>
+        <div class="form-text">
+          Estas etiquetas son las que aparecen en las tablas. Deja en blanco si no aplica.
+        </div>
       </div>
 
       <div class="mb-3">
@@ -4529,19 +4599,15 @@ window.editSection = function (name) {
         });
       }
 
-      // Actualizar etiquetas de ubicacion existentes sin pedir confirmacion
-      const placementFields = [
-        "sum-row",
-        "sum-row-sumavarios",
-        "sum-row-operativo",
-        "result-row",
-        "net-row",
-        "sum-row-sumavarios-consolidado",
-      ];
-
-      placementFields.forEach((fieldName) => {
-        if (op[fieldName]) {
-          op[fieldName] = newClase || op.Clase;
+      // Actualizar etiquetas de filas segun lo capturado en el editor
+      OP_ROW_FIELDS.forEach(({ field }) => {
+        const input = document.getElementById(rowLabelInputId(field));
+        if (!input) return;
+        const value = input.value?.trim();
+        if (value) {
+          op[field] = value;
+        } else if (op[field]) {
+          delete op[field];
         }
       });
 
@@ -5277,10 +5343,11 @@ window.editSection = function (name) {
     const currentOpId = getOperationId(state.selectedElement?.op);
     sortOperations(state.operaciones).forEach((op) => {
       const opId = getOperationId(op);
-      const opLabel = getOperationLabel(op);
       if (!opId || opId === currentOpId) return;
       if (!operationsMap.has(opId)) {
-        operationsMap.set(opId, opLabel || opId);
+        const opDisplay = getOperationDisplayName(op);
+        const opLabel = getOperationLabel(op);
+        operationsMap.set(opId, opDisplay || opLabel || opId);
       }
     });
 

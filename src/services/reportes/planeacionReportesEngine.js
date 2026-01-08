@@ -80,10 +80,6 @@ const normalizarCuentaCanonica = (valor = '') => {
   const limpio = valor.toString().replace(/[^0-9]/g, '');
   if (!limpio) return '';
 
-  if (limpio.length >= 21) {
-    return limpio.slice(0, 21);
-  }
-
   const visible = limpio.slice(0, 11).padEnd(11, '0');
   const b = visible.slice(3, 6);
   const c = visible.slice(6, 9);
@@ -95,6 +91,15 @@ const normalizarCuentaCanonica = (valor = '') => {
     if (d === '00') return '3';
     return '4';
   })();
+
+  if (limpio.length >= 21) {
+    const cuenta = limpio.slice(0, 21);
+    const last = cuenta.slice(-1);
+    if (['1', '2', '3', '4'].includes(last)) {
+      return cuenta;
+    }
+    return visible.padEnd(20, '0') + nivel;
+  }
 
   return visible.padEnd(20, '0') + nivel;
 };

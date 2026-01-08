@@ -9,6 +9,7 @@ import openpyxl
 
 ROOT = Path(__file__).resolve().parents[1]
 EXCEL_PATH = ROOT / 'info IMPORTANTE' / 'CUENTAS.xlsx'
+PLANTILLAS_DIR = ROOT / 'PLANTILLAS 2026+'
 DESTINO = ROOT / 'vistas' / 'js' / 'cuentas-data.js'
 HOJA_SUMAS = 'SUMA DE VARIAS SECCIONES'
 
@@ -27,7 +28,76 @@ def normalizar_hoja(texto):
   return ''.join(ch for ch in limpio if ch not in {'.', ' ', '_'})
 
 
-def extraer_registros(libro):
+def leer_json(path: Path):
+  try:
+    return json.loads(path.read_text(encoding='utf-8'))
+  except UnicodeDecodeError:
+    return json.loads(path.read_text(encoding='latin-1'))
+
+
+def limpiar_modulo(texto):
+  base = (texto or '').strip()
+  if not base:
+    return ''
+  return ' '.join(base.replace('.', ' ').replace('_', ' ').split())
+
+
+def obtener_valor(item, claves_normalizadas):
+  for clave, valor in item.items():
+    if normalizar(clave) in claves_normalizadas:
+      texto = (valor or '').strip() if isinstance(valor, str) else str(valor or '').strip()
+      if texto:
+        return texto
+  return ''
+
+
+def es_modulo_resumen(nombre):
+  return normalizar(nombre) in {'RESUMEN', 'SUMMARY'}
+
+
+def extraer_registros_desde_plantillas(plantillas_dir: Path):
+  if not plantillas_dir.exists():
+    return None
+
+  datos = {}
+  json_paths = sorted(plantillas_dir.rglob('*_layout.json'), key=lambda p: p.name.lower())
+  if not json_paths:
+    return None
+
+  for json_path in json_paths:
+    capitulo_dir = json_path.parent.name.replace(' 2026', '').strip()
+    contenido = leer_json(json_path)
+    if not isinstance(contenido, dict) or not contenido:
+      continue
+
+    for modulo, items in contenido.items():
+      if es_modulo_resumen(modulo):
+        continue
+      modulo_limpio = limpiar_modulo(modulo)
+      if not modulo_limpio:
+        continue
+      if not isinstance(items, list):
+        items = [items]
+      for item in items:
+        if not isinstance(item, dict):
+          continue
+        cuenta = obtener_valor(item, {'CUENTA'})
+        if not cuenta:
+          continue
+        capitulo = obtener_valor(item, {'CAPITULO'}) or capitulo_dir
+        seccion = obtener_valor(item, {'SECCION', 'SECCION PRINCIPAL'})
+        nombre = obtener_valor(item, {'NOMBRE'}) or cuenta
+        datos.setdefault(modulo_limpio, []).append({
+          'capitulo': capitulo,
+          'seccion': seccion,
+          'cuenta': cuenta,
+          'nombre': nombre
+        })
+
+  return datos or None
+
+
+def extraer_registros_excel(libro):
   datos = {}
   for hoja in libro.worksheets:
     if hoja.title == HOJA_SUMAS:
@@ -76,10 +146,12 @@ def extraer_sumas(libro):
 
 def main():
   libro = openpyxl.load_workbook(EXCEL_PATH, data_only=True)
-  registros = extraer_registros(libro)
+  registros = extraer_registros_desde_plantillas(PLANTILLAS_DIR)
+  if registros is None:
+    registros = extraer_registros_excel(libro)
   sumas = extraer_sumas(libro)
   contenido = (
-    '// Generado automaticamente desde info IMPORTANTE/CUENTAS.xlsx\n'
+    '// Generado automaticamente desde PLANTILLAS 2026+ (cuentas) y info IMPORTANTE/CUENTAS.xlsx (sumas)\n'
     f'window.CUENTAS_POR_MODULO = {json.dumps(registros, ensure_ascii=True, separators=(",", ":"))};\n'
     f'window.CUENTAS_SUMAS = {json.dumps(sumas, ensure_ascii=True, separators=(",", ":"))};\n'
   )
