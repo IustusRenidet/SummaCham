@@ -1557,9 +1557,9 @@
       <div class="layout-section operation-section ${tipo}">
         <div class="operation-row ${tipo} ${hiddenClass}" data-operation-id="${escapeAttr(
           opId || ""
-        )}" data-operation-label="${escapeAttr(clase)}" onclick="editOperation('${escapeAttr(
-      opId || clase
-    )}')">
+        )}" data-operation-label="${escapeAttr(
+      displayName
+    )}" onclick="editOperation('${escapeAttr(opId || clase)}')">
           <div class="operation-label">
             <i class="bi bi-calculator"></i>
             <span>${escapeHtml(displayName)}</span>
@@ -1602,9 +1602,9 @@
     return `
       <div class="inline-operation-row ${hiddenClass}" data-operation-id="${escapeAttr(
         opId || ""
-      )}" data-operation-label="${escapeAttr(clase)}" onclick="editOperation('${escapeAttr(
-        opId || clase
-      )}')">
+      )}" data-operation-label="${escapeAttr(
+      displayName
+    )}" onclick="editOperation('${escapeAttr(opId || clase)}')">
         <div class="inline-op-icon">
           <i class="bi bi-calculator"></i>
         </div>
@@ -1952,6 +1952,7 @@
       .map((op) => {
         const opId = getOperationId(op);
         const clase = getOperationLabel(op) || "Operacion";
+        const displayName = getOperationDisplayName(op);
         const tipo = detectOperationType(op);
         const termsCount = op.formula_terms?.length || 0;
         const isVisible = op.visible !== false;
@@ -1962,12 +1963,12 @@
         return `
         <div class="operation-row ${tipo} ${hiddenClass}" data-operation-id="${escapeAttr(
           opId || ""
-        )}" data-operation-label="${escapeAttr(clase)}">
+        )}" data-operation-label="${escapeAttr(displayName)}">
           <div class="operation-label" onclick="editOperation('${escapeAttr(
             opId || clase
           )}')">
             <i class="bi bi-calculator"></i>
-            <span>${escapeHtml(clase)}</span>
+            <span>${escapeHtml(displayName)}</span>
             <span class="operation-type">${tipo}</span>
             ${
               termsCount > 0
@@ -5132,23 +5133,26 @@ window.editSection = function (name) {
    */
   function getAccountCatalog() {
     const accounts = [];
+    const seen = new Set();
 
-    if (state.cuentas && Array.isArray(state.cuentas)) {
-      state.cuentas.forEach((cuenta) => {
-        const code = cuenta.CUENTA || cuenta.cuenta || cuenta.num_cta;
-        const name = cuenta.NOMBRE || cuenta.nombre || "";
-
-        if (code) {
+    const groupedSections = groupBySections(state.cuentas);
+    groupedSections.forEach((section) => {
+      (section.subsections || []).forEach((subsection) => {
+        (subsection.accounts || []).forEach((cuenta) => {
+          const code = cuenta.CUENTA || cuenta.cuenta || cuenta.num_cta;
+          const name = cuenta.NOMBRE || cuenta.nombre || "";
+          const key = normalizeOperationMatch(code);
+          if (!code || seen.has(key)) return;
+          seen.add(key);
           accounts.push({
             code: String(code).trim(),
             name: String(name).trim(),
             display: `${code}${name ? " - " + name : ""}`,
           });
-        }
+        });
       });
-    }
+    });
 
-    accounts.sort((a, b) => a.code.localeCompare(b.code));
     return accounts;
   }
 
@@ -5352,15 +5356,7 @@ window.editSection = function (name) {
     });
 
     // Etiquetas generadas por filas especiales (sum-row, net-row, etc.)
-    const rowLabelFields = [
-      "sum-row",
-      "sum-row-sumavarios",
-      "sum-row-sumavarios-consolidado",
-      "sum-row-operativo",
-      "result-row",
-      "net-row",
-      "result-net-row",
-    ];
+    const rowLabelFields = OP_ROW_FIELDS.map((row) => row.field);
 
     state.operaciones.forEach((op) => {
       // Poblar operaciones con etiquetas de filas generadas
