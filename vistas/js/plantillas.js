@@ -6383,32 +6383,73 @@ window.editSection = function (name) {
       orderedLabels: [], // Orden exacto como aparece visualmente
     };
 
+    const orderedLabelKeys = new Set();
+    const sectionKeys = new Set();
+    const accountKeys = new Set();
+    const operationKeys = new Set();
+
+    const pushOrderedLabel = (label) => {
+      const key = normalizeOperationMatch(label);
+      if (!key || orderedLabelKeys.has(key)) return;
+      orderedLabelKeys.add(key);
+      availableElements.orderedLabels.push(label);
+    };
+
+    const registerSection = (label) => {
+      const key = normalizeOperationMatch(label);
+      if (!key || sectionKeys.has(key)) return;
+      sectionKeys.add(key);
+      availableElements.sections.push(label);
+      pushOrderedLabel(label);
+    };
+
+    const registerAccount = (code, name) => {
+      const key = normalizeOperationMatch(code);
+      if (!key || accountKeys.has(key)) return;
+      accountKeys.add(key);
+      availableElements.accounts.push({ code, name: name || code });
+      pushOrderedLabel(code);
+    };
+
+    const registerOperation = (id, label) => {
+      const value = id || label;
+      const key = normalizeOperationMatch(value);
+      if (!key || operationKeys.has(key)) return;
+      operationKeys.add(key);
+      availableElements.operations.push({
+        id: id || label,
+        label: label || id,
+      });
+    };
+
     // Extraer de secciones renderizadas
     container
-      .querySelectorAll(".section-header .section-title span")
+      .querySelectorAll(".section-header .section-title > span:not(.badge)")
       .forEach((el) => {
         const text = el.textContent.trim();
-        if (text && !availableElements.orderedLabels.includes(text)) {
-          availableElements.sections.push(text);
-          availableElements.orderedLabels.push(text);
-        }
+        if (text) registerSection(text);
+      });
+
+    // Extraer de subsecciones renderizadas
+    container
+      .querySelectorAll(".subsection-header .subsection-title > span:not(.badge)")
+      .forEach((el) => {
+        const text = el.textContent.trim();
+        if (text) registerSection(text);
       });
 
     // Extraer de cuentas renderizadas
     container.querySelectorAll(".account-row").forEach((row) => {
       const code = row.querySelector(".account-code")?.textContent?.trim();
       const name = row.querySelector(".account-name")?.textContent?.trim();
-      if (code) {
-        availableElements.accounts.push({ code, name: name || code });
-        availableElements.orderedLabels.push(code);
-      }
+      if (code) registerAccount(code, name);
     });
-
-    const operationKeys = new Set();
 
     // Extraer de operaciones renderizadas
     container
-      .querySelectorAll(".operation-row, .inline-operation-row")
+      .querySelectorAll(
+        ".operation-row, .inline-operation-row, .operation-card"
+      )
       .forEach((row) => {
         const opId = row.getAttribute("data-operation-id")?.trim();
         const opLabel =
@@ -6417,19 +6458,18 @@ window.editSection = function (name) {
           row.querySelector(".op-name")?.textContent?.trim() ||
           "";
         const label = opLabel || opId;
-        if (label && !availableElements.orderedLabels.includes(label)) {
-          availableElements.orderedLabels.push(label);
-        }
-        const id = opId || label;
-        const key = normalizeOperationMatch(id || label);
-        if (key && !operationKeys.has(key)) {
-          availableElements.operations.push({
-            id: id || label,
-            label: label || id,
-          });
-          operationKeys.add(key);
-        }
+        if (label) pushOrderedLabel(label);
+        registerOperation(opId || label, label);
       });
+
+    // Asegurar orden completo segun la lista de operaciones
+    sortOperations(state.operaciones || []).forEach((op) => {
+      const opId = getOperationId(op);
+      const opLabel =
+        getOperationDisplayName(op) || getOperationLabel(op) || opId;
+      if (opLabel) pushOrderedLabel(opLabel);
+      if (opId || opLabel) registerOperation(opId || opLabel, opLabel || opId);
+    });
 
     // Actualizar FormulaBuilder si existe
     if (
