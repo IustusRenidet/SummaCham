@@ -484,6 +484,7 @@
       sumavariosRows: new Map(),
       resultRows: new Map(),
     },
+    operacionesResultadoOperativo: new Map(),
     valoresPorCuenta: new Map(),
     nombresPorCuenta: new Map(),
     capitulo: "",
@@ -4304,6 +4305,45 @@
       console.warn("?? Error en fase sumavarios:", e);
     }
 
+    // PASO 2.5: Resultado Operativo por nombre (ingresos - gastos)
+    try {
+      const operaciones = estadoModulo.operacionesResultadoOperativo;
+      if (operaciones && operaciones.size) {
+        const cacheValores = new Map();
+        const obtenerValoresCuenta = (cuenta21) => {
+          if (!cuenta21) return Array.from({ length: longitud }, () => 0);
+          if (cacheValores.has(cuenta21)) return cacheValores.get(cuenta21);
+          const almacenados =
+            estadoModulo.valoresPorCuenta?.get(cuenta21) || {};
+          const valoresBase = clavesOrdenadas.map(
+            (clave) => almacenados[clave] ?? 0
+          );
+          const ajustados = ajustarPorPeriodo(valoresBase);
+          cacheValores.set(cuenta21, ajustados);
+          return ajustados;
+        };
+
+        operaciones.forEach((info) => {
+          const fila = info?.fila;
+          const terminos = Array.isArray(info?.terminos) ? info.terminos : [];
+          if (!fila || !fila.parentNode || !terminos.length) return;
+          const acumulado = Array.from({ length: longitud }, () => 0);
+          terminos.forEach((termino) => {
+            const cuenta21 = termino?.cuenta21 || "";
+            const signo = Number(termino?.signo) || 0;
+            if (!cuenta21 || !signo) return;
+            const valoresCuenta = obtenerValoresCuenta(cuenta21);
+            valoresCuenta.forEach((valor, idx) => {
+              acumulado[idx] += (Number(valor) || 0) * signo;
+            });
+          });
+          asignarValoresNumericos(fila, acumulado);
+        });
+      }
+    } catch (e) {
+      console.warn("?? Error en fase resultado operativo por nombre:", e);
+    }
+
     // result-row: suma solamente los sum-row de todas las secciones con la misma etiqueta de resultado
     // Aplicar factor por sección (ingresos = +1, gastos = -1 o user-defined operacionFactor)
     try {
@@ -5066,6 +5106,17 @@
         }
       }
     });
+
+    const operacionesResultado = construirOperacionesResultadoOperativo({
+      registros,
+      moduloClave,
+    });
+    estadoModulo.operacionesResultadoOperativo =
+      insertarOperacionesResultadoOperativo({
+        cuerpo,
+        placeholdersPorFila,
+        operaciones: operacionesResultado,
+      });
 
     pendientes.resultadoFilas.forEach((fila) => {
       const resultadoFila = agregarFilaResumen({

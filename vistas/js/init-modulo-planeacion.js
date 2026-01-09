@@ -6,6 +6,39 @@
  *      y llamar initModuloPlaneacion({ moduloId: 'rh', moduloNombre: 'RH' })
  */
 
+const prepararStickyHeaders = (selectorTabla) => {
+  const tabla = document.querySelector(selectorTabla);
+  if (!tabla) return;
+
+  const wrapper = tabla.closest(".table-responsive");
+  if (!wrapper) return;
+
+  wrapper.classList.add("sticky-table-scroll");
+
+  const ajustar = () => {
+    const primeraCol = tabla.querySelector(
+      "thead tr:first-child th:nth-child(1)"
+    ) || tabla.querySelector("thead th:nth-child(1)");
+    const anchoPrimeraCol = primeraCol
+      ? Math.ceil(primeraCol.getBoundingClientRect().width)
+      : 0;
+    wrapper.style.setProperty("--sticky-col-1-left", "0px");
+    wrapper.style.setProperty("--sticky-col-2-left", `${anchoPrimeraCol}px`);
+  };
+
+  ajustar();
+
+  if (!wrapper.dataset.stickyReady) {
+    wrapper.dataset.stickyReady = "true";
+    window.addEventListener("resize", ajustar);
+    if (document.fonts?.ready) {
+      document.fonts.ready.then(ajustar).catch(() => {});
+    }
+    const observer = new MutationObserver(() => ajustar());
+    observer.observe(tabla, { attributes: true, attributeFilter: ["class"] });
+  }
+};
+
 window.initModuloPlaneacion = async function({ moduloId, moduloNombre, selectorTabla = '#tablaComparacion', tablaBodyId = 'tablaCuentasBody' }) {
   try {
     // 1. Inicializar CuentasModulo
@@ -29,6 +62,8 @@ window.initModuloPlaneacion = async function({ moduloId, moduloNombre, selectorT
       console.warn(`⚠️ ModoEdicionPresupuesto no disponible en ${moduloNombre}`);
     }
     
+    prepararStickyHeaders(selectorTabla);
+
     // 4. Inicializar FlujoAutorizacion con callback completo
     if (typeof window.FlujoAutorizacion !== 'undefined') {
       const flujo = new window.FlujoAutorizacion({

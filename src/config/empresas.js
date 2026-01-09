@@ -60,6 +60,56 @@ const EMPRESAS = EMPRESAS_META.map((e) => {
   return { id: e.id, nombre: e.nombre, etiqueta: e.etiqueta, rutaBaseDatos: ruta };
 });
 
-const obtenerEmpresaPorId = (id) => EMPRESAS.find((empresa) => empresa.id === id);
+const EMPRESAS_COMPARATIVAS = new Set([9, 10, 11, 12]);
+const EMPRESAS_COMPARATIVAS_RUTAS = {
+  9: path.normalize(
+    "C:/Program Files (x86)/Common Files/Aspel/Sistemas Aspel/COI10.00/Datos/Empresa9/COI10EMPRE9.FDB"
+  ),
+  10: path.normalize(
+    "C:/Program Files (x86)/Common Files/Aspel/Sistemas Aspel/COI10.00/Datos/Empresa10/COI10EMPRE10.FDB"
+  ),
+  11: path.normalize(
+    "C:/Program Files (x86)/Common Files/Aspel/Sistemas Aspel/COI10.00/Datos/Empresa11/COI10EMPRE11.FDB"
+  ),
+  12: path.normalize(
+    "C:/Program Files (x86)/Common Files/Aspel/Sistemas Aspel/COI10.00/Datos/Empresa12/COI10EMPRE12.FDB"
+  ),
+};
+
+const obtenerEmpresaPorId = (id) => {
+  const empresa = EMPRESAS.find((item) => item.id === id);
+  if (empresa) return empresa;
+
+  const match = (id || '').toString().match(/empresa(\d+)/i);
+  if (!match) return undefined;
+
+  const numero = parseInt(match[1], 10);
+  if (!EMPRESAS_COMPARATIVAS.has(numero)) return undefined;
+
+  const rutaDirecta = EMPRESAS_COMPARATIVAS_RUTAS[numero];
+  if (rutaDirecta) {
+    return {
+      id: `empresa${numero}`,
+      nombre: `Empresa ${numero}`,
+      etiqueta: `Empresa ${numero}`,
+      rutaBaseDatos: rutaDirecta,
+    };
+  }
+
+  let ruta = null;
+  for (const carpeta of candidatasCOI) {
+    ruta = construirRutaBD(carpeta, numero);
+    if (ruta) break;
+  }
+  if (!ruta) ruta = rutaFallback(numero);
+  if (!ruta) return undefined;
+
+  return {
+    id: `empresa${numero}`,
+    nombre: `Empresa ${numero}`,
+    etiqueta: `Empresa ${numero}`,
+    rutaBaseDatos: ruta
+  };
+};
 
 module.exports = { EMPRESAS, obtenerEmpresaPorId };

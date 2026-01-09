@@ -271,6 +271,7 @@
 
       .table thead th {
         border: 1px solid #999;
+        background-color: #d9d9d9;
         color: #000;
         text-transform: uppercase;
         letter-spacing: 0.03em;
@@ -297,18 +298,19 @@
       }
 
       /* Columnas fijas de cuenta y descripción con fondo sólido */
-      .table thead th:nth-child(1),
-      .table thead th:nth-child(2) {
+      .table thead tr:first-child th:nth-child(1),
+      .table thead tr:nth-child(2) th:nth-child(1) {
         background-color: #d9d9d9 !important;
-        z-index: 150;
+        z-index: 150 !important;
         position: sticky;
-      }
-
-      .table thead th:nth-child(1) {
         left: 0;
       }
 
-      .table thead th:nth-child(2) {
+      .table thead tr:first-child th:nth-child(2),
+      .table thead tr:nth-child(2) th:nth-child(2) {
+        background-color: #d9d9d9 !important;
+        z-index: 150 !important;
+        position: sticky;
         left: 100px;
       }
 
@@ -491,8 +493,7 @@
 
       /*scroll horizontal cuidadoso */
       .table-responsive {
-        max-height: 80vh;
-        overflow-y: auto;
+        overflow-y: visible;
         overflow-x: auto;
         border-radius: 12px;
         width: 100%;
@@ -1036,6 +1037,28 @@
             <option value="11">Noviembre</option>
             <option value="12">Diciembre</option>
           </select>
+        </div>
+        <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+          <label
+            for="resumenEmpresaComparativaToggle"
+            class="form-label fw-semibold text-muted small mb-2"
+            >Año anterior</label
+          >
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            <span class="small text-muted">Usar empresa</span>
+            <label class="toggle-switch mb-0">
+              <input
+                type="checkbox"
+                id="resumenEmpresaComparativaToggle"
+                aria-label="Usar empresa para año anterior"
+              />
+              <span class="toggle-slider"></span>
+            </label>
+            <span
+              class="small text-muted"
+              id="resumenEmpresaComparativaLabel"
+            ></span>
+          </div>
         </div>
       </div>
 

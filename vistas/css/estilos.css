@@ -302,6 +302,35 @@ textarea:not(:disabled),
   background-color: rgba(47, 84, 150, 0.05);
 }
 
+/* Sticky headers for all tables */
+table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background-color: inherit;
+}
+
+/* Sticky headers inside scrollable table containers */
+.table-responsive.sticky-table-scroll {
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
+.table-responsive.sticky-table-scroll .table-comparison thead th:nth-child(1),
+.table-responsive.sticky-table-scroll .table-comparison tbody td:nth-child(1) {
+  left: var(--sticky-col-1-left, 0px);
+}
+
+.table-responsive.sticky-table-scroll .table-comparison thead th:nth-child(2),
+.table-responsive.sticky-table-scroll .table-comparison tbody td:nth-child(2) {
+  left: var(--sticky-col-2-left, 120px);
+}
+
+.table-responsive.sticky-table-scroll .table-comparison thead th:nth-child(1),
+.table-responsive.sticky-table-scroll .table-comparison thead th:nth-child(2) {
+  z-index: 200;
+}
+
 /* Sticky headers and totals for comparison tables */
 .table-comparison.sticky-header thead {
   background-color: #ffffff;
@@ -434,4 +463,88 @@ a:not(.disabled) {
 .select-scroll {
   max-height: 240px;
   overflow-y: auto;
+}
+
+/* Panel de resultados operativos */
+.operativo-panel {
+  margin-bottom: 1.25rem;
+}
+
+.operativo-sidebar {
+  position: sticky;
+  top: 90px;
+}
+
+.operativo-panel .sidebar-card,
+.operativo-sidebar .sidebar-card {
+  background: #ffffff;
+  border: 1px solid rgba(47, 84, 150, 0.12);
+  border-radius: 16px;
+  padding: 1rem;
+  box-shadow: 0 6px 20px rgba(47, 84, 150, 0.08);
+}
+
+.operativo-panel .sidebar-title,
+.operativo-sidebar .sidebar-title {
+  color: var(--color-primary, #2f5496);
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.operativo-panel .sidebar-subtitle,
+.operativo-sidebar .sidebar-subtitle {
+  color: #6b7280;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.operativo-panel .chart-block,
+.operativo-sidebar .chart-block {
+  margin-top: 0.75rem;
+}
+
+.operativo-panel .chart-title,
+.operativo-sidebar .chart-title {
+  color: #425466;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+}
+
+.operativo-panel .chart-container,
+.operativo-sidebar .chart-container {
+  border-radius: 12px;
+  height: 240px;
+  position: relative;
+}
+
+.operativo-panel .chart-container canvas,
+.operativo-sidebar .chart-container canvas {
+  height: 100% !important;
+  width: 100% !important;
+}
+
+.operativo-panel .sidebar-empty,
+.operativo-sidebar .sidebar-empty {
+  align-items: center;
+  background: rgba(248, 249, 250, 0.9);
+  border-radius: 12px;
+  color: #6b7280;
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 1rem;
+  position: absolute;
+  text-align: center;
+  z-index: 1;
+}
+
+@media (max-width: 1200px) {
+  .operativo-sidebar {
+    position: static;
+  }
 }

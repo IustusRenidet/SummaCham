@@ -97,6 +97,12 @@
   const searchInput = document.getElementById("accountSearch");
   const exportXlsxBtn = document.getElementById("exportResumenBtn");
   const printPdfBtn = document.getElementById("printResumenBtn");
+  const comparativaToggle = document.getElementById(
+    "resumenEmpresaComparativaToggle"
+  );
+  const comparativaLabel = document.getElementById(
+    "resumenEmpresaComparativaLabel"
+  );
 
   const manejarSesionExpirada = (resp) => {
     if (resp?.status === 401) {
@@ -234,6 +240,220 @@
   };
 
   const parseText = (texto) => (texto || "").toString().trim();
+
+  const COMPARATIVA_STORAGE_KEY = "resumen_empresa_comparativa";
+  const COMPARATIVA_POR_EMPRESA = {
+    empresa1: "empresa9",
+    empresa2: "empresa10",
+    empresa3: "empresa11",
+    empresa4: "empresa12",
+  };
+  const COMPARATIVA_POR_CAPITULO = {
+    "CIUDAD DE MEXICO": "empresa9",
+    GUADALAJARA: "empresa10",
+    NORESTE: "empresa11",
+    NOROESTE: "empresa12",
+  };
+
+  const normalizarEtiquetaComparativa = (texto = "") =>
+    texto
+      .toString()
+      .trim()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toUpperCase()
+      .replace(/\s+/g, " ");
+
+  const extraerNumeroEmpresa = (empresaId) => {
+    const match = (empresaId || "").toString().match(/\d+/);
+    return match ? match[0] : "";
+  };
+
+  const obtenerEmpresaComparativaId = (empresaId) => {
+    const clave = (empresaId || "").toString().trim().toLowerCase();
+    if (COMPARATIVA_POR_EMPRESA[clave]) {
+      return COMPARATIVA_POR_EMPRESA[clave];
+    }
+    const capitulo =
+      obtenerCapituloEmpresa(empresaId) || obtenerEtiquetaEmpresa(empresaId);
+    const capituloKey = normalizarEtiquetaComparativa(capitulo);
+    return COMPARATIVA_POR_CAPITULO[capituloKey] || null;
+  };
+
+  const actualizarComparativaUI = (empresaId) => {
+    if (!comparativaToggle && !comparativaLabel) return;
+    const comparativaId = obtenerEmpresaComparativaId(empresaId);
+    if (comparativaToggle) {
+      comparativaToggle.disabled = !comparativaId;
+      if (!comparativaId) {
+        comparativaToggle.checked = false;
+        localStorage.setItem(COMPARATIVA_STORAGE_KEY, "0");
+      }
+    }
+    if (comparativaLabel) {
+      if (!comparativaId) {
+        comparativaLabel.textContent = "";
+        return;
+      }
+      const numero = extraerNumeroEmpresa(comparativaId);
+      comparativaLabel.textContent = numero
+        ? `Empresa ${numero}`
+        : comparativaId;
+    }
+  };
+
+  const inicializarComparativaToggle = () => {
+    if (!comparativaToggle) return;
+    const saved = localStorage.getItem(COMPARATIVA_STORAGE_KEY) === "1";
+    comparativaToggle.checked = saved;
+    comparativaToggle.addEventListener("change", () => {
+      const activo = comparativaToggle.checked;
+      localStorage.setItem(COMPARATIVA_STORAGE_KEY, activo ? "1" : "0");
+      recargarSeleccionActual();
+    });
+  };
+
+  const obtenerClaveCuentaComparativa = (registro) =>
+    (registro?.cuentaCanonica || registro?.cuenta || "").toString().trim();
+
+  const asignarSiNumero = (destino, clave, valor) => {
+    const numero = Number(valor);
+    if (!Number.isFinite(numero)) return false;
+    destino[clave] = numero;
+    return true;
+  };
+
+  const indexarLayoutComparativo = (layout = []) => {
+    const cuentas = new Map();
+    const etiquetas = new Map();
+    layout.forEach((block) => {
+      if (!block) return;
+      const tipo = (block.type || "").toLowerCase();
+      const etiqueta = normalizarEtiquetaComparativa(block.label || "");
+      if (etiqueta) {
+        etiquetas.set(`${tipo}|${etiqueta}`, block);
+      }
+      if (tipo === "cuenta") {
+        const claveCuenta = (block.cuenta || "").toString().trim();
+        if (claveCuenta) cuentas.set(claveCuenta, block);
+      }
+    });
+    return { cuentas, etiquetas };
+  };
+
+  const aplicarComparativoLayout = (layoutBase = [], layoutComp = []) => {
+    if (!Array.isArray(layoutBase) || !Array.isArray(layoutComp)) return;
+    const { cuentas, etiquetas } = indexarLayoutComparativo(layoutComp);
+    layoutBase.forEach((block) => {
+      if (!block || !block.totals) return;
+      const tipo = (block.type || "").toLowerCase();
+      let comparativo = null;
+      if (tipo === "cuenta") {
+        const claveCuenta = (block.cuenta || "").toString().trim();
+        comparativo = claveCuenta ? cuentas.get(claveCuenta) : null;
+      }
+      if (!comparativo) {
+        const etiqueta = normalizarEtiquetaComparativa(block.label || "");
+        comparativo = etiqueta ? etiquetas.get(`${tipo}|${etiqueta}`) : null;
+      }
+      if (!comparativo?.totals) return;
+      asignarSiNumero(block.totals, "prevMonth", comparativo.totals.prevMonth);
+      asignarSiNumero(block.totals, "prevYTD", comparativo.totals.prevYTD);
+    });
+  };
+
+  const indexarComparativoCapitulo = (capitulo = {}) => {
+    const cuentas = new Map();
+    const secciones = new Map();
+    const principales = new Map();
+
+    (capitulo.children || []).forEach((principal) => {
+      const principalKey = normalizarEtiquetaComparativa(principal.label || "");
+      if (principalKey) {
+        principales.set(principalKey, principal);
+      }
+      (principal.children || []).forEach((seccion) => {
+        const seccionKey = normalizarEtiquetaComparativa(seccion.label || "");
+        if (seccionKey && !secciones.has(seccionKey)) {
+          secciones.set(seccionKey, seccion);
+        }
+        (seccion.cuentas || []).forEach((cta) => {
+          const cuentaKey = obtenerClaveCuentaComparativa(cta);
+          if (cuentaKey && !cuentas.has(cuentaKey)) {
+            cuentas.set(cuentaKey, cta);
+          }
+        });
+      });
+    });
+
+    return { cuentas, secciones, principales };
+  };
+
+  const aplicarComparativoCapitulo = (capituloBase = {}, capituloComp = {}) => {
+    if (!capituloBase || !capituloComp) return;
+    const { cuentas, secciones, principales } =
+      indexarComparativoCapitulo(capituloComp);
+
+    (capituloBase.children || []).forEach((principal) => {
+      const principalKey = normalizarEtiquetaComparativa(principal.label || "");
+      const compPrincipal = principalKey
+        ? principales.get(principalKey)
+        : null;
+      if (compPrincipal) {
+        asignarSiNumero(principal, "prevMonth", compPrincipal.prevMonth);
+        asignarSiNumero(principal, "prevYTD", compPrincipal.prevYTD);
+      }
+      (principal.children || []).forEach((seccion) => {
+        const seccionKey = normalizarEtiquetaComparativa(seccion.label || "");
+        const compSeccion = seccionKey ? secciones.get(seccionKey) : null;
+        if (compSeccion) {
+          asignarSiNumero(seccion, "totalPrevMonth", compSeccion.totalPrevMonth);
+          asignarSiNumero(seccion, "totalPrevYTD", compSeccion.totalPrevYTD);
+        }
+        (seccion.cuentas || []).forEach((cta) => {
+          const cuentaKey = obtenerClaveCuentaComparativa(cta);
+          const compCuenta = cuentaKey ? cuentas.get(cuentaKey) : null;
+          if (compCuenta) {
+            asignarSiNumero(cta, "prevMonth", compCuenta.prevMonth);
+            asignarSiNumero(cta, "prevYTD", compCuenta.prevYTD);
+          }
+        });
+      });
+    });
+
+    if (Array.isArray(capituloBase.layout) && Array.isArray(capituloComp.layout)) {
+      aplicarComparativoLayout(capituloBase.layout, capituloComp.layout);
+    }
+  };
+
+  const aplicarComparativoResumen = (resumenBase = [], resumenComp = []) => {
+    if (!Array.isArray(resumenBase) || !Array.isArray(resumenComp)) {
+      return resumenBase;
+    }
+    if (!resumenBase.length || !resumenComp.length) {
+      return resumenBase;
+    }
+    const mapaComparativo = new Map();
+    resumenComp.forEach((capitulo) => {
+      const key = normalizarEtiquetaComparativa(
+        capitulo.label || capitulo.capitulo || ""
+      );
+      if (key) {
+        mapaComparativo.set(key, capitulo);
+      }
+    });
+
+    resumenBase.forEach((capitulo) => {
+      const key = normalizarEtiquetaComparativa(
+        capitulo.label || capitulo.capitulo || ""
+      );
+      const comparativo = mapaComparativo.get(key) || resumenComp[0];
+      if (comparativo) {
+        aplicarComparativoCapitulo(capitulo, comparativo);
+      }
+    });
+    return resumenBase;
+  };
 
   // Snapshot local de la tabla RESUMEN para que otras vistas (Graficas) usen exactamente lo que ve el usuario
   const SNAPSHOT_PREFIX = "resumen_tabla_snapshot";
@@ -1966,6 +2186,24 @@
     }
   };
 
+  const consultarResumen = async ({ empresaId, anio, mes, capitulo }) => {
+    const params = new URLSearchParams({
+      empresaId: empresaId,
+      anio: Number(anio),
+    });
+    params.set("mes", String(mes));
+    if (capitulo) params.set("capitulo", capitulo);
+
+    const respuesta = await fetch(`${API_ENDPOINT}?${params.toString()}`, {
+      headers: Sesion.headersAutenticacion(),
+    });
+    if (manejarSesionExpirada(respuesta)) return null;
+    if (!respuesta.ok) {
+      throw new Error("No fue posible obtener el resumen.");
+    }
+    return respuesta.json();
+  };
+
   const fetchResumen = async (empresaId, anio, mes) => {
     if (!empresaId || !anio) return;
     const mesEntero = Number(mes);
@@ -1979,27 +2217,52 @@
     setStatusRow("Cargando resumen financiero...");
     actualizarMesContexto(mesEntero);
     try {
-      const params = new URLSearchParams({
-        empresaId: empresaId,
-        anio: Number(anio),
-      });
-      params.set("mes", String(mesEntero));
-
       // Usar capítulo derivado de la empresa activa
       const capitulo = obtenerCapituloEmpresa(empresaId);
-      if (capitulo) params.set("capitulo", capitulo);
+      const usarComparativa = comparativaToggle?.checked === true;
+      const empresaComparativaId = usarComparativa
+        ? obtenerEmpresaComparativaId(empresaId)
+        : null;
 
-      const respuesta = await fetch(`${API_ENDPOINT}?${params.toString()}`, {
-        headers: Sesion.headersAutenticacion(),
-      });
-      if (manejarSesionExpirada(respuesta)) return;
-      if (!respuesta.ok) {
-        throw new Error("No fue posible obtener el resumen.");
+      if (usarComparativa && !empresaComparativaId && comparativaToggle) {
+        comparativaToggle.checked = false;
+        localStorage.setItem(COMPARATIVA_STORAGE_KEY, "0");
       }
-      const datos = await respuesta.json();
+
+      const datos = await consultarResumen({
+        empresaId,
+        anio,
+        mes: mesEntero,
+        capitulo,
+      });
+      if (!datos) return;
       const anioNumero = Number(anio);
       aplicarLayoutPersistente(empresaId, anioNumero, datos?.resumen || []);
-      renderResumen(datos.resumen || [], mesEntero);
+      let resumenFinal = datos.resumen || [];
+
+      if (empresaComparativaId) {
+        try {
+          const datosComparativo = await consultarResumen({
+            empresaId: empresaComparativaId,
+            anio,
+            mes: mesEntero,
+            capitulo,
+          });
+          if (datosComparativo?.resumen?.length) {
+            resumenFinal = aplicarComparativoResumen(
+              resumenFinal,
+              datosComparativo.resumen
+            );
+          }
+        } catch (errorComparativo) {
+          console.warn(
+            "No se pudo cargar el comparativo del año anterior.",
+            errorComparativo
+          );
+        }
+      }
+
+      renderResumen(resumenFinal, mesEntero);
 
       // Esperar a que el DOM se actualice completamente antes de capturar el snapshot
       requestAnimationFrame(() => {
@@ -2041,6 +2304,7 @@
 
   const aplicarEmpresaResumen = async (empresaId) => {
     if (!empresaId) return;
+    actualizarComparativaUI(empresaId);
     const { anio: ctxAnio, mes: ctxMes } = leerContextoPersistido();
     const anios = await cargarAniosDisponibles(
       empresaId,
@@ -3027,6 +3291,7 @@
       return;
     }
 
+    inicializarComparativaToggle();
     empresaActual = empresa;
     await aplicarEmpresaResumen(empresaActual.id);
 

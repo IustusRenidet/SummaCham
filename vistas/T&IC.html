@@ -49,12 +49,10 @@
         border-radius: 16px;
         border: 1px solid rgba(47, 84, 150, 0.1);
         overflow: visible;
-        max-height: 80vh;
       }
       
       .table-responsive {
-        max-height: 80vh;
-        overflow-y: auto;
+        overflow-y: visible;
         overflow-x: auto;
       }
 
@@ -423,19 +421,29 @@
                 />
               </div>
             </div>
-            <button
-              type="button"
-              class="btn btn-chip btn-chip-outline"
-              id="toggleAccountsBtn"
-              aria-pressed="true"
-            >
-              Ocultar cuentas
-            </button>
-            <button
-              type="button"
-              class="btn btn-outline-success btn-sm"
-              id="btnExportExcel"
-              title="Exportar a Excel"
+          <button
+            type="button"
+            class="btn btn-chip btn-chip-outline"
+            id="toggleAccountsBtn"
+            aria-pressed="true"
+          >
+            Ocultar cuentas
+          </button>
+          <button
+            type="button"
+            class="btn btn-outline-primary btn-sm"
+            data-bs-toggle="collapse"
+            data-bs-target="#operativoPanel"
+            aria-expanded="false"
+            aria-controls="operativoPanel"
+          >
+            <i class="bi bi-bar-chart"></i> Graficas
+          </button>
+          <button
+            type="button"
+            class="btn btn-outline-success btn-sm"
+            id="btnExportExcel"
+            title="Exportar a Excel"
             >
               <i class="bi bi-file-earmark-excel"></i> Excel
             </button>
@@ -449,15 +457,72 @@
             </button>
           </div>
         </div>
-      </div>
+    </div>
 
-      <div class="row g-4 align-items-start">
-        <div class="col-12">
-          <div class="table-card fade-in">
-            <div class="table-responsive">
-              <table
-                class="table align-middle mb-0 table-comparison"
-                id="tablaComparacion"
+    <div class="row mb-3">
+      <div class="col-12">
+        <div
+          class="collapse operativo-panel"
+          id="operativoPanel"
+          data-operativo-label="evento"
+        >
+          <div class="sidebar-card">
+            <div
+              class="d-flex align-items-start justify-content-between gap-2 mb-3"
+            >
+              <div>
+                <h5 class="sidebar-title">Resultados operativos</h5>
+                <div class="sidebar-subtitle" data-operativo-subtitle>
+                  Por evento
+                </div>
+              </div>
+              <div class="d-flex align-items-center gap-2">
+                <span class="badge text-bg-light border">Operativo</span>
+                <button
+                  type="button"
+                  class="btn-close"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#operativoPanel"
+                  aria-label="Cerrar"
+                ></button>
+              </div>
+            </div>
+            <div class="row g-3">
+              <div class="col-12 col-lg-6">
+                <div class="chart-block">
+                  <div class="chart-title">Ppto. Acumulado</div>
+                  <div class="chart-container" data-operativo-chart="budget">
+                    <div class="sidebar-empty" data-operativo-empty="budget">
+                      Sin datos de resultado operativo.
+                    </div>
+                    <canvas id="operativoChartBudget"></canvas>
+                  </div>
+                </div>
+              </div>
+              <div class="col-12 col-lg-6">
+                <div class="chart-block">
+                  <div class="chart-title">Real Acumulado</div>
+                  <div class="chart-container" data-operativo-chart="real">
+                    <div class="sidebar-empty" data-operativo-empty="real">
+                      Sin datos de resultado operativo.
+                    </div>
+                    <canvas id="operativoChartReal"></canvas>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-4 align-items-start">
+      <div class="col-12">
+        <div class="table-card fade-in">
+          <div class="table-responsive">
+            <table
+              class="table align-middle mb-0 table-comparison"
+              id="tablaComparacion"
               >
                 <thead>
                   <tr>
@@ -583,12 +648,12 @@
                     <td colspan="28">Cargando informacion...</td>
                   </tr>
                 </tbody>
-              </table>
-            </div>
+            </table>
           </div>
         </div>
       </div>
     </div>
+  </div>
 
     <div
       class="offcanvas offcanvas-end workflow-drawer"
@@ -652,6 +717,8 @@
     <script src="js/planeacion-modulo-vista.js"></script>
     <script src="js/flujo-autorizacion.js?v=20251208-1"></script>
     <script src="js/init-modulo-planeacion.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="js/operativo-sidebar.js"></script>
     <script>
       initModuloPlaneacion({ moduloId: "tic", moduloNombre: "TIC" });
       // Inicializar toggle de redondeo

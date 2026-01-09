@@ -92,7 +92,7 @@ function setupEnvironment() {
   const defaults = {
     NODE_ENV: envMode,
     FIREBIRD_HOST: '127.0.0.1',
-    FIREBIRD_PORT: isDevelopment ? '3050' : '15350',
+    FIREBIRD_PORT: '3050',
     FIREBIRD_USER: 'sysdba',
     FIREBIRD_PASSWORD: 'masterkey',
     SERVER_PORT: '3005'
