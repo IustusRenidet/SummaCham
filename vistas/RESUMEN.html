@@ -284,6 +284,18 @@
         min-width: 70px;
       }
 
+      .table thead tr:first-child th {
+        position: sticky;
+        top: 70px;
+        z-index: 100;
+      }
+
+      .table thead tr:nth-child(2) th {
+        position: sticky;
+        top: calc(70px + 2.2rem);
+        z-index: 100;
+      }
+
       .table td,
       .table th {
         border: 1px solid #ccc;
@@ -660,6 +672,18 @@
         .table thead th {
           font-size: 0.64rem;
           padding: 0.35rem 0.25rem;
+        }
+
+        .table thead tr:first-child th {
+          position: sticky;
+          top: 70px;
+          z-index: 100;
+        }
+
+        .table thead tr:nth-child(2) th {
+          position: sticky;
+          top: calc(70px + 2rem);
+          z-index: 100;
         }
         .table td {
           padding: 0.3rem 0.35rem;

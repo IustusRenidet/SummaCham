@@ -25,6 +25,32 @@
     return Number.isFinite(numero) ? numero : 0;
   };
 
+  const aplicarStickyEncabezados = () => {
+    const tabla = document.getElementById("tablaComparacion");
+    if (!tabla?.tHead) return;
+    tabla.classList.add("sticky-header");
+    requestAnimationFrame(() => {
+      const filas = Array.from(tabla.tHead.rows || []);
+      let offset = 0;
+      filas.forEach((fila) => {
+        const altura = Math.ceil(fila.getBoundingClientRect().height);
+        Array.from(fila.cells).forEach((celda) => {
+          celda.style.top = `${offset}px`;
+        });
+        offset += altura;
+      });
+    });
+  };
+
+  let stickyResizeBound = false;
+  const bindStickyResize = () => {
+    if (stickyResizeBound) return;
+    stickyResizeBound = true;
+    window.addEventListener("resize", () => {
+      aplicarStickyEncabezados();
+    });
+  };
+
   /**
    * Calcula porcentaje de variación según fórmula Excel
    * Fórmula: (real / base - 1) * 100
@@ -1026,6 +1052,8 @@
 
     if (!resumen.length) {
       setStatusRow("Sin datos disponibles para este periodo.");
+      aplicarStickyEncabezados();
+      bindStickyResize();
       return;
     }
 
@@ -1825,6 +1853,8 @@
     autoCollapseExcludedSections();
     habilitarColapsoGastosAdministrativos();
     wireCollapseControls();
+    aplicarStickyEncabezados();
+    bindStickyResize();
   };
 
   const actualizarEtiquetasAnio = (anio) => {
@@ -3422,6 +3452,7 @@
     if (zoomDisplay) {
       zoomDisplay.textContent = `${Math.round(zoomLevel * 100)}%`;
     }
+    aplicarStickyEncabezados();
   };
 
   if (zoomInBtn) {

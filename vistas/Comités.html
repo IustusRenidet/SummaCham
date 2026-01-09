@@ -91,13 +91,27 @@
         text-align: center;
       }
 
+      /* Sticky headers - primera fila del thead */
+      .table-comparison thead tr:first-child th {
+        position: sticky;
+        top: 70px;
+        z-index: 100;
+      }
+
+      /* Sticky headers - segunda fila del thead */
+      .table-comparison thead tr:nth-child(2) th {
+        position: sticky;
+        top: calc(70px + 2.5rem);
+        z-index: 100;
+      }
+
       /* Columnas fijas de cuenta y descripción */
       .table-comparison thead th:nth-child(1),
       .table-comparison thead th:nth-child(2) {
         background-color: #ffffff;
         color: var(--color-primary);
+        z-index: 101;
         position: sticky;
-        z-index: 10;
       }
 
       .table-comparison thead th:nth-child(1) {
@@ -122,6 +136,13 @@
       .table-comparison thead th.month-real {
         background-color: var(--color-real);
         color: #000000;
+      }
+
+      /* Columna budget-annual y totales */
+      .table-comparison thead th.budget-annual-column,
+      .table-comparison thead th.total-budget-column,
+      .table-comparison thead th.total-real-column {
+        background-color: #ffffff;
       }
 
       /* Columna del año (2026) */

@@ -226,6 +226,14 @@
             {"cuenta": "407-014-000-00", "nombre": "North America Week", "factor": 1},
             {"cuenta": "407-007-000-00", "nombre": "Sondeo de Seguridad", "factor": 1}
           ],
+          "operaciones_individuales": [
+            {
+              "tipo": "operacion",
+              "texto": "Resultado Operativo Asamblea Anual",
+              "formula": "407-005-000-00 + 408-005-000-00 - 701-001-004-00",
+              "descripcion": "Asamblea anual, boletaje + patrocinios - costos y gastos"
+            }
+          ],
           "fila_sum_row": {
             "texto": "Ingresos Boletaje",
             "operaciones_por_celda": {
@@ -387,6 +395,14 @@
           "cuentas": [
             {"cuenta": "406-001-000-00", "nombre": "Encuesta de Sueldos y Prestaciones", "factor": 1},
             {"cuenta": "406-002-000-00", "nombre": "Digital Training", "factor": 1}
+          ],
+          "operaciones_individuales": [
+            {
+              "tipo": "operacion",
+              "texto": "Resultado Operativo Encuesta de Sueldos y Prestaciones",
+              "formula": "406-001-000-00 - 601-002-003-00",
+              "descripcion": "Encuesta de Sueldos y Prestaciones, ingresos - gastos"
+            }
           ]
         },
         "seccion_GASTOS_SERV_MEMBRESIA": {
@@ -430,6 +446,14 @@
             {"cuenta": "412-003-000-00", "nombre": "Economex: Breafings y cocteles", "factor": 1},
             {"cuenta": "417-002-001-00", "nombre": "Misiones DC (CEOs y SG)", "factor": 1}
           ],
+          "operaciones_individuales": [
+            {
+              "tipo": "operacion",
+              "texto": "Resultado Operativo Programa Mentoría",
+              "formula": "417-015-000-00 - 702-002-017-00",
+              "descripcion": "Programa de Mentoría, ingresos - gastos"
+            }
+          ],
           "nota": "20 cuentas diferentes de ingresos de comités"
         },
         "seccion_GASTOS_COMITES": {
@@ -454,14 +478,26 @@
       "CIUDAD DE MÉXICO": {
         "seccion_INGRESOS_T_IC": {
           "cuentas": [
-            {"cuenta": "405-001-000-00", "nombre": "Ingresos 1", "factor": 1},
-            {"cuenta": "405-002-000-00", "nombre": "Ingresos 2", "factor": 1}
+            {"cuenta": "405-001-000-00", "nombre": "SemiconWest", "factor": 1},
+            {"cuenta": "405-002-000-00", "nombre": "North American Week", "factor": 1},
+            {"cuenta": "405-003-000-00", "nombre": "Selec USA", "factor": 1},
+            {"cuenta": "405-004-000-00", "nombre": "Briefing T&IC", "factor": 1}
+          ],
+          "operaciones_individuales": [
+            {
+              "tipo": "operacion",
+              "texto": "Resultado Operativo SemiconWest",
+              "formula": "405-001-000-00 - 703-002-000-00",
+              "descripcion": "SemiconWest, ingresos - gastos"
+            }
           ]
         },
         "seccion_GASTOS_T_IC": {
           "cuentas": [
-            {"cuenta": "703-002-000-00", "nombre": "Gastos 1", "factor": 1},
-            {"cuenta": "703-003-000-00", "nombre": "Gastos 2", "factor": 1}
+            {"cuenta": "703-002-000-00", "nombre": "SemiconWest", "factor": 1},
+            {"cuenta": "703-003-000-00", "nombre": "North American Week", "factor": 1},
+            {"cuenta": "703-004-000-00", "nombre": "Selec USA", "factor": 1},
+            {"cuenta": "703-005-000-00", "nombre": "Briefing T&IC", "factor": 1}
           ]
         },
         "resultado": {

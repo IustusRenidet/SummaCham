@@ -91,13 +91,24 @@
         text-align: center;
       }
 
+      .table-comparison thead tr:first-child th {
+        position: sticky;
+        top: 70px;
+        z-index: 100;
+      }
+
+      .table-comparison thead tr:nth-child(2) th {
+        position: sticky;
+        top: calc(70px + 2.5rem);
+        z-index: 100;
+      }
+
       /* Columnas fijas de cuenta y descripción */
       .table-comparison thead th:nth-child(1),
       .table-comparison thead th:nth-child(2) {
         background-color: #ffffff;
         color: var(--color-primary);
-        position: sticky;
-        z-index: 10;
+        z-index: 101;
       }
 
     .table-comparison thead th:nth-child(1) {
@@ -106,12 +117,14 @@
       min-width: 120px;
       white-space: nowrap;
       font-family: 'Courier New', monospace;
+      position: sticky;
     }
 
       .table-comparison thead th:nth-child(2) {
         left: 120px;
         text-align: left;
         min-width: 200px;
+        position: sticky;
       }
 
       /* Columnas de meses - presupuesto (azul) */

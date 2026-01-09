@@ -302,6 +302,63 @@ textarea:not(:disabled),
   background-color: rgba(47, 84, 150, 0.05);
 }
 
+/* Sticky headers and totals for comparison tables */
+.table-comparison.sticky-header thead {
+  background-color: #ffffff;
+}
+
+.table-comparison.sticky-header thead th {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  background-color: inherit;
+}
+
+.table-comparison.sticky-totals thead th.sticky-total-budget,
+.table-comparison.sticky-totals thead th.sticky-total-real {
+  z-index: 12;
+}
+
+.table-comparison.sticky-totals tbody td.sticky-total-budget,
+.table-comparison.sticky-totals tbody td.sticky-total-real {
+  position: sticky;
+  z-index: 4;
+}
+
+.table-comparison.sticky-totals thead th.sticky-total-budget,
+.table-comparison.sticky-totals tbody td.sticky-total-budget {
+  right: var(--sticky-total-real-width, 140px);
+}
+
+.table-comparison.sticky-totals thead th.sticky-total-real,
+.table-comparison.sticky-totals tbody td.sticky-total-real {
+  right: 0;
+}
+
+.table-comparison.sticky-totals tbody tr.fila-cuenta td.sticky-total-budget,
+.table-comparison.sticky-totals tbody tr.fila-cuenta td.sticky-total-real,
+.table-comparison.sticky-totals tbody tr.account-row td.sticky-total-budget,
+.table-comparison.sticky-totals tbody tr.account-row td.sticky-total-real {
+  background-color: #ffffff;
+}
+
+.table-comparison.sticky-totals tbody tr.section-header-row td.sticky-total-budget,
+.table-comparison.sticky-totals tbody tr.section-header-row td.sticky-total-real {
+  background-color: rgba(132, 151, 176, 0.2);
+}
+
+.table-comparison.sticky-totals tbody tr.sum-row td.sticky-total-budget,
+.table-comparison.sticky-totals tbody tr.sum-row td.sticky-total-real,
+.table-comparison.sticky-totals tbody tr.sum-row-sumavarios td.sticky-total-budget,
+.table-comparison.sticky-totals tbody tr.sum-row-sumavarios td.sticky-total-real {
+  background-color: rgba(68, 114, 196, 0.1);
+}
+
+.table-comparison.sticky-totals tbody tr.result-row td.sticky-total-budget,
+.table-comparison.sticky-totals tbody tr.result-row td.sticky-total-real {
+  background-color: #ffffff;
+}
+
 .workflow-toggle {
   align-items: center;
   background: rgba(255, 255, 255, 0.12);
@@ -358,10 +415,17 @@ a:not(.disabled) {
 
 /* Desactivar columnas fijas en pantallas pequeñas para tablas comparativas (todas las vistas) */
 @media (max-width: 768px) {
-  .table-comparison thead th,
+  .table-comparison thead th {
+    position: sticky !important;
+    left: auto !important;
+    right: auto !important;
+    z-index: 6;
+  }
+
   .table-comparison tbody td {
     position: static !important;
     left: auto !important;
+    right: auto !important;
     z-index: auto !important;
   }
 }

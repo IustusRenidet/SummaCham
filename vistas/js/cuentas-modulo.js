@@ -293,6 +293,140 @@
     return limpio;
   };
 
+  const MODULOS_OPERATIVO_POR_NOMBRE = new Set([
+    "comites",
+    "eventos",
+    "servmembresia",
+    "serviciosalamembresia",
+    "tic",
+  ]);
+  const PALABRAS_IGNORADAS_OPERATIVO = new Set([
+    "DE",
+    "DEL",
+    "LA",
+    "EL",
+    "LOS",
+    "LAS",
+  ]);
+
+  const normalizarNombreOperativo = (texto) => {
+    const base = normalizarTexto(texto || "");
+    if (!base) return "";
+    return base
+      .replace(/[^A-Z0-9\s]/g, " ")
+      .split(/\s+/)
+      .filter((token) => token && !PALABRAS_IGNORADAS_OPERATIVO.has(token))
+      .join(" ");
+  };
+
+  const obtenerSignoOperacionPorSeccion = (moduloClave, seccion) => {
+    const seccionNorm = normalizarTexto(seccion || "");
+    if (!seccionNorm) return 0;
+    if (moduloClave === "eventos") {
+      return /COSTOS|GASTOS/.test(seccionNorm) ? -1 : 1;
+    }
+    if (/INGRESOS/.test(seccionNorm)) return 1;
+    if (/GASTOS|COSTOS/.test(seccionNorm)) return -1;
+    if (moduloClave === "comites" && /COMISIONES/.test(seccionNorm)) return -1;
+    return 0;
+  };
+
+  const construirOperacionesResultadoOperativo = ({
+    registros,
+    moduloClave,
+  }) => {
+    if (!MODULOS_OPERATIVO_POR_NOMBRE.has(moduloClave)) return [];
+    const grupos = new Map();
+    (Array.isArray(registros) ? registros : []).forEach((registro, idx) => {
+      const signo = obtenerSignoOperacionPorSeccion(
+        moduloClave,
+        registro?.seccion
+      );
+      if (!signo) return;
+      const nombre = (registro?.nombre || "").toString().trim();
+      if (!nombre) return;
+      const clave = normalizarNombreOperativo(nombre);
+      if (!clave) return;
+      const cuenta21 = convertirCuenta21(registro?.cuenta || "");
+      if (!cuenta21) return;
+      const existente = grupos.get(clave) || {
+        clave,
+        nombre,
+        ingresos: new Set(),
+        gastos: new Set(),
+        orden: idx,
+      };
+      if (nombre.length > existente.nombre.length) {
+        existente.nombre = nombre;
+      }
+      if (signo > 0) {
+        existente.ingresos.add(cuenta21);
+      } else {
+        existente.gastos.add(cuenta21);
+      }
+      if (idx < existente.orden) existente.orden = idx;
+      grupos.set(clave, existente);
+    });
+    const operaciones = [];
+    grupos.forEach((grupo) => {
+      if (!grupo.ingresos.size || !grupo.gastos.size) return;
+      const terminos = [];
+      grupo.ingresos.forEach((cuenta) => {
+        terminos.push({ cuenta21: cuenta, signo: 1 });
+      });
+      grupo.gastos.forEach((cuenta) => {
+        terminos.push({ cuenta21: cuenta, signo: -1 });
+      });
+      operaciones.push({
+        clave: grupo.clave,
+        nombre: grupo.nombre,
+        terminos,
+        orden: grupo.orden,
+      });
+    });
+    return operaciones.sort((a, b) => a.orden - b.orden);
+  };
+
+  const insertarOperacionesResultadoOperativo = ({
+    cuerpo,
+    placeholdersPorFila,
+    operaciones,
+  }) => {
+    const filasOperativo = new Map();
+    if (!cuerpo || !Array.isArray(operaciones) || !operaciones.length) {
+      return filasOperativo;
+    }
+
+    const filaSeccion = document.createElement("tr");
+    filaSeccion.className = "section-header-row";
+    filaSeccion.dataset.seccion = normalizarTexto("Resultado Operativo");
+    filaSeccion.dataset.sectionName = "Resultado Operativo";
+    const celda = document.createElement("td");
+    celda.colSpan = Math.max(0, placeholdersPorFila) + 2;
+    celda.textContent = "Resultado Operativo";
+    filaSeccion.appendChild(celda);
+    cuerpo.appendChild(filaSeccion);
+
+    operaciones.forEach((operacion) => {
+      const texto = `Resultado Operativo ${operacion.nombre}`;
+      const fila = agregarFilaResumen({
+        texto,
+        clase: "sum-row-operativo",
+        cuerpo,
+        placeholdersPorFila,
+      });
+      if (fila) {
+        fila.dataset.operacionClave = operacion.clave;
+        filasOperativo.set(operacion.clave, {
+          fila,
+          terminos: operacion.terminos,
+        });
+      }
+    });
+
+    return filasOperativo;
+  };
+
   const esModuloEditable = (moduloClave) =>
     MODULOS_LAYOUT_EDITABLE.has(normalizarModuloClave(moduloClave || ""));
 
@@ -1043,6 +1177,79 @@
     return reverse;
   };
 
+  const actualizarStickyHeaderOffsets = (tabla) => {
+    if (!tabla?.tHead) return;
+    const filas = Array.from(tabla.tHead.rows || []);
+    let offset = 0;
+    filas.forEach((fila) => {
+      const altura = Math.ceil(fila.getBoundingClientRect().height);
+      Array.from(fila.cells).forEach((celda) => {
+        celda.style.top = `${offset}px`;
+      });
+      offset += altura;
+    });
+  };
+
+  const actualizarStickyTotalsOffset = (tabla) => {
+    if (!tabla?.tHead) return;
+    const thReal = tabla.tHead.querySelector("th.total-real-column");
+    if (!thReal) return;
+    const ancho = Math.ceil(thReal.getBoundingClientRect().width);
+    if (ancho > 0) {
+      tabla.style.setProperty("--sticky-total-real-width", `${ancho}px`);
+    }
+  };
+
+  const actualizarStickyOffsets = () => {
+    const tabla = estadoModulo.tabla;
+    if (!tabla) return;
+    actualizarStickyHeaderOffsets(tabla);
+    actualizarStickyTotalsOffset(tabla);
+  };
+
+  let stickyResizeBound = false;
+  const bindStickyResize = () => {
+    if (stickyResizeBound) return;
+    stickyResizeBound = true;
+    window.addEventListener("resize", () => {
+      actualizarStickyOffsets();
+    });
+  };
+
+  const aplicarStickyEncabezados = () => {
+    const tabla = estadoModulo.tabla;
+    if (!tabla) return;
+    tabla.classList.add("sticky-header");
+    requestAnimationFrame(() => {
+      actualizarStickyHeaderOffsets(tabla);
+    });
+    bindStickyResize();
+  };
+
+  const aplicarStickyTotales = () => {
+    const tabla = estadoModulo.tabla;
+    if (!tabla) return;
+    const idxBudget = estadoModulo.columnas["total-budget"];
+    const idxReal = estadoModulo.columnas["total-real"];
+    if (idxBudget == null || idxReal == null) return;
+    tabla.classList.add("sticky-totals");
+    const thBudget = tabla.tHead?.querySelector("th.total-budget-column");
+    const thReal = tabla.tHead?.querySelector("th.total-real-column");
+    if (thBudget) thBudget.classList.add("sticky-total-budget");
+    if (thReal) thReal.classList.add("sticky-total-real");
+    const filas = Array.from(tabla.tBodies[0]?.rows || []);
+    filas.forEach((fila) => {
+      const celdaBudget = fila.cells[idxBudget];
+      if (celdaBudget) celdaBudget.classList.add("sticky-total-budget");
+      const celdaReal = fila.cells[idxReal];
+      if (celdaReal) celdaReal.classList.add("sticky-total-real");
+    });
+    requestAnimationFrame(() => {
+      actualizarStickyTotalsOffset(tabla);
+    });
+    bindStickyResize();
+  };
+
   const esClaveBudget = (clave) => clave && clave.startsWith("budget-");
 
   const parsearNumero = (texto) => {
@@ -1122,7 +1329,7 @@
 
     let totalRealAcumulado = 0;
 
-    // Sumar todos los meses desde enero hasta el mes actual
+    // Sumar TODOS los meses del año (enero a diciembre) para las columnas acumuladas
 
     MESES.forEach((mes, index) => {
       const presupuestoMes = Number(almacen[`budget-${mes}`]) || 0;
@@ -1131,12 +1338,9 @@
 
       totalPresupuestoAnual += presupuestoMes;
 
-      // Acumular solo hasta el mes actual
-
-      if (mesActualIndex >= 0 && index <= mesActualIndex) {
-        totalPresupuestoAcumulado += presupuestoMes;
-        totalRealAcumulado += realMes;
-      }
+      // Acumular TODOS los meses para las columnas "PPTO ACUMULADO" y "REAL ACUMULADO"
+      totalPresupuestoAcumulado += presupuestoMes;
+      totalRealAcumulado += realMes;
     });
 
     // Obtener valor del mes actual especificamente
@@ -1251,11 +1455,9 @@
         const real = numeroSeguro(registro?.real?.[mes]);
 
         totalPresupuestoAnual += presupuesto;
-        // Acumular solo hasta el mes actual
-        if (mesActualIndex >= 0 && index <= mesActualIndex) {
-          totalPresupuestoAcumulado += presupuesto;
-          totalRealAcumulado += real;
-        }
+        // Acumular TODOS los meses para las columnas "PPTO ACUMULADO" y "REAL ACUMULADO"
+        totalPresupuestoAcumulado += presupuesto;
+        totalRealAcumulado += real;
 
         establecerValorCelda(fila, `budget-${mes}`, presupuesto);
         establecerValorCelda(fila, `real-${mes}`, real);
@@ -4891,6 +5093,8 @@
     });
     estadoModulo.tabla = tabla;
     estadoModulo.columnas = construirMapaColumnas(tabla);
+    aplicarStickyEncabezados();
+    // aplicarStickyTotales(); // Deshabilitado: las columnas acumuladas no deben estar congeladas
     estadoModulo.moduloId = moduloNormalizado;
     estadoModulo.moduloClave = moduloClave;
     estadoModulo.sheet = sheetConfigurada;
