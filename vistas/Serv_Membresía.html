@@ -40,11 +40,14 @@
       background: #fff;
       border-radius: 16px;
       border: 1px solid rgba(47, 84, 150, 0.1);
-      overflow: hidden;
-    }
-
-    .workflow-toolbar {
-      display: flex;
+        overflow: visible;
+        max-height: 80vh;
+      }
+      
+      .table-responsive {
+        max-height: 80vh;
+        overflow-y: auto;
+        overflow-x: auto;
       flex-direction: column;
       gap: 0.35rem;
     }
@@ -98,12 +101,9 @@
     /* Columnas fijas de cuenta y descripción */
     .table-comparison thead th:nth-child(1),
     .table-comparison thead th:nth-child(2) {
-      background-color: #ffffff;
-      color: var(--color-primary);
-      z-index: 101;
-    }
-
-    .table-comparison thead th:nth-child(1) {
+        background-color: #ffffff !important;
+        color: var(--color-primary);
+        z-index: 150;
       left: 0;
       text-align: left;
       min-width: 120px;

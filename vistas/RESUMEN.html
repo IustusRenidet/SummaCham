@@ -296,6 +296,22 @@
         z-index: 100;
       }
 
+      /* Columnas fijas de cuenta y descripción con fondo sólido */
+      .table thead th:nth-child(1),
+      .table thead th:nth-child(2) {
+        background-color: #d9d9d9 !important;
+        z-index: 150;
+        position: sticky;
+      }
+
+      .table thead th:nth-child(1) {
+        left: 0;
+      }
+
+      .table thead th:nth-child(2) {
+        left: 100px;
+      }
+
       .table td,
       .table th {
         border: 1px solid #ccc;
@@ -475,6 +491,8 @@
 
       /*scroll horizontal cuidadoso */
       .table-responsive {
+        max-height: 80vh;
+        overflow-y: auto;
         overflow-x: auto;
         border-radius: 12px;
         width: 100%;
