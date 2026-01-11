@@ -17,6 +17,7 @@ const crearStickyHeaderOverlay = (tabla, wrapper) => {
 
   let cloneTable = null;
   let rafId = null;
+  let syncRafId = null;
 
   const getTopOffset = () => 0;
 
@@ -33,10 +34,14 @@ const crearStickyHeaderOverlay = (tabla, wrapper) => {
       cloneCell.style.width = `${width}px`;
       cloneCell.style.minWidth = `${width}px`;
     });
-    const tableWidth = Math.ceil(tabla.getBoundingClientRect().width);
+    const scrollWidth = Math.ceil(tabla.scrollWidth || 0);
+    const rectWidth = Math.ceil(tabla.getBoundingClientRect().width || 0);
+    const tableWidth = Math.max(scrollWidth, rectWidth);
     if (tableWidth) {
       cloneTable.style.width = `${tableWidth}px`;
+      cloneTable.style.minWidth = `${tableWidth}px`;
     }
+    overlay.scrollLeft = wrapper.scrollLeft;
   };
 
   const syncClone = () => {
@@ -84,6 +89,15 @@ const crearStickyHeaderOverlay = (tabla, wrapper) => {
     });
   };
 
+  const scheduleSync = () => {
+    if (syncRafId) return;
+    syncRafId = requestAnimationFrame(() => {
+      syncRafId = null;
+      syncWidths();
+      scheduleUpdate();
+    });
+  };
+
   wrapper.addEventListener(
     "scroll",
     () => {
@@ -97,8 +111,7 @@ const crearStickyHeaderOverlay = (tabla, wrapper) => {
 
   window.addEventListener("scroll", scheduleUpdate, { passive: true });
   window.addEventListener("resize", () => {
-    syncWidths();
-    scheduleUpdate();
+    scheduleSync();
   });
 
   if (tabla.tHead) {
@@ -112,6 +125,26 @@ const crearStickyHeaderOverlay = (tabla, wrapper) => {
       characterData: true,
       attributes: true,
     });
+  }
+
+  const tbody = tabla.tBodies?.[0];
+  if (tbody) {
+    const bodyObserver = new MutationObserver(() => {
+      scheduleSync();
+    });
+    bodyObserver.observe(tbody, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+    });
+  }
+
+  if (window.ResizeObserver) {
+    const resizeObserver = new ResizeObserver(() => {
+      scheduleSync();
+    });
+    resizeObserver.observe(tabla);
+    resizeObserver.observe(wrapper);
   }
 
   syncClone();
