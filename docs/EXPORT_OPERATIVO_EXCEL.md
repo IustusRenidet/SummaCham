@@ -6,6 +6,7 @@ EXPORT OPERATIVO EXCEL
   - Column A: label (Evento/Programa/Servicio)
   - Column B: Ppto Acumulado
   - Column C: Real Acumulado
+- Note: the exported file contains data only. The charts are created by template or COM.
 
 2) Template workflow (charts on open)
 - Template file: excels/Operativo_Template.xlsx
@@ -13,7 +14,8 @@ EXPORT OPERATIVO EXCEL
 - The charts in "OperativoCharts" update after the paste.
 
 3) COM automation (Excel installed)
-- Run PowerShell to build charts directly in the exported file:
+- Quick UI: run scripts/export-operativo-charts-ui.ps1 and pick the exported file.
+- Command line (same result):
 
   powershell -ExecutionPolicy Bypass -File scripts/export-operativo-charts.ps1 -InputPath "C:\\path\\to\\Export_Operativo.xlsx"
 

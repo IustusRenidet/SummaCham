@@ -18,10 +18,7 @@ const crearStickyHeaderOverlay = (tabla, wrapper) => {
   let cloneTable = null;
   let rafId = null;
 
-  const getTopOffset = () => {
-    const paddingTop = parseFloat(getComputedStyle(document.body).paddingTop);
-    return Number.isFinite(paddingTop) ? paddingTop : 0;
-  };
+  const getTopOffset = () => 0;
 
   const syncWidths = () => {
     if (!cloneTable || !tabla?.tHead) return;

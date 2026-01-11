@@ -124,7 +124,12 @@
         XLSX.writeFile(libro, `${baseName}_Operativo.xlsx`);
 
         if (onSuccess) onSuccess();
-        this._showToast("Exportado datos operativos para graficas");
+        this._showToast(
+          "Datos exportados. Graficas nativas: plantilla o script."
+        );
+        console.info(
+          "[ExportUtils] Para graficas en Excel: abre excels/Operativo_Template.xlsx o ejecuta scripts/export-operativo-charts-ui.ps1"
+        );
       } catch (error) {
         console.error("Error al exportar Excel operativo:", error);
         if (onError) onError(error);

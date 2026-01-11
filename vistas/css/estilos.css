@@ -579,3 +579,8 @@ a:not(.disabled) {
     position: static;
   }
 }
+
+/* Keep toasts above comment buttons */
+.position-fixed.bottom-0.end-0.p-3 {
+  z-index: 1600 !important;
+}
