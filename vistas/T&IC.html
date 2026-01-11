@@ -429,21 +429,29 @@
           >
             Ocultar cuentas
           </button>
-          <button
-            type="button"
-            class="btn btn-outline-primary btn-sm"
-            data-bs-toggle="collapse"
-            data-bs-target="#operativoPanel"
-            aria-expanded="false"
-            aria-controls="operativoPanel"
-          >
-            <i class="bi bi-bar-chart"></i> Graficas
-          </button>
-          <button
-            type="button"
-            class="btn btn-outline-success btn-sm"
-            id="btnExportExcel"
-            title="Exportar a Excel"
+            <button
+              type="button"
+              class="btn btn-outline-primary btn-sm"
+              data-bs-toggle="collapse"
+              data-bs-target="#operativoPanel"
+              aria-expanded="false"
+              aria-controls="operativoPanel"
+            >
+              <i class="bi bi-bar-chart"></i> Graficas
+            </button>
+            <button
+              type="button"
+              class="btn btn-outline-info btn-sm"
+              id="btnExportExcelOperativo"
+              title="Exportar datos operativos para graficas"
+            >
+              <i class="bi bi-bar-chart-line"></i> Excel + Graficas
+            </button>
+            <button
+              type="button"
+              class="btn btn-outline-success btn-sm"
+              id="btnExportExcel"
+              title="Exportar a Excel"
             >
               <i class="bi bi-file-earmark-excel"></i> Excel
             </button>
@@ -818,6 +826,16 @@
     <script src="js/export-utils.js"></script>
     <script>
       document.addEventListener("DOMContentLoaded", function () {
+        document
+          .getElementById("btnExportExcelOperativo")
+          ?.addEventListener("click", () => {
+            ExportUtils.exportarExcelOperativo({
+              tabla: "#tablaComparacion",
+              nombreArchivo: "TIC",
+              nombreHojaTabla: "TIC",
+              nombreHojaOperativo: "OperativoData",
+            });
+          });
         document
           .getElementById("btnExportExcel")
           ?.addEventListener("click", () => {

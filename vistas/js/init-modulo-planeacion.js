@@ -6,6 +6,139 @@
  *      y llamar initModuloPlaneacion({ moduloId: 'rh', moduloNombre: 'RH' })
  */
 
+const crearStickyHeaderOverlay = (tabla, wrapper) => {
+  if (!tabla || !wrapper) return null;
+  if (wrapper.__stickyHeaderOverlay) return wrapper.__stickyHeaderOverlay;
+
+  const overlay = document.createElement("div");
+  overlay.className = "sticky-table-header";
+  overlay.setAttribute("aria-hidden", "true");
+  document.body.appendChild(overlay);
+
+  let cloneTable = null;
+  let rafId = null;
+
+  const getTopOffset = () => {
+    const paddingTop = parseFloat(getComputedStyle(document.body).paddingTop);
+    return Number.isFinite(paddingTop) ? paddingTop : 0;
+  };
+
+  const syncWidths = () => {
+    if (!cloneTable || !tabla?.tHead) return;
+    cloneTable.className = tabla.className;
+    cloneTable.classList.add("sticky-table-clone");
+    const originalCells = Array.from(tabla.tHead.querySelectorAll("th"));
+    const cloneCells = Array.from(cloneTable.querySelectorAll("th"));
+    originalCells.forEach((cell, idx) => {
+      const cloneCell = cloneCells[idx];
+      if (!cloneCell) return;
+      const width = Math.ceil(cell.getBoundingClientRect().width);
+      cloneCell.style.width = `${width}px`;
+      cloneCell.style.minWidth = `${width}px`;
+    });
+    const tableWidth = Math.ceil(tabla.getBoundingClientRect().width);
+    if (tableWidth) {
+      cloneTable.style.width = `${tableWidth}px`;
+    }
+  };
+
+  const syncClone = () => {
+    if (!tabla?.tHead) return;
+    overlay.innerHTML = "";
+    const newTable = document.createElement("table");
+    newTable.className = tabla.className;
+    newTable.classList.add("sticky-table-clone");
+    newTable.setAttribute("aria-hidden", "true");
+    const colgroup = tabla.querySelector("colgroup");
+    if (colgroup) {
+      newTable.appendChild(colgroup.cloneNode(true));
+    }
+    newTable.appendChild(tabla.tHead.cloneNode(true));
+    overlay.appendChild(newTable);
+    cloneTable = newTable;
+    syncWidths();
+  };
+
+  const updateOverlay = () => {
+    if (!tabla?.tHead) return;
+    const rect = wrapper.getBoundingClientRect();
+    overlay.style.left = `${rect.left}px`;
+    overlay.style.width = `${rect.width}px`;
+    const topOffset = getTopOffset();
+    overlay.style.top = `${topOffset}px`;
+    const headRect = tabla.tHead.getBoundingClientRect();
+    const tableRect = tabla.getBoundingClientRect();
+    const headerHeight = Math.ceil(headRect.height || 0);
+    overlay.style.height = `${headerHeight}px`;
+    const shouldShow =
+      headRect.top < topOffset - 1 &&
+      tableRect.bottom > topOffset + headerHeight;
+    overlay.style.display = shouldShow ? "block" : "none";
+    if (shouldShow) {
+      overlay.scrollLeft = wrapper.scrollLeft;
+    }
+  };
+
+  const scheduleUpdate = () => {
+    if (rafId) return;
+    rafId = requestAnimationFrame(() => {
+      rafId = null;
+      updateOverlay();
+    });
+  };
+
+  wrapper.addEventListener(
+    "scroll",
+    () => {
+      if (overlay.style.display !== "none") {
+        overlay.scrollLeft = wrapper.scrollLeft;
+      }
+      scheduleUpdate();
+    },
+    { passive: true }
+  );
+
+  window.addEventListener("scroll", scheduleUpdate, { passive: true });
+  window.addEventListener("resize", () => {
+    syncWidths();
+    scheduleUpdate();
+  });
+
+  if (tabla.tHead) {
+    const observer = new MutationObserver(() => {
+      syncClone();
+      scheduleUpdate();
+    });
+    observer.observe(tabla.tHead, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+      attributes: true,
+    });
+  }
+
+  syncClone();
+  scheduleUpdate();
+
+  const api = {
+    refresh: () => {
+      syncClone();
+      scheduleUpdate();
+    },
+    syncWidths,
+    setOffsets: (anchoPrimeraCol) => {
+      overlay.style.setProperty("--sticky-col-1-left", "0px");
+      overlay.style.setProperty(
+        "--sticky-col-2-left",
+        `${anchoPrimeraCol}px`
+      );
+    },
+  };
+
+  wrapper.__stickyHeaderOverlay = api;
+  return api;
+};
+
 const prepararStickyHeaders = (selectorTabla) => {
   const tabla = document.querySelector(selectorTabla);
   if (!tabla) return;
@@ -14,16 +147,21 @@ const prepararStickyHeaders = (selectorTabla) => {
   if (!wrapper) return;
 
   wrapper.classList.add("sticky-table-scroll");
+  const overlay = crearStickyHeaderOverlay(tabla, wrapper);
 
   const ajustar = () => {
-    const primeraCol = tabla.querySelector(
-      "thead tr:first-child th:nth-child(1)"
-    ) || tabla.querySelector("thead th:nth-child(1)");
+    const primeraCol =
+      tabla.querySelector("thead tr:first-child th:nth-child(1)") ||
+      tabla.querySelector("thead th:nth-child(1)");
     const anchoPrimeraCol = primeraCol
       ? Math.ceil(primeraCol.getBoundingClientRect().width)
       : 0;
     wrapper.style.setProperty("--sticky-col-1-left", "0px");
     wrapper.style.setProperty("--sticky-col-2-left", `${anchoPrimeraCol}px`);
+    if (overlay) {
+      overlay.setOffsets(anchoPrimeraCol);
+      overlay.syncWidths();
+    }
   };
 
   ajustar();

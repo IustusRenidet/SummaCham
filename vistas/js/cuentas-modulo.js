@@ -309,14 +309,18 @@
     "LAS",
   ]);
 
-  const normalizarNombreOperativo = (texto) => {
+  const normalizarNombreOperativo = (texto, opciones = {}) => {
     const base = normalizarTexto(texto || "");
     if (!base) return "";
-    return base
+    const tokens = base
       .replace(/[^A-Z0-9\s]/g, " ")
       .split(/\s+/)
-      .filter((token) => token && !PALABRAS_IGNORADAS_OPERATIVO.has(token))
-      .join(" ");
+      .filter((token) => token && !PALABRAS_IGNORADAS_OPERATIVO.has(token));
+    if (!tokens.length) return "";
+    if (opciones.ordenarTokens) {
+      tokens.sort();
+    }
+    return tokens.join(" ");
   };
 
   const obtenerSignoOperacionPorSeccion = (moduloClave, seccion) => {
@@ -337,6 +341,7 @@
   }) => {
     if (!MODULOS_OPERATIVO_POR_NOMBRE.has(moduloClave)) return [];
     const grupos = new Map();
+    const ordenarTokens = moduloClave === "comites";
     (Array.isArray(registros) ? registros : []).forEach((registro, idx) => {
       const signo = obtenerSignoOperacionPorSeccion(
         moduloClave,
@@ -345,7 +350,7 @@
       if (!signo) return;
       const nombre = (registro?.nombre || "").toString().trim();
       if (!nombre) return;
-      const clave = normalizarNombreOperativo(nombre);
+      const clave = normalizarNombreOperativo(nombre, { ordenarTokens });
       if (!clave) return;
       const cuenta21 = convertirCuenta21(registro?.cuenta || "");
       if (!cuenta21) return;

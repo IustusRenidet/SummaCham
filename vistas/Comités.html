@@ -450,6 +450,14 @@
             </button>
             <button
               type="button"
+              class="btn btn-outline-info btn-sm"
+              id="btnExportExcelOperativo"
+              title="Exportar datos operativos para graficas"
+            >
+              <i class="bi bi-bar-chart-line"></i> Excel + Graficas
+            </button>
+            <button
+              type="button"
               class="btn btn-outline-success btn-sm"
               id="btnExportExcel"
               title="Exportar a Excel"
@@ -848,6 +856,16 @@
     <script src="js/export-utils.js"></script>
     <script>
       document.addEventListener("DOMContentLoaded", function () {
+        document
+          .getElementById("btnExportExcelOperativo")
+          ?.addEventListener("click", () => {
+            ExportUtils.exportarExcelOperativo({
+              tabla: "#tablaComparacion",
+              nombreArchivo: "Comites",
+              nombreHojaTabla: "Comites",
+              nombreHojaOperativo: "OperativoData",
+            });
+          });
         document
           .getElementById("btnExportExcel")
           ?.addEventListener("click", () => {

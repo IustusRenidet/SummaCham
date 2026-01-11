@@ -331,6 +331,37 @@ table thead th {
   z-index: 200;
 }
 
+/* Floating sticky header overlay for wide tables */
+.sticky-table-header {
+  position: fixed;
+  display: none;
+  z-index: 260;
+  pointer-events: none;
+  overflow-x: auto;
+  overflow-y: hidden;
+  background: transparent;
+  scrollbar-width: none;
+}
+
+.sticky-table-header::-webkit-scrollbar {
+  display: none;
+}
+
+.sticky-table-header table {
+  margin-bottom: 0;
+}
+
+.sticky-table-header .table-comparison thead th:nth-child(1),
+.sticky-table-header .table-comparison thead th:nth-child(2) {
+  position: sticky;
+  left: var(--sticky-col-1-left, 0px);
+  z-index: 270;
+}
+
+.sticky-table-header .table-comparison thead th:nth-child(2) {
+  left: var(--sticky-col-2-left, 120px);
+}
+
 /* Sticky headers and totals for comparison tables */
 .table-comparison.sticky-header thead {
   background-color: #ffffff;

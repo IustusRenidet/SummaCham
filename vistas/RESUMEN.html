@@ -73,6 +73,105 @@
         color: var(--color-text);
       }
 
+      .comparativa-toggle {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        padding: 10px 12px;
+        border-radius: 14px;
+        background: linear-gradient(
+          135deg,
+          rgba(47, 84, 150, 0.08),
+          rgba(132, 151, 176, 0.2)
+        );
+        border: 1px solid rgba(47, 84, 150, 0.18);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7),
+          0 6px 16px rgba(47, 84, 150, 0.14);
+      }
+
+      .comparativa-switch {
+        position: relative;
+        display: inline-block;
+        width: 54px;
+        height: 30px;
+        flex: 0 0 auto;
+      }
+
+      .comparativa-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+
+      .comparativa-track {
+        position: absolute;
+        inset: 0;
+        border-radius: 999px;
+        background: #cbd5f5;
+        box-shadow: inset 0 0 0 1px rgba(47, 84, 150, 0.2);
+        transition: background 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      .comparativa-thumb {
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: #fff;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        transition: transform 0.2s ease;
+      }
+
+      .comparativa-switch input:checked + .comparativa-track {
+        background: linear-gradient(135deg, #2f5496, #1f3b6b);
+        box-shadow: 0 8px 18px rgba(47, 84, 150, 0.35);
+      }
+
+      .comparativa-switch input:checked + .comparativa-track .comparativa-thumb {
+        transform: translateX(24px);
+      }
+
+      .comparativa-switch input:focus + .comparativa-track {
+        box-shadow: 0 0 0 4px rgba(47, 84, 150, 0.25);
+      }
+
+      .comparativa-switch input:disabled + .comparativa-track {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .comparativa-text {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .comparativa-title {
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: #1f3b6b;
+      }
+
+      .comparativa-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 2px 10px;
+        border-radius: 999px;
+        background: rgba(47, 84, 150, 0.12);
+        color: #1f3b6b;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+      }
+
+      .comparativa-badge:empty {
+        display: none;
+      }
+
       .summary-card {
         border-radius: 18px;
         border: 1px solid rgba(47, 84, 150, 0.08);
@@ -106,6 +205,141 @@
 
       .summary-card .metric-value.small {
         font-size: 1.5rem;
+      }
+
+      .charts-toggle-btn {
+        background: linear-gradient(135deg, #1f3b6b 0%, #2f5496 55%, #5976a8 100%);
+        color: #fff;
+        border: none;
+        border-radius: 12px;
+        padding: 10px 16px;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+        box-shadow: 0 10px 20px rgba(47, 84, 150, 0.25);
+        transition: transform 0.2s ease, box-shadow 0.2s ease,
+          background 0.2s ease;
+      }
+
+      .charts-toggle-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 12px 24px rgba(47, 84, 150, 0.35);
+        background: linear-gradient(135deg, #163059 0%, #2f5496 70%);
+      }
+
+      .charts-toggle-btn.active {
+        background: #0f1f3d;
+      }
+
+      .charts-panel {
+        display: none;
+        border-radius: 18px;
+        overflow: hidden;
+        border: 1px solid rgba(47, 84, 150, 0.1);
+        box-shadow: 0 16px 34px rgba(47, 84, 150, 0.18);
+        background: #fff;
+      }
+
+      .charts-panel.open {
+        display: block;
+        animation: panelReveal 0.25s ease;
+      }
+
+      .charts-panel-header {
+        background: linear-gradient(120deg, #2f5496 0%, #1f3b6b 100%);
+        color: #fff;
+        padding: 16px 18px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .charts-panel-title {
+        font-weight: 700;
+        margin: 0 0 6px;
+        letter-spacing: 0.02em;
+      }
+
+      .charts-panel-meta {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .charts-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.16);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        color: #fff;
+        font-size: 0.8rem;
+        font-weight: 600;
+      }
+
+      .charts-panel-actions .btn {
+        border-radius: 999px;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .charts-panel-body {
+        padding: 16px;
+        background: #f7f9fc;
+      }
+
+      .charts-card {
+        background: #fff;
+        border-radius: 16px;
+        border: 1px solid rgba(47, 84, 150, 0.08);
+        box-shadow: 0 8px 20px rgba(47, 84, 150, 0.12);
+        padding: 12px 14px;
+        height: 100%;
+      }
+
+      .charts-card h6 {
+        font-weight: 700;
+        color: #2f5496;
+        margin-bottom: 6px;
+      }
+
+      .charts-card .charts-canvas {
+        position: relative;
+        width: 100%;
+        height: 320px;
+      }
+
+      .charts-card canvas {
+        display: block;
+        width: 100% !important;
+        height: 100% !important;
+      }
+
+      .charts-empty {
+        text-align: center;
+        padding: 30px 16px;
+        color: #6b7280;
+        font-weight: 600;
+        background: #fff;
+        border-radius: 14px;
+        border: 1px dashed rgba(47, 84, 150, 0.2);
+      }
+
+      @keyframes panelReveal {
+        from {
+          opacity: 0;
+          transform: translateY(-8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
       }
 
       .table-card {
@@ -216,6 +450,12 @@
         align-items: center;
         font-size: 0.95rem;
         color: var(--color-text);
+      }
+
+      @media (max-width: 768px) {
+        .charts-card .charts-canvas {
+          height: 260px;
+        }
       }
 
       .table-wrapper {
@@ -1042,22 +1282,28 @@
           <label
             for="resumenEmpresaComparativaToggle"
             class="form-label fw-semibold text-muted small mb-2"
-            >Año anterior</label
+            >A&ntilde;o anterior</label
           >
-          <div class="d-flex align-items-center gap-2 flex-wrap">
-            <span class="small text-muted">Usar empresa</span>
-            <label class="toggle-switch mb-0">
+          <div class="comparativa-toggle">
+            <label class="comparativa-switch mb-0">
               <input
                 type="checkbox"
                 id="resumenEmpresaComparativaToggle"
-                aria-label="Usar empresa para año anterior"
+                aria-label="Usar empresa para a&ntilde;o anterior"
               />
-              <span class="toggle-slider"></span>
+              <span class="comparativa-track">
+                <span class="comparativa-thumb"></span>
+              </span>
             </label>
-            <span
-              class="small text-muted"
-              id="resumenEmpresaComparativaLabel"
-            ></span>
+            <div class="comparativa-text">
+              <span class="comparativa-title"
+                >Usar empresa para a&ntilde;o anterior</span
+              >
+              <span
+                class="comparativa-badge"
+                id="resumenEmpresaComparativaLabel"
+              ></span>
+            </div>
           </div>
         </div>
       </div>
@@ -1224,6 +1470,16 @@
               </div>
               <button
                 type="button"
+                class="btn charts-toggle-btn d-flex align-items-center gap-2"
+                id="resumenChartsToggleBtn"
+                aria-expanded="false"
+                aria-controls="resumenChartsPanel"
+              >
+                <i class="bi bi-graph-up"></i>
+                <span>Graficas</span>
+              </button>
+              <button
+                type="button"
                 class="btn btn-outline-primary d-flex align-items-center gap-1"
                 id="printResumenBtn"
               >
@@ -1238,6 +1494,100 @@
                 <i class="bi bi-file-earmark-excel"></i>
                 <span>Exportar XLSX</span>
               </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row mb-3">
+        <div class="col-12">
+          <div
+            class="charts-panel"
+            id="resumenChartsPanel"
+            aria-hidden="true"
+          >
+            <div class="charts-panel-header">
+              <div>
+                <h5 class="charts-panel-title">Graficas de Resumen</h5>
+                <div class="charts-panel-meta">
+                  <span class="charts-pill"
+                    >Capitulo <span id="resumenChartsEmpresaLabel">-</span></span
+                  >
+                  <span class="charts-pill"
+                    >Periodo <span id="resumenChartsPeriodoLabel">-</span></span
+                  >
+                </div>
+              </div>
+              <div class="charts-panel-actions d-flex gap-2">
+                <button
+                  type="button"
+                  class="btn btn-light btn-sm"
+                  id="resumenChartsRefreshBtn"
+                >
+                  <i class="bi bi-arrow-clockwise"></i>
+                  <span>Actualizar</span>
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-outline-light btn-sm"
+                  id="resumenChartsCloseBtn"
+                >
+                  <i class="bi bi-x-lg"></i>
+                  <span>Cerrar</span>
+                </button>
+              </div>
+            </div>
+            <div class="charts-panel-body">
+              <div class="charts-empty" id="resumenChartsEmpty">
+                No hay datos de graficas disponibles. Carga el resumen primero.
+              </div>
+              <div class="row g-3 d-none" id="resumenChartsGrid">
+                <div class="col-12 col-lg-6" id="resumenChartCardOperating">
+                  <div class="charts-card">
+                    <div
+                      class="d-flex justify-content-between align-items-center mb-2"
+                    >
+                      <h6 class="mb-0">Resultado Operativo por Capitulo</h6>
+                      <small class="text-muted"
+                        >Real Acum / Ppto. Acum / Real Acum AA</small
+                      >
+                    </div>
+                    <div class="charts-canvas">
+                      <canvas id="resumenChartOperating"></canvas>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-12 col-lg-6" id="resumenChartCardNet">
+                  <div class="charts-card">
+                    <div
+                      class="d-flex justify-content-between align-items-center mb-2"
+                    >
+                      <h6 class="mb-0">Resumen Neto por Capitulo</h6>
+                      <small class="text-muted"
+                        >Real Acum / Ppto. Acum / Real Acum AA</small
+                      >
+                    </div>
+                    <div class="charts-canvas">
+                      <canvas id="resumenChartNet"></canvas>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-12" id="resumenChartCardConsolidated">
+                  <div class="charts-card">
+                    <div
+                      class="d-flex justify-content-between align-items-center mb-2"
+                    >
+                      <h6 class="mb-0">Consolidados Operativos vs Netos</h6>
+                      <small class="text-muted"
+                        >Real Acum / Ppto. Acum / Real Acum AA</small
+                      >
+                    </div>
+                    <div class="charts-canvas">
+                      <canvas id="resumenChartConsolidated"></canvas>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

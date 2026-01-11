@@ -68,6 +68,71 @@
     },
 
     /**
+     * Exportar tabla + datos operativos (para graficas en Excel)
+     * @param {Object} options - Opciones de exportacion
+     * @param {string|HTMLElement} options.tabla - Selector o elemento de la tabla
+     * @param {string} options.nombreArchivo - Nombre del archivo (sin extension)
+     * @param {string} options.nombreHojaTabla - Nombre de la hoja con la tabla
+     * @param {string} options.nombreHojaOperativo - Nombre de la hoja con datos operativos
+     * @param {boolean} options.incluirTabla - Si true agrega la hoja de tabla
+     * @param {Function} options.onSuccess - Callback al exportar exitosamente
+     * @param {Function} options.onError - Callback al fallar
+     */
+    exportarExcelOperativo(options = {}) {
+      const {
+        tabla,
+        nombreArchivo = "Exportacion",
+        nombreHojaTabla = "Tabla",
+        nombreHojaOperativo = "OperativoData",
+        incluirTabla = true,
+        onSuccess,
+        onError,
+      } = options;
+
+      try {
+        const tablaElement =
+          typeof tabla === "string"
+            ? document.querySelector(tabla)
+            : tabla || document.querySelector("table");
+
+        if (!tablaElement) {
+          throw new Error("No se encontro la tabla para exportar");
+        }
+
+        if (typeof XLSX === "undefined") {
+          throw new Error(
+            "La libreria XLSX no esta disponible. Incluye xlsx-js-style."
+          );
+        }
+
+        const metadata = this._obtenerMetadata();
+        const baseName = `${nombreArchivo}_${
+          metadata.empresaTexto || "Reporte"
+        }_${metadata.mesNombre || ""}_${metadata.anio || ""}`.replace(
+          /\s+/g,
+          "_"
+        );
+
+        const libro = XLSX.utils.book_new();
+        if (incluirTabla) {
+          const hojaTabla = this._tableToSheetWithStyles(tablaElement);
+          XLSX.utils.book_append_sheet(libro, hojaTabla, nombreHojaTabla);
+        }
+        const hojaOperativo = this._operativoToSheet(tablaElement, metadata);
+        XLSX.utils.book_append_sheet(libro, hojaOperativo, nombreHojaOperativo);
+
+        XLSX.writeFile(libro, `${baseName}_Operativo.xlsx`);
+
+        if (onSuccess) onSuccess();
+        this._showToast("Exportado datos operativos para graficas");
+      } catch (error) {
+        console.error("Error al exportar Excel operativo:", error);
+        if (onError) onError(error);
+        this._showToast("Error al exportar: " + error.message, "error");
+      }
+    },
+
+    /**
      * Construye una hoja de Excel desde la tabla DOM
      * Primero simplifica la estructura, luego aplica estilos
      * @param {HTMLElement} tabla - Elemento tabla
@@ -257,6 +322,130 @@
       sheet["!cols"] = colWidths;
 
       return sheet;
+    },
+
+    _operativoToSheet(tabla, metadata = {}) {
+      const labelRaw = this._obtenerEtiquetaOperativo();
+      const label = this._capitalizar(labelRaw || "Elemento");
+      const datos = this._obtenerDatosOperativo(tabla);
+      const fecha = new Date();
+      const fechaTexto = fecha.toISOString().slice(0, 10);
+      const periodo = [metadata.mesNombre, metadata.anio]
+        .filter(Boolean)
+        .join(" ")
+        .trim();
+
+      const header = [label || "Elemento", "Ppto Acumulado", "Real Acumulado"];
+      const filas = datos.map((item) => [
+        item.etiqueta,
+        item.presupuesto,
+        item.real,
+      ]);
+
+      const aoa = [
+        ["RESULTADOS OPERATIVOS"],
+        ["Categoria", label || "Elemento"],
+        ["Empresa", metadata.empresaTexto || ""],
+        ["Periodo", periodo],
+        ["Fecha exportacion", fechaTexto],
+        [],
+        header,
+        ...filas,
+      ];
+
+      const sheet = XLSX.utils.aoa_to_sheet(aoa);
+      sheet["!cols"] = [{ wch: 42 }, { wch: 18 }, { wch: 18 }];
+      return sheet;
+    },
+
+    _obtenerEtiquetaOperativo() {
+      const panel = document.querySelector(".operativo-panel, .operativo-sidebar");
+      const label = panel?.dataset?.operativoLabel;
+      return label ? label.trim() : "";
+    },
+
+    _capitalizar(texto) {
+      if (!texto) return texto;
+      return texto.charAt(0).toUpperCase() + texto.slice(1);
+    },
+
+    _obtenerDatosOperativo(tabla) {
+      const indices = this._obtenerIndicesOperativo(tabla);
+      if (indices.budget == null || indices.real == null) return [];
+      const filas = Array.from(
+        tabla.querySelectorAll("tbody tr.sum-row-operativo")
+      );
+      return filas
+        .map((fila) => {
+          const etiqueta = this._limpiarEtiquetaOperativo(
+            fila.cells?.[1]?.textContent || ""
+          );
+          const presupuesto = this._parseNumeroTexto(
+            fila.cells?.[indices.budget]?.textContent || ""
+          );
+          const real = this._parseNumeroTexto(
+            fila.cells?.[indices.real]?.textContent || ""
+          );
+          return { etiqueta, presupuesto, real };
+        })
+        .filter((item) => item.etiqueta);
+    },
+
+    _obtenerIndicesOperativo(tabla) {
+      const headerRow = tabla?.querySelector("thead tr");
+      const headers = headerRow ? Array.from(headerRow.children) : [];
+      const buscar = (clase) =>
+        headers.findIndex((th) => th.classList.contains(clase));
+      const idxTotalBudget = buscar("total-budget-column");
+      const idxTotalReal = buscar("total-real-column");
+      const idxBudgetFallback = buscar("budget-annual-column");
+      return {
+        budget: idxTotalBudget >= 0 ? idxTotalBudget : idxBudgetFallback,
+        real: idxTotalReal >= 0 ? idxTotalReal : null,
+      };
+    },
+
+    _limpiarEtiquetaOperativo(texto) {
+      const base = (texto || "").toString().trim();
+      if (!base) return "";
+      const lower = base.toLowerCase();
+      const prefijo = "resultado operativo";
+      if (lower.startsWith(prefijo)) {
+        const recorte = base.slice(prefijo.length).trim();
+        return recorte || base;
+      }
+      return base;
+    },
+
+    _parseNumeroTexto(texto) {
+      let limpio = (texto || "").replace(/[^0-9+.,-]/g, "");
+      if (!limpio) return 0;
+      const tieneComma = limpio.indexOf(",") >= 0;
+      const tieneDot = limpio.indexOf(".") >= 0;
+      if (tieneComma && tieneDot) {
+        const lastDot = limpio.lastIndexOf(".");
+        const lastComma = limpio.lastIndexOf(",");
+        if (lastDot > lastComma) {
+          limpio = limpio.replace(/,/g, "");
+        } else {
+          limpio = limpio.replace(/\./g, "");
+          limpio = limpio.replace(/,/g, ".");
+        }
+      } else if (tieneComma && !tieneDot) {
+        const partes = limpio.split(",");
+        if (partes.length > 1 && partes[1].length === 3) {
+          limpio = limpio.replace(/,/g, "");
+        } else {
+          limpio = limpio.replace(/,/g, ".");
+        }
+      }
+      if ((limpio.match(/\./g) || []).length > 1) {
+        const partes = limpio.split(".");
+        const decimal = partes.pop();
+        limpio = `${partes.join("")}.${decimal}`;
+      }
+      const numero = Number(limpio);
+      return Number.isFinite(numero) ? numero : 0;
     },
 
     _extraerTablaComoMatriz(tabla) {

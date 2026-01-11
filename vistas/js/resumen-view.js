@@ -103,6 +103,32 @@
   const comparativaLabel = document.getElementById(
     "resumenEmpresaComparativaLabel"
   );
+  const chartsToggleBtn = document.getElementById("resumenChartsToggleBtn");
+  const chartsPanel = document.getElementById("resumenChartsPanel");
+  const chartsCloseBtn = document.getElementById("resumenChartsCloseBtn");
+  const chartsRefreshBtn = document.getElementById("resumenChartsRefreshBtn");
+  const chartsEmpty = document.getElementById("resumenChartsEmpty");
+  const chartsGrid = document.getElementById("resumenChartsGrid");
+  const chartsEmpresaLabel = document.getElementById(
+    "resumenChartsEmpresaLabel"
+  );
+  const chartsPeriodoLabel = document.getElementById(
+    "resumenChartsPeriodoLabel"
+  );
+  const chartCanvasOperating = document.getElementById(
+    "resumenChartOperating"
+  );
+  const chartCanvasNet = document.getElementById("resumenChartNet");
+  const chartCanvasConsolidated = document.getElementById(
+    "resumenChartConsolidated"
+  );
+  const chartCardOperating = document.getElementById(
+    "resumenChartCardOperating"
+  );
+  const chartCardNet = document.getElementById("resumenChartCardNet");
+  const chartCardConsolidated = document.getElementById(
+    "resumenChartCardConsolidated"
+  );
 
   const manejarSesionExpirada = (resp) => {
     if (resp?.status === 401) {
@@ -311,6 +337,167 @@
       localStorage.setItem(COMPARATIVA_STORAGE_KEY, activo ? "1" : "0");
       recargarSeleccionActual();
     });
+  };
+
+  const chartsPanelState = {
+    open: false,
+    charts: {},
+  };
+
+  const actualizarPanelGraficasMeta = () => {
+    if (chartsEmpresaLabel) {
+      const texto = (empresaLabel?.textContent || "").trim();
+      chartsEmpresaLabel.textContent = texto || "-";
+    }
+    if (chartsPeriodoLabel) {
+      const texto = (periodLabel?.textContent || "").trim();
+      chartsPeriodoLabel.textContent = texto || "-";
+    }
+  };
+
+  const destruirGraficaPanel = (key) => {
+    if (!chartsPanelState.charts[key]) return;
+    chartsPanelState.charts[key].destroy();
+    chartsPanelState.charts[key] = null;
+  };
+
+  const renderGraficaPanel = (key, canvas, data) => {
+    if (!canvas || !data || typeof Chart === "undefined") return;
+    destruirGraficaPanel(key);
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    chartsPanelState.charts[key] = new Chart(ctx, {
+      type: "bar",
+      data: {
+        labels: data.labels || [],
+        datasets: data.datasets || [],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: "bottom",
+            labels: {
+              padding: 12,
+              usePointStyle: true,
+            },
+          },
+          tooltip: {
+            callbacks: {
+              label: (context) => {
+                const label = context.dataset?.label
+                  ? `${context.dataset.label}: `
+                  : "";
+                return `${label}${formatNumber(context.parsed?.y)}`;
+              },
+            },
+          },
+        },
+        scales: {
+          y: {
+            beginAtZero: false,
+            ticks: {
+              callback: (value) => formatNumber(value),
+            },
+          },
+          x: {
+            ticks: {
+              font: { size: 11 },
+            },
+          },
+        },
+      },
+    });
+  };
+
+  const mostrarGraficasVacias = (mensaje) => {
+    if (chartsGrid) chartsGrid.classList.add("d-none");
+    if (chartsEmpty) {
+      chartsEmpty.textContent = mensaje;
+      chartsEmpty.classList.remove("d-none");
+    }
+  };
+
+  const actualizarPanelGraficas = () => {
+    if (!chartsPanelState.open) return;
+    actualizarPanelGraficasMeta();
+    if (typeof Chart === "undefined") {
+      mostrarGraficasVacias("Chart.js no esta disponible.");
+      return;
+    }
+
+    const datos = generarDatosGraficas();
+    if (!Array.isArray(datos) || datos.length === 0) {
+      mostrarGraficasVacias(
+        "No hay datos de graficas disponibles. Carga el resumen primero."
+      );
+      destruirGraficaPanel("operating");
+      destruirGraficaPanel("net");
+      destruirGraficaPanel("consolidated");
+      if (chartCardOperating) chartCardOperating.classList.add("d-none");
+      if (chartCardNet) chartCardNet.classList.add("d-none");
+      if (chartCardConsolidated) chartCardConsolidated.classList.add("d-none");
+      return;
+    }
+
+    if (chartsEmpty) chartsEmpty.classList.add("d-none");
+    if (chartsGrid) chartsGrid.classList.remove("d-none");
+
+    const [operating, net, consolidated] = datos;
+    if (operating && chartCanvasOperating) {
+      if (chartCardOperating) chartCardOperating.classList.remove("d-none");
+      renderGraficaPanel("operating", chartCanvasOperating, operating);
+    } else if (chartCardOperating) {
+      chartCardOperating.classList.add("d-none");
+      destruirGraficaPanel("operating");
+    }
+
+    if (net && chartCanvasNet) {
+      if (chartCardNet) chartCardNet.classList.remove("d-none");
+      renderGraficaPanel("net", chartCanvasNet, net);
+    } else if (chartCardNet) {
+      chartCardNet.classList.add("d-none");
+      destruirGraficaPanel("net");
+    }
+
+    if (consolidated && chartCanvasConsolidated) {
+      if (chartCardConsolidated)
+        chartCardConsolidated.classList.remove("d-none");
+      renderGraficaPanel("consolidated", chartCanvasConsolidated, consolidated);
+    } else if (chartCardConsolidated) {
+      chartCardConsolidated.classList.add("d-none");
+      destruirGraficaPanel("consolidated");
+    }
+  };
+
+  const setPanelGraficasOpen = (open) => {
+    if (!chartsPanel || !chartsToggleBtn) return;
+    chartsPanelState.open = open;
+    chartsPanel.classList.toggle("open", open);
+    chartsPanel.setAttribute("aria-hidden", open ? "false" : "true");
+    chartsToggleBtn.setAttribute("aria-expanded", open ? "true" : "false");
+    chartsToggleBtn.classList.toggle("active", open);
+    if (open) {
+      actualizarPanelGraficas();
+    }
+  };
+
+  const inicializarPanelGraficas = () => {
+    if (!chartsPanel || !chartsToggleBtn) return;
+    chartsToggleBtn.addEventListener("click", () => {
+      setPanelGraficasOpen(!chartsPanelState.open);
+    });
+    if (chartsCloseBtn) {
+      chartsCloseBtn.addEventListener("click", () => {
+        setPanelGraficasOpen(false);
+      });
+    }
+    if (chartsRefreshBtn) {
+      chartsRefreshBtn.addEventListener("click", () => {
+        actualizarPanelGraficas();
+      });
+    }
   };
 
   const obtenerClaveCuentaComparativa = (registro) =>
@@ -2106,6 +2293,7 @@
         ? `${nombreMes} ${anioActual}`
         : nombreMes;
     }
+    actualizarPanelGraficasMeta();
   };
 
   const actualizarEncabezado = (empresaId, anio) => {
@@ -2117,6 +2305,7 @@
     if (empresaLabel) {
       empresaLabel.textContent = etiqueta || "";
     }
+    actualizarPanelGraficasMeta();
   };
 
   const obtenerSelectorEmpresaGlobal = () =>
@@ -2283,6 +2472,7 @@
         } else {
           console.warn("📸 RESUMEN: No se pudo capturar snapshot");
         }
+        actualizarPanelGraficas();
       });
 
       actualizarEtiquetasAnio(anioNumero);
@@ -3292,6 +3482,7 @@
     }
 
     inicializarComparativaToggle();
+    inicializarPanelGraficas();
     empresaActual = empresa;
     await aplicarEmpresaResumen(empresaActual.id);
 
