@@ -7,6 +7,11 @@
 (() => {
   "use strict";
 
+  const API_BASE = (() => {
+    if (window.location.protocol === "file:") return "http://localhost:3005/api";
+    return `${window.location.origin.replace(/\/$/, "")}/api`;
+  })();
+
   const ExportUtils = {
     /**
      * Exportar tabla a Excel (XLSX)
@@ -68,6 +73,139 @@
     },
 
     /**
+     * Exportar tabla + graficas (en un solo archivo)
+     * @param {Object} options - Opciones de exportacion
+     * @param {string|HTMLElement} options.tabla - Selector o elemento de la tabla
+     * @param {string} options.nombreArchivo - Nombre del archivo (sin extension)
+     * @param {string} options.nombreHojaTabla - Nombre de la hoja con la tabla
+     * @param {string} options.nombreHojaOperativo - Nombre de la hoja con datos y graficas
+     * @param {Function} options.onSuccess - Callback al exportar exitosamente
+     * @param {Function} options.onError - Callback al fallar
+     */
+    async exportarExcelConGraficas(options = {}) {
+      const {
+        tabla,
+        nombreArchivo = "Exportacion",
+        nombreHojaTabla = "Tabla",
+        nombreHojaOperativo = "OperativoData",
+        onSuccess,
+        onError,
+      } = options;
+
+      try {
+        const tablaElement =
+          typeof tabla === "string"
+            ? document.querySelector(tabla)
+            : tabla || document.querySelector("table");
+
+        if (!tablaElement) {
+          throw new Error("No se encontro la tabla para exportar");
+        }
+
+        if (typeof ExcelJS === "undefined" || typeof XLSX === "undefined") {
+          this._showToast(
+            "ExcelJS o XLSX no disponible. Exportando solo tabla.",
+            "warning"
+          );
+          this.exportarExcel({ tabla, nombreArchivo, nombreHoja: nombreHojaTabla });
+          return;
+        }
+
+        const metadata = this._obtenerMetadata();
+        const baseName = `${nombreArchivo}_${
+          metadata.empresaTexto || "Reporte"
+        }_${metadata.mesNombre || ""}_${metadata.anio || ""}`.replace(
+          /\s+/g,
+          "_"
+        );
+
+        const workbook = new ExcelJS.Workbook();
+
+        // Hoja: Tabla completa con estilos
+        const sheetTabla = this._tableToSheetWithStyles(tablaElement);
+        this._xlsxSheetToExcelJSWorksheet(sheetTabla, workbook, nombreHojaTabla);
+
+        // Hoja: Operativo + graficas
+        const hojaOperativo = workbook.addWorksheet(nombreHojaOperativo);
+        const datos = this._obtenerDatosOperativo(tablaElement);
+        const etiqueta = this._capitalizar(
+          this._obtenerEtiquetaOperativo() || "Elemento"
+        );
+        const periodo = [metadata.mesNombre, metadata.anio]
+          .filter(Boolean)
+          .join(" ")
+          .trim();
+
+        hojaOperativo.addRow(["RESULTADOS OPERATIVOS"]);
+        hojaOperativo.addRow(["Categoria", etiqueta]);
+        hojaOperativo.addRow(["Empresa", metadata.empresaTexto || ""]);
+        hojaOperativo.addRow(["Periodo", periodo]);
+        hojaOperativo.addRow([
+          "Fecha exportacion",
+          new Date().toISOString().slice(0, 10),
+        ]);
+        hojaOperativo.addRow([]);
+        hojaOperativo.addRow([etiqueta, "Ppto Acumulado", "Real Acumulado"]);
+        datos.forEach((row) => {
+          hojaOperativo.addRow([row.etiqueta, row.presupuesto, row.real]);
+        });
+        hojaOperativo.columns = [{ width: 42 }, { width: 18 }, { width: 18 }];
+
+        if (typeof Chart !== "undefined" && datos.length) {
+          const labels = datos.map((item) => item.etiqueta);
+          const presupuestos = datos.map((item) => item.presupuesto);
+          const reales = datos.map((item) => item.real);
+          const imgBudget = this._crearImagenGrafica({
+            labels,
+            data: presupuestos,
+            color: "#4472c4",
+            titulo: "Ppto Acumulado",
+          });
+          const imgReal = this._crearImagenGrafica({
+            labels,
+            data: reales,
+            color: "#ffc000",
+            titulo: "Real Acumulado",
+          });
+
+          if (imgBudget && imgReal) {
+            const startRow = hojaOperativo.rowCount + 2;
+            const imgBudgetId = workbook.addImage({
+              base64: imgBudget,
+              extension: "png",
+            });
+            hojaOperativo.addImage(imgBudgetId, {
+              tl: { col: 0, row: startRow },
+              ext: { width: 820, height: 360 },
+            });
+
+            const imgRealId = workbook.addImage({
+              base64: imgReal,
+              extension: "png",
+            });
+            hojaOperativo.addImage(imgRealId, {
+              tl: { col: 0, row: startRow + 20 },
+              ext: { width: 820, height: 360 },
+            });
+          }
+        }
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], {
+          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        });
+        this._descargarBlob(blob, `${baseName}_Graficas.xlsx`);
+
+        if (onSuccess) onSuccess();
+        this._showToast("Excel con tabla y graficas generado.");
+      } catch (error) {
+        console.error("Error al exportar Excel con graficas:", error);
+        if (onError) onError(error);
+        this._showToast("Error al exportar: " + error.message, "error");
+      }
+    },
+
+    /**
      * Exportar tabla + datos operativos (para graficas en Excel)
      * @param {Object} options - Opciones de exportacion
      * @param {string|HTMLElement} options.tabla - Selector o elemento de la tabla
@@ -78,7 +216,7 @@
      * @param {Function} options.onSuccess - Callback al exportar exitosamente
      * @param {Function} options.onError - Callback al fallar
      */
-    exportarExcelOperativo(options = {}) {
+    async exportarExcelOperativo(options = {}) {
       const {
         tabla,
         nombreArchivo = "Exportacion",
@@ -87,6 +225,232 @@
         incluirTabla = true,
         onSuccess,
         onError,
+      } = options;
+
+      try {
+        const tablaElement =
+          typeof tabla === "string"
+            ? document.querySelector(tabla)
+            : tabla || document.querySelector("table");
+
+        if (!tablaElement) {
+          throw new Error("No se encontro la tabla para exportar");
+        }
+
+        const metadata = this._obtenerMetadata();
+        const baseName = `${nombreArchivo}_${
+          metadata.empresaTexto || "Reporte"
+        }_${metadata.mesNombre || ""}_${metadata.anio || ""}`.replace(
+          /\s+/g,
+          "_"
+        );
+
+        const datosOperativo = this._obtenerDatosOperativo(tablaElement);
+        if (!datosOperativo.length) {
+          this._showToast(
+            "Sin datos de resultado operativo para exportar.",
+            "warning"
+          );
+          return;
+        }
+
+        const label = this._obtenerEtiquetaOperativo();
+        const payload = {
+          label,
+          empresa: metadata.empresaTexto || "",
+          anio: metadata.anio || "",
+          mes: metadata.mesNombre || "",
+          nombreArchivo,
+          filas: datosOperativo,
+        };
+
+        this._showToast("Generando Excel con graficas...");
+        const response = await fetch(`${API_BASE}/reportes/operativo-excel`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          const text = await response.text();
+          throw new Error(text || "No fue posible generar el Excel con graficas.");
+        }
+
+        const blob = await response.blob();
+        const filename =
+          this._obtenerNombreDescarga(response) ||
+          `${baseName}_Operativo_Graficas.xlsx`;
+        this._descargarBlob(blob, filename);
+
+        if (onSuccess) onSuccess();
+        this._showToast("Excel con graficas generado.");
+      } catch (error) {
+        console.error("Error al exportar Excel operativo:", error);
+        if (onError) onError(error);
+        const detalle = (error?.message || "").toString().trim();
+        const textoDetalle =
+          detalle.length > 140 ? `${detalle.slice(0, 140)}...` : detalle;
+        this._showToast(
+          `No se pudo generar graficas${textoDetalle ? ": " + textoDetalle : ""}.`,
+          "warning"
+        );
+        const generado = await this._exportarExcelOperativoImagenes({
+          tabla,
+          nombreArchivo,
+          nombreHojaOperativo,
+        });
+        if (!generado) {
+          this._exportarExcelOperativoLocal({
+            tabla,
+            nombreArchivo,
+            nombreHojaTabla,
+            nombreHojaOperativo,
+            incluirTabla,
+          });
+        }
+      }
+    },
+
+    async _exportarExcelOperativoImagenes(options = {}) {
+      if (typeof ExcelJS === "undefined" || typeof Chart === "undefined") {
+        return false;
+      }
+
+      const { tabla, nombreArchivo = "Exportacion", nombreHojaOperativo = "OperativoData" } = options;
+      const tablaElement =
+        typeof tabla === "string"
+          ? document.querySelector(tabla)
+          : tabla || document.querySelector("table");
+      if (!tablaElement) return false;
+
+      const metadata = this._obtenerMetadata();
+      const baseName = `${nombreArchivo}_${
+        metadata.empresaTexto || "Reporte"
+      }_${metadata.mesNombre || ""}_${metadata.anio || ""}`.replace(/\s+/g, "_");
+
+      const datos = this._obtenerDatosOperativo(tablaElement);
+      if (!datos.length) return false;
+
+      const labels = datos.map((item) => item.etiqueta);
+      const presupuestos = datos.map((item) => item.presupuesto);
+      const reales = datos.map((item) => item.real);
+      const colorBudget = "#4472c4";
+      const colorReal = "#ffc000";
+
+      const imagenBudget = this._crearImagenGrafica({
+        labels,
+        data: presupuestos,
+        color: colorBudget,
+        titulo: "Ppto Acumulado",
+      });
+      const imagenReal = this._crearImagenGrafica({
+        labels,
+        data: reales,
+        color: colorReal,
+        titulo: "Real Acumulado",
+      });
+
+      if (!imagenBudget || !imagenReal) return false;
+
+      const workbook = new ExcelJS.Workbook();
+      const ws = workbook.addWorksheet(nombreHojaOperativo);
+
+      const etiqueta = this._capitalizar(this._obtenerEtiquetaOperativo() || "Elemento");
+      const periodo = [metadata.mesNombre, metadata.anio].filter(Boolean).join(" ").trim();
+
+      ws.addRow(["RESULTADOS OPERATIVOS"]);
+      ws.addRow(["Categoria", etiqueta]);
+      ws.addRow(["Empresa", metadata.empresaTexto || ""]);
+      ws.addRow(["Periodo", periodo]);
+      ws.addRow(["Fecha exportacion", new Date().toISOString().slice(0, 10)]);
+      ws.addRow([]);
+      ws.addRow([etiqueta, "Ppto Acumulado", "Real Acumulado"]);
+      datos.forEach((row) => {
+        ws.addRow([row.etiqueta, row.presupuesto, row.real]);
+      });
+
+      ws.columns = [{ width: 42 }, { width: 18 }, { width: 18 }];
+
+      const chartStart = ws.rowCount + 2;
+      const imgBudgetId = workbook.addImage({
+        base64: imagenBudget,
+        extension: "png",
+      });
+      ws.addImage(imgBudgetId, {
+        tl: { col: 0, row: chartStart },
+        ext: { width: 820, height: 360 },
+      });
+
+      const imgRealId = workbook.addImage({
+        base64: imagenReal,
+        extension: "png",
+      });
+      ws.addImage(imgRealId, {
+        tl: { col: 0, row: chartStart + 20 },
+        ext: { width: 820, height: 360 },
+      });
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      this._descargarBlob(blob, `${baseName}_Operativo_Graficas.xlsx`);
+      this._showToast("Excel con graficas generado (imagen).");
+      return true;
+    },
+
+    _crearImagenGrafica({ labels, data, color, titulo }) {
+      try {
+        const canvas = document.createElement("canvas");
+        const altura = Math.min(820, Math.max(360, labels.length * 28 + 180));
+        canvas.width = 1400;
+        canvas.height = altura;
+        const ctx = canvas.getContext("2d");
+        const chart = new Chart(ctx, {
+          type: "bar",
+          data: {
+            labels,
+            datasets: [
+              {
+                label: titulo,
+                data,
+                backgroundColor: color,
+                borderColor: "rgba(47, 84, 150, 0.2)",
+                borderWidth: 1,
+                borderRadius: 8,
+                maxBarThickness: 20,
+              },
+            ],
+          },
+          options: {
+            responsive: false,
+            maintainAspectRatio: false,
+            indexAxis: "y",
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { ticks: { font: { size: 11 } } },
+              y: { ticks: { font: { size: 12 } } },
+            },
+          },
+        });
+        chart.update();
+        const dataUrl = chart.toBase64Image();
+        chart.destroy();
+        return dataUrl;
+      } catch (error) {
+        console.warn("No se pudo generar imagen de grafica:", error);
+        return "";
+      }
+    },
+
+    _exportarExcelOperativoLocal(options = {}) {
+      const {
+        tabla,
+        nombreArchivo = "Exportacion",
+        nombreHojaTabla = "Tabla",
+        nombreHojaOperativo = "OperativoData",
+        incluirTabla = true,
       } = options;
 
       try {
@@ -122,19 +486,26 @@
         XLSX.utils.book_append_sheet(libro, hojaOperativo, nombreHojaOperativo);
 
         XLSX.writeFile(libro, `${baseName}_Operativo.xlsx`);
-
-        if (onSuccess) onSuccess();
-        this._showToast(
-          "Datos exportados. Graficas nativas: plantilla o script."
-        );
-        console.info(
-          "[ExportUtils] Para graficas en Excel: abre excels/Operativo_Template.xlsx o ejecuta scripts/export-operativo-charts-ui.ps1"
-        );
+        this._showToast("Datos operativos exportados.");
       } catch (error) {
-        console.error("Error al exportar Excel operativo:", error);
-        if (onError) onError(error);
+        console.error("Error en export local operativo:", error);
         this._showToast("Error al exportar: " + error.message, "error");
       }
+    },
+
+    _obtenerNombreDescarga(response) {
+      const header = response.headers.get("content-disposition") || "";
+      const match = header.match(/filename=\"?([^\";]+)\"?/i);
+      return match ? match[1] : "";
+    },
+
+    _descargarBlob(blob, filename) {
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename || "Exportacion.xlsx";
+      a.click();
+      window.URL.revokeObjectURL(url);
     },
 
     /**
@@ -327,6 +698,118 @@
       sheet["!cols"] = colWidths;
 
       return sheet;
+    },
+
+    _xlsxSheetToExcelJSWorksheet(sheet, workbook, nombreHoja) {
+      const ws = workbook.addWorksheet(nombreHoja);
+      if (!sheet || !sheet["!ref"]) return ws;
+
+      const toArgb = (rgb) => {
+        if (!rgb) return "";
+        const limpio = rgb.replace(/[^0-9A-Fa-f]/g, "").toUpperCase();
+        if (limpio.length === 8) return limpio;
+        if (limpio.length === 6) return `FF${limpio}`;
+        return "";
+      };
+
+      const mapColor = (color) => {
+        const argb = toArgb(color?.rgb);
+        return argb ? { argb } : undefined;
+      };
+
+      const mapBorder = (border) => {
+        if (!border) return undefined;
+        const sides = ["top", "bottom", "left", "right"];
+        const result = {};
+        sides.forEach((side) => {
+          if (!border[side]) return;
+          const color = mapColor(border[side].color);
+          result[side] = {
+            style: border[side].style || "thin",
+            ...(color ? { color } : {}),
+          };
+        });
+        return Object.keys(result).length ? result : undefined;
+      };
+
+      const mapFill = (fill) => {
+        if (!fill) return undefined;
+        const fgColor = mapColor(fill.fgColor);
+        const bgColor = mapColor(fill.bgColor);
+        if (!fgColor && !bgColor) return undefined;
+        return {
+          type: "pattern",
+          pattern: fill.patternType || "solid",
+          ...(fgColor ? { fgColor } : {}),
+          ...(bgColor ? { bgColor } : {}),
+        };
+      };
+
+      const mapFont = (font) => {
+        if (!font) return undefined;
+        const color = mapColor(font.color);
+        const result = {
+          ...(font.bold ? { bold: true } : {}),
+          ...(font.italic ? { italic: true } : {}),
+          ...(font.sz ? { size: font.sz } : {}),
+          ...(color ? { color } : {}),
+        };
+        return Object.keys(result).length ? result : undefined;
+      };
+
+      const mapAlignment = (alignment) => {
+        if (!alignment) return undefined;
+        const result = {
+          ...(alignment.horizontal ? { horizontal: alignment.horizontal } : {}),
+          ...(alignment.vertical ? { vertical: alignment.vertical } : {}),
+          ...(alignment.wrapText ? { wrapText: true } : {}),
+        };
+        return Object.keys(result).length ? result : undefined;
+      };
+
+      Object.keys(sheet).forEach((addr) => {
+        if (addr.startsWith("!")) return;
+        const cell = sheet[addr];
+        const { r, c } = XLSX.utils.decode_cell(addr);
+        const excelCell = ws.getCell(r + 1, c + 1);
+        excelCell.value = cell?.v ?? "";
+
+        if (cell?.s) {
+          const font = mapFont(cell.s.font);
+          const fill = mapFill(cell.s.fill);
+          const border = mapBorder(cell.s.border);
+          const alignment = mapAlignment(cell.s.alignment);
+          const style = {
+            ...(font ? { font } : {}),
+            ...(fill ? { fill } : {}),
+            ...(border ? { border } : {}),
+            ...(alignment ? { alignment } : {}),
+          };
+          if (Object.keys(style).length) {
+            excelCell.style = style;
+          }
+        }
+      });
+
+      if (Array.isArray(sheet["!merges"])) {
+        sheet["!merges"].forEach((merge) => {
+          ws.mergeCells(
+            merge.s.r + 1,
+            merge.s.c + 1,
+            merge.e.r + 1,
+            merge.e.c + 1
+          );
+        });
+      }
+
+      if (Array.isArray(sheet["!cols"])) {
+        sheet["!cols"].forEach((col, idx) => {
+          if (!col) return;
+          if (col.wch) ws.getColumn(idx + 1).width = col.wch;
+        });
+      }
+
+      return ws;
     },
 
     _operativoToSheet(tabla, metadata = {}) {

@@ -310,6 +310,10 @@ table thead th {
   background-color: inherit;
 }
 
+.table-comparison thead th {
+  background-color: #ffffff;
+}
+
 /* Sticky headers inside scrollable table containers */
 .table-responsive.sticky-table-scroll {
   overflow-x: auto;
@@ -341,6 +345,7 @@ table thead th {
   overflow-y: hidden;
   background: transparent;
   scrollbar-width: none;
+  transform-origin: top left;
 }
 
 .sticky-table-header::-webkit-scrollbar {
@@ -349,6 +354,11 @@ table thead th {
 
 .sticky-table-header table {
   margin-bottom: 0;
+}
+
+.sticky-table-header thead th {
+  position: static;
+  top: auto;
 }
 
 .sticky-table-header .table-comparison thead th:nth-child(1),
@@ -362,11 +372,14 @@ table thead th {
   left: var(--sticky-col-2-left, 120px);
 }
 
-/* Sticky headers and totals for comparison tables */
-.table-comparison.sticky-header thead {
-  background-color: #ffffff;
+.sticky-table-header.no-sticky-cols .table-comparison thead th:nth-child(1),
+.sticky-table-header.no-sticky-cols .table-comparison thead th:nth-child(2) {
+  position: static;
+  left: auto;
+  z-index: auto;
 }
 
+/* Sticky headers and totals for comparison tables */
 .table-comparison.sticky-header thead th {
   position: sticky;
   top: 0;
@@ -583,4 +596,8 @@ a:not(.disabled) {
 /* Keep toasts above comment buttons */
 .position-fixed.bottom-0.end-0.p-3 {
   z-index: 1600 !important;
+}
+
+body.comentarios-safe-area .position-fixed.bottom-0.end-0.p-3 {
+  bottom: 80px !important;
 }

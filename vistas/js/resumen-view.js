@@ -33,7 +33,7 @@
       const filas = Array.from(tabla.tHead.rows || []);
       let offset = 0;
       filas.forEach((fila) => {
-        const altura = Math.ceil(fila.getBoundingClientRect().height);
+        const altura = fila.offsetHeight || fila.getBoundingClientRect().height;
         Array.from(fila.cells).forEach((celda) => {
           celda.style.top = `${offset}px`;
         });
@@ -3887,6 +3887,10 @@
 
   // Controles de zoom y visibilidad de columnas
   const table = document.getElementById("tablaComparacion");
+  const stickyOverlay =
+    typeof window.prepararStickyHeaders === "function"
+      ? window.prepararStickyHeaders("#tablaComparacion")
+      : null;
   const tableWrapper = document.getElementById("tableWrapper");
   const zoomInBtn = document.getElementById("zoomIn");
   const zoomOutBtn = document.getElementById("zoomOut");
@@ -3909,6 +3913,9 @@
       zoomDisplay.textContent = `${Math.round(zoomLevel * 100)}%`;
     }
     aplicarStickyEncabezados();
+    if (stickyOverlay?.refresh) {
+      stickyOverlay.refresh();
+    }
   };
 
   if (zoomInBtn) {
@@ -3949,6 +3956,9 @@
   const aplicarVisibilidadCuentas = (ocultar) => {
     document.body.classList.toggle("ocultar-cuentas", Boolean(ocultar));
     actualizarBotonColumnas(Boolean(ocultar));
+    if (stickyOverlay?.refresh) {
+      stickyOverlay.refresh();
+    }
   };
 
   const inicializarToggleColumnas = () => {

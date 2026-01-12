@@ -3,7 +3,7 @@ param(
   [string]$InputPath,
   [string]$OutputPath,
   [string]$DataSheetName = "OperativoData",
-  [string]$ChartsSheetName = "OperativoCharts"
+  [string]$ChartsSheetName = "OperativoData"
 )
 
 if (-not (Test-Path $InputPath)) {
@@ -48,17 +48,21 @@ if ($lastRow -lt $dataStart) {
 }
 
 $wsCharts = $null
-try {
-  $wsCharts = $wb.Worksheets.Item($ChartsSheetName)
-} catch {
-  $wsCharts = $null
-}
+if ($ChartsSheetName -and $ChartsSheetName -ne $DataSheetName) {
+  try {
+    $wsCharts = $wb.Worksheets.Item($ChartsSheetName)
+  } catch {
+    $wsCharts = $null
+  }
 
-if ($wsCharts) {
-  $wsCharts.Cells.Clear()
+  if ($wsCharts) {
+    $wsCharts.Cells.Clear()
+  } else {
+    $wsCharts = $wb.Worksheets.Add()
+    $wsCharts.Name = $ChartsSheetName
+  }
 } else {
-  $wsCharts = $wb.Worksheets.Add()
-  $wsCharts.Name = $ChartsSheetName
+  $wsCharts = $wsData
 }
 
 $rangeLabels = $wsData.Range("A$($dataStart):A$($lastRow)")
@@ -66,7 +70,11 @@ $rangeBudget = $wsData.Range("B$($dataStart):B$($lastRow)")
 $rangeReal = $wsData.Range("C$($dataStart):C$($lastRow)")
 
 # Chart 1: Budget
-$chart1 = $wsCharts.ChartObjects().Add(20, 20, 620, 300)
+$baseTop = 20
+if ($wsCharts -eq $wsData) {
+  $baseTop = $wsData.Rows.Item($lastRow + 2).Top
+}
+$chart1 = $wsCharts.ChartObjects().Add(20, $baseTop, 620, 300)
 $chart1.Chart.ChartType = 58 # xlBarClustered
 $chart1.Chart.SetSourceData($rangeBudget)
 $series1 = $chart1.Chart.SeriesCollection(1)
@@ -76,7 +84,7 @@ $chart1.Chart.HasTitle = $true
 $chart1.Chart.ChartTitle.Text = "Ppto Acumulado"
 
 # Chart 2: Real
-$chart2 = $wsCharts.ChartObjects().Add(20, 340, 620, 300)
+$chart2 = $wsCharts.ChartObjects().Add(20, ($baseTop + 320), 620, 300)
 $chart2.Chart.ChartType = 58 # xlBarClustered
 $chart2.Chart.SetSourceData($rangeReal)
 $series2 = $chart2.Chart.SeriesCollection(1)
@@ -91,9 +99,9 @@ if (-not $OutputPath) {
   $OutputPath = Join-Path $dir ($base + "_graficas.xlsx")
 }
 
+$wsCharts.Activate()
 $wb.SaveAs($OutputPath)
 $wb.Close($false)
 $excel.Quit()
 
 Write-Host "Charts created: $OutputPath"
-

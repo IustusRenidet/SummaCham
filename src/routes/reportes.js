@@ -5,6 +5,7 @@ const { generarResumenEjecutivo } = require('../services/engines/resumenEngine')
 const { obtenerEmpresaPorId } = require('../config/empresas');
 const { requireAuth, tienePermisoEmpresa } = require('../middleware/auth');
 const { esUsuarioPermitidoResumen } = require('../services/usuariosPolicy');
+const { generarOperativoExcel } = require('../services/reportes/operativoExcelService');
 
 const router = express.Router();
 
@@ -18,6 +19,24 @@ const esquemaConsulta = Joi.object({
     Joi.string().trim()
   ).optional(),
   capitulo: Joi.string().trim().optional()
+});
+
+const esquemaOperativo = Joi.object({
+  label: Joi.string().allow("").optional(),
+  empresa: Joi.string().allow("").optional(),
+  anio: Joi.alternatives().try(Joi.number().integer(), Joi.string()).optional(),
+  mes: Joi.string().allow("").optional(),
+  nombreArchivo: Joi.string().allow("").optional(),
+  filas: Joi.array()
+    .items(
+      Joi.object({
+        etiqueta: Joi.string().trim().required(),
+        presupuesto: Joi.alternatives().try(Joi.number(), Joi.string()).optional(),
+        real: Joi.alternatives().try(Joi.number(), Joi.string()).optional(),
+      })
+    )
+    .min(1)
+    .required(),
 });
 
 const normalizarAnio = (valor) => {
@@ -91,6 +110,30 @@ router.get('/resumen', async (req, res) => {
   } catch (errorRes) {
     console.error('Error generando Resumen:', errorRes);
     res.status(500).json({ mensaje: 'No fue posible generar el reporte de Resumen.' });
+  }
+});
+
+router.post('/operativo-excel', async (req, res) => {
+  const { value, error } = esquemaOperativo.validate(req.body, { abortEarly: false });
+  if (error) {
+    return res.status(400).send("Parametros invalidos.");
+  }
+
+  try {
+    const { buffer, filename } = await generarOperativoExcel(value);
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.send(buffer);
+  } catch (errorExcel) {
+    console.error("Error generando Excel operativo:", errorExcel);
+    res
+      .status(500)
+      .send(
+        `No fue posible generar el Excel con graficas. ${errorExcel.message || ""}`.trim()
+      );
   }
 });
 

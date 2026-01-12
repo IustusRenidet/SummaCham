@@ -359,14 +359,6 @@
             </button>
             <button
               type="button"
-              class="btn btn-outline-info btn-sm"
-              id="btnExportExcelOperativo"
-              title="Exportar datos operativos para graficas"
-            >
-              <i class="bi bi-bar-chart-line"></i> Excel + Graficas
-            </button>
-            <button
-              type="button"
               class="btn btn-outline-success btn-sm"
               id="btnExportExcel"
               title="Exportar a Excel"
@@ -628,27 +620,19 @@
   </style>
 
   <script src="js/comentarios-celdas.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
   <script src="js/export-utils.js"></script>
   <script>
     document.addEventListener("DOMContentLoaded", function () {
       document
-        .getElementById("btnExportExcelOperativo")
+        .getElementById("btnExportExcel")
         ?.addEventListener("click", () => {
-          ExportUtils.exportarExcelOperativo({
+          ExportUtils.exportarExcelConGraficas({
             tabla: "#tablaComparacion",
             nombreArchivo: "Serv_Membresia",
             nombreHojaTabla: "Serv_Membresia",
             nombreHojaOperativo: "OperativoData",
-          });
-        });
-      document
-        .getElementById("btnExportExcel")
-        ?.addEventListener("click", () => {
-          ExportUtils.exportarExcel({
-            tabla: "#tablaComparacion",
-            nombreArchivo: "Serv_Membresía",
-            nombreHoja: "Serv_Membresía",
           });
         });
       document

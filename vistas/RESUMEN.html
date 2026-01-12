@@ -208,26 +208,28 @@
       }
 
       .charts-toggle-btn {
-        background: linear-gradient(135deg, #1f3b6b 0%, #2f5496 55%, #5976a8 100%);
-        color: #fff;
-        border: none;
-        border-radius: 12px;
-        padding: 10px 16px;
-        font-weight: 700;
+        background: #ffffff;
+        color: var(--color-primary);
+        border: 1px solid rgba(47, 84, 150, 0.35);
+        border-radius: 10px;
+        padding: 8px 14px;
+        font-weight: 600;
         letter-spacing: 0.01em;
-        box-shadow: 0 10px 20px rgba(47, 84, 150, 0.25);
-        transition: transform 0.2s ease, box-shadow 0.2s ease,
-          background 0.2s ease;
+        box-shadow: none;
+        transition: background 0.2s ease, color 0.2s ease,
+          border-color 0.2s ease;
       }
 
       .charts-toggle-btn:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 12px 24px rgba(47, 84, 150, 0.35);
-        background: linear-gradient(135deg, #163059 0%, #2f5496 70%);
+        background: rgba(47, 84, 150, 0.08);
+        color: var(--color-primary);
+        border-color: rgba(47, 84, 150, 0.6);
       }
 
       .charts-toggle-btn.active {
-        background: #0f1f3d;
+        background: var(--color-primary);
+        color: #ffffff;
+        border-color: var(--color-primary);
       }
 
       .charts-panel {
@@ -358,6 +360,9 @@
         z-index: 1100;
         display: flex;
         justify-content: flex-end;
+        align-items: flex-start;
+        gap: 12px;
+        flex-wrap: wrap;
         margin-bottom: 10px;
         pointer-events: none;
       }
@@ -392,20 +397,23 @@
 
       .zoom-controls {
         display: none;
-        flex-direction: column;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
         gap: 10px;
-        width: min(380px, 94vw);
+        width: 100%;
+        max-width: 100%;
         padding: 12px;
-        margin-left: 10px;
+        margin-left: 0;
         background: #ffffff;
         border: 1px solid rgba(47, 84, 150, 0.08);
         border-radius: 16px;
         box-shadow: 0 14px 30px rgba(47, 84, 150, 0.2);
         pointer-events: auto;
+        flex: 1 1 100%;
+        min-width: 0;
       }
 
       .zoom-menu.open .zoom-controls {
-        display: flex;
+        display: grid;
       }
 
       .zoom-controls .zoom-header {
@@ -413,6 +421,12 @@
         align-items: center;
         justify-content: space-between;
         gap: 10px;
+        flex-wrap: wrap;
+        grid-column: 1 / -1;
+      }
+
+      .zoom-controls .btn-group {
+        grid-column: 1 / -1;
       }
 
       .zoom-btn {
@@ -506,12 +520,12 @@
       }
 
       .table thead {
-        background: #d9d9d9;
+        background: #ffffff;
       }
 
       .table thead th {
         border: 1px solid #999;
-        background-color: #d9d9d9;
+        background-color: #ffffff;
         color: #000;
         text-transform: uppercase;
         letter-spacing: 0.03em;
@@ -538,20 +552,17 @@
       }
 
       /* Columnas fijas de cuenta y descripción con fondo sólido */
-      .table thead tr:first-child th:nth-child(1),
-      .table thead tr:nth-child(2) th:nth-child(1) {
-        background-color: #d9d9d9 !important;
-        z-index: 150 !important;
-        position: sticky;
-        left: 0;
+      #tablaComparacion thead tr.encabezados th {
+        left: auto;
       }
 
-      .table thead tr:first-child th:nth-child(2),
-      .table thead tr:nth-child(2) th:nth-child(2) {
-        background-color: #d9d9d9 !important;
+      #tablaComparacion thead tr.encabezados-sub th {
+        left: auto;
+      }
+
+      #tablaComparacion thead tr.encabezados th.account-column-header {
+        background-color: #ffffff !important;
         z-index: 150 !important;
-        position: sticky;
-        left: 100px;
       }
 
       .table td,
@@ -909,7 +920,7 @@
           top: 62px;
         }
         .zoom-controls {
-          width: min(420px, 95vw);
+          width: 100%;
         }
         .workflow-toolbar {
           flex-direction: column;
@@ -973,7 +984,7 @@
         }
         .zoom-controls {
           width: 100%;
-          margin-left: 8px;
+          margin-left: 0;
         }
         .header-card {
           border-radius: 14px;
@@ -1282,23 +1293,19 @@
           <label
             for="resumenEmpresaComparativaToggle"
             class="form-label fw-semibold text-muted small mb-2"
-            >A&ntilde;o anterior</label
+            >Comparar con</label
           >
           <div class="comparativa-toggle">
             <label class="comparativa-switch mb-0">
               <input
                 type="checkbox"
                 id="resumenEmpresaComparativaToggle"
-                aria-label="Usar empresa para a&ntilde;o anterior"
               />
               <span class="comparativa-track">
                 <span class="comparativa-thumb"></span>
               </span>
             </label>
             <div class="comparativa-text">
-              <span class="comparativa-title"
-                >Usar empresa para a&ntilde;o anterior</span
-              >
               <span
                 class="comparativa-badge"
                 id="resumenEmpresaComparativaLabel"
@@ -1601,6 +1608,7 @@
                 <table
                   class="table align-middle mb-0 table-comparison"
                   id="tablaComparacion"
+                  data-sticky-columns="0"
                 >
                   <colgroup>
                     <col class="col-cuenta" />
@@ -1700,6 +1708,7 @@
     <script src="js/insertion-wizard.js"></script>
     <script src="js/context-menu-wizard.js"></script>
     <script src="js/modo-edicion-presupuesto.js"></script>
+    <script src="js/init-modulo-planeacion.js"></script>
     
     <!-- Librerías para exportación con gráficas -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>

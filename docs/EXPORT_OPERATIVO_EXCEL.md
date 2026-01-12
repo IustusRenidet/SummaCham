@@ -1,12 +1,10 @@
 EXPORT OPERATIVO EXCEL
 
-1) Export data (from the app)
+1) Export data + charts (from the app)
 - Use the "Excel + Graficas" button in Comites, Eventos, T&IC, or Serv Membresia.
-- This creates a workbook that includes a sheet named "OperativoData" with:
-  - Column A: label (Evento/Programa/Servicio)
-  - Column B: Ppto Acumulado
-  - Column C: Real Acumulado
-- Note: the exported file contains data only. The charts are created by template or COM.
+- If Excel is installed, the file is generated with native charts automatically.
+- If Excel is not available, the app falls back to data-only export.
+- If COM fails, the app falls back to image-based charts inside the same sheet.
 
 2) Template workflow (charts on open)
 - Template file: excels/Operativo_Template.xlsx

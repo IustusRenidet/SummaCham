@@ -6,6 +6,37 @@
  *      y llamar initModuloPlaneacion({ moduloId: 'rh', moduloNombre: 'RH' })
  */
 
+const obtenerEscalaActiva = (elemento) => {
+  let actual = elemento;
+  while (actual && actual !== document.body) {
+    const transform = getComputedStyle(actual).transform;
+    if (transform && transform !== "none") {
+      let scaleX = 1;
+      let scaleY = 1;
+      if (typeof DOMMatrixReadOnly !== "undefined") {
+        const matriz = new DOMMatrixReadOnly(transform);
+        scaleX = matriz.a || 1;
+        scaleY = matriz.d || 1;
+      } else {
+        const match = transform.match(/matrix(3d)?\(([^)]+)\)/);
+        if (match) {
+          const valores = match[2].split(",").map((valor) => parseFloat(valor));
+          if (match[1] === "3d") {
+            scaleX = valores[0] || 1;
+            scaleY = valores[5] || 1;
+          } else {
+            scaleX = valores[0] || 1;
+            scaleY = valores[3] || 1;
+          }
+        }
+      }
+      return { scaleX, scaleY, elemento: actual };
+    }
+    actual = actual.parentElement;
+  }
+  return { scaleX: 1, scaleY: 1, elemento: null };
+};
+
 const crearStickyHeaderOverlay = (tabla, wrapper) => {
   if (!tabla || !wrapper) return null;
   if (wrapper.__stickyHeaderOverlay) return wrapper.__stickyHeaderOverlay;
@@ -19,24 +50,163 @@ const crearStickyHeaderOverlay = (tabla, wrapper) => {
   let rafId = null;
   let syncRafId = null;
 
-  const getTopOffset = () => 0;
+  const medirContenedor = () => {
+    const rect = wrapper.getBoundingClientRect();
+    const overflowY = getComputedStyle(wrapper).overflowY || "visible";
+    const esScrollable =
+      overflowY !== "visible" && wrapper.scrollHeight > wrapper.clientHeight + 1;
+    return { rect, topOffset: esScrollable ? rect.top : 0, esScrollable };
+  };
 
   const syncWidths = () => {
     if (!cloneTable || !tabla?.tHead) return;
+    const { scaleX } = obtenerEscalaActiva(tabla);
+    const scaleXSeguro = scaleX || 1;
     cloneTable.className = tabla.className;
     cloneTable.classList.add("sticky-table-clone");
+    const obtenerColorFondoSolido = (elemento) => {
+      if (!elemento) return null;
+      const fondo = getComputedStyle(elemento).backgroundColor;
+      if (!fondo || fondo === "transparent" || fondo === "rgba(0, 0, 0, 0)") {
+        return null;
+      }
+      return fondo;
+    };
+    const fondoEncabezado =
+      obtenerColorFondoSolido(tabla.tHead) ||
+      obtenerColorFondoSolido(tabla) ||
+      obtenerColorFondoSolido(wrapper) ||
+      "#ffffff";
+    overlay.style.backgroundColor = fondoEncabezado;
+    if (cloneTable.tHead) {
+      cloneTable.tHead.style.backgroundColor = fondoEncabezado;
+    }
+    const sumarColSpan = (row) =>
+      Array.from(row?.cells || []).reduce(
+        (total, cell) => total + (cell.colSpan || 1),
+        0
+      );
+    const obtenerSpecsColgroup = () => {
+      const colgroup = tabla.querySelector("colgroup");
+      if (!colgroup) return [];
+      const specs = [];
+      Array.from(colgroup.querySelectorAll("col")).forEach((col) => {
+        const spanRaw = Number.parseInt(col.getAttribute("span") || "1", 10);
+        const span = Number.isFinite(spanRaw) && spanRaw > 0 ? spanRaw : 1;
+        for (let i = 0; i < span; i += 1) {
+          specs.push({ className: col.className });
+        }
+      });
+      return specs;
+    };
+    const colSpecs = obtenerSpecsColgroup();
+    const obtenerConteoColumnas = () => {
+      if (colSpecs.length) return colSpecs.length;
+      const bodyRows = Array.from(tabla.tBodies?.[0]?.rows || []);
+      const maxBody = bodyRows.reduce(
+        (max, row) => Math.max(max, sumarColSpan(row)),
+        0
+      );
+      if (maxBody) return maxBody;
+      const headRows = Array.from(tabla.tHead?.rows || []);
+      return headRows.reduce(
+        (max, row) => Math.max(max, sumarColSpan(row)),
+        0
+      );
+    };
+    const filaEsVisible = (row) => {
+      if (!row) return false;
+      const style = getComputedStyle(row);
+      if (style.display === "none" || style.visibility === "hidden") {
+        return false;
+      }
+      const rect = row.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0;
+    };
+    const filaTieneColumnasCompletas = (row, totalColumnas) => {
+      const cells = Array.from(row?.cells || []);
+      if (!cells.length) return false;
+      const total = sumarColSpan(row);
+      if (totalColumnas && total !== totalColumnas) return false;
+      return cells.every((cell) => (cell.colSpan || 1) === 1);
+    };
+    const buscarFilaBase = (totalColumnas) => {
+      const headRows = Array.from(tabla.tHead?.rows || []);
+      for (let i = headRows.length - 1; i >= 0; i -= 1) {
+        const row = headRows[i];
+        if (!filaTieneColumnasCompletas(row, totalColumnas)) continue;
+        if (!filaEsVisible(row)) continue;
+        return row;
+      }
+      const bodyRows = Array.from(tabla.tBodies?.[0]?.rows || []);
+      for (const row of bodyRows) {
+        if (!filaTieneColumnasCompletas(row, totalColumnas)) continue;
+        if (!filaEsVisible(row)) continue;
+        return row;
+      }
+      return (
+        headRows.find((row) => filaTieneColumnasCompletas(row, totalColumnas)) ||
+        bodyRows.find((row) => filaTieneColumnasCompletas(row, totalColumnas)) ||
+        null
+      );
+    };
+    const obtenerAnchosColumnas = () => {
+      const totalColumnas = obtenerConteoColumnas();
+      const filaBase = buscarFilaBase(totalColumnas);
+      if (!filaBase) return null;
+      return Array.from(filaBase.cells).map(
+        (cell) => cell.getBoundingClientRect().width / scaleXSeguro
+      );
+    };
+    const aplicarAnchosColgroup = (widths = []) => {
+      if (!widths.length) return false;
+      if (colSpecs.length && colSpecs.length !== widths.length) return false;
+      const nuevoColgroup = document.createElement("colgroup");
+      widths.forEach((width, idx) => {
+        const col = document.createElement("col");
+        col.style.width = `${width}px`;
+        col.style.minWidth = `${width}px`;
+        if (colSpecs[idx]?.className) {
+          col.className = colSpecs[idx].className;
+        }
+        nuevoColgroup.appendChild(col);
+      });
+      const colgroupActual = cloneTable.querySelector("colgroup");
+      if (colgroupActual) {
+        cloneTable.replaceChild(nuevoColgroup, colgroupActual);
+      } else {
+        cloneTable.insertBefore(nuevoColgroup, cloneTable.firstChild);
+      }
+      return true;
+    };
+    const columnWidths = obtenerAnchosColumnas();
+    const colgroupAplicado = aplicarAnchosColgroup(columnWidths || []);
+    cloneTable.style.tableLayout = colgroupAplicado ? "fixed" : "";
     const originalCells = Array.from(tabla.tHead.querySelectorAll("th"));
     const cloneCells = Array.from(cloneTable.querySelectorAll("th"));
+    if (!colgroupAplicado) {
+      originalCells.forEach((cell, idx) => {
+        const cloneCell = cloneCells[idx];
+        if (!cloneCell) return;
+        const width = cell.getBoundingClientRect().width / scaleXSeguro;
+        cloneCell.style.width = `${width}px`;
+        cloneCell.style.minWidth = `${width}px`;
+      });
+    }
     originalCells.forEach((cell, idx) => {
       const cloneCell = cloneCells[idx];
       if (!cloneCell) return;
-      const width = Math.ceil(cell.getBoundingClientRect().width);
-      cloneCell.style.width = `${width}px`;
-      cloneCell.style.minWidth = `${width}px`;
+      const fondo =
+        obtenerColorFondoSolido(cell) ||
+        obtenerColorFondoSolido(cell.parentElement) ||
+        fondoEncabezado;
+      if (fondo) {
+        cloneCell.style.backgroundColor = fondo;
+      }
     });
-    const scrollWidth = Math.ceil(tabla.scrollWidth || 0);
-    const rectWidth = Math.ceil(tabla.getBoundingClientRect().width || 0);
-    const tableWidth = Math.max(scrollWidth, rectWidth);
+    const scrollWidth = tabla.scrollWidth || 0;
+    const rectWidth = tabla.getBoundingClientRect().width || 0;
+    const tableWidth = Math.max(scrollWidth, rectWidth / scaleXSeguro);
     if (tableWidth) {
       cloneTable.style.width = `${tableWidth}px`;
       cloneTable.style.minWidth = `${tableWidth}px`;
@@ -56,6 +226,22 @@ const crearStickyHeaderOverlay = (tabla, wrapper) => {
       newTable.appendChild(colgroup.cloneNode(true));
     }
     newTable.appendChild(tabla.tHead.cloneNode(true));
+    const obtenerColorFondoSolido = (elemento) => {
+      if (!elemento) return null;
+      const fondo = getComputedStyle(elemento).backgroundColor;
+      if (!fondo || fondo === "transparent" || fondo === "rgba(0, 0, 0, 0)") {
+        return null;
+      }
+      return fondo;
+    };
+    const fondoEncabezado =
+      obtenerColorFondoSolido(tabla.tHead) ||
+      obtenerColorFondoSolido(tabla) ||
+      obtenerColorFondoSolido(wrapper) ||
+      "#ffffff";
+    if (newTable.tHead) {
+      newTable.tHead.style.backgroundColor = fondoEncabezado;
+    }
     overlay.appendChild(newTable);
     cloneTable = newTable;
     syncWidths();
@@ -63,17 +249,25 @@ const crearStickyHeaderOverlay = (tabla, wrapper) => {
 
   const updateOverlay = () => {
     if (!tabla?.tHead) return;
-    const rect = wrapper.getBoundingClientRect();
-    overlay.style.left = `${rect.left}px`;
-    overlay.style.width = `${rect.width}px`;
-    const topOffset = getTopOffset();
-    overlay.style.top = `${topOffset}px`;
+    const { scaleX, scaleY } = obtenerEscalaActiva(tabla);
+    const scaleXSeguro = scaleX || 1;
+    const scaleYSeguro = scaleY || 1;
+    const { rect, topOffset } = medirContenedor();
+    overlay.style.transform =
+      scaleXSeguro !== 1 || scaleYSeguro !== 1
+        ? `scale(${scaleXSeguro}, ${scaleYSeguro})`
+        : "none";
+    overlay.style.left = `${rect.left / scaleXSeguro}px`;
+    overlay.style.width = `${rect.width / scaleXSeguro}px`;
+    overlay.style.top = `${topOffset / scaleYSeguro}px`;
     const headRect = tabla.tHead.getBoundingClientRect();
     const tableRect = tabla.getBoundingClientRect();
-    const headerHeight = Math.ceil(headRect.height || 0);
-    overlay.style.height = `${headerHeight}px`;
+    const headerHeight = headRect.height || 0;
+    overlay.style.height = `${headerHeight / scaleYSeguro}px`;
+    const wrapperVisible = rect.bottom > 0 && rect.top < window.innerHeight;
     const shouldShow =
-      headRect.top < topOffset - 1 &&
+      wrapperVisible &&
+      headRect.bottom <= topOffset + 1 &&
       tableRect.bottom > topOffset + headerHeight;
     overlay.style.display = shouldShow ? "block" : "none";
     if (shouldShow) {
@@ -136,6 +330,8 @@ const crearStickyHeaderOverlay = (tabla, wrapper) => {
       childList: true,
       subtree: true,
       characterData: true,
+      attributes: true,
+      attributeFilter: ["class", "style", "hidden"],
     });
   }
 
@@ -150,18 +346,22 @@ const crearStickyHeaderOverlay = (tabla, wrapper) => {
   syncClone();
   scheduleUpdate();
 
+  const setStickyColumns = (count = 2) => {
+    const normalizado = Number.isFinite(Number(count)) ? Number(count) : 2;
+    overlay.dataset.stickyColumns = String(normalizado);
+    overlay.classList.toggle("no-sticky-cols", normalizado <= 0);
+  };
+
   const api = {
     refresh: () => {
       syncClone();
       scheduleUpdate();
     },
     syncWidths,
-    setOffsets: (anchoPrimeraCol) => {
-      overlay.style.setProperty("--sticky-col-1-left", "0px");
-      overlay.style.setProperty(
-        "--sticky-col-2-left",
-        `${anchoPrimeraCol}px`
-      );
+    setStickyColumns,
+    setOffsets: (left1, left2) => {
+      overlay.style.setProperty("--sticky-col-1-left", `${left1}px`);
+      overlay.style.setProperty("--sticky-col-2-left", `${left2}px`);
     },
   };
 
@@ -176,36 +376,96 @@ const prepararStickyHeaders = (selectorTabla) => {
   const wrapper = tabla.closest(".table-responsive");
   if (!wrapper) return;
 
-  wrapper.classList.add("sticky-table-scroll");
+  const stickyColumnsRaw = Number.parseInt(
+    tabla.dataset.stickyColumns || "2",
+    10
+  );
+  const stickyColumns = Number.isFinite(stickyColumnsRaw)
+    ? stickyColumnsRaw
+    : 2;
+  if (stickyColumns > 0) {
+    wrapper.classList.add("sticky-table-scroll");
+  } else {
+    wrapper.classList.remove("sticky-table-scroll");
+  }
   const overlay = crearStickyHeaderOverlay(tabla, wrapper);
+  if (overlay?.setStickyColumns) {
+    overlay.setStickyColumns(stickyColumns);
+  }
+
+  let ajustarRafId = null;
+  const obtenerCeldaPrimeraColumna = () => {
+    const tbody = tabla.tBodies?.[0];
+    if (tbody) {
+      const fila = Array.from(tbody.rows).find(
+        (row) => row.cells.length >= 2 && row.cells[0].colSpan === 1
+      );
+      if (fila?.cells?.[0]) return fila.cells[0];
+    }
+    const filaHead = tabla.tHead?.rows?.[0];
+    if (filaHead?.cells?.[0]) return filaHead.cells[0];
+    return null;
+  };
 
   const ajustar = () => {
-    const primeraCol =
-      tabla.querySelector("thead tr:first-child th:nth-child(1)") ||
-      tabla.querySelector("thead th:nth-child(1)");
-    const anchoPrimeraCol = primeraCol
-      ? Math.ceil(primeraCol.getBoundingClientRect().width)
+    if (stickyColumns <= 0) {
+      wrapper.style.removeProperty("--sticky-col-1-left");
+      wrapper.style.removeProperty("--sticky-col-2-left");
+      if (overlay) {
+        overlay.setOffsets(0, 0);
+      }
+      return;
+    }
+    const { scaleX } = obtenerEscalaActiva(tabla);
+    const scaleXSeguro = scaleX || 1;
+    const primeraCelda = obtenerCeldaPrimeraColumna();
+    const anchoPrimeraCol = primeraCelda
+      ? primeraCelda.getBoundingClientRect().width / scaleXSeguro
       : 0;
-    wrapper.style.setProperty("--sticky-col-1-left", "0px");
-    wrapper.style.setProperty("--sticky-col-2-left", `${anchoPrimeraCol}px`);
+    const left1 = 0;
+    const left2 = anchoPrimeraCol;
+    wrapper.style.setProperty("--sticky-col-1-left", `${left1}px`);
+    wrapper.style.setProperty("--sticky-col-2-left", `${left2}px`);
     if (overlay) {
-      overlay.setOffsets(anchoPrimeraCol);
+      overlay.setOffsets(left1, left2);
       overlay.syncWidths();
     }
+  };
+
+  const scheduleAjustar = () => {
+    if (ajustarRafId) return;
+    ajustarRafId = requestAnimationFrame(() => {
+      ajustarRafId = null;
+      ajustar();
+    });
   };
 
   ajustar();
 
   if (!wrapper.dataset.stickyReady) {
     wrapper.dataset.stickyReady = "true";
-    window.addEventListener("resize", ajustar);
+    window.addEventListener("resize", scheduleAjustar);
     if (document.fonts?.ready) {
-      document.fonts.ready.then(ajustar).catch(() => {});
+      document.fonts.ready.then(scheduleAjustar).catch(() => {});
     }
-    const observer = new MutationObserver(() => ajustar());
+    const observer = new MutationObserver(scheduleAjustar);
     observer.observe(tabla, { attributes: true, attributeFilter: ["class"] });
+    const tbody = tabla.tBodies?.[0];
+    if (tbody) {
+      const bodyObserver = new MutationObserver(scheduleAjustar);
+      bodyObserver.observe(tbody, {
+        childList: true,
+        subtree: true,
+        characterData: true,
+        attributes: true,
+        attributeFilter: ["class", "style", "hidden"],
+      });
+    }
   }
+  return overlay;
 };
+
+window.prepararStickyHeaders = prepararStickyHeaders;
 
 window.initModuloPlaneacion = async function({ moduloId, moduloNombre, selectorTabla = '#tablaComparacion', tablaBodyId = 'tablaCuentasBody' }) {
   try {
