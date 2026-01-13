@@ -88,6 +88,7 @@
         nombreArchivo = "Exportacion",
         nombreHojaTabla = "Tabla",
         nombreHojaOperativo = "OperativoData",
+        nombreHojaGraficas = "Gráficas",
         onSuccess,
         onError,
       } = options;
@@ -112,15 +113,6 @@
           return;
         }
 
-        if (typeof ExcelJS === "undefined") {
-          this._showToast(
-            "ExcelJS no disponible. Exportando solo tabla.",
-            "warning"
-          );
-          this.exportarExcel({ tabla, nombreArchivo, nombreHoja: nombreHojaTabla });
-          return;
-        }
-
         const metadata = this._obtenerMetadata();
         baseName = `${nombreArchivo}_${
           metadata.empresaTexto || "Reporte"
@@ -130,6 +122,14 @@
         );
 
         const datos = this._obtenerDatosOperativo(tablaElement);
+        if (!datos.length) {
+          this._showToast(
+            "Sin datos de resultado operativo. Exportando solo tabla.",
+            "warning"
+          );
+          this.exportarExcel({ tabla, nombreArchivo, nombreHoja: nombreHojaTabla });
+          return;
+        }
 
         // Construir base con XLSX para preservar estilos
         const libro = XLSX.utils.book_new();
@@ -140,7 +140,7 @@
         XLSX.utils.book_append_sheet(libro, sheetOperativo, nombreHojaOperativo);
 
         baseBuffer = XLSX.write(libro, { bookType: "xlsx", type: "array" });
-        const loadBuffer =
+        const binaryBody =
           baseBuffer instanceof ArrayBuffer
             ? baseBuffer
             : baseBuffer.buffer.slice(
@@ -148,65 +148,36 @@
                 baseBuffer.byteOffset + baseBuffer.byteLength
               );
 
-        const workbook = new ExcelJS.Workbook();
-        await workbook.xlsx.load(loadBuffer);
-
-        // Hoja: Tabla con autoajuste de columnas
-        const hojaTabla = workbook.getWorksheet(nombreHojaTabla);
-        if (hojaTabla) {
-          this._ajustarAnchosWorksheetExcelJS(hojaTabla);
-        }
-
-        // Hoja: Operativo + graficas
-        const hojaOperativo =
-          workbook.getWorksheet(nombreHojaOperativo) ||
-          workbook.addWorksheet(nombreHojaOperativo);
-        this._ajustarAnchosWorksheetExcelJS(hojaOperativo, { max: 42 });
-
-        if (typeof Chart !== "undefined" && datos.length) {
-          const labels = datos.map((item) => item.etiqueta);
-          const presupuestos = datos.map((item) => item.presupuesto);
-          const reales = datos.map((item) => item.real);
-          const imgBudget = this._crearImagenGrafica({
-            labels,
-            data: presupuestos,
-            color: "#4472c4",
-            titulo: "Ppto Acumulado",
-          });
-          const imgReal = this._crearImagenGrafica({
-            labels,
-            data: reales,
-            color: "#ffc000",
-            titulo: "Real Acumulado",
-          });
-
-          if (imgBudget && imgReal) {
-            const startRow = hojaOperativo.rowCount + 2;
-            const imgBudgetId = workbook.addImage({
-              base64: imgBudget,
-              extension: "png",
-            });
-            hojaOperativo.addImage(imgBudgetId, {
-              tl: { col: 0, row: startRow },
-              ext: { width: 820, height: 360 },
-            });
-
-            const imgRealId = workbook.addImage({
-              base64: imgReal,
-              extension: "png",
-            });
-            hojaOperativo.addImage(imgRealId, {
-              tl: { col: 0, row: startRow + 20 },
-              ext: { width: 820, height: 360 },
-            });
-          }
-        }
-
-        const buffer = await workbook.xlsx.writeBuffer();
-        const blob = new Blob([buffer], {
-          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        const params = new URLSearchParams({
+          nombreArchivo,
+          empresa: metadata.empresaTexto || "",
+          mes: metadata.mesNombre || "",
+          anio: metadata.anio || "",
+          dataSheetName: nombreHojaOperativo,
+          chartsSheetName: nombreHojaGraficas,
         });
-        this._descargarBlob(blob, `${baseName}_Graficas.xlsx`);
+
+        this._showToast("Generando Excel con gráficas...");
+        const response = await fetch(
+          `${API_BASE}/reportes/operativo-excel-native?${params.toString()}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/octet-stream" },
+            credentials: "include",
+            body: binaryBody,
+          }
+        );
+
+        if (!response.ok) {
+          const text = await response.text();
+          throw new Error(text || "No fue posible generar el Excel con gráficas.");
+        }
+
+        const blob = await response.blob();
+        const filename =
+          this._obtenerNombreDescarga(response) ||
+          `${baseName}_Graficas.xlsx`;
+        this._descargarBlob(blob, filename);
 
         if (onSuccess) onSuccess();
         this._showToast("Excel con tabla y graficas generado.");

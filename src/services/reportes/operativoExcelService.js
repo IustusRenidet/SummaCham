@@ -53,6 +53,13 @@ const crearHojaOperativo = ({ label, filas, metadata }) => {
   return ws;
 };
 
+const normalizarNombreHoja = (valor, fallback) => {
+  const texto = limpiarTexto(valor || "");
+  if (!texto) return fallback;
+  const limpio = texto.replace(/[\\/*?:\[\]]/g, "").slice(0, 31);
+  return limpio || fallback;
+};
+
 const resolverScript = () => {
   const basePath = path.join(__dirname, "..", "..", "..");
   return path.join(basePath, "scripts", "export-operativo-charts.ps1");
@@ -110,21 +117,33 @@ const generarOperativoExcel = async ({
   mes,
   anio,
   nombreArchivo,
+  libroBuffer,
+  dataSheetName,
+  chartsSheetName,
 }) => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "operativo-"));
   const inputPath = path.join(tempDir, "operativo.xlsx");
   const outputPath = path.join(tempDir, "operativo_graficas.xlsx");
   const scriptTemp = path.join(tempDir, "export-operativo-charts.ps1");
+  const hojaDatos = normalizarNombreHoja(dataSheetName, "OperativoData");
+  const hojaGraficas = normalizarNombreHoja(chartsSheetName, "Gráficas");
 
   try {
-    const wb = XLSX.utils.book_new();
-    const hoja = crearHojaOperativo({
-      label,
-      filas,
-      metadata: { empresa, mes, anio },
-    });
-    XLSX.utils.book_append_sheet(wb, hoja, "OperativoData");
-    XLSX.writeFile(wb, inputPath);
+    if (libroBuffer && libroBuffer.length) {
+      const buffer = Buffer.isBuffer(libroBuffer)
+        ? libroBuffer
+        : Buffer.from(libroBuffer);
+      fs.writeFileSync(inputPath, buffer);
+    } else {
+      const wb = XLSX.utils.book_new();
+      const hoja = crearHojaOperativo({
+        label,
+        filas,
+        metadata: { empresa, mes, anio },
+      });
+      XLSX.utils.book_append_sheet(wb, hoja, hojaDatos);
+      XLSX.writeFile(wb, inputPath);
+    }
 
     escribirTempScript(scriptTemp);
 
@@ -136,9 +155,9 @@ const generarOperativoExcel = async ({
       "-OutputPath",
       outputPath,
       "-DataSheetName",
-      "OperativoData",
+      hojaDatos,
       "-ChartsSheetName",
-      "OperativoData",
+      hojaGraficas,
     ]);
 
     const baseName = `${limpiarTexto(nombreArchivo || "Operativo")}_${limpiarTexto(

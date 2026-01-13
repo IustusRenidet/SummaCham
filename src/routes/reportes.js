@@ -11,6 +11,11 @@ const router = express.Router();
 
 router.use(requireAuth);
 
+const rawExcelParser = express.raw({
+  type: 'application/octet-stream',
+  limit: '20mb',
+});
+
 const esquemaConsulta = Joi.object({
   empresaId: Joi.string().trim().required(),
   anio: Joi.number().integer().min(2000).max(2100).optional(),
@@ -27,6 +32,8 @@ const esquemaOperativo = Joi.object({
   anio: Joi.alternatives().try(Joi.number().integer(), Joi.string()).optional(),
   mes: Joi.string().allow("").optional(),
   nombreArchivo: Joi.string().allow("").optional(),
+  dataSheetName: Joi.string().allow("").optional(),
+  chartsSheetName: Joi.string().allow("").optional(),
   filas: Joi.array()
     .items(
       Joi.object({
@@ -129,6 +136,43 @@ router.post('/operativo-excel', async (req, res) => {
     res.send(buffer);
   } catch (errorExcel) {
     console.error("Error generando Excel operativo:", errorExcel);
+    res
+      .status(500)
+      .send(
+        `No fue posible generar el Excel con graficas. ${errorExcel.message || ""}`.trim()
+      );
+  }
+});
+
+router.post('/operativo-excel-native', rawExcelParser, async (req, res) => {
+  if (!req.body || !Buffer.isBuffer(req.body) || req.body.length === 0) {
+    return res.status(400).send('Archivo Excel no recibido.');
+  }
+
+  const leerQuery = (valor) => {
+    if (typeof valor === 'string') return valor;
+    if (Array.isArray(valor)) return valor[0];
+    return '';
+  };
+
+  try {
+    const { buffer, filename } = await generarOperativoExcel({
+      libroBuffer: req.body,
+      nombreArchivo: leerQuery(req.query.nombreArchivo),
+      empresa: leerQuery(req.query.empresa),
+      mes: leerQuery(req.query.mes),
+      anio: leerQuery(req.query.anio),
+      dataSheetName: leerQuery(req.query.dataSheetName),
+      chartsSheetName: leerQuery(req.query.chartsSheetName),
+    });
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(buffer);
+  } catch (errorExcel) {
+    console.error('Error generando Excel operativo (native):', errorExcel);
     res
       .status(500)
       .send(
