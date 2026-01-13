@@ -26,9 +26,9 @@ function Pick-SeriesColor {
     [int]$Index
   )
   $label = ($Name | ForEach-Object { $_.ToString().ToLower() })
-  if ($label -match "real") { return "#0D47A1" }
-  if ($label -match "ppto" -or $label -match "presupuesto" -or $label -match "budget") { return "#60A5FA" }
   if ($label -match "anterior" -or $label -match "aa" -or $label -match "prev") { return "#94A3B8" }
+  if ($label -match "ppto" -or $label -match "presupuesto" -or $label -match "budget") { return "#60A5FA" }
+  if ($label -match "real") { return "#0D47A1" }
   $palette = @("#0D47A1", "#60A5FA", "#94A3B8", "#F59E0B", "#10B981")
   return $palette[$Index % $palette.Count]
 }
