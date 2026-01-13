@@ -87,7 +87,7 @@ const obtenerEmpresaPorId = (id) => {
   if (!EMPRESAS_COMPARATIVAS.has(numero)) return undefined;
 
   const rutaDirecta = EMPRESAS_COMPARATIVAS_RUTAS[numero];
-  if (rutaDirecta) {
+  if (rutaDirecta && fs.existsSync(rutaDirecta)) {
     return {
       id: `empresa${numero}`,
       nombre: `Empresa ${numero}`,

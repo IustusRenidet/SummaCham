@@ -91,6 +91,8 @@
         onSuccess,
         onError,
       } = options;
+      let baseBuffer = null;
+      let baseName = nombreArchivo;
 
       try {
         const tablaElement =
@@ -102,9 +104,17 @@
           throw new Error("No se encontro la tabla para exportar");
         }
 
-        if (typeof ExcelJS === "undefined" || typeof XLSX === "undefined") {
+        if (typeof XLSX === "undefined") {
           this._showToast(
-            "ExcelJS o XLSX no disponible. Exportando solo tabla.",
+            "XLSX no disponible. No es posible exportar a Excel.",
+            "error"
+          );
+          return;
+        }
+
+        if (typeof ExcelJS === "undefined") {
+          this._showToast(
+            "ExcelJS no disponible. Exportando solo tabla.",
             "warning"
           );
           this.exportarExcel({ tabla, nombreArchivo, nombreHoja: nombreHojaTabla });
@@ -112,44 +122,46 @@
         }
 
         const metadata = this._obtenerMetadata();
-        const baseName = `${nombreArchivo}_${
+        baseName = `${nombreArchivo}_${
           metadata.empresaTexto || "Reporte"
         }_${metadata.mesNombre || ""}_${metadata.anio || ""}`.replace(
           /\s+/g,
           "_"
         );
 
-        const workbook = new ExcelJS.Workbook();
+        const datos = this._obtenerDatosOperativo(tablaElement);
 
-        // Hoja: Tabla completa con estilos
+        // Construir base con XLSX para preservar estilos
+        const libro = XLSX.utils.book_new();
         const sheetTabla = this._tableToSheetWithStyles(tablaElement);
-        this._xlsxSheetToExcelJSWorksheet(sheetTabla, workbook, nombreHojaTabla);
+        XLSX.utils.book_append_sheet(libro, sheetTabla, nombreHojaTabla);
+
+        const sheetOperativo = this._operativoToSheet(tablaElement, metadata);
+        XLSX.utils.book_append_sheet(libro, sheetOperativo, nombreHojaOperativo);
+
+        baseBuffer = XLSX.write(libro, { bookType: "xlsx", type: "array" });
+        const loadBuffer =
+          baseBuffer instanceof ArrayBuffer
+            ? baseBuffer
+            : baseBuffer.buffer.slice(
+                baseBuffer.byteOffset,
+                baseBuffer.byteOffset + baseBuffer.byteLength
+              );
+
+        const workbook = new ExcelJS.Workbook();
+        await workbook.xlsx.load(loadBuffer);
+
+        // Hoja: Tabla con autoajuste de columnas
+        const hojaTabla = workbook.getWorksheet(nombreHojaTabla);
+        if (hojaTabla) {
+          this._ajustarAnchosWorksheetExcelJS(hojaTabla);
+        }
 
         // Hoja: Operativo + graficas
-        const hojaOperativo = workbook.addWorksheet(nombreHojaOperativo);
-        const datos = this._obtenerDatosOperativo(tablaElement);
-        const etiqueta = this._capitalizar(
-          this._obtenerEtiquetaOperativo() || "Elemento"
-        );
-        const periodo = [metadata.mesNombre, metadata.anio]
-          .filter(Boolean)
-          .join(" ")
-          .trim();
-
-        hojaOperativo.addRow(["RESULTADOS OPERATIVOS"]);
-        hojaOperativo.addRow(["Categoria", etiqueta]);
-        hojaOperativo.addRow(["Empresa", metadata.empresaTexto || ""]);
-        hojaOperativo.addRow(["Periodo", periodo]);
-        hojaOperativo.addRow([
-          "Fecha exportacion",
-          new Date().toISOString().slice(0, 10),
-        ]);
-        hojaOperativo.addRow([]);
-        hojaOperativo.addRow([etiqueta, "Ppto Acumulado", "Real Acumulado"]);
-        datos.forEach((row) => {
-          hojaOperativo.addRow([row.etiqueta, row.presupuesto, row.real]);
-        });
-        hojaOperativo.columns = [{ width: 42 }, { width: 18 }, { width: 18 }];
+        const hojaOperativo =
+          workbook.getWorksheet(nombreHojaOperativo) ||
+          workbook.addWorksheet(nombreHojaOperativo);
+        this._ajustarAnchosWorksheetExcelJS(hojaOperativo, { max: 42 });
 
         if (typeof Chart !== "undefined" && datos.length) {
           const labels = datos.map((item) => item.etiqueta);
@@ -201,7 +213,31 @@
       } catch (error) {
         console.error("Error al exportar Excel con graficas:", error);
         if (onError) onError(error);
-        this._showToast("Error al exportar: " + error.message, "error");
+        this._showToast(
+          "No se pudo generar el Excel con graficas. Exportando solo tabla.",
+          "warning"
+        );
+        try {
+          if (baseBuffer) {
+            const blob = new Blob([baseBuffer], {
+              type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            });
+            this._descargarBlob(blob, `${baseName}.xlsx`);
+            this._showToast("Excel exportado sin graficas.");
+            return;
+          }
+          this.exportarExcel({
+            tabla,
+            nombreArchivo,
+            nombreHoja: nombreHojaTabla,
+          });
+        } catch (fallbackError) {
+          console.error("Error al exportar Excel (fallback):", fallbackError);
+          this._showToast(
+            "Error al exportar: " + fallbackError.message,
+            "error"
+          );
+        }
       }
     },
 
@@ -810,6 +846,30 @@
       }
 
       return ws;
+    },
+
+    _ajustarAnchosWorksheetExcelJS(worksheet, options = {}) {
+      if (!worksheet) return;
+      const { min = 8, max = 60, padding = 2 } = options;
+
+      const columnCount = worksheet.columnCount || 0;
+      for (let colNumber = 1; colNumber <= columnCount; colNumber += 1) {
+        const column = worksheet.getColumn(colNumber);
+        let maxLen = min;
+        column.eachCell({ includeEmpty: true }, (cell) => {
+          let value = cell.value;
+          if (value == null) return;
+          if (typeof value === "object") {
+            if (value.text) value = value.text;
+            else if (Array.isArray(value.richText)) {
+              value = value.richText.map((part) => part.text).join("");
+            } else if (value.result != null) value = value.result;
+          }
+          const text = String(value);
+          if (text.length > maxLen) maxLen = text.length;
+        });
+        column.width = Math.min(max, Math.max(min, maxLen + padding));
+      }
     },
 
     _operativoToSheet(tabla, metadata = {}) {

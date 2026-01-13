@@ -280,6 +280,14 @@
     NORESTE: "empresa11",
     NOROESTE: "empresa12",
   };
+  const COMPARATIVA_NO_DISPONIBLE = new Set();
+
+  const marcarComparativaNoDisponible = (empresaId) => {
+    if (empresaId) COMPARATIVA_NO_DISPONIBLE.add(empresaId);
+  };
+
+  const comparativaDisponible = (empresaId) =>
+    !COMPARATIVA_NO_DISPONIBLE.has(empresaId);
 
   const normalizarEtiquetaComparativa = (texto = "") =>
     texto
@@ -309,9 +317,10 @@
   const actualizarComparativaUI = (empresaId) => {
     if (!comparativaToggle && !comparativaLabel) return;
     const comparativaId = obtenerEmpresaComparativaId(empresaId);
+    const disponible = comparativaDisponible(empresaId);
     if (comparativaToggle) {
-      comparativaToggle.disabled = !comparativaId;
-      if (!comparativaId) {
+      comparativaToggle.disabled = !comparativaId || !disponible;
+      if (!comparativaId || !disponible) {
         comparativaToggle.checked = false;
         localStorage.setItem(COMPARATIVA_STORAGE_KEY, "0");
       }
@@ -319,6 +328,10 @@
     if (comparativaLabel) {
       if (!comparativaId) {
         comparativaLabel.textContent = "";
+        return;
+      }
+      if (!disponible) {
+        comparativaLabel.textContent = "No disponible";
         return;
       }
       const numero = extraerNumeroEmpresa(comparativaId);
@@ -330,10 +343,15 @@
 
   const inicializarComparativaToggle = () => {
     if (!comparativaToggle) return;
-    const saved = localStorage.getItem(COMPARATIVA_STORAGE_KEY) === "1";
-    comparativaToggle.checked = saved;
+    comparativaToggle.checked = false;
+    localStorage.setItem(COMPARATIVA_STORAGE_KEY, "0");
     comparativaToggle.addEventListener("change", () => {
       const activo = comparativaToggle.checked;
+      if (activo && empresaActual?.id && !comparativaDisponible(empresaActual.id)) {
+        comparativaToggle.checked = false;
+        localStorage.setItem(COMPARATIVA_STORAGE_KEY, "0");
+        return;
+      }
       localStorage.setItem(COMPARATIVA_STORAGE_KEY, activo ? "1" : "0");
       recargarSeleccionActual();
     });
@@ -2408,12 +2426,16 @@
     try {
       // Usar capítulo derivado de la empresa activa
       const capitulo = obtenerCapituloEmpresa(empresaId);
-      const usarComparativa = comparativaToggle?.checked === true;
+      const comparativaOk = comparativaDisponible(empresaId);
+      const usarComparativa = comparativaToggle?.checked === true && comparativaOk;
       const empresaComparativaId = usarComparativa
         ? obtenerEmpresaComparativaId(empresaId)
         : null;
 
-      if (usarComparativa && !empresaComparativaId && comparativaToggle) {
+      if (
+        (comparativaToggle?.checked && !comparativaOk) ||
+        (usarComparativa && !empresaComparativaId && comparativaToggle)
+      ) {
         comparativaToggle.checked = false;
         localStorage.setItem(COMPARATIVA_STORAGE_KEY, "0");
       }
@@ -2448,6 +2470,14 @@
             "No se pudo cargar el comparativo del año anterior.",
             errorComparativo
           );
+          marcarComparativaNoDisponible(empresaId);
+          actualizarComparativaUI(empresaId);
+          if (typeof showToast === "function") {
+            showToast(
+              "Comparativo no disponible. Se desactivo el toggle.",
+              "text-bg-warning"
+            );
+          }
         }
       }
 
@@ -2985,6 +3015,28 @@
       const workbook = new ExcelJS.Workbook();
       workbook.creator = 'SummaCham';
       workbook.created = new Date();
+      const ajustarAnchosWorksheet = (worksheet, options = {}) => {
+        if (!worksheet) return;
+        const { min = 8, max = 60, padding = 2 } = options;
+        const columnCount = worksheet.columnCount || 0;
+        for (let colNumber = 1; colNumber <= columnCount; colNumber += 1) {
+          const column = worksheet.getColumn(colNumber);
+          let maxLen = min;
+          column.eachCell({ includeEmpty: true }, (cell) => {
+            let value = cell.value;
+            if (value == null) return;
+            if (typeof value === 'object') {
+              if (value.text) value = value.text;
+              else if (Array.isArray(value.richText)) {
+                value = value.richText.map((part) => part.text).join('');
+              } else if (value.result != null) value = value.result;
+            }
+            const text = String(value);
+            if (text.length > maxLen) maxLen = text.length;
+          });
+          column.width = Math.min(max, Math.max(min, maxLen + padding));
+        }
+      };
 
       // === HOJA 1: Tabla de Resumen ===
       const wsResumen = workbook.addWorksheet('Resumen');
@@ -3121,22 +3173,8 @@
           });
         }
 
-        // Ajustar anchos de columnas
-        wsResumen.columns = [
-          { width: 12 }, // Cuenta
-          { width: 15 }, // Descripción
-          { width: 15 }, // Real
-          { width: 15 }, // Ppto
-          { width: 15 }, // Real DIC
-          { width: 15 }, // B/(W)% vs Ppto
-          { width: 15 }, // B/(W)% vs Real
-          { width: 25 }, // Descripción
-          { width: 18 }, // Real acumulado
-          { width: 18 }, // Ppto acumulado
-          { width: 18 }, // Real acum 2024
-          { width: 16 }, // B/(W)%
-          { width: 16 }  // B/(W)%
-        ];
+        // Ajustar anchos de columnas segun contenido
+        ajustarAnchosWorksheet(wsResumen);
       }
 
       // === HOJA 2: Gráficas ===
@@ -3145,7 +3183,11 @@
       // Generar gráficas dinámicamente
       const graficaData = generarDatosGraficas();
       
-      if (graficaData && graficaData.length > 0) {
+      if (typeof Chart === 'undefined') {
+        if (typeof showToast === "function") {
+          showToast("Chart.js no disponible. Exportando solo tabla.", "text-bg-warning");
+        }
+      } else if (graficaData && graficaData.length > 0) {
         // Crear canvas temporal con alta resolución para mejor calidad
         const canvas = document.createElement('canvas');
         canvas.width = 2400;  // Alta resolución
