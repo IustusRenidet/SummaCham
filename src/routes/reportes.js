@@ -6,6 +6,7 @@ const { obtenerEmpresaPorId } = require('../config/empresas');
 const { requireAuth, tienePermisoEmpresa } = require('../middleware/auth');
 const { esUsuarioPermitidoResumen } = require('../services/usuariosPolicy');
 const { generarOperativoExcel } = require('../services/reportes/operativoExcelService');
+const { generarResumenExcel } = require('../services/reportes/resumenExcelService');
 
 const router = express.Router();
 
@@ -164,6 +165,7 @@ router.post('/operativo-excel-native', rawExcelParser, async (req, res) => {
       anio: leerQuery(req.query.anio),
       dataSheetName: leerQuery(req.query.dataSheetName),
       chartsSheetName: leerQuery(req.query.chartsSheetName),
+      tableSheetName: leerQuery(req.query.tableSheetName),
     });
     res.setHeader(
       'Content-Type',
@@ -173,6 +175,44 @@ router.post('/operativo-excel-native', rawExcelParser, async (req, res) => {
     res.send(buffer);
   } catch (errorExcel) {
     console.error('Error generando Excel operativo (native):', errorExcel);
+    res
+      .status(500)
+      .send(
+        `No fue posible generar el Excel con graficas. ${errorExcel.message || ""}`.trim()
+      );
+  }
+});
+
+router.post('/resumen-excel-native', rawExcelParser, async (req, res) => {
+  if (!req.body || !Buffer.isBuffer(req.body) || req.body.length === 0) {
+    return res.status(400).send('Archivo Excel no recibido.');
+  }
+
+  const leerQuery = (valor) => {
+    if (typeof valor === 'string') return valor;
+    if (Array.isArray(valor)) return valor[0];
+    return '';
+  };
+
+  try {
+    const { buffer, filename } = await generarResumenExcel({
+      libroBuffer: req.body,
+      nombreArchivo: leerQuery(req.query.nombreArchivo),
+      empresa: leerQuery(req.query.empresa),
+      mes: leerQuery(req.query.mes),
+      anio: leerQuery(req.query.anio),
+      dataSheetName: leerQuery(req.query.dataSheetName),
+      chartsSheetName: leerQuery(req.query.chartsSheetName),
+      tableSheetName: leerQuery(req.query.tableSheetName),
+    });
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(buffer);
+  } catch (errorExcel) {
+    console.error('Error generando Excel resumen (native):', errorExcel);
     res
       .status(500)
       .send(

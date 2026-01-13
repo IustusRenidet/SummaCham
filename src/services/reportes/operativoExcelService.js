@@ -120,6 +120,7 @@ const generarOperativoExcel = async ({
   libroBuffer,
   dataSheetName,
   chartsSheetName,
+  tableSheetName,
 }) => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "operativo-"));
   const inputPath = path.join(tempDir, "operativo.xlsx");
@@ -127,6 +128,7 @@ const generarOperativoExcel = async ({
   const scriptTemp = path.join(tempDir, "export-operativo-charts.ps1");
   const hojaDatos = normalizarNombreHoja(dataSheetName, "OperativoData");
   const hojaGraficas = normalizarNombreHoja(chartsSheetName, "Gráficas");
+  const hojaTabla = normalizarNombreHoja(tableSheetName, "");
 
   try {
     if (libroBuffer && libroBuffer.length) {
@@ -158,6 +160,8 @@ const generarOperativoExcel = async ({
       hojaDatos,
       "-ChartsSheetName",
       hojaGraficas,
+      "-TableSheetName",
+      hojaTabla,
     ]);
 
     const baseName = `${limpiarTexto(nombreArchivo || "Operativo")}_${limpiarTexto(

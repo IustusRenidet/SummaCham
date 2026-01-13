@@ -138,6 +138,8 @@
 
         const sheetOperativo = this._operativoToSheet(tablaElement, metadata);
         XLSX.utils.book_append_sheet(libro, sheetOperativo, nombreHojaOperativo);
+        const sheetGraficas = XLSX.utils.aoa_to_sheet([["Gráficas"]]);
+        XLSX.utils.book_append_sheet(libro, sheetGraficas, nombreHojaGraficas);
 
         baseBuffer = XLSX.write(libro, { bookType: "xlsx", type: "array" });
         const binaryBody =
@@ -155,6 +157,7 @@
           anio: metadata.anio || "",
           dataSheetName: nombreHojaOperativo,
           chartsSheetName: nombreHojaGraficas,
+          tableSheetName: nombreHojaTabla,
         });
 
         this._showToast("Generando Excel con gráficas...");

@@ -3011,10 +3011,14 @@
   };
 
   const exportarResumenConGraficas = async (nombreEmpresa, anio, mes) => {
+    let fallbackBuffer = null;
+    let fallbackName = "";
     try {
       const workbook = new ExcelJS.Workbook();
       workbook.creator = 'SummaCham';
       workbook.created = new Date();
+      const { baseName, empresaTexto, mesNombre } = construirMetadataExportacion();
+      fallbackName = baseName;
       const ajustarAnchosWorksheet = (worksheet, options = {}) => {
         if (!worksheet) return;
         const { min = 8, max = 60, padding = 2 } = options;
@@ -3177,149 +3181,98 @@
         ajustarAnchosWorksheet(wsResumen);
       }
 
-      // === HOJA 2: Gráficas ===
-      const wsGraficas = workbook.addWorksheet('Gráficas');
-      
-      // Generar gráficas dinámicamente
       const graficaData = generarDatosGraficas();
-      
-      if (typeof Chart === 'undefined') {
+      if (!graficaData || graficaData.length === 0) {
         if (typeof showToast === "function") {
-          showToast("Chart.js no disponible. Exportando solo tabla.", "text-bg-warning");
+          showToast("No hay datos de gráficas. Exportando solo tabla.", "text-bg-warning");
         }
-      } else if (graficaData && graficaData.length > 0) {
-        // Crear canvas temporal con alta resolución para mejor calidad
-        const canvas = document.createElement('canvas');
-        canvas.width = 2400;  // Alta resolución
-        canvas.height = 1200;
-        canvas.style.display = 'none';
-        document.body.appendChild(canvas);
-
-        let currentRow = 2;
-
-        for (const data of graficaData) {
-          // Generar gráfica con Chart.js
-          const ctx = canvas.getContext('2d');
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          
-          const chart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-              labels: data.labels,
-              datasets: data.datasets
-            },
-            options: {
-              responsive: false,
-              maintainAspectRatio: false,
-              plugins: {
-                legend: { 
-                  display: true,
-                  position: 'bottom',
-                  labels: {
-                    font: { size: 24, weight: 'bold' },  // Fuentes más grandes
-                    padding: 30,
-                    usePointStyle: true,
-                    boxWidth: 20,
-                    boxHeight: 20
-                  }
-                },
-                title: {
-                  display: true,
-                  text: data.titulo,
-                  font: { size: 32, weight: 'bold' },  // Título más grande
-                  padding: { top: 20, bottom: 35 },
-                  color: '#1e3a8a'
-                }
-              },
-              scales: {
-                y: { 
-                  beginAtZero: true,
-                  ticks: {
-                    font: { size: 20 },  // Números más grandes
-                    callback: function(value) {
-                      return value.toLocaleString('es-MX', { maximumFractionDigits: 0 });
-                    }
-                  },
-                  grid: { 
-                    color: 'rgba(0,0,0,0.08)',
-                    lineWidth: 2
-                  }
-                },
-                x: {
-                  ticks: { font: { size: 18 } },  // Etiquetas más grandes
-                  grid: { display: false }
-                }
-              },
-              layout: {
-                padding: {
-                  left: 30,
-                  right: 30,
-                  top: 100,
-                  bottom: 30
-                }
-              }
-            },
-            plugins: [{
-              id: 'customDataLabels',
-              afterDatasetsDraw: function(chart) {
-                const ctx = chart.ctx;
-                chart.data.datasets.forEach(function(dataset, i) {
-                  const meta = chart.getDatasetMeta(i);
-                  if (!meta.hidden) {
-                    meta.data.forEach(function(element, index) {
-                      const value = dataset.data[index];
-                      if (value === 0) return;
-                      
-                      ctx.fillStyle = '#000';
-                      ctx.font = 'bold 22px Arial';  // Texto más grande
-                      ctx.textAlign = 'center';
-                      ctx.textBaseline = 'bottom';
-                      
-                      const dataString = value.toLocaleString('es-MX', { maximumFractionDigits: 0 });
-                      
-                      // Colocar el texto arriba de la barra (fuera)
-                      const yOffset = value >= 0 ? -15 : 30;
-                      ctx.fillText(dataString, element.x, element.y + yOffset);
-                    });
-                  }
-                });
-              }
-            }]
-          });
-
-          // Esperar a que se renderice
-          await new Promise(resolve => setTimeout(resolve, 200));
-
-          // Convertir canvas a imagen
-          const imageBase64 = canvas.toDataURL('image/png');
-          
-          // Agregar imagen al Excel
-          const imageId = workbook.addImage({
-            base64: imageBase64,
-            extension: 'png',
-          });
-
-          wsGraficas.addImage(imageId, {
-            tl: { col: 0, row: currentRow },
-            ext: { width: 1000, height: 500 }
-          });
-
-          // Destruir gráfica y avanzar filas
-          chart.destroy();
-          currentRow += 30;
-        }
-
-        // Limpiar canvas temporal
-        document.body.removeChild(canvas);
+        const buffer = await workbook.xlsx.writeBuffer();
+        fallbackBuffer = buffer;
+        const blob = new Blob([buffer], {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${baseName}.xlsx`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+        return;
       }
 
-      // Descargar archivo
+      workbook.addWorksheet('Gráficas');
+      const wsData = workbook.addWorksheet('GraficasData');
+      let rowCursor = 1;
+      graficaData.forEach((grafica, idx) => {
+        wsData.getCell(rowCursor, 1).value = 'CHART';
+        wsData.getCell(rowCursor, 2).value = grafica.titulo || `Grafica ${idx + 1}`;
+        rowCursor += 1;
+        wsData.getCell(rowCursor, 1).value = 'Categoria';
+        (grafica.datasets || []).forEach((dataset, dIdx) => {
+          wsData.getCell(rowCursor, dIdx + 2).value =
+            dataset.label || `Serie ${dIdx + 1}`;
+        });
+        rowCursor += 1;
+        (grafica.labels || []).forEach((label, lIdx) => {
+          wsData.getCell(rowCursor, 1).value = label;
+          (grafica.datasets || []).forEach((dataset, dIdx) => {
+            const rawValue = Array.isArray(dataset.data)
+              ? dataset.data[lIdx]
+              : 0;
+            const value =
+              typeof rawValue === 'number' && Number.isFinite(rawValue)
+                ? rawValue
+                : Number(rawValue) || 0;
+            wsData.getCell(rowCursor, dIdx + 2).value = value;
+          });
+          rowCursor += 1;
+        });
+        rowCursor += 1;
+      });
+
       const buffer = await workbook.xlsx.writeBuffer();
-      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      fallbackBuffer = buffer;
+      const params = new URLSearchParams({
+        nombreArchivo: baseName,
+        empresa: empresaTexto || nombreEmpresa || "",
+        mes: mesNombre || "",
+        anio: anio || "",
+        dataSheetName: "GraficasData",
+        chartsSheetName: "Gráficas",
+        tableSheetName: "Resumen",
+      });
+
+      if (typeof showToast === "function") {
+        showToast("Generando Excel con gráficas...");
+      }
+      const response = await fetch(
+        `${base}/api/reportes/resumen-excel-native?${params.toString()}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/octet-stream" },
+          credentials: "include",
+          body: buffer,
+        }
+      );
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || "No fue posible generar el Excel con gráficas.");
+      }
+
+      const obtenerNombreDescarga = (resp) => {
+        const header = resp.headers.get("content-disposition") || "";
+        const match = header.match(/filename=\"?([^\";]+)\"?/i);
+        return match ? match[1] : "";
+      };
+
+      const blob = await response.blob();
+      const filename =
+        obtenerNombreDescarga(response) || `${baseName}_Graficas.xlsx`;
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `RESUMEN_${nombreEmpresa}_${anio}_${mes}.xlsx`;
+      a.download = filename;
       a.click();
       window.URL.revokeObjectURL(url);
 
@@ -3328,6 +3281,17 @@
       }
     } catch (error) {
       console.error('Error al exportar con gráficas:', error);
+      if (fallbackBuffer) {
+        const blob = new Blob([fallbackBuffer], {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${fallbackName || "Resumen"}.xlsx`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+      }
       if (typeof showToast === "function") {
         showToast("Error al exportar. Verifica la consola.", "text-bg-danger");
       }

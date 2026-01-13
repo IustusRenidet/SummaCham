@@ -1,0 +1,134 @@
+const fs = require("fs");
+const os = require("os");
+const path = require("path");
+const { spawn } = require("child_process");
+
+const limpiarTexto = (valor) => (valor == null ? "" : String(valor).trim());
+
+const quitarAcentos = (texto) =>
+  texto
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^A-Za-z0-9._-]+/g, "_");
+
+const normalizarNombreHoja = (valor, fallback) => {
+  const texto = limpiarTexto(valor || "");
+  if (!texto) return fallback;
+  const limpio = texto.replace(/[\\/*?:\[\]]/g, "").slice(0, 31);
+  return limpio || fallback;
+};
+
+const resolverScript = () => {
+  const basePath = path.join(__dirname, "..", "..", "..");
+  return path.join(basePath, "scripts", "export-resumen-charts.ps1");
+};
+
+const escribirTempScript = (destino) => {
+  const scriptPath = resolverScript();
+  const contenido = fs.readFileSync(scriptPath, "utf8");
+  fs.writeFileSync(destino, contenido, "utf8");
+};
+
+const resolverPowerShell = () => {
+  const root = process.env.SystemRoot || "C:\\Windows";
+  const system32 = path.join(
+    root,
+    "System32",
+    "WindowsPowerShell",
+    "v1.0",
+    "powershell.exe"
+  );
+  if (fs.existsSync(system32)) return system32;
+  return "powershell";
+};
+
+const ejecutarPowerShell = (args) =>
+  new Promise((resolve, reject) => {
+    const bin = resolverPowerShell();
+    const proc = spawn(bin, ["-NoProfile", "-ExecutionPolicy", "Bypass", ...args], {
+      windowsHide: true,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    let stderr = "";
+    let stdout = "";
+    proc.stdout.on("data", (chunk) => {
+      stdout += chunk.toString();
+    });
+    proc.stderr.on("data", (chunk) => {
+      stderr += chunk.toString();
+    });
+    proc.on("error", reject);
+    proc.on("close", (code) => {
+      if (code === 0) {
+        resolve(stdout.trim());
+      } else {
+        const msg = stderr || stdout || `PowerShell failed (${code}).`;
+        reject(new Error(msg.trim()));
+      }
+    });
+  });
+
+const generarResumenExcel = async ({
+  libroBuffer,
+  nombreArchivo,
+  empresa,
+  mes,
+  anio,
+  dataSheetName,
+  chartsSheetName,
+  tableSheetName,
+}) => {
+  if (!libroBuffer || !libroBuffer.length) {
+    throw new Error("No se recibio el archivo base.");
+  }
+
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "resumen-"));
+  const inputPath = path.join(tempDir, "resumen.xlsx");
+  const outputPath = path.join(tempDir, "resumen_graficas.xlsx");
+  const scriptTemp = path.join(tempDir, "export-resumen-charts.ps1");
+
+  const hojaDatos = normalizarNombreHoja(dataSheetName, "GraficasData");
+  const hojaGraficas = normalizarNombreHoja(chartsSheetName, "Graficas");
+  const hojaTabla = normalizarNombreHoja(tableSheetName, "");
+
+  try {
+    const buffer = Buffer.isBuffer(libroBuffer)
+      ? libroBuffer
+      : Buffer.from(libroBuffer);
+    fs.writeFileSync(inputPath, buffer);
+
+    escribirTempScript(scriptTemp);
+
+    await ejecutarPowerShell([
+      "-File",
+      scriptTemp,
+      "-InputPath",
+      inputPath,
+      "-OutputPath",
+      outputPath,
+      "-DataSheetName",
+      hojaDatos,
+      "-ChartsSheetName",
+      hojaGraficas,
+      "-TableSheetName",
+      hojaTabla,
+    ]);
+
+    const baseName = `${limpiarTexto(nombreArchivo || "RESUMEN")}_${limpiarTexto(
+      empresa || "Reporte"
+    )}_${limpiarTexto(mes)}_${limpiarTexto(anio)}`;
+    const safeBase = quitarAcentos(baseName || "RESUMEN");
+    const filename = `${safeBase}_Graficas.xlsx`.replace(/_+/g, "_");
+
+    const outputBuffer = fs.readFileSync(outputPath);
+    return { buffer: outputBuffer, filename };
+  } finally {
+    try {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    } catch (error) {
+      console.warn("No se pudo limpiar temporal resumen:", error.message);
+    }
+  }
+};
+
+module.exports = { generarResumenExcel };
