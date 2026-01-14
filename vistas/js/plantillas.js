@@ -29,6 +29,8 @@
     columnasConfigChanged: false,
     unsavedChanges: false,
     editMode: false,
+    inlineOrderMode: false,
+    columnConfigAdvanced: false,
     selectedElement: null,
     changeLog: [], // Registro de cambios
   };
@@ -103,12 +105,31 @@
     dom.anioDestino = document.getElementById("anioDestino");
     dom.previewContainer = document.getElementById("previewContainer");
 
+    // Editor panel
+    dom.operationEditorPanel = document.getElementById("operationEditorPanel");
+    dom.operationEditorTitle = document.getElementById("operationEditorTitle");
+    dom.operationEditorSubtitle = document.getElementById(
+      "operationEditorSubtitle"
+    );
+    dom.editorTabDatos = document.getElementById("editorTabDatos");
+    dom.editorTabFormula = document.getElementById("editorTabFormula");
+    dom.editorTabAparicion = document.getElementById("editorTabAparicion");
+    dom.btnEditorSave = document.getElementById("btnEditorSave");
+    dom.btnEditorDelete = document.getElementById("btnEditorDelete");
+
     // Toast
     dom.toastNotification = document.getElementById("toastNotification");
     dom.toastMessage = document.getElementById("toastMessage");
   }
 
+  // Prevenir event listeners duplicados
+  let listenersAttached = false;
+
   function bindEventListeners() {
+    // Si ya se añadieron los listeners, no hacerlo de nuevo
+    if (listenersAttached) return;
+    listenersAttached = true;
+
     // Selectors
     dom.moduloSelect.addEventListener("change", handleModuloChange);
     dom.anioSelect.addEventListener("change", handleAnioChange);
@@ -127,6 +148,14 @@
 
     // Search
     dom.searchInput?.addEventListener("input", handleSearch);
+    
+    // Quick filters
+    document.querySelectorAll('input[name="quickFilter"]').forEach((radio) => {
+      radio.addEventListener("change", () => {
+        const currentQuery = dom.searchInput?.value || "";
+        applySearchAndFilters(currentQuery.toLowerCase().trim());
+      });
+    });
 
     // Modal buttons
     document
@@ -141,6 +170,9 @@
     document
       .getElementById("btnEliminar")
       ?.addEventListener("click", deleteElement);
+
+    dom.btnEditorSave?.addEventListener("click", confirmEdit);
+    dom.btnEditorDelete?.addEventListener("click", deleteElement);
 
     // Element type selector
     document.querySelectorAll('input[name="tipoElemento"]').forEach((radio) => {
@@ -965,8 +997,22 @@
         ${renderTemplateSummary(rows, columns)}
         ${renderColumnConfigSection(columns)}
         <div class="card mb-3">
-          <div class="card-header d-flex justify-content-between align-items-center">
+          <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
             <span>Vista de la plantilla</span>
+            <div class="template-table-actions">
+              <div class="form-check form-switch m-0">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  id="toggleInlineOrder"
+                  ${state.inlineOrderMode ? "checked" : ""}
+                  ${state.editMode === false ? "disabled" : ""}
+                />
+                <label class="form-check-label small" for="toggleInlineOrder">
+                  <i class="bi bi-arrows-move me-1"></i>Ordenar
+                </label>
+              </div>
+            </div>
           </div>
           <div class="card-body">
             ${renderTemplateTable(rows, columns)}
@@ -1007,6 +1053,11 @@
       (item) => !item.optional || item.value > 0
     );
 
+    const orderEnabled = state.inlineOrderMode && state.editMode !== false;
+    const note = orderEnabled
+      ? "Modo ordenar activo: usa las flechas para mover."
+      : "Orden real de aparicion. Click en una fila para editar.";
+
     return `
       <div class="card template-summary mb-3">
         <div class="card-body">
@@ -1023,7 +1074,7 @@
               .join("")}
           </div>
           <div class="summary-note text-muted small">
-            Orden real de aparicion. Click en una fila para editar.
+            ${note}
           </div>
         </div>
       </div>
@@ -1064,13 +1115,19 @@
   function renderColumnConfigSection(columns = []) {
     const canEdit = state.editMode !== false;
     const disabledAttr = canEdit ? "" : "disabled";
-    const showOperation = (columns || []).some((col) => col?.operacion);
+    const showAdvanced = state.columnConfigAdvanced === true;
+    const showOperation =
+      showAdvanced && (columns || []).some((col) => col?.operacion);
     const rowsHtml = (columns || [])
       .map(
         (col, idx) => `
           <tr data-col-index="${idx}">
             <td class="text-muted">${idx + 1}</td>
-            <td><code>${escapeHtml(col.key || "")}</code></td>
+            ${
+              showAdvanced
+                ? `<td><code>${escapeHtml(col.key || "")}</code></td>`
+                : ""
+            }
             <td>
               <input
                 type="text"
@@ -1107,30 +1164,48 @@
       )
       .join("");
 
-    const colSpan = showOperation ? 5 : 4;
+    const colSpan =
+      3 + (showAdvanced ? 1 : 0) + (showOperation ? 1 : 0);
     const finalRowsHtml =
       rowsHtml ||
       `<tr><td colspan="${colSpan}" class="text-muted text-center">Sin columnas</td></tr>`;
 
     return `
-      <details class="template-details">
+      <details class="template-details advanced-config">
         <summary class="template-details-summary">
           <span class="template-details-title">
-            <i class="bi bi-layout-three-columns"></i>
-            Columnas de la plantilla
+            <i class="bi bi-gear me-1"></i>
+            <strong>Avanzado:</strong> Configuración de columnas
           </span>
-          <span class="badge bg-secondary">${columns.length}</span>
+          <span class="badge bg-secondary">${columns.length} columnas</span>
         </summary>
         <div class="template-details-body">
+          <div class="column-config-actions mb-2">
+            <div class="alert alert-sm alert-info mb-0">
+              <i class="bi bi-info-circle me-1"></i>
+              <strong>Capturable:</strong> Permite escribir valores en esa columna al crear presupuestos.
+            </div>
+            <div class="form-check form-switch m-0">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                id="toggleColumnAdvanced"
+                ${showAdvanced ? "checked" : ""}
+              />
+              <label class="form-check-label small" for="toggleColumnAdvanced">
+                Ver avanzado
+              </label>
+            </div>
+          </div>
           <div class="table-responsive">
             <table class="table table-sm table-bordered column-config-table">
               <thead class="table-light">
                 <tr>
                   <th>#</th>
-                  <th>Clave</th>
+                  ${showAdvanced ? "<th>Clave</th>" : ""}
                   <th>Etiqueta</th>
                   ${showOperation ? "<th>Operacion</th>" : ""}
-                  <th>Editable</th>
+                  <th><i class="bi bi-pencil-square me-1"></i>Capturable</th>
                 </tr>
               </thead>
               <tbody>
@@ -1161,6 +1236,41 @@
     return OP_KIND_META[kind] || null;
   }
 
+  function renderInlineOrderCell(row, rowIndex) {
+    if (!state.inlineOrderMode || state.editMode === false) return "";
+    if (row?.type === "principal" && row?.generated) {
+      return `
+        <td class="order-cell text-center">
+          <span class="text-muted small">Auto</span>
+        </td>
+      `;
+    }
+
+    return `
+      <td class="order-cell text-center">
+        <div class="inline-order-controls">
+          <button
+            type="button"
+            class="btn btn-outline-secondary btn-sm inline-order-btn"
+            data-action="up"
+            title="Subir"
+          >
+            <i class="bi bi-arrow-up"></i>
+          </button>
+          <span class="order-index">${rowIndex + 1}</span>
+          <button
+            type="button"
+            class="btn btn-outline-secondary btn-sm inline-order-btn"
+            data-action="down"
+            title="Bajar"
+          >
+            <i class="bi bi-arrow-down"></i>
+          </button>
+        </div>
+      </td>
+    `;
+  }
+
   function renderTemplateTable(rows = [], columns = []) {
     const resolvedColumns =
       Array.isArray(columns) && columns.length
@@ -1169,8 +1279,14 @@
             { key: "cuenta", label: "Cuenta" },
             { key: "descripcion", label: "Descripcion" },
           ];
-    const colCount = resolvedColumns.length;
-    const headerHtml = resolvedColumns
+    const showOrder = state.inlineOrderMode && state.editMode !== false;
+    const dataColCount = resolvedColumns.length;
+    const colCount = dataColCount + (showOrder ? 1 : 0);
+    const headerHtml = `${
+      showOrder
+        ? `<th class="order-col"><i class="bi bi-arrows-move"></i></th>`
+        : ""
+    }${resolvedColumns
       .map(
         (col, idx) => `
           <th data-col-index="${idx}" title="${escapeAttr(col.key || "")}">
@@ -1178,24 +1294,26 @@
           </th>
         `
       )
-      .join("");
+      .join("")}`;
 
     let bodyHtml = "";
     let currentSection = "";
     let currentSubsection = "";
 
-    rows.forEach((row) => {
+    rows.forEach((row, rowIndex) => {
       if (!row) return;
       const isVisible = row.visible !== false;
       const hiddenClass = isVisible ? "" : "text-muted";
       if (row.type === "principal") {
         currentSection = row.label || "";
         currentSubsection = "";
+        const orderCell = showOrder ? renderInlineOrderCell(row, rowIndex) : "";
         bodyHtml += `
           <tr class="section-header-row ${hiddenClass}" data-row-type="section" data-section="${escapeAttr(
             currentSection
           )}" data-generated="${row.generated ? "true" : "false"}">
-            <td colspan="${colCount}">
+            ${orderCell}
+            <td colspan="${showOrder ? colCount - 1 : colCount}">
               <strong>${escapeHtml(currentSection || "Seccion")}</strong>
             </td>
           </tr>
@@ -1205,11 +1323,13 @@
 
       if (row.type === "subsection") {
         currentSubsection = row.label || "";
+        const orderCell = showOrder ? renderInlineOrderCell(row, rowIndex) : "";
         bodyHtml += `
           <tr class="subsection-row ${hiddenClass}" data-row-type="subsection" data-section="${escapeAttr(
             currentSection
           )}" data-subsection="${escapeAttr(currentSubsection)}">
-            <td colspan="${colCount}">
+            ${orderCell}
+            <td colspan="${showOrder ? colCount - 1 : colCount}">
               <em>${escapeHtml(currentSubsection || "Subseccion")}</em>
             </td>
           </tr>
@@ -1221,7 +1341,10 @@
         const cuenta = row.cuenta || row.label || "";
         const nombre = row.nombre || "";
         const cells = [];
-        for (let i = 0; i < colCount; i += 1) {
+        if (showOrder) {
+          cells.push(renderInlineOrderCell(row, rowIndex));
+        }
+        for (let i = 0; i < dataColCount; i += 1) {
           if (i === 0) {
             cells.push(
               `<td class="account-code">${escapeHtml(cuenta)}</td>`
@@ -1256,7 +1379,10 @@
         const kindMeta = getOperationKindMeta(kind);
         const formula = op ? formatFormula(op) : "";
         const cells = [];
-        for (let i = 0; i < colCount; i += 1) {
+        if (showOrder) {
+          cells.push(renderInlineOrderCell(row, rowIndex));
+        }
+        for (let i = 0; i < dataColCount; i += 1) {
           if (i === 0) {
             cells.push("<td></td>");
           } else if (i === 1) {
@@ -1300,7 +1426,9 @@
 
     return `
       <div class="table-responsive">
-        <table class="table table-sm table-bordered template-table">
+        <table class="table table-sm table-bordered template-table ${
+          showOrder ? "ordering-mode" : ""
+        }">
           <thead class="table-light">
             <tr>${headerHtml}</tr>
           </thead>
@@ -1312,11 +1440,523 @@
     `;
   }
 
+  function setOperationEditorTab(tabId) {
+    if (!dom.operationEditorPanel || !tabId) return;
+    const tabButton = dom.operationEditorPanel.querySelector(
+      `[data-bs-target="#${tabId}"]`
+    );
+    if (!tabButton || !window.bootstrap?.Tab) return;
+    window.bootstrap.Tab.getOrCreateInstance(tabButton).show();
+  }
+
+  function buildOperationEditorDataTab({ opId, opLabelInput }) {
+    return `
+      <div class="mb-3">
+        <label class="form-label">Nombre visible</label>
+        <input type="text" class="form-control" id="editClaseOp" value="${escapeHtml(
+          opLabelInput || ""
+        )}" />
+      </div>
+      <details class="editor-advanced">
+        <summary>Avanzado</summary>
+        <div class="mt-2">
+          <label class="form-label">Identificador interno</label>
+          <input type="text" class="form-control" id="editOperacionId" value="${escapeHtml(
+            opId || ""
+          )}" />
+          <div class="form-text">
+            Solo si necesitas referenciar esta operacion en otra formula.
+          </div>
+        </div>
+      </details>
+    `;
+  }
+
+  function buildOperationEditorFormulaTab(defaultMode = "contrib") {
+    const isContrib = defaultMode !== "manual";
+    return `
+      <div class="formula-mode-toggle btn-group btn-group-sm mb-3" role="group">
+        <input type="radio" class="btn-check" name="formulaMode" id="formulaModeContrib" ${
+          isContrib ? "checked" : ""
+        } />
+        <label class="btn btn-outline-primary" for="formulaModeContrib">
+          <i class="bi bi-list-check me-1"></i>Por secciones/operaciones
+        </label>
+        <input type="radio" class="btn-check" name="formulaMode" id="formulaModeManual" ${
+          isContrib ? "" : "checked"
+        } />
+        <label class="btn btn-outline-primary" for="formulaModeManual">
+          <i class="bi bi-code-square me-1"></i>Por cuentas
+        </label>
+      </div>
+      <div class="formula-mode-panel ${isContrib ? "" : "d-none"}" data-formula-panel="contrib">
+        <div class="alert alert-info small mb-3">
+          <i class="bi bi-info-circle me-1"></i>
+          Selecciona qué secciones y operaciones contribuyen a esta fórmula. La fórmula se genera automáticamente.
+        </div>
+        <div class="contribution-toolbar mb-3">
+          <input
+            type="text"
+            class="form-control form-control-sm"
+            id="contribSearch"
+            placeholder="🔍 Buscar..."
+          />
+          <div class="btn-group btn-group-sm mt-2" role="group">
+            <button type="button" class="btn btn-outline-secondary" id="btnContribSelectAll">
+              <i class="bi bi-check-all me-1"></i>Seleccionar todo
+            </button>
+            <button type="button" class="btn btn-outline-secondary" id="btnContribClear">
+              <i class="bi bi-x-circle me-1"></i>Limpiar
+            </button>
+            <button type="button" class="btn btn-outline-info" id="btnContribSync">
+              <i class="bi bi-arrow-repeat me-1"></i>Cargar actual
+            </button>
+          </div>
+        </div>
+        <div class="mb-3">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <strong class="text-primary"><i class="bi bi-collection me-1"></i>Secciones</strong>
+            <span class="badge bg-primary" id="contribSectionsCount">0</span>
+          </div>
+          <div class="contrib-list" id="contribSections"></div>
+        </div>
+        <div class="mb-3">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <strong class="text-success"><i class="bi bi-calculator me-1"></i>Operaciones</strong>
+            <span class="badge bg-success" id="contribOperationsCount">0</span>
+          </div>
+          <div class="contrib-list" id="contribOperations"></div>
+        </div>
+        <div class="contrib-actions d-flex gap-2">
+          <button type="button" class="btn btn-primary" id="btnContribReplace">
+            <i class="bi bi-check2-circle me-1"></i>Aplicar fórmula
+          </button>
+          <button type="button" class="btn btn-outline-primary" id="btnContribAdd">
+            <i class="bi bi-plus-circle me-1"></i>Agregar a existente
+          </button>
+        </div>
+      </div>
+      <div class="formula-mode-panel ${isContrib ? "d-none" : ""}" data-formula-panel="manual">
+        <div class="alert alert-warning small mb-3">
+          <i class="bi bi-tools me-1"></i>
+          Modo avanzado: construye fórmulas con cuentas específicas o valores numéricos.
+        </div>
+        <div id="formulaBuilderContainer"></div>
+        <div class="d-flex flex-wrap gap-2 mt-3">
+          <button
+            type="button"
+            class="btn btn-outline-secondary btn-sm"
+            onclick="window.FormulaBuilder && window.FormulaBuilder.suggestFromName && window.FormulaBuilder.suggestFromName()"
+          >
+            <i class="bi bi-lightbulb me-1"></i>Sugerir desde nombre
+          </button>
+          <button
+            type="button"
+            class="btn btn-outline-info btn-sm"
+            onclick="window.FormulaBuilder && window.FormulaBuilder.showMap && window.FormulaBuilder.showMap()"
+          >
+            <i class="bi bi-diagram-3 me-1"></i>Ver desglose
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  function buildOperationEditorAparicionTab(op, rowLabelsHtml) {
+    const visibleChecked = op?.visible !== false ? "checked" : "";
+    return `
+      <div class="mb-3">
+        <label class="form-label">Etiquetas en la tabla</label>
+        <div class="row g-2">
+          ${rowLabelsHtml}
+        </div>
+        <div class="form-text">
+          Define donde aparece esta operacion en la plantilla.
+        </div>
+      </div>
+      <div class="form-check form-switch">
+        <input class="form-check-input" type="checkbox" id="editOperacionVisible" ${visibleChecked} />
+        <label class="form-check-label" for="editOperacionVisible">
+          Visible en la plantilla
+        </label>
+      </div>
+    `;
+  }
+
+  function normalizeContributionKey(type, value) {
+    return `${type}::${normalizeOperationMatch(value || "")}`;
+  }
+
+  function buildContributionSelectionMap(terms = []) {
+    const map = new Map();
+    (terms || []).forEach((term) => {
+      if (!term || !term.value) return;
+      if (term.type !== "section" && term.type !== "operation") return;
+      const key = normalizeContributionKey(term.type, term.value);
+      if (!map.has(key)) {
+        map.set(key, term.operator || "+");
+      }
+    });
+    return map;
+  }
+
+  function getRealOperationOptions(operations = []) {
+    const realKeys = new Set();
+    (state.operaciones || []).forEach((op) => {
+      const opId = normalizeOperationMatch(getOperationId(op));
+      const opLabel = normalizeOperationMatch(getOperationLabel(op));
+      if (opId) realKeys.add(opId);
+      if (opLabel) realKeys.add(opLabel);
+    });
+
+    return (operations || []).filter((op) => {
+      const opId = normalizeOperationMatch(op?.id || "");
+      const opLabel = normalizeOperationMatch(op?.label || "");
+      return (opId && realKeys.has(opId)) || (opLabel && realKeys.has(opLabel));
+    });
+  }
+
+  function renderContributionList(container, items, type, selectionMap) {
+    if (!container) return;
+    if (!items.length) {
+      container.innerHTML =
+        '<div class="text-muted small p-2">Sin elementos</div>';
+      return;
+    }
+
+    const html = items
+      .map((item) => {
+        const value =
+          type === "section" ? item : item.id || item.label || "";
+        const label =
+          type === "section" ? item : item.label || item.id || "";
+        const key = normalizeContributionKey(type, value);
+        const altKey = normalizeContributionKey(type, label);
+        const operator =
+          selectionMap.get(key) || selectionMap.get(altKey) || "+";
+        const checked = selectionMap.has(key) || selectionMap.has(altKey);
+        const searchKey = normalizeOperationMatch(label || value);
+        return `
+          <label class="contrib-item" data-type="${escapeAttr(
+            type
+          )}" data-value="${escapeAttr(value)}" data-search="${escapeAttr(
+          searchKey
+        )}">
+            <input class="form-check-input contrib-check" type="checkbox" ${
+              checked ? "checked" : ""
+            } />
+            <select class="form-select form-select-sm contrib-operator">
+              <option value="+" ${operator === "+" ? "selected" : ""}>+</option>
+              <option value="-" ${operator === "-" ? "selected" : ""}>-</option>
+            </select>
+            <span class="contrib-label">${escapeHtml(label || value)}</span>
+          </label>
+        `;
+      })
+      .join("");
+
+    container.innerHTML = html;
+  }
+
+  function applyContributionFilter(panel, query) {
+    if (!panel) return;
+    const normalized = normalizeOperationMatch(query || "");
+    panel.querySelectorAll(".contrib-item").forEach((item) => {
+      const haystack = item.dataset.search || "";
+      const visible = !normalized || haystack.includes(normalized);
+      item.classList.toggle("d-none", !visible);
+    });
+  }
+
+  function collectContributionTerms(panel) {
+    const terms = [];
+    if (!panel) return terms;
+    panel.querySelectorAll(".contrib-item").forEach((item) => {
+      const checkbox = item.querySelector(".contrib-check");
+      if (!checkbox || !checkbox.checked) return;
+      const type = item.dataset.type || "section";
+      const value = item.dataset.value || "";
+      const operator =
+        item.querySelector(".contrib-operator")?.value?.trim() || "+";
+      if (!value) return;
+      terms.push({
+        id: Date.now() + terms.length,
+        operator,
+        type,
+        value,
+      });
+    });
+    return terms;
+  }
+
+  function mergeContributionTerms(existing = [], additions = []) {
+    const merged = (existing || []).map((term) => ({ ...term }));
+    const indexMap = new Map();
+    merged.forEach((term, idx) => {
+      const key = normalizeContributionKey(term.type, term.value);
+      if (term?.type && term?.value) {
+        indexMap.set(key, idx);
+      }
+    });
+
+    (additions || []).forEach((term) => {
+      const key = normalizeContributionKey(term.type, term.value);
+      if (indexMap.has(key)) {
+        merged[indexMap.get(key)].operator = term.operator;
+        return;
+      }
+      merged.push({ ...term });
+      indexMap.set(key, merged.length - 1);
+    });
+
+    return merged;
+  }
+
+  function setFormulaMode(panel, mode) {
+    if (!panel) return;
+    const contribPanel = panel.querySelector('[data-formula-panel="contrib"]');
+    const manualPanel = panel.querySelector('[data-formula-panel="manual"]');
+    if (!contribPanel || !manualPanel) return;
+    if (mode === "manual") {
+      contribPanel.classList.add("d-none");
+      manualPanel.classList.remove("d-none");
+    } else {
+      contribPanel.classList.remove("d-none");
+      manualPanel.classList.add("d-none");
+    }
+  }
+
+  function updateContributionPanel(availableElements, terms) {
+    if (!dom.operationEditorPanel) return;
+    const selectionMap = buildContributionSelectionMap(terms);
+    const sections = Array.isArray(availableElements?.sections)
+      ? availableElements.sections
+      : [];
+    const operations = getRealOperationOptions(
+      availableElements?.operations || []
+    );
+    renderContributionList(
+      dom.operationEditorPanel.querySelector("#contribSections"),
+      sections,
+      "section",
+      selectionMap
+    );
+    renderContributionList(
+      dom.operationEditorPanel.querySelector("#contribOperations"),
+      operations,
+      "operation",
+      selectionMap
+    );
+    
+    // Actualizar contadores
+    updateContributionCounters(dom.operationEditorPanel);
+  }
+  
+  function updateContributionCounters(panel) {
+    if (!panel) return;
+    const sectionsChecked = panel.querySelectorAll('#contribSections .contrib-check:checked').length;
+    const operationsChecked = panel.querySelectorAll('#contribOperations .contrib-check:checked').length;
+    
+    const sectionsCounter = panel.querySelector('#contribSectionsCount');
+    const operationsCounter = panel.querySelector('#contribOperationsCount');
+    
+    if (sectionsCounter) sectionsCounter.textContent = sectionsChecked;
+    if (operationsCounter) operationsCounter.textContent = operationsChecked;
+  }
+
+  function applyContributionTerms(mode = "replace") {
+    if (!dom.operationEditorPanel) return;
+    const contribPanel = dom.operationEditorPanel.querySelector(
+      '[data-formula-panel="contrib"]'
+    );
+    const terms = collectContributionTerms(contribPanel);
+    if (!terms.length) {
+      showToast("Selecciona al menos una contribucion", "warning");
+      return;
+    }
+
+    let finalTerms = terms;
+    if (mode === "merge" && window.FormulaBuilder?.terms?.length) {
+      finalTerms = mergeContributionTerms(window.FormulaBuilder.terms, terms);
+    }
+
+    if (window.FormulaBuilder) {
+      window.FormulaBuilder.terms = finalTerms;
+      window.FormulaBuilder.render();
+    } else {
+      formulaTerms = finalTerms;
+      renderFormulaTerms();
+    }
+    showToast("Formula actualizada", "success");
+  }
+
+  function openOperationEditorPanel(op, availableElements) {
+    if (!dom.operationEditorPanel) return false;
+    const opId = getOperationId(op);
+    const opLabelInput =
+      getOperationLabel(op) || getOperationDisplayName(op) || "";
+    const rowLabelsHtml = OP_ROW_FIELDS.map(
+      (row) => `
+        <div class="col-md-6">
+          <label class="form-label small text-muted">${row.label}</label>
+          <input type="text" class="form-control" id="${rowLabelInputId(
+            row.field
+          )}" value="${escapeHtml(op[row.field] || "")}" placeholder="${
+        row.placeholder
+      }" />
+        </div>
+      `
+    ).join("");
+
+    const termsForMode =
+      (Array.isArray(op?.formula_terms) && op.formula_terms.length
+        ? op.formula_terms
+        : formulaTerms) || [];
+    const needsManualMode = termsForMode.some(
+      (term) => term.type === "account" || term.type === "constant"
+    );
+    const defaultMode = needsManualMode ? "manual" : "contrib";
+
+    if (dom.operationEditorTitle) {
+      dom.operationEditorTitle.textContent = `Operacion: ${getOperationDisplayName(
+        op
+      )}`;
+    }
+    if (dom.operationEditorSubtitle) {
+      dom.operationEditorSubtitle.textContent = op.SECCION
+        ? `Seccion: ${op.SECCION}`
+        : "";
+    }
+
+    if (dom.editorTabDatos) {
+      dom.editorTabDatos.innerHTML = buildOperationEditorDataTab({
+        opId,
+        opLabelInput,
+      });
+    }
+    if (dom.editorTabFormula) {
+      dom.editorTabFormula.innerHTML = buildOperationEditorFormulaTab(
+        defaultMode
+      );
+    }
+    if (dom.editorTabAparicion) {
+      dom.editorTabAparicion.innerHTML = buildOperationEditorAparicionTab(
+        op,
+        rowLabelsHtml
+      );
+    }
+
+    if (window.FormulaBuilder) {
+      window.FormulaBuilder.init(op, availableElements);
+    }
+
+    updateContributionPanel(
+      availableElements,
+      window.FormulaBuilder?.terms || op.formula_terms || formulaTerms
+    );
+
+    const searchInput =
+      dom.operationEditorPanel.querySelector("#contribSearch");
+    const selectAllBtn =
+      dom.operationEditorPanel.querySelector("#btnContribSelectAll");
+    const clearBtn =
+      dom.operationEditorPanel.querySelector("#btnContribClear");
+    const addBtn = dom.operationEditorPanel.querySelector("#btnContribAdd");
+    const replaceBtn =
+      dom.operationEditorPanel.querySelector("#btnContribReplace");
+    const syncBtn = dom.operationEditorPanel.querySelector("#btnContribSync");
+    const modeContrib =
+      dom.operationEditorPanel.querySelector("#formulaModeContrib");
+    const modeManual =
+      dom.operationEditorPanel.querySelector("#formulaModeManual");
+
+    searchInput?.addEventListener("input", (event) => {
+      applyContributionFilter(dom.operationEditorPanel, event.target.value);
+    });
+
+    selectAllBtn?.addEventListener("click", () => {
+      dom.operationEditorPanel
+        .querySelectorAll(".contrib-check")
+        .forEach((checkbox) => {
+          checkbox.checked = true;
+        });
+      updateContributionCounters(dom.operationEditorPanel);
+    });
+
+    clearBtn?.addEventListener("click", () => {
+      dom.operationEditorPanel
+        .querySelectorAll(".contrib-check")
+        .forEach((checkbox) => {
+          checkbox.checked = false;
+        });
+      updateContributionCounters(dom.operationEditorPanel);
+    });
+    
+    // Actualizar contadores cuando se cambie cualquier checkbox
+    dom.operationEditorPanel.addEventListener('change', (event) => {
+      if (event.target.classList.contains('contrib-check')) {
+        updateContributionCounters(dom.operationEditorPanel);
+      }
+    });
+
+    addBtn?.addEventListener("click", () => applyContributionTerms("merge"));
+    replaceBtn?.addEventListener("click", () =>
+      applyContributionTerms("replace")
+    );
+    syncBtn?.addEventListener("click", () => {
+      updateContributionPanel(
+        availableElements,
+        window.FormulaBuilder?.terms || op.formula_terms || formulaTerms
+      );
+    });
+
+    modeContrib?.addEventListener("change", () => {
+      if (modeContrib.checked) {
+        setFormulaMode(dom.operationEditorPanel, "contrib");
+        updateContributionPanel(
+          availableElements,
+          window.FormulaBuilder?.terms || op.formula_terms || formulaTerms
+        );
+      }
+    });
+    modeManual?.addEventListener("change", () => {
+      if (modeManual.checked) {
+        setFormulaMode(dom.operationEditorPanel, "manual");
+      }
+    });
+
+    setFormulaMode(dom.operationEditorPanel, defaultMode);
+    setOperationEditorTab("editorTabFormula");
+
+    const panel = window.bootstrap?.Offcanvas.getOrCreateInstance(
+      dom.operationEditorPanel
+    );
+    panel?.show();
+    return true;
+  }
+
   function bindTemplateTableEvents() {
     if (!isModuloPiloto()) return;
+    const inlineToggle = dom.layoutPreview?.querySelector("#toggleInlineOrder");
+    inlineToggle?.addEventListener("change", (event) => {
+      state.inlineOrderMode = Boolean(event.target.checked);
+      renderLayout();
+    });
     const table = dom.layoutPreview?.querySelector(".template-table");
     if (!table) return;
     table.addEventListener("click", (event) => {
+      const orderButton = event.target.closest(".inline-order-btn");
+      if (orderButton) {
+        event.preventDefault();
+        event.stopPropagation();
+        if (!state.inlineOrderMode || state.editMode === false) return;
+        const row = orderButton.closest("tr[data-row-type]");
+        if (!row) return;
+        const direction = orderButton.dataset.action === "up" ? -1 : 1;
+        handleInlineOrderMove(row, direction);
+        return;
+      }
+
       const row = event.target.closest("tr[data-row-type]");
       if (!row) return;
       const rowType = row.dataset.rowType;
@@ -1371,10 +2011,246 @@
     });
   }
 
+  function getAccountPrincipalName(cuenta) {
+    return (
+      cuenta?.["SECCIàN Principal"] ||
+      cuenta?.["SECCI…N Principal"] ||
+      cuenta?.["SECCION Principal"] ||
+      cuenta?.SECCION ||
+      cuenta?.seccion_principal ||
+      ""
+    );
+  }
+
+  function getAccountSecondaryName(cuenta) {
+    return (
+      cuenta?.["SECCION Secundaria"] ||
+      cuenta?.["SECCIàN Secundaria"] ||
+      cuenta?.seccion_secundaria ||
+      ""
+    );
+  }
+
+  function resequenceAccountsBySections(sections) {
+    if (!Array.isArray(sections) || !sections.length) return;
+    const accounts = state.cuentas || [];
+    if (!accounts.length) return;
+    const baseOrder = Math.min(
+      ...accounts.map((cuenta, idx) => getAccountOrder(cuenta, idx))
+    );
+    let order = Number.isFinite(baseOrder) ? baseOrder : 0;
+
+    sections.forEach((section) => {
+      (section.subsections || []).forEach((subsection) => {
+        const sortedAccounts = [...(subsection.accounts || [])].sort(
+          (a, b) => getAccountOrder(a) - getAccountOrder(b)
+        );
+        sortedAccounts.forEach((cuenta) => {
+          cuenta.orden_presentacion = order++;
+        });
+      });
+    });
+  }
+
+  function resequenceAccountsForSection(section) {
+    const accounts = (section?.subsections || []).flatMap(
+      (subsection) => subsection.accounts || []
+    );
+    if (!accounts.length) return;
+    const baseOrder = Math.min(
+      ...accounts.map((cuenta, idx) => getAccountOrder(cuenta, idx))
+    );
+    let order = Number.isFinite(baseOrder) ? baseOrder : 0;
+
+    (section.subsections || []).forEach((subsection) => {
+      const sortedAccounts = [...(subsection.accounts || [])].sort(
+        (a, b) => getAccountOrder(a) - getAccountOrder(b)
+      );
+      sortedAccounts.forEach((cuenta) => {
+        cuenta.orden_presentacion = order++;
+      });
+    });
+  }
+
+  function handleInlineOrderMove(row, direction) {
+    const rowType = row.dataset.rowType;
+    if (rowType === "section") {
+      if (row.dataset.generated === "true") return;
+      moveSectionOrder(row.dataset.section, direction);
+      return;
+    }
+    if (rowType === "subsection") {
+      moveSubsectionOrder(
+        row.dataset.section,
+        row.dataset.subsection,
+        direction
+      );
+      return;
+    }
+    if (rowType === "account") {
+      moveAccountOrder(
+        row.dataset.cuenta,
+        row.dataset.section,
+        row.dataset.subsection,
+        direction
+      );
+      return;
+    }
+    if (rowType === "operation") {
+      moveOperationOrder(
+        row.dataset.operationLabel,
+        row.dataset.operationId,
+        row.dataset.operationKind,
+        direction
+      );
+    }
+  }
+
+  function moveSectionOrder(sectionName, direction) {
+    if (!sectionName) return;
+    const sections = groupBySections(state.cuentas || []);
+    const targetKey = normalizeOperationMatch(sectionName);
+    const index = sections.findIndex(
+      (section) => normalizeOperationMatch(section.name) === targetKey
+    );
+    if (index === -1) {
+      showToast("Seccion no encontrada", "warning");
+      return;
+    }
+    const nextIndex = index + direction;
+    if (nextIndex < 0 || nextIndex >= sections.length) return;
+    const [moved] = sections.splice(index, 1);
+    sections.splice(nextIndex, 0, moved);
+
+    resequenceAccountsBySections(sections);
+    logChange("move", `Seccion "${sectionName}" reordenada`);
+    renderLayout();
+  }
+
+  function moveSubsectionOrder(sectionName, subsectionName, direction) {
+    if (!sectionName || !subsectionName) return;
+    const sections = groupBySections(state.cuentas || []);
+    const sectionKey = normalizeOperationMatch(sectionName);
+    const section = sections.find(
+      (item) => normalizeOperationMatch(item.name) === sectionKey
+    );
+    if (!section) {
+      showToast("Subseccion no encontrada", "warning");
+      return;
+    }
+    const subKey = normalizeOperationMatch(subsectionName);
+    const index = (section.subsections || []).findIndex(
+      (subsection) => normalizeOperationMatch(subsection.name) === subKey
+    );
+    if (index === -1) return;
+    const nextIndex = index + direction;
+    if (nextIndex < 0 || nextIndex >= section.subsections.length) return;
+    const [moved] = section.subsections.splice(index, 1);
+    section.subsections.splice(nextIndex, 0, moved);
+
+    resequenceAccountsForSection(section);
+    logChange("move", `Subseccion "${subsectionName}" reordenada`);
+    renderLayout();
+  }
+
+  function moveAccountOrder(cuentaCode, sectionName, subsectionName, direction) {
+    if (!cuentaCode) return;
+    const account = (state.cuentas || []).find((cuenta) =>
+      normalizeOperationMatch(
+        cuenta.CUENTA || cuenta.Cuenta || cuenta.cuenta || ""
+      ) === normalizeOperationMatch(cuentaCode)
+    );
+    if (!account) return;
+    const principal = sectionName || getAccountPrincipalName(account);
+    const secondary =
+      subsectionName || getAccountSecondaryName(account) || "";
+
+    const group = (state.cuentas || []).filter((cuenta) => {
+      const principalKey = normalizeOperationMatch(
+        getAccountPrincipalName(cuenta)
+      );
+      const secondaryKey = normalizeOperationMatch(
+        getAccountSecondaryName(cuenta) || ""
+      );
+      return (
+        principalKey === normalizeOperationMatch(principal) &&
+        secondaryKey === normalizeOperationMatch(secondary || "")
+      );
+    });
+    const ordered = group.sort(
+      (a, b) => getAccountOrder(a) - getAccountOrder(b)
+    );
+    const accountId =
+      account.CUENTA || account.Cuenta || account.cuenta || "";
+    const index = ordered.findIndex(
+      (cuenta) =>
+        (cuenta.CUENTA || cuenta.Cuenta || cuenta.cuenta || "") === accountId
+    );
+    if (index === -1) return;
+    const nextIndex = index + direction;
+    if (nextIndex < 0 || nextIndex >= ordered.length) return;
+    const neighbor = ordered[nextIndex];
+    const currentOrder = getAccountOrder(account, index);
+    const neighborOrder = getAccountOrder(neighbor, nextIndex);
+
+    account.orden_presentacion = neighborOrder;
+    neighbor.orden_presentacion = currentOrder;
+    logChange("move", `Cuenta ${accountId} reordenada`);
+    renderLayout();
+  }
+
+  function moveOperationOrder(label, opId, kind, direction) {
+    const targetLabel = label || opId || "";
+    if (!targetLabel) return;
+
+    let targets = [];
+    const direct = findOperationByIdOrLabel(opId || label);
+    if (direct) {
+      targets = [direct];
+    } else {
+      const match = findOperationsByRowLabel(targetLabel, kind || "");
+      targets = match.operations || [];
+    }
+
+    if (!targets.length) {
+      showToast("Operacion no encontrada para ordenar", "warning");
+      return;
+    }
+    if (targets.length > 1) {
+      showToast(
+        "Esta fila agrupa varias operaciones. Usa Reordenar.",
+        "warning"
+      );
+      return;
+    }
+
+    const ordered = sortOperations(state.operaciones || []);
+    const op = targets[0];
+    const index = ordered.findIndex((item) => item === op);
+    if (index === -1) return;
+    const nextIndex = index + direction;
+    if (nextIndex < 0 || nextIndex >= ordered.length) return;
+    const neighbor = ordered[nextIndex];
+    const currentOrder = getOperationOrder(op, index);
+    const neighborOrder = getOperationOrder(neighbor, nextIndex);
+
+    op.orden_presentacion = neighborOrder;
+    neighbor.orden_presentacion = currentOrder;
+    logChange("move", `Operacion "${getOperationDisplayName(op)}" reordenada`);
+    renderLayout();
+  }
+
   function bindColumnConfigEvents() {
     if (!isModuloPiloto()) return;
     const table = dom.layoutPreview?.querySelector(".column-config-table");
     if (!table) return;
+    const advancedToggle = dom.layoutPreview?.querySelector(
+      "#toggleColumnAdvanced"
+    );
+    advancedToggle?.addEventListener("change", (event) => {
+      state.columnConfigAdvanced = Boolean(event.target.checked);
+      renderLayout();
+    });
     const handler = (event) => {
       const target = event.target;
       const row = target.closest("tr[data-col-index]");
@@ -3148,38 +4024,88 @@
   }
 
   function handleSearch(e) {
-    const query = e.target.value.toLowerCase().trim();
-    const rows = document.querySelectorAll(".account-row");
+    const query = e?.target?.value?.toLowerCase().trim() || "";
+    applySearchAndFilters(query);
+  }
+  
+  function applySearchAndFilters(query = "") {
+    const activeFilter = document.querySelector('input[name="quickFilter"]:checked')?.value || "all";
+    
+    const sections = document.querySelectorAll(".layout-section");
+    const accountRows = document.querySelectorAll(".account-row");
+    const operationRows = document.querySelectorAll(".operation-row, .inline-operation-row");
 
     // Quitar resaltado anterior
     document.querySelectorAll(".search-highlight").forEach((el) => {
       el.classList.remove("search-highlight");
     });
 
-    if (!query) {
-      // Mostrar todas las filas si no hay búsqueda
-      rows.forEach((row) => (row.style.display = ""));
+    let firstMatch = null;
+
+    // Aplicar filtros según el tipo seleccionado
+    if (activeFilter === "all" && !query) {
+      // Mostrar todo
+      sections.forEach(s => s.style.display = "");
+      accountRows.forEach(r => r.style.display = "");
+      operationRows.forEach(r => r.style.display = "");
       return;
     }
 
-    let firstMatch = null;
-
-    rows.forEach((row) => {
-      const code =
-        row.querySelector(".account-code")?.textContent?.toLowerCase() || "";
-      const name =
-        row.querySelector(".account-name")?.textContent?.toLowerCase() || "";
-      const match = code.includes(query) || name.includes(query);
-      row.style.display = match ? "" : "none";
-
-      // Guardar primera coincidencia
-      if (match && !firstMatch) {
-        firstMatch = row;
+    // Filtrar secciones
+    sections.forEach((section) => {
+      const isOperationSection = section.classList.contains("operation-section");
+      let shouldShow = false;
+      
+      if (activeFilter === "all" || activeFilter === "sections") {
+        if (!isOperationSection) {
+          const title = section.querySelector(".section-title span")?.textContent?.toLowerCase() || "";
+          shouldShow = !query || title.includes(query);
+          if (shouldShow && !firstMatch && query) {
+            firstMatch = section;
+          }
+        } else {
+          shouldShow = activeFilter === "all";
+        }
       }
+      
+      section.style.display = shouldShow ? "" : "none";
+    });
+
+    // Filtrar cuentas
+    accountRows.forEach((row) => {
+      let shouldShow = false;
+      
+      if (activeFilter === "all" || activeFilter === "accounts") {
+        const code = row.querySelector(".account-code")?.textContent?.toLowerCase() || "";
+        const name = row.querySelector(".account-name")?.textContent?.toLowerCase() || "";
+        shouldShow = !query || code.includes(query) || name.includes(query);
+        
+        if (shouldShow && !firstMatch && query) {
+          firstMatch = row;
+        }
+      }
+      
+      row.style.display = shouldShow ? "" : "none";
+    });
+
+    // Filtrar operaciones
+    operationRows.forEach((row) => {
+      let shouldShow = false;
+      
+      if (activeFilter === "all" || activeFilter === "operations") {
+        const label = row.querySelector(".operation-label, .inline-op-label")?.textContent?.toLowerCase() || "";
+        shouldShow = !query || label.includes(query);
+        
+        if (shouldShow && !firstMatch && query) {
+          firstMatch = row;
+        }
+      }
+      
+      row.style.display = shouldShow ? "" : "none";
     });
 
     // Scroll al primer resultado y resaltarlo
-    if (firstMatch) {
+    if (firstMatch && query) {
       // Expandir sección padre si está colapsada
       const section = firstMatch.closest(".layout-section");
       if (section) {
@@ -4685,7 +5611,7 @@
 
 window.editSection = function (name) {
     if (!requireEditMode()) return;
-    dom.formEditar.innerHTML = `
+    const modalMarkup = `
       <div class="mb-3">
         <label class="form-label">Nombre de la Sección</label>
         <input type="text" class="form-control" id="editNombreSeccion" value="${escapeHtml(
@@ -5058,8 +5984,8 @@ window.editSection = function (name) {
     const op = findOperationByIdOrLabel(operationId);
     if (!op) return;
 
-    const opId = getOperationId(op);
-    const opLabel = getOperationLabel(op);
+    let opId = getOperationId(op);
+    let opLabel = getOperationLabel(op);
 
     // AUTO-LOAD: Buscar operación predefinida y pre-cargar si existe
     await ensureOperacionesPredefinidas();
@@ -5083,15 +6009,18 @@ window.editSection = function (name) {
       });
     }
 
+    opId = getOperationId(op);
+    opLabel = getOperationLabel(op);
+
     const modalTitle = dom.modalEditar?.querySelector(".modal-title");
     if (modalTitle) {
       modalTitle.textContent = `Editar: ${getOperationDisplayName(op)} (${opId})`;
     }
 
     // Get available elements to determine correct types
-    const elements = getAvailableElements();
+    const availableElements = getAvailableElements();
     const operationKeys = new Set();
-    elements.operations.forEach((opItem) => {
+    availableElements.operations.forEach((opItem) => {
       if (!opItem) return;
       if (typeof opItem === "string") {
         operationKeys.add(normalizeOperationMatch(opItem));
@@ -5100,7 +6029,7 @@ window.editSection = function (name) {
       if (opItem.id) operationKeys.add(normalizeOperationMatch(opItem.id));
       if (opItem.label) operationKeys.add(normalizeOperationMatch(opItem.label));
     });
-    const sectionNames = elements.sections.map((s) =>
+    const sectionNames = availableElements.sections.map((s) =>
       normalizeOperationMatch(s)
     );
     const extractedFromFields = extractFormulaTerms(op);
@@ -5324,10 +6253,16 @@ window.editSection = function (name) {
     op.formula_json = JSON.stringify(normalizeFormulaTerms(termsForBuilder));
     console.log("📝 editOperation - op completo:", op);
 
+    if (openOperationEditorPanel(op, availableElements)) {
+      if (dom.formEditar) {
+        dom.formEditar.innerHTML = "";
+      }
+      return;
+    }
+
     // Expand section terms to individual accounts for display
     // Inicializar FormulaBuilder si está disponible
     if (window.FormulaBuilder) {
-      const availableElements = getAvailableElements();
       console.log("🎯 Llamando FormulaBuilder.init con op:", op);
       window.FormulaBuilder.init(op, availableElements);
     } else {
@@ -5734,6 +6669,11 @@ window.editSection = function (name) {
         }
       });
 
+      const visibleInput = document.getElementById("editOperacionVisible");
+      if (visibleInput) {
+        op.visible = Boolean(visibleInput.checked);
+      }
+
       // Usar FormulaBuilder si esta disponible
       if (window.FormulaBuilder) {
         const validation = window.FormulaBuilder.validate();
@@ -5818,6 +6758,7 @@ window.editSection = function (name) {
     updateStats();
 
     bootstrap.Modal.getInstance(dom.modalEditar)?.hide();
+    bootstrap?.Offcanvas?.getInstance(dom.operationEditorPanel)?.hide();
     showToast("Cambios aplicados", "success");
   }
 
@@ -5869,6 +6810,7 @@ window.editSection = function (name) {
     renderLayout();
     updateStats();
     bootstrap.Modal.getInstance(dom.modalEditar)?.hide();
+    bootstrap?.Offcanvas?.getInstance(dom.operationEditorPanel)?.hide();
     showToast("Elemento eliminado", "success");
   }
 
@@ -7684,24 +8626,28 @@ window.editSection = function (name) {
     }
   }
 
-  // Guardar contexto cuando cambie
-  const originalHandleModuloChange = window.handleModuloChange || handleModuloChange;
-  const originalHandleCapituloChange = window.handleCapituloChange || handleCapituloChange;
-  const originalHandleAnioChange = window.handleAnioChange || handleAnioChange;
+  // Guardar contexto cuando cambie (solo si no está ya envuelto)
+  if (!window.__plantillasContextWrapped) {
+    window.__plantillasContextWrapped = true;
+    
+    const originalHandleModuloChange = handleModuloChange;
+    const originalHandleCapituloChange = handleCapituloChange;
+    const originalHandleAnioChange = handleAnioChange;
 
-  window.handleModuloChange = async function() {
-    await originalHandleModuloChange();
-    saveContextToURL();
-  }
+    window.handleModuloChange = async function() {
+      await originalHandleModuloChange();
+      saveContextToURL();
+    }
 
-  window.handleCapituloChange = async function() {
-    await originalHandleCapituloChange();
-    saveContextToURL();
-  }
+    window.handleCapituloChange = async function() {
+      await originalHandleCapituloChange();
+      saveContextToURL();
+    }
 
-  window.handleAnioChange = async function() {
-    await originalHandleAnioChange();
-    saveContextToURL();
+    window.handleAnioChange = async function() {
+      await originalHandleAnioChange();
+      saveContextToURL();
+    }
   }
 
   // Cargar contexto al iniciar

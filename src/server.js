@@ -102,6 +102,7 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3005)) => {
   const rutasInsercion = require("./routes/insercion");
   const rutasPerfil = require("./routes/perfil");
   const rutasBackups = require("./routes/backups");
+  const rutasFirebirdConfig = require("./routes/firebird-config");
 
   const app = express();
 
@@ -277,6 +278,7 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3005)) => {
   app.use("/api/saldos", rutasSaldos);
   app.use("/api/cuentas", rutasCuentas);
   app.use("/api/backups", rutasBackups);
+  app.use("/api/firebird-config", rutasFirebirdConfig);
   app.use("/api", rutasEstructura);
   app.use("/api/insercion", rutasInsercion);
 

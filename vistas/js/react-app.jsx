@@ -50,7 +50,8 @@ const MODULE_GROUPS = [
       { id: 'perfil', label: 'Mi Perfil', path: 'perfil.html', badge: 'perfil', public: true },
       { id: 'usuarios', label: 'Administrar usuarios', path: 'usuarios.html', badge: 'Permisos', requiresAdmin: true },
       { id: 'crear-usuario', label: 'Crear usuario', path: 'crear_usuario.html', requiresAdmin: true },
-      { id: 'plantillas', label: 'Gestor de Plantillas', path: 'plantillas.html', requiresAdmin: true, permiso: 'Layouts' }
+      { id: 'plantillas', label: 'Gestor de Plantillas', path: 'plantillas.html', requiresAdmin: true, permiso: 'Layouts' },
+      { id: 'firebird-conexiones', label: 'Administrar conexiones', path: 'firebird-config.html', requiresAdminGlobal: true }
     ]
   }
 ];
@@ -131,6 +132,12 @@ const usuarioPuedeUsarModulo = (sesion, empresaId, modulo, puedeAdministrar) => 
     return false;
   }
   const puedeAdmin = typeof puedeAdministrar === 'boolean' ? puedeAdministrar : Sesion.puedeAdministrarUsuarios(sesion);
+  const esAdminGlobal = typeof Sesion.esAdminGlobal === 'function'
+    ? Sesion.esAdminGlobal(sesion)
+    : Boolean(sesion?.usuario?.esAdminGlobal);
+  if (modulo.requiresAdminGlobal && !esAdminGlobal) {
+    return false;
+  }
   if (modulo.requiresAdmin && !puedeAdmin) {
     return false;
   }

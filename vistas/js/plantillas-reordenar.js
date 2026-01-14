@@ -16,10 +16,17 @@
     originalOrder: [], // Para resetear
   };
 
+  // Prevenir event listeners duplicados
+  let listenersReordenarAttached = false;
+
   // ==========================================
   // INITIALIZATION
   // ==========================================
   function initReordenar() {
+    // Si ya se añadieron los listeners, no hacerlo de nuevo
+    if (listenersReordenarAttached) return;
+    listenersReordenarAttached = true;
+
     const btnReordenar = document.getElementById("btnReordenar");
     const btnConfirmarOrden = document.getElementById("btnConfirmarOrden");
     const btnResetOrden = document.getElementById("btnResetOrden");

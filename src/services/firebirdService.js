@@ -15,31 +15,44 @@ try {
 }
 
 const { obtenerEmpresaPorId } = require("../config/empresas");
+const { obtenerConfigBase } = require("./firebirdConfigService");
 
 // Detectar si es conexión remota (puerto diferente a 3050 o host diferente a localhost/127.0.0.1)
-const esConexionRemota = () => {
-  const host = process.env.FIREBIRD_HOST || "127.0.0.1";
-  const port = Number(process.env.FIREBIRD_PORT) || 3050;
+const esConexionRemota = (base = obtenerConfigBase()) => {
+  const host = base?.host || "127.0.0.1";
+  const port = Number(base?.port) || 3050;
   return port !== 3050 || (host !== "127.0.0.1" && host !== "localhost");
 };
 
 // Configuración base desde variables de entorno
-const OPCIONES_BASE = {
-  host: process.env.FIREBIRD_HOST || "127.0.0.1",
-  port: Number(process.env.FIREBIRD_PORT) || 3050,
-  user: process.env.FIREBIRD_USER || "sysdba",
-  password: process.env.FIREBIRD_PASSWORD || "masterkey",
-  lowercase_keys: false,
-  pageSize: 4096,
-  // Configuración optimizada para conexiones remotas
-  retryLimit: esConexionRemota() ? 3 : 0, // 3 reintentos para remoto, 0 para local
-  connectTimeout: esConexionRemota() ? 120000 : 3000, // 120s remoto, 3s local
-  timeout: esConexionRemota() ? 120000 : 10000, // 120s query timeout remoto, 10s local
+const obtenerOpcionesBase = () => {
+  const base = obtenerConfigBase();
+  const host = base?.host || "127.0.0.1";
+  const port = Number(base?.port) || 3050;
+  const user = base?.user || "sysdba";
+  const password = base?.password || "masterkey";
+  const esRemota = esConexionRemota({ host, port });
+
+  return {
+    host,
+    port,
+    user,
+    password,
+    lowercase_keys: false,
+    pageSize: 4096,
+    // Configuración optimizada para conexiones remotas
+    retryLimit: esRemota ? 3 : 0, // 3 reintentos para remoto, 0 para local
+    connectTimeout: esRemota ? 120000 : 3000, // 120s remoto, 3s local
+    timeout: esRemota ? 120000 : 10000, // 120s query timeout remoto, 10s local
+  };
 };
 
-const tipoConexion = esConexionRemota() ? "📡 REMOTA" : "🏠 LOCAL";
+const opcionesIniciales = obtenerOpcionesBase();
+const tipoConexion = esConexionRemota(opcionesIniciales)
+  ? "📡 REMOTA"
+  : "🏠 LOCAL";
 console.log(
-  `🔥 Firebird ${tipoConexion}: ${OPCIONES_BASE.host}:${OPCIONES_BASE.port}`
+  `🔥 Firebird ${tipoConexion}: ${opcionesIniciales.host}:${opcionesIniciales.port}`
 );
 
 const crearOpciones = (empresaId) => {
@@ -47,9 +60,12 @@ const crearOpciones = (empresaId) => {
   if (!empresa) {
     throw new Error("Empresa no encontrada");
   }
+  if (!empresa.rutaBaseDatos) {
+    throw new Error("Empresa sin ruta de base de datos");
+  }
 
   return {
-    ...OPCIONES_BASE,
+    ...obtenerOpcionesBase(),
     database: empresa.rutaBaseDatos,
   };
 };
@@ -64,7 +80,7 @@ const ejecutarConsulta = (empresaId, consulta, parametros = []) => {
     }
 
     const tiempoInicio = Date.now();
-    const esRemoto = esConexionRemota();
+    const esRemoto = esConexionRemota(opciones);
 
     Firebird.attach(opciones, (errorConexion, conexion) => {
       if (errorConexion) {

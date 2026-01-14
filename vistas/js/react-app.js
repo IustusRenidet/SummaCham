@@ -150,6 +150,12 @@
           requiresAdmin: true,
           permiso: "Layouts",
         },
+        {
+          id: "firebird-conexiones",
+          label: "Administrar conexiones",
+          path: "firebird-config.html",
+          requiresAdminGlobal: true,
+        },
       ],
     },
   ];
@@ -233,6 +239,13 @@
       typeof puedeAdministrar === "boolean"
         ? puedeAdministrar
         : Sesion.puedeAdministrarUsuarios(sesion);
+    const esAdminGlobal =
+      typeof Sesion.esAdminGlobal === "function"
+        ? Sesion.esAdminGlobal(sesion)
+        : Boolean(sesion?.usuario?.esAdminGlobal);
+    if (modulo.requiresAdminGlobal && !esAdminGlobal) {
+      return false;
+    }
     if (modulo.requiresAdmin && !puedeAdmin) {
       return false;
     }

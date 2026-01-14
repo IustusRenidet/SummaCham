@@ -119,8 +119,29 @@
                       type="text"
                       id="searchInput"
                       class="search-input"
-                      placeholder="Buscar en el layout..."
+                      placeholder="🔍 Buscar en el layout..."
                     />
+                  </div>
+                  <div class="quick-filters mt-2">
+                    <small class="text-muted me-2">Filtro rápido:</small>
+                    <div class="btn-group btn-group-sm" role="group">
+                      <input type="radio" class="btn-check" name="quickFilter" id="filterAll" value="all" checked />
+                      <label class="btn btn-outline-secondary" for="filterAll">
+                        <i class="bi bi-grid-3x3-gap me-1"></i>Todo
+                      </label>
+                      <input type="radio" class="btn-check" name="quickFilter" id="filterSections" value="sections" />
+                      <label class="btn btn-outline-primary" for="filterSections">
+                        <i class="bi bi-collection me-1"></i>Secciones
+                      </label>
+                      <input type="radio" class="btn-check" name="quickFilter" id="filterAccounts" value="accounts" />
+                      <label class="btn btn-outline-info" for="filterAccounts">
+                        <i class="bi bi-card-list me-1"></i>Cuentas
+                      </label>
+                      <input type="radio" class="btn-check" name="quickFilter" id="filterOperations" value="operations" />
+                      <label class="btn btn-outline-warning" for="filterOperations">
+                        <i class="bi bi-calculator me-1"></i>Operaciones
+                      </label>
+                    </div>
                   </div>
                 </div>
                 <button
@@ -563,6 +584,98 @@
               id="btnConfirmarOrden"
             >
               <i class="bi bi-check-circle me-1"></i>Aplicar Orden
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel lateral: Editor de operacion -->
+    <div
+      class="offcanvas offcanvas-end template-editor-panel"
+      tabindex="-1"
+      id="operationEditorPanel"
+      aria-labelledby="operationEditorTitle"
+    >
+      <div class="offcanvas-header">
+        <div>
+          <h5 class="offcanvas-title" id="operationEditorTitle">
+            Editor de operacion
+          </h5>
+          <div class="small text-muted" id="operationEditorSubtitle"></div>
+        </div>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="offcanvas"
+        ></button>
+      </div>
+      <div class="offcanvas-body">
+        <ul class="nav nav-tabs editor-tabs" id="operationEditorTabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button
+              class="nav-link"
+              id="editor-tab-datos"
+              data-bs-toggle="tab"
+              data-bs-target="#editorTabDatos"
+              type="button"
+              role="tab"
+            >
+              Datos
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button
+              class="nav-link active"
+              id="editor-tab-formula"
+              data-bs-toggle="tab"
+              data-bs-target="#editorTabFormula"
+              type="button"
+              role="tab"
+            >
+              Formula
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button
+              class="nav-link"
+              id="editor-tab-aparicion"
+              data-bs-toggle="tab"
+              data-bs-target="#editorTabAparicion"
+              type="button"
+              role="tab"
+            >
+              Aparicion
+            </button>
+          </li>
+        </ul>
+        <div class="tab-content editor-tab-content pt-3">
+          <div class="tab-pane fade" id="editorTabDatos" role="tabpanel"></div>
+          <div
+            class="tab-pane fade show active"
+            id="editorTabFormula"
+            role="tabpanel"
+          ></div>
+          <div
+            class="tab-pane fade"
+            id="editorTabAparicion"
+            role="tabpanel"
+          ></div>
+        </div>
+        <div class="editor-footer">
+          <button type="button" class="btn btn-outline-danger btn-sm" id="btnEditorDelete">
+            <i class="bi bi-trash me-1"></i>Eliminar
+          </button>
+          <div class="ms-auto d-flex gap-2">
+            <button
+              type="button"
+              class="btn btn-outline-secondary btn-sm"
+              data-bs-dismiss="offcanvas"
+            >
+              Cerrar
+            </button>
+            <button type="button" class="btn btn-primary btn-sm" id="btnEditorSave">
+              <i class="bi bi-check me-1"></i>Guardar
             </button>
           </div>
         </div>

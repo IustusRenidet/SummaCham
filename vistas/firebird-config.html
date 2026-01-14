@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Administrar conexiones Firebird</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/estilos.css" />
+    <style>
+      :root {
+        --bs-primary: #2f5496;
+        --bs-primary-rgb: 47, 84, 150;
+        --bs-success: #2f5496;
+        --bs-success-rgb: 47, 84, 150;
+        --bs-success-bg-subtle: rgba(47, 84, 150, 0.16);
+        --bs-success-border-subtle: rgba(47, 84, 150, 0.35);
+      }
+
+      body {
+        background: #f2f2f2;
+        font-family: "Manrope", system-ui, sans-serif;
+        color: #2f5496;
+        min-height: 100vh;
+      }
+
+      .contenedor {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: clamp(1rem, 2vw, 2rem);
+      }
+
+      .panel-card {
+        background: #fff;
+        border-radius: 20px;
+        box-shadow: 0 18px 50px rgba(47, 84, 150, 0.12);
+        padding: clamp(1rem, 2.5vw, 2rem);
+      }
+
+      .ruta-box {
+        background: rgba(47, 84, 150, 0.08);
+        color: #2f5496;
+        border-radius: 999px;
+        padding: 0.35rem 0.85rem;
+        font-size: 0.85rem;
+        font-weight: 600;
+      }
+
+      .badge-outline {
+        border: 1px solid rgba(47, 84, 150, 0.35);
+        color: #2f5496;
+        background: rgba(47, 84, 150, 0.08);
+      }
+
+      .badge-danger {
+        background: rgba(220, 53, 69, 0.12);
+        color: #dc3545;
+        border: 1px solid rgba(220, 53, 69, 0.3);
+      }
+
+      .badge-success {
+        background: rgba(47, 84, 150, 0.15);
+        color: #2f5496;
+        border: 1px solid rgba(47, 84, 150, 0.35);
+      }
+
+      .badge-muted {
+        background: rgba(108, 117, 125, 0.1);
+        color: #6c757d;
+        border: 1px solid rgba(108, 117, 125, 0.25);
+      }
+
+      .table td {
+        vertical-align: middle;
+      }
+
+      .ruta-actual {
+        font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+        font-size: 0.85rem;
+        color: #5b6d8a;
+        word-break: break-all;
+      }
+
+      @media (max-width: 768px) {
+        .tabla-conexiones thead {
+          display: none;
+        }
+
+        .tabla-conexiones tbody tr {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 0.75rem;
+          padding: 1rem 0.5rem;
+          border-bottom: 1px solid rgba(47, 84, 150, 0.1);
+        }
+
+        .tabla-conexiones tbody td {
+          display: flex;
+          flex-direction: column;
+          gap: 0.25rem;
+        }
+
+        .tabla-conexiones tbody td::before {
+          content: attr(data-title);
+          font-weight: 700;
+          text-transform: uppercase;
+          font-size: 0.75rem;
+          color: #8497b0;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="contenedor">
+      <div id="alerta" class="alerta-global visually-hidden"></div>
+
+      <section class="panel-card mb-4">
+        <div
+          class="d-flex flex-column flex-lg-row align-items-start justify-content-between gap-3"
+        >
+          <div>
+            <h1 class="fw-bold mb-1">Conexiones Firebird</h1>
+            <p class="text-muted mb-0">
+              Solo administradores globales pueden editar rutas de bases de
+              datos.
+            </p>
+          </div>
+          <div class="ruta-box">
+            Config: <span id="rutaConfigLabel">-</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel-card mb-4">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <h2 class="h6 text-uppercase mb-0">Conexion base</h2>
+          <span class="badge badge-outline" id="modoConexion">-</span>
+        </div>
+        <div class="row g-3">
+          <div class="col-12 col-md-4">
+            <label class="form-label fw-semibold">Host</label>
+            <input id="hostBase" class="form-control" type="text" disabled />
+          </div>
+          <div class="col-12 col-md-4">
+            <label class="form-label fw-semibold">Puerto</label>
+            <input id="portBase" class="form-control" type="text" disabled />
+          </div>
+          <div class="col-12 col-md-4">
+            <label class="form-label fw-semibold">Usuario</label>
+            <input id="userBase" class="form-control" type="text" disabled />
+          </div>
+        </div>
+        <p class="text-muted small mt-3 mb-0" id="notaConexion">
+          Las rutas se verifican localmente solo cuando el host es local.
+        </p>
+      </section>
+
+      <section class="panel-card">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <h2 class="h6 text-uppercase mb-0">Empresas</h2>
+          <button class="btn btn-outline-secondary btn-sm" id="btnRecargar">
+            Recargar
+          </button>
+        </div>
+        <div class="table-responsive">
+          <table class="table tabla-conexiones align-middle" id="tablaConexiones">
+            <thead>
+              <tr>
+                <th>Empresa</th>
+                <th>Ruta actual</th>
+                <th>Ruta personalizada</th>
+                <th>Estado</th>
+                <th class="text-end">Acciones</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <script src="js/sesion.js"></script>
+    <script>
+      const API_BASE = (() => {
+        const origin =
+          window.location.protocol === "file:"
+            ? "http://localhost:3005"
+            : window.location.origin;
+        return `${origin}/api/firebird-config`;
+      })();
+
+      const sesion = Sesion.requerirSesion();
+      if (!sesion) {
+        throw new Error("Redireccionando al inicio de sesion.");
+      }
+
+      const esAdminGlobal = Sesion.esAdminGlobal(sesion);
+      const alerta = document.getElementById("alerta");
+      const tabla = document
+        .getElementById("tablaConexiones")
+        .querySelector("tbody");
+      const rutaConfigLabel = document.getElementById("rutaConfigLabel");
+      const hostBase = document.getElementById("hostBase");
+      const portBase = document.getElementById("portBase");
+      const userBase = document.getElementById("userBase");
+      const modoConexion = document.getElementById("modoConexion");
+      const notaConexion = document.getElementById("notaConexion");
+      const btnRecargar = document.getElementById("btnRecargar");
+
+      let conexiones = [];
+
+      const mostrarToast = (mensaje, tipo = "success") => {
+        const toastDisponible = Boolean(document.getElementById("actionToast"));
+        if (window.ToastManager?.show && toastDisponible) {
+          ToastManager.show(mensaje, tipo);
+          return;
+        }
+        alert(mensaje);
+      };
+
+      const mostrarAlerta = (mensaje) => {
+        alerta.className = "alerta-global alert alert-danger";
+        alerta.textContent = mensaje;
+      };
+
+      const limpiarAlerta = () => {
+        alerta.className = "alerta-global visually-hidden";
+        alerta.textContent = "";
+      };
+
+      const manejarSesionExpirada = (resp) => {
+        if (resp?.status === 401) {
+          try {
+            Sesion.cerrar();
+          } catch (_) {}
+          return true;
+        }
+        return false;
+      };
+
+      const badgeEstado = (empresa) => {
+        if (empresa.tieneOverride) {
+          return '<span class="badge badge-success">Personalizada</span>';
+        }
+        if (empresa.rutaActual) {
+          return '<span class="badge badge-outline">Detectada</span>';
+        }
+        return '<span class="badge badge-muted">Sin ruta</span>';
+      };
+
+      const badgeArchivo = (empresa) => {
+        if (empresa.existe === null || typeof empresa.existe === "undefined") {
+          return '<span class="badge badge-muted">No verificado</span>';
+        }
+        if (empresa.existe) {
+          return '<span class="badge badge-success">Archivo OK</span>';
+        }
+        return '<span class="badge badge-danger">No encontrado</span>';
+      };
+
+      const escapeHtml = (valor) => {
+        return String(valor ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/\"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      };
+
+      const renderizarTabla = () => {
+        tabla.innerHTML = "";
+
+        if (!conexiones.length) {
+          const fila = document.createElement("tr");
+          fila.innerHTML =
+            '<td colspan="5" class="text-center text-muted py-4">No hay conexiones configuradas.</td>';
+          tabla.appendChild(fila);
+          return;
+        }
+
+        conexiones.forEach((empresa) => {
+          const fila = document.createElement("tr");
+          const rutaActual = empresa.rutaActual || "Sin ruta";
+          const rutaOverride = empresa.rutaOverride || "";
+          const id = empresa.id;
+          const nombre = empresa.etiqueta || empresa.nombre || id;
+          const idSeguro = escapeHtml(id);
+          const nombreSeguro = escapeHtml(nombre);
+          const rutaActualSegura = escapeHtml(rutaActual);
+          const rutaOverrideSeguro = escapeHtml(rutaOverride);
+
+          fila.innerHTML = `
+            <td data-title="Empresa">
+              <div class="fw-semibold">${nombreSeguro}</div>
+              <div class="text-muted small">${idSeguro}</div>
+            </td>
+            <td data-title="Ruta actual">
+              <div class="ruta-actual">${rutaActualSegura}</div>
+            </td>
+            <td data-title="Ruta personalizada">
+              <input class="form-control form-control-sm" type="text" value="${rutaOverrideSeguro}" data-empresa="${idSeguro}" />
+            </td>
+            <td data-title="Estado">
+              <div class="d-flex flex-column gap-1">
+                ${badgeEstado(empresa)}
+                ${badgeArchivo(empresa)}
+              </div>
+            </td>
+            <td data-title="Acciones" class="text-end">
+              <div class="btn-group">
+                <button class="btn btn-sm btn-outline-success" data-action="guardar" data-id="${idSeguro}">
+                  Guardar
+                </button>
+                <button class="btn btn-sm btn-outline-secondary" data-action="limpiar" data-id="${idSeguro}">
+                  Limpiar
+                </button>
+              </div>
+            </td>
+          `;
+
+          tabla.appendChild(fila);
+        });
+      };
+
+      const cargarConexiones = async () => {
+        limpiarAlerta();
+        try {
+          const respuesta = await fetch(`${API_BASE}`, {
+            headers: Sesion.headersAutenticacion(),
+          });
+          if (manejarSesionExpirada(respuesta)) return;
+          const datos = await respuesta.json().catch(() => ({}));
+          if (!respuesta.ok) {
+            throw new Error(datos.mensaje || datos.error || "No fue posible cargar conexiones.");
+          }
+
+          const base = datos.configBase || {};
+
+          rutaConfigLabel.textContent = datos.rutaConfig || "-";
+          hostBase.value = base.host || "";
+          portBase.value = base.port || "";
+          userBase.value = base.user || "";
+          modoConexion.textContent = base.esRemota ? "Remota" : "Local";
+          notaConexion.textContent = base.esRemota
+            ? "Conexiones remotas: la verificacion local de archivos esta deshabilitada."
+            : "Conexiones locales: verificamos si el archivo existe en esta maquina.";
+
+          conexiones = Array.isArray(datos.empresas) ? datos.empresas : [];
+          renderizarTabla();
+        } catch (error) {
+          mostrarAlerta(error.message || "Error cargando conexiones.");
+        }
+      };
+
+      const guardarRuta = async (empresaId, ruta) => {
+        try {
+          const respuesta = await fetch(
+            `${API_BASE}/empresa/${empresaId}`,
+            {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+                ...Sesion.headersAutenticacion(),
+              },
+              body: JSON.stringify({ rutaBaseDatos: ruta }),
+            }
+          );
+          if (manejarSesionExpirada(respuesta)) return;
+          const datos = await respuesta.json().catch(() => ({}));
+          if (!respuesta.ok) {
+            throw new Error(datos.mensaje || datos.error || "No fue posible guardar la ruta.");
+          }
+
+          await cargarConexiones();
+          mostrarToast(datos.mensaje || "Ruta actualizada.");
+        } catch (error) {
+          mostrarToast(error.message || "Error actualizando ruta.", "danger");
+        }
+      };
+
+      const manejarAcciones = (evento) => {
+        const boton = evento.target.closest("button[data-action]");
+        if (!boton) return;
+        const empresaId = boton.getAttribute("data-id");
+        const accion = boton.getAttribute("data-action");
+        const input = tabla.querySelector(`input[data-empresa="${empresaId}"]`);
+        if (!input) return;
+
+        if (accion === "limpiar") {
+          input.value = "";
+        }
+
+        guardarRuta(empresaId, input.value.trim());
+      };
+
+      btnRecargar.addEventListener("click", cargarConexiones);
+      tabla.addEventListener("click", manejarAcciones);
+
+      if (!esAdminGlobal) {
+        if (btnRecargar) btnRecargar.disabled = true;
+        mostrarAlerta("Acceso restringido a administradores globales.");
+      } else {
+        cargarConexiones();
+      }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>

@@ -551,6 +551,167 @@ const  persistirEnFirebird = async (borrador) => {
   console.log(
     `✅ Persistencia completada: ${contadorExitosas} cuentas exitosas, ${contadorErrores} errores`
   );
+
+  // ✅ PASO 3: Actualizar cuentas padre (acumulativas) con la suma de sus cuentas hijas
+  try {
+    await actualizarCuentasPadre(borrador.empresaId, anio, tablaPresup);
+  } catch (errorPadre) {
+    console.error(`❌ Error al actualizar cuentas padre:`, errorPadre);
+    // No bloquear - las cuentas de detalle ya se guardaron correctamente
+  }
+};
+
+/**
+ * Actualiza las cuentas padre (TIPO='A') con la suma de sus cuentas hijas (TIPO='D')
+ * Para cada cuenta acumulativa, suma los presupuestos de todas sus cuentas de detalle
+ */
+const actualizarCuentasPadre = async (empresaId, anio, tablaPresup) => {
+  const { ejecutarConsulta } = require("./firebirdService");
+  console.log(`\n📊 ============================================`);
+  console.log(`📊 Actualizando cuentas padre en ${tablaPresup}...`);
+  console.log(`📊 Empresa: ${empresaId}, Año: ${anio}`);
+  console.log(`📊 ============================================\n`);
+  
+  const tablaCuentas = `CUENTAS${anio.toString().slice(-2).padStart(2, '0')}`;
+  
+  // Obtener todas las cuentas acumulativas (TIPO='A')
+  const queryCuentasPadre = `
+    SELECT DISTINCT p.NUM_CTA, p.CTA_PAPA, p.NIVEL, p.NOMBRE, p.TIPO
+    FROM ${tablaCuentas} h
+    JOIN ${tablaCuentas} p
+      ON TRIM(p.NUM_CTA) = TRIM(h.CTA_PAPA)
+    WHERE h.STATUS = 'A'
+      AND p.STATUS = 'A'
+      AND TRIM(h.CTA_PAPA) <> ''
+    ORDER BY p.NIVEL DESC, p.NUM_CTA
+  `;
+  
+  console.log(`🔍 Buscando cuentas TIPO='A' en ${tablaCuentas}...`);
+  const cuentasPadre = await ejecutarConsulta(empresaId, queryCuentasPadre, []);
+  
+  if (!cuentasPadre || cuentasPadre.length === 0) {
+    console.log(`⚠️ No se encontraron cuentas padre (TIPO='A') en ${tablaCuentas}`);
+    console.log(`⚠️ Verificar que existan cuentas con TIPO='A' y STATUS='A'`);
+    return;
+  }
+  
+  console.log(`✅ Se encontraron ${cuentasPadre.length} cuentas padre (TIPO='A')`);
+  console.log(`📋 Procesando de nivel más profundo a más superficial...\n`);
+  
+  let contadorActualizadas = 0;
+  let contadorSinHijas = 0;
+  let contadorSinValores = 0;
+  
+  // Procesar de nivel más profundo a más superficial para calcular correctamente la jerarquía
+  for (const cuentaPadre of cuentasPadre) {
+    const numCta = cuentaPadre.NUM_CTA.trim();
+    const nivel = cuentaPadre.NIVEL;
+    const nombre = (cuentaPadre.NOMBRE || '').trim();
+    
+    console.log(`\n  🔹 Procesando cuenta padre: ${numCta}`);
+    console.log(`     Nombre: ${nombre}`);
+    console.log(`     Nivel: ${nivel}`);
+    
+    // Obtener todas las cuentas hijas directas (donde CTA_PAPA = numCta)
+    const queryHijas = `
+      SELECT 
+        h.NUM_CTA,
+        h.NOMBRE,
+        h.TIPO,
+        h.NIVEL,
+        h.CTA_PAPA,
+        p.PRESUP01, p.PRESUP02, p.PRESUP03, p.PRESUP04, p.PRESUP05, p.PRESUP06,
+        p.PRESUP07, p.PRESUP08, p.PRESUP09, p.PRESUP10, p.PRESUP11, p.PRESUP12
+      FROM ${tablaCuentas} h
+      LEFT JOIN ${tablaPresup} p ON p.NUM_CTA = h.NUM_CTA AND p.EJERCICIO = ?
+      WHERE h.STATUS = 'A' 
+        AND TRIM(h.CTA_PAPA) = ?
+    `;
+    
+    const cuentasHijas = await ejecutarConsulta(empresaId, queryHijas, [anio, numCta]);
+    
+    console.log(`     → Cuentas hijas encontradas: ${cuentasHijas ? cuentasHijas.length : 0}`);
+    
+    console.log(`     → Cuentas hijas encontradas: ${cuentasHijas ? cuentasHijas.length : 0}`);
+    
+    if (!cuentasHijas || cuentasHijas.length === 0) {
+      console.log(`     ⚠️ Esta cuenta padre no tiene hijas (o CTA_PAPA no coincide)`);
+      contadorSinHijas++;
+      continue;
+    }
+    
+    // Mostrar las hijas encontradas
+    cuentasHijas.forEach(hija => {
+      const hijaNombre = (hija.NOMBRE || '').trim().substring(0, 40);
+      console.log(`        • ${hija.NUM_CTA} - ${hijaNombre} (Nivel ${hija.NIVEL}, TIPO=${hija.TIPO})`);
+    });
+    
+    // Calcular suma de presupuestos por mes
+    const sumasMensuales = {
+      PRESUP01: 0, PRESUP02: 0, PRESUP03: 0, PRESUP04: 0, 
+      PRESUP05: 0, PRESUP06: 0, PRESUP07: 0, PRESUP08: 0,
+      PRESUP09: 0, PRESUP10: 0, PRESUP11: 0, PRESUP12: 0
+    };
+    
+    cuentasHijas.forEach(hija => {
+      for (let mes = 1; mes <= 12; mes++) {
+        const col = `PRESUP${mes.toString().padStart(2, '0')}`;
+        const valor = Number(hija[col]) || 0;
+        sumasMensuales[col] += valor;
+      }
+    });
+    
+    // Verificar si hay valores para actualizar
+    const tieneValores = Object.values(sumasMensuales).some((val) => val !== 0);
+    
+    if (!tieneValores) {
+      console.log(`     ⚠️ Las cuentas hijas no tienen presupuestos (todos en cero)`);
+      contadorSinValores++;
+    }
+    
+    // Mostrar totales calculados
+    const totalAnual = Object.values(sumasMensuales).reduce((sum, val) => sum + val, 0);
+    console.log(`     💰 Total anual calculado: ${totalAnual.toFixed(2)}`);
+    console.log(`     💰 Enero (PRESUP01): ${sumasMensuales.PRESUP01.toFixed(2)}`);
+    
+    // Actualizar o insertar la cuenta padre con las sumas
+    const columnas = ["NUM_CTA", "EJERCICIO", 
+      "PRESUP01", "PRESUP02", "PRESUP03", "PRESUP04", "PRESUP05", "PRESUP06",
+      "PRESUP07", "PRESUP08", "PRESUP09", "PRESUP10", "PRESUP11", "PRESUP12"
+    ];
+    
+    const valores = [
+      numCta, anio,
+      sumasMensuales.PRESUP01, sumasMensuales.PRESUP02, sumasMensuales.PRESUP03,
+      sumasMensuales.PRESUP04, sumasMensuales.PRESUP05, sumasMensuales.PRESUP06,
+      sumasMensuales.PRESUP07, sumasMensuales.PRESUP08, sumasMensuales.PRESUP09,
+      sumasMensuales.PRESUP10, sumasMensuales.PRESUP11, sumasMensuales.PRESUP12
+    ];
+    
+    const placeholders = columnas.map(() => "?").join(", ");
+    
+    const updateQuery = `
+      UPDATE OR INSERT INTO ${tablaPresup} (${columnas.join(", ")})
+      VALUES (${placeholders})
+      MATCHING (NUM_CTA, EJERCICIO)
+    `;
+    
+    try {
+      await ejecutarConsulta(empresaId, updateQuery, valores);
+      contadorActualizadas++;
+      console.log(`     ✅ Cuenta padre actualizada exitosamente`);
+    } catch (error) {
+      console.error(`     ❌ Error actualizando cuenta padre ${numCta}:`, error.message);
+    }
+  }
+  
+  console.log(`\n📊 ============================================`);
+  console.log(`📊 RESUMEN DE ACTUALIZACIÓN:`);
+  console.log(`   ✅ Actualizadas: ${contadorActualizadas}`);
+  console.log(`   ⚠️ Sin hijas: ${contadorSinHijas}`);
+  console.log(`   ⚠️ Sin valores: ${contadorSinValores}`);
+  console.log(`   📊 Total procesadas: ${cuentasPadre.length}`);
+  console.log(`📊 ============================================\n`);
 };
 
 const FINALIZADORES = {

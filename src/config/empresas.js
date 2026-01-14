@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { obtenerRutaOverride } = require('../services/firebirdConfigService');
 
 // Base por defecto (puede sobreescribirse con ASPEL_COI_BASE)
 const ASPEL_BASE = process.env.ASPEL_COI_BASE || 'C:/Program Files (x86)/Common Files/Aspel/Sistemas Aspel';
@@ -47,6 +48,15 @@ const EMPRESAS_META = [
   { id: 'empresa4', nombre: 'Noroeste', etiqueta: 'Noroeste', numero: 4 }
 ];
 
+const EMPRESAS_COMPARATIVAS_META = [
+  { id: 'empresa9', nombre: 'Empresa 9', etiqueta: 'Empresa 9 (Comparativa)', numero: 9 },
+  { id: 'empresa10', nombre: 'Empresa 10', etiqueta: 'Empresa 10 (Comparativa)', numero: 10 },
+  { id: 'empresa11', nombre: 'Empresa 11', etiqueta: 'Empresa 11 (Comparativa)', numero: 11 },
+  { id: 'empresa12', nombre: 'Empresa 12', etiqueta: 'Empresa 12 (Comparativa)', numero: 12 }
+];
+
+const EMPRESAS_CONFIGURABLES = [...EMPRESAS_META, ...EMPRESAS_COMPARATIVAS_META];
+
 // Determinar rutas dinámicamente por empresa: elegir la carpeta COI de mayor versión que tenga el .FDB
 const candidatasCOI = listarCarpetasCOI();
 const EMPRESAS = EMPRESAS_META.map((e) => {
@@ -57,7 +67,13 @@ const EMPRESAS = EMPRESAS_META.map((e) => {
   }
   // Si no hubo ninguna, intentar fallback COI10.00 solo si existe
   if (!ruta) ruta = rutaFallback(e.numero);
-  return { id: e.id, nombre: e.nombre, etiqueta: e.etiqueta, rutaBaseDatos: ruta };
+  return {
+    id: e.id,
+    nombre: e.nombre,
+    etiqueta: e.etiqueta,
+    numero: e.numero,
+    rutaBaseDatos: ruta,
+  };
 });
 
 const EMPRESAS_COMPARATIVAS = new Set([9, 10, 11, 12]);
@@ -76,7 +92,22 @@ const EMPRESAS_COMPARATIVAS_RUTAS = {
   ),
 };
 
-const obtenerEmpresaPorId = (id) => {
+const resolverRutaComparativa = (numero) => {
+  const rutaDirecta = EMPRESAS_COMPARATIVAS_RUTAS[numero];
+  if (rutaDirecta && fs.existsSync(rutaDirecta)) {
+    return rutaDirecta;
+  }
+
+  let ruta = null;
+  for (const carpeta of candidatasCOI) {
+    ruta = construirRutaBD(carpeta, numero);
+    if (ruta) break;
+  }
+  if (!ruta) ruta = rutaFallback(numero);
+  return ruta;
+};
+
+const obtenerEmpresaBasePorId = (id) => {
   const empresa = EMPRESAS.find((item) => item.id === id);
   if (empresa) return empresa;
 
@@ -86,30 +117,32 @@ const obtenerEmpresaPorId = (id) => {
   const numero = parseInt(match[1], 10);
   if (!EMPRESAS_COMPARATIVAS.has(numero)) return undefined;
 
-  const rutaDirecta = EMPRESAS_COMPARATIVAS_RUTAS[numero];
-  if (rutaDirecta && fs.existsSync(rutaDirecta)) {
-    return {
-      id: `empresa${numero}`,
-      nombre: `Empresa ${numero}`,
-      etiqueta: `Empresa ${numero}`,
-      rutaBaseDatos: rutaDirecta,
-    };
-  }
-
-  let ruta = null;
-  for (const carpeta of candidatasCOI) {
-    ruta = construirRutaBD(carpeta, numero);
-    if (ruta) break;
-  }
-  if (!ruta) ruta = rutaFallback(numero);
-  if (!ruta) return undefined;
+  const ruta = resolverRutaComparativa(numero);
 
   return {
     id: `empresa${numero}`,
     nombre: `Empresa ${numero}`,
     etiqueta: `Empresa ${numero}`,
-    rutaBaseDatos: ruta
+    numero,
+    rutaBaseDatos: ruta || null,
   };
 };
 
-module.exports = { EMPRESAS, obtenerEmpresaPorId };
+const obtenerEmpresaPorId = (id) => {
+  const base = obtenerEmpresaBasePorId(id);
+  if (!base) return undefined;
+
+  const override = obtenerRutaOverride(base.id);
+  if (override) {
+    return { ...base, rutaBaseDatos: override };
+  }
+
+  return base;
+};
+
+module.exports = {
+  EMPRESAS,
+  EMPRESAS_CONFIGURABLES,
+  obtenerEmpresaPorId,
+  obtenerEmpresaBasePorId,
+};

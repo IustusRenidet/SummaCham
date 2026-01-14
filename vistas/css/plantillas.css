@@ -750,6 +750,60 @@ body {
   background: #f8fafc;
 }
 
+.template-table .order-col {
+  width: 96px;
+  text-align: center;
+}
+
+.template-table .order-cell {
+  background: #f8fafc;
+}
+
+.template-table.ordering-mode tbody tr[data-row-type="section"] .order-cell {
+  background: #eef2ff;
+}
+
+.template-table.ordering-mode tbody tr[data-row-type="subsection"] .order-cell {
+  background: #f8fafc;
+}
+
+.inline-order-controls {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.inline-order-controls .order-index {
+  min-width: 24px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.inline-order-controls .inline-order-btn {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.template-table-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.column-config-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 /* ===== OPERATION KIND PILLS ===== */
 .op-kind-pill {
   display: inline-flex;
@@ -792,4 +846,167 @@ body {
 .op-kind-net-final {
   background: #fee2e2;
   color: #991b1b;
+}
+
+/* ===== OPERATION EDITOR PANEL ===== */
+.template-editor-panel {
+  width: min(560px, 96vw);
+}
+
+.template-editor-panel .offcanvas-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.editor-tabs .nav-link {
+  font-weight: 600;
+  color: #475569;
+}
+
+.editor-tabs .nav-link.active {
+  color: var(--color-primary);
+}
+
+.editor-tab-content {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.editor-footer {
+  border-top: 1px solid #e5e7eb;
+  padding-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.editor-advanced {
+  border: 1px dashed #e5e7eb;
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: #f8fafc;
+}
+
+.editor-advanced summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.formula-mode-toggle .btn {
+  font-weight: 600;
+}
+
+.formula-mode-panel {
+  margin-top: 12px;
+}
+
+.contribution-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.contrib-list {
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 10px;
+  background: #f8fafc;
+  max-height: 280px;
+  overflow-y: auto;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.contrib-list:empty::after {
+  content: "Sin elementos disponibles";
+  display: block;
+  text-align: center;
+  padding: 20px;
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.contrib-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  margin-bottom: 6px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.contrib-item:hover {
+  border-color: var(--color-primary);
+  box-shadow: 0 2px 6px rgba(47, 84, 150, 0.1);
+  transform: translateX(2px);
+}
+
+.contrib-item:last-child {
+  margin-bottom: 0;
+}
+
+.contrib-check {
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+}
+
+.contrib-operator {
+  width: 60px;
+  font-weight: 700;
+  font-size: 1rem;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  padding: 4px 8px;
+  text-align: center;
+}
+
+.contrib-label {
+  flex: 1;
+  font-weight: 600;
+  color: #0f172a;
+  font-size: 0.9rem;
+}
+
+.contrib-meta {
+  font-size: 0.7rem;
+  color: #64748b;
+}
+
+.contrib-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 2px solid #e5e7eb;
+}
+
+/* Estilos para la configuración avanzada de columnas */
+.advanced-config summary {
+  cursor: pointer;
+  user-select: none;
+  padding: 10px;
+  background: #f1f5f9;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.advanced-config summary:hover {
+  background: #e2e8f0;
+}
+
+.advanced-config[open] summary {
+  background: var(--color-primary);
+  color: white;
+  margin-bottom: 12px;
+}
+
+.advanced-config[open] summary .template-details-title strong {
+  color: white;
 }

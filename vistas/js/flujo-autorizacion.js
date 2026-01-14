@@ -2401,20 +2401,26 @@
     }
 
     async _mostrarCentroBorradores() {
+      console.log('[FlujoAutorizacion] _mostrarCentroBorradores llamado');
       const drawer = ensureDraftsDrawer();
+      console.log('[FlujoAutorizacion] Drawer obtenido:', !!drawer);
       if (!drawer) {
         this._toast("Error al mostrar el centro de borradores.", "danger");
         return;
       }
       if (!window.bootstrap?.Offcanvas) {
+        console.error('[FlujoAutorizacion] Bootstrap.Offcanvas no está disponible');
         this._toast("Bootstrap no está cargado correctamente.", "danger");
         return;
       }
+      console.log('[FlujoAutorizacion] Creando instancia de Offcanvas...');
       const offcanvas = window.bootstrap.Offcanvas.getOrCreateInstance(drawer);
+      console.log('[FlujoAutorizacion] Mostrando offcanvas...');
       offcanvas.show();
       if (!this._contextoCompleto()) {
         const status = drawer.querySelector("#draftsCenterStatus");
         const body = drawer.querySelector("#draftsCenterBody");
+        console.log('[FlujoAutorizacion] Contexto incompleto. Status:', !!status, 'Body:', !!body);
         if (status) {
           status.className = "alert alert-warning";
           status.textContent =
@@ -2426,13 +2432,19 @@
         }
         return;
       }
+      console.log('[FlujoAutorizacion] Contexto completo, cargando borradores...');
       await this._cargarCentroBorradores(drawer);
     }
 
     async _cargarCentroBorradores(drawer) {
+      console.log('[FlujoAutorizacion] _cargarCentroBorradores - Drawer recibido:', !!drawer);
       const status = drawer.querySelector("#draftsCenterStatus");
       const body = drawer.querySelector("#draftsCenterBody");
-      if (!status || !body) return;
+      console.log('[FlujoAutorizacion] Elementos encontrados - Status:', !!status, 'Body:', !!body);
+      if (!status || !body) {
+        console.error('[FlujoAutorizacion] No se encontraron elementos status o body');
+        return;
+      }
       status.className = "alert alert-info";
       status.textContent = "Cargando borradores...";
       body.innerHTML =
@@ -2448,6 +2460,7 @@
         if (capitulo) {
           params.set("capitulo", capitulo);
         }
+        console.log('[FlujoAutorizacion] Llamando API con params:', params.toString());
         const resp = await fetch(
           `${API_BASE}/borradores/listar?${params.toString()}`,
           {
@@ -2455,12 +2468,14 @@
           }
         );
         const data = await resp.json().catch(() => ({}));
+        console.log('[FlujoAutorizacion] Respuesta de API:', { ok: resp.ok, data });
         if (!resp.ok)
           throw new Error(
             data.mensaje || "No fue posible obtener los borradores."
           );
         this._renderizarCentroBorradores(data.borradores || [], status, body);
       } catch (error) {
+        console.error('[FlujoAutorizacion] Error al cargar borradores:', error);
         status.className = "alert alert-danger";
         status.textContent =
           error.message || "Error al consultar los borradores.";
@@ -2484,10 +2499,12 @@
      * @param {HTMLElement} body - tbody donde se pintarán las filas
      */
     _renderizarCentroBorradores(lista, status, body) {
+      console.log('[FlujoAutorizacion] _renderizarCentroBorradores llamado con', lista?.length || 0, 'borradores');
       body.innerHTML = "";
 
       // Validar que hay borradores
       if (!Array.isArray(lista) || !lista.length) {
+        console.log('[FlujoAutorizacion] No hay borradores para mostrar');
         status.className = "alert alert-warning";
         status.innerHTML =
           '<i class="bi bi-exclamation-triangle me-2"></i>No hay borradores disponibles para este contexto.';
@@ -2496,6 +2513,7 @@
         return;
       }
 
+      console.log('[FlujoAutorizacion] Renderizando', lista.length, 'borradores');
       // Actualizar mensaje de estado
       status.className = "alert alert-success";
       status.innerHTML = `<i class="bi bi-check-circle me-2"></i>Se encontraron <strong>${lista.length}</strong> borrador(es). Haz clic en "Cargar" para visualizarlo.`;
@@ -3147,16 +3165,20 @@
     window.__workflowRefreshTimeline = refrescarWorkflowHistorial;
 
     const init = () => {
+      console.log('[DraftHistoryCenter] Iniciando...');
       ensureDraftsDrawer();
       ensureWorkflowDrawer();
-      if (document.getElementById("workflowDraftsDrawer")) {
+      
+      const draftsDrawer = document.getElementById("workflowDraftsDrawer");
+      console.log('[DraftHistoryCenter] Drawer encontrado:', !!draftsDrawer);
+      
+      if (draftsDrawer) {
         refs.drafts = {
-          el: document.getElementById("workflowDraftsDrawer"),
+          el: draftsDrawer,
           status: document.getElementById("draftsCenterStatus"),
-          tabs: document.querySelectorAll("[data-drafts-tab]"),
-          views: document.querySelectorAll("[data-drafts-view]"),
+          body: document.getElementById("draftsCenterBody"),
           history: {
-            status: document.getElementById("draftHistoryStatus"),
+            status: document.getElementById("draftsHistoryStatus"),
             tbody: document.getElementById("draftHistoryTableBody"),
             search: document.getElementById("draftHistorySearch"),
             state: document.getElementById("draftHistoryState"),
@@ -3166,24 +3188,15 @@
             to: document.getElementById("draftHistoryTo"),
           },
         };
-        refs.drafts.tabs.forEach((btn) => {
-          btn.addEventListener("click", () => {
-            const vista = btn.dataset.draftsTab;
-            if (vista === vistaActual) return;
-            vistaActual = vista;
-            refs.drafts.tabs.forEach((tab) =>
-              tab.classList.toggle("active", tab === btn)
-            );
-            refs.drafts.views.forEach((view) =>
-              view.classList.toggle(
-                "d-none",
-                view.dataset.draftsView !== vistaActual
-              )
-            );
-            if (vistaActual === "history")
-              cargarHistorial(refs.drafts.history, filtrosDraft);
-          });
+        console.log('[DraftHistoryCenter] Referencias configuradas:', {
+          el: !!refs.drafts.el,
+          status: !!refs.drafts.status,
+          body: !!refs.drafts.body,
+          historyStatus: !!refs.drafts.history.status,
+          historyTbody: !!refs.drafts.history.tbody
         });
+        
+        // Vincular filtros del historial
         vincularFiltros(refs.drafts.history, filtrosDraft, (tipo) => {
           clearTimeout(debounceDraft);
           if (tipo === "search")

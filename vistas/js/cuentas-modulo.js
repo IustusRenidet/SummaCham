@@ -1910,17 +1910,22 @@
           presupuesto[mes] = valorPresupuesto;
           real[mes] = valorReal;
         });
+        const nombre =
+          cuenta.descripcion || cuenta.nombre || cuenta.DESCRIPCION || "";
+        if (esNombreCuentaPresupuestoOculto(nombre)) return null;
         return {
           cuenta21,
           cuentaVisible,
-          nombre:
-            cuenta.descripcion || cuenta.nombre || cuenta.DESCRIPCION || "",
+          nombre,
           presupuesto,
           real,
         };
       })
       .filter(Boolean);
   };
+
+  const esNombreCuentaPresupuestoOculto = (nombre) =>
+    normalizarTexto(nombre) === "DISPONIBLE";
 
   const esCuentaPresupuestoValida = (valorCuenta) => {
     const canonica = convertirCuenta21(valorCuenta || "");
@@ -5019,6 +5024,11 @@
     if (moduloClave === "presupuestos") {
       registros = registros.filter((registro) => {
         if (!registro?.cuenta) return true;
+        const nombreRegistro =
+          registro.nombre || registro.descripcion || registro.DESCRIPCION || "";
+        if (esNombreCuentaPresupuestoOculto(nombreRegistro)) {
+          return false;
+        }
         return esCuentaPresupuestoValida(registro.cuenta);
       });
     }
