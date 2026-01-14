@@ -394,11 +394,15 @@
     cuerpo,
     placeholdersPorFila,
     operaciones,
+    insertBefore,
   }) => {
     const filasOperativo = new Map();
     if (!cuerpo || !Array.isArray(operaciones) || !operaciones.length) {
       return filasOperativo;
     }
+    const referenciaValida =
+      insertBefore && insertBefore.parentNode === cuerpo ? insertBefore : null;
+    const destino = referenciaValida ? document.createDocumentFragment() : cuerpo;
 
     const filaSeccion = document.createElement("tr");
     filaSeccion.className = "section-header-row";
@@ -408,14 +412,14 @@
     celda.colSpan = Math.max(0, placeholdersPorFila) + 2;
     celda.textContent = "Resultado Operativo";
     filaSeccion.appendChild(celda);
-    cuerpo.appendChild(filaSeccion);
+    destino.appendChild(filaSeccion);
 
     operaciones.forEach((operacion) => {
       const texto = `Resultado Operativo ${operacion.nombre}`;
       const fila = agregarFilaResumen({
         texto,
         clase: "sum-row-operativo",
-        cuerpo,
+        cuerpo: destino,
         placeholdersPorFila,
       });
       if (fila) {
@@ -426,6 +430,10 @@
         });
       }
     });
+
+    if (referenciaValida) {
+      cuerpo.insertBefore(destino, referenciaValida);
+    }
 
     return filasOperativo;
   };
@@ -5151,11 +5159,20 @@
       registros,
       moduloClave,
     });
+    const insertarOperativoAntesDe =
+      moduloClave === "comites" || moduloClave === "eventos"
+        ? cuerpo.querySelector(
+            `tr.section-header-row[data-seccion="${normalizarTexto(
+              "Gastos Administrativos"
+            )}"]`
+          )
+        : null;
     estadoModulo.operacionesResultadoOperativo =
       insertarOperacionesResultadoOperativo({
         cuerpo,
         placeholdersPorFila,
         operaciones: operacionesResultado,
+        insertBefore: insertarOperativoAntesDe,
       });
 
     pendientes.resultadoFilas.forEach((fila) => {

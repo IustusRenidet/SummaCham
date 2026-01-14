@@ -94,7 +94,7 @@ const EMPRESAS_COMPARATIVAS_RUTAS = {
 
 const resolverRutaComparativa = (numero) => {
   const rutaDirecta = EMPRESAS_COMPARATIVAS_RUTAS[numero];
-  if (rutaDirecta && fs.existsSync(rutaDirecta)) {
+  if (rutaDirecta) {
     return rutaDirecta;
   }
 
