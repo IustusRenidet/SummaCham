@@ -885,6 +885,8 @@
       const configPorSeccion = new Map();
       const resultRows = [];
       const resultRowSeen = new Set();
+      const operativoRows = [];
+      const operativoSeen = new Set();
 
       operacionesOrdenadas.forEach((op, idx) => {
         const seccion = this._cleanLabel(op.SECCION || op.seccion);
@@ -912,6 +914,19 @@
             resultRowSeen.add(key);
             resultRows.push({
               label: resultLabel,
+              order: this._getOperationOrder(op, idx),
+              visible: this._isVisible(op.visible),
+            });
+          }
+        }
+
+        const operativoLabel = this._cleanLabel(op["sum-row-operativo"]);
+        if (operativoLabel) {
+          const key = this._normalizeKey(operativoLabel);
+          if (!operativoSeen.has(key)) {
+            operativoSeen.add(key);
+            operativoRows.push({
+              label: operativoLabel,
               order: this._getOperationOrder(op, idx),
               visible: this._isVisible(op.visible),
             });
@@ -1057,6 +1072,26 @@
           }
           return false;
         });
+      }
+
+      if (operativoRows.length) {
+        rows.push({
+          type: "principal",
+          label: "Resultado Operativo",
+          visible: true,
+          generated: true,
+        });
+        operativoRows
+          .slice()
+          .sort((a, b) => a.order - b.order)
+          .forEach((op) => {
+            rows.push({
+              type: "operation",
+              label: op.label,
+              kind: "sum-row-operativo",
+              visible: this._isVisible(op.visible),
+            });
+          });
       }
 
       if (resultRow?.label) {

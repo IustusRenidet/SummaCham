@@ -25,6 +25,8 @@
     layout: null,
     cuentas: [],
     operaciones: [],
+    columnasConfig: null,
+    columnasConfigChanged: false,
     unsavedChanges: false,
     editMode: false,
     selectedElement: null,
@@ -401,8 +403,23 @@
       state.layout = data.layout || {};
       state.cuentas = extractCuentas(state.layout);
       state.operaciones = sortOperations(state.layout.operaciones || []);
+      if (isModuloPiloto()) {
+        const extracted = extractColumnConfigFromOperations(state.operaciones);
+        state.operaciones = extracted.operaciones;
+        state.columnasConfig =
+          Array.isArray(extracted.columnasConfig) &&
+          extracted.columnasConfig.length
+            ? extracted.columnasConfig
+            : buildDefaultColumnConfig();
+        state.columnasConfigChanged = false;
+      } else {
+        state.columnasConfig = null;
+        state.columnasConfigChanged = false;
+      }
       await syncOperacionesPredefinidas({ autoCreate: true, force: true });
+      syncOperacionesSumasDesdeConfig();
       hydrateOperationsFromParents();
+      syncOperativoPorNombreOps();
       ensureOperationIds();
       normalizeOperationReferences();
       state.selectedElement = null;
@@ -479,6 +496,7 @@
     return (
       op?.["sum-row"] ||
       op?.["sum-row-sumavarios"] ||
+      op?.["sum-row-sumavarios2"] ||
       op?.["sum-row-sumavarios-consolidado"] ||
       op?.["sum-row-operativo"] ||
       op?.["result-row"] ||
@@ -499,6 +517,11 @@
       field: "sum-row-sumavarios",
       label: "Suma Varios",
       placeholder: "TOTAL ...",
+    },
+    {
+      field: "sum-row-sumavarios2",
+      label: "Suma Varios 2",
+      placeholder: "RESULTADO ...",
     },
     {
       field: "sum-row-sumavarios-consolidado",
@@ -526,6 +549,8 @@
       placeholder: "CONSOLIDATED NET RESULTS ...",
     },
   ];
+
+  const ROW_LABEL_FIELDS = OP_ROW_FIELDS.map((row) => row.field);
 
   const rowLabelInputId = (field) =>
     `editRowLabel_${field.replace(/[^a-z0-9]/gi, "_")}`;
@@ -583,6 +608,65 @@
         (op) => normalizeOperationMatch(getOperationLabel(op)) === target
       )
     );
+  }
+
+  function findOperationsByRowLabel(label, preferredField = "") {
+    if (!label) return { field: "", operations: [] };
+    const target = normalizeOperationMatch(label);
+    if (!target) return { field: "", operations: [] };
+
+    const fields = [];
+    if (preferredField && ROW_LABEL_FIELDS.includes(preferredField)) {
+      fields.push(preferredField);
+    }
+    ROW_LABEL_FIELDS.forEach((field) => {
+      if (!fields.includes(field)) fields.push(field);
+    });
+
+    for (const field of fields) {
+      const operations = (state.operaciones || []).filter(
+        (op) => normalizeOperationMatch(op?.[field]) === target
+      );
+      if (operations.length) {
+        return { field, operations };
+      }
+    }
+
+    return { field: "", operations: [] };
+  }
+
+  function buildFormulaTermsForRowLabel(label, field) {
+    const match = findOperationsByRowLabel(label, field);
+    const ops = match.operations || [];
+    const resolvedField = match.field || field;
+    if (!ops.length) return [];
+
+    const terms = [];
+    const seen = new Set();
+
+    ops.forEach((op) => {
+      const section =
+        op.SECCION || op.parentSection || op.parentSubsection || op.Clase || "";
+      if (!section) return;
+      const key = normalizeOperationMatch(section);
+      if (!key || seen.has(key)) return;
+      seen.add(key);
+
+      let sign = Number(op.signos?.[resolvedField]);
+      if (!Number.isFinite(sign)) {
+        sign = resolvedField === "sum-row" ? 1 : getOperativoSignForSection(section);
+      }
+      if (!Number.isFinite(sign) || sign === 0) sign = 1;
+
+      terms.push({
+        id: Date.now() + terms.length,
+        operator: sign < 0 ? "-" : "+",
+        type: "section",
+        value: section,
+      });
+    });
+
+    return terms;
   }
 
   function formatOperationReference(value) {
@@ -851,6 +935,903 @@
     updateSelectionInfo();
   }
 
+  function isModuloPiloto() {
+    return normalizeOperationMatch(state.modulo) === "comites";
+  }
+
+  const COLUMN_CONFIG_ID = "COLUMN_CONFIG";
+  const COLUMN_CONFIG_FIELD = "column-config";
+  const OPERATIVO_STOP_WORDS = new Set([
+    "de",
+    "del",
+    "la",
+    "las",
+    "los",
+    "y",
+    "en",
+    "el",
+    "al",
+    "para",
+    "por",
+    "con",
+    "sin",
+  ]);
+
+  function renderEditableLayoutPiloto() {
+    const rows = buildPreviewRowsForEditor();
+    const columns = getColumnConfigForRender();
+    const rowsCount = rows.length;
+    return `
+      <div class="template-pilot">
+        ${renderColumnConfigSection(columns)}
+        <div class="card mb-3">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <span>Tabla de plantilla (orden de aparicion)</span>
+            <span class="badge bg-secondary">${rowsCount}</span>
+          </div>
+          <div class="card-body">
+            ${renderTemplateTable(rows, columns)}
+            <div class="small text-muted mt-2">Click en cualquier fila para editar.</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function buildPreviewRowsForEditor() {
+    if (
+      !window.LayoutControls ||
+      typeof window.LayoutControls._buildPreviewRows !== "function"
+    ) {
+      return [];
+    }
+    const layoutData = {
+      modulo: state.modulo,
+      capitulo: state.capitulo,
+      cuentas: state.cuentas || [],
+      operaciones: sortOperations(state.operaciones || []),
+    };
+    try {
+      return window.LayoutControls._buildPreviewRows(layoutData) || [];
+    } catch (err) {
+      console.warn("No se pudo construir filas para el piloto", err);
+      return [];
+    }
+  }
+
+  function getColumnConfigForRender() {
+    if (Array.isArray(state.columnasConfig) && state.columnasConfig.length) {
+      return state.columnasConfig;
+    }
+    const defaults = buildDefaultColumnConfig();
+    state.columnasConfig = defaults;
+    state.columnasConfigChanged = false;
+    return defaults;
+  }
+
+  function renderColumnConfigSection(columns = []) {
+    const canEdit = state.editMode !== false;
+    const disabledAttr = canEdit ? "" : "disabled";
+    const rowsHtml = (columns || [])
+      .map(
+        (col, idx) => `
+          <tr data-col-index="${idx}">
+            <td class="text-muted">${idx + 1}</td>
+            <td><code>${escapeHtml(col.key || "")}</code></td>
+            <td>
+              <input
+                type="text"
+                class="form-control form-control-sm"
+                value="${escapeHtml(col.label || "")}"
+                data-field="label"
+                ${disabledAttr}
+              />
+            </td>
+            <td>
+              <input
+                type="text"
+                class="form-control form-control-sm"
+                value="${escapeHtml(col.operacion || "")}"
+                data-field="operacion"
+                ${disabledAttr}
+              />
+            </td>
+            <td class="text-center">
+              <input
+                type="checkbox"
+                class="form-check-input"
+                data-field="editable"
+                ${col.editable ? "checked" : ""}
+                ${disabledAttr}
+              />
+            </td>
+          </tr>
+        `
+      )
+      .join("");
+
+    return `
+      <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <span>Columnas de la plantilla</span>
+          <span class="badge bg-secondary">${columns.length}</span>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm table-bordered column-config-table">
+            <thead class="table-light">
+              <tr>
+                <th>#</th>
+                <th>Clave</th>
+                <th>Etiqueta</th>
+                <th>Operacion</th>
+                <th>Editable</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml || ""}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderTemplateTable(rows = [], columns = []) {
+    const resolvedColumns =
+      Array.isArray(columns) && columns.length
+        ? columns
+        : [
+            { key: "cuenta", label: "Cuenta" },
+            { key: "descripcion", label: "Descripcion" },
+          ];
+    const colCount = resolvedColumns.length;
+    const headerHtml = resolvedColumns
+      .map(
+        (col, idx) => `
+          <th data-col-index="${idx}" title="${escapeAttr(col.key || "")}">
+            ${escapeHtml(col.label || col.key || "")}
+          </th>
+        `
+      )
+      .join("");
+
+    let bodyHtml = "";
+    let currentSection = "";
+    let currentSubsection = "";
+
+    rows.forEach((row) => {
+      if (!row) return;
+      const isVisible = row.visible !== false;
+      const hiddenClass = isVisible ? "" : "text-muted";
+      if (row.type === "principal") {
+        currentSection = row.label || "";
+        currentSubsection = "";
+        bodyHtml += `
+          <tr class="section-header-row ${hiddenClass}" data-row-type="section" data-section="${escapeAttr(
+            currentSection
+          )}" data-generated="${row.generated ? "true" : "false"}">
+            <td colspan="${colCount}">
+              <strong>${escapeHtml(currentSection || "Seccion")}</strong>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      if (row.type === "subsection") {
+        currentSubsection = row.label || "";
+        bodyHtml += `
+          <tr class="subsection-row ${hiddenClass}" data-row-type="subsection" data-section="${escapeAttr(
+            currentSection
+          )}" data-subsection="${escapeAttr(currentSubsection)}">
+            <td colspan="${colCount}">
+              <em>${escapeHtml(currentSubsection || "Subseccion")}</em>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      if (row.type === "account") {
+        const cuenta = row.cuenta || row.label || "";
+        const nombre = row.nombre || "";
+        const cells = [];
+        for (let i = 0; i < colCount; i += 1) {
+          if (i === 0) {
+            cells.push(
+              `<td class="account-code">${escapeHtml(cuenta)}</td>`
+            );
+          } else if (i === 1) {
+            cells.push(
+              `<td class="account-name">${escapeHtml(
+                nombre || cuenta
+              )}</td>`
+            );
+          } else {
+            cells.push("<td></td>");
+          }
+        }
+        bodyHtml += `
+          <tr class="account-row ${hiddenClass}" data-row-type="account" data-cuenta="${escapeAttr(
+            cuenta
+          )}" data-nombre="${escapeAttr(nombre)}" data-section="${escapeAttr(
+            currentSection
+          )}" data-subsection="${escapeAttr(currentSubsection)}">
+            ${cells.join("")}
+          </tr>
+        `;
+        return;
+      }
+
+      if (row.type === "operation") {
+        const op = findOperationByIdOrLabel(row.label || "");
+        const label = op ? getOperationDisplayName(op) : row.label || "";
+        const opId = op ? getOperationId(op) : "";
+        const kind = row.kind || "";
+        const formula = op ? formatFormula(op) : "";
+        const cells = [];
+        for (let i = 0; i < colCount; i += 1) {
+          if (i === 0) {
+            cells.push("<td></td>");
+          } else if (i === 1) {
+            const kindBadge = kind
+              ? `<span class="small text-muted ms-2">${escapeHtml(
+                  kind
+                )}</span>`
+              : "";
+            cells.push(
+              `<td class="fw-semibold">${escapeHtml(label)}${kindBadge}</td>`
+            );
+          } else {
+            cells.push("<td></td>");
+          }
+        }
+        bodyHtml += `
+          <tr class="operation-row ${kind} ${hiddenClass}" data-row-type="operation" data-operation-id="${escapeAttr(
+            opId || label
+          )}" data-operation-label="${escapeAttr(label)}" data-operation-kind="${escapeAttr(
+            kind
+          )}" ${formula ? `title="${escapeAttr(formula)}"` : ""}>
+            ${cells.join("")}
+          </tr>
+        `;
+      }
+    });
+
+    if (!bodyHtml) {
+      bodyHtml = `
+        <tr>
+          <td colspan="${colCount}" class="text-muted text-center">
+            Sin filas para mostrar
+          </td>
+        </tr>
+      `;
+    }
+
+    return `
+      <div class="table-responsive">
+        <table class="table table-sm table-bordered template-table">
+          <thead class="table-light">
+            <tr>${headerHtml}</tr>
+          </thead>
+          <tbody>
+            ${bodyHtml}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  function bindTemplateTableEvents() {
+    if (!isModuloPiloto()) return;
+    const table = dom.layoutPreview?.querySelector(".template-table");
+    if (!table) return;
+    table.addEventListener("click", (event) => {
+      const row = event.target.closest("tr[data-row-type]");
+      if (!row) return;
+      const rowType = row.dataset.rowType;
+      if (rowType === "account") {
+        const cuenta = row.dataset.cuenta;
+        if (cuenta) {
+          editAccount(cuenta);
+        }
+        return;
+      }
+      if (rowType === "operation") {
+        const rawLabel = row.dataset.operationLabel || "";
+        const rawId = row.dataset.operationId || "";
+        const label = rawLabel || rawId;
+        if (!label) return;
+
+        const direct = findOperationByIdOrLabel(label);
+        if (direct) {
+          editOperation(getOperationId(direct) || label);
+          return;
+        }
+
+        const kind = row.dataset.operationKind || "";
+        const match = findOperationsByRowLabel(label, kind);
+        if (match.operations.length === 1) {
+          editOperation(getOperationId(match.operations[0]) || label);
+          return;
+        }
+        if (match.operations.length > 1) {
+          editConsolidatedLabel(label, match.field || kind || "sum-row");
+          return;
+        }
+
+        showToast("Operacion no encontrada", "warning");
+        return;
+      }
+      if (rowType === "section") {
+        if (row.dataset.generated === "true") return;
+        const section = row.dataset.section;
+        if (section) {
+          editSection(section);
+        }
+        return;
+      }
+      if (rowType === "subsection") {
+        const section = row.dataset.section;
+        const subsection = row.dataset.subsection;
+        if (section && subsection) {
+          editSubsection(section, subsection);
+        }
+      }
+    });
+  }
+
+  function bindColumnConfigEvents() {
+    if (!isModuloPiloto()) return;
+    const table = dom.layoutPreview?.querySelector(".column-config-table");
+    if (!table) return;
+    const handler = (event) => {
+      const target = event.target;
+      const row = target.closest("tr[data-col-index]");
+      if (!row) return;
+      const index = Number(row.dataset.colIndex);
+      if (!Number.isInteger(index)) return;
+      const field = target.dataset.field;
+      if (!field) return;
+      if (!Array.isArray(state.columnasConfig)) return;
+      const column = state.columnasConfig[index];
+      if (!column) return;
+      if (field === "editable") {
+        column.editable = Boolean(target.checked);
+      } else {
+        column[field] = target.value;
+      }
+      if (!state.columnasConfigChanged) {
+        logChange("edit", "Columnas de plantilla");
+        state.columnasConfigChanged = true;
+      } else {
+        state.unsavedChanges = true;
+        updateButtonStates();
+      }
+      if (field === "label") {
+        const header = dom.layoutPreview?.querySelector(
+          `.template-table thead th[data-col-index="${index}"]`
+        );
+        if (header) {
+          header.textContent = column.label || column.key || "";
+        }
+      }
+    };
+    table.addEventListener("input", handler);
+    table.addEventListener("change", handler);
+  }
+
+  function buildOperacionesParaGuardar(operacionesBase = []) {
+    const lista = [...(operacionesBase || [])];
+    if (
+      isModuloPiloto() &&
+      Array.isArray(state.columnasConfig) &&
+      state.columnasConfig.length
+    ) {
+      const opColumn = buildColumnConfigOperation(state.columnasConfig);
+      if (opColumn) {
+        lista.push(opColumn);
+      }
+    }
+    return lista;
+  }
+
+  function isColumnConfigOperation(op) {
+    if (!op) return false;
+    const opId = normalizeOperationMatch(getOperationId(op));
+    if (opId === normalizeOperationMatch(COLUMN_CONFIG_ID)) return true;
+    if (op[COLUMN_CONFIG_FIELD] || op["columnas-config"]) return true;
+    return false;
+  }
+
+  function extractColumnConfigFromOperations(ops = []) {
+    let columnasConfig = null;
+    const operaciones = [];
+    (ops || []).forEach((op) => {
+      if (!isColumnConfigOperation(op)) {
+        operaciones.push(op);
+        return;
+      }
+      if (!op.formula_json || columnasConfig) return;
+      try {
+        const parsed = JSON.parse(op.formula_json);
+        if (Array.isArray(parsed)) {
+          columnasConfig = parsed;
+        } else if (Array.isArray(parsed?.columns)) {
+          columnasConfig = parsed.columns;
+        } else if (Array.isArray(parsed?.columnas)) {
+          columnasConfig = parsed.columnas;
+        }
+      } catch (error) {
+        console.warn("No se pudo leer columnas config", error);
+      }
+    });
+    return { columnasConfig, operaciones };
+  }
+
+  function buildColumnConfigOperation(columns = []) {
+    if (!Array.isArray(columns) || !columns.length) return null;
+    return {
+      CAPITULO: state.capitulo || "",
+      Clase: COLUMN_CONFIG_ID,
+      OperacionId: COLUMN_CONFIG_ID,
+      SECCION: "",
+      [COLUMN_CONFIG_FIELD]: COLUMN_CONFIG_ID,
+      formula_json: JSON.stringify(columns),
+      visible: false,
+      orden: -1,
+      orden_presentacion: -1,
+    };
+  }
+
+  function resolveColumnYear() {
+    const raw = (state.anio || "").toString().trim();
+    const year = raw || String(new Date().getFullYear());
+    const yearShort = year.length >= 2 ? year.slice(-2) : year;
+    return { year, yearShort };
+  }
+
+  function buildComitesColumnConfig() {
+    const { year, yearShort } = resolveColumnYear();
+    const moduloLabel = state.modulo || "Comites";
+    const months = [
+      { key: "ene", label: "ENE" },
+      { key: "feb", label: "FEB" },
+      { key: "mar", label: "MAR" },
+      { key: "abr", label: "ABR" },
+      { key: "may", label: "MAY" },
+      { key: "jun", label: "JUN" },
+      { key: "jul", label: "JUL" },
+      { key: "ago", label: "AGO" },
+      { key: "sep", label: "SEP" },
+      { key: "oct", label: "OCT" },
+      { key: "nov", label: "NOV" },
+      { key: "dic", label: "DIC" },
+    ];
+    const columns = [
+      { key: "cuenta", label: "Cuenta", operacion: "none", editable: false },
+      {
+        key: "descripcion",
+        label: moduloLabel,
+        operacion: "none",
+        editable: false,
+      },
+      {
+        key: "budget-annual",
+        label: `Presupuesto ${year}`,
+        operacion: "sum-horizontal",
+        editable: false,
+      },
+    ];
+    months.forEach((mes) => {
+      columns.push({
+        key: `budget-${mes.key}`,
+        label: `${mes.label}-${yearShort}`,
+        operacion: "input",
+        editable: true,
+      });
+      columns.push({
+        key: `real-${mes.key}`,
+        label: `${mes.label}-${yearShort}`,
+        operacion: "readonly",
+        editable: false,
+      });
+    });
+    columns.push({
+      key: "total-budget",
+      label: `Ppto. Acumulado ${year}`,
+      operacion: "sum-horizontal",
+      editable: false,
+    });
+    columns.push({
+      key: "total-real",
+      label: `Real Acumulado ${year}`,
+      operacion: "sum-horizontal",
+      editable: false,
+    });
+    return columns;
+  }
+
+  function buildDefaultColumnConfig() {
+    if (isModuloPiloto()) {
+      return buildComitesColumnConfig();
+    }
+    const meses = [
+      "Ene",
+      "Feb",
+      "Mar",
+      "Abr",
+      "May",
+      "Jun",
+      "Jul",
+      "Ago",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dic",
+    ];
+    const columns = [
+      { key: "cuenta", label: "Cuenta", operacion: "none", editable: false },
+      {
+        key: "descripcion",
+        label: "Descripcion",
+        operacion: "none",
+        editable: false,
+      },
+    ];
+    meses.forEach((mes) => {
+      const key = mes.toLowerCase();
+      columns.push({
+        key: `budget-${key}`,
+        label: `Ppto ${mes}`,
+        operacion: "input",
+        editable: true,
+      });
+      columns.push({
+        key: `real-${key}`,
+        label: `Real ${mes}`,
+        operacion: "readonly",
+        editable: false,
+      });
+    });
+    columns.push({
+      key: "total-budget",
+      label: "Total Ppto",
+      operacion: "sum-horizontal",
+      editable: false,
+    });
+    columns.push({
+      key: "total-real",
+      label: "Total Real",
+      operacion: "sum-horizontal",
+      editable: false,
+    });
+    columns.push({
+      key: "budget-annual",
+      label: "Ppto Anual",
+      operacion: "sum-horizontal",
+      editable: false,
+    });
+    columns.push({
+      key: "budget-monthly",
+      label: "Real Mes Actual",
+      operacion: "lookup",
+      editable: false,
+    });
+    return columns;
+  }
+
+  function normalizeSumasCapitulo(value) {
+    const key = normalizeOperationMatch(value);
+    if (key === "cdmx") return "ciudaddemexico";
+    if (key === "ne") return "noreste";
+    if (key === "no") return "noroeste";
+    return key;
+  }
+
+  function findKeyByNormalized(obj, target, normalizer = normalizeOperationMatch) {
+    if (!obj) return null;
+    const targetKey = normalizer(target);
+    if (!targetKey) return null;
+    return (
+      Object.keys(obj).find((key) => normalizer(key) === targetKey) || null
+    );
+  }
+
+  function getSumasConfigForContext() {
+    const dataset = window.CUENTAS_SUMAS;
+    if (!dataset) return null;
+    const moduloKey = findKeyByNormalized(
+      dataset,
+      state.modulo,
+      normalizeOperationMatch
+    );
+    if (!moduloKey) return null;
+    const porCapitulo = dataset[moduloKey] || {};
+    const capituloKey = findKeyByNormalized(
+      porCapitulo,
+      state.capitulo,
+      normalizeSumasCapitulo
+    );
+    if (!capituloKey) return null;
+    return porCapitulo[capituloKey] || null;
+  }
+
+  function getSumasConfigForSection(sumasConfig, sectionName) {
+    const sectionKey = findKeyByNormalized(
+      sumasConfig,
+      sectionName,
+      normalizeOperationMatch
+    );
+    if (!sectionKey) return null;
+    return sumasConfig[sectionKey] || null;
+  }
+
+  function applySumasField(op, field, value, fallback = "") {
+    const label = (value || fallback || "").toString().trim();
+    if (!label) return false;
+    if (!op[field]) {
+      op[field] = label;
+      return true;
+    }
+    return false;
+  }
+
+  function buildSumasOperacion(sectionName, config, order) {
+    const sumRowLabel = (config?.sumRow || "").toString().trim();
+    const fallbackLabel = sectionName ? `Suma ${sectionName}` : "Suma";
+    const orderValue = Number.isFinite(Number(order))
+      ? Number(order)
+      : nextOperationOrder();
+    const opId = buildUniqueOperationId(sumRowLabel || fallbackLabel);
+    const op = {
+      CAPITULO: state.capitulo || "",
+      HOJA: state.modulo || "",
+      Clase: sumRowLabel || fallbackLabel,
+      OperacionId: opId,
+      SECCION: sectionName || "",
+      visible: true,
+      signos: {},
+      orden: orderValue,
+      orden_presentacion: orderValue,
+    };
+    applySumasField(op, "sum-row", config?.sumRow, fallbackLabel);
+    applySumasField(op, "sum-row-sumavarios", config?.sumRowSumavarios);
+    applySumasField(op, "sum-row-sumavarios2", config?.sumRowSumavarios2);
+    applySumasField(op, "result-row", config?.resultRow);
+    return op;
+  }
+
+  function syncOperacionesSumasDesdeConfig() {
+    if (!isModuloPiloto()) return { added: 0, updated: 0 };
+    const sumasConfig = getSumasConfigForContext();
+    if (!sumasConfig) return { added: 0, updated: 0 };
+    const sections = groupBySections(state.cuentas || []);
+    if (!sections.length) return { added: 0, updated: 0 };
+
+    const existingBySection = new Map();
+    const existingSumRowLabels = new Set();
+
+    (state.operaciones || []).forEach((op) => {
+      const sectionKey = normalizeOperationMatch(op?.SECCION || op?.seccion);
+      if (sectionKey && !existingBySection.has(sectionKey)) {
+        existingBySection.set(sectionKey, op);
+      }
+      const sumRowLabel = op?.["sum-row"];
+      if (sumRowLabel) {
+        existingSumRowLabels.add(normalizeOperationMatch(sumRowLabel));
+      }
+    });
+
+    let added = 0;
+    let updated = 0;
+
+    sections.forEach((section) => {
+      const sectionName = section?.name || "";
+      if (!sectionName) return;
+      const config = getSumasConfigForSection(sumasConfig, sectionName);
+      if (!config) return;
+
+      const sectionKey = normalizeOperationMatch(sectionName);
+      const existing = existingBySection.get(sectionKey);
+      if (existing) {
+        let changed = false;
+        changed =
+          applySumasField(
+            existing,
+            "sum-row",
+            config?.sumRow,
+            sectionName ? `Suma ${sectionName}` : ""
+          ) || changed;
+        changed =
+          applySumasField(
+            existing,
+            "sum-row-sumavarios",
+            config?.sumRowSumavarios
+          ) || changed;
+        changed =
+          applySumasField(
+            existing,
+            "sum-row-sumavarios2",
+            config?.sumRowSumavarios2
+          ) || changed;
+        changed =
+          applySumasField(existing, "result-row", config?.resultRow) ||
+          changed;
+        if (changed) updated += 1;
+        return;
+      }
+
+      const labelCandidate = (config?.sumRow || "").toString().trim();
+      const fallbackLabel = sectionName ? `Suma ${sectionName}` : "";
+      const finalLabel = labelCandidate || fallbackLabel;
+      if (!finalLabel) return;
+      if (existingSumRowLabels.has(normalizeOperationMatch(finalLabel))) {
+        return;
+      }
+
+      const op = buildSumasOperacion(sectionName, config, section.order);
+      state.operaciones.push(op);
+      existingBySection.set(sectionKey, op);
+      existingSumRowLabels.add(normalizeOperationMatch(finalLabel));
+      added += 1;
+    });
+
+    if (added || updated) {
+      state.operaciones = sortOperations(state.operaciones);
+      ensureOperationIds();
+      normalizeOperationReferences();
+      state.unsavedChanges = true;
+      updateButtonStates();
+      logChange("add", `Operaciones sumas (${added + updated})`);
+    }
+
+    return { added, updated };
+  }
+
+  function syncOperativoPorNombreOps() {
+    if (!isModuloPiloto()) return { added: 0 };
+    const ops = buildOperativoPorNombreOps(state.cuentas);
+    if (!ops.length) return { added: 0 };
+    const existing = new Set();
+    state.operaciones.forEach((op) => {
+      const label = op?.["sum-row-operativo"];
+      if (label) {
+        existing.add(normalizeOperationMatch(label));
+      }
+    });
+    let added = 0;
+    ops.forEach((op) => {
+      const label = op?.["sum-row-operativo"];
+      const key = normalizeOperationMatch(label);
+      if (!key || existing.has(key)) return;
+      state.operaciones.push(op);
+      existing.add(key);
+      added += 1;
+    });
+    if (added) {
+      state.operaciones = sortOperations(state.operaciones);
+      logChange("add", `Operaciones Resultado Operativo (${added})`);
+    }
+    return { added };
+  }
+
+  function buildOperativoPorNombreOps(cuentas = []) {
+    if (!Array.isArray(cuentas) || !cuentas.length) return [];
+    const cuentasOrdenadas = [...cuentas].sort(
+      (a, b) => getAccountOrder(a) - getAccountOrder(b)
+    );
+    const grupos = new Map();
+    cuentasOrdenadas.forEach((cuenta, idx) => {
+      const nombre = (cuenta?.NOMBRE || cuenta?.nombre || "").toString().trim();
+      if (!nombre) return;
+      const seccion =
+        cuenta["SECCI…N Principal"] ||
+        cuenta["SECCIàN Principal"] ||
+        cuenta["SECCION Principal"] ||
+        cuenta["SECCI.N Principal"] ||
+        cuenta["SECCION PRINCIPAL"] ||
+        cuenta.SECCION ||
+        cuenta.seccion_principal ||
+        cuenta["SECCI…N Secundaria"] ||
+        cuenta["SECCIàN Secundaria"] ||
+        cuenta["SECCION Secundaria"] ||
+        cuenta.seccion_secundaria ||
+        "";
+      const signo = getOperativoSignForSection(seccion);
+      if (!signo) return;
+      const clave = normalizeOperativoNombre(nombre);
+      if (!clave) return;
+      const cuentaId = cuenta.CUENTA || cuenta.cuenta || "";
+      if (!cuentaId) return;
+      const existente = grupos.get(clave) || {
+        clave,
+        nombre,
+        ingresos: new Set(),
+        gastos: new Set(),
+        orden: idx,
+      };
+      if (nombre.length > existente.nombre.length) {
+        existente.nombre = nombre;
+      }
+      if (signo > 0) {
+        existente.ingresos.add(cuentaId);
+      } else {
+        existente.gastos.add(cuentaId);
+      }
+      if (idx < existente.orden) existente.orden = idx;
+      grupos.set(clave, existente);
+    });
+    const operaciones = [];
+    grupos.forEach((grupo) => {
+      if (!grupo.ingresos.size || !grupo.gastos.size) return;
+      const label = `Resultado Operativo ${grupo.nombre}`;
+      const baseId = normalizeOperationId(`OPERATIVO_${grupo.clave}`);
+      const opId = buildUniqueOperationId(baseId);
+      const terms = [];
+      grupo.ingresos.forEach((cuenta) => {
+        terms.push({ operator: "+", type: "account", value: cuenta });
+      });
+      grupo.gastos.forEach((cuenta) => {
+        terms.push({ operator: "-", type: "account", value: cuenta });
+      });
+      const normalizedTerms = normalizeFormulaTerms(terms);
+      const formulaTerms = normalizedTerms.map((term, idx) => ({
+        id: Date.now() + idx,
+        ...term,
+      }));
+      operaciones.push({
+        CAPITULO: state.capitulo || "",
+        HOJA: state.modulo || "",
+        Clase: label,
+        OperacionId: opId,
+        SECCION: "Resultado Operativo",
+        "sum-row-operativo": label,
+        formula_terms: formulaTerms,
+        formula_json: JSON.stringify(normalizedTerms),
+        signos: { "sum-row-operativo": 1 },
+        visible: true,
+        orden: grupo.orden,
+        orden_presentacion: grupo.orden,
+      });
+    });
+    return operaciones.sort((a, b) => getOperationOrder(a) - getOperationOrder(b));
+  }
+
+  function normalizeOperativoNombre(value) {
+    const cleaned = (value || "")
+      .toString()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toUpperCase();
+    const tokens = cleaned
+      .replace(/[^A-Z0-9\s]+/g, " ")
+      .split(/\s+/)
+      .filter(Boolean);
+    const filtered = tokens.filter(
+      (token) => !OPERATIVO_STOP_WORDS.has(token.toLowerCase())
+    );
+    if (!filtered.length) return "";
+    if (isModuloPiloto()) {
+      filtered.sort();
+    }
+    return filtered.join(" ");
+  }
+
+  function getOperativoSignForSection(sectionName) {
+    const key = normalizeOperationMatch(sectionName);
+    if (!key) return 0;
+    const moduloKey = normalizeOperationMatch(state.modulo);
+    if (moduloKey === "eventos") {
+      if (key.includes("costo") || key.includes("gasto")) return -1;
+      return 1;
+    }
+    if (key.includes("ingreso")) return 1;
+    if (key.includes("gasto") || key.includes("costo")) return -1;
+    if (moduloKey === "comites" && key.includes("comision")) return -1;
+    return 0;
+  }
+
   function renderEditableLayout() {
     if (!state.cuentas.length && !state.operaciones.length) {
       return `
@@ -862,6 +1843,10 @@
           </button>
         </div>
       `;
+    }
+
+    if (isModuloPiloto()) {
+      return renderEditableLayoutPiloto();
     }
 
     const sections = groupBySections(state.cuentas);
@@ -1125,6 +2110,7 @@
     const rowFields = [
       { field: "sum-row", label: "Fila de Suma" },
       { field: "sum-row-sumavarios", label: "Suma Varios" },
+      { field: "sum-row-sumavarios2", label: "Suma Varios 2" },
       { field: "sum-row-sumavarios-consolidado", label: "Consolidado" },
       { field: "sum-row-operativo", label: "Operativo" },
       { field: "result-row", label: "Resultado" },
@@ -1274,6 +2260,7 @@
     const rowFields = [
       { field: "sum-row", label: "Fila de Suma" },
       { field: "sum-row-sumavarios", label: "Suma Varios" },
+      { field: "sum-row-sumavarios2", label: "Suma Varios 2" },
       { field: "sum-row-sumavarios-consolidado", label: "Consolidado" },
       { field: "sum-row-operativo", label: "Operativo" },
       { field: "result-row", label: "Resultado" },
@@ -1398,6 +2385,12 @@
       {
         field: "sum-row-sumavarios",
         type: "section-total",
+        icon: "bi-bar-chart-fill",
+        color: "primary",
+      },
+      {
+        field: "sum-row-sumavarios2",
+        type: "section-total-2",
         icon: "bi-bar-chart-fill",
         color: "primary",
       },
@@ -1644,6 +2637,24 @@
         parentSection: term.parentSection,
       }));
       return applyParentSectionHints(op, terms);
+    }
+
+    if (op.formula_json) {
+      try {
+        const parsed = JSON.parse(op.formula_json);
+        if (Array.isArray(parsed) && parsed.length) {
+          const terms = parsed.map((term) => ({
+            operator: term.operator || "+",
+            type: term.type || "section",
+            value: term.value || "",
+            constant: term.constant ?? term.constValue ?? null,
+            parentSection: term.parentSection,
+          }));
+          return applyParentSectionHints(op, terms);
+        }
+      } catch (error) {
+        console.warn("No se pudo leer formula_json", error);
+      }
     }
 
     const terms = [];
@@ -2018,7 +3029,8 @@
   }
 
   function bindLayoutEvents() {
-    // Additional event bindings for dynamic content
+    bindColumnConfigEvents();
+    bindTemplateTableEvents();
   }
 
   // ==========================================
@@ -3150,12 +4162,15 @@
       }
 
       // Save operations
-      if (state.operaciones.length) {
-        hydrateOperationsFromParents();
-        ensureOperationIds();
-        normalizeOperationReferences();
-        const operacionesOrdenadas = sortOperations(state.operaciones);
-        state.operaciones = operacionesOrdenadas;
+      hydrateOperationsFromParents();
+      ensureOperationIds();
+      normalizeOperationReferences();
+      const operacionesOrdenadas = sortOperations(state.operaciones);
+      state.operaciones = operacionesOrdenadas;
+      const operacionesParaGuardar = buildOperacionesParaGuardar(
+        operacionesOrdenadas
+      );
+      if (operacionesParaGuardar.length) {
         const opResponse = await fetch(
           `${API_BASE}/${encodeURIComponent(state.modulo)}/${
             state.anio
@@ -3168,7 +4183,7 @@
             },
             body: JSON.stringify({
               empresaId: "EMPRESA01",
-              operaciones: operacionesOrdenadas,
+              operaciones: operacionesParaGuardar,
             }),
           }
         );
@@ -3184,6 +4199,7 @@
 
       state.unsavedChanges = false;
       state.changeLog = []; // Limpiar log de cambios
+      state.columnasConfigChanged = false;
       updateButtonStates();
       setStatus("Guardado correctamente");
       showToast("✅ Layout guardado exitosamente", "success");
@@ -3855,6 +4871,12 @@ window.editSection = function (name) {
         icon: "bi-bar-chart-fill",
       },
       {
+        field: "sum-row-sumavarios2",
+        label: "Totales de Seccion 2",
+        color: "primary",
+        icon: "bi-bar-chart-fill",
+      },
+      {
         field: "sum-row-sumavarios-consolidado",
         label: "Consolidados",
         color: "success",
@@ -4040,6 +5062,7 @@ window.editSection = function (name) {
       const rowTypeFields = [
         "sum-row",
         "sum-row-sumavarios",
+        "sum-row-sumavarios2",
         "sum-row-sumavarios-consolidado",
         "sum-row-operativo",
         "result-row",
@@ -4092,6 +5115,7 @@ window.editSection = function (name) {
     const opTypes = [
       "sum-row",
       "sum-row-sumavarios",
+      "sum-row-sumavarios2",
       "sum-row-sumavarios-consolidado",
       "sum-row-operativo",
       "result-row",
@@ -4257,33 +5281,41 @@ window.editSection = function (name) {
       modalTitle.textContent = `Editar etiqueta: ${label}`;
     }
 
-    // Find all operations that have this label for this field
-    const affectedOps = state.operaciones.filter((op) => op[field] === label);
+    const match = findOperationsByRowLabel(label, field);
+    const resolvedField = match.field || field;
+    const affectedOps = match.operations.length
+      ? match.operations
+      : state.operaciones.filter((op) => op[resolvedField] === label);
 
     if (affectedOps.length === 0) {
       showToast("No se encontraron operaciones para esta etiqueta", "error");
       return;
     }
 
-    // Collect all formula terms from all affected operations
-    formulaTerms = [];
-    let idCounter = Date.now();
+    const derivedTerms = buildFormulaTermsForRowLabel(label, resolvedField);
+    if (derivedTerms.length) {
+      formulaTerms = derivedTerms;
+    } else {
+      // Collect all formula terms from all affected operations
+      formulaTerms = [];
+      let idCounter = Date.now();
 
-    affectedOps.forEach((op) => {
-      // Extract formula terms from this operation
-      const opTerms = extractFormulaTerms(op);
+      affectedOps.forEach((op) => {
+        // Extract formula terms from this operation
+        const opTerms = extractFormulaTerms(op);
 
-      // Add each term with unique ID and the operation operator
-      opTerms.forEach((term) => {
-        formulaTerms.push({
-          id: idCounter++,
-          operator: term.operator || "+",
-          type: term.type || "section",
-          value: term.value || "",
-          sourceOperation: op.Clase || op.SECCION, // Track which operation this came from
+        // Add each term with unique ID and the operation operator
+        opTerms.forEach((term) => {
+          formulaTerms.push({
+            id: idCounter++,
+            operator: term.operator || "+",
+            type: term.type || "section",
+            value: term.value || "",
+            sourceOperation: op.Clase || op.SECCION, // Track which operation this came from
+          });
         });
       });
-    });
+    }
 
     // Expand section terms to individual accounts
     expandSectionTermsToAccounts();
@@ -4295,7 +5327,7 @@ window.editSection = function (name) {
         <input type="text" class="form-control" id="editConsolidatedLabelName" value="${escapeHtml(
           label
         )}" />
-        <small class="text-muted">Tipo: ${escapeHtml(field)}</small>
+        <small class="text-muted">Tipo: ${escapeHtml(resolvedField)}</small>
       </div>
       
       <div class="mb-3">
@@ -4331,7 +5363,7 @@ window.editSection = function (name) {
     state.selectedElement = {
       type: "consolidatedLabel",
       label,
-      field,
+      field: resolvedField,
       affectedOps,
     };
     updateSelectionInfo();
@@ -5918,6 +6950,7 @@ window.editSection = function (name) {
   const PLACEMENT_FIELDS = [
     "sum-row",
     "sum-row-sumavarios",
+    "sum-row-sumavarios2",
     "sum-row-operativo",
     "result-row",
     "net-row",
@@ -6458,6 +7491,41 @@ window.editSection = function (name) {
         registerOperation(opId || label, label);
       });
 
+    // Extraer desde tabla de plantilla (piloto)
+    container
+      .querySelectorAll(".template-table tr[data-row-type]")
+      .forEach((row) => {
+        const rowType = row.dataset.rowType;
+        if (rowType === "section") {
+          const label = row.dataset.section || row.textContent.trim();
+          if (label) registerSection(label);
+          return;
+        }
+        if (rowType === "subsection") {
+          const label = row.dataset.subsection || row.textContent.trim();
+          if (label) registerSection(label);
+          return;
+        }
+        if (rowType === "account") {
+          const code =
+            row.dataset.cuenta ||
+            row.querySelector(".account-code")?.textContent?.trim() ||
+            "";
+          const name =
+            row.dataset.nombre ||
+            row.querySelector(".account-name")?.textContent?.trim() ||
+            "";
+          if (code) registerAccount(code, name);
+          return;
+        }
+        if (rowType === "operation") {
+          const opId = row.dataset.operationId || "";
+          const label = row.dataset.operationLabel || opId;
+          if (label) pushOrderedLabel(label);
+          if (opId || label) registerOperation(opId || label, label);
+        }
+      });
+
     // Asegurar orden completo segun la lista de operaciones
     sortOperations(state.operaciones || []).forEach((op) => {
       const opId = getOperationId(op);
@@ -6557,3 +7625,4 @@ window.editSection = function (name) {
     loadContextFromURL,
   };
 })();
+
