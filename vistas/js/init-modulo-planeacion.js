@@ -55,7 +55,19 @@ const crearStickyHeaderOverlay = (tabla, wrapper) => {
     const overflowY = getComputedStyle(wrapper).overflowY || "visible";
     const esScrollable =
       overflowY !== "visible" && wrapper.scrollHeight > wrapper.clientHeight + 1;
-    return { rect, topOffset: esScrollable ? rect.top : 0, esScrollable };
+    const clientLeft = wrapper.clientLeft || 0;
+    const clientTop = wrapper.clientTop || 0;
+    const contentLeft = rect.left + clientLeft;
+    const contentTop = rect.top + clientTop;
+    const contentWidth = wrapper.clientWidth || rect.width;
+    return {
+      rect,
+      contentLeft,
+      contentTop,
+      contentWidth,
+      topOffset: esScrollable ? contentTop : 0,
+      esScrollable,
+    };
   };
 
   const syncWidths = () => {
@@ -131,6 +143,12 @@ const crearStickyHeaderOverlay = (tabla, wrapper) => {
       return cells.every((cell) => (cell.colSpan || 1) === 1);
     };
     const buscarFilaBase = (totalColumnas) => {
+      const bodyRows = Array.from(tabla.tBodies?.[0]?.rows || []);
+      for (const row of bodyRows) {
+        if (!filaTieneColumnasCompletas(row, totalColumnas)) continue;
+        if (!filaEsVisible(row)) continue;
+        return row;
+      }
       const headRows = Array.from(tabla.tHead?.rows || []);
       for (let i = headRows.length - 1; i >= 0; i -= 1) {
         const row = headRows[i];
@@ -138,15 +156,9 @@ const crearStickyHeaderOverlay = (tabla, wrapper) => {
         if (!filaEsVisible(row)) continue;
         return row;
       }
-      const bodyRows = Array.from(tabla.tBodies?.[0]?.rows || []);
-      for (const row of bodyRows) {
-        if (!filaTieneColumnasCompletas(row, totalColumnas)) continue;
-        if (!filaEsVisible(row)) continue;
-        return row;
-      }
       return (
-        headRows.find((row) => filaTieneColumnasCompletas(row, totalColumnas)) ||
         bodyRows.find((row) => filaTieneColumnasCompletas(row, totalColumnas)) ||
+        headRows.find((row) => filaTieneColumnasCompletas(row, totalColumnas)) ||
         null
       );
     };
@@ -180,7 +192,9 @@ const crearStickyHeaderOverlay = (tabla, wrapper) => {
       return true;
     };
     const columnWidths = obtenerAnchosColumnas();
-    const colgroupAplicado = aplicarAnchosColgroup(columnWidths || []);
+    const puedeUsarColgroup = colSpecs.length > 0;
+    const colgroupAplicado =
+      puedeUsarColgroup && aplicarAnchosColgroup(columnWidths || []);
     cloneTable.style.tableLayout = colgroupAplicado ? "fixed" : "";
     const originalCells = Array.from(tabla.tHead.querySelectorAll("th"));
     const cloneCells = Array.from(cloneTable.querySelectorAll("th"));
@@ -204,9 +218,14 @@ const crearStickyHeaderOverlay = (tabla, wrapper) => {
         cloneCell.style.backgroundColor = fondo;
       }
     });
+    const totalColumnWidth = Array.isArray(columnWidths)
+      ? columnWidths.reduce((acc, val) => acc + val, 0)
+      : 0;
     const scrollWidth = tabla.scrollWidth || 0;
     const rectWidth = tabla.getBoundingClientRect().width || 0;
-    const tableWidth = Math.max(scrollWidth, rectWidth / scaleXSeguro);
+    const fallbackWidth = Math.max(scrollWidth, rectWidth / scaleXSeguro);
+    const tableWidth =
+      colgroupAplicado && totalColumnWidth ? totalColumnWidth : fallbackWidth;
     if (tableWidth) {
       cloneTable.style.width = `${tableWidth}px`;
       cloneTable.style.minWidth = `${tableWidth}px`;
@@ -252,13 +271,13 @@ const crearStickyHeaderOverlay = (tabla, wrapper) => {
     const { scaleX, scaleY } = obtenerEscalaActiva(tabla);
     const scaleXSeguro = scaleX || 1;
     const scaleYSeguro = scaleY || 1;
-    const { rect, topOffset } = medirContenedor();
+    const { rect, topOffset, contentLeft, contentWidth } = medirContenedor();
     overlay.style.transform =
       scaleXSeguro !== 1 || scaleYSeguro !== 1
         ? `scale(${scaleXSeguro}, ${scaleYSeguro})`
         : "none";
-    overlay.style.left = `${rect.left / scaleXSeguro}px`;
-    overlay.style.width = `${rect.width / scaleXSeguro}px`;
+    overlay.style.left = `${contentLeft / scaleXSeguro}px`;
+    overlay.style.width = `${contentWidth / scaleXSeguro}px`;
     overlay.style.top = `${topOffset / scaleYSeguro}px`;
     const headRect = tabla.tHead.getBoundingClientRect();
     const tableRect = tabla.getBoundingClientRect();
@@ -445,6 +464,12 @@ const prepararStickyHeaders = (selectorTabla) => {
   if (!wrapper.dataset.stickyReady) {
     wrapper.dataset.stickyReady = "true";
     window.addEventListener("resize", scheduleAjustar);
+    window.addEventListener("modulo-planeacion:tabla-actualizada", () => {
+      if (overlay?.refresh) {
+        overlay.refresh();
+      }
+      scheduleAjustar();
+    });
     if (document.fonts?.ready) {
       document.fonts.ready.then(scheduleAjustar).catch(() => {});
     }

@@ -1024,41 +1024,6 @@
               toggleGrupo: toggleGrupo,
             })
           )
-        ),
-        /* @__PURE__ */ React.createElement(
-          "footer",
-          { className: "sidebar-footer" },
-          /* @__PURE__ */ React.createElement(
-            "div",
-            { className: "user-info mb-2" },
-            /* @__PURE__ */ React.createElement(
-              "span",
-              {
-                className:
-                  "text-muted text-uppercase fw-semibold sidebar-session-label",
-              },
-              "Sesi\xF3n activa"
-            ),
-            /* @__PURE__ */ React.createElement(
-              "strong",
-              { className: "sidebar-user-name" },
-              obtenerNombreUsuario(sesion)
-            ),
-            /* @__PURE__ */ React.createElement(
-              "span",
-              { className: "text-muted sidebar-user-handle" },
-              sesion?.usuario?.usuario || "\u2014"
-            )
-          ),
-          /* @__PURE__ */ React.createElement(
-            "button",
-            {
-              type: "button",
-              className: "btn btn-outline-secondary w-100 btn-logout",
-              onClick: onLogout,
-            },
-            "Cerrar sesi\xF3n"
-          )
         )
       ),
       /* @__PURE__ */ React.createElement(
@@ -1140,19 +1105,28 @@
                     { value: "" },
                     "Sin empresas disponibles"
                   ),
-                empresasDisponibles.map((empresa) =>
-                  /* @__PURE__ */ React.createElement(
-                    "option",
-                    { key: empresa.id, value: empresa.id },
-                    empresa.etiqueta ||
-                      empresa.nombre ||
-                      "Selecciona una empresa"
+                  empresasDisponibles.map((empresa) =>
+                    /* @__PURE__ */ React.createElement(
+                      "option",
+                      { key: empresa.id, value: empresa.id },
+                      empresa.etiqueta ||
+                        empresa.nombre ||
+                        "Selecciona una empresa"
+                    )
                   )
                 )
+              ),
+              /* @__PURE__ */ React.createElement(
+                "button",
+                {
+                  type: "button",
+                  className: "btn btn-outline-secondary btn-sm top-bar-logout",
+                  onClick: onLogout,
+                },
+                "Cerrar sesi\xF3n"
               )
             )
-          )
-        ),
+          ),
         /* @__PURE__ */ React.createElement(
           "div",
           { className: "content-wrapper" },

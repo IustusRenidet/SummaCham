@@ -644,3 +644,152 @@ body {
     font-size: 0.95rem;
   }
 }
+
+/* ===== TEMPLATE SUMMARY ===== */
+.template-summary .summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.template-summary .summary-item {
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.template-summary .summary-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #64748b;
+}
+
+.template-summary .summary-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.template-summary .summary-note {
+  margin-top: 8px;
+}
+
+/* ===== TEMPLATE DETAILS ===== */
+.template-details {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #ffffff;
+  margin-bottom: 1rem;
+}
+
+.template-details-summary {
+  cursor: pointer;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.template-details[open] .template-details-summary {
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.template-details-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.template-details-body {
+  padding: 12px 14px;
+  background: #f8fafc;
+}
+
+/* ===== TEMPLATE TABLE ===== */
+.template-table thead th {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  background: #f1f5f9;
+}
+
+.template-table td {
+  vertical-align: middle;
+  font-size: 0.85rem;
+}
+
+.template-table tbody tr[data-row-type="section"] td {
+  background: #eef2ff;
+  color: #1e3a8a;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.8rem;
+}
+
+.template-table tbody tr[data-row-type="subsection"] td {
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 600;
+}
+
+.template-table tbody tr[data-row-type="operation"] td {
+  background: #fff7ed;
+}
+
+.template-table tbody tr[data-row-type="account"]:hover td,
+.template-table tbody tr[data-row-type="operation"]:hover td {
+  background: #f8fafc;
+}
+
+/* ===== OPERATION KIND PILLS ===== */
+.op-kind-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-left: 8px;
+}
+
+.op-kind-sum {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.op-kind-total {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.op-kind-result {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.op-kind-consolidated {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.op-kind-operativo {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.op-kind-net,
+.op-kind-net-final {
+  background: #fee2e2;
+  color: #991b1b;
+}

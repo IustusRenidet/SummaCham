@@ -277,6 +277,13 @@
       gap: 1rem;
     }
 
+    .top-bar-logout {
+      border-radius: 10px;
+      font-weight: 600;
+      padding: 0.35rem 0.85rem;
+      white-space: nowrap;
+    }
+
     .sidebar-toggle-btn {
       border: none;
       background: rgba(47, 84, 150, 0.15);
@@ -680,7 +687,7 @@
       }
 
       .sidebar-menu {
-        max-height: calc(100vh - 220px);
+        max-height: none;
       }
 
       .sidebar-footer {
@@ -710,6 +717,7 @@
         width: 100%;
         justify-content: space-between;
         gap: 0.75rem;
+        flex-wrap: wrap;
       }
 
       .top-bar h2 {

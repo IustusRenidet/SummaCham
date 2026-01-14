@@ -796,32 +796,22 @@ const DashboardLayout = ({
         <div className="sidebar-header">
           <img src="../icono/amcham.png" alt="AmCham" className="sidebar-logo" />
         </div>
-        <div className="sidebar-menu">
-          {gruposDisponibles.map((group) => (
-            <SidebarGroup
-              key={group.id}
-              group={group}
-              modules={group.items}
-              selectedModule={moduloSeleccionado}
-              onSelect={seleccionarModulo}
-              open={gruposAbiertos.has(group.id)}
-              onToggle={toggleGrupo}
-            />
-          ))}
-        </div>
-        <footer className="sidebar-footer">
-          <div className="user-info mb-2">
-            <span className="text-muted text-uppercase fw-semibold sidebar-session-label">Sesión activa</span>
-            <strong className="sidebar-user-name">{obtenerNombreUsuario(sesion)}</strong>
-            <span className="text-muted sidebar-user-handle">{sesion?.usuario?.usuario || '—'}</span>
+          <div className="sidebar-menu">
+            {gruposDisponibles.map((group) => (
+              <SidebarGroup
+                key={group.id}
+                group={group}
+                modules={group.items}
+                selectedModule={moduloSeleccionado}
+                onSelect={seleccionarModulo}
+                open={gruposAbiertos.has(group.id)}
+                onToggle={toggleGrupo}
+              />
+            ))}
           </div>
-          <button type="button" className="btn btn-outline-secondary w-100 btn-logout" onClick={onLogout}>
-            Cerrar sesión
-          </button>
-        </footer>
-      </aside>
-      <main className="app-content">
-        <div className="top-bar">
+        </aside>
+        <main className="app-content">
+          <div className="top-bar">
           <div className="top-bar-left">
             <button
               type="button"
@@ -839,31 +829,34 @@ const DashboardLayout = ({
               )}
             </div>
           </div>
-          <div className="top-bar-right d-flex align-items-center gap-3">
-            <NotificationBell
-              notifications={notifications}
-              onRefresh={manejarActualizarNotificaciones}
-              onMarkAsRead={manejarMarcarNotificacion}
-            />
-            <div className="company-selector">
-              <label htmlFor="companyFilter" className="fw-semibold mb-0">Empresa:</label>
-              <select
-                id="companyFilter"
-                className="form-select form-select-sm"
-                value={empresaActualId}
-                onChange={manejarCambioEmpresa}
-                disabled={!puedeCambiarEmpresa || empresasDisponibles.length === 0}
-              >
-                {empresasDisponibles.length === 0 && <option value="">Sin empresas disponibles</option>}
-                {empresasDisponibles.map((empresa) => (
-                  <option key={empresa.id} value={empresa.id}>
-                    {empresa.etiqueta || empresa.nombre || 'Selecciona una empresa'}
-                  </option>
-                ))}
-              </select>
+            <div className="top-bar-right d-flex align-items-center gap-3">
+              <NotificationBell
+                notifications={notifications}
+                onRefresh={manejarActualizarNotificaciones}
+                onMarkAsRead={manejarMarcarNotificacion}
+              />
+              <div className="company-selector">
+                <label htmlFor="companyFilter" className="fw-semibold mb-0">Empresa:</label>
+                <select
+                  id="companyFilter"
+                  className="form-select form-select-sm"
+                  value={empresaActualId}
+                  onChange={manejarCambioEmpresa}
+                  disabled={!puedeCambiarEmpresa || empresasDisponibles.length === 0}
+                >
+                  {empresasDisponibles.length === 0 && <option value="">Sin empresas disponibles</option>}
+                  {empresasDisponibles.map((empresa) => (
+                    <option key={empresa.id} value={empresa.id}>
+                      {empresa.etiqueta || empresa.nombre || 'Selecciona una empresa'}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <button type="button" className="btn btn-outline-secondary btn-sm top-bar-logout" onClick={onLogout}>
+                {"Cerrar sesi\u00F3n"}
+              </button>
             </div>
           </div>
-        </div>
         <div className="content-wrapper">
           <div className="content-card">
             {moduloSeleccionado ? (

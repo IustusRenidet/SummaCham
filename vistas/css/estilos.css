@@ -357,13 +357,18 @@ table thead th {
 }
 
 .sticky-table-header thead th {
-  position: static;
-  top: auto;
+  position: static !important;
+  top: auto !important;
+}
+
+.sticky-table-header .table-comparison thead th {
+  position: static !important;
+  top: auto !important;
 }
 
 .sticky-table-header .table-comparison thead th:nth-child(1),
 .sticky-table-header .table-comparison thead th:nth-child(2) {
-  position: sticky;
+  position: sticky !important;
   left: var(--sticky-col-1-left, 0px);
   z-index: 270;
 }

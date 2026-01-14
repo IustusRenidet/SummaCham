@@ -193,8 +193,6 @@
       [
         "TOTAL INGRESOS VPE",
         "TOTAL GASTOS VPE",
-        "RESULTADO VPE",
-        "Resultado VPE",
       ].map(normalizarEtiquetaExclusion)
     ),
   };
@@ -525,10 +523,10 @@
    * Determina el último mes cerrado visible.
    * Acepta anioEspecifico para sincronizar con la lógica de quien lo llama.
    */
-  const obtenerIndicePeriodoActual = (anioEspecifico = null) => {
-    const periodo = obtenerPeriodoCerrado();
-    const indiceDesdeContexto = Number.isInteger(periodo) ? periodo - 1 : null;
-    const indiceMesActual = obtenerIndiceMesSistema();
+    const obtenerIndicePeriodoActual = (anioEspecifico = null) => {
+      const periodo = obtenerPeriodoCerrado();
+      const indiceDesdeContexto = Number.isInteger(periodo) ? periodo - 1 : null;
+      const indiceMesActual = obtenerIndiceMesSistema();
 
     // Si nos pasan un año, lo usamos. Si no, inferimos.
     const anioActual = new Date().getFullYear();
@@ -557,15 +555,38 @@
       limite = Math.min(indiceDesdeContexto, limitePorFecha);
     }
 
-    const limiteMaximo = MESES.length - 1;
-    return Math.max(-1, Math.min(limite, limiteMaximo));
-  };
+      const limiteMaximo = MESES.length - 1;
+      return Math.max(-1, Math.min(limite, limiteMaximo));
+    };
 
-  const obtenerPeriodoVisible = (anioEspecifico = null) => {
-    const indice = obtenerIndicePeriodoActual(anioEspecifico);
-    if (indice < 0) return 0;
-    return indice + 1;
-  };
+    const obtenerIndiceMesAcumulado = (anioEspecifico = null) => {
+      const indiceMesActual = obtenerIndiceMesSistema();
+
+      const anioActual = new Date().getFullYear();
+      let anioSeleccionado = anioEspecifico;
+
+      if (anioSeleccionado === null) {
+        const anioBase = obtenerAnioBaseSeleccionado();
+        anioSeleccionado = Number.isInteger(anioBase) ? anioBase : anioActual;
+      }
+
+      if (anioSeleccionado < anioActual) {
+        return MESES.length - 1;
+      }
+
+      if (anioSeleccionado > anioActual) {
+        return -1;
+      }
+
+      const limiteMaximo = MESES.length - 1;
+      return Math.max(-1, Math.min(indiceMesActual, limiteMaximo));
+    };
+
+    const obtenerPeriodoVisible = (anioEspecifico = null) => {
+      const indice = obtenerIndicePeriodoActual(anioEspecifico);
+      if (indice < 0) return 0;
+      return indice + 1;
+    };
 
   const MODAL_SECCION_ID = "sectionModal";
   const crearModalSeccion = () => {
@@ -1305,8 +1326,8 @@
 
    * Calculos que realiza:
 
-   * - Total Presupuesto: Suma de budget-ene hasta budget-[mes cerrado] (excluye el mes en curso)
-   * - Total Real: Suma de real-ene hasta real-[mes cerrado] (excluye el mes en curso)
+   * - Total Presupuesto: Suma de budget-ene hasta budget-[mes en curso] (incluye el mes actual)
+   * - Total Real: Suma de real-ene hasta real-[mes en curso] (incluye el mes actual)
    * - Presupuesto Anual: Suma completa de todas las columnas budget-[mes]
    * - Mensual: Valor real del ultimo mes cerrado (budget-monthly)
    *
@@ -1328,6 +1349,7 @@
       estadoModulo.mesActualIndex ?? obtenerIndicePeriodoActual();
     const mesActualIndex = Number.isInteger(limiteMes) ? limiteMes : -1;
     const mesActualClave = mesActualIndex >= 0 ? MESES[mesActualIndex] : null;
+    const mesAcumuladoIndex = obtenerIndiceMesAcumulado();
 
     let totalPresupuestoAcumulado = 0;
 
@@ -1335,7 +1357,7 @@
 
     let totalRealAcumulado = 0;
 
-    // Sumar TODOS los meses del año (enero a diciembre) para las columnas acumuladas
+    // Sumar meses hasta el mes en curso para las columnas acumuladas
 
     MESES.forEach((mes, index) => {
       const presupuestoMes = Number(almacen[`budget-${mes}`]) || 0;
@@ -1344,9 +1366,10 @@
 
       totalPresupuestoAnual += presupuestoMes;
 
-      // Acumular TODOS los meses para las columnas "PPTO ACUMULADO" y "REAL ACUMULADO"
-      totalPresupuestoAcumulado += presupuestoMes;
-      totalRealAcumulado += realMes;
+      if (index <= mesAcumuladoIndex) {
+        totalPresupuestoAcumulado += presupuestoMes;
+        totalRealAcumulado += realMes;
+      }
     });
 
     // Obtener valor del mes actual especificamente
@@ -1447,6 +1470,7 @@
     // Obtener mes actual (0-11, donde 0=enero, 11=diciembre)
     const mesActualIndex = obtenerIndicePeriodoActual();
     const mesActualClave = mesActualIndex >= 0 ? MESES[mesActualIndex] : null; // ene, feb, mar, etc.
+    const mesAcumuladoIndex = obtenerIndiceMesAcumulado();
 
     obtenerFilasCuenta().forEach((fila) => {
       const cuenta = fila.dataset.cuenta21 || "";
@@ -1461,9 +1485,10 @@
         const real = numeroSeguro(registro?.real?.[mes]);
 
         totalPresupuestoAnual += presupuesto;
-        // Acumular TODOS los meses para las columnas "PPTO ACUMULADO" y "REAL ACUMULADO"
-        totalPresupuestoAcumulado += presupuesto;
-        totalRealAcumulado += real;
+        if (index <= mesAcumuladoIndex) {
+          totalPresupuestoAcumulado += presupuesto;
+          totalRealAcumulado += real;
+        }
 
         establecerValorCelda(fila, `budget-${mes}`, presupuesto);
         establecerValorCelda(fila, `real-${mes}`, real);

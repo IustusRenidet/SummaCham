@@ -278,5 +278,10 @@
     "Capítulo": "NO",
     "Módulo": "RH.html",
     "Operaciones": "Resultado RH=(Resultado Operativo RH)-(Suma Gastos Administrativos)"
+  },
+  {
+    "Capítulo": "CIUDAD DE MÉXICO",
+    "Módulo": "VPE.html",
+    "Operaciones": "Resultado VPE=(Ingresos CEN/Board)-(Gastos CEN/Board)-(Gastos Administrativos)"
   }
 ]

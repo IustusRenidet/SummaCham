@@ -960,18 +960,70 @@
   function renderEditableLayoutPiloto() {
     const rows = buildPreviewRowsForEditor();
     const columns = getColumnConfigForRender();
-    const rowsCount = rows.length;
     return `
       <div class="template-pilot">
+        ${renderTemplateSummary(rows, columns)}
         ${renderColumnConfigSection(columns)}
         <div class="card mb-3">
           <div class="card-header d-flex justify-content-between align-items-center">
-            <span>Tabla de plantilla (orden de aparicion)</span>
-            <span class="badge bg-secondary">${rowsCount}</span>
+            <span>Vista de la plantilla</span>
           </div>
           <div class="card-body">
             ${renderTemplateTable(rows, columns)}
-            <div class="small text-muted mt-2">Click en cualquier fila para editar.</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function summarizeTemplateRows(rows = []) {
+    const summary = {
+      sections: 0,
+      subsections: 0,
+      accounts: 0,
+      operations: 0,
+    };
+    (rows || []).forEach((row) => {
+      if (!row) return;
+      if (row.type === "principal") summary.sections += 1;
+      else if (row.type === "subsection") summary.subsections += 1;
+      else if (row.type === "account") summary.accounts += 1;
+      else if (row.type === "operation") summary.operations += 1;
+    });
+    return summary;
+  }
+
+  function renderTemplateSummary(rows = [], columns = []) {
+    const summary = summarizeTemplateRows(rows);
+    const columnCount = Array.isArray(columns) ? columns.length : 0;
+    const items = [
+      { label: "Secciones", value: summary.sections },
+      { label: "Subsecciones", value: summary.subsections, optional: true },
+      { label: "Cuentas", value: summary.accounts },
+      { label: "Operaciones", value: summary.operations },
+      { label: "Columnas", value: columnCount },
+    ];
+    const visibleItems = items.filter(
+      (item) => !item.optional || item.value > 0
+    );
+
+    return `
+      <div class="card template-summary mb-3">
+        <div class="card-body">
+          <div class="summary-grid">
+            ${visibleItems
+              .map(
+                (item) => `
+              <div class="summary-item">
+                <span class="summary-label">${escapeHtml(item.label)}</span>
+                <span class="summary-value">${item.value}</span>
+              </div>
+            `
+              )
+              .join("")}
+          </div>
+          <div class="summary-note text-muted small">
+            Orden real de aparicion. Click en una fila para editar.
           </div>
         </div>
       </div>
@@ -1012,6 +1064,7 @@
   function renderColumnConfigSection(columns = []) {
     const canEdit = state.editMode !== false;
     const disabledAttr = canEdit ? "" : "disabled";
+    const showOperation = (columns || []).some((col) => col?.operacion);
     const rowsHtml = (columns || [])
       .map(
         (col, idx) => `
@@ -1022,12 +1075,14 @@
               <input
                 type="text"
                 class="form-control form-control-sm"
-                value="${escapeHtml(col.label || "")}"
+                value="${escapeHtml(col.label || col.key || "")}"
                 data-field="label"
                 ${disabledAttr}
               />
             </td>
-            <td>
+            ${
+              showOperation
+                ? `<td>
               <input
                 type="text"
                 class="form-control form-control-sm"
@@ -1035,7 +1090,9 @@
                 data-field="operacion"
                 ${disabledAttr}
               />
-            </td>
+            </td>`
+                : ""
+            }
             <td class="text-center">
               <input
                 type="checkbox"
@@ -1050,30 +1107,58 @@
       )
       .join("");
 
+    const colSpan = showOperation ? 5 : 4;
+    const finalRowsHtml =
+      rowsHtml ||
+      `<tr><td colspan="${colSpan}" class="text-muted text-center">Sin columnas</td></tr>`;
+
     return `
-      <div class="card mb-3">
-        <div class="card-header d-flex justify-content-between align-items-center">
-          <span>Columnas de la plantilla</span>
+      <details class="template-details">
+        <summary class="template-details-summary">
+          <span class="template-details-title">
+            <i class="bi bi-layout-three-columns"></i>
+            Columnas de la plantilla
+          </span>
           <span class="badge bg-secondary">${columns.length}</span>
+        </summary>
+        <div class="template-details-body">
+          <div class="table-responsive">
+            <table class="table table-sm table-bordered column-config-table">
+              <thead class="table-light">
+                <tr>
+                  <th>#</th>
+                  <th>Clave</th>
+                  <th>Etiqueta</th>
+                  ${showOperation ? "<th>Operacion</th>" : ""}
+                  <th>Editable</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${finalRowsHtml}
+              </tbody>
+            </table>
+          </div>
         </div>
-        <div class="table-responsive">
-          <table class="table table-sm table-bordered column-config-table">
-            <thead class="table-light">
-              <tr>
-                <th>#</th>
-                <th>Clave</th>
-                <th>Etiqueta</th>
-                <th>Operacion</th>
-                <th>Editable</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${rowsHtml || ""}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      </details>
     `;
+  }
+
+  const OP_KIND_META = {
+    "sum-row": { label: "Suma", className: "op-kind-sum" },
+    "sum-row-sumavarios": { label: "Total", className: "op-kind-total" },
+    "sum-row-sumavarios2": { label: "Resultado", className: "op-kind-result" },
+    "sum-row-sumavarios-consolidado": {
+      label: "Consolidado",
+      className: "op-kind-consolidated",
+    },
+    "sum-row-operativo": { label: "Operativo", className: "op-kind-operativo" },
+    "result-row": { label: "Resultado", className: "op-kind-result" },
+    "net-row": { label: "Neto", className: "op-kind-net" },
+    "result-net-row": { label: "Neto final", className: "op-kind-net-final" },
+  };
+
+  function getOperationKindMeta(kind = "") {
+    return OP_KIND_META[kind] || null;
   }
 
   function renderTemplateTable(rows = [], columns = []) {
@@ -1168,26 +1253,31 @@
         const label = op ? getOperationDisplayName(op) : row.label || "";
         const opId = op ? getOperationId(op) : "";
         const kind = row.kind || "";
+        const kindMeta = getOperationKindMeta(kind);
         const formula = op ? formatFormula(op) : "";
         const cells = [];
         for (let i = 0; i < colCount; i += 1) {
           if (i === 0) {
             cells.push("<td></td>");
           } else if (i === 1) {
-            const kindBadge = kind
-              ? `<span class="small text-muted ms-2">${escapeHtml(
-                  kind
-                )}</span>`
-              : "";
             cells.push(
-              `<td class="fw-semibold">${escapeHtml(label)}${kindBadge}</td>`
+              `<td class="fw-semibold">
+                ${escapeHtml(label)}
+                ${
+                  kindMeta
+                    ? `<span class="op-kind-pill ${kindMeta.className}" title="${escapeAttr(
+                        kind
+                      )}">${escapeHtml(kindMeta.label)}</span>`
+                    : ""
+                }
+              </td>`
             );
           } else {
             cells.push("<td></td>");
           }
         }
         bodyHtml += `
-          <tr class="operation-row ${kind} ${hiddenClass}" data-row-type="operation" data-operation-id="${escapeAttr(
+          <tr class="operation-row ${kind} ${kindMeta?.className || ""} ${hiddenClass}" data-row-type="operation" data-operation-id="${escapeAttr(
             opId || label
           )}" data-operation-label="${escapeAttr(label)}" data-operation-kind="${escapeAttr(
             kind
