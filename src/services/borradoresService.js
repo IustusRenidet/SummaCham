@@ -42,6 +42,90 @@ const ETIQUETAS_ESTADO = {
   GUARDADO: "Guardado en COI",
 };
 
+const progresoRecontabilizacion = new Map();
+const colaRecontabilizacion = new Map();
+
+const obtenerClaveCola = (empresaId, anio) =>
+  `${empresaId || ""}-${Number(anio) || ""}`;
+
+const encolarRecontabilizacion = ({ empresaId, anio, borradorId }, tarea) => {
+  const clave = obtenerClaveCola(empresaId, anio);
+  const info = colaRecontabilizacion.get(clave) || {
+    cola: Promise.resolve(),
+    tamanio: 0,
+  };
+
+  info.tamanio += 1;
+  const posicion = info.tamanio;
+
+  const ejecucion = info.cola
+    .catch(() => undefined)
+    .then(() => tarea())
+    .finally(() => {
+      info.tamanio = Math.max(0, info.tamanio - 1);
+      if (info.tamanio === 0) {
+        colaRecontabilizacion.delete(clave);
+      } else {
+        colaRecontabilizacion.set(clave, info);
+      }
+    });
+
+  info.cola = ejecucion;
+  colaRecontabilizacion.set(clave, info);
+
+  if (borradorId) {
+    actualizarProgresoRecontabilizacion(borradorId, {
+      estado: "en-cola",
+      posicion,
+    });
+  }
+
+  return { posicion, ejecucion };
+};
+
+const iniciarProgresoRecontabilizacion = (borradorId) => {
+  if (!borradorId) return;
+  progresoRecontabilizacion.set(String(borradorId), {
+    estado: "iniciando",
+    total: 0,
+    actual: 0,
+    porcentaje: 0,
+    actualizadoEn: new Date().toISOString(),
+  });
+};
+
+const actualizarProgresoRecontabilizacion = (borradorId, data = {}) => {
+  if (!borradorId) return;
+  const clave = String(borradorId);
+  const previo = progresoRecontabilizacion.get(clave) || {
+    estado: "iniciando",
+    total: 0,
+    actual: 0,
+    porcentaje: 0,
+  };
+  const total = Number.isFinite(data.total) ? data.total : previo.total;
+  const actual = Number.isFinite(data.actual) ? data.actual : previo.actual;
+  const porcentaje = total > 0 ? Math.min(100, Math.round((actual / total) * 100)) : 0;
+  progresoRecontabilizacion.set(clave, {
+    ...previo,
+    ...data,
+    total,
+    actual,
+    porcentaje,
+    actualizadoEn: new Date().toISOString(),
+  });
+};
+
+const finalizarProgresoRecontabilizacion = (borradorId, estado = "completado") => {
+  if (!borradorId) return;
+  actualizarProgresoRecontabilizacion(borradorId, { estado, porcentaje: 100 });
+};
+
+const obtenerProgresoRecontabilizacion = (borradorId) => {
+  if (!borradorId) return null;
+  return progresoRecontabilizacion.get(String(borradorId)) || null;
+};
+
 const obtenerEtiquetaAccion = (clave) => {
   if (!clave) return "";
   const entrada = Object.values(HISTORIAL_ACCIONES).find(
@@ -489,6 +573,20 @@ const  persistirEnFirebird = async (borrador) => {
 
   let contadorExitosas = 0;
   let contadorErrores = 0;
+  const presupuestosEditados = new Map();
+  let manualBaseMap = null;
+
+  try {
+    manualBaseMap = await calcularManualPadres(
+      borrador.empresaId,
+      anio,
+      tablaPresup
+    );
+  } catch (manualError) {
+    console.warn(
+      `⚠️ No fue posible calcular manual base de cuentas padre: ${manualError.message}`
+    );
+  }
 
   for (const cambio of presupuesto) {
     const cuenta = (cambio.cuenta || "").toString().trim();
@@ -524,6 +622,12 @@ const  persistirEnFirebird = async (borrador) => {
       continue;
     }
 
+    const registroEditado = presupuestosEditados.get(cuenta) || {};
+    columnasVariables.forEach((columna, index) => {
+      registroEditado[columna] = valoresVariables[index];
+    });
+    presupuestosEditados.set(cuenta, registroEditado);
+
     const columnas = ["NUM_CTA", "EJERCICIO", ...columnasVariables];
     const parametros = [cuenta, anio, ...valoresVariables];
     const placeholders = columnas.map(() => "?").join(", ");
@@ -554,7 +658,14 @@ const  persistirEnFirebird = async (borrador) => {
 
   // ✅ PASO 3: Actualizar cuentas padre (acumulativas) con la suma de sus cuentas hijas
   try {
-    await actualizarCuentasPadre(borrador.empresaId, anio, tablaPresup);
+    await actualizarCuentasPadre(
+      borrador.empresaId,
+      anio,
+      tablaPresup,
+      presupuestosEditados,
+      manualBaseMap,
+      borrador.id
+    );
   } catch (errorPadre) {
     console.error(`❌ Error al actualizar cuentas padre:`, errorPadre);
     // No bloquear - las cuentas de detalle ya se guardaron correctamente
@@ -565,7 +676,91 @@ const  persistirEnFirebird = async (borrador) => {
  * Actualiza las cuentas padre (TIPO='A') con la suma de sus cuentas hijas (TIPO='D')
  * Para cada cuenta acumulativa, suma los presupuestos de todas sus cuentas de detalle
  */
-const actualizarCuentasPadre = async (empresaId, anio, tablaPresup) => {
+const calcularManualPadres = async (empresaId, anio, tablaPresup) => {
+  const { ejecutarConsulta } = require("./firebirdService");
+  const tablaCuentas = `CUENTAS${anio.toString().slice(-2).padStart(2, '0')}`;
+
+  const queryCuentasPadre = `
+    SELECT DISTINCT p.NUM_CTA
+    FROM ${tablaCuentas} h
+    JOIN ${tablaCuentas} p
+      ON TRIM(p.NUM_CTA) = TRIM(h.CTA_PAPA)
+    WHERE h.STATUS = 'A'
+      AND p.STATUS = 'A'
+      AND TRIM(h.CTA_PAPA) <> ''
+  `;
+
+  const cuentasPadre = await ejecutarConsulta(empresaId, queryCuentasPadre, []);
+  if (!cuentasPadre || cuentasPadre.length === 0) {
+    return new Map();
+  }
+
+  const manualMap = new Map();
+
+  for (const cuentaPadre of cuentasPadre) {
+    const numCta = (cuentaPadre.NUM_CTA || '').trim();
+    if (!numCta) continue;
+
+    const queryHijas = `
+      SELECT 
+        h.NUM_CTA,
+        p.PRESUP01, p.PRESUP02, p.PRESUP03, p.PRESUP04, p.PRESUP05, p.PRESUP06,
+        p.PRESUP07, p.PRESUP08, p.PRESUP09, p.PRESUP10, p.PRESUP11, p.PRESUP12
+      FROM ${tablaCuentas} h
+      LEFT JOIN ${tablaPresup} p ON p.NUM_CTA = h.NUM_CTA AND p.EJERCICIO = ?
+      WHERE h.STATUS = 'A'
+        AND TRIM(h.CTA_PAPA) = ?
+    `;
+
+    const cuentasHijas = await ejecutarConsulta(empresaId, queryHijas, [anio, numCta]);
+    const sumasMensuales = {
+      PRESUP01: 0, PRESUP02: 0, PRESUP03: 0, PRESUP04: 0,
+      PRESUP05: 0, PRESUP06: 0, PRESUP07: 0, PRESUP08: 0,
+      PRESUP09: 0, PRESUP10: 0, PRESUP11: 0, PRESUP12: 0
+    };
+
+    (cuentasHijas || []).forEach((hija) => {
+      for (let mes = 1; mes <= 12; mes++) {
+        const col = `PRESUP${mes.toString().padStart(2, '0')}`;
+        const valor = Number(hija[col]) || 0;
+        sumasMensuales[col] += valor;
+      }
+    });
+
+    const queryPadrePresup = `
+      SELECT 
+        PRESUP01, PRESUP02, PRESUP03, PRESUP04, PRESUP05, PRESUP06,
+        PRESUP07, PRESUP08, PRESUP09, PRESUP10, PRESUP11, PRESUP12
+      FROM ${tablaPresup}
+      WHERE NUM_CTA = ? AND EJERCICIO = ?
+    `;
+    const padrePresupRows = await ejecutarConsulta(empresaId, queryPadrePresup, [numCta, anio]);
+    const padrePresup = padrePresupRows && padrePresupRows[0] ? padrePresupRows[0] : null;
+
+    const manualCalculado = {};
+    Object.keys(sumasMensuales).forEach((col) => {
+      if (!padrePresup) {
+        manualCalculado[col] = 0;
+        return;
+      }
+      const actual = Number(padrePresup[col]) || 0;
+      manualCalculado[col] = actual - sumasMensuales[col];
+    });
+
+    manualMap.set(numCta, manualCalculado);
+  }
+
+  return manualMap;
+};
+
+const actualizarCuentasPadre = async (
+  empresaId,
+  anio,
+  tablaPresup,
+  presupuestosEditados = new Map(),
+  manualBaseMap = null,
+  borradorId = null
+) => {
   const { ejecutarConsulta } = require("./firebirdService");
   console.log(`\n📊 ============================================`);
   console.log(`📊 Actualizando cuentas padre en ${tablaPresup}...`);
@@ -592,6 +787,7 @@ const actualizarCuentasPadre = async (empresaId, anio, tablaPresup) => {
   if (!cuentasPadre || cuentasPadre.length === 0) {
     console.log(`⚠️ No se encontraron cuentas padre (TIPO='A') en ${tablaCuentas}`);
     console.log(`⚠️ Verificar que existan cuentas con TIPO='A' y STATUS='A'`);
+    finalizarProgresoRecontabilizacion(borradorId, "sin-datos");
     return;
   }
   
@@ -601,6 +797,12 @@ const actualizarCuentasPadre = async (empresaId, anio, tablaPresup) => {
   let contadorActualizadas = 0;
   let contadorSinHijas = 0;
   let contadorSinValores = 0;
+  let contadorProcesadas = 0;
+  actualizarProgresoRecontabilizacion(borradorId, {
+    estado: "recontabilizando",
+    total: cuentasPadre.length,
+    actual: 0,
+  });
   
   // Procesar de nivel más profundo a más superficial para calcular correctamente la jerarquía
   for (const cuentaPadre of cuentasPadre) {
@@ -637,6 +839,10 @@ const actualizarCuentasPadre = async (empresaId, anio, tablaPresup) => {
     if (!cuentasHijas || cuentasHijas.length === 0) {
       console.log(`     ⚠️ Esta cuenta padre no tiene hijas (o CTA_PAPA no coincide)`);
       contadorSinHijas++;
+      contadorProcesadas++;
+      actualizarProgresoRecontabilizacion(borradorId, {
+        actual: contadorProcesadas,
+      });
       continue;
     }
     
@@ -646,7 +852,7 @@ const actualizarCuentasPadre = async (empresaId, anio, tablaPresup) => {
       console.log(`        • ${hija.NUM_CTA} - ${hijaNombre} (Nivel ${hija.NIVEL}, TIPO=${hija.TIPO})`);
     });
     
-    // Calcular suma de presupuestos por mes
+    // Calcular suma de presupuestos por mes (hijas)
     const sumasMensuales = {
       PRESUP01: 0, PRESUP02: 0, PRESUP03: 0, PRESUP04: 0, 
       PRESUP05: 0, PRESUP06: 0, PRESUP07: 0, PRESUP08: 0,
@@ -660,6 +866,47 @@ const actualizarCuentasPadre = async (empresaId, anio, tablaPresup) => {
         sumasMensuales[col] += valor;
       }
     });
+
+    const manualEditado = presupuestosEditados instanceof Map
+      ? presupuestosEditados.get(numCta)
+      : (presupuestosEditados || {})[numCta];
+
+    const manualPrecalculado = manualBaseMap instanceof Map
+      ? manualBaseMap.get(numCta)
+      : null;
+
+    let manualCalculado = manualPrecalculado;
+
+    if (!manualCalculado) {
+      // Obtener presupuesto actual del padre para conservar la parte manual
+      const queryPadrePresup = `
+        SELECT 
+          PRESUP01, PRESUP02, PRESUP03, PRESUP04, PRESUP05, PRESUP06,
+          PRESUP07, PRESUP08, PRESUP09, PRESUP10, PRESUP11, PRESUP12
+        FROM ${tablaPresup}
+        WHERE NUM_CTA = ? AND EJERCICIO = ?
+      `;
+      const padrePresupRows = await ejecutarConsulta(empresaId, queryPadrePresup, [numCta, anio]);
+      const padrePresup = padrePresupRows && padrePresupRows[0] ? padrePresupRows[0] : null;
+
+      manualCalculado = {};
+      Object.keys(sumasMensuales).forEach((col) => {
+        if (!padrePresup) {
+          manualCalculado[col] = 0;
+          return;
+        }
+        const actual = Number(padrePresup[col]) || 0;
+        manualCalculado[col] = actual - sumasMensuales[col];
+      });
+    }
+
+    Object.keys(sumasMensuales).forEach((col) => {
+      const valorManual = manualEditado && Object.prototype.hasOwnProperty.call(manualEditado, col)
+        ? Number(manualEditado[col]) || 0
+        : Number(manualCalculado[col]) || 0;
+      sumasMensuales[col] += valorManual;
+    });
+    console.log(`     ➕ Presupuesto manual agregado a ${numCta}`);
     
     // Verificar si hay valores para actualizar
     const tieneValores = Object.values(sumasMensuales).some((val) => val !== 0);
@@ -703,6 +950,10 @@ const actualizarCuentasPadre = async (empresaId, anio, tablaPresup) => {
     } catch (error) {
       console.error(`     ❌ Error actualizando cuenta padre ${numCta}:`, error.message);
     }
+    contadorProcesadas++;
+    actualizarProgresoRecontabilizacion(borradorId, {
+      actual: contadorProcesadas,
+    });
   }
   
   console.log(`\n📊 ============================================`);
@@ -712,6 +963,7 @@ const actualizarCuentasPadre = async (empresaId, anio, tablaPresup) => {
   console.log(`   ⚠️ Sin valores: ${contadorSinValores}`);
   console.log(`   📊 Total procesadas: ${cuentasPadre.length}`);
   console.log(`📊 ============================================\n`);
+  finalizarProgresoRecontabilizacion(borradorId, "completado");
 };
 
 const FINALIZADORES = {
@@ -1006,10 +1258,25 @@ const guardarAutorizado = async (borradorId, usuarioId) => {
   if (borrador.estado !== ESTADOS.APROBADO) {
     throw new Error("El borrador debe estar autorizado antes de guardar.");
   }
+  iniciarProgresoRecontabilizacion(borradorId);
   const finalizador = obtenerFinalizador(borrador.modulo);
-  if (finalizador) {
-    await finalizador(borrador);
-  }
+  const tarea = async () => {
+    actualizarProgresoRecontabilizacion(borradorId, { estado: "recontabilizando" });
+    try {
+      if (finalizador) {
+        await finalizador(borrador);
+      }
+      finalizarProgresoRecontabilizacion(borradorId, "completado");
+    } catch (error) {
+      finalizarProgresoRecontabilizacion(borradorId, "error");
+      throw error;
+    }
+  };
+  const { ejecucion } = encolarRecontabilizacion(
+    { empresaId: borrador.empresaId, anio: borrador.anio, borradorId },
+    tarea
+  );
+  await ejecucion;
   db.prepare(
     `
     UPDATE PLAN_BORRADORES
@@ -1053,6 +1320,7 @@ module.exports = {
   listarBorradores,
   listarHistorialBorradores,
   obtenerFiltrosHistorial,
+  obtenerProgresoRecontabilizacion,
   ESTADOS,
   HISTORIAL_ACCIONES,
 };

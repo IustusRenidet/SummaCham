@@ -15,6 +15,7 @@ const {
   listarBorradores,
   listarHistorialBorradores,
   obtenerFiltrosHistorial,
+  obtenerProgresoRecontabilizacion,
   ESTADOS,
   eliminarBorrador,
 } = require("../services/borradoresService");
@@ -377,6 +378,37 @@ router.get("/detalle/:id", (req, res) => {
   }
 
   return res.json({ borrador });
+});
+
+router.get("/progreso/:id", (req, res) => {
+  const { value, error } = esquemaDetalle.validate(req.params, {
+    abortEarly: false,
+  });
+  if (error) {
+    return res.status(400).json({
+      mensaje: "Identificador de borrador inválido.",
+      detalles: error.details.map((detalle) => detalle.message),
+    });
+  }
+
+  const borrador = obtenerBorradorPorId(value.id);
+  if (!borrador) {
+    return res.status(404).json({ mensaje: "Borrador no encontrado." });
+  }
+
+  const empresa = obtenerEmpresaPorId(borrador.empresaId);
+  if (!empresa) {
+    return res.status(404).json({ mensaje: "Empresa asociada no existe." });
+  }
+
+  if (!puedeVerBorrador(req, borrador)) {
+    return res
+      .status(403)
+      .json({ mensaje: "No puedes consultar este borrador." });
+  }
+
+  const progreso = obtenerProgresoRecontabilizacion(value.id);
+  return res.json({ progreso });
 });
 
 router.post("/guardar", async (req, res) => {

@@ -186,6 +186,34 @@
       .workflow-step .text-muted {
         font-size: 0.82rem;
       }
+      .reconta-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.45);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1080;
+      }
+      .reconta-overlay.show {
+        display: flex;
+      }
+      .reconta-card {
+        background: #fff;
+        border-radius: 14px;
+        padding: 1rem 1.25rem;
+        min-width: 320px;
+        max-width: 420px;
+        box-shadow: 0 12px 32px rgba(15, 23, 42, 0.25);
+      }
+      .reconta-title {
+        font-weight: 600;
+        margin-bottom: 0.35rem;
+      }
+      .reconta-meta {
+        font-size: 0.85rem;
+        color: #6c757d;
+      }
     `;
     document.head.appendChild(style);
   };
@@ -1963,6 +1991,112 @@
       }
     }
 
+    _ensureProgresoRecontabilizacion() {
+      let overlay = document.getElementById("recontaOverlay");
+      if (overlay) return overlay;
+      overlay = document.createElement("div");
+      overlay.id = "recontaOverlay";
+      overlay.className = "reconta-overlay";
+      overlay.innerHTML = `
+        <div class="reconta-card">
+          <div class="reconta-title">Recontabilizando cuentas</div>
+          <div class="reconta-meta" id="recontaMeta">Iniciando...</div>
+          <div class="progress my-2">
+            <div class="progress-bar progress-bar-striped progress-bar-animated" id="recontaBar" role="progressbar" style="width: 0%"></div>
+          </div>
+          <div class="text-end text-muted small" id="recontaPct">0%</div>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+      return overlay;
+    }
+
+    _actualizarProgresoRecontabilizacionUI(progreso = {}) {
+      const overlay = this._ensureProgresoRecontabilizacion();
+      const meta = overlay.querySelector("#recontaMeta");
+      const bar = overlay.querySelector("#recontaBar");
+      const pct = overlay.querySelector("#recontaPct");
+      const total = Number(progreso.total) || 0;
+      const actual = Number(progreso.actual) || 0;
+      const porcentaje = Number.isFinite(progreso.porcentaje)
+        ? progreso.porcentaje
+        : total > 0
+        ? Math.round((actual / total) * 100)
+        : 0;
+
+      if (meta) {
+        if (progreso.estado === "en-cola") {
+          const posicion = Number(progreso.posicion) || 1;
+          meta.textContent = `En cola de recontabilización (posición ${posicion})`;
+        } else {
+          meta.textContent = total
+            ? `Recontabilizando ${actual}/${total} cuentas...`
+            : "Recontabilizando cuentas...";
+        }
+      }
+      if (bar) {
+        bar.style.width = `${porcentaje}%`;
+        bar.setAttribute("aria-valuenow", String(porcentaje));
+      }
+      if (pct) {
+        pct.textContent = `${porcentaje}%`;
+      }
+
+      window.dispatchEvent(
+        new CustomEvent("reconta:progreso", {
+          detail: {
+            ...progreso,
+            porcentaje,
+          },
+        })
+      );
+    }
+
+    _mostrarProgresoRecontabilizacion() {
+      const overlay = this._ensureProgresoRecontabilizacion();
+      overlay.classList.add("show");
+      this._actualizarProgresoRecontabilizacionUI({ porcentaje: 0 });
+    }
+
+    _ocultarProgresoRecontabilizacion() {
+      const overlay = document.getElementById("recontaOverlay");
+      if (overlay) overlay.classList.remove("show");
+      window.dispatchEvent(
+        new CustomEvent("reconta:progreso", {
+          detail: { estado: "oculto", porcentaje: 100 },
+        })
+      );
+    }
+
+    _iniciarPollingProgresoRecontabilizacion(borradorId) {
+      if (!borradorId) return () => {};
+      let activo = true;
+      const actualizar = async () => {
+        if (!activo) return;
+        try {
+          const resp = await fetch(
+            `${API_BASE}/borradores/progreso/${borradorId}`,
+            {
+              headers: this._construirHeaders(),
+            }
+          );
+          if (!resp.ok) return;
+          const data = await resp.json().catch(() => ({}));
+          if (data?.progreso) {
+            this._actualizarProgresoRecontabilizacionUI(data.progreso);
+          }
+        } catch (err) {
+          console.warn("No fue posible actualizar progreso:", err?.message);
+        }
+      };
+      actualizar();
+      const timer = setInterval(actualizar, 800);
+      return () => {
+        activo = false;
+        clearInterval(timer);
+      };
+    }
+
     async _handleGuardarCOI() {
       if (!this._puede({ accion: "guardarCoi" })) {
         this._toast("No cuentas con permisos para guardar en COI.", "warning");
@@ -1986,6 +2120,11 @@
         tipoBoton: "primary",
       });
       if (!confirmado) return;
+      this._mostrarProgresoRecontabilizacion();
+      const detenerProgreso = this._iniciarPollingProgresoRecontabilizacion(
+        this.state.borrador.id
+      );
+      let guardadoExitoso = false;
       try {
         const resp = await fetch(`${API_BASE}/borradores/finalizar`, {
           method: "POST",
@@ -1999,6 +2138,7 @@
         this._renderInfo();
         this._renderBotones();
         this._toast(data.mensaje || "Presupuesto guardado en COI.", "success");
+        guardadoExitoso = true;
         
         // Cerrar drawer de flujo al completar el guardado exitosamente
         setTimeout(() => {
@@ -2010,6 +2150,16 @@
           error.message || "No fue posible guardar en COI.",
           "danger"
         );
+      } finally {
+        if (detenerProgreso) detenerProgreso();
+        if (guardadoExitoso) {
+          this._actualizarProgresoRecontabilizacionUI({ porcentaje: 100 });
+          setTimeout(() => {
+            this._ocultarProgresoRecontabilizacion();
+          }, 600);
+        } else {
+          this._ocultarProgresoRecontabilizacion();
+        }
       }
     }
 

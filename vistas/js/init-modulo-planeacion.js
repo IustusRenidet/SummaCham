@@ -490,6 +490,113 @@ const prepararStickyHeaders = (selectorTabla) => {
   return overlay;
 };
 
+const setupRecontaOverlayListener = () => {
+  if (window.__recontaOverlayListener) return;
+  window.__recontaOverlayListener = true;
+
+  const ensureStyles = () => {
+    if (document.getElementById("recontaOverlayStyle")) return;
+    const style = document.createElement("style");
+    style.id = "recontaOverlayStyle";
+    style.textContent = `
+      .reconta-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.45);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1080;
+      }
+      .reconta-overlay.show {
+        display: flex;
+      }
+      .reconta-card {
+        background: #fff;
+        border-radius: 14px;
+        padding: 1rem 1.25rem;
+        min-width: 320px;
+        max-width: 420px;
+        box-shadow: 0 12px 32px rgba(15, 23, 42, 0.25);
+      }
+      .reconta-title {
+        font-weight: 600;
+        margin-bottom: 0.35rem;
+      }
+      .reconta-meta {
+        font-size: 0.85rem;
+        color: #6c757d;
+      }
+    `;
+    document.head.appendChild(style);
+  };
+
+  const ensureOverlay = () => {
+    ensureStyles();
+    let overlay = document.getElementById("recontaOverlay");
+    if (overlay) return overlay;
+    overlay = document.createElement("div");
+    overlay.id = "recontaOverlay";
+    overlay.className = "reconta-overlay";
+    overlay.innerHTML = `
+      <div class="reconta-card">
+        <div class="reconta-title">Recontabilizando cuentas</div>
+        <div class="reconta-meta" id="recontaMeta">Iniciando...</div>
+        <div class="progress my-2">
+          <div class="progress-bar progress-bar-striped progress-bar-animated" id="recontaBar" role="progressbar" style="width: 0%"></div>
+        </div>
+        <div class="text-end text-muted small" id="recontaPct">0%</div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    return overlay;
+  };
+
+  const actualizar = (detalle = {}) => {
+    const overlay = ensureOverlay();
+    const meta = overlay.querySelector("#recontaMeta");
+    const bar = overlay.querySelector("#recontaBar");
+    const pct = overlay.querySelector("#recontaPct");
+    const total = Number(detalle.total) || 0;
+    const actual = Number(detalle.actual) || 0;
+    const porcentaje = Number.isFinite(detalle.porcentaje)
+      ? detalle.porcentaje
+      : total > 0
+      ? Math.round((actual / total) * 100)
+      : 0;
+
+    if (detalle.estado === "oculto") {
+      overlay.classList.remove("show");
+      return;
+    }
+
+    overlay.classList.add("show");
+    if (meta) {
+      if (detalle.estado === "en-cola") {
+        const posicion = Number(detalle.posicion) || 1;
+        meta.textContent = `En cola de recontabilización (posición ${posicion})`;
+      } else {
+        meta.textContent = total
+          ? `Recontabilizando ${actual}/${total} cuentas...`
+          : "Recontabilizando cuentas...";
+      }
+    }
+    if (bar) {
+      bar.style.width = `${porcentaje}%`;
+      bar.setAttribute("aria-valuenow", String(porcentaje));
+    }
+    if (pct) {
+      pct.textContent = `${porcentaje}%`;
+    }
+  };
+
+  window.addEventListener("reconta:progreso", (event) => {
+    actualizar(event?.detail || {});
+  });
+};
+
+setupRecontaOverlayListener();
+
 window.prepararStickyHeaders = prepararStickyHeaders;
 
 window.initModuloPlaneacion = async function({ moduloId, moduloNombre, selectorTabla = '#tablaComparacion', tablaBodyId = 'tablaCuentasBody' }) {

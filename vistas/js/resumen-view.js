@@ -458,10 +458,19 @@
   };
 
   const INGRESO_NACIONAL_LABELS = {
-    committees: ["COMMITTEES", "COMITES", "COMITÉS"],
-    membership: ["MEMBERSHIP"],
-    events: ["EVENTS"],
-    services: ["SERVICES TO MEMBERS", "SERVICES MEMBERS"],
+    committees: [
+      "COMMITTEES",
+      "COMITES",
+      "COMITÉS",
+      "COMMITTEES (INCOME)",
+    ],
+    membership: ["MEMBERSHIP", "MEMBERSHIP (INCOME)"],
+    events: ["EVENTS", "EVENTS (INCOME)"],
+    services: [
+      "SERVICES TO MEMBERS",
+      "SERVICES MEMBERS",
+      "SERVICES TO MEMBERS (INCOME)",
+    ],
     tic: ["T&IC", "T&IC (INCOME)", "T&IC INCOME"],
   };
 
@@ -631,13 +640,14 @@
 
     const anio = leerAnioSeleccionado();
     const empresa = empresaActual || Sesion.obtenerEmpresaActiva();
-    if (!empresa?.id || !anio) return;
+    if (!empresa?.id || !anio) return false;
 
     const data = await obtenerIngresoNacionalSeries(empresa.id, anio);
-    if (!data || !Array.isArray(data.labels) || !data.labels.length) return;
+    if (!data || !Array.isArray(data.labels) || !data.labels.length) return false;
 
     chartCardIngresoNacional.classList.remove("d-none");
     renderGraficaPanel("ingresoNacional", chartCanvasIngresoNacional, data);
+    return true;
   };
 
   const cargarGraficaIngresoCapitulo = async () => {
@@ -647,13 +657,14 @@
 
     const anio = leerAnioSeleccionado();
     const empresa = empresaActual || Sesion.obtenerEmpresaActiva();
-    if (!empresa?.id || !anio) return;
+    if (!empresa?.id || !anio) return false;
 
     const data = await obtenerIngresoPorCapituloSeries(empresa.id, anio);
-    if (!data || !Array.isArray(data.labels) || !data.labels.length) return;
+    if (!data || !Array.isArray(data.labels) || !data.labels.length) return false;
 
     chartCardIngresoCapitulo.classList.remove("d-none");
     renderGraficaPanel("ingreso", chartCanvasIngresoCapitulo, data);
+    return true;
   };
 
   const mostrarGraficasVacias = (mensaje) => {
@@ -674,9 +685,6 @@
 
     const datos = generarDatosGraficas();
     if (!Array.isArray(datos) || datos.length === 0) {
-      mostrarGraficasVacias(
-        "No hay datos de graficas disponibles. Carga el resumen primero."
-      );
       destruirGraficaPanel("operating");
       destruirGraficaPanel("net");
       destruirGraficaPanel("consolidated");
@@ -689,6 +697,25 @@
         chartCardIngresoCapitulo.classList.add("d-none");
       if (chartCardIngresoNacional)
         chartCardIngresoNacional.classList.add("d-none");
+      Promise.all([
+        cargarGraficaIngresoCapitulo(),
+        cargarGraficaIngresoNacional(),
+      ])
+        .then(([ingresoCapitulo, ingresoNacional]) => {
+          if (ingresoCapitulo || ingresoNacional) {
+            if (chartsEmpty) chartsEmpty.classList.add("d-none");
+            if (chartsGrid) chartsGrid.classList.remove("d-none");
+          } else {
+            mostrarGraficasVacias(
+              "No hay datos de graficas disponibles. Carga el resumen primero."
+            );
+          }
+        })
+        .catch(() => {
+          mostrarGraficasVacias(
+            "No hay datos de graficas disponibles. Carga el resumen primero."
+          );
+        });
       return;
     }
 

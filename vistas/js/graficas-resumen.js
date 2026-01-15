@@ -98,10 +98,19 @@
   };
 
   const INGRESO_NACIONAL_LABELS = {
-    committees: ["COMMITTEES", "COMITES", "COMITÉS"],
-    membership: ["MEMBERSHIP"],
-    events: ["EVENTS"],
-    services: ["SERVICES TO MEMBERS", "SERVICES MEMBERS"],
+    committees: [
+      "COMMITTEES",
+      "COMITES",
+      "COMITÉS",
+      "COMMITTEES (INCOME)",
+    ],
+    membership: ["MEMBERSHIP", "MEMBERSHIP (INCOME)"],
+    events: ["EVENTS", "EVENTS (INCOME)"],
+    services: [
+      "SERVICES TO MEMBERS",
+      "SERVICES MEMBERS",
+      "SERVICES TO MEMBERS (INCOME)",
+    ],
     tic: ["T&IC", "T&IC (INCOME)", "T&IC INCOME"],
   };
 
@@ -1500,7 +1509,21 @@
       if (consolidatedCard) {
         consolidatedCard.style.display = "none";
       }
-      // No mostrar alert, el usuario puede navegar a RESUMEN si lo necesita
+      // Limpiar gráficas que dependen del snapshot
+      [
+        "chartOperatingSummaryByChapter",
+        "chartNetSummaryByChapter",
+        "chartConsolidatedResults",
+      ].forEach((id) => {
+        if (charts[id]) {
+          charts[id].destroy();
+          charts[id] = null;
+        }
+      });
+
+      // Renderizar las gráficas de ingresos aunque no haya snapshot
+      await renderIngresoPorCapituloChart(empresa.id, anio);
+      await renderIngresoNacionalChart(empresa.id, anio);
       return;
     }
 
