@@ -39,6 +39,14 @@
   const monthSelect = document.getElementById("grafMonthSelect");
   const empresaLabel = document.getElementById("empresaLabel");
   const consolidatedCard = document.getElementById("consolidatedCard");
+  const ingresoPorCapituloCanvas = document.getElementById(
+    "chartIngresoPorCapitulo"
+  );
+  const ingresoPorCapituloCard = document.getElementById(
+    "incomeByChapterCard"
+  );
+  const ingresoNacionalCanvas = document.getElementById("chartIngresoNacional");
+  const ingresoNacionalCard = document.getElementById("incomeNationalCard");
   const charts = {};
 
   // === UTILIDADES ===
@@ -61,6 +69,41 @@
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(n);
+
+  const MONTH_LABELS = [
+    "Enero",
+    "Febrero",
+    "Marzo",
+    "Abril",
+    "Mayo",
+    "Junio",
+    "Julio",
+    "Agosto",
+    "Septiembre",
+    "Octubre",
+    "Noviembre",
+    "Diciembre",
+  ];
+
+  const INCOME_LABELS = {
+    mex: ["CDMX INCOME", "MEXICO INCOME", "CIUDAD DE MEXICO INCOME"],
+    gdl: ["GUADALAJARA INCOME", "GDL INCOME", "GUADALAJARA INCOMEA"],
+    mty: ["MONTERREY INCOME", "MTY INCOME"],
+    nw: [
+      "NORTHWEST INCOME",
+      "NW INCOME",
+      "NOROESTE INCOME",
+      "NO INCOME",
+    ],
+  };
+
+  const INGRESO_NACIONAL_LABELS = {
+    committees: ["COMMITTEES", "COMITES", "COMITÉS"],
+    membership: ["MEMBERSHIP"],
+    events: ["EVENTS"],
+    services: ["SERVICES TO MEMBERS", "SERVICES MEMBERS"],
+    tic: ["T&IC", "T&IC (INCOME)", "T&IC INCOME"],
+  };
 
   // === CONTEXTO Y PERSISTENCIA ===
   const CONTEXT_KEY = "planeacion_contexto";
@@ -165,6 +208,171 @@
       planYTD: 0,
       prevYTD: 0,
     };
+  };
+
+  const ingresoCache = new Map();
+
+  const buildIngresoCacheKey = (empresaId, anio) =>
+    `${empresaId || "sin"}:${anio || "sin"}`;
+
+  const obtenerFilaIngreso = (layout = [], variants = []) => {
+    if (!Array.isArray(layout) || !layout.length) return null;
+    const candidatos = Array.isArray(variants) ? variants : [variants];
+    const normalizados = candidatos.map((v) => normalizarLabel(v));
+    return layout.find((row) => {
+      const label = normalizarLabel(row?.label || "");
+      return normalizados.some((v) => label.includes(v));
+    });
+  };
+
+  const fetchResumenMes = async (empresaId, anio, mes) => {
+    const params = new URLSearchParams({
+      empresaId: empresaId || "",
+      anio: String(anio || ""),
+      mes: String(mes || ""),
+    });
+    const res = await fetch(`${API_ENDPOINT}?${params.toString()}`, {
+      headers: window.Sesion?.headersAutenticacion?.() || {},
+    });
+    if (!res.ok) {
+      throw new Error(`No fue posible cargar resumen ${anio}-${mes}`);
+    }
+    return res.json();
+  };
+
+  const buildIngresoPorCapituloSeries = async (empresaId, anio) => {
+    if (!empresaId || !anio) return null;
+    const cacheKey = buildIngresoCacheKey(empresaId, anio);
+    if (ingresoCache.has(cacheKey)) {
+      return ingresoCache.get(cacheKey);
+    }
+
+    const meses = MONTH_LABELS.map((_, idx) => idx + 1);
+    const responses = await Promise.all(
+      meses.map(async (mes) => {
+        try {
+          return await fetchResumenMes(empresaId, anio, mes);
+        } catch (err) {
+          console.warn("📊 Graficas: Error cargando resumen mes", mes, err);
+          return null;
+        }
+      })
+    );
+
+    const datasetsConfig = [
+      { key: "mex", label: "CDMX INCOME", color: "#0d47a1" },
+      { key: "gdl", label: "GUADALAJARA INCOME", color: "#60a5fa" },
+      { key: "mty", label: "MONTERREY INCOME", color: "#22c55e" },
+      { key: "nw", label: "NORTHWEST INCOME", color: "#f59e0b" },
+    ];
+
+    const series = datasetsConfig.reduce((acc, item) => {
+      acc[item.key] = [];
+      return acc;
+    }, {});
+
+    responses.forEach((data, idx) => {
+      const layout = data?.resumen?.[0]?.layout || [];
+      datasetsConfig.forEach((dataset) => {
+        const row = obtenerFilaIngreso(layout, INCOME_LABELS[dataset.key]);
+        const val = toNumber(row?.totals?.actualYTD);
+        series[dataset.key][idx] = val;
+      });
+    });
+
+    const hasData = datasetsConfig.some((dataset) =>
+      (series[dataset.key] || []).some((val) => Number(val) !== 0)
+    );
+    if (!hasData) {
+      return null;
+    }
+
+    const result = {
+      labels: MONTH_LABELS,
+      datasets: datasetsConfig.map((dataset) => ({
+        label: dataset.label,
+        data: series[dataset.key] || [],
+        borderColor: dataset.color,
+        backgroundColor: dataset.color,
+        borderWidth: 2,
+        tension: 0.2,
+        fill: false,
+        pointRadius: 3,
+      })),
+    };
+
+    ingresoCache.set(cacheKey, result);
+    return result;
+  };
+
+  const ingresoNacionalCache = new Map();
+  const buildIngresoNacionalCacheKey = (empresaId, anio) =>
+    `${empresaId || "sin"}:${anio || "sin"}`;
+
+  const buildIngresoNacionalSeries = async (empresaId, anio) => {
+    if (!empresaId || !anio) return null;
+    const cacheKey = buildIngresoNacionalCacheKey(empresaId, anio);
+    if (ingresoNacionalCache.has(cacheKey)) {
+      return ingresoNacionalCache.get(cacheKey);
+    }
+
+    const meses = MONTH_LABELS.map((_, idx) => idx + 1);
+    const responses = await Promise.all(
+      meses.map(async (mes) => {
+        try {
+          return await fetchResumenMes(empresaId, anio, mes);
+        } catch (err) {
+          console.warn("📊 Graficas: Error cargando ingreso nacional", mes, err);
+          return null;
+        }
+      })
+    );
+
+    const datasetsConfig = [
+      { key: "committees", label: "Committees", color: "#0d47a1" },
+      { key: "membership", label: "Membership", color: "#60a5fa" },
+      { key: "events", label: "Events", color: "#22c55e" },
+      { key: "services", label: "Services to Members", color: "#f59e0b" },
+      { key: "tic", label: "T&IC", color: "#a855f7" },
+    ];
+
+    const series = datasetsConfig.reduce((acc, item) => {
+      acc[item.key] = [];
+      return acc;
+    }, {});
+
+    responses.forEach((data, idx) => {
+      const layout = data?.resumen?.[0]?.layout || [];
+      datasetsConfig.forEach((dataset) => {
+        const row = obtenerFilaIngreso(layout, INGRESO_NACIONAL_LABELS[dataset.key]);
+        const val = toNumber(row?.totals?.actualYTD);
+        series[dataset.key][idx] = val;
+      });
+    });
+
+    const hasData = datasetsConfig.some((dataset) =>
+      (series[dataset.key] || []).some((val) => Number(val) !== 0)
+    );
+    if (!hasData) {
+      return null;
+    }
+
+    const result = {
+      labels: MONTH_LABELS,
+      datasets: datasetsConfig.map((dataset) => ({
+        label: dataset.label,
+        data: series[dataset.key] || [],
+        borderColor: dataset.color,
+        backgroundColor: dataset.color,
+        borderWidth: 2,
+        tension: 0.2,
+        fill: false,
+        pointRadius: 3,
+      })),
+    };
+
+    ingresoNacionalCache.set(cacheKey, result);
+    return result;
   };
 
   // === CONFIGURACIÓN DE GRÁFICAS POR CAPÍTULO ===
@@ -345,12 +553,184 @@
     };
   };
 
-  // === DEFINICIÓN DE COLUMNAS PARA GRÁFICAS (Solo Acumulados) ===
-  const COLUMN_DEFS = [
-    { key: "actualYTD", label: "Real acumulado", color: "#0d47a1" }, // Azul corporativo
-    { key: "planYTD", label: "Ppto. acumulado", color: "#60a5fa" }, // Azul claro
-    { key: "prevYTD", label: "Real acumulado año anterior", color: "#94a3b8" }, // Gris
-  ];
+  // === CONFIGURACIÓN DE GRÁFICAS ===
+  const GRAFICAS_CONFIG_KEY = "graficas_config_v1";
+  const DEFAULT_GRAFICAS_CONFIG = {
+    version: 1,
+    series: [
+      {
+        key: "actualYTD",
+        label: "Real acumulado",
+        color: "#0d47a1",
+        enabled: true,
+      },
+      {
+        key: "planYTD",
+        label: "Ppto. acumulado",
+        color: "#60a5fa",
+        enabled: true,
+      },
+      {
+        key: "prevYTD",
+        label: "Real acumulado año anterior",
+        color: "#94a3b8",
+        enabled: true,
+      },
+    ],
+    charts: {
+      operating: {
+        enabled: true,
+        title: "Resultado Operativo por Capítulo",
+        subtitle: "Real Acum · Ppto. Acum · Real Acum AA",
+      },
+      net: {
+        enabled: true,
+        title: "Resumen Neto por Capítulo",
+        subtitle: "Real Acum · Ppto. Acum · Real Acum AA",
+      },
+      consolidated: {
+        enabled: true,
+        title: "Consolidados Operativos vs Netos",
+        subtitle: "Real Acum · Ppto. Acum · Real Acum AA",
+      },
+    },
+    consolidatedSeries: {
+      operating: {
+        label: "CONSOLIDATED OPERATING RESULTS",
+        color: "#0d47a1",
+      },
+      net: {
+        label: "CONSOLIDATED NET RESULTS",
+        color: "#94a3b8",
+      },
+    },
+    legend: {
+      show: true,
+      position: "bottom",
+    },
+    chart: {
+      type: "bar",
+      stacked: false,
+    },
+  };
+
+  const clone = (value) => JSON.parse(JSON.stringify(value));
+  const ALLOWED_SERIES_KEYS = new Set(["actualYTD", "planYTD", "prevYTD"]);
+
+  const normalizeGraficasConfig = (config = {}) => {
+    const base = clone(DEFAULT_GRAFICAS_CONFIG);
+    if (!config || typeof config !== "object") {
+      return base;
+    }
+
+    if (Array.isArray(config.series)) {
+      const seriesMap = new Map();
+      config.series.forEach((serie) => {
+        if (!serie || typeof serie !== "object") return;
+        if (!serie.key) return;
+        seriesMap.set(String(serie.key), serie);
+      });
+
+      base.series = base.series.map((serie) => {
+        const override = seriesMap.get(serie.key) || {};
+        const label =
+          typeof override.label === "string" && override.label.trim()
+            ? override.label.trim()
+            : serie.label;
+        const color =
+          typeof override.color === "string" && override.color.trim()
+            ? override.color.trim()
+            : serie.color;
+        const enabled =
+          typeof override.enabled === "boolean" ? override.enabled : serie.enabled;
+        return { ...serie, label, color, enabled };
+      });
+    }
+
+    if (config.charts && typeof config.charts === "object") {
+      ["operating", "net", "consolidated"].forEach((key) => {
+        const override = config.charts[key] || {};
+        if (typeof override.enabled === "boolean") {
+          base.charts[key].enabled = override.enabled;
+        }
+        if (typeof override.title === "string" && override.title.trim()) {
+          base.charts[key].title = override.title.trim();
+        }
+        if (typeof override.subtitle === "string" && override.subtitle.trim()) {
+          base.charts[key].subtitle = override.subtitle.trim();
+        }
+      });
+    }
+
+    if (config.consolidatedSeries && typeof config.consolidatedSeries === "object") {
+      ["operating", "net"].forEach((key) => {
+        const override = config.consolidatedSeries[key] || {};
+        if (typeof override.label === "string" && override.label.trim()) {
+          base.consolidatedSeries[key].label = override.label.trim();
+        }
+        if (typeof override.color === "string" && override.color.trim()) {
+          base.consolidatedSeries[key].color = override.color.trim();
+        }
+      });
+    }
+
+    if (config.legend && typeof config.legend === "object") {
+      if (typeof config.legend.show === "boolean") {
+        base.legend.show = config.legend.show;
+      }
+      if (
+        typeof config.legend.position === "string" &&
+        ["top", "bottom", "left", "right"].includes(config.legend.position)
+      ) {
+        base.legend.position = config.legend.position;
+      }
+    }
+
+    if (config.chart && typeof config.chart === "object") {
+      if (
+        typeof config.chart.type === "string" &&
+        ["bar", "line"].includes(config.chart.type)
+      ) {
+        base.chart.type = config.chart.type;
+      }
+      if (typeof config.chart.stacked === "boolean") {
+        base.chart.stacked = config.chart.stacked;
+      }
+    }
+
+    return base;
+  };
+
+  const loadGraficasConfig = () => {
+    try {
+      const raw = localStorage.getItem(GRAFICAS_CONFIG_KEY);
+      if (!raw) return clone(DEFAULT_GRAFICAS_CONFIG);
+      return normalizeGraficasConfig(JSON.parse(raw));
+    } catch (error) {
+      return clone(DEFAULT_GRAFICAS_CONFIG);
+    }
+  };
+
+  const getGraficasConfig = () => {
+    if (window.GraficasConfig && typeof window.GraficasConfig.load === "function") {
+      return window.GraficasConfig.load();
+    }
+    return loadGraficasConfig();
+  };
+
+  const getColumnDefs = (config) => {
+    const series = Array.isArray(config.series)
+      ? config.series
+      : DEFAULT_GRAFICAS_CONFIG.series;
+    return series
+      .filter((serie) => ALLOWED_SERIES_KEYS.has(serie.key))
+      .filter((serie) => serie.enabled !== false)
+      .map((serie) => ({
+        key: serie.key,
+        label: serie.label,
+        color: serie.color,
+      }));
+  };
 
   // === RENDERIZADO DE GRÁFICAS ===
   const renderChart = (id, cfg) => {
@@ -360,18 +740,94 @@
     charts[id] = new Chart(ctx, cfg);
   };
 
+  const clearChart = (id) => {
+    if (charts[id]) {
+      charts[id].destroy();
+      delete charts[id];
+    }
+  };
+
+  const applyCommonChartOptions = (options = {}, config) => {
+    const legend = options.plugins?.legend || {};
+    legend.display = Boolean(config.legend?.show);
+    legend.position = config.legend?.position || "bottom";
+    options.plugins = { ...(options.plugins || {}), legend };
+
+    options.scales = options.scales || {};
+    options.scales.x = options.scales.x || {};
+    options.scales.y = options.scales.y || {};
+
+    const shouldStack =
+      config.chart?.type === "bar" && Boolean(config.chart?.stacked);
+    options.scales.x.stacked = shouldStack;
+    options.scales.y.stacked = shouldStack;
+
+    return options;
+  };
+
+  const updateChartHeaders = (config) => {
+    const mapping = {
+      operating: {
+        titleId: "operatingChartTitle",
+        subtitleId: "operatingChartSubtitle",
+        cardId: "operatingCard",
+      },
+      net: {
+        titleId: "netChartTitle",
+        subtitleId: "netChartSubtitle",
+        cardId: "netCard",
+      },
+      consolidated: {
+        titleId: "consolidatedChartTitle",
+        subtitleId: "consolidatedChartSubtitle",
+        cardId: "consolidatedCard",
+      },
+    };
+
+    Object.entries(mapping).forEach(([key, value]) => {
+      const chartCfg = config.charts?.[key] || {};
+      const titleEl = document.getElementById(value.titleId);
+      const subtitleEl = document.getElementById(value.subtitleId);
+      const cardEl = document.getElementById(value.cardId);
+
+      if (titleEl && chartCfg.title) {
+        titleEl.textContent = chartCfg.title;
+      }
+      if (subtitleEl) {
+        subtitleEl.textContent = chartCfg.subtitle || "";
+      }
+
+      if (cardEl && key !== "consolidated") {
+        cardEl.style.display = chartCfg.enabled === false ? "none" : "";
+      }
+    });
+  };
+
   /**
    * Construye los datasets para un conjunto de filas
    */
-  const buildDatasets = (rows, snapshotMap) => {
-    return COLUMN_DEFS.map((col) => ({
-      label: col.label,
-      data: rows.map((row) => {
-        const data = getRowData(snapshotMap, row.variants);
-        return toNumber(data[col.key]);
-      }),
-      backgroundColor: col.color,
-    }));
+  const buildDatasets = (rows, snapshotMap, columnDefs, chartType) => {
+    return columnDefs.map((col) => {
+      const dataset = {
+        label: col.label,
+        data: rows.map((row) => {
+          const data = getRowData(snapshotMap, row.variants);
+          return toNumber(data[col.key]);
+        }),
+        backgroundColor: col.color,
+        borderColor: col.color,
+        borderWidth: 2,
+      };
+
+      if (chartType === "line") {
+        dataset.fill = false;
+        dataset.tension = 0.32;
+        dataset.pointRadius = 3;
+        dataset.pointBackgroundColor = col.color;
+      }
+
+      return dataset;
+    });
   };
 
   /**
@@ -387,6 +843,11 @@
       return;
     }
 
+    const graficasConfig = getGraficasConfig();
+    const columnDefs = getColumnDefs(graficasConfig);
+    const chartType = graficasConfig.chart?.type || "bar";
+    updateChartHeaders(graficasConfig);
+
     const config = getRowsConfig(capitulo);
 
     // === 1. Resultado Operativo por Capítulo ===
@@ -395,11 +856,13 @@
     renderChapterSummaryCharts(snapshotMap, config.isCdmx);
 
     // === 3. Consolidados Operativos vs Netos (SOLO PARA CDMX) ===
+    const showConsolidated =
+      config.isCdmx && graficasConfig.charts?.consolidated?.enabled !== false;
     if (consolidatedCard) {
-      consolidatedCard.style.display = config.isCdmx ? "block" : "none";
+      consolidatedCard.style.display = showConsolidated ? "block" : "none";
     }
 
-    if (config.isCdmx) {
+    if (showConsolidated) {
       const consolidatedOp = getRowData(snapshotMap, [
         "CONSOLIDATED OPERATING RESULTS",
       ]);
@@ -407,90 +870,107 @@
         "CONSOLIDATED NET RESULTS",
       ]);
 
+      const consolidatedColumns = columnDefs.length
+        ? columnDefs
+        : getColumnDefs(DEFAULT_GRAFICAS_CONFIG);
+      const consolidatedLabels = consolidatedColumns.map((col) => col.label);
+
       console.log("📊 Graficas: Consolidados -", {
         operating: consolidatedOp,
         net: consolidatedNet,
       });
 
       renderChart("chartConsolidatedResults", {
-        type: "bar",
+        type: chartType,
         data: {
-          labels: [
-            "Real Acumulado",
-            "Ppto. Acumulado",
-            "Real Acumulado AA",
-          ],
+          labels: consolidatedLabels,
           datasets: [
             {
-              label: "CONSOLIDATED OPERATING RESULTS",
-              data: [
-                consolidatedOp.actualYTD,
-                consolidatedOp.planYTD,
-                consolidatedOp.prevYTD,
-              ],
-              backgroundColor: "#0d47a1",
-              borderColor: "#0d47a1",
-              borderWidth: 1,
+              label:
+                graficasConfig.consolidatedSeries?.operating?.label ||
+                "CONSOLIDATED OPERATING RESULTS",
+              data: consolidatedColumns.map((col) =>
+                toNumber(consolidatedOp[col.key])
+              ),
+              backgroundColor:
+                graficasConfig.consolidatedSeries?.operating?.color || "#0d47a1",
+              borderColor:
+                graficasConfig.consolidatedSeries?.operating?.color || "#0d47a1",
+              borderWidth: chartType === "line" ? 2 : 1,
+              ...(chartType === "line"
+                ? {
+                    fill: false,
+                    tension: 0.32,
+                    pointRadius: 3,
+                    pointBackgroundColor:
+                      graficasConfig.consolidatedSeries?.operating?.color ||
+                      "#0d47a1",
+                  }
+                : {}),
             },
             {
-              label: "CONSOLIDATED NET RESULTS",
-              data: [
-                consolidatedNet.actualYTD,
-                consolidatedNet.planYTD,
-                consolidatedNet.prevYTD,
-              ],
-              backgroundColor: "#94a3b8",
-              borderColor: "#94a3b8",
-              borderWidth: 1,
+              label:
+                graficasConfig.consolidatedSeries?.net?.label ||
+                "CONSOLIDATED NET RESULTS",
+              data: consolidatedColumns.map((col) =>
+                toNumber(consolidatedNet[col.key])
+              ),
+              backgroundColor:
+                graficasConfig.consolidatedSeries?.net?.color || "#94a3b8",
+              borderColor:
+                graficasConfig.consolidatedSeries?.net?.color || "#94a3b8",
+              borderWidth: chartType === "line" ? 2 : 1,
+              ...(chartType === "line"
+                ? {
+                    fill: false,
+                    tension: 0.32,
+                    pointRadius: 3,
+                    pointBackgroundColor:
+                      graficasConfig.consolidatedSeries?.net?.color || "#94a3b8",
+                  }
+                : {}),
             },
           ],
         },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { 
-              position: "bottom",
-              labels: {
-                padding: 15,
-                font: { size: 12 }
-              }
-            },
-            title: {
-              display: true,
-              text: "CONSOLIDATED OPERATING RESULTS vs CONSOLIDATED NET RESULTS (Acumulados)",
-              font: { size: 16, weight: 'bold' },
-              padding: 20
-            },
-            tooltip: {
-              callbacks: {
-                label: function(context) {
-                  let label = context.dataset.label || '';
-                  if (label) {
-                    label += ': ';
+        options: applyCommonChartOptions(
+          {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              title: {
+                display: false,
+              },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    let label = context.dataset.label || '';
+                    if (label) {
+                      label += ': ';
+                    }
+                    label += formatNumber(context.parsed.y);
+                    return label;
                   }
-                  label += formatNumber(context.parsed.y);
-                  return label;
-                }
-              }
-            }
-          },
-          scales: { 
-            y: { 
-              beginAtZero: false,
-              ticks: {
-                callback: function(value) {
-                  return formatNumber(value);
                 }
               }
             },
-            x: {
-              ticks: {
-                font: { size: 11 }
+            scales: { 
+              y: { 
+                beginAtZero: false,
+                ticks: {
+                  callback: function(value) {
+                    return formatNumber(value);
+                  }
+                }
+              },
+              x: {
+                ticks: {
+                  font: { size: 11 }
+                }
               }
-            }
+            },
           },
-        },
+          graficasConfig
+        ),
       });
     }
   };
@@ -501,6 +981,12 @@
    * Para otros capítulos: Usa sus propios datos
    */
   const renderChapterSummaryCharts = async (snapshotMap, isCdmx) => {
+    const graficasConfig = getGraficasConfig();
+    const columnDefs = getColumnDefs(graficasConfig);
+    const chartType = graficasConfig.chart?.type || "bar";
+    const showOperating = graficasConfig.charts?.operating?.enabled !== false;
+    const showNet = graficasConfig.charts?.net?.enabled !== false;
+
     // Si es CDMX, usar los datos del snapshot actual que ya contiene todos los capítulos
     if (isCdmx && snapshotMap && snapshotMap.size > 0) {
       // Definir las 4 regiones en orden para CDMX
@@ -538,126 +1024,130 @@
       console.log("📊 Graficas: Resumen por capítulo (CDMX):", summaries);
 
       // Resumen Operativo por capítulo
-      renderChart("chartOperatingSummaryByChapter", {
-        type: "bar",
-        data: {
-          labels,
-          datasets: COLUMN_DEFS.map((col) => ({
-            label: col.label,
-            data: summaries.map((s) => toNumber(s.operating[col.key])),
-            backgroundColor: col.color,
-            borderColor: col.color,
-            borderWidth: 1,
-          })),
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { 
-              position: "bottom",
-              labels: {
-                padding: 15,
-                font: { size: 12 }
-              }
-            },
-            title: { 
-              display: true, 
-              text: "Resumen Operativo por Región",
-              font: { size: 16, weight: 'bold' },
-              padding: 20
-            },
-            tooltip: {
-              callbacks: {
-                label: function(context) {
-                  let label = context.dataset.label || '';
-                  if (label) {
-                    label += ': ';
+      if (showOperating) {
+        const operatingDatasets = columnDefs.map((col) => ({
+          label: col.label,
+          data: summaries.map((s) => toNumber(s.operating[col.key])),
+          backgroundColor: col.color,
+          borderColor: col.color,
+          borderWidth: chartType === "line" ? 2 : 1,
+          ...(chartType === "line"
+            ? { fill: false, tension: 0.32, pointRadius: 3, pointBackgroundColor: col.color }
+            : {}),
+        }));
+
+        renderChart("chartOperatingSummaryByChapter", {
+          type: chartType,
+          data: {
+            labels,
+            datasets: operatingDatasets,
+          },
+          options: applyCommonChartOptions(
+            {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                title: {
+                  display: false,
+                },
+                tooltip: {
+                  callbacks: {
+                    label: function(context) {
+                      let label = context.dataset.label || '';
+                      if (label) {
+                        label += ': ';
+                      }
+                      label += formatNumber(context.parsed.y);
+                      return label;
+                    }
                   }
-                  label += formatNumber(context.parsed.y);
-                  return label;
                 }
-              }
-            }
-          },
-          scales: { 
-            y: { 
-              beginAtZero: false,
-              ticks: {
-                callback: function(value) {
-                  return formatNumber(value);
+              },
+              scales: { 
+                y: { 
+                  beginAtZero: false,
+                  ticks: {
+                    callback: function(value) {
+                      return formatNumber(value);
+                    }
+                  }
+                },
+                x: {
+                  ticks: {
+                    font: { size: 11 }
+                  }
                 }
-              }
+              },
             },
-            x: {
-              ticks: {
-                font: { size: 11 }
-              }
-            }
-          },
-        },
-      });
+            graficasConfig
+          ),
+        });
+      } else {
+        clearChart("chartOperatingSummaryByChapter");
+      }
 
       // Resumen Neto por capítulo
-      renderChart("chartNetSummaryByChapter", {
-        type: "bar",
-        data: {
-          labels,
-          datasets: COLUMN_DEFS.map((col) => ({
-            label: col.label,
-            data: summaries.map((s) => toNumber(s.net[col.key])),
-            backgroundColor: col.color,
-            borderColor: col.color,
-            borderWidth: 1,
-          })),
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { 
-              position: "bottom",
-              labels: {
-                padding: 15,
-                font: { size: 12 }
-              }
-            },
-            title: { 
-              display: true, 
-              text: "Resumen Neto por Región",
-              font: { size: 16, weight: 'bold' },
-              padding: 20
-            },
-            tooltip: {
-              callbacks: {
-                label: function(context) {
-                  let label = context.dataset.label || '';
-                  if (label) {
-                    label += ': ';
+      if (showNet) {
+        const netDatasets = columnDefs.map((col) => ({
+          label: col.label,
+          data: summaries.map((s) => toNumber(s.net[col.key])),
+          backgroundColor: col.color,
+          borderColor: col.color,
+          borderWidth: chartType === "line" ? 2 : 1,
+          ...(chartType === "line"
+            ? { fill: false, tension: 0.32, pointRadius: 3, pointBackgroundColor: col.color }
+            : {}),
+        }));
+
+        renderChart("chartNetSummaryByChapter", {
+          type: chartType,
+          data: {
+            labels,
+            datasets: netDatasets,
+          },
+          options: applyCommonChartOptions(
+            {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                title: {
+                  display: false,
+                },
+                tooltip: {
+                  callbacks: {
+                    label: function(context) {
+                      let label = context.dataset.label || '';
+                      if (label) {
+                        label += ': ';
+                      }
+                      label += formatNumber(context.parsed.y);
+                      return label;
+                    }
                   }
-                  label += formatNumber(context.parsed.y);
-                  return label;
                 }
-              }
-            }
-          },
-          scales: { 
-            y: { 
-              beginAtZero: false,
-              ticks: {
-                callback: function(value) {
-                  return formatNumber(value);
+              },
+              scales: { 
+                y: { 
+                  beginAtZero: false,
+                  ticks: {
+                    callback: function(value) {
+                      return formatNumber(value);
+                    }
+                  }
+                },
+                x: {
+                  ticks: {
+                    font: { size: 11 }
+                  }
                 }
-              }
+              },
             },
-            x: {
-              ticks: {
-                font: { size: 11 }
-              }
-            }
-          },
-        },
-      });
+            graficasConfig
+          ),
+        });
+      } else {
+        clearChart("chartNetSummaryByChapter");
+      }
 
       return;
     }
@@ -686,114 +1176,276 @@
       const labels = [etiqueta];
 
       // Resumen Operativo (solo un capítulo)
-      renderChart("chartOperatingSummaryByChapter", {
-        type: "bar",
-        data: {
-          labels,
-          datasets: COLUMN_DEFS.map((col) => ({
-            label: col.label,
-            data: summaries.map((s) => toNumber(s.operating[col.key])),
-            backgroundColor: col.color,
-            borderColor: col.color,
-            borderWidth: 1,
-          })),
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { 
-            legend: { 
-              position: "bottom",
-              labels: {
-                padding: 15,
-                font: { size: 12 }
-              }
-            },
-            tooltip: {
-              callbacks: {
-                label: function(context) {
-                  let label = context.dataset.label || '';
-                  if (label) {
-                    label += ': ';
+      if (showOperating) {
+        const operatingDatasets = columnDefs.map((col) => ({
+          label: col.label,
+          data: summaries.map((s) => toNumber(s.operating[col.key])),
+          backgroundColor: col.color,
+          borderColor: col.color,
+          borderWidth: chartType === "line" ? 2 : 1,
+          ...(chartType === "line"
+            ? { fill: false, tension: 0.32, pointRadius: 3, pointBackgroundColor: col.color }
+            : {}),
+        }));
+
+        renderChart("chartOperatingSummaryByChapter", {
+          type: chartType,
+          data: {
+            labels,
+            datasets: operatingDatasets,
+          },
+          options: applyCommonChartOptions(
+            {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { 
+                title: {
+                  display: false,
+                },
+                tooltip: {
+                  callbacks: {
+                    label: function(context) {
+                      let label = context.dataset.label || '';
+                      if (label) {
+                        label += ': ';
+                      }
+                      label += formatNumber(context.parsed.y);
+                      return label;
+                    }
                   }
-                  label += formatNumber(context.parsed.y);
-                  return label;
                 }
-              }
-            }
-          },
-          scales: { 
-            y: { 
-              beginAtZero: false,
-              ticks: {
-                callback: function(value) {
-                  return formatNumber(value);
+              },
+              scales: { 
+                y: { 
+                  beginAtZero: false,
+                  ticks: {
+                    callback: function(value) {
+                      return formatNumber(value);
+                    }
+                  }
+                },
+                x: {
+                  ticks: {
+                    font: { size: 11 }
+                  }
                 }
-              }
+              },
             },
-            x: {
-              ticks: {
-                font: { size: 11 }
-              }
-            }
-          },
-        },
-      });
+            graficasConfig
+          ),
+        });
+      } else {
+        clearChart("chartOperatingSummaryByChapter");
+      }
 
       // Resumen Neto (solo un capítulo)
-      renderChart("chartNetSummaryByChapter", {
-        type: "bar",
+      if (showNet) {
+        const netDatasets = columnDefs.map((col) => ({
+          label: col.label,
+          data: summaries.map((s) => toNumber(s.net[col.key])),
+          backgroundColor: col.color,
+          borderColor: col.color,
+          borderWidth: chartType === "line" ? 2 : 1,
+          ...(chartType === "line"
+            ? { fill: false, tension: 0.32, pointRadius: 3, pointBackgroundColor: col.color }
+            : {}),
+        }));
+
+        renderChart("chartNetSummaryByChapter", {
+          type: chartType,
+          data: {
+            labels,
+            datasets: netDatasets,
+          },
+          options: applyCommonChartOptions(
+            {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { 
+                title: {
+                  display: false,
+                },
+                tooltip: {
+                  callbacks: {
+                    label: function(context) {
+                      let label = context.dataset.label || '';
+                      if (label) {
+                        label += ': ';
+                      }
+                      label += formatNumber(context.parsed.y);
+                      return label;
+                    }
+                  }
+                }
+              },
+              scales: { 
+                y: { 
+                  beginAtZero: false,
+                  ticks: {
+                    callback: function(value) {
+                      return formatNumber(value);
+                    }
+                  }
+                },
+                x: {
+                  ticks: {
+                    font: { size: 11 }
+                  }
+                }
+              },
+            },
+            graficasConfig
+          ),
+        });
+      } else {
+        clearChart("chartNetSummaryByChapter");
+      }
+    }
+  };
+
+  const renderIngresoPorCapituloChart = async (empresaId, anio) => {
+    if (!ingresoPorCapituloCanvas) return;
+    if (ingresoPorCapituloCard) {
+      ingresoPorCapituloCard.style.display = "none";
+    }
+    if (charts.chartIngresoPorCapitulo) {
+      charts.chartIngresoPorCapitulo.destroy();
+      charts.chartIngresoPorCapitulo = null;
+    }
+
+    try {
+      const series = await buildIngresoPorCapituloSeries(empresaId, anio);
+      if (!series || !Array.isArray(series.labels) || !series.labels.length) {
+        return;
+      }
+
+      if (ingresoPorCapituloCard) {
+        ingresoPorCapituloCard.style.display = "block";
+      }
+
+      renderChart("chartIngresoPorCapitulo", {
+        type: "line",
         data: {
-          labels,
-          datasets: COLUMN_DEFS.map((col) => ({
-            label: col.label,
-            data: summaries.map((s) => toNumber(s.net[col.key])),
-            backgroundColor: col.color,
-            borderColor: col.color,
-            borderWidth: 1,
-          })),
+          labels: series.labels,
+          datasets: series.datasets,
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: { 
-            legend: { 
+          plugins: {
+            legend: {
               position: "bottom",
-              labels: {
-                padding: 15,
-                font: { size: 12 }
-              }
+              labels: { padding: 15, font: { size: 12 } },
+            },
+            title: {
+              display: true,
+              text: "Ingreso por capítulo (Real acumulado)",
+              font: { size: 16, weight: "bold" },
+              padding: 20,
             },
             tooltip: {
               callbacks: {
-                label: function(context) {
-                  let label = context.dataset.label || '';
+                label: function (context) {
+                  let label = context.dataset.label || "";
                   if (label) {
-                    label += ': ';
+                    label += ": ";
                   }
                   label += formatNumber(context.parsed.y);
                   return label;
-                }
-              }
-            }
+                },
+              },
+            },
           },
-          scales: { 
-            y: { 
+          scales: {
+            y: {
               beginAtZero: false,
               ticks: {
-                callback: function(value) {
+                callback: function (value) {
                   return formatNumber(value);
-                }
-              }
+                },
+              },
             },
             x: {
-              ticks: {
-                font: { size: 11 }
-              }
-            }
+              ticks: { font: { size: 11 } },
+            },
           },
         },
       });
+    } catch (err) {
+      console.warn("📊 Graficas: No se pudo renderizar ingreso por capítulo", err);
+    }
+  };
+
+  const renderIngresoNacionalChart = async (empresaId, anio) => {
+    if (!ingresoNacionalCanvas) return;
+    if (ingresoNacionalCard) {
+      ingresoNacionalCard.style.display = "none";
+    }
+    if (charts.chartIngresoNacional) {
+      charts.chartIngresoNacional.destroy();
+      charts.chartIngresoNacional = null;
+    }
+
+    try {
+      const series = await buildIngresoNacionalSeries(empresaId, anio);
+      if (!series || !Array.isArray(series.labels) || !series.labels.length) {
+        return;
+      }
+
+      if (ingresoNacionalCard) {
+        ingresoNacionalCard.style.display = "block";
+      }
+
+      renderChart("chartIngresoNacional", {
+        type: "line",
+        data: {
+          labels: series.labels,
+          datasets: series.datasets,
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: "bottom",
+              labels: { padding: 15, font: { size: 12 } },
+            },
+            title: {
+              display: true,
+              text: "Ingreso nacional (Real acumulado)",
+              font: { size: 16, weight: "bold" },
+              padding: 20,
+            },
+            tooltip: {
+              callbacks: {
+                label: function (context) {
+                  let label = context.dataset.label || "";
+                  if (label) {
+                    label += ": ";
+                  }
+                  label += formatNumber(context.parsed.y);
+                  return label;
+                },
+              },
+            },
+          },
+          scales: {
+            y: {
+              beginAtZero: false,
+              ticks: {
+                callback: function (value) {
+                  return formatNumber(value);
+                },
+              },
+            },
+            x: {
+              ticks: { font: { size: 11 } },
+            },
+          },
+        },
+      });
+    } catch (err) {
+      console.warn("📊 Graficas: No se pudo renderizar ingreso nacional", err);
     }
   };
 
@@ -859,6 +1511,8 @@
 
     // Renderizar todas las gráficas usando exclusivamente el snapshot
     renderAllCharts(snapshot.map, capitulo, etiquetaFinal);
+    await renderIngresoPorCapituloChart(empresa.id, anio);
+    await renderIngresoNacionalChart(empresa.id, anio);
   };
 
   // === CARGA DE AÑOS ===
@@ -1409,7 +2063,9 @@
         // Capturar cada gráfica
         const graficas = [
           { id: 'chartOperatingSummaryByChapter', titulo: 'Resultado Operativo por Capítulo' },
-          { id: 'chartNetSummaryByChapter', titulo: 'Resumen Neto por Capítulo' }
+          { id: 'chartNetSummaryByChapter', titulo: 'Resumen Neto por Capítulo' },
+          { id: 'chartIngresoPorCapitulo', titulo: 'Ingreso por Capítulo' },
+          { id: 'chartIngresoNacional', titulo: 'Ingreso nacional' }
         ];
         
         if (datos.consolidados) {

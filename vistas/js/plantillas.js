@@ -967,8 +967,25 @@
     updateSelectionInfo();
   }
 
+  const PILOT_MODULES = new Set([
+    "comites",
+    "membresia",
+    "eventos",
+    "comunicacion",
+    "direccion",
+    "servmembresia",
+    "tic",
+    "rh",
+    "vpe",
+    "finanzas",
+    "gastosgenerales",
+    "nomina",
+    "gtoscorporativos",
+  ]);
+
   function isModuloPiloto() {
-    return normalizeOperationMatch(state.modulo) === "comites";
+    const key = normalizeOperationMatch(state.modulo);
+    return PILOT_MODULES.has(key);
   }
 
   const COLUMN_CONFIG_ID = "COLUMN_CONFIG";
@@ -1121,7 +1138,9 @@
     const rowsHtml = (columns || [])
       .map(
         (col, idx) => `
-          <tr data-col-index="${idx}">
+          <tr data-col-index="${idx}" class="${
+            col.editable ? "column-editable" : ""
+          }">
             <td class="text-muted">${idx + 1}</td>
             ${
               showAdvanced
@@ -1249,6 +1268,7 @@
     return `
       <td class="order-cell text-center">
         <div class="inline-order-controls">
+          <span class="inline-order-handle" title="Arrastrar para reordenar">⋮⋮</span>
           <button
             type="button"
             class="btn btn-outline-secondary btn-sm inline-order-btn"
@@ -1287,13 +1307,21 @@
         ? `<th class="order-col"><i class="bi bi-arrows-move"></i></th>`
         : ""
     }${resolvedColumns
-      .map(
-        (col, idx) => `
-          <th data-col-index="${idx}" title="${escapeAttr(col.key || "")}">
-            ${escapeHtml(col.label || col.key || "")}
+      .map((col, idx) => {
+        const isEditable = Boolean(col?.editable);
+        const label = escapeHtml(col.label || col.key || "");
+        const indicator = isEditable
+          ? `<span class="editable-indicator" title="Capturable"><i class="bi bi-pencil-fill"></i></span>`
+          : "";
+        const className = isEditable ? "col-editable" : "";
+        return `
+          <th data-col-index="${idx}" class="${className}" title="${escapeAttr(
+          col.key || ""
+        )}" data-col-editable="${isEditable ? "true" : "false"}">
+            <span class="col-label">${label}</span>${indicator}
           </th>
-        `
-      )
+        `;
+      })
       .join("")}`;
 
     let bodyHtml = "";
@@ -1345,18 +1373,21 @@
           cells.push(renderInlineOrderCell(row, rowIndex));
         }
         for (let i = 0; i < dataColCount; i += 1) {
+          const column = resolvedColumns[i] || {};
+          const isEditable = Boolean(column.editable);
+          const cellClass = isEditable ? "cell-editable" : "";
           if (i === 0) {
             cells.push(
-              `<td class="account-code">${escapeHtml(cuenta)}</td>`
+              `<td class="account-code ${cellClass}">${escapeHtml(cuenta)}</td>`
             );
           } else if (i === 1) {
             cells.push(
-              `<td class="account-name">${escapeHtml(
+              `<td class="account-name ${cellClass}">${escapeHtml(
                 nombre || cuenta
               )}</td>`
             );
           } else {
-            cells.push("<td></td>");
+            cells.push(`<td class="${cellClass}"></td>`);
           }
         }
         bodyHtml += `
@@ -1383,11 +1414,14 @@
           cells.push(renderInlineOrderCell(row, rowIndex));
         }
         for (let i = 0; i < dataColCount; i += 1) {
+          const column = resolvedColumns[i] || {};
+          const isEditable = Boolean(column.editable);
+          const cellClass = isEditable ? "cell-editable" : "";
           if (i === 0) {
-            cells.push("<td></td>");
+            cells.push(`<td class="${cellClass}"></td>`);
           } else if (i === 1) {
             cells.push(
-              `<td class="fw-semibold">
+              `<td class="fw-semibold ${cellClass}">
                 ${escapeHtml(label)}
                 ${
                   kindMeta
@@ -1399,7 +1433,7 @@
               </td>`
             );
           } else {
-            cells.push("<td></td>");
+            cells.push(`<td class="${cellClass}"></td>`);
           }
         }
         bodyHtml += `
@@ -1449,13 +1483,29 @@
     window.bootstrap.Tab.getOrCreateInstance(tabButton).show();
   }
 
-  function buildOperationEditorDataTab({ opId, opLabelInput }) {
+  function buildOperationEditorDataTab({ opId, opLabelInput, op }) {
+    const tipoFila = detectOperationType(op || {});
+    const formulaPreview = formatFormula(op || {});
     return `
       <div class="mb-3">
         <label class="form-label">Nombre visible</label>
         <input type="text" class="form-control" id="editClaseOp" value="${escapeHtml(
           opLabelInput || ""
         )}" />
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Tipo de fila</label>
+        <div>
+          <span class="badge bg-secondary text-uppercase">${escapeHtml(
+            tipoFila
+          )}</span>
+        </div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Fórmula</label>
+        <div class="p-2 bg-light border rounded small" style="font-family: 'Courier New', monospace;">
+          ${escapeHtml(formulaPreview || "Sin fórmula")}
+        </div>
       </div>
       <details class="editor-advanced">
         <summary>Avanzado</summary>
@@ -1533,6 +1583,13 @@
           </button>
           <button type="button" class="btn btn-outline-primary" id="btnContribAdd">
             <i class="bi bi-plus-circle me-1"></i>Agregar a existente
+          </button>
+          <button
+            type="button"
+            class="btn btn-outline-info"
+            onclick="window.FormulaBuilder && window.FormulaBuilder.showMap && window.FormulaBuilder.showMap()"
+          >
+            <i class="bi bi-diagram-3 me-1"></i>Ver desglose
           </button>
         </div>
       </div>
@@ -1832,6 +1889,7 @@
       dom.editorTabDatos.innerHTML = buildOperationEditorDataTab({
         opId,
         opLabelInput,
+        op,
       });
     }
     if (dom.editorTabFormula) {
@@ -4032,6 +4090,9 @@
     const activeFilter = document.querySelector('input[name="quickFilter"]:checked')?.value || "all";
     
     const sections = document.querySelectorAll(".layout-section");
+    const sectionRows = document.querySelectorAll(
+      '.template-table tr[data-row-type="section"], .template-table tr[data-row-type="subsection"]'
+    );
     const accountRows = document.querySelectorAll(".account-row");
     const operationRows = document.querySelectorAll(".operation-row, .inline-operation-row");
 
@@ -4045,13 +4106,14 @@
     // Aplicar filtros según el tipo seleccionado
     if (activeFilter === "all" && !query) {
       // Mostrar todo
-      sections.forEach(s => s.style.display = "");
-      accountRows.forEach(r => r.style.display = "");
-      operationRows.forEach(r => r.style.display = "");
+      sections.forEach((s) => (s.style.display = ""));
+      sectionRows.forEach((r) => (r.style.display = ""));
+      accountRows.forEach((r) => (r.style.display = ""));
+      operationRows.forEach((r) => (r.style.display = ""));
       return;
     }
 
-    // Filtrar secciones
+    // Filtrar secciones (vista por bloques)
     sections.forEach((section) => {
       const isOperationSection = section.classList.contains("operation-section");
       let shouldShow = false;
@@ -4069,6 +4131,19 @@
       }
       
       section.style.display = shouldShow ? "" : "none";
+    });
+
+    // Filtrar secciones (tabla)
+    sectionRows.forEach((row) => {
+      let shouldShow = false;
+      if (activeFilter === "all" || activeFilter === "sections") {
+        const text = row.textContent?.toLowerCase() || "";
+        shouldShow = !query || text.includes(query);
+        if (shouldShow && !firstMatch && query) {
+          firstMatch = row;
+        }
+      }
+      row.style.display = shouldShow ? "" : "none";
     });
 
     // Filtrar cuentas

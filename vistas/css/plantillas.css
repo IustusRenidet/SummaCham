@@ -79,6 +79,23 @@ body {
   outline: none;
 }
 
+/* ===== QUICK FILTERS ===== */
+.quick-filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.quick-filters .btn-group {
+  flex-wrap: wrap;
+}
+
+.quick-filters small {
+  font-weight: 600;
+  color: #6b7280;
+}
+
 /* ===== PLACEHOLDER VIEW ===== */
 .placeholder-icon {
   width: 100px;
@@ -719,11 +736,14 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   background: #f1f5f9;
+  padding: 0.55rem 0.6rem;
 }
 
 .template-table td {
   vertical-align: middle;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  padding: 0.5rem 0.6rem;
 }
 
 .template-table tbody tr[data-row-type="section"] td {
@@ -750,6 +770,31 @@ body {
   background: #f8fafc;
 }
 
+.template-table th.col-editable {
+  background: #dcfce7;
+  color: #14532d;
+  border-bottom: 2px solid #22c55e;
+}
+
+.template-table .editable-indicator {
+  margin-left: 6px;
+  font-size: 0.7rem;
+  color: #15803d;
+}
+
+.template-table td.cell-editable {
+  box-shadow: inset 4px 0 0 #22c55e;
+  background-image: linear-gradient(
+    90deg,
+    rgba(34, 197, 94, 0.12),
+    rgba(34, 197, 94, 0)
+  );
+}
+
+.column-config-table tr.column-editable td {
+  background: #f0fdf4;
+}
+
 .template-table .order-col {
   width: 96px;
   text-align: center;
@@ -772,6 +817,15 @@ body {
   align-items: center;
   justify-content: center;
   gap: 6px;
+}
+
+.inline-order-controls .inline-order-handle {
+  cursor: grab;
+  font-weight: 700;
+  color: #94a3b8;
+  letter-spacing: 1px;
+  padding: 0 2px;
+  user-select: none;
 }
 
 .inline-order-controls .order-index {

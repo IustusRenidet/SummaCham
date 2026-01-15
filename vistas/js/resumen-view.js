@@ -122,12 +122,24 @@
   const chartCanvasConsolidated = document.getElementById(
     "resumenChartConsolidated"
   );
+  const chartCanvasIngresoCapitulo = document.getElementById(
+    "resumenChartIngresoCapitulo"
+  );
+  const chartCanvasIngresoNacional = document.getElementById(
+    "resumenChartIngresoNacional"
+  );
   const chartCardOperating = document.getElementById(
     "resumenChartCardOperating"
   );
   const chartCardNet = document.getElementById("resumenChartCardNet");
   const chartCardConsolidated = document.getElementById(
     "resumenChartCardConsolidated"
+  );
+  const chartCardIngresoCapitulo = document.getElementById(
+    "resumenChartCardIngresoCapitulo"
+  );
+  const chartCardIngresoNacional = document.getElementById(
+    "resumenChartCardIngresoNacional"
   );
 
   const manejarSesionExpirada = (resp) => {
@@ -385,7 +397,7 @@
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     chartsPanelState.charts[key] = new Chart(ctx, {
-      type: "bar",
+      type: data.type || "bar",
       data: {
         labels: data.labels || [],
         datasets: data.datasets || [],
@@ -429,6 +441,221 @@
     });
   };
 
+  const normalizarLabelIngreso = (texto = "") =>
+    texto
+      .toString()
+      .trim()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toUpperCase()
+      .replace(/\s+/g, " ");
+
+  const INCOME_LABELS_CHART = {
+    mex: ["CDMX INCOME", "MEXICO INCOME", "CIUDAD DE MEXICO INCOME"],
+    gdl: ["GUADALAJARA INCOME", "GDL INCOME", "GUADALAJARA INCOMEA"],
+    mty: ["MONTERREY INCOME", "MTY INCOME"],
+    nw: ["NORTHWEST INCOME", "NW INCOME", "NOROESTE INCOME", "NO INCOME"],
+  };
+
+  const INGRESO_NACIONAL_LABELS = {
+    committees: ["COMMITTEES", "COMITES", "COMITÉS"],
+    membership: ["MEMBERSHIP"],
+    events: ["EVENTS"],
+    services: ["SERVICES TO MEMBERS", "SERVICES MEMBERS"],
+    tic: ["T&IC", "T&IC (INCOME)", "T&IC INCOME"],
+  };
+
+  const ingresoCache = new Map();
+  const buildIngresoCacheKey = (empresaId, anio) =>
+    `${empresaId || "sin"}:${anio || "sin"}`;
+
+  const buscarFilaIngreso = (layout = [], variants = []) => {
+    if (!Array.isArray(layout) || !layout.length) return null;
+    const candidatos = Array.isArray(variants) ? variants : [variants];
+    const normalizados = candidatos.map((v) => normalizarLabelIngreso(v));
+    return layout.find((row) => {
+      const label = normalizarLabelIngreso(row?.label || "");
+      return normalizados.some((v) => label.includes(v));
+    });
+  };
+
+  const obtenerIngresoPorCapituloSeries = async (empresaId, anio) => {
+    if (!empresaId || !anio) return null;
+    const cacheKey = buildIngresoCacheKey(empresaId, anio);
+    if (ingresoCache.has(cacheKey)) return ingresoCache.get(cacheKey);
+
+    const meses = MESES.map((m) => m.periodo);
+    const respuestas = await Promise.all(
+      meses.map(async (mes) => {
+        try {
+          const params = new URLSearchParams({
+            empresaId: empresaId || "",
+            anio: String(anio || ""),
+            mes: String(mes || ""),
+          });
+          const resp = await fetch(`${API_ENDPOINT}?${params.toString()}`, {
+            headers: Sesion.headersAutenticacion(),
+          });
+          if (!resp.ok) throw new Error("Sin respuesta");
+          return resp.json();
+        } catch (err) {
+          console.warn("📊 RESUMEN: Error cargando ingresos", mes, err);
+          return null;
+        }
+      })
+    );
+
+    const datasetsConfig = [
+      { key: "mex", label: "CDMX INCOME", color: "#0d47a1" },
+      { key: "gdl", label: "GUADALAJARA INCOME", color: "#60a5fa" },
+      { key: "mty", label: "MONTERREY INCOME", color: "#22c55e" },
+      { key: "nw", label: "NORTHWEST INCOME", color: "#f59e0b" },
+    ];
+
+    const series = datasetsConfig.reduce((acc, item) => {
+      acc[item.key] = [];
+      return acc;
+    }, {});
+
+    respuestas.forEach((data, idx) => {
+      const layout = data?.resumen?.[0]?.layout || [];
+      datasetsConfig.forEach((dataset) => {
+        const row = buscarFilaIngreso(layout, INCOME_LABELS_CHART[dataset.key]);
+        series[dataset.key][idx] = toNumber(row?.totals?.actualYTD);
+      });
+    });
+
+    const hasData = datasetsConfig.some((dataset) =>
+      (series[dataset.key] || []).some((val) => Number(val) !== 0)
+    );
+    if (!hasData) return null;
+
+    const payload = {
+      labels: MESES.map((m) => m.etiqueta),
+      datasets: datasetsConfig.map((dataset) => ({
+        label: dataset.label,
+        data: series[dataset.key] || [],
+        borderColor: dataset.color,
+        backgroundColor: dataset.color,
+        borderWidth: 2,
+        tension: 0.2,
+        fill: false,
+        pointRadius: 3,
+      })),
+      type: "line",
+    };
+
+    ingresoCache.set(cacheKey, payload);
+    return payload;
+  };
+
+  const ingresoNacionalCache = new Map();
+  const buildIngresoNacionalCacheKey = (empresaId, anio) =>
+    `${empresaId || "sin"}:${anio || "sin"}`;
+
+  const obtenerIngresoNacionalSeries = async (empresaId, anio) => {
+    if (!empresaId || !anio) return null;
+    const cacheKey = buildIngresoNacionalCacheKey(empresaId, anio);
+    if (ingresoNacionalCache.has(cacheKey)) return ingresoNacionalCache.get(cacheKey);
+
+    const meses = MESES.map((m) => m.periodo);
+    const respuestas = await Promise.all(
+      meses.map(async (mes) => {
+        try {
+          const params = new URLSearchParams({
+            empresaId: empresaId || "",
+            anio: String(anio || ""),
+            mes: String(mes || ""),
+          });
+          const resp = await fetch(`${API_ENDPOINT}?${params.toString()}`, {
+            headers: Sesion.headersAutenticacion(),
+          });
+          if (!resp.ok) throw new Error("Sin respuesta");
+          return resp.json();
+        } catch (err) {
+          console.warn("📊 RESUMEN: Error cargando ingreso nacional", mes, err);
+          return null;
+        }
+      })
+    );
+
+    const datasetsConfig = [
+      { key: "committees", label: "Committees", color: "#0d47a1" },
+      { key: "membership", label: "Membership", color: "#60a5fa" },
+      { key: "events", label: "Events", color: "#22c55e" },
+      { key: "services", label: "Services to Members", color: "#f59e0b" },
+      { key: "tic", label: "T&IC", color: "#a855f7" },
+    ];
+
+    const series = datasetsConfig.reduce((acc, item) => {
+      acc[item.key] = [];
+      return acc;
+    }, {});
+
+    respuestas.forEach((data, idx) => {
+      const layout = data?.resumen?.[0]?.layout || [];
+      datasetsConfig.forEach((dataset) => {
+        const row = buscarFilaIngreso(layout, INGRESO_NACIONAL_LABELS[dataset.key]);
+        series[dataset.key][idx] = toNumber(row?.totals?.actualYTD);
+      });
+    });
+
+    const hasData = datasetsConfig.some((dataset) =>
+      (series[dataset.key] || []).some((val) => Number(val) !== 0)
+    );
+    if (!hasData) return null;
+
+    const payload = {
+      labels: MESES.map((m) => m.etiqueta),
+      datasets: datasetsConfig.map((dataset) => ({
+        label: dataset.label,
+        data: series[dataset.key] || [],
+        borderColor: dataset.color,
+        backgroundColor: dataset.color,
+        borderWidth: 2,
+        tension: 0.2,
+        fill: false,
+        pointRadius: 3,
+      })),
+      type: "line",
+    };
+
+    ingresoNacionalCache.set(cacheKey, payload);
+    return payload;
+  };
+
+  const cargarGraficaIngresoNacional = async () => {
+    if (!chartCanvasIngresoNacional || !chartCardIngresoNacional) return;
+    chartCardIngresoNacional.classList.add("d-none");
+    destruirGraficaPanel("ingresoNacional");
+
+    const anio = leerAnioSeleccionado();
+    const empresa = empresaActual || Sesion.obtenerEmpresaActiva();
+    if (!empresa?.id || !anio) return;
+
+    const data = await obtenerIngresoNacionalSeries(empresa.id, anio);
+    if (!data || !Array.isArray(data.labels) || !data.labels.length) return;
+
+    chartCardIngresoNacional.classList.remove("d-none");
+    renderGraficaPanel("ingresoNacional", chartCanvasIngresoNacional, data);
+  };
+
+  const cargarGraficaIngresoCapitulo = async () => {
+    if (!chartCanvasIngresoCapitulo || !chartCardIngresoCapitulo) return;
+    chartCardIngresoCapitulo.classList.add("d-none");
+    destruirGraficaPanel("ingreso");
+
+    const anio = leerAnioSeleccionado();
+    const empresa = empresaActual || Sesion.obtenerEmpresaActiva();
+    if (!empresa?.id || !anio) return;
+
+    const data = await obtenerIngresoPorCapituloSeries(empresa.id, anio);
+    if (!data || !Array.isArray(data.labels) || !data.labels.length) return;
+
+    chartCardIngresoCapitulo.classList.remove("d-none");
+    renderGraficaPanel("ingreso", chartCanvasIngresoCapitulo, data);
+  };
+
   const mostrarGraficasVacias = (mensaje) => {
     if (chartsGrid) chartsGrid.classList.add("d-none");
     if (chartsEmpty) {
@@ -453,9 +680,15 @@
       destruirGraficaPanel("operating");
       destruirGraficaPanel("net");
       destruirGraficaPanel("consolidated");
+      destruirGraficaPanel("ingreso");
+      destruirGraficaPanel("ingresoNacional");
       if (chartCardOperating) chartCardOperating.classList.add("d-none");
       if (chartCardNet) chartCardNet.classList.add("d-none");
       if (chartCardConsolidated) chartCardConsolidated.classList.add("d-none");
+      if (chartCardIngresoCapitulo)
+        chartCardIngresoCapitulo.classList.add("d-none");
+      if (chartCardIngresoNacional)
+        chartCardIngresoNacional.classList.add("d-none");
       return;
     }
 
@@ -487,6 +720,14 @@
       chartCardConsolidated.classList.add("d-none");
       destruirGraficaPanel("consolidated");
     }
+
+    cargarGraficaIngresoCapitulo().catch((err) => {
+      console.warn("📊 RESUMEN: Error mostrando ingreso por capítulo", err);
+    });
+
+    cargarGraficaIngresoNacional().catch((err) => {
+      console.warn("📊 RESUMEN: Error mostrando ingreso nacional", err);
+    });
   };
 
   const setPanelGraficasOpen = (open) => {
