@@ -568,6 +568,8 @@
     };
 
     const obtenerIndiceMesAcumulado = (anioEspecifico = null) => {
+      const periodo = obtenerPeriodoCerrado();
+      const indiceDesdeContexto = Number.isInteger(periodo) ? periodo - 1 : null;
       const indiceMesActual = obtenerIndiceMesSistema();
 
       const anioActual = new Date().getFullYear();
@@ -587,7 +589,8 @@
       }
 
       const limiteMaximo = MESES.length - 1;
-      return Math.max(-1, Math.min(indiceMesActual, limiteMaximo));
+      const limite = indiceDesdeContexto != null ? indiceDesdeContexto : indiceMesActual;
+      return Math.max(-1, Math.min(limite, limiteMaximo));
     };
 
     const obtenerPeriodoVisible = (anioEspecifico = null) => {
@@ -1938,7 +1941,14 @@
   const esCuentaPresupuestoValida = (valorCuenta) => {
     const canonica = convertirCuenta21(valorCuenta || "");
     const prefijo = Number.parseInt((canonica || "").slice(0, 3), 10);
-    return Number.isFinite(prefijo) && prefijo >= 400 && prefijo < 800;
+    return Number.isFinite(prefijo) && prefijo >= 400 && prefijo <= 950;
+  };
+
+  const obtenerSeccionPresupuesto = (valorCuenta) => {
+    const canonica = convertirCuenta21(valorCuenta || "");
+    const prefijo = Number.parseInt((canonica || "").slice(0, 3), 10);
+    if (!Number.isFinite(prefijo)) return "GASTOS";
+    return prefijo <= 450 ? "INGRESOS" : "GASTOS";
   };
 
   const cuentaVisibleDesdeLarga = (cuentaLarga) => {
@@ -2538,7 +2548,15 @@
       if (esModuloNomina) {
         sumas = limpiarSumasNomina(sumas, seccion);
       }
-      const etiquetaSumRow = (sumas?.sumRow || "").trim() || `Suma ${seccion}`;
+      const sumRowCustom = (sumas?.sumRow || "").trim();
+      let etiquetaSumRow = sumRowCustom || `Suma ${seccion}`;
+      if (moduloNormalizado === "presupuestos" && !sumRowCustom) {
+        if (/INGRESOS/i.test(seccion)) {
+          etiquetaSumRow = "SUMA INGRESOS";
+        } else if (/GASTOS/i.test(seccion)) {
+          etiquetaSumRow = "SUMA GASTOS";
+        }
+      }
       const seccionNormalizada = normalizarTexto(seccion);
       const sumRowNormalizada = normalizarTexto(etiquetaSumRow);
       const requiereAjusteUtilidad =
@@ -2578,7 +2596,8 @@
         moduloNormalizado === "servmembresia" ||
         moduloNormalizado === "serviciosalamembresia" ||
         moduloNormalizado === "tic" ||
-        moduloNormalizado === "vpe";
+        moduloNormalizado === "vpe" ||
+        moduloNormalizado === "presupuestos";
       const metaSeccion = {
         seccion: claveSeccion,
         tituloVisible: seccion,
@@ -2758,6 +2777,25 @@
               metaSeccion.factor = 1;
             }
             const etiquetaResultado = "Resultado Admon y Finanzas";
+            const etiquetaResultadoNorm = normalizarTexto(etiquetaResultado);
+            if (
+              !metaSeccion.resultRows.some(
+                (t) => normalizarTexto(t) === etiquetaResultadoNorm
+              )
+            ) {
+              metaSeccion.resultRows.push(etiquetaResultado);
+            }
+            metaSeccion.resultRowTexto = etiquetaResultadoNorm;
+            break;
+          }
+          case "presupuestos": {
+            const seccionNormTexto = normalizarTexto(seccion || "");
+            if (/GASTOS/i.test(seccionNormTexto)) {
+              metaSeccion.factor = -1;
+            } else if (/INGRESOS/i.test(seccionNormTexto)) {
+              metaSeccion.factor = 1;
+            }
+            const etiquetaResultado = "RESULTADOS PRESUPUESTOS";
             const etiquetaResultadoNorm = normalizarTexto(etiquetaResultado);
             if (
               !metaSeccion.resultRows.some(
@@ -4348,6 +4386,50 @@
       console.warn("?? Error en fase sumavarios:", e);
     }
 
+    // PASO 2.4: Ajuste Gastos Generales (Suma Gastos Financieros = Suma Ingresos - Gastos Financieros)
+    try {
+      if (moduloActual === "gastosgenerales") {
+        const esOtrosIngresos = (seccion) => {
+          const texto = normalizarTexto(
+            seccion?.tituloVisible || seccion?.seccion || ""
+          );
+          const sumRowTexto = normalizarTexto(seccion?.sumRowTexto || "");
+          return (
+            /OTROS\s+INGRESOS/i.test(texto) ||
+            /OTROS\s+INGRESOS/i.test(sumRowTexto)
+          );
+        };
+        const esGastosFinancieros = (seccion) => {
+          const texto = normalizarTexto(
+            seccion?.tituloVisible || seccion?.seccion || ""
+          );
+          const sumRowTexto = normalizarTexto(seccion?.sumRowTexto || "");
+          return (
+            /GASTOS\s+FINANCIEROS/i.test(texto) ||
+            /GASTOS\s+FINANCIEROS/i.test(sumRowTexto)
+          );
+        };
+
+        const seccionIngresos = secciones.find(esOtrosIngresos);
+        const seccionGastosFin = secciones.find(esGastosFinancieros);
+        if (
+          seccionIngresos?.sumValues &&
+          seccionGastosFin?.sumValues &&
+          seccionGastosFin?.elementos?.sumRow &&
+          seccionGastosFin.elementos.sumRow.parentNode
+        ) {
+          const valoresIngresos = seccionIngresos.sumValues;
+          const valoresGastos = seccionGastosFin.sumValues;
+          const valoresNetos = valoresIngresos.map(
+            (valor, idx) => (Number(valor) || 0) - (Number(valoresGastos[idx]) || 0)
+          );
+          asignarValoresNumericos(seccionGastosFin.elementos.sumRow, valoresNetos);
+        }
+      }
+    } catch (e) {
+      console.warn("?? Error ajustando Gastos Financieros:", e);
+    }
+
     // PASO 2.5: Resultado Operativo por nombre (ingresos - gastos)
     try {
       const operaciones = estadoModulo.operacionesResultadoOperativo;
@@ -5007,7 +5089,9 @@
         hoja = cuentasFiltradas
           .map((registro) => ({
             capitulo: capituloDestino,
-            seccion: "Presupuestos",
+            seccion: obtenerSeccionPresupuesto(
+              registro.cuentaVisible || registro.cuenta21 || registro.cuenta
+            ),
             cuenta: registro.cuentaVisible || "",
             nombre: registro.nombre || "",
           }))
@@ -5038,6 +5122,14 @@
           return false;
         }
         return esCuentaPresupuestoValida(registro.cuenta);
+      });
+      registros = registros.map((registro) => {
+        if (!registro?.cuenta) return registro;
+        return {
+          ...registro,
+          seccion: obtenerSeccionPresupuesto(registro.cuenta),
+          seccionOriginal: registro.seccion || registro.seccionOriginal,
+        };
       });
     }
     let sumasPersonalizadas = null;
@@ -5115,13 +5207,13 @@
       pendientes?.sumasSecciones &&
       !layoutPersonalizado
     ) {
-      const claveResultado = normalizarTexto("Resultado Presupuestos");
+      const claveResultado = normalizarTexto("RESULTADOS PRESUPUESTOS");
       pendientes.sumasSecciones.forEach((seccion) => {
         seccion.resultRowTexto = claveResultado;
       });
       if (!pendientes.resultadoFilas.length) {
         pendientes.resultadoFilas.push({
-          texto: "Resultado Presupuestos",
+          texto: "RESULTADOS PRESUPUESTOS",
           clase: "result-row",
         });
       }

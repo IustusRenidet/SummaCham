@@ -16,9 +16,15 @@
  *   Net: NET RESULTS MEXICO, GUADALAJARA, MONTERREY, NORTHWEST, CONSOLIDATED
  *
  * GUADALAJARA:
- *   Operating: GDL OPERATING RESULTS
- *   Net: NET RESULTS
- *
+          ...(chartType === "line"
+            ? {
+                fill: false,
+                tension: 0.32,
+                pointRadius: POINT_RADIUS,
+                pointHoverRadius: POINT_HOVER_RADIUS,
+                pointBackgroundColor: col.color,
+              }
+            : { minBarLength: MIN_BAR_LENGTH }),
  * NORESTE:
  *   Operating: NE OPERATING RESULTS
  *   Net: NET RESULTS
@@ -49,6 +55,7 @@
   const ingresoNacionalCard = document.getElementById("incomeNationalCard");
   const charts = {};
 
+                grace: "10%",
   // === UTILIDADES ===
   const toNumber = (val) => {
     const n = Number(val);
@@ -69,6 +76,14 @@
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(n);
+
+  const MIN_BAR_LENGTH = 14;
+  const POINT_RADIUS = 6;
+  const POINT_HOVER_RADIUS = 8;
+  const ocultarCeros = (valor) => {
+    const numero = Number(valor) || 0;
+    return numero === 0 ? null : numero;
+  };
 
   const MONTH_LABELS = [
     "Enero",
@@ -306,7 +321,8 @@
         borderWidth: 2,
         tension: 0.2,
         fill: false,
-        pointRadius: 3,
+        pointRadius: POINT_RADIUS,
+        pointHoverRadius: POINT_HOVER_RADIUS,
       })),
     };
 
@@ -376,7 +392,8 @@
         borderWidth: 2,
         tension: 0.2,
         fill: false,
-        pointRadius: 3,
+        pointRadius: POINT_RADIUS,
+        pointHoverRadius: POINT_HOVER_RADIUS,
       })),
     };
 
@@ -821,7 +838,7 @@
         label: col.label,
         data: rows.map((row) => {
           const data = getRowData(snapshotMap, row.variants);
-          return toNumber(data[col.key]);
+          return ocultarCeros(toNumber(data[col.key]));
         }),
         backgroundColor: col.color,
         borderColor: col.color,
@@ -831,8 +848,11 @@
       if (chartType === "line") {
         dataset.fill = false;
         dataset.tension = 0.32;
-        dataset.pointRadius = 3;
+        dataset.pointRadius = POINT_RADIUS;
+        dataset.pointHoverRadius = POINT_HOVER_RADIUS;
         dataset.pointBackgroundColor = col.color;
+      } else if (chartType === "bar") {
+        dataset.minBarLength = MIN_BAR_LENGTH;
       }
 
       return dataset;
@@ -910,12 +930,13 @@
                 ? {
                     fill: false,
                     tension: 0.32,
-                    pointRadius: 3,
+                    pointRadius: POINT_RADIUS,
+                    pointHoverRadius: POINT_HOVER_RADIUS,
                     pointBackgroundColor:
                       graficasConfig.consolidatedSeries?.operating?.color ||
                       "#0d47a1",
                   }
-                : {}),
+                : { minBarLength: MIN_BAR_LENGTH }),
             },
             {
               label:
@@ -933,11 +954,12 @@
                 ? {
                     fill: false,
                     tension: 0.32,
-                    pointRadius: 3,
+                    pointRadius: POINT_RADIUS,
+                    pointHoverRadius: POINT_HOVER_RADIUS,
                     pointBackgroundColor:
                       graficasConfig.consolidatedSeries?.net?.color || "#94a3b8",
                   }
-                : {}),
+                : { minBarLength: MIN_BAR_LENGTH }),
             },
           ],
         },
@@ -1036,13 +1058,19 @@
       if (showOperating) {
         const operatingDatasets = columnDefs.map((col) => ({
           label: col.label,
-          data: summaries.map((s) => toNumber(s.operating[col.key])),
+          data: summaries.map((s) => ocultarCeros(toNumber(s.operating[col.key]))),
           backgroundColor: col.color,
           borderColor: col.color,
           borderWidth: chartType === "line" ? 2 : 1,
           ...(chartType === "line"
-            ? { fill: false, tension: 0.32, pointRadius: 3, pointBackgroundColor: col.color }
-            : {}),
+            ? {
+                fill: false,
+                tension: 0.32,
+                pointRadius: POINT_RADIUS,
+                pointHoverRadius: POINT_HOVER_RADIUS,
+                pointBackgroundColor: col.color,
+              }
+            : { minBarLength: MIN_BAR_LENGTH }),
         }));
 
         renderChart("chartOperatingSummaryByChapter", {
@@ -1099,7 +1127,7 @@
       if (showNet) {
         const netDatasets = columnDefs.map((col) => ({
           label: col.label,
-          data: summaries.map((s) => toNumber(s.net[col.key])),
+          data: summaries.map((s) => ocultarCeros(toNumber(s.net[col.key]))),
           backgroundColor: col.color,
           borderColor: col.color,
           borderWidth: chartType === "line" ? 2 : 1,
@@ -1138,6 +1166,7 @@
               scales: { 
                 y: { 
                   beginAtZero: false,
+                  grace: "10%",
                   ticks: {
                     callback: function(value) {
                       return formatNumber(value);
@@ -1188,13 +1217,19 @@
       if (showOperating) {
         const operatingDatasets = columnDefs.map((col) => ({
           label: col.label,
-          data: summaries.map((s) => toNumber(s.operating[col.key])),
+          data: summaries.map((s) => ocultarCeros(toNumber(s.operating[col.key]))),
           backgroundColor: col.color,
           borderColor: col.color,
           borderWidth: chartType === "line" ? 2 : 1,
           ...(chartType === "line"
-            ? { fill: false, tension: 0.32, pointRadius: 3, pointBackgroundColor: col.color }
-            : {}),
+            ? {
+                fill: false,
+                tension: 0.32,
+                pointRadius: POINT_RADIUS,
+                pointHoverRadius: POINT_HOVER_RADIUS,
+                pointBackgroundColor: col.color,
+              }
+            : { minBarLength: MIN_BAR_LENGTH }),
         }));
 
         renderChart("chartOperatingSummaryByChapter", {
@@ -1227,6 +1262,7 @@
               scales: { 
                 y: { 
                   beginAtZero: false,
+                  grace: "10%",
                   ticks: {
                     callback: function(value) {
                       return formatNumber(value);
@@ -1251,13 +1287,19 @@
       if (showNet) {
         const netDatasets = columnDefs.map((col) => ({
           label: col.label,
-          data: summaries.map((s) => toNumber(s.net[col.key])),
+          data: summaries.map((s) => ocultarCeros(toNumber(s.net[col.key]))),
           backgroundColor: col.color,
           borderColor: col.color,
           borderWidth: chartType === "line" ? 2 : 1,
           ...(chartType === "line"
-            ? { fill: false, tension: 0.32, pointRadius: 3, pointBackgroundColor: col.color }
-            : {}),
+            ? {
+                fill: false,
+                tension: 0.32,
+                pointRadius: POINT_RADIUS,
+                pointHoverRadius: POINT_HOVER_RADIUS,
+                pointBackgroundColor: col.color,
+              }
+            : { minBarLength: MIN_BAR_LENGTH }),
         }));
 
         renderChart("chartNetSummaryByChapter", {
@@ -1290,6 +1332,7 @@
               scales: { 
                 y: { 
                   beginAtZero: false,
+                  grace: "10%",
                   ticks: {
                     callback: function(value) {
                       return formatNumber(value);
@@ -1368,6 +1411,7 @@
           scales: {
             y: {
               beginAtZero: false,
+              grace: "10%",
               ticks: {
                 callback: function (value) {
                   return formatNumber(value);
@@ -1441,6 +1485,7 @@
           scales: {
             y: {
               beginAtZero: false,
+              grace: "10%",
               ticks: {
                 callback: function (value) {
                   return formatNumber(value);
@@ -1491,9 +1536,15 @@
     const anio = Number(yearSelect?.value);
     const mes = Number(monthSelect?.value);
 
-    if (!anio || !mes) {
-      console.warn("📊 Graficas: Año o mes no válidos");
-      return;
+          ...(chartType === "line"
+            ? {
+                fill: false,
+                tension: 0.32,
+                pointRadius: POINT_RADIUS,
+                pointHoverRadius: POINT_HOVER_RADIUS,
+                pointBackgroundColor: col.color,
+              }
+            : { minBarLength: MIN_BAR_LENGTH }),
     }
 
     persistirContexto(anio, mes);
@@ -1524,6 +1575,7 @@
       // Renderizar las gráficas de ingresos aunque no haya snapshot
       await renderIngresoPorCapituloChart(empresa.id, anio);
       await renderIngresoNacionalChart(empresa.id, anio);
+                grace: "10%",
       return;
     }
 

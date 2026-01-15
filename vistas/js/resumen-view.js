@@ -355,8 +355,8 @@
 
   const inicializarComparativaToggle = () => {
     if (!comparativaToggle) return;
-    comparativaToggle.checked = false;
-    localStorage.setItem(COMPARATIVA_STORAGE_KEY, "0");
+    comparativaToggle.checked = true;
+    localStorage.setItem(COMPARATIVA_STORAGE_KEY, "1");
     comparativaToggle.addEventListener("change", () => {
       const activo = comparativaToggle.checked;
       if (activo && empresaActual?.id && !comparativaDisponible(empresaActual.id)) {

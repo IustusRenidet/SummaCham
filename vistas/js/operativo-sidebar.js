@@ -3,9 +3,15 @@
 
   const TABLE_SELECTOR = "#tablaComparacion";
   const PANEL_SELECTOR = ".operativo-panel, .operativo-sidebar";
-  const CANVAS_BUDGET_ID = "operativoChartBudget";
-  const CANVAS_REAL_ID = "operativoChartReal";
-  const charts = { budget: null, real: null };
+  const CANVAS_COMBINED_ID = "operativoChartCombined";
+  const charts = { combined: null };
+  const MIN_BAR_LENGTH = 18;
+  const POINT_RADIUS = 6;
+  const POINT_HOVER_RADIUS = 8;
+  const ocultarCeros = (valor) => {
+    const numero = Number(valor) || 0;
+    return numero === 0 ? null : numero;
+  };
   let updateTimer = null;
 
   const obtenerVariableCss = (nombre, fallback) => {
@@ -63,10 +69,11 @@
       headers.findIndex((th) => th.classList.contains(clase));
     const idxTotalBudget = buscar("total-budget-column");
     const idxTotalReal = buscar("total-real-column");
-    const idxBudgetFallback = buscar("budget-annual-column");
+    const idxBudgetAnnual = buscar("budget-annual-column");
     return {
-      budget: idxTotalBudget >= 0 ? idxTotalBudget : idxBudgetFallback,
-      real: idxTotalReal,
+      budgetTotal: idxTotalBudget >= 0 ? idxTotalBudget : idxBudgetAnnual,
+      realTotal: idxTotalReal,
+      annual: idxBudgetAnnual,
     };
   };
 
@@ -84,18 +91,26 @@
 
   const obtenerDatos = (tabla) => {
     const indices = obtenerIndices(tabla);
-    if (indices.budget == null || indices.budget < 0 || indices.real < 0) {
+    if (
+      indices.budgetTotal == null ||
+      indices.budgetTotal < 0 ||
+      indices.realTotal < 0
+    ) {
       return [];
     }
+    const annualIdx = indices.annual >= 0 ? indices.annual : indices.budgetTotal;
     const filas = Array.from(
       tabla.querySelectorAll("tbody tr.sum-row-operativo")
     );
     return filas
       .map((fila) => {
         const etiqueta = limpiarEtiqueta(fila.cells?.[1]?.textContent || "");
-        const presupuesto = parseNumero(fila.cells?.[indices.budget]?.textContent);
-        const real = parseNumero(fila.cells?.[indices.real]?.textContent);
-        return { etiqueta, presupuesto, real };
+        const presupuesto = parseNumero(
+          fila.cells?.[indices.budgetTotal]?.textContent
+        );
+        const real = parseNumero(fila.cells?.[indices.realTotal]?.textContent);
+        const anual = parseNumero(fila.cells?.[annualIdx]?.textContent);
+        return { etiqueta, presupuesto, real, anual };
       })
       .filter((item) => item.etiqueta);
   };
@@ -106,7 +121,15 @@
     contenedor.style.height = `${altura}px`;
   };
 
-  const construirChart = ({ ctx, labels, data, color, titulo }) => {
+  const construirChart = ({
+    ctx,
+    labels,
+    presupuestos,
+    reales,
+    anuales,
+    colors,
+    annualLabel,
+  }) => {
     const gridColor = "rgba(47, 84, 150, 0.08)";
     const axisColor = "rgba(47, 84, 150, 0.55)";
     return new Chart(ctx, {
@@ -115,14 +138,44 @@
         labels,
         datasets: [
           {
-            label: titulo,
-            data,
-            backgroundColor: color,
+            type: "bar",
+            label: "Ppto. Acumulado",
+            data: presupuestos,
+            backgroundColor: colors.budget,
             borderColor: "rgba(47, 84, 150, 0.2)",
             borderRadius: 10,
             borderWidth: 1,
             borderSkipped: false,
-            maxBarThickness: 20,
+            maxBarThickness: 26,
+            minBarLength: MIN_BAR_LENGTH,
+            order: 1,
+          },
+          {
+            type: "bar",
+            label: "Real Acumulado",
+            data: reales,
+            backgroundColor: colors.real,
+            borderColor: "rgba(47, 84, 150, 0.2)",
+            borderRadius: 10,
+            borderWidth: 1,
+            borderSkipped: false,
+            maxBarThickness: 26,
+            minBarLength: MIN_BAR_LENGTH,
+            order: 2,
+          },
+          {
+            type: "line",
+            label: annualLabel || "Presupuesto",
+            data: anuales,
+            borderColor: colors.annual,
+            backgroundColor: colors.annual,
+            borderWidth: 2,
+            tension: 0.3,
+            pointRadius: POINT_RADIUS,
+            pointHoverRadius: POINT_HOVER_RADIUS,
+            fill: false,
+            spanGaps: false,
+            order: 3,
           },
         ],
       },
@@ -134,7 +187,11 @@
           padding: { left: 6, right: 16, top: 8, bottom: 8 },
         },
         plugins: {
-          legend: { display: false },
+          legend: {
+            display: true,
+            position: "bottom",
+            labels: { color: "#1f2937", font: { size: 11, weight: "600" } },
+          },
           tooltip: {
             backgroundColor: "#0f172a",
             borderColor: "rgba(255, 255, 255, 0.1)",
@@ -162,8 +219,8 @@
             ticks: {
               autoSkip: false,
               color: "#1f2937",
-              font: { size: 12, weight: "600" },
-              padding: 8,
+              font: { size: 13, weight: "700" },
+              padding: 10,
               callback: (valor, idx, ticks) => ticks?.[idx]?.label || "",
             },
           },
@@ -172,16 +229,21 @@
     });
   };
 
-  const actualizarChart = (tipo, canvasId, emptyId, labels, data, color, titulo) => {
-    const canvas = document.getElementById(canvasId);
-    const empty = document.querySelector(
-      `[data-operativo-empty="${emptyId}"]`
-    );
+  const actualizarChart = ({
+    labels,
+    presupuestos,
+    reales,
+    anuales,
+    colors,
+    annualLabel,
+  }) => {
+    const canvas = document.getElementById(CANVAS_COMBINED_ID);
+    const empty = document.querySelector('[data-operativo-empty="combined"]');
     if (!canvas) return;
     if (!labels.length) {
-      if (charts[tipo]) {
-        charts[tipo].destroy();
-        charts[tipo] = null;
+      if (charts.combined) {
+        charts.combined.destroy();
+        charts.combined = null;
       }
       if (empty) empty.style.display = "flex";
       canvas.style.display = "none";
@@ -191,12 +253,25 @@
     if (empty) empty.style.display = "none";
     canvas.style.display = "block";
     const ctx = canvas.getContext("2d");
-    if (!charts[tipo]) {
-      charts[tipo] = construirChart({ ctx, labels, data, color, titulo });
+    if (!charts.combined) {
+      charts.combined = construirChart({
+        ctx,
+        labels,
+        presupuestos,
+        reales,
+        anuales,
+        colors,
+        annualLabel,
+      });
     } else {
-      charts[tipo].data.labels = labels;
-      charts[tipo].data.datasets[0].data = data;
-      charts[tipo].update();
+      charts.combined.data.labels = labels;
+      charts.combined.data.datasets[0].data = presupuestos;
+      charts.combined.data.datasets[1].data = reales;
+      charts.combined.data.datasets[2].data = anuales;
+      if (annualLabel) {
+        charts.combined.data.datasets[2].label = annualLabel;
+      }
+      charts.combined.update();
     }
   };
 
@@ -207,39 +282,41 @@
 
     const datos = obtenerDatos(tabla);
     const labels = datos.map((item) => item.etiqueta);
-    const presupuestos = datos.map((item) => item.presupuesto);
-    const reales = datos.map((item) => item.real);
+    const presupuestos = datos.map((item) => ocultarCeros(item.presupuesto));
+    const reales = datos.map((item) => ocultarCeros(item.real));
+    const anuales = datos.map((item) => ocultarCeros(item.anual));
 
-    const contenedorBudget = sidebar.querySelector(
-      '[data-operativo-chart="budget"]'
+    const contenedor = sidebar.querySelector(
+      '[data-operativo-chart="combined"]'
     );
-    const contenedorReal = sidebar.querySelector(
-      '[data-operativo-chart="real"]'
-    );
-    ajustarAltura(contenedorBudget, labels.length);
-    ajustarAltura(contenedorReal, labels.length);
+    ajustarAltura(contenedor, labels.length);
 
     const colorBudget = obtenerVariableCss("--color-budget", "#4472c4");
     const colorReal = obtenerVariableCss("--color-real", "#ffc000");
+    const colorAnnual = obtenerVariableCss("--color-annual", "#22c55e");
 
-    actualizarChart(
-      "budget",
-      CANVAS_BUDGET_ID,
-      "budget",
+    const annualLabel = (() => {
+      const headerYear = tabla
+        ?.querySelector("thead .budget-annual-column .anio")
+        ?.textContent?.trim();
+      return headerYear ? `Presupuesto ${headerYear}` : "Presupuesto";
+    })();
+
+    const tituloEl = contenedor
+      ?.closest(".chart-block")
+      ?.querySelector(".chart-title");
+    if (tituloEl) {
+      tituloEl.textContent = `Ppto. Acumulado vs Real + ${annualLabel}`;
+    }
+
+    actualizarChart({
       labels,
       presupuestos,
-      colorBudget,
-      "Ppto. Acumulado"
-    );
-    actualizarChart(
-      "real",
-      CANVAS_REAL_ID,
-      "real",
-      labels,
       reales,
-      colorReal,
-      "Real Acumulado"
-    );
+      anuales,
+      colors: { budget: colorBudget, real: colorReal, annual: colorAnnual },
+      annualLabel,
+    });
   };
 
   const scheduleUpdate = () => {
