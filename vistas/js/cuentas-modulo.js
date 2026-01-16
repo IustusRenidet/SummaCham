@@ -2226,8 +2226,6 @@
             (cuenta.contabilizacion && cuenta.contabilizacion[mes] != null
               ? cuenta.contabilizacion[mes]
               : undefined) ??
-            cuenta[`contabilizacion_${mes}`] ??
-            cuenta[`contabilizacion${mes}`] ??
             (cuenta.real && cuenta.real[mes] != null
               ? cuenta.real[mes]
               : undefined) ??
@@ -2444,7 +2442,11 @@
       if (!Array.isArray(registros)) return;
       registros.forEach((registro) => {
         if (registro?.cuenta) {
-          todas.push(convertirCuenta21(registro.cuenta));
+          const cuentaCorregida = corregirCuentaLegible(
+            registro.cuenta,
+            registro
+          );
+          todas.push(convertirCuenta21(cuentaCorregida));
         }
       });
     });
@@ -3030,32 +3032,30 @@
                 ? "Total GA CdMx"
                 : "Total";
             const seccionNormTexto = normalizarTexto(seccion || "");
+            const esOtrosIngresos = /OTROS\s+INGRESOS/i.test(seccionNormTexto);
             const esDepreciaciones = /DEPRECIACIONES/i.test(seccionNormTexto);
             const esGaCapitulo = /GA\s+CAPITULO/i.test(seccionNormTexto);
-            const esMemberCentricity = /MEMBER\s+CENTRICITY/i.test(
-              seccionNormTexto
-            );
-            const esGastosCorporativos = /GASTOS\s+CORPORATIVOS/i.test(
-              seccionNormTexto
-            );
             const esGastosGenerales = /GASTOS\s+GENERALES/i.test(
               seccionNormTexto
             );
             const esGastosFinancieros = /GASTOS\s+FINANCIEROS/i.test(
               seccionNormTexto
             );
-            if (
-              esDepreciaciones ||
-              esGaCapitulo ||
-              esMemberCentricity ||
-              esGastosCorporativos ||
-              esGastosGenerales
-            ) {
+            if (esOtrosIngresos) {
+              metaSeccion.factor = 1;
+              if (!metaSeccion.sumRowSumavariosLabel) {
+                metaSeccion.sumRowSumavariosLabel = "Otros Ingresos vs Gastos";
+                metaSeccion.sumRowSumavariosTexto = normalizarTexto(
+                  "Otros Ingresos vs Gastos"
+                );
+              }
+            } else if (esGastosFinancieros) {
+              // Total = Gastos Financieros - Gastos Generales - Depreciaciones - GA Capítulo
+              metaSeccion.factor = 1;
+              agregarResultRow(metaSeccion, totalLabel);
+            } else if (esGastosGenerales || esDepreciaciones || esGaCapitulo) {
               metaSeccion.factor = -1;
               agregarResultRow(metaSeccion, totalLabel);
-            } else if (esGastosFinancieros) {
-              // Para "Otros Ingresos vs Gastos": restar gastos financieros de otros ingresos
-              metaSeccion.factor = -1;
             }
             break;
           }
@@ -3227,9 +3227,6 @@
             } else if (/INGRESOS/i.test(seccionNormTexto)) {
               metaSeccion.factor = 1;
             }
-
-            const etiquetaOperativo = "Resultado Operativo";
-            const etiquetaOperativoNorm = normalizarTexto(etiquetaOperativo);
             let etiquetaDir = "Resultado Director Capítulo";
             if (/GUADALAJARA/i.test(capituloNormalizado))
               etiquetaDir = "Resultado Director Capítulo";
@@ -3255,11 +3252,7 @@
                 metaSeccion.resultRows.push(etiquetaDir);
               }
             } else {
-              // Ingresos/Gastos CE/Board/Dirección aportan al operativo y al resultado director
-              if (!metaSeccion.sumRowSumavariosLabel) {
-                metaSeccion.sumRowSumavariosLabel = etiquetaOperativo;
-                metaSeccion.sumRowSumavariosTexto = etiquetaOperativoNorm;
-              }
+              // Ingresos/Gastos CE/Board/Dirección aportan al resultado director
               metaSeccion.resultRowTexto = etiquetaDirNorm;
               if (
                 !metaSeccion.resultRows.some(
@@ -4715,9 +4708,10 @@
       console.warn("?? Error en fase sumavarios:", e);
     }
 
-    // PASO 2.4: Ajuste Gastos Generales (Suma Gastos Financieros = Suma Ingresos - Gastos Financieros)
+    // PASO 2.4: Gastos Generales - Otros Ingresos vs Gastos
     try {
       if (moduloActual === "gastosgenerales") {
+        const claveOtrosVs = normalizarTexto("OTROS INGRESOS VS GASTOS");
         const esOtrosIngresos = (seccion) => {
           const texto = normalizarTexto(
             seccion?.tituloVisible || seccion?.seccion || ""
@@ -4741,22 +4735,92 @@
 
         const seccionIngresos = secciones.find(esOtrosIngresos);
         const seccionGastosFin = secciones.find(esGastosFinancieros);
+        const filaOtrosVs = meta.sumavariosRows?.get(claveOtrosVs) || null;
         if (
           seccionIngresos?.sumValues &&
           seccionGastosFin?.sumValues &&
-          seccionGastosFin?.elementos?.sumRow &&
-          seccionGastosFin.elementos.sumRow.parentNode
+          filaOtrosVs &&
+          filaOtrosVs.parentNode
         ) {
           const valoresIngresos = seccionIngresos.sumValues;
           const valoresGastos = seccionGastosFin.sumValues;
           const valoresNetos = valoresIngresos.map(
             (valor, idx) => (Number(valor) || 0) - (Number(valoresGastos[idx]) || 0)
           );
-          asignarValoresNumericos(seccionGastosFin.elementos.sumRow, valoresNetos);
+          asignarValoresNumericos(filaOtrosVs, valoresNetos);
         }
       }
     } catch (e) {
       console.warn("?? Error ajustando Gastos Financieros:", e);
+    }
+
+    // PASO 2.4.1: Presupuestos CDMX - sumas por rango de cuentas
+    try {
+      if (
+        moduloActual === "presupuestos" &&
+        normalizarTexto(estadoModulo.capitulo) === "CIUDAD DE MEXICO"
+      ) {
+        const claveIng = normalizarTexto("SUMA DE INGRESOS CDMX");
+        const claveGas = normalizarTexto("SUMA DE GASTOS CDMX");
+        const claveRes = normalizarTexto("RESULTADO OPERATIVO CDMX");
+        const filaIng = meta.sumavariosRows?.get(claveIng) || null;
+        const filaGas = meta.sumavariosRows?.get(claveGas) || null;
+        const filaRes = meta.resultRows?.get(claveRes) || null;
+
+        const obtenerPrefijo = (fila) => {
+          const raw =
+            fila?.dataset?.cuenta ||
+            fila?.dataset?.cuenta21 ||
+            fila?.dataset?.cuentaVisible ||
+            "";
+          const base = raw.toString().replace(/[^0-9]/g, "");
+          return base.slice(0, 3);
+        };
+
+        const obtenerValoresCuenta = (fila) => {
+          const cuenta21 = fila?.dataset?.cuenta21 || "";
+          const almacenados = estadoModulo.valoresPorCuenta?.get(cuenta21);
+          const valoresBase = almacenados
+            ? clavesOrdenadas.map((clave) => almacenados[clave] ?? 0)
+            : extraerValoresNumericos(fila);
+          return ajustarPorPeriodo(valoresBase).map((v) => Number(v) || 0);
+        };
+
+        const acumuladorIngresos = Array.from({ length: longitud }, () => 0);
+        const acumuladorGastos = Array.from({ length: longitud }, () => 0);
+
+        secciones.forEach((seccion) => {
+          (seccion.filasCuenta || []).forEach((fila) => {
+            const prefijo = Number(obtenerPrefijo(fila));
+            if (!prefijo) return;
+            const valores = obtenerValoresCuenta(fila);
+            if (prefijo >= 400 && prefijo < 450) {
+              valores.forEach((valor, idx) => {
+                acumuladorIngresos[idx] += valor;
+              });
+            } else if (prefijo >= 500 && prefijo < 950) {
+              valores.forEach((valor, idx) => {
+                acumuladorGastos[idx] += valor;
+              });
+            }
+          });
+        });
+
+        if (filaIng && filaIng.parentNode) {
+          asignarValoresNumericos(filaIng, acumuladorIngresos);
+        }
+        if (filaGas && filaGas.parentNode) {
+          asignarValoresNumericos(filaGas, acumuladorGastos);
+        }
+        if (filaRes && filaRes.parentNode) {
+          const resultado = acumuladorIngresos.map(
+            (valor, idx) => valor - (acumuladorGastos[idx] || 0)
+          );
+          asignarValoresNumericos(filaRes, resultado);
+        }
+      }
+    } catch (e) {
+      console.warn("?? Error calculando sumas CDMX Presupuestos:", e);
     }
 
     // PASO 2.5: Resultado Operativo por nombre (ingresos - gastos)
@@ -4816,6 +4880,62 @@
         });
         acumuladosResultado.set(clave, prev);
       });
+
+      if (moduloActual === "gastosgenerales") {
+        const capitulo = normalizarTexto(estadoModulo.capitulo || "");
+        const obtenerSeccion = (regex) =>
+          secciones.find((seccion) => {
+            const texto = normalizarTexto(
+              seccion?.tituloVisible || seccion?.seccion || ""
+            );
+            return regex.test(texto);
+          }) || null;
+        const valoresSeccion = (seccion) =>
+          seccion?.sumValues || Array.from({ length: longitud }, () => 0);
+
+        const seccionOtros = obtenerSeccion(/OTROS\s+INGRESOS/i);
+        const seccionGastosFin = obtenerSeccion(/GASTOS\s+FINANCIEROS/i);
+        const seccionGastosGen = obtenerSeccion(/GASTOS\s+GENERALES/i);
+        const seccionDep = obtenerSeccion(/DEPRECIACIONES/i);
+        const seccionGaCap = obtenerSeccion(/GA\s+CAPITULO/i);
+        const seccionCorpCdMx = obtenerSeccion(/GASTOS\s+CORPORATIVOS\s+CDMX/i);
+        const seccionMember = obtenerSeccion(/MEMBER\s+CENTRICITY/i);
+
+        const valoresOtros = valoresSeccion(seccionOtros);
+        const valoresGastosFin = valoresSeccion(seccionGastosFin);
+        const otrosVs = valoresOtros.map(
+          (valor, idx) => (Number(valor) || 0) - (Number(valoresGastosFin[idx]) || 0)
+        );
+
+        const valoresGastosGen = valoresSeccion(seccionGastosGen);
+        const valoresDep = valoresSeccion(seccionDep);
+
+        if (capitulo === "CIUDAD DE MEXICO") {
+          const valoresCorp = valoresSeccion(seccionCorpCdMx);
+          const valoresMember = valoresSeccion(seccionMember);
+          const totalCdmx = otrosVs.map((valor, idx) =>
+            (Number(valor) || 0) -
+            (Number(valoresGastosGen[idx]) || 0) -
+            (Number(valoresDep[idx]) || 0) -
+            (Number(valoresCorp[idx]) || 0) -
+            (Number(valoresMember[idx]) || 0)
+          );
+          acumuladosResultado.set(normalizarTexto("Total GA CdMx"), totalCdmx);
+        } else if (
+          capitulo === "GUADALAJARA" ||
+          capitulo === "NORESTE" ||
+          capitulo === "NOROESTE"
+        ) {
+          const valoresGaCap = valoresSeccion(seccionGaCap);
+          const total = otrosVs.map((valor, idx) =>
+            (Number(valor) || 0) -
+            (Number(valoresGastosGen[idx]) || 0) -
+            (Number(valoresDep[idx]) || 0) -
+            (Number(valoresGaCap[idx]) || 0)
+          );
+          acumuladosResultado.set(normalizarTexto("Total"), total);
+        }
+      }
 
       meta.resultRows?.forEach((fila, clave) => {
         try {
@@ -5294,25 +5414,34 @@
     }
     const buscarClave = (clave) =>
       clave && Object.hasOwn(dataset, clave) ? dataset[clave] : null;
+    const nombreSeguro = nombre.includes("&")
+      ? nombre.replace(/&/g, "&amp;")
+      : nombre;
+    const identificador = normalizarSheetId(nombreSeguro);
+    if (identificador) {
+      const coincidencias = Object.keys(dataset).filter(
+        (clave) => normalizarSheetId(clave) === identificador
+      );
+      if (coincidencias.length) {
+        const combinadas = [];
+        coincidencias.forEach((clave) => {
+          const registros = dataset[clave];
+          if (Array.isArray(registros)) {
+            combinadas.push(...registros);
+          }
+        });
+        if (combinadas.length) {
+          return combinadas;
+        }
+      }
+    }
+    const directoSeguro = buscarClave(nombreSeguro);
+    if (directoSeguro) {
+      return directoSeguro;
+    }
     const directo = buscarClave(nombre);
     if (directo) {
       return directo;
-    }
-    if (nombre.includes("&")) {
-      const reemplazo = nombre.replace(/&/g, "&amp;");
-      const conAmp = buscarClave(reemplazo);
-      if (conAmp) {
-        return conAmp;
-      }
-    }
-    const identificador = normalizarSheetId(nombre);
-    if (identificador) {
-      const coincidencia = Object.keys(dataset).find(
-        (clave) => normalizarSheetId(clave) === identificador
-      );
-      if (coincidencia) {
-        return dataset[coincidencia];
-      }
     }
     return null;
   };
@@ -5439,9 +5568,15 @@
     }
 
     const objetivo = normalizarTexto(capituloDestino);
-    let registros = hoja.filter(
-      (registro) => normalizarTexto(registro.capitulo) === objetivo
-    );
+    let registros = hoja
+      .filter((registro) => normalizarTexto(registro.capitulo) === objetivo)
+      .map((registro) => {
+        if (!registro?.cuenta) return registro;
+        return {
+          ...registro,
+          cuenta: corregirCuentaLegible(registro.cuenta, registro),
+        };
+      });
     if (moduloClave === "presupuestos") {
       registros = registros.filter((registro) => {
         if (!registro?.cuenta) return true;
@@ -5576,6 +5711,61 @@
         }
       }
     });
+
+    if (moduloClave === "gastosgenerales") {
+      const claveOtrosVs = normalizarTexto("Otros Ingresos vs Gastos");
+      const filaOtrosVs = estadoModulo.sumas.sumavariosRows.get(claveOtrosVs);
+      const metaGastosFin = pendientes.sumasSecciones.find((seccion) => {
+        const texto = normalizarTexto(
+          seccion?.tituloVisible || seccion?.seccion || ""
+        );
+        return /GASTOS\s+FINANCIEROS/i.test(texto);
+      });
+      const referencia = metaGastosFin?.elementos?.sumRow || null;
+      if (
+        filaOtrosVs &&
+        referencia &&
+        referencia.parentNode === filaOtrosVs.parentNode
+      ) {
+        referencia.parentNode.insertBefore(filaOtrosVs, referencia.nextSibling);
+      }
+    }
+
+    if (
+      moduloClave === "presupuestos" &&
+      normalizarTexto(capituloDestino) === "CIUDAD DE MEXICO"
+    ) {
+      const sumasCdmx = [
+        "SUMA DE INGRESOS CDMX",
+        "SUMA DE GASTOS CDMX",
+      ];
+      sumasCdmx.forEach((label) => {
+        const clave = normalizarTexto(label);
+        if (estadoModulo.sumas.sumavariosRows.has(clave)) return;
+        const fila = agregarFilaResumen({
+          texto: label,
+          clase: "sum-row-sumavarios",
+          cuerpo,
+          placeholdersPorFila,
+        });
+        if (fila) {
+          estadoModulo.sumas.sumavariosRows.set(clave, fila);
+        }
+      });
+      const labelResultado = "RESULTADO OPERATIVO CDMX";
+      const claveResultado = normalizarTexto(labelResultado);
+      if (!estadoModulo.sumas.resultRows.has(claveResultado)) {
+        const filaResultado = agregarFilaResumen({
+          texto: labelResultado,
+          clase: "result-row",
+          cuerpo,
+          placeholdersPorFila,
+        });
+        if (filaResultado) {
+          estadoModulo.sumas.resultRows.set(claveResultado, filaResultado);
+        }
+      }
+    }
 
     const operacionesResultado = construirOperacionesResultadoOperativo({
       registros,
@@ -5778,6 +5968,21 @@ const normalizarCuentaBase = (cuenta) => {
     .replace(/[^0-9A-Za-z]/g, "")
     .toUpperCase()
     .trim();
+};
+
+const corregirCuentaLegible = (cuenta, meta = {}) => {
+  if (!cuenta) return cuenta;
+  const base = cuenta.toString().trim();
+  const capitulo = (meta?.capitulo || "").toString().trim().toUpperCase();
+  const seccion = (meta?.seccion || "").toString().trim().toUpperCase();
+  if (
+    base === "406-0010-00-00" &&
+    capitulo === "NORESTE" &&
+    seccion === "BOLETAJE"
+  ) {
+    return "406-010-000-00";
+  }
+  return cuenta;
 };
 
 const deducirNivel = (baseVisible) => {

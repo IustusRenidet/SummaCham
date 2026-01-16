@@ -901,6 +901,55 @@ const combinarTotales = (a = {}, b = {}, factor = 1) => ({
   );
   const principalLabels = new Set(principalesVisibles.map((p) => (p.label || '').toUpperCase().trim()));
 
+  if (!esCapituloConsolidado) {
+    const etiquetaOper = 'OPERATING RESULTS';
+    const operKey = claveEtiqueta(etiquetaOper);
+    if (!operativoRowMap.has(operKey)) {
+      const operRow = ensureAggregator(operativoRowMap, etiquetaOper, operativoOrden);
+      if (operRow) {
+        operRow.totals = crearAcumulador();
+        operRow.principals = [];
+        operRow.operaciones = [];
+        principalesIncome.forEach((principal) => {
+          sumarTotales(operRow.totals, principal, 1);
+          operRow.principals.push(principal.label);
+          operRow.operaciones.push(describirPrincipalOperacion(principal, 1));
+        });
+        principalesExpense.forEach((principal) => {
+          sumarTotales(operRow.totals, principal, -1);
+          operRow.principals.push(principal.label);
+          operRow.operaciones.push(describirPrincipalOperacion(principal, -1));
+        });
+      }
+    }
+
+    const etiquetaCapitulo = (() => {
+      if (capituloClave === 'GUADALAJARA') return 'GDL OPERATING RESULTS';
+      if (capituloClave === 'NORESTE' || capituloClave === 'NE') return 'NE OPERATING RESULTS';
+      if (capituloClave === 'NOROESTE' || capituloClave === 'NO' || capituloClave === 'NORTHWEST') {
+        return 'NO OPERATING RESULTS';
+      }
+      return '';
+    })();
+    if (etiquetaCapitulo) {
+      const capKey = claveEtiqueta(etiquetaCapitulo);
+      const operBase = operativoRowMap.get(operKey);
+      if (operBase && !operativoRowMap.has(capKey)) {
+        const operRowCap = ensureAggregator(operativoRowMap, etiquetaCapitulo, operativoOrden);
+        if (operRowCap) {
+          operRowCap.totals = crearAcumulador();
+          sumarTotales(operRowCap.totals, operBase.totals, 1);
+          operRowCap.principals = Array.isArray(operBase.principals)
+            ? operBase.principals.slice()
+            : [];
+          operRowCap.operaciones = Array.isArray(operBase.operaciones)
+            ? operBase.operaciones.slice()
+            : [];
+        }
+      }
+    }
+  }
+
   // Función para agregar un principal con sus secundarias y cuentas
   const agregarPrincipalConHijos = (principal) => {
     if (principal.esVirtual || !principal.children || !principal.children.length) {
