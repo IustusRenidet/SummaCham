@@ -1469,6 +1469,320 @@
     estadoModulo.editSnapshot = null;
   };
 
+  const CUENTAS_AUTO_CDMX = {
+    '450-001-000-00': { capitulo: 'GUADALAJARA', tipo: 'income' },
+    '950-001-000-00': { capitulo: 'GUADALAJARA', tipo: 'expense' },
+    '450-002-000-00': { capitulo: 'NORESTE', tipo: 'income' },
+    '950-002-000-00': { capitulo: 'NORESTE', tipo: 'expense' },
+    '450-003-000-00': { capitulo: 'NOROESTE', tipo: 'income' },
+    '950-003-000-00': { capitulo: 'NOROESTE', tipo: 'expense' },
+  };
+
+  // Mapeo de capítulo a empresaId (usar claves normalizadas)
+  const CAPITULO_A_EMPRESA = {
+    [normalizarTexto("GUADALAJARA")]: "empresa2",
+    [normalizarTexto("NORESTE")]: "empresa3",
+    [normalizarTexto("MONTERREY")]: "empresa3",
+    [normalizarTexto("NOROESTE")]: "empresa4",
+    [normalizarTexto("NORTHWEST")]: "empresa4",
+    [normalizarTexto("CIUDAD DE MEXICO")]: "empresa1",
+  };
+
+  // Flag para evitar reinicialización recursiva
+  let estaInicializandoCuentas = false;
+
+  // Función helper para cargar datos de presupuestos de un capítulo/empresa específico
+  const cargarDatosPresupuestosCapitulo = async (empresaId, anio) => {
+    try {
+      const params = new URLSearchParams({
+        empresaId: empresaId.toString(),
+        anio: anio.toString(),
+        mes: '12', // Diciembre para tener el acumulado anual
+      });
+
+      const respuesta = await fetch(`${API_BASE}/reportes/resumen?${params.toString()}`, {
+        headers: Sesion.headersAutenticacion(),
+      });
+
+      if (!respuesta.ok) {
+        console.error(`Error al cargar resumen: ${respuesta.status}`);
+        return null;
+      }
+
+      const datos = await respuesta.json();
+      return datos;
+    } catch (error) {
+      console.error('Error cargando resumen:', error);
+      return null;
+    }
+  };
+
+  /**
+   * Carga valores mensuales de INCOME y EXPENSE del RESUMEN (columna "Ppto.")
+   * Para cada mes del año, obtiene el valor planMonth de los principales
+   */
+  const cargarDatosSummaryCapitulo = async (capitulo, anio) => {
+    try {
+      // Obtener el empresaId del capítulo usando el mapeo normalizado
+      const claveCapitulo = normalizarTexto(capitulo);
+      let empresaId = CAPITULO_A_EMPRESA[claveCapitulo];
+      if (!empresaId && window.CapitulosModulos?.EMPRESA_CONFIG) {
+        const config = Object.values(window.CapitulosModulos.EMPRESA_CONFIG).find(
+          (item) => normalizarTexto(item.capitulo) === claveCapitulo
+        );
+        empresaId = config?.id || null;
+      }
+
+      if (!empresaId) {
+        console.warn(`❌ No se encontró empresaId para capítulo: ${capitulo}`);
+        return null;
+      }
+
+      console.log(`📊 Cargando valores mensuales de RESUMEN de ${capitulo} (empresa: ${empresaId})`);
+
+      // Cargar los 12 meses del resumen
+      const valoresPorMes = { income: {}, expense: {} };
+      
+      for (let mes = 1; mes <= 12; mes++) {
+        const params = new URLSearchParams({
+          empresaId: empresaId.toString(),
+          anio: anio.toString(),
+          mes: mes.toString(),
+          capitulo: capitulo
+        });
+
+        const respuesta = await fetch(`${API_BASE}/reportes/resumen?${params.toString()}`, {
+          headers: Sesion.headersAutenticacion()
+        });
+
+        if (!respuesta.ok) {
+          console.error(`❌ Error al cargar resumen ${capitulo} mes ${mes}`);
+          continue;
+        }
+
+        const datos = await respuesta.json();
+
+        // Buscar los principales INCOME y EXPENSE
+        const principales =
+          datos.principals ||
+          datos.principales ||
+          datos.resumen?.[0]?.children ||
+          [];
+        const income = principales.find((p) => {
+          const label = normalizarTexto(p.label || "");
+          return label === "INCOME" || label === "INGRESOS";
+        });
+        const expense = principales.find((p) => {
+          const label = normalizarTexto(p.label || "");
+          return label === "EXPENSE" || label === "GASTOS" || label === "EXPENSES";
+        });
+
+        // Guardar el valor de planMonth (columna "Ppto." del RESUMEN)
+        const nombreMes = MESES[mes - 1];
+        const incomePlan = income?.planMonth ?? income?.totals?.planMonth ?? 0;
+        const expensePlan = expense?.planMonth ?? expense?.totals?.planMonth ?? 0;
+        valoresPorMes.income[nombreMes] = incomePlan || 0;
+        valoresPorMes.expense[nombreMes] = expensePlan || 0;
+      }
+
+      console.log(`✅ Valores mensuales cargados para ${capitulo}:`, {
+        enero: { income: valoresPorMes.income.ene, expense: valoresPorMes.expense.ene }
+      });
+
+      return valoresPorMes;
+    } catch (error) {
+      console.error(`❌ Error al cargar totales de ${capitulo}:`, error);
+      return null;
+    }
+  };
+
+  const aplicarDatosAutomaticos = async (anio) => {
+    const moduloClave = estadoModulo.moduloClave || normalizarModuloClave(estadoModulo.moduloId);
+    const empresa = Sesion.obtenerEmpresaActiva();
+    const capitulo = empresa ? window.CapitulosModulos?.obtenerCapituloPorEmpresa(empresa.id) : null;
+
+    // Solo aplicar para módulo presupuestos en Ciudad de México
+    if (
+      moduloClave !== 'presupuestos' ||
+      normalizarTexto(capitulo) !== normalizarTexto('CIUDAD DE MEXICO')
+    ) {
+      return;
+    }
+
+    console.log('🔄 Consolidando presupuestos de capítulos en CDMX (desde columna "Ppto." del RESUMEN)');
+
+    // Cargar datos de los tres capítulos
+    const [gdlData, neData, noData] = await Promise.all([
+      cargarDatosSummaryCapitulo('GUADALAJARA', anio),
+      cargarDatosSummaryCapitulo('NORESTE', anio),
+      cargarDatosSummaryCapitulo('NOROESTE', anio),
+    ]);
+
+    console.log('📦 Datos cargados:', { gdlData, neData, noData });
+
+    const datosCapitulos = {
+      GUADALAJARA: gdlData,
+      NORESTE: neData,
+      NOROESTE: noData,
+    };
+
+    // Preparar datos para actualizar en la base de datos
+    const cuentasParaActualizar = [];
+
+    Object.entries(CUENTAS_AUTO_CDMX).forEach(([cuentaVisible, config]) => {
+      const cuenta21 = convertirCuenta21(cuentaVisible);
+      if (!cuenta21) return;
+
+      const datos = datosCapitulos[config.capitulo];
+      if (!datos) return;
+
+      const valoresTipo = datos[config.tipo]; // income o expense
+      if (!valoresTipo) return;
+
+      // Preparar objeto de valores mensuales
+      const valores = {};
+      MESES.forEach((mes) => {
+        valores[mes] = valoresTipo[mes] || 0;
+      });
+
+      cuentasParaActualizar.push({
+        numCta: cuenta21,
+        cuentaVisible: cuentaVisible,
+        valores: valores,
+        config: config
+      });
+    });
+
+    // Verificar si es necesario actualizar comparando con los valores actuales
+    let necesitaActualizacion = false;
+    for (const cuentaData of cuentasParaActualizar) {
+      const cuenta21 = cuentaData.numCta;
+      const valoresActuales = estadoModulo.valoresPorCuenta.get(cuenta21);
+      
+      if (!valoresActuales) {
+        necesitaActualizacion = true;
+        break;
+      }
+
+      // Verificar si hay diferencias en los valores mensuales
+      for (const mes of MESES) {
+        const valorNuevo = cuentaData.valores[mes] || 0;
+        const valorActual = valoresActuales[`budget-${mes}`] || 0;
+        
+        // Si hay diferencia significativa (más de 1 peso), necesita actualización
+        if (Math.abs(valorNuevo - valorActual) > 1) {
+          necesitaActualizacion = true;
+          console.log(`🔄 Diferencia detectada en ${cuentaData.cuentaVisible} mes ${mes}: ${valorActual} → ${valorNuevo}`);
+          break;
+        }
+      }
+      
+      if (necesitaActualizacion) break;
+    }
+
+    if (!necesitaActualizacion) {
+      console.log('✅ Las cuentas ya tienen los valores correctos, no es necesario actualizar');
+      estaInicializandoCuentas = false;
+      return;
+    }
+
+    console.log(`📋 Valores a actualizar:`, {
+      'GDL Income (450-001) Enero': cuentasParaActualizar.find(c => c.cuentaVisible === '450-001-000-00')?.valores.ene,
+      'GDL Expense (950-001) Enero': cuentasParaActualizar.find(c => c.cuentaVisible === '950-001-000-00')?.valores.ene
+    });
+
+    // Actualizar en la base de datos
+    if (cuentasParaActualizar.length > 0 && !estaInicializandoCuentas) {
+      estaInicializandoCuentas = true;
+      try {
+        console.log(`💾 Actualizando ${cuentasParaActualizar.length} cuentas en base de datos...`);
+        
+        const respuestaUpdate = await fetch(`${API_BASE}/presupuestos/actualizar-consolidados`, {
+          method: 'POST',
+          headers: {
+            ...Sesion.headersAutenticacion(),
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 
+            anio,
+            cuentas: cuentasParaActualizar 
+          }),
+        });
+
+        if (respuestaUpdate.ok) {
+          const resultado = await respuestaUpdate.json();
+          console.log('✅ Actualización en BD exitosa:', resultado);
+          
+          // Actualizar valores en DOM y memoria
+          cuentasParaActualizar.forEach((cuentaData) => {
+            // Buscar la fila en el DOM
+            const fila = Array.from(obtenerFilasCuenta()).find((f) => {
+              if (f.dataset.cuenta21 === cuentaData.numCta) return true;
+              const cuentaVisibleFila = f.dataset.cuenta || f.dataset.cuentaVisible || "";
+              return convertirCuenta21(cuentaVisibleFila) === cuentaData.numCta;
+            });
+
+            if (fila) {
+              // Actualizar valores mensuales en el DOM
+              MESES.forEach((mes) => {
+                const valor = cuentaData.valores[mes] || 0;
+                establecerValorCelda(fila, `budget-${mes}`, valor);
+              });
+
+              // Actualizar el almacén de valores en memoria
+              const almacen = estadoModulo.valoresPorCuenta.get(cuentaData.numCta) || {};
+              MESES.forEach((mes) => {
+                almacen[`budget-${mes}`] = cuentaData.valores[mes] || 0;
+              });
+
+              // Recalcular totales para esta cuenta
+              let totalAnual = 0;
+              MESES.forEach((mes) => {
+                totalAnual += almacen[`budget-${mes}`] || 0;
+              });
+              almacen['budget-annual'] = totalAnual;
+
+              const mesAcumuladoIndex = obtenerIndiceMesAcumulado();
+              let totalAcumulado = 0;
+              MESES.forEach((mes, idx) => {
+                if (idx <= mesAcumuladoIndex) {
+                  totalAcumulado += almacen[`budget-${mes}`] || 0;
+                }
+              });
+              almacen['total-budget'] = totalAcumulado;
+
+              establecerValorCelda(fila, 'budget-annual', totalAnual);
+              establecerValorCelda(fila, 'total-budget', totalAcumulado);
+
+              estadoModulo.valoresPorCuenta.set(cuentaData.numCta, almacen);
+
+              console.log(
+                `✅ Cuenta ${cuentaData.cuentaVisible} actualizada: ${cuentaData.config.capitulo} ${cuentaData.config.tipo.toUpperCase()} - Enero: ${cuentaData.valores.ene}`
+              );
+            } else {
+              console.log(`ℹ️ Cuenta ${cuentaData.cuentaVisible} no está visible en Presupuestos (solo nivel mayor).`);
+            }
+          });
+
+          // Recalcular todas las sumas de la tabla
+          console.log('🔄 Recalculando sumas de toda la tabla...');
+          recalcularSumas();
+          console.log('✅ Consolidación completada exitosamente');
+          
+        } else {
+          console.error('❌ Error al actualizar:', await respuestaUpdate.text());
+        }
+      } catch (errorUpdate) {
+        console.error('❌ Error al actualizar cuentas:', errorUpdate);
+      } finally {
+        estaInicializandoCuentas = false;
+      }
+    } else {
+      console.log('⚠️ No hay cuentas para actualizar o ya está en proceso');
+      estaInicializandoCuentas = false;
+    }
+  };
+
   const contarSaldos = (registros = []) => {
     const mapa = new Map(
       registros.map((registro) => [registro.cuenta, registro])
@@ -1531,6 +1845,14 @@
     recalcularSumas();
     estadoModulo.hayCambios = false;
     estadoModulo.editSnapshot = null;
+
+    // Aplicar datos automáticos de SUMMARY si corresponde
+    const anio = obtenerAnioSeleccionado();
+    if (Number.isInteger(anio)) {
+      aplicarDatosAutomaticos(anio).catch((err) => {
+        console.warn('Error aplicando datos automáticos:', err);
+      });
+    }
   };
 
   const obtenerCuentasSolicitadas = () => {
@@ -1941,7 +2263,14 @@
   const esCuentaPresupuestoValida = (valorCuenta) => {
     const canonica = convertirCuenta21(valorCuenta || "");
     const prefijo = Number.parseInt((canonica || "").slice(0, 3), 10);
-    return Number.isFinite(prefijo) && prefijo >= 400 && prefijo <= 950;
+    const nivel = (canonica || "").slice(-1);
+    const esNivel1 = nivel === "1";
+    return (
+      Number.isFinite(prefijo) &&
+      prefijo >= 400 &&
+      prefijo <= 950 &&
+      esNivel1
+    );
   };
 
   const obtenerSeccionPresupuesto = (valorCuenta) => {
@@ -5155,6 +5484,7 @@
         }
       }
     }
+
 
     if (!registros.length) {
       cuerpo.appendChild(

@@ -98,7 +98,7 @@ const obtenerPresupuestosMayor = async (empresaId, anio) => {
     WHERE c.STATUS = 'A'
       AND c.TIPO = 'A'
       AND c.NIVEL = '1'
-      AND SUBSTRING(c.NUM_CTA FROM 1 FOR 3) BETWEEN '400' AND '799'
+      AND SUBSTRING(c.NUM_CTA FROM 1 FOR 3) BETWEEN '400' AND '950'
     ORDER BY c.NUM_CTA
   `;
 
@@ -106,8 +106,80 @@ const obtenerPresupuestosMayor = async (empresaId, anio) => {
   return resultados.map((registro) => mapearRegistro(registro));
 };
 
+/**
+ * Obtiene los totales de presupuesto mensual sumando cuentas específicas de PRESUP
+ * Usado para consolidación de capítulos en CDMX
+ * 
+ * @param {string} empresaId - ID de la empresa (empresa2, empresa3, empresa4)
+ * @param {number} anio - Año del presupuesto
+ * @returns {Promise<{income: Object, expense: Object}>} Totales mensuales
+ */
+const obtenerTotalesPresupuestoCapitulo = async (empresaId, anio) => {
+  if (!empresaId) {
+    throw new Error('La empresa es obligatoria.');
+  }
+  const ejercicio = Number(anio);
+  if (!Number.isInteger(ejercicio) || ejercicio < 2000 || ejercicio > 2100) {
+    throw new Error('El ejercicio indicado no es valido.');
+  }
+
+  const tablaPresupuesto = construirNombreTabla('PRESUP', ejercicio);
+  const tablaCuentas = construirNombreTabla('CUENTAS', ejercicio);
+
+  // Consultar todas las cuentas 400-950
+  const consulta = `
+    SELECT
+      c.NUM_CTA AS CUENTA,
+      ${MESES.map(({ periodo }) => {
+        const sufijo = formatearPeriodo(periodo);
+        return `COALESCE(p.PRESUP${sufijo}, 0) AS PRESUP${sufijo}`;
+      }).join(',\n      ')}
+    FROM ${tablaCuentas} c
+    LEFT JOIN ${tablaPresupuesto} p
+      ON p.NUM_CTA = c.NUM_CTA
+     AND p.EJERCICIO = ?
+    WHERE c.STATUS = 'A'
+      AND c.TIPO IN ('A', 'D')
+      AND SUBSTRING(c.NUM_CTA FROM 1 FOR 3) BETWEEN '400' AND '950'
+  `;
+
+  const resultados = await ejecutarConsulta(empresaId, consulta, [ejercicio]);
+
+  // Inicializar acumuladores
+  const income = {};
+  const expense = {};
+  MESES.forEach(({ clave }) => {
+    income[clave] = 0;
+    expense[clave] = 0;
+  });
+
+  // Sumar por rango de cuentas
+  resultados.forEach((registro) => {
+    const cuenta = registro.CUENTA || '';
+    const prefijo = parseInt(cuenta.substring(0, 3), 10);
+    
+    if (isNaN(prefijo)) return;
+
+    MESES.forEach(({ clave, periodo }) => {
+      const sufijo = formatearPeriodo(periodo);
+      const valor = Number(registro[`PRESUP${sufijo}`] || 0);
+
+      if (prefijo >= 400 && prefijo <= 450) {
+        // INCOME: cuentas 400-450
+        income[clave] += valor;
+      } else if (prefijo >= 451 && prefijo <= 950) {
+        // EXPENSE: cuentas 451-950
+        expense[clave] += valor;
+      }
+    });
+  });
+
+  return { income, expense };
+};
+
 module.exports = {
   obtenerPresupuestosMayor,
+  obtenerTotalesPresupuestoCapitulo,
   listarAniosPresupuestos,
   PERIODOS
 };

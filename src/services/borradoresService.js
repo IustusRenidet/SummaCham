@@ -1321,6 +1321,7 @@ module.exports = {
   listarHistorialBorradores,
   obtenerFiltrosHistorial,
   obtenerProgresoRecontabilizacion,
+  actualizarCuentasPadre,
   ESTADOS,
   HISTORIAL_ACCIONES,
 };

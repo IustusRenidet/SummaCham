@@ -1854,14 +1854,14 @@
       };
 
       const INCOME_LABELS = {
-        mex: ["CDMX INCOME", "MEXICO INCOME"],
+        mex: ["CDMX INCOME", "MEXICO INCOME", "INCOME"],
         gdl: ["GUADALAJARA INCOME", "GDL INCOME"],
         mty: ["MONTERREY INCOME", "MTY INCOME"],
         nw: ["NORTHWEST INCOME", "NW INCOME", "NOROESTE INCOME", "NO INCOME"],
         ne: ["NE INCOME", "NORESTE INCOME"],
       };
       const EXPENSE_LABELS = {
-        mex: ["CDMX EXPENSE", "MEXICO EXPENSE"],
+        mex: ["CDMX EXPENSE", "MEXICO EXPENSE", "EXPENSE"],
         gdl: ["GUADALAJARA EXPENSE", "GDL EXPENSE"],
         mty: ["MONTERREY EXPENSE", "MTY EXPENSE"],
         nw: [
