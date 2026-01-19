@@ -1,7 +1,7 @@
 (() => {
   const STORAGE_KEY = "graficas_config_v1";
   const DEFAULT_CONFIG = {
-    version: 1,
+    version: 2,
     series: [
       {
         key: "actualYTD",
@@ -57,9 +57,87 @@
       type: "bar",
       stacked: false,
     },
+    ingreso: {
+      enabled: true,
+      title: "Ingreso por capitulo",
+      subtitle: "Real acumulado por mes",
+      series: {
+        mex: { label: "CDMX INCOME", color: "#0d47a1", enabled: true },
+        gdl: { label: "GUADALAJARA INCOME", color: "#60a5fa", enabled: true },
+        mty: { label: "MONTERREY INCOME", color: "#22c55e", enabled: true },
+        nw: { label: "NORTHWEST INCOME", color: "#f59e0b", enabled: true },
+      },
+    },
+    ingresoNacional: {
+      enabled: true,
+      title: "Ingreso nacional",
+      subtitle: "Real acumulado por mes",
+      series: {
+        committees: { label: "Committees", color: "#0d47a1", enabled: true },
+        membership: { label: "Membership", color: "#60a5fa", enabled: true },
+        events: { label: "Events", color: "#22c55e", enabled: true },
+        services: { label: "Services to Members", color: "#f59e0b", enabled: true },
+        tic: { label: "T&IC", color: "#a855f7", enabled: true },
+      },
+    },
+    operativo: {
+      enabled: true,
+      title: "Ppto. Acumulado vs Real + {annual}",
+      datasets: {
+        budget: { label: "Ppto. Acumulado", color: "#4472c4", enabled: true },
+        real: { label: "Real Acumulado", color: "#ffc000", enabled: true },
+        annual: { label: "Presupuesto {year}", color: "#22c55e", enabled: true },
+      },
+    },
+    gastosGenerales: {
+      enabled: true,
+      subtitleTemplate: "Real {year} vs {prev}",
+      charts: {
+        rendimientos: {
+          enabled: true,
+          title: "Rendimientos de Inversion",
+          series: {
+            actual: { label: "Real {year}", color: "#ffc000", enabled: true },
+            prev: { label: "Real {prev}", color: "#2f5496", enabled: true },
+          },
+        },
+        plusvalia: {
+          enabled: true,
+          title: "Plusvalia/Minusvalia",
+          series: {
+            actual: { label: "Real {year}", color: "#ffc000", enabled: true },
+            prev: { label: "Real {prev}", color: "#2f5496", enabled: true },
+          },
+        },
+      },
+    },
   };
 
   const clone = (value) => JSON.parse(JSON.stringify(value));
+
+  const normalizeSeriesMap = (defaultsMap, overrideMap) => {
+    const result = {};
+    const baseMap = defaultsMap && typeof defaultsMap === "object" ? defaultsMap : {};
+    const overrides = overrideMap && typeof overrideMap === "object" ? overrideMap : {};
+    Object.keys(baseMap).forEach((key) => {
+      const base = baseMap[key] || {};
+      const override = overrides[key] || {};
+      result[key] = {
+        ...base,
+        label:
+          typeof override.label === "string" && override.label.trim()
+            ? override.label.trim()
+            : base.label,
+        color:
+          typeof override.color === "string" && override.color.trim()
+            ? override.color.trim()
+            : base.color,
+        enabled:
+          typeof override.enabled === "boolean" ? override.enabled : base.enabled,
+      };
+    });
+    return result;
+  };
 
   const normalizeConfig = (config = {}) => {
     const base = clone(DEFAULT_CONFIG);
@@ -139,6 +217,86 @@
       }
       if (typeof config.chart.stacked === "boolean") {
         base.chart.stacked = config.chart.stacked;
+      }
+    }
+
+    if (config.ingreso && typeof config.ingreso === "object") {
+      const override = config.ingreso || {};
+      if (typeof override.enabled === "boolean") {
+        base.ingreso.enabled = override.enabled;
+      }
+      if (typeof override.title === "string" && override.title.trim()) {
+        base.ingreso.title = override.title.trim();
+      }
+      if (typeof override.subtitle === "string" && override.subtitle.trim()) {
+        base.ingreso.subtitle = override.subtitle.trim();
+      }
+      base.ingreso.series = normalizeSeriesMap(
+        base.ingreso.series,
+        override.series
+      );
+    }
+
+    if (config.ingresoNacional && typeof config.ingresoNacional === "object") {
+      const override = config.ingresoNacional || {};
+      if (typeof override.enabled === "boolean") {
+        base.ingresoNacional.enabled = override.enabled;
+      }
+      if (typeof override.title === "string" && override.title.trim()) {
+        base.ingresoNacional.title = override.title.trim();
+      }
+      if (typeof override.subtitle === "string" && override.subtitle.trim()) {
+        base.ingresoNacional.subtitle = override.subtitle.trim();
+      }
+      base.ingresoNacional.series = normalizeSeriesMap(
+        base.ingresoNacional.series,
+        override.series
+      );
+    }
+
+    if (config.operativo && typeof config.operativo === "object") {
+      const override = config.operativo || {};
+      if (typeof override.enabled === "boolean") {
+        base.operativo.enabled = override.enabled;
+      }
+      if (typeof override.title === "string" && override.title.trim()) {
+        base.operativo.title = override.title.trim();
+      }
+      base.operativo.datasets = normalizeSeriesMap(
+        base.operativo.datasets,
+        override.datasets
+      );
+    }
+
+    if (config.gastosGenerales && typeof config.gastosGenerales === "object") {
+      const override = config.gastosGenerales || {};
+      if (typeof override.enabled === "boolean") {
+        base.gastosGenerales.enabled = override.enabled;
+      }
+      if (
+        typeof override.subtitleTemplate === "string" &&
+        override.subtitleTemplate.trim()
+      ) {
+        base.gastosGenerales.subtitleTemplate =
+          override.subtitleTemplate.trim();
+      }
+      if (override.charts && typeof override.charts === "object") {
+        Object.keys(base.gastosGenerales.charts || {}).forEach((key) => {
+          const chartOverride = override.charts?.[key] || {};
+          if (typeof chartOverride.enabled === "boolean") {
+            base.gastosGenerales.charts[key].enabled = chartOverride.enabled;
+          }
+          if (
+            typeof chartOverride.title === "string" &&
+            chartOverride.title.trim()
+          ) {
+            base.gastosGenerales.charts[key].title = chartOverride.title.trim();
+          }
+          base.gastosGenerales.charts[key].series = normalizeSeriesMap(
+            base.gastosGenerales.charts[key].series,
+            chartOverride.series
+          );
+        });
       }
     }
 
@@ -272,6 +430,8 @@
   };
 
   const readConfigFromForm = () => {
+    const baseConfig = loadConfig();
+    const draft = clone(baseConfig);
     const defaults = clone(DEFAULT_CONFIG);
     const series = [];
     const seriesRows = Array.from(form.querySelectorAll("[data-series-row]"));
@@ -320,20 +480,19 @@
       };
     });
 
-    return {
-      version: 1,
-      series,
-      charts,
-      consolidatedSeries,
-      legend: {
-        show: legendShowToggle ? legendShowToggle.checked : true,
-        position: legendPositionSelect ? legendPositionSelect.value : "bottom",
-      },
-      chart: {
-        type: chartTypeSelect ? chartTypeSelect.value : "bar",
-        stacked: chartStackedToggle ? chartStackedToggle.checked : false,
-      },
+    draft.version = DEFAULT_CONFIG.version;
+    draft.series = series;
+    draft.charts = charts;
+    draft.consolidatedSeries = consolidatedSeries;
+    draft.legend = {
+      show: legendShowToggle ? legendShowToggle.checked : true,
+      position: legendPositionSelect ? legendPositionSelect.value : "bottom",
     };
+    draft.chart = {
+      type: chartTypeSelect ? chartTypeSelect.value : "bar",
+      stacked: chartStackedToggle ? chartStackedToggle.checked : false,
+    };
+    return draft;
   };
 
   const validateConfig = (config) => {

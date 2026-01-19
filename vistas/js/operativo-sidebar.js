@@ -8,11 +8,41 @@
   const MIN_BAR_LENGTH = 18;
   const POINT_RADIUS = 6;
   const POINT_HOVER_RADIUS = 8;
+  const DEFAULT_OPERATIVO_CONFIG = {
+    enabled: true,
+    title: "Ppto. Acumulado vs Real + {annual}",
+    datasets: {
+      budget: { label: "Ppto. Acumulado", color: "#4472c4", enabled: true },
+      real: { label: "Real Acumulado", color: "#ffc000", enabled: true },
+      annual: { label: "Presupuesto {year}", color: "#22c55e", enabled: true },
+    },
+  };
   const ocultarCeros = (valor) => {
     const numero = Number(valor) || 0;
     return numero === 0 ? null : numero;
   };
   let updateTimer = null;
+
+  const getGraficasConfig = () => {
+    if (window.GraficasConfig && typeof window.GraficasConfig.load === "function") {
+      return window.GraficasConfig.load();
+    }
+    return { operativo: DEFAULT_OPERATIVO_CONFIG };
+  };
+
+  const getOperativoConfig = () => {
+    const config = getGraficasConfig();
+    return config.operativo || DEFAULT_OPERATIVO_CONFIG;
+  };
+
+  const applyTemplate = (template, values = {}) => {
+    if (!template) return "";
+    const year = values.year || "";
+    const annual = values.annual || "";
+    return template
+      .replace(/\{year\}/gi, year)
+      .replace(/\{annual\}/gi, annual);
+  };
 
   const obtenerVariableCss = (nombre, fallback) => {
     if (!window.getComputedStyle) return fallback;
@@ -128,10 +158,22 @@
     reales,
     anuales,
     colors,
-    annualLabel,
+    labelsConfig,
+    enabledConfig,
   }) => {
     const gridColor = "rgba(47, 84, 150, 0.08)";
     const axisColor = "rgba(47, 84, 150, 0.55)";
+    const labelsSafe = labelsConfig || {};
+    const enabledSafe = enabledConfig || {};
+    const labelBudget =
+      labelsSafe.budget || DEFAULT_OPERATIVO_CONFIG.datasets.budget.label;
+    const labelReal =
+      labelsSafe.real || DEFAULT_OPERATIVO_CONFIG.datasets.real.label;
+    const labelAnnual =
+      labelsSafe.annual || DEFAULT_OPERATIVO_CONFIG.datasets.annual.label;
+    const budgetEnabled = enabledSafe.budget !== false;
+    const realEnabled = enabledSafe.real !== false;
+    const annualEnabled = enabledSafe.annual !== false;
     return new Chart(ctx, {
       type: "bar",
       data: {
@@ -139,33 +181,35 @@
         datasets: [
           {
             type: "bar",
-            label: "Ppto. Acumulado",
+            label: labelBudget,
             data: presupuestos,
             backgroundColor: colors.budget,
-            borderColor: "rgba(47, 84, 150, 0.2)",
+            borderColor: colors.budget,
             borderRadius: 10,
             borderWidth: 1,
             borderSkipped: false,
             maxBarThickness: 26,
             minBarLength: MIN_BAR_LENGTH,
             order: 1,
+            hidden: !budgetEnabled,
           },
           {
             type: "bar",
-            label: "Real Acumulado",
+            label: labelReal,
             data: reales,
             backgroundColor: colors.real,
-            borderColor: "rgba(47, 84, 150, 0.2)",
+            borderColor: colors.real,
             borderRadius: 10,
             borderWidth: 1,
             borderSkipped: false,
             maxBarThickness: 26,
             minBarLength: MIN_BAR_LENGTH,
             order: 2,
+            hidden: !realEnabled,
           },
           {
             type: "line",
-            label: annualLabel || "Presupuesto",
+            label: labelAnnual,
             data: anuales,
             borderColor: colors.annual,
             backgroundColor: colors.annual,
@@ -176,6 +220,7 @@
             fill: false,
             spanGaps: false,
             order: 3,
+            hidden: !annualEnabled,
           },
         ],
       },
@@ -235,7 +280,8 @@
     reales,
     anuales,
     colors,
-    annualLabel,
+    labelsConfig,
+    enabledConfig,
   }) => {
     const canvas = document.getElementById(CANVAS_COMBINED_ID);
     const empty = document.querySelector('[data-operativo-empty="combined"]');
@@ -253,7 +299,7 @@
     if (empty) empty.style.display = "none";
     canvas.style.display = "block";
     const ctx = canvas.getContext("2d");
-    if (!charts.combined) {
+    if (!charts.combined || charts.combined.data.datasets.length !== 3) {
       charts.combined = construirChart({
         ctx,
         labels,
@@ -261,16 +307,37 @@
         reales,
         anuales,
         colors,
-        annualLabel,
+        labelsConfig,
+        enabledConfig,
       });
     } else {
+      const labelsSafe = labelsConfig || {};
+      const enabledSafe = enabledConfig || {};
+      const labelBudget =
+        labelsSafe.budget || DEFAULT_OPERATIVO_CONFIG.datasets.budget.label;
+      const labelReal =
+        labelsSafe.real || DEFAULT_OPERATIVO_CONFIG.datasets.real.label;
+      const labelAnnual =
+        labelsSafe.annual || DEFAULT_OPERATIVO_CONFIG.datasets.annual.label;
+      const budgetEnabled = enabledSafe.budget !== false;
+      const realEnabled = enabledSafe.real !== false;
+      const annualEnabled = enabledSafe.annual !== false;
       charts.combined.data.labels = labels;
       charts.combined.data.datasets[0].data = presupuestos;
       charts.combined.data.datasets[1].data = reales;
       charts.combined.data.datasets[2].data = anuales;
-      if (annualLabel) {
-        charts.combined.data.datasets[2].label = annualLabel;
-      }
+      charts.combined.data.datasets[0].label = labelBudget;
+      charts.combined.data.datasets[1].label = labelReal;
+      charts.combined.data.datasets[2].label = labelAnnual;
+      charts.combined.data.datasets[0].backgroundColor = colors.budget;
+      charts.combined.data.datasets[0].borderColor = colors.budget;
+      charts.combined.data.datasets[1].backgroundColor = colors.real;
+      charts.combined.data.datasets[1].borderColor = colors.real;
+      charts.combined.data.datasets[2].backgroundColor = colors.annual;
+      charts.combined.data.datasets[2].borderColor = colors.annual;
+      charts.combined.data.datasets[0].hidden = !budgetEnabled;
+      charts.combined.data.datasets[1].hidden = !realEnabled;
+      charts.combined.data.datasets[2].hidden = !annualEnabled;
       charts.combined.update();
     }
   };
@@ -279,6 +346,13 @@
     const sidebar = document.querySelector(PANEL_SELECTOR);
     const tabla = document.querySelector(TABLE_SELECTOR);
     if (!sidebar || !tabla || typeof Chart === "undefined") return;
+
+    const operativoConfig = getOperativoConfig();
+    if (operativoConfig.enabled === false) {
+      sidebar.style.display = "none";
+      return;
+    }
+    sidebar.style.display = "";
 
     const datos = obtenerDatos(tabla);
     const labels = datos.map((item) => item.etiqueta);
@@ -289,33 +363,68 @@
     const contenedor = sidebar.querySelector(
       '[data-operativo-chart="combined"]'
     );
-    ajustarAltura(contenedor, labels.length);
+    const datasetDefaults = DEFAULT_OPERATIVO_CONFIG.datasets;
+    const datasetConfig = operativoConfig.datasets || {};
+    const budgetCfg = datasetConfig.budget || datasetDefaults.budget;
+    const realCfg = datasetConfig.real || datasetDefaults.real;
+    const annualCfg = datasetConfig.annual || datasetDefaults.annual;
+    const enabledConfig = {
+      budget: budgetCfg.enabled !== false,
+      real: realCfg.enabled !== false,
+      annual: annualCfg.enabled !== false,
+    };
+    const hasEnabledDatasets = Object.values(enabledConfig).some(Boolean);
+    const effectiveLabels = hasEnabledDatasets ? labels : [];
+    ajustarAltura(contenedor, effectiveLabels.length);
 
-    const colorBudget = obtenerVariableCss("--color-budget", "#4472c4");
-    const colorReal = obtenerVariableCss("--color-real", "#ffc000");
-    const colorAnnual = obtenerVariableCss("--color-annual", "#22c55e");
+    const colorBudget =
+      budgetCfg.color || obtenerVariableCss("--color-budget", "#4472c4");
+    const colorReal =
+      realCfg.color || obtenerVariableCss("--color-real", "#ffc000");
+    const colorAnnual =
+      annualCfg.color || obtenerVariableCss("--color-annual", "#22c55e");
 
-    const annualLabel = (() => {
-      const headerYear = tabla
+    const headerYear =
+      tabla
         ?.querySelector("thead .budget-annual-column .anio")
-        ?.textContent?.trim();
-      return headerYear ? `Presupuesto ${headerYear}` : "Presupuesto";
-    })();
+        ?.textContent?.trim() || "";
+    const annualFallback = headerYear ? `Presupuesto ${headerYear}` : "Presupuesto";
+    const annualTemplate = annualCfg.label || datasetDefaults.annual.label;
+    const budgetTemplate = budgetCfg.label || datasetDefaults.budget.label;
+    const realTemplate = realCfg.label || datasetDefaults.real.label;
+    const annualLabel =
+      applyTemplate(annualTemplate, { year: headerYear, annual: annualFallback }).trim() ||
+      annualFallback;
+    const budgetLabel =
+      applyTemplate(budgetTemplate, { year: headerYear, annual: annualLabel }).trim() ||
+      budgetTemplate;
+    const realLabel =
+      applyTemplate(realTemplate, { year: headerYear, annual: annualLabel }).trim() ||
+      realTemplate;
 
     const tituloEl = contenedor
       ?.closest(".chart-block")
       ?.querySelector(".chart-title");
     if (tituloEl) {
-      tituloEl.textContent = `Ppto. Acumulado vs Real + ${annualLabel}`;
+      const titleTemplate = operativoConfig.title || DEFAULT_OPERATIVO_CONFIG.title;
+      const titleText =
+        applyTemplate(titleTemplate, { year: headerYear, annual: annualLabel }).trim() ||
+        titleTemplate;
+      tituloEl.textContent = titleText;
     }
 
     actualizarChart({
-      labels,
+      labels: effectiveLabels,
       presupuestos,
       reales,
       anuales,
       colors: { budget: colorBudget, real: colorReal, annual: colorAnnual },
-      annualLabel,
+      labelsConfig: {
+        budget: budgetLabel,
+        real: realLabel,
+        annual: annualLabel,
+      },
+      enabledConfig,
     });
   };
 

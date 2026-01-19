@@ -5923,6 +5923,92 @@
     };
   };
 
+  
+  const normalizarCuentaClave = (valor) => {
+    if (typeof normalizarCuentaBase === "function") {
+      return normalizarCuentaBase(valor);
+    }
+    return (valor || "")
+      .toString()
+      .replace(/[^0-9A-Za-z]/g, "")
+      .toUpperCase()
+      .trim();
+  };
+
+  const cargarBorrador = (presupuesto = []) => {
+    if (!Array.isArray(presupuesto) || !estadoModulo.tabla) return false;
+    if (!estadoModulo.columnas || !Object.keys(estadoModulo.columnas).length) {
+      estadoModulo.columnas = construirMapaColumnas(estadoModulo.tabla);
+    }
+    sincronizarColumnasClaves();
+
+    const filas = obtenerFilasCuenta();
+    if (!filas.length) return false;
+
+    const mapaFilas = new Map();
+    filas.forEach((fila) => {
+      const cuentaFila =
+        fila.dataset.cuenta21 ||
+        fila.dataset.cuenta ||
+        fila.querySelector("[data-cuenta]")?.dataset.cuenta ||
+        fila.cells[0]?.textContent ||
+        "";
+      const claveFila = normalizarCuentaClave(cuentaFila);
+      if (claveFila) mapaFilas.set(claveFila, fila);
+    });
+
+    let aplicado = false;
+
+    presupuesto.forEach((registro) => {
+      if (!registro) return;
+      const cuentaRegistro =
+        registro.cuenta || registro.numCta || registro.cuenta21 || "";
+      const claveRegistro = normalizarCuentaClave(cuentaRegistro);
+      if (!claveRegistro) return;
+
+      const fila = mapaFilas.get(claveRegistro);
+      if (!fila) return;
+
+      const valores =
+        registro.valores && typeof registro.valores === "object"
+          ? registro.valores
+          : null;
+      const cambios = valores ? Object.entries(valores) : [];
+      if (!cambios.length && registro.mes) {
+        cambios.push([`budget-${registro.mes}`, registro.valor]);
+      }
+      if (!cambios.length) return;
+
+      const cuentaKey = fila.dataset.cuenta21 || fila.dataset.cuenta || "";
+      const almacen = estadoModulo.valoresPorCuenta.get(cuentaKey) || {};
+
+      cambios.forEach(([clave, valor]) => {
+        if (!Object.prototype.hasOwnProperty.call(estadoModulo.columnas, clave))
+          return;
+        const idx = estadoModulo.columnas[clave];
+        const celda = fila.cells[idx];
+        if (!celda) return;
+        const numero = Number(valor);
+        const finalValor = Number.isFinite(numero) ? numero : 0;
+        celda.textContent = formatearNumero(finalValor);
+        almacen[clave] = finalValor;
+        resaltarCeldaPresupuesto(celda);
+        aplicado = true;
+      });
+
+      estadoModulo.valoresPorCuenta.set(cuentaKey, almacen);
+      recalcularTotalesFilaPresupuesto(fila);
+    });
+
+    if (aplicado) {
+      recalcularSumas();
+      estadoModulo.hayCambios = true;
+      notificarCambios();
+    }
+
+    return aplicado;
+  };
+
   window.CuentasModulo = {
     init: crearInstancia,
     render: renderizarTabla,
@@ -5955,6 +6041,9 @@
         empresaId: empresa.id,
         anio: anioSeleccionado,
       });
+    },
+    cargarBorrador(presupuesto) {
+      return cargarBorrador(presupuesto);
     },
     getCambios() {
       return obtenerCambiosPendientes();
@@ -6017,3 +6106,5 @@ const convertirCuenta21 = (cuentaLegible) => {
   const nivel = deducirNivel(visible);
   return visible.padEnd(20, "0") + nivel;
 };
+
+

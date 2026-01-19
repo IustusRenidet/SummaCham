@@ -214,6 +214,1341 @@
         </div>
       </div>
 
+      <!-- Configuracion de Graficas -->
+      <div class="row mb-3">
+        <div class="col-12">
+          <div class="card table-card fade-in">
+            <div class="card-body p-3">
+              <form id="plantillasGraficasForm">
+                <fieldset id="plantillasGraficasFieldset">
+                  <div
+                    class="d-flex flex-column flex-lg-row align-items-start justify-content-between gap-3"
+                  >
+                    <div>
+                      <h2 class="h5 mb-1">Graficas</h2>
+                      <p class="small text-muted mb-0">
+                        Personaliza las graficas existentes en todos los
+                        modulos.
+                      </p>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                      <span class="badge bg-light text-primary">
+                        Preferencias locales
+                      </span>
+                      <button
+                        type="button"
+                        class="btn btn-outline-secondary btn-sm"
+                        id="plantillasGraficasReset"
+                      >
+                        Restaurar
+                      </button>
+                      <button
+                        type="submit"
+                        class="btn btn-primary btn-sm"
+                        id="plantillasGraficasSave"
+                      >
+                        Guardar cambios
+                      </button>
+                    </div>
+                  </div>
+
+                  <div
+                    id="plantillasGraficasWarning"
+                    class="alert alert-warning d-none mt-3"
+                  >
+                    Acceso restringido a administradores. No es posible editar
+                    la configuracion.
+                  </div>
+
+                  <div class="accordion mt-3" id="plantillasGraficasAccordion">
+                    <div class="accordion-item">
+                      <h2
+                        class="accordion-header"
+                        id="plantillasGraficasResumenHeading"
+                      >
+                        <button
+                          class="accordion-button"
+                          type="button"
+                          data-bs-toggle="collapse"
+                          data-bs-target="#plantillasGraficasResumenCollapse"
+                          aria-expanded="true"
+                          aria-controls="plantillasGraficasResumenCollapse"
+                        >
+                          Resumen y Graficas globales
+                        </button>
+                      </h2>
+                      <div
+                        id="plantillasGraficasResumenCollapse"
+                        class="accordion-collapse collapse show"
+                        data-bs-parent="#plantillasGraficasAccordion"
+                      >
+                        <div class="accordion-body">
+                          <div class="row g-3">
+                            <div class="col-12">
+                              <h6 class="mb-2">Series de datos</h6>
+                              <div class="table-responsive">
+                                <table
+                                  class="table table-sm align-middle mb-0"
+                                >
+                                  <thead>
+                                    <tr>
+                                      <th>Serie</th>
+                                      <th>Etiqueta</th>
+                                      <th>Color</th>
+                                      <th class="text-center">Activa</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    <tr
+                                      data-series-row
+                                      data-series-key="actualYTD"
+                                    >
+                                      <td>
+                                        <div class="fw-semibold">
+                                          Real acumulado
+                                        </div>
+                                        <div class="text-muted small">
+                                          actualYTD
+                                        </div>
+                                      </td>
+                                      <td>
+                                        <input
+                                          type="text"
+                                          class="form-control form-control-sm"
+                                          data-series-label
+                                        />
+                                      </td>
+                                      <td>
+                                        <input
+                                          type="color"
+                                          class="form-control form-control-color"
+                                          data-series-color
+                                        />
+                                      </td>
+                                      <td class="text-center">
+                                        <input
+                                          class="form-check-input"
+                                          type="checkbox"
+                                          data-series-enabled
+                                        />
+                                      </td>
+                                    </tr>
+                                    <tr
+                                      data-series-row
+                                      data-series-key="planYTD"
+                                    >
+                                      <td>
+                                        <div class="fw-semibold">
+                                          Ppto. acumulado
+                                        </div>
+                                        <div class="text-muted small">
+                                          planYTD
+                                        </div>
+                                      </td>
+                                      <td>
+                                        <input
+                                          type="text"
+                                          class="form-control form-control-sm"
+                                          data-series-label
+                                        />
+                                      </td>
+                                      <td>
+                                        <input
+                                          type="color"
+                                          class="form-control form-control-color"
+                                          data-series-color
+                                        />
+                                      </td>
+                                      <td class="text-center">
+                                        <input
+                                          class="form-check-input"
+                                          type="checkbox"
+                                          data-series-enabled
+                                        />
+                                      </td>
+                                    </tr>
+                                    <tr
+                                      data-series-row
+                                      data-series-key="prevYTD"
+                                    >
+                                      <td>
+                                        <div class="fw-semibold">
+                                          Real acumulado AA
+                                        </div>
+                                        <div class="text-muted small">
+                                          prevYTD
+                                        </div>
+                                      </td>
+                                      <td>
+                                        <input
+                                          type="text"
+                                          class="form-control form-control-sm"
+                                          data-series-label
+                                        />
+                                      </td>
+                                      <td>
+                                        <input
+                                          type="color"
+                                          class="form-control form-control-color"
+                                          data-series-color
+                                        />
+                                      </td>
+                                      <td class="text-center">
+                                        <input
+                                          class="form-check-input"
+                                          type="checkbox"
+                                          data-series-enabled
+                                        />
+                                      </td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+
+                            <div class="col-12">
+                              <h6 class="mb-2">Graficas</h6>
+                              <div class="row g-3">
+                                <div class="col-12 col-lg-4">
+                                  <div
+                                    class="border rounded-3 p-3 h-100"
+                                    data-chart-key="operating"
+                                  >
+                                    <div
+                                      class="d-flex justify-content-between align-items-start mb-2"
+                                    >
+                                      <div>
+                                        <h3 class="h6 mb-1">
+                                          Resultado Operativo
+                                        </h3>
+                                        <p class="text-muted small mb-0">
+                                          Resumen / Graficas
+                                        </p>
+                                      </div>
+                                      <div class="form-check form-switch">
+                                        <input
+                                          class="form-check-input"
+                                          type="checkbox"
+                                          data-chart-enabled
+                                        />
+                                      </div>
+                                    </div>
+                                    <div class="mb-2">
+                                      <label class="form-label small fw-semibold"
+                                        >Titulo</label
+                                      >
+                                      <input
+                                        class="form-control form-control-sm"
+                                        type="text"
+                                        data-chart-title
+                                      />
+                                    </div>
+                                    <div>
+                                      <label class="form-label small fw-semibold"
+                                        >Subtitulo</label
+                                      >
+                                      <input
+                                        class="form-control form-control-sm"
+                                        type="text"
+                                        data-chart-subtitle
+                                      />
+                                    </div>
+                                  </div>
+                                </div>
+                                <div class="col-12 col-lg-4">
+                                  <div
+                                    class="border rounded-3 p-3 h-100"
+                                    data-chart-key="net"
+                                  >
+                                    <div
+                                      class="d-flex justify-content-between align-items-start mb-2"
+                                    >
+                                      <div>
+                                        <h3 class="h6 mb-1">Resumen Neto</h3>
+                                        <p class="text-muted small mb-0">
+                                          Resumen / Graficas
+                                        </p>
+                                      </div>
+                                      <div class="form-check form-switch">
+                                        <input
+                                          class="form-check-input"
+                                          type="checkbox"
+                                          data-chart-enabled
+                                        />
+                                      </div>
+                                    </div>
+                                    <div class="mb-2">
+                                      <label class="form-label small fw-semibold"
+                                        >Titulo</label
+                                      >
+                                      <input
+                                        class="form-control form-control-sm"
+                                        type="text"
+                                        data-chart-title
+                                      />
+                                    </div>
+                                    <div>
+                                      <label class="form-label small fw-semibold"
+                                        >Subtitulo</label
+                                      >
+                                      <input
+                                        class="form-control form-control-sm"
+                                        type="text"
+                                        data-chart-subtitle
+                                      />
+                                    </div>
+                                  </div>
+                                </div>
+                                <div class="col-12 col-lg-4">
+                                  <div
+                                    class="border rounded-3 p-3 h-100"
+                                    data-chart-key="consolidated"
+                                  >
+                                    <div
+                                      class="d-flex justify-content-between align-items-start mb-2"
+                                    >
+                                      <div>
+                                        <h3 class="h6 mb-1">Consolidados</h3>
+                                        <p class="text-muted small mb-0">
+                                          Solo CDMX
+                                        </p>
+                                      </div>
+                                      <div class="form-check form-switch">
+                                        <input
+                                          class="form-check-input"
+                                          type="checkbox"
+                                          data-chart-enabled
+                                        />
+                                      </div>
+                                    </div>
+                                    <div class="mb-2">
+                                      <label class="form-label small fw-semibold"
+                                        >Titulo</label
+                                      >
+                                      <input
+                                        class="form-control form-control-sm"
+                                        type="text"
+                                        data-chart-title
+                                      />
+                                    </div>
+                                    <div>
+                                      <label class="form-label small fw-semibold"
+                                        >Subtitulo</label
+                                      >
+                                      <input
+                                        class="form-control form-control-sm"
+                                        type="text"
+                                        data-chart-subtitle
+                                      />
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div class="col-12">
+                              <h6 class="mb-2">Series consolidadas</h6>
+                              <div class="row g-3">
+                                <div class="col-12 col-md-6">
+                                  <div
+                                    class="border rounded-3 p-3 h-100"
+                                    data-consolidated-key="operating"
+                                  >
+                                    <h3 class="h6 mb-2">
+                                      Consolidated Operating
+                                    </h3>
+                                    <label class="form-label small fw-semibold"
+                                      >Etiqueta</label
+                                    >
+                                    <input
+                                      class="form-control form-control-sm mb-2"
+                                      type="text"
+                                      data-consolidated-label
+                                    />
+                                    <label class="form-label small fw-semibold"
+                                      >Color</label
+                                    >
+                                    <input
+                                      class="form-control form-control-color"
+                                      type="color"
+                                      data-consolidated-color
+                                    />
+                                  </div>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                  <div
+                                    class="border rounded-3 p-3 h-100"
+                                    data-consolidated-key="net"
+                                  >
+                                    <h3 class="h6 mb-2">Consolidated Net</h3>
+                                    <label class="form-label small fw-semibold"
+                                      >Etiqueta</label
+                                    >
+                                    <input
+                                      class="form-control form-control-sm mb-2"
+                                      type="text"
+                                      data-consolidated-label
+                                    />
+                                    <label class="form-label small fw-semibold"
+                                      >Color</label
+                                    >
+                                    <input
+                                      class="form-control form-control-color"
+                                      type="color"
+                                      data-consolidated-color
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div class="col-12">
+                              <h6 class="mb-2">Opciones generales</h6>
+                              <div class="row g-3">
+                                <div class="col-12 col-md-4">
+                                  <label class="form-label small fw-semibold"
+                                    >Tipo de grafica</label
+                                  >
+                                  <select
+                                    class="form-select form-select-sm"
+                                    id="plantillasChartType"
+                                  >
+                                    <option value="bar">Barras</option>
+                                    <option value="line">Lineas</option>
+                                  </select>
+                                </div>
+                                <div class="col-12 col-md-4">
+                                  <label class="form-label small fw-semibold"
+                                    >Leyenda</label
+                                  >
+                                  <div class="form-check form-switch">
+                                    <input
+                                      class="form-check-input"
+                                      type="checkbox"
+                                      id="plantillasLegendShowToggle"
+                                    />
+                                    <label
+                                      class="form-check-label small"
+                                      for="plantillasLegendShowToggle"
+                                    >
+                                      Mostrar leyenda
+                                    </label>
+                                  </div>
+                                </div>
+                                <div class="col-12 col-md-4">
+                                  <label class="form-label small fw-semibold"
+                                    >Posicion leyenda</label
+                                  >
+                                  <select
+                                    class="form-select form-select-sm"
+                                    id="plantillasLegendPosition"
+                                  >
+                                    <option value="bottom">Abajo</option>
+                                    <option value="top">Arriba</option>
+                                    <option value="left">Izquierda</option>
+                                    <option value="right">Derecha</option>
+                                  </select>
+                                </div>
+                                <div class="col-12">
+                                  <div class="form-check form-switch">
+                                    <input
+                                      class="form-check-input"
+                                      type="checkbox"
+                                      id="plantillasChartStacked"
+                                    />
+                                    <label
+                                      class="form-check-label small"
+                                      for="plantillasChartStacked"
+                                    >
+                                      Barras apiladas
+                                    </label>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="accordion-item">
+                      <h2
+                        class="accordion-header"
+                        id="plantillasGraficasIngresoHeading"
+                      >
+                        <button
+                          class="accordion-button collapsed"
+                          type="button"
+                          data-bs-toggle="collapse"
+                          data-bs-target="#plantillasGraficasIngresoCollapse"
+                          aria-expanded="false"
+                          aria-controls="plantillasGraficasIngresoCollapse"
+                        >
+                          Ingreso por capitulo
+                        </button>
+                      </h2>
+                      <div
+                        id="plantillasGraficasIngresoCollapse"
+                        class="accordion-collapse collapse"
+                        data-bs-parent="#plantillasGraficasAccordion"
+                      >
+                        <div class="accordion-body">
+                          <div class="d-flex justify-content-between mb-2">
+                            <div>
+                              <h6 class="mb-1">Grafica de ingreso por capitulo</h6>
+                              <p class="text-muted small mb-0">
+                                RESUMEN y Graficas.html
+                              </p>
+                            </div>
+                            <div class="form-check form-switch">
+                              <input
+                                class="form-check-input"
+                                type="checkbox"
+                                data-ingreso-enabled
+                              />
+                            </div>
+                          </div>
+                          <div class="row g-3">
+                            <div class="col-12 col-lg-6">
+                              <label class="form-label small fw-semibold"
+                                >Titulo</label
+                              >
+                              <input
+                                class="form-control form-control-sm"
+                                type="text"
+                                data-ingreso-title
+                              />
+                            </div>
+                            <div class="col-12 col-lg-6">
+                              <label class="form-label small fw-semibold"
+                                >Subtitulo</label
+                              >
+                              <input
+                                class="form-control form-control-sm"
+                                type="text"
+                                data-ingreso-subtitle
+                              />
+                            </div>
+                          </div>
+                          <div class="table-responsive mt-3">
+                            <table class="table table-sm align-middle mb-0">
+                              <thead>
+                                <tr>
+                                  <th>Serie</th>
+                                  <th>Etiqueta</th>
+                                  <th>Color</th>
+                                  <th class="text-center">Activa</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                <tr
+                                  data-ingreso-series-row
+                                  data-ingreso-series-key="mex"
+                                >
+                                  <td>
+                                    <div class="fw-semibold">CDMX</div>
+                                    <div class="text-muted small">mex</div>
+                                  </td>
+                                  <td>
+                                    <input
+                                      type="text"
+                                      class="form-control form-control-sm"
+                                      data-ingreso-series-label
+                                    />
+                                  </td>
+                                  <td>
+                                    <input
+                                      type="color"
+                                      class="form-control form-control-color"
+                                      data-ingreso-series-color
+                                    />
+                                  </td>
+                                  <td class="text-center">
+                                    <input
+                                      class="form-check-input"
+                                      type="checkbox"
+                                      data-ingreso-series-enabled
+                                    />
+                                  </td>
+                                </tr>
+                                <tr
+                                  data-ingreso-series-row
+                                  data-ingreso-series-key="gdl"
+                                >
+                                  <td>
+                                    <div class="fw-semibold">Guadalajara</div>
+                                    <div class="text-muted small">gdl</div>
+                                  </td>
+                                  <td>
+                                    <input
+                                      type="text"
+                                      class="form-control form-control-sm"
+                                      data-ingreso-series-label
+                                    />
+                                  </td>
+                                  <td>
+                                    <input
+                                      type="color"
+                                      class="form-control form-control-color"
+                                      data-ingreso-series-color
+                                    />
+                                  </td>
+                                  <td class="text-center">
+                                    <input
+                                      class="form-check-input"
+                                      type="checkbox"
+                                      data-ingreso-series-enabled
+                                    />
+                                  </td>
+                                </tr>
+                                <tr
+                                  data-ingreso-series-row
+                                  data-ingreso-series-key="mty"
+                                >
+                                  <td>
+                                    <div class="fw-semibold">Monterrey</div>
+                                    <div class="text-muted small">mty</div>
+                                  </td>
+                                  <td>
+                                    <input
+                                      type="text"
+                                      class="form-control form-control-sm"
+                                      data-ingreso-series-label
+                                    />
+                                  </td>
+                                  <td>
+                                    <input
+                                      type="color"
+                                      class="form-control form-control-color"
+                                      data-ingreso-series-color
+                                    />
+                                  </td>
+                                  <td class="text-center">
+                                    <input
+                                      class="form-check-input"
+                                      type="checkbox"
+                                      data-ingreso-series-enabled
+                                    />
+                                  </td>
+                                </tr>
+                                <tr
+                                  data-ingreso-series-row
+                                  data-ingreso-series-key="nw"
+                                >
+                                  <td>
+                                    <div class="fw-semibold">Noroeste</div>
+                                    <div class="text-muted small">nw</div>
+                                  </td>
+                                  <td>
+                                    <input
+                                      type="text"
+                                      class="form-control form-control-sm"
+                                      data-ingreso-series-label
+                                    />
+                                  </td>
+                                  <td>
+                                    <input
+                                      type="color"
+                                      class="form-control form-control-color"
+                                      data-ingreso-series-color
+                                    />
+                                  </td>
+                                  <td class="text-center">
+                                    <input
+                                      class="form-check-input"
+                                      type="checkbox"
+                                      data-ingreso-series-enabled
+                                    />
+                                  </td>
+                                </tr>
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="accordion-item">
+                      <h2
+                        class="accordion-header"
+                        id="plantillasGraficasIngresoNacionalHeading"
+                      >
+                        <button
+                          class="accordion-button collapsed"
+                          type="button"
+                          data-bs-toggle="collapse"
+                          data-bs-target="#plantillasGraficasIngresoNacionalCollapse"
+                          aria-expanded="false"
+                          aria-controls="plantillasGraficasIngresoNacionalCollapse"
+                        >
+                          Ingreso nacional
+                        </button>
+                      </h2>
+                      <div
+                        id="plantillasGraficasIngresoNacionalCollapse"
+                        class="accordion-collapse collapse"
+                        data-bs-parent="#plantillasGraficasAccordion"
+                      >
+                        <div class="accordion-body">
+                          <div class="d-flex justify-content-between mb-2">
+                            <div>
+                              <h6 class="mb-1">Grafica de ingreso nacional</h6>
+                              <p class="text-muted small mb-0">
+                                RESUMEN y Graficas.html
+                              </p>
+                            </div>
+                            <div class="form-check form-switch">
+                              <input
+                                class="form-check-input"
+                                type="checkbox"
+                                data-ingreso-nacional-enabled
+                              />
+                            </div>
+                          </div>
+                          <div class="row g-3">
+                            <div class="col-12 col-lg-6">
+                              <label class="form-label small fw-semibold"
+                                >Titulo</label
+                              >
+                              <input
+                                class="form-control form-control-sm"
+                                type="text"
+                                data-ingreso-nacional-title
+                              />
+                            </div>
+                            <div class="col-12 col-lg-6">
+                              <label class="form-label small fw-semibold"
+                                >Subtitulo</label
+                              >
+                              <input
+                                class="form-control form-control-sm"
+                                type="text"
+                                data-ingreso-nacional-subtitle
+                              />
+                            </div>
+                          </div>
+                          <div class="table-responsive mt-3">
+                            <table class="table table-sm align-middle mb-0">
+                              <thead>
+                                <tr>
+                                  <th>Serie</th>
+                                  <th>Etiqueta</th>
+                                  <th>Color</th>
+                                  <th class="text-center">Activa</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                <tr
+                                  data-ingreso-nacional-series-row
+                                  data-ingreso-nacional-series-key="committees"
+                                >
+                                  <td>
+                                    <div class="fw-semibold">Committees</div>
+                                    <div class="text-muted small">
+                                      committees
+                                    </div>
+                                  </td>
+                                  <td>
+                                    <input
+                                      type="text"
+                                      class="form-control form-control-sm"
+                                      data-ingreso-nacional-series-label
+                                    />
+                                  </td>
+                                  <td>
+                                    <input
+                                      type="color"
+                                      class="form-control form-control-color"
+                                      data-ingreso-nacional-series-color
+                                    />
+                                  </td>
+                                  <td class="text-center">
+                                    <input
+                                      class="form-check-input"
+                                      type="checkbox"
+                                      data-ingreso-nacional-series-enabled
+                                    />
+                                  </td>
+                                </tr>
+                                <tr
+                                  data-ingreso-nacional-series-row
+                                  data-ingreso-nacional-series-key="membership"
+                                >
+                                  <td>
+                                    <div class="fw-semibold">Membership</div>
+                                    <div class="text-muted small">
+                                      membership
+                                    </div>
+                                  </td>
+                                  <td>
+                                    <input
+                                      type="text"
+                                      class="form-control form-control-sm"
+                                      data-ingreso-nacional-series-label
+                                    />
+                                  </td>
+                                  <td>
+                                    <input
+                                      type="color"
+                                      class="form-control form-control-color"
+                                      data-ingreso-nacional-series-color
+                                    />
+                                  </td>
+                                  <td class="text-center">
+                                    <input
+                                      class="form-check-input"
+                                      type="checkbox"
+                                      data-ingreso-nacional-series-enabled
+                                    />
+                                  </td>
+                                </tr>
+                                <tr
+                                  data-ingreso-nacional-series-row
+                                  data-ingreso-nacional-series-key="events"
+                                >
+                                  <td>
+                                    <div class="fw-semibold">Events</div>
+                                    <div class="text-muted small">events</div>
+                                  </td>
+                                  <td>
+                                    <input
+                                      type="text"
+                                      class="form-control form-control-sm"
+                                      data-ingreso-nacional-series-label
+                                    />
+                                  </td>
+                                  <td>
+                                    <input
+                                      type="color"
+                                      class="form-control form-control-color"
+                                      data-ingreso-nacional-series-color
+                                    />
+                                  </td>
+                                  <td class="text-center">
+                                    <input
+                                      class="form-check-input"
+                                      type="checkbox"
+                                      data-ingreso-nacional-series-enabled
+                                    />
+                                  </td>
+                                </tr>
+                                <tr
+                                  data-ingreso-nacional-series-row
+                                  data-ingreso-nacional-series-key="services"
+                                >
+                                  <td>
+                                    <div class="fw-semibold">
+                                      Services to Members
+                                    </div>
+                                    <div class="text-muted small">services</div>
+                                  </td>
+                                  <td>
+                                    <input
+                                      type="text"
+                                      class="form-control form-control-sm"
+                                      data-ingreso-nacional-series-label
+                                    />
+                                  </td>
+                                  <td>
+                                    <input
+                                      type="color"
+                                      class="form-control form-control-color"
+                                      data-ingreso-nacional-series-color
+                                    />
+                                  </td>
+                                  <td class="text-center">
+                                    <input
+                                      class="form-check-input"
+                                      type="checkbox"
+                                      data-ingreso-nacional-series-enabled
+                                    />
+                                  </td>
+                                </tr>
+                                <tr
+                                  data-ingreso-nacional-series-row
+                                  data-ingreso-nacional-series-key="tic"
+                                >
+                                  <td>
+                                    <div class="fw-semibold">T&IC</div>
+                                    <div class="text-muted small">tic</div>
+                                  </td>
+                                  <td>
+                                    <input
+                                      type="text"
+                                      class="form-control form-control-sm"
+                                      data-ingreso-nacional-series-label
+                                    />
+                                  </td>
+                                  <td>
+                                    <input
+                                      type="color"
+                                      class="form-control form-control-color"
+                                      data-ingreso-nacional-series-color
+                                    />
+                                  </td>
+                                  <td class="text-center">
+                                    <input
+                                      class="form-check-input"
+                                      type="checkbox"
+                                      data-ingreso-nacional-series-enabled
+                                    />
+                                  </td>
+                                </tr>
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="accordion-item">
+                      <h2
+                        class="accordion-header"
+                        id="plantillasGraficasOperativoHeading"
+                      >
+                        <button
+                          class="accordion-button collapsed"
+                          type="button"
+                          data-bs-toggle="collapse"
+                          data-bs-target="#plantillasGraficasOperativoCollapse"
+                          aria-expanded="false"
+                          aria-controls="plantillasGraficasOperativoCollapse"
+                        >
+                          Operativo (Comites, Eventos, T&IC, Serv Membresia)
+                        </button>
+                      </h2>
+                      <div
+                        id="plantillasGraficasOperativoCollapse"
+                        class="accordion-collapse collapse"
+                        data-bs-parent="#plantillasGraficasAccordion"
+                      >
+                        <div class="accordion-body">
+                          <div class="d-flex justify-content-between mb-2">
+                            <div>
+                              <h6 class="mb-1">
+                                Grafica comparativa de operativo
+                              </h6>
+                              <p class="text-muted small mb-0">
+                                Usa {annual} para insertar el presupuesto anual.
+                              </p>
+                            </div>
+                            <div class="form-check form-switch">
+                              <input
+                                class="form-check-input"
+                                type="checkbox"
+                                data-operativo-enabled
+                              />
+                            </div>
+                          </div>
+                          <div class="row g-3">
+                            <div class="col-12">
+                              <label class="form-label small fw-semibold"
+                                >Titulo</label
+                              >
+                              <input
+                                class="form-control form-control-sm"
+                                type="text"
+                                data-operativo-title
+                              />
+                            </div>
+                          </div>
+                          <div class="table-responsive mt-3">
+                            <table class="table table-sm align-middle mb-0">
+                              <thead>
+                                <tr>
+                                  <th>Serie</th>
+                                  <th>Etiqueta</th>
+                                  <th>Color</th>
+                                  <th class="text-center">Activa</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                <tr
+                                  data-operativo-series-row
+                                  data-operativo-series-key="budget"
+                                >
+                                  <td>
+                                    <div class="fw-semibold">
+                                      Presupuesto acumulado
+                                    </div>
+                                    <div class="text-muted small">budget</div>
+                                  </td>
+                                  <td>
+                                    <input
+                                      type="text"
+                                      class="form-control form-control-sm"
+                                      data-operativo-series-label
+                                    />
+                                  </td>
+                                  <td>
+                                    <input
+                                      type="color"
+                                      class="form-control form-control-color"
+                                      data-operativo-series-color
+                                    />
+                                  </td>
+                                  <td class="text-center">
+                                    <input
+                                      class="form-check-input"
+                                      type="checkbox"
+                                      data-operativo-series-enabled
+                                    />
+                                  </td>
+                                </tr>
+                                <tr
+                                  data-operativo-series-row
+                                  data-operativo-series-key="real"
+                                >
+                                  <td>
+                                    <div class="fw-semibold">Real acumulado</div>
+                                    <div class="text-muted small">real</div>
+                                  </td>
+                                  <td>
+                                    <input
+                                      type="text"
+                                      class="form-control form-control-sm"
+                                      data-operativo-series-label
+                                    />
+                                  </td>
+                                  <td>
+                                    <input
+                                      type="color"
+                                      class="form-control form-control-color"
+                                      data-operativo-series-color
+                                    />
+                                  </td>
+                                  <td class="text-center">
+                                    <input
+                                      class="form-check-input"
+                                      type="checkbox"
+                                      data-operativo-series-enabled
+                                    />
+                                  </td>
+                                </tr>
+                                <tr
+                                  data-operativo-series-row
+                                  data-operativo-series-key="annual"
+                                >
+                                  <td>
+                                    <div class="fw-semibold">Presupuesto anual</div>
+                                    <div class="text-muted small">annual</div>
+                                  </td>
+                                  <td>
+                                    <input
+                                      type="text"
+                                      class="form-control form-control-sm"
+                                      data-operativo-series-label
+                                    />
+                                  </td>
+                                  <td>
+                                    <input
+                                      type="color"
+                                      class="form-control form-control-color"
+                                      data-operativo-series-color
+                                    />
+                                  </td>
+                                  <td class="text-center">
+                                    <input
+                                      class="form-check-input"
+                                      type="checkbox"
+                                      data-operativo-series-enabled
+                                    />
+                                  </td>
+                                </tr>
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="accordion-item">
+                      <h2
+                        class="accordion-header"
+                        id="plantillasGraficasGastosHeading"
+                      >
+                        <button
+                          class="accordion-button collapsed"
+                          type="button"
+                          data-bs-toggle="collapse"
+                          data-bs-target="#plantillasGraficasGastosCollapse"
+                          aria-expanded="false"
+                          aria-controls="plantillasGraficasGastosCollapse"
+                        >
+                          Gastos Generales
+                        </button>
+                      </h2>
+                      <div
+                        id="plantillasGraficasGastosCollapse"
+                        class="accordion-collapse collapse"
+                        data-bs-parent="#plantillasGraficasAccordion"
+                      >
+                        <div class="accordion-body">
+                          <div class="d-flex justify-content-between mb-2">
+                            <div>
+                              <h6 class="mb-1">Panel de graficas</h6>
+                              <p class="text-muted small mb-0">
+                                Usa {year} y {prev} como placeholders.
+                              </p>
+                            </div>
+                            <div class="form-check form-switch">
+                              <input
+                                class="form-check-input"
+                                type="checkbox"
+                                data-gg-enabled
+                              />
+                            </div>
+                          </div>
+                          <div class="row g-3">
+                            <div class="col-12">
+                              <label class="form-label small fw-semibold"
+                                >Subtitulo panel</label
+                              >
+                              <input
+                                class="form-control form-control-sm"
+                                type="text"
+                                data-gg-subtitle
+                              />
+                            </div>
+                          </div>
+
+                          <div class="row g-3 mt-1">
+                            <div class="col-12 col-lg-6">
+                              <div
+                                class="border rounded-3 p-3 h-100"
+                                data-gg-chart-key="rendimientos"
+                              >
+                                <div
+                                  class="d-flex justify-content-between align-items-start mb-2"
+                                >
+                                  <div>
+                                    <h3 class="h6 mb-1">Rendimientos</h3>
+                                    <p class="text-muted small mb-0">
+                                      Inversion
+                                    </p>
+                                  </div>
+                                  <div class="form-check form-switch">
+                                    <input
+                                      class="form-check-input"
+                                      type="checkbox"
+                                      data-gg-chart-enabled
+                                    />
+                                  </div>
+                                </div>
+                                <div class="mb-2">
+                                  <label class="form-label small fw-semibold"
+                                    >Titulo</label
+                                  >
+                                  <input
+                                    class="form-control form-control-sm"
+                                    type="text"
+                                    data-gg-chart-title
+                                  />
+                                </div>
+                                <div class="table-responsive">
+                                  <table class="table table-sm align-middle mb-0">
+                                    <thead>
+                                      <tr>
+                                        <th>Serie</th>
+                                        <th>Etiqueta</th>
+                                        <th>Color</th>
+                                        <th class="text-center">Activa</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      <tr
+                                        data-gg-series-row
+                                        data-gg-series-key="actual"
+                                      >
+                                        <td>
+                                          <div class="fw-semibold">Actual</div>
+                                          <div class="text-muted small">
+                                            actual
+                                          </div>
+                                        </td>
+                                        <td>
+                                          <input
+                                            type="text"
+                                            class="form-control form-control-sm"
+                                            data-gg-series-label
+                                          />
+                                        </td>
+                                        <td>
+                                          <input
+                                            type="color"
+                                            class="form-control form-control-color"
+                                            data-gg-series-color
+                                          />
+                                        </td>
+                                        <td class="text-center">
+                                          <input
+                                            class="form-check-input"
+                                            type="checkbox"
+                                            data-gg-series-enabled
+                                          />
+                                        </td>
+                                      </tr>
+                                      <tr
+                                        data-gg-series-row
+                                        data-gg-series-key="prev"
+                                      >
+                                        <td>
+                                          <div class="fw-semibold">Anterior</div>
+                                          <div class="text-muted small">prev</div>
+                                        </td>
+                                        <td>
+                                          <input
+                                            type="text"
+                                            class="form-control form-control-sm"
+                                            data-gg-series-label
+                                          />
+                                        </td>
+                                        <td>
+                                          <input
+                                            type="color"
+                                            class="form-control form-control-color"
+                                            data-gg-series-color
+                                          />
+                                        </td>
+                                        <td class="text-center">
+                                          <input
+                                            class="form-check-input"
+                                            type="checkbox"
+                                            data-gg-series-enabled
+                                          />
+                                        </td>
+                                      </tr>
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div class="col-12 col-lg-6">
+                              <div
+                                class="border rounded-3 p-3 h-100"
+                                data-gg-chart-key="plusvalia"
+                              >
+                                <div
+                                  class="d-flex justify-content-between align-items-start mb-2"
+                                >
+                                  <div>
+                                    <h3 class="h6 mb-1">Plusvalia</h3>
+                                    <p class="text-muted small mb-0">
+                                      Minusvalia
+                                    </p>
+                                  </div>
+                                  <div class="form-check form-switch">
+                                    <input
+                                      class="form-check-input"
+                                      type="checkbox"
+                                      data-gg-chart-enabled
+                                    />
+                                  </div>
+                                </div>
+                                <div class="mb-2">
+                                  <label class="form-label small fw-semibold"
+                                    >Titulo</label
+                                  >
+                                  <input
+                                    class="form-control form-control-sm"
+                                    type="text"
+                                    data-gg-chart-title
+                                  />
+                                </div>
+                                <div class="table-responsive">
+                                  <table class="table table-sm align-middle mb-0">
+                                    <thead>
+                                      <tr>
+                                        <th>Serie</th>
+                                        <th>Etiqueta</th>
+                                        <th>Color</th>
+                                        <th class="text-center">Activa</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      <tr
+                                        data-gg-series-row
+                                        data-gg-series-key="actual"
+                                      >
+                                        <td>
+                                          <div class="fw-semibold">Actual</div>
+                                          <div class="text-muted small">
+                                            actual
+                                          </div>
+                                        </td>
+                                        <td>
+                                          <input
+                                            type="text"
+                                            class="form-control form-control-sm"
+                                            data-gg-series-label
+                                          />
+                                        </td>
+                                        <td>
+                                          <input
+                                            type="color"
+                                            class="form-control form-control-color"
+                                            data-gg-series-color
+                                          />
+                                        </td>
+                                        <td class="text-center">
+                                          <input
+                                            class="form-check-input"
+                                            type="checkbox"
+                                            data-gg-series-enabled
+                                          />
+                                        </td>
+                                      </tr>
+                                      <tr
+                                        data-gg-series-row
+                                        data-gg-series-key="prev"
+                                      >
+                                        <td>
+                                          <div class="fw-semibold">Anterior</div>
+                                          <div class="text-muted small">prev</div>
+                                        </td>
+                                        <td>
+                                          <input
+                                            type="text"
+                                            class="form-control form-control-sm"
+                                            data-gg-series-label
+                                          />
+                                        </td>
+                                        <td>
+                                          <input
+                                            type="color"
+                                            class="form-control form-control-color"
+                                            data-gg-series-color
+                                          />
+                                        </td>
+                                        <td class="text-center">
+                                          <input
+                                            class="form-check-input"
+                                            type="checkbox"
+                                            data-gg-series-enabled
+                                          />
+                                        </td>
+                                      </tr>
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div
+                    class="text-muted small mt-3"
+                    id="plantillasGraficasStatus"
+                  >
+                    Listo para editar.
+                  </div>
+                </fieldset>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Layout Preview -->
       <div class="row">
         <div class="col-12">
@@ -712,6 +2047,8 @@
     <script src="js/operation-debugger.js"></script>
     <script src="js/plantillas-reordenar.js"></script>
     <script src="js/importar-estructura-resumen.js"></script>
+    <script src="js/graficas-config.js"></script>
+    <script src="js/plantillas-graficas.js"></script>
     <script src="js/plantillas.js"></script>
   </body>
 </html>

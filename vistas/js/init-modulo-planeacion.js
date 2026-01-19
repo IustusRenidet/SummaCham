@@ -623,35 +623,35 @@ window.initModuloPlaneacion = async function({ moduloId, moduloNombre, selectorT
     }
     
     prepararStickyHeaders(selectorTabla);
-
     // 4. Inicializar FlujoAutorizacion con callback completo
     if (typeof window.FlujoAutorizacion !== 'undefined') {
-      const flujo = new window.FlujoAutorizacion({
+      const opcionesFlujo = {
         tablaId: tablaBodyId,
         modulo: moduloNombre.toUpperCase(),
         obtenerCambios: () => {
-          // Capturar cambios de presupuesto (valores numéricos)
+          // Capturar cambios de presupuesto (valores numericos)
           const cambiosPresupuesto = window.CuentasModulo?.getCambios?.() || { presupuesto: [], nombres: [] };
-          
+
           // Capturar layout (cuentas/descripciones/filas)
           const layoutActual = window.ModoEdicionPresupuesto?.cargarLayoutLocal?.() || null;
-          
+
           const resultado = {
             presupuesto: cambiosPresupuesto.presupuesto || [],
             nombres: cambiosPresupuesto.nombres || [],
             layout: layoutActual,
             hayCambios: cambiosPresupuesto.presupuesto?.length > 0 || !!layoutActual
           };
-          
-          console.log(`📤 Obteniendo cambios ${moduloNombre}:`, resultado);
+
+          console.log(`?? Obteniendo cambios ${moduloNombre}:`, resultado);
           return resultado;
         },
         obtenerHeaders: () => (window.Sesion?.headersAutenticacion?.() || {}),
+        cargarBorrador: (presupuesto) => window.CuentasModulo?.cargarBorrador?.(presupuesto),
         onEstadoChange: (estado) => {
-          console.log(`🔄 Estado ${moduloNombre}:`, estado);
+          console.log(`?? Estado ${moduloNombre}:`, estado);
         },
         onGuardadoExitoso: () => {
-          // Limpiar después de guardar exitosamente
+          // Limpiar despues de guardar exitosamente
           if (window.ModoEdicionPresupuesto?.limpiar) {
             window.ModoEdicionPresupuesto.desactivar(selectorTabla);
             window.ModoEdicionPresupuesto.limpiar();
@@ -660,16 +660,35 @@ window.initModuloPlaneacion = async function({ moduloId, moduloNombre, selectorT
             window.CuentasModulo.limpiarCambios();
           }
         }
-      }).init?.();
-      
+      };
+
+      let flujo = window.__flujoAutorizacionInstance || null;
+      if (flujo) {
+        flujo.options = { ...(flujo.options || {}), ...opcionesFlujo };
+        flujo.tablaId = opcionesFlujo.tablaId || flujo.tablaId;
+        flujo.moduloDefault = opcionesFlujo.modulo || flujo.moduloDefault;
+        flujo.callbacks = {
+          ...(flujo.callbacks || {}),
+          obtenerCambios: opcionesFlujo.obtenerCambios,
+          obtenerHeaders: opcionesFlujo.obtenerHeaders,
+          cargarBorrador: opcionesFlujo.cargarBorrador,
+          onEstadoChange: opcionesFlujo.onEstadoChange,
+          onGuardadoExitoso: opcionesFlujo.onGuardadoExitoso
+        };
+        flujo.init?.();
+      } else {
+        flujo = new window.FlujoAutorizacion(opcionesFlujo).init?.();
+      }
+
       // Guardar referencia global
       window.__flujoAutorizacionInstance = flujo;
-      
-      console.log(`✅ ${moduloNombre}: ModoEdicionPresupuesto + FlujoAutorizacion inicializados`);
+
+      console.log(`? ${moduloNombre}: ModoEdicionPresupuesto + FlujoAutorizacion inicializados`);
     } else {
-      console.warn(`⚠️ FlujoAutorizacion no disponible en ${moduloNombre}`);
+      console.warn(`?? FlujoAutorizacion no disponible en ${moduloNombre}`);
     }
   } catch (error) {
     console.error(`❌ Error inicializando módulo ${moduloNombre}:`, error);
   }
 };
+

@@ -572,18 +572,10 @@
     setupHistoryFilters();
     return drawer;
   };
-
   const ensureWorkflowDrawer = () => {
-    const existing = document.getElementById("workflowDrawer");
-    if (existing) return existing;
-    const drawer = document.createElement("div");
-    drawer.className = "offcanvas offcanvas-end workflow-drawer";
-    drawer.tabIndex = -1;
-    drawer.id = "workflowDrawer";
-    drawer.setAttribute("aria-labelledby", "workflowDrawerLabel");
-    drawer.innerHTML = `
+    const contenido = `
       <div class="offcanvas-header">
-        <h5 class="offcanvas-title" id="workflowDrawerLabel">Flujo de autorización</h5>
+        <h5 class="offcanvas-title" id="workflowDrawerLabel">Flujo de autorizacion</h5>
         <button type="button" class="btn-close text-reset btn-cerrar-offcanvas" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
       </div>
       <div class="offcanvas-body">
@@ -595,7 +587,7 @@
           </li>
           <li class="nav-item" role="presentation">
             <button class="nav-link" data-workflow-tab="guide" type="button" role="tab">
-              <i class="bi bi-info-circle me-1"></i>Guía
+              <i class="bi bi-info-circle me-1"></i>Guia
             </button>
           </li>
         </ul>
@@ -611,11 +603,11 @@
               <span class="badge bg-secondary" id="workflowCurrentBadge">-</span>
             </div>
             <div id="workflowProgressStatus" class="alert alert-info">
-              Selecciona empresa, módulo y ejercicio para consultar el historial.
+              Selecciona empresa, modulo y ejercicio para consultar el historial.
             </div>
             <div id="workflowProgressList" class="workflow-progress collapsed"></div>
             <div class="text-end">
-              <button type="button" class="btn btn-link btn-sm" id="workflowProgressToggle">Ver más</button>
+              <button type="button" class="btn btn-link btn-sm" id="workflowProgressToggle">Ver mas</button>
             </div>
           </div>
         </div>
@@ -625,36 +617,62 @@
         </div>
       </div>
     `;
-    document.body.appendChild(drawer);
 
-    // Agregar listener explícito al botón close del offcanvas
-    const btnCloseWorkflow = drawer.querySelector(".btn-cerrar-offcanvas");
-    if (btnCloseWorkflow) {
-      btnCloseWorkflow.addEventListener("click", () => {
-        if (window.bootstrap?.Offcanvas) {
-          const instance = window.bootstrap.Offcanvas.getInstance(drawer);
-          if (instance) instance.hide();
-        } else {
-          drawer.classList.remove("show");
-          drawer.style.visibility = "";
-        }
+    const prepararDrawer = (drawer) => {
+      if (!drawer) return;
+      drawer.classList.add("offcanvas", "offcanvas-end", "workflow-drawer");
+      drawer.tabIndex = -1;
+      drawer.id = "workflowDrawer";
+      drawer.setAttribute("aria-labelledby", "workflowDrawerLabel");
+
+      const requiereTemplate = !drawer.querySelector("[data-workflow-view]");
+      if (requiereTemplate) {
+        drawer.innerHTML = contenido;
+      }
+
+      if (drawer.dataset.workflowBound === "1") {
+        return;
+      }
+      drawer.dataset.workflowBound = "1";
+
+      // Agregar listener explicito al boton close del offcanvas
+      const btnCloseWorkflow = drawer.querySelector(".btn-cerrar-offcanvas");
+      if (btnCloseWorkflow) {
+        btnCloseWorkflow.addEventListener("click", () => {
+          if (window.bootstrap?.Offcanvas) {
+            const instance = window.bootstrap.Offcanvas.getInstance(drawer);
+            if (instance) instance.hide();
+          } else {
+            drawer.classList.remove("show");
+            drawer.style.visibility = "";
+          }
+        });
+      }
+
+      // Logica de Tabs
+      const tabButtons = drawer.querySelectorAll("[data-workflow-tab]");
+      const views = drawer.querySelectorAll("[data-workflow-view]");
+      tabButtons.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          tabButtons.forEach((b) => b.classList.remove("active"));
+          btn.classList.add("active");
+          const target = btn.dataset.workflowTab;
+          views.forEach((v) =>
+            v.classList.toggle("d-none", v.dataset.workflowView !== target)
+          );
+        });
       });
+    };
+
+    const existing = document.getElementById("workflowDrawer");
+    if (existing) {
+      prepararDrawer(existing);
+      return existing;
     }
 
-    // Lógica de Tabs
-    const tabButtons = drawer.querySelectorAll("[data-workflow-tab]");
-    const views = drawer.querySelectorAll("[data-workflow-view]");
-    tabButtons.forEach((btn) => {
-      btn.addEventListener("click", () => {
-        tabButtons.forEach((b) => b.classList.remove("active"));
-        btn.classList.add("active");
-        const target = btn.dataset.workflowTab;
-        views.forEach((v) =>
-          v.classList.toggle("d-none", v.dataset.workflowView !== target)
-        );
-      });
-    });
-
+    const drawer = document.createElement("div");
+    prepararDrawer(drawer);
+    document.body.appendChild(drawer);
     return drawer;
   };
 
@@ -1167,49 +1185,51 @@
      * Se ejecuta cuando existe un borrador EDITANDO y el usuario hace clic en "Cargar presupuesto"
      */
     async _cargarBorradorEnTabla() {
-      if (!this.state.borrador?.data?.presupuesto) {
-        console.log("⚠️ No hay datos en el borrador para cargar");
+      const cambios = Array.isArray(this.state.borrador?.data?.presupuesto)
+        ? this.state.borrador.data.presupuesto
+        : [];
+      if (!cambios.length) {
+        console.log("?? No hay datos en el borrador para cargar");
         return;
       }
-      
+
       try {
-        const presupuesto = this.state.borrador.data.presupuesto;
-        console.log(`📥 Cargando ${presupuesto.length} cambios del borrador en la tabla...`);
-        
+        console.log(
+          "?? Cargando " + cambios.length + " cambios del borrador en la tabla..."
+        );
+
         // Intentar usar el callback personalizado si existe
-        if (typeof this.callbacks.cargarBorrador === 'function') {
-          await this.callbacks.cargarBorrador(presupuesto);
-          console.log("✅ Borrador cargado usando callback personalizado");
+        if (typeof this.callbacks.cargarBorrador === "function") {
+          await this.callbacks.cargarBorrador(cambios);
+          console.log("? Borrador cargado usando callback personalizado");
+          this._toast("Borrador cargado. Puedes continuar editando.", "success");
           return;
         }
-        
-        // Fallback: cargar usando CuentasModulo si está disponible
+
+        // Fallback: cargar usando CuentasModulo si esta disponible
         if (window.CuentasModulo?.cargarBorrador) {
-          await window.CuentasModulo.cargarBorrador(presupuesto);
-          console.log("✅ Borrador cargado usando CuentasModulo");
+          await window.CuentasModulo.cargarBorrador(cambios);
+          console.log("? Borrador cargado usando CuentasModulo");
+          this._toast("Borrador cargado. Puedes continuar editando.", "success");
           return;
         }
-        
-        // Fallback manual: actualizar celdas directamente
-        presupuesto.forEach(item => {
-          if (!item.cuenta || !item.mes) return;
-          
-          const selector = `td[data-cuenta="${item.cuenta}"][data-mes="${item.mes}"]`;
-          const celda = this.tableElement?.querySelector(selector);
-          
-          if (celda && item.valor !== undefined) {
-            celda.textContent = typeof item.valor === 'number' 
-              ? item.valor.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-              : item.valor;
-            celda.classList.add('celda-modificada');
-          }
-        });
-        
-        console.log("✅ Borrador cargado manualmente en la tabla");
+
+        // Fallback manual: pintar valores segun la estructura de borrador
+        const pintado = FlujoAutorizacion.pintarBorrador(
+          this.tableElement,
+          this.state.borrador
+        );
+        if (!pintado) {
+          console.warn("? No fue posible aplicar el borrador manualmente.");
+        }
+
         this._toast("Borrador cargado. Puedes continuar editando.", "success");
       } catch (error) {
         console.error("Error cargando borrador en tabla:", error);
-        this._toast("Advertencia: No se pudo cargar completamente el borrador", "warning");
+        this._toast(
+          "Advertencia: No se pudo cargar completamente el borrador",
+          "warning"
+        );
       }
     }
 
@@ -1482,15 +1502,18 @@
         return;
       }
       
-      // Si existe un borrador EDITANDO, cargarlo en la tabla antes de activar modo edición
+      // Si existe un borrador EDITANDO, preparar modo edicion primero y luego cargarlo
       if (this.state.borrador?.estado === ESTADOS.EDITANDO) {
-        console.log("📥 Cargando borrador existente antes de activar modo edición...");
+        console.log("?? Cargando borrador existente antes de activar modo edicion...");
+        this._enterEditMode(true);
         await this._cargarBorradorEnTabla();
+        console.log("? Modo edicion activado");
+        return;
       }
-      
-      // SIEMPRE activar modo edición después de cargar el borrador
+
+      // Activar modo edicion normal cuando no hay borrador en edicion
       this._enterEditMode();
-      console.log("✅ Modo edición activado");
+      console.log("? Modo edicion activado");
     }
 
     /**
@@ -2255,12 +2278,24 @@
             this._modalConfirmacionActiva = false;
           };
 
+          let fallbackTimer = null;
+          const programarFallback = () => {
+            if (fallbackTimer) return;
+            fallbackTimer = setTimeout(() => {
+              if (!limpio) {
+                limpiar();
+                resolve(resultado);
+              }
+            }, 800);
+          };
+
           const finalizar = (valor) => {
             if (resuelto) return;
             resuelto = true;
             resultado = Boolean(valor);
             try {
               bsModal.hide();
+              programarFallback();
             } catch (e) {
               console.warn("Error ocultando modal:", e);
               limpiar();
@@ -2274,17 +2309,10 @@
             this._modalConfirmacionActiva = false;
           };
 
-          const fallbackTimer = setTimeout(() => {
-            if (resuelto && !limpio) {
-              limpiar();
-              resolve(resultado);
-            }
-          }, 600);
-
           modal.addEventListener(
             "hidden.bs.modal",
             () => {
-              clearTimeout(fallbackTimer);
+              if (fallbackTimer) clearTimeout(fallbackTimer);
               handleHidden();
             },
             { once: true }
@@ -2405,12 +2433,24 @@
             this._modalEntradaActiva = false;
           };
 
+          let fallbackTimer = null;
+          const programarFallback = () => {
+            if (fallbackTimer) return;
+            fallbackTimer = setTimeout(() => {
+              if (!limpio) {
+                limpiar();
+                resolve(valorConfirmado);
+              }
+            }, 800);
+          };
+
           const finalizar = (valor) => {
             if (resuelto) return;
             resuelto = true;
             valorConfirmado = valor;
             try {
               bsModal.hide();
+              programarFallback();
             } catch (e) {
               console.warn("Error ocultando modal:", e);
               limpiar();
@@ -2423,17 +2463,10 @@
             resolve(valorConfirmado);
           };
 
-          const fallbackTimer = setTimeout(() => {
-            if (resuelto && !limpio) {
-              limpiar();
-              resolve(valorConfirmado);
-            }
-          }, 600);
-
           modal.addEventListener(
             "hidden.bs.modal",
             () => {
-              clearTimeout(fallbackTimer);
+              if (fallbackTimer) clearTimeout(fallbackTimer);
               handleHidden();
               this._modalEntradaActiva = false;
             },
@@ -2800,17 +2833,31 @@
         });
 
         // Pintar el borrador en la tabla
-        const pintado = FlujoAutorizacion.pintarBorrador(
-          this.tableElement,
-          this.state.borrador
-        );
+        const puedeEditar =
+          this.state.borrador?.estado === ESTADOS.EDITANDO &&
+          this._puede({ accion: "editar", estadoOverride: ESTADOS.EDITANDO });
+        let pintado = false;
+
+        if (puedeEditar) {
+          this._enterEditMode(true);
+          await this._cargarBorradorEnTabla();
+        } else {
+          pintado = FlujoAutorizacion.pintarBorrador(
+            this.tableElement,
+            this.state.borrador
+          );
+        }
 
         // Actualizar interfaz siempre
         this._renderInfo();
         this._renderBotones();
 
+        if (puedeEditar) {
+          return;
+        }
+
         if (!pintado) {
-          // Diagnóstico detallado
+          // Diagnostico detallado
           console.warn("[Borradores] No se pudo pintar:", {
             tieneTabla: !!this.tableElement,
             tieneDatos: !!this.state.borrador?.data?.presupuesto?.length,
@@ -2819,17 +2866,17 @@
           });
 
           this._toast(
-            `Borrador "${
-              this.state.borrador?.autorNombre || "ID:" + borradorId
-            }" cargado. Revisa los datos del borrador en el panel de información.`,
+            "Borrador \"" +
+              (this.state.borrador?.autorNombre || "ID:" + borradorId) +
+              "\" cargado. Revisa los datos del borrador en el panel de informacion.",
             "info"
           );
           return;
         }
 
-        // Notificar éxito
+        // Notificar exito
         this._toast(
-          `✓ Borrador cargado correctamente. Las celdas resaltadas muestran los cambios.`,
+          "Borrador cargado correctamente. Las celdas resaltadas muestran los cambios.",
           "success"
         );
       } catch (error) {
@@ -2889,7 +2936,24 @@
         }
         FlujoAutorizacion.limpiarBorrador(this.tableElement);
         this.state.borrador = null;
-        this._exitEditMode(true);
+        this.state.hayCambios = false;
+        this._exitEditMode();
+        if (this.tableElement) {
+          const celdas = this.tableElement.querySelectorAll(
+            ".celda-modificada, .celda-editada, .celda-borrador, .cell-modified"
+          );
+          celdas.forEach((celda) => {
+            celda.classList.remove(
+              "celda-modificada",
+              "celda-editada",
+              "celda-borrador",
+              "cell-modified"
+            );
+            if (celda.dataset?.originalBgColor !== undefined) {
+              celda.style.backgroundColor = celda.dataset.originalBgColor;
+            }
+          });
+        }
         this._notificarEstadoBorrador(null);
         this._renderInfo();
         this._renderBotones();
@@ -3699,3 +3763,14 @@
   // Exportar la clase FlujoAutorizacion para uso externo
   window.FlujoAutorizacion = FlujoAutorizacion;
 })();
+
+
+
+
+
+
+
+
+
+
+

@@ -44,6 +44,28 @@
       match: (texto) => /PLUSVALIA|MINUSVALIA/.test(texto),
     },
   ];
+  const DEFAULT_GASTOS_CONFIG = {
+    enabled: true,
+    subtitleTemplate: "Real {year} vs {prev}",
+    charts: {
+      rendimientos: {
+        enabled: true,
+        title: "Rendimientos de Inversion",
+        series: {
+          actual: { label: "Real {year}", color: "#ffc000", enabled: true },
+          prev: { label: "Real {prev}", color: "#2f5496", enabled: true },
+        },
+      },
+      plusvalia: {
+        enabled: true,
+        title: "Plusvalia/Minusvalia",
+        series: {
+          actual: { label: "Real {year}", color: "#ffc000", enabled: true },
+          prev: { label: "Real {prev}", color: "#2f5496", enabled: true },
+        },
+      },
+    },
+  };
   const API_BASE = (() => {
     if (window.location.protocol === "file:") {
       return "http://localhost:3005/api";
@@ -54,6 +76,27 @@
   const charts = {};
   let updateTimer = null;
   let requestId = 0;
+
+  const getGraficasConfig = () => {
+    if (window.GraficasConfig && typeof window.GraficasConfig.load === "function") {
+      return window.GraficasConfig.load();
+    }
+    return { gastosGenerales: DEFAULT_GASTOS_CONFIG };
+  };
+
+  const getGastosConfig = () => {
+    const config = getGraficasConfig();
+    return config.gastosGenerales || DEFAULT_GASTOS_CONFIG;
+  };
+
+  const applyTemplate = (template, values = {}) => {
+    if (!template) return "";
+    const year = values.year || "";
+    const prev = values.prev || "";
+    return template
+      .replace(/\{year\}/gi, year)
+      .replace(/\{prev\}/gi, prev);
+  };
 
   const normalizarTexto = (valor) => {
     if (valor == null) return "";
@@ -151,7 +194,7 @@
     return cuentaTexto ? convertirCuenta21(cuentaTexto) : "";
   };
 
-  const obtenerCuentasDesdeTabla = () => {
+  const obtenerCuentasDesdeTabla = (targets = TARGETS) => {
     const mapa = new Map();
     const filas = document.querySelectorAll(
       "#tablaComparacion tbody tr.fila-cuenta"
@@ -161,7 +204,7 @@
       if (!nombre) return;
       const cuenta21 = obtenerCuentaDesdeFila(fila);
       if (!cuenta21) return;
-      TARGETS.forEach((target) => {
+      targets.forEach((target) => {
         if (mapa.has(target.id)) return;
         if (target.match(nombre)) {
           mapa.set(target.id, [cuenta21]);
@@ -171,7 +214,7 @@
     return mapa;
   };
 
-  const obtenerCuentasDesdeCatalogo = (capitulo) => {
+  const obtenerCuentasDesdeCatalogo = (capitulo, targets = TARGETS) => {
     const registros =
       window.CUENTAS_POR_MODULO?.["Gastos Generales"] || [];
     const capituloNorm = normalizarTexto(capitulo || "");
@@ -186,7 +229,7 @@
       }
       const nombre = normalizarTexto(registro.nombre || "");
       if (!nombre) return;
-      TARGETS.forEach((target) => {
+      targets.forEach((target) => {
         if (!target.match(nombre)) return;
         const cuenta = convertirCuenta21(registro.cuenta || "");
         if (!cuenta) return;
@@ -200,21 +243,21 @@
     return mapa;
   };
 
-  const resolverCuentasObjetivo = (empresaId) => {
+  const resolverCuentasObjetivo = (empresaId, targets = TARGETS) => {
     const resultado = new Map();
-    const desdeTabla = obtenerCuentasDesdeTabla();
-    TARGETS.forEach((target) => {
+    const desdeTabla = obtenerCuentasDesdeTabla(targets);
+    targets.forEach((target) => {
       const cuentas = desdeTabla.get(target.id) || [];
       if (cuentas.length) {
         resultado.set(target.id, cuentas);
       }
     });
-    if (resultado.size === TARGETS.length) {
+    if (resultado.size === targets.length) {
       return resultado;
     }
     const capitulo = obtenerCapitulo(empresaId);
-    const desdeCatalogo = obtenerCuentasDesdeCatalogo(capitulo);
-    TARGETS.forEach((target) => {
+    const desdeCatalogo = obtenerCuentasDesdeCatalogo(capitulo, targets);
+    targets.forEach((target) => {
       if (resultado.has(target.id)) return;
       const cuentas = desdeCatalogo.get(target.id) || [];
       if (cuentas.length) {
@@ -224,9 +267,9 @@
     return resultado;
   };
 
-  const obtenerMapaCuentas = (cuentasPorObjetivo) => {
+  const obtenerMapaCuentas = (cuentasPorObjetivo, targets = TARGETS) => {
     const todas = [];
-    TARGETS.forEach((target) => {
+    targets.forEach((target) => {
       const cuentas = cuentasPorObjetivo.get(target.id) || [];
       cuentas.forEach((cuenta) => {
         if (cuenta && !todas.includes(cuenta)) {
@@ -301,6 +344,8 @@
     labelPrev,
     colorActual,
     colorPrev,
+    enabledActual,
+    enabledPrev,
   }) => {
     const gridColor = "rgba(47, 84, 150, 0.08)";
     const axisColor = "rgba(47, 84, 150, 0.55)";
@@ -320,6 +365,7 @@
             pointRadius: 3,
             pointHoverRadius: 4,
             fill: false,
+            hidden: enabledActual === false,
           },
           {
             label: labelPrev,
@@ -332,6 +378,7 @@
             pointRadius: 3,
             pointHoverRadius: 4,
             fill: false,
+            hidden: enabledPrev === false,
           },
         ],
       },
@@ -389,12 +436,23 @@
     });
   };
 
-  const actualizarChart = ({ target, dataActual, dataPrev, anio }) => {
+  const actualizarChart = ({ target, dataActual, dataPrev, anio, chartConfig }) => {
     const canvas = document.getElementById(target.canvasId);
     if (!canvas) return;
-    const tieneDatos =
-      dataActual.some((valor) => Number(valor) !== 0) ||
-      dataPrev.some((valor) => Number(valor) !== 0);
+
+    const baseChart = DEFAULT_GASTOS_CONFIG.charts?.[target.id] || {};
+    const resolvedChart = chartConfig || baseChart;
+    const seriesCfg = resolvedChart.series || {};
+    const actualCfg = seriesCfg.actual || baseChart.series?.actual || {};
+    const prevCfg = seriesCfg.prev || baseChart.series?.prev || {};
+
+    const actualEnabled = actualCfg.enabled !== false;
+    const prevEnabled = prevCfg.enabled !== false;
+    const hasEnabledSeries = actualEnabled || prevEnabled;
+
+    const hasActualData = actualEnabled && dataActual.some((valor) => Number(valor) !== 0);
+    const hasPrevData = prevEnabled && dataPrev.some((valor) => Number(valor) !== 0);
+    const tieneDatos = hasEnabledSeries && (hasActualData || hasPrevData);
     if (!tieneDatos) {
       if (charts[target.id]) {
         charts[target.id].destroy();
@@ -407,10 +465,20 @@
     toggleEmpty(target.id, false);
     canvas.style.display = "block";
     const ctx = canvas.getContext("2d");
-    const colorActual = obtenerVariableCss("--color-real", "#ffc000");
-    const colorPrev = obtenerVariableCss("--color-primary", "#2f5496");
-    const labelActual = `Real ${anio}`;
-    const labelPrev = `Real ${anio - 1}`;
+
+    const colorActual =
+      actualCfg.color || obtenerVariableCss("--color-real", "#ffc000");
+    const colorPrev =
+      prevCfg.color || obtenerVariableCss("--color-primary", "#2f5496");
+    const labelActualTemplate = actualCfg.label || "Real {year}";
+    const labelPrevTemplate = prevCfg.label || "Real {prev}";
+    const labelActual =
+      applyTemplate(labelActualTemplate, { year: anio, prev: anio - 1 }).trim() ||
+      `Real ${anio}`;
+    const labelPrev =
+      applyTemplate(labelPrevTemplate, { year: anio, prev: anio - 1 }).trim() ||
+      `Real ${anio - 1}`;
+
     if (!charts[target.id]) {
       charts[target.id] = construirChart({
         ctx,
@@ -421,28 +489,92 @@
         labelPrev,
         colorActual,
         colorPrev,
+        enabledActual: actualEnabled,
+        enabledPrev: prevEnabled,
       });
     } else {
       const chart = charts[target.id];
       chart.data.labels = MESES_LABELS;
       chart.data.datasets[0].data = dataActual;
       chart.data.datasets[0].label = labelActual;
+      chart.data.datasets[0].borderColor = colorActual;
+      chart.data.datasets[0].pointBackgroundColor = colorActual;
+      chart.data.datasets[0].pointBorderColor = colorActual;
+      chart.data.datasets[0].hidden = !actualEnabled;
       chart.data.datasets[1].data = dataPrev;
       chart.data.datasets[1].label = labelPrev;
+      chart.data.datasets[1].borderColor = colorPrev;
+      chart.data.datasets[1].pointBackgroundColor = colorPrev;
+      chart.data.datasets[1].pointBorderColor = colorPrev;
+      chart.data.datasets[1].hidden = !prevEnabled;
       chart.update();
     }
   };
 
-  const actualizarSubtitulo = (anio) => {
+  const actualizarSubtitulo = (anio, config) => {
     const subtitle = document.getElementById("gastosGeneralesChartsSubtitle");
-    if (subtitle && Number.isInteger(anio)) {
-      subtitle.textContent = `Real ${anio} vs ${anio - 1}`;
-    }
+    if (!subtitle || !Number.isInteger(anio)) return;
+    const gastosConfig = config || getGastosConfig();
+    const template =
+      gastosConfig.subtitleTemplate ||
+      DEFAULT_GASTOS_CONFIG.subtitleTemplate;
+    subtitle.textContent = applyTemplate(template, {
+      year: anio,
+      prev: anio - 1,
+    });
   };
 
   const actualizarGraficas = async () => {
+    const panel = document.getElementById("gastosGeneralesChartsPanel");
+    const gastosConfig = getGastosConfig();
+    if (panel) {
+      if (gastosConfig.enabled === false) {
+        panel.style.display = "none";
+        return;
+      }
+      panel.style.display = "";
+    }
+
+    const baseCharts = DEFAULT_GASTOS_CONFIG.charts || {};
+    const configById = new Map();
+    TARGETS.forEach((target) => {
+      const chartCfg = gastosConfig.charts?.[target.id] || baseCharts[target.id] || {};
+      configById.set(target.id, chartCfg);
+      const chartEnabled = chartCfg.enabled !== false;
+      const chartContainer = document.querySelector(`[data-gg-chart="${target.id}"]`);
+      const chartCol =
+        chartContainer?.closest(".col-12") || chartContainer?.closest(".chart-block");
+      if (chartCol) {
+        chartCol.style.display = chartEnabled ? "" : "none";
+      }
+      const titleEl = chartContainer
+        ?.closest(".chart-block")
+        ?.querySelector(".chart-title");
+      const fallbackTitle = chartCfg.title || baseCharts[target.id]?.title || target.title;
+      if (titleEl && fallbackTitle) {
+        titleEl.textContent = fallbackTitle;
+      }
+      if (!chartEnabled) {
+        if (charts[target.id]) {
+          charts[target.id].destroy();
+          charts[target.id] = null;
+        }
+        const canvas = chartContainer?.querySelector("canvas");
+        if (canvas) {
+          canvas.style.display = "none";
+        }
+      }
+    });
+
+    const targetsEnabled = TARGETS.filter((target) => {
+      const chartCfg = configById.get(target.id);
+      return chartCfg ? chartCfg.enabled !== false : true;
+    });
+
+    if (!targetsEnabled.length) return;
+
     if (typeof Chart === "undefined") {
-      TARGETS.forEach((target) => {
+      targetsEnabled.forEach((target) => {
         toggleEmpty(target.id, true, "Chart.js no disponible.");
       });
       return;
@@ -450,13 +582,13 @@
     const empresaId = obtenerEmpresaId();
     const anio = obtenerAnioSeleccionado();
     if (!empresaId || !Number.isInteger(anio)) {
-      TARGETS.forEach((target) => {
+      targetsEnabled.forEach((target) => {
         toggleEmpty(target.id, true, "Selecciona empresa y ejercicio.");
       });
       return;
     }
-    const cuentasPorObjetivo = resolverCuentasObjetivo(empresaId);
-    TARGETS.forEach((target) => {
+    const cuentasPorObjetivo = resolverCuentasObjetivo(empresaId, targetsEnabled);
+    targetsEnabled.forEach((target) => {
       const cuentas = cuentasPorObjetivo.get(target.id) || [];
       if (!cuentas.length) {
         toggleEmpty(
@@ -466,7 +598,7 @@
         );
       }
     });
-    const cuentasSolicitadas = obtenerMapaCuentas(cuentasPorObjetivo);
+    const cuentasSolicitadas = obtenerMapaCuentas(cuentasPorObjetivo, targetsEnabled);
     if (!cuentasSolicitadas.length) return;
 
     requestId += 1;
@@ -483,13 +615,19 @@
     const datosPrev =
       resultados[1].status === "fulfilled" ? resultados[1].value : new Map();
 
-    actualizarSubtitulo(anio);
-    TARGETS.forEach((target) => {
+    actualizarSubtitulo(anio, gastosConfig);
+    targetsEnabled.forEach((target) => {
       const cuentas = cuentasPorObjetivo.get(target.id) || [];
       if (!cuentas.length) return;
       const dataActual = sumarRealPorMes(datosActual, cuentas);
       const dataPrev = sumarRealPorMes(datosPrev, cuentas);
-      actualizarChart({ target, dataActual, dataPrev, anio });
+      actualizarChart({
+        target,
+        dataActual,
+        dataPrev,
+        anio,
+        chartConfig: configById.get(target.id),
+      });
     });
   };
 

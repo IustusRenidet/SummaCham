@@ -981,6 +981,9 @@
     "gastosgenerales",
     "nomina",
     "gtoscorporativos",
+    "summary",
+    "resumen",
+    "presupuestos",
   ]);
 
   function isModuloPiloto() {
@@ -2477,7 +2480,13 @@
   }
 
   function buildDefaultColumnConfig() {
-    if (isModuloPiloto()) {
+    const moduloKey = normalizeOperationMatch(state.modulo);
+    const useComitesConfig =
+      isModuloPiloto() &&
+      moduloKey !== "summary" &&
+      moduloKey !== "resumen" &&
+      moduloKey !== "presupuestos";
+    if (useComitesConfig) {
       return buildComitesColumnConfig();
     }
     const meses = [
@@ -2627,7 +2636,6 @@
   }
 
   function syncOperacionesSumasDesdeConfig() {
-    if (!isModuloPiloto()) return { added: 0, updated: 0 };
     const sumasConfig = getSumasConfigForContext();
     if (!sumasConfig) return { added: 0, updated: 0 };
     const sections = groupBySections(state.cuentas || []);
