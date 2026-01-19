@@ -335,6 +335,17 @@ table thead th {
   z-index: 200;
 }
 
+/* Use computed sticky offsets even when the wrapper class is missing. */
+.table.table-comparison thead th:nth-child(1),
+.table.table-comparison tbody td:nth-child(1) {
+  left: var(--sticky-col-1-left, 0px);
+}
+
+.table.table-comparison thead th:nth-child(2),
+.table.table-comparison tbody td:nth-child(2) {
+  left: var(--sticky-col-2-left, 120px);
+}
+
 /* Floating sticky header overlay for wide tables */
 .sticky-table-header {
   position: fixed;

@@ -80,6 +80,144 @@
         tic: { label: "T&IC", color: "#a855f7", enabled: true },
       },
     },
+    sources: {
+      summary: {
+        cdmx: {
+          operating: [
+            {
+              label: "Ciudad de Mexico",
+              variants: ["OPERATING RESULTS MEXICO"],
+            },
+            {
+              label: "Guadalajara",
+              variants: ["OPERATING RESULTS GUADALAJARA", "GDL OPERATING RESULTS"],
+            },
+            {
+              label: "Noreste",
+              variants: ["OPERATING RESULTS MONTERREY", "MTY OPERATING RESULTS"],
+            },
+            {
+              label: "Noroeste",
+              variants: [
+                "OPERATING RESULTS NORTHWEST",
+                "OPERATING RESULTS NO",
+                "NO OPERATING RESULTS",
+              ],
+            },
+          ],
+          net: [
+            { label: "Ciudad de Mexico", variants: ["NET RESULTS MEXICO"] },
+            {
+              label: "Guadalajara",
+              variants: ["NET RESULTS GUADALAJARA", "GDL NET RESULTS"],
+            },
+            {
+              label: "Noreste",
+              variants: ["NET RESULTS MONTERREY", "MTY NET RESULTS"],
+            },
+            {
+              label: "Noroeste",
+              variants: ["NET RESULTS NORTHWEST", "NET RESULTS NO", "NO NET RESULTS"],
+            },
+          ],
+        },
+        gdl: {
+          operating: [
+            {
+              label: "GDL OPERATING RESULTS",
+              variants: [
+                "GDL OPERATING RESULTS",
+                "OPERATING RESULTS GUADALAJARA",
+                "OPERATING RESULTS",
+              ],
+            },
+          ],
+          net: [
+            {
+              label: "NET RESULTS",
+              variants: ["NET RESULTS", "GDL NET RESULTS", "NET RESULTS GUADALAJARA"],
+            },
+          ],
+        },
+        ne: {
+          operating: [
+            {
+              label: "NE OPERATING RESULTS",
+              variants: [
+                "NE OPERATING RESULTS",
+                "OPERATING RESULTS MONTERREY",
+                "OPERATING RESULTS",
+              ],
+            },
+          ],
+          net: [
+            {
+              label: "NET RESULTS",
+              variants: ["NET RESULTS", "NE NET RESULTS", "NET RESULTS MONTERREY"],
+            },
+          ],
+        },
+        no: {
+          operating: [
+            {
+              label: "NO OPERATING RESULTS",
+              variants: [
+                "NO OPERATING RESULTS",
+                "OPERATING RESULTS NORTHWEST",
+                "OPERATING RESULTS",
+              ],
+            },
+          ],
+          net: [
+            {
+              label: "NET RESULTS",
+              variants: ["NET RESULTS", "NO NET RESULTS", "NET RESULTS NORTHWEST"],
+            },
+          ],
+        },
+        generic: {
+          operating: [
+            {
+              label: "OPERATING RESULTS",
+              variants: ["OPERATING RESULTS", "RESULTADO OPERATIVO"],
+            },
+          ],
+          net: [
+            { label: "NET RESULTS", variants: ["NET RESULTS", "RESULTADO NETO"] },
+          ],
+        },
+      },
+      consolidated: {
+        operating: {
+          label: "CONSOLIDATED OPERATING RESULTS",
+          variants: [
+            "CONSOLIDATED OPERATING RESULTS",
+            "CONSOLIDATED OPERATING RESULT",
+          ],
+        },
+        net: {
+          label: "CONSOLIDATED NET RESULTS",
+          variants: ["CONSOLIDATED NET RESULTS", "CONSOLIDATED NET RESULT"],
+        },
+      },
+      ingreso: {
+        mex: ["CDMX INCOME", "MEXICO INCOME", "CIUDAD DE MEXICO INCOME"],
+        gdl: ["GUADALAJARA INCOME", "GDL INCOME", "GUADALAJARA INCOMEA"],
+        mty: ["MONTERREY INCOME", "MTY INCOME"],
+        nw: ["NORTHWEST INCOME", "NW INCOME", "NOROESTE INCOME", "NO INCOME"],
+      },
+      ingresoNacional: {
+        committees: ["COMMITTEES", "COMITES", "COMMITTEES (INCOME)"],
+        membership: ["MEMBERSHIP", "MEMBERSHIP (INCOME)"],
+        events: ["EVENTS", "EVENTS (INCOME)"],
+        services: [
+          "SERVICES TO MEMBERS",
+          "SERVICES MEMBERS",
+          "SERVICES TO MEMBERS (INCOME)",
+        ],
+        tic: ["T&IC", "T&IC (INCOME)", "T&IC INCOME"],
+      },
+    },
     operativo: {
       enabled: true,
       title: "Ppto. Acumulado vs Real + {annual}",
@@ -111,6 +249,7 @@
         },
       },
     },
+    customCharts: [],
   };
 
   const clone = (value) => JSON.parse(JSON.stringify(value));
@@ -137,6 +276,148 @@
       };
     });
     return result;
+  };
+
+  const normalizeCustomCharts = (charts = []) => {
+    if (!Array.isArray(charts)) return [];
+    return charts.map((chart, index) => {
+      const id = chart?.id ? String(chart.id) : `custom-${index + 1}`;
+      const module =
+        typeof chart?.module === "string" && chart.module.trim()
+          ? chart.module.trim()
+          : "RESUMEN";
+      const title =
+        typeof chart?.title === "string" && chart.title.trim()
+          ? chart.title.trim()
+          : `Grafica ${index + 1}`;
+      const subtitle =
+        typeof chart?.subtitle === "string" ? chart.subtitle.trim() : "";
+      const chartType =
+        typeof chart?.chartType === "string" &&
+        ["inherit", "bar", "line"].includes(chart.chartType)
+          ? chart.chartType
+          : "inherit";
+      const enabled = typeof chart?.enabled === "boolean" ? chart.enabled : true;
+      const rows = Array.isArray(chart?.rows) ? chart.rows : [];
+      const normalizedRows = rows
+        .map((row) => {
+          const variants = Array.isArray(row?.variants)
+            ? row.variants
+            : Array.isArray(row?.labels)
+            ? row.labels
+            : [];
+          const cleaned = variants
+            .map((v) => (typeof v === "string" ? v.trim() : ""))
+            .filter(Boolean);
+          if (!cleaned.length) return null;
+          const alias =
+            typeof row?.alias === "string" && row.alias.trim()
+              ? row.alias.trim()
+              : cleaned[0];
+          return { alias, variants: cleaned };
+        })
+        .filter(Boolean);
+      return {
+        id,
+        module,
+        title,
+        subtitle,
+        chartType,
+        enabled,
+        rows: normalizedRows,
+      };
+    });
+  };
+
+  const normalizeVariantsList = (values, fallback = []) => {
+    if (!Array.isArray(values)) return fallback.slice();
+    return values
+      .map((item) => (typeof item === "string" ? item.trim() : ""))
+      .filter(Boolean);
+  };
+
+  const normalizeRowDefinition = (row = {}, fallback = {}) => {
+    const variants = normalizeVariantsList(
+      row?.variants ?? row?.labels,
+      fallback?.variants || []
+    );
+    const label =
+      typeof row?.label === "string" && row.label.trim()
+        ? row.label.trim()
+        : typeof row?.alias === "string" && row.alias.trim()
+        ? row.alias.trim()
+        : typeof fallback?.label === "string" && fallback.label.trim()
+        ? fallback.label.trim()
+        : variants[0] || "";
+    return { label, variants };
+  };
+
+  const normalizeRowList = (rows, fallback = []) => {
+    if (!Array.isArray(rows)) {
+      return (fallback || []).map((item) => normalizeRowDefinition(item, item));
+    }
+    return rows
+      .map((row, index) => normalizeRowDefinition(row, fallback[index] || {}))
+      .filter((row) => row.variants.length);
+  };
+
+  const normalizeSourceMap = (map = {}, fallbackMap = {}) => {
+    const result = {};
+    const fallbackKeys = Object.keys(fallbackMap || {});
+    fallbackKeys.forEach((key) => {
+      result[key] = normalizeVariantsList(map?.[key], fallbackMap?.[key] || []);
+    });
+    if (map && typeof map === "object") {
+      Object.keys(map).forEach((key) => {
+        if (result[key]) return;
+        result[key] = normalizeVariantsList(map[key], []);
+      });
+    }
+    return result;
+  };
+
+  const normalizeSummarySources = (sources = {}, defaults = {}) => {
+    const buildGroup = (key) => {
+      const group = sources?.[key] || {};
+      const fallback = defaults?.[key] || {};
+      return {
+        operating: normalizeRowList(group.operating, fallback.operating || []),
+        net: normalizeRowList(group.net, fallback.net || []),
+      };
+    };
+    return {
+      cdmx: buildGroup("cdmx"),
+      gdl: buildGroup("gdl"),
+      ne: buildGroup("ne"),
+      no: buildGroup("no"),
+      generic: buildGroup("generic"),
+    };
+  };
+
+  const normalizeSources = (sources = {}, defaults = {}) => {
+    const fallbackSummary = defaults.summary || {};
+    const fallbackConsolidated = defaults.consolidated || {};
+    return {
+      summary: normalizeSummarySources(sources.summary || {}, fallbackSummary),
+      consolidated: {
+        operating: normalizeRowDefinition(
+          sources.consolidated?.operating,
+          fallbackConsolidated.operating || {}
+        ),
+        net: normalizeRowDefinition(
+          sources.consolidated?.net,
+          fallbackConsolidated.net || {}
+        ),
+      },
+      ingreso: normalizeSourceMap(
+        sources.ingreso || {},
+        defaults.ingreso || {}
+      ),
+      ingresoNacional: normalizeSourceMap(
+        sources.ingresoNacional || {},
+        defaults.ingresoNacional || {}
+      ),
+    };
   };
 
   const normalizeConfig = (config = {}) => {
@@ -298,6 +579,14 @@
           );
         });
       }
+    }
+
+    if (config.sources && typeof config.sources === "object") {
+      base.sources = normalizeSources(config.sources, base.sources);
+    }
+
+    if (Array.isArray(config.customCharts)) {
+      base.customCharts = normalizeCustomCharts(config.customCharts);
     }
 
     return base;

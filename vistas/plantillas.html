@@ -214,6 +214,105 @@
         </div>
       </div>
 
+      <div class="row mb-3">
+        <div class="col-12">
+          <ul class="nav nav-tabs plantillas-tabs" id="plantillasTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button
+                class="nav-link active"
+                id="plantillas-tab-layout"
+                data-bs-toggle="tab"
+                data-bs-target="#plantillasTabLayout"
+                type="button"
+                role="tab"
+              >
+                Layout
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button
+                class="nav-link"
+                id="plantillas-tab-graficas"
+                data-bs-toggle="tab"
+                data-bs-target="#plantillasTabGraficas"
+                type="button"
+                role="tab"
+              >
+                Graficas
+              </button>
+            </li>
+          </ul>
+        </div>
+      </div>
+      <div class="tab-content" id="plantillasTabsContent">
+        <div
+          class="tab-pane fade show active"
+          id="plantillasTabLayout"
+          role="tabpanel"
+          aria-labelledby="plantillas-tab-layout"
+        >
+      <!-- Layout Preview -->
+      <div class="row">
+        <div class="col-12">
+          <!-- Placeholder View -->
+          <div id="placeholderView" class="card table-card fade-in">
+            <div class="card-body p-5 text-center">
+              <div class="placeholder-icon mx-auto mb-4">
+                <i class="bi bi-layout-text-window"></i>
+              </div>
+              <h2>Selecciona un contexto</h2>
+              <p class="text-muted">
+                Elige un módulo, año y capítulo para comenzar a editar el
+                layout.
+              </p>
+              <div class="mt-4">
+                <span class="badge bg-light text-primary me-2">
+                  <i class="bi bi-lightbulb me-1"></i> Carga el layout primero
+                </span>
+                <span class="badge bg-light text-primary">
+                  <i class="bi bi-shield-lock me-1"></i> Permisos en
+                  administración
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Layout View -->
+          <div
+            id="layoutView"
+            class="card table-card fade-in"
+            style="display: none"
+          >
+            <div class="card-body p-3">
+              <div
+                class="d-flex justify-content-between align-items-center mb-3"
+              >
+                <span class="text-muted small" id="layoutInfo">Sin datos</span>
+              </div>
+              <div id="layoutPreview" class="layout-preview">
+                <!-- Contenido dinámico -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Status Message -->
+      <div class="row mt-3">
+        <div class="col-12">
+          <p class="text-muted small text-center mb-0" id="statusMessage">
+            Listo
+          </p>
+        </div>
+      </div>
+
+        </div>
+        <div
+          class="tab-pane fade"
+          id="plantillasTabGraficas"
+          role="tabpanel"
+          aria-labelledby="plantillas-tab-graficas"
+        >
       <!-- Configuracion de Graficas -->
       <div class="row mb-3">
         <div class="col-12">
@@ -666,6 +765,172 @@
                                 </div>
                               </div>
                             </div>
+
+                            <div class="col-12">
+                              <h6 class="mb-2">Fuentes resumen por capitulo</h6>
+                              <p class="text-muted small mb-2">
+                                Formato: Alias=VAR1|VAR2 (una linea por barra).
+                              </p>
+                              <div class="row g-3">
+                                <div class="col-12 col-lg-6">
+                                  <div class="border rounded-3 p-3 h-100">
+                                    <h3 class="h6 mb-2">CDMX</h3>
+                                    <label class="form-label small fw-semibold"
+                                      >Operativo</label
+                                    >
+                                    <textarea
+                                      class="form-control form-control-sm mb-2"
+                                      rows="3"
+                                      data-summary-rows
+                                      data-summary-key="cdmx"
+                                      data-summary-type="operating"
+                                    ></textarea>
+                                    <label class="form-label small fw-semibold"
+                                      >Neto</label
+                                    >
+                                    <textarea
+                                      class="form-control form-control-sm"
+                                      rows="3"
+                                      data-summary-rows
+                                      data-summary-key="cdmx"
+                                      data-summary-type="net"
+                                    ></textarea>
+                                  </div>
+                                </div>
+                                <div class="col-12 col-lg-6">
+                                  <div class="border rounded-3 p-3 h-100">
+                                    <h3 class="h6 mb-2">Guadalajara</h3>
+                                    <label class="form-label small fw-semibold"
+                                      >Operativo</label
+                                    >
+                                    <textarea
+                                      class="form-control form-control-sm mb-2"
+                                      rows="3"
+                                      data-summary-rows
+                                      data-summary-key="gdl"
+                                      data-summary-type="operating"
+                                    ></textarea>
+                                    <label class="form-label small fw-semibold"
+                                      >Neto</label
+                                    >
+                                    <textarea
+                                      class="form-control form-control-sm"
+                                      rows="3"
+                                      data-summary-rows
+                                      data-summary-key="gdl"
+                                      data-summary-type="net"
+                                    ></textarea>
+                                  </div>
+                                </div>
+                                <div class="col-12 col-lg-6">
+                                  <div class="border rounded-3 p-3 h-100">
+                                    <h3 class="h6 mb-2">Noreste</h3>
+                                    <label class="form-label small fw-semibold"
+                                      >Operativo</label
+                                    >
+                                    <textarea
+                                      class="form-control form-control-sm mb-2"
+                                      rows="3"
+                                      data-summary-rows
+                                      data-summary-key="ne"
+                                      data-summary-type="operating"
+                                    ></textarea>
+                                    <label class="form-label small fw-semibold"
+                                      >Neto</label
+                                    >
+                                    <textarea
+                                      class="form-control form-control-sm"
+                                      rows="3"
+                                      data-summary-rows
+                                      data-summary-key="ne"
+                                      data-summary-type="net"
+                                    ></textarea>
+                                  </div>
+                                </div>
+                                <div class="col-12 col-lg-6">
+                                  <div class="border rounded-3 p-3 h-100">
+                                    <h3 class="h6 mb-2">Noroeste</h3>
+                                    <label class="form-label small fw-semibold"
+                                      >Operativo</label
+                                    >
+                                    <textarea
+                                      class="form-control form-control-sm mb-2"
+                                      rows="3"
+                                      data-summary-rows
+                                      data-summary-key="no"
+                                      data-summary-type="operating"
+                                    ></textarea>
+                                    <label class="form-label small fw-semibold"
+                                      >Neto</label
+                                    >
+                                    <textarea
+                                      class="form-control form-control-sm"
+                                      rows="3"
+                                      data-summary-rows
+                                      data-summary-key="no"
+                                      data-summary-type="net"
+                                    ></textarea>
+                                  </div>
+                                </div>
+                                <div class="col-12">
+                                  <div class="border rounded-3 p-3 h-100">
+                                    <h3 class="h6 mb-2">Generico</h3>
+                                    <label class="form-label small fw-semibold"
+                                      >Operativo</label
+                                    >
+                                    <textarea
+                                      class="form-control form-control-sm mb-2"
+                                      rows="3"
+                                      data-summary-rows
+                                      data-summary-key="generic"
+                                      data-summary-type="operating"
+                                    ></textarea>
+                                    <label class="form-label small fw-semibold"
+                                      >Neto</label
+                                    >
+                                    <textarea
+                                      class="form-control form-control-sm"
+                                      rows="3"
+                                      data-summary-rows
+                                      data-summary-key="generic"
+                                      data-summary-type="net"
+                                    ></textarea>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div class="col-12">
+                              <h6 class="mb-2">Fuentes consolidadas</h6>
+                              <p class="text-muted small mb-2">
+                                Variantes de fila para consolidado (separa con
+                                |).
+                              </p>
+                              <div class="row g-3">
+                                <div class="col-12 col-md-6">
+                                  <label class="form-label small fw-semibold"
+                                    >Operativo consolidado</label
+                                  >
+                                  <textarea
+                                    class="form-control form-control-sm"
+                                    rows="2"
+                                    data-consolidated-source
+                                    data-consolidated-source-key="operating"
+                                  ></textarea>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                  <label class="form-label small fw-semibold"
+                                    >Neto consolidado</label
+                                  >
+                                  <textarea
+                                    class="form-control form-control-sm"
+                                    rows="2"
+                                    data-consolidated-source
+                                    data-consolidated-source-key="net"
+                                  ></textarea>
+                                </div>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -735,6 +1000,7 @@
                                 <tr>
                                   <th>Serie</th>
                                   <th>Etiqueta</th>
+                                  <th>Variantes</th>
                                   <th>Color</th>
                                   <th class="text-center">Activa</th>
                                 </tr>
@@ -753,6 +1019,14 @@
                                       type="text"
                                       class="form-control form-control-sm"
                                       data-ingreso-series-label
+                                    />
+                                  </td>
+                                  <td>
+                                    <input
+                                      type="text"
+                                      class="form-control form-control-sm"
+                                      data-ingreso-series-sources
+                                      placeholder="LABEL1 | LABEL2"
                                     />
                                   </td>
                                   <td>
@@ -787,6 +1061,14 @@
                                   </td>
                                   <td>
                                     <input
+                                      type="text"
+                                      class="form-control form-control-sm"
+                                      data-ingreso-series-sources
+                                      placeholder="LABEL1 | LABEL2"
+                                    />
+                                  </td>
+                                  <td>
+                                    <input
                                       type="color"
                                       class="form-control form-control-color"
                                       data-ingreso-series-color
@@ -817,6 +1099,14 @@
                                   </td>
                                   <td>
                                     <input
+                                      type="text"
+                                      class="form-control form-control-sm"
+                                      data-ingreso-series-sources
+                                      placeholder="LABEL1 | LABEL2"
+                                    />
+                                  </td>
+                                  <td>
+                                    <input
                                       type="color"
                                       class="form-control form-control-color"
                                       data-ingreso-series-color
@@ -843,6 +1133,14 @@
                                       type="text"
                                       class="form-control form-control-sm"
                                       data-ingreso-series-label
+                                    />
+                                  </td>
+                                  <td>
+                                    <input
+                                      type="text"
+                                      class="form-control form-control-sm"
+                                      data-ingreso-series-sources
+                                      placeholder="LABEL1 | LABEL2"
                                     />
                                   </td>
                                   <td>
@@ -931,6 +1229,7 @@
                                 <tr>
                                   <th>Serie</th>
                                   <th>Etiqueta</th>
+                                  <th>Variantes</th>
                                   <th>Color</th>
                                   <th class="text-center">Activa</th>
                                 </tr>
@@ -951,6 +1250,14 @@
                                       type="text"
                                       class="form-control form-control-sm"
                                       data-ingreso-nacional-series-label
+                                    />
+                                  </td>
+                                  <td>
+                                    <input
+                                      type="text"
+                                      class="form-control form-control-sm"
+                                      data-ingreso-nacional-series-sources
+                                      placeholder="LABEL1 | LABEL2"
                                     />
                                   </td>
                                   <td>
@@ -987,6 +1294,14 @@
                                   </td>
                                   <td>
                                     <input
+                                      type="text"
+                                      class="form-control form-control-sm"
+                                      data-ingreso-nacional-series-sources
+                                      placeholder="LABEL1 | LABEL2"
+                                    />
+                                  </td>
+                                  <td>
+                                    <input
                                       type="color"
                                       class="form-control form-control-color"
                                       data-ingreso-nacional-series-color
@@ -1013,6 +1328,14 @@
                                       type="text"
                                       class="form-control form-control-sm"
                                       data-ingreso-nacional-series-label
+                                    />
+                                  </td>
+                                  <td>
+                                    <input
+                                      type="text"
+                                      class="form-control form-control-sm"
+                                      data-ingreso-nacional-series-sources
+                                      placeholder="LABEL1 | LABEL2"
                                     />
                                   </td>
                                   <td>
@@ -1049,6 +1372,14 @@
                                   </td>
                                   <td>
                                     <input
+                                      type="text"
+                                      class="form-control form-control-sm"
+                                      data-ingreso-nacional-series-sources
+                                      placeholder="LABEL1 | LABEL2"
+                                    />
+                                  </td>
+                                  <td>
+                                    <input
                                       type="color"
                                       class="form-control form-control-color"
                                       data-ingreso-nacional-series-color
@@ -1075,6 +1406,14 @@
                                       type="text"
                                       class="form-control form-control-sm"
                                       data-ingreso-nacional-series-label
+                                    />
+                                  </td>
+                                  <td>
+                                    <input
+                                      type="text"
+                                      class="form-control form-control-sm"
+                                      data-ingreso-nacional-series-sources
+                                      placeholder="LABEL1 | LABEL2"
                                     />
                                   </td>
                                   <td>
@@ -1536,6 +1875,145 @@
                     </div>
                   </div>
 
+                  <div class="accordion-item">
+                    <h2
+                      class="accordion-header"
+                      id="plantillasGraficasCustomHeading"
+                    >
+                      <button
+                        class="accordion-button collapsed"
+                        type="button"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#plantillasGraficasCustomCollapse"
+                        aria-expanded="false"
+                        aria-controls="plantillasGraficasCustomCollapse"
+                      >
+                        Graficas personalizadas por modulo
+                      </button>
+                    </h2>
+                    <div
+                      id="plantillasGraficasCustomCollapse"
+                      class="accordion-collapse collapse"
+                      data-bs-parent="#plantillasGraficasAccordion"
+                    >
+                      <div class="accordion-body">
+                        <div
+                          class="d-flex flex-column flex-lg-row justify-content-between gap-2 mb-2"
+                        >
+                          <div>
+                            <h6 class="mb-1">Agregar graficas</h6>
+                            <p class="text-muted small mb-0">
+                              Define el modulo origen y las filas del resumen.
+                            </p>
+                          </div>
+                          <div class="d-flex align-items-start">
+                            <button
+                              type="button"
+                              class="btn btn-outline-primary btn-sm"
+                              id="plantillasGraficasAddCustom"
+                            >
+                              <i class="bi bi-plus-circle me-1"></i> Agregar grafica
+                            </button>
+                          </div>
+                        </div>
+                        <div
+                          class="d-flex flex-column gap-3"
+                          id="plantillasGraficasCustomList"
+                        ></div>
+                        <div class="form-text mt-2">
+                          Usa una linea por fila. Puedes usar
+                          "alias=LABEL1|LABEL2" para variantes.
+                        </div>
+                        <template id="plantillasGraficasCustomTemplate">
+                          <div class="card border" data-custom-chart>
+                            <div class="card-body p-3">
+                              <div
+                                class="d-flex justify-content-between align-items-center mb-2"
+                              >
+                                <div class="text-muted small fw-semibold">
+                                  Grafica personalizada
+                                </div>
+                                <button
+                                  type="button"
+                                  class="btn btn-outline-danger btn-sm"
+                                  data-custom-remove
+                                >
+                                  Eliminar
+                                </button>
+                              </div>
+                              <div class="row g-2">
+                                <div class="col-12 col-lg-4">
+                                  <label class="form-label small fw-semibold"
+                                    >Modulo origen</label
+                                  >
+                                  <select
+                                    class="form-select form-select-sm"
+                                    data-custom-module
+                                  ></select>
+                                </div>
+                                <div class="col-12 col-lg-4">
+                                  <label class="form-label small fw-semibold"
+                                    >Titulo</label
+                                  >
+                                  <input
+                                    type="text"
+                                    class="form-control form-control-sm"
+                                    data-custom-title
+                                  />
+                                </div>
+                                <div class="col-12 col-lg-4">
+                                  <label class="form-label small fw-semibold"
+                                    >Tipo</label
+                                  >
+                                  <select
+                                    class="form-select form-select-sm"
+                                    data-custom-type
+                                  >
+                                    <option value="inherit">Usar global</option>
+                                    <option value="bar">Barras</option>
+                                    <option value="line">Linea</option>
+                                  </select>
+                                </div>
+                                <div class="col-12 col-lg-8">
+                                  <label class="form-label small fw-semibold"
+                                    >Subtitulo</label
+                                  >
+                                  <input
+                                    type="text"
+                                    class="form-control form-control-sm"
+                                    data-custom-subtitle
+                                  />
+                                </div>
+                                <div class="col-12 col-lg-4 d-flex align-items-end">
+                                  <div class="form-check form-switch">
+                                    <input
+                                      class="form-check-input"
+                                      type="checkbox"
+                                      data-custom-enabled
+                                    />
+                                    <label class="form-check-label small"
+                                      >Activa</label
+                                    >
+                                  </div>
+                                </div>
+                                <div class="col-12">
+                                  <label class="form-label small fw-semibold"
+                                    >Filas</label
+                                  >
+                                  <textarea
+                                    class="form-control form-control-sm"
+                                    rows="3"
+                                    data-custom-rows
+                                  ></textarea>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </template>
+                      </div>
+                    </div>
+                  </div>
+
                   <div
                     class="text-muted small mt-3"
                     id="plantillasGraficasStatus"
@@ -1549,58 +2027,6 @@
         </div>
       </div>
 
-      <!-- Layout Preview -->
-      <div class="row">
-        <div class="col-12">
-          <!-- Placeholder View -->
-          <div id="placeholderView" class="card table-card fade-in">
-            <div class="card-body p-5 text-center">
-              <div class="placeholder-icon mx-auto mb-4">
-                <i class="bi bi-layout-text-window"></i>
-              </div>
-              <h2>Selecciona un contexto</h2>
-              <p class="text-muted">
-                Elige un módulo, año y capítulo para comenzar a editar el
-                layout.
-              </p>
-              <div class="mt-4">
-                <span class="badge bg-light text-primary me-2">
-                  <i class="bi bi-lightbulb me-1"></i> Carga el layout primero
-                </span>
-                <span class="badge bg-light text-primary">
-                  <i class="bi bi-shield-lock me-1"></i> Permisos en
-                  administración
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Layout View -->
-          <div
-            id="layoutView"
-            class="card table-card fade-in"
-            style="display: none"
-          >
-            <div class="card-body p-3">
-              <div
-                class="d-flex justify-content-between align-items-center mb-3"
-              >
-                <span class="text-muted small" id="layoutInfo">Sin datos</span>
-              </div>
-              <div id="layoutPreview" class="layout-preview">
-                <!-- Contenido dinámico -->
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Status Message -->
-      <div class="row mt-3">
-        <div class="col-12">
-          <p class="text-muted small text-center mb-0" id="statusMessage">
-            Listo
-          </p>
         </div>
       </div>
     </div>

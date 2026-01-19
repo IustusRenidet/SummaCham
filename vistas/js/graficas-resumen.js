@@ -53,7 +53,9 @@
   );
   const ingresoNacionalCanvas = document.getElementById("chartIngresoNacional");
   const ingresoNacionalCard = document.getElementById("incomeNationalCard");
+  const customChartsRow = document.getElementById("customChartsRow");
   const charts = {};
+  const customCharts = {};
 
   // === UTILIDADES ===
   const toNumber = (val) => {
@@ -126,6 +128,15 @@
       "SERVICES TO MEMBERS (INCOME)",
     ],
     tic: ["T&IC", "T&IC (INCOME)", "T&IC INCOME"],
+  };
+
+  const getSourceVariants = (sources, key, fallback) => {
+    const fromSources = sources?.[key];
+    if (Array.isArray(fromSources) && fromSources.length) {
+      return fromSources;
+    }
+    const fromFallback = fallback?.[key];
+    return Array.isArray(fromFallback) ? fromFallback : [];
   };
 
   // === CONTEXTO Y PERSISTENCIA ===
@@ -235,8 +246,8 @@
 
   const ingresoCache = new Map();
 
-  const buildIngresoCacheKey = (empresaId, anio) =>
-    `${empresaId || "sin"}:${anio || "sin"}`;
+  const buildIngresoCacheKey = (empresaId, anio, signature = "") =>
+    `${empresaId || "sin"}:${anio || "sin"}:${signature || "base"}`;
 
   const obtenerFilaIngreso = (layout = [], variants = []) => {
     if (!Array.isArray(layout) || !layout.length) return null;
@@ -265,7 +276,23 @@
 
   const buildIngresoPorCapituloSeries = async (empresaId, anio) => {
     if (!empresaId || !anio) return null;
-    const cacheKey = buildIngresoCacheKey(empresaId, anio);
+
+    const graficasConfig = getGraficasConfig();
+    const ingresoConfig =
+      graficasConfig.ingreso || DEFAULT_GRAFICAS_CONFIG.ingreso;
+    const ingresoSources =
+      graficasConfig.sources?.ingreso ||
+      DEFAULT_GRAFICAS_CONFIG.sources?.ingreso ||
+      {};
+    if (ingresoConfig.enabled === false) {
+      return null;
+    }
+
+    const cacheSignature = JSON.stringify({
+      ingreso: ingresoConfig,
+      sources: ingresoSources,
+    });
+    const cacheKey = buildIngresoCacheKey(empresaId, anio, cacheSignature);
     if (ingresoCache.has(cacheKey)) {
       return ingresoCache.get(cacheKey);
     }
@@ -276,27 +303,21 @@
         try {
           return await fetchResumenMes(empresaId, anio, mes);
         } catch (err) {
-          console.warn("📊 Graficas: Error cargando resumen mes", mes, err);
+          console.warn("?? Graficas: Error cargando resumen mes", mes, err);
           return null;
         }
       })
     );
 
-    const graficasConfig = getGraficasConfig();
-    const ingresoConfig =
-      graficasConfig.ingreso || DEFAULT_GRAFICAS_CONFIG.ingreso;
-    if (ingresoConfig.enabled === false) {
-      return null;
-    }
     const datasetsConfig = Object.entries(ingresoConfig.series || {})
-      .filter(([key, serie]) => INCOME_LABELS[key])
       .map(([key, serie]) => ({
         key,
         label: serie.label,
         color: serie.color,
         enabled: serie.enabled !== false,
+        variants: getSourceVariants(ingresoSources, key, INCOME_LABELS),
       }))
-      .filter((serie) => serie.enabled);
+      .filter((serie) => serie.enabled && serie.variants.length);
     if (!datasetsConfig.length) {
       return null;
     }
@@ -309,7 +330,7 @@
     responses.forEach((data, idx) => {
       const layout = data?.resumen?.[0]?.layout || [];
       datasetsConfig.forEach((dataset) => {
-        const row = obtenerFilaIngreso(layout, INCOME_LABELS[dataset.key]);
+        const row = obtenerFilaIngreso(layout, dataset.variants);
         const val = toNumber(row?.totals?.actualYTD);
         series[dataset.key][idx] = val;
       });
@@ -342,12 +363,28 @@
   };
 
   const ingresoNacionalCache = new Map();
-  const buildIngresoNacionalCacheKey = (empresaId, anio) =>
-    `${empresaId || "sin"}:${anio || "sin"}`;
+  const buildIngresoNacionalCacheKey = (empresaId, anio, signature = "") =>
+    `${empresaId || "sin"}:${anio || "sin"}:${signature || "base"}`;
 
   const buildIngresoNacionalSeries = async (empresaId, anio) => {
     if (!empresaId || !anio) return null;
-    const cacheKey = buildIngresoNacionalCacheKey(empresaId, anio);
+
+    const graficasConfig = getGraficasConfig();
+    const ingresoConfig =
+      graficasConfig.ingresoNacional || DEFAULT_GRAFICAS_CONFIG.ingresoNacional;
+    const ingresoSources =
+      graficasConfig.sources?.ingresoNacional ||
+      DEFAULT_GRAFICAS_CONFIG.sources?.ingresoNacional ||
+      {};
+    if (ingresoConfig.enabled === false) {
+      return null;
+    }
+
+    const cacheSignature = JSON.stringify({
+      ingresoNacional: ingresoConfig,
+      sources: ingresoSources,
+    });
+    const cacheKey = buildIngresoNacionalCacheKey(empresaId, anio, cacheSignature);
     if (ingresoNacionalCache.has(cacheKey)) {
       return ingresoNacionalCache.get(cacheKey);
     }
@@ -358,27 +395,21 @@
         try {
           return await fetchResumenMes(empresaId, anio, mes);
         } catch (err) {
-          console.warn("📊 Graficas: Error cargando ingreso nacional", mes, err);
+          console.warn("?? Graficas: Error cargando ingreso nacional", mes, err);
           return null;
         }
       })
     );
 
-    const graficasConfig = getGraficasConfig();
-    const ingresoConfig =
-      graficasConfig.ingresoNacional || DEFAULT_GRAFICAS_CONFIG.ingresoNacional;
-    if (ingresoConfig.enabled === false) {
-      return null;
-    }
     const datasetsConfig = Object.entries(ingresoConfig.series || {})
-      .filter(([key, serie]) => INGRESO_NACIONAL_LABELS[key])
       .map(([key, serie]) => ({
         key,
         label: serie.label,
         color: serie.color,
         enabled: serie.enabled !== false,
+        variants: getSourceVariants(ingresoSources, key, INGRESO_NACIONAL_LABELS),
       }))
-      .filter((serie) => serie.enabled);
+      .filter((serie) => serie.enabled && serie.variants.length);
     if (!datasetsConfig.length) {
       return null;
     }
@@ -391,7 +422,7 @@
     responses.forEach((data, idx) => {
       const layout = data?.resumen?.[0]?.layout || [];
       datasetsConfig.forEach((dataset) => {
-        const row = obtenerFilaIngreso(layout, INGRESO_NACIONAL_LABELS[dataset.key]);
+        const row = obtenerFilaIngreso(layout, dataset.variants);
         const val = toNumber(row?.totals?.actualYTD);
         series[dataset.key][idx] = val;
       });
@@ -428,8 +459,58 @@
   /**
    * Define las filas que se deben mostrar en las gráficas según el capítulo
    */
-  const getRowsConfig = (capitulo) => {
+  const getRowsConfig = (capitulo, graficasConfig = {}) => {
     const cap = normalizarLabel(capitulo);
+    const sources =
+      graficasConfig?.sources?.summary ||
+      DEFAULT_GRAFICAS_CONFIG.sources?.summary ||
+      null;
+
+    const resolveGroup = (key) => {
+      const group = sources?.[key];
+      if (!group) return null;
+      const operating = Array.isArray(group.operating) ? group.operating : [];
+      const net = Array.isArray(group.net) ? group.net : [];
+      if (!operating.length && !net.length) return null;
+      return { operating, net, isCdmx: key === "cdmx" };
+    };
+
+    if (sources) {
+      if (
+        cap.includes("CIUDAD DE MEXICO") ||
+        cap.includes("CDMX") ||
+        cap.includes("MEXICO")
+      ) {
+        const resolved = resolveGroup("cdmx");
+        if (resolved) return resolved;
+      }
+
+      if (cap.includes("GUADALAJARA") || cap.includes("GDL")) {
+        const resolved = resolveGroup("gdl");
+        if (resolved) return resolved;
+      }
+
+      if (
+        cap.includes("NORESTE") ||
+        cap.includes("NE ") ||
+        cap.includes("MONTERREY")
+      ) {
+        const resolved = resolveGroup("ne");
+        if (resolved) return resolved;
+      }
+
+      if (
+        cap.includes("NOROESTE") ||
+        cap.includes("NO ") ||
+        cap.includes("NORTHWEST")
+      ) {
+        const resolved = resolveGroup("no");
+        if (resolved) return resolved;
+      }
+
+      const fallback = resolveGroup("generic");
+      if (fallback) return fallback;
+    }
 
     // CDMX - Contiene todos los capítulos consolidados
     if (
@@ -967,6 +1048,184 @@
     return options;
   };
 
+  const clearCustomCharts = () => {
+    Object.keys(customCharts).forEach((key) => {
+      customCharts[key]?.destroy?.();
+      delete customCharts[key];
+    });
+    if (customChartsRow) {
+      customChartsRow.innerHTML = "";
+    }
+  };
+
+  const sanitizeChartId = (value) =>
+    String(value || "")
+      .trim()
+      .replace(/[^a-zA-Z0-9_-]/g, "");
+
+  const getCustomModuleKey = (chart) =>
+    (chart?.module || "RESUMEN").toString().trim().toUpperCase();
+
+  const getRowDataLoose = (snapshotMap, labels) => {
+    if (!snapshotMap) return { actual: 0, plan: 0, prev: 0, actualYTD: 0, planYTD: 0, prevYTD: 0 };
+    const arr = Array.isArray(labels) ? labels : [labels];
+    for (const lbl of arr) {
+      const normalizado = normalizarLabel(lbl);
+      const hit = snapshotMap.get(normalizado);
+      if (hit) return hit;
+      for (const [key, value] of snapshotMap.entries()) {
+        if (key.includes(normalizado)) return value;
+      }
+    }
+    return {
+      actual: 0,
+      plan: 0,
+      prev: 0,
+      actualYTD: 0,
+      planYTD: 0,
+      prevYTD: 0,
+    };
+  };
+
+  const buildCustomChartData = (rows, snapshotMap, columnDefs, chartType) => {
+    if (!Array.isArray(rows) || !rows.length) return null;
+    const resolvedRows = rows
+      .map((row) => {
+        const variants =
+          Array.isArray(row?.variants) && row.variants.length
+            ? row.variants
+            : row?.label
+            ? [row.label]
+            : row?.alias
+            ? [row.alias]
+            : [];
+        if (!variants.length) return null;
+        return {
+          label: row?.alias || variants[0],
+          data: getRowDataLoose(snapshotMap, variants),
+        };
+      })
+      .filter(Boolean);
+
+    if (!resolvedRows.length) return null;
+
+    const labels = resolvedRows.map((row) => row.label || "-");
+    const datasets = columnDefs.map((col) => {
+      const dataset = {
+        label: col.label,
+        data: resolvedRows.map((row) => ocultarCeros(toNumber(row.data[col.key]))),
+        backgroundColor: col.color,
+        borderColor: col.color,
+        borderWidth: chartType === "line" ? 2 : 1,
+      };
+      if (chartType === "line") {
+        dataset.fill = false;
+        dataset.tension = 0.32;
+        dataset.pointRadius = POINT_RADIUS;
+        dataset.pointHoverRadius = POINT_HOVER_RADIUS;
+        dataset.pointBackgroundColor = col.color;
+      } else {
+        dataset.minBarLength = MIN_BAR_LENGTH;
+      }
+      return dataset;
+    });
+
+    return { labels, datasets };
+  };
+
+  const renderCustomCharts = (snapshotMap, config) => {
+    clearCustomCharts();
+    if (!customChartsRow || !snapshotMap) return;
+    const customChartsList = Array.isArray(config.customCharts)
+      ? config.customCharts
+      : [];
+    if (!customChartsList.length) return;
+
+    const currentModule = (document.body?.dataset?.modulo || "RESUMEN")
+      .toString()
+      .toUpperCase();
+    const columnDefs = getColumnDefs(config);
+    if (!columnDefs.length) return;
+
+    const baseChartType = config.chart?.type || "bar";
+
+    customChartsList.forEach((chart, index) => {
+      if (chart?.enabled === false) return;
+      if (getCustomModuleKey(chart) !== currentModule) return;
+      const rows = Array.isArray(chart?.rows) ? chart.rows : [];
+      if (!rows.length) return;
+      const chartType =
+        chart?.chartType && chart.chartType !== "inherit"
+          ? chart.chartType
+          : baseChartType;
+      const data = buildCustomChartData(rows, snapshotMap, columnDefs, chartType);
+      if (!data) return;
+
+      const safeId = sanitizeChartId(chart.id) || `customChart-${index + 1}`;
+      const canvasId = `customChart-${safeId}`;
+      const wrapper = document.createElement("div");
+      wrapper.className = "col-12";
+      wrapper.innerHTML = `
+        <div class="card chart-card p-3" data-custom-chart="${canvasId}">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h5 class="mb-0">${chart.title || "Grafica personalizada"}</h5>
+            <small class="text-muted">${chart.subtitle || ""}</small>
+          </div>
+          <div class="chart-container">
+            <canvas id="${canvasId}"></canvas>
+          </div>
+        </div>
+      `;
+      customChartsRow.appendChild(wrapper);
+      const canvas = wrapper.querySelector("canvas");
+      if (!canvas) return;
+      customCharts[canvasId] = new Chart(canvas, {
+        type: chartType,
+        data: {
+          labels: data.labels,
+          datasets: data.datasets,
+        },
+        options: applyCommonChartOptions(
+          {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              title: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: function (context) {
+                    let label = context.dataset.label || "";
+                    if (label) {
+                      label += ": ";
+                    }
+                    label += formatNumber(context.parsed.y);
+                    return label;
+                  },
+                },
+              },
+            },
+            scales: {
+              y: {
+                beginAtZero: false,
+                grace: "10%",
+                ticks: {
+                  callback: function (value) {
+                    return formatNumber(value);
+                  },
+                },
+              },
+              x: {
+                ticks: { font: { size: 11 } },
+              },
+            },
+          },
+          config,
+          chartType
+        ),
+      });
+    });
+  };
+
   const updateChartHeaders = (config) => {
     const mapping = {
       operating: {
@@ -1202,6 +1461,8 @@
         ),
       });
     }
+
+    renderCustomCharts(snapshotMap, graficasConfig);
   };
 
   /**
@@ -1771,6 +2032,7 @@
           charts[id] = null;
         }
       });
+      clearCustomCharts();
 
       // Renderizar las gráficas de ingresos aunque no haya snapshot
       await renderIngresoPorCapituloChart(empresa.id, anio);

@@ -13,6 +13,12 @@
   );
   const chartTypeSelect = document.getElementById("plantillasChartType");
   const chartStackedToggle = document.getElementById("plantillasChartStacked");
+  const customList = document.getElementById("plantillasGraficasCustomList");
+  const customTemplate = document.getElementById(
+    "plantillasGraficasCustomTemplate"
+  );
+  const customAddBtn = document.getElementById("plantillasGraficasAddCustom");
+  const moduloSelect = document.getElementById("moduloSelect");
 
   const setStatus = (message, tone = "muted") => {
     if (!statusEl) return;
@@ -29,6 +35,157 @@
 
   const clone = (value) => JSON.parse(JSON.stringify(value || {}));
 
+  const getModuloOptions = () => {
+    if (moduloSelect) return moduloSelect.innerHTML;
+    return [
+      '<option value="RESUMEN">RESUMEN</option>',
+      '<option value="SUMMARY">SUMMARY</option>',
+      '<option value="Finanzas">Finanzas</option>',
+      '<option value="Gastos Generales">Gastos Generales</option>',
+      '<option value="Nomina">Nomina</option>',
+      '<option value="Membresia">Membresia</option>',
+      '<option value="Serv Membresia">Serv Membresia</option>',
+      '<option value="RH">RH</option>',
+      '<option value="Eventos">Eventos</option>',
+      '<option value="Comites">Comites</option>',
+      '<option value="Comunicacion">Comunicacion</option>',
+      '<option value="Direccion">Direccion</option>',
+      '<option value="Gtos Corporativos">Gtos Corporativos</option>',
+      '<option value="T&IC">T&IC</option>',
+      '<option value="VPE">VPE</option>',
+    ].join("");
+  };
+
+  const applyModuloOptions = (select, value) => {
+    if (!select) return;
+    select.innerHTML = getModuloOptions();
+    if (value) {
+      select.value = value;
+    }
+  };
+
+  const buildCustomChartId = () =>
+    `custom-${Date.now().toString(36)}-${Math.floor(Math.random() * 1000)}`;
+
+  const parseCustomRows = (text) => {
+    if (!text) return [];
+    return text
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => {
+        let alias = "";
+        let raw = line;
+        if (line.includes("=")) {
+          const parts = line.split(/=(.+)/);
+          alias = (parts[0] || "").trim();
+          raw = (parts[1] || "").trim();
+        }
+        const variants = raw
+          .split("|")
+          .map((item) => item.trim())
+          .filter(Boolean);
+        if (!variants.length) return null;
+        return {
+          alias: alias || variants[0],
+          variants,
+        };
+      })
+      .filter(Boolean);
+  };
+
+  const formatCustomRows = (rows) => {
+    if (!Array.isArray(rows)) return "";
+    return rows
+      .map((row) => {
+        const variants = Array.isArray(row?.variants) ? row.variants : [];
+        const cleaned = variants.map((v) => (v || "").trim()).filter(Boolean);
+        if (!cleaned.length) return "";
+        const alias = (row?.alias || "").trim();
+        const raw = cleaned.join("|");
+        if (alias && alias !== cleaned[0]) {
+          return `${alias}=${raw}`;
+        }
+        return raw;
+      })
+      .filter(Boolean)
+      .join("\n");
+  };
+
+  const parseVariantsList = (text) => {
+    if (!text) return [];
+    return text
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .flatMap((line) => {
+        let raw = line;
+        if (line.includes("=")) {
+          const parts = line.split(/=(.+)/);
+          raw = (parts[1] || "").trim();
+        }
+        return raw.split("|");
+      })
+      .map((item) => item.trim())
+      .filter(Boolean);
+  };
+
+  const formatVariantsList = (variants) => {
+    if (!Array.isArray(variants)) return "";
+    return variants
+      .map((item) => (item || "").trim())
+      .filter(Boolean)
+      .join(" | ");
+  };
+
+  const parseSummaryRows = (text) =>
+    parseCustomRows(text).map((row) => ({
+      label: row.alias,
+      variants: row.variants,
+    }));
+
+  const formatSummaryRows = (rows) => {
+    if (!Array.isArray(rows)) return "";
+    return formatCustomRows(
+      rows.map((row) => ({
+        alias: row.label || row.alias || "",
+        variants: Array.isArray(row.variants) ? row.variants : [],
+      }))
+    );
+  };
+
+  const renderCustomChartItem = (chart = {}) => {
+    if (!customTemplate || !customList) return null;
+    const node = customTemplate.content.firstElementChild.cloneNode(true);
+    const id = chart.id || buildCustomChartId();
+    node.dataset.customId = id;
+    const titleInput = node.querySelector("[data-custom-title]");
+    const subtitleInput = node.querySelector("[data-custom-subtitle]");
+    const moduleSelect = node.querySelector("[data-custom-module]");
+    const typeSelect = node.querySelector("[data-custom-type]");
+    const rowsInput = node.querySelector("[data-custom-rows]");
+    const enabledInput = node.querySelector("[data-custom-enabled]");
+    const removeBtn = node.querySelector("[data-custom-remove]");
+
+    if (titleInput) titleInput.value = chart.title || "";
+    if (subtitleInput) subtitleInput.value = chart.subtitle || "";
+    if (moduleSelect) {
+      applyModuloOptions(moduleSelect, chart.module || "RESUMEN");
+    }
+    if (typeSelect) typeSelect.value = chart.chartType || "inherit";
+    if (rowsInput) rowsInput.value = formatCustomRows(chart.rows);
+    if (enabledInput) enabledInput.checked = chart.enabled !== false;
+
+    if (removeBtn) {
+      removeBtn.addEventListener("click", () => {
+        node.remove();
+      });
+    }
+
+    customList.appendChild(node);
+    return node;
+  };
+
   const getGraficasConfigApi = () => {
     if (!window.GraficasConfig || typeof window.GraficasConfig.load !== "function") {
       return null;
@@ -39,6 +196,14 @@
   const applyConfigToForm = (config) => {
     if (!config) return;
     const defaults = clone(getGraficasConfigApi()?.defaults || {});
+    const sources = config.sources || {};
+    const defaultSources = defaults.sources || {};
+    const summarySources = sources.summary || defaultSources.summary || {};
+    const consolidatedSources =
+      sources.consolidated || defaultSources.consolidated || {};
+    const ingresoSources = sources.ingreso || defaultSources.ingreso || {};
+    const ingresoNacionalSources =
+      sources.ingresoNacional || defaultSources.ingresoNacional || {};
 
     const rows = Array.from(form.querySelectorAll("[data-series-row]"));
     rows.forEach((row) => {
@@ -111,9 +276,15 @@
         const labelInput = row.querySelector("[data-ingreso-series-label]");
         const colorInput = row.querySelector("[data-ingreso-series-color]");
         const enabledInput = row.querySelector("[data-ingreso-series-enabled]");
+        const sourcesInput = row.querySelector("[data-ingreso-series-sources]");
         if (labelInput) labelInput.value = serie.label || "";
         if (colorInput) colorInput.value = serie.color || "#0d47a1";
         if (enabledInput) enabledInput.checked = Boolean(serie.enabled);
+        if (sourcesInput) {
+          const variants =
+            ingresoSources[key] || defaultSources.ingreso?.[key] || [];
+          sourcesInput.value = formatVariantsList(variants);
+        }
       });
 
     const ingresoNacionalEnabled = form.querySelector(
@@ -152,10 +323,42 @@
         const enabledInput = row.querySelector(
           "[data-ingreso-nacional-series-enabled]"
         );
+        const sourcesInput = row.querySelector(
+          "[data-ingreso-nacional-series-sources]"
+        );
         if (labelInput) labelInput.value = serie.label || "";
         if (colorInput) colorInput.value = serie.color || "#0d47a1";
         if (enabledInput) enabledInput.checked = Boolean(serie.enabled);
+        if (sourcesInput) {
+          const variants =
+            ingresoNacionalSources[key] ||
+            defaultSources.ingresoNacional?.[key] ||
+            [];
+          sourcesInput.value = formatVariantsList(variants);
+        }
       });
+
+    form.querySelectorAll("[data-summary-rows]").forEach((input) => {
+      const key = input.getAttribute("data-summary-key");
+      const type = input.getAttribute("data-summary-type");
+      if (!key || !type) return;
+      const rows =
+        summarySources?.[key]?.[type] ||
+        defaultSources.summary?.[key]?.[type] ||
+        [];
+      input.value = formatSummaryRows(rows);
+    });
+
+    form.querySelectorAll("[data-consolidated-source]").forEach((input) => {
+      const key = input.getAttribute("data-consolidated-source-key");
+      if (!key) return;
+      const row =
+        consolidatedSources?.[key] ||
+        defaultSources.consolidated?.[key] ||
+        {};
+      const variants = Array.isArray(row?.variants) ? row.variants : [];
+      input.value = formatVariantsList(variants);
+    });
 
     const operativoEnabled = form.querySelector("[data-operativo-enabled]");
     const operativoTitle = form.querySelector("[data-operativo-title]");
@@ -211,12 +414,23 @@
         if (enabledInput) enabledInput.checked = Boolean(serie.enabled);
       });
     });
+
+    if (customList) {
+      customList.innerHTML = "";
+      const customCharts = Array.isArray(config.customCharts)
+        ? config.customCharts
+        : Array.isArray(defaults.customCharts)
+        ? defaults.customCharts
+        : [];
+      customCharts.forEach((chart) => renderCustomChartItem(chart));
+    }
   };
 
   const readConfigFromForm = () => {
     const api = getGraficasConfigApi();
     const baseConfig = clone(api?.load?.() || {});
     const defaults = clone(api?.defaults || {});
+    const sources = clone(baseConfig.sources || defaults.sources || {});
 
     const series = [];
     form.querySelectorAll("[data-series-row]").forEach((row) => {
@@ -264,21 +478,25 @@
     });
 
     const ingresoSeries = {};
+    const ingresoSources = {};
     form.querySelectorAll("[data-ingreso-series-row]").forEach((row) => {
       const key = row.getAttribute("data-ingreso-series-key");
       if (!key) return;
       const labelInput = row.querySelector("[data-ingreso-series-label]");
       const colorInput = row.querySelector("[data-ingreso-series-color]");
       const enabledInput = row.querySelector("[data-ingreso-series-enabled]");
+      const sourcesInput = row.querySelector("[data-ingreso-series-sources]");
       const fallback = (defaults.ingreso?.series || {})[key] || {};
       ingresoSeries[key] = {
         label: labelInput?.value?.trim() || fallback.label || "",
         color: colorInput?.value || fallback.color || "#0d47a1",
         enabled: Boolean(enabledInput?.checked),
       };
+      ingresoSources[key] = parseVariantsList(sourcesInput?.value || "");
     });
 
     const ingresoNacionalSeries = {};
+    const ingresoNacionalSources = {};
     form.querySelectorAll("[data-ingreso-nacional-series-row]").forEach((row) => {
       const key = row.getAttribute("data-ingreso-nacional-series-key");
       if (!key) return;
@@ -287,13 +505,44 @@
       const enabledInput = row.querySelector(
         "[data-ingreso-nacional-series-enabled]"
       );
+      const sourcesInput = row.querySelector(
+        "[data-ingreso-nacional-series-sources]"
+      );
       const fallback = (defaults.ingresoNacional?.series || {})[key] || {};
       ingresoNacionalSeries[key] = {
         label: labelInput?.value?.trim() || fallback.label || "",
         color: colorInput?.value || fallback.color || "#0d47a1",
         enabled: Boolean(enabledInput?.checked),
       };
+      ingresoNacionalSources[key] = parseVariantsList(
+        sourcesInput?.value || ""
+      );
     });
+
+    const summarySources = sources.summary || {};
+    form.querySelectorAll("[data-summary-rows]").forEach((input) => {
+      const key = input.getAttribute("data-summary-key");
+      const type = input.getAttribute("data-summary-type");
+      if (!key || !type) return;
+      if (!summarySources[key]) summarySources[key] = {};
+      summarySources[key][type] = parseSummaryRows(input.value || "");
+    });
+    sources.summary = summarySources;
+
+    const consolidatedSources = sources.consolidated || {};
+    form.querySelectorAll("[data-consolidated-source]").forEach((input) => {
+      const key = input.getAttribute("data-consolidated-source-key");
+      if (!key) return;
+      const fallback =
+        consolidatedSources[key] || defaults.sources?.consolidated?.[key] || {};
+      consolidatedSources[key] = {
+        label: fallback.label || "",
+        variants: parseVariantsList(input.value || ""),
+      };
+    });
+    sources.consolidated = consolidatedSources;
+    sources.ingreso = ingresoSources;
+    sources.ingresoNacional = ingresoNacionalSources;
 
     const operativoDatasets = {};
     form.querySelectorAll("[data-operativo-series-row]").forEach((row) => {
@@ -337,6 +586,33 @@
         series,
       };
     });
+
+    const customCharts = [];
+    if (customList) {
+      customList.querySelectorAll("[data-custom-chart]").forEach((item) => {
+        const id = item.dataset.customId || buildCustomChartId();
+        const title = item.querySelector("[data-custom-title]")?.value?.trim() || "";
+        const subtitle =
+          item.querySelector("[data-custom-subtitle]")?.value?.trim() || "";
+        const module =
+          item.querySelector("[data-custom-module]")?.value || "RESUMEN";
+        const chartType =
+          item.querySelector("[data-custom-type]")?.value || "inherit";
+        const enabled =
+          item.querySelector("[data-custom-enabled]")?.checked !== false;
+        const rowsText = item.querySelector("[data-custom-rows]")?.value || "";
+        const rows = parseCustomRows(rowsText);
+        customCharts.push({
+          id,
+          title,
+          subtitle,
+          module,
+          chartType,
+          enabled,
+          rows,
+        });
+      });
+    }
 
     return {
       ...baseConfig,
@@ -385,6 +661,8 @@
           form.querySelector("[data-gg-subtitle]")?.value?.trim() || "",
         charts: ggCharts,
       },
+      sources,
+      customCharts,
     };
   };
 
@@ -450,4 +728,18 @@
   const configInicial = api.load();
   applyConfigToForm(configInicial);
   setStatus("Listo para editar.", "muted");
+
+  if (customAddBtn) {
+    customAddBtn.addEventListener("click", () => {
+      const chart = {
+        id: buildCustomChartId(),
+        module: moduloSelect?.value || "RESUMEN",
+        chartType: "inherit",
+        enabled: true,
+        rows: [],
+      };
+      const item = renderCustomChartItem(chart);
+      item?.querySelector("[data-custom-title]")?.focus();
+    });
+  }
 })();

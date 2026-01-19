@@ -566,6 +566,161 @@
     });
   };
 
+  const normalizarLabelResumen = (texto = "") =>
+    texto
+      .toString()
+      .trim()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toUpperCase()
+      .replace(/\s+/g, " ");
+
+  const getEnabledSeriesConfig = (graficasConfig) => {
+    const baseConfig = DEFAULT_GRAFICAS_CONFIG || {};
+    const allowedKeys = new Set(["actualYTD", "planYTD", "prevYTD"]);
+    const seriesConfig =
+      Array.isArray(graficasConfig.series) && graficasConfig.series.length
+        ? graficasConfig.series
+        : baseConfig.series || [];
+    return seriesConfig
+      .filter((serie) => allowedKeys.has(serie.key))
+      .filter((serie) => serie.enabled !== false);
+  };
+
+  const buildCustomChartData = (snapshot, chart, seriesConfig, chartType) => {
+    if (!snapshot?.filas || !Array.isArray(seriesConfig) || !seriesConfig.length) {
+      return null;
+    }
+    const rows = Array.isArray(chart?.rows) ? chart.rows : [];
+    if (!rows.length) return null;
+    const resolvedRows = rows
+      .map((row) => {
+        const variants =
+          Array.isArray(row?.variants) && row.variants.length
+            ? row.variants
+            : row?.alias
+            ? [row.alias]
+            : [];
+        if (!variants.length) return null;
+        const normalizedVariants = variants
+          .map((v) => normalizarLabelResumen(v))
+          .filter(Boolean);
+        if (!normalizedVariants.length) return null;
+        const match = snapshot.filas.find((fila) => {
+          const label = normalizarLabelResumen(fila?.label || "");
+          return normalizedVariants.some((v) => label.includes(v));
+        });
+        return {
+          label: row?.alias || variants[0],
+          data: match?.totals || null,
+        };
+      })
+      .filter(Boolean);
+
+    if (!resolvedRows.length) return null;
+
+    const datasets = seriesConfig.map((serie) => {
+      const dataset = {
+        label: serie.label,
+        data: resolvedRows.map((row) =>
+          toNumber(row.data?.[serie.key] ?? 0)
+        ),
+        backgroundColor: serie.color,
+        borderColor: serie.color,
+        borderWidth: chartType === "line" ? 2 : 2,
+      };
+      if (chartType === "line") {
+        dataset.fill = false;
+        dataset.tension = 0.32;
+        dataset.pointRadius = 3;
+        dataset.pointBackgroundColor = serie.color;
+      }
+      return dataset;
+    });
+
+    return {
+      labels: resolvedRows.map((row) => row.label || "-"),
+      datasets,
+      type: chartType,
+    };
+  };
+
+  const clearCustomChartsPanel = () => {
+    if (!chartsGrid) return;
+    chartsGrid.querySelectorAll("[data-custom-chart]").forEach((card) => {
+      card.remove();
+    });
+    Object.keys(chartsPanelState.charts).forEach((key) => {
+      if (key.startsWith("custom:")) {
+        destruirGraficaPanel(key);
+        delete chartsPanelState.charts[key];
+      }
+    });
+  };
+
+  const renderCustomChartsPanel = (graficasConfig) => {
+    clearCustomChartsPanel();
+    if (!chartsGrid) return 0;
+    const snapshot = window.RESUMEN_SNAPSHOT;
+    if (!snapshot?.filas) return 0;
+
+    const customCharts = Array.isArray(graficasConfig.customCharts)
+      ? graficasConfig.customCharts
+      : [];
+    if (!customCharts.length) return 0;
+
+    const moduleKey = (document.body?.dataset?.modulo || "RESUMEN")
+      .toString()
+      .toUpperCase();
+    const baseChartType = graficasConfig.chart?.type || "bar";
+    const seriesConfig = getEnabledSeriesConfig(graficasConfig);
+    if (!seriesConfig.length) return 0;
+
+    const sanitizeId = (value) =>
+      String(value || "")
+        .trim()
+        .replace(/[^a-zA-Z0-9_-]/g, "");
+
+    let rendered = 0;
+    customCharts.forEach((chart, index) => {
+      if (chart?.enabled === false) return;
+      const chartModule = (chart?.module || "RESUMEN")
+        .toString()
+        .toUpperCase();
+      if (chartModule !== moduleKey) return;
+      const chartType =
+        chart?.chartType && chart.chartType !== "inherit"
+          ? chart.chartType
+          : baseChartType;
+      const data = buildCustomChartData(snapshot, chart, seriesConfig, chartType);
+      if (!data) return;
+
+      const safeId = sanitizeId(chart.id) || `custom-${index + 1}`;
+      const canvasId = `resumenCustomChart-${safeId}`;
+      const col = document.createElement("div");
+      col.className = "col-12";
+      col.dataset.customChart = safeId;
+      col.innerHTML = `
+        <div class="charts-card">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="mb-0">${chart.title || "Grafica personalizada"}</h6>
+            <small class="text-muted">${chart.subtitle || ""}</small>
+          </div>
+          <div class="charts-canvas">
+            <canvas id="${canvasId}"></canvas>
+          </div>
+        </div>
+      `;
+      chartsGrid.appendChild(col);
+      const canvas = col.querySelector("canvas");
+      if (canvas) {
+        renderGraficaPanel(`custom:${safeId}`, canvas, data, graficasConfig);
+        rendered += 1;
+      }
+    });
+    return rendered;
+  };
+
   const normalizarLabelIngreso = (texto = "") =>
     texto
       .toString()
@@ -785,6 +940,86 @@
     return payload;
   };
 
+  const obtenerGraficasExportacion = async (options = {}) => {
+    const { empresaId, anio } = options;
+    const graficasConfig = getGraficasConfig();
+    const datos = (generarDatosGraficas(graficasConfig) || []).filter(Boolean);
+
+    const resolvedEmpresaId =
+      empresaId || empresaActual?.id || Sesion.obtenerEmpresaActiva?.()?.id;
+    const resolvedAnio = Number.isFinite(Number(anio))
+      ? Number(anio)
+      : leerAnioSeleccionado();
+
+    if (resolvedEmpresaId && resolvedAnio) {
+      const ingresoConfig =
+        graficasConfig.ingreso || DEFAULT_GRAFICAS_CONFIG.ingreso || {};
+      const ingresoNacionalConfig =
+        graficasConfig.ingresoNacional ||
+        DEFAULT_GRAFICAS_CONFIG.ingresoNacional ||
+        {};
+
+      const [ingresoCapitulo, ingresoNacional] = await Promise.all([
+        obtenerIngresoPorCapituloSeries(resolvedEmpresaId, resolvedAnio),
+        obtenerIngresoNacionalSeries(resolvedEmpresaId, resolvedAnio),
+      ]);
+
+      if (ingresoNacional) {
+        const tituloRaw = (ingresoNacionalConfig.title || "").toString().trim();
+        datos.push({
+          ...ingresoNacional,
+          titulo: tituloRaw || "Ingreso nacional",
+        });
+      }
+
+      if (ingresoCapitulo) {
+        const tituloRaw = (ingresoConfig.title || "").toString().trim();
+        datos.push({
+          ...ingresoCapitulo,
+          titulo: tituloRaw || "Ingreso por capitulo",
+        });
+      }
+    }
+
+    const snapshot = window.RESUMEN_SNAPSHOT;
+    const customCharts = Array.isArray(graficasConfig.customCharts)
+      ? graficasConfig.customCharts
+      : [];
+    const moduleKey = (document.body?.dataset?.modulo || "RESUMEN")
+      .toString()
+      .toUpperCase();
+    const baseChartType = graficasConfig.chart?.type || "bar";
+    const seriesConfig = getEnabledSeriesConfig(graficasConfig);
+
+    if (snapshot?.filas && customCharts.length && seriesConfig.length) {
+      customCharts.forEach((chart, index) => {
+        if (chart?.enabled === false) return;
+        const chartModule = (chart?.module || "RESUMEN")
+          .toString()
+          .toUpperCase();
+        if (chartModule !== moduleKey) return;
+        const chartType =
+          chart?.chartType && chart.chartType !== "inherit"
+            ? chart.chartType
+            : baseChartType;
+        const data = buildCustomChartData(
+          snapshot,
+          chart,
+          seriesConfig,
+          chartType
+        );
+        if (!data) return;
+        const tituloRaw = (chart?.title || "").toString().trim();
+        datos.push({
+          ...data,
+          titulo: tituloRaw || `Grafica personalizada ${index + 1}`,
+        });
+      });
+    }
+
+    return datos;
+  };
+
   const cargarGraficaIngresoNacional = async () => {
     if (!chartCanvasIngresoNacional || !chartCardIngresoNacional) return;
     chartCardIngresoNacional.classList.add("d-none");
@@ -852,8 +1087,9 @@
     }
 
     const datos = generarDatosGraficas(graficasConfig);
+    const customCount = renderCustomChartsPanel(graficasConfig);
     const hasSummaryData = Array.isArray(datos) && datos.some(Boolean);
-    if (!hasSummaryData) {
+    if (!hasSummaryData && customCount === 0) {
       destruirGraficaPanel("operating");
       destruirGraficaPanel("net");
       destruirGraficaPanel("consolidated");
@@ -3309,7 +3545,10 @@
       }
 
       // === ÚLTIMAS PÁGINAS: Gráficas (una por página) ===
-      const graficaData = (generarDatosGraficas() || []).filter(Boolean);
+      const graficaData = await obtenerGraficasExportacion({
+        empresaId: empresaActual?.id,
+        anio,
+      });
       
       if (graficaData.length > 0) {
         const canvas = document.createElement('canvas');
@@ -3633,7 +3872,10 @@
         ajustarAnchosWorksheet(wsResumen);
       }
 
-      const graficaData = (generarDatosGraficas() || []).filter(Boolean);
+      const graficaData = await obtenerGraficasExportacion({
+        empresaId: empresaActual?.id,
+        anio,
+      });
       if (graficaData.length === 0) {
         if (typeof showToast === "function") {
           showToast("No hay datos de gráficas. Exportando solo tabla.", "text-bg-warning");
