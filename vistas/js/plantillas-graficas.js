@@ -798,7 +798,88 @@
   const listFromMap = (map) =>
     Object.keys(map || {}).map((key) => ({ key, ...(map[key] || {}) }));
 
-  const formatChartTypeLabel = (type) => (type === "line" ? "Linea" : "Barras");
+  const CHART_TYPE_LABELS = {
+    bar: "Barras",
+    line: "Linea",
+    pie: "Pastel",
+    doughnut: "Dona",
+  };
+
+  const PREVIEW_PALETTE = [
+    "#2563eb",
+    "#f59e0b",
+    "#10b981",
+    "#ef4444",
+    "#8b5cf6",
+    "#14b8a6",
+    "#f97316",
+    "#e11d48",
+  ];
+
+  const isPieType = (type) => type === "pie" || type === "doughnut";
+
+  const buildSlicePalette = (count, baseColor) => {
+    const palette = baseColor
+      ? [baseColor, ...PREVIEW_PALETTE.filter((color) => color !== baseColor)]
+      : PREVIEW_PALETTE;
+    return Array.from({ length: count }, (_, idx) => palette[idx % palette.length]);
+  };
+
+  const formatChartTypeLabel = (type) =>
+    CHART_TYPE_LABELS[type] || CHART_TYPE_LABELS.bar;
+
+  const uniqueList = (items) => Array.from(new Set((items || []).filter(Boolean)));
+
+  const formatListSummary = (items, limit = 4) => {
+    const list = uniqueList(items);
+    if (!list.length) return "";
+    const head = list.slice(0, limit).join(", ");
+    const extra = list.length > limit ? ` +${list.length - limit} mas` : "";
+    return `${head}${extra}`;
+  };
+
+  const buildSourcesText = (items, label = "Fuentes") => {
+    const summary = formatListSummary(items);
+    return summary ? `${label}: ${summary}` : "";
+  };
+
+  const buildSourcesMeta = (items, label = "Fuentes") => {
+    const list = uniqueList(items);
+    return list.length ? `${label}: ${list.length}` : "";
+  };
+
+  const SUMMARY_SOURCE_LABELS = {
+    cdmx: "CDMX",
+    gdl: "Guadalajara",
+    ne: "Noreste",
+    no: "Noroeste",
+    generic: "Generico",
+  };
+
+  const buildSummarySourceLabels = (summarySources, type) => {
+    if (!summarySources) return [];
+    return Object.entries(summarySources)
+      .filter(([, group]) => Array.isArray(group?.[type]) && group[type].length)
+      .map(([key]) => SUMMARY_SOURCE_LABELS[key] || key.toUpperCase());
+  };
+
+  const buildSourceVariantsList = (sourceMap) => {
+    if (!sourceMap || typeof sourceMap !== "object") return [];
+    const labels = [];
+    Object.values(sourceMap).forEach((variants) => {
+      if (Array.isArray(variants) && variants.length) {
+        labels.push(variants[0]);
+      }
+    });
+    return uniqueList(labels);
+  };
+
+  const getCustomRowLabels = (rows) =>
+    uniqueList(
+      (Array.isArray(rows) ? rows : [])
+        .map((row) => row?.alias || row?.label || row?.variants?.[0])
+        .filter(Boolean)
+    );
 
   const buildSampleValues = (count, start, drop) => {
     const result = [];
@@ -813,6 +894,7 @@
   const buildDatasetsFromList = (seriesList, labels, chartType) => {
     if (!Array.isArray(seriesList)) return [];
     const active = seriesList.filter((serie) => serie?.enabled !== false);
+    const isPie = isPieType(chartType);
     return active.map((serie, index) => {
       const color = serie?.color || "#0d47a1";
       const data = buildSampleValues(
@@ -823,10 +905,18 @@
       const dataset = {
         label: serie?.label || serie?.key || `Serie ${index + 1}`,
         data,
-        backgroundColor: color,
-        borderColor: color,
         borderWidth: chartType === "line" ? 2 : 1,
       };
+      if (isPie) {
+        dataset.backgroundColor = buildSlicePalette(labels.length, color);
+        dataset.borderColor = "#ffffff";
+        dataset.borderWidth = 1;
+        return dataset;
+      }
+
+      dataset.backgroundColor = color;
+      dataset.borderColor = color;
+
       if (chartType === "line") {
         dataset.fill = false;
         dataset.tension = 0.3;
@@ -944,6 +1034,27 @@
 
   const buildCardDefinitions = (config) => {
     const baseType = config.chart?.type || "bar";
+    const defaults = clone(getGraficasConfigApi()?.defaults || {});
+    const baseSources = defaults.sources || {};
+    const sources = config.sources || baseSources || {};
+    const summarySources = sources.summary || baseSources.summary || {};
+    const consolidatedSources =
+      sources.consolidated || baseSources.consolidated || {};
+    const ingresoSources = sources.ingreso || baseSources.ingreso || {};
+    const ingresoNacionalSources =
+      sources.ingresoNacional || baseSources.ingresoNacional || {};
+    const summaryOperatingSources = buildSummarySourceLabels(
+      summarySources,
+      "operating"
+    );
+    const summaryNetSources = buildSummarySourceLabels(summarySources, "net");
+    const consolidatedLabels = uniqueList([
+      consolidatedSources?.operating?.label,
+      consolidatedSources?.net?.label,
+    ]);
+    const ingresoSourceLabels = buildSourceVariantsList(ingresoSources);
+    const ingresoNacionalSourceLabels =
+      buildSourceVariantsList(ingresoNacionalSources);
     const defs = [
       {
         id: "summary-operating",
@@ -954,6 +1065,8 @@
         chartType: baseType,
         enabled: config.charts?.operating?.enabled !== false,
         previewKind: "summary",
+        sourcesText: buildSourcesText(summaryOperatingSources),
+        sourcesMeta: buildSourcesMeta(summaryOperatingSources),
         target: {
           collapseId: "plantillasGraficasResumenCollapse",
           focusSelector: '[data-chart-key="operating"]',
@@ -967,6 +1080,8 @@
         chartType: baseType,
         enabled: config.charts?.net?.enabled !== false,
         previewKind: "summary",
+        sourcesText: buildSourcesText(summaryNetSources),
+        sourcesMeta: buildSourcesMeta(summaryNetSources),
         target: {
           collapseId: "plantillasGraficasResumenCollapse",
           focusSelector: '[data-chart-key="net"]',
@@ -982,6 +1097,8 @@
         chartType: baseType,
         enabled: config.charts?.consolidated?.enabled !== false,
         previewKind: "consolidated",
+        sourcesText: buildSourcesText(consolidatedLabels, "Fuente"),
+        sourcesMeta: buildSourcesMeta(consolidatedLabels, "Fuente"),
         target: {
           collapseId: "plantillasGraficasResumenCollapse",
           focusSelector: '[data-chart-key="consolidated"]',
@@ -995,6 +1112,8 @@
         chartType: baseType,
         enabled: config.ingreso?.enabled !== false,
         previewKind: "ingreso",
+        sourcesText: buildSourcesText(ingresoSourceLabels),
+        sourcesMeta: buildSourcesMeta(ingresoSourceLabels),
         target: {
           collapseId: "plantillasGraficasIngresoCollapse",
           focusSelector: "[data-ingreso-title]",
@@ -1008,6 +1127,8 @@
         chartType: baseType,
         enabled: config.ingresoNacional?.enabled !== false,
         previewKind: "ingreso-nacional",
+        sourcesText: buildSourcesText(ingresoNacionalSourceLabels),
+        sourcesMeta: buildSourcesMeta(ingresoNacionalSourceLabels),
         target: {
           collapseId: "plantillasGraficasIngresoNacionalCollapse",
           focusSelector: "[data-ingreso-nacional-title]",
@@ -1021,6 +1142,8 @@
         chartType: baseType,
         enabled: config.operativo?.enabled !== false,
         previewKind: "operativo",
+        sourcesText: "Fuente: tabla del modulo (resultado operativo)",
+        sourcesMeta: "Tabla del modulo",
         target: {
           collapseId: "plantillasGraficasOperativoCollapse",
           focusSelector: "[data-operativo-title]",
@@ -1038,6 +1161,8 @@
           config.gastosGenerales?.charts?.rendimientos?.enabled !== false,
         previewKind: "gastos",
         chartKey: "rendimientos",
+        sourcesText: "Fuente: tabla de gastos generales",
+        sourcesMeta: "Tabla gastos",
         target: {
           collapseId: "plantillasGraficasGastosCollapse",
           focusSelector: '[data-gg-chart-key="rendimientos"]',
@@ -1055,6 +1180,8 @@
           config.gastosGenerales?.charts?.plusvalia?.enabled !== false,
         previewKind: "gastos",
         chartKey: "plusvalia",
+        sourcesText: "Fuente: tabla de gastos generales",
+        sourcesMeta: "Tabla gastos",
         target: {
           collapseId: "plantillasGraficasGastosCollapse",
           focusSelector: '[data-gg-chart-key="plusvalia"]',
@@ -1070,6 +1197,9 @@
         chart?.chartType && chart.chartType !== "inherit"
           ? chart.chartType
           : baseType;
+      const rowLabels = getCustomRowLabels(
+        Array.isArray(chart?.rows) ? chart.rows : []
+      );
       defs.push({
         id: `custom-${chart?.id || index + 1}`,
         title: chart?.title || `Grafica personalizada ${index + 1}`,
@@ -1079,6 +1209,8 @@
         enabled: chart?.enabled !== false,
         previewKind: "custom",
         rows: Array.isArray(chart?.rows) ? chart.rows : [],
+        sourcesText: buildSourcesText(rowLabels, "Filas"),
+        sourcesMeta: buildSourcesMeta(rowLabels, "Filas"),
         target: {
           collapseId: "plantillasGraficasCustomCollapse",
           focusSelector: `[data-custom-chart][data-custom-id="${chart?.id || ""}"]`,
@@ -1094,10 +1226,15 @@
     const titleEl = detailCard.querySelector("[data-detail-title]");
     const subtitleEl = detailCard.querySelector("[data-detail-subtitle]");
     const infoEl = detailCard.querySelector("[data-detail-info]");
+    const sourcesEl = detailCard.querySelector("[data-detail-sources]");
     if (!definition) {
       if (detailMeta) detailMeta.classList.add("d-none");
       if (detailHint) detailHint.classList.remove("d-none");
       if (detailEditBtn) detailEditBtn.classList.add("d-none");
+      if (sourcesEl) {
+        sourcesEl.textContent = "";
+        sourcesEl.classList.add("d-none");
+      }
       return;
     }
     if (detailHint) detailHint.classList.add("d-none");
@@ -1114,6 +1251,11 @@
       infoEl.textContent = `${definition.category} · ${formatChartTypeLabel(
         definition.chartType
       )}${definition.enabled ? "" : " · Inactiva"}`;
+    }
+    if (sourcesEl) {
+      const sourcesText = definition.sourcesText || "";
+      sourcesEl.textContent = sourcesText;
+      sourcesEl.classList.toggle("d-none", !sourcesText);
     }
     if (detailEditBtn) detailEditBtn.classList.remove("d-none");
   };
@@ -1177,9 +1319,13 @@
         statusEl.classList.toggle("text-muted", !definition.enabled);
       }
       if (metaEl) {
-        metaEl.textContent = `${definition.category} · ${formatChartTypeLabel(
-          definition.chartType
-        )}`;
+        const metaParts = [
+          `${definition.category} - ${formatChartTypeLabel(definition.chartType)}`,
+        ];
+        if (definition.sourcesMeta) {
+          metaParts.push(definition.sourcesMeta);
+        }
+        metaEl.textContent = metaParts.join(" - ");
       }
       node.classList.toggle("is-disabled", !definition.enabled);
 

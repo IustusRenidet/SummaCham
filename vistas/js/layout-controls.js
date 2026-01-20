@@ -108,6 +108,7 @@
       if (window.updateButtonStates) {
         window.updateButtonStates();
       }
+      window.scheduleAutoSave?.("visibility");
     },
 
     /**
@@ -137,6 +138,7 @@
       if (window.updateButtonStates) {
         window.updateButtonStates();
       }
+      window.scheduleAutoSave?.("order");
     },
 
     /**
@@ -174,6 +176,7 @@
       if (window.updateButtonStates) {
         window.updateButtonStates();
       }
+      window.scheduleAutoSave?.("order");
     },
 
     /**
@@ -211,6 +214,7 @@
       if (window.updateButtonStates) {
         window.updateButtonStates();
       }
+      window.scheduleAutoSave?.("order");
     },
 
     /**
@@ -220,51 +224,119 @@
       const {
         showHiddenRows = false,
         showSampleData = true,
-        monthsToShow = 3,
+        monthsToShow = 12,
       } = options;
 
       const meses = [
-        "Enero",
-        "Febrero",
-        "Marzo",
-        "Abril",
-        "Mayo",
-        "Junio",
-        "Julio",
-        "Agosto",
-        "Septiembre",
-        "Octubre",
-        "Noviembre",
-        "Diciembre",
+        { key: "ene", label: "ENE", full: "ENERO" },
+        { key: "feb", label: "FEB", full: "FEBRERO" },
+        { key: "mar", label: "MAR", full: "MARZO" },
+        { key: "abr", label: "ABR", full: "ABRIL" },
+        { key: "may", label: "MAY", full: "MAYO" },
+        { key: "jun", label: "JUN", full: "JUNIO" },
+        { key: "jul", label: "JUL", full: "JULIO" },
+        { key: "ago", label: "AGO", full: "AGOSTO" },
+        { key: "sep", label: "SEP", full: "SEPTIEMBRE" },
+        { key: "oct", label: "OCT", full: "OCTUBRE" },
+        { key: "nov", label: "NOV", full: "NOVIEMBRE" },
+        { key: "dic", label: "DIC", full: "DICIEMBRE" },
       ];
 
-      const moduloClave = (layoutData.modulo || "").toString().toUpperCase();
-      const selectedMonths = meses.slice(0, monthsToShow);
+      const moduloLabel = (layoutData.modulo || "").toString().trim();
+      const moduloClave = moduloLabel.toUpperCase();
+      const selectedMonths =
+        monthsToShow > 0 ? meses.slice(0, monthsToShow) : meses;
       const rows = this._buildPreviewRows(layoutData);
       const isResumen = moduloClave === "RESUMEN" || moduloClave === "SUMMARY";
-      const headerCols = isResumen
-        ? [
-            { label: "Cuenta", width: "120px", align: "start" },
-            { label: "Real", width: "110px", align: "end" },
-            { label: "Ppto.", width: "110px", align: "end" },
-            { label: "Real DIC 2024", width: "130px", align: "end" },
-            { label: "B/(W)% vs. Ppto.", width: "140px", align: "end" },
-            { label: "B/(W)% vs. Real DIC 2024", width: "170px", align: "end" },
-            { label: "Descripcion", width: "200px", align: "start" },
-            { label: "Real Acumulado", width: "140px", align: "end" },
-            { label: "Ppto. Acumulado", width: "150px", align: "end" },
-            { label: "Real Acum 2024", width: "130px", align: "end" },
-          ]
-        : [
-            { label: "Cuenta", width: "120px", align: "start" },
-            { label: "Descripcion", width: "200px", align: "start" },
-            ...selectedMonths.map((m) => ({
-              label: m,
-              width: "120px",
-              align: "end",
-            })),
-            { label: "Total", width: "120px", align: "end" },
-          ];
+      const year = Number(layoutData.anio) || new Date().getFullYear();
+      const yearShort = String(year).slice(-2);
+      const yearPrev = year - 1;
+      const resumenMonth = meses[11] || { label: "DIC", full: "DICIEMBRE" };
+
+      const operaciones = Array.isArray(layoutData.operaciones)
+        ? layoutData.operaciones
+        : [];
+      const opLookup = new Map();
+      const registerOp = (value, op) => {
+        const key = this._normalizeKey(value || "");
+        if (!key) return;
+        if (!opLookup.has(key)) opLookup.set(key, op);
+      };
+      operaciones.forEach((op) => {
+        registerOp(op?.OperacionId || op?.OperacionID, op);
+        registerOp(op?.Clase || op?.clase, op);
+        registerOp(op?.SECCION, op);
+      });
+
+      const resolveOperationMeta = (label) => {
+        const key = this._normalizeKey(label || "");
+        const op = key ? opLookup.get(key) : null;
+        const opId = op?.OperacionId || op?.OperacionID || op?.Clase || label || "";
+        const opLabel = op?.Clase || op?.OperacionId || label || "";
+        return { opId, opLabel };
+      };
+
+      const colCount = isResumen
+        ? 12
+        : 2 + 1 + selectedMonths.length * 2 + 2;
+
+      const headerHtml = isResumen
+        ? `
+          <thead>
+            <tr class="encabezados">
+              <th scope="col" class="account-column-header" rowspan="2">Cuenta</th>
+              <th scope="col" colspan="5">
+                <span class="mes-actual">${resumenMonth.full}</span>
+                <span class="year-act">${year}</span>
+              </th>
+              <th scope="col" class="col-descripcion" rowspan="2">Descripcion</th>
+              <th scope="col" colspan="5">YTD <span class="year-act">${year}</span></th>
+            </tr>
+            <tr class="encabezados-sub">
+              <th scope="col" class="month-real">Real</th>
+              <th scope="col" class="month-budget">Ppto.</th>
+              <th scope="col" class="month-real">Real ${resumenMonth.label} ${yearPrev}</th>
+              <th scope="col" class="total-budget-column">B/(W)% vs. Ppto.</th>
+              <th scope="col" class="total-real-column">B/(W)% vs. Real ${resumenMonth.label} ${yearPrev}</th>
+              <th scope="col" class="month-real">Real acumulado</th>
+              <th scope="col" class="month-budget">Ppto. acumulado</th>
+              <th scope="col" class="month-real">Real acumulado ${yearPrev}</th>
+              <th scope="col" class="total-budget-column">B/(W)% vs. Ppto. acumulado</th>
+              <th scope="col" class="total-real-column">B/(W)% vs. Real acumulado ${yearPrev}</th>
+            </tr>
+          </thead>
+        `
+        : `
+          <thead>
+            <tr>
+              <th scope="col" rowspan="2" style="min-width: 120px"></th>
+              <th scope="col" rowspan="2" style="min-width: 200px">
+                ${this._escapeHtml(moduloLabel || "")}
+              </th>
+              <th scope="col" rowspan="2" class="budget-annual-column" style="min-width: 140px">
+                Presupuesto <span class="anio">${year}</span>
+              </th>
+              ${selectedMonths
+                .map(
+                  (mes) => `
+                <th scope="col" class="month-budget" data-mes="${mes.key}">
+                  ${mes.label}-${yearShort}
+                </th>
+                <th scope="col" class="month-real" data-mes="${mes.key}">
+                  ${mes.label}-${yearShort}
+                </th>
+              `
+                )
+                .join("")}
+              <th scope="col" class="total-budget-column" rowspan="2">
+                Ppto. Acumulado <span class="anio">${year}</span>
+              </th>
+              <th scope="col" class="total-real-column" rowspan="2">
+                Real Acumulado <span class="anio">${year}</span>
+              </th>
+            </tr>
+          </thead>
+        `;
 
       let html = `
         <div class="preview-controls mb-3">
@@ -285,22 +357,13 @@
           </div>
         </div>
 
-        <div class="table-responsive">
-          <table class="table table-sm table-bordered preview-table-realistic">
-            <thead>
-              <tr class="table-dark">
-                ${headerCols
-                  .map(
-                    (col) =>
-                      `<th class="text-${col.align}" style="width:${col.width}">${col.label}</th>`
-                  )
-                  .join("")}
-              </tr>
-            </thead>
+        <div class="table-responsive sticky-table-scroll">
+          <table class="table align-middle mb-0 table-comparison preview-table-realistic ${
+            isResumen ? "preview-resumen" : "preview-modulo"
+          }">
+            ${headerHtml}
             <tbody>
       `;
-
-      const colCount = headerCols.length;
 
       rows.forEach((row) => {
         if (!row) return;
@@ -311,11 +374,11 @@
 
         if (row.type === "principal") {
           html += `
-            <tr class="section-row ${dimClass}">
+            <tr class="section-header-row ${dimClass}" data-row-type="section" data-section="${this._escapeAttr(
+              row.label || ""
+            )}">
               <td colspan="${colCount}">
-                <strong><i class="bi bi-folder2 me-2"></i>${hiddenPrefix}${this._escapeHtml(
-                  row.label || ""
-                )}</strong>
+                ${hiddenPrefix}${this._escapeHtml(row.label || "")}
               </td>
             </tr>
           `;
@@ -324,11 +387,11 @@
 
         if (row.type === "subsection") {
           html += `
-            <tr class="subsection-row ${dimClass}">
+            <tr class="subsection-row ${dimClass}" data-row-type="subsection" data-subsection="${this._escapeAttr(
+              row.label || ""
+            )}">
               <td colspan="${colCount}" class="ps-4">
-                <em><i class="bi bi-folder me-2"></i>${hiddenPrefix}${this._escapeHtml(
-                  row.label || ""
-                )}</em>
+                ${hiddenPrefix}${this._escapeHtml(row.label || "")}
               </td>
             </tr>
           `;
@@ -348,37 +411,79 @@
             const realAcum = real * 6;
             const pptoAcum = ppto * 6;
             const realPrevAcum = realPrev * 6;
+            const bwPptoAcum = pptoAcum ? ((realAcum / pptoAcum - 1) * 100) : 0;
+            const bwPrevAcum = realPrevAcum
+              ? ((realAcum / realPrevAcum - 1) * 100)
+              : 0;
             html += `
-              <tr class="${dimClass}">
-                <td class="ps-4 small">${hiddenPrefix}${this._escapeHtml(row.cuenta || "")}</td>
+              <tr class="account-row ${dimClass}" data-row-type="account" data-cuenta="${this._escapeAttr(
+                row.cuenta || ""
+              )}">
+                <td class="ps-4 small">${hiddenPrefix}${this._escapeHtml(
+                  row.cuenta || ""
+                )}</td>
                 <td class="text-end">${this._formatMoney(real)}</td>
                 <td class="text-end fw-bold">${this._formatMoney(ppto)}</td>
                 <td class="text-end">${this._formatMoney(realPrev)}</td>
                 <td class="text-end">${bwPpto.toFixed(2)} %</td>
                 <td class="text-end">${bwPrev.toFixed(2)} %</td>
-                <td class="ps-4">${this._escapeHtml(row.nombre || row.cuenta || "")}</td>
-                <td class="text-end fw-semibold">${this._formatMoney(realAcum)}</td>
+                <td class="ps-4">${this._escapeHtml(
+                  row.nombre || row.cuenta || ""
+                )}</td>
+                <td class="text-end fw-semibold">${this._formatMoney(
+                  realAcum
+                )}</td>
                 <td class="text-end">${this._formatMoney(pptoAcum)}</td>
                 <td class="text-end">${this._formatMoney(realPrevAcum)}</td>
+                <td class="text-end">${bwPptoAcum.toFixed(2)} %</td>
+                <td class="text-end">${bwPrevAcum.toFixed(2)} %</td>
               </tr>
             `;
           } else {
-            const sampleValues = showSampleData
+            const monthlyBudget = showSampleData
               ? this._generateSampleData(selectedMonths.length)
               : Array(selectedMonths.length).fill(0);
-            const total = sampleValues.reduce((a, b) => a + b, 0);
+            const monthlyReal = showSampleData
+              ? this._generateSampleData(selectedMonths.length)
+              : Array(selectedMonths.length).fill(0);
+            const annualBudget = showSampleData
+              ? this._generateSampleData(1, true)[0]
+              : 0;
+            const totalBudget = monthlyBudget.reduce((a, b) => a + b, 0);
+            const totalReal = monthlyReal.reduce((a, b) => a + b, 0);
             html += `
-              <tr class="${dimClass}">
-                <td class="ps-5 small">${hiddenPrefix}${this._escapeHtml(
+              <tr class="fila-cuenta account-row ${dimClass}" data-row-type="account" data-cuenta="${this._escapeAttr(
+                row.cuenta || ""
+              )}">
+                <td class="ps-4 small">${hiddenPrefix}${this._escapeHtml(
                   row.cuenta || ""
                 )}</td>
-                <td class="ps-5">${this._escapeHtml(
+                <td class="ps-4">${this._escapeHtml(
                   row.nombre || row.cuenta || ""
                 )}</td>
-                ${sampleValues
-                  .map((v) => `<td class="text-end">${this._formatMoney(v)}</td>`)
+                <td class="text-end budget-value">${this._formatMoney(
+                  annualBudget
+                )}</td>
+                ${selectedMonths
+                  .map((_, idx) => {
+                    const budget = monthlyBudget[idx] || 0;
+                    const real = monthlyReal[idx] || 0;
+                    return `
+                      <td class="text-end budget-value">${this._formatMoney(
+                        budget
+                      )}</td>
+                      <td class="text-end budget-value">${this._formatMoney(
+                        real
+                      )}</td>
+                    `;
+                  })
                   .join("")}
-                <td class="text-end fw-bold">${this._formatMoney(total)}</td>
+                <td class="text-end budget-value sticky-total-budget">${this._formatMoney(
+                  totalBudget
+                )}</td>
+                <td class="text-end budget-value sticky-total-real">${this._formatMoney(
+                  totalReal
+                )}</td>
               </tr>
             `;
           }
@@ -386,6 +491,20 @@
         }
 
         if (row.type === "operation") {
+          const opMeta = resolveOperationMeta(row.label);
+          const kindClassMap = {
+            "sum-row": "sum-row",
+            "sum-row-sumavarios": "sum-row-sumavarios",
+            "sum-row-sumavarios2": "sum-row-sumavarios",
+            "sum-row-sumavarios-consolidado": "sum-row-sumavarios",
+            "sum-row-operativo": "sum-row-operativo",
+            "sum-row-operativo-consolidado": "sum-row-operativo",
+            "result-row": "result-row",
+            "net-row": "result-row",
+            "net-row-adicional": "result-row",
+            "result-net-row": "result-row",
+          };
+          const kindClass = kindClassMap[row.kind] || "";
           if (isResumen) {
             const sample = showSampleData
               ? this._generateSampleData(3, true)
@@ -398,39 +517,81 @@
             const realAcum = real * 6;
             const pptoAcum = ppto * 6;
             const realPrevAcum = realPrev * 6;
+            const bwPptoAcum = pptoAcum ? ((realAcum / pptoAcum - 1) * 100) : 0;
+            const bwPrevAcum = realPrevAcum
+              ? ((realAcum / realPrevAcum - 1) * 100)
+              : 0;
             html += `
-              <tr class="operation-row ${row.kind || ""} ${dimClass}">
+              <tr class="operation-row ${kindClass} ${dimClass}" data-row-type="operation" data-operation-id="${this._escapeAttr(
+                opMeta.opId
+              )}" data-operation-label="${this._escapeAttr(
+                opMeta.opLabel
+              )}" data-operation-kind="${this._escapeAttr(row.kind || "")}">
                 <td class="ps-4 fw-bold" colspan="1">
-                  ${hiddenPrefix}<i class="bi bi-calculator me-2"></i>${this._escapeHtml(row.label || "")}
+                  ${hiddenPrefix}${this._escapeHtml(row.label || "")}
                 </td>
                 <td class="text-end fw-semibold">${this._formatMoney(real)}</td>
                 <td class="text-end fw-semibold">${this._formatMoney(ppto)}</td>
                 <td class="text-end">${this._formatMoney(realPrev)}</td>
                 <td class="text-end">${bwPpto.toFixed(2)} %</td>
                 <td class="text-end">${bwPrev.toFixed(2)} %</td>
-                <td class="ps-4 fw-bold">${this._escapeHtml(row.label || "")}</td>
-                <td class="text-end fw-semibold">${this._formatMoney(realAcum)}</td>
+                <td class="ps-4 fw-bold">${this._escapeHtml(
+                  row.label || ""
+                )}</td>
+                <td class="text-end fw-semibold">${this._formatMoney(
+                  realAcum
+                )}</td>
                 <td class="text-end">${this._formatMoney(pptoAcum)}</td>
                 <td class="text-end">${this._formatMoney(realPrevAcum)}</td>
+                <td class="text-end">${bwPptoAcum.toFixed(2)} %</td>
+                <td class="text-end">${bwPrevAcum.toFixed(2)} %</td>
               </tr>
             `;
           } else {
-            const sampleValues = showSampleData
+            const monthlyBudget = showSampleData
               ? this._generateSampleData(selectedMonths.length, true)
               : Array(selectedMonths.length).fill(0);
-            const total = sampleValues.reduce((a, b) => a + b, 0);
+            const monthlyReal = showSampleData
+              ? this._generateSampleData(selectedMonths.length, true)
+              : Array(selectedMonths.length).fill(0);
+            const annualBudget = showSampleData
+              ? this._generateSampleData(1, true)[0]
+              : 0;
+            const totalBudget = monthlyBudget.reduce((a, b) => a + b, 0);
+            const totalReal = monthlyReal.reduce((a, b) => a + b, 0);
             html += `
-              <tr class="operation-row ${row.kind || ""} ${dimClass}">
-                <td colspan="2" class="fw-bold">
-                  ${hiddenPrefix}
-                  <i class="bi bi-calculator me-2"></i>${this._escapeHtml(
-                    row.label || ""
-                  )}
+              <tr class="operation-row ${kindClass} ${dimClass}" data-row-type="operation" data-operation-id="${this._escapeAttr(
+                opMeta.opId
+              )}" data-operation-label="${this._escapeAttr(
+                opMeta.opLabel
+              )}" data-operation-kind="${this._escapeAttr(row.kind || "")}">
+                <td class="ps-4"></td>
+                <td class="fw-bold">
+                  ${hiddenPrefix}${this._escapeHtml(row.label || "")}
                 </td>
-                ${sampleValues
-                  .map((v) => `<td class="text-end">${this._formatMoney(v)}</td>`)
+                <td class="text-end budget-value">${this._formatMoney(
+                  annualBudget
+                )}</td>
+                ${selectedMonths
+                  .map((_, idx) => {
+                    const budget = monthlyBudget[idx] || 0;
+                    const real = monthlyReal[idx] || 0;
+                    return `
+                      <td class="text-end budget-value">${this._formatMoney(
+                        budget
+                      )}</td>
+                      <td class="text-end budget-value">${this._formatMoney(
+                        real
+                      )}</td>
+                    `;
+                  })
                   .join("")}
-                <td class="text-end fw-bold">${this._formatMoney(total)}</td>
+                <td class="text-end budget-value sticky-total-budget">${this._formatMoney(
+                  totalBudget
+                )}</td>
+                <td class="text-end budget-value sticky-total-real">${this._formatMoney(
+                  totalReal
+                )}</td>
               </tr>
             `;
           }

@@ -683,8 +683,53 @@ const guardarCuentas = ({
       seccion_principal, seccion_secundaria, orden, orden_presentacion, visible, actualizado_en
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
   `);
+  const deleteSecciones = db.prepare(`
+    DELETE FROM layout_secciones
+    WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ?
+  `);
+  const insertSeccion = db.prepare(`
+    INSERT OR REPLACE INTO layout_secciones (
+      empresa_id, modulo, anio, capitulo, seccion_principal,
+      seccion_secundaria, tipo, orden, actualizado_en
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+  `);
+
+  const normalizarSeccion = (valor) =>
+    (valor || "").toString().trim();
 
   const transaction = db.transaction((cuentasArray) => {
+    const ordenPrincipal = new Map();
+    const ordenSecundaria = new Map();
+    let siguienteOrdenPrincipal = 0;
+
+    const registrarPrincipal = (principal) => {
+      const clave = normalizarSeccion(principal);
+      if (!clave) return null;
+      if (!ordenPrincipal.has(clave)) {
+        ordenPrincipal.set(clave, siguienteOrdenPrincipal);
+        siguienteOrdenPrincipal += 1;
+      }
+      return clave;
+    };
+
+    const registrarSecundaria = (principal, secundaria) => {
+      const principalClave = normalizarSeccion(principal);
+      const secundariaClave = normalizarSeccion(secundaria);
+      if (!principalClave || !secundariaClave) return null;
+      let mapa = ordenSecundaria.get(principalClave);
+      if (!mapa) {
+        mapa = new Map();
+        ordenSecundaria.set(principalClave, mapa);
+      }
+      if (!mapa.has(secundariaClave)) {
+        mapa.set(secundariaClave, mapa.size);
+      }
+      return { principalClave, secundariaClave, orden: mapa.get(secundariaClave) };
+    };
+
+    const seccionesRegistradas = new Set();
+    deleteSecciones.run(empresaCanonica, modulo, anio, capitulo);
+
     cuentasArray.forEach((cuenta, index) => {
       if (!cuenta.CUENTA) {
         console.warn(
@@ -722,6 +767,44 @@ const guardarCuentas = ({
         ordenPresentacion,
         visible
       );
+
+      const principalClave = registrarPrincipal(seccionPrincipal);
+      if (principalClave) {
+        const keyPrincipal = `${principalClave}||`;
+        if (!seccionesRegistradas.has(keyPrincipal)) {
+          seccionesRegistradas.add(keyPrincipal);
+          insertSeccion.run(
+            empresaCanonica,
+            modulo,
+            anio,
+            capitulo,
+            principalClave,
+            "",
+            "principal",
+            ordenPrincipal.get(principalClave) ?? 0
+          );
+        }
+      }
+
+      if (seccionSecundaria) {
+        const info = registrarSecundaria(seccionPrincipal, seccionSecundaria);
+        if (info) {
+          const keySecundaria = `${info.principalClave}||${info.secundariaClave}`;
+          if (!seccionesRegistradas.has(keySecundaria)) {
+            seccionesRegistradas.add(keySecundaria);
+            insertSeccion.run(
+              empresaCanonica,
+              modulo,
+              anio,
+              capitulo,
+              info.principalClave,
+              info.secundariaClave,
+              "secundaria",
+              info.orden ?? 0
+            );
+          }
+        }
+      }
     });
   });
 

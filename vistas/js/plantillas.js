@@ -33,6 +33,7 @@
     columnConfigAdvanced: false,
     selectedElement: null,
     changeLog: [], // Registro de cambios
+    autoSave: true,
   };
   window.state = state;
 
@@ -1037,6 +1038,23 @@
           <div class="card-body">
             ${renderTemplateTable(rows, columns)}
           </div>
+        </div>
+      </div>
+      <div class="formula-map-card mt-3">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <strong>
+            <i class="bi bi-diagram-3 me-1"></i>Mapa de operacion
+          </strong>
+          <button
+            type="button"
+            class="btn btn-outline-primary btn-sm"
+            onclick="window.FormulaBuilder && window.FormulaBuilder.showMap && window.FormulaBuilder.showMap()"
+          >
+            Ampliar
+          </button>
+        </div>
+        <div id="formulaMapPreview" class="formula-map-preview">
+          <div class="text-muted small">Sin datos de formula.</div>
         </div>
       </div>
     `;
@@ -4407,7 +4425,9 @@
   // ==========================================
   function openAddModal() {
     if (!state.editMode) {
-      showToast("Activa el modo edición primero", "warning");
+      if (!silent) {
+        showToast("Activa el modo edición primero", "warning");
+      }
       return;
     }
     updateAddForm();
@@ -4594,6 +4614,7 @@
       }
 
       bootstrap.Modal.getInstance(dom.modalAgregar)?.hide();
+      await saveLayout({ skipConfirmation: true, silent: true, source: "add" });
       await loadLayout();
     } catch (error) {
       console.error("Error adding element:", error);
@@ -4871,7 +4892,9 @@
   // ==========================================
   function openCopyModal() {
     if (!state.editMode) {
-      showToast("Activa el modo edición primero", "warning");
+      if (!silent) {
+        showToast("Activa el modo edicion primero", "warning");
+      }
       return;
     }
 
@@ -4940,7 +4963,43 @@
     });
     state.unsavedChanges = true;
     updateButtonStates();
+    scheduleAutoSave("logChange");
   }
+
+  const AUTO_SAVE_DELAY = 1200;
+  let autoSaveTimer = null;
+  let autoSaveInProgress = false;
+  let autoSaveQueued = false;
+
+  function scheduleAutoSave(reason = "") {
+    if (!state.autoSave || !state.editMode) return;
+    if (!state.unsavedChanges) return;
+    if (autoSaveTimer) clearTimeout(autoSaveTimer);
+    setStatus("Cambios pendientes. Guardado automatico...");
+    autoSaveTimer = setTimeout(() => {
+      autoSaveTimer = null;
+      runAutoSave(reason);
+    }, AUTO_SAVE_DELAY);
+  }
+
+  async function runAutoSave(reason = "") {
+    if (autoSaveInProgress) {
+      autoSaveQueued = true;
+      return;
+    }
+    autoSaveInProgress = true;
+    try {
+      await saveLayout({ skipConfirmation: true, silent: true, source: reason });
+    } finally {
+      autoSaveInProgress = false;
+      if (autoSaveQueued) {
+        autoSaveQueued = false;
+        scheduleAutoSave("queued");
+      }
+    }
+  }
+
+  window.scheduleAutoSave = scheduleAutoSave;
 
   /**
    * Generar resumen de cambios
@@ -5198,7 +5257,12 @@
       });
     });
   }
-  async function saveLayout() {
+  async function saveLayout(options = {}) {
+    const {
+      skipConfirmation = false,
+      silent = false,
+      source = "manual",
+    } = options;
     if (!state.editMode) {
       showToast("Activa el modo edición primero", "warning");
       return;
@@ -5206,10 +5270,12 @@
 
     // Validar contexto
     if (!state.modulo || !state.anio || !state.capitulo) {
-      showToast(
-        "⚠️ Falta información: módulo, año o capítulo no definido",
-        "error"
-      );
+      if (!silent) {
+        showToast(
+          "⚠️ Falta información: módulo, año o capítulo no definido",
+          "error"
+        );
+      }
       console.error("Contexto incompleto:", {
         modulo: state.modulo,
         anio: state.anio,
@@ -5220,19 +5286,29 @@
 
     // Generar resumen de cambios
     const changesSummary = generateChangesSummary();
+    const hasDirtyChanges = state.unsavedChanges === true;
 
-    if (changesSummary.total === 0) {
-      showToast("ℹ️ No hay cambios para guardar", "info");
+    if (changesSummary.total === 0 && !hasDirtyChanges) {
+      if (!silent) {
+        showToast("ℹ️ No hay cambios para guardar", "info");
+      }
       return;
+    }
+
+    if (changesSummary.total === 0 && hasDirtyChanges) {
+      changesSummary.total = 1;
+      changesSummary.summary = "Cambios pendientes";
     }
 
     // Mostrar modal de confirmación con resumen
-    const confirmed = await showSaveConfirmation(changesSummary);
-    if (!confirmed) {
-      return;
+    if (!skipConfirmation) {
+      const confirmed = await showSaveConfirmation(changesSummary);
+      if (!confirmed) {
+        return;
+      }
     }
 
-    setStatus("Guardando...");
+    setStatus(silent ? "Guardando automatico..." : "Guardando...");
 
     try {
       // Save accounts
@@ -5300,8 +5376,10 @@
       state.changeLog = []; // Limpiar log de cambios
       state.columnasConfigChanged = false;
       updateButtonStates();
-      setStatus("Guardado correctamente");
-      showToast("✅ Layout guardado exitosamente", "success");
+      setStatus(silent ? "Guardado automatico" : "Guardado correctamente");
+      if (!silent) {
+        showToast("✅ Layout guardado exitosamente", "success");
+      }
 
       // Registrar en bitácora
       await addToBitacora(
@@ -5311,7 +5389,9 @@
     } catch (error) {
       console.error("Error saving layout:", error);
       setStatus("Error al guardar");
-      showToast(error.message, "error");
+      if (!silent) {
+        showToast(error.message, "error");
+      }
     }
   }
 
@@ -6839,6 +6919,7 @@ window.editSection = function (name) {
     updateButtonStates();
     renderLayout();
     updateStats();
+    scheduleAutoSave("edit");
 
     bootstrap.Modal.getInstance(dom.modalEditar)?.hide();
     bootstrap?.Offcanvas?.getInstance(dom.operationEditorPanel)?.hide();
@@ -6892,6 +6973,7 @@ window.editSection = function (name) {
     updateButtonStates();
     renderLayout();
     updateStats();
+    scheduleAutoSave("delete");
     bootstrap.Modal.getInstance(dom.modalEditar)?.hide();
     bootstrap?.Offcanvas?.getInstance(dom.operationEditorPanel)?.hide();
     showToast("Elemento eliminado", "success");
@@ -7684,6 +7766,7 @@ window.editSection = function (name) {
 
     const layoutData = {
       modulo: state.modulo,
+      anio: state.anio,
       capitulo: state.capitulo,
       cuentas: state.cuentas || [],
       operaciones: sortOperations(state.operaciones || []),
@@ -7692,7 +7775,7 @@ window.editSection = function (name) {
     let currentOptions = {
       showHiddenRows: false,
       showSampleData: true,
-      monthsToShow: 3,
+      monthsToShow: 12,
     };
 
     const renderWithOptions = (options) => {
@@ -7700,6 +7783,7 @@ window.editSection = function (name) {
       dom.previewContainer.innerHTML =
         window.LayoutControls.renderRealisticPreview(layoutData, currentOptions);
       bindPreviewControls();
+      bindPreviewTableEvents();
     };
 
     const bindPreviewControls = () => {
@@ -7728,6 +7812,36 @@ window.editSection = function (name) {
     };
 
     renderWithOptions(currentOptions);
+  }
+
+  function bindPreviewTableEvents() {
+    if (!dom.previewContainer) return;
+    if (dom.previewContainer.dataset.previewEventsBound === "true") return;
+    dom.previewContainer.dataset.previewEventsBound = "true";
+
+    dom.previewContainer.addEventListener("click", (event) => {
+      const row = event.target.closest("tr[data-row-type]");
+      if (!row || !dom.previewContainer.contains(row)) return;
+      const rowType = row.dataset.rowType;
+      if (rowType === "operation") {
+        if (!requireEditMode()) return;
+        const opId = row.dataset.operationId || "";
+        const label = row.dataset.operationLabel || opId;
+        if (event.altKey && window.showOperationMap) {
+          window.showOperationMap(opId || label);
+          return;
+        }
+        window.editOperation?.(opId || label);
+        return;
+      }
+      if (rowType === "account") {
+        if (!requireEditMode()) return;
+        const cuenta = row.dataset.cuenta;
+        if (cuenta) {
+          window.editAccount?.(cuenta);
+        }
+      }
+    });
   }
 
   // ==========================================

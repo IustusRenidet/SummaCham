@@ -1727,24 +1727,22 @@
         return targets;
       }
 
-        const operativoCombined = document.querySelectorAll(
-          '[data-operativo-chart="combined"] canvas'
+        const operativoCanvases = document.querySelectorAll(
+          "[data-operativo-chart] canvas"
         );
-        if (operativoCombined.length) {
-          operativoCombined.forEach((canvas) => {
-            pushCanvas(canvas, resolveTitle(canvas, ""));
-          });
-        } else {
-          const operativoCanvases = document.querySelectorAll(
-            "[data-operativo-chart] canvas"
-          );
-          operativoCanvases.forEach((canvas) => {
-            pushCanvas(canvas, resolveTitle(canvas, ""));
-          });
-        }
+        operativoCanvases.forEach((canvas) => {
+          pushCanvas(canvas, resolveTitle(canvas, ""));
+        });
 
         const ggCanvases = document.querySelectorAll("[data-gg-chart] canvas");
         ggCanvases.forEach((canvas) => {
+          pushCanvas(canvas, resolveTitle(canvas, ""));
+        });
+
+        const customCanvases = document.querySelectorAll(
+          "[data-custom-chart] canvas"
+        );
+        customCanvases.forEach((canvas) => {
           pushCanvas(canvas, resolveTitle(canvas, ""));
         });
         return targets;
@@ -1755,7 +1753,9 @@
       const titleEl =
         canvas.closest(".chart-block")?.querySelector(".chart-title") ||
         canvas.closest(".charts-card")?.querySelector("h6") ||
-        canvas.closest(".charts-card")?.querySelector("h5");
+        canvas.closest(".charts-card")?.querySelector("h5") ||
+        canvas.closest(".chart-card")?.querySelector("h6") ||
+        canvas.closest(".chart-card")?.querySelector("h5");
       const titleText = titleEl?.textContent?.trim();
       return titleText || fallback || "Grafica";
     },

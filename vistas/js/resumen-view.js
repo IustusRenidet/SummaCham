@@ -25,6 +25,34 @@
     return Number.isFinite(numero) ? numero : 0;
   };
 
+  const CHART_PALETTE = [
+    "#2563eb",
+    "#f59e0b",
+    "#10b981",
+    "#ef4444",
+    "#8b5cf6",
+    "#14b8a6",
+    "#f97316",
+    "#e11d48",
+  ];
+
+  const isPieType = (type) => type === "pie" || type === "doughnut";
+
+  const buildSlicePalette = (count, baseColor) => {
+    const palette = baseColor
+      ? [baseColor, ...CHART_PALETTE.filter((color) => color !== baseColor)]
+      : CHART_PALETTE;
+    return Array.from({ length: count }, (_, idx) => palette[idx % palette.length]);
+  };
+
+  const getParsedValue = (context) => {
+    if (!context) return 0;
+    if (typeof context.parsed === "number") return context.parsed;
+    if (typeof context.parsed?.y === "number") return context.parsed.y;
+    if (typeof context.raw === "number") return context.raw;
+    return 0;
+  };
+
   const DEFAULT_GRAFICAS_CONFIG = (() => {
     if (window.GraficasConfig && window.GraficasConfig.defaults) {
       return window.GraficasConfig.defaults;
@@ -681,7 +709,7 @@
                 const label = context.dataset?.label
                   ? `${context.dataset.label}: `
                   : "";
-                return `${label}${formatNumber(context.parsed?.y)}`;
+                return `${label}${formatNumber(getParsedValue(context))}`;
               },
             },
           },
@@ -928,15 +956,20 @@
     if (!resolvedRows.length) return null;
 
     const datasets = seriesConfig.map((serie) => {
+      const data = resolvedRows.map((row) => toNumber(row.data?.[serie.key] ?? 0));
       const dataset = {
         label: serie.label,
-        data: resolvedRows.map((row) =>
-          toNumber(row.data?.[serie.key] ?? 0)
-        ),
-        backgroundColor: serie.color,
-        borderColor: serie.color,
+        data,
         borderWidth: chartType === "line" ? 2 : 2,
       };
+      if (isPieType(chartType)) {
+        dataset.backgroundColor = buildSlicePalette(data.length, serie.color);
+        dataset.borderColor = "#ffffff";
+        dataset.borderWidth = 1;
+        return dataset;
+      }
+      dataset.backgroundColor = serie.color;
+      dataset.borderColor = serie.color;
       if (chartType === "line") {
         dataset.fill = false;
         dataset.tension = 0.32;
@@ -1558,6 +1591,14 @@
     return true;
   };
 
+  const resolverComparativoNumero = (obj, claveActual, clavePrev) => {
+    if (!obj) return null;
+    const actual = Number(obj[claveActual]);
+    if (Number.isFinite(actual)) return actual;
+    const previo = Number(obj[clavePrev]);
+    return Number.isFinite(previo) ? previo : null;
+  };
+
   const indexarLayoutComparativo = (layout = []) => {
     const cuentas = new Map();
     const etiquetas = new Map();
@@ -1592,8 +1633,18 @@
         comparativo = etiqueta ? etiquetas.get(`${tipo}|${etiqueta}`) : null;
       }
       if (!comparativo?.totals) return;
-      asignarSiNumero(block.totals, "prevMonth", comparativo.totals.prevMonth);
-      asignarSiNumero(block.totals, "prevYTD", comparativo.totals.prevYTD);
+      const prevMonth = resolverComparativoNumero(
+        comparativo.totals,
+        "actualMonth",
+        "prevMonth"
+      );
+      const prevYTD = resolverComparativoNumero(
+        comparativo.totals,
+        "actualYTD",
+        "prevYTD"
+      );
+      asignarSiNumero(block.totals, "prevMonth", prevMonth);
+      asignarSiNumero(block.totals, "prevYTD", prevYTD);
     });
   };
 
@@ -1635,24 +1686,54 @@
         ? principales.get(principalKey)
         : null;
       if (compPrincipal) {
-        asignarSiNumero(principal, "prevMonth", compPrincipal.prevMonth);
-        asignarSiNumero(principal, "prevYTD", compPrincipal.prevYTD);
+        const prevMonth = resolverComparativoNumero(
+          compPrincipal,
+          "actualMonth",
+          "prevMonth"
+        );
+        const prevYTD = resolverComparativoNumero(
+          compPrincipal,
+          "actualYTD",
+          "prevYTD"
+        );
+        asignarSiNumero(principal, "prevMonth", prevMonth);
+        asignarSiNumero(principal, "prevYTD", prevYTD);
       }
       (principal.children || []).forEach((seccion) => {
-        const seccionKey = normalizarEtiquetaComparativa(seccion.label || "");
-        const compSeccion = seccionKey ? secciones.get(seccionKey) : null;
-        if (compSeccion) {
-          asignarSiNumero(seccion, "totalPrevMonth", compSeccion.totalPrevMonth);
-          asignarSiNumero(seccion, "totalPrevYTD", compSeccion.totalPrevYTD);
+      const seccionKey = normalizarEtiquetaComparativa(seccion.label || "");
+      const compSeccion = seccionKey ? secciones.get(seccionKey) : null;
+      if (compSeccion) {
+        const prevMonth = resolverComparativoNumero(
+          compSeccion,
+          "totalActualMonth",
+          "totalPrevMonth"
+        );
+        const prevYTD = resolverComparativoNumero(
+          compSeccion,
+          "totalActualYTD",
+          "totalPrevYTD"
+        );
+        asignarSiNumero(seccion, "totalPrevMonth", prevMonth);
+        asignarSiNumero(seccion, "totalPrevYTD", prevYTD);
+      }
+      (seccion.cuentas || []).forEach((cta) => {
+        const cuentaKey = obtenerClaveCuentaComparativa(cta);
+        const compCuenta = cuentaKey ? cuentas.get(cuentaKey) : null;
+        if (compCuenta) {
+          const prevMonth = resolverComparativoNumero(
+            compCuenta,
+            "actualMonth",
+            "prevMonth"
+          );
+          const prevYTD = resolverComparativoNumero(
+            compCuenta,
+            "actualYTD",
+            "prevYTD"
+          );
+          asignarSiNumero(cta, "prevMonth", prevMonth);
+          asignarSiNumero(cta, "prevYTD", prevYTD);
         }
-        (seccion.cuentas || []).forEach((cta) => {
-          const cuentaKey = obtenerClaveCuentaComparativa(cta);
-          const compCuenta = cuentaKey ? cuentas.get(cuentaKey) : null;
-          if (compCuenta) {
-            asignarSiNumero(cta, "prevMonth", compCuenta.prevMonth);
-            asignarSiNumero(cta, "prevYTD", compCuenta.prevYTD);
-          }
-        });
+      });
       });
     });
 
@@ -2979,7 +3060,17 @@
           }
         );
 
-        seccionesOrdenadas.forEach((seccion) => {
+
+        // Forzar mostrar siempre Gastos Generales y Gtos.Corporativos como secciones propias
+        let seccionesAseguradas = [...seccionesOrdenadas];
+        const nombresAsegurados = ["Gastos Generales", "Gtos.Corporativos"];
+        nombresAsegurados.forEach((nombre) => {
+          if (!seccionesAseguradas.some(sec => (sec.label || sec.nombre || "").toUpperCase() === nombre.toUpperCase())) {
+            seccionesAseguradas.push({ label: nombre, cuentas: [], totals: {} });
+          }
+        });
+
+        seccionesAseguradas.forEach((seccion) => {
           (seccion.cuentas || []).forEach((cta) => {
             const varPlan = calculateVar(cta.actualMonth, cta.planMonth);
             const varPrev = calculateVar(cta.actualMonth, cta.prevMonth);
@@ -3060,11 +3151,11 @@
 
           tablaBody.appendChild(
             createResumenTotalsRow(seccion, {
-              label: seccion.label || "",
+              label: seccion.label || seccion.nombre || "",
               rowRole: "section",
               rowClass: "sum-row fw-semibold",
               rowContext: {
-                label: seccion.label || "",
+                label: seccion.label || seccion.nombre || "",
                 principal: principal.label || "",
                 cuentas: seccion.cuentas || [],
               },
@@ -4352,10 +4443,16 @@
       const dataset = {
         label: serie.label,
         data,
-        backgroundColor: serie.color,
-        borderColor: serie.color,
         borderWidth: chartType === "line" ? 2 : 2,
       };
+      if (isPieType(chartType)) {
+        dataset.backgroundColor = buildSlicePalette(data.length, serie.color);
+        dataset.borderColor = "#ffffff";
+        dataset.borderWidth = 1;
+        return dataset;
+      }
+      dataset.backgroundColor = serie.color;
+      dataset.borderColor = serie.color;
       if (chartType === "line") {
         dataset.fill = false;
         dataset.tension = 0.32;
@@ -4489,10 +4586,16 @@
           const dataset = {
             label: cfg.label,
             data,
-            backgroundColor: cfg.color,
-            borderColor: cfg.color,
             borderWidth: chartType === "line" ? 2 : 2,
           };
+          if (isPieType(chartType)) {
+            dataset.backgroundColor = buildSlicePalette(data.length, cfg.color);
+            dataset.borderColor = "#ffffff";
+            dataset.borderWidth = 1;
+            return dataset;
+          }
+          dataset.backgroundColor = cfg.color;
+          dataset.borderColor = cfg.color;
           if (chartType === "line") {
             dataset.fill = false;
             dataset.tension = 0.32;

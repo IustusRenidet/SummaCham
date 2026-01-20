@@ -250,7 +250,7 @@
       "CUENTA": "901-000-000-00",
       "NOMBRE": "Gastos Generales",
       "SECCION Principal": "EXPENSE",
-      "SECCION Secundaria": "Gastos Administrativos"
+      "SECCION Secundaria": "Gastos Generales"
     },
     {
       "CAPITULO": "CIUDAD DE MEXICO",
@@ -302,12 +302,20 @@
       "SECCION Secundaria": "Nómina"
     },
     {
-      "CAPITULO": "CIUDAD DE MEXICO",
-      "CUENTA": "903-000-000-00",
-      "NOMBRE": "Gastos Corporativos",
-      "SECCION Principal": "Gastos Corporativos",
-      "SECCION Secundaria": "Gastos Corporativos"
-    },
+          "CAPITULO": "CIUDAD DE MEXICO",
+          "CUENTA": "901-000-000-00",
+          "NOMBRE": "Gastos Generales",
+          "SECCION Principal": "EXPENSE",
+          "SECCION Secundaria": "Gastos Generales"
+        },
+
+        {
+          "CAPITULO": "CIUDAD DE MEXICO",
+          "CUENTA": "903-000-000-00",
+          "NOMBRE": "Gastos Corporativos",
+          "SECCION Principal": "EXPENSE",
+          "SECCION Secundaria": "Gastos Corporativos"
+        },
     {
       "CAPITULO": "CIUDAD DE MEXICO",
       "CUENTA": "950-001-000-00",

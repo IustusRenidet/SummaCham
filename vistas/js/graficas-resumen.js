@@ -86,6 +86,34 @@
     return numero === 0 ? null : numero;
   };
 
+  const CHART_PALETTE = [
+    "#2563eb",
+    "#f59e0b",
+    "#10b981",
+    "#ef4444",
+    "#8b5cf6",
+    "#14b8a6",
+    "#f97316",
+    "#e11d48",
+  ];
+
+  const isPieType = (type) => type === "pie" || type === "doughnut";
+
+  const buildSlicePalette = (count, baseColor) => {
+    const palette = baseColor
+      ? [baseColor, ...CHART_PALETTE.filter((color) => color !== baseColor)]
+      : CHART_PALETTE;
+    return Array.from({ length: count }, (_, idx) => palette[idx % palette.length]);
+  };
+
+  const getParsedValue = (context) => {
+    if (!context) return 0;
+    if (typeof context.parsed === "number") return context.parsed;
+    if (typeof context.parsed?.y === "number") return getParsedValue(context);
+    if (typeof context.raw === "number") return context.raw;
+    return 0;
+  };
+
   const MONTH_LABELS = [
     "Enero",
     "Febrero",
@@ -295,9 +323,11 @@
       return null;
     }
 
+    const chartType = graficasConfig.chart?.type || "bar";
     const cacheSignature = JSON.stringify({
       ingreso: ingresoConfig,
       sources: ingresoSources,
+      chartType,
     });
     const cacheKey = buildIngresoCacheKey(empresaId, anio, cacheSignature);
     if (ingresoCache.has(cacheKey)) {
@@ -350,19 +380,35 @@
       return null;
     }
 
+    const isPie = isPieType(chartType);
     const result = {
       labels: MONTH_LABELS,
-      datasets: datasetsConfig.map((dataset) => ({
-        label: dataset.label,
-        data: series[dataset.key] || [],
-        borderColor: dataset.color,
-        backgroundColor: dataset.color,
-        borderWidth: 2,
-        tension: 0.2,
-        fill: false,
-        pointRadius: POINT_RADIUS,
-        pointHoverRadius: POINT_HOVER_RADIUS,
-      })),
+      datasets: datasetsConfig.map((dataset) => {
+        const data = series[dataset.key] || [];
+        const entry = {
+          label: dataset.label,
+          data,
+          borderWidth: chartType === "line" ? 2 : 1,
+        };
+        if (isPie) {
+          entry.backgroundColor = buildSlicePalette(data.length, dataset.color);
+          entry.borderColor = "#ffffff";
+          entry.borderWidth = 1;
+          return entry;
+        }
+        entry.backgroundColor = dataset.color;
+        entry.borderColor = dataset.color;
+        if (chartType === "line") {
+          entry.tension = 0.2;
+          entry.fill = false;
+          entry.pointRadius = POINT_RADIUS;
+          entry.pointHoverRadius = POINT_HOVER_RADIUS;
+        } else if (chartType === "bar") {
+          entry.borderRadius = 6;
+          entry.maxBarThickness = 18;
+        }
+        return entry;
+      }),
     };
 
     ingresoCache.set(cacheKey, result);
@@ -387,9 +433,11 @@
       return null;
     }
 
+    const chartType = graficasConfig.chart?.type || "bar";
     const cacheSignature = JSON.stringify({
       ingresoNacional: ingresoConfig,
       sources: ingresoSources,
+      chartType,
     });
     const cacheKey = buildIngresoNacionalCacheKey(empresaId, anio, cacheSignature);
     if (ingresoNacionalCache.has(cacheKey)) {
@@ -442,19 +490,35 @@
       return null;
     }
 
+    const isPie = isPieType(chartType);
     const result = {
       labels: MONTH_LABELS,
-      datasets: datasetsConfig.map((dataset) => ({
-        label: dataset.label,
-        data: series[dataset.key] || [],
-        borderColor: dataset.color,
-        backgroundColor: dataset.color,
-        borderWidth: 2,
-        tension: 0.2,
-        fill: false,
-        pointRadius: POINT_RADIUS,
-        pointHoverRadius: POINT_HOVER_RADIUS,
-      })),
+      datasets: datasetsConfig.map((dataset) => {
+        const data = series[dataset.key] || [];
+        const entry = {
+          label: dataset.label,
+          data,
+          borderWidth: chartType === "line" ? 2 : 1,
+        };
+        if (isPie) {
+          entry.backgroundColor = buildSlicePalette(data.length, dataset.color);
+          entry.borderColor = "#ffffff";
+          entry.borderWidth = 1;
+          return entry;
+        }
+        entry.backgroundColor = dataset.color;
+        entry.borderColor = dataset.color;
+        if (chartType === "line") {
+          entry.tension = 0.2;
+          entry.fill = false;
+          entry.pointRadius = POINT_RADIUS;
+          entry.pointHoverRadius = POINT_HOVER_RADIUS;
+        } else if (chartType === "bar") {
+          entry.borderRadius = 6;
+          entry.maxBarThickness = 18;
+        }
+        return entry;
+      }),
     };
 
     ingresoNacionalCache.set(cacheKey, result);
@@ -1252,14 +1316,23 @@
     if (!resolvedRows.length) return null;
 
     const labels = resolvedRows.map((row) => row.label || "-");
+    const isPie = isPieType(chartType);
     const datasets = columnDefs.map((col) => {
+      const rawValues = resolvedRows.map((row) => toNumber(row.data[col.key]));
+      const data = isPie ? rawValues : rawValues.map((value) => ocultarCeros(value));
       const dataset = {
         label: col.label,
-        data: resolvedRows.map((row) => ocultarCeros(toNumber(row.data[col.key]))),
-        backgroundColor: col.color,
-        borderColor: col.color,
+        data,
         borderWidth: chartType === "line" ? 2 : 1,
       };
+      if (isPie) {
+        dataset.backgroundColor = buildSlicePalette(data.length, col.color);
+        dataset.borderColor = "#ffffff";
+        dataset.borderWidth = 1;
+        return dataset;
+      }
+      dataset.backgroundColor = col.color;
+      dataset.borderColor = col.color;
       if (chartType === "line") {
         dataset.fill = false;
         dataset.tension = 0.32;
@@ -1340,7 +1413,7 @@
                     if (label) {
                       label += ": ";
                     }
-                    label += formatNumber(context.parsed.y);
+                    label += formatNumber(getParsedValue(context));
                     return label;
                   },
                 },
@@ -1431,17 +1504,27 @@
    * Construye los datasets para un conjunto de filas
    */
   const buildDatasets = (rows, snapshotMap, columnDefs, chartType) => {
+    const isPie = isPieType(chartType);
     return columnDefs.map((col) => {
+      const rawValues = rows.map((row) => {
+        const data = getRowData(snapshotMap, row.variants);
+        return toNumber(data[col.key]);
+      });
       const dataset = {
         label: col.label,
-        data: rows.map((row) => {
-          const data = getRowData(snapshotMap, row.variants);
-          return ocultarCeros(toNumber(data[col.key]));
-        }),
-        backgroundColor: col.color,
-        borderColor: col.color,
+        data: isPie ? rawValues : rawValues.map((value) => ocultarCeros(value)),
         borderWidth: 2,
       };
+
+      if (isPie) {
+        dataset.backgroundColor = buildSlicePalette(rawValues.length, col.color);
+        dataset.borderColor = "#ffffff";
+        dataset.borderWidth = 1;
+        return dataset;
+      }
+
+      dataset.backgroundColor = col.color;
+      dataset.borderColor = col.color;
 
       if (chartType === "line") {
         dataset.fill = false;
@@ -1533,11 +1616,16 @@
               data: consolidatedColumns.map((col) =>
                 toNumber(consolidatedOp[col.key])
               ),
-              backgroundColor:
-                graficasConfig.consolidatedSeries?.operating?.color || "#0d47a1",
-              borderColor:
-                graficasConfig.consolidatedSeries?.operating?.color || "#0d47a1",
-              borderWidth: chartType === "line" ? 2 : 1,
+              backgroundColor: isPieType(chartType)
+                ? buildSlicePalette(
+                    consolidatedColumns.length,
+                    graficasConfig.consolidatedSeries?.operating?.color || "#0d47a1"
+                  )
+                : graficasConfig.consolidatedSeries?.operating?.color || "#0d47a1",
+              borderColor: isPieType(chartType)
+                ? "#ffffff"
+                : graficasConfig.consolidatedSeries?.operating?.color || "#0d47a1",
+              borderWidth: isPieType(chartType) ? 1 : chartType === "line" ? 2 : 1,
               ...(chartType === "line"
                 ? {
                     fill: false,
@@ -1548,7 +1636,9 @@
                       graficasConfig.consolidatedSeries?.operating?.color ||
                       "#0d47a1",
                   }
-                : { minBarLength: MIN_BAR_LENGTH }),
+                : chartType === "bar"
+                ? { minBarLength: MIN_BAR_LENGTH }
+                : {}),
             },
             {
               label:
@@ -1557,11 +1647,16 @@
               data: consolidatedColumns.map((col) =>
                 toNumber(consolidatedNet[col.key])
               ),
-              backgroundColor:
-                graficasConfig.consolidatedSeries?.net?.color || "#94a3b8",
-              borderColor:
-                graficasConfig.consolidatedSeries?.net?.color || "#94a3b8",
-              borderWidth: chartType === "line" ? 2 : 1,
+              backgroundColor: isPieType(chartType)
+                ? buildSlicePalette(
+                    consolidatedColumns.length,
+                    graficasConfig.consolidatedSeries?.net?.color || "#94a3b8"
+                  )
+                : graficasConfig.consolidatedSeries?.net?.color || "#94a3b8",
+              borderColor: isPieType(chartType)
+                ? "#ffffff"
+                : graficasConfig.consolidatedSeries?.net?.color || "#94a3b8",
+              borderWidth: isPieType(chartType) ? 1 : chartType === "line" ? 2 : 1,
               ...(chartType === "line"
                 ? {
                     fill: false,
@@ -1571,7 +1666,9 @@
                     pointBackgroundColor:
                       graficasConfig.consolidatedSeries?.net?.color || "#94a3b8",
                   }
-                : { minBarLength: MIN_BAR_LENGTH }),
+                : chartType === "bar"
+                ? { minBarLength: MIN_BAR_LENGTH }
+                : {}),
             },
           ],
         },
@@ -1590,7 +1687,7 @@
                     if (label) {
                       label += ': ';
                     }
-                    label += formatNumber(context.parsed.y);
+                    label += formatNumber(getParsedValue(context));
                     return label;
                   }
                 }
@@ -1670,24 +1767,35 @@
 
       if (showOperating && operatingSummaries.length) {
         const labels = operatingSummaries.map((s) => s.label);
-        const operatingDatasets = columnDefs.map((col) => ({
-          label: col.label,
-          data: operatingSummaries.map((s) =>
-            ocultarCeros(toNumber(s.data[col.key]))
-          ),
-          backgroundColor: col.color,
-          borderColor: col.color,
-          borderWidth: chartType === "line" ? 2 : 1,
-          ...(chartType === "line"
-            ? {
-                fill: false,
-                tension: 0.32,
-                pointRadius: POINT_RADIUS,
-                pointHoverRadius: POINT_HOVER_RADIUS,
-                pointBackgroundColor: col.color,
-              }
-            : { minBarLength: MIN_BAR_LENGTH }),
-        }));
+        const isPie = isPieType(chartType);
+        const operatingDatasets = columnDefs.map((col) => {
+          const rawValues = operatingSummaries.map((s) =>
+            toNumber(s.data[col.key])
+          );
+          const data = isPie ? rawValues : rawValues.map((value) => ocultarCeros(value));
+          const dataset = {
+            label: col.label,
+            data,
+            borderWidth: isPie ? 1 : chartType === "line" ? 2 : 1,
+          };
+          if (isPie) {
+            dataset.backgroundColor = buildSlicePalette(data.length, col.color);
+            dataset.borderColor = "#ffffff";
+            return dataset;
+          }
+          dataset.backgroundColor = col.color;
+          dataset.borderColor = col.color;
+          if (chartType === "line") {
+            dataset.fill = false;
+            dataset.tension = 0.32;
+            dataset.pointRadius = POINT_RADIUS;
+            dataset.pointHoverRadius = POINT_HOVER_RADIUS;
+            dataset.pointBackgroundColor = col.color;
+          } else if (chartType === "bar") {
+            dataset.minBarLength = MIN_BAR_LENGTH;
+          }
+          return dataset;
+        });
 
         renderChart("chartOperatingSummaryByChapter", {
           type: chartType,
@@ -1708,7 +1816,7 @@
                       if (label) {
                         label += ": ";
                       }
-                      label += formatNumber(context.parsed.y);
+                      label += formatNumber(getParsedValue(context));
                       return label;
                     },
                   },
@@ -1740,23 +1848,30 @@
 
       if (showNet && netSummaries.length) {
         const labels = netSummaries.map((s) => s.label);
-        const netDatasets = columnDefs.map((col) => ({
-          label: col.label,
-          data: netSummaries.map((s) =>
-            ocultarCeros(toNumber(s.data[col.key]))
-          ),
-          backgroundColor: col.color,
-          borderColor: col.color,
-          borderWidth: chartType === "line" ? 2 : 1,
-          ...(chartType === "line"
-            ? {
-                fill: false,
-                tension: 0.32,
-                pointRadius: 3,
-                pointBackgroundColor: col.color,
-              }
-            : {}),
-        }));
+        const isPie = isPieType(chartType);
+        const netDatasets = columnDefs.map((col) => {
+          const rawValues = netSummaries.map((s) => toNumber(s.data[col.key]));
+          const data = isPie ? rawValues : rawValues.map((value) => ocultarCeros(value));
+          const dataset = {
+            label: col.label,
+            data,
+            borderWidth: isPie ? 1 : chartType === "line" ? 2 : 1,
+          };
+          if (isPie) {
+            dataset.backgroundColor = buildSlicePalette(data.length, col.color);
+            dataset.borderColor = "#ffffff";
+            return dataset;
+          }
+          dataset.backgroundColor = col.color;
+          dataset.borderColor = col.color;
+          if (chartType === "line") {
+            dataset.fill = false;
+            dataset.tension = 0.32;
+            dataset.pointRadius = 3;
+            dataset.pointBackgroundColor = col.color;
+          }
+          return dataset;
+        });
 
         renderChart("chartNetSummaryByChapter", {
           type: chartType,
@@ -1777,7 +1892,7 @@
                       if (label) {
                         label += ": ";
                       }
-                      label += formatNumber(context.parsed.y);
+                      label += formatNumber(getParsedValue(context));
                       return label;
                     },
                   },
@@ -1823,24 +1938,35 @@
 
       if (showOperating && operatingSummaries.length) {
         const labels = operatingSummaries.map((s) => s.label);
-        const operatingDatasets = columnDefs.map((col) => ({
-          label: col.label,
-          data: operatingSummaries.map((s) =>
-            ocultarCeros(toNumber(s.data[col.key]))
-          ),
-          backgroundColor: col.color,
-          borderColor: col.color,
-          borderWidth: chartType === "line" ? 2 : 1,
-          ...(chartType === "line"
-            ? {
-                fill: false,
-                tension: 0.32,
-                pointRadius: POINT_RADIUS,
-                pointHoverRadius: POINT_HOVER_RADIUS,
-                pointBackgroundColor: col.color,
-              }
-            : { minBarLength: MIN_BAR_LENGTH }),
-        }));
+        const isPie = isPieType(chartType);
+        const operatingDatasets = columnDefs.map((col) => {
+          const rawValues = operatingSummaries.map((s) =>
+            toNumber(s.data[col.key])
+          );
+          const data = isPie ? rawValues : rawValues.map((value) => ocultarCeros(value));
+          const dataset = {
+            label: col.label,
+            data,
+            borderWidth: isPie ? 1 : chartType === "line" ? 2 : 1,
+          };
+          if (isPie) {
+            dataset.backgroundColor = buildSlicePalette(data.length, col.color);
+            dataset.borderColor = "#ffffff";
+            return dataset;
+          }
+          dataset.backgroundColor = col.color;
+          dataset.borderColor = col.color;
+          if (chartType === "line") {
+            dataset.fill = false;
+            dataset.tension = 0.32;
+            dataset.pointRadius = POINT_RADIUS;
+            dataset.pointHoverRadius = POINT_HOVER_RADIUS;
+            dataset.pointBackgroundColor = col.color;
+          } else if (chartType === "bar") {
+            dataset.minBarLength = MIN_BAR_LENGTH;
+          }
+          return dataset;
+        });
 
         renderChart("chartOperatingSummaryByChapter", {
           type: chartType,
@@ -1861,7 +1987,7 @@
                       if (label) {
                         label += ": ";
                       }
-                      label += formatNumber(context.parsed.y);
+                      label += formatNumber(getParsedValue(context));
                       return label;
                     },
                   },
@@ -1893,24 +2019,33 @@
 
       if (showNet && netSummaries.length) {
         const labels = netSummaries.map((s) => s.label);
-        const netDatasets = columnDefs.map((col) => ({
-          label: col.label,
-          data: netSummaries.map((s) =>
-            ocultarCeros(toNumber(s.data[col.key]))
-          ),
-          backgroundColor: col.color,
-          borderColor: col.color,
-          borderWidth: chartType === "line" ? 2 : 1,
-          ...(chartType === "line"
-            ? {
-                fill: false,
-                tension: 0.32,
-                pointRadius: POINT_RADIUS,
-                pointHoverRadius: POINT_HOVER_RADIUS,
-                pointBackgroundColor: col.color,
-              }
-            : { minBarLength: MIN_BAR_LENGTH }),
-        }));
+        const isPie = isPieType(chartType);
+        const netDatasets = columnDefs.map((col) => {
+          const rawValues = netSummaries.map((s) => toNumber(s.data[col.key]));
+          const data = isPie ? rawValues : rawValues.map((value) => ocultarCeros(value));
+          const dataset = {
+            label: col.label,
+            data,
+            borderWidth: isPie ? 1 : chartType === "line" ? 2 : 1,
+          };
+          if (isPie) {
+            dataset.backgroundColor = buildSlicePalette(data.length, col.color);
+            dataset.borderColor = "#ffffff";
+            return dataset;
+          }
+          dataset.backgroundColor = col.color;
+          dataset.borderColor = col.color;
+          if (chartType === "line") {
+            dataset.fill = false;
+            dataset.tension = 0.32;
+            dataset.pointRadius = POINT_RADIUS;
+            dataset.pointHoverRadius = POINT_HOVER_RADIUS;
+            dataset.pointBackgroundColor = col.color;
+          } else if (chartType === "bar") {
+            dataset.minBarLength = MIN_BAR_LENGTH;
+          }
+          return dataset;
+        });
 
         renderChart("chartNetSummaryByChapter", {
           type: chartType,
@@ -1931,7 +2066,7 @@
                       if (label) {
                         label += ": ";
                       }
-                      label += formatNumber(context.parsed.y);
+                      label += formatNumber(getParsedValue(context));
                       return label;
                     },
                   },
@@ -1974,6 +2109,7 @@
     const graficasConfig = getGraficasConfig();
     const ingresoConfig =
       graficasConfig.ingreso || DEFAULT_GRAFICAS_CONFIG.ingreso;
+    const chartType = graficasConfig.chart?.type || "bar";
     if (ingresoConfig.enabled === false) {
       return;
     }
@@ -1989,7 +2125,7 @@
       }
 
       renderChart("chartIngresoPorCapitulo", {
-        type: "line",
+        type: chartType,
         data: {
           labels: series.labels,
           datasets: series.datasets,
@@ -2012,7 +2148,7 @@
                     if (label) {
                       label += ": ";
                     }
-                    label += formatNumber(context.parsed.y);
+                    label += formatNumber(getParsedValue(context));
                     return label;
                   },
                 },
@@ -2034,7 +2170,7 @@
             },
           },
           graficasConfig,
-          "line"
+          chartType
         ),
       });
     } catch (err) {
@@ -2052,6 +2188,7 @@
     const graficasConfig = getGraficasConfig();
     const ingresoConfig =
       graficasConfig.ingresoNacional || DEFAULT_GRAFICAS_CONFIG.ingresoNacional;
+    const chartType = graficasConfig.chart?.type || "bar";
     if (ingresoConfig.enabled === false) {
       return;
     }
@@ -2067,7 +2204,7 @@
       }
 
       renderChart("chartIngresoNacional", {
-        type: "line",
+        type: chartType,
         data: {
           labels: series.labels,
           datasets: series.datasets,
@@ -2090,7 +2227,7 @@
                     if (label) {
                       label += ": ";
                     }
-                    label += formatNumber(context.parsed.y);
+                    label += formatNumber(getParsedValue(context));
                     return label;
                   },
                 },
@@ -2112,7 +2249,7 @@
             },
           },
           graficasConfig,
-          "line"
+          chartType
         ),
       });
     } catch (err) {

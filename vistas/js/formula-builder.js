@@ -78,6 +78,21 @@
     },
 
     /**
+     * Renderizar vista previa del mapa de operacion
+     */
+    renderMapPreview() {
+      const container = document.getElementById("formulaMapPreview");
+      if (!container) return;
+      const validation = this.validate();
+      if (!validation.isValid) {
+        container.innerHTML =
+          '<div class="text-muted small">Completa la formula para ver el mapa.</div>';
+        return;
+      }
+      container.innerHTML = this._generateMapVisualization();
+    },
+
+    /**
      * Parsear operación legacy a términos
      */
     _parseFromLegacy(op) {
@@ -273,6 +288,7 @@
       `;
 
       container.innerHTML = html;
+      this.renderMapPreview();
     },
 
     _normalizeKey(value) {

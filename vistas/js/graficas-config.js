@@ -302,7 +302,7 @@
         typeof chart?.subtitle === "string" ? chart.subtitle.trim() : "";
       const chartType =
         typeof chart?.chartType === "string" &&
-        ["inherit", "bar", "line"].includes(chart.chartType)
+        ["inherit", "bar", "line", "pie", "doughnut"].includes(chart.chartType)
           ? chart.chartType
           : "inherit";
       const enabled = typeof chart?.enabled === "boolean" ? chart.enabled : true;
@@ -500,7 +500,7 @@
     if (config.chart && typeof config.chart === "object") {
       if (
         typeof config.chart.type === "string" &&
-        ["bar", "line"].includes(config.chart.type)
+        ["bar", "line", "pie", "doughnut"].includes(config.chart.type)
       ) {
         base.chart.type = config.chart.type;
       }
