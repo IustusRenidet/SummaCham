@@ -51,7 +51,6 @@ const MODULE_GROUPS = [
       { id: 'usuarios', label: 'Administrar usuarios', path: 'usuarios.html', badge: 'Permisos', requiresAdmin: true },
       { id: 'crear-usuario', label: 'Crear usuario', path: 'crear_usuario.html', requiresAdmin: true },
       { id: 'plantillas', label: 'Gestor de Plantillas', path: 'plantillas.html', requiresAdmin: true, permiso: 'Layouts' },
-      { id: 'graficas-config', label: 'Gestor de Graficas', path: 'graficas-config.html', requiresAdmin: true, public: true },
       { id: 'firebird-conexiones', label: 'Administrar conexiones', path: 'firebird-config.html', requiresAdminGlobal: true }
     ]
   }

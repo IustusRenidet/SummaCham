@@ -7818,12 +7818,19 @@ window.editSection = function (name) {
    */
   const cargarOperacionesDesdeJSON = async () => {
     try {
-      const response = await fetch('../info IMPORTANTE/logica operaciones.json');
+      const response = await fetch(
+        encodeURI("../info IMPORTANTE/logica operaciones.json")
+      );
       if (!response.ok) {
         console.warn('No se pudo cargar logica operaciones.json');
         return {};
       }
-      
+      const contentType = response.headers.get("content-type") || "";
+      if (!contentType.includes("application/json")) {
+        console.warn("Respuesta inesperada cargando logica operaciones.json");
+        return {};
+      }
+
       const operacionesArray = await response.json();
       const operacionesMap = {};
       

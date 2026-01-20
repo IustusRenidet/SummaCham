@@ -1,5 +1,13 @@
 (() => {
   const STORAGE_KEY = "graficas_config_v1";
+  const API_BASE = (() => {
+    if (window.location.protocol === "file:") {
+      return "http://localhost:3005/api";
+    }
+    return `${window.location.origin.replace(/\/$/, "")}/api`;
+  })();
+  const API_ENDPOINT = `${API_BASE}/graficas-config`;
+  const EVENT_CONFIG_UPDATED = "graficas-config-updated";
   const DEFAULT_CONFIG = {
     version: 2,
     series: [
@@ -592,33 +600,160 @@
     return base;
   };
 
-  const loadConfig = () => {
+  const obtenerHeadersAuth = () => {
+    if (window.Sesion && typeof window.Sesion.headersAutenticacion === "function") {
+      return window.Sesion.headersAutenticacion();
+    }
+    return {};
+  };
+
+  const dispatchConfigUpdate = (config, source) => {
+    if (typeof window === "undefined") return;
+    window.dispatchEvent(
+      new CustomEvent(EVENT_CONFIG_UPDATED, {
+        detail: {
+          config: clone(config),
+          source,
+        },
+      })
+    );
+  };
+
+  let cachedConfig = null;
+  let loadedFromServer = false;
+  let loadingPromise = null;
+
+  const loadLocalConfig = () => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return clone(DEFAULT_CONFIG);
+      if (!raw) return null;
       return normalizeConfig(JSON.parse(raw));
     } catch (error) {
-      return clone(DEFAULT_CONFIG);
+      return null;
     }
+  };
+
+  const persistLocalConfig = (config) => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+    } catch (error) {
+      /* ignore */
+    }
+  };
+
+  const fetchServerConfig = async () => {
+    const response = await fetch(API_ENDPOINT, {
+      method: "GET",
+      headers: obtenerHeadersAuth(),
+      credentials: "include",
+    });
+    if (response.status === 404) {
+      return null;
+    }
+    if (!response.ok) {
+      throw new Error("No fue posible cargar la configuracion.");
+    }
+    const payload = await response.json();
+    if (!payload?.config) return null;
+    return normalizeConfig(payload.config);
+  };
+
+  const saveServerConfig = async (config) => {
+    const response = await fetch(API_ENDPOINT, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...obtenerHeadersAuth(),
+      },
+      credentials: "include",
+      body: JSON.stringify({ config }),
+    });
+    if (response.status === 404) {
+      return null;
+    }
+    if (!response.ok) {
+      throw new Error("No fue posible guardar la configuracion.");
+    }
+    const payload = await response.json();
+    if (!payload?.config) return null;
+    return normalizeConfig(payload.config);
+  };
+
+  const resetServerConfig = async () => {
+    const response = await fetch(API_ENDPOINT, {
+      method: "DELETE",
+      headers: obtenerHeadersAuth(),
+      credentials: "include",
+    });
+    if (response.status === 404) {
+      return;
+    }
+    if (!response.ok) {
+      throw new Error("No fue posible restaurar la configuracion.");
+    }
+  };
+
+  const hydrateConfigFromServer = () => {
+    if (loadedFromServer) return;
+    loadedFromServer = true;
+    loadingPromise = fetchServerConfig()
+      .then((serverConfig) => {
+        if (!serverConfig) return;
+        cachedConfig = clone(serverConfig);
+        persistLocalConfig(cachedConfig);
+        dispatchConfigUpdate(cachedConfig, "server");
+      })
+      .catch((error) => {
+        console.warn("GraficasConfig: sin respuesta del servidor.", error);
+      })
+      .finally(() => {
+        loadingPromise = null;
+      });
+  };
+
+  const loadConfig = () => {
+    if (!cachedConfig) {
+      const localConfig = loadLocalConfig();
+      cachedConfig = localConfig ? clone(localConfig) : clone(DEFAULT_CONFIG);
+      hydrateConfigFromServer();
+    }
+    return clone(cachedConfig);
   };
 
   const saveConfig = (config) => {
     const normalized = normalizeConfig(config);
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
-    } catch (error) {
-      /* ignore */
-    }
-    return normalized;
+    cachedConfig = clone(normalized);
+    persistLocalConfig(cachedConfig);
+    dispatchConfigUpdate(cachedConfig, "local");
+    saveServerConfig(normalized)
+      .then((serverConfig) => {
+        if (!serverConfig) return;
+        cachedConfig = clone(serverConfig);
+        persistLocalConfig(cachedConfig);
+        dispatchConfigUpdate(cachedConfig, "server");
+      })
+      .catch((error) => {
+        console.warn("GraficasConfig: no se pudo guardar en servidor.", error);
+      });
+    return clone(cachedConfig);
   };
 
   const resetConfig = () => {
+    cachedConfig = clone(DEFAULT_CONFIG);
     try {
       localStorage.removeItem(STORAGE_KEY);
     } catch (error) {
       /* ignore */
     }
-    return clone(DEFAULT_CONFIG);
+    dispatchConfigUpdate(cachedConfig, "local");
+    resetServerConfig()
+      .then(() => {
+        dispatchConfigUpdate(cachedConfig, "server");
+      })
+      .catch((error) => {
+        console.warn("GraficasConfig: no se pudo restaurar en servidor.", error);
+      });
+    return clone(cachedConfig);
   };
 
   const hasSaved = () => {

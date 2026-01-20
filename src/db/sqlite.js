@@ -728,6 +728,18 @@ const crearTablas = () => {
     ON layout_bitacora(empresa_id, modulo, anio, capitulo)
   `
   ).run();
+
+  db.prepare(
+    `
+    CREATE TABLE IF NOT EXISTS graficas_config (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      empresa_id TEXT NOT NULL,
+      config_json TEXT NOT NULL,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(empresa_id)
+    )
+  `
+  ).run();
 };
 
 const permisosCompletos = (permiso = {}) => ({

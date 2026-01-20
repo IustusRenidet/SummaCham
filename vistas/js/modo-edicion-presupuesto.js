@@ -1575,7 +1575,10 @@
         const empresa = Sesion.obtenerEmpresaActiva();
         const selectAnio = obtenerSelectorAnio();
         const anioSeleccion = Number(selectAnio?.value);
-        const anio = Number.isInteger(anioSeleccion) ? anioSeleccion : null;
+        const anio =
+          Number.isInteger(anioSeleccion) && anioSeleccion > 0
+            ? anioSeleccion
+            : null;
         const moduloClave = (
           document.body?.dataset?.modulo ||
           document.body?.dataset?.moduloId ||
@@ -1583,7 +1586,7 @@
         )
           .toString()
           .trim();
-        if (empresa?.id && Number.isInteger(anio) && moduloClave) {
+        if (empresa?.id && anio && moduloClave) {
           // Prefer server layout; fallback to local layout
           (async () => {
             const serverLayout = await cargarLayoutServidor({

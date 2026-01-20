@@ -1337,6 +1337,16 @@
     adminAllowed ? "Listo para editar." : "Acceso restringido a administradores.",
     adminAllowed ? "muted" : "danger"
   );
+
+  window.addEventListener("graficas-config-updated", (event) => {
+    const nextConfig = event?.detail?.config;
+    if (!nextConfig) return;
+    applyConfigToForm(nextConfig);
+    renderGallery(nextConfig);
+    if (adminAllowed) {
+      setStatus("Configuracion sincronizada con el servidor.", "muted");
+    }
+  });
   if (!adminAllowed) {
     return;
   }

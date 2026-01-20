@@ -151,13 +151,6 @@
           permiso: "Layouts",
         },
         {
-          id: "graficas-config",
-          label: "Gestor de Graficas",
-          path: "graficas-config.html",
-          requiresAdmin: true,
-          public: true,
-        },
-        {
           id: "firebird-conexiones",
           label: "Administrar conexiones",
           path: "firebird-config.html",
@@ -184,7 +177,6 @@
     vpe: "VPE",
     nomina: "N\xF3mina",
     plantillas: "Layouts",
-    "graficas-config": "Graficas",
   };
   const mapPermisosEnItems = (items = []) => {
     return items.map((item) => {

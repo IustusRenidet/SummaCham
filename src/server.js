@@ -1,5 +1,6 @@
 const express = require("express");
 const helmet = require("helmet");
+const fs = require("fs");
 const path = require("path");
 const session = require("express-session");
 const cookieParser = require("cookie-parser");
@@ -103,6 +104,7 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3005)) => {
   const rutasPerfil = require("./routes/perfil");
   const rutasBackups = require("./routes/backups");
   const rutasFirebirdConfig = require("./routes/firebird-config");
+  const rutasGraficasConfig = require("./routes/graficas-config");
 
   const app = express();
 
@@ -179,6 +181,8 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3005)) => {
   // Ruta raíz para servir la interfaz web
   const vistasPath = path.join(__dirname, "..", "vistas");
   const iconoPath = path.join(__dirname, "..", "icono");
+  const infoImportantePath = path.join(__dirname, "..", "info IMPORTANTE");
+  const infoImportanteAltPath = path.join(__dirname, "..", "info_importante");
 
   app.get("/", (req, res) => {
     // Si no hay sesión activa, redirigir a login
@@ -209,6 +213,15 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3005)) => {
   );
 
   // Servir archivos estáticos de la carpeta icono (logos, íconos)
+  // Servir archivos estaticos de info IMPORTANTE si existe.
+  if (fs.existsSync(infoImportantePath)) {
+    app.use("/info IMPORTANTE", express.static(infoImportantePath));
+  }
+  if (fs.existsSync(infoImportanteAltPath)) {
+    app.use("/info_importante", express.static(infoImportanteAltPath));
+  }
+
+  // Servir archivos estaticos de la carpeta icono.
   app.use("/icono", express.static(iconoPath));
 
   // Info de la API
@@ -279,6 +292,7 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3005)) => {
   app.use("/api/cuentas", rutasCuentas);
   app.use("/api/backups", rutasBackups);
   app.use("/api/firebird-config", rutasFirebirdConfig);
+  app.use("/api/graficas-config", rutasGraficasConfig);
   app.use("/api", rutasEstructura);
   app.use("/api/insercion", rutasInsercion);
 
