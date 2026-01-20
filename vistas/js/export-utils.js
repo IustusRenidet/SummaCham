@@ -159,6 +159,10 @@
           chartsSheetName: nombreHojaGraficas,
           tableSheetName: nombreHojaTabla,
         });
+        const chartMode = this._resolverModoGraficasExcel();
+        if (chartMode) {
+          params.set("chartMode", chartMode);
+        }
 
         this._showToast("Generando Excel con gráficas...");
         const response = await fetch(
@@ -342,26 +346,9 @@
       const datos = this._obtenerDatosOperativo(tablaElement);
       if (!datos.length) return false;
 
-      const labels = datos.map((item) => item.etiqueta);
-      const presupuestos = datos.map((item) => item.presupuesto);
-      const reales = datos.map((item) => item.real);
-      const colorBudget = "#4472c4";
-      const colorReal = "#ffc000";
-
-      const imagenBudget = this._crearImagenGrafica({
-        labels,
-        data: presupuestos,
-        color: colorBudget,
-        titulo: "Ppto Acumulado",
-      });
-      const imagenReal = this._crearImagenGrafica({
-        labels,
-        data: reales,
-        color: colorReal,
-        titulo: "Real Acumulado",
-      });
-
-      if (!imagenBudget || !imagenReal) return false;
+        const labels = datos.map((item) => item.etiqueta);
+        const presupuestos = datos.map((item) => item.presupuesto);
+        const reales = datos.map((item) => item.real);
 
       const workbook = new ExcelJS.Workbook();
       const ws = workbook.addWorksheet(nombreHojaOperativo);
@@ -382,24 +369,63 @@
 
       ws.columns = [{ width: 42 }, { width: 18 }, { width: 18 }];
 
-      const chartStart = ws.rowCount + 2;
-      const imgBudgetId = workbook.addImage({
-        base64: imagenBudget,
-        extension: "png",
-      });
-      ws.addImage(imgBudgetId, {
-        tl: { col: 0, row: chartStart },
-        ext: { width: 820, height: 360 },
-      });
+        const chartTargets = this._resolverGraficas();
+        const chartImages = await this._capturarGraficas(chartTargets);
+        let chartStart = ws.rowCount + 2;
 
-      const imgRealId = workbook.addImage({
-        base64: imagenReal,
-        extension: "png",
-      });
-      ws.addImage(imgRealId, {
-        tl: { col: 0, row: chartStart + 20 },
-        ext: { width: 820, height: 360 },
-      });
+        if (chartImages.length) {
+          chartImages.forEach((img) => {
+            if (!img?.dataUrl) return;
+            const ratio =
+              img.width && img.height ? img.height / img.width : 0.6;
+            const width = 820;
+            const height = Math.max(320, Math.round(width * ratio));
+            const imgId = workbook.addImage({
+              base64: img.dataUrl,
+              extension: "png",
+            });
+            ws.addImage(imgId, {
+              tl: { col: 0, row: chartStart },
+              ext: { width, height },
+            });
+            chartStart += Math.ceil(height / 20) + 2;
+          });
+        } else {
+          const colorBudget = "#4472c4";
+          const colorReal = "#ffc000";
+          const imagenBudget = this._crearImagenGrafica({
+            labels,
+            data: presupuestos,
+            color: colorBudget,
+            titulo: "Ppto Acumulado",
+          });
+          const imagenReal = this._crearImagenGrafica({
+            labels,
+            data: reales,
+            color: colorReal,
+            titulo: "Real Acumulado",
+          });
+
+          if (!imagenBudget || !imagenReal) return false;
+
+          const imgBudgetId = workbook.addImage({
+            base64: imagenBudget,
+            extension: "png",
+          });
+          ws.addImage(imgBudgetId, {
+            tl: { col: 0, row: chartStart },
+            ext: { width: 820, height: 360 },
+          });
+
+          const imgRealId = workbook.addImage({
+            base64: imagenReal,
+            extension: "png",
+          });
+          ws.addImage(imgRealId, {
+            tl: { col: 0, row: chartStart + 20 },
+            ext: { width: 820, height: 360 },
+          });
+        }
 
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], {
@@ -1106,11 +1132,10 @@
      * @param {string} options.titulo - Título del documento
      * @param {string} options.subtitulo - Subtítulo adicional
      */
-    imprimirPDF(options = {}) {
-      const { tabla, titulo = "Reporte", subtitulo = "" } = options;
+    async imprimirPDF(options = {}) {
+      const { tabla, titulo = "Reporte", subtitulo = "", charts } = options;
 
       try {
-        // Obtener elemento tabla
         const tablaElement =
           typeof tabla === "string"
             ? document.querySelector(tabla)
@@ -1122,9 +1147,19 @@
         }
 
         const metadata = this._obtenerMetadata();
-        const tablaClon = tablaElement.cloneNode(true);
+        const pdfDisponible = await this._ensurePdfLibs();
+        if (pdfDisponible) {
+          await this._imprimirPdfConGraficas({
+            tablaElement,
+            titulo,
+            subtitulo,
+            metadata,
+            charts,
+          });
+          return;
+        }
 
-        // Abrir ventana de impresión
+        const tablaClon = tablaElement.cloneNode(true);
         const ventana = window.open("", "_blank", "width=1200,height=900");
         if (!ventana) {
           alert("Activa las ventanas emergentes para imprimir.");
@@ -1132,6 +1167,9 @@
         }
 
         const estilosImpresion = this._getEstilosImpresion();
+        const chartTargets = charts === false ? [] : this._resolverGraficas(charts);
+        const chartImages = await this._capturarGraficas(chartTargets);
+        const chartsHtml = this._construirHtmlGraficas(chartImages);
 
         ventana.document.write(`<!DOCTYPE html>
         <html>
@@ -1147,6 +1185,7 @@
               ${subtitulo ? "<br>" + subtitulo : ""}
             </p>
             ${tablaClon.outerHTML}
+            ${chartsHtml}
             <script>
               window.onload = function() {
                 window.focus();
@@ -1163,6 +1202,797 @@
       }
     },
 
+    async _ensurePdfLibs() {
+      const hasPdf =
+        window.jspdf?.jsPDF &&
+        (window.jspdf.jsPDF.API?.autoTable ||
+          window.jspdf.jsPDF.prototype?.autoTable);
+      if (hasPdf) return true;
+
+      if (typeof document === "undefined") return false;
+
+      const loadScript = (src, key) =>
+        new Promise((resolve, reject) => {
+          const existing = document.querySelector(
+            `script[data-export-utils="${key}"]`
+          );
+          if (existing) {
+            if (existing.dataset.loaded === "1") {
+              resolve();
+              return;
+            }
+            existing.addEventListener("load", () => resolve(), { once: true });
+            existing.addEventListener(
+              "error",
+              () => reject(new Error(`No se pudo cargar ${src}`)),
+              { once: true }
+            );
+            return;
+          }
+          const script = document.createElement("script");
+          script.src = src;
+          script.async = true;
+          script.dataset.exportUtils = key;
+          script.onload = () => {
+            script.dataset.loaded = "1";
+            resolve();
+          };
+          script.onerror = () =>
+            reject(new Error(`No se pudo cargar ${src}`));
+          document.head.appendChild(script);
+        });
+
+      try {
+        await loadScript(
+          "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js",
+          "jspdf"
+        );
+        await loadScript(
+          "https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js",
+          "autotable"
+        );
+      } catch (error) {
+        console.warn("No se pudieron cargar librerias PDF:", error);
+        return false;
+      }
+
+      return Boolean(
+        window.jspdf?.jsPDF &&
+          (window.jspdf.jsPDF.API?.autoTable ||
+            window.jspdf.jsPDF.prototype?.autoTable)
+      );
+    },
+
+    async _imprimirPdfConGraficas({
+      tablaElement,
+      titulo,
+      subtitulo,
+      metadata,
+      charts,
+    }) {
+      if (!window.jspdf?.jsPDF) {
+        throw new Error("jsPDF no disponible");
+      }
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF("l", "mm", "a4");
+      const headerX = 15;
+      const chartMargin = 15;
+      const tableMargins = { left: 30, right: 30, top: 25, bottom: 25 };
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(16);
+      doc.text(titulo || "Reporte", headerX, 15);
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      const empresaTexto = metadata?.empresaTexto || "-";
+      const periodo = `${metadata?.mesNombre || ""} ${metadata?.anio || ""}`.trim();
+      let metaY = 22;
+      doc.text(`Empresa: ${empresaTexto}`, headerX, metaY);
+      metaY += 5;
+      if (periodo) {
+        doc.text(`Periodo: ${periodo}`, headerX, metaY);
+        metaY += 5;
+      }
+      let startY = 30;
+      if (subtitulo) {
+        doc.text(subtitulo, headerX, metaY);
+        startY = Math.max(startY, metaY + 5);
+      }
+
+        const { head, body, columnStyles, columnWidths } =
+          this._construirTablaPdf(tablaElement);
+        const resolvedColumnStyles = { ...(columnStyles || {}) };
+        if (Array.isArray(columnWidths) && columnWidths.length) {
+          const totalWidth = columnWidths.reduce(
+            (acc, width) => acc + (Number(width) || 0),
+            0
+          );
+          if (totalWidth > 0) {
+            const printableWidth =
+              pageWidth - tableMargins.left - tableMargins.right;
+            columnWidths.forEach((width, idx) => {
+              const value = Number(width) || 0;
+              if (!value) return;
+              const cellWidth = (value / totalWidth) * printableWidth;
+              resolvedColumnStyles[idx] = {
+                ...(resolvedColumnStyles[idx] || {}),
+                cellWidth,
+              };
+            });
+          }
+        }
+        if (typeof doc.autoTable === "function") {
+          doc.autoTable({
+            head: head.length ? head : undefined,
+            body: body.length ? body : undefined,
+          startY,
+          styles: {
+            fontSize: 7,
+            cellPadding: 2,
+            lineColor: [200, 200, 200],
+            lineWidth: 0.1,
+            overflow: "linebreak",
+            halign: "center",
+            minCellHeight: 8,
+            valign: "middle",
+          },
+          headStyles: {
+            fillColor: [13, 71, 161],
+            textColor: 255,
+            fontStyle: "bold",
+            halign: "center",
+            valign: "middle",
+            fontSize: 8,
+            cellPadding: 2.5,
+            minCellHeight: 10,
+            overflow: "linebreak",
+          },
+            columnStyles: resolvedColumnStyles,
+          theme: "grid",
+          margin: tableMargins,
+          tableWidth: "auto",
+        });
+      }
+
+      const chartTargets = charts === false ? [] : this._resolverGraficas(charts);
+      const chartImages = await this._capturarGraficas(chartTargets);
+        if (chartImages.length) {
+          chartImages.forEach((img) => {
+            doc.addPage();
+            let y = chartMargin;
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(14);
+            doc.text(img.title || "Grafica", chartMargin, y);
+            y += 10;
+
+            const imgWidth = pageWidth - chartMargin * 2;
+            const ratio = img.width && img.height ? img.height / img.width : 0.6;
+            let imgHeight = imgWidth * ratio;
+            const maxHeight = pageHeight - chartMargin * 2 - 10;
+            if (imgHeight > maxHeight) {
+              imgHeight = maxHeight;
+            }
+            doc.addImage(img.dataUrl, "PNG", chartMargin, y, imgWidth, imgHeight);
+          });
+        }
+
+      const baseName = [
+        titulo || "Reporte",
+        metadata?.empresaTexto,
+        metadata?.mesNombre,
+        metadata?.anio,
+      ]
+        .filter(Boolean)
+        .join("_")
+        .replace(/[\/:*?"<>|]/g, "_")
+        .replace(/\s+/g, "_");
+      const fileName = `${baseName || "Reporte"}.pdf`;
+      doc.save(fileName);
+    },
+
+      _construirTablaPdf(tablaElement) {
+        const thead = tablaElement.querySelector("thead");
+        const tbody = tablaElement.querySelector("tbody");
+        const head = [];
+        const body = [];
+
+        const isHidden = (element) => {
+          if (!element) return true;
+          if (element.hidden) return true;
+          if (typeof window === "undefined" || !window.getComputedStyle) {
+            return false;
+          }
+          const style = window.getComputedStyle(element);
+          return style.display === "none" || style.visibility === "hidden";
+        };
+
+        const parseSpan = (cell, attr) => {
+          const raw = parseInt(cell.getAttribute(attr), 10);
+          if (Number.isInteger(raw) && raw > 0) return raw;
+          const direct = attr === "colspan" ? cell.colSpan : cell.rowSpan;
+          return Number.isInteger(direct) && direct > 0 ? direct : 1;
+        };
+
+        const parseRgb = (value) => {
+          if (!value) return null;
+          const rgbMatch = value.match(/rgba?\(([^)]+)\)/i);
+          if (rgbMatch) {
+            const parts = rgbMatch[1].split(",").map((part) => part.trim());
+            const r = Number(parts[0]);
+            const g = Number(parts[1]);
+            const b = Number(parts[2]);
+            const a = parts.length > 3 ? Number(parts[3]) : 1;
+            if ([r, g, b].some((num) => Number.isNaN(num))) return null;
+            return { r, g, b, a: Number.isNaN(a) ? 1 : a };
+          }
+          if (value[0] === "#") {
+            const hex = value.slice(1);
+            const expanded =
+              hex.length === 3
+                ? hex
+                    .split("")
+                    .map((c) => c + c)
+                    .join("")
+                : hex;
+            if (expanded.length !== 6) return null;
+            const r = parseInt(expanded.slice(0, 2), 16);
+            const g = parseInt(expanded.slice(2, 4), 16);
+            const b = parseInt(expanded.slice(4, 6), 16);
+            if ([r, g, b].some((num) => Number.isNaN(num))) return null;
+            return { r, g, b, a: 1 };
+          }
+          return null;
+        };
+
+        const aplicarEstilosCalculados = (cell, styles) => {
+          if (!cell || !window.getComputedStyle) return;
+          const computed = window.getComputedStyle(cell);
+          const bg = parseRgb(computed.backgroundColor);
+          if (bg && bg.a > 0) {
+            styles.fillColor = [bg.r, bg.g, bg.b];
+          }
+          const fg = parseRgb(computed.color);
+          if (fg) {
+            styles.textColor = [fg.r, fg.g, fg.b];
+          }
+          const weight = computed.fontWeight || "";
+          const isBold = Number(weight) >= 600 || /bold/i.test(weight);
+          const isItalic = /italic/i.test(computed.fontStyle || "");
+          if (isBold && isItalic) {
+            styles.fontStyle = "bolditalic";
+          } else if (isBold) {
+            styles.fontStyle = "bold";
+          } else if (isItalic) {
+            styles.fontStyle = "italic";
+          }
+          const align = (computed.textAlign || "").toLowerCase();
+          const alignMap = {
+            left: "left",
+            right: "right",
+            center: "center",
+            start: "left",
+            end: "right",
+          };
+          if (alignMap[align]) {
+            styles.halign = alignMap[align];
+          }
+        };
+
+        const headerRows = thead ? Array.from(thead.querySelectorAll("tr")) : [];
+        const headerInfo = (() => {
+          let best = null;
+          headerRows.forEach((row) => {
+            let colIndex = 0;
+            const cols = [];
+            Array.from(row.children).forEach((cell) => {
+              const colSpan = parseSpan(cell, "colspan");
+              const hidden = isHidden(cell);
+              for (let i = 0; i < colSpan; i += 1) {
+                cols[colIndex + i] = !hidden;
+              }
+              colIndex += colSpan;
+            });
+            if (!best || colIndex > best.count) {
+              best = { cols, count: colIndex, row };
+            }
+          });
+          return best;
+        })();
+
+        const visibleColumns =
+          headerInfo?.cols && headerInfo.cols.length ? headerInfo.cols : null;
+        const countVisibleSpan = (start, span) => {
+          if (!visibleColumns) return span;
+          let count = 0;
+          for (let i = 0; i < span; i += 1) {
+            if (visibleColumns[start + i] !== false) count += 1;
+          }
+          return count;
+        };
+
+        const columnWidths = [];
+        if (headerInfo?.row) {
+          let colIndex = 0;
+          Array.from(headerInfo.row.children).forEach((cell) => {
+            const colSpan = parseSpan(cell, "colspan");
+            const hidden = isHidden(cell);
+            const rect = cell.getBoundingClientRect();
+            const baseWidth = rect?.width || cell.offsetWidth || 0;
+            const perCol = colSpan ? baseWidth / colSpan : baseWidth;
+            for (let i = 0; i < colSpan; i += 1) {
+              if (!hidden) {
+                columnWidths[colIndex + i] = perCol;
+              }
+            }
+            colIndex += colSpan;
+          });
+        }
+        const visibleColumnWidths = [];
+        if (columnWidths.length) {
+          columnWidths.forEach((width, idx) => {
+            if (!visibleColumns || visibleColumns[idx] !== false) {
+              visibleColumnWidths.push(width);
+            }
+          });
+        }
+
+        if (thead) {
+          headerRows.forEach((row, rowIndex) => {
+            if (isHidden(row)) return;
+            const headerRow = [];
+            const cells = Array.from(row.querySelectorAll("th"));
+            let colIndex = 0;
+            cells.forEach((cell) => {
+              const colSpan = parseSpan(cell, "colspan");
+              const rowSpan = parseSpan(cell, "rowspan");
+              const visibleSpan = countVisibleSpan(colIndex, colSpan);
+              colIndex += colSpan;
+              if (isHidden(cell) || visibleSpan <= 0) {
+                return;
+              }
+              const maxRowSpan = Math.max(
+                1,
+                Math.min(rowSpan, headerRows.length - rowIndex)
+              );
+              const texto = cell.textContent.replace(/\s+/g, " ").trim();
+              const styles = {
+                halign: "center",
+                valign: "middle",
+                fontStyle: "bold",
+                fontSize: 7,
+                cellPadding: 2,
+              };
+              aplicarEstilosCalculados(cell, styles);
+              headerRow.push({
+                content: texto,
+                colSpan: visibleSpan,
+                rowSpan: maxRowSpan,
+                styles,
+              });
+            });
+            if (headerRow.length) head.push(headerRow);
+          });
+        }
+
+        if (tbody) {
+          const rows = Array.from(tbody.querySelectorAll("tr"));
+          rows.forEach((row) => {
+            if (isHidden(row)) return;
+            const rowData = [];
+            const cells = Array.from(row.querySelectorAll("td"));
+            let colIndex = 0;
+            cells.forEach((cell, idx) => {
+              const colSpan = parseSpan(cell, "colspan");
+              const rowSpan = parseSpan(cell, "rowspan");
+              const visibleSpan = countVisibleSpan(colIndex, colSpan);
+              colIndex += colSpan;
+              if (isHidden(cell) || visibleSpan <= 0) {
+                return;
+              }
+              const texto = cell.textContent.replace(/\s+/g, " ").trim();
+              const styles = { fontSize: 6, cellPadding: 1.5 };
+
+              if (row.classList.contains("section-header-row")) {
+                styles.fillColor = [30, 58, 138];
+                styles.textColor = 255;
+                styles.fontStyle = "bold";
+                styles.fontSize = 7;
+              } else if (row.classList.contains("subsection-row")) {
+                styles.fillColor = [219, 234, 254];
+                styles.textColor = [30, 58, 138];
+                styles.fontStyle = "bold";
+              } else if (row.classList.contains("sum-row")) {
+                styles.fillColor = [254, 243, 199];
+                styles.textColor = [120, 53, 15];
+                styles.fontStyle = "bold";
+              } else if (row.classList.contains("highlight-bright")) {
+                styles.fillColor = [254, 202, 202];
+                styles.textColor = [153, 27, 27];
+                styles.fontStyle = "bold";
+                styles.fontSize = 7;
+              } else if (row.classList.contains("highlight-primary")) {
+                styles.fillColor = [167, 243, 208];
+                styles.textColor = [6, 95, 70];
+                styles.fontStyle = "bold";
+              } else if (row.classList.contains("highlight-secondary")) {
+                styles.fillColor = [165, 243, 252];
+                styles.textColor = [14, 116, 144];
+                styles.fontStyle = "bold";
+              }
+
+              const leftAligned =
+                idx <= 1 ||
+                cell.classList.contains("text-start") ||
+                cell.classList.contains("account-column") ||
+                cell.classList.contains("account-column-header") ||
+                cell.classList.contains("label-cell");
+              styles.halign = leftAligned ? "left" : "right";
+              styles.valign = "middle";
+              aplicarEstilosCalculados(cell, styles);
+
+              const cellConfig = { content: texto, styles };
+              if (visibleSpan > 1) {
+                cellConfig.colSpan = visibleSpan;
+              }
+              if (rowSpan > 1) {
+                cellConfig.rowSpan = rowSpan;
+              }
+              rowData.push(cellConfig);
+            });
+            if (rowData.length) body.push(rowData);
+          });
+        }
+
+        const columnStyles = {};
+        if (visibleColumns && visibleColumns.length) {
+          let visibleIdx = 0;
+          visibleColumns.forEach((isVisible, originalIdx) => {
+            if (isVisible === false) return;
+            if (originalIdx <= 1) {
+              columnStyles[visibleIdx] = { halign: "left" };
+            }
+            visibleIdx += 1;
+          });
+        } else {
+          columnStyles[0] = { halign: "left" };
+          columnStyles[1] = { halign: "left" };
+        }
+
+        return {
+          head,
+          body,
+          columnStyles,
+          columnWidths: visibleColumnWidths,
+        };
+      },
+
+    _resolverModoGraficasExcel() {
+      const combined = document.querySelector(
+        '[data-operativo-chart="combined"] canvas'
+      );
+      return combined ? "combined" : "";
+    },
+
+    _resolverGraficas(charts) {
+      const targets = [];
+      const seen = new Set();
+      const isCanvas = (node) => {
+        if (!node) return false;
+        if (typeof HTMLCanvasElement !== "undefined") {
+          return node instanceof HTMLCanvasElement;
+        }
+        return node.tagName === "CANVAS";
+      };
+      const pushCanvas = (canvas, title) => {
+        if (!isCanvas(canvas) || seen.has(canvas)) return;
+        seen.add(canvas);
+        targets.push({ canvas, title });
+      };
+      const resolveTitle = (canvas, fallback) =>
+        this._resolverTituloGrafica(canvas, fallback);
+
+      if (Array.isArray(charts) && charts.length) {
+        charts.forEach((item) => {
+          if (!item) return;
+          if (typeof item === "string") {
+            const canvas = document.querySelector(item);
+            if (canvas) pushCanvas(canvas, resolveTitle(canvas, ""));
+            return;
+          }
+          if (
+            typeof HTMLCanvasElement !== "undefined" &&
+            item instanceof HTMLCanvasElement
+          ) {
+            pushCanvas(item, resolveTitle(item, ""));
+            return;
+          }
+          if (typeof item === "object") {
+            const selector =
+              typeof item.selector === "string" ? item.selector : "";
+            const canvas =
+              item.canvas ||
+              (selector ? document.querySelector(selector) : null);
+            if (canvas) {
+              const title =
+                typeof item.title === "string" && item.title.trim()
+                  ? item.title.trim()
+                  : resolveTitle(canvas, "");
+              pushCanvas(canvas, title);
+            }
+          }
+        });
+        return targets;
+      }
+
+        const operativoCombined = document.querySelectorAll(
+          '[data-operativo-chart="combined"] canvas'
+        );
+        if (operativoCombined.length) {
+          operativoCombined.forEach((canvas) => {
+            pushCanvas(canvas, resolveTitle(canvas, ""));
+          });
+        } else {
+          const operativoCanvases = document.querySelectorAll(
+            "[data-operativo-chart] canvas"
+          );
+          operativoCanvases.forEach((canvas) => {
+            pushCanvas(canvas, resolveTitle(canvas, ""));
+          });
+        }
+
+        const ggCanvases = document.querySelectorAll("[data-gg-chart] canvas");
+        ggCanvases.forEach((canvas) => {
+          pushCanvas(canvas, resolveTitle(canvas, ""));
+        });
+        return targets;
+      },
+
+    _resolverTituloGrafica(canvas, fallback = "") {
+      if (!canvas) return fallback;
+      const titleEl =
+        canvas.closest(".chart-block")?.querySelector(".chart-title") ||
+        canvas.closest(".charts-card")?.querySelector("h6") ||
+        canvas.closest(".charts-card")?.querySelector("h5");
+      const titleText = titleEl?.textContent?.trim();
+      return titleText || fallback || "Grafica";
+    },
+
+    _esGraficaCombinada(canvas) {
+      return Boolean(canvas?.closest?.('[data-operativo-chart="combined"]'));
+    },
+
+    _resolverConfigCapturaGrafica(canvas) {
+      const combined = this._esGraficaCombinada(canvas);
+      const baseRatio = window.devicePixelRatio || 1;
+      const pixelRatio = Math.max(2, baseRatio);
+      return { withLabels: combined, pixelRatio };
+    },
+
+    _formatearNumeroGrafica(valor) {
+      const numero = Number(valor);
+      if (!Number.isFinite(numero)) return "";
+      const fijo = numero.toFixed(2);
+      const partes = fijo.split(".");
+      const entero = partes[0] || "0";
+      const decimales = partes[1] || "00";
+      const enteroConComas = entero.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+      return `${enteroConComas}.${decimales}`;
+    },
+
+    _crearPluginEtiquetasGrafica() {
+      if (this._pluginEtiquetasGrafica) return this._pluginEtiquetasGrafica;
+      const formatter = (valor) => this._formatearNumeroGrafica(valor);
+      const plugin = {
+        id: "export-value-labels",
+        afterDatasetsDraw: (chart) => {
+          if (!chart?.ctx) return;
+          const ctx = chart.ctx;
+          const ratio =
+            chart.currentDevicePixelRatio ||
+            chart._devicePixelRatio ||
+            window.devicePixelRatio ||
+            1;
+          const fontSize = Math.round(10 * ratio);
+          ctx.save();
+          ctx.font = `600 ${fontSize}px Segoe UI, Arial, sans-serif`;
+          ctx.fillStyle = "#0f172a";
+          const indexAxis = chart.options?.indexAxis || "x";
+          const isHorizontal = indexAxis === "y";
+          const datasets = chart.data?.datasets || [];
+          datasets.forEach((dataset, datasetIndex) => {
+            const meta = chart.getDatasetMeta(datasetIndex);
+            if (!meta || meta.hidden) return;
+            const type = meta.type || dataset.type;
+            if (type !== "bar" && type !== "line") return;
+            const data = Array.isArray(dataset.data) ? dataset.data : [];
+            meta.data.forEach((element, index) => {
+              const raw = data[index];
+              const value = Number(raw);
+              if (!Number.isFinite(value)) return;
+              if (Math.abs(value) < 0.0001) return;
+              const label = formatter(value);
+              if (!label) return;
+              const props = element.getProps
+                ? element.getProps(["x", "y"], true)
+                : { x: element.x, y: element.y };
+              if (!props) return;
+              if (type === "line") {
+                const offset = 6 * ratio;
+                ctx.textAlign = "center";
+                ctx.textBaseline = value >= 0 ? "bottom" : "top";
+                const y = value >= 0 ? props.y - offset : props.y + offset;
+                ctx.fillText(label, props.x, y);
+                return;
+              }
+              if (isHorizontal) {
+                const offset = 6 * ratio;
+                ctx.textAlign = value >= 0 ? "left" : "right";
+                ctx.textBaseline = "middle";
+                const x = value >= 0 ? props.x + offset : props.x - offset;
+                ctx.fillText(label, x, props.y);
+              } else {
+                const offset = 6 * ratio;
+                ctx.textAlign = "center";
+                ctx.textBaseline = value >= 0 ? "bottom" : "top";
+                const y = value >= 0 ? props.y - offset : props.y + offset;
+                ctx.fillText(label, props.x, y);
+              }
+            });
+          });
+          ctx.restore();
+        },
+      };
+      this._pluginEtiquetasGrafica = plugin;
+      return plugin;
+    },
+
+    _prepararChartCaptura(chart, config = {}) {
+      if (!chart) return null;
+      const prevPlugins = Array.isArray(chart.config?.plugins)
+        ? [...chart.config.plugins]
+        : null;
+      const prevAnimation = chart.options?.animation;
+      const prevRatio = chart.options?.devicePixelRatio;
+      const nextPlugins = prevPlugins ? [...prevPlugins] : [];
+      if (config.withLabels) {
+        const plugin = this._crearPluginEtiquetasGrafica();
+        const exists = nextPlugins.some((item) => item?.id === plugin.id);
+        if (!exists) {
+          nextPlugins.push(plugin);
+        }
+      }
+      chart.config.plugins = nextPlugins;
+      if (chart.options) {
+        chart.options.animation = false;
+        if (config.pixelRatio) {
+          chart.options.devicePixelRatio = config.pixelRatio;
+        }
+      }
+      if (typeof chart.resize === "function") {
+        chart.resize();
+      }
+      chart.update("none");
+      return () => {
+        if (prevPlugins) {
+          chart.config.plugins = prevPlugins;
+        } else {
+          delete chart.config.plugins;
+        }
+        if (chart.options) {
+          if (prevAnimation === undefined) {
+            delete chart.options.animation;
+          } else {
+            chart.options.animation = prevAnimation;
+          }
+          if (prevRatio === undefined) {
+            delete chart.options.devicePixelRatio;
+          } else {
+            chart.options.devicePixelRatio = prevRatio;
+          }
+        }
+        if (typeof chart.resize === "function") {
+          chart.resize();
+        }
+        chart.update("none");
+      };
+    },
+
+    async _capturarGraficas(targets = []) {
+      const images = [];
+      if (!targets.length) return images;
+      for (const target of targets) {
+        const canvas = target?.canvas;
+        if (!canvas || typeof canvas.toDataURL !== "function") continue;
+        let restore = null;
+        let restoreChart = null;
+        try {
+          restore = this._prepararCanvasCaptura(canvas);
+          const chart = window.Chart?.getChart?.(canvas);
+          if (chart && typeof chart.resize === "function") {
+            chart.resize();
+          }
+          const captureConfig = this._resolverConfigCapturaGrafica(canvas);
+          restoreChart = this._prepararChartCaptura(chart, captureConfig);
+          await new Promise((resolve) => setTimeout(resolve, 120));
+          const dataUrl =
+            chart && typeof chart.toBase64Image === "function"
+              ? chart.toBase64Image()
+              : canvas.toDataURL("image/png");
+          if (dataUrl) {
+            images.push({
+              title: target?.title || this._resolverTituloGrafica(canvas, "Grafica"),
+              dataUrl,
+              width: canvas.width,
+              height: canvas.height,
+            });
+          }
+        } catch (error) {
+          console.warn("No se pudo capturar grafica:", error);
+        } finally {
+          if (typeof restoreChart === "function") {
+            restoreChart();
+          }
+          if (typeof restore === "function") {
+            restore();
+          }
+        }
+      }
+      return images;
+    },
+
+    _prepararCanvasCaptura(canvas) {
+      const collapse = canvas?.closest?.(".collapse");
+      let restored = false;
+      let prevClass = "";
+      let prevStyle = "";
+      if (collapse && !collapse.classList.contains("show")) {
+        prevClass = collapse.className;
+        prevStyle = collapse.getAttribute("style") || "";
+        collapse.classList.add("show");
+        collapse.style.display = "block";
+        collapse.style.height = "auto";
+        collapse.style.visibility = "hidden";
+        collapse.style.position = "absolute";
+        collapse.style.left = "-10000px";
+        collapse.style.top = "0";
+        collapse.style.width = "1200px";
+      }
+      return () => {
+        if (collapse && !restored) {
+          collapse.className = prevClass;
+          if (prevStyle) {
+            collapse.setAttribute("style", prevStyle);
+          } else {
+            collapse.removeAttribute("style");
+          }
+          restored = true;
+        }
+      };
+    },
+
+    _construirHtmlGraficas(images = []) {
+      if (!Array.isArray(images) || !images.length) return "";
+      const items = images
+        .map((img) => {
+          const safeTitle = (img.title || "Grafica").trim();
+          return `
+            <div class="chart-print">
+              <div class="chart-title">${safeTitle}</div>
+              <img class="chart-image" src="${img.dataUrl}" alt="${safeTitle}">
+            </div>
+          `;
+        })
+        .join("");
+      return `
+        <div class="charts-print">
+          <h2>Graficas</h2>
+          ${items}
+        </div>
+      `;
+    },
     /**
      * Obtener metadata del contexto actual
      */
@@ -1216,9 +2046,10 @@
      */
     _getEstilosImpresion() {
       return `
+        @page { size: A4 landscape; margin: 8mm; }
         * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
-        body { font-family: 'Manrope','Segoe UI',sans-serif; padding: 15px; color: #0f172a; font-size: 10px; line-height: 1.3; }
-        
+        body { font-family: 'Manrope','Segoe UI',sans-serif; padding: 12px; color: #0f172a; font-size: 9px; line-height: 1.25; }
+
         /* Page break rules to prevent sections from being cut */
         tr { page-break-inside: avoid; }
         .section-header-row, .subsection-row, .sum-row, .highlight-primary, .highlight-secondary, .highlight-bright {
@@ -1226,37 +2057,42 @@
           page-break-after: auto;
           page-break-inside: avoid;
         }
-        h1 { margin: 0 0 6px 0; font-size: 20px; color: #1e3a8a; }
-        .meta { margin: 0 0 14px 0; color: #334155; font-size: 12px; }
-        table { width: 100%; border-collapse: collapse; font-size: 11px; table-layout: auto; }
-        th, td { border: 1px solid #cbd5e1; padding: 6px 7px; text-align: right; white-space: normal; word-break: break-word; }
+        h1 { margin: 0 0 6px 0; font-size: 18px; color: #1e3a8a; }
+        h2 { margin: 0 0 8px 0; font-size: 14px; color: #1e3a8a; }
+        .meta { margin: 0 0 12px 0; color: #334155; font-size: 10px; }
+        table { width: 100%; border-collapse: collapse; font-size: 9px; table-layout: fixed; }
+        th, td { border: 1px solid #cbd5e1; padding: 4px 5px; text-align: right; white-space: normal; word-break: break-word; overflow-wrap: anywhere; min-width: 0 !important; max-width: none !important; }
         th { background: #cbd5e1; color: #0f172a; font-weight: 700; }
         td.text-start, th.account-column-header, td.account-column { text-align: left; }
-        
-        /* Sección principal */
+
+        /* Seccion principal */
         .section-header-row td { background: #1e3a8a !important; color: white !important; font-weight: 700; }
-        
-        /* Subsección */
+
+        /* Subseccion */
         .subsection-row td { background: #dbeafe !important; color: #1e3a8a !important; font-weight: 600; }
-        
+
         /* Filas de cuenta */
         .account-row td { background: #ffffff; }
-        
+
         /* Suma */
         .sum-row td { background: #fef3c7 !important; font-weight: 700; color: #78350f !important; }
-        
+
         /* Consolidado */
         .highlight-primary td { background: #a7f3d0 !important; font-weight: 700; color: #065f46 !important; }
-        
+
         /* Operating Results */
         .highlight-secondary td { background: #a5f3fc !important; font-weight: 700; color: #0e7490 !important; }
-        
+
         /* Net Results */
         .highlight-bright td { background: #fecaca !important; font-weight: 800; color: #991b1b !important; }
-        
+
+        .charts-print { margin-top: 16px; page-break-before: always; }
+        .chart-print { margin: 0 0 16px 0; page-break-inside: avoid; }
+        .chart-title { font-size: 12px; font-weight: 700; margin: 0 0 6px 0; color: #1e3a8a; }
+        .chart-image { width: 100%; height: auto; border: 1px solid #e2e8f0; border-radius: 6px; }
+
         @media print {
-          body { padding: 10px; }
-          table { font-size: 10px; }
+          body { padding: 8px; }
         }
       `;
     },

@@ -60,6 +60,11 @@ const normalizarNombreHoja = (valor, fallback) => {
   return limpio || fallback;
 };
 
+const normalizarModoGrafica = (valor) => {
+  const modo = (valor || "").toString().trim().toLowerCase();
+  return modo === "combined" ? "combined" : "split";
+};
+
 const resolverScript = () => {
   const basePath = path.join(__dirname, "..", "..", "..");
   return path.join(basePath, "scripts", "export-operativo-charts.ps1");
@@ -121,6 +126,7 @@ const generarOperativoExcel = async ({
   dataSheetName,
   chartsSheetName,
   tableSheetName,
+  chartMode,
 }) => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "operativo-"));
   const inputPath = path.join(tempDir, "operativo.xlsx");
@@ -129,6 +135,7 @@ const generarOperativoExcel = async ({
   const hojaDatos = normalizarNombreHoja(dataSheetName, "OperativoData");
   const hojaGraficas = normalizarNombreHoja(chartsSheetName, "Gráficas");
   const hojaTabla = normalizarNombreHoja(tableSheetName, "");
+  const modoGrafica = normalizarModoGrafica(chartMode);
 
   try {
     if (libroBuffer && libroBuffer.length) {
@@ -162,6 +169,8 @@ const generarOperativoExcel = async ({
       hojaGraficas,
       "-TableSheetName",
       hojaTabla,
+      "-ChartMode",
+      modoGrafica,
     ]);
 
     const baseName = `${limpiarTexto(nombreArchivo || "Operativo")}_${limpiarTexto(

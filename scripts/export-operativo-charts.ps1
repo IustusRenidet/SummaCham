@@ -4,7 +4,8 @@ param(
   [string]$OutputPath,
   [string]$DataSheetName = "OperativoData",
   [string]$ChartsSheetName = "OperativoData",
-  [string]$TableSheetName = ""
+  [string]$TableSheetName = "",
+  [string]$ChartMode = "split"
 )
 
 Add-Type -AssemblyName System.Drawing | Out-Null
@@ -83,47 +84,90 @@ $rangeLabels = $wsData.Range("A$($dataStart):A$($lastRow)")
 $rangeBudget = $wsData.Range("B$($dataStart):B$($lastRow)")
 $rangeReal = $wsData.Range("C$($dataStart):C$($lastRow)")
 
-# Chart 1: Budget
 $baseTop = 20
 if ($wsCharts -eq $wsData) {
   $baseTop = $wsData.Rows.Item($lastRow + 2).Top
 }
-$chart1 = $wsCharts.ChartObjects().Add(20, $baseTop, 620, 300)
-$chart1.Chart.ChartType = 58 # xlBarClustered
-$chart1.Chart.SetSourceData($rangeBudget)
-$series1 = $chart1.Chart.SeriesCollection(1)
-$series1.XValues = $rangeLabels
-$series1.Name = "Ppto Acumulado"
-$budgetColor = Convert-HexToOle "#4472C4"
-if ($budgetColor -ne $null) {
-  $series1.Format.Fill.Visible = $true
-  $series1.Format.Fill.Solid()
-  $series1.Format.Fill.ForeColor.RGB = $budgetColor
-  $series1.Format.Line.Visible = $true
-  $series1.Format.Line.ForeColor.RGB = $budgetColor
-  $series1.Interior.Color = $budgetColor
-}
-$chart1.Chart.HasTitle = $true
-$chart1.Chart.ChartTitle.Text = "Ppto Acumulado"
 
-# Chart 2: Real
-$chart2 = $wsCharts.ChartObjects().Add(20, ($baseTop + 320), 620, 300)
-$chart2.Chart.ChartType = 58 # xlBarClustered
-$chart2.Chart.SetSourceData($rangeReal)
-$series2 = $chart2.Chart.SeriesCollection(1)
-$series2.XValues = $rangeLabels
-$series2.Name = "Real Acumulado"
-$realColor = Convert-HexToOle "#FFC000"
-if ($realColor -ne $null) {
-  $series2.Format.Fill.Visible = $true
-  $series2.Format.Fill.Solid()
-  $series2.Format.Fill.ForeColor.RGB = $realColor
-  $series2.Format.Line.Visible = $true
-  $series2.Format.Line.ForeColor.RGB = $realColor
-  $series2.Interior.Color = $realColor
+$chartModeNormalized = $ChartMode
+if (-not $chartModeNormalized) {
+  $chartModeNormalized = "split"
 }
-$chart2.Chart.HasTitle = $true
-$chart2.Chart.ChartTitle.Text = "Real Acumulado"
+$chartModeNormalized = $chartModeNormalized.ToString().ToLower()
+
+if ($chartModeNormalized -eq "combined") {
+  $rangeSeries = $wsData.Range("B$($dataStart):C$($lastRow)")
+  $chart1 = $wsCharts.ChartObjects().Add(20, $baseTop, 620, 340)
+  $chart1.Chart.ChartType = 58 # xlBarClustered
+  $chart1.Chart.SetSourceData($rangeSeries)
+  $chart1.Chart.HasLegend = $true
+
+  $series1 = $chart1.Chart.SeriesCollection(1)
+  $series1.XValues = $rangeLabels
+  $series1.Name = "Ppto Acumulado"
+  $budgetColor = Convert-HexToOle "#4472C4"
+  if ($budgetColor -ne $null) {
+    $series1.Format.Fill.Visible = $true
+    $series1.Format.Fill.Solid()
+    $series1.Format.Fill.ForeColor.RGB = $budgetColor
+    $series1.Format.Line.Visible = $true
+    $series1.Format.Line.ForeColor.RGB = $budgetColor
+    $series1.Interior.Color = $budgetColor
+  }
+
+  $series2 = $chart1.Chart.SeriesCollection(2)
+  $series2.XValues = $rangeLabels
+  $series2.Name = "Real Acumulado"
+  $realColor = Convert-HexToOle "#FFC000"
+  if ($realColor -ne $null) {
+    $series2.Format.Fill.Visible = $true
+    $series2.Format.Fill.Solid()
+    $series2.Format.Fill.ForeColor.RGB = $realColor
+    $series2.Format.Line.Visible = $true
+    $series2.Format.Line.ForeColor.RGB = $realColor
+    $series2.Interior.Color = $realColor
+  }
+  $chart1.Chart.HasTitle = $true
+  $chart1.Chart.ChartTitle.Text = "Ppto Acumulado vs Real Acumulado"
+} else {
+  # Chart 1: Budget
+  $chart1 = $wsCharts.ChartObjects().Add(20, $baseTop, 620, 300)
+  $chart1.Chart.ChartType = 58 # xlBarClustered
+  $chart1.Chart.SetSourceData($rangeBudget)
+  $series1 = $chart1.Chart.SeriesCollection(1)
+  $series1.XValues = $rangeLabels
+  $series1.Name = "Ppto Acumulado"
+  $budgetColor = Convert-HexToOle "#4472C4"
+  if ($budgetColor -ne $null) {
+    $series1.Format.Fill.Visible = $true
+    $series1.Format.Fill.Solid()
+    $series1.Format.Fill.ForeColor.RGB = $budgetColor
+    $series1.Format.Line.Visible = $true
+    $series1.Format.Line.ForeColor.RGB = $budgetColor
+    $series1.Interior.Color = $budgetColor
+  }
+  $chart1.Chart.HasTitle = $true
+  $chart1.Chart.ChartTitle.Text = "Ppto Acumulado"
+
+  # Chart 2: Real
+  $chart2 = $wsCharts.ChartObjects().Add(20, ($baseTop + 320), 620, 300)
+  $chart2.Chart.ChartType = 58 # xlBarClustered
+  $chart2.Chart.SetSourceData($rangeReal)
+  $series2 = $chart2.Chart.SeriesCollection(1)
+  $series2.XValues = $rangeLabels
+  $series2.Name = "Real Acumulado"
+  $realColor = Convert-HexToOle "#FFC000"
+  if ($realColor -ne $null) {
+    $series2.Format.Fill.Visible = $true
+    $series2.Format.Fill.Solid()
+    $series2.Format.Fill.ForeColor.RGB = $realColor
+    $series2.Format.Line.Visible = $true
+    $series2.Format.Line.ForeColor.RGB = $realColor
+    $series2.Interior.Color = $realColor
+  }
+  $chart2.Chart.HasTitle = $true
+  $chart2.Chart.ChartTitle.Text = "Real Acumulado"
+}
 
 $wsTable = $null
 if ($TableSheetName) {

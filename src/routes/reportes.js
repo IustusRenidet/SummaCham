@@ -166,6 +166,7 @@ router.post('/operativo-excel-native', rawExcelParser, async (req, res) => {
       dataSheetName: leerQuery(req.query.dataSheetName),
       chartsSheetName: leerQuery(req.query.chartsSheetName),
       tableSheetName: leerQuery(req.query.tableSheetName),
+      chartMode: leerQuery(req.query.chartMode),
     });
     res.setHeader(
       'Content-Type',

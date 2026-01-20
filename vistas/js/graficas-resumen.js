@@ -139,6 +139,13 @@
     return Array.isArray(fromFallback) ? fromFallback : [];
   };
 
+  const getConsolidatedVariants = (sources, key, fallback) => {
+    const variants = sources?.[key]?.variants;
+    if (Array.isArray(variants) && variants.length) return variants;
+    const fallbackVariants = fallback?.[key]?.variants;
+    return Array.isArray(fallbackVariants) ? fallbackVariants : [];
+  };
+
   // === CONTEXTO Y PERSISTENCIA ===
   const CONTEXT_KEY = "planeacion_contexto";
 
@@ -764,6 +771,141 @@
         tic: { label: "T&IC", color: "#a855f7", enabled: true },
       },
     },
+    sources: {
+      summary: {
+        cdmx: {
+          operating: [
+            { label: "Ciudad de Mexico", variants: ["OPERATING RESULTS MEXICO"] },
+            {
+              label: "Guadalajara",
+              variants: ["OPERATING RESULTS GUADALAJARA", "GDL OPERATING RESULTS"],
+            },
+            {
+              label: "Noreste",
+              variants: ["OPERATING RESULTS MONTERREY", "MTY OPERATING RESULTS"],
+            },
+            {
+              label: "Noroeste",
+              variants: [
+                "OPERATING RESULTS NORTHWEST",
+                "OPERATING RESULTS NO",
+                "NO OPERATING RESULTS",
+              ],
+            },
+          ],
+          net: [
+            { label: "Ciudad de Mexico", variants: ["NET RESULTS MEXICO"] },
+            {
+              label: "Guadalajara",
+              variants: ["NET RESULTS GUADALAJARA", "GDL NET RESULTS"],
+            },
+            {
+              label: "Noreste",
+              variants: ["NET RESULTS MONTERREY", "MTY NET RESULTS"],
+            },
+            {
+              label: "Noroeste",
+              variants: ["NET RESULTS NORTHWEST", "NET RESULTS NO", "NO NET RESULTS"],
+            },
+          ],
+        },
+        gdl: {
+          operating: [
+            {
+              label: "{capitulo}",
+              variants: [
+                "GDL OPERATING RESULTS",
+                "OPERATING RESULTS GUADALAJARA",
+                "OPERATING RESULTS",
+              ],
+            },
+          ],
+          net: [
+            {
+              label: "{capitulo}",
+              variants: ["NET RESULTS", "GDL NET RESULTS", "NET RESULTS GUADALAJARA"],
+            },
+          ],
+        },
+        ne: {
+          operating: [
+            {
+              label: "{capitulo}",
+              variants: [
+                "NE OPERATING RESULTS",
+                "OPERATING RESULTS MONTERREY",
+                "OPERATING RESULTS",
+              ],
+            },
+          ],
+          net: [
+            {
+              label: "{capitulo}",
+              variants: ["NET RESULTS", "NE NET RESULTS", "NET RESULTS MONTERREY"],
+            },
+          ],
+        },
+        no: {
+          operating: [
+            {
+              label: "{capitulo}",
+              variants: [
+                "NO OPERATING RESULTS",
+                "OPERATING RESULTS NORTHWEST",
+                "OPERATING RESULTS",
+              ],
+            },
+          ],
+          net: [
+            {
+              label: "{capitulo}",
+              variants: ["NET RESULTS", "NO NET RESULTS", "NET RESULTS NORTHWEST"],
+            },
+          ],
+        },
+        generic: {
+          operating: [
+            {
+              label: "{capitulo}",
+              variants: ["OPERATING RESULTS", "RESULTADO OPERATIVO"],
+            },
+          ],
+          net: [
+            { label: "{capitulo}", variants: ["NET RESULTS", "RESULTADO NETO"] },
+          ],
+        },
+      },
+      consolidated: {
+        operating: {
+          label: "CONSOLIDATED OPERATING RESULTS",
+          variants: [
+            "CONSOLIDATED OPERATING RESULTS",
+            "CONSOLIDATED OPERATING RESULT",
+          ],
+        },
+        net: {
+          label: "CONSOLIDATED NET RESULTS",
+          variants: ["CONSOLIDATED NET RESULTS", "CONSOLIDATED NET RESULT"],
+        },
+      },
+      ingreso: {
+        mex: ["CDMX INCOME", "MEXICO INCOME", "CIUDAD DE MEXICO INCOME"],
+        gdl: ["GUADALAJARA INCOME", "GDL INCOME", "GUADALAJARA INCOMEA"],
+        mty: ["MONTERREY INCOME", "MTY INCOME"],
+        nw: ["NORTHWEST INCOME", "NW INCOME", "NOROESTE INCOME", "NO INCOME"],
+      },
+      ingresoNacional: {
+        committees: ["COMMITTEES", "COMITES", "COMITS", "COMMITTEES (INCOME)"],
+        membership: ["MEMBERSHIP", "MEMBERSHIP (INCOME)"],
+        events: ["EVENTS", "EVENTS (INCOME)"],
+        services: [
+          "SERVICES TO MEMBERS",
+          "SERVICES MEMBERS",
+          "SERVICES TO MEMBERS (INCOME)",
+        ],
+        tic: ["T&IC", "T&IC (INCOME)", "T&IC INCOME"],
+      },
+    },
     operativo: {
       enabled: true,
       title: "Ppto. Acumulado vs Real + {annual}",
@@ -1333,12 +1475,12 @@
     const chartType = graficasConfig.chart?.type || "bar";
     updateChartHeaders(graficasConfig);
 
-    const config = getRowsConfig(capitulo);
+    const config = getRowsConfig(capitulo, graficasConfig);
 
     // === 1. Resultado Operativo por Capítulo ===
     // === 2. Resumen Neto por Capítulo ===
     // Estos se renderizan en renderChapterSummaryCharts
-    renderChapterSummaryCharts(snapshotMap, config.isCdmx);
+    renderChapterSummaryCharts(snapshotMap, config, graficasConfig);
 
     // === 3. Consolidados Operativos vs Netos (SOLO PARA CDMX) ===
     const showConsolidated =
@@ -1348,12 +1490,26 @@
     }
 
     if (showConsolidated) {
-      const consolidatedOp = getRowData(snapshotMap, [
-        "CONSOLIDATED OPERATING RESULTS",
-      ]);
-      const consolidatedNet = getRowData(snapshotMap, [
-        "CONSOLIDATED NET RESULTS",
-      ]);
+      const consolidatedSources =
+        graficasConfig.sources?.consolidated ||
+        DEFAULT_GRAFICAS_CONFIG.sources?.consolidated ||
+        {};
+      const consolidatedOp = getRowData(
+        snapshotMap,
+        getConsolidatedVariants(
+          consolidatedSources,
+          "operating",
+          DEFAULT_GRAFICAS_CONFIG.sources?.consolidated || {}
+        )
+      );
+      const consolidatedNet = getRowData(
+        snapshotMap,
+        getConsolidatedVariants(
+          consolidatedSources,
+          "net",
+          DEFAULT_GRAFICAS_CONFIG.sources?.consolidated || {}
+        )
+      );
 
       const consolidatedColumns = columnDefs.length
         ? columnDefs
@@ -1470,54 +1626,55 @@
    * Para CDMX: Usa las filas de OPERATING RESULTS y NET RESULTS por región del snapshot actual
    * Para otros capítulos: Usa sus propios datos
    */
-  const renderChapterSummaryCharts = async (snapshotMap, isCdmx) => {
-    const graficasConfig = getGraficasConfig();
+  const renderChapterSummaryCharts = async (
+    snapshotMap,
+    rowsConfig,
+    graficasConfigOverride
+  ) => {
+    const graficasConfig = graficasConfigOverride || getGraficasConfig();
     const columnDefs = getColumnDefs(graficasConfig);
     const chartType = graficasConfig.chart?.type || "bar";
     const showOperating = graficasConfig.charts?.operating?.enabled !== false;
     const showNet = graficasConfig.charts?.net?.enabled !== false;
 
-    // Si es CDMX, usar los datos del snapshot actual que ya contiene todos los capítulos
-    if (isCdmx && snapshotMap && snapshotMap.size > 0) {
-      // Definir las 4 regiones en orden para CDMX
-      const regiones = [
-        {
-          label: "Ciudad de México",
-          operKey: "OPERATING RESULTS MEXICO",
-          netKey: "NET RESULTS MEXICO",
-        },
-        {
-          label: "Guadalajara",
-          operKey: "OPERATING RESULTS GUADALAJARA",
-          netKey: "NET RESULTS GUADALAJARA",
-        },
-        {
-          label: "Noreste",
-          operKey: "OPERATING RESULTS MONTERREY",
-          netKey: "NET RESULTS MONTERREY",
-        },
-        {
-          label: "Noroeste",
-          operKey: "OPERATING RESULTS NORTHWEST",
-          netKey: "NET RESULTS NORTHWEST",
-        },
-      ];
+    if (!snapshotMap || snapshotMap.size === 0) return;
 
-      const summaries = regiones.map((region) => ({
-        capitulo: region.label,
-        operating: getRowData(snapshotMap, [region.operKey]),
-        net: getRowData(snapshotMap, [region.netKey]),
+    const operatingRows = Array.isArray(rowsConfig?.operating)
+      ? rowsConfig.operating
+      : [];
+    const netRows = Array.isArray(rowsConfig?.net) ? rowsConfig.net : [];
+    const isCdmx = Boolean(rowsConfig?.isCdmx);
+
+    const empresa = window.Sesion?.obtenerEmpresaActiva?.();
+    const configEmpresa = window.CapitulosModulos?.obtenerConfigEmpresa?.(
+      empresa?.id
+    );
+    const etiqueta = configEmpresa?.etiqueta || empresa?.etiqueta || "Capitulo";
+    const resolveLabel = (label) =>
+      (label || etiqueta).toString().replace(/\{capitulo\}/gi, etiqueta);
+
+    if (isCdmx && operatingRows.length && netRows.length) {
+      const operatingSummaries = operatingRows.map((row) => ({
+        label: resolveLabel(row.label || row.alias || ""),
+        data: getRowData(snapshotMap, row.variants || []),
+      }));
+      const netSummaries = netRows.map((row) => ({
+        label: resolveLabel(row.label || row.alias || ""),
+        data: getRowData(snapshotMap, row.variants || []),
       }));
 
-      const labels = summaries.map((s) => s.capitulo);
+      console.log("?? Graficas: Resumen por capitulo (CDMX):", {
+        operatingSummaries,
+        netSummaries,
+      });
 
-      console.log("📊 Graficas: Resumen por capítulo (CDMX):", summaries);
-
-      // Resumen Operativo por capítulo
-      if (showOperating) {
+      if (showOperating && operatingSummaries.length) {
+        const labels = operatingSummaries.map((s) => s.label);
         const operatingDatasets = columnDefs.map((col) => ({
           label: col.label,
-          data: summaries.map((s) => ocultarCeros(toNumber(s.operating[col.key]))),
+          data: operatingSummaries.map((s) =>
+            ocultarCeros(toNumber(s.data[col.key]))
+          ),
           backgroundColor: col.color,
           borderColor: col.color,
           borderWidth: chartType === "line" ? 2 : 1,
@@ -1543,36 +1700,34 @@
               responsive: true,
               maintainAspectRatio: false,
               plugins: {
-                title: {
-                  display: false,
-                },
+                title: { display: false },
                 tooltip: {
                   callbacks: {
-                    label: function(context) {
-                      let label = context.dataset.label || '';
+                    label: function (context) {
+                      let label = context.dataset.label || "";
                       if (label) {
-                        label += ': ';
+                        label += ": ";
                       }
                       label += formatNumber(context.parsed.y);
                       return label;
-                    }
-                  }
-                }
+                    },
+                  },
+                },
               },
-              scales: { 
-                y: { 
+              scales: {
+                y: {
                   beginAtZero: false,
                   ticks: {
-                    callback: function(value) {
+                    callback: function (value) {
                       return formatNumber(value);
-                    }
-                  }
+                    },
+                  },
                 },
                 x: {
                   ticks: {
-                    font: { size: 11 }
-                  }
-                }
+                    font: { size: 11 },
+                  },
+                },
               },
             },
             graficasConfig,
@@ -1583,16 +1738,23 @@
         clearChart("chartOperatingSummaryByChapter");
       }
 
-      // Resumen Neto por capítulo
-      if (showNet) {
+      if (showNet && netSummaries.length) {
+        const labels = netSummaries.map((s) => s.label);
         const netDatasets = columnDefs.map((col) => ({
           label: col.label,
-          data: summaries.map((s) => ocultarCeros(toNumber(s.net[col.key]))),
+          data: netSummaries.map((s) =>
+            ocultarCeros(toNumber(s.data[col.key]))
+          ),
           backgroundColor: col.color,
           borderColor: col.color,
           borderWidth: chartType === "line" ? 2 : 1,
           ...(chartType === "line"
-            ? { fill: false, tension: 0.32, pointRadius: 3, pointBackgroundColor: col.color }
+            ? {
+                fill: false,
+                tension: 0.32,
+                pointRadius: 3,
+                pointBackgroundColor: col.color,
+              }
             : {}),
         }));
 
@@ -1607,37 +1769,35 @@
               responsive: true,
               maintainAspectRatio: false,
               plugins: {
-                title: {
-                  display: false,
-                },
+                title: { display: false },
                 tooltip: {
                   callbacks: {
-                    label: function(context) {
-                      let label = context.dataset.label || '';
+                    label: function (context) {
+                      let label = context.dataset.label || "";
                       if (label) {
-                        label += ': ';
+                        label += ": ";
                       }
                       label += formatNumber(context.parsed.y);
                       return label;
-                    }
-                  }
-                }
+                    },
+                  },
+                },
               },
-              scales: { 
-                y: { 
+              scales: {
+                y: {
                   beginAtZero: false,
                   grace: "10%",
                   ticks: {
-                    callback: function(value) {
+                    callback: function (value) {
                       return formatNumber(value);
-                    }
-                  }
+                    },
+                  },
                 },
                 x: {
                   ticks: {
-                    font: { size: 11 }
-                  }
-                }
+                    font: { size: 11 },
+                  },
+                },
               },
             },
             graficasConfig,
@@ -1651,34 +1811,23 @@
       return;
     }
 
-    // Para otros capítulos: usar el snapshot actual con un solo resultado
     if (snapshotMap && snapshotMap.size > 0) {
-      const empresa = window.Sesion?.obtenerEmpresaActiva?.();
-      const config = window.CapitulosModulos?.obtenerConfigEmpresa?.(
-        empresa?.id
-      );
-      const etiqueta = config?.etiqueta || empresa?.etiqueta || "Capítulo";
+      const operatingSummaries = operatingRows.map((row) => ({
+        label: resolveLabel(row.label || row.alias || ""),
+        data: getRowData(snapshotMap, row.variants || []),
+      }));
+      const netSummaries = netRows.map((row) => ({
+        label: resolveLabel(row.label || row.alias || ""),
+        data: getRowData(snapshotMap, row.variants || []),
+      }));
 
-      const summaries = [
-        {
-          capitulo: etiqueta,
-          operating: getRowData(snapshotMap, [
-            "OPERATING RESULTS",
-            "GDL OPERATING RESULTS",
-            "NE OPERATING RESULTS",
-            "NO OPERATING RESULTS",
-          ]),
-          net: getRowData(snapshotMap, ["NET RESULTS"]),
-        },
-      ];
-
-      const labels = [etiqueta];
-
-      // Resumen Operativo (solo un capítulo)
-      if (showOperating) {
+      if (showOperating && operatingSummaries.length) {
+        const labels = operatingSummaries.map((s) => s.label);
         const operatingDatasets = columnDefs.map((col) => ({
           label: col.label,
-          data: summaries.map((s) => ocultarCeros(toNumber(s.operating[col.key]))),
+          data: operatingSummaries.map((s) =>
+            ocultarCeros(toNumber(s.data[col.key]))
+          ),
           backgroundColor: col.color,
           borderColor: col.color,
           borderWidth: chartType === "line" ? 2 : 1,
@@ -1703,38 +1852,35 @@
             {
               responsive: true,
               maintainAspectRatio: false,
-              plugins: { 
-                title: {
-                  display: false,
-                },
+              plugins: {
+                title: { display: false },
                 tooltip: {
                   callbacks: {
-                    label: function(context) {
-                      let label = context.dataset.label || '';
+                    label: function (context) {
+                      let label = context.dataset.label || "";
                       if (label) {
-                        label += ': ';
+                        label += ": ";
                       }
                       label += formatNumber(context.parsed.y);
                       return label;
-                    }
-                  }
-                }
+                    },
+                  },
+                },
               },
-              scales: { 
-                y: { 
+              scales: {
+                y: {
                   beginAtZero: false,
-                  grace: "10%",
                   ticks: {
-                    callback: function(value) {
+                    callback: function (value) {
                       return formatNumber(value);
-                    }
-                  }
+                    },
+                  },
                 },
                 x: {
                   ticks: {
-                    font: { size: 11 }
-                  }
-                }
+                    font: { size: 11 },
+                  },
+                },
               },
             },
             graficasConfig,
@@ -1745,11 +1891,13 @@
         clearChart("chartOperatingSummaryByChapter");
       }
 
-      // Resumen Neto (solo un capítulo)
-      if (showNet) {
+      if (showNet && netSummaries.length) {
+        const labels = netSummaries.map((s) => s.label);
         const netDatasets = columnDefs.map((col) => ({
           label: col.label,
-          data: summaries.map((s) => ocultarCeros(toNumber(s.net[col.key]))),
+          data: netSummaries.map((s) =>
+            ocultarCeros(toNumber(s.data[col.key]))
+          ),
           backgroundColor: col.color,
           borderColor: col.color,
           borderWidth: chartType === "line" ? 2 : 1,
@@ -1774,38 +1922,36 @@
             {
               responsive: true,
               maintainAspectRatio: false,
-              plugins: { 
-                title: {
-                  display: false,
-                },
+              plugins: {
+                title: { display: false },
                 tooltip: {
                   callbacks: {
-                    label: function(context) {
-                      let label = context.dataset.label || '';
+                    label: function (context) {
+                      let label = context.dataset.label || "";
                       if (label) {
-                        label += ': ';
+                        label += ": ";
                       }
                       label += formatNumber(context.parsed.y);
                       return label;
-                    }
-                  }
-                }
+                    },
+                  },
+                },
               },
-              scales: { 
-                y: { 
+              scales: {
+                y: {
                   beginAtZero: false,
                   grace: "10%",
                   ticks: {
-                    callback: function(value) {
+                    callback: function (value) {
                       return formatNumber(value);
-                    }
-                  }
+                    },
+                  },
                 },
                 x: {
                   ticks: {
-                    font: { size: 11 }
-                  }
-                }
+                    font: { size: 11 },
+                  },
+                },
               },
             },
             graficasConfig,
@@ -2159,7 +2305,8 @@
       return null;
     }
     
-    const config = getRowsConfig(capitulo);
+    const graficasConfig = getGraficasConfig();
+    const config = getRowsConfig(capitulo, graficasConfig);
     
     // Preparar datos para exportación
     const datos = {
@@ -2174,10 +2321,18 @@
     };
     
     // Datos operativos
+    const etiqueta = config?.isCdmx
+      ? "CDMX"
+      : window.CapitulosModulos?.obtenerConfigEmpresa?.(empresa?.id)?.etiqueta ||
+        empresa?.etiqueta ||
+        "Capitulo";
+    const resolveLabel = (label) =>
+      (label || etiqueta).toString().replace(/\{capitulo\}/gi, etiqueta);
+
     config.operating.forEach(row => {
       const data = getRowData(snapshot.map, row.variants);
       datos.operativos.push({
-        concepto: row.label,
+        concepto: resolveLabel(row.label || row.alias || ""),
         realAcumulado: data.actualYTD,
         pptoAcumulado: data.planYTD,
         realAcumAA: data.prevYTD
@@ -2188,7 +2343,7 @@
     config.net.forEach(row => {
       const data = getRowData(snapshot.map, row.variants);
       datos.netos.push({
-        concepto: row.label,
+        concepto: resolveLabel(row.label || row.alias || ""),
         realAcumulado: data.actualYTD,
         pptoAcumulado: data.planYTD,
         realAcumAA: data.prevYTD
@@ -2197,8 +2352,26 @@
     
     // Datos consolidados (solo CDMX)
     if (config.isCdmx) {
-      const consolidatedOp = getRowData(snapshot.map, ['CONSOLIDATED OPERATING RESULTS']);
-      const consolidatedNet = getRowData(snapshot.map, ['CONSOLIDATED NET RESULTS']);
+      const consolidatedSources =
+        graficasConfig.sources?.consolidated ||
+        DEFAULT_GRAFICAS_CONFIG.sources?.consolidated ||
+        {};
+      const consolidatedOp = getRowData(
+        snapshot.map,
+        getConsolidatedVariants(
+          consolidatedSources,
+          "operating",
+          DEFAULT_GRAFICAS_CONFIG.sources?.consolidated || {}
+        )
+      );
+      const consolidatedNet = getRowData(
+        snapshot.map,
+        getConsolidatedVariants(
+          consolidatedSources,
+          "net",
+          DEFAULT_GRAFICAS_CONFIG.sources?.consolidated || {}
+        )
+      );
       
       datos.consolidados.push(
         {

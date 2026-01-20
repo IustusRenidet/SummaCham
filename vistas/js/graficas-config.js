@@ -124,7 +124,7 @@
         gdl: {
           operating: [
             {
-              label: "GDL OPERATING RESULTS",
+              label: "{capitulo}",
               variants: [
                 "GDL OPERATING RESULTS",
                 "OPERATING RESULTS GUADALAJARA",
@@ -134,7 +134,7 @@
           ],
           net: [
             {
-              label: "NET RESULTS",
+              label: "{capitulo}",
               variants: ["NET RESULTS", "GDL NET RESULTS", "NET RESULTS GUADALAJARA"],
             },
           ],
@@ -142,7 +142,7 @@
         ne: {
           operating: [
             {
-              label: "NE OPERATING RESULTS",
+              label: "{capitulo}",
               variants: [
                 "NE OPERATING RESULTS",
                 "OPERATING RESULTS MONTERREY",
@@ -152,7 +152,7 @@
           ],
           net: [
             {
-              label: "NET RESULTS",
+              label: "{capitulo}",
               variants: ["NET RESULTS", "NE NET RESULTS", "NET RESULTS MONTERREY"],
             },
           ],
@@ -160,7 +160,7 @@
         no: {
           operating: [
             {
-              label: "NO OPERATING RESULTS",
+              label: "{capitulo}",
               variants: [
                 "NO OPERATING RESULTS",
                 "OPERATING RESULTS NORTHWEST",
@@ -170,7 +170,7 @@
           ],
           net: [
             {
-              label: "NET RESULTS",
+              label: "{capitulo}",
               variants: ["NET RESULTS", "NO NET RESULTS", "NET RESULTS NORTHWEST"],
             },
           ],
@@ -178,12 +178,12 @@
         generic: {
           operating: [
             {
-              label: "OPERATING RESULTS",
+              label: "{capitulo}",
               variants: ["OPERATING RESULTS", "RESULTADO OPERATIVO"],
             },
           ],
           net: [
-            { label: "NET RESULTS", variants: ["NET RESULTS", "RESULTADO NETO"] },
+            { label: "{capitulo}", variants: ["NET RESULTS", "RESULTADO NETO"] },
           ],
         },
       },
@@ -207,7 +207,7 @@
         nw: ["NORTHWEST INCOME", "NW INCOME", "NOROESTE INCOME", "NO INCOME"],
       },
       ingresoNacional: {
-        committees: ["COMMITTEES", "COMITES", "COMMITTEES (INCOME)"],
+        committees: ["COMMITTEES", "COMITES", "COMITS", "COMMITTEES (INCOME)"],
         membership: ["MEMBERSHIP", "MEMBERSHIP (INCOME)"],
         events: ["EVENTS", "EVENTS (INCOME)"],
         services: [

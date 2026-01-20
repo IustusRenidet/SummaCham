@@ -181,7 +181,7 @@
       // Estamos en un iframe y se pidió redirigir la ventana principal
       window.top.location.replace(destino);
     } else {
-      window.location.href = destino;
+      window.location.replace(destino);
     }
   };
 

@@ -81,6 +81,145 @@
           tic: { label: "T&IC", color: "#a855f7", enabled: true },
         },
       },
+      sources: {
+        summary: {
+          cdmx: {
+            operating: [
+              { label: "Ciudad de Mexico", variants: ["OPERATING RESULTS MEXICO"] },
+              {
+                label: "Guadalajara",
+                variants: ["OPERATING RESULTS GUADALAJARA", "GDL OPERATING RESULTS"],
+              },
+              {
+                label: "Noreste",
+                variants: ["OPERATING RESULTS MONTERREY", "MTY OPERATING RESULTS"],
+              },
+              {
+                label: "Noroeste",
+                variants: [
+                  "OPERATING RESULTS NORTHWEST",
+                  "OPERATING RESULTS NO",
+                  "NO OPERATING RESULTS",
+                ],
+              },
+            ],
+            net: [
+              { label: "Ciudad de Mexico", variants: ["NET RESULTS MEXICO"] },
+              {
+                label: "Guadalajara",
+                variants: ["NET RESULTS GUADALAJARA", "GDL NET RESULTS"],
+              },
+              {
+                label: "Noreste",
+                variants: ["NET RESULTS MONTERREY", "MTY NET RESULTS"],
+              },
+              {
+                label: "Noroeste",
+                variants: [
+                  "NET RESULTS NORTHWEST",
+                  "NET RESULTS NO",
+                  "NO NET RESULTS",
+                ],
+              },
+            ],
+          },
+          gdl: {
+            operating: [
+              {
+                label: "{capitulo}",
+                variants: [
+                  "GDL OPERATING RESULTS",
+                  "OPERATING RESULTS GUADALAJARA",
+                  "OPERATING RESULTS",
+                ],
+              },
+            ],
+            net: [
+              {
+                label: "{capitulo}",
+                variants: ["NET RESULTS", "GDL NET RESULTS", "NET RESULTS GUADALAJARA"],
+              },
+            ],
+          },
+          ne: {
+            operating: [
+              {
+                label: "{capitulo}",
+                variants: [
+                  "NE OPERATING RESULTS",
+                  "OPERATING RESULTS MONTERREY",
+                  "OPERATING RESULTS",
+                ],
+              },
+            ],
+            net: [
+              {
+                label: "{capitulo}",
+                variants: ["NET RESULTS", "NE NET RESULTS", "NET RESULTS MONTERREY"],
+              },
+            ],
+          },
+          no: {
+            operating: [
+              {
+                label: "{capitulo}",
+                variants: [
+                  "NO OPERATING RESULTS",
+                  "OPERATING RESULTS NORTHWEST",
+                  "OPERATING RESULTS",
+                ],
+              },
+            ],
+            net: [
+              {
+                label: "{capitulo}",
+                variants: ["NET RESULTS", "NO NET RESULTS", "NET RESULTS NORTHWEST"],
+              },
+            ],
+          },
+          generic: {
+            operating: [
+              {
+                label: "{capitulo}",
+                variants: ["OPERATING RESULTS", "RESULTADO OPERATIVO"],
+              },
+            ],
+            net: [
+              { label: "{capitulo}", variants: ["NET RESULTS", "RESULTADO NETO"] },
+            ],
+          },
+        },
+        consolidated: {
+          operating: {
+            label: "CONSOLIDATED OPERATING RESULTS",
+            variants: [
+              "CONSOLIDATED OPERATING RESULTS",
+              "CONSOLIDATED OPERATING RESULT",
+            ],
+          },
+          net: {
+            label: "CONSOLIDATED NET RESULTS",
+            variants: ["CONSOLIDATED NET RESULTS", "CONSOLIDATED NET RESULT"],
+          },
+        },
+        ingreso: {
+          mex: ["CDMX INCOME", "MEXICO INCOME", "CIUDAD DE MEXICO INCOME"],
+          gdl: ["GUADALAJARA INCOME", "GDL INCOME", "GUADALAJARA INCOMEA"],
+          mty: ["MONTERREY INCOME", "MTY INCOME"],
+          nw: ["NORTHWEST INCOME", "NW INCOME", "NOROESTE INCOME", "NO INCOME"],
+        },
+        ingresoNacional: {
+          committees: ["COMMITTEES", "COMITES", "COMITS", "COMMITTEES (INCOME)"],
+          membership: ["MEMBERSHIP", "MEMBERSHIP (INCOME)"],
+          events: ["EVENTS", "EVENTS (INCOME)"],
+          services: [
+            "SERVICES TO MEMBERS",
+            "SERVICES MEMBERS",
+            "SERVICES TO MEMBERS (INCOME)",
+          ],
+          tic: ["T&IC", "T&IC (INCOME)", "T&IC INCOME"],
+        },
+      },
     };
   })();
 
@@ -587,6 +726,175 @@
       .filter((serie) => serie.enabled !== false);
   };
 
+  const getSummaryRowsConfig = (capitulo, graficasConfig = {}) => {
+    const cap = normalizarLabelResumen(capitulo);
+    const sources =
+      graficasConfig.sources?.summary ||
+      DEFAULT_GRAFICAS_CONFIG.sources?.summary ||
+      null;
+
+    const resolveGroup = (key) => {
+      const group = sources?.[key];
+      if (!group) return null;
+      const operating = Array.isArray(group.operating) ? group.operating : [];
+      const net = Array.isArray(group.net) ? group.net : [];
+      if (!operating.length && !net.length) return null;
+      return { operating, net, isCdmx: key === "cdmx" };
+    };
+
+    if (sources) {
+      if (
+        cap.includes("CIUDAD DE MEXICO") ||
+        cap.includes("CDMX") ||
+        cap.includes("MEXICO")
+      ) {
+        const resolved = resolveGroup("cdmx");
+        if (resolved) return resolved;
+      }
+
+      if (cap.includes("GUADALAJARA") || cap.includes("GDL")) {
+        const resolved = resolveGroup("gdl");
+        if (resolved) return resolved;
+      }
+
+      if (cap.includes("NORESTE") || cap.includes("NE ") || cap.includes("MONTERREY")) {
+        const resolved = resolveGroup("ne");
+        if (resolved) return resolved;
+      }
+
+      if (cap.includes("NOROESTE") || cap.includes("NO ") || cap.includes("NORTHWEST")) {
+        const resolved = resolveGroup("no");
+        if (resolved) return resolved;
+      }
+
+      const fallback = resolveGroup("generic");
+      if (fallback) return fallback;
+    }
+
+    if (
+      cap.includes("CIUDAD DE MEXICO") ||
+      cap.includes("CDMX") ||
+      cap.includes("MEXICO")
+    ) {
+      return {
+        operating: [
+          { label: "Ciudad de Mexico", variants: ["OPERATING RESULTS MEXICO"] },
+          {
+            label: "Guadalajara",
+            variants: ["OPERATING RESULTS GUADALAJARA", "GDL OPERATING RESULTS"],
+          },
+          {
+            label: "Noreste",
+            variants: ["OPERATING RESULTS MONTERREY", "MTY OPERATING RESULTS"],
+          },
+          {
+            label: "Noroeste",
+            variants: [
+              "OPERATING RESULTS NORTHWEST",
+              "OPERATING RESULTS NO",
+              "NO OPERATING RESULTS",
+            ],
+          },
+        ],
+        net: [
+          { label: "Ciudad de Mexico", variants: ["NET RESULTS MEXICO"] },
+          {
+            label: "Guadalajara",
+            variants: ["NET RESULTS GUADALAJARA", "GDL NET RESULTS"],
+          },
+          {
+            label: "Noreste",
+            variants: ["NET RESULTS MONTERREY", "MTY NET RESULTS"],
+          },
+          {
+            label: "Noroeste",
+            variants: ["NET RESULTS NORTHWEST", "NET RESULTS NO", "NO NET RESULTS"],
+          },
+        ],
+        isCdmx: true,
+      };
+    }
+
+    if (cap.includes("GUADALAJARA") || cap.includes("GDL")) {
+      return {
+        operating: [
+          {
+            label: "{capitulo}",
+            variants: [
+              "GDL OPERATING RESULTS",
+              "OPERATING RESULTS GUADALAJARA",
+              "OPERATING RESULTS",
+            ],
+          },
+        ],
+        net: [
+          {
+            label: "{capitulo}",
+            variants: ["NET RESULTS", "GDL NET RESULTS", "NET RESULTS GUADALAJARA"],
+          },
+        ],
+        isCdmx: false,
+      };
+    }
+
+    if (cap.includes("NORESTE") || cap.includes("NE ") || cap.includes("MONTERREY")) {
+      return {
+        operating: [
+          {
+            label: "{capitulo}",
+            variants: [
+              "NE OPERATING RESULTS",
+              "OPERATING RESULTS MONTERREY",
+              "OPERATING RESULTS",
+            ],
+          },
+        ],
+        net: [
+          {
+            label: "{capitulo}",
+            variants: ["NET RESULTS", "NE NET RESULTS", "NET RESULTS MONTERREY"],
+          },
+        ],
+        isCdmx: false,
+      };
+    }
+
+    if (cap.includes("NOROESTE") || cap.includes("NO ") || cap.includes("NORTHWEST")) {
+      return {
+        operating: [
+          {
+            label: "{capitulo}",
+            variants: [
+              "NO OPERATING RESULTS",
+              "OPERATING RESULTS NORTHWEST",
+              "OPERATING RESULTS",
+            ],
+          },
+        ],
+        net: [
+          {
+            label: "{capitulo}",
+            variants: ["NET RESULTS", "NO NET RESULTS", "NET RESULTS NORTHWEST"],
+          },
+        ],
+        isCdmx: false,
+      };
+    }
+
+    return {
+      operating: [
+        {
+          label: "{capitulo}",
+          variants: ["OPERATING RESULTS", "RESULTADO OPERATIVO"],
+        },
+      ],
+      net: [
+        { label: "{capitulo}", variants: ["NET RESULTS", "RESULTADO NETO"] },
+      ],
+      isCdmx: false,
+    };
+  };
+
   const buildCustomChartData = (snapshot, chart, seriesConfig, chartType) => {
     if (!snapshot?.filas || !Array.isArray(seriesConfig) || !seriesConfig.length) {
       return null;
@@ -754,6 +1062,22 @@
     tic: ["T&IC", "T&IC (INCOME)", "T&IC INCOME"],
   };
 
+  const getSourceVariants = (sources, key, fallback) => {
+    const fromSources = sources?.[key];
+    if (Array.isArray(fromSources) && fromSources.length) {
+      return fromSources;
+    }
+    const fromFallback = fallback?.[key];
+    return Array.isArray(fromFallback) ? fromFallback : [];
+  };
+
+  const getConsolidatedVariants = (sources, key, fallback) => {
+    const variants = sources?.[key]?.variants;
+    if (Array.isArray(variants) && variants.length) return variants;
+    const fallbackVariants = fallback?.[key]?.variants;
+    return Array.isArray(fallbackVariants) ? fallbackVariants : [];
+  };
+
   const ingresoCache = new Map();
   const buildIngresoCacheKey = (empresaId, anio, signature = "") =>
     `${empresaId || "sin"}:${anio || "sin"}:${signature || "base"}`;
@@ -774,9 +1098,16 @@
     const graficasConfig = getGraficasConfig();
     const ingresoConfig =
       graficasConfig.ingreso || DEFAULT_GRAFICAS_CONFIG.ingreso;
+    const ingresoSources =
+      graficasConfig.sources?.ingreso ||
+      DEFAULT_GRAFICAS_CONFIG.sources?.ingreso ||
+      {};
     if (ingresoConfig.enabled === false) return null;
 
-    const configSignature = JSON.stringify(ingresoConfig || {});
+    const configSignature = JSON.stringify({
+      ingreso: ingresoConfig,
+      sources: ingresoSources,
+    });
     const cacheKey = buildIngresoCacheKey(empresaId, anio, configSignature);
     if (ingresoCache.has(cacheKey)) return ingresoCache.get(cacheKey);
 
@@ -802,14 +1133,14 @@
     );
 
     const datasetsConfig = Object.entries(ingresoConfig.series || {})
-      .filter(([key]) => INCOME_LABELS_CHART[key])
       .map(([key, serie]) => ({
         key,
         label: serie.label,
         color: serie.color,
         enabled: serie.enabled !== false,
+        variants: getSourceVariants(ingresoSources, key, INCOME_LABELS_CHART),
       }))
-      .filter((serie) => serie.enabled);
+      .filter((serie) => serie.enabled && serie.variants.length);
     if (!datasetsConfig.length) return null;
 
     const series = datasetsConfig.reduce((acc, item) => {
@@ -820,7 +1151,7 @@
     respuestas.forEach((data, idx) => {
       const layout = data?.resumen?.[0]?.layout || [];
       datasetsConfig.forEach((dataset) => {
-        const row = buscarFilaIngreso(layout, INCOME_LABELS_CHART[dataset.key]);
+        const row = buscarFilaIngreso(layout, dataset.variants);
         series[dataset.key][idx] = toNumber(row?.totals?.actualYTD);
       });
     });
@@ -859,9 +1190,16 @@
     const graficasConfig = getGraficasConfig();
     const ingresoConfig =
       graficasConfig.ingresoNacional || DEFAULT_GRAFICAS_CONFIG.ingresoNacional;
+    const ingresoSources =
+      graficasConfig.sources?.ingresoNacional ||
+      DEFAULT_GRAFICAS_CONFIG.sources?.ingresoNacional ||
+      {};
     if (ingresoConfig.enabled === false) return null;
 
-    const configSignature = JSON.stringify(ingresoConfig || {});
+    const configSignature = JSON.stringify({
+      ingresoNacional: ingresoConfig,
+      sources: ingresoSources,
+    });
     const cacheKey = buildIngresoNacionalCacheKey(
       empresaId,
       anio,
@@ -893,14 +1231,18 @@
     );
 
     const datasetsConfig = Object.entries(ingresoConfig.series || {})
-      .filter(([key]) => INGRESO_NACIONAL_LABELS[key])
       .map(([key, serie]) => ({
         key,
         label: serie.label,
         color: serie.color,
         enabled: serie.enabled !== false,
+        variants: getSourceVariants(
+          ingresoSources,
+          key,
+          INGRESO_NACIONAL_LABELS
+        ),
       }))
-      .filter((serie) => serie.enabled);
+      .filter((serie) => serie.enabled && serie.variants.length);
     if (!datasetsConfig.length) return null;
 
     const series = datasetsConfig.reduce((acc, item) => {
@@ -911,7 +1253,7 @@
     respuestas.forEach((data, idx) => {
       const layout = data?.resumen?.[0]?.layout || [];
       datasetsConfig.forEach((dataset) => {
-        const row = buscarFilaIngreso(layout, INGRESO_NACIONAL_LABELS[dataset.key]);
+        const row = buscarFilaIngreso(layout, dataset.variants);
         series[dataset.key][idx] = toNumber(row?.totals?.actualYTD);
       });
     });
@@ -4001,14 +4343,7 @@
     const chartType = graficasConfig.chart?.type || "bar";
     const chartsCfg = graficasConfig.charts || {};
 
-    const allowedKeys = new Set(["actualYTD", "planYTD", "prevYTD"]);
-    const seriesConfig = Array.isArray(graficasConfig.series) && graficasConfig.series.length
-      ? graficasConfig.series
-      : baseConfig.series || [];
-    const enabledSeries = seriesConfig
-      .filter((serie) => allowedKeys.has(serie.key))
-      .filter((serie) => serie.enabled !== false);
-
+    const enabledSeries = getEnabledSeriesConfig(graficasConfig);
     if (!enabledSeries.length) {
       return [null, null, null];
     }
@@ -4030,103 +4365,105 @@
       return dataset;
     };
 
-    const datos = [null, null, null];
+    const encontrarFila = (variants) => {
+      const list = Array.isArray(variants) ? variants : [];
+      if (!list.length) return null;
+      const normalized = list
+        .map((v) => normalizarLabelResumen(v))
+        .filter(Boolean);
+      if (!normalized.length) return null;
+      return snapshot.filas.find((fila) => {
+        const label = normalizarLabelResumen(fila?.label || "");
+        return normalized.some((v) => label.includes(v));
+      });
+    };
 
-    // === GRAFICA 1: Resultado Operativo por Capitulo ===
-    if (chartsCfg.operating?.enabled !== false) {
-      const regiones = [
-        { label: "Ciudad de Mexico", key: "OPERATING RESULTS MEXICO" },
-        { label: "Guadalajara", key: "OPERATING RESULTS GUADALAJARA" },
-        { label: "Noreste", key: "OPERATING RESULTS MONTERREY" },
-        { label: "Noroeste", key: "OPERATING RESULTS NORTHWEST" },
-      ];
+    const empresa = Sesion.obtenerEmpresaActiva?.() || {};
+    const capitulo = obtenerCapituloEmpresa(empresa?.id) || "";
+    const rowsConfig = getSummaryRowsConfig(capitulo, graficasConfig);
+    const etiqueta =
+      window.CapitulosModulos?.obtenerConfigEmpresa?.(empresa?.id)?.etiqueta ||
+      empresa?.etiqueta ||
+      capitulo ||
+      "Capitulo";
+    const resolveLabel = (label) =>
+      (label || etiqueta).toString().replace(/\{capitulo\}/gi, etiqueta);
 
-      const operatingLabels = [];
+    const buildSeriesData = (rows) => {
+      const labels = [];
       const seriesData = enabledSeries.reduce((acc, serie) => {
         acc[serie.key] = [];
         return acc;
       }, {});
 
-      regiones.forEach((region) => {
-        const fila = snapshot.filas.find((f) =>
-          (f.label || "").toUpperCase().includes(region.key.toUpperCase())
-        );
+      (rows || []).forEach((row) => {
+        const fila = encontrarFila(row?.variants || []);
         if (!fila) return;
-        operatingLabels.push(region.label);
+        labels.push(resolveLabel(row.label || row.alias || ""));
         enabledSeries.forEach((serie) => {
           seriesData[serie.key].push(toNumber(fila.totals?.[serie.key]));
         });
       });
 
-      if (operatingLabels.length > 0) {
+      return { labels, seriesData };
+    };
+
+    const datos = [null, null, null];
+
+    if (chartsCfg.operating?.enabled !== false) {
+      const operating = buildSeriesData(rowsConfig.operating);
+      if (operating.labels.length) {
         const chartTitle =
           chartsCfg.operating?.title ||
           baseConfig.charts?.operating?.title ||
           "Resultado Operativo por Capitulo";
         datos[0] = {
           titulo: chartTitle,
-          labels: operatingLabels,
+          labels: operating.labels,
           datasets: enabledSeries.map((serie) =>
-            buildDataset(serie, seriesData[serie.key])
+            buildDataset(serie, operating.seriesData[serie.key])
           ),
           type: chartType,
         };
       }
     }
 
-    // === GRAFICA 2: Resumen Neto por Capitulo ===
     if (chartsCfg.net?.enabled !== false) {
-      const regionesNet = [
-        { label: "Ciudad de Mexico", key: "NET RESULTS MEXICO" },
-        { label: "Guadalajara", key: "NET RESULTS GUADALAJARA" },
-        { label: "Noreste", key: "NET RESULTS MONTERREY" },
-        { label: "Noroeste", key: "NET RESULTS NORTHWEST" },
-      ];
-
-      const netLabels = [];
-      const seriesData = enabledSeries.reduce((acc, serie) => {
-        acc[serie.key] = [];
-        return acc;
-      }, {});
-
-      regionesNet.forEach((region) => {
-        const fila = snapshot.filas.find((f) =>
-          (f.label || "").toUpperCase().includes(region.key.toUpperCase())
-        );
-        if (!fila) return;
-        netLabels.push(region.label);
-        enabledSeries.forEach((serie) => {
-          seriesData[serie.key].push(toNumber(fila.totals?.[serie.key]));
-        });
-      });
-
-      if (netLabels.length > 0) {
+      const net = buildSeriesData(rowsConfig.net);
+      if (net.labels.length) {
         const chartTitle =
           chartsCfg.net?.title ||
           baseConfig.charts?.net?.title ||
           "Resumen Neto por Capitulo";
         datos[1] = {
           titulo: chartTitle,
-          labels: netLabels,
+          labels: net.labels,
           datasets: enabledSeries.map((serie) =>
-            buildDataset(serie, seriesData[serie.key])
+            buildDataset(serie, net.seriesData[serie.key])
           ),
           type: chartType,
         };
       }
     }
 
-    // === GRAFICA 3: Consolidados Operativos vs Netos ===
     if (chartsCfg.consolidated?.enabled !== false) {
-      const consolidatedOp = snapshot.filas.find((f) =>
-        (f.label || "")
-          .toUpperCase()
-          .includes("CONSOLIDATED OPERATING RESULTS")
+      const consolidatedSources =
+        graficasConfig.sources?.consolidated ||
+        baseConfig.sources?.consolidated ||
+        {};
+      const consolidatedOp = encontrarFila(
+        getConsolidatedVariants(
+          consolidatedSources,
+          "operating",
+          baseConfig.sources?.consolidated || {}
+        )
       );
-      const consolidatedNet = snapshot.filas.find((f) =>
-        (f.label || "")
-          .toUpperCase()
-          .includes("CONSOLIDATED NET RESULTS")
+      const consolidatedNet = encontrarFila(
+        getConsolidatedVariants(
+          consolidatedSources,
+          "net",
+          baseConfig.sources?.consolidated || {}
+        )
       );
 
       if (consolidatedOp && consolidatedNet) {

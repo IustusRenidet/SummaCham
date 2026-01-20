@@ -171,31 +171,34 @@
   const normalizarEtiquetaExclusion = (texto) =>
     normalizarTexto(texto || "").replace(/\s+/g, " ");
 
-  const ETIQUETAS_EXCLUIDAS_POR_MODULO = {
-    servmembresia: new Set(
-      [
-        "TOTAL INGRESOS Serv Membresía",
-        "TOTAL GASTOS Serv Membresía",
-        "RESULTADO OPERATIVO Serv Membresía",
-        "RESULTADO Serv Membresía",
-        "Resultado Serv Membresía",
-      ].map(normalizarEtiquetaExclusion)
-    ),
-    tic: new Set(
-      [
-        "TOTAL INGRESOS T&IC",
-        "TOTAL GASTOS T&IC",
-        "RESULTADO T&IC",
-        "Resultado T&IC",
-      ].map(normalizarEtiquetaExclusion)
-    ),
-    vpe: new Set(
-      [
-        "TOTAL INGRESOS VPE",
-        "TOTAL GASTOS VPE",
-      ].map(normalizarEtiquetaExclusion)
-    ),
-  };
+    const ETIQUETAS_EXCLUIDAS_POR_MODULO = {
+      servmembresia: new Set(
+        [
+          "TOTAL INGRESOS Serv Membresía",
+          "TOTAL GASTOS Serv Membresía",
+          "RESULTADO OPERATIVO Serv Membresía",
+          "RESULTADO Serv Membresía",
+          "Resultado Serv Membresía",
+        ].map(normalizarEtiquetaExclusion)
+      ),
+      tic: new Set(
+        [
+          "TOTAL INGRESOS T&IC",
+          "TOTAL GASTOS T&IC",
+          "RESULTADO T&IC",
+          "Resultado T&IC",
+        ].map(normalizarEtiquetaExclusion)
+      ),
+      vpe: new Set(
+        [
+          "TOTAL INGRESOS VPE",
+          "TOTAL GASTOS VPE",
+        ].map(normalizarEtiquetaExclusion)
+      ),
+      presupuestos: new Set(
+        ["RESULTADO OPERATIVO CDMX"].map(normalizarEtiquetaExclusion)
+      ),
+    };
 
   const limpiarSumasPorModulo = (configuracionActual, moduloClave) => {
     const moduloNormalizado = normalizarModuloClave(moduloClave || "");
@@ -3143,6 +3146,12 @@
             } else if (/INGRESOS/i.test(seccionNormTexto)) {
               metaSeccion.factor = 1;
             }
+            const etiquetaNomina = "SUMA NOMINA";
+            const etiquetaNominaNorm = normalizarTexto(etiquetaNomina);
+            if (!metaSeccion.sumRowSumavarios2Label) {
+              metaSeccion.sumRowSumavarios2Label = etiquetaNomina;
+              metaSeccion.sumRowSumavarios2Texto = etiquetaNominaNorm;
+            }
             break;
           }
           case "gtoscorporativos": {
@@ -5739,33 +5748,20 @@
         "SUMA DE INGRESOS CDMX",
         "SUMA DE GASTOS CDMX",
       ];
-      sumasCdmx.forEach((label) => {
-        const clave = normalizarTexto(label);
-        if (estadoModulo.sumas.sumavariosRows.has(clave)) return;
-        const fila = agregarFilaResumen({
-          texto: label,
-          clase: "sum-row-sumavarios",
-          cuerpo,
-          placeholdersPorFila,
+        sumasCdmx.forEach((label) => {
+          const clave = normalizarTexto(label);
+          if (estadoModulo.sumas.sumavariosRows.has(clave)) return;
+          const fila = agregarFilaResumen({
+            texto: label,
+            clase: "sum-row-sumavarios",
+            cuerpo,
+            placeholdersPorFila,
+          });
+          if (fila) {
+            estadoModulo.sumas.sumavariosRows.set(clave, fila);
+          }
         });
-        if (fila) {
-          estadoModulo.sumas.sumavariosRows.set(clave, fila);
-        }
-      });
-      const labelResultado = "RESULTADO OPERATIVO CDMX";
-      const claveResultado = normalizarTexto(labelResultado);
-      if (!estadoModulo.sumas.resultRows.has(claveResultado)) {
-        const filaResultado = agregarFilaResumen({
-          texto: labelResultado,
-          clase: "result-row",
-          cuerpo,
-          placeholdersPorFila,
-        });
-        if (filaResultado) {
-          estadoModulo.sumas.resultRows.set(claveResultado, filaResultado);
-        }
       }
-    }
 
     const operacionesResultado = construirOperacionesResultadoOperativo({
       registros,
