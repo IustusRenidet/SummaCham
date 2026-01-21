@@ -124,7 +124,7 @@
       "CUENTA": "802000000000000000001",
       "NOMBRE": "Gastos Generales",
       "SECCION Principal": "EXPENSE",
-      "SECCION Secundaria": "Gastos G&A"
+      "SECCION Secundaria": "Gastos Generales"
     },
     {
       "CAPITULO": "NORESTE",
@@ -247,7 +247,13 @@
     {
       "nombre": "Gastos G&A",
       "tipo": "cuentas",
-      "expresion": "803000000000000000000 + 802000000000000000001",
+      "expresion": "803000000000000000000",
+      "seccion": "EXPENSE"
+    },
+    {
+      "nombre": "Gastos Generales",
+      "tipo": "cuentas",
+      "expresion": "802000000000000000001",
       "seccion": "EXPENSE"
     },
     {

@@ -302,20 +302,12 @@
       "SECCION Secundaria": "Nómina"
     },
     {
-          "CAPITULO": "CIUDAD DE MEXICO",
-          "CUENTA": "901-000-000-00",
-          "NOMBRE": "Gastos Generales",
-          "SECCION Principal": "EXPENSE",
-          "SECCION Secundaria": "Gastos Generales"
-        },
-
-        {
-          "CAPITULO": "CIUDAD DE MEXICO",
-          "CUENTA": "903-000-000-00",
-          "NOMBRE": "Gastos Corporativos",
-          "SECCION Principal": "EXPENSE",
-          "SECCION Secundaria": "Gastos Corporativos"
-        },
+      "CAPITULO": "CIUDAD DE MEXICO",
+      "CUENTA": "903-000-000-00",
+      "NOMBRE": "Gastos Corporativos",
+      "SECCION Principal": "EXPENSE",
+      "SECCION Secundaria": "Gastos Corporativos"
+    },
     {
       "CAPITULO": "CIUDAD DE MEXICO",
       "CUENTA": "950-001-000-00",
@@ -455,7 +447,13 @@
     {
       "nombre": "Gastos Administrativos",
       "tipo": "cuentas",
-      "expresion": "801-001-000-00 + 801-002-000-00 + 801-003-000-00 + 801-004-000-00 + 801-005-000-00 + 801-006-000-00 + 801-007-000-00 + 801-008-000-00 + 801-009-000-00 + 801-010-000-00 + 801-011-000-00 + 801-012-000-00 + 801-013-000-00 + 901-000-000-00",
+      "expresion": "801-001-000-00 + 801-002-000-00 + 801-003-000-00 + 801-004-000-00 + 801-005-000-00 + 801-006-000-00 + 801-007-000-00 + 801-008-000-00 + 801-009-000-00 + 801-010-000-00 + 801-011-000-00 + 801-012-000-00 + 801-013-000-00",
+      "seccion": "EXPENSE"
+    },
+    {
+      "nombre": "Gastos Generales",
+      "tipo": "cuentas",
+      "expresion": "901-000-000-00",
       "seccion": "EXPENSE"
     },
     {
@@ -468,7 +466,7 @@
       "nombre": "Gastos Corporativos",
       "tipo": "cuentas",
       "expresion": "903-000-000-00",
-      "seccion": "Gastos Corporativos"
+      "seccion": "EXPENSE"
     },
     {
       "nombre": "Guadalajara Expense",

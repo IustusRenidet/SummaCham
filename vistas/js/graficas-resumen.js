@@ -99,6 +99,21 @@
 
   const isPieType = (type) => type === "pie" || type === "doughnut";
 
+  const normalizeChartType = (value, fallback = "inherit") => {
+    if (typeof value !== "string") return fallback;
+    const clean = value.trim();
+    if (!clean) return fallback;
+    if (clean === "inherit") return "inherit";
+    if (["bar", "line", "pie", "doughnut"].includes(clean)) return clean;
+    return fallback;
+  };
+
+  const resolveChartType = (value, baseType) => {
+    const normalized = normalizeChartType(value, "inherit");
+    if (normalized === "inherit") return baseType || "bar";
+    return normalized;
+  };
+
   const buildSlicePalette = (count, baseColor) => {
     const palette = baseColor
       ? [baseColor, ...CHART_PALETTE.filter((color) => color !== baseColor)]
@@ -323,7 +338,8 @@
       return null;
     }
 
-    const chartType = graficasConfig.chart?.type || "bar";
+    const baseChartType = graficasConfig.chart?.type || "bar";
+    const chartType = resolveChartType(ingresoConfig.chartType, baseChartType);
     const cacheSignature = JSON.stringify({
       ingreso: ingresoConfig,
       sources: ingresoSources,
@@ -433,7 +449,11 @@
       return null;
     }
 
-    const chartType = graficasConfig.chart?.type || "bar";
+    const baseChartType = graficasConfig.chart?.type || "bar";
+    const chartType = resolveChartType(
+      ingresoConfig.chartType,
+      baseChartType
+    );
     const cacheSignature = JSON.stringify({
       ingresoNacional: ingresoConfig,
       sources: ingresoSources,
@@ -1555,7 +1575,19 @@
 
     const graficasConfig = getGraficasConfig();
     const columnDefs = getColumnDefs(graficasConfig);
-    const chartType = graficasConfig.chart?.type || "bar";
+    const baseChartType = graficasConfig.chart?.type || "bar";
+    const operatingType = resolveChartType(
+      graficasConfig.charts?.operating?.chartType,
+      baseChartType
+    );
+    const netType = resolveChartType(
+      graficasConfig.charts?.net?.chartType,
+      baseChartType
+    );
+    const consolidatedType = resolveChartType(
+      graficasConfig.charts?.consolidated?.chartType,
+      baseChartType
+    );
     updateChartHeaders(graficasConfig);
 
     const config = getRowsConfig(capitulo, graficasConfig);
@@ -1605,7 +1637,7 @@
       });
 
       renderChart("chartConsolidatedResults", {
-        type: chartType,
+        type: consolidatedType,
         data: {
           labels: consolidatedLabels,
           datasets: [
@@ -1616,17 +1648,21 @@
               data: consolidatedColumns.map((col) =>
                 toNumber(consolidatedOp[col.key])
               ),
-              backgroundColor: isPieType(chartType)
+              backgroundColor: isPieType(consolidatedType)
                 ? buildSlicePalette(
                     consolidatedColumns.length,
                     graficasConfig.consolidatedSeries?.operating?.color || "#0d47a1"
                   )
                 : graficasConfig.consolidatedSeries?.operating?.color || "#0d47a1",
-              borderColor: isPieType(chartType)
+              borderColor: isPieType(consolidatedType)
                 ? "#ffffff"
                 : graficasConfig.consolidatedSeries?.operating?.color || "#0d47a1",
-              borderWidth: isPieType(chartType) ? 1 : chartType === "line" ? 2 : 1,
-              ...(chartType === "line"
+              borderWidth: isPieType(consolidatedType)
+                ? 1
+                : consolidatedType === "line"
+                ? 2
+                : 1,
+              ...(consolidatedType === "line"
                 ? {
                     fill: false,
                     tension: 0.32,
@@ -1636,7 +1672,7 @@
                       graficasConfig.consolidatedSeries?.operating?.color ||
                       "#0d47a1",
                   }
-                : chartType === "bar"
+                : consolidatedType === "bar"
                 ? { minBarLength: MIN_BAR_LENGTH }
                 : {}),
             },
@@ -1647,17 +1683,21 @@
               data: consolidatedColumns.map((col) =>
                 toNumber(consolidatedNet[col.key])
               ),
-              backgroundColor: isPieType(chartType)
+              backgroundColor: isPieType(consolidatedType)
                 ? buildSlicePalette(
                     consolidatedColumns.length,
                     graficasConfig.consolidatedSeries?.net?.color || "#94a3b8"
                   )
                 : graficasConfig.consolidatedSeries?.net?.color || "#94a3b8",
-              borderColor: isPieType(chartType)
+              borderColor: isPieType(consolidatedType)
                 ? "#ffffff"
                 : graficasConfig.consolidatedSeries?.net?.color || "#94a3b8",
-              borderWidth: isPieType(chartType) ? 1 : chartType === "line" ? 2 : 1,
-              ...(chartType === "line"
+              borderWidth: isPieType(consolidatedType)
+                ? 1
+                : consolidatedType === "line"
+                ? 2
+                : 1,
+              ...(consolidatedType === "line"
                 ? {
                     fill: false,
                     tension: 0.32,
@@ -1666,7 +1706,7 @@
                     pointBackgroundColor:
                       graficasConfig.consolidatedSeries?.net?.color || "#94a3b8",
                   }
-                : chartType === "bar"
+                : consolidatedType === "bar"
                 ? { minBarLength: MIN_BAR_LENGTH }
                 : {}),
             },
@@ -1710,7 +1750,7 @@
             },
           },
           graficasConfig,
-          chartType
+          consolidatedType
         ),
       });
     }
@@ -1730,7 +1770,15 @@
   ) => {
     const graficasConfig = graficasConfigOverride || getGraficasConfig();
     const columnDefs = getColumnDefs(graficasConfig);
-    const chartType = graficasConfig.chart?.type || "bar";
+    const baseChartType = graficasConfig.chart?.type || "bar";
+    const operatingType = resolveChartType(
+      graficasConfig.charts?.operating?.chartType,
+      baseChartType
+    );
+    const netType = resolveChartType(
+      graficasConfig.charts?.net?.chartType,
+      baseChartType
+    );
     const showOperating = graficasConfig.charts?.operating?.enabled !== false;
     const showNet = graficasConfig.charts?.net?.enabled !== false;
 
@@ -1767,7 +1815,7 @@
 
       if (showOperating && operatingSummaries.length) {
         const labels = operatingSummaries.map((s) => s.label);
-        const isPie = isPieType(chartType);
+        const isPie = isPieType(operatingType);
         const operatingDatasets = columnDefs.map((col) => {
           const rawValues = operatingSummaries.map((s) =>
             toNumber(s.data[col.key])
@@ -1776,7 +1824,7 @@
           const dataset = {
             label: col.label,
             data,
-            borderWidth: isPie ? 1 : chartType === "line" ? 2 : 1,
+            borderWidth: isPie ? 1 : operatingType === "line" ? 2 : 1,
           };
           if (isPie) {
             dataset.backgroundColor = buildSlicePalette(data.length, col.color);
@@ -1785,20 +1833,20 @@
           }
           dataset.backgroundColor = col.color;
           dataset.borderColor = col.color;
-          if (chartType === "line") {
+          if (operatingType === "line") {
             dataset.fill = false;
             dataset.tension = 0.32;
             dataset.pointRadius = POINT_RADIUS;
             dataset.pointHoverRadius = POINT_HOVER_RADIUS;
             dataset.pointBackgroundColor = col.color;
-          } else if (chartType === "bar") {
+          } else if (operatingType === "bar") {
             dataset.minBarLength = MIN_BAR_LENGTH;
           }
           return dataset;
         });
 
         renderChart("chartOperatingSummaryByChapter", {
-          type: chartType,
+          type: operatingType,
           data: {
             labels,
             datasets: operatingDatasets,
@@ -1839,7 +1887,7 @@
               },
             },
             graficasConfig,
-            chartType
+            operatingType
           ),
         });
       } else {
@@ -1848,14 +1896,14 @@
 
       if (showNet && netSummaries.length) {
         const labels = netSummaries.map((s) => s.label);
-        const isPie = isPieType(chartType);
+        const isPie = isPieType(netType);
         const netDatasets = columnDefs.map((col) => {
           const rawValues = netSummaries.map((s) => toNumber(s.data[col.key]));
           const data = isPie ? rawValues : rawValues.map((value) => ocultarCeros(value));
           const dataset = {
             label: col.label,
             data,
-            borderWidth: isPie ? 1 : chartType === "line" ? 2 : 1,
+            borderWidth: isPie ? 1 : netType === "line" ? 2 : 1,
           };
           if (isPie) {
             dataset.backgroundColor = buildSlicePalette(data.length, col.color);
@@ -1864,7 +1912,7 @@
           }
           dataset.backgroundColor = col.color;
           dataset.borderColor = col.color;
-          if (chartType === "line") {
+          if (netType === "line") {
             dataset.fill = false;
             dataset.tension = 0.32;
             dataset.pointRadius = 3;
@@ -1874,7 +1922,7 @@
         });
 
         renderChart("chartNetSummaryByChapter", {
-          type: chartType,
+          type: netType,
           data: {
             labels,
             datasets: netDatasets,
@@ -1916,7 +1964,7 @@
               },
             },
             graficasConfig,
-            chartType
+            netType
           ),
         });
       } else {
@@ -1938,7 +1986,7 @@
 
       if (showOperating && operatingSummaries.length) {
         const labels = operatingSummaries.map((s) => s.label);
-        const isPie = isPieType(chartType);
+        const isPie = isPieType(operatingType);
         const operatingDatasets = columnDefs.map((col) => {
           const rawValues = operatingSummaries.map((s) =>
             toNumber(s.data[col.key])
@@ -1947,7 +1995,7 @@
           const dataset = {
             label: col.label,
             data,
-            borderWidth: isPie ? 1 : chartType === "line" ? 2 : 1,
+            borderWidth: isPie ? 1 : operatingType === "line" ? 2 : 1,
           };
           if (isPie) {
             dataset.backgroundColor = buildSlicePalette(data.length, col.color);
@@ -1956,20 +2004,20 @@
           }
           dataset.backgroundColor = col.color;
           dataset.borderColor = col.color;
-          if (chartType === "line") {
+          if (operatingType === "line") {
             dataset.fill = false;
             dataset.tension = 0.32;
             dataset.pointRadius = POINT_RADIUS;
             dataset.pointHoverRadius = POINT_HOVER_RADIUS;
             dataset.pointBackgroundColor = col.color;
-          } else if (chartType === "bar") {
+          } else if (operatingType === "bar") {
             dataset.minBarLength = MIN_BAR_LENGTH;
           }
           return dataset;
         });
 
         renderChart("chartOperatingSummaryByChapter", {
-          type: chartType,
+          type: operatingType,
           data: {
             labels,
             datasets: operatingDatasets,
@@ -2010,7 +2058,7 @@
               },
             },
             graficasConfig,
-            chartType
+            operatingType
           ),
         });
       } else {
@@ -2019,14 +2067,14 @@
 
       if (showNet && netSummaries.length) {
         const labels = netSummaries.map((s) => s.label);
-        const isPie = isPieType(chartType);
+        const isPie = isPieType(netType);
         const netDatasets = columnDefs.map((col) => {
           const rawValues = netSummaries.map((s) => toNumber(s.data[col.key]));
           const data = isPie ? rawValues : rawValues.map((value) => ocultarCeros(value));
           const dataset = {
             label: col.label,
             data,
-            borderWidth: isPie ? 1 : chartType === "line" ? 2 : 1,
+            borderWidth: isPie ? 1 : netType === "line" ? 2 : 1,
           };
           if (isPie) {
             dataset.backgroundColor = buildSlicePalette(data.length, col.color);
@@ -2035,20 +2083,20 @@
           }
           dataset.backgroundColor = col.color;
           dataset.borderColor = col.color;
-          if (chartType === "line") {
+          if (netType === "line") {
             dataset.fill = false;
             dataset.tension = 0.32;
             dataset.pointRadius = POINT_RADIUS;
             dataset.pointHoverRadius = POINT_HOVER_RADIUS;
             dataset.pointBackgroundColor = col.color;
-          } else if (chartType === "bar") {
+          } else if (netType === "bar") {
             dataset.minBarLength = MIN_BAR_LENGTH;
           }
           return dataset;
         });
 
         renderChart("chartNetSummaryByChapter", {
-          type: chartType,
+          type: netType,
           data: {
             labels,
             datasets: netDatasets,
@@ -2090,7 +2138,7 @@
               },
             },
             graficasConfig,
-            chartType
+            netType
           ),
         });
       } else {
@@ -2109,7 +2157,8 @@
     const graficasConfig = getGraficasConfig();
     const ingresoConfig =
       graficasConfig.ingreso || DEFAULT_GRAFICAS_CONFIG.ingreso;
-    const chartType = graficasConfig.chart?.type || "bar";
+    const baseChartType = graficasConfig.chart?.type || "bar";
+    const chartType = resolveChartType(ingresoConfig.chartType, baseChartType);
     if (ingresoConfig.enabled === false) {
       return;
     }
@@ -2170,7 +2219,7 @@
             },
           },
           graficasConfig,
-          chartType
+          consolidatedType
         ),
       });
     } catch (err) {
@@ -2188,7 +2237,8 @@
     const graficasConfig = getGraficasConfig();
     const ingresoConfig =
       graficasConfig.ingresoNacional || DEFAULT_GRAFICAS_CONFIG.ingresoNacional;
-    const chartType = graficasConfig.chart?.type || "bar";
+    const baseChartType = graficasConfig.chart?.type || "bar";
+    const chartType = resolveChartType(ingresoConfig.chartType, baseChartType);
     if (ingresoConfig.enabled === false) {
       return;
     }
@@ -2249,7 +2299,7 @@
             },
           },
           graficasConfig,
-          chartType
+          consolidatedType
         ),
       });
     } catch (err) {

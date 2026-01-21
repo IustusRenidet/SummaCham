@@ -1403,30 +1403,26 @@
     empresaActual = empresa;
     await aplicarEmpresa(empresaActual.id);
     
-    // Aplicar layout guardado (servidor primero, luego localStorage)
+    // Aplicar layout guardado desde SQLite
     try {
       const anio = leerAnioSeleccionado();
       const moduloClave = modulo;
-      
-      // Intentar cargar desde servidor primero (capítulo se deriva de empresa_id)
+      const capitulo =
+        (capituloActual || obtenerCapituloEmpresa(empresa.id) || "DEFAULT")
+          .toString()
+          .trim() || "DEFAULT";
       const layoutServidor = await fetch(
-        `${base}/api/layouts?empresaId=${empresa.id}&modulo=${moduloClave}&anio=${anio}`,
+        `${base}/api/layouts/${encodeURIComponent(moduloClave)}/${anio}/${encodeURIComponent(
+          capitulo
+        )}?empresaId=${encodeURIComponent(empresa.id)}`,
         { headers: Sesion.headersAutenticacion?.() || {} }
-      ).then(r => r.ok ? r.json() : null).catch(() => null);
+      )
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null);
       
       if (layoutServidor?.layout && window.ModoEdicionPresupuesto?.aplicarLayoutLocal) {
         window.ModoEdicionPresupuesto.aplicarLayoutLocal(layoutServidor.layout);
         console.log('\u2705 Layout aplicado desde servidor:', layoutServidor.layout);
-      } else {
-        // Fallback: cargar desde localStorage
-        const layoutLocal = window.CuentasModulo?.cargarLayoutLocal?.();
-        if (layoutLocal && window.CuentasModulo?.aplicarLayoutLocal) {
-          window.CuentasModulo.aplicarLayoutLocal(layoutLocal);
-          console.log('\u2705 Layout aplicado desde localStorage:', layoutLocal);
-        } else if (layoutLocal && window.ModoEdicionPresupuesto?.aplicarLayoutLocal) {
-          window.ModoEdicionPresupuesto.aplicarLayoutLocal(layoutLocal);
-          console.log('\u2705 Layout aplicado desde localStorage (ModoEdicion):', layoutLocal);
-        }
       }
     } catch (err) {
       console.warn('Error aplicando layout en Summary', err);

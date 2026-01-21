@@ -4,13 +4,14 @@
   const TABLE_SELECTOR = "#tablaComparacion";
   const PANEL_SELECTOR = ".operativo-panel, .operativo-sidebar";
   const CANVAS_COMBINED_ID = "operativoChartCombined";
-  const charts = { combined: null, custom: {} };
+  const charts = { combined: null, combinedType: null, custom: {} };
   const MIN_BAR_LENGTH = 18;
   const POINT_RADIUS = 6;
   const POINT_HOVER_RADIUS = 8;
   const DEFAULT_OPERATIVO_CONFIG = {
     enabled: true,
     title: "Ppto. Acumulado vs Real + {annual}",
+    chartType: "bar",
     datasets: {
       budget: { label: "Ppto. Acumulado", color: "#4472c4", enabled: true },
       real: { label: "Real Acumulado", color: "#ffc000", enabled: true },
@@ -56,6 +57,21 @@
   ];
 
   const isPieType = (type) => type === "pie" || type === "doughnut";
+
+  const normalizeChartType = (value, fallback = "inherit") => {
+    if (typeof value !== "string") return fallback;
+    const clean = value.trim();
+    if (!clean) return fallback;
+    if (clean === "inherit") return "inherit";
+    if (["bar", "line", "pie", "doughnut"].includes(clean)) return clean;
+    return fallback;
+  };
+
+  const resolveChartType = (value, baseType) => {
+    const normalized = normalizeChartType(value, "inherit");
+    if (normalized === "inherit") return baseType || "bar";
+    return normalized;
+  };
 
   const buildSlicePalette = (count, baseColor) => {
     const palette = baseColor
@@ -253,8 +269,7 @@
     contenedor.style.height = `${altura}px`;
   };
 
-  const construirChart = ({
-    ctx,
+  const buildCombinedDatasets = ({
     labels,
     presupuestos,
     reales,
@@ -262,9 +277,8 @@
     colors,
     labelsConfig,
     enabledConfig,
+    chartType,
   }) => {
-    const gridColor = "rgba(47, 84, 150, 0.08)";
-    const axisColor = "rgba(47, 84, 150, 0.55)";
     const labelsSafe = labelsConfig || {};
     const enabledSafe = enabledConfig || {};
     const labelBudget =
@@ -276,60 +290,164 @@
     const budgetEnabled = enabledSafe.budget !== false;
     const realEnabled = enabledSafe.real !== false;
     const annualEnabled = enabledSafe.annual !== false;
+    const isPie = isPieType(chartType);
+
+    if (isPie) {
+      return [
+        {
+          type: chartType,
+          label: labelBudget,
+          data: presupuestos,
+          backgroundColor: buildSlicePalette(labels.length, colors.budget),
+          borderColor: "#ffffff",
+          borderWidth: 1,
+          hidden: !budgetEnabled,
+        },
+        {
+          type: chartType,
+          label: labelReal,
+          data: reales,
+          backgroundColor: buildSlicePalette(labels.length, colors.real),
+          borderColor: "#ffffff",
+          borderWidth: 1,
+          hidden: !realEnabled,
+        },
+        {
+          type: chartType,
+          label: labelAnnual,
+          data: anuales,
+          backgroundColor: buildSlicePalette(labels.length, colors.annual),
+          borderColor: "#ffffff",
+          borderWidth: 1,
+          hidden: !annualEnabled,
+        },
+      ];
+    }
+
+    if (chartType === "line") {
+      return [
+        {
+          type: "line",
+          label: labelBudget,
+          data: presupuestos,
+          borderColor: colors.budget,
+          backgroundColor: colors.budget,
+          borderWidth: 2,
+          tension: 0.3,
+          pointRadius: POINT_RADIUS,
+          pointHoverRadius: POINT_HOVER_RADIUS,
+          fill: false,
+          hidden: !budgetEnabled,
+        },
+        {
+          type: "line",
+          label: labelReal,
+          data: reales,
+          borderColor: colors.real,
+          backgroundColor: colors.real,
+          borderWidth: 2,
+          tension: 0.3,
+          pointRadius: POINT_RADIUS,
+          pointHoverRadius: POINT_HOVER_RADIUS,
+          fill: false,
+          hidden: !realEnabled,
+        },
+        {
+          type: "line",
+          label: labelAnnual,
+          data: anuales,
+          borderColor: colors.annual,
+          backgroundColor: colors.annual,
+          borderWidth: 2,
+          tension: 0.3,
+          pointRadius: POINT_RADIUS,
+          pointHoverRadius: POINT_HOVER_RADIUS,
+          fill: false,
+          hidden: !annualEnabled,
+        },
+      ];
+    }
+
+    return [
+      {
+        type: "bar",
+        label: labelBudget,
+        data: presupuestos,
+        backgroundColor: colors.budget,
+        borderColor: colors.budget,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderSkipped: false,
+        maxBarThickness: 26,
+        minBarLength: MIN_BAR_LENGTH,
+        order: 1,
+        hidden: !budgetEnabled,
+      },
+      {
+        type: "bar",
+        label: labelReal,
+        data: reales,
+        backgroundColor: colors.real,
+        borderColor: colors.real,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderSkipped: false,
+        maxBarThickness: 26,
+        minBarLength: MIN_BAR_LENGTH,
+        order: 2,
+        hidden: !realEnabled,
+      },
+      {
+        type: "line",
+        label: labelAnnual,
+        data: anuales,
+        borderColor: colors.annual,
+        backgroundColor: colors.annual,
+        borderWidth: 2,
+        tension: 0.3,
+        pointRadius: POINT_RADIUS,
+        pointHoverRadius: POINT_HOVER_RADIUS,
+        fill: false,
+        spanGaps: false,
+        order: 3,
+        hidden: !annualEnabled,
+      },
+    ];
+  };
+
+  const construirChart = ({
+    ctx,
+    labels,
+    presupuestos,
+    reales,
+    anuales,
+    colors,
+    labelsConfig,
+    enabledConfig,
+    chartType,
+  }) => {
+    const gridColor = "rgba(47, 84, 150, 0.08)";
+    const axisColor = "rgba(47, 84, 150, 0.55)";
+    const resolvedType = chartType || "bar";
     return new Chart(ctx, {
-      type: "bar",
+      type: resolvedType,
       data: {
         labels,
-        datasets: [
-          {
-            type: "bar",
-            label: labelBudget,
-            data: presupuestos,
-            backgroundColor: colors.budget,
-            borderColor: colors.budget,
-            borderRadius: 10,
-            borderWidth: 1,
-            borderSkipped: false,
-            maxBarThickness: 26,
-            minBarLength: MIN_BAR_LENGTH,
-            order: 1,
-            hidden: !budgetEnabled,
-          },
-          {
-            type: "bar",
-            label: labelReal,
-            data: reales,
-            backgroundColor: colors.real,
-            borderColor: colors.real,
-            borderRadius: 10,
-            borderWidth: 1,
-            borderSkipped: false,
-            maxBarThickness: 26,
-            minBarLength: MIN_BAR_LENGTH,
-            order: 2,
-            hidden: !realEnabled,
-          },
-          {
-            type: "line",
-            label: labelAnnual,
-            data: anuales,
-            borderColor: colors.annual,
-            backgroundColor: colors.annual,
-            borderWidth: 2,
-            tension: 0.3,
-            pointRadius: POINT_RADIUS,
-            pointHoverRadius: POINT_HOVER_RADIUS,
-            fill: false,
-            spanGaps: false,
-            order: 3,
-            hidden: !annualEnabled,
-          },
-        ],
+        datasets: buildCombinedDatasets({
+          labels,
+          presupuestos,
+          reales,
+          anuales,
+          colors,
+          labelsConfig,
+          enabledConfig,
+          chartType: resolvedType,
+        }),
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        indexAxis: "y",
+        indexAxis: resolvedType === "bar" ? "y" : "x",
         layout: {
           padding: { left: 6, right: 16, top: 8, bottom: 8 },
         },
@@ -384,6 +502,7 @@
     colors,
     labelsConfig,
     enabledConfig,
+    chartType,
   }) => {
     const canvas = document.getElementById(CANVAS_COMBINED_ID);
     const empty = document.querySelector('[data-operativo-empty="combined"]');
@@ -392,6 +511,7 @@
       if (charts.combined) {
         charts.combined.destroy();
         charts.combined = null;
+        charts.combinedType = null;
       }
       if (empty) empty.style.display = "flex";
       canvas.style.display = "none";
@@ -401,6 +521,24 @@
     if (empty) empty.style.display = "none";
     canvas.style.display = "block";
     const ctx = canvas.getContext("2d");
+    const resolvedType = chartType || "bar";
+    if (charts.combined && charts.combinedType !== resolvedType) {
+      charts.combined.destroy();
+      charts.combined = null;
+      charts.combinedType = null;
+    }
+
+    const datasets = buildCombinedDatasets({
+      labels,
+      presupuestos,
+      reales,
+      anuales,
+      colors,
+      labelsConfig,
+      enabledConfig,
+      chartType: resolvedType,
+    });
+
     if (!charts.combined || charts.combined.data.datasets.length !== 3) {
       charts.combined = construirChart({
         ctx,
@@ -411,37 +549,17 @@
         colors,
         labelsConfig,
         enabledConfig,
+        chartType: resolvedType,
       });
-    } else {
-      const labelsSafe = labelsConfig || {};
-      const enabledSafe = enabledConfig || {};
-      const labelBudget =
-        labelsSafe.budget || DEFAULT_OPERATIVO_CONFIG.datasets.budget.label;
-      const labelReal =
-        labelsSafe.real || DEFAULT_OPERATIVO_CONFIG.datasets.real.label;
-      const labelAnnual =
-        labelsSafe.annual || DEFAULT_OPERATIVO_CONFIG.datasets.annual.label;
-      const budgetEnabled = enabledSafe.budget !== false;
-      const realEnabled = enabledSafe.real !== false;
-      const annualEnabled = enabledSafe.annual !== false;
-      charts.combined.data.labels = labels;
-      charts.combined.data.datasets[0].data = presupuestos;
-      charts.combined.data.datasets[1].data = reales;
-      charts.combined.data.datasets[2].data = anuales;
-      charts.combined.data.datasets[0].label = labelBudget;
-      charts.combined.data.datasets[1].label = labelReal;
-      charts.combined.data.datasets[2].label = labelAnnual;
-      charts.combined.data.datasets[0].backgroundColor = colors.budget;
-      charts.combined.data.datasets[0].borderColor = colors.budget;
-      charts.combined.data.datasets[1].backgroundColor = colors.real;
-      charts.combined.data.datasets[1].borderColor = colors.real;
-      charts.combined.data.datasets[2].backgroundColor = colors.annual;
-      charts.combined.data.datasets[2].borderColor = colors.annual;
-      charts.combined.data.datasets[0].hidden = !budgetEnabled;
-      charts.combined.data.datasets[1].hidden = !realEnabled;
-      charts.combined.data.datasets[2].hidden = !annualEnabled;
-      charts.combined.update();
+      charts.combinedType = resolvedType;
+      return;
     }
+
+    charts.combined.data.labels = labels;
+    charts.combined.data.datasets = datasets;
+    charts.combined.options.indexAxis =
+      resolvedType === "bar" ? "y" : "x";
+    charts.combined.update();
   };
 
   const clearCustomCharts = (container) => {
@@ -514,10 +632,7 @@
       const rows = Array.isArray(chart?.rows) ? chart.rows : [];
       if (!rows.length) return;
 
-      const chartType =
-        chart?.chartType && chart.chartType !== "inherit"
-          ? chart.chartType
-          : baseChartType;
+      const chartType = resolveChartType(chart?.chartType, baseChartType);
       const isPie = isPieType(chartType);
 
       const labels = [];
@@ -691,6 +806,11 @@
 
     const graficasConfig = getGraficasConfig();
     const operativoConfig = graficasConfig.operativo || DEFAULT_OPERATIVO_CONFIG;
+    const baseChartType = graficasConfig.chart?.type || "bar";
+    const resolvedChartType = resolveChartType(
+      operativoConfig.chartType,
+      baseChartType
+    );
     if (operativoConfig.enabled === false) {
       sidebar.style.display = "none";
       return;
@@ -768,6 +888,7 @@
         annual: annualLabel,
       },
       enabledConfig,
+      chartType: resolvedChartType,
     });
 
     renderCustomCharts({

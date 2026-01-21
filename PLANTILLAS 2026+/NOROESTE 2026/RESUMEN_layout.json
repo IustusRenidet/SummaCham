@@ -110,7 +110,7 @@
       "CUENTA": "901000000000000000001",
       "NOMBRE": "Gastos Generales",
       "SECCION Principal": "EXPENSE",
-      "SECCION Secundaria": "Gastos G&A"
+      "SECCION Secundaria": "Gastos Generales"
     },
     {
       "CAPITULO": "NOROESTE",
@@ -122,9 +122,9 @@
     {
       "CAPITULO": "NOROESTE",
       "CUENTA": "903000000000000000000",
-      "NOMBRE": "Gtos. Corporativos",
+      "NOMBRE": "Gastos Corporativos",
       "SECCION Principal": "EXPENSE",
-      "SECCION Secundaria": "Gtos. Corporativos"
+      "SECCION Secundaria": "Gastos Corporativos"
     },
     {
       "CAPITULO": "NOROESTE",
@@ -219,7 +219,13 @@
     {
       "nombre": "Gastos G&A",
       "tipo": "cuentas",
-      "expresion": "801000000000000000001 + 901000000000000000001",
+      "expresion": "801000000000000000001",
+      "seccion": "EXPENSE"
+    },
+    {
+      "nombre": "Gastos Generales",
+      "tipo": "cuentas",
+      "expresion": "901000000000000000001",
       "seccion": "EXPENSE"
     },
     {
@@ -229,7 +235,7 @@
       "seccion": "EXPENSE"
     },
     {
-      "nombre": "Gtos. Corporativos",
+      "nombre": "Gastos Corporativos",
       "tipo": "cuentas",
       "expresion": "903000000000000000000",
       "seccion": "EXPENSE"

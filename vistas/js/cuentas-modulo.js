@@ -62,7 +62,7 @@
   /**
    * Crea una fila de estado para mostrar mensajes informativos en la tabla
    *
-   * Se usa cuando la tabla está vacía o hay algún error, por ejemplo:
+   * Se usa cuando la tabla est├í vac├¡a o hay alg├║n error, por ejemplo:
    * - "El capitulo seleccionado no tiene esta vista asignada."
    * - "No hay informacion disponible para esta vista."
    * - "El capitulo no tiene cuentas configuradas en el libro."
@@ -70,7 +70,7 @@
    * La fila ocupa todo el ancho de la tabla con una sola celda.
    *
    * @param {string} mensaje - Mensaje a mostrar al usuario
-   * @param {number} colspan - Número de columnas que debe abarcar la celda
+   * @param {number} colspan - N├║mero de columnas que debe abarcar la celda
    * @returns {HTMLTableRowElement} Fila HTML con el mensaje
    */
   const crearFilaEstado = (mensaje, colspan) => {
@@ -132,7 +132,7 @@
     "nomina",
   ]);
 
-  // Módulos sin operaciones automáticas (se usa la configuración tal como viene del layout/DB)
+  // M├│dulos sin operaciones autom├íticas (se usa la configuraci├│n tal como viene del layout/DB)
   const MODULOS_SIN_OPERACIONES_AUTOMATICAS = new Set([
     "membresia",
     "eventos",
@@ -174,11 +174,11 @@
     const ETIQUETAS_EXCLUIDAS_POR_MODULO = {
       servmembresia: new Set(
         [
-          "TOTAL INGRESOS Serv Membresía",
-          "TOTAL GASTOS Serv Membresía",
-          "RESULTADO OPERATIVO Serv Membresía",
-          "RESULTADO Serv Membresía",
-          "Resultado Serv Membresía",
+          "TOTAL INGRESOS Serv Membres├¡a",
+          "TOTAL GASTOS Serv Membres├¡a",
+          "RESULTADO OPERATIVO Serv Membres├¡a",
+          "RESULTADO Serv Membres├¡a",
+          "Resultado Serv Membres├¡a",
         ].map(normalizarEtiquetaExclusion)
       ),
       tic: new Set(
@@ -261,7 +261,7 @@
     return REGLAS_OPERACIONES_MODULO[clave] || null;
   };
 
-  const construirEtiquetasOperacion = (etiquetaVisible = "Módulo") => ({
+  const construirEtiquetasOperacion = (etiquetaVisible = "M├│dulo") => ({
     totalIngresos: `TOTAL INGRESOS ${etiquetaVisible}`,
     totalGastos: `TOTAL GASTOS ${etiquetaVisible}`,
     resultado: `RESULTADO ${etiquetaVisible}`,
@@ -444,37 +444,85 @@
   const esModuloEditable = (moduloClave) =>
     MODULOS_LAYOUT_EDITABLE.has(normalizarModuloClave(moduloClave || ""));
 
-  const obtenerClaveLayoutLocal = ({ moduloClave, empresaId, anio }) => {
-    if (!moduloClave || !empresaId || !Number.isInteger(anio)) {
-      return null;
-    }
-    return `planeacion-layout:${empresaId}:${anio}:${moduloClave}`;
-  };
+  const obtenerAuthHeaders = () =>
+    typeof Sesion?.headersAutenticacion === "function"
+      ? Sesion.headersAutenticacion()
+      : {};
 
-  const cargarLayoutLocal = ({ moduloClave, empresaId, anio }) => {
-    const clave = obtenerClaveLayoutLocal({ moduloClave, empresaId, anio });
-    if (!clave || !window.localStorage) {
+  const cargarLayoutSqlite = async ({
+    modulo,
+    anio,
+    capitulo,
+    empresaId,
+  }) => {
+    if (!modulo || !Number.isInteger(anio) || !capitulo || !empresaId) {
       return null;
     }
     try {
-      const crudo = window.localStorage.getItem(clave);
-      return crudo ? JSON.parse(crudo) : null;
+      const params = new URLSearchParams({ empresaId });
+      const url = `${API_BASE}/layouts/${encodeURIComponent(
+        modulo
+      )}/${anio}/${encodeURIComponent(capitulo)}?${params.toString()}`;
+      const respuesta = await fetch(url, { headers: obtenerAuthHeaders() });
+      if (!respuesta.ok) {
+        if (respuesta.status !== 404) {
+          console.warn("No fue posible cargar el layout SQL", respuesta.status);
+        }
+        return null;
+      }
+      const data = await respuesta.json();
+      return data?.layout || null;
     } catch (error) {
-      console.warn("No fue posible leer el layout local", error);
+      console.warn("No fue posible cargar el layout SQL", error);
       return null;
     }
   };
 
-  const guardarLayoutLocal = ({ layout, moduloClave, empresaId, anio }) => {
-    const clave = obtenerClaveLayoutLocal({ moduloClave, empresaId, anio });
-    if (!clave || !window.localStorage || !layout) {
+  const guardarLayoutServidor = async ({
+    modulo,
+    anio,
+    capitulo,
+    empresaId,
+    cuentas,
+    operaciones,
+  }) => {
+    if (
+      !modulo ||
+      !Number.isInteger(anio) ||
+      !capitulo ||
+      !empresaId ||
+      !Array.isArray(cuentas) ||
+      !Array.isArray(operaciones)
+    ) {
       return false;
     }
     try {
-      window.localStorage.setItem(clave, JSON.stringify(layout));
+      const url = `${API_BASE}/layouts/${encodeURIComponent(
+        modulo
+      )}/${anio}/${encodeURIComponent(capitulo)}`;
+      const respuesta = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...obtenerAuthHeaders(),
+        },
+        body: JSON.stringify({
+          empresaId,
+          cuentas,
+          operaciones,
+        }),
+      });
+      if (!respuesta.ok) {
+        const payload = await respuesta.json().catch(() => ({}));
+        console.warn(
+          "No fue posible guardar el layout en servidor",
+          payload?.mensaje || respuesta.status
+        );
+        return false;
+      }
       return true;
     } catch (error) {
-      console.warn("No fue posible guardar el layout local", error);
+      console.warn("No fue posible guardar el layout en servidor", error);
       return false;
     }
   };
@@ -504,6 +552,7 @@
     capitulo: "",
     placeholdersPorFila: 0,
     layoutActual: null,
+    layoutOperaciones: [],
     layoutSnapshot: null,
     layoutEsPersonalizado: false,
     cuentasDisponibles: [],
@@ -531,25 +580,25 @@
   const obtenerIndiceMesSistema = () => new Date().getMonth();
 
   /*
-   * Determina el último mes cerrado visible.
-   * Acepta anioEspecifico para sincronizar con la lógica de quien lo llama.
+   * Determina el ├║ltimo mes cerrado visible.
+   * Acepta anioEspecifico para sincronizar con la l├│gica de quien lo llama.
    */
     const obtenerIndicePeriodoActual = (anioEspecifico = null) => {
       const periodo = obtenerPeriodoCerrado();
       const indiceDesdeContexto = Number.isInteger(periodo) ? periodo - 1 : null;
       const indiceMesActual = obtenerIndiceMesSistema();
 
-    // Si nos pasan un año, lo usamos. Si no, inferimos.
+    // Si nos pasan un a├▒o, lo usamos. Si no, inferimos.
     const anioActual = new Date().getFullYear();
     let anioSeleccionado = anioEspecifico;
 
     if (anioSeleccionado === null) {
-      // Fallback a lógica anterior
+      // Fallback a l├│gica anterior
       const anioBase = obtenerAnioBaseSeleccionado();
       anioSeleccionado = Number.isInteger(anioBase) ? anioBase : anioActual;
     }
 
-    // Para ejercicios PASADOS (< actual): mostrar año completo (11) SIEMPRE.
+    // Para ejercicios PASADOS (< actual): mostrar a├▒o completo (11) SIEMPRE.
     if (anioSeleccionado < anioActual) {
       return MESES.length - 1;
     }
@@ -559,7 +608,7 @@
       return -1;
     }
 
-    // Para el AÑO ACTUAL:
+    // Para el A├æO ACTUAL:
     const limitePorFecha = indiceMesActual - 1;
     let limite = limitePorFecha;
     if (indiceDesdeContexto != null) {
@@ -611,9 +660,9 @@
     modalWrapper.innerHTML = `
       <div class="section-modal__overlay"></div>
       <div class="section-modal__dialog">
-        <h5>Agregar sección</h5>
+        <h5>Agregar secci├│n</h5>
         <form class="section-modal__form">
-          <label class="section-modal__label" for="sectionTitleInput">Título de sección</label>
+          <label class="section-modal__label" for="sectionTitleInput">T├¡tulo de secci├│n</label>
           <input id="sectionTitleInput" class="form-control section-modal__input" maxlength="80" required />
 
           <label class="section-modal__label" for="sectionSumLabelInput">Etiqueta para sum row</label>
@@ -622,7 +671,7 @@
           <label class="section-modal__label" for="sectionPrincipalSelect">Principal / sumatoria</label>
           <select id="sectionPrincipalSelect" class="form-select section-modal__input"></select>
           <input id="sectionPrincipalCustom" class="form-control section-modal__input" maxlength="120" placeholder="Nombre del principal" hidden />
-          <label class="section-modal__label" for="sectionPrincipalFactor">Factor de operación</label>
+          <label class="section-modal__label" for="sectionPrincipalFactor">Factor de operaci├│n</label>
           <input id="sectionPrincipalFactor" type="number" step="0.01" placeholder="Ej: 1 para sumar, -1 para restar" class="form-control section-modal__input" />
           <div class="form-text">Usa 1 para sumar, -1 para restar, 0.5 para dividir u otro factor personalizado.</div>
           <div id="sectionPrincipalInfo" class="section-modal__info"></div>
@@ -640,16 +689,16 @@
             </label>
           </div>
           <div id="sectionGroupFields" class="section-modal__group" hidden>
-            <label class="section-modal__label" for="sectionGroupStart">Sección inicial</label>
+            <label class="section-modal__label" for="sectionGroupStart">Secci├│n inicial</label>
             <select id="sectionGroupStart" class="form-select section-modal__input"></select>
-            <label class="section-modal__label" for="sectionGroupEnd">Sección final</label>
+            <label class="section-modal__label" for="sectionGroupEnd">Secci├│n final</label>
             <select id="sectionGroupEnd" class="form-select section-modal__input"></select>
             <label class="section-modal__label" for="sectionGroupLabel">Etiqueta sum row varios</label>
             <input id="sectionGroupLabel" class="form-control section-modal__input" maxlength="80" />
           </div>
 
           <div class="section-modal__actions">
-            <button type="submit" class="btn btn-primario">Crear sección</button>
+            <button type="submit" class="btn btn-primario">Crear secci├│n</button>
             <button type="button" id="sectionModalCancel" class="btn btn-chip btn-chip-outline">Cancelar</button>
           </div>
         </form>
@@ -826,7 +875,7 @@
     endSelect.innerHTML = "";
     const secciones = (estadoModulo.sumas.secciones || []).map((meta, idx) => ({
       idx,
-      label: meta?.tituloVisible || meta?.seccion || `Sección ${idx + 1}`,
+      label: meta?.tituloVisible || meta?.seccion || `Secci├│n ${idx + 1}`,
     }));
     const groupToggle = sectionModalInstance.querySelector(
       "#sectionGroupToggle"
@@ -868,7 +917,7 @@
         mapa.set(clave, { label, secciones: [] });
       }
       mapa.get(clave).secciones.push({
-        nombre: meta.tituloVisible || meta.seccion || "Sin título",
+        nombre: meta.tituloVisible || meta.seccion || "Sin t├¡tulo",
         factor: Number.isFinite(meta.factor)
           ? meta.factor
           : Number.isFinite(meta.operacionFactor)
@@ -907,7 +956,7 @@
     const resumen = obtenerPrincipalesResumen();
     if (!resumen.length) {
       elems.principalInfo.innerHTML =
-        '<p class="text-muted small mb-0">Aún no hay principales configurados.</p>';
+        '<p class="text-muted small mb-0">A├║n no hay principales configurados.</p>';
       return;
     }
     const contenido = resumen
@@ -1085,26 +1134,26 @@
         });
       });
       if (!cuentas.length) {
-        window.alert("Debes agregar al menos una cuenta para la sección.");
+        window.alert("Debes agregar al menos una cuenta para la secci├│n.");
         return;
       }
       if (factorInvalido) {
         window.alert(
-          "Define la operación (sumar, restar o factor personalizado) para cada cuenta."
+          "Define la operaci├│n (sumar, restar o factor personalizado) para cada cuenta."
         );
         return;
       }
       const titulo = elems.titleInput.value.trim();
       const sumLabel = elems.sumLabelInput.value.trim();
       if (!titulo || !sumLabel) {
-        window.alert("El título y la etiqueta del sum row son obligatorios.");
+        window.alert("El t├¡tulo y la etiqueta del sum row son obligatorios.");
         return;
       }
       const factorSeccionRaw = elems.principalFactor?.value;
       const factorSeccionValor =
         factorSeccionRaw === undefined ? NaN : Number(factorSeccionRaw);
       if (factorSeccionRaw === "" || !Number.isFinite(factorSeccionValor)) {
-        window.alert("Indica cómo opera la sección (factor de suma/resta).");
+        window.alert("Indica c├│mo opera la secci├│n (factor de suma/resta).");
         return;
       }
       let range = null;
@@ -1115,7 +1164,7 @@
         sumavariosLabel = elems.groupLabel.value.trim();
         if (Number.isNaN(start) || Number.isNaN(end) || start > end) {
           window.alert(
-            "Selecciona un rango válido para las secciones contiguas."
+            "Selecciona un rango v├ílido para las secciones contiguas."
           );
           return;
         }
@@ -1481,7 +1530,7 @@
     '950-003-000-00': { capitulo: 'NOROESTE', tipo: 'expense' },
   };
 
-  // Mapeo de capítulo a empresaId (usar claves normalizadas)
+  // Mapeo de cap├¡tulo a empresaId (usar claves normalizadas)
   const CAPITULO_A_EMPRESA = {
     [normalizarTexto("GUADALAJARA")]: "empresa2",
     [normalizarTexto("NORESTE")]: "empresa3",
@@ -1491,10 +1540,10 @@
     [normalizarTexto("CIUDAD DE MEXICO")]: "empresa1",
   };
 
-  // Flag para evitar reinicialización recursiva
+  // Flag para evitar reinicializaci├│n recursiva
   let estaInicializandoCuentas = false;
 
-  // Función helper para cargar datos de presupuestos de un capítulo/empresa específico
+  // Funci├│n helper para cargar datos de presupuestos de un cap├¡tulo/empresa espec├¡fico
   const cargarDatosPresupuestosCapitulo = async (empresaId, anio) => {
     try {
       const params = new URLSearchParams({
@@ -1522,11 +1571,11 @@
 
   /**
    * Carga valores mensuales de INCOME y EXPENSE del RESUMEN (columna "Ppto.")
-   * Para cada mes del año, obtiene el valor planMonth de los principales
+   * Para cada mes del a├▒o, obtiene el valor planMonth de los principales
    */
   const cargarDatosSummaryCapitulo = async (capitulo, anio) => {
     try {
-      // Obtener el empresaId del capítulo usando el mapeo normalizado
+      // Obtener el empresaId del cap├¡tulo usando el mapeo normalizado
       const claveCapitulo = normalizarTexto(capitulo);
       let empresaId = CAPITULO_A_EMPRESA[claveCapitulo];
       if (!empresaId && window.CapitulosModulos?.EMPRESA_CONFIG) {
@@ -1537,11 +1586,11 @@
       }
 
       if (!empresaId) {
-        console.warn(`❌ No se encontró empresaId para capítulo: ${capitulo}`);
+        console.warn(`ÔØî No se encontr├│ empresaId para cap├¡tulo: ${capitulo}`);
         return null;
       }
 
-      console.log(`📊 Cargando valores mensuales de RESUMEN de ${capitulo} (empresa: ${empresaId})`);
+      console.log(`­ƒôè Cargando valores mensuales de RESUMEN de ${capitulo} (empresa: ${empresaId})`);
 
       // Cargar los 12 meses del resumen
       const valoresPorMes = { income: {}, expense: {} };
@@ -1559,7 +1608,7 @@
         });
 
         if (!respuesta.ok) {
-          console.error(`❌ Error al cargar resumen ${capitulo} mes ${mes}`);
+          console.error(`ÔØî Error al cargar resumen ${capitulo} mes ${mes}`);
           continue;
         }
 
@@ -1588,13 +1637,13 @@
         valoresPorMes.expense[nombreMes] = expensePlan || 0;
       }
 
-      console.log(`✅ Valores mensuales cargados para ${capitulo}:`, {
+      console.log(`Ô£à Valores mensuales cargados para ${capitulo}:`, {
         enero: { income: valoresPorMes.income.ene, expense: valoresPorMes.expense.ene }
       });
 
       return valoresPorMes;
     } catch (error) {
-      console.error(`❌ Error al cargar totales de ${capitulo}:`, error);
+      console.error(`ÔØî Error al cargar totales de ${capitulo}:`, error);
       return null;
     }
   };
@@ -1604,7 +1653,7 @@
     const empresa = Sesion.obtenerEmpresaActiva();
     const capitulo = empresa ? window.CapitulosModulos?.obtenerCapituloPorEmpresa(empresa.id) : null;
 
-    // Solo aplicar para módulo presupuestos en Ciudad de México
+    // Solo aplicar para m├│dulo presupuestos en Ciudad de M├®xico
     if (
       moduloClave !== 'presupuestos' ||
       normalizarTexto(capitulo) !== normalizarTexto('CIUDAD DE MEXICO')
@@ -1612,16 +1661,16 @@
       return;
     }
 
-    console.log('🔄 Consolidando presupuestos de capítulos en CDMX (desde columna "Ppto." del RESUMEN)');
+    console.log('­ƒöä Consolidando presupuestos de cap├¡tulos en CDMX (desde columna "Ppto." del RESUMEN)');
 
-    // Cargar datos de los tres capítulos
+    // Cargar datos de los tres cap├¡tulos
     const [gdlData, neData, noData] = await Promise.all([
       cargarDatosSummaryCapitulo('GUADALAJARA', anio),
       cargarDatosSummaryCapitulo('NORESTE', anio),
       cargarDatosSummaryCapitulo('NOROESTE', anio),
     ]);
 
-    console.log('📦 Datos cargados:', { gdlData, neData, noData });
+    console.log('­ƒôª Datos cargados:', { gdlData, neData, noData });
 
     const datosCapitulos = {
       GUADALAJARA: gdlData,
@@ -1672,10 +1721,10 @@
         const valorNuevo = cuentaData.valores[mes] || 0;
         const valorActual = valoresActuales[`budget-${mes}`] || 0;
         
-        // Si hay diferencia significativa (más de 1 peso), necesita actualización
+        // Si hay diferencia significativa (m├ís de 1 peso), necesita actualizaci├│n
         if (Math.abs(valorNuevo - valorActual) > 1) {
           necesitaActualizacion = true;
-          console.log(`🔄 Diferencia detectada en ${cuentaData.cuentaVisible} mes ${mes}: ${valorActual} → ${valorNuevo}`);
+          console.log(`­ƒöä Diferencia detectada en ${cuentaData.cuentaVisible} mes ${mes}: ${valorActual} ÔåÆ ${valorNuevo}`);
           break;
         }
       }
@@ -1684,12 +1733,12 @@
     }
 
     if (!necesitaActualizacion) {
-      console.log('✅ Las cuentas ya tienen los valores correctos, no es necesario actualizar');
+      console.log('Ô£à Las cuentas ya tienen los valores correctos, no es necesario actualizar');
       estaInicializandoCuentas = false;
       return;
     }
 
-    console.log(`📋 Valores a actualizar:`, {
+    console.log(`­ƒôï Valores a actualizar:`, {
       'GDL Income (450-001) Enero': cuentasParaActualizar.find(c => c.cuentaVisible === '450-001-000-00')?.valores.ene,
       'GDL Expense (950-001) Enero': cuentasParaActualizar.find(c => c.cuentaVisible === '950-001-000-00')?.valores.ene
     });
@@ -1698,7 +1747,7 @@
     if (cuentasParaActualizar.length > 0 && !estaInicializandoCuentas) {
       estaInicializandoCuentas = true;
       try {
-        console.log(`💾 Actualizando ${cuentasParaActualizar.length} cuentas en base de datos...`);
+        console.log(`­ƒÆ¥ Actualizando ${cuentasParaActualizar.length} cuentas en base de datos...`);
         
         const respuestaUpdate = await fetch(`${API_BASE}/presupuestos/actualizar-consolidados`, {
           method: 'POST',
@@ -1714,7 +1763,7 @@
 
         if (respuestaUpdate.ok) {
           const resultado = await respuestaUpdate.json();
-          console.log('✅ Actualización en BD exitosa:', resultado);
+          console.log('Ô£à Actualizaci├│n en BD exitosa:', resultado);
           
           // Actualizar valores en DOM y memoria
           cuentasParaActualizar.forEach((cuentaData) => {
@@ -1732,7 +1781,7 @@
                 establecerValorCelda(fila, `budget-${mes}`, valor);
               });
 
-              // Actualizar el almacén de valores en memoria
+              // Actualizar el almac├®n de valores en memoria
               const almacen = estadoModulo.valoresPorCuenta.get(cuentaData.numCta) || {};
               MESES.forEach((mes) => {
                 almacen[`budget-${mes}`] = cuentaData.valores[mes] || 0;
@@ -1760,28 +1809,28 @@
               estadoModulo.valoresPorCuenta.set(cuentaData.numCta, almacen);
 
               console.log(
-                `✅ Cuenta ${cuentaData.cuentaVisible} actualizada: ${cuentaData.config.capitulo} ${cuentaData.config.tipo.toUpperCase()} - Enero: ${cuentaData.valores.ene}`
+                `Ô£à Cuenta ${cuentaData.cuentaVisible} actualizada: ${cuentaData.config.capitulo} ${cuentaData.config.tipo.toUpperCase()} - Enero: ${cuentaData.valores.ene}`
               );
             } else {
-              console.log(`ℹ️ Cuenta ${cuentaData.cuentaVisible} no está visible en Presupuestos (solo nivel mayor).`);
+              console.log(`Ôä╣´©Å Cuenta ${cuentaData.cuentaVisible} no est├í visible en Presupuestos (solo nivel mayor).`);
             }
           });
 
           // Recalcular todas las sumas de la tabla
-          console.log('🔄 Recalculando sumas de toda la tabla...');
+          console.log('­ƒöä Recalculando sumas de toda la tabla...');
           recalcularSumas();
-          console.log('✅ Consolidación completada exitosamente');
+          console.log('Ô£à Consolidaci├│n completada exitosamente');
           
         } else {
-          console.error('❌ Error al actualizar:', await respuestaUpdate.text());
+          console.error('ÔØî Error al actualizar:', await respuestaUpdate.text());
         }
       } catch (errorUpdate) {
-        console.error('❌ Error al actualizar cuentas:', errorUpdate);
+        console.error('ÔØî Error al actualizar cuentas:', errorUpdate);
       } finally {
         estaInicializandoCuentas = false;
       }
     } else {
-      console.log('⚠️ No hay cuentas para actualizar o ya está en proceso');
+      console.log('ÔÜá´©Å No hay cuentas para actualizar o ya est├í en proceso');
       estaInicializandoCuentas = false;
     }
   };
@@ -1849,11 +1898,11 @@
     estadoModulo.hayCambios = false;
     estadoModulo.editSnapshot = null;
 
-    // Aplicar datos automáticos de SUMMARY si corresponde
+    // Aplicar datos autom├íticos de SUMMARY si corresponde
     const anio = obtenerAnioSeleccionado();
     if (Number.isInteger(anio)) {
       aplicarDatosAutomaticos(anio).catch((err) => {
-        console.warn('Error aplicando datos automáticos:', err);
+        console.warn('Error aplicando datos autom├íticos:', err);
       });
     }
   };
@@ -1947,26 +1996,26 @@
     return { presupuesto: cambiosPresupuesto, nombres: [] };
   };
 
-  // CRÍTICO: Flag para evitar recursión infinita en notificaciones
+  // CR├ìTICO: Flag para evitar recursi├│n infinita en notificaciones
   let notificandoCambios = false;
 
   const notificarCambios = () => {
-    // Evitar recursión infinita
+    // Evitar recursi├│n infinita
     if (notificandoCambios) {
-      console.warn("⚠️ notificarCambios: evitando recursión");
+      console.warn("ÔÜá´©Å notificarCambios: evitando recursi├│n");
       return;
     }
     notificandoCambios = true;
 
     try {
       const cambios = obtenerCambiosPendientes();
-      // NO persistir automáticamente - solo notificar que hay cambios pendientes
-      // El usuario debe guardar explícitamente usando el botón de guardar borrador
+      // NO persistir autom├íticamente - solo notificar que hay cambios pendientes
+      // El usuario debe guardar expl├¡citamente usando el bot├│n de guardar borrador
       const detalle = {
         ...cambios,
         hayCambios: estadoModulo.hayCambios,
         layoutModificado: estadoModulo.layoutModificado || false,
-        borradorGuardado: false, // Ya no se guarda automáticamente
+        borradorGuardado: false, // Ya no se guarda autom├íticamente
       };
       window.dispatchEvent(
         new CustomEvent("modulo-planeacion:presupuesto-editado", {
@@ -1974,7 +2023,7 @@
         })
       );
     } finally {
-      // Liberar flag con un pequeño delay para evitar llamadas inmediatas
+      // Liberar flag con un peque├▒o delay para evitar llamadas inmediatas
       setTimeout(() => {
         notificandoCambios = false;
       }, 50);
@@ -2013,19 +2062,19 @@
       return;
     }
 
-    // USAR estadoModulo.anio DIRECTAMENTE para evitar lecturas erróneas del DOM
+    // USAR estadoModulo.anio DIRECTAMENTE para evitar lecturas err├│neas del DOM
     const anioState = Number(estadoModulo.anio);
     const anioActual = new Date().getFullYear();
 
-    // Si no tenemos año en estado, intentamos el select, si falla, null.
-    // IMPORTANTE: NO default a anioActual aquí para la lógica de "mostrar todo".
+    // Si no tenemos a├▒o en estado, intentamos el select, si falla, null.
+    // IMPORTANTE: NO default a anioActual aqu├¡ para la l├│gica de "mostrar todo".
     let anioEvaluado = Number.isInteger(anioState) ? anioState : null;
     if (anioEvaluado === null) {
       const selectVal = obtenerAnioBaseSeleccionado(); // Fallback
       if (Number.isInteger(selectVal)) anioEvaluado = selectVal;
     }
 
-    // Si aun así es null, asumimos año actual para seguridad (ocultar futuro)
+    // Si aun as├¡ es null, asumimos a├▒o actual para seguridad (ocultar futuro)
     if (anioEvaluado === null) anioEvaluado = anioActual;
 
     console.debug("[planeacion] filtro columnas", {
@@ -2044,7 +2093,7 @@
       periodoLimite = 0;
     } else {
       // Presente: Usar periodo visible calculado (meses cerrados)
-      // IMPORTANTE: Pasamos anioEvaluado para que la función sepa explícitamente qué año es.
+      // IMPORTANTE: Pasamos anioEvaluado para que la funci├│n sepa expl├¡citamente qu├® a├▒o es.
       periodoLimite = obtenerPeriodoVisible(anioEvaluado);
     }
 
@@ -2149,11 +2198,11 @@
       );
       const datos = await resp.json();
 
-      // Si el año solicitado no tiene datos (404), intentar con el año anterior
+      // Si el a├▒o solicitado no tiene datos (404), intentar con el a├▒o anterior
       if (!resp.ok) {
         if (resp.status === 404 && anioConsulta === new Date().getFullYear()) {
           console.log(
-            `⚠️ No hay datos de presupuestos para ${anioConsulta}, intentando con ${
+            `ÔÜá´©Å No hay datos de presupuestos para ${anioConsulta}, intentando con ${
               anioConsulta - 1
             }`
           );
@@ -2239,7 +2288,7 @@
           // Presupuesto: usar el valor tal cual viene de la tabla PRESUPxx (sin factor).
           const valorPresupuesto = normalizarNumero(presupuestoCampo);
           const tieneReal = realCampo != null && realCampo !== undefined;
-          // Real: usar la contabilización tal cual regresa el backend (YTD desde SALDOS).
+          // Real: usar la contabilizaci├│n tal cual regresa el backend (YTD desde SALDOS).
           const valorReal = normalizarNumero(tieneReal ? realCampo : 0);
           presupuesto[mes] = valorPresupuesto;
           real[mes] = valorReal;
@@ -2359,9 +2408,9 @@
         )
       )
       .filter(Boolean);
-    // Reiniciar con las de presupuestos del año
+    // Reiniciar con las de presupuestos del a├▒o
     unificarCuentasDisponibles(cuentas, { anio, reset: true });
-    // Agregar catálogo completo (todos los niveles) del mismo año (con cache y sin spamear el backend)
+    // Agregar cat├ílogo completo (todos los niveles) del mismo a├▒o (con cache y sin spamear el backend)
     cargarCatalogoCompleto({ anio })
       .then((lista) => {
         if (Array.isArray(lista) && lista.length) {
@@ -2437,23 +2486,21 @@
     return promesa;
   };
 
-  const compilarCatalogoGlobal = () => {
+  const compilarCatalogoGlobal = (registros = []) => {
     const anioActual = obtenerAnioSeleccionado() || estadoModulo.anio;
-    const dataset = window.CUENTAS_POR_MODULO || {};
-    const todas = [];
-    Object.values(dataset).forEach((registros) => {
-      if (!Array.isArray(registros)) return;
-      registros.forEach((registro) => {
-        if (registro?.cuenta) {
-          const cuentaCorregida = corregirCuentaLegible(
-            registro.cuenta,
-            registro
-          );
-          todas.push(convertirCuenta21(cuentaCorregida));
-        }
-      });
-    });
-    unificarCuentasDisponibles(todas, { anio: anioActual });
+    const todas = (Array.isArray(registros) ? registros : [])
+      .map((registro) => {
+        if (!registro?.cuenta) return null;
+        const cuentaCorregida = corregirCuentaLegible(
+          registro.cuenta,
+          registro
+        );
+        return convertirCuenta21(cuentaCorregida);
+      })
+      .filter(Boolean);
+    if (todas.length) {
+      unificarCuentasDisponibles(todas, { anio: anioActual });
+    }
   };
 
   const destruirTooltips = () => {
@@ -2532,7 +2579,7 @@
           ? ` (${datos.detalles.join("; ")})`
           : "";
         throw new Error(
-          (datos.mensaje || "No fue posible obtener la información contable.") +
+          (datos.mensaje || "No fue posible obtener la informaci├│n contable.") +
             detalles
         );
       }
@@ -2541,25 +2588,14 @@
       }
       contarSaldos(datos.cuentas || []);
     } catch (error) {
-      console.error("Error al cargar datos de planeación", error);
+      console.error("Error al cargar datos de planeaci├│n", error);
       if (folio === estadoModulo.ultimaSolicitud) {
         limpiarValores();
       }
     }
   };
 
-  const obtenerSumasConfig = (sheetName, capitulo, seccion) => {
-    const dataset = window.CUENTAS_SUMAS || {};
-    const porHoja = dataset[normalizarSheetId(sheetName)] || null;
-    if (!porHoja) {
-      return null;
-    }
-    const porCapitulo = porHoja[normalizarTexto(capitulo)];
-    if (!porCapitulo) {
-      return null;
-    }
-    return porCapitulo[normalizarTexto(seccion)] || null;
-  };
+  const obtenerSumasConfig = () => null;
 
   const limpiarSeparadoresNomina = (texto = "") =>
     texto
@@ -2653,25 +2689,25 @@
    * Agrega una fila de resumen/suma al cuerpo de la tabla
    *
    * Estas filas especiales muestran totales calculados y pueden ser de varios tipos:
-   * - sum-row: Suma de todas las cuentas de una sección
+   * - sum-row: Suma de todas las cuentas de una secci├│n
    * - sum-row-sumavarios: Suma de varios sum-rows agrupados
-   * - result-row: Resultado final del módulo
+   * - result-row: Resultado final del m├│dulo
    *
    * ESTRUCTURA DE FILA:
-   * | (vacío) | Texto descriptivo | val1 | val2 | ... | val12 |
+   * | (vac├¡o) | Texto descriptivo | val1 | val2 | ... | val12 |
    *
-   * La primera columna (cuenta) está vacía porque las filas de suma
-   * no representan una cuenta específica sino un total.
+   * La primera columna (cuenta) est├í vac├¡a porque las filas de suma
+   * no representan una cuenta espec├¡fica sino un total.
    *
    * Los valores se inicializan en "-" y luego se actualizan con
    * recalcularSumas() que calcula los totales reales.
    *
-   * @param {Object} params - Parámetros
+   * @param {Object} params - Par├ímetros
    * @param {string} params.texto - Texto descriptivo (ej: "Suma INGRESOS")
    * @param {string} params.clase - Clase CSS (sum-row, sum-row-sumavarios, result-row)
    * @param {HTMLElement} params.cuerpo - Elemento tbody donde insertar la fila
    * @param {number} params.placeholdersPorFila - Cantidad de columnas de valores (12 meses)
-   * @returns {HTMLTableRowElement|null} Fila creada o null si faltan parámetros
+   * @returns {HTMLTableRowElement|null} Fila creada o null si faltan par├ímetros
    */
   const agregarFilaResumen = ({
     texto,
@@ -2707,17 +2743,17 @@
   /**
    * Renderiza las secciones y filas de cuentas en el tbody de la tabla
    *
-   * Esta función toma la lista de cuentas filtradas por capitulo y las
+   * Esta funci├│n toma la lista de cuentas filtradas por capitulo y las
    * organiza visualmente en secciones con sus respectivas filas.
    *
    * PROCESO:
-   * 1. Agrupa registros por sección (ej: "INGRESOS", "GASTOS", etc.)
-   * 2. Para cada sección:
-   *    a. Crea fila de encabezado (section-header-row) con nombre de sección
+   * 1. Agrupa registros por secci├│n (ej: "INGRESOS", "GASTOS", etc.)
+   * 2. Para cada secci├│n:
+   *    a. Crea fila de encabezado (section-header-row) con nombre de secci├│n
    *    b. Crea filas de cuenta (fila-cuenta) con columnas: cuenta | nombre | valores
-   *    c. Agrega fila sum-row si la configuración de sumas lo indica
+   *    c. Agrega fila sum-row si la configuraci├│n de sumas lo indica
    * 3. Construye metadata de sumas (sumavarios, result-row)
-   * 4. Retorna información para que renderizarTabla agregue las filas especiales
+   * 4. Retorna informaci├│n para que renderizarTabla agregue las filas especiales
    *
    * ESTRUCTURA DE FILA DE CUENTA:
    * | Cuenta (ej: 4101-010) | Nombre (ej: VENTAS) | ene | feb | ... | dic |
@@ -2727,15 +2763,15 @@
    * - sumRowSumavariosTexto: etiqueta del sumavarios al que pertenece
    * - resultRowTexto: etiqueta del result-row final
    *
-   * @param {Object} params - Parámetros de renderizado
+   * @param {Object} params - Par├ímetros de renderizado
    * @param {Array} params.registros - Array de objetos {cuenta, nombre, seccion, capitulo}
    * @param {HTMLElement} params.cuerpo - Elemento tbody donde insertar filas
    * @param {number} params.placeholdersPorFila - Cantidad de columnas de valores (12 meses normalmente)
-   * @param {string} params.sheetName - Nombre de la hoja de configuración
+   * @param {string} params.sheetName - Nombre de la hoja de configuraci├│n
    * @param {string} params.capitulo - Nombre del capitulo/empresa
-   * @param {Map} params.sumasPersonalizadas - Configuración personalizada de sumas (desde layout guardado)
+   * @param {Map} params.sumasPersonalizadas - Configuraci├│n personalizada de sumas (desde layout guardado)
    * @param {string} params.resultadoForzado - Texto forzado para result-row
-   * @param {boolean} params.mostrarCuentaVisible - Si true, muestra cuenta en formato visible (4 dígitos)
+   * @param {boolean} params.mostrarCuentaVisible - Si true, muestra cuenta en formato visible (4 d├¡gitos)
    * @returns {Object} Objeto con resultadoFilas, sumasSecciones, sumavarios, faltantesNombre
    */
   const renderizarSecciones = ({
@@ -2853,14 +2889,10 @@
       });
 
       const sumasBase =
-        (sumasPersonalizadas instanceof Map
+        sumasPersonalizadas instanceof Map
           ? sumasPersonalizadas.get(claveSeccion) ||
             sumasPersonalizadas.get(claveSeccionOriginal)
-          : null) ||
-        (sheetName && capitulo
-          ? obtenerSumasConfig(sheetName, capitulo, seccionOriginal) ||
-            obtenerSumasConfig(sheetName, capitulo, seccion)
-          : null);
+          : null;
       let sumas =
         aplicarOperacionesPorModulo(moduloClave, seccion, sumasBase) ||
         sumasBase;
@@ -2973,7 +3005,7 @@
         heuristicasPermitidas &&
         (factorManual == null || moduloNormalizado === "direccion");
       const esCapituloMexico =
-        capituloNormalizado === normalizarTexto("CIUDAD DE MÉXICO") ||
+        capituloNormalizado === normalizarTexto("CIUDAD DE M├ëXICO") ||
         capituloNormalizado === normalizarTexto("CIUDAD DE MEXICO");
       if (aplicarHeuristicas) {
         switch (moduloNormalizado) {
@@ -3053,7 +3085,7 @@
                 );
               }
             } else if (esGastosFinancieros) {
-              // Total = Gastos Financieros - Gastos Generales - Depreciaciones - GA Capítulo
+              // Total = Gastos Financieros - Gastos Generales - Depreciaciones - GA Cap├¡tulo
               metaSeccion.factor = 1;
               agregarResultRow(metaSeccion, totalLabel);
             } else if (esGastosGenerales || esDepreciaciones || esGaCapitulo) {
@@ -3176,7 +3208,7 @@
           case "membresia": {
             if (/GASTOS\s+ADMIN/i.test(seccion || "")) {
               metaSeccion.factor = -1;
-              agregarResultRow(metaSeccion, "Resultado  Membresía");
+              agregarResultRow(metaSeccion, "Resultado  Membres├¡a");
               // Excluir de la suma operativa (solo debe restarse al resultado final)
               metaSeccion.sumRowSumavariosTexto = "";
               metaSeccion.sumRowSumavarios2Texto = "";
@@ -3236,13 +3268,13 @@
             } else if (/INGRESOS/i.test(seccionNormTexto)) {
               metaSeccion.factor = 1;
             }
-            let etiquetaDir = "Resultado Director Capítulo";
+            let etiquetaDir = "Resultado Director Cap├¡tulo";
             if (/GUADALAJARA/i.test(capituloNormalizado))
-              etiquetaDir = "Resultado Director Capítulo";
+              etiquetaDir = "Resultado Director Cap├¡tulo";
             else if (/NORESTE|NE/i.test(capituloNormalizado))
-              etiquetaDir = "Resultado Director Capítulo";
+              etiquetaDir = "Resultado Director Cap├¡tulo";
             else if (/NOROESTE|NO/i.test(capituloNormalizado))
-              etiquetaDir = "Resultado Director Capítulo";
+              etiquetaDir = "Resultado Director Cap├¡tulo";
             const etiquetaDirNorm = normalizarTexto(etiquetaDir);
 
             if (esGastosAdminDir) {
@@ -3261,7 +3293,7 @@
                 metaSeccion.resultRows.push(etiquetaDir);
               }
             } else {
-              // Ingresos/Gastos CE/Board/Dirección aportan al resultado director
+              // Ingresos/Gastos CE/Board/Direcci├│n aportan al resultado director
               metaSeccion.resultRowTexto = etiquetaDirNorm;
               if (
                 !metaSeccion.resultRows.some(
@@ -3386,7 +3418,7 @@
         );
       });
     if (!lista.length) {
-      // Si no hay sugerencias, recargar catálogo del año y reintentar una vez.
+      // Si no hay sugerencias, recargar cat├ílogo del a├▒o y reintentar una vez.
       poblarSugerenciasDesdeAnio(anioActual);
       cargarCatalogoCompleto({ anio: anioActual })
         .then((listaCompleta) => {
@@ -3436,9 +3468,41 @@
 
   const normalizarClave = (valor) => normalizarTexto(valor || "");
 
+  const obtenerSeccionPrincipal = (registro = {}) =>
+    registro["SECCI…N Principal"] ||
+    registro["SECCIàN Principal"] ||
+    registro["SECCION Principal"] ||
+    registro["SECCION Principal "] ||
+    registro.SECCION ||
+    registro.seccion_principal ||
+    registro.seccion ||
+    "";
+
   const construirRegistrosDesdeLayout = (layout, capituloDestino) => {
-    if (!layout || !Array.isArray(layout.secciones)) return [];
+    if (!layout) return [];
     const capitulo = layout.capitulo || capituloDestino || "";
+    if (Array.isArray(layout.cuentas)) {
+      return layout.cuentas
+        .filter((cuenta) => cuenta && cuenta.visible !== false)
+        .map((cuenta) => ({
+          capitulo,
+          seccion: obtenerSeccionPrincipal(cuenta) || "SIN SECCION",
+          cuenta: cuenta.CUENTA || cuenta.cuenta || "",
+          nombre: cuenta.NOMBRE || cuenta.nombre || "",
+          factor: Number.isFinite(
+            Number(
+              cuenta.factor ?? cuenta.operacion_factor ?? cuenta.operacionFactor
+            )
+          )
+            ? Number(
+                cuenta.factor ??
+                  cuenta.operacion_factor ??
+                  cuenta.operacionFactor
+              )
+            : 1,
+        }));
+    }
+    if (!Array.isArray(layout.secciones)) return [];
     return layout.secciones.flatMap((seccion) => {
       const titulo = seccion.titulo || seccion.seccion || seccion.nombre || "";
       if (!titulo || !Array.isArray(seccion.cuentas)) return [];
@@ -3456,15 +3520,47 @@
 
   const construirSumasDesdeLayout = (layout) => {
     const mapa = new Map();
-    if (!layout || !Array.isArray(layout.secciones)) return mapa;
+    if (!layout) return mapa;
+    if (Array.isArray(layout.operaciones)) {
+      layout.operaciones.forEach((op) => {
+        if (op?.visible === false) return;
+        const seccion = op.SECCION || op.seccion || "";
+        const clave = normalizarTexto(seccion);
+        if (!clave) return;
+        const previo = mapa.get(clave) || {};
+        const resultRow =
+          op["result-row"] || op["result-net-row"] || previo.resultRow || "";
+        const signo =
+          Number(op?.signos?.["sum-row"]) ||
+          Number(op?.signo) ||
+          Number(previo.operacionFactor) ||
+          null;
+        mapa.set(clave, {
+          sumRow: op["sum-row"] || previo.sumRow || "",
+          sumRowSumavarios:
+            op["sum-row-sumavarios"] || previo.sumRowSumavarios || "",
+          sumRowSumavarios2:
+            op["sum-row-sumavarios2"] || previo.sumRowSumavarios2 || "",
+          resultRow,
+          operacionFactor:
+            Number.isFinite(Number(signo)) && Number(signo) !== 0
+              ? Number(signo)
+              : previo.operacionFactor ?? 1,
+        });
+      });
+      return mapa;
+    }
+    if (!Array.isArray(layout.secciones)) return mapa;
     const resultadoGlobal = layout.resultRow || "";
     layout.secciones.forEach((seccion) => {
       const clave = normalizarTexto(seccion.titulo || seccion.seccion || "");
       if (!clave) return;
       mapa.set(clave, {
         sumRow: seccion.sumRowLabel || seccion.sumRow || "",
-        sumRowSumavarios: seccion.sumRowSumavarios || "",
-        sumRowSumavarios2: seccion.sumRowSumavarios2 || "",
+        sumRowSumavarios:
+          seccion.sumRowSumavariosLabel || seccion.sumRowSumavarios || "",
+        sumRowSumavarios2:
+          seccion.sumRowSumavarios2Label || seccion.sumRowSumavarios2 || "",
         resultRow: seccion.resultRow || resultadoGlobal || "",
         operacionFactor: Number.isFinite(
           Number(seccion.factor ?? seccion.operacionFactor)
@@ -3597,7 +3693,194 @@
     });
   };
 
-  const persistirLayoutActual = () => {
+  const obtenerNombreModulo = () => {
+    const dataset = document.body?.dataset || {};
+    const moduloBase =
+      estadoModulo.sheet ||
+      dataset.modulo ||
+      dataset.moduloAlias ||
+      dataset.moduloNombre ||
+      "";
+    if (moduloBase) return moduloBase;
+    const moduloId =
+      estadoModulo.moduloId || dataset.moduloId || dataset.modulo || "";
+    if (
+      moduloId &&
+      window.CapitulosModulos?.obtenerSheetPorModulo
+    ) {
+      const sheet = window.CapitulosModulos.obtenerSheetPorModulo(moduloId);
+      if (sheet) return sheet;
+    }
+    return moduloId;
+  };
+
+  const construirCuentasDesdeLayout = ({ layout, capitulo }) => {
+    if (!layout || !Array.isArray(layout.secciones)) return [];
+    const cuentas = [];
+    let orden = 0;
+    layout.secciones.forEach((seccion) => {
+      const titulo = (seccion.titulo || seccion.seccion || "").toString().trim();
+      const filas = Array.isArray(seccion.cuentas) ? seccion.cuentas : [];
+      filas.forEach((fila) => {
+        const cuenta = (fila.cuenta || "").toString().trim();
+        if (!cuenta) return;
+        const factorCuenta = Number.isFinite(
+          Number(fila.factor ?? fila.operacionFactor)
+        )
+          ? Number(fila.factor ?? fila.operacionFactor)
+          : 1;
+        cuentas.push({
+          CAPITULO: capitulo,
+          CUENTA: cuenta,
+          NOMBRE: fila.nombre || "",
+          SECCION: titulo || "SIN SECCION",
+          orden,
+          orden_presentacion: orden,
+          factor: factorCuenta,
+        });
+        orden += 1;
+      });
+    });
+    return cuentas;
+  };
+
+  const construirOperacionesDesdeLayout = ({
+    layout,
+    capitulo,
+    moduloNombre,
+    operacionesPrevias,
+  }) => {
+    if (!layout || !Array.isArray(layout.secciones)) return [];
+    const existentes = Array.isArray(operacionesPrevias)
+      ? operacionesPrevias.map((op) => ({ ...op }))
+      : [];
+    const usados = new Set();
+    const porSeccion = new Map();
+
+    const normalizarOperacionId = (texto) =>
+      normalizarTexto(texto || "")
+        .replace(/\s+/g, "_")
+        .replace(/[^A-Z0-9_]/g, "");
+
+    const idsOcupados = new Set();
+    existentes.forEach((op) => {
+      const id =
+        op?.OperacionId ||
+        op?.operacion_id ||
+        op?.id ||
+        op?.clase ||
+        op?.Clase ||
+        op?.operacion_etiqueta;
+      const normalizado = normalizarOperacionId(id);
+      if (normalizado) idsOcupados.add(normalizado);
+      const seccion = normalizarTexto(op?.SECCION || op?.seccion || "");
+      if (!seccion) return;
+      if (!porSeccion.has(seccion)) porSeccion.set(seccion, []);
+      porSeccion.get(seccion).push(op);
+    });
+
+    const asegurarIdUnico = (base) => {
+      let candidato = normalizarOperacionId(base) || "OP";
+      if (!idsOcupados.has(candidato)) {
+        idsOcupados.add(candidato);
+        return candidato;
+      }
+      let contador = 1;
+      let actual = `${candidato}_${contador}`;
+      while (idsOcupados.has(actual)) {
+        contador += 1;
+        actual = `${candidato}_${contador}`;
+      }
+      idsOcupados.add(actual);
+      return actual;
+    };
+
+    const operaciones = [];
+    layout.secciones.forEach((seccion, idx) => {
+      const nombreSeccion = (seccion.titulo || seccion.seccion || "")
+        .toString()
+        .trim();
+      if (!nombreSeccion) return;
+      const claveSeccion = normalizarTexto(nombreSeccion);
+      const candidatos = porSeccion.get(claveSeccion) || [];
+      let op = null;
+      if (candidatos.length) {
+        op = { ...candidatos[0] };
+        usados.add(candidatos[0]);
+      } else {
+        op = {
+          CAPITULO: capitulo,
+          HOJA: moduloNombre,
+          SECCION: nombreSeccion,
+          Clase: "",
+          OperacionId: "",
+          signos: {},
+        };
+      }
+
+      const sumRowLabel =
+        (seccion.sumRowLabel || seccion.sumRow || "").toString().trim() ||
+        (nombreSeccion ? `Suma ${nombreSeccion}` : "");
+      const sumRowSumavariosLabel =
+        (seccion.sumRowSumavariosLabel || seccion.sumRowSumavarios || "")
+          .toString()
+          .trim();
+      const sumRowSumavarios2Label =
+        (seccion.sumRowSumavarios2Label || seccion.sumRowSumavarios2 || "")
+          .toString()
+          .trim();
+      const resultRowLabel =
+        (seccion.resultRow || layout.resultRow || "").toString().trim();
+
+      op.CAPITULO = capitulo;
+      op.HOJA = moduloNombre;
+      op.SECCION = nombreSeccion;
+      op.Clase = op.Clase || op.operacion_etiqueta || sumRowLabel || nombreSeccion;
+      op.OperacionId =
+        op.OperacionId || asegurarIdUnico(op.Clase || nombreSeccion);
+      op.orden = Number.isFinite(Number(seccion.orden))
+        ? Number(seccion.orden)
+        : idx;
+      op.orden_presentacion = op.orden;
+
+      if (sumRowLabel) op["sum-row"] = sumRowLabel;
+      if (sumRowSumavariosLabel) {
+        op["sum-row-sumavarios"] = sumRowSumavariosLabel;
+      }
+      if (sumRowSumavarios2Label) {
+        op["sum-row-sumavarios2"] = sumRowSumavarios2Label;
+      }
+      if (resultRowLabel) op["result-row"] = resultRowLabel;
+
+      const factor = Number.isFinite(
+        Number(seccion.factor ?? seccion.operacionFactor)
+      )
+        ? Number(seccion.factor ?? seccion.operacionFactor)
+        : null;
+      if (factor != null) {
+        if (!op.signos || typeof op.signos !== "object") {
+          op.signos = {};
+        }
+        op.signos["sum-row"] = factor;
+        op.signo = factor;
+      }
+
+      operaciones.push(op);
+    });
+
+    existentes.forEach((op) => {
+      if (usados.has(op)) return;
+      operaciones.push({
+        ...op,
+        CAPITULO: capitulo,
+        HOJA: moduloNombre,
+      });
+    });
+
+    return operaciones;
+  };
+
+  const persistirLayoutActual = async () => {
     const empresa = Sesion.obtenerEmpresaActiva();
     const anioSeleccion = obtenerAnioSeleccionado();
     const anio = Number.isInteger(anioSeleccion)
@@ -3616,18 +3899,34 @@
       console.warn("Layout no v\u00e1lido, no se guard\u00f3.");
       return false;
     }
-    const guardado = guardarLayoutLocal({
+    const moduloNombre = obtenerNombreModulo();
+    if (!moduloNombre) {
+      console.warn("Layout sin modulo valido, no se guard\u00f3.");
+      return false;
+    }
+    const capitulo = estadoModulo.capitulo || layout.capitulo || "DEFAULT";
+    const cuentas = construirCuentasDesdeLayout({ layout, capitulo });
+    const operaciones = construirOperacionesDesdeLayout({
       layout,
-      moduloClave: estadoModulo.moduloClave,
-      empresaId: empresa.id,
+      capitulo,
+      moduloNombre,
+      operacionesPrevias: estadoModulo.layoutOperaciones,
+    });
+    const guardado = await guardarLayoutServidor({
+      modulo: moduloNombre,
       anio,
+      capitulo,
+      empresaId: empresa.id,
+      cuentas,
+      operaciones,
     });
     if (guardado) {
       estadoModulo.layoutActual = layout;
+      estadoModulo.layoutOperaciones = operaciones;
       estadoModulo.layoutEsPersonalizado = true;
       // Resetear flag de modificación ya que se guardó exitosamente
       estadoModulo.layoutModificado = false;
-      console.log("✅ Layout guardado explícitamente por el usuario");
+      console.log("✅ Layout guardado en SQLite");
     }
     return guardado;
   };
@@ -3704,14 +4003,14 @@
             <form id="editFactorForm">
               <div class="modal-header">
                 <h5 class="modal-title">Editar ${
-                  esCuenta ? "cuenta" : "secci¢n"
+                  esCuenta ? "cuenta" : "secci┬ón"
                 }</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
               </div>
               <div class="modal-body">
                 <div class="mb-3">
                   <label class="form-label">${
-                    esCuenta ? "Cuenta" : "Secci¢n"
+                    esCuenta ? "Cuenta" : "Secci┬ón"
                   }</label>
                   <input type="text" class="form-control" value="${
                     etiqueta || ""
@@ -3721,7 +4020,7 @@
                   esCuenta
                     ? `
                 <div class="mb-3">
-                  <label class="form-label">Descripci¢n</label>
+                  <label class="form-label">Descripci┬ón</label>
                   <input type="text" class="form-control" id="editDescripcion" value="${
                     descripcionActual || ""
                   }">
@@ -3791,7 +4090,7 @@
             : Number(seleccion);
         if (!Number.isFinite(factor)) {
           window.alert(
-            "Define un factor v lido (usa 1 para sumar, -1 para restar)."
+            "Define un factor v┬álido (usa 1 para sumar, -1 para restar)."
           );
           return;
         }
@@ -3871,14 +4170,14 @@
 
   const actualizarSumavariosParaRango = (label, indices, insertIdx) => {
     if (!label || !Array.isArray(indices) || indices.length < 2) {
-      console.warn("⚠️ Sumavarios requiere al menos 2 secciones");
+      console.warn("ÔÜá´©Å Sumavarios requiere al menos 2 secciones");
       return;
     }
     const clave = normalizarTexto(label);
     if (!clave) return;
     if (!estadoModulo || !estadoModulo.tabla) {
       console.error(
-        "❌ actualizarSumavariosParaRango: estadoModulo.tabla no disponible"
+        "ÔØî actualizarSumavariosParaRango: estadoModulo.tabla no disponible"
       );
       return;
     }
@@ -3892,7 +4191,7 @@
         existente.parentNode.removeChild(existente);
         estadoModulo.sumas.sumavariosRows.delete(clave);
       } catch (e) {
-        console.warn("⚠️ Error eliminando sumavarios existente:", e);
+        console.warn("ÔÜá´©Å Error eliminando sumavarios existente:", e);
       }
     }
 
@@ -3907,7 +4206,7 @@
       estadoModulo.sumas.sumavariosRows = new Map();
     estadoModulo.sumas.sumavariosRows.set(clave, filaSumario);
 
-    // Normalizar y validar índices
+    // Normalizar y validar ├¡ndices
     const indicesOrdenados = [...new Set(indices)].sort((a, b) => a - b);
     const metasAfectadas = [];
     indicesOrdenados.forEach((idx) => {
@@ -3925,7 +4224,7 @@
     if (metasAfectadas.length < 2) {
       // No tiene sentido crear sumavarios para menos de 2 secciones
       console.warn(
-        "⚠️ Menos de 2 secciones en sumavarios, se omite la creación"
+        "ÔÜá´©Å Menos de 2 secciones en sumavarios, se omite la creaci├│n"
       );
       estadoModulo.sumas.sumavariosRows.delete(clave);
       try {
@@ -3948,7 +4247,7 @@
       try {
         referencia.parentNode.insertBefore(filaSumario, referencia.nextSibling);
       } catch (e) {
-        console.warn("⚠️ Error insertando fila sumavarios en DOM:", e);
+        console.warn("ÔÜá´©Å Error insertando fila sumavarios en DOM:", e);
         cuerpo.appendChild(filaSumario);
       }
     } else {
@@ -3967,22 +4266,22 @@
   }) => {
     // VALIDACIONES
     if (!estadoModulo || !estadoModulo.tabla) {
-      console.error("❌ crearSeccionDesdeFormulario: tabla no disponible");
+      console.error("ÔØî crearSeccionDesdeFormulario: tabla no disponible");
       return;
     }
     const cuerpo = estadoModulo.tabla.querySelector("tbody");
     if (!cuerpo) {
-      console.error("❌ crearSeccionDesdeFormulario: tbody no encontrado");
+      console.error("ÔØî crearSeccionDesdeFormulario: tbody no encontrado");
       return;
     }
     if (!titulo || typeof titulo !== "string" || !titulo.trim()) {
-      console.error("❌ crearSeccionDesdeFormulario: titulo inválido");
+      console.error("ÔØî crearSeccionDesdeFormulario: titulo inv├ílido");
       return;
     }
     const cuentasLista = Array.isArray(cuentas) ? cuentas.slice() : [];
     if (cuentasLista.length === 0) {
       console.error(
-        "❌ crearSeccionDesdeFormulario: Se requiere al menos una cuenta"
+        "ÔØî crearSeccionDesdeFormulario: Se requiere al menos una cuenta"
       );
       return;
     }
@@ -4015,7 +4314,7 @@
       filaSumRow.dataset.sectionName = titulo;
     }
 
-    // Determinar índice de inserción con validaciones
+    // Determinar ├¡ndice de inserci├│n con validaciones
     let idxInsercion = estadoModulo.sumas.secciones.length;
     try {
       const metaBase =
@@ -4033,13 +4332,13 @@
           idxInsercion = idxTent;
         } else {
           console.warn(
-            "⚠️ crearSeccionDesdeFormulario: índice de inserción inválido, se usará al final"
+            "ÔÜá´©Å crearSeccionDesdeFormulario: ├¡ndice de inserci├│n inv├ílido, se usar├í al final"
           );
         }
       }
     } catch (e) {
       console.warn(
-        "⚠️ crearSeccionDesdeFormulario: error determinando índice inserción",
+        "ÔÜá´©Å crearSeccionDesdeFormulario: error determinando ├¡ndice inserci├│n",
         e
       );
     }
@@ -4066,7 +4365,7 @@
       }
     } catch (err) {
       console.error(
-        "❌ crearSeccionDesdeFormulario: error insertando en DOM",
+        "ÔØî crearSeccionDesdeFormulario: error insertando en DOM",
         err
       );
       return;
@@ -4103,7 +4402,7 @@
       }
     } catch (err) {
       console.error(
-        "❌ crearSeccionDesdeFormulario: error insertando metaSeccion",
+        "ÔØî crearSeccionDesdeFormulario: error insertando metaSeccion",
         err
       );
       return;
@@ -4127,7 +4426,7 @@
     aplicarModoEdicionEnTabla();
     aplicarFiltroColumnasPorPeriodo();
     recalcularSumas();
-    // NO persistir automáticamente - marcar como modificado para guardado explícito
+    // NO persistir autom├íticamente - marcar como modificado para guardado expl├¡cito
     estadoModulo.layoutModificado = true;
     estadoModulo.hayCambios = true;
     notificarCambios();
@@ -4181,11 +4480,11 @@
     if (fila.classList.contains("fila-cuenta")) {
       const meta = obtenerMetaSeccionPorFila(fila);
       if (!meta) {
-        console.warn("⚠️ eliminarFilaSeleccionada: meta no encontrada");
+        console.warn("ÔÜá´©Å eliminarFilaSeleccionada: meta no encontrada");
         return;
       }
       if ((meta.filasCuenta || []).length <= 1) {
-        window.alert("La sección debe tener al menos una cuenta.");
+        window.alert("La secci├│n debe tener al menos una cuenta.");
         return;
       }
       const cuenta = fila.dataset.cuenta21 || fila.dataset.cuenta;
@@ -4196,12 +4495,12 @@
       try {
         fila.remove();
       } catch (e) {
-        console.warn("⚠️ Error removiendo fila del DOM", e);
+        console.warn("ÔÜá´©Å Error removiendo fila del DOM", e);
       }
       const idx = meta.filasCuenta.indexOf(fila);
       if (idx >= 0) meta.filasCuenta.splice(idx, 1);
       actualizarEstructuraDespuesCambio();
-      console.log(`✅ Fila eliminada de sección ${meta.seccion}`);
+      console.log(`Ô£à Fila eliminada de secci├│n ${meta.seccion}`);
       return;
     }
 
@@ -4237,10 +4536,10 @@
       try {
         fila.remove();
       } catch (e) {
-        console.warn("⚠️ Error al eliminar sumavarios del DOM", e);
+        console.warn("ÔÜá´©Å Error al eliminar sumavarios del DOM", e);
       }
       actualizarEstructuraDespuesCambio();
-      console.log(`✅ Sumavarios ${claveAux || ""} eliminado`);
+      console.log(`Ô£à Sumavarios ${claveAux || ""} eliminado`);
       return;
     }
   };
@@ -4311,7 +4610,7 @@
       boton.addEventListener("click", () => {
         switch (opcion.clave) {
           case "add_wizard":
-            // Usar InsertionWizard si está disponible
+            // Usar InsertionWizard si est├í disponible
             if (typeof window.InsertionWizard !== "undefined") {
               window.InsertionWizard.open(filaContextual);
             } else {
@@ -4362,7 +4661,7 @@
       return;
     }
     if (window.ContextMenuWizard || window.InsertionWizard) {
-      // Si está activo el wizard de inserción, dejamos que solo él maneje el menú contextual
+      // Si est├í activo el wizard de inserci├│n, dejamos que solo ├®l maneje el men├║ contextual
       return;
     }
     const tabla = estadoModulo.tabla || obtenerTabla();
@@ -4380,22 +4679,22 @@
       fila.classList.contains("section-header-row") ||
       fila.classList.contains("sum-row");
     const opciones = [];
-    // Priorizar InsertionWizard si está disponible
+    // Priorizar InsertionWizard si est├í disponible
     if (typeof window.InsertionWizard !== "undefined") {
       opciones.push({
         clave: "add_wizard",
-        texto: "✨ Agregar cuenta/sección...",
+        texto: "Ô£¿ Agregar cuenta/secci├│n...",
       });
     }
     if (esCuenta) {
-      opciones.push({ clave: "edit_row", texto: "Editar operación / factor" });
+      opciones.push({ clave: "edit_row", texto: "Editar operaci├│n / factor" });
       opciones.push({ clave: "add_above", texto: "Agregar cuenta arriba" });
       opciones.push({ clave: "add_below", texto: "Agregar cuenta abajo" });
       opciones.push({ clave: "delete_row", texto: "Eliminar fila" });
     } else if (esSeccion) {
       opciones.push({
         clave: "edit_section",
-        texto: "Editar operación de sección",
+        texto: "Editar operaci├│n de secci├│n",
       });
     } else if (fila.classList.contains("sum-row-sumavarios")) {
       opciones.push({
@@ -4403,9 +4702,9 @@
         texto: "Eliminar sum-row-sumavarios",
       });
     }
-    // Agregar sección (legacy) solo si no hay wizard
+    // Agregar secci├│n (legacy) solo si no hay wizard
     if (typeof window.InsertionWizard === "undefined") {
-      opciones.push({ clave: "add_section", texto: "Agregar sección" });
+      opciones.push({ clave: "add_section", texto: "Agregar secci├│n" });
     }
     if (!opciones.length) return;
     evt.preventDefault();
@@ -4414,15 +4713,15 @@
   });
 
   /**
-   * Extrae valores numéricos de las celdas de una fila
+   * Extrae valores num├®ricos de las celdas de una fila
    *
    * Lee el textContent de cada celda (empezando desde la columna 'inicio'),
-   * limpia el texto eliminando símbolos de moneda y formato,
-   * y convierte cada valor a número.
+   * limpia el texto eliminando s├¡mbolos de moneda y formato,
+   * y convierte cada valor a n├║mero.
    *
    * @param {HTMLTableRowElement} fila - Fila de la cual extraer valores
-   * @param {number} inicio - Índice de celda inicial (default: 2, saltando nombre y cuenta)
-   * @returns {Array<number>} Array con los valores numéricos extraídos
+   * @param {number} inicio - ├ìndice de celda inicial (default: 2, saltando nombre y cuenta)
+   * @returns {Array<number>} Array con los valores num├®ricos extra├¡dos
    */
   const extraerValoresNumericos = (fila, inicio = 2) => {
     const valores = [];
@@ -4466,14 +4765,14 @@
   };
 
   /**
-   * Asigna valores numéricos formateados a las celdas de una fila
+   * Asigna valores num├®ricos formateados a las celdas de una fila
    *
-   * Toma un array de números y los escribe en las celdas de la fila
-   * aplicando el formato numérico (separadores de miles, decimales, etc.)
+   * Toma un array de n├║meros y los escribe en las celdas de la fila
+   * aplicando el formato num├®rico (separadores de miles, decimales, etc.)
    *
    * @param {HTMLTableRowElement} fila - Fila donde asignar los valores
    * @param {Array<number>} valores - Array con los valores a asignar
-   * @param {number} inicio - Índice de celda inicial (default: 2, saltando nombre y cuenta)
+   * @param {number} inicio - ├ìndice de celda inicial (default: 2, saltando nombre y cuenta)
    */
   const asignarValoresNumericos = (fila, valores, inicio = 2) => {
     if (!fila || !Array.isArray(valores)) return;
@@ -4487,12 +4786,12 @@
   };
 
   /**
-   * Suma múltiples listas de valores numéricos columna por columna
+   * Suma m├║ltiples listas de valores num├®ricos columna por columna
    *
    * Ejemplo: Si tienes 3 filas con valores [10, 20, 30] cada una,
-   * esta función retorna [30, 60, 90] (suma vertical por columna)
+   * esta funci├│n retorna [30, 60, 90] (suma vertical por columna)
    *
-   * @param {Array<Array<number>>} listas - Array de arrays con valores numéricos
+   * @param {Array<Array<number>>} listas - Array de arrays con valores num├®ricos
    * @param {number} longitud - Cantidad de columnas esperadas
    * @returns {Array<number>} Array con la suma de cada columna
    */
@@ -4507,24 +4806,24 @@
   };
 
   /**
-   * Recalcula las sumas de todas las secciones del módulo
+   * Recalcula las sumas de todas las secciones del m├│dulo
    *
-   * Esta función realiza DOS tipos de suma:
+   * Esta funci├│n realiza DOS tipos de suma:
    *
-   * 1. SUMA DE SECCIÓN (sum-row):
-   *    - Suma verticalmente todas las cuentas dentro de una sección
-   *    - Ejemplo: Si una sección tiene cuentas con presupuestos [100, 200, 300]
-   *      la fila sum-row mostrará 600
+   * 1. SUMA DE SECCI├ôN (sum-row):
+   *    - Suma verticalmente todas las cuentas dentro de una secci├│n
+   *    - Ejemplo: Si una secci├│n tiene cuentas con presupuestos [100, 200, 300]
+   *      la fila sum-row mostrar├í 600
    *
    * 2. SUMA DE VARIAS SECCIONES (sumavarios):
    *    - Agrupa secciones que tienen el mismo sumRowSumavariosTexto
    *    - Suma los sum-row de todas esas secciones
    *    - Ejemplo: Si 3 secciones tienen sum-row [100], [200], [300]
-   *      y todas están agrupadas bajo "GASTOS TOTALES",
-   *      la fila sumavarios mostrará 600
+   *      y todas est├ín agrupadas bajo "GASTOS TOTALES",
+   *      la fila sumavarios mostrar├í 600
    *
    * El proceso es:
-   * - Para cada sección, extrae valores de todas sus filas (cuentas)
+   * - Para cada secci├│n, extrae valores de todas sus filas (cuentas)
    * - Suma esos valores columna por columna usando sumarListas()
    * - Guarda el resultado en seccion.sumValues
    * - Actualiza la fila sum-row en el DOM
@@ -4544,18 +4843,18 @@
       meta.secciones.length === 0
     ) {
       if (!meta || !meta.secciones)
-        console.warn("⚠️ recalcularSumas: sin meta.secciones");
+        console.warn("ÔÜá´©Å recalcularSumas: sin meta.secciones");
       return;
     }
 
-    // Obtener todas las columnas ordenadas por su posición (excepto 'year')
+    // Obtener todas las columnas ordenadas por su posici├│n (excepto 'year')
     const clavesOrdenadas = Object.entries(estadoModulo.columnas || {})
       .sort((a, b) => a[1] - b[1])
       .map(([clave]) => clave)
       .filter((clave) => clave !== "year");
     const longitud = clavesOrdenadas.length;
     if (!longitud) {
-      console.warn("⚠️ recalcularSumas: sin columnas válidas");
+      console.warn("ÔÜá´©Å recalcularSumas: sin columnas v├ílidas");
       return;
     }
     const secciones = meta.secciones;
@@ -4598,16 +4897,16 @@
       return ajustados;
     };
 
-    // PASO 1: Calcular sum-row para cada sección (suma vertical de todas las cuentas)
+    // PASO 1: Calcular sum-row para cada secci├│n (suma vertical de todas las cuentas)
     secciones.forEach((seccion, idxSeccion) => {
       try {
         if (!seccion || !Array.isArray(seccion.filasCuenta)) {
-          errores.push(`Sección inválida en índice ${idxSeccion}`);
+          errores.push(`Secci├│n inv├ílida en ├¡ndice ${idxSeccion}`);
           seccion.sumValues = Array.from({ length: longitud }, () => 0);
           return;
         }
 
-        // Extraer valores de cada fila de cuenta en la sección
+        // Extraer valores de cada fila de cuenta en la secci├│n
         const listas = seccion.filasCuenta.map((fila) => {
           if (!fila || !fila.dataset)
             return Array.from({ length: longitud }, () => 0);
@@ -4634,7 +4933,7 @@
 
         // Sumar todas las filas columna por columna
         const valores = sumarListas(listas, longitud);
-        // Recalcular total-real con la suma de todos los month-real visibles de la secci¢n
+        // Recalcular total-real con la suma de todos los month-real visibles de la secci┬ón
         const idxTotalReal = clavesOrdenadas.indexOf("total-real");
         if (idxTotalReal >= 0) {
           const sumaReal = clavesOrdenadas.reduce((acc, clave, idx) => {
@@ -4650,18 +4949,18 @@
           asignarValoresNumericos(seccion.elementos.sumRow, valores);
         } else {
           console.warn(
-            `⚠️ Sección ${
+            `ÔÜá´©Å Secci├│n ${
               seccion.seccion || idxSeccion
             }: sumRow no presente en DOM`
           );
         }
       } catch (err) {
         errores.push(
-          `Error sumando sección ${idxSeccion}: ${err?.message || err}`
+          `Error sumando secci├│n ${idxSeccion}: ${err?.message || err}`
         );
       }
     });
-    if (errores.length) console.warn("⚠️ Errores en recalcularSumas:", errores);
+    if (errores.length) console.warn("ÔÜá´©Å Errores en recalcularSumas:", errores);
 
     // PASO 2: Calcular sumavarios (suma de sum-rows agrupados por etiqueta)
     try {
@@ -4872,7 +5171,7 @@
     }
 
     // result-row: suma solamente los sum-row de todas las secciones con la misma etiqueta de resultado
-    // Aplicar factor por sección (ingresos = +1, gastos = -1 o user-defined operacionFactor)
+    // Aplicar factor por secci├│n (ingresos = +1, gastos = -1 o user-defined operacionFactor)
     try {
       const acumuladosResultado = new Map();
       secciones.forEach((seccion) => {
@@ -4992,7 +5291,7 @@
     }
     recalcularTotalesFilaPresupuesto(fila);
     recalcularSumas();
-    // NO persistir automáticamente - el usuario debe guardar explícitamente
+    // NO persistir autom├íticamente - el usuario debe guardar expl├¡citamente
     estadoModulo.layoutModificado = true;
     estadoModulo.hayCambios = true;
     notificarCambios();
@@ -5005,7 +5304,7 @@
     if (cuenta) {
       estadoModulo.nombresPorCuenta.set(cuenta, nombre);
     }
-    // NO persistir automáticamente - el usuario debe guardar explícitamente
+    // NO persistir autom├íticamente - el usuario debe guardar expl├¡citamente
     estadoModulo.layoutModificado = true;
     estadoModulo.hayCambios = true;
     notificarCambios();
@@ -5200,7 +5499,7 @@
     filas.forEach((fila) => {
       const celdaCuenta = fila.cells[0];
       const celdaNombre = fila.cells[1];
-      // CRÍTICO: Usar flag listenersBound para evitar agregar listeners múltiples veces
+      // CR├ìTICO: Usar flag listenersBound para evitar agregar listeners m├║ltiples veces
       if (
         celdaCuenta &&
         !celdaCuenta.dataset.editable &&
@@ -5304,7 +5603,7 @@
       Array.from(fila.cells).forEach((celda, idx) => {
         const clave = reverse[idx];
         if (!esClaveBudget(clave)) return;
-        // CRÍTICO: Verificar ambos flags para evitar duplicados
+        // CR├ìTICO: Verificar ambos flags para evitar duplicados
         if (celda.dataset.editable || celda.dataset.listenersBound) return;
         celda.contentEditable = "true";
         celda.dataset.editable = "budget";
@@ -5392,12 +5691,6 @@
       empresa?.id &&
       Number.isInteger(estadoModulo.anio)
     ) {
-      guardarLayoutLocal({
-        layout: estadoModulo.layoutSnapshot,
-        moduloClave: estadoModulo.moduloClave,
-        empresaId: empresa.id,
-        anio: estadoModulo.anio,
-      });
       renderizarTabla({
         moduloId: estadoModulo.moduloId,
         tablaSelector: estadoModulo.tabla
@@ -5456,33 +5749,33 @@
   };
 
   /**
-   * Función principal que renderiza/pinta la tabla completa de un módulo
+   * Funci├│n principal que renderiza/pinta la tabla completa de un m├│dulo
    *
-   * Esta es la función maestra que coordina todo el proceso de renderizado:
+   * Esta es la funci├│n maestra que coordina todo el proceso de renderizado:
    *
    * FLUJO DE RENDERIZADO:
-   * 1. Validación inicial: verifica que exista tabla y tbody
-   * 2. Configuración de módulo: identifica qué módulo renderizar (Finanzas, Dirección, etc.)
-   * 3. Carga de datos: obtiene cuentas desde CUENTAS_POR_MODULO o Firebird (Presupuestos)
+   * 1. Validaci├│n inicial: verifica que exista tabla y tbody
+   * 2. Configuraci├│n de m├│dulo: identifica qu├® m├│dulo renderizar (Finanzas, Direcci├│n, etc.)
+   * 3. Carga de datos: obtiene cuentas desde SQLite (layouts) o Firebird (Presupuestos)
    * 4. Filtrado: filtra cuentas por capitulo/empresa seleccionada
-   * 5. Layout personalizado: busca layouts guardados con secciones personalizadas
+   * 5. Layout personalizado: usa layout guardado en SQLite (secciones/operaciones)
    * 6. Renderizado de secciones: llama a renderizarSecciones() para crear filas
-   * 7. Filas de suma: agrega sum-row, sumavarios, result-row según configuración
+   * 7. Filas de suma: agrega sum-row, sumavarios, result-row seg├║n configuraci├│n
    * 8. Carga de valores: obtiene datos de Firebird para llenar las celdas
-   * 9. Recálculo: ejecuta recalcularSumas() para actualizar totales
+   * 9. Rec├ílculo: ejecuta recalcularSumas() para actualizar totales
    *
    * TIPOS DE FILA:
    * - fila-cuenta: Fila normal con datos de una cuenta contable
-   * - sum-row: Suma de todas las cuentas de una sección
+   * - sum-row: Suma de todas las cuentas de una secci├│n
    * - sum-row-sumavarios: Suma de varios sum-rows agrupados
    * - result-row: Resultado final (ej: "Resultado Presupuestos")
    *
-   * @param {Object} opciones - Configuración de renderizado
+   * @param {Object} opciones - Configuraci├│n de renderizado
    * @param {string} opciones.tablaSelector - Selector CSS de la tabla
-   * @param {number} opciones.totalColumnas - Número total de columnas
-   * @param {string} opciones.moduloId - ID del módulo a renderizar
+   * @param {number} opciones.totalColumnas - N├║mero total de columnas
+   * @param {string} opciones.moduloId - ID del m├│dulo a renderizar
    * @param {string} opciones.sheet - Hoja de datos a usar
-   * @returns {Promise<boolean>} true si renderizó exitosamente, false si falló
+   * @returns {Promise<boolean>} true si renderiz├│ exitosamente, false si fall├│
    */
   const renderizarTabla = async (opciones = {}) => {
     const tabla = obtenerTabla(opciones.tablaSelector);
@@ -5510,10 +5803,8 @@
       : null;
     const sheetConfigurada =
       opciones.sheet || moduloSheet || sheetPorConfig || moduloNormalizado;
-    const dataset = window.CUENTAS_POR_MODULO || {};
-    let hoja = obtenerHojaDatos(sheetConfigurada, dataset);
+    const moduloNombre = sheetConfigurada || moduloNormalizado;
     limpiarBody(cuerpo);
-    compilarCatalogoGlobal();
 
     const anioSeleccionTemp = obtenerAnioSeleccionado();
     const anioSeleccionado = Number.isInteger(anioSeleccionTemp)
@@ -5537,8 +5828,45 @@
       return Promise.resolve(false);
     }
 
+    let registros = [];
+    let sumasPersonalizadas = null;
+    let resultadoForzado = "";
+    let layoutSqlite = null;
+
+    if (empresaId && Number.isInteger(anioSeleccionado) && capituloDestino) {
+      layoutSqlite = await cargarLayoutSqlite({
+        modulo: moduloNombre,
+        anio: anioSeleccionado,
+        capitulo: capituloDestino,
+        empresaId,
+      });
+      if (layoutSqlite) {
+        registros = construirRegistrosDesdeLayout(
+          layoutSqlite,
+          capituloDestino
+        ).map((registro) => {
+          if (!registro?.cuenta) return registro;
+          return {
+            ...registro,
+            cuenta: corregirCuentaLegible(registro.cuenta, registro),
+          };
+        });
+        estadoModulo.layoutOperaciones = Array.isArray(
+          layoutSqlite.operaciones
+        )
+          ? layoutSqlite.operaciones
+          : [];
+        sumasPersonalizadas = construirSumasDesdeLayout(layoutSqlite);
+        resultadoForzado = layoutSqlite.resultRow || "";
+      } else {
+        estadoModulo.layoutOperaciones = [];
+      }
+    } else {
+      estadoModulo.layoutOperaciones = [];
+    }
+
     if (
-      (!hoja || !Array.isArray(hoja)) &&
+      !registros.length &&
       moduloClave === "presupuestos" &&
       capituloDestino
     ) {
@@ -5553,7 +5881,7 @@
         )
       );
       if (cuentasFiltradas.length) {
-        hoja = cuentasFiltradas
+        registros = cuentasFiltradas
           .map((registro) => ({
             capitulo: capituloDestino,
             seccion: obtenerSeccionPresupuesto(
@@ -5566,7 +5894,7 @@
       }
     }
 
-    if (!hoja || !Array.isArray(hoja) || !capituloDestino) {
+    if (!registros.length || !capituloDestino) {
       cuerpo.appendChild(
         crearFilaEstado(
           "No hay informacion disponible para esta vista.",
@@ -5575,17 +5903,6 @@
       );
       return Promise.resolve(false);
     }
-
-    const objetivo = normalizarTexto(capituloDestino);
-    let registros = hoja
-      .filter((registro) => normalizarTexto(registro.capitulo) === objetivo)
-      .map((registro) => {
-        if (!registro?.cuenta) return registro;
-        return {
-          ...registro,
-          cuenta: corregirCuentaLegible(registro.cuenta, registro),
-        };
-      });
     if (moduloClave === "presupuestos") {
       registros = registros.filter((registro) => {
         if (!registro?.cuenta) return true;
@@ -5605,30 +5922,7 @@
         };
       });
     }
-    let sumasPersonalizadas = null;
-    let resultadoForzado = "";
-    let layoutPersonalizado = null;
-
-    if (esModuloEditable(moduloClave) && Number.isInteger(anioSeleccionado)) {
-      const layoutGuardado = cargarLayoutLocal({
-        moduloClave,
-        empresaId,
-        anio: anioSeleccionado,
-      });
-      if (validarLayout(layoutGuardado)) {
-        layoutPersonalizado = layoutGuardado;
-        const registrosDesdeLayout = construirRegistrosDesdeLayout(
-          layoutGuardado,
-          capituloDestino
-        );
-        if (registrosDesdeLayout.length) {
-          registros = registrosDesdeLayout;
-          sumasPersonalizadas = construirSumasDesdeLayout(layoutGuardado);
-          resultadoForzado = layoutGuardado.resultRow || "";
-        }
-      }
-    }
-
+    compilarCatalogoGlobal(registros);
 
     if (!registros.length) {
       cuerpo.appendChild(
@@ -5676,10 +5970,12 @@
       mostrarCuentaVisible: moduloClave === "presupuestos",
       moduloClave,
     });
+    const tieneSumasPersonalizadas =
+      sumasPersonalizadas instanceof Map && sumasPersonalizadas.size > 0;
     if (
       moduloClave === "presupuestos" &&
       pendientes?.sumasSecciones &&
-      !layoutPersonalizado
+      !tieneSumasPersonalizadas
     ) {
       const claveResultado = normalizarTexto("RESULTADOS PRESUPUESTOS");
       pendientes.sumasSecciones.forEach((seccion) => {
@@ -5696,7 +5992,7 @@
     estadoModulo.sumas.sumavariosRows = new Map();
     pendientes.sumavarios.forEach((info, clave) => {
       if (!info?.meta) return;
-      // Insertar justo debajo de la sección sobre la que opera
+      // Insertar justo debajo de la secci├│n sobre la que opera
       const filaSumario = agregarFilaResumen({
         texto: info.texto,
         clase: "sum-row-sumavarios",
@@ -5800,7 +6096,7 @@
 
     estadoModulo.sumas.secciones = pendientes.sumasSecciones;
     estadoModulo.capitulo = capituloDestino || "";
-    estadoModulo.layoutEsPersonalizado = Boolean(layoutPersonalizado);
+    estadoModulo.layoutEsPersonalizado = Boolean(layoutSqlite);
     estadoModulo.layoutActual = construirLayoutDesdeMeta({
       seccionesMeta: pendientes.sumasSecciones,
       resultadoFilas: pendientes.resultadoFilas,
@@ -5835,7 +6131,7 @@
     aplicarModoEdicionEnTabla();
     aplicarFiltroColumnasPorPeriodo();
 
-    // Actualizar SeccionCollapse después de renderizar la tabla
+    // Actualizar SeccionCollapse despu├®s de renderizar la tabla
     if (
       window.SeccionCollapse &&
       typeof window.SeccionCollapse.actualizar === "function"
@@ -6024,18 +6320,29 @@
     guardarBorradorLocal() {
       return persistirLayoutActual();
     },
-    cargarBorradorLocal() {
+    async cargarBorradorLocal() {
       const empresa = Sesion.obtenerEmpresaActiva();
       const anioSeleccionado = Number.isInteger(estadoModulo.anio)
         ? estadoModulo.anio
         : null;
-      if (!empresa?.id || !anioSeleccionado || !estadoModulo.moduloClave) {
+      const capitulo =
+        estadoModulo.capitulo ||
+        window.CapitulosModulos?.obtenerCapituloPorEmpresa?.(empresa?.id);
+      const moduloNombre = obtenerNombreModulo();
+      if (
+        !empresa?.id ||
+        !anioSeleccionado ||
+        !estadoModulo.moduloClave ||
+        !capitulo ||
+        !moduloNombre
+      ) {
         return null;
       }
-      return cargarLayoutLocal({
-        moduloClave: estadoModulo.moduloClave,
-        empresaId: empresa.id,
+      return cargarLayoutSqlite({
+        modulo: moduloNombre,
         anio: anioSeleccionado,
+        capitulo,
+        empresaId: empresa.id,
       });
     },
     cargarBorrador(presupuesto) {
@@ -6087,12 +6394,12 @@ const convertirCuenta21 = (cuentaLegible) => {
   const entrada = normalizarCuentaBase(cuentaLegible);
   if (!entrada) return "";
 
-  // Si ya viene en formato COI de 21 caracteres, respétalo.
+  // Si ya viene en formato COI de 21 caracteres, resp├®talo.
   if (entrada.length >= 21) {
     return entrada.slice(0, 21);
   }
 
-  // Usa la conversión compartida si está disponible en la vista.
+  // Usa la conversi├│n compartida si est├í disponible en la vista.
   if (typeof window.cuentaLarga === "function") {
     const desdeVista = window.cuentaLarga(entrada);
     if (desdeVista) return desdeVista;

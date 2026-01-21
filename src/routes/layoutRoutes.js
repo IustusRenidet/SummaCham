@@ -131,6 +131,78 @@ router.get("/:modulo/:anio/:capitulo", requireAuth, (req, res) => {
 });
 
 /**
+ * POST /api/layouts/:modulo/:anio/:capitulo
+ * Reemplazar layout completo (cuentas + operaciones) para un capitulo
+ */
+router.post("/:modulo/:anio/:capitulo", requireAuth, (req, res) => {
+  try {
+    const { modulo, anio, capitulo } = req.params;
+    const { empresaId = "EMPRESA01", cuentas = [], operaciones = [] } = req.body;
+
+    if (!tienePermisoGuardar(req, empresaId, modulo, capitulo)) {
+      return res.status(403).json({
+        success: false,
+        mensaje: "No cuentas con permisos para editar este capitulo",
+      });
+    }
+
+    if (!Array.isArray(cuentas) || !Array.isArray(operaciones)) {
+      return res.status(400).json({
+        success: false,
+        mensaje: "cuentas y operaciones deben ser arrays",
+      });
+    }
+
+    const anioNumero = parseInt(anio);
+    layoutService.eliminarLayoutCapitulo({
+      empresaId,
+      modulo,
+      anio: anioNumero,
+      capitulo,
+    });
+
+    const resultadoCuentas = cuentas.length
+      ? layoutService.guardarCuentas({
+          empresaId,
+          modulo,
+          anio: anioNumero,
+          capitulo,
+          cuentas,
+        })
+      : { insertadas: 0 };
+
+    const operacionesNormalizadas = operaciones.map((op) => ({
+      ...op,
+      CAPITULO: op?.CAPITULO || capitulo,
+      HOJA: op?.HOJA || modulo,
+    }));
+
+    const resultadoOps = operacionesNormalizadas.length
+      ? layoutService.guardarOperaciones({
+          empresaId,
+          modulo,
+          anio: anioNumero,
+          operaciones: operacionesNormalizadas,
+        })
+      : { insertadas: 0 };
+
+    res.json({
+      success: true,
+      mensaje: "Layout reemplazado exitosamente",
+      cuentas: resultadoCuentas.insertadas,
+      operaciones: resultadoOps.insertadas,
+    });
+  } catch (error) {
+    console.error("Error al reemplazar layout:", error);
+    res.status(500).json({
+      success: false,
+      mensaje: "Error al reemplazar layout",
+      error: error.message,
+    });
+  }
+});
+
+/**
  * GET /api/layouts/:modulo/:anio/estadisticas
  * Obtener estadísticas de un layout
  */

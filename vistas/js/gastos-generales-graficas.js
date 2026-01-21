@@ -51,6 +51,7 @@
       rendimientos: {
         enabled: true,
         title: "Rendimientos de Inversion",
+        chartType: "line",
         series: {
           actual: { label: "Real {year}", color: "#ffc000", enabled: true },
           prev: { label: "Real {prev}", color: "#2f5496", enabled: true },
@@ -59,6 +60,7 @@
       plusvalia: {
         enabled: true,
         title: "Plusvalia/Minusvalia",
+        chartType: "line",
         series: {
           actual: { label: "Real {year}", color: "#ffc000", enabled: true },
           prev: { label: "Real {prev}", color: "#2f5496", enabled: true },
@@ -125,6 +127,49 @@
     return `${enteroConComas}.${decimales}`;
   };
 
+  const CHART_PALETTE = [
+    "#2563eb",
+    "#f59e0b",
+    "#10b981",
+    "#ef4444",
+    "#8b5cf6",
+    "#14b8a6",
+    "#f97316",
+    "#e11d48",
+  ];
+
+  const isPieType = (type) => type === "pie" || type === "doughnut";
+
+  const normalizeChartType = (value, fallback = "inherit") => {
+    if (typeof value !== "string") return fallback;
+    const clean = value.trim();
+    if (!clean) return fallback;
+    if (clean === "inherit") return "inherit";
+    if (["bar", "line", "pie", "doughnut"].includes(clean)) return clean;
+    return fallback;
+  };
+
+  const resolveChartType = (value, baseType) => {
+    const normalized = normalizeChartType(value, "inherit");
+    if (normalized === "inherit") return baseType || "line";
+    return normalized;
+  };
+
+  const buildSlicePalette = (count, baseColor) => {
+    const palette = baseColor
+      ? [baseColor, ...CHART_PALETTE.filter((color) => color !== baseColor)]
+      : CHART_PALETTE;
+    return Array.from({ length: count }, (_, idx) => palette[idx % palette.length]);
+  };
+
+  const getParsedValue = (context) => {
+    if (!context) return 0;
+    if (typeof context.parsed === "number") return context.parsed;
+    if (typeof context.parsed?.y === "number") return context.parsed.y;
+    if (typeof context.raw === "number") return context.raw;
+    return 0;
+  };
+
   const obtenerAnioSeleccionado = () => {
     const select =
       document.querySelector('[data-role="module-year-select"]') ||
@@ -148,6 +193,32 @@
   const obtenerCapitulo = (empresaId) => {
     if (!empresaId) return null;
     return window.CapitulosModulos?.obtenerCapituloPorEmpresa?.(empresaId) || null;
+  };
+
+  const obtenerNombreModulo = () =>
+    window.CapitulosModulos?.obtenerSheetPorModulo?.(MODULO) ||
+    "Gastos Generales";
+
+  const cargarLayoutSqlite = async ({ empresaId, anio, capitulo }) => {
+    if (!empresaId || !Number.isInteger(anio) || !capitulo) return null;
+    try {
+      const params = new URLSearchParams({ empresaId });
+      const moduloNombre = obtenerNombreModulo();
+      const url = `${API_BASE}/layouts/${encodeURIComponent(
+        moduloNombre
+      )}/${anio}/${encodeURIComponent(capitulo)}?${params.toString()}`;
+      const headers =
+        typeof window.Sesion?.headersAutenticacion === "function"
+          ? window.Sesion.headersAutenticacion()
+          : {};
+      const resp = await fetch(url, { headers });
+      if (!resp.ok) return null;
+      const data = await resp.json();
+      return data?.layout || null;
+    } catch (error) {
+      console.warn("No fue posible cargar layout SQL para graficas", error);
+      return null;
+    }
   };
 
   const normalizarCuentaBase = (cuenta) => {
@@ -214,24 +285,22 @@
     return mapa;
   };
 
-  const obtenerCuentasDesdeCatalogo = (capitulo, targets = TARGETS) => {
-    const registros =
-      window.CUENTAS_POR_MODULO?.["Gastos Generales"] || [];
-    const capituloNorm = normalizarTexto(capitulo || "");
+  const obtenerCuentasDesdeCatalogo = async (
+    empresaId,
+    anio,
+    capitulo,
+    targets = TARGETS
+  ) => {
+    const layout = await cargarLayoutSqlite({ empresaId, anio, capitulo });
+    const registros = Array.isArray(layout?.cuentas) ? layout.cuentas : [];
     const mapa = new Map();
     registros.forEach((registro) => {
       if (!registro) return;
-      if (
-        capituloNorm &&
-        normalizarTexto(registro.capitulo || "") !== capituloNorm
-      ) {
-        return;
-      }
-      const nombre = normalizarTexto(registro.nombre || "");
+      const nombre = normalizarTexto(registro.NOMBRE || registro.nombre || "");
       if (!nombre) return;
       targets.forEach((target) => {
         if (!target.match(nombre)) return;
-        const cuenta = convertirCuenta21(registro.cuenta || "");
+        const cuenta = convertirCuenta21(registro.CUENTA || registro.cuenta || "");
         if (!cuenta) return;
         const lista = mapa.get(target.id) || [];
         if (!lista.includes(cuenta)) {
@@ -243,7 +312,11 @@
     return mapa;
   };
 
-  const resolverCuentasObjetivo = (empresaId, targets = TARGETS) => {
+  const resolverCuentasObjetivo = async (
+    empresaId,
+    anio,
+    targets = TARGETS
+  ) => {
     const resultado = new Map();
     const desdeTabla = obtenerCuentasDesdeTabla(targets);
     targets.forEach((target) => {
@@ -256,7 +329,12 @@
       return resultado;
     }
     const capitulo = obtenerCapitulo(empresaId);
-    const desdeCatalogo = obtenerCuentasDesdeCatalogo(capitulo, targets);
+    const desdeCatalogo = await obtenerCuentasDesdeCatalogo(
+      empresaId,
+      anio,
+      capitulo,
+      targets
+    );
     targets.forEach((target) => {
       if (resultado.has(target.id)) return;
       const cuentas = desdeCatalogo.get(target.id) || [];
@@ -335,6 +413,54 @@
     empty.style.display = mostrar ? "flex" : "none";
   };
 
+  const buildChartDatasets = ({
+    labels,
+    dataActual,
+    dataPrev,
+    labelActual,
+    labelPrev,
+    colorActual,
+    colorPrev,
+    enabledActual,
+    enabledPrev,
+    chartType,
+  }) => {
+    const resolvedType = chartType || "line";
+    const isPie = isPieType(resolvedType);
+    const buildDataset = (label, data, color, enabled) => {
+      const dataset = {
+        label,
+        data,
+        borderWidth: resolvedType === "line" ? 2 : 1,
+        hidden: enabled === false,
+      };
+      if (isPie) {
+        dataset.backgroundColor = buildSlicePalette(labels.length, color);
+        dataset.borderColor = "#ffffff";
+        dataset.borderWidth = 1;
+        return dataset;
+      }
+      dataset.backgroundColor = color;
+      dataset.borderColor = color;
+      if (resolvedType === "line") {
+        dataset.pointBackgroundColor = color;
+        dataset.pointBorderColor = color;
+        dataset.tension = 0.3;
+        dataset.pointRadius = 3;
+        dataset.pointHoverRadius = 4;
+        dataset.fill = false;
+      } else if (resolvedType === "bar") {
+        dataset.borderRadius = 8;
+        dataset.maxBarThickness = 20;
+      }
+      return dataset;
+    };
+    return [
+      buildDataset(labelActual, dataActual, colorActual, enabledActual),
+      buildDataset(labelPrev, dataPrev, colorPrev, enabledPrev),
+    ];
+  };
+
   const construirChart = ({
     ctx,
     labels,
@@ -346,48 +472,35 @@
     colorPrev,
     enabledActual,
     enabledPrev,
+    chartType,
   }) => {
     const gridColor = "rgba(47, 84, 150, 0.08)";
     const axisColor = "rgba(47, 84, 150, 0.55)";
+    const resolvedType = chartType || "line";
+    const isPie = isPieType(resolvedType);
     return new Chart(ctx, {
-      type: "line",
+      type: resolvedType,
       data: {
         labels,
-        datasets: [
-          {
-            label: labelActual,
-            data: dataActual,
-            borderColor: colorActual,
-            pointBackgroundColor: colorActual,
-            pointBorderColor: colorActual,
-            borderWidth: 2,
-            tension: 0.3,
-            pointRadius: 3,
-            pointHoverRadius: 4,
-            fill: false,
-            hidden: enabledActual === false,
-          },
-          {
-            label: labelPrev,
-            data: dataPrev,
-            borderColor: colorPrev,
-            pointBackgroundColor: colorPrev,
-            pointBorderColor: colorPrev,
-            borderWidth: 2,
-            tension: 0.3,
-            pointRadius: 3,
-            pointHoverRadius: 4,
-            fill: false,
-            hidden: enabledPrev === false,
-          },
-        ],
+        datasets: buildChartDatasets({
+          labels,
+          dataActual,
+          dataPrev,
+          labelActual,
+          labelPrev,
+          colorActual,
+          colorPrev,
+          enabledActual,
+          enabledPrev,
+          chartType: resolvedType,
+        }),
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
         interaction: {
-          mode: "index",
-          intersect: false,
+          mode: isPie ? "nearest" : "index",
+          intersect: isPie,
         },
         plugins: {
           legend: {
@@ -406,37 +519,46 @@
             callbacks: {
               label: (ctx) => {
                 const label = ctx.dataset?.label || "";
-                return `${label}: ${formatearNumero(ctx.raw)}`;
+                return `${label}: ${formatearNumero(getParsedValue(ctx))}`;
               },
             },
           },
         },
-        scales: {
-          x: {
-            grid: {
-              display: false,
+        scales: isPie
+          ? {}
+          : {
+              x: {
+                grid: {
+                  display: false,
+                },
+                ticks: {
+                  color: axisColor,
+                  font: { size: 11, weight: "600" },
+                },
+              },
+              y: {
+                grid: {
+                  color: gridColor,
+                },
+                ticks: {
+                  color: axisColor,
+                  font: { size: 11, weight: "500" },
+                  callback: (valor) => formatearNumero(valor),
+                },
+              },
             },
-            ticks: {
-              color: axisColor,
-              font: { size: 11, weight: "600" },
-            },
-          },
-          y: {
-            grid: {
-              color: gridColor,
-            },
-            ticks: {
-              color: axisColor,
-              font: { size: 11, weight: "500" },
-              callback: (valor) => formatearNumero(valor),
-            },
-          },
-        },
       },
     });
   };
 
-  const actualizarChart = ({ target, dataActual, dataPrev, anio, chartConfig }) => {
+  const actualizarChart = ({
+    target,
+    dataActual,
+    dataPrev,
+    anio,
+    chartConfig,
+    chartType,
+  }) => {
     const canvas = document.getElementById(target.canvasId);
     if (!canvas) return;
 
@@ -448,6 +570,7 @@
 
     const actualEnabled = actualCfg.enabled !== false;
     const prevEnabled = prevCfg.enabled !== false;
+    const resolvedType = chartType || "line";
     const hasEnabledSeries = actualEnabled || prevEnabled;
 
     const hasActualData = actualEnabled && dataActual.some((valor) => Number(valor) !== 0);
@@ -479,6 +602,11 @@
       applyTemplate(labelPrevTemplate, { year: anio, prev: anio - 1 }).trim() ||
       `Real ${anio - 1}`;
 
+    if (charts[target.id] && charts[target.id]._chartType !== resolvedType) {
+      charts[target.id].destroy();
+      charts[target.id] = null;
+    }
+
     if (!charts[target.id]) {
       charts[target.id] = construirChart({
         ctx,
@@ -491,22 +619,24 @@
         colorPrev,
         enabledActual: actualEnabled,
         enabledPrev: prevEnabled,
+        chartType: resolvedType,
       });
+      charts[target.id]._chartType = resolvedType;
     } else {
       const chart = charts[target.id];
       chart.data.labels = MESES_LABELS;
-      chart.data.datasets[0].data = dataActual;
-      chart.data.datasets[0].label = labelActual;
-      chart.data.datasets[0].borderColor = colorActual;
-      chart.data.datasets[0].pointBackgroundColor = colorActual;
-      chart.data.datasets[0].pointBorderColor = colorActual;
-      chart.data.datasets[0].hidden = !actualEnabled;
-      chart.data.datasets[1].data = dataPrev;
-      chart.data.datasets[1].label = labelPrev;
-      chart.data.datasets[1].borderColor = colorPrev;
-      chart.data.datasets[1].pointBackgroundColor = colorPrev;
-      chart.data.datasets[1].pointBorderColor = colorPrev;
-      chart.data.datasets[1].hidden = !prevEnabled;
+      chart.data.datasets = buildChartDatasets({
+        labels: MESES_LABELS,
+        dataActual,
+        dataPrev,
+        labelActual,
+        labelPrev,
+        colorActual,
+        colorPrev,
+        enabledActual: actualEnabled,
+        enabledPrev: prevEnabled,
+        chartType: resolvedType,
+      });
       chart.update();
     }
   };
@@ -527,6 +657,8 @@
   const actualizarGraficas = async () => {
     const panel = document.getElementById("gastosGeneralesChartsPanel");
     const gastosConfig = getGastosConfig();
+    const graficasConfig = getGraficasConfig();
+    const baseChartType = graficasConfig.chart?.type || "bar";
     if (panel) {
       if (gastosConfig.enabled === false) {
         panel.style.display = "none";
@@ -539,7 +671,8 @@
     const configById = new Map();
     TARGETS.forEach((target) => {
       const chartCfg = gastosConfig.charts?.[target.id] || baseCharts[target.id] || {};
-      configById.set(target.id, chartCfg);
+      const resolvedChartType = resolveChartType(chartCfg.chartType, baseChartType);
+      configById.set(target.id, { chart: chartCfg, chartType: resolvedChartType });
       const chartEnabled = chartCfg.enabled !== false;
       const chartContainer = document.querySelector(`[data-gg-chart="${target.id}"]`);
       const chartCol =
@@ -567,7 +700,8 @@
     });
 
     const targetsEnabled = TARGETS.filter((target) => {
-      const chartCfg = configById.get(target.id);
+      const entry = configById.get(target.id);
+      const chartCfg = entry?.chart;
       return chartCfg ? chartCfg.enabled !== false : true;
     });
 
@@ -587,7 +721,11 @@
       });
       return;
     }
-    const cuentasPorObjetivo = resolverCuentasObjetivo(empresaId, targetsEnabled);
+    const cuentasPorObjetivo = await resolverCuentasObjetivo(
+      empresaId,
+      anio,
+      targetsEnabled
+    );
     targetsEnabled.forEach((target) => {
       const cuentas = cuentasPorObjetivo.get(target.id) || [];
       if (!cuentas.length) {
@@ -621,12 +759,14 @@
       if (!cuentas.length) return;
       const dataActual = sumarRealPorMes(datosActual, cuentas);
       const dataPrev = sumarRealPorMes(datosPrev, cuentas);
+      const entry = configById.get(target.id);
       actualizarChart({
         target,
         dataActual,
         dataPrev,
         anio,
-        chartConfig: configById.get(target.id),
+        chartConfig: entry?.chart,
+        chartType: entry?.chartType,
       });
     });
   };

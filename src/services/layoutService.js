@@ -438,6 +438,7 @@ const obtenerLayout = ({ empresaId = "EMPRESA01", modulo, anio, capitulo }) => {
       capitulo AS CAPITULO,
       seccion_principal AS "SECCIàN Principal",
       seccion_secundaria AS "SECCION Secundaria",
+      operacion_factor,
       orden,
       orden_presentacion,
       visible
@@ -471,7 +472,34 @@ const obtenerLayout = ({ empresaId = "EMPRESA01", modulo, anio, capitulo }) => {
       };
     });
 
-  let cuentas = normalizarCuentas(consultarCuentas(anioNumero));
+  const normalizarSeccionesCuenta = (cuenta = {}) => {
+    const seccionPrincipal =
+      cuenta["SECCION Principal"] ||
+      cuenta["SECCI…N Principal"] ||
+      cuenta["SECCIàN Principal"] ||
+      cuenta.SECCION ||
+      cuenta.seccion_principal ||
+      cuenta.seccion ||
+      "";
+    const seccionSecundaria =
+      cuenta["SECCION Secundaria"] ||
+      cuenta["SECCIàN Secundaria"] ||
+      cuenta.seccion_secundaria ||
+      cuenta.seccionSecundaria ||
+      "";
+    return {
+      ...cuenta,
+      "SECCION Principal": seccionPrincipal,
+      "SECCION Secundaria": seccionSecundaria,
+      SECCION: seccionPrincipal,
+      seccion_principal: seccionPrincipal,
+      seccion_secundaria: seccionSecundaria,
+    };
+  };
+
+  let cuentas = normalizarCuentas(consultarCuentas(anioNumero)).map(
+    normalizarSeccionesCuenta
+  );
   let anioUsado = anioNumero;
 
   const requiereFallback =
@@ -494,7 +522,7 @@ const obtenerLayout = ({ empresaId = "EMPRESA01", modulo, anio, capitulo }) => {
     if (fallbackYear) {
       const cuentasFallback = normalizarCuentas(consultarCuentas(fallbackYear));
       if (cuentasFallback && cuentasFallback.length) {
-        cuentas = cuentasFallback;
+        cuentas = cuentasFallback.map(normalizarSeccionesCuenta);
         anioUsado = fallbackYear;
       }
     }
@@ -680,8 +708,9 @@ const guardarCuentas = ({
   const insertCuenta = db.prepare(`
     INSERT OR REPLACE INTO layout_cuentas (
       empresa_id, modulo, anio, cuenta, nombre, capitulo, 
-      seccion_principal, seccion_secundaria, orden, orden_presentacion, visible, actualizado_en
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+      seccion_principal, seccion_secundaria, operacion_factor,
+      orden, orden_presentacion, visible, actualizado_en
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
   `);
   const deleteSecciones = db.prepare(`
     DELETE FROM layout_secciones
@@ -745,6 +774,15 @@ const guardarCuentas = ({
         cuenta["SECCION Secundaria"] || cuenta.seccion_secundaria || null;
       const nombre =
         cuenta.NOMBRE || cuenta.nombre || cuenta.CUENTA || "Sin nombre";
+      const factorRaw =
+        cuenta.operacion_factor ?? cuenta.operacionFactor ?? cuenta.factor;
+      const operacionFactor =
+        factorRaw === "" || factorRaw === null || factorRaw === undefined
+          ? 1
+          : Number(factorRaw);
+      const operacionFactorFinal = Number.isFinite(operacionFactor)
+        ? operacionFactor
+        : 1;
       const ordenPresentacion = Number.isFinite(
         Number(cuenta.orden_presentacion)
       )
@@ -763,6 +801,7 @@ const guardarCuentas = ({
         capitulo,
         seccionPrincipal,
         seccionSecundaria,
+        operacionFactorFinal,
         ordenPresentacion,
         ordenPresentacion,
         visible
@@ -1126,16 +1165,30 @@ const actualizarCuenta = ({
 
   const update = db.prepare(`
     UPDATE layout_cuentas
-    SET cuenta = ?, nombre = ?, seccion_principal = ?, seccion_secundaria = ?, orden = ?
+    SET cuenta = ?, nombre = ?, seccion_principal = ?, seccion_secundaria = ?,
+        operacion_factor = ?, orden = ?
     WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ? AND cuenta = ?
   `);
+
+  const factorRaw =
+    datos.operacion_factor ?? datos.operacionFactor ?? datos.factor;
+  const operacionFactor =
+    factorRaw === "" || factorRaw === null || factorRaw === undefined
+      ? 1
+      : Number(factorRaw);
+  const operacionFactorFinal = Number.isFinite(operacionFactor)
+    ? operacionFactor
+    : 1;
+  const ordenRaw = datos.orden ?? datos.orden_presentacion;
+  const ordenFinal = Number.isFinite(Number(ordenRaw)) ? Number(ordenRaw) : 1;
 
   const result = update.run(
     datos.cuenta || cuentaOriginal,
     datos.nombre,
     datos.seccion_principal,
     datos.seccion_secundaria || "",
-    datos.orden || 1,
+    operacionFactorFinal,
+    ordenFinal,
     empresaCanonica,
     modulo,
     anio,

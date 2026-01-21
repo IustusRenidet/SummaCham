@@ -35,16 +35,19 @@
         enabled: true,
         title: "Resultado Operativo por Capitulo",
         subtitle: "Real Acum / Ppto. Acum / Real Acum AA",
+        chartType: "inherit",
       },
       net: {
         enabled: true,
         title: "Resumen Neto por Capitulo",
         subtitle: "Real Acum / Ppto. Acum / Real Acum AA",
+        chartType: "inherit",
       },
       consolidated: {
         enabled: true,
         title: "Consolidados Operativos vs Netos",
         subtitle: "Real Acum / Ppto. Acum / Real Acum AA",
+        chartType: "inherit",
       },
     },
     consolidatedSeries: {
@@ -69,6 +72,7 @@
       enabled: true,
       title: "Ingreso por capitulo",
       subtitle: "Real acumulado por mes",
+      chartType: "inherit",
       series: {
         mex: { label: "CDMX INCOME", color: "#0d47a1", enabled: true },
         gdl: { label: "GUADALAJARA INCOME", color: "#60a5fa", enabled: true },
@@ -80,6 +84,7 @@
       enabled: true,
       title: "Ingreso nacional",
       subtitle: "Real acumulado por mes",
+      chartType: "inherit",
       series: {
         committees: { label: "Committees", color: "#0d47a1", enabled: true },
         membership: { label: "Membership", color: "#60a5fa", enabled: true },
@@ -229,6 +234,7 @@
     operativo: {
       enabled: true,
       title: "Ppto. Acumulado vs Real + {annual}",
+      chartType: "bar",
       datasets: {
         budget: { label: "Ppto. Acumulado", color: "#4472c4", enabled: true },
         real: { label: "Real Acumulado", color: "#ffc000", enabled: true },
@@ -242,6 +248,7 @@
         rendimientos: {
           enabled: true,
           title: "Rendimientos de Inversion",
+          chartType: "line",
           series: {
             actual: { label: "Real {year}", color: "#ffc000", enabled: true },
             prev: { label: "Real {prev}", color: "#2f5496", enabled: true },
@@ -250,6 +257,7 @@
         plusvalia: {
           enabled: true,
           title: "Plusvalia/Minusvalia",
+          chartType: "line",
           series: {
             actual: { label: "Real {year}", color: "#ffc000", enabled: true },
             prev: { label: "Real {prev}", color: "#2f5496", enabled: true },
@@ -261,6 +269,15 @@
   };
 
   const clone = (value) => JSON.parse(JSON.stringify(value));
+
+  const normalizeChartType = (value, fallback = "inherit") => {
+    if (typeof value !== "string") return fallback;
+    const clean = value.trim();
+    if (!clean) return fallback;
+    if (clean === "inherit") return "inherit";
+    if (["bar", "line", "pie", "doughnut"].includes(clean)) return clean;
+    return fallback;
+  };
 
   const normalizeSeriesMap = (defaultsMap, overrideMap) => {
     const result = {};
@@ -301,10 +318,7 @@
       const subtitle =
         typeof chart?.subtitle === "string" ? chart.subtitle.trim() : "";
       const chartType =
-        typeof chart?.chartType === "string" &&
-        ["inherit", "bar", "line", "pie", "doughnut"].includes(chart.chartType)
-          ? chart.chartType
-          : "inherit";
+        normalizeChartType(chart?.chartType, "inherit");
       const enabled = typeof chart?.enabled === "boolean" ? chart.enabled : true;
       const rows = Array.isArray(chart?.rows) ? chart.rows : [];
       const normalizedRows = rows
@@ -470,6 +484,10 @@
         if (typeof override.subtitle === "string" && override.subtitle.trim()) {
           base.charts[key].subtitle = override.subtitle.trim();
         }
+        base.charts[key].chartType = normalizeChartType(
+          override.chartType,
+          base.charts[key].chartType || "inherit"
+        );
       });
     }
 
@@ -520,6 +538,10 @@
       if (typeof override.subtitle === "string" && override.subtitle.trim()) {
         base.ingreso.subtitle = override.subtitle.trim();
       }
+      base.ingreso.chartType = normalizeChartType(
+        override.chartType,
+        base.ingreso.chartType || "inherit"
+      );
       base.ingreso.series = normalizeSeriesMap(
         base.ingreso.series,
         override.series
@@ -537,6 +559,10 @@
       if (typeof override.subtitle === "string" && override.subtitle.trim()) {
         base.ingresoNacional.subtitle = override.subtitle.trim();
       }
+      base.ingresoNacional.chartType = normalizeChartType(
+        override.chartType,
+        base.ingresoNacional.chartType || "inherit"
+      );
       base.ingresoNacional.series = normalizeSeriesMap(
         base.ingresoNacional.series,
         override.series
@@ -551,6 +577,10 @@
       if (typeof override.title === "string" && override.title.trim()) {
         base.operativo.title = override.title.trim();
       }
+      base.operativo.chartType = normalizeChartType(
+        override.chartType,
+        base.operativo.chartType || "bar"
+      );
       base.operativo.datasets = normalizeSeriesMap(
         base.operativo.datasets,
         override.datasets
@@ -581,6 +611,10 @@
           ) {
             base.gastosGenerales.charts[key].title = chartOverride.title.trim();
           }
+          base.gastosGenerales.charts[key].chartType = normalizeChartType(
+            chartOverride.chartType,
+            base.gastosGenerales.charts[key].chartType || "line"
+          );
           base.gastosGenerales.charts[key].series = normalizeSeriesMap(
             base.gastosGenerales.charts[key].series,
             chartOverride.series
@@ -881,10 +915,15 @@
       const subtitleInput = row.querySelector("[data-chart-subtitle]");
       const enabledInput = row.querySelector("[data-chart-enabled]");
       const fallback = (defaults.charts || {})[key] || {};
+      const existing = baseConfig.charts?.[key] || {};
       charts[key] = {
         title: titleInput?.value?.trim() || fallback.title || "",
         subtitle: subtitleInput?.value?.trim() || fallback.subtitle || "",
         enabled: Boolean(enabledInput?.checked),
+        chartType: normalizeChartType(
+          existing.chartType,
+          fallback.chartType || "inherit"
+        ),
       };
     });
 

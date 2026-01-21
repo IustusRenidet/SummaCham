@@ -33,28 +33,33 @@ const resolverModuloDesdeTipo = (moduleType = "") => {
   return MODULO_MAP[clave] || moduleType;
 };
 
-const formatearCuentaDesdeSqlite = (cuenta, capitulo) => ({
-  CAPITULO: capitulo,
-  CUENTA: cuenta.CUENTA,
-  NOMBRE: cuenta.NOMBRE,
-  "SECCIàN Principal":
+const formatearCuentaDesdeSqlite = (cuenta, capitulo) => {
+  const seccionPrincipal =
+    cuenta["SECCION Principal"] ||
     cuenta["SECCIàN Principal"] ||
     cuenta["SECCIÓN Principal"] ||
     cuenta.SECCION ||
     cuenta.seccion_principal ||
-    "",
-  "SECCION Secundaria":
+    "";
+  const seccionSecundaria =
     cuenta["SECCION Secundaria"] ||
     cuenta["SECCIÓN Secundaria"] ||
     cuenta.seccion_secundaria ||
-    "",
-  SECCION:
-    cuenta["SECCIàN Principal"] ||
-    cuenta["SECCIÓN Principal"] ||
-    cuenta.SECCION ||
-    "",
-  orden: cuenta.orden || 0,
-});
+    "";
+  return {
+    CAPITULO: capitulo,
+    CUENTA: cuenta.CUENTA,
+    NOMBRE: cuenta.NOMBRE,
+    "SECCION Principal": seccionPrincipal,
+    "SECCIàN Principal": seccionPrincipal,
+    "SECCIÓN Principal": seccionPrincipal,
+    "SECCION Secundaria": seccionSecundaria,
+    SECCION: seccionPrincipal,
+    seccion_principal: seccionPrincipal,
+    seccion_secundaria: seccionSecundaria,
+    orden: cuenta.orden || 0,
+  };
+};
 
 const agruparPorCapitulo = (items = []) => {
   const mapa = new Map();

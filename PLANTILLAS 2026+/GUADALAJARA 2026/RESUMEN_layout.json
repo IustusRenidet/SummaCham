@@ -117,7 +117,7 @@
       "CUENTA": "901000000000000000000",
       "NOMBRE": "Gastos Generales",
       "SECCION Principal": "EXPENSE",
-      "SECCION Secundaria": "Gastos G&A"
+      "SECCION Secundaria": "Gastos Generales"
     },
     {
       "CAPITULO": "GUADALAJARA",
@@ -226,7 +226,13 @@
     {
       "nombre": "Gastos G&A",
       "tipo": "cuentas",
-      "expresion": "801000000000000000000 + 901000000000000000000",
+      "expresion": "801000000000000000000",
+      "seccion": "EXPENSE"
+    },
+    {
+      "nombre": "Gastos Generales",
+      "tipo": "cuentas",
+      "expresion": "901000000000000000000",
       "seccion": "EXPENSE"
     },
     {

@@ -51,6 +51,75 @@
     commitEnProgreso: false,
   };
 
+  const normalizarModuloClave = (modulo) =>
+    (modulo || "").toString().trim().toUpperCase();
+
+  const obtenerCapituloActual = (empresaId) => {
+    const capituloBody =
+      document.body?.dataset?.capitulo || document.body?.dataset?.capituloId;
+    const capitulo = (capituloBody || "").toString().trim();
+    if (capitulo) return capitulo;
+    const capituloEmpresa =
+      window.CapitulosModulos?.obtenerCapituloPorEmpresa?.(empresaId);
+    return (capituloEmpresa || "DEFAULT").toString().trim() || "DEFAULT";
+  };
+
+  const normalizarLayoutParaTabla = (layout) => {
+    if (!layout || typeof layout !== "object") return null;
+    if (Array.isArray(layout.filas)) return layout;
+    if (!Array.isArray(layout.cuentas)) return null;
+    const filas = layout.cuentas
+      .map((cuenta, idx) => {
+        if (!cuenta || typeof cuenta !== "object") return null;
+        const cuentaId = (cuenta.CUENTA ?? cuenta.cuenta ?? "")
+          .toString()
+          .trim();
+        if (!cuentaId) return null;
+        const descripcion =
+          (cuenta.NOMBRE ?? cuenta.nombre ?? "").toString().trim() ||
+          cuentaId;
+        return { cuenta: cuentaId, descripcion, indice: idx };
+      })
+      .filter(Boolean);
+    return filas.length ? { filas } : null;
+  };
+
+  const obtenerOrdenDesdeFila = (fila, idx) => {
+    const candidatos = [
+      fila?.orden_presentacion,
+      fila?.orden,
+      fila?.indice,
+      fila?.index,
+    ];
+    for (const valor of candidatos) {
+      const numero = Number(valor);
+      if (Number.isFinite(numero)) return numero;
+    }
+    return idx;
+  };
+
+  const construirCuentasDesdeLayout = (layout) => {
+    const normalizado = normalizarLayoutParaTabla(layout);
+    if (!normalizado || !Array.isArray(normalizado.filas)) return [];
+    return normalizado.filas
+      .map((fila, idx) => {
+        if (!fila || typeof fila !== "object") return null;
+        const cuenta = (fila.cuenta || "").toString().trim();
+        if (!cuenta) return null;
+        const descripcion = (fila.descripcion || "").toString().trim() || cuenta;
+        const orden = obtenerOrdenDesdeFila(fila, idx);
+        return {
+          CUENTA: cuenta,
+          NOMBRE: descripcion,
+          SECCION: "",
+          orden,
+          orden_presentacion: orden,
+          visible: true,
+        };
+      })
+      .filter(Boolean);
+  };
+
   function obtenerNumeroDesdeCelda(celda) {
     if (!celda) return 0;
     const texto =
@@ -314,44 +383,32 @@
     return datalist.id;
   }
 
-  // Helpers para persistir layout (cuenta/descripcion) por empresa/anio/modulo
-  const obtenerClaveLayoutLocal = ({ moduloClave, empresaId, anio }) => {
-    if (!moduloClave || !empresaId || !Number.isInteger(anio)) return null;
-    return `planeacion-layout:${empresaId}:${anio}:${moduloClave}`;
-  };
-
-  const cargarLayoutLocal = ({ moduloClave, empresaId, anio }) => {
-    const clave = obtenerClaveLayoutLocal({ moduloClave, empresaId, anio });
-    if (!clave || !window.localStorage) return null;
-    try {
-      const crudo = window.localStorage.getItem(clave);
-      return crudo ? JSON.parse(crudo) : null;
-    } catch (err) {
-      console.warn("No fue posible leer layout local", err);
-      return null;
-    }
-  };
-
-  const guardarLayoutLocal = ({ moduloClave, empresaId, anio, layout }) => {
-    const clave = obtenerClaveLayoutLocal({ moduloClave, empresaId, anio });
-    if (!clave || !window.localStorage || !layout) return false;
-    try {
-      window.localStorage.setItem(clave, JSON.stringify(layout));
-      return true;
-    } catch (err) {
-      console.warn("No fue posible guardar layout local", err);
-      return false;
-    }
-  };
-
   async function guardarLayoutServidor({
     moduloClave,
     empresaId,
     anio,
+    capitulo,
     layout,
   }) {
     try {
-      const ruta = `${API_BASE}/api/layouts`;
+      const anioNum = Number(anio);
+      const modulo = normalizarModuloClave(moduloClave);
+      const capituloClave = (capitulo || obtenerCapituloActual(empresaId))
+        .toString()
+        .trim();
+      if (!empresaId || !modulo || !Number.isInteger(anioNum) || anioNum <= 0) {
+        console.warn("guardarLayoutServidor: parametros invalidos", {
+          empresaId,
+          modulo,
+          anio,
+          capitulo: capituloClave,
+        });
+        return false;
+      }
+      const cuentas = construirCuentasDesdeLayout(layout);
+      const ruta = `${API_BASE}/api/layouts/${encodeURIComponent(
+        modulo
+      )}/${anioNum}/${encodeURIComponent(capituloClave || "DEFAULT")}/cuentas`;
       const headers =
         typeof Sesion !== "undefined" &&
         typeof Sesion.headersAutenticacion === "function"
@@ -365,9 +422,7 @@
         headers,
         body: JSON.stringify({
           empresaId,
-          modulo: moduloClave,
-          anio,
-          datos: layout,
+          cuentas,
         }),
       });
       if (!resp.ok) {
@@ -385,17 +440,33 @@
     }
   }
 
-  async function cargarLayoutServidor({ moduloClave, empresaId, anio }) {
+  async function cargarLayoutServidor({
+    moduloClave,
+    empresaId,
+    anio,
+    capitulo,
+  }) {
     try {
       const anioNum = Number(anio);
+      const modulo = normalizarModuloClave(moduloClave);
+      const capituloClave = (capitulo || obtenerCapituloActual(empresaId))
+        .toString()
+        .trim();
       // Validar que todos los parámetros sean válidos
-      if (!empresaId || !moduloClave || !Number.isInteger(anioNum) || anioNum <= 0) {
-        console.warn('cargarLayoutServidor: parámetros inválidos', { empresaId, moduloClave, anio });
+      if (!empresaId || !modulo || !Number.isInteger(anioNum) || anioNum <= 0) {
+        console.warn("cargarLayoutServidor: parametros invalidos", {
+          empresaId,
+          modulo,
+          anio,
+          capitulo: capituloClave,
+        });
         return null;
       }
-      const ruta = `${API_BASE}/api/layouts?empresaId=${encodeURIComponent(
+      const ruta = `${API_BASE}/api/layouts/${encodeURIComponent(
+        modulo
+      )}/${anioNum}/${encodeURIComponent(capituloClave || "DEFAULT")}?empresaId=${encodeURIComponent(
         empresaId
-      )}&modulo=${encodeURIComponent(moduloClave)}&anio=${anioNum}`;
+      )}`;
       const headers =
         typeof Sesion !== "undefined" &&
         typeof Sesion.headersAutenticacion === "function"
@@ -404,7 +475,7 @@
       const resp = await fetch(ruta, { headers });
       if (!resp.ok) return null;
       const data = await resp.json().catch(() => ({}));
-      return data.layout || null;
+      return normalizarLayoutParaTabla(data.layout);
     } catch (err) {
       console.warn("Error cargar layout servidor", err);
       return null;
@@ -1100,10 +1171,10 @@
     return { filas: layout };
   }
 
-  function persistirLayoutActual() {
-    // Evitar recursión infinita
+  async function persistirLayoutActual() {
+    // Evitar recursi¢n infinita
     if (estado.persistiendo) {
-      console.log("⚠️ Ya hay una persistencia en curso, omitiendo...");
+      console.log("?? Ya hay una persistencia en curso, omitiendo...");
       return false;
     }
     estado.persistiendo = true;
@@ -1111,8 +1182,8 @@
     try {
       const { tabla } = resolverTabla(estado.selectorTabla);
 
-      // NO hacer blur aquí para evitar recursión
-      // El blur ya se manejó en la función guardar()
+      // NO hacer blur aqu¡ para evitar recursi¢n
+      // El blur ya se manej¢ en la funci¢n guardar()
 
       if (!tabla) {
         return false;
@@ -1124,13 +1195,15 @@
         selectAnioElem?.value || new Date().getFullYear()
       );
       const anio = Number.isInteger(anioSeleccion) ? anioSeleccion : null;
-      const moduloClave = (
+      const moduloClaveRaw = (
         document.body?.dataset?.modulo ||
         document.body?.dataset?.moduloId ||
         "resumen"
       )
         .toString()
         .trim();
+      const moduloClave = normalizarModuloClave(moduloClaveRaw);
+      const capitulo = obtenerCapituloActual(empresa?.id);
       if (!empresa?.id || !Number.isInteger(anio) || !moduloClave) {
         console.warn(
           "No fue posible persistir layout: falta empresa/anio/modulo",
@@ -1142,48 +1215,30 @@
       if (!layout) {
         return false;
       }
-      const guardadoLocal = guardarLayoutLocal({
+
+      const guardadoServidor = await guardarLayoutServidor({
         moduloClave,
         empresaId: empresa.id,
         anio,
+        capitulo,
         layout,
       });
 
-      // Try server-side persist; fallback silently if server fails
-      guardarLayoutServidor({
-        moduloClave,
-        empresaId: empresa.id,
-        anio,
-        layout,
-      })
-        .then((srv) => {
-          if (srv) {
-            console.log("✅ Layout guardado en servidor", {
-              moduloClave,
-              empresaId: empresa.id,
-              anio,
-            });
-          } else {
-            console.error("❌ Error guardando layout en servidor");
-          }
-        })
-        .catch((err) => {
-          console.error("❌ Error guardando layout en servidor:", err);
-        });
-
-      if (guardadoLocal) {
+      if (guardadoServidor) {
         estado.layoutModificado = false;
-        console.log("✅ Layout persistido (localStorage)", {
+        console.log("? Layout guardado en servidor", {
           moduloClave,
           empresaId: empresa.id,
           anio,
           filasCapturadas: layout?.filas?.length || 0,
         });
+      } else {
+        console.error("? Error guardando layout en servidor");
       }
 
-      return guardadoLocal;
+      return guardadoServidor;
     } catch (err) {
-      console.error("❌ Error en persistirLayoutActual:", err);
+      console.error("? Error en persistirLayoutActual:", err);
       return false;
     } finally {
       // Liberar flag de persistencia SIEMPRE
@@ -1192,9 +1247,12 @@
   }
 
   function aplicarLayoutLocal(layout, tabla) {
-    if (!layout || !Array.isArray(layout.filas) || !tabla) return false;
+    const layoutNormalizado = normalizarLayoutParaTabla(layout);
+    if (!layoutNormalizado || !Array.isArray(layoutNormalizado.filas) || !tabla) {
+      return false;
+    }
     const filas = Array.from(tabla.tBodies[0]?.rows || []);
-    layout.filas.forEach((filaLayout) => {
+    layoutNormalizado.filas.forEach((filaLayout) => {
       const { cuenta: cuentaLayout, descripcion: descripcionLayout } =
         filaLayout || {};
       if (!cuentaLayout) return;
@@ -1579,28 +1637,25 @@
           Number.isInteger(anioSeleccion) && anioSeleccion > 0
             ? anioSeleccion
             : null;
-        const moduloClave = (
+        const moduloClaveRaw = (
           document.body?.dataset?.modulo ||
           document.body?.dataset?.moduloId ||
           "resumen"
         )
           .toString()
           .trim();
+        const moduloClave = normalizarModuloClave(moduloClaveRaw);
+        const capitulo = obtenerCapituloActual(empresa?.id);
         if (empresa?.id && anio && moduloClave) {
-          // Prefer server layout; fallback to local layout
+          // Prefer server layout
           (async () => {
             const serverLayout = await cargarLayoutServidor({
               moduloClave,
               empresaId: empresa.id,
               anio,
+              capitulo,
             });
-            if (serverLayout && aplicarLayoutLocal(serverLayout, tabla)) return;
-            const localLayout = cargarLayoutLocal({
-              moduloClave,
-              empresaId: empresa.id,
-              anio,
-            });
-            if (localLayout) aplicarLayoutLocal(localLayout, tabla);
+            if (serverLayout) aplicarLayoutLocal(serverLayout, tabla);
           })();
         }
       } catch (err) {
@@ -1674,25 +1729,33 @@
     obtenerNumCambios: function () {
       return Object.keys(estado.cambiosCapturados).length;
     },
-    // Persiste layout actual como plantilla local (por empresa/anio/modulo)
+    // Persiste layout actual en servidor (por empresa/anio/modulo)
     guardarLayout: function () {
       return persistirLayoutActual();
     },
-    cargarLayoutLocal: function () {
+    cargarLayoutLocal: async function () {
       const empresa = Sesion.obtenerEmpresaActiva();
+      const selectorAnio = obtenerSelectorAnio();
       const anioSeleccion = Number(
-        document.getElementById("selectAnio")?.value || new Date().getFullYear()
+        selectorAnio?.value || new Date().getFullYear()
       );
       const anio = Number.isInteger(anioSeleccion) ? anioSeleccion : null;
-      const moduloClave = (
+      const moduloClaveRaw = (
         document.body?.dataset?.modulo ||
         document.body?.dataset?.moduloId ||
         "resumen"
       )
         .toString()
         .trim();
+      const moduloClave = normalizarModuloClave(moduloClaveRaw);
+      const capitulo = obtenerCapituloActual(empresa?.id);
       if (!empresa?.id || !Number.isInteger(anio) || !moduloClave) return null;
-      return cargarLayoutLocal({ moduloClave, empresaId: empresa.id, anio });
+      return cargarLayoutServidor({
+        moduloClave,
+        empresaId: empresa.id,
+        anio,
+        capitulo,
+      });
     },
 
     /**

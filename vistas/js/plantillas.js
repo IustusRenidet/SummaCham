@@ -2590,32 +2590,11 @@
   }
 
   function getSumasConfigForContext() {
-    const dataset = window.CUENTAS_SUMAS;
-    if (!dataset) return null;
-    const moduloKey = findKeyByNormalized(
-      dataset,
-      state.modulo,
-      normalizeOperationMatch
-    );
-    if (!moduloKey) return null;
-    const porCapitulo = dataset[moduloKey] || {};
-    const capituloKey = findKeyByNormalized(
-      porCapitulo,
-      state.capitulo,
-      normalizeSumasCapitulo
-    );
-    if (!capituloKey) return null;
-    return porCapitulo[capituloKey] || null;
+    return null;
   }
 
   function getSumasConfigForSection(sumasConfig, sectionName) {
-    const sectionKey = findKeyByNormalized(
-      sumasConfig,
-      sectionName,
-      normalizeOperationMatch
-    );
-    if (!sectionKey) return null;
-    return sumasConfig[sectionKey] || null;
+    return null;
   }
 
   function applySumasField(op, field, value, fallback = "") {
@@ -2654,89 +2633,42 @@
   }
 
   function syncOperacionesSumasDesdeConfig() {
-    const sumasConfig = getSumasConfigForContext();
-    if (!sumasConfig) return { added: 0, updated: 0 };
     const sections = groupBySections(state.cuentas || []);
     if (!sections.length) return { added: 0, updated: 0 };
 
     const existingBySection = new Map();
-    const existingSumRowLabels = new Set();
 
     (state.operaciones || []).forEach((op) => {
       const sectionKey = normalizeOperationMatch(op?.SECCION || op?.seccion);
       if (sectionKey && !existingBySection.has(sectionKey)) {
         existingBySection.set(sectionKey, op);
       }
-      const sumRowLabel = op?.["sum-row"];
-      if (sumRowLabel) {
-        existingSumRowLabels.add(normalizeOperationMatch(sumRowLabel));
-      }
     });
 
     let added = 0;
-    let updated = 0;
 
     sections.forEach((section) => {
       const sectionName = section?.name || "";
       if (!sectionName) return;
-      const config = getSumasConfigForSection(sumasConfig, sectionName);
-      if (!config) return;
-
       const sectionKey = normalizeOperationMatch(sectionName);
-      const existing = existingBySection.get(sectionKey);
-      if (existing) {
-        let changed = false;
-        changed =
-          applySumasField(
-            existing,
-            "sum-row",
-            config?.sumRow,
-            sectionName ? `Suma ${sectionName}` : ""
-          ) || changed;
-        changed =
-          applySumasField(
-            existing,
-            "sum-row-sumavarios",
-            config?.sumRowSumavarios
-          ) || changed;
-        changed =
-          applySumasField(
-            existing,
-            "sum-row-sumavarios2",
-            config?.sumRowSumavarios2
-          ) || changed;
-        changed =
-          applySumasField(existing, "result-row", config?.resultRow) ||
-          changed;
-        if (changed) updated += 1;
-        return;
-      }
+      if (!sectionKey || existingBySection.has(sectionKey)) return;
 
-      const labelCandidate = (config?.sumRow || "").toString().trim();
-      const fallbackLabel = sectionName ? `Suma ${sectionName}` : "";
-      const finalLabel = labelCandidate || fallbackLabel;
-      if (!finalLabel) return;
-      if (existingSumRowLabels.has(normalizeOperationMatch(finalLabel))) {
-        return;
-      }
-
-      const op = buildSumasOperacion(sectionName, config, section.order);
+      const op = buildSumasOperacion(sectionName, null, section.order);
       state.operaciones.push(op);
       existingBySection.set(sectionKey, op);
-      existingSumRowLabels.add(normalizeOperationMatch(finalLabel));
       added += 1;
     });
 
-    if (added || updated) {
+    if (added) {
       state.operaciones = sortOperations(state.operaciones);
       ensureOperationIds();
       normalizeOperationReferences();
       state.unsavedChanges = true;
       updateButtonStates();
-      logChange("add", `Operaciones sumas (${added + updated})`);
+      logChange("add", `Operaciones sumas (${added})`);
     }
 
-    return { added, updated };
+    return { added, updated: 0 };
   }
 
   function syncOperativoPorNombreOps() {
@@ -7930,176 +7862,9 @@ window.editSection = function (name) {
    * Cargar operaciones desde el archivo JSON
    * @returns {Promise<Object>} Operaciones organizadas por capítulo y módulo
    */
-  const cargarOperacionesDesdeJSON = async () => {
-    try {
-      const response = await fetch(
-        encodeURI("../info IMPORTANTE/logica operaciones.json")
-      );
-      if (!response.ok) {
-        console.warn('No se pudo cargar logica operaciones.json');
-        return {};
-      }
-      const contentType = response.headers.get("content-type") || "";
-      if (!contentType.includes("application/json")) {
-        console.warn("Respuesta inesperada cargando logica operaciones.json");
-        return {};
-      }
+  const cargarOperacionesDesdeJSON = async () => ({});
 
-      const operacionesArray = await response.json();
-      const operacionesMap = {};
-      
-      // Procesar cada operación del JSON
-      operacionesArray.forEach((item) => {
-        const capituloKey = normalizeCapituloKey(item.Capítulo);
-        const moduloCompleto = item.Módulo || "";
-        const moduloKey = normalizeModuloKey(
-          String(moduloCompleto).replace(".html", "")
-        );
-        const operacion = item.Operaciones;
-        if (!operacion) return;
-        
-        // Parsear la operación: "Nombre= Fórmula"
-        const match = operacion.match(/^(.+?)=\s*(.+)$/);
-        if (!match) return;
-        
-        const nombre = match[1].trim();
-        const formula = match[2].trim();
-        
-        // Determinar tipo de operación por nombre
-        let aparece = ['sum-row'];
-        if (nombre.toLowerCase().includes('resultado operativo')) {
-          aparece = ['sum-row-operativo'];
-        } else if (nombre.toLowerCase().includes('resultado') && !nombre.toLowerCase().includes('operativo')) {
-          aparece = ['result-row'];
-        }
-        
-        // Inicializar estructura si no existe
-        if (!capituloKey || !moduloKey) return;
-
-        if (!operacionesMap[capituloKey]) {
-          operacionesMap[capituloKey] = {};
-        }
-        if (!operacionesMap[capituloKey][moduloKey]) {
-          operacionesMap[capituloKey][moduloKey] = [];
-        }
-        
-        // Agregar operación
-        operacionesMap[capituloKey][moduloKey].push({
-          nombre: nombre,
-          formula: formula,
-          aparece: aparece
-        });
-      });
-      
-      console.log('✅ Operaciones cargadas desde JSON:', operacionesMap);
-      return operacionesMap;
-    } catch (error) {
-      console.error('Error cargando operaciones desde JSON:', error);
-      return {};
-    }
-  };
-
-  const cargarOperacionesDesdeSumasCSV = async () => {
-    const archivos = [
-      "SUMAS CIUDAD DE MEXICO.csv",
-      "SUMAS GUADALAJARA.csv",
-      "SUMAS NOROESTE.csv",
-    ];
-    const operacionesMap = {};
-    const moduloKeys = ["SUMMARY", "RESUMEN"].map((m) => normalizeModuloKey(m));
-
-    for (const archivo of archivos) {
-      try {
-        const response = await fetch(
-          encodeURI(`../info IMPORTANTE/${archivo}`)
-        );
-        if (!response.ok) {
-          console.warn(`No se pudo cargar ${archivo}`);
-          continue;
-        }
-        const text = await response.text();
-        const { headerIndex, rows } = parseCsvLines(text);
-        if (!rows.length) continue;
-
-        rows.forEach((cols, idx) => {
-          const capituloRaw = getCsvValue(cols, headerIndex, "CAPITULO") || "";
-          const clase = getCsvValue(cols, headerIndex, "CLASE");
-          const seccion = getCsvValue(cols, headerIndex, "SECCION");
-
-          if (!clase || !seccion) return;
-
-          const sumRowLabel = getCsvValue(cols, headerIndex, "UNNAMED4");
-          const sumRowSumavariosLabel = getCsvValue(
-            cols,
-            headerIndex,
-            "UNNAMED6"
-          );
-          const sumRowOperativoLabel = getCsvValue(
-            cols,
-            headerIndex,
-            "UNNAMED8"
-          );
-          const resultNetLabel = getCsvValue(cols, headerIndex, "UNNAMED10");
-
-          const op0 = getCsvValue(cols, headerIndex, "OPERACION");
-          const op1 = getCsvValue(cols, headerIndex, "OPERACION1");
-          const op2 = getCsvValue(cols, headerIndex, "OPERACION2");
-          const op3 = getCsvValue(cols, headerIndex, "OPERACION3");
-
-          const capituloKey = normalizeCapituloKey(capituloRaw);
-          if (!capituloKey) return;
-
-          const placementLabels = {};
-          const placementSigns = {};
-
-          if (sumRowLabel) {
-            placementLabels["sum-row"] = sumRowLabel;
-            placementSigns["sum-row"] = parseSumasSign(op0);
-          }
-          if (sumRowSumavariosLabel) {
-            placementLabels["sum-row-sumavarios"] = sumRowSumavariosLabel;
-            placementSigns["sum-row-sumavarios"] = parseSumasSign(op1);
-          }
-          if (sumRowOperativoLabel) {
-            placementLabels["sum-row-operativo"] = sumRowOperativoLabel;
-            placementSigns["sum-row-operativo"] = parseSumasSign(op2);
-          }
-          if (resultNetLabel) {
-            placementLabels["result-net-row"] = resultNetLabel;
-            placementSigns["result-net-row"] = parseSumasSign(op3);
-          }
-
-          const predef = {
-            id: clase,
-            nombre: clase,
-            formula: seccion,
-            section: seccion,
-            orden: idx,
-            source: "sumas",
-            placementLabels,
-            placementSigns,
-            parentSection: resolveSumasParent(clase, sumRowLabel),
-          };
-
-          moduloKeys.forEach((moduloKey) => {
-            if (!moduloKey) return;
-            if (!operacionesMap[capituloKey]) {
-              operacionesMap[capituloKey] = {};
-            }
-            if (!operacionesMap[capituloKey][moduloKey]) {
-              operacionesMap[capituloKey][moduloKey] = [];
-            }
-            operacionesMap[capituloKey][moduloKey].push(predef);
-          });
-        });
-      } catch (error) {
-        console.error(`Error cargando ${archivo}:`, error);
-      }
-    }
-
-    console.log("? Operaciones cargadas desde SUMAS CSV:", operacionesMap);
-    return operacionesMap;
-  };
+  const cargarOperacionesDesdeSumasCSV = async () => ({});
 
   /**
    * Inicializar operaciones predefinidas al cargar la página

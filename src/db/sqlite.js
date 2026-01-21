@@ -559,6 +559,7 @@ const crearTablas = () => {
       capitulo TEXT NOT NULL,
       seccion_principal TEXT NOT NULL,
       seccion_secundaria TEXT,
+      operacion_factor REAL DEFAULT 1,
       orden INTEGER DEFAULT 0,
       creado_en TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       actualizado_en TEXT,
@@ -655,6 +656,13 @@ const crearTablas = () => {
       "ALTER TABLE layout_cuentas ADD COLUMN orden_presentacion INTEGER"
     ).run();
     console.log("✅ Columna 'orden_presentacion' agregada a layout_cuentas");
+  }
+
+  if (!columnasCuentas.includes("operacion_factor")) {
+    db.prepare(
+      "ALTER TABLE layout_cuentas ADD COLUMN operacion_factor REAL DEFAULT 1"
+    ).run();
+    console.log("✅ Columna 'operacion_factor' agregada a layout_cuentas");
   }
 
   const columnasOperaciones = db

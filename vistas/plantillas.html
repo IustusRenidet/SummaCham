@@ -693,6 +693,21 @@
                                         data-chart-subtitle
                                       />
                                     </div>
+                                    <div class="mt-2">
+                                      <label class="form-label small fw-semibold"
+                                        >Tipo</label
+                                      >
+                                      <select
+                                        class="form-select form-select-sm"
+                                        data-chart-type
+                                      >
+                                        <option value="inherit">Usar global</option>
+                                        <option value="bar">Barras</option>
+                                        <option value="line">Linea</option>
+                                        <option value="pie">Pastel</option>
+                                        <option value="doughnut">Dona</option>
+                                      </select>
+                                    </div>
                                   </div>
                                 </div>
                                 <div class="col-12 col-lg-4">
@@ -737,6 +752,21 @@
                                         data-chart-subtitle
                                       />
                                     </div>
+                                    <div class="mt-2">
+                                      <label class="form-label small fw-semibold"
+                                        >Tipo</label
+                                      >
+                                      <select
+                                        class="form-select form-select-sm"
+                                        data-chart-type
+                                      >
+                                        <option value="inherit">Usar global</option>
+                                        <option value="bar">Barras</option>
+                                        <option value="line">Linea</option>
+                                        <option value="pie">Pastel</option>
+                                        <option value="doughnut">Dona</option>
+                                      </select>
+                                    </div>
                                   </div>
                                 </div>
                                 <div class="col-12 col-lg-4">
@@ -780,6 +810,21 @@
                                         type="text"
                                         data-chart-subtitle
                                       />
+                                    </div>
+                                    <div class="mt-2">
+                                      <label class="form-label small fw-semibold"
+                                        >Tipo</label
+                                      >
+                                      <select
+                                        class="form-select form-select-sm"
+                                        data-chart-type
+                                      >
+                                        <option value="inherit">Usar global</option>
+                                        <option value="bar">Barras</option>
+                                        <option value="line">Linea</option>
+                                        <option value="pie">Pastel</option>
+                                        <option value="doughnut">Dona</option>
+                                      </select>
                                     </div>
                                   </div>
                                 </div>
@@ -937,6 +982,55 @@
                                     Filtra la fuente para ver menos informacion y
                                     editar la lista de filas.
                                   </div>
+                                </div>
+                              </div>
+                              <div class="row g-2 align-items-end mb-2">
+                                <div class="col-12 col-lg-3">
+                                  <label class="form-label small fw-semibold"
+                                    >Grupo destino</label
+                                  >
+                                  <select
+                                    class="form-select form-select-sm"
+                                    id="plantillasSummarySourceTarget"
+                                  >
+                                    <option value="cdmx">CDMX</option>
+                                    <option value="gdl">Guadalajara</option>
+                                    <option value="ne">Noreste</option>
+                                    <option value="no">Noroeste</option>
+                                    <option value="generic">Generico</option>
+                                  </select>
+                                </div>
+                                <div class="col-12 col-lg-3">
+                                  <label class="form-label small fw-semibold"
+                                    >Tipo</label
+                                  >
+                                  <select
+                                    class="form-select form-select-sm"
+                                    id="plantillasSummarySourceType"
+                                  >
+                                    <option value="operating">Operativo</option>
+                                    <option value="net">Neto</option>
+                                  </select>
+                                </div>
+                                <div class="col-12 col-lg-4">
+                                  <label class="form-label small fw-semibold"
+                                    >Fila disponible</label
+                                  >
+                                  <select
+                                    class="form-select form-select-sm"
+                                    id="plantillasSummarySourcePicker"
+                                  >
+                                    <option value="">Sin datos disponibles</option>
+                                  </select>
+                                </div>
+                                <div class="col-12 col-lg-2 d-grid">
+                                  <button
+                                    type="button"
+                                    class="btn btn-outline-secondary btn-sm"
+                                    id="plantillasSummarySourceAdd"
+                                  >
+                                    Agregar
+                                  </button>
                                 </div>
                               </div>
                               <div class="row g-3" id="plantillasSummarySourcesGrid">
@@ -1100,6 +1194,23 @@
                                     data-consolidated-source
                                     data-consolidated-source-key="operating"
                                   ></textarea>
+                                  <div class="d-flex gap-2 mt-2">
+                                    <select
+                                      class="form-select form-select-sm"
+                                      data-consolidated-source-picker
+                                      data-consolidated-source-key="operating"
+                                    >
+                                      <option value="">Sin datos disponibles</option>
+                                    </select>
+                                    <button
+                                      type="button"
+                                      class="btn btn-outline-secondary btn-sm"
+                                      data-consolidated-source-add
+                                      data-consolidated-source-key="operating"
+                                    >
+                                      Agregar
+                                    </button>
+                                  </div>
                                 </div>
                                 <div class="col-12 col-md-6">
                                   <label class="form-label small fw-semibold"
@@ -1111,6 +1222,23 @@
                                     data-consolidated-source
                                     data-consolidated-source-key="net"
                                   ></textarea>
+                                  <div class="d-flex gap-2 mt-2">
+                                    <select
+                                      class="form-select form-select-sm"
+                                      data-consolidated-source-picker
+                                      data-consolidated-source-key="net"
+                                    >
+                                      <option value="">Sin datos disponibles</option>
+                                    </select>
+                                    <button
+                                      type="button"
+                                      class="btn btn-outline-secondary btn-sm"
+                                      data-consolidated-source-add
+                                      data-consolidated-source-key="net"
+                                    >
+                                      Agregar
+                                    </button>
+                                  </div>
                                 </div>
                               </div>
                             </div>
@@ -1156,7 +1284,7 @@
                             </div>
                           </div>
                           <div class="row g-3">
-                            <div class="col-12 col-lg-6">
+                            <div class="col-12 col-lg-4">
                               <label class="form-label small fw-semibold"
                                 >Titulo</label
                               >
@@ -1166,7 +1294,7 @@
                                 data-ingreso-title
                               />
                             </div>
-                            <div class="col-12 col-lg-6">
+                            <div class="col-12 col-lg-4">
                               <label class="form-label small fw-semibold"
                                 >Subtitulo</label
                               >
@@ -1175,6 +1303,21 @@
                                 type="text"
                                 data-ingreso-subtitle
                               />
+                            </div>
+                            <div class="col-12 col-lg-4">
+                              <label class="form-label small fw-semibold"
+                                >Tipo</label
+                              >
+                              <select
+                                class="form-select form-select-sm"
+                                data-ingreso-chart-type
+                              >
+                                <option value="inherit">Usar global</option>
+                                <option value="bar">Barras</option>
+                                <option value="line">Linea</option>
+                                <option value="pie">Pastel</option>
+                                <option value="doughnut">Dona</option>
+                              </select>
                             </div>
                           </div>
                           <div class="table-responsive mt-3">
@@ -1344,6 +1487,42 @@
                               </tbody>
                             </table>
                           </div>
+                          <div class="row g-2 align-items-end mt-2">
+                            <div class="col-12 col-lg-4">
+                              <label class="form-label small fw-semibold"
+                                >Serie destino</label
+                              >
+                              <select
+                                class="form-select form-select-sm"
+                                id="plantillasIngresoSourceSeries"
+                              >
+                                <option value="mex">CDMX</option>
+                                <option value="gdl">Guadalajara</option>
+                                <option value="mty">Monterrey</option>
+                                <option value="nw">Noroeste</option>
+                              </select>
+                            </div>
+                            <div class="col-12 col-lg-6">
+                              <label class="form-label small fw-semibold"
+                                >Fila disponible</label
+                              >
+                              <select
+                                class="form-select form-select-sm"
+                                id="plantillasIngresoSourcePicker"
+                              >
+                                <option value="">Sin datos disponibles</option>
+                              </select>
+                            </div>
+                            <div class="col-12 col-lg-2 d-grid">
+                              <button
+                                type="button"
+                                class="btn btn-outline-secondary btn-sm"
+                                id="plantillasIngresoSourceAdd"
+                              >
+                                Agregar
+                              </button>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1385,7 +1564,7 @@
                             </div>
                           </div>
                           <div class="row g-3">
-                            <div class="col-12 col-lg-6">
+                            <div class="col-12 col-lg-4">
                               <label class="form-label small fw-semibold"
                                 >Titulo</label
                               >
@@ -1395,7 +1574,7 @@
                                 data-ingreso-nacional-title
                               />
                             </div>
-                            <div class="col-12 col-lg-6">
+                            <div class="col-12 col-lg-4">
                               <label class="form-label small fw-semibold"
                                 >Subtitulo</label
                               >
@@ -1404,6 +1583,21 @@
                                 type="text"
                                 data-ingreso-nacional-subtitle
                               />
+                            </div>
+                            <div class="col-12 col-lg-4">
+                              <label class="form-label small fw-semibold"
+                                >Tipo</label
+                              >
+                              <select
+                                class="form-select form-select-sm"
+                                data-ingreso-nacional-chart-type
+                              >
+                                <option value="inherit">Usar global</option>
+                                <option value="bar">Barras</option>
+                                <option value="line">Linea</option>
+                                <option value="pie">Pastel</option>
+                                <option value="doughnut">Dona</option>
+                              </select>
                             </div>
                           </div>
                           <div class="table-responsive mt-3">
@@ -1617,6 +1811,43 @@
                               </tbody>
                             </table>
                           </div>
+                          <div class="row g-2 align-items-end mt-2">
+                            <div class="col-12 col-lg-4">
+                              <label class="form-label small fw-semibold"
+                                >Serie destino</label
+                              >
+                              <select
+                                class="form-select form-select-sm"
+                                id="plantillasIngresoNacionalSourceSeries"
+                              >
+                                <option value="committees">Committees</option>
+                                <option value="membership">Membership</option>
+                                <option value="events">Events</option>
+                                <option value="services">Services</option>
+                                <option value="tic">T&IC</option>
+                              </select>
+                            </div>
+                            <div class="col-12 col-lg-6">
+                              <label class="form-label small fw-semibold"
+                                >Fila disponible</label
+                              >
+                              <select
+                                class="form-select form-select-sm"
+                                id="plantillasIngresoNacionalSourcePicker"
+                              >
+                                <option value="">Sin datos disponibles</option>
+                              </select>
+                            </div>
+                            <div class="col-12 col-lg-2 d-grid">
+                              <button
+                                type="button"
+                                class="btn btn-outline-secondary btn-sm"
+                                id="plantillasIngresoNacionalSourceAdd"
+                              >
+                                Agregar
+                              </button>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1660,7 +1891,7 @@
                             </div>
                           </div>
                           <div class="row g-3">
-                            <div class="col-12">
+                            <div class="col-12 col-lg-8">
                               <label class="form-label small fw-semibold"
                                 >Titulo</label
                               >
@@ -1669,6 +1900,21 @@
                                 type="text"
                                 data-operativo-title
                               />
+                            </div>
+                            <div class="col-12 col-lg-4">
+                              <label class="form-label small fw-semibold"
+                                >Tipo</label
+                              >
+                              <select
+                                class="form-select form-select-sm"
+                                data-operativo-chart-type
+                              >
+                                <option value="inherit">Usar global</option>
+                                <option value="bar">Barras</option>
+                                <option value="line">Linea</option>
+                                <option value="pie">Pastel</option>
+                                <option value="doughnut">Dona</option>
+                              </select>
                             </div>
                           </div>
                           <div class="table-responsive mt-3">
@@ -1863,6 +2109,20 @@
                                     data-gg-chart-title
                                   />
                                 </div>
+                                <div class="mb-2">
+                                  <label class="form-label small fw-semibold"
+                                    >Tipo</label
+                                  >
+                                  <select
+                                    class="form-select form-select-sm"
+                                    data-gg-chart-type
+                                  >
+                                    <option value="line">Linea</option>
+                                    <option value="bar">Barras</option>
+                                    <option value="pie">Pastel</option>
+                                    <option value="doughnut">Dona</option>
+                                  </select>
+                                </div>
                                 <div class="table-responsive">
                                   <table class="table table-sm align-middle mb-0">
                                     <thead>
@@ -1973,6 +2233,20 @@
                                     type="text"
                                     data-gg-chart-title
                                   />
+                                </div>
+                                <div class="mb-2">
+                                  <label class="form-label small fw-semibold"
+                                    >Tipo</label
+                                  >
+                                  <select
+                                    class="form-select form-select-sm"
+                                    data-gg-chart-type
+                                  >
+                                    <option value="line">Linea</option>
+                                    <option value="bar">Barras</option>
+                                    <option value="pie">Pastel</option>
+                                    <option value="doughnut">Dona</option>
+                                  </select>
                                 </div>
                                 <div class="table-responsive">
                                   <table class="table table-sm align-middle mb-0">
@@ -2675,7 +2949,6 @@
     <script src="js/flujo-autorizacion.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="js/formula-builder.js"></script>
-    <script src="js/cuentas-data.js"></script>
     <script src="js/layout-controls.js"></script>
     <script src="js/operation-sync.js"></script>
     <script src="js/operation-debugger.js"></script>

@@ -38,6 +38,21 @@
 
   const isPieType = (type) => type === "pie" || type === "doughnut";
 
+  const normalizeChartType = (value, fallback = "inherit") => {
+    if (typeof value !== "string") return fallback;
+    const clean = value.trim();
+    if (!clean) return fallback;
+    if (clean === "inherit") return "inherit";
+    if (["bar", "line", "pie", "doughnut"].includes(clean)) return clean;
+    return fallback;
+  };
+
+  const resolveChartType = (value, baseType) => {
+    const normalized = normalizeChartType(value, "inherit");
+    if (normalized === "inherit") return baseType || "bar";
+    return normalized;
+  };
+
   const buildSlicePalette = (count, baseColor) => {
     const palette = baseColor
       ? [baseColor, ...CHART_PALETTE.filter((color) => color !== baseColor)]
@@ -682,9 +697,13 @@
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     const graficasConfig = config || getGraficasConfig();
-    const chartType = data.type || graficasConfig.chart?.type || "bar";
+    const chartType = resolveChartType(
+      data.type,
+      graficasConfig.chart?.type || "bar"
+    );
+    const isPie = isPieType(chartType);
     const shouldStack =
-      chartType === "bar" && Boolean(graficasConfig.chart?.stacked);
+      !isPie && chartType === "bar" && Boolean(graficasConfig.chart?.stacked);
     chartsPanelState.charts[key] = new Chart(ctx, {
       type: chartType,
       data: {
@@ -714,21 +733,23 @@
             },
           },
         },
-        scales: {
-          y: {
-            beginAtZero: false,
-            stacked: shouldStack,
-            ticks: {
-              callback: (value) => formatNumber(value),
+        scales: isPie
+          ? {}
+          : {
+              y: {
+                beginAtZero: false,
+                stacked: shouldStack,
+                ticks: {
+                  callback: (value) => formatNumber(value),
+                },
+              },
+              x: {
+                stacked: shouldStack,
+                ticks: {
+                  font: { size: 11 },
+                },
+              },
             },
-          },
-          x: {
-            stacked: shouldStack,
-            ticks: {
-              font: { size: 11 },
-            },
-          },
-        },
       },
     });
   };
@@ -1029,10 +1050,7 @@
         .toString()
         .toUpperCase();
       if (chartModule !== moduleKey) return;
-      const chartType =
-        chart?.chartType && chart.chartType !== "inherit"
-          ? chart.chartType
-          : baseChartType;
+      const chartType = resolveChartType(chart?.chartType, baseChartType);
       const data = buildCustomChartData(snapshot, chart, seriesConfig, chartType);
       if (!data) return;
 
@@ -1137,9 +1155,12 @@
       {};
     if (ingresoConfig.enabled === false) return null;
 
+    const baseChartType = graficasConfig.chart?.type || "bar";
+    const chartType = resolveChartType(ingresoConfig.chartType, baseChartType);
     const configSignature = JSON.stringify({
       ingreso: ingresoConfig,
       sources: ingresoSources,
+      chartType,
     });
     const cacheKey = buildIngresoCacheKey(empresaId, anio, configSignature);
     if (ingresoCache.has(cacheKey)) return ingresoCache.get(cacheKey);
@@ -1194,19 +1215,35 @@
     );
     if (!hasData) return null;
 
+    const isPie = isPieType(chartType);
     const payload = {
       labels: MESES.map((m) => m.etiqueta),
-      datasets: datasetsConfig.map((dataset) => ({
-        label: dataset.label,
-        data: series[dataset.key] || [],
-        borderColor: dataset.color,
-        backgroundColor: dataset.color,
-        borderWidth: 2,
-        tension: 0.2,
-        fill: false,
-        pointRadius: 3,
-      })),
-      type: "line",
+      datasets: datasetsConfig.map((dataset) => {
+        const data = series[dataset.key] || [];
+        const entry = {
+          label: dataset.label,
+          data,
+          borderWidth: chartType === "line" ? 2 : 1,
+        };
+        if (isPie) {
+          entry.backgroundColor = buildSlicePalette(data.length, dataset.color);
+          entry.borderColor = "#ffffff";
+          entry.borderWidth = 1;
+          return entry;
+        }
+        entry.borderColor = dataset.color;
+        entry.backgroundColor = dataset.color;
+        if (chartType === "line") {
+          entry.tension = 0.2;
+          entry.fill = false;
+          entry.pointRadius = 3;
+        } else if (chartType === "bar") {
+          entry.borderRadius = 6;
+          entry.maxBarThickness = 18;
+        }
+        return entry;
+      }),
+      type: chartType,
     };
 
     ingresoCache.set(cacheKey, payload);
@@ -1229,9 +1266,12 @@
       {};
     if (ingresoConfig.enabled === false) return null;
 
+    const baseChartType = graficasConfig.chart?.type || "bar";
+    const chartType = resolveChartType(ingresoConfig.chartType, baseChartType);
     const configSignature = JSON.stringify({
       ingresoNacional: ingresoConfig,
       sources: ingresoSources,
+      chartType,
     });
     const cacheKey = buildIngresoNacionalCacheKey(
       empresaId,
@@ -1296,19 +1336,35 @@
     );
     if (!hasData) return null;
 
+    const isPie = isPieType(chartType);
     const payload = {
       labels: MESES.map((m) => m.etiqueta),
-      datasets: datasetsConfig.map((dataset) => ({
-        label: dataset.label,
-        data: series[dataset.key] || [],
-        borderColor: dataset.color,
-        backgroundColor: dataset.color,
-        borderWidth: 2,
-        tension: 0.2,
-        fill: false,
-        pointRadius: 3,
-      })),
-      type: "line",
+      datasets: datasetsConfig.map((dataset) => {
+        const data = series[dataset.key] || [];
+        const entry = {
+          label: dataset.label,
+          data,
+          borderWidth: chartType === "line" ? 2 : 1,
+        };
+        if (isPie) {
+          entry.backgroundColor = buildSlicePalette(data.length, dataset.color);
+          entry.borderColor = "#ffffff";
+          entry.borderWidth = 1;
+          return entry;
+        }
+        entry.borderColor = dataset.color;
+        entry.backgroundColor = dataset.color;
+        if (chartType === "line") {
+          entry.tension = 0.2;
+          entry.fill = false;
+          entry.pointRadius = 3;
+        } else if (chartType === "bar") {
+          entry.borderRadius = 6;
+          entry.maxBarThickness = 18;
+        }
+        return entry;
+      }),
+      type: chartType,
     };
 
     ingresoNacionalCache.set(cacheKey, payload);
@@ -1373,10 +1429,7 @@
           .toString()
           .toUpperCase();
         if (chartModule !== moduleKey) return;
-        const chartType =
-          chart?.chartType && chart.chartType !== "inherit"
-            ? chart.chartType
-            : baseChartType;
+        const chartType = resolveChartType(chart?.chartType, baseChartType);
         const data = buildCustomChartData(
           snapshot,
           chart,
@@ -4431,15 +4484,16 @@
 
     const graficasConfig = config || getGraficasConfig();
     const baseConfig = DEFAULT_GRAFICAS_CONFIG || {};
-    const chartType = graficasConfig.chart?.type || "bar";
+    const baseChartType = graficasConfig.chart?.type || "bar";
     const chartsCfg = graficasConfig.charts || {};
+    const resolveType = (override) => resolveChartType(override, baseChartType);
 
     const enabledSeries = getEnabledSeriesConfig(graficasConfig);
     if (!enabledSeries.length) {
       return [null, null, null];
     }
 
-    const buildDataset = (serie, data) => {
+    const buildDataset = (serie, data, chartType) => {
       const dataset = {
         label: serie.label,
         data,
@@ -4510,6 +4564,7 @@
     if (chartsCfg.operating?.enabled !== false) {
       const operating = buildSeriesData(rowsConfig.operating);
       if (operating.labels.length) {
+        const operatingType = resolveType(chartsCfg.operating?.chartType);
         const chartTitle =
           chartsCfg.operating?.title ||
           baseConfig.charts?.operating?.title ||
@@ -4518,9 +4573,9 @@
           titulo: chartTitle,
           labels: operating.labels,
           datasets: enabledSeries.map((serie) =>
-            buildDataset(serie, operating.seriesData[serie.key])
+            buildDataset(serie, operating.seriesData[serie.key], operatingType)
           ),
-          type: chartType,
+          type: operatingType,
         };
       }
     }
@@ -4528,6 +4583,7 @@
     if (chartsCfg.net?.enabled !== false) {
       const net = buildSeriesData(rowsConfig.net);
       if (net.labels.length) {
+        const netType = resolveType(chartsCfg.net?.chartType);
         const chartTitle =
           chartsCfg.net?.title ||
           baseConfig.charts?.net?.title ||
@@ -4536,9 +4592,9 @@
           titulo: chartTitle,
           labels: net.labels,
           datasets: enabledSeries.map((serie) =>
-            buildDataset(serie, net.seriesData[serie.key])
+            buildDataset(serie, net.seriesData[serie.key], netType)
           ),
-          type: chartType,
+          type: netType,
         };
       }
     }
@@ -4564,6 +4620,7 @@
       );
 
       if (consolidatedOp && consolidatedNet) {
+        const consolidatedType = resolveType(chartsCfg.consolidated?.chartType);
         const consolidatedCfg = graficasConfig.consolidatedSeries || {};
         const baseConsolidated = baseConfig.consolidatedSeries || {};
         const operatingCfg =
@@ -4586,9 +4643,9 @@
           const dataset = {
             label: cfg.label,
             data,
-            borderWidth: chartType === "line" ? 2 : 2,
+            borderWidth: consolidatedType === "line" ? 2 : 2,
           };
-          if (isPieType(chartType)) {
+          if (isPieType(consolidatedType)) {
             dataset.backgroundColor = buildSlicePalette(data.length, cfg.color);
             dataset.borderColor = "#ffffff";
             dataset.borderWidth = 1;
@@ -4596,7 +4653,7 @@
           }
           dataset.backgroundColor = cfg.color;
           dataset.borderColor = cfg.color;
-          if (chartType === "line") {
+          if (consolidatedType === "line") {
             dataset.fill = false;
             dataset.tension = 0.32;
             dataset.pointRadius = 3;
@@ -4628,7 +4685,7 @@
               netData
             ),
           ],
-          type: chartType,
+          type: consolidatedType,
         };
       }
     }
@@ -4672,39 +4729,39 @@
     empresaActual = empresa;
     await aplicarEmpresaResumen(empresaActual.id);
 
-    // 🔄 Cargar layout desde servidor (layout_templates) primero
+    // 🔄 Cargar layout desde SQLite
     const anio = leerAnioSeleccionado();
     const moduloClave = "RESUMEN";
+    const capitulo =
+      (obtenerCapituloEmpresa(empresa.id) || "DEFAULT").toString().trim() ||
+      "DEFAULT";
 
     // Solo intentar cargar layout si el año es válido
     if (anio && Number(anio) > 0) {
       try {
         const layoutServidor = await fetch(
-          `${base}/api/layouts?empresaId=${empresa.id}&modulo=${moduloClave}&anio=${anio}`
+          `${base}/api/layouts/${encodeURIComponent(moduloClave)}/${anio}/${encodeURIComponent(
+            capitulo
+          )}?empresaId=${encodeURIComponent(empresa.id)}`,
+          { headers: Sesion.headersAutenticacion?.() || {} }
         )
           .then((r) => (r.ok ? r.json() : null))
           .catch(() => null);
 
-        if (layoutServidor?.datos) {
+        
+
+        if (layoutServidor?.layout) {
           console.log(
-            "✅ Layout cargado desde servidor (RESUMEN):",
+            "? Layout cargado desde servidor (RESUMEN):",
             layoutServidor
           );
           if (window.ModoEdicionPresupuesto?.aplicarLayoutLocal) {
-          window.ModoEdicionPresupuesto.aplicarLayoutLocal(
-            layoutServidor.datos
-          );
+            window.ModoEdicionPresupuesto.aplicarLayoutLocal(
+              layoutServidor.layout
+            );
+          }
         }
-      } else {
-        // Fallback: cargar desde localStorage
-        console.log("📦 No hay layout en servidor, intentando localStorage...");
-        const layoutLocal =
-          window.ModoEdicionPresupuesto?.cargarLayoutLocal?.();
-        if (layoutLocal && window.ModoEdicionPresupuesto?.aplicarLayoutLocal) {
-          window.ModoEdicionPresupuesto.aplicarLayoutLocal(layoutLocal);
-          console.log("✅ Layout aplicado desde localStorage");
-        }
-      }
+
       } catch (err) {
         console.warn("⚠️ Error cargando layout en RESUMEN:", err);
       }
