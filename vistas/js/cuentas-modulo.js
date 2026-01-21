@@ -6170,6 +6170,10 @@
   const crearInstancia = (opciones) => {
     const config = { ...(opciones || {}) };
     let destruido = false;
+    if (config.moduloId) {
+      estadoModulo.moduloId = config.moduloId;
+      estadoModulo.moduloClave = normalizarModuloClave(config.moduloId);
+    }
     const ejecutar = () => {
       if (destruido) return Promise.resolve(false);
       return renderizarTabla(config).then((resultado) => {
@@ -6184,22 +6188,33 @@
     window.addEventListener(Sesion.EVENTO_EMPRESA, listener);
     const contextoListener = (evento) => {
       const moduloEvento = normalizarModuloClave(evento?.detail?.modulo || "");
-      const moduloActual = estadoModulo.moduloClave;
-      if (moduloEvento && moduloEvento !== moduloActual) {
+      const moduloActual =
+        estadoModulo.moduloClave ||
+        normalizarModuloClave(estadoModulo.moduloId || config.moduloId);
+      if (moduloEvento && moduloActual && moduloEvento !== moduloActual) {
         return;
       }
       const anioEvento = Number(evento?.detail?.anio);
+      const anioPrevio = estadoModulo.anio;
+      let requiereRender = !estadoModulo.layoutActual;
       if (Number.isInteger(anioEvento)) {
         estadoModulo.anio = anioEvento;
         poblarSugerenciasDesdeAnio(anioEvento);
         // Force update of filters because year change affects visibility (Past vs Present)
         aplicarFiltroColumnasPorPeriodo();
+        if (anioEvento !== anioPrevio) {
+          requiereRender = true;
+        }
       }
       const periodoEvento = normalizarPeriodo(evento?.detail?.periodo);
       if (periodoEvento != null) {
         estadoModulo.periodoCerrado = periodoEvento;
         estadoModulo.mesActualIndex = obtenerIndicePeriodoActual();
         aplicarFiltroColumnasPorPeriodo();
+      }
+      if (requiereRender) {
+        ejecutar();
+        return;
       }
       solicitarDatos();
     };
