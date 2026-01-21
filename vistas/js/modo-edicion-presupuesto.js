@@ -285,10 +285,25 @@
       .replace(/\p{Diacritic}/gu, "")
       .toUpperCase()
       .trim();
-  const API_BASE =
-    window.location.protocol === "file:"
-      ? "http://localhost:3005"
-      : window.location.origin;
+  const resolveApiBase = () => {
+    const override = window.API_BASE || window.__API_BASE__;
+    if (typeof override === "string" && override.trim()) {
+      return override.replace(/\/api\/?$/, "");
+    }
+    if (window.location.protocol === "file:") {
+      return "http://localhost:3005";
+    }
+    const origin = window.location.origin.replace(/\/$/, "");
+    if (
+      /localhost:3000$/.test(origin) ||
+      /127\.0\.0\.1:3000$/.test(origin)
+    ) {
+      return origin.replace(/:3000$/, ":3005");
+    }
+    return origin;
+  };
+
+  const API_BASE = resolveApiBase();
 
   /**
    * Helper para obtener el selector de año del módulo actual
@@ -318,15 +333,81 @@
     );
   }
 
+  const DEBUG_CATALOGO = window.DEBUG_CATALOGO === true;
+  let catalogoKey = "";
+  let catalogoContextBound = false;
+
+  const resolverAnioCatalogo = (selectAnio) => {
+    const anioSeleccion = Number(selectAnio?.value);
+    if (Number.isInteger(anioSeleccion) && anioSeleccion > 0) {
+      return anioSeleccion;
+    }
+    const ctx =
+      typeof Sesion?.obtenerContextoPlaneacion === "function"
+        ? Sesion.obtenerContextoPlaneacion()
+        : null;
+    const anioCtx = Number(ctx?.anio);
+    if (Number.isInteger(anioCtx) && anioCtx > 0) {
+      return anioCtx;
+    }
+    const anioBody = Number(document.body?.dataset?.anio);
+    if (Number.isInteger(anioBody) && anioBody > 0) {
+      return anioBody;
+    }
+    return null;
+  };
+
+  const resolverEmpresaCatalogo = () =>
+    Sesion?.obtenerEmpresaActiva?.()?.id ||
+    document.body?.dataset?.empresaId ||
+    null;
+
+  const obtenerContextoCatalogo = () => {
+    const selectAnio = obtenerSelectorAnio();
+    return {
+      empresaId: resolverEmpresaCatalogo(),
+      anio: resolverAnioCatalogo(selectAnio),
+      selectAnio,
+    };
+  };
+
+  const cargarCatalogoSiNecesario = (empresaId, anio) => {
+    if (!empresaId || !Number.isInteger(Number(anio))) return;
+    const key = `${empresaId}:${Number(anio)}`;
+    if (catalogoKey === key) return;
+    catalogoKey = key;
+    cargarCatalogoCuentas(empresaId, anio);
+  };
+
+  const bindCatalogoContextListener = () => {
+    if (catalogoContextBound) return;
+    catalogoContextBound = true;
+    window.addEventListener("planeacion:contexto-actualizado", (event) => {
+      const detalle = event?.detail || {};
+      const empresaId =
+        detalle.empresaId || resolverEmpresaCatalogo() || null;
+      const anioEvento = Number(detalle.anio);
+      const anio =
+        Number.isInteger(anioEvento) && anioEvento > 0
+          ? anioEvento
+          : resolverAnioCatalogo(obtenerSelectorAnio());
+      if (empresaId && anio) {
+        cargarCatalogoSiNecesario(empresaId, anio);
+      }
+    });
+  };
+
   /**
    * Cargar catálogo completo de cuentas desde CUENTASYY (Firebird)
    */
   async function cargarCatalogoCuentas(empresaId, anio) {
-    try {
-      if (!empresaId || !Number.isInteger(Number(anio))) {
-        console.warn("⚠️ Parámetros inválidos para cargar catálogo de cuentas");
-        return [];
-      }
+      try {
+        if (!empresaId || !Number.isInteger(Number(anio))) {
+          if (DEBUG_CATALOGO) {
+            console.warn("⚠️ Parámetros inválidos para cargar catálogo de cuentas");
+          }
+          return [];
+        }
 
       const ruta = `${API_BASE}/api/saldos/catalogo?empresaId=${encodeURIComponent(
         empresaId
@@ -338,24 +419,30 @@
           : {};
 
       const resp = await fetch(ruta, { headers });
-      if (!resp.ok) {
-        console.warn(`⚠️ Error al cargar catálogo: ${resp.status}`);
-        return [];
-      }
+        if (!resp.ok) {
+          if (DEBUG_CATALOGO) {
+            console.warn(`⚠️ Error al cargar catálogo: ${resp.status}`);
+          }
+          return [];
+        }
 
       const data = await resp.json();
       const cuentas = data.cuentas || [];
 
-      console.log(
-        `✅ Catálogo cargado: ${cuentas.length} cuentas de CUENTASYY ${anio}`
-      );
-      estado.cuentasDisponibles = cuentas;
-      return cuentas;
-    } catch (err) {
-      console.error("❌ Error cargando catálogo de cuentas:", err);
-      return [];
+        if (DEBUG_CATALOGO) {
+          console.log(
+            `✅ Catálogo cargado: ${cuentas.length} cuentas de CUENTASYY ${anio}`
+          );
+        }
+        estado.cuentasDisponibles = cuentas;
+        return cuentas;
+      } catch (err) {
+        if (DEBUG_CATALOGO) {
+          console.error("❌ Error cargando catálogo de cuentas:", err);
+        }
+        return [];
+      }
     }
-  }
 
   /**
    * Crear/actualizar datalist con las cuentas disponibles
@@ -1590,43 +1677,43 @@
       inicializarCeldasEditables(tabla);
 
       // Cargar catálogo de cuentas desde CUENTASYY (Firebird)
-      try {
-        const empresa = Sesion?.obtenerEmpresaActiva?.();
-        const selectAnio = obtenerSelectorAnio();
-        const anioSeleccion = Number(selectAnio?.value);
-        const anio =
-          Number.isInteger(anioSeleccion) && anioSeleccion > 0
-            ? anioSeleccion
-            : null;
+        try {
+          const { empresaId, anio, selectAnio } = obtenerContextoCatalogo();
+          if (empresaId && anio && anio > 0) {
+            cargarCatalogoSiNecesario(empresaId, anio);
 
-        if (empresa?.id && anio && anio > 0) {
-          cargarCatalogoCuentas(empresa.id, anio);
-
-          // Escuchar cambios de año para recargar catálogo
-          if (selectAnio && !selectAnio.dataset.catalogoListener) {
-            selectAnio.dataset.catalogoListener = "true";
-            selectAnio.addEventListener("change", () => {
-              const nuevoAnio = Number(selectAnio.value);
-              if (Number.isInteger(nuevoAnio) && nuevoAnio > 0 && empresa?.id) {
-                cargarCatalogoCuentas(empresa.id, nuevoAnio);
-              }
-            });
-          }
-        } else {
-          console.warn(
-            "⚠️ No se pudo determinar año o empresa para cargar catálogo",
-            {
-              empresaId: empresa?.id,
-              anio,
-              anioSeleccion,
-              selectorEncontrado: !!selectAnio,
-              selectorValue: selectAnio?.value,
+            // Escuchar cambios de año para recargar catálogo
+            if (selectAnio && !selectAnio.dataset.catalogoListener) {
+              selectAnio.dataset.catalogoListener = "true";
+              selectAnio.addEventListener("change", () => {
+                const nuevoAnio = Number(selectAnio.value);
+                const empresaActual = resolverEmpresaCatalogo();
+                if (
+                  Number.isInteger(nuevoAnio) &&
+                  nuevoAnio > 0 &&
+                  empresaActual
+                ) {
+                  cargarCatalogoSiNecesario(empresaActual, nuevoAnio);
+                }
+              });
             }
-          );
+          } else if (DEBUG_CATALOGO) {
+            console.warn(
+              "⚠️ No se pudo determinar año o empresa para cargar catálogo",
+              {
+                empresaId,
+                anio,
+                selectorEncontrado: !!selectAnio,
+                selectorValue: selectAnio?.value,
+              }
+            );
+          }
+          bindCatalogoContextListener();
+        } catch (err) {
+          if (DEBUG_CATALOGO) {
+            console.warn("⚠️ Error cargando catálogo de cuentas:", err);
+          }
         }
-      } catch (err) {
-        console.warn("⚠️ Error cargando catálogo de cuentas:", err);
-      }
 
       // Intentar cargar layout guardado localmente y aplicarlo
       try {

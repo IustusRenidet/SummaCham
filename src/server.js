@@ -282,6 +282,8 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3005)) => {
   app.use("/api/comites", rutasComites);
   app.use("/api/planeacion", rutasPlaneacion);
   app.use("/api/layouts", rutasLayouts);
+  // Alias de rutas por capitulo/anio para compatibilidad con vistas legacy.
+  app.use("/api/layouts", rutasLayoutsPorAnio);
   app.use("/api/layouts-config", rutasLayoutsPorAnio);
   app.use("/api/borradores", rutasBorradores);
   app.use("/api/notificaciones", rutasNotificaciones);

@@ -34,10 +34,25 @@
  *   Net: NET RESULTS
  */
 (() => {
-  const base =
-    window.location.protocol === "file:"
-      ? "http://localhost:3005"
-      : window.location.origin;
+  const resolveApiBase = () => {
+    const override = window.API_BASE || window.__API_BASE__;
+    if (typeof override === "string" && override.trim()) {
+      return override.replace(/\/api\/?$/, "");
+    }
+    if (window.location.protocol === "file:") {
+      return "http://localhost:3005";
+    }
+    const origin = window.location.origin.replace(/\/$/, "");
+    if (
+      /localhost:3000$/.test(origin) ||
+      /127\.0\.0\.1:3000$/.test(origin)
+    ) {
+      return origin.replace(/:3000$/, ":3005");
+    }
+    return origin;
+  };
+
+  const base = resolveApiBase();
   const API_ENDPOINT = `${base}/api/reportes/resumen`;
   const API_ANIOS = `${base}/api/saldos/anios`;
 
@@ -71,6 +86,34 @@
       .replace(/[\u0300-\u036f]/g, "")
       .toUpperCase()
       .replace(/\s+/g, " ");
+
+  const DEBUG_DUPLICADOS = window.DEBUG_GRAFICAS_DUPLICADOS === true;
+  const ROW_ROLE_PRIORITY = {
+    final: 6,
+    net: 5,
+    result: 4,
+    group: 3,
+    principal: 2,
+    section: 1,
+    account: 0,
+  };
+
+  const getRowPriority = (role) => {
+    const key = (role || "").toString().toLowerCase();
+    return Number.isFinite(ROW_ROLE_PRIORITY[key])
+      ? ROW_ROLE_PRIORITY[key]
+      : -1;
+  };
+
+  const mergeSnapshotTotals = (baseEntry, incoming) => ({
+    ...baseEntry,
+    actual: toNumber(baseEntry.actual) + toNumber(incoming.actual),
+    plan: toNumber(baseEntry.plan) + toNumber(incoming.plan),
+    prev: toNumber(baseEntry.prev) + toNumber(incoming.prev),
+    actualYTD: toNumber(baseEntry.actualYTD) + toNumber(incoming.actualYTD),
+    planYTD: toNumber(baseEntry.planYTD) + toNumber(incoming.planYTD),
+    prevYTD: toNumber(baseEntry.prevYTD) + toNumber(incoming.prevYTD),
+  });
 
   const formatNumber = (n) =>
     new Intl.NumberFormat("es-MX", {
@@ -232,27 +275,48 @@
       const data = JSON.parse(raw);
       const map = new Map();
 
-      (data?.filas || []).forEach((fila) => {
-        const lbl = normalizarLabel(fila?.label || "");
-        if (!lbl) return;
+        (data?.filas || []).forEach((fila) => {
+          const lbl = normalizarLabel(fila?.label || "");
+          if (!lbl) return;
 
-        // Detectar duplicados
-        if (map.has(lbl)) {
-          console.warn("📊 Graficas: DUPLICADO detectado para label:", lbl);
-          console.warn("📊   Valor anterior:", map.get(lbl));
-          console.warn("📊   Nuevo valor:", fila.totals);
-        }
+          const rowRole = (fila?.rowRole || fila?.role || "")
+            .toString()
+            .toLowerCase();
+          const entry = {
+            label: fila.label,
+            rowRole,
+            cuenta: (fila?.cuenta || "").toString().trim(),
+            actual: toNumber(fila?.totals?.actual),
+            plan: toNumber(fila?.totals?.plan),
+            prev: toNumber(fila?.totals?.prev),
+            actualYTD: toNumber(fila?.totals?.actualYTD),
+            planYTD: toNumber(fila?.totals?.planYTD),
+            prevYTD: toNumber(fila?.totals?.prevYTD),
+          };
 
-        map.set(lbl, {
-          label: fila.label,
-          actual: toNumber(fila?.totals?.actual),
-          plan: toNumber(fila?.totals?.plan),
-          prev: toNumber(fila?.totals?.prev),
-          actualYTD: toNumber(fila?.totals?.actualYTD),
-          planYTD: toNumber(fila?.totals?.planYTD),
-          prevYTD: toNumber(fila?.totals?.prevYTD),
+          const existing = map.get(lbl);
+          if (!existing) {
+            map.set(lbl, entry);
+            return;
+          }
+
+          const existingPriority = getRowPriority(existing.rowRole);
+          const incomingPriority = getRowPriority(entry.rowRole);
+
+          if (DEBUG_DUPLICADOS) {
+            console.warn("📊 Graficas: DUPLICADO detectado para label:", lbl);
+            console.warn("📊   Valor anterior:", existing);
+            console.warn("📊   Nuevo valor:", entry);
+          }
+
+          if (incomingPriority > existingPriority) {
+            map.set(lbl, entry);
+            return;
+          }
+          if (incomingPriority === existingPriority) {
+            map.set(lbl, mergeSnapshotTotals(existing, entry));
+          }
         });
-      });
 
       console.log("📊 Graficas: Snapshot cargado con", map.size, "filas");
       console.log("📊 Graficas: Labels disponibles:", Array.from(map.keys()));

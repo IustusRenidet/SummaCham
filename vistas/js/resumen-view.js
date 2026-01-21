@@ -1,8 +1,23 @@
 (() => {
-  const base =
-    window.location.protocol === "file:"
-      ? "http://localhost:3005"
-      : window.location.origin;
+  const resolveApiBase = () => {
+    const override = window.API_BASE || window.__API_BASE__;
+    if (typeof override === "string" && override.trim()) {
+      return override.replace(/\/api\/?$/, "");
+    }
+    if (window.location.protocol === "file:") {
+      return "http://localhost:3005";
+    }
+    const origin = window.location.origin.replace(/\/$/, "");
+    if (
+      /localhost:3000$/.test(origin) ||
+      /127\.0\.0\.1:3000$/.test(origin)
+    ) {
+      return origin.replace(/:3000$/, ":3005");
+    }
+    return origin;
+  };
+
+  const base = resolveApiBase();
   const API_ENDPOINT = `${base}/api/reportes/resumen`;
   const API_ANIOS = `${base}/api/saldos/anios`;
 
@@ -1834,18 +1849,26 @@
       if (!tabla) return null;
       const filas = Array.from(tabla.querySelectorAll("tr"));
       const datos = [];
-      filas.forEach((fila, idx) => {
-        const celdas = Array.from(fila.querySelectorAll("td"));
-        if (celdas.length < 9) return; // requerimos columnas de valores
-        const label = parseText(celdas[6]?.textContent || "");
-        if (!label) return;
-        const safeNumber = (celda) => parseNumber(celda?.textContent || "");
-        const registro = {
-          label,
-          totals: {
-            actual: safeNumber(celdas[1]),
-            plan: safeNumber(celdas[2]),
-            prev: safeNumber(celdas[3]),
+        filas.forEach((fila, idx) => {
+          const celdas = Array.from(fila.querySelectorAll("td"));
+          if (celdas.length < 9) return; // requerimos columnas de valores
+          const label = parseText(celdas[6]?.textContent || "");
+          if (!label) return;
+          const rowRole = (fila.dataset?.rowRole || "")
+            .toString()
+            .toLowerCase();
+          const cuenta = (fila.dataset?.cuenta || celdas[0]?.textContent || "")
+            .toString()
+            .trim();
+          const safeNumber = (celda) => parseNumber(celda?.textContent || "");
+          const registro = {
+            label,
+            rowRole,
+            cuenta,
+            totals: {
+              actual: safeNumber(celdas[1]),
+              plan: safeNumber(celdas[2]),
+              prev: safeNumber(celdas[3]),
             actualYTD: safeNumber(celdas[7]),
             planYTD: safeNumber(celdas[8]),
             prevYTD: safeNumber(celdas[9]),

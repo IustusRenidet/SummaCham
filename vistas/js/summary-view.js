@@ -1,5 +1,20 @@
 (() => {
-  const base = window.location.protocol === 'file:' ? 'http://localhost:3005' : window.location.origin;
+  const resolveApiBase = () => {
+    const override = window.API_BASE || window.__API_BASE__;
+    if (typeof override === "string" && override.trim()) {
+      return override.replace(/\/api\/?$/, "");
+    }
+    if (window.location.protocol === "file:") {
+      return "http://localhost:3005";
+    }
+    const origin = window.location.origin.replace(/\/$/, "");
+    if (/localhost:3000$/.test(origin) || /127\.0\.0\.1:3000$/.test(origin)) {
+      return origin.replace(/:3000$/, ":3005");
+    }
+    return origin;
+  };
+
+  const base = resolveApiBase();
   const API_ENDPOINT = `${base}/api/reportes/summary`;
   const API_ANIOS = `${base}/api/saldos/anios`;
 
