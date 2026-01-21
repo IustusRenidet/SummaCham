@@ -1232,3 +1232,17 @@ body {
 .advanced-config[open] summary .template-details-title strong {
   color: white;
 }
+
+/* Selección masiva en tabla */
+.template-table .bulk-col {
+  width: 36px;
+  text-align: center;
+}
+
+.template-table .bulk-select-checkbox {
+  cursor: pointer;
+}
+
+.template-table tr.bulk-selected {
+  background-color: #fff4d6;
+}

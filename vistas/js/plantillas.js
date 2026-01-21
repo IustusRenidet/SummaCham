@@ -46,6 +46,8 @@
     selectedElement: null,
     changeLog: [], // Registro de cambios
     autoSave: true,
+    bulkSelectMode: false,
+    bulkSelection: new Set(),
   };
   window.state = state;
 
@@ -84,6 +86,11 @@
     dom.btnExpandir = document.getElementById("btnExpandir");
     dom.btnColapsar = document.getElementById("btnColapsar");
     dom.btnPreview = document.getElementById("btnPreview");
+    dom.btnReordenar = document.getElementById("btnReordenar");
+    dom.btnSeleccionar = document.getElementById("btnSeleccionar");
+    dom.btnEliminarMasivo = document.getElementById("btnEliminarMasivo");
+    dom.btnReloadSchema = document.getElementById("btnReloadSchema");
+    dom.bulkSelectionCount = document.getElementById("bulkSelectionCount");
     dom.btnVerificar = null;
     dom.btnDiagnosticar = null;
     dom.btnPredefinidas = null;
@@ -156,6 +163,9 @@
     dom.btnExpandir?.addEventListener("click", expandAll);
     dom.btnColapsar?.addEventListener("click", collapseAll);
     dom.btnPreview?.addEventListener("click", showPreview);
+    dom.btnSeleccionar?.addEventListener("click", toggleBulkSelectMode);
+    dom.btnEliminarMasivo?.addEventListener("click", deleteBulkSelected);
+    dom.btnReloadSchema?.addEventListener("click", handleReloadSchema);
     dom.btnPrintPreview?.addEventListener("click", () => window.print());
     dom.btnRefreshOrder?.addEventListener("click", updateLayoutOrderPanel);
 
@@ -296,17 +306,208 @@
     dom.btnGuardar.disabled = !canEdit || !state.unsavedChanges;
     dom.btnAgregar.disabled = !canEdit;
     dom.btnCopiar.disabled = !state.editMode || !hasLayout;
+    if (dom.btnReordenar) dom.btnReordenar.disabled = !canEdit;
+    if (dom.btnSeleccionar) dom.btnSeleccionar.disabled = !canEdit;
+    if (dom.btnEliminarMasivo) {
+      dom.btnEliminarMasivo.disabled =
+        !canEdit || !state.bulkSelectMode || state.bulkSelection.size === 0;
+    }
+    if (dom.btnReloadSchema) {
+      dom.btnReloadSchema.disabled =
+        !state.editMode || !state.modulo || !state.anio;
+    }
 
     // Expandir/Colapsar disponibles cuando hay layout cargado
     if (dom.btnExpandir) dom.btnExpandir.disabled = !hasLayout;
     if (dom.btnColapsar) dom.btnColapsar.disabled = !hasLayout;
     if (dom.btnPreview) dom.btnPreview.disabled = !hasLayout;
+
+    updateBulkSelectionUI();
   }
 
   function requireEditMode() {
     if (state.editMode) return true;
     showToast("Modo solo lectura. Solicita permisos de edicion.", "warning");
     return false;
+  }
+
+  function resetBulkSelection({ keepMode = false } = {}) {
+    state.bulkSelection = new Set();
+    if (!keepMode) {
+      state.bulkSelectMode = false;
+    }
+    updateBulkSelectionUI();
+  }
+
+  function updateBulkSelectionUI() {
+    if (!dom.btnSeleccionar) return;
+    const count = state.bulkSelection?.size || 0;
+    if (dom.bulkSelectionCount) {
+      dom.bulkSelectionCount.textContent = count;
+    }
+    dom.btnSeleccionar.classList.toggle("active", state.bulkSelectMode);
+    dom.btnSeleccionar.innerHTML = state.bulkSelectMode
+      ? '<i class="bi bi-x-square me-1"></i> Cancelar selección'
+      : '<i class="bi bi-check-square me-1"></i> Seleccionar';
+    if (dom.btnEliminarMasivo) {
+      dom.btnEliminarMasivo.disabled =
+        !state.bulkSelectMode || count === 0 || !state.editMode;
+    }
+  }
+
+  function toggleBulkSelectMode() {
+    if (!requireEditMode()) return;
+    if (!state.layout) {
+      showToast("Carga un layout antes de seleccionar.", "warning");
+      return;
+    }
+    if (!isModuloPiloto()) {
+      showToast("Selección masiva disponible solo en modo tabla.", "warning");
+      return;
+    }
+    state.bulkSelectMode = !state.bulkSelectMode;
+    state.selectedElement = null;
+    if (state.bulkSelectMode && state.inlineOrderMode) {
+      state.inlineOrderMode = false;
+    }
+    if (!state.bulkSelectMode) {
+      state.bulkSelection = new Set();
+    }
+    renderLayout();
+    updateSelectionInfo();
+    updateButtonStates();
+  }
+
+  function buildBulkKey(type, data = {}) {
+    if (!type) return "";
+    if (type === "section") return `section::${data.section || ""}`;
+    if (type === "subsection") {
+      return `subsection::${data.section || ""}::${data.subsection || ""}`;
+    }
+    if (type === "account") return `account::${data.cuenta || ""}`;
+    if (type === "operation") {
+      return `operation::${data.operationId || data.operationLabel || ""}`;
+    }
+    return "";
+  }
+
+  function parseBulkKey(key) {
+    const parts = String(key || "").split("::");
+    return { type: parts[0] || "", parts: parts.slice(1) };
+  }
+
+  function handleBulkCheckboxChange(checkbox) {
+    if (!checkbox) return;
+    const key = checkbox.dataset.bulkKey;
+    if (!key) return;
+    if (checkbox.checked) {
+      state.bulkSelection.add(key);
+    } else {
+      state.bulkSelection.delete(key);
+    }
+    const row = checkbox.closest("tr");
+    if (row) {
+      row.classList.toggle("bulk-selected", checkbox.checked);
+    }
+    updateBulkSelectionUI();
+  }
+
+  function setBulkSelectionFromTable(table, checked) {
+    if (!table) return;
+    const boxes = table.querySelectorAll(
+      ".bulk-select-checkbox:not(:disabled)"
+    );
+    state.bulkSelection = new Set();
+    boxes.forEach((box) => {
+      box.checked = Boolean(checked);
+      if (checked) {
+        const key = box.dataset.bulkKey;
+        if (key) state.bulkSelection.add(key);
+      }
+      const row = box.closest("tr");
+      if (row) row.classList.toggle("bulk-selected", Boolean(checked));
+    });
+    updateBulkSelectionUI();
+  }
+
+  function deleteBulkSelected() {
+    if (!requireEditMode()) return;
+    const keys = Array.from(state.bulkSelection || []);
+    if (!keys.length) {
+      showToast("No hay elementos seleccionados.", "warning");
+      return;
+    }
+
+    const resumen = { section: 0, subsection: 0, account: 0, operation: 0 };
+    keys.forEach((key) => {
+      const { type } = parseBulkKey(key);
+      if (resumen[type] !== undefined) resumen[type] += 1;
+    });
+
+    const detalle = [
+      resumen.section ? `${resumen.section} secciones` : null,
+      resumen.subsection ? `${resumen.subsection} subsecciones` : null,
+      resumen.account ? `${resumen.account} cuentas` : null,
+      resumen.operation ? `${resumen.operation} operaciones` : null,
+    ]
+      .filter(Boolean)
+      .join(", ");
+
+    if (
+      !confirm(
+        `¿Eliminar ${keys.length} elementos seleccionados?\n${detalle}\n\nEsta acción no se puede deshacer.`
+      )
+    ) {
+      return;
+    }
+
+    const normalize = (value) => normalizeOperationMatch(value || "");
+    const sections = new Set();
+    const subsections = new Set();
+    const accounts = new Set();
+    const operations = new Set();
+
+    keys.forEach((key) => {
+      const { type, parts } = parseBulkKey(key);
+      if (type === "section") {
+        sections.add(normalize(parts[0]));
+      } else if (type === "subsection") {
+        const sectionKey = normalize(parts[0]);
+        const subKey = normalize(parts[1]);
+        subsections.add(`${sectionKey}::${subKey}`);
+      } else if (type === "account") {
+        accounts.add(normalize(parts[0]));
+      } else if (type === "operation") {
+        operations.add(normalize(parts[0]));
+      }
+    });
+
+    state.cuentas = (state.cuentas || []).filter((cuenta) => {
+      const codigo = normalize(
+        cuenta?.CUENTA || cuenta?.Cuenta || cuenta?.cuenta || ""
+      );
+      if (accounts.has(codigo)) return false;
+      const principal = normalize(getAccountPrincipalName(cuenta));
+      const secondary = normalize(getAccountSecondaryName(cuenta));
+      if (sections.has(principal)) return false;
+      if (subsections.has(`${principal}::${secondary}`)) return false;
+      return true;
+    });
+
+    state.operaciones = (state.operaciones || []).filter((op) => {
+      const idKey = normalize(getOperationId(op));
+      const labelKey = normalize(getOperationLabel(op));
+      if (operations.has(idKey) || operations.has(labelKey)) return false;
+      return true;
+    });
+
+    resetBulkSelection();
+    state.unsavedChanges = true;
+    updateButtonStates();
+    renderLayout();
+    updateStats();
+    scheduleAutoSave("bulk-delete");
+    showToast("Elementos eliminados.", "success");
   }
 
   // ==========================================
@@ -468,6 +669,8 @@
       ensureOperationIds();
       normalizeOperationReferences();
       state.selectedElement = null;
+      state.bulkSelectMode = false;
+      state.bulkSelection = new Set();
 
       renderLayout();
       updateStats();

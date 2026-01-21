@@ -3650,9 +3650,11 @@
 
       if (empresaComparativaId) {
         try {
+          const anioComparativo =
+            Number.isInteger(anioNumero) ? anioNumero - 1 : anio;
           const datosComparativo = await consultarResumen({
             empresaId: empresaComparativaId,
-            anio,
+            anio: anioComparativo,
             mes: mesEntero,
             capitulo,
           });

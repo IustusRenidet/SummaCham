@@ -194,6 +194,23 @@
                 </button>
                 <button
                   type="button"
+                  id="btnSeleccionar"
+                  class="btn btn-outline-danger"
+                  disabled
+                >
+                  <i class="bi bi-check-square me-1"></i> Seleccionar
+                </button>
+                <button
+                  type="button"
+                  id="btnEliminarMasivo"
+                  class="btn btn-danger"
+                  disabled
+                >
+                  <i class="bi bi-trash me-1"></i> Eliminar
+                  (<span id="bulkSelectionCount">0</span>)
+                </button>
+                <button
+                  type="button"
                   id="btnReloadSchema"
                   class="btn btn-info text-white"
                   title="Recargar operaciones desde Master Schema"

@@ -890,8 +890,11 @@ const guardarOperaciones = ({
         "OperacionId",
         "operacion_id",
         "operacion_etiqueta",
+        "operacion_label",
+        "operacion_tipo",
         "Etiqueta",
         "etiqueta",
+        "label",
         "SECCION",
         "seccion",
         "formula_json",
@@ -899,18 +902,29 @@ const guardarOperaciones = ({
         "signo",
         "signos",
         "orden",
+        "orden_presentacion",
+        "ordenPresentacion",
         "tipo",
         "secciones",
+        "visible",
+        "parentSection",
+        "parentSubsection",
+        "_autoBuilt",
       ]);
       const tiposOperacionExtra = Object.keys(op || {})
         .filter((key) => key && !clavesReservadas.has(key))
+        .filter((key) => !/^seccion_\d+$/i.test(key))
+        .filter((key) => !/^operacion_\d+$/i.test(key))
         .filter((key) => !tiposOperacionBase.includes(key));
       const tiposOperacion = [...tiposOperacionBase, ...tiposOperacionExtra];
       const formulaJson =
-        op.formula_json ||
-        (Array.isArray(op.formula_terms)
+        typeof op.formula_json === "string"
+          ? op.formula_json
+          : op.formula_json != null
+          ? JSON.stringify(op.formula_json)
+          : Array.isArray(op.formula_terms)
           ? JSON.stringify(op.formula_terms)
-          : null);
+          : null;
 
       const ordenPresentacion = Number.isFinite(
         Number(op.orden_presentacion)
@@ -923,7 +937,11 @@ const guardarOperaciones = ({
       const visible = op.visible === false ? 0 : 1;
 
       tiposOperacion.forEach((tipo, tipoIndex) => {
-        if (op[tipo]) {
+        if (op[tipo] != null) {
+          const etiquetaRaw = op[tipo];
+          if (typeof etiquetaRaw === "object" || typeof etiquetaRaw === "boolean") {
+            return;
+          }
           const signoDesdeMapa = op.signos?.[tipo];
           const signoConfigurado = Number.isFinite(Number(signoDesdeMapa))
             ? Number(signoDesdeMapa)
@@ -963,7 +981,7 @@ const guardarOperaciones = ({
               operacionEtiqueta,
               seccion,
               tipo,
-              op[tipo],
+              String(etiquetaRaw),
               signo,
               baseOrden * 100 + tipoIndex,
               ordenPresentacion,
