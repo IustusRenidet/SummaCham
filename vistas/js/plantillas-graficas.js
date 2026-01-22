@@ -68,6 +68,12 @@
     statusEl.setAttribute("data-tone", tone);
   };
 
+  if (fieldset) {
+    console.debug("[plantillas-graficas] Fieldset estado", {
+      disabled: fieldset.disabled,
+    });
+  }
+
   const isAdmin = () => {
     if (!window.Sesion || typeof window.Sesion.puedeAdministrarUsuarios !== "function") {
       return false;
@@ -620,6 +626,9 @@
       sources.ingresoNacional || defaultSources.ingresoNacional || {};
 
     const rows = Array.from(form.querySelectorAll("[data-series-row]"));
+    if (!rows.length) {
+      console.warn("[plantillas-graficas] Sin filas de series para configurar.");
+    }
     rows.forEach((row) => {
       const key = row.getAttribute("data-series-key");
       const serie =
@@ -634,6 +643,10 @@
       if (colorInput) colorInput.value = serie.color || "#0d47a1";
       if (columnSelect) {
         columnSelect.value = serie.columnKey || serie.key || "actualYTD";
+      } else {
+        console.warn("[plantillas-graficas] Falta selector de columna", {
+          key,
+        });
       }
       if (enabledInput) enabledInput.checked = Boolean(serie.enabled);
     });
@@ -907,6 +920,9 @@
         enabled: Boolean(enabledInput?.checked),
       });
     });
+    if (!series.length) {
+      console.warn("[plantillas-graficas] No se detectaron series en el formulario.");
+    }
 
     const charts = {};
     form.querySelectorAll("[data-chart-key]").forEach((row) => {

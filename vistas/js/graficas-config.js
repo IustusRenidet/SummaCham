@@ -855,6 +855,9 @@
     const defaults = clone(DEFAULT_CONFIG);
 
     const rows = Array.from(form.querySelectorAll("[data-series-row]"));
+    if (!rows.length) {
+      console.warn("[graficas-config] Sin filas de series en formulario.");
+    }
     rows.forEach((row) => {
       const key = row.getAttribute("data-series-key");
       const serie = (config.series || []).find((item) => item.key === key) ||
@@ -868,6 +871,8 @@
       if (colorInput) colorInput.value = serie.color || "#0d47a1";
       if (columnSelect) {
         columnSelect.value = serie.columnKey || serie.key || "actualYTD";
+      } else {
+        console.warn("[graficas-config] Falta selector de columna", { key });
       }
       if (enabledInput) enabledInput.checked = Boolean(serie.enabled);
     });
@@ -928,6 +933,9 @@
       const columnKey = columnSelect?.value || fallback.columnKey || key;
       series.push({ key, label, color, columnKey, enabled });
     });
+    if (!series.length) {
+      console.warn("[graficas-config] No se detectaron series en el formulario.");
+    }
 
     const charts = {};
     const chartRows = Array.from(form.querySelectorAll("[data-chart-key]"));

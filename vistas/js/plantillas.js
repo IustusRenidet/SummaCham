@@ -112,6 +112,7 @@
     dom.moduloSelect = document.getElementById("moduloSelect");
     dom.anioSelect =
       document.getElementById("anioSelect") ||
+      document.getElementById("resumenYearSelect") ||
       document.getElementById("gestorYearSelect");
     dom.capituloSelect = document.getElementById("capituloSelect");
 
@@ -747,10 +748,22 @@
           )}`
         : buildApiUrl(`/${encodeURIComponent(state.modulo)}/anios`);
 
+      console.debug("[plantillas] loadYears", {
+        vista: isGestorView() ? "gestor" : "plantillas",
+        modulo: state.modulo,
+        empresaId,
+        url,
+      });
+
       const response = await fetchWithAuth(url);
+      console.debug("[plantillas] loadYears response", {
+        status: response.status,
+        ok: response.ok,
+      });
       if (!response.ok) throw new Error("Error al cargar años");
 
       const data = await response.json();
+      console.debug("[plantillas] loadYears data", data);
       const yearsRaw = Array.isArray(data.anios)
         ? data.anios
         : typeof data.anios === "string"
