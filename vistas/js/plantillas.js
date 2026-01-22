@@ -110,7 +110,10 @@
   function cacheDOMElements() {
     // Selectors
     dom.moduloSelect = document.getElementById("moduloSelect");
-    dom.anioSelect = document.getElementById("anioSelect");
+    dom.anioSelect =
+      document.getElementById("anioSelect") ||
+      document.getElementById("resumenYearSelect") ||
+      document.getElementById("gestorYearSelect");
     dom.capituloSelect = document.getElementById("capituloSelect");
 
     // Labels
@@ -732,18 +735,44 @@
     }
   }
 
+  const isGestorView = () =>
+    window.location.pathname.toLowerCase().includes("gestor.html");
+
   async function loadYears() {
     if (!dom.anioSelect) return;
     try {
-      const url = buildApiUrl(`/${encodeURIComponent(state.modulo)}/anios`);
-      const response = await fetchWithAuth(url);
+      const empresaId = getEmpresaId();
+      const url = isGestorView()
+        ? `${resolveApiBase()}/api/saldos/anios?empresaId=${encodeURIComponent(
+            empresaId,
+          )}`
+        : buildApiUrl(`/${encodeURIComponent(state.modulo)}/anios`);
 
+      console.debug("[plantillas] loadYears", {
+        vista: isGestorView() ? "gestor" : "plantillas",
+        modulo: state.modulo,
+        empresaId,
+        url,
+      });
+
+      const response = await fetchWithAuth(url);
+      console.debug("[plantillas] loadYears response", {
+        status: response.status,
+        ok: response.ok,
+      });
       if (!response.ok) throw new Error("Error al cargar años");
 
       const data = await response.json();
-      let years = Array.isArray(data.anios) ? data.anios : [];
+      console.debug("[plantillas] loadYears data", data);
+      const yearsRaw = Array.isArray(data.anios)
+        ? data.anios
+        : typeof data.anios === "string"
+          ? data.anios.split(",").map((v) => v.trim()).filter(Boolean)
+          : [];
+      let years = yearsRaw
+        .map((value) => Number(value))
+        .filter((value) => Number.isInteger(value));
 
-      // Fallback: if no years are returned from API, provide defaults
       if (!years.length) {
         console.log("No years from API, using defaults 2025, 2026");
         years = [2025, 2026];
@@ -752,7 +781,6 @@
       const currentYear = new Date().getFullYear();
       const preferredYear = Number(state.anio);
 
-      // Ordenar años descendente
       const sortedYears = [...new Set(years)].sort((a, b) => b - a);
       const selectedYear =
         Number.isInteger(preferredYear) && sortedYears.includes(preferredYear)
@@ -770,7 +798,6 @@
         )
         .join("");
 
-      // Seleccionar año actual si existe, sino el más reciente
       state.anio = selectedYear || null;
     } catch (error) {
       console.error("Error loading years:", error);

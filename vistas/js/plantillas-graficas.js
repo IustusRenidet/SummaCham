@@ -68,6 +68,12 @@
     statusEl.setAttribute("data-tone", tone);
   };
 
+  if (fieldset) {
+    console.debug("[plantillas-graficas] Fieldset estado", {
+      disabled: fieldset.disabled,
+    });
+  }
+
   const isAdmin = () => {
     if (!window.Sesion || typeof window.Sesion.puedeAdministrarUsuarios !== "function") {
       return false;
@@ -340,6 +346,9 @@
     window.Sesion?.obtenerEmpresaActiva?.()?.id ||
     null;
 
+  const getSelectedCapitulo = () =>
+    document.getElementById("capituloSelect")?.value?.toString().trim() || "";
+
   const getPreviewContext = () => {
     const snapshot = readLatestSnapshot();
     return {
@@ -347,7 +356,7 @@
       snapshotMap: buildSnapshotMap(snapshot),
       empresaId: getPreviewEmpresaId(snapshot),
       anio: getPreviewYear(snapshot),
-      capitulo: snapshot?.capitulo || "",
+      capitulo: getSelectedCapitulo() || snapshot?.capitulo || "",
     };
   };
 
@@ -617,6 +626,9 @@
       sources.ingresoNacional || defaultSources.ingresoNacional || {};
 
     const rows = Array.from(form.querySelectorAll("[data-series-row]"));
+    if (!rows.length) {
+      console.warn("[plantillas-graficas] Sin filas de series para configurar.");
+    }
     rows.forEach((row) => {
       const key = row.getAttribute("data-series-key");
       const serie =
@@ -625,9 +637,17 @@
       if (!serie) return;
       const labelInput = row.querySelector("[data-series-label]");
       const colorInput = row.querySelector("[data-series-color]");
+      const columnSelect = row.querySelector("[data-series-column]");
       const enabledInput = row.querySelector("[data-series-enabled]");
       if (labelInput) labelInput.value = serie.label || "";
       if (colorInput) colorInput.value = serie.color || "#0d47a1";
+      if (columnSelect) {
+        columnSelect.value = serie.columnKey || serie.key || "actualYTD";
+      } else {
+        console.warn("[plantillas-graficas] Falta selector de columna", {
+          key,
+        });
+      }
       if (enabledInput) enabledInput.checked = Boolean(serie.enabled);
     });
 
@@ -888,6 +908,7 @@
       if (!key) return;
       const labelInput = row.querySelector("[data-series-label]");
       const colorInput = row.querySelector("[data-series-color]");
+      const columnSelect = row.querySelector("[data-series-column]");
       const enabledInput = row.querySelector("[data-series-enabled]");
       const fallback =
         (defaults.series || []).find((item) => item.key === key) || {};
@@ -895,9 +916,13 @@
         key,
         label: labelInput?.value?.trim() || fallback.label || "",
         color: colorInput?.value || fallback.color || "#0d47a1",
+        columnKey: columnSelect?.value || fallback.columnKey || key,
         enabled: Boolean(enabledInput?.checked),
       });
     });
+    if (!series.length) {
+      console.warn("[plantillas-graficas] No se detectaron series en el formulario.");
+    }
 
     const charts = {};
     form.querySelectorAll("[data-chart-key]").forEach((row) => {
@@ -1403,7 +1428,8 @@
         : getRowTotals(snapshotMap, variants);
       labels.push(label);
       activeSeries.forEach((serie, index) => {
-        dataMatrix[index].push(toNumber(totals?.[serie.key]));
+        const columnKey = serie.columnKey || serie.key;
+        dataMatrix[index].push(toNumber(totals?.[columnKey]));
       });
     });
 
