@@ -1,0 +1,1598 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gestor</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+    />
+    <link rel="stylesheet" href="css/estilos.css" />
+    <link rel="stylesheet" href="css/plantillas.css" />
+    <link rel="stylesheet" href="css/plantillas-orden.css" />
+    <link rel="stylesheet" href="css/formula-builder.css" />
+    <link rel="stylesheet" href="css/gestor.css" />
+    <link rel="icon" type="image/x-icon" href="icono/icono.ico" />
+  </head>
+
+  <body class="gestor-body">
+    <div class="gestor-shell">
+      <header class="gestor-header">
+        <div class="container-fluid">
+          <div class="d-flex flex-column flex-lg-row gap-3 align-items-lg-center">
+            <div class="gestor-title">
+              <h1 class="fw-bold mb-1">Gestor de Plantillas y Gráficas</h1>
+              <p class="text-muted mb-0">
+                Controla estructura, fórmulas y visualización en una sola vista.
+              </p>
+              <div class="gestor-steps mt-3">
+                <span class="step-pill">1 · Contexto</span>
+                <span class="step-pill">2 · Ajustes</span>
+                <span class="step-pill">3 · Guardado</span>
+              </div>
+            </div>
+            <div class="gestor-context ms-lg-auto">
+              <div class="context-pill">
+                <span id="moduloLabel">-</span>
+                <span class="dot">·</span>
+                <span id="anioLabel">-</span>
+                <span class="dot">·</span>
+                <span id="capituloLabel">-</span>
+              </div>
+              <span id="authStatus" class="status-badge active">
+                <i class="bi bi-pencil-square"></i> Listo para editar
+              </span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main class="gestor-main">
+        <div class="container-fluid">
+          <div class="row g-4">
+            <aside class="col-12 col-xl-4">
+              <div class="card gestor-card mb-3">
+                <div class="card-body">
+                  <h2 class="h6 fw-bold mb-3">Paso 1 · Contexto</h2>
+                  <div class="row g-3">
+                    <div class="col-12">
+                      <label for="moduloSelect" class="form-label small fw-semibold"
+                        >Módulo</label
+                      >
+                      <select id="moduloSelect" class="form-select">
+                        <option value="RESUMEN">RESUMEN</option>
+                        <option value="SUMMARY">SUMMARY</option>
+                        <option value="Finanzas">Finanzas</option>
+                        <option value="Gastos Generales">Gastos Generales</option>
+                        <option value="Nomina">Nómina</option>
+                        <option value="Membresía">Membresía</option>
+                        <option value="Serv Membresía">Serv Membresía</option>
+                        <option value="RH">RH</option>
+                        <option value="Eventos">Eventos</option>
+                        <option value="Comités">Comités</option>
+                        <option value="Comunicación">Comunicación</option>
+                        <option value="Dirección">Dirección</option>
+                        <option value="Gtos Corporativos">Gtos Corporativos</option>
+                        <option value="T&IC">T&IC</option>
+                        <option value="VPE">VPE</option>
+                      </select>
+                    </div>
+                    <div class="col-md-6">
+                      <label for="resumenYearSelect" class="form-label small fw-semibold"
+                        >Año</label
+                      >
+                      <select
+                        id="resumenYearSelect"
+                        name="resumenYear"
+                        class="form-select"
+                      >
+                        <option value="">Cargando...</option>
+                      </select>
+                    </div>
+                    <div class="col-md-6">
+                      <label for="capituloSelect" class="form-label small fw-semibold"
+                        >Capítulo</label
+                      >
+                      <select id="capituloSelect" class="form-select">
+                        <option value="">Sin capítulo</option>
+                      </select>
+                    </div>
+                    <div class="col-12">
+                      <button type="button" id="btnCargar" class="btn btn-primary w-100">
+                        <i class="bi bi-arrow-clockwise me-1"></i> Cargar Layout
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card gestor-card mb-3">
+                <div class="card-body">
+                  <h2 class="h6 fw-bold mb-3">Paso 2 · Filtros rápidos</h2>
+                  <div class="search-container mb-3">
+                    <input
+                      type="text"
+                      id="searchInput"
+                      class="search-input"
+                      placeholder="Buscar secciones, cuentas u operaciones"
+                    />
+                  </div>
+                  <div class="btn-group btn-group-sm w-100" role="group">
+                    <input type="radio" class="btn-check" name="quickFilter" id="filterAll" value="all" checked />
+                    <label class="btn btn-outline-secondary" for="filterAll">
+                      <i class="bi bi-grid-3x3-gap me-1"></i>Todo
+                    </label>
+                    <input type="radio" class="btn-check" name="quickFilter" id="filterSections" value="sections" />
+                    <label class="btn btn-outline-primary" for="filterSections">
+                      <i class="bi bi-collection me-1"></i>Secciones
+                    </label>
+                    <input type="radio" class="btn-check" name="quickFilter" id="filterAccounts" value="accounts" />
+                    <label class="btn btn-outline-info" for="filterAccounts">
+                      <i class="bi bi-card-list me-1"></i>Cuentas
+                    </label>
+                    <input type="radio" class="btn-check" name="quickFilter" id="filterOperations" value="operations" />
+                    <label class="btn btn-outline-warning" for="filterOperations">
+                      <i class="bi bi-calculator me-1"></i>Operaciones
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card gestor-card">
+                <div class="card-body">
+                  <h2 class="h6 fw-bold mb-3">Paso 3 · Acciones</h2>
+                  <div class="d-grid gap-2">
+                    <button type="button" id="btnAgregar" class="btn btn-success" disabled>
+                      <i class="bi bi-plus-circle me-1"></i> Agregar
+                    </button>
+                    <button type="button" id="btnGuardar" class="btn btn-primary" disabled>
+                      <i class="bi bi-save me-1"></i> Guardar
+                    </button>
+                    <button type="button" id="btnPreview" class="btn btn-outline-secondary" disabled>
+                      <i class="bi bi-eye me-1"></i> Vista previa
+                    </button>
+                    <button type="button" id="btnReordenar" class="btn btn-warning" disabled>
+                      <i class="bi bi-arrows-move me-1"></i> Reordenar
+                    </button>
+                    <div class="dropdown">
+                      <button
+                        class="btn btn-outline-secondary dropdown-toggle w-100"
+                        type="button"
+                        id="btnAccionesExtra"
+                        data-bs-toggle="dropdown"
+                        aria-expanded="false"
+                      >
+                        Más acciones
+                      </button>
+                      <ul class="dropdown-menu dropdown-menu-end w-100" aria-labelledby="btnAccionesExtra">
+                        <li>
+                          <button type="button" id="btnExpandir" class="dropdown-item" disabled>
+                            <i class="bi bi-arrows-expand me-2"></i> Expandir todo
+                          </button>
+                        </li>
+                        <li>
+                          <button type="button" id="btnColapsar" class="dropdown-item" disabled>
+                            <i class="bi bi-arrows-collapse me-2"></i> Colapsar todo
+                          </button>
+                        </li>
+                        <li>
+                          <button type="button" id="btnCopiar" class="dropdown-item" disabled>
+                            <i class="bi bi-copy me-2"></i> Copiar a otro año
+                          </button>
+                        </li>
+                        <li>
+                          <button type="button" id="btnSeleccionar" class="dropdown-item" disabled>
+                            <i class="bi bi-check-square me-2"></i> Seleccionar
+                          </button>
+                        </li>
+                        <li>
+                          <button type="button" id="btnEliminarMasivo" class="dropdown-item text-danger" disabled>
+                            <i class="bi bi-trash me-2"></i> Eliminar
+                            (<span id="bulkSelectionCount">0</span>)
+                          </button>
+                        </li>
+                        <li><hr class="dropdown-divider" /></li>
+                        <li>
+                          <button
+                            type="button"
+                            id="btnReloadSchema"
+                            class="dropdown-item"
+                            title="Recargar operaciones desde Master Schema"
+                          >
+                            <i class="bi bi-database-fill-gear me-2"></i> Recargar Schema
+                          </button>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </aside>
+
+            <section class="col-12 col-xl-8">
+              <div class="card gestor-card h-100">
+                <div class="card-body">
+                  <ul class="nav nav-tabs gestor-tabs" id="plantillasTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                      <button
+                        class="nav-link active"
+                        id="plantillas-tab-layout"
+                        data-bs-toggle="tab"
+                        data-bs-target="#plantillasTabLayout"
+                        type="button"
+                        role="tab"
+                      >
+                        Editor de Layout
+                      </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                      <button
+                        class="nav-link"
+                        id="plantillas-tab-graficas"
+                        data-bs-toggle="tab"
+                        data-bs-target="#plantillasTabGraficas"
+                        type="button"
+                        role="tab"
+                      >
+                        Editor de Gráficas
+                      </button>
+                    </li>
+                  </ul>
+
+                  <div class="tab-content pt-3" id="plantillasTabsContent">
+                    <div
+                      class="tab-pane fade show active"
+                      id="plantillasTabLayout"
+                      role="tabpanel"
+                      aria-labelledby="plantillas-tab-layout"
+                    >
+                      <div id="placeholderView" class="card table-card fade-in">
+                        <div class="card-body p-5 text-center">
+                          <div class="placeholder-icon mx-auto mb-4">
+                            <i class="bi bi-layout-text-window"></i>
+                          </div>
+                          <h2>Define el contexto de trabajo</h2>
+                          <p class="text-muted">
+                            Selecciona módulo, ejercicio y capítulo para iniciar.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div
+                        id="layoutView"
+                        class="card table-card fade-in"
+                        style="display: none"
+                      >
+                        <div class="card-body p-3">
+                          <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span class="text-muted small" id="layoutInfo">Sin datos</span>
+                            <button
+                              type="button"
+                              class="btn btn-outline-secondary btn-sm"
+                              id="btnRefreshOrder"
+                            >
+                              <i class="bi bi-arrow-repeat me-1"></i> Actualizar orden
+                            </button>
+                          </div>
+                          <div id="layoutPreview" class="layout-preview"></div>
+                        </div>
+                      </div>
+
+                      <p class="text-muted small text-center mt-3 mb-0" id="statusMessage"></p>
+
+                      <div class="d-none" id="layoutOrderList"></div>
+                      <span class="d-none" id="layoutOrderCount"></span>
+                      <span class="d-none" id="layoutSelectionInfo"></span>
+                    </div>
+
+                    <div
+                      class="tab-pane fade"
+                      id="plantillasTabGraficas"
+                      role="tabpanel"
+                      aria-labelledby="plantillas-tab-graficas"
+                    >
+                      <div class="card table-card fade-in">
+                        <div class="card-body p-3">
+                          <form id="plantillasGraficasForm">
+                            <fieldset id="plantillasGraficasFieldset">
+                              <div
+                                class="d-flex flex-column flex-lg-row align-items-start justify-content-between gap-3"
+                              >
+                                <div>
+                                  <h2 class="h5 mb-1">Graficas</h2>
+                                  <p class="small text-muted mb-0">
+                                    Personaliza las graficas existentes en todos los
+                                    modulos.
+                                  </p>
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                  <span class="badge bg-light text-primary">
+                                    Preferencias locales
+                                  </span>
+                                  <button
+                                    type="button"
+                                    class="btn btn-outline-secondary btn-sm"
+                                    id="plantillasGraficasReset"
+                                  >
+                                    Restaurar
+                                  </button>
+                                  <button
+                                    type="submit"
+                                    class="btn btn-primary btn-sm"
+                                    id="plantillasGraficasSave"
+                                  >
+                                    Guardar cambios
+                                  </button>
+                                </div>
+                              </div>
+
+                              <div
+                                id="plantillasGraficasWarning"
+                                class="alert alert-warning d-none mt-3"
+                              >
+                                Acceso restringido a administradores. No es posible editar
+                                la configuracion.
+                              </div>
+
+                              <div class="mt-3">
+                                <ul
+                                  class="nav nav-pills nav-fill gap-2 plantillas-graficas-tabs"
+                                  id="plantillasGraficasTabs"
+                                  role="tablist"
+                                >
+                                  <li class="nav-item" role="presentation">
+                                    <button
+                                      class="nav-link active"
+                                      id="plantillas-graficas-panel-tab"
+                                      data-bs-toggle="tab"
+                                      data-bs-target="#plantillasGraficasPanel"
+                                      type="button"
+                                      role="tab"
+                                    >
+                                      Panel de graficas
+                                    </button>
+                                  </li>
+                                  <li class="nav-item" role="presentation">
+                                    <button
+                                      class="nav-link"
+                                      id="plantillas-graficas-config-tab"
+                                      data-bs-toggle="tab"
+                                      data-bs-target="#plantillasGraficasConfig"
+                                      type="button"
+                                      role="tab"
+                                    >
+                                      Configuracion
+                                    </button>
+                                  </li>
+                                </ul>
+                                <div
+                                  class="tab-content mt-3"
+                                  id="plantillasGraficasTabsContent"
+                                >
+                                  <div
+                                    class="tab-pane fade show active"
+                                    id="plantillasGraficasPanel"
+                                    role="tabpanel"
+                                    aria-labelledby="plantillas-graficas-panel-tab"
+                                  >
+                                    <div class="row g-3">
+                                      <div class="col-12 col-xl-8">
+                                        <div
+                                          class="plantillas-graficas-gallery"
+                                          id="plantillasGraficasGallery"
+                                        ></div>
+                                      </div>
+                                      <div class="col-12 col-xl-4">
+                                        <div
+                                          class="card border-0 shadow-sm h-100"
+                                          id="plantillasGraficasDetailCard"
+                                        >
+                                          <div class="card-body">
+                                            <h6 class="mb-2">Personaliza una grafica</h6>
+                                            <p
+                                              class="text-muted small mb-3"
+                                              id="plantillasGraficasDetailHint"
+                                            >
+                                              Selecciona una grafica para ajustar sus
+                                              fuentes, colores y titulos.
+                                            </p>
+                                            <div class="mb-3 d-none" id="plantillasGraficasDetailMeta">
+                                              <div class="fw-semibold" data-detail-title></div>
+                                              <div class="text-muted small" data-detail-subtitle></div>
+                                              <div class="text-muted small" data-detail-info></div>
+                                              <div class="text-muted small d-none" data-detail-sources></div>
+                                            </div>
+                                            <div class="d-grid gap-2">
+                                              <button
+                                                type="button"
+                                                class="btn btn-primary btn-sm d-none"
+                                                id="plantillasGraficasDetailEdit"
+                                              >
+                                                <i class="bi bi-sliders me-1"></i> Personalizar
+                                              </button>
+                                              <button
+                                                type="button"
+                                                class="btn btn-outline-primary btn-sm"
+                                                id="plantillasGraficasDetailAdd"
+                                              >
+                                                <i class="bi bi-plus-circle me-1"></i> Agregar grafica
+                                              </button>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    <template id="plantillasGraficasCardTemplate">
+                                      <button
+                                        type="button"
+                                        class="card plantillas-graficas-card"
+                                        data-chart-card
+                                      >
+                                        <div class="card-body">
+                                          <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <div>
+                                              <h6 class="mb-1" data-chart-title></h6>
+                                              <p class="text-muted small mb-0" data-chart-subtitle></p>
+                                            </div>
+                                            <span class="badge rounded-pill bg-light text-primary" data-chart-status>
+                                              Activa
+                                            </span>
+                                          </div>
+                                          <div class="plantillas-graficas-preview">
+                                            <canvas data-chart-canvas></canvas>
+                                          </div>
+                                          <div class="d-flex justify-content-between align-items-center mt-2">
+                                            <span class="text-muted small" data-chart-meta></span>
+                                            <span class="text-muted small">
+                                              <i class="bi bi-sliders me-1"></i> Personalizar
+                                            </span>
+                                          </div>
+                                        </div>
+                                      </button>
+                                    </template>
+                                    <template id="plantillasGraficasAddTemplate">
+                                      <button
+                                        type="button"
+                                        class="card plantillas-graficas-card plantillas-graficas-card-add"
+                                        data-chart-add
+                                      >
+                                        <div class="card-body">
+                                          <div class="d-flex flex-column align-items-center justify-content-center h-100">
+                                            <div class="add-icon mb-2">
+                                              <i class="bi bi-plus-circle"></i>
+                                            </div>
+                                            <div class="fw-semibold">Nueva grafica</div>
+                                            <div class="text-muted small">Agregar una fuente personalizada</div>
+                                          </div>
+                                        </div>
+                                      </button>
+                                    </template>
+                                  </div>
+
+                                  <div
+                                    class="tab-pane fade"
+                                    id="plantillasGraficasConfig"
+                                    role="tabpanel"
+                                    aria-labelledby="plantillas-graficas-config-tab"
+                                  >
+                                    <div class="accordion mt-0" id="plantillasGraficasAccordion">
+                                      <div class="accordion-item">
+                                        <h2 class="accordion-header" id="plantillasGraficasResumenHeading">
+                                          <button
+                                            class="accordion-button"
+                                            type="button"
+                                            data-bs-toggle="collapse"
+                                            data-bs-target="#plantillasGraficasResumenCollapse"
+                                            aria-expanded="true"
+                                            aria-controls="plantillasGraficasResumenCollapse"
+                                          >
+                                            Resumen y Graficas globales
+                                          </button>
+                                        </h2>
+                                        <div
+                                          id="plantillasGraficasResumenCollapse"
+                                          class="accordion-collapse collapse show"
+                                          data-bs-parent="#plantillasGraficasAccordion"
+                                        >
+                                          <div class="accordion-body">
+                                            <div class="row g-3">
+                                              <div class="col-12 col-lg-6">
+                                                <div class="card border-0 shadow-sm">
+                                                  <div class="card-body">
+                                                    <h6 class="mb-2">Series globales</h6>
+                                                    <div class="table-responsive">
+                                                      <table class="table table-sm series-table align-middle mb-0">
+                                                        <thead>
+                                                          <tr>
+                                                            <th>Serie</th>
+                                                            <th>Etiqueta</th>
+                                                            <th>Color</th>
+                                                            <th>Columna</th>
+                                                            <th class="text-center">Activa</th>
+                                                          </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                          <tr data-series-row data-series-key="actualYTD">
+                                                            <td data-title="Serie">
+                                                              <div class="fw-semibold">Real acumulado</div>
+                                                              <div class="text-muted small">actualYTD</div>
+                                                            </td>
+                                                            <td data-title="Etiqueta">
+                                                              <input
+                                                                type="text"
+                                                                class="form-control form-control-sm"
+                                                                data-series-label
+                                                              />
+                                                            </td>
+                                                            <td data-title="Color">
+                                                              <input
+                                                                type="color"
+                                                                class="form-control form-control-color color-input"
+                                                                data-series-color
+                                                              />
+                                                            </td>
+                                                            <td data-title="Columna">
+                                                              <select class="form-select form-select-sm" data-series-column>
+                                                                <option value="actualMonth">Real Mes</option>
+                                                                <option value="planMonth">Ppto. Mes</option>
+                                                                <option value="prevMonth">Real Mes AA</option>
+                                                                <option value="actualYTD">Real Acum</option>
+                                                                <option value="planYTD">Ppto. Acum</option>
+                                                                <option value="prevYTD">Real Acum AA</option>
+                                                              </select>
+                                                            </td>
+                                                            <td data-title="Activa" class="text-center">
+                                                              <input
+                                                                class="form-check-input"
+                                                                type="checkbox"
+                                                                data-series-enabled
+                                                              />
+                                                            </td>
+                                                          </tr>
+                                                          <tr data-series-row data-series-key="planYTD">
+                                                            <td data-title="Serie">
+                                                              <div class="fw-semibold">Ppto. acumulado</div>
+                                                              <div class="text-muted small">planYTD</div>
+                                                            </td>
+                                                            <td data-title="Etiqueta">
+                                                              <input
+                                                                type="text"
+                                                                class="form-control form-control-sm"
+                                                                data-series-label
+                                                              />
+                                                            </td>
+                                                            <td data-title="Color">
+                                                              <input
+                                                                type="color"
+                                                                class="form-control form-control-color color-input"
+                                                                data-series-color
+                                                              />
+                                                            </td>
+                                                            <td data-title="Columna">
+                                                              <select class="form-select form-select-sm" data-series-column>
+                                                                <option value="actualMonth">Real Mes</option>
+                                                                <option value="planMonth">Ppto. Mes</option>
+                                                                <option value="prevMonth">Real Mes AA</option>
+                                                                <option value="actualYTD">Real Acum</option>
+                                                                <option value="planYTD">Ppto. Acum</option>
+                                                                <option value="prevYTD">Real Acum AA</option>
+                                                              </select>
+                                                            </td>
+                                                            <td data-title="Activa" class="text-center">
+                                                              <input
+                                                                class="form-check-input"
+                                                                type="checkbox"
+                                                                data-series-enabled
+                                                              />
+                                                            </td>
+                                                          </tr>
+                                                          <tr data-series-row data-series-key="prevYTD">
+                                                            <td data-title="Serie">
+                                                              <div class="fw-semibold">Real acumulado AA</div>
+                                                              <div class="text-muted small">prevYTD</div>
+                                                            </td>
+                                                            <td data-title="Etiqueta">
+                                                              <input
+                                                                type="text"
+                                                                class="form-control form-control-sm"
+                                                                data-series-label
+                                                              />
+                                                            </td>
+                                                            <td data-title="Color">
+                                                              <input
+                                                                type="color"
+                                                                class="form-control form-control-color color-input"
+                                                                data-series-color
+                                                              />
+                                                            </td>
+                                                            <td data-title="Columna">
+                                                              <select class="form-select form-select-sm" data-series-column>
+                                                                <option value="actualMonth">Real Mes</option>
+                                                                <option value="planMonth">Ppto. Mes</option>
+                                                                <option value="prevMonth">Real Mes AA</option>
+                                                                <option value="actualYTD">Real Acum</option>
+                                                                <option value="planYTD">Ppto. Acum</option>
+                                                                <option value="prevYTD">Real Acum AA</option>
+                                                              </select>
+                                                            </td>
+                                                            <td data-title="Activa" class="text-center">
+                                                              <input
+                                                                class="form-check-input"
+                                                                type="checkbox"
+                                                                data-series-enabled
+                                                              />
+                                                            </td>
+                                                          </tr>
+                                                        </tbody>
+                                                      </table>
+                                                    </div>
+                                                  </div>
+                                                </div>
+                                              </div>
+
+                                              <div class="col-12 col-lg-6">
+                                                <div class="card border-0 shadow-sm mb-3">
+                                                  <div class="card-body">
+                                                    <h6 class="mb-2">Graficas principales</h6>
+                                                    <div class="row g-3">
+                                                      <div class="col-12">
+                                                        <div class="border rounded-3 p-3 h-100" data-chart-key="operating">
+                                                          <div class="d-flex justify-content-between align-items-start mb-2">
+                                                            <div>
+                                                              <h3 class="h6 mb-1">Resultado Operativo</h3>
+                                                              <p class="text-muted small mb-0">Vista Resumen</p>
+                                                            </div>
+                                                            <div class="form-check form-switch">
+                                                              <input class="form-check-input" type="checkbox" data-chart-enabled />
+                                                            </div>
+                                                          </div>
+                                                          <div class="mb-2">
+                                                            <label class="form-label small fw-semibold">Titulo</label>
+                                                            <input class="form-control form-control-sm" type="text" data-chart-title />
+                                                          </div>
+                                                          <div>
+                                                            <label class="form-label small fw-semibold">Subtitulo</label>
+                                                            <input class="form-control form-control-sm" type="text" data-chart-subtitle />
+                                                          </div>
+                                                        </div>
+                                                      </div>
+                                                      <div class="col-12">
+                                                        <div class="border rounded-3 p-3 h-100" data-chart-key="net">
+                                                          <div class="d-flex justify-content-between align-items-start mb-2">
+                                                            <div>
+                                                              <h3 class="h6 mb-1">Resumen Neto</h3>
+                                                              <p class="text-muted small mb-0">Vista Resumen</p>
+                                                            </div>
+                                                            <div class="form-check form-switch">
+                                                              <input class="form-check-input" type="checkbox" data-chart-enabled />
+                                                            </div>
+                                                          </div>
+                                                          <div class="mb-2">
+                                                            <label class="form-label small fw-semibold">Titulo</label>
+                                                            <input class="form-control form-control-sm" type="text" data-chart-title />
+                                                          </div>
+                                                          <div>
+                                                            <label class="form-label small fw-semibold">Subtitulo</label>
+                                                            <input class="form-control form-control-sm" type="text" data-chart-subtitle />
+                                                          </div>
+                                                        </div>
+                                                      </div>
+                                                      <div class="col-12">
+                                                        <div class="border rounded-3 p-3 h-100" data-chart-key="consolidated">
+                                                          <div class="d-flex justify-content-between align-items-start mb-2">
+                                                            <div>
+                                                              <h3 class="h6 mb-1">Consolidados</h3>
+                                                              <p class="text-muted small mb-0">Vista Resumen</p>
+                                                            </div>
+                                                            <div class="form-check form-switch">
+                                                              <input class="form-check-input" type="checkbox" data-chart-enabled />
+                                                            </div>
+                                                          </div>
+                                                          <div class="mb-2">
+                                                            <label class="form-label small fw-semibold">Titulo</label>
+                                                            <input class="form-control form-control-sm" type="text" data-chart-title />
+                                                          </div>
+                                                          <div>
+                                                            <label class="form-label small fw-semibold">Subtitulo</label>
+                                                            <input class="form-control form-control-sm" type="text" data-chart-subtitle />
+                                                          </div>
+                                                        </div>
+                                                      </div>
+                                                    </div>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            </div>
+
+                                            <div class="row g-3 mt-1">
+                                              <div class="col-12 col-lg-6">
+                                                <div class="card border-0 shadow-sm h-100">
+                                                  <div class="card-body">
+                                                    <h6 class="mb-2">Consolidados</h6>
+                                                    <div class="row g-3">
+                                                      <div class="col-12">
+                                                        <div class="d-flex align-items-center gap-3" data-consolidated-key="operating">
+                                                          <div>
+                                                            <div class="fw-semibold">Operating</div>
+                                                            <div class="text-muted small">Consolidados Operativos</div>
+                                                          </div>
+                                                          <div class="ms-auto">
+                                                            <input
+                                                              type="text"
+                                                              class="form-control form-control-sm mb-2"
+                                                              placeholder="Etiqueta"
+                                                              data-consolidated-label
+                                                            />
+                                                            <input
+                                                              type="color"
+                                                              class="form-control form-control-color color-input"
+                                                              data-consolidated-color
+                                                            />
+                                                          </div>
+                                                        </div>
+                                                      </div>
+                                                      <div class="col-12">
+                                                        <div class="d-flex align-items-center gap-3" data-consolidated-key="net">
+                                                          <div>
+                                                            <div class="fw-semibold">Net</div>
+                                                            <div class="text-muted small">Consolidados Netos</div>
+                                                          </div>
+                                                          <div class="ms-auto">
+                                                            <input
+                                                              type="text"
+                                                              class="form-control form-control-sm mb-2"
+                                                              placeholder="Etiqueta"
+                                                              data-consolidated-label
+                                                            />
+                                                            <input
+                                                              type="color"
+                                                              class="form-control form-control-color color-input"
+                                                              data-consolidated-color
+                                                            />
+                                                          </div>
+                                                        </div>
+                                                      </div>
+                                                    </div>
+                                                  </div>
+                                                </div>
+                                              </div>
+
+                                              <div class="col-12 col-lg-6">
+                                                <div class="card border-0 shadow-sm h-100">
+                                                  <div class="card-body">
+                                                    <h6 class="mb-2">Preferencias globales</h6>
+                                                    <div class="row g-3">
+                                                      <div class="col-12 col-lg-6">
+                                                        <label class="form-label small fw-semibold">Tipo</label>
+                                                        <select class="form-select form-select-sm" id="plantillasChartType">
+                                                          <option value="bar">Barras</option>
+                                                          <option value="line">Linea</option>
+                                                          <option value="pie">Pastel</option>
+                                                          <option value="doughnut">Dona</option>
+                                                        </select>
+                                                      </div>
+                                                      <div class="col-12 col-lg-6">
+                                                        <label class="form-label small fw-semibold">Leyenda</label>
+                                                        <select class="form-select form-select-sm" id="plantillasLegendPosition">
+                                                          <option value="bottom">Abajo</option>
+                                                          <option value="top">Arriba</option>
+                                                          <option value="left">Izquierda</option>
+                                                          <option value="right">Derecha</option>
+                                                        </select>
+                                                      </div>
+                                                      <div class="col-12 col-lg-6">
+                                                        <div class="form-check form-switch">
+                                                          <input class="form-check-input" type="checkbox" id="plantillasLegendShowToggle" />
+                                                          <label class="form-check-label small" for="plantillasLegendShowToggle">Mostrar leyenda</label>
+                                                        </div>
+                                                      </div>
+                                                      <div class="col-12 col-lg-6">
+                                                        <div class="form-check form-switch">
+                                                          <input class="form-check-input" type="checkbox" id="plantillasChartStacked" />
+                                                          <label class="form-check-label small" for="plantillasChartStacked">Barras apiladas</label>
+                                                        </div>
+                                                      </div>
+                                                    </div>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      <div class="accordion-item">
+                                        <h2 class="accordion-header" id="plantillasGraficasIngresoHeading">
+                                          <button
+                                            class="accordion-button collapsed"
+                                            type="button"
+                                            data-bs-toggle="collapse"
+                                            data-bs-target="#plantillasGraficasIngresoCollapse"
+                                            aria-expanded="false"
+                                            aria-controls="plantillasGraficasIngresoCollapse"
+                                          >
+                                            Ingreso por capítulo
+                                          </button>
+                                        </h2>
+                                        <div
+                                          id="plantillasGraficasIngresoCollapse"
+                                          class="accordion-collapse collapse"
+                                          data-bs-parent="#plantillasGraficasAccordion"
+                                        >
+                                          <div class="accordion-body">
+                                            <div class="row g-3">
+                                              <div class="col-12 col-lg-6">
+                                                <div class="card border-0 shadow-sm">
+                                                  <div class="card-body">
+                                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                                      <div>
+                                                        <h6 class="mb-1">Graficas</h6>
+                                                        <p class="text-muted small mb-0">Resumen / Graficas</p>
+                                                      </div>
+                                                      <div class="form-check form-switch">
+                                                        <input class="form-check-input" type="checkbox" id="plantillasIngresoEnabled" />
+                                                      </div>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                      <label class="form-label small fw-semibold">Titulo</label>
+                                                      <input class="form-control form-control-sm" type="text" id="plantillasIngresoTitle" />
+                                                    </div>
+                                                    <div class="mb-3">
+                                                      <label class="form-label small fw-semibold">Subtitulo</label>
+                                                      <input class="form-control form-control-sm" type="text" id="plantillasIngresoSubtitle" />
+                                                    </div>
+                                                    <div class="mb-3">
+                                                      <label class="form-label small fw-semibold">Tipo</label>
+                                                      <select class="form-select form-select-sm" id="plantillasIngresoChartType">
+                                                        <option value="inherit">Usar global</option>
+                                                        <option value="bar">Barras</option>
+                                                        <option value="line">Linea</option>
+                                                        <option value="pie">Pastel</option>
+                                                        <option value="doughnut">Dona</option>
+                                                      </select>
+                                                    </div>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                              <div class="col-12 col-lg-6">
+                                                <div class="card border-0 shadow-sm">
+                                                  <div class="card-body">
+                                                    <h6 class="mb-2">Series</h6>
+                                                    <div id="plantillasIngresoSeries"></div>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                              <div class="col-12">
+                                                <div class="card border-0 shadow-sm">
+                                                  <div class="card-body">
+                                                    <div class="d-flex justify-content-between align-items-center">
+                                                      <div>
+                                                        <h6 class="mb-1">Fuentes</h6>
+                                                        <p class="text-muted small mb-0">RESUMEN y Graficas.html</p>
+                                                      </div>
+                                                      <div class="d-flex align-items-center gap-2">
+                                                        <select class="form-select form-select-sm" id="plantillasIngresoSourcePicker">
+                                                          <option value="">Sin datos disponibles</option>
+                                                        </select>
+                                                        <button type="button" class="btn btn-outline-secondary btn-sm" id="plantillasIngresoSourceAdd">
+                                                          Agregar
+                                                        </button>
+                                                      </div>
+                                                    </div>
+                                                    <div class="mt-3" id="plantillasIngresoSourceSeries"></div>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      <div class="accordion-item">
+                                        <h2 class="accordion-header" id="plantillasGraficasIngresoNacionalHeading">
+                                          <button
+                                            class="accordion-button collapsed"
+                                            type="button"
+                                            data-bs-toggle="collapse"
+                                            data-bs-target="#plantillasGraficasIngresoNacionalCollapse"
+                                            aria-expanded="false"
+                                            aria-controls="plantillasGraficasIngresoNacionalCollapse"
+                                          >
+                                            Ingreso nacional
+                                          </button>
+                                        </h2>
+                                        <div
+                                          id="plantillasGraficasIngresoNacionalCollapse"
+                                          class="accordion-collapse collapse"
+                                          data-bs-parent="#plantillasGraficasAccordion"
+                                        >
+                                          <div class="accordion-body">
+                                            <div class="row g-3">
+                                              <div class="col-12 col-lg-6">
+                                                <div class="card border-0 shadow-sm">
+                                                  <div class="card-body">
+                                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                                      <div>
+                                                        <h6 class="mb-1">Graficas</h6>
+                                                        <p class="text-muted small mb-0">Resumen / Graficas</p>
+                                                      </div>
+                                                      <div class="form-check form-switch">
+                                                        <input class="form-check-input" type="checkbox" id="plantillasIngresoNacionalEnabled" />
+                                                      </div>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                      <label class="form-label small fw-semibold">Titulo</label>
+                                                      <input class="form-control form-control-sm" type="text" id="plantillasIngresoNacionalTitle" />
+                                                    </div>
+                                                    <div class="mb-3">
+                                                      <label class="form-label small fw-semibold">Subtitulo</label>
+                                                      <input class="form-control form-control-sm" type="text" id="plantillasIngresoNacionalSubtitle" />
+                                                    </div>
+                                                    <div class="mb-3">
+                                                      <label class="form-label small fw-semibold">Tipo</label>
+                                                      <select class="form-select form-select-sm" id="plantillasIngresoNacionalChartType">
+                                                        <option value="inherit">Usar global</option>
+                                                        <option value="bar">Barras</option>
+                                                        <option value="line">Linea</option>
+                                                        <option value="pie">Pastel</option>
+                                                        <option value="doughnut">Dona</option>
+                                                      </select>
+                                                    </div>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                              <div class="col-12 col-lg-6">
+                                                <div class="card border-0 shadow-sm">
+                                                  <div class="card-body">
+                                                    <h6 class="mb-2">Series</h6>
+                                                    <div id="plantillasIngresoNacionalSeries"></div>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                              <div class="col-12">
+                                                <div class="card border-0 shadow-sm">
+                                                  <div class="card-body">
+                                                    <div class="d-flex justify-content-between align-items-center">
+                                                      <div>
+                                                        <h6 class="mb-1">Fuentes</h6>
+                                                        <p class="text-muted small mb-0">RESUMEN y Graficas.html</p>
+                                                      </div>
+                                                      <div class="d-flex align-items-center gap-2">
+                                                        <select class="form-select form-select-sm" id="plantillasIngresoNacionalSourcePicker">
+                                                          <option value="">Sin datos disponibles</option>
+                                                        </select>
+                                                        <button type="button" class="btn btn-outline-secondary btn-sm" id="plantillasIngresoNacionalSourceAdd">
+                                                          Agregar
+                                                        </button>
+                                                      </div>
+                                                    </div>
+                                                    <div class="mt-3" id="plantillasIngresoNacionalSourceSeries"></div>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      <div class="accordion-item">
+                                        <h2 class="accordion-header" id="plantillasGraficasOperativoHeading">
+                                          <button
+                                            class="accordion-button collapsed"
+                                            type="button"
+                                            data-bs-toggle="collapse"
+                                            data-bs-target="#plantillasGraficasOperativoCollapse"
+                                            aria-expanded="false"
+                                            aria-controls="plantillasGraficasOperativoCollapse"
+                                          >
+                                            Graficas operativas
+                                          </button>
+                                        </h2>
+                                        <div
+                                          id="plantillasGraficasOperativoCollapse"
+                                          class="accordion-collapse collapse"
+                                          data-bs-parent="#plantillasGraficasAccordion"
+                                        >
+                                          <div class="accordion-body">
+                                            <div class="row g-3">
+                                              <div class="col-12 col-lg-6">
+                                                <div class="card border-0 shadow-sm">
+                                                  <div class="card-body">
+                                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                                      <div>
+                                                        <h6 class="mb-1">Graficas operativas</h6>
+                                                        <p class="text-muted small mb-0">Vista Operativa</p>
+                                                      </div>
+                                                      <div class="form-check form-switch">
+                                                        <input class="form-check-input" type="checkbox" id="plantillasOperativoEnabled" />
+                                                      </div>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                      <label class="form-label small fw-semibold">Titulo</label>
+                                                      <input class="form-control form-control-sm" type="text" id="plantillasOperativoTitle" />
+                                                    </div>
+                                                    <div class="mb-3">
+                                                      <label class="form-label small fw-semibold">Tipo</label>
+                                                      <select class="form-select form-select-sm" id="plantillasOperativoChartType">
+                                                        <option value="inherit">Usar global</option>
+                                                        <option value="bar">Barras</option>
+                                                        <option value="line">Linea</option>
+                                                        <option value="pie">Pastel</option>
+                                                        <option value="doughnut">Dona</option>
+                                                      </select>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                      <label class="form-label small fw-semibold">Subtitulo</label>
+                                                      <input class="form-control form-control-sm" type="text" id="plantillasOperativoSubtitle" />
+                                                    </div>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                              <div class="col-12 col-lg-6">
+                                                <div class="card border-0 shadow-sm">
+                                                  <div class="card-body">
+                                                    <h6 class="mb-2">Series</h6>
+                                                    <div id="plantillasOperativoSeries"></div>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      <div class="accordion-item">
+                                        <h2 class="accordion-header" id="plantillasGraficasGastosHeading">
+                                          <button
+                                            class="accordion-button collapsed"
+                                            type="button"
+                                            data-bs-toggle="collapse"
+                                            data-bs-target="#plantillasGraficasGastosCollapse"
+                                            aria-expanded="false"
+                                            aria-controls="plantillasGraficasGastosCollapse"
+                                          >
+                                            Graficas de gastos generales
+                                          </button>
+                                        </h2>
+                                        <div
+                                          id="plantillasGraficasGastosCollapse"
+                                          class="accordion-collapse collapse"
+                                          data-bs-parent="#plantillasGraficasAccordion"
+                                        >
+                                          <div class="accordion-body">
+                                            <div class="row g-3">
+                                              <div class="col-12 col-lg-6">
+                                                <div class="card border-0 shadow-sm">
+                                                  <div class="card-body">
+                                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                                      <div>
+                                                        <h6 class="mb-1">Graficas de gastos</h6>
+                                                        <p class="text-muted small mb-0">Vista Gastos Generales</p>
+                                                      </div>
+                                                      <div class="form-check form-switch">
+                                                        <input class="form-check-input" type="checkbox" id="plantillasGastosEnabled" />
+                                                      </div>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                      <label class="form-label small fw-semibold">Subtitulo</label>
+                                                      <input class="form-control form-control-sm" type="text" id="plantillasGastosSubtitle" />
+                                                    </div>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                              <div class="col-12 col-lg-6">
+                                                <div class="card border-0 shadow-sm">
+                                                  <div class="card-body">
+                                                    <h6 class="mb-2">Series</h6>
+                                                    <div id="plantillasGastosSeries"></div>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      <div class="accordion-item">
+                                        <h2 class="accordion-header" id="plantillasGraficasCustomHeading">
+                                          <button
+                                            class="accordion-button collapsed"
+                                            type="button"
+                                            data-bs-toggle="collapse"
+                                            data-bs-target="#plantillasGraficasCustomCollapse"
+                                            aria-expanded="false"
+                                            aria-controls="plantillasGraficasCustomCollapse"
+                                          >
+                                            Graficas personalizadas por modulo
+                                          </button>
+                                        </h2>
+                                        <div
+                                          id="plantillasGraficasCustomCollapse"
+                                          class="accordion-collapse collapse"
+                                          data-bs-parent="#plantillasGraficasAccordion"
+                                        >
+                                          <div class="accordion-body">
+                                            <div class="d-flex flex-column flex-lg-row gap-3 align-items-start">
+                                              <div class="flex-grow-1">
+                                                <p class="text-muted small">
+                                                  Selecciona una grafica personalizada, define su modulo fuente y
+                                                  ajusta las filas disponibles.
+                                                </p>
+                                              </div>
+                                              <div class="d-flex align-items-start">
+                                                <button
+                                                  type="button"
+                                                  class="btn btn-outline-primary btn-sm"
+                                                  id="plantillasGraficasAddCustom"
+                                                >
+                                                  <i class="bi bi-plus-circle me-1"></i> Agregar grafica
+                                                </button>
+                                              </div>
+                                            </div>
+                                            <div class="d-flex flex-column gap-3 mt-3" id="plantillasGraficasCustomList"></div>
+                                            <div class="form-text mt-2">
+                                              Usa una linea por fila. Puedes usar
+                                              "alias=LABEL1|LABEL2" para variantes.
+                                            </div>
+                                            <template id="plantillasGraficasCustomTemplate">
+                                              <div class="card border" data-custom-chart>
+                                                <div class="card-body p-3">
+                                                  <div class="d-flex justify-content-between align-items-center mb-2">
+                                                    <div class="text-muted small fw-semibold">Grafica personalizada</div>
+                                                    <button
+                                                      type="button"
+                                                      class="btn btn-outline-danger btn-sm"
+                                                      data-custom-remove
+                                                    >
+                                                      Eliminar
+                                                    </button>
+                                                  </div>
+                                                  <div class="row g-2">
+                                                    <div class="col-12 col-lg-4">
+                                                      <label class="form-label small fw-semibold">Modulo origen</label>
+                                                      <select
+                                                        class="form-select form-select-sm"
+                                                        data-custom-module
+                                                      ></select>
+                                                    </div>
+                                                    <div class="col-12 col-lg-4">
+                                                      <label class="form-label small fw-semibold">Titulo</label>
+                                                      <input
+                                                        type="text"
+                                                        class="form-control form-control-sm"
+                                                        data-custom-title
+                                                      />
+                                                    </div>
+                                                    <div class="col-12 col-lg-4">
+                                                      <label class="form-label small fw-semibold">Tipo</label>
+                                                      <select
+                                                        class="form-select form-select-sm"
+                                                        data-custom-type
+                                                      >
+                                                        <option value="inherit">Usar global</option>
+                                                        <option value="bar">Barras</option>
+                                                        <option value="line">Linea</option>
+                                                        <option value="pie">Pastel</option>
+                                                        <option value="doughnut">Dona</option>
+                                                      </select>
+                                                    </div>
+                                                    <div class="col-12 col-lg-8">
+                                                      <label class="form-label small fw-semibold">Subtitulo</label>
+                                                      <input
+                                                        type="text"
+                                                        class="form-control form-control-sm"
+                                                        data-custom-subtitle
+                                                      />
+                                                    </div>
+                                                    <div class="col-12 col-lg-4 d-flex align-items-end">
+                                                      <div class="form-check form-switch">
+                                                        <input
+                                                          class="form-check-input"
+                                                          type="checkbox"
+                                                          data-custom-enabled
+                                                        />
+                                                        <label class="form-check-label small">Activa</label>
+                                                      </div>
+                                                    </div>
+                                                    <div class="col-12 col-lg-8">
+                                                      <label class="form-label small fw-semibold">Fuente de datos (fila)</label>
+                                                      <select
+                                                        class="form-select form-select-sm"
+                                                        data-custom-source-picker
+                                                      >
+                                                        <option value="">Sin datos disponibles</option>
+                                                      </select>
+                                                    </div>
+                                                    <div class="col-12 col-lg-4 d-flex align-items-end">
+                                                      <button
+                                                        type="button"
+                                                        class="btn btn-outline-secondary btn-sm w-100"
+                                                        data-custom-add-source
+                                                      >
+                                                        Agregar a filas
+                                                      </button>
+                                                    </div>
+                                                    <div class="col-12 col-lg-6">
+                                                      <label class="form-label small fw-semibold">Columna</label>
+                                                      <select class="form-select form-select-sm" data-custom-column>
+                                                        <option value="actualMonth">Real Mes</option>
+                                                        <option value="planMonth">Ppto. Mes</option>
+                                                        <option value="prevMonth">Real Mes AA</option>
+                                                        <option value="actualYTD">Real Acum</option>
+                                                        <option value="planYTD">Ppto. Acum</option>
+                                                        <option value="prevYTD">Real Acum AA</option>
+                                                      </select>
+                                                    </div>
+                                                    <div class="col-12">
+                                                      <label class="form-label small fw-semibold">Filas</label>
+                                                      <textarea
+                                                        class="form-control form-control-sm"
+                                                        rows="3"
+                                                        data-custom-rows
+                                                      ></textarea>
+                                                    </div>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            </template>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div class="text-muted small mt-3" id="plantillasGraficasStatus">
+                                Listo para editar.
+                              </div>
+                            </fieldset>
+                          </form>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <div class="modal fade" id="modalAgregar" tabindex="-1">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">
+              <i class="bi bi-plus-circle me-2"></i>Agregar Elemento
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <div class="element-type-selector mb-4">
+              <label class="element-type-option">
+                <input type="radio" name="tipoElemento" value="seccion-principal" checked />
+                <div class="option-card">
+                  <i class="bi bi-folder2 text-primary"></i>
+                  <span>Sección Principal</span>
+                </div>
+              </label>
+              <label class="element-type-option">
+                <input type="radio" name="tipoElemento" value="seccion-secundaria" />
+                <div class="option-card">
+                  <i class="bi bi-folder text-info"></i>
+                  <span>Sección Secundaria</span>
+                </div>
+              </label>
+              <label class="element-type-option">
+                <input type="radio" name="tipoElemento" value="cuenta" />
+                <div class="option-card">
+                  <i class="bi bi-file-earmark-text text-secondary"></i>
+                  <span>Cuenta</span>
+                </div>
+              </label>
+              <label class="element-type-option">
+                <input type="radio" name="tipoElemento" value="operacion" />
+                <div class="option-card">
+                  <i class="bi bi-calculator text-success"></i>
+                  <span>Operación</span>
+                </div>
+              </label>
+            </div>
+            <div id="formElemento" class="form-elemento"></div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+              Cancelar
+            </button>
+            <button type="button" class="btn btn-success" id="btnConfirmarAgregar">
+              <i class="bi bi-plus-circle me-1"></i>Agregar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="modalCopiar" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">
+              <i class="bi bi-copy me-2"></i>Copiar Layout a Otro Año
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <div class="row mb-3">
+              <div class="col-5">
+                <small class="text-muted">Origen</small>
+                <div class="fw-bold" id="copiaOrigen">-</div>
+              </div>
+              <div class="col-2 text-center">
+                <i class="bi bi-arrow-right text-primary fs-4"></i>
+              </div>
+              <div class="col-5">
+                <small class="text-muted">Destino</small>
+                <input type="number" id="anioDestino" class="form-control" placeholder="2026" />
+              </div>
+            </div>
+            <div class="alert alert-info">
+              <i class="bi bi-info-circle me-2"></i>
+              Se copiará la estructura completa: cuentas, secciones y operaciones.
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="button" class="btn btn-primary" id="btnConfirmarCopia">
+              <i class="bi bi-copy me-1"></i>Copiar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="modalEditar" tabindex="-1">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">
+              <i class="bi bi-pencil me-2"></i>Editar Elemento
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body" id="formEditar"></div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-danger me-auto" id="btnEliminar">
+              <i class="bi bi-trash me-1"></i>Eliminar
+            </button>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="button" class="btn btn-primary" id="btnConfirmarEditar">
+              <i class="bi bi-check me-1"></i>Guardar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="modalPreview" tabindex="-1">
+      <div class="modal-dialog modal-fullscreen">
+        <div class="modal-content">
+          <div class="modal-header bg-dark text-white">
+            <h5 class="modal-title">
+              <i class="bi bi-eye me-2"></i>Vista Previa del Módulo
+            </h5>
+            <div class="ms-auto me-3 d-flex align-items-center gap-3">
+              <span id="previewContextInfo" class="text-white-50 small"></span>
+              <button type="button" class="btn btn-sm btn-outline-light" id="btnPrintPreview">
+                <i class="bi bi-printer"></i> Imprimir
+              </button>
+            </div>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body p-0 bg-light">
+            <div id="previewContainer" class="p-4">
+              <div class="alert alert-info m-4">Cargando vista previa...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="modalReordenar" tabindex="-1">
+      <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">
+              <i class="bi bi-arrows-move me-2"></i>Reordenar Elementos de la
+              Plantilla
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <div class="orden-info">
+              <h6>
+                <i class="bi bi-info-circle"></i> ¿Cómo usar el reordenamiento?
+              </h6>
+              <p>
+                Esta herramienta te permite organizar visualmente el orden de
+                aparición de todos los elementos en la plantilla:
+              </p>
+              <ul>
+                <li>
+                  <strong>Arrastrar y soltar:</strong> Haz clic y mantén
+                  presionado el ícono <i class="bi bi-grip-vertical"></i> para
+                  mover elementos
+                </li>
+                <li>
+                  <strong>Flechas:</strong> Usa los botones
+                  <i class="bi bi-arrow-up"></i> y
+                  <i class="bi bi-arrow-down"></i> para mover un elemento
+                </li>
+                <li>
+                  <strong>Editar:</strong> Haz clic en
+                  <i class="bi bi-pencil"></i> para modificar las propiedades
+                  del elemento
+                </li>
+                <li>
+                  <strong>Números:</strong> Los círculos morados muestran la
+                  posición actual de cada elemento
+                </li>
+              </ul>
+              <p class="mb-0">
+                <strong>Nota:</strong> Los cambios se guardan al cerrar este
+                modal o al hacer clic en "Guardar".
+              </p>
+            </div>
+
+            <div class="orden-filters">
+              <div class="filter-group">
+                <span class="filter-label">Mostrar:</span>
+                <button class="filter-btn active" data-filter="all">
+                  <i class="bi bi-layout-text-window me-1"></i>Todos
+                </button>
+                <button class="filter-btn" data-filter="seccion">
+                  <i class="bi bi-folder2 me-1"></i>Secciones
+                </button>
+                <button class="filter-btn" data-filter="cuenta">
+                  <i class="bi bi-file-earmark-text me-1"></i>Cuentas
+                </button>
+                <button class="filter-btn" data-filter="operacion">
+                  <i class="bi bi-calculator me-1"></i>Operaciones
+                </button>
+              </div>
+            </div>
+
+            <div class="orden-container" id="ordenContainer"></div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" id="btnResetOrden">
+              <i class="bi bi-arrow-counterclockwise me-1"></i>Resetear Orden
+            </button>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="button" class="btn btn-primary" id="btnConfirmarOrden">
+              <i class="bi bi-check-circle me-1"></i>Aplicar Orden
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div
+      class="offcanvas offcanvas-end template-editor-panel"
+      tabindex="-1"
+      id="operationEditorPanel"
+      aria-labelledby="operationEditorTitle"
+    >
+      <div class="offcanvas-header">
+        <div>
+          <h5 class="offcanvas-title" id="operationEditorTitle">Editor de operacion</h5>
+          <div class="small text-muted" id="operationEditorSubtitle"></div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+      </div>
+      <div class="offcanvas-body">
+        <ul class="nav nav-tabs editor-tabs" id="operationEditorTabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button
+              class="nav-link"
+              id="editor-tab-datos"
+              data-bs-toggle="tab"
+              data-bs-target="#editorTabDatos"
+              type="button"
+              role="tab"
+            >
+              Datos
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button
+              class="nav-link active"
+              id="editor-tab-formula"
+              data-bs-toggle="tab"
+              data-bs-target="#editorTabFormula"
+              type="button"
+              role="tab"
+            >
+              Fórmula
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button
+              class="nav-link"
+              id="editor-tab-aparicion"
+              data-bs-toggle="tab"
+              data-bs-target="#editorTabAparicion"
+              type="button"
+              role="tab"
+            >
+              Aparición
+            </button>
+          </li>
+        </ul>
+        <div class="tab-content editor-tab-content pt-3">
+          <div class="tab-pane fade" id="editorTabDatos" role="tabpanel"></div>
+          <div class="tab-pane fade show active" id="editorTabFormula" role="tabpanel"></div>
+          <div class="tab-pane fade" id="editorTabAparicion" role="tabpanel"></div>
+        </div>
+        <div class="editor-footer">
+          <button type="button" class="btn btn-outline-danger btn-sm" id="btnEditorDelete">
+            <i class="bi bi-trash me-1"></i>Eliminar
+          </button>
+          <div class="ms-auto d-flex gap-2">
+            <button
+              type="button"
+              class="btn btn-outline-secondary btn-sm"
+              data-bs-dismiss="offcanvas"
+            >
+              Cerrar
+            </button>
+            <button type="button" class="btn btn-primary btn-sm" id="btnEditorSave">
+              <i class="bi bi-check me-1"></i>Guardar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+      <div id="toastNotification" class="toast" role="alert">
+        <div class="toast-header">
+          <i class="bi bi-info-circle text-primary me-2"></i>
+          <strong class="me-auto">Gestor</strong>
+          <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+        </div>
+        <div class="toast-body" id="toastMessage">Mensaje</div>
+      </div>
+    </div>
+
+    <script src="js/sesion.js"></script>
+    <script src="js/verificar-sesion.js"></script>
+    <script src="js/capitulos-modulos.js"></script>
+    <script src="js/modo-edicion-presupuesto.js"></script>
+    <script src="js/flujo-autorizacion.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/formula-builder.js"></script>
+    <script src="js/layout-controls.js"></script>
+    <script src="js/operation-sync.js"></script>
+    <script src="js/operation-debugger.js"></script>
+    <script src="js/plantillas-reordenar.js"></script>
+    <script src="js/importar-estructura-resumen.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="js/graficas-config.js"></script>
+    <script src="js/plantillas-graficas.js"></script>
+    <script src="js/plantillas.js"></script>
+  </body>
+</html>

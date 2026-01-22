@@ -68,6 +68,12 @@
     statusEl.setAttribute("data-tone", tone);
   };
 
+  if (fieldset) {
+    console.debug("[plantillas-graficas] Fieldset estado", {
+      disabled: fieldset.disabled,
+    });
+  }
+
   const isAdmin = () => {
     if (!window.Sesion || typeof window.Sesion.puedeAdministrarUsuarios !== "function") {
       return false;
@@ -340,6 +346,9 @@
     window.Sesion?.obtenerEmpresaActiva?.()?.id ||
     null;
 
+  const getSelectedCapitulo = () =>
+    document.getElementById("capituloSelect")?.value?.toString().trim() || "";
+
   const getPreviewContext = () => {
     const snapshot = readLatestSnapshot();
     return {
@@ -347,7 +356,7 @@
       snapshotMap: buildSnapshotMap(snapshot),
       empresaId: getPreviewEmpresaId(snapshot),
       anio: getPreviewYear(snapshot),
-      capitulo: snapshot?.capitulo || "",
+      capitulo: getSelectedCapitulo() || snapshot?.capitulo || "",
     };
   };
 
@@ -441,7 +450,7 @@
     input.dispatchEvent(new Event("input", { bubbles: true }));
   };
 
-  const snapshotLabelOptions = getSnapshotLabels();
+  const buildSnapshotLabelOptions = () => getSnapshotLabels();
 
   const renderCustomChartItem = (chart = {}) => {
     if (!customTemplate || !customList) return null;
@@ -457,6 +466,7 @@
     const removeBtn = node.querySelector("[data-custom-remove]");
     const sourcePicker = node.querySelector("[data-custom-source-picker]");
     const addSourceBtn = node.querySelector("[data-custom-add-source]");
+    const columnSelect = node.querySelector("[data-custom-column]");
 
     if (titleInput) titleInput.value = chart.title || "";
     if (subtitleInput) subtitleInput.value = chart.subtitle || "";
@@ -468,16 +478,20 @@
     if (enabledInput) enabledInput.checked = chart.enabled !== false;
 
     if (sourcePicker) {
-      fillSelectOptions(sourcePicker, snapshotLabelOptions, "Selecciona una fila");
+      const options = buildSnapshotLabelOptions();
+      fillSelectOptions(sourcePicker, options, "Selecciona una fila");
     }
     if (addSourceBtn) {
-      addSourceBtn.disabled = !snapshotLabelOptions.length;
+      addSourceBtn.disabled = !buildSnapshotLabelOptions().length;
       addSourceBtn.addEventListener("click", () => {
         if (!sourcePicker || !rowsInput) return;
         const selected = sourcePicker.value;
         appendRowValue(rowsInput, selected);
         sourcePicker.value = "";
       });
+    }
+    if (columnSelect) {
+      columnSelect.value = chart.columnKey || "actualYTD";
     }
 
     if (removeBtn) {
@@ -488,6 +502,12 @@
     }
 
     customList.appendChild(node);
+    if (moduleSelect && sourcePicker) {
+      moduleSelect.addEventListener("change", () => {
+        const options = buildSnapshotLabelOptions();
+        fillSelectOptions(sourcePicker, options, "Selecciona una fila");
+      });
+    }
     return node;
   };
 
@@ -617,6 +637,9 @@
       sources.ingresoNacional || defaultSources.ingresoNacional || {};
 
     const rows = Array.from(form.querySelectorAll("[data-series-row]"));
+    if (!rows.length) {
+      console.warn("[plantillas-graficas] Sin filas de series para configurar.");
+    }
     rows.forEach((row) => {
       const key = row.getAttribute("data-series-key");
       const serie =
@@ -625,9 +648,17 @@
       if (!serie) return;
       const labelInput = row.querySelector("[data-series-label]");
       const colorInput = row.querySelector("[data-series-color]");
+      const columnSelect = row.querySelector("[data-series-column]");
       const enabledInput = row.querySelector("[data-series-enabled]");
       if (labelInput) labelInput.value = serie.label || "";
       if (colorInput) colorInput.value = serie.color || "#0d47a1";
+      if (columnSelect) {
+        columnSelect.value = serie.columnKey || serie.key || "actualYTD";
+      } else {
+        console.warn("[plantillas-graficas] Falta selector de columna", {
+          key,
+        });
+      }
       if (enabledInput) enabledInput.checked = Boolean(serie.enabled);
     });
 
@@ -888,6 +919,7 @@
       if (!key) return;
       const labelInput = row.querySelector("[data-series-label]");
       const colorInput = row.querySelector("[data-series-color]");
+      const columnSelect = row.querySelector("[data-series-column]");
       const enabledInput = row.querySelector("[data-series-enabled]");
       const fallback =
         (defaults.series || []).find((item) => item.key === key) || {};
@@ -895,9 +927,13 @@
         key,
         label: labelInput?.value?.trim() || fallback.label || "",
         color: colorInput?.value || fallback.color || "#0d47a1",
+        columnKey: columnSelect?.value || fallback.columnKey || key,
         enabled: Boolean(enabledInput?.checked),
       });
     });
+    if (!series.length) {
+      console.warn("[plantillas-graficas] No se detectaron series en el formulario.");
+    }
 
     const charts = {};
     form.querySelectorAll("[data-chart-key]").forEach((row) => {
@@ -1066,6 +1102,8 @@
           item.querySelector("[data-custom-type]")?.value || "inherit";
         const enabled =
           item.querySelector("[data-custom-enabled]")?.checked !== false;
+        const columnKey =
+          item.querySelector("[data-custom-column]")?.value || "actualYTD";
         const rowsText = item.querySelector("[data-custom-rows]")?.value || "";
         const rows = parseCustomRows(rowsText);
         customCharts.push({
@@ -1075,6 +1113,7 @@
           module,
           chartType,
           enabled,
+          columnKey,
           rows,
         });
       });
@@ -1372,14 +1411,15 @@
     return raw.toString();
   };
 
-  const buildDatasetsFromSnapshot = ({
-    rows,
-    snapshotMap,
-    seriesList,
-    chartType,
-    capituloLabel,
-    looseMatch,
-  }) => {
+    const buildDatasetsFromSnapshot = ({
+      rows,
+      snapshotMap,
+      seriesList,
+      chartType,
+      capituloLabel,
+      looseMatch,
+      columnKeyOverride,
+    }) => {
     if (!Array.isArray(rows) || !rows.length) return null;
     const activeSeries = (seriesList || []).filter(
       (serie) => serie?.enabled !== false
@@ -1403,7 +1443,8 @@
         : getRowTotals(snapshotMap, variants);
       labels.push(label);
       activeSeries.forEach((serie, index) => {
-        dataMatrix[index].push(toNumber(totals?.[serie.key]));
+        const columnKey = columnKeyOverride || serie.columnKey || serie.key;
+        dataMatrix[index].push(toNumber(totals?.[columnKey]));
       });
     });
 
@@ -1692,6 +1733,7 @@
         chartType,
         capituloLabel,
         looseMatch: true,
+        columnKeyOverride: definition.columnKey,
       });
       return data ? { chartType, ...data } : null;
     }
