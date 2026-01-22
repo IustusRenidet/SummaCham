@@ -739,19 +739,26 @@
     if (!dom.anioSelect) return;
     try {
       const empresaId = getEmpresaId();
-      const response = isGestorView()
-        ? await fetchWithAuth(
-            `${resolveApiBase()}/api/saldos/anios?empresaId=${encodeURIComponent(
-              empresaId,
-            )}`,
-          )
-        : await fetchWithAuth(
-            buildApiUrl(`/${encodeURIComponent(state.modulo)}/anios`),
-          );
+      let data = null;
+      let response = null;
+      if (isGestorView()) {
+        response = await fetchWithAuth(
+          `${resolveApiBase()}/api/saldos/anios?empresaId=${encodeURIComponent(
+            empresaId,
+          )}`,
+        );
+        if (response.ok) {
+          data = await response.json();
+        }
+      }
+      if (!data) {
+        response = await fetchWithAuth(
+          buildApiUrl(`/${encodeURIComponent(state.modulo)}/anios`),
+        );
+        if (!response.ok) throw new Error("Error al cargar años");
+        data = await response.json();
+      }
 
-      if (!response.ok) throw new Error("Error al cargar años");
-
-      const data = await response.json();
       const yearsRaw = Array.isArray(data.anios)
         ? data.anios
         : typeof data.anios === "string"
