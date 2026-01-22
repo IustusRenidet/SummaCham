@@ -25,18 +25,21 @@
         key: "actualYTD",
         label: "Real acumulado",
         color: "#0d47a1",
+        columnKey: "actualYTD",
         enabled: true,
       },
       {
         key: "planYTD",
         label: "Ppto. acumulado",
         color: "#60a5fa",
+        columnKey: "planYTD",
         enabled: true,
       },
       {
         key: "prevYTD",
         label: "Real acumulado AA",
         color: "#94a3b8",
+        columnKey: "prevYTD",
         enabled: true,
       },
     ],
@@ -478,7 +481,11 @@
             : serie.color;
         const enabled =
           typeof override.enabled === "boolean" ? override.enabled : serie.enabled;
-        return { ...serie, label, color, enabled };
+        const columnKey =
+          typeof override.columnKey === "string" && override.columnKey.trim()
+            ? override.columnKey.trim()
+            : serie.columnKey || serie.key;
+        return { ...serie, label, color, columnKey, enabled };
       });
     }
 
@@ -855,9 +862,13 @@
       if (!serie) return;
       const labelInput = row.querySelector("[data-series-label]");
       const colorInput = row.querySelector("[data-series-color]");
+      const columnSelect = row.querySelector("[data-series-column]");
       const enabledInput = row.querySelector("[data-series-enabled]");
       if (labelInput) labelInput.value = serie.label || "";
       if (colorInput) colorInput.value = serie.color || "#0d47a1";
+      if (columnSelect) {
+        columnSelect.value = serie.columnKey || serie.key || "actualYTD";
+      }
       if (enabledInput) enabledInput.checked = Boolean(serie.enabled);
     });
 
@@ -908,12 +919,14 @@
       if (!key) return;
       const labelInput = row.querySelector("[data-series-label]");
       const colorInput = row.querySelector("[data-series-color]");
+      const columnSelect = row.querySelector("[data-series-column]");
       const enabledInput = row.querySelector("[data-series-enabled]");
       const fallback = (defaults.series || []).find((item) => item.key === key) || {};
       const label = labelInput?.value?.trim() || fallback.label || "";
       const color = colorInput?.value || fallback.color || "#0d47a1";
       const enabled = Boolean(enabledInput?.checked);
-      series.push({ key, label, color, enabled });
+      const columnKey = columnSelect?.value || fallback.columnKey || key;
+      series.push({ key, label, color, columnKey, enabled });
     });
 
     const charts = {};

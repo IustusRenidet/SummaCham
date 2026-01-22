@@ -154,9 +154,9 @@
           requiresAdmin: true,
         },
         {
-          id: "plantillas",
-          label: "Gestor de Plantillas",
-          path: "plantillas.html",
+          id: "gestor",
+          label: "Gestor",
+          path: "Gestor.html",
           requiresAdmin: true,
           permiso: "Layouts",
         },
