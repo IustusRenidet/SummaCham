@@ -103,8 +103,6 @@
     });
   };
 
-  bootstrapEarly();
-
   function cacheDOMElements() {
     // Selectors
     dom.moduloSelect = document.getElementById("moduloSelect");
@@ -9508,6 +9506,8 @@
         saveContextToURL();
       };
     }
+
+    bootstrapEarly();
 
     // Cargar contexto al iniciar
     loadContextFromURL();
