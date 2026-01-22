@@ -32,10 +32,15 @@
         <div class="container-fluid">
           <div class="d-flex flex-column flex-lg-row gap-3 align-items-lg-center">
             <div class="gestor-title">
-              <h1 class="fw-bold mb-1">Gestor</h1>
+              <h1 class="fw-bold mb-1">Gestor de Plantillas y Gráficas</h1>
               <p class="text-muted mb-0">
-                Administra layouts y gráficas desde un solo lugar.
+                Controla estructura, fórmulas y visualización en una sola vista.
               </p>
+              <div class="gestor-steps mt-3">
+                <span class="step-pill">1 · Contexto</span>
+                <span class="step-pill">2 · Ajustes</span>
+                <span class="step-pill">3 · Guardado</span>
+              </div>
             </div>
             <div class="gestor-context ms-lg-auto">
               <div class="context-pill">
@@ -59,7 +64,7 @@
             <aside class="col-12 col-xl-4">
               <div class="card gestor-card mb-3">
                 <div class="card-body">
-                  <h2 class="h6 fw-bold mb-3">Contexto de plantilla</h2>
+                  <h2 class="h6 fw-bold mb-3">Paso 1 · Contexto</h2>
                   <div class="row g-3">
                     <div class="col-12">
                       <label for="moduloSelect" class="form-label small fw-semibold"
@@ -110,7 +115,7 @@
 
               <div class="card gestor-card mb-3">
                 <div class="card-body">
-                  <h2 class="h6 fw-bold mb-3">Busqueda rápida</h2>
+                  <h2 class="h6 fw-bold mb-3">Paso 2 · Filtros rápidos</h2>
                   <div class="search-container mb-3">
                     <input
                       type="text"
@@ -142,7 +147,7 @@
 
               <div class="card gestor-card">
                 <div class="card-body">
-                  <h2 class="h6 fw-bold mb-3">Acciones</h2>
+                  <h2 class="h6 fw-bold mb-3">Paso 3 · Acciones</h2>
                   <div class="d-grid gap-2">
                     <button type="button" id="btnAgregar" class="btn btn-success" disabled>
                       <i class="bi bi-plus-circle me-1"></i> Agregar
@@ -224,7 +229,7 @@
                         type="button"
                         role="tab"
                       >
-                        Layout
+                        Editor de Layout
                       </button>
                     </li>
                     <li class="nav-item" role="presentation">
@@ -236,7 +241,7 @@
                         type="button"
                         role="tab"
                       >
-                        Graficas
+                        Editor de Gráficas
                       </button>
                     </li>
                   </ul>
@@ -253,9 +258,9 @@
                           <div class="placeholder-icon mx-auto mb-4">
                             <i class="bi bi-layout-text-window"></i>
                           </div>
-                          <h2>Selecciona módulo, año y capítulo</h2>
+                          <h2>Define el contexto de trabajo</h2>
                           <p class="text-muted">
-                            Carga el layout para empezar a editar.
+                            Selecciona módulo, ejercicio y capítulo para iniciar.
                           </p>
                         </div>
                       </div>
