@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { db } = require("../db/sqlite");
+const { getDefaultGraficasConfig } = require("../config/graficasDefaults");
 const { requireAuth, extraerEmpresaActiva } = require("../middleware/auth");
 
 const obtenerEmpresa = (req) => extraerEmpresaActiva(req) || "EMPRESA01";
@@ -17,10 +18,31 @@ const leerConfig = (empresaId) => {
   }
 };
 
+const guardarConfig = (empresaId, config) => {
+  const payload = JSON.stringify(config);
+  db.prepare(
+    `
+      INSERT INTO graficas_config (empresa_id, config_json, updated_at)
+      VALUES (?, ?, CURRENT_TIMESTAMP)
+      ON CONFLICT(empresa_id) DO UPDATE SET
+        config_json = excluded.config_json,
+        updated_at = CURRENT_TIMESTAMP
+    `
+  ).run(empresaId, payload);
+};
+
+const obtenerConfigInicial = (empresaId) => {
+  const existente = leerConfig(empresaId);
+  if (existente) return existente;
+  const defaults = getDefaultGraficasConfig();
+  guardarConfig(empresaId, defaults);
+  return defaults;
+};
+
 router.get("/", requireAuth, (req, res) => {
   try {
     const empresaId = obtenerEmpresa(req);
-    const config = leerConfig(empresaId);
+    const config = obtenerConfigInicial(empresaId);
     return res.json({ success: true, empresaId, config });
   } catch (error) {
     console.error("Error al cargar graficas-config:", error);
@@ -47,16 +69,7 @@ router.post("/", requireAuth, (req, res) => {
         mensaje: "Configuracion invalida.",
       });
     }
-    const payload = JSON.stringify(config);
-    db.prepare(
-      `
-      INSERT INTO graficas_config (empresa_id, config_json, updated_at)
-      VALUES (?, ?, CURRENT_TIMESTAMP)
-      ON CONFLICT(empresa_id) DO UPDATE SET
-        config_json = excluded.config_json,
-        updated_at = CURRENT_TIMESTAMP
-    `
-    ).run(empresaId, payload);
+    guardarConfig(empresaId, config);
     return res.json({ success: true, empresaId, config });
   } catch (error) {
     console.error("Error al guardar graficas-config:", error);

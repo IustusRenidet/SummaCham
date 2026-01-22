@@ -732,18 +732,42 @@
     }
   }
 
+  const isGestorView = () =>
+    window.location.pathname.toLowerCase().includes("gestor.html");
+
   async function loadYears() {
     if (!dom.anioSelect) return;
     try {
-      const url = buildApiUrl(`/${encodeURIComponent(state.modulo)}/anios`);
-      const response = await fetchWithAuth(url);
+      const empresaId = getEmpresaId();
+      let data = null;
+      let response = null;
+      if (isGestorView()) {
+        response = await fetchWithAuth(
+          `${resolveApiBase()}/api/saldos/anios?empresaId=${encodeURIComponent(
+            empresaId,
+          )}`,
+        );
+        if (response.ok) {
+          data = await response.json();
+        }
+      }
+      if (!data) {
+        response = await fetchWithAuth(
+          buildApiUrl(`/${encodeURIComponent(state.modulo)}/anios`),
+        );
+        if (!response.ok) throw new Error("Error al cargar años");
+        data = await response.json();
+      }
 
-      if (!response.ok) throw new Error("Error al cargar años");
+      const yearsRaw = Array.isArray(data.anios)
+        ? data.anios
+        : typeof data.anios === "string"
+          ? data.anios.split(",").map((v) => v.trim()).filter(Boolean)
+          : [];
+      let years = yearsRaw
+        .map((value) => Number(value))
+        .filter((value) => Number.isInteger(value));
 
-      const data = await response.json();
-      let years = Array.isArray(data.anios) ? data.anios : [];
-
-      // Fallback: if no years are returned from API, provide defaults
       if (!years.length) {
         console.log("No years from API, using defaults 2025, 2026");
         years = [2025, 2026];
@@ -752,7 +776,6 @@
       const currentYear = new Date().getFullYear();
       const preferredYear = Number(state.anio);
 
-      // Ordenar años descendente
       const sortedYears = [...new Set(years)].sort((a, b) => b - a);
       const selectedYear =
         Number.isInteger(preferredYear) && sortedYears.includes(preferredYear)
@@ -770,7 +793,6 @@
         )
         .join("");
 
-      // Seleccionar año actual si existe, sino el más reciente
       state.anio = selectedYear || null;
     } catch (error) {
       console.error("Error loading years:", error);
