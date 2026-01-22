@@ -1,5 +1,5 @@
 .gestor-body {
-  background: #f5f7fb;
+  background: var(--color-fondo, #f2f2f2);
   font-family: "Manrope", system-ui, -apple-system, sans-serif;
   color: #2f5496;
 }
@@ -11,8 +11,8 @@
 }
 
 .gestor-header {
-  background: linear-gradient(120deg, #e5ecfb, #ffffff 60%);
-  border-bottom: 1px solid rgba(47, 84, 150, 0.1);
+  background: #ffffff;
+  border-bottom: 1px solid rgba(132, 151, 176, 0.2);
   padding: 1.5rem 0;
 }
 

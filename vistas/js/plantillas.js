@@ -110,7 +110,9 @@
   function cacheDOMElements() {
     // Selectors
     dom.moduloSelect = document.getElementById("moduloSelect");
-    dom.anioSelect = document.getElementById("anioSelect");
+    dom.anioSelect =
+      document.getElementById("anioSelect") ||
+      document.getElementById("gestorYearSelect");
     dom.capituloSelect = document.getElementById("capituloSelect");
 
     // Labels
@@ -739,26 +741,16 @@
     if (!dom.anioSelect) return;
     try {
       const empresaId = getEmpresaId();
-      let data = null;
-      let response = null;
-      if (isGestorView()) {
-        response = await fetchWithAuth(
-          `${resolveApiBase()}/api/saldos/anios?empresaId=${encodeURIComponent(
+      const url = isGestorView()
+        ? `${resolveApiBase()}/api/saldos/anios?empresaId=${encodeURIComponent(
             empresaId,
-          )}`,
-        );
-        if (response.ok) {
-          data = await response.json();
-        }
-      }
-      if (!data) {
-        response = await fetchWithAuth(
-          buildApiUrl(`/${encodeURIComponent(state.modulo)}/anios`),
-        );
-        if (!response.ok) throw new Error("Error al cargar años");
-        data = await response.json();
-      }
+          )}`
+        : buildApiUrl(`/${encodeURIComponent(state.modulo)}/anios`);
 
+      const response = await fetchWithAuth(url);
+      if (!response.ok) throw new Error("Error al cargar años");
+
+      const data = await response.json();
       const yearsRaw = Array.isArray(data.anios)
         ? data.anios
         : typeof data.anios === "string"
