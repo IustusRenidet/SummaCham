@@ -1,0 +1,73 @@
+.gestor-body {
+  background: #f5f7fb;
+  font-family: "Manrope", system-ui, -apple-system, sans-serif;
+  color: #2f5496;
+}
+
+.gestor-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.gestor-header {
+  background: linear-gradient(120deg, #e5ecfb, #ffffff 60%);
+  border-bottom: 1px solid rgba(47, 84, 150, 0.1);
+  padding: 1.5rem 0;
+}
+
+.gestor-title h1 {
+  font-size: clamp(1.8rem, 2.4vw, 2.4rem);
+}
+
+.gestor-context {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.context-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1px solid rgba(47, 84, 150, 0.12);
+  font-size: 0.85rem;
+}
+
+.context-pill .dot {
+  opacity: 0.5;
+}
+
+.gestor-main {
+  flex: 1;
+  padding: 1.5rem 0 2rem;
+}
+
+.gestor-card {
+  border: none;
+  border-radius: 16px;
+  box-shadow: 0 10px 24px rgba(47, 84, 150, 0.08);
+}
+
+.gestor-tabs .nav-link {
+  font-weight: 600;
+}
+
+.gestor-tabs .nav-link.active {
+  background: #2f5496;
+  color: #fff;
+}
+
+.gestor-tabs .nav-link:not(.active) {
+  color: #2f5496;
+}
+
+@media (max-width: 991px) {
+  .gestor-header {
+    padding: 1.2rem 0;
+  }
+}
