@@ -6,6 +6,8 @@
 
 (() => {
   "use strict";
+  // Debug: indicate the script was loaded
+  try { console.debug("[plantillas] script loaded"); } catch (e) { /* ignore */ }
 
   // ==========================================
   // CONFIGURATION
@@ -20,7 +22,7 @@
     }
     const origin = window.location.origin.replace(/\/$/, "");
     if (/localhost:3000$/.test(origin) || /127\.0\.0\.1:3000$/.test(origin)) {
-      return origin.replace(/:3000$/, ":3000");
+      return origin.replace(/:3000$/, ":3005");
     }
     return origin;
   };
@@ -75,6 +77,33 @@
     checkAuthState();
     setInterval(checkAuthState, 3000);
   }
+
+  // Bootstrap temprano para asegurar carga de selects aunque falle el init tardio.
+  const bootstrapEarly = () => {
+    const ensureContext = () => {
+      ensureDomElements();
+      const firstOption = dom.anioSelect?.options?.[0];
+      const isLoading = /cargando/i.test(firstOption?.textContent || "");
+      if (!state.anio || isLoading) {
+        loadInitialData().catch((error) => {
+          console.error("Error cargando datos iniciales:", error);
+        });
+      }
+    };
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", init, { once: true });
+    } else {
+      init();
+    }
+
+    window.addEventListener("load", () => {
+      ensureContext();
+      setTimeout(ensureContext, 1200);
+    });
+  };
+
+  bootstrapEarly();
 
   function cacheDOMElements() {
     // Selectors
@@ -237,9 +266,25 @@
     return headers;
   }
 
-  const fetchWithAuth = (url, options = {}) => {
+  const fetchWithAuth = async (url, options = {}) => {
     const headers = { ...getAuthHeaders(), ...(options.headers || {}) };
-    return fetch(url, { credentials: "include", ...options, headers });
+    try {
+      console.debug("[plantillas] fetchWithAuth", url, options, headers);
+      const resp = await fetch(url, { credentials: "include", ...options, headers });
+      if (!resp.ok) {
+        let bodyText = "";
+        try {
+          bodyText = await resp.text();
+        } catch (err) {
+          bodyText = "<no body>";
+        }
+        console.error(`[plantillas] fetch failed ${resp.status} ${resp.statusText} for ${url}:`, bodyText);
+      }
+      return resp;
+    } catch (err) {
+      console.error("[plantillas] network error fetching", url, err);
+      throw err;
+    }
   };
 
   function getEmpresaId() {
@@ -671,6 +716,7 @@
   async function loadInitialData() {
     ensureDomElements();
     state.modulo = dom.moduloSelect?.value || state.modulo;
+    console.debug(`[plantillas] init context before load: modulo=${state.modulo} anio=${state.anio} capitulo=${state.capitulo}`);
     await loadYears();
     await loadChapters();
     // Cargar layout automáticamente al iniciar si hay contexto
@@ -820,12 +866,17 @@
     setStatus("Cargando layout...");
 
     try {
+      console.debug(`[plantillas] loadLayout invoked for ${state.modulo}/${state.anio}/${state.capitulo}`);
       const url = buildApiUrl(
         `/${encodeURIComponent(state.modulo)}/${state.anio}/${encodeURIComponent(
           state.capitulo,
         )}`,
       );
       const response = await fetchWithAuth(url);
+
+      if (!response) {
+        throw new Error(`No response from server when requesting ${url}`);
+      }
 
       if (response.status === 404) {
         // No existe layout - mostrar opción para crear
@@ -837,7 +888,15 @@
         return;
       }
 
-      if (!response.ok) throw new Error("No se pudo cargar el layout");
+      if (!response.ok) {
+        const text = await response.text().catch(() => "<no body>");
+        if (response.status === 401 || response.status === 403) {
+          setStatus(`Acceso denegado (${response.status}). Verifica tu sesión o permisos.`);
+        } else {
+          setStatus(`Error al cargar layout: ${response.status} ${response.statusText}`);
+        }
+        throw new Error(`No se pudo cargar el layout (${response.status} ${response.statusText}): ${text}`);
+      }
 
       const data = await response.json();
       state.layout = data.layout || {};
