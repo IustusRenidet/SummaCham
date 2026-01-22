@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
@@ -386,12 +386,12 @@
       const formulario = document.getElementById("formularioUsuario");
       const alerta = document.getElementById("alerta");
       const modalPrevisualizacion = new bootstrap.Modal(
-        document.getElementById("modalPrevisualizacion")
+        document.getElementById("modalPrevisualizacion"),
       );
       const previsualizacion = document.getElementById("previsualizacionJson");
       const contenedorEmpresas = document.getElementById("contenedorEmpresas");
       const indicadorContrasena = document.getElementById(
-        "indicadorContrasena"
+        "indicadorContrasena",
       );
       const inputContrasena = document.getElementById("contrasena");
       const toggleContrasena = document.getElementById("toggleContrasena");
@@ -428,7 +428,7 @@
           toggleContrasena.setAttribute("aria-pressed", String(!mostrando));
           toggleContrasena.setAttribute(
             "aria-label",
-            mostrando ? "Mostrar contraseña" : "Ocultar contraseña"
+            mostrando ? "Mostrar contraseña" : "Ocultar contraseña",
           );
           toggleContrasena.innerHTML = mostrando
             ? `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eye" viewBox="0 0 16 16"><path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z"/><path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0"/></svg>`
@@ -638,8 +638,8 @@
               <article class="modulo-card" data-empresa="${
                 empresa.id
               }" data-modulo="${modulo}" data-modulo-key="${normalizarModulo(
-                  modulo
-                )}">
+                modulo,
+              )}">
                 <div class="d-flex align-items-center justify-content-between mb-2">
                   <h4 class="h6 fw-bold mb-0">${modulo}</h4>
                   <div class="form-check">
@@ -652,9 +652,9 @@
                   </div>
                 </div>
                 ${ACCIONES.map((accion) =>
-                  crearCheckbox(empresa.id, modulo, accion)
+                  crearCheckbox(empresa.id, modulo, accion),
                 ).join("")}
-              </article>`
+              </article>`,
               )
               .join("")}
           </div>
@@ -662,7 +662,7 @@
           contenedorEmpresas.appendChild(envoltura);
           // Iniciar las empresas desactivadas por defecto
           const switchEmpresa = document.getElementById(
-            `activar_${empresa.id}`
+            `activar_${empresa.id}`,
           );
           if (switchEmpresa) {
             switchEmpresa.checked = false;
@@ -686,20 +686,38 @@
 
       const obtenerPermisosDelFormulario = () => {
         const permisos = {};
-        contenedorEmpresas.querySelectorAll(".modulo-card").forEach((card) => {
-          const empresaId = card.getAttribute("data-empresa");
-          const modulo = card.getAttribute("data-modulo");
-          if (!permisos[empresaId]) permisos[empresaId] = {};
-          permisos[empresaId][modulo] = {};
-        });
 
         contenedorEmpresas.querySelectorAll(".permiso").forEach((checkbox) => {
           const empresaId = checkbox.getAttribute("data-empresa");
           const modulo = checkbox.getAttribute("data-modulo");
           const accion = checkbox.getAttribute("data-accion");
+
           if (!permisos[empresaId]) permisos[empresaId] = {};
-          if (!permisos[empresaId][modulo]) permisos[empresaId][modulo] = {};
+          if (!permisos[empresaId][modulo]) {
+            permisos[empresaId][modulo] = {
+              Ver: false,
+              "Cargar y guardar": false,
+              Revisar: false,
+              Aprobar: false,
+            };
+          }
           permisos[empresaId][modulo][accion] = checkbox.checked;
+        });
+
+        // Limpiar módulos que no tienen ningún permiso activo
+        Object.keys(permisos).forEach((empresaId) => {
+          Object.keys(permisos[empresaId]).forEach((modulo) => {
+            const tienePermisoActivo = Object.values(
+              permisos[empresaId][modulo],
+            ).some((v) => v === true);
+            if (!tienePermisoActivo) {
+              delete permisos[empresaId][modulo];
+            }
+          });
+          // Si la empresa quedó sin módulos, eliminarla también
+          if (Object.keys(permisos[empresaId]).length === 0) {
+            delete permisos[empresaId];
+          }
         });
 
         return permisos;
@@ -708,19 +726,19 @@
       const aplicarPermisosAlFormulario = (permisos) => {
         console.log(
           "[DEBUG] aplicarPermisosAlFormulario llamada con:",
-          permisos
+          permisos,
         );
         Object.entries(permisos || {}).forEach(([empresaId, modulos]) => {
           console.log(
             "[DEBUG] Procesando empresa:",
             empresaId,
             "módulos:",
-            modulos
+            modulos,
           );
           const switchEmpresa = document.getElementById(`activar_${empresaId}`);
           if (switchEmpresa) {
             const activo = Object.values(modulos || {}).some((acciones) =>
-              Object.values(acciones || {}).some(Boolean)
+              Object.values(acciones || {}).some(Boolean),
             );
             switchEmpresa.checked = activo;
             sincronizarEstadoEmpresa(empresaId, activo);
@@ -729,18 +747,18 @@
           Object.entries(modulos || {}).forEach(([modulo, acciones]) => {
             const clave = normalizarModulo(modulo);
             let card = contenedorEmpresas.querySelector(
-              `.modulo-card[data-empresa="${empresaId}"][data-modulo-key="${clave}"]`
+              `.modulo-card[data-empresa="${empresaId}"][data-modulo-key="${clave}"]`,
             );
             if (!card) {
               // Fallback por si no existe data-modulo-key en el DOM (compatibilidad)
               card = contenedorEmpresas.querySelector(
-                `.modulo-card[data-empresa="${empresaId}"][data-modulo="${modulo}"]`
+                `.modulo-card[data-empresa="${empresaId}"][data-modulo="${modulo}"]`,
               );
             }
             if (!card) return;
             Object.entries(acciones || {}).forEach(([accion, valor]) => {
               const checkbox = card.querySelector(
-                `input.permiso[data-accion="${accion}"]`
+                `input.permiso[data-accion="${accion}"]`,
               );
               if (checkbox) checkbox.checked = Boolean(valor);
             });
@@ -791,10 +809,10 @@
       // Función para sincronizar el checkbox "Ver" basado en los otros permisos
       const sincronizarCheckboxVer = (card) => {
         const checkboxVer = card.querySelector(
-          'input.permiso[data-accion="Ver"]'
+          'input.permiso[data-accion="Ver"]',
         );
         const otrosCheckboxes = Array.from(
-          card.querySelectorAll("input.permiso")
+          card.querySelectorAll("input.permiso"),
         ).filter((cb) => cb.getAttribute("data-accion") !== "Ver");
         if (!checkboxVer) return;
 
@@ -831,10 +849,10 @@
           ([empresaId, modulos]) => {
             Object.entries(modulos || {}).forEach(([modulo, acciones]) => {
               Object.keys(acciones || {}).forEach((accion) =>
-                asegurar(empresaId, modulo, accion)
+                asegurar(empresaId, modulo, accion),
               );
             });
-          }
+          },
         );
 
         return resultado;
@@ -851,7 +869,7 @@
         }
 
         actualizarEstadoPermisosGenerales(
-          activo ? true : switchAdminGlobal.checked
+          activo ? true : switchAdminGlobal.checked,
         );
 
         contenedorEmpresas
@@ -863,7 +881,7 @@
             switchEmpresa.disabled = activo;
             sincronizarEstadoEmpresa(
               switchEmpresa.dataset.empresa,
-              activo ? true : switchEmpresa.checked
+              activo ? true : switchEmpresa.checked,
             );
           });
 
@@ -965,7 +983,9 @@
             puedeModificar: checkPermModificar.checked,
             puedeEliminar: checkPermEliminar.checked,
           },
-          permisos: esAdmin ? construirPermisosCompletos() : obtenerPermisosDelFormulario(),
+          permisos: esAdmin
+            ? construirPermisosCompletos()
+            : obtenerPermisosDelFormulario(),
         };
 
         if (!esEdicion || contrasenaValor !== contrasenaOriginal) {
@@ -1015,7 +1035,7 @@
               }
               sincronizarEstadoEmpresa(
                 evento.target.dataset.empresa,
-                evento.target.checked
+                evento.target.checked,
               );
             });
             // No activar por defecto; el estado inicial queda en falso
@@ -1033,7 +1053,7 @@
         if (!respuesta.ok) {
           throw new Error(
             datos.mensaje ||
-              "No fue posible obtener la información del usuario."
+              "No fue posible obtener la información del usuario.",
           );
         }
         return datos.usuario;
@@ -1078,13 +1098,13 @@
             if (indicadorContrasena) indicadorContrasena.textContent = "";
             switchAdminGlobal.checked = usr.esAdminGlobal;
             checkPermAgregar.checked = Boolean(
-              usr.permisosGenerales?.puedeAgregar
+              usr.permisosGenerales?.puedeAgregar,
             );
             checkPermModificar.checked = Boolean(
-              usr.permisosGenerales?.puedeModificar
+              usr.permisosGenerales?.puedeModificar,
             );
             checkPermEliminar.checked = Boolean(
-              usr.permisosGenerales?.puedeEliminar
+              usr.permisosGenerales?.puedeEliminar,
             );
             actualizarEstadoPermisosGenerales(usr.esAdminGlobal);
             evaluarModoIconet();
@@ -1107,13 +1127,13 @@
             if (indicadorContrasena) indicadorContrasena.textContent = "";
             switchAdminGlobal.checked = usuario.esAdminGlobal;
             checkPermAgregar.checked = Boolean(
-              usuario.permisosGenerales?.puedeAgregar
+              usuario.permisosGenerales?.puedeAgregar,
             );
             checkPermModificar.checked = Boolean(
-              usuario.permisosGenerales?.puedeModificar
+              usuario.permisosGenerales?.puedeModificar,
             );
             checkPermEliminar.checked = Boolean(
-              usuario.permisosGenerales?.puedeEliminar
+              usuario.permisosGenerales?.puedeEliminar,
             );
             actualizarEstadoPermisosGenerales(usuario.esAdminGlobal);
             aplicarPermisosAlFormulario(usuario.permisosPorEmpresa);
@@ -1122,14 +1142,14 @@
             contrasenaOriginal = "";
             inputContrasena.value = "";
             empresas.forEach((empresa) =>
-              sincronizarEstadoEmpresa(empresa.id, false)
+              sincronizarEstadoEmpresa(empresa.id, false),
             );
             actualizarEstadoPermisosGenerales(false);
             evaluarModoIconet();
           }
         } catch (error) {
           mostrarAlerta(
-            error.message || "Ocurrió un problema al iniciar el formulario."
+            error.message || "Ocurrió un problema al iniciar el formulario.",
           );
         }
 
@@ -1232,25 +1252,27 @@
                 "Content-Type": "application/json",
               },
               body: JSON.stringify(payload),
-            }
+            },
           );
           const datos = await respuesta.json();
           if (!respuesta.ok) {
+            const errorMsg = datos.detalles
+              ? `${datos.mensaje}\n\nDetalles:\n${datos.detalles.join("\n")}`
+              : datos.mensaje;
             throw new Error(
-              datos.mensaje ||
-                "No fue posible guardar la información del usuario."
+              errorMsg || "No fue posible guardar la información del usuario.",
             );
           }
           mostrarAlerta(
             datos.mensaje || "Usuario guardado correctamente.",
-            "success"
+            "success",
           );
           setTimeout(() => {
             window.location.href = "usuarios.html";
           }, 1200);
         } catch (error) {
           mostrarAlerta(
-            error.message || "Ocurrió un problema al guardar la información."
+            error.message || "Ocurrió un problema al guardar la información.",
           );
         }
       });

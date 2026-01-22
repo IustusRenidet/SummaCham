@@ -3557,8 +3557,14 @@
       }
 
       const data = await response.json();
-      const anios = (data.anios || [])
-        .filter((a) => Number.isInteger(a))
+      const aniosRaw = Array.isArray(data.anios)
+        ? data.anios
+        : typeof data.anios === "string"
+          ? data.anios.split(",").map((v) => v.trim()).filter(Boolean)
+          : [];
+      const anios = aniosRaw
+        .map((value) => Number(value))
+        .filter((value) => Number.isInteger(value))
         .sort((a, b) => b - a);
 
       yearSelect.innerHTML = "";

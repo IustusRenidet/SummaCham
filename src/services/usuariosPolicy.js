@@ -52,14 +52,23 @@ const limpiarPermisosLista = ({ lista = [], usuario }) => {
 };
 
 const asegurarPermisosGeneralesAdmin = (usuario, permisosGenerales = {}) => {
-  if (!esAdministradorHistorico(usuario)) {
-    return permisosGenerales || {};
+  // Si el usuario es administrador global, debe tener todos los permisos
+  if (permisosGenerales && permisosGenerales.esAdminGlobal) {
+    return {
+      puedeAgregar: true,
+      puedeModificar: true,
+      puedeEliminar: true
+    };
   }
-  return {
-    puedeAgregar: true,
-    puedeModificar: true,
-    puedeEliminar: true
-  };
+  // Mantener compatibilidad con históricos
+  if (esAdministradorHistorico(usuario)) {
+    return {
+      puedeAgregar: true,
+      puedeModificar: true,
+      puedeEliminar: true
+    };
+  }
+  return permisosGenerales || {};
 };
 
 module.exports = {

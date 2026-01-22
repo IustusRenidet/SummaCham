@@ -1264,7 +1264,7 @@
             class="form-label fw-semibold text-muted small mb-2"
             >Ejercicio</label
           >
-          <select id="resumenYearSelect" class="form-select">
+          <select id="resumenYearSelect" name="resumenYear" class="form-select">
             <option value="">Cargando ejercicios...</option>
           </select>
         </div>
@@ -1274,7 +1274,11 @@
             class="form-label fw-semibold text-muted small mb-2"
             >Periodo</label
           >
-          <select id="resumenMonthSelect" class="form-select select-scroll">
+          <select
+            id="resumenMonthSelect"
+            name="resumenMonth"
+            class="form-select select-scroll"
+          >
             <option value="1">Enero</option>
             <option value="2">Febrero</option>
             <option value="3">Marzo</option>
@@ -1296,10 +1300,14 @@
             >Comparar con</label
           >
           <div class="comparativa-toggle">
-            <label class="comparativa-switch mb-0">
+            <label
+              class="comparativa-switch mb-0"
+              for="resumenEmpresaComparativaToggle"
+            >
               <input
                 type="checkbox"
                 id="resumenEmpresaComparativaToggle"
+                name="resumenEmpresaComparativa"
               />
               <span class="comparativa-track">
                 <span class="comparativa-thumb"></span>
@@ -1330,8 +1338,8 @@
           <div class="zoom-header">
             <div class="round-toggle-container">
               <label for="roundToggle" class="mb-0">Redondear</label>
-              <label class="toggle-switch">
-                <input type="checkbox" id="roundToggle" />
+              <label class="toggle-switch" for="roundToggle">
+                <input type="checkbox" id="roundToggle" name="roundToggle" />
                 <span class="toggle-slider"></span>
               </label>
             </div>
@@ -1444,9 +1452,13 @@
           >
             <div class="flex-grow-1">
               <div class="search-container">
+                <label for="accountSearch" class="visually-hidden">
+                  Buscar en cuentas
+                </label>
                 <input
                   type="text"
                   id="accountSearch"
+                  name="accountSearch"
                   class="search-input"
                   placeholder="Buscar cuenta o descripción..."
                 />

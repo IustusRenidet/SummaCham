@@ -1,0 +1,9 @@
+C:\Users\Frida Sophia\Desktop\DESARROLLOS\SummaCham\vistas\js\plantillas.js:8911
+})();
+ ^
+
+SyntaxError: Unexpected token ')'
+    at wrapSafe (node:internal/modules/cjs/loader:1638:18)
+    at checkSyntax (node:internal/main/check_syntax:78:3)
+
+Node.js v22.19.0

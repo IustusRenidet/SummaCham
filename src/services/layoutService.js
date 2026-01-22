@@ -20,7 +20,7 @@ const generarVariantesEmpresa = (empresaId = CANONICAL_EMPRESA_DEFAULT) => {
       variantes.add(`EMPRESA${match[1].padStart(2, "0")}`);
     }
     const meta = EMPRESAS?.find(
-      (empresa) => empresa.id?.toLowerCase() === base.toLowerCase()
+      (empresa) => empresa.id?.toLowerCase() === base.toLowerCase(),
     );
     if (meta && meta.numero != null) {
       variantes.add(`EMPRESA${String(meta.numero).padStart(2, "0")}`);
@@ -45,7 +45,7 @@ const existeLayoutAnio = ({ empresaId, modulo, anio }) => {
     FROM layout_cuentas
     WHERE empresa_id = ? AND modulo = ? AND anio = ?
     LIMIT 1
-  `
+  `,
     )
     .get(empresaId, modulo, anio);
   return Boolean(row && row.total);
@@ -59,7 +59,7 @@ const existeLayoutCapitulo = ({ empresaId, modulo, anio, capitulo }) => {
     FROM layout_cuentas
     WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ?
     LIMIT 1
-  `
+  `,
     )
     .get(empresaId, modulo, anio, capitulo);
   return Boolean(row && row.total);
@@ -72,7 +72,7 @@ const buscarAnioReferencia = ({ empresaId, modulo, anio }) => {
     SELECT MAX(anio) as anio
     FROM layout_cuentas
     WHERE empresa_id = ? AND modulo = ? AND anio <= ?
-  `
+  `,
     )
     .get(empresaId, modulo, anio);
   if (menorIgual && Number.isInteger(menorIgual.anio)) {
@@ -84,7 +84,7 @@ const buscarAnioReferencia = ({ empresaId, modulo, anio }) => {
     SELECT MIN(anio) as anio
     FROM layout_cuentas
     WHERE empresa_id = ? AND modulo = ? AND anio > ?
-  `
+  `,
     )
     .get(empresaId, modulo, anio);
   if (mayor && Number.isInteger(mayor.anio)) {
@@ -96,7 +96,7 @@ const buscarAnioReferencia = ({ empresaId, modulo, anio }) => {
     SELECT MIN(anio) as anio
     FROM layout_cuentas
     WHERE empresa_id = ? AND modulo = ?
-  `
+  `,
     )
     .get(empresaId, modulo);
   if (cualquiera && Number.isInteger(cualquiera.anio)) {
@@ -132,13 +132,13 @@ const asegurarLayoutAnio = ({ empresaId, modulo, anio }) => {
       anioDestino: anioNumero,
     });
     console.log(
-      `[layoutService] Layout ${modulo} ${anioNumero} generado desde ${anioReferencia}`
+      `[layoutService] Layout ${modulo} ${anioNumero} generado desde ${anioReferencia}`,
     );
     return true;
   } catch (err) {
     console.warn(
       `[layoutService] No se pudo clonar layout ${modulo}/${anioNumero}:`,
-      err?.message || err
+      err?.message || err,
     );
     return false;
   }
@@ -157,7 +157,7 @@ const resolverEmpresaConsulta = ({ empresaId, modulo, anio }) => {
       FROM layout_cuentas
       WHERE empresa_id = ? AND modulo = ? AND anio = ?
       LIMIT 1
-    `
+    `,
       )
       .get(candidata, modulo, anio);
     if (row && row.total > 0) {
@@ -174,7 +174,7 @@ const resolverEmpresaConsulta = ({ empresaId, modulo, anio }) => {
       FROM layout_cuentas
       WHERE empresa_id = ? AND modulo = ? AND anio = ?
       LIMIT 1
-    `
+    `,
       )
       .get(canonBase, modulo, anio);
     if (rowFallback && rowFallback.total > 0) {
@@ -445,7 +445,7 @@ const obtenerLayout = ({ empresaId = "EMPRESA01", modulo, anio, capitulo }) => {
     FROM layout_cuentas
     WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ?
     ORDER BY COALESCE(orden_presentacion, orden) ASC, cuenta ASC
-  `
+  `,
       )
       .all(empresaConsulta, modulo, anioObjetivo, capituloObjetivo);
 
@@ -498,7 +498,7 @@ const obtenerLayout = ({ empresaId = "EMPRESA01", modulo, anio, capitulo }) => {
   };
 
   let cuentas = normalizarCuentas(consultarCuentas(anioNumero)).map(
-    normalizarSeccionesCuenta
+    normalizarSeccionesCuenta,
   );
   let anioUsado = anioNumero;
 
@@ -515,7 +515,7 @@ const obtenerLayout = ({ empresaId = "EMPRESA01", modulo, anio, capitulo }) => {
       SELECT MAX(anio) as anio
       FROM layout_cuentas
       WHERE empresa_id = ? AND modulo = ? AND anio <= ?
-    `
+    `,
       )
       .get(empresaConsulta, modulo, 2025);
     const fallbackYear = row && row.anio ? Number(row.anio) : 2025;
@@ -557,7 +557,7 @@ const obtenerLayout = ({ empresaId = "EMPRESA01", modulo, anio, capitulo }) => {
     FROM layout_operaciones
     WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ?
     ORDER BY COALESCE(orden_presentacion, orden) ASC, orden ASC
-  `
+  `,
     )
     .all(empresaConsulta, modulo, anioUsado, capituloObjetivo);
 
@@ -567,8 +567,8 @@ const obtenerLayout = ({ empresaId = "EMPRESA01", modulo, anio, capitulo }) => {
     const ordenBase = Number.isFinite(ordenPresentacion)
       ? ordenPresentacion
       : Number.isFinite(Number(op.orden))
-      ? Math.floor(Number(op.orden) / 100)
-      : idx;
+        ? Math.floor(Number(op.orden) / 100)
+        : idx;
     const operacionId = op.OperacionId || op.Clase || op.clase;
     const operacionEtiqueta =
       op.operacion_etiqueta || op.Clase || operacionId || "Operacion";
@@ -612,7 +612,7 @@ const obtenerLayout = ({ empresaId = "EMPRESA01", modulo, anio, capitulo }) => {
   const operacionesOrdenadas = Object.values(operacionesMap).sort(
     (a, b) =>
       (a.orden_presentacion ?? a.orden ?? 0) -
-      (b.orden_presentacion ?? b.orden ?? 0)
+      (b.orden_presentacion ?? b.orden ?? 0),
   );
 
   return construirRespuestaLayout({
@@ -628,47 +628,28 @@ const obtenerLayout = ({ empresaId = "EMPRESA01", modulo, anio, capitulo }) => {
 /**
  * Obtener todos los capítulos disponibles para un módulo y año
  */
-
 const obtenerCapitulos = ({ empresaId = "EMPRESA01", modulo, anio }) => {
   const anioNumero = Number(anio);
   const moduloNorm = (modulo || "").toString().trim().toUpperCase();
   const empresaCanonica = obtenerEmpresaCanonica(empresaId);
   asegurarLayoutAnio({ empresaId: empresaCanonica, modulo, anio: anioNumero });
+
   const empresaConsulta = resolverEmpresaConsulta({
     empresaId: empresaCanonica,
     modulo,
     anio: anioNumero,
   });
 
-  let capitulos = db
+  const capitulos = db
     .prepare(
       `
     SELECT DISTINCT capitulo
     FROM layout_cuentas
     WHERE empresa_id = ? AND modulo = ? AND anio = ?
     ORDER BY capitulo ASC
-  `
+  `,
     )
     .all(empresaConsulta, modulo, anioNumero);
-
-  const requiereFallback =
-    (!capitulos || !capitulos.length) &&
-    (moduloNorm === "SUMMARY" || moduloNorm === "RESUMEN") &&
-    Number.isInteger(anioNumero) &&
-    anioNumero < 2025;
-
-  if (requiereFallback) {
-    capitulos = db
-      .prepare(
-        `
-      SELECT DISTINCT capitulo
-      FROM layout_cuentas
-      WHERE empresa_id = ? AND modulo = ? AND anio = ?
-      ORDER BY capitulo ASC
-    `
-      )
-      .all(empresaConsulta, modulo, 2025);
-  }
 
   return (capitulos || []).map((c) => ({ capitulo: c.capitulo }));
 };
@@ -676,19 +657,26 @@ const obtenerCapitulos = ({ empresaId = "EMPRESA01", modulo, anio }) => {
 /**
  * Obtener años disponibles para un módulo
  */
-
 const obtenerAniosDisponibles = ({ empresaId = "EMPRESA01", modulo }) => {
   const empresaCanonica = obtenerEmpresaCanonica(empresaId);
+  const baseCanonica = obtenerEmpresaCanonica("EMPRESA01");
+  const variantes = new Set([empresaCanonica, baseCanonica]);
+
+  const placeholders = Array.from(variantes)
+    .map(() => "?")
+    .join(",");
+  const params = Array.from(variantes).concat([modulo]);
+
   const anios = db
     .prepare(
       `
     SELECT DISTINCT anio
     FROM layout_cuentas
-    WHERE empresa_id = ? AND modulo = ?
+    WHERE empresa_id IN (${placeholders}) AND modulo = ?
     ORDER BY anio DESC
-  `
+  `,
     )
-    .all(empresaCanonica, modulo);
+    .all(...params);
 
   return anios.map((a) => a.anio);
 };
@@ -723,8 +711,7 @@ const guardarCuentas = ({
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
   `);
 
-  const normalizarSeccion = (valor) =>
-    (valor || "").toString().trim();
+  const normalizarSeccion = (valor) => (valor || "").toString().trim();
 
   const transaction = db.transaction((cuentasArray) => {
     const ordenPrincipal = new Map();
@@ -753,7 +740,11 @@ const guardarCuentas = ({
       if (!mapa.has(secundariaClave)) {
         mapa.set(secundariaClave, mapa.size);
       }
-      return { principalClave, secundariaClave, orden: mapa.get(secundariaClave) };
+      return {
+        principalClave,
+        secundariaClave,
+        orden: mapa.get(secundariaClave),
+      };
     };
 
     const seccionesRegistradas = new Set();
@@ -762,7 +753,7 @@ const guardarCuentas = ({
     cuentasArray.forEach((cuenta, index) => {
       if (!cuenta.CUENTA) {
         console.warn(
-          `[layoutService] Cuenta sin codigo en ${modulo}/${capitulo}, ignorando`
+          `[layoutService] Cuenta sin codigo en ${modulo}/${capitulo}, ignorando`,
         );
 
         return;
@@ -784,12 +775,12 @@ const guardarCuentas = ({
         ? operacionFactor
         : 1;
       const ordenPresentacion = Number.isFinite(
-        Number(cuenta.orden_presentacion)
+        Number(cuenta.orden_presentacion),
       )
         ? Number(cuenta.orden_presentacion)
         : Number.isFinite(Number(cuenta.orden))
-        ? Number(cuenta.orden)
-        : index;
+          ? Number(cuenta.orden)
+          : index;
       const visible = cuenta.visible === false ? 0 : 1;
 
       insertCuenta.run(
@@ -804,7 +795,7 @@ const guardarCuentas = ({
         operacionFactorFinal,
         ordenPresentacion,
         ordenPresentacion,
-        visible
+        visible,
       );
 
       const principalClave = registrarPrincipal(seccionPrincipal);
@@ -820,7 +811,7 @@ const guardarCuentas = ({
             principalClave,
             "",
             "principal",
-            ordenPrincipal.get(principalClave) ?? 0
+            ordenPrincipal.get(principalClave) ?? 0,
           );
         }
       }
@@ -839,7 +830,7 @@ const guardarCuentas = ({
               info.principalClave,
               info.secundariaClave,
               "secundaria",
-              info.orden ?? 0
+              info.orden ?? 0,
             );
           }
         }
@@ -921,25 +912,26 @@ const guardarOperaciones = ({
         typeof op.formula_json === "string"
           ? op.formula_json
           : op.formula_json != null
-          ? JSON.stringify(op.formula_json)
-          : Array.isArray(op.formula_terms)
-          ? JSON.stringify(op.formula_terms)
-          : null;
+            ? JSON.stringify(op.formula_json)
+            : Array.isArray(op.formula_terms)
+              ? JSON.stringify(op.formula_terms)
+              : null;
 
-      const ordenPresentacion = Number.isFinite(
-        Number(op.orden_presentacion)
-      )
+      const ordenPresentacion = Number.isFinite(Number(op.orden_presentacion))
         ? Number(op.orden_presentacion)
         : Number.isFinite(Number(op.orden))
-        ? Number(op.orden)
-        : index;
+          ? Number(op.orden)
+          : index;
       const baseOrden = ordenPresentacion;
       const visible = op.visible === false ? 0 : 1;
 
       tiposOperacion.forEach((tipo, tipoIndex) => {
         if (op[tipo] != null) {
           const etiquetaRaw = op[tipo];
-          if (typeof etiquetaRaw === "object" || typeof etiquetaRaw === "boolean") {
+          if (
+            typeof etiquetaRaw === "object" ||
+            typeof etiquetaRaw === "boolean"
+          ) {
             return;
           }
           const signoDesdeMapa = op.signos?.[tipo];
@@ -986,12 +978,12 @@ const guardarOperaciones = ({
               baseOrden * 100 + tipoIndex,
               ordenPresentacion,
               visible,
-              formulaJson
+              formulaJson,
             );
           } catch (err) {
             console.error(
               `Error inserting operation ${clase} (${tipo}):`,
-              err.message
+              err.message,
             );
           }
         }
@@ -1122,7 +1114,7 @@ const existeLayout = ({ empresaId = "EMPRESA01", modulo, anio }) => {
     FROM layout_cuentas
     WHERE empresa_id = ? AND modulo = ? AND anio = ?
     LIMIT 1
-  `
+  `,
     )
     .get(empresaCanonica, modulo, anio);
 
@@ -1148,7 +1140,7 @@ const obtenerEstadisticasLayout = ({
       COUNT(*) as cuentas
     FROM layout_cuentas
     WHERE empresa_id = ? AND modulo = ? AND anio = ?
-  `
+  `,
     )
     .get(empresaCanonica, modulo, anio);
 
@@ -1158,7 +1150,7 @@ const obtenerEstadisticasLayout = ({
     SELECT COUNT(*) as operaciones
     FROM layout_operaciones
     WHERE empresa_id = ? AND modulo = ? AND anio = ?
-  `
+  `,
     )
     .get(empresaCanonica, modulo, anio);
 
@@ -1211,7 +1203,7 @@ const actualizarCuenta = ({
     modulo,
     anio,
     capitulo,
-    cuentaOriginal
+    cuentaOriginal,
   );
 
   return { success: true, changes: result.changes };
@@ -1264,7 +1256,7 @@ const reordenarCuentas = ({
         modulo,
         anio,
         capitulo,
-        item.cuenta
+        item.cuenta,
       );
     });
   });
@@ -1297,7 +1289,7 @@ const actualizarOperacion = ({
     anio,
     capitulo || "DEFAULT",
     claseOriginal,
-    claseOriginal
+    claseOriginal,
   );
 
   // Luego insertar la actualizada
@@ -1342,7 +1334,7 @@ const actualizarOperacion = ({
         label,
         datos.signo || 1,
         orden++,
-        formulaJson
+        formulaJson,
       );
     }
   });
@@ -1373,7 +1365,7 @@ const eliminarOperacion = ({
     anio,
     capitulo || "DEFAULT",
     clase,
-    clase
+    clase,
   );
   return { success: true, changes: result.changes };
 };
@@ -1407,7 +1399,7 @@ const crearSeccion = ({
       nombre,
       "",
       tipo,
-      orden
+      orden,
     );
   } else {
     insert.run(
@@ -1418,7 +1410,7 @@ const crearSeccion = ({
       principal || "",
       nombre,
       tipo,
-      orden
+      orden,
     );
   }
 
@@ -1447,14 +1439,14 @@ const renombrarSeccion = ({
         UPDATE layout_cuentas
         SET seccion_principal = ?
         WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ? AND seccion_principal = ?
-      `
+      `,
       ).run(
         nuevoNombre,
         empresaCanonica,
         modulo,
         anio,
         capitulo,
-        nombreOriginal
+        nombreOriginal,
       );
 
       // Update layout_secciones
@@ -1463,14 +1455,14 @@ const renombrarSeccion = ({
         UPDATE layout_secciones
         SET seccion_principal = ?
         WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ? AND seccion_principal = ?
-      `
+      `,
       ).run(
         nuevoNombre,
         empresaCanonica,
         modulo,
         anio,
         capitulo,
-        nombreOriginal
+        nombreOriginal,
       );
     } else {
       // Update layout_cuentas for secundaria
@@ -1479,14 +1471,14 @@ const renombrarSeccion = ({
         UPDATE layout_cuentas
         SET seccion_secundaria = ?
         WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ? AND seccion_secundaria = ?
-      `
+      `,
       ).run(
         nuevoNombre,
         empresaCanonica,
         modulo,
         anio,
         capitulo,
-        nombreOriginal
+        nombreOriginal,
       );
 
       // Update layout_secciones
@@ -1495,14 +1487,14 @@ const renombrarSeccion = ({
         UPDATE layout_secciones
         SET seccion_secundaria = ?
         WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ? AND seccion_secundaria = ?
-      `
+      `,
       ).run(
         nuevoNombre,
         empresaCanonica,
         modulo,
         anio,
         capitulo,
-        nombreOriginal
+        nombreOriginal,
       );
     }
   });

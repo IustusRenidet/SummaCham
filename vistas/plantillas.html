@@ -119,11 +119,10 @@
                       type="text"
                       id="searchInput"
                       class="search-input"
-                      placeholder="🔍 Buscar en el layout..."
+                      placeholder="Buscar en el layout"
                     />
                   </div>
                   <div class="quick-filters mt-2">
-                    <small class="text-muted me-2">Filtro rápido:</small>
                     <div class="btn-group btn-group-sm" role="group">
                       <input type="radio" class="btn-check" name="quickFilter" id="filterAll" value="all" checked />
                       <label class="btn btn-outline-secondary" for="filterAll">
@@ -144,87 +143,119 @@
                     </div>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  id="btnAgregar"
-                  class="btn btn-success"
-                  disabled
-                >
-                  <i class="bi bi-plus-circle me-1"></i> Agregar
-                </button>
-                <button
-                  type="button"
-                  id="btnExpandir"
-                  class="btn btn-outline-secondary"
-                  disabled
-                >
-                  <i class="bi bi-arrows-expand me-1"></i> Expandir
-                </button>
-                <button
-                  type="button"
-                  id="btnColapsar"
-                  class="btn btn-outline-secondary"
-                  disabled
-                >
-                  <i class="bi bi-arrows-collapse me-1"></i> Colapsar
-                </button>
-                <button
-                  type="button"
-                  id="btnPreview"
-                  class="btn btn-outline-secondary"
-                  disabled
-                >
-                  <i class="bi bi-eye me-1"></i> Vista Previa
-                </button>
-                <button
-                  type="button"
-                  id="btnCopiar"
-                  class="btn btn-outline-primary"
-                  disabled
-                >
-                  <i class="bi bi-copy me-1"></i> Copiar a otro año
-                </button>
-                <button
-                  type="button"
-                  id="btnReordenar"
-                  class="btn btn-warning"
-                  disabled
-                >
-                  <i class="bi bi-arrows-move me-1"></i> Reordenar
-                </button>
-                <button
-                  type="button"
-                  id="btnSeleccionar"
-                  class="btn btn-outline-danger"
-                  disabled
-                >
-                  <i class="bi bi-check-square me-1"></i> Seleccionar
-                </button>
-                <button
-                  type="button"
-                  id="btnEliminarMasivo"
-                  class="btn btn-danger"
-                  disabled
-                >
-                  <i class="bi bi-trash me-1"></i> Eliminar
-                  (<span id="bulkSelectionCount">0</span>)
-                </button>
-                <button
-                  type="button"
-                  id="btnReloadSchema"
-                  class="btn btn-info text-white"
-                  title="Recargar operaciones desde Master Schema"
-                >
-                  <i class="bi bi-database-fill-gear me-1"></i> Recargar Schema
-                </button>
-                <button
-                  type="button"
-                  id="btnGuardar"
-                  class="btn btn-primary"
-                  disabled
-                >
-                  <i class="bi bi-save me-1"></i> Guardar
-                </button>
+                <div class="toolbar-actions">
+                  <div class="toolbar-group">
+                    <button
+                      type="button"
+                      id="btnAgregar"
+                      class="btn btn-success"
+                      disabled
+                    >
+                      <i class="bi bi-plus-circle me-1"></i> Agregar
+                    </button>
+                    <button
+                      type="button"
+                      id="btnGuardar"
+                      class="btn btn-primary"
+                      disabled
+                    >
+                      <i class="bi bi-save me-1"></i> Guardar
+                    </button>
+                  </div>
+                  <div class="toolbar-group">
+                    <button
+                      type="button"
+                      id="btnPreview"
+                      class="btn btn-outline-secondary"
+                      disabled
+                    >
+                      <i class="bi bi-eye me-1"></i> Vista previa
+                    </button>
+                    <button
+                      type="button"
+                      id="btnReordenar"
+                      class="btn btn-warning"
+                      disabled
+                    >
+                      <i class="bi bi-arrows-move me-1"></i> Reordenar
+                    </button>
+                  </div>
+                  <div class="dropdown">
+                    <button
+                      class="btn btn-outline-secondary dropdown-toggle"
+                      type="button"
+                      id="btnAccionesExtra"
+                      data-bs-toggle="dropdown"
+                      aria-expanded="false"
+                    >
+                      Más acciones
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="btnAccionesExtra">
+                      <li>
+                        <button
+                          type="button"
+                          id="btnExpandir"
+                          class="dropdown-item"
+                          disabled
+                        >
+                          <i class="bi bi-arrows-expand me-2"></i> Expandir todo
+                        </button>
+                      </li>
+                      <li>
+                        <button
+                          type="button"
+                          id="btnColapsar"
+                          class="dropdown-item"
+                          disabled
+                        >
+                          <i class="bi bi-arrows-collapse me-2"></i> Colapsar todo
+                        </button>
+                      </li>
+                      <li>
+                        <button
+                          type="button"
+                          id="btnCopiar"
+                          class="dropdown-item"
+                          disabled
+                        >
+                          <i class="bi bi-copy me-2"></i> Copiar a otro año
+                        </button>
+                      </li>
+                      <li>
+                        <button
+                          type="button"
+                          id="btnSeleccionar"
+                          class="dropdown-item"
+                          disabled
+                        >
+                          <i class="bi bi-check-square me-2"></i> Seleccionar
+                        </button>
+                      </li>
+                      <li>
+                        <button
+                          type="button"
+                          id="btnEliminarMasivo"
+                          class="dropdown-item text-danger"
+                          disabled
+                        >
+                          <i class="bi bi-trash me-2"></i> Eliminar
+                          (<span id="bulkSelectionCount">0</span>)
+                        </button>
+                      </li>
+                      <li><hr class="dropdown-divider" /></li>
+                      <li>
+                        <button
+                          type="button"
+                          id="btnReloadSchema"
+                          class="dropdown-item"
+                          title="Recargar operaciones desde Master Schema"
+                        >
+                          <i class="bi bi-database-fill-gear me-2"></i> Recargar Schema
+                        </button>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -277,20 +308,10 @@
               <div class="placeholder-icon mx-auto mb-4">
                 <i class="bi bi-layout-text-window"></i>
               </div>
-              <h2>Selecciona un contexto</h2>
+              <h2>Selecciona módulo, año y capítulo</h2>
               <p class="text-muted">
-                Elige un módulo, año y capítulo para comenzar a editar el
-                layout.
+                Carga el layout para empezar a editar.
               </p>
-              <div class="mt-4">
-                <span class="badge bg-light text-primary me-2">
-                  <i class="bi bi-lightbulb me-1"></i> Carga el layout primero
-                </span>
-                <span class="badge bg-light text-primary">
-                  <i class="bi bi-shield-lock me-1"></i> Permisos en
-                  administración
-                </span>
-              </div>
             </div>
           </div>
 
@@ -317,9 +338,7 @@
       <!-- Status Message -->
       <div class="row mt-3">
         <div class="col-12">
-          <p class="text-muted small text-center mb-0" id="statusMessage">
-            Listo
-          </p>
+          <p class="text-muted small text-center mb-0" id="statusMessage"></p>
         </div>
       </div>
 
@@ -2975,5 +2994,18 @@
     <script src="js/graficas-config.js"></script>
     <script src="js/plantillas-graficas.js"></script>
     <script src="js/plantillas.js"></script>
+    <script>
+      window.addEventListener("load", () => {
+        if (window.__plantillasLoaded) return;
+        const fallback = document.createElement("script");
+        fallback.src = `js/plantillas.js?v=${Date.now()}`;
+        fallback.addEventListener("load", () => {
+          if (window.TemplateManager?.loadContextFromURL) {
+            window.TemplateManager.loadContextFromURL();
+          }
+        });
+        document.body.appendChild(fallback);
+      });
+    </script>
   </body>
 </html>

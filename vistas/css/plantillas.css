@@ -87,6 +87,30 @@ body {
   flex-wrap: wrap;
 }
 
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.toolbar-group {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.toolbar-actions .dropdown-menu {
+  min-width: 220px;
+}
+
+.toolbar-actions .dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .quick-filters .btn-group {
   flex-wrap: wrap;
 }
@@ -522,6 +546,10 @@ body {
   background: #dc3545;
   border-color: #dc3545;
   color: white;
+}
+
+#statusMessage:empty {
+  display: none;
 }
 /* ===== OPERATIONS TABLE SECTIONS ===== */
 .operations-table-section {

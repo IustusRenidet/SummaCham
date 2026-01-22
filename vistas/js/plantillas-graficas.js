@@ -1722,30 +1722,45 @@
       );
       return;
     }
+    const view = canvas.ownerDocument?.defaultView;
+    if (!view || typeof view.getComputedStyle !== "function") {
+      renderPreviewFallback(preview, "Vista previa no disponible.");
+      return;
+    }
+    const ctx = canvas.getContext ? canvas.getContext("2d") : null;
+    if (!ctx) {
+      renderPreviewFallback(preview, "Vista previa no disponible.");
+      return;
+    }
     const current = galleryState.previews.get(chartId);
     if (current) {
       current.destroy();
     }
-    const chart = new window.Chart(canvas, {
-      type: previewData.chartType,
-      data: {
-        labels: previewData.labels || [],
-        datasets: previewData.datasets,
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: { enabled: false },
+    try {
+      const chart = new window.Chart(ctx, {
+        type: previewData.chartType,
+        data: {
+          labels: previewData.labels || [],
+          datasets: previewData.datasets,
         },
-        scales: {
-          x: { display: false },
-          y: { display: false },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: { enabled: false },
+          },
+          scales: {
+            x: { display: false },
+            y: { display: false },
+          },
         },
-      },
-    });
-    galleryState.previews.set(chartId, chart);
+      });
+      galleryState.previews.set(chartId, chart);
+    } catch (error) {
+      console.warn("No se pudo renderizar la vista previa de graficas", error);
+      renderPreviewFallback(preview, "Vista previa no disponible.");
+    }
   };
 
   const getPreviewFallbackMessage = (definition, context) => {
@@ -2079,6 +2094,9 @@
       }
       node.classList.toggle("is-disabled", !definition.enabled);
 
+      galleryState.cards.set(definition.id, { node, definition });
+      galleryEl.appendChild(node);
+
       const previewData = buildPreviewData(
         definition,
         config,
@@ -2110,8 +2128,8 @@
             );
           });
       } else {
-        handlePreview(previewData);
-      }
+          handlePreview(previewData);
+        }
 
       node.addEventListener("click", () => {
         const prev = galleryState.selectedId;
@@ -2122,9 +2140,6 @@
         node.classList.add("active");
         updateDetailCard(definition);
       });
-
-      galleryState.cards.set(definition.id, { node, definition });
-      galleryEl.appendChild(node);
     });
 
     if (galleryAddTemplate) {
