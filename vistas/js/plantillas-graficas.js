@@ -450,7 +450,7 @@
     input.dispatchEvent(new Event("input", { bubbles: true }));
   };
 
-  const snapshotLabelOptions = getSnapshotLabels();
+  const buildSnapshotLabelOptions = () => getSnapshotLabels();
 
   const renderCustomChartItem = (chart = {}) => {
     if (!customTemplate || !customList) return null;
@@ -466,6 +466,7 @@
     const removeBtn = node.querySelector("[data-custom-remove]");
     const sourcePicker = node.querySelector("[data-custom-source-picker]");
     const addSourceBtn = node.querySelector("[data-custom-add-source]");
+    const columnSelect = node.querySelector("[data-custom-column]");
 
     if (titleInput) titleInput.value = chart.title || "";
     if (subtitleInput) subtitleInput.value = chart.subtitle || "";
@@ -477,16 +478,20 @@
     if (enabledInput) enabledInput.checked = chart.enabled !== false;
 
     if (sourcePicker) {
-      fillSelectOptions(sourcePicker, snapshotLabelOptions, "Selecciona una fila");
+      const options = buildSnapshotLabelOptions();
+      fillSelectOptions(sourcePicker, options, "Selecciona una fila");
     }
     if (addSourceBtn) {
-      addSourceBtn.disabled = !snapshotLabelOptions.length;
+      addSourceBtn.disabled = !buildSnapshotLabelOptions().length;
       addSourceBtn.addEventListener("click", () => {
         if (!sourcePicker || !rowsInput) return;
         const selected = sourcePicker.value;
         appendRowValue(rowsInput, selected);
         sourcePicker.value = "";
       });
+    }
+    if (columnSelect) {
+      columnSelect.value = chart.columnKey || "actualYTD";
     }
 
     if (removeBtn) {
@@ -497,6 +502,12 @@
     }
 
     customList.appendChild(node);
+    if (moduleSelect && sourcePicker) {
+      moduleSelect.addEventListener("change", () => {
+        const options = buildSnapshotLabelOptions();
+        fillSelectOptions(sourcePicker, options, "Selecciona una fila");
+      });
+    }
     return node;
   };
 
@@ -1091,6 +1102,8 @@
           item.querySelector("[data-custom-type]")?.value || "inherit";
         const enabled =
           item.querySelector("[data-custom-enabled]")?.checked !== false;
+        const columnKey =
+          item.querySelector("[data-custom-column]")?.value || "actualYTD";
         const rowsText = item.querySelector("[data-custom-rows]")?.value || "";
         const rows = parseCustomRows(rowsText);
         customCharts.push({
@@ -1100,6 +1113,7 @@
           module,
           chartType,
           enabled,
+          columnKey,
           rows,
         });
       });
@@ -1397,14 +1411,15 @@
     return raw.toString();
   };
 
-  const buildDatasetsFromSnapshot = ({
-    rows,
-    snapshotMap,
-    seriesList,
-    chartType,
-    capituloLabel,
-    looseMatch,
-  }) => {
+    const buildDatasetsFromSnapshot = ({
+      rows,
+      snapshotMap,
+      seriesList,
+      chartType,
+      capituloLabel,
+      looseMatch,
+      columnKeyOverride,
+    }) => {
     if (!Array.isArray(rows) || !rows.length) return null;
     const activeSeries = (seriesList || []).filter(
       (serie) => serie?.enabled !== false
@@ -1428,7 +1443,7 @@
         : getRowTotals(snapshotMap, variants);
       labels.push(label);
       activeSeries.forEach((serie, index) => {
-        const columnKey = serie.columnKey || serie.key;
+        const columnKey = columnKeyOverride || serie.columnKey || serie.key;
         dataMatrix[index].push(toNumber(totals?.[columnKey]));
       });
     });
@@ -1718,6 +1733,7 @@
         chartType,
         capituloLabel,
         looseMatch: true,
+        columnKeyOverride: definition.columnKey,
       });
       return data ? { chartType, ...data } : null;
     }

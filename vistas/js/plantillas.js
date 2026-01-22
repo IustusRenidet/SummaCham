@@ -742,14 +742,63 @@
     if (!dom.anioSelect) return;
     try {
       const empresaId = getEmpresaId();
-      const url = isGestorView()
-        ? `${resolveApiBase()}/api/saldos/anios?empresaId=${encodeURIComponent(
-            empresaId,
-          )}`
-        : buildApiUrl(`/${encodeURIComponent(state.modulo)}/anios`);
+      if (isGestorView()) {
+        const url = `${resolveApiBase()}/api/saldos/anios?empresaId=${encodeURIComponent(
+          empresaId,
+        )}`;
+        console.debug("[plantillas] loadYears (gestor)", { empresaId, url });
+        const response = await fetch(url, {
+          headers: window.Sesion?.headersAutenticacion?.() || {},
+          credentials: "include",
+        });
+        console.debug("[plantillas] loadYears response (gestor)", {
+          status: response.status,
+          ok: response.ok,
+        });
+        if (!response.ok) throw new Error("Error al cargar años");
+        const data = await response.json();
+        console.debug("[plantillas] loadYears data (gestor)", data);
+        const aniosRaw = Array.isArray(data.anios)
+          ? data.anios
+          : typeof data.anios === "string"
+            ? data.anios.split(",").map((v) => v.trim()).filter(Boolean)
+            : [];
+        const anios = aniosRaw
+          .map((value) => Number(value))
+          .filter((value) => Number.isInteger(value))
+          .sort((a, b) => b - a);
+        dom.anioSelect.innerHTML = "";
+        if (!anios.length) {
+          const option = document.createElement("option");
+          option.value = "";
+          option.textContent = "Sin años disponibles";
+          dom.anioSelect.appendChild(option);
+          dom.anioSelect.disabled = true;
+          return;
+        }
+        anios.forEach((anio) => {
+          const option = document.createElement("option");
+          option.value = anio;
+          option.textContent = anio;
+          dom.anioSelect.appendChild(option);
+        });
+        const preferredYear = Number(state.anio);
+        const currentYear = new Date().getFullYear();
+        const selectedYear =
+          Number.isInteger(preferredYear) && anios.includes(preferredYear)
+            ? preferredYear
+            : anios.includes(currentYear)
+              ? currentYear
+              : anios[0];
+        dom.anioSelect.value = String(selectedYear);
+        dom.anioSelect.disabled = false;
+        state.anio = selectedYear || null;
+        return;
+      }
 
+      const url = buildApiUrl(`/${encodeURIComponent(state.modulo)}/anios`);
       console.debug("[plantillas] loadYears", {
-        vista: isGestorView() ? "gestor" : "plantillas",
+        vista: "plantillas",
         modulo: state.modulo,
         empresaId,
         url,
