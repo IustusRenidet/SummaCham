@@ -64,9 +64,13 @@
   let initDone = false;
   function init() {
     if (initDone) return;
+    cacheDOMElements();
+    if (!dom.moduloSelect || !dom.anioSelect || !dom.capituloSelect) {
+      setTimeout(init, 80);
+      return;
+    }
     initDone = true;
     try {
-      cacheDOMElements();
       bindEventListeners();
     } catch (error) {
       console.error("Error inicializando el gestor de plantillas:", error);
@@ -102,8 +106,6 @@
       setTimeout(ensureContext, 1200);
     });
   };
-
-  bootstrapEarly();
 
   function cacheDOMElements() {
     // Selectors
@@ -9508,6 +9510,8 @@
         saveContextToURL();
       };
     }
+
+    bootstrapEarly();
 
     // Cargar contexto al iniciar
     loadContextFromURL();
