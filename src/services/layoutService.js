@@ -37,6 +37,12 @@ const obtenerEmpresaCanonica = (empresaId = CANONICAL_EMPRESA_DEFAULT) => {
   );
 };
 
+const construirFormulaSeccion = (seccion) => {
+  const valor = (seccion || "").toString().trim();
+  if (!valor) return null;
+  return JSON.stringify([{ operator: "+", type: "section", value: valor }]);
+};
+
 const existeLayoutAnio = ({ empresaId, modulo, anio }) => {
   const row = db
     .prepare(
@@ -543,6 +549,7 @@ const obtenerLayout = ({ empresaId = "EMPRESA01", modulo, anio, capitulo }) => {
     .prepare(
       `
     SELECT 
+      id,
       capitulo AS CAPITULO,
       clase AS OperacionId,
       operacion_etiqueta,
@@ -560,6 +567,24 @@ const obtenerLayout = ({ empresaId = "EMPRESA01", modulo, anio, capitulo }) => {
   `,
     )
     .all(empresaConsulta, modulo, anioUsado, capituloObjetivo);
+
+  const operacionesSinFormula = operaciones.filter(
+    (op) => !op.formula_json && op.SECCION,
+  );
+  if (operacionesSinFormula.length) {
+    const updateFormula = db.prepare(
+      "UPDATE layout_operaciones SET formula_json = ? WHERE id = ?",
+    );
+    const transaction = db.transaction((rows) => {
+      rows.forEach((op) => {
+        const formulaJson = construirFormulaSeccion(op.SECCION);
+        if (!formulaJson) return;
+        updateFormula.run(formulaJson, op.id);
+        op.formula_json = formulaJson;
+      });
+    });
+    transaction(operacionesSinFormula);
+  }
 
   const operacionesMap = {};
   operaciones.forEach((op, idx) => {
@@ -908,7 +933,7 @@ const guardarOperaciones = ({
         .filter((key) => !/^operacion_\d+$/i.test(key))
         .filter((key) => !tiposOperacionBase.includes(key));
       const tiposOperacion = [...tiposOperacionBase, ...tiposOperacionExtra];
-      const formulaJson =
+      let formulaJson =
         typeof op.formula_json === "string"
           ? op.formula_json
           : op.formula_json != null
@@ -916,6 +941,9 @@ const guardarOperaciones = ({
             : Array.isArray(op.formula_terms)
               ? JSON.stringify(op.formula_terms)
               : null;
+      if (!formulaJson) {
+        formulaJson = construirFormulaSeccion(op.SECCION || op.seccion);
+      }
 
       const ordenPresentacion = Number.isFinite(Number(op.orden_presentacion))
         ? Number(op.orden_presentacion)
