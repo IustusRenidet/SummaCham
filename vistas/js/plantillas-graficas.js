@@ -340,6 +340,9 @@
     window.Sesion?.obtenerEmpresaActiva?.()?.id ||
     null;
 
+  const getSelectedCapitulo = () =>
+    document.getElementById("capituloSelect")?.value?.toString().trim() || "";
+
   const getPreviewContext = () => {
     const snapshot = readLatestSnapshot();
     return {
@@ -347,7 +350,7 @@
       snapshotMap: buildSnapshotMap(snapshot),
       empresaId: getPreviewEmpresaId(snapshot),
       anio: getPreviewYear(snapshot),
-      capitulo: snapshot?.capitulo || "",
+      capitulo: getSelectedCapitulo() || snapshot?.capitulo || "",
     };
   };
 
