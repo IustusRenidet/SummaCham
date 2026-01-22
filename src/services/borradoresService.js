@@ -759,7 +759,8 @@ const actualizarCuentasPadre = async (
   tablaPresup,
   presupuestosEditados = new Map(),
   manualBaseMap = null,
-  borradorId = null
+  borradorId = null,
+  preservarManual = true
 ) => {
   const { ejecutarConsulta } = require("./firebirdService");
   console.log(`\n📊 ============================================`);
@@ -873,31 +874,44 @@ const actualizarCuentasPadre = async (
 
     const manualPrecalculado = manualBaseMap instanceof Map
       ? manualBaseMap.get(numCta)
+      : manualBaseMap
+      ? manualBaseMap[numCta]
       : null;
 
     let manualCalculado = manualPrecalculado;
+    const crearManualCero = () => {
+      const manual = {};
+      Object.keys(sumasMensuales).forEach((col) => {
+        manual[col] = 0;
+      });
+      return manual;
+    };
 
     if (!manualCalculado) {
-      // Obtener presupuesto actual del padre para conservar la parte manual
-      const queryPadrePresup = `
-        SELECT 
-          PRESUP01, PRESUP02, PRESUP03, PRESUP04, PRESUP05, PRESUP06,
-          PRESUP07, PRESUP08, PRESUP09, PRESUP10, PRESUP11, PRESUP12
-        FROM ${tablaPresup}
-        WHERE NUM_CTA = ? AND EJERCICIO = ?
-      `;
-      const padrePresupRows = await ejecutarConsulta(empresaId, queryPadrePresup, [numCta, anio]);
-      const padrePresup = padrePresupRows && padrePresupRows[0] ? padrePresupRows[0] : null;
+      if (!preservarManual) {
+        manualCalculado = crearManualCero();
+      } else {
+        // Obtener presupuesto actual del padre para conservar la parte manual
+        const queryPadrePresup = `
+          SELECT 
+            PRESUP01, PRESUP02, PRESUP03, PRESUP04, PRESUP05, PRESUP06,
+            PRESUP07, PRESUP08, PRESUP09, PRESUP10, PRESUP11, PRESUP12
+          FROM ${tablaPresup}
+          WHERE NUM_CTA = ? AND EJERCICIO = ?
+        `;
+        const padrePresupRows = await ejecutarConsulta(empresaId, queryPadrePresup, [numCta, anio]);
+        const padrePresup = padrePresupRows && padrePresupRows[0] ? padrePresupRows[0] : null;
 
-      manualCalculado = {};
-      Object.keys(sumasMensuales).forEach((col) => {
-        if (!padrePresup) {
-          manualCalculado[col] = 0;
-          return;
-        }
-        const actual = Number(padrePresup[col]) || 0;
-        manualCalculado[col] = actual - sumasMensuales[col];
-      });
+        manualCalculado = {};
+        Object.keys(sumasMensuales).forEach((col) => {
+          if (!padrePresup) {
+            manualCalculado[col] = 0;
+            return;
+          }
+          const actual = Number(padrePresup[col]) || 0;
+          manualCalculado[col] = actual - sumasMensuales[col];
+        });
+      }
     }
 
     Object.keys(sumasMensuales).forEach((col) => {

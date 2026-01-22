@@ -87,7 +87,6 @@
     if (moduloSelect) return moduloSelect.innerHTML;
     return [
       '<option value="RESUMEN">RESUMEN</option>',
-      '<option value="SUMMARY">SUMMARY</option>',
       '<option value="Finanzas">Finanzas</option>',
       '<option value="Gastos Generales">Gastos Generales</option>',
       '<option value="Nomina">Nomina</option>',
@@ -537,15 +536,16 @@
     );
 
   const initializeSourcePickers = () => {
+    const summarySnapshotOptions = buildSnapshotLabelOptions();
     if (summarySourcePicker) {
       fillSelectOptions(
         summarySourcePicker,
-        snapshotLabelOptions,
+        summarySnapshotOptions,
         "Selecciona una fila"
       );
     }
     if (summarySourceAdd) {
-      summarySourceAdd.disabled = !snapshotLabelOptions.length;
+      summarySourceAdd.disabled = !summarySnapshotOptions.length;
       summarySourceAdd.addEventListener("click", () => {
         const groupKey =
           summarySourceTarget?.value ||
@@ -562,10 +562,12 @@
       "[data-consolidated-source-picker]"
     );
     consolidatedPickers.forEach((picker) => {
-      fillSelectOptions(picker, snapshotLabelOptions, "Selecciona una fila");
+      const options = buildSnapshotLabelOptions();
+      fillSelectOptions(picker, options, "Selecciona una fila");
     });
     form.querySelectorAll("[data-consolidated-source-add]").forEach((btn) => {
-      btn.disabled = !snapshotLabelOptions.length;
+      const options = buildSnapshotLabelOptions();
+      btn.disabled = !options.length;
       btn.addEventListener("click", () => {
         const key =
           btn.getAttribute("data-consolidated-source-key") ||
@@ -584,14 +586,17 @@
     });
 
     if (ingresoSourcePicker) {
+      const ingresoOptions = buildSnapshotLabelOptions();
       fillSelectOptions(
         ingresoSourcePicker,
-        snapshotLabelOptions,
+        ingresoOptions,
         "Selecciona una fila"
       );
+      if (ingresoSourceAdd) {
+        ingresoSourceAdd.disabled = !ingresoOptions.length;
+      }
     }
     if (ingresoSourceAdd) {
-      ingresoSourceAdd.disabled = !snapshotLabelOptions.length;
       ingresoSourceAdd.addEventListener("click", () => {
         const serieKey = ingresoSourceSeries?.value || "";
         if (!serieKey) return;
@@ -604,14 +609,17 @@
     }
 
     if (ingresoNacionalSourcePicker) {
+      const ingresoNacionalOptions = buildSnapshotLabelOptions();
       fillSelectOptions(
         ingresoNacionalSourcePicker,
-        snapshotLabelOptions,
+        ingresoNacionalOptions,
         "Selecciona una fila"
       );
+      if (ingresoNacionalSourceAdd) {
+        ingresoNacionalSourceAdd.disabled = !ingresoNacionalOptions.length;
+      }
     }
     if (ingresoNacionalSourceAdd) {
-      ingresoNacionalSourceAdd.disabled = !snapshotLabelOptions.length;
       ingresoNacionalSourceAdd.addEventListener("click", () => {
         const serieKey = ingresoNacionalSourceSeries?.value || "";
         if (!serieKey) return;

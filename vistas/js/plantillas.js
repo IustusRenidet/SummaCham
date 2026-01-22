@@ -59,6 +59,93 @@
   const dom = {};
 
   // ==========================================
+  // BASE UTILITIES (top-level)
+  // ==========================================
+  function escapeHtml(str) {
+    if (!str) return "";
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function escapeAttr(str) {
+    if (!str) return "";
+    return String(str).replace(/'/g, "\\'").replace(/"/g, "&quot;");
+  }
+
+  function setStatus(message) {
+    try {
+      ensureDomElements();
+      if (dom.statusMessage) {
+        dom.statusMessage.textContent = message;
+      }
+    } catch (err) {
+      // ignore
+    }
+  }
+
+  function showToast(message, type = "info") {
+    try {
+      ensureDomElements();
+      if (
+        !dom.toastMessage ||
+        !dom.toastNotification ||
+        !window.bootstrap?.Toast
+      ) {
+        console.info("Toast no disponible:", message);
+        return;
+      }
+      dom.toastMessage.textContent = message;
+
+      const icon = dom.toastNotification.querySelector(".toast-header i");
+      if (icon) {
+        icon.className = `bi bi-${
+          type === "success"
+            ? "check-circle text-success"
+            : type === "error"
+              ? "x-circle text-danger"
+              : type === "warning"
+                ? "exclamation-triangle text-warning"
+                : "info-circle text-primary"
+        } me-2`;
+      }
+
+      const toast = new bootstrap.Toast(dom.toastNotification);
+      toast.show();
+    } catch (err) {
+      console.info("Toast error:", message, err);
+    }
+  }
+
+  function expandAll() {
+    const collapsibles = document.querySelectorAll(".collapse");
+    collapsibles.forEach((element) => {
+      const bsCollapse =
+        window.bootstrap?.Collapse?.getInstance(element) ||
+        (window.bootstrap?.Collapse
+          ? new window.bootstrap.Collapse(element, { toggle: false })
+          : null);
+      bsCollapse?.show?.();
+    });
+    showToast("✅ Todas las secciones expandidas", "success");
+  }
+
+  function collapseAll() {
+    const collapsibles = document.querySelectorAll(".collapse");
+    collapsibles.forEach((element) => {
+      const bsCollapse =
+        window.bootstrap?.Collapse?.getInstance(element) ||
+        (window.bootstrap?.Collapse
+          ? new window.bootstrap.Collapse(element, { toggle: false })
+          : null);
+      bsCollapse?.hide?.();
+    });
+    showToast("✅ Todas las secciones colapsadas", "success");
+  }
+
+  // ==========================================
   // INITIALIZATION
   // ==========================================
   let initDone = false;
@@ -112,8 +199,7 @@
     dom.moduloSelect = document.getElementById("moduloSelect");
     dom.anioSelect =
       document.getElementById("anioSelect") ||
-      document.getElementById("resumenYearSelect") ||
-      document.getElementById("gestorYearSelect");
+      document.getElementById("resumenYearSelect");
     dom.capituloSelect = document.getElementById("capituloSelect");
 
     // Labels
@@ -293,19 +379,20 @@
   };
 
   function getEmpresaId() {
-    let parentSelector = null;
-    try {
-      parentSelector = window.parent?.document?.querySelector(
-        ".company-selector select",
-      );
-    } catch (error) {
-      console.warn(
-        "No se pudo acceder al selector de empresa en la ventana padre.",
-        error,
-      );
-    }
-    const localSelector = document.querySelector(".company-selector select");
-    const selector = parentSelector || localSelector;
+    const getSelector = () => {
+      let parentSelector = null;
+      try {
+        parentSelector = window.parent?.document?.querySelector(
+          ".company-selector select",
+        );
+      } catch (error) {
+        parentSelector = null;
+      }
+      const localSelector = document.querySelector(".company-selector select");
+      return parentSelector || localSelector || null;
+    };
+
+    const selector = getSelector();
     if (selector?.value) {
       return selector.value;
     }
@@ -321,6 +408,163 @@
       }
     }
     return empresaActiva?.id || empresaActiva?.empresaId || "EMPRESA01";
+  }
+
+  const attachEmpresaSelectorWatcher = (() => {
+    let attached = false;
+    return () => {
+      if (attached) return;
+      attached = true;
+
+      const attachedSelectors = new WeakSet();
+      const tryAttach = () => {
+        let selector = null;
+        try {
+          selector = window.parent?.document?.querySelector(
+            ".company-selector select",
+          );
+        } catch (error) {
+          selector = null;
+        }
+        selector = selector || document.querySelector(".company-selector select");
+        if (!selector) return false;
+
+        const handler = () => {
+          loadYears()
+            .then(loadChapters)
+            .then(tryLoadLayout)
+            .catch((error) => console.error("Error recargando empresa:", error));
+        };
+
+        if (!attachedSelectors.has(selector)) {
+          attachedSelectors.add(selector);
+          selector.addEventListener("change", handler);
+          selector.addEventListener("input", handler);
+        }
+
+        // También escuchar el evento emitido por la app contenedora (React) al cambiar empresa
+        const eventoEmpresa =
+          window.parent?.Sesion?.EVENTO_EMPRESA ||
+          window.Sesion?.EVENTO_EMPRESA ||
+          "sesion:empresa-cambiada";
+        try {
+          window.parent?.addEventListener?.(eventoEmpresa, handler);
+        } catch (err) {
+          // ignore
+        }
+
+        // Ejecutar una vez al engancharse para sincronizar con la empresa actual.
+        handler();
+        return true;
+      };
+
+      if (tryAttach()) return;
+
+      const start = Date.now();
+      const timer = setInterval(() => {
+        if (tryAttach() || Date.now() - start > 30000) {
+          clearInterval(timer);
+        }
+      }, 500);
+
+      // Si el DOM del parent se re-renderiza (React), re-intentar enganchar.
+      try {
+        const parentDoc = window.parent?.document;
+        const root = parentDoc?.body;
+        if (root && window.MutationObserver) {
+          const observer = new MutationObserver(() => {
+            tryAttach();
+          });
+          observer.observe(root, { subtree: true, childList: true });
+        }
+      } catch (err) {
+        // ignore
+      }
+    };
+  })();
+
+  // ==========================================
+  // BOOTSTRAP (iframe safe)
+  // ==========================================
+  let initialDataLoading = false;
+  const needsInitialData = () => {
+    ensureDomElements();
+    if (!dom.anioSelect) return false;
+    const firstOption = dom.anioSelect.options?.[0];
+    const isLoading = /cargando/i.test(firstOption?.textContent || "");
+    return !state.anio || isLoading;
+  };
+
+  const ensureInitialData = async () => {
+    if (initialDataLoading || !needsInitialData()) return;
+    initialDataLoading = true;
+    try {
+      attachEmpresaSelectorWatcher();
+      await loadInitialData();
+    } finally {
+      initialDataLoading = false;
+    }
+  };
+
+  const bootstrapState = { attempts: 0, max: 40, timer: null };
+  const scheduleBootstrapRetry = () => {
+    if (bootstrapState.timer) return;
+    bootstrapState.timer = setInterval(() => {
+      if (!needsInitialData()) {
+        clearInterval(bootstrapState.timer);
+        bootstrapState.timer = null;
+        return;
+      }
+      if (bootstrapState.attempts >= bootstrapState.max) {
+        clearInterval(bootstrapState.timer);
+        bootstrapState.timer = null;
+        setStatus("No se pudo cargar el contexto. Verifica tu sesión.");
+        return;
+      }
+      bootstrapState.attempts += 1;
+      ensureInitialData().catch((error) => {
+        console.error("Error asegurando datos iniciales:", error);
+      });
+    }, 1500);
+  };
+
+  // Arranque inmediato (sin depender de rutas/otras acciones)
+  try {
+    console.debug("[plantillas] bootstrap start", {
+      readyState: document.readyState,
+      empresaId: getEmpresaId(),
+    });
+  } catch (err) {
+    // ignore
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+
+  window.addEventListener("load", () => {
+    ensureInitialData().catch((error) => {
+      console.error("Error asegurando datos iniciales:", error);
+    });
+    scheduleBootstrapRetry();
+  });
+
+  // Escuchar cambios de empresa desde Sesion (iframe / parent)
+  try {
+    const eventoEmpresa =
+      window.parent?.Sesion?.EVENTO_EMPRESA ||
+      window.Sesion?.EVENTO_EMPRESA ||
+      "sesion:empresa-cambiada";
+    window.parent?.addEventListener?.(eventoEmpresa, () => {
+      loadYears()
+        .then(loadChapters)
+        .then(tryLoadLayout)
+        .catch((error) => console.error("Error recargando empresa:", error));
+    });
+  } catch (err) {
+    // ignore
   }
 
   function buildApiUrl(path) {
@@ -735,66 +979,14 @@
     }
   }
 
-  const isGestorView = () =>
-    window.location.pathname.toLowerCase().includes("gestor.html");
-
   async function loadYears() {
     if (!dom.anioSelect) return;
     try {
       const empresaId = getEmpresaId();
-      if (isGestorView()) {
-        const url = `${resolveApiBase()}/api/saldos/anios?empresaId=${encodeURIComponent(
-          empresaId,
-        )}`;
-        console.debug("[plantillas] loadYears (gestor)", { empresaId, url });
-        const response = await fetch(url, {
-          headers: window.Sesion?.headersAutenticacion?.() || {},
-          credentials: "include",
-        });
-        console.debug("[plantillas] loadYears response (gestor)", {
-          status: response.status,
-          ok: response.ok,
-        });
-        if (!response.ok) throw new Error("Error al cargar años");
-        const data = await response.json();
-        console.debug("[plantillas] loadYears data (gestor)", data);
-        const aniosRaw = Array.isArray(data.anios)
-          ? data.anios
-          : typeof data.anios === "string"
-            ? data.anios.split(",").map((v) => v.trim()).filter(Boolean)
-            : [];
-        const anios = aniosRaw
-          .map((value) => Number(value))
-          .filter((value) => Number.isInteger(value))
-          .sort((a, b) => b - a);
-        dom.anioSelect.innerHTML = "";
-        if (!anios.length) {
-          const option = document.createElement("option");
-          option.value = "";
-          option.textContent = "Sin años disponibles";
-          dom.anioSelect.appendChild(option);
-          dom.anioSelect.disabled = true;
-          return;
-        }
-        anios.forEach((anio) => {
-          const option = document.createElement("option");
-          option.value = anio;
-          option.textContent = anio;
-          dom.anioSelect.appendChild(option);
-        });
-        const preferredYear = Number(state.anio);
-        const currentYear = new Date().getFullYear();
-        const selectedYear =
-          Number.isInteger(preferredYear) && anios.includes(preferredYear)
-            ? preferredYear
-            : anios.includes(currentYear)
-              ? currentYear
-              : anios[0];
-        dom.anioSelect.value = String(selectedYear);
-        dom.anioSelect.disabled = false;
-        state.anio = selectedYear || null;
-        return;
-      }
+
+      dom.anioSelect.disabled = true;
+      dom.anioSelect.innerHTML =
+        '<option value="">Cargando años (SQLite)...</option>';
 
       const url = buildApiUrl(`/${encodeURIComponent(state.modulo)}/anios`);
       console.debug("[plantillas] loadYears", {
@@ -823,8 +1015,10 @@
         .filter((value) => Number.isInteger(value));
 
       if (!years.length) {
-        console.log("No years from API, using defaults 2025, 2026");
-        years = [2025, 2026];
+        dom.anioSelect.innerHTML = '<option value="">Sin años disponibles</option>';
+        dom.anioSelect.disabled = true;
+        state.anio = null;
+        return;
       }
 
       const currentYear = new Date().getFullYear();
@@ -847,92 +1041,64 @@
         )
         .join("");
 
+      dom.anioSelect.disabled = false;
+
       state.anio = selectedYear || null;
     } catch (error) {
       console.error("Error loading years:", error);
       dom.anioSelect.innerHTML = '<option value="">Error al cargar</option>';
+      dom.anioSelect.disabled = true;
       showToast("Error al cargar años disponibles", "error");
     }
   }
 
   async function loadChapters() {
-    // Try to get chapter from parent selector
+    ensureDomElements();
     if (!dom.capituloSelect) return;
-    let parentSelector = null;
+
     try {
-      parentSelector = window.parent?.document?.querySelector(
-        ".company-selector select",
-      );
-    } catch (error) {
-      console.warn(
-        "No se pudo acceder al selector de empresa en la ventana padre.",
-        error,
-      );
-    }
-    const localSelector = document.querySelector(".company-selector select");
-    const selector = parentSelector || localSelector;
+      const empresaId = getEmpresaId();
+      const capituloFromMap =
+        window.parent?.CapitulosModulos?.empresaACapitulo?.(empresaId) ||
+        window.parent?.CapitulosModulos?.obtenerCapituloPorEmpresa?.(empresaId) ||
+        window.CapitulosModulos?.empresaACapitulo?.(empresaId) ||
+        window.CapitulosModulos?.obtenerCapituloPorEmpresa?.(empresaId) ||
+        null;
 
-    const applyCapituloFallback = () => {
-      const empresaId = selector?.value || getEmpresaId();
-      if (!empresaId) return;
-      let chapter = window.CapitulosModulos?.empresaACapitulo?.(empresaId);
-
-      // empresaACapitulo might return an object {capitulo: "...", etiqueta: "..."} or a string
-      if (chapter && typeof chapter === "object") {
-        chapter = chapter.capitulo || chapter.etiqueta || String(chapter);
-      }
-      chapter = chapter || empresaId;
-
-      state.capitulo = chapter;
-      dom.capituloSelect.innerHTML = `<option value="${chapter}">${chapter}</option>`;
-    };
-
-    if (selector?.value) {
-      applyCapituloFallback();
-    } else {
-      // Load chapters from API
+      let capituloFromSelector = null;
       try {
-        const url = buildApiUrl(
-          `/${encodeURIComponent(state.modulo)}/${state.anio}/capitulos`,
-        );
-        const response = await fetchWithAuth(url);
-        if (!response.ok) {
-          throw new Error("Error al cargar capítulos");
-        }
-        const data = await response.json();
-        const chapters = data.capitulos || [];
-
-        if (!chapters.length) {
-          console.log(
-            "No chapters from API for this year/module, using company fallback",
-          );
-          applyCapituloFallback();
-          return;
-        }
-
-        // API returns chapters as objects {capitulo: "..."} - extract string value
-        const chapterNames = chapters
-          .map((c) =>
-            typeof c === "object" ? c.capitulo || c.etiqueta || String(c) : c,
-          )
-          .filter(Boolean);
-        const preferred =
-          state.capitulo && chapterNames.includes(state.capitulo)
-            ? state.capitulo
-            : chapterNames[0];
-        dom.capituloSelect.innerHTML = chapterNames
-          .map(
-            (c) =>
-              `<option value="${c}" ${
-                c === preferred ? "selected" : ""
-              }>${c}</option>`,
-          )
-          .join("");
-        state.capitulo = preferred;
-      } catch (error) {
-        console.error("Error loading chapters:", error);
-        applyCapituloFallback();
+        const selector =
+          window.parent?.document?.querySelector(".company-selector select") ||
+          document.querySelector(".company-selector select");
+        const option = selector?.selectedOptions?.[0];
+        capituloFromSelector = option?.textContent?.trim() || null;
+      } catch (err) {
+        capituloFromSelector = null;
       }
+
+      const empresaActiva =
+        window.parent?.Sesion?.obtenerEmpresaActiva?.() ||
+        window.Sesion?.obtenerEmpresaActiva?.() ||
+        null;
+
+      const capitulo =
+        capituloFromMap ||
+        capituloFromSelector ||
+        empresaActiva?.etiqueta ||
+        empresaActiva?.nombre ||
+        String(empresaId || "DEFAULT");
+
+      state.capitulo = String(capitulo || "DEFAULT");
+      dom.capituloSelect.innerHTML = `<option value="${escapeAttr(
+        state.capitulo,
+      )}">${escapeHtml(state.capitulo)}</option>`;
+      dom.capituloSelect.value = state.capitulo;
+      dom.capituloSelect.disabled = true;
+      updateHeaderLabels();
+    } catch (error) {
+      console.error("Error loading chapters:", error);
+      state.capitulo = null;
+      showToast("Error al cargar capítulos disponibles", "error");
     }
   }
 
@@ -6385,12 +6551,14 @@
     // UTILITIES
     // ==========================================
     function setStatus(message) {
+      ensureDomElements();
       if (dom.statusMessage) {
         dom.statusMessage.textContent = message;
       }
     }
 
     function showToast(message, type = "info") {
+      ensureDomElements();
       if (
         !dom.toastMessage ||
         !dom.toastNotification ||
@@ -8456,74 +8624,6 @@
       }));
     }
 
-    // ==========================================
-    // INIT ON LOAD
-    // ==========================================
-  let initialDataLoading = false;
-  const needsInitialData = () => {
-    ensureDomElements();
-    if (!dom.anioSelect) return false;
-    const firstOption = dom.anioSelect.options?.[0];
-    const isLoading = /cargando/i.test(firstOption?.textContent || "");
-    return !state.anio || isLoading;
-  };
-
-  const ensureInitialData = async () => {
-    if (initialDataLoading || !needsInitialData()) return;
-    initialDataLoading = true;
-    try {
-      await loadInitialData();
-    } finally {
-      initialDataLoading = false;
-    }
-  };
-
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", init);
-    } else {
-      init();
-    }
-
-  const bootstrapState = { attempts: 0, max: 6, timer: null };
-  const scheduleBootstrapRetry = () => {
-    if (bootstrapState.timer) return;
-    bootstrapState.timer = setInterval(() => {
-      if (!needsInitialData()) {
-        clearInterval(bootstrapState.timer);
-        bootstrapState.timer = null;
-        return;
-      }
-      if (bootstrapState.attempts >= bootstrapState.max) {
-        clearInterval(bootstrapState.timer);
-        bootstrapState.timer = null;
-        setStatus("No se pudo cargar el contexto. Verifica tu sesión.");
-        return;
-      }
-      bootstrapState.attempts += 1;
-      ensureInitialData().catch((error) => {
-        console.error("Error asegurando datos iniciales:", error);
-      });
-    }, 1500);
-  };
-
-  window.addEventListener("load", () => {
-    ensureInitialData().catch((error) => {
-      console.error("Error asegurando datos iniciales:", error);
-    });
-    scheduleBootstrapRetry();
-  });
-
-    if (window.Sesion?.EVENTO_EMPRESA) {
-      window.addEventListener(window.Sesion.EVENTO_EMPRESA, () => {
-        loadYears()
-          .then(loadChapters)
-          .then(tryLoadLayout)
-          .catch((error) => {
-            console.error("Error recargando empresa:", error);
-          });
-      });
-    }
-
     // Cache de cuentas para autocompletar
     let cuentasCache = null;
     let cuentasCacheAnio = null;
@@ -9599,6 +9699,20 @@
       updateAvailableElementsFromTable,
       saveContextToURL,
       loadContextFromURL,
+    };
+
+    window.showToast = showToast;
+    window.setStatus = setStatus;
+    window.Plantillas = {
+      state,
+      api: {
+        buildApiUrl,
+        fetchWithAuth,
+      },
+      ui: {
+        showToast,
+        setStatus,
+      },
     };
     window.__plantillasLoaded = true;
   }

@@ -58,6 +58,46 @@ const mapearRegistro = (registro) => {
   return datos;
 };
 
+const normalizarCuenta = (valor) => (valor == null ? '' : String(valor).trim());
+
+const sumarArreglos = (destino, origen) => {
+  for (let i = 0; i < destino.length; i += 1) {
+    destino[i] += Number(origen[i] || 0);
+  }
+};
+
+const construirSalidaCuenta = (base, presupuestosArr, realesArr) => {
+  const presupuestoMensual = {};
+  const realMensual = {};
+  let acumuladoPresupuesto = 0;
+
+  const datos = {
+    numCta: base.numCta,
+    descripcion: base.descripcion,
+    naturaleza: base.naturaleza || '',
+  };
+
+  MESES.forEach(({ clave, periodo }) => {
+    const idx = periodo - 1;
+    const sufijo = formatearPeriodo(periodo);
+    const valorPresupuesto = Number(presupuestosArr[idx] || 0);
+    const valorReal = Number(realesArr[idx] || 0);
+
+    presupuestoMensual[clave] = valorPresupuesto;
+    realMensual[clave] = valorReal;
+
+    datos[`presup${sufijo}`] = valorPresupuesto;
+    datos[`real${sufijo}`] = valorReal;
+    datos[clave] = valorPresupuesto;
+    acumuladoPresupuesto += valorPresupuesto;
+  });
+
+  datos.presupuesto = presupuestoMensual;
+  datos.real = realMensual;
+  datos.anual = acumuladoPresupuesto;
+  return datos;
+};
+
 const obtenerPresupuestosMayor = async (empresaId, anio) => {
   if (!empresaId) {
     throw new Error('La empresa es obligatoria.');
@@ -87,6 +127,9 @@ const obtenerPresupuestosMayor = async (empresaId, anio) => {
       c.NUM_CTA AS CUENTA,
       c.NOMBRE AS DESCRIPCION,
       c.NATURALEZA,
+      c.NIVEL,
+      c.TIPO,
+      c.CTA_PAPA,
       ${[...columnasPresupuesto, ...columnasReal].join(',\n      ')}
     FROM ${tablaCuentas} c
     LEFT JOIN ${tablaPresupuesto} p
@@ -96,14 +139,95 @@ const obtenerPresupuestosMayor = async (empresaId, anio) => {
       ON s.NUM_CTA = c.NUM_CTA
      AND s.EJERCICIO = ?
     WHERE c.STATUS = 'A'
-      AND c.TIPO = 'A'
-      AND c.NIVEL = '1'
       AND SUBSTRING(c.NUM_CTA FROM 1 FOR 3) BETWEEN '400' AND '950'
     ORDER BY c.NUM_CTA
   `;
 
   const resultados = await ejecutarConsulta(empresaId, consulta, [ejercicio, ejercicio]);
-  return resultados.map((registro) => mapearRegistro(registro));
+  const mapa = new Map();
+  const hijosPorPadre = new Map();
+
+  resultados.forEach((registro) => {
+    const numCta = normalizarCuenta(registro.CUENTA);
+    if (!numCta) return;
+    const base = {
+      numCta,
+      descripcion: registro.DESCRIPCION,
+      naturaleza: registro.NATURALEZA || '',
+      nivel: Number(registro.NIVEL),
+      tipo: normalizarCuenta(registro.TIPO),
+      papa: normalizarCuenta(registro.CTA_PAPA)
+    };
+
+    const presupArr = Array.from({ length: 12 }, (_, idx) => {
+      const sufijo = formatearPeriodo(idx + 1);
+      return Number(registro[`PRESUP${sufijo}`] ?? 0);
+    });
+    const realArr = Array.from({ length: 12 }, (_, idx) => {
+      const sufijo = formatearPeriodo(idx + 1);
+      return Number(registro[`REAL${sufijo}`] ?? 0);
+    });
+
+    mapa.set(numCta, { base, presupArr, realArr });
+  });
+
+  // Construir relaciones padre -> hijos solo si el padre existe en el set consultado.
+  for (const [numCta, entry] of mapa.entries()) {
+    const papa = entry.base.papa;
+    if (!papa || !mapa.has(papa)) continue;
+    const lista = hijosPorPadre.get(papa) || [];
+    lista.push(numCta);
+    hijosPorPadre.set(papa, lista);
+  }
+
+  const memo = new Map();
+  const enProceso = new Set();
+  const resolverAgregado = (numCta) => {
+    if (memo.has(numCta)) return memo.get(numCta);
+    if (enProceso.has(numCta)) {
+      const vacio = {
+        presupArr: Array.from({ length: 12 }, () => 0),
+        realArr: Array.from({ length: 12 }, () => 0),
+      };
+      memo.set(numCta, vacio);
+      return vacio;
+    }
+    enProceso.add(numCta);
+
+    const actual = mapa.get(numCta);
+    const hijos = hijosPorPadre.get(numCta) || [];
+    const presupArr = Array.from({ length: 12 }, () => 0);
+    const realArr = Array.from({ length: 12 }, () => 0);
+
+    if (hijos.length) {
+      hijos.forEach((hijo) => {
+        const agregadoHijo = resolverAgregado(hijo);
+        sumarArreglos(presupArr, agregadoHijo.presupArr);
+        sumarArreglos(realArr, agregadoHijo.realArr);
+      });
+    } else if (actual) {
+      sumarArreglos(presupArr, actual.presupArr);
+      sumarArreglos(realArr, actual.realArr);
+    }
+
+    const resultado = { presupArr, realArr };
+    memo.set(numCta, resultado);
+    enProceso.delete(numCta);
+    return resultado;
+  };
+
+  // Solo devolver cuentas de mayor: NIVEL 1 y TIPO A, pero con valores recalculados.
+  const salida = [];
+  for (const [numCta, entry] of mapa.entries()) {
+    if (entry.base.tipo !== 'A') continue;
+    if (entry.base.nivel !== 1) continue;
+    const agregado = resolverAgregado(numCta);
+    salida.push(construirSalidaCuenta(entry.base, agregado.presupArr, agregado.realArr));
+  }
+
+  // Mantener orden por cuenta.
+  salida.sort((a, b) => normalizarCuenta(a.numCta).localeCompare(normalizarCuenta(b.numCta)));
+  return salida;
 };
 
 /**
@@ -139,7 +263,7 @@ const obtenerTotalesPresupuestoCapitulo = async (empresaId, anio) => {
       ON p.NUM_CTA = c.NUM_CTA
      AND p.EJERCICIO = ?
     WHERE c.STATUS = 'A'
-      AND c.TIPO IN ('A', 'D')
+      AND c.TIPO = 'D'
       AND SUBSTRING(c.NUM_CTA FROM 1 FOR 3) BETWEEN '400' AND '950'
   `;
 

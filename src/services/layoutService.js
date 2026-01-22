@@ -5,8 +5,61 @@
 
 const { EMPRESAS } = require("../config/empresas");
 const db = require("../db/sqlite").db;
+const { normalizarNombreModulo } = require("../config/modulos");
 
 const CANONICAL_EMPRESA_DEFAULT = "EMPRESA01";
+
+const stripDiacritics = (value = "") =>
+  value
+    .toString()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+const normalizarClaveModuloSqlite = (value = "") =>
+  stripDiacritics(value)
+    .toString()
+    .trim()
+    .replace(/[-_\s]+/g, " ")
+    .toLowerCase();
+
+const generarVariantesModulo = (modulo) => {
+  const base = (modulo || "").toString().trim();
+  const normalizado = normalizarNombreModulo(base) || base;
+  const candidatos = [base, normalizado].filter(Boolean);
+  const variantes = new Set();
+  candidatos.forEach((cand) => {
+    variantes.add(normalizarClaveModuloSqlite(cand));
+    variantes.add(normalizarClaveModuloSqlite(stripDiacritics(cand)));
+  });
+  return Array.from(variantes).filter(Boolean);
+};
+
+const resolverModuloConsulta = ({ empresaId = CANONICAL_EMPRESA_DEFAULT, modulo }) => {
+  const variantesEmpresa = new Set([
+    ...generarVariantesEmpresa(empresaId),
+    ...generarVariantesEmpresa(CANONICAL_EMPRESA_DEFAULT),
+  ]);
+  const empresas = Array.from(variantesEmpresa).filter(Boolean);
+  const moduloKeys = generarVariantesModulo(modulo);
+  const fallback = normalizarNombreModulo(modulo) || modulo;
+  if (!empresas.length || !moduloKeys.length) return fallback;
+
+  const empPlaceholders = empresas.map(() => "?").join(",");
+  const modPlaceholders = moduloKeys.map(() => "?").join(",");
+  const row = db
+    .prepare(
+      `
+      SELECT modulo
+      FROM layout_cuentas
+      WHERE empresa_id IN (${empPlaceholders})
+        AND LOWER(modulo) IN (${modPlaceholders})
+      LIMIT 1
+    `,
+    )
+    .get(...empresas, ...moduloKeys);
+
+  return row?.modulo || fallback;
+};
 
 const generarVariantesEmpresa = (empresaId = CANONICAL_EMPRESA_DEFAULT) => {
   const variantes = new Set();
@@ -426,10 +479,15 @@ const obtenerLayout = ({ empresaId = "EMPRESA01", modulo, anio, capitulo }) => {
   const anioNumero = Number(anio);
   const moduloNorm = (modulo || "").toString().trim().toUpperCase();
   const empresaCanonica = obtenerEmpresaCanonica(empresaId);
-  asegurarLayoutAnio({ empresaId: empresaCanonica, modulo, anio: anioNumero });
-  const empresaConsulta = resolverEmpresaConsulta({
+  const moduloConsulta = resolverModuloConsulta({ empresaId, modulo });
+  asegurarLayoutAnio({
     empresaId: empresaCanonica,
-    modulo,
+    modulo: moduloConsulta,
+    anio: anioNumero,
+  });
+  const empresaConsulta = resolverEmpresaConsulta({
+    empresaId,
+    modulo: moduloConsulta,
     anio: anioNumero,
   });
   const capituloObjetivo = capitulo || "DEFAULT";
@@ -453,7 +511,7 @@ const obtenerLayout = ({ empresaId = "EMPRESA01", modulo, anio, capitulo }) => {
     ORDER BY COALESCE(orden_presentacion, orden) ASC, cuenta ASC
   `,
       )
-      .all(empresaConsulta, modulo, anioObjetivo, capituloObjetivo);
+      .all(empresaConsulta, moduloConsulta, anioObjetivo, capituloObjetivo);
 
   const normalizarVisible = (value) => {
     if (value === null || value === undefined) return true;
@@ -601,7 +659,7 @@ const obtenerLayout = ({ empresaId = "EMPRESA01", modulo, anio, capitulo }) => {
 
     if (!operacionesMap[mapKey]) {
       operacionesMap[mapKey] = {
-        HOJA: modulo, // Agregar HOJA para que el filtro en planeacionReportesEngine funcione
+        HOJA: moduloConsulta, // Agregar HOJA para que el filtro en planeacionReportesEngine funcione
         CAPITULO: op.CAPITULO,
         Clase: operacionEtiqueta,
         OperacionId: operacionId || operacionEtiqueta,
@@ -642,7 +700,7 @@ const obtenerLayout = ({ empresaId = "EMPRESA01", modulo, anio, capitulo }) => {
 
   return construirRespuestaLayout({
     empresaId: empresaConsulta,
-    modulo,
+    modulo: moduloConsulta,
     anio: anioUsado,
     capitulo: capituloObjetivo,
     cuentas,
@@ -657,11 +715,16 @@ const obtenerCapitulos = ({ empresaId = "EMPRESA01", modulo, anio }) => {
   const anioNumero = Number(anio);
   const moduloNorm = (modulo || "").toString().trim().toUpperCase();
   const empresaCanonica = obtenerEmpresaCanonica(empresaId);
-  asegurarLayoutAnio({ empresaId: empresaCanonica, modulo, anio: anioNumero });
+  const moduloConsulta = resolverModuloConsulta({ empresaId, modulo });
+  asegurarLayoutAnio({
+    empresaId: empresaCanonica,
+    modulo: moduloConsulta,
+    anio: anioNumero,
+  });
 
   const empresaConsulta = resolverEmpresaConsulta({
-    empresaId: empresaCanonica,
-    modulo,
+    empresaId,
+    modulo: moduloConsulta,
     anio: anioNumero,
   });
 
@@ -674,7 +737,7 @@ const obtenerCapitulos = ({ empresaId = "EMPRESA01", modulo, anio }) => {
     ORDER BY capitulo ASC
   `,
     )
-    .all(empresaConsulta, modulo, anioNumero);
+    .all(empresaConsulta, moduloConsulta, anioNumero);
 
   return (capitulos || []).map((c) => ({ capitulo: c.capitulo }));
 };
@@ -683,14 +746,19 @@ const obtenerCapitulos = ({ empresaId = "EMPRESA01", modulo, anio }) => {
  * Obtener años disponibles para un módulo
  */
 const obtenerAniosDisponibles = ({ empresaId = "EMPRESA01", modulo }) => {
-  const empresaCanonica = obtenerEmpresaCanonica(empresaId);
-  const baseCanonica = obtenerEmpresaCanonica("EMPRESA01");
-  const variantes = new Set([empresaCanonica, baseCanonica]);
+  const variantesEmpresa = new Set([
+    ...generarVariantesEmpresa(empresaId),
+    ...generarVariantesEmpresa(obtenerEmpresaCanonica(empresaId)),
+    ...generarVariantesEmpresa("EMPRESA01"),
+    ...generarVariantesEmpresa(obtenerEmpresaCanonica("EMPRESA01")),
+  ]);
+  const variantes = new Set(Array.from(variantesEmpresa).filter(Boolean));
+  const moduloConsulta = resolverModuloConsulta({ empresaId, modulo });
 
   const placeholders = Array.from(variantes)
     .map(() => "?")
     .join(",");
-  const params = Array.from(variantes).concat([modulo]);
+  const params = Array.from(variantes).concat([moduloConsulta]);
 
   const anios = db
     .prepare(

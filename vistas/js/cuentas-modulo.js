@@ -347,6 +347,34 @@
     return 0;
   };
 
+  // Algunos capitulos usan nombres distintos entre ingresos/costos para el mismo evento.
+  // Para que el "Resultado Operativo {X}" se renderice, ambos lados deben caer en la
+  // misma clave de agrupacion. Aqui forzamos esas equivalencias puntuales.
+  const overrideClaveOperativo = ({ moduloClave, capitulo, nombre }) => {
+    const capNorm = normalizarTexto(capitulo || "");
+    const nombreNorm = normalizarTexto(nombre || "");
+
+    // T&IC: Ingresos 2 vs Gastos 2 (mismo evento pero nombres distintos).
+    if (moduloClave === "tic" && (nombreNorm === "INGRESOS 2" || nombreNorm === "GASTOS 2")) {
+      return { clave: "INGRESOS2_GASTOS2", nombre: "Ingresos 2 menos Gastos 2" };
+    }
+
+    // Eventos (Noreste): Boletaje/Patrocinios se llama "Foro Económico y otros foros"
+    // pero el costo viene como "Foro Económico". Los agrupamos bajo el nombre largo.
+    if (
+      moduloClave === "eventos" &&
+      /NORESTE/.test(capNorm) &&
+      (nombreNorm === "FORO ECONOMICO" || /FORO ECONOMICO Y OTROS FOROS/.test(nombreNorm))
+    ) {
+      return {
+        clave: "FORO_ECONOMICO_Y_OTROS_FOROS",
+        nombre: "Foro Económico y otros foros",
+      };
+    }
+
+    return null;
+  };
+
   const construirOperacionesResultadoOperativo = ({
     registros,
     moduloClave,
@@ -362,18 +390,24 @@
       if (!signo) return;
       const nombre = (registro?.nombre || "").toString().trim();
       if (!nombre) return;
-      const clave = normalizarNombreOperativo(nombre, { ordenarTokens });
+      const override = overrideClaveOperativo({
+        moduloClave,
+        capitulo: registro?.capitulo || registro?.CAPITULO || "",
+        nombre,
+      });
+      const clave = override?.clave || normalizarNombreOperativo(nombre, { ordenarTokens });
       if (!clave) return;
       const cuenta21 = convertirCuenta21(registro?.cuenta || "");
       if (!cuenta21) return;
       const existente = grupos.get(clave) || {
         clave,
-        nombre,
+        nombre: override?.nombre || nombre,
         ingresos: new Set(),
         gastos: new Set(),
         orden: idx,
       };
-      if (nombre.length > existente.nombre.length) {
+      // Mantener el nombre mas descriptivo; si hay override, preferirlo.
+      if (!override && nombre.length > existente.nombre.length) {
         existente.nombre = nombre;
       }
       if (signo > 0) {
@@ -3096,7 +3130,7 @@
                 );
               }
             } else if (esGastosFinancieros) {
-              // Total = Gastos Financieros - Gastos Generales - Depreciaciones - GA Cap├¡tulo
+              // Total = Gastos Financieros - Gastos Generales - Depreciaciones - GA Capítulo
               metaSeccion.factor = 1;
               agregarResultRow(metaSeccion, totalLabel);
             } else if (esGastosGenerales || esDepreciaciones || esGaCapitulo) {
@@ -3279,13 +3313,13 @@
             } else if (/INGRESOS/i.test(seccionNormTexto)) {
               metaSeccion.factor = 1;
             }
-            let etiquetaDir = "Resultado Director Cap├¡tulo";
+            let etiquetaDir = "Resultado Director Capítulo";
             if (/GUADALAJARA/i.test(capituloNormalizado))
-              etiquetaDir = "Resultado Director Cap├¡tulo";
+              etiquetaDir = "Resultado Director Capítulo";
             else if (/NORESTE|NE/i.test(capituloNormalizado))
-              etiquetaDir = "Resultado Director Cap├¡tulo";
+              etiquetaDir = "Resultado Director Capítulo";
             else if (/NOROESTE|NO/i.test(capituloNormalizado))
-              etiquetaDir = "Resultado Director Cap├¡tulo";
+              etiquetaDir = "Resultado Director Capítulo";
             const etiquetaDirNorm = normalizarTexto(etiquetaDir);
 
             if (esGastosAdminDir) {

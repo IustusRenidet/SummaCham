@@ -11,6 +11,12 @@ const { normalizarNombreModulo } = require("../config/modulos");
 
 const { db } = require("../db/sqlite");
 
+router.param("modulo", (req, res, next, modulo) => {
+  req.moduloOriginal = modulo;
+  req.params.modulo = normalizarNombreModulo(modulo) || modulo;
+  next();
+});
+
 const tienePermisoCapitulo = (usuarioId, capitulo) => {
   if (!usuarioId) return false;
   // Si el usuario no tiene registro en la tabla, por defecto NO tiene permiso granular

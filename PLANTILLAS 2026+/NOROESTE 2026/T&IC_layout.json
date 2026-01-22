@@ -41,6 +41,12 @@
       "tipo": "cuentas",
       "expresion": "703-001-000-00 + 703-002-000-00",
       "seccion": "Gastos T&IC"
+    },
+    {
+      "nombre": "Ingresos 2 menos Gastos 2",
+      "tipo": "cuentas",
+      "expresion": "407-002-000-00 - 703-002-000-00",
+      "seccion": ""
     }
   ]
 }

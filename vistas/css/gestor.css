@@ -88,3 +88,140 @@
     padding: 1.2rem 0;
   }
 }
+
+.gestor-header-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.gestor-status-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+}
+
+.gestor-header-controls {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(47, 84, 150, 0.12);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.gestor-select-col select {
+  border-color: #1d4ed8;
+  background: #ffffff;
+  font-weight: 600;
+}
+
+.gestor-search-input {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.75rem;
+  background: #ffffff;
+  border: 1px solid rgba(47, 84, 150, 0.2);
+}
+
+.gestor-search-input i {
+  color: #1d4ed8;
+  font-size: 1rem;
+}
+
+.gestor-search-input input {
+  border: none;
+  padding: 0;
+  box-shadow: none;
+  border-radius: 0;
+  background: transparent;
+}
+
+.gestor-search-input input:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.gestor-filter-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.gestor-filter-pills label {
+  flex: 1;
+  min-width: 140px;
+  text-align: center;
+}
+
+.gestor-filter-pills .btn-outline-primary {
+  border-color: rgba(29, 78, 216, 0.3);
+  color: #1d4ed8;
+  background: #ffffff;
+}
+
+.gestor-filter-pills .btn-check:checked + label,
+.gestor-filter-pills label:hover {
+  background: rgba(29, 78, 216, 0.08);
+}
+
+.gestor-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.85rem;
+}
+
+.plantillas-graficas-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  position: sticky;
+  top: 1rem;
+  background: rgba(255, 255, 255, 0.92);
+  padding: 0.3rem;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(29, 78, 216, 0.15);
+  z-index: 5;
+}
+
+.plantillas-graficas-actions button {
+  min-width: 160px;
+}
+
+.plantillas-graficas-panel {
+  background: #f6f8ff;
+  border: 1px solid rgba(29, 78, 216, 0.15);
+  border-radius: 1.25rem;
+  padding: 1.25rem;
+}
+
+.plantillas-graficas-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.plantillas-graficas-card {
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.plantillas-graficas-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12);
+}
+
+.bg-blue-pill {
+  background: rgba(59, 130, 246, 0.15);
+  border-radius: 999px;
+  padding: 0.15rem 0.6rem;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}

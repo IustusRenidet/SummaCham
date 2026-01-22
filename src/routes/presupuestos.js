@@ -69,6 +69,7 @@ const esquemaTransicion = Joi.object({
   accion: Joi.string().valid('cargar', 'revisar', 'autorizar', 'guardar').required()
 });
 
+
 const serializarEmpresa = (empresa) => {
   if (!empresa) {
     return null;
