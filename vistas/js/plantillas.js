@@ -145,41 +145,165 @@
     showToast("✅ Todas las secciones colapsadas", "success");
   }
 
-  function normalizeFormulaTerms(terms = []) {
-    return (terms || []).map((t) => {
-      const type = t?.type || "section";
-      const constantValue =
-        type === "constant"
-          ? Number.isFinite(Number(t?.constant))
-            ? Number(t.constant)
-            : Number.isFinite(Number(t?.value))
-              ? Number(t.value)
-              : null
-          : null;
-      const value =
-        type === "operation"
-          ? resolveOperationId(t?.value || "")
-          : type === "constant"
-            ? t?.value || (constantValue !== null ? String(constantValue) : "")
-            : t?.value || "";
-      const normalized = {
-        operator: t?.operator || "+",
-        type,
-        value,
-      };
-      if (constantValue !== null) {
-        normalized.constant = constantValue;
-      }
-      if (t?.parentSection) {
-        normalized.parentSection = t.parentSection;
-      }
-      return normalized;
-    });
-  }
+	  function normalizeFormulaTerms(terms = []) {
+	    return (terms || []).map((t) => {
+	      const type = t?.type || "section";
+	      const constantValue =
+	        type === "constant"
+	          ? Number.isFinite(Number(t?.constant))
+	            ? Number(t.constant)
+	            : Number.isFinite(Number(t?.value))
+	              ? Number(t.value)
+	              : null
+	          : null;
+	      const value =
+	        type === "operation"
+	          ? resolveOperationId(t?.value || "")
+	          : type === "constant"
+	            ? t?.value || (constantValue !== null ? String(constantValue) : "")
+	            : t?.value || "";
+	      const normalized = {
+	        operator: t?.operator || "+",
+	        type,
+	        value,
+	      };
+	      if (constantValue !== null) {
+	        normalized.constant = constantValue;
+	      }
+	      if (t?.parentSection) {
+	        normalized.parentSection = t.parentSection;
+	      }
+	      return normalized;
+	    });
+	  }
 
-  // ==========================================
-  // INITIALIZATION
-  // ==========================================
+	  // Construye una lista de términos de fórmula a partir del "padre" (SECCION / Clase).
+	  // Esta versión existe para evitar crashes cuando una implementación más completa
+	  // vive dentro de otro scope (por copia/pegado de módulos).
+	  function buildFormulaTermsFromParent(parentName) {
+	    const name = (parentName || "").toString().trim();
+	    if (!name) return [];
+
+	    // Si viene como "A + B + C", tratarlo como lista explícita.
+	    const parts = name
+	      .split(/\s*\+\s*/g)
+	      .map((p) => p.trim())
+	      .filter(Boolean);
+	    if (parts.length > 1) {
+	      return parts.map((value, idx) => ({
+	        id: Date.now() + idx,
+	        operator: "+",
+	        type: "section",
+	        value,
+	      }));
+	    }
+
+	    // Intentar construir desde subsecciones del layout (si groupBySections existe).
+	    try {
+	      if (typeof groupBySections === "function") {
+	        const sections = groupBySections(state.cuentas || []);
+	        const section = sections.find((s) => s?.name === name);
+	        const subsections = section?.subsections || [];
+	        if (subsections.length) {
+	          const seen = new Set();
+	          const terms = [];
+	          let counter = 0;
+	          subsections.forEach((sub) => {
+	            const label = (sub?.name || "").toString().trim() || name;
+	            if (!label || seen.has(label)) return;
+	            seen.add(label);
+	            terms.push({
+	              id: Date.now() + counter++,
+	              operator: "+",
+	              type: "section",
+	              value: label,
+	              parentSection: name,
+	            });
+	          });
+	          if (terms.length) return terms;
+	        }
+	      }
+	    } catch (err) {
+	      // ignore y caer al fallback simple
+	    }
+
+	    // Fallback: un solo término con el nombre.
+	    return [
+	      {
+	        id: Date.now(),
+	        operator: "+",
+	        type: "section",
+	        value: name,
+	      },
+	    ];
+	  }
+
+	  // Evitar crash por "normalizeOperationReferences is not defined" cuando el
+	  // cuerpo que la define esté en otro scope (por copia/pegado de módulos).
+	  function normalizeOperationReferences() {
+	    try {
+	      const ops = Array.isArray(state?.operaciones) ? state.operaciones : [];
+	      if (!ops.length) return;
+
+	      const norm = (value) =>
+	        (value || "")
+	          .toString()
+	          .normalize("NFD")
+	          .replace(/[\u0300-\u036f]/g, "")
+	          .replace(/[^a-zA-Z0-9]+/g, "")
+	          .toLowerCase();
+
+	      const map = new Map(); // normalized(label/id) -> id
+	      ops.forEach((op) => {
+	        const id =
+	          op?.OperacionId ||
+	          op?.operacion_id ||
+	          op?.id ||
+	          op?.clase ||
+	          op?.Clase ||
+	          "";
+	        const label =
+	          op?.Etiqueta ||
+	          op?.operacion_etiqueta ||
+	          op?.Clase ||
+	          op?.clase ||
+	          "";
+	        if (id) map.set(norm(id), id);
+	        if (label) map.set(norm(label), id || label);
+	      });
+
+	      const rewriteTerms = (terms) =>
+	        (terms || []).map((term) => {
+	          if (!term || term.type !== "operation") return term;
+	          const raw = term.value || "";
+	          const replacement = map.get(norm(raw));
+	          if (!replacement) return term;
+	          return { ...term, value: replacement };
+	        });
+
+	      ops.forEach((op) => {
+	        if (Array.isArray(op?.formula_terms) && op.formula_terms.length) {
+	          op.formula_terms = rewriteTerms(op.formula_terms);
+	        }
+	        if (op?.formula_json) {
+	          try {
+	            const parsed = JSON.parse(op.formula_json);
+	            if (Array.isArray(parsed) && parsed.length) {
+	              op.formula_json = JSON.stringify(rewriteTerms(parsed));
+	            }
+	          } catch (e) {
+	            // ignore
+	          }
+	        }
+	      });
+	    } catch (err) {
+	      console.warn("[plantillas] normalizeOperationReferences failed", err);
+	    }
+	  }
+
+	  // ==========================================
+	  // INITIALIZATION
+	  // ==========================================
   let initDone = false;
   function init() {
     if (initDone) return;
@@ -1090,12 +1214,12 @@
     }
   }
 
-  async function loadChapters() {
-    ensureDomElements();
-    if (!dom.capituloSelect) return;
+	  async function loadChapters() {
+	    ensureDomElements();
+	    if (!dom.capituloSelect) return;
 
-    try {
-      const empresaId = getEmpresaId();
+	    try {
+	      const empresaId = getEmpresaId();
       const capituloFromMap =
         window.parent?.CapitulosModulos?.empresaACapitulo?.(empresaId) ||
         window.parent?.CapitulosModulos?.obtenerCapituloPorEmpresa?.(empresaId) ||
@@ -1119,20 +1243,63 @@
         window.Sesion?.obtenerEmpresaActiva?.() ||
         null;
 
-      const capitulo =
-        capituloFromMap ||
-        capituloFromSelector ||
-        empresaActiva?.etiqueta ||
-        empresaActiva?.nombre ||
-        String(empresaId || "DEFAULT");
+	      const capitulo =
+	        capituloFromMap ||
+	        capituloFromSelector ||
+	        empresaActiva?.etiqueta ||
+	        empresaActiva?.nombre ||
+	        String(empresaId || "DEFAULT");
 
-      state.capitulo = String(capitulo || "DEFAULT");
-      dom.capituloSelect.innerHTML = `<option value="${escapeAttr(
-        state.capitulo,
-      )}">${escapeHtml(state.capitulo)}</option>`;
-      dom.capituloSelect.value = state.capitulo;
-      dom.capituloSelect.disabled = true;
-      updateHeaderLabels();
+	      const desired = String(capitulo || "DEFAULT");
+
+	      // Intentar resolver el capítulo exacto existente en SQLite (por acentos/mayúsculas).
+	      const normalizeKey = (value) =>
+	        (value || "")
+	          .toString()
+	          .trim()
+	          .normalize("NFD")
+	          .replace(/[\u0300-\u036f]/g, "")
+	          .replace(/[-_\s]+/g, " ")
+	          .toLowerCase();
+
+	      let resolved = desired;
+	      if (state.modulo && state.anio) {
+	        try {
+	          const url = buildApiUrl(
+	            `/${encodeURIComponent(state.modulo)}/${state.anio}/capitulos`,
+	          );
+	          const response = await fetchWithAuth(url);
+	          if (response.ok) {
+	            const data = await response.json();
+	            const chapters = Array.isArray(data.capitulos) ? data.capitulos : [];
+	            const labels = chapters
+	              .map((c) =>
+	                typeof c === "object"
+	                  ? c.capitulo || c.etiqueta || ""
+	                  : String(c),
+	              )
+	              .map((c) => c.trim())
+	              .filter(Boolean);
+	            const desiredKey = normalizeKey(desired);
+	            const match = labels.find((c) => normalizeKey(c) === desiredKey);
+	            if (match) {
+	              resolved = match;
+	            } else if (labels.length === 1) {
+	              resolved = labels[0];
+	            }
+	          }
+	        } catch (err) {
+	          // ignore
+	        }
+	      }
+
+	      state.capitulo = resolved;
+	      dom.capituloSelect.innerHTML = `<option value="${escapeAttr(
+	        state.capitulo,
+	      )}">${escapeHtml(state.capitulo)}</option>`;
+	      dom.capituloSelect.value = state.capitulo;
+	      dom.capituloSelect.disabled = true;
+	      updateHeaderLabels();
     } catch (error) {
       console.error("Error loading chapters:", error);
       state.capitulo = null;

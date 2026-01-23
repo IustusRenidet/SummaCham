@@ -107,23 +107,32 @@ router.get("/:modulo/:anio/capitulos", requireAuth, (req, res) => {
  * GET /api/layouts/:modulo/:anio/:capitulo
  * Obtener layout completo para un módulo, año y capítulo
  */
-router.get("/:modulo/:anio/:capitulo", requireAuth, (req, res) => {
-  try {
-    const { modulo, anio, capitulo } = req.params;
-    const { empresaId = "EMPRESA01" } = req.query;
+	router.get("/:modulo/:anio/:capitulo", requireAuth, (req, res) => {
+	  try {
+	    const { modulo, anio, capitulo } = req.params;
+	    const { empresaId = "EMPRESA01" } = req.query;
 
-    const layout = layoutService.obtenerLayout({
-      empresaId,
-      modulo,
-      anio: parseInt(anio),
-      capitulo,
-    });
+	    const layout = layoutService.obtenerLayout({
+	      empresaId,
+	      modulo,
+	      anio: parseInt(anio),
+	      capitulo,
+	    });
 
-    res.json({
-      success: true,
-      modulo,
-      anio: parseInt(anio),
-      capitulo,
+	    const cuentas = Array.isArray(layout?.cuentas) ? layout.cuentas : [];
+	    const operaciones = Array.isArray(layout?.operaciones) ? layout.operaciones : [];
+	    if (!cuentas.length && !operaciones.length) {
+	      return res.status(404).json({
+	        success: false,
+	        mensaje: "No existe layout para el contexto solicitado.",
+	      });
+	    }
+
+	    res.json({
+	      success: true,
+	      modulo,
+	      anio: parseInt(anio),
+	      capitulo,
       layout,
     });
   } catch (error) {

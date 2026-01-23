@@ -22,6 +22,13 @@ const normalizarClaveModuloSqlite = (value = "") =>
     .replace(/[-_\s]+/g, " ")
     .toLowerCase();
 
+const normalizarClaveCapituloSqlite = (value = "") =>
+  stripDiacritics(value)
+    .toString()
+    .trim()
+    .replace(/[-_\s]+/g, " ")
+    .toLowerCase();
+
 const generarVariantesModulo = (modulo) => {
   const base = (modulo || "").toString().trim();
   const normalizado = normalizarNombreModulo(base) || base;
@@ -241,6 +248,41 @@ const resolverEmpresaConsulta = ({ empresaId, modulo, anio }) => {
     }
   }
   return canonSolicitada;
+};
+
+const resolverCapituloConsulta = ({
+  empresaConsulta,
+  moduloConsulta,
+  anioNumero,
+  capitulo,
+}) => {
+  const objetivo = (capitulo || "").toString().trim();
+  if (!objetivo) return "DEFAULT";
+  if (!empresaConsulta || !moduloConsulta || !Number.isInteger(Number(anioNumero))) {
+    return objetivo;
+  }
+
+  const lista = db
+    .prepare(
+      `
+      SELECT DISTINCT capitulo
+      FROM layout_cuentas
+      WHERE empresa_id = ? AND modulo = ? AND anio = ?
+      ORDER BY capitulo ASC
+    `,
+    )
+    .all(empresaConsulta, moduloConsulta, Number(anioNumero));
+
+  const candidatos = (lista || []).map((row) => row?.capitulo).filter(Boolean);
+  if (!candidatos.length) return objetivo;
+
+  const targetKey = normalizarClaveCapituloSqlite(objetivo);
+  if (!targetKey) return candidatos[0];
+
+  const match = candidatos.find(
+    (cand) => normalizarClaveCapituloSqlite(cand) === targetKey,
+  );
+  return match || candidatos[0] || objetivo;
 };
 
 const construirRespuestaLayout = ({
@@ -490,7 +532,12 @@ const obtenerLayout = ({ empresaId = "EMPRESA01", modulo, anio, capitulo }) => {
     modulo: moduloConsulta,
     anio: anioNumero,
   });
-  const capituloObjetivo = capitulo || "DEFAULT";
+  const capituloObjetivo = resolverCapituloConsulta({
+    empresaConsulta,
+    moduloConsulta,
+    anioNumero,
+    capitulo: capitulo || "DEFAULT",
+  });
 
   const consultarCuentas = (anioObjetivo) =>
     db
