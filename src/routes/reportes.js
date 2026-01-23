@@ -12,6 +12,33 @@ const router = express.Router();
 
 router.use(requireAuth);
 
+const esTablaPresupuestoInexistente = (error) => {
+  const codigoSql = Number(error?.sqlcode || error?.SQLCODE);
+  if (codigoSql === -204) {
+    return true;
+  }
+  const mensaje = (error?.message || '').toString().toUpperCase();
+  return (
+    mensaje.includes('TABLE') &&
+    mensaje.includes('UNKNOWN') &&
+    (mensaje.includes('PRESUP') || mensaje.includes('CUENTAS') || mensaje.includes('SALDOS'))
+  );
+};
+
+const esErrorConexionFirebird = (error) => {
+  const codigo = (error?.code || '').toString().toUpperCase();
+  if (['ECONNREFUSED', 'EHOSTUNREACH', 'ENETUNREACH', 'ETIMEDOUT'].includes(codigo)) {
+    return true;
+  }
+  const mensaje = (error?.message || '').toString().toUpperCase();
+  return (
+    mensaje.includes('UNABLE TO COMPLETE NETWORK REQUEST') ||
+    mensaje.includes('FAILED TO ESTABLISH A CONNECTION') ||
+    mensaje.includes('NETWORK REQUEST') ||
+    mensaje.includes('CONNECTION REJECTED')
+  );
+};
+
 const rawExcelParser = express.raw({
   type: 'application/octet-stream',
   limit: '20mb',
@@ -86,14 +113,20 @@ router.get('/summary', async (req, res) => {
   if (!req.esAdmin && !esUsuarioPermitidoResumen(req.usuarioActual?.usuario)) {
     return res.status(403).json({ mensaje: 'No cuentas con permisos para este reporte.' });
   }
-  try {
-    const data = await generarSummary(value.empresaId, normalizarAnio(value.anio), normalizarMes(value.mes), value.capitulo);
-    res.json(data);
-  } catch (errorSum) {
-    console.error('Error generando Summary:', errorSum);
-    res.status(500).json({ mensaje: 'No fue posible generar el reporte de Summary.' });
-  }
-});
+	  try {
+	    const data = await generarSummary(value.empresaId, normalizarAnio(value.anio), normalizarMes(value.mes), value.capitulo);
+	    res.json(data);
+	  } catch (errorSum) {
+	    console.error('Error generando Summary:', errorSum);
+	    if (esTablaPresupuestoInexistente(errorSum)) {
+	      return res.status(404).json({ mensaje: `No existe información para el año ${value.anio}.` });
+	    }
+	    if (esErrorConexionFirebird(errorSum)) {
+	      return res.status(503).json({ mensaje: 'No se pudo conectar a la base de datos. Verifica la conexión.' });
+	    }
+	    res.status(500).json({ mensaje: 'No fue posible generar el reporte de Summary.' });
+	  }
+	});
 
 router.get('/resumen', async (req, res) => {
   const { value, error } = esquemaConsulta.validate(req.query, { abortEarly: false });
@@ -110,16 +143,26 @@ router.get('/resumen', async (req, res) => {
   if (!req.esAdmin && !esUsuarioPermitidoResumen(req.usuarioActual?.usuario)) {
     return res.status(403).json({ mensaje: 'No cuentas con permisos para este reporte.' });
   }
-  try {
-    // Usar el nuevo motor unificado
-    const { generarReporte } = require('../services/reportes/planeacionReportesEngine');
-    const data = await generarReporte('RESUMEN', value.empresaId, normalizarAnio(value.anio), normalizarMes(value.mes), value.capitulo);
-    res.json(data);
-  } catch (errorRes) {
-    console.error('Error generando Resumen:', errorRes);
-    res.status(500).json({ mensaje: 'No fue posible generar el reporte de Resumen.' });
-  }
-});
+	  try {
+	    // Usar el nuevo motor unificado
+	    const { generarReporte } = require('../services/reportes/planeacionReportesEngine');
+	    const data = await generarReporte('RESUMEN', value.empresaId, normalizarAnio(value.anio), normalizarMes(value.mes), value.capitulo);
+	    res.json(data);
+	  } catch (errorRes) {
+	    console.error('Error generando Resumen:', errorRes);
+	    const mensaje = (errorRes?.message || '').toString();
+	    if (/no existen capitulos definidos en sqlite/i.test(mensaje)) {
+	      return res.status(404).json({ mensaje });
+	    }
+	    if (esTablaPresupuestoInexistente(errorRes)) {
+	      return res.status(404).json({ mensaje: `No existe información para el año ${value.anio}.` });
+	    }
+	    if (esErrorConexionFirebird(errorRes)) {
+	      return res.status(503).json({ mensaje: 'No se pudo conectar a la base de datos. Verifica la conexión.' });
+	    }
+	    res.status(500).json({ mensaje: 'No fue posible generar el reporte de Resumen.' });
+	  }
+	});
 
 router.post('/operativo-excel', async (req, res) => {
   const { value, error } = esquemaOperativo.validate(req.body, { abortEarly: false });

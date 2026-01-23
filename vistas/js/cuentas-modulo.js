@@ -482,23 +482,27 @@
     filaSeccion.appendChild(celda);
     destino.appendChild(filaSeccion);
 
-    operaciones.forEach((operacion) => {
-      const formula = formatearFormulaOperacion(operacion.terminos);
-      const texto = `Resultado Operativo ${operacion.nombre}${formula ? ` (${formula})` : ""}`;
-      const fila = agregarFilaResumen({
-        texto,
-        clase: "sum-row-operativo",
-        cuerpo: destino,
-        placeholdersPorFila,
-      });
-      if (fila) {
-        fila.dataset.operacionClave = operacion.clave;
-        filasOperativo.set(operacion.clave, {
-          fila,
-          terminos: operacion.terminos,
-        });
-      }
-    });
+	    operaciones.forEach((operacion) => {
+	      const formula = formatearFormulaOperacion(operacion.terminos);
+	      const texto = `Resultado Operativo ${operacion.nombre}`;
+	      const fila = agregarFilaResumen({
+	        texto,
+	        clase: "sum-row-operativo",
+	        cuerpo: destino,
+	        placeholdersPorFila,
+	      });
+	      if (fila) {
+	        fila.dataset.operacionClave = operacion.clave;
+	        if (formula) {
+	          fila.dataset.operacionFormula = formula;
+	          fila.title = formula;
+	        }
+	        filasOperativo.set(operacion.clave, {
+	          fila,
+	          terminos: operacion.terminos,
+	        });
+	      }
+	    });
 
     if (referenciaValida) {
       cuerpo.insertBefore(destino, referenciaValida);

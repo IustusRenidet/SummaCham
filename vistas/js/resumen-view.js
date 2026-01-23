@@ -3596,23 +3596,46 @@
     }
   };
 
-  const consultarResumen = async ({ empresaId, anio, mes, capitulo }) => {
-    const params = new URLSearchParams({
-      empresaId: empresaId,
-      anio: Number(anio),
-    });
-    params.set("mes", String(mes));
-    if (capitulo) params.set("capitulo", capitulo);
+	  const consultarResumen = async ({ empresaId, anio, mes, capitulo }) => {
+	    const params = new URLSearchParams({
+	      empresaId: empresaId,
+	      anio: Number(anio),
+	    });
+	    params.set("mes", String(mes));
+	    if (capitulo) params.set("capitulo", capitulo);
 
-    const respuesta = await fetch(`${API_ENDPOINT}?${params.toString()}`, {
-      headers: Sesion.headersAutenticacion(),
-    });
-    if (manejarSesionExpirada(respuesta)) return null;
-    if (!respuesta.ok) {
-      throw new Error("No fue posible obtener el resumen.");
-    }
-    return respuesta.json();
-  };
+	    const respuesta = await fetch(`${API_ENDPOINT}?${params.toString()}`, {
+	      headers: Sesion.headersAutenticacion(),
+	    });
+	    if (manejarSesionExpirada(respuesta)) return null;
+	    if (!respuesta.ok) {
+	      let detalle = "";
+	      try {
+	        const contentType = respuesta.headers.get("content-type") || "";
+	        if (contentType.includes("application/json")) {
+	          const body = await respuesta.json();
+	          if (body && typeof body === "object") {
+	            const mensaje = body.mensaje || "";
+	            const detalles = Array.isArray(body.detalles)
+	              ? body.detalles.join("; ")
+	              : "";
+	            detalle = [mensaje, detalles].filter(Boolean).join(" - ");
+	          }
+	        } else {
+	          detalle = (await respuesta.text()).trim();
+	        }
+	      } catch (e) {
+	        detalle = "";
+	      }
+	      const statusInfo = `${respuesta.status} ${respuesta.statusText}`.trim();
+	      throw new Error(
+	        `No fue posible obtener el resumen (${statusInfo})${
+	          detalle ? `: ${detalle}` : ""
+	        }`,
+	      );
+	    }
+	    return respuesta.json();
+	  };
 
   const fetchResumen = async (empresaId, anio, mes) => {
     if (!empresaId || !anio) return;

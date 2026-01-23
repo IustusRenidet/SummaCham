@@ -7,6 +7,33 @@ const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
 
+const esTablaPresupuestoInexistente = (error) => {
+  const codigoSql = Number(error?.sqlcode || error?.SQLCODE);
+  if (codigoSql === -204) {
+    return true;
+  }
+  const mensaje = (error?.message || '').toString().toUpperCase();
+  return (
+    mensaje.includes('TABLE') &&
+    mensaje.includes('UNKNOWN') &&
+    (mensaje.includes('PRESUP') || mensaje.includes('CUENTAS') || mensaje.includes('SALDOS'))
+  );
+};
+
+const esErrorConexionFirebird = (error) => {
+  const codigo = (error?.code || '').toString().toUpperCase();
+  if (['ECONNREFUSED', 'EHOSTUNREACH', 'ENETUNREACH', 'ETIMEDOUT'].includes(codigo)) {
+    return true;
+  }
+  const mensaje = (error?.message || '').toString().toUpperCase();
+  return (
+    mensaje.includes('UNABLE TO COMPLETE NETWORK REQUEST') ||
+    mensaje.includes('FAILED TO ESTABLISH A CONNECTION') ||
+    mensaje.includes('NETWORK REQUEST') ||
+    mensaje.includes('CONNECTION REJECTED')
+  );
+};
+
 const normalizarModulo = (valor = '') => {
   return valor
     .toString()
@@ -93,6 +120,19 @@ router.post('/cuentas', async (req, res) => {
     res.json({ cuentas: datos });
   } catch (err) {
     console.error('Error en POST /api/planeacion/cuentas', err);
+
+    if (esTablaPresupuestoInexistente(err)) {
+      return res.status(404).json({
+        mensaje: `No existe información contable para el año ${req.body?.anio}.`
+      });
+    }
+
+    if (esErrorConexionFirebird(err)) {
+      return res.status(503).json({
+        mensaje: 'No se pudo conectar a la base de datos. Verifica la conexión.'
+      });
+    }
+
     res.status(err.status || 500).json({
       mensaje: err.status ? err.message : 'No fue posible obtener la información solicitada.'
     });

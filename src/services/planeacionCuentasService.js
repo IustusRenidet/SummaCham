@@ -8,6 +8,16 @@ const toNumero = (valor) => {
   return Number.isFinite(n) ? n : 0;
 };
 
+const chunkArray = (arr = [], size = 200) => {
+  const lista = Array.isArray(arr) ? arr : [];
+  const safeSize = Number.isInteger(size) && size > 0 ? size : 200;
+  const out = [];
+  for (let i = 0; i < lista.length; i += safeSize) {
+    out.push(lista.slice(i, i + safeSize));
+  }
+  return out;
+};
+
 const mapearPresupuesto = (fila = {}) => {
   const salida = {
     cuenta: String(fila.NUM_CTA || '').trim()
@@ -23,10 +33,27 @@ async function obtenerPresupuestosPorCuentas(empresaId, anio, cuentas = []) {
     return [];
   }
 
+  // Firebird puede fallar con listas IN muy grandes (Block size exceeds implementation restriction).
+  // Trocear en batches para evitar SQL demasiado grande.
+  const cuentasUnicas = Array.from(new Set((cuentas || []).filter(Boolean)));
+  const chunks = chunkArray(cuentasUnicas, 200);
+  if (chunks.length > 1) {
+    const merged = new Map();
+    for (const chunk of chunks) {
+      // eslint-disable-next-line no-await-in-loop
+      const parcial = await obtenerPresupuestosPorCuentas(empresaId, anio, chunk);
+      (parcial || []).forEach((registro) => {
+        if (registro?.cuenta) merged.set(registro.cuenta, registro);
+      });
+    }
+    return Array.from(merged.values());
+  }
+
+  const cuentasChunk = chunks[0] || cuentasUnicas;
   const tabla = nombreTabla('PRESUP', anio);
   const columnasMes = MESES.map(({ alias, periodo }) => `COALESCE(p.PRESUP${pad2(periodo)}, 0) AS ${alias}`);
-  const marcadores = cuentas.map(() => '?').join(',');
-  const parametros = [Number(anio), ...cuentas];
+  const marcadores = cuentasChunk.map(() => '?').join(',');
+  const parametros = [Number(anio), ...cuentasChunk];
 
   const sql = `
     SELECT

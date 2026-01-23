@@ -20,6 +20,16 @@ const formatearPeriodo = (v) => v.toString().padStart(2, "0");
 const construirNombreTabla = (prefijo, anio) =>
   `${prefijo}${anio.toString().slice(-2).padStart(2, "0")}`;
 
+const chunkArray = (arr = [], size = 200) => {
+  const lista = Array.isArray(arr) ? arr : [];
+  const safeSize = Number.isInteger(size) && size > 0 ? size : 200;
+  const out = [];
+  for (let i = 0; i < lista.length; i += safeSize) {
+    out.push(lista.slice(i, i + safeSize));
+  }
+  return out;
+};
+
 const determinarNaturalezaReal = (numCta, naturalezaCampo) => {
   const cuenta = String(numCta || "").trim();
   if (/^1/.test(cuenta)) return "D";
@@ -94,6 +104,22 @@ async function obtenerSaldosPorCuentas(empresaId, anio, cuentas = []) {
   }
   if (!Array.isArray(cuentas) || cuentas.length === 0) return [];
 
+  // Evitar límite de Firebird con IN muy grande (Block size exceeds implementation restriction)
+  const cuentasUnicas = Array.from(new Set(cuentas.filter(Boolean)));
+  const chunks = chunkArray(cuentasUnicas, 200);
+  if (chunks.length > 1) {
+    const todo = [];
+    for (const chunk of chunks) {
+      // eslint-disable-next-line no-await-in-loop
+      const parcial = await obtenerSaldosPorCuentas(empresaId, ejercicio, chunk);
+      if (Array.isArray(parcial) && parcial.length) {
+        todo.push(...parcial);
+      }
+    }
+    return todo;
+  }
+  const cuentasChunk = chunks[0] || cuentasUnicas;
+
   const tCtas = construirNombreTabla("CUENTAS", ejercicio);
   const tSal = construirNombreTabla("SALDOS", ejercicio);
 
@@ -111,8 +137,8 @@ async function obtenerSaldosPorCuentas(empresaId, anio, cuentas = []) {
   ).join(",\n      ");
 
   // Placeholders para IN (?, ?, ...)
-  const binds = cuentas.map(() => "?").join(",");
-  const params = [ejercicio, ...cuentas];
+  const binds = cuentasChunk.map(() => "?").join(",");
+  const params = [ejercicio, ...cuentasChunk];
 
   const sql = `
     SELECT
