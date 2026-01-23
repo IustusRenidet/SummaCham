@@ -574,8 +574,88 @@ router.post('/actualizar-consolidados', requireAuth, async (req, res) => {
     console.error('Error al actualizar presupuestos consolidados:', error);
     res.status(500).json({ mensaje: 'Error al actualizar presupuestos consolidados.' });
   }
-});
+	});
 
+// Poner presupuesto de una cuenta en 0 (por año) en Firebird PRESUPxx
+router.post('/cuenta-cero', async (req, res) => {
+  try {
+    const empresaId = req.body?.empresaId || req.headers['x-empresa-activa'];
+    const cuenta = req.body?.cuenta;
+    const anio = req.body?.anio;
+
+    if (!empresaId) {
+      return res.status(400).json({ mensaje: 'Debes indicar una empresa.' });
+    }
+    if (!cuenta) {
+      return res.status(400).json({ mensaje: 'Debes indicar la cuenta.' });
+    }
+
+    const empresa = obtenerEmpresaPorId(empresaId);
+    if (!empresa) {
+      return res.status(404).json({ mensaje: 'La empresa indicada no existe.' });
+    }
+    if (!req.esAdmin && !tienePermisoEnEmpresa(req.mapaPermisos, empresa.id)) {
+      return res.status(403).json({ mensaje: 'Sin permisos para esta operación.' });
+    }
+
+    const ejercicio = Number(anio || new Date().getFullYear());
+    if (!Number.isInteger(ejercicio) || ejercicio < 2000 || ejercicio > 2100) {
+      return res.status(400).json({ mensaje: 'Año inválido.' });
+    }
+
+    const numCtaNormalizada = normalizarCuenta21(cuenta);
+    if (!numCtaNormalizada) {
+      return res.status(400).json({ mensaje: 'Cuenta inválida.' });
+    }
+
+    const { ejecutarConsulta } = require('../services/firebirdService');
+    const sufijo = ejercicio.toString().slice(-2).padStart(2, '0');
+    const tablaPresup = `PRESUP${sufijo}`;
+
+    const upsertQuery = `
+      UPDATE OR INSERT INTO ${tablaPresup}
+        (NUM_CTA, EJERCICIO, PRESUP01, PRESUP02, PRESUP03, PRESUP04,
+         PRESUP05, PRESUP06, PRESUP07, PRESUP08, PRESUP09, PRESUP10,
+         PRESUP11, PRESUP12)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      MATCHING (NUM_CTA, EJERCICIO)
+    `;
+
+    const params = [
+      numCtaNormalizada,
+      ejercicio,
+      0, 0, 0, 0,
+      0, 0, 0, 0,
+      0, 0, 0, 0
+    ];
+
+    await ejecutarConsulta(empresa.id, upsertQuery, params);
+
+    res.json({
+      mensaje: 'Presupuesto actualizado a 0',
+      empresaId: empresa.id,
+      anio: ejercicio,
+      cuenta: numCtaNormalizada
+    });
+  } catch (error) {
+    console.error('Error al poner presupuesto en 0:', error);
+
+    if (esTablaPresupuestoInexistente(error)) {
+      return res.status(404).json({
+        mensaje: `No existe información de presupuesto para el año ${req.body?.anio}`
+      });
+    }
+
+    if (esErrorConexionFirebird(error)) {
+      return res.status(503).json({
+        mensaje: 'No se pudo conectar a la base de datos. Verifica la conexión.'
+      });
+    }
+
+    res.status(500).json({ mensaje: 'Error al actualizar el presupuesto.' });
+  }
+});
+	
 /**
  * Nuevo endpoint: Obtener totales de presupuesto de un capítulo sumando cuentas directamente de PRESUP
  * Este endpoint lee directamente de PRESUP26 y suma las cuentas 400-450 (income) y 451-950 (expense)

@@ -145,6 +145,38 @@
     showToast("✅ Todas las secciones colapsadas", "success");
   }
 
+  function normalizeFormulaTerms(terms = []) {
+    return (terms || []).map((t) => {
+      const type = t?.type || "section";
+      const constantValue =
+        type === "constant"
+          ? Number.isFinite(Number(t?.constant))
+            ? Number(t.constant)
+            : Number.isFinite(Number(t?.value))
+              ? Number(t.value)
+              : null
+          : null;
+      const value =
+        type === "operation"
+          ? resolveOperationId(t?.value || "")
+          : type === "constant"
+            ? t?.value || (constantValue !== null ? String(constantValue) : "")
+            : t?.value || "";
+      const normalized = {
+        operator: t?.operator || "+",
+        type,
+        value,
+      };
+      if (constantValue !== null) {
+        normalized.constant = constantValue;
+      }
+      if (t?.parentSection) {
+        normalized.parentSection = t.parentSection;
+      }
+      return normalized;
+    });
+  }
+
   // ==========================================
   // INITIALIZATION
   // ==========================================
@@ -295,9 +327,15 @@
     dom.btnGuardar.addEventListener("click", saveLayout);
     dom.btnAgregar.addEventListener("click", openAddModal);
     dom.btnCopiar.addEventListener("click", openCopyModal);
-    dom.btnExpandir?.addEventListener("click", expandAll);
-    dom.btnColapsar?.addEventListener("click", collapseAll);
-    dom.btnPreview?.addEventListener("click", showPreview);
+    dom.btnExpandir?.addEventListener("click", () => {
+      if (typeof expandAll === "function") expandAll();
+    });
+    dom.btnColapsar?.addEventListener("click", () => {
+      if (typeof collapseAll === "function") collapseAll();
+    });
+    dom.btnPreview?.addEventListener("click", () => {
+      if (typeof showPreview === "function") showPreview();
+    });
     dom.btnSeleccionar?.addEventListener("click", toggleBulkSelectMode);
     dom.btnEliminarMasivo?.addEventListener("click", deleteBulkSelected);
     dom.btnReloadSchema?.addEventListener("click", handleReloadSchema);
@@ -1159,7 +1197,9 @@
         state.columnasConfig = null;
         state.columnasConfigChanged = false;
       }
-      await syncOperacionesPredefinidas({ autoCreate: true, force: true });
+      if (typeof syncOperacionesPredefinidas === "function") {
+        await syncOperacionesPredefinidas({ autoCreate: true, force: true });
+      }
       syncOperacionesSumasDesdeConfig();
       hydrateOperationsFromParents();
       syncOperativoPorNombreOps();
@@ -6860,6 +6900,9 @@
     window.deleteAccount = function (codigo) {
       if (!requireEditMode()) return;
       if (!confirm(`¿Eliminar la cuenta ${codigo}?`)) return;
+      const ponerPresupuestoCero = confirm(
+        `¿Deseas poner el presupuesto de ${codigo} en 0?\n\nOK = Sí, poner en 0\nCancelar = No, dejar como está`,
+      );
 
       const cuenta = state.cuentas.find((c) => c.CUENTA === codigo);
       const nombre = cuenta?.NOMBRE || "";
@@ -6872,6 +6915,45 @@
       renderLayout();
       updateStats();
       showToast(`Cuenta ${codigo} eliminada`, "success");
+
+      if (ponerPresupuestoCero) {
+        const anio = Number(state.anio);
+        if (!Number.isInteger(anio)) {
+          showToast(
+            "No hay año seleccionado; no se pudo poner presupuesto en 0.",
+            "warning",
+          );
+          return;
+        }
+        fetch("/api/presupuestos/cuenta-cero", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...getAuthHeaders(),
+          },
+          body: JSON.stringify({
+            empresaId: getEmpresaId(),
+            anio,
+            cuenta: codigo,
+          }),
+        })
+          .then(async (resp) => {
+            if (!resp.ok) {
+              const text = await resp.text().catch(() => "");
+              throw new Error(
+                `No fue posible poner presupuesto en 0 (${resp.status}). ${text}`,
+              );
+            }
+            return resp.json().catch(() => ({}));
+          })
+          .then(() => {
+            showToast(`Presupuesto de ${codigo} actualizado a 0`, "success");
+          })
+          .catch((err) => {
+            console.error("Error poniendo presupuesto en 0:", err);
+            showToast(err.message || "Error al poner presupuesto en 0", "error");
+          });
+      }
     };
 
     // Helper function to get HTML list of accounts in a section
