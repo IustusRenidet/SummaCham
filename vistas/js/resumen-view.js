@@ -1686,18 +1686,19 @@
         comparativo = etiqueta ? etiquetas.get(`${tipo}|${etiqueta}`) : null;
       }
       if (!comparativo?.totals) return;
-      const prevMonth = resolverComparativoNumero(
+      // MODIFICADO: Ahora usa los datos comparativos para actualMonth y actualYTD
+      const comparativoMonth = resolverComparativoNumero(
         comparativo.totals,
         "actualMonth",
         "prevMonth"
       );
-      const prevYTD = resolverComparativoNumero(
+      const comparativoYTD = resolverComparativoNumero(
         comparativo.totals,
         "actualYTD",
         "prevYTD"
       );
-      asignarSiNumero(block.totals, "prevMonth", prevMonth);
-      asignarSiNumero(block.totals, "prevYTD", prevYTD);
+      asignarSiNumero(block.totals, "actualMonth", comparativoMonth);
+      asignarSiNumero(block.totals, "actualYTD", comparativoYTD);
     });
   };
 
@@ -1739,52 +1740,55 @@
         ? principales.get(principalKey)
         : null;
       if (compPrincipal) {
-        const prevMonth = resolverComparativoNumero(
+        // MODIFICADO: Ahora sobrescribe actualMonth y actualYTD con datos comparativos
+        const comparativoMonth = resolverComparativoNumero(
           compPrincipal,
           "actualMonth",
           "prevMonth"
         );
-        const prevYTD = resolverComparativoNumero(
+        const comparativoYTD = resolverComparativoNumero(
           compPrincipal,
           "actualYTD",
           "prevYTD"
         );
-        asignarSiNumero(principal, "prevMonth", prevMonth);
-        asignarSiNumero(principal, "prevYTD", prevYTD);
+        asignarSiNumero(principal, "actualMonth", comparativoMonth);
+        asignarSiNumero(principal, "actualYTD", comparativoYTD);
       }
       (principal.children || []).forEach((seccion) => {
       const seccionKey = normalizarEtiquetaComparativa(seccion.label || "");
       const compSeccion = seccionKey ? secciones.get(seccionKey) : null;
       if (compSeccion) {
-        const prevMonth = resolverComparativoNumero(
+        // MODIFICADO: Ahora sobrescribe totalActualMonth y totalActualYTD con datos comparativos
+        const comparativoMonth = resolverComparativoNumero(
           compSeccion,
           "totalActualMonth",
           "totalPrevMonth"
         );
-        const prevYTD = resolverComparativoNumero(
+        const comparativoYTD = resolverComparativoNumero(
           compSeccion,
           "totalActualYTD",
           "totalPrevYTD"
         );
-        asignarSiNumero(seccion, "totalPrevMonth", prevMonth);
-        asignarSiNumero(seccion, "totalPrevYTD", prevYTD);
+        asignarSiNumero(seccion, "totalActualMonth", comparativoMonth);
+        asignarSiNumero(seccion, "totalActualYTD", comparativoYTD);
       }
       (seccion.cuentas || []).forEach((cta) => {
         const cuentaKey = obtenerClaveCuentaComparativa(cta);
         const compCuenta = cuentaKey ? cuentas.get(cuentaKey) : null;
         if (compCuenta) {
-          const prevMonth = resolverComparativoNumero(
+          // MODIFICADO: Ahora sobrescribe actualMonth y actualYTD con datos comparativos
+          const comparativoMonth = resolverComparativoNumero(
             compCuenta,
             "actualMonth",
             "prevMonth"
           );
-          const prevYTD = resolverComparativoNumero(
+          const comparativoYTD = resolverComparativoNumero(
             compCuenta,
             "actualYTD",
             "prevYTD"
           );
-          asignarSiNumero(cta, "prevMonth", prevMonth);
-          asignarSiNumero(cta, "prevYTD", prevYTD);
+          asignarSiNumero(cta, "actualMonth", comparativoMonth);
+          asignarSiNumero(cta, "actualYTD", comparativoYTD);
         }
       });
       });
@@ -1818,6 +1822,7 @@
       );
       const comparativo = mapaComparativo.get(key) || resumenComp[0];
       if (comparativo) {
+        // MODIFICADO: Ahora sobrescribe actualMonth y actualYTD en lugar de prevMonth y prevYTD
         aplicarComparativoCapitulo(capitulo, comparativo);
       }
     });

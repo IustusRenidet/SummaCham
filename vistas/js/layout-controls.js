@@ -1099,13 +1099,35 @@
         (a, b) => this._getAccountOrder(a) - this._getAccountOrder(b)
       );
 
-      const sectionMap = new Map();
-      const sectionList = [];
+      const principalMap = new Map();
+      const principalList = [];
 
-      const ensureSection = (label, order, visible) => {
+      const ensurePrincipal = (label, order, visible) => {
         const clean = this._cleanLabel(label) || "Sin seccion";
         const key = this._normalizeKey(clean) || clean;
-        if (!sectionMap.has(key)) {
+        if (!principalMap.has(key)) {
+          const entry = {
+            key,
+            label: clean,
+            order,
+            visible: this._isVisible(visible),
+            sections: new Map(),
+            sectionList: [],
+            hasSubsections: false,
+          };
+          principalMap.set(key, entry);
+          principalList.push(entry);
+        }
+        const principal = principalMap.get(key);
+        if (order < principal.order) principal.order = order;
+        if (this._isVisible(visible)) principal.visible = true;
+        return principal;
+      };
+
+      const ensureSubsection = (principal, label, order, visible) => {
+        const clean = this._cleanLabel(label) || principal.label;
+        const key = this._normalizeKey(clean) || clean;
+        if (!principal.sections.has(key)) {
           const entry = {
             key,
             label: clean,
@@ -1113,42 +1135,63 @@
             visible: this._isVisible(visible),
             accounts: [],
           };
-          sectionMap.set(key, entry);
-          sectionList.push(entry);
+          principal.sections.set(key, entry);
+          principal.sectionList.push(entry);
         }
-        const section = sectionMap.get(key);
-        if (order < section.order) section.order = order;
-        if (this._isVisible(visible)) section.visible = true;
-        return section;
+        const subsection = principal.sections.get(key);
+        if (order < subsection.order) subsection.order = order;
+        if (this._isVisible(visible)) subsection.visible = true;
+        return subsection;
       };
 
       cuentasOrdenadas.forEach((cuenta, idx) => {
-        let sectionLabel = this._cleanLabel(
-          this._getFieldValue(cuenta, [
-            "SECCION",
-            "SECCION PRINCIPAL",
-            "SECCION SECUNDARIA",
-          ])
+        let principalLabel = this._cleanLabel(
+          this._getFieldValue(cuenta, ["SECCION PRINCIPAL", "SECCION"])
         );
-        if (!sectionLabel) sectionLabel = "Sin seccion";
-        const section = ensureSection(
-          sectionLabel,
+        const secondaryLabel = this._cleanLabel(
+          this._getFieldValue(cuenta, ["SECCION SECUNDARIA"])
+        );
+        if (!principalLabel) {
+          principalLabel = secondaryLabel || "Sin seccion";
+        }
+
+        const principal = ensurePrincipal(
+          principalLabel,
           this._getAccountOrder(cuenta, idx),
           cuenta.visible
         );
-        section.accounts.push({
+
+        if (
+          secondaryLabel &&
+          this._normalizeKey(secondaryLabel) !== this._normalizeKey(principalLabel)
+        ) {
+          principal.hasSubsections = true;
+        }
+
+        const subsectionLabel = secondaryLabel || principalLabel;
+        const subsection = ensureSubsection(
+          principal,
+          subsectionLabel,
+          this._getAccountOrder(cuenta, idx),
+          cuenta.visible
+        );
+
+        subsection.accounts.push({
           cuenta: cuenta.CUENTA || cuenta.cuenta || "",
           nombre: cuenta.NOMBRE || cuenta.nombre || cuenta.CUENTA || "",
           visible: this._isVisible(cuenta.visible),
         });
       });
 
-      sectionList.sort((a, b) => a.order - b.order);
+      principalList.sort((a, b) => a.order - b.order);
+      principalList.forEach((principal) => {
+        principal.sectionList.sort((a, b) => a.order - b.order);
+      });
 
       const sumavariosMap = new Map();
       let appearance = 0;
 
-      sectionList.forEach((section, idx) => {
+      principalList.forEach((section, idx) => {
         const cfg = configPorSeccion.get(section.key) || {};
         const labels = [cfg.sumavarios, cfg.sumavarios2];
         labels.forEach((label) => {
@@ -1181,27 +1224,82 @@
         sectionLabelsForInsert.get(entry.lastSectionIndex).push(entry);
       });
 
-      sectionList.forEach((section, idx) => {
+      principalList.forEach((section, idx) => {
         rows.push({
           type: "principal",
           label: section.label,
           visible: section.visible,
         });
 
-        section.accounts.forEach((account) => {
-          rows.push({ type: "account", ...account });
+        const principalKey = section.key;
+        const principalCfg = configPorSeccion.get(principalKey) || {};
+        let addedSubsectionSum = false;
+
+        (section.sectionList || []).forEach((subsection, subIndex) => {
+          const showSubsection =
+            section.hasSubsections &&
+            this._normalizeKey(subsection.label) !== this._normalizeKey(section.label);
+
+          if (showSubsection) {
+            rows.push({
+              type: "subsection",
+              label: subsection.label,
+              visible: subsection.visible,
+            });
+          }
+
+          (subsection.accounts || []).forEach((account) => {
+            rows.push({ type: "account", ...account });
+          });
+
+          const subsectionCfg = configPorSeccion.get(subsection.key);
+          if (subsectionCfg?.sumRow) {
+            const sumLabel =
+              subsectionCfg.sumRow ||
+              (subsection.label ? `Suma ${subsection.label}` : "");
+            if (sumLabel) {
+              rows.push({
+                type: "operation",
+                label: this._cleanLabel(sumLabel),
+                kind: "sum-row",
+                visible: this._isVisible(
+                  subsectionCfg.visible ?? subsection.visible
+                ),
+              });
+              addedSubsectionSum = true;
+            }
+          } else if (
+            !section.hasSubsections &&
+            principalCfg?.sumRow &&
+            subIndex === (section.sectionList || []).length - 1
+          ) {
+            const sumLabel =
+              principalCfg.sumRow ||
+              (section.label ? `Suma ${section.label}` : "");
+            if (sumLabel) {
+              rows.push({
+                type: "operation",
+                label: this._cleanLabel(sumLabel),
+                kind: "sum-row",
+                visible: this._isVisible(
+                  principalCfg.visible ?? section.visible
+                ),
+              });
+            }
+          }
         });
 
-        const cfg = configPorSeccion.get(section.key) || {};
-        const sumLabel =
-          cfg.sumRow || (section.label ? `Suma ${section.label}` : "");
-        if (sumLabel) {
-          rows.push({
-            type: "operation",
-            label: this._cleanLabel(sumLabel),
-            kind: "sum-row",
-            visible: this._isVisible(cfg.visible ?? section.visible),
-          });
+        if (section.hasSubsections && principalCfg?.sumRow && !addedSubsectionSum) {
+          const sumLabel =
+            principalCfg.sumRow || (section.label ? `Suma ${section.label}` : "");
+          if (sumLabel) {
+            rows.push({
+              type: "operation",
+              label: this._cleanLabel(sumLabel),
+              kind: "sum-row",
+              visible: this._isVisible(principalCfg.visible ?? section.visible),
+            });
+          }
         }
 
         const labelsHere = sectionLabelsForInsert.get(idx) || [];
@@ -1222,7 +1320,7 @@
       if (resultRows.length) {
         resultRow = [...resultRows].sort((a, b) => a.order - b.order)[0];
       } else {
-        sectionList.some((section) => {
+        principalList.some((section) => {
           const cfg = configPorSeccion.get(section.key);
           if (cfg?.resultRow) {
             resultRow = {

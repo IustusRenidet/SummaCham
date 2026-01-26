@@ -1,13 +1,13 @@
-const { db } = require('../db/sqlite');
-const layoutService = require('./layoutService');
+const { db } = require("../db/sqlite");
+const layoutService = require("./layoutService");
 
-const DEFAULT_CAPITULO = 'DEFAULT';
+const DEFAULT_CAPITULO = "DEFAULT";
 
-const normalizarTexto = (valor) => (valor == null ? '' : String(valor).trim());
+const normalizarTexto = (valor) => (valor == null ? "" : String(valor).trim());
 
 const seleccionarValor = (obj = {}, posibles = []) => {
   for (const clave of posibles) {
-    if (obj[clave] != null && obj[clave] !== '') {
+    if (obj[clave] != null && obj[clave] !== "") {
       return obj[clave];
     }
   }
@@ -22,30 +22,30 @@ const normalizarCapitulo = (valor) => {
 const construirFila = (cuenta, indiceGlobal) => {
   const cuentaCodigo = normalizarTexto(cuenta?.CUENTA || cuenta?.cuenta);
   const descripcion = normalizarTexto(
-    cuenta?.NOMBRE || cuenta?.nombre || cuenta?.descripcion
+    cuenta?.NOMBRE || cuenta?.nombre || cuenta?.descripcion,
   );
   if (!cuentaCodigo) {
     return null;
   }
 
   const seccionPrincipal = seleccionarValor(cuenta, [
-    'SECCIÓN Principal',
-    'SECCI…N Principal',
-    'SECCION Principal',
-    'seccion_principal',
-    'seccionPrincipal',
+    "SECCIÓN Principal",
+    "SECCI…N Principal",
+    "SECCION Principal",
+    "seccion_principal",
+    "seccionPrincipal",
   ]);
 
   const seccionSecundaria = seleccionarValor(cuenta, [
-    'SECCION Secundaria',
-    'SECCIÓN Secundaria',
-    'SECCI…N Secundaria',
-    'seccion_secundaria',
-    'seccionSecundaria',
+    "SECCION Secundaria",
+    "SECCIÓN Secundaria",
+    "SECCI…N Secundaria",
+    "seccion_secundaria",
+    "seccionSecundaria",
   ]);
 
   const capitulo = normalizarCapitulo(
-    cuenta?.CAPITULO || cuenta?.capitulo || cuenta?.HOJA
+    cuenta?.CAPITULO || cuenta?.capitulo || cuenta?.HOJA,
   );
 
   const orden = Number.isFinite(Number(cuenta?.orden))
@@ -60,7 +60,7 @@ const construirFila = (cuenta, indiceGlobal) => {
     seccionPrincipal: seccionPrincipal ? String(seccionPrincipal) : null,
     seccionSecundaria: seccionSecundaria ? String(seccionSecundaria) : null,
     orden,
-    origen: 'sqlite',
+    origen: "sqlite",
   };
 };
 
@@ -97,7 +97,7 @@ const consultarFilasPorCapitulo = ({
     FROM layout_cuentas
     WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ?
     ORDER BY orden ASC, cuenta ASC
-  `
+  `,
   );
   return stmt.all(empresaCanonica, modulo, anio, capitulo);
 };
@@ -145,12 +145,15 @@ const obtenerLayout = ({ empresaId, modulo, anio }) => {
     });
   });
 
-  return construirLayout({
+  const layout = construirLayout({
     empresaId: empresaCanonica,
     modulo,
     anio: anioNumero,
     filas,
   });
+  // Compatibilidad: incluir 'cuentas' como alias de 'filas'
+  layout.cuentas = layout.filas;
+  return layout;
 };
 
 const guardarLayout = ({ empresaId, modulo, anio, layout }) => {
@@ -170,14 +173,14 @@ const guardarLayout = ({ empresaId, modulo, anio, layout }) => {
     UPDATE layout_cuentas
     SET nombre = ?, orden = ?, actualizado_en = CURRENT_TIMESTAMP
     WHERE empresa_id = ? AND modulo = ? AND anio = ? AND cuenta = ? AND capitulo = ?
-  `
+  `,
   );
   const updateTodasLasHojas = db.prepare(
     `
     UPDATE layout_cuentas
     SET nombre = ?, orden = ?, actualizado_en = CURRENT_TIMESTAMP
     WHERE empresa_id = ? AND modulo = ? AND anio = ? AND cuenta = ?
-  `
+  `,
   );
 
   let actualizadas = 0;
@@ -190,7 +193,7 @@ const guardarLayout = ({ empresaId, modulo, anio, layout }) => {
         return;
       }
       const descripcion = normalizarTexto(
-        fila?.descripcion || fila?.nombre || fila?.texto
+        fila?.descripcion || fila?.nombre || fila?.texto,
       );
       const capituloRaw =
         fila?.capitulo || fila?.CAPITULO || layout?.capitulo || null;
@@ -200,18 +203,20 @@ const guardarLayout = ({ empresaId, modulo, anio, layout }) => {
       const orden = Number.isFinite(Number(fila?.orden))
         ? Number(fila.orden)
         : Number.isFinite(Number(fila?.indice))
-        ? Number(fila.indice)
-        : idx;
+          ? Number(fila.indice)
+          : idx;
 
       const tieneCapitulo = Boolean(capituloNormalizado);
-      const resultado = (tieneCapitulo ? updatePorCapitulo : updateTodasLasHojas).run(
+      const resultado = (
+        tieneCapitulo ? updatePorCapitulo : updateTodasLasHojas
+      ).run(
         descripcion || cuenta,
         orden,
         empresaCanonica,
         modulo,
         anioNumero,
         cuenta,
-        ...(tieneCapitulo ? [capituloNormalizado] : [])
+        ...(tieneCapitulo ? [capituloNormalizado] : []),
       );
       if (resultado.changes > 0) {
         actualizadas += resultado.changes;
@@ -225,7 +230,7 @@ const guardarLayout = ({ empresaId, modulo, anio, layout }) => {
 
   if (omitidas) {
     console.warn(
-      `[layoutsService] ${omitidas} cuentas no existen en layout_cuentas (${empresaCanonica}/${modulo}/${anioNumero}).`
+      `[layoutsService] ${omitidas} cuentas no existen en layout_cuentas (${empresaCanonica}/${modulo}/${anioNumero}).`,
     );
   }
 

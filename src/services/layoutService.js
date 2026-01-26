@@ -11,22 +11,57 @@ const CANONICAL_EMPRESA_DEFAULT = "EMPRESA01";
 const generarVariantesEmpresa = (empresaId = CANONICAL_EMPRESA_DEFAULT) => {
   const variantes = new Set();
   const base = (empresaId || "").toString().trim();
-  if (base) {
-    variantes.add(base);
-    const upper = base.toUpperCase();
-    variantes.add(upper);
-    const match = upper.match(/EMPRESA\s*0*(\d+)/);
+  if (!base) return [CANONICAL_EMPRESA_DEFAULT];
+
+  variantes.add(base);
+  const upper = base.toUpperCase();
+  variantes.add(upper);
+
+  // Intentar extraer número de diferentes formatos
+  let numero = null;
+
+  // Manejar formato EMPRESA01, EMPRESA02, EMPRESA 01, etc.
+  let match = upper.match(/EMPRESA\s*0*(\d+)/i);
+  if (match) {
+    numero = parseInt(match[1], 10);
+  }
+
+  // Manejar formato empresa1, empresa2, etc. (minúsculas sin ceros)
+  if (!numero) {
+    match = base.match(/empresa(\d+)/i);
     if (match) {
-      variantes.add(`EMPRESA${match[1].padStart(2, "0")}`);
+      numero = parseInt(match[1], 10);
     }
+  }
+
+  // Buscar en metadatos de empresas
+  if (!numero) {
     const meta = EMPRESAS?.find(
       (empresa) => empresa.id?.toLowerCase() === base.toLowerCase()
     );
     if (meta && meta.numero != null) {
-      variantes.add(`EMPRESA${String(meta.numero).padStart(2, "0")}`);
+      numero = meta.numero;
     }
   }
-  return Array.from(variantes).filter(Boolean);
+
+  // Si encontramos un número, generar TODAS las variantes posibles
+  if (numero && Number.isInteger(numero) && numero > 0) {
+    // Formato canónico: EMPRESA01, EMPRESA02, etc.
+    variantes.add(`EMPRESA${String(numero).padStart(2, "0")}`);
+
+    // Formato sin ceros: EMPRESA1, EMPRESA2, etc.
+    variantes.add(`EMPRESA${numero}`);
+
+    // Formato minúscula con ceros: empresa01, empresa02, etc.
+    variantes.add(`empresa${String(numero).padStart(2, "0")}`);
+
+    // Formato minúscula sin ceros: empresa1, empresa2, etc.
+    variantes.add(`empresa${numero}`);
+  }
+
+  const resultado = Array.from(variantes).filter(Boolean);
+  console.log(`[generarVariantesEmpresa] ${base} -> [${resultado.join(', ')}]`);
+  return resultado;
 };
 
 const obtenerEmpresaCanonica = (empresaId = CANONICAL_EMPRESA_DEFAULT) => {
@@ -420,12 +455,19 @@ const obtenerLayout = ({ empresaId = "EMPRESA01", modulo, anio, capitulo }) => {
   const anioNumero = Number(anio);
   const moduloNorm = (modulo || "").toString().trim().toUpperCase();
   const empresaCanonica = obtenerEmpresaCanonica(empresaId);
+
+  console.log(`[obtenerLayout] Solicitado: empresaId=${empresaId}, modulo=${modulo}, anio=${anio}, capitulo=${capitulo}`);
+  console.log(`[obtenerLayout] Empresa canónica: ${empresaCanonica}`);
+
   asegurarLayoutAnio({ empresaId: empresaCanonica, modulo, anio: anioNumero });
   const empresaConsulta = resolverEmpresaConsulta({
     empresaId: empresaCanonica,
     modulo,
     anio: anioNumero,
   });
+
+  console.log(`[obtenerLayout] Empresa consulta: ${empresaConsulta}`);
+
   const capituloObjetivo = capitulo || "DEFAULT";
 
   const consultarCuentas = (anioObjetivo) =>
@@ -574,6 +616,25 @@ const obtenerLayout = ({ empresaId = "EMPRESA01", modulo, anio, capitulo }) => {
       op.operacion_etiqueta || op.Clase || operacionId || "Operacion";
     const mapKey = operacionId || operacionEtiqueta;
 
+    // Parsear formula_json si existe
+    let formulaTerms = [];
+    let signos = {};
+    try {
+      if (op.formula_json) {
+        const parsed = JSON.parse(op.formula_json);
+        if (Array.isArray(parsed)) {
+          formulaTerms = parsed;
+          // Reconstruir signos desde formula_terms
+          parsed.forEach((term, termIdx) => {
+            const key = `seccion_${termIdx + 1}`;
+            signos[key] = term.operator === '-' ? -1 : 1;
+          });
+        }
+      }
+    } catch (err) {
+      console.warn(`Error parsing formula_json for ${operacionId}:`, err);
+    }
+
     if (!operacionesMap[mapKey]) {
       operacionesMap[mapKey] = {
         HOJA: modulo, // Agregar HOJA para que el filtro en planeacionReportesEngine funcione
@@ -582,7 +643,8 @@ const obtenerLayout = ({ empresaId = "EMPRESA01", modulo, anio, capitulo }) => {
         OperacionId: operacionId || operacionEtiqueta,
         SECCION: op.SECCION,
         signo: op.signo ?? 1,
-        signos: {},
+        signos: signos,
+        formula_terms: formulaTerms,
         orden: ordenBase,
         orden_presentacion:
           ordenPresentacion === undefined ? ordenBase : ordenPresentacion,

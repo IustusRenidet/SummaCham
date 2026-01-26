@@ -17,7 +17,7 @@ const tienePermisoCapitulo = (usuarioId, capitulo) => {
   // (a menos que sea admin global, que se checkea antes)
   const row = db
     .prepare(
-      "SELECT puede_editar FROM permisos_edicion_capitulo WHERE usuario_id = ? AND capitulo = ?"
+      "SELECT puede_editar FROM permisos_edicion_capitulo WHERE usuario_id = ? AND capitulo = ?",
     )
     .get(usuarioId, capitulo);
   return row ? row.puede_editar === 1 : false;
@@ -27,7 +27,7 @@ const tienePermisoGuardar = (req, empresaId, modulo, capitulo) => {
   if (req.esAdmin) return true;
   const moduloNormalizado = normalizarNombreModulo(modulo) || modulo;
   const tienePermisoGral = Boolean(
-    req.mapaPermisos?.[empresaId]?.[moduloNormalizado]?.["Cargar y guardar"]
+    req.mapaPermisos?.[empresaId]?.[moduloNormalizado]?.["Cargar y guardar"],
   );
 
   if (!tienePermisoGral) return false;
@@ -39,6 +39,16 @@ const tienePermisoGuardar = (req, empresaId, modulo, capitulo) => {
 
   return tienePermisoGral;
 };
+
+// Middleware de debug para ESTE router
+router.use((req, res, next) => {
+  if (req.path.includes("/RESUMEN") || req.path.includes("2025")) {
+    console.log(
+      `[DEBUG-ROUTER] layoutRoutes request: ${req.method} ${req.originalUrl} (Path: ${req.path})`,
+    );
+  }
+  next();
+});
 
 /**
  * GET /api/layouts/:modulo/anios
@@ -92,111 +102,6 @@ router.get("/:modulo/:anio/capitulos", requireAuth, (req, res) => {
     res.status(500).json({
       success: false,
       mensaje: "Error al obtener capítulos",
-      error: error.message,
-    });
-  }
-});
-
-/**
- * GET /api/layouts/:modulo/:anio/:capitulo
- * Obtener layout completo para un módulo, año y capítulo
- */
-router.get("/:modulo/:anio/:capitulo", requireAuth, (req, res) => {
-  try {
-    const { modulo, anio, capitulo } = req.params;
-    const { empresaId = "EMPRESA01" } = req.query;
-
-    const layout = layoutService.obtenerLayout({
-      empresaId,
-      modulo,
-      anio: parseInt(anio),
-      capitulo,
-    });
-
-    res.json({
-      success: true,
-      modulo,
-      anio: parseInt(anio),
-      capitulo,
-      layout,
-    });
-  } catch (error) {
-    console.error("Error al obtener layout:", error);
-    res.status(500).json({
-      success: false,
-      mensaje: "Error al obtener layout",
-      error: error.message,
-    });
-  }
-});
-
-/**
- * POST /api/layouts/:modulo/:anio/:capitulo
- * Reemplazar layout completo (cuentas + operaciones) para un capitulo
- */
-router.post("/:modulo/:anio/:capitulo", requireAuth, (req, res) => {
-  try {
-    const { modulo, anio, capitulo } = req.params;
-    const { empresaId = "EMPRESA01", cuentas = [], operaciones = [] } = req.body;
-
-    if (!tienePermisoGuardar(req, empresaId, modulo, capitulo)) {
-      return res.status(403).json({
-        success: false,
-        mensaje: "No cuentas con permisos para editar este capitulo",
-      });
-    }
-
-    if (!Array.isArray(cuentas) || !Array.isArray(operaciones)) {
-      return res.status(400).json({
-        success: false,
-        mensaje: "cuentas y operaciones deben ser arrays",
-      });
-    }
-
-    const anioNumero = parseInt(anio);
-    layoutService.eliminarLayoutCapitulo({
-      empresaId,
-      modulo,
-      anio: anioNumero,
-      capitulo,
-    });
-
-    const resultadoCuentas = cuentas.length
-      ? layoutService.guardarCuentas({
-          empresaId,
-          modulo,
-          anio: anioNumero,
-          capitulo,
-          cuentas,
-        })
-      : { insertadas: 0 };
-
-    const operacionesNormalizadas = operaciones.map((op) => ({
-      ...op,
-      CAPITULO: op?.CAPITULO || capitulo,
-      HOJA: op?.HOJA || modulo,
-    }));
-
-    const resultadoOps = operacionesNormalizadas.length
-      ? layoutService.guardarOperaciones({
-          empresaId,
-          modulo,
-          anio: anioNumero,
-          operaciones: operacionesNormalizadas,
-        })
-      : { insertadas: 0 };
-
-    res.json({
-      success: true,
-      mensaje: "Layout reemplazado exitosamente",
-      cuentas: resultadoCuentas.insertadas,
-      operaciones: resultadoOps.insertadas,
-    });
-  } catch (error) {
-    console.error("Error al reemplazar layout:", error);
-    res.status(500).json({
-      success: false,
-      mensaje: "Error al reemplazar layout",
       error: error.message,
     });
   }
@@ -292,6 +197,150 @@ router.get("/:modulo/:anio/completo", requireAuth, (req, res) => {
     res.status(500).json({
       success: false,
       mensaje: "Error al obtener layout completo",
+      error: error.message,
+    });
+  }
+});
+
+/**
+ * GET /api/layouts/:modulo/:anio/existe
+ * Verificar si existe un layout para un año
+ */
+router.get("/:modulo/:anio/existe", requireAuth, (req, res) => {
+  try {
+    const { modulo, anio } = req.params;
+    const { empresaId = "EMPRESA01" } = req.query;
+
+    const existe = layoutService.existeLayout({
+      empresaId,
+      modulo,
+      anio: parseInt(anio),
+    });
+
+    res.json({
+      success: true,
+      modulo,
+      anio: parseInt(anio),
+      existe,
+    });
+  } catch (error) {
+    console.error("Error al verificar layout:", error);
+    res.status(500).json({
+      success: false,
+      mensaje: "Error al verificar layout",
+      error: error.message,
+    });
+  }
+});
+
+/**
+ * GET /api/layouts/:modulo/:anio/:capitulo
+ * Obtener layout completo para un módulo, año y capítulo
+ */
+router.get("/:modulo/:anio/:capitulo", requireAuth, (req, res) => {
+  console.log(
+    `[DEBUG] Route /:modulo/:anio/:capitulo hit. Params:`,
+    req.params,
+  );
+  try {
+    const { modulo, anio, capitulo } = req.params;
+    const { empresaId = "EMPRESA01" } = req.query;
+
+    const layout = layoutService.obtenerLayout({
+      empresaId,
+      modulo,
+      anio: parseInt(anio),
+      capitulo: decodeURIComponent(capitulo),
+    });
+
+    res.json({
+      success: true,
+      modulo,
+      anio: parseInt(anio),
+      capitulo,
+      layout,
+    });
+  } catch (error) {
+    console.error("Error al obtener layout:", error);
+    res.status(500).json({
+      success: false,
+      mensaje: "Error al obtener layout",
+      error: error.message,
+    });
+  }
+});
+
+/**
+ * POST /api/layouts/:modulo/:anio/:capitulo
+ * Reemplazar layout completo (cuentas + operaciones) para un capitulo
+ */
+router.post("/:modulo/:anio/:capitulo", requireAuth, (req, res) => {
+  try {
+    const { modulo, anio, capitulo } = req.params;
+    const {
+      empresaId = "EMPRESA01",
+      cuentas = [],
+      operaciones = [],
+    } = req.body;
+
+    if (!tienePermisoGuardar(req, empresaId, modulo, capitulo)) {
+      return res.status(403).json({
+        success: false,
+        mensaje: "No cuentas con permisos para editar este capitulo",
+      });
+    }
+
+    if (!Array.isArray(cuentas) || !Array.isArray(operaciones)) {
+      return res.status(400).json({
+        success: false,
+        mensaje: "cuentas y operaciones deben ser arrays",
+      });
+    }
+
+    const anioNumero = parseInt(anio);
+    layoutService.eliminarLayoutCapitulo({
+      empresaId,
+      modulo,
+      anio: anioNumero,
+      capitulo,
+    });
+
+    const resultadoCuentas = cuentas.length
+      ? layoutService.guardarCuentas({
+          empresaId,
+          modulo,
+          anio: anioNumero,
+          capitulo,
+          cuentas,
+        })
+      : { insertadas: 0 };
+
+    const operacionesNormalizadas = operaciones.map((op) => ({
+      ...op,
+      CAPITULO: op?.CAPITULO || capitulo,
+      HOJA: op?.HOJA || modulo,
+    }));
+
+    const resultadoOps = operacionesNormalizadas.length
+      ? layoutService.guardarOperaciones({
+          empresaId,
+          modulo,
+          anio: anioNumero,
+          operaciones: operacionesNormalizadas,
+        })
+      : { insertadas: 0 };
+
+    res.json({
+      success: true,
+      mensaje: "Layout reemplazado exitosamente",
+      cuentas: resultadoCuentas.insertadas,
+      operaciones: resultadoOps.insertadas,
+    });
+  } catch (error) {
+    console.error("Error al reemplazar layout:", error);
+    res.status(500).json({
+      success: false,
+      mensaje: "Error al reemplazar layout",
       error: error.message,
     });
   }
@@ -528,37 +577,6 @@ router.delete("/:modulo/:anio", requireAuth, (req, res) => {
 });
 
 /**
- * GET /api/layouts/:modulo/:anio/existe
- * Verificar si existe un layout para un año
- */
-router.get("/:modulo/:anio/existe", requireAuth, (req, res) => {
-  try {
-    const { modulo, anio } = req.params;
-    const { empresaId = "EMPRESA01" } = req.query;
-
-    const existe = layoutService.existeLayout({
-      empresaId,
-      modulo,
-      anio: parseInt(anio),
-    });
-
-    res.json({
-      success: true,
-      modulo,
-      anio: parseInt(anio),
-      existe,
-    });
-  } catch (error) {
-    console.error("Error al verificar layout:", error);
-    res.status(500).json({
-      success: false,
-      mensaje: "Error al verificar layout",
-      error: error.message,
-    });
-  }
-});
-
-/**
  * POST /api/layouts/:modulo/:anio/reseed
  * Forzar recarga de operaciones desde JSON para un módulo y año
  */
@@ -591,7 +609,7 @@ router.post("/:modulo/:anio/reseed", requireAuth, (req, res) => {
 
     // Filtrar por HOJA (módulo)
     const operaciones = operacionesCompletas.filter(
-      (op) => (op.HOJA || "").toUpperCase() === modulo.toUpperCase()
+      (op) => (op.HOJA || "").toUpperCase() === modulo.toUpperCase(),
     );
 
     if (!operaciones.length) {
@@ -613,7 +631,7 @@ router.post("/:modulo/:anio/reseed", requireAuth, (req, res) => {
     res.json({
       success: true,
       mensaje: `Operaciones recargadas exitosamente desde ${path.basename(
-        archivoJson
+        archivoJson,
       )}`,
       operaciones: operaciones.length,
       resultado,
@@ -669,7 +687,7 @@ router.put(
         error: error.message,
       });
     }
-  }
+  },
 );
 
 /**
@@ -712,7 +730,7 @@ router.delete(
         error: error.message,
       });
     }
-  }
+  },
 );
 
 /**
@@ -944,7 +962,7 @@ router.put(
         error: error.message,
       });
     }
-  }
+  },
 );
 
 /**
@@ -965,7 +983,7 @@ router.get("/:modulo/:anio/:capitulo/bitacora", requireAuth, (req, res) => {
       WHERE b.empresa_id = ? AND b.modulo = ? AND b.anio = ? AND b.capitulo = ?
       ORDER BY b.fecha DESC
       LIMIT 100
-    `
+    `,
       )
       .all(empresaId, modulo, anio, capitulo);
 
@@ -988,7 +1006,7 @@ router.post("/bitacora", requireAuth, (req, res) => {
       `
       INSERT INTO layout_bitacora (empresa_id, modulo, anio, capitulo, usuario_id, accion, detalles)
       VALUES (?, ?, ?, ?, ?, ?, ?)
-    `
+    `,
     ).run(empresaId, modulo, anio, capitulo, usuarioId, accion, detalles);
 
     res.json({ success: true });
@@ -1010,7 +1028,7 @@ router.get("/permisos/capitulos", requireAuth, (req, res) => {
 
     const usuarios = db
       .prepare(
-        "SELECT id, usuario, nombres FROM usuarios WHERE es_admin_global = 0"
+        "SELECT id, usuario, nombres FROM usuarios WHERE es_admin_global = 0",
       )
       .all();
     const permisos = db
@@ -1041,7 +1059,7 @@ router.post("/permisos/capitulos", requireAuth, (req, res) => {
       INSERT INTO permisos_edicion_capitulo (usuario_id, capitulo, puede_editar)
       VALUES (?, ?, ?)
       ON CONFLICT(usuario_id, capitulo) DO UPDATE SET puede_editar = excluded.puede_editar
-    `
+    `,
     ).run(usuarioId, capitulo, puedeEditar ? 1 : 0);
 
     res.json({ success: true });
@@ -1074,7 +1092,7 @@ router.get("/:modulo/:anio/exportar-json", requireAuth, (req, res) => {
       FROM layout_cuentas
       WHERE empresa_id = ? AND modulo = ? AND anio = ?
       ORDER BY orden, capitulo, seccion_principal, seccion_secundaria
-    `
+    `,
       )
       .all(empresaCanonica, modulo, anioNumero);
 
@@ -1087,7 +1105,7 @@ router.get("/:modulo/:anio/exportar-json", requireAuth, (req, res) => {
       FROM layout_operaciones
       WHERE empresa_id = ? AND modulo = ? AND anio = ?
       ORDER BY orden
-    `
+    `,
       )
       .all(empresaCanonica, modulo, anioNumero);
 
@@ -1154,7 +1172,7 @@ router.get("/:modulo/:anio/exportar-json", requireAuth, (req, res) => {
       "info IMPORTANTE",
       "layouts",
       empresaCanonica,
-      String(anioNumero)
+      String(anioNumero),
     );
     if (!fs.existsSync(baseDir)) {
       fs.mkdirSync(baseDir, { recursive: true });
@@ -1165,7 +1183,7 @@ router.get("/:modulo/:anio/exportar-json", requireAuth, (req, res) => {
     fs.writeFileSync(
       layoutFilePath,
       JSON.stringify(resultado, null, 2),
-      "utf8"
+      "utf8",
     );
 
     const operacionesFileName = `${modulo}_operaciones_detalle.json`;
@@ -1173,7 +1191,7 @@ router.get("/:modulo/:anio/exportar-json", requireAuth, (req, res) => {
     fs.writeFileSync(
       operacionesFilePath,
       JSON.stringify({ operaciones: operacionesDetalladas }, null, 2),
-      "utf8"
+      "utf8",
     );
 
     // Also export cuentas separately
@@ -1184,9 +1202,9 @@ router.get("/:modulo/:anio/exportar-json", requireAuth, (req, res) => {
       JSON.stringify(
         { cuentas, cuentasPorCapitulo: resultado.cuentasPorCapitulo },
         null,
-        2
+        2,
       ),
-      "utf8"
+      "utf8",
     );
 
     res.json({
@@ -1225,7 +1243,7 @@ router.post("/:modulo/:anio/seed-operaciones", requireAuth, (req, res) => {
     const jsonPath = path.join(
       process.cwd(),
       "info IMPORTANTE",
-      "CUENTAS SUMMARY y RESUMEN 2025.json"
+      "CUENTAS SUMMARY y RESUMEN 2025.json",
     );
 
     if (!fs.existsSync(jsonPath)) {
@@ -1247,7 +1265,7 @@ router.post("/:modulo/:anio/seed-operaciones", requireAuth, (req, res) => {
 
     // Filter operations for the requested module
     const operacionesFiltradas = operacionesJSON.filter(
-      (op) => op.HOJA === modulo || op.HOJA === undefined // Include if matches module or is global
+      (op) => op.HOJA === modulo || op.HOJA === undefined, // Include if matches module or is global
     );
 
     // Save to SQLite using existing service

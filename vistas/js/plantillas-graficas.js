@@ -2248,7 +2248,26 @@
       const selected = galleryState.selectedId;
       const item = selected ? galleryState.cards.get(selected) : null;
       if (!item) return;
-      openConfigSection(item.definition);
+
+      // Si es una grafica personalizada o de tipo custom, abrir editor inline
+      if (item.definition.previewKind === 'custom' || item.definition.id.startsWith('custom-')) {
+        if (typeof window.openChartEditor === 'function') {
+          const chartData = {
+            id: item.definition.id,
+            title: item.definition.title,
+            subtitle: item.definition.subtitle,
+            chartType: item.definition.chartType,
+            enabled: item.definition.enabled,
+            rows: item.definition.rows || []
+          };
+          window.openChartEditor(item.definition.id, chartData);
+        } else {
+          openConfigSection(item.definition);
+        }
+      } else {
+        // Para graficas predefinidas, abrir la seccion de configuracion
+        openConfigSection(item.definition);
+      }
     });
   }
 

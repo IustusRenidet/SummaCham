@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
@@ -86,7 +86,8 @@
           rgba(132, 151, 176, 0.2)
         );
         border: 1px solid rgba(47, 84, 150, 0.18);
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7),
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.7),
           0 6px 16px rgba(47, 84, 150, 0.14);
       }
 
@@ -110,7 +111,9 @@
         border-radius: 999px;
         background: #cbd5f5;
         box-shadow: inset 0 0 0 1px rgba(47, 84, 150, 0.2);
-        transition: background 0.2s ease, box-shadow 0.2s ease;
+        transition:
+          background 0.2s ease,
+          box-shadow 0.2s ease;
       }
 
       .comparativa-thumb {
@@ -130,7 +133,10 @@
         box-shadow: 0 8px 18px rgba(47, 84, 150, 0.35);
       }
 
-      .comparativa-switch input:checked + .comparativa-track .comparativa-thumb {
+      .comparativa-switch
+        input:checked
+        + .comparativa-track
+        .comparativa-thumb {
         transform: translateX(24px);
       }
 
@@ -216,7 +222,9 @@
         font-weight: 600;
         letter-spacing: 0.01em;
         box-shadow: none;
-        transition: background 0.2s ease, color 0.2s ease,
+        transition:
+          background 0.2s ease,
+          color 0.2s ease,
           border-color 0.2s ease;
       }
 
@@ -381,7 +389,9 @@
         box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
         cursor: pointer;
         pointer-events: auto;
-        transition: transform 0.2s ease, box-shadow 0.2s ease,
+        transition:
+          transform 0.2s ease,
+          box-shadow 0.2s ease,
           background 0.2s ease;
       }
 
@@ -1297,10 +1307,7 @@
           >
           <div class="comparativa-toggle">
             <label class="comparativa-switch mb-0">
-              <input
-                type="checkbox"
-                id="resumenEmpresaComparativaToggle"
-              />
+              <input type="checkbox" id="resumenEmpresaComparativaToggle" />
               <span class="comparativa-track">
                 <span class="comparativa-thumb"></span>
               </span>
@@ -1508,17 +1515,14 @@
 
       <div class="row mb-3">
         <div class="col-12">
-          <div
-            class="charts-panel"
-            id="resumenChartsPanel"
-            aria-hidden="true"
-          >
+          <div class="charts-panel" id="resumenChartsPanel" aria-hidden="true">
             <div class="charts-panel-header">
               <div>
                 <h5 class="charts-panel-title">Graficas de Resumen</h5>
                 <div class="charts-panel-meta">
                   <span class="charts-pill"
-                    >Capitulo <span id="resumenChartsEmpresaLabel">-</span></span
+                    >Capitulo
+                    <span id="resumenChartsEmpresaLabel">-</span></span
                   >
                   <span class="charts-pill"
                     >Periodo <span id="resumenChartsPeriodoLabel">-</span></span
@@ -1600,9 +1604,7 @@
                       class="d-flex justify-content-between align-items-center mb-2"
                     >
                       <h6 class="mb-0">Ingreso nacional</h6>
-                      <small class="text-muted"
-                        >Real acumulado por mes</small
-                      >
+                      <small class="text-muted">Real acumulado por mes</small>
                     </div>
                     <div class="charts-canvas">
                       <canvas id="resumenChartIngresoNacional"></canvas>
@@ -1724,7 +1726,7 @@
     <script src="js/context-menu-wizard.js"></script>
     <script src="js/modo-edicion-presupuesto.js"></script>
     <script src="js/init-modulo-planeacion.js"></script>
-    
+
     <!-- Librerías para exportación con gráficas -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
@@ -1732,7 +1734,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    
+
     <script src="js/export-utils.js"></script>
     <script src="js/graficas-config.js"></script>
     <script src="js/resumen-view.js"></script>
@@ -1741,23 +1743,17 @@
       document.addEventListener("DOMContentLoaded", () => {
         const selectorTabla = "#tablaComparacion";
 
-        setTimeout(() => {
-          // 1. Inicializar edición de presupuesto (solo layout para RESUMEN)
-          if (typeof ModoEdicionPresupuesto !== "undefined") {
-            const inicioOK = ModoEdicionPresupuesto.inicializar(selectorTabla, {
-              soloLayout: true, // RESUMEN solo edita cuenta/descripción, no valores numéricos
+        // Escuchar evento de actualización de contexto (cuando se carga año/empresa)
+        document.addEventListener("planeacion:contexto-actualizado", (evt) => {
+          const { anio } = evt.detail || {};
+          // Inicializar solo si tenemos año válido y no se ha inicializado correctamente antes
+          if (anio && typeof ModoEdicionPresupuesto !== "undefined") {
+            // Re-inicializamos para capturar el año correcto en el estado interno del editor
+            ModoEdicionPresupuesto.inicializar(selectorTabla, {
+              soloLayout: true,
             });
-            if (!inicioOK) {
-              console.warn(
-                "⚠️ No se pudo inicializar edición de layout en RESUMEN"
-              );
-            }
           }
-
-          // 2. Modo edición en RESUMEN está deshabilitado visualmente por ahora
-          // ya que se requiere el flujo para guardar borradores de layout.
-          console.log("RESUMEN cargado sin flujo de autorización.");
-        }, 300);
+        });
 
         // Toggle del menú de controles de zoom
         const zoomMenu = document.getElementById("zoomMenu");
@@ -1776,7 +1772,7 @@
           const abierto = zoomMenu.classList.toggle("open");
           zoomMenuToggle.setAttribute(
             "aria-expanded",
-            abierto ? "true" : "false"
+            abierto ? "true" : "false",
           );
         };
 
@@ -1815,7 +1811,7 @@
           if (!tabla) return;
 
           const celdas = tabla.querySelectorAll(
-            "td:not(.text-start):not(.cuenta-col)"
+            "td:not(.text-start):not(.cuenta-col)",
           );
           celdas.forEach((celda) => {
             const texto = celda.textContent.trim();

@@ -1307,6 +1307,98 @@ const guardarAutorizado = async (borradorId, usuarioId) => {
   return snapshot;
 };
 
+/**
+ * Recontabilizar TODAS las cuentas para una empresa y año
+ * Se ejecuta al iniciar la app para asegurar integridad
+ */
+const recontabilizarTodasLasCuentas = async ({ empresaId, anio }) => {
+  const { ejecutarConsulta } = require("./firebirdService");
+
+  console.log(`\n🔄 ==========================================`);
+  console.log(`🔄 RECONTABILIZACIÓN COMPLETA INICIADA`);
+  console.log(`🔄 Empresa: ${empresaId}, Año: ${anio}`);
+  console.log(`🔄 ==========================================\n`);
+
+  const sufijo = anio.toString().slice(-2).padStart(2, "0");
+  const tablaPresup = `PRESUP${sufijo}`;
+  const tablaCuentas = `CUENTAS${sufijo}`;
+
+  // Calcular base manual de cuentas padre ANTES de recontabilizar
+  let manualBaseMap = null;
+  try {
+    console.log(`📊 Calculando base manual de cuentas padre...`);
+    manualBaseMap = await calcularManualPadres(empresaId, anio, tablaPresup);
+    console.log(`✅ Base manual calculada para ${manualBaseMap.size} cuentas padre\n`);
+  } catch (manualError) {
+    console.warn(`⚠️ No se pudo calcular base manual:`, manualError.message);
+  }
+
+  // Actualizar cuentas padre con presupuestos vacíos (forzar recálculo)
+  await actualizarCuentasPadre(
+    empresaId,
+    anio,
+    tablaPresup,
+    new Map(), // Sin ediciones - solo suma de hijas
+    manualBaseMap,
+    null // Sin borradorId
+  );
+
+  console.log(`\n✅ ==========================================`);
+  console.log(`✅ RECONTABILIZACIÓN COMPLETADA`);
+  console.log(`✅ Empresa: ${empresaId}, Año: ${anio}`);
+  console.log(`✅ Todas las cuentas han sido recontabilizadas`);
+  console.log(`✅ ==========================================\n`);
+};
+
+/**
+ * Recontabilizar todas las empresas para un año
+ */
+const recontabilizarTodasLasEmpresas = async (anio) => {
+  const { EMPRESAS } = require("../config/empresas");
+
+  console.log(`\n🌐 ==========================================`);
+  console.log(`🌐 RECONTABILIZACIÓN GLOBAL - AÑO ${anio}`);
+  console.log(`🌐 Procesando ${EMPRESAS.length} empresas...`);
+  console.log(`🌐 ==========================================\n`);
+
+  const resultados = [];
+
+  for (const empresa of EMPRESAS) {
+    try {
+      console.log(`\n🏢 Procesando: ${empresa.id} (${empresa.nombre})...`);
+      await recontabilizarTodasLasCuentas({
+        empresaId: empresa.id,
+        anio: anio
+      });
+      resultados.push({
+        empresaId: empresa.id,
+        nombre: empresa.nombre,
+        exito: true
+      });
+      console.log(`✅ ${empresa.id} completada\n`);
+    } catch (error) {
+      console.error(`❌ Error en ${empresa.id}:`, error.message);
+      resultados.push({
+        empresaId: empresa.id,
+        nombre: empresa.nombre,
+        exito: false,
+        error: error.message
+      });
+    }
+  }
+
+  const exitosas = resultados.filter(r => r.exito).length;
+  const fallidas = resultados.filter(r => !r.exito).length;
+
+  console.log(`\n🌐 ==========================================`);
+  console.log(`🌐 RECONTABILIZACIÓN GLOBAL COMPLETADA`);
+  console.log(`   ✅ Exitosas: ${exitosas}`);
+  console.log(`   ❌ Fallidas: ${fallidas}`);
+  console.log(`🌐 ==========================================\n`);
+
+  return resultados;
+};
+
 module.exports = {
   guardarBorrador,
   obtenerBorrador,
@@ -1322,6 +1414,8 @@ module.exports = {
   obtenerFiltrosHistorial,
   obtenerProgresoRecontabilizacion,
   actualizarCuentasPadre,
+  recontabilizarTodasLasCuentas,
+  recontabilizarTodasLasEmpresas,
   ESTADOS,
   HISTORIAL_ACCIONES,
 };

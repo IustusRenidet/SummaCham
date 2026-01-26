@@ -33,16 +33,16 @@ const asegurarSecretos = () => {
   }
 
   const mensaje = `Secrets no configurados o inseguros: ${faltantes.join(", ")}.`;
-  
+
   // Solo lanzar error en producción si NO es una aplicación Electron
   // (en Electron, los secretos se generan automáticamente en main.js)
   const isElectron = process.versions && process.versions.electron;
   const isProduction = (process.env.NODE_ENV || "development") === "production";
-  
+
   if (isProduction && !isElectron) {
     throw new Error(mensaje);
   }
-  
+
   if (faltantes.length > 0) {
     console.warn(`⚠️ ${mensaje}`);
     console.warn("   Los secretos deberían configurarse para mayor seguridad.");
@@ -52,7 +52,7 @@ const asegurarSecretos = () => {
 const iniciarServidor = (puerto = Number(process.env.PORT || 3005)) => {
   if (instanciaServidor) {
     console.log(
-      "⚠️ Servidor ya está ejecutándose, retornando instancia existente"
+      "⚠️ Servidor ya está ejecutándose, retornando instancia existente",
     );
     return instanciaServidor;
   }
@@ -129,11 +129,11 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3005)) => {
     res.header("Vary", "Origin");
     res.header(
       "Access-Control-Allow-Methods",
-      "GET,POST,PUT,PATCH,DELETE,OPTIONS"
+      "GET,POST,PUT,PATCH,DELETE,OPTIONS",
     );
     res.header(
       "Access-Control-Allow-Headers",
-      "Content-Type, X-Usuario-Actual, X-Empresa-Activa, Authorization"
+      "Content-Type, X-Usuario-Actual, X-Empresa-Activa, Authorization",
     );
     if (req.method === "OPTIONS") {
       return res.sendStatus(204);
@@ -143,14 +143,13 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3005)) => {
 
   app.use(cookieParser());
 
-  const sessionSecret =
-    process.env.SESSION_SECRET || SESSION_SECRET_DEFAULT;
+  const sessionSecret = process.env.SESSION_SECRET || SESSION_SECRET_DEFAULT;
   const sessionStore = new SqliteStore({
     client: getDb(),
     expired: {
       clear: true,
-      intervalMs: 15 * 60 * 1000
-    }
+      intervalMs: 15 * 60 * 1000,
+    },
   });
 
   // Configuración de sesiones para múltiples usuarios simultáneos
@@ -171,7 +170,7 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3005)) => {
         domain: process.env.COOKIE_DOMAIN || undefined, // Para túnel: '.iconetcloud.com.mx'
       },
       // Store en SQLite para sesiones persistentes
-    })
+    }),
   );
 
   app.use(helmet({ contentSecurityPolicy: false }));
@@ -203,13 +202,13 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3005)) => {
         if (filepath.endsWith(".js") || filepath.endsWith(".css")) {
           res.setHeader(
             "Cache-Control",
-            "no-store, no-cache, must-revalidate, proxy-revalidate"
+            "no-store, no-cache, must-revalidate, proxy-revalidate",
           );
           res.setHeader("Pragma", "no-cache");
           res.setHeader("Expires", "0");
         }
       },
-    })
+    }),
   );
 
   // Servir archivos estáticos de la carpeta icono (logos, íconos)
@@ -281,7 +280,18 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3005)) => {
   app.use("/api/presupuestos", rutasPresupuestos);
   app.use("/api/comites", rutasComites);
   app.use("/api/planeacion", rutasPlaneacion);
+  // Compat: algunos clientes usan `/api/layouts/:modulo/:anio/:capitulo`
+  // (layoutRoutes) y otros el endpoint legacy `/api/layouts` con querystring.
+  // Montar ambos routers bajo `/api/layouts` en orden (rutas específicas primero).
+  app.use("/api/layouts", (req, res, next) => {
+    console.log(
+      `[DEBUG] Request to /api/layouts detected: ${req.method} ${req.originalUrl}`,
+    );
+    next();
+  });
+  app.use("/api/layouts", rutasLayoutsPorAnio);
   app.use("/api/layouts", rutasLayouts);
+  // Alias histórico usado por el Gestor de Plantillas
   app.use("/api/layouts-config", rutasLayoutsPorAnio);
   app.use("/api/borradores", rutasBorradores);
   app.use("/api/notificaciones", rutasNotificaciones);
@@ -300,6 +310,9 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3005)) => {
   app.use((req, res) => {
     // Si es una petición a /api/*, devolver JSON
     if (req.path.startsWith("/api/")) {
+      console.log(
+        `[DEBUG] 404 Not Found for API path: ${req.method} ${req.originalUrl}`,
+      );
       return res.status(404).json({ mensaje: "Recurso no encontrado." });
     }
     // Para otras rutas, redirigir a la raíz (SPA)
@@ -319,7 +332,7 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3005)) => {
     console.log(`  → Acceso local: http://localhost:${puerto}`);
     console.log(`  → Acceso público: https://panelamcham.iconetcloud.com.mx`);
     console.log(
-      `  → Soporta múltiples usuarios simultáneos con sesiones independientes`
+      `  → Soporta múltiples usuarios simultáneos con sesiones independientes`,
     );
     console.log(`  → Sesiones expiran después de 30 minutos de inactividad`);
     console.log(`  → O abre la app Electron con: npm start`);
@@ -330,7 +343,7 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3005)) => {
     if (error.code === "EADDRINUSE") {
       console.error(`  ❌ CRÍTICO: El puerto ${puerto} ya está en uso.`);
       console.error(
-        `  → Cierre otras instancias de la aplicación o procesos usando el puerto ${puerto}`
+        `  → Cierre otras instancias de la aplicación o procesos usando el puerto ${puerto}`,
       );
     }
     throw error;

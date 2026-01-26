@@ -18,6 +18,8 @@ const {
   obtenerProgresoRecontabilizacion,
   ESTADOS,
   eliminarBorrador,
+  recontabilizarTodasLasCuentas,
+  recontabilizarTodasLasEmpresas,
 } = require("../services/borradoresService");
 const {
   notificarWorkflowPresupuesto,
@@ -916,6 +918,119 @@ router.post("/finalizar", async (req, res) => {
     return res
       .status(500)
       .json({ mensaje: "No fue posible guardar en la base de datos." });
+  }
+});
+
+// ========================================
+// RECONTABILIZACIÓN DE CUENTAS
+// ========================================
+
+/**
+ * POST /api/borradores/recontabilizar
+ * Recontabiliza todas las cuentas padre para una empresa y año
+ */
+router.post("/recontabilizar", async (req, res) => {
+  const schema = Joi.object({
+    empresaId: Joi.string().trim().required(),
+    anio: Joi.number().integer().min(2000).max(2100).required(),
+  });
+
+  const { value, error } = schema.validate(req.body, { abortEarly: false });
+
+  if (error) {
+    return res.status(400).json({
+      mensaje: "Verifica los datos de recontabilización.",
+      detalles: error.details.map((d) => d.message),
+    });
+  }
+
+  const empresa = obtenerEmpresaPorId(value.empresaId);
+  if (!empresa) {
+    return res.status(404).json({ mensaje: "Empresa no encontrada." });
+  }
+
+  // Verificar permisos: debe tener al menos un permiso en la empresa
+  if (!req.esAdmin) {
+    const tienePermisosEmpresa = req.mapaPermisos && req.mapaPermisos[empresa.id];
+    if (!tienePermisosEmpresa) {
+      return res.status(403).json({
+        mensaje: "No tienes permisos en esta empresa para recontabilizar."
+      });
+    }
+  }
+
+  try {
+    console.log(`\n🔄 Recontabilización solicitada por: ${req.usuarioActual.usuario}`);
+    console.log(`   Empresa: ${value.empresaId}`);
+    console.log(`   Año: ${value.anio}\n`);
+
+    await recontabilizarTodasLasCuentas({
+      empresaId: value.empresaId,
+      anio: value.anio
+    });
+
+    return res.json({
+      mensaje: `Recontabilización completada para ${empresa.nombre} (${value.anio})`,
+      empresaId: value.empresaId,
+      anio: value.anio,
+      empresa: empresa.nombre
+    });
+  } catch (errorRecontabilizar) {
+    console.error("❌ Error en recontabilización:", errorRecontabilizar);
+    return res.status(500).json({
+      mensaje: "Error al recontabilizar cuentas.",
+      error: errorRecontabilizar.message
+    });
+  }
+});
+
+/**
+ * POST /api/borradores/recontabilizar/todas
+ * Recontabiliza TODAS las empresas para un año específico
+ */
+router.post("/recontabilizar/todas", async (req, res) => {
+  // Solo administradores pueden recontabilizar todas las empresas
+  if (!req.esAdmin) {
+    return res.status(403).json({
+      mensaje: "Solo administradores pueden recontabilizar todas las empresas."
+    });
+  }
+
+  const schema = Joi.object({
+    anio: Joi.number().integer().min(2000).max(2100).required(),
+  });
+
+  const { value, error } = schema.validate(req.body, { abortEarly: false });
+
+  if (error) {
+    return res.status(400).json({
+      mensaje: "Verifica el año.",
+      detalles: error.details.map((d) => d.message),
+    });
+  }
+
+  try {
+    console.log(`\n🌐 Recontabilización GLOBAL solicitada por: ${req.usuarioActual.usuario}`);
+    console.log(`   Año: ${value.anio}\n`);
+
+    const resultados = await recontabilizarTodasLasEmpresas(value.anio);
+
+    const exitosas = resultados.filter(r => r.exito).length;
+    const fallidas = resultados.filter(r => !r.exito).length;
+
+    return res.json({
+      mensaje: `Recontabilización global completada`,
+      anio: value.anio,
+      exitosas,
+      fallidas,
+      resultados
+    });
+  } catch (errorRecontabilizar) {
+    console.error("❌ Error en recontabilización global:", errorRecontabilizar);
+    return res.status(500).json({
+      mensaje: "Error al recontabilizar todas las empresas.",
+      error: errorRecontabilizar.message
+    });
   }
 });
 

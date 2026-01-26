@@ -1,7 +1,7 @@
 /**
  * Script de inicialización genérico para módulos de planeación
  * Integra ModoEdicionPresupuesto + FlujoAutorizacion + CuentasModulo
- * 
+ *
  * Uso: Incluir después de modo-edicion-presupuesto.js, flujo-autorizacion.js
  *      y llamar initModuloPlaneacion({ moduloId: 'rh', moduloNombre: 'RH' })
  */
@@ -54,7 +54,8 @@ const crearStickyHeaderOverlay = (tabla, wrapper) => {
     const rect = wrapper.getBoundingClientRect();
     const overflowY = getComputedStyle(wrapper).overflowY || "visible";
     const esScrollable =
-      overflowY !== "visible" && wrapper.scrollHeight > wrapper.clientHeight + 1;
+      overflowY !== "visible" &&
+      wrapper.scrollHeight > wrapper.clientHeight + 1;
     const clientLeft = wrapper.clientLeft || 0;
     const clientTop = wrapper.clientTop || 0;
     const contentLeft = rect.left + clientLeft;
@@ -96,7 +97,7 @@ const crearStickyHeaderOverlay = (tabla, wrapper) => {
     const sumarColSpan = (row) =>
       Array.from(row?.cells || []).reduce(
         (total, cell) => total + (cell.colSpan || 1),
-        0
+        0,
       );
     const obtenerSpecsColgroup = () => {
       const colgroup = tabla.querySelector("colgroup");
@@ -117,14 +118,11 @@ const crearStickyHeaderOverlay = (tabla, wrapper) => {
       const bodyRows = Array.from(tabla.tBodies?.[0]?.rows || []);
       const maxBody = bodyRows.reduce(
         (max, row) => Math.max(max, sumarColSpan(row)),
-        0
+        0,
       );
       if (maxBody) return maxBody;
       const headRows = Array.from(tabla.tHead?.rows || []);
-      return headRows.reduce(
-        (max, row) => Math.max(max, sumarColSpan(row)),
-        0
-      );
+      return headRows.reduce((max, row) => Math.max(max, sumarColSpan(row)), 0);
     };
     const filaEsVisible = (row) => {
       if (!row) return false;
@@ -157,8 +155,12 @@ const crearStickyHeaderOverlay = (tabla, wrapper) => {
         return row;
       }
       return (
-        bodyRows.find((row) => filaTieneColumnasCompletas(row, totalColumnas)) ||
-        headRows.find((row) => filaTieneColumnasCompletas(row, totalColumnas)) ||
+        bodyRows.find((row) =>
+          filaTieneColumnasCompletas(row, totalColumnas),
+        ) ||
+        headRows.find((row) =>
+          filaTieneColumnasCompletas(row, totalColumnas),
+        ) ||
         null
       );
     };
@@ -167,7 +169,7 @@ const crearStickyHeaderOverlay = (tabla, wrapper) => {
       const filaBase = buscarFilaBase(totalColumnas);
       if (!filaBase) return null;
       return Array.from(filaBase.cells).map(
-        (cell) => cell.getBoundingClientRect().width / scaleXSeguro
+        (cell) => cell.getBoundingClientRect().width / scaleXSeguro,
       );
     };
     const aplicarAnchosColgroup = (widths = []) => {
@@ -319,7 +321,7 @@ const crearStickyHeaderOverlay = (tabla, wrapper) => {
       }
       scheduleUpdate();
     },
-    { passive: true }
+    { passive: true },
   );
 
   window.addEventListener("scroll", scheduleUpdate, { passive: true });
@@ -397,7 +399,7 @@ const prepararStickyHeaders = (selectorTabla) => {
 
   const stickyColumnsRaw = Number.parseInt(
     tabla.dataset.stickyColumns || "2",
-    10
+    10,
   );
   const stickyColumns = Number.isFinite(stickyColumnsRaw)
     ? stickyColumnsRaw
@@ -417,7 +419,7 @@ const prepararStickyHeaders = (selectorTabla) => {
     const tbody = tabla.tBodies?.[0];
     if (tbody) {
       const fila = Array.from(tbody.rows).find(
-        (row) => row.cells.length >= 2 && row.cells[0].colSpan === 1
+        (row) => row.cells.length >= 2 && row.cells[0].colSpan === 1,
       );
       if (fila?.cells?.[0]) return fila.cells[0];
     }
@@ -562,8 +564,8 @@ const setupRecontaOverlayListener = () => {
     const porcentaje = Number.isFinite(detalle.porcentaje)
       ? detalle.porcentaje
       : total > 0
-      ? Math.round((actual / total) * 100)
-      : 0;
+        ? Math.round((actual / total) * 100)
+        : 0;
 
     if (detalle.estado === "oculto") {
       overlay.classList.remove("show");
@@ -599,54 +601,98 @@ setupRecontaOverlayListener();
 
 window.prepararStickyHeaders = prepararStickyHeaders;
 
-window.initModuloPlaneacion = async function({ moduloId, moduloNombre, selectorTabla = '#tablaComparacion', tablaBodyId = 'tablaCuentasBody' }) {
+window.initModuloPlaneacion = async function ({
+  moduloId,
+  moduloNombre,
+  selectorTabla = "#tablaComparacion",
+  tablaBodyId = "tablaCuentasBody",
+}) {
   try {
     // 1. Inicializar CuentasModulo
     const instancia = window.CuentasModulo?.init({ moduloId });
     if (instancia?.ready) {
       await instancia.ready;
     }
-    
+
     // 2. Inicializar vista de planeación
-    if (typeof window.initVistaModuloPlaneacion === 'function') {
+    if (typeof window.initVistaModuloPlaneacion === "function") {
       window.initVistaModuloPlaneacion();
     }
-    
+
     // 3. Inicializar ModoEdicionPresupuesto
-    if (typeof window.ModoEdicionPresupuesto !== 'undefined') {
-      const inicioOK = window.ModoEdicionPresupuesto.inicializar(selectorTabla);
-      if (!inicioOK) {
-        console.warn(`⚠️ No se pudo inicializar ModoEdicionPresupuesto en ${moduloNombre}`);
+    if (typeof window.ModoEdicionPresupuesto !== "undefined") {
+      // Intentar obtener el selector de año para ver si ya tiene valor
+      const yearSelect =
+        document.querySelector('select[id$="YearSelect"]') ||
+        document.querySelector("#resumenYearSelect") ||
+        document.querySelector('select[name="anio"]');
+
+      const hasYear =
+        yearSelect &&
+        yearSelect.value &&
+        !Number.isNaN(Number(yearSelect.value));
+
+      if (hasYear) {
+        const inicioOK =
+          window.ModoEdicionPresupuesto.inicializar(selectorTabla);
+        if (!inicioOK) {
+          console.warn(
+            `⚠️ No se pudo inicializar ModoEdicionPresupuesto en ${moduloNombre}, esperando contexto...`,
+          );
+        }
+      } else {
+        console.log(
+          `⏳ initModuloPlaneacion: Esperando año para inicializar ModoEdicionPresupuesto en ${moduloNombre}...`,
+        );
       }
+
+      // Escuchar actualización de contexto para re-inicializar con datos correctos
+      document.addEventListener("planeacion:contexto-actualizado", (evt) => {
+        const { anio } = evt.detail || {};
+        if (anio && window.ModoEdicionPresupuesto) {
+          console.log(
+            `🔄 Reinicializando ModoEdicionPresupuesto para ${moduloNombre} con año ${anio}`,
+          );
+          window.ModoEdicionPresupuesto.inicializar(selectorTabla);
+        }
+      });
     } else {
-      console.warn(`⚠️ ModoEdicionPresupuesto no disponible en ${moduloNombre}`);
+      console.warn(
+        `⚠️ ModoEdicionPresupuesto no disponible en ${moduloNombre}`,
+      );
     }
-    
+
     prepararStickyHeaders(selectorTabla);
     // 4. Inicializar FlujoAutorizacion con callback completo
-    if (typeof window.FlujoAutorizacion !== 'undefined') {
+    if (typeof window.FlujoAutorizacion !== "undefined") {
       const opcionesFlujo = {
         tablaId: tablaBodyId,
         modulo: moduloNombre.toUpperCase(),
         obtenerCambios: () => {
           // Capturar cambios de presupuesto (valores numericos)
-          const cambiosPresupuesto = window.CuentasModulo?.getCambios?.() || { presupuesto: [], nombres: [] };
+          const cambiosPresupuesto = window.CuentasModulo?.getCambios?.() || {
+            presupuesto: [],
+            nombres: [],
+          };
 
           // Capturar layout (cuentas/descripciones/filas)
-          const layoutActual = window.ModoEdicionPresupuesto?.cargarLayoutLocal?.() || null;
+          const layoutActual =
+            window.ModoEdicionPresupuesto?.cargarLayoutLocal?.() || null;
 
           const resultado = {
             presupuesto: cambiosPresupuesto.presupuesto || [],
             nombres: cambiosPresupuesto.nombres || [],
             layout: layoutActual,
-            hayCambios: cambiosPresupuesto.presupuesto?.length > 0 || !!layoutActual
+            hayCambios:
+              cambiosPresupuesto.presupuesto?.length > 0 || !!layoutActual,
           };
 
           console.log(`?? Obteniendo cambios ${moduloNombre}:`, resultado);
           return resultado;
         },
-        obtenerHeaders: () => (window.Sesion?.headersAutenticacion?.() || {}),
-        cargarBorrador: (presupuesto) => window.CuentasModulo?.cargarBorrador?.(presupuesto),
+        obtenerHeaders: () => window.Sesion?.headersAutenticacion?.() || {},
+        cargarBorrador: (presupuesto) =>
+          window.CuentasModulo?.cargarBorrador?.(presupuesto),
         onEstadoChange: (estado) => {
           console.log(`?? Estado ${moduloNombre}:`, estado);
         },
@@ -659,7 +705,7 @@ window.initModuloPlaneacion = async function({ moduloId, moduloNombre, selectorT
           if (window.CuentasModulo?.limpiarCambios) {
             window.CuentasModulo.limpiarCambios();
           }
-        }
+        },
       };
 
       let flujo = window.__flujoAutorizacionInstance || null;
@@ -673,7 +719,7 @@ window.initModuloPlaneacion = async function({ moduloId, moduloNombre, selectorT
           obtenerHeaders: opcionesFlujo.obtenerHeaders,
           cargarBorrador: opcionesFlujo.cargarBorrador,
           onEstadoChange: opcionesFlujo.onEstadoChange,
-          onGuardadoExitoso: opcionesFlujo.onGuardadoExitoso
+          onGuardadoExitoso: opcionesFlujo.onGuardadoExitoso,
         };
         flujo.init?.();
       } else {
@@ -683,7 +729,9 @@ window.initModuloPlaneacion = async function({ moduloId, moduloNombre, selectorT
       // Guardar referencia global
       window.__flujoAutorizacionInstance = flujo;
 
-      console.log(`? ${moduloNombre}: ModoEdicionPresupuesto + FlujoAutorizacion inicializados`);
+      console.log(
+        `? ${moduloNombre}: ModoEdicionPresupuesto + FlujoAutorizacion inicializados`,
+      );
     } else {
       console.warn(`?? FlujoAutorizacion no disponible en ${moduloNombre}`);
     }
@@ -691,4 +739,3 @@ window.initModuloPlaneacion = async function({ moduloId, moduloNombre, selectorT
     console.error(`❌ Error inicializando módulo ${moduloNombre}:`, error);
   }
 };
-

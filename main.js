@@ -354,7 +354,15 @@ if (!gotTheLock) {
 
   app.whenReady().then(() => {
     const userDataPath = app.getPath("userData");
-    process.env.PANELAMCHAM_DATA_DIR = path.join(userDataPath, "datos");
+    const appDataPath = app.getPath("appData");
+    if (!process.env.PANELAMCHAM_DATA_DIR) {
+      // En desarrollo, Electron usa "Electron" como userData.
+      // Forzamos la ruta del app real para mantener consistencia con producción.
+      const dataDir = app.isPackaged
+        ? path.join(userDataPath, "datos")
+        : path.join(appDataPath, "panel-amcham", "datos");
+      process.env.PANELAMCHAM_DATA_DIR = dataDir;
+    }
 
     // Configurar AppUserModelId ANTES de crear ventanas/tray
     if (process.platform === "win32") {

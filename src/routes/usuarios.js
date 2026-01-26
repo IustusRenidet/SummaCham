@@ -20,23 +20,21 @@ const {
 const router = express.Router();
 const ACCIONES_PERMISOS = ["Ver", "Cargar y guardar", "Revisar", "Aprobar"];
 
-const schemaPermisosModulo = Joi.object(
-  MODULOS.reduce((acumulado, modulo) => {
-    acumulado[modulo] = Joi.object({
-      Ver: Joi.boolean().required(),
-      "Cargar y guardar": Joi.boolean().required(),
-      Revisar: Joi.boolean().required(),
-      Aprobar: Joi.boolean().required(),
-    }).required();
-    return acumulado;
-  }, {})
-);
+// Schema más flexible: permite módulos opcionales y acciones opcionales
+const schemaPermisosModulo = Joi.object().pattern(
+  Joi.string(), // Nombre del módulo (cualquier string)
+  Joi.object({
+    Ver: Joi.boolean().default(false),
+    "Cargar y guardar": Joi.boolean().default(false),
+    Revisar: Joi.boolean().default(false),
+    Aprobar: Joi.boolean().default(false),
+  }).default({})
+).default({});
 
-const schemaPermisos = Joi.object(
-  EMPRESAS.reduce((acumulado, empresa) => {
-    acumulado[empresa.id] = schemaPermisosModulo;
-    return acumulado;
-  }, {})
+// Schema de permisos por empresa: permite empresas opcionales
+const schemaPermisos = Joi.object().pattern(
+  Joi.string(), // ID de empresa (cualquier string: empresa1, EMPRESA01, etc.)
+  schemaPermisosModulo
 ).default({});
 
 const schemaGenerales = Joi.object({
@@ -387,17 +385,29 @@ router.post("/", asegurarPermisoGeneral("puedeAgregar"), (req, res) => {
     return res.status(409).json({ mensaje: "El usuario ya existe." });
   }
 
+  // Calcular correctamente el total de permisos activos
   const totalPermisos = Object.values(payload.permisos || {}).reduce(
     (acum, modulos) => {
-      return acum + Object.values(modulos || {}).length;
+      // Para cada empresa, contar módulos que tienen al menos un permiso activo
+      const permisosEmpresa = Object.values(modulos || {}).reduce((suma, modulo) => {
+        // Contar permisos activos (true) en este módulo
+        const permisosActivos = Object.values(modulo || {}).filter(v => v === true).length;
+        return suma + permisosActivos;
+      }, 0);
+      return acum + permisosEmpresa;
     },
     0
   );
 
-  if (!payload.esAdminGlobal && totalPermisos === 0) {
+  // Solo validar si no es admin global Y si tiene permisosGenerales denegados
+  const tienePermisosGenerales = payload.permisosGenerales?.puedeAgregar ||
+                                  payload.permisosGenerales?.puedeModificar ||
+                                  payload.permisosGenerales?.puedeEliminar;
+
+  if (!payload.esAdminGlobal && totalPermisos === 0 && !tienePermisosGenerales) {
     return res
       .status(400)
-      .json({ mensaje: "Debes asignar al menos un permiso por empresa." });
+      .json({ mensaje: "Debes asignar al menos un permiso por empresa o permiso general." });
   }
 
   const hash = bcrypt.hashSync(payload.contrasena, 12);
@@ -507,17 +517,29 @@ router.put("/:id", asegurarPermisoGeneral("puedeModificar"), (req, res) => {
     payload.permisosGenerales
   );
 
+  // Calcular correctamente el total de permisos activos
   const totalPermisos = Object.values(payload.permisos || {}).reduce(
     (acum, modulos) => {
-      return acum + Object.values(modulos || {}).length;
+      // Para cada empresa, contar módulos que tienen al menos un permiso activo
+      const permisosEmpresa = Object.values(modulos || {}).reduce((suma, modulo) => {
+        // Contar permisos activos (true) en este módulo
+        const permisosActivos = Object.values(modulo || {}).filter(v => v === true).length;
+        return suma + permisosActivos;
+      }, 0);
+      return acum + permisosEmpresa;
     },
     0
   );
 
-  if (!payload.esAdminGlobal && totalPermisos === 0) {
+  // Solo validar si no es admin global Y si tiene permisosGenerales denegados
+  const tienePermisosGenerales = payload.permisosGenerales?.puedeAgregar ||
+                                  payload.permisosGenerales?.puedeModificar ||
+                                  payload.permisosGenerales?.puedeEliminar;
+
+  if (!payload.esAdminGlobal && totalPermisos === 0 && !tienePermisosGenerales) {
     return res
       .status(400)
-      .json({ mensaje: "Debes asignar al menos un permiso por empresa." });
+      .json({ mensaje: "Debes asignar al menos un permiso por empresa o permiso general." });
   }
 
   const actualizar = db.prepare(`

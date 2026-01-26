@@ -811,9 +811,93 @@
       // Exponer sesión globalmente para React
       window.__APP_SESSION__ = sesion;
       console.log('✅ Sesión confirmada para React:', sesion.usuario.usuario);
+
+      // PASO 1: Limpiar caché y snapshots
+      try {
+        let itemsLimpiados = 0;
+        const keys = Object.keys(localStorage);
+        const patronesLimpiar = [
+          'resumen_tabla_snapshot',
+          'summary_tabla_snapshot',
+          '_cache_',
+          '_snapshot_',
+          'graficas_data_',
+          'calculated_',
+          'totals_',
+          'layout_temp_',
+          'comparativa_',
+        ];
+
+        keys.forEach(key => {
+          const debeEliminar = patronesLimpiar.some(patron => key.includes(patron));
+          if (debeEliminar) {
+            localStorage.removeItem(key);
+            itemsLimpiados++;
+          }
+        });
+
+        if (itemsLimpiados > 0) {
+          console.log(`🔄 Paso 1/2: ${itemsLimpiados} items de caché limpiados`);
+        }
+
+        let sessionItemsLimpiados = 0;
+        const sessionKeys = Object.keys(sessionStorage);
+        sessionKeys.forEach(key => {
+          const debeEliminar = patronesLimpiar.some(patron => key.includes(patron));
+          if (debeEliminar) {
+            sessionStorage.removeItem(key);
+            sessionItemsLimpiados++;
+          }
+        });
+
+        if (sessionItemsLimpiados > 0) {
+          console.log(`🔄 SessionStorage: ${sessionItemsLimpiados} items limpiados`);
+        }
+      } catch (e) {
+        console.warn('⚠️ Error al limpiar caché:', e);
+      }
+
+      // PASO 2: Recontabilizar TODAS las cuentas en el servidor
+      (async () => {
+        try {
+          console.log('🔄 Paso 2/2: Recontabilizando todas las cuentas en el servidor...');
+
+          const empresaActiva = Sesion.obtenerEmpresaActiva();
+          const anioActual = new Date().getFullYear();
+
+          if (!empresaActiva || !empresaActiva.id) {
+            console.warn('⚠️ No hay empresa activa, omitiendo recontabilización');
+            return;
+          }
+
+          const response = await fetch('/api/borradores/recontabilizar', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${sesion.token}`
+            },
+            body: JSON.stringify({
+              empresaId: empresaActiva.id,
+              anio: anioActual
+            })
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            console.log('✅ Recontabilización completada:', data.mensaje);
+            console.log('✅ Sistema listo - todas las cuentas han sido recontabilizadas');
+          } else {
+            const error = await response.json();
+            console.warn('⚠️ Recontabilización no completada:', error.mensaje);
+          }
+        } catch (error) {
+          console.warn('⚠️ Error al recontabilizar:', error.message);
+          console.log('ℹ️ La app continuará funcionando normalmente');
+        }
+      })();
     })();
   </script>
-  
+
   <script src="js/capitulos-modulos.js"></script>
   <script src="js/react-app.js"></script>
 </body>

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
@@ -157,9 +157,6 @@
             <input id="userBase" class="form-control" type="text" disabled />
           </div>
         </div>
-        <p class="text-muted small mt-3 mb-0" id="notaConexion">
-          Las rutas se verifican localmente solo cuando el host es local.
-        </p>
       </section>
 
       <section class="panel-card">
@@ -170,7 +167,10 @@
           </button>
         </div>
         <div class="table-responsive">
-          <table class="table tabla-conexiones align-middle" id="tablaConexiones">
+          <table
+            class="table tabla-conexiones align-middle"
+            id="tablaConexiones"
+          >
             <thead>
               <tr>
                 <th>Empresa</th>
@@ -338,7 +338,11 @@
           if (manejarSesionExpirada(respuesta)) return;
           const datos = await respuesta.json().catch(() => ({}));
           if (!respuesta.ok) {
-            throw new Error(datos.mensaje || datos.error || "No fue posible cargar conexiones.");
+            throw new Error(
+              datos.mensaje ||
+                datos.error ||
+                "No fue posible cargar conexiones.",
+            );
           }
 
           const base = datos.configBase || {};
@@ -348,10 +352,6 @@
           portBase.value = base.port || "";
           userBase.value = base.user || "";
           modoConexion.textContent = base.esRemota ? "Remota" : "Local";
-          notaConexion.textContent = base.esRemota
-            ? "Conexiones remotas: la verificacion local de archivos esta deshabilitada."
-            : "Conexiones locales: verificamos si el archivo existe en esta maquina.";
-
           conexiones = Array.isArray(datos.empresas) ? datos.empresas : [];
           renderizarTabla();
         } catch (error) {
@@ -361,21 +361,20 @@
 
       const guardarRuta = async (empresaId, ruta) => {
         try {
-          const respuesta = await fetch(
-            `${API_BASE}/empresa/${empresaId}`,
-            {
-              method: "PUT",
-              headers: {
-                "Content-Type": "application/json",
-                ...Sesion.headersAutenticacion(),
-              },
-              body: JSON.stringify({ rutaBaseDatos: ruta }),
-            }
-          );
+          const respuesta = await fetch(`${API_BASE}/empresa/${empresaId}`, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              ...Sesion.headersAutenticacion(),
+            },
+            body: JSON.stringify({ rutaBaseDatos: ruta }),
+          });
           if (manejarSesionExpirada(respuesta)) return;
           const datos = await respuesta.json().catch(() => ({}));
           if (!respuesta.ok) {
-            throw new Error(datos.mensaje || datos.error || "No fue posible guardar la ruta.");
+            throw new Error(
+              datos.mensaje || datos.error || "No fue posible guardar la ruta.",
+            );
           }
 
           await cargarConexiones();

@@ -4,6 +4,50 @@
       return "http://localhost:3005/api";
     return `${window.location.origin.replace(/\/$/, "")}/api`;
   })();
+  // Comprobación temprana de disponibilidad del API.
+  // Si no responde, insertamos un aviso visible en las tarjetas de tabla.
+  (async function checkApiAndWarn() {
+    const candidates = [`${API_BASE}/salud`, `${API_BASE}`];
+    try {
+      let ok = false;
+      for (const url of candidates) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 2000);
+          const resp = await fetch(url, { signal: controller.signal });
+          clearTimeout(timeoutId);
+          if (resp && resp.ok) {
+            ok = true;
+            break;
+          }
+        } catch (e) {
+          // intentar siguiente candidato
+        }
+      }
+      if (ok) return; // API disponible
+      throw new Error("no disponible");
+    } catch (err) {
+      // Esperar DOM y mostrar mensaje en cada .table-card
+      document.addEventListener('DOMContentLoaded', () => {
+        const cards = document.querySelectorAll('.table-card');
+        const mensaje = `No se pudo conectar al servidor API en ${API_BASE}.\nAsegúrate de levantar el backend (ej. run: npm run server) o configurar la URL correcta.`;
+        cards.forEach((card) => {
+          if (card.querySelector('.api-warning')) return;
+          const aviso = document.createElement('div');
+          aviso.className = 'api-warning p-3';
+          aviso.style.background = '#fff7f7';
+          aviso.style.border = '1px solid #f5c2c7';
+          aviso.style.color = '#7a1f1f';
+          aviso.style.borderRadius = '8px';
+          aviso.style.marginBottom = '0.75rem';
+          aviso.textContent = mensaje;
+          // Insertar al inicio de la card para que sea visible
+          const body = card.querySelector('.card-body') || card;
+          body.insertBefore(aviso, body.firstChild);
+        });
+      });
+    }
+  })();
   const EVENTO_TABLA_ACTUALIZADA = "modulo-planeacion:tabla-actualizada";
   const EVENTO_CONTEXTO = "planeacion:contexto-actualizado";
   const MESES = [
@@ -93,7 +137,8 @@
     const dataset = document.body?.dataset || {};
     const moduloId = dataset.moduloId || dataset.modulo || "";
     const moduloSheet = dataset.moduloSheet || "";
-    return { moduloId, moduloSheet };
+    const moduloLabel = dataset.modulo || dataset.moduloAlias || "";
+    return { moduloId, moduloSheet, moduloLabel };
   };
 
   const MODULOS_SOPORTADOS = new Set([
@@ -449,7 +494,7 @@
       ? Sesion.headersAutenticacion()
       : {};
 
-  const cargarLayoutSqlite = async ({
+  const obtenerCapituloAlternativo = async ({
     modulo,
     anio,
     capitulo,
@@ -462,8 +507,60 @@
       const params = new URLSearchParams({ empresaId });
       const url = `${API_BASE}/layouts/${encodeURIComponent(
         modulo
-      )}/${anio}/${encodeURIComponent(capitulo)}?${params.toString()}`;
+      )}/${anio}/capitulos?${params.toString()}`;
       const respuesta = await fetch(url, { headers: obtenerAuthHeaders() });
+      if (!respuesta.ok) {
+        return null;
+      }
+      const data = await respuesta.json();
+      const capitulos = Array.isArray(data?.capitulos) ? data.capitulos : [];
+      const objetivo = normalizarTexto(capitulo);
+      for (const item of capitulos) {
+        const nombre =
+          typeof item === "object"
+            ? item.capitulo || item.etiqueta || String(item)
+            : item;
+        if (normalizarTexto(nombre) === objetivo) {
+          return nombre;
+        }
+      }
+      return null;
+    } catch (error) {
+      return null;
+    }
+  };
+
+  const cargarLayoutSqlite = async ({
+    modulo,
+    anio,
+    capitulo,
+    empresaId,
+  }) => {
+    if (!modulo || !Number.isInteger(anio) || !capitulo || !empresaId) {
+      return null;
+    }
+    try {
+      const params = new URLSearchParams({ empresaId });
+      const construirUrl = (capituloFinal) =>
+        `${API_BASE}/layouts/${encodeURIComponent(
+          modulo
+        )}/${anio}/${encodeURIComponent(capituloFinal)}?${params.toString()}`;
+      let respuesta = await fetch(construirUrl(capitulo), {
+        headers: obtenerAuthHeaders(),
+      });
+      if (respuesta.status === 404) {
+        const alternativo = await obtenerCapituloAlternativo({
+          modulo,
+          anio,
+          capitulo,
+          empresaId,
+        });
+        if (alternativo && alternativo !== capitulo) {
+          respuesta = await fetch(construirUrl(alternativo), {
+            headers: obtenerAuthHeaders(),
+          });
+        }
+      }
       if (!respuesta.ok) {
         if (respuesta.status !== 404) {
           console.warn("No fue posible cargar el layout SQL", respuesta.status);
@@ -2083,19 +2180,11 @@
       anioActual,
     });
 
-    let periodoLimite = null;
-
-    if (anioEvaluado < anioActual) {
-      // Pasado: MOSTRAR TODO (mes 13 cubre hasta dic=12)
-      periodoLimite = 13;
-    } else if (anioEvaluado > anioActual) {
-      // Futuro: OCULTAR TODO
-      periodoLimite = 0;
-    } else {
-      // Presente: Usar periodo visible calculado (meses cerrados)
-      // IMPORTANTE: Pasamos anioEvaluado para que la funci├│n sepa expl├¡citamente qu├® a├▒o es.
-      periodoLimite = obtenerPeriodoVisible(anioEvaluado);
-    }
+    const esAnioPasado = anioEvaluado < anioActual;
+    const esAnioFuturo = anioEvaluado > anioActual;
+    const periodoVisible = !esAnioPasado && !esAnioFuturo
+      ? obtenerPeriodoVisible(anioEvaluado)
+      : null;
 
     const filas = Array.from(estadoModulo.tabla.querySelectorAll("tr"));
     const headersReales = Array.from(
@@ -2108,8 +2197,19 @@
       const idx = th.cellIndex;
 
       let debeOcultar = false;
-      if (mesNumero != null && periodoLimite != null) {
-        debeOcultar = mesNumero > periodoLimite;
+      if (esAnioPasado) {
+        // Años anteriores: mostrar todos los month-real.
+        debeOcultar = false;
+      } else if (esAnioFuturo) {
+        // Años futuros: ocultar todos los month-real.
+        debeOcultar = true;
+      } else {
+        // Año actual: mostrar SOLO el mes anterior al actual.
+        if (!mesNumero || !periodoVisible || periodoVisible < 1) {
+          debeOcultar = true;
+        } else {
+          debeOcultar = mesNumero !== periodoVisible;
+        }
       }
 
       th.style.display = debeOcultar ? "none" : "";
@@ -5793,7 +5893,7 @@
     const placeholdersPorFila = Math.max(0, columnas - 2);
     estadoModulo.placeholdersPorFila = placeholdersPorFila;
 
-    const { moduloId, moduloSheet } = obtenerConfigModulo();
+    const { moduloId, moduloSheet, moduloLabel } = obtenerConfigModulo();
     const moduloNormalizado = (opciones.moduloId || moduloId || "")
       .toString()
       .trim();
@@ -5802,8 +5902,16 @@
       ? window.CapitulosModulos.obtenerSheetPorModulo(moduloNormalizado)
       : null;
     const sheetConfigurada =
-      opciones.sheet || moduloSheet || sheetPorConfig || moduloNormalizado;
+      opciones.sheet ||
+      moduloSheet ||
+      sheetPorConfig ||
+      moduloLabel ||
+      moduloNormalizado;
     const moduloNombre = sheetConfigurada || moduloNormalizado;
+    // Asegurar que el módulo quede seteado incluso si se retorna temprano
+    estadoModulo.moduloId = moduloNormalizado;
+    estadoModulo.moduloClave = moduloClave;
+    estadoModulo.sheet = sheetConfigurada || moduloNormalizado;
     limpiarBody(cuerpo);
 
     const anioSeleccionTemp = obtenerAnioSeleccionado();
@@ -6174,11 +6282,16 @@
     const contextoListener = (evento) => {
       const moduloEvento = normalizarModuloClave(evento?.detail?.modulo || "");
       const moduloActual = estadoModulo.moduloClave;
-      if (moduloEvento && moduloEvento !== moduloActual) {
+      if (moduloEvento && moduloActual && moduloEvento !== moduloActual) {
         return;
       }
+      const anioPrevio = estadoModulo.anio;
       const anioEvento = Number(evento?.detail?.anio);
+      let requiereReRender = false;
       if (Number.isInteger(anioEvento)) {
+        if (anioPrevio !== anioEvento) {
+          requiereReRender = true;
+        }
         estadoModulo.anio = anioEvento;
         poblarSugerenciasDesdeAnio(anioEvento);
         // Force update of filters because year change affects visibility (Past vs Present)
@@ -6189,6 +6302,13 @@
         estadoModulo.periodoCerrado = periodoEvento;
         estadoModulo.mesActualIndex = obtenerIndicePeriodoActual();
         aplicarFiltroColumnasPorPeriodo();
+      }
+      if (
+        requiereReRender ||
+        (!obtenerFilasCuenta().length && Number.isInteger(anioEvento))
+      ) {
+        ejecutar();
+        return;
       }
       solicitarDatos();
     };

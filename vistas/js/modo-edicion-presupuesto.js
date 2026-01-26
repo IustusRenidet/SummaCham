@@ -76,8 +76,7 @@
           .trim();
         if (!cuentaId) return null;
         const descripcion =
-          (cuenta.NOMBRE ?? cuenta.nombre ?? "").toString().trim() ||
-          cuentaId;
+          (cuenta.NOMBRE ?? cuenta.nombre ?? "").toString().trim() || cuentaId;
         return { cuenta: cuentaId, descripcion, indice: idx };
       })
       .filter(Boolean);
@@ -106,7 +105,8 @@
         if (!fila || typeof fila !== "object") return null;
         const cuenta = (fila.cuenta || "").toString().trim();
         if (!cuenta) return null;
-        const descripcion = (fila.descripcion || "").toString().trim() || cuenta;
+        const descripcion =
+          (fila.descripcion || "").toString().trim() || cuenta;
         const orden = obtenerOrdenDesdeFila(fila, idx);
         return {
           CUENTA: cuenta,
@@ -126,7 +126,7 @@
       celda.dataset.valorPlano ??
       (celda.textContent || "").toString().replace(/\s/g, "");
     const numero = parseFloat(
-      texto.replace(/[^0-9,.-]/g, "").replace(/,/g, "")
+      texto.replace(/[^0-9,.-]/g, "").replace(/,/g, ""),
     );
     return Number.isFinite(numero) ? numero : 0;
   }
@@ -165,7 +165,17 @@
   }
 
   function establecerCeldaActiva(celda) {
-    if (!celda) return;
+    if (!celda) {
+      if (estado.celdaActiva) {
+        estado.celdaActiva.classList.remove(CLASE_ACTIVA);
+      }
+      estado.celdaActiva = null;
+      // Ocultar fill handle si existe
+      if (typeof ocultarFillHandle === 'function') {
+        ocultarFillHandle();
+      }
+      return;
+    }
     ensureEditorInlineStyles();
     if (estado.celdaActiva && estado.celdaActiva !== celda) {
       estado.celdaActiva.classList.remove(CLASE_ACTIVA);
@@ -181,6 +191,17 @@
       try {
         celda.focus();
       } catch (err2) {}
+    }
+
+    // Mostrar fill handle si el modo edición está activo
+    if (estado.modoEdicionActivo && celda.classList.contains(CLASE_EDITABLE)) {
+      if (typeof posicionarFillHandle === 'function') {
+        posicionarFillHandle(celda);
+      }
+    } else {
+      if (typeof ocultarFillHandle === 'function') {
+        ocultarFillHandle();
+      }
     }
   }
 
@@ -298,7 +319,7 @@
     return (
       document.getElementById("selectAnio") ||
       document.getElementById("resumenYearSelect") ||
-      document.getElementById("summaryYear Select") ||
+      document.getElementById("summaryYearSelect") ||
       document.getElementById("eventosYearSelect") ||
       document.getElementById("comitesYearSelect") ||
       document.getElementById("comunicacionYearSelect") ||
@@ -329,7 +350,7 @@
       }
 
       const ruta = `${API_BASE}/api/saldos/catalogo?empresaId=${encodeURIComponent(
-        empresaId
+        empresaId,
       )}&anio=${Number(anio)}`;
       const headers =
         typeof Sesion !== "undefined" &&
@@ -344,12 +365,64 @@
       }
 
       const data = await resp.json();
+      console.log("DATA CATALOGO:", data);
       const cuentas = data.cuentas || [];
-
+      console.log("CUENTAS CATALOGO:", cuentas);
       console.log(
-        `✅ Catálogo cargado: ${cuentas.length} cuentas de CUENTASYY ${anio}`
+        `✅ Catálogo cargado: ${cuentas.length} cuentas de CUENTASYY ${anio}`,
       );
       estado.cuentasDisponibles = cuentas;
+
+      // Diagnóstico: comparar cuentas del layout vs catálogo
+      setTimeout(() => {
+        try {
+          const { tabla } = resolverTabla(estado.selectorTabla);
+          if (!tabla) return;
+          // Extraer cuentas del layout actual en la tabla
+          const filas = Array.from(tabla.tBodies[0]?.rows || []);
+          // Solo cuentas con formato tipo 000-000-000-00 (puede variar, pero mínimo 2 guiones)
+          const regexCuenta = /^\d{3,}-\d{3,}-\d{3,}-\d{2,}$/;
+          const cuentasLayout = filas
+            .map((f) =>
+              (f.dataset.cuenta || f.cells[0]?.textContent || "")
+                .toString()
+                .trim(),
+            )
+            .filter((c) => regexCuenta.test(c));
+          // Extraer cuentas del catálogo
+          const cuentasCatalogo = cuentas
+            .map((c) => (c.cuenta || c.CUENTA || "").toString().trim())
+            .filter(Boolean);
+          // Normalizar para comparar
+          const setCatalogo = new Set(
+            cuentasCatalogo.map((c) => c.replace(/\s+/g, "")),
+          );
+          const cuentasNoEnCatalogo = cuentasLayout.filter(
+            (c) => !setCatalogo.has(c.replace(/\s+/g, "")),
+          );
+          if (cuentasNoEnCatalogo.length) {
+            console.warn(
+              "⚠️ Cuentas en layout que NO existen en catálogo:",
+              cuentasNoEnCatalogo,
+            );
+            // Mostrar en pantalla
+            let diag = document.getElementById("diagnostico-cuentas-layout");
+            if (!diag) {
+              diag = document.createElement("div");
+              diag.id = "diagnostico-cuentas-layout";
+              diag.style.cssText =
+                "background: #fff3cd; color: #856404; border: 1px solid #ffeeba; padding: 8px; margin: 8px 0; font-size: 14px; z-index:9999; position:relative;";
+              tabla.parentNode.insertBefore(diag, tabla);
+            }
+            diag.innerHTML = `<b>⚠️ Cuentas en layout que NO existen en catálogo:</b><br>${cuentasNoEnCatalogo.map((c) => `<code>${c}</code>`).join(", ")}`;
+          } else {
+            const diag = document.getElementById("diagnostico-cuentas-layout");
+            if (diag) diag.remove();
+          }
+        } catch (e) {
+          console.warn("Error diagnóstico cuentas layout:", e);
+        }
+      }, 800);
       return cuentas;
     } catch (err) {
       console.error("❌ Error cargando catálogo de cuentas:", err);
@@ -407,7 +480,7 @@
       }
       const cuentas = construirCuentasDesdeLayout(layout);
       const ruta = `${API_BASE}/api/layouts/${encodeURIComponent(
-        modulo
+        modulo,
       )}/${anioNum}/${encodeURIComponent(capituloClave || "DEFAULT")}/cuentas`;
       const headers =
         typeof Sesion !== "undefined" &&
@@ -429,7 +502,7 @@
         const data = await resp.json().catch(() => ({}));
         console.warn(
           "Guardar layout servidor fallo:",
-          data.mensaje || resp.status
+          data.mensaje || resp.status,
         );
         return false;
       }
@@ -463,9 +536,9 @@
         return null;
       }
       const ruta = `${API_BASE}/api/layouts/${encodeURIComponent(
-        modulo
+        modulo,
       )}/${anioNum}/${encodeURIComponent(capituloClave || "DEFAULT")}?empresaId=${encodeURIComponent(
-        empresaId
+        empresaId,
       )}`;
       const headers =
         typeof Sesion !== "undefined" &&
@@ -563,7 +636,7 @@
       "#mainTable",
       "#tablaPresupuestos",
       "table.table-comparison",
-      "table"
+      "table",
     );
 
     for (const sel of candidatos) {
@@ -627,7 +700,6 @@
         });
       });
     }
-
 
     // IMPORTANTE: Las columnas CUENTAS y DESCRIPCIÓN NO deben ser editables NUNCA
     // Solo las columnas month-budget son editables cuando el modo edición está activo
@@ -815,7 +887,7 @@
             fila.querySelector('td[data-columna-clave="cuenta"]'),
           ].filter(Boolean);
           const destinoTexto = preferidas.find(
-            (cel) => cel && cel.offsetParent !== null
+            (cel) => cel && cel.offsetParent !== null,
           );
           return destinoTexto || fila.cells[0] || null;
         }
@@ -837,7 +909,7 @@
           candidate = row.querySelector(`td[data-mes="${celda.dataset.mes}"]`);
         } else if (celda.dataset.columnaClave) {
           candidate = Array.from(row.cells).find(
-            (td) => td.dataset.columnaClave === celda.dataset.columnaClave
+            (td) => td.dataset.columnaClave === celda.dataset.columnaClave,
           );
         } else {
           candidate = row.cells[celda.cellIndex] || null;
@@ -880,7 +952,7 @@
         for (let i = filaIndex + paso; i >= 0 && i < filas.length; i += paso) {
           const row = filas[i];
           const candidato = row.querySelector(
-            `td[data-mes="${celda.dataset.mes}"]`
+            `td[data-mes="${celda.dataset.mes}"]`,
           );
           if (candidato && candidato.offsetParent !== null) return candidato;
         }
@@ -897,7 +969,10 @@
         const paso = direccion === "left" ? -1 : 1;
         for (let i = colIndex + paso; i >= 0 && i < cells.length; i += paso) {
           const candidato = cells[i];
-          if (esCeldaTextoEditable(candidato) && candidato.offsetParent !== null)
+          if (
+            esCeldaTextoEditable(candidato) &&
+            candidato.offsetParent !== null
+          )
             return candidato;
         }
         return null;
@@ -907,7 +982,10 @@
         for (let i = filaIndex + paso; i >= 0 && i < filas.length; i += paso) {
           const row = filas[i];
           const candidato = row.cells[colIndex];
-          if (esCeldaTextoEditable(candidato) && candidato.offsetParent !== null)
+          if (
+            esCeldaTextoEditable(candidato) &&
+            candidato.offsetParent !== null
+          )
             return candidato;
         }
         return null;
@@ -1125,7 +1203,7 @@
       console.warn("⚠️ No hay cambios capturados en modo edición");
     } else {
       console.log(
-        `✅ Cambios capturados: ${presupuesto.length} cuentas modificadas`
+        `✅ Cambios capturados: ${presupuesto.length} cuentas modificadas`,
       );
     }
 
@@ -1192,7 +1270,7 @@
       const selectAnioElem =
         obtenerSelectorAnio() || document.querySelector('[name="anio"]');
       const anioSeleccion = Number(
-        selectAnioElem?.value || new Date().getFullYear()
+        selectAnioElem?.value || new Date().getFullYear(),
       );
       const anio = Number.isInteger(anioSeleccion) ? anioSeleccion : null;
       const moduloClaveRaw = (
@@ -1207,7 +1285,7 @@
       if (!empresa?.id || !Number.isInteger(anio) || !moduloClave) {
         console.warn(
           "No fue posible persistir layout: falta empresa/anio/modulo",
-          { empresa: empresa?.id, anio, moduloClave }
+          { empresa: empresa?.id, anio, moduloClave },
         );
         return false;
       }
@@ -1247,8 +1325,13 @@
   }
 
   function aplicarLayoutLocal(layout, tabla) {
+    console.log("LAYOUT RECIBIDO:", layout);
     const layoutNormalizado = normalizarLayoutParaTabla(layout);
-    if (!layoutNormalizado || !Array.isArray(layoutNormalizado.filas) || !tabla) {
+    if (
+      !layoutNormalizado ||
+      !Array.isArray(layoutNormalizado.filas) ||
+      !tabla
+    ) {
       return false;
     }
     const filas = Array.from(tabla.tBodies[0]?.rows || []);
@@ -1262,7 +1345,8 @@
           (f.dataset.cuenta &&
             normalizeString(f.dataset.cuenta) ===
               normalizeString(cuentaLayout)) ||
-          (f.cells[0]?.textContent || "").trim() === (cuentaLayout || "").trim()
+          (f.cells[0]?.textContent || "").trim() ===
+            (cuentaLayout || "").trim(),
       );
       if (filaMatch) {
         const celdaDescripcion =
@@ -1366,7 +1450,7 @@
       if (menuContextual._keyHandler)
         menuContextual.removeEventListener(
           "keydown",
-          menuContextual._keyHandler
+          menuContextual._keyHandler,
         );
     } catch (err) {}
     menuContextual.hidden = true;
@@ -1557,7 +1641,7 @@
 
       if (estado.soloLayout) {
         console.log(
-          "📝 Modo SOLO LAYOUT: cuenta/descripción editables, NO valores numéricos"
+          "📝 Modo SOLO LAYOUT: cuenta/descripción editables, NO valores numéricos",
         );
       }
 
@@ -1575,7 +1659,7 @@
             estado.selectorTabla = intento.selectorUsado;
             inicializarCeldasEditables(intento.tabla);
             console.log(
-              `✅ Modo edición inicializado (reintento) sobre ${intento.selectorUsado}`
+              `✅ Modo edición inicializado (reintento) sobre ${intento.selectorUsado}`,
             );
           } else if (--reintentos <= 0) {
             clearInterval(self._pendingRetryTimer);
@@ -1597,7 +1681,7 @@
         const anio =
           Number.isInteger(anioSeleccion) && anioSeleccion > 0
             ? anioSeleccion
-            : null;
+            : new Date().getFullYear(); // Fallback al año actual si no hay selección
 
         if (empresa?.id && anio && anio > 0) {
           cargarCatalogoCuentas(empresa.id, anio);
@@ -1613,16 +1697,20 @@
             });
           }
         } else {
-          console.warn(
-            "⚠️ No se pudo determinar año o empresa para cargar catálogo",
-            {
+          // Solo advertir si realmente no se puede cargar
+          if (!empresa?.id) {
+            console.warn(
+              "⚠️ No se pudo determinar empresa para cargar catálogo - sesión no iniciada o empresa no seleccionada",
+            );
+          } else {
+            console.warn("⚠️ No se pudo determinar año para cargar catálogo", {
               empresaId: empresa?.id,
               anio,
               anioSeleccion,
               selectorEncontrado: !!selectAnio,
               selectorValue: selectAnio?.value,
-            }
-          );
+            });
+          }
         }
       } catch (err) {
         console.warn("⚠️ Error cargando catálogo de cuentas:", err);
@@ -1632,11 +1720,18 @@
       try {
         const empresa = Sesion.obtenerEmpresaActiva();
         const selectAnio = obtenerSelectorAnio();
+        console.log('[LOG] selectAnio:', selectAnio, 'selectAnio?.value:', selectAnio?.value);
+        // Si el select está vacío, selecciona el primer option disponible
+        if (selectAnio && !selectAnio.value && selectAnio.options.length > 0) {
+          selectAnio.value = selectAnio.options[0].value;
+          console.log('[FIX] selectAnio.value estaba vacío, se asigna:', selectAnio.value);
+        }
         const anioSeleccion = Number(selectAnio?.value);
+        // SIEMPRE usar un año válido - si no hay selección, usar año actual
         const anio =
           Number.isInteger(anioSeleccion) && anioSeleccion > 0
             ? anioSeleccion
-            : null;
+            : new Date().getFullYear();
         const moduloClaveRaw = (
           document.body?.dataset?.modulo ||
           document.body?.dataset?.moduloId ||
@@ -1644,19 +1739,66 @@
         )
           .toString()
           .trim();
-        const moduloClave = normalizarModuloClave(moduloClaveRaw);
+        // Usar el nombre del módulo tal cual (con acento, sin normalizar)
+        let moduloClave = moduloClaveRaw;
         const capitulo = obtenerCapituloActual(empresa?.id);
-        if (empresa?.id && anio && moduloClave) {
-          // Prefer server layout
-          (async () => {
-            const serverLayout = await cargarLayoutServidor({
+        // Forzar siempre el intento de cargar layout y mostrar logs/errores
+        try {
+          if (empresa?.id && anio && moduloClave) {
+            console.log('[FORZADO] Intentando cargar layout:', {
               moduloClave,
               empresaId: empresa.id,
               anio,
-              capitulo,
+              capitulo
             });
-            if (serverLayout) aplicarLayoutLocal(serverLayout, tabla);
-          })();
+            (async () => {
+              try {
+                const serverLayout = await cargarLayoutServidor({
+                  moduloClave,
+                  empresaId: empresa.id,
+                  anio,
+                  capitulo,
+                });
+                console.log("[FORZADO] Layout recibido del backend:", serverLayout);
+                if (serverLayout) {
+                  aplicarLayoutLocal(serverLayout, tabla);
+                } else {
+                  const msg = "[ADVERTENCIA] El layout recibido del backend es null o vacío. No se aplicará a la tabla.";
+                  console.warn(msg);
+                  let diag = document.getElementById("diagnostico-layout-null");
+                  if (!diag) {
+                    diag = document.createElement("div");
+                    diag.id = "diagnostico-layout-null";
+                    diag.style.cssText = "background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; padding: 10px; margin: 10px 0; font-size: 15px; z-index:9999; position:relative; text-align:center;";
+                    diag.innerHTML = `<b>⚠️ ${msg}</b><br>Verifica que el backend esté enviando el layout correctamente para este módulo, empresa y año.`;
+                    if (tabla && tabla.parentNode) {
+                      tabla.parentNode.insertBefore(diag, tabla);
+                    } else {
+                      document.body.insertBefore(diag, document.body.firstChild);
+                    }
+                  }
+                }
+              } catch (err) {
+                console.error('[ERROR] Falló la petición de layout:', err);
+                let diag = document.getElementById("diagnostico-layout-null");
+                if (!diag) {
+                  diag = document.createElement("div");
+                  diag.id = "diagnostico-layout-null";
+                  diag.style.cssText = "background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; padding: 10px; margin: 10px 0; font-size: 15px; z-index:9999; position:relative; text-align:center;";
+                  diag.innerHTML = `<b>❌ Error al pedir layout</b><br>${err?.message || err}`;
+                  if (tabla && tabla.parentNode) {
+                    tabla.parentNode.insertBefore(diag, tabla);
+                  } else {
+                    document.body.insertBefore(diag, document.body.firstChild);
+                  }
+                }
+              }
+            })();
+          } else {
+            console.warn('[FORZADO] No se tienen parámetros válidos para pedir layout:', {empresa, anio, moduloClave, capitulo});
+          }
+        } catch (err) {
+          console.error('[FORZADO] Error inesperado en el flujo de carga de layout:', err);
         }
       } catch (err) {
         console.warn("Error aplicando layout local", err);
@@ -1674,7 +1816,7 @@
      */
     activar: function (selectorTabla) {
       const { tabla, selectorUsado } = resolverTabla(
-        selectorTabla || estado.selectorTabla
+        selectorTabla || estado.selectorTabla,
       );
       if (!tabla) {
         console.error(`❌ No se encontró tabla: ${selectorUsado}`);
@@ -1693,7 +1835,7 @@
      */
     desactivar: function (selectorTabla) {
       const { tabla, selectorUsado } = resolverTabla(
-        selectorTabla || estado.selectorTabla
+        selectorTabla || estado.selectorTabla,
       );
       if (!tabla) return false;
 
@@ -1737,7 +1879,7 @@
       const empresa = Sesion.obtenerEmpresaActiva();
       const selectorAnio = obtenerSelectorAnio();
       const anioSeleccion = Number(
-        selectorAnio?.value || new Date().getFullYear()
+        selectorAnio?.value || new Date().getFullYear(),
       );
       const anio = Number.isInteger(anioSeleccion) ? anioSeleccion : null;
       const moduloClaveRaw = (
@@ -1779,5 +1921,274 @@
     },
   };
 
-  console.log("📦 Módulo ModoEdicionPresupuesto cargado");
+  // ==========================================
+  // FILL HANDLE (Atajos tipo Excel)
+  // ==========================================
+
+  const fillHandleState = {
+    handle: null,
+    isDragging: false,
+    startCell: null,
+    currentCell: null,
+    selectedCells: []
+  };
+
+  /**
+   * Crear el fill handle (manejador de relleno) tipo Excel
+   */
+  function crearFillHandle() {
+    if (fillHandleState.handle) return fillHandleState.handle;
+
+    const handle = document.createElement('div');
+    handle.className = 'fill-handle';
+    handle.style.cssText = `
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      background: #1a73e8;
+      border: 1px solid #fff;
+      cursor: crosshair;
+      z-index: 1000;
+      display: none;
+      pointer-events: auto;
+    `;
+
+    document.body.appendChild(handle);
+    fillHandleState.handle = handle;
+
+    // Event listeners para el handle
+    handle.addEventListener('mousedown', iniciarArrastreFillHandle);
+
+    return handle;
+  }
+
+  /**
+   * Posicionar el fill handle en la celda activa
+   */
+  function posicionarFillHandle(celda) {
+    if (!celda || !estado.modoEdicionActivo) {
+      ocultarFillHandle();
+      return;
+    }
+
+    const handle = crearFillHandle();
+    const rect = celda.getBoundingClientRect();
+
+    handle.style.display = 'block';
+    handle.style.left = `${rect.right - 4}px`;
+    handle.style.top = `${rect.bottom - 4}px`;
+  }
+
+  /**
+   * Ocultar el fill handle
+   */
+  function ocultarFillHandle() {
+    if (fillHandleState.handle) {
+      fillHandleState.handle.style.display = 'none';
+    }
+  }
+
+  /**
+   * Iniciar arrastre del fill handle
+   */
+  function iniciarArrastreFillHandle(e) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!estado.celdaActiva) return;
+
+    fillHandleState.isDragging = true;
+    fillHandleState.startCell = estado.celdaActiva;
+    fillHandleState.selectedCells = [estado.celdaActiva];
+
+    // Agregar clase visual
+    estado.celdaActiva.classList.add('fill-handle-source');
+
+    document.addEventListener('mousemove', manejarArrastreFillHandle);
+    document.addEventListener('mouseup', finalizarArrastreFillHandle);
+  }
+
+  /**
+   * Manejar el arrastre del fill handle
+   */
+  function manejarArrastreFillHandle(e) {
+    if (!fillHandleState.isDragging) return;
+
+    const target = document.elementFromPoint(e.clientX, e.clientY);
+    if (!target || !target.classList.contains(CLASE_EDITABLE)) return;
+
+    // Verificar que sea una celda editable válida
+    if (!target.dataset.mes) return;
+
+    fillHandleState.currentCell = target;
+
+    // Obtener todas las celdas entre inicio y fin
+    const celdas = obtenerCeldasEnRango(fillHandleState.startCell, target);
+
+    // Quitar selección anterior
+    fillHandleState.selectedCells.forEach(c => {
+      if (c !== fillHandleState.startCell) {
+        c.classList.remove('fill-handle-target');
+      }
+    });
+
+    // Agregar nueva selección
+    fillHandleState.selectedCells = celdas;
+    celdas.forEach(c => {
+      if (c !== fillHandleState.startCell) {
+        c.classList.add('fill-handle-target');
+      }
+    });
+  }
+
+  /**
+   * Finalizar arrastre y aplicar fill
+   */
+  function finalizarArrastreFillHandle(e) {
+    if (!fillHandleState.isDragging) return;
+
+    document.removeEventListener('mousemove', manejarArrastreFillHandle);
+    document.removeEventListener('mouseup', finalizarArrastreFillHandle);
+
+    if (fillHandleState.selectedCells.length > 1) {
+      aplicarFillHandle();
+    }
+
+    // Limpiar estado visual
+    fillHandleState.selectedCells.forEach(c => {
+      c.classList.remove('fill-handle-target');
+    });
+    if (fillHandleState.startCell) {
+      fillHandleState.startCell.classList.remove('fill-handle-source');
+    }
+
+    fillHandleState.isDragging = false;
+    fillHandleState.currentCell = null;
+    fillHandleState.selectedCells = [];
+  }
+
+  /**
+   * Aplicar fill a las celdas seleccionadas
+   */
+  function aplicarFillHandle() {
+    if (!fillHandleState.startCell || fillHandleState.selectedCells.length < 2) return;
+
+    const valorInicial = obtenerNumeroDesdeCelda(fillHandleState.startCell);
+
+    // Detectar si es una secuencia numérica
+    const esSecuencia = fillHandleState.selectedCells.length > 2;
+
+    fillHandleState.selectedCells.forEach((celda, index) => {
+      if (celda === fillHandleState.startCell) return; // Saltar la celda inicial
+
+      let nuevoValor;
+
+      if (esSecuencia && !isNaN(valorInicial)) {
+        // Incrementar valores (comportamiento tipo Excel)
+        nuevoValor = valorInicial + index;
+      } else {
+        // Copiar valor (comportamiento por defecto)
+        nuevoValor = valorInicial;
+      }
+
+      // Aplicar el nuevo valor
+      aplicarValorACelda(celda, nuevoValor);
+    });
+
+    mostrarNotificacionFillHandle(fillHandleState.selectedCells.length - 1);
+  }
+
+  /**
+   * Obtener celdas en un rango (mismo row)
+   */
+  function obtenerCeldasEnRango(celdaInicio, celdaFin) {
+    const tabla = resolverTabla(estado.selectorTabla).tabla;
+    if (!tabla) return [celdaInicio];
+
+    const fila = celdaInicio.closest('tr');
+    if (!fila) return [celdaInicio];
+
+    // Obtener todas las celdas editables en la misma fila
+    const celdasFila = Array.from(fila.querySelectorAll(`.${CLASE_EDITABLE}[data-mes]`));
+
+    const indexInicio = celdasFila.indexOf(celdaInicio);
+    const indexFin = celdasFila.indexOf(celdaFin);
+
+    if (indexInicio === -1 || indexFin === -1) return [celdaInicio];
+
+    const inicio = Math.min(indexInicio, indexFin);
+    const fin = Math.max(indexInicio, indexFin);
+
+    return celdasFila.slice(inicio, fin + 1);
+  }
+
+  /**
+   * Aplicar un valor a una celda
+   */
+  function aplicarValorACelda(celda, valor) {
+    if (!celda) return;
+
+    const cuenta = obtenerCuentaDesdeCelda(celda);
+    const mes = celda.dataset.mes;
+
+    if (!cuenta || !mes) return;
+
+    // Actualizar el valor en la celda
+    celda.textContent = formatearNumero(valor);
+    celda.classList.add(CLASE_MODIFICADO);
+
+    // Registrar el cambio
+    const clave = generarClaveCambio(cuenta, mes);
+    estado.cambiosCapturados[clave] = {
+      cuenta,
+      mes,
+      valorNuevo: valor,
+      timestamp: new Date().toISOString()
+    };
+  }
+
+  /**
+   * Mostrar notificación de fill completado
+   */
+  function mostrarNotificacionFillHandle(numCeldas) {
+    console.log(`✅ Fill Handle: ${numCeldas} celda(s) rellenada(s)`);
+
+    // Opcional: mostrar toast si existe
+    if (window.showToast) {
+      window.showToast(`${numCeldas} celda(s) rellenada(s)`, 'success');
+    }
+  }
+
+  /**
+   * Agregar estilos CSS para fill handle
+   */
+  function agregarEstilosFillHandle() {
+    if (document.getElementById('fill-handle-styles')) return;
+
+    const style = document.createElement('style');
+    style.id = 'fill-handle-styles';
+    style.textContent = `
+      .fill-handle-source {
+        outline: 2px solid #1a73e8 !important;
+        outline-offset: -2px;
+      }
+      .fill-handle-target {
+        background-color: rgba(26, 115, 232, 0.1) !important;
+        outline: 1px dashed #1a73e8;
+      }
+      .fill-handle {
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      }
+      .fill-handle:hover {
+        transform: scale(1.2);
+        background: #1557b0 !important;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  // Inicializar estilos al cargar el módulo
+  agregarEstilosFillHandle();
+
+  console.log("📦 Módulo ModoEdicionPresupuesto cargado (con Fill Handle)");
 })();

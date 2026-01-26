@@ -9,7 +9,7 @@ try {
   const unpackedPath = __dirname.replace("app.asar", "app.asar.unpacked");
   const firebirdPath = path.join(
     unpackedPath,
-    "../../node_modules/node-firebird"
+    "../../node_modules/node-firebird",
   );
   Firebird = require(firebirdPath);
 }
@@ -52,7 +52,7 @@ const tipoConexion = esConexionRemota(opcionesIniciales)
   ? "📡 REMOTA"
   : "🏠 LOCAL";
 console.log(
-  `🔥 Firebird ${tipoConexion}: ${opcionesIniciales.host}:${opcionesIniciales.port}`
+  `🔥 Firebird ${tipoConexion}: ${opcionesIniciales.host}:${opcionesIniciales.port}`,
 );
 
 const crearOpciones = (empresaId) => {
@@ -89,7 +89,7 @@ const ejecutarConsulta = (empresaId, consulta, parametros = []) => {
           `❌ Error conexión ${
             esRemoto ? "REMOTA" : "LOCAL"
           } (${tiempoTranscurrido}ms):`,
-          errorConexion.message
+          errorConexion.message,
         );
         return reject(errorConexion);
       }
@@ -105,17 +105,22 @@ const ejecutarConsulta = (empresaId, consulta, parametros = []) => {
             `❌ Error query ${
               esRemoto ? "REMOTA" : "LOCAL"
             } (${tiempoTotal}ms):`,
-            errorConsulta.message
+            errorConsulta.message,
           );
           return reject(errorConsulta);
         }
 
         // Log solo si tarda más de 2 segundos
         if (tiempoTotal > 2000) {
+          let numFilas = Array.isArray(resultados)
+            ? resultados.length
+            : resultados
+              ? 1
+              : 0;
           console.warn(
             `⏱️ Query lenta ${
               esRemoto ? "REMOTA" : "LOCAL"
-            }: ${tiempoTotal}ms (${resultados.length} filas)`
+            }: ${tiempoTotal}ms (${numFilas} filas)`,
           );
         }
 
@@ -129,7 +134,7 @@ const probarConexion = async (empresaId) => {
   try {
     await ejecutarConsulta(
       empresaId,
-      "SELECT 1 AS RESULTADO FROM RDB$DATABASE"
+      "SELECT 1 AS RESULTADO FROM RDB$DATABASE",
     );
     return true;
   } catch (error) {

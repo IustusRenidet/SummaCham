@@ -22,6 +22,7 @@
     modulo: "RESUMEN",
     anio: null,
     capitulo: null,
+    empresaId: null,
     layout: null,
     cuentas: [],
     operaciones: [],
@@ -43,11 +44,105 @@
   const dom = {};
 
   // ==========================================
+  // HELPERS: EMPRESA / CAPITULO
+  // ==========================================
+  const normalizarTextoCapitulo = (value) =>
+    (value || "")
+      .toString()
+      .replace(/\u0000/g, "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim()
+      .toUpperCase();
+
+  const resolverEmpresaConfigKey = (value) => {
+    const config = window.CapitulosModulos?.EMPRESA_CONFIG || null;
+    if (!config || !value) return null;
+    if (config[value]) return value;
+    const match = Object.keys(config).find(
+      (key) => key.toLowerCase() === String(value).toLowerCase()
+    );
+    return match || null;
+  };
+
+  const esEmpresaBase = (empresaId) => {
+    const match = String(empresaId || "").match(/empresa0*(\d+)/i);
+    if (!match) return false;
+    const numero = parseInt(match[1], 10);
+    return numero >= 1 && numero <= 4;
+  };
+
+  const obtenerEmpresaIdPorCapitulo = (capitulo) => {
+    const config = window.CapitulosModulos?.EMPRESA_CONFIG || null;
+    if (!config || !capitulo) return null;
+    const capituloNorm = normalizarTextoCapitulo(capitulo);
+    let match = null;
+    let matchBase = null;
+    for (const [id, meta] of Object.entries(config)) {
+      const cap = meta?.capitulo;
+      if (!cap) continue;
+      if (normalizarTextoCapitulo(cap) === capituloNorm) {
+        if (!match) match = id;
+        if (esEmpresaBase(id)) {
+          matchBase = id;
+          break;
+        }
+      }
+    }
+    return matchBase || match;
+  };
+
+  const obtenerEmpresaIdDesdeSelector = () => {
+    const parentSelector = window.parent?.document?.querySelector(
+      ".company-selector select"
+    );
+    const localSelector = document.querySelector(".company-selector select");
+    const selector = parentSelector || localSelector;
+    const valor = selector?.value?.trim();
+    if (!valor) return null;
+    return resolverEmpresaConfigKey(valor) || valor;
+  };
+
+  const resolverEmpresaIdContexto = (capitulo, preferCapitulo = false) => {
+    const fromCapitulo = obtenerEmpresaIdPorCapitulo(capitulo);
+    if (preferCapitulo && fromCapitulo) return fromCapitulo;
+
+    const fromSelector = obtenerEmpresaIdDesdeSelector();
+    if (fromSelector) return fromSelector;
+
+    if (fromCapitulo) return fromCapitulo;
+
+    const fromSesion = window.Sesion?.obtenerEmpresaActiva?.()?.id;
+    return resolverEmpresaConfigKey(fromSesion) || fromSesion || "EMPRESA01";
+  };
+
+  const asegurarEmpresaIdContexto = (capitulo, preferCapitulo = false) => {
+    const resolved = resolverEmpresaIdContexto(capitulo, preferCapitulo);
+    if (resolved) {
+      state.empresaId = resolved;
+    }
+    return state.empresaId;
+  };
+
+  const obtenerEmpresaIdApi = () =>
+    state.empresaId ||
+    resolverEmpresaIdContexto(state.capitulo) ||
+    "EMPRESA01";
+
+  const agregarEmpresaIdQuery = (url) => {
+    const empresaId = obtenerEmpresaIdApi();
+    if (!empresaId) return url;
+    const separator = url.includes("?") ? "&" : "?";
+    return `${url}${separator}empresaId=${encodeURIComponent(empresaId)}`;
+  };
+
+  // ==========================================
   // INITIALIZATION
   // ==========================================
   function init() {
     cacheDOMElements();
     bindEventListeners();
+    filtrarModulosPorCapitulo(); // Filtrar módulos al inicio
     loadInitialData();
     checkAuthState();
     setInterval(checkAuthState, 3000);
@@ -179,6 +274,92 @@
     document.querySelectorAll('input[name="tipoElemento"]').forEach((radio) => {
       radio.addEventListener("change", updateAddForm);
     });
+  }
+
+  // ==========================================
+  // FILTRAR MÓDULOS POR CAPÍTULO
+  // ==========================================
+  /**
+   * Filtra las opciones del selector de módulos basándose en el capítulo seleccionado.
+   * Oculta los módulos que no están disponibles para el capítulo actual.
+   */
+  function filtrarModulosPorCapitulo() {
+    if (!dom.moduloSelect) return;
+
+    // Obtener capítulo actual del selector
+    const capituloActual = dom.capituloSelect?.value;
+    if (!capituloActual) return;
+
+    const empresaId = asegurarEmpresaIdContexto(capituloActual, true);
+
+    if (!empresaId) {
+      console.warn(`[Plantillas] No se encontró empresaId para el capítulo: ${capituloActual}`);
+      return;
+    }
+
+    console.log(`[Plantillas] Filtrando módulos para empresa: ${empresaId}, capítulo: ${capituloActual}`);
+
+    // Mapeo de valores de opción a IDs de módulo (normalizados)
+    const moduloMapping = {
+      'RESUMEN': 'resumen',
+      'SUMMARY': 'resumen',
+      'Finanzas': 'finanzas',
+      'Gastos Generales': 'gastosgenerales',
+      'Nomina': 'nomina',
+      'Nómina': 'nomina',
+      'Membresía': 'membresia',
+      'Serv Membresía': 'serv-membresia',
+      'RH': 'rh',
+      'Eventos': 'eventos',
+      'Comités': 'comites',
+      'Comunicación': 'comunicacion',
+      'Dirección': 'direccion',
+      'Gtos Corporativos': 'gtos-corporativos',
+      'T&IC': 'tic',
+      'VPE': 'vpe'
+    };
+
+    // Filtrar opciones del select
+    const options = Array.from(dom.moduloSelect.options);
+    const valorActual = dom.moduloSelect.value;
+    let valorActualDisponible = false;
+
+    options.forEach(option => {
+      const valorOption = option.value;
+      const moduloId = moduloMapping[valorOption];
+
+      if (!moduloId) {
+        // Si no está en el mapeo, dejar visible (ej: opciones especiales)
+        option.style.display = '';
+        option.disabled = false;
+        return;
+      }
+
+      // Verificar si el módulo está disponible para esta empresa
+      const disponible = window.CapitulosModulos.moduloDisponible(empresaId, moduloId);
+
+      if (disponible) {
+        option.style.display = '';
+        option.disabled = false;
+        if (valorOption === valorActual) {
+          valorActualDisponible = true;
+        }
+      } else {
+        option.style.display = 'none';
+        option.disabled = true;
+      }
+    });
+
+    // Si el valor actualmente seleccionado no está disponible, seleccionar el primero disponible
+    if (!valorActualDisponible && options.length > 0) {
+      for (const option of options) {
+        if (!option.disabled && option.style.display !== 'none') {
+          dom.moduloSelect.value = option.value;
+          console.log(`[Plantillas] Módulo seleccionado cambiado a: ${option.value}`);
+          break;
+        }
+      }
+    }
   }
 
   // ==========================================
@@ -317,7 +498,9 @@
 
   async function loadYears() {
     try {
-      const url = `${API_BASE}/${encodeURIComponent(state.modulo)}/anios`;
+      const url = agregarEmpresaIdQuery(
+        `${API_BASE}/${encodeURIComponent(state.modulo)}/anios`
+      );
       const response = await fetch(url, { headers: getAuthHeaders() });
 
       if (!response.ok) throw new Error("Error al cargar años");
@@ -353,29 +536,31 @@
 
   async function loadChapters() {
     // Try to get chapter from parent selector
+    const selector = document.querySelector(".company-selector select");
     const parentSelector = window.parent?.document?.querySelector(
       ".company-selector select"
     );
-    const localSelector = document.querySelector(".company-selector select");
-    const selector = parentSelector || localSelector;
+    const activeSelector = parentSelector || selector;
 
-    if (selector?.value) {
-      let chapter = window.CapitulosModulos?.empresaACapitulo?.(selector.value);
+    if (activeSelector?.value) {
+      const selectorValue = activeSelector.value;
+      let chapter = window.CapitulosModulos?.empresaACapitulo?.(selectorValue);
 
       // empresaACapitulo might return an object {capitulo: "...", etiqueta: "..."} or a string
       if (chapter && typeof chapter === "object") {
         chapter = chapter.capitulo || chapter.etiqueta || String(chapter);
       }
-      chapter = chapter || selector.value;
+      chapter = chapter || selectorValue;
 
       state.capitulo = chapter;
+      asegurarEmpresaIdContexto(state.capitulo);
       dom.capituloSelect.innerHTML = `<option value="${chapter}">${chapter}</option>`;
     } else {
       // Load chapters from API
       try {
-        const url = `${API_BASE}/${encodeURIComponent(state.modulo)}/${
-          state.anio
-        }/capitulos`;
+        const url = agregarEmpresaIdQuery(
+          `${API_BASE}/${encodeURIComponent(state.modulo)}/${state.anio}/capitulos`
+        );
         const response = await fetch(url, { headers: getAuthHeaders() });
 
         if (response.ok) {
@@ -399,6 +584,7 @@
               typeof first === "object"
                 ? first.capitulo || first.etiqueta || String(first)
                 : first;
+            asegurarEmpresaIdContexto(state.capitulo, true);
           }
         }
       } catch (error) {
@@ -415,9 +601,9 @@
     setStatus("Cargando layout...");
 
     try {
-      const url = `${API_BASE}/${encodeURIComponent(state.modulo)}/${
-        state.anio
-      }/${encodeURIComponent(state.capitulo)}`;
+      const url = agregarEmpresaIdQuery(
+        `${API_BASE}/${encodeURIComponent(state.modulo)}/${state.anio}/${encodeURIComponent(state.capitulo)}`
+      );
       const response = await fetch(url, { headers: getAuthHeaders() });
 
       if (response.status === 404) {
@@ -966,6 +1152,7 @@
     bindLayoutEvents();
     window.updateAvailableElementsFromTable?.("#layoutPreview");
     updateSelectionInfo();
+    updateLayoutOrderPanel();
   }
 
   const PILOT_MODULES = new Set([
@@ -1012,14 +1199,12 @@
 
   function renderEditableLayoutPiloto() {
     const rows = buildPreviewRowsForEditor();
-    const columns = getColumnConfigForRender();
     return `
       <div class="template-pilot">
-        ${renderTemplateSummary(rows, columns)}
-        ${renderColumnConfigSection(columns)}
+        ${renderTemplateSummary(rows, [])}
         <div class="card mb-3">
           <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <span>Vista de la plantilla</span>
+            <span>Elementos de la plantilla</span>
             <div class="template-table-actions">
               <div class="form-check form-switch m-0">
                 <input
@@ -1036,26 +1221,10 @@
             </div>
           </div>
           <div class="card-body">
-            ${renderTemplateTable(rows, columns)}
+            ${renderTemplateListView(rows)}
           </div>
         </div>
-      </div>
-      <div class="formula-map-card mt-3">
-        <div class="d-flex align-items-center justify-content-between mb-2">
-          <strong>
-            <i class="bi bi-diagram-3 me-1"></i>Mapa de operacion
-          </strong>
-          <button
-            type="button"
-            class="btn btn-outline-primary btn-sm"
-            onclick="window.FormulaBuilder && window.FormulaBuilder.showMap && window.FormulaBuilder.showMap()"
-          >
-            Ampliar
-          </button>
-        </div>
-        <div id="formulaMapPreview" class="formula-map-preview">
-          <div class="text-muted small">Sin datos de formula.</div>
-        </div>
+        ${renderChartsList()}
       </div>
     `;
   }
@@ -1312,6 +1481,308 @@
     `;
   }
 
+  /**
+   * Renderizar plantilla como lista vertical (una sola columna)
+   */
+  function renderTemplateListView(rows = []) {
+    if (!rows || rows.length === 0) {
+      return '<div class="text-muted text-center py-4">Sin elementos para mostrar</div>';
+    }
+
+    const showOrder = state.inlineOrderMode && state.editMode !== false;
+    let html = '<div class="template-list-view">';
+
+    rows.forEach((row, rowIndex) => {
+      if (!row) return;
+      const isVisible = row.visible !== false;
+      const hiddenClass = isVisible ? '' : 'opacity-50';
+
+      if (row.type === 'principal') {
+        html += `
+          <div class="list-item section-principal ${hiddenClass}" data-row-type="section" data-section="${escapeAttr(row.label || '')}" data-row-index="${rowIndex}">
+            ${showOrder ? renderInlineOrderButtons(rowIndex) : ''}
+            <div class="list-item-content">
+              <i class="bi bi-folder2 me-2 text-primary"></i>
+              <strong>${escapeHtml(row.label || 'Sección')}</strong>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      if (row.type === 'subsection') {
+        html += `
+          <div class="list-item section-secondary ${hiddenClass}" data-row-type="subsection" data-subsection="${escapeAttr(row.label || '')}" data-row-index="${rowIndex}">
+            ${showOrder ? renderInlineOrderButtons(rowIndex) : ''}
+            <div class="list-item-content ps-4">
+              <i class="bi bi-folder me-2 text-info"></i>
+              <em>${escapeHtml(row.label || 'Subsección')}</em>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      if (row.type === 'account') {
+        const cuenta = row.cuenta || row.label || '';
+        const nombre = row.nombre || '';
+        html += `
+          <div class="list-item item-account ${hiddenClass}" data-row-type="account" data-cuenta="${escapeAttr(cuenta)}" data-nombre="${escapeAttr(nombre)}" data-row-index="${rowIndex}">
+            ${showOrder ? renderInlineOrderButtons(rowIndex) : ''}
+            <div class="list-item-content ps-5">
+              <div class="d-flex align-items-center">
+                <span class="badge bg-secondary me-2">${escapeHtml(cuenta)}</span>
+                <span>${escapeHtml(nombre || cuenta)}</span>
+              </div>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      if (row.type === 'operation') {
+        const op = findOperationByIdOrLabel(row.label || '');
+        const label = op ? getOperationDisplayName(op) : row.label || '';
+        const opId = op ? getOperationId(op) : '';
+        const kind = row.kind || '';
+        const kindMeta = getOperationKindMeta(kind);
+        const formulaTerms = op ? extractFormulaTerms(op) : [];
+        const formula = formulaTerms.length ? formatFormula(op) : '';
+
+        html += `
+          <div class="list-item item-operation ${hiddenClass}" data-row-type="operation" data-operation-id="${escapeAttr(opId || label)}" data-operation-label="${escapeAttr(label)}" data-operation-kind="${escapeAttr(kind)}" data-row-index="${rowIndex}" ${formula ? `title="${escapeAttr(formula)}"` : ''}>
+            ${showOrder ? renderInlineOrderButtons(rowIndex) : ''}
+            <div class="list-item-content ps-5">
+              <div class="d-flex align-items-center">
+                <i class="bi bi-calculator me-2 text-success"></i>
+                <strong>${escapeHtml(label)}</strong>
+                ${kindMeta ? `<span class="badge ${kindMeta.className} ms-2">${escapeHtml(kindMeta.label)}</span>` : ''}
+              </div>
+              <div class="operation-formula small text-muted ms-4 mt-1">
+                ${formula ? `= ${escapeHtml(formula)}` : 'Sin formula'}
+              </div>
+            </div>
+          </div>
+        `;
+      }
+    });
+
+    html += '</div>';
+
+    // Agregar estilos
+    html += `
+      <style>
+        .template-list-view {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+        .list-item {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 10px 12px;
+          border: 1px solid #e5e7eb;
+          border-radius: 6px;
+          background: #fff;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .list-item:hover {
+          background: #f8f9fa;
+          border-color: #cbd5e1;
+          transform: translateX(4px);
+        }
+        .list-item-content {
+          flex: 1;
+        }
+        .section-principal {
+          background: #eff6ff;
+          border-left: 4px solid #3b82f6;
+          font-size: 1.05em;
+        }
+        .section-secondary {
+          background: #f0f9ff;
+          border-left: 4px solid #0ea5e9;
+          margin-left: 16px;
+        }
+        .item-account {
+          background: #fafafa;
+        }
+        .item-operation {
+          background: #f0fdf4;
+          border-left: 3px solid #22c55e;
+        }
+        .inline-order-buttons {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+        .inline-order-btn {
+          padding: 2px 6px;
+          font-size: 0.75rem;
+          line-height: 1;
+        }
+      </style>
+    `;
+
+    return html;
+  }
+
+  function renderInlineOrderButtons(rowIndex) {
+    return `
+      <div class="inline-order-buttons">
+        <button type="button" class="btn btn-sm btn-outline-secondary inline-order-btn" data-action="up" data-row-index="${rowIndex}">
+          <i class="bi bi-arrow-up"></i>
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-secondary inline-order-btn" data-action="down" data-row-index="${rowIndex}">
+          <i class="bi bi-arrow-down"></i>
+        </button>
+      </div>
+    `;
+  }
+
+  /**
+   * Renderizar lista de gráficas del capítulo actual
+   */
+  function renderChartsList() {
+    const capitulo = state.capitulo || '';
+    const modulo = state.modulo || 'RESUMEN';
+
+    // Obtener gráficas personalizadas del capítulo/módulo actual
+    const config = window.GraficasConfig?.load() || { customCharts: [] };
+    const customCharts = Array.isArray(config.customCharts) ? config.customCharts : [];
+
+    // Filtrar gráficas del módulo actual
+    const chartsForModule = customCharts.filter(chart => {
+      const chartModule = (chart.module || 'RESUMEN').toUpperCase();
+      const currentModule = modulo.toUpperCase();
+      return chartModule === currentModule;
+    });
+
+    if (chartsForModule.length === 0) {
+      return `
+        <div class="card mb-3">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <span>Gráficas Personalizadas</span>
+            <button type="button" class="btn btn-sm btn-success" onclick="window.openChartEditor && window.openChartEditor(null, { module: '${escapeAttr(modulo)}' })">
+              <i class="bi bi-plus-circle me-1"></i>Crear Gráfica
+            </button>
+          </div>
+          <div class="card-body">
+            <div class="text-muted text-center py-4">
+              <i class="bi bi-pie-chart display-4 d-block mb-2"></i>
+              No hay gráficas personalizadas para este módulo.
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    let html = `
+      <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <span>Gráficas Personalizadas (${chartsForModule.length})</span>
+          <button type="button" class="btn btn-sm btn-success" onclick="window.openChartEditor && window.openChartEditor(null, { module: '${escapeAttr(modulo)}' })">
+            <i class="bi bi-plus-circle me-1"></i>Crear Gráfica
+          </button>
+        </div>
+        <div class="card-body">
+          <div class="charts-list">
+    `;
+
+    chartsForModule.forEach(chart => {
+      const chartId = chart.id || '';
+      const title = chart.title || 'Sin título';
+      const subtitle = chart.subtitle || '';
+      const enabled = chart.enabled !== false;
+      const rowCount = Array.isArray(chart.rows) ? chart.rows.length : 0;
+
+      html += `
+        <div class="chart-item ${enabled ? '' : 'opacity-50'}" onclick="window.openChartEditor && window.openChartEditor('${escapeAttr(chartId)}', ${escapeAttr(JSON.stringify(chart))})">
+          <div class="chart-item-icon">
+            <i class="bi bi-graph-up"></i>
+          </div>
+          <div class="chart-item-content">
+            <div class="chart-item-title">${escapeHtml(title)}</div>
+            ${subtitle ? `<div class="chart-item-subtitle">${escapeHtml(subtitle)}</div>` : ''}
+            <div class="chart-item-meta">
+              <span class="badge bg-secondary">${rowCount} fila(s)</span>
+              <span class="badge ${enabled ? 'bg-success' : 'bg-warning'}">
+                ${enabled ? 'Activa' : 'Inactiva'}
+              </span>
+            </div>
+          </div>
+          <div class="chart-item-actions">
+            <i class="bi bi-pencil-square"></i>
+          </div>
+        </div>
+      `;
+    });
+
+    html += `
+          </div>
+        </div>
+      </div>
+      <style>
+        .charts-list {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+        .chart-item {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+          background: #fff;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .chart-item:hover {
+          background: #f8f9fa;
+          border-color: #cbd5e1;
+          transform: translateX(4px);
+        }
+        .chart-item-icon {
+          width: 40px;
+          height: 40px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: #eff6ff;
+          border-radius: 8px;
+          color: #3b82f6;
+          font-size: 1.25rem;
+        }
+        .chart-item-content {
+          flex: 1;
+        }
+        .chart-item-title {
+          font-weight: 600;
+          color: #0f172a;
+        }
+        .chart-item-subtitle {
+          font-size: 0.875rem;
+          color: #64748b;
+        }
+        .chart-item-meta {
+          display: flex;
+          gap: 6px;
+          margin-top: 6px;
+        }
+        .chart-item-actions {
+          color: #64748b;
+          font-size: 1.25rem;
+        }
+      </style>
+    `;
+
+    return html;
+  }
+
   function renderTemplateTable(rows = [], columns = []) {
     const resolvedColumns =
       Array.isArray(columns) && columns.length
@@ -1429,7 +1900,8 @@
         const opId = op ? getOperationId(op) : "";
         const kind = row.kind || "";
         const kindMeta = getOperationKindMeta(kind);
-        const formula = op ? formatFormula(op) : "";
+        const formulaTerms = op ? extractFormulaTerms(op) : [];
+        const formula = formulaTerms.length ? formatFormula(op) : "";
         const cells = [];
         if (showOrder) {
           cells.push(renderInlineOrderCell(row, rowIndex));
@@ -1451,6 +1923,9 @@
                       )}">${escapeHtml(kindMeta.label)}</span>`
                     : ""
                 }
+                <div class="op-formula-preview small text-muted mt-1">
+                  ${formula ? `= ${escapeHtml(formula)}` : "Sin formula"}
+                </div>
               </td>`
             );
           } else {
@@ -2021,34 +2496,42 @@
       state.inlineOrderMode = Boolean(event.target.checked);
       renderLayout();
     });
+
+    // Manejar clicks en la vista de lista
+    const listView = dom.layoutPreview?.querySelector(".template-list-view");
     const table = dom.layoutPreview?.querySelector(".template-table");
-    if (!table) return;
-    table.addEventListener("click", (event) => {
+    const container = listView || table;
+
+    if (!container) return;
+
+    container.addEventListener("click", (event) => {
       const orderButton = event.target.closest(".inline-order-btn");
       if (orderButton) {
         event.preventDefault();
         event.stopPropagation();
         if (!state.inlineOrderMode || state.editMode === false) return;
-        const row = orderButton.closest("tr[data-row-type]");
-        if (!row) return;
+        const item = orderButton.closest("[data-row-type]");
+        if (!item) return;
         const direction = orderButton.dataset.action === "up" ? -1 : 1;
-        handleInlineOrderMove(row, direction);
+        handleInlineOrderMove(item, direction);
         return;
       }
 
-      const row = event.target.closest("tr[data-row-type]");
-      if (!row) return;
-      const rowType = row.dataset.rowType;
+      const item = event.target.closest("[data-row-type]");
+      if (!item) return;
+      const rowType = item.dataset.rowType;
+
       if (rowType === "account") {
-        const cuenta = row.dataset.cuenta;
+        const cuenta = item.dataset.cuenta;
         if (cuenta) {
           editAccount(cuenta);
         }
         return;
       }
+
       if (rowType === "operation") {
-        const rawLabel = row.dataset.operationLabel || "";
-        const rawId = row.dataset.operationId || "";
+        const rawLabel = item.dataset.operationLabel || "";
+        const rawId = item.dataset.operationId || "";
         const label = rawLabel || rawId;
         if (!label) return;
 
@@ -2058,7 +2541,7 @@
           return;
         }
 
-        const kind = row.dataset.operationKind || "";
+        const kind = item.dataset.operationKind || "";
         const match = findOperationsByRowLabel(label, kind);
         if (match.operations.length === 1) {
           editOperation(getOperationId(match.operations[0]) || label);
@@ -2072,17 +2555,19 @@
         showToast("Operacion no encontrada", "warning");
         return;
       }
+
       if (rowType === "section") {
-        if (row.dataset.generated === "true") return;
-        const section = row.dataset.section;
+        if (item.dataset.generated === "true") return;
+        const section = item.dataset.section;
         if (section) {
           editSection(section);
         }
         return;
       }
+
       if (rowType === "subsection") {
-        const section = row.dataset.section;
-        const subsection = row.dataset.subsection;
+        const section = item.dataset.section;
+        const subsection = item.dataset.subsection;
         if (section && subsection) {
           editSubsection(section, subsection);
         }
@@ -2090,24 +2575,509 @@
     });
   }
 
-  function getAccountPrincipalName(cuenta) {
-    return (
-      cuenta?.["SECCIàN Principal"] ||
-      cuenta?.["SECCI…N Principal"] ||
-      cuenta?.["SECCION Principal"] ||
-      cuenta?.SECCION ||
-      cuenta?.seccion_principal ||
-      ""
+  // ==========================================
+  // FUNCIONES DE EDICIÓN DE FILAS
+  // ==========================================
+
+  /**
+   * Editar una cuenta
+   */
+  function editAccount(cuentaId) {
+    if (!cuentaId) return;
+
+    // Buscar la cuenta en el estado
+    const cuenta = state.cuentas.find(c =>
+      (c.CUENTA || c.cuenta) === cuentaId
     );
+
+    if (!cuenta) {
+      showToast('Cuenta no encontrada', 'warning');
+      return;
+    }
+
+    // Abrir editor usando el panel existente
+    if (!dom.operationEditorPanel) {
+      showToast('Panel de edición no disponible', 'error');
+      return;
+    }
+
+    // Configurar título del editor
+    if (dom.operationEditorTitle) {
+      dom.operationEditorTitle.textContent = 'Editar Cuenta';
+    }
+    if (dom.operationEditorSubtitle) {
+      dom.operationEditorSubtitle.textContent = `Cuenta: ${cuentaId}`;
+    }
+
+    // Renderizar formulario de cuenta en la pestaña de datos
+    if (dom.editorTabDatos) {
+      dom.editorTabDatos.innerHTML = `
+        <div class="mb-3">
+          <label class="form-label">Cuenta</label>
+          <input type="text" class="form-control" id="editCuenta" value="${escapeHtml(cuenta.CUENTA || cuenta.cuenta || '')}" readonly />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Nombre</label>
+          <input type="text" class="form-control" id="editNombre" value="${escapeHtml(cuenta.NOMBRE || cuenta.nombre || '')}" />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Sección Principal</label>
+          <input type="text" class="form-control" id="editSeccionPrincipal" value="${escapeHtml(getAccountPrincipalName(cuenta) || '')}" />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Sección Secundaria</label>
+          <input type="text" class="form-control" id="editSeccionSecundaria" value="${escapeHtml(getAccountSecondaryName(cuenta) || '')}" />
+        </div>
+        <div class="mb-3">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="editVisible" ${cuenta.visible !== false ? 'checked' : ''} />
+            <label class="form-check-label" for="editVisible">Visible</label>
+          </div>
+        </div>
+      `;
+    }
+
+    // Limpiar otras pestañas
+    if (dom.editorTabFormula) dom.editorTabFormula.innerHTML = '<p class="text-muted">No aplica para cuentas</p>';
+    if (dom.editorTabAparicion) dom.editorTabAparicion.innerHTML = '<p class="text-muted">No aplica para cuentas</p>';
+
+    // Configurar botón de guardar
+    if (dom.btnEditorSave) {
+      const saveHandler = () => {
+        const nombre = document.getElementById('editNombre')?.value || '';
+        const seccionPrincipal = document.getElementById('editSeccionPrincipal')?.value || '';
+        const seccionSecundaria = document.getElementById('editSeccionSecundaria')?.value || '';
+        const visible = document.getElementById('editVisible')?.checked;
+
+        // Actualizar cuenta
+        if (cuenta.NOMBRE !== undefined) cuenta.NOMBRE = nombre;
+        if (cuenta.nombre !== undefined) cuenta.nombre = nombre;
+        if (cuenta['SECCION PRINCIPAL']) cuenta['SECCION PRINCIPAL'] = seccionPrincipal;
+        if (cuenta['SECCION Secundaria']) cuenta['SECCION Secundaria'] = seccionSecundaria;
+        cuenta.visible = visible;
+
+        // Guardar y cerrar
+        state.unsavedChanges = true;
+        renderLayout();
+        showToast('Cuenta actualizada', 'success');
+
+        // Cerrar panel
+        if (window.bootstrap?.Offcanvas) {
+          const offcanvas = window.bootstrap.Offcanvas.getInstance(dom.operationEditorPanel);
+          offcanvas?.hide();
+        }
+
+        // Remover listener
+        dom.btnEditorSave.removeEventListener('click', saveHandler);
+      };
+
+      dom.btnEditorSave.removeEventListener('click', saveHandler);
+      dom.btnEditorSave.addEventListener('click', saveHandler);
+    }
+
+    // Configurar botón de eliminar
+    if (dom.btnEditorDelete) {
+      const deleteHandler = () => {
+        if (!confirm(`¿Eliminar la cuenta ${cuentaId}?`)) return;
+
+        state.cuentas = state.cuentas.filter(c =>
+          (c.CUENTA || c.cuenta) !== cuentaId
+        );
+        state.unsavedChanges = true;
+        renderLayout();
+        showToast('Cuenta eliminada', 'success');
+
+        // Cerrar panel
+        if (window.bootstrap?.Offcanvas) {
+          const offcanvas = window.bootstrap.Offcanvas.getInstance(dom.operationEditorPanel);
+          offcanvas?.hide();
+        }
+
+        dom.btnEditorDelete.removeEventListener('click', deleteHandler);
+      };
+
+      dom.btnEditorDelete.removeEventListener('click', deleteHandler);
+      dom.btnEditorDelete.addEventListener('click', deleteHandler);
+    }
+
+    // Abrir panel
+    if (window.bootstrap?.Offcanvas) {
+      const offcanvas = window.bootstrap.Offcanvas.getOrCreateInstance(dom.operationEditorPanel);
+      offcanvas.show();
+    }
+  }
+
+  /**
+   * Editar una sección principal
+   */
+  function editSection(sectionName) {
+    if (!sectionName) return;
+
+    if (!dom.operationEditorPanel) {
+      showToast('Panel de edición no disponible', 'error');
+      return;
+    }
+
+    // Configurar título
+    if (dom.operationEditorTitle) {
+      dom.operationEditorTitle.textContent = 'Editar Sección Principal';
+    }
+    if (dom.operationEditorSubtitle) {
+      dom.operationEditorSubtitle.textContent = sectionName;
+    }
+
+    // Renderizar formulario
+    if (dom.editorTabDatos) {
+      dom.editorTabDatos.innerHTML = `
+        <div class="mb-3">
+          <label class="form-label">Nombre de Sección</label>
+          <input type="text" class="form-control" id="editSectionName" value="${escapeHtml(sectionName)}" />
+        </div>
+        <div class="alert alert-info">
+          <i class="bi bi-info-circle me-2"></i>
+          Cambiar el nombre de esta sección afectará todas las cuentas asociadas.
+        </div>
+      `;
+    }
+
+    if (dom.editorTabFormula) dom.editorTabFormula.innerHTML = '<p class="text-muted">No aplica para secciones</p>';
+    if (dom.editorTabAparicion) dom.editorTabAparicion.innerHTML = '<p class="text-muted">No aplica para secciones</p>';
+
+    // Configurar botón de guardar
+    if (dom.btnEditorSave) {
+      const saveHandler = () => {
+        const newName = document.getElementById('editSectionName')?.value?.trim();
+        if (!newName) {
+          showToast('El nombre de la sección es requerido', 'warning');
+          return;
+        }
+
+        // Actualizar todas las cuentas que tienen esta sección
+        state.cuentas.forEach(cuenta => {
+          const currentSection = getAccountPrincipalName(cuenta);
+          if (currentSection === sectionName) {
+            if (cuenta['SECCION PRINCIPAL']) cuenta['SECCION PRINCIPAL'] = newName;
+            if (cuenta.seccion_principal) cuenta.seccion_principal = newName;
+          }
+        });
+
+        state.unsavedChanges = true;
+        renderLayout();
+        showToast('Sección actualizada', 'success');
+
+        if (window.bootstrap?.Offcanvas) {
+          const offcanvas = window.bootstrap.Offcanvas.getInstance(dom.operationEditorPanel);
+          offcanvas?.hide();
+        }
+
+        dom.btnEditorSave.removeEventListener('click', saveHandler);
+      };
+
+      dom.btnEditorSave.removeEventListener('click', saveHandler);
+      dom.btnEditorSave.addEventListener('click', saveHandler);
+    }
+
+    // Deshabilitar botón de eliminar (no permitir eliminar secciones)
+    if (dom.btnEditorDelete) {
+      dom.btnEditorDelete.disabled = true;
+      dom.btnEditorDelete.title = 'No se pueden eliminar secciones directamente';
+    }
+
+    // Abrir panel
+    if (window.bootstrap?.Offcanvas) {
+      const offcanvas = window.bootstrap.Offcanvas.getOrCreateInstance(dom.operationEditorPanel);
+      offcanvas.show();
+    }
+  }
+
+  /**
+   * Editar una subsección
+   */
+  function editSubsection(sectionName, subsectionName) {
+    if (!subsectionName) return;
+
+    if (!dom.operationEditorPanel) {
+      showToast('Panel de edición no disponible', 'error');
+      return;
+    }
+
+    // Configurar título
+    if (dom.operationEditorTitle) {
+      dom.operationEditorTitle.textContent = 'Editar Subsección';
+    }
+    if (dom.operationEditorSubtitle) {
+      dom.operationEditorSubtitle.textContent = `${sectionName} > ${subsectionName}`;
+    }
+
+    // Renderizar formulario
+    if (dom.editorTabDatos) {
+      dom.editorTabDatos.innerHTML = `
+        <div class="mb-3">
+          <label class="form-label">Sección Principal</label>
+          <input type="text" class="form-control" value="${escapeHtml(sectionName)}" readonly />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Nombre de Subsección</label>
+          <input type="text" class="form-control" id="editSubsectionName" value="${escapeHtml(subsectionName)}" />
+        </div>
+        <div class="alert alert-info">
+          <i class="bi bi-info-circle me-2"></i>
+          Cambiar el nombre de esta subsección afectará todas las cuentas asociadas.
+        </div>
+      `;
+    }
+
+    if (dom.editorTabFormula) dom.editorTabFormula.innerHTML = '<p class="text-muted">No aplica para subsecciones</p>';
+    if (dom.editorTabAparicion) dom.editorTabAparicion.innerHTML = '<p class="text-muted">No aplica para subsecciones</p>';
+
+    // Configurar botón de guardar
+    if (dom.btnEditorSave) {
+      const saveHandler = () => {
+        const newName = document.getElementById('editSubsectionName')?.value?.trim();
+        if (!newName) {
+          showToast('El nombre de la subsección es requerido', 'warning');
+          return;
+        }
+
+        // Actualizar todas las cuentas que tienen esta subsección
+        state.cuentas.forEach(cuenta => {
+          const currentSubsection = getAccountSecondaryName(cuenta);
+          if (currentSubsection === subsectionName) {
+            if (cuenta['SECCION Secundaria']) cuenta['SECCION Secundaria'] = newName;
+            if (cuenta['SECCION SECUNDARIA']) cuenta['SECCION SECUNDARIA'] = newName;
+            if (cuenta.seccion_secundaria) cuenta.seccion_secundaria = newName;
+          }
+        });
+
+        state.unsavedChanges = true;
+        renderLayout();
+        showToast('Subsección actualizada', 'success');
+
+        if (window.bootstrap?.Offcanvas) {
+          const offcanvas = window.bootstrap.Offcanvas.getInstance(dom.operationEditorPanel);
+          offcanvas?.hide();
+        }
+
+        dom.btnEditorSave.removeEventListener('click', saveHandler);
+      };
+
+      dom.btnEditorSave.removeEventListener('click', saveHandler);
+      dom.btnEditorSave.addEventListener('click', saveHandler);
+    }
+
+    // Deshabilitar botón de eliminar
+    if (dom.btnEditorDelete) {
+      dom.btnEditorDelete.disabled = true;
+      dom.btnEditorDelete.title = 'No se pueden eliminar subsecciones directamente';
+    }
+
+    // Abrir panel
+    if (window.bootstrap?.Offcanvas) {
+      const offcanvas = window.bootstrap.Offcanvas.getOrCreateInstance(dom.operationEditorPanel);
+      offcanvas.show();
+    }
+  }
+
+  /**
+   * Editar una operación
+   */
+  function editOperation(operationId) {
+    if (!operationId) return;
+
+    // Buscar la operación
+    const operation = state.operaciones.find(op =>
+      getOperationId(op) === operationId ||
+      (op.Clase || op.clase) === operationId ||
+      (op.OperacionId || op.OperacionID) === operationId
+    );
+
+    if (!operation) {
+      showToast('Operación no encontrada', 'warning');
+      return;
+    }
+
+    if (!dom.operationEditorPanel) {
+      showToast('Panel de edición no disponible', 'error');
+      return;
+    }
+
+    // Configurar título
+    if (dom.operationEditorTitle) {
+      dom.operationEditorTitle.textContent = 'Editar Operación';
+    }
+    if (dom.operationEditorSubtitle) {
+      dom.operationEditorSubtitle.textContent = getOperationDisplayName(operation);
+    }
+
+    // Renderizar formulario básico
+    if (dom.editorTabDatos) {
+      const opId = getOperationId(operation) || '';
+      const clase = operation.Clase || operation.clase || '';
+      const seccion = operation.SECCION || operation.seccion || '';
+
+      dom.editorTabDatos.innerHTML = `
+        <div class="mb-3">
+          <label class="form-label">ID de Operación</label>
+          <input type="text" class="form-control" value="${escapeHtml(opId)}" readonly />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Clase</label>
+          <input type="text" class="form-control" id="editClase" value="${escapeHtml(clase)}" />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Sección</label>
+          <input type="text" class="form-control" id="editSeccion" value="${escapeHtml(seccion)}" />
+        </div>
+        <div class="mb-3">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="editOpVisible" ${operation.visible !== false ? 'checked' : ''} />
+            <label class="form-check-label" for="editOpVisible">Visible</label>
+          </div>
+        </div>
+        <div class="alert alert-info">
+          <i class="bi bi-info-circle me-2"></i>
+          Para editar la fórmula, use la pestaña "Fórmula" o el constructor de fórmulas.
+        </div>
+      `;
+    }
+
+    // Pestaña de fórmula
+    if (dom.editorTabFormula) {
+      const formula = formatFormula(operation) || '';
+      dom.editorTabFormula.innerHTML = `
+        <div class="mb-3">
+          <label class="form-label">Fórmula</label>
+          <textarea class="form-control font-monospace" id="editFormula" rows="4" placeholder="Fórmula de la operación">${escapeHtml(formula)}</textarea>
+          <div class="form-text">Edite la fórmula manualmente o use el constructor de fórmulas.</div>
+        </div>
+        ${window.FormulaBuilder ? '<button type="button" class="btn btn-outline-primary btn-sm" onclick="window.FormulaBuilder.showMap && window.FormulaBuilder.showMap()">Abrir Constructor de Fórmulas</button>' : ''}
+      `;
+    }
+
+    if (dom.editorTabAparicion) dom.editorTabAparicion.innerHTML = '<p class="text-muted">Próximamente: configuración de aparición</p>';
+
+    // Configurar botón de guardar
+    if (dom.btnEditorSave) {
+      const saveHandler = () => {
+        const clase = document.getElementById('editClase')?.value || '';
+        const seccion = document.getElementById('editSeccion')?.value || '';
+        const visible = document.getElementById('editOpVisible')?.checked;
+        const formula = document.getElementById('editFormula')?.value || '';
+
+        // Actualizar operación
+        if (operation.Clase !== undefined) operation.Clase = clase;
+        if (operation.clase !== undefined) operation.clase = clase;
+        if (operation.SECCION !== undefined) operation.SECCION = seccion;
+        if (operation.seccion !== undefined) operation.seccion = seccion;
+        operation.visible = visible;
+
+        // Actualizar fórmula si cambió
+        if (formula && formula !== formatFormula(operation)) {
+          // Aquí se podría parsear la fórmula y actualizar los campos correspondientes
+          // Por ahora solo mostramos un mensaje
+          showToast('Cambios guardados. La fórmula debe ser validada.', 'info');
+        }
+
+        state.unsavedChanges = true;
+        renderLayout();
+        showToast('Operación actualizada', 'success');
+
+        if (window.bootstrap?.Offcanvas) {
+          const offcanvas = window.bootstrap.Offcanvas.getInstance(dom.operationEditorPanel);
+          offcanvas?.hide();
+        }
+
+        dom.btnEditorSave.removeEventListener('click', saveHandler);
+      };
+
+      dom.btnEditorSave.removeEventListener('click', saveHandler);
+      dom.btnEditorSave.addEventListener('click', saveHandler);
+    }
+
+    // Configurar botón de eliminar
+    if (dom.btnEditorDelete) {
+      dom.btnEditorDelete.disabled = false;
+      const deleteHandler = () => {
+        if (!confirm(`¿Eliminar la operación ${getOperationDisplayName(operation)}?`)) return;
+
+        state.operaciones = state.operaciones.filter(op =>
+          getOperationId(op) !== operationId
+        );
+        state.unsavedChanges = true;
+        renderLayout();
+        showToast('Operación eliminada', 'success');
+
+        if (window.bootstrap?.Offcanvas) {
+          const offcanvas = window.bootstrap.Offcanvas.getInstance(dom.operationEditorPanel);
+          offcanvas?.hide();
+        }
+
+        dom.btnEditorDelete.removeEventListener('click', deleteHandler);
+      };
+
+      dom.btnEditorDelete.removeEventListener('click', deleteHandler);
+      dom.btnEditorDelete.addEventListener('click', deleteHandler);
+    }
+
+    // Abrir panel
+    if (window.bootstrap?.Offcanvas) {
+      const offcanvas = window.bootstrap.Offcanvas.getOrCreateInstance(dom.operationEditorPanel);
+      offcanvas.show();
+    }
+  }
+
+  /**
+   * Editar una etiqueta consolidada (múltiples operaciones con mismo label)
+   */
+  function editConsolidatedLabel(label, field) {
+    showToast(`Edición de etiquetas consolidadas: ${label} (${field})`, 'info');
+    // TODO: Implementar editor para etiquetas que afectan múltiples operaciones
+  }
+
+  function getAccountFieldValue(cuenta, keys = []) {
+    if (!cuenta || !keys.length) return "";
+    for (const key of keys) {
+      if (cuenta[key] != null && String(cuenta[key]).trim() !== "") {
+        const value = cuenta[key];
+        return typeof value === "string" ? value.trim() : value;
+      }
+    }
+    const normalizedKeys = keys.map((key) => normalizeOperationMatch(key));
+    const entries = Object.keys(cuenta);
+    for (const entry of entries) {
+      const normalized = normalizeOperationMatch(entry);
+      if (normalizedKeys.includes(normalized)) {
+        const value = cuenta[entry];
+        if (value != null && String(value).trim() !== "") {
+          return typeof value === "string" ? value.trim() : value;
+        }
+      }
+    }
+    return "";
+  }
+
+  function getAccountPrincipalName(cuenta) {
+    return getAccountFieldValue(cuenta, [
+      "SECCION PRINCIPAL",
+      "SECCION Principal",
+      "SECCIÓN PRINCIPAL",
+      "SECCIÓN Principal",
+      "SECCION",
+      "SECCIÓN",
+      "seccion_principal",
+    ]);
   }
 
   function getAccountSecondaryName(cuenta) {
-    return (
-      cuenta?.["SECCION Secundaria"] ||
-      cuenta?.["SECCIàN Secundaria"] ||
-      cuenta?.seccion_secundaria ||
-      ""
-    );
+    return getAccountFieldValue(cuenta, [
+      "SECCION SECUNDARIA",
+      "SECCION Secundaria",
+      "SECCIÓN SECUNDARIA",
+      "SECCIÓN Secundaria",
+      "seccion_secundaria",
+      "SUBSECCION",
+      "SUBSECCIÓN",
+    ]);
   }
 
   function resequenceAccountsBySections(sections) {
@@ -3711,19 +4681,9 @@
     );
 
     cuentasOrdenadas.forEach((cuenta, index) => {
+      const secundaria = getAccountSecondaryName(cuenta) || "";
       const principal =
-        cuenta["SECCIÓN Principal"] ||
-        cuenta["SECCIàN Principal"] ||
-        cuenta["SECCION Principal"] ||
-        cuenta.SECCION ||
-        cuenta.seccion_principal ||
-        "Sin sección";
-
-      const secundaria =
-        cuenta["SECCION Secundaria"] ||
-        cuenta["SECCIÓN Secundaria"] ||
-        cuenta.seccion_secundaria ||
-        "";
+        getAccountPrincipalName(cuenta) || secundaria || "Sin sección";
 
       if (!sectionMap.has(principal)) {
         sectionMap.set(principal, {
@@ -4035,6 +4995,8 @@
 
   async function handleCapituloChange() {
     state.capitulo = dom.capituloSelect.value;
+    asegurarEmpresaIdContexto(state.capitulo, true);
+    filtrarModulosPorCapitulo(); // Filtrar módulos cuando cambia el capítulo
     updateHeaderLabels();
     await tryLoadLayout();
   }
@@ -4049,10 +5011,14 @@
     
     const sections = document.querySelectorAll(".layout-section");
     const sectionRows = document.querySelectorAll(
-      '.template-table tr[data-row-type="section"], .template-table tr[data-row-type="subsection"]'
+      '.template-table tr[data-row-type="section"], .template-table tr[data-row-type="subsection"], .list-item.section-principal, .list-item.section-secondary'
     );
-    const accountRows = document.querySelectorAll(".account-row");
-    const operationRows = document.querySelectorAll(".operation-row, .inline-operation-row");
+    const accountRows = document.querySelectorAll(
+      ".account-row, .list-item.item-account"
+    );
+    const operationRows = document.querySelectorAll(
+      ".operation-row, .inline-operation-row, .list-item.item-operation"
+    );
 
     // Quitar resaltado anterior
     document.querySelectorAll(".search-highlight").forEach((el) => {
@@ -4109,9 +5075,17 @@
       let shouldShow = false;
       
       if (activeFilter === "all" || activeFilter === "accounts") {
-        const code = row.querySelector(".account-code")?.textContent?.toLowerCase() || "";
-        const name = row.querySelector(".account-name")?.textContent?.toLowerCase() || "";
-        shouldShow = !query || code.includes(query) || name.includes(query);
+        const code =
+          row.querySelector(".account-code")?.textContent?.toLowerCase() ||
+          row.getAttribute("data-cuenta")?.toLowerCase() ||
+          "";
+        const name =
+          row.querySelector(".account-name")?.textContent?.toLowerCase() ||
+          row.getAttribute("data-nombre")?.toLowerCase() ||
+          "";
+        const text = row.textContent?.toLowerCase() || "";
+        shouldShow =
+          !query || code.includes(query) || name.includes(query) || text.includes(query);
         
         if (shouldShow && !firstMatch && query) {
           firstMatch = row;
@@ -4126,7 +5100,14 @@
       let shouldShow = false;
       
       if (activeFilter === "all" || activeFilter === "operations") {
-        const label = row.querySelector(".operation-label, .inline-op-label")?.textContent?.toLowerCase() || "";
+        const label =
+          row
+            .querySelector(".operation-label, .inline-op-label")
+            ?.textContent?.toLowerCase() ||
+          row.getAttribute("data-operation-label")?.toLowerCase() ||
+          row.getAttribute("data-operation-id")?.toLowerCase() ||
+          row.textContent?.toLowerCase() ||
+          "";
         shouldShow = !query || label.includes(query);
         
         if (shouldShow && !firstMatch && query) {
@@ -4468,7 +5449,7 @@
             </div>
             <div class="formula-preview mt-3">
               <label class="form-label">Fórmula resultante:</label>
-              <div id="formulaPreviewText" class="formula-preview-text">
+              <div id="formulaPreview" class="formula-preview-text">
                 (Sin términos)
               </div>
             </div>
@@ -4482,8 +5463,16 @@
 
   function getSectionOptions() {
     const sections = groupBySections(state.cuentas);
-    return Array.from(sections.keys())
-      .map((s) => `<option value="${escapeAttr(s)}">${escapeHtml(s)}</option>`)
+    if (!Array.isArray(sections) || sections.length === 0) {
+      return '<option value="">Sin secciones</option>';
+    }
+    return sections
+      .map((section) => section?.name)
+      .filter(Boolean)
+      .map(
+        (name) =>
+          `<option value="${escapeAttr(name)}">${escapeHtml(name)}</option>`
+      )
       .join("");
   }
 
@@ -4491,12 +5480,12 @@
     const sections = groupBySections(state.cuentas);
     const options = [];
 
-    sections.forEach((subs, principal) => {
-      subs.forEach((_, secundaria) => {
-        if (secundaria) {
+    (sections || []).forEach((section) => {
+      (section.subsections || []).forEach((subsection) => {
+        if (subsection?.name) {
           options.push(
-            `<option value="${escapeAttr(secundaria)}">${escapeHtml(
-              secundaria
+            `<option value="${escapeAttr(subsection.name)}">${escapeHtml(
+              subsection.name
             )}</option>`
           );
         }
@@ -4508,16 +5497,21 @@
 
   function getSectionCheckboxes() {
     const sections = groupBySections(state.cuentas);
-    return Array.from(sections.keys())
+    if (!Array.isArray(sections) || sections.length === 0) {
+      return '<div class="text-muted small">Sin secciones disponibles</div>';
+    }
+    return sections
+      .map((section) => section?.name)
+      .filter(Boolean)
       .map(
-        (s) => `
+        (name) => `
         <div class="form-check">
           <input class="form-check-input" type="checkbox" value="${escapeAttr(
-            s
-          )}" id="chk_${escapeAttr(s)}">
+            name
+          )}" id="chk_${escapeAttr(name)}">
           <label class="form-check-label" for="chk_${escapeAttr(
-            s
-          )}">${escapeHtml(s)}</label>
+            name
+          )}">${escapeHtml(name)}</label>
         </div>
       `
       )
@@ -4854,7 +5848,7 @@
             ...getAuthHeaders(),
           },
           body: JSON.stringify({
-            empresaId: "EMPRESA01",
+            empresaId: obtenerEmpresaIdApi(),
             anioOrigen: parseInt(state.anio),
             anioDestino: parseInt(anioDestino),
           }),
@@ -5255,7 +6249,7 @@
             ...getAuthHeaders(),
           },
           body: JSON.stringify({
-            empresaId: "EMPRESA01",
+            empresaId: obtenerEmpresaIdApi(),
             cuentas: state.cuentas,
           }),
         }
@@ -5289,7 +6283,7 @@
               ...getAuthHeaders(),
             },
             body: JSON.stringify({
-              empresaId: "EMPRESA01",
+              empresaId: obtenerEmpresaIdApi(),
               operaciones: operacionesParaGuardar,
             }),
           }
@@ -7235,24 +8229,8 @@ window.editSection = function (name) {
     };
 
     let accounts = state.cuentas.filter((c) => {
-      const secondaryKey = normalizeKey(
-        c.seccion_secundaria ||
-          c["SECCION Secundaria"] ||
-          c["SECCIÓN Secundaria"] ||
-          c["SECCIàN Secundaria"] ||
-          c["SECCI.N Secundaria"] ||
-          ""
-      );
-      const primaryKey = normalizeKey(
-        c["SECCI…N Principal"] ||
-          c["SECCIÓN Principal"] ||
-          c["SECCIàN Principal"] ||
-          c["SECCI.N Principal"] ||
-          c["SECCION Principal"] ||
-          c.SECCION ||
-          c.seccion_principal ||
-          ""
-      );
+      const secondaryKey = normalizeKey(getAccountSecondaryName(c));
+      const primaryKey = normalizeKey(getAccountPrincipalName(c));
       if (!matchesParent(primaryKey)) return false;
       return secondaryKey === sectionKey || primaryKey === sectionKey;
     });
@@ -7260,24 +8238,8 @@ window.editSection = function (name) {
     // Try partial match if no exact match
     if (accounts.length === 0) {
       accounts = state.cuentas.filter((c) => {
-        const secondaryKey = normalizeKey(
-          c.seccion_secundaria ||
-            c["SECCION Secundaria"] ||
-            c["SECCIÓN Secundaria"] ||
-            c["SECCIàN Secundaria"] ||
-            c["SECCI.N Secundaria"] ||
-            ""
-        );
-        const primaryKey = normalizeKey(
-          c["SECCI…N Principal"] ||
-            c["SECCIÓN Principal"] ||
-            c["SECCIàN Principal"] ||
-            c["SECCI.N Principal"] ||
-            c["SECCION Principal"] ||
-            c.SECCION ||
-            c.seccion_principal ||
-            ""
-        );
+        const secondaryKey = normalizeKey(getAccountSecondaryName(c));
+        const primaryKey = normalizeKey(getAccountPrincipalName(c));
         if (!matchesParent(primaryKey)) return false;
         return (
           secondaryKey.includes(sectionKey) ||
@@ -7385,7 +8347,9 @@ window.editSection = function (name) {
 
   // Update formula preview
   function updateFormulaPreview() {
-    const previewContainer = document.getElementById("formulaPreview");
+    const previewContainer =
+      document.getElementById("formulaPreview") ||
+      document.getElementById("formulaPreviewText");
     if (!previewContainer) return;
 
     if (formulaTerms.length === 0) {
@@ -7656,7 +8620,7 @@ window.editSection = function (name) {
           ...getAuthHeaders(),
         },
         body: JSON.stringify({
-          empresaId: "EMPRESA01",
+          empresaId: obtenerEmpresaIdApi(),
           modulo: state.modulo,
           anio: state.anio,
           capitulo: state.capitulo,
@@ -8559,6 +9523,7 @@ window.editSection = function (name) {
     if (state.modulo) params.set("module", state.modulo);
     if (state.capitulo) params.set("chapter", state.capitulo);
     if (state.anio) params.set("year", state.anio);
+    if (state.empresaId) params.set("empresa", state.empresaId);
 
     const newURL = `${window.location.pathname}?${params.toString()}`;
     window.history.pushState({ path: newURL }, "", newURL);
@@ -8573,6 +9538,7 @@ window.editSection = function (name) {
     const module = params.get("module");
     const chapter = params.get("chapter");
     const year = params.get("year");
+    const empresa = params.get("empresa");
 
     if (module && dom.moduloSelect) {
       dom.moduloSelect.value = module;
@@ -8584,12 +9550,19 @@ window.editSection = function (name) {
       state.capitulo = chapter;
     }
 
+    if (empresa) {
+      state.empresaId = resolverEmpresaConfigKey(empresa) || empresa;
+    }
+
     if (year && dom.anioSelect) {
       dom.anioSelect.value = year;
       state.anio = parseInt(year);
     }
 
     if (module || chapter || year) {
+      if (state.capitulo) {
+        asegurarEmpresaIdContexto(state.capitulo, true);
+      }
       updateHeaderLabels();
       tryLoadLayout();
     }
