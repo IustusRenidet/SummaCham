@@ -451,7 +451,13 @@ const crearLayoutDemo = ({
  * Obtener layout completo para un módulo, año y capítulo
  */
 
-const obtenerLayout = ({ empresaId = "EMPRESA01", modulo, anio, capitulo }) => {
+const obtenerLayout = ({
+  empresaId = "EMPRESA01",
+  modulo,
+  anio,
+  capitulo,
+  incluirSecciones = false,
+}) => {
   const anioNumero = Number(anio);
   const moduloNorm = (modulo || "").toString().trim().toUpperCase();
   const empresaCanonica = obtenerEmpresaCanonica(empresaId);
@@ -516,6 +522,8 @@ const obtenerLayout = ({ empresaId = "EMPRESA01", modulo, anio, capitulo }) => {
 
   const normalizarSeccionesCuenta = (cuenta = {}) => {
     const seccionPrincipal =
+      cuenta["SECCIÓN Principal"] ||
+      cuenta["SECCION PRINCIPAL"] ||
       cuenta["SECCION Principal"] ||
       cuenta["SECCI…N Principal"] ||
       cuenta["SECCIàN Principal"] ||
@@ -524,6 +532,8 @@ const obtenerLayout = ({ empresaId = "EMPRESA01", modulo, anio, capitulo }) => {
       cuenta.seccion ||
       "";
     const seccionSecundaria =
+      cuenta["SECCIÓN Secundaria"] ||
+      cuenta["SECCION SECUNDARIA"] ||
       cuenta["SECCION Secundaria"] ||
       cuenta["SECCIàN Secundaria"] ||
       cuenta.seccion_secundaria ||
@@ -538,6 +548,25 @@ const obtenerLayout = ({ empresaId = "EMPRESA01", modulo, anio, capitulo }) => {
       seccion_secundaria: seccionSecundaria,
     };
   };
+
+  const consultarSecciones = (anioObjetivo) =>
+    db
+      .prepare(
+        `
+    SELECT 
+      seccion_principal as seccion_principal,
+      seccion_secundaria as seccion_secundaria,
+      tipo,
+      orden
+    FROM layout_secciones
+    WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ?
+    ORDER BY orden ASC, seccion_principal ASC, seccion_secundaria ASC
+  `
+      )
+      .all(empresaConsulta, modulo, anioObjetivo, capituloObjetivo);
+
+  const normalizarClave = (valor) =>
+    (valor || "").toString().trim().toUpperCase();
 
   let cuentas = normalizarCuentas(consultarCuentas(anioNumero)).map(
     normalizarSeccionesCuenta
@@ -570,15 +599,22 @@ const obtenerLayout = ({ empresaId = "EMPRESA01", modulo, anio, capitulo }) => {
     }
   }
 
+  const incluirSeccionesFlag =
+    incluirSecciones === true ||
+    incluirSecciones === "true" ||
+    incluirSecciones === "1";
+
   if (!cuentas || !cuentas.length) {
-    return construirRespuestaLayout({
-      empresaId: empresaConsulta,
-      modulo,
-      anio: anioUsado,
-      capitulo: capituloObjetivo,
-      cuentas: [],
-      operaciones: [],
-    });
+    if (!incluirSeccionesFlag) {
+      return construirRespuestaLayout({
+        empresaId: empresaConsulta,
+        modulo,
+        anio: anioUsado,
+        capitulo: capituloObjetivo,
+        cuentas: [],
+        operaciones: [],
+      });
+    }
   }
 
   const operaciones = db
@@ -677,6 +713,130 @@ const obtenerLayout = ({ empresaId = "EMPRESA01", modulo, anio, capitulo }) => {
       (b.orden_presentacion ?? b.orden ?? 0)
   );
 
+  if (incluirSeccionesFlag) {
+    const secciones = consultarSecciones(anioUsado) || [];
+    if (secciones.length) {
+      const principalSet = new Set();
+      const secondarySet = new Set();
+
+      (cuentas || []).forEach((cuenta) => {
+        const principal = normalizarClave(
+          cuenta["SECCION Principal"] ||
+            cuenta.SECCION ||
+            cuenta.seccion_principal ||
+            ""
+        );
+        const secundaria = normalizarClave(
+          cuenta["SECCION Secundaria"] ||
+            cuenta.seccion_secundaria ||
+            ""
+        );
+        if (principal) principalSet.add(principal);
+        if (principal && secundaria)
+          secondarySet.add(`${principal}||${secundaria}`);
+      });
+
+      const principalInfo = new Map();
+      const secondaryInfo = new Map();
+
+      secciones.forEach((row, idx) => {
+        const principalRaw = (row.seccion_principal || "").toString().trim();
+        const secundariaRaw = (row.seccion_secundaria || "").toString().trim();
+        const principalKey = normalizarClave(principalRaw);
+        if (!principalKey) return;
+        const orden = Number.isFinite(Number(row.orden))
+          ? Number(row.orden)
+          : idx;
+        if (!principalInfo.has(principalKey)) {
+          principalInfo.set(principalKey, { name: principalRaw, order: orden });
+        }
+        if (secundariaRaw) {
+          const list = secondaryInfo.get(principalKey) || [];
+          list.push({
+            principalName: principalRaw,
+            name: secundariaRaw,
+            order: orden,
+          });
+          secondaryInfo.set(principalKey, list);
+        }
+      });
+
+      const placeholders = [];
+      const makePlaceholder = ({ principal, secundaria, type, orderHint }) => ({
+        CUENTA: "",
+        NOMBRE: secundaria
+          ? `[Subseccion: ${secundaria}]`
+          : `[Seccion: ${principal}]`,
+        "SECCION Principal": principal,
+        "SECCION Secundaria": secundaria || "",
+        SECCION: principal,
+        seccion_principal: principal,
+        seccion_secundaria: secundaria || "",
+        orden: null,
+        orden_presentacion: null,
+        visible: false,
+        __layoutPlaceholder: true,
+        __placeholderType: type,
+        __placeholderOrder: orderHint,
+      });
+
+      secondaryInfo.forEach((list, principalKey) => {
+        const principalMeta = principalInfo.get(principalKey);
+        const principalName =
+          principalMeta?.name || list[0]?.principalName || "";
+        const principalOrder = principalMeta?.order ?? 0;
+        list.forEach((sec) => {
+          const secundariaKey = normalizarClave(sec.name);
+          if (!secundariaKey) return;
+          const pairKey = `${principalKey}||${secundariaKey}`;
+          if (secondarySet.has(pairKey)) return;
+          const orderHint = principalOrder * 1000 + (sec.order ?? 0);
+          placeholders.push(
+            makePlaceholder({
+              principal: principalName,
+              secundaria: sec.name,
+              type: "secundaria",
+              orderHint,
+            })
+          );
+        });
+      });
+
+      principalInfo.forEach((meta, principalKey) => {
+        if (secondaryInfo.has(principalKey)) return;
+        if (principalSet.has(principalKey)) return;
+        placeholders.push(
+          makePlaceholder({
+            principal: meta.name,
+            secundaria: "",
+            type: "principal",
+            orderHint: meta.order ?? 0,
+          })
+        );
+      });
+
+      if (placeholders.length) {
+        const maxOrder = (cuentas || []).reduce((max, cuenta, idx) => {
+          const orden =
+            normalizarOrden(cuenta.orden_presentacion) ??
+            normalizarOrden(cuenta.orden) ??
+            idx;
+          return Math.max(max, orden);
+        }, -1);
+
+        placeholders
+          .sort((a, b) => (a.__placeholderOrder ?? 0) - (b.__placeholderOrder ?? 0))
+          .forEach((placeholder, idx) => {
+            const ordenFinal = maxOrder + idx + 1;
+            placeholder.orden = ordenFinal;
+            placeholder.orden_presentacion = ordenFinal;
+          });
+
+        cuentas = [...(cuentas || []), ...placeholders];
+      }
+    }
+  }
+
   return construirRespuestaLayout({
     empresaId: empresaConsulta,
     modulo,
@@ -774,6 +934,10 @@ const guardarCuentas = ({
       orden, orden_presentacion, visible, actualizado_en
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
   `);
+  const deleteCuentas = db.prepare(`
+    DELETE FROM layout_cuentas
+    WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ?
+  `);
   const deleteSecciones = db.prepare(`
     DELETE FROM layout_secciones
     WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ?
@@ -787,6 +951,48 @@ const guardarCuentas = ({
 
   const normalizarSeccion = (valor) =>
     (valor || "").toString().trim();
+
+  const obtenerValorCampo = (obj, keys = []) => {
+    for (const key of keys) {
+      if (obj && obj[key] != null && String(obj[key]).trim() !== "") {
+        return obj[key];
+      }
+    }
+    return "";
+  };
+
+  const obtenerCuentaCodigo = (cuenta) =>
+    obtenerValorCampo(cuenta, ["CUENTA", "cuenta", "Cuenta"]);
+
+  const obtenerSeccionPrincipal = (cuenta) =>
+    obtenerValorCampo(cuenta, [
+      "SECCIÓN Principal",
+      "SECCION Principal",
+      "SECCIàN Principal",
+      "SECCI…N Principal",
+      "SECCI.N Principal",
+      "SECCION PRINCIPAL",
+      "SECCION",
+      "SECCIÓN",
+      "seccion_principal",
+      "seccion",
+    ]);
+
+  const obtenerSeccionSecundaria = (cuenta) =>
+    obtenerValorCampo(cuenta, [
+      "SECCIÓN Secundaria",
+      "SECCION Secundaria",
+      "SECCIàN Secundaria",
+      "SECCION SECUNDARIA",
+      "seccion_secundaria",
+      "seccion_secondary",
+    ]);
+
+  const obtenerOrden = (cuenta, fallback) => {
+    const raw = cuenta?.orden_presentacion ?? cuenta?.orden ?? fallback;
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  };
 
   const transaction = db.transaction((cuentasArray) => {
     const ordenPrincipal = new Map();
@@ -819,23 +1025,75 @@ const guardarCuentas = ({
     };
 
     const seccionesRegistradas = new Set();
+    deleteCuentas.run(empresaCanonica, modulo, anio, capitulo);
     deleteSecciones.run(empresaCanonica, modulo, anio, capitulo);
 
-    cuentasArray.forEach((cuenta, index) => {
-      if (!cuenta.CUENTA) {
-        console.warn(
-          `[layoutService] Cuenta sin codigo en ${modulo}/${capitulo}, ignorando`
-        );
+    const cuentasOrdenadas = (cuentasArray || [])
+      .map((cuenta, index) => ({
+        cuenta,
+        index,
+        orden: obtenerOrden(cuenta, index),
+      }))
+      .sort((a, b) => a.orden - b.orden || a.index - b.index);
 
+    cuentasOrdenadas.forEach(({ cuenta, index }) => {
+      const cuentaCodigo = (obtenerCuentaCodigo(cuenta) || "").toString().trim();
+      let seccionPrincipal = obtenerSeccionPrincipal(cuenta);
+      let seccionSecundaria = obtenerSeccionSecundaria(cuenta) || null;
+      if (!seccionPrincipal && seccionSecundaria) {
+        seccionPrincipal = seccionSecundaria;
+        seccionSecundaria = null;
+      }
+
+      if (!cuentaCodigo) {
+        if (!seccionPrincipal && !seccionSecundaria) {
+          console.warn(
+            `[layoutService] Cuenta sin codigo en ${modulo}/${capitulo}, ignorando`
+          );
+          return;
+        }
+        const principalClave = registrarPrincipal(seccionPrincipal);
+        if (principalClave) {
+          const keyPrincipal = `${principalClave}||`;
+          if (!seccionesRegistradas.has(keyPrincipal)) {
+            seccionesRegistradas.add(keyPrincipal);
+            insertSeccion.run(
+              empresaCanonica,
+              modulo,
+              anio,
+              capitulo,
+              principalClave,
+              "",
+              "principal",
+              ordenPrincipal.get(principalClave) ?? 0
+            );
+          }
+        }
+
+        if (seccionSecundaria) {
+          const info = registrarSecundaria(seccionPrincipal, seccionSecundaria);
+          if (info) {
+            const keySecundaria = `${info.principalClave}||${info.secundariaClave}`;
+            if (!seccionesRegistradas.has(keySecundaria)) {
+              seccionesRegistradas.add(keySecundaria);
+              insertSeccion.run(
+                empresaCanonica,
+                modulo,
+                anio,
+                capitulo,
+                info.principalClave,
+                info.secundariaClave,
+                "secundaria",
+                info.orden ?? 0
+              );
+            }
+          }
+        }
         return;
       }
 
-      const seccionPrincipal =
-        cuenta["SECCIàN Principal"] || cuenta.SECCION || cuenta.seccion || "";
-      const seccionSecundaria =
-        cuenta["SECCION Secundaria"] || cuenta.seccion_secundaria || null;
       const nombre =
-        cuenta.NOMBRE || cuenta.nombre || cuenta.CUENTA || "Sin nombre";
+        cuenta.NOMBRE || cuenta.nombre || cuentaCodigo || "Sin nombre";
       const factorRaw =
         cuenta.operacion_factor ?? cuenta.operacionFactor ?? cuenta.factor;
       const operacionFactor =
@@ -845,20 +1103,14 @@ const guardarCuentas = ({
       const operacionFactorFinal = Number.isFinite(operacionFactor)
         ? operacionFactor
         : 1;
-      const ordenPresentacion = Number.isFinite(
-        Number(cuenta.orden_presentacion)
-      )
-        ? Number(cuenta.orden_presentacion)
-        : Number.isFinite(Number(cuenta.orden))
-        ? Number(cuenta.orden)
-        : index;
+      const ordenPresentacion = obtenerOrden(cuenta, index);
       const visible = cuenta.visible === false ? 0 : 1;
 
       insertCuenta.run(
         empresaCanonica,
         modulo,
         anio,
-        cuenta.CUENTA,
+        cuentaCodigo,
         nombre,
         capitulo,
         seccionPrincipal,

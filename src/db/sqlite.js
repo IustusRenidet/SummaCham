@@ -562,8 +562,7 @@ const crearTablas = () => {
       operacion_factor REAL DEFAULT 1,
       orden INTEGER DEFAULT 0,
       creado_en TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      actualizado_en TEXT,
-      UNIQUE(empresa_id, modulo, anio, capitulo, cuenta)
+      actualizado_en TEXT
     )
   `
   ).run();
@@ -663,6 +662,93 @@ const crearTablas = () => {
       "ALTER TABLE layout_cuentas ADD COLUMN operacion_factor REAL DEFAULT 1"
     ).run();
     console.log("✅ Columna 'operacion_factor' agregada a layout_cuentas");
+  }
+
+  // Migración: permitir cuentas duplicadas en un mismo layout
+  try {
+    const indices = db.prepare("PRAGMA index_list(layout_cuentas)").all();
+    const uniqueIndex = indices.find((idx) => idx.unique);
+    let necesitaRebuild = false;
+    if (uniqueIndex) {
+      const cols = db
+        .prepare(`PRAGMA index_info("${uniqueIndex.name}")`)
+        .all()
+        .map((row) => row.name);
+      const legacyUnique =
+        cols.length === 5 &&
+        cols.includes("empresa_id") &&
+        cols.includes("modulo") &&
+        cols.includes("anio") &&
+        cols.includes("capitulo") &&
+        cols.includes("cuenta");
+      if (legacyUnique) {
+        necesitaRebuild = true;
+      }
+    }
+    if (necesitaRebuild) {
+      db.exec(`
+        BEGIN;
+        ALTER TABLE layout_cuentas RENAME TO layout_cuentas_old;
+        CREATE TABLE layout_cuentas (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          empresa_id TEXT NOT NULL,
+          modulo TEXT NOT NULL,
+          anio INTEGER NOT NULL,
+          cuenta TEXT NOT NULL,
+          nombre TEXT NOT NULL,
+          capitulo TEXT NOT NULL,
+          seccion_principal TEXT NOT NULL,
+          seccion_secundaria TEXT,
+          operacion_factor REAL DEFAULT 1,
+          orden INTEGER DEFAULT 0,
+          orden_presentacion INTEGER,
+          visible INTEGER DEFAULT 1,
+          creado_en TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          actualizado_en TEXT
+        );
+        INSERT INTO layout_cuentas (
+          id,
+          empresa_id,
+          modulo,
+          anio,
+          cuenta,
+          nombre,
+          capitulo,
+          seccion_principal,
+          seccion_secundaria,
+          operacion_factor,
+          orden,
+          orden_presentacion,
+          visible,
+          creado_en,
+          actualizado_en
+        )
+        SELECT
+          id,
+          empresa_id,
+          modulo,
+          anio,
+          cuenta,
+          nombre,
+          capitulo,
+          seccion_principal,
+          seccion_secundaria,
+          operacion_factor,
+          orden,
+          orden_presentacion,
+          visible,
+          creado_en,
+          actualizado_en
+        FROM layout_cuentas_old;
+        DROP TABLE layout_cuentas_old;
+        CREATE INDEX IF NOT EXISTS idx_layout_cuentas_lookup 
+        ON layout_cuentas(empresa_id, modulo, anio, capitulo);
+        COMMIT;
+      `);
+      console.log("✅ layout_cuentas reconstruida para permitir duplicados");
+    }
+  } catch (error) {
+    console.warn("⚠️ No se pudo migrar layout_cuentas para duplicados:", error);
   }
 
   const columnasOperaciones = db

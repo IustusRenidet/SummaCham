@@ -13,7 +13,7 @@
      */
     renderVisibilityControl(item, type = "account") {
       const isVisible = item.visible !== undefined ? item.visible : true;
-      const id = type === "account" ? item.CUENTA : item.Clase;
+      const id = type === "account" ? this._getAccountId(item) : item.Clase;
       const canEdit = window.state?.editMode !== false;
       const disabledAttr = canEdit ? "" : "disabled";
 
@@ -42,7 +42,7 @@
      */
     renderOrderControl(item, type = "account") {
       const orden = item.orden_presentacion ?? item.orden ?? 0;
-      const id = type === "account" ? item.CUENTA : item.Clase;
+      const id = type === "account" ? this._getAccountId(item) : item.Clase;
       const canEdit = window.state?.editMode !== false;
       const disabledAttr = canEdit ? "" : "disabled";
 
@@ -88,7 +88,7 @@
       if (!window.state) return;
 
       if (type === "account") {
-        const cuenta = window.state.cuentas.find((c) => c.CUENTA === id);
+        const cuenta = this._findAccountByIdOrCode(id);
         if (cuenta) {
           cuenta.visible = isVisible;
           window.state.unsavedChanges = true;
@@ -118,7 +118,7 @@
       if (!window.state) return;
 
       if (type === "account") {
-        const cuenta = window.state.cuentas.find((c) => c.CUENTA === id);
+        const cuenta = this._findAccountByIdOrCode(id);
         if (cuenta) {
           cuenta.orden_presentacion = orden;
           window.state.unsavedChanges = true;
@@ -147,19 +147,24 @@
     moveUp(id, type) {
       if (!window.state) return;
 
-      const collection = type === "account" ? window.state.cuentas : window.state.operaciones;
-      const keyField = type === "account" ? "CUENTA" : "Clase";
-      const item = collection.find((i) => i[keyField] === id);
+      const isAccount = type === "account";
+      const collection = isAccount
+        ? window.state.cuentas
+        : window.state.operaciones;
+      const item = isAccount
+        ? this._findAccountByIdOrCode(id)
+        : collection.find((i) => i.Clase === id);
 
       if (!item) return;
 
       const currentOrder = item.orden_presentacion ?? item.orden ?? 0;
       const newOrder = Math.max(0, currentOrder - 1);
+      const itemId = isAccount ? this._getAccountId(item) : id;
 
       // Intercambiar con el elemento que tiene el orden anterior
       const other = collection.find(
         (i) =>
-          i[keyField] !== id &&
+          (isAccount ? this._getAccountId(i) !== itemId : i.Clase !== id) &&
           (i.orden_presentacion ?? i.orden ?? 0) === newOrder
       );
 
@@ -185,19 +190,24 @@
     moveDown(id, type) {
       if (!window.state) return;
 
-      const collection = type === "account" ? window.state.cuentas : window.state.operaciones;
-      const keyField = type === "account" ? "CUENTA" : "Clase";
-      const item = collection.find((i) => i[keyField] === id);
+      const isAccount = type === "account";
+      const collection = isAccount
+        ? window.state.cuentas
+        : window.state.operaciones;
+      const item = isAccount
+        ? this._findAccountByIdOrCode(id)
+        : collection.find((i) => i.Clase === id);
 
       if (!item) return;
 
       const currentOrder = item.orden_presentacion ?? item.orden ?? 0;
       const newOrder = currentOrder + 1;
+      const itemId = isAccount ? this._getAccountId(item) : id;
 
       // Intercambiar con el elemento que tiene el orden siguiente
       const other = collection.find(
         (i) =>
-          i[keyField] !== id &&
+          (isAccount ? this._getAccountId(i) !== itemId : i.Clase !== id) &&
           (i.orden_presentacion ?? i.orden ?? 0) === newOrder
       );
 
@@ -248,6 +258,18 @@
         monthsToShow > 0 ? meses.slice(0, monthsToShow) : meses;
       const rows = this._buildPreviewRows(layoutData);
       const isResumen = moduloClave === "RESUMEN" || moduloClave === "SUMMARY";
+      const columnasConfig = Array.isArray(layoutData.columnasConfig)
+        ? layoutData.columnasConfig
+        : null;
+      const useColumnConfig =
+        !isResumen && columnasConfig && columnasConfig.length > 0;
+
+      if (useColumnConfig) {
+        return this._renderColumnConfigPreview(layoutData, {
+          showHiddenRows,
+          showSampleData,
+        });
+      }
       const year = Number(layoutData.anio) || new Date().getFullYear();
       const yearShort = String(year).slice(-2);
       const yearPrev = year - 1;
@@ -418,7 +440,7 @@
             html += `
               <tr class="account-row ${dimClass}" data-row-type="account" data-cuenta="${this._escapeAttr(
                 row.cuenta || ""
-              )}">
+              )}" data-account-id="${this._escapeAttr(row.accountId || "")}">
                 <td class="ps-4 small">${hiddenPrefix}${this._escapeHtml(
                   row.cuenta || ""
                 )}</td>
@@ -454,7 +476,7 @@
             html += `
               <tr class="fila-cuenta account-row ${dimClass}" data-row-type="account" data-cuenta="${this._escapeAttr(
                 row.cuenta || ""
-              )}">
+              )}" data-account-id="${this._escapeAttr(row.accountId || "")}">
                 <td class="ps-4 small">${hiddenPrefix}${this._escapeHtml(
                   row.cuenta || ""
                 )}</td>
@@ -595,6 +617,158 @@
               </tr>
             `;
           }
+        }
+      });
+
+      html += `
+            </tbody>
+          </table>
+        </div>
+      `;
+
+      return html;
+    },
+
+    _renderColumnConfigPreview(layoutData = {}, options = {}) {
+      const { showHiddenRows = false, showSampleData = true } = options;
+      const columnasConfig = Array.isArray(layoutData.columnasConfig)
+        ? layoutData.columnasConfig
+        : [];
+      const columns = columnasConfig.filter((col) => col && col.key);
+      const rows = this._buildPreviewRows(layoutData);
+      const colCount = columns.length || 1;
+
+      const headerHtml = `
+        <thead>
+          <tr>
+            ${columns
+              .map((col) => {
+                const label = col.label || col.key || "";
+                const isCuenta = col.key === "cuenta";
+                const isDesc = col.key === "descripcion";
+                const className = isCuenta
+                  ? "account-column-header"
+                  : isDesc
+                  ? "col-descripcion"
+                  : "";
+                return `<th scope="col" class="${className}">${this._escapeHtml(
+                  label
+                )}</th>`;
+              })
+              .join("")}
+          </tr>
+        </thead>
+      `;
+
+      let html = `
+        <div class="preview-controls mb-3">
+          <div class="btn-group btn-group-sm" role="group">
+            <input type="checkbox" class="btn-check" id="toggleHidden" ${
+              showHiddenRows ? "checked" : ""
+            }>
+            <label class="btn btn-outline-secondary" for="toggleHidden">
+              <i class="bi bi-eye-slash me-1"></i>Mostrar ocultos
+            </label>
+            
+            <input type="checkbox" class="btn-check" id="toggleData" ${
+              showSampleData ? "checked" : ""
+            }>
+            <label class="btn btn-outline-secondary" for="toggleData">
+              <i class="bi bi-database me-1"></i>Datos de ejemplo
+            </label>
+          </div>
+        </div>
+
+        <div class="table-responsive sticky-table-scroll">
+          <table class="table align-middle mb-0 table-comparison preview-table-realistic preview-modulo">
+            ${headerHtml}
+            <tbody>
+      `;
+
+      rows.forEach((row) => {
+        if (!row) return;
+        const isVisible = this._isVisible(row.visible);
+        if (!isVisible && !showHiddenRows) return;
+        const dimClass = !isVisible ? "text-muted" : "";
+        const hiddenPrefix = !isVisible ? "?? " : "";
+
+        if (row.type === "principal") {
+          html += `
+            <tr class="section-header-row ${dimClass}" data-row-type="section" data-section="${this._escapeAttr(
+              row.label || ""
+            )}">
+              <td colspan="${colCount}">
+                ${hiddenPrefix}${this._escapeHtml(row.label || "")}
+              </td>
+            </tr>
+          `;
+          return;
+        }
+
+        if (row.type === "subsection") {
+          html += `
+            <tr class="subsection-row ${dimClass}" data-row-type="subsection" data-subsection="${this._escapeAttr(
+              row.label || ""
+            )}">
+              <td colspan="${colCount}" class="ps-4">
+                ${hiddenPrefix}${this._escapeHtml(row.label || "")}
+              </td>
+            </tr>
+          `;
+          return;
+        }
+
+        const sampleValues = showSampleData
+          ? this._generateSampleData(columns.length)
+          : [];
+        let sampleIdx = 0;
+
+        const buildCellValue = (col) => {
+          if (!col) return "-";
+          const key = col.key || "";
+          if (key === "cuenta") {
+            return row.cuenta || "";
+          }
+          if (key === "descripcion") {
+            return (
+              row.nombre ||
+              row.label ||
+              row.cuenta ||
+              row.opId ||
+              ""
+            );
+          }
+          if (!showSampleData) return "-";
+          const value = sampleValues[sampleIdx] ?? 0;
+          sampleIdx += 1;
+          return this._formatMoney(value);
+        };
+
+        const cellsHtml = columns
+          .map((col) => `<td>${this._escapeHtml(buildCellValue(col))}</td>`)
+          .join("");
+
+        if (row.type === "operation") {
+          html += `
+            <tr class="operation-row ${dimClass}" data-row-type="operation" data-operation-id="${this._escapeAttr(
+              row.opId || row.label || ""
+            )}" data-operation-label="${this._escapeAttr(
+              row.label || ""
+            )}" data-operation-kind="${this._escapeAttr(row.kind || "")}">
+              ${cellsHtml}
+            </tr>
+          `;
+          return;
+        }
+
+        if (row.type === "account") {
+          html += `
+            <tr class="account-row ${dimClass}" data-row-type="account" data-cuenta="${this._escapeAttr(
+              row.cuenta || ""
+            )}" data-account-id="${this._escapeAttr(row.accountId || "")}">
+              ${cellsHtml}
+            </tr>
+          `;
         }
       });
 
@@ -763,9 +937,30 @@
         return section;
       };
 
+      const principalKeys = [
+        "SECCION PRINCIPAL",
+        "SECCION Principal",
+        "SECCIÓN PRINCIPAL",
+        "SECCIÓN Principal",
+        "seccion_principal",
+        "SECCION",
+      ];
+      const secondaryKeys = [
+        "SECCION SECUNDARIA",
+        "SECCION Secundaria",
+        "SECCIÓN SECUNDARIA",
+        "SECCIÓN Secundaria",
+        "seccion_secundaria",
+        "SUBSECCION",
+        "SUBSECCIÓN",
+        "subseccion",
+        "SECCION",
+      ];
+
       cuentasOrdenadas.forEach((cuenta, idx) => {
+        const isPlaceholder = this._isPlaceholderAccount(cuenta);
         const seccionSecundaria = this._cleanLabel(
-          this._getFieldValue(cuenta, ["SECCION SECUNDARIA", "SECCION"])
+          this._getFieldValue(cuenta, secondaryKeys)
         );
         const seccionKey = seccionSecundaria
           ? this._normalizeKey(seccionSecundaria)
@@ -773,7 +968,7 @@
         const cfg = seccionKey ? configPorSeccion.get(seccionKey) : null;
 
         let principalLabel = this._cleanLabel(
-          this._getFieldValue(cuenta, ["SECCION PRINCIPAL"])
+          this._getFieldValue(cuenta, principalKeys)
         );
         if (!principalLabel && cfg?.principal) {
           principalLabel = this._cleanLabel(cfg.principal);
@@ -788,10 +983,11 @@
           principalLabel,
           this._getAccountOrder(cuenta, idx)
         );
+        const visibleFlag = isPlaceholder ? true : cuenta.visible;
         const principal = ensurePrincipal(
           principalLabel,
           principalOrder,
-          cuenta.visible
+          visibleFlag
         );
 
         const sectionLabel = seccionSecundaria || principalLabel;
@@ -800,15 +996,18 @@
           principal,
           sectionLabel,
           sectionOrder,
-          cuenta.visible
+          visibleFlag
         );
 
         if (cfg?.visible) section.visible = true;
-        section.accounts.push({
-          cuenta: cuenta.CUENTA || cuenta.cuenta || "",
-          nombre: cuenta.NOMBRE || cuenta.nombre || cuenta.CUENTA || "",
-          visible: this._isVisible(cuenta.visible),
-        });
+        if (!isPlaceholder) {
+          section.accounts.push({
+            cuenta: cuenta.CUENTA || cuenta.cuenta || "",
+            nombre: cuenta.NOMBRE || cuenta.nombre || cuenta.CUENTA || "",
+            accountId: this._getAccountId(cuenta),
+            visible: this._isVisible(cuenta.visible),
+          });
+        }
       });
 
       this._sortedLabels(ordenPrincipal).forEach((item) => {
@@ -850,6 +1049,7 @@
             rows.push({
               type: "subsection",
               label: section.label,
+              parentSection: principal.label,
               visible: section.visible,
             });
           }
@@ -1144,21 +1344,42 @@
         return subsection;
       };
 
+      const principalKeys = [
+        "SECCION PRINCIPAL",
+        "SECCION Principal",
+        "SECCIÓN PRINCIPAL",
+        "SECCIÓN Principal",
+        "seccion_principal",
+        "SECCION",
+      ];
+      const secondaryKeys = [
+        "SECCION SECUNDARIA",
+        "SECCION Secundaria",
+        "SECCIÓN SECUNDARIA",
+        "SECCIÓN Secundaria",
+        "seccion_secundaria",
+        "SUBSECCION",
+        "SUBSECCIÓN",
+        "subseccion",
+      ];
+
       cuentasOrdenadas.forEach((cuenta, idx) => {
+        const isPlaceholder = this._isPlaceholderAccount(cuenta);
         let principalLabel = this._cleanLabel(
-          this._getFieldValue(cuenta, ["SECCION PRINCIPAL", "SECCION"])
+          this._getFieldValue(cuenta, principalKeys)
         );
         const secondaryLabel = this._cleanLabel(
-          this._getFieldValue(cuenta, ["SECCION SECUNDARIA"])
+          this._getFieldValue(cuenta, secondaryKeys)
         );
         if (!principalLabel) {
           principalLabel = secondaryLabel || "Sin seccion";
         }
 
+        const visibleFlag = isPlaceholder ? true : cuenta.visible;
         const principal = ensurePrincipal(
           principalLabel,
           this._getAccountOrder(cuenta, idx),
-          cuenta.visible
+          visibleFlag
         );
 
         if (
@@ -1173,14 +1394,17 @@
           principal,
           subsectionLabel,
           this._getAccountOrder(cuenta, idx),
-          cuenta.visible
+          visibleFlag
         );
 
-        subsection.accounts.push({
-          cuenta: cuenta.CUENTA || cuenta.cuenta || "",
-          nombre: cuenta.NOMBRE || cuenta.nombre || cuenta.CUENTA || "",
-          visible: this._isVisible(cuenta.visible),
-        });
+        if (!isPlaceholder) {
+          subsection.accounts.push({
+            cuenta: cuenta.CUENTA || cuenta.cuenta || "",
+            nombre: cuenta.NOMBRE || cuenta.nombre || cuenta.CUENTA || "",
+            accountId: this._getAccountId(cuenta),
+            visible: this._isVisible(cuenta.visible),
+          });
+        }
       });
 
       principalList.sort((a, b) => a.order - b.order);
@@ -1234,16 +1458,21 @@
         const principalKey = section.key;
         const principalCfg = configPorSeccion.get(principalKey) || {};
         let addedSubsectionSum = false;
+        const hasRealSubsections = (section.sectionList || []).some(
+          (subsection) =>
+            this._normalizeKey(subsection.label) !==
+            this._normalizeKey(section.label)
+        );
 
         (section.sectionList || []).forEach((subsection, subIndex) => {
           const showSubsection =
-            section.hasSubsections &&
             this._normalizeKey(subsection.label) !== this._normalizeKey(section.label);
 
           if (showSubsection) {
             rows.push({
               type: "subsection",
               label: subsection.label,
+              parentSection: section.label,
               visible: subsection.visible,
             });
           }
@@ -1269,7 +1498,7 @@
               addedSubsectionSum = true;
             }
           } else if (
-            !section.hasSubsections &&
+            !hasRealSubsections &&
             principalCfg?.sumRow &&
             subIndex === (section.sectionList || []).length - 1
           ) {
@@ -1289,7 +1518,7 @@
           }
         });
 
-        if (section.hasSubsections && principalCfg?.sumRow && !addedSubsectionSum) {
+        if (hasRealSubsections && principalCfg?.sumRow && !addedSubsectionSum) {
           const sumLabel =
             principalCfg.sumRow || (section.label ? `Suma ${section.label}` : "");
           if (sumLabel) {
@@ -1459,6 +1688,60 @@
         }
       }
       return "";
+    },
+
+    _isPlaceholderAccount(cuenta) {
+      if (!cuenta) return false;
+      const codigo = (cuenta.CUENTA || cuenta.cuenta || "").toString().trim();
+      if (codigo) return false;
+      if (cuenta.__layoutPlaceholder || cuenta.__placeholderType) return true;
+      const nombre = (cuenta.NOMBRE || cuenta.nombre || "").toString();
+      return /\[secci[oó]n/i.test(nombre) || /\[subsecci[oó]n/i.test(nombre);
+    },
+
+    _accountIdSeed: 0,
+
+    _buildAccountId() {
+      this._accountIdSeed += 1;
+      return `acc_${Date.now().toString(36)}_${this._accountIdSeed}`;
+    },
+
+    _getAccountId(cuenta) {
+      if (!cuenta) return "";
+      const existing =
+        cuenta.__rowId ||
+        cuenta.__layoutRowId ||
+        cuenta.__id ||
+        cuenta._rowId ||
+        "";
+      if (existing) return existing;
+      const id = this._buildAccountId();
+      try {
+        Object.defineProperty(cuenta, "__rowId", {
+          value: id,
+          writable: false,
+          enumerable: false,
+        });
+      } catch {
+        cuenta.__rowId = id;
+      }
+      return id;
+    },
+
+    _findAccountByIdOrCode(idOrCode) {
+      const cuentas = window.state?.cuentas || [];
+      if (!idOrCode) return null;
+      const direct = cuentas.find((c) => {
+        const rowId =
+          c?.__rowId || c?.__layoutRowId || c?.__id || c?._rowId || "";
+        return rowId && rowId === idOrCode;
+      });
+      if (direct) return direct;
+      const target = this._normalizeKey(idOrCode || "");
+      if (!target) return null;
+      return cuentas.find(
+        (c) => this._normalizeKey(c?.CUENTA || c?.cuenta || "") === target
+      );
     },
 
     _getAccountOrder(cuenta, fallback = 0) {

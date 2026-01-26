@@ -39,6 +39,7 @@
     layoutModificado: false,
     celdaActiva: null,
     soloLayout: false, // Nueva opción: solo editar cuenta/descripción, no valores numéricos
+    mostrarDiagnosticoCuentas: true,
     persistiendo: false, // Flag para evitar recursión infinita
   };
 
@@ -375,6 +376,11 @@
 
       // Diagnóstico: comparar cuentas del layout vs catálogo
       setTimeout(() => {
+        if (!estado.mostrarDiagnosticoCuentas) {
+          const diag = document.getElementById("diagnostico-cuentas-layout");
+          if (diag) diag.remove();
+          return;
+        }
         try {
           const { tabla } = resolverTabla(estado.selectorTabla);
           if (!tabla) return;
@@ -1638,6 +1644,9 @@
 
       // Configurar modo soloLayout (para SUMMARY/RESUMEN)
       estado.soloLayout = opciones.soloLayout === true;
+      if (typeof opciones.mostrarDiagnosticoCuentas === "boolean") {
+        estado.mostrarDiagnosticoCuentas = opciones.mostrarDiagnosticoCuentas;
+      }
 
       if (estado.soloLayout) {
         console.log(

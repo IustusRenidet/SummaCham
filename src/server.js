@@ -251,19 +251,32 @@ const iniciarServidor = (puerto = Number(process.env.PORT || 3005)) => {
   const { requireAuth } = require("./middleware/auth");
   app.get("/api/cuentas-activas", requireAuth, async (req, res) => {
     try {
-      const anio = parseInt(req.query.anio) || new Date().getFullYear();
+      const anio = parseInt(req.query.anio, 10) || new Date().getFullYear();
       const empresaId = req.query.empresaId || "EMPRESA01";
+      const rawQuery = (req.query.q || "").toString().trim();
+      const query = rawQuery.slice(0, 50);
       const firebirdService = require("./services/firebirdService");
 
       // Consultar cuentas activas del catálogo
-      const query = `
-        SELECT FIRST 500 CUENTA, NOMBRE 
-        FROM CATCTA${anio.toString().slice(-2)} 
-        WHERE STATUS = 'A' 
+      const condiciones = ["STATUS = 'A'"];
+      const parametros = [];
+      if (query) {
+        condiciones.push("(CUENTA CONTAINING ? OR NOMBRE CONTAINING ?)");
+        parametros.push(query, query);
+      }
+      const limite = query ? 200 : 500;
+      const sql = `
+        SELECT FIRST ${limite} CUENTA, NOMBRE
+        FROM CATCTA${anio.toString().slice(-2)}
+        WHERE ${condiciones.join(" AND ")}
         ORDER BY CUENTA
       `;
 
-      const cuentas = await firebirdService.ejecutarConsulta(empresaId, query);
+      const cuentas = await firebirdService.ejecutarConsulta(
+        empresaId,
+        sql,
+        parametros
+      );
       res.json(cuentas || []);
     } catch (error) {
       console.error("Error al obtener cuentas activas:", error);

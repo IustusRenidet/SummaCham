@@ -1,6 +1,9 @@
 (() => {
   const form = document.getElementById("plantillasGraficasForm");
-  if (!form) return;
+  if (!form) {
+    // No mostrar error ya que el formulario puede no existir en otras paginas
+    return;
+  }
 
   const fieldset = document.getElementById("plantillasGraficasFieldset");
   const statusEl = document.getElementById("plantillasGraficasStatus");
@@ -438,6 +441,12 @@
     const node = customTemplate.content.firstElementChild.cloneNode(true);
     const id = chart.id || buildCustomChartId();
     node.dataset.customId = id;
+    if (chart.sourceType) {
+      node.dataset.customSourceType = chart.sourceType;
+    }
+    if (Array.isArray(chart.seriesKeys) && chart.seriesKeys.length) {
+      node.dataset.customSeriesKeys = chart.seriesKeys.join("|");
+    }
     const titleInput = node.querySelector("[data-custom-title]");
     const subtitleInput = node.querySelector("[data-custom-subtitle]");
     const moduleSelect = node.querySelector("[data-custom-module]");
@@ -445,6 +454,8 @@
     const rowsInput = node.querySelector("[data-custom-rows]");
     const enabledInput = node.querySelector("[data-custom-enabled]");
     const removeBtn = node.querySelector("[data-custom-remove]");
+    const moveUpBtn = node.querySelector("[data-custom-move-up]");
+    const moveDownBtn = node.querySelector("[data-custom-move-down]");
     const sourcePicker = node.querySelector("[data-custom-source-picker]");
     const addSourceBtn = node.querySelector("[data-custom-add-source]");
 
@@ -473,6 +484,26 @@
     if (removeBtn) {
       removeBtn.addEventListener("click", () => {
         node.remove();
+        scheduleGalleryUpdate();
+      });
+    }
+
+    if (moveUpBtn) {
+      moveUpBtn.addEventListener("click", (event) => {
+        event.preventDefault();
+        const prev = node.previousElementSibling;
+        if (!prev) return;
+        customList.insertBefore(node, prev);
+        scheduleGalleryUpdate();
+      });
+    }
+
+    if (moveDownBtn) {
+      moveDownBtn.addEventListener("click", (event) => {
+        event.preventDefault();
+        const next = node.nextElementSibling;
+        if (!next) return;
+        customList.insertBefore(next, node);
         scheduleGalleryUpdate();
       });
     }
@@ -1045,6 +1076,14 @@
 
     const customCharts = [];
     if (customList) {
+      const existingCustomCharts = Array.isArray(baseConfig.customCharts)
+        ? baseConfig.customCharts
+        : [];
+      const existingMap = new Map(
+        existingCustomCharts
+          .filter((chart) => chart && chart.id)
+          .map((chart) => [String(chart.id), chart])
+      );
       customList.querySelectorAll("[data-custom-chart]").forEach((item) => {
         const id = item.dataset.customId || buildCustomChartId();
         const title = item.querySelector("[data-custom-title]")?.value?.trim() || "";
@@ -1058,6 +1097,26 @@
           item.querySelector("[data-custom-enabled]")?.checked !== false;
         const rowsText = item.querySelector("[data-custom-rows]")?.value || "";
         const rows = parseCustomRows(rowsText);
+        const existing = existingMap.get(String(id)) || {};
+        const rawSourceType =
+          item.dataset.customSourceType ||
+          existing.sourceType ||
+          "snapshot";
+        const sourceType =
+          typeof rawSourceType === "string" && rawSourceType.trim()
+            ? rawSourceType.trim()
+            : "snapshot";
+        const rawSeriesKeys =
+          item.dataset.customSeriesKeys ||
+          (Array.isArray(existing.seriesKeys)
+            ? existing.seriesKeys.join("|")
+            : "");
+        const seriesKeys = rawSeriesKeys
+          ? rawSeriesKeys
+              .split("|")
+              .map((value) => value.trim())
+              .filter(Boolean)
+          : [];
         customCharts.push({
           id,
           title,
@@ -1065,6 +1124,8 @@
           module,
           chartType,
           enabled,
+          sourceType,
+          seriesKeys,
           rows,
         });
       });
@@ -1156,6 +1217,16 @@
     line: "Linea",
     pie: "Pastel",
     doughnut: "Dona",
+  };
+
+  const filterSeriesByKeys = (seriesList = [], keys = []) => {
+    if (!Array.isArray(keys) || keys.length === 0) return seriesList;
+    const keySet = new Set(
+      keys.map((key) => (key != null ? String(key).trim() : "")).filter(Boolean)
+    );
+    if (!keySet.size) return seriesList;
+    const filtered = (seriesList || []).filter((serie) => keySet.has(serie?.key));
+    return filtered.length ? filtered : seriesList;
   };
 
   const normalizeChartType = (value, fallback = "inherit") => {
@@ -1540,6 +1611,97 @@
     };
   };
 
+  const buildCustomMensualPreviewData = async ({
+    rows,
+    seriesList,
+    context,
+    chartType,
+  }) => {
+    const empresaId = context?.empresaId;
+    const anio = context?.anio;
+    if (!empresaId || !anio) return null;
+    const customRows = Array.isArray(rows) ? rows : [];
+    if (!customRows.length) return null;
+    const activeSeries = (seriesList || []).filter(
+      (serie) => serie?.enabled !== false
+    );
+    if (!activeSeries.length) return null;
+
+    const responses = await loadResumenMensual(empresaId, anio);
+    if (!responses || !responses.length) return null;
+
+    const seriesData = activeSeries.reduce((acc, serie) => {
+      acc[serie.key] = Array.from({ length: MONTH_LABELS.length }, () => 0);
+      return acc;
+    }, {});
+
+    responses.forEach((data, idx) => {
+      const layout = data?.resumen?.[0]?.layout || [];
+      if (!Array.isArray(layout) || !layout.length) return;
+      customRows.forEach((row) => {
+        const variants = Array.isArray(row?.variants)
+          ? row.variants
+          : Array.isArray(row?.labels)
+          ? row.labels
+          : row?.label
+          ? [row.label]
+          : row?.alias
+          ? [row.alias]
+          : [];
+        if (!variants.length) return;
+        const match = obtenerFilaIngreso(layout, variants);
+        if (!match?.totals) return;
+        activeSeries.forEach((serie) => {
+          seriesData[serie.key][idx] += toNumber(match.totals?.[serie.key]);
+        });
+      });
+    });
+
+    const isPie = isPieType(chartType);
+    const datasets = activeSeries.map((serie, index) => {
+      const data = seriesData[serie.key] || [];
+      const dataset = {
+        label: serie?.label || serie?.key || `Serie ${index + 1}`,
+        data: isPie ? data : data.map((value) => ocultarCeros(value)),
+        borderWidth: chartType === "line" ? 2 : 1,
+      };
+      if (isPie) {
+        dataset.backgroundColor = buildSlicePalette(
+          data.length,
+          serie?.color || "#0d47a1"
+        );
+        dataset.borderColor = "#ffffff";
+        dataset.borderWidth = 1;
+        return dataset;
+      }
+      const color = serie?.color || "#0d47a1";
+      dataset.backgroundColor = color;
+      dataset.borderColor = color;
+      if (chartType === "line") {
+        dataset.fill = false;
+        dataset.tension = 0.3;
+        dataset.pointRadius = 3;
+        dataset.pointHoverRadius = 4;
+        dataset.pointBackgroundColor = color;
+      } else {
+        dataset.borderRadius = 4;
+        dataset.maxBarThickness = 18;
+      }
+      return dataset;
+    });
+
+    const hasData = datasets.some((dataset) =>
+      (dataset.data || []).some((value) => Number(value) !== 0 && value !== null)
+    );
+    if (!hasData) return null;
+
+    return {
+      chartType,
+      labels: MONTH_LABELS,
+      datasets,
+    };
+  };
+
   const buildPreviewData = (definition, config, defaults, context) => {
     const baseType = config.chart?.type || "bar";
     const chartType = resolveChartType(definition.chartType, baseType);
@@ -1549,6 +1711,10 @@
       Array.isArray(config.series) && config.series.length
         ? config.series
         : defaults.series || [];
+    const customSeriesList = filterSeriesByKeys(
+      seriesList,
+      definition.seriesKeys
+    );
 
     if (definition.previewKind === "summary") {
       if (!snapshotMap) return null;
@@ -1673,12 +1839,21 @@
       });
     }
     if (definition.previewKind === "custom") {
+      const sourceType = (definition.sourceType || "snapshot").toString().toLowerCase();
+      if (sourceType === "mensual") {
+        return buildCustomMensualPreviewData({
+          rows: Array.isArray(definition.rows) ? definition.rows : [],
+          seriesList: customSeriesList,
+          context,
+          chartType,
+        });
+      }
       if (!snapshotMap) return null;
       const rows = Array.isArray(definition.rows) ? definition.rows : [];
       const data = buildDatasetsFromSnapshot({
         rows,
         snapshotMap,
-        seriesList,
+        seriesList: customSeriesList,
         chartType,
         capituloLabel,
         looseMatch: true,
@@ -1749,7 +1924,13 @@
     ) {
       return "Selecciona empresa y ano para ver datos.";
     }
-    if (!context?.snapshotMap) {
+    const isCustomMensual =
+      definition.previewKind === "custom" &&
+      (definition.sourceType || "").toString().toLowerCase() === "mensual";
+    if (isCustomMensual && (!context?.empresaId || !context?.anio)) {
+      return "Selecciona empresa y ano para ver datos.";
+    }
+    if (!context?.snapshotMap && !isCustomMensual) {
       return "Sin snapshot de RESUMEN.";
     }
     return "Sin datos.";
@@ -1938,20 +2119,32 @@
       const rowLabels = getCustomRowLabels(
         Array.isArray(chart?.rows) ? chart.rows : []
       );
+      const rawId =
+        typeof chart?.id === "string" && chart.id.trim()
+          ? chart.id.trim()
+          : `custom-${index + 1}`;
+      const rawModule =
+        typeof chart?.module === "string" && chart.module.trim()
+          ? chart.module.trim()
+          : "RESUMEN";
       defs.push({
-        id: `custom-${chart?.id || index + 1}`,
+        id: rawId,
+        chartId: rawId,
+        module: rawModule,
         title: chart?.title || `Grafica personalizada ${index + 1}`,
         subtitle: chart?.subtitle || "",
-        category: `Personalizada (${chart?.module || "RESUMEN"})`,
+        category: `Personalizada (${rawModule})`,
         chartType,
         enabled: chart?.enabled !== false,
         previewKind: "custom",
+        sourceType: chart?.sourceType || "snapshot",
+        seriesKeys: Array.isArray(chart?.seriesKeys) ? chart.seriesKeys : [],
         rows: Array.isArray(chart?.rows) ? chart.rows : [],
         sourcesText: buildSourcesText(rowLabels, "Filas"),
         sourcesMeta: buildSourcesMeta(rowLabels, "Filas"),
         target: {
           collapseId: "plantillasGraficasCustomCollapse",
-          focusSelector: `[data-custom-chart][data-custom-id="${chart?.id || ""}"]`,
+          focusSelector: `[data-custom-chart][data-custom-id="${rawId}"]`,
         },
       });
     });
@@ -2027,9 +2220,19 @@
   };
 
   const renderGallery = (config) => {
-    if (!galleryEl || !galleryCardTemplate) return;
+    // Validar elementos requeridos
+    if (!galleryEl) {
+      console.warn("plantillas-graficas: galleryEl no encontrado");
+      return;
+    }
+    if (!galleryCardTemplate) {
+      console.warn("plantillas-graficas: galleryCardTemplate no encontrado");
+      // Mostrar mensaje de error en la galería
+      galleryEl.innerHTML = '<div class="text-muted text-center p-4">Error: plantilla de tarjetas no encontrada</div>';
+      return;
+    }
     if (!config) {
-      galleryEl.innerHTML = "";
+      galleryEl.innerHTML = '<div class="text-muted text-center p-4">Sin configuracion disponible</div>';
       updateDetailCard(null);
       return;
     }
@@ -2039,82 +2242,118 @@
     galleryState.selectedId = null;
     galleryEl.innerHTML = "";
 
-    const definitions = buildCardDefinitions(config);
+    let definitions = [];
+    try {
+      definitions = buildCardDefinitions(config);
+    } catch (error) {
+      console.error("plantillas-graficas: Error al construir definiciones", error);
+      galleryEl.innerHTML = '<div class="text-muted text-center p-4">Error al cargar graficas</div>';
+      return;
+    }
+
+    if (!definitions || definitions.length === 0) {
+      galleryEl.innerHTML = '<div class="text-muted text-center p-4">No hay graficas configuradas</div>';
+      updateDetailCard(null);
+      return;
+    }
+
     const defaults = clone(getGraficasConfigApi()?.defaults || {});
     const previewContext = getPreviewContext();
+
     definitions.forEach((definition) => {
-      const node = galleryCardTemplate.content.firstElementChild.cloneNode(true);
-      node.dataset.chartId = definition.id;
-      const titleEl = node.querySelector("[data-chart-title]");
-      const subtitleEl = node.querySelector("[data-chart-subtitle]");
-      const statusEl = node.querySelector("[data-chart-status]");
-      const metaEl = node.querySelector("[data-chart-meta]");
-      const preview = node.querySelector(".plantillas-graficas-preview");
-      const canvas = node.querySelector("[data-chart-canvas]");
-
-      if (titleEl) titleEl.textContent = definition.title || "";
-      if (subtitleEl) subtitleEl.textContent = definition.subtitle || "";
-      if (statusEl) {
-        statusEl.textContent = definition.enabled ? "Activa" : "Inactiva";
-        statusEl.classList.toggle("text-muted", !definition.enabled);
-      }
-      if (metaEl) {
-        const metaParts = [
-          `${definition.category} - ${formatChartTypeLabel(definition.chartType)}`,
-        ];
-        if (definition.sourcesMeta) {
-          metaParts.push(definition.sourcesMeta);
-        }
-        metaEl.textContent = metaParts.join(" - ");
-      }
-      node.classList.toggle("is-disabled", !definition.enabled);
-
-      const previewData = buildPreviewData(
-        definition,
-        config,
-        defaults,
-        previewContext
-      );
-      const handlePreview = (data) => {
-        if (!data) {
-          renderPreviewFallback(
-            preview,
-            getPreviewFallbackMessage(definition, previewContext)
-          );
+      try {
+        const templateContent = galleryCardTemplate.content;
+        if (!templateContent || !templateContent.firstElementChild) {
+          console.warn("plantillas-graficas: template content vacio para", definition.id);
           return;
         }
-        renderPreviewChart(definition.id, preview, canvas, data);
-      };
-      if (previewData && typeof previewData.then === "function") {
-        renderPreviewFallback(preview, "Cargando datos...");
-        previewData
-          .then((data) => {
-            if (!node.isConnected) return;
-            handlePreview(data);
-          })
-          .catch(() => {
-            if (!node.isConnected) return;
-            renderPreviewFallback(
-              preview,
-              getPreviewFallbackMessage(definition, previewContext)
-            );
-          });
-      } else {
-        handlePreview(previewData);
-      }
+        const node = templateContent.firstElementChild.cloneNode(true);
+        node.dataset.chartId = definition.id;
+        const titleEl = node.querySelector("[data-chart-title]");
+        const subtitleEl = node.querySelector("[data-chart-subtitle]");
+        const statusEl = node.querySelector("[data-chart-status]");
+        const metaEl = node.querySelector("[data-chart-meta]");
+        const preview = node.querySelector(".plantillas-graficas-preview");
+        const canvas = node.querySelector("[data-chart-canvas]");
 
-      node.addEventListener("click", () => {
-        const prev = galleryState.selectedId;
-        if (prev && galleryState.cards.has(prev)) {
-          galleryState.cards.get(prev).node.classList.remove("active");
+        if (titleEl) titleEl.textContent = definition.title || "";
+        if (subtitleEl) subtitleEl.textContent = definition.subtitle || "";
+        if (statusEl) {
+          statusEl.textContent = definition.enabled ? "Activa" : "Inactiva";
+          statusEl.classList.toggle("text-muted", !definition.enabled);
         }
-        galleryState.selectedId = definition.id;
-        node.classList.add("active");
-        updateDetailCard(definition);
-      });
+        if (metaEl) {
+          const metaParts = [
+            `${definition.category} - ${formatChartTypeLabel(definition.chartType)}`,
+          ];
+          if (definition.sourcesMeta) {
+            metaParts.push(definition.sourcesMeta);
+          }
+          metaEl.textContent = metaParts.join(" - ");
+        }
+        node.classList.toggle("is-disabled", !definition.enabled);
 
-      galleryState.cards.set(definition.id, { node, definition });
-      galleryEl.appendChild(node);
+        // Render preview con manejo de errores
+        try {
+          const previewData = buildPreviewData(
+            definition,
+            config,
+            defaults,
+            previewContext
+          );
+          const handlePreview = (data) => {
+            if (!data) {
+              renderPreviewFallback(
+                preview,
+                getPreviewFallbackMessage(definition, previewContext)
+              );
+              return;
+            }
+            try {
+              renderPreviewChart(definition.id, preview, canvas, data);
+            } catch (chartError) {
+              console.warn("plantillas-graficas: Error rendering chart", definition.id, chartError);
+              renderPreviewFallback(preview, "Error al renderizar");
+            }
+          };
+          if (previewData && typeof previewData.then === "function") {
+            renderPreviewFallback(preview, "Cargando datos...");
+            previewData
+              .then((data) => {
+                if (!node.isConnected) return;
+                handlePreview(data);
+              })
+              .catch((err) => {
+                console.warn("plantillas-graficas: Error loading preview data", definition.id, err);
+                if (!node.isConnected) return;
+                renderPreviewFallback(
+                  preview,
+                  getPreviewFallbackMessage(definition, previewContext)
+                );
+              });
+          } else {
+            handlePreview(previewData);
+          }
+        } catch (previewError) {
+          console.warn("plantillas-graficas: Error en preview", definition.id, previewError);
+          renderPreviewFallback(preview, "Error de preview");
+        }
+
+        node.addEventListener("click", () => {
+          const prev = galleryState.selectedId;
+          if (prev && galleryState.cards.has(prev)) {
+            galleryState.cards.get(prev).node.classList.remove("active");
+          }
+          galleryState.selectedId = definition.id;
+          node.classList.add("active");
+          updateDetailCard(definition);
+        });
+
+        galleryState.cards.set(definition.id, { node, definition });
+        galleryEl.appendChild(node);
+      } catch (cardError) {
+        console.error("plantillas-graficas: Error rendering card", definition?.id, cardError);
+      }
     });
 
     if (galleryAddTemplate) {
@@ -2212,15 +2451,28 @@
   const api = getGraficasConfigApi();
   if (!api) {
     setStatus("No se encontro GraficasConfig en esta vista.", "danger");
+    console.warn("plantillas-graficas: GraficasConfig API no disponible");
     return;
   }
+
+  // Verificar elementos de galeria
+  if (!galleryEl) {
+    console.warn("plantillas-graficas: Elemento de galeria no encontrado (plantillasGraficasGallery)");
+  }
+  if (!galleryCardTemplate) {
+    console.warn("plantillas-graficas: Template de tarjeta no encontrado (plantillasGraficasCardTemplate)");
+  }
+
   const configInicial = api.load();
   applyConfigToForm(configInicial);
   renderGallery(configInicial);
-  setStatus(
-    adminAllowed ? "Listo para editar." : "Acceso restringido a administradores.",
-    adminAllowed ? "muted" : "danger"
-  );
+
+  // Verificar estado de la galeria despues de renderizar
+  const cardCount = galleryState.cards.size;
+  const statusMessage = adminAllowed
+    ? `Listo para editar. ${cardCount} graficas cargadas.`
+    : "Acceso restringido a administradores.";
+  setStatus(statusMessage, adminAllowed ? "muted" : "danger");
 
   window.addEventListener("graficas-config-updated", (event) => {
     const nextConfig = event?.detail?.config;
@@ -2253,14 +2505,19 @@
       if (item.definition.previewKind === 'custom' || item.definition.id.startsWith('custom-')) {
         if (typeof window.openChartEditor === 'function') {
           const chartData = {
-            id: item.definition.id,
+            id: item.definition.chartId || item.definition.id,
+            module: item.definition.module || "RESUMEN",
             title: item.definition.title,
             subtitle: item.definition.subtitle,
             chartType: item.definition.chartType,
             enabled: item.definition.enabled,
+            sourceType: item.definition.sourceType || "snapshot",
+            seriesKeys: Array.isArray(item.definition.seriesKeys)
+              ? item.definition.seriesKeys
+              : [],
             rows: item.definition.rows || []
           };
-          window.openChartEditor(item.definition.id, chartData);
+          window.openChartEditor(item.definition.chartId || item.definition.id, chartData);
         } else {
           openConfigSection(item.definition);
         }
@@ -2302,4 +2559,13 @@
       scheduleGalleryUpdate();
     });
   }
+
+  // Exponer funcion para recargar graficas personalizadas desde el editor inline
+  window.reloadCustomCharts = () => {
+    const api = getGraficasConfigApi();
+    if (!api) return;
+    const config = api.load();
+    renderGallery(config);
+    setStatus("Graficas actualizadas.", "success");
+  };
 })();

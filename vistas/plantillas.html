@@ -2773,13 +2773,31 @@
                                           >
                                             Grafica personalizada
                                           </div>
-                                          <button
-                                            type="button"
-                                            class="btn btn-outline-danger btn-sm"
-                                            data-custom-remove
-                                          >
-                                            Eliminar
-                                          </button>
+                                          <div class="d-flex align-items-center gap-1">
+                                            <button
+                                              type="button"
+                                              class="btn btn-outline-secondary btn-sm"
+                                              data-custom-move-up
+                                              title="Subir"
+                                            >
+                                              <i class="bi bi-arrow-up"></i>
+                                            </button>
+                                            <button
+                                              type="button"
+                                              class="btn btn-outline-secondary btn-sm"
+                                              data-custom-move-down
+                                              title="Bajar"
+                                            >
+                                              <i class="bi bi-arrow-down"></i>
+                                            </button>
+                                            <button
+                                              type="button"
+                                              class="btn btn-outline-danger btn-sm"
+                                              data-custom-remove
+                                            >
+                                              Eliminar
+                                            </button>
+                                          </div>
                                         </div>
                                         <div class="row g-2">
                                           <div class="col-12 col-lg-4">
@@ -3551,6 +3569,7 @@
       let currentChartId = null;
       let previewChartInstance = null;
       let selectedRows = [];
+      let currentModule = null;
       let availableSeries = [];
 
       // Obtener snapshot de RESUMEN
@@ -3582,6 +3601,34 @@
           .map(row => (row?.label || '').toString().trim())
           .filter(Boolean);
         return Array.from(new Set(labels)).sort((a, b) => a.localeCompare(b));
+      };
+
+      const normalizeRowLabel = (value) => (value || '').toString().trim();
+      const normalizeRowKey = (value) =>
+        normalizeRowLabel(value).toUpperCase();
+
+      const buildRowEntry = (label, variants) => {
+        const alias = normalizeRowLabel(label);
+        if (!alias) return null;
+        const cleanedVariants = Array.isArray(variants)
+          ? variants.map((v) => normalizeRowLabel(v)).filter(Boolean)
+          : [];
+        if (!cleanedVariants.length) cleanedVariants.push(alias);
+        return { alias, variants: cleanedVariants };
+      };
+
+      const toRowEntry = (row) => {
+        if (!row) return null;
+        const alias =
+          normalizeRowLabel(row.alias) ||
+          normalizeRowLabel(row.label) ||
+          normalizeRowLabel((row.variants || [])[0]);
+        const variants = Array.isArray(row.variants) && row.variants.length
+          ? row.variants
+          : alias
+          ? [alias]
+          : [];
+        return buildRowEntry(alias, variants);
       };
 
       // Obtener series disponibles desde GraficasConfig
@@ -3645,9 +3692,15 @@
       const addSelectedRow = () => {
         if (!rowPicker || !selectedRowsContainer) return;
         const value = rowPicker.value;
-        if (!value || selectedRows.includes(value)) return;
+        if (!value) return;
+        const entry = buildRowEntry(value, [value]);
+        if (!entry) return;
+        const exists = selectedRows.some(
+          (row) => normalizeRowKey(row.alias) === normalizeRowKey(entry.alias)
+        );
+        if (exists) return;
 
-        selectedRows.push(value);
+        selectedRows.push(entry);
         renderSelectedRows();
         updatePreview();
         rowPicker.value = '';
@@ -3670,12 +3723,52 @@
           const item = document.createElement('div');
           item.className = 'list-group-item d-flex justify-content-between align-items-center';
 
-          const text = document.createElement('span');
-          text.textContent = row;
+          const textWrapper = document.createElement('div');
+          const text = document.createElement('div');
+          text.textContent = row.alias || '';
+          textWrapper.appendChild(text);
+
+          if (Array.isArray(row.variants) && row.variants.length > 1) {
+            const meta = document.createElement('div');
+            meta.className = 'text-muted small';
+            meta.textContent = `${row.variants.length} variantes`;
+            textWrapper.appendChild(meta);
+          }
+
+          const actions = document.createElement('div');
+          actions.className = 'btn-group btn-group-sm';
+
+          const upBtn = document.createElement('button');
+          upBtn.type = 'button';
+          upBtn.className = 'btn btn-outline-secondary';
+          upBtn.innerHTML = '<i class="bi bi-arrow-up"></i>';
+          upBtn.disabled = index === 0;
+          upBtn.addEventListener('click', () => {
+            if (index === 0) return;
+            const temp = selectedRows[index - 1];
+            selectedRows[index - 1] = selectedRows[index];
+            selectedRows[index] = temp;
+            renderSelectedRows();
+            updatePreview();
+          });
+
+          const downBtn = document.createElement('button');
+          downBtn.type = 'button';
+          downBtn.className = 'btn btn-outline-secondary';
+          downBtn.innerHTML = '<i class="bi bi-arrow-down"></i>';
+          downBtn.disabled = index === selectedRows.length - 1;
+          downBtn.addEventListener('click', () => {
+            if (index >= selectedRows.length - 1) return;
+            const temp = selectedRows[index + 1];
+            selectedRows[index + 1] = selectedRows[index];
+            selectedRows[index] = temp;
+            renderSelectedRows();
+            updatePreview();
+          });
 
           const removeBtn = document.createElement('button');
           removeBtn.type = 'button';
-          removeBtn.className = 'btn btn-sm btn-outline-danger';
+          removeBtn.className = 'btn btn-outline-danger';
           removeBtn.innerHTML = '<i class="bi bi-x"></i>';
           removeBtn.addEventListener('click', () => {
             selectedRows.splice(index, 1);
@@ -3683,8 +3776,12 @@
             updatePreview();
           });
 
-          item.appendChild(text);
-          item.appendChild(removeBtn);
+          actions.appendChild(upBtn);
+          actions.appendChild(downBtn);
+          actions.appendChild(removeBtn);
+
+          item.appendChild(textWrapper);
+          item.appendChild(actions);
           selectedRowsContainer.appendChild(item);
         });
       };
@@ -3697,6 +3794,14 @@
         if (previewChartInstance) {
           previewChartInstance.destroy();
           previewChartInstance = null;
+        }
+
+        const sourceType = sourceTypeSelect?.value || 'snapshot';
+        if (sourceType === 'mensual') {
+          previewCanvas.classList.add('d-none');
+          previewFallback.classList.remove('d-none');
+          previewFallback.textContent = 'Vista previa mensual disponible en la galería';
+          return;
         }
 
         // Obtener datos
@@ -3727,16 +3832,30 @@
           if (label) snapshotMap.set(label, row?.totals || {});
         });
 
-        const labels = selectedRows;
+        const labels = selectedRows.map(row => row.alias || '');
         const datasets = [];
+
+        const getTotalsForVariants = (variants) => {
+          if (!variants || variants.length === 0) return {};
+          const normalized = variants.map(normalizeRowKey).filter(Boolean);
+          for (const key of normalized) {
+            const hit = snapshotMap.get(key);
+            if (hit) return hit;
+          }
+          for (const [key, value] of snapshotMap.entries()) {
+            if (normalized.some((variant) => key.includes(variant))) {
+              return value;
+            }
+          }
+          return {};
+        };
 
         enabledSeries.forEach(serieKey => {
           const serie = availableSeries.find(s => s.key === serieKey);
           if (!serie) return;
 
-          const data = selectedRows.map(rowLabel => {
-            const normalized = rowLabel.toUpperCase();
-            const totals = snapshotMap.get(normalized) || {};
+          const data = selectedRows.map(row => {
+            const totals = getTotalsForVariants(row.variants || []);
             return Number(totals[serieKey]) || 0;
           });
 
@@ -3779,21 +3898,32 @@
 
       // Abrir editor con una gráfica
       window.openChartEditor = (chartId, chartData) => {
-        currentChartId = chartId;
+        currentChartId = chartData?.id || chartId;
         currentChart = chartData || {};
+        currentModule =
+          currentChart?.module ||
+          document.getElementById('moduloSelect')?.value ||
+          'RESUMEN';
+        const subtitleEl = document.getElementById('chartEditorSubtitle');
+        if (subtitleEl) {
+          subtitleEl.textContent = currentModule ? `Modulo: ${currentModule}` : '';
+        }
 
         // Cargar datos al formulario
         if (titleInput) titleInput.value = currentChart.title || '';
         if (subtitleInput) subtitleInput.value = currentChart.subtitle || '';
         if (typeSelect) typeSelect.value = currentChart.chartType || 'inherit';
         if (enabledCheck) enabledCheck.checked = currentChart.enabled !== false;
+        if (sourceTypeSelect) {
+          sourceTypeSelect.value = currentChart.sourceType || 'snapshot';
+        }
 
         // Cargar filas seleccionadas
         selectedRows = [];
         if (Array.isArray(currentChart.rows)) {
-          selectedRows = currentChart.rows.map(row =>
-            row?.alias || row?.label || row?.variants?.[0] || ''
-          ).filter(Boolean);
+          selectedRows = currentChart.rows
+            .map(toRowEntry)
+            .filter(Boolean);
         }
 
         // Cargar series disponibles
@@ -3801,7 +3931,7 @@
 
         // Renderizar UI
         loadRowPicker();
-        renderSeriesChecks();
+        renderSeriesChecks(Array.isArray(currentChart.seriesKeys) ? currentChart.seriesKeys : []);
         renderSelectedRows();
         updatePreview();
 
@@ -3830,6 +3960,10 @@
         typeSelect.addEventListener('change', updatePreview);
       }
 
+      if (sourceTypeSelect) {
+        sourceTypeSelect.addEventListener('change', updatePreview);
+      }
+
       if (saveBtn) {
         saveBtn.addEventListener('click', () => {
           // Validar formulario
@@ -3845,17 +3979,35 @@
             return;
           }
 
+          const selectedSeries = Array.from(
+            seriesChecksContainer?.querySelectorAll('input[type="checkbox"]:checked') || []
+          ).map(cb => cb.value);
+
+          if (selectedSeries.length === 0) {
+            alert('Debes seleccionar al menos una serie');
+            return;
+          }
+
           // Construir objeto de gráfica
           const chartData = {
             id: currentChartId || `custom-${Date.now()}`,
-            module: 'RESUMEN',
+            module:
+              currentChart?.module ||
+              currentModule ||
+              document.getElementById('moduloSelect')?.value ||
+              'RESUMEN',
             title: title,
             subtitle: subtitleInput?.value?.trim() || '',
             chartType: typeSelect?.value || 'inherit',
             enabled: enabledCheck?.checked !== false,
-            rows: selectedRows.map(label => ({
-              alias: label,
-              variants: [label]
+            sourceType: sourceTypeSelect?.value || 'snapshot',
+            seriesKeys: selectedSeries,
+            rows: selectedRows.map((row) => ({
+              alias: row.alias,
+              variants:
+                Array.isArray(row.variants) && row.variants.length
+                  ? row.variants
+                  : [row.alias]
             }))
           };
 

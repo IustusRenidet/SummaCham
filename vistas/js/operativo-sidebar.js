@@ -73,6 +73,16 @@
     return normalized;
   };
 
+  const filterSeriesByKeys = (seriesList = [], keys = []) => {
+    if (!Array.isArray(keys) || keys.length === 0) return seriesList;
+    const keySet = new Set(
+      keys.map((key) => (key != null ? String(key).trim() : "")).filter(Boolean)
+    );
+    if (!keySet.size) return seriesList;
+    const filtered = (seriesList || []).filter((serie) => keySet.has(serie?.key));
+    return filtered.length ? filtered : seriesList;
+  };
+
   const buildSlicePalette = (count, baseColor) => {
     const palette = baseColor
       ? [baseColor, ...CHART_PALETTE.filter((color) => color !== baseColor)]
@@ -597,7 +607,7 @@
     const rowsData = obtenerDatosFilas(tabla);
     if (!rowsData.length) return;
 
-    const datasetDefs = [
+    const baseDatasetDefs = [
       {
         key: "budget",
         valueKey: "presupuesto",
@@ -621,7 +631,7 @@
       },
     ].filter((item) => item.enabled !== false);
 
-    if (!datasetDefs.length) return;
+    if (!baseDatasetDefs.length) return;
 
     const baseChartType = graficasConfig.chart?.type || "bar";
 
@@ -634,6 +644,11 @@
 
       const chartType = resolveChartType(chart?.chartType, baseChartType);
       const isPie = isPieType(chartType);
+      const datasetDefs = filterSeriesByKeys(
+        baseDatasetDefs,
+        chart?.seriesKeys || []
+      );
+      if (!datasetDefs.length) return;
 
       const labels = [];
       const seriesData = datasetDefs.reduce((acc, def) => {

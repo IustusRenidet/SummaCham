@@ -775,6 +775,16 @@
       .filter((serie) => serie.enabled !== false);
   };
 
+  const filterSeriesByKeys = (seriesList = [], keys = []) => {
+    if (!Array.isArray(keys) || keys.length === 0) return seriesList;
+    const keySet = new Set(
+      keys.map((key) => (key != null ? String(key).trim() : "")).filter(Boolean)
+    );
+    if (!keySet.size) return seriesList;
+    const filtered = (seriesList || []).filter((serie) => keySet.has(serie?.key));
+    return filtered.length ? filtered : seriesList;
+  };
+
   const getSummaryRowsConfig = (capitulo, graficasConfig = {}) => {
     const cap = normalizarLabelResumen(capitulo);
     const sources =
@@ -1035,8 +1045,8 @@
       .toString()
       .toUpperCase();
     const baseChartType = graficasConfig.chart?.type || "bar";
-    const seriesConfig = getEnabledSeriesConfig(graficasConfig);
-    if (!seriesConfig.length) return 0;
+    const baseSeriesConfig = getEnabledSeriesConfig(graficasConfig);
+    if (!baseSeriesConfig.length) return 0;
 
     const sanitizeId = (value) =>
       String(value || "")
@@ -1051,6 +1061,11 @@
         .toUpperCase();
       if (chartModule !== moduleKey) return;
       const chartType = resolveChartType(chart?.chartType, baseChartType);
+      const seriesConfig = filterSeriesByKeys(
+        baseSeriesConfig,
+        chart?.seriesKeys || []
+      );
+      if (!seriesConfig.length) return;
       const data = buildCustomChartData(snapshot, chart, seriesConfig, chartType);
       if (!data) return;
 
@@ -1420,9 +1435,9 @@
       .toString()
       .toUpperCase();
     const baseChartType = graficasConfig.chart?.type || "bar";
-    const seriesConfig = getEnabledSeriesConfig(graficasConfig);
+    const baseSeriesConfig = getEnabledSeriesConfig(graficasConfig);
 
-    if (snapshot?.filas && customCharts.length && seriesConfig.length) {
+    if (snapshot?.filas && customCharts.length && baseSeriesConfig.length) {
       customCharts.forEach((chart, index) => {
         if (chart?.enabled === false) return;
         const chartModule = (chart?.module || "RESUMEN")
@@ -1430,6 +1445,11 @@
           .toUpperCase();
         if (chartModule !== moduleKey) return;
         const chartType = resolveChartType(chart?.chartType, baseChartType);
+        const seriesConfig = filterSeriesByKeys(
+          baseSeriesConfig,
+          chart?.seriesKeys || []
+        );
+        if (!seriesConfig.length) return;
         const data = buildCustomChartData(
           snapshot,
           chart,
@@ -4717,7 +4737,10 @@
 
   document.addEventListener("DOMContentLoaded", async () => {
     try {
-      window.ModoEdicionPresupuesto?.inicializar?.(undefined, { soloLayout: true });
+      window.ModoEdicionPresupuesto?.inicializar?.(undefined, {
+        soloLayout: true,
+        mostrarDiagnosticoCuentas: false,
+      });
     } catch (e) {
       /* ignore */
     }

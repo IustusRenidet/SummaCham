@@ -324,6 +324,32 @@
     return res.json();
   };
 
+  const resumenMensualCache = new Map();
+
+  const loadResumenMensual = async (empresaId, anio) => {
+    if (!empresaId || !anio) return [];
+    const key = `${empresaId || "sin"}:${anio || "sin"}`;
+    const cached = resumenMensualCache.get(key);
+    if (cached?.data) return cached.data;
+    if (cached?.promise) return cached.promise;
+    const meses = MONTH_LABELS.map((_, idx) => idx + 1);
+    const promise = Promise.all(
+      meses.map(async (mes) => {
+        try {
+          return await fetchResumenMes(empresaId, anio, mes);
+        } catch (err) {
+          console.warn("?? Graficas: Error cargando resumen mes", mes, err);
+          return null;
+        }
+      })
+    ).then((data) => {
+      resumenMensualCache.set(key, { data, at: Date.now() });
+      return data;
+    });
+    resumenMensualCache.set(key, { promise });
+    return promise;
+  };
+
   const buildIngresoPorCapituloSeries = async (empresaId, anio) => {
     if (!empresaId || !anio) return null;
 
@@ -1241,6 +1267,16 @@
       }));
   };
 
+  const filterSeriesByKeys = (seriesList = [], keys = []) => {
+    if (!Array.isArray(keys) || keys.length === 0) return seriesList;
+    const keySet = new Set(
+      keys.map((key) => (key != null ? String(key).trim() : "")).filter(Boolean)
+    );
+    if (!keySet.size) return seriesList;
+    const filtered = (seriesList || []).filter((serie) => keySet.has(serie?.key));
+    return filtered.length ? filtered : seriesList;
+  };
+
   // === RENDERIZADO DE GRÁFICAS ===
   const renderChart = (id, cfg) => {
     const ctx = document.getElementById(id);
@@ -1368,9 +1404,77 @@
     return { labels, datasets };
   };
 
-  const renderCustomCharts = (snapshotMap, config) => {
+  const buildCustomMensualChartData = (rows, responses, columnDefs, chartType) => {
+    if (!Array.isArray(rows) || !rows.length) return null;
+    if (!Array.isArray(responses) || !responses.length) return null;
+    if (!Array.isArray(columnDefs) || !columnDefs.length) return null;
+
+    const seriesData = columnDefs.reduce((acc, col) => {
+      acc[col.key] = Array.from({ length: MONTH_LABELS.length }, () => 0);
+      return acc;
+    }, {});
+
+    responses.forEach((data, idx) => {
+      const layout = data?.resumen?.[0]?.layout || [];
+      if (!Array.isArray(layout) || !layout.length) return;
+      rows.forEach((row) => {
+        const variants =
+          Array.isArray(row?.variants) && row.variants.length
+            ? row.variants
+            : row?.label
+            ? [row.label]
+            : row?.alias
+            ? [row.alias]
+            : [];
+        if (!variants.length) return;
+        const match = obtenerFilaIngreso(layout, variants);
+        if (!match?.totals) return;
+        columnDefs.forEach((col) => {
+          seriesData[col.key][idx] += toNumber(match.totals?.[col.key]);
+        });
+      });
+    });
+
+    const isPie = isPieType(chartType);
+    const datasets = columnDefs.map((col) => {
+      const rawValues = seriesData[col.key] || [];
+      const data = isPie ? rawValues : rawValues.map((value) => ocultarCeros(value));
+      const dataset = {
+        label: col.label,
+        data,
+        borderWidth: chartType === "line" ? 2 : 1,
+      };
+      if (isPie) {
+        dataset.backgroundColor = buildSlicePalette(data.length, col.color);
+        dataset.borderColor = "#ffffff";
+        dataset.borderWidth = 1;
+        return dataset;
+      }
+      dataset.backgroundColor = col.color;
+      dataset.borderColor = col.color;
+      if (chartType === "line") {
+        dataset.fill = false;
+        dataset.tension = 0.32;
+        dataset.pointRadius = POINT_RADIUS;
+        dataset.pointHoverRadius = POINT_HOVER_RADIUS;
+        dataset.pointBackgroundColor = col.color;
+      } else {
+        dataset.minBarLength = MIN_BAR_LENGTH;
+      }
+      return dataset;
+    });
+
+    const hasData = datasets.some((dataset) =>
+      (dataset.data || []).some((value) => Number(value) !== 0 && value !== null)
+    );
+    if (!hasData) return null;
+
+    return { labels: MONTH_LABELS, datasets };
+  };
+
+  const renderCustomCharts = (snapshotMap, config, context = {}) => {
     clearCustomCharts();
-    if (!customChartsRow || !snapshotMap) return;
+    if (!customChartsRow) return;
     const customChartsList = Array.isArray(config.customCharts)
       ? config.customCharts
       : [];
@@ -1379,42 +1483,45 @@
     const currentModule = (document.body?.dataset?.modulo || "RESUMEN")
       .toString()
       .toUpperCase();
-    const columnDefs = getColumnDefs(config);
-    if (!columnDefs.length) return;
+    const baseColumnDefs = getColumnDefs(config);
+    if (!baseColumnDefs.length) return;
 
     const baseChartType = config.chart?.type || "bar";
+    const empresaId =
+      context.empresaId || window.Sesion?.obtenerEmpresaActiva?.()?.id;
+    const anio =
+      context.anio ||
+      (Number.isFinite(Number(yearSelect?.value)) ? Number(yearSelect?.value) : null);
 
-    customChartsList.forEach((chart, index) => {
-      if (chart?.enabled === false) return;
-      if (getCustomModuleKey(chart) !== currentModule) return;
-      const rows = Array.isArray(chart?.rows) ? chart.rows : [];
-      if (!rows.length) return;
-      const chartType =
-        chart?.chartType && chart.chartType !== "inherit"
-          ? chart.chartType
-          : baseChartType;
-      const data = buildCustomChartData(rows, snapshotMap, columnDefs, chartType);
-      if (!data) return;
+    const needsMensual = customChartsList.some(
+      (chart) =>
+        chart?.enabled !== false &&
+        getCustomModuleKey(chart) === currentModule &&
+        (chart?.sourceType || "").toString().toLowerCase() === "mensual"
+    );
+    const mensualPromise =
+      needsMensual && empresaId && anio
+        ? loadResumenMensual(empresaId, anio)
+        : null;
 
-      const safeId = sanitizeChartId(chart.id) || `customChart-${index + 1}`;
-      const canvasId = `customChart-${safeId}`;
-      const wrapper = document.createElement("div");
-      wrapper.className = "col-12";
-      wrapper.innerHTML = `
-        <div class="card chart-card p-3" data-custom-chart="${canvasId}">
-          <div class="d-flex justify-content-between align-items-center mb-2">
-            <h5 class="mb-0">${chart.title || "Grafica personalizada"}</h5>
-            <small class="text-muted">${chart.subtitle || ""}</small>
-          </div>
-          <div class="chart-container">
-            <canvas id="${canvasId}"></canvas>
-          </div>
-        </div>
-      `;
-      customChartsRow.appendChild(wrapper);
-      const canvas = wrapper.querySelector("canvas");
-      if (!canvas) return;
-      customCharts[canvasId] = new Chart(canvas, {
+    const renderEmpty = (emptyEl, canvasEl, message) => {
+      if (emptyEl) {
+        emptyEl.textContent = message || "Sin datos.";
+        emptyEl.style.display = "flex";
+      }
+      if (canvasEl) {
+        canvasEl.style.display = "none";
+      }
+    };
+
+    const renderChart = (canvasEl, emptyEl, data, chartType) => {
+      if (!canvasEl || !data) {
+        renderEmpty(emptyEl, canvasEl, "Sin datos.");
+        return;
+      }
+      if (emptyEl) emptyEl.style.display = "none";
+      canvasEl.style.display = "block";
+      customCharts[canvasEl.id] = new Chart(canvasEl, {
         type: chartType,
         data: {
           labels: data.labels,
@@ -1458,6 +1565,84 @@
           chartType
         ),
       });
+    };
+
+    customChartsList.forEach((chart, index) => {
+      if (chart?.enabled === false) return;
+      if (getCustomModuleKey(chart) !== currentModule) return;
+      const rows = Array.isArray(chart?.rows) ? chart.rows : [];
+      if (!rows.length) return;
+
+      const chartType =
+        chart?.chartType && chart.chartType !== "inherit"
+          ? chart.chartType
+          : baseChartType;
+      const sourceType = (chart?.sourceType || "snapshot")
+        .toString()
+        .toLowerCase();
+      const columnDefs = filterSeriesByKeys(
+        baseColumnDefs,
+        chart?.seriesKeys || []
+      );
+      if (!columnDefs.length) return;
+
+      const safeId = sanitizeChartId(chart.id) || `customChart-${index + 1}`;
+      const canvasId = `customChart-${safeId}`;
+      const wrapper = document.createElement("div");
+      wrapper.className = "col-12";
+      wrapper.innerHTML = `
+        <div class="card chart-card p-3" data-custom-chart="${canvasId}">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h5 class="mb-0">${chart.title || "Grafica personalizada"}</h5>
+            <small class="text-muted">${chart.subtitle || ""}</small>
+          </div>
+          <div class="chart-container">
+            <canvas id="${canvasId}"></canvas>
+            <div class="text-muted small text-center"
+              data-custom-empty="${canvasId}"
+              style="position:absolute; inset:0; display:none; align-items:center; justify-content:center;">
+              Sin datos.
+            </div>
+          </div>
+        </div>
+      `;
+      customChartsRow.appendChild(wrapper);
+      const canvas = wrapper.querySelector("canvas");
+      const empty = wrapper.querySelector(`[data-custom-empty="${canvasId}"]`);
+      if (!canvas) return;
+
+      if (sourceType === "mensual") {
+        if (!empresaId || !anio) {
+          renderEmpty(empty, canvas, "Selecciona empresa y ano.");
+          return;
+        }
+        renderEmpty(empty, canvas, "Cargando datos...");
+        if (!mensualPromise) return;
+        mensualPromise
+          .then((responses) => {
+            if (!wrapper.isConnected) return;
+            const data = buildCustomMensualChartData(
+              rows,
+              responses,
+              columnDefs,
+              chartType
+            );
+            renderChart(canvas, empty, data, chartType);
+          })
+          .catch((error) => {
+            console.warn("?? Graficas: Error cargando grafica mensual", error);
+            if (!wrapper.isConnected) return;
+            renderEmpty(empty, canvas, "Sin datos.");
+          });
+        return;
+      }
+
+      if (!snapshotMap) {
+        renderEmpty(empty, canvas, "Sin snapshot de RESUMEN.");
+        return;
+      }
+      const data = buildCustomChartData(rows, snapshotMap, columnDefs, chartType);
+      renderChart(canvas, empty, data, chartType);
     });
   };
 
@@ -1567,7 +1752,7 @@
    * 2. Resumen Neto por Capítulo
    * 3. Consolidados Operativos vs Netos
    */
-  const renderAllCharts = (snapshotMap, capitulo, etiqueta) => {
+  const renderAllCharts = (snapshotMap, capitulo, etiqueta, context = {}) => {
     if (!snapshotMap || snapshotMap.size === 0) {
       console.warn("📊 Graficas: No hay datos en el snapshot");
       return;
@@ -1755,7 +1940,7 @@
       });
     }
 
-    renderCustomCharts(snapshotMap, graficasConfig);
+    renderCustomCharts(snapshotMap, graficasConfig, context);
   };
 
   /**
@@ -2366,6 +2551,11 @@
         }
       });
       clearCustomCharts();
+      const graficasConfig = getGraficasConfig();
+      renderCustomCharts(null, graficasConfig, {
+        empresaId: empresa.id,
+        anio,
+      });
 
       // Renderizar las gráficas de ingresos aunque no haya snapshot
       await renderIngresoPorCapituloChart(empresa.id, anio);
@@ -2379,7 +2569,10 @@
     );
 
     // Renderizar todas las gráficas usando exclusivamente el snapshot
-    renderAllCharts(snapshot.map, capitulo, etiquetaFinal);
+    renderAllCharts(snapshot.map, capitulo, etiquetaFinal, {
+      empresaId: empresa.id,
+      anio,
+    });
     await renderIngresoPorCapituloChart(empresa.id, anio);
     await renderIngresoNacionalChart(empresa.id, anio);
   };

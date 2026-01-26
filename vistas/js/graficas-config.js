@@ -279,6 +279,14 @@
     return fallback;
   };
 
+  const normalizeSourceType = (value, fallback = "snapshot") => {
+    if (typeof value !== "string") return fallback;
+    const clean = value.trim().toLowerCase();
+    if (!clean) return fallback;
+    if (["snapshot", "mensual", "custom"].includes(clean)) return clean;
+    return fallback;
+  };
+
   const normalizeSeriesMap = (defaultsMap, overrideMap) => {
     const result = {};
     const baseMap = defaultsMap && typeof defaultsMap === "object" ? defaultsMap : {};
@@ -339,6 +347,12 @@
           return { alias, variants: cleaned };
         })
         .filter(Boolean);
+      const seriesKeys = Array.isArray(chart?.seriesKeys)
+        ? chart.seriesKeys
+            .map((key) => (key != null ? String(key).trim() : ""))
+            .filter(Boolean)
+        : [];
+      const sourceType = normalizeSourceType(chart?.sourceType, "snapshot");
       return {
         id,
         module,
@@ -346,6 +360,8 @@
         subtitle,
         chartType,
         enabled,
+        sourceType,
+        seriesKeys,
         rows: normalizedRows,
       };
     });

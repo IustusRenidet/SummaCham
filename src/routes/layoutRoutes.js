@@ -8,6 +8,8 @@ const router = express.Router();
 const layoutService = require("../services/layoutService");
 const { requireAuth } = require("../middleware/auth");
 const { normalizarNombreModulo } = require("../config/modulos");
+const fs = require("fs");
+const path = require("path");
 
 const { db } = require("../db/sqlite");
 
@@ -48,6 +50,162 @@ router.use((req, res, next) => {
     );
   }
   next();
+});
+
+const NORMALIZE_REGEX = /[^a-zA-Z0-9]+/g;
+const normalizeKey = (value) =>
+  (value || "")
+    .toString()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(NORMALIZE_REGEX, "")
+    .toUpperCase();
+
+const normalizeCapituloKey = (value) => {
+  const base = normalizeKey(value);
+  if (base === "CDMX") return "CIUDADDEMEXICO";
+  if (base === "NORESTE") return "NE";
+  if (base === "NOROESTE") return "NO";
+  return base;
+};
+
+const normalizeModuloKey = (value) => normalizeKey(value);
+
+const inferPlacementFields = (nombre, moduloKey) => {
+  const key = normalizeKey(nombre);
+  const modKey = normalizeModuloKey(moduloKey);
+  if (!key) return [];
+
+  if (modKey === "RESUMEN" || modKey === "SUMMARY") {
+    if (key.includes("CONSOLIDATEDNETRESULTS")) return ["result-net-row"];
+    if (key.includes("NETRESULTS")) return ["net-row"];
+    if (key.includes("CONSOLIDATEDOPERATINGRESULTS"))
+      return ["sum-row-operativo-consolidado"];
+    if (key.includes("OPERATINGRESULTS")) return ["sum-row-operativo"];
+    if (key.includes("CONSOLIDATEDINCOME") || key.includes("CONSOLIDATEDEXPENSE"))
+      return ["sum-row-sumavarios-consolidado"];
+    if (key.includes("CONSOLIDATED")) return ["sum-row-sumavarios-consolidado"];
+    if (key.includes("RESULTS")) return ["result-row"];
+    return ["sum-row"];
+  }
+
+  if (key.includes("RESULTADOOPERATIVO")) return ["sum-row-operativo"];
+  if (key.includes("RESULTADO")) return ["result-row"];
+  if (key.includes("NET")) return ["net-row"];
+  return ["sum-row"];
+};
+
+let operacionesPredefCache = null;
+let operacionesPredefCacheAt = 0;
+const OPERACIONES_CACHE_TTL_MS = 5 * 60 * 1000;
+
+const buildOperacionesPredefinidas = () => {
+  const now = Date.now();
+  if (
+    operacionesPredefCache &&
+    now - operacionesPredefCacheAt < OPERACIONES_CACHE_TTL_MS
+  ) {
+    return operacionesPredefCache;
+  }
+
+  const baseDir = path.resolve(__dirname, "../../PLANTILLAS 2026+");
+  if (!fs.existsSync(baseDir)) {
+    operacionesPredefCache = {};
+    operacionesPredefCacheAt = now;
+    return operacionesPredefCache;
+  }
+
+  const map = {};
+  const capituloDirs = fs
+    .readdirSync(baseDir, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name);
+
+  capituloDirs.forEach((dirName) => {
+    const capituloLabel = dirName.replace(/\s*\d{4}\s*$/, "").trim();
+    const capKey = normalizeCapituloKey(capituloLabel);
+    if (!capKey) return;
+    const dirPath = path.join(baseDir, dirName);
+    const files = fs
+      .readdirSync(dirPath)
+      .filter((file) => /_layout\.json$/i.test(file));
+
+    files.forEach((file) => {
+      const moduloLabel = file.replace(/_layout\.json$/i, "").trim();
+      const modKey = normalizeModuloKey(moduloLabel);
+      if (!modKey) return;
+
+      const filePath = path.join(dirPath, file);
+      let jsonData = null;
+      try {
+        jsonData = JSON.parse(fs.readFileSync(filePath, "utf8"));
+      } catch (error) {
+        console.warn(
+          `[operaciones-predefinidas] No se pudo leer ${filePath}: ${error.message}`
+        );
+        return;
+      }
+
+      const ops =
+        jsonData?.Operaciones ||
+        jsonData?.operaciones ||
+        jsonData?.OPERACIONES ||
+        [];
+      if (!Array.isArray(ops) || !ops.length) return;
+
+      const mapped = ops
+        .map((op, idx) => {
+          const nombre = (op?.nombre || op?.Nombre || op?.Clase || op?.clase || "")
+            .toString()
+            .trim();
+          if (!nombre) return null;
+          const formula = (op?.expresion || op?.Expresion || op?.formula || "")
+            .toString()
+            .trim();
+          const section = (op?.seccion || op?.Seccion || op?.SECCION || "")
+            .toString()
+            .trim();
+          const placements = inferPlacementFields(nombre, modKey);
+          return {
+            nombre,
+            formula,
+            section,
+            aparece: placements,
+            orden: Number.isFinite(Number(op?.orden)) ? Number(op?.orden) : idx,
+            source: "plantillas-2026",
+          };
+        })
+        .filter(Boolean);
+
+      if (!mapped.length) return;
+
+      if (!map[capKey]) map[capKey] = {};
+      if (!map[capKey][modKey]) map[capKey][modKey] = [];
+      map[capKey][modKey].push(...mapped);
+    });
+  });
+
+  operacionesPredefCache = map;
+  operacionesPredefCacheAt = now;
+  return operacionesPredefCache;
+};
+
+/**
+ * GET /api/layouts-config/operaciones-predefinidas
+ * Operaciones predefinidas (solo fórmulas) desde PLANTILLAS 2026+
+ */
+router.get("/operaciones-predefinidas", requireAuth, (req, res) => {
+  try {
+    const data = buildOperacionesPredefinidas();
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error("Error al cargar operaciones predefinidas:", error);
+    res.status(500).json({
+      success: false,
+      mensaje: "Error al cargar operaciones predefinidas",
+      error: error.message,
+    });
+  }
 });
 
 /**
@@ -244,13 +402,14 @@ router.get("/:modulo/:anio/:capitulo", requireAuth, (req, res) => {
   );
   try {
     const { modulo, anio, capitulo } = req.params;
-    const { empresaId = "EMPRESA01" } = req.query;
+    const { empresaId = "EMPRESA01", includeSecciones } = req.query;
 
     const layout = layoutService.obtenerLayout({
       empresaId,
       modulo,
       anio: parseInt(anio),
       capitulo: decodeURIComponent(capitulo),
+      incluirSecciones: includeSecciones,
     });
 
     res.json({

@@ -756,6 +756,16 @@ body {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 16px;
+  min-height: 200px;
+}
+
+.plantillas-graficas-gallery:empty::after {
+  content: "Cargando graficas...";
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 2rem;
+  color: #6b7280;
+  font-size: 0.875rem;
 }
 
 .plantillas-graficas-card {

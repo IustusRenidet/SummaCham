@@ -601,9 +601,10 @@
     setStatus("Cargando layout...");
 
     try {
-      const url = agregarEmpresaIdQuery(
+      const urlBase = agregarEmpresaIdQuery(
         `${API_BASE}/${encodeURIComponent(state.modulo)}/${state.anio}/${encodeURIComponent(state.capitulo)}`
       );
+      const url = `${urlBase}${urlBase.includes("?") ? "&" : "?"}includeSecciones=1`;
       const response = await fetch(url, { headers: getAuthHeaders() });
 
       if (response.status === 404) {
@@ -621,6 +622,7 @@
       const data = await response.json();
       state.layout = data.layout || {};
       state.cuentas = extractCuentas(state.layout);
+      ensureAccountIds(state.cuentas);
       state.operaciones = sortOperations(state.layout.operaciones || []);
       if (isModuloPiloto()) {
         const extracted = extractColumnConfigFromOperations(state.operaciones);
@@ -635,10 +637,21 @@
         state.columnasConfig = null;
         state.columnasConfigChanged = false;
       }
-      await syncOperacionesPredefinidas({ autoCreate: true, force: true });
-      syncOperacionesSumasDesdeConfig();
+      const anioNumero = Number(state.anio);
+      const usarPredef =
+        Number.isFinite(anioNumero) && anioNumero >= 2026;
+      let hasPredef = false;
+      if (usarPredef) {
+        await syncOperacionesPredefinidas({ autoCreate: true, force: false });
+        hasPredef =
+          typeof getOperacionesPredefinidasContexto === "function" &&
+          getOperacionesPredefinidasContexto().length > 0;
+      }
+      if (!hasPredef) {
+        syncOperacionesSumasDesdeConfig();
+        syncOperativoPorNombreOps();
+      }
       hydrateOperationsFromParents();
-      syncOperativoPorNombreOps();
       ensureOperationIds();
       normalizeOperationReferences();
       state.selectedElement = null;
@@ -702,6 +715,76 @@
     const raw = cuenta?.orden_presentacion ?? cuenta?.orden ?? cuenta?.Orden;
     const parsed = Number(raw);
     return Number.isFinite(parsed) ? parsed : fallback;
+  }
+
+  function isPlaceholderAccount(cuenta) {
+    if (!cuenta) return false;
+    const codigo = (cuenta.CUENTA || cuenta.cuenta || "").toString().trim();
+    if (codigo) return false;
+    if (cuenta.__layoutPlaceholder || cuenta.__placeholderType) return true;
+    const nombre = (cuenta.NOMBRE || cuenta.nombre || "").toString();
+    return /\[secci[oó]n/i.test(nombre) || /\[subsecci[oó]n/i.test(nombre);
+  }
+
+  function getNextAccountOrder() {
+    if (!Array.isArray(state.cuentas) || !state.cuentas.length) return 1;
+    const max = Math.max(
+      ...state.cuentas.map((cuenta, idx) => getAccountOrder(cuenta, idx))
+    );
+    return Number.isFinite(max) ? max + 1 : state.cuentas.length + 1;
+  }
+
+  let accountIdSeed = 0;
+  function buildAccountRowId() {
+    accountIdSeed += 1;
+    return `acc_${Date.now().toString(36)}_${accountIdSeed}`;
+  }
+
+  function assignAccountRowId(cuenta) {
+    if (!cuenta) return "";
+    const existing =
+      cuenta.__rowId ||
+      cuenta.__layoutRowId ||
+      cuenta.__id ||
+      cuenta._rowId ||
+      "";
+    const id = existing || buildAccountRowId();
+    if (!cuenta.__rowId) {
+      try {
+        Object.defineProperty(cuenta, "__rowId", {
+          value: id,
+          writable: false,
+          enumerable: false,
+        });
+      } catch {
+        cuenta.__rowId = id;
+      }
+    }
+    return cuenta.__rowId || id;
+  }
+
+  function ensureAccountIds(accounts = state.cuentas) {
+    if (!Array.isArray(accounts)) return;
+    accounts.forEach((cuenta) => assignAccountRowId(cuenta));
+  }
+
+  function getAccountRowId(cuenta) {
+    return assignAccountRowId(cuenta);
+  }
+
+  function resolveAccountByIdOrCode(idOrCode) {
+    if (!idOrCode) return null;
+    const direct = (state.cuentas || []).find((c) => {
+      const rowId =
+        c?.__rowId || c?.__layoutRowId || c?.__id || c?._rowId || "";
+      return rowId && rowId === idOrCode;
+    });
+    if (direct) return direct;
+    const target = normalizeOperationMatch(idOrCode);
+    return (state.cuentas || []).find((c) => {
+      const code = (c.CUENTA || c.Cuenta || c.cuenta || "").toString();
+      return normalizeOperationMatch(code) === target;
+    });
   }
 
   function getOperationOrder(op, fallback = 0) {
@@ -773,6 +856,10 @@
 
   const rowLabelInputId = (field) =>
     `editRowLabel_${field.replace(/[^a-z0-9]/gi, "_")}`;
+  const rowLabelAddInputId = (field) =>
+    `addRowLabel_${field.replace(/[^a-z0-9]/gi, "_")}`;
+  const rowLabelAddCheckId = (field) =>
+    `addRowCheck_${field.replace(/[^a-z0-9]/gi, "_")}`;
 
 
   function normalizeOperationId(value) {
@@ -999,10 +1086,18 @@
   function hydrateOperationsFromParents() {
     state.operaciones = state.operaciones.map((op, idx) => {
       const parentName = op?.SECCION || op?.Clase;
+      const hasExplicitFormula =
+        (Array.isArray(op?.formula_terms) && op.formula_terms.length > 0) ||
+        Boolean(op?.formula_json) ||
+        Object.keys(op || {}).some(
+          (key) =>
+            /^(seccion|operacion|cuenta)_\d+$/i.test(key) && Boolean(op[key])
+        );
 
       // PRIORIDAD 1: Detectar y SIEMPRE reconstruir operaciones consolidadas
       if (
         parentName &&
+        !hasExplicitFormula &&
         (parentName.toLowerCase().includes("consolidated") ||
           parentName.toLowerCase().includes("consolidado") ||
           parentName.toLowerCase().includes("total"))
@@ -1148,6 +1243,7 @@
   }
 
   function renderLayout() {
+    ensureAccountIds(state.cuentas);
     dom.layoutPreview.innerHTML = renderEditableLayout();
     bindLayoutEvents();
     window.updateAvailableElementsFromTable?.("#layoutPreview");
@@ -1289,24 +1385,178 @@
   }
 
   function buildPreviewRowsForEditor() {
-    if (
-      !window.LayoutControls ||
-      typeof window.LayoutControls._buildPreviewRows !== "function"
-    ) {
-      return [];
-    }
-    const layoutData = {
-      modulo: state.modulo,
-      capitulo: state.capitulo,
-      cuentas: state.cuentas || [],
-      operaciones: sortOperations(state.operaciones || []),
+    const appendMissingOperations = (rows = []) => {
+      const normalized = new Set();
+      const registerKey = (value) => {
+        const key = normalizeOperationMatch(value || "");
+        if (key) normalized.add(key);
+      };
+
+      (rows || []).forEach((row) => {
+        if (!row || row.type !== "operation") return;
+        registerKey(row.opId || row.label || "");
+      });
+
+      const extras = [];
+      (state.operaciones || []).forEach((op) => {
+        if (!op || isColumnConfigOperation(op)) return;
+        const label = getOperationDisplayName(op);
+        const opId = getOperationId(op) || label;
+        if (!label && !opId) return;
+        const keyId = normalizeOperationMatch(opId || "");
+        const keyLabel = normalizeOperationMatch(label || "");
+        if ((keyId && normalized.has(keyId)) || (keyLabel && normalized.has(keyLabel))) {
+          return;
+        }
+        if (keyId) normalized.add(keyId);
+        if (keyLabel) normalized.add(keyLabel);
+        extras.push({
+          type: "operation",
+          label: label || opId || "",
+          opId: opId || label || "",
+          kind: detectOperationType(op),
+          visible: op.visible !== false,
+        });
+      });
+
+      if (!extras.length) return rows;
+      return [...rows, ...extras];
     };
-    try {
-      return window.LayoutControls._buildPreviewRows(layoutData) || [];
-    } catch (err) {
-      console.warn("No se pudo construir filas para el piloto", err);
-      return [];
+
+    // Intentar usar LayoutControls si está disponible
+    if (
+      window.LayoutControls &&
+      typeof window.LayoutControls._buildPreviewRows === "function"
+    ) {
+      const layoutData = {
+        modulo: state.modulo,
+        capitulo: state.capitulo,
+        cuentas: state.cuentas || [],
+        operaciones: sortOperations(state.operaciones || []),
+      };
+      try {
+        const rows = window.LayoutControls._buildPreviewRows(layoutData) || [];
+        if (rows.length > 0) return appendMissingOperations(rows);
+      } catch (err) {
+        console.warn("No se pudo construir filas desde LayoutControls", err);
+      }
     }
+
+    // Fallback: construir filas manualmente con secciones y subsecciones
+    const rows = [];
+    const sections = groupBySections(state.cuentas || []);
+    const operaciones = sortOperations(state.operaciones || []);
+    const renderedOpIds = new Set();
+
+    sections.forEach((section) => {
+      // Agregar sección principal
+      rows.push({
+        type: "principal",
+        label: section.name,
+        visible: true,
+      });
+
+      // Agregar subsecciones
+      section.subsections.forEach((subsection) => {
+        // Solo mostrar subsección si tiene nombre diferente a la sección principal
+        if (subsection.name && subsection.name !== section.name) {
+          rows.push({
+            type: "subsection",
+            label: subsection.name,
+            parentSection: section.name,
+            visible: true,
+          });
+        }
+
+        // Agregar cuentas de la subsección
+        const realAccounts = (subsection.accounts || []).filter(
+          (acc) => !isPlaceholderAccount(acc)
+        );
+          realAccounts.forEach((cuenta) => {
+          rows.push({
+            type: "account",
+            cuenta: cuenta.CUENTA || cuenta.cuenta || "",
+            nombre: cuenta.NOMBRE || cuenta.nombre || "",
+            label: cuenta.CUENTA || cuenta.cuenta || "",
+            accountId: getAccountRowId(cuenta),
+            visible: cuenta.visible !== false,
+          });
+        });
+
+        // Buscar operaciones de esta subsección
+        const subsectionOps = operaciones.filter((op) => {
+          const opId = getOperationId(op);
+          if (renderedOpIds.has(opId)) return false;
+
+          const parentSub = op.parentSubsection || op.SECCION || "";
+          const parentSec = op.parentSection || "";
+
+          // Verificar si pertenece a esta subsección
+          if (parentSub.toLowerCase() === subsection.name.toLowerCase()) {
+            if (parentSec && parentSec.toLowerCase() !== section.name.toLowerCase()) {
+              return false;
+            }
+            return true;
+          }
+          return false;
+        });
+
+        subsectionOps.forEach((op) => {
+          const opId = getOperationId(op);
+          renderedOpIds.add(opId);
+          rows.push({
+            type: "operation",
+            label: getOperationDisplayName(op),
+            opId: opId,
+            kind: detectOperationType(op),
+            visible: op.visible !== false,
+          });
+        });
+      });
+
+      // Buscar operaciones a nivel de sección (que no pertenecen a ninguna subsección específica)
+      const sectionOps = operaciones.filter((op) => {
+        const opId = getOperationId(op);
+        if (renderedOpIds.has(opId)) return false;
+
+        const clase = (getOperationLabel(op) || "").toLowerCase();
+        const sectionLower = section.name.toLowerCase();
+
+        // Operaciones que referencian esta sección
+        if (clase.includes(sectionLower) || (op.SECCION || "").toLowerCase() === sectionLower) {
+          return true;
+        }
+        return false;
+      });
+
+      sectionOps.forEach((op) => {
+        const opId = getOperationId(op);
+        renderedOpIds.add(opId);
+        rows.push({
+          type: "operation",
+          label: getOperationDisplayName(op),
+          opId: opId,
+          kind: detectOperationType(op),
+          visible: op.visible !== false,
+        });
+      });
+    });
+
+    // Agregar operaciones no renderizadas (operaciones globales/consolidadas)
+    operaciones.forEach((op) => {
+      const opId = getOperationId(op);
+      if (renderedOpIds.has(opId)) return;
+
+      rows.push({
+        type: "operation",
+        label: getOperationDisplayName(op),
+        opId: opId,
+        kind: detectOperationType(op),
+        visible: op.visible !== false,
+      });
+    });
+
+    return appendMissingOperations(rows);
   }
 
   function getColumnConfigForRender() {
@@ -1490,6 +1740,8 @@
     }
 
     const showOrder = state.inlineOrderMode && state.editMode !== false;
+    const canEdit = state.editMode !== false;
+    const disabledAttr = canEdit ? '' : 'disabled';
     let html = '<div class="template-list-view">';
 
     rows.forEach((row, rowIndex) => {
@@ -1498,12 +1750,23 @@
       const hiddenClass = isVisible ? '' : 'opacity-50';
 
       if (row.type === 'principal') {
+        const sectionName = row.label || '';
         html += `
-          <div class="list-item section-principal ${hiddenClass}" data-row-type="section" data-section="${escapeAttr(row.label || '')}" data-row-index="${rowIndex}">
+          <div class="list-item section-principal ${hiddenClass}" data-row-type="section" data-section="${escapeAttr(sectionName)}" data-row-index="${rowIndex}">
             ${showOrder ? renderInlineOrderButtons(rowIndex) : ''}
-            <div class="list-item-content">
-              <i class="bi bi-folder2 me-2 text-primary"></i>
-              <strong>${escapeHtml(row.label || 'Sección')}</strong>
+            <div class="list-item-content d-flex justify-content-between align-items-center flex-grow-1">
+              <div class="d-flex align-items-center">
+                <i class="bi bi-folder2 me-2 text-primary"></i>
+                <strong>${escapeHtml(sectionName || 'Sección')}</strong>
+              </div>
+              <div class="list-item-actions">
+                <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); editSection('${escapeAttr(sectionName)}')" title="Editar" ${disabledAttr}>
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); deleteSection('${escapeAttr(sectionName)}')" title="Eliminar" ${disabledAttr}>
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
             </div>
           </div>
         `;
@@ -1511,12 +1774,24 @@
       }
 
       if (row.type === 'subsection') {
+        const subsectionName = row.label || '';
+        const parentSection = row.parentSection || '';
         html += `
-          <div class="list-item section-secondary ${hiddenClass}" data-row-type="subsection" data-subsection="${escapeAttr(row.label || '')}" data-row-index="${rowIndex}">
+          <div class="list-item section-secondary ${hiddenClass}" data-row-type="subsection" data-subsection="${escapeAttr(subsectionName)}" data-parent-section="${escapeAttr(parentSection)}" data-row-index="${rowIndex}">
             ${showOrder ? renderInlineOrderButtons(rowIndex) : ''}
-            <div class="list-item-content ps-4">
-              <i class="bi bi-folder me-2 text-info"></i>
-              <em>${escapeHtml(row.label || 'Subsección')}</em>
+            <div class="list-item-content ps-4 d-flex justify-content-between align-items-center flex-grow-1">
+              <div class="d-flex align-items-center">
+                <i class="bi bi-folder me-2 text-info"></i>
+                <em>${escapeHtml(subsectionName || 'Subsección')}</em>
+              </div>
+              <div class="list-item-actions">
+                <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); editSubsection('${escapeAttr(parentSection)}', '${escapeAttr(subsectionName)}')" title="Editar subsección" ${disabledAttr}>
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); deleteSubsection('${escapeAttr(parentSection)}', '${escapeAttr(subsectionName)}')" title="Eliminar subsección" ${disabledAttr}>
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
             </div>
           </div>
         `;
@@ -1526,13 +1801,22 @@
       if (row.type === 'account') {
         const cuenta = row.cuenta || row.label || '';
         const nombre = row.nombre || '';
+        const accountId = row.accountId || row.accountID || row.rowId || cuenta;
         html += `
-          <div class="list-item item-account ${hiddenClass}" data-row-type="account" data-cuenta="${escapeAttr(cuenta)}" data-nombre="${escapeAttr(nombre)}" data-row-index="${rowIndex}">
+          <div class="list-item item-account ${hiddenClass}" data-row-type="account" data-account-id="${escapeAttr(accountId)}" data-cuenta="${escapeAttr(cuenta)}" data-nombre="${escapeAttr(nombre)}" data-row-index="${rowIndex}">
             ${showOrder ? renderInlineOrderButtons(rowIndex) : ''}
-            <div class="list-item-content ps-5">
+            <div class="list-item-content ps-5 d-flex justify-content-between align-items-center flex-grow-1">
               <div class="d-flex align-items-center">
                 <span class="badge bg-secondary me-2">${escapeHtml(cuenta)}</span>
                 <span>${escapeHtml(nombre || cuenta)}</span>
+              </div>
+              <div class="list-item-actions">
+                <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); editAccount('${escapeAttr(accountId)}')" title="Editar" ${disabledAttr}>
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); deleteAccount('${escapeAttr(accountId)}')" title="Eliminar" ${disabledAttr}>
+                  <i class="bi bi-trash"></i>
+                </button>
               </div>
             </div>
           </div>
@@ -1541,9 +1825,9 @@
       }
 
       if (row.type === 'operation') {
-        const op = findOperationByIdOrLabel(row.label || '');
+        const op = findOperationByIdOrLabel(row.label || row.opId || '');
         const label = op ? getOperationDisplayName(op) : row.label || '';
-        const opId = op ? getOperationId(op) : '';
+        const opId = op ? getOperationId(op) : row.opId || '';
         const kind = row.kind || '';
         const kindMeta = getOperationKindMeta(kind);
         const formulaTerms = op ? extractFormulaTerms(op) : [];
@@ -1552,14 +1836,24 @@
         html += `
           <div class="list-item item-operation ${hiddenClass}" data-row-type="operation" data-operation-id="${escapeAttr(opId || label)}" data-operation-label="${escapeAttr(label)}" data-operation-kind="${escapeAttr(kind)}" data-row-index="${rowIndex}" ${formula ? `title="${escapeAttr(formula)}"` : ''}>
             ${showOrder ? renderInlineOrderButtons(rowIndex) : ''}
-            <div class="list-item-content ps-5">
-              <div class="d-flex align-items-center">
-                <i class="bi bi-calculator me-2 text-success"></i>
-                <strong>${escapeHtml(label)}</strong>
-                ${kindMeta ? `<span class="badge ${kindMeta.className} ms-2">${escapeHtml(kindMeta.label)}</span>` : ''}
+            <div class="list-item-content ps-5 d-flex justify-content-between align-items-center flex-grow-1">
+              <div>
+                <div class="d-flex align-items-center">
+                  <i class="bi bi-calculator me-2 text-success"></i>
+                  <strong>${escapeHtml(label)}</strong>
+                  ${kindMeta ? `<span class="badge ${kindMeta.className} ms-2">${escapeHtml(kindMeta.label)}</span>` : ''}
+                </div>
+                <div class="operation-formula small text-muted ms-4 mt-1">
+                  ${formula ? `= ${escapeHtml(formula)}` : 'Sin formula'}
+                </div>
               </div>
-              <div class="operation-formula small text-muted ms-4 mt-1">
-                ${formula ? `= ${escapeHtml(formula)}` : 'Sin formula'}
+              <div class="list-item-actions">
+                <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); window.editOperation('${escapeAttr(opId || label)}')" title="Editar" ${disabledAttr}>
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); window.deleteOperation('${escapeAttr(opId || label)}')" title="Eliminar" ${disabledAttr}>
+                  <i class="bi bi-trash"></i>
+                </button>
               </div>
             </div>
           </div>
@@ -1613,6 +1907,12 @@
           background: #f0fdf4;
           border-left: 3px solid #22c55e;
         }
+        .list-item.collapsed-by-section {
+          display: none;
+        }
+        .section-principal.is-collapsed {
+          opacity: 0.85;
+        }
         .inline-order-buttons {
           display: flex;
           flex-direction: column;
@@ -1622,6 +1922,19 @@
           padding: 2px 6px;
           font-size: 0.75rem;
           line-height: 1;
+        }
+        .list-item-actions {
+          display: flex;
+          gap: 4px;
+          opacity: 0;
+          transition: opacity 0.2s;
+        }
+        .list-item:hover .list-item-actions {
+          opacity: 1;
+        }
+        .list-item-actions .btn {
+          padding: 2px 6px;
+          font-size: 0.75rem;
         }
       </style>
     `;
@@ -2522,9 +2835,9 @@
       const rowType = item.dataset.rowType;
 
       if (rowType === "account") {
-        const cuenta = item.dataset.cuenta;
-        if (cuenta) {
-          editAccount(cuenta);
+        const accountId = item.dataset.accountId || item.dataset.cuenta;
+        if (accountId) {
+          editAccount(accountId);
         }
         return;
       }
@@ -2585,15 +2898,17 @@
   function editAccount(cuentaId) {
     if (!cuentaId) return;
 
-    // Buscar la cuenta en el estado
-    const cuenta = state.cuentas.find(c =>
-      (c.CUENTA || c.cuenta) === cuentaId
-    );
+    // Buscar la cuenta en el estado (permitir duplicados usando rowId)
+    const cuenta = resolveAccountByIdOrCode(cuentaId);
 
     if (!cuenta) {
       showToast('Cuenta no encontrada', 'warning');
       return;
     }
+    const accountId = getAccountRowId(cuenta);
+    const codigoCuenta = cuenta.CUENTA || cuenta.cuenta || cuentaId;
+    state.selectedElement = { type: "account", cuenta, accountId, codigo: codigoCuenta };
+    updateSelectionInfo();
 
     // Abrir editor usando el panel existente
     if (!dom.operationEditorPanel) {
@@ -2606,7 +2921,7 @@
       dom.operationEditorTitle.textContent = 'Editar Cuenta';
     }
     if (dom.operationEditorSubtitle) {
-      dom.operationEditorSubtitle.textContent = `Cuenta: ${cuentaId}`;
+      dom.operationEditorSubtitle.textContent = `Cuenta: ${codigoCuenta}`;
     }
 
     // Renderizar formulario de cuenta en la pestaña de datos
@@ -2614,7 +2929,7 @@
       dom.editorTabDatos.innerHTML = `
         <div class="mb-3">
           <label class="form-label">Cuenta</label>
-          <input type="text" class="form-control" id="editCuenta" value="${escapeHtml(cuenta.CUENTA || cuenta.cuenta || '')}" readonly />
+          <input type="text" class="form-control" id="editCuenta" value="${escapeHtml(codigoCuenta || '')}" readonly />
         </div>
         <div class="mb-3">
           <label class="form-label">Nombre</label>
@@ -2652,13 +2967,33 @@
         // Actualizar cuenta
         if (cuenta.NOMBRE !== undefined) cuenta.NOMBRE = nombre;
         if (cuenta.nombre !== undefined) cuenta.nombre = nombre;
-        if (cuenta['SECCION PRINCIPAL']) cuenta['SECCION PRINCIPAL'] = seccionPrincipal;
-        if (cuenta['SECCION Secundaria']) cuenta['SECCION Secundaria'] = seccionSecundaria;
+        if (cuenta["SECCION PRINCIPAL"] !== undefined)
+          cuenta["SECCION PRINCIPAL"] = seccionPrincipal;
+        if (cuenta["SECCION Principal"] !== undefined)
+          cuenta["SECCION Principal"] = seccionPrincipal;
+        if (cuenta["SECCIÓN Principal"] !== undefined)
+          cuenta["SECCIÓN Principal"] = seccionPrincipal;
+        if (cuenta["SECCIàN Principal"] !== undefined)
+          cuenta["SECCIàN Principal"] = seccionPrincipal;
+        if (cuenta.SECCION !== undefined) cuenta.SECCION = seccionPrincipal;
+        if (cuenta.seccion_principal !== undefined)
+          cuenta.seccion_principal = seccionPrincipal;
+
+        if (cuenta["SECCION Secundaria"] !== undefined)
+          cuenta["SECCION Secundaria"] = seccionSecundaria;
+        if (cuenta["SECCIÓN Secundaria"] !== undefined)
+          cuenta["SECCIÓN Secundaria"] = seccionSecundaria;
+        if (cuenta["SECCIàN Secundaria"] !== undefined)
+          cuenta["SECCIàN Secundaria"] = seccionSecundaria;
+        if (cuenta.seccion_secundaria !== undefined)
+          cuenta.seccion_secundaria = seccionSecundaria;
         cuenta.visible = visible;
 
         // Guardar y cerrar
         state.unsavedChanges = true;
+        updateButtonStates();
         renderLayout();
+        scheduleAutoSave("edit");
         showToast('Cuenta actualizada', 'success');
 
         // Cerrar panel
@@ -2678,13 +3013,15 @@
     // Configurar botón de eliminar
     if (dom.btnEditorDelete) {
       const deleteHandler = () => {
-        if (!confirm(`¿Eliminar la cuenta ${cuentaId}?`)) return;
+        if (!confirm(`¿Eliminar la cuenta ${codigoCuenta}?`)) return;
 
-        state.cuentas = state.cuentas.filter(c =>
-          (c.CUENTA || c.cuenta) !== cuentaId
+        state.cuentas = state.cuentas.filter(
+          (c) => getAccountRowId(c) !== accountId
         );
         state.unsavedChanges = true;
+        updateButtonStates();
         renderLayout();
+        scheduleAutoSave("delete");
         showToast('Cuenta eliminada', 'success');
 
         // Cerrar panel
@@ -2777,10 +3114,41 @@
       dom.btnEditorSave.addEventListener('click', saveHandler);
     }
 
-    // Deshabilitar botón de eliminar (no permitir eliminar secciones)
+    // Configurar botón de eliminar
     if (dom.btnEditorDelete) {
-      dom.btnEditorDelete.disabled = true;
-      dom.btnEditorDelete.title = 'No se pueden eliminar secciones directamente';
+      dom.btnEditorDelete.disabled = false;
+      dom.btnEditorDelete.title = "Eliminar sección";
+      const deleteHandler = () => {
+        if (
+          !confirm(
+            `¿Eliminar la sección "${sectionName}" y TODAS sus cuentas? Esta acción no se puede deshacer.`
+          )
+        )
+          return;
+
+        state.cuentas = state.cuentas.filter((c) => {
+          const principal = getAccountPrincipalName(c) || "";
+          return principal !== sectionName;
+        });
+        logChange("delete", `Sección "${sectionName}" eliminada`, {
+          sectionName,
+          type: "section",
+        });
+        renderLayout();
+        showToast("Sección eliminada", "success");
+
+        if (window.bootstrap?.Offcanvas) {
+          const offcanvas = window.bootstrap.Offcanvas.getInstance(
+            dom.operationEditorPanel
+          );
+          offcanvas?.hide();
+        }
+
+        dom.btnEditorDelete.removeEventListener("click", deleteHandler);
+      };
+
+      dom.btnEditorDelete.removeEventListener("click", deleteHandler);
+      dom.btnEditorDelete.addEventListener("click", deleteHandler);
     }
 
     // Abrir panel
@@ -2865,10 +3233,45 @@
       dom.btnEditorSave.addEventListener('click', saveHandler);
     }
 
-    // Deshabilitar botón de eliminar
+    // Configurar botón de eliminar
     if (dom.btnEditorDelete) {
-      dom.btnEditorDelete.disabled = true;
-      dom.btnEditorDelete.title = 'No se pueden eliminar subsecciones directamente';
+      dom.btnEditorDelete.disabled = false;
+      dom.btnEditorDelete.title = "Eliminar subsección";
+      const deleteHandler = () => {
+        if (
+          !confirm(
+            `¿Eliminar la subsección "${subsectionName}" y TODAS sus cuentas? Esta acción no se puede deshacer.`
+          )
+        )
+          return;
+
+        state.cuentas = state.cuentas.filter((c) => {
+          const principal = getAccountPrincipalName(c) || "";
+          const secundaria = getAccountSecondaryName(c) || "";
+          return !(
+            principal === sectionName && secundaria === subsectionName
+          );
+        });
+        logChange("delete", `Subsección "${subsectionName}" eliminada`, {
+          sectionName,
+          subsectionName,
+          type: "subsection",
+        });
+        renderLayout();
+        showToast("Subsección eliminada", "success");
+
+        if (window.bootstrap?.Offcanvas) {
+          const offcanvas = window.bootstrap.Offcanvas.getInstance(
+            dom.operationEditorPanel
+          );
+          offcanvas?.hide();
+        }
+
+        dom.btnEditorDelete.removeEventListener("click", deleteHandler);
+      };
+
+      dom.btnEditorDelete.removeEventListener("click", deleteHandler);
+      dom.btnEditorDelete.addEventListener("click", deleteHandler);
     }
 
     // Abrir panel
@@ -3030,8 +3433,10 @@
    * Editar una etiqueta consolidada (múltiples operaciones con mismo label)
    */
   function editConsolidatedLabel(label, field) {
-    showToast(`Edición de etiquetas consolidadas: ${label} (${field})`, 'info');
-    // TODO: Implementar editor para etiquetas que afectan múltiples operaciones
+    // Usar la versión global que tiene la implementación completa
+    if (window.editConsolidatedLabel) {
+      window.editConsolidatedLabel(label, field);
+    }
   }
 
   function getAccountFieldValue(cuenta, keys = []) {
@@ -3138,7 +3543,7 @@
     }
     if (rowType === "account") {
       moveAccountOrder(
-        row.dataset.cuenta,
+        row.dataset.accountId || row.dataset.cuenta,
         row.dataset.section,
         row.dataset.subsection,
         direction
@@ -3204,11 +3609,7 @@
 
   function moveAccountOrder(cuentaCode, sectionName, subsectionName, direction) {
     if (!cuentaCode) return;
-    const account = (state.cuentas || []).find((cuenta) =>
-      normalizeOperationMatch(
-        cuenta.CUENTA || cuenta.Cuenta || cuenta.cuenta || ""
-      ) === normalizeOperationMatch(cuentaCode)
-    );
+    const account = resolveAccountByIdOrCode(cuentaCode);
     if (!account) return;
     const principal = sectionName || getAccountPrincipalName(account);
     const secondary =
@@ -3229,11 +3630,9 @@
     const ordered = group.sort(
       (a, b) => getAccountOrder(a) - getAccountOrder(b)
     );
-    const accountId =
-      account.CUENTA || account.Cuenta || account.cuenta || "";
+    const accountId = getAccountRowId(account);
     const index = ordered.findIndex(
-      (cuenta) =>
-        (cuenta.CUENTA || cuenta.Cuenta || cuenta.cuenta || "") === accountId
+      (cuenta) => getAccountRowId(cuenta) === accountId
     );
     if (index === -1) return;
     const nextIndex = index + direction;
@@ -3647,7 +4046,11 @@
     if (!ops.length) return { added: 0 };
     const existing = new Set();
     state.operaciones.forEach((op) => {
-      const label = op?.["sum-row-operativo"];
+      const label =
+        op?.["sum-row-operativo"] ||
+        getOperationDisplayName(op) ||
+        op?.Clase ||
+        "";
       if (label) {
         existing.add(normalizeOperationMatch(label));
       }
@@ -4540,7 +4943,8 @@
     const canEdit = state.editMode;
     const disabledAttr = !canEdit ? "disabled" : "";
     // Build formula from actual account names
-    const formula = accounts
+    const formula = (accounts || [])
+      .filter((account) => !isPlaceholderAccount(account))
       .map((a) => a.NOMBRE || a.nombre || a.CUENTA)
       .join(" + ");
 
@@ -4565,6 +4969,16 @@
             opId || clase
           )}')" title="Editar" ${disabledAttr}>
             <i class="bi bi-pencil"></i>
+          </button>
+          <button class="btn btn-sm btn-link p-0" onclick="event.stopPropagation(); moveOperationOrder('${escapeAttr(
+            displayName
+          )}', '${escapeAttr(opId || "")}', '', -1)" title="Subir" ${disabledAttr}>
+            <i class="bi bi-arrow-up"></i>
+          </button>
+          <button class="btn btn-sm btn-link p-0" onclick="event.stopPropagation(); moveOperationOrder('${escapeAttr(
+            displayName
+          )}', '${escapeAttr(opId || "")}', '', 1)" title="Bajar" ${disabledAttr}>
+            <i class="bi bi-arrow-down"></i>
           </button>
         </div>
       </div>
@@ -4719,9 +5133,15 @@
 
   function renderSection(section) {
     const { name: principal, subsections } = section;
+    const canEdit = state.editMode !== false;
+    const disabledAttr = canEdit ? "" : "disabled";
     const subsectionCount = subsections.length;
     const accountCount = subsections.reduce(
-      (acc, subsection) => acc + subsection.accounts.length,
+      (acc, subsection) =>
+        acc +
+        (subsection.accounts || []).filter(
+          (account) => !isPlaceholderAccount(account)
+        ).length,
       0
     );
 
@@ -4740,6 +5160,16 @@
             <span class="badge bg-secondary">${accountCount} cuentas</span>
           </div>
           <div class="section-actions">
+            <button class="btn btn-sm btn-outline-secondary" onclick="event.stopPropagation(); moveSectionOrder('${escapeAttr(
+              principal
+            )}', -1)" title="Subir" ${disabledAttr}>
+              <i class="bi bi-arrow-up"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-secondary" onclick="event.stopPropagation(); moveSectionOrder('${escapeAttr(
+              principal
+            )}', 1)" title="Bajar" ${disabledAttr}>
+              <i class="bi bi-arrow-down"></i>
+            </button>
             <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); editSection('${escapeAttr(
               principal
             )}')" title="Editar">
@@ -4766,7 +5196,12 @@
 
   function renderSubsection(subsection, principal) {
     const { name, accounts } = subsection;
-    const accountsHtml = accounts
+    const canEdit = state.editMode !== false;
+    const disabledAttr = canEdit ? "" : "disabled";
+    const realAccounts = (accounts || []).filter(
+      (account) => !isPlaceholderAccount(account)
+    );
+    const accountsHtml = realAccounts
       .sort((a, b) => getAccountOrder(a) - getAccountOrder(b))
       .map((acc) => renderAccount(acc, principal, name))
       .join("");
@@ -4818,7 +5253,7 @@
     // Render inline operations respetando el orden definido
     const inlineOpsHtml = matchingOps
       .sort((a, b) => getOperationOrder(a) - getOperationOrder(b))
-      .map((op) => renderInlineOperation(op, accounts))
+      .map((op) => renderInlineOperation(op, realAccounts))
       .join("");
 
     return `
@@ -4828,9 +5263,19 @@
             <i class="bi bi-chevron-down section-toggle"></i>
             <i class="bi bi-folder text-info"></i>
             <span>${escapeHtml(name)}</span>
-            <span class="badge bg-light text-dark">${accounts.length}</span>
+            <span class="badge bg-light text-dark">${realAccounts.length}</span>
           </div>
           <div class="section-actions">
+            <button class="btn btn-sm btn-outline-secondary" onclick="event.stopPropagation(); moveSubsectionOrder('${escapeAttr(
+              principal
+            )}', '${escapeAttr(name)}', -1)" title="Subir" ${disabledAttr}>
+              <i class="bi bi-arrow-up"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-secondary" onclick="event.stopPropagation(); moveSubsectionOrder('${escapeAttr(
+              principal
+            )}', '${escapeAttr(name)}', 1)" title="Bajar" ${disabledAttr}>
+              <i class="bi bi-arrow-down"></i>
+            </button>
             <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); editSubsection('${escapeAttr(
               principal
             )}', '${escapeAttr(name)}')" title="Editar subsección">
@@ -4857,8 +5302,10 @@
   }
 
   function renderAccount(account, principal, secundaria) {
+    if (isPlaceholderAccount(account)) return "";
     const codigo = account.CUENTA || "";
     const nombre = account.NOMBRE || account.nombre || "";
+    const accountId = getAccountRowId(account);
     const isVisible = account.visible !== false;
     const hiddenClass = !isVisible ? "hidden-row" : "";
     const canEdit = state.editMode;
@@ -4867,7 +5314,7 @@
     return `
       <div class="account-row ${hiddenClass}" data-cuenta="${escapeHtml(
       codigo
-    )}" onclick="selectAccount(this, '${escapeAttr(codigo)}')">
+    )}" data-account-id="${escapeAttr(accountId)}" onclick="selectAccount(this, '${escapeAttr(accountId)}')">
         <span class="drag-handle" title="Arrastrar para reordenar">⋮⋮</span>
         <span class="account-code">${escapeHtml(codigo)}</span>
         <span class="account-name">${escapeHtml(nombre)}</span>
@@ -4886,12 +5333,12 @@
               : ""
           }
           <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); editAccount('${escapeAttr(
-            codigo
+            accountId
           )}')" title="Editar" ${disabledAttr}>
             <i class="bi bi-pencil"></i>
           </button>
           <button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); deleteAccount('${escapeAttr(
-            codigo
+            accountId
           )}')" title="Eliminar" ${disabledAttr}>
             <i class="bi bi-trash"></i>
           </button>
@@ -5160,9 +5607,16 @@
     if (selection) {
       const type = selection.type;
       if (type === "account") {
-        const codigo = selection.cuenta?.CUENTA || selection.codigo;
-        const cuenta = state.cuentas.find((c) => c.CUENTA === codigo);
-        const nombre = cuenta?.NOMBRE || cuenta?.nombre || "";
+        const account =
+          selection.cuenta ||
+          resolveAccountByIdOrCode(selection.accountId || selection.codigo);
+        const codigo =
+          account?.CUENTA ||
+          account?.cuenta ||
+          selection.codigo ||
+          selection.accountId ||
+          "";
+        const nombre = account?.NOMBRE || account?.nombre || "";
         text = `Cuenta: ${codigo || "-"}${nombre ? ` - ${nombre}` : ""}`;
       } else if (type === "section") {
         text = `Seccion: ${selection.name || "-"}`;
@@ -5181,22 +5635,9 @@
 
   function updateLayoutOrderPanel() {
     if (!dom.layoutOrderList) return;
-    if (!window.LayoutControls || typeof window.LayoutControls._buildPreviewRows !== "function") {
-      dom.layoutOrderList.innerHTML =
-        '<div class="text-muted small p-2">Vista previa de orden no disponible</div>';
-      return;
-    }
-
-    const layoutData = {
-      modulo: state.modulo,
-      capitulo: state.capitulo,
-      cuentas: state.cuentas || [],
-      operaciones: sortOperations(state.operaciones || []),
-    };
-
     let rows = [];
     try {
-      rows = window.LayoutControls._buildPreviewRows(layoutData) || [];
+      rows = buildPreviewRowsForEditor();
     } catch (err) {
       console.warn("No se pudo construir el orden de vista previa", err);
     }
@@ -5338,9 +5779,7 @@
   // ==========================================
   function openAddModal() {
     if (!state.editMode) {
-      if (!silent) {
-        showToast("Activa el modo edición primero", "warning");
-      }
+      showToast("Activa el modo edición primero", "warning");
       return;
     }
     updateAddForm();
@@ -5454,6 +5893,31 @@
               </div>
             </div>
           </div>
+          <div class="mt-4">
+            <label class="form-label">Aparición en la tabla</label>
+            <div class="row g-2">
+              ${OP_ROW_FIELDS.map(
+                (row) => `
+                  <div class="col-md-6">
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" id="${rowLabelAddCheckId(
+                        row.field
+                      )}">
+                      <label class="form-check-label" for="${rowLabelAddCheckId(
+                        row.field
+                      )}">${row.label}</label>
+                    </div>
+                    <input type="text" class="form-control form-control-sm mt-1" id="${rowLabelAddInputId(
+                      row.field
+                    )}" placeholder="${row.placeholder}">
+                  </div>
+                `
+              ).join("")}
+            </div>
+            <div class="form-text">
+              Selecciona dónde aparece la operación. Si no eliges nada, se usa "Fila de Suma".
+            </div>
+          </div>
         `;
         break;
     }
@@ -5553,14 +6017,21 @@
     if (!nombre) throw new Error("Ingresa un nombre para la sección");
 
     // Add a placeholder account to create the section
+    const order = getNextAccountOrder();
     const newAccount = {
       "SECCIÓN Principal": nombre,
       "SECCION Secundaria": "",
+      SECCION: nombre,
       CUENTA: "",
       NOMBRE: `[Sección: ${nombre}]`,
-      orden: 0,
+      orden: order,
+      orden_presentacion: order,
+      visible: false,
+      __layoutPlaceholder: true,
+      __placeholderType: "principal",
     };
 
+    assignAccountRowId(newAccount);
     state.cuentas.push(newAccount);
     logChange("add", `Sección Principal "${nombre}"`, {
       nombre,
@@ -5577,14 +6048,21 @@
 
     if (!nombre) throw new Error("Ingresa un nombre para la subsección");
 
+    const order = getNextAccountOrder();
     const newAccount = {
       "SECCIÓN Principal": principal,
       "SECCION Secundaria": nombre,
+      SECCION: principal,
       CUENTA: "",
       NOMBRE: `[Subsección: ${nombre}]`,
-      orden: 0,
+      orden: order,
+      orden_presentacion: order,
+      visible: false,
+      __layoutPlaceholder: true,
+      __placeholderType: "secundaria",
     };
 
+    assignAccountRowId(newAccount);
     state.cuentas.push(newAccount);
     logChange("add", `Subsección "${nombre}" en ${principal}`, {
       nombre,
@@ -5606,11 +6084,13 @@
     const newAccount = {
       "SECCIÓN Principal": principal,
       "SECCION Secundaria": secundaria,
+      SECCION: principal,
       CUENTA: cuenta,
       NOMBRE: nombre,
       orden: state.cuentas.length + 1,
     };
 
+    assignAccountRowId(newAccount);
     state.cuentas.push(newAccount);
     logChange("add", `Cuenta ${cuenta} - ${nombre}`, {
       cuenta,
@@ -5621,6 +6101,47 @@
     showToast(`Cuenta ${cuenta} agregada`, "success");
   }
 
+  function collectAddOperationRowLabels(defaultLabel) {
+    const labels = {};
+    OP_ROW_FIELDS.forEach(({ field }) => {
+      const check = document.getElementById(rowLabelAddCheckId(field));
+      const input = document.getElementById(rowLabelAddInputId(field));
+      const value = input?.value?.trim();
+      const enabled = check ? check.checked : Boolean(value);
+      if (!enabled) return;
+      labels[field] = value || defaultLabel || "";
+    });
+    if (!Object.keys(labels).length && defaultLabel) {
+      labels["sum-row"] = defaultLabel;
+    }
+    return labels;
+  }
+
+  function inferSignFromSectionName(sectionName) {
+    const key = normalizeOperationMatch(sectionName || "");
+    if (!key) return 0;
+    if (key.includes("gasto") || key.includes("costo") || key.includes("expense")) {
+      return -1;
+    }
+    if (key.includes("ingreso") || key.includes("income")) {
+      return 1;
+    }
+    return 0;
+  }
+
+  function findOperationBySectionName(sectionName) {
+    if (!sectionName) return null;
+    const target = normalizeOperationMatch(sectionName);
+    const matches = (state.operaciones || []).filter(
+      (op) => normalizeOperationMatch(op?.SECCION || op?.seccion || "") === target
+    );
+    if (!matches.length) return null;
+    const withLabels = matches.find((op) =>
+      ROW_LABEL_FIELDS.some((field) => op?.[field])
+    );
+    return withLabels || matches[0] || null;
+  }
+
   async function addOperation() {
     const tipo = document.getElementById("selectTipoOp")?.value;
     const clase = document.getElementById("inputClase")?.value?.trim();
@@ -5629,67 +6150,125 @@
       ?.value?.trim();
 
     if (!clase) throw new Error("Ingresa una etiqueta para la operación");
-    const operacionId = buildUniqueOperationId(operacionIdInput || clase);
+    const baseOperacionId = operacionIdInput || clase;
+    const operacionId = buildUniqueOperationId(baseOperacionId || clase);
 
     const checkedSections = Array.from(
       document.querySelectorAll("#checkboxSecciones input:checked")
     ).map((cb) => cb.value);
 
-    // Determine if this is a subsection-level or section-level operation
-    // Subsection-level: operates on 1 subsection (sums accounts in that subsection)
-    // Section-level: operates on multiple subsections (sums across sections)
-    const isSubsectionOp = checkedSections.length === 1;
+    const rowLabels = collectAddOperationRowLabels(clase);
+    const isPiloto = isModuloPiloto();
 
-    // Create operation with all required fields including CAPITULO
-    const newOp = {
-      CAPITULO: state.capitulo || "DEFAULT",
-      OperacionId: operacionId,
-      Clase: clase,
-      SECCION: checkedSections.join(" + "),
-      tipo: tipo || "sum-sections",
-      signos: {},
-      orden: nextOperationOrder(),
-      // Store sections for formula display
-      secciones: checkedSections,
-      // Link to parent subsection for inline display
-      parentSubsection: isSubsectionOp ? checkedSections[0] : null,
-      parentSection: getParentSection(checkedSections[0]),
-    };
+    if (!isPiloto && (!checkedSections || !checkedSections.length)) {
+      throw new Error("Selecciona al menos una sección");
+    }
 
-    // Poblamos la fórmula a partir de su "papá" (sección) respetando orden
-    const derivedTerms = buildFormulaTermsFromParent(newOp.SECCION);
-    const fallbackTerms = (
-      checkedSections.length ? checkedSections : [newOp.SECCION]
-    )
-      .filter(Boolean)
-      .map((sec, i) => ({
-        id: Date.now() + i,
-        operator: "+",
-        type: "section",
-        value: sec,
-      }));
+    const targetSections = isPiloto
+      ? [checkedSections.join(" + ")]
+      : checkedSections;
 
-    const termsToPersist = normalizeFormulaTerms(
-      derivedTerms.length ? derivedTerms : fallbackTerms
-    );
+    const opsCreated = [];
+    targetSections.forEach((sectionName, idx) => {
+      let op = null;
+      if (!isPiloto) {
+        op = findOperationBySectionName(sectionName);
+      }
 
-    newOp.formula_terms = termsToPersist;
+      const isNew = !op;
+      if (isNew) {
+        const opIdBase = normalizeOperationId(
+          isPiloto
+            ? baseOperacionId || clase || sectionName || operacionId
+            : `${baseOperacionId || clase || operacionId}_${sectionName || idx + 1}`
+        );
+        op = {
+          CAPITULO: state.capitulo || "DEFAULT",
+          OperacionId: buildUniqueOperationId(opIdBase),
+          Clase: clase,
+          SECCION: sectionName || "",
+          tipo: tipo || "sum-sections",
+          signos: {},
+          orden: nextOperationOrder(),
+          secciones: sectionName ? [sectionName] : [],
+          parentSubsection: sectionName || null,
+          parentSection: getParentSection(sectionName),
+        };
+      } else if (sectionName && !op.SECCION) {
+        op.SECCION = sectionName;
+      }
 
-    termsToPersist.forEach((term, i) => {
-      const key = `seccion_${i + 1}`;
-      newOp[key] = term.value;
-      newOp.signos[key] = term.operator === "-" ? -1 : 1;
+      // Aplicar etiquetas de aparición
+      Object.entries(rowLabels).forEach(([field, label]) => {
+        if (!label) return;
+        op[field] = label;
+      });
+
+      // Guardar fórmula para referencia en el gestor
+      if (tipo === "custom-formula") {
+        if (!Array.isArray(formulaTerms) || !formulaTerms.length) {
+          throw new Error("Agrega términos a la fórmula");
+        }
+        const normalized = normalizeFormulaTerms(formulaTerms);
+        op.formula_terms = normalized;
+        op.formula_json = JSON.stringify(normalized);
+      } else {
+        const sectionValue = sectionName || checkedSections.join(" + ");
+        const derivedTerms = buildFormulaTermsFromParent(sectionValue);
+        const fallbackTerms = sectionValue
+          ? [
+              {
+                id: Date.now() + idx,
+                operator: "+",
+                type: "section",
+                value: sectionValue,
+              },
+            ]
+          : [];
+        const termsToPersist = normalizeFormulaTerms(
+          derivedTerms.length ? derivedTerms : fallbackTerms
+        );
+        if (termsToPersist.length) {
+          op.formula_terms = termsToPersist;
+          op.formula_json = JSON.stringify(termsToPersist);
+          termsToPersist.forEach((term, i) => {
+            const key = `seccion_${i + 1}`;
+            op[key] = term.value;
+            if (!op.signos) op.signos = {};
+            op.signos[key] = term.operator === "-" ? -1 : 1;
+          });
+        }
+      }
+
+      if (rowLabels["sum-row"] && !op.signos?.["sum-row"]) {
+        const signo = inferSignFromSectionName(sectionName);
+        if (signo) {
+          if (!op.signos) op.signos = {};
+          op.signos["sum-row"] = signo;
+          if (op.signo == null) op.signo = signo;
+        }
+      }
+
+      if (isNew) {
+        state.operaciones.push(op);
+        opsCreated.push(op);
+      }
     });
 
-    state.operaciones.push(newOp);
-    logChange("add", `Operación "${clase}" (${operacionId})`, {
-      clase,
-      operacionId,
-      tipo,
-      sections: checkedSections.length,
-    });
-    renderLayout(); // Re-render to show inline
-    showToast(`Operación "${clase}" creada`, "success");
+    if (opsCreated.length) {
+      logChange(
+        "add",
+        `Operación "${clase}" (${opsCreated.length} secciones)`
+      );
+    } else {
+      logChange("edit", `Operación "${clase}" actualizada`);
+    }
+
+    state.operaciones = sortOperations(state.operaciones);
+    ensureOperationIds();
+    normalizeOperationReferences();
+    renderLayout();
+    showToast(`Operación "${clase}" guardada`, "success");
   }
 
   // Helper to find parent section of a subsection
@@ -5818,9 +6397,7 @@
   // ==========================================
   function openCopyModal() {
     if (!state.editMode) {
-      if (!silent) {
-        showToast("Activa el modo edicion primero", "warning");
-      }
+      showToast("Activa el modo edición primero", "warning");
       return;
     }
 
@@ -6694,13 +7271,30 @@
       .querySelectorAll(".account-row.selected")
       .forEach((r) => r.classList.remove("selected"));
     row.classList.add("selected");
-    state.selectedElement = { type: "account", codigo };
+    const accountId =
+      row?.dataset?.accountId || row?.getAttribute?.("data-account-id") || codigo;
+    const account =
+      resolveAccountByIdOrCode(accountId) || resolveAccountByIdOrCode(codigo);
+    const codigoCuenta =
+      account?.CUENTA || row?.dataset?.cuenta || codigo || accountId;
+    state.selectedElement = {
+      type: "account",
+      accountId,
+      codigo: codigoCuenta,
+      cuenta: account || null,
+    };
     updateSelectionInfo();
   };
 
+// Exponer funciones de movimiento para los botones onclick
+  window.moveSectionOrder = moveSectionOrder;
+  window.moveSubsectionOrder = moveSubsectionOrder;
+  window.moveAccountOrder = moveAccountOrder;
+  window.moveOperationOrder = moveOperationOrder;
+
 window.editSection = function (name) {
     if (!requireEditMode()) return;
-    const modalMarkup = `
+    dom.formEditar.innerHTML = `
       <div class="mb-3">
         <label class="form-label">Nombre de la Sección</label>
         <input type="text" class="form-control" id="editNombreSeccion" value="${escapeHtml(
@@ -6830,14 +7424,30 @@ window.editSection = function (name) {
 
   window.editAccount = function (codigo) {
     if (!requireEditMode()) return;
-    const cuenta = state.cuentas.find((c) => c.CUENTA === codigo);
+    const cuenta = resolveAccountByIdOrCode(codigo);
     if (!cuenta) return;
+    const accountId = getAccountRowId(cuenta);
+    const codigoCuenta = cuenta.CUENTA || cuenta.cuenta || codigo;
+
+    const seccionPrincipal = getAccountPrincipalName(cuenta) || "";
+    const seccionSecundaria = getAccountSecondaryName(cuenta) || "";
+
+    // Obtener todas las secciones disponibles para los selectores
+    const sections = groupBySections(state.cuentas || []);
+    const principalOptions = sections.map(s =>
+      `<option value="${escapeAttr(s.name)}" ${s.name === seccionPrincipal ? 'selected' : ''}>${escapeHtml(s.name)}</option>`
+    ).join('');
+
+    const currentSection = sections.find(s => s.name === seccionPrincipal);
+    const subsectionOptions = (currentSection?.subsections || []).map(sub =>
+      `<option value="${escapeAttr(sub.name)}" ${sub.name === seccionSecundaria ? 'selected' : ''}>${escapeHtml(sub.name)}</option>`
+    ).join('');
 
     dom.formEditar.innerHTML = `
       <div class="mb-3">
         <label class="form-label">Código</label>
         <input type="text" class="form-control" id="editCodigo" value="${escapeHtml(
-          cuenta.CUENTA
+          codigoCuenta
         )}" />
       </div>
       <div class="mb-3">
@@ -6846,28 +7456,84 @@ window.editSection = function (name) {
           cuenta.NOMBRE || ""
         )}" />
       </div>
+      <div class="mb-3">
+        <label class="form-label">Sección Principal</label>
+        <select class="form-select" id="editSeccionPrincipal" onchange="window.updateEditSubsectionOptions()">
+          <option value="">Sin sección</option>
+          ${principalOptions}
+        </select>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Sección Secundaria (Subsección)</label>
+        <select class="form-select" id="editSeccionSecundaria">
+          <option value="">Sin subsección</option>
+          ${subsectionOptions}
+        </select>
+      </div>
+      <div class="mb-3">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="editVisible" ${cuenta.visible !== false ? 'checked' : ''} />
+          <label class="form-check-label" for="editVisible">Visible</label>
+        </div>
+      </div>
     `;
 
-    state.selectedElement = { type: "account", cuenta };
+    state.selectedElement = {
+      type: "account",
+      cuenta,
+      accountId,
+      codigo: codigoCuenta,
+    };
     updateSelectionInfo();
     new bootstrap.Modal(dom.modalEditar).show();
   };
 
+  // Función auxiliar para actualizar opciones de subsección al cambiar la sección principal
+  window.updateEditSubsectionOptions = function() {
+    const principalSelect = document.getElementById("editSeccionPrincipal");
+    const secondarySelect = document.getElementById("editSeccionSecundaria");
+    if (!principalSelect || !secondarySelect) return;
+
+    const selectedPrincipal = principalSelect.value;
+    const sections = groupBySections(state.cuentas || []);
+    const currentSection = sections.find(s => s.name === selectedPrincipal);
+
+    let options = '<option value="">Sin subsección</option>';
+    if (currentSection && currentSection.subsections) {
+      currentSection.subsections.forEach(sub => {
+        options += `<option value="${escapeAttr(sub.name)}">${escapeHtml(sub.name)}</option>`;
+      });
+    }
+    secondarySelect.innerHTML = options;
+  };
+
   window.deleteAccount = function (codigo) {
     if (!requireEditMode()) return;
-    if (!confirm(`¿Eliminar la cuenta ${codigo}?`)) return;
+    const cuenta = resolveAccountByIdOrCode(codigo);
+    const codigoCuenta = cuenta?.CUENTA || cuenta?.cuenta || codigo;
+    if (!confirm(`¿Eliminar la cuenta ${codigoCuenta}?`)) return;
 
-    const cuenta = state.cuentas.find((c) => c.CUENTA === codigo);
-    const nombre = cuenta?.NOMBRE || "";
+    const nombre = cuenta?.NOMBRE || cuenta?.nombre || "";
+    const accountId = cuenta ? getAccountRowId(cuenta) : "";
 
-    state.cuentas = state.cuentas.filter((c) => c.CUENTA !== codigo);
-    logChange("delete", `Cuenta ${codigo}${nombre ? " - " + nombre : ""}`, {
-      codigo,
+    if (accountId) {
+      state.cuentas = state.cuentas.filter(
+        (c) => getAccountRowId(c) !== accountId
+      );
+    } else {
+      state.cuentas = state.cuentas.filter((c) => c.CUENTA !== codigo);
+    }
+    state.unsavedChanges = true;
+    updateButtonStates();
+    logChange("delete", `Cuenta ${codigoCuenta}${nombre ? " - " + nombre : ""}`, {
+      codigo: codigoCuenta,
       nombre,
+      accountId,
     });
     renderLayout();
     updateStats();
-    showToast(`Cuenta ${codigo} eliminada`, "success");
+    scheduleAutoSave("delete");
+    showToast(`Cuenta ${codigoCuenta} eliminada`, "success");
   };
 
   // Helper function to get HTML list of accounts in a section
@@ -6904,6 +7570,9 @@ window.editSection = function (name) {
 
       return secondary === sectionLower || primary === sectionLower;
     });
+    matchingAccounts = matchingAccounts.filter(
+      (account) => !isPlaceholderAccount(account)
+    );
 
     // If no exact match, try partial match
     if (matchingAccounts.length === 0) {
@@ -6934,6 +7603,9 @@ window.editSection = function (name) {
           sectionLower.includes(primary)
         );
       });
+      matchingAccounts = matchingAccounts.filter(
+        (account) => !isPlaceholderAccount(account)
+      );
     }
 
     if (matchingAccounts.length === 0) {
@@ -7463,7 +8135,17 @@ window.editSection = function (name) {
       </div>
 
       <div class="mt-3">
-        <label class="form-label">Mapa de Operación (Fórmula Expandida)</label>
+        <label class="form-label">Mapa de Operación (por subsección)</label>
+        <div id="formulaMap" class="formula-map mb-3">
+          <!-- Se poblará dinámicamente -->
+        </div>
+
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <label class="form-label mb-0">Cuentas incluidas (editable)</label>
+          <button type="button" class="btn btn-outline-success btn-sm" onclick="addFormulaTerm()">
+            <i class="bi bi-plus-lg me-1"></i>Agregar cuenta
+          </button>
+        </div>
         <div id="formulaTerms" class="formula-terms mb-2">
           <!-- Se poblará dinámicamente -->
         </div>
@@ -7551,6 +8233,25 @@ window.editSection = function (name) {
   };
 
   function expandAll() {
+    // Si estamos en vista de lista (piloto), manejar colapso manual
+    const listView = dom.layoutPreview?.querySelector(".template-list-view");
+    if (listView) {
+      const items = Array.from(listView.querySelectorAll(".list-item"));
+      let activeSection = null;
+      items.forEach((item) => {
+        if (item.classList.contains("section-principal")) {
+          activeSection = item;
+          item.classList.remove("is-collapsed");
+          return;
+        }
+        if (activeSection) {
+          item.classList.remove("collapsed-by-section");
+        }
+      });
+      showToast("✅ Todas las secciones expandidas", "success");
+      return;
+    }
+
     const collapsibles = document.querySelectorAll(".collapse");
     collapsibles.forEach((element) => {
       const bsCollapse =
@@ -7562,6 +8263,25 @@ window.editSection = function (name) {
   }
 
   function collapseAll() {
+    // Si estamos en vista de lista (piloto), manejar colapso manual
+    const listView = dom.layoutPreview?.querySelector(".template-list-view");
+    if (listView) {
+      const items = Array.from(listView.querySelectorAll(".list-item"));
+      let activeSection = null;
+      items.forEach((item) => {
+        if (item.classList.contains("section-principal")) {
+          activeSection = item;
+          item.classList.add("is-collapsed");
+          return;
+        }
+        if (activeSection) {
+          item.classList.add("collapsed-by-section");
+        }
+      });
+      showToast("✅ Todas las secciones colapsadas", "success");
+      return;
+    }
+
     const collapsibles = document.querySelectorAll(".collapse");
     collapsibles.forEach((element) => {
       const bsCollapse =
@@ -7576,11 +8296,20 @@ window.editSection = function (name) {
     if (!state.selectedElement) return;
 
     if (state.selectedElement.type === "account") {
-      const cuenta = state.selectedElement.cuenta;
+      const cuenta =
+        state.selectedElement.cuenta ||
+        resolveAccountByIdOrCode(
+          state.selectedElement.accountId || state.selectedElement.codigo
+        );
+      if (!cuenta) return;
+      state.selectedElement.cuenta = cuenta;
       const oldCodigo = cuenta.CUENTA;
       const oldNombre = cuenta.NOMBRE;
       const newCodigo = document.getElementById("editCodigo")?.value?.trim();
       const newNombre = document.getElementById("editNombre")?.value?.trim();
+      const newSeccionPrincipal = document.getElementById("editSeccionPrincipal")?.value?.trim();
+      const newSeccionSecundaria = document.getElementById("editSeccionSecundaria")?.value?.trim();
+      const newVisible = document.getElementById("editVisible")?.checked;
 
       let changed = false;
       if (newCodigo && newCodigo !== oldCodigo) {
@@ -7599,6 +8328,43 @@ window.editSection = function (name) {
           `Cuenta ${cuenta.CUENTA}: "${oldNombre}" → "${newNombre}"`,
           { codigo: cuenta.CUENTA, oldNombre, newNombre }
         );
+        changed = true;
+      }
+
+      // Actualizar sección principal
+      const oldPrincipal = getAccountPrincipalName(cuenta);
+      if (newSeccionPrincipal !== oldPrincipal) {
+        // Actualizar en todos los campos posibles
+        if (cuenta["SECCIÓN Principal"] !== undefined) cuenta["SECCIÓN Principal"] = newSeccionPrincipal;
+        else if (cuenta["SECCION Principal"] !== undefined) cuenta["SECCION Principal"] = newSeccionPrincipal;
+        else if (cuenta.seccion_principal !== undefined) cuenta.seccion_principal = newSeccionPrincipal;
+        else cuenta["SECCIÓN Principal"] = newSeccionPrincipal;
+        logChange("edit", `Cuenta ${cuenta.CUENTA}: sección "${oldPrincipal}" → "${newSeccionPrincipal}"`, {
+          codigo: cuenta.CUENTA,
+          oldPrincipal,
+          newPrincipal: newSeccionPrincipal,
+        });
+        changed = true;
+      }
+
+      // Actualizar sección secundaria
+      const oldSecundaria = getAccountSecondaryName(cuenta);
+      if (newSeccionSecundaria !== oldSecundaria) {
+        if (cuenta["SECCION Secundaria"] !== undefined) cuenta["SECCION Secundaria"] = newSeccionSecundaria;
+        else if (cuenta["SECCIÓN Secundaria"] !== undefined) cuenta["SECCIÓN Secundaria"] = newSeccionSecundaria;
+        else if (cuenta.seccion_secundaria !== undefined) cuenta.seccion_secundaria = newSeccionSecundaria;
+        else cuenta["SECCION Secundaria"] = newSeccionSecundaria;
+        logChange("edit", `Cuenta ${cuenta.CUENTA}: subsección "${oldSecundaria}" → "${newSeccionSecundaria}"`, {
+          codigo: cuenta.CUENTA,
+          oldSecundaria,
+          newSecundaria: newSeccionSecundaria,
+        });
+        changed = true;
+      }
+
+      // Actualizar visibilidad
+      if (newVisible !== undefined && cuenta.visible !== newVisible) {
+        cuenta.visible = newVisible;
         changed = true;
       }
 
@@ -7839,6 +8605,52 @@ window.editSection = function (name) {
           "success"
         );
       }
+
+      const normalizedTerms = normalizeFormulaTerms(formulaTerms);
+      const hasExistingFormula = affectedOps.some(
+        (op) =>
+          (Array.isArray(op.formula_terms) && op.formula_terms.length > 0) ||
+          Boolean(op.formula_json)
+      );
+
+      if (normalizedTerms.length > 0 || hasExistingFormula) {
+        const persistedTerms = normalizedTerms.map((term, idx) => ({
+          id: formulaTerms[idx]?.id || Date.now() + idx,
+          ...term,
+        }));
+
+        affectedOps.forEach((op) => {
+          op.formula_terms = persistedTerms.map((term, idx) => ({
+            id: term.id || Date.now() + idx,
+            operator: term.operator,
+            type: term.type,
+            value: term.value,
+            constant: term.constant,
+            parentSection: term.parentSection,
+          }));
+          op.formula_json = JSON.stringify(normalizedTerms);
+
+          const nextSignos = { ...(op.signos || {}) };
+          for (let i = 1; i <= 20; i++) {
+            const key = `seccion_${i}`;
+            delete op[key];
+            delete nextSignos[key];
+          }
+
+          op.formula_terms.forEach((term, i) => {
+            const key = `seccion_${i + 1}`;
+            op[key] = term.value;
+            nextSignos[key] = term.operator === "-" ? -1 : 1;
+          });
+
+          op.signos = nextSignos;
+        });
+
+        showToast(
+          `Fórmula actualizada en ${affectedOps.length} operaciones`,
+          "success"
+        );
+      }
     }
 
     state.unsavedChanges = true;
@@ -7858,9 +8670,24 @@ window.editSection = function (name) {
     const type = state.selectedElement.type;
 
     if (type === "account") {
-      const codigo = state.selectedElement.cuenta?.CUENTA;
+      const cuenta =
+        state.selectedElement.cuenta ||
+        resolveAccountByIdOrCode(
+          state.selectedElement.accountId || state.selectedElement.codigo
+        );
+      const codigo =
+        cuenta?.CUENTA ||
+        state.selectedElement.codigo ||
+        state.selectedElement.accountId;
       if (codigo && confirm(`Eliminar la cuenta ${codigo}?`)) {
-        state.cuentas = state.cuentas.filter((c) => c.CUENTA !== codigo);
+        const accountId = cuenta ? getAccountRowId(cuenta) : "";
+        if (accountId) {
+          state.cuentas = state.cuentas.filter(
+            (c) => getAccountRowId(c) !== accountId
+          );
+        } else {
+          state.cuentas = state.cuentas.filter((c) => c.CUENTA !== codigo);
+        }
         finalizeDeletion();
       }
     } else if (type === "section") {
@@ -8229,6 +9056,7 @@ window.editSection = function (name) {
     };
 
     let accounts = state.cuentas.filter((c) => {
+      if (isPlaceholderAccount(c)) return false;
       const secondaryKey = normalizeKey(getAccountSecondaryName(c));
       const primaryKey = normalizeKey(getAccountPrincipalName(c));
       if (!matchesParent(primaryKey)) return false;
@@ -8238,6 +9066,7 @@ window.editSection = function (name) {
     // Try partial match if no exact match
     if (accounts.length === 0) {
       accounts = state.cuentas.filter((c) => {
+        if (isPlaceholderAccount(c)) return false;
         const secondaryKey = normalizeKey(getAccountSecondaryName(c));
         const primaryKey = normalizeKey(getAccountPrincipalName(c));
         if (!matchesParent(primaryKey)) return false;
@@ -8262,6 +9091,7 @@ window.editSection = function (name) {
     groupedSections.forEach((section) => {
       (section.subsections || []).forEach((subsection) => {
         (subsection.accounts || []).forEach((cuenta) => {
+          if (isPlaceholderAccount(cuenta)) return;
           const code = cuenta.CUENTA || cuenta.cuenta || cuenta.num_cta;
           const name = cuenta.NOMBRE || cuenta.nombre || "";
           const key = normalizeOperationMatch(code);
@@ -8277,6 +9107,336 @@ window.editSection = function (name) {
     });
 
     return accounts;
+  }
+
+  function getAccountByCode(code) {
+    if (!code) return null;
+    const target = normalizeKey(code);
+    if (!target) return null;
+    const accounts = state.cuentas || [];
+    for (const cuenta of accounts) {
+      const cuentaCode = cuenta.CUENTA || cuenta.cuenta || cuenta.num_cta;
+      if (!cuentaCode) continue;
+      if (normalizeKey(cuentaCode) === target) return cuenta;
+    }
+    return null;
+  }
+
+  function buildLayoutOrderIndex() {
+    const sectionIndex = new Map();
+    const subsectionIndex = new Map();
+    const accountIndex = new Map();
+
+    const sections = groupBySections(state.cuentas || []);
+    sections.forEach((section, sectionIdx) => {
+      const sectionKey = normalizeKey(section.name);
+      const sectionOrder = Number.isFinite(Number(section.order))
+        ? Number(section.order)
+        : sectionIdx;
+      if (sectionKey && !sectionIndex.has(sectionKey)) {
+        sectionIndex.set(sectionKey, sectionOrder);
+      }
+
+      (section.subsections || []).forEach((subsection, subsectionIdx) => {
+        const subName = subsection.name || "";
+        const subKey = normalizeKey(subName) || "__NO_SUB__";
+        const subOrder = Number.isFinite(Number(subsection.order))
+          ? Number(subsection.order)
+          : sectionOrder + subsectionIdx / 1000;
+        subsectionIndex.set(`${sectionKey}||${subKey}`, subOrder);
+
+        (subsection.accounts || []).forEach((cuenta, accountIdx) => {
+          const code = cuenta.CUENTA || cuenta.cuenta || cuenta.num_cta;
+          if (!code) return;
+          const order = getAccountOrder(cuenta, accountIdx);
+          accountIndex.set(normalizeKey(code), order);
+        });
+      });
+    });
+
+    return { sectionIndex, subsectionIndex, accountIndex };
+  }
+
+  function summarizeOperatorSet(operators) {
+    const values = Array.from(operators || []).filter(Boolean);
+    if (!values.length) return "";
+    const unique = new Set(values);
+    if (unique.size === 1) return values[0];
+    if (unique.has("+") && unique.has("-")) return "±";
+    return "±";
+  }
+
+  function renderOperatorBadge(operator, extraClass = "") {
+    if (!operator) return "";
+    const label = operator === "±" ? "±" : operator;
+    const className =
+      operator === "+"
+        ? "bg-success"
+        : operator === "-"
+        ? "bg-danger"
+        : operator === "±"
+        ? "bg-secondary"
+        : operator === "*"
+        ? "bg-warning text-dark"
+        : operator === "/"
+        ? "bg-info"
+        : "bg-secondary";
+    return `<span class="badge ${className} ${extraClass}">${escapeHtml(
+      label
+    )}</span>`;
+  }
+
+  function buildFormulaMapBySubsection(terms = []) {
+    const { sectionIndex, subsectionIndex, accountIndex } =
+      buildLayoutOrderIndex();
+    const sectionsMap = new Map();
+    const misc = [];
+
+    terms.forEach((term, idx) => {
+      if (!term) return;
+      const operator = term.operator && term.operator !== "" ? term.operator : "+";
+      const value = (term.value || "").toString().trim();
+      if (!value) return;
+
+      if (term.type && term.type !== "account") {
+        misc.push({ term, operator, order: idx });
+        return;
+      }
+
+      const account = getAccountByCode(value);
+      if (account && isPlaceholderAccount(account)) return;
+
+      const principal =
+        (account && getAccountPrincipalName(account)) || "";
+      const secondary =
+        (account && getAccountSecondaryName(account)) || "";
+      const principalName = (principal || secondary || "Sin sección")
+        .toString()
+        .trim();
+      const secondaryName = secondary.toString().trim();
+
+      const principalKey = normalizeKey(principalName);
+      const secondaryKey = secondaryName ? normalizeKey(secondaryName) : "__NO_SUB__";
+      const sectionOrder = sectionIndex.get(principalKey);
+
+      if (!sectionsMap.has(principalKey)) {
+        sectionsMap.set(principalKey, {
+          name: principalName,
+          order: Number.isFinite(sectionOrder) ? sectionOrder : idx + 10000,
+          subsections: new Map(),
+        });
+      }
+
+      const section = sectionsMap.get(principalKey);
+      const subOrder =
+        subsectionIndex.get(`${principalKey}||${secondaryKey}`) ??
+        (Number.isFinite(sectionOrder) ? sectionOrder : idx + 10000);
+
+      if (!section.subsections.has(secondaryKey)) {
+        section.subsections.set(secondaryKey, {
+          name: secondaryName,
+          displayName: secondaryName || "Sin subsección",
+          order: Number.isFinite(subOrder) ? subOrder : idx + 10000,
+          accounts: new Map(),
+          operators: new Set(),
+        });
+      }
+
+      const subsection = section.subsections.get(secondaryKey);
+      subsection.operators.add(operator);
+
+      const accountKey = normalizeKey(value);
+      if (!subsection.accounts.has(accountKey)) {
+        const accountOrder = accountIndex.get(accountKey);
+        const fallbackName =
+          term.displayName && String(term.displayName).trim()
+            ? String(term.displayName).trim()
+            : "";
+        const accountName =
+          (account &&
+            (account.NOMBRE ||
+              account.nombre ||
+              account.DESCRIPCION ||
+              account.descripcion)) ||
+          fallbackName ||
+          "";
+        subsection.accounts.set(accountKey, {
+          code: value,
+          name: accountName,
+          order: Number.isFinite(accountOrder) ? accountOrder : idx + 10000,
+          operators: new Set(),
+        });
+      }
+
+      const accountEntry = subsection.accounts.get(accountKey);
+      accountEntry.operators.add(operator);
+    });
+
+    const sections = Array.from(sectionsMap.values())
+      .map((section) => {
+        const subsections = Array.from(section.subsections.values())
+          .map((subsection) => {
+            const accounts = Array.from(subsection.accounts.values()).map(
+              (account) => ({
+                ...account,
+                sign: summarizeOperatorSet(account.operators),
+              })
+            );
+            accounts.sort(
+              (a, b) =>
+                a.order - b.order ||
+                a.code.localeCompare(b.code, "es", { sensitivity: "base" })
+            );
+            return {
+              ...subsection,
+              accounts,
+              sign: summarizeOperatorSet(subsection.operators),
+            };
+          })
+          .sort(
+            (a, b) =>
+              a.order - b.order ||
+              a.displayName.localeCompare(b.displayName, "es", {
+                sensitivity: "base",
+              })
+          );
+
+        const accountCount = subsections.reduce(
+          (total, sub) => total + (sub.accounts || []).length,
+          0
+        );
+
+        return { ...section, subsections, accountCount };
+      })
+      .sort(
+        (a, b) =>
+          a.order - b.order ||
+          a.name.localeCompare(b.name, "es", { sensitivity: "base" })
+      );
+
+    return { sections, misc };
+  }
+
+  function renderFormulaMapBySubsection() {
+    const container = document.getElementById("formulaMap");
+    if (!container) return;
+
+    const data = buildFormulaMapBySubsection(formulaTerms);
+
+    if (!data.sections.length && !data.misc.length) {
+      container.innerHTML =
+        '<div class="text-muted small fst-italic">No hay cuentas para mostrar.</div>';
+      return;
+    }
+
+    const sectionsHtml = data.sections
+      .map((section) => {
+        const hasNamedSubsections = section.subsections.some((sub) => {
+          if (!sub.name) return false;
+          return normalizeKey(sub.name) !== normalizeKey(section.name);
+        });
+        const showSubsections =
+          section.subsections.length > 1 || hasNamedSubsections;
+
+        const accountsForSection = section.subsections.flatMap(
+          (sub) => sub.accounts || []
+        );
+
+        const accountsHtml = (accountsForSection || [])
+          .map(
+            (account) => `
+              <div class="d-flex align-items-center gap-2 ms-4 mt-1 small">
+                ${renderOperatorBadge(account.sign, "me-1")}
+                <code class="mb-0">${escapeHtml(account.code)}</code>
+                ${
+                  account.name
+                    ? `<span class="text-muted">${escapeHtml(
+                        account.name
+                      )}</span>`
+                    : ""
+                }
+              </div>
+            `
+          )
+          .join("");
+
+        const subsectionsHtml = section.subsections
+          .map((subsection) => {
+            const subAccountsHtml = (subsection.accounts || [])
+              .map(
+                (account) => `
+                  <div class="d-flex align-items-center gap-2 ms-4 mt-1 small">
+                    ${renderOperatorBadge(account.sign, "me-1")}
+                    <code class="mb-0">${escapeHtml(account.code)}</code>
+                    ${
+                      account.name
+                        ? `<span class="text-muted">${escapeHtml(
+                            account.name
+                          )}</span>`
+                        : ""
+                    }
+                  </div>
+                `
+              )
+              .join("");
+
+            return `
+              <div class="mb-2">
+                <div class="d-flex align-items-center gap-2 fw-semibold">
+                  ${renderOperatorBadge(subsection.sign, "me-1")}
+                  <i class="bi bi-folder text-warning"></i>
+                  <span>${escapeHtml(subsection.displayName)}</span>
+                  <span class="badge bg-light text-dark">${
+                    subsection.accounts.length
+                  }</span>
+                </div>
+                ${subAccountsHtml || ""}
+              </div>
+            `;
+          })
+          .join("");
+
+        return `
+          <div class="mb-3">
+            <div class="d-flex align-items-center gap-2 fw-semibold text-primary mb-1">
+              <i class="bi bi-folder2"></i>
+              <span>${escapeHtml(section.name)}</span>
+              <span class="badge bg-light text-dark">${section.accountCount}</span>
+            </div>
+            <div class="ms-3">
+              ${showSubsections ? subsectionsHtml : accountsHtml}
+            </div>
+          </div>
+        `;
+      })
+      .join("");
+
+    const miscHtml = data.misc.length
+      ? `
+        <div class="mt-3">
+          <div class="fw-semibold text-muted mb-1">Otros términos</div>
+          ${data.misc
+            .map((item) => {
+              const term = item.term || {};
+              const label =
+                term.type === "operation"
+                  ? formatOperationReference(term.value)
+                  : term.type === "constant"
+                  ? String(term.constant ?? term.value ?? "")
+                  : term.value || "";
+              return `
+                <div class="d-flex align-items-center gap-2 ms-2 small">
+                  ${renderOperatorBadge(item.operator, "me-1")}
+                  <span>${escapeHtml(label)}</span>
+                </div>
+              `;
+            })
+            .join("")}
+        </div>
+      `
+      : "";
+
+    container.innerHTML = `${sectionsHtml}${miscHtml}`;
   }
 
   // Renderizar los términos
@@ -8350,7 +9510,10 @@ window.editSection = function (name) {
     const previewContainer =
       document.getElementById("formulaPreview") ||
       document.getElementById("formulaPreviewText");
-    if (!previewContainer) return;
+    if (!previewContainer) {
+      renderFormulaMapBySubsection();
+      return;
+    }
 
     if (formulaTerms.length === 0) {
       previewContainer.innerHTML =
@@ -8373,6 +9536,8 @@ window.editSection = function (name) {
         <div class="mt-1">${preview}</div>
       </div>
     `;
+
+    renderFormulaMapBySubsection();
   }
 
   // Actualizar operador de término
@@ -8431,7 +9596,7 @@ window.editSection = function (name) {
 
     // Para cuentas y operaciones, simplemente actualizar el valor
     term.value = value;
-    // Removed updateFormulaPreview() - not needed
+    renderFormulaMapBySubsection();
   };
 
   // Obtener elementos disponibles
@@ -8554,58 +9719,73 @@ window.editSection = function (name) {
   }
 
   // Cache de cuentas para autocompletar
-  let cuentasCache = null;
-  let cuentasCacheAnio = null;
+  let cuentasCache = new Map();
+  let cuentasFetchTimer = null;
+  let cuentasFetchToken = 0;
 
   // Función global para buscar cuentas dinámicamente
-  window.buscarCuentasDinamicas = async function (query) {
-    if (!query || query.length < 2) return;
-
+  window.buscarCuentasDinamicas = function (query) {
     const datalist = document.getElementById("datalistCuentas");
     if (!datalist) return;
 
-    const anioActual = state.anio || new Date().getFullYear();
-
-    // Cargar cache si no existe o cambió el año
-    if (!cuentasCache || cuentasCacheAnio !== anioActual) {
-      try {
-        const headers = getAuthHeaders();
-        const response = await fetch(
-          `/api/cuentas-activas?anio=${anioActual}`,
-          { headers }
-        );
-        if (response.ok) {
-          cuentasCache = await response.json();
-          cuentasCacheAnio = anioActual;
-        } else {
-          cuentasCache = [];
-        }
-      } catch (err) {
-        console.warn("Error al cargar cuentas:", err);
-        cuentasCache = [];
-      }
+    const raw = (query || "").toString().trim();
+    if (raw.length < 1) {
+      datalist.innerHTML = "";
+      return;
     }
 
-    // Filtrar cuentas que coincidan
-    const queryLower = query.toLowerCase();
-    const matches = (cuentasCache || [])
-      .filter(
-        (c) =>
-          (c.CUENTA || "").toLowerCase().includes(queryLower) ||
-          (c.NOMBRE || "").toLowerCase().includes(queryLower)
-      )
-      .slice(0, 20); // Limitar a 20 resultados
+    const anioActual = new Date().getFullYear();
+    const empresaId = obtenerEmpresaIdApi?.() || state.empresaId || "EMPRESA01";
+    const cacheKey = `${anioActual}::${empresaId}::${raw.toLowerCase()}`;
 
-    // Actualizar datalist
-    // Actualizar datalist
-    datalist.innerHTML = matches
-      .map(
-        (c) =>
-          `<option value="${c.CUENTA}" label="${c.NOMBRE || c.CUENTA}">${
-            c.CUENTA
-          } - ${c.NOMBRE || ""}</option>`
-      )
-      .join("");
+    if (cuentasCache.has(cacheKey)) {
+      const cached = cuentasCache.get(cacheKey) || [];
+      datalist.innerHTML = cached
+        .map(
+          (c) =>
+            `<option value="${c.CUENTA}" label="${c.NOMBRE || c.CUENTA}">${
+              c.CUENTA
+            } - ${c.NOMBRE || ""}</option>`
+        )
+        .join("");
+      return;
+    }
+
+    if (cuentasFetchTimer) {
+      clearTimeout(cuentasFetchTimer);
+    }
+
+    const token = ++cuentasFetchToken;
+    cuentasFetchTimer = setTimeout(async () => {
+      try {
+        const headers = getAuthHeaders();
+        const params = new URLSearchParams({
+          anio: anioActual,
+          empresaId,
+          q: raw,
+        });
+        const response = await fetch(
+          `/api/cuentas-activas?${params.toString()}`,
+          { headers }
+        );
+        if (!response.ok) {
+          return;
+        }
+        const cuentas = await response.json();
+        if (token !== cuentasFetchToken) return;
+        cuentasCache.set(cacheKey, cuentas || []);
+        datalist.innerHTML = (cuentas || [])
+          .map(
+            (c) =>
+              `<option value="${c.CUENTA}" label="${c.NOMBRE || c.CUENTA}">${
+                c.CUENTA
+              } - ${c.NOMBRE || ""}</option>`
+          )
+          .join("");
+      } catch (err) {
+        console.warn("Error al cargar cuentas:", err);
+      }
+    }, 200);
   };
 
   // ==========================================
@@ -8666,6 +9846,7 @@ window.editSection = function (name) {
       capitulo: state.capitulo,
       cuentas: state.cuentas || [],
       operaciones: sortOperations(state.operaciones || []),
+      columnasConfig: getColumnConfigForRender(),
     };
 
     let currentOptions = {
@@ -8732,9 +9913,9 @@ window.editSection = function (name) {
       }
       if (rowType === "account") {
         if (!requireEditMode()) return;
-        const cuenta = row.dataset.cuenta;
-        if (cuenta) {
-          window.editAccount?.(cuenta);
+        const accountId = row.dataset.accountId || row.dataset.cuenta;
+        if (accountId) {
+          window.editAccount?.(accountId);
         }
       }
     });
@@ -8826,7 +10007,22 @@ window.editSection = function (name) {
    * Cargar operaciones desde el archivo JSON
    * @returns {Promise<Object>} Operaciones organizadas por capítulo y módulo
    */
-  const cargarOperacionesDesdeJSON = async () => ({});
+  const cargarOperacionesDesdeJSON = async () => {
+    try {
+      const url = `${API_BASE}/operaciones-predefinidas`;
+      const response = await fetch(url, { headers: getAuthHeaders() });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      const data = await response.json();
+      if (data?.success && data?.data) {
+        return data.data;
+      }
+    } catch (error) {
+      console.warn("No se pudieron cargar operaciones predefinidas:", error);
+    }
+    return {};
+  };
 
   const cargarOperacionesDesdeSumasCSV = async () => ({});
 
@@ -9080,13 +10276,15 @@ window.editSection = function (name) {
     const orderValue = Number.isFinite(predef.orden)
       ? predef.orden
       : orderIndex;
-    const parentSubsection = predef.section || predef.formula || null;
+    const resolvedSection =
+      predef.section || (predef.source === "sumas" ? predef.formula : "") || "";
+    const parentSubsection = resolvedSection || null;
     const parentSection = predef.parentSection || null;
     const op = {
       CAPITULO: state.capitulo || "DEFAULT",
       OperacionId: opId,
       Clase: predef.nombre,
-      SECCION: predef.formula,
+      SECCION: resolvedSection,
       tipo: "predefined",
       signos: {},
       orden: Number.isFinite(orderValue) ? orderValue : nextOperationOrder(),
@@ -9114,7 +10312,9 @@ window.editSection = function (name) {
     const orderValue = Number.isFinite(predef.orden)
       ? predef.orden
       : orderIndex;
-    const parentSubsection = predef.section || predef.formula || null;
+    const resolvedSection =
+      predef.section || (predef.source === "sumas" ? predef.formula : "") || "";
+    const parentSubsection = resolvedSection || null;
     const parentSection = predef.parentSection || null;
 
     if (!op.CAPITULO && state.capitulo) {
@@ -9153,8 +10353,8 @@ window.editSection = function (name) {
       }
     }
 
-    if (predef.formula && (force || !op.SECCION || !formulaIsSame)) {
-      op.SECCION = predef.formula;
+    if (resolvedSection && (force || !op.SECCION || !formulaIsSame)) {
+      op.SECCION = resolvedSection;
       changed = true;
     }
 
@@ -9603,4 +10803,3 @@ window.editSection = function (name) {
     loadContextFromURL,
   };
 })();
-

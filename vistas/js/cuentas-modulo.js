@@ -381,11 +381,82 @@
     return 0;
   };
 
+  const extraerFormulaTermsOperacion = (op) => {
+    if (!op) return [];
+    if (Array.isArray(op.formula_terms) && op.formula_terms.length) {
+      return op.formula_terms;
+    }
+    if (op.formula_json) {
+      try {
+        const parsed = JSON.parse(op.formula_json);
+        if (Array.isArray(parsed)) return parsed;
+      } catch (err) {
+        console.warn("No se pudo leer formula_json", err);
+      }
+    }
+    return [];
+  };
+
+  const construirTerminosOperativoDesdeFormula = (op) => {
+    const terms = extraerFormulaTermsOperacion(op);
+    const terminos = [];
+    terms.forEach((term) => {
+      if (!term) return;
+      const tipo = (term.type || "").toString().toLowerCase();
+      if (tipo !== "account" && tipo !== "cuenta") return;
+      const valor = term.value || term.cuenta || "";
+      const cuenta21 = convertirCuenta21(valor);
+      if (!cuenta21) return;
+      const operador = (term.operator || "+").toString();
+      const signo = operador.trim() === "-" ? -1 : 1;
+      terminos.push({ cuenta21, signo });
+    });
+    return terminos;
+  };
+
+  const construirOperacionesResultadoOperativoDesdeLayout = (operaciones) => {
+    if (!Array.isArray(operaciones) || !operaciones.length) return [];
+    const resultado = [];
+    const seen = new Set();
+    operaciones.forEach((op, idx) => {
+      const label = (
+        op?.["sum-row-operativo"] ||
+        op?.["sum-row-operativo-consolidado"] ||
+        ""
+      )
+        .toString()
+        .trim();
+      if (!label) return;
+      const clave = normalizarTexto(label);
+      if (!clave || seen.has(clave)) return;
+      const terminos = construirTerminosOperativoDesdeFormula(op);
+      if (!terminos.length) return;
+      const orden = Number.isFinite(Number(op?.orden_presentacion))
+        ? Number(op.orden_presentacion)
+        : Number.isFinite(Number(op?.orden))
+        ? Number(op.orden)
+        : idx;
+      resultado.push({
+        clave,
+        nombre: label,
+        label,
+        terminos,
+        orden,
+      });
+      seen.add(clave);
+    });
+    return resultado.sort((a, b) => a.orden - b.orden);
+  };
+
   const construirOperacionesResultadoOperativo = ({
     registros,
     moduloClave,
+    operacionesLayout,
   }) => {
     if (!MODULOS_OPERATIVO_POR_NOMBRE.has(moduloClave)) return [];
+    const desdeLayout =
+      construirOperacionesResultadoOperativoDesdeLayout(operacionesLayout);
+    if (desdeLayout.length) return desdeLayout;
     const grupos = new Map();
     const ordenarTokens = moduloClave === "comites";
     (Array.isArray(registros) ? registros : []).forEach((registro, idx) => {
@@ -463,7 +534,11 @@
     destino.appendChild(filaSeccion);
 
     operaciones.forEach((operacion) => {
-      const texto = `Resultado Operativo ${operacion.nombre}`;
+      const texto =
+        operacion.label ||
+        (operacion.nombre
+          ? `Resultado Operativo ${operacion.nombre}`
+          : "Resultado Operativo");
       const fila = agregarFilaResumen({
         texto,
         clase: "sum-row-operativo",
@@ -2993,10 +3068,13 @@
           ? sumasPersonalizadas.get(claveSeccion) ||
             sumasPersonalizadas.get(claveSeccionOriginal)
           : null;
+      const tieneSumasBase = Boolean(sumasBase);
       let sumas =
         aplicarOperacionesPorModulo(moduloClave, seccion, sumasBase) ||
         sumasBase;
-      sumas = limpiarSumasPorModulo(sumas, moduloClave) || sumasBase;
+      if (!tieneSumasBase) {
+        sumas = limpiarSumasPorModulo(sumas, moduloClave) || sumasBase;
+      }
       if (esModuloResumen) {
         const limpiarOper = (texto) => (texto || "").trim();
         const isOperating =
@@ -3101,13 +3179,22 @@
         meta.resultRowTexto = meta.resultRowTexto || clave;
       };
       const capituloNormalizado = normalizarTexto(capitulo);
+      const etiquetasManual = Boolean(
+        sumas?.sumRow ||
+          sumas?.sumRowSumavarios ||
+          sumas?.sumRowSumavarios2 ||
+          sumas?.resultRow ||
+          (Array.isArray(sumas?.resultRows) && sumas.resultRows.length)
+      );
       const aplicarHeuristicas =
         heuristicasPermitidas &&
         (factorManual == null || moduloNormalizado === "direccion");
+      const aplicarHeuristicasEtiquetas =
+        aplicarHeuristicas && !etiquetasManual;
       const esCapituloMexico =
         capituloNormalizado === normalizarTexto("CIUDAD DE M├ëXICO") ||
         capituloNormalizado === normalizarTexto("CIUDAD DE MEXICO");
-      if (aplicarHeuristicas) {
+      if (aplicarHeuristicasEtiquetas) {
         switch (moduloNormalizado) {
           case "comites": {
             const seccionNormTexto = normalizarTexto(seccion || "");
@@ -3407,6 +3494,14 @@
           }
           default:
             break;
+        }
+      }
+      if (!aplicarHeuristicasEtiquetas && aplicarHeuristicas && factorManual == null) {
+        const seccionNormTexto = normalizarTexto(seccion || "");
+        if (/GASTOS|COSTOS|DEDUC|IMPUEST|COMISIONES/i.test(seccionNormTexto)) {
+          metaSeccion.factor = -1;
+        } else if (/INGRESOS/i.test(seccionNormTexto)) {
+          metaSeccion.factor = 1;
         }
       }
       if (etiquetaSumRow) {
@@ -6170,6 +6265,7 @@
     const operacionesResultado = construirOperacionesResultadoOperativo({
       registros,
       moduloClave,
+      operacionesLayout: estadoModulo.layoutOperaciones,
     });
     const insertarOperativoAntesDe =
       moduloClave === "comites" || moduloClave === "eventos"
