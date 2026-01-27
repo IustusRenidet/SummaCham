@@ -1427,3 +1427,838 @@ Este sistema garantiza **persistencia robusta**, **seguridad** y **experiencia d
 *Documentación actualizada: 2026-01-26 18:26:15*
 *Versión: 2.1 - Infraestructura Técnica Completa*
 *Autor: SummaCham Development Team*
+
+---
+
+## 36. ⚙️ **Variables de Entorno y Secretos en SummaCham**
+
+### **36.1 Arquitectura de Variables de Entorno**
+
+SummaCham utiliza un sistema sofisticado de variables de entorno que se adapta automáticamente según el modo de ejecución (desarrollo/producción) y genera secretos seguros automáticamente.
+
+#### **📁 Sistema de Archivos de Configuración:**
+```
+.env.example           # Plantilla con todas las variables posibles
+.env.development       # Variables específicas de desarrollo
+.env.production        # Variables específicas de producción
+.env.production.example # Ejemplo de producción con túnel TCP
+.env.secrets           # Secretos generados automáticamente (NO versionar)
+```
+
+#### **🔄 Prioridad de Carga:**
+1. **Variables del sistema** (más alta prioridad)
+2. **Archivo `.env.{NODE_ENV}`** (desarrollo/producción)
+3. **Valores por defecto** (más baja prioridad)
+
+---
+
+### **36.2 Variables de Entorno Principales**
+
+#### **🎯 Variables de Modo y Puerto:**
+```bash
+# Modo de ejecución
+NODE_ENV=development|production
+
+# Puerto del servidor backend
+PORT=3005
+SERVER_PORT=3005
+```
+
+#### **🔥 Variables de Base de Datos Firebird:**
+```bash
+# Conexión Firebird
+FIREBIRD_HOST=127.0.0.1          # Host del servidor
+FIREBIRD_PORT=3050               # Puerto (3050 directo, 15350 túnel)
+FIREBIRD_USER=sysdba             # Usuario de Firebird
+FIREBIRD_PASSWORD=masterkey      # Contraseña de Firebird
+```
+
+#### **🔐 Variables de Secretos y Seguridad:**
+```bash
+# Secretos JWT (generados automáticamente)
+PANELAMCHAM_JWT_SECRET=...       # Secreto para tokens JWT
+PANELAMCHAM_REFRESH_SECRET=...   # Secreto para refresh tokens
+
+# Secreto de sesiones
+SESSION_SECRET=...               # Secreto para express-session
+
+# Contraseñas de usuarios
+PANELAMCHAM_ADMIN_PASSWORD=...   # Contraseña del usuario ICONET
+ICONET_PASSWORD=...              # Alias alternativo
+```
+
+#### **📧 Variables de Correo Electrónico (SMTP):**
+```bash
+# Configuración SMTP para notificaciones
+SMTP_HOST=smtp.gmail.com         # Servidor SMTP
+SMTP_PORT=587                    # Puerto SMTP
+SMTP_SECURE=false                # true para SSL, false para TLS
+SMTP_USER=notificaciones@amcham.org  # Usuario SMTP
+SMTP_PASS=password_app           # Contraseña SMTP
+SMTP_FROM=notificaciones@amcham.org # Remitente por defecto
+```
+
+#### **💾 Variables de Backups:**
+```bash
+# Configuración del sistema de backups
+BACKUP_ENABLED=true              # Habilitar/deshabilitar backups
+BACKUP_INTERVAL_MINUTES=60       # Intervalo en minutos
+BACKUP_MAX_BACKUPS=24            # Máximo número de backups
+BACKUP_PATH=/ruta/backups        # Ruta personalizada (opcional)
+```
+
+#### **🌐 Variables de CORS y Cookies:**
+```bash
+# Orígenes permitidos para CORS (separados por comas)
+PANELAMCHAM_ALLOW_ORIGINS=http://localhost:3005,https://panelamcham.iconetcloud.com.mx
+
+# Dominio para cookies cross-site
+COOKIE_DOMAIN=.iconetcloud.com.mx
+```
+
+#### **📂 Variables de Rutas Personalizadas:**
+```bash
+# Directorio personalizado para datos
+PANELAMCHAM_DATA_DIR=/ruta/personalizada/datos
+
+# Base de datos semilla para inicialización
+PANELAMCHAM_SEED_DB=/ruta/base/semilla.sqlite
+```
+
+#### **🐛 Variables de Debug:**
+```bash
+# Debug de fórmulas en reportes
+DEBUG_NET_FORMULAS=1
+```
+
+---
+
+### **36.3 Sistema de Secretos Automáticos**
+
+#### **📍 Ubicación de los Secretos:**
+```bash
+# En desarrollo: ./datos/.env.secrets
+# En producción: %APPDATA%/panelamcham/datos/.env.secrets (Windows)
+#               ~/Library/Application Support/panelamcham/datos/.env.secrets (macOS)
+#               ~/.config/panelamcham/datos/.env.secrets (Linux)
+```
+
+#### **🔄 Generación Automática:**
+```javascript
+// src/utils/secretsManager.js
+const generarSecretoSeguro = (length = 32) => {
+  return crypto.randomBytes(length).toString('hex');
+};
+
+// Genera 3 secretos de 32 bytes cada uno (256 bits)
+PANELAMCHAM_JWT_SECRET: generarSecretoSeguro(32),
+SESSION_SECRET: generarSecretoSeguro(32),
+PANELAMCHAM_REFRESH_SECRET: generarSecretoSeguro(32)
+```
+
+#### **🛡️ Características de Seguridad:**
+- **Longitud**: 256 bits (32 bytes) cada secreto
+- **Algoritmo**: crypto.randomBytes() (criptográficamente seguro)
+- **Formato**: Hexadecimal
+- **Permisos**: 0o600 (solo lectura para propietario)
+- **Persistencia**: Se guardan automáticamente en archivo seguro
+
+---
+
+### **36.4 Configuración por Ambiente**
+
+#### **🛠️ Desarrollo Local (.env.development):**
+```bash
+NODE_ENV=development
+FIREBIRD_HOST=127.0.0.1
+FIREBIRD_PORT=3050
+FIREBIRD_USER=sysdba
+FIREBIRD_PASSWORD=masterkey
+SERVER_PORT=3005
+```
+
+#### **🏭 Producción con Túnel (.env.production):**
+```bash
+NODE_ENV=production
+FIREBIRD_HOST=127.0.0.1
+FIREBIRD_PORT=15350
+FIREBIRD_USER=sysdba
+FIREBIRD_PASSWORD=masterkey
+SERVER_PORT=3005
+PANELAMCHAM_ALLOW_ORIGINS=https://panelamcham.iconetcloud.com.mx
+COOKIE_DOMAIN=.iconetcloud.com.mx
+```
+
+#### **📋 Plantilla Completa (.env.example):**
+```bash
+# ============================================
+# CONFIGURACIÓN DE ENTORNO - SummaCham
+# ============================================
+
+# --- MODO DE EJECUCIÓN ---
+NODE_ENV=development
+
+# --- PUERTO DEL SERVIDOR ---
+PORT=3005
+
+# --- SECRETO PARA SESIONES ---
+SESSION_SECRET=CAMBIAR_POR_UN_SECRETO_SEGURO_ALEATORIO
+
+# --- CONTRASEÑA DEL ADMINISTRADOR ---
+PANELAMCHAM_ADMIN_PASSWORD=CAMBIAR_POR_CONTRASEÑA_SEGURA
+
+# --- CONFIGURACIÓN FIREBIRD ---
+FIREBIRD_HOST=127.0.0.1
+FIREBIRD_PORT=3050
+FIREBIRD_USER=sysdba
+FIREBIRD_PASSWORD=masterkey
+
+# --- CONFIGURACIÓN SERVIDOR HTTP ---
+SERVER_PORT=3005
+
+# --- CONFIGURACIÓN SMTP (OPCIONAL) ---
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=usuario@email.com
+SMTP_PASS=contraseña_app
+SMTP_FROM=notificaciones@email.com
+
+# --- CONFIGURACIÓN BACKUPS (OPCIONAL) ---
+BACKUP_ENABLED=true
+BACKUP_INTERVAL_MINUTES=60
+BACKUP_MAX_BACKUPS=24
+BACKUP_PATH=/ruta/backups
+
+# --- CONFIGURACIÓN CORS (OPCIONAL) ---
+PANELAMCHAM_ALLOW_ORIGINS=http://localhost:3005,https://midominio.com
+COOKIE_DOMAIN=.midominio.com
+
+# --- RUTAS PERSONALIZADAS (OPCIONAL) ---
+PANELAMCHAM_DATA_DIR=/ruta/datos
+PANELAMCHAM_SEED_DB=/ruta/semilla.sqlite
+```
+
+---
+
+### **36.5 Gestión de Secretos en Producción**
+
+#### **🔒 Archivo .env.secrets (Generado Automáticamente):**
+```bash
+PANELAMCHAM_JWT_SECRET=a1b2c3d4e5f6789012345678901234567890123456789012345678901234567890
+SESSION_SECRET=b2c3d4e5f6789012345678901234567890123456789012345678901234567890123
+PANELAMCHAM_REFRESH_SECRET=c3d4e5f67890123456789012345678901234567890123456789012345678901234
+```
+
+#### **🚀 Inicialización en Electron:**
+```javascript
+// main.js - Se ejecuta al iniciar la aplicación
+const { inicializarSecretos } = require("./src/utils/secretsManager");
+const userDataPath = app.getPath('userData');
+
+// Genera/verifica secretos antes de configurar entorno
+inicializarSecretos(path.join(userDataPath, 'datos'));
+```
+
+#### **🔍 Verificación de Secretos:**
+```javascript
+// src/server.js - Verifica que existan secretos válidos
+const asegurarSecretos = () => {
+  const jwtSecret = process.env.PANELAMCHAM_JWT_SECRET || "";
+  const sessionSecret = process.env.SESSION_SECRET || "";
+  
+  if (!jwtSecret || !sessionSecret) {
+    throw new Error("Secretos no configurados");
+  }
+};
+```
+
+---
+
+### **36.6 Variables de Entorno por Categoría**
+
+#### **📊 Resumen Completo:**
+
+| Variable | Tipo | Requerida | Desarrollo | Producción | Descripción |
+|----------|------|-----------|------------|------------|-------------|
+| `NODE_ENV` | string | ✅ | `development` | `production` | Modo de ejecución |
+| `PORT` | number | ✅ | `3005` | `3005` | Puerto del servidor |
+| `SERVER_PORT` | number | ✅ | `3005` | `3005` | Puerto backend |
+| `FIREBIRD_HOST` | string | ✅ | `127.0.0.1` | `127.0.0.1` | Host Firebird |
+| `FIREBIRD_PORT` | number | ✅ | `3050` | `15350` | Puerto Firebird |
+| `FIREBIRD_USER` | string | ✅ | `sysdba` | `sysdba` | Usuario Firebird |
+| `FIREBIRD_PASSWORD` | string | ✅ | `masterkey` | `masterkey` | Contraseña Firebird |
+| `PANELAMCHAM_JWT_SECRET` | string | ✅ | Auto | Auto | Secreto JWT |
+| `SESSION_SECRET` | string | ✅ | Auto | Auto | Secreto sesiones |
+| `PANELAMCHAM_REFRESH_SECRET` | string | ✅ | Auto | Auto | Secreto refresh |
+| `PANELAMCHAM_ADMIN_PASSWORD` | string | ❌ | Auto | Auto | Contraseña admin |
+| `SMTP_HOST` | string | ❌ | - | `smtp.gmail.com` | Servidor SMTP |
+| `SMTP_PORT` | number | ❌ | - | `587` | Puerto SMTP |
+| `SMTP_SECURE` | boolean | ❌ | - | `false` | SSL/TLS |
+| `SMTP_USER` | string | ❌ | - | `usuario@email` | Usuario SMTP |
+| `SMTP_PASS` | string | ❌ | - | `password` | Contraseña SMTP |
+| `SMTP_FROM` | string | ❌ | - | `notif@email` | Remitente |
+| `BACKUP_ENABLED` | boolean | ❌ | `true` | `true` | Habilitar backups |
+| `BACKUP_INTERVAL_MINUTES` | number | ❌ | `60` | `60` | Intervalo backups |
+| `BACKUP_MAX_BACKUPS` | number | ❌ | `24` | `24` | Máx backups |
+| `BACKUP_PATH` | string | ❌ | - | `/ruta` | Ruta backups |
+| `PANELAMCHAM_ALLOW_ORIGINS` | string | ❌ | - | `urls` | CORS origins |
+| `COOKIE_DOMAIN` | string | ❌ | - | `.dominio` | Dominio cookies |
+| `PANELAMCHAM_DATA_DIR` | string | ❌ | - | `/ruta` | Directorio datos |
+| `PANELAMCHAM_SEED_DB` | string | ❌ | - | `/ruta` | DB semilla |
+| `DEBUG_NET_FORMULAS` | string | ❌ | `1` | - | Debug fórmulas |
+
+---
+
+### **36.7 Ubicaciones de Archivos de Configuración**
+
+#### **📂 Estructura de Archivos:**
+```
+SummaCham/
+├── .env.example                    # Plantilla completa
+├── .env.development               # Config desarrollo
+├── .env.production               # Config producción
+├── .env.production.example       # Ejemplo producción
+└── datos/
+    └── .env.secrets              # Secretos generados (NO versionar)
+```
+
+#### **🔒 Archivo .env.secrets (NO versionar):**
+- **Ubicación**: `datos/.env.secrets`
+- **Permisos**: `0o600` (solo propietario)
+- **Contenido**: 3 secretos de 256 bits cada uno
+- **Generación**: Automática al primer inicio
+- **Persistencia**: Se mantiene entre reinicios
+
+#### **📋 Archivos .env (versionar plantillas):**
+- **`.env.example`**: Plantilla completa con ejemplos
+- **`.env.development`**: Configuración específica de desarrollo
+- **`.env.production`**: Configuración específica de producción
+- **`.env.production.example`**: Ejemplo de configuración de producción
+
+---
+
+### **36.8 Comandos para Gestionar Variables**
+
+#### **🔍 Ver Variables Actuales:**
+```bash
+# En desarrollo
+npm run start
+
+# En producción
+npm run dist
+```
+
+#### **🔄 Regenerar Secretos:**
+```javascript
+// Eliminar .env.secrets y reiniciar aplicación
+rm datos/.env.secrets
+npm start
+```
+
+#### **📊 Ver Configuración Activa:**
+```javascript
+// En consola del navegador (desarrollo)
+console.log('Variables de entorno:', process.env);
+```
+
+---
+
+## 🎯 **Resumen Ejecutivo - Variables de Entorno**
+
+### **⚙️ Arquitectura:**
+- **Sistema híbrido**: Archivos `.env` + secretos automáticos
+- **Adaptativo**: Configuración diferente por ambiente
+- **Seguro**: Secretos generados criptográficamente
+- **Persistente**: Configuración se mantiene entre reinicios
+
+### **🔐 Secretos:**
+- **3 secretos principales**: JWT, Session, Refresh
+- **Generación automática**: 256 bits cada uno
+- **Almacenamiento seguro**: Archivo con permisos restrictivos
+- **No versionados**: Nunca en control de versiones
+
+### **🌍 Variables por Ambiente:**
+- **Desarrollo**: Configuración local, puerto directo Firebird
+- **Producción**: Túnel TCP, dominios personalizados, CORS restringido
+
+Este sistema garantiza **seguridad robusta**, **configuración flexible** y **facilidad de despliegue** en cualquier ambiente.
+
+---
+
+*Documentación actualizada: 2026-01-26 18:26:15*
+*Versión: 2.2 - Variables de Entorno y Secretos*
+*Autor: SummaCham Development Team*
+
+---
+
+## 37. 📜 **Scripts PowerShell (.ps1) en SummaCham**
+
+### **37.1 Arquitectura de Scripts PowerShell**
+
+SummaCham utiliza **scripts PowerShell** para automatizar tareas comunes de desarrollo, despliegue y mantenimiento. Estos scripts están diseñados para **Windows** y proporcionan una interfaz de línea de comandos para operaciones complejas.
+
+#### **📂 Ubicación de Scripts:**
+```
+SummaCham/
+├── cambiar-modo.ps1              # 🔄 Cambio entre entornos
+├── limpiar-cache-icono.ps1       # 🧹 Limpieza de caché Windows
+└── scripts/
+    ├── publish-update.ps1        # 🚀 Publicación de releases
+    ├── audit-security.ps1        # 🔒 Auditoría de seguridad
+    ├── agregar-toggle-redondeo.ps1 # ⚙️ Configuración UI
+    ├── export-resumen-charts.ps1 # 📊 Exportación de gráficos
+    ├── export-operativo-charts.ps1 # 📈 Gráficos operativos
+    └── export-operativo-charts-ui.ps1 # 🎨 UI de gráficos
+```
+
+#### **🎯 Propósitos Principales:**
+- **Gestión de entornos**: Cambio rápido entre desarrollo/producción
+- **Automatización de builds**: Compilación y empaquetado
+- **Mantenimiento**: Limpieza de cachés, auditorías de seguridad
+- **Despliegue**: Publicación de releases en GitHub
+- **Configuración**: Modificaciones masivas en archivos
+
+---
+
+### **37.2 Script Principal: cambiar-modo.ps1**
+
+#### **🎯 Propósito:**
+Cambia rápidamente entre configuraciones de **desarrollo** y **producción** copiando el archivo `.env` correspondiente.
+
+#### **📝 Sintaxis:**
+```powershell
+# Cambiar a desarrollo
+.\cambiar-modo.ps1 dev
+.\cambiar-modo.ps1 development
+
+# Cambiar a producción
+.\cambiar-modo.ps1 prod
+.\cambiar-modo.ps1 production
+```
+
+#### **⚙️ Funcionamiento Interno:**
+```powershell
+param(
+    [Parameter(Mandatory=$true)]
+    [ValidateSet('dev', 'prod', 'development', 'production')]
+    [string]$Modo
+)
+
+# Normalizar modo
+$ModoFinal = switch ($Modo) {
+    'dev' { 'development' }
+    'prod' { 'production' }
+    default { $Modo }
+}
+
+# Copiar archivo de configuración
+Copy-Item ".env.$ModoFinal" ".env" -Force
+```
+
+#### **🔄 Diferencias entre Entornos:**
+
+**Desarrollo (.env.development):**
+```bash
+NODE_ENV=development
+FIREBIRD_PORT=3050          # Acceso directo a Firebird
+# Configuración local, CORS permisivo
+```
+
+**Producción (.env.production):**
+```bash
+NODE_ENV=production
+FIREBIRD_PORT=15350         # Túnel TCP a Firebird remoto
+PANELAMCHAM_ALLOW_ORIGINS=https://panelamcham.iconetcloud.com.mx
+COOKIE_DOMAIN=.iconetcloud.com.mx
+```
+
+#### **📊 Salida del Script:**
+```powershell
+✅ Modo cambiado a: development
+
+📋 Configuración activa (.env):
+   NODE_ENV=development
+   FIREBIRD_HOST=127.0.0.1
+   FIREBIRD_PORT=3050
+   ...
+
+🚀 Ahora puedes ejecutar:
+   npm start
+```
+
+#### **🎯 Casos de Uso:**
+- **Desarrollo diario**: `.\cambiar-modo.ps1 dev`
+- **Testing de producción**: `.\cambiar-modo.ps1 prod`
+- **Despliegue**: Cambiar a prod antes de build
+
+---
+
+### **37.3 Script de Mantenimiento: limpiar-cache-icono.ps1**
+
+#### **🎯 Propósito:**
+Limpia el **caché de iconos de Windows** que puede causar problemas con los iconos de la aplicación después de actualizaciones.
+
+#### **📝 Sintaxis:**
+```powershell
+.\limpiar-cache-icono.ps1
+```
+
+#### **⚙️ Funcionamiento Interno:**
+```powershell
+# 1. Eliminar IconCache.db
+$iconCachePath = "$env:LOCALAPPDATA\IconCache.db"
+Remove-Item -Path $iconCachePath -Force
+
+# 2. Eliminar archivos de thumbnail cache
+Get-ChildItem -Path $thumbCachePath -Filter "thumbcache_*.db" |
+    ForEach-Object { Remove-Item $_.FullName -Force }
+
+# 3. Reiniciar Explorer (opcional)
+taskkill /f /im explorer.exe
+Start-Process explorer.exe
+```
+
+#### **🔧 Archivos que Limpia:**
+- **`IconCache.db`**: Base de datos principal de iconos
+- **`thumbcache_*.db`**: Archivos de caché de miniaturas
+- **Reinicio de Explorer**: Para aplicar cambios
+
+#### **📊 Salida del Script:**
+```powershell
+🧹 Limpiando caché de iconos de Windows...
+✅ IconCache.db eliminado
+✅ thumbcache_1024.db eliminado
+✅ thumbcache_256.db eliminado
+
+📝 Pasos adicionales:
+  1. Reiniciar el Explorador de Windows
+  2. Ejecutar: taskkill /f /im explorer.exe && start explorer.exe
+  3. O reiniciar el PC
+
+¿Deseas reiniciar el Explorador de Windows ahora? (S/N)
+```
+
+#### **🎯 Casos de Uso:**
+- **Después de actualizar iconos**: Limpiar caché para ver cambios
+- **Iconos distorsionados**: Recuperar apariencia correcta
+- **Problemas de visualización**: Mantenimiento preventivo
+
+---
+
+### **37.4 Script de Publicación: scripts/publish-update.ps1**
+
+#### **🎯 Propósito:**
+Automatiza el **proceso completo de publicación** de una nueva versión de SummaCham, desde la compilación hasta la preparación para GitHub Release.
+
+#### **📝 Sintaxis:**
+```powershell
+.\scripts\publish-update.ps1 -Version "1.2.3" -ReleaseNotes "Descripción de cambios"
+```
+
+#### **⚙️ Funcionamiento Interno - Pasos:**
+
+**Paso 1: Actualizar package.json**
+```powershell
+$packageJson = Get-Content "package.json" -Raw | ConvertFrom-Json
+$oldVersion = $packageJson.version
+$packageJson.version = $Version
+$packageJson | ConvertTo-Json -Depth 100 | Set-Content "package.json"
+```
+
+**Paso 2: Compilar aplicación**
+```powershell
+npm run build  # electron-builder genera instaladores
+```
+
+**Paso 3: Verificar archivos generados**
+```powershell
+# Verifica que existan:
+# - SummaCham Setup 1.2.3.exe (64-bit installer)
+# - SummaCham Setup 1.2.3-ia32.exe (32-bit installer)  
+# - SummaCham 1.2.3.exe (64-bit portable)
+# - SummaCham 1.2.3-ia32.exe (32-bit portable)
+# - latest.yml (auto-updater manifest)
+```
+
+**Paso 4: Crear commit y tag**
+```powershell
+git add package.json
+git commit -m "Bump version to 1.2.3"
+git tag -a "v1.2.3" -m "Release v1.2.3: Descripción de cambios"
+```
+
+**Paso 5: Instrucciones para GitHub**
+```powershell
+# Comandos para ejecutar después:
+git push origin main
+git push origin v1.2.3
+
+# Crear release en GitHub con los archivos generados
+```
+
+#### **📦 Archivos Generados:**
+- **Instaladores**: `.exe` para instalación tradicional
+- **Portables**: `.exe` para ejecución sin instalación
+- **Manifest**: `latest.yml` para auto-actualizaciones
+
+#### **🎯 Casos de Uso:**
+- **Release oficial**: Publicar nueva versión completa
+- **Hotfix**: Actualización rápida de bug
+- **Feature release**: Nueva funcionalidad importante
+
+---
+
+### **37.5 Script de Seguridad: scripts/audit-security.ps1**
+
+#### **🎯 Propósito:**
+Realiza una **auditoría completa de seguridad** antes de hacer push al repositorio, verificando que no se incluya información sensible.
+
+#### **📝 Sintaxis:**
+```powershell
+.\scripts\audit-security.ps1
+```
+
+#### **🔍 Verificaciones que Realiza:**
+
+**1. Archivos sensibles no versionados:**
+```powershell
+# Verificar .env
+if (Test-Path ".env") {
+    $gitIgnored = git check-ignore .env
+    if (!$gitIgnored) {
+        "❌ CRÍTICO: .env existe y NO está en .gitignore"
+    }
+}
+
+# Verificar datos/
+if (Test-Path "datos") {
+    $gitIgnored = git check-ignore datos
+    if (!$gitIgnored) {
+        "❌ CRÍTICO: datos/ NO está en .gitignore"
+    }
+}
+```
+
+**2. Contraseñas hardcodeadas:**
+```powershell
+git grep -i "password.*=.*['\`"].*['\`"]" -- "*.js" "*.json"
+```
+
+**3. Variables de entorno expuestas:**
+```powershell
+# Buscar uso de process.env en archivos versionados
+git grep "process\.env\." -- "*.js" "*.html"
+```
+
+**4. Archivos temporales:**
+```powershell
+# Verificar archivos que deberían estar ignorados
+Get-ChildItem -Path "." -Filter "*.tmp" -Recurse
+```
+
+#### **📊 Salida del Script:**
+```powershell
+🔍 Auditando información sensible en el repositorio...
+
+1. Verificando archivos .env...
+   ✓ .env está ignorado correctamente
+
+2. Verificando carpeta datos/...
+   ✓ datos/ está ignorado correctamente
+
+3. Verificando seed_users.json...
+   ✓ seed_users.json está ignorado correctamente
+
+4. Buscando contraseñas hardcodeadas...
+   ✓ No se encontraron contraseñas hardcodeadas
+
+✅ Auditoría completada exitosamente
+```
+
+#### **🎯 Casos de Uso:**
+- **Antes de commit**: Verificar seguridad del código
+- **Antes de push**: Asegurar no se suba información sensible
+- **Auditoría periódica**: Mantenimiento de seguridad
+
+---
+
+### **37.6 Scripts de Configuración: scripts/agregar-toggle-redondeo.ps1**
+
+#### **🎯 Propósito:**
+Agrega automáticamente la **funcionalidad de toggle de redondeo** a todos los módulos HTML de SummaCham.
+
+#### **📝 Sintaxis:**
+```powershell
+.\scripts\agregar-toggle-redondeo.ps1
+```
+
+#### **⚙️ Funcionamiento Interno:**
+```powershell
+$modulos = @(
+    @{Archivo='Finanzas.html'; Modulo='finanzas'},
+    @{Archivo='Comités.html'; Modulo='comites'},
+    # ... más módulos
+)
+
+foreach ($mod in $modulos) {
+    # 1. Agregar script toggle-redondeo.js
+    # 2. Agregar clase controls-container
+    # 3. Agregar inicialización del toggle
+}
+```
+
+#### **🔧 Modificaciones que Realiza:**
+
+**1. Agregar script:**
+```html
+<script src="js/toggle-redondeo.js"></script>
+```
+
+**2. Modificar contenedor:**
+```html
+<!-- Antes -->
+<div class="workflow-toolbar">
+
+<!-- Después -->
+<div class="workflow-toolbar controls-container">
+```
+
+**3. Agregar inicialización:**
+```javascript
+// Inicializar toggle de redondeo
+if (window.ToggleRedondeo) {
+  ToggleRedondeo.inicializar({
+    containerSelector: '.controls-container',
+    storageKey: 'finanzas_redondear'
+  });
+}
+```
+
+#### **🎯 Casos de Uso:**
+- **Nueva funcionalidad**: Agregar feature a todos los módulos
+- **Mantenimiento**: Actualización masiva de configuración
+- **Consistencia**: Asegurar mismo comportamiento en todos los módulos
+
+---
+
+### **37.7 Scripts de Exportación: export-*.ps1**
+
+#### **🎯 Propósito:**
+Automatizan la **exportación de gráficos y reportes** para diferentes módulos de SummaCham.
+
+#### **📝 Sintaxis:**
+```powershell
+.\scripts\export-resumen-charts.ps1
+.\scripts\export-operativo-charts.ps1
+.\scripts\export-operativo-charts-ui.ps1
+```
+
+#### **⚙️ Funcionamiento:**
+- **Conectan a Firebird**: Obtienen datos reales
+- **Generan gráficos**: Usan librerías de charting
+- **Exportan imágenes**: PNG/SVG para documentación
+- **Actualizan UI**: Modifican interfaces según necesidad
+
+#### **🎯 Casos de Uso:**
+- **Documentación**: Generar gráficos para manuales
+- **Testing**: Verificar visualización de datos
+- **Mantenimiento**: Actualizar assets gráficos
+
+---
+
+### **37.8 Gestión de Entornos con Scripts PowerShell**
+
+#### **🔄 Cambio entre Desarrollo y Producción:**
+
+**Flujo de Trabajo Típico:**
+```powershell
+# 1. Desarrollo diario
+.\cambiar-modo.ps1 dev
+npm start
+
+# 2. Testing de producción
+.\cambiar-modo.ps1 prod
+npm run dist
+
+# 3. Publicar release
+.\scripts\publish-update.ps1 -Version "1.2.3" -ReleaseNotes "Nueva funcionalidad"
+```
+
+#### **🌍 Variables que Cambian por Entorno:**
+
+| Variable | Desarrollo | Producción | Efecto |
+|----------|------------|------------|---------|
+| `NODE_ENV` | `development` | `production` | Modo de ejecución |
+| `FIREBIRD_PORT` | `3050` | `15350` | Conexión DB |
+| `PANELAMCHAM_ALLOW_ORIGINS` | Permisivo | Restringido | CORS |
+| `COOKIE_DOMAIN` | - | `.dominio.com` | Cookies |
+
+#### **🔒 Seguridad por Entorno:**
+- **Desarrollo**: Secretos de ejemplo, CORS abierto
+- **Producción**: Secretos reales, CORS restringido, HTTPS
+
+---
+
+### **37.9 Mejores Prácticas con Scripts PowerShell**
+
+#### **🛡️ Seguridad:**
+```powershell
+# Verificar permisos antes de ejecutar
+if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    Write-Host "⚠️ Se requieren permisos de administrador" -ForegroundColor Yellow
+}
+```
+
+#### **📊 Logging:**
+```powershell
+# Logging consistente
+Write-Host "✅ Operación exitosa" -ForegroundColor Green
+Write-Host "❌ Error encontrado" -ForegroundColor Red
+Write-Host "⚠️ Advertencia" -ForegroundColor Yellow
+Write-Host "ℹ️ Información" -ForegroundColor Cyan
+```
+
+#### **🔄 Validación:**
+```powershell
+# Verificar prerrequisitos
+if (-not (Test-Path "package.json")) {
+    Write-Host "❌ Ejecutar desde raíz del proyecto" -ForegroundColor Red
+    exit 1
+}
+```
+
+#### **🎯 Casos de Uso Empresariales:**
+- **Desarrollo Ágil**: Cambio rápido entre entornos
+- **CI/CD**: Automatización de builds y releases
+- **Mantenimiento**: Tareas de limpieza y actualización
+- **Seguridad**: Auditorías antes de despliegue
+
+---
+
+## 🎯 **Resumen Ejecutivo - Scripts PowerShell**
+
+### **📜 Arquitectura:**
+- **Scripts modulares**: Cada uno tiene responsabilidad específica
+- **Interfaz consistente**: Parámetros validados, logging claro
+- **Automatización**: Eliminan tareas manuales repetitivas
+- **Multi-entorno**: Soporte nativo para dev/prod
+
+### **🔄 Gestión de Entornos:**
+- **`cambiar-modo.ps1`**: Cambio rápido entre configuraciones
+- **Variables dinámicas**: Adaptación automática por entorno
+- **Validación**: Verificación de archivos y configuración
+
+### **🚀 Funcionalidades:**
+- **Desarrollo**: Cambio de modo, limpieza de caché
+- **Build**: Compilación, empaquetado, publicación
+- **Seguridad**: Auditorías, verificación de información sensible
+- **Mantenimiento**: Configuración masiva, exportación de datos
+
+Este sistema de scripts proporciona una **experiencia de desarrollo fluida** y **despliegue automatizado**, permitiendo cambiar entre entornos de manera segura y eficiente.
+
+---
+
+*Documentación actualizada: 2026-01-26 18:26:15*
+*Versión: 2.3 - Scripts PowerShell y Gestión de Entornos*
+*Autor: SummaCham Development Team*
