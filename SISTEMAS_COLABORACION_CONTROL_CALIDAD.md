@@ -1125,3 +1125,305 @@ console.log('Permisos por empresa:', permisos);
 *Documentación actualizada: 2026-01-26 18:26:15*
 *Versión: 2.0*
 *Autor: SummaCham Development Team*
+
+---
+
+## 33. 📁 **Rutas de Bases de Datos en SummaCham**
+
+### **33.1 Base de Datos SQLite Local (`panel.sqlite`)**
+
+#### **📍 Ubicaciones por Prioridad:**
+```javascript
+// Código en src/db/sqlite.js - función obtenerRutaBaseDatos()
+1. PANELAMCHAM_DATA_DIR (variable de entorno)
+2. ./datos/ (carpeta local del proyecto)
+3. userData/datos/ (directorio de datos de Electron)
+4. ./datos/ (fallback al directorio actual)
+```
+
+#### **🎯 Propósitos de SQLite:**
+- **Layouts de módulos**: Almacena configuraciones de vistas personalizadas
+- **Sesiones de usuario**: Persistencia de sesiones con `better-sqlite3-session-store`
+- **Comentarios por celda**: Sistema de comentarios anidados
+- **Notificaciones locales**: Historial de notificaciones no enviadas por email
+- **Permisos de usuario**: Control granular de acceso por empresa/módulo
+- **Estados del flujo de autorización**: Tracking de estados de presupuestos
+- **Backups automáticos**: Metadatos de copias de seguridad
+- **Configuraciones de usuario**: Preferencias personales
+
+#### **📊 Estructura de Tablas SQLite:**
+```sql
+-- Sesiones activas
+sessions (sid, sess, expire)
+
+-- Layouts de módulos
+layout_cuentas, layout_modulos, layout_config
+
+-- Sistema de comentarios
+comentarios_celdas (id, texto, estado, autor, respuestas)
+
+-- Notificaciones
+notificaciones (id, usuario_id, titulo, mensaje, tipo, leida)
+
+-- Permisos
+permisos_modulo (usuario_id, empresa_id, modulo, permisos)
+
+-- Estados de autorización
+presupuestos_estados (empresa_id, modulo, anio, estado, usuario_id)
+```
+
+### **33.2 Base de Datos Firebird (COI - Contabilidad Operativa Integrada)**
+
+#### **📍 Configuración de Conexión:**
+```javascript
+// Variables de entorno (.env)
+FIREBIRD_HOST=127.0.0.1          // Desarrollo: localhost
+FIREBIRD_PORT=3050               // Desarrollo: directo
+FIREBIRD_PORT=15350              // Producción: túnel TCP
+FIREBIRD_USER=sysdba
+FIREBIRD_PASSWORD=masterkey
+```
+
+#### **🎯 Propósitos de Firebird:**
+- **Datos maestros**: Catálogos de cuentas, empresas, módulos
+- **Presupuestos reales**: Datos financieros oficiales (PRESUPYY, CUENTASYY)
+- **Saldos contables**: Información financiera histórica
+- **Guardado final**: Almacenamiento definitivo de presupuestos autorizados
+
+#### **🔗 Tablas Principales en Firebird:**
+```sql
+-- Empresas y módulos
+EMPRESAS, MODULOS
+
+-- Datos presupuestarios
+PRESUPYY (anio, empresa, cuenta, mes1..mes12)
+CUENTASYY (anio, empresa, cuenta, descripcion)
+
+-- Saldos reales
+SALDOSYY (anio, empresa, cuenta, saldo_real)
+```
+
+---
+
+## 34. 📦 **Instalador NSIS (Nullsoft Scriptable Install System)**
+
+### **34.1 Configuración en `package.json`:**
+
+```json
+"nsis": {
+  "oneClick": false,                    // Instalar silenciosamente
+  "perMachine": false,                  // Instalar por usuario (no admin)
+  "allowElevation": true,               // Permitir elevación si es necesario
+  "allowToChangeInstallationDirectory": true,  // Usuario elige carpeta
+  "installerIcon": "icono/icono.ico",   // Ícono del instalador
+  "uninstallerIcon": "icono/icono.ico", // Ícono del desinstalador
+  "createDesktopShortcut": true,        // Acceso directo en escritorio
+  "createStartMenuShortcut": true,      // Acceso directo en menú inicio
+  "shortcutName": "Panel AMCHAM",       // Nombre del acceso directo
+  "displayLanguageSelector": false,     // Sin selector de idioma
+  "deleteAppDataOnUninstall": false     // NO borrar datos al desinstalar
+}
+```
+
+### **34.2 Funcionalidades del Instalador NSIS:**
+
+#### **📁 Archivos Incluidos:**
+```javascript
+// En package.json -> "files": [...]
+"main.js", "src/**/*", "vistas/**/*", "icono/**/*",
+"image/**/*", "mds/**/*", "scripts/**/*", 
+"native_modules/**/*", ".env.production",
+"node_modules/**/*", "package.json", "README.md"
+```
+
+#### **📦 Recursos Extra:**
+```javascript
+// En package.json -> "extraResources"
+{
+  "from": "datos", "to": "datos",        // Base de datos SQLite
+  "from": "excels", "to": "excels",      // Plantillas Excel
+  "from": "info IMPORTANTE", "to": "info_importante",  // Documentación
+  "from": "IMPLEMENTACIONES", "to": "IMPLEMENTACIONES" // Scripts
+}
+```
+
+#### **🚀 Proceso de Instalación:**
+1. **Verificación de requisitos**: Comprueba .NET Framework, Visual C++
+2. **Selección de directorio**: Usuario elige carpeta de instalación
+3. **Copia de archivos**: Extrae aplicación y recursos
+4. **Registro del desinstalador**: En Windows Add/Remove Programs
+5. **Creación de accesos directos**: Escritorio y menú inicio
+6. **Configuración inicial**: Variables de entorno, asociaciones de archivos
+
+#### **🔧 Comandos de Build:**
+```bash
+# Build con NSIS
+npm run dist              # electron-builder --win nsis
+npm run build:all         # electron-builder --win nsis,portable
+```
+
+---
+
+## 35. 🍪 **Sistema de Cookies, Local Storage y Session Storage**
+
+### **35.1 🍪 Cookies HTTP (Backend - Express Sessions)**
+
+#### **📍 Configuración en `src/server.js`:**
+```javascript
+app.use(session({
+  store: new SqliteStore({ client: getDb() }),  // Almacenamiento en SQLite
+  secret: process.env.SESSION_SECRET,
+  name: 'panelamcham.sid',                       // Nombre de la cookie
+  resave: false,
+  saveUninitialized: false,
+  rolling: true,                                 // Renovar en cada request
+  cookie: {
+    secure: process.env.NODE_ENV === 'production' ? 'auto' : false,
+    httpOnly: true,                              // No accesible desde JavaScript
+    maxAge: 30 * 60 * 1000,                      // 30 minutos
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    domain: process.env.COOKIE_DOMAIN             // Para dominios personalizados
+  }
+}));
+```
+
+#### **🎯 Usos de las Cookies:**
+- **Autenticación de sesión**: Mantener usuario logueado
+- **Persistencia de sesión**: Sobrevivir reinicios del navegador
+- **Seguridad**: `httpOnly` previene ataques XSS
+- **Dominios**: Soporte para túneles HTTPS y subdominios
+
+### **35.2 💾 Local Storage (Frontend - Persistencia Local)**
+
+#### **📍 Implementación en `vistas/js/sesion.js`:**
+```javascript
+const STORAGE_KEY = 'sesionUsuario';              // Clave principal
+const CONTEXTO_KEY = 'planeacionContexto';        // Contexto de navegación
+
+// Guardar sesión completa
+localStorage.setItem(STORAGE_KEY, JSON.stringify(datos));
+
+// Cargar sesión al iniciar
+const datos = localStorage.getItem(STORAGE_KEY);
+```
+
+#### **🎯 Usos del Local Storage:**
+- **Sesión de usuario**: Datos del usuario logueado (id, nombre, permisos)
+- **Contexto de navegación**: Empresa activa, módulo, año seleccionado
+- **Preferencias de UI**: Estados de colapso, configuraciones visuales
+- **Layouts guardados**: Configuraciones de vistas personalizadas
+- **Estados de formularios**: Borradores no guardados
+
+#### **🔄 Funciones de Gestión:**
+```javascript
+// vistas/js/sesion.js
+obtenerSesion()     // Cargar datos de usuario
+guardarSesion()     // Persistir cambios
+limpiarSesion()     // Logout completo
+
+// vistas/js/seccion-collapse.js
+guardarEstado()     // Estados de UI colapsados
+cargarEstado()      // Restaurar estados al cargar
+```
+
+### **35.3 🔄 Session Storage (Frontend - Sesión Temporal)**
+
+#### **📍 Uso Principal:**
+```javascript
+// En formularios y navegación temporal
+sessionStorage.setItem('formulario-activo', 'presupuesto-editar');
+sessionStorage.setItem('pagina-anterior', window.location.href);
+
+// Recuperar al volver
+const formulario = sessionStorage.getItem('formulario-activo');
+```
+
+#### **🎯 Usos del Session Storage:**
+- **Navegación temporal**: Páginas visitadas, breadcrumbs
+- **Estados de formularios**: Datos no guardados durante la sesión
+- **Filtros activos**: Configuraciones de búsqueda temporales
+- **Modo edición**: Estado temporal durante edición
+
+### **35.4 🔐 Seguridad y Gestión de Datos**
+
+#### **🛡️ Medidas de Seguridad:**
+```javascript
+// Cookies: httpOnly, secure, sameSite
+// Local Storage: Validación de integridad
+// Session Storage: Limpieza automática al cerrar navegador
+
+// En sesion.js - Validación de datos
+try {
+  const datos = JSON.parse(localStorage.getItem(STORAGE_KEY));
+  // Validar estructura y tipos
+  if (datos && typeof datos === 'object') {
+    return datos;
+  }
+} catch (error) {
+  // Limpiar datos corruptos
+  localStorage.removeItem(STORAGE_KEY);
+}
+```
+
+#### **📊 Comparación de Almacenamientos:**
+
+| Característica | Cookies | Local Storage | Session Storage |
+|----------------|---------|---------------|-----------------|
+| **Capacidad** | 4KB | 5-10MB | 5-10MB |
+| **Persistencia** | Configurable | Permanente | Sesión del tab |
+| **Acceso JS** | ❌ httpOnly | ✅ | ✅ |
+| **Envío HTTP** | ✅ Automático | ❌ Manual | ❌ Manual |
+| **Seguridad** | Alta (httpOnly) | Media | Media |
+| **Uso típico** | Sesiones | Configuración | Estados temporales |
+
+### **35.5 🔄 Sincronización y Eventos**
+
+#### **📡 Eventos de Cambio:**
+```javascript
+// En sesion.js - Eventos personalizados
+window.dispatchEvent(new CustomEvent('sesion:cambiada', { 
+  detail: { usuario: nuevoUsuario } 
+}));
+
+window.dispatchEvent(new CustomEvent('sesion:empresa-cambiada', { 
+  detail: { empresa: nuevaEmpresa } 
+}));
+```
+
+#### **🔄 Sincronización entre Pestañas:**
+```javascript
+// Detectar cambios en otras pestañas
+window.addEventListener('storage', (event) => {
+  if (event.key === STORAGE_KEY) {
+    // Recargar sesión desde localStorage
+    location.reload();
+  }
+});
+```
+
+---
+
+## 🎯 **Resumen Ejecutivo - Infraestructura Técnica**
+
+### **📁 Bases de Datos:**
+- **SQLite**: Local, layouts, sesiones, comentarios, permisos, notificaciones
+- **Firebird**: COI, datos maestros, presupuestos oficiales, saldos contables
+- **Rutas**: Variables de entorno → carpeta local → userData → fallback
+
+### **📦 NSIS:**
+- **Instalador**: Completo con accesos directos, desinstalador
+- **Archivos**: App empaquetada + recursos (datos, excels, docs)
+- **Configuración**: Por usuario, sin elevación, con shortcuts
+
+### **🍪 Almacenamiento Web:**
+- **Cookies**: Sesiones seguras, httpOnly, SQLite backend
+- **Local Storage**: Configuración persistente, layouts, preferencias
+- **Session Storage**: Estados temporales, navegación, formularios
+
+Este sistema garantiza **persistencia robusta**, **seguridad** y **experiencia de usuario fluida** tanto en instalación como en uso diario.
+
+---
+
+*Documentación actualizada: 2026-01-26 18:26:15*
+*Versión: 2.1 - Infraestructura Técnica Completa*
+*Autor: SummaCham Development Team*
