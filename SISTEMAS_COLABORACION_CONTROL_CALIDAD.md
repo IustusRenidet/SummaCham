@@ -2262,3 +2262,688 @@ Este sistema de scripts proporciona una **experiencia de desarrollo fluida** y *
 *Documentación actualizada: 2026-01-26 18:26:15*
 *Versión: 2.3 - Scripts PowerShell y Gestión de Entornos*
 *Autor: SummaCham Development Team*
+
+---
+
+## 38. 📚 **Librerías Principales y Dependencias**
+
+### **38.1 Arquitectura de Dependencias**
+
+SummaCham utiliza un **ecosistema completo de librerías** organizadas por capas funcionales. Cada librería tiene un propósito específico en la arquitectura de la aplicación.
+
+#### **📂 Estructura por Capas:**
+```
+SummaCham/
+├── Backend (Node.js/Express)
+│   ├── Seguridad: helmet, bcryptjs, jsonwebtoken
+│   ├── Base de Datos: better-sqlite3, node-firebird
+│   ├── APIs: express, joi, express-session
+│   └── Utilidades: xlsx, csv-parse, nodemailer
+├── Frontend (HTML/CSS/JS)
+│   ├── Gráficos: Chart.js
+│   ├── UI: Bootstrap, jQuery
+│   └── Utilidades: Moment.js, Lodash
+└── Desktop (Electron)
+    ├── Actualizaciones: electron-updater
+    ├── Sistema: auto-launch
+    └── Empaquetado: electron-builder
+```
+
+---
+
+### **38.2 Librerías de Seguridad**
+
+#### **🔒 Helmet - Headers de Seguridad HTTP**
+
+**📦 Versión:** `^8.1.0`  
+**🎯 Finalidad:** Configura automáticamente headers HTTP seguros para proteger contra vulnerabilidades web comunes.
+
+**Funciones principales:**
+- **Content Security Policy (CSP)**: Previene ataques XSS
+- **X-Frame-Options**: Evita clickjacking
+- **X-Content-Type-Options**: Previene MIME sniffing
+- **Strict-Transport-Security**: Fuerza HTTPS
+- **Referrer-Policy**: Controla información de referrer
+
+**Uso en SummaCham:**
+```javascript
+const helmet = require('helmet');
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'", "https://panelamcham.iconetcloud.com.mx"]
+    }
+  }
+}));
+```
+
+**Impacto:** Protege todas las rutas API y páginas web contra ataques comunes.
+
+#### **🔐 bcryptjs - Hashing de Contraseñas**
+
+**📦 Versión:** `^3.0.3`  
+**🎯 Finalidad:** Genera y verifica hashes seguros de contraseñas usando el algoritmo bcrypt.
+
+**Funciones principales:**
+- **Hashing unidireccional**: Convierte contraseñas en hashes irreversibles
+- **Salt automático**: Agrega entropía para prevenir ataques rainbow table
+- **Configurable cost**: Ajusta la complejidad del hashing
+
+**Uso en SummaCham:**
+```javascript
+const bcrypt = require('bcryptjs');
+
+// Hashing de contraseña nueva
+const hashedPassword = await bcrypt.hash(password, 12);
+
+// Verificación de contraseña
+const isValid = await bcrypt.compare(password, hashedPassword);
+```
+
+**Impacto:** Protege las contraseñas de usuarios en la base de datos SQLite.
+
+#### **🎫 jsonwebtoken - Autenticación JWT**
+
+**📦 Versión:** `^9.0.3`  
+**🎯 Finalidad:** Implementa autenticación stateless usando JSON Web Tokens.
+
+**Funciones principales:**
+- **Generación de tokens**: Crea tokens firmados con datos de usuario
+- **Verificación de tokens**: Valida tokens en requests
+- **Refresh tokens**: Maneja renovación de sesiones
+
+**Uso en SummaCham:**
+```javascript
+const jwt = require('jsonwebtoken');
+
+// Generar token de acceso
+const token = jwt.sign(
+  { userId: user.id, role: user.role },
+  process.env.JWT_SECRET,
+  { expiresIn: '8h' }
+);
+
+// Verificar token en middleware
+const decoded = jwt.verify(token, process.env.JWT_SECRET);
+```
+
+**Impacto:** Maneja autenticación de usuarios en APIs REST y sesiones web.
+
+---
+
+### **38.3 Librerías de Base de Datos**
+
+#### **🗄️ better-sqlite3 - Base de Datos Local**
+
+**📦 Versión:** `^12.5.0`  
+**🎯 Finalidad:** Driver nativo de alto rendimiento para SQLite con bindings C++.
+
+**Funciones principales:**
+- **Consultas preparadas**: Previene SQL injection
+- **Transacciones**: Soporte completo para ACID
+- **Performance**: Más rápido que sqlite3 tradicional
+- **Sincronía**: API síncrona más simple
+
+**Uso en SummaCham:**
+```javascript
+const Database = require('better-sqlite3');
+const db = new Database('panel.sqlite');
+
+// Consulta preparada
+const stmt = db.prepare('SELECT * FROM usuarios WHERE id = ?');
+const user = stmt.get(userId);
+
+// Transacción
+const transaction = db.transaction((data) => {
+  // Operaciones atómicas
+});
+```
+
+**Impacto:** Gestiona datos locales de usuarios, layouts, configuraciones y caché.
+
+#### **🔥 node-firebird - Conexión Firebird**
+
+**📦 Versión:** `^1.1.9`  
+**🎯 Finalidad:** Driver nativo para conectar con bases de datos Firebird/InterBase.
+
+**Funciones principales:**
+- **Conexiones remotas**: Soporte para TCP/IP y túneles
+- **Consultas complejas**: Manejo de stored procedures y triggers
+- **Transacciones**: Soporte completo para Firebird transactions
+- **Tipos de datos**: Mapeo correcto de tipos Firebird a JavaScript
+
+**Uso en SummaCham:**
+```javascript
+const Firebird = require('node-firebird');
+
+// Configuración de conexión
+const options = {
+  host: process.env.FIREBIRD_HOST,
+  port: process.env.FIREBIRD_PORT,
+  database: process.env.FIREBIRD_DATABASE,
+  user: process.env.FIREBIRD_USER,
+  password: process.env.FIREBIRD_PASSWORD
+};
+
+// Ejecutar consulta
+Firebird.attach(options, (err, database) => {
+  database.query('SELECT * FROM PRESUPUESTO', (err, result) => {
+    // Procesar datos financieros
+  });
+});
+```
+
+**Impacto:** Conecta con sistemas legacy de AMCHAM para datos presupuestarios.
+
+#### **💾 better-sqlite3-session-store - Sesiones en SQLite**
+
+**📦 Versión:** `^0.1.0`  
+**🎯 Finalidad:** Almacena sesiones de Express.js en base de datos SQLite.
+
+**Funciones principales:**
+- **Persistencia**: Sesiones sobreviven reinicios de servidor
+- **Performance**: Consultas optimizadas para sesiones
+- **Limpieza automática**: Elimina sesiones expiradas
+
+**Uso en SummaCham:**
+```javascript
+const SqliteStore = require('better-sqlite3-session-store')(session);
+
+app.use(session({
+  store: new SqliteStore({
+    client: db, // Instancia de better-sqlite3
+    expired: {
+      clear: true,    // Limpiar sesiones expiradas
+      intervalMs: 900000 // Cada 15 minutos
+    }
+  }),
+  secret: process.env.SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false
+}));
+```
+
+**Impacto:** Gestiona sesiones de usuario de forma persistente y segura.
+
+---
+
+### **38.4 Librerías de APIs y Validación**
+
+#### **🌐 Express.js - Framework Web**
+
+**📦 Versión:** `^5.1.0`  
+**🎯 Finalidad:** Framework minimalista para crear APIs REST y aplicaciones web.
+
+**Funciones principales:**
+- **Routing**: Definición de rutas y endpoints
+- **Middleware**: Procesamiento de requests/responses
+- **Static files**: Servir archivos estáticos
+- **Error handling**: Gestión centralizada de errores
+
+**Uso en SummaCham:**
+```javascript
+const express = require('express');
+const app = express();
+
+// Middleware
+app.use(express.json());
+app.use(express.static('vistas'));
+
+// Rutas API
+app.get('/api/usuarios', authMiddleware, (req, res) => {
+  // Lógica de negocio
+});
+
+app.post('/api/login', async (req, res) => {
+  // Autenticación
+});
+```
+
+**Impacto:** Base de toda la arquitectura backend de SummaCham.
+
+#### **✅ Joi - Validación de Datos**
+
+**📦 Versión:** `^18.0.1`  
+**🎯 Finalidad:** Librería de validación de esquemas para datos de entrada.
+
+**Funciones principales:**
+- **Esquemas declarativos**: Define estructura de datos esperada
+- **Validación automática**: Verifica tipos, formatos y restricciones
+- **Sanitización**: Limpia y transforma datos
+- **Mensajes de error**: Descripciones claras de validaciones fallidas
+
+**Uso en SummaCham:**
+```javascript
+const Joi = require('joi');
+
+// Esquema de validación para login
+const loginSchema = Joi.object({
+  username: Joi.string().min(3).max(50).required(),
+  password: Joi.string().min(8).required(),
+  remember: Joi.boolean().default(false)
+});
+
+// Validar datos de entrada
+const { error, value } = loginSchema.validate(req.body);
+if (error) {
+  return res.status(400).json({ error: error.details[0].message });
+}
+```
+
+**Impacto:** Valida todas las entradas de usuario en APIs y formularios.
+
+#### **🍪 cookie-parser - Parseo de Cookies**
+
+**📦 Versión:** `^1.4.7`  
+**🎯 Finalidad:** Parsea cookies HTTP en objetos JavaScript accesibles.
+
+**Funciones principales:**
+- **Parseo automático**: Convierte cookies en req.cookies
+- **Signed cookies**: Soporte para cookies firmadas
+- **JSON cookies**: Cookies con objetos complejos
+
+**Uso en SummaCham:**
+```javascript
+const cookieParser = require('cookie-parser');
+app.use(cookieParser(process.env.COOKIE_SECRET));
+
+// Acceder a cookies
+app.get('/profile', (req, res) => {
+  const theme = req.cookies.theme || 'light';
+  const sessionId = req.signedCookies.sessionId;
+});
+```
+
+**Impacto:** Gestiona preferencias de usuario y sesiones.
+
+#### **📋 express-session - Gestión de Sesiones**
+
+**📦 Versión:** `^1.18.2`  
+**🎯 Finalidad:** Maneja sesiones del lado del servidor con soporte para múltiples stores.
+
+**Funciones principales:**
+- **Sesiones seguras**: ID de sesión único por usuario
+- **Persistencia**: Almacenamiento en base de datos
+- **Configuración**: Tiempo de vida, regeneración automática
+
+**Uso en SummaCham:**
+```javascript
+app.use(session({
+  name: 'summa.sid',
+  secret: process.env.SESSION_SECRET,
+  store: sqliteStore,
+  cookie: {
+    maxAge: 8 * 60 * 60 * 1000, // 8 horas
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production'
+  }
+}));
+```
+
+**Impacto:** Mantiene estado de autenticación entre requests.
+
+---
+
+### **38.5 Librerías de Utilidades**
+
+#### **📊 xlsx - Manejo de Excel**
+
+**📦 Versión:** `^0.18.5`  
+**🎯 Finalidad:** Lee y escribe archivos Excel (.xlsx, .xls) en Node.js.
+
+**Funciones principales:**
+- **Lectura**: Parsea archivos Excel a objetos JSON
+- **Escritura**: Genera archivos Excel desde datos
+- **Formatos**: Soporte para múltiples formatos de celda
+- **Hojas múltiples**: Manejo de workbooks complejos
+
+**Uso en SummaCham:**
+```javascript
+const XLSX = require('xlsx');
+
+// Leer archivo Excel
+const workbook = XLSX.readFile('presupuesto.xlsx');
+const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+const data = XLSX.utils.sheet_to_json(worksheet);
+
+// Escribir archivo Excel
+const newWorkbook = XLSX.utils.book_new();
+const newWorksheet = XLSX.utils.json_to_sheet(data);
+XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Datos');
+XLSX.writeFile(newWorkbook, 'export.xlsx');
+```
+
+**Impacto:** Importa/exporta datos presupuestarios en formato Excel.
+
+#### **📄 csv-parse - Parseo CSV**
+
+**📦 Versión:** `^6.1.0`  
+**🎯 Finalidad:** Parsea archivos CSV con soporte para configuraciones complejas.
+
+**Funciones principales:**
+- **Delimitadores**: Soporte para diferentes separadores
+- **Headers**: Detección automática o manual de encabezados
+- **Encoding**: Múltiples codificaciones de caracteres
+- **Streaming**: Procesamiento de archivos grandes
+
+**Uso en SummaCham:**
+```javascript
+const parse = require('csv-parse');
+
+// Parsear CSV
+fs.createReadStream('datos.csv')
+  .pipe(parse({
+    delimiter: ';',
+    columns: true,
+    skip_empty_lines: true
+  }))
+  .on('data', (row) => {
+    // Procesar cada fila
+  });
+```
+
+**Impacto:** Importa datos desde archivos CSV de sistemas externos.
+
+#### **📧 nodemailer - Envío de Emails**
+
+**📦 Versión:** `^7.0.10`  
+**🎯 Finalidad:** Envía emails usando SMTP y otros transportes.
+
+**Funciones principales:**
+- **SMTP**: Conexión directa a servidores SMTP
+- **Templates**: Soporte para HTML y texto plano
+- **Attachments**: Adjuntos de archivos
+- **Transports**: Múltiples proveedores (Gmail, Outlook, etc.)
+
+**Uso en SummaCham:**
+```javascript
+const nodemailer = require('nodemailer');
+
+const transporter = nodemailer.createTransporter({
+  host: 'smtp.gmail.com',
+  port: 587,
+  secure: false,
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  }
+});
+
+// Enviar email
+await transporter.sendMail({
+  from: 'summa@panelamcham.com',
+  to: user.email,
+  subject: 'Notificación de cambios',
+  html: '<h1>Cambios realizados</h1>'
+});
+```
+
+**Impacto:** Envía notificaciones y reportes por email.
+
+---
+
+### **38.6 Librerías de Electron**
+
+#### **⚡ electron-updater - Actualizaciones Automáticas**
+
+**📦 Versión:** `^6.6.2`  
+**🎯 Finalidad:** Gestiona actualizaciones automáticas de aplicaciones Electron.
+
+**Funciones principales:**
+- **Auto-updater**: Descarga e instala actualizaciones automáticamente
+- **GitHub Releases**: Integra con releases de GitHub
+- **Progress tracking**: Muestra progreso de descarga
+- **Silent updates**: Actualizaciones en background
+
+**Uso en SummaCham:**
+```javascript
+const { autoUpdater } = require('electron-updater');
+
+autoUpdater.checkForUpdatesAndNotify();
+
+// Eventos de actualización
+autoUpdater.on('update-available', () => {
+  // Mostrar notificación
+});
+
+autoUpdater.on('update-downloaded', () => {
+  autoUpdater.quitAndInstall();
+});
+```
+
+**Impacto:** Mantiene la aplicación actualizada automáticamente.
+
+#### **🚀 auto-launch - Inicio Automático**
+
+**📦 Versión:** `^5.0.6`  
+**🎯 Finalidad:** Configura la aplicación para iniciarse automáticamente con Windows.
+
+**Funciones principales:**
+- **Registro**: Agrega al inicio automático de Windows
+- **Configuración**: Opciones de argumentos y directorio
+- **Estado**: Verificar si está habilitado
+- **Cross-platform**: Soporte para Windows, macOS, Linux
+
+**Uso en SummaCham:**
+```javascript
+const AutoLaunch = require('auto-launch');
+
+const autoLauncher = new AutoLaunch({
+  name: 'PanelAMCHAM',
+  path: process.execPath,
+  isHidden: false
+});
+
+// Habilitar inicio automático
+autoLauncher.enable();
+
+// Verificar estado
+const isEnabled = await autoLauncher.isEnabled();
+```
+
+**Impacto:** La aplicación se inicia automáticamente al encender la PC.
+
+---
+
+### **38.7 Librerías Frontend**
+
+#### **📈 Chart.js - Gráficos Interactivos**
+
+**📦 Versión:** `4.4.1` (CDN)  
+**🎯 Finalidad:** Librería de gráficos HTML5 para visualización de datos.
+
+**Funciones principales:**
+- **Múltiples tipos**: Líneas, barras, pie, doughnut, radar
+- **Responsive**: Se adapta automáticamente al tamaño
+- **Animaciones**: Transiciones suaves
+- **Interactividad**: Tooltips, leyendas, zoom
+
+**Uso en SummaCham:**
+```html
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+```
+
+```javascript
+// Crear gráfico de presupuesto
+const ctx = document.getElementById('chartPresupuesto').getContext('2d');
+const chart = new Chart(ctx, {
+  type: 'bar',
+  data: {
+    labels: ['Enero', 'Febrero', 'Marzo'],
+    datasets: [{
+      label: 'Presupuesto',
+      data: [12000, 15000, 18000],
+      backgroundColor: 'rgba(54, 162, 235, 0.5)'
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { position: 'top' },
+      tooltip: { enabled: true }
+    }
+  }
+});
+```
+
+**Impacto:** Visualiza datos financieros en dashboards interactivos.
+
+#### **🎨 Bootstrap - Framework CSS**
+
+**📦 Versión:** `5.3.3` (CDN)  
+**🎯 Finalidad:** Framework CSS para diseño responsive y componentes UI.
+
+**Funciones principales:**
+- **Grid system**: Layout responsive
+- **Components**: Botones, modales, navegación
+- **Utilities**: Clases de utilidad
+- **Themes**: Personalización visual
+
+**Uso en SummaCham:**
+```html
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+```
+
+**Impacto:** Proporciona la interfaz de usuario consistente y responsive.
+
+#### **⚡ jQuery - Manipulación DOM**
+
+**📦 Versión:** `3.7.1` (CDN)  
+**🎯 Finalidad:** Librería para manipulación simplificada del DOM y AJAX.
+
+**Funciones principales:**
+- **Selectores**: Búsqueda de elementos DOM
+- **Eventos**: Manejo simplificado de eventos
+- **AJAX**: Requests asíncronos
+- **Animaciones**: Efectos visuales
+
+**Uso en SummaCham:**
+```javascript
+// Cargar datos dinámicamente
+$('#btnCargar').click(function() {
+  $.ajax({
+    url: '/api/datos',
+    method: 'GET',
+    success: function(data) {
+      $('#contenedor').html(data);
+    }
+  });
+});
+```
+
+**Impacto:** Maneja interacciones dinámicas en la interfaz.
+
+---
+
+### **38.8 Dependencias de Desarrollo**
+
+#### **🔧 electron-builder - Empaquetado**
+
+**📦 Versión:** `^25.1.8`  
+**🎯 Finalidad:** Construye instaladores nativos para aplicaciones Electron.
+
+**Funciones principales:**
+- **Multiplataforma**: Windows, macOS, Linux
+- **NSIS**: Instaladores avanzados para Windows
+- **Portable**: Versiones sin instalación
+- **Auto-updater**: Preparación para actualizaciones
+
+**Configuración en SummaCham:**
+```json
+{
+  "build": {
+    "appId": "com.summa.cham.panelamcham",
+    "productName": "PanelAMCHAM",
+    "win": {
+      "target": ["nsis", "portable"],
+      "icon": "icono/icon.ico"
+    }
+  }
+}
+```
+
+**Impacto:** Genera instaladores profesionales para distribución.
+
+#### **🔄 cross-env - Variables de Entorno**
+
+**📦 Versión:** `^7.0.3`  
+**🎯 Finalidad:** Establece variables de entorno de forma cross-platform.
+
+**Uso en SummaCham:**
+```json
+{
+  "scripts": {
+    "start": "cross-env NODE_ENV=development electron .",
+    "dist": "cross-env NODE_ENV=production electron-builder"
+  }
+}
+```
+
+**Impacto:** Garantiza compatibilidad entre Windows, macOS y Linux.
+
+#### **⚡ esbuild - Bundling**
+
+**📦 Versión:** `^0.27.1`  
+**🎯 Finalidad:** Empaquetador de JavaScript extremadamente rápido.
+
+**Funciones principales:**
+- **Velocidad**: 10-100x más rápido que Webpack
+- **Tree shaking**: Elimina código no usado
+- **Minificación**: Reduce tamaño de bundles
+- **TypeScript**: Soporte nativo
+
+**Uso en SummaCham:**
+```javascript
+const esbuild = require('esbuild');
+
+esbuild.build({
+  entryPoints: ['src/main.js'],
+  bundle: true,
+  outfile: 'dist/main.js',
+  minify: true,
+  platform: 'node'
+});
+```
+
+**Impacto:** Optimiza el rendimiento de la aplicación.
+
+---
+
+### **38.9 Resumen Ejecutivo - Librerías**
+
+#### **🏗️ Arquitectura por Capas:**
+
+| Capa | Librerías Principales | Finalidad |
+|------|----------------------|-----------|
+| **Seguridad** | Helmet, bcryptjs, JWT | Protección y autenticación |
+| **Base de Datos** | better-sqlite3, node-firebird | Almacenamiento y consultas |
+| **APIs** | Express, Joi, cookie-parser | Servicios web y validación |
+| **Utilidades** | xlsx, csv-parse, nodemailer | Import/export y comunicaciones |
+| **Desktop** | Electron, auto-launch, updater | Aplicación nativa |
+| **Frontend** | Chart.js, Bootstrap, jQuery | Interfaz de usuario |
+
+#### **📊 Métricas de Dependencias:**
+- **Total de dependencias:** 15 librerías principales
+- **Seguridad:** 3 librerías dedicadas
+- **Base de datos:** 3 librerías especializadas
+- **Performance:** Drivers nativos (C++, Rust)
+- **Mantenimiento:** Versiones actualizadas y activas
+
+#### **🎯 Impacto en SummaCham:**
+- **Fiabilidad:** Drivers nativos para máxima performance
+- **Seguridad:** Múltiples capas de protección
+- **Escalabilidad:** Arquitectura modular y extensible
+- **Mantenibilidad:** Librerías maduras y bien documentadas
+
+Este ecosistema de librerías proporciona una **base sólida y segura** para la aplicación SummaCham, combinando performance, seguridad y facilidad de desarrollo.
+
+---
+
+*Documentación actualizada: 2026-01-26 18:26:15*
+*Versión: 2.4 - Librerías Principales y Dependencias*
+*Autor: SummaCham Development Team*
