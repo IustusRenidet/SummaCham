@@ -24,13 +24,6 @@
           badge: "summary",
           permiso: "RESUMEN",
         },
-        {
-          id: "graficas",
-          label: "Graficas",
-          path: "Graficas.html",
-          badge: "summary",
-          permiso: "RESUMEN",
-        },
       ],
     },
     {
@@ -267,20 +260,12 @@
     if (!acciones) {
       return false;
     }
-    const esSoloLectura = ["resumen", "presupuestos"].includes(
-      (modulo.id || "").toLowerCase()
-    );
-    if (esSoloLectura) {
-      return Boolean(
-        acciones["Cargar y guardar"] ||
-          acciones.Revisar ||
-          acciones.Aprobar ||
-          acciones.Lectura ||
-          acciones.Ver
-      );
-    }
     return Boolean(
-      acciones["Cargar y guardar"] || acciones.Revisar || acciones.Aprobar
+      acciones["Cargar y guardar"] ||
+        acciones.Revisar ||
+        acciones.Aprobar ||
+        acciones.Lectura ||
+        acciones.Ver
     );
   };
   const obtenerNombreUsuario = (sesion) => {

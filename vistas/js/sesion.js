@@ -108,6 +108,12 @@
     return normalizarEmpresa(datos?.empresaActiva);
   };
 
+  const obtenerUsuarioId = (sesionActual) => {
+    const datos = sesionActual || obtener();
+    const id = datos?.usuario?.id;
+    return id != null ? id : null;
+  };
+
   const notificarCambioEmpresa = (empresa) => {
     try {
       window.dispatchEvent(new CustomEvent(EVENTO_EMPRESA, { detail: { empresa } }));
@@ -399,6 +405,7 @@
     headersAutenticacion,
     obtenerEmpresasDisponibles,
     obtenerEmpresaActiva,
+    obtenerUsuarioId,
     establecerEmpresaActiva,
     puedeCambiarEmpresa,
     obtenerContextoPlaneacion,

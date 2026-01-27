@@ -12,8 +12,7 @@ const MODULE_GROUPS = [
     id: 'panel-resumenes',
     label: 'Summary',
     items: [
-      { id: 'resumen', label: 'Resumen', path: 'RESUMEN.html', badge: 'summary', permiso: 'RESUMEN' },
-      { id: 'graficas', label: 'Gráficas', path: 'Graficas.html', badge: 'summary', permiso: 'RESUMEN' }
+      { id: 'resumen', label: 'Resumen', path: 'RESUMEN.html', badge: 'summary', permiso: 'RESUMEN' }
     ]
   },
   {
@@ -158,7 +157,13 @@ const usuarioPuedeUsarModulo = (sesion, empresaId, modulo, puedeAdministrar) => 
     return false;
   }
   // Incluir permiso "Ver" (puede_leer) para mostrar el módulo
-  return Boolean(acciones.Ver || acciones['Cargar y guardar'] || acciones.Revisar || acciones.Aprobar);
+  return Boolean(
+    acciones.Ver ||
+      acciones.Lectura ||
+      acciones['Cargar y guardar'] ||
+      acciones.Revisar ||
+      acciones.Aprobar
+  );
 };
 
 const obtenerNombreUsuario = (sesion) => {

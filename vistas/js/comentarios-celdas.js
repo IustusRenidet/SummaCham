@@ -335,7 +335,13 @@
     }
     return `${window.location.origin.replace(/\/$/, '')}/api`;
   })();
-  const TIME_ZONE = 'America/Mexico_City';
+  const SYSTEM_TIME_ZONE = (() => {
+    try {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone || null;
+    } catch (_) {
+      return null;
+    }
+  })();
 
   const obtenerModuloId = () => {
     const id = document.body?.dataset?.moduloId || document.body?.dataset?.modulo || 'MODULO';
@@ -366,12 +372,15 @@
     try {
       const fecha = parsearFechaUtc(valor);
       if (!fecha || Number.isNaN(fecha.getTime())) return valor;
-      return new Intl.DateTimeFormat('es-MX', {
-        timeZone: TIME_ZONE,
+      const options = {
         dateStyle: 'short',
         timeStyle: 'short',
         hour12: false
-      }).format(fecha);
+      };
+      if (SYSTEM_TIME_ZONE) {
+        options.timeZone = SYSTEM_TIME_ZONE;
+      }
+      return new Intl.DateTimeFormat('es-MX', options).format(fecha);
     } catch (_) {
       return valor;
     }

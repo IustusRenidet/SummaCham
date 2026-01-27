@@ -166,6 +166,7 @@
     dom.btnCopiar = document.getElementById("btnCopiar");
     dom.btnExpandir = document.getElementById("btnExpandir");
     dom.btnColapsar = document.getElementById("btnColapsar");
+    dom.btnReordenar = document.getElementById("btnReordenar");
     dom.btnPreview = document.getElementById("btnPreview");
     dom.btnVerificar = null;
     dom.btnDiagnosticar = null;
@@ -469,6 +470,7 @@
     // Expandir/Colapsar disponibles cuando hay layout cargado
     if (dom.btnExpandir) dom.btnExpandir.disabled = !hasLayout;
     if (dom.btnColapsar) dom.btnColapsar.disabled = !hasLayout;
+    if (dom.btnReordenar) dom.btnReordenar.disabled = !canEdit;
     if (dom.btnPreview) dom.btnPreview.disabled = !hasLayout;
   }
 
@@ -7751,12 +7753,7 @@ window.editSection = function (name) {
     // AUTO-LOAD: Buscar operación predefinida y pre-cargar si existe
     await ensureOperacionesPredefinidas();
     const operacionesContexto = getOperacionesPredefinidasContexto();
-    const opPredefinida = operacionesContexto.find(
-      (pred) =>
-        normalizeOperacionKey(pred.nombre) === normalizeOperacionKey(opLabel) ||
-        normalizeOperacionKey(pred.nombre) ===
-          normalizeOperacionKey(op.Clase || "")
-    );
+    const opPredefinida = findPredefForOperation(op, operacionesContexto);
 
     if (opPredefinida) {
       const knownOperations = new Set();
@@ -8742,7 +8739,10 @@ window.editSection = function (name) {
 
     // Primero intentar con subsecciones del layout actual
     const sections = groupBySections(state.cuentas);
-    const section = sections.find((s) => s.name === parentName);
+    const parentKey = normalizeOperationMatch(parentName);
+    const section = sections.find(
+      (s) => normalizeOperationMatch(s.name) === parentKey
+    );
     const subsections = section?.subsections || [];
 
     if (subsections && subsections.length > 0) {
@@ -8766,6 +8766,47 @@ window.editSection = function (name) {
       });
 
       if (terms.length > 0) return terms;
+    }
+
+    // Si parentName corresponde a una subsección, buscarla en todas las secciones
+    if (parentKey) {
+      const matches = [];
+      sections.forEach((sec) => {
+        (sec.subsections || []).forEach((subsection) => {
+          const secundaria = subsection?.name || "";
+          const secundariaKey = normalizeOperationMatch(secundaria);
+          if (!secundariaKey) return;
+          if (
+            secundariaKey === parentKey ||
+            secundariaKey.includes(parentKey) ||
+            parentKey.includes(secundariaKey)
+          ) {
+            matches.push({
+              parent: sec.name,
+              name: secundaria,
+            });
+          }
+        });
+      });
+
+      if (matches.length > 0) {
+        const seen = new Set();
+        const terms = [];
+        let counter = 0;
+        matches.forEach((match) => {
+          const key = `${normalizeOperationMatch(match.parent)}|${normalizeOperationMatch(match.name)}`;
+          if (!match.name || seen.has(key)) return;
+          seen.add(key);
+          terms.push({
+            id: Date.now() + counter++,
+            operator: "+",
+            type: "section",
+            value: match.name,
+            parentSection: match.parent,
+          });
+        });
+        if (terms.length > 0) return terms;
+      }
     }
 
     // Si no encontró subsecciones, buscar patrón de consolidación
@@ -10052,6 +10093,91 @@ window.editSection = function (name) {
 
   const normalizeOperacionKey = (value) => normalizeKey(value);
 
+  const normalizeSectionName = (value) => {
+    const key = normalizeOperacionKey(value);
+    if (!key) return "";
+    if (key === "INGRESO" || key === "INGRESOS") return "INCOME";
+    if (key === "GASTO" || key === "GASTOS" || key === "COSTO" || key === "COSTOS") {
+      return "EXPENSE";
+    }
+    return key;
+  };
+
+  const buildKeyWithSection = (section, name) => {
+    const sectionKey = normalizeSectionName(section);
+    const nameRaw = (name || "").toString().trim();
+    if (!sectionKey || !nameRaw) return "";
+    return normalizeOperacionKey(`${sectionKey} ${nameRaw}`);
+  };
+
+  const buildOperationMatchKeys = (op) => {
+    const keys = new Set();
+    const push = (value) => {
+      const key = normalizeOperacionKey(value);
+      if (key) keys.add(key);
+    };
+
+    const clase = op?.Clase || op?.clase || "";
+    const etiqueta = getOperationLabel(op);
+    const display = getOperationDisplayName(op);
+    const opId = getOperationId(op);
+    const seccion = op?.SECCION || op?.seccion || "";
+
+    push(clase);
+    push(etiqueta);
+    push(display);
+    push(opId);
+
+    if (seccion) {
+      const sectionKey = buildKeyWithSection(seccion, display || etiqueta);
+      if (sectionKey) keys.add(sectionKey);
+    }
+
+    const prefixMatch = String(clase || "").match(
+      /^(income|expense|ingreso|gasto|costos?|cost)[-_\s]+(.+)$/i
+    );
+    if (prefixMatch) {
+      const prefixKey = normalizeSectionName(prefixMatch[1]);
+      const rest = (prefixMatch[2] || "").trim();
+      const prefixedKey = buildKeyWithSection(prefixKey, rest);
+      if (prefixedKey) keys.add(prefixedKey);
+    }
+
+    return keys;
+  };
+
+  const buildPredefMatchKeys = (predef) => {
+    const keys = [];
+    const push = (value) => {
+      const key = normalizeOperacionKey(value);
+      if (key && !keys.includes(key)) keys.push(key);
+    };
+    if (!predef) return keys;
+
+    const nombre = predef.nombre || predef.Nombre || "";
+    const section = predef.section || predef.seccion || predef.SECCION || "";
+    const sectionKey = buildKeyWithSection(section, nombre);
+    if (sectionKey && !keys.includes(sectionKey)) keys.push(sectionKey);
+
+    push(predef.id);
+    push(predef.identificador);
+    push(nombre);
+
+    return keys;
+  };
+
+  const findPredefForOperation = (op, operaciones = []) => {
+    if (!op || !Array.isArray(operaciones) || operaciones.length === 0) {
+      return null;
+    }
+    const opKeys = buildOperationMatchKeys(op);
+    return (
+      operaciones.find((predef) =>
+        buildPredefMatchKeys(predef).some((key) => opKeys.has(key))
+      ) || null
+    );
+  };
+
   const hasExplicitFormula = (op) => {
     if (!op) return false;
     if (Array.isArray(op.formula_terms) && op.formula_terms.length) return true;
@@ -10280,6 +10406,8 @@ window.editSection = function (name) {
       predef.section || (predef.source === "sumas" ? predef.formula : "") || "";
     const parentSubsection = resolvedSection || null;
     const parentSection = predef.parentSection || null;
+    const existingSection = op.SECCION || op.seccion || "";
+    const canUpdateSection = !existingSection;
     const op = {
       CAPITULO: state.capitulo || "DEFAULT",
       OperacionId: opId,
@@ -10327,17 +10455,17 @@ window.editSection = function (name) {
       changed = true;
     }
 
-    if (parentSubsection && (force || op.parentSubsection !== parentSubsection)) {
+    if (parentSubsection && canUpdateSection && (force || op.parentSubsection !== parentSubsection)) {
       op.parentSubsection = parentSubsection;
       changed = true;
     }
 
-    if (parentSection && (force || op.parentSection !== parentSection)) {
+    if (parentSection && canUpdateSection && (force || op.parentSection !== parentSection)) {
       op.parentSection = parentSection;
       changed = true;
     }
 
-    if (parentSubsection && (!Array.isArray(op.secciones) || force)) {
+    if (parentSubsection && canUpdateSection && (!Array.isArray(op.secciones) || force)) {
       op.secciones = [parentSubsection];
       changed = true;
     }
@@ -10353,7 +10481,7 @@ window.editSection = function (name) {
       }
     }
 
-    if (resolvedSection && (force || !op.SECCION || !formulaIsSame)) {
+    if (resolvedSection && canUpdateSection) {
       op.SECCION = resolvedSection;
       changed = true;
     }
@@ -10374,14 +10502,47 @@ window.editSection = function (name) {
     if (!operaciones.length) return { added: 0, updated: 0 };
 
     const existingByKey = new Map();
-    (state.operaciones || []).forEach((op) => {
-      const key = normalizeOperacionKey(
-        op.Clase || getOperationDisplayName(op)
-      );
-      if (key) {
-        existingByKey.set(key, op);
+    const registerExisting = (op) => {
+      if (!op) return;
+      buildOperationMatchKeys(op).forEach((key) => {
+        if (!key) return;
+        const list = existingByKey.get(key) || [];
+        if (!list.includes(op)) {
+          list.push(op);
+          existingByKey.set(key, list);
+        }
+      });
+    };
+    (state.operaciones || []).forEach(registerExisting);
+
+    const findExistingForPredef = (predef) => {
+      const keys = buildPredefMatchKeys(predef);
+      for (const key of keys) {
+        const list = existingByKey.get(key);
+        if (!list || list.length === 0) continue;
+        if (list.length === 1) return list[0];
+
+        const nameKey = normalizeOperacionKey(predef?.nombre || "");
+        const byName = list.find(
+          (op) =>
+            normalizeOperacionKey(getOperationLabel(op)) === nameKey ||
+            normalizeOperacionKey(getOperationDisplayName(op)) === nameKey
+        );
+        if (byName) return byName;
+
+        const sectionKey = normalizeSectionName(predef?.section || predef?.seccion || "");
+        if (sectionKey) {
+          const bySection = list.find(
+            (op) =>
+              normalizeSectionName(op?.SECCION || op?.seccion || "") === sectionKey
+          );
+          if (bySection) return bySection;
+        }
+
+        return list[0];
       }
-    });
+      return null;
+    };
 
     const knownOperations = new Set();
     operaciones.forEach((op) => {
@@ -10395,8 +10556,7 @@ window.editSection = function (name) {
 
     operaciones.forEach((predef, idx) => {
       const orderIndex = Number.isFinite(predef.orden) ? predef.orden : idx;
-      const key = normalizeOperacionKey(predef.nombre);
-      const existing = existingByKey.get(key);
+      const existing = findExistingForPredef(predef);
       if (!existing) {
         if (!autoCreate) return;
         const newOp = createOperationFromPredefined(
@@ -10405,7 +10565,7 @@ window.editSection = function (name) {
           knownOperations
         );
         state.operaciones.push(newOp);
-        existingByKey.set(key, newOp);
+        registerExisting(newOp);
         added += 1;
         return;
       }

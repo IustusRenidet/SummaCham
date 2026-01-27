@@ -2,7 +2,7 @@ from pathlib import Path
 import pandas as pd
 
 EXCEL_PATH = Path(__file__).resolve().parent.parent / "excels" / "SUMMARY EMPRESA01_2022.xlsx"
-REPORT_PATH = Path(__file__).resolve().parent.parent / "excels" / "SUMMARY_EMPRESA01_2022_report.md"
+REPORT_PATH = Path(__file__).resolve().parent.parent / "excels" / "SUMMARY_EMPRESA01_2022_report.txt"
 
 def load_workbook(path: Path) -> pd.ExcelFile:
     return pd.ExcelFile(path)

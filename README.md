@@ -1,4 +1,26 @@
-# SummaCham 📊
+# SummaCham
+
+Documentación consolidada en 5 archivos Markdown para reducir dispersión y mantener todo el contexto en un solo lugar.
+
+## Documentación consolidada
+
+- `DOCS_GENERAL_SETUP.md` — setup, configuración, seguridad, despliegue y releases.
+- `DOCS_ARQUITECTURA_SISTEMAS.md` — arquitectura, sistemas y módulos principales.
+- `DOCS_OPERACIONES_RESUMEN.md` — operaciones, resumen, fórmulas, mapeos y reportes.
+- `DOCS_FLUJOS_IMPLEMENTACION_FIXES.md` — flujos, autorizaciones, implementaciones, migraciones y fixes.
+
+## Uso rápido
+
+1. Empieza por `DOCS_GENERAL_SETUP.md` si necesitas instalar o preparar el entorno.
+2. Revisa `DOCS_ARQUITECTURA_SISTEMAS.md` para contexto técnico general.
+3. Usa `DOCS_OPERACIONES_RESUMEN.md` para lógica de operaciones y reportes.
+4. Consulta `DOCS_FLUJOS_IMPLEMENTACION_FIXES.md` para cambios, correcciones y flujo operativo.
+
+## Contenido anterior (preservado)
+
+Nota: los enlaces internos de esta sección pueden apuntar a archivos que fueron consolidados.
+
+## SummaCham 📊
 
 > Aplicación de escritorio para gestión financiera empresarial con Electron, Node.js y Firebird.
 
@@ -6,7 +28,7 @@
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-## 🚀 Características
+### 🚀 Características
 
 - ✅ Sistema multi-usuario con roles y permisos
 - ✅ Gestión de presupuestos y reportes financieros
@@ -20,7 +42,7 @@
 
 ---
 
-## 📋 Requisitos Previos
+### 📋 Requisitos Previos
 
 - **Node.js** 18.x o superior ([Descargar](https://nodejs.org/))
 - **npm** 9.x o superior (viene con Node.js)
@@ -29,22 +51,22 @@
 
 ---
 
-## ⚡ Instalación Rápida
+### ⚡ Instalación Rápida
 
-### 1. Clonar el Repositorio
+#### 1. Clonar el Repositorio
 
 ```bash
 git clone https://github.com/IustusRenidet/SummaCham.git
 cd SummaCham
 ```
 
-### 2. Instalar Dependencias
+#### 2. Instalar Dependencias
 
 ```bash
 npm install
 ```
 
-### 3. Configurar Ambiente
+#### 3. Configurar Ambiente
 
 **Copia el archivo de ejemplo:**
 ```bash
@@ -64,7 +86,7 @@ PANELAMCHAM_ADMIN_PASSWORD=tu_contraseña_admin_segura
 NODE_ENV=development
 ```
 
-### 4. Configurar Usuarios Iniciales
+#### 4. Configurar Usuarios Iniciales
 
 ```bash
 cp src/config/seed_users.example.json src/config/seed_users.json
@@ -72,7 +94,7 @@ cp src/config/seed_users.example.json src/config/seed_users.json
 
 Edita `seed_users.json` con tus usuarios reales.
 
-### 5. Iniciar la Aplicación
+#### 5. Iniciar la Aplicación
 
 ```bash
 npm start
@@ -86,7 +108,7 @@ npm start
 
 ---
 
-## 📖 Documentación Completa
+### 📖 Documentación Completa
 
 - **[Setup Inicial](SETUP_INICIAL.md)** - Guía detallada paso a paso
 - **[Seguridad](SEGURIDAD.md)** - Cómo proteger información sensible
@@ -95,7 +117,7 @@ npm start
 
 ---
 
-## 🛠️ Scripts Disponibles
+### 🛠️ Scripts Disponibles
 
 | Script | Descripción |
 |--------|-------------|
@@ -108,7 +130,7 @@ npm start
 
 ---
 
-## 📁 Estructura del Proyecto
+### 📁 Estructura del Proyecto
 
 - `npm start`: inicia la app en modo desarrollo.
 - `npm run pack`: genera un paquete sin instalador (modo directorio).
@@ -116,18 +138,18 @@ npm start
  - `npm run build:portable`: genera el artifact portable (`portable`) para Windows (x64 + ia32).
  - `npm run build:all`: genera installer + portable (NSIS + portable) para Windows (x64 + ia32).
 
-## Hardening de la cuenta ICONET (admin global)
+### Hardening de la cuenta ICONET (admin global)
 
 - La cuenta `ICONET` se crea al inicializar la base de datos. Define antes de arrancar la app la variable `PANELAMCHAM_ADMIN_PASSWORD` (o `ICONET_PASSWORD`) para establecer/rotar la contrasena y evitar la clave por defecto.
 - Si la cuenta ya existe y defines la variable, al siguiente arranque se actualiza el hash de `ICONET` automaticamente; no se registran ni exponen contrasenas en logs.
 - Tras la rotacion, distribuye la nueva credencial de forma segura y elimina la variable del entorno de ejecucion si no deseas que se siga aplicando en reinicios posteriores.
 
-## Notas adicionales
+### Notas adicionales
 
 - El archivo `.gitignore` incluye directorios generados y artefactos temporales comunes.
 - Para personalizar el icono actualiza los recursos en `icono/icono.ico` y `icono/icono.png`.
 
-## Reportes Summary y Resumen
+### Reportes Summary y Resumen
 
 Los reportes ahora usan la misma arquitectura de secciones que los módulos de planeación:
 
@@ -140,4 +162,3 @@ Los nuevos endpoints consumen esos nodos y devuelven JSON listos para la vista:
 - `GET /api/reportes/resumen?empresaId=<empresa>&anio=<ejercicio>` → `{ empresaId, reportKey: 'RESUMEN', anio, detalle, resumen }`
 
 Las vistas `SUMMARY.html` y `RESUMEN.html` usan `js/summary-view.js` y `js/resumen-view.js` para renderizar esas secciones jerárquicas; de esta forma el usuario solo necesita diseñar capítulos/secciones en los archivos Excel/CSV (`CUENTAS SUMMARY y RESUMEN.xlsx` y `SUMAS CIUDAD DE MEXICO.csv`) para que el sistema agregue automáticamente los operativos como ingresos menos gastos y muestre el árbol completo.
-

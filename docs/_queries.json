@@ -1,0 +1,1640 @@
+[
+  {
+    "file": "src/server.js",
+    "db": "Firebird",
+    "op": "SELECT",
+    "tables": "CATCTA$",
+    "sql": "SELECT FIRST ${limite} CUENTA, NOMBRE FROM CATCTA${anio.toString().slice(-2)} WHERE ${condiciones.join(\" AND \")} ORDER BY CUENTA"
+  },
+  {
+    "file": "src/server.js",
+    "db": "Firebird",
+    "op": "DELETE",
+    "tables": "",
+    "sql": "GET,POST,PUT,PATCH,DELETE,OPTIONS"
+  },
+  {
+    "file": "src/server.js",
+    "db": "Firebird",
+    "op": "PRAGMA",
+    "tables": "",
+    "sql": "Pragma"
+  },
+  {
+    "file": "src/db/nedb.js",
+    "db": "SQLite",
+    "op": "SELECT",
+    "tables": "$",
+    "sql": "SELECT * FROM ${tabla}"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "SELECT",
+    "tables": "sqlite_master",
+    "sql": "SELECT name FROM sqlite_master WHERE type='table' AND name = ?"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "SELECT",
+    "tables": "layout_cuentas",
+    "sql": "SELECT COUNT(*) as total FROM layout_cuentas"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "SELECT",
+    "tables": "$",
+    "sql": "SELECT * FROM ${tabla}"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "INSERT",
+    "tables": "$",
+    "sql": "INSERT INTO ${tabla} (${columnas.join( \",\" )}) VALUES (${placeholders})"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "CREATE",
+    "tables": "",
+    "sql": "CREATE TABLE IF NOT EXISTS usuarios ( id INTEGER PRIMARY KEY AUTOINCREMENT, usuario TEXT NOT NULL UNIQUE, nombres TEXT NOT NULL DEFAULT '', apellido_primero TEXT NOT NULL DEFAULT '', apellido_segundo TEXT NOT NULL DEFAUL"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "DROP",
+    "tables": "",
+    "sql": "DROP TABLE IF EXISTS layout_templates"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "CREATE",
+    "tables": "",
+    "sql": "CREATE TABLE IF NOT EXISTS permisos_modulo ( id INTEGER PRIMARY KEY AUTOINCREMENT, usuario_id INTEGER NOT NULL, empresa_id TEXT NOT NULL, modulo TEXT NOT NULL, puede_leer INTEGER NOT NULL DEFAULT 0, puede_cargar_guardar "
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "PRAGMA",
+    "tables": "",
+    "sql": "PRAGMA table_info(permisos_modulo)"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "ALTER",
+    "tables": "",
+    "sql": "ALTER TABLE permisos_modulo ADD COLUMN puede_leer INTEGER NOT NULL DEFAULT 0"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "CREATE",
+    "tables": "",
+    "sql": "CREATE TABLE IF NOT EXISTS presupuestos_estado ( id INTEGER PRIMARY KEY AUTOINCREMENT, empresa_id TEXT NOT NULL, modulo TEXT NOT NULL, anio INTEGER NOT NULL, capitulo TEXT NOT NULL DEFAULT 'DEFAULT', estado TEXT NOT NULL"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "PRAGMA",
+    "tables": "",
+    "sql": "PRAGMA table_info(presupuestos_estado)"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "ALTER",
+    "tables": "",
+    "sql": "ALTER TABLE presupuestos_estado ADD COLUMN capitulo TEXT NOT NULL DEFAULT 'DEFAULT'"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "CREATE",
+    "tables": "",
+    "sql": "CREATE TABLE IF NOT EXISTS presupuestos_estado_historial ( id INTEGER PRIMARY KEY AUTOINCREMENT, empresa_id TEXT NOT NULL, modulo TEXT NOT NULL, anio INTEGER NOT NULL, capitulo TEXT NOT NULL DEFAULT 'DEFAULT', estado TEX"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "PRAGMA",
+    "tables": "",
+    "sql": "PRAGMA table_info(presupuestos_estado_historial)"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "ALTER",
+    "tables": "",
+    "sql": "ALTER TABLE presupuestos_estado_historial ADD COLUMN capitulo TEXT NOT NULL DEFAULT 'DEFAULT'"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "CREATE",
+    "tables": "",
+    "sql": "CREATE TABLE IF NOT EXISTS notificaciones ( id INTEGER PRIMARY KEY AUTOINCREMENT, usuario_id INTEGER NOT NULL, empresa_id TEXT, modulo TEXT, titulo TEXT NOT NULL, mensaje TEXT NOT NULL, tipo TEXT NOT NULL DEFAULT 'info',"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "CREATE",
+    "tables": "",
+    "sql": "CREATE TABLE IF NOT EXISTS comentarios_celdas ( id INTEGER PRIMARY KEY AUTOINCREMENT, empresa_id TEXT, modulo TEXT NOT NULL, celda_id TEXT NOT NULL, anio INTEGER, capitulo TEXT, texto TEXT NOT NULL, parent_id INTEGER, es"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "CREATE",
+    "tables": "",
+    "sql": "CREATE TABLE IF NOT EXISTS presupuestos_guardados ( id INTEGER PRIMARY KEY AUTOINCREMENT, empresa_id TEXT NOT NULL, modulo TEXT NOT NULL, anio INTEGER NOT NULL, datos TEXT NOT NULL, guardado_por INTEGER, guardado_en TEXT"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "CREATE",
+    "tables": "",
+    "sql": "CREATE TABLE IF NOT EXISTS PLAN_BORRADORES ( id INTEGER PRIMARY KEY AUTOINCREMENT, empresaId TEXT NOT NULL, anio INTEGER NOT NULL, modulo TEXT NOT NULL, capitulo TEXT NOT NULL DEFAULT 'DEFAULT', usuarioId TEXT NOT NULL, "
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "PRAGMA",
+    "tables": "",
+    "sql": "PRAGMA table_info(PLAN_BORRADORES)"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "ALTER",
+    "tables": "",
+    "sql": "ALTER TABLE PLAN_BORRADORES ADD COLUMN capitulo TEXT NOT NULL DEFAULT 'DEFAULT'"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "CREATE",
+    "tables": "",
+    "sql": "CREATE TABLE IF NOT EXISTS PLAN_BORRADORES_HISTORIAL ( id INTEGER PRIMARY KEY AUTOINCREMENT, borradorId INTEGER, empresaId TEXT NOT NULL, modulo TEXT NOT NULL, capitulo TEXT NOT NULL DEFAULT 'DEFAULT', anio INTEGER NOT N"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "PRAGMA",
+    "tables": "",
+    "sql": "PRAGMA table_info(PLAN_BORRADORES_HISTORIAL)"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "ALTER",
+    "tables": "",
+    "sql": "ALTER TABLE PLAN_BORRADORES_HISTORIAL ADD COLUMN capitulo TEXT NOT NULL DEFAULT 'DEFAULT'"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "CREATE",
+    "tables": "",
+    "sql": "CREATE TABLE IF NOT EXISTS empresa_vistas ( id INTEGER PRIMARY KEY AUTOINCREMENT, empresa_id TEXT NOT NULL, vista TEXT NOT NULL, archivo TEXT NOT NULL, UNIQUE(empresa_id, vista) )"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "CREATE",
+    "tables": "",
+    "sql": "CREATE TABLE IF NOT EXISTS layout_cuentas ( id INTEGER PRIMARY KEY AUTOINCREMENT, empresa_id TEXT NOT NULL, modulo TEXT NOT NULL, anio INTEGER NOT NULL, cuenta TEXT NOT NULL, nombre TEXT NOT NULL, capitulo TEXT NOT NULL,"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "CREATE",
+    "tables": "",
+    "sql": "CREATE TABLE IF NOT EXISTS layout_operaciones ( id INTEGER PRIMARY KEY AUTOINCREMENT, empresa_id TEXT NOT NULL, modulo TEXT NOT NULL, anio INTEGER NOT NULL, capitulo TEXT NOT NULL, clase TEXT NOT NULL, operacion_etiqueta"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "CREATE",
+    "tables": "",
+    "sql": "CREATE TABLE IF NOT EXISTS layout_secciones ( id INTEGER PRIMARY KEY AUTOINCREMENT, empresa_id TEXT NOT NULL, modulo TEXT NOT NULL, anio INTEGER NOT NULL, capitulo TEXT NOT NULL, seccion_principal TEXT NOT NULL, seccion_"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "CREATE",
+    "tables": "",
+    "sql": "CREATE INDEX IF NOT EXISTS idx_layout_cuentas_lookup ON layout_cuentas(empresa_id, modulo, anio, capitulo)"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "CREATE",
+    "tables": "",
+    "sql": "CREATE INDEX IF NOT EXISTS idx_layout_operaciones_lookup ON layout_operaciones(empresa_id, modulo, anio, capitulo)"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "CREATE",
+    "tables": "",
+    "sql": "CREATE INDEX IF NOT EXISTS idx_layout_secciones_lookup ON layout_secciones(empresa_id, modulo, anio, capitulo)"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "CREATE",
+    "tables": "",
+    "sql": "CREATE INDEX IF NOT EXISTS idx_comentarios_celda_lookup ON comentarios_celdas(empresa_id, modulo, anio, celda_id, estado, creado_en)"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "PRAGMA",
+    "tables": "",
+    "sql": "PRAGMA index_info(\"${uniqueIndex.name}\")"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "ALTER",
+    "tables": "layout_cuentas, layout_cuentas_old",
+    "sql": "BEGIN; ALTER TABLE layout_cuentas RENAME TO layout_cuentas_old; CREATE TABLE layout_cuentas ( id INTEGER PRIMARY KEY AUTOINCREMENT, empresa_id TEXT NOT NULL, modulo TEXT NOT NULL, anio INTEGER NOT NULL, cuenta TEXT NOT N"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "CREATE",
+    "tables": "",
+    "sql": "CREATE TABLE IF NOT EXISTS permisos_edicion_capitulo ( id INTEGER PRIMARY KEY AUTOINCREMENT, usuario_id INTEGER NOT NULL, capitulo TEXT NOT NULL, puede_editar INTEGER NOT NULL DEFAULT 1, UNIQUE(usuario_id, capitulo), FOR"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "CREATE",
+    "tables": "",
+    "sql": "CREATE TABLE IF NOT EXISTS layout_bitacora ( id INTEGER PRIMARY KEY AUTOINCREMENT, empresa_id TEXT NOT NULL, modulo TEXT NOT NULL, anio INTEGER NOT NULL, capitulo TEXT NOT NULL, usuario_id INTEGER, accion TEXT NOT NULL, "
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "CREATE",
+    "tables": "",
+    "sql": "CREATE INDEX IF NOT EXISTS idx_layout_bitacora_lookup ON layout_bitacora(empresa_id, modulo, anio, capitulo)"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "CREATE",
+    "tables": "",
+    "sql": "CREATE TABLE IF NOT EXISTS graficas_config ( id INTEGER PRIMARY KEY AUTOINCREMENT, empresa_id TEXT NOT NULL, config_json TEXT NOT NULL, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, UNIQUE(empresa_id) )"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "INSERT",
+    "tables": "usuarios",
+    "sql": "INSERT OR IGNORE INTO usuarios ( usuario, nombres, apellido_primero, apellido_segundo, apellidos, correo, contrasena, es_admin_global, puede_agregar, puede_modificar, puede_eliminar ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "INSERT",
+    "tables": "permisos_modulo",
+    "sql": "INSERT OR IGNORE INTO permisos_modulo ( usuario_id, empresa_id, modulo, puede_leer, puede_cargar_guardar, puede_revisar, puede_aprobar ) VALUES (?, ?, ?, ?, ?, ?, ?)"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "UPDATE",
+    "tables": "usuarios",
+    "sql": "UPDATE usuarios SET nombres = ?, apellido_primero = ?, apellido_segundo = ?, apellidos = ?, correo = ?, es_admin_global = CASE WHEN ? = 1 THEN 1 ELSE es_admin_global END, puede_agregar = ?, puede_modificar = ?, puede_eli"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "INSERT",
+    "tables": "permisos_modulo",
+    "sql": "INSERT OR IGNORE INTO permisos_modulo ( usuario_id, empresa_id, modulo, puede_leer, puede_cargar_guardar, puede_revisar, puede_aprobar ) VALUES (?, ?, ?, 1, 1, 1, 1)"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "DELETE",
+    "tables": "permisos_modulo",
+    "sql": "DELETE FROM permisos_modulo WHERE usuario_id = ? AND modulo = ?"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "DELETE",
+    "tables": "empresa_vistas",
+    "sql": "DELETE FROM empresa_vistas"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "INSERT",
+    "tables": "empresa_vistas",
+    "sql": "INSERT OR IGNORE INTO empresa_vistas (empresa_id, vista, archivo) VALUES (?, ?, ?)"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "UPDATE",
+    "tables": "usuarios",
+    "sql": "UPDATE usuarios SET apellido_primero = CASE WHEN apellido_primero = '' THEN apellidos ELSE apellido_primero END, apellidos = TRIM( CASE WHEN apellido_primero <> '' AND apellido_segundo <> '' THEN apellido_primero || ' ' "
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "UPDATE",
+    "tables": "usuarios",
+    "sql": "UPDATE usuarios SET contrasena = ? WHERE id = ?"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "INSERT",
+    "tables": "usuarios",
+    "sql": "INSERT INTO usuarios ( usuario, nombres, apellido_primero, apellido_segundo, apellidos, correo, contrasena, es_admin_global, puede_agregar, puede_modificar, puede_eliminar ) VALUES (?, 'Administrador', 'Global', '', 'Glo"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "INSERT",
+    "tables": "permisos_edicion_capitulo",
+    "sql": "INSERT OR IGNORE INTO permisos_edicion_capitulo ( usuario_id, capitulo, puede_editar ) VALUES (?, ?, 1)"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "INSERT",
+    "tables": "presupuestos_guardados",
+    "sql": "INSERT INTO presupuestos_guardados ( empresa_id, modulo, anio, datos, guardado_por ) VALUES (?, ?, ?, ?, ?)"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "UPDATE",
+    "tables": "usuarios",
+    "sql": "UPDATE usuarios SET es_admin_global = 1, puede_agregar = 1, puede_modificar = 1, puede_eliminar = 1 WHERE UPPER(usuario) = ?"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "SELECT",
+    "tables": "usuarios",
+    "sql": "SELECT id, usuario FROM usuarios WHERE es_admin_global = 1"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "PRAGMA",
+    "tables": "",
+    "sql": "PRAGMA table_info(layout_cuentas)"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "ALTER",
+    "tables": "",
+    "sql": "ALTER TABLE layout_cuentas ADD COLUMN visible INTEGER DEFAULT 1"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "ALTER",
+    "tables": "",
+    "sql": "ALTER TABLE layout_cuentas ADD COLUMN orden_presentacion INTEGER"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "ALTER",
+    "tables": "",
+    "sql": "ALTER TABLE layout_cuentas ADD COLUMN operacion_factor REAL DEFAULT 1"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "PRAGMA",
+    "tables": "",
+    "sql": "PRAGMA index_list(layout_cuentas)"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "PRAGMA",
+    "tables": "",
+    "sql": "PRAGMA table_info(layout_operaciones)"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "ALTER",
+    "tables": "",
+    "sql": "ALTER TABLE layout_operaciones ADD COLUMN visible INTEGER DEFAULT 1"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "ALTER",
+    "tables": "",
+    "sql": "ALTER TABLE layout_operaciones ADD COLUMN orden_presentacion INTEGER"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "ALTER",
+    "tables": "",
+    "sql": "ALTER TABLE layout_operaciones ADD COLUMN formula_json TEXT"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "ALTER",
+    "tables": "",
+    "sql": "ALTER TABLE layout_operaciones ADD COLUMN operacion_etiqueta TEXT"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "SELECT",
+    "tables": "usuarios",
+    "sql": "SELECT id FROM usuarios WHERE usuario = ?"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "SELECT",
+    "tables": "usuarios",
+    "sql": "SELECT id, usuario FROM usuarios"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "PRAGMA",
+    "tables": "",
+    "sql": "PRAGMA table_info(usuarios)"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "ALTER",
+    "tables": "",
+    "sql": "ALTER TABLE usuarios ADD COLUMN apellido_primero TEXT NOT NULL DEFAULT ''"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "ALTER",
+    "tables": "",
+    "sql": "ALTER TABLE usuarios ADD COLUMN apellido_segundo TEXT NOT NULL DEFAULT ''"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "ALTER",
+    "tables": "",
+    "sql": "ALTER TABLE usuarios ADD COLUMN apellidos TEXT NOT NULL DEFAULT ''"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "SELECT",
+    "tables": "sqlite_master",
+    "sql": "local (Modo Portable / Desarrollo) // Se busca en la raíz del proyecto (desde src/db/ -> ../../datos) const rutaLocal = path.resolve(__dirname, \"../../datos\"); if (fs.existsSync(rutaLocal)) { rutaCache = rutaLocal; retur"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "SELECT",
+    "tables": "$, layout_cuentas",
+    "sql": "AND name = ?`) .get(tabla); return !!row; } catch (_) { return false; } }; const copiarLayoutsDesdeSemillaSiFaltan = () => { if (!db) { return; } let layoutActual = 0; try { const row = db .prepare(`SELECT COUNT(*) as to"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "DROP",
+    "tables": "",
+    "sql": ", contrasena TEXT NOT NULL, es_admin_global INTEGER NOT NULL DEFAULT 0, puede_agregar INTEGER NOT NULL DEFAULT 0, puede_modificar INTEGER NOT NULL DEFAULT 0, puede_eliminar INTEGER NOT NULL DEFAULT 0, creado_en TEXT DEFA"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "DELETE",
+    "tables": "",
+    "sql": ", actualizado_por INTEGER, actualizado_en TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, UNIQUE(empresa_id, modulo, anio, capitulo), FOREIGN KEY(actualizado_por) REFERENCES usuarios(id) ON DELETE SET NULL ) ` ).run(); // Agreg"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "CREATE",
+    "tables": "",
+    "sql": "` ).run(); console.log(\"✅ Columna capitulo agregada a presupuestos_estado\"); } db.prepare( ` CREATE TABLE IF NOT EXISTS presupuestos_estado_historial ( id INTEGER PRIMARY KEY AUTOINCREMENT, empresa_id TEXT NOT NULL, modu"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "DELETE",
+    "tables": "",
+    "sql": ", estado TEXT NOT NULL, usuario_id INTEGER, registrado_en TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(usuario_id) REFERENCES usuarios(id) ON DELETE SET NULL ) ` ).run(); // Agregar columna capitulo si no existe "
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "CREATE",
+    "tables": "",
+    "sql": "` ).run(); console.log(\"✅ Columna capitulo agregada a presupuestos_estado_historial\"); } db.prepare( ` CREATE TABLE IF NOT EXISTS notificaciones ( id INTEGER PRIMARY KEY AUTOINCREMENT, usuario_id INTEGER NOT NULL, empres"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "DELETE",
+    "tables": "",
+    "sql": ", creada_en TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, leida_en TEXT, FOREIGN KEY(usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE ) ` ).run(); db.prepare( ` CREATE TABLE IF NOT EXISTS comentarios_celdas ( id INTEGER "
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "DELETE",
+    "tables": "",
+    "sql": ", creado_por INTEGER NOT NULL, creado_en TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(parent_id) REFERENCES comentarios_celdas(id) ON DELETE CASCADE, FOREIGN KEY(creado_por) REFERENCES usuarios(id) ON DELETE CASC"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "PRAGMA",
+    "tables": "",
+    "sql": ", fechaCreacion TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, fechaEnvio TEXT, comentarios TEXT, UNIQUE(empresaId, modulo, anio, capitulo) ) ` ).run(); // Agregar columna capitulo si no existe (migración) const infoBorradores"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "CREATE",
+    "tables": "",
+    "sql": "` ).run(); console.log(\"✅ Columna capitulo agregada a PLAN_BORRADORES\"); } db.prepare( ` CREATE TABLE IF NOT EXISTS PLAN_BORRADORES_HISTORIAL ( id INTEGER PRIMARY KEY AUTOINCREMENT, borradorId INTEGER, empresaId TEXT NOT"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "PRAGMA",
+    "tables": "",
+    "sql": ", anio INTEGER NOT NULL, estado TEXT NOT NULL, accion TEXT NOT NULL, descripcion TEXT, comentarios TEXT, usuarioId TEXT, registradoEn TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP ) ` ).run(); // Agregar columna capitulo si no"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "CREATE",
+    "tables": "",
+    "sql": "` ).run(); console.log(\"✅ Columna capitulo agregada a PLAN_BORRADORES_HISTORIAL\"); } db.prepare( ` CREATE TABLE IF NOT EXISTS empresa_vistas ( id INTEGER PRIMARY KEY AUTOINCREMENT, empresa_id TEXT NOT NULL, vista TEXT NO"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "ALTER",
+    "tables": "",
+    "sql": "agregada a layout_cuentas\"); } if (!columnasCuentas.includes(\"orden_presentacion\")) { db.prepare( \"ALTER TABLE layout_cuentas ADD COLUMN orden_presentacion INTEGER\" ).run(); console.log(\"✅ Columna"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "ALTER",
+    "tables": "",
+    "sql": "agregada a layout_cuentas\"); } if (!columnasCuentas.includes(\"operacion_factor\")) { db.prepare( \"ALTER TABLE layout_cuentas ADD COLUMN operacion_factor REAL DEFAULT 1\" ).run(); console.log(\"✅ Columna"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "PRAGMA",
+    "tables": "layout_cuentas, layout_cuentas_old",
+    "sql": "agregada a layout_cuentas\"); } // Migración: permitir cuentas duplicadas en un mismo layout try { const indices = db.prepare(\"PRAGMA index_list(layout_cuentas)\").all(); const uniqueIndex = indices.find((idx) => idx.uniqu"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "ALTER",
+    "tables": "",
+    "sql": "agregada a layout_operaciones\"); } if (!columnasOperaciones.includes(\"orden_presentacion\")) { db.prepare( \"ALTER TABLE layout_operaciones ADD COLUMN orden_presentacion INTEGER\" ).run(); console.log(\"✅ Columna"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "ALTER",
+    "tables": "",
+    "sql": "agregada a layout_operaciones\"); } if (!columnasOperaciones.includes(\"formula_json\")) { db.prepare( \"ALTER TABLE layout_operaciones ADD COLUMN formula_json TEXT\" ).run(); console.log(\"✅ Columna"
+  },
+  {
+    "file": "src/db/sqlite.js",
+    "db": "SQLite",
+    "op": "ALTER",
+    "tables": "",
+    "sql": "agregada a layout_operaciones\"); } if (!columnasOperaciones.includes(\"operacion_etiqueta\")) { db.prepare( \"ALTER TABLE layout_operaciones ADD COLUMN operacion_etiqueta TEXT\" ).run(); console.log(\"✅ Columna"
+  },
+  {
+    "file": "src/middleware/auth.js",
+    "db": "SQLite",
+    "op": "SELECT",
+    "tables": "usuarios",
+    "sql": "SELECT id, usuario, nombres, apellido_primero, apellido_segundo, apellidos, correo, es_admin_global, puede_agregar, puede_modificar, puede_eliminar FROM usuarios WHERE id = ?"
+  },
+  {
+    "file": "src/middleware/auth.js",
+    "db": "SQLite",
+    "op": "SELECT",
+    "tables": "permisos_modulo",
+    "sql": "SELECT empresa_id, modulo, puede_leer, puede_cargar_guardar, puede_revisar, puede_aprobar FROM permisos_modulo WHERE usuario_id = ?"
+  },
+  {
+    "file": "src/routes/auth.js",
+    "db": "Firebird",
+    "op": "SELECT",
+    "tables": "permisos_modulo",
+    "sql": "SELECT empresa_id, modulo, puede_leer, puede_cargar_guardar, puede_revisar, puede_aprobar FROM permisos_modulo WHERE usuario_id = ?"
+  },
+  {
+    "file": "src/routes/auth.js",
+    "db": "Firebird",
+    "op": "SELECT",
+    "tables": "usuarios",
+    "sql": "SELECT id, usuario, nombres, apellido_primero, apellido_segundo, apellidos, correo, contrasena, es_admin_global, puede_agregar, puede_modificar, puede_eliminar FROM usuarios WHERE usuario = ?"
+  },
+  {
+    "file": "src/routes/auth.js",
+    "db": "Firebird",
+    "op": "SELECT",
+    "tables": "usuarios",
+    "sql": "SELECT id, usuario, nombres, apellido_primero, apellido_segundo, apellidos, correo, es_admin_global, puede_agregar, puede_modificar, puede_eliminar FROM usuarios WHERE id = ?"
+  },
+  {
+    "file": "src/routes/auth.js",
+    "db": "Firebird",
+    "op": "SELECT",
+    "tables": "usuarios",
+    "sql": "SELECT id, usuario, nombres, apellido_primero, apellido_segundo, apellidos, correo, es_admin_global FROM usuarios WHERE UPPER(usuario) = ?"
+  },
+  {
+    "file": "src/routes/auth.js",
+    "db": "Firebird",
+    "op": "SELECT",
+    "tables": "permisos_modulo",
+    "sql": "SELECT COUNT(*) as total FROM permisos_modulo WHERE usuario_id = ?"
+  },
+  {
+    "file": "src/routes/auth.js",
+    "db": "Firebird",
+    "op": "SELECT",
+    "tables": "permisos_modulo",
+    "sql": "SELECT empresa_id, modulo, puede_leer, puede_cargar_guardar, puede_revisar, puede_aprobar FROM permisos_modulo WHERE usuario_id = ? LIMIT 200"
+  },
+  {
+    "file": "src/routes/backups.js",
+    "db": "Unknown",
+    "op": "CREATE",
+    "tables": "",
+    "sql": "/create"
+  },
+  {
+    "file": "src/routes/borradores.js",
+    "db": "SQLite",
+    "op": "INSERT",
+    "tables": "SET, presupuestos_estado",
+    "sql": "INSERT INTO presupuestos_estado (empresa_id, modulo, anio, capitulo, estado, actualizado_por, actualizado_en) VALUES (?, ?, ?, ?, 'sin-cargar', ?, CURRENT_TIMESTAMP) ON CONFLICT(empresa_id, modulo, anio, capitulo) DO UPD"
+  },
+  {
+    "file": "src/routes/graficas-config.js",
+    "db": "SQLite",
+    "op": "INSERT",
+    "tables": "SET, graficas_config",
+    "sql": "INSERT INTO graficas_config (empresa_id, config_json, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP) ON CONFLICT(empresa_id) DO UPDATE SET config_json = excluded.config_json, updated_at = CURRENT_TIMESTAMP"
+  },
+  {
+    "file": "src/routes/graficas-config.js",
+    "db": "SQLite",
+    "op": "SELECT",
+    "tables": "graficas_config",
+    "sql": "SELECT config_json FROM graficas_config WHERE empresa_id = ?"
+  },
+  {
+    "file": "src/routes/graficas-config.js",
+    "db": "SQLite",
+    "op": "DELETE",
+    "tables": "graficas_config",
+    "sql": "DELETE FROM graficas_config WHERE empresa_id = ?"
+  },
+  {
+    "file": "src/routes/layoutRoutes.js",
+    "db": "SQLite",
+    "op": "SELECT",
+    "tables": "layout_bitacora, usuarios",
+    "sql": "SELECT b.*, u.usuario as nombre_usuario FROM layout_bitacora b LEFT JOIN usuarios u ON b.usuario_id = u.id WHERE b.empresa_id = ? AND b.modulo = ? AND b.anio = ? AND b.capitulo = ? ORDER BY b.fecha DESC LIMIT 100"
+  },
+  {
+    "file": "src/routes/layoutRoutes.js",
+    "db": "SQLite",
+    "op": "INSERT",
+    "tables": "layout_bitacora",
+    "sql": "INSERT INTO layout_bitacora (empresa_id, modulo, anio, capitulo, usuario_id, accion, detalles) VALUES (?, ?, ?, ?, ?, ?, ?)"
+  },
+  {
+    "file": "src/routes/layoutRoutes.js",
+    "db": "SQLite",
+    "op": "INSERT",
+    "tables": "SET, permisos_edicion_capitulo",
+    "sql": "INSERT INTO permisos_edicion_capitulo (usuario_id, capitulo, puede_editar) VALUES (?, ?, ?) ON CONFLICT(usuario_id, capitulo) DO UPDATE SET puede_editar = excluded.puede_editar"
+  },
+  {
+    "file": "src/routes/layoutRoutes.js",
+    "db": "SQLite",
+    "op": "SELECT",
+    "tables": "layout_cuentas",
+    "sql": "SELECT capitulo as CAPITULO, seccion_principal as \"SECCIÓN Principal\", seccion_secundaria as \"SECCION Secundaria\", cuenta as CUENTA, nombre as NOMBRE, orden FROM layout_cuentas WHERE empresa_id = ? AND modulo = ? AND ani"
+  },
+  {
+    "file": "src/routes/layoutRoutes.js",
+    "db": "SQLite",
+    "op": "SELECT",
+    "tables": "layout_operaciones",
+    "sql": "SELECT capitulo as CAPITULO, clase as OperacionId, operacion_etiqueta, clase as Clase, seccion as SECCION, operacion_tipo, operacion_label, signo, orden FROM layout_operaciones WHERE empresa_id = ? AND modulo = ? AND ani"
+  },
+  {
+    "file": "src/routes/layoutRoutes.js",
+    "db": "SQLite",
+    "op": "SELECT",
+    "tables": "permisos_edicion_capitulo",
+    "sql": "SELECT puede_editar FROM permisos_edicion_capitulo WHERE usuario_id = ? AND capitulo = ?"
+  },
+  {
+    "file": "src/routes/layoutRoutes.js",
+    "db": "SQLite",
+    "op": "SELECT",
+    "tables": "usuarios",
+    "sql": "SELECT id, usuario, nombres FROM usuarios WHERE es_admin_global = 0"
+  },
+  {
+    "file": "src/routes/layoutRoutes.js",
+    "db": "SQLite",
+    "op": "SELECT",
+    "tables": "permisos_edicion_capitulo",
+    "sql": "SELECT * FROM permisos_edicion_capitulo"
+  },
+  {
+    "file": "src/routes/perfil.js",
+    "db": "SQLite",
+    "op": "SELECT",
+    "tables": "permisos_modulo",
+    "sql": "SELECT empresa_id, modulo, puede_leer, puede_cargar_guardar, puede_revisar, puede_aprobar FROM permisos_modulo WHERE usuario_id = ?"
+  },
+  {
+    "file": "src/routes/perfil.js",
+    "db": "SQLite",
+    "op": "SELECT",
+    "tables": "usuarios",
+    "sql": "SELECT id, usuario, nombres, apellido_primero, apellido_segundo, apellidos, correo, es_admin_global, puede_agregar, puede_modificar, puede_eliminar FROM usuarios WHERE id = ?"
+  },
+  {
+    "file": "src/routes/perfil.js",
+    "db": "SQLite",
+    "op": "SELECT",
+    "tables": "usuarios",
+    "sql": "SELECT contrasena FROM usuarios WHERE id = ?"
+  },
+  {
+    "file": "src/routes/perfil.js",
+    "db": "SQLite",
+    "op": "UPDATE",
+    "tables": "usuarios",
+    "sql": "UPDATE usuarios SET contrasena = ? WHERE id = ?"
+  },
+  {
+    "file": "src/routes/presupuestos.js",
+    "db": "Firebird",
+    "op": "SELECT",
+    "tables": "presupuestos_estado, usuarios",
+    "sql": "SELECT e.estado, e.actualizado_en AS actualizadoEn, TRIM(COALESCE(u.nombres, '') || ' ' || COALESCE(u.apellidos, '')) AS actualizadoPor FROM presupuestos_estado e LEFT JOIN usuarios u ON u.id = e.actualizado_por WHERE e."
+  },
+  {
+    "file": "src/routes/presupuestos.js",
+    "db": "Firebird",
+    "op": "SELECT",
+    "tables": "presupuestos_estado_historial, usuarios",
+    "sql": "SELECT h.estado, h.registrado_en AS fecha, TRIM(COALESCE(u.nombres, '') || ' ' || COALESCE(u.apellidos, '')) AS usuario FROM presupuestos_estado_historial h LEFT JOIN usuarios u ON u.id = h.usuario_id WHERE h.empresa_id "
+  },
+  {
+    "file": "src/routes/presupuestos.js",
+    "db": "Firebird",
+    "op": "INSERT",
+    "tables": "SET, presupuestos_estado",
+    "sql": "INSERT INTO presupuestos_estado ( empresa_id, modulo, anio, estado, actualizado_por, actualizado_en ) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP) ON CONFLICT(empresa_id, modulo, anio) DO UPDATE SET estado = excluded.estado"
+  },
+  {
+    "file": "src/routes/presupuestos.js",
+    "db": "Firebird",
+    "op": "INSERT",
+    "tables": "presupuestos_estado_historial",
+    "sql": "INSERT INTO presupuestos_estado_historial ( empresa_id, modulo, anio, estado, usuario_id, registrado_en ) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)"
+  },
+  {
+    "file": "src/routes/presupuestos.js",
+    "db": "Firebird",
+    "op": "UPDATE",
+    "tables": "$, OR",
+    "sql": "UPDATE OR INSERT INTO ${tablaPresup} (NUM_CTA, EJERCICIO, PRESUP01, PRESUP02, PRESUP03, PRESUP04, PRESUP05, PRESUP06, PRESUP07, PRESUP08, PRESUP09, PRESUP10, PRESUP11, PRESUP12) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
+  },
+  {
+    "file": "src/routes/usuarios.js",
+    "db": "SQLite",
+    "op": "SELECT",
+    "tables": "permisos_modulo",
+    "sql": "SELECT empresa_id, modulo, puede_leer, puede_cargar_guardar, puede_revisar, puede_aprobar FROM permisos_modulo WHERE usuario_id = ?"
+  },
+  {
+    "file": "src/routes/usuarios.js",
+    "db": "SQLite",
+    "op": "INSERT",
+    "tables": "permisos_modulo",
+    "sql": "INSERT INTO permisos_modulo ( usuario_id, empresa_id, modulo, puede_leer, puede_cargar_guardar, puede_revisar, puede_aprobar ) VALUES (?, ?, ?, ?, ?, ?, ?)"
+  },
+  {
+    "file": "src/routes/usuarios.js",
+    "db": "SQLite",
+    "op": "INSERT",
+    "tables": "permisos_modulo",
+    "sql": "INSERT OR IGNORE INTO permisos_modulo ( usuario_id, empresa_id, modulo, puede_leer, puede_cargar_guardar, puede_revisar, puede_aprobar ) VALUES (?, ?, ?, 1, 1, 1, 1)"
+  },
+  {
+    "file": "src/routes/usuarios.js",
+    "db": "SQLite",
+    "op": "INSERT",
+    "tables": "permisos_edicion_capitulo",
+    "sql": "INSERT OR IGNORE INTO permisos_edicion_capitulo ( usuario_id, capitulo, puede_editar ) VALUES (?, ?, 1)"
+  },
+  {
+    "file": "src/routes/usuarios.js",
+    "db": "SQLite",
+    "op": "SELECT",
+    "tables": "usuarios",
+    "sql": "SELECT id, usuario, nombres, apellido_primero, apellido_segundo, apellidos, correo, es_admin_global, puede_agregar, puede_modificar, puede_eliminar FROM usuarios ORDER BY usuario ASC"
+  },
+  {
+    "file": "src/routes/usuarios.js",
+    "db": "SQLite",
+    "op": "SELECT",
+    "tables": "usuarios",
+    "sql": "SELECT id, usuario, nombres, apellido_primero, apellido_segundo, apellidos, correo, es_admin_global, puede_agregar, puede_modificar, puede_eliminar FROM usuarios WHERE id = ?"
+  },
+  {
+    "file": "src/routes/usuarios.js",
+    "db": "SQLite",
+    "op": "INSERT",
+    "tables": "usuarios",
+    "sql": "INSERT INTO usuarios ( usuario, nombres, apellido_primero, apellido_segundo, apellidos, correo, contrasena, es_admin_global, puede_agregar, puede_modificar, puede_eliminar ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+  },
+  {
+    "file": "src/routes/usuarios.js",
+    "db": "SQLite",
+    "op": "UPDATE",
+    "tables": "usuarios",
+    "sql": "UPDATE usuarios SET usuario = ?, nombres = ?, apellido_primero = ?, apellido_segundo = ?, apellidos = ?, correo = ?, es_admin_global = ?, puede_agregar = ?, puede_modificar = ?, puede_eliminar = ? WHERE id = ?"
+  },
+  {
+    "file": "src/routes/usuarios.js",
+    "db": "SQLite",
+    "op": "DELETE",
+    "tables": "permisos_modulo",
+    "sql": "DELETE FROM permisos_modulo WHERE usuario_id = ?"
+  },
+  {
+    "file": "src/routes/usuarios.js",
+    "db": "SQLite",
+    "op": "SELECT",
+    "tables": "usuarios",
+    "sql": "SELECT usuario FROM usuarios WHERE id = ?"
+  },
+  {
+    "file": "src/routes/usuarios.js",
+    "db": "SQLite",
+    "op": "SELECT",
+    "tables": "usuarios",
+    "sql": "SELECT id FROM usuarios WHERE usuario = ?"
+  },
+  {
+    "file": "src/routes/usuarios.js",
+    "db": "SQLite",
+    "op": "SELECT",
+    "tables": "usuarios",
+    "sql": "SELECT * FROM usuarios WHERE id = ?"
+  },
+  {
+    "file": "src/routes/usuarios.js",
+    "db": "SQLite",
+    "op": "UPDATE",
+    "tables": "usuarios",
+    "sql": "UPDATE usuarios SET contrasena = ? WHERE id = ?"
+  },
+  {
+    "file": "src/routes/usuarios.js",
+    "db": "SQLite",
+    "op": "SELECT",
+    "tables": "usuarios",
+    "sql": "SELECT usuario, es_admin_global FROM usuarios WHERE id = ?"
+  },
+  {
+    "file": "src/routes/usuarios.js",
+    "db": "SQLite",
+    "op": "DELETE",
+    "tables": "usuarios",
+    "sql": "DELETE FROM usuarios WHERE id = ?"
+  },
+  {
+    "file": "src/routes/usuarios.js",
+    "db": "SQLite",
+    "op": "SELECT",
+    "tables": "usuarios",
+    "sql": "SELECT id FROM usuarios WHERE id = ?"
+  },
+  {
+    "file": "src/services/borradoresService.js",
+    "db": "Firebird",
+    "op": "INSERT",
+    "tables": "PLAN_BORRADORES_HISTORIAL",
+    "sql": "INSERT INTO PLAN_BORRADORES_HISTORIAL ( borradorId, empresaId, modulo, anio, capitulo, estado, accion, descripcion, comentarios, usuarioId, registradoEn ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)"
+  },
+  {
+    "file": "src/services/borradoresService.js",
+    "db": "Firebird",
+    "op": "SELECT",
+    "tables": "PLAN_BORRADORES",
+    "sql": "SELECT * FROM PLAN_BORRADORES WHERE id = ?"
+  },
+  {
+    "file": "src/services/borradoresService.js",
+    "db": "Firebird",
+    "op": "SELECT",
+    "tables": "PLAN_BORRADORES, usuarios",
+    "sql": "SELECT b.*, u.usuario AS autorUsuario, TRIM(COALESCE(u.nombres, '') || ' ' || COALESCE(u.apellidos, '')) AS autorNombre FROM PLAN_BORRADORES b LEFT JOIN usuarios u ON u.id = CAST(b.usuarioId AS INTEGER) ${whereClause} OR"
+  },
+  {
+    "file": "src/services/borradoresService.js",
+    "db": "Firebird",
+    "op": "SELECT",
+    "tables": "PLAN_BORRADORES_HISTORIAL, usuarios",
+    "sql": "SELECT h.*, u.usuario AS autorUsuario, u.correo AS autorCorreo, TRIM(COALESCE(u.nombres, '') || ' ' || COALESCE(u.apellidos, '')) AS autorNombre FROM PLAN_BORRADORES_HISTORIAL h LEFT JOIN usuarios u ON u.id = CAST(h.usua"
+  },
+  {
+    "file": "src/services/borradoresService.js",
+    "db": "Firebird",
+    "op": "SELECT",
+    "tables": "PLAN_BORRADORES_HISTORIAL",
+    "sql": "SELECT DISTINCT estado FROM PLAN_BORRADORES_HISTORIAL ${whereClause} ORDER BY estado"
+  },
+  {
+    "file": "src/services/borradoresService.js",
+    "db": "Firebird",
+    "op": "SELECT",
+    "tables": "PLAN_BORRADORES_HISTORIAL",
+    "sql": "SELECT DISTINCT accion FROM PLAN_BORRADORES_HISTORIAL ${whereClause} ORDER BY accion"
+  },
+  {
+    "file": "src/services/borradoresService.js",
+    "db": "Firebird",
+    "op": "SELECT",
+    "tables": "PLAN_BORRADORES_HISTORIAL, usuarios",
+    "sql": "SELECT DISTINCT h.usuarioId AS id, u.usuario AS cuenta, TRIM(COALESCE(u.nombres, '') || ' ' || COALESCE(u.apellidos, '')) AS nombre FROM PLAN_BORRADORES_HISTORIAL h LEFT JOIN usuarios u ON u.id = CAST(h.usuarioId AS INTE"
+  },
+  {
+    "file": "src/services/borradoresService.js",
+    "db": "Firebird",
+    "op": "UPDATE",
+    "tables": "$, OR",
+    "sql": "UPDATE OR INSERT INTO ${tablaPresup} (${columnas.join(\", \")}) VALUES (${placeholders}) MATCHING (NUM_CTA, EJERCICIO)"
+  },
+  {
+    "file": "src/services/borradoresService.js",
+    "db": "Firebird",
+    "op": "SELECT",
+    "tables": "$",
+    "sql": "SELECT DISTINCT p.NUM_CTA FROM ${tablaCuentas} h JOIN ${tablaCuentas} p ON TRIM(p.NUM_CTA) = TRIM(h.CTA_PAPA) WHERE h.STATUS = 'A' AND p.STATUS = 'A' AND TRIM(h.CTA_PAPA) <> ''"
+  },
+  {
+    "file": "src/services/borradoresService.js",
+    "db": "Firebird",
+    "op": "SELECT",
+    "tables": "$",
+    "sql": "SELECT h.NUM_CTA, p.PRESUP01, p.PRESUP02, p.PRESUP03, p.PRESUP04, p.PRESUP05, p.PRESUP06, p.PRESUP07, p.PRESUP08, p.PRESUP09, p.PRESUP10, p.PRESUP11, p.PRESUP12 FROM ${tablaCuentas} h LEFT JOIN ${tablaPresup} p ON p.NUM_"
+  },
+  {
+    "file": "src/services/borradoresService.js",
+    "db": "Firebird",
+    "op": "SELECT",
+    "tables": "$",
+    "sql": "SELECT PRESUP01, PRESUP02, PRESUP03, PRESUP04, PRESUP05, PRESUP06, PRESUP07, PRESUP08, PRESUP09, PRESUP10, PRESUP11, PRESUP12 FROM ${tablaPresup} WHERE NUM_CTA = ? AND EJERCICIO = ?"
+  },
+  {
+    "file": "src/services/borradoresService.js",
+    "db": "Firebird",
+    "op": "SELECT",
+    "tables": "$",
+    "sql": "SELECT DISTINCT p.NUM_CTA, p.CTA_PAPA, p.NIVEL, p.NOMBRE, p.TIPO FROM ${tablaCuentas} h JOIN ${tablaCuentas} p ON TRIM(p.NUM_CTA) = TRIM(h.CTA_PAPA) WHERE h.STATUS = 'A' AND p.STATUS = 'A' AND TRIM(h.CTA_PAPA) <> '' ORDE"
+  },
+  {
+    "file": "src/services/borradoresService.js",
+    "db": "Firebird",
+    "op": "SELECT",
+    "tables": "$",
+    "sql": "SELECT h.NUM_CTA, h.NOMBRE, h.TIPO, h.NIVEL, h.CTA_PAPA, p.PRESUP01, p.PRESUP02, p.PRESUP03, p.PRESUP04, p.PRESUP05, p.PRESUP06, p.PRESUP07, p.PRESUP08, p.PRESUP09, p.PRESUP10, p.PRESUP11, p.PRESUP12 FROM ${tablaCuentas}"
+  },
+  {
+    "file": "src/services/borradoresService.js",
+    "db": "Firebird",
+    "op": "SELECT",
+    "tables": "PLAN_BORRADORES",
+    "sql": "SELECT * FROM PLAN_BORRADORES WHERE empresaId = ? AND modulo = ? AND anio = ? AND capitulo = ? AND estado IN (${placeholders}) ORDER BY fechaEnvio DESC NULLS LAST, id DESC LIMIT 1"
+  },
+  {
+    "file": "src/services/borradoresService.js",
+    "db": "Firebird",
+    "op": "SELECT",
+    "tables": "PLAN_BORRADORES",
+    "sql": "SELECT id FROM PLAN_BORRADORES WHERE empresaId = ? AND modulo = ? AND anio = ? AND capitulo = ?"
+  },
+  {
+    "file": "src/services/borradoresService.js",
+    "db": "Firebird",
+    "op": "UPDATE",
+    "tables": "PLAN_BORRADORES",
+    "sql": "UPDATE PLAN_BORRADORES SET data = ?, estado = ?, fechaEnvio = NULL, comentarios = NULL, usuarioId = ? WHERE id = ?"
+  },
+  {
+    "file": "src/services/borradoresService.js",
+    "db": "Firebird",
+    "op": "INSERT",
+    "tables": "PLAN_BORRADORES",
+    "sql": "INSERT INTO PLAN_BORRADORES (empresaId, anio, modulo, capitulo, usuarioId, data, estado, comentarios) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+  },
+  {
+    "file": "src/services/borradoresService.js",
+    "db": "Firebird",
+    "op": "UPDATE",
+    "tables": "PLAN_BORRADORES",
+    "sql": "UPDATE PLAN_BORRADORES SET estado = ?, fechaEnvio = CURRENT_TIMESTAMP WHERE id = ?"
+  },
+  {
+    "file": "src/services/borradoresService.js",
+    "db": "Firebird",
+    "op": "UPDATE",
+    "tables": "PLAN_BORRADORES",
+    "sql": "UPDATE PLAN_BORRADORES SET estado = ?, comentarios = NULL WHERE id = ?"
+  },
+  {
+    "file": "src/services/borradoresService.js",
+    "db": "Firebird",
+    "op": "UPDATE",
+    "tables": "PLAN_BORRADORES",
+    "sql": "UPDATE PLAN_BORRADORES SET estado = ?, comentarios = ?, fechaEnvio = CURRENT_TIMESTAMP WHERE id = ?"
+  },
+  {
+    "file": "src/services/borradoresService.js",
+    "db": "Firebird",
+    "op": "DELETE",
+    "tables": "PLAN_BORRADORES",
+    "sql": "DELETE FROM PLAN_BORRADORES WHERE id = ?"
+  },
+  {
+    "file": "src/services/borradoresService.js",
+    "db": "Firebird",
+    "op": "DELETE",
+    "tables": "PLAN_BORRADORES",
+    "sql": "DELETE FROM PLAN_BORRADORES WHERE empresaId = ? AND modulo = ? AND anio = ? AND capitulo = ?"
+  },
+  {
+    "file": "src/services/comentariosService.js",
+    "db": "SQLite",
+    "op": "SELECT",
+    "tables": "permisos_modulo, usuarios",
+    "sql": "SELECT DISTINCT u.id, u.usuario, u.nombres, u.apellido_primero, u.apellido_segundo FROM permisos_modulo pm INNER JOIN usuarios u ON u.id = pm.usuario_id WHERE pm.empresa_id = ? AND pm.modulo = ? AND (pm.puede_leer = 1 OR"
+  },
+  {
+    "file": "src/services/comentariosService.js",
+    "db": "SQLite",
+    "op": "SELECT",
+    "tables": "comentarios_celdas, usuarios",
+    "sql": "SELECT c.id, c.empresa_id AS empresaId, c.modulo, c.celda_id AS celdaId, c.anio, c.capitulo, c.texto, c.parent_id AS parentId, c.estado, c.creado_por, c.creado_en, u.usuario, u.nombres, u.apellido_primero, u.apellido_seg"
+  },
+  {
+    "file": "src/services/comentariosService.js",
+    "db": "SQLite",
+    "op": "SELECT",
+    "tables": "comentarios_celdas, usuarios",
+    "sql": "SELECT c.id, c.empresa_id AS empresaId, c.modulo, c.celda_id AS celdaId, c.anio, c.capitulo, c.texto, c.parent_id AS parentId, c.estado, c.creado_por, c.creado_en, u.usuario, u.nombres, u.apellido_primero, u.apellido_seg"
+  },
+  {
+    "file": "src/services/comentariosService.js",
+    "db": "SQLite",
+    "op": "SELECT",
+    "tables": "comentarios_celdas, usuarios",
+    "sql": "SELECT c.*, u.usuario, u.nombres, u.apellido_primero, u.apellido_segundo FROM comentarios_celdas c INNER JOIN usuarios u ON u.id = c.creado_por WHERE c.id = ?"
+  },
+  {
+    "file": "src/services/comentariosService.js",
+    "db": "SQLite",
+    "op": "INSERT",
+    "tables": "comentarios_celdas",
+    "sql": "INSERT INTO comentarios_celdas (empresa_id, modulo, celda_id, anio, capitulo, texto, parent_id, estado, creado_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+  },
+  {
+    "file": "src/services/comentariosService.js",
+    "db": "SQLite",
+    "op": "UPDATE",
+    "tables": "comentarios_celdas",
+    "sql": "UPDATE comentarios_celdas SET estado = ? WHERE id = ?"
+  },
+  {
+    "file": "src/services/firebirdService.js",
+    "db": "Firebird",
+    "op": "SELECT",
+    "tables": "RDB$DATABASE",
+    "sql": "SELECT 1 AS RESULTADO FROM RDB$DATABASE"
+  },
+  {
+    "file": "src/services/layoutSeeder.js",
+    "db": "SQLite",
+    "op": "DELETE",
+    "tables": "layout_cuentas",
+    "sql": "DELETE FROM layout_cuentas WHERE empresa_id = ? AND modulo = ? AND anio = ?"
+  },
+  {
+    "file": "src/services/layoutSeeder.js",
+    "db": "SQLite",
+    "op": "DELETE",
+    "tables": "layout_operaciones",
+    "sql": "DELETE FROM layout_operaciones WHERE empresa_id = ? AND modulo = ? AND anio = ?"
+  },
+  {
+    "file": "src/services/layoutSeeder.js",
+    "db": "SQLite",
+    "op": "DELETE",
+    "tables": "layout_secciones",
+    "sql": "DELETE FROM layout_secciones WHERE empresa_id = ? AND modulo = ? AND anio = ?"
+  },
+  {
+    "file": "src/services/layoutSeeder.js",
+    "db": "SQLite",
+    "op": "DELETE",
+    "tables": "layout_cuentas",
+    "sql": "DELETE FROM layout_cuentas WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ?"
+  },
+  {
+    "file": "src/services/layoutSeeder.js",
+    "db": "SQLite",
+    "op": "DELETE",
+    "tables": "layout_operaciones",
+    "sql": "DELETE FROM layout_operaciones WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ?"
+  },
+  {
+    "file": "src/services/layoutSeeder.js",
+    "db": "SQLite",
+    "op": "DELETE",
+    "tables": "layout_secciones",
+    "sql": "DELETE FROM layout_secciones WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ?"
+  },
+  {
+    "file": "src/services/layoutSeeder.js",
+    "db": "SQLite",
+    "op": "INSERT",
+    "tables": "layout_cuentas",
+    "sql": "INSERT OR REPLACE INTO layout_cuentas ( empresa_id, modulo, anio, cuenta, nombre, capitulo, seccion_principal, seccion_secundaria, orden, creado_en, actualizado_en ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, "
+  },
+  {
+    "file": "src/services/layoutSeeder.js",
+    "db": "SQLite",
+    "op": "INSERT",
+    "tables": "layout_operaciones",
+    "sql": "INSERT OR IGNORE INTO layout_operaciones ( empresa_id, modulo, anio, capitulo, clase, operacion_etiqueta, seccion, operacion_tipo, operacion_label, signo, orden, creado_en, actualizado_en ) VALUES (?, ?, ?, ?, ?, ?, ?, ?"
+  },
+  {
+    "file": "src/services/layoutSeeder.js",
+    "db": "SQLite",
+    "op": "INSERT",
+    "tables": "layout_secciones",
+    "sql": "INSERT OR REPLACE INTO layout_secciones ( empresa_id, modulo, anio, capitulo, seccion_principal, seccion_secundaria, tipo, orden, creado_en, actualizado_en ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIM"
+  },
+  {
+    "file": "src/services/layoutSeeder.js",
+    "db": "SQLite",
+    "op": "SELECT",
+    "tables": "layout_cuentas",
+    "sql": "SELECT COUNT(*) as total FROM layout_cuentas WHERE empresa_id = ? AND modulo = ? AND anio = ?"
+  },
+  {
+    "file": "src/services/layoutSeeder.js",
+    "db": "SQLite",
+    "op": "SELECT",
+    "tables": "layout_operaciones",
+    "sql": "SELECT COUNT(*) as total FROM layout_operaciones WHERE empresa_id = ? AND modulo = ? AND anio = ?"
+  },
+  {
+    "file": "src/services/layoutSeeder.js",
+    "db": "SQLite",
+    "op": "SELECT",
+    "tables": "layout_cuentas",
+    "sql": "SELECT COUNT(*) as total FROM layout_cuentas"
+  },
+  {
+    "file": "src/services/layoutService.js",
+    "db": "SQLite",
+    "op": "SELECT",
+    "tables": "layout_cuentas",
+    "sql": "SELECT COUNT(*) as total FROM layout_cuentas WHERE empresa_id = ? AND modulo = ? AND anio = ? LIMIT 1"
+  },
+  {
+    "file": "src/services/layoutService.js",
+    "db": "SQLite",
+    "op": "SELECT",
+    "tables": "layout_cuentas",
+    "sql": "SELECT COUNT(*) as total FROM layout_cuentas WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ? LIMIT 1"
+  },
+  {
+    "file": "src/services/layoutService.js",
+    "db": "SQLite",
+    "op": "SELECT",
+    "tables": "layout_cuentas",
+    "sql": "SELECT MAX(anio) as anio FROM layout_cuentas WHERE empresa_id = ? AND modulo = ? AND anio <= ?"
+  },
+  {
+    "file": "src/services/layoutService.js",
+    "db": "SQLite",
+    "op": "SELECT",
+    "tables": "layout_cuentas",
+    "sql": "SELECT MIN(anio) as anio FROM layout_cuentas WHERE empresa_id = ? AND modulo = ? AND anio > ?"
+  },
+  {
+    "file": "src/services/layoutService.js",
+    "db": "SQLite",
+    "op": "SELECT",
+    "tables": "layout_cuentas",
+    "sql": "SELECT MIN(anio) as anio FROM layout_cuentas WHERE empresa_id = ? AND modulo = ?"
+  },
+  {
+    "file": "src/services/layoutService.js",
+    "db": "SQLite",
+    "op": "DELETE",
+    "tables": "layout_cuentas",
+    "sql": "DELETE FROM layout_cuentas WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ?"
+  },
+  {
+    "file": "src/services/layoutService.js",
+    "db": "SQLite",
+    "op": "DELETE",
+    "tables": "layout_operaciones",
+    "sql": "DELETE FROM layout_operaciones WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ?"
+  },
+  {
+    "file": "src/services/layoutService.js",
+    "db": "SQLite",
+    "op": "DELETE",
+    "tables": "layout_secciones",
+    "sql": "DELETE FROM layout_secciones WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ?"
+  },
+  {
+    "file": "src/services/layoutService.js",
+    "db": "SQLite",
+    "op": "SELECT",
+    "tables": "layout_cuentas",
+    "sql": "SELECT cuenta AS CUENTA, nombre AS NOMBRE, capitulo AS CAPITULO, seccion_principal AS \"SECCIàN Principal\", seccion_secundaria AS \"SECCION Secundaria\", operacion_factor, orden, orden_presentacion, visible FROM layout_cuen"
+  },
+  {
+    "file": "src/services/layoutService.js",
+    "db": "SQLite",
+    "op": "SELECT",
+    "tables": "layout_secciones",
+    "sql": "SELECT seccion_principal as seccion_principal, seccion_secundaria as seccion_secundaria, tipo, orden FROM layout_secciones WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ? ORDER BY orden ASC, seccion_pri"
+  },
+  {
+    "file": "src/services/layoutService.js",
+    "db": "SQLite",
+    "op": "SELECT",
+    "tables": "layout_operaciones",
+    "sql": "SELECT capitulo AS CAPITULO, clase AS OperacionId, operacion_etiqueta, seccion AS SECCION, operacion_tipo, operacion_label, signo, orden, orden_presentacion, visible, formula_json FROM layout_operaciones WHERE empresa_id"
+  },
+  {
+    "file": "src/services/layoutService.js",
+    "db": "SQLite",
+    "op": "SELECT",
+    "tables": "layout_cuentas",
+    "sql": "SELECT DISTINCT capitulo FROM layout_cuentas WHERE empresa_id = ? AND modulo = ? AND anio = ? ORDER BY capitulo ASC"
+  },
+  {
+    "file": "src/services/layoutService.js",
+    "db": "SQLite",
+    "op": "SELECT",
+    "tables": "layout_cuentas",
+    "sql": "SELECT DISTINCT anio FROM layout_cuentas WHERE empresa_id = ? AND modulo = ? ORDER BY anio DESC"
+  },
+  {
+    "file": "src/services/layoutService.js",
+    "db": "SQLite",
+    "op": "INSERT",
+    "tables": "layout_cuentas",
+    "sql": "INSERT OR REPLACE INTO layout_cuentas ( empresa_id, modulo, anio, cuenta, nombre, capitulo, seccion_principal, seccion_secundaria, operacion_factor, orden, orden_presentacion, visible, actualizado_en ) VALUES (?, ?, ?, ?"
+  },
+  {
+    "file": "src/services/layoutService.js",
+    "db": "SQLite",
+    "op": "INSERT",
+    "tables": "layout_secciones",
+    "sql": "INSERT OR REPLACE INTO layout_secciones ( empresa_id, modulo, anio, capitulo, seccion_principal, seccion_secundaria, tipo, orden, actualizado_en ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))"
+  },
+  {
+    "file": "src/services/layoutService.js",
+    "db": "SQLite",
+    "op": "INSERT",
+    "tables": "layout_operaciones",
+    "sql": "INSERT OR REPLACE INTO layout_operaciones ( empresa_id, modulo, anio, capitulo, clase, operacion_etiqueta, seccion, operacion_tipo, operacion_label, signo, orden, orden_presentacion, visible, formula_json, actualizado_en"
+  },
+  {
+    "file": "src/services/layoutService.js",
+    "db": "SQLite",
+    "op": "DELETE",
+    "tables": "layout_cuentas",
+    "sql": "DELETE FROM layout_cuentas WHERE empresa_id = ? AND modulo = ? AND anio = ?"
+  },
+  {
+    "file": "src/services/layoutService.js",
+    "db": "SQLite",
+    "op": "DELETE",
+    "tables": "layout_operaciones",
+    "sql": "DELETE FROM layout_operaciones WHERE empresa_id = ? AND modulo = ? AND anio = ?"
+  },
+  {
+    "file": "src/services/layoutService.js",
+    "db": "SQLite",
+    "op": "DELETE",
+    "tables": "layout_secciones",
+    "sql": "DELETE FROM layout_secciones WHERE empresa_id = ? AND modulo = ? AND anio = ?"
+  },
+  {
+    "file": "src/services/layoutService.js",
+    "db": "SQLite",
+    "op": "INSERT",
+    "tables": "layout_cuentas",
+    "sql": "INSERT INTO layout_cuentas ( empresa_id, modulo, anio, cuenta, nombre, capitulo, seccion_principal, seccion_secundaria, orden, orden_presentacion, visible ) SELECT empresa_id, modulo, ?, cuenta, nombre, capitulo, seccion"
+  },
+  {
+    "file": "src/services/layoutService.js",
+    "db": "SQLite",
+    "op": "INSERT",
+    "tables": "layout_operaciones",
+    "sql": "INSERT INTO layout_operaciones ( empresa_id, modulo, anio, capitulo, clase, operacion_etiqueta, seccion, operacion_tipo, operacion_label, signo, orden, orden_presentacion, visible, formula_json ) SELECT empresa_id, modul"
+  },
+  {
+    "file": "src/services/layoutService.js",
+    "db": "SQLite",
+    "op": "INSERT",
+    "tables": "layout_secciones",
+    "sql": "INSERT INTO layout_secciones ( empresa_id, modulo, anio, capitulo, seccion_principal, seccion_secundaria, tipo, orden ) SELECT empresa_id, modulo, ?, capitulo, seccion_principal, seccion_secundaria, tipo, orden FROM layo"
+  },
+  {
+    "file": "src/services/layoutService.js",
+    "db": "SQLite",
+    "op": "SELECT",
+    "tables": "layout_cuentas",
+    "sql": "SELECT COUNT(*) as count FROM layout_cuentas WHERE empresa_id = ? AND modulo = ? AND anio = ? LIMIT 1"
+  },
+  {
+    "file": "src/services/layoutService.js",
+    "db": "SQLite",
+    "op": "SELECT",
+    "tables": "layout_cuentas",
+    "sql": "SELECT COUNT(DISTINCT capitulo) as capitulos, COUNT(DISTINCT seccion_principal) as secciones, COUNT(*) as cuentas FROM layout_cuentas WHERE empresa_id = ? AND modulo = ? AND anio = ?"
+  },
+  {
+    "file": "src/services/layoutService.js",
+    "db": "SQLite",
+    "op": "SELECT",
+    "tables": "layout_operaciones",
+    "sql": "SELECT COUNT(*) as operaciones FROM layout_operaciones WHERE empresa_id = ? AND modulo = ? AND anio = ?"
+  },
+  {
+    "file": "src/services/layoutService.js",
+    "db": "SQLite",
+    "op": "UPDATE",
+    "tables": "layout_cuentas",
+    "sql": "UPDATE layout_cuentas SET cuenta = ?, nombre = ?, seccion_principal = ?, seccion_secundaria = ?, operacion_factor = ?, orden = ? WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ? AND cuenta = ?"
+  },
+  {
+    "file": "src/services/layoutService.js",
+    "db": "SQLite",
+    "op": "DELETE",
+    "tables": "layout_cuentas",
+    "sql": "DELETE FROM layout_cuentas WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ? AND cuenta = ?"
+  },
+  {
+    "file": "src/services/layoutService.js",
+    "db": "SQLite",
+    "op": "UPDATE",
+    "tables": "layout_cuentas",
+    "sql": "UPDATE layout_cuentas SET orden = ? WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ? AND cuenta = ?"
+  },
+  {
+    "file": "src/services/layoutService.js",
+    "db": "SQLite",
+    "op": "DELETE",
+    "tables": "layout_operaciones",
+    "sql": "DELETE FROM layout_operaciones WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ? AND (clase = ? OR operacion_etiqueta = ?)"
+  },
+  {
+    "file": "src/services/layoutService.js",
+    "db": "SQLite",
+    "op": "INSERT",
+    "tables": "layout_operaciones",
+    "sql": "INSERT INTO layout_operaciones (empresa_id, modulo, anio, capitulo, clase, operacion_etiqueta, seccion, operacion_tipo, operacion_label, signo, orden, formula_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+  },
+  {
+    "file": "src/services/layoutService.js",
+    "db": "SQLite",
+    "op": "INSERT",
+    "tables": "layout_secciones",
+    "sql": "INSERT OR REPLACE INTO layout_secciones (empresa_id, modulo, anio, capitulo, seccion_principal, seccion_secundaria, tipo, orden) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+  },
+  {
+    "file": "src/services/layoutService.js",
+    "db": "SQLite",
+    "op": "UPDATE",
+    "tables": "layout_cuentas",
+    "sql": "UPDATE layout_cuentas SET seccion_principal = ? WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ? AND seccion_principal = ?"
+  },
+  {
+    "file": "src/services/layoutService.js",
+    "db": "SQLite",
+    "op": "UPDATE",
+    "tables": "layout_secciones",
+    "sql": "UPDATE layout_secciones SET seccion_principal = ? WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ? AND seccion_principal = ?"
+  },
+  {
+    "file": "src/services/layoutService.js",
+    "db": "SQLite",
+    "op": "UPDATE",
+    "tables": "layout_cuentas",
+    "sql": "UPDATE layout_cuentas SET seccion_secundaria = ? WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ? AND seccion_secundaria = ?"
+  },
+  {
+    "file": "src/services/layoutService.js",
+    "db": "SQLite",
+    "op": "UPDATE",
+    "tables": "layout_secciones",
+    "sql": "UPDATE layout_secciones SET seccion_secundaria = ? WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ? AND seccion_secundaria = ?"
+  },
+  {
+    "file": "src/services/layoutsService.js",
+    "db": "SQLite",
+    "op": "SELECT",
+    "tables": "layout_cuentas",
+    "sql": "SELECT cuenta, nombre, capitulo, seccion_principal, seccion_secundaria, orden FROM layout_cuentas WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ? ORDER BY orden ASC, cuenta ASC"
+  },
+  {
+    "file": "src/services/layoutsService.js",
+    "db": "SQLite",
+    "op": "UPDATE",
+    "tables": "layout_cuentas",
+    "sql": "UPDATE layout_cuentas SET nombre = ?, orden = ?, actualizado_en = CURRENT_TIMESTAMP WHERE empresa_id = ? AND modulo = ? AND anio = ? AND cuenta = ? AND capitulo = ?"
+  },
+  {
+    "file": "src/services/layoutsService.js",
+    "db": "SQLite",
+    "op": "UPDATE",
+    "tables": "layout_cuentas",
+    "sql": "UPDATE layout_cuentas SET nombre = ?, orden = ?, actualizado_en = CURRENT_TIMESTAMP WHERE empresa_id = ? AND modulo = ? AND anio = ? AND cuenta = ?"
+  },
+  {
+    "file": "src/services/notificacionesService.js",
+    "db": "SQLite",
+    "op": "INSERT",
+    "tables": "notificaciones",
+    "sql": "INSERT INTO notificaciones ( usuario_id, empresa_id, modulo, titulo, mensaje, tipo, enlace ) VALUES (?, ?, ?, ?, ?, ?, ?)"
+  },
+  {
+    "file": "src/services/notificacionesService.js",
+    "db": "SQLite",
+    "op": "SELECT",
+    "tables": "notificaciones",
+    "sql": "SELECT id, empresa_id AS empresaId, modulo, titulo, mensaje, tipo, enlace, creada_en AS creadaEn, leida_en AS leidaEn FROM notificaciones WHERE usuario_id = ? ${soloNoLeidas ? \"AND leida_en IS NULL\" : \"\"} ORDER BY creada"
+  },
+  {
+    "file": "src/services/notificacionesService.js",
+    "db": "SQLite",
+    "op": "UPDATE",
+    "tables": "notificaciones",
+    "sql": "UPDATE notificaciones SET leida_en = CURRENT_TIMESTAMP WHERE id = ? AND usuario_id = ? AND leida_en IS NULL"
+  },
+  {
+    "file": "src/services/notificacionesService.js",
+    "db": "SQLite",
+    "op": "UPDATE",
+    "tables": "notificaciones",
+    "sql": "UPDATE notificaciones SET leida_en = CURRENT_TIMESTAMP WHERE usuario_id = ? AND leida_en IS NULL"
+  },
+  {
+    "file": "src/services/notificacionesService.js",
+    "db": "SQLite",
+    "op": "SELECT",
+    "tables": "permisos_modulo, usuarios",
+    "sql": "SELECT u.id, u.correo, TRIM(COALESCE(u.nombres, '') || ' ' || COALESCE(u.apellidos, '')) AS nombre FROM permisos_modulo pm INNER JOIN usuarios u ON u.id = pm.usuario_id WHERE pm.empresa_id = ? AND pm.modulo = ? AND pm.${"
+  },
+  {
+    "file": "src/services/planeacionCuentasService.js",
+    "db": "Firebird",
+    "op": "SELECT",
+    "tables": "$",
+    "sql": "SELECT p.NUM_CTA AS NUM_CTA, ${columnasMes.join(',\\n ')} FROM ${tabla} p WHERE p.EJERCICIO = ? AND p.NUM_CTA IN (${marcadores})"
+  },
+  {
+    "file": "src/services/presupuestosMetadataService.js",
+    "db": "Firebird",
+    "op": "SELECT",
+    "tables": "RDB$RELATIONS",
+    "sql": "SELECT TRIM(RDB$RELATION_NAME) AS NOMBRE FROM RDB$RELATIONS WHERE (RDB$SYSTEM_FLAG = 0 OR RDB$SYSTEM_FLAG IS NULL) AND RDB$VIEW_BLR IS NULL AND UPPER(RDB$RELATION_NAME) LIKE 'PRESUP%'"
+  },
+  {
+    "file": "src/services/presupuestosMetadataService.js",
+    "db": "Firebird",
+    "op": "SELECT",
+    "tables": "$",
+    "sql": "SELECT COUNT(*) AS TOTAL FROM ${tabla}"
+  },
+  {
+    "file": "src/services/presupuestosService.js",
+    "db": "Firebird",
+    "op": "SELECT",
+    "tables": "$, 1",
+    "sql": "SELECT c.NUM_CTA AS CUENTA, c.NOMBRE AS DESCRIPCION, c.NATURALEZA, ${[...columnasPresupuesto, ...columnasReal].join(',\\n ')} FROM ${tablaCuentas} c LEFT JOIN ${tablaPresupuesto} p ON p.NUM_CTA = c.NUM_CTA AND p.EJERCICIO"
+  },
+  {
+    "file": "src/services/presupuestosService.js",
+    "db": "Firebird",
+    "op": "SELECT",
+    "tables": "",
+    "sql": "SELECT c.NUM_CTA AS CUENTA, ${MESES.map(({ periodo }) => { const sufijo = formatearPeriodo(periodo); return"
+  },
+  {
+    "file": "src/services/saldosMetadataService.js",
+    "db": "Firebird",
+    "op": "SELECT",
+    "tables": "RDB$RELATIONS",
+    "sql": "SELECT TRIM(RDB$RELATION_NAME) AS NOMBRE FROM RDB$RELATIONS WHERE (RDB$SYSTEM_FLAG = 0 OR RDB$SYSTEM_FLAG IS NULL) AND RDB$VIEW_BLR IS NULL AND UPPER(RDB$RELATION_NAME) LIKE 'SALDOS%'"
+  },
+  {
+    "file": "src/services/saldosMetadataService.js",
+    "db": "Firebird",
+    "op": "SELECT",
+    "tables": "$",
+    "sql": "SELECT COUNT(*) AS TOTAL FROM ${tabla}"
+  },
+  {
+    "file": "src/services/saldosResumenHelper.js",
+    "db": "Unknown",
+    "op": "SELECT",
+    "tables": "$",
+    "sql": "SELECT t.NUM_CTA AS CODIGO, c.NOMBRE AS DESCRIPCION, c.NATURALEZA, ${exprMes} AS MES, ${exprYtd} AS YTD FROM (${sqlCodigos}) t LEFT JOIN ${tablaSaldos} s ON s.NUM_CTA = t.NUM_CTA AND s.EJERCICIO = ? LEFT JOIN ${tablaCuen"
+  },
+  {
+    "file": "src/services/saldosResumenHelper.js",
+    "db": "Unknown",
+    "op": "SELECT",
+    "tables": "RDB$DATABASE",
+    "sql": "SELECT CAST('__VACIO__' AS VARCHAR(24)) AS NUM_CTA FROM RDB$DATABASE"
+  },
+  {
+    "file": "src/services/saldosResumenHelper.js",
+    "db": "Unknown",
+    "op": "SELECT",
+    "tables": "RDB$DATABASE",
+    "sql": "SELECT CAST(? AS VARCHAR(24)) AS NUM_CTA FROM RDB$DATABASE"
+  },
+  {
+    "file": "src/services/saldosService.js",
+    "db": "Firebird",
+    "op": "SELECT",
+    "tables": "$",
+    "sql": "SELECT c.num_cta AS CUENTA, c.nombre AS NOMBRE, c.naturaleza AS NATURALEZA, COALESCE(s.inicial,0) AS INICIAL, ${colsCargos}, ${colsAbonos}, COALESCE(s.cargo14,0) - COALESCE(s.abono14,0) AS AJU14 FROM ${tCtas} c LEFT JOIN"
+  },
+  {
+    "file": "src/services/saldosService.js",
+    "db": "Firebird",
+    "op": "SELECT",
+    "tables": "$",
+    "sql": "SELECT DISTINCT c.num_cta AS cuenta, c.nombre AS nombre, c.naturaleza AS naturaleza FROM ${tCtas} c LEFT JOIN ${tSal} s ON s.num_cta = c.num_cta AND s.ejercicio = ? WHERE c.status = 'A' ${whereCuentas} ORDER BY c.num_cta"
+  },
+  {
+    "file": "src/services/summaryService.js",
+    "db": "Firebird",
+    "op": "SELECT",
+    "tables": "$",
+    "sql": "SELECT FIRST 10 NUM_CTA, NOMBRE, NATURALEZA, STATUS FROM ${tablaCtas} WHERE STATUS = 'A' ORDER BY NUM_CTA"
+  }
+]
