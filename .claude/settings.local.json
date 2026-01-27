@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "Bash(cd:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(xargs basename:*)",
+      "Read(//c/Users/**)",
+      "Bash(wc:*)",
+      "Bash(tree:*)"
     ]
   }
 }
