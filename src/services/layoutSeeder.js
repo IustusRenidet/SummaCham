@@ -4,6 +4,7 @@ const XLSX = require("xlsx");
 const { normalizarNombreModulo } = require("../config/modulos");
 
 const EMPRESA_DEFAULT = "EMPRESA01";
+const SEED_OPERACIONES = process.env.SEED_OPERACIONES === "1";
 
 const OPERACION_TIPOS = [
   "sum-row",
@@ -302,6 +303,9 @@ const sembrarOperaciones = ({
   operaciones,
   insertOperacion,
 }) => {
+  if (!SEED_OPERACIONES) {
+    return 0;
+  }
   if (!operaciones.length) {
     return 0;
   }

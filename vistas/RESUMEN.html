@@ -1057,7 +1057,7 @@
         --gradient-orange: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
       }
 
-      /* === ESTILOS JERÁRQUICOS SUMMARY === */
+      /* === ESTILOS JERÁRQUICOS RESUMEN === */
       /* Principal: Header de sección principal (INCOME, EXPENSE, etc.) */
       .section-header-row {
         background: linear-gradient(
@@ -1318,6 +1318,10 @@
                 id="resumenEmpresaComparativaLabel"
               ></span>
             </div>
+            <div
+              id="resumenComparativaStatus"
+              class="comparativa-status text-danger small mt-1 w-100 d-none"
+            ></div>
           </div>
         </div>
       </div>
@@ -1737,7 +1741,7 @@
 
     <script src="js/export-utils.js"></script>
     <script src="js/graficas-config.js"></script>
-    <script src="js/resumen-view.js"></script>
+    <script src="js/resumen-view.js?v=20260130"></script>
     <script>
       // Inicialización de RESUMEN con FlujoAutorizacion
       document.addEventListener("DOMContentLoaded", () => {

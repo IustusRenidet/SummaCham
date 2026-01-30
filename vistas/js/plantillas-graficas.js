@@ -84,7 +84,6 @@
     if (moduloSelect) return moduloSelect.innerHTML;
     return [
       '<option value="RESUMEN">RESUMEN</option>',
-      '<option value="SUMMARY">SUMMARY</option>',
       '<option value="Finanzas">Finanzas</option>',
       '<option value="Gastos Generales">Gastos Generales</option>',
       '<option value="Nomina">Nomina</option>',
@@ -201,9 +200,20 @@
 
   const SNAPSHOT_PREFIX = "resumen_tabla_snapshot";
 
-  const readLatestSnapshot = () => {
+  const getSelectedCapitulo = () => {
+    const select = document.getElementById("capituloSelect");
+    const value =
+      select?.value ||
+      document.getElementById("capituloLabel")?.textContent ||
+      "";
+    return value.toString().trim();
+  };
+
+  const readLatestSnapshot = (capitulo = "") => {
     if (typeof localStorage === "undefined") return null;
     let latest = null;
+    let latestMatch = null;
+    const target = normalizeLabel(capitulo || "");
     for (let i = 0; i < localStorage.length; i += 1) {
       const key = localStorage.key(i);
       if (!key || !key.startsWith(SNAPSHOT_PREFIX)) continue;
@@ -213,15 +223,26 @@
         if (!latest || (snapshot.createdAt || 0) > (latest.createdAt || 0)) {
           latest = snapshot;
         }
+        if (target) {
+          const snapCap = normalizeLabel(snapshot.capitulo || "");
+          if (snapCap && snapCap === target) {
+            if (
+              !latestMatch ||
+              (snapshot.createdAt || 0) > (latestMatch.createdAt || 0)
+            ) {
+              latestMatch = snapshot;
+            }
+          }
+        }
       } catch (err) {
         continue;
       }
     }
-    return latest;
+    return latestMatch || latest;
   };
 
   const getSnapshotLabels = () => {
-    const snapshot = readLatestSnapshot();
+    const snapshot = readLatestSnapshot(getSelectedCapitulo());
     if (!snapshot || !Array.isArray(snapshot.filas)) return [];
     const labels = snapshot.filas
       .map((row) => (row?.label || "").toString().trim())
@@ -334,24 +355,28 @@
     null;
 
   const getPreviewContext = () => {
-    const snapshot = readLatestSnapshot();
+    const capituloSeleccionado = getSelectedCapitulo();
+    const snapshot = readLatestSnapshot(capituloSeleccionado);
     return {
       snapshot,
       snapshotMap: buildSnapshotMap(snapshot),
       empresaId: getPreviewEmpresaId(snapshot),
       anio: getPreviewYear(snapshot),
-      capitulo: snapshot?.capitulo || "",
+      capitulo: snapshot?.capitulo || capituloSeleccionado || "",
     };
   };
 
   const resumenMensualCache = new Map();
 
-  const fetchResumenMes = async (empresaId, anio, mes) => {
+  const fetchResumenMes = async (empresaId, anio, mes, capitulo) => {
     const params = new URLSearchParams({
       empresaId: empresaId || "",
       anio: String(anio || ""),
       mes: String(mes || ""),
     });
+    if (capitulo) {
+      params.set("capitulo", capitulo);
+    }
     const headers =
       typeof window.Sesion?.headersAutenticacion === "function"
         ? window.Sesion.headersAutenticacion()
@@ -363,15 +388,15 @@
     return res.json();
   };
 
-  const loadResumenMensual = async (empresaId, anio) => {
+  const loadResumenMensual = async (empresaId, anio, capitulo) => {
     if (!empresaId || !anio) return [];
-    const key = `${empresaId}:${anio}`;
+    const key = `${empresaId}:${anio}:${capitulo || ""}`;
     const cached = resumenMensualCache.get(key);
     if (cached?.data) return cached.data;
     if (cached?.promise) return cached.promise;
     const promise = Promise.all(
       MONTH_LABELS.map((_, idx) =>
-        fetchResumenMes(empresaId, anio, idx + 1).catch((error) => {
+        fetchResumenMes(empresaId, anio, idx + 1, capitulo).catch((error) => {
           console.warn("No fue posible cargar resumen mensual", error);
           return null;
         })

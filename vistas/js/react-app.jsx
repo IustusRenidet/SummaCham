@@ -10,7 +10,7 @@ const esPantallaReducida = () =>
 const MODULE_GROUPS = [
   {
     id: 'panel-resumenes',
-    label: 'Summary',
+    label: 'Resumen',
     items: [
       { id: 'resumen', label: 'Resumen', path: 'RESUMEN.html', badge: 'summary', permiso: 'RESUMEN' }
     ]

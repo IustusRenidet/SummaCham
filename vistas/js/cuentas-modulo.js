@@ -196,6 +196,13 @@
     "presupuestos",
   ]);
 
+  const OPERACIONES_MANUALES_ONLY = true;
+  const operacionesAutomaticasHabilitadas = (moduloClave) => {
+    if (OPERACIONES_MANUALES_ONLY) return false;
+    const clave = normalizarModuloClave(moduloClave || "");
+    return !MODULOS_SIN_OPERACIONES_AUTOMATICAS.has(clave);
+  };
+
   const MODULOS_FILTRA_MESES_REALES = new Set([
     "membresia",
     "eventos",
@@ -245,36 +252,7 @@
       ),
     };
 
-  const limpiarSumasPorModulo = (configuracionActual, moduloClave) => {
-    const moduloNormalizado = normalizarModuloClave(moduloClave || "");
-    const excluidas = ETIQUETAS_EXCLUIDAS_POR_MODULO[moduloNormalizado];
-    if (!excluidas || !configuracionActual) return configuracionActual;
-
-    const limpiarEtiqueta = (texto) => {
-      if (!texto) return texto;
-      return excluidas.has(normalizarEtiquetaExclusion(texto)) ? "" : texto;
-    };
-
-    const limpio = { ...configuracionActual };
-
-    limpio.sumRowSumavarios = limpiarEtiqueta(limpio.sumRowSumavarios);
-    limpio.sumRowSumavarios2 = limpiarEtiqueta(limpio.sumRowSumavarios2);
-
-    if (
-      limpio.resultRow &&
-      excluidas.has(normalizarEtiquetaExclusion(limpio.resultRow))
-    ) {
-      delete limpio.resultRow;
-    }
-
-    if (Array.isArray(limpio.resultRows)) {
-      limpio.resultRows = limpio.resultRows.filter(
-        (texto) => !excluidas.has(normalizarEtiquetaExclusion(texto))
-      );
-    }
-
-    return limpio;
-  };
+  const limpiarSumasPorModulo = (configuracionActual) => configuracionActual;
 
   // Reglas manuales: solo aplicamos para Eventos, el resto respeta el layout/DB.
   const REGLAS_OPERACIONES_MODULO = {
@@ -317,27 +295,7 @@
     moduloClave,
     seccionNombre,
     configuracionActual = null
-  ) => {
-    if (!configuracionActual) return configuracionActual;
-    const reglasModulo = obtenerReglaModulo(moduloClave);
-    if (!reglasModulo || !Array.isArray(reglasModulo.default))
-      return configuracionActual;
-
-    const seccionNorm = normalizarTexto(seccionNombre);
-    const regla = reglasModulo.default.find(
-      (r) => r.match && r.match.test(seccionNorm)
-    );
-    if (!regla) return configuracionActual;
-
-    const limpio = { ...configuracionActual };
-    if (regla.sumavarios && !limpio.sumRowSumavarios) {
-      limpio.sumRowSumavarios = regla.sumavarios;
-    }
-    if (regla.sumavarios2 && !limpio.sumRowSumavarios2) {
-      limpio.sumRowSumavarios2 = regla.sumavarios2;
-    }
-    return limpio;
-  };
+  ) => configuracionActual;
 
   const MODULOS_OPERATIVO_POR_NOMBRE = new Set([
     "comites",
@@ -456,57 +414,7 @@
     if (!MODULOS_OPERATIVO_POR_NOMBRE.has(moduloClave)) return [];
     const desdeLayout =
       construirOperacionesResultadoOperativoDesdeLayout(operacionesLayout);
-    if (desdeLayout.length) return desdeLayout;
-    const grupos = new Map();
-    const ordenarTokens = moduloClave === "comites";
-    (Array.isArray(registros) ? registros : []).forEach((registro, idx) => {
-      const signo = obtenerSignoOperacionPorSeccion(
-        moduloClave,
-        registro?.seccion
-      );
-      if (!signo) return;
-      const nombre = (registro?.nombre || "").toString().trim();
-      if (!nombre) return;
-      const clave = normalizarNombreOperativo(nombre, { ordenarTokens });
-      if (!clave) return;
-      const cuenta21 = convertirCuenta21(registro?.cuenta || "");
-      if (!cuenta21) return;
-      const existente = grupos.get(clave) || {
-        clave,
-        nombre,
-        ingresos: new Set(),
-        gastos: new Set(),
-        orden: idx,
-      };
-      if (nombre.length > existente.nombre.length) {
-        existente.nombre = nombre;
-      }
-      if (signo > 0) {
-        existente.ingresos.add(cuenta21);
-      } else {
-        existente.gastos.add(cuenta21);
-      }
-      if (idx < existente.orden) existente.orden = idx;
-      grupos.set(clave, existente);
-    });
-    const operaciones = [];
-    grupos.forEach((grupo) => {
-      if (!grupo.ingresos.size || !grupo.gastos.size) return;
-      const terminos = [];
-      grupo.ingresos.forEach((cuenta) => {
-        terminos.push({ cuenta21: cuenta, signo: 1 });
-      });
-      grupo.gastos.forEach((cuenta) => {
-        terminos.push({ cuenta21: cuenta, signo: -1 });
-      });
-      operaciones.push({
-        clave: grupo.clave,
-        nombre: grupo.nombre,
-        terminos,
-        orden: grupo.orden,
-      });
-    });
-    return operaciones.sort((a, b) => a.orden - b.orden);
+    return desdeLayout;
   };
 
   const insertarOperacionesResultadoOperativo = ({
@@ -2961,6 +2869,7 @@
     moduloClave,
   }) => {
     const moduloNormalizado = normalizarModuloClave(moduloClave);
+    const autoOpsEnabled = operacionesAutomaticasHabilitadas(moduloNormalizado);
     const registrosBase = Array.isArray(registros) ? registros : [];
     const placeholders = resolverPlaceholdersPorFila(
       placeholdersPorFila,
@@ -3075,7 +2984,7 @@
       if (!tieneSumasBase) {
         sumas = limpiarSumasPorModulo(sumas, moduloClave) || sumasBase;
       }
-      if (esModuloResumen) {
+      if (autoOpsEnabled && esModuloResumen) {
         const limpiarOper = (texto) => (texto || "").trim();
         const isOperating =
           /OPERATING RESULTS/i.test(limpiarOper(sumas?.sumRow)) ||
@@ -3093,17 +3002,37 @@
         sumas = limpiarSumasNomina(sumas, seccion);
       }
       const sumRowCustom = (sumas?.sumRow || "").trim();
-      let etiquetaSumRow = sumRowCustom || `Suma ${seccion}`;
-      if (moduloNormalizado === "presupuestos" && !sumRowCustom) {
-        if (/INGRESOS/i.test(seccion)) {
-          etiquetaSumRow = "SUMA INGRESOS";
-        } else if (/GASTOS/i.test(seccion)) {
-          etiquetaSumRow = "SUMA GASTOS";
+      let etiquetaSumRow = sumRowCustom;
+      const ordenSumRow = Number.isFinite(Number(sumas?.ordenSumRow))
+        ? Number(sumas.ordenSumRow)
+        : null;
+      const ordenSumRowSumavarios = Number.isFinite(
+        Number(sumas?.ordenSumRowSumavarios)
+      )
+        ? Number(sumas.ordenSumRowSumavarios)
+        : null;
+      const ordenSumRowSumavarios2 = Number.isFinite(
+        Number(sumas?.ordenSumRowSumavarios2)
+      )
+        ? Number(sumas.ordenSumRowSumavarios2)
+        : null;
+      const ordenResultRow = Number.isFinite(Number(sumas?.ordenResultRow))
+        ? Number(sumas.ordenResultRow)
+        : null;
+      if (autoOpsEnabled) {
+        etiquetaSumRow = sumRowCustom || `Suma ${seccion}`;
+        if (moduloNormalizado === "presupuestos" && !sumRowCustom) {
+          if (/INGRESOS/i.test(seccion)) {
+            etiquetaSumRow = "SUMA INGRESOS";
+          } else if (/GASTOS/i.test(seccion)) {
+            etiquetaSumRow = "SUMA GASTOS";
+          }
         }
       }
       const seccionNormalizada = normalizarTexto(seccion);
       const sumRowNormalizada = normalizarTexto(etiquetaSumRow);
       const requiereAjusteUtilidad =
+        autoOpsEnabled &&
         moduloEsGastosGenerales &&
         (seccionNormalizada.includes("GASTOS FINANCIEROS") ||
           sumRowNormalizada.includes("GASTOS FINANCIEROS"));
@@ -3124,24 +3053,25 @@
         ? Number(sumas.operacionFactor)
         : null;
       const heuristicasPermitidas =
-        (window.PlaneacionConfig &&
+        autoOpsEnabled &&
+        ((window.PlaneacionConfig &&
           window.PlaneacionConfig.habilitarOperacionesAutomaticas === true) ||
-        moduloNormalizado === "gastosgenerales" ||
-        moduloNormalizado === "comites" ||
-        moduloNormalizado === "comunicacion" ||
-        moduloNormalizado === "eventos" ||
-        moduloNormalizado === "direccion" ||
-        moduloNormalizado === "finanzas" ||
-        moduloNormalizado === "nomina" ||
-        moduloNormalizado === "gtoscorporativos" ||
-        moduloNormalizado === "membresia" ||
-        moduloNormalizado === "rh" ||
-        moduloNormalizado === "recursoshumanos" ||
-        moduloNormalizado === "servmembresia" ||
-        moduloNormalizado === "serviciosalamembresia" ||
-        moduloNormalizado === "tic" ||
-        moduloNormalizado === "vpe" ||
-        moduloNormalizado === "presupuestos";
+          moduloNormalizado === "gastosgenerales" ||
+          moduloNormalizado === "comites" ||
+          moduloNormalizado === "comunicacion" ||
+          moduloNormalizado === "eventos" ||
+          moduloNormalizado === "direccion" ||
+          moduloNormalizado === "finanzas" ||
+          moduloNormalizado === "nomina" ||
+          moduloNormalizado === "gtoscorporativos" ||
+          moduloNormalizado === "membresia" ||
+          moduloNormalizado === "rh" ||
+          moduloNormalizado === "recursoshumanos" ||
+          moduloNormalizado === "servmembresia" ||
+          moduloNormalizado === "serviciosalamembresia" ||
+          moduloNormalizado === "tic" ||
+          moduloNormalizado === "vpe" ||
+          moduloNormalizado === "presupuestos");
       const metaSeccion = {
         seccion: claveSeccion,
         tituloVisible: seccion,
@@ -3159,6 +3089,10 @@
           ? normalizarTexto(resultRowTexts[0])
           : "",
         resultRows: resultRowTexts,
+        ordenSumRow,
+        ordenSumRowSumavarios,
+        ordenSumRowSumavarios2,
+        ordenResultRow,
         seccionOriginal,
         elementos: {
           header: headerRow,
@@ -3515,22 +3449,52 @@
           metaSeccion.elementos.sumRow.dataset.seccion = claveSeccion;
           metaSeccion.elementos.sumRow.dataset.sectionName = seccion;
         }
-        const registrarSumario = (texto) => {
+        const registrarSumario = (texto, orden) => {
           if (!texto) return;
           const clave = normalizarTexto(texto);
           if (!clave) return;
-          const existente = sumavariosData.get(clave) || { texto, meta: null };
+          const existente = sumavariosData.get(clave) || {
+            texto,
+            meta: null,
+            orden: null,
+          };
           existente.meta = metaSeccion;
+          if (Number.isFinite(Number(orden))) {
+            const ordenActual = Number.isFinite(Number(existente.orden))
+              ? Number(existente.orden)
+              : null;
+            existente.orden =
+              ordenActual == null
+                ? Number(orden)
+                : Math.min(ordenActual, Number(orden));
+          }
           sumavariosData.set(clave, existente);
         };
-        registrarSumario(metaSeccion.sumRowSumavariosLabel);
-        registrarSumario(metaSeccion.sumRowSumavarios2Label);
+        registrarSumario(
+          metaSeccion.sumRowSumavariosLabel,
+          metaSeccion.ordenSumRowSumavarios
+        );
+        registrarSumario(
+          metaSeccion.sumRowSumavarios2Label,
+          metaSeccion.ordenSumRowSumavarios2
+        );
         metaSeccion.resultRows.forEach((texto) => {
           if (!texto) return;
           const clave = `${texto}::result-row`;
-          if (!resultRows.has(clave)) {
-            resultRows.set(clave, texto);
+          const existente = resultRows.get(clave) || {
+            texto,
+            orden: null,
+          };
+          if (Number.isFinite(Number(metaSeccion.ordenResultRow))) {
+            const ordenActual = Number.isFinite(Number(existente.orden))
+              ? Number(existente.orden)
+              : null;
+            existente.orden =
+              ordenActual == null
+                ? Number(metaSeccion.ordenResultRow)
+                : Math.min(ordenActual, Number(metaSeccion.ordenResultRow));
           }
+          resultRows.set(clave, existente);
         });
       }
       sumasSecciones.push(metaSeccion);
@@ -3538,13 +3502,20 @@
 
     if (forcedResultTexto) {
       resultRows.clear();
-      resultRows.set(`${forcedResultTexto}::result-row`, forcedResultTexto);
+      resultRows.set(`${forcedResultTexto}::result-row`, {
+        texto: forcedResultTexto,
+        orden: null,
+      });
     }
 
-    let resultadoFilas = Array.from(resultRows.values()).map((texto) => ({
-      texto,
+    let resultadoFilas = Array.from(resultRows.values()).map((info, idx) => ({
+      texto: info?.texto || "",
       clase: "result-row",
+      orden: Number.isFinite(Number(info?.orden)) ? Number(info.orden) : idx,
     }));
+    resultadoFilas = resultadoFilas
+      .filter((fila) => fila.texto)
+      .sort((a, b) => a.orden - b.orden);
     if (resultadoFilas.length > 1) {
       resultadoFilas = resultadoFilas.slice(0, 1);
     }
@@ -3723,6 +3694,16 @@
         const clave = normalizarTexto(seccion);
         if (!clave) return;
         const previo = mapa.get(clave) || {};
+        const ordenBase = Number.isFinite(Number(op?.orden_presentacion))
+          ? Number(op.orden_presentacion)
+          : Number.isFinite(Number(op?.orden))
+          ? Number(op.orden)
+          : null;
+        const mergeOrder = (prevOrder, nextOrder) => {
+          if (!Number.isFinite(Number(nextOrder))) return prevOrder;
+          if (!Number.isFinite(Number(prevOrder))) return Number(nextOrder);
+          return Math.min(Number(prevOrder), Number(nextOrder));
+        };
         const resultRow =
           op["result-row"] || op["result-net-row"] || previo.resultRow || "";
         const signo =
@@ -3737,6 +3718,21 @@
           sumRowSumavarios2:
             op["sum-row-sumavarios2"] || previo.sumRowSumavarios2 || "",
           resultRow,
+          ordenSumRow: op["sum-row"]
+            ? mergeOrder(previo.ordenSumRow, ordenBase)
+            : previo.ordenSumRow,
+          ordenSumRowSumavarios: op["sum-row-sumavarios"]
+            ? mergeOrder(previo.ordenSumRowSumavarios, ordenBase)
+            : previo.ordenSumRowSumavarios,
+          ordenSumRowSumavarios2: op["sum-row-sumavarios2"]
+            ? mergeOrder(previo.ordenSumRowSumavarios2, ordenBase)
+            : previo.ordenSumRowSumavarios2,
+          ordenResultRow: op["result-row"]
+            ? mergeOrder(previo.ordenResultRow, ordenBase)
+            : previo.ordenResultRow,
+          ordenNetRow: op["net-row"]
+            ? mergeOrder(previo.ordenNetRow, ordenBase)
+            : previo.ordenNetRow,
           operacionFactor:
             Number.isFinite(Number(signo)) && Number(signo) !== 0
               ? Number(signo)
@@ -5993,6 +5989,7 @@
       .toString()
       .trim();
     const moduloClave = normalizarModuloClave(moduloNormalizado || moduloId);
+    const autoOpsEnabled = operacionesAutomaticasHabilitadas(moduloClave);
     const sheetPorConfig = window.CapitulosModulos?.obtenerSheetPorModulo
       ? window.CapitulosModulos.obtenerSheetPorModulo(moduloNormalizado)
       : null;
@@ -6176,6 +6173,7 @@
     const tieneSumasPersonalizadas =
       sumasPersonalizadas instanceof Map && sumasPersonalizadas.size > 0;
     if (
+      autoOpsEnabled &&
       moduloClave === "presupuestos" &&
       pendientes?.sumasSecciones &&
       !tieneSumasPersonalizadas
@@ -6193,9 +6191,26 @@
     }
 
     estadoModulo.sumas.sumavariosRows = new Map();
-    pendientes.sumavarios.forEach((info, clave) => {
+    const sumavariosOrdenados = Array.from(
+      pendientes.sumavarios.entries()
+    ).map(([clave, info], idx) => ({
+      clave,
+      info,
+      idx,
+      orden: Number.isFinite(Number(info?.orden))
+        ? Number(info.orden)
+        : idx,
+    }));
+
+    sumavariosOrdenados.sort((a, b) => {
+      if (a.orden !== b.orden) return a.orden - b.orden;
+      return a.idx - b.idx;
+    });
+
+    const ultimaFilaPorSeccion = new Map();
+    sumavariosOrdenados.forEach(({ clave, info }) => {
       if (!info?.meta) return;
-      // Insertar justo debajo de la secci├│n sobre la que opera
+      // Insertar justo debajo de la sección sobre la que opera
       const filaSumario = agregarFilaResumen({
         texto: info.texto,
         clase: "sum-row-sumavarios",
@@ -6207,15 +6222,21 @@
           normalizarTexto(clave),
           filaSumario
         );
-        const referencia =
+        const metaKey =
+          normalizarTexto(info.meta.seccion || info.meta.tituloVisible || "") ||
+          normalizarTexto(clave);
+        const referenciaBase =
           info.meta.elementos.sumRow ||
           info.meta.filasCuenta[info.meta.filasCuenta.length - 1] ||
           cuerpo.lastChild;
+        const referencia =
+          ultimaFilaPorSeccion.get(metaKey) || referenciaBase;
         if (referencia && referencia.parentNode) {
           referencia.parentNode.insertBefore(
             filaSumario,
             referencia.nextSibling
           );
+          ultimaFilaPorSeccion.set(metaKey, filaSumario);
         }
       }
     });
@@ -6240,6 +6261,7 @@
     }
 
     if (
+      autoOpsEnabled &&
       moduloClave === "presupuestos" &&
       normalizarTexto(capituloDestino) === "CIUDAD DE MEXICO"
     ) {
@@ -6283,7 +6305,17 @@
         insertBefore: insertarOperativoAntesDe,
       });
 
-    pendientes.resultadoFilas.forEach((fila) => {
+    const resultadoOrdenado = Array.isArray(pendientes.resultadoFilas)
+      ? pendientes.resultadoFilas
+          .slice()
+          .sort(
+            (a, b) =>
+              (Number.isFinite(Number(a?.orden)) ? Number(a.orden) : 0) -
+              (Number.isFinite(Number(b?.orden)) ? Number(b.orden) : 0)
+          )
+      : [];
+
+    resultadoOrdenado.forEach((fila) => {
       const resultadoFila = agregarFilaResumen({
         texto: fila.texto,
         clase: fila.clase,

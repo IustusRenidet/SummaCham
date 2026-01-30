@@ -46,6 +46,11 @@ const formatearCuentaDesdeSqlite = (cuenta, capitulo) => {
     cuenta["SECCIÓN Secundaria"] ||
     cuenta.seccion_secundaria ||
     "";
+  const ordenPresentacion = Number.isFinite(Number(cuenta.orden_presentacion))
+    ? Number(cuenta.orden_presentacion)
+    : Number.isFinite(Number(cuenta.orden))
+    ? Number(cuenta.orden)
+    : 0;
   return {
     CAPITULO: capitulo,
     CUENTA: cuenta.CUENTA,
@@ -57,7 +62,8 @@ const formatearCuentaDesdeSqlite = (cuenta, capitulo) => {
     SECCION: seccionPrincipal,
     seccion_principal: seccionPrincipal,
     seccion_secundaria: seccionSecundaria,
-    orden: cuenta.orden || 0,
+    orden: ordenPresentacion,
+    orden_presentacion: ordenPresentacion,
   };
 };
 

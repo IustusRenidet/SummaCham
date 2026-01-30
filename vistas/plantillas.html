@@ -62,7 +62,6 @@
           >
           <select id="moduloSelect" class="form-select">
             <option value="RESUMEN">RESUMEN</option>
-            <option value="SUMMARY">SUMMARY</option>
             <option value="Finanzas">Finanzas</option>
             <option value="Gastos Generales">Gastos Generales</option>
             <option value="Nomina">Nómina</option>
@@ -132,7 +131,9 @@
                           value="all"
                           checked
                         />
-                        <label class="btn btn-outline-secondary" for="quickFilterAll"
+                        <label
+                          class="btn btn-outline-secondary"
+                          for="quickFilterAll"
                           >Todo</label
                         >
                         <input
@@ -142,7 +143,9 @@
                           id="quickFilterSections"
                           value="sections"
                         />
-                        <label class="btn btn-outline-secondary" for="quickFilterSections"
+                        <label
+                          class="btn btn-outline-secondary"
+                          for="quickFilterSections"
                           >Secciones</label
                         >
                         <input
@@ -152,7 +155,9 @@
                           id="quickFilterAccounts"
                           value="accounts"
                         />
-                        <label class="btn btn-outline-secondary" for="quickFilterAccounts"
+                        <label
+                          class="btn btn-outline-secondary"
+                          for="quickFilterAccounts"
                           >Cuentas</label
                         >
                         <input
@@ -162,7 +167,9 @@
                           id="quickFilterOperations"
                           value="operations"
                         />
-                        <label class="btn btn-outline-secondary" for="quickFilterOperations"
+                        <label
+                          class="btn btn-outline-secondary"
+                          for="quickFilterOperations"
                           >Operaciones</label
                         >
                       </div>
@@ -330,10 +337,7 @@
                 >
                   <div>
                     <div class="fw-semibold">Orden de la plantilla</div>
-                    <div
-                      class="text-muted small"
-                      id="layoutSelectionInfo"
-                    >
+                    <div class="text-muted small" id="layoutSelectionInfo">
                       Seleccion actual: -
                     </div>
                   </div>
@@ -2781,7 +2785,9 @@
                                           >
                                             Grafica personalizada
                                           </div>
-                                          <div class="d-flex align-items-center gap-1">
+                                          <div
+                                            class="d-flex align-items-center gap-1"
+                                          >
                                             <button
                                               type="button"
                                               class="btn btn-outline-secondary btn-sm"
@@ -2959,50 +2965,52 @@
             ></button>
           </div>
           <div class="modal-body">
-            <!-- Tipo de elemento -->
-            <div class="element-type-selector mb-4">
-              <label class="element-type-option">
-                <input
-                  type="radio"
-                  name="tipoElemento"
-                  value="seccion-principal"
-                  checked
-                />
-                <div class="option-card">
-                  <i class="bi bi-folder2 text-primary"></i>
-                  <span>Sección Principal</span>
-                </div>
-              </label>
-              <label class="element-type-option">
-                <input
-                  type="radio"
-                  name="tipoElemento"
-                  value="seccion-secundaria"
-                />
-                <div class="option-card">
-                  <i class="bi bi-folder text-info"></i>
-                  <span>Sección Secundaria</span>
-                </div>
-              </label>
-              <label class="element-type-option">
-                <input type="radio" name="tipoElemento" value="cuenta" />
-                <div class="option-card">
-                  <i class="bi bi-file-earmark-text text-secondary"></i>
-                  <span>Cuenta</span>
-                </div>
-              </label>
-              <label class="element-type-option">
-                <input type="radio" name="tipoElemento" value="operacion" />
-                <div class="option-card">
-                  <i class="bi bi-calculator text-success"></i>
-                  <span>Operación</span>
-                </div>
-              </label>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <div class="text-muted small">
+                Inserta elementos en modo masivo. Enter agrega una fila nueva.
+              </div>
             </div>
 
-            <!-- Formulario dinámico -->
-            <div id="formElemento" class="form-elemento">
-              <!-- Campos según tipo seleccionado -->
+            <div id="bulkInsertPanel">
+              <div
+                class="d-flex justify-content-between align-items-center mb-2"
+              >
+                <div class="text-muted small">
+                  Enter agrega fila. Flechas para navegar por la tabla. Llena
+                  solo las columnas que apliquen según el tipo.
+                </div>
+                <button
+                  type="button"
+                  class="btn btn-outline-secondary btn-sm"
+                  id="bulkAddRowBtn"
+                >
+                  <i class="bi bi-plus-circle me-1"></i>Agregar fila
+                </button>
+              </div>
+              <div class="table-responsive">
+                <table
+                  class="table table-sm table-bordered align-middle"
+                  id="bulkInsertTable"
+                >
+                  <thead class="table-light">
+                    <tr>
+                      <th style="min-width: 140px">Tipo</th>
+                      <th style="min-width: 160px">Sección</th>
+                      <th style="min-width: 160px">Subsección</th>
+                      <th style="min-width: 140px">Cuenta</th>
+                      <th style="min-width: 200px">Nombre</th>
+                      <th style="width: 100px">Signo/Factor</th>
+                      <th style="min-width: 220px">Fórmula</th>
+                      <th style="width: 44px"></th>
+                    </tr>
+                  </thead>
+                  <tbody id="bulkInsertTbody"></tbody>
+                </table>
+              </div>
+              <div class="form-text">
+                Tipos válidos: sección principal, sección secundaria, cuenta,
+                operación.
+              </div>
             </div>
           </div>
           <div class="modal-footer">
@@ -3328,7 +3336,11 @@
           </li>
         </ul>
         <div class="tab-content editor-tab-content pt-3">
-          <div class="tab-pane fade show active" id="editorTabDatos" role="tabpanel"></div>
+          <div
+            class="tab-pane fade show active"
+            id="editorTabDatos"
+            role="tabpanel"
+          ></div>
           <div
             class="tab-pane fade"
             id="editorTabFormula"
@@ -3374,7 +3386,7 @@
       tabindex="-1"
       id="chartEditorPanel"
       aria-labelledby="chartEditorTitle"
-      style="width: 500px;"
+      style="width: 500px"
     >
       <div class="offcanvas-header">
         <div>
@@ -3395,7 +3407,9 @@
           <div class="mb-4">
             <h6 class="mb-3">Datos Basicos</h6>
             <div class="mb-3">
-              <label for="chartEditorTitleInput" class="form-label">Titulo</label>
+              <label for="chartEditorTitleInput" class="form-label"
+                >Titulo</label
+              >
               <input
                 type="text"
                 class="form-control"
@@ -3404,7 +3418,9 @@
               />
             </div>
             <div class="mb-3">
-              <label for="chartEditorSubtitleInput" class="form-label">Subtitulo</label>
+              <label for="chartEditorSubtitleInput" class="form-label"
+                >Subtitulo</label
+              >
               <input
                 type="text"
                 class="form-control"
@@ -3413,7 +3429,9 @@
               />
             </div>
             <div class="mb-3">
-              <label for="chartEditorTypeSelect" class="form-label">Tipo de grafica</label>
+              <label for="chartEditorTypeSelect" class="form-label"
+                >Tipo de grafica</label
+              >
               <select class="form-select" id="chartEditorTypeSelect">
                 <option value="inherit">Global (heredado)</option>
                 <option value="bar">Barras</option>
@@ -3441,7 +3459,9 @@
           <div class="mb-4">
             <h6 class="mb-3">Fuente de Datos</h6>
             <div class="mb-3">
-              <label for="chartEditorSourceType" class="form-label">Tipo de fuente</label>
+              <label for="chartEditorSourceType" class="form-label"
+                >Tipo de fuente</label
+              >
               <select class="form-select" id="chartEditorSourceType">
                 <option value="snapshot">Snapshot RESUMEN</option>
                 <option value="mensual">Datos mensuales</option>
@@ -3479,13 +3499,18 @@
             <h6 class="mb-3">Vista Previa</h6>
             <div
               class="border rounded p-3"
-              style="height: 200px; position: relative; background: #f8f9fa;"
+              style="height: 200px; position: relative; background: #f8f9fa"
             >
               <canvas id="chartEditorPreviewCanvas"></canvas>
               <div
                 id="chartEditorPreviewFallback"
                 class="text-center text-muted small d-none"
-                style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"
+                style="
+                  position: absolute;
+                  top: 50%;
+                  left: 50%;
+                  transform: translate(-50%, -50%);
+                "
               >
                 Sin datos para vista previa
               </div>
@@ -3555,557 +3580,553 @@
 
     <!-- Editor de Graficas Inline -->
     <script>
-    (() => {
-      const panel = document.getElementById('chartEditorPanel');
-      if (!panel) return;
+      (() => {
+        const panel = document.getElementById("chartEditorPanel");
+        if (!panel) return;
 
-      const titleInput = document.getElementById('chartEditorTitleInput');
-      const subtitleInput = document.getElementById('chartEditorSubtitleInput');
-      const typeSelect = document.getElementById('chartEditorTypeSelect');
-      const enabledCheck = document.getElementById('chartEditorEnabledCheck');
-      const sourceTypeSelect = document.getElementById('chartEditorSourceType');
-      const rowPicker = document.getElementById('chartEditorRowPicker');
-      const addRowBtn = document.getElementById('chartEditorAddRow');
-      const selectedRowsContainer = document.getElementById('chartEditorSelectedRows');
-      const seriesChecksContainer = document.getElementById('chartEditorSeriesChecks');
-      const previewCanvas = document.getElementById('chartEditorPreviewCanvas');
-      const previewFallback = document.getElementById('chartEditorPreviewFallback');
-      const saveBtn = document.getElementById('btnChartEditorSave');
-      const deleteBtn = document.getElementById('btnChartEditorDelete');
-
-      let currentChart = null;
-      let currentChartId = null;
-      let previewChartInstance = null;
-      let selectedRows = [];
-      let currentModule = null;
-      let availableSeries = [];
-
-      // Obtener snapshot de RESUMEN
-      const getSnapshot = () => {
-        const SNAPSHOT_PREFIX = 'resumen_tabla_snapshot';
-        if (typeof localStorage === 'undefined') return null;
-        let latest = null;
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          if (!key || !key.startsWith(SNAPSHOT_PREFIX)) continue;
-          try {
-            const snapshot = JSON.parse(localStorage.getItem(key) || 'null');
-            if (!snapshot || !Array.isArray(snapshot.filas)) continue;
-            if (!latest || (snapshot.createdAt || 0) > (latest.createdAt || 0)) {
-              latest = snapshot;
-            }
-          } catch (err) {
-            continue;
-          }
-        }
-        return latest;
-      };
-
-      // Obtener labels del snapshot
-      const getSnapshotLabels = () => {
-        const snapshot = getSnapshot();
-        if (!snapshot || !Array.isArray(snapshot.filas)) return [];
-        const labels = snapshot.filas
-          .map(row => (row?.label || '').toString().trim())
-          .filter(Boolean);
-        return Array.from(new Set(labels)).sort((a, b) => a.localeCompare(b));
-      };
-
-      const normalizeRowLabel = (value) => (value || '').toString().trim();
-      const normalizeRowKey = (value) =>
-        normalizeRowLabel(value).toUpperCase();
-
-      const buildRowEntry = (label, variants) => {
-        const alias = normalizeRowLabel(label);
-        if (!alias) return null;
-        const cleanedVariants = Array.isArray(variants)
-          ? variants.map((v) => normalizeRowLabel(v)).filter(Boolean)
-          : [];
-        if (!cleanedVariants.length) cleanedVariants.push(alias);
-        return { alias, variants: cleanedVariants };
-      };
-
-      const toRowEntry = (row) => {
-        if (!row) return null;
-        const alias =
-          normalizeRowLabel(row.alias) ||
-          normalizeRowLabel(row.label) ||
-          normalizeRowLabel((row.variants || [])[0]);
-        const variants = Array.isArray(row.variants) && row.variants.length
-          ? row.variants
-          : alias
-          ? [alias]
-          : [];
-        return buildRowEntry(alias, variants);
-      };
-
-      // Obtener series disponibles desde GraficasConfig
-      const getAvailableSeries = () => {
-        if (!window.GraficasConfig || typeof window.GraficasConfig.load !== 'function') {
-          return [];
-        }
-        const config = window.GraficasConfig.load();
-        const defaults = window.GraficasConfig.defaults || {};
-        const series = config.series || defaults.series || [];
-        return series.map(s => ({
-          key: s.key,
-          label: s.label || s.key,
-          color: s.color || '#0d47a1',
-          enabled: s.enabled !== false
-        }));
-      };
-
-      // Renderizar checkboxes de series
-      const renderSeriesChecks = (enabledKeys = []) => {
-        if (!seriesChecksContainer) return;
-        seriesChecksContainer.innerHTML = '';
-
-        availableSeries.forEach(serie => {
-          const wrapper = document.createElement('div');
-          wrapper.className = 'form-check';
-
-          const checkbox = document.createElement('input');
-          checkbox.className = 'form-check-input';
-          checkbox.type = 'checkbox';
-          checkbox.id = `chartEditorSerie_${serie.key}`;
-          checkbox.value = serie.key;
-          checkbox.checked = enabledKeys.length === 0 || enabledKeys.includes(serie.key);
-          checkbox.addEventListener('change', updatePreview);
-
-          const label = document.createElement('label');
-          label.className = 'form-check-label';
-          label.htmlFor = checkbox.id;
-          label.textContent = serie.label;
-
-          wrapper.appendChild(checkbox);
-          wrapper.appendChild(label);
-          seriesChecksContainer.appendChild(wrapper);
-        });
-      };
-
-      // Cargar picker de filas
-      const loadRowPicker = () => {
-        if (!rowPicker) return;
-        const labels = getSnapshotLabels();
-        rowPicker.innerHTML = '<option value="">Selecciona una fila...</option>';
-        labels.forEach(label => {
-          const option = document.createElement('option');
-          option.value = label;
-          option.textContent = label;
-          rowPicker.appendChild(option);
-        });
-      };
-
-      // Agregar fila seleccionada
-      const addSelectedRow = () => {
-        if (!rowPicker || !selectedRowsContainer) return;
-        const value = rowPicker.value;
-        if (!value) return;
-        const entry = buildRowEntry(value, [value]);
-        if (!entry) return;
-        const exists = selectedRows.some(
-          (row) => normalizeRowKey(row.alias) === normalizeRowKey(entry.alias)
+        const titleInput = document.getElementById("chartEditorTitleInput");
+        const subtitleInput = document.getElementById(
+          "chartEditorSubtitleInput",
         );
-        if (exists) return;
+        const typeSelect = document.getElementById("chartEditorTypeSelect");
+        const enabledCheck = document.getElementById("chartEditorEnabledCheck");
+        const sourceTypeSelect = document.getElementById(
+          "chartEditorSourceType",
+        );
+        const rowPicker = document.getElementById("chartEditorRowPicker");
+        const addRowBtn = document.getElementById("chartEditorAddRow");
+        const selectedRowsContainer = document.getElementById(
+          "chartEditorSelectedRows",
+        );
+        const seriesChecksContainer = document.getElementById(
+          "chartEditorSeriesChecks",
+        );
+        const previewCanvas = document.getElementById(
+          "chartEditorPreviewCanvas",
+        );
+        const previewFallback = document.getElementById(
+          "chartEditorPreviewFallback",
+        );
+        const saveBtn = document.getElementById("btnChartEditorSave");
+        const deleteBtn = document.getElementById("btnChartEditorDelete");
 
-        selectedRows.push(entry);
-        renderSelectedRows();
-        updatePreview();
-        rowPicker.value = '';
-      };
+        let currentChart = null;
+        let currentChartId = null;
+        let previewChartInstance = null;
+        let selectedRows = [];
+        let currentModule = null;
+        let availableSeries = [];
 
-      // Renderizar filas seleccionadas
-      const renderSelectedRows = () => {
-        if (!selectedRowsContainer) return;
-        selectedRowsContainer.innerHTML = '';
-
-        if (selectedRows.length === 0) {
-          const empty = document.createElement('div');
-          empty.className = 'text-muted small text-center py-2';
-          empty.textContent = 'No hay filas seleccionadas';
-          selectedRowsContainer.appendChild(empty);
-          return;
-        }
-
-        selectedRows.forEach((row, index) => {
-          const item = document.createElement('div');
-          item.className = 'list-group-item d-flex justify-content-between align-items-center';
-
-          const textWrapper = document.createElement('div');
-          const text = document.createElement('div');
-          text.textContent = row.alias || '';
-          textWrapper.appendChild(text);
-
-          if (Array.isArray(row.variants) && row.variants.length > 1) {
-            const meta = document.createElement('div');
-            meta.className = 'text-muted small';
-            meta.textContent = `${row.variants.length} variantes`;
-            textWrapper.appendChild(meta);
-          }
-
-          const actions = document.createElement('div');
-          actions.className = 'btn-group btn-group-sm';
-
-          const upBtn = document.createElement('button');
-          upBtn.type = 'button';
-          upBtn.className = 'btn btn-outline-secondary';
-          upBtn.innerHTML = '<i class="bi bi-arrow-up"></i>';
-          upBtn.disabled = index === 0;
-          upBtn.addEventListener('click', () => {
-            if (index === 0) return;
-            const temp = selectedRows[index - 1];
-            selectedRows[index - 1] = selectedRows[index];
-            selectedRows[index] = temp;
-            renderSelectedRows();
-            updatePreview();
-          });
-
-          const downBtn = document.createElement('button');
-          downBtn.type = 'button';
-          downBtn.className = 'btn btn-outline-secondary';
-          downBtn.innerHTML = '<i class="bi bi-arrow-down"></i>';
-          downBtn.disabled = index === selectedRows.length - 1;
-          downBtn.addEventListener('click', () => {
-            if (index >= selectedRows.length - 1) return;
-            const temp = selectedRows[index + 1];
-            selectedRows[index + 1] = selectedRows[index];
-            selectedRows[index] = temp;
-            renderSelectedRows();
-            updatePreview();
-          });
-
-          const removeBtn = document.createElement('button');
-          removeBtn.type = 'button';
-          removeBtn.className = 'btn btn-outline-danger';
-          removeBtn.innerHTML = '<i class="bi bi-x"></i>';
-          removeBtn.addEventListener('click', () => {
-            selectedRows.splice(index, 1);
-            renderSelectedRows();
-            updatePreview();
-          });
-
-          actions.appendChild(upBtn);
-          actions.appendChild(downBtn);
-          actions.appendChild(removeBtn);
-
-          item.appendChild(textWrapper);
-          item.appendChild(actions);
-          selectedRowsContainer.appendChild(item);
-        });
-      };
-
-      // Actualizar preview
-      const updatePreview = () => {
-        if (!window.Chart || !previewCanvas) return;
-
-        // Destruir chart anterior
-        if (previewChartInstance) {
-          previewChartInstance.destroy();
-          previewChartInstance = null;
-        }
-
-        const sourceType = sourceTypeSelect?.value || 'snapshot';
-        if (sourceType === 'mensual') {
-          previewCanvas.classList.add('d-none');
-          previewFallback.classList.remove('d-none');
-          previewFallback.textContent = 'Vista previa mensual disponible en la galería';
-          return;
-        }
-
-        // Obtener datos
-        const snapshot = getSnapshot();
-        if (!snapshot || selectedRows.length === 0) {
-          previewCanvas.classList.add('d-none');
-          previewFallback.classList.remove('d-none');
-          previewFallback.textContent = 'Selecciona filas para ver preview';
-          return;
-        }
-
-        // Obtener series seleccionadas
-        const enabledSeries = Array.from(
-          seriesChecksContainer.querySelectorAll('input[type="checkbox"]:checked')
-        ).map(cb => cb.value);
-
-        if (enabledSeries.length === 0) {
-          previewCanvas.classList.add('d-none');
-          previewFallback.classList.remove('d-none');
-          previewFallback.textContent = 'Selecciona al menos una serie';
-          return;
-        }
-
-        // Construir datasets
-        const snapshotMap = new Map();
-        snapshot.filas.forEach(row => {
-          const label = (row?.label || '').toString().trim().toUpperCase();
-          if (label) snapshotMap.set(label, row?.totals || {});
-        });
-
-        const labels = selectedRows.map(row => row.alias || '');
-        const datasets = [];
-
-        const getTotalsForVariants = (variants) => {
-          if (!variants || variants.length === 0) return {};
-          const normalized = variants.map(normalizeRowKey).filter(Boolean);
-          for (const key of normalized) {
-            const hit = snapshotMap.get(key);
-            if (hit) return hit;
-          }
-          for (const [key, value] of snapshotMap.entries()) {
-            if (normalized.some((variant) => key.includes(variant))) {
-              return value;
+        // Obtener snapshot de RESUMEN
+        const getSnapshot = () => {
+          const SNAPSHOT_PREFIX = "resumen_tabla_snapshot";
+          if (typeof localStorage === "undefined") return null;
+          let latest = null;
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (!key || !key.startsWith(SNAPSHOT_PREFIX)) continue;
+            try {
+              const snapshot = JSON.parse(localStorage.getItem(key) || "null");
+              if (!snapshot || !Array.isArray(snapshot.filas)) continue;
+              if (
+                !latest ||
+                (snapshot.createdAt || 0) > (latest.createdAt || 0)
+              ) {
+                latest = snapshot;
+              }
+            } catch (err) {
+              continue;
             }
           }
-          return {};
+          return latest;
         };
 
-        enabledSeries.forEach(serieKey => {
-          const serie = availableSeries.find(s => s.key === serieKey);
-          if (!serie) return;
-
-          const data = selectedRows.map(row => {
-            const totals = getTotalsForVariants(row.variants || []);
-            return Number(totals[serieKey]) || 0;
-          });
-
-          datasets.push({
-            label: serie.label,
-            data: data,
-            backgroundColor: serie.color,
-            borderColor: serie.color,
-            borderWidth: 1
-          });
-        });
-
-        if (datasets.length === 0) {
-          previewCanvas.classList.add('d-none');
-          previewFallback.classList.remove('d-none');
-          previewFallback.textContent = 'Sin datos';
-          return;
-        }
-
-        previewCanvas.classList.remove('d-none');
-        previewFallback.classList.add('d-none');
-
-        // Crear chart
-        const chartType = typeSelect?.value === 'inherit' ? 'bar' : (typeSelect?.value || 'bar');
-        previewChartInstance = new window.Chart(previewCanvas, {
-          type: chartType,
-          data: { labels, datasets },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: { display: true, position: 'bottom' }
-            },
-            scales: chartType === 'pie' || chartType === 'doughnut' ? {} : {
-              y: { beginAtZero: true }
-            }
-          }
-        });
-      };
-
-      // Abrir editor con una gráfica
-      window.openChartEditor = (chartId, chartData) => {
-        currentChartId = chartData?.id || chartId;
-        currentChart = chartData || {};
-        currentModule =
-          currentChart?.module ||
-          document.getElementById('moduloSelect')?.value ||
-          'RESUMEN';
-        const subtitleEl = document.getElementById('chartEditorSubtitle');
-        if (subtitleEl) {
-          subtitleEl.textContent = currentModule ? `Modulo: ${currentModule}` : '';
-        }
-
-        // Cargar datos al formulario
-        if (titleInput) titleInput.value = currentChart.title || '';
-        if (subtitleInput) subtitleInput.value = currentChart.subtitle || '';
-        if (typeSelect) typeSelect.value = currentChart.chartType || 'inherit';
-        if (enabledCheck) enabledCheck.checked = currentChart.enabled !== false;
-        if (sourceTypeSelect) {
-          sourceTypeSelect.value = currentChart.sourceType || 'snapshot';
-        }
-
-        // Cargar filas seleccionadas
-        selectedRows = [];
-        if (Array.isArray(currentChart.rows)) {
-          selectedRows = currentChart.rows
-            .map(toRowEntry)
+        // Obtener labels del snapshot
+        const getSnapshotLabels = () => {
+          const snapshot = getSnapshot();
+          if (!snapshot || !Array.isArray(snapshot.filas)) return [];
+          const labels = snapshot.filas
+            .map((row) => (row?.label || "").toString().trim())
             .filter(Boolean);
-        }
+          return Array.from(new Set(labels)).sort((a, b) => a.localeCompare(b));
+        };
 
-        // Cargar series disponibles
-        availableSeries = getAvailableSeries();
+        const normalizeRowLabel = (value) => (value || "").toString().trim();
+        const normalizeRowKey = (value) =>
+          normalizeRowLabel(value).toUpperCase();
 
-        // Renderizar UI
-        loadRowPicker();
-        renderSeriesChecks(Array.isArray(currentChart.seriesKeys) ? currentChart.seriesKeys : []);
-        renderSelectedRows();
-        updatePreview();
+        const buildRowEntry = (label, variants) => {
+          const alias = normalizeRowLabel(label);
+          if (!alias) return null;
+          const cleanedVariants = Array.isArray(variants)
+            ? variants.map((v) => normalizeRowLabel(v)).filter(Boolean)
+            : [];
+          if (!cleanedVariants.length) cleanedVariants.push(alias);
+          return { alias, variants: cleanedVariants };
+        };
 
-        // Abrir panel
-        if (window.bootstrap?.Offcanvas) {
-          const offcanvas = window.bootstrap.Offcanvas.getOrCreateInstance(panel);
-          offcanvas.show();
-        }
-      };
+        const toRowEntry = (row) => {
+          if (!row) return null;
+          const alias =
+            normalizeRowLabel(row.alias) ||
+            normalizeRowLabel(row.label) ||
+            normalizeRowLabel((row.variants || [])[0]);
+          const variants =
+            Array.isArray(row.variants) && row.variants.length
+              ? row.variants
+              : alias
+                ? [alias]
+                : [];
+          return buildRowEntry(alias, variants);
+        };
 
-      // Event listeners
-      if (addRowBtn) {
-        addRowBtn.addEventListener('click', addSelectedRow);
-      }
-
-      if (rowPicker) {
-        rowPicker.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            addSelectedRow();
+        // Obtener series disponibles desde GraficasConfig
+        const getAvailableSeries = () => {
+          if (
+            !window.GraficasConfig ||
+            typeof window.GraficasConfig.load !== "function"
+          ) {
+            return [];
           }
-        });
-      }
+          const config = window.GraficasConfig.load();
+          const defaults = window.GraficasConfig.defaults || {};
+          const series = config.series || defaults.series || [];
+          return series.map((s) => ({
+            key: s.key,
+            label: s.label || s.key,
+            color: s.color || "#0d47a1",
+            enabled: s.enabled !== false,
+          }));
+        };
 
-      if (typeSelect) {
-        typeSelect.addEventListener('change', updatePreview);
-      }
+        // Renderizar checkboxes de series
+        const renderSeriesChecks = (enabledKeys = []) => {
+          if (!seriesChecksContainer) return;
+          seriesChecksContainer.innerHTML = "";
 
-      if (sourceTypeSelect) {
-        sourceTypeSelect.addEventListener('change', updatePreview);
-      }
+          availableSeries.forEach((serie) => {
+            const wrapper = document.createElement("div");
+            wrapper.className = "form-check";
 
-      if (saveBtn) {
-        saveBtn.addEventListener('click', () => {
-          // Validar formulario
-          const title = titleInput?.value?.trim();
-          if (!title) {
-            alert('El título es obligatorio');
-            titleInput?.focus();
-            return;
-          }
+            const checkbox = document.createElement("input");
+            checkbox.className = "form-check-input";
+            checkbox.type = "checkbox";
+            checkbox.id = `chartEditorSerie_${serie.key}`;
+            checkbox.value = serie.key;
+            checkbox.checked =
+              enabledKeys.length === 0 || enabledKeys.includes(serie.key);
+            checkbox.addEventListener("change", updatePreview);
+
+            const label = document.createElement("label");
+            label.className = "form-check-label";
+            label.htmlFor = checkbox.id;
+            label.textContent = serie.label;
+
+            wrapper.appendChild(checkbox);
+            wrapper.appendChild(label);
+            seriesChecksContainer.appendChild(wrapper);
+          });
+        };
+
+        // Cargar picker de filas
+        const loadRowPicker = () => {
+          if (!rowPicker) return;
+          const labels = getSnapshotLabels();
+          rowPicker.innerHTML =
+            '<option value="">Selecciona una fila...</option>';
+          labels.forEach((label) => {
+            const option = document.createElement("option");
+            option.value = label;
+            option.textContent = label;
+            rowPicker.appendChild(option);
+          });
+        };
+
+        // Agregar fila seleccionada
+        const addSelectedRow = () => {
+          if (!rowPicker || !selectedRowsContainer) return;
+          const value = rowPicker.value;
+          if (!value) return;
+          const entry = buildRowEntry(value, [value]);
+          if (!entry) return;
+          const exists = selectedRows.some(
+            (row) =>
+              normalizeRowKey(row.alias) === normalizeRowKey(entry.alias),
+          );
+          if (exists) return;
+
+          selectedRows.push(entry);
+          renderSelectedRows();
+          updatePreview();
+          rowPicker.value = "";
+        };
+
+        // Renderizar filas seleccionadas
+        const renderSelectedRows = () => {
+          if (!selectedRowsContainer) return;
+          selectedRowsContainer.innerHTML = "";
 
           if (selectedRows.length === 0) {
-            alert('Debes seleccionar al menos una fila para la gráfica');
+            const empty = document.createElement("div");
+            empty.className = "text-muted small text-center py-2";
+            empty.textContent = "No hay filas seleccionadas";
+            selectedRowsContainer.appendChild(empty);
             return;
           }
 
-          const selectedSeries = Array.from(
-            seriesChecksContainer?.querySelectorAll('input[type="checkbox"]:checked') || []
-          ).map(cb => cb.value);
+          selectedRows.forEach((row, index) => {
+            const item = document.createElement("div");
+            item.className =
+              "list-group-item d-flex justify-content-between align-items-center";
 
-          if (selectedSeries.length === 0) {
-            alert('Debes seleccionar al menos una serie');
+            const textWrapper = document.createElement("div");
+            const text = document.createElement("div");
+            text.textContent = row.alias || "";
+            textWrapper.appendChild(text);
+
+            if (Array.isArray(row.variants) && row.variants.length > 1) {
+              const meta = document.createElement("div");
+              meta.className = "text-muted small";
+              meta.textContent = `${row.variants.length} variantes`;
+              textWrapper.appendChild(meta);
+            }
+
+            const actions = document.createElement("div");
+            actions.className = "btn-group btn-group-sm";
+
+            const upBtn = document.createElement("button");
+            upBtn.type = "button";
+            upBtn.className = "btn btn-outline-secondary";
+            upBtn.innerHTML = '<i class="bi bi-arrow-up"></i>';
+            upBtn.disabled = index === 0;
+            upBtn.addEventListener("click", () => {
+              if (index === 0) return;
+              const temp = selectedRows[index - 1];
+              selectedRows[index - 1] = selectedRows[index];
+              selectedRows[index] = temp;
+              renderSelectedRows();
+              updatePreview();
+            });
+
+            const downBtn = document.createElement("button");
+            downBtn.type = "button";
+            downBtn.className = "btn btn-outline-secondary";
+            downBtn.innerHTML = '<i class="bi bi-arrow-down"></i>';
+            downBtn.disabled = index === selectedRows.length - 1;
+            downBtn.addEventListener("click", () => {
+              if (index >= selectedRows.length - 1) return;
+              const temp = selectedRows[index + 1];
+              selectedRows[index + 1] = selectedRows[index];
+              selectedRows[index] = temp;
+              renderSelectedRows();
+              updatePreview();
+            });
+
+            const removeBtn = document.createElement("button");
+            removeBtn.type = "button";
+            removeBtn.className = "btn btn-outline-danger";
+            removeBtn.innerHTML = '<i class="bi bi-x"></i>';
+            removeBtn.addEventListener("click", () => {
+              selectedRows.splice(index, 1);
+              renderSelectedRows();
+              updatePreview();
+            });
+
+            actions.appendChild(upBtn);
+            actions.appendChild(downBtn);
+            actions.appendChild(removeBtn);
+
+            item.appendChild(textWrapper);
+            item.appendChild(actions);
+            selectedRowsContainer.appendChild(item);
+          });
+        };
+
+        // Actualizar preview
+        const updatePreview = () => {
+          if (!window.Chart || !previewCanvas) return;
+
+          // Destruir chart anterior
+          if (previewChartInstance) {
+            previewChartInstance.destroy();
+            previewChartInstance = null;
+          }
+
+          const sourceType = sourceTypeSelect?.value || "snapshot";
+          if (sourceType === "mensual") {
+            previewCanvas.classList.add("d-none");
+            previewFallback.classList.remove("d-none");
+            previewFallback.textContent =
+              "Vista previa mensual disponible en la galería";
             return;
           }
 
-          // Construir objeto de gráfica
-          const chartData = {
-            id: currentChartId || `custom-${Date.now()}`,
-            module:
-              currentChart?.module ||
-              currentModule ||
-              document.getElementById('moduloSelect')?.value ||
-              'RESUMEN',
-            title: title,
-            subtitle: subtitleInput?.value?.trim() || '',
-            chartType: typeSelect?.value || 'inherit',
-            enabled: enabledCheck?.checked !== false,
-            sourceType: sourceTypeSelect?.value || 'snapshot',
-            seriesKeys: selectedSeries,
-            rows: selectedRows.map((row) => ({
-              alias: row.alias,
-              variants:
-                Array.isArray(row.variants) && row.variants.length
-                  ? row.variants
-                  : [row.alias]
-            }))
+          // Obtener datos
+          const snapshot = getSnapshot();
+          if (!snapshot || selectedRows.length === 0) {
+            previewCanvas.classList.add("d-none");
+            previewFallback.classList.remove("d-none");
+            previewFallback.textContent = "Selecciona filas para ver preview";
+            return;
+          }
+
+          // Obtener series seleccionadas
+          const enabledSeries = Array.from(
+            seriesChecksContainer.querySelectorAll(
+              'input[type="checkbox"]:checked',
+            ),
+          ).map((cb) => cb.value);
+
+          if (enabledSeries.length === 0) {
+            previewCanvas.classList.add("d-none");
+            previewFallback.classList.remove("d-none");
+            previewFallback.textContent = "Selecciona al menos una serie";
+            return;
+          }
+
+          // Construir datasets
+          const snapshotMap = new Map();
+          snapshot.filas.forEach((row) => {
+            const label = (row?.label || "").toString().trim().toUpperCase();
+            if (label) snapshotMap.set(label, row?.totals || {});
+          });
+
+          const labels = selectedRows.map((row) => row.alias || "");
+          const datasets = [];
+
+          const getTotalsForVariants = (variants) => {
+            if (!variants || variants.length === 0) return {};
+            const normalized = variants.map(normalizeRowKey).filter(Boolean);
+            for (const key of normalized) {
+              const hit = snapshotMap.get(key);
+              if (hit) return hit;
+            }
+            for (const [key, value] of snapshotMap.entries()) {
+              if (normalized.some((variant) => key.includes(variant))) {
+                return value;
+              }
+            }
+            return {};
           };
 
-          // Guardar en GraficasConfig
-          try {
-            const config = window.GraficasConfig?.load() || { customCharts: [] };
-            if (!Array.isArray(config.customCharts)) {
-              config.customCharts = [];
+          enabledSeries.forEach((serieKey) => {
+            const serie = availableSeries.find((s) => s.key === serieKey);
+            if (!serie) return;
+
+            const data = selectedRows.map((row) => {
+              const totals = getTotalsForVariants(row.variants || []);
+              return Number(totals[serieKey]) || 0;
+            });
+
+            datasets.push({
+              label: serie.label,
+              data: data,
+              backgroundColor: serie.color,
+              borderColor: serie.color,
+              borderWidth: 1,
+            });
+          });
+
+          if (datasets.length === 0) {
+            previewCanvas.classList.add("d-none");
+            previewFallback.classList.remove("d-none");
+            previewFallback.textContent = "Sin datos";
+            return;
+          }
+
+          previewCanvas.classList.remove("d-none");
+          previewFallback.classList.add("d-none");
+
+          // Crear chart
+          const chartType =
+            typeSelect?.value === "inherit"
+              ? "bar"
+              : typeSelect?.value || "bar";
+          previewChartInstance = new window.Chart(previewCanvas, {
+            type: chartType,
+            data: { labels, datasets },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { display: true, position: "bottom" },
+              },
+              scales:
+                chartType === "pie" || chartType === "doughnut"
+                  ? {}
+                  : {
+                      y: { beginAtZero: true },
+                    },
+            },
+          });
+        };
+
+        // Abrir editor con una gráfica
+        window.openChartEditor = (chartId, chartData) => {
+          currentChartId = chartData?.id || chartId;
+          currentChart = chartData || {};
+          currentModule =
+            currentChart?.module ||
+            document.getElementById("moduloSelect")?.value ||
+            "RESUMEN";
+          const subtitleEl = document.getElementById("chartEditorSubtitle");
+          if (subtitleEl) {
+            subtitleEl.textContent = currentModule
+              ? `Modulo: ${currentModule}`
+              : "";
+          }
+
+          // Cargar datos al formulario
+          if (titleInput) titleInput.value = currentChart.title || "";
+          if (subtitleInput) subtitleInput.value = currentChart.subtitle || "";
+          if (typeSelect)
+            typeSelect.value = currentChart.chartType || "inherit";
+          if (enabledCheck)
+            enabledCheck.checked = currentChart.enabled !== false;
+          if (sourceTypeSelect) {
+            sourceTypeSelect.value = currentChart.sourceType || "snapshot";
+          }
+
+          // Cargar filas seleccionadas
+          selectedRows = [];
+          if (Array.isArray(currentChart.rows)) {
+            selectedRows = currentChart.rows.map(toRowEntry).filter(Boolean);
+          }
+
+          // Cargar series disponibles
+          availableSeries = getAvailableSeries();
+
+          // Renderizar UI
+          loadRowPicker();
+          renderSeriesChecks(
+            Array.isArray(currentChart.seriesKeys)
+              ? currentChart.seriesKeys
+              : [],
+          );
+          renderSelectedRows();
+          updatePreview();
+
+          // Abrir panel
+          if (window.bootstrap?.Offcanvas) {
+            const offcanvas =
+              window.bootstrap.Offcanvas.getOrCreateInstance(panel);
+            offcanvas.show();
+          }
+        };
+
+        // Event listeners
+        if (addRowBtn) {
+          addRowBtn.addEventListener("click", addSelectedRow);
+        }
+
+        if (rowPicker) {
+          rowPicker.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              addSelectedRow();
+            }
+          });
+        }
+
+        if (typeSelect) {
+          typeSelect.addEventListener("change", updatePreview);
+        }
+
+        if (sourceTypeSelect) {
+          sourceTypeSelect.addEventListener("change", updatePreview);
+        }
+
+        if (saveBtn) {
+          saveBtn.addEventListener("click", () => {
+            // Validar formulario
+            const title = titleInput?.value?.trim();
+            if (!title) {
+              alert("El título es obligatorio");
+              titleInput?.focus();
+              return;
             }
 
-            // Buscar si ya existe para actualizar, sino agregar
-            const existingIndex = config.customCharts.findIndex(c => c.id === chartData.id);
-            if (existingIndex >= 0) {
-              config.customCharts[existingIndex] = chartData;
-              console.log('Gráfica actualizada:', chartData);
-            } else {
-              config.customCharts.push(chartData);
-              console.log('Gráfica creada:', chartData);
+            if (selectedRows.length === 0) {
+              alert("Debes seleccionar al menos una fila para la gráfica");
+              return;
             }
 
-            // Guardar configuración
-            window.GraficasConfig?.save(config);
+            const selectedSeries = Array.from(
+              seriesChecksContainer?.querySelectorAll(
+                'input[type="checkbox"]:checked',
+              ) || [],
+            ).map((cb) => cb.value);
 
-            // Mostrar mensaje de éxito
-            if (window.bootstrap?.Toast) {
-              const toastEl = document.getElementById('toastNotification');
-              const toast = new window.bootstrap.Toast(toastEl);
-              const toastBody = document.querySelector('#toastNotification .toast-body');
-              if (toastBody) {
-                toastBody.textContent = existingIndex >= 0 ? 'Gráfica actualizada correctamente' : 'Gráfica creada correctamente';
+            if (selectedSeries.length === 0) {
+              alert("Debes seleccionar al menos una serie");
+              return;
+            }
+
+            // Construir objeto de gráfica
+            const chartData = {
+              id: currentChartId || `custom-${Date.now()}`,
+              module:
+                currentChart?.module ||
+                currentModule ||
+                document.getElementById("moduloSelect")?.value ||
+                "RESUMEN",
+              title: title,
+              subtitle: subtitleInput?.value?.trim() || "",
+              chartType: typeSelect?.value || "inherit",
+              enabled: enabledCheck?.checked !== false,
+              sourceType: sourceTypeSelect?.value || "snapshot",
+              seriesKeys: selectedSeries,
+              rows: selectedRows.map((row) => ({
+                alias: row.alias,
+                variants:
+                  Array.isArray(row.variants) && row.variants.length
+                    ? row.variants
+                    : [row.alias],
+              })),
+            };
+
+            // Guardar en GraficasConfig
+            try {
+              const config = window.GraficasConfig?.load() || {
+                customCharts: [],
+              };
+              if (!Array.isArray(config.customCharts)) {
+                config.customCharts = [];
               }
-              toast.show();
-            }
 
-            // Recargar la vista de plantillas si existe la función
-            if (typeof window.reloadCustomCharts === 'function') {
-              window.reloadCustomCharts();
-            }
-
-            // Cerrar panel
-            if (window.bootstrap?.Offcanvas) {
-              const offcanvas = window.bootstrap.Offcanvas.getInstance(panel);
-              offcanvas?.hide();
-            }
-          } catch (error) {
-            console.error('Error al guardar gráfica:', error);
-            alert('Error al guardar la gráfica: ' + (error.message || error));
-          }
-        });
-      }
-
-      if (deleteBtn) {
-        deleteBtn.addEventListener('click', () => {
-          if (!currentChartId) {
-            alert('No hay gráfica seleccionada para eliminar');
-            return;
-          }
-
-          if (!confirm('¿Estás seguro de eliminar esta gráfica? Esta acción no se puede deshacer.')) {
-            return;
-          }
-
-          try {
-            const config = window.GraficasConfig?.load() || { customCharts: [] };
-            if (!Array.isArray(config.customCharts)) {
-              config.customCharts = [];
-            }
-
-            // Buscar y eliminar la gráfica
-            const existingIndex = config.customCharts.findIndex(c => c.id === currentChartId);
-            if (existingIndex >= 0) {
-              config.customCharts.splice(existingIndex, 1);
-              console.log('Gráfica eliminada:', currentChartId);
+              // Buscar si ya existe para actualizar, sino agregar
+              const existingIndex = config.customCharts.findIndex(
+                (c) => c.id === chartData.id,
+              );
+              if (existingIndex >= 0) {
+                config.customCharts[existingIndex] = chartData;
+                console.log("Gráfica actualizada:", chartData);
+              } else {
+                config.customCharts.push(chartData);
+                console.log("Gráfica creada:", chartData);
+              }
 
               // Guardar configuración
               window.GraficasConfig?.save(config);
 
               // Mostrar mensaje de éxito
               if (window.bootstrap?.Toast) {
-                const toastEl = document.getElementById('toastNotification');
+                const toastEl = document.getElementById("toastNotification");
                 const toast = new window.bootstrap.Toast(toastEl);
-                const toastBody = document.querySelector('#toastNotification .toast-body');
+                const toastBody = document.querySelector(
+                  "#toastNotification .toast-body",
+                );
                 if (toastBody) {
-                  toastBody.textContent = 'Gráfica eliminada correctamente';
+                  toastBody.textContent =
+                    existingIndex >= 0
+                      ? "Gráfica actualizada correctamente"
+                      : "Gráfica creada correctamente";
                 }
                 toast.show();
               }
 
               // Recargar la vista de plantillas si existe la función
-              if (typeof window.reloadCustomCharts === 'function') {
+              if (typeof window.reloadCustomCharts === "function") {
                 window.reloadCustomCharts();
               }
 
@@ -4114,24 +4135,91 @@
                 const offcanvas = window.bootstrap.Offcanvas.getInstance(panel);
                 offcanvas?.hide();
               }
-            } else {
-              alert('No se encontró la gráfica para eliminar');
+            } catch (error) {
+              console.error("Error al guardar gráfica:", error);
+              alert("Error al guardar la gráfica: " + (error.message || error));
             }
-          } catch (error) {
-            console.error('Error al eliminar gráfica:', error);
-            alert('Error al eliminar la gráfica: ' + (error.message || error));
+          });
+        }
+
+        if (deleteBtn) {
+          deleteBtn.addEventListener("click", () => {
+            if (!currentChartId) {
+              alert("No hay gráfica seleccionada para eliminar");
+              return;
+            }
+
+            if (
+              !confirm(
+                "¿Estás seguro de eliminar esta gráfica? Esta acción no se puede deshacer.",
+              )
+            ) {
+              return;
+            }
+
+            try {
+              const config = window.GraficasConfig?.load() || {
+                customCharts: [],
+              };
+              if (!Array.isArray(config.customCharts)) {
+                config.customCharts = [];
+              }
+
+              // Buscar y eliminar la gráfica
+              const existingIndex = config.customCharts.findIndex(
+                (c) => c.id === currentChartId,
+              );
+              if (existingIndex >= 0) {
+                config.customCharts.splice(existingIndex, 1);
+                console.log("Gráfica eliminada:", currentChartId);
+
+                // Guardar configuración
+                window.GraficasConfig?.save(config);
+
+                // Mostrar mensaje de éxito
+                if (window.bootstrap?.Toast) {
+                  const toastEl = document.getElementById("toastNotification");
+                  const toast = new window.bootstrap.Toast(toastEl);
+                  const toastBody = document.querySelector(
+                    "#toastNotification .toast-body",
+                  );
+                  if (toastBody) {
+                    toastBody.textContent = "Gráfica eliminada correctamente";
+                  }
+                  toast.show();
+                }
+
+                // Recargar la vista de plantillas si existe la función
+                if (typeof window.reloadCustomCharts === "function") {
+                  window.reloadCustomCharts();
+                }
+
+                // Cerrar panel
+                if (window.bootstrap?.Offcanvas) {
+                  const offcanvas =
+                    window.bootstrap.Offcanvas.getInstance(panel);
+                  offcanvas?.hide();
+                }
+              } else {
+                alert("No se encontró la gráfica para eliminar");
+              }
+            } catch (error) {
+              console.error("Error al eliminar gráfica:", error);
+              alert(
+                "Error al eliminar la gráfica: " + (error.message || error),
+              );
+            }
+          });
+        }
+
+        // Limpiar al cerrar
+        panel.addEventListener("hidden.bs.offcanvas", () => {
+          if (previewChartInstance) {
+            previewChartInstance.destroy();
+            previewChartInstance = null;
           }
         });
-      }
-
-      // Limpiar al cerrar
-      panel.addEventListener('hidden.bs.offcanvas', () => {
-        if (previewChartInstance) {
-          previewChartInstance.destroy();
-          previewChartInstance = null;
-        }
-      });
-    })();
+      })();
     </script>
 
     <script src="js/plantillas-graficas.js"></script>

@@ -263,9 +263,7 @@ const collectCodes = typeof SummaryCore.collectCodes === 'function'
   ? (layout) => SummaryCore.collectCodes(layout)
   : () => [];
 
-const DEFAULT_LAYOUT = (typeof window !== 'undefined' && window.SUMMARY_E01_LAYOUT)
-  ? window.SUMMARY_E01_LAYOUT
-  : [];
+const DEFAULT_LAYOUT = [];
 
 const cloneLayout = (layout) => {
   try {
@@ -276,8 +274,14 @@ const cloneLayout = (layout) => {
   }
 };
 
-const saveLayoutLS = (l) => localStorage.setItem('summary_layout_v1', JSON.stringify(l));
-const loadLayoutLS = () => { try { return JSON.parse(localStorage.getItem('summary_layout_v1') || 'null'); } catch { return null; } };
+const LAYOUT_STORAGE_KEY = 'summary_layout_v1';
+const saveLayoutLS = () => {};
+const loadLayoutLS = () => null;
+try {
+  localStorage.removeItem(LAYOUT_STORAGE_KEY);
+} catch (e) {
+  /* ignore */
+}
 
 let CURRENT_LAYOUT = loadLayoutLS();
 if (!Array.isArray(CURRENT_LAYOUT) || CURRENT_LAYOUT.length === 0) {

@@ -1,4 +1,4 @@
-const { obtenerDatosPlaneacion } = require('../planeacionCuentasService');
+const { obtenerDatosPlaneacionResumen } = require('../planeacionCuentasService');
 const { MESES } = require('../saldosService');
 const layoutService = require('../layoutService');
 
@@ -35,6 +35,8 @@ function cargarDefinicionesModulo(modulo, empresaId = 'EMPRESA01', anio = new Da
           CAPITULO: capituloEtiqueta,
           CUENTA: cuenta.CUENTA,
           NOMBRE: cuenta.NOMBRE,
+          orden: cuenta.orden,
+          orden_presentacion: cuenta.orden_presentacion,
           'SECCIÓN Principal':
             cuenta['SECCIÓN Principal'] ||
             cuenta['SECCION Principal'] ||
@@ -175,27 +177,19 @@ const obtenerClaveMesAnterior = (claveMes) => {
   return null;
 };
 
-const calcularTotales = (cuentas, claveMes, planeacionActual, planeacionPrev) => {
-  const claveAcum = `${claveMes}_acum`;
-
+const calcularTotales = (cuentas, planeacionData, definicion = new Map()) => {
   return cuentas.reduce(
     (acc, cuenta) => {
-      const actual = planeacionActual.find((p) => p.cuenta === cuenta);
-      const previo = planeacionPrev?.find((p) => p.cuenta === cuenta);
-
-      acc.actualMonth += Number(actual?.real?.[claveMes] ?? 0);
-      acc.planMonth += Number(actual?.presupuesto?.[claveMes] ?? 0);
-      acc.prevMonth += Number(previo?.real?.[claveMes] ?? 0);
-
-      acc.actualYTD += Number(actual?.real?.[claveAcum] ?? 0);
-      acc.planYTD += MESES.reduce((total, { clave }) => {
-        if (total.detener) return total;
-        const nuevo = total.total + Number(actual?.presupuesto?.[clave] ?? 0);
-        if (clave === claveMes) return { total: nuevo, detener: true };
-        return { total: nuevo, detener: false };
-      }, { total: 0, detener: false }).total;
-      acc.prevYTD += Number(previo?.real?.[claveAcum] ?? 0);
-
+      const actual = planeacionData.find((p) => p.cuenta === cuenta);
+      const meta = definicion.get(cuenta) || {};
+      const factorRaw = meta.operacion_factor ?? meta.operacionFactor ?? meta.factor;
+      const factor = Number.isFinite(Number(factorRaw)) ? Number(factorRaw) : 1;
+      acc.actualMonth += factor * Number(actual?.actualMonth ?? 0);
+      acc.planMonth += factor * Number(actual?.planMonth ?? 0);
+      acc.prevMonth += factor * Number(actual?.prevMonth ?? 0);
+      acc.actualYTD += factor * Number(actual?.actualYTD ?? 0);
+      acc.planYTD += factor * Number(actual?.planYTD ?? 0);
+      acc.prevYTD += factor * Number(actual?.prevYTD ?? 0);
       return acc;
     },
     { actualMonth: 0, planMonth: 0, prevMonth: 0, actualYTD: 0, planYTD: 0, prevYTD: 0 }
@@ -229,85 +223,57 @@ const sumarTotales = (destino, origen, factor = 1) => {
   return destino;
 };
 
-const construirNodoSeccion = ({ seccion, cuentas, definicion, claveMes, planeacionActual, planeacionPrev, orden = 0, capituloClave = '' }) => {
-  let totales = calcularTotales(cuentas, claveMes, planeacionActual, planeacionPrev);
-
-  // Excluir Cargos Administrativos de SUMAS de EXPENSE para capítulo Guadalajara
-  const seccionNorm = (seccion || '').toString().trim().toUpperCase();
-  const capNorm = (capituloClave || '').toString().trim().toUpperCase();
-  const CAPITULOS_EXCLUSION_CARGOS = [
-    'GUADALAJARA',
-    'GDL',
-    'NORESTE',
-    'MONTERREY',
-    'NOROESTE',
-    'NORTHWEST',
-    'NO'
-  ];
-  const debeExcluirCapitulo = CAPITULOS_EXCLUSION_CARGOS.some((token) => capNorm.includes(token));
-  const esCargosAdminExcluido = debeExcluirCapitulo && seccionNorm.includes('CARGOS ADMINISTRATIVOS');
-  // Nota: mantenemos los totales reales para la secci¢n (mostrar suma),
-  // pero el flag excludeFromExpense evitar  que se acumulen en principales/consolidados.
+const construirNodoSeccion = ({
+  seccion,
+  cuentas,
+  definicion,
+  planeacionData,
+  orden = 0,
+  ordenIndex = 0
+}) => {
+  const totales = calcularTotales(cuentas, planeacionData, definicion);
 
   const cuentasDetalle = cuentas.map((cuentaId) => {
-    const actual = planeacionActual.find((p) => p.cuenta === cuentaId) || {};
-    const previo = planeacionPrev?.find((p) => p.cuenta === cuentaId) || {};
-
-    const planYTD = MESES.reduce((acc, { clave }) => {
-      if (acc.detener) return acc;
-      const nuevo = acc.total + Number(actual.presupuesto?.[clave] ?? 0);
-      if (clave === claveMes) return { total: nuevo, detener: true };
-      return { total: nuevo, detener: false };
-    }, { total: 0, detener: false }).total;
+    const actual = planeacionData.find((p) => p.cuenta === cuentaId) || {};
 
     const metadataCuenta = definicion.get(cuentaId) || {};
+    const factorRaw =
+      metadataCuenta.operacion_factor ??
+      metadataCuenta.operacionFactor ??
+      metadataCuenta.factor;
+    const factor = Number.isFinite(Number(factorRaw)) ? Number(factorRaw) : 1;
     return {
       cuenta: metadataCuenta.visible || cuentaId,
       cuentaCanonica: cuentaId,
+      orden: metadataCuenta.orden,
+      ordenIndex: metadataCuenta.ordenIndex ?? 0,
       descripcion: metadataCuenta.descripcion || '',
-      actualMonth: Number(actual.real?.[claveMes] ?? 0),
-      planMonth: Number(actual.presupuesto?.[claveMes] ?? 0),
-      prevMonth: Number(previo.real?.[claveMes] ?? 0),
-      actualYTD: Number(actual.real?.[`${claveMes}_acum`] ?? 0),
-      planYTD,
-      prevYTD: Number(previo.real?.[`${claveMes}_acum`] ?? 0)
+      actualMonth: factor * Number(actual.actualMonth ?? 0),
+      planMonth: factor * Number(actual.planMonth ?? 0),
+      prevMonth: factor * Number(actual.prevMonth ?? 0),
+      actualYTD: factor * Number(actual.actualYTD ?? 0),
+      planYTD: factor * Number(actual.planYTD ?? 0),
+      prevYTD: factor * Number(actual.prevYTD ?? 0),
+      factor
     };
   });
-
-  const esOther = normalizarTexto(seccion) === 'OTHER';
-  const requiereAjusteOther = esOther && ['NORESTE', 'NOROESTE'].some((token) => capNorm.includes(token));
-  if (requiereAjusteOther) {
-    const cuentasAjuste = cuentasDetalle.filter((cuenta) => {
-      const descNorm = normalizarTexto(cuenta.descripcion || '');
-      return descNorm.includes('PERDIDA CAMBIARIA');
-    });
-    cuentasAjuste.forEach((cuenta) => {
-      totales.actualMonth -= 2 * Number(cuenta.actualMonth ?? 0);
-      totales.planMonth -= 2 * Number(cuenta.planMonth ?? 0);
-      totales.prevMonth -= 2 * Number(cuenta.prevMonth ?? 0);
-      totales.actualYTD -= 2 * Number(cuenta.actualYTD ?? 0);
-      totales.planYTD -= 2 * Number(cuenta.planYTD ?? 0);
-      totales.prevYTD -= 2 * Number(cuenta.prevYTD ?? 0);
-    });
-  }
 
   return {
     label: seccion,
     cuentas: cuentasDetalle,
     orden,
+    ordenIndex,
     totalActualMonth: totales.actualMonth,
     totalPlanMonth: totales.planMonth,
     totalPrevMonth: totales.prevMonth,
     totalActualYTD: totales.actualYTD,
     totalPlanYTD: totales.planYTD,
     totalPrevYTD: totales.prevYTD,
-      // Flag to indicate excluded-from-expense sections (useful for UI)
-      excludeFromExpense: esCargosAdminExcluido || false,
     total: totales.actualYTD
   };
 };
 
-const construirReporteResumen = (definiciones, configAgrupacion, capituloSeleccionado, claveMes, planeacionActual, planeacionPrev) => {
+const construirReporteResumen = (definiciones, configAgrupacion, capituloSeleccionado, planeacionData) => {
   const definicionCuentas = new Map();
   const principalMap = new Map();
 
@@ -322,6 +288,17 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
   const netOrden = new Map();
   const finalOrden = new Map();
 
+  const obtenerOrden = (item, fallback = 0) => {
+    const raw =
+      item?.orden_presentacion ??
+      item?.orden ??
+      item?.Orden ??
+      item?.order ??
+      fallback;
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  };
+
   const normalizarConfigValor = (valor) => {
     if (valor == null) return '';
     return valor.toString().trim();
@@ -332,20 +309,51 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
   if (Array.isArray(configAgrupacion)) {
     configAgrupacion.forEach((cfg, idx) => {
       const cap = NORMALIZAR_CAPITULO(cfg.CAPITULO);
+      if (cap !== capituloClave) return;
       const seccion = (cfg.SECCION || '').toString().trim();
-      if (!seccion || cap !== capituloClave) return;
+      const ordenConfig = obtenerOrden(cfg, idx);
+
+      const sumRow = normalizarConfigValor(cfg['sum-row']);
+      const principal = normalizarConfigValor(cfg['sum-row-sumavarios']);
+      const consolidado = normalizarConfigValor(cfg['sum-row-sumavarios-consolidado']);
+      const operativo = normalizarConfigValor(cfg['sum-row-operativo']);
+      const operativoConsolidado = normalizarConfigValor(cfg['sum-row-operativo-consolidado']);
+      const resultRow = normalizarConfigValor(cfg['result-row']);
+      const netRow = normalizarConfigValor(cfg['net-row']);
+      const netRowAdicional = normalizarConfigValor(cfg['net-row-adicional']);
+      const resultNetRow = normalizarConfigValor(cfg['result-net-row']);
+      const clase = normalizarConfigValor(cfg.Clase);
+
+      const registrarOrden = (mapa, label) => {
+        if (!label) return;
+        const existente = mapa.get(label);
+        if (existente == null || ordenConfig < existente) {
+          mapa.set(label, ordenConfig);
+        }
+      };
+
+      registrarOrden(consolidadoOrden, consolidado);
+      registrarOrden(operativoOrden, operativo);
+      registrarOrden(operativoOrden, operativoConsolidado);
+      registrarOrden(resultOrden, resultRow);
+      registrarOrden(netOrden, netRow);
+      registrarOrden(netOrden, netRowAdicional);
+      registrarOrden(finalOrden, resultNetRow);
+
+      if (!seccion) return;
       const key = `${cap}|${seccion.toUpperCase()}`;
       const configEntry = {
-        sumRow: normalizarConfigValor(cfg['sum-row']),
-        principal: normalizarConfigValor(cfg['sum-row-sumavarios']),
-        consolidado: normalizarConfigValor(cfg['sum-row-sumavarios-consolidado']),
-        operativo: normalizarConfigValor(cfg['sum-row-operativo']),
-        operativoConsolidado: normalizarConfigValor(cfg['sum-row-operativo-consolidado']),
-        resultRow: normalizarConfigValor(cfg['result-row']),
-        netRow: normalizarConfigValor(cfg['net-row']),
-        netRowAdicional: normalizarConfigValor(cfg['net-row-adicional']),
-        resultNetRow: normalizarConfigValor(cfg['result-net-row']),
-        clase: normalizarConfigValor(cfg.Clase)
+        sumRow,
+        principal,
+        consolidado,
+        operativo,
+        operativoConsolidado,
+        resultRow,
+        netRow,
+        netRowAdicional,
+        resultNetRow,
+        clase,
+        orden: ordenConfig
       };
       const principalBase = configEntry.principal;
       configEntry.principalLabel = principalBase;
@@ -359,51 +367,49 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
 
       const seccionLimpia = normalizarConfigValor(seccion);
       if (seccionLimpia && !seccionOrden.has(seccionLimpia)) {
-        seccionOrden.set(seccionLimpia, idx);
+        seccionOrden.set(seccionLimpia, ordenConfig);
       }
-      const principal = configEntry.principal;
       if (principal && !principalOrden.has(principal)) {
-        principalOrden.set(principal, idx);
-      }
-      const consolidado = configEntry.consolidado;
-      if (consolidado && !consolidadoOrden.has(consolidado)) {
-        consolidadoOrden.set(consolidado, idx);
-      }
-      const operativo = configEntry.operativo;
-      if (operativo && !operativoOrden.has(operativo)) {
-        operativoOrden.set(operativo, idx);
-      }
-      const operativoConsolidado = configEntry.operativoConsolidado;
-      if (operativoConsolidado && !operativoOrden.has(operativoConsolidado)) {
-        operativoOrden.set(operativoConsolidado, idx);
-      }
-      const resultRow = configEntry.resultRow;
-      if (resultRow && !resultOrden.has(resultRow)) {
-        resultOrden.set(resultRow, idx);
-      }
-      const netRow = configEntry.netRow;
-      if (netRow && !netOrden.has(netRow)) {
-        netOrden.set(netRow, idx);
-      }
-      const netRowAdicional = configEntry.netRowAdicional;
-      if (netRowAdicional && !netOrden.has(netRowAdicional)) {
-        netOrden.set(netRowAdicional, idx);
-      }
-      const finalRow = configEntry.resultNetRow;
-      if (finalRow && !finalOrden.has(finalRow)) {
-        finalOrden.set(finalRow, idx);
+        principalOrden.set(principal, ordenConfig);
       }
     });
   }
 
-  // Procesar definiciones RESPETANDO el orden de aparición en el JSON
+  const definicionesOrdenadas = Array.isArray(definiciones)
+    ? definiciones
+        .map((item, idx) => ({ item, idx }))
+        .sort((a, b) => {
+          const ordenA = obtenerOrden(a.item, a.idx);
+          const ordenB = obtenerOrden(b.item, b.idx);
+          if (ordenA !== ordenB) return ordenA - ordenB;
+          return a.idx - b.idx;
+        })
+        .map(({ item }) => item)
+    : [];
+
+  // Procesar definiciones RESPETANDO el orden de presentación
   // Necesitamos un orden jerárquico: Principal (orden global) → Secundaria (orden dentro de Principal)
-  const principalFirstAppearance = new Map(); // Guardar índice global de primera aparición de cada Principal
-  const seccionFirstAppearance = new Map(); // Guardar índice global de primera aparición de cada Secundaria
+  const principalFirstAppearance = new Map(); // Guardar orden mínimo + índice de cada Principal
+  const seccionFirstAppearance = new Map(); // Guardar orden mínimo + índice de cada Secundaria
+
+  const actualizarPrimeraAparicion = (mapa, key, orden, idx) => {
+    if (!key) return;
+    const ordenNum = Number.isFinite(Number(orden)) ? Number(orden) : 0;
+    const idxNum = Number.isFinite(Number(idx)) ? Number(idx) : 0;
+    const existente = mapa.get(key);
+    if (
+      !existente ||
+      ordenNum < existente.orden ||
+      (ordenNum === existente.orden && idxNum < existente.idx)
+    ) {
+      mapa.set(key, { orden: ordenNum, idx: idxNum });
+    }
+  };
   
-  definiciones.forEach((item, idx) => {
+  definicionesOrdenadas.forEach((item, idx) => {
     const capReal = NORMALIZAR_CAPITULO(item.CAPITULO || '');
     if (capReal !== capituloClave) return;
+    const cuentaOrden = obtenerOrden(item, idx);
 
     const seccion = (
       item['SECCION Secundaria'] ||
@@ -412,26 +418,6 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
       item['SECCION'] ||
       ''
     ).toString().trim();
-    let cuentaCanonica = normalizarCuentaCanonica(item.CUENTA);
-    const cuentaOriginal = (item.CUENTA || '').toString().trim();
-    const esCuentaVirtual = !cuentaCanonica && (!cuentaOriginal || cuentaOriginal === '-' || cuentaOriginal === '0');
-    if (esCuentaVirtual) {
-      cuentaCanonica = `VIRTUAL|${capituloClave}|${principalLabel}|${seccion}|${idx}`;
-      item.__esVirtual = true;
-    }
-
-    if (!seccion || !cuentaCanonica) return;
-
-    const cuentaVisible = esCuentaVirtual
-      ? (item.NOMBRE || seccion || principalLabel)
-      : cuentaVisibleDesdeCanonica(cuentaCanonica);
-
-    definicionCuentas.set(cuentaCanonica, {
-      descripcion: item.NOMBRE || '',
-      visible: cuentaVisible,
-      esVirtual: esCuentaVirtual
-    });
-
     const keyConfig = `${capituloClave}|${seccion.toUpperCase()}`;
     let config = configPorSeccion.get(keyConfig) || {};
 
@@ -453,11 +439,40 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
         principalLabel = config.principal;
       }
     }
-    
-    // Registrar la PRIMERA aparición de cada Principal (índice global)
-    if (!principalFirstAppearance.has(principalLabel)) {
-      principalFirstAppearance.set(principalLabel, idx);
+
+    let cuentaCanonica = normalizarCuentaCanonica(item.CUENTA);
+    const cuentaOriginal = (item.CUENTA || '').toString().trim();
+    const esCuentaVirtual =
+      !cuentaCanonica && (!cuentaOriginal || cuentaOriginal === '-' || cuentaOriginal === '0');
+    if (esCuentaVirtual) {
+      cuentaCanonica = `VIRTUAL|${capituloClave}|${principalLabel}|${seccion}|${idx}`;
+      item.__esVirtual = true;
     }
+
+    if (!seccion || !cuentaCanonica) return;
+
+    const cuentaVisible = esCuentaVirtual
+      ? (item.NOMBRE || seccion || principalLabel)
+      : cuentaVisibleDesdeCanonica(cuentaCanonica);
+    const factorRaw = item.operacion_factor ?? item.operacionFactor ?? item.factor;
+    const factor = Number.isFinite(Number(factorRaw)) ? Number(factorRaw) : 1;
+
+    definicionCuentas.set(cuentaCanonica, {
+      descripcion: item.NOMBRE || '',
+      visible: cuentaVisible,
+      orden: cuentaOrden,
+      ordenIndex: idx,
+      esVirtual: esCuentaVirtual,
+      operacion_factor: factor
+    });
+    
+    // Registrar la primera aparición de cada Principal (orden mínimo)
+    actualizarPrimeraAparicion(
+      principalFirstAppearance,
+      principalLabel,
+      cuentaOrden,
+      idx
+    );
 
     const principalKey = NORMALIZAR_CLAVE(principalLabel);
     if (!principalMap.has(principalKey)) {
@@ -472,7 +487,8 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
         netRow: config.netRow || '',
         netRowAdicional: config.netRowAdicional || '',
         resultNetRow: config.resultNetRow || '',
-        orden: principalFirstAppearance.get(principalLabel),
+        orden: principalFirstAppearance.get(principalLabel)?.orden ?? 0,
+        ordenIndex: principalFirstAppearance.get(principalLabel)?.idx ?? 0,
         secciones: new Map()
       });
     }
@@ -480,10 +496,13 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
     const principalNode = principalMap.get(principalKey);
     const seccionKey = seccion || 'SIN SECCIÓN';
     
-    // Registrar la PRIMERA aparición de cada Secundaria (índice global)
-    if (!seccionFirstAppearance.has(seccionKey)) {
-      seccionFirstAppearance.set(seccionKey, idx);
-    }
+    // Registrar la primera aparición de cada Secundaria (orden mínimo)
+    actualizarPrimeraAparicion(
+      seccionFirstAppearance,
+      seccionKey,
+      cuentaOrden,
+      idx
+    );
     
     if (config.consolidado && !principalNode.consolidadoLabel) {
       principalNode.consolidadoLabel = config.consolidado;
@@ -511,7 +530,8 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
       principalNode.secciones.set(seccionKey, {
         label: seccionKey,
         cuentas: [],
-        orden: seccionFirstAppearance.get(seccionKey)
+        orden: seccionFirstAppearance.get(seccionKey)?.orden ?? 0,
+        ordenIndex: seccionFirstAppearance.get(seccionKey)?.idx ?? 0
       });
     }
     
@@ -536,40 +556,58 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
         netRow: cfg.netRow || '',
         netRowAdicional: cfg.netRowAdicional || '',
         resultNetRow: cfg.resultNetRow || '',
-        orden: principalOrden.has(cfg.principalLabel) ? principalOrden.get(cfg.principalLabel) : principalMap.size + principalOrden.size,
+        orden: principalOrden.has(cfg.principalLabel)
+          ? principalOrden.get(cfg.principalLabel)
+          : principalMap.size + principalOrden.size,
+        ordenIndex: principalMap.size + principalOrden.size,
         secciones: new Map(),
         esVirtual: true
       });
     }
   });
 
-  let principalList = Array.from(principalMap.values()).map((principal) => {
-    const seccionesOrdenadas = Array.from(principal.secciones.values()).sort((a, b) => a.orden - b.orden);
-    const children = seccionesOrdenadas.map((sec) => construirNodoSeccion({
-      seccion: sec.label,
-      cuentas: sec.cuentas,
-      definicion: definicionCuentas,
-      claveMes,
-      planeacionActual,
-      planeacionPrev,
-      orden: sec.orden,
-      capituloClave: capituloSeleccionado
-    }));
+  const sortByOrden = (a = {}, b = {}) => {
+    const ordenA = Number.isFinite(Number(a.orden)) ? Number(a.orden) : 0;
+    const ordenB = Number.isFinite(Number(b.orden)) ? Number(b.orden) : 0;
+    if (ordenA !== ordenB) return ordenA - ordenB;
+    const idxA = Number.isFinite(Number(a.ordenIndex)) ? Number(a.ordenIndex) : 0;
+    const idxB = Number.isFinite(Number(b.ordenIndex)) ? Number(b.ordenIndex) : 0;
+    return idxA - idxB;
+  };
 
-    const totalesPrincipal = children.reduce((acc, nodo) => {
-      // No acumular secciones marcadas para excluir (ej. Cargos Administrativos)
-      if (nodo.excludeFromExpense) {
-        return acc;
-      }
-      return {
+  let principalList = Array.from(principalMap.values()).map((principal) => {
+    const seccionesOrdenadas = Array.from(principal.secciones.values()).sort(sortByOrden);
+    const children = seccionesOrdenadas.map((sec) => {
+      const cuentasOrdenadas = (sec.cuentas || [])
+        .slice()
+        .sort(
+          (a, b) =>
+            (definicionCuentas.get(a)?.orden ?? 0) -
+              (definicionCuentas.get(b)?.orden ?? 0) ||
+            (definicionCuentas.get(a)?.ordenIndex ?? 0) -
+              (definicionCuentas.get(b)?.ordenIndex ?? 0)
+        );
+      return construirNodoSeccion({
+        seccion: sec.label,
+        cuentas: cuentasOrdenadas,
+        definicion: definicionCuentas,
+        planeacionData,
+        orden: sec.orden,
+        ordenIndex: sec.ordenIndex ?? 0
+      });
+    });
+
+    const totalesPrincipal = children.reduce(
+      (acc, nodo) => ({
         actualMonth: acc.actualMonth + nodo.totalActualMonth,
         planMonth: acc.planMonth + nodo.totalPlanMonth,
         prevMonth: acc.prevMonth + nodo.totalPrevMonth,
         actualYTD: acc.actualYTD + nodo.totalActualYTD,
         planYTD: acc.planYTD + nodo.totalPlanYTD,
         prevYTD: acc.prevYTD + nodo.totalPrevYTD
-      };
-    }, crearAcumulador());
+      }),
+      crearAcumulador()
+    );
 
     const clase = (principal.clase || '').toLowerCase();
     const sign = clase.includes('expense') ? -1 : 1;
@@ -580,6 +618,7 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
       ...totalesPrincipal,
       total: totalesPrincipal.actualYTD,
       orden: principal.orden,
+      ordenIndex: principal.ordenIndex ?? 0,
       consolidadoLabel: normalizarConfigValor(principal.consolidadoLabel),
       operativoLabel: normalizarConfigValor(principal.operativoLabel),
       operativoConsolidado: normalizarConfigValor(principal.operativoConsolidado),
@@ -590,23 +629,7 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
       sign,
       esVirtual: Boolean(principal.esVirtual)
     };
-  }).sort((a, b) => a.orden - b.orden);
-
-  const esCapituloConsolidado =
-    capituloClave.includes('CIUDAD') ||
-    capituloClave.includes('MEXICO') ||
-    capituloClave.includes('MÉXICO');
-
-  if (esCapituloConsolidado) {
-    const normalizarEtiqueta = (valor = '') => valor.toString().trim().toUpperCase();
-    const otherPrincipal = principalList.find((principal) => normalizarEtiqueta(principal.label) === 'OTHER');
-    if (otherPrincipal) {
-      otherPrincipal.label = 'Other (Mexico)';
-    }
-    principalList = principalList.filter(
-      (principal) => !(principal.esVirtual && normalizarEtiqueta(principal.label) === 'OTHER (MEXICO)')
-    );
-  }
+  }).sort(sortByOrden);
 
   const normalizarEtiqueta = (valor = '') => valor.toString().trim().toUpperCase();
 
@@ -683,7 +706,10 @@ const combinarTotales = (a = {}, b = {}, factor = 1) => ({
     if (!mapa.has(clave)) {
       mapa.set(clave, {
         label: etiquetaLimpia,
-        orden: ordenMapa.has(etiquetaLimpia) ? ordenMapa.get(etiquetaLimpia) : mapa.size + ordenMapa.size,
+        orden: ordenMapa.has(etiquetaLimpia)
+          ? ordenMapa.get(etiquetaLimpia)
+          : mapa.size + ordenMapa.size,
+        ordenIndex: mapa.size,
         totals: crearAcumulador(),
         principals: [],
         operaciones: []
@@ -696,14 +722,15 @@ const combinarTotales = (a = {}, b = {}, factor = 1) => ({
     return agregador;
   };
 
-  const participaEnOperativo = (principal) => {
-    if (!principal || !principal.operativoLabel) return false;
-    const etiqueta = (principal.label || '').toUpperCase();
-    return !etiqueta.includes('MEMBER') && !etiqueta.includes('CENTRICITY') && !etiqueta.includes('OTHER');
-  };
+  const participaEnOperativo = (principal) =>
+    Boolean(principal && principal.operativoLabel);
 
   principalList.forEach((principal) => {
-    const consolidated = ensureAggregator(consolidatedMap, principal.consolidadoLabel || principal.label, consolidadoOrden);
+    const consolidated = ensureAggregator(
+      consolidatedMap,
+      principal.consolidadoLabel,
+      consolidadoOrden
+    );
     if (consolidated) {
       consolidated.principals.push(principal.label);
       consolidated.operaciones.push(describirPrincipalOperacion(principal, 1));
@@ -735,220 +762,38 @@ const combinarTotales = (a = {}, b = {}, factor = 1) => ({
       sumarTotales(resultRow.totals, principal, principal.sign);
     }
 
-    ensureAggregator(netRowMap, principal.netRow, netOrden);
-    ensureAggregator(netRowMap, principal.netRowAdicional, netOrden);
-    ensureAggregator(finalRowMap, principal.resultNetRow, finalOrden);
+    const netRow = ensureAggregator(netRowMap, principal.netRow, netOrden);
+    if (netRow) {
+      netRow.principals.push(principal.label);
+      netRow.operaciones.push(describirPrincipalOperacion(principal));
+      sumarTotales(netRow.totals, principal, principal.sign);
+    }
+
+    const netRowAdicional = ensureAggregator(
+      netRowMap,
+      principal.netRowAdicional,
+      netOrden
+    );
+    if (netRowAdicional) {
+      netRowAdicional.principals.push(principal.label);
+      netRowAdicional.operaciones.push(describirPrincipalOperacion(principal));
+      sumarTotales(netRowAdicional.totals, principal, principal.sign);
+    }
+
+    const finalRow = ensureAggregator(
+      finalRowMap,
+      principal.resultNetRow,
+      finalOrden
+    );
+    if (finalRow) {
+      finalRow.principals.push(principal.label);
+      finalRow.operaciones.push(describirPrincipalOperacion(principal));
+      sumarTotales(finalRow.totals, principal, principal.sign);
+    }
   });
 
-  // Construir layout intercalando Principales, Secundarias y Sumas en orden jerárquico
-  // ORDEN PARA RESUMEN:
-  // Para CIUDAD DE MÉXICO (capítulo consolidado):
-  //   1. Secciones INCOME (CDMX Income, Guadalajara Income, etc.)
-  //   2. CONSOLIDATED INCOME
-  //   3. Secciones EXPENSE
-  //   4. CONSOLIDATED EXPENSES
-  //   5. OPERATING RESULTS por capítulo
-  //   6. CONSOLIDATED OPERATING RESULTS
-  //   7. Member Centricity, Other (por región)
-  //   8. NET RESULTS por capítulo
-  //   9. CONSOLIDATED NET RESULTS
-  //
-  // Para otros capítulos (GUADALAJARA, NORESTE, NOROESTE):
-  //   1. Secciones INCOME → Total INCOME
-  //   2. Secciones EXPENSE → Total EXPENSE
-  //   3. OPERATING RESULTS (= INCOME - EXPENSE)
-  //   4. Member Centricity
-  //   5. Other
-  //   6. NET RESULTS (= OPERATING RESULTS - Member Centricity + Other)
-  
-  let ordenGeneral = 0;
-  const siguienteOrden = () => {
-    ordenGeneral += 1;
-    return ordenGeneral;
-  };
-
   const layout = [];
-  
-  const establecerNetRowSegunFormula = ({ netLabel, operLabel, ajustes = [] }) => {
-    if (!netLabel || !operLabel) return;
-    const netRow = ensureAggregator(netRowMap, netLabel, netOrden);
-    if (!netRow) return;
-    netRow.totals = crearAcumulador();
-    netRow.principals = [];
-    netRow.operaciones = [];
-
-    const operRow = operativoRowMap.get(operLabel);
-    if (operRow) {
-      sumarTotales(netRow.totals, operRow.totals, 1);
-      netRow.principals.push(operRow.label);
-      netRow.operaciones.push({ principal: operRow.label, factor: 1, sections: operRow.principals || [] });
-    }
-
-    ajustes.forEach(({ label, factor = 1 }) => {
-      const objetivoLabel = label || '';
-      const principalAjuste = obtenerPrincipalPorEtiqueta(objetivoLabel);
-      if (principalAjuste) {
-        sumarTotales(netRow.totals, principalAjuste, factor);
-        netRow.principals.push(principalAjuste.label);
-        netRow.operaciones.push(describirPrincipalOperacion(principalAjuste, factor));
-        return;
-      }
-      const seccionAjuste = obtenerSeccionPorEtiqueta(objetivoLabel);
-      if (seccionAjuste) {
-        const totalesSeccion = convertirSeccionATotales(seccionAjuste);
-        if (process.env.DEBUG_NET_FORMULAS === '1') {
-          console.log('[debug-net] Ajuste sección', {
-            netLabel,
-            seccion: seccionAjuste.label,
-            factor,
-            totales: totalesSeccion
-          });
-        }
-        sumarTotales(netRow.totals, totalesSeccion, factor);
-        netRow.principals.push(seccionAjuste.label);
-        netRow.operaciones.push({
-          principal: seccionAjuste.label,
-          factor,
-          sections: [seccionAjuste.label]
-        });
-      }
-    });
-  };
-
-  if (esCapituloConsolidado) {
-    const netConfig = [
-      {
-        netLabel: 'NET RESULTS MEXICO',
-        operLabel: 'OPERATING RESULTS MEXICO',
-        ajustes: [
-          { label: 'Member Centricity', factor: -1 },
-          { label: 'Other (Mexico)', factor: 1 }
-        ]
-      },
-      {
-        netLabel: 'NET RESULTS GUADALAJARA',
-        operLabel: 'OPERATING RESULTS GUADALAJARA',
-        ajustes: [
-          { label: 'Guadalajara Other Income', factor: 1 }
-        ]
-      },
-      {
-        netLabel: 'NET RESULTS MONTERREY',
-        operLabel: 'OPERATING RESULTS MONTERREY',
-        ajustes: [
-          { label: 'Monterrey Other Income', factor: 1 }
-        ]
-      },
-      {
-        netLabel: 'NET RESULTS NORTHWEST',
-        operLabel: 'OPERATING RESULTS NORTHWEST',
-        ajustes: [
-          { label: 'Northwest Other Income', factor: 1 }
-        ]
-      }
-    ];
-
-    netConfig.forEach(establecerNetRowSegunFormula);
-
-    const finalRow = ensureAggregator(finalRowMap, 'CONSOLIDATED NET RESULTS', finalOrden);
-    if (finalRow) {
-      finalRow.totals = crearAcumulador();
-      finalRow.principals = [];
-      finalRow.operaciones = [];
-      netConfig.forEach(({ netLabel }) => {
-        const netRow = netRowMap.get(netLabel);
-        if (netRow) {
-          sumarTotales(finalRow.totals, netRow.totals, 1);
-          finalRow.principals.push(netRow.label);
-        }
-      });
-    }
-  } else {
-    establecerNetRowSegunFormula({
-      netLabel: 'NET RESULTS',
-      operLabel: 'OPERATING RESULTS',
-      ajustes: [
-        { label: 'Member Centricity', factor: -1 },
-        { label: 'Other', factor: 1 }
-      ]
-    });
-  }
-  // Clasificar principales por tipo (INCOME, EXPENSE, OTHER, MEMBER CENTRICITY)
-  const esIncome = (label) => {
-    const upper = (label || '').toUpperCase();
-    return upper.includes('INCOME') && !upper.includes('OTHER') && !upper.includes('CONSOLIDATED');
-  };
-  const esExpense = (label) => {
-    const upper = (label || '').toUpperCase();
-    return upper.includes('EXPENSE') && !upper.includes('CONSOLIDATED');
-  };
-  const esMemberCentricity = (label) => {
-    const upper = (label || '').toUpperCase();
-    return upper.includes('MEMBER') || upper.includes('CENTRICITY');
-  };
-  const esOther = (label) => {
-    const upper = (label || '').toUpperCase();
-    return upper.includes('OTHER');
-  };
-  
-  const principalesVisibles = principalList.filter(p => !p.esVirtual);
-  const principalesIncome = principalesVisibles.filter(p => esIncome(p.label));
-  const principalesExpense = principalesVisibles.filter(p => esExpense(p.label));
-  const principalesMember = principalesVisibles.filter(p => esMemberCentricity(p.label));
-  const principalesOther = principalesVisibles.filter(p => esOther(p.label));
-  const principalesRestantes = principalesVisibles.filter(p => 
-    !esIncome(p.label) && !esExpense(p.label) && !esMemberCentricity(p.label) && !esOther(p.label)
-  );
-  const principalLabels = new Set(principalesVisibles.map((p) => (p.label || '').toUpperCase().trim()));
-
-  if (!esCapituloConsolidado) {
-    const etiquetaOper = 'OPERATING RESULTS';
-    const operKey = claveEtiqueta(etiquetaOper);
-    if (!operativoRowMap.has(operKey)) {
-      const operRow = ensureAggregator(operativoRowMap, etiquetaOper, operativoOrden);
-      if (operRow) {
-        operRow.totals = crearAcumulador();
-        operRow.principals = [];
-        operRow.operaciones = [];
-        principalesIncome.forEach((principal) => {
-          sumarTotales(operRow.totals, principal, 1);
-          operRow.principals.push(principal.label);
-          operRow.operaciones.push(describirPrincipalOperacion(principal, 1));
-        });
-        principalesExpense.forEach((principal) => {
-          sumarTotales(operRow.totals, principal, -1);
-          operRow.principals.push(principal.label);
-          operRow.operaciones.push(describirPrincipalOperacion(principal, -1));
-        });
-      }
-    }
-
-    const etiquetaCapitulo = (() => {
-      if (capituloClave === 'GUADALAJARA') return 'GDL OPERATING RESULTS';
-      if (capituloClave === 'NORESTE' || capituloClave === 'NE') return 'NE OPERATING RESULTS';
-      if (capituloClave === 'NOROESTE' || capituloClave === 'NO' || capituloClave === 'NORTHWEST') {
-        return 'NO OPERATING RESULTS';
-      }
-      return '';
-    })();
-    if (etiquetaCapitulo) {
-      const capKey = claveEtiqueta(etiquetaCapitulo);
-      const operBase = operativoRowMap.get(operKey);
-      if (operBase && !operativoRowMap.has(capKey)) {
-        const operRowCap = ensureAggregator(operativoRowMap, etiquetaCapitulo, operativoOrden);
-        if (operRowCap) {
-          operRowCap.totals = crearAcumulador();
-          sumarTotales(operRowCap.totals, operBase.totals, 1);
-          operRowCap.principals = Array.isArray(operBase.principals)
-            ? operBase.principals.slice()
-            : [];
-          operRowCap.operaciones = Array.isArray(operBase.operaciones)
-            ? operBase.operaciones.slice()
-            : [];
-        }
-      }
-    }
-  }
+  const layoutOps = [];
 
   // Función para agregar un principal con sus secundarias y cuentas
   const agregarPrincipalConHijos = (principal) => {
@@ -958,7 +803,8 @@ const combinarTotales = (a = {}, b = {}, factor = 1) => ({
     layout.push({
       type: 'principal',
       label: principal.label,
-      order: siguienteOrden(),
+      order: Number.isFinite(Number(principal.orden)) ? Number(principal.orden) : 0,
+      orderIndex: principal.ordenIndex ?? 0,
       totals: {
         actualMonth: principal.actualMonth,
         planMonth: principal.planMonth,
@@ -979,26 +825,34 @@ const combinarTotales = (a = {}, b = {}, factor = 1) => ({
       layout.push({
         type: 'secundaria',
         label: secundaria.label,
-        order: siguienteOrden(),
+        order: Number.isFinite(Number(secundaria.orden))
+          ? Number(secundaria.orden)
+          : Number.isFinite(Number(principal.orden)) ? Number(principal.orden) : 0,
+        orderIndex: secundaria.ordenIndex ?? 0,
         totals: {
           actualMonth: secundaria.totalActualMonth,
           planMonth: secundaria.totalPlanMonth,
           prevMonth: secundaria.totalPrevMonth,
           actualYTD: secundaria.totalActualYTD,
           planYTD: secundaria.totalPlanYTD,
-          prevYTD: secundaria.totalPrevYTD,
-          excludeFromExpense: secundaria.excludeFromExpense || false
+          prevYTD: secundaria.totalPrevYTD
         },
         cuentas: secundaria.cuentas || []
       });
       
       (secundaria.cuentas || []).forEach((cuenta) => {
+        const cuentaOrden = Number.isFinite(Number(cuenta.orden))
+          ? Number(cuenta.orden)
+          : Number.isFinite(Number(secundaria.orden))
+          ? Number(secundaria.orden)
+          : Number.isFinite(Number(principal.orden)) ? Number(principal.orden) : 0;
         layout.push({
           type: 'cuenta',
           label: cuenta.label,
           nombre: cuenta.descripcion || cuenta.label,
           cuenta: cuenta.cuenta,
-          order: siguienteOrden(),
+          order: cuentaOrden,
+          orderIndex: cuenta.ordenIndex ?? 0,
           totals: {
             actualMonth: cuenta.actualMonth,
             planMonth: cuenta.planMonth,
@@ -1014,211 +868,51 @@ const combinarTotales = (a = {}, b = {}, factor = 1) => ({
 
   // Función para agregar una fila de consolidación
   const agregarFilaConsolidacion = (row, tipo) => {
-    if (!row) return;
-    layout.push({
+    if (!row || !row.label) return;
+    layoutOps.push({
       type: tipo,
       label: row.label,
-      order: siguienteOrden(),
+      order: Number.isFinite(Number(row.orden)) ? Number(row.orden) : 0,
+      orderIndex: Number.isFinite(Number(row.ordenIndex)) ? Number(row.ordenIndex) : 0,
       totals: row.totals,
       principals: row.principals || [],
       operaciones: row.operaciones || []
     });
   };
 
-  // Buscar fila consolidada por etiqueta (parcial)
-  const buscarConsolidado = (mapa, busqueda) => {
-    const upper = (busqueda || '').toUpperCase();
-    return Array.from(mapa.values()).find(row => 
-      (row.label || '').toUpperCase().includes(upper)
-    );
+  principalList.forEach(agregarPrincipalConHijos);
+
+  Array.from(consolidatedMap.values()).forEach((row) =>
+    agregarFilaConsolidacion(row, 'group')
+  );
+  Array.from(operativoRowMap.values()).forEach((row) =>
+    agregarFilaConsolidacion(row, 'result')
+  );
+  Array.from(resultRowMap.values()).forEach((row) =>
+    agregarFilaConsolidacion(row, 'result')
+  );
+  Array.from(netRowMap.values()).forEach((row) =>
+    agregarFilaConsolidacion(row, 'net')
+  );
+  Array.from(finalRowMap.values()).forEach((row) =>
+    agregarFilaConsolidacion(row, 'final')
+  );
+
+  const sortLayoutOps = (a = {}, b = {}) => {
+    const orderA = Number.isFinite(Number(a.order)) ? Number(a.order) : 0;
+    const orderB = Number.isFinite(Number(b.order)) ? Number(b.order) : 0;
+    if (orderA !== orderB) return orderA - orderB;
+    const idxA = Number.isFinite(Number(a.orderIndex)) ? Number(a.orderIndex) : 0;
+    const idxB = Number.isFinite(Number(b.orderIndex)) ? Number(b.orderIndex) : 0;
+    return idxA - idxB;
   };
 
-  // Buscar fila exacta o genérica
-  const buscarFilaExacta = (mapa, busqueda) => {
-    const upper = (busqueda || '').toUpperCase().trim();
-    // Primero buscar coincidencia exacta
-    let found = Array.from(mapa.values()).find(row => 
-      (row.label || '').toUpperCase().trim() === upper
-    );
-    // Si no hay exacta, buscar parcial
-    if (!found) {
-      found = Array.from(mapa.values()).find(row => 
-        (row.label || '').toUpperCase().includes(upper)
-      );
-    }
-    return found;
-  };
-
-  if (esCapituloConsolidado) {
-    // ===== LÓGICA PARA CIUDAD DE MÉXICO (CAPÍTULO CONSOLIDADO) =====
-    
-    // 1. Agregar todas las secciones INCOME
-    principalesIncome.forEach(agregarPrincipalConHijos);
-    
-    // 2. CONSOLIDATED INCOME (después de todos los incomes)
-    agregarFilaConsolidacion(buscarConsolidado(consolidatedMap, 'CONSOLIDATED INCOME'), 'group');
-    
-    // 3. Agregar todas las secciones EXPENSE
-    principalesExpense.forEach(agregarPrincipalConHijos);
-    
-    // 4. CONSOLIDATED EXPENSES (después de todos los expenses)
-    agregarFilaConsolidacion(buscarConsolidado(consolidatedMap, 'CONSOLIDATED EXPENSE'), 'group');
-    
-    // 5. OPERATING RESULTS por capítulo (en orden: Mexico, Guadalajara, Monterrey/NE, Northwest/NO)
-    const operatingResultsOrden = ['MEXICO', 'GUADALAJARA', 'MONTERREY', 'NORESTE', 'NE', 'NORTHWEST', 'NOROESTE', 'NO'];
-    const operatingResultsAgregados = new Set();
-    
-    operatingResultsOrden.forEach(region => {
-      const opResult = Array.from(operativoRowMap.values()).find(row => {
-        const label = (row.label || '').toUpperCase();
-        return label.includes('OPERATING') && label.includes('RESULT') && 
-               label.includes(region) && !label.includes('CONSOLIDATED');
-      });
-      if (opResult && !operatingResultsAgregados.has(opResult.label)) {
-        agregarFilaConsolidacion(opResult, 'result');
-        operatingResultsAgregados.add(opResult.label);
-      }
-    });
-    
-    // 6. CONSOLIDATED OPERATING RESULTS
-    agregarFilaConsolidacion(buscarConsolidado(resultRowMap, 'CONSOLIDATED OPERATING'), 'result');
-    
-    // 7. Member Centricity y Other (en orden)
-    principalesMember.forEach(agregarPrincipalConHijos);
-    principalesOther.forEach(agregarPrincipalConHijos);
-
-    const otrosIngresosEtiquetas = [
-      'Guadalajara Other Income',
-      'Monterrey Other Income',
-      'Northwest Other Income'
-    ];
-    otrosIngresosEtiquetas.forEach((etiqueta) => {
-      agregarFilaConsolidacion(buscarConsolidado(consolidatedMap, etiqueta), 'group');
-    });
-    
-    // 8. Principales restantes
-    principalesRestantes.forEach(agregarPrincipalConHijos);
-    
-    // 9. NET RESULTS por capítulo (en orden: Mexico, Guadalajara, Monterrey/NE, Northwest/NO)
-    const netResultsOrden = ['MEXICO', 'GUADALAJARA', 'MONTERREY', 'NORESTE', 'NE', 'NORTHWEST', 'NOROESTE', 'NO'];
-    const netResultsAgregados = new Set();
-    
-    netResultsOrden.forEach(region => {
-      const netResult = Array.from(netRowMap.values()).find(row => {
-        const label = (row.label || '').toUpperCase();
-        return label.includes('NET') && label.includes('RESULT') && label.includes(region);
-      });
-      if (netResult && !netResultsAgregados.has(netResult.label)) {
-        agregarFilaConsolidacion(netResult, 'net');
-        netResultsAgregados.add(netResult.label);
-      }
-    });
-    
-    // 10. CONSOLIDATED NET RESULTS
-    agregarFilaConsolidacion(buscarConsolidado(finalRowMap, 'CONSOLIDATED NET'), 'final');
-    
-  } else {
-    // ===== LÓGICA PARA CAPÍTULOS SIMPLES (GUADALAJARA, NORESTE, NOROESTE) =====
-    // Orden: INCOME → EXPENSE → OPERATING RESULTS → Member Centricity → Other → NET RESULTS
-    
-    // 1. Agregar secciones INCOME
-    principalesIncome.forEach(agregarPrincipalConHijos);
-    
-    // 2. Agregar secciones EXPENSE
-    principalesExpense.forEach(agregarPrincipalConHijos);
-    
-    // 3. OPERATING RESULTS (= INCOME - EXPENSE)
-    agregarFilaConsolidacion(buscarFilaExacta(operativoRowMap, 'OPERATING RESULTS'), 'result');
-    
-    // 4. Member Centricity
-    principalesMember.forEach(agregarPrincipalConHijos);
-    
-    // 5. Other
-    principalesOther.forEach(agregarPrincipalConHijos);
-    
-    // 6. Principales restantes
-    principalesRestantes.forEach(agregarPrincipalConHijos);
-    
-    // 7. NET RESULTS (= OPERATING RESULTS - Member Centricity + Other)
-    agregarFilaConsolidacion(buscarFilaExacta(netRowMap, 'NET RESULTS'), 'net');
-  }
-  
-  // Agregar cualquier fila de consolidación que no se haya agregado todavía
-  const filasAgregadas = new Set(layout.filter(l => ['group', 'result', 'net', 'final'].includes(l.type)).map(l => l.label));
-  const esEtiquetaPrincipal = (label = '') => principalLabels.has((label || '').toUpperCase().trim());
-  const etiquetasSobrantesConsolidado = new Set([
-    'OTHER (MEXICO)',
-    'GUADALAJARA OTHER INCOME',
-    'MONTERREY OTHER INCOME',
-    'NORTHWEST OTHER INCOME',
-    'MEMBER CENTRICITY',
-    'OTHER'
-  ]);
-  const debeExcluirFilaExtra = (label = '') => etiquetasSobrantesConsolidado.has((label || '').toUpperCase().trim());
-
-  Array.from(consolidatedMap.values())
-    .filter(row => !filasAgregadas.has(row.label) && !esEtiquetaPrincipal(row.label) && !debeExcluirFilaExtra(row.label))
-    .sort((a, b) => a.orden - b.orden)
-    .forEach(row => agregarFilaConsolidacion(row, 'group'));
-    
-  Array.from(operativoRowMap.values())
-    .filter(row => !filasAgregadas.has(row.label))
-    .sort((a, b) => a.orden - b.orden)
-    .forEach(row => agregarFilaConsolidacion(row, 'result'));
-    
-  Array.from(resultRowMap.values())
-    .filter(row => !filasAgregadas.has(row.label))
-    .sort((a, b) => a.orden - b.orden)
-    .forEach(row => agregarFilaConsolidacion(row, 'result'));
-    
-  Array.from(netRowMap.values())
-    .filter(row => !filasAgregadas.has(row.label))
-    .sort((a, b) => a.orden - b.orden)
-    .forEach(row => agregarFilaConsolidacion(row, 'net'));
-    
-  Array.from(finalRowMap.values())
-    .filter(row => !filasAgregadas.has(row.label))
-    .sort((a, b) => a.orden - b.orden)
-    .forEach(row => agregarFilaConsolidacion(row, 'final'));
-
-  // Ajustes especiales para Comités (solo Resumen)
-  const aplicarAjustesComites = () => {
-    const normalizar = (valor = '') => claveEtiqueta(valor);
-    const buscarBloque = (etiquetaBuscada) =>
-      layout.find((b) => normalizar(b.label) === normalizar(etiquetaBuscada));
-
-    const sumIng = buscarBloque('Suma de Ingresos Comités');
-    const sumGas = buscarBloque('Suma de Gastos Comités');
-    const sumComisiones = buscarBloque('Suma de Comisiones');
-    const sumGastosAdmin = buscarBloque('Suma Gastos Administrativos');
-    const resOperativo = buscarBloque('Resultado Operativo Comités');
-    const resComites = buscarBloque('Resultado Comités');
-
-    if (!sumIng || !sumGas) return;
-
-    const operTot = combinarTotales(sumIng.totals, sumGas.totals, -1);
-    if (resOperativo) {
-      resOperativo.totals = operTot;
-    }
-
-    const cap = claveEtiqueta(capituloSeleccionado || '');
-    let ajuste = null;
-    if (cap.includes('CIUDAD') || cap.includes('MEXICO') || cap.includes('MÉXICO')) {
-      ajuste = sumGastosAdmin?.totals || null;
-    } else if (['GUADALAJARA', 'NORESTE', 'NE', 'NOROESTE', 'NO', 'NORTHWEST'].some((t) => cap.includes(t))) {
-      ajuste = sumComisiones?.totals || null;
-    }
-
-    if (resComites) {
-      resComites.totals = ajuste ? combinarTotales(operTot, ajuste, -1) : operTot;
-    }
-  };
-
-  aplicarAjustesComites();
+  layoutOps.sort(sortLayoutOps);
+  const layoutFinal = layout.concat(layoutOps);
 
   return {
     principals: principalList,
-    layout
+    layout: layoutFinal
   };
 };
 
@@ -1268,20 +962,21 @@ async function generarReporte(tipoReporte, empresaId, anio, mesSeleccionado, cap
     .map((item) => NORMALIZAR_CLAVE(item.CUENTA))
     .filter(Boolean);
   const claveMes = normalizarClaveMes(mesSeleccionado) || MESES[Math.min(Math.max(new Date().getMonth(), 0), 11)].clave;
-  const anioPrevio = Number(anio) - 1;
+  const mesNumero = MESES.find(({ clave }) => clave === claveMes)?.periodo
+    ?? Math.min(Math.max(new Date().getMonth() + 1, 1), 12);
 
-  const [planeacionActual, planeacionPrev] = await Promise.all([
-    obtenerDatosPlaneacion({ empresaId, anio, cuentas }),
-    obtenerDatosPlaneacion({ empresaId, anio: anioPrevio, cuentas })
-  ]);
+  const planeacionData = await obtenerDatosPlaneacionResumen({
+    empresaId,
+    anio,
+    mes: mesNumero,
+    cuentas
+  });
 
   const { principals, layout } = construirReporteResumen(
     listaFiltrada, 
     configAgrupacion,
     capituloEncontrado?.etiqueta || capituloSeleccionado,
-    claveMes,
-    planeacionActual,
-    planeacionPrev
+    planeacionData
   );
 
   const nodoResumen = {

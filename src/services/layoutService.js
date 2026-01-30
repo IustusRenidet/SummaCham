@@ -7,6 +7,15 @@ const { EMPRESAS } = require("../config/empresas");
 const db = require("../db/sqlite").db;
 
 const CANONICAL_EMPRESA_DEFAULT = "EMPRESA01";
+// Fallbacks desactivados: no autoclone ni herencia implícita de layouts.
+const AUTO_LAYOUT_CLONE = false;
+// Alias explícito de layouts para comparativas (no es fallback).
+const LAYOUT_EMPRESA_ALIAS = {
+  EMPRESA09: "EMPRESA01",
+  EMPRESA10: "EMPRESA02",
+  EMPRESA11: "EMPRESA03",
+  EMPRESA12: "EMPRESA04",
+};
 
 const generarVariantesEmpresa = (empresaId = CANONICAL_EMPRESA_DEFAULT) => {
   const variantes = new Set();
@@ -70,6 +79,11 @@ const obtenerEmpresaCanonica = (empresaId = CANONICAL_EMPRESA_DEFAULT) => {
   return (
     canonica || variantes[variantes.length - 1] || CANONICAL_EMPRESA_DEFAULT
   );
+};
+
+const resolverEmpresaLayoutSource = (empresaId = CANONICAL_EMPRESA_DEFAULT) => {
+  const canonica = obtenerEmpresaCanonica(empresaId);
+  return LAYOUT_EMPRESA_ALIAS[canonica] || canonica;
 };
 
 const existeLayoutAnio = ({ empresaId, modulo, anio }) => {
@@ -141,7 +155,7 @@ const buscarAnioReferencia = ({ empresaId, modulo, anio }) => {
 };
 
 const asegurarLayoutAnio = ({ empresaId, modulo, anio }) => {
-  const empresaCanonica = obtenerEmpresaCanonica(empresaId);
+  const empresaCanonica = resolverEmpresaLayoutSource(empresaId);
   const anioNumero = Number(anio);
   if (!Number.isInteger(anioNumero)) {
     return false;
@@ -199,24 +213,8 @@ const resolverEmpresaConsulta = ({ empresaId, modulo, anio }) => {
       return candidata;
     }
   }
-  const canonSolicitada = obtenerEmpresaCanonica(empresaId);
-  const canonBase = obtenerEmpresaCanonica("EMPRESA01");
-  if (canonBase && canonBase !== canonSolicitada) {
-    const rowFallback = db
-      .prepare(
-        `
-      SELECT COUNT(*) as total
-      FROM layout_cuentas
-      WHERE empresa_id = ? AND modulo = ? AND anio = ?
-      LIMIT 1
-    `
-      )
-      .get(canonBase, modulo, anio);
-    if (rowFallback && rowFallback.total > 0) {
-      return canonBase;
-    }
-  }
-  return canonSolicitada;
+  // Sin fallback a EMPRESA01 ni a otras empresas.
+  return obtenerEmpresaCanonica(empresaId);
 };
 
 const construirRespuestaLayout = ({
@@ -246,7 +244,7 @@ const eliminarLayoutCapitulo = ({
   anio,
   capitulo,
 }) => {
-  const empresaCanonica = obtenerEmpresaCanonica(empresaId);
+  const empresaCanonica = resolverEmpresaLayoutSource(empresaId);
   const anioNumero = Number(anio);
   if (!modulo || !Number.isInteger(anioNumero) || !capitulo) {
     return { success: false };
@@ -386,7 +384,7 @@ const crearLayoutDemo = ({
   capitulo,
   overwrite = false,
 }) => {
-  const empresaCanonica = obtenerEmpresaCanonica(empresaId);
+  const empresaCanonica = resolverEmpresaLayoutSource(empresaId);
   const anioNumero = Number(anio);
   const capituloObjetivo = capitulo || "DEFAULT";
   if (!modulo || !Number.isInteger(anioNumero)) {
@@ -460,12 +458,14 @@ const obtenerLayout = ({
 }) => {
   const anioNumero = Number(anio);
   const moduloNorm = (modulo || "").toString().trim().toUpperCase();
-  const empresaCanonica = obtenerEmpresaCanonica(empresaId);
+  const empresaCanonica = resolverEmpresaLayoutSource(empresaId);
 
   console.log(`[obtenerLayout] Solicitado: empresaId=${empresaId}, modulo=${modulo}, anio=${anio}, capitulo=${capitulo}`);
   console.log(`[obtenerLayout] Empresa canónica: ${empresaCanonica}`);
 
-  asegurarLayoutAnio({ empresaId: empresaCanonica, modulo, anio: anioNumero });
+  if (AUTO_LAYOUT_CLONE) {
+    asegurarLayoutAnio({ empresaId: empresaCanonica, modulo, anio: anioNumero });
+  }
   const empresaConsulta = resolverEmpresaConsulta({
     empresaId: empresaCanonica,
     modulo,
@@ -492,7 +492,7 @@ const obtenerLayout = ({
       visible
     FROM layout_cuentas
     WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ?
-    ORDER BY COALESCE(orden_presentacion, orden) ASC, cuenta ASC
+    ORDER BY COALESCE(orden_presentacion, orden) ASC
   `
       )
       .all(empresaConsulta, modulo, anioObjetivo, capituloObjetivo);
@@ -573,31 +573,7 @@ const obtenerLayout = ({
   );
   let anioUsado = anioNumero;
 
-  const requiereFallback =
-    (!cuentas || !cuentas.length) &&
-    (moduloNorm === "SUMMARY" || moduloNorm === "RESUMEN") &&
-    Number.isInteger(anioNumero) &&
-    anioNumero < 2025;
-
-  if (requiereFallback) {
-    const row = db
-      .prepare(
-        `
-      SELECT MAX(anio) as anio
-      FROM layout_cuentas
-      WHERE empresa_id = ? AND modulo = ? AND anio <= ?
-    `
-      )
-      .get(empresaConsulta, modulo, 2025);
-    const fallbackYear = row && row.anio ? Number(row.anio) : 2025;
-    if (fallbackYear) {
-      const cuentasFallback = normalizarCuentas(consultarCuentas(fallbackYear));
-      if (cuentasFallback && cuentasFallback.length) {
-        cuentas = cuentasFallback.map(normalizarSeccionesCuenta);
-        anioUsado = fallbackYear;
-      }
-    }
-  }
+  // Sin fallback automático: respetar el año solicitado y dejar vacío si no hay datos.
 
   const incluirSeccionesFlag =
     incluirSecciones === true ||
@@ -854,8 +830,10 @@ const obtenerLayout = ({
 const obtenerCapitulos = ({ empresaId = "EMPRESA01", modulo, anio }) => {
   const anioNumero = Number(anio);
   const moduloNorm = (modulo || "").toString().trim().toUpperCase();
-  const empresaCanonica = obtenerEmpresaCanonica(empresaId);
-  asegurarLayoutAnio({ empresaId: empresaCanonica, modulo, anio: anioNumero });
+  const empresaCanonica = resolverEmpresaLayoutSource(empresaId);
+  if (AUTO_LAYOUT_CLONE) {
+    asegurarLayoutAnio({ empresaId: empresaCanonica, modulo, anio: anioNumero });
+  }
   const empresaConsulta = resolverEmpresaConsulta({
     empresaId: empresaCanonica,
     modulo,
@@ -873,24 +851,7 @@ const obtenerCapitulos = ({ empresaId = "EMPRESA01", modulo, anio }) => {
     )
     .all(empresaConsulta, modulo, anioNumero);
 
-  const requiereFallback =
-    (!capitulos || !capitulos.length) &&
-    (moduloNorm === "SUMMARY" || moduloNorm === "RESUMEN") &&
-    Number.isInteger(anioNumero) &&
-    anioNumero < 2025;
-
-  if (requiereFallback) {
-    capitulos = db
-      .prepare(
-        `
-      SELECT DISTINCT capitulo
-      FROM layout_cuentas
-      WHERE empresa_id = ? AND modulo = ? AND anio = ?
-      ORDER BY capitulo ASC
-    `
-      )
-      .all(empresaConsulta, modulo, 2025);
-  }
+  // Sin fallback automático: devolver capítulos del año solicitado.
 
   return (capitulos || []).map((c) => ({ capitulo: c.capitulo }));
 };
@@ -900,7 +861,7 @@ const obtenerCapitulos = ({ empresaId = "EMPRESA01", modulo, anio }) => {
  */
 
 const obtenerAniosDisponibles = ({ empresaId = "EMPRESA01", modulo }) => {
-  const empresaCanonica = obtenerEmpresaCanonica(empresaId);
+  const empresaCanonica = resolverEmpresaLayoutSource(empresaId);
   const anios = db
     .prepare(
       `
@@ -1480,7 +1441,7 @@ const actualizarCuenta = ({
   const update = db.prepare(`
     UPDATE layout_cuentas
     SET cuenta = ?, nombre = ?, seccion_principal = ?, seccion_secundaria = ?,
-        operacion_factor = ?, orden = ?
+        operacion_factor = ?, orden = ?, orden_presentacion = ?
     WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ? AND cuenta = ?
   `);
 
@@ -1493,7 +1454,7 @@ const actualizarCuenta = ({
   const operacionFactorFinal = Number.isFinite(operacionFactor)
     ? operacionFactor
     : 1;
-  const ordenRaw = datos.orden ?? datos.orden_presentacion;
+  const ordenRaw = datos.orden_presentacion ?? datos.orden;
   const ordenFinal = Number.isFinite(Number(ordenRaw)) ? Number(ordenRaw) : 1;
 
   const result = update.run(
@@ -1502,6 +1463,7 @@ const actualizarCuenta = ({
     datos.seccion_principal,
     datos.seccion_secundaria || "",
     operacionFactorFinal,
+    ordenFinal,
     ordenFinal,
     empresaCanonica,
     modulo,
@@ -1548,14 +1510,17 @@ const reordenarCuentas = ({
 
   const update = db.prepare(`
     UPDATE layout_cuentas
-    SET orden = ?
+    SET orden = ?, orden_presentacion = ?
     WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ? AND cuenta = ?
   `);
 
   const transaction = db.transaction(() => {
     orden.forEach((item) => {
+      const ordenValue =
+        item.orden_presentacion ?? item.orden ?? item.Orden ?? 0;
       update.run(
-        item.orden,
+        ordenValue,
+        ordenValue,
         empresaCanonica,
         modulo,
         anio,
@@ -1580,7 +1545,26 @@ const actualizarOperacion = ({
   claseOriginal,
   datos,
 }) => {
-  const empresaCanonica = obtenerEmpresaCanonica(empresaId);
+  const empresaCanonica = resolverEmpresaLayoutSource(empresaId);
+  const capituloObjetivo = capitulo || "DEFAULT";
+
+  const existente = db
+    .prepare(
+      `
+      SELECT orden_presentacion, orden, visible
+      FROM layout_operaciones
+      WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ? AND (clase = ? OR operacion_etiqueta = ?)
+      LIMIT 1
+    `
+    )
+    .get(
+      empresaCanonica,
+      modulo,
+      anio,
+      capituloObjetivo,
+      claseOriginal,
+      claseOriginal
+    );
 
   // Primero eliminar la operación existente
   const del = db.prepare(`
@@ -1591,15 +1575,19 @@ const actualizarOperacion = ({
     empresaCanonica,
     modulo,
     anio,
-    capitulo || "DEFAULT",
+    capituloObjetivo,
     claseOriginal,
     claseOriginal
   );
 
   // Luego insertar la actualizada
   const insert = db.prepare(`
-    INSERT INTO layout_operaciones (empresa_id, modulo, anio, capitulo, clase, operacion_etiqueta, seccion, operacion_tipo, operacion_label, signo, orden, formula_json)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO layout_operaciones (
+      empresa_id, modulo, anio, capitulo, clase, operacion_etiqueta, seccion,
+      operacion_tipo, operacion_label, signo, orden, orden_presentacion,
+      visible, formula_json
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   // Process operaciones object
@@ -1623,21 +1611,31 @@ const actualizarOperacion = ({
     datos.clase ||
     operacionId ||
     claseOriginal;
-  let orden = 1;
+  const ordenRaw =
+    datos.orden_presentacion ??
+    datos.orden ??
+    datos.Orden ??
+    existente?.orden_presentacion ??
+    existente?.orden;
+  const ordenFinal = Number.isFinite(Number(ordenRaw)) ? Number(ordenRaw) : 0;
+  const visibleFinal =
+    datos.visible === false ? 0 : existente?.visible === 0 ? 0 : 1;
   Object.entries(operaciones).forEach(([tipo, label]) => {
     if (label) {
       insert.run(
         empresaCanonica,
         modulo,
         anio,
-        capitulo || "DEFAULT",
+        capituloObjetivo,
         operacionId,
         operacionEtiqueta,
         datos.seccion || "",
         tipo,
         label,
         datos.signo || 1,
-        orden++,
+        ordenFinal,
+        ordenFinal,
+        visibleFinal,
         formulaJson
       );
     }
@@ -1656,7 +1654,7 @@ const eliminarOperacion = ({
   capitulo,
   clase,
 }) => {
-  const empresaCanonica = obtenerEmpresaCanonica(empresaId);
+  const empresaCanonica = resolverEmpresaLayoutSource(empresaId);
 
   const del = db.prepare(`
     DELETE FROM layout_operaciones
@@ -1687,7 +1685,7 @@ const crearSeccion = ({
   principal,
   orden,
 }) => {
-  const empresaCanonica = obtenerEmpresaCanonica(empresaId);
+  const empresaCanonica = resolverEmpresaLayoutSource(empresaId);
 
   const insert = db.prepare(`
     INSERT OR REPLACE INTO layout_secciones (empresa_id, modulo, anio, capitulo, seccion_principal, seccion_secundaria, tipo, orden)

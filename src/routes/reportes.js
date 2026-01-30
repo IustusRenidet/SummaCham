@@ -117,7 +117,44 @@ router.get('/resumen', async (req, res) => {
     res.json(data);
   } catch (errorRes) {
     console.error('Error generando Resumen:', errorRes);
-    res.status(500).json({ mensaje: 'No fue posible generar el reporte de Resumen.' });
+    res.status(500).json({
+      mensaje: 'No fue posible generar el reporte de Resumen.',
+      detalle: errorRes?.message || null
+    });
+  }
+});
+
+// Diagnóstico rápido de conexión Firebird por empresa
+router.get('/diagnostico-firebird', async (req, res) => {
+  const { empresaId } = req.query || {};
+  if (!empresaId) {
+    return res.status(400).json({ mensaje: 'empresaId es requerido.' });
+  }
+  const empresa = obtenerEmpresaPorId(empresaId);
+  if (!empresa) {
+    return res.status(404).json({ mensaje: 'Empresa no encontrada.' });
+  }
+  if (!req.esAdmin && !tienePermisoEmpresa(req.mapaPermisos, empresaId)) {
+    return res.status(403).json({ mensaje: 'No cuentas con permisos para esta empresa.' });
+  }
+  try {
+    const { probarConexion } = require('../services/firebirdService');
+    const ok = await probarConexion(empresaId);
+    return res.json({
+      success: true,
+      empresaId,
+      ok: Boolean(ok),
+      mensaje: ok ? 'Conexion Firebird OK.' : 'Conexion Firebird no disponible.'
+    });
+  } catch (errorDiag) {
+    console.error('Error diagnóstico Firebird:', errorDiag);
+    return res.status(500).json({
+      success: false,
+      empresaId,
+      ok: false,
+      mensaje: 'No fue posible conectar con Firebird.',
+      detalle: errorDiag?.message || null
+    });
   }
 });
 

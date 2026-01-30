@@ -321,9 +321,7 @@
                   <div class="mb-3">
                     <label for="opHoja" class="form-label">Aplicar a</label>
                     <select class="form-select" id="opHoja" required>
-                      <option value="SUMMARY">Solo SUMMARY</option>
                       <option value="RESUMEN">Solo RESUMEN</option>
-                      <option value="AMBOS">SUMMARY y RESUMEN</option>
                     </select>
                   </div>
                 </form>

@@ -10,10 +10,14 @@
   // ==========================================
   // CONFIGURATION
   // ==========================================
-  const API_BASE =
+  const API_ROOT =
     window.location.protocol === "file:"
-      ? "http://localhost:3005/api/layouts-config"
-      : `${window.location.origin}/api/layouts-config`;
+      ? "http://localhost:3005/api"
+      : `${window.location.origin}/api`;
+  const API_BASE = `${API_ROOT}/layouts-config`;
+  const AUTO_OPERACIONES_DISABLED = true;
+  const MANUAL_ORDER_ONLY = true;
+  let bulkRowCounter = 0;
 
   // ==========================================
   // STATE
@@ -201,6 +205,11 @@
     dom.copiaOrigen = document.getElementById("copiaOrigen");
     dom.anioDestino = document.getElementById("anioDestino");
     dom.previewContainer = document.getElementById("previewContainer");
+    dom.bulkModeToggle = document.getElementById("bulkModeToggle");
+    dom.bulkInsertPanel = document.getElementById("bulkInsertPanel");
+    dom.bulkInsertTbody = document.getElementById("bulkInsertTbody");
+    dom.bulkAddRowBtn = document.getElementById("bulkAddRowBtn");
+    dom.singleAddPanel = document.getElementById("singleAddPanel");
 
     // Editor panel
     dom.operationEditorPanel = document.getElementById("operationEditorPanel");
@@ -275,6 +284,16 @@
     document.querySelectorAll('input[name="tipoElemento"]').forEach((radio) => {
       radio.addEventListener("change", updateAddForm);
     });
+
+    dom.bulkModeToggle?.addEventListener("change", () => {
+      setBulkMode(Boolean(dom.bulkModeToggle?.checked));
+    });
+    dom.bulkAddRowBtn?.addEventListener("click", () => {
+      appendBulkRow();
+    });
+    dom.bulkInsertTbody?.addEventListener("click", handleBulkTableClick);
+    dom.bulkInsertTbody?.addEventListener("keydown", handleBulkTableKeydown);
+    dom.bulkInsertTbody?.addEventListener("change", handleBulkTableChange);
   }
 
   // ==========================================
@@ -500,9 +519,10 @@
 
   async function loadYears() {
     try {
-      const url = agregarEmpresaIdQuery(
-        `${API_BASE}/${encodeURIComponent(state.modulo)}/anios`
-      );
+      const empresaId = obtenerEmpresaIdApi();
+      const url = `${API_ROOT}/saldos/anios?empresaId=${encodeURIComponent(
+        empresaId
+      )}`;
       const response = await fetch(url, { headers: getAuthHeaders() });
 
       if (!response.ok) throw new Error("Error al cargar años");
@@ -639,23 +659,13 @@
         state.columnasConfig = null;
         state.columnasConfigChanged = false;
       }
-      const anioNumero = Number(state.anio);
-      const usarPredef =
-        Number.isFinite(anioNumero) && anioNumero >= 2026;
-      let hasPredef = false;
-      if (usarPredef) {
-        await syncOperacionesPredefinidas({ autoCreate: true, force: false });
-        hasPredef =
-          typeof getOperacionesPredefinidasContexto === "function" &&
-          getOperacionesPredefinidasContexto().length > 0;
-      }
-      if (!hasPredef) {
-        syncOperacionesSumasDesdeConfig();
-        syncOperativoPorNombreOps();
-      }
+      // Autogeneración desactivada: no poblar operaciones automáticamente.
       hydrateOperationsFromParents();
+      hydrateOperationPlacement();
+      dedupeOperations();
       ensureOperationIds();
       normalizeOperationReferences();
+      normalizePresentationOrders();
       state.selectedElement = null;
 
       renderLayout();
@@ -714,9 +724,28 @@
   }
 
   function getAccountOrder(cuenta, fallback = 0) {
-    const raw = cuenta?.orden_presentacion ?? cuenta?.orden ?? cuenta?.Orden;
+    const raw = cuenta?.orden_presentacion;
     const parsed = Number(raw);
     return Number.isFinite(parsed) ? parsed : fallback;
+  }
+
+  function sortAccountsByOrder(accounts = []) {
+    return (accounts || [])
+      .map((cuenta, idx) => ({ cuenta, idx }))
+      .sort((a, b) => {
+        const orderA = getAccountOrder(a.cuenta, a.idx);
+        const orderB = getAccountOrder(b.cuenta, b.idx);
+        if (orderA !== orderB) return orderA - orderB;
+        const fallbackA = Number.isFinite(Number(a.cuenta?.orden))
+          ? Number(a.cuenta.orden)
+          : a.idx;
+        const fallbackB = Number.isFinite(Number(b.cuenta?.orden))
+          ? Number(b.cuenta.orden)
+          : b.idx;
+        if (fallbackA !== fallbackB) return fallbackA - fallbackB;
+        return a.idx - b.idx;
+      })
+      .map(({ cuenta }) => cuenta);
   }
 
   function isPlaceholderAccount(cuenta) {
@@ -790,8 +819,7 @@
   }
 
   function getOperationOrder(op, fallback = 0) {
-    const raw =
-      op?.orden_presentacion ?? op?.orden ?? op?.Orden ?? op?.index;
+    const raw = op?.orden_presentacion;
     const parsed = Number(raw);
     return Number.isFinite(parsed) ? parsed : fallback;
   }
@@ -905,6 +933,10 @@
     );
   }
 
+  function normalizeOperationKey(value) {
+    return normalizeOperationMatch(value || "");
+  }
+
   function findOperationByIdOrLabel(value) {
     if (!value) return null;
     const target = normalizeOperationMatch(value);
@@ -941,6 +973,117 @@
     }
 
     return { field: "", operations: [] };
+  }
+
+  function operationMatchesRowLabel(op, label) {
+    if (!op || !label) return false;
+    const target = normalizeOperationMatch(label);
+    if (!target) return false;
+    return ROW_LABEL_FIELDS.some(
+      (field) => normalizeOperationMatch(op?.[field]) === target
+    );
+  }
+
+  function getRowOperationMatch(label, preferredField = "", parentSection = "") {
+    if (!label) return { field: "", operations: [] };
+    const target = normalizeOperationMatch(label);
+    if (!target) return { field: "", operations: [] };
+
+    const parentKey = normalizeOperationMatch(parentSection);
+    const filterByParent = (ops = []) => {
+      if (!parentKey) return ops;
+      const withParent = ops.filter(
+        (op) => normalizeOperationMatch(op?.parentSection || "") === parentKey
+      );
+      return withParent.length ? withParent : ops;
+    };
+
+    const direct = findOperationByIdOrLabel(label);
+    if (direct) {
+      return { field: "", operations: filterByParent([direct]) };
+    }
+
+    const rowMatch = findOperationsByRowLabel(label, preferredField);
+    if (rowMatch.operations.length) {
+      return {
+        field: rowMatch.field,
+        operations: filterByParent(rowMatch.operations),
+      };
+    }
+
+    const byParent = (state.operaciones || []).filter((op) => {
+      const parent =
+        op.parentSubsection ||
+        op.parentSection ||
+        op.SECCION ||
+        op.seccion ||
+        "";
+      return normalizeOperationMatch(parent) === target;
+    });
+    if (byParent.length) {
+      return { field: "", operations: filterByParent(byParent) };
+    }
+
+    return { field: "", operations: [] };
+  }
+
+  function openAddOperationForRow(label, parentSection = "") {
+    if (!requireEditMode()) return;
+    const radio = document.querySelector(
+      'input[name="tipoElemento"][value="operacion"]'
+    );
+    if (radio) radio.checked = true;
+    updateAddForm();
+
+    const inputClase = document.getElementById("inputClase");
+    if (inputClase) inputClase.value = label || "";
+
+    const inputOperacionId = document.getElementById("inputOperacionId");
+    if (inputOperacionId && !inputOperacionId.value && label) {
+      inputOperacionId.value = normalizeOperationId(label);
+    }
+
+    const sumCheck = document.getElementById(rowLabelAddCheckId("sum-row"));
+    const sumInput = document.getElementById(rowLabelAddInputId("sum-row"));
+    if (sumCheck) sumCheck.checked = true;
+    if (sumInput && !sumInput.value && label) {
+      sumInput.value = `Suma de ${label}`;
+    }
+
+    const valueCandidates = [];
+    if (parentSection) valueCandidates.push(`${parentSection}||${label}`);
+    if (label) valueCandidates.push(label);
+
+    const checkboxes = document.querySelectorAll(
+      "#checkboxSecciones input[type='checkbox']"
+    );
+    checkboxes.forEach((cb) => {
+      if (valueCandidates.includes(cb.value)) cb.checked = true;
+    });
+
+    new bootstrap.Modal(dom.modalAgregar).show();
+  }
+
+  function editRowOperation(label, preferredField = "", parentSection = "") {
+    if (!label) return;
+    const match = getRowOperationMatch(label, preferredField, parentSection);
+    if (!match.operations.length) {
+      openAddOperationForRow(label, parentSection);
+      return;
+    }
+    if (match.operations.length > 1) {
+      showToast(
+        `Hay ${match.operations.length} operaciones para "${label}". Abriendo la primera.`,
+        "info"
+      );
+    }
+    const op = match.operations[0];
+    const opId = getOperationId(op) || getOperationDisplayName(op) || label;
+    if (window.editOperation) {
+      window.editOperation(opId);
+    } else {
+      editOperation(opId);
+    }
   }
 
   function buildFormulaTermsForRowLabel(label, field) {
@@ -1044,10 +1187,89 @@
     return [...(list || [])]
       .map((op, idx) => ({ op, idx }))
       .sort(
-        (a, b) =>
-          getOperationOrder(a.op, a.idx) - getOperationOrder(b.op, b.idx)
+        (a, b) => {
+          const orderA = getOperationOrder(a.op, a.idx);
+          const orderB = getOperationOrder(b.op, b.idx);
+          if (orderA !== orderB) return orderA - orderB;
+          const fallbackA = Number.isFinite(Number(a.op?.orden))
+            ? Number(a.op.orden)
+            : a.idx;
+          const fallbackB = Number.isFinite(Number(b.op?.orden))
+            ? Number(b.op.orden)
+            : b.idx;
+          if (fallbackA !== fallbackB) return fallbackA - fallbackB;
+          return a.idx - b.idx;
+        }
       )
       .map((item) => item.op);
+  }
+
+  function normalizePresentationOrders() {
+    let changed = false;
+    const cuentas = state.cuentas || [];
+    if (cuentas.length) {
+      const ordered = (cuentas || [])
+        .map((cuenta, idx) => ({ cuenta, idx }))
+        .sort((a, b) => {
+          const orderA = Number.isFinite(Number(a.cuenta?.orden_presentacion))
+            ? Number(a.cuenta.orden_presentacion)
+            : Number.isFinite(Number(a.cuenta?.orden))
+            ? Number(a.cuenta.orden)
+            : a.idx;
+          const orderB = Number.isFinite(Number(b.cuenta?.orden_presentacion))
+            ? Number(b.cuenta.orden_presentacion)
+            : Number.isFinite(Number(b.cuenta?.orden))
+            ? Number(b.cuenta.orden)
+            : b.idx;
+          if (orderA !== orderB) return orderA - orderB;
+          return a.idx - b.idx;
+        });
+      ordered.forEach((item, idx) => {
+        const cuenta = item.cuenta;
+        const current = Number(cuenta?.orden_presentacion);
+        if (!Number.isFinite(current)) {
+          cuenta.orden_presentacion = idx;
+          changed = true;
+        }
+      });
+    }
+
+    const ops = state.operaciones || [];
+    if (ops.length) {
+      const orderedOps = (ops || [])
+        .map((op, idx) => ({ op, idx }))
+        .sort((a, b) => {
+          const orderA = Number.isFinite(Number(a.op?.orden_presentacion))
+            ? Number(a.op.orden_presentacion)
+            : Number.isFinite(Number(a.op?.orden))
+            ? Number(a.op.orden)
+            : a.idx;
+          const orderB = Number.isFinite(Number(b.op?.orden_presentacion))
+            ? Number(b.op.orden_presentacion)
+            : Number.isFinite(Number(b.op?.orden))
+            ? Number(b.op.orden)
+            : b.idx;
+          if (orderA !== orderB) return orderA - orderB;
+          return a.idx - b.idx;
+        });
+      orderedOps.forEach((item, idx) => {
+        const op = item.op;
+        const current = Number(op?.orden_presentacion);
+        if (!Number.isFinite(current)) {
+          op.orden_presentacion = idx;
+          changed = true;
+        }
+      });
+    }
+
+    if (changed) {
+      state.unsavedChanges = true;
+      updateButtonStates();
+      showToast(
+        "Ordenes sin orden_presentacion fueron normalizados. Guarda para aplicar.",
+        "info"
+      );
+    }
   }
 
   function nextOperationOrder() {
@@ -1087,79 +1309,8 @@
 
   function hydrateOperationsFromParents() {
     state.operaciones = state.operaciones.map((op, idx) => {
-      const parentName = op?.SECCION || op?.Clase;
-      const hasExplicitFormula =
-        (Array.isArray(op?.formula_terms) && op.formula_terms.length > 0) ||
-        Boolean(op?.formula_json) ||
-        Object.keys(op || {}).some(
-          (key) =>
-            /^(seccion|operacion|cuenta)_\d+$/i.test(key) && Boolean(op[key])
-        );
-
-      // PRIORIDAD 1: Detectar y SIEMPRE reconstruir operaciones consolidadas
-      if (
-        parentName &&
-        !hasExplicitFormula &&
-        (parentName.toLowerCase().includes("consolidated") ||
-          parentName.toLowerCase().includes("consolidado") ||
-          parentName.toLowerCase().includes("total"))
-      ) {
-        // Buscar todas las secciones que coincidan con el tipo
-        const isIncome =
-          parentName.toLowerCase().includes("income") ||
-          parentName.toLowerCase().includes("ingreso");
-        const isExpense =
-          parentName.toLowerCase().includes("expense") ||
-          parentName.toLowerCase().includes("gasto");
-
-        if (isIncome || isExpense) {
-          const allSections = new Set();
-          state.cuentas.forEach((cuenta) => {
-            const secPrincipal =
-              cuenta["SECCIÓN Principal"] ||
-              cuenta["SECCION Principal"] ||
-              cuenta.seccion_principal ||
-              "";
-            if (secPrincipal) {
-              const secLower = secPrincipal.toLowerCase();
-              if (
-                (isIncome && secLower.includes("income")) ||
-                (isExpense && secLower.includes("expense"))
-              ) {
-                allSections.add(secPrincipal);
-              }
-            }
-          });
-
-          if (allSections.size > 0) {
-            const consolidatedTerms = Array.from(allSections)
-              .sort() // Ordenar alfabéticamente para consistencia
-              .map((sec, i) => ({
-                id: Date.now() + i,
-                operator: isExpense ? "-" : "+",
-                type: "section",
-                value: sec,
-              }));
-
-            op.formula_terms = consolidatedTerms;
-            op.signos = {};
-            consolidatedTerms.forEach((term, i) => {
-              const key = `seccion_${i + 1}`;
-              op[key] = term.value;
-              op.signos[key] = term.operator === "-" ? -1 : 1;
-            });
-            if (op.orden === undefined) op.orden = idx;
-
-            // Marcar como auto-construido para debugging
-            op._autoBuilt = true;
-
-            return op;
-          }
-        }
-      }
-
-      // PRIORIDAD 2: Si ya tiene formula_terms definidos manualmente, respetarlos
-      if (op?.formula_terms?.length && !op._autoBuilt) {
+      // PRIORIDAD 1: Si ya tiene formula_terms definidos manualmente, respetarlos
+      if (op?.formula_terms?.length) {
         // Asegurar que cada término tenga el tipo correcto
         op.formula_terms = op.formula_terms.map((term) => ({
           ...term,
@@ -1168,7 +1319,7 @@
         return op;
       }
 
-      // PRIORIDAD 3: Si tiene formula_json guardado, parsearlo
+      // PRIORIDAD 2: Si tiene formula_json guardado, parsearlo
       if (op?.formula_json) {
         try {
           const parsed = JSON.parse(op.formula_json);
@@ -1182,7 +1333,7 @@
         }
       }
 
-      // PRIORIDAD 4: Si tiene signos explícitos en seccion_1, seccion_2, etc.
+      // PRIORIDAD 3: Si tiene signos explícitos en seccion_1, seccion_2, etc.
       if (op?.signos && Object.keys(op.signos).length > 0) {
         const terms = [];
         const seccionKeys = Object.keys(op.signos)
@@ -1211,27 +1362,7 @@
         }
       }
 
-      // PRIORIDAD 5: Construir desde SECCION o Clase usando buildFormulaTermsFromParent
-      const derived = normalizeFormulaTerms(
-        buildFormulaTermsFromParent(parentName)
-      );
-
-      if (!derived.length) {
-        return op;
-      }
-
-      const hydrated = { ...op, formula_terms: derived, signos: {} };
-
-      derived.forEach((term, termIdx) => {
-        const key = `seccion_${termIdx + 1}`;
-        hydrated[key] = term.value;
-        hydrated.signos[key] = term.operator === "-" ? -1 : 1;
-      });
-
-      // Mantener orden original si no existía
-      if (hydrated.orden === undefined) hydrated.orden = idx;
-
-      return hydrated;
+      return op;
     });
   }
 
@@ -1425,8 +1556,9 @@
       return [...rows, ...extras];
     };
 
-    // Intentar usar LayoutControls si está disponible
+    // Intentar usar LayoutControls si está disponible (a menos que forzamos orden manual)
     if (
+      !MANUAL_ORDER_ONLY &&
       window.LayoutControls &&
       typeof window.LayoutControls._buildPreviewRows === "function"
     ) {
@@ -1474,12 +1606,14 @@
         const realAccounts = (subsection.accounts || []).filter(
           (acc) => !isPlaceholderAccount(acc)
         );
-          realAccounts.forEach((cuenta) => {
+        realAccounts.forEach((cuenta) => {
           rows.push({
             type: "account",
             cuenta: cuenta.CUENTA || cuenta.cuenta || "",
             nombre: cuenta.NOMBRE || cuenta.nombre || "",
             label: cuenta.CUENTA || cuenta.cuenta || "",
+            parentSection: section.name,
+            parentSubsection: subsection.name,
             accountId: getAccountRowId(cuenta),
             visible: cuenta.visible !== false,
           });
@@ -1496,6 +1630,15 @@
           // Verificar si pertenece a esta subsección
           if (parentSub.toLowerCase() === subsection.name.toLowerCase()) {
             if (parentSec && parentSec.toLowerCase() !== section.name.toLowerCase()) {
+              return false;
+            }
+            return true;
+          }
+          if (operationMatchesRowLabel(op, subsection.name)) {
+            if (
+              parentSec &&
+              parentSec.toLowerCase() !== section.name.toLowerCase()
+            ) {
               return false;
             }
             return true;
@@ -1526,6 +1669,9 @@
 
         // Operaciones que referencian esta sección
         if (clase.includes(sectionLower) || (op.SECCION || "").toLowerCase() === sectionLower) {
+          return true;
+        }
+        if (operationMatchesRowLabel(op, section.name)) {
           return true;
         }
         return false;
@@ -1753,6 +1899,14 @@
 
       if (row.type === 'principal') {
         const sectionName = row.label || '';
+        const sectionOpMatch = getRowOperationMatch(sectionName);
+        const hasSectionOp = sectionOpMatch.operations.length > 0;
+        const sectionOpBtnClass = hasSectionOp
+          ? 'btn-outline-success'
+          : 'btn-outline-secondary';
+        const sectionOpBtnTitle = hasSectionOp
+          ? 'Editar operación'
+          : 'Crear operación';
         html += `
           <div class="list-item section-principal ${hiddenClass}" data-row-type="section" data-section="${escapeAttr(sectionName)}" data-row-index="${rowIndex}">
             ${showOrder ? renderInlineOrderButtons(rowIndex) : ''}
@@ -1762,6 +1916,11 @@
                 <strong>${escapeHtml(sectionName || 'Sección')}</strong>
               </div>
               <div class="list-item-actions">
+                <button class="btn btn-sm ${sectionOpBtnClass}" onclick="event.stopPropagation(); editRowOperation('${escapeAttr(
+                  sectionName
+                )}', '${escapeAttr(sectionOpMatch.field || "")}', '')" title="${sectionOpBtnTitle}" ${disabledAttr}>
+                  <i class="bi bi-calculator"></i>
+                </button>
                 <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); editSection('${escapeAttr(sectionName)}')" title="Editar" ${disabledAttr}>
                   <i class="bi bi-pencil"></i>
                 </button>
@@ -1778,8 +1937,20 @@
       if (row.type === 'subsection') {
         const subsectionName = row.label || '';
         const parentSection = row.parentSection || '';
+        const subsectionOpMatch = getRowOperationMatch(
+          subsectionName,
+          "",
+          parentSection
+        );
+        const hasSubsectionOp = subsectionOpMatch.operations.length > 0;
+        const subsectionOpBtnClass = hasSubsectionOp
+          ? 'btn-outline-success'
+          : 'btn-outline-secondary';
+        const subsectionOpBtnTitle = hasSubsectionOp
+          ? 'Editar operación'
+          : 'Crear operación';
         html += `
-          <div class="list-item section-secondary ${hiddenClass}" data-row-type="subsection" data-subsection="${escapeAttr(subsectionName)}" data-parent-section="${escapeAttr(parentSection)}" data-row-index="${rowIndex}">
+          <div class="list-item section-secondary ${hiddenClass}" data-row-type="subsection" data-section="${escapeAttr(parentSection)}" data-subsection="${escapeAttr(subsectionName)}" data-parent-section="${escapeAttr(parentSection)}" data-row-index="${rowIndex}">
             ${showOrder ? renderInlineOrderButtons(rowIndex) : ''}
             <div class="list-item-content ps-4 d-flex justify-content-between align-items-center flex-grow-1">
               <div class="d-flex align-items-center">
@@ -1787,6 +1958,13 @@
                 <em>${escapeHtml(subsectionName || 'Subsección')}</em>
               </div>
               <div class="list-item-actions">
+                <button class="btn btn-sm ${subsectionOpBtnClass}" onclick="event.stopPropagation(); editRowOperation('${escapeAttr(
+                  subsectionName
+                )}', '${escapeAttr(subsectionOpMatch.field || "")}', '${escapeAttr(
+                  parentSection
+                )}')" title="${subsectionOpBtnTitle}" ${disabledAttr}>
+                  <i class="bi bi-calculator"></i>
+                </button>
                 <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); editSubsection('${escapeAttr(parentSection)}', '${escapeAttr(subsectionName)}')" title="Editar subsección" ${disabledAttr}>
                   <i class="bi bi-pencil"></i>
                 </button>
@@ -1804,8 +1982,10 @@
         const cuenta = row.cuenta || row.label || '';
         const nombre = row.nombre || '';
         const accountId = row.accountId || row.accountID || row.rowId || cuenta;
+        const parentSection = row.parentSection || '';
+        const parentSubsection = row.parentSubsection || '';
         html += `
-          <div class="list-item item-account ${hiddenClass}" data-row-type="account" data-account-id="${escapeAttr(accountId)}" data-cuenta="${escapeAttr(cuenta)}" data-nombre="${escapeAttr(nombre)}" data-row-index="${rowIndex}">
+          <div class="list-item item-account ${hiddenClass}" data-row-type="account" data-section="${escapeAttr(parentSection)}" data-subsection="${escapeAttr(parentSubsection)}" data-account-id="${escapeAttr(accountId)}" data-cuenta="${escapeAttr(cuenta)}" data-nombre="${escapeAttr(nombre)}" data-row-index="${rowIndex}">
             ${showOrder ? renderInlineOrderButtons(rowIndex) : ''}
             <div class="list-item-content ps-5 d-flex justify-content-between align-items-center flex-grow-1">
               <div class="d-flex align-items-center">
@@ -2875,15 +3055,23 @@
         if (item.dataset.generated === "true") return;
         const section = item.dataset.section;
         if (section) {
+          if (state.editMode === false) {
+            showToast("Activa el modo edición para modificar secciones", "warning");
+            return;
+          }
           editSection(section);
         }
         return;
       }
 
       if (rowType === "subsection") {
-        const section = item.dataset.section;
+        const section = item.dataset.section || item.dataset.parentSection;
         const subsection = item.dataset.subsection;
         if (section && subsection) {
+          if (state.editMode === false) {
+            showToast("Activa el modo edición para modificar subsecciones", "warning");
+            return;
+          }
           editSubsection(section, subsection);
         }
       }
@@ -3498,9 +3686,7 @@
 
     sections.forEach((section) => {
       (section.subsections || []).forEach((subsection) => {
-        const sortedAccounts = [...(subsection.accounts || [])].sort(
-          (a, b) => getAccountOrder(a) - getAccountOrder(b)
-        );
+        const sortedAccounts = sortAccountsByOrder(subsection.accounts || []);
         sortedAccounts.forEach((cuenta) => {
           cuenta.orden_presentacion = order++;
         });
@@ -3519,9 +3705,7 @@
     let order = Number.isFinite(baseOrder) ? baseOrder : 0;
 
     (section.subsections || []).forEach((subsection) => {
-      const sortedAccounts = [...(subsection.accounts || [])].sort(
-        (a, b) => getAccountOrder(a) - getAccountOrder(b)
-      );
+      const sortedAccounts = sortAccountsByOrder(subsection.accounts || []);
       sortedAccounts.forEach((cuenta) => {
         cuenta.orden_presentacion = order++;
       });
@@ -3536,18 +3720,15 @@
       return;
     }
     if (rowType === "subsection") {
-      moveSubsectionOrder(
-        row.dataset.section,
-        row.dataset.subsection,
-        direction
-      );
+      const sectionName = row.dataset.section || row.dataset.parentSection || "";
+      moveSubsectionOrder(sectionName, row.dataset.subsection, direction);
       return;
     }
     if (rowType === "account") {
       moveAccountOrder(
         row.dataset.accountId || row.dataset.cuenta,
-        row.dataset.section,
-        row.dataset.subsection,
+        row.dataset.section || row.dataset.parentSection || "",
+        row.dataset.subsection || row.dataset.parentSubsection || "",
         direction
       );
       return;
@@ -3629,9 +3810,7 @@
         secondaryKey === normalizeOperationMatch(secondary || "")
       );
     });
-    const ordered = group.sort(
-      (a, b) => getAccountOrder(a) - getAccountOrder(b)
-    );
+    const ordered = sortAccountsByOrder(group);
     const accountId = getAccountRowId(account);
     const index = ordered.findIndex(
       (cuenta) => getAccountRowId(cuenta) === accountId
@@ -4075,9 +4254,7 @@
 
   function buildOperativoPorNombreOps(cuentas = []) {
     if (!Array.isArray(cuentas) || !cuentas.length) return [];
-    const cuentasOrdenadas = [...cuentas].sort(
-      (a, b) => getAccountOrder(a) - getAccountOrder(b)
-    );
+    const cuentasOrdenadas = sortAccountsByOrder(cuentas);
     const grupos = new Map();
     cuentasOrdenadas.forEach((cuenta, idx) => {
       const nombre = (cuenta?.NOMBRE || cuenta?.nombre || "").toString().trim();
@@ -4229,6 +4406,13 @@
             op.parentSubsection &&
             op.parentSubsection.toLowerCase() === subsectionName.toLowerCase()
           ) {
+            if (op.parentSection) {
+              return op.parentSection.toLowerCase() === principalLower;
+            }
+            return true;
+          }
+
+          if (operationMatchesRowLabel(op, subsectionName)) {
             if (op.parentSection) {
               return op.parentSection.toLowerCase() === principalLower;
             }
@@ -5092,9 +5276,7 @@
     const sections = [];
     const sectionMap = new Map();
 
-    const cuentasOrdenadas = [...(cuentas || [])].sort(
-      (a, b) => getAccountOrder(a) - getAccountOrder(b)
-    );
+    const cuentasOrdenadas = sortAccountsByOrder(cuentas || []);
 
     cuentasOrdenadas.forEach((cuenta, index) => {
       const secundaria = getAccountSecondaryName(cuenta) || "";
@@ -5137,6 +5319,14 @@
     const { name: principal, subsections } = section;
     const canEdit = state.editMode !== false;
     const disabledAttr = canEdit ? "" : "disabled";
+    const sectionOpMatch = getRowOperationMatch(principal);
+    const hasSectionOp = sectionOpMatch.operations.length > 0;
+    const sectionOpBtnClass = hasSectionOp
+      ? "btn-outline-success"
+      : "btn-outline-secondary";
+    const sectionOpBtnTitle = hasSectionOp
+      ? "Editar operación"
+      : "Crear operación";
     const subsectionCount = subsections.length;
     const accountCount = subsections.reduce(
       (acc, subsection) =>
@@ -5172,6 +5362,11 @@
             )}', 1)" title="Bajar" ${disabledAttr}>
               <i class="bi bi-arrow-down"></i>
             </button>
+            <button class="btn btn-sm ${sectionOpBtnClass}" onclick="event.stopPropagation(); editRowOperation('${escapeAttr(
+              principal
+            )}', '${escapeAttr(sectionOpMatch.field || "")}', '')" title="${sectionOpBtnTitle}" ${disabledAttr}>
+              <i class="bi bi-calculator"></i>
+            </button>
             <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); editSection('${escapeAttr(
               principal
             )}')" title="Editar">
@@ -5200,11 +5395,18 @@
     const { name, accounts } = subsection;
     const canEdit = state.editMode !== false;
     const disabledAttr = canEdit ? "" : "disabled";
+    const subsectionOpMatch = getRowOperationMatch(name, "", principal);
+    const hasSubsectionOp = subsectionOpMatch.operations.length > 0;
+    const subsectionOpBtnClass = hasSubsectionOp
+      ? "btn-outline-success"
+      : "btn-outline-secondary";
+    const subsectionOpBtnTitle = hasSubsectionOp
+      ? "Editar operación"
+      : "Crear operación";
     const realAccounts = (accounts || []).filter(
       (account) => !isPlaceholderAccount(account)
     );
-    const accountsHtml = realAccounts
-      .sort((a, b) => getAccountOrder(a) - getAccountOrder(b))
+    const accountsHtml = sortAccountsByOrder(realAccounts)
       .map((acc) => renderAccount(acc, principal, name))
       .join("");
 
@@ -5230,6 +5432,14 @@
         op.parentSubsection.toLowerCase() === name.toLowerCase()
       ) {
         // Also check parentSection if available
+        if (op.parentSection) {
+          return op.parentSection.toLowerCase() === principalLower;
+        }
+        return true;
+      }
+
+      // Match by row labels (sum-row, result-row, etc.) equal to subsection name
+      if (operationMatchesRowLabel(op, name)) {
         if (op.parentSection) {
           return op.parentSection.toLowerCase() === principalLower;
         }
@@ -5277,6 +5487,13 @@
               principal
             )}', '${escapeAttr(name)}', 1)" title="Bajar" ${disabledAttr}>
               <i class="bi bi-arrow-down"></i>
+            </button>
+            <button class="btn btn-sm ${subsectionOpBtnClass}" onclick="event.stopPropagation(); editRowOperation('${escapeAttr(
+              name
+            )}', '${escapeAttr(subsectionOpMatch.field || "")}', '${escapeAttr(
+              principal
+            )}')" title="${subsectionOpBtnTitle}" ${disabledAttr}>
+              <i class="bi bi-calculator"></i>
             </button>
             <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); editSubsection('${escapeAttr(
               principal
@@ -5779,16 +5996,573 @@
   // ==========================================
   // MODAL: ADD
   // ==========================================
+  function isBulkModeEnabled() {
+    return true;
+  }
+
+  function setBulkMode(enabled) {
+    if (dom.bulkInsertPanel) {
+      dom.bulkInsertPanel.style.display = "block";
+    }
+    if (dom.singleAddPanel) {
+      dom.singleAddPanel.style.display = "none";
+    }
+    ensureBulkRows();
+    if (dom.bulkInsertTbody) {
+      Array.from(dom.bulkInsertTbody.querySelectorAll("tr")).forEach((row) =>
+        updateBulkRowFields(row)
+      );
+    }
+  }
+
+  function ensureBulkRows() {
+    if (!dom.bulkInsertTbody) return;
+    if (!dom.bulkInsertTbody.children.length) {
+      appendBulkRow();
+    }
+  }
+
+  function buildBulkRow(values = {}) {
+    const typeOptions = [
+      { value: "seccion-principal", label: "Sección Principal" },
+      { value: "seccion-secundaria", label: "Sección Secundaria" },
+      { value: "cuenta", label: "Cuenta" },
+      { value: "operacion", label: "Operación" },
+    ];
+    const tipo = values.tipo || "cuenta";
+    const optionHtml = typeOptions
+      .map(
+        (opt) =>
+          `<option value="${opt.value}"${
+            opt.value === tipo ? " selected" : ""
+          }>${opt.label}</option>`
+      )
+      .join("");
+
+    const rowId = `bulk_${Date.now().toString(36)}_${++bulkRowCounter}`;
+    const kindSeccion = getBulkFieldKind(tipo, "seccion");
+    const kindSubseccion = getBulkFieldKind(tipo, "subseccion");
+    const seccionOptions = buildBulkSelectOptions(
+      getBulkSectionNames(),
+      values.seccion || "",
+      "Selecciona sección"
+    );
+    const subseccionOptions = buildBulkSelectOptions(
+      getBulkSubsectionNames(values.seccion || ""),
+      values.subseccion || "",
+      values.seccion ? "Selecciona subsección" : "Selecciona sección"
+    );
+    const seccionFieldHtml = kindSeccion === "input"
+      ? `<input type="text" class="form-control form-control-sm" data-field="seccion" placeholder="Nombre de sección" value="${escapeAttr(
+          values.seccion || ""
+        )}" />`
+      : `<select class="form-select form-select-sm" data-field="seccion">
+            ${seccionOptions}
+          </select>`;
+    const subseccionFieldHtml = kindSubseccion === "input"
+      ? `<input type="text" class="form-control form-control-sm" data-field="subseccion" placeholder="Nombre de subsección" value="${escapeAttr(
+          values.subseccion || ""
+        )}" />`
+      : `<select class="form-select form-select-sm" data-field="subseccion">
+            ${subseccionOptions}
+          </select>`;
+    return `
+      <tr data-row-id="${rowId}">
+        <td>
+          <select class="form-select form-select-sm" data-field="tipo">
+            ${optionHtml}
+          </select>
+        </td>
+        <td data-cell="seccion">
+          ${seccionFieldHtml}
+        </td>
+        <td data-cell="subseccion">
+          ${subseccionFieldHtml}
+        </td>
+        <td><input type="text" class="form-control form-control-sm" data-field="cuenta" placeholder="401-001-000-00" value="${escapeAttr(
+          values.cuenta || ""
+        )}" /></td>
+        <td><input type="text" class="form-control form-control-sm" data-field="nombre" placeholder="Nombre" value="${escapeAttr(
+          values.nombre || ""
+        )}" /></td>
+        <td><input type="text" class="form-control form-control-sm text-center" data-field="signo" placeholder="1/-1" title="Signo: 1 suma, -1 resta. En cuentas aplica como factor. Vacio = automatico." data-bs-toggle="tooltip" data-bs-placement="top" value="${escapeAttr(
+          values.signo || ""
+        )}" /></td>
+        <td><input type="text" class="form-control form-control-sm font-monospace" data-field="formula" placeholder="A + B - C" value="${escapeAttr(
+          values.formula || ""
+        )}" /></td>
+        <td class="text-center">
+          <button type="button" class="btn btn-outline-danger btn-sm" data-action="remove-row" title="Eliminar fila">×</button>
+        </td>
+      </tr>
+    `;
+  }
+
+  function appendBulkRow(values = {}) {
+    if (!dom.bulkInsertTbody) return;
+    dom.bulkInsertTbody.insertAdjacentHTML("beforeend", buildBulkRow(values));
+    const newRow = dom.bulkInsertTbody.lastElementChild;
+    if (newRow) {
+      updateBulkRowFields(newRow);
+    }
+  }
+
+  function resetBulkInsertTable({ focus = true } = {}) {
+    if (!dom.bulkInsertTbody) return;
+    dom.bulkInsertTbody.innerHTML = "";
+    appendBulkRow();
+    if (focus) {
+      const firstInput = dom.bulkInsertTbody?.querySelector("select, input");
+      firstInput?.focus();
+    }
+  }
+
+  function handleBulkTableClick(event) {
+    const button = event.target.closest("button[data-action]");
+    if (!button) return;
+    const action = button.dataset.action;
+    if (action === "remove-row") {
+      const row = button.closest("tr");
+      row?.remove();
+      ensureBulkRows();
+    }
+  }
+
+  function handleBulkTableKeydown(event) {
+    const key = event.key;
+    if (key === "Enter") {
+      const target = event.target;
+      const row = target.closest("tr");
+      if (!row) return;
+      event.preventDefault();
+      appendBulkRow();
+      const newRow = dom.bulkInsertTbody?.lastElementChild;
+      const firstInput = newRow?.querySelector("select, input");
+      firstInput?.focus();
+      return;
+    }
+
+    if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(key)) {
+      const target = event.target;
+      if (!target || !target.closest) return;
+      if (!shouldNavigateBulkCell(target, key)) return;
+      const row = target.closest("tr");
+      if (!row) return;
+      const field = target.dataset?.field;
+      if (!field) return;
+      event.preventDefault();
+      moveBulkFocus(row, field, key);
+    }
+  }
+
+  const BULK_FIELD_ORDER = [
+    "tipo",
+    "seccion",
+    "subseccion",
+    "cuenta",
+    "nombre",
+    "signo",
+    "formula",
+  ];
+
+  function getBulkRowList() {
+    if (!dom.bulkInsertTbody) return [];
+    return Array.from(dom.bulkInsertTbody.querySelectorAll("tr"));
+  }
+
+  function getBulkFieldIndex(field) {
+    return BULK_FIELD_ORDER.indexOf(field);
+  }
+
+  function getBulkFieldElement(row, field) {
+    return row?.querySelector?.(`[data-field="${field}"]`) || null;
+  }
+
+  function isBulkFieldFocusable(element) {
+    if (!element) return false;
+    if (element.disabled) return false;
+    return true;
+  }
+
+  function shouldNavigateBulkCell(target, key) {
+    if (!target) return false;
+    const tag = target.tagName;
+    if (tag === "SELECT") {
+      return false;
+    }
+    if (tag !== "INPUT" && tag !== "TEXTAREA") {
+      return true;
+    }
+
+    if (key === "ArrowUp" || key === "ArrowDown") {
+      return true;
+    }
+
+    const value = target.value || "";
+    const start = target.selectionStart;
+    const end = target.selectionEnd;
+    if (start == null || end == null) {
+      return true;
+    }
+    if (key === "ArrowLeft") {
+      return start === 0 && end === 0;
+    }
+    if (key === "ArrowRight") {
+      return end >= value.length;
+    }
+    return false;
+  }
+
+  function findFocusableInRow(row, startIndex, step) {
+    if (!row) return null;
+    if (step === 0) {
+      const field = BULK_FIELD_ORDER[startIndex];
+      const element = getBulkFieldElement(row, field);
+      return isBulkFieldFocusable(element) ? element : null;
+    }
+    let idx = startIndex;
+    while (idx >= 0 && idx < BULK_FIELD_ORDER.length) {
+      const field = BULK_FIELD_ORDER[idx];
+      const element = getBulkFieldElement(row, field);
+      if (isBulkFieldFocusable(element)) {
+        return element;
+      }
+      idx += step;
+    }
+    return null;
+  }
+
+  function findClosestFocusableInRow(row, startIndex) {
+    if (!row) return null;
+    const direct = findFocusableInRow(row, startIndex, 0);
+    if (direct) return direct;
+    for (let offset = 1; offset < BULK_FIELD_ORDER.length; offset += 1) {
+      const left = startIndex - offset;
+      const right = startIndex + offset;
+      if (left >= 0) {
+        const elLeft = findFocusableInRow(row, left, -1);
+        if (elLeft) return elLeft;
+      }
+      if (right < BULK_FIELD_ORDER.length) {
+        const elRight = findFocusableInRow(row, right, 1);
+        if (elRight) return elRight;
+      }
+    }
+    return null;
+  }
+
+  function moveBulkFocus(row, field, key) {
+    const rows = getBulkRowList();
+    const rowIndex = rows.indexOf(row);
+    if (rowIndex < 0) return;
+    const fieldIndex = getBulkFieldIndex(field);
+    if (fieldIndex < 0) return;
+
+    if (key === "ArrowLeft") {
+      let target = findFocusableInRow(row, fieldIndex - 1, -1);
+      if (!target) {
+        for (let i = rowIndex - 1; i >= 0; i -= 1) {
+          target = findFocusableInRow(rows[i], BULK_FIELD_ORDER.length - 1, -1);
+          if (target) break;
+        }
+      }
+      target?.focus();
+      return;
+    }
+
+    if (key === "ArrowRight") {
+      let target = findFocusableInRow(row, fieldIndex + 1, 1);
+      if (!target) {
+        for (let i = rowIndex + 1; i < rows.length; i += 1) {
+          target = findFocusableInRow(rows[i], 0, 1);
+          if (target) break;
+        }
+      }
+      target?.focus();
+      return;
+    }
+
+    if (key === "ArrowUp" || key === "ArrowDown") {
+      const delta = key === "ArrowDown" ? 1 : -1;
+      const nextIndex = rowIndex + delta;
+      if (nextIndex < 0 || nextIndex >= rows.length) return;
+      const targetRow = rows[nextIndex];
+      const target = findClosestFocusableInRow(targetRow, fieldIndex);
+      target?.focus();
+    }
+  }
+
+  function handleBulkTableChange(event) {
+    const select = event.target?.closest?.("select[data-field]");
+    if (!select) return;
+    const row = select.closest("tr");
+    if (!row) return;
+    const field = select.dataset.field;
+    if (field === "tipo") {
+      updateBulkRowFields(row);
+      return;
+    }
+    if (field === "seccion") {
+      refreshBulkSubsectionOptions(row);
+    }
+  }
+
+  function updateBulkRowFields(row) {
+    if (!row) return;
+    const tipo =
+      row.querySelector('select[data-field="tipo"]')?.value || "cuenta";
+    const seccionActual =
+      row.querySelector('[data-field="seccion"]')?.value || "";
+    const subseccionActual =
+      row.querySelector('[data-field="subseccion"]')?.value || "";
+    const seccionItems = getBulkSectionNames();
+    ensureBulkFieldType(row, "seccion", getBulkFieldKind(tipo, "seccion"), {
+      value: seccionActual,
+      items: seccionItems,
+      placeholder: "Selecciona sección",
+      inputPlaceholder: "Nombre de sección",
+    });
+    const seccionValor =
+      row.querySelector('[data-field="seccion"]')?.value || "";
+    ensureBulkFieldType(
+      row,
+      "subseccion",
+      getBulkFieldKind(tipo, "subseccion"),
+      {
+        value: subseccionActual,
+        items: getBulkSubsectionNames(seccionValor),
+        placeholder: seccionValor
+          ? "Selecciona subsección"
+          : "Selecciona sección",
+        inputPlaceholder: "Nombre de subsección",
+      }
+    );
+    const enabledByTipo = {
+      "seccion-principal": new Set(["seccion", "nombre"]),
+      "seccion-secundaria": new Set(["seccion", "subseccion", "nombre"]),
+      cuenta: new Set(["seccion", "subseccion", "cuenta", "nombre", "signo"]),
+      operacion: new Set(["seccion", "subseccion", "nombre", "signo", "formula"]),
+    };
+    const enabled = enabledByTipo[tipo] || enabledByTipo.cuenta;
+    ["seccion", "subseccion", "cuenta", "nombre", "signo", "formula"].forEach(
+      (field) => {
+        const input = row.querySelector(`[data-field="${field}"]`);
+        if (!input) return;
+        const shouldEnable = enabled.has(field);
+        input.disabled = !shouldEnable;
+        input.classList.toggle("text-muted", !shouldEnable);
+
+        if (!input.dataset.placeholder && input.getAttribute("placeholder")) {
+          input.dataset.placeholder = input.getAttribute("placeholder");
+        }
+        if (shouldEnable) {
+          if (input.dataset.placeholder) {
+            input.setAttribute("placeholder", input.dataset.placeholder);
+          }
+        } else {
+          input.removeAttribute("placeholder");
+        }
+      }
+    );
+    refreshBulkSubsectionOptions(row);
+  }
+
+  function ensureBulkFieldType(row, field, kind, config = {}) {
+    const cell = row.querySelector(`[data-cell="${field}"]`);
+    if (!cell) return;
+    const current = cell.querySelector(`[data-field="${field}"]`);
+    const currentValue =
+      config.value ?? current?.value ?? "";
+    if (kind === "input") {
+      const placeholder = config.inputPlaceholder || "";
+      if (!current || current.tagName !== "INPUT") {
+        cell.innerHTML = `<input type="text" class="form-control form-control-sm" data-field="${field}" placeholder="${escapeAttr(
+          placeholder
+        )}" value="${escapeAttr(currentValue)}" />`;
+      } else {
+        current.value = currentValue;
+        if (placeholder) {
+          current.setAttribute("placeholder", placeholder);
+        }
+      }
+      return;
+    }
+
+    const optionsHtml = buildBulkSelectOptions(
+      config.items || [],
+      currentValue,
+      config.placeholder || ""
+    );
+    if (!current || current.tagName !== "SELECT") {
+      cell.innerHTML = `<select class="form-select form-select-sm" data-field="${field}">
+        ${optionsHtml}
+      </select>`;
+    } else {
+      current.innerHTML = optionsHtml;
+      current.value = currentValue;
+    }
+  }
+
+  function getBulkFieldKind(tipo, field) {
+    if (field === "seccion") {
+      return tipo === "seccion-principal" ? "input" : "select";
+    }
+    if (field === "subseccion") {
+      if (tipo === "seccion-principal") return "input";
+      if (tipo === "seccion-secundaria") return "input";
+      return "select";
+    }
+    return "select";
+  }
+
+  function normalizeBulkName(value) {
+    return normalizeOperationMatch(value || "");
+  }
+
+  function getBulkSectionNames() {
+    const sections = groupBySections(state.cuentas || []);
+    return sections.map((section) => section.name).filter(Boolean);
+  }
+
+  function getBulkSubsectionNames(principal) {
+    if (!principal) return [];
+    const sections = groupBySections(state.cuentas || []);
+    const target = normalizeBulkName(principal);
+    const match = sections.find(
+      (section) => normalizeBulkName(section.name) === target
+    );
+    if (!match || !Array.isArray(match.subsections)) return [];
+    const names = match.subsections
+      .map((sub) => sub.name)
+      .filter(Boolean);
+    return Array.from(new Set(names));
+  }
+
+  function buildBulkSelectOptions(items = [], selected = "", placeholder = "") {
+    const normalizedItems = new Set(items.map((item) => normalizeBulkName(item)));
+    const normalizedSelected = normalizeBulkName(selected);
+    const finalItems =
+      selected && normalizedSelected && !normalizedItems.has(normalizedSelected)
+        ? [selected, ...items]
+        : items;
+
+    const options = [];
+    if (placeholder) {
+      options.push(
+        `<option value="">${escapeHtml(placeholder)}</option>`
+      );
+    }
+    finalItems.forEach((item) => {
+      const isSelected =
+        normalizedSelected && normalizeBulkName(item) === normalizedSelected;
+      options.push(
+        `<option value="${escapeAttr(item)}"${
+          isSelected ? " selected" : ""
+        }>${escapeHtml(item)}</option>`
+      );
+    });
+    return options.join("");
+  }
+
+  function refreshBulkSubsectionOptions(row) {
+    if (!row) return;
+    const principal =
+      row.querySelector('select[data-field="seccion"]')?.value || "";
+    const subseccionSelect = row.querySelector(
+      'select[data-field="subseccion"]'
+    );
+    if (!subseccionSelect) return;
+    const current = subseccionSelect.value || "";
+    const options = buildBulkSelectOptions(
+      getBulkSubsectionNames(principal),
+      current,
+      principal ? "Selecciona subsección" : "Selecciona sección"
+    );
+    subseccionSelect.innerHTML = options;
+  }
+
+  function collectBulkRows() {
+    if (!dom.bulkInsertTbody) return [];
+    const rows = Array.from(dom.bulkInsertTbody.querySelectorAll("tr"));
+    return rows
+      .map((row) => {
+        const getValue = (field) =>
+          row.querySelector(`[data-field="${field}"]`)?.value?.trim() || "";
+        return {
+          tipo: getValue("tipo"),
+          seccion: getValue("seccion"),
+          subseccion: getValue("subseccion"),
+          cuenta: getValue("cuenta"),
+          nombre: getValue("nombre"),
+          signo: getValue("signo"),
+          formula: getValue("formula"),
+        };
+      })
+      .filter((row) => {
+        return (
+          row.tipo ||
+          row.seccion ||
+          row.subseccion ||
+          row.cuenta ||
+          row.nombre ||
+          row.signo ||
+          row.formula
+        );
+      });
+  }
+
+  function parseFormulaText(formula = "") {
+    const raw = (formula || "").trim();
+    if (!raw) return [];
+    const parts = raw.match(/([+-]?[^+-]+)/g) || [];
+    const terms = [];
+    parts.forEach((chunk, idx) => {
+      let token = chunk.trim();
+      if (!token) return;
+      let operator = "+";
+      if (token.startsWith("+") || token.startsWith("-")) {
+        operator = token[0];
+        token = token.slice(1).trim();
+      } else if (idx === 0) {
+        operator = "+";
+      }
+      if (!token) return;
+      if (token.includes("||")) {
+        const parsed = parseSectionSelection(token);
+        if (parsed.section) {
+          terms.push({
+            operator,
+            type: "section",
+            value: parsed.section,
+            parentSection: parsed.parent,
+          });
+          return;
+        }
+      }
+      const type = detectTermType(token);
+      const term = { operator, type, value: token };
+      if (type === "constant" && Number.isFinite(Number(token))) {
+        term.constant = Number(token);
+      }
+      terms.push(term);
+    });
+    return normalizeFormulaTerms(terms);
+  }
+
   function openAddModal() {
     if (!state.editMode) {
       showToast("Activa el modo edición primero", "warning");
       return;
     }
+    setBulkMode(isBulkModeEnabled());
     updateAddForm();
     new bootstrap.Modal(dom.modalAgregar).show();
   }
 
   function updateAddForm() {
+    if (isBulkModeEnabled()) {
+      return;
+    }
     const tipo = document.querySelector(
       'input[name="tipoElemento"]:checked'
     )?.value;
@@ -5966,18 +6740,47 @@
     if (!Array.isArray(sections) || sections.length === 0) {
       return '<div class="text-muted small">Sin secciones disponibles</div>';
     }
-    return sections
-      .map((section) => section?.name)
-      .filter(Boolean)
+    const items = [];
+    sections.forEach((section) => {
+      const principal = section?.name;
+      if (principal) {
+        items.push({
+          value: principal,
+          label: principal,
+          indent: false,
+        });
+      }
+      (section.subsections || []).forEach((subsection) => {
+        const subName = subsection?.name || "";
+        if (!subName) return;
+        if (
+          normalizeOperationMatch(subName) ===
+          normalizeOperationMatch(principal || "")
+        ) {
+          return;
+        }
+        items.push({
+          value: `${principal}||${subName}`,
+          label: `${subName} (${principal})`,
+          indent: true,
+        });
+      });
+    });
+
+    if (!items.length) {
+      return '<div class="text-muted small">Sin secciones disponibles</div>';
+    }
+
+    return items
       .map(
-        (name) => `
-        <div class="form-check">
+        (item) => `
+        <div class="form-check${item.indent ? " ms-3" : ""}">
           <input class="form-check-input" type="checkbox" value="${escapeAttr(
-            name
-          )}" id="chk_${escapeAttr(name)}">
+            item.value
+          )}" id="chk_${escapeAttr(item.value)}">
           <label class="form-check-label" for="chk_${escapeAttr(
-            name
-          )}">${escapeHtml(name)}</label>
+            item.value
+          )}">${escapeHtml(item.label)}</label>
         </div>
       `
       )
@@ -5985,6 +6788,10 @@
   }
 
   async function confirmAdd() {
+    if (isBulkModeEnabled()) {
+      await confirmBulkAdd();
+      return;
+    }
     const tipo = document.querySelector(
       'input[name="tipoElemento"]:checked'
     )?.value;
@@ -6017,8 +6824,31 @@
   async function addPrincipalSection() {
     const nombre = document.getElementById("inputNombreSeccion")?.value?.trim();
     if (!nombre) throw new Error("Ingresa un nombre para la sección");
+    addPrincipalSectionByName(nombre);
+  }
 
-    // Add a placeholder account to create the section
+  async function addSecondarySection() {
+    const principal = document.getElementById("selectPrincipal")?.value;
+    const nombre = document
+      .getElementById("inputNombreSubseccion")
+      ?.value?.trim();
+
+    if (!nombre) throw new Error("Ingresa un nombre para la subsección");
+    addSecondarySectionByName(principal, nombre);
+  }
+
+  async function addAccount() {
+    const principal = document.getElementById("selectPrincipal")?.value;
+    const secundaria = document.getElementById("selectSecundaria")?.value;
+    const cuenta = document.getElementById("inputCuenta")?.value?.trim();
+    const nombre = document.getElementById("inputNombre")?.value?.trim();
+
+    if (!cuenta || !nombre)
+      throw new Error("Completa el código y nombre de la cuenta");
+    addAccountEntry({ principal, secundaria, cuenta, nombre });
+  }
+
+  function addPrincipalSectionByName(nombre, { silent = false } = {}) {
     const order = getNextAccountOrder();
     const newAccount = {
       "SECCIÓN Principal": nombre,
@@ -6039,17 +6869,12 @@
       nombre,
       type: "section",
     });
-    showToast(`Sección "${nombre}" creada`, "success");
+    if (!silent) {
+      showToast(`Sección "${nombre}" creada`, "success");
+    }
   }
 
-  async function addSecondarySection() {
-    const principal = document.getElementById("selectPrincipal")?.value;
-    const nombre = document
-      .getElementById("inputNombreSubseccion")
-      ?.value?.trim();
-
-    if (!nombre) throw new Error("Ingresa un nombre para la subsección");
-
+  function addSecondarySectionByName(principal, nombre, { silent = false } = {}) {
     const order = getNextAccountOrder();
     const newAccount = {
       "SECCIÓN Principal": principal,
@@ -6071,26 +6896,28 @@
       principal,
       type: "subsection",
     });
-    showToast(`Subsección "${nombre}" creada`, "success");
+    if (!silent) {
+      showToast(`Subsección "${nombre}" creada`, "success");
+    }
   }
 
-  async function addAccount() {
-    const principal = document.getElementById("selectPrincipal")?.value;
-    const secundaria = document.getElementById("selectSecundaria")?.value;
-    const cuenta = document.getElementById("inputCuenta")?.value?.trim();
-    const nombre = document.getElementById("inputNombre")?.value?.trim();
-
-    if (!cuenta || !nombre)
-      throw new Error("Completa el código y nombre de la cuenta");
-
+  function addAccountEntry(
+    { principal, secundaria, cuenta, nombre, factor },
+    { silent = false } = {}
+  ) {
+    const order = getNextAccountOrder();
     const newAccount = {
       "SECCIÓN Principal": principal,
       "SECCION Secundaria": secundaria,
       SECCION: principal,
       CUENTA: cuenta,
       NOMBRE: nombre,
-      orden: state.cuentas.length + 1,
+      orden: order,
+      orden_presentacion: order,
     };
+    if (Number.isFinite(Number(factor))) {
+      newAccount.operacion_factor = Number(factor);
+    }
 
     assignAccountRowId(newAccount);
     state.cuentas.push(newAccount);
@@ -6100,7 +6927,62 @@
       principal,
       secundaria,
     });
-    showToast(`Cuenta ${cuenta} agregada`, "success");
+    if (!silent) {
+      showToast(`Cuenta ${cuenta} agregada`, "success");
+    }
+  }
+
+  function addOperationEntry(
+    { nombre, seccion, subseccion, signo, formulaTerms },
+    { silent = false } = {}
+  ) {
+    const opIdBase = normalizeOperationId(nombre || "OPERACION");
+    const operacionId = buildUniqueOperationId(opIdBase);
+    const parentSection = seccion || "";
+    const parentSubsection = subseccion || "";
+    const rowSection = subseccion || seccion || "";
+
+    const op = {
+      CAPITULO: state.capitulo || "DEFAULT",
+      OperacionId: operacionId,
+      Clase: nombre,
+      operacion_etiqueta: nombre,
+      SECCION: rowSection,
+      tipo: Array.isArray(formulaTerms) && formulaTerms.length
+        ? "custom-formula"
+        : "sum-sections",
+      signos: {},
+      orden: nextOperationOrder(),
+      secciones: rowSection ? [rowSection] : [],
+      parentSection: parentSection || null,
+      parentSubsection: parentSubsection || null,
+    };
+
+    if (Number.isFinite(Number(signo))) {
+      op.signo = Number(signo);
+      op.signos = op.signos || {};
+      op.signos["sum-row"] = Number(signo);
+    }
+
+    if (Array.isArray(formulaTerms) && formulaTerms.length) {
+      const normalized = normalizeFormulaTerms(formulaTerms);
+      op.formula_terms = normalized;
+      op.formula_json = JSON.stringify(normalized);
+    }
+
+    state.operaciones.push(op);
+    logChange("add", `Operación "${nombre}"`, {
+      nombre,
+      type: "operation",
+    });
+
+    if (!silent) {
+      state.operaciones = sortOperations(state.operaciones);
+      ensureOperationIds();
+      normalizeOperationReferences();
+      renderLayout();
+      showToast(`Operación "${nombre}" creada`, "success");
+    }
   }
 
   function collectAddOperationRowLabels(defaultLabel) {
@@ -6131,17 +7013,160 @@
     return 0;
   }
 
-  function findOperationBySectionName(sectionName) {
+  function findOperationBySectionName(sectionName, parentSection = "") {
     if (!sectionName) return null;
     const target = normalizeOperationMatch(sectionName);
+    const parentKey = normalizeOperationMatch(parentSection);
     const matches = (state.operaciones || []).filter(
       (op) => normalizeOperationMatch(op?.SECCION || op?.seccion || "") === target
     );
     if (!matches.length) return null;
+    if (parentKey) {
+      const filtered = matches.filter(
+        (op) => normalizeOperationMatch(op?.parentSection || "") === parentKey
+      );
+      if (filtered.length) {
+        const withLabels = filtered.find((op) =>
+          ROW_LABEL_FIELDS.some((field) => op?.[field])
+        );
+        return withLabels || filtered[0] || null;
+      }
+    }
     const withLabels = matches.find((op) =>
       ROW_LABEL_FIELDS.some((field) => op?.[field])
     );
     return withLabels || matches[0] || null;
+  }
+
+  async function confirmBulkAdd() {
+    const rows = collectBulkRows();
+    if (!rows.length) {
+      showToast("No hay filas con datos para agregar", "warning");
+      return;
+    }
+
+    const counters = {
+      secciones: 0,
+      subsecciones: 0,
+      cuentas: 0,
+      operaciones: 0,
+    };
+    const errores = [];
+
+    rows.forEach((row, idx) => {
+      try {
+        const tipo = (row.tipo || "").trim();
+        if (!tipo) return;
+        switch (tipo) {
+          case "seccion-principal": {
+            const nombre = row.seccion || row.nombre;
+            if (!nombre) throw new Error("Falta nombre de sección");
+            addPrincipalSectionByName(nombre, { silent: true });
+            counters.secciones += 1;
+            break;
+          }
+          case "seccion-secundaria": {
+            const principal = row.seccion;
+            const nombre = row.subseccion || row.nombre;
+            if (!principal) throw new Error("Falta sección principal");
+            if (!nombre) throw new Error("Falta nombre de subsección");
+            addSecondarySectionByName(principal, nombre, { silent: true });
+            counters.subsecciones += 1;
+            break;
+          }
+          case "cuenta": {
+            const principal = row.seccion;
+            const secundaria = row.subseccion;
+            const cuenta = row.cuenta;
+            const nombre = row.nombre;
+            if (!cuenta || !nombre) {
+              throw new Error("Cuenta y nombre son requeridos");
+            }
+            const factor = Number(row.signo);
+            addAccountEntry(
+              {
+                principal,
+                secundaria,
+                cuenta,
+                nombre,
+                factor: Number.isFinite(factor) ? factor : null,
+              },
+              { silent: true }
+            );
+            counters.cuentas += 1;
+            break;
+          }
+          case "operacion": {
+            const nombre = row.nombre || row.seccion || row.subseccion;
+            if (!nombre) throw new Error("Falta nombre de operación");
+            const sign = Number(row.signo);
+            const formulaTerms = row.formula
+              ? parseFormulaText(row.formula)
+              : [];
+            addOperationEntry({
+              nombre,
+              seccion: row.seccion,
+              subseccion: row.subseccion,
+              signo: Number.isFinite(sign) ? sign : null,
+              formulaTerms,
+            }, { silent: true });
+            counters.operaciones += 1;
+            break;
+          }
+          default:
+            throw new Error(`Tipo no reconocido: ${tipo}`);
+        }
+      } catch (error) {
+        errores.push(`Fila ${idx + 1}: ${error.message}`);
+      }
+    });
+
+    if (
+      counters.secciones +
+        counters.subsecciones +
+        counters.cuentas +
+        counters.operaciones ===
+        0 &&
+      errores.length
+    ) {
+      throw new Error(errores[0]);
+    }
+
+    if (counters.operaciones > 0) {
+      state.operaciones = sortOperations(state.operaciones);
+      ensureOperationIds();
+      normalizeOperationReferences();
+    }
+
+    if (errores.length) {
+      console.warn("[BulkAdd] Errores:", errores);
+      showToast(
+        `Se agregaron con errores (${errores.length}). Revisa consola.`,
+        "warning"
+      );
+    }
+
+    bootstrap.Modal.getInstance(dom.modalAgregar)?.hide();
+    await saveLayout({ skipConfirmation: true, silent: true, source: "bulk-add" });
+    await loadLayout();
+    resetBulkInsertTable({ focus: true });
+
+    showToast(
+      `Agregadas: ${counters.secciones} secciones, ${counters.subsecciones} subsecciones, ${counters.cuentas} cuentas, ${counters.operaciones} operaciones.`,
+      "success"
+    );
+  }
+
+  function parseSectionSelection(value = "") {
+    const raw = (value || "").toString();
+    if (!raw) return { section: "", parent: "" };
+    const parts = raw.split("||");
+    if (parts.length >= 2) {
+      const parent = parts[0]?.trim() || "";
+      const section = parts.slice(1).join("||").trim();
+      return { section, parent };
+    }
+    return { section: raw.trim(), parent: "" };
   }
 
   async function addOperation() {
@@ -6166,15 +7191,20 @@
       throw new Error("Selecciona al menos una sección");
     }
 
-    const targetSections = isPiloto
-      ? [checkedSections.join(" + ")]
-      : checkedSections;
+    const parsedSelections = (checkedSections || [])
+      .map((value) => parseSectionSelection(value))
+      .filter((item) => item.section);
+    const targetSelections =
+      parsedSelections.length > 0 ? parsedSelections : [{ section: "", parent: "" }];
 
     const opsCreated = [];
-    targetSections.forEach((sectionName, idx) => {
+    targetSelections.forEach((selection, idx) => {
+      const sectionName = selection.section || "";
+      const parentSection = selection.parent || null;
+      const parentSubsection = selection.parent ? sectionName : null;
       let op = null;
-      if (!isPiloto) {
-        op = findOperationBySectionName(sectionName);
+      if (sectionName) {
+        op = findOperationBySectionName(sectionName, parentSection);
       }
 
       const isNew = !op;
@@ -6193,11 +7223,19 @@
           signos: {},
           orden: nextOperationOrder(),
           secciones: sectionName ? [sectionName] : [],
-          parentSubsection: sectionName || null,
-          parentSection: getParentSection(sectionName),
+          parentSubsection,
+          parentSection,
         };
-      } else if (sectionName && !op.SECCION) {
-        op.SECCION = sectionName;
+      } else {
+        if (sectionName && !op.SECCION) {
+          op.SECCION = sectionName;
+        }
+        if (parentSection) {
+          op.parentSection = parentSection;
+        }
+        if (sectionName && !op.parentSubsection) {
+          op.parentSubsection = sectionName;
+        }
       }
 
       // Aplicar etiquetas de aparición
@@ -6309,6 +7347,185 @@
     });
 
     return { primaryIndex, subsectionIndex };
+  }
+
+  function resolvePrincipalNameByKeywords(primaryNames = [], keywords = []) {
+    if (!primaryNames.length || !keywords.length) return "";
+    const normalizedKeywords = keywords.map((k) => normalizeOperationKey(k));
+    return (
+      primaryNames.find((name) => {
+        const normalized = normalizeOperationKey(name);
+        return normalizedKeywords.some((key) => normalized.includes(key));
+      }) || ""
+    );
+  }
+
+  function inferParentSectionFromLabel(op, primaryNames = []) {
+    const label = (getOperationLabel(op) || "").toLowerCase();
+    if (!label) return "";
+    if (
+      label.includes("income") ||
+      label.includes("ingreso") ||
+      label.includes("ingres")
+    ) {
+      return resolvePrincipalNameByKeywords(primaryNames, [
+        "income",
+        "ingreso",
+        "ingresos",
+      ]);
+    }
+    if (
+      label.includes("expense") ||
+      label.includes("gasto") ||
+      label.includes("gastos") ||
+      label.includes("costo") ||
+      label.includes("costos")
+    ) {
+      return resolvePrincipalNameByKeywords(primaryNames, [
+        "expense",
+        "gasto",
+        "gastos",
+        "costo",
+        "costos",
+      ]);
+    }
+    const labelKey = normalizeOperationKey(label);
+    return (
+      primaryNames.find((name) =>
+        labelKey.includes(normalizeOperationKey(name))
+      ) || ""
+    );
+  }
+
+  function hydrateOperationPlacement() {
+    const indexes = buildSectionIndexes();
+    const primaryNames = Array.from(indexes.primaryIndex.values());
+    const subsectionIndex = indexes.subsectionIndex || new Map();
+
+    state.operaciones = (state.operaciones || []).map((op) => {
+      if (!op) return op;
+      if (!op.parentSubsection && op.SECCION) {
+        op.parentSubsection = op.SECCION;
+      }
+
+      if (!op.parentSection) {
+        const subKey = normalizeOperationKey(op.parentSubsection || "");
+        const parents = subKey ? subsectionIndex.get(subKey) : null;
+        if (parents && parents.size === 1) {
+          op.parentSection = Array.from(parents)[0];
+        }
+      }
+
+      if (!op.parentSection) {
+        const inferred = inferParentSectionFromLabel(op, primaryNames);
+        if (inferred) {
+          op.parentSection = inferred;
+        }
+      }
+
+      return op;
+    });
+  }
+
+  function buildOperationDedupeKey(op) {
+    if (!op) return "";
+    const parentSection = normalizeOperationKey(op.parentSection || "");
+    const parentSubsection = normalizeOperationKey(
+      op.parentSubsection || op.SECCION || ""
+    );
+    const label = normalizeOperationKey(
+      getOperationDisplayName(op) ||
+        getOperationLabel(op) ||
+        getOperationId(op)
+    );
+    if (!label) {
+      const opId = normalizeOperationKey(getOperationId(op));
+      return opId ? `${parentSection}||${parentSubsection}||${opId}` : "";
+    }
+    return `${parentSection}||${parentSubsection}||${label}`;
+  }
+
+  function mergeOperationInto(base, extra) {
+    if (!base || !extra) return base;
+    const rowFields = [
+      ...ROW_LABEL_FIELDS,
+      "net-row-adicional",
+    ];
+    rowFields.forEach((field) => {
+      if (!base[field] && extra[field]) {
+        base[field] = extra[field];
+      }
+    });
+    if (!base.SECCION && extra.SECCION) base.SECCION = extra.SECCION;
+    if (!base.parentSection && extra.parentSection) {
+      base.parentSection = extra.parentSection;
+    }
+    if (!base.parentSubsection && extra.parentSubsection) {
+      base.parentSubsection = extra.parentSubsection;
+    }
+    if (!base.formula_terms && extra.formula_terms) {
+      base.formula_terms = extra.formula_terms;
+    }
+    if (!base.formula_json && extra.formula_json) {
+      base.formula_json = extra.formula_json;
+    }
+    if (extra.signos) {
+      base.signos = base.signos || {};
+      Object.keys(extra.signos).forEach((key) => {
+        if (base.signos[key] === undefined) {
+          base.signos[key] = extra.signos[key];
+        }
+      });
+    }
+    const baseOrder = Number(base.orden_presentacion);
+    const extraOrder = Number(extra.orden_presentacion);
+    if (!Number.isFinite(baseOrder) && Number.isFinite(extraOrder)) {
+      base.orden_presentacion = extraOrder;
+    } else if (Number.isFinite(baseOrder) && Number.isFinite(extraOrder)) {
+      base.orden_presentacion = Math.min(baseOrder, extraOrder);
+    }
+    if (base.visible === false && extra.visible !== false) {
+      base.visible = true;
+    }
+    return base;
+  }
+
+  function dedupeOperations({ silent = false } = {}) {
+    const unique = new Map();
+    let removed = 0;
+
+    (state.operaciones || []).forEach((op) => {
+      const key = buildOperationDedupeKey(op);
+      const fallbackKey = normalizeOperationKey(
+        getOperationId(op) || getOperationLabel(op)
+      );
+      const finalKey = key || fallbackKey;
+      if (!finalKey) {
+        unique.set(Symbol("op"), op);
+        return;
+      }
+      const existing = unique.get(finalKey);
+      if (!existing) {
+        unique.set(finalKey, op);
+        return;
+      }
+      mergeOperationInto(existing, op);
+      removed += 1;
+    });
+
+    if (removed > 0) {
+      state.operaciones = Array.from(unique.values());
+      if (!silent) {
+        state.unsavedChanges = true;
+        updateButtonStates();
+        showToast(
+          `Se detectaron ${removed} duplicados de operaciones. Guarda para aplicar.`,
+          "warning"
+        );
+      }
+    }
+
+    return { removed };
   }
 
   function resolveOperationParentSection(op, primaryIndex) {
@@ -6843,6 +8060,8 @@
 
       // Save operations
       hydrateOperationsFromParents();
+      hydrateOperationPlacement();
+      dedupeOperations({ silent: true });
       ensureOperationIds();
       normalizeOperationReferences();
       const operacionesOrdenadas = sortOperations(state.operaciones);
@@ -6914,6 +8133,10 @@
 
   // Crear layout RESUMEN 2025 con estructura completa
   async function createResumen2025Layout() {
+    if (AUTO_OPERACIONES_DISABLED) {
+      showToast("Creación automática deshabilitada", "warning");
+      return;
+    }
     try {
       // Cargar estructura desde JSON
       const estructuraUrl = window.location.protocol === "file:"
@@ -7076,6 +8299,10 @@
 
   // Crear operaciones básicas manualmente si falla la carga automática
   async function createResumen2025Manual() {
+    if (AUTO_OPERACIONES_DISABLED) {
+      showToast("Creación automática deshabilitada", "warning");
+      return;
+    }
     showToast("Creando operaciones básicas...", "info");
 
     // Operaciones mínimas esenciales
@@ -7293,6 +8520,7 @@
   window.moveSubsectionOrder = moveSubsectionOrder;
   window.moveAccountOrder = moveAccountOrder;
   window.moveOperationOrder = moveOperationOrder;
+  window.editRowOperation = editRowOperation;
 
 window.editSection = function (name) {
     if (!requireEditMode()) return;
@@ -7411,16 +8639,23 @@ window.editSection = function (name) {
 
   window.addAccount = function (principal, secundaria) {
     if (!requireEditMode()) return;
-    document.querySelector(
-      'input[name="tipoElemento"][value="cuenta"]'
-    ).checked = true;
-    updateAddForm();
-    setTimeout(() => {
-      const selectP = document.getElementById("selectPrincipal");
-      const selectS = document.getElementById("selectSecundaria");
-      if (selectP) selectP.value = principal;
-      if (selectS) selectS.value = secundaria;
-    }, 100);
+    setBulkMode(true);
+    if (dom.bulkInsertTbody) {
+      ensureBulkRows();
+      const row = dom.bulkInsertTbody.lastElementChild;
+      if (row) {
+        const tipoSelect = row.querySelector('select[data-field="tipo"]');
+        if (tipoSelect) {
+          tipoSelect.value = "cuenta";
+        }
+        updateBulkRowFields(row);
+        const seccionField = row.querySelector('[data-field="seccion"]');
+        const subseccionField = row.querySelector('[data-field="subseccion"]');
+        if (seccionField) seccionField.value = principal || "";
+        if (subseccionField) subseccionField.value = secundaria || "";
+        refreshBulkSubsectionOptions(row);
+      }
+    }
     new bootstrap.Modal(dom.modalAgregar).show();
   };
 
@@ -7433,6 +8668,11 @@ window.editSection = function (name) {
 
     const seccionPrincipal = getAccountPrincipalName(cuenta) || "";
     const seccionSecundaria = getAccountSecondaryName(cuenta) || "";
+    const factorRaw =
+      cuenta.operacion_factor ?? cuenta.operacionFactor ?? cuenta.factor;
+    const factorValue = Number.isFinite(Number(factorRaw))
+      ? Number(factorRaw)
+      : 1;
 
     // Obtener todas las secciones disponibles para los selectores
     const sections = groupBySections(state.cuentas || []);
@@ -7471,6 +8711,13 @@ window.editSection = function (name) {
           <option value="">Sin subsección</option>
           ${subsectionOptions}
         </select>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Signo/Factor</label>
+        <input type="text" class="form-control" id="editFactor" placeholder="1 suma, -1 resta" value="${escapeHtml(
+          factorValue === 1 ? "" : String(factorValue)
+        )}" />
+        <div class="form-text">Aplica a todas las columnas (real, presupuesto y comparativo).</div>
       </div>
       <div class="mb-3">
         <div class="form-check">
@@ -7750,21 +8997,24 @@ window.editSection = function (name) {
     let opId = getOperationId(op);
     let opLabel = getOperationLabel(op);
 
-    // AUTO-LOAD: Buscar operación predefinida y pre-cargar si existe
-    await ensureOperacionesPredefinidas();
-    const operacionesContexto = getOperacionesPredefinidasContexto();
-    const opPredefinida = findPredefForOperation(op, operacionesContexto);
+    // AUTO-LOAD (opcional): Buscar operación predefinida y pre-cargar si existe.
+    // En modo manual (AUTO_OPERACIONES_DISABLED), no se aplica automáticamente.
+    if (!AUTO_OPERACIONES_DISABLED) {
+      await ensureOperacionesPredefinidas();
+      const operacionesContexto = getOperacionesPredefinidasContexto();
+      const opPredefinida = findPredefForOperation(op, operacionesContexto);
 
-    if (opPredefinida) {
-      const knownOperations = new Set();
-      operacionesContexto.forEach((item) => {
-        if (item?.nombre) knownOperations.add(normalizeOperacionKey(item.nombre));
-        if (item?.id) knownOperations.add(normalizeOperacionKey(item.id));
-        if (item?.identificador) knownOperations.add(normalizeOperacionKey(item.identificador));
-      });
-      applyPredefinedToExisting(op, opPredefinida, op.orden, knownOperations, {
-        force: true,
-      });
+      if (opPredefinida) {
+        const knownOperations = new Set();
+        operacionesContexto.forEach((item) => {
+          if (item?.nombre) knownOperations.add(normalizeOperacionKey(item.nombre));
+          if (item?.id) knownOperations.add(normalizeOperacionKey(item.id));
+          if (item?.identificador) knownOperations.add(normalizeOperacionKey(item.identificador));
+        });
+        applyPredefinedToExisting(op, opPredefinida, op.orden, knownOperations, {
+          force: true,
+        });
+      }
     }
 
     opId = getOperationId(op);
@@ -8044,13 +9294,36 @@ window.editSection = function (name) {
     if (!op) return;
     const label = getOperationLabel(op);
     const opId = getOperationId(op);
-    if (!confirm(`Eliminar la operacion "${label}"?`)) return;
+    const key =
+      buildOperationDedupeKey(op) ||
+      normalizeOperationKey(getOperationId(op) || label);
+    const duplicados = (state.operaciones || []).filter(
+      (o) =>
+        (buildOperationDedupeKey(o) ||
+          normalizeOperationKey(getOperationId(o) || getOperationLabel(o))) ===
+        key
+    );
+    const mensaje =
+      duplicados.length > 1
+        ? `Eliminar la operacion "${label}"? Se eliminaran ${duplicados.length} duplicados.`
+        : `Eliminar la operacion "${label}"?`;
+    if (!confirm(mensaje)) return;
 
-    state.operaciones = state.operaciones.filter((o) => getOperationId(o) !== opId);
-    logChange("delete", `Operación "${label}" (${opId})`, {
-      clase: label,
-      operacionId: opId,
-    });
+    state.operaciones = state.operaciones.filter(
+      (o) =>
+        (buildOperationDedupeKey(o) ||
+          normalizeOperationKey(getOperationId(o) || getOperationLabel(o))) !==
+        key
+    );
+    logChange(
+      "delete",
+      `Operación "${label}" (${opId})${duplicados.length > 1 ? " x" + duplicados.length : ""}`,
+      {
+        clase: label,
+        operacionId: opId,
+        duplicados: duplicados.length,
+      }
+    );
     renderLayout();
     updateStats();
     showToast(`Operación "${label}" eliminada`, "success");
@@ -8306,6 +9579,7 @@ window.editSection = function (name) {
       const newNombre = document.getElementById("editNombre")?.value?.trim();
       const newSeccionPrincipal = document.getElementById("editSeccionPrincipal")?.value?.trim();
       const newSeccionSecundaria = document.getElementById("editSeccionSecundaria")?.value?.trim();
+      const newFactorRaw = document.getElementById("editFactor")?.value?.trim();
       const newVisible = document.getElementById("editVisible")?.checked;
 
       let changed = false;
@@ -8362,6 +9636,25 @@ window.editSection = function (name) {
       // Actualizar visibilidad
       if (newVisible !== undefined && cuenta.visible !== newVisible) {
         cuenta.visible = newVisible;
+        changed = true;
+      }
+
+      const factorActualRaw =
+        cuenta.operacion_factor ?? cuenta.operacionFactor ?? cuenta.factor;
+      const factorActual = Number.isFinite(Number(factorActualRaw))
+        ? Number(factorActualRaw)
+        : 1;
+      const factorNuevo = newFactorRaw === "" || newFactorRaw == null
+        ? 1
+        : Number(newFactorRaw);
+      const factorNuevoFinal = Number.isFinite(factorNuevo) ? factorNuevo : 1;
+      if (factorNuevoFinal !== factorActual) {
+        cuenta.operacion_factor = factorNuevoFinal;
+        logChange(
+          "edit",
+          `Cuenta ${cuenta.CUENTA}: factor ${factorActual} → ${factorNuevoFinal}`,
+          { codigo: cuenta.CUENTA, factorActual, factorNuevo: factorNuevoFinal }
+        );
         changed = true;
       }
 
@@ -9487,9 +10780,12 @@ window.editSection = function (name) {
 
     const accountCatalog = getAccountCatalog();
 
-    // Ensure all terms are type "account" (migration)
+    // Ensure all terms are type "account" (migration) and have operator
     formulaTerms.forEach((term) => {
       term.type = "account";
+      if (!term.operator || !["+", "-"].includes(term.operator)) {
+        term.operator = "+";
+      }
     });
 
     // Generate formula rows - ONLY account selector (no type selector)
@@ -9503,10 +10799,7 @@ window.editSection = function (name) {
       }">
         <select class="form-select" style="width: 60px;" onchange="updateTermOperator(${
           term.id
-        }, this.value)" ${isFirst ? "disabled" : ""}>
-          <option value="" ${
-            term.operator === "" ? "selected" : ""
-          }>Inicio</option>
+        }, this.value)">
           <option value="+" ${
             term.operator === "+" ? "selected" : ""
           }>+</option>
@@ -9564,7 +10857,9 @@ window.editSection = function (name) {
 
     const preview = formulaTerms
       .map((term, i) => {
-        const operator = i === 0 ? "" : ` ${term.operator || "+"} `;
+        const opSymbol = term.operator || "+";
+        const operator =
+          i === 0 ? (opSymbol === "-" ? "-" : "") : ` ${opSymbol} `;
         return `${operator}<code class="text-primary fw-bold">${escapeHtml(
           term.type === "operation" ? formatOperationReference(term.value) : (term.value || "???")
         )}</code>`;
@@ -9585,7 +10880,7 @@ window.editSection = function (name) {
   window.updateTermOperator = function (termId, operator) {
     const term = formulaTerms.find((t) => t.id === termId);
     if (term) {
-      term.operator = operator;
+      term.operator = operator && ["+", "-"].includes(operator) ? operator : "+";
       updateFormulaPreview();
     }
   };
@@ -10082,7 +11377,9 @@ window.editSection = function (name) {
     });
     return operacionesPredefinidasPromise;
   };
-  ensureOperacionesPredefinidas();
+  if (!AUTO_OPERACIONES_DISABLED) {
+    ensureOperacionesPredefinidas();
+  }
 
   const getOperacionesPredefinidasContexto = () => {
     const capituloKey = normalizeCapituloKey(state.capitulo);
@@ -10595,6 +11892,10 @@ window.editSection = function (name) {
    * Muestra una lista de operaciones sugeridas y permite poblarlas automáticamente
    */
   window.cargarOperacionesPredefinidas = async function () {
+    if (AUTO_OPERACIONES_DISABLED) {
+      showToast("Operaciones predefinidas deshabilitadas", "warning");
+      return;
+    }
     if (!requireEditMode()) return;
     if (!state.capitulo || !state.modulo) {
       showToast("Selecciona un capítulo y módulo primero", "warning");
@@ -10679,6 +11980,10 @@ window.editSection = function (name) {
    * Poblar una operación específica
    */
   window.poblarOperacion = async function (index) {
+    if (AUTO_OPERACIONES_DISABLED) {
+      showToast("Operaciones predefinidas deshabilitadas", "warning");
+      return;
+    }
     if (!requireEditMode()) return;
     await ensureOperacionesPredefinidas();
     const operaciones = getOperacionesPredefinidasContexto();
@@ -10708,6 +12013,10 @@ window.editSection = function (name) {
    * Poblar todas las operaciones predefinidas
    */
   window.poblarTodasOperaciones = async function () {
+    if (AUTO_OPERACIONES_DISABLED) {
+      showToast("Operaciones predefinidas deshabilitadas", "warning");
+      return;
+    }
     if (!requireEditMode()) return;
     const result = await syncOperacionesPredefinidas({
       autoCreate: true,

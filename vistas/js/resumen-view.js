@@ -351,6 +351,9 @@
   const comparativaLabel = document.getElementById(
     "resumenEmpresaComparativaLabel"
   );
+  const comparativaStatus = document.getElementById(
+    "resumenComparativaStatus"
+  );
   const chartsToggleBtn = document.getElementById("resumenChartsToggleBtn");
   const chartsPanel = document.getElementById("resumenChartsPanel");
   const chartsCloseBtn = document.getElementById("resumenChartsCloseBtn");
@@ -541,6 +544,26 @@
     NOROESTE: "empresa12",
   };
   const COMPARATIVA_NO_DISPONIBLE = new Set();
+  const COMPARATIVA_ERROR_MSG = new Map();
+
+  const setComparativaStatus = (mensaje) => {
+    if (!comparativaStatus) return;
+    const texto = (mensaje || "").toString().trim();
+    comparativaStatus.textContent = texto;
+    comparativaStatus.classList.toggle("d-none", !texto);
+  };
+
+  const registrarErrorComparativa = (empresaId, mensaje) => {
+    if (!empresaId) return;
+    COMPARATIVA_ERROR_MSG.set(empresaId, mensaje || "");
+    setComparativaStatus(mensaje || "");
+  };
+
+  const limpiarErrorComparativa = (empresaId) => {
+    if (!empresaId) return;
+    COMPARATIVA_ERROR_MSG.delete(empresaId);
+    setComparativaStatus("");
+  };
 
   const marcarComparativaNoDisponible = (empresaId) => {
     if (empresaId) COMPARATIVA_NO_DISPONIBLE.add(empresaId);
@@ -588,10 +611,13 @@
     if (comparativaLabel) {
       if (!comparativaId) {
         comparativaLabel.textContent = "";
+        setComparativaStatus("");
         return;
       }
       if (!disponible) {
         comparativaLabel.textContent = "No disponible";
+        const mensaje = COMPARATIVA_ERROR_MSG.get(empresaId) || "";
+        setComparativaStatus(mensaje);
         return;
       }
       const numero = extraerNumeroEmpresa(comparativaId);
@@ -599,6 +625,8 @@
         ? `Empresa ${numero}`
         : comparativaId;
     }
+    const mensaje = COMPARATIVA_ERROR_MSG.get(empresaId) || "";
+    setComparativaStatus(mensaje);
   };
 
   const inicializarComparativaToggle = () => {
@@ -1672,6 +1700,15 @@
     return Number.isFinite(previo) ? previo : null;
   };
 
+  // Para comparativo de columnas "Prev", priorizar el valor previo sobre el actual.
+  const resolverComparativoPrevio = (obj, clavePrev, claveActual) => {
+    if (!obj) return null;
+    const previo = Number(obj[clavePrev]);
+    if (Number.isFinite(previo)) return previo;
+    const actual = Number(obj[claveActual]);
+    return Number.isFinite(actual) ? actual : null;
+  };
+
   const indexarLayoutComparativo = (layout = []) => {
     const cuentas = new Map();
     const etiquetas = new Map();
@@ -1706,19 +1743,19 @@
         comparativo = etiqueta ? etiquetas.get(`${tipo}|${etiqueta}`) : null;
       }
       if (!comparativo?.totals) return;
-      // MODIFICADO: Ahora usa los datos comparativos para actualMonth y actualYTD
-      const comparativoMonth = resolverComparativoNumero(
+      // Comparativo solo llena columnas "Prev" (AA), no reemplaza Actual
+      const comparativoMonth = resolverComparativoPrevio(
         comparativo.totals,
-        "actualMonth",
-        "prevMonth"
+        "prevMonth",
+        "actualMonth"
       );
-      const comparativoYTD = resolverComparativoNumero(
+      const comparativoYTD = resolverComparativoPrevio(
         comparativo.totals,
-        "actualYTD",
-        "prevYTD"
+        "prevYTD",
+        "actualYTD"
       );
-      asignarSiNumero(block.totals, "actualMonth", comparativoMonth);
-      asignarSiNumero(block.totals, "actualYTD", comparativoYTD);
+      asignarSiNumero(block.totals, "prevMonth", comparativoMonth);
+      asignarSiNumero(block.totals, "prevYTD", comparativoYTD);
     });
   };
 
@@ -1760,55 +1797,55 @@
         ? principales.get(principalKey)
         : null;
       if (compPrincipal) {
-        // MODIFICADO: Ahora sobrescribe actualMonth y actualYTD con datos comparativos
-        const comparativoMonth = resolverComparativoNumero(
+        // Comparativo solo llena columnas "Prev" (AA)
+        const comparativoMonth = resolverComparativoPrevio(
           compPrincipal,
-          "actualMonth",
-          "prevMonth"
+          "prevMonth",
+          "actualMonth"
         );
-        const comparativoYTD = resolverComparativoNumero(
+        const comparativoYTD = resolverComparativoPrevio(
           compPrincipal,
-          "actualYTD",
-          "prevYTD"
+          "prevYTD",
+          "actualYTD"
         );
-        asignarSiNumero(principal, "actualMonth", comparativoMonth);
-        asignarSiNumero(principal, "actualYTD", comparativoYTD);
+        asignarSiNumero(principal, "prevMonth", comparativoMonth);
+        asignarSiNumero(principal, "prevYTD", comparativoYTD);
       }
       (principal.children || []).forEach((seccion) => {
       const seccionKey = normalizarEtiquetaComparativa(seccion.label || "");
       const compSeccion = seccionKey ? secciones.get(seccionKey) : null;
       if (compSeccion) {
-        // MODIFICADO: Ahora sobrescribe totalActualMonth y totalActualYTD con datos comparativos
-        const comparativoMonth = resolverComparativoNumero(
+        // Comparativo solo llena columnas "Prev" (AA) en totales de sección
+        const comparativoMonth = resolverComparativoPrevio(
           compSeccion,
-          "totalActualMonth",
-          "totalPrevMonth"
+          "totalPrevMonth",
+          "totalActualMonth"
         );
-        const comparativoYTD = resolverComparativoNumero(
+        const comparativoYTD = resolverComparativoPrevio(
           compSeccion,
-          "totalActualYTD",
-          "totalPrevYTD"
+          "totalPrevYTD",
+          "totalActualYTD"
         );
-        asignarSiNumero(seccion, "totalActualMonth", comparativoMonth);
-        asignarSiNumero(seccion, "totalActualYTD", comparativoYTD);
+        asignarSiNumero(seccion, "totalPrevMonth", comparativoMonth);
+        asignarSiNumero(seccion, "totalPrevYTD", comparativoYTD);
       }
       (seccion.cuentas || []).forEach((cta) => {
         const cuentaKey = obtenerClaveCuentaComparativa(cta);
         const compCuenta = cuentaKey ? cuentas.get(cuentaKey) : null;
         if (compCuenta) {
-          // MODIFICADO: Ahora sobrescribe actualMonth y actualYTD con datos comparativos
-          const comparativoMonth = resolverComparativoNumero(
+          // Comparativo solo llena columnas "Prev" (AA) a nivel cuenta
+          const comparativoMonth = resolverComparativoPrevio(
             compCuenta,
-            "actualMonth",
-            "prevMonth"
+            "prevMonth",
+            "actualMonth"
           );
-          const comparativoYTD = resolverComparativoNumero(
+          const comparativoYTD = resolverComparativoPrevio(
             compCuenta,
-            "actualYTD",
-            "prevYTD"
+            "prevYTD",
+            "actualYTD"
           );
-          asignarSiNumero(cta, "actualMonth", comparativoMonth);
-          asignarSiNumero(cta, "actualYTD", comparativoYTD);
+          asignarSiNumero(cta, "prevMonth", comparativoMonth);
+          asignarSiNumero(cta, "prevYTD", comparativoYTD);
         }
       });
       });
@@ -1842,7 +1879,7 @@
       );
       const comparativo = mapaComparativo.get(key) || resumenComp[0];
       if (comparativo) {
-        // MODIFICADO: Ahora sobrescribe actualMonth y actualYTD en lugar de prevMonth y prevYTD
+        // Comparativo solo llena columnas "Prev" (AA), no reemplaza Actual
         aplicarComparativoCapitulo(capitulo, comparativo);
       }
     });
@@ -2048,6 +2085,7 @@
   }
 
   function autoCollapseExcludedSections() {
+    return;
     const filas = document.querySelectorAll(
       ".collapsible-section.excluded-expense"
     );
@@ -2070,6 +2108,7 @@
   }
 
   function habilitarColapsoGastosAdministrativos() {
+    return;
     const filas = tablaBody?.querySelectorAll("tr") || [];
     filas.forEach((row) => {
       const descripcionCell = row.cells && row.cells[6];
@@ -2216,6 +2255,7 @@
   let empresaActual = null;
   let mesClaveActual = "dic";
   const resumenLayoutCache = new Map();
+  const LAYOUT_CACHE_ENABLED = false;
 
   const clonarLayout = (layout) => JSON.parse(JSON.stringify(layout || []));
 
@@ -2226,6 +2266,12 @@
   };
 
   const aplicarLayoutPersistente = (empresaId, anio, resumen = []) => {
+    if (!LAYOUT_CACHE_ENABLED) {
+      if (resumenLayoutCache.size) {
+        resumenLayoutCache.clear();
+      }
+      return;
+    }
     if (
       !empresaId ||
       !Number.isFinite(Number(anio)) ||
@@ -2250,8 +2296,6 @@
       if (!nombreCapitulo) return;
       if (Array.isArray(capitulo.layout) && capitulo.layout.length) {
         cache.set(nombreCapitulo, clonarLayout(capitulo.layout));
-      } else if (cache.has(nombreCapitulo)) {
-        capitulo.layout = clonarLayout(cache.get(nombreCapitulo));
       }
     });
   };
@@ -2571,10 +2615,6 @@
     let tooltip =
       buildRowContextTooltip(rowRole, rowContext || {}) ||
       ROW_TOOLTIPS[rowRole];
-    if (nodo && nodo.excludeFromExpense) {
-      const aviso = "Excluido de SUMAS de gastos para este capítulo.";
-      tooltip = tooltip ? `${tooltip} · ${aviso}` : aviso;
-    }
     if (tooltip) {
       row.setAttribute("title", tooltip);
       row.setAttribute("data-bs-toggle", "tooltip");
@@ -2624,7 +2664,7 @@
         idx,
         orden: extractor(item, idx),
       }))
-      .sort((a, b) => a.orden - b.orden)
+      .sort((a, b) => (a.orden - b.orden) || (a.idx - b.idx))
       .map(({ item }) => item);
   };
 
@@ -2678,13 +2718,7 @@
     const planColumnKey = `budget-${claveMes}`;
     const normalizarEtiqueta = (texto = "") =>
       texto.toString().trim().toUpperCase().replace(/\s+/g, " ");
-    const etiquetasOcultas = new Set([
-      "INCOME",
-      "EXPENSE",
-      "OPERATING RESULTS",
-    ]);
-    const debeOmitirEtiqueta = (texto = "") =>
-      etiquetasOcultas.has(normalizarEtiqueta(texto));
+    const debeOmitirEtiqueta = () => false;
     const normalizarLabel = (texto = "") =>
       texto
         .toString()
@@ -2704,6 +2738,7 @@
     });
 
     const recalcularPrincipales = (layoutArr = []) => {
+      return;
       if (!Array.isArray(layoutArr) || !layoutArr.length) return;
       let principalActual = null;
       let acumulado = totalesCero();
@@ -2726,10 +2761,6 @@
         if (!principalActual) return;
         if (tipo === "secundaria") {
           const sign = applySign(block.sign, 1);
-          // Respetar exclusiones de gasto marcadas en el layout
-          if (block.totals && block.totals.excludeFromExpense) {
-            return;
-          }
           const t = block.totals || {};
           acumulado.actualMonth += toNumber(t.actualMonth) * sign;
           acumulado.planMonth += toNumber(t.planMonth) * sign;
@@ -2744,6 +2775,7 @@
     };
 
     const recalcularConsolidados = (layoutArr = [], capituloName = "") => {
+      return;
       if (!Array.isArray(layoutArr) || !layoutArr.length) return;
       const capituloNormalizado = normalizarLabel(capituloName);
       const esCapituloMexico = capituloNormalizado === "CIUDAD DE MEXICO";
@@ -3109,6 +3141,7 @@
       }
     };
 
+    let renderizoLayout = false;
     resumen.forEach((capitulo) => {
       const capituloName = (capitulo.label || capitulo.capitulo || "")
         .toString()
@@ -3129,7 +3162,11 @@
         const seccionesOrdenadas = ordenarPorOrden(
           principal.children || [],
           (sec, idx) => {
-            const orden = Number.isFinite(Number(sec?.orden))
+            const orden = Number.isFinite(Number(sec?.orden_presentacion))
+              ? Number(sec.orden_presentacion)
+              : Number.isFinite(Number(sec?.ordenPresentacion))
+              ? Number(sec.ordenPresentacion)
+              : Number.isFinite(Number(sec?.orden))
               ? Number(sec.orden)
               : Number.isFinite(Number(sec?.order))
               ? Number(sec.order)
@@ -3139,17 +3176,24 @@
         );
 
 
-        // Forzar mostrar siempre Gastos Generales y Gtos.Corporativos como secciones propias
-        let seccionesAseguradas = [...seccionesOrdenadas];
-        const nombresAsegurados = ["Gastos Generales", "Gtos.Corporativos"];
-        nombresAsegurados.forEach((nombre) => {
-          if (!seccionesAseguradas.some(sec => (sec.label || sec.nombre || "").toUpperCase() === nombre.toUpperCase())) {
-            seccionesAseguradas.push({ label: nombre, cuentas: [], totals: {} });
-          }
-        });
+        seccionesOrdenadas.forEach((seccion) => {
+          const cuentasOrdenadas = ordenarPorOrden(
+            seccion.cuentas || [],
+            (cta, idx) => {
+              const orden = Number.isFinite(Number(cta?.orden_presentacion))
+                ? Number(cta.orden_presentacion)
+                : Number.isFinite(Number(cta?.ordenPresentacion))
+                ? Number(cta.ordenPresentacion)
+                : Number.isFinite(Number(cta?.orden))
+                ? Number(cta.orden)
+                : Number.isFinite(Number(cta?.order))
+                ? Number(cta.order)
+                : null;
+              return orden != null ? orden : idx;
+            }
+          );
 
-        seccionesAseguradas.forEach((seccion) => {
-          (seccion.cuentas || []).forEach((cta) => {
+          cuentasOrdenadas.forEach((cta) => {
             const varPlan = calculateVar(cta.actualMonth, cta.planMonth);
             const varPrev = calculateVar(cta.actualMonth, cta.prevMonth);
             const varPlanYTD = calculateVar(cta.actualYTD, cta.planYTD);
@@ -3257,6 +3301,7 @@
 
       // Renderizar usando SOLO el layout (que ya tiene todo en orden correcto)
       if (layout && layout.length) {
+        renderizoLayout = true;
         recalcularPrincipales(layout);
         recalcularConsolidados(layout, capituloName);
         layout.forEach((block) => {
@@ -3278,11 +3323,8 @@
           }
           // SECUNDARIA: Header de subsección
           else if (blockType === "secundaria") {
-            let secRowClass =
+            const secRowClass =
               "subsection-row bg-light fw-semibold text-center collapsible-section";
-            if (block.totals && block.totals.excludeFromExpense) {
-              secRowClass += " excluded-expense";
-            }
             const secRow = createResumenTotalsRow(block.totals || {}, {
               label: block.label || "",
               rowRole: "section",
@@ -3387,21 +3429,6 @@
             let rowClass = "";
             const label = (block.label || "").toUpperCase();
 
-            if (debeOmitirEtiqueta(label)) {
-              return;
-            }
-
-            // Para GUADALAJARA: solo mostrar la fila de OPERATING RESULTS específica de GDL
-            if (
-              label.includes("OPERATING RESULTS") &&
-              capituloName.includes("GUADALAJARA") &&
-              !label.includes("GDL") &&
-              !label.includes("GUADALAJARA")
-            ) {
-              // Omitir filas genéricas de Operating Results cuando hay una específica de GDL
-              return;
-            }
-
             // Nivel 5: NET RESULTS (máxima jerarquía)
             if (
               blockType === "final" ||
@@ -3436,18 +3463,12 @@
               rowClass = "sum-row fw-semibold";
             }
 
-            // Si la sección/operación está marcada para excluirse de expenses, anotar clase
-            const extras = {};
-            if (block.totals && block.totals.excludeFromExpense) {
-              extras.rowClass = `${rowClass} excluded-expense`;
-            }
-
             const consolidationRow = createResumenTotalsRow(
               block.totals || {},
               {
                 label: block.label || "",
                 rowRole: blockType,
-                rowClass: extras.rowClass || rowClass,
+                rowClass,
                 rowContext: {
                   label: block.label || "",
                   type: blockType,
@@ -3459,18 +3480,15 @@
             tablaBody.appendChild(consolidationRow);
           }
         });
-      } else {
-        // Fallback: renderizar usando children (comportamiento anterior)
-        ordenarPorOrden(principales, (p, idx) => {
-          const orden = Number.isFinite(Number(p?.orden))
-            ? Number(p.orden)
-            : Number.isFinite(Number(p?.order))
-            ? Number(p.order)
-            : null;
-          return orden != null ? orden : idx;
-        }).forEach(renderPrincipal);
       }
     });
+
+    if (!renderizoLayout) {
+      setStatusRow(
+        "No hay layout definido para este capítulo/año. Usa el Gestor de Plantillas."
+      );
+      return;
+    }
 
     sincronizarCeldasEditables();
     activateTooltips();
@@ -3604,10 +3622,28 @@
       headers: Sesion.headersAutenticacion(),
     });
     if (manejarSesionExpirada(respuesta)) return null;
-    if (!respuesta.ok) {
-      throw new Error("No fue posible obtener el resumen.");
+
+    let payload = null;
+    try {
+      const texto = await respuesta.text();
+      payload = texto ? JSON.parse(texto) : null;
+    } catch (_) {
+      payload = null;
     }
-    return respuesta.json();
+
+    if (!respuesta.ok) {
+      const detalle =
+        payload?.detalle ||
+        payload?.mensaje ||
+        payload?.error ||
+        respuesta.statusText ||
+        "Error desconocido";
+      const err = new Error(detalle);
+      err.status = respuesta.status;
+      err.payload = payload;
+      throw err;
+    }
+    return payload;
   };
 
   const fetchResumen = async (empresaId, anio, mes) => {
@@ -3664,18 +3700,29 @@
               datosComparativo.resumen
             );
           }
+          limpiarErrorComparativa(empresaId);
         } catch (errorComparativo) {
           console.warn(
             "No se pudo cargar el comparativo del año anterior.",
             errorComparativo
           );
+          const status = errorComparativo?.status;
+          const detalle =
+            errorComparativo?.payload?.detalle ||
+            errorComparativo?.payload?.mensaje ||
+            errorComparativo?.message ||
+            "Error desconocido";
+          const empresaLabel =
+            extraerNumeroEmpresa(empresaComparativaId) ||
+            empresaComparativaId;
+          const mensaje = `Comparativo no disponible (empresa ${empresaLabel}). ${detalle}${
+            status ? ` [HTTP ${status}]` : ""
+          }`;
+          registrarErrorComparativa(empresaId, mensaje);
           marcarComparativaNoDisponible(empresaId);
           actualizarComparativaUI(empresaId);
           if (typeof showToast === "function") {
-            showToast(
-              "Comparativo no disponible. Se desactivo el toggle.",
-              "text-bg-warning"
-            );
+            showToast(mensaje, "text-bg-warning");
           }
         }
       }

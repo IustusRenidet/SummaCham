@@ -41,7 +41,7 @@
      * Agregar controles de orden
      */
     renderOrderControl(item, type = "account") {
-      const orden = item.orden_presentacion ?? item.orden ?? 0;
+      const orden = item.orden_presentacion ?? 0;
       const id = type === "account" ? this._getAccountId(item) : item.Clase;
       const canEdit = window.state?.editMode !== false;
       const disabledAttr = canEdit ? "" : "disabled";
@@ -157,7 +157,7 @@
 
       if (!item) return;
 
-      const currentOrder = item.orden_presentacion ?? item.orden ?? 0;
+      const currentOrder = item.orden_presentacion ?? 0;
       const newOrder = Math.max(0, currentOrder - 1);
       const itemId = isAccount ? this._getAccountId(item) : id;
 
@@ -165,7 +165,7 @@
       const other = collection.find(
         (i) =>
           (isAccount ? this._getAccountId(i) !== itemId : i.Clase !== id) &&
-          (i.orden_presentacion ?? i.orden ?? 0) === newOrder
+          (i.orden_presentacion ?? 0) === newOrder
       );
 
       if (other) {
@@ -200,7 +200,7 @@
 
       if (!item) return;
 
-      const currentOrder = item.orden_presentacion ?? item.orden ?? 0;
+      const currentOrder = item.orden_presentacion ?? 0;
       const newOrder = currentOrder + 1;
       const itemId = isAccount ? this._getAccountId(item) : id;
 
@@ -208,7 +208,7 @@
       const other = collection.find(
         (i) =>
           (isAccount ? this._getAccountId(i) !== itemId : i.Clase !== id) &&
-          (i.orden_presentacion ?? i.orden ?? 0) === newOrder
+          (i.orden_presentacion ?? 0) === newOrder
       );
 
       if (other) {
@@ -1745,13 +1745,13 @@
     },
 
     _getAccountOrder(cuenta, fallback = 0) {
-      const raw = cuenta?.orden_presentacion ?? cuenta?.orden ?? cuenta?.Orden;
+      const raw = cuenta?.orden_presentacion;
       const parsed = Number(raw);
       return Number.isFinite(parsed) ? parsed : fallback;
     },
 
     _getOperationOrder(op, fallback = 0) {
-      const raw = op?.orden_presentacion ?? op?.orden ?? op?.Orden ?? op?.index;
+      const raw = op?.orden_presentacion;
       const parsed = Number(raw);
       return Number.isFinite(parsed) ? parsed : fallback;
     },
@@ -1761,10 +1761,10 @@
     _groupBySections(cuentas) {
       const sections = new Map();
 
-      // Ordenar por orden_presentacion o orden
+      // Ordenar por orden_presentacion
       const sortedCuentas = [...cuentas].sort((a, b) => {
-        const orderA = a.orden_presentacion ?? a.orden ?? 0;
-        const orderB = b.orden_presentacion ?? b.orden ?? 0;
+        const orderA = a.orden_presentacion ?? 0;
+        const orderB = b.orden_presentacion ?? 0;
         return orderA - orderB;
       });
 

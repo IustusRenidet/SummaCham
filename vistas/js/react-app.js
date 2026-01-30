@@ -15,7 +15,7 @@
   const MODULE_GROUPS = [
     {
       id: "panel-resumenes",
-      label: "Summary",
+      label: "Resumen",
       items: [
         {
           id: "resumen",
