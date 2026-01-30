@@ -320,7 +320,8 @@
     group: 'Fila consolidada (CONSOLIDATED INCOME/EXPENSES, Operating Results preliminar, etc.). Se genera cuando varias secciones comparten un sum-row-sumavarios.',
     result: 'Operating Results definido en "SUMA DE VARIAS SECCIONES": ingresos menos gastos aplicando los factores establecidos en el Excel.',
     net: 'Net Results por region/segmento. Combina el resultado operativo con otros ingresos/egresos intermedios marcados como net-row.',
-    final: 'Consolidated Net Results: cierre final tras sumar otros ingresos ("OTHER INCOME") al Operating Result.'
+    final: 'Consolidated Net Results: cierre final tras sumar otros ingresos ("OTHER INCOME") al Operating Result.',
+    operation: 'Operacion libre definida en el Gestor de Plantillas (formula manual).'
   };
 
   const formatList = (lista = [], limite = 5) => {
@@ -959,6 +960,21 @@
               ${createPercentCell(ctaVarYTDPrev, { tooltipKey: 'varYTDPrev', rowRole: 'account' })}
             `;
             summaryBody.appendChild(ctaRow);
+          }
+          // OPERACION LIBRE: fila calculada desde fórmula manual
+          else if (blockType === 'operation') {
+            const opRow = createTotalsRow(block.totals || {}, {
+              label: block.label || '',
+              rowClass: 'operation-row free-operation-row fw-semibold',
+              labelClasses: 'text-center fw-semibold',
+              boldNumbers: true,
+              rowRole: 'operation',
+              rowContext: {
+                label: block.label || '',
+                type: blockType
+              }
+            });
+            summaryBody.appendChild(opRow);
           }
           // CONSOLIDACIONES: Filas de suma con jerarquía visual
           else if (['group', 'result', 'net', 'final'].includes(blockType)) {

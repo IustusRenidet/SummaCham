@@ -21,7 +21,6 @@
     <link rel="stylesheet" href="css/estilos.css" />
     <link rel="stylesheet" href="css/plantillas.css" />
     <link rel="stylesheet" href="css/plantillas-orden.css" />
-    <link rel="stylesheet" href="css/formula-builder.css" />
     <link rel="icon" type="image/x-icon" href="icono/icono.ico" />
   </head>
 
@@ -328,38 +327,7 @@
             </div>
           </div>
 
-          <!-- Status Message -->
-          <div class="row mt-3">
-            <div class="col-12">
-              <div class="layout-order-panel">
-                <div
-                  class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2"
-                >
-                  <div>
-                    <div class="fw-semibold">Orden de la plantilla</div>
-                    <div class="text-muted small" id="layoutSelectionInfo">
-                      Seleccion actual: -
-                    </div>
-                  </div>
-                  <div class="d-flex align-items-center gap-2">
-                    <span class="text-muted small">
-                      Total: <span id="layoutOrderCount">0</span>
-                    </span>
-                    <button
-                      type="button"
-                      class="btn btn-outline-secondary btn-sm"
-                      id="btnRefreshOrder"
-                    >
-                      Actualizar
-                    </button>
-                  </div>
-                </div>
-                <div class="layout-order-list mt-2" id="layoutOrderList">
-                  <div class="text-muted small p-2">Sin filas</div>
-                </div>
-              </div>
-            </div>
-          </div>
+
           <div class="row mt-3">
             <div class="col-12">
               <p class="text-muted small text-center mb-0" id="statusMessage">
@@ -514,14 +482,6 @@
                                         <i class="bi bi-sliders me-1"></i>
                                         Personalizar
                                       </button>
-                                      <button
-                                        type="button"
-                                        class="btn btn-outline-primary btn-sm"
-                                        id="plantillasGraficasDetailAdd"
-                                      >
-                                        <i class="bi bi-plus-circle me-1"></i>
-                                        Agregar grafica
-                                      </button>
                                     </div>
                                   </div>
                                 </div>
@@ -566,25 +526,6 @@
                                       <i class="bi bi-sliders me-1"></i>
                                       Personalizar
                                     </span>
-                                  </div>
-                                </div>
-                              </button>
-                            </template>
-                            <template id="plantillasGraficasAddTemplate">
-                              <button
-                                type="button"
-                                class="card plantillas-graficas-card plantillas-graficas-card-add"
-                                data-chart-add
-                              >
-                                <div class="card-body text-center">
-                                  <div
-                                    class="plantillas-graficas-add-icon mb-2"
-                                  >
-                                    <i class="bi bi-plus-circle"></i>
-                                  </div>
-                                  <div class="fw-semibold">Agregar grafica</div>
-                                  <div class="text-muted small">
-                                    Crea una grafica personalizada por modulo.
                                   </div>
                                 </div>
                               </button>
@@ -2721,216 +2662,6 @@
                               </div>
                             </div>
 
-                            <div class="accordion-item">
-                              <h2
-                                class="accordion-header"
-                                id="plantillasGraficasCustomHeading"
-                              >
-                                <button
-                                  class="accordion-button collapsed"
-                                  type="button"
-                                  data-bs-toggle="collapse"
-                                  data-bs-target="#plantillasGraficasCustomCollapse"
-                                  aria-expanded="false"
-                                  aria-controls="plantillasGraficasCustomCollapse"
-                                >
-                                  Graficas personalizadas por modulo
-                                </button>
-                              </h2>
-                              <div
-                                id="plantillasGraficasCustomCollapse"
-                                class="accordion-collapse collapse"
-                                data-bs-parent="#plantillasGraficasAccordion"
-                              >
-                                <div class="accordion-body">
-                                  <div
-                                    class="d-flex flex-column flex-lg-row justify-content-between gap-2 mb-2"
-                                  >
-                                    <div>
-                                      <h6 class="mb-1">Agregar graficas</h6>
-                                      <p class="text-muted small mb-0">
-                                        Define el modulo origen y las filas del
-                                        resumen.
-                                      </p>
-                                    </div>
-                                    <div class="d-flex align-items-start">
-                                      <button
-                                        type="button"
-                                        class="btn btn-outline-primary btn-sm"
-                                        id="plantillasGraficasAddCustom"
-                                      >
-                                        <i class="bi bi-plus-circle me-1"></i>
-                                        Agregar grafica
-                                      </button>
-                                    </div>
-                                  </div>
-                                  <div
-                                    class="d-flex flex-column gap-3"
-                                    id="plantillasGraficasCustomList"
-                                  ></div>
-                                  <div class="form-text mt-2">
-                                    Usa una linea por fila. Puedes usar
-                                    "alias=LABEL1|LABEL2" para variantes.
-                                  </div>
-                                  <template
-                                    id="plantillasGraficasCustomTemplate"
-                                  >
-                                    <div class="card border" data-custom-chart>
-                                      <div class="card-body p-3">
-                                        <div
-                                          class="d-flex justify-content-between align-items-center mb-2"
-                                        >
-                                          <div
-                                            class="text-muted small fw-semibold"
-                                          >
-                                            Grafica personalizada
-                                          </div>
-                                          <div
-                                            class="d-flex align-items-center gap-1"
-                                          >
-                                            <button
-                                              type="button"
-                                              class="btn btn-outline-secondary btn-sm"
-                                              data-custom-move-up
-                                              title="Subir"
-                                            >
-                                              <i class="bi bi-arrow-up"></i>
-                                            </button>
-                                            <button
-                                              type="button"
-                                              class="btn btn-outline-secondary btn-sm"
-                                              data-custom-move-down
-                                              title="Bajar"
-                                            >
-                                              <i class="bi bi-arrow-down"></i>
-                                            </button>
-                                            <button
-                                              type="button"
-                                              class="btn btn-outline-danger btn-sm"
-                                              data-custom-remove
-                                            >
-                                              Eliminar
-                                            </button>
-                                          </div>
-                                        </div>
-                                        <div class="row g-2">
-                                          <div class="col-12 col-lg-4">
-                                            <label
-                                              class="form-label small fw-semibold"
-                                              >Modulo origen</label
-                                            >
-                                            <select
-                                              class="form-select form-select-sm"
-                                              data-custom-module
-                                            ></select>
-                                          </div>
-                                          <div class="col-12 col-lg-4">
-                                            <label
-                                              class="form-label small fw-semibold"
-                                              >Titulo</label
-                                            >
-                                            <input
-                                              type="text"
-                                              class="form-control form-control-sm"
-                                              data-custom-title
-                                            />
-                                          </div>
-                                          <div class="col-12 col-lg-4">
-                                            <label
-                                              class="form-label small fw-semibold"
-                                              >Tipo</label
-                                            >
-                                            <select
-                                              class="form-select form-select-sm"
-                                              data-custom-type
-                                            >
-                                              <option value="inherit">
-                                                Usar global
-                                              </option>
-                                              <option value="bar">
-                                                Barras
-                                              </option>
-                                              <option value="line">
-                                                Linea
-                                              </option>
-                                              <option value="pie">
-                                                Pastel
-                                              </option>
-                                              <option value="doughnut">
-                                                Dona
-                                              </option>
-                                            </select>
-                                          </div>
-                                          <div class="col-12 col-lg-8">
-                                            <label
-                                              class="form-label small fw-semibold"
-                                              >Subtitulo</label
-                                            >
-                                            <input
-                                              type="text"
-                                              class="form-control form-control-sm"
-                                              data-custom-subtitle
-                                            />
-                                          </div>
-                                          <div
-                                            class="col-12 col-lg-4 d-flex align-items-end"
-                                          >
-                                            <div class="form-check form-switch">
-                                              <input
-                                                class="form-check-input"
-                                                type="checkbox"
-                                                data-custom-enabled
-                                              />
-                                              <label
-                                                class="form-check-label small"
-                                                >Activa</label
-                                              >
-                                            </div>
-                                          </div>
-                                          <div class="col-12 col-lg-8">
-                                            <label
-                                              class="form-label small fw-semibold"
-                                              >Fuente de datos (fila)</label
-                                            >
-                                            <select
-                                              class="form-select form-select-sm"
-                                              data-custom-source-picker
-                                            >
-                                              <option value="">
-                                                Sin datos disponibles
-                                              </option>
-                                            </select>
-                                          </div>
-                                          <div
-                                            class="col-12 col-lg-4 d-flex align-items-end"
-                                          >
-                                            <button
-                                              type="button"
-                                              class="btn btn-outline-secondary btn-sm w-100"
-                                              data-custom-add-source
-                                            >
-                                              Agregar a filas
-                                            </button>
-                                          </div>
-                                          <div class="col-12">
-                                            <label
-                                              class="form-label small fw-semibold"
-                                              >Filas</label
-                                            >
-                                            <textarea
-                                              class="form-control form-control-sm"
-                                              rows="3"
-                                              data-custom-rows
-                                            ></textarea>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </template>
-                                </div>
-                              </div>
-                            </div>
-
                             <div
                               class="text-muted small mt-3"
                               id="plantillasGraficasStatus"
@@ -2999,6 +2730,7 @@
                       <th style="min-width: 160px">Subsección</th>
                       <th style="min-width: 140px">Cuenta</th>
                       <th style="min-width: 200px">Nombre</th>
+                      <th style="min-width: 160px">Aparición</th>
                       <th style="width: 100px">Signo/Factor</th>
                       <th style="min-width: 220px">Fórmula</th>
                       <th style="width: 44px"></th>
@@ -3569,7 +3301,6 @@
     <script src="js/modo-edicion-presupuesto.js"></script>
     <script src="js/flujo-autorizacion.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="js/formula-builder.js"></script>
     <script src="js/layout-controls.js"></script>
     <script src="js/operation-sync.js"></script>
     <script src="js/operation-debugger.js"></script>

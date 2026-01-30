@@ -197,11 +197,13 @@
   ]);
 
   const OPERACIONES_MANUALES_ONLY = true;
+  const BLOQUEAR_OPERACIONES_AUTOMATICAS = true;
   const operacionesAutomaticasHabilitadas = (moduloClave) => {
     if (OPERACIONES_MANUALES_ONLY) return false;
     const clave = normalizarModuloClave(moduloClave || "");
     return !MODULOS_SIN_OPERACIONES_AUTOMATICAS.has(clave);
   };
+
 
   const MODULOS_FILTRA_MESES_REALES = new Set([
     "membresia",
@@ -353,6 +355,53 @@
       }
     }
     return [];
+  };
+
+  const CAMPOS_FILA_OPERACION = [
+    "sum-row",
+    "sum-row-sumavarios",
+    "sum-row-sumavarios2",
+    "sum-row-sumavarios-consolidado",
+    "sum-row-operativo",
+    "sum-row-operativo-consolidado",
+    "result-row",
+    "net-row",
+    "result-net-row",
+  ];
+  const COLUMN_CONFIG_ID = "COLUMN_CONFIG";
+  const esOperacionConfigColumnas = (op) => {
+    if (!op) return false;
+    const rawId =
+      op.OperacionId || op.operacion_id || op.id || op.Clase || op.clase || "";
+    const id = rawId.toString().trim().toUpperCase();
+    if (id === COLUMN_CONFIG_ID) return true;
+    if (op["column-config"] || op["columnas-config"] || op.column_config) {
+      return true;
+    }
+    return false;
+  };
+
+  const obtenerNombreOperacion = (op) =>
+    op?.operacion_etiqueta ||
+    op?.Clase ||
+    op?.clase ||
+    op?.OperacionId ||
+    op?.operacion_id ||
+    op?.id ||
+    "Operacion";
+
+  const obtenerEtiquetaOperacionLibre = (op) => {
+    if (!op) return "Operacion";
+    for (const campo of CAMPOS_FILA_OPERACION) {
+      const valor = (op?.[campo] || "").toString().trim();
+      if (valor) return valor;
+    }
+    return obtenerNombreOperacion(op);
+  };
+
+  const esOperacionLibre = (op) => {
+    if (!op) return false;
+    return !CAMPOS_FILA_OPERACION.some((campo) => Boolean(op?.[campo]));
   };
 
   const construirTerminosOperativoDesdeFormula = (op) => {
@@ -2870,6 +2919,7 @@
   }) => {
     const moduloNormalizado = normalizarModuloClave(moduloClave);
     const autoOpsEnabled = operacionesAutomaticasHabilitadas(moduloNormalizado);
+    const manualOpsOnly = estadoModulo.manualOpsOnly === true;
     const registrosBase = Array.isArray(registros) ? registros : [];
     const placeholders = resolverPlaceholdersPorFila(
       placeholdersPorFila,
@@ -2906,6 +2956,55 @@
     const sumasSecciones = [];
     const sumavariosData = new Map();
     const forcedResultTexto = (resultadoForzado || "").toString().trim();
+    const operacionesLibres = [];
+    const operacionesLayout = Array.isArray(estadoModulo.layoutOperaciones)
+      ? estadoModulo.layoutOperaciones
+      : [];
+    const libresPorSeccion = new Map();
+    const libresSinSeccion = [];
+    const operacionesConFila = [];
+    const operacionesConFilaPorSeccion = new Map();
+    const operacionesUsadas = new Set();
+    const operacionesIncluidas = new Set();
+    const seccionesDisponibles = new Set(
+      Array.from(secciones.keys()).map((key) => normalizarTexto(key))
+    );
+
+    const obtenerOperacionId = (op) =>
+      (op?.OperacionId || op?.operacion_id || op?.id || op?.Clase || op?.clase || "")
+        .toString()
+        .trim();
+
+    operacionesLayout.forEach((op) => {
+      if (!op || op?.visible === false) return;
+      if (esOperacionConfigColumnas(op)) return;
+      const opId = obtenerOperacionId(op) || `op_${operacionesLayout.indexOf(op)}`;
+      const seccionOp =
+        op.SECCION || op.seccion || op.parentSection || op.parentSubsection || "";
+      const clave = normalizarTexto(seccionOp);
+      if (!clave) {
+        // Si no hay seccion, mostrar como operacion global (libre o con fila).
+        libresSinSeccion.push(op);
+        operacionesIncluidas.add(opId);
+        return;
+      }
+      if (!seccionesDisponibles.has(clave)) {
+        // Si la seccion no existe en el layout, tratarla como operacion libre.
+        libresSinSeccion.push(op);
+        operacionesIncluidas.add(opId);
+        return;
+      }
+      if (!esOperacionLibre(op)) {
+        operacionesConFila.push(op);
+        if (!operacionesConFilaPorSeccion.has(clave)) {
+          operacionesConFilaPorSeccion.set(clave, []);
+        }
+        operacionesConFilaPorSeccion.get(clave).push(op);
+        return;
+      }
+      if (!libresPorSeccion.has(clave)) libresPorSeccion.set(clave, []);
+      libresPorSeccion.get(clave).push(op);
+    });
 
     secciones.forEach((lista, seccion) => {
       const seccionOriginal = esModuloNomina
@@ -2977,6 +3076,17 @@
           ? sumasPersonalizadas.get(claveSeccion) ||
             sumasPersonalizadas.get(claveSeccionOriginal)
           : null;
+      if (sumasBase) {
+        const opsSeccion =
+          operacionesConFilaPorSeccion.get(claveSeccion) ||
+          operacionesConFilaPorSeccion.get(claveSeccionOriginal) ||
+          [];
+        opsSeccion.forEach((op) => {
+          const opId = obtenerOperacionId(op);
+          if (opId) operacionesUsadas.add(opId);
+        });
+      }
+      const permitirSumas = !manualOpsOnly || Boolean(sumasBase);
       const tieneSumasBase = Boolean(sumasBase);
       let sumas =
         aplicarOperacionesPorModulo(moduloClave, seccion, sumasBase) ||
@@ -3002,7 +3112,7 @@
         sumas = limpiarSumasNomina(sumas, seccion);
       }
       const sumRowCustom = (sumas?.sumRow || "").trim();
-      let etiquetaSumRow = sumRowCustom;
+      let etiquetaSumRow = permitirSumas ? sumRowCustom : "";
       const ordenSumRow = Number.isFinite(Number(sumas?.ordenSumRow))
         ? Number(sumas.ordenSumRow)
         : null;
@@ -3037,17 +3147,19 @@
         (seccionNormalizada.includes("GASTOS FINANCIEROS") ||
           sumRowNormalizada.includes("GASTOS FINANCIEROS"));
       const resultRowTexts = [];
-      if (forcedResultTexto) {
-        resultRowTexts.push(forcedResultTexto);
-      }
-      if (Array.isArray(sumas?.resultRows)) {
-        sumas.resultRows.forEach((texto) => {
-          const limpio = (texto || "").toString().trim();
-          if (limpio) resultRowTexts.push(limpio);
-        });
-      } else if (sumas?.resultRow) {
-        const texto = sumas.resultRow.toString().trim();
-        if (texto) resultRowTexts.push(texto);
+      if (permitirSumas) {
+        if (forcedResultTexto) {
+          resultRowTexts.push(forcedResultTexto);
+        }
+        if (Array.isArray(sumas?.resultRows)) {
+          sumas.resultRows.forEach((texto) => {
+            const limpio = (texto || "").toString().trim();
+            if (limpio) resultRowTexts.push(limpio);
+          });
+        } else if (sumas?.resultRow) {
+          const texto = sumas.resultRow.toString().trim();
+          if (texto) resultRowTexts.push(texto);
+        }
       }
       const factorManual = Number.isFinite(Number(sumas?.operacionFactor))
         ? Number(sumas.operacionFactor)
@@ -3076,19 +3188,25 @@
         seccion: claveSeccion,
         tituloVisible: seccion,
         filasCuenta,
-        sumRowTexto: etiquetaSumRow ? normalizarTexto(etiquetaSumRow) : "",
-        sumRowSumavariosTexto: sumas?.sumRowSumavarios
-          ? normalizarTexto(sumas.sumRowSumavarios)
-          : "",
-        sumRowSumavarios2Texto: sumas?.sumRowSumavarios2
-          ? normalizarTexto(sumas.sumRowSumavarios2)
-          : "",
-        sumRowSumavariosLabel: sumas?.sumRowSumavarios || "",
-        sumRowSumavarios2Label: sumas?.sumRowSumavarios2 || "",
-        resultRowTexto: resultRowTexts[0]
-          ? normalizarTexto(resultRowTexts[0])
-          : "",
-        resultRows: resultRowTexts,
+        sumRowTexto:
+          permitirSumas && etiquetaSumRow
+            ? normalizarTexto(etiquetaSumRow)
+            : "",
+        sumRowSumavariosTexto:
+          permitirSumas && sumas?.sumRowSumavarios
+            ? normalizarTexto(sumas.sumRowSumavarios)
+            : "",
+        sumRowSumavarios2Texto:
+          permitirSumas && sumas?.sumRowSumavarios2
+            ? normalizarTexto(sumas.sumRowSumavarios2)
+            : "",
+        sumRowSumavariosLabel: permitirSumas ? sumas?.sumRowSumavarios || "" : "",
+        sumRowSumavarios2Label: permitirSumas ? sumas?.sumRowSumavarios2 || "" : "",
+        resultRowTexto:
+          permitirSumas && resultRowTexts[0]
+            ? normalizarTexto(resultRowTexts[0])
+            : "",
+        resultRows: permitirSumas ? resultRowTexts : [],
         ordenSumRow,
         ordenSumRowSumavarios,
         ordenSumRowSumavarios2,
@@ -3128,7 +3246,7 @@
       const esCapituloMexico =
         capituloNormalizado === normalizarTexto("CIUDAD DE M├ëXICO") ||
         capituloNormalizado === normalizarTexto("CIUDAD DE MEXICO");
-      if (aplicarHeuristicasEtiquetas) {
+      if (permitirSumas && aplicarHeuristicasEtiquetas) {
         switch (moduloNormalizado) {
           case "comites": {
             const seccionNormTexto = normalizarTexto(seccion || "");
@@ -3430,7 +3548,12 @@
             break;
         }
       }
-      if (!aplicarHeuristicasEtiquetas && aplicarHeuristicas && factorManual == null) {
+      if (
+        permitirSumas &&
+        !aplicarHeuristicasEtiquetas &&
+        aplicarHeuristicas &&
+        factorManual == null
+      ) {
         const seccionNormTexto = normalizarTexto(seccion || "");
         if (/GASTOS|COSTOS|DEDUC|IMPUEST|COMISIONES/i.test(seccionNormTexto)) {
           metaSeccion.factor = -1;
@@ -3438,7 +3561,7 @@
           metaSeccion.factor = 1;
         }
       }
-      if (etiquetaSumRow) {
+      if (permitirSumas && etiquetaSumRow) {
         metaSeccion.elementos.sumRow = agregarFilaResumen({
           texto: etiquetaSumRow,
           clase: "sum-row",
@@ -3497,8 +3620,82 @@
           resultRows.set(clave, existente);
         });
       }
+      const claveSeccionLibre = normalizarTexto(seccion || "");
+      const libres = libresPorSeccion.get(claveSeccionLibre) || [];
+      if (libres.length) {
+        const ordenar = (op, fallback) =>
+          Number.isFinite(Number(op?.orden_presentacion))
+            ? Number(op.orden_presentacion)
+            : Number.isFinite(Number(op?.orden))
+            ? Number(op.orden)
+            : fallback;
+        const libresOrdenados = libres
+          .slice()
+          .sort((a, b) => ordenar(a, 0) - ordenar(b, 0));
+        let referencia =
+          metaSeccion.elementos.sumRow ||
+          metaSeccion.filasCuenta[metaSeccion.filasCuenta.length - 1] ||
+          headerRow;
+        libresOrdenados.forEach((op, idxOp) => {
+          const texto = obtenerEtiquetaOperacionLibre(op);
+          const filaLibre = agregarFilaResumen({
+            texto,
+            clase: "operation-row free-operation-row",
+            cuerpo,
+            placeholdersPorFila: placeholders,
+          });
+          if (!filaLibre) return;
+          filaLibre.dataset.operationId =
+            op?.OperacionId || op?.operacion_id || op?.id || "";
+          filaLibre.dataset.operationLabel = texto;
+          if (referencia && referencia.parentNode) {
+            referencia.parentNode.insertBefore(
+              filaLibre,
+              referencia.nextSibling
+            );
+          }
+          referencia = filaLibre;
+          operacionesLibres.push({ fila: filaLibre, op, idx: idxOp });
+        });
+      }
       sumasSecciones.push(metaSeccion);
     });
+
+    if (operacionesConFila.length) {
+      operacionesConFila.forEach((op) => {
+        const opId = obtenerOperacionId(op);
+        if (!opId || operacionesUsadas.has(opId) || operacionesIncluidas.has(opId)) {
+          return;
+        }
+        libresSinSeccion.push(op);
+        operacionesIncluidas.add(opId);
+      });
+    }
+
+    if (libresSinSeccion.length) {
+      let referenciaFinal = cuerpo.lastChild;
+      libresSinSeccion.forEach((op, idxOp) => {
+        const texto = obtenerEtiquetaOperacionLibre(op);
+        const filaLibre = agregarFilaResumen({
+          texto,
+          clase: "operation-row free-operation-row",
+          cuerpo,
+          placeholdersPorFila: placeholders,
+        });
+        if (!filaLibre) return;
+        filaLibre.dataset.operationId =
+          op?.OperacionId || op?.operacion_id || op?.id || "";
+        filaLibre.dataset.operationLabel = texto;
+        if (referenciaFinal && referenciaFinal.parentNode) {
+          referenciaFinal.parentNode.insertBefore(
+            filaLibre,
+            referenciaFinal.nextSibling
+          );
+        }
+        referenciaFinal = filaLibre;
+        operacionesLibres.push({ fila: filaLibre, op, idx: idxOp });
+      });
+    }
 
     if (forcedResultTexto) {
       resultRows.clear();
@@ -3525,6 +3722,7 @@
       sumasSecciones,
       sumavarios: sumavariosData,
       faltantesNombre: Array.from(faltantesNombre),
+      operacionesLibres,
     };
   };
 
@@ -3704,6 +3902,10 @@
           if (!Number.isFinite(Number(prevOrder))) return Number(nextOrder);
           return Math.min(Number(prevOrder), Number(nextOrder));
         };
+        const sumRowConsolidado =
+          (op["sum-row-sumavarios-consolidado"] || "")
+            .toString()
+            .trim();
         const resultRow =
           op["result-row"] || op["result-net-row"] || previo.resultRow || "";
         const signo =
@@ -3716,7 +3918,10 @@
           sumRowSumavarios:
             op["sum-row-sumavarios"] || previo.sumRowSumavarios || "",
           sumRowSumavarios2:
-            op["sum-row-sumavarios2"] || previo.sumRowSumavarios2 || "",
+            op["sum-row-sumavarios2"] ||
+            sumRowConsolidado ||
+            previo.sumRowSumavarios2 ||
+            "",
           resultRow,
           ordenSumRow: op["sum-row"]
             ? mergeOrder(previo.ordenSumRow, ordenBase)
@@ -3724,7 +3929,7 @@
           ordenSumRowSumavarios: op["sum-row-sumavarios"]
             ? mergeOrder(previo.ordenSumRowSumavarios, ordenBase)
             : previo.ordenSumRowSumavarios,
-          ordenSumRowSumavarios2: op["sum-row-sumavarios2"]
+          ordenSumRowSumavarios2: op["sum-row-sumavarios2"] || sumRowConsolidado
             ? mergeOrder(previo.ordenSumRowSumavarios2, ordenBase)
             : previo.ordenSumRowSumavarios2,
           ordenResultRow: op["result-row"]
@@ -5088,6 +5293,29 @@
       return ajustados;
     };
 
+    const normalizarOperacionLibreClave = (valor) =>
+      normalizarTexto(valor || "");
+    const obtenerCeros = () => Array.from({ length: longitud }, () => 0);
+    const obtenerValoresCuenta = (valor) => {
+      const cuenta21 = convertirCuenta21(valor || "");
+      if (!cuenta21) return obtenerCeros();
+      const almacenados = estadoModulo.valoresPorCuenta?.get(cuenta21);
+      let valoresBase = almacenados
+        ? clavesOrdenadas.map((clave) => almacenados[clave] ?? 0)
+        : obtenerCeros();
+      valoresBase = ajustarPorPeriodo(valoresBase);
+      return valoresBase.map((v) => Number(v) || 0);
+    };
+    const obtenerValoresSeccion = (nombre) => {
+      const clave = normalizarTexto(nombre || "");
+      if (!clave) return obtenerCeros();
+      const seccion = secciones.find(
+        (item) =>
+          normalizarTexto(item?.seccion || item?.tituloVisible || "") === clave
+      );
+      return Array.isArray(seccion?.sumValues) ? seccion.sumValues : null;
+    };
+
     // PASO 1: Calcular sum-row para cada secci├│n (suma vertical de todas las cuentas)
     secciones.forEach((seccion, idxSeccion) => {
       try {
@@ -5153,10 +5381,79 @@
     });
     if (errores.length) console.warn("ÔÜá´©Å Errores en recalcularSumas:", errores);
 
+    // PASO 1.5: Calcular operaciones libres basadas en fórmula
+    try {
+      const freeOps = Array.isArray(meta.operacionesLibres)
+        ? meta.operacionesLibres
+        : [];
+      const valoresPorOperacion = new Map();
+      freeOps.forEach((item) => {
+        const op = item?.op;
+        const fila = item?.fila;
+        if (!op || !fila || !fila.parentNode) return;
+        const terms = extraerFormulaTermsOperacion(op);
+        let valores = obtenerCeros();
+        terms.forEach((term) => {
+          if (!term) return;
+          const operador = (term.operator || "+").toString().trim() === "-" ? -1 : 1;
+          const tipo = (term.type || "").toString().toLowerCase();
+          const valorTerm = term.value ?? term.cuenta ?? term.id ?? "";
+          let termValues = obtenerCeros();
+          if (tipo === "section" || tipo === "seccion") {
+            termValues = obtenerValoresSeccion(valorTerm) || obtenerCeros();
+          } else if (tipo === "account" || tipo === "cuenta") {
+            termValues = obtenerValoresCuenta(valorTerm);
+          } else if (tipo === "operation" || tipo === "operacion") {
+            const claveOp = normalizarOperacionLibreClave(valorTerm);
+            termValues = valoresPorOperacion.get(claveOp) || obtenerCeros();
+          } else if (tipo === "constant") {
+            const numero =
+              term.constant != null ? Number(term.constant) : Number(valorTerm);
+            termValues = obtenerCeros().map(() =>
+              Number.isFinite(numero) ? numero : 0
+            );
+          } else {
+            const valoresSeccion = obtenerValoresSeccion(valorTerm);
+            termValues = valoresSeccion || obtenerValoresCuenta(valorTerm);
+          }
+          valores = valores.map(
+            (valor, idx) => valor + operador * (Number(termValues[idx]) || 0)
+          );
+        });
+
+        const signo = Number(op?.signo);
+        if (Number.isFinite(signo) && signo !== 1) {
+          valores = valores.map((v) => (Number(v) || 0) * signo);
+        }
+
+        const idxTotalReal = clavesOrdenadas.indexOf("total-real");
+        if (idxTotalReal >= 0) {
+          const sumaReal = clavesOrdenadas.reduce((acc, clave, idx) => {
+            if (!clave.startsWith("real-")) return acc;
+            return acc + (Number(valores[idx]) || 0);
+          }, 0);
+          valores[idxTotalReal] = sumaReal;
+        }
+
+        asignarValoresNumericos(fila, valores);
+        const claveOp =
+          normalizarOperacionLibreClave(
+            op?.OperacionId ||
+              op?.operacion_id ||
+              op?.id ||
+              op?.operacion_etiqueta ||
+              op?.Clase ||
+              ""
+          ) || normalizarOperacionLibreClave(fila.dataset.operationLabel || "");
+        if (claveOp) valoresPorOperacion.set(claveOp, valores);
+      });
+    } catch (e) {
+      console.warn("?? Error calculando operaciones libres:", e);
+    }
+
     // PASO 2: Calcular sumavarios (suma de sum-rows agrupados por etiqueta)
     try {
       const acumuladosSumavarios = new Map();
-      const obtenerCeros = () => Array.from({ length: longitud }, () => 0);
 
       const acumularEnClave = (clave, seccion) => {
         if (!clave) return;
@@ -5208,13 +5505,14 @@
     }
 
     // PASO 2.4: Gastos Generales - Otros Ingresos vs Gastos
-    try {
-      if (moduloActual === "gastosgenerales") {
-        const claveOtrosVs = normalizarTexto("OTROS INGRESOS VS GASTOS");
-        const esOtrosIngresos = (seccion) => {
-          const texto = normalizarTexto(
-            seccion?.tituloVisible || seccion?.seccion || ""
-          );
+    if (!BLOQUEAR_OPERACIONES_AUTOMATICAS) {
+      try {
+        if (moduloActual === "gastosgenerales") {
+          const claveOtrosVs = normalizarTexto("OTROS INGRESOS VS GASTOS");
+          const esOtrosIngresos = (seccion) => {
+            const texto = normalizarTexto(
+              seccion?.tituloVisible || seccion?.seccion || ""
+            );
           const sumRowTexto = normalizarTexto(seccion?.sumRowTexto || "");
           return (
             /OTROS\s+INGRESOS/i.test(texto) ||
@@ -5248,17 +5546,19 @@
           );
           asignarValoresNumericos(filaOtrosVs, valoresNetos);
         }
+        }
+      } catch (e) {
+        console.warn("?? Error ajustando Gastos Financieros:", e);
       }
-    } catch (e) {
-      console.warn("?? Error ajustando Gastos Financieros:", e);
     }
 
     // PASO 2.4.1: Presupuestos CDMX - sumas por rango de cuentas
-    try {
-      if (
-        moduloActual === "presupuestos" &&
-        normalizarTexto(estadoModulo.capitulo) === "CIUDAD DE MEXICO"
-      ) {
+    if (!BLOQUEAR_OPERACIONES_AUTOMATICAS) {
+      try {
+        if (
+          moduloActual === "presupuestos" &&
+          normalizarTexto(estadoModulo.capitulo) === "CIUDAD DE MEXICO"
+        ) {
         const claveIng = normalizarTexto("SUMA DE INGRESOS CDMX");
         const claveGas = normalizarTexto("SUMA DE GASTOS CDMX");
         const claveRes = normalizarTexto("RESULTADO OPERATIVO CDMX");
@@ -5317,15 +5617,17 @@
           );
           asignarValoresNumericos(filaRes, resultado);
         }
+        }
+      } catch (e) {
+        console.warn("?? Error calculando sumas CDMX Presupuestos:", e);
       }
-    } catch (e) {
-      console.warn("?? Error calculando sumas CDMX Presupuestos:", e);
     }
 
     // PASO 2.5: Resultado Operativo por nombre (ingresos - gastos)
-    try {
-      const operaciones = estadoModulo.operacionesResultadoOperativo;
-      if (operaciones && operaciones.size) {
+    if (!BLOQUEAR_OPERACIONES_AUTOMATICAS) {
+      try {
+        const operaciones = estadoModulo.operacionesResultadoOperativo;
+        if (operaciones && operaciones.size) {
         const cacheValores = new Map();
         const obtenerValoresCuenta = (cuenta21) => {
           if (!cuenta21) return Array.from({ length: longitud }, () => 0);
@@ -5356,9 +5658,10 @@
           });
           asignarValoresNumericos(fila, acumulado);
         });
+        }
+      } catch (e) {
+        console.warn("?? Error en fase resultado operativo por nombre:", e);
       }
-    } catch (e) {
-      console.warn("?? Error en fase resultado operativo por nombre:", e);
     }
 
     // result-row: suma solamente los sum-row de todas las secciones con la misma etiqueta de resultado
@@ -6040,6 +6343,14 @@
         capitulo: capituloDestino,
         empresaId,
       });
+      if (!layoutSqlite && moduloNormalizado && moduloNormalizado !== moduloNombre) {
+        layoutSqlite = await cargarLayoutSqlite({
+          modulo: moduloNormalizado,
+          anio: anioSeleccionado,
+          capitulo: capituloDestino,
+          empresaId,
+        });
+      }
       if (layoutSqlite) {
         registros = construirRegistrosDesdeLayout(
           layoutSqlite,
@@ -6051,9 +6362,7 @@
             cuenta: corregirCuentaLegible(registro.cuenta, registro),
           };
         });
-        estadoModulo.layoutOperaciones = Array.isArray(
-          layoutSqlite.operaciones
-        )
+        estadoModulo.layoutOperaciones = Array.isArray(layoutSqlite.operaciones)
           ? layoutSqlite.operaciones
           : [];
         sumasPersonalizadas = construirSumasDesdeLayout(layoutSqlite);
@@ -6064,6 +6373,10 @@
     } else {
       estadoModulo.layoutOperaciones = [];
     }
+    estadoModulo.manualOpsOnly = Boolean(BLOQUEAR_OPERACIONES_AUTOMATICAS);
+    estadoModulo.hayOperacionesLayout =
+      Array.isArray(estadoModulo.layoutOperaciones) &&
+      estadoModulo.layoutOperaciones.length > 0;
 
     if (
       !registros.length &&
@@ -6158,6 +6471,7 @@
       secciones: [],
       sumavariosRows: new Map(),
       resultRows: new Map(),
+      operacionesLibres: [],
     };
     const pendientes = renderizarSecciones({
       registros,
@@ -6289,21 +6603,25 @@
       moduloClave,
       operacionesLayout: estadoModulo.layoutOperaciones,
     });
-    const insertarOperativoAntesDe =
-      moduloClave === "comites" || moduloClave === "eventos"
-        ? cuerpo.querySelector(
-            `tr.section-header-row[data-seccion="${normalizarTexto(
-              "Gastos Administrativos"
-            )}"]`
-          )
-        : null;
-    estadoModulo.operacionesResultadoOperativo =
-      insertarOperacionesResultadoOperativo({
-        cuerpo,
-        placeholdersPorFila,
-        operaciones: operacionesResultado,
-        insertBefore: insertarOperativoAntesDe,
-      });
+    if (operacionesResultado.length) {
+      const insertarOperativoAntesDe =
+        moduloClave === "comites" || moduloClave === "eventos"
+          ? cuerpo.querySelector(
+              `tr.section-header-row[data-seccion="${normalizarTexto(
+                "Gastos Administrativos"
+              )}"]`
+            )
+          : null;
+      estadoModulo.operacionesResultadoOperativo =
+        insertarOperacionesResultadoOperativo({
+          cuerpo,
+          placeholdersPorFila,
+          operaciones: operacionesResultado,
+          insertBefore: insertarOperativoAntesDe,
+        });
+    } else {
+      estadoModulo.operacionesResultadoOperativo = new Map();
+    }
 
     const resultadoOrdenado = Array.isArray(pendientes.resultadoFilas)
       ? pendientes.resultadoFilas
@@ -6331,6 +6649,11 @@
     });
 
     estadoModulo.sumas.secciones = pendientes.sumasSecciones;
+    estadoModulo.sumas.operacionesLibres = Array.isArray(
+      pendientes.operacionesLibres
+    )
+      ? pendientes.operacionesLibres
+      : [];
     estadoModulo.capitulo = capituloDestino || "";
     estadoModulo.layoutEsPersonalizado = Boolean(layoutSqlite);
     estadoModulo.layoutActual = construirLayoutDesdeMeta({

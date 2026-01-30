@@ -2013,6 +2013,8 @@
       "Fila consolidada (CONSOLIDATED INCOME/EXPENSES u Operating Results) que agrupa varios principales.",
     result:
       'Operating/Net Results definidos en "SUMA DE VARIAS SECCIONES"; combinan ingresos, gastos y otros ajustes segun el mapeo.',
+    operation:
+      "Operacion libre definida en el Gestor de Plantillas (formula manual)."
   };
 
   const collapsedSections = new Set();
@@ -3422,6 +3424,19 @@
               })}
             `;
             tablaBody.appendChild(row);
+          }
+          // OPERACION LIBRE: fila calculada desde fórmula manual
+          else if (blockType === "operation") {
+            const opRow = createResumenTotalsRow(block.totals || {}, {
+              label: block.label || "",
+              rowRole: "operation",
+              rowClass: "operation-row free-operation-row fw-semibold",
+              rowContext: {
+                label: block.label || "",
+                type: blockType,
+              },
+            });
+            tablaBody.appendChild(opRow);
           }
           // CONSOLIDACIONES: Filas de suma con jerarquía visual
           else if (["group", "result", "net", "final"].includes(blockType)) {

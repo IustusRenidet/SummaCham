@@ -212,6 +212,76 @@ const normalizarTexto = (valor = '') => valor
   .normalize('NFD')
   .replace(/[\u0300-\u036f]/g, '');
 
+const CAMPOS_FILA_OPERACION = [
+  'sum-row',
+  'sum-row-sumavarios',
+  'sum-row-sumavarios2',
+  'sum-row-sumavarios-consolidado',
+  'sum-row-operativo',
+  'sum-row-operativo-consolidado',
+  'result-row',
+  'net-row',
+  'result-net-row'
+];
+
+const COLUMN_CONFIG_ID = 'COLUMN_CONFIG';
+const esOperacionConfigColumnas = (op = {}) => {
+  const rawId = op.OperacionId || op.operacion_id || op.id || op.Clase || op.clase || '';
+  const id = rawId.toString().trim().toUpperCase();
+  if (id === COLUMN_CONFIG_ID) return true;
+  if (op['column-config'] || op['columnas-config'] || op.column_config) return true;
+  return false;
+};
+
+const esOperacionLibre = (op = {}) =>
+  !CAMPOS_FILA_OPERACION.some((campo) => Boolean(op?.[campo]));
+
+const obtenerNombreOperacion = (op = {}) =>
+  op.operacion_etiqueta || op.Clase || op.clase || op.OperacionId || op.id || 'Operacion';
+
+const obtenerTerminosOperacion = (op = {}) => {
+  if (Array.isArray(op.formula_terms) && op.formula_terms.length) {
+    return op.formula_terms;
+  }
+  if (op.formula_json) {
+    try {
+      const parsed = JSON.parse(op.formula_json);
+      if (Array.isArray(parsed)) return parsed;
+    } catch (err) {
+      /* ignore */
+    }
+  }
+  const terms = [];
+  if (op.signos && typeof op.signos === 'object') {
+    Object.entries(op.signos).forEach(([clave, signo]) => {
+      if (!clave || !clave.startsWith('seccion_')) return;
+      const valor = op[clave];
+      if (!valor) return;
+      terms.push({
+        operator: Number(signo) < 0 ? '-' : '+',
+        type: 'section',
+        value: valor
+      });
+    });
+  }
+  if (!terms.length && op.SECCION) {
+    terms.push({
+      operator: '+',
+      type: 'section',
+      value: op.SECCION
+    });
+  }
+  return terms;
+};
+
+const normalizarTerminoTipo = (term) => {
+  if (!term) return 'section';
+  const tipo = (term.type || '').toString().toLowerCase();
+  if (tipo) return tipo;
+  const valor = term.value ?? term.cuenta ?? term.id ?? '';
+  return normalizarCuentaCanonica(valor) ? 'account' : 'section';
+};
+
 const sumarTotales = (destino, origen, factor = 1) => {
   if (!destino || !origen) return destino;
   destino.actualMonth += factor * Number(origen.actualMonth ?? 0);
@@ -287,6 +357,7 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
   const resultOrden = new Map();
   const netOrden = new Map();
   const finalOrden = new Map();
+  const freeOpsOrden = new Map();
 
   const obtenerOrden = (item, fallback = 0) => {
     const raw =
@@ -339,6 +410,16 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
       registrarOrden(netOrden, netRow);
       registrarOrden(netOrden, netRowAdicional);
       registrarOrden(finalOrden, resultNetRow);
+
+      if (esOperacionLibre(cfg)) {
+        const opKey = normalizarTexto(obtenerNombreOperacion(cfg));
+        if (opKey) {
+          const existente = freeOpsOrden.get(opKey);
+          if (existente == null || ordenConfig < existente) {
+            freeOpsOrden.set(opKey, ordenConfig);
+          }
+        }
+      }
 
       if (!seccion) return;
       const key = `${cap}|${seccion.toUpperCase()}`;
@@ -910,6 +991,203 @@ const combinarTotales = (a = {}, b = {}, factor = 1) => ({
   layoutOps.sort(sortLayoutOps);
   const layoutFinal = layout.concat(layoutOps);
 
+  // === Operaciones libres (sin fila) ===
+  const mapSecciones = new Map();
+  const buildSeccionKey = (parent, label) => {
+    if (!label) return '';
+    if (parent) return normalizarTexto(`${parent}||${label}`);
+    return normalizarTexto(label);
+  };
+  principalList.forEach((principal) => {
+    if (!principal?.label) return;
+    mapSecciones.set(normalizarTexto(principal.label), {
+      actualMonth: principal.actualMonth,
+      planMonth: principal.planMonth,
+      prevMonth: principal.prevMonth,
+      actualYTD: principal.actualYTD,
+      planYTD: principal.planYTD,
+      prevYTD: principal.prevYTD
+    });
+    (principal.children || []).forEach((sec) => {
+      if (!sec?.label) return;
+      mapSecciones.set(normalizarTexto(sec.label), {
+        actualMonth: Number(sec.totalActualMonth ?? 0),
+        planMonth: Number(sec.totalPlanMonth ?? 0),
+        prevMonth: Number(sec.totalPrevMonth ?? 0),
+        actualYTD: Number(sec.totalActualYTD ?? 0),
+        planYTD: Number(sec.totalPlanYTD ?? 0),
+        prevYTD: Number(sec.totalPrevYTD ?? 0)
+      });
+      const keyConPadre = buildSeccionKey(principal.label, sec.label);
+      if (keyConPadre) {
+        mapSecciones.set(keyConPadre, {
+          actualMonth: Number(sec.totalActualMonth ?? 0),
+          planMonth: Number(sec.totalPlanMonth ?? 0),
+          prevMonth: Number(sec.totalPrevMonth ?? 0),
+          actualYTD: Number(sec.totalActualYTD ?? 0),
+          planYTD: Number(sec.totalPlanYTD ?? 0),
+          prevYTD: Number(sec.totalPrevYTD ?? 0)
+        });
+      }
+    });
+  });
+
+  const mapPlaneacion = new Map(
+    (Array.isArray(planeacionData) ? planeacionData : []).map((p) => [
+      p.cuenta,
+      p
+    ])
+  );
+  const mapCuentas = new Map();
+  definicionCuentas.forEach((meta, cuentaCanonica) => {
+    const actual = mapPlaneacion.get(cuentaCanonica) || {};
+    const factorRaw =
+      meta.operacion_factor ?? meta.operacionFactor ?? meta.factor;
+    const factor = Number.isFinite(Number(factorRaw)) ? Number(factorRaw) : 1;
+    const totals = {
+      actualMonth: factor * Number(actual.actualMonth ?? 0),
+      planMonth: factor * Number(actual.planMonth ?? 0),
+      prevMonth: factor * Number(actual.prevMonth ?? 0),
+      actualYTD: factor * Number(actual.actualYTD ?? 0),
+      planYTD: factor * Number(actual.planYTD ?? 0),
+      prevYTD: factor * Number(actual.prevYTD ?? 0)
+    };
+    const canonKey = normalizarTexto(cuentaCanonica);
+    if (canonKey) mapCuentas.set(canonKey, totals);
+    const visible = meta.visible || meta.cuenta || meta.CUENTA || '';
+    const visibleKey = normalizarTexto(visible);
+    if (visibleKey) mapCuentas.set(visibleKey, totals);
+  });
+
+  const mapOperaciones = new Map();
+  const operacionesLibres = (Array.isArray(configAgrupacion) ? configAgrupacion : [])
+    .filter((op) => NORMALIZAR_CAPITULO(op.CAPITULO) === capituloClave)
+    .filter((op) => esOperacionLibre(op))
+    .filter((op) => !esOperacionConfigColumnas(op));
+
+  const ordenarLibre = (op, idx) => obtenerOrden(op, idx);
+  const operacionesLibresOrdenadas = operacionesLibres
+    .map((op, idx) => ({ op, idx, orden: ordenarLibre(op, idx) }))
+    .sort((a, b) => (a.orden - b.orden) || (a.idx - b.idx))
+    .map((item) => item.op);
+
+  const calcularTotalesOperacion = (op) => {
+    const terms = obtenerTerminosOperacion(op);
+    if (!terms.length) return crearAcumulador();
+    const totals = crearAcumulador();
+    terms.forEach((term) => {
+      if (!term) return;
+      const operador = (term.operator || '+').toString().trim() === '-' ? -1 : 1;
+      const tipo = normalizarTerminoTipo(term);
+      const valor = term.value ?? term.cuenta ?? term.id ?? '';
+      let origen = null;
+
+      if (tipo === 'section' || tipo === 'seccion') {
+        const parent = (term.parentSection || op?.parentSection || '').toString().trim();
+        const keyConPadre = buildSeccionKey(parent, valor);
+        origen = (keyConPadre && mapSecciones.get(keyConPadre)) || null;
+        if (!origen) {
+          origen = mapSecciones.get(normalizarTexto(valor)) || null;
+        }
+      } else if (tipo === 'account' || tipo === 'cuenta') {
+        const claveCuenta = normalizarTexto(
+          normalizarCuentaCanonica(valor) || valor
+        );
+        origen = mapCuentas.get(claveCuenta) || null;
+      } else if (tipo === 'operation' || tipo === 'operacion') {
+        origen = mapOperaciones.get(normalizarTexto(valor)) || null;
+      } else if (tipo === 'constant') {
+        const numero =
+          term.constant != null ? Number(term.constant) : Number(valor);
+        origen = {
+          actualMonth: Number.isFinite(numero) ? numero : 0,
+          planMonth: Number.isFinite(numero) ? numero : 0,
+          prevMonth: Number.isFinite(numero) ? numero : 0,
+          actualYTD: Number.isFinite(numero) ? numero : 0,
+          planYTD: Number.isFinite(numero) ? numero : 0,
+          prevYTD: Number.isFinite(numero) ? numero : 0
+        };
+      } else {
+        origen = mapSecciones.get(normalizarTexto(valor));
+        if (!origen) {
+          const claveCuenta = normalizarTexto(
+            normalizarCuentaCanonica(valor) || valor
+          );
+          origen = mapCuentas.get(claveCuenta) || null;
+        }
+      }
+
+      if (!origen) return;
+      sumarTotales(totals, origen, operador);
+    });
+
+    const signo = Number(op?.signo);
+    if (Number.isFinite(signo) && signo !== 1) {
+      totals.actualMonth *= signo;
+      totals.planMonth *= signo;
+      totals.prevMonth *= signo;
+      totals.actualYTD *= signo;
+      totals.planYTD *= signo;
+      totals.prevYTD *= signo;
+    }
+    return totals;
+  };
+
+  const insertarOperacionEnLayout = (layoutArr, opBlock, targetLabel) => {
+    if (!targetLabel) {
+      layoutArr.push(opBlock);
+      return;
+    }
+    const targetKey = normalizarTexto(targetLabel);
+    if (!targetKey) {
+      layoutArr.push(opBlock);
+      return;
+    }
+    const findIndex = (type) =>
+      layoutArr.findIndex(
+        (block) => block?.type === type && normalizarTexto(block.label) === targetKey
+      );
+    let idx = findIndex('secundaria');
+    let stopTypes = new Set(['secundaria', 'principal', 'group', 'result', 'net', 'final', 'operation']);
+    if (idx < 0) {
+      idx = findIndex('principal');
+      stopTypes = new Set(['principal', 'group', 'result', 'net', 'final', 'operation']);
+    }
+    if (idx < 0) {
+      layoutArr.push(opBlock);
+      return;
+    }
+    let insertAt = idx + 1;
+    while (insertAt < layoutArr.length) {
+      const next = layoutArr[insertAt];
+      if (!next || stopTypes.has(next.type) || next.type === 'principal' || next.type === 'secundaria') {
+        break;
+      }
+      insertAt += 1;
+    }
+    layoutArr.splice(insertAt, 0, opBlock);
+  };
+
+  operacionesLibresOrdenadas.forEach((op, idx) => {
+    const totals = calcularTotalesOperacion(op);
+    if (!totals) return;
+    const label = obtenerNombreOperacion(op);
+    const opKey = normalizarTexto(
+      op?.OperacionId || op?.operacion_id || op?.id || label
+    );
+    if (opKey) mapOperaciones.set(opKey, totals);
+    const opBlock = {
+      type: 'operation',
+      label,
+      order: obtenerOrden(op, idx),
+      orderIndex: idx,
+      totals
+    };
+    const target =
+      op.SECCION || op.seccion || op.parentSubsection || op.parentSection || '';
+    insertarOperacionEnLayout(layoutFinal, opBlock, target);
+  });
+
   return {
     principals: principalList,
     layout: layoutFinal
@@ -946,7 +1224,9 @@ async function generarReporte(tipoReporte, empresaId, anio, mesSeleccionado, cap
 
   // Filtrar configuración de agrupación por HOJA (SUMMARY o RESUMEN)
   const configCompleta = definiciones['SUMA DE VARIAS SECCIONES'] || [];
-  const configAgrupacion = configCompleta.filter(cfg => cfg.HOJA === hojaConfig);
+  const configAgrupacion = configCompleta
+    .filter((cfg) => cfg.HOJA === hojaConfig)
+    .filter((cfg) => !esOperacionConfigColumnas(cfg));
 
   const capitulosDisponibles = extraerCapitulos(lista);
   const capituloClave = NORMALIZAR_CAPITULO(capituloSeleccionado || capitulosDisponibles[0]?.etiqueta || '');

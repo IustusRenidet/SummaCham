@@ -9,6 +9,33 @@ const REFRESH_TOKEN_TTL = process.env.PANELAMCHAM_REFRESH_TTL || '7d';
 
 const normalizarUsuario = (valor) => (valor || '').toString().trim().toUpperCase();
 
+const normalizarEmpresaPermiso = (empresaId) => {
+  const raw = (empresaId || '').toString().trim().toLowerCase();
+  if (!raw) return '';
+  const match = raw.match(/empresa0*(\d+)/i);
+  if (!match) return raw;
+  const numero = parseInt(match[1], 10);
+  if (!Number.isInteger(numero) || numero <= 0) return raw;
+  if (numero >= 9 && numero <= 12) {
+    return `empresa${numero - 8}`;
+  }
+  return `empresa${numero}`;
+};
+
+const resolverPermisosEmpresa = (mapaPermisos, empresaId) => {
+  if (!mapaPermisos || !empresaId) return null;
+  const claves = new Set([
+    empresaId,
+    empresaId.toString().toLowerCase(),
+    normalizarEmpresaPermiso(empresaId),
+  ]);
+  for (const clave of claves) {
+    if (!clave) continue;
+    if (mapaPermisos[clave]) return mapaPermisos[clave];
+  }
+  return null;
+};
+
 const extraerToken = (req) => {
   // 1. Primero verificar si hay sesión activa
   if (req.session?.userId) {
@@ -138,7 +165,7 @@ const extraerEmpresaActiva = (req) => {
 
 const tienePermisoEmpresa = (mapaPermisos, empresaId) => {
   if (!empresaId) return false;
-  const permisos = mapaPermisos?.[empresaId];
+  const permisos = resolverPermisosEmpresa(mapaPermisos, empresaId);
   if (!permisos) return false;
   return Object.values(permisos).some(
     (acciones) => acciones.Lectura || acciones['Cargar y guardar'] || acciones.Revisar || acciones.Aprobar
@@ -160,7 +187,8 @@ const tienePermisoModulo = (mapaPermisos, empresaId, modulo, accion) => {
     // Para otras acciones (Cargar y guardar, Revisar, Aprobar), verificar permisos normalmente
   }
   
-  const permisos = mapaPermisos?.[empresaId]?.[modulo];
+  const permisosEmpresa = resolverPermisosEmpresa(mapaPermisos, empresaId);
+  const permisos = permisosEmpresa?.[modulo];
   if (!permisos) return false;
   if (!accion) {
     return Boolean(permisos.Lectura || permisos['Cargar y guardar'] || permisos.Revisar || permisos.Aprobar);

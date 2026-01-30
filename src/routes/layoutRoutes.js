@@ -13,6 +13,33 @@ const path = require("path");
 
 const { db } = require("../db/sqlite");
 
+const normalizarEmpresaPermiso = (empresaId) => {
+  const raw = (empresaId || "").toString().trim().toLowerCase();
+  if (!raw) return "";
+  const match = raw.match(/empresa0*(\d+)/i);
+  if (!match) return raw;
+  const numero = parseInt(match[1], 10);
+  if (!Number.isInteger(numero) || numero <= 0) return raw;
+  if (numero >= 9 && numero <= 12) {
+    return `empresa${numero - 8}`;
+  }
+  return `empresa${numero}`;
+};
+
+const resolverPermisosEmpresa = (mapaPermisos, empresaId) => {
+  if (!mapaPermisos || !empresaId) return null;
+  const claves = new Set([
+    empresaId,
+    empresaId.toString().toLowerCase(),
+    normalizarEmpresaPermiso(empresaId),
+  ]);
+  for (const clave of claves) {
+    if (!clave) continue;
+    if (mapaPermisos[clave]) return mapaPermisos[clave];
+  }
+  return null;
+};
+
 const tienePermisoCapitulo = (usuarioId, capitulo) => {
   if (!usuarioId) return false;
   // Si el usuario no tiene registro en la tabla, por defecto NO tiene permiso granular
@@ -28,8 +55,9 @@ const tienePermisoCapitulo = (usuarioId, capitulo) => {
 const tienePermisoGuardar = (req, empresaId, modulo, capitulo) => {
   if (req.esAdmin) return true;
   const moduloNormalizado = normalizarNombreModulo(modulo) || modulo;
+  const permisosEmpresa = resolverPermisosEmpresa(req.mapaPermisos, empresaId);
   const tienePermisoGral = Boolean(
-    req.mapaPermisos?.[empresaId]?.[moduloNormalizado]?.["Cargar y guardar"],
+    permisosEmpresa?.[moduloNormalizado]?.["Cargar y guardar"],
   );
 
   if (!tienePermisoGral) return false;
@@ -558,7 +586,7 @@ router.post("/:modulo/:anio/:capitulo/cuentas", requireAuth, (req, res) => {
 router.post("/:modulo/:anio/operaciones", requireAuth, (req, res) => {
   try {
     const { modulo, anio } = req.params;
-    const { empresaId = "EMPRESA01", operaciones } = req.body;
+    const { empresaId = "EMPRESA01", operaciones, capitulo } = req.body;
 
     if (!Array.isArray(operaciones)) {
       return res.status(400).json({
@@ -567,12 +595,39 @@ router.post("/:modulo/:anio/operaciones", requireAuth, (req, res) => {
       });
     }
 
-    const resultado = layoutService.guardarOperaciones({
-      empresaId,
-      modulo,
-      anio: parseInt(anio),
-      operaciones,
+    const capitulosObjetivo = new Set();
+    if (capitulo) {
+      capitulosObjetivo.add(capitulo);
+    }
+    operaciones.forEach((op) => {
+      const cap = op?.CAPITULO;
+      if (cap) capitulosObjetivo.add(cap);
     });
+
+    if (!capitulosObjetivo.size) {
+      return res.status(400).json({
+        success: false,
+        mensaje: "capitulo es requerido para reemplazar operaciones",
+      });
+    }
+
+    capitulosObjetivo.forEach((cap) => {
+      layoutService.eliminarOperacionesCapitulo({
+        empresaId,
+        modulo,
+        anio: parseInt(anio),
+        capitulo: cap,
+      });
+    });
+
+    const resultado = operaciones.length
+      ? layoutService.guardarOperaciones({
+          empresaId,
+          modulo,
+          anio: parseInt(anio),
+          operaciones,
+        })
+      : { success: true, insertadas: 0 };
 
     res.json({
       success: true,

@@ -1196,6 +1196,7 @@ const guardarOperaciones = ({
         : index;
       const baseOrden = ordenPresentacion;
       const visible = op.visible === false ? 0 : 1;
+      let insertados = 0;
 
       tiposOperacion.forEach((tipo, tipoIndex) => {
         if (op[tipo]) {
@@ -1245,6 +1246,7 @@ const guardarOperaciones = ({
               visible,
               formulaJson
             );
+            insertados += 1;
           } catch (err) {
             console.error(
               `Error inserting operation ${clase} (${tipo}):`,
@@ -1253,6 +1255,49 @@ const guardarOperaciones = ({
           }
         }
       });
+
+      if (insertados === 0) {
+        const capitulo = op.CAPITULO || op.HOJA || "DEFAULT";
+        const operacionId =
+          op.OperacionId || op.operacion_id || op.id || op.clase || op.Clase;
+        const operacionEtiqueta =
+          op.Etiqueta ||
+          op.etiqueta ||
+          op.operacion_etiqueta ||
+          op.Clase ||
+          op.clase ||
+          operacionId ||
+          `Operacion ${index + 1}`;
+        const clase = operacionId || operacionEtiqueta;
+        const seccion = op.SECCION || op.seccion || "";
+        const signo =
+          Number.isFinite(Number(op.signo)) && Number(op.signo) !== 0
+            ? Number(op.signo)
+            : 1;
+        try {
+          insertOperacion.run(
+            empresaCanonica,
+            modulo,
+            anio,
+            capitulo,
+            clase,
+            operacionEtiqueta,
+            seccion,
+            "free-operation",
+            operacionEtiqueta,
+            signo,
+            baseOrden * 100,
+            ordenPresentacion,
+            visible,
+            formulaJson
+          );
+        } catch (err) {
+          console.error(
+            `Error inserting free operation ${clase}:`,
+            err.message
+          );
+        }
+      }
     });
   });
 
@@ -1546,7 +1591,42 @@ const actualizarOperacion = ({
   datos,
 }) => {
   const empresaCanonica = resolverEmpresaLayoutSource(empresaId);
-  const capituloObjetivo = capitulo || "DEFAULT";
+  const normalizarCapitulo = (value = "") =>
+    value
+      .toString()
+      .replace(/\u0000/g, "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim()
+      .toUpperCase();
+
+  let capituloObjetivo = capitulo || "DEFAULT";
+  const capituloNormalizado = normalizarCapitulo(capituloObjetivo);
+
+  const resolverCapituloCoincidente = () => {
+    if (!capituloNormalizado) return capituloObjetivo;
+    const rows = db
+      .prepare(
+        `
+      SELECT DISTINCT capitulo FROM layout_cuentas
+      WHERE empresa_id = ? AND modulo = ? AND anio = ?
+      UNION
+      SELECT DISTINCT capitulo FROM layout_operaciones
+      WHERE empresa_id = ? AND modulo = ? AND anio = ?
+      `
+      )
+      .all(empresaConsulta, modulo, anioNumero, empresaConsulta, modulo, anioNumero);
+    const capitulos = (rows || [])
+      .map((row) => row?.capitulo)
+      .filter(Boolean);
+    if (!capitulos.length) return capituloObjetivo;
+    const exactMatch = capitulos.find(
+      (value) => normalizarCapitulo(value) === capituloNormalizado
+    );
+    return exactMatch || capituloObjetivo;
+  };
+
+  capituloObjetivo = resolverCapituloCoincidente();
 
   const existente = db
     .prepare(
@@ -1569,7 +1649,7 @@ const actualizarOperacion = ({
   // Primero eliminar la operación existente
   const del = db.prepare(`
     DELETE FROM layout_operaciones
-    WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ? AND (clase = ? OR operacion_etiqueta = ?)
+    WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ? COLLATE NOCASE AND (clase = ? OR operacion_etiqueta = ?)
   `);
   del.run(
     empresaCanonica,
@@ -1668,6 +1748,29 @@ const eliminarOperacion = ({
     capitulo || "DEFAULT",
     clase,
     clase
+  );
+  return { success: true, changes: result.changes };
+};
+
+/**
+ * Eliminar todas las operaciones de un capítulo
+ */
+const eliminarOperacionesCapitulo = ({
+  empresaId = "EMPRESA01",
+  modulo,
+  anio,
+  capitulo,
+}) => {
+  const empresaCanonica = resolverEmpresaLayoutSource(empresaId);
+  const del = db.prepare(`
+    DELETE FROM layout_operaciones
+    WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ? COLLATE NOCASE
+  `);
+  const result = del.run(
+    empresaCanonica,
+    modulo,
+    anio,
+    capitulo || "DEFAULT"
   );
   return { success: true, changes: result.changes };
 };
@@ -1823,6 +1926,7 @@ module.exports = {
   reordenarCuentas,
   actualizarOperacion,
   eliminarOperacion,
+  eliminarOperacionesCapitulo,
   crearSeccion,
   renombrarSeccion,
 };

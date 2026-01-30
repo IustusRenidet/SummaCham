@@ -1453,7 +1453,6 @@
             ${renderTemplateListView(rows)}
           </div>
         </div>
-        ${renderChartsList()}
       </div>
     `;
   }
@@ -2016,7 +2015,7 @@
         const formula = formulaTerms.length ? formatFormula(op) : '';
 
         html += `
-          <div class="list-item item-operation ${hiddenClass}" data-row-type="operation" data-operation-id="${escapeAttr(opId || label)}" data-operation-label="${escapeAttr(label)}" data-operation-kind="${escapeAttr(kind)}" data-row-index="${rowIndex}" ${formula ? `title="${escapeAttr(formula)}"` : ''}>
+          <div class="list-item item-operation ${hiddenClass}" data-row-type="operation" data-operation-id="${escapeAttr(opId || label)}" data-operation-label="${escapeAttr(label)}" data-operation-kind="${escapeAttr(kind)}" data-row-index="${rowIndex}" ${formula ? `title="${escapeAttr(formula)}"` : ''} onclick="window.editOperation('${escapeAttr(opId || label)}')">
             ${showOrder ? renderInlineOrderButtons(rowIndex) : ''}
             <div class="list-item-content ps-5 d-flex justify-content-between align-items-center flex-grow-1">
               <div>
@@ -2135,147 +2134,6 @@
         </button>
       </div>
     `;
-  }
-
-  /**
-   * Renderizar lista de gráficas del capítulo actual
-   */
-  function renderChartsList() {
-    const capitulo = state.capitulo || '';
-    const modulo = state.modulo || 'RESUMEN';
-
-    // Obtener gráficas personalizadas del capítulo/módulo actual
-    const config = window.GraficasConfig?.load() || { customCharts: [] };
-    const customCharts = Array.isArray(config.customCharts) ? config.customCharts : [];
-
-    // Filtrar gráficas del módulo actual
-    const chartsForModule = customCharts.filter(chart => {
-      const chartModule = (chart.module || 'RESUMEN').toUpperCase();
-      const currentModule = modulo.toUpperCase();
-      return chartModule === currentModule;
-    });
-
-    if (chartsForModule.length === 0) {
-      return `
-        <div class="card mb-3">
-          <div class="card-header d-flex justify-content-between align-items-center">
-            <span>Gráficas Personalizadas</span>
-            <button type="button" class="btn btn-sm btn-success" onclick="window.openChartEditor && window.openChartEditor(null, { module: '${escapeAttr(modulo)}' })">
-              <i class="bi bi-plus-circle me-1"></i>Crear Gráfica
-            </button>
-          </div>
-          <div class="card-body">
-            <div class="text-muted text-center py-4">
-              <i class="bi bi-pie-chart display-4 d-block mb-2"></i>
-              No hay gráficas personalizadas para este módulo.
-            </div>
-          </div>
-        </div>
-      `;
-    }
-
-    let html = `
-      <div class="card mb-3">
-        <div class="card-header d-flex justify-content-between align-items-center">
-          <span>Gráficas Personalizadas (${chartsForModule.length})</span>
-          <button type="button" class="btn btn-sm btn-success" onclick="window.openChartEditor && window.openChartEditor(null, { module: '${escapeAttr(modulo)}' })">
-            <i class="bi bi-plus-circle me-1"></i>Crear Gráfica
-          </button>
-        </div>
-        <div class="card-body">
-          <div class="charts-list">
-    `;
-
-    chartsForModule.forEach(chart => {
-      const chartId = chart.id || '';
-      const title = chart.title || 'Sin título';
-      const subtitle = chart.subtitle || '';
-      const enabled = chart.enabled !== false;
-      const rowCount = Array.isArray(chart.rows) ? chart.rows.length : 0;
-
-      html += `
-        <div class="chart-item ${enabled ? '' : 'opacity-50'}" onclick="window.openChartEditor && window.openChartEditor('${escapeAttr(chartId)}', ${escapeAttr(JSON.stringify(chart))})">
-          <div class="chart-item-icon">
-            <i class="bi bi-graph-up"></i>
-          </div>
-          <div class="chart-item-content">
-            <div class="chart-item-title">${escapeHtml(title)}</div>
-            ${subtitle ? `<div class="chart-item-subtitle">${escapeHtml(subtitle)}</div>` : ''}
-            <div class="chart-item-meta">
-              <span class="badge bg-secondary">${rowCount} fila(s)</span>
-              <span class="badge ${enabled ? 'bg-success' : 'bg-warning'}">
-                ${enabled ? 'Activa' : 'Inactiva'}
-              </span>
-            </div>
-          </div>
-          <div class="chart-item-actions">
-            <i class="bi bi-pencil-square"></i>
-          </div>
-        </div>
-      `;
-    });
-
-    html += `
-          </div>
-        </div>
-      </div>
-      <style>
-        .charts-list {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-        .chart-item {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          padding: 12px;
-          border: 1px solid #e5e7eb;
-          border-radius: 8px;
-          background: #fff;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-        .chart-item:hover {
-          background: #f8f9fa;
-          border-color: #cbd5e1;
-          transform: translateX(4px);
-        }
-        .chart-item-icon {
-          width: 40px;
-          height: 40px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: #eff6ff;
-          border-radius: 8px;
-          color: #3b82f6;
-          font-size: 1.25rem;
-        }
-        .chart-item-content {
-          flex: 1;
-        }
-        .chart-item-title {
-          font-weight: 600;
-          color: #0f172a;
-        }
-        .chart-item-subtitle {
-          font-size: 0.875rem;
-          color: #64748b;
-        }
-        .chart-item-meta {
-          display: flex;
-          gap: 6px;
-          margin-top: 6px;
-        }
-        .chart-item-actions {
-          color: #64748b;
-          font-size: 1.25rem;
-        }
-      </style>
-    `;
-
-    return html;
   }
 
   function renderTemplateTable(rows = [], columns = []) {
@@ -2479,10 +2337,11 @@
     const formulaPreview = formatFormula(op || {});
     return `
       <div class="mb-3">
-        <label class="form-label">Nombre visible</label>
-        <input type="text" class="form-control" id="editClaseOp" value="${escapeHtml(
+        <label class="form-label">Nombre visible <span class="text-danger">*</span></label>
+        <input type="text" class="form-control" id="editClaseOp" data-required="true" value="${escapeHtml(
           opLabelInput || ""
         )}" />
+        <div class="invalid-feedback">Este campo es obligatorio (o indica un ID interno).</div>
       </div>
       <div class="mb-3">
         <label class="form-label">Tipo de fila</label>
@@ -2505,109 +2364,266 @@
           <input type="text" class="form-control" id="editOperacionId" value="${escapeHtml(
             opId || ""
           )}" />
+          <div class="invalid-feedback">Indica un ID si no hay nombre visible.</div>
           <div class="form-text">
-            Solo si necesitas referenciar esta operacion en otra formula.
+            Obligatorio si el nombre visible está vacío.
           </div>
         </div>
       </details>
     `;
   }
 
-  function buildOperationEditorFormulaTab(defaultMode = "contrib") {
-    const isContrib = defaultMode !== "manual";
+  function buildFormulaSelectionKey(type, value, parentSection = "") {
+    const normalizedType = (type || "section").toString().toLowerCase();
+    let sectionValue = value || "";
+    let parent = parentSection || "";
+    if (!parent && typeof sectionValue === "string" && sectionValue.includes("||")) {
+      const parts = sectionValue.split("||");
+      if (parts.length >= 2) {
+        parent = parts[0]?.trim() || "";
+        sectionValue = parts.slice(1).join("||").trim();
+      }
+    }
+    const normalizedValue = normalizeOperationMatch(sectionValue || "");
+    const normalizedParent = normalizeOperationMatch(parent || "");
+    if ((normalizedType === "section" || normalizedType === "seccion") && normalizedParent) {
+      return `${normalizedType}::${normalizedParent}||${normalizedValue}`;
+    }
+    return `${normalizedType}::${normalizedValue}`;
+  }
+
+  function buildFormulaSelectionMap(terms = []) {
+    const map = new Map();
+    (terms || []).forEach((term) => {
+      if (!term || !term.value) return;
+      const key = buildFormulaSelectionKey(
+        term.type,
+        term.value,
+        term.parentSection
+      );
+      if (!key) return;
+      map.set(key, term.operator === "-" ? "-" : "+");
+    });
+    return map;
+  }
+
+  function getFormulaRowLabel(row) {
+    if (!row) return "";
+    if (row.type === "account") {
+      const code = row.cuenta || row.label || "";
+      const name = row.nombre || "";
+      return name ? `${code} ${name}` : code;
+    }
+    return row.label || row.nombre || "";
+  }
+
+  function getFormulaRowType(row) {
+    if (!row) return "section";
+    if (row.type === "account") return "account";
+    if (row.type === "operation") return "operation";
+    return "section";
+  }
+
+  function getFormulaRowValue(row) {
+    if (!row) return "";
+    if (row.type === "account") return row.cuenta || row.label || "";
+    if (row.type === "operation") return row.opId || row.label || "";
+    return row.label || "";
+  }
+
+  function getFormulaRowLevel(row) {
+    if (!row) return 0;
+    if (row.type === "subsection") return 1;
+    if (row.type === "account" || row.type === "operation") return 2;
+    return 0;
+  }
+
+  function buildOperationEditorFormulaTab(op, availableElements) {
+    const rows = buildPreviewRowsForEditor();
+    const terms = extractFormulaTerms(op);
+    const selectionMap = buildFormulaSelectionMap(terms);
+    const formulaText = formatFormula(op || {}) || "";
+    const initialMode = state.operationEditorFormulaMode || "manual";
+    const rowsHtml = rows
+      .map((row) => {
+        const label = getFormulaRowLabel(row);
+        if (!label) return "";
+        const type = getFormulaRowType(row);
+        const value = getFormulaRowValue(row);
+        if (!value) return "";
+        const key = buildFormulaSelectionKey(type, value, row.parentSection);
+        const operator = selectionMap.get(key) || "none";
+        const level = getFormulaRowLevel(row);
+        const stateClass =
+          operator === "+"
+            ? "is-plus"
+            : operator === "-"
+            ? "is-minus"
+            : "is-off";
+        const buttonText = operator === "none" ? "" : operator;
+        return `
+          <div
+            class="formula-layout-row level-${level}"
+            data-formula-type="${escapeAttr(type)}"
+            data-formula-value="${escapeAttr(value)}"
+            data-formula-parent-section="${escapeAttr(row.parentSection || "")}"
+            data-formula-parent-subsection="${escapeAttr(row.parentSubsection || "")}"
+          >
+            <button type="button" class="formula-toggle ${stateClass}" data-state="${operator}">
+              ${escapeHtml(buttonText)}
+            </button>
+            <div class="formula-layout-label">
+              <span>${escapeHtml(label)}</span>
+              ${
+                row.type && row.type !== "account"
+                  ? `<span class="meta">(${escapeHtml(row.type)})</span>`
+                  : ""
+              }
+            </div>
+          </div>
+        `;
+      })
+      .join("");
+
     return `
-      <div class="formula-mode-toggle btn-group btn-group-sm mb-3" role="group">
-        <input type="radio" class="btn-check" name="formulaMode" id="formulaModeContrib" ${
-          isContrib ? "checked" : ""
-        } />
-        <label class="btn btn-outline-primary" for="formulaModeContrib">
-          <i class="bi bi-list-check me-1"></i>Por secciones/operaciones
-        </label>
-        <input type="radio" class="btn-check" name="formulaMode" id="formulaModeManual" ${
-          isContrib ? "" : "checked"
-        } />
-        <label class="btn btn-outline-primary" for="formulaModeManual">
-          <i class="bi bi-code-square me-1"></i>Por cuentas
-        </label>
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <label class="form-label fw-bold mb-0">Edición de fórmula</label>
+        <div class="btn-group btn-group-sm" role="group" aria-label="Modo de edición">
+          <input class="btn-check" type="radio" name="operationFormulaMode" id="formulaModeManual" value="manual" ${
+            initialMode === "manual" ? "checked" : ""
+          } />
+          <label class="btn btn-outline-primary" for="formulaModeManual">Manual</label>
+          <input class="btn-check" type="radio" name="operationFormulaMode" id="formulaModeLayout" value="layout" ${
+            initialMode === "layout" ? "checked" : ""
+          } />
+          <label class="btn btn-outline-primary" for="formulaModeLayout">Layout</label>
+        </div>
       </div>
-      <div class="formula-mode-panel ${isContrib ? "" : "d-none"}" data-formula-panel="contrib">
+      <div class="formula-preview-box mb-3" id="operationFormulaPreview"></div>
+      <div data-formula-panel="manual" class="${initialMode === "manual" ? "" : "d-none"}">
+        <label class="form-label">Fórmula</label>
+        <textarea class="form-control font-monospace" id="operationFormulaManual" rows="4" placeholder="Ej: 401-000-000-00 + Membership - Gastos">${escapeHtml(
+          formulaText
+        )}</textarea>
+        <div class="form-text">Escribe cuentas, secciones u operaciones con + / -. Usa espacios alrededor del operador para evitar cortar cuentas con guiones.</div>
+      </div>
+      <div data-formula-panel="layout" class="${initialMode === "layout" ? "" : "d-none"}">
         <div class="alert alert-info small mb-3">
-          <i class="bi bi-info-circle me-1"></i>
-          Selecciona qué secciones y operaciones contribuyen a esta fórmula. La fórmula se genera automáticamente.
+          Selecciona elementos del layout. Click una vez suma (+), otra resta (-), otra limpia.
         </div>
-        <div class="contribution-toolbar mb-3">
-          <input
-            type="text"
-            class="form-control form-control-sm"
-            id="contribSearch"
-            placeholder="🔍 Buscar..."
-          />
-          <div class="btn-group btn-group-sm mt-2" role="group">
-            <button type="button" class="btn btn-outline-secondary" id="btnContribSelectAll">
-              <i class="bi bi-check-all me-1"></i>Seleccionar todo
-            </button>
-            <button type="button" class="btn btn-outline-secondary" id="btnContribClear">
-              <i class="bi bi-x-circle me-1"></i>Limpiar
-            </button>
-            <button type="button" class="btn btn-outline-info" id="btnContribSync">
-              <i class="bi bi-arrow-repeat me-1"></i>Cargar actual
-            </button>
-          </div>
-        </div>
-        <div class="mb-3">
-          <div class="d-flex align-items-center justify-content-between mb-2">
-            <strong class="text-primary"><i class="bi bi-collection me-1"></i>Secciones</strong>
-            <span class="badge bg-primary" id="contribSectionsCount">0</span>
-          </div>
-          <div class="contrib-list" id="contribSections"></div>
-        </div>
-        <div class="mb-3">
-          <div class="d-flex align-items-center justify-content-between mb-2">
-            <strong class="text-success"><i class="bi bi-calculator me-1"></i>Operaciones</strong>
-            <span class="badge bg-success" id="contribOperationsCount">0</span>
-          </div>
-          <div class="contrib-list" id="contribOperations"></div>
-        </div>
-        <div class="contrib-actions d-flex gap-2">
-          <button type="button" class="btn btn-primary" id="btnContribReplace">
-            <i class="bi bi-check2-circle me-1"></i>Aplicar fórmula
-          </button>
-          <button type="button" class="btn btn-outline-primary" id="btnContribAdd">
-            <i class="bi bi-plus-circle me-1"></i>Agregar a existente
-          </button>
-          <button
-            type="button"
-            class="btn btn-outline-info"
-            onclick="window.FormulaBuilder && window.FormulaBuilder.showMap && window.FormulaBuilder.showMap()"
-          >
-            <i class="bi bi-diagram-3 me-1"></i>Ver desglose
-          </button>
-        </div>
-      </div>
-      <div class="formula-mode-panel ${isContrib ? "d-none" : ""}" data-formula-panel="manual">
-        <div class="alert alert-warning small mb-3">
-          <i class="bi bi-tools me-1"></i>
-          Modo avanzado: construye fórmulas con cuentas específicas o valores numéricos.
-        </div>
-        <div id="formulaBuilderContainer"></div>
-        <div class="d-flex flex-wrap gap-2 mt-3">
-          <button
-            type="button"
-            class="btn btn-outline-secondary btn-sm"
-            onclick="window.FormulaBuilder && window.FormulaBuilder.suggestFromName && window.FormulaBuilder.suggestFromName()"
-          >
-            <i class="bi bi-lightbulb me-1"></i>Sugerir desde nombre
-          </button>
-          <button
-            type="button"
-            class="btn btn-outline-info btn-sm"
-            onclick="window.FormulaBuilder && window.FormulaBuilder.showMap && window.FormulaBuilder.showMap()"
-          >
-            <i class="bi bi-diagram-3 me-1"></i>Ver desglose
-          </button>
+        <div id="operationFormulaLayout" class="formula-layout-list">
+          ${rowsHtml || '<div class="text-muted small p-2">Sin elementos.</div>'}
         </div>
       </div>
     `;
+  }
+
+  function buildFormulaPreviewText(terms = []) {
+    if (!terms.length) return "Sin fórmula";
+    return terms
+      .map((term, idx) => {
+        const operator = term.operator || "+";
+        const value = term.value || "";
+        if (!value) return "";
+        if (idx === 0) return `${operator} ${value}`.trim();
+        return `${operator} ${value}`.trim();
+      })
+      .filter(Boolean)
+      .join(" ");
+  }
+
+  function collectFormulaTermsFromLayout(panel) {
+    if (!panel) return [];
+    const rows = panel.querySelectorAll(
+      "[data-formula-type][data-formula-value]"
+    );
+    const terms = [];
+    rows.forEach((row, idx) => {
+      const btn = row.querySelector(".formula-toggle");
+      const state = btn?.dataset.state || "none";
+      if (state !== "+" && state !== "-") return;
+      const value = row.dataset.formulaValue || "";
+      if (!value) return;
+      terms.push({
+        id: Date.now() + idx,
+        operator: state,
+        type: row.dataset.formulaType || "section",
+        value,
+        parentSection: row.dataset.formulaParentSection || "",
+        parentSubsection: row.dataset.formulaParentSubsection || "",
+      });
+    });
+    return normalizeFormulaTerms(terms);
+  }
+
+  function updateFormulaPreview(panel) {
+    if (!panel) return;
+    const preview = panel.querySelector("#operationFormulaPreview");
+    if (!preview) return;
+    const mode =
+      panel.querySelector('input[name="operationFormulaMode"]:checked')
+        ?.value || "layout";
+    let terms = [];
+    if (mode === "manual") {
+      const raw = panel.querySelector("#operationFormulaManual")?.value || "";
+      terms = parseFormulaText(raw);
+    } else {
+      terms = collectFormulaTermsFromLayout(panel);
+    }
+    preview.textContent = buildFormulaPreviewText(terms);
+  }
+
+  function bindFormulaLayoutInteractions(panel) {
+    if (!panel) return;
+    const layout = panel.querySelector("#operationFormulaLayout");
+    if (layout) {
+      layout.addEventListener("click", (event) => {
+        const btn = event.target.closest(".formula-toggle");
+        if (!btn) return;
+        const state = btn.dataset.state || "none";
+        const next =
+          state === "none" ? "+" : state === "+" ? "-" : "none";
+        btn.dataset.state = next;
+        btn.textContent = next === "none" ? "" : next;
+        btn.classList.remove("is-plus", "is-minus", "is-off");
+        btn.classList.add(
+          next === "+"
+            ? "is-plus"
+            : next === "-"
+            ? "is-minus"
+            : "is-off"
+        );
+        updateFormulaPreview(panel);
+      });
+    }
+
+    const manualInput = panel.querySelector("#operationFormulaManual");
+    if (manualInput) {
+      manualInput.addEventListener("input", () => updateFormulaPreview(panel));
+    }
+
+    const modeInputs = panel.querySelectorAll(
+      'input[name="operationFormulaMode"]'
+    );
+    modeInputs.forEach((input) => {
+      input.addEventListener("change", () => {
+        state.operationEditorFormulaMode = input.value;
+        const manualPanel = panel.querySelector('[data-formula-panel="manual"]');
+        const layoutPanel = panel.querySelector('[data-formula-panel="layout"]');
+        if (manualPanel && layoutPanel) {
+          if (input.value === "manual") {
+            manualPanel.classList.remove("d-none");
+            layoutPanel.classList.add("d-none");
+          } else {
+            layoutPanel.classList.remove("d-none");
+            manualPanel.classList.add("d-none");
+          }
+        }
+        updateFormulaPreview(panel);
+      });
+    });
+
+    updateFormulaPreview(panel);
   }
 
   function buildOperationEditorAparicionTab(op, rowLabelsHtml) {
@@ -2843,6 +2859,10 @@
     const opId = getOperationId(op);
     const opLabelInput =
       getOperationLabel(op) || getOperationDisplayName(op) || "";
+    if (!state.operationEditorFormulaMode) {
+      state.operationEditorFormulaMode = "manual";
+    }
+    formulaTerms = extractFormulaTerms(op) || [];
     const rowLabelsHtml = OP_ROW_FIELDS.map(
       (row) => `
         <div class="col-md-6">
@@ -2855,15 +2875,6 @@
         </div>
       `
     ).join("");
-
-    const termsForMode =
-      (Array.isArray(op?.formula_terms) && op.formula_terms.length
-        ? op.formula_terms
-        : formulaTerms) || [];
-    const needsManualMode = termsForMode.some(
-      (term) => term.type === "account" || term.type === "constant"
-    );
-    const defaultMode = needsManualMode ? "manual" : "contrib";
 
     if (dom.operationEditorTitle) {
       dom.operationEditorTitle.textContent = `Operacion: ${getOperationDisplayName(
@@ -2885,7 +2896,8 @@
     }
     if (dom.editorTabFormula) {
       dom.editorTabFormula.innerHTML = buildOperationEditorFormulaTab(
-        defaultMode
+        op,
+        availableElements
       );
     }
     if (dom.editorTabAparicion) {
@@ -2895,86 +2907,7 @@
       );
     }
 
-    if (window.FormulaBuilder) {
-      window.FormulaBuilder.init(op, availableElements);
-    }
-
-    updateContributionPanel(
-      availableElements,
-      window.FormulaBuilder?.terms || op.formula_terms || formulaTerms
-    );
-
-    const searchInput =
-      dom.operationEditorPanel.querySelector("#contribSearch");
-    const selectAllBtn =
-      dom.operationEditorPanel.querySelector("#btnContribSelectAll");
-    const clearBtn =
-      dom.operationEditorPanel.querySelector("#btnContribClear");
-    const addBtn = dom.operationEditorPanel.querySelector("#btnContribAdd");
-    const replaceBtn =
-      dom.operationEditorPanel.querySelector("#btnContribReplace");
-    const syncBtn = dom.operationEditorPanel.querySelector("#btnContribSync");
-    const modeContrib =
-      dom.operationEditorPanel.querySelector("#formulaModeContrib");
-    const modeManual =
-      dom.operationEditorPanel.querySelector("#formulaModeManual");
-
-    searchInput?.addEventListener("input", (event) => {
-      applyContributionFilter(dom.operationEditorPanel, event.target.value);
-    });
-
-    selectAllBtn?.addEventListener("click", () => {
-      dom.operationEditorPanel
-        .querySelectorAll(".contrib-check")
-        .forEach((checkbox) => {
-          checkbox.checked = true;
-        });
-      updateContributionCounters(dom.operationEditorPanel);
-    });
-
-    clearBtn?.addEventListener("click", () => {
-      dom.operationEditorPanel
-        .querySelectorAll(".contrib-check")
-        .forEach((checkbox) => {
-          checkbox.checked = false;
-        });
-      updateContributionCounters(dom.operationEditorPanel);
-    });
-    
-    // Actualizar contadores cuando se cambie cualquier checkbox
-    dom.operationEditorPanel.addEventListener('change', (event) => {
-      if (event.target.classList.contains('contrib-check')) {
-        updateContributionCounters(dom.operationEditorPanel);
-      }
-    });
-
-    addBtn?.addEventListener("click", () => applyContributionTerms("merge"));
-    replaceBtn?.addEventListener("click", () =>
-      applyContributionTerms("replace")
-    );
-    syncBtn?.addEventListener("click", () => {
-      updateContributionPanel(
-        availableElements,
-        window.FormulaBuilder?.terms || op.formula_terms || formulaTerms
-      );
-    });
-
-    modeContrib?.addEventListener("change", () => {
-      if (modeContrib.checked) {
-        setFormulaMode(dom.operationEditorPanel, "contrib");
-        updateContributionPanel(
-          availableElements,
-          window.FormulaBuilder?.terms || op.formula_terms || formulaTerms
-        );
-      }
-    });
-    modeManual?.addEventListener("change", () => {
-      if (modeManual.checked) {
-        setFormulaMode(dom.operationEditorPanel, "manual");
-      }
-    });
-
-    setFormulaMode(dom.operationEditorPanel, defaultMode);
+    bindFormulaLayoutInteractions(dom.operationEditorPanel);
     setOperationEditorTab("editorTabFormula");
 
     const panel = window.bootstrap?.Offcanvas.getOrCreateInstance(
@@ -2985,12 +2918,14 @@
   }
 
   function bindTemplateTableEvents() {
-    if (!isModuloPiloto()) return;
+    const isPiloto = isModuloPiloto();
     const inlineToggle = dom.layoutPreview?.querySelector("#toggleInlineOrder");
-    inlineToggle?.addEventListener("change", (event) => {
-      state.inlineOrderMode = Boolean(event.target.checked);
-      renderLayout();
-    });
+    if (isPiloto) {
+      inlineToggle?.addEventListener("change", (event) => {
+        state.inlineOrderMode = Boolean(event.target.checked);
+        renderLayout();
+      });
+    }
 
     // Manejar clicks en la vista de lista
     const listView = dom.layoutPreview?.querySelector(".template-list-view");
@@ -3476,6 +3411,10 @@
    */
   function editOperation(operationId) {
     if (!operationId) return;
+    if (window.editOperation && window.editOperation !== editOperation) {
+      window.editOperation(operationId);
+      return;
+    }
 
     // Buscar la operación
     const operation = state.operaciones.find(op =>
@@ -3928,7 +3867,11 @@
         lista.push(opColumn);
       }
     }
-    return lista;
+    return lista.map((op) => ({
+      ...op,
+      CAPITULO: op?.CAPITULO || state.capitulo || "",
+      HOJA: op?.HOJA || state.modulo || "",
+    }));
   }
 
   function isColumnConfigOperation(op) {
@@ -3968,6 +3911,7 @@
     if (!Array.isArray(columns) || !columns.length) return null;
     return {
       CAPITULO: state.capitulo || "",
+      HOJA: state.modulo || "",
       Clase: COLUMN_CONFIG_ID,
       OperacionId: COLUMN_CONFIG_ID,
       SECCION: "",
@@ -6066,6 +6010,7 @@
       : `<select class="form-select form-select-sm" data-field="subseccion">
             ${subseccionOptions}
           </select>`;
+    const aparicionOptions = buildBulkAparicionOptions(values.aparicion || "");
     return `
       <tr data-row-id="${rowId}">
         <td>
@@ -6085,6 +6030,11 @@
         <td><input type="text" class="form-control form-control-sm" data-field="nombre" placeholder="Nombre" value="${escapeAttr(
           values.nombre || ""
         )}" /></td>
+        <td>
+          <select class="form-select form-select-sm" data-field="aparicion">
+            ${aparicionOptions}
+          </select>
+        </td>
         <td><input type="text" class="form-control form-control-sm text-center" data-field="signo" placeholder="1/-1" title="Signo: 1 suma, -1 resta. En cuentas aplica como factor. Vacio = automatico." data-bs-toggle="tooltip" data-bs-placement="top" value="${escapeAttr(
           values.signo || ""
         )}" /></td>
@@ -6161,6 +6111,7 @@
     "subseccion",
     "cuenta",
     "nombre",
+    "aparicion",
     "signo",
     "formula",
   ];
@@ -6341,10 +6292,25 @@
       "seccion-principal": new Set(["seccion", "nombre"]),
       "seccion-secundaria": new Set(["seccion", "subseccion", "nombre"]),
       cuenta: new Set(["seccion", "subseccion", "cuenta", "nombre", "signo"]),
-      operacion: new Set(["seccion", "subseccion", "nombre", "signo", "formula"]),
+      operacion: new Set([
+        "seccion",
+        "subseccion",
+        "nombre",
+        "aparicion",
+        "signo",
+        "formula",
+      ]),
     };
     const enabled = enabledByTipo[tipo] || enabledByTipo.cuenta;
-    ["seccion", "subseccion", "cuenta", "nombre", "signo", "formula"].forEach(
+    [
+      "seccion",
+      "subseccion",
+      "cuenta",
+      "nombre",
+      "aparicion",
+      "signo",
+      "formula",
+    ].forEach(
       (field) => {
         const input = row.querySelector(`[data-field="${field}"]`);
         if (!input) return;
@@ -6365,6 +6331,7 @@
       }
     );
     refreshBulkSubsectionOptions(row);
+    refreshBulkAparicionOptions(row);
   }
 
   function ensureBulkFieldType(row, field, kind, config = {}) {
@@ -6464,6 +6431,34 @@
     return options.join("");
   }
 
+  function buildBulkAparicionOptions(selected = "") {
+    const items = [
+      { value: "libre", label: "Libre (sin fila)" },
+      ...OP_ROW_FIELDS.map((row) => ({
+        value: row.field,
+        label: row.label,
+      })),
+    ];
+    return items
+      .map((item) => {
+        const isSelected =
+          normalizeBulkName(item.value) === normalizeBulkName(selected);
+        return `<option value="${escapeAttr(item.value)}"${
+          isSelected ? " selected" : ""
+        }>${escapeHtml(item.label)}</option>`;
+      })
+      .join("");
+  }
+
+  function refreshBulkAparicionOptions(row) {
+    if (!row) return;
+    const select = row.querySelector('select[data-field="aparicion"]');
+    if (!select) return;
+    const current = select.value || "libre";
+    select.innerHTML = buildBulkAparicionOptions(current);
+    select.value = current;
+  }
+
   function refreshBulkSubsectionOptions(row) {
     if (!row) return;
     const principal =
@@ -6494,6 +6489,7 @@
           subseccion: getValue("subseccion"),
           cuenta: getValue("cuenta"),
           nombre: getValue("nombre"),
+          aparicion: getValue("aparicion"),
           signo: getValue("signo"),
           formula: getValue("formula"),
         };
@@ -6514,18 +6510,12 @@
   function parseFormulaText(formula = "") {
     const raw = (formula || "").trim();
     if (!raw) return [];
-    const parts = raw.match(/([+-]?[^+-]+)/g) || [];
     const terms = [];
-    parts.forEach((chunk, idx) => {
-      let token = chunk.trim();
-      if (!token) return;
-      let operator = "+";
-      if (token.startsWith("+") || token.startsWith("-")) {
-        operator = token[0];
-        token = token.slice(1).trim();
-      } else if (idx === 0) {
-        operator = "+";
-      }
+    let buffer = "";
+    let operator = "+";
+
+    const flush = () => {
+      const token = buffer.trim();
       if (!token) return;
       if (token.includes("||")) {
         const parsed = parseSectionSelection(token);
@@ -6545,7 +6535,30 @@
         term.constant = Number(token);
       }
       terms.push(term);
-    });
+    };
+
+    for (let i = 0; i < raw.length; i += 1) {
+      const ch = raw[i];
+      if (ch === "+" || ch === "-") {
+        if (i === 0) {
+          operator = ch;
+          continue;
+        }
+        const prev = raw[i - 1];
+        const next = raw[i + 1];
+        const prevIsSpace = !prev || /\s/.test(prev);
+        const nextIsSpace = !next || /\s/.test(next);
+        if (prevIsSpace && nextIsSpace) {
+          flush();
+          buffer = "";
+          operator = ch;
+          continue;
+        }
+      }
+      buffer += ch;
+    }
+    flush();
+
     return normalizeFormulaTerms(terms);
   }
 
@@ -6629,11 +6642,13 @@
           <div class="mb-3">
             <label class="form-label">Identificador unico</label>
             <input type="text" class="form-control" id="inputOperacionId" placeholder="Ej: CDMX_INCOME" />
+            <div class="invalid-feedback">Indica un ID si no hay etiqueta.</div>
             <div class="form-text">Si lo dejas vacio se genera automaticamente.</div>
           </div>
           <div class="mb-3">
-            <label class="form-label">Etiqueta de la Operación</label>
+            <label class="form-label">Etiqueta de la Operación <span class="text-danger">*</span></label>
             <input type="text" class="form-control" id="inputClase" placeholder="Ej: TOTAL INCOME, NET RESULTS" />
+            <div class="invalid-feedback">Etiqueta o ID son obligatorios.</div>
           </div>
           <div class="mb-3">
             <label class="form-label">Tipo de Operación</label>
@@ -6699,6 +6714,14 @@
     }
 
     dom.formElemento.innerHTML = formHtml;
+    const claseInput = document.getElementById("inputClase");
+    const idInput = document.getElementById("inputOperacionId");
+    const clearInvalid = (input) => {
+      if (!input) return;
+      input.classList.remove("is-invalid");
+    };
+    claseInput?.addEventListener("input", () => clearInvalid(claseInput));
+    idInput?.addEventListener("input", () => clearInvalid(idInput));
   }
 
   function getSectionOptions() {
@@ -6813,8 +6836,19 @@
       }
 
       bootstrap.Modal.getInstance(dom.modalAgregar)?.hide();
-      await saveLayout({ skipConfirmation: true, silent: true, source: "add" });
-      await loadLayout();
+      const saved = await saveLayout({
+        skipConfirmation: true,
+        silent: true,
+        source: "add",
+      });
+      if (saved) {
+        await loadLayout();
+      } else {
+        showToast(
+          "No se pudo guardar el cambio. Revisa permisos o conexión y vuelve a intentar.",
+          "error"
+        );
+      }
     } catch (error) {
       console.error("Error adding element:", error);
       showToast(error.message, "error");
@@ -6933,7 +6967,7 @@
   }
 
   function addOperationEntry(
-    { nombre, seccion, subseccion, signo, formulaTerms },
+    { nombre, seccion, subseccion, signo, formulaTerms, rowLabels = {} },
     { silent = false } = {}
   ) {
     const opIdBase = normalizeOperationId(nombre || "OPERACION");
@@ -6944,6 +6978,7 @@
 
     const op = {
       CAPITULO: state.capitulo || "DEFAULT",
+      HOJA: state.modulo || "",
       OperacionId: operacionId,
       Clase: nombre,
       operacion_etiqueta: nombre,
@@ -6968,6 +7003,13 @@
       const normalized = normalizeFormulaTerms(formulaTerms);
       op.formula_terms = normalized;
       op.formula_json = JSON.stringify(normalized);
+    }
+
+    if (rowLabels && typeof rowLabels === "object") {
+      Object.entries(rowLabels).forEach(([field, label]) => {
+        if (!label) return;
+        op[field] = label;
+      });
     }
 
     state.operaciones.push(op);
@@ -7103,12 +7145,18 @@
             const formulaTerms = row.formula
               ? parseFormulaText(row.formula)
               : [];
+            const aparicion = (row.aparicion || "libre").trim();
+            const rowLabels =
+              aparicion && aparicion !== "libre"
+                ? { [aparicion]: nombre }
+                : {};
             addOperationEntry({
               nombre,
               seccion: row.seccion,
               subseccion: row.subseccion,
               signo: Number.isFinite(sign) ? sign : null,
               formulaTerms,
+              rowLabels,
             }, { silent: true });
             counters.operaciones += 1;
             break;
@@ -7141,7 +7189,7 @@
     if (errores.length) {
       console.warn("[BulkAdd] Errores:", errores);
       showToast(
-        `Se agregaron con errores (${errores.length}). Revisa consola.`,
+        `${errores[0]}${errores.length > 1 ? ` (+${errores.length - 1} más)` : ""}`,
         "warning"
       );
     }
@@ -7171,25 +7219,32 @@
 
   async function addOperation() {
     const tipo = document.getElementById("selectTipoOp")?.value;
-    const clase = document.getElementById("inputClase")?.value?.trim();
-    const operacionIdInput = document
-      .getElementById("inputOperacionId")
-      ?.value?.trim();
+    const claseInput = document.getElementById("inputClase");
+    const idInput = document.getElementById("inputOperacionId");
+    const clase = claseInput?.value?.trim() || "";
+    const operacionIdInput = idInput?.value?.trim() || "";
 
-    if (!clase) throw new Error("Ingresa una etiqueta para la operación");
-    const baseOperacionId = operacionIdInput || clase;
+    claseInput?.classList.remove("is-invalid");
+    idInput?.classList.remove("is-invalid");
+    if (!clase && !operacionIdInput) {
+      claseInput?.classList.add("is-invalid");
+      idInput?.classList.add("is-invalid");
+      showToast("Etiqueta o ID son obligatorios para crear la operación.", "error");
+      return;
+    }
+
+    const resolvedClase = clase || operacionIdInput;
+    const baseOperacionId = operacionIdInput || resolvedClase;
     const operacionId = buildUniqueOperationId(baseOperacionId || clase);
 
     const checkedSections = Array.from(
       document.querySelectorAll("#checkboxSecciones input:checked")
     ).map((cb) => cb.value);
 
-    const rowLabels = collectAddOperationRowLabels(clase);
+    const rowLabels = collectAddOperationRowLabels(resolvedClase);
     const isPiloto = isModuloPiloto();
 
-    if (!isPiloto && (!checkedSections || !checkedSections.length)) {
-      throw new Error("Selecciona al menos una sección");
-    }
+    // Permitir operaciones sin sección para agregarlas en orden libre.
 
     const parsedSelections = (checkedSections || [])
       .map((value) => parseSectionSelection(value))
@@ -7211,13 +7266,14 @@
       if (isNew) {
         const opIdBase = normalizeOperationId(
           isPiloto
-            ? baseOperacionId || clase || sectionName || operacionId
-            : `${baseOperacionId || clase || operacionId}_${sectionName || idx + 1}`
+            ? baseOperacionId || resolvedClase || sectionName || operacionId
+            : `${baseOperacionId || resolvedClase || operacionId}_${sectionName || idx + 1}`
         );
         op = {
           CAPITULO: state.capitulo || "DEFAULT",
+          HOJA: state.modulo || "",
           OperacionId: buildUniqueOperationId(opIdBase),
-          Clase: clase,
+          Clase: resolvedClase,
           SECCION: sectionName || "",
           tipo: tipo || "sum-sections",
           signos: {},
@@ -7229,6 +7285,12 @@
       } else {
         if (sectionName && !op.SECCION) {
           op.SECCION = sectionName;
+        }
+        if (!op.HOJA) {
+          op.HOJA = state.modulo || "";
+        }
+        if (!op.CAPITULO) {
+          op.CAPITULO = state.capitulo || "DEFAULT";
         }
         if (parentSection) {
           op.parentSection = parentSection;
@@ -7246,12 +7308,15 @@
 
       // Guardar fórmula para referencia en el gestor
       if (tipo === "custom-formula") {
-        if (!Array.isArray(formulaTerms) || !formulaTerms.length) {
-          throw new Error("Agrega términos a la fórmula");
+        if (Array.isArray(formulaTerms) && formulaTerms.length) {
+          const normalized = normalizeFormulaTerms(formulaTerms);
+          op.formula_terms = normalized;
+          op.formula_json = JSON.stringify(normalized);
+        } else {
+          // Permitir guardar con fórmula vacía para edición manual posterior.
+          op.formula_terms = [];
+          op.formula_json = JSON.stringify([]);
         }
-        const normalized = normalizeFormulaTerms(formulaTerms);
-        op.formula_terms = normalized;
-        op.formula_json = JSON.stringify(normalized);
       } else {
         const sectionValue = sectionName || checkedSections.join(" + ");
         const derivedTerms = buildFormulaTermsFromParent(sectionValue);
@@ -7298,17 +7363,17 @@
     if (opsCreated.length) {
       logChange(
         "add",
-        `Operación "${clase}" (${opsCreated.length} secciones)`
+        `Operación "${resolvedClase}" (${opsCreated.length} secciones)`
       );
     } else {
-      logChange("edit", `Operación "${clase}" actualizada`);
+      logChange("edit", `Operación "${resolvedClase}" actualizada`);
     }
 
     state.operaciones = sortOperations(state.operaciones);
     ensureOperationIds();
     normalizeOperationReferences();
     renderLayout();
-    showToast(`Operación "${clase}" guardada`, "success");
+    showToast(`Operación "${resolvedClase}" guardada`, "success");
   }
 
   // Helper to find parent section of a subsection
@@ -7987,7 +8052,7 @@
     } = options;
     if (!state.editMode) {
       showToast("Activa el modo edición primero", "warning");
-      return;
+      return false;
     }
 
     // Validar contexto
@@ -8003,7 +8068,7 @@
         anio: state.anio,
         capitulo: state.capitulo,
       });
-      return;
+      return false;
     }
 
     // Generar resumen de cambios
@@ -8014,7 +8079,7 @@
       if (!silent) {
         showToast("ℹ️ No hay cambios para guardar", "info");
       }
-      return;
+      return true;
     }
 
     if (changesSummary.total === 0 && hasDirtyChanges) {
@@ -8026,7 +8091,7 @@
     if (!skipConfirmation) {
       const confirmed = await showSaveConfirmation(changesSummary);
       if (!confirmed) {
-        return;
+        return false;
       }
     }
 
@@ -8069,31 +8134,30 @@
       const operacionesParaGuardar = buildOperacionesParaGuardar(
         operacionesOrdenadas
       );
-      if (operacionesParaGuardar.length) {
-        const opResponse = await fetch(
-          `${API_BASE}/${encodeURIComponent(state.modulo)}/${
-            state.anio
-          }/operaciones`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              ...getAuthHeaders(),
-            },
-            body: JSON.stringify({
-              empresaId: obtenerEmpresaIdApi(),
-              operaciones: operacionesParaGuardar,
-            }),
-          }
-        );
-
-        if (!opResponse.ok) {
-          const errorData = await opResponse.json().catch(() => ({}));
-          throw new Error(
-            errorData.mensaje ||
-              `Error ${opResponse.status} al guardar operaciones`
-          );
+      const opResponse = await fetch(
+        `${API_BASE}/${encodeURIComponent(state.modulo)}/${
+          state.anio
+        }/operaciones`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...getAuthHeaders(),
+          },
+          body: JSON.stringify({
+            empresaId: obtenerEmpresaIdApi(),
+            capitulo: state.capitulo,
+            operaciones: operacionesParaGuardar,
+          }),
         }
+      );
+
+      if (!opResponse.ok) {
+        const errorData = await opResponse.json().catch(() => ({}));
+        throw new Error(
+          errorData.mensaje ||
+            `Error ${opResponse.status} al guardar operaciones`
+        );
       }
 
       state.unsavedChanges = false;
@@ -8110,12 +8174,14 @@
         "GUARDAR",
         `Se guardaron ${changesSummary.total} cambios en ${state.modulo} ${state.anio}: ${changesSummary.summary}`
       );
+      return true;
     } catch (error) {
       console.error("Error saving layout:", error);
       setStatus("Error al guardar");
       if (!silent) {
         showToast(error.message, "error");
       }
+      return false;
     }
   }
 
@@ -8991,8 +9057,19 @@ window.editSection = function (name) {
 
   window.editOperation = async function (operationId) {
     if (!requireEditMode()) return;
-    const op = findOperationByIdOrLabel(operationId);
-    if (!op) return;
+    let op = findOperationByIdOrLabel(operationId);
+    if (!op) {
+      const match = findOperationsByRowLabel(operationId);
+      if (match.operations.length === 1) {
+        op = match.operations[0];
+      } else if (match.operations.length > 1) {
+        editConsolidatedLabel(operationId, match.field || "sum-row");
+        return;
+      } else {
+        showToast("Operacion no encontrada", "warning");
+        return;
+      }
+    }
 
     let opId = getOperationId(op);
     let opLabel = getOperationLabel(op);
@@ -9218,26 +9295,11 @@ window.editSection = function (name) {
       </div>
 
       <div class="mb-3">
-        <label class="form-label fw-bold">Constructor de Fórmula</label>
-        <div id="formulaBuilderContainer">
-          <!-- El FormulaBuilder se renderizará aquí -->
+        <label class="form-label fw-bold">Fórmula</label>
+        <div class="formula-preview-box">
+          ${escapeHtml(buildFormulaPreviewText(formulaTerms))}
         </div>
-        <div class="d-flex flex-wrap gap-2 mt-2">
-          <button
-            type="button"
-            class="btn btn-outline-secondary btn-sm"
-            onclick="window.FormulaBuilder && window.FormulaBuilder.suggestFromName && window.FormulaBuilder.suggestFromName()"
-          >
-            <i class="bi bi-lightbulb me-1"></i>Sugerir desde nombre
-          </button>
-          <button
-            type="button"
-            class="btn btn-outline-info btn-sm"
-            onclick="window.FormulaBuilder && window.FormulaBuilder.showMap && window.FormulaBuilder.showMap()"
-          >
-            <i class="bi bi-diagram-3 me-1"></i>Ver mapa visual
-          </button>
-        </div>
+        <div class="form-text">Edita la fórmula en el panel lateral.</div>
       </div>
     `;
 
@@ -9268,17 +9330,6 @@ window.editSection = function (name) {
       return;
     }
 
-    // Expand section terms to individual accounts for display
-    // Inicializar FormulaBuilder si está disponible
-    if (window.FormulaBuilder) {
-      console.log("🎯 Llamando FormulaBuilder.init con op:", op);
-      window.FormulaBuilder.init(op, availableElements);
-    } else {
-      // Fallback: renderizar términos manualmente
-      expandSectionTermsToAccounts();
-      renderFormulaTerms();
-    }
-
     new bootstrap.Modal(dom.modalEditar).show();
   };
 
@@ -9288,12 +9339,16 @@ window.editSection = function (name) {
     // Removed updateFormulaPreview() - not needed
   };
 
-  window.deleteOperation = function (operationId) {
+  window.deleteOperation = async function (operationId) {
     if (!requireEditMode()) return;
     const op = findOperationByIdOrLabel(operationId);
     if (!op) return;
     const label = getOperationLabel(op);
     const opId = getOperationId(op);
+    const rowLabelValues = {};
+    ROW_LABEL_FIELDS.forEach((field) => {
+      if (op?.[field]) rowLabelValues[field] = op[field];
+    });
     const key =
       buildOperationDedupeKey(op) ||
       normalizeOperationKey(getOperationId(op) || label);
@@ -9315,6 +9370,23 @@ window.editSection = function (name) {
           normalizeOperationKey(getOperationId(o) || getOperationLabel(o))) !==
         key
     );
+
+    const rowLabelKeys = Object.keys(rowLabelValues);
+    if (rowLabelKeys.length) {
+      state.operaciones.forEach((other) => {
+        rowLabelKeys.forEach((field) => {
+          const target = normalizeOperationMatch(rowLabelValues[field]);
+          if (!target) return;
+          if (normalizeOperationMatch(other?.[field]) === target) {
+            delete other[field];
+            if (other.signos && other.signos[field] !== undefined) {
+              delete other.signos[field];
+            }
+          }
+        });
+      });
+    }
+
     logChange(
       "delete",
       `Operación "${label}" (${opId})${duplicados.length > 1 ? " x" + duplicados.length : ""}`,
@@ -9327,6 +9399,31 @@ window.editSection = function (name) {
     renderLayout();
     updateStats();
     showToast(`Operación "${label}" eliminada`, "success");
+
+    try {
+      if (state.modulo && state.anio) {
+        const claseToDelete = encodeURIComponent(opId || label || operationId);
+        const params = new URLSearchParams({
+          empresaId: obtenerEmpresaIdApi(),
+        });
+        if (state.capitulo) params.set("capitulo", state.capitulo);
+        const url = `${API_BASE}/${encodeURIComponent(state.modulo)}/${state.anio}/operacion/${claseToDelete}?${params.toString()}`;
+        const resp = await fetch(url, {
+          method: "DELETE",
+          headers: {
+            ...getAuthHeaders(),
+          },
+        });
+        if (!resp.ok) {
+          const errorData = await resp.json().catch(() => ({}));
+          console.warn("No se pudo eliminar en servidor:", errorData);
+        } else {
+          await loadLayout();
+        }
+      }
+    } catch (err) {
+      console.warn("Error eliminando operación en servidor:", err);
+    }
   };
 
   // Edit a consolidated label (shows all contributing operations and accounts)
@@ -9564,6 +9661,17 @@ window.editSection = function (name) {
 
   function confirmEdit() {
     if (!state.selectedElement) return;
+    const markInvalid = (input, message) => {
+      if (!input) return;
+      input.classList.add("is-invalid");
+      const feedback =
+        input.parentElement?.querySelector(".invalid-feedback");
+      if (feedback && message) feedback.textContent = message;
+    };
+    const clearInvalid = (input) => {
+      if (!input) return;
+      input.classList.remove("is-invalid");
+    };
 
     if (state.selectedElement.type === "account") {
       const cuenta =
@@ -9745,10 +9853,21 @@ window.editSection = function (name) {
       }
     } else if (state.selectedElement.type === "operation") {
       const op = state.selectedElement.op;
-      const newClase = document.getElementById("editClaseOp")?.value?.trim();
-      const newIdInput = document
-        .getElementById("editOperacionId")
-        ?.value?.trim();
+      const claseInput = document.getElementById("editClaseOp");
+      const idInput = document.getElementById("editOperacionId");
+      const newClase = claseInput?.value?.trim() || "";
+      const newIdInput = idInput?.value?.trim() || "";
+      clearInvalid(claseInput);
+      clearInvalid(idInput);
+      if (!newClase && !newIdInput) {
+        markInvalid(
+          claseInput,
+          "Este campo es obligatorio (o indica un ID interno)."
+        );
+        markInvalid(idInput, "Indica un ID si no hay nombre visible.");
+        showToast("Completa al menos el nombre visible o el ID interno.", "error");
+        return;
+      }
 
       const oldId = getOperationId(op);
       const oldLabel = getOperationLabel(op);
@@ -9819,35 +9938,33 @@ window.editSection = function (name) {
         op.visible = Boolean(visibleInput.checked);
       }
 
-      // Usar FormulaBuilder si esta disponible
-      if (window.FormulaBuilder) {
-        const validation = window.FormulaBuilder.validate();
-        if (!validation.isValid) {
-          showToast(
-            "Formula incompleta:\n" + validation.errors.join("\n"),
-            "error"
-          );
-          return;
-        }
+      const formulaPanel = dom.operationEditorPanel;
+      const formulaMode =
+        formulaPanel?.querySelector('input[name="operationFormulaMode"]:checked')
+          ?.value || "layout";
+      const manualText =
+        formulaPanel?.querySelector("#operationFormulaManual")?.value || "";
+      const selectedTerms =
+        formulaMode === "manual"
+          ? parseFormulaText(manualText)
+          : collectFormulaTermsFromLayout(formulaPanel);
+      formulaTerms = selectedTerms;
 
-        // Guardar formula en formato JSON
-        op.formula_json = window.FormulaBuilder.getFormulaJSON();
-        op.formula_terms = JSON.parse(op.formula_json);
+      // Limpiar campos legacy
+      op.signos = {};
+      for (let i = 1; i <= 20; i++) {
+        delete op[`seccion_${i}`];
+      }
 
-        // Mantener compatibilidad con formato legacy
-        op.signos = {};
-        for (let i = 1; i <= 20; i++) {
-          delete op[`seccion_${i}`];
-        }
-
-        op.formula_terms = normalizeFormulaTerms(op.formula_terms);
+      if (selectedTerms.length) {
+        op.formula_terms = normalizeFormulaTerms(selectedTerms);
+        op.formula_json = JSON.stringify(op.formula_terms);
         op.formula_terms.forEach((term, i) => {
           const key = `seccion_${i + 1}`;
           op[key] = term.value;
           op.signos[key] = term.operator === "-" ? -1 : 1;
         });
 
-        // Si es una sola seccion, asegurar SECCION
         if (
           op.formula_terms.length === 1 &&
           op.formula_terms[0].type === "section"
@@ -9855,25 +9972,8 @@ window.editSection = function (name) {
           op.SECCION = op.formula_terms[0].value;
         }
       } else {
-        // Fallback: usar formulaTerms global
-        op.formula_terms = normalizeFormulaTerms(formulaTerms);
-        op.signos = {};
-        for (let i = 1; i <= 20; i++) {
-          delete op[`seccion_${i}`];
-        }
-
-        op.formula_terms.forEach((term, i) => {
-          const key = `seccion_${i + 1}`;
-          op[key] = term.value;
-          op.signos[key] = term.operator === "-" ? -1 : 1;
-        });
-
-        if (
-          op.formula_terms.length === 1 &&
-          op.formula_terms[0].type === "section"
-        ) {
-          op.SECCION = op.formula_terms[0].value;
-        }
+        op.formula_terms = [];
+        op.formula_json = "";
       }
     } else if (state.selectedElement.type === "consolidatedLabel") {
       // Handle consolidated label edit
