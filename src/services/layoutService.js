@@ -76,9 +76,11 @@ const generarVariantesEmpresa = (empresaId = CANONICAL_EMPRESA_DEFAULT) => {
 const obtenerEmpresaCanonica = (empresaId = CANONICAL_EMPRESA_DEFAULT) => {
   const variantes = generarVariantesEmpresa(empresaId);
   const canonica = variantes.find((valor) => /^EMPRESA\d{2}$/i.test(valor));
-  return (
-    canonica || variantes[variantes.length - 1] || CANONICAL_EMPRESA_DEFAULT
-  );
+  if (canonica) {
+    // Normalizar para que alias por comparativas (EMPRESA09-12) funcione sin depender del case.
+    return canonica.toUpperCase();
+  }
+  return variantes[variantes.length - 1] || CANONICAL_EMPRESA_DEFAULT;
 };
 
 const resolverEmpresaLayoutSource = (empresaId = CANONICAL_EMPRESA_DEFAULT) => {

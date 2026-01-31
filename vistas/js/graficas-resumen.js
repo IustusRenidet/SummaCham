@@ -2669,6 +2669,58 @@
   };
 
   // === EXPORTACIÓN A EXCEL Y PDF ===
+
+  const resolveExportFlags = (graficasConfig, rowsConfig = {}) => ({
+    operating: graficasConfig?.charts?.operating?.enabled !== false,
+    net: graficasConfig?.charts?.net?.enabled !== false,
+    consolidated:
+      rowsConfig?.isCdmx &&
+      graficasConfig?.charts?.consolidated?.enabled !== false,
+    ingreso: graficasConfig?.ingreso?.enabled !== false,
+    ingresoNacional: graficasConfig?.ingresoNacional?.enabled !== false,
+  });
+
+  const resolveCanvasTitle = (canvas, fallback = '') => {
+    if (!canvas) return fallback || 'Grafica';
+    const titleEl =
+      canvas.closest('.chart-card')?.querySelector('h5') ||
+      canvas.closest('.chart-card')?.querySelector('h6') ||
+      canvas.closest('.chart-block')?.querySelector('.chart-title');
+    const title = titleEl?.textContent?.trim();
+    return title || fallback || 'Grafica';
+  };
+
+  const getCustomChartsForExport = () => {
+    if (!customChartsRow) return [];
+    return Array.from(customChartsRow.querySelectorAll('canvas'))
+      .map((canvas) => {
+        const chart = customCharts?.[canvas.id];
+        if (!chart) return null;
+        return {
+          canvas,
+          chart,
+          title: resolveCanvasTitle(canvas, 'Grafica personalizada'),
+        };
+      })
+      .filter(Boolean);
+  };
+
+  const buildChartTable = (chart) => {
+    const labels = Array.isArray(chart?.data?.labels) ? chart.data.labels : [];
+    const datasets = Array.isArray(chart?.data?.datasets)
+      ? chart.data.datasets
+      : [];
+    if (!labels.length || !datasets.length) return null;
+    const header = [
+      'Categoria',
+      ...datasets.map((dataset, idx) => dataset?.label || `Serie ${idx + 1}`),
+    ];
+    const rows = labels.map((label, idx) => [
+      label,
+      ...datasets.map((dataset) => dataset?.data?.[idx] ?? null),
+    ]);
+    return { header, rows };
+  };
   
   /**
    * Obtiene los datos actuales de las gráficas para exportación
@@ -2687,6 +2739,7 @@
     
     const graficasConfig = getGraficasConfig();
     const config = getRowsConfig(capitulo, graficasConfig);
+    const flags = resolveExportFlags(graficasConfig, config);
     
     // Preparar datos para exportación
     const datos = {
@@ -2697,7 +2750,9 @@
       fecha: new Date().toLocaleString('es-MX'),
       operativos: [],
       netos: [],
-      consolidados: config.isCdmx ? [] : null
+      consolidados: flags.consolidated ? [] : null,
+      flags,
+      graficasConfig
     };
     
     // Datos operativos
@@ -2731,7 +2786,7 @@
     });
     
     // Datos consolidados (solo CDMX)
-    if (config.isCdmx) {
+    if (flags.consolidated) {
       const consolidatedSources =
         graficasConfig.sources?.consolidated ||
         DEFAULT_GRAFICAS_CONFIG.sources?.consolidated ||
@@ -2778,6 +2833,8 @@
   window.exportarGraficasExcel = async () => {
     const datos = obtenerDatosParaExportar();
     if (!datos) return;
+    const flags = datos.flags || {};
+    const customChartItems = getCustomChartsForExport();
     
     // Verificar que ExcelJS esté disponible
     if (typeof ExcelJS === 'undefined') {
@@ -2794,95 +2851,103 @@
       const workbook = new ExcelJS.Workbook();
       workbook.creator = 'SummaCham';
       workbook.created = new Date();
+      let sheetCount = 0;
 
       // === HOJA 1: Resultados Operativos con Gráfica ===
-      const wsOperativos = workbook.addWorksheet('Resultados Operativos');
-      
-      // Información general
-      wsOperativos.addRow(['GRÁFICAS DE RESUMEN - DATOS ACUMULADOS']);
-      wsOperativos.addRow(['Empresa:', datos.empresa]);
-      wsOperativos.addRow(['Capítulo:', datos.capitulo]);
-      wsOperativos.addRow(['Año:', datos.anio]);
-      wsOperativos.addRow(['Mes:', datos.mes]);
-      wsOperativos.addRow(['Fecha de exportación:', datos.fecha]);
-      wsOperativos.addRow([]);
+      if (flags.operating !== false) {
+        const wsOperativos = workbook.addWorksheet('Resultados Operativos');
+        sheetCount += 1;
+        
+        // Información general
+        wsOperativos.addRow(['GRÁFICAS DE RESUMEN - DATOS ACUMULADOS']);
+        wsOperativos.addRow(['Empresa:', datos.empresa]);
+        wsOperativos.addRow(['Capítulo:', datos.capitulo]);
+        wsOperativos.addRow(['Año:', datos.anio]);
+        wsOperativos.addRow(['Mes:', datos.mes]);
+        wsOperativos.addRow(['Fecha de exportación:', datos.fecha]);
+        wsOperativos.addRow([]);
 
-      // Tabla de datos
-      wsOperativos.addRow(['RESULTADOS OPERATIVOS POR CAPÍTULO']);
-      const headerRowOp = wsOperativos.addRow(['Concepto', 'Real Acumulado', 'Ppto. Acumulado', 'Real Acum. Año Anterior']);
-      headerRowOp.font = { bold: true };
-      headerRowOp.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0D47A1' } };
-      headerRowOp.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        // Tabla de datos
+        wsOperativos.addRow(['RESULTADOS OPERATIVOS POR CAPÍTULO']);
+        const headerRowOp = wsOperativos.addRow(['Concepto', 'Real Acumulado', 'Ppto. Acumulado', 'Real Acum. Año Anterior']);
+        headerRowOp.font = { bold: true };
+        headerRowOp.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0D47A1' } };
+        headerRowOp.font = { bold: true, color: { argb: 'FFFFFFFF' } };
 
-      datos.operativos.forEach(row => {
-        wsOperativos.addRow([row.concepto, row.realAcumulado, row.pptoAcumulado, row.realAcumAA]);
-      });
-
-      // Ajustar anchos
-      wsOperativos.columns = [
-        { width: 40 },
-        { width: 18 },
-        { width: 18 },
-        { width: 25 }
-      ];
-
-      // Agregar gráfica como imagen
-      const chartOp = document.getElementById('chartOperatingSummaryByChapter');
-      if (chartOp) {
-        const imageId = workbook.addImage({
-          base64: chartOp.toDataURL('image/png'),
-          extension: 'png',
+        datos.operativos.forEach(row => {
+          wsOperativos.addRow([row.concepto, row.realAcumulado, row.pptoAcumulado, row.realAcumAA]);
         });
-        wsOperativos.addImage(imageId, {
-          tl: { col: 0, row: datos.operativos.length + 11 },
-          ext: { width: 800, height: 400 }
-        });
+
+        // Ajustar anchos
+        wsOperativos.columns = [
+          { width: 40 },
+          { width: 18 },
+          { width: 18 },
+          { width: 25 }
+        ];
+
+        // Agregar gráfica como imagen
+        const chartOp = document.getElementById('chartOperatingSummaryByChapter');
+        if (chartOp) {
+          const imageId = workbook.addImage({
+            base64: chartOp.toDataURL('image/png'),
+            extension: 'png',
+          });
+          wsOperativos.addImage(imageId, {
+            tl: { col: 0, row: datos.operativos.length + 11 },
+            ext: { width: 800, height: 400 }
+          });
+        }
       }
 
       // === HOJA 2: Resultados Netos con Gráfica ===
-      const wsNetos = workbook.addWorksheet('Resultados Netos');
-      
-      wsNetos.addRow(['GRÁFICAS DE RESUMEN - DATOS ACUMULADOS']);
-      wsNetos.addRow(['Empresa:', datos.empresa]);
-      wsNetos.addRow(['Capítulo:', datos.capitulo]);
-      wsNetos.addRow(['Año:', datos.anio]);
-      wsNetos.addRow(['Mes:', datos.mes]);
-      wsNetos.addRow(['Fecha de exportación:', datos.fecha]);
-      wsNetos.addRow([]);
+      if (flags.net !== false) {
+        const wsNetos = workbook.addWorksheet('Resultados Netos');
+        sheetCount += 1;
+        
+        wsNetos.addRow(['GRÁFICAS DE RESUMEN - DATOS ACUMULADOS']);
+        wsNetos.addRow(['Empresa:', datos.empresa]);
+        wsNetos.addRow(['Capítulo:', datos.capitulo]);
+        wsNetos.addRow(['Año:', datos.anio]);
+        wsNetos.addRow(['Mes:', datos.mes]);
+        wsNetos.addRow(['Fecha de exportación:', datos.fecha]);
+        wsNetos.addRow([]);
 
-      wsNetos.addRow(['RESULTADOS NETOS POR CAPÍTULO']);
-      const headerRowNet = wsNetos.addRow(['Concepto', 'Real Acumulado', 'Ppto. Acumulado', 'Real Acum. Año Anterior']);
-      headerRowNet.font = { bold: true };
-      headerRowNet.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0D47A1' } };
-      headerRowNet.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        wsNetos.addRow(['RESULTADOS NETOS POR CAPÍTULO']);
+        const headerRowNet = wsNetos.addRow(['Concepto', 'Real Acumulado', 'Ppto. Acumulado', 'Real Acum. Año Anterior']);
+        headerRowNet.font = { bold: true };
+        headerRowNet.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0D47A1' } };
+        headerRowNet.font = { bold: true, color: { argb: 'FFFFFFFF' } };
 
-      datos.netos.forEach(row => {
-        wsNetos.addRow([row.concepto, row.realAcumulado, row.pptoAcumulado, row.realAcumAA]);
-      });
-
-      wsNetos.columns = [
-        { width: 40 },
-        { width: 18 },
-        { width: 18 },
-        { width: 25 }
-      ];
-
-      // Agregar gráfica
-      const chartNet = document.getElementById('chartNetSummaryByChapter');
-      if (chartNet) {
-        const imageId = workbook.addImage({
-          base64: chartNet.toDataURL('image/png'),
-          extension: 'png',
+        datos.netos.forEach(row => {
+          wsNetos.addRow([row.concepto, row.realAcumulado, row.pptoAcumulado, row.realAcumAA]);
         });
-        wsNetos.addImage(imageId, {
-          tl: { col: 0, row: datos.netos.length + 11 },
-          ext: { width: 800, height: 400 }
-        });
+
+        wsNetos.columns = [
+          { width: 40 },
+          { width: 18 },
+          { width: 18 },
+          { width: 25 }
+        ];
+
+        // Agregar gráfica
+        const chartNet = document.getElementById('chartNetSummaryByChapter');
+        if (chartNet) {
+          const imageId = workbook.addImage({
+            base64: chartNet.toDataURL('image/png'),
+            extension: 'png',
+          });
+          wsNetos.addImage(imageId, {
+            tl: { col: 0, row: datos.netos.length + 11 },
+            ext: { width: 800, height: 400 }
+          });
+        }
       }
 
       // === HOJA 3: Consolidados (solo CDMX) ===
-      if (datos.consolidados) {
+      if (flags.consolidated && datos.consolidados) {
         const wsConsolidados = workbook.addWorksheet('Consolidados');
+        sheetCount += 1;
         
         wsConsolidados.addRow(['GRÁFICAS DE RESUMEN - DATOS ACUMULADOS']);
         wsConsolidados.addRow(['Empresa:', datos.empresa]);
@@ -2923,6 +2988,95 @@
         }
       }
 
+      if (flags.ingreso !== false) {
+        const wsIngreso = workbook.addWorksheet('Ingreso Capitulo');
+        sheetCount += 1;
+        wsIngreso.addRow(['GRÁFICAS DE RESUMEN - DATOS ACUMULADOS']);
+        wsIngreso.addRow(['Empresa:', datos.empresa]);
+        wsIngreso.addRow(['Capítulo:', datos.capitulo]);
+        wsIngreso.addRow(['Año:', datos.anio]);
+        wsIngreso.addRow(['Mes:', datos.mes]);
+        wsIngreso.addRow(['Fecha de exportación:', datos.fecha]);
+        wsIngreso.addRow([]);
+        wsIngreso.addRow(['INGRESO POR CAPÍTULO']);
+        const chartIngreso = document.getElementById('chartIngresoPorCapitulo');
+        if (chartIngreso) {
+          const imageId = workbook.addImage({
+            base64: chartIngreso.toDataURL('image/png'),
+            extension: 'png',
+          });
+          wsIngreso.addImage(imageId, {
+            tl: { col: 0, row: wsIngreso.rowCount + 1 },
+            ext: { width: 800, height: 400 }
+          });
+        }
+      }
+
+      if (flags.ingresoNacional !== false) {
+        const wsIngresoNacional = workbook.addWorksheet('Ingreso Nacional');
+        sheetCount += 1;
+        wsIngresoNacional.addRow(['GRÁFICAS DE RESUMEN - DATOS ACUMULADOS']);
+        wsIngresoNacional.addRow(['Empresa:', datos.empresa]);
+        wsIngresoNacional.addRow(['Capítulo:', datos.capitulo]);
+        wsIngresoNacional.addRow(['Año:', datos.anio]);
+        wsIngresoNacional.addRow(['Mes:', datos.mes]);
+        wsIngresoNacional.addRow(['Fecha de exportación:', datos.fecha]);
+        wsIngresoNacional.addRow([]);
+        wsIngresoNacional.addRow(['INGRESO NACIONAL']);
+        const chartIngresoNacional = document.getElementById('chartIngresoNacional');
+        if (chartIngresoNacional) {
+          const imageId = workbook.addImage({
+            base64: chartIngresoNacional.toDataURL('image/png'),
+            extension: 'png',
+          });
+          wsIngresoNacional.addImage(imageId, {
+            tl: { col: 0, row: wsIngresoNacional.rowCount + 1 },
+            ext: { width: 800, height: 400 }
+          });
+        }
+      }
+
+      if (customChartItems.length) {
+        const wsCustom = workbook.addWorksheet('Graficas personalizadas');
+        sheetCount += 1;
+        wsCustom.addRow(['GRÁFICAS DE RESUMEN - DATOS ACUMULADOS']);
+        wsCustom.addRow(['Empresa:', datos.empresa]);
+        wsCustom.addRow(['Capítulo:', datos.capitulo]);
+        wsCustom.addRow(['Año:', datos.anio]);
+        wsCustom.addRow(['Mes:', datos.mes]);
+        wsCustom.addRow(['Fecha de exportación:', datos.fecha]);
+        wsCustom.addRow([]);
+
+        customChartItems.forEach((item, index) => {
+          const title = item.title || `Grafica personalizada ${index + 1}`;
+          wsCustom.addRow([title]);
+          const imageId = workbook.addImage({
+            base64: item.canvas.toDataURL('image/png'),
+            extension: 'png',
+          });
+          const startRow = wsCustom.rowCount + 1;
+          wsCustom.addImage(imageId, {
+            tl: { col: 0, row: startRow },
+            ext: { width: 800, height: 400 }
+          });
+          for (let i = 0; i < 22; i += 1) {
+            wsCustom.addRow([]);
+          }
+        });
+      }
+
+      if (!sheetCount) {
+        const wsEmpty = workbook.addWorksheet('Graficas');
+        wsEmpty.addRow(['GRÁFICAS DE RESUMEN - DATOS ACUMULADOS']);
+        wsEmpty.addRow(['Empresa:', datos.empresa]);
+        wsEmpty.addRow(['Capítulo:', datos.capitulo]);
+        wsEmpty.addRow(['Año:', datos.anio]);
+        wsEmpty.addRow(['Mes:', datos.mes]);
+        wsEmpty.addRow(['Fecha de exportación:', datos.fecha]);
+        wsEmpty.addRow([]);
+        wsEmpty.addRow(['Sin gráficas disponibles para exportar.']);
+      }
+
       // Descargar archivo
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
@@ -2944,7 +3098,10 @@
    * Exportación legacy usando SheetJS (sin gráficas)
    */
   async function exportarGraficasExcelLegacy(datos) {
+    const flags = datos.flags || {};
+    const customChartItems = getCustomChartsForExport();
     const workbook = XLSX.utils.book_new();
+    let sheetCount = 0;
     
     // Información general
     const info = [
@@ -2958,51 +3115,57 @@
     ];
     
     // Hoja 1: Resultados Operativos
-    const wsOperativos = XLSX.utils.aoa_to_sheet([
-      ...info,
-      ['RESULTADOS OPERATIVOS POR CAPÍTULO'],
-      ['Concepto', 'Real Acumulado', 'Ppto. Acumulado', 'Real Acum. Año Anterior']
-    ]);
-    
-    XLSX.utils.sheet_add_json(wsOperativos, datos.operativos, {
-      origin: -1,
-      skipHeader: true,
-      header: ['concepto', 'realAcumulado', 'pptoAcumulado', 'realAcumAA']
-    });
-    
-    wsOperativos['!cols'] = [
-      { wch: 40 },
-      { wch: 18 },
-      { wch: 18 },
-      { wch: 25 }
-    ];
-    
-    XLSX.utils.book_append_sheet(workbook, wsOperativos, 'Resultados Operativos');
+    if (flags.operating !== false) {
+      const wsOperativos = XLSX.utils.aoa_to_sheet([
+        ...info,
+        ['RESULTADOS OPERATIVOS POR CAPÍTULO'],
+        ['Concepto', 'Real Acumulado', 'Ppto. Acumulado', 'Real Acum. Año Anterior']
+      ]);
+      
+      XLSX.utils.sheet_add_json(wsOperativos, datos.operativos, {
+        origin: -1,
+        skipHeader: true,
+        header: ['concepto', 'realAcumulado', 'pptoAcumulado', 'realAcumAA']
+      });
+      
+      wsOperativos['!cols'] = [
+        { wch: 40 },
+        { wch: 18 },
+        { wch: 18 },
+        { wch: 25 }
+      ];
+      
+      XLSX.utils.book_append_sheet(workbook, wsOperativos, 'Resultados Operativos');
+      sheetCount += 1;
+    }
     
     // Hoja 2: Resultados Netos
-    const wsNetos = XLSX.utils.aoa_to_sheet([
-      ...info,
-      ['RESULTADOS NETOS POR CAPÍTULO'],
-      ['Concepto', 'Real Acumulado', 'Ppto. Acumulado', 'Real Acum. Año Anterior']
-    ]);
-    
-    XLSX.utils.sheet_add_json(wsNetos, datos.netos, {
-      origin: -1,
-      skipHeader: true,
-      header: ['concepto', 'realAcumulado', 'pptoAcumulado', 'realAcumAA']
-    });
-    
-    wsNetos['!cols'] = [
-      { wch: 40 },
-      { wch: 18 },
-      { wch: 18 },
-      { wch: 25 }
-    ];
-    
-    XLSX.utils.book_append_sheet(workbook, wsNetos, 'Resultados Netos');
+    if (flags.net !== false) {
+      const wsNetos = XLSX.utils.aoa_to_sheet([
+        ...info,
+        ['RESULTADOS NETOS POR CAPÍTULO'],
+        ['Concepto', 'Real Acumulado', 'Ppto. Acumulado', 'Real Acum. Año Anterior']
+      ]);
+      
+      XLSX.utils.sheet_add_json(wsNetos, datos.netos, {
+        origin: -1,
+        skipHeader: true,
+        header: ['concepto', 'realAcumulado', 'pptoAcumulado', 'realAcumAA']
+      });
+      
+      wsNetos['!cols'] = [
+        { wch: 40 },
+        { wch: 18 },
+        { wch: 18 },
+        { wch: 25 }
+      ];
+      
+      XLSX.utils.book_append_sheet(workbook, wsNetos, 'Resultados Netos');
+      sheetCount += 1;
+    }
     
     // Hoja 3: Consolidados
-    if (datos.consolidados) {
+    if (flags.consolidated && datos.consolidados) {
       const wsConsolidados = XLSX.utils.aoa_to_sheet([
         ...info,
         ['RESULTADOS CONSOLIDADOS'],
@@ -3023,6 +3186,66 @@
       ];
       
       XLSX.utils.book_append_sheet(workbook, wsConsolidados, 'Consolidados');
+      sheetCount += 1;
+    }
+
+    if (flags.ingreso !== false) {
+      const ingresoCanvas = document.getElementById('chartIngresoPorCapitulo');
+      const ingresoTable = buildChartTable(window.Chart?.getChart?.(ingresoCanvas));
+      const wsIngreso = XLSX.utils.aoa_to_sheet([
+        ...info,
+        ['INGRESO POR CAPÍTULO'],
+        ingresoTable?.header || []
+      ]);
+      if (ingresoTable?.rows?.length) {
+        XLSX.utils.sheet_add_aoa(wsIngreso, ingresoTable.rows, { origin: -1 });
+      }
+      XLSX.utils.book_append_sheet(workbook, wsIngreso, 'Ingreso Capitulo');
+      sheetCount += 1;
+    }
+
+    if (flags.ingresoNacional !== false) {
+      const ingresoNacionalCanvas = document.getElementById('chartIngresoNacional');
+      const ingresoNacionalTable = buildChartTable(
+        window.Chart?.getChart?.(ingresoNacionalCanvas)
+      );
+      const wsIngresoNacional = XLSX.utils.aoa_to_sheet([
+        ...info,
+        ['INGRESO NACIONAL'],
+        ingresoNacionalTable?.header || []
+      ]);
+      if (ingresoNacionalTable?.rows?.length) {
+        XLSX.utils.sheet_add_aoa(wsIngresoNacional, ingresoNacionalTable.rows, {
+          origin: -1,
+        });
+      }
+      XLSX.utils.book_append_sheet(workbook, wsIngresoNacional, 'Ingreso Nacional');
+      sheetCount += 1;
+    }
+
+    if (customChartItems.length) {
+      customChartItems.forEach((item, index) => {
+        const table = buildChartTable(item.chart);
+        const sheetName = `Custom ${index + 1}`;
+        const wsCustom = XLSX.utils.aoa_to_sheet([
+          ...info,
+          [item.title || `Grafica personalizada ${index + 1}`],
+          table?.header || []
+        ]);
+        if (table?.rows?.length) {
+          XLSX.utils.sheet_add_aoa(wsCustom, table.rows, { origin: -1 });
+        }
+        XLSX.utils.book_append_sheet(workbook, wsCustom, sheetName);
+        sheetCount += 1;
+      });
+    }
+
+    if (!sheetCount) {
+      const wsEmpty = XLSX.utils.aoa_to_sheet([
+        ...info,
+        ['Sin gráficas disponibles para exportar.']
+      ]);
+      XLSX.utils.book_append_sheet(workbook, wsEmpty, 'Graficas');
     }
     
     const fileName = `Graficas_Resumen_${datos.anio}_${datos.mes}_${Date.now()}.xlsx`;
@@ -3035,6 +3258,8 @@
   window.exportarGraficasPDF = async () => {
     const datos = obtenerDatosParaExportar();
     if (!datos) return;
+    const flags = datos.flags || {};
+    const customChartItems = getCustomChartsForExport();
     
     // Verificar que las librerías estén disponibles
     if (typeof jspdf === 'undefined' || typeof html2canvas === 'undefined') {
@@ -3119,8 +3344,37 @@
         return pdf.lastAutoTable.finalY + 10;
       };
       
+      const tablas = [];
+      if (flags.operating !== false) {
+        tablas.push({
+          titulo: 'RESULTADOS OPERATIVOS POR CAPÍTULO',
+          datos: datos.operativos,
+        });
+      }
+      if (flags.net !== false) {
+        tablas.push({
+          titulo: 'RESULTADOS NETOS POR CAPÍTULO',
+          datos: datos.netos,
+        });
+      }
+      if (flags.consolidated && datos.consolidados) {
+        tablas.push({
+          titulo: 'RESULTADOS CONSOLIDADOS',
+          datos: datos.consolidados,
+        });
+      }
+
+      if (tablas.length === 0) {
+        pdf.setFontSize(11);
+        pdf.setFont(undefined, 'normal');
+        pdf.text('Sin tablas disponibles para exportar.', margin, yPosition);
+        yPosition += 10;
+      }
+
       // Agregar tablas
-      yPosition = agregarTabla('RESULTADOS OPERATIVOS POR CAPÍTULO', datos.operativos, yPosition);
+      if (tablas.length > 0) {
+        yPosition = agregarTabla(tablas[0].titulo, tablas[0].datos, yPosition);
+      }
       
       // Nueva página si es necesario
       if (yPosition > pageHeight - 60) {
@@ -3128,15 +3382,16 @@
         yPosition = margin;
       }
       
-      yPosition = agregarTabla('RESULTADOS NETOS POR CAPÍTULO', datos.netos, yPosition);
+      if (tablas.length > 1) {
+        yPosition = agregarTabla(tablas[1].titulo, tablas[1].datos, yPosition);
+      }
       
-      // Consolidados (solo CDMX)
-      if (datos.consolidados) {
+      if (tablas.length > 2) {
         if (yPosition > pageHeight - 60) {
           pdf.addPage();
           yPosition = margin;
         }
-        yPosition = agregarTabla('RESULTADOS CONSOLIDADOS', datos.consolidados, yPosition);
+        yPosition = agregarTabla(tablas[2].titulo, tablas[2].datos, yPosition);
       }
       
       // Agregar gráficas como imágenes
@@ -3150,41 +3405,83 @@
         yPosition += 10;
         
         // Capturar cada gráfica
-        const graficas = [
-          { id: 'chartOperatingSummaryByChapter', titulo: 'Resultado Operativo por Capítulo' },
-          { id: 'chartNetSummaryByChapter', titulo: 'Resumen Neto por Capítulo' },
-          { id: 'chartIngresoPorCapitulo', titulo: 'Ingreso por Capítulo' },
-          { id: 'chartIngresoNacional', titulo: 'Ingreso nacional' }
-        ];
-        
-        if (datos.consolidados) {
-          graficas.push({ id: 'chartConsolidatedResults', titulo: 'Consolidados Operativos vs Netos' });
+        const graficas = [];
+        if (flags.operating !== false) {
+          const canvas = document.getElementById('chartOperatingSummaryByChapter');
+          graficas.push({
+            canvas,
+            titulo: resolveCanvasTitle(canvas, 'Resultado Operativo por Capítulo'),
+          });
+        }
+        if (flags.net !== false) {
+          const canvas = document.getElementById('chartNetSummaryByChapter');
+          graficas.push({
+            canvas,
+            titulo: resolveCanvasTitle(canvas, 'Resumen Neto por Capítulo'),
+          });
+        }
+        if (flags.ingreso !== false) {
+          const canvas = document.getElementById('chartIngresoPorCapitulo');
+          graficas.push({
+            canvas,
+            titulo: resolveCanvasTitle(canvas, 'Ingreso por Capítulo'),
+          });
+        }
+        if (flags.ingresoNacional !== false) {
+          const canvas = document.getElementById('chartIngresoNacional');
+          graficas.push({
+            canvas,
+            titulo: resolveCanvasTitle(canvas, 'Ingreso nacional'),
+          });
+        }
+        if (flags.consolidated && datos.consolidados) {
+          const canvas = document.getElementById('chartConsolidatedResults');
+          graficas.push({
+            canvas,
+            titulo: resolveCanvasTitle(canvas, 'Consolidados Operativos vs Netos'),
+          });
+        }
+        customChartItems.forEach((item) => {
+          if (!item?.canvas) return;
+          graficas.push({
+            canvas: item.canvas,
+            titulo: item.title || 'Grafica personalizada',
+          });
+        });
+
+        if (!graficas.length) {
+          pdf.setFontSize(11);
+          pdf.setFont(undefined, 'normal');
+          pdf.text('Sin gráficas disponibles para exportar.', margin, yPosition);
+          yPosition += 10;
+          return;
         }
         
         for (const grafica of graficas) {
-          const canvas = document.getElementById(grafica.id);
-          if (canvas) {
-            const imgData = await html2canvas(canvas, {
-              scale: 2,
-              backgroundColor: '#ffffff'
-            });
-            
-            const imgWidth = pageWidth - 2 * margin;
-            const imgHeight = (canvas.height * imgWidth) / canvas.width;
-            
-            if (yPosition + imgHeight > pageHeight - margin) {
-              pdf.addPage();
-              yPosition = margin;
-            }
-            
-            pdf.setFontSize(10);
-            pdf.setFont(undefined, 'bold');
-            pdf.text(grafica.titulo, margin, yPosition);
-            yPosition += 5;
-            
-            pdf.addImage(imgData.toDataURL('image/png'), 'PNG', margin, yPosition, imgWidth, imgHeight);
-            yPosition += imgHeight + 10;
+          const canvas = grafica.canvas;
+          if (!canvas) continue;
+          if (!canvas.isConnected) continue;
+          if (canvas.getClientRects().length === 0) continue;
+          const imgData = await html2canvas(canvas, {
+            scale: 2,
+            backgroundColor: '#ffffff'
+          });
+          
+          const imgWidth = pageWidth - 2 * margin;
+          const imgHeight = (imgData.height * imgWidth) / imgData.width;
+          
+          if (yPosition + imgHeight > pageHeight - margin) {
+            pdf.addPage();
+            yPosition = margin;
           }
+          
+          pdf.setFontSize(10);
+          pdf.setFont(undefined, 'bold');
+          pdf.text(grafica.titulo, margin, yPosition);
+          yPosition += 5;
+          
+          pdf.addImage(imgData.toDataURL('image/png'), 'PNG', margin, yPosition, imgWidth, imgHeight);
+          yPosition += imgHeight + 10;
         }
       };
       

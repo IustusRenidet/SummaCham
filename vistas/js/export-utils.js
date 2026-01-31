@@ -1679,6 +1679,23 @@
     _resolverGraficas(charts) {
       const targets = [];
       const seen = new Set();
+      const isHidden = (node) => {
+        if (!node || !node.isConnected) return true;
+        if (node.hidden || node.getAttribute?.("aria-hidden") === "true") {
+          return true;
+        }
+        let current = node;
+        while (current && current.nodeType === 1) {
+          const style = window.getComputedStyle(current);
+          if (style.display === "none" || style.visibility === "hidden") {
+            return true;
+          }
+          current = current.parentElement;
+        }
+        const rects = node.getClientRects?.();
+        if (rects && rects.length === 0) return true;
+        return false;
+      };
       const isCanvas = (node) => {
         if (!node) return false;
         if (typeof HTMLCanvasElement !== "undefined") {
@@ -1688,6 +1705,7 @@
       };
       const pushCanvas = (canvas, title) => {
         if (!isCanvas(canvas) || seen.has(canvas)) return;
+        if (isHidden(canvas)) return;
         seen.add(canvas);
         targets.push({ canvas, title });
       };

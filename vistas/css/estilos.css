@@ -30,6 +30,15 @@ textarea:not(:disabled),
   cursor: pointer !important;
 }
 
+:root {
+  --operation-row-bg: #f5f8ff;
+  --operation-row-bg-hover: #eaf1ff;
+  --operation-row-text: #0b2f4a;
+  --operation-row-accent: #3d7bd6;
+  --operation-free-bg: #eef9f3;
+  --operation-free-accent: #2a9d6f;
+}
+
 .toolbar-actions {
   z-index: 100 !important;
   position: relative;
@@ -446,6 +455,34 @@ table thead th {
 .table-comparison.sticky-totals tbody tr.result-row td.sticky-total-budget,
 .table-comparison.sticky-totals tbody tr.result-row td.sticky-total-real {
   background-color: #ffffff;
+}
+
+/* Filas de operaciones (no colapsan, incluso libres) */
+.table-comparison tbody tr.operation-row td {
+  background-color: var(--operation-row-bg);
+  color: var(--operation-row-text);
+  font-weight: 600;
+}
+
+.table-comparison tbody tr.operation-row td:first-child {
+  border-left: 3px solid var(--operation-row-accent);
+}
+
+.table-comparison tbody tr.operation-row.free-operation-row td {
+  background-color: var(--operation-free-bg);
+}
+
+.table-comparison tbody tr.operation-row.free-operation-row td:first-child {
+  border-left-color: var(--operation-free-accent);
+}
+
+.table-comparison tbody tr.operation-row:hover td {
+  background-color: var(--operation-row-bg-hover);
+}
+
+.table-comparison.sticky-totals tbody tr.operation-row td.sticky-total-budget,
+.table-comparison.sticky-totals tbody tr.operation-row td.sticky-total-real {
+  background-color: var(--operation-row-bg);
 }
 
 .workflow-toggle {
