@@ -1740,6 +1740,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <script src="js/export-utils.js"></script>
+    <script src="js/guided-tour.js"></script>
     <script src="js/graficas-config.js"></script>
     <script src="js/resumen-view.js?v=20260130"></script>
     <script>
@@ -1940,5 +1941,102 @@
     </style>
 
     <script src="js/comentarios-celdas.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        if (!window.GuidedTour) return;
+        window.GuidedTour.mount({
+          id: "resumen-edicion-export",
+          buttonText: "Tour resumen",
+          steps: [
+            {
+              selector: "#resumenYearSelect",
+              title: "Ejercicio",
+              description:
+                "Selecciona el anio para cargar saldos y estructura del resumen.",
+            },
+            {
+              selector: "#resumenMonthSelect",
+              title: "Periodo",
+              description:
+                "Define el mes de corte para recalcular comparativos y variaciones.",
+            },
+            {
+              selector: "#resumenEmpresaComparativaToggle",
+              title: "Comparativa de empresas",
+              description:
+                "Activa este switch para comparar contra la empresa configurada como referencia.",
+            },
+            {
+              selector: "#zoomMenuToggle",
+              title: "Controles de zoom",
+              description:
+                "Desde aqui ajustas zoom, redondeo y acciones rapidas de expandir o colapsar.",
+            },
+            {
+              selector: "#accountSearch",
+              title: "Busqueda en tabla",
+              description:
+                "Filtra cuentas y descripciones para localizar rubros sin recorrer todo el reporte.",
+            },
+            {
+              selector: "#resumenChartsToggleBtn",
+              title: "Panel de graficas",
+              description:
+                "Abre las graficas integradas del resumen sin salir del modulo.",
+              beforeEnter: ({ api }) => {
+                api.click("#resumenChartsToggleBtn");
+                return api.waitFor("#resumenChartsPanel", 1200);
+              },
+            },
+            {
+              selector: "#resumenChartsPanel",
+              title: "Graficas embebidas",
+              description:
+                "Aqui puedes actualizar y validar la lectura visual de operativo, neto e ingresos.",
+            },
+            {
+              selector: ["#exportResumenBtn", "#printResumenBtn"],
+              title: "Exportacion del resumen",
+              description:
+                "Exporta a XLSX o genera PDF para compartir resultados y evidencia de cierre.",
+            },
+            {
+              selector: "#tablaComparacion",
+              title: "Modo edicion",
+              description:
+                "La tabla permite edicion asistida y menu contextual para ajustar estructura.",
+            },
+            {
+              selector: ".comentarios-floating-btn",
+              title: "Comentarios por celda",
+              description:
+                "Usa este acceso para crear comentarios y dar seguimiento a observaciones.",
+              beforeEnter: ({ api }) =>
+                api.waitFor(".comentarios-floating-btn", 2000),
+            },
+            {
+              selector: "#comentariosInput",
+              title: "Crear comentario",
+              description:
+                "Selecciona una celda y escribe tu mensaje para iniciar un hilo de colaboracion.",
+              beforeEnter: ({ api }) => {
+                api.click(".comentarios-floating-btn");
+                return api.waitFor("#comentariosInput", 2000);
+              },
+            },
+            {
+              selector: [
+                "#comentariosLista [data-action='responder']",
+                "#comentariosLista",
+              ],
+              title: "Contestar comentarios",
+              description:
+                "Cuando exista conversacion veras la accion Responder para continuar el hilo.",
+              beforeEnter: ({ api }) => api.waitFor("#comentariosLista", 1500),
+            },
+          ],
+        });
+      });
+    </script>
   </body>
 </html>

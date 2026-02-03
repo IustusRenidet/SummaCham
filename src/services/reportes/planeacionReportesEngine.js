@@ -434,7 +434,8 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
         netRowAdicional,
         resultNetRow,
         clase,
-        orden: ordenConfig
+        orden: ordenConfig,
+        seccionLabel: seccion
       };
       const principalBase = configEntry.principal;
       configEntry.principalLabel = principalBase;
@@ -620,31 +621,78 @@ const construirReporteResumen = (definiciones, configAgrupacion, capituloSelecci
     principalNode.secciones.get(seccionKey).cuentas.push(cuentaCanonica);
   });
 
+  const asegurarPrincipalDesdeConfig = (cfg = {}, etiquetaPrincipal = '') => {
+    const principalLabel = (etiquetaPrincipal || cfg.principalLabel || cfg.principal || '')
+      .toString()
+      .trim();
+    if (!principalLabel) return null;
+    const principalKey = NORMALIZAR_CLAVE(principalLabel);
+    const existente = principalMap.get(principalKey);
+    if (existente) {
+      if (!existente.clase && cfg.clase) existente.clase = (cfg.clase || '').toString();
+      if (!existente.consolidadoLabel && cfg.consolidado) existente.consolidadoLabel = cfg.consolidado;
+      if (!existente.operativoLabel && cfg.operativo) existente.operativoLabel = cfg.operativo;
+      if (!existente.operativoConsolidado && cfg.operativoConsolidado) existente.operativoConsolidado = cfg.operativoConsolidado;
+      if (!existente.resultRow && cfg.resultRow) existente.resultRow = cfg.resultRow;
+      if (!existente.netRow && cfg.netRow) existente.netRow = cfg.netRow;
+      if (!existente.netRowAdicional && cfg.netRowAdicional) existente.netRowAdicional = cfg.netRowAdicional;
+      if (!existente.resultNetRow && cfg.resultNetRow) existente.resultNetRow = cfg.resultNetRow;
+      return existente;
+    }
+    const ordenCfg = Number.isFinite(Number(cfg?.orden))
+      ? Number(cfg.orden)
+      : null;
+    const ordenPrincipal = principalOrden.has(principalLabel)
+      ? principalOrden.get(principalLabel)
+      : ordenCfg != null
+      ? ordenCfg
+      : principalMap.size + principalOrden.size;
+    const principal = {
+      key: principalKey,
+      label: principalLabel,
+      clase: (cfg.clase || '').toString(),
+      consolidadoLabel: cfg.consolidado || '',
+      operativoLabel: cfg.operativo || '',
+      operativoConsolidado: cfg.operativoConsolidado || '',
+      resultRow: cfg.resultRow || '',
+      netRow: cfg.netRow || '',
+      netRowAdicional: cfg.netRowAdicional || '',
+      resultNetRow: cfg.resultNetRow || '',
+      orden: ordenPrincipal,
+      ordenIndex: principalMap.size + principalOrden.size,
+      secciones: new Map(),
+      esVirtual: true
+    };
+    principalMap.set(principalKey, principal);
+    return principal;
+  };
 
   // Asegurar que Principales definidos en configuración existan aunque no haya cuentas
   configPorPrincipal.forEach((cfg) => {
-    if (!cfg || !cfg.principalLabel) return;
-    const principalKey = NORMALIZAR_CLAVE(cfg.principalLabel);
-    if (!principalMap.has(principalKey)) {
-      principalMap.set(principalKey, {
-        key: principalKey,
-        label: cfg.principalLabel,
-        clase: (cfg.clase || '').toString(),
-        consolidadoLabel: cfg.consolidado || '',
-        operativoLabel: cfg.operativo || '',
-        operativoConsolidado: cfg.operativoConsolidado || '',
-        resultRow: cfg.resultRow || '',
-        netRow: cfg.netRow || '',
-        netRowAdicional: cfg.netRowAdicional || '',
-        resultNetRow: cfg.resultNetRow || '',
-        orden: principalOrden.has(cfg.principalLabel)
-          ? principalOrden.get(cfg.principalLabel)
-          : principalMap.size + principalOrden.size,
-        ordenIndex: principalMap.size + principalOrden.size,
-        secciones: new Map(),
-        esVirtual: true
-      });
-    }
+    if (!cfg) return;
+    asegurarPrincipalDesdeConfig(cfg, cfg.principalLabel);
+  });
+
+  // Asegurar que todas las secciones configuradas existan aunque estén vacías
+  configPorSeccion.forEach((cfg = {}) => {
+    const seccionLabel = normalizarConfigValor(cfg.seccionLabel || '');
+    if (!seccionLabel) return;
+    const principal = asegurarPrincipalDesdeConfig(cfg, cfg.principalLabel || cfg.principal || 'GENERAL');
+    if (!principal) return;
+    const seccionKey = seccionLabel || 'SIN SECCIÓN';
+    if (principal.secciones.has(seccionKey)) return;
+
+    const ordenSeccion = Number.isFinite(Number(cfg?.orden))
+      ? Number(cfg.orden)
+      : seccionOrden.has(seccionLabel)
+      ? seccionOrden.get(seccionLabel)
+      : principal.secciones.size;
+    principal.secciones.set(seccionKey, {
+      label: seccionKey,
+      cuentas: [],
+      orden: ordenSeccion,
+      ordenIndex: principal.secciones.size
+    });
   });
 
   const sortByOrden = (a = {}, b = {}) => {
@@ -878,7 +926,7 @@ const combinarTotales = (a = {}, b = {}, factor = 1) => ({
 
   // Función para agregar un principal con sus secundarias y cuentas
   const agregarPrincipalConHijos = (principal) => {
-    if (principal.esVirtual || !principal.children || !principal.children.length) {
+    if (!principal.children || !principal.children.length) {
       return;
     }
     layout.push({

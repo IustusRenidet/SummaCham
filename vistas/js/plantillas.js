@@ -1309,6 +1309,31 @@
     );
   }
 
+  function getOperationParentCandidates(op) {
+    if (!op) return [];
+    const candidates = [
+      op.parentSection,
+      op["SECCIÓN Principal"],
+      op["SECCION Principal"],
+      op.seccion_principal,
+    ];
+    return candidates.filter(Boolean);
+  }
+
+  function getOperationPlacementCandidates(op) {
+    if (!op) return [];
+    const candidates = [
+      op.parentSubsection,
+      op.SECCION,
+      op.seccion,
+      op.parentSection,
+    ];
+    if (Array.isArray(op.secciones)) {
+      candidates.push(...op.secciones);
+    }
+    return candidates.filter(Boolean);
+  }
+
   function getRowOperationMatch(label, preferredField = "", parentSection = "") {
     if (!label) return { field: "", operations: [] };
     const target = normalizeOperationMatch(label);
@@ -1317,8 +1342,10 @@
     const parentKey = normalizeOperationMatch(parentSection);
     const filterByParent = (ops = []) => {
       if (!parentKey) return ops;
-      const withParent = ops.filter(
-        (op) => normalizeOperationMatch(op?.parentSection || "") === parentKey
+      const withParent = ops.filter((op) =>
+        getOperationParentCandidates(op).some(
+          (candidate) => normalizeOperationMatch(candidate) === parentKey
+        )
       );
       return withParent.length ? withParent : ops;
     };
@@ -1336,15 +1363,11 @@
       };
     }
 
-    const byParent = (state.operaciones || []).filter((op) => {
-      const parent =
-        op.parentSubsection ||
-        op.parentSection ||
-        op.SECCION ||
-        op.seccion ||
-        "";
-      return normalizeOperationMatch(parent) === target;
-    });
+    const byParent = (state.operaciones || []).filter((op) =>
+      getOperationPlacementCandidates(op).some(
+        (candidate) => normalizeOperationMatch(candidate) === target
+      )
+    );
     if (byParent.length) {
       return { field: "", operations: filterByParent(byParent) };
     }
@@ -1393,14 +1416,6 @@
     if (!label) return;
     const match = getRowOperationMatch(label, preferredField, parentSection);
     if (!match.operations.length) {
-      if (parentSection && typeof window.editSubsection === "function") {
-        window.editSubsection(parentSection, label);
-        return;
-      }
-      if (!parentSection && typeof window.editSection === "function") {
-        window.editSection(label);
-        return;
-      }
       openAddOperationForRow(label, parentSection);
       return;
     }
@@ -2216,6 +2231,15 @@
     return OP_KIND_META[kind] || null;
   }
 
+  function isInteractiveRowActionTarget(target) {
+    if (!target?.closest) return false;
+    return Boolean(
+      target.closest(
+        "button, a, input, select, textarea, label, [role='button'], .list-item-actions, .inline-op-actions, .account-actions, .section-actions, .inline-order-controls, .inline-order-buttons"
+      )
+    );
+  }
+
   function renderInlineOrderCell(row, rowIndex) {
     if (!state.inlineOrderMode || state.editMode === false) return "";
     if (row?.type === "principal" && row?.generated) {
@@ -2389,7 +2413,7 @@
         const formula = formulaTerms.length ? formatFormula(op) : '';
 
         html += `
-          <div class="list-item item-operation ${hiddenClass}" data-row-type="operation" data-operation-id="${escapeAttr(opId || label)}" data-operation-label="${escapeAttr(label)}" data-operation-kind="${escapeAttr(kind)}" data-row-index="${rowIndex}" ${formula ? `title="${escapeAttr(formula)}"` : ''} onclick="window.editOperation('${escapeAttr(opId || label)}')">
+          <div class="list-item item-operation ${hiddenClass}" data-row-type="operation" data-operation-id="${escapeAttr(opId || label)}" data-operation-label="${escapeAttr(label)}" data-operation-kind="${escapeAttr(kind)}" data-row-index="${rowIndex}" ${formula ? `title="${escapeAttr(formula)}"` : ''} onclick="window.handleOperationRowClick(event, '${escapeAttr(opId || label)}')">
             ${showOrder ? renderInlineOrderButtons(rowIndex) : ''}
             <div class="list-item-content ps-5 d-flex justify-content-between align-items-center flex-grow-1">
               <div>
@@ -3405,6 +3429,10 @@
         if (!item) return;
         const direction = orderButton.dataset.action === "up" ? -1 : 1;
         handleInlineOrderMove(item, direction);
+        return;
+      }
+
+      if (isInteractiveRowActionTarget(event.target)) {
         return;
       }
 
@@ -5726,7 +5754,7 @@
           opId || ""
         )}" data-operation-label="${escapeAttr(
       displayName
-    )}" onclick="editOperation('${escapeAttr(opId || clase)}')">
+    )}" onclick="window.handleOperationRowClick(event, '${escapeAttr(opId || clase)}')">
           <div class="operation-label">
             <i class="bi bi-calculator"></i>
             <span>${escapeHtml(displayName)}</span>
@@ -5772,7 +5800,7 @@
         opId || ""
       )}" data-operation-label="${escapeAttr(
       displayName
-    )}" onclick="editOperation('${escapeAttr(opId || clase)}')">
+    )}" onclick="window.handleOperationRowClick(event, '${escapeAttr(opId || clase)}')">
         <div class="inline-op-icon">
           <i class="bi bi-calculator"></i>
         </div>
@@ -5789,12 +5817,12 @@
           )}')" title="Editar" ${disabledAttr}>
             <i class="bi bi-pencil"></i>
           </button>
-          <button class="btn btn-sm btn-link p-0" onclick="event.stopPropagation(); moveOperationOrder('${escapeAttr(
+          <button type="button" class="btn btn-sm btn-link p-0" onclick="window.handleInlineOperationOrderClick(event, '${escapeAttr(
             displayName
           )}', '${escapeAttr(opId || "")}', '', -1)" title="Subir" ${disabledAttr}>
             <i class="bi bi-arrow-up"></i>
           </button>
-          <button class="btn btn-sm btn-link p-0" onclick="event.stopPropagation(); moveOperationOrder('${escapeAttr(
+          <button type="button" class="btn btn-sm btn-link p-0" onclick="window.handleInlineOperationOrderClick(event, '${escapeAttr(
             displayName
           )}', '${escapeAttr(opId || "")}', '', 1)" title="Bajar" ${disabledAttr}>
             <i class="bi bi-arrow-down"></i>
@@ -7830,12 +7858,18 @@
     const target = normalizeOperationMatch(sectionName);
     const parentKey = normalizeOperationMatch(parentSection);
     const matches = (state.operaciones || []).filter(
-      (op) => normalizeOperationMatch(op?.SECCION || op?.seccion || "") === target
+      (op) =>
+        getOperationPlacementCandidates(op).some(
+          (candidate) => normalizeOperationMatch(candidate) === target
+        )
     );
     if (!matches.length) return null;
     if (parentKey) {
       const filtered = matches.filter(
-        (op) => normalizeOperationMatch(op?.parentSection || "") === parentKey
+        (op) =>
+          getOperationParentCandidates(op).some(
+            (candidate) => normalizeOperationMatch(candidate) === parentKey
+          )
       );
       if (filtered.length) {
         const withLabels = filtered.find((op) =>
@@ -9379,6 +9413,25 @@
   window.getTemplateRowsForReorder = getTemplateRowsForReorder;
   window.applyTemplateRowsOrder = applyTemplateRowsOrder;
   window.editRowOperation = editRowOperation;
+  window.handleOperationRowClick = function (event, operationId) {
+    if (event && isInteractiveRowActionTarget(event.target)) {
+      return;
+    }
+    editOperation(operationId);
+  };
+  window.handleInlineOperationOrderClick = function (
+    event,
+    label,
+    opId,
+    kind,
+    direction
+  ) {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    moveOperationOrder(label, opId, kind, direction);
+  };
 
 window.editSection = function (name) {
     if (!requireEditMode()) return;

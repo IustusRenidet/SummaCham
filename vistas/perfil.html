@@ -993,6 +993,55 @@
     })();
   </script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/guided-tour.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      if (!window.GuidedTour) return;
+      window.GuidedTour.mount({
+        id: "perfil-usuario",
+        buttonText: "Tour perfil",
+        steps: [
+          {
+            selector: "#perfilHero",
+            title: "Resumen del usuario",
+            description:
+              "Este bloque muestra tu identidad activa, rol y empresa actual.",
+          },
+          {
+            selector: ["#perfilNombre", "#perfilUsuario", "#perfilCorreo"],
+            title: "Datos principales",
+            description:
+              "Aqui validas nombre, usuario y correo registrados en tu cuenta.",
+          },
+          {
+            selector: "#permisosGenerales",
+            title: "Permisos generales",
+            description:
+              "Muestra si tienes privilegios administrativos como agregar, editar o eliminar usuarios.",
+          },
+          {
+            selector: "#permisosEmpresa",
+            title: "Permisos por empresa",
+            description:
+              "Consulta modulo por modulo las acciones habilitadas para cada empresa.",
+          },
+          {
+            selector: "#passwordForm",
+            title: "Cambio de contrasena",
+            description:
+              "Actualiza tu contrasena desde aqui usando validaciones de seguridad en tiempo real.",
+          },
+          {
+            selector: "#btnActualizarPassword",
+            title: "Guardar contrasena",
+            description:
+              "Cuando termines, confirma con este boton para aplicar el cambio.",
+            tip: "La nueva contrasena debe cumplir las reglas de longitud y confirmacion.",
+          },
+        ],
+      });
+    });
+  </script>
 </body>
 
 </html>

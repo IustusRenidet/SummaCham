@@ -2325,6 +2325,15 @@
     }
 
     let siguiente = row.nextElementSibling;
+    const esOperacion = (r) => {
+      if (!r) return false;
+      const rol = (r.dataset?.rowRole || "").toLowerCase();
+      return (
+        rol === "operation" ||
+        r.classList.contains("operation-row") ||
+        r.classList.contains("free-operation-row")
+      );
+    };
     const esCorte = (r) => {
       if (!r) return true;
       if (r.classList.contains("collapsible-section")) return true;
@@ -2332,7 +2341,11 @@
       return ["principal", "group", "result", "net", "final"].includes(rol);
     };
     while (siguiente && !esCorte(siguiente)) {
-      siguiente.style.display = collapsed ? "none" : "";
+      if (!esOperacion(siguiente)) {
+        siguiente.style.display = collapsed ? "none" : "";
+      } else {
+        siguiente.style.display = "";
+      }
       siguiente = siguiente.nextElementSibling;
     }
 
@@ -4521,6 +4534,176 @@
     }
   };
 
+  const esDataUrlImagenValida = (valor) =>
+    typeof valor === "string" &&
+    /^data:image\/(png|jpe?g|webp);base64,/i.test(valor.trim()) &&
+    valor.trim().length > 128;
+
+  const descargarBufferExcel = (buffer, nombreArchivo) => {
+    if (!buffer) return;
+    const blob = new Blob([buffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = nombreArchivo || "Resumen.xlsx";
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  const renderizarImagenesGraficasResumen = async (graficas = []) => {
+    if (!Array.isArray(graficas) || !graficas.length || typeof Chart === "undefined") {
+      return [];
+    }
+    const images = [];
+    const canvas = document.createElement("canvas");
+    canvas.width = 2400;
+    canvas.height = 1200;
+    canvas.style.display = "none";
+    document.body.appendChild(canvas);
+
+    try {
+      for (const grafica of graficas) {
+        if (!grafica || !Array.isArray(grafica.labels) || !Array.isArray(grafica.datasets)) {
+          continue;
+        }
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const type = (grafica.type || "bar").toString().toLowerCase();
+        const esPie = type === "pie" || type === "doughnut" || type === "polararea";
+
+        const chart = new Chart(ctx, {
+          type,
+          data: {
+            labels: grafica.labels,
+            datasets: grafica.datasets,
+          },
+          options: {
+            responsive: false,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: true,
+                position: "bottom",
+                labels: {
+                  font: { size: 20, weight: "bold" },
+                  padding: 24,
+                },
+              },
+              title: { display: false },
+            },
+            layout: {
+              padding: {
+                left: 20,
+                right: 20,
+                top: 24,
+                bottom: 20,
+              },
+            },
+            scales: esPie
+              ? {}
+              : {
+                  y: {
+                    beginAtZero: true,
+                    ticks: {
+                      font: { size: 18 },
+                      callback: (value) =>
+                        Number(value || 0).toLocaleString("es-MX", {
+                          maximumFractionDigits: 0,
+                        }),
+                    },
+                    grid: {
+                      color: "rgba(0,0,0,0.08)",
+                    },
+                  },
+                  x: {
+                    ticks: { font: { size: 16 } },
+                    grid: { display: false },
+                  },
+                },
+          },
+        });
+        await new Promise((resolve) => setTimeout(resolve, 140));
+        const dataUrl = canvas.toDataURL("image/png");
+        if (esDataUrlImagenValida(dataUrl)) {
+          images.push({
+            title: grafica.titulo || "Grafica",
+            dataUrl,
+            width: canvas.width,
+            height: canvas.height,
+          });
+        }
+        chart.destroy();
+      }
+    } catch (error) {
+      console.warn("No se pudieron renderizar gráficas para exportación:", error);
+    } finally {
+      if (canvas.parentElement) {
+        canvas.parentElement.removeChild(canvas);
+      }
+    }
+
+    return images;
+  };
+
+  const capturarGraficasResumenDesdePanel = async () => {
+    try {
+      if (
+        !window.ExportUtils ||
+        typeof window.ExportUtils._resolverGraficas !== "function" ||
+        typeof window.ExportUtils._capturarGraficas !== "function"
+      ) {
+        return [];
+      }
+      const targets = window.ExportUtils._resolverGraficas();
+      if (!Array.isArray(targets) || !targets.length) return [];
+      const images = await window.ExportUtils._capturarGraficas(targets);
+      return (images || []).filter((img) => esDataUrlImagenValida(img?.dataUrl));
+    } catch (error) {
+      console.warn("No fue posible capturar gráficas desde el panel:", error);
+      return [];
+    }
+  };
+
+  const insertarImagenesGraficasEnWorkbook = (workbook, images = [], hoja = "Gráficas") => {
+    if (!workbook || !Array.isArray(images) || !images.length) return false;
+    const existentes = workbook.getWorksheet(hoja);
+    if (existentes) {
+      workbook.removeWorksheet(existentes.id);
+    }
+    const wsCharts = workbook.addWorksheet(hoja);
+    wsCharts.getCell("A1").value = "Gráficas exportadas";
+    wsCharts.getCell("A1").font = { bold: true, size: 14, color: { argb: "FF0D47A1" } };
+    wsCharts.columns = [{ width: 4 }, { width: 120 }];
+
+    let rowCursor = 3;
+    let inserted = 0;
+    images.forEach((img, idx) => {
+      if (!esDataUrlImagenValida(img?.dataUrl)) return;
+      const widthBase = Number(img.width) || 1200;
+      const heightBase = Number(img.height) || 600;
+      const ratio = heightBase > 0 ? heightBase / widthBase : 0.5;
+      const width = 1120;
+      const height = Math.max(320, Math.min(620, Math.round(width * ratio)));
+      wsCharts.getCell(rowCursor, 1).value = `${idx + 1}.`;
+      wsCharts.getCell(rowCursor, 2).value = img.title || `Grafica ${idx + 1}`;
+      wsCharts.getCell(rowCursor, 2).font = { bold: true, color: { argb: "FF1E3A8A" } };
+
+      const imageId = workbook.addImage({
+        base64: img.dataUrl,
+        extension: "png",
+      });
+      wsCharts.addImage(imageId, {
+        tl: { col: 0, row: rowCursor + 1 },
+        ext: { width, height },
+      });
+      rowCursor += Math.ceil(height / 20) + 4;
+      inserted += 1;
+    });
+    return inserted > 0;
+  };
+
   const exportarTablaXlsx = async (event) => {
     if (event) event.preventDefault();
     const selector = "#tablaComparacion";
@@ -4528,11 +4711,9 @@
     const mes = leerMesSeleccionado();
     const nombreEmpresa = obtenerEtiquetaEmpresa(empresaActual?.id);
 
-    // Verificar si ExcelJS está disponible
-    if (typeof ExcelJS !== 'undefined') {
+    if (typeof ExcelJS !== "undefined") {
       await exportarResumenConGraficas(nombreEmpresa, anio, mes);
     } else {
-      // Fallback a exportación simple sin gráficas
       ExportUtils.exportarExcel({
         tabla: selector,
         nombreArchivo: `RESUMEN_${nombreEmpresa}`,
@@ -4549,9 +4730,11 @@
   const exportarResumenConGraficas = async (nombreEmpresa, anio, mes) => {
     let fallbackBuffer = null;
     let fallbackName = "";
+    let workbook = null;
+    let graficaImages = [];
     try {
-      const workbook = new ExcelJS.Workbook();
-      workbook.creator = 'SummaCham';
+      workbook = new ExcelJS.Workbook();
+      workbook.creator = "SummaCham";
       workbook.created = new Date();
       const { baseName, empresaTexto, mesNombre } = construirMetadataExportacion();
       fallbackName = baseName;
@@ -4565,10 +4748,10 @@
           column.eachCell({ includeEmpty: true }, (cell) => {
             let value = cell.value;
             if (value == null) return;
-            if (typeof value === 'object') {
+            if (typeof value === "object") {
               if (value.text) value = value.text;
               else if (Array.isArray(value.richText)) {
-                value = value.richText.map((part) => part.text).join('');
+                value = value.richText.map((part) => part.text).join("");
               } else if (value.result != null) value = value.result;
             }
             const text = String(value);
@@ -4578,59 +4761,61 @@
         }
       };
 
-      // === HOJA 1: Tabla de Resumen ===
-      const wsResumen = workbook.addWorksheet('Resumen');
-      const tabla = document.getElementById('tablaComparacion');
-      
+      const wsResumen = workbook.addWorksheet("Resumen");
+      const tabla = document.getElementById("tablaComparacion");
+
       if (tabla) {
-        // Extraer datos de la tabla
-        const thead = tabla.querySelector('thead');
-        const tbody = tabla.querySelector('tbody');
-        
-        // Procesar encabezados respetando colspan y rowspan
+        const thead = tabla.querySelector("thead");
+        const tbody = tabla.querySelector("tbody");
+
         if (thead) {
-          const headerRows = Array.from(thead.querySelectorAll('tr'));
+          const headerRows = Array.from(thead.querySelectorAll("tr"));
           let excelRowIndex = 1;
-          
-          // Mapa para rastrear celdas ocupadas por merges
           const occupiedCells = new Map();
-          
-          headerRows.forEach((row, rowIdx) => {
-            const cells = Array.from(row.querySelectorAll('th'));
+
+          headerRows.forEach((row) => {
+            const cells = Array.from(row.querySelectorAll("th"));
             const excelRow = wsResumen.getRow(excelRowIndex);
             let colIndex = 1;
-            
-            cells.forEach(cell => {
-              // Saltar columnas ocupadas por merges anteriores
+
+            cells.forEach((cell) => {
               while (occupiedCells.has(`${excelRowIndex},${colIndex}`)) {
                 colIndex++;
               }
-              
+
               const texto = cell.textContent.trim();
-              const colspan = parseInt(cell.getAttribute('colspan')) || 1;
-              const rowspan = parseInt(cell.getAttribute('rowspan')) || 1;
-              
-              // Escribir valor en la celda
+              const colspan = parseInt(cell.getAttribute("colspan")) || 1;
+              const rowspan = parseInt(cell.getAttribute("rowspan")) || 1;
+
               const cellAddr = wsResumen.getCell(excelRowIndex, colIndex);
               cellAddr.value = texto;
-              cellAddr.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10 };
-              cellAddr.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0D47A1' } };
-              cellAddr.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-              cellAddr.border = {
-                top: { style: 'thin', color: { argb: 'FFFFFFFF' } },
-                bottom: { style: 'thin', color: { argb: 'FFFFFFFF' } },
-                left: { style: 'thin', color: { argb: 'FFFFFFFF' } },
-                right: { style: 'thin', color: { argb: 'FFFFFFFF' } }
+              cellAddr.font = {
+                bold: true,
+                color: { argb: "FFFFFFFF" },
+                size: 10,
               };
-              
-              // Aplicar merge si hay colspan o rowspan
+              cellAddr.fill = {
+                type: "pattern",
+                pattern: "solid",
+                fgColor: { argb: "FF0D47A1" },
+              };
+              cellAddr.alignment = {
+                horizontal: "center",
+                vertical: "middle",
+                wrapText: true,
+              };
+              cellAddr.border = {
+                top: { style: "thin", color: { argb: "FFFFFFFF" } },
+                bottom: { style: "thin", color: { argb: "FFFFFFFF" } },
+                left: { style: "thin", color: { argb: "FFFFFFFF" } },
+                right: { style: "thin", color: { argb: "FFFFFFFF" } },
+              };
+
               if (colspan > 1 || rowspan > 1) {
                 const endRow = excelRowIndex + rowspan - 1;
                 const endCol = colIndex + colspan - 1;
-                
                 wsResumen.mergeCells(excelRowIndex, colIndex, endRow, endCol);
-                
-                // Marcar todas las celdas ocupadas por este merge
+
                 for (let r = excelRowIndex; r <= endRow; r++) {
                   for (let c = colIndex; c <= endCol; c++) {
                     occupiedCells.set(`${r},${c}`, true);
@@ -4639,81 +4824,104 @@
               } else {
                 occupiedCells.set(`${excelRowIndex},${colIndex}`, true);
               }
-              
+
               colIndex += colspan;
             });
-            
+
             excelRow.height = 25;
             excelRowIndex++;
           });
         }
 
-        // Datos del cuerpo
         if (tbody) {
-          const bodyRows = Array.from(tbody.querySelectorAll('tr'));
-          bodyRows.forEach(row => {
-            const cells = Array.from(row.querySelectorAll('td'));
+          const bodyRows = Array.from(tbody.querySelectorAll("tr"));
+          bodyRows.forEach((row) => {
+            const cells = Array.from(row.querySelectorAll("td"));
             const rowData = cells.map((cell, idx) => {
               const text = cell.textContent.trim();
-              // Columnas numéricas (excepto cuenta, descripción)
               if (idx !== 0 && idx !== 1 && idx !== 6) {
-                const num = parseFloat(text.replace(/[,$]/g, ''));
+                const num = parseFloat(text.replace(/[,$]/g, ""));
                 return isNaN(num) ? text : num;
               }
               return text;
             });
             const excelRow = wsResumen.addRow(rowData);
-            
-            // Aplicar estilos según clases de fila
-            if (row.classList.contains('section-header-row')) {
-              excelRow.eachCell(cell => {
-                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A8A' } };
-                cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 };
-                cell.alignment = { horizontal: 'left', vertical: 'middle' };
+
+            if (row.classList.contains("section-header-row")) {
+              excelRow.eachCell((cell) => {
+                cell.fill = {
+                  type: "pattern",
+                  pattern: "solid",
+                  fgColor: { argb: "FF1E3A8A" },
+                };
+                cell.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 11 };
+                cell.alignment = { horizontal: "left", vertical: "middle" };
               });
-            } else if (row.classList.contains('subsection-row')) {
-              excelRow.eachCell(cell => {
-                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDBEAFE' } };
-                cell.font = { bold: true, color: { argb: 'FF1E3A8A' }, italic: true };
-                cell.alignment = { horizontal: 'left', vertical: 'middle' };
+            } else if (row.classList.contains("subsection-row")) {
+              excelRow.eachCell((cell) => {
+                cell.fill = {
+                  type: "pattern",
+                  pattern: "solid",
+                  fgColor: { argb: "FFDBEAFE" },
+                };
+                cell.font = {
+                  bold: true,
+                  color: { argb: "FF1E3A8A" },
+                  italic: true,
+                };
+                cell.alignment = { horizontal: "left", vertical: "middle" };
               });
-            } else if (row.classList.contains('highlight-bright')) {
-              excelRow.eachCell(cell => {
-                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFECACA' } };
-                cell.font = { bold: true, color: { argb: 'FF991B1B' }, size: 11 };
+            } else if (row.classList.contains("highlight-bright")) {
+              excelRow.eachCell((cell) => {
+                cell.fill = {
+                  type: "pattern",
+                  pattern: "solid",
+                  fgColor: { argb: "FFFECACA" },
+                };
+                cell.font = { bold: true, color: { argb: "FF991B1B" }, size: 11 };
               });
-            } else if (row.classList.contains('highlight-primary')) {
-              excelRow.eachCell(cell => {
-                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFA7F3D0' } };
-                cell.font = { bold: true, color: { argb: 'FF065F46' } };
+            } else if (row.classList.contains("highlight-primary")) {
+              excelRow.eachCell((cell) => {
+                cell.fill = {
+                  type: "pattern",
+                  pattern: "solid",
+                  fgColor: { argb: "FFA7F3D0" },
+                };
+                cell.font = { bold: true, color: { argb: "FF065F46" } };
               });
-            } else if (row.classList.contains('highlight-secondary')) {
-              excelRow.eachCell(cell => {
-                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFA5F3FC' } };
-                cell.font = { bold: true, color: { argb: 'FF0E7490' } };
+            } else if (row.classList.contains("highlight-secondary")) {
+              excelRow.eachCell((cell) => {
+                cell.fill = {
+                  type: "pattern",
+                  pattern: "solid",
+                  fgColor: { argb: "FFA5F3FC" },
+                };
+                cell.font = { bold: true, color: { argb: "FF0E7490" } };
               });
-            } else if (row.classList.contains('sum-row')) {
-              excelRow.eachCell(cell => {
-                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEF3C7' } };
-                cell.font = { bold: true, color: { argb: 'FF78350F' } };
+            } else if (row.classList.contains("sum-row")) {
+              excelRow.eachCell((cell) => {
+                cell.fill = {
+                  type: "pattern",
+                  pattern: "solid",
+                  fgColor: { argb: "FFFEF3C7" },
+                };
+                cell.font = { bold: true, color: { argb: "FF78350F" } };
               });
             }
-            
-            // Formato de números y alineación
+
             excelRow.eachCell((cell, colNum) => {
               if (colNum === 1 || colNum === 2 || colNum === 7) {
-                cell.alignment = { horizontal: 'left', vertical: 'middle' };
+                cell.alignment = { horizontal: "left", vertical: "middle" };
               } else {
-                cell.alignment = { horizontal: 'right', vertical: 'middle' };
-                if (typeof cell.value === 'number') {
-                  cell.numFmt = '#,##0.00';
+                cell.alignment = { horizontal: "right", vertical: "middle" };
+                if (typeof cell.value === "number") {
+                  cell.numFmt = "#,##0.00";
                 }
               }
             });
           });
         }
 
-        // Ajustar anchos de columnas segun contenido
         ajustarAnchosWorksheet(wsResumen);
       }
 
@@ -4721,32 +4929,39 @@
         empresaId: empresaActual?.id,
         anio,
       });
+      graficaImages = await renderizarImagenesGraficasResumen(graficaData);
+      if (!graficaImages.length) {
+        graficaImages = await capturarGraficasResumenDesdePanel();
+      }
+
       if (graficaData.length === 0) {
+        if (graficaImages.length) {
+          insertarImagenesGraficasEnWorkbook(workbook, graficaImages, "Gráficas");
+          const buffer = await workbook.xlsx.writeBuffer();
+          fallbackBuffer = buffer;
+          descargarBufferExcel(buffer, `${baseName}_Graficas.xlsx`);
+          if (typeof showToast === "function") {
+            showToast("Resumen exportado con gráficas (imagen).");
+          }
+          return;
+        }
         if (typeof showToast === "function") {
           showToast("No hay datos de gráficas. Exportando solo tabla.", "text-bg-warning");
         }
         const buffer = await workbook.xlsx.writeBuffer();
         fallbackBuffer = buffer;
-        const blob = new Blob([buffer], {
-          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${baseName}.xlsx`;
-        a.click();
-        window.URL.revokeObjectURL(url);
+        descargarBufferExcel(buffer, `${baseName}.xlsx`);
         return;
       }
 
-      workbook.addWorksheet('Gráficas');
-      const wsData = workbook.addWorksheet('GraficasData');
+      workbook.addWorksheet("Gráficas");
+      const wsData = workbook.addWorksheet("GraficasData");
       let rowCursor = 1;
       graficaData.forEach((grafica, idx) => {
-        wsData.getCell(rowCursor, 1).value = 'CHART';
+        wsData.getCell(rowCursor, 1).value = "CHART";
         wsData.getCell(rowCursor, 2).value = grafica.titulo || `Grafica ${idx + 1}`;
         rowCursor += 1;
-        wsData.getCell(rowCursor, 1).value = 'Categoria';
+        wsData.getCell(rowCursor, 1).value = "Categoria";
         (grafica.datasets || []).forEach((dataset, dIdx) => {
           wsData.getCell(rowCursor, dIdx + 2).value =
             dataset.label || `Serie ${dIdx + 1}`;
@@ -4755,11 +4970,9 @@
         (grafica.labels || []).forEach((label, lIdx) => {
           wsData.getCell(rowCursor, 1).value = label;
           (grafica.datasets || []).forEach((dataset, dIdx) => {
-            const rawValue = Array.isArray(dataset.data)
-              ? dataset.data[lIdx]
-              : 0;
+            const rawValue = Array.isArray(dataset.data) ? dataset.data[lIdx] : 0;
             const value =
-              typeof rawValue === 'number' && Number.isFinite(rawValue)
+              typeof rawValue === "number" && Number.isFinite(rawValue)
                 ? rawValue
                 : Number(rawValue) || 0;
             wsData.getCell(rowCursor, dIdx + 2).value = value;
@@ -4809,7 +5022,7 @@
       const filename =
         obtenerNombreDescarga(response) || `${baseName}_Graficas.xlsx`;
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
       a.download = filename;
       a.click();
@@ -4819,17 +5032,36 @@
         showToast("✅ Resumen con gráficas exportado correctamente.");
       }
     } catch (error) {
-      console.error('Error al exportar con gráficas:', error);
+      console.error("Error al exportar con gráficas:", error);
+      try {
+        if (workbook && graficaImages.length) {
+          const inserted = insertarImagenesGraficasEnWorkbook(
+            workbook,
+            graficaImages,
+            "Gráficas"
+          );
+          if (inserted) {
+            const localBuffer = await workbook.xlsx.writeBuffer();
+            fallbackBuffer = localBuffer;
+            descargarBufferExcel(
+              localBuffer,
+              `${fallbackName || "Resumen"}_Graficas.xlsx`
+            );
+            if (typeof showToast === "function") {
+              showToast(
+                "Resumen exportado con gráficas (modo compatibilidad).",
+                "text-bg-warning"
+              );
+            }
+            return;
+          }
+        }
+      } catch (fallbackError) {
+        console.error("Error en fallback de gráficas por imagen:", fallbackError);
+      }
+
       if (fallbackBuffer) {
-        const blob = new Blob([fallbackBuffer], {
-          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${fallbackName || "Resumen"}.xlsx`;
-        a.click();
-        window.URL.revokeObjectURL(url);
+        descargarBufferExcel(fallbackBuffer, `${fallbackName || "Resumen"}.xlsx`);
       }
       if (typeof showToast === "function") {
         showToast("Error al exportar. Verifica la consola.", "text-bg-danger");

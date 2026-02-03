@@ -29,6 +29,11 @@
     const numero = Number(valor) || 0;
     return numero === 0 ? null : numero;
   };
+  const normalizarSerie = (values = []) => {
+    const numericos = values.map((value) => Number(value) || 0);
+    const hasNonZero = numericos.some((value) => Math.abs(value) > 0.000001);
+    return hasNonZero ? numericos.map((value) => ocultarCeros(value)) : numericos;
+  };
   let updateTimer = null;
 
   const getGraficasConfig = () => {
@@ -44,12 +49,16 @@
   };
 
   const applyTemplate = (template, values = {}) => {
-    if (!template) return "";
-    const year = values.year || "";
-    const annual = values.annual || "";
-    return template
-      .replace(/\{year\}/gi, year)
-      .replace(/\{annual\}/gi, annual);
+    if (template == null) return "";
+    const source = String(template);
+    return source.replace(/\{([^}]+)\}/g, (_, token) => {
+      const key = String(token || "")
+        .trim()
+        .toLowerCase();
+      if (!key) return "";
+      const value = values[key];
+      return value == null ? "" : String(value);
+    });
   };
 
   const CHART_PALETTE = [
@@ -242,6 +251,16 @@
     );
     if (!toolbar) return null;
 
+    const existingToolbarToggle =
+      toolbar.querySelector(`[data-bs-target="#${PANEL_ID}"]`) ||
+      toolbar.querySelector(
+        `[data-bs-toggle="collapse"][href="#${PANEL_ID}"]`
+      );
+    if (existingToolbarToggle) {
+      existingToolbarToggle.setAttribute("data-operativo-toggle", "panel");
+      return existingToolbarToggle;
+    }
+
     const button = document.createElement("button");
     button.type = "button";
     button.className = "btn btn-outline-primary btn-sm";
@@ -333,13 +352,64 @@
   };
 
   const obtenerIndices = (tabla) => {
-    const headerRow = tabla?.querySelector("thead tr");
-    const headers = headerRow ? Array.from(headerRow.children) : [];
-    const buscar = (clase) =>
-      headers.findIndex((th) => th.classList.contains(clase));
-    const idxTotalBudget = buscar("total-budget-column");
-    const idxTotalReal = buscar("total-real-column");
-    const idxBudgetAnnual = buscar("budget-annual-column");
+    const headerRows = Array.from(tabla?.querySelectorAll("thead tr") || []);
+    if (!headerRows.length) {
+      return { budgetTotal: -1, realTotal: -1, annual: -1 };
+    }
+
+    let idxTotalBudget = -1;
+    let idxTotalReal = -1;
+    let idxBudgetAnnual = -1;
+    const buscarPorTexto = (matcher) => {
+      for (const row of headerRows) {
+        const headers = Array.from(row.children || []);
+        for (let idx = 0; idx < headers.length; idx += 1) {
+          const text = (headers[idx]?.textContent || "")
+            .replace(/\s+/g, " ")
+            .trim()
+            .toLowerCase();
+          if (!text) continue;
+          if (matcher(text)) return idx;
+        }
+      }
+      return -1;
+    };
+
+    headerRows.forEach((row) => {
+      const headers = Array.from(row.children || []);
+      headers.forEach((th, idx) => {
+        if (idxTotalBudget < 0 && th.classList.contains("total-budget-column")) {
+          idxTotalBudget = idx;
+        }
+        if (idxTotalReal < 0 && th.classList.contains("total-real-column")) {
+          idxTotalReal = idx;
+        }
+        if (idxBudgetAnnual < 0 && th.classList.contains("budget-annual-column")) {
+          idxBudgetAnnual = idx;
+        }
+      });
+    });
+
+    if (idxTotalBudget < 0) {
+      idxTotalBudget = buscarPorTexto(
+        (text) =>
+          (text.includes("ppto") || text.includes("presupuesto")) &&
+          text.includes("acum")
+      );
+    }
+    if (idxTotalReal < 0) {
+      idxTotalReal = buscarPorTexto(
+        (text) => text.includes("real") && text.includes("acum")
+      );
+    }
+    if (idxBudgetAnnual < 0) {
+      idxBudgetAnnual = buscarPorTexto(
+        (text) =>
+          (text.includes("ppto") || text.includes("presupuesto")) &&
+          !text.includes("acum")
+      );
+    }
+
     return {
       budgetTotal: idxTotalBudget >= 0 ? idxTotalBudget : idxBudgetAnnual,
       realTotal: idxTotalReal,
@@ -453,6 +523,41 @@
     return base;
   };
 
+  const resolverEtiquetaFila = (fila) => {
+    const cells = Array.from(fila?.cells || []);
+    if (!cells.length) return "";
+    for (let idx = 1; idx < cells.length; idx += 1) {
+      const text = (cells[idx]?.textContent || "").replace(/\s+/g, " ").trim();
+      if (/[A-Za-z\u00c0-\u024f]/.test(text)) {
+        return limpiarEtiqueta(text);
+      }
+    }
+    return limpiarEtiqueta(
+      (cells[1]?.textContent || cells[0]?.textContent || "")
+        .replace(/\s+/g, " ")
+        .trim()
+    );
+  };
+
+  const obtenerFilasOperativas = (tabla) => {
+    const rows = Array.from(tabla?.querySelectorAll("tbody tr") || []);
+    if (!rows.length) return [];
+    const direct = rows.filter(
+      (row) =>
+        row.classList.contains("sum-row-operativo") ||
+        row.classList.contains("sum-row-operativo-consolidado")
+    );
+    if (direct.length) return direct;
+
+    return rows.filter((row) => {
+      const etiqueta = resolverEtiquetaFila(row).toLowerCase();
+      return (
+        etiqueta.includes("resultado operativo") ||
+        etiqueta.includes("operating result")
+      );
+    });
+  };
+
   const obtenerDatos = (tabla) => {
     const indices = obtenerIndices(tabla);
     if (
@@ -463,12 +568,10 @@
       return [];
     }
     const annualIdx = indices.annual >= 0 ? indices.annual : indices.budgetTotal;
-    const filas = Array.from(
-      tabla.querySelectorAll("tbody tr.sum-row-operativo")
-    );
+    const filas = obtenerFilasOperativas(tabla);
     return filas
       .map((fila) => {
-        const etiqueta = limpiarEtiqueta(fila.cells?.[1]?.textContent || "");
+        const etiqueta = resolverEtiquetaFila(fila);
         const presupuesto = parseNumero(
           fila.cells?.[indices.budgetTotal]?.textContent
         );
@@ -493,7 +596,7 @@
     return filas
       .map((fila) => {
         const cells = fila.cells || [];
-        const etiqueta = limpiarEtiqueta(fila.cells?.[1]?.textContent || "");
+        const etiqueta = resolverEtiquetaFila(fila);
         if (!etiqueta) return null;
         const values = {};
         columnDefs.forEach((def) => {
@@ -855,6 +958,7 @@
     labelsConfig,
     colors,
     enabledConfig,
+    templateValues,
   }) => {
     if (!sidebar || !tabla) return 0;
     const container = sidebar.querySelector(".row.g-3");
@@ -903,7 +1007,13 @@
       const datasetDefs = applyCustomSeriesOverrides(
         filterSeriesByKeys(baseDatasetDefs, requestedSeriesKeys),
         chart
-      );
+      ).map((def) => {
+        const resolvedLabel = applyTemplate(def.label, templateValues || {}).trim();
+        return {
+          ...def,
+          label: resolvedLabel || def.label || "",
+        };
+      });
       if (!datasetDefs.length) return;
 
       const labels = [];
@@ -971,8 +1081,14 @@
         .replace(/[^a-zA-Z0-9_-]/g, "");
       const canvasId = `operativoChartCustom-${safeId || index + 1}`;
       const chartKey = `custom-${safeId || index + 1}`;
-      const titleText = chart?.title || `Grafica personalizada ${index + 1}`;
-      const subtitleText = (chart?.subtitle || "").trim();
+      const titleTemplate = chart?.title || `Grafica personalizada ${index + 1}`;
+      const titleText =
+        applyTemplate(titleTemplate, templateValues || {}).trim() ||
+        `Grafica personalizada ${index + 1}`;
+      const subtitleText = applyTemplate(
+        chart?.subtitle || "",
+        templateValues || {}
+      ).trim();
 
       const wrapper = document.createElement("div");
       wrapper.className = "col-12";
@@ -1096,9 +1212,9 @@
 
     const datos = obtenerDatos(tabla);
     const labels = datos.map((item) => item.etiqueta);
-    const presupuestos = datos.map((item) => ocultarCeros(item.presupuesto));
-    const reales = datos.map((item) => ocultarCeros(item.real));
-    const anuales = datos.map((item) => ocultarCeros(item.anual));
+    const presupuestos = normalizarSerie(datos.map((item) => item.presupuesto));
+    const reales = normalizarSerie(datos.map((item) => item.real));
+    const anuales = normalizarSerie(datos.map((item) => item.anual));
 
     const contenedor = sidebar.querySelector(
       '[data-operativo-chart="combined"]'
@@ -1129,18 +1245,35 @@
       tabla
         ?.querySelector("thead .budget-annual-column .anio")
         ?.textContent?.trim() || "";
+    const parsedYear = Number.parseInt(
+      String(headerYear || "").replace(/[^0-9]/g, ""),
+      10
+    );
+    const prevYear = Number.isFinite(parsedYear) ? String(parsedYear - 1) : "";
     const annualFallback = headerYear ? `Presupuesto ${headerYear}` : "Presupuesto";
     const annualTemplate = annualCfg.label || datasetDefaults.annual.label;
     const budgetTemplate = budgetCfg.label || datasetDefaults.budget.label;
     const realTemplate = realCfg.label || datasetDefaults.real.label;
     const annualLabel =
-      applyTemplate(annualTemplate, { year: headerYear, annual: annualFallback }).trim() ||
+      applyTemplate(annualTemplate, {
+        year: headerYear,
+        prev: prevYear,
+        annual: annualFallback,
+      }).trim() ||
       annualFallback;
     const budgetLabel =
-      applyTemplate(budgetTemplate, { year: headerYear, annual: annualLabel }).trim() ||
+      applyTemplate(budgetTemplate, {
+        year: headerYear,
+        prev: prevYear,
+        annual: annualLabel,
+      }).trim() ||
       budgetTemplate;
     const realLabel =
-      applyTemplate(realTemplate, { year: headerYear, annual: annualLabel }).trim() ||
+      applyTemplate(realTemplate, {
+        year: headerYear,
+        prev: prevYear,
+        annual: annualLabel,
+      }).trim() ||
       realTemplate;
 
     const tituloEl = contenedor
@@ -1149,7 +1282,11 @@
     if (tituloEl) {
       const titleTemplate = operativoConfig.title || DEFAULT_OPERATIVO_CONFIG.title;
       const titleText =
-        applyTemplate(titleTemplate, { year: headerYear, annual: annualLabel }).trim() ||
+        applyTemplate(titleTemplate, {
+          year: headerYear,
+          prev: prevYear,
+          annual: annualLabel,
+        }).trim() ||
         titleTemplate;
       tituloEl.textContent = titleText;
     }
@@ -1172,6 +1309,11 @@
         },
         colors: { budget: colorBudget, real: colorReal, annual: colorAnnual },
         enabledConfig,
+        templateValues: {
+          year: headerYear,
+          prev: prevYear,
+          annual: annualLabel,
+        },
       });
       sidebar.style.display = renderedManual > 0 ? "" : "none";
       if (toggleButton) toggleButton.style.display = renderedManual > 0 ? "" : "none";
@@ -1205,6 +1347,11 @@
       },
       colors: { budget: colorBudget, real: colorReal, annual: colorAnnual },
       enabledConfig,
+      templateValues: {
+        year: headerYear,
+        prev: prevYear,
+        annual: annualLabel,
+      },
     });
   };
 

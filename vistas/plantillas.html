@@ -4711,7 +4711,61 @@
     <!-- Input oculto para importación de archivos -->
     <input type="file" id="fileImportInput" accept=".json,.xlsx,.xls" style="display: none;" />
 
+    <script src="js/guided-tour.js"></script>
     <script src="js/plantillas-graficas.js"></script>
     <script src="js/plantillas.js?v=20260203005636"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        if (!window.GuidedTour) return;
+        window.GuidedTour.mount({
+          id: "gestor-plantillas",
+          buttonText: "Tour plantillas",
+          steps: [
+            {
+              selector: ["#moduloSelect", "#anioSelect", "#capituloSelect"],
+              title: "Contexto de plantilla",
+              description:
+                "Primero elige modulo, anio y capitulo para cargar el layout correcto.",
+            },
+            {
+              selector: "#btnCargar",
+              title: "Cargar layout",
+              description:
+                "Este boton trae la estructura activa para empezar a editar con seguridad.",
+            },
+            {
+              selector: "#searchInput",
+              title: "Busqueda rapida",
+              description:
+                "Filtra secciones, cuentas y operaciones sin perder el contexto del layout.",
+            },
+            {
+              selector: ["#btnAgregar", "#btnReordenar", "#btnPreview"],
+              title: "Edicion de estructura",
+              description:
+                "Usa estos botones para agregar elementos, reordenar y validar la vista previa.",
+            },
+            {
+              selector: ["#btnDescargarPlantilla", "#btnImportarExcel"],
+              title: "Importacion masiva",
+              description:
+                "Descarga la plantilla base o importa JSON/Excel para acelerar la captura.",
+            },
+            {
+              selector: "#btnGuardar",
+              title: "Guardar cambios",
+              description:
+                "Al terminar, guarda para persistir la configuracion del layout en el sistema.",
+            },
+            {
+              selector: "#plantillas-tab-graficas",
+              title: "Tab de graficas",
+              description:
+                "Desde aqui configuras las graficas asociadas al modulo sin salir del gestor.",
+            },
+          ],
+        });
+      });
+    </script>
   </body>
 </html>

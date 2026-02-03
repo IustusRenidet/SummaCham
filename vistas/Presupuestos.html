@@ -748,6 +748,7 @@
     <script src="js/comentarios-celdas.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <script src="js/export-utils.js"></script>
+    <script src="js/guided-tour.js"></script>
     <script>
       document.addEventListener("DOMContentLoaded", function () {
         document
@@ -767,6 +768,92 @@
               titulo: "Presupuestos",
             });
           });
+      });
+    </script>
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        if (!window.GuidedTour) return;
+        window.GuidedTour.mount({
+          id: "presupuestos-flujo-edicion",
+          buttonText: "Tour presupuesto",
+          steps: [
+            {
+              selector: "#presupuestosYearSelect",
+              title: "Ejercicio activo",
+              description:
+                "Selecciona el anio de trabajo para cargar el presupuesto correcto.",
+            },
+            {
+              selector: "#workflowBadge",
+              title: "Estado del flujo",
+              description:
+                "Este badge indica si el presupuesto esta en borrador, revisado o autorizado.",
+            },
+            {
+              selector: ".workflow-toggle",
+              title: "Historial de autorizacion",
+              description:
+                "Abre el panel lateral para revisar eventos y responsables del flujo.",
+            },
+            {
+              selector: "#workflowDrawer",
+              title: "Detalle del flujo",
+              description:
+                "En este panel revisas el historial completo de cambios y aprobaciones.",
+              beforeEnter: ({ api }) => {
+                api.click(".workflow-toggle");
+                return api.waitFor("#workflowDrawer", 1200);
+              },
+            },
+            {
+              selector: ".toolbar-actions",
+              title: "Acciones de workflow",
+              description:
+                "Aqui aparecen botones para guardar borrador, enviar, revisar, autorizar o rechazar.",
+              tip: "Las acciones visibles dependen de tu rol y del estado actual.",
+            },
+            {
+              selector: "#tablaComparacion",
+              title: "Modo edicion",
+              description:
+                "Edita celdas de presupuesto y usa clic derecho para abrir menu contextual de estructura.",
+            },
+            {
+              selector: ["#btnExportExcel", "#btnPrintPDF"],
+              title: "Exportacion",
+              description:
+                "Exporta la tabla a Excel o PDF para compartir avances del presupuesto.",
+            },
+            {
+              selector: ".comentarios-floating-btn",
+              title: "Crear comentarios",
+              description:
+                "Este boton abre el gestor de comentarios para dejar observaciones por celda.",
+              beforeEnter: ({ api }) =>
+                api.waitFor(".comentarios-floating-btn", 2000),
+            },
+            {
+              selector: "#comentariosInput",
+              title: "Escribir comentario",
+              description:
+                "Selecciona una celda, redacta tu comentario y pulsa Enviar.",
+              beforeEnter: ({ api }) => {
+                api.click(".comentarios-floating-btn");
+                return api.waitFor("#comentariosInput", 2000);
+              },
+            },
+            {
+              selector: [
+                "#comentariosLista [data-action='responder']",
+                "#comentariosLista",
+              ],
+              title: "Responder comentarios",
+              description:
+                "Si ya hay hilos abiertos, usa Responder para continuar la conversacion.",
+              beforeEnter: ({ api }) => api.waitFor("#comentariosLista", 1500),
+            },
+          ],
+        });
       });
     </script>
   </body>

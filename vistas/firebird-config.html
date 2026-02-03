@@ -410,5 +410,57 @@
       }
     </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/guided-tour.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        if (!window.GuidedTour) return;
+        window.GuidedTour.mount({
+          id: "firebird-config",
+          buttonText: "Tour conexiones",
+          steps: [
+            {
+              selector: "#rutaConfigLabel",
+              title: "Archivo de configuracion",
+              description:
+                "Aqui identificas la ruta activa del archivo con las conexiones Firebird.",
+            },
+            {
+              selector: ["#hostBase", "#portBase", "#userBase"],
+              title: "Conexion base",
+              description:
+                "Estos datos muestran el host, puerto y usuario usados como base para las empresas.",
+            },
+            {
+              selector: "#tablaConexiones",
+              title: "Matriz de empresas",
+              description:
+                "En esta tabla revisas la ruta actual, override y estado de cada empresa.",
+              beforeEnter: ({ api }) =>
+                api.waitFor("#tablaConexiones tbody tr", 2000),
+            },
+            {
+              selector: [
+                "#tablaConexiones tbody input[data-empresa]",
+                "#tablaConexiones",
+              ],
+              title: "Ruta personalizada",
+              description:
+                "Edita la ruta por empresa cuando necesites apuntar a otra base de datos.",
+              beforeEnter: ({ api }) =>
+                api.waitFor("#tablaConexiones tbody input[data-empresa]", 2000),
+            },
+            {
+              selector: [
+                "#tablaConexiones tbody button[data-action='guardar']",
+                "#btnRecargar",
+              ],
+              title: "Guardar y recargar",
+              description:
+                "Guarda cambios por fila y usa Recargar para validar de nuevo todas las rutas.",
+            },
+          ],
+        });
+      });
+    </script>
   </body>
 </html>

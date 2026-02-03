@@ -109,6 +109,7 @@
         nombreHojaTabla = "Tabla",
         nombreHojaOperativo = "OperativoData",
         nombreHojaGraficas = "Gráficas",
+        charts,
         onSuccess,
         onError,
       } = options;
@@ -141,8 +142,25 @@
           "_"
         );
 
+        const chartTargets = this._resolverGraficas(charts);
+        const chartMode = this._resolverModoGraficasExcel();
+
         const datos = this._obtenerDatosOperativo(tablaElement);
         if (!datos.length) {
+          if (chartTargets.length) {
+            const generated = await this._exportarExcelOperativoImagenes({
+              tabla: tablaElement,
+              nombreArchivo,
+              nombreHojaTabla,
+              nombreHojaOperativo,
+              chartTargets,
+            });
+            if (generated) {
+              if (onSuccess) onSuccess();
+              this._showToast("Excel con graficas generado.");
+              return;
+            }
+          }
           this._showToast(
             "Sin datos de resultado operativo. Exportando solo tabla.",
             "warning"
@@ -154,6 +172,20 @@
             _skipAutoGraficas: true,
           });
           return;
+        }
+
+        if (chartTargets.length) {
+          const generated = await this._exportarExcelOperativoImagenes({
+            tabla: tablaElement,
+            nombreArchivo,
+            nombreHojaTabla,
+            nombreHojaOperativo,
+            chartTargets,
+          });
+          if (generated) {
+            if (onSuccess) onSuccess();
+            return;
+          }
         }
 
         // Construir base con XLSX para preservar estilos
@@ -184,7 +216,6 @@
           chartsSheetName: nombreHojaGraficas,
           tableSheetName: nombreHojaTabla,
         });
-        const chartMode = this._resolverModoGraficasExcel();
         if (chartMode) {
           params.set("chartMode", chartMode);
         }
@@ -357,7 +388,14 @@
         return false;
       }
 
-      const { tabla, nombreArchivo = "Exportacion", nombreHojaOperativo = "OperativoData" } = options;
+      const {
+        tabla,
+        nombreArchivo = "Exportacion",
+        nombreHojaTabla = "Tabla",
+        nombreHojaOperativo = "OperativoData",
+        chartTargets = null,
+        incluirTabla = true,
+      } = options;
       const tablaElement =
         typeof tabla === "string"
           ? document.querySelector(tabla)
@@ -370,13 +408,36 @@
       }_${metadata.mesNombre || ""}_${metadata.anio || ""}`.replace(/\s+/g, "_");
 
       const datos = this._obtenerDatosOperativo(tablaElement);
-      if (!datos.length) return false;
 
         const labels = datos.map((item) => item.etiqueta);
         const presupuestos = datos.map((item) => item.presupuesto);
         const reales = datos.map((item) => item.real);
 
       const workbook = new ExcelJS.Workbook();
+      if (incluirTabla) {
+        const wsTabla = workbook.addWorksheet(nombreHojaTabla || "Tabla");
+        const tableRows = Array.from(tablaElement.querySelectorAll("tr") || []).map(
+          (row) =>
+            Array.from(row.cells || []).map((cell) =>
+              (cell?.textContent || "").replace(/\s+/g, " ").trim()
+            )
+        );
+        tableRows.forEach((row) => {
+          wsTabla.addRow(row);
+        });
+        if (tableRows.length) {
+          const maxCols = Math.max(...tableRows.map((row) => row.length), 0);
+          if (maxCols > 0) {
+            wsTabla.columns = Array.from({ length: maxCols }, (_, colIdx) => {
+              const maxLen = tableRows.reduce((acc, row) => {
+                const len = String(row[colIdx] || "").length;
+                return Math.max(acc, len);
+              }, 10);
+              return { width: Math.min(Math.max(maxLen + 2, 12), 45) };
+            });
+          }
+        }
+      }
       const ws = workbook.addWorksheet(nombreHojaOperativo);
 
       const etiqueta = this._capitalizar(this._obtenerEtiquetaOperativo() || "Elemento");
@@ -388,24 +449,34 @@
       ws.addRow(["Periodo", periodo]);
       ws.addRow(["Fecha exportacion", new Date().toISOString().slice(0, 10)]);
       ws.addRow([]);
-      ws.addRow([etiqueta, "Ppto Acumulado", "Real Acumulado"]);
-      datos.forEach((row) => {
-        ws.addRow([row.etiqueta, row.presupuesto, row.real]);
-      });
+      if (datos.length) {
+        ws.addRow([etiqueta, "Ppto Acumulado", "Real Acumulado"]);
+        datos.forEach((row) => {
+          ws.addRow([row.etiqueta, row.presupuesto, row.real]);
+        });
+      } else {
+        ws.addRow([
+          "Sin datos operativos estructurados; se exportan las graficas capturadas.",
+        ]);
+      }
 
       ws.columns = [{ width: 42 }, { width: 18 }, { width: 18 }];
 
-        const chartTargets = this._resolverGraficas();
-        const chartImages = await this._capturarGraficas(chartTargets);
-        let chartStart = ws.rowCount + 2;
+      const resolvedTargets =
+        Array.isArray(chartTargets) && chartTargets.length
+          ? chartTargets
+          : this._resolverGraficas();
+      const chartImages = await this._capturarGraficas(resolvedTargets);
+      let chartStart = ws.rowCount + 2;
+      let insertedCharts = 0;
 
-        if (chartImages.length) {
-          chartImages.forEach((img) => {
-            if (!img?.dataUrl) return;
-            const ratio =
-              img.width && img.height ? img.height / img.width : 0.6;
-            const width = 820;
-            const height = Math.max(320, Math.round(width * ratio));
+      if (chartImages.length) {
+        chartImages.forEach((img) => {
+          if (!img?.dataUrl || !this._esDataUrlImagenValida(img.dataUrl)) return;
+          const ratio = img.width && img.height ? img.height / img.width : 0.6;
+          const width = 820;
+          const height = Math.max(320, Math.round(width * ratio));
+          try {
             const imgId = workbook.addImage({
               base64: img.dataUrl,
               extension: "png",
@@ -415,8 +486,14 @@
               ext: { width, height },
             });
             chartStart += Math.ceil(height / 20) + 2;
-          });
-        } else {
+            insertedCharts += 1;
+          } catch (error) {
+            console.warn("No se pudo insertar grafica en Excel:", error);
+          }
+        });
+      }
+
+      if (!insertedCharts && datos.length) {
           const colorBudget = "#4472c4";
           const colorReal = "#ffc000";
           const imagenBudget = this._crearImagenGrafica({
@@ -451,7 +528,12 @@
             tl: { col: 0, row: chartStart + 20 },
             ext: { width: 820, height: 360 },
           });
-        }
+          insertedCharts += 2;
+      }
+
+      if (!insertedCharts) {
+        return false;
+      }
 
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], {
@@ -460,6 +542,48 @@
       this._descargarBlob(blob, `${baseName}_Operativo_Graficas.xlsx`);
       this._showToast("Excel con graficas generado (imagen).");
       return true;
+    },
+
+    _construirGraficasFallbackOperativo(tablaElement) {
+      const datos = this._obtenerDatosOperativo(tablaElement);
+      if (!datos.length) return [];
+      const labels = datos.map((item) => item.etiqueta);
+      const presupuestos = datos.map((item) => item.presupuesto);
+      const reales = datos.map((item) => item.real);
+      const height = Math.min(820, Math.max(360, labels.length * 28 + 180));
+      const images = [];
+
+      const budgetDataUrl = this._crearImagenGrafica({
+        labels,
+        data: presupuestos,
+        color: "#4472c4",
+        titulo: "Ppto Acumulado",
+      });
+      if (budgetDataUrl) {
+        images.push({
+          title: "Ppto Acumulado",
+          dataUrl: budgetDataUrl,
+          width: 1400,
+          height,
+        });
+      }
+
+      const realDataUrl = this._crearImagenGrafica({
+        labels,
+        data: reales,
+        color: "#ffc000",
+        titulo: "Real Acumulado",
+      });
+      if (realDataUrl) {
+        images.push({
+          title: "Real Acumulado",
+          dataUrl: realDataUrl,
+          width: 1400,
+          height,
+        });
+      }
+
+      return images;
     },
 
     _crearImagenGrafica({ labels, data, color, titulo }) {
@@ -943,17 +1067,120 @@
       return texto.charAt(0).toUpperCase() + texto.slice(1);
     },
 
+    _resolverEtiquetaFilaOperativa(fila) {
+      const cells = Array.from(fila?.cells || []);
+      if (!cells.length) return "";
+      for (let idx = 1; idx < cells.length; idx += 1) {
+        const text = (cells[idx]?.textContent || "").replace(/\s+/g, " ").trim();
+        if (/[A-Za-z\u00c0-\u024f]/.test(text)) {
+          return this._limpiarEtiquetaOperativo(text);
+        }
+      }
+      return this._limpiarEtiquetaOperativo(
+        (cells[1]?.textContent || cells[0]?.textContent || "")
+          .replace(/\s+/g, " ")
+          .trim()
+      );
+    },
+
+    _obtenerFilasOperativas(tabla) {
+      const rows = Array.from(tabla?.querySelectorAll("tbody tr") || []);
+      if (!rows.length) return [];
+      const direct = rows.filter(
+        (row) =>
+          row.classList.contains("sum-row-operativo") ||
+          row.classList.contains("sum-row-operativo-consolidado")
+      );
+      if (direct.length) return direct;
+      return rows.filter((row) => {
+        const etiqueta = this._resolverEtiquetaFilaOperativa(row).toLowerCase();
+        return (
+          etiqueta.includes("resultado operativo") ||
+          etiqueta.includes("operating result")
+        );
+      });
+    },
+
+    _toNumberSafe(value) {
+      const number = Number(value);
+      return Number.isFinite(number) ? number : 0;
+    },
+
+    _matchDatasetByLabel(datasets = [], matcher) {
+      for (const dataset of datasets) {
+        const label = (dataset?.label || "").toString().toLowerCase();
+        if (!label) continue;
+        if (matcher(label)) return dataset;
+      }
+      return null;
+    },
+
+    _obtenerDatosOperativoDesdeGraficas(chartTargets = []) {
+      if (!Array.isArray(chartTargets) || !chartTargets.length) return [];
+      for (const target of chartTargets) {
+        const canvas = target?.canvas;
+        const chart = window.Chart?.getChart?.(canvas);
+        if (!chart?.data) continue;
+        const labels = Array.isArray(chart.data.labels)
+          ? chart.data.labels
+          : [];
+        const datasets = Array.isArray(chart.data.datasets)
+          ? chart.data.datasets
+          : [];
+        if (!labels.length || !datasets.length) continue;
+
+        const realDataset =
+          this._matchDatasetByLabel(
+            datasets,
+            (label) => label.includes("real")
+          ) || datasets[1] || datasets[0];
+
+        const annualDataset = this._matchDatasetByLabel(
+          datasets,
+          (label) => label.includes("presupuesto") && !label.includes("acum")
+        );
+
+        let budgetDataset =
+          this._matchDatasetByLabel(
+            datasets,
+            (label) => label.includes("ppto") || label.includes("presup")
+          ) || datasets[0];
+
+        if (annualDataset && budgetDataset === annualDataset) {
+          budgetDataset =
+            datasets.find((dataset) => dataset !== annualDataset) || budgetDataset;
+        }
+
+        const rows = labels
+          .map((rawLabel, idx) => {
+            const etiqueta = this._limpiarEtiquetaOperativo(
+              (rawLabel || "").toString().trim()
+            );
+            if (!etiqueta) return null;
+            const presupuesto = this._toNumberSafe(
+              Array.isArray(budgetDataset?.data) ? budgetDataset.data[idx] : 0
+            );
+            const real = this._toNumberSafe(
+              Array.isArray(realDataset?.data) ? realDataset.data[idx] : 0
+            );
+            return { etiqueta, presupuesto, real };
+          })
+          .filter(Boolean);
+
+        if (rows.length) return rows;
+      }
+      return [];
+    },
+
     _obtenerDatosOperativo(tabla) {
       const indices = this._obtenerIndicesOperativo(tabla);
-      if (indices.budget == null || indices.real == null) return [];
-      const filas = Array.from(
-        tabla.querySelectorAll("tbody tr.sum-row-operativo")
-      );
-      return filas
+      if (indices.budget == null || indices.real == null) {
+        return this._obtenerDatosOperativoDesdeGraficas(this._resolverGraficas());
+      }
+      const filas = this._obtenerFilasOperativas(tabla);
+      const rows = filas
         .map((fila) => {
-          const etiqueta = this._limpiarEtiquetaOperativo(
-            fila.cells?.[1]?.textContent || ""
-          );
+          const etiqueta = this._resolverEtiquetaFilaOperativa(fila);
           const presupuesto = this._parseNumeroTexto(
             fila.cells?.[indices.budget]?.textContent || ""
           );
@@ -963,16 +1190,70 @@
           return { etiqueta, presupuesto, real };
         })
         .filter((item) => item.etiqueta);
+
+      if (rows.length) return rows;
+      return this._obtenerDatosOperativoDesdeGraficas(this._resolverGraficas());
     },
 
     _obtenerIndicesOperativo(tabla) {
-      const headerRow = tabla?.querySelector("thead tr");
-      const headers = headerRow ? Array.from(headerRow.children) : [];
-      const buscar = (clase) =>
-        headers.findIndex((th) => th.classList.contains(clase));
-      const idxTotalBudget = buscar("total-budget-column");
-      const idxTotalReal = buscar("total-real-column");
-      const idxBudgetFallback = buscar("budget-annual-column");
+      const headerRows = Array.from(tabla?.querySelectorAll("thead tr") || []);
+      if (!headerRows.length) {
+        return { budget: null, real: null };
+      }
+      let idxTotalBudget = -1;
+      let idxTotalReal = -1;
+      let idxBudgetFallback = -1;
+
+      const buscarPorTexto = (matcher) => {
+        for (const row of headerRows) {
+          const headers = Array.from(row.children || []);
+          for (let idx = 0; idx < headers.length; idx += 1) {
+            const text = (headers[idx]?.textContent || "")
+              .replace(/\s+/g, " ")
+              .trim()
+              .toLowerCase();
+            if (!text) continue;
+            if (matcher(text)) return idx;
+          }
+        }
+        return -1;
+      };
+
+      headerRows.forEach((row) => {
+        const headers = Array.from(row.children || []);
+        headers.forEach((th, idx) => {
+          if (idxTotalBudget < 0 && th.classList.contains("total-budget-column")) {
+            idxTotalBudget = idx;
+          }
+          if (idxTotalReal < 0 && th.classList.contains("total-real-column")) {
+            idxTotalReal = idx;
+          }
+          if (idxBudgetFallback < 0 && th.classList.contains("budget-annual-column")) {
+            idxBudgetFallback = idx;
+          }
+        });
+      });
+
+      if (idxTotalBudget < 0) {
+        idxTotalBudget = buscarPorTexto(
+          (text) =>
+            (text.includes("ppto") || text.includes("presupuesto")) &&
+            text.includes("acum")
+        );
+      }
+      if (idxTotalReal < 0) {
+        idxTotalReal = buscarPorTexto(
+          (text) => text.includes("real") && text.includes("acum")
+        );
+      }
+      if (idxBudgetFallback < 0) {
+        idxBudgetFallback = buscarPorTexto(
+          (text) =>
+            (text.includes("ppto") || text.includes("presupuesto")) &&
+            !text.includes("acum")
+        );
+      }
+
       return {
         budget: idxTotalBudget >= 0 ? idxTotalBudget : idxBudgetFallback,
         real: idxTotalReal >= 0 ? idxTotalReal : null,
@@ -1384,9 +1665,14 @@
       }
 
       const chartTargets = charts === false ? [] : this._resolverGraficas(charts);
-      const chartImages = await this._capturarGraficas(chartTargets);
-        if (chartImages.length) {
-          chartImages.forEach((img) => {
+      let chartImages = await this._capturarGraficas(chartTargets);
+      if (!chartImages.length) {
+        chartImages = this._construirGraficasFallbackOperativo(tablaElement);
+      }
+      if (chartImages.length) {
+        chartImages.forEach((img) => {
+          if (!img?.dataUrl || !this._esDataUrlImagenValida(img.dataUrl)) return;
+          try {
             doc.addPage();
             let y = chartMargin;
             doc.setFont("helvetica", "bold");
@@ -1402,8 +1688,11 @@
               imgHeight = maxHeight;
             }
             doc.addImage(img.dataUrl, "PNG", chartMargin, y, imgWidth, imgHeight);
-          });
-        }
+          } catch (error) {
+            console.warn("No se pudo insertar grafica en PDF:", error);
+          }
+        });
+      }
 
       const baseName = [
         titulo || "Reporte",
@@ -1702,6 +1991,48 @@
       return combined ? "combined" : "";
     },
 
+    _esDataUrlImagenValida(dataUrl) {
+      if (typeof dataUrl !== "string") return false;
+      const value = dataUrl.trim();
+      if (!value) return false;
+      if (!/^data:image\/(png|jpe?g|webp);base64,/i.test(value)) return false;
+      return value.length > 128;
+    },
+
+    _canvasTieneContenido(canvas) {
+      if (!canvas || typeof canvas.getContext !== "function") return false;
+      const width = Number(canvas.width) || 0;
+      const height = Number(canvas.height) || 0;
+      if (width < 2 || height < 2) return false;
+      const ctx = canvas.getContext("2d");
+      if (!ctx || typeof ctx.getImageData !== "function") return false;
+      try {
+        const imageData = ctx.getImageData(0, 0, width, height).data;
+        const stepX = Math.max(1, Math.floor(width / 120));
+        const stepY = Math.max(1, Math.floor(height / 80));
+        let nonTransparent = 0;
+        let nonNearWhite = 0;
+        for (let y = 0; y < height; y += stepY) {
+          for (let x = 0; x < width; x += stepX) {
+            const idx = (y * width + x) * 4;
+            const a = imageData[idx + 3] || 0;
+            if (a <= 8) continue;
+            nonTransparent += 1;
+            const r = imageData[idx] || 0;
+            const g = imageData[idx + 1] || 0;
+            const b = imageData[idx + 2] || 0;
+            if (r < 245 || g < 245 || b < 245) {
+              nonNearWhite += 1;
+            }
+          }
+        }
+        return nonTransparent > 20 && (nonNearWhite > 8 || nonTransparent > 150);
+      } catch (error) {
+        // Si el navegador bloquea lectura de pixeles, no invalidamos la captura.
+        return true;
+      }
+    },
+
     _resolverGraficas(charts) {
       const targets = [];
       const seen = new Set();
@@ -1714,12 +2045,20 @@
         while (current && current.nodeType === 1) {
           const style = window.getComputedStyle(current);
           if (style.display === "none" || style.visibility === "hidden") {
+            const isCollapsedContainer =
+              current.classList?.contains("collapse") &&
+              !current.classList?.contains("show");
+            if (isCollapsedContainer) {
+              current = current.parentElement;
+              continue;
+            }
             return true;
           }
           current = current.parentElement;
         }
         const rects = node.getClientRects?.();
-        if (rects && rects.length === 0) return true;
+        const hasCollapsedAncestor = Boolean(node.closest?.(".collapse:not(.show)"));
+        if (rects && rects.length === 0 && !hasCollapsedAncestor) return true;
         return false;
       };
       const isCanvas = (node) => {
@@ -1729,20 +2068,36 @@
         }
         return node.tagName === "CANVAS";
       };
-      const pushCanvas = (canvas, title) => {
+      const resolveCanvas = (node) => {
+        if (!node) return null;
+        if (isCanvas(node)) return node;
+        if (typeof node.querySelector === "function") {
+          return node.querySelector("canvas");
+        }
+        return null;
+      };
+      const pushCanvas = (canvas, title, options = {}) => {
         if (!isCanvas(canvas) || seen.has(canvas)) return;
-        if (isHidden(canvas)) return;
+        if (!options.allowHidden && isHidden(canvas)) return;
         seen.add(canvas);
         targets.push({ canvas, title });
       };
       const resolveTitle = (canvas, fallback) =>
         this._resolverTituloGrafica(canvas, fallback);
+      const pushFromSelector = (selector, options = {}) => {
+        if (!selector) return;
+        document.querySelectorAll(selector).forEach((node) => {
+          const canvas = resolveCanvas(node);
+          if (!canvas) return;
+          pushCanvas(canvas, resolveTitle(canvas, ""), options);
+        });
+      };
 
       if (Array.isArray(charts) && charts.length) {
         charts.forEach((item) => {
           if (!item) return;
           if (typeof item === "string") {
-            const canvas = document.querySelector(item);
+            const canvas = resolveCanvas(document.querySelector(item));
             if (canvas) pushCanvas(canvas, resolveTitle(canvas, ""));
             return;
           }
@@ -1756,9 +2111,9 @@
           if (typeof item === "object") {
             const selector =
               typeof item.selector === "string" ? item.selector : "";
-            const canvas =
-              item.canvas ||
-              (selector ? document.querySelector(selector) : null);
+            const canvas = resolveCanvas(
+              item.canvas || (selector ? document.querySelector(selector) : null)
+            );
             if (canvas) {
               const title =
                 typeof item.title === "string" && item.title.trim()
@@ -1771,26 +2126,28 @@
         return targets;
       }
 
-        const operativoCanvases = document.querySelectorAll(
-          "[data-operativo-chart] canvas"
-        );
-        operativoCanvases.forEach((canvas) => {
-          pushCanvas(canvas, resolveTitle(canvas, ""));
-        });
+      pushFromSelector("[data-operativo-chart], [data-operativo-chart] canvas", {
+        allowHidden: true,
+      });
+      pushFromSelector("[data-gg-chart], [data-gg-chart] canvas", {
+        allowHidden: true,
+      });
+      pushFromSelector("[data-custom-chart], [data-custom-chart] canvas", {
+        allowHidden: true,
+      });
+      pushFromSelector("#resumenChartsPanel canvas, .charts-panel canvas", {
+        allowHidden: true,
+      });
 
-        const ggCanvases = document.querySelectorAll("[data-gg-chart] canvas");
-        ggCanvases.forEach((canvas) => {
-          pushCanvas(canvas, resolveTitle(canvas, ""));
+      if (!targets.length && window.Chart?.instances) {
+        Object.values(window.Chart.instances).forEach((chart) => {
+          const canvas = chart?.canvas;
+          if (!canvas) return;
+          pushCanvas(canvas, resolveTitle(canvas, ""), { allowHidden: true });
         });
-
-        const customCanvases = document.querySelectorAll(
-          "[data-custom-chart] canvas"
-        );
-        customCanvases.forEach((canvas) => {
-          pushCanvas(canvas, resolveTitle(canvas, ""));
-        });
-        return targets;
-      },
+      }
+      return targets;
+    },
 
     _resolverTituloGrafica(canvas, fallback = "") {
       if (!canvas) return fallback;
@@ -1950,27 +2307,72 @@
       for (const target of targets) {
         const canvas = target?.canvas;
         if (!canvas || typeof canvas.toDataURL !== "function") continue;
+        const chart =
+          typeof window.Chart?.getChart === "function"
+            ? window.Chart.getChart(canvas)
+            : null;
+        if (
+          !chart &&
+          (canvas.width || 0) <= 2 &&
+          (canvas.height || 0) <= 2 &&
+          (canvas.clientWidth || 0) <= 2 &&
+          (canvas.clientHeight || 0) <= 2
+        ) {
+          continue;
+        }
         let restore = null;
         let restoreChart = null;
         try {
           restore = this._prepararCanvasCaptura(canvas);
-          const chart = window.Chart?.getChart?.(canvas);
           if (chart && typeof chart.resize === "function") {
             chart.resize();
           }
           const captureConfig = this._resolverConfigCapturaGrafica(canvas);
           restoreChart = this._prepararChartCaptura(chart, captureConfig);
           await new Promise((resolve) => setTimeout(resolve, 120));
-          const dataUrl =
+          let hasCanvasContent = this._canvasTieneContenido(canvas);
+          let dataUrl =
             chart && typeof chart.toBase64Image === "function"
               ? chart.toBase64Image()
               : canvas.toDataURL("image/png");
+
+          if ((!this._esDataUrlImagenValida(dataUrl) || !hasCanvasContent) && chart) {
+            const baseWidth =
+              Math.max(
+                Number(canvas.clientWidth) || 0,
+                Number(canvas.width) || 0,
+                1200
+              ) || 1200;
+            const ratio =
+              Number(canvas.width) > 0 && Number(canvas.height) > 0
+                ? Number(canvas.height) / Number(canvas.width)
+                : 0.55;
+            const baseHeight = Math.max(360, Math.round(baseWidth * ratio));
+            if (typeof chart.resize === "function") {
+              chart.resize(baseWidth, baseHeight);
+            }
+            chart.update("none");
+            await new Promise((resolve) => setTimeout(resolve, 120));
+            hasCanvasContent = this._canvasTieneContenido(canvas);
+            dataUrl =
+              typeof chart.toBase64Image === "function"
+                ? chart.toBase64Image()
+                : canvas.toDataURL("image/png");
+          }
+
+          if (!this._esDataUrlImagenValida(dataUrl) || !hasCanvasContent) continue;
           if (dataUrl) {
             images.push({
               title: target?.title || this._resolverTituloGrafica(canvas, "Grafica"),
               dataUrl,
-              width: canvas.width,
-              height: canvas.height,
+              width:
+                Number(canvas.width) ||
+                Number(canvas.clientWidth) ||
+                1200,
+              height:
+                Number(canvas.height) ||
+                Number(canvas.clientHeight) ||
+                600,
             });
           }
         } catch (error) {
@@ -1988,31 +2390,72 @@
     },
 
     _prepararCanvasCaptura(canvas) {
-      const collapse = canvas?.closest?.(".collapse");
-      let restored = false;
-      let prevClass = "";
-      let prevStyle = "";
-      if (collapse && !collapse.classList.contains("show")) {
-        prevClass = collapse.className;
-        prevStyle = collapse.getAttribute("style") || "";
-        collapse.classList.add("show");
-        collapse.style.display = "block";
-        collapse.style.height = "auto";
-        collapse.style.visibility = "hidden";
-        collapse.style.position = "absolute";
-        collapse.style.left = "-10000px";
-        collapse.style.top = "0";
-        collapse.style.width = "1200px";
+      if (!canvas || !canvas.isConnected || !window.getComputedStyle) {
+        return () => {};
       }
+      const mutados = [];
+      const revelar = (node) => {
+        if (!node || node.nodeType !== 1) return;
+        const estilo = window.getComputedStyle(node);
+        const ocultoPorDisplay = estilo.display === "none";
+        const ocultoPorVisibilidad = estilo.visibility === "hidden";
+        const esCollapseOculto =
+          node.classList?.contains("collapse") && !node.classList?.contains("show");
+        const esPanelChartsOculto =
+          node.classList?.contains("charts-panel") &&
+          !node.classList?.contains("open");
+
+        if (
+          !ocultoPorDisplay &&
+          !ocultoPorVisibilidad &&
+          !esCollapseOculto &&
+          !esPanelChartsOculto
+        ) {
+          return;
+        }
+
+        mutados.push({
+          node,
+          className: node.className,
+          style: node.getAttribute("style"),
+        });
+
+        if (esCollapseOculto) {
+          node.classList.add("show");
+        }
+        if (esPanelChartsOculto) {
+          node.classList.add("open");
+        }
+
+        node.style.display = "block";
+        node.style.visibility = "hidden";
+        node.style.position = "absolute";
+        node.style.left = "-10000px";
+        node.style.top = "0";
+        node.style.height = "auto";
+        node.style.maxHeight = "none";
+        node.style.overflow = "visible";
+        if (!node.style.width || node.style.width === "auto") {
+          node.style.width = "1200px";
+        }
+      };
+
+      let current = canvas;
+      while (current && current.nodeType === 1 && current !== document.body) {
+        revelar(current);
+        current = current.parentElement;
+      }
+
       return () => {
-        if (collapse && !restored) {
-          collapse.className = prevClass;
-          if (prevStyle) {
-            collapse.setAttribute("style", prevStyle);
+        for (let i = mutados.length - 1; i >= 0; i -= 1) {
+          const { node, className, style } = mutados[i];
+          if (!node) continue;
+          node.className = className;
+          if (style != null) {
+            node.setAttribute("style", style);
           } else {
-            collapse.removeAttribute("style");
+            node.removeAttribute("style");
           }
-          restored = true;
         }
       };
     },

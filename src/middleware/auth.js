@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const { db } = require('../db/sqlite');
 const { construirMapaPermisos } = require('../services/permisosService');
+const { normalizarNombreModulo } = require('../config/modulos');
 
 const JWT_SECRET = process.env.PANELAMCHAM_JWT_SECRET || 'cambia-este-secreto';
 const JWT_REFRESH_SECRET = process.env.PANELAMCHAM_REFRESH_SECRET || `${JWT_SECRET}-refresh`;
@@ -20,6 +21,38 @@ const normalizarEmpresaPermiso = (empresaId) => {
     return `empresa${numero - 8}`;
   }
   return `empresa${numero}`;
+};
+
+const normalizarClaveModulo = (modulo) => {
+  return (modulo || '')
+    .toString()
+    .trim()
+    .toUpperCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^A-Z0-9]+/g, '');
+};
+
+const resolverPermisosModulo = (permisosEmpresa, modulo) => {
+  if (!permisosEmpresa || !modulo) return null;
+
+  if (permisosEmpresa[modulo]) {
+    return permisosEmpresa[modulo];
+  }
+
+  const moduloCanonico = normalizarNombreModulo(modulo) || modulo;
+  if (permisosEmpresa[moduloCanonico]) {
+    return permisosEmpresa[moduloCanonico];
+  }
+
+  const moduloClave = normalizarClaveModulo(moduloCanonico);
+  if (!moduloClave) return null;
+
+  const match = Object.entries(permisosEmpresa).find(([nombre]) => {
+    const nombreCanonico = normalizarNombreModulo(nombre) || nombre;
+    return normalizarClaveModulo(nombreCanonico) === moduloClave;
+  });
+  return match ? match[1] : null;
 };
 
 const resolverPermisosEmpresa = (mapaPermisos, empresaId) => {
@@ -177,7 +210,7 @@ const tienePermisoModulo = (mapaPermisos, empresaId, modulo, accion) => {
   
   // Módulos con acceso universal (todos pueden ver)
   const modulosUniversales = ['SUMMARY', 'RESUMEN', 'PRESUPUESTOS'];
-  const moduloNormalizado = (modulo || '').toString().toUpperCase().trim();
+  const moduloNormalizado = normalizarClaveModulo(modulo);
   
   if (modulosUniversales.includes(moduloNormalizado)) {
     // Para módulos universales, siempre permitir lectura
@@ -188,7 +221,7 @@ const tienePermisoModulo = (mapaPermisos, empresaId, modulo, accion) => {
   }
   
   const permisosEmpresa = resolverPermisosEmpresa(mapaPermisos, empresaId);
-  const permisos = permisosEmpresa?.[modulo];
+  const permisos = resolverPermisosModulo(permisosEmpresa, modulo);
   if (!permisos) return false;
   if (!accion) {
     return Boolean(permisos.Lectura || permisos['Cargar y guardar'] || permisos.Revisar || permisos.Aprobar);

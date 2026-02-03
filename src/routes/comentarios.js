@@ -15,13 +15,20 @@ router.get('/resumen', (req, res) => {
   const modulo = (req.query.modulo || '').toString().trim();
   const anio = req.query.anio ? Number(req.query.anio) : null;
   const capitulo = (req.query.capitulo || '').toString().trim() || null;
+  const incluirNoActivos = req.query.incluirNoActivos === 'true';
   const empresaId = extraerEmpresaActiva(req) || req.query.empresaId || null;
 
   if (!modulo) {
     return res.status(400).json({ mensaje: 'Parametros insuficientes: modulo es obligatorio.' });
   }
 
-  const resumen = resumirComentariosPorModulo({ empresaId, modulo, anio, capitulo });
+  const resumen = resumirComentariosPorModulo({
+    empresaId,
+    modulo,
+    anio,
+    capitulo,
+    incluirNoActivos
+  });
   return res.json({ resumen });
 });
 
@@ -29,13 +36,22 @@ router.get('/', (req, res) => {
   const modulo = (req.query.modulo || '').toString().trim();
   const celdaId = (req.query.celdaId || '').toString().trim();
   const anio = req.query.anio ? Number(req.query.anio) : null;
+  const capitulo = (req.query.capitulo || '').toString().trim() || null;
+  const incluirNoActivos = req.query.incluirNoActivos === 'true';
   const empresaId = extraerEmpresaActiva(req) || req.query.empresaId || null;
 
   if (!modulo || !celdaId) {
     return res.status(400).json({ mensaje: 'Parametros insuficientes: modulo y celdaId son obligatorios.' });
   }
 
-  const comentarios = listarComentarios({ empresaId, modulo, celdaId, anio });
+  const comentarios = listarComentarios({
+    empresaId,
+    modulo,
+    celdaId,
+    anio,
+    capitulo,
+    incluirNoActivos
+  });
   return res.json({ comentarios });
 });
 
@@ -87,9 +103,9 @@ router.patch('/:id', (req, res) => {
 
   const empresaId = existente.empresaId || extraerEmpresaActiva(req) || null;
   const modulo = existente.modulo;
-  const tienePermiso = empresaId
+  const tienePermiso = req.esAdmin || (empresaId
     ? tienePermisoModulo(req.mapaPermisos, empresaId, modulo, 'Lectura')
-    : true;
+    : true);
   if (!tienePermiso) {
     return res.status(403).json({ mensaje: 'Sin permisos para actualizar este comentario.' });
   }

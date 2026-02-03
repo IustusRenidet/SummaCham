@@ -395,6 +395,52 @@
     document.addEventListener('DOMContentLoaded', cargarUsuarios);
   </script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/guided-tour.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      if (!window.GuidedTour) return;
+      window.GuidedTour.mount({
+        id: "admin-usuarios",
+        buttonText: "Tour usuarios",
+        steps: [
+          {
+            selector: "#busqueda",
+            title: "Busqueda de usuarios",
+            description:
+              "Filtra por nombre, usuario o correo para ubicar rapidamente un registro.",
+          },
+          {
+            selector: "#tablaUsuarios",
+            title: "Tabla de administracion",
+            description:
+              "Aqui revisas rol, empresas y acciones disponibles para cada usuario.",
+            beforeEnter: ({ api }) => api.waitFor("#tablaUsuarios tbody tr", 1800),
+          },
+          {
+            selector: ["#tablaUsuarios tbody a[href*='crear_usuario.html?editar=']", "#tablaUsuarios"],
+            title: "Editar permisos",
+            description:
+              "Entra a Editar para ajustar accesos por empresa, modulo y nivel de accion.",
+            beforeEnter: ({ api }) =>
+              api.waitFor("#tablaUsuarios tbody tr", 1800),
+          },
+          {
+            selector: ["#tablaUsuarios tbody button[data-accion='eliminar']", "#tablaUsuarios"],
+            title: "Eliminar usuario",
+            description:
+              "Si tienes permiso, puedes eliminar usuarios con confirmacion previa.",
+          },
+          {
+            selector: "#modalConfirmarEliminar",
+            title: "Confirmacion segura",
+            description:
+              "El sistema solicita confirmacion antes de borrar para evitar errores.",
+            tip: "Este modal aparece cuando pulsas Eliminar.",
+          },
+        ],
+      });
+    });
+  </script>
 </body>
 
 </html>

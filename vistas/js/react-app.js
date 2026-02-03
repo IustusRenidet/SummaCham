@@ -195,6 +195,68 @@
     });
     return resultado;
   };
+  const DESTINO_COMENTARIO_KEY = "panelamcham.comentarios.destino";
+  const normalizarClaveModulo = (valor = "") =>
+    valor
+      .toString()
+      .trim()
+      .toUpperCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^A-Z0-9]+/g, "");
+  const MAPA_MODULO_COMENTARIO = (() => {
+    const mapa = new Map();
+    flattenLeafModules(MODULE_GROUPS).forEach((modulo) => {
+      [modulo.id, modulo.label, modulo.permiso].forEach((clave) => {
+        const normalizada = normalizarClaveModulo(clave || "");
+        if (normalizada && !mapa.has(normalizada)) {
+          mapa.set(normalizada, modulo.id);
+        }
+      });
+    });
+    return mapa;
+  })();
+  const resolverModuloComentario = (valor) => {
+    const clave = normalizarClaveModulo(valor || "");
+    return clave ? MAPA_MODULO_COMENTARIO.get(clave) || null : null;
+  };
+  const parsearDestinoComentario = (notificacion) => {
+    const enlace = (notificacion?.enlace || "").toString().trim();
+    if (!enlace) return null;
+    try {
+      const base =
+        typeof window !== "undefined" && window.location
+          ? window.location.href
+          : "http://localhost/";
+      const url = new URL(enlace, base);
+      const destino = (url.searchParams.get("destino") || "")
+        .toString()
+        .trim()
+        .toLowerCase();
+      if (destino !== "comentario") return null;
+      const celdaId = (url.searchParams.get("celdaId") || "").toString().trim();
+      const modulo =
+        (url.searchParams.get("modulo") || notificacion?.modulo || "")
+          .toString()
+          .trim();
+      if (!celdaId || !modulo) return null;
+      const anioRaw = Number.parseInt(url.searchParams.get("anio"), 10);
+      return {
+        tipo: "comentario",
+        celdaId,
+        modulo,
+        anio: Number.isInteger(anioRaw) ? anioRaw : null,
+        empresaId:
+          (url.searchParams.get("empresaId") || notificacion?.empresaId || "")
+            .toString()
+            .trim() || null,
+        capitulo:
+          (url.searchParams.get("capitulo") || "").toString().trim() || null,
+      };
+    } catch (_) {
+      return null;
+    }
+  };
   const collectNestedGroupIds = (items = [], target = []) => {
     items.forEach((item) => {
       if (item.items && item.items.length > 0) {
@@ -211,6 +273,81 @@
       collectNestedGroupIds(group.items || [], ids);
     });
     return ids;
+  };
+  const TOUR_ESTADO_KEY_BASE = "panelamcham.tour.dashboard.v1";
+  const TOUR_CARD_MAX_WIDTH = 360;
+  const TOUR_CARD_MIN_HEIGHT = 212;
+  const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+  const construirClaveTourUsuario = (sesion) => {
+    const usuario = normalizarClaveModulo(sesion?.usuario?.usuario || "GENERAL");
+    return `${TOUR_ESTADO_KEY_BASE}.${usuario || "GENERAL"}`;
+  };
+  const leerEstadoTour = (storageKey) => {
+    if (!storageKey) return false;
+    try {
+      return Boolean(localStorage.getItem(storageKey));
+    } catch (_) {
+      return false;
+    }
+  };
+  const guardarEstadoTour = (storageKey, estado = "completado") => {
+    if (!storageKey) return;
+    try {
+      localStorage.setItem(
+        storageKey,
+        JSON.stringify({
+          estado,
+          fecha: new Date().toISOString(),
+        })
+      );
+    } catch (error) {
+      console.warn("No se pudo guardar el estado del tour.", error);
+    }
+  };
+  const normalizarRectTour = (rect) => {
+    if (!rect) return null;
+    const padding = 8;
+    return {
+      top: Math.max(8, rect.top - padding),
+      left: Math.max(8, rect.left - padding),
+      width: Math.max(40, rect.width + padding * 2),
+      height: Math.max(40, rect.height + padding * 2),
+    };
+  };
+  const calcularPosicionTarjetaTour = (rect) => {
+    if (typeof window === "undefined") {
+      return { top: 24, left: 24, width: TOUR_CARD_MAX_WIDTH };
+    }
+    const viewportWidth = window.innerWidth || 1200;
+    const viewportHeight = window.innerHeight || 800;
+    const margen = 12;
+    const width = Math.min(TOUR_CARD_MAX_WIDTH, viewportWidth - margen * 2);
+    if (!rect) {
+      return {
+        top: clamp(
+          viewportHeight / 2 - TOUR_CARD_MIN_HEIGHT / 2,
+          margen,
+          viewportHeight - TOUR_CARD_MIN_HEIGHT - margen
+        ),
+        left: clamp(
+          viewportWidth / 2 - width / 2,
+          margen,
+          viewportWidth - width - margen
+        ),
+        width,
+      };
+    }
+    const topPreferido = rect.top + rect.height + 14;
+    const topAlternativo = rect.top - TOUR_CARD_MIN_HEIGHT - 14;
+    const top =
+      topPreferido + TOUR_CARD_MIN_HEIGHT <= viewportHeight - margen
+        ? topPreferido
+        : topAlternativo;
+    return {
+      top: clamp(top, margen, viewportHeight - TOUR_CARD_MIN_HEIGHT - margen),
+      left: clamp(rect.left, margen, viewportWidth - width - margen),
+      width,
+    };
   };
   const moduloDisponiblePorEmpresa = (empresaId, moduloId) => {
     const config = window.CapitulosModulos;
@@ -655,6 +792,7 @@
     onRefresh,
     onMarkAsRead,
     onMarkAllAsRead,
+    onOpenNotification,
   }) => {
     const [open, setOpen] = useState(false);
     const bellRef = React.useRef(null);
@@ -674,6 +812,14 @@
       if (onMarkAsRead) {
         onMarkAsRead(id);
       }
+    };
+    const abrirNotificacion = (item) => {
+      if (onOpenNotification) {
+        onOpenNotification(item);
+      } else if (item?.id) {
+        marcarLeida(item.id);
+      }
+      setOpen(false);
     };
     const renderFecha = (valor) => {
       if (!valor) return "";
@@ -697,6 +843,7 @@
           onClick: toggle,
           "aria-expanded": open,
           "aria-label": "Notificaciones",
+          "data-tour": "notification-bell",
         },
         /* @__PURE__ */ React.createElement(
           "svg",
@@ -796,21 +943,142 @@
                           renderFecha(item.creadaEn)
                         )
                       ),
-                      !item.leidaEn &&
-                        /* @__PURE__ */ React.createElement(
-                          "button",
-                          {
-                            type: "button",
-                            className: "btn btn-link btn-sm p-0",
-                            onClick: () => marcarLeida(item.id),
-                          },
-                          "Marcar como le\xEDda"
-                        )
+                      /* @__PURE__ */ React.createElement(
+                        "div",
+                        {
+                          className:
+                            "d-flex flex-column align-items-end gap-1 text-nowrap",
+                        },
+                        item.enlace &&
+                          /* @__PURE__ */ React.createElement(
+                            "button",
+                            {
+                              type: "button",
+                              className: "btn btn-link btn-sm p-0",
+                              onClick: () => abrirNotificacion(item),
+                            },
+                            "Ir al comentario"
+                          ),
+                        !item.leidaEn &&
+                          /* @__PURE__ */ React.createElement(
+                            "button",
+                            {
+                              type: "button",
+                              className: "btn btn-link btn-sm p-0",
+                              onClick: () => marcarLeida(item.id),
+                            },
+                            "Marcar como le\xEDda"
+                          )
+                      )
                     )
                   )
                 )
           )
         )
+    );
+  };
+  const GuidedTourOverlay = ({
+    active,
+    step,
+    stepIndex,
+    totalSteps,
+    highlightRect,
+    onPrevious,
+    onNext,
+    onClose,
+    onFinish,
+  }) => {
+    if (!active || !step) {
+      return null;
+    }
+    const esUltimoPaso = stepIndex >= totalSteps - 1;
+    const posicionTarjeta = calcularPosicionTarjetaTour(highlightRect);
+    return /* @__PURE__ */ React.createElement(
+      "div",
+      {
+        className: "guided-tour-overlay",
+        role: "dialog",
+        "aria-modal": "true",
+        "aria-label": "Tutorial guiado del panel",
+      },
+      highlightRect &&
+        /* @__PURE__ */ React.createElement("div", {
+          className: "guided-tour-spotlight",
+          style: {
+            top: `${highlightRect.top}px`,
+            left: `${highlightRect.left}px`,
+            width: `${highlightRect.width}px`,
+            height: `${highlightRect.height}px`,
+          },
+        }),
+      /* @__PURE__ */ React.createElement(
+        "section",
+        {
+          className: "guided-tour-card",
+          style: {
+            top: `${posicionTarjeta.top}px`,
+            left: `${posicionTarjeta.left}px`,
+            width: `${posicionTarjeta.width}px`,
+          },
+        },
+        /* @__PURE__ */ React.createElement(
+          "p",
+          { className: "guided-tour-card__step mb-2" },
+          `Paso ${stepIndex + 1} de ${totalSteps}`
+        ),
+        /* @__PURE__ */ React.createElement(
+          "h3",
+          { className: "guided-tour-card__title mb-2" },
+          step.title
+        ),
+        /* @__PURE__ */ React.createElement(
+          "p",
+          { className: "guided-tour-card__description mb-0" },
+          step.description
+        ),
+        step.tip &&
+          /* @__PURE__ */ React.createElement(
+            "p",
+            { className: "guided-tour-card__tip mt-2 mb-0" },
+            step.tip
+          ),
+        /* @__PURE__ */ React.createElement(
+          "div",
+          { className: "guided-tour-card__actions mt-3" },
+          /* @__PURE__ */ React.createElement(
+            "button",
+            {
+              type: "button",
+              className: "btn btn-link btn-sm px-0",
+              onClick: onClose,
+            },
+            "Salir"
+          ),
+          /* @__PURE__ */ React.createElement(
+            "div",
+            { className: "d-flex gap-2" },
+            /* @__PURE__ */ React.createElement(
+              "button",
+              {
+                type: "button",
+                className: "btn btn-outline-secondary btn-sm",
+                onClick: onPrevious,
+                disabled: stepIndex === 0,
+              },
+              "Atrás"
+            ),
+            /* @__PURE__ */ React.createElement(
+              "button",
+              {
+                type: "button",
+                className: "btn btn-primary btn-sm",
+                onClick: esUltimoPaso ? onFinish : onNext,
+              },
+              esUltimoPaso ? "Finalizar" : "Siguiente"
+            )
+          )
+        )
+      )
     );
   };
   const DashboardLayout = ({
@@ -824,6 +1092,7 @@
     onRefreshNotifications,
     onMarkNotification,
     onMarkAllNotifications,
+    onOpenNotification,
   }) => {
     const puedeAdministrar = useMemo(
       () => Sesion.puedeAdministrarUsuarios(sesion),
@@ -891,6 +1160,70 @@
     const [gruposAbiertos, setGruposAbiertos] = useState(
       () => new Set(collectAllGroupIds(MODULE_GROUPS))
     );
+    const tourStorageKey = useMemo(
+      () => construirClaveTourUsuario(sesion),
+      [sesion]
+    );
+    const tourSteps = useMemo(
+      () => [
+        {
+          id: "sidebar-toggle",
+          selector: '[data-tour="sidebar-toggle"]',
+          title: "Control del menu lateral",
+          description:
+            "Desde aqui abres o cierras el menu principal para ganar espacio de trabajo.",
+        },
+        {
+          id: "sidebar-menu",
+          selector: '[data-tour="sidebar-menu"]',
+          title: "Modulos del panel",
+          description:
+            "En esta lista eliges el modulo que quieres revisar o editar.",
+          tip: "Puedes cambiar de modulo en cualquier momento.",
+          requiresSidebar: true,
+        },
+        {
+          id: "module-title",
+          selector: '[data-tour="module-title"]',
+          title: "Modulo activo",
+          description:
+            "Este encabezado te confirma en que modulo estas trabajando.",
+        },
+        {
+          id: "company-selector",
+          selector: '[data-tour="company-selector"]',
+          title: "Empresa activa",
+          description:
+            "Cambia la empresa para cargar su informacion, permisos y saldos correspondientes.",
+        },
+        {
+          id: "notification-bell",
+          selector: '[data-tour="notification-bell"]',
+          title: "Centro de notificaciones",
+          description:
+            "Aqui recibes avisos y comentarios pendientes de seguimiento.",
+        },
+        {
+          id: "module-content",
+          selector: '[data-tour="module-content"]',
+          title: "Area de trabajo",
+          description:
+            "Aqui se carga el modulo seleccionado para capturar o consultar datos.",
+        },
+        {
+          id: "logout-button",
+          selector: '[data-tour="logout-button"]',
+          title: "Cerrar sesion",
+          description:
+            "Usa este boton al terminar para proteger la informacion del sistema.",
+        },
+      ],
+      []
+    );
+    const [tourActiva, setTourActiva] = useState(false);
+    const [tourPasoIndex, setTourPasoIndex] = useState(0);
+    const [tourRect, setTourRect] = useState(null);
+    const tourPasoActual = tourSteps[tourPasoIndex] || null;
     useEffect(() => {
       setGruposAbiertos(new Set(collectAllGroupIds(gruposDisponibles)));
     }, [gruposDisponibles]);
@@ -941,6 +1274,116 @@
       sesion,
       empresaActiva,
     ]);
+    useEffect(() => {
+      if (!tourStorageKey || modulosDisponibles.length === 0) {
+        return;
+      }
+      if (leerEstadoTour(tourStorageKey)) {
+        return;
+      }
+      const timer = window.setTimeout(() => {
+        setTourPasoIndex(0);
+        setTourActiva(true);
+      }, 900);
+      return () => window.clearTimeout(timer);
+    }, [tourStorageKey, modulosDisponibles.length]);
+
+    const iniciarTour = useCallback(() => {
+      setTourPasoIndex(0);
+      setTourActiva(true);
+    }, []);
+    const cerrarTour = useCallback(
+      (estado = "omitido") => {
+        setTourActiva(false);
+        setTourPasoIndex(0);
+        setTourRect(null);
+        guardarEstadoTour(tourStorageKey, estado);
+      },
+      [tourStorageKey]
+    );
+    const anteriorPasoTour = useCallback(() => {
+      setTourPasoIndex((prev) => Math.max(prev - 1, 0));
+    }, []);
+    const siguientePasoTour = useCallback(() => {
+      setTourPasoIndex((prev) => Math.min(prev + 1, tourSteps.length - 1));
+    }, [tourSteps.length]);
+    const finalizarTour = useCallback(() => {
+      cerrarTour("completado");
+    }, [cerrarTour]);
+    useEffect(() => {
+      if (!tourActiva || !tourPasoActual) {
+        return;
+      }
+      if (tourPasoActual.requiresSidebar && sidebarOculta) {
+        setSidebarOculta(false);
+      }
+      let rafId = 0;
+      let timerId = 0;
+      const actualizarRect = () => {
+        const objetivo = tourPasoActual.selector
+          ? document.querySelector(tourPasoActual.selector)
+          : null;
+        if (!objetivo) {
+          setTourRect(null);
+          return;
+        }
+        const rect = objetivo.getBoundingClientRect();
+        if (!rect || (rect.width === 0 && rect.height === 0)) {
+          setTourRect(null);
+          return;
+        }
+        setTourRect(normalizarRectTour(rect));
+      };
+      const schedule = () => {
+        window.cancelAnimationFrame(rafId);
+        rafId = window.requestAnimationFrame(actualizarRect);
+      };
+      schedule();
+      timerId = window.setTimeout(schedule, 320);
+      window.addEventListener("resize", schedule);
+      window.addEventListener("scroll", schedule, true);
+      return () => {
+        window.cancelAnimationFrame(rafId);
+        window.clearTimeout(timerId);
+        window.removeEventListener("resize", schedule);
+        window.removeEventListener("scroll", schedule, true);
+      };
+    }, [tourActiva, tourPasoActual, sidebarOculta]);
+    useEffect(() => {
+      if (!tourActiva) {
+        return;
+      }
+      const manejarAtajos = (evento) => {
+        if (evento.key === "Escape") {
+          evento.preventDefault();
+          cerrarTour("omitido");
+          return;
+        }
+        if (evento.key === "ArrowLeft") {
+          evento.preventDefault();
+          anteriorPasoTour();
+          return;
+        }
+        if (evento.key === "ArrowRight") {
+          evento.preventDefault();
+          if (tourPasoIndex >= tourSteps.length - 1) {
+            finalizarTour();
+          } else {
+            siguientePasoTour();
+          }
+        }
+      };
+      document.addEventListener("keydown", manejarAtajos);
+      return () => document.removeEventListener("keydown", manejarAtajos);
+    }, [
+      tourActiva,
+      tourPasoIndex,
+      tourSteps.length,
+      cerrarTour,
+      anteriorPasoTour,
+      siguientePasoTour,
+      finalizarTour,
+    ]);
 
     const toggleGrupo = (groupId) => {
       setGruposAbiertos((prev) => {
@@ -984,6 +1427,15 @@
         onMarkNotification(id);
       }
     };
+    const manejarAbrirNotificacion = (item) => {
+      if (onOpenNotification) {
+        onOpenNotification(item);
+        return;
+      }
+      if (item?.id) {
+        manejarMarcarNotificacion(item.id);
+      }
+    };
     return /* @__PURE__ */ React.createElement(
       "div",
       { className: layoutClassName },
@@ -1008,7 +1460,7 @@
         ),
         /* @__PURE__ */ React.createElement(
           "div",
-          { className: "sidebar-menu" },
+          { className: "sidebar-menu", "data-tour": "sidebar-menu" },
           gruposDisponibles.map((group) =>
             /* @__PURE__ */ React.createElement(SidebarGroup, {
               key: group.id,
@@ -1045,6 +1497,7 @@
                   ? "Mostrar men\xFA lateral"
                   : "Ocultar men\xFA lateral",
                 "aria-expanded": !sidebarOculta,
+                "data-tour": "sidebar-toggle",
               },
               /* @__PURE__ */ React.createElement(
                 "span",
@@ -1057,7 +1510,7 @@
               null,
               /* @__PURE__ */ React.createElement(
                 "h2",
-                null,
+                { "data-tour": "module-title" },
                 moduloSeleccionado
                   ? moduloSeleccionado.label
                   : "Selecciona un m\xF3dulo"
@@ -1073,15 +1526,25 @@
           /* @__PURE__ */ React.createElement(
             "div",
             { className: "top-bar-right d-flex align-items-center gap-3" },
+            /* @__PURE__ */ React.createElement(
+              "button",
+              {
+                type: "button",
+                className: "btn btn-outline-primary btn-sm tour-trigger-btn",
+                onClick: iniciarTour,
+              },
+              "Tour guiado"
+            ),
             /* @__PURE__ */ React.createElement(NotificationBell, {
               notifications,
               onRefresh: manejarActualizarNotificaciones,
               onMarkAsRead: manejarMarcarNotificacion,
               onMarkAllAsRead: onMarkAllNotifications,
+              onOpenNotification: manejarAbrirNotificacion,
             }),
             /* @__PURE__ */ React.createElement(
               "div",
-              { className: "company-selector" },
+              { className: "company-selector", "data-tour": "company-selector" },
               /* @__PURE__ */ React.createElement(
                 "label",
                 { htmlFor: "companyFilter", className: "fw-semibold mb-0" },
@@ -1120,6 +1583,7 @@
                   type: "button",
                   className: "btn btn-outline-secondary btn-sm top-bar-logout",
                   onClick: onLogout,
+                  "data-tour": "logout-button",
                 },
                 "Cerrar sesi\xF3n"
               )
@@ -1130,7 +1594,7 @@
           { className: "content-wrapper" },
           /* @__PURE__ */ React.createElement(
             "div",
-            { className: "content-card" },
+            { className: "content-card", "data-tour": "module-content" },
             moduloSeleccionado
               ? /* @__PURE__ */ React.createElement("iframe", {
                   key: `${moduloSeleccionado.id}-${
@@ -1143,9 +1607,20 @@
                 })
               : /* @__PURE__ */ React.createElement("div", {
                   className: "empty-state",
-                })
+            })
           )
-        )
+        ),
+      /* @__PURE__ */ React.createElement(GuidedTourOverlay, {
+        active: tourActiva,
+        step: tourPasoActual,
+        stepIndex: tourPasoIndex,
+        totalSteps: tourSteps.length,
+        highlightRect: tourRect,
+        onPrevious: anteriorPasoTour,
+        onNext: siguientePasoTour,
+        onClose: () => cerrarTour("omitido"),
+        onFinish: finalizarTour,
+      })
       )
     );
   };
@@ -1256,6 +1731,55 @@
       },
       [cargarNotificaciones]
     );
+    const abrirNotificacion = useCallback(
+      async (item) => {
+        if (!item) return;
+        const destino = parsearDestinoComentario(item);
+        if (destino) {
+          const empresaActualId = String(
+            Sesion.obtenerEmpresaActiva()?.id || ""
+          );
+          const empresaDestinoId = destino.empresaId
+            ? String(destino.empresaId)
+            : null;
+          if (empresaDestinoId && empresaDestinoId !== empresaActualId) {
+            const nuevaEmpresa = Sesion.establecerEmpresaActiva(empresaDestinoId);
+            setEmpresaActiva(nuevaEmpresa);
+            setSesion(Sesion.obtener());
+          }
+          const moduloId = resolverModuloComentario(
+            destino.modulo || item.modulo || ""
+          );
+          if (moduloId) {
+            setModuloSeleccionado(moduloId);
+          }
+          const payload = {
+            tipo: "comentario",
+            celdaId: destino.celdaId,
+            modulo: destino.modulo || item.modulo || "",
+            empresaId:
+              empresaDestinoId ||
+              String(Sesion.obtenerEmpresaActiva()?.id || "") ||
+              null,
+            anio: destino.anio,
+            capitulo: destino.capitulo || null,
+            ts: Date.now(),
+          };
+          try {
+            localStorage.setItem(DESTINO_COMENTARIO_KEY, JSON.stringify(payload));
+          } catch (storageError) {
+            console.warn(
+              "No fue posible guardar el destino del comentario.",
+              storageError
+            );
+          }
+        }
+        if (item.id) {
+          await marcarNotificacion(item.id);
+        }
+      },
+      [marcarNotificacion]
+    );
     const limpiarTodasNotificaciones = useCallback(async () => {
       try {
         const respuesta = await fetch(`${API_BASE}/notificaciones/limpiar`, {
@@ -1298,6 +1822,7 @@
       onRefreshNotifications: cargarNotificaciones,
       onMarkNotification: marcarNotificacion,
       onMarkAllNotifications: limpiarTodasNotificaciones,
+      onOpenNotification: abrirNotificacion,
     });
   };
   ReactDOM.createRoot(document.getElementById("root")).render(

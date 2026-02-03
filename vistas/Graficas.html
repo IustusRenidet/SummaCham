@@ -285,8 +285,56 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    
+
+    <script src="js/guided-tour.js"></script>
     <script src="js/graficas-config.js"></script>
     <script src="js/graficas-resumen.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        if (!window.GuidedTour) return;
+        window.GuidedTour.mount({
+          id: "graficas-resumen",
+          buttonText: "Tour graficas",
+          steps: [
+            {
+              selector: "#grafYearSelect",
+              title: "Ejercicio",
+              description:
+                "Selecciona el anio que quieres analizar para refrescar todos los graficos.",
+            },
+            {
+              selector: "#grafMonthSelect",
+              title: "Periodo",
+              description:
+                "Cambia el mes de corte para comparar resultados del periodo seleccionado.",
+            },
+            {
+              selector: ".btn-group",
+              title: "Exportacion",
+              description:
+                "Desde aqui puedes exportar a Excel, PDF o imprimir las graficas en un clic.",
+            },
+            {
+              selector: "#operatingCard",
+              title: "Resultado operativo",
+              description:
+                "Este panel muestra el comparativo operativo por capitulo y por serie activa.",
+            },
+            {
+              selector: "#netCard",
+              title: "Resumen neto",
+              description:
+                "Aqui validas el comportamiento neto del resumen contra presupuesto y anio anterior.",
+            },
+            {
+              selector: ["#consolidatedCard", "#incomeByChapterCard"],
+              title: "Graficas adicionales",
+              description:
+                "Dependiendo de la empresa veras consolidados e ingresos por capitulo o nacionales.",
+            },
+          ],
+        });
+      });
+    </script>
   </body>
 </html>
