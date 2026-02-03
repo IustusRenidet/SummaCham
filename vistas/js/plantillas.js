@@ -18,7 +18,7 @@
   const AUTO_OPERACIONES_DISABLED = true;
   const MANUAL_ORDER_ONLY = true;
   const FORCE_EDIT_MODE = true;
-  const FORCE_MODAL_EDITOR = false;
+  const FORCE_MODAL_EDITOR = false; // SIEMPRE FALSE: usar panel lateral moderno
   let bulkRowCounter = 0;
 
   // ==========================================
@@ -710,13 +710,13 @@
         state.columnasConfig = null;
         state.columnasConfigChanged = false;
       }
-      // Autogeneración desactivada: no poblar operaciones automáticamente.
-      hydrateOperationsFromParents();
-      hydrateOperationPlacement();
-      dedupeOperations();
-      ensureOperationIds();
-      normalizeOperationReferences();
-      normalizePresentationOrders();
+      // MODO 100% MANUAL: desactivar funciones automáticas
+      // hydrateOperationsFromParents(); // No inferir ubicaciones
+      // hydrateOperationPlacement(); // No inferir placement
+      // dedupeOperations(); // No eliminar duplicados automáticamente
+      ensureOperationIds(); // Solo asegurar IDs si faltan
+      // normalizeOperationReferences(); // DESACTIVADO: modo 100% manual
+      // normalizePresentationOrders(); // No recalcular órdenes
       state.selectedElement = null;
 
       renderLayout();
@@ -3205,21 +3205,33 @@
     bindFormulaLayoutInteractions(dom.operationEditorPanel);
     setOperationEditorTab("editorTabFormula");
 
+    // Abrir panel lateral usando Bootstrap Offcanvas
     let panelShown = false;
     if (window.bootstrap?.Offcanvas) {
       try {
-        const panel = window.bootstrap.Offcanvas.getOrCreateInstance(
+        const offcanvas = window.bootstrap.Offcanvas.getOrCreateInstance(
           dom.operationEditorPanel
         );
-        panel?.show();
+        offcanvas.show();
         panelShown = true;
+        console.log("✅ Panel lateral abierto con Bootstrap Offcanvas");
       } catch (error) {
+        console.error("❌ Error al abrir panel con Bootstrap:", error);
         panelShown = false;
       }
     }
+    
+    // Fallback manual si Bootstrap no está disponible
     if (!panelShown) {
+      console.warn("⚠️ Bootstrap Offcanvas no disponible, usando fallback manual");
       panelShown = openOffcanvasFallback(dom.operationEditorPanel);
+      if (panelShown) {
+        console.log("✅ Panel lateral abierto con fallback manual");
+      } else {
+        console.error("❌ No se pudo abrir el panel lateral");
+      }
     }
+    
     return panelShown;
   }
 
@@ -4466,7 +4478,7 @@
     if (added) {
       state.operaciones = sortOperations(state.operaciones);
       ensureOperationIds();
-      normalizeOperationReferences();
+      // normalizeOperationReferences(); // DESACTIVADO: modo 100% manual
       state.unsavedChanges = true;
       updateButtonStates();
       logChange("add", `Operaciones sumas (${added})`);
@@ -6348,9 +6360,16 @@
         <td><input type="text" class="form-control form-control-sm text-center" data-field="signo" placeholder="1/-1" title="Signo: 1 suma, -1 resta. En cuentas aplica como factor. Vacio = automatico." data-bs-toggle="tooltip" data-bs-placement="top" value="${escapeAttr(
           values.signo || ""
         )}" /></td>
-        <td><input type="text" class="form-control form-control-sm font-monospace" data-field="formula" placeholder="A + B - C" value="${escapeAttr(
-          values.formula || ""
-        )}" /></td>
+        <td>
+          <div class="input-group input-group-sm">
+            <input type="text" class="form-control font-monospace" data-field="formula" placeholder="A + B - C" value="${escapeAttr(
+              values.formula || ""
+            )}" />
+            <button type="button" class="btn btn-outline-primary" data-action="edit-formula-bulk" title="Editor visual de fórmula">
+              <i class="bi bi-calculator"></i>
+            </button>
+          </div>
+        </td>
         <td class="text-center">
           <button type="button" class="btn btn-outline-danger btn-sm" data-action="remove-row" title="Eliminar fila">×</button>
         </td>
@@ -6385,6 +6404,11 @@
       const row = button.closest("tr");
       row?.remove();
       ensureBulkRows();
+    }
+    if (action === "edit-formula-bulk") {
+      const row = button.closest("tr");
+      if (!row) return;
+      openBulkFormulaEditor(row);
     }
   }
 
@@ -6774,6 +6798,73 @@
       principal ? "Selecciona subsección" : "Selecciona sección"
     );
     subseccionSelect.innerHTML = options;
+  }
+
+  // Editor de fórmula visual para inserción masiva
+  function openBulkFormulaEditor(row) {
+    if (!row) return;
+    
+    const tipoSelect = row.querySelector('select[data-field="tipo"]');
+    const tipo = tipoSelect?.value || "cuenta";
+    
+    if (tipo !== "operacion") {
+      showToast("El editor de fórmula solo aplica a operaciones", "warning");
+      return;
+    }
+    
+    const nombreInput = row.querySelector('input[data-field="nombre"]');
+    const formulaInput = row.querySelector('input[data-field="formula"]');
+    const nombreOperacion = nombreInput?.value || "Nueva Operación";
+    const formulaActual = formulaInput?.value || "";
+    
+    // Parsear fórmula actual para obtener términos
+    let formulaTerms = [];
+    if (formulaActual.trim()) {
+      try {
+        formulaTerms = parseFormulaText(formulaActual);
+      } catch (e) {
+        console.warn("No se pudo parsear fórmula:", formulaActual, e);
+      }
+    }
+    
+    // Si no hay términos, crear uno vacío
+    if (formulaTerms.length === 0) {
+      formulaTerms = [{
+        id: Date.now(),
+        operator: "+",
+        type: "section",
+        value: ""
+      }];
+    }
+    
+    // Crear operación temporal para pasar al editor
+    const tempOp = {
+      OperacionId: "TEMP_BULK_" + Date.now(),
+      Clase: nombreOperacion,
+      formula_terms: formulaTerms,
+      formula_json: JSON.stringify(formulaTerms)
+    };
+    
+    // Guardar referencia a la fila para actualizar después
+    tempOp._bulkRow = row;
+    tempOp._bulkFormulaInput = formulaInput;
+    
+    // Obtener elementos disponibles
+    const availableElements = buildAvailableElementsForFormula();
+    
+    // Abrir panel de edición
+    const panelOpened = openOperationEditorPanel(tempOp, availableElements);
+    if (panelOpened) {
+      // Configurar callback para cuando se guarde
+      window._bulkFormulaEditorCallback = function(updatedTerms) {
+        if (formulaInput) {
+          const newFormulaText = buildFormulaPreviewText(updatedTerms);
+          formulaInput.value = newFormulaText;
+          formulaInput.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        window._bulkFormulaEditorCallback = null;
+      };
+    }
   }
 
   function collectBulkRows() {
@@ -7321,7 +7412,7 @@
     if (!silent) {
       state.operaciones = sortOperations(state.operaciones);
       ensureOperationIds();
-      normalizeOperationReferences();
+      // normalizeOperationReferences(); // DESACTIVADO: modo 100% manual
       renderLayout();
       showToast(`Operación "${nombre}" creada`, "success");
     }
@@ -7445,6 +7536,12 @@
             const formulaTerms = row.formula
               ? parseFormulaText(row.formula)
               : [];
+            
+            // VALIDACIÓN: Las operaciones deben tener fórmula
+            if (formulaTerms.length === 0) {
+              throw new Error(`La operación "${nombre}" debe tener una fórmula. Usa el botón de calculadora para definirla.`);
+            }
+            
             const aparicion = (row.aparicion || "libre").trim();
             const rowLabels =
               aparicion && aparicion !== "libre"
@@ -7483,7 +7580,7 @@
     if (counters.operaciones > 0) {
       state.operaciones = sortOperations(state.operaciones);
       ensureOperationIds();
-      normalizeOperationReferences();
+      // normalizeOperationReferences(); // DESACTIVADO: modo 100% manual
     }
 
     if (errores.length) {
@@ -7671,7 +7768,7 @@
 
     state.operaciones = sortOperations(state.operaciones);
     ensureOperationIds();
-    normalizeOperationReferences();
+    // normalizeOperationReferences(); // DESACTIVADO: modo 100% manual
     renderLayout();
     showToast(`Operación "${resolvedClase}" guardada`, "success");
   }
@@ -8424,11 +8521,12 @@
       }
 
       // Save operations
-      hydrateOperationsFromParents();
-      hydrateOperationPlacement();
-      dedupeOperations({ silent: true });
-      ensureOperationIds();
-      normalizeOperationReferences();
+      // MODO 100% MANUAL: desactivar funciones automáticas
+      // hydrateOperationsFromParents(); // No inferir ubicaciones
+      // hydrateOperationPlacement(); // No inferir placement
+      // dedupeOperations({ silent: true }); // No eliminar duplicados automáticamente
+      ensureOperationIds(); // Solo asegurar IDs si faltan
+      // normalizeOperationReferences(); // DESACTIVADO: modo 100% manual
       const operacionesOrdenadas = sortOperations(state.operaciones);
       state.operaciones = operacionesOrdenadas;
       const operacionesParaGuardar = buildOperacionesParaGuardar(
@@ -9558,6 +9656,9 @@ window.editSection = function (name) {
 
     const opLabelInput =
       getOperationLabel(op) || getOperationDisplayName(op) || "";
+    const tipoSeleccionado = resolveOperationAparicionType(op);
+    const tipoTooltip = getAparicionTooltip(tipoSeleccionado);
+    const tipoOptions = buildAparicionOptions(tipoSeleccionado);
     const rowLabelsHtml = OP_ROW_FIELDS.map((row) => {
       const tooltipAttr = row.tooltip
         ? ` title="${escapeAttr(row.tooltip)}"`
@@ -9647,46 +9748,22 @@ window.editSection = function (name) {
     op.formula_json = JSON.stringify(normalizeFormulaTerms(termsForBuilder));
     console.log("📝 editOperation - op completo:", op);
 
-    if (!FORCE_MODAL_EDITOR) {
-      let panelOpened = false;
-      try {
-        panelOpened = openOperationEditorPanel(op, availableElements);
-      } catch (error) {
-        console.warn("No se pudo abrir el panel de edición", error);
-        panelOpened = false;
-      }
-      if (panelOpened) {
-        if (dom.formEditar) {
-          dom.formEditar.innerHTML = "";
-        }
-        return;
-      }
+    // SIEMPRE usar panel lateral - nunca modal
+    const panelOpened = openOperationEditorPanel(op, availableElements);
+    if (!panelOpened) {
+      console.error("❌ No se pudo abrir el panel de edición");
+      showToast("Error al abrir el editor de operación", "error");
     }
-
-    if (dom.modalEditar) {
-      if (window.bootstrap?.Modal) {
-        new bootstrap.Modal(dom.modalEditar).show();
-      } else {
-        dom.modalEditar.classList.add("show");
-        dom.modalEditar.style.display = "block";
-      }
-    }
+    return panelOpened;
   };
 
   window.editOperation = async function (operationId) {
     try {
       const result = await coreEditOperation(operationId);
-      const modalVisible = dom.modalEditar?.classList?.contains("show");
-      const panelVisible = dom.operationEditorPanel?.classList?.contains("show");
-      if (!modalVisible && !panelVisible) {
-        const op = findOperationByIdOrLabel(operationId);
-        openEmergencyOperationModal(op || {}, operationId, null);
-      }
       return result;
     } catch (error) {
-      console.error("Error en editOperation:", error);
-      const op = findOperationByIdOrLabel(operationId);
-      openEmergencyOperationModal(op || {}, operationId, error);
+      console.error("❌ Error en editOperation:", error);
+      showToast("Error al editar la operación: " + error.message, "error");
       return null;
     }
   };
@@ -10336,6 +10413,19 @@ window.editSection = function (name) {
           : collectFormulaTermsFromLayout(formulaPanel);
       formulaTerms = selectedTerms;
 
+      // VALIDACIÓN: Las operaciones deben tener fórmula
+      if (!formulaTerms || formulaTerms.length === 0) {
+        showToast("⚠️ La operación debe tener una fórmula. Usa la pestaña 'Fórmula' para definirla.", "error");
+        
+        // Cambiar a la pestaña de fórmula
+        const formulaTab = document.querySelector('[data-bs-target="#editorTabFormula"]');
+        if (formulaTab && window.bootstrap?.Tab) {
+          const tab = new window.bootstrap.Tab(formulaTab);
+          tab.show();
+        }
+        return;
+      }
+
       // Limpiar campos legacy
       op.signos = {};
       for (let i = 1; i <= 20; i++) {
@@ -10434,6 +10524,11 @@ window.editSection = function (name) {
     renderLayout();
     updateStats();
     scheduleAutoSave("edit");
+
+    // Si hay un callback de bulk formula editor, llamarlo con los términos actualizados
+    if (typeof window._bulkFormulaEditorCallback === 'function' && formulaTerms) {
+      window._bulkFormulaEditorCallback(formulaTerms);
+    }
 
     bootstrap.Modal.getInstance(dom.modalEditar)?.hide();
     bootstrap?.Offcanvas?.getInstance(dom.operationEditorPanel)?.hide();
@@ -12365,7 +12460,7 @@ window.editSection = function (name) {
     if (added || updated) {
       state.operaciones = sortOperations(state.operaciones);
       ensureOperationIds();
-      normalizeOperationReferences();
+      // normalizeOperationReferences(); // DESACTIVADO: modo 100% manual
       state.unsavedChanges = true;
       updateButtonStates();
     }
@@ -12488,7 +12583,7 @@ window.editSection = function (name) {
     state.operaciones.push(newOp);
     state.operaciones = sortOperations(state.operaciones);
     ensureOperationIds();
-    normalizeOperationReferences();
+    // normalizeOperationReferences(); // DESACTIVADO: modo 100% manual
     state.unsavedChanges = true;
     updateButtonStates();
     renderLayout();
