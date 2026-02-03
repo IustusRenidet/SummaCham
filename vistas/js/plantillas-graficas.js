@@ -594,6 +594,30 @@
     return snapshotLabelOptions;
   };
 
+  const setCustomSourceControlsState = (moduleValue, sourcePicker, addSourceBtn) => {
+    const moduleKey = normalizeModuleKey(moduleValue || "RESUMEN");
+    const useSnapshotPicker = isSummaryModuleKey(moduleKey);
+    if (useSnapshotPicker) {
+      if (sourcePicker) {
+        fillSelectOptions(sourcePicker, snapshotLabelOptions, "Selecciona una fila");
+      }
+      if (addSourceBtn) {
+        addSourceBtn.disabled = !snapshotLabelOptions.length;
+      }
+      return;
+    }
+    if (sourcePicker) {
+      fillSelectOptions(
+        sourcePicker,
+        [],
+        "Usa filas manuales del modulo seleccionado"
+      );
+    }
+    if (addSourceBtn) {
+      addSourceBtn.disabled = true;
+    }
+  };
+
   const renderCustomChartItem = (chart = {}) => {
     if (!customTemplate || !customList) return null;
     const node = customTemplate.content.firstElementChild.cloneNode(true);
@@ -625,12 +649,8 @@
     if (typeSelect) typeSelect.value = chart.chartType || "inherit";
     if (rowsInput) rowsInput.value = formatCustomRows(chart.rows);
     if (enabledInput) enabledInput.checked = chart.enabled !== false;
-
-    if (sourcePicker) {
-      fillSelectOptions(sourcePicker, snapshotLabelOptions, "Selecciona una fila");
-    }
+    setCustomSourceControlsState(chart.module || "RESUMEN", sourcePicker, addSourceBtn);
     if (addSourceBtn) {
-      addSourceBtn.disabled = !snapshotLabelOptions.length;
       addSourceBtn.addEventListener("click", () => {
         if (!sourcePicker || !rowsInput) return;
         const selected = sourcePicker.value;
@@ -638,6 +658,9 @@
         sourcePicker.value = "";
       });
     }
+    moduleSelect?.addEventListener("change", () => {
+      setCustomSourceControlsState(moduleSelect.value, sourcePicker, addSourceBtn);
+    });
 
     if (removeBtn) {
       removeBtn.addEventListener("click", () => {
@@ -716,13 +739,12 @@
       btn.disabled = !options.length;
     });
 
-    const customPickers = form.querySelectorAll("[data-custom-source-picker]");
-    customPickers.forEach((picker) => {
-      fillSelectOptions(picker, options, "Selecciona una fila");
-    });
-    const customAddButtons = form.querySelectorAll("[data-custom-add-source]");
-    customAddButtons.forEach((btn) => {
-      btn.disabled = !options.length;
+    form.querySelectorAll("[data-custom-chart]").forEach((card) => {
+      const moduleValue =
+        card.querySelector("[data-custom-module]")?.value || "RESUMEN";
+      const picker = card.querySelector("[data-custom-source-picker]");
+      const addBtn = card.querySelector("[data-custom-add-source]");
+      setCustomSourceControlsState(moduleValue, picker, addBtn);
     });
 
     if (ingresoSourcePicker) {
@@ -2086,12 +2108,27 @@
             : base.enabled !== false,
       };
     });
+    const customModuleKey = normalizeModuleKey(
+      definition?.module || getCurrentModuleValue() || "RESUMEN"
+    );
+    const customIsSummaryModule = isSummaryModuleKey(customModuleKey);
+    const operativoSeriesList = listFromMap(
+      config.operativo?.datasets || defaults.operativo?.datasets || {}
+    ).map((dataset) => ({
+      key: dataset.key,
+      label: dataset.label || dataset.key || "",
+      color: dataset.color || "#0d47a1",
+      enabled: dataset.enabled !== false,
+    }));
     const seriesList =
       Array.isArray(config.series) && config.series.length
         ? config.series
         : defaults.series || [];
+    const customSeriesBase = customIsSummaryModule
+      ? summarySeriesList
+      : operativoSeriesList;
     const customSeriesList = filterSeriesByKeys(
-      summarySeriesList,
+      customSeriesBase,
       definition.seriesKeys
     );
 
@@ -2272,6 +2309,7 @@
       });
     }
     if (definition.previewKind === "custom") {
+      if (!customIsSummaryModule) return null;
       const sourceType = (definition.sourceType || "snapshot").toString().toLowerCase();
       if (sourceType === "mensual") {
         return buildCustomMensualPreviewData({
@@ -2393,6 +2431,12 @@
     if (definition.previewKind === "operativo" || definition.previewKind === "gastos") {
       return "Vista previa disponible al abrir el modulo.";
     }
+    if (definition.previewKind === "custom") {
+      const chartModule = normalizeModuleKey(definition.module || "RESUMEN");
+      if (!isSummaryModuleKey(chartModule)) {
+        return "Vista previa disponible al abrir el modulo.";
+      }
+    }
     if (
       (definition.previewKind === "ingreso" ||
         definition.previewKind === "ingreso-nacional") &&
@@ -2432,8 +2476,7 @@
       const kind = definition.previewKind || "";
 
       if (kind === "custom") {
-        const chartModule = normalizeModuleKey(definition.module || "RESUMEN");
-        return chartModule === moduleKey;
+        return true;
       }
 
       if (isSummaryModule) {
@@ -2953,10 +2996,22 @@
     definitions = Array.isArray(definitions)
       ? filterDefinitionsByCapitulo(definitions, previewContext)
       : [];
+    const currentModuleKey = getCurrentModuleKey();
+    definitions = definitions.slice().sort((a, b) => {
+      const aCustom = a?.previewKind === "custom";
+      const bCustom = b?.previewKind === "custom";
+      if (!aCustom || !bCustom) return 0;
+      const aMatch =
+        normalizeModuleKey(a?.module || "RESUMEN") === currentModuleKey;
+      const bMatch =
+        normalizeModuleKey(b?.module || "RESUMEN") === currentModuleKey;
+      if (aMatch === bMatch) return 0;
+      return aMatch ? -1 : 1;
+    });
     const hasDefinitions = definitions.length > 0;
     if (!hasDefinitions) {
       galleryEl.innerHTML =
-        '<div class="text-muted text-center p-4">No hay graficas configuradas para este modulo</div>';
+        '<div class="text-muted text-center p-4">No hay graficas configuradas.</div>';
     }
 
     definitions.forEach((definition) => {

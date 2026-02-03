@@ -3549,6 +3549,18 @@
           const moduleKey = normalizeModuleKey(
             moduleValue || currentModule || "RESUMEN",
           );
+          const activeModuleKey = normalizeModuleKey(
+            window.state?.modulo ||
+              document.getElementById("moduloSelect")?.value ||
+              "",
+          );
+          if (
+            !isSummaryModuleKey(moduleKey) &&
+            activeModuleKey &&
+            activeModuleKey !== moduleKey
+          ) {
+            return [];
+          }
           const stateRows = collectRowsFromState();
           const domRows = collectRowsFromLayoutDom();
           const snapshotRows = getSnapshotLabels(moduleValue);
@@ -4057,8 +4069,23 @@
           rowPicker.innerHTML =
             '<option value="">Selecciona una fila del modulo...</option>';
           if (!labels.length) {
-            rowPicker.innerHTML =
-              '<option value="">No hay filas disponibles en el modulo actual</option>';
+            const moduleKey = normalizeModuleKey(currentModule || "RESUMEN");
+            const activeModuleKey = normalizeModuleKey(
+              window.state?.modulo ||
+                document.getElementById("moduloSelect")?.value ||
+                "",
+            );
+            if (
+              !isSummaryModuleKey(moduleKey) &&
+              activeModuleKey &&
+              activeModuleKey !== moduleKey
+            ) {
+              rowPicker.innerHTML =
+                '<option value="">Cambia el modulo superior al mismo modulo de la grafica para cargar filas</option>';
+            } else {
+              rowPicker.innerHTML =
+                '<option value="">No hay filas disponibles en el modulo actual</option>';
+            }
             return;
           }
           labels.forEach((label) => {
@@ -4210,6 +4237,13 @@
           const moduleKey = normalizeModuleKey(currentModule || "RESUMEN");
           const snapshot = getSnapshot();
           const requiresSnapshot = isSummaryModuleKey(moduleKey);
+          if (!requiresSnapshot) {
+            previewCanvas.classList.add("d-none");
+            previewFallback.classList.remove("d-none");
+            previewFallback.textContent =
+              "Vista previa real disponible al abrir el modulo seleccionado";
+            return;
+          }
           if (
             requiresSnapshot &&
             (!snapshot || !Array.isArray(snapshot.filas))
@@ -4262,11 +4296,11 @@
             const serie = getSeriesOverride(serieKey);
             if (!serie) return;
 
-            const data = selectedRows.map((row, rowIndex) => {
+            const data = selectedRows.map((row) => {
               const totals = getTotalsForVariants(row.variants || []);
               const value = Number(totals[serieKey]);
               if (Number.isFinite(value)) return value;
-              return (datasets.length + 1) * (rowIndex + 1) * 1000;
+              return 0;
             });
 
             datasets.push({
@@ -4282,6 +4316,16 @@
             previewCanvas.classList.add("d-none");
             previewFallback.classList.remove("d-none");
             previewFallback.textContent = "Sin datos";
+            return;
+          }
+          const hasData = datasets.some((dataset) =>
+            (dataset.data || []).some((value) => Number(value) !== 0),
+          );
+          if (!hasData) {
+            previewCanvas.classList.add("d-none");
+            previewFallback.classList.remove("d-none");
+            previewFallback.textContent =
+              "Sin datos para las filas y columnas seleccionadas";
             return;
           }
 
