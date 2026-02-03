@@ -1163,38 +1163,74 @@ const combinarTotales = (a = {}, b = {}, factor = 1) => ({
   };
 
   const insertarOperacionEnLayout = (layoutArr, opBlock, targetLabel) => {
-    if (!targetLabel) {
-      layoutArr.push(opBlock);
-      return;
-    }
-    const targetKey = normalizarTexto(targetLabel);
-    if (!targetKey) {
-      layoutArr.push(opBlock);
-      return;
-    }
-    const findIndex = (type) =>
-      layoutArr.findIndex(
-        (block) => block?.type === type && normalizarTexto(block.label) === targetKey
-      );
-    let idx = findIndex('secundaria');
-    let stopTypes = new Set(['secundaria', 'principal', 'group', 'result', 'net', 'final', 'operation']);
-    if (idx < 0) {
-      idx = findIndex('principal');
-      stopTypes = new Set(['principal', 'group', 'result', 'net', 'final', 'operation']);
-    }
-    if (idx < 0) {
-      layoutArr.push(opBlock);
-      return;
-    }
-    let insertAt = idx + 1;
-    while (insertAt < layoutArr.length) {
-      const next = layoutArr[insertAt];
-      if (!next || stopTypes.has(next.type) || next.type === 'principal' || next.type === 'secundaria') {
-        break;
+    const toNumberOrNull = (value) => {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : null;
+    };
+    const compareByOrder = (a, b) => {
+      const orderA = toNumberOrNull(a?.order);
+      const orderB = toNumberOrNull(b?.order);
+      if (orderA != null && orderB != null && orderA !== orderB) {
+        return orderA - orderB;
       }
-      insertAt += 1;
+      if (orderA != null && orderB == null) return -1;
+      if (orderA == null && orderB != null) return 1;
+      const idxA = toNumberOrNull(a?.orderIndex) ?? 0;
+      const idxB = toNumberOrNull(b?.orderIndex) ?? 0;
+      return idxA - idxB;
+    };
+    const targetKey = normalizarTexto(targetLabel);
+    if (targetKey) {
+      const findIndex = (type) =>
+        layoutArr.findIndex(
+          (block) => block?.type === type && normalizarTexto(block.label) === targetKey
+        );
+
+      let idx = findIndex('secundaria');
+      let stopTypes = new Set(['secundaria', 'principal', 'group', 'result', 'net', 'final']);
+      if (idx < 0) {
+        idx = findIndex('principal');
+        stopTypes = new Set(['principal', 'group', 'result', 'net', 'final']);
+      }
+
+      if (idx >= 0) {
+        let insertAt = idx + 1;
+        while (insertAt < layoutArr.length) {
+          const next = layoutArr[insertAt];
+          if (!next || stopTypes.has(next.type) || next.type === 'principal' || next.type === 'secundaria') {
+            break;
+          }
+
+          // Si ya hay operaciones en ese bloque, respetar el orden relativo de las operaciones.
+          if (next.type === 'operation') {
+            const currentOrder = toNumberOrNull(opBlock?.order);
+            const nextOrder = toNumberOrNull(next?.order);
+            if (currentOrder != null && nextOrder != null && currentOrder < nextOrder) {
+              break;
+            }
+          }
+
+          insertAt += 1;
+        }
+        layoutArr.splice(insertAt, 0, opBlock);
+        return;
+      }
     }
-    layoutArr.splice(insertAt, 0, opBlock);
+
+    // Sin destino claro: usar orden explícito global si existe.
+    if (toNumberOrNull(opBlock?.order) != null) {
+      let insertAt = layoutArr.length;
+      for (let i = 0; i < layoutArr.length; i += 1) {
+        if (compareByOrder(opBlock, layoutArr[i]) < 0) {
+          insertAt = i;
+          break;
+        }
+      }
+      layoutArr.splice(insertAt, 0, opBlock);
+      return;
+    }
+
+    layoutArr.push(opBlock);
   };
 
   operacionesLibresOrdenadas.forEach((op, idx) => {
@@ -1205,18 +1241,10 @@ const combinarTotales = (a = {}, b = {}, factor = 1) => ({
       op?.OperacionId || op?.operacion_id || op?.id || label
     );
     if (opKey) mapOperaciones.set(opKey, totals);
-    const styleFromTipo = (() => {
-      const tipo = (op?.tipo_operacion || '').toString().trim().toLowerCase();
-      if (tipo === 'seccion') return 'sum-row-principal';
-      if (tipo === 'subseccion') return 'subsection-row';
-      if (tipo === 'consolidacion') return 'highlight-secondary';
-      return '';
-    })();
     const rowStyle =
       op?.rowStyle ||
       op?.estilo_fila ||
-      styleFromTipo ||
-      undefined;
+      "operation-row";
     const opBlock = {
       type: 'operation',
       label,

@@ -1917,41 +1917,22 @@
     const renderedOpIds = new Set();
 
     sections.forEach((section) => {
-      // Agregar sección principal solo si no existe operación que la reemplace
-      const secOpId = `SECPRIN_${normalizeOperationId(section.name)}`;
-      const hasOperation = operaciones.some(op => 
-        getOperationId(op) === secOpId || 
-        (op.SECCION === section.name && op.tipo_operacion === 'seccion')
-      );
-      
-      if (!hasOperation) {
-        rows.push({
-          type: "principal",
-          label: section.name,
-          visible: true,
-        });
-      }
+      rows.push({
+        type: "principal",
+        label: section.name,
+        visible: true,
+      });
 
       // Agregar subsecciones
       section.subsections.forEach((subsection) => {
-        // Solo mostrar subsección si tiene nombre diferente a la sección principal
-        // Y no existe una operación que la reemplace
+        // Solo mostrar subsección si tiene nombre diferente a la sección principal.
         if (subsection.name && subsection.name !== section.name) {
-          const subsecOpId = `SUBSEC_${normalizeOperationId(subsection.name)}`;
-          const hasOperation = operaciones.some(op => 
-            getOperationId(op) === subsecOpId || 
-            (op.SECCION === subsection.name && op.tipo_operacion === 'subseccion')
-          );
-          
-          // Solo agregar la fila de subsección si NO hay operación que la reemplace
-          if (!hasOperation) {
-            rows.push({
-              type: "subsection",
-              label: subsection.name,
-              parentSection: section.name,
-              visible: true,
-            });
-          }
+          rows.push({
+            type: "subsection",
+            label: subsection.name,
+            parentSection: section.name,
+            visible: true,
+          });
         }
 
         // Agregar cuentas de la subsección
@@ -4367,7 +4348,8 @@
     );
   }
 
-  function applyTemplateRowsOrder(orderedRows = []) {
+  function applyTemplateRowsOrder(orderedRows = [], options = {}) {
+    const silent = Boolean(options?.silent);
     if (!Array.isArray(orderedRows) || !orderedRows.length) {
       return { success: false, message: "Sin filas para aplicar." };
     }
@@ -4501,10 +4483,12 @@
     state.cuentas = sortAccountsByOrder(state.cuentas || []);
     state.operaciones = sortOperations(state.operaciones || []);
     state.unsavedChanges = true;
-    updateButtonStates();
-    logChange("move", "Orden manual aplicado desde Reordenar");
-    renderLayout();
-    updateLayoutOrderPanel();
+    if (!silent) {
+      updateButtonStates();
+      logChange("move", "Orden manual aplicado desde Reordenar");
+      renderLayout();
+      updateLayoutOrderPanel();
+    }
 
     return {
       success: true,
@@ -8858,6 +8842,19 @@
       return false;
     }
 
+    // Antes de guardar, sincronizar orden real de la vista previa con orden_presentacion.
+    // Evita que operaciones queden "hasta abajo" por órdenes heredados/antiguos.
+    if (state.unsavedChanges === true) {
+      try {
+        const previewRows = getTemplateRowsForReorder();
+        if (previewRows.length) {
+          applyTemplateRowsOrder(previewRows, { silent: true });
+        }
+      } catch (orderSyncError) {
+        console.warn("[saveLayout] No se pudo sincronizar orden visual", orderSyncError);
+      }
+    }
+
     // Generar resumen de cambios
     const changesSummary = generateChangesSummary();
     const hasDirtyChanges = state.unsavedChanges === true;
@@ -10960,6 +10957,24 @@ window.editSection = function (name) {
       } else {
         op.formula_terms = [];
         op.formula_json = "";
+      }
+
+      // Flujo de inserción masiva: aplicar fórmula en la fila del modal Agregar
+      // sin tocar el layout persistido hasta confirmar "Agregar".
+      if (op?._bulkFormulaInput) {
+        const bulkTerms = Array.isArray(op.formula_terms) ? op.formula_terms : [];
+        const bulkText = buildFormulaPreviewText(bulkTerms);
+        op._bulkFormulaInput.value = bulkText === "Sin fórmula" ? "" : bulkText;
+        op._bulkFormulaInput.dispatchEvent(
+          new Event("change", { bubbles: true })
+        );
+        if (typeof window._bulkFormulaEditorCallback === "function") {
+          window._bulkFormulaEditorCallback(bulkTerms);
+          window._bulkFormulaEditorCallback = null;
+        }
+        bootstrap?.Offcanvas?.getInstance(dom.operationEditorPanel)?.hide();
+        showToast("Fórmula aplicada en la fila de inserción", "success");
+        return;
       }
     } else if (state.selectedElement.type === "consolidatedLabel") {
       // Handle consolidated label edit
