@@ -94,6 +94,7 @@ body {
   border-radius: 14px;
   padding: 1rem;
   background: #f9fbff;
+  margin-bottom: 1rem;
 }
 
 .manual-chart-card .form-text {
@@ -102,6 +103,15 @@ body {
 
 .manual-series-list .form-check {
   margin-right: 0.75rem;
+}
+
+.series-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  margin-right: 6px;
+  vertical-align: middle;
 }
 
 #graficasConfigForm[data-manual-only="true"] [data-auto-charts] {

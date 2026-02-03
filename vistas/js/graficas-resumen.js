@@ -53,6 +53,8 @@
   );
   const ingresoNacionalCanvas = document.getElementById("chartIngresoNacional");
   const ingresoNacionalCard = document.getElementById("incomeNationalCard");
+  const operatingCard = document.getElementById("operatingCard");
+  const netCard = document.getElementById("netCard");
   const customChartsRow = document.getElementById("customChartsRow");
   const charts = {};
   const customCharts = {};
@@ -71,6 +73,15 @@
       .replace(/[\u0300-\u036f]/g, "")
       .toUpperCase()
       .replace(/\s+/g, " ");
+
+  const normalizeModuleKey = (value = "") =>
+    value
+      .toString()
+      .trim()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, "");
 
   const formatNumber = (n) =>
     new Intl.NumberFormat("es-MX", {
@@ -105,6 +116,14 @@
     if (!clean) return fallback;
     if (clean === "inherit") return "inherit";
     if (["bar", "line", "pie", "doughnut"].includes(clean)) return clean;
+    return fallback;
+  };
+
+  const normalizeSourceType = (value, fallback = "snapshot") => {
+    if (typeof value !== "string") return fallback;
+    const clean = value.trim().toLowerCase();
+    if (!clean) return fallback;
+    if (["snapshot", "mensual", "custom"].includes(clean)) return clean;
     return fallback;
   };
 
@@ -1047,6 +1066,8 @@
         },
       },
     },
+    manualOnly: true,
+    customCharts: [],
   };
 
   const clone = (value) => JSON.parse(JSON.stringify(value));
@@ -1074,6 +1095,87 @@
       };
     });
     return result;
+  };
+
+  const normalizeCustomCharts = (charts = []) => {
+    if (!Array.isArray(charts)) return [];
+    return charts.map((chart, index) => {
+      const id = chart?.id ? String(chart.id) : `custom-${index + 1}`;
+      const module =
+        typeof chart?.module === "string" && chart.module.trim()
+          ? chart.module.trim()
+          : "RESUMEN";
+      const title =
+        typeof chart?.title === "string" && chart.title.trim()
+          ? chart.title.trim()
+          : `Grafica ${index + 1}`;
+      const subtitle =
+        typeof chart?.subtitle === "string" ? chart.subtitle.trim() : "";
+      const chartType = normalizeChartType(chart?.chartType, "inherit");
+      const enabled = typeof chart?.enabled === "boolean" ? chart.enabled : true;
+      const rows = Array.isArray(chart?.rows) ? chart.rows : [];
+      const normalizedRows = rows
+        .map((row) => {
+          const variants = Array.isArray(row?.variants)
+            ? row.variants
+            : Array.isArray(row?.labels)
+            ? row.labels
+            : [];
+          const cleaned = variants
+            .map((v) => (typeof v === "string" ? v.trim() : ""))
+            .filter(Boolean);
+          if (!cleaned.length) return null;
+          const alias =
+            typeof row?.alias === "string" && row.alias.trim()
+              ? row.alias.trim()
+              : cleaned[0];
+          return { alias, variants: cleaned };
+        })
+        .filter(Boolean);
+      const seriesKeys = Array.isArray(chart?.seriesKeys)
+        ? chart.seriesKeys
+            .map((key) => (key != null ? String(key).trim() : ""))
+            .filter(Boolean)
+        : [];
+      const series = Array.isArray(chart?.series)
+        ? chart.series
+            .map((serie) => {
+              const key = serie?.key != null ? String(serie.key).trim() : "";
+              if (!key) return null;
+              const label =
+                typeof serie?.label === "string" && serie.label.trim()
+                  ? serie.label.trim()
+                  : key;
+              const color =
+                typeof serie?.color === "string" && serie.color.trim()
+                  ? serie.color.trim()
+                  : "#0d47a1";
+              const enabled =
+                typeof serie?.enabled === "boolean" ? serie.enabled : true;
+              return { key, label, color, enabled };
+            })
+            .filter(Boolean)
+        : [];
+      const mergedSeriesKeys = Array.from(
+        new Set([
+          ...seriesKeys,
+          ...series.map((serie) => serie.key).filter(Boolean),
+        ])
+      );
+      const sourceType = normalizeSourceType(chart?.sourceType, "snapshot");
+      return {
+        id,
+        module,
+        title,
+        subtitle,
+        chartType,
+        enabled,
+        sourceType,
+        seriesKeys: mergedSeriesKeys,
+        series,
+        rows: normalizedRows,
+      };
+    });
   };
 
   const normalizeGraficasConfig = (config = {}) => {
@@ -1105,6 +1207,9 @@
         return { ...serie, label, color, enabled };
       });
     }
+
+    // Flujo manual obligatorio.
+    base.manualOnly = true;
 
     if (config.charts && typeof config.charts === "object") {
       ["operating", "net", "consolidated"].forEach((key) => {
@@ -1148,7 +1253,7 @@
     if (config.chart && typeof config.chart === "object") {
       if (
         typeof config.chart.type === "string" &&
-        ["bar", "line"].includes(config.chart.type)
+        ["bar", "line", "pie", "doughnut"].includes(config.chart.type)
       ) {
         base.chart.type = config.chart.type;
       }
@@ -1233,6 +1338,10 @@
       }
     }
 
+    if (Array.isArray(config.customCharts)) {
+      base.customCharts = normalizeCustomCharts(config.customCharts);
+    }
+
     return base;
   };
 
@@ -1277,6 +1386,35 @@
     return filtered.length ? filtered : seriesList;
   };
 
+  const applyCustomSeriesOverrides = (seriesList = [], chart = {}) => {
+    const overrides = Array.isArray(chart?.series) ? chart.series : [];
+    if (!overrides.length) return seriesList;
+    const overrideMap = new Map(
+      overrides
+        .map((item) => {
+          const key = item?.key != null ? String(item.key).trim() : "";
+          if (!key) return null;
+          return [key, item];
+        })
+        .filter(Boolean)
+    );
+    return (seriesList || []).map((serie) => {
+      const override = overrideMap.get(serie?.key);
+      if (!override) return serie;
+      return {
+        ...serie,
+        label:
+          typeof override.label === "string" && override.label.trim()
+            ? override.label.trim()
+            : serie.label,
+        color:
+          typeof override.color === "string" && override.color.trim()
+            ? override.color.trim()
+            : serie.color,
+      };
+    });
+  };
+
   // === RENDERIZADO DE GRÁFICAS ===
   const renderChart = (id, cfg) => {
     const ctx = document.getElementById(id);
@@ -1290,6 +1428,21 @@
       charts[id].destroy();
       delete charts[id];
     }
+  };
+
+  const hideAutoCharts = () => {
+    if (operatingCard) operatingCard.style.display = "none";
+    if (netCard) netCard.style.display = "none";
+    if (consolidatedCard) consolidatedCard.style.display = "none";
+    if (ingresoPorCapituloCard) ingresoPorCapituloCard.style.display = "none";
+    if (ingresoNacionalCard) ingresoNacionalCard.style.display = "none";
+    [
+      "chartOperatingSummaryByChapter",
+      "chartNetSummaryByChapter",
+      "chartConsolidatedResults",
+      "chartIngresoPorCapitulo",
+      "chartIngresoNacional",
+    ].forEach((id) => clearChart(id));
   };
 
   const applyCommonChartOptions = (options = {}, config, chartTypeOverride) => {
@@ -1326,7 +1479,7 @@
       .replace(/[^a-zA-Z0-9_-]/g, "");
 
   const getCustomModuleKey = (chart) =>
-    (chart?.module || "RESUMEN").toString().trim().toUpperCase();
+    normalizeModuleKey(chart?.module || "RESUMEN");
 
   const getRowDataLoose = (snapshotMap, labels) => {
     if (!snapshotMap) return { actual: 0, plan: 0, prev: 0, actualYTD: 0, planYTD: 0, prevYTD: 0 };
@@ -1480,9 +1633,9 @@
       : [];
     if (!customChartsList.length) return;
 
-    const currentModule = (document.body?.dataset?.modulo || "RESUMEN")
-      .toString()
-      .toUpperCase();
+    const currentModule = normalizeModuleKey(
+      document.body?.dataset?.modulo || "RESUMEN"
+    );
     const baseColumnDefs = getColumnDefs(config);
     if (!baseColumnDefs.length) return;
 
@@ -1580,9 +1733,9 @@
       const sourceType = (chart?.sourceType || "snapshot")
         .toString()
         .toLowerCase();
-      const columnDefs = filterSeriesByKeys(
-        baseColumnDefs,
-        chart?.seriesKeys || []
+      const columnDefs = applyCustomSeriesOverrides(
+        filterSeriesByKeys(baseColumnDefs, chart?.seriesKeys || []),
+        chart
       );
       if (!columnDefs.length) return;
 
@@ -1759,6 +1912,11 @@
     }
 
     const graficasConfig = getGraficasConfig();
+    if (graficasConfig?.manualOnly === true) {
+      hideAutoCharts();
+      renderCustomCharts(snapshotMap, graficasConfig, context);
+      return;
+    }
     const columnDefs = getColumnDefs(graficasConfig);
     const baseChartType = graficasConfig.chart?.type || "bar";
     const operatingType = resolveChartType(
@@ -2340,6 +2498,9 @@
     clearChart("chartIngresoPorCapitulo");
 
     const graficasConfig = getGraficasConfig();
+    if (graficasConfig?.manualOnly === true) {
+      return;
+    }
     const ingresoConfig =
       graficasConfig.ingreso || DEFAULT_GRAFICAS_CONFIG.ingreso;
     const baseChartType = graficasConfig.chart?.type || "bar";
@@ -2420,6 +2581,9 @@
     clearChart("chartIngresoNacional");
 
     const graficasConfig = getGraficasConfig();
+    if (graficasConfig?.manualOnly === true) {
+      return;
+    }
     const ingresoConfig =
       graficasConfig.ingresoNacional || DEFAULT_GRAFICAS_CONFIG.ingresoNacional;
     const baseChartType = graficasConfig.chart?.type || "bar";
@@ -2559,6 +2723,9 @@
       });
       clearCustomCharts();
       const graficasConfig = getGraficasConfig();
+      if (graficasConfig?.manualOnly === true) {
+        hideAutoCharts();
+      }
       renderCustomCharts(null, graficasConfig, {
         empresaId: empresa.id,
         anio,
@@ -2678,14 +2845,25 @@
   // === EXPORTACIÓN A EXCEL Y PDF ===
 
   const resolveExportFlags = (graficasConfig, rowsConfig = {}) => ({
-    operating: graficasConfig?.charts?.operating?.enabled !== false,
-    net: graficasConfig?.charts?.net?.enabled !== false,
+    operating: graficasConfig?.manualOnly === true
+      ? false
+      : graficasConfig?.charts?.operating?.enabled !== false,
+    net: graficasConfig?.manualOnly === true
+      ? false
+      : graficasConfig?.charts?.net?.enabled !== false,
     consolidated:
-      rowsConfig?.isCdmx &&
-      graficasConfig?.charts?.consolidated?.enabled !== false,
-    ingreso: graficasConfig?.ingreso?.enabled !== false,
+      graficasConfig?.manualOnly === true
+        ? false
+        : rowsConfig?.isCdmx &&
+          graficasConfig?.charts?.consolidated?.enabled !== false,
+    ingreso:
+      graficasConfig?.manualOnly === true
+        ? false
+        : graficasConfig?.ingreso?.enabled !== false,
     ingresoNacional:
-      rowsConfig?.isCdmx && graficasConfig?.ingresoNacional?.enabled !== false,
+      graficasConfig?.manualOnly === true
+        ? false
+        : rowsConfig?.isCdmx && graficasConfig?.ingresoNacional?.enabled !== false,
   });
 
   const resolveCanvasTitle = (canvas, fallback = '') => {

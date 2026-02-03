@@ -76,6 +76,7 @@
   })();
 
   const charts = {};
+  const customCharts = {};
   let updateTimer = null;
   let requestId = 0;
 
@@ -109,6 +110,21 @@
       .replace(/[\u0300-\u036f]/g, "")
       .toUpperCase();
   };
+
+  const normalizarClaveModulo = (valor) =>
+    normalizarTexto(valor).replace(/[^A-Z0-9]/g, "");
+
+  const getCurrentModuleKey = () =>
+    normalizarClaveModulo(
+      document.body?.dataset?.modulo ||
+        document.body?.dataset?.moduloAlias ||
+        document.body?.dataset?.moduloId ||
+        "Gastos Generales"
+    );
+
+  const moduleMatchesCurrent = (moduleValue) =>
+    normalizarClaveModulo(moduleValue || "Gastos Generales") ===
+    getCurrentModuleKey();
 
   const obtenerVariableCss = (nombre, fallback) => {
     if (!window.getComputedStyle) return fallback;
@@ -153,6 +169,47 @@
     const normalized = normalizeChartType(value, "inherit");
     if (normalized === "inherit") return baseType || "line";
     return normalized;
+  };
+
+  const filterSeriesByKeys = (seriesList = [], keys = []) => {
+    if (!Array.isArray(keys) || !keys.length) return seriesList;
+    const keySet = new Set(
+      keys.map((key) => String(key || "").trim()).filter(Boolean)
+    );
+    if (!keySet.size) return seriesList;
+    const filtered = (seriesList || []).filter((serie) =>
+      keySet.has(String(serie?.key || "").trim())
+    );
+    return filtered.length ? filtered : seriesList;
+  };
+
+  const applyCustomSeriesOverrides = (seriesList = [], chart = {}) => {
+    const overrides = Array.isArray(chart?.series) ? chart.series : [];
+    if (!overrides.length) return seriesList;
+    const map = new Map(
+      overrides
+        .map((item) => {
+          const key = String(item?.key || "").trim();
+          if (!key) return null;
+          return [key, item];
+        })
+        .filter(Boolean)
+    );
+    return (seriesList || []).map((serie) => {
+      const override = map.get(String(serie?.key || "").trim());
+      if (!override) return serie;
+      return {
+        ...serie,
+        label:
+          typeof override.label === "string" && override.label.trim()
+            ? override.label.trim()
+            : serie.label,
+        color:
+          typeof override.color === "string" && override.color.trim()
+            ? override.color.trim()
+            : serie.color,
+      };
+    });
   };
 
   const buildSlicePalette = (count, baseColor) => {
@@ -413,6 +470,34 @@
     empty.style.display = mostrar ? "flex" : "none";
   };
 
+  const clearDefaultCharts = () => {
+    TARGETS.forEach((target) => {
+      const chart = charts[target.id];
+      if (chart) {
+        chart.destroy();
+        charts[target.id] = null;
+      }
+      const container = document.querySelector(`[data-gg-chart="${target.id}"]`);
+      const col =
+        container?.closest(".col-12") || container?.closest(".chart-block");
+      if (col) col.style.display = "none";
+      const canvas = container?.querySelector("canvas");
+      if (canvas) canvas.style.display = "none";
+      toggleEmpty(target.id, true, "Sin datos para graficar.");
+    });
+  };
+
+  const clearCustomCharts = (container) => {
+    Object.keys(customCharts).forEach((key) => {
+      customCharts[key]?.destroy?.();
+      delete customCharts[key];
+    });
+    if (!container) return;
+    container.querySelectorAll("[data-gg-custom-chart]").forEach((node) => {
+      node.remove();
+    });
+  };
+
   const buildChartDatasets = ({
     labels,
     dataActual,
@@ -641,6 +726,311 @@
     }
   };
 
+  const getGastosTableIndices = (tabla) => {
+    const headers = Array.from(tabla?.querySelectorAll("thead th") || []);
+    const annualIndex = headers.findIndex((th) =>
+      th.classList.contains("budget-annual-column")
+    );
+    const budgetMonthIndices = [];
+    const realMonthIndices = [];
+    headers.forEach((th, idx) => {
+      if (th.classList.contains("month-budget")) {
+        budgetMonthIndices.push(idx);
+      } else if (th.classList.contains("month-real")) {
+        realMonthIndices.push(idx);
+      }
+    });
+    return { annualIndex, budgetMonthIndices, realMonthIndices };
+  };
+
+  const getSeriesValue = (row, key) => {
+    const clean = String(key || "").trim().toLowerCase();
+    if (clean === "budget") return Number(row?.budget) || 0;
+    if (clean === "annual") return Number(row?.annual) || 0;
+    return Number(row?.real) || 0;
+  };
+
+  const getRowsDataFromTable = (tabla) => {
+    if (!tabla) return [];
+    const indices = getGastosTableIndices(tabla);
+    if (
+      !indices.budgetMonthIndices.length &&
+      !indices.realMonthIndices.length &&
+      indices.annualIndex < 0
+    ) {
+      return [];
+    }
+    const rows = Array.from(tabla.querySelectorAll("tbody tr"));
+    return rows
+      .map((row) => {
+        const style = window.getComputedStyle(row);
+        if (style.display === "none" || style.visibility === "hidden") {
+          return null;
+        }
+        const cells = Array.from(row.cells || []);
+        if (cells.length < 2) return null;
+        const labelRaw = (cells[1]?.textContent || "").toString().trim();
+        const accountRaw = (cells[0]?.textContent || "").toString().trim();
+        if (!labelRaw && !accountRaw) return null;
+        const budget = indices.budgetMonthIndices.reduce(
+          (sum, idx) => sum + parseNumero(cells[idx]?.textContent || "0"),
+          0
+        );
+        const real = indices.realMonthIndices.reduce(
+          (sum, idx) => sum + parseNumero(cells[idx]?.textContent || "0"),
+          0
+        );
+        const annual =
+          indices.annualIndex >= 0
+            ? parseNumero(cells[indices.annualIndex]?.textContent || "0")
+            : budget;
+        const label = labelRaw || accountRaw;
+        return {
+          label,
+          key: normalizarTexto(label),
+          accountKey: normalizarTexto(accountRaw),
+          budget,
+          real,
+          annual,
+        };
+      })
+      .filter(Boolean);
+  };
+
+  const matchRowByVariants = (rowsData = [], variants = []) => {
+    const normalized = (Array.isArray(variants) ? variants : [])
+      .map((value) => normalizarTexto(value))
+      .filter(Boolean);
+    if (!normalized.length) return null;
+    for (const key of normalized) {
+      const exact = rowsData.find(
+        (row) => row.key === key || row.accountKey === key
+      );
+      if (exact) return exact;
+    }
+    for (const key of normalized) {
+      const partial = rowsData.find(
+        (row) => row.key.includes(key) || key.includes(row.key)
+      );
+      if (partial) return partial;
+    }
+    return null;
+  };
+
+  const buildManualDatasets = ({
+    labels,
+    rows,
+    chart,
+    chartType,
+    datasetDefs,
+  }) => {
+    if (!Array.isArray(labels) || !labels.length) return [];
+    const selected = applyCustomSeriesOverrides(
+      filterSeriesByKeys(datasetDefs, chart?.seriesKeys || []),
+      chart
+    );
+    if (!selected.length) return [];
+    const pie = isPieType(chartType);
+    const defs = pie ? [selected[0]] : selected;
+    return defs.map((datasetDef) => {
+      const data = rows.map((row) => getSeriesValue(row, datasetDef.key));
+      const dataset = {
+        label: datasetDef.label || datasetDef.key,
+        data,
+        hidden: datasetDef.enabled === false,
+      };
+      if (pie) {
+        dataset.backgroundColor = buildSlicePalette(labels.length, datasetDef.color);
+        dataset.borderColor = "#ffffff";
+        dataset.borderWidth = 1;
+      } else {
+        const color = datasetDef.color || "#2f5496";
+        dataset.backgroundColor = color;
+        dataset.borderColor = color;
+        dataset.borderWidth = chartType === "line" ? 2 : 1;
+        if (chartType === "line") {
+          dataset.pointBackgroundColor = color;
+          dataset.pointBorderColor = color;
+          dataset.pointRadius = 3;
+          dataset.pointHoverRadius = 4;
+          dataset.tension = 0.3;
+          dataset.fill = false;
+        } else if (chartType === "bar") {
+          dataset.borderRadius = 8;
+          dataset.maxBarThickness = 28;
+        }
+      }
+      return dataset;
+    });
+  };
+
+  const renderManualCustomCharts = ({ panel, graficasConfig, tabla }) => {
+    const container = panel?.querySelector(".row.g-3");
+    if (!container || !tabla) return 0;
+    clearCustomCharts(container);
+    clearDefaultCharts();
+
+    const list = Array.isArray(graficasConfig?.customCharts)
+      ? graficasConfig.customCharts
+      : [];
+    const moduleCharts = list.filter(
+      (chart) => chart?.enabled !== false && moduleMatchesCurrent(chart?.module)
+    );
+    if (!moduleCharts.length) {
+      const emptyCol = document.createElement("div");
+      emptyCol.className = "col-12";
+      emptyCol.setAttribute("data-gg-custom-chart", "empty");
+      emptyCol.innerHTML = `
+        <div class="sidebar-empty" style="display:flex; min-height:120px;">
+          No hay graficas manuales configuradas para este modulo.
+        </div>
+      `;
+      container.appendChild(emptyCol);
+      return 0;
+    }
+
+    const rowsData = getRowsDataFromTable(tabla);
+    const chartTypeBase = graficasConfig?.chart?.type || "bar";
+    const operativoDatasets =
+      graficasConfig?.operativo?.datasets || DEFAULT_OPERATIVO_CONFIG.datasets;
+    const anio = obtenerAnioSeleccionado();
+    const datasetDefs = Object.keys(operativoDatasets || {})
+      .map((key) => {
+        const serie = operativoDatasets[key] || {};
+        const labelTemplate = serie.label || key;
+        return {
+          key,
+          label: applyTemplate(labelTemplate, {
+            year: anio,
+            annual: Number.isInteger(anio) ? anio : "",
+          }),
+          color: serie.color || "#2f5496",
+          enabled: serie.enabled !== false,
+        };
+      })
+      .filter((serie) => serie.enabled !== false);
+
+    let rendered = 0;
+    moduleCharts.forEach((chart, index) => {
+      const rowsCfg = Array.isArray(chart?.rows) ? chart.rows : [];
+      if (!rowsCfg.length) return;
+      const resolvedRows = rowsCfg.map((row) => {
+        const variants = Array.isArray(row?.variants) ? row.variants : [];
+        const match = matchRowByVariants(rowsData, variants);
+        return {
+          label:
+            (typeof row?.alias === "string" && row.alias.trim()
+              ? row.alias.trim()
+              : (variants[0] || "").toString().trim()) ||
+            `Fila ${index + 1}`,
+          budget: match ? match.budget : 0,
+          real: match ? match.real : 0,
+          annual: match ? match.annual : 0,
+        };
+      });
+      const labels = resolvedRows.map((row) => row.label);
+      const chartType = resolveChartType(chart?.chartType, chartTypeBase);
+      const datasets = buildManualDatasets({
+        labels,
+        rows: resolvedRows,
+        chart,
+        chartType,
+        datasetDefs,
+      });
+      if (!datasets.length) return;
+
+      const chartId = (chart?.id || `custom-${index + 1}`)
+        .toString()
+        .replace(/[^a-zA-Z0-9_-]/g, "");
+      const canvasId = `ggCustomChart_${chartId || index + 1}`;
+      const col = document.createElement("div");
+      col.className = "col-12 col-lg-6";
+      col.setAttribute("data-gg-custom-chart", canvasId);
+      col.innerHTML = `
+        <div class="chart-block" data-custom-chart="${canvasId}">
+          <div class="chart-title">${(chart?.title || `Grafica manual ${index + 1}`)
+            .toString()
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")}</div>
+          ${
+            chart?.subtitle
+              ? `<div class="chart-subtitle text-muted small mb-2">${String(
+                  chart.subtitle
+                )
+                  .replace(/</g, "&lt;")
+                  .replace(/>/g, "&gt;")}</div>`
+              : ""
+          }
+          <div class="chart-container">
+            <canvas id="${canvasId}"></canvas>
+          </div>
+        </div>
+      `;
+      container.appendChild(col);
+
+      const canvas = col.querySelector("canvas");
+      const ctx = canvas?.getContext("2d");
+      if (!ctx) return;
+      customCharts[canvasId] = new Chart(ctx, {
+        type: chartType,
+        data: {
+          labels,
+          datasets,
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            mode: isPieType(chartType) ? "nearest" : "index",
+            intersect: isPieType(chartType),
+          },
+          plugins: {
+            legend: {
+              position: "bottom",
+              labels: {
+                boxWidth: 12,
+                boxHeight: 12,
+                usePointStyle: true,
+              },
+            },
+            tooltip: {
+              callbacks: {
+                label: (ctx) =>
+                  `${ctx.dataset?.label || ""}: ${formatearNumero(
+                    getParsedValue(ctx)
+                  )}`,
+              },
+            },
+          },
+          scales: isPieType(chartType)
+            ? {}
+            : {
+                y: {
+                  beginAtZero: true,
+                  ticks: {
+                    callback: (value) => formatearNumero(value),
+                  },
+                },
+              },
+        },
+      });
+      rendered += 1;
+    });
+
+    if (rendered === 0) {
+      const emptyCol = document.createElement("div");
+      emptyCol.className = "col-12";
+      emptyCol.setAttribute("data-gg-custom-chart", "empty");
+      emptyCol.innerHTML = `
+        <div class="sidebar-empty" style="display:flex; min-height:120px;">
+          Las graficas manuales no tienen filas/columnas validas.
+        </div>
+      `;
+      container.appendChild(emptyCol);
+    }
+    return rendered;
+  };
+
   const actualizarSubtitulo = (anio, config) => {
     const subtitle = document.getElementById("gastosGeneralesChartsSubtitle");
     if (!subtitle || !Number.isInteger(anio)) return;
@@ -658,6 +1048,7 @@
     const panel = document.getElementById("gastosGeneralesChartsPanel");
     const gastosConfig = getGastosConfig();
     const graficasConfig = getGraficasConfig();
+    const manualOnly = graficasConfig?.manualOnly !== false;
     const baseChartType = graficasConfig.chart?.type || "bar";
     if (panel) {
       if (gastosConfig.enabled === false) {
@@ -666,6 +1057,37 @@
       }
       panel.style.display = "";
     }
+
+    const table = document.getElementById("tablaComparacion");
+    const rowContainer = panel?.querySelector(".row.g-3");
+    if (manualOnly) {
+      if (typeof Chart === "undefined") {
+        clearDefaultCharts();
+        clearCustomCharts(rowContainer);
+        if (rowContainer) {
+          const emptyCol = document.createElement("div");
+          emptyCol.className = "col-12";
+          emptyCol.setAttribute("data-gg-custom-chart", "empty");
+          emptyCol.innerHTML = `
+            <div class="sidebar-empty" style="display:flex; min-height:120px;">
+              Chart.js no disponible.
+            </div>
+          `;
+          rowContainer.appendChild(emptyCol);
+        }
+        return;
+      }
+      const subtitle = document.getElementById("gastosGeneralesChartsSubtitle");
+      if (subtitle) subtitle.textContent = "Graficas manuales del modulo";
+      renderManualCustomCharts({
+        panel,
+        graficasConfig,
+        tabla: table,
+      });
+      return;
+    }
+
+    clearCustomCharts(rowContainer);
 
     const baseCharts = DEFAULT_GASTOS_CONFIG.charts || {};
     const configById = new Map();
@@ -793,12 +1215,14 @@
     scheduleUpdate();
     panel.addEventListener("shown.bs.collapse", () => {
       scheduleUpdate();
-      Object.values(charts).forEach((chart) => chart?.resize());
+      Object.values(charts).forEach((chart) => chart?.resize?.());
+      Object.values(customCharts).forEach((chart) => chart?.resize?.());
     });
     window.addEventListener("modulo-planeacion:tabla-actualizada", scheduleUpdate);
     window.addEventListener("planeacion:contexto-actualizado", scheduleUpdate);
     window.addEventListener("modulo-planeacion:presupuesto-editado", scheduleUpdate);
     window.addEventListener("modulo:ready", scheduleUpdate);
+    window.addEventListener("graficas-config-updated", scheduleUpdate);
     if (window.Sesion?.EVENTO_EMPRESA) {
       window.addEventListener(window.Sesion.EVENTO_EMPRESA, scheduleUpdate);
     }

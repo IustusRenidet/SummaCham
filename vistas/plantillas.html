@@ -500,6 +500,14 @@
                                         <i class="bi bi-sliders me-1"></i>
                                         Personalizar
                                       </button>
+                                      <button
+                                        type="button"
+                                        class="btn btn-outline-primary btn-sm"
+                                        id="plantillasGraficasDetailAdd"
+                                      >
+                                        <i class="bi bi-plus-circle me-1"></i>
+                                        Nueva grafica manual
+                                      </button>
                                     </div>
                                   </div>
                                 </div>
@@ -3179,6 +3187,15 @@
               />
             </div>
             <div class="mb-3">
+              <label for="chartEditorModuleSelect" class="form-label"
+                >Modulo</label
+              >
+              <select class="form-select" id="chartEditorModuleSelect"></select>
+              <div class="form-text">
+                Esta grafica solo aparece en el modulo seleccionado.
+              </div>
+            </div>
+            <div class="mb-3">
               <label for="chartEditorTypeSelect" class="form-label"
                 >Tipo de grafica</label
               >
@@ -3241,6 +3258,13 @@
             <div class="mb-3">
               <label class="form-label">Series a mostrar</label>
               <div id="chartEditorSeriesChecks"></div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Personalizar columnas</label>
+              <div id="chartEditorSeriesConfig" class="d-grid gap-2"></div>
+              <div class="form-text">
+                Ajusta etiqueta y color por cada columna seleccionada.
+              </div>
             </div>
           </div>
 
@@ -3337,8 +3361,12 @@
         const subtitleInput = document.getElementById(
           "chartEditorSubtitleInput",
         );
+        const moduleSelectInput = document.getElementById(
+          "chartEditorModuleSelect",
+        );
         const typeSelect = document.getElementById("chartEditorTypeSelect");
         const enabledCheck = document.getElementById("chartEditorEnabledCheck");
+        const editorSubtitleEl = document.getElementById("chartEditorSubtitle");
         const sourceTypeSelect = document.getElementById(
           "chartEditorSourceType",
         );
@@ -3349,6 +3377,9 @@
         );
         const seriesChecksContainer = document.getElementById(
           "chartEditorSeriesChecks",
+        );
+        const seriesConfigContainer = document.getElementById(
+          "chartEditorSeriesConfig",
         );
         const previewCanvas = document.getElementById(
           "chartEditorPreviewCanvas",
@@ -3365,6 +3396,7 @@
         let selectedRows = [];
         let currentModule = null;
         let availableSeries = [];
+        let seriesOverrides = new Map();
 
         // Obtener snapshot de RESUMEN
         const getSnapshot = () => {
@@ -3391,7 +3423,11 @@
         };
 
         // Obtener labels del snapshot
-        const getSnapshotLabels = () => {
+        const getSnapshotLabels = (moduleValue) => {
+          const moduleKey = normalizeModuleKey(
+            moduleValue || currentModule || "RESUMEN",
+          );
+          if (!isSummaryModuleKey(moduleKey)) return [];
           const snapshot = getSnapshot();
           if (!snapshot || !Array.isArray(snapshot.filas)) return [];
           const labels = snapshot.filas
@@ -3400,9 +3436,199 @@
           return Array.from(new Set(labels)).sort((a, b) => a.localeCompare(b));
         };
 
+        const collectRowsFromState = () => {
+          const state = window.state || {};
+          const labels = [];
+          const push = (value) => {
+            const clean = (value || "").toString().trim();
+            if (!clean) return;
+            labels.push(clean);
+          };
+
+          const cuentas = Array.isArray(state.cuentas) ? state.cuentas : [];
+          cuentas.forEach((cuenta) => {
+            if (!cuenta) return;
+            push(
+              cuenta.SECCION ||
+                cuenta.seccion ||
+                cuenta.PRINCIPAL ||
+                cuenta.principal,
+            );
+            push(
+              cuenta.SECUNDARIA ||
+                cuenta.secundaria ||
+                cuenta.SUBSECCION ||
+                cuenta.subseccion,
+            );
+            push(cuenta.NOMBRE || cuenta.nombre);
+            push(cuenta.CUENTA || cuenta.cuenta);
+          });
+
+          const operaciones = Array.isArray(state.operaciones)
+            ? state.operaciones
+            : [];
+          operaciones.forEach((op) => {
+            if (!op) return;
+            push(
+              op.Operacion ||
+                op.operacion ||
+                op.clase ||
+                op.label ||
+                op.NOMBRE ||
+                op.nombre,
+            );
+          });
+
+          return Array.from(new Set(labels));
+        };
+
+        const collectRowsFromLayoutDom = () => {
+          const labels = [];
+          const push = (value) => {
+            const clean = (value || "").toString().trim();
+            if (!clean) return;
+            labels.push(clean);
+          };
+
+          const layoutPreview = document.getElementById("layoutPreview");
+          if (!layoutPreview) return [];
+
+          layoutPreview
+            .querySelectorAll(".template-list-view .list-item[data-row-type]")
+            .forEach((item) => {
+              const rowType = (item.dataset.rowType || "").toLowerCase();
+              if (rowType === "section") {
+                push(item.dataset.section);
+                return;
+              }
+              if (rowType === "subsection") {
+                push(item.dataset.subsection);
+                return;
+              }
+              if (rowType === "account") {
+                push(item.dataset.nombre);
+                push(item.dataset.cuenta);
+                return;
+              }
+              if (rowType === "operation") {
+                push(item.dataset.operationLabel || item.dataset.operationId);
+              }
+            });
+
+          layoutPreview
+            .querySelectorAll(".template-table tr[data-row-type]")
+            .forEach((row) => {
+              const rowType = (row.dataset.rowType || "").toLowerCase();
+              const cells = Array.from(row.querySelectorAll("td"));
+              if (!cells.length) return;
+              if (rowType === "section" || rowType === "subsection") {
+                push(cells[1]?.textContent || cells[0]?.textContent || "");
+                return;
+              }
+              if (rowType === "account") {
+                push(cells[1]?.textContent || "");
+                push(cells[0]?.textContent || "");
+                return;
+              }
+              if (rowType === "operation") {
+                push(cells[1]?.textContent || cells[0]?.textContent || "");
+              }
+            });
+
+          return Array.from(new Set(labels));
+        };
+
+        const getModuleRowOptions = (moduleValue) => {
+          const moduleKey = normalizeModuleKey(
+            moduleValue || currentModule || "RESUMEN",
+          );
+          const stateRows = collectRowsFromState();
+          const domRows = collectRowsFromLayoutDom();
+          const snapshotRows = getSnapshotLabels(moduleValue);
+          const combined = isSummaryModuleKey(moduleKey)
+            ? [...snapshotRows, ...stateRows, ...domRows]
+            : [...stateRows, ...domRows];
+          const unique = Array.from(
+            new Set(
+              combined
+                .map((value) => (value || "").toString().trim())
+                .filter(Boolean),
+            ),
+          );
+          return unique.sort((a, b) => a.localeCompare(b));
+        };
+
         const normalizeRowLabel = (value) => (value || "").toString().trim();
         const normalizeRowKey = (value) =>
           normalizeRowLabel(value).toUpperCase();
+
+        const normalizeModuleKey = (value) =>
+          (value || "")
+            .toString()
+            .trim()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .toUpperCase()
+            .replace(/[^A-Z0-9]/g, "");
+
+        const isSummaryModuleKey = (moduleKey) =>
+          moduleKey === "RESUMEN" || moduleKey === "SUMMARY";
+
+        const getModuleFallbackOptions = () => [
+          "RESUMEN",
+          "SUMMARY",
+          "Finanzas",
+          "Gastos Generales",
+          "Nomina",
+          "Membresia",
+          "Serv Membresia",
+          "RH",
+          "Eventos",
+          "Comites",
+          "Comunicacion",
+          "Direccion",
+          "Gtos Corporativos",
+          "T&IC",
+          "VPE",
+          "Presupuestos",
+        ].map((value) => ({ value, label: value }));
+
+        const getModuleOptions = () => {
+          const sourceSelect = document.getElementById("moduloSelect");
+          if (sourceSelect?.options?.length) {
+            const opts = Array.from(sourceSelect.options)
+              .map((option) => ({
+                value: (option.value || "").toString().trim(),
+                label: (option.textContent || option.value || "")
+                  .toString()
+                  .trim(),
+              }))
+              .filter((option) => option.value);
+            if (opts.length) return opts;
+          }
+          return getModuleFallbackOptions();
+        };
+
+        const setModuleSelectValue = (selectedValue) => {
+          if (!moduleSelectInput) return "";
+          const options = getModuleOptions();
+          moduleSelectInput.innerHTML = "";
+          options.forEach((option) => {
+            const node = document.createElement("option");
+            node.value = option.value;
+            node.textContent = option.label || option.value;
+            moduleSelectInput.appendChild(node);
+          });
+          const preferred = (selectedValue || "").toString().trim();
+          if (preferred && options.some((option) => option.value === preferred)) {
+            moduleSelectInput.value = preferred;
+          } else if (options.length) {
+            moduleSelectInput.value = options[0].value;
+          } else {
+            moduleSelectInput.value = "RESUMEN";
+          }
+          return moduleSelectInput.value || preferred || "RESUMEN";
+        };
 
         const buildRowEntry = (label, variants) => {
           const alias = normalizeRowLabel(label);
@@ -3430,7 +3656,7 @@
         };
 
         // Obtener series disponibles desde GraficasConfig
-        const getAvailableSeries = () => {
+        const getAvailableSeries = (moduleValue) => {
           if (
             !window.GraficasConfig ||
             typeof window.GraficasConfig.load !== "function"
@@ -3439,13 +3665,30 @@
           }
           const config = window.GraficasConfig.load();
           const defaults = window.GraficasConfig.defaults || {};
-          const series = config.series || defaults.series || [];
-          return series.map((s) => ({
-            key: s.key,
-            label: s.label || s.key,
-            color: s.color || "#0d47a1",
-            enabled: s.enabled !== false,
-          }));
+          const moduleKey = normalizeModuleKey(
+            moduleValue || currentModule || "RESUMEN",
+          );
+          if (isSummaryModuleKey(moduleKey)) {
+            const series = config.series || defaults.series || [];
+            return series.map((s) => ({
+              key: s.key,
+              label: s.label || s.key,
+              color: s.color || "#0d47a1",
+              enabled: s.enabled !== false,
+            }));
+          }
+
+          const operativoDatasets =
+            config.operativo?.datasets || defaults.operativo?.datasets || {};
+          return Object.keys(operativoDatasets).map((key) => {
+            const serie = operativoDatasets[key] || {};
+            return {
+              key,
+              label: serie.label || key,
+              color: serie.color || "#0d47a1",
+              enabled: serie.enabled !== false,
+            };
+          });
         };
 
         // Renderizar checkboxes de series
@@ -3464,7 +3707,10 @@
             checkbox.value = serie.key;
             checkbox.checked =
               enabledKeys.length === 0 || enabledKeys.includes(serie.key);
-            checkbox.addEventListener("change", updatePreview);
+            checkbox.addEventListener("change", () => {
+              renderSeriesConfigRows();
+              updatePreview();
+            });
 
             const label = document.createElement("label");
             label.className = "form-check-label";
@@ -3475,14 +3721,140 @@
             wrapper.appendChild(label);
             seriesChecksContainer.appendChild(wrapper);
           });
+
+          if (availableSeries.length === 0) {
+            const empty = document.createElement("div");
+            empty.className = "text-muted small";
+            empty.textContent = "No hay columnas configuradas para este modulo.";
+            seriesChecksContainer.appendChild(empty);
+          }
+        };
+
+        const getSelectedSeriesKeys = () =>
+          Array.from(
+            seriesChecksContainer?.querySelectorAll(
+              'input[type="checkbox"]:checked',
+            ) || [],
+          )
+            .map((cb) => cb.value)
+            .filter(Boolean);
+
+        const getSeriesOverride = (key) => {
+          const cleanKey = (key || "").toString().trim();
+          if (!cleanKey) return null;
+          const existing = seriesOverrides.get(cleanKey) || {};
+          const fallback = availableSeries.find((serie) => serie.key === cleanKey) || {};
+          return {
+            key: cleanKey,
+            label:
+              (typeof existing.label === "string" && existing.label.trim()
+                ? existing.label.trim()
+                : null) ||
+              (typeof fallback.label === "string" && fallback.label.trim()
+                ? fallback.label.trim()
+                : cleanKey),
+            color:
+              (typeof existing.color === "string" && existing.color.trim()
+                ? existing.color.trim()
+                : null) ||
+              (typeof fallback.color === "string" && fallback.color.trim()
+                ? fallback.color.trim()
+                : "#0d47a1"),
+            enabled:
+              typeof existing.enabled === "boolean"
+                ? existing.enabled
+                : fallback.enabled !== false,
+          };
+        };
+
+        const renderSeriesConfigRows = () => {
+          if (!seriesConfigContainer) return;
+          const selectedKeys = getSelectedSeriesKeys();
+          seriesConfigContainer.innerHTML = "";
+
+          if (!selectedKeys.length) {
+            const empty = document.createElement("div");
+            empty.className = "text-muted small";
+            empty.textContent =
+              "Selecciona al menos una columna para editar etiqueta y color.";
+            seriesConfigContainer.appendChild(empty);
+            return;
+          }
+
+          selectedKeys.forEach((key) => {
+            const serie = getSeriesOverride(key);
+            if (!serie) return;
+            const row = document.createElement("div");
+            row.className = "border rounded p-2 bg-white";
+            row.setAttribute("data-series-config-row", key);
+            row.innerHTML = `
+              <div class="row g-2 align-items-end">
+                <div class="col-12 col-md-7">
+                  <label class="form-label form-label-sm mb-1">Etiqueta</label>
+                  <input type="text" class="form-control form-control-sm" data-series-config-label />
+                </div>
+                <div class="col-12 col-md-5">
+                  <label class="form-label form-label-sm mb-1">Color</label>
+                  <input type="color" class="form-control form-control-color w-100" data-series-config-color />
+                </div>
+              </div>
+            `;
+
+            const labelInput = row.querySelector("[data-series-config-label]");
+            const colorInput = row.querySelector("[data-series-config-color]");
+            if (labelInput) {
+              labelInput.value = serie.label || key;
+              labelInput.addEventListener("input", () => {
+                const next = getSeriesOverride(key) || { key };
+                next.label = labelInput.value || next.label || key;
+                seriesOverrides.set(key, next);
+                updatePreview();
+              });
+            }
+            if (colorInput) {
+              colorInput.value = serie.color || "#0d47a1";
+              colorInput.addEventListener("input", () => {
+                const next = getSeriesOverride(key) || { key };
+                next.color = colorInput.value || next.color || "#0d47a1";
+                seriesOverrides.set(key, next);
+                updatePreview();
+              });
+            }
+            seriesConfigContainer.appendChild(row);
+          });
+        };
+
+        const updateEditorSubtitle = () => {
+          if (!editorSubtitleEl) return;
+          editorSubtitleEl.textContent = currentModule
+            ? `Modulo: ${currentModule}`
+            : "";
+        };
+
+        const refreshSeriesForCurrentModule = (preferredKeys = []) => {
+          availableSeries = getAvailableSeries(currentModule);
+          const fallbackKeys =
+            Array.isArray(preferredKeys) && preferredKeys.length
+              ? preferredKeys
+              : Array.isArray(currentChart?.seriesKeys)
+                ? currentChart.seriesKeys
+                : [];
+          renderSeriesChecks(fallbackKeys);
+          renderSeriesConfigRows();
+          updatePreview();
         };
 
         // Cargar picker de filas
         const loadRowPicker = () => {
           if (!rowPicker) return;
-          const labels = getSnapshotLabels();
+          const labels = getModuleRowOptions(currentModule);
           rowPicker.innerHTML =
-            '<option value="">Selecciona una fila...</option>';
+            '<option value="">Selecciona una fila del modulo...</option>';
+          if (!labels.length) {
+            rowPicker.innerHTML =
+              '<option value="">No hay filas disponibles en el modulo actual</option>';
+            return;
+          }
           labels.forEach((label) => {
             const option = document.createElement("option");
             option.value = label;
@@ -3610,21 +3982,29 @@
             return;
           }
 
-          // Obtener datos
-          const snapshot = getSnapshot();
-          if (!snapshot || selectedRows.length === 0) {
+          if (selectedRows.length === 0) {
             previewCanvas.classList.add("d-none");
             previewFallback.classList.remove("d-none");
             previewFallback.textContent = "Selecciona filas para ver preview";
             return;
           }
 
+          const moduleKey = normalizeModuleKey(currentModule || "RESUMEN");
+          const snapshot = getSnapshot();
+          const requiresSnapshot = isSummaryModuleKey(moduleKey);
+          if (
+            requiresSnapshot &&
+            (!snapshot || !Array.isArray(snapshot.filas))
+          ) {
+            previewCanvas.classList.add("d-none");
+            previewFallback.classList.remove("d-none");
+            previewFallback.textContent =
+              "No hay snapshot disponible del modulo RESUMEN";
+            return;
+          }
+
           // Obtener series seleccionadas
-          const enabledSeries = Array.from(
-            seriesChecksContainer.querySelectorAll(
-              'input[type="checkbox"]:checked',
-            ),
-          ).map((cb) => cb.value);
+          const enabledSeries = getSelectedSeriesKeys();
 
           if (enabledSeries.length === 0) {
             previewCanvas.classList.add("d-none");
@@ -3635,10 +4015,12 @@
 
           // Construir datasets
           const snapshotMap = new Map();
-          snapshot.filas.forEach((row) => {
-            const label = (row?.label || "").toString().trim().toUpperCase();
-            if (label) snapshotMap.set(label, row?.totals || {});
-          });
+          if (snapshot && Array.isArray(snapshot.filas)) {
+            snapshot.filas.forEach((row) => {
+              const label = (row?.label || "").toString().trim().toUpperCase();
+              if (label) snapshotMap.set(label, row?.totals || {});
+            });
+          }
 
           const labels = selectedRows.map((row) => row.alias || "");
           const datasets = [];
@@ -3659,12 +4041,14 @@
           };
 
           enabledSeries.forEach((serieKey) => {
-            const serie = availableSeries.find((s) => s.key === serieKey);
+            const serie = getSeriesOverride(serieKey);
             if (!serie) return;
 
-            const data = selectedRows.map((row) => {
+            const data = selectedRows.map((row, rowIndex) => {
               const totals = getTotalsForVariants(row.variants || []);
-              return Number(totals[serieKey]) || 0;
+              const value = Number(totals[serieKey]);
+              if (Number.isFinite(value)) return value;
+              return (datasets.length + 1) * (rowIndex + 1) * 1000;
             });
 
             datasets.push({
@@ -3714,16 +4098,12 @@
         window.openChartEditor = (chartId, chartData) => {
           currentChartId = chartData?.id || chartId;
           currentChart = chartData || {};
-          currentModule =
+          currentModule = setModuleSelectValue(
             currentChart?.module ||
-            document.getElementById("moduloSelect")?.value ||
-            "RESUMEN";
-          const subtitleEl = document.getElementById("chartEditorSubtitle");
-          if (subtitleEl) {
-            subtitleEl.textContent = currentModule
-              ? `Modulo: ${currentModule}`
-              : "";
-          }
+              document.getElementById("moduloSelect")?.value ||
+              "RESUMEN",
+          );
+          updateEditorSubtitle();
 
           // Cargar datos al formulario
           if (titleInput) titleInput.value = currentChart.title || "";
@@ -3741,19 +4121,41 @@
           if (Array.isArray(currentChart.rows)) {
             selectedRows = currentChart.rows.map(toRowEntry).filter(Boolean);
           }
-
-          // Cargar series disponibles
-          availableSeries = getAvailableSeries();
+          seriesOverrides = new Map(
+            (Array.isArray(currentChart.series) ? currentChart.series : [])
+              .map((serie) => {
+                const key = (serie?.key || "").toString().trim();
+                if (!key) return null;
+                return [
+                  key,
+                  {
+                    key,
+                    label:
+                      typeof serie?.label === "string" && serie.label.trim()
+                        ? serie.label.trim()
+                        : key,
+                    color:
+                      typeof serie?.color === "string" && serie.color.trim()
+                        ? serie.color.trim()
+                        : "#0d47a1",
+                    enabled:
+                      typeof serie?.enabled === "boolean"
+                        ? serie.enabled
+                        : true,
+                  },
+                ];
+              })
+              .filter(Boolean),
+          );
 
           // Renderizar UI
           loadRowPicker();
-          renderSeriesChecks(
+          refreshSeriesForCurrentModule(
             Array.isArray(currentChart.seriesKeys)
               ? currentChart.seriesKeys
               : [],
           );
           renderSelectedRows();
-          updatePreview();
 
           // Abrir panel
           if (window.bootstrap?.Offcanvas) {
@@ -3785,6 +4187,20 @@
           sourceTypeSelect.addEventListener("change", updatePreview);
         }
 
+        if (moduleSelectInput) {
+          moduleSelectInput.addEventListener("change", () => {
+            const selectedKeys = Array.from(
+              seriesChecksContainer?.querySelectorAll(
+                'input[type="checkbox"]:checked',
+              ) || [],
+            ).map((cb) => cb.value);
+            currentModule = moduleSelectInput.value || currentModule || "RESUMEN";
+            updateEditorSubtitle();
+            loadRowPicker();
+            refreshSeriesForCurrentModule(selectedKeys);
+          });
+        }
+
         if (saveBtn) {
           saveBtn.addEventListener("click", () => {
             // Validar formulario
@@ -3811,11 +4227,30 @@
               return;
             }
 
+            const series = selectedSeries.map((key) => {
+              const override = getSeriesOverride(key) || { key };
+              return {
+                key,
+                label:
+                  (typeof override.label === "string" && override.label.trim()
+                    ? override.label.trim()
+                    : key),
+                color:
+                  (typeof override.color === "string" && override.color.trim()
+                    ? override.color.trim()
+                    : "#0d47a1"),
+                enabled:
+                  typeof override.enabled === "boolean"
+                    ? override.enabled
+                    : true,
+              };
+            });
+
             // Construir objeto de gráfica
             const chartData = {
               id: currentChartId || `custom-${Date.now()}`,
               module:
-                currentChart?.module ||
+                moduleSelectInput?.value ||
                 currentModule ||
                 document.getElementById("moduloSelect")?.value ||
                 "RESUMEN",
@@ -3825,6 +4260,7 @@
               enabled: enabledCheck?.checked !== false,
               sourceType: sourceTypeSelect?.value || "snapshot",
               seriesKeys: selectedSeries,
+              series,
               rows: selectedRows.map((row) => ({
                 alias: row.alias,
                 variants:

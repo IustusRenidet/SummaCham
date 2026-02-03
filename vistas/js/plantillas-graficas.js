@@ -268,6 +268,40 @@
       .toUpperCase()
       .replace(/\s+/g, " ");
 
+  const normalizeModuleKey = (value = "") =>
+    value
+      .toString()
+      .trim()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, "");
+
+  const isSummaryModuleKey = (moduleKey = "") =>
+    moduleKey === "RESUMEN" || moduleKey === "SUMMARY";
+
+  const getCurrentModuleValue = () =>
+    (
+      moduloSelect?.value ||
+      document.body?.dataset?.modulo ||
+      "RESUMEN"
+    )
+      .toString()
+      .trim();
+
+  const getCurrentModuleKey = () =>
+    normalizeModuleKey(getCurrentModuleValue());
+
+  const isCdmxCapitulo = (capitulo = "") => {
+    const normalized = normalizeLabel(capitulo || "");
+    if (!normalized) return false;
+    return (
+      normalized.includes("CIUDAD DE MEXICO") ||
+      normalized.includes("CDMX") ||
+      normalized.includes("MEXICO")
+    );
+  };
+
   const buildSnapshotMap = (snapshot) => {
     if (!snapshot || !Array.isArray(snapshot.filas)) return null;
     const map = new Map();
@@ -1147,6 +1181,28 @@
       };
     });
 
+    const summarySeriesDefs = Array.isArray(baseConfig.series)
+      ? baseConfig.series
+      : Array.isArray(defaults.series)
+      ? defaults.series
+      : [];
+    const operativoSeriesSource =
+      baseConfig.operativo?.datasets || defaults.operativo?.datasets || {};
+    const operativoSeriesDefs = Object.keys(operativoSeriesSource).map((key) => ({
+      key,
+      ...(operativoSeriesSource[key] || {}),
+    }));
+    const resolveSeriesFallback = (moduleValue, key) => {
+      const moduleKey = normalizeModuleKey(moduleValue || "RESUMEN");
+      const source = isSummaryModuleKey(moduleKey)
+        ? summarySeriesDefs
+        : operativoSeriesDefs;
+      return (
+        source.find((item) => String(item?.key || "").trim() === String(key).trim()) ||
+        {}
+      );
+    };
+
     const customCharts = [];
     if (customList) {
       const existingCustomCharts = Array.isArray(baseConfig.customCharts)
@@ -1190,6 +1246,44 @@
               .map((value) => value.trim())
               .filter(Boolean)
           : [];
+        const existingSeriesMap = new Map(
+          (Array.isArray(existing.series) ? existing.series : [])
+            .map((serie) => {
+              const key = String(serie?.key || "").trim();
+              if (!key) return null;
+              return [key, serie];
+            })
+            .filter(Boolean)
+        );
+        const series = seriesKeys.map((key) => {
+          const existingSerie = existingSeriesMap.get(String(key).trim()) || {};
+          const fallbackSerie = resolveSeriesFallback(module, key);
+          return {
+            key,
+            label:
+              (typeof existingSerie.label === "string" &&
+              existingSerie.label.trim()
+                ? existingSerie.label.trim()
+                : null) ||
+              (typeof fallbackSerie.label === "string" &&
+              fallbackSerie.label.trim()
+                ? fallbackSerie.label.trim()
+                : key),
+            color:
+              (typeof existingSerie.color === "string" &&
+              existingSerie.color.trim()
+                ? existingSerie.color.trim()
+                : null) ||
+              (typeof fallbackSerie.color === "string" &&
+              fallbackSerie.color.trim()
+                ? fallbackSerie.color.trim()
+                : "#0d47a1"),
+            enabled:
+              typeof existingSerie.enabled === "boolean"
+                ? existingSerie.enabled
+                : fallbackSerie.enabled !== false,
+          };
+        });
         customCharts.push({
           id,
           title,
@@ -1199,6 +1293,7 @@
           enabled,
           sourceType,
           seriesKeys,
+          series,
           rows,
         });
       });
@@ -1358,6 +1453,57 @@
   const buildSourcesMeta = (items, label = "Fuentes") => {
     const list = uniqueList(items);
     return list.length ? `${label}: ${list.length}` : "";
+  };
+
+  const MODULE_FILE_BY_KEY = {
+    RESUMEN: "RESUMEN.html",
+    SUMMARY: "RESUMEN.html",
+    MEMBRESIA: "Membresía.html",
+    EVENTOS: "Eventos.html",
+    COMUNICACION: "Comunicación.html",
+    DIRECCION: "Dirección.html",
+    SERVMEMBRESIA: "Serv_Membresía.html",
+    SERVICIOSALAMEMBRESIA: "Serv_Membresía.html",
+    COMITES: "Comités.html",
+    COMITESINCOME: "Comités.html",
+    TIC: "T&IC.html",
+    RH: "RH.html",
+    VPE: "VPE.html",
+    FINANZAS: "Finanzas.html",
+    GASTOSGENERALES: "GastosGenerales.html",
+    NOMINA: "Nomina.html",
+    GTOSCORPORATIVOS: "Gtos_Corporativos.html",
+  };
+
+  const resolveModuleFileName = (moduleValue = "") => {
+    const key = normalizeModuleKey(moduleValue || "RESUMEN");
+    return MODULE_FILE_BY_KEY[key] || `${(moduleValue || "RESUMEN").toString().trim()}.html`;
+  };
+
+  const toDisplayList = (items) =>
+    uniqueList(
+      (Array.isArray(items) ? items : [])
+        .map((item) => (item || "").toString().trim())
+        .filter(Boolean)
+    );
+
+  const buildRowsColumnsInfo = ({ moduleValue, rows = [], columns = [] }) => {
+    const moduleFile = resolveModuleFileName(moduleValue);
+    const rowList = toDisplayList(rows);
+    const columnList = toDisplayList(columns);
+    return {
+      moduleFile,
+      rowList,
+      columnList,
+      sourcesText: [
+        `Modulo: ${moduleFile}`,
+        `Filas: ${formatListSummary(rowList, 6) || "No definidas"}`,
+        `Columnas: ${formatListSummary(columnList, 6) || "No definidas"}`,
+      ].join(" · "),
+      sourcesMeta: `Filas: ${formatListSummary(rowList, 2) || "No definidas"} - Columnas: ${
+        formatListSummary(columnList, 2) || "No definidas"
+      }`,
+    };
   };
 
   const SUMMARY_SOURCE_LABELS = {
@@ -2115,16 +2261,45 @@
     definition?.viewLabel || definition?.category || "Vista";
 
   const filterDefinitionsByCapitulo = (definitions, context) => {
-    const capitulo = normalizeLabel(context?.capitulo || "");
-    if (!capitulo) return definitions;
-    const allowedKinds = new Set(["summary", "consolidated", "ingreso"]);
-    return (definitions || []).filter((definition) =>
-      allowedKinds.has(definition.previewKind)
-    );
+    const list = Array.isArray(definitions) ? definitions : [];
+    if (!list.length) return [];
+
+    const moduleKey = getCurrentModuleKey();
+    const isSummaryModule = isSummaryModuleKey(moduleKey);
+    const isGastosModule = moduleKey === "GASTOSGENERALES";
+    const capituloRaw = (context?.capitulo || "").toString().trim();
+    const allowCdmxOnlyCharts = capituloRaw
+      ? isCdmxCapitulo(capituloRaw)
+      : true;
+
+    return list.filter((definition) => {
+      if (!definition) return false;
+      const kind = definition.previewKind || "";
+
+      if (kind === "custom") {
+        const chartModule = normalizeModuleKey(definition.module || "RESUMEN");
+        return chartModule === moduleKey;
+      }
+
+      if (isSummaryModule) {
+        if (kind === "summary" || kind === "ingreso") return true;
+        if (kind === "consolidated" || kind === "ingreso-nacional") {
+          return allowCdmxOnlyCharts;
+        }
+        return false;
+      }
+
+      if (isGastosModule) {
+        return kind === "gastos";
+      }
+
+      return kind === "operativo";
+    });
   };
 
   const buildCardDefinitions = (config) => {
     const baseType = config.chart?.type || "bar";
+    const manualOnly = config?.manualOnly !== false;
     const defaults = clone(getGraficasConfigApi()?.defaults || {});
     const baseSources = defaults.sources || {};
     const sources = config.sources || baseSources || {};
@@ -2134,24 +2309,138 @@
     const ingresoSources = sources.ingreso || baseSources.ingreso || {};
     const ingresoNacionalSources =
       sources.ingresoNacional || baseSources.ingresoNacional || {};
-    const summaryOperatingSources = buildSummarySourceLabels(
-      summarySources,
-      "operating"
-    );
-    const summaryNetSources = buildSummarySourceLabels(summarySources, "net");
-    const consolidatedLabels = uniqueList([
-      consolidatedSources?.operating?.label,
-      consolidatedSources?.net?.label,
-    ]);
     const ingresoSourceLabels = buildSourceVariantsList(ingresoSources);
     const ingresoNacionalSourceLabels =
       buildSourceVariantsList(ingresoNacionalSources);
-    const defs = [
+    const selectedCapitulo = getSelectedCapitulo();
+    const summaryRowsConfig = resolveSummaryRows(
+      selectedCapitulo,
+      summarySources,
+      baseSources.summary || {}
+    );
+    const summarySeriesList =
+      Array.isArray(config.series) && config.series.length
+        ? config.series
+        : defaults.series || [];
+    const summaryColumns = summarySeriesList
+      .filter((serie) => serie?.enabled !== false)
+      .map((serie) => serie?.label || serie?.key);
+    const summaryOperatingRows = (summaryRowsConfig.operating || []).map((row) =>
+      resolveRowLabel(row, selectedCapitulo || "")
+    );
+    const summaryNetRows = (summaryRowsConfig.net || []).map((row) =>
+      resolveRowLabel(row, selectedCapitulo || "")
+    );
+    const consolidatedRows = uniqueList([
+      consolidatedSources?.operating?.label,
+      consolidatedSources?.net?.label,
+    ]);
+    const ingresoColumns = Object.values(config.ingreso?.series || {})
+      .filter((serie) => serie?.enabled !== false)
+      .map((serie) => serie?.label || "");
+    const ingresoNacionalColumns = Object.values(
+      config.ingresoNacional?.series || {}
+    )
+      .filter((serie) => serie?.enabled !== false)
+      .map((serie) => serie?.label || "");
+    const operativoDatasets = config.operativo?.datasets || {};
+    const operativoColumns = Object.keys(operativoDatasets)
+      .map((key) => ({ key, ...(operativoDatasets[key] || {}) }))
+      .filter((dataset) => dataset.enabled !== false)
+      .map((dataset) => dataset.label || dataset.key);
+    const gastosRendimientosSeries =
+      config.gastosGenerales?.charts?.rendimientos?.series || {};
+    const gastosPlusvaliaSeries =
+      config.gastosGenerales?.charts?.plusvalia?.series || {};
+    const gastosRendimientosColumns = Object.keys(gastosRendimientosSeries)
+      .map((key) => ({ key, ...(gastosRendimientosSeries[key] || {}) }))
+      .filter((serie) => serie.enabled !== false)
+      .map((serie) => serie.label || serie.key);
+    const gastosPlusvaliaColumns = Object.keys(gastosPlusvaliaSeries)
+      .map((key) => ({ key, ...(gastosPlusvaliaSeries[key] || {}) }))
+      .filter((serie) => serie.enabled !== false)
+      .map((serie) => serie.label || serie.key);
+    const summaryOperatingInfo = buildRowsColumnsInfo({
+      moduleValue: "RESUMEN",
+      rows: summaryOperatingRows,
+      columns: summaryColumns,
+    });
+    const summaryNetInfo = buildRowsColumnsInfo({
+      moduleValue: "RESUMEN",
+      rows: summaryNetRows,
+      columns: summaryColumns,
+    });
+    const consolidatedInfo = buildRowsColumnsInfo({
+      moduleValue: "RESUMEN",
+      rows: consolidatedRows,
+      columns: summaryColumns,
+    });
+    const ingresoInfo = buildRowsColumnsInfo({
+      moduleValue: "RESUMEN",
+      rows: ingresoSourceLabels,
+      columns: ingresoColumns,
+    });
+    const ingresoNacionalInfo = buildRowsColumnsInfo({
+      moduleValue: "RESUMEN",
+      rows: ingresoNacionalSourceLabels,
+      columns: ingresoNacionalColumns,
+    });
+    const operativoInfo = buildRowsColumnsInfo({
+      moduleValue: getCurrentModuleValue() || "RESUMEN",
+      rows: ["Tabla del modulo"],
+      columns: operativoColumns,
+    });
+    const ggRendimientosInfo = buildRowsColumnsInfo({
+      moduleValue: "Gastos Generales",
+      rows: ["Meses del ejercicio (Ene-Dic)"],
+      columns: gastosRendimientosColumns,
+    });
+    const ggPlusvaliaInfo = buildRowsColumnsInfo({
+      moduleValue: "Gastos Generales",
+      rows: ["Meses del ejercicio (Ene-Dic)"],
+      columns: gastosPlusvaliaColumns,
+    });
+    const enabledSummarySeries = summarySeriesList.filter(
+      (serie) => serie?.enabled !== false
+    );
+    const enabledOperativoSeries = Object.keys(operativoDatasets)
+      .map((key) => ({ key, ...(operativoDatasets[key] || {}) }))
+      .filter((dataset) => dataset.enabled !== false);
+    const resolveCustomColumns = (
+      moduleValue,
+      seriesKeys = [],
+      seriesOverrides = []
+    ) => {
+      const moduleKey = normalizeModuleKey(moduleValue || "RESUMEN");
+      const baseSeries = isSummaryModuleKey(moduleKey)
+        ? enabledSummarySeries
+        : enabledOperativoSeries;
+      const overrideMap = new Map(
+        (Array.isArray(seriesOverrides) ? seriesOverrides : [])
+          .map((item) => {
+            const key = (item?.key || "").toString().trim();
+            if (!key) return null;
+            return [key, item];
+          })
+          .filter(Boolean)
+      );
+      return filterSeriesByKeys(baseSeries, seriesKeys).map((serie) => {
+        const override = overrideMap.get((serie?.key || "").toString().trim());
+        if (typeof override?.label === "string" && override.label.trim()) {
+          return override.label.trim();
+        }
+        return serie?.label || serie?.key;
+      });
+    };
+    const defs = [];
+    if (!manualOnly) {
+      defs.push(
       {
         id: "summary-operating",
         title:
           config.charts?.operating?.title || "Resultado Operativo por Capitulo",
         subtitle: config.charts?.operating?.subtitle || "",
+        module: "RESUMEN",
         category: "Resumen",
         viewLabel: "Resumen",
         chartType: resolveChartType(
@@ -2161,8 +2450,7 @@
         enabled: config.charts?.operating?.enabled !== false,
         previewKind: "summary",
         chartKey: "operating",
-        sourcesText: buildSourcesText(summaryOperatingSources),
-        sourcesMeta: buildSourcesMeta(summaryOperatingSources),
+        ...summaryOperatingInfo,
         target: {
           collapseId: "plantillasGraficasResumenCollapse",
           focusSelector: '[data-chart-key="operating"]',
@@ -2172,14 +2460,14 @@
         id: "summary-net",
         title: config.charts?.net?.title || "Resumen Neto por Capitulo",
         subtitle: config.charts?.net?.subtitle || "",
+        module: "RESUMEN",
         category: "Resumen",
         viewLabel: "Resumen",
         chartType: resolveChartType(config.charts?.net?.chartType, baseType),
         enabled: config.charts?.net?.enabled !== false,
         previewKind: "summary",
         chartKey: "net",
-        sourcesText: buildSourcesText(summaryNetSources),
-        sourcesMeta: buildSourcesMeta(summaryNetSources),
+        ...summaryNetInfo,
         target: {
           collapseId: "plantillasGraficasResumenCollapse",
           focusSelector: '[data-chart-key="net"]',
@@ -2191,6 +2479,7 @@
           config.charts?.consolidated?.title ||
           "Consolidados Operativos vs Netos",
         subtitle: config.charts?.consolidated?.subtitle || "",
+        module: "RESUMEN",
         category: "Resumen",
         viewLabel: "Resumen",
         chartType: resolveChartType(
@@ -2200,8 +2489,7 @@
         enabled: config.charts?.consolidated?.enabled !== false,
         previewKind: "consolidated",
         chartKey: "consolidated",
-        sourcesText: buildSourcesText(consolidatedLabels, "Fuente"),
-        sourcesMeta: buildSourcesMeta(consolidatedLabels, "Fuente"),
+        ...consolidatedInfo,
         target: {
           collapseId: "plantillasGraficasResumenCollapse",
           focusSelector: '[data-chart-key="consolidated"]',
@@ -2211,13 +2499,13 @@
         id: "ingreso-capitulo",
         title: config.ingreso?.title || "Ingreso por capitulo",
         subtitle: config.ingreso?.subtitle || "",
+        module: "RESUMEN",
         category: "Ingreso",
         viewLabel: "Ingreso",
         chartType: resolveChartType(config.ingreso?.chartType, baseType),
         enabled: config.ingreso?.enabled !== false,
         previewKind: "ingreso",
-        sourcesText: buildSourcesText(ingresoSourceLabels),
-        sourcesMeta: buildSourcesMeta(ingresoSourceLabels),
+        ...ingresoInfo,
         target: {
           collapseId: "plantillasGraficasIngresoCollapse",
           focusSelector: "[data-ingreso-title]",
@@ -2227,6 +2515,7 @@
         id: "ingreso-nacional",
         title: config.ingresoNacional?.title || "Ingreso nacional",
         subtitle: config.ingresoNacional?.subtitle || "",
+        module: "RESUMEN",
         category: "Ingreso",
         viewLabel: "Ingreso nacional",
         chartType: resolveChartType(
@@ -2235,8 +2524,7 @@
         ),
         enabled: config.ingresoNacional?.enabled !== false,
         previewKind: "ingreso-nacional",
-        sourcesText: buildSourcesText(ingresoNacionalSourceLabels),
-        sourcesMeta: buildSourcesMeta(ingresoNacionalSourceLabels),
+        ...ingresoNacionalInfo,
         target: {
           collapseId: "plantillasGraficasIngresoNacionalCollapse",
           focusSelector: "[data-ingreso-nacional-title]",
@@ -2246,13 +2534,13 @@
         id: "operativo-panel",
         title: config.operativo?.title || "Operativo",
         subtitle: "Panel operativo",
+        module: getCurrentModuleValue() || "RESUMEN",
         category: "Operativo",
         viewLabel: "Operativo",
         chartType: resolveChartType(config.operativo?.chartType, baseType),
         enabled: config.operativo?.enabled !== false,
         previewKind: "operativo",
-        sourcesText: "Fuente: tabla del modulo (resultado operativo)",
-        sourcesMeta: "Tabla del modulo",
+        ...operativoInfo,
         target: {
           collapseId: "plantillasGraficasOperativoCollapse",
           focusSelector: "[data-operativo-title]",
@@ -2263,6 +2551,7 @@
         title:
           config.gastosGenerales?.charts?.rendimientos?.title || "Rendimientos",
         subtitle: "Gastos Generales",
+        module: "Gastos Generales",
         category: "Gastos Generales",
         viewLabel: "Gastos Generales",
         chartType: resolveChartType(
@@ -2274,8 +2563,7 @@
           config.gastosGenerales?.charts?.rendimientos?.enabled !== false,
         previewKind: "gastos",
         chartKey: "rendimientos",
-        sourcesText: "Fuente: tabla de gastos generales",
-        sourcesMeta: "Tabla gastos",
+        ...ggRendimientosInfo,
         target: {
           collapseId: "plantillasGraficasGastosCollapse",
           focusSelector: '[data-gg-chart-key="rendimientos"]',
@@ -2286,6 +2574,7 @@
         title:
           config.gastosGenerales?.charts?.plusvalia?.title || "Plusvalia",
         subtitle: "Gastos Generales",
+        module: "Gastos Generales",
         category: "Gastos Generales",
         viewLabel: "Gastos Generales",
         chartType: resolveChartType(
@@ -2297,14 +2586,14 @@
           config.gastosGenerales?.charts?.plusvalia?.enabled !== false,
         previewKind: "gastos",
         chartKey: "plusvalia",
-        sourcesText: "Fuente: tabla de gastos generales",
-        sourcesMeta: "Tabla gastos",
+        ...ggPlusvaliaInfo,
         target: {
           collapseId: "plantillasGraficasGastosCollapse",
           focusSelector: '[data-gg-chart-key="plusvalia"]',
         },
       },
-    ];
+      );
+    }
 
     const customCharts = Array.isArray(config.customCharts)
       ? config.customCharts
@@ -2322,6 +2611,16 @@
         typeof chart?.module === "string" && chart.module.trim()
           ? chart.module.trim()
           : "RESUMEN";
+      const customColumns = resolveCustomColumns(
+        rawModule,
+        Array.isArray(chart?.seriesKeys) ? chart.seriesKeys : [],
+        Array.isArray(chart?.series) ? chart.series : []
+      );
+      const customInfo = buildRowsColumnsInfo({
+        moduleValue: rawModule,
+        rows: rowLabels,
+        columns: customColumns,
+      });
       defs.push({
         id: rawId,
         chartId: rawId,
@@ -2335,9 +2634,9 @@
         previewKind: "custom",
         sourceType: chart?.sourceType || "snapshot",
         seriesKeys: Array.isArray(chart?.seriesKeys) ? chart.seriesKeys : [],
+        series: Array.isArray(chart?.series) ? chart.series : [],
         rows: Array.isArray(chart?.rows) ? chart.rows : [],
-        sourcesText: buildSourcesText(rowLabels, "Filas"),
-        sourcesMeta: buildSourcesMeta(rowLabels, "Filas"),
+        ...customInfo,
         target: {
           collapseId: "plantillasGraficasCustomCollapse",
           focusSelector: `[data-custom-chart][data-custom-id="${rawId}"]`,
@@ -2375,9 +2674,12 @@
       );
     }
     if (infoEl) {
+      const moduleText = definition.moduleFile
+        ? ` · Modulo: ${definition.moduleFile}`
+        : "";
       infoEl.textContent = `Vista: ${resolveViewLabel(
         definition
-      )} · ${formatChartTypeLabel(definition.chartType)}${
+      )} · ${formatChartTypeLabel(definition.chartType)}${moduleText}${
         definition.enabled ? "" : " · Inactiva"
       }`;
     }
@@ -2417,6 +2719,26 @@
     }
   };
 
+  const buildNewCustomChartDraft = () => ({
+    id: buildCustomChartId(),
+    module: getCurrentModuleValue() || "RESUMEN",
+    title: "",
+    subtitle: "",
+    chartType: "inherit",
+    enabled: true,
+    sourceType: "snapshot",
+    seriesKeys: [],
+    series: [],
+    rows: [],
+  });
+
+  const openNewCustomChartEditor = () => {
+    if (typeof window.openChartEditor !== "function") return false;
+    const draft = buildNewCustomChartDraft();
+    window.openChartEditor(draft.id, draft);
+    return true;
+  };
+
   const renderGallery = (config) => {
     // Validar elementos requeridos
     if (!galleryEl) {
@@ -2449,20 +2771,15 @@
       return;
     }
 
-    if (!definitions || definitions.length === 0) {
-      galleryEl.innerHTML = '<div class="text-muted text-center p-4">No hay graficas configuradas</div>';
-      updateDetailCard(null);
-      return;
-    }
-
     const defaults = clone(getGraficasConfigApi()?.defaults || {});
     const previewContext = getPreviewContext();
-    definitions = filterDefinitionsByCapitulo(definitions, previewContext);
-    if (!definitions.length) {
+    definitions = Array.isArray(definitions)
+      ? filterDefinitionsByCapitulo(definitions, previewContext)
+      : [];
+    const hasDefinitions = definitions.length > 0;
+    if (!hasDefinitions) {
       galleryEl.innerHTML =
-        '<div class="text-muted text-center p-4">No hay graficas para este capitulo</div>';
-      updateDetailCard(null);
-      return;
+        '<div class="text-muted text-center p-4">No hay graficas configuradas para este modulo</div>';
     }
 
     definitions.forEach((definition) => {
@@ -2492,6 +2809,9 @@
             `Vista: ${resolveViewLabel(definition)}`,
             `Tipo: ${formatChartTypeLabel(definition.chartType)}`,
           ];
+          if (definition.moduleFile) {
+            metaParts.push(`Modulo: ${definition.moduleFile}`);
+          }
           if (definition.sourcesMeta) {
             metaParts.push(definition.sourcesMeta);
           }
@@ -2569,14 +2889,30 @@
       }
     });
 
-    if (galleryAddTemplate) {
-      const addNode = galleryAddTemplate.content.firstElementChild.cloneNode(true);
-      addNode.addEventListener("click", () => {
-        openConfigSection({
-          target: { collapseId: "plantillasGraficasCustomCollapse" },
-        });
-        customAddBtn?.click();
+    const handleAddCustomChart = () => {
+      if (openNewCustomChartEditor()) return;
+      openConfigSection({
+        target: { collapseId: "plantillasGraficasCustomCollapse" },
       });
+      customAddBtn?.click();
+    };
+
+    if (galleryAddTemplate?.content?.firstElementChild) {
+      const addNode = galleryAddTemplate.content.firstElementChild.cloneNode(true);
+      addNode.addEventListener("click", handleAddCustomChart);
+      galleryEl.appendChild(addNode);
+    } else {
+      const addNode = document.createElement("button");
+      addNode.type = "button";
+      addNode.className = "card plantillas-graficas-card";
+      addNode.innerHTML = `
+        <div class="card-body text-center">
+          <div class="fs-3 mb-2 text-primary"><i class="bi bi-plus-circle"></i></div>
+          <div class="fw-semibold">Nueva grafica manual</div>
+          <div class="text-muted small">Selecciona modulo, filas y columnas</div>
+        </div>
+      `;
+      addNode.addEventListener("click", handleAddCustomChart);
       galleryEl.appendChild(addNode);
     }
 
@@ -2728,6 +3064,9 @@
             seriesKeys: Array.isArray(item.definition.seriesKeys)
               ? item.definition.seriesKeys
               : [],
+            series: Array.isArray(item.definition.series)
+              ? item.definition.series
+              : [],
             rows: item.definition.rows || []
           };
           window.openChartEditor(item.definition.chartId || item.definition.id, chartData);
@@ -2743,6 +3082,7 @@
 
   if (detailAddBtn) {
     detailAddBtn.addEventListener("click", () => {
+      if (openNewCustomChartEditor()) return;
       openConfigSection({
         target: { collapseId: "plantillasGraficasCustomCollapse" },
       });
@@ -2761,6 +3101,11 @@
   if (capituloSelect) {
     capituloSelect.addEventListener("change", () => {
       updateSourcePickerOptions();
+      scheduleGalleryUpdate();
+    });
+  }
+  if (moduloSelect) {
+    moduloSelect.addEventListener("change", () => {
       scheduleGalleryUpdate();
     });
   }

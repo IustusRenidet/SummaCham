@@ -36,6 +36,15 @@
       .toUpperCase();
   };
 
+  const normalizeModuleKey = (value) =>
+    (value || "")
+      .toString()
+      .trim()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, "");
+
   const CHART_PALETTE = [
     "#2563eb",
     "#f59e0b",
@@ -274,6 +283,8 @@
           tic: ["T&IC", "T&IC (INCOME)", "T&IC INCOME"],
         },
       },
+      manualOnly: true,
+      customCharts: [],
     };
   })();
 
@@ -283,6 +294,8 @@
     }
     return DEFAULT_GRAFICAS_CONFIG;
   };
+
+  const isManualOnly = (graficasConfig) => graficasConfig?.manualOnly !== false;
 
   const aplicarStickyEncabezados = () => {
     const tabla = document.getElementById("tablaComparacion");
@@ -824,6 +837,35 @@
     return filtered.length ? filtered : seriesList;
   };
 
+  const applyCustomSeriesOverrides = (seriesList = [], chart = {}) => {
+    const overrides = Array.isArray(chart?.series) ? chart.series : [];
+    if (!overrides.length) return seriesList;
+    const overrideMap = new Map(
+      overrides
+        .map((item) => {
+          const key = item?.key != null ? String(item.key).trim() : "";
+          if (!key) return null;
+          return [key, item];
+        })
+        .filter(Boolean)
+    );
+    return (seriesList || []).map((serie) => {
+      const override = overrideMap.get(serie?.key);
+      if (!override) return serie;
+      return {
+        ...serie,
+        label:
+          typeof override.label === "string" && override.label.trim()
+            ? override.label.trim()
+            : serie.label,
+        color:
+          typeof override.color === "string" && override.color.trim()
+            ? override.color.trim()
+            : serie.color,
+      };
+    });
+  };
+
   const getSummaryRowsConfig = (capitulo, graficasConfig = {}) => {
     const cap = normalizarLabelResumen(capitulo);
     const sources =
@@ -1095,9 +1137,9 @@
       : [];
     if (!customCharts.length) return 0;
 
-    const moduleKey = (document.body?.dataset?.modulo || "RESUMEN")
-      .toString()
-      .toUpperCase();
+    const moduleKey = normalizeModuleKey(
+      document.body?.dataset?.modulo || "RESUMEN"
+    );
     const baseChartType = graficasConfig.chart?.type || "bar";
     const baseSeriesConfig = getEnabledSeriesConfig(graficasConfig);
     if (!baseSeriesConfig.length) return 0;
@@ -1110,14 +1152,12 @@
     let rendered = 0;
     customCharts.forEach((chart, index) => {
       if (chart?.enabled === false) return;
-      const chartModule = (chart?.module || "RESUMEN")
-        .toString()
-        .toUpperCase();
+      const chartModule = normalizeModuleKey(chart?.module || "RESUMEN");
       if (chartModule !== moduleKey) return;
       const chartType = resolveChartType(chart?.chartType, baseChartType);
-      const seriesConfig = filterSeriesByKeys(
-        baseSeriesConfig,
-        chart?.seriesKeys || []
+      const seriesConfig = applyCustomSeriesOverrides(
+        filterSeriesByKeys(baseSeriesConfig, chart?.seriesKeys || []),
+        chart
       );
       if (!seriesConfig.length) return;
       const data = buildCustomChartData(snapshot, chart, seriesConfig, chartType);
@@ -1443,7 +1483,10 @@
   const obtenerGraficasExportacion = async (options = {}) => {
     const { empresaId, anio } = options;
     const graficasConfig = getGraficasConfig();
-    const datos = (generarDatosGraficas(graficasConfig) || []).filter(Boolean);
+    const manualOnly = isManualOnly(graficasConfig);
+    const datos = manualOnly
+      ? []
+      : (generarDatosGraficas(graficasConfig) || []).filter(Boolean);
 
     const resolvedEmpresaId =
       empresaId || empresaActual?.id || Sesion.obtenerEmpresaActiva?.()?.id;
@@ -1451,7 +1494,7 @@
       ? Number(anio)
       : leerAnioSeleccionado();
 
-    if (resolvedEmpresaId && resolvedAnio) {
+    if (!manualOnly && resolvedEmpresaId && resolvedAnio) {
       const isCdmx = resolveIsCdmx(resolvedEmpresaId, graficasConfig);
       const ingresoConfig =
         graficasConfig.ingreso || DEFAULT_GRAFICAS_CONFIG.ingreso || {};
@@ -1486,23 +1529,21 @@
     const customCharts = Array.isArray(graficasConfig.customCharts)
       ? graficasConfig.customCharts
       : [];
-    const moduleKey = (document.body?.dataset?.modulo || "RESUMEN")
-      .toString()
-      .toUpperCase();
+    const moduleKey = normalizeModuleKey(
+      document.body?.dataset?.modulo || "RESUMEN"
+    );
     const baseChartType = graficasConfig.chart?.type || "bar";
     const baseSeriesConfig = getEnabledSeriesConfig(graficasConfig);
 
     if (snapshot?.filas && customCharts.length && baseSeriesConfig.length) {
       customCharts.forEach((chart, index) => {
         if (chart?.enabled === false) return;
-        const chartModule = (chart?.module || "RESUMEN")
-          .toString()
-          .toUpperCase();
+        const chartModule = normalizeModuleKey(chart?.module || "RESUMEN");
         if (chartModule !== moduleKey) return;
         const chartType = resolveChartType(chart?.chartType, baseChartType);
-        const seriesConfig = filterSeriesByKeys(
-          baseSeriesConfig,
-          chart?.seriesKeys || []
+        const seriesConfig = applyCustomSeriesOverrides(
+          filterSeriesByKeys(baseSeriesConfig, chart?.seriesKeys || []),
+          chart
         );
         if (!seriesConfig.length) return;
         const data = buildCustomChartData(
@@ -1529,6 +1570,7 @@
     destruirGraficaPanel("ingresoNacional");
 
     const graficasConfig = getGraficasConfig();
+    if (isManualOnly(graficasConfig)) return false;
     const ingresoConfig =
       graficasConfig.ingresoNacional || DEFAULT_GRAFICAS_CONFIG.ingresoNacional;
     if (ingresoConfig.enabled === false) return false;
@@ -1558,6 +1600,7 @@
     destruirGraficaPanel("ingreso");
 
     const graficasConfig = getGraficasConfig();
+    if (isManualOnly(graficasConfig)) return false;
     const ingresoConfig = graficasConfig.ingreso || DEFAULT_GRAFICAS_CONFIG.ingreso;
     if (ingresoConfig.enabled === false) return false;
 
@@ -1588,6 +1631,29 @@
     actualizarPanelGraficasHeaders(graficasConfig);
     if (typeof Chart === "undefined") {
       mostrarGraficasVacias("Chart.js no esta disponible.");
+      return;
+    }
+
+    if (isManualOnly(graficasConfig)) {
+      const customCount = renderCustomChartsPanel(graficasConfig);
+      destruirGraficaPanel("operating");
+      destruirGraficaPanel("net");
+      destruirGraficaPanel("consolidated");
+      destruirGraficaPanel("ingreso");
+      destruirGraficaPanel("ingresoNacional");
+      if (chartCardOperating) chartCardOperating.classList.add("d-none");
+      if (chartCardNet) chartCardNet.classList.add("d-none");
+      if (chartCardConsolidated) chartCardConsolidated.classList.add("d-none");
+      if (chartCardIngresoCapitulo)
+        chartCardIngresoCapitulo.classList.add("d-none");
+      if (chartCardIngresoNacional)
+        chartCardIngresoNacional.classList.add("d-none");
+      if (customCount === 0) {
+        mostrarGraficasVacias("No hay graficas manuales configuradas.");
+      } else {
+        if (chartsEmpty) chartsEmpty.classList.add("d-none");
+        if (chartsGrid) chartsGrid.classList.remove("d-none");
+      }
       return;
     }
 
@@ -4665,6 +4731,7 @@
     if (!snapshot || !snapshot.filas) return [];
 
     const graficasConfig = config || getGraficasConfig();
+    if (isManualOnly(graficasConfig)) return [];
     const baseConfig = DEFAULT_GRAFICAS_CONFIG || {};
     const baseChartType = graficasConfig.chart?.type || "bar";
     const chartsCfg = graficasConfig.charts || {};

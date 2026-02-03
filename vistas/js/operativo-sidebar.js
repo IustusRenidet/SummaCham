@@ -83,6 +83,35 @@
     return filtered.length ? filtered : seriesList;
   };
 
+  const applyCustomSeriesOverrides = (seriesList = [], chart = {}) => {
+    const overrides = Array.isArray(chart?.series) ? chart.series : [];
+    if (!overrides.length) return seriesList;
+    const overrideMap = new Map(
+      overrides
+        .map((item) => {
+          const key = item?.key != null ? String(item.key).trim() : "";
+          if (!key) return null;
+          return [key, item];
+        })
+        .filter(Boolean)
+    );
+    return (seriesList || []).map((serie) => {
+      const override = overrideMap.get(serie?.key);
+      if (!override) return serie;
+      return {
+        ...serie,
+        label:
+          typeof override.label === "string" && override.label.trim()
+            ? override.label.trim()
+            : serie.label,
+        color:
+          typeof override.color === "string" && override.color.trim()
+            ? override.color.trim()
+            : serie.color,
+      };
+    });
+  };
+
   const buildSlicePalette = (count, baseColor) => {
     const palette = baseColor
       ? [baseColor, ...CHART_PALETTE.filter((color) => color !== baseColor)]
@@ -590,22 +619,22 @@
     colors,
     enabledConfig,
   }) => {
-    if (!sidebar || !tabla) return;
+    if (!sidebar || !tabla) return 0;
     const container = sidebar.querySelector(".row.g-3");
-    if (!container) return;
+    if (!container) return 0;
 
     clearCustomCharts(container);
 
     const customChartsList = Array.isArray(graficasConfig.customCharts)
       ? graficasConfig.customCharts
       : [];
-    if (!customChartsList.length) return;
+    if (!customChartsList.length) return 0;
 
     const moduleKey = getCurrentModuleKey();
-    if (!moduleKey) return;
+    if (!moduleKey) return 0;
 
     const rowsData = obtenerDatosFilas(tabla);
-    if (!rowsData.length) return;
+    if (!rowsData.length) return 0;
 
     const baseDatasetDefs = [
       {
@@ -631,9 +660,10 @@
       },
     ].filter((item) => item.enabled !== false);
 
-    if (!baseDatasetDefs.length) return;
+    if (!baseDatasetDefs.length) return 0;
 
     const baseChartType = graficasConfig.chart?.type || "bar";
+    let rendered = 0;
 
     customChartsList.forEach((chart, index) => {
       if (chart?.enabled === false) return;
@@ -644,9 +674,9 @@
 
       const chartType = resolveChartType(chart?.chartType, baseChartType);
       const isPie = isPieType(chartType);
-      const datasetDefs = filterSeriesByKeys(
-        baseDatasetDefs,
-        chart?.seriesKeys || []
+      const datasetDefs = applyCustomSeriesOverrides(
+        filterSeriesByKeys(baseDatasetDefs, chart?.seriesKeys || []),
+        chart
       );
       if (!datasetDefs.length) return;
 
@@ -735,6 +765,7 @@
       `;
 
       container.appendChild(wrapper);
+      rendered += 1;
 
       const canvas = wrapper.querySelector("canvas");
       const empty = wrapper.querySelector(`[data-operativo-empty="${chartKey}"]`);
@@ -812,6 +843,7 @@
         },
       });
     });
+    return rendered;
   };
 
   const actualizarSidebar = () => {
@@ -820,13 +852,14 @@
     if (!sidebar || !tabla || typeof Chart === "undefined") return;
 
     const graficasConfig = getGraficasConfig();
+    const manualOnly = graficasConfig?.manualOnly !== false;
     const operativoConfig = graficasConfig.operativo || DEFAULT_OPERATIVO_CONFIG;
     const baseChartType = graficasConfig.chart?.type || "bar";
     const resolvedChartType = resolveChartType(
       operativoConfig.chartType,
       baseChartType
     );
-    if (operativoConfig.enabled === false) {
+    if (!manualOnly && operativoConfig.enabled === false) {
       sidebar.style.display = "none";
       return;
     }
@@ -841,6 +874,7 @@
     const contenedor = sidebar.querySelector(
       '[data-operativo-chart="combined"]'
     );
+    const combinedBlock = contenedor?.closest(".chart-block");
     const datasetDefaults = DEFAULT_OPERATIVO_CONFIG.datasets;
     const datasetConfig = operativoConfig.datasets || {};
     const budgetCfg = datasetConfig.budget || datasetDefaults.budget;
@@ -891,6 +925,30 @@
       tituloEl.textContent = titleText;
     }
 
+    if (manualOnly) {
+      if (combinedBlock) combinedBlock.style.display = "none";
+      if (charts.combined) {
+        charts.combined.destroy();
+        charts.combined = null;
+        charts.combinedType = null;
+      }
+      const renderedManual = renderCustomCharts({
+        sidebar,
+        tabla,
+        graficasConfig,
+        labelsConfig: {
+          budget: budgetLabel,
+          real: realLabel,
+          annual: annualLabel,
+        },
+        colors: { budget: colorBudget, real: colorReal, annual: colorAnnual },
+        enabledConfig,
+      });
+      sidebar.style.display = renderedManual > 0 ? "" : "none";
+      return;
+    }
+
+    if (combinedBlock) combinedBlock.style.display = "";
     actualizarChart({
       labels: effectiveLabels,
       presupuestos,

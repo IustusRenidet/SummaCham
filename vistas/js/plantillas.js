@@ -10007,10 +10007,6 @@ window.editSection = function (name) {
     if (!op) return;
     const label = getOperationLabel(op);
     const opId = getOperationId(op);
-    const rowLabelValues = {};
-    ROW_LABEL_FIELDS.forEach((field) => {
-      if (op?.[field]) rowLabelValues[field] = op[field];
-    });
     const key =
       buildOperationDedupeKey(op) ||
       normalizeOperationKey(getOperationId(op) || label);
@@ -10033,20 +10029,17 @@ window.editSection = function (name) {
         key
     );
 
-    const rowLabelKeys = Object.keys(rowLabelValues);
-    if (rowLabelKeys.length) {
-      state.operaciones.forEach((other) => {
-        rowLabelKeys.forEach((field) => {
-          const target = normalizeOperationMatch(rowLabelValues[field]);
-          if (!target) return;
-          if (normalizeOperationMatch(other?.[field]) === target) {
-            delete other[field];
-            if (other.signos && other.signos[field] !== undefined) {
-              delete other.signos[field];
-            }
-          }
-        });
-      });
+    const identificadoresServidor = Array.from(
+      new Map(
+        duplicados
+          .flatMap((item) => [getOperationId(item), getOperationLabel(item)])
+          .map((value) => (value || "").toString().trim())
+          .filter(Boolean)
+          .map((value) => [normalizeOperationMatch(value), value])
+      ).values()
+    );
+    if (!identificadoresServidor.length) {
+      identificadoresServidor.push(opId || label || operationId);
     }
 
     logChange(
@@ -10064,22 +10057,33 @@ window.editSection = function (name) {
 
     try {
       if (state.modulo && state.anio) {
-        const claseToDelete = encodeURIComponent(opId || label || operationId);
         const params = new URLSearchParams({
           empresaId: obtenerEmpresaIdApi(),
         });
         if (state.capitulo) params.set("capitulo", state.capitulo);
-        const url = `${API_BASE}/${encodeURIComponent(state.modulo)}/${state.anio}/operacion/${claseToDelete}?${params.toString()}`;
-        const resp = await fetch(url, {
-          method: "DELETE",
-          headers: {
-            ...getAuthHeaders(),
-          },
-        });
-        if (!resp.ok) {
-          const errorData = await resp.json().catch(() => ({}));
-          console.warn("No se pudo eliminar en servidor:", errorData);
-        } else {
+        let eliminacionRemotaOk = false;
+        for (const identificador of identificadoresServidor) {
+          const claseToDelete = encodeURIComponent(
+            identificador || opId || label || operationId
+          );
+          const url = `${API_BASE}/${encodeURIComponent(state.modulo)}/${state.anio}/operacion/${claseToDelete}?${params.toString()}`;
+          const resp = await fetch(url, {
+            method: "DELETE",
+            headers: {
+              ...getAuthHeaders(),
+            },
+          });
+          if (!resp.ok) {
+            const errorData = await resp.json().catch(() => ({}));
+            console.warn("No se pudo eliminar en servidor:", {
+              identificador,
+              ...errorData,
+            });
+            continue;
+          }
+          eliminacionRemotaOk = true;
+        }
+        if (eliminacionRemotaOk) {
           await loadLayout();
         }
       }
