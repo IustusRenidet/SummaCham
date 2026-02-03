@@ -284,7 +284,8 @@
     if (typeof value !== "string") return fallback;
     const clean = value.trim().toLowerCase();
     if (!clean) return fallback;
-    if (["snapshot", "mensual", "custom"].includes(clean)) return clean;
+    if (clean === "snapshot" || clean === "mensual") return clean;
+    if (clean === "custom") return "snapshot";
     return fallback;
   };
 
@@ -911,6 +912,49 @@
     "Presupuestos",
   ];
 
+  const SUMMARY_TABLE_SERIES = [
+    { key: "actual", label: "Real", color: "#1d4ed8", enabled: true },
+    { key: "plan", label: "Ppto.", color: "#60a5fa", enabled: true },
+    { key: "prev", label: "Real comparativo", color: "#94a3b8", enabled: true },
+    {
+      key: "varMonthPlan",
+      label: "B/(W)% vs. ppto.",
+      color: "#f59e0b",
+      enabled: true,
+    },
+    {
+      key: "varMonthPrev",
+      label: "B/(W)% vs. real comparativo",
+      color: "#f97316",
+      enabled: true,
+    },
+    { key: "actualYTD", label: "Real acumulado", color: "#0d47a1", enabled: true },
+    {
+      key: "planYTD",
+      label: "Ppto. acumulado",
+      color: "#60a5fa",
+      enabled: true,
+    },
+    {
+      key: "prevYTD",
+      label: "Real acumulado AA",
+      color: "#94a3b8",
+      enabled: true,
+    },
+    {
+      key: "varYTDPlan",
+      label: "B/(W)% vs. ppto. acumulado",
+      color: "#eab308",
+      enabled: true,
+    },
+    {
+      key: "varYTDPrev",
+      label: "B/(W)% vs. real acumulado AA",
+      color: "#fb923c",
+      enabled: true,
+    },
+  ];
+
   const escapeHtml = (value) =>
     String(value ?? "")
       .replace(/&/g, "&amp;")
@@ -991,27 +1035,62 @@
 
   const getSummarySeriesFromForm = (defaults) => {
     const rows = Array.from(form.querySelectorAll("[data-series-row]"));
-    if (!rows.length) return (defaults.series || []).slice();
-    return rows
-      .map((row) => {
-        const key = row.getAttribute("data-series-key");
-        if (!key) return null;
-        const fallback =
-          (defaults.series || []).find((item) => item.key === key) || {};
-        const labelInput = row.querySelector("[data-series-label]");
-        const colorInput = row.querySelector("[data-series-color]");
-        const enabledInput = row.querySelector("[data-series-enabled]");
-        return {
-          key,
-          label: labelInput?.value?.trim() || fallback.label || key,
-          color: colorInput?.value || fallback.color || "#0d47a1",
-          enabled:
-            typeof enabledInput?.checked === "boolean"
-              ? enabledInput.checked
-              : fallback.enabled !== false,
-        };
-      })
-      .filter(Boolean);
+    const formOverrides = new Map(
+      rows
+        .map((row) => {
+          const key = row.getAttribute("data-series-key");
+          if (!key) return null;
+          const labelInput = row.querySelector("[data-series-label]");
+          const colorInput = row.querySelector("[data-series-color]");
+          const enabledInput = row.querySelector("[data-series-enabled]");
+          return [
+            key,
+            {
+              label: labelInput?.value?.trim() || "",
+              color: colorInput?.value || "",
+              enabled:
+                typeof enabledInput?.checked === "boolean"
+                  ? enabledInput.checked
+                  : true,
+            },
+          ];
+        })
+        .filter(Boolean)
+    );
+    const defaultsMap = new Map(
+      (Array.isArray(defaults.series) ? defaults.series : [])
+        .map((serie) => [String(serie?.key || "").trim(), serie])
+        .filter(([key]) => Boolean(key))
+    );
+    return SUMMARY_TABLE_SERIES.map((base) => {
+      const fromForm = formOverrides.get(base.key) || {};
+      const fromDefaults = defaultsMap.get(base.key) || {};
+      return {
+        key: base.key,
+        label:
+          (typeof fromForm.label === "string" && fromForm.label.trim()
+            ? fromForm.label.trim()
+            : null) ||
+          (typeof fromDefaults.label === "string" && fromDefaults.label.trim()
+            ? fromDefaults.label.trim()
+            : null) ||
+          base.label,
+        color:
+          (typeof fromForm.color === "string" && fromForm.color.trim()
+            ? fromForm.color.trim()
+            : null) ||
+          (typeof fromDefaults.color === "string" && fromDefaults.color.trim()
+            ? fromDefaults.color.trim()
+            : null) ||
+          base.color,
+        enabled:
+          typeof fromForm.enabled === "boolean"
+            ? fromForm.enabled
+            : typeof fromDefaults.enabled === "boolean"
+            ? fromDefaults.enabled
+            : base.enabled !== false,
+      };
+    });
   };
 
   const getOperativoSeriesFromConfig = (config, defaults) => {
@@ -1123,11 +1202,14 @@
           <select class="form-select form-select-sm" data-manual-module></select>
         </div>
         <div class="col-12 col-lg-4">
-          <label class="form-label small fw-semibold">Fuente</label>
+          <label class="form-label small fw-semibold">Origen de datos</label>
           <select class="form-select form-select-sm" data-manual-source>
-            <option value="snapshot">Snapshot</option>
-            <option value="mensual">Mensual</option>
+            <option value="snapshot">Tabla actual del modulo</option>
+            <option value="mensual">Historico mensual (Ene-Dic)</option>
           </select>
+          <div class="form-text">
+            Tabla actual usa filas/columnas de la tabla. Historico mensual usa Ene-Dic.
+          </div>
         </div>
         <div class="col-12 col-lg-4">
           <label class="form-label small fw-semibold">Tipo</label>

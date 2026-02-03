@@ -156,6 +156,49 @@
       .join("\n");
   };
 
+  const SUMMARY_TABLE_SERIES = [
+    { key: "actual", label: "Real", color: "#1d4ed8", enabled: true },
+    { key: "plan", label: "Ppto.", color: "#60a5fa", enabled: true },
+    { key: "prev", label: "Real comparativo", color: "#94a3b8", enabled: true },
+    {
+      key: "varMonthPlan",
+      label: "B/(W)% vs. ppto.",
+      color: "#f59e0b",
+      enabled: true,
+    },
+    {
+      key: "varMonthPrev",
+      label: "B/(W)% vs. real comparativo",
+      color: "#f97316",
+      enabled: true,
+    },
+    { key: "actualYTD", label: "Real acumulado", color: "#0d47a1", enabled: true },
+    {
+      key: "planYTD",
+      label: "Ppto. acumulado",
+      color: "#60a5fa",
+      enabled: true,
+    },
+    {
+      key: "prevYTD",
+      label: "Real acumulado AA",
+      color: "#94a3b8",
+      enabled: true,
+    },
+    {
+      key: "varYTDPlan",
+      label: "B/(W)% vs. ppto. acumulado",
+      color: "#eab308",
+      enabled: true,
+    },
+    {
+      key: "varYTDPrev",
+      label: "B/(W)% vs. real acumulado AA",
+      color: "#fb923c",
+      enabled: true,
+    },
+  ];
+
   const parseVariantsList = (text) => {
     if (!text) return [];
     return text
@@ -1181,11 +1224,34 @@
       };
     });
 
-    const summarySeriesDefs = Array.isArray(baseConfig.series)
-      ? baseConfig.series
-      : Array.isArray(defaults.series)
-      ? defaults.series
-      : [];
+    const summarySeriesMap = new Map(
+      (Array.isArray(baseConfig.series)
+        ? baseConfig.series
+        : Array.isArray(defaults.series)
+        ? defaults.series
+        : []
+      )
+        .map((serie) => [String(serie?.key || "").trim(), serie])
+        .filter(([key]) => Boolean(key))
+    );
+    const summarySeriesDefs = SUMMARY_TABLE_SERIES.map((base) => {
+      const override = summarySeriesMap.get(base.key) || {};
+      return {
+        ...base,
+        label:
+          (typeof override.label === "string" && override.label.trim()
+            ? override.label.trim()
+            : null) || base.label,
+        color:
+          (typeof override.color === "string" && override.color.trim()
+            ? override.color.trim()
+            : null) || base.color,
+        enabled:
+          typeof override.enabled === "boolean"
+            ? override.enabled
+            : base.enabled !== false,
+      };
+    });
     const operativoSeriesSource =
       baseConfig.operativo?.datasets || defaults.operativo?.datasets || {};
     const operativoSeriesDefs = Object.keys(operativoSeriesSource).map((key) => ({
@@ -1652,6 +1718,33 @@
     return raw.toString();
   };
 
+  const percentageDelta = (baseValue, compareValue) => {
+    const base = toNumber(baseValue);
+    const compare = toNumber(compareValue);
+    if (!Number.isFinite(base) || !Number.isFinite(compare) || compare === 0) {
+      return 0;
+    }
+    return ((base / compare) - 1) * 100;
+  };
+
+  const resolveSummarySeriesValue = (totals = {}, key = "") => {
+    const raw = toNumber(totals?.[key]);
+    if (Number.isFinite(raw) && raw !== 0) return raw;
+    if (key === "varMonthPlan") {
+      return percentageDelta(totals?.actual, totals?.plan);
+    }
+    if (key === "varMonthPrev") {
+      return percentageDelta(totals?.actual, totals?.prev);
+    }
+    if (key === "varYTDPlan") {
+      return percentageDelta(totals?.actualYTD, totals?.planYTD);
+    }
+    if (key === "varYTDPrev") {
+      return percentageDelta(totals?.actualYTD, totals?.prevYTD);
+    }
+    return Number.isFinite(raw) ? raw : 0;
+  };
+
   const buildDatasetsFromSnapshot = ({
     rows,
     snapshotMap,
@@ -1683,7 +1776,9 @@
         : getRowTotals(snapshotMap, variants);
       labels.push(label);
       activeSeries.forEach((serie, index) => {
-        dataMatrix[index].push(toNumber(totals?.[serie.key]));
+        dataMatrix[index].push(
+          resolveSummarySeriesValue(totals || {}, serie.key)
+        );
       });
     });
 
@@ -1874,7 +1969,10 @@
         const match = obtenerFilaIngreso(layout, variants);
         if (!match?.totals) return;
         activeSeries.forEach((serie) => {
-          seriesData[serie.key][idx] += toNumber(match.totals?.[serie.key]);
+          seriesData[serie.key][idx] += resolveSummarySeriesValue(
+            match.totals || {},
+            serie.key
+          );
         });
       });
     });
@@ -1931,12 +2029,38 @@
     const capituloLabel = (context?.capitulo || "").toString().trim();
     const empresaId = context?.empresaId;
     const anio = context?.anio;
+    const summarySeriesMap = new Map(
+      (Array.isArray(config.series) && config.series.length
+        ? config.series
+        : defaults.series || []
+      )
+        .map((serie) => [String(serie?.key || "").trim(), serie])
+        .filter(([key]) => Boolean(key))
+    );
+    const summarySeriesList = SUMMARY_TABLE_SERIES.map((base) => {
+      const override = summarySeriesMap.get(base.key) || {};
+      return {
+        ...base,
+        label:
+          (typeof override.label === "string" && override.label.trim()
+            ? override.label.trim()
+            : null) || base.label,
+        color:
+          (typeof override.color === "string" && override.color.trim()
+            ? override.color.trim()
+            : null) || base.color,
+        enabled:
+          typeof override.enabled === "boolean"
+            ? override.enabled
+            : base.enabled !== false,
+      };
+    });
     const seriesList =
       Array.isArray(config.series) && config.series.length
         ? config.series
         : defaults.series || [];
     const customSeriesList = filterSeriesByKeys(
-      seriesList,
+      summarySeriesList,
       definition.seriesKeys
     );
 
@@ -2318,10 +2442,32 @@
       summarySources,
       baseSources.summary || {}
     );
-    const summarySeriesList =
-      Array.isArray(config.series) && config.series.length
+    const summarySeriesMap = new Map(
+      (Array.isArray(config.series) && config.series.length
         ? config.series
-        : defaults.series || [];
+        : defaults.series || []
+      )
+        .map((serie) => [String(serie?.key || "").trim(), serie])
+        .filter(([key]) => Boolean(key))
+    );
+    const summarySeriesList = SUMMARY_TABLE_SERIES.map((base) => {
+      const override = summarySeriesMap.get(base.key) || {};
+      return {
+        ...base,
+        label:
+          (typeof override.label === "string" && override.label.trim()
+            ? override.label.trim()
+            : null) || base.label,
+        color:
+          (typeof override.color === "string" && override.color.trim()
+            ? override.color.trim()
+            : null) || base.color,
+        enabled:
+          typeof override.enabled === "boolean"
+            ? override.enabled
+            : base.enabled !== false,
+      };
+    });
     const summaryColumns = summarySeriesList
       .filter((serie) => serie?.enabled !== false)
       .map((serie) => serie?.label || serie?.key);

@@ -3227,13 +3227,15 @@
             <h6 class="mb-3">Fuente de Datos</h6>
             <div class="mb-3">
               <label for="chartEditorSourceType" class="form-label"
-                >Tipo de fuente</label
+                >Origen de datos de la grafica</label
               >
               <select class="form-select" id="chartEditorSourceType">
-                <option value="snapshot">Snapshot RESUMEN</option>
-                <option value="mensual">Datos mensuales</option>
-                <option value="custom">Filas personalizadas</option>
+                <option value="snapshot">Tabla actual del modulo</option>
+                <option value="mensual">Historico mensual (Ene-Dic)</option>
               </select>
+              <div class="form-text">
+                Tabla actual usa las columnas visibles del modulo. Historico mensual usa Ene-Dic.
+              </div>
             </div>
 
             <!-- Selector de filas desde snapshot -->
@@ -3256,7 +3258,7 @@
 
             <!-- Series/Columnas a mostrar -->
             <div class="mb-3">
-              <label class="form-label">Series a mostrar</label>
+              <label class="form-label">Columnas de la tabla a mostrar</label>
               <div id="chartEditorSeriesChecks"></div>
             </div>
             <div class="mb-3">
@@ -3630,6 +3632,60 @@
           return moduleSelectInput.value || preferred || "RESUMEN";
         };
 
+        const normalizeSourceType = (value) => {
+          const clean = (value || "").toString().trim().toLowerCase();
+          if (clean === "mensual") return "mensual";
+          return "snapshot";
+        };
+
+        const SUMMARY_TABLE_SERIES = [
+          { key: "actual", label: "Real", color: "#1d4ed8", enabled: true },
+          { key: "plan", label: "Ppto.", color: "#60a5fa", enabled: true },
+          { key: "prev", label: "Real comparativo", color: "#94a3b8", enabled: true },
+          {
+            key: "varMonthPlan",
+            label: "B/(W)% vs. ppto.",
+            color: "#f59e0b",
+            enabled: true,
+          },
+          {
+            key: "varMonthPrev",
+            label: "B/(W)% vs. real comparativo",
+            color: "#f97316",
+            enabled: true,
+          },
+          {
+            key: "actualYTD",
+            label: "Real acumulado",
+            color: "#0d47a1",
+            enabled: true,
+          },
+          {
+            key: "planYTD",
+            label: "Ppto. acumulado",
+            color: "#60a5fa",
+            enabled: true,
+          },
+          {
+            key: "prevYTD",
+            label: "Real acumulado AA",
+            color: "#94a3b8",
+            enabled: true,
+          },
+          {
+            key: "varYTDPlan",
+            label: "B/(W)% vs. ppto. acumulado",
+            color: "#eab308",
+            enabled: true,
+          },
+          {
+            key: "varYTDPrev",
+            label: "B/(W)% vs. real acumulado AA",
+            color: "#fb923c",
+            enabled: true,
+          },
+        ];
+
         const buildRowEntry = (label, variants) => {
           const alias = normalizeRowLabel(label);
           if (!alias) return null;
@@ -3664,20 +3720,42 @@
             return [];
           }
           const config = window.GraficasConfig.load();
-          const defaults = window.GraficasConfig.defaults || {};
           const moduleKey = normalizeModuleKey(
             moduleValue || currentModule || "RESUMEN",
           );
           if (isSummaryModuleKey(moduleKey)) {
-            const series = config.series || defaults.series || [];
-            return series.map((s) => ({
-              key: s.key,
-              label: s.label || s.key,
-              color: s.color || "#0d47a1",
-              enabled: s.enabled !== false,
-            }));
+            const seriesMap = new Map(
+              (Array.isArray(config.series) ? config.series : [])
+                .map((serie) => {
+                  const key = (serie?.key || "").toString().trim();
+                  if (!key) return null;
+                  return [key, serie];
+                })
+                .filter(Boolean),
+            );
+            return SUMMARY_TABLE_SERIES.map((base) => {
+              const override = seriesMap.get(base.key) || {};
+              return {
+                key: base.key,
+                label:
+                  (typeof override.label === "string" &&
+                  override.label.trim()
+                    ? override.label.trim()
+                    : null) || base.label,
+                color:
+                  (typeof override.color === "string" &&
+                  override.color.trim()
+                    ? override.color.trim()
+                    : null) || base.color,
+                enabled:
+                  typeof override.enabled === "boolean"
+                    ? override.enabled
+                    : base.enabled !== false,
+              };
+            });
           }
 
+          const defaults = window.GraficasConfig.defaults || {};
           const operativoDatasets =
             config.operativo?.datasets || defaults.operativo?.datasets || {};
           return Object.keys(operativoDatasets).map((key) => {
@@ -4113,7 +4191,9 @@
           if (enabledCheck)
             enabledCheck.checked = currentChart.enabled !== false;
           if (sourceTypeSelect) {
-            sourceTypeSelect.value = currentChart.sourceType || "snapshot";
+            sourceTypeSelect.value = normalizeSourceType(
+              currentChart.sourceType || "snapshot",
+            );
           }
 
           // Cargar filas seleccionadas
@@ -4258,7 +4338,7 @@
               subtitle: subtitleInput?.value?.trim() || "",
               chartType: typeSelect?.value || "inherit",
               enabled: enabledCheck?.checked !== false,
-              sourceType: sourceTypeSelect?.value || "snapshot",
+              sourceType: normalizeSourceType(sourceTypeSelect?.value),
               seriesKeys: selectedSeries,
               series,
               rows: selectedRows.map((row) => ({

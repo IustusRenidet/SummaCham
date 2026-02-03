@@ -815,6 +815,111 @@
       .toUpperCase()
       .replace(/\s+/g, " ");
 
+  const SUMMARY_TABLE_SERIES = [
+    { key: "actual", label: "Real", color: "#1d4ed8", enabled: true },
+    { key: "plan", label: "Ppto.", color: "#60a5fa", enabled: true },
+    { key: "prev", label: "Real comparativo", color: "#94a3b8", enabled: true },
+    {
+      key: "varMonthPlan",
+      label: "B/(W)% vs. ppto.",
+      color: "#f59e0b",
+      enabled: true,
+    },
+    {
+      key: "varMonthPrev",
+      label: "B/(W)% vs. real comparativo",
+      color: "#f97316",
+      enabled: true,
+    },
+    {
+      key: "actualYTD",
+      label: "Real acumulado",
+      color: "#0d47a1",
+      enabled: true,
+    },
+    {
+      key: "planYTD",
+      label: "Ppto. acumulado",
+      color: "#60a5fa",
+      enabled: true,
+    },
+    {
+      key: "prevYTD",
+      label: "Real acumulado AA",
+      color: "#94a3b8",
+      enabled: true,
+    },
+    {
+      key: "varYTDPlan",
+      label: "B/(W)% vs. ppto. acumulado",
+      color: "#eab308",
+      enabled: true,
+    },
+    {
+      key: "varYTDPrev",
+      label: "B/(W)% vs. real acumulado AA",
+      color: "#fb923c",
+      enabled: true,
+    },
+  ];
+
+  const percentageDelta = (baseValue, compareValue) => {
+    const base = toNumber(baseValue);
+    const compare = toNumber(compareValue);
+    if (!Number.isFinite(base) || !Number.isFinite(compare) || compare === 0) {
+      return 0;
+    }
+    return ((base / compare) - 1) * 100;
+  };
+
+  const resolveSummarySeriesValue = (totals = {}, key = "") => {
+    const raw = toNumber(totals?.[key]);
+    if (Number.isFinite(raw) && raw !== 0) return raw;
+    if (key === "varMonthPlan") {
+      return percentageDelta(totals?.actual, totals?.plan);
+    }
+    if (key === "varMonthPrev") {
+      return percentageDelta(totals?.actual, totals?.prev);
+    }
+    if (key === "varYTDPlan") {
+      return percentageDelta(totals?.actualYTD, totals?.planYTD);
+    }
+    if (key === "varYTDPrev") {
+      return percentageDelta(totals?.actualYTD, totals?.prevYTD);
+    }
+    return Number.isFinite(raw) ? raw : 0;
+  };
+
+  const getSummaryCustomSeriesConfig = (graficasConfig = {}) => {
+    const overrideMap = new Map(
+      (Array.isArray(graficasConfig.series) ? graficasConfig.series : [])
+        .map((serie) => {
+          const key = String(serie?.key || "").trim();
+          if (!key) return null;
+          return [key, serie];
+        })
+        .filter(Boolean)
+    );
+    return SUMMARY_TABLE_SERIES.map((base) => {
+      const override = overrideMap.get(base.key) || {};
+      return {
+        key: base.key,
+        label:
+          (typeof override.label === "string" && override.label.trim()
+            ? override.label.trim()
+            : null) || base.label,
+        color:
+          (typeof override.color === "string" && override.color.trim()
+            ? override.color.trim()
+            : null) || base.color,
+        enabled:
+          typeof override.enabled === "boolean"
+            ? override.enabled
+            : base.enabled !== false,
+      };
+    });
+  };
+
   const getEnabledSeriesConfig = (graficasConfig) => {
     const baseConfig = DEFAULT_GRAFICAS_CONFIG || {};
     const allowedKeys = new Set(["actualYTD", "planYTD", "prevYTD"]);
@@ -1083,7 +1188,9 @@
     if (!resolvedRows.length) return null;
 
     const datasets = seriesConfig.map((serie) => {
-      const data = resolvedRows.map((row) => toNumber(row.data?.[serie.key] ?? 0));
+      const data = resolvedRows.map((row) =>
+        resolveSummarySeriesValue(row.data || {}, serie.key)
+      );
       const dataset = {
         label: serie.label,
         data,
@@ -1141,7 +1248,7 @@
       document.body?.dataset?.modulo || "RESUMEN"
     );
     const baseChartType = graficasConfig.chart?.type || "bar";
-    const baseSeriesConfig = getEnabledSeriesConfig(graficasConfig);
+    const baseSeriesConfig = getSummaryCustomSeriesConfig(graficasConfig);
     if (!baseSeriesConfig.length) return 0;
 
     const sanitizeId = (value) =>
@@ -1533,7 +1640,7 @@
       document.body?.dataset?.modulo || "RESUMEN"
     );
     const baseChartType = graficasConfig.chart?.type || "bar";
-    const baseSeriesConfig = getEnabledSeriesConfig(graficasConfig);
+    const baseSeriesConfig = getSummaryCustomSeriesConfig(graficasConfig);
 
     if (snapshot?.filas && customCharts.length && baseSeriesConfig.length) {
       customCharts.forEach((chart, index) => {
@@ -2065,9 +2172,13 @@
             actual: safeNumber(celdas[1]),
             plan: safeNumber(celdas[2]),
             prev: safeNumber(celdas[3]),
+            varMonthPlan: safeNumber(celdas[4]),
+            varMonthPrev: safeNumber(celdas[5]),
             actualYTD: safeNumber(celdas[7]),
             planYTD: safeNumber(celdas[8]),
             prevYTD: safeNumber(celdas[9]),
+            varYTDPlan: safeNumber(celdas[10]),
+            varYTDPrev: safeNumber(celdas[11]),
           },
         };
 

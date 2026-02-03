@@ -123,7 +123,8 @@
     if (typeof value !== "string") return fallback;
     const clean = value.trim().toLowerCase();
     if (!clean) return fallback;
-    if (["snapshot", "mensual", "custom"].includes(clean)) return clean;
+    if (clean === "snapshot" || clean === "mensual") return clean;
+    if (clean === "custom") return "snapshot";
     return fallback;
   };
 
@@ -267,9 +268,13 @@
           actual: toNumber(fila?.totals?.actual),
           plan: toNumber(fila?.totals?.plan),
           prev: toNumber(fila?.totals?.prev),
+          varMonthPlan: toNumber(fila?.totals?.varMonthPlan),
+          varMonthPrev: toNumber(fila?.totals?.varMonthPrev),
           actualYTD: toNumber(fila?.totals?.actualYTD),
           planYTD: toNumber(fila?.totals?.planYTD),
           prevYTD: toNumber(fila?.totals?.prevYTD),
+          varYTDPlan: toNumber(fila?.totals?.varYTDPlan),
+          varYTDPrev: toNumber(fila?.totals?.varYTDPrev),
         });
       });
 
@@ -307,9 +312,13 @@
       actual: 0,
       plan: 0,
       prev: 0,
+      varMonthPlan: 0,
+      varMonthPrev: 0,
       actualYTD: 0,
       planYTD: 0,
       prevYTD: 0,
+      varYTDPlan: 0,
+      varYTDPrev: 0,
     };
   };
 
@@ -1072,6 +1081,48 @@
 
   const clone = (value) => JSON.parse(JSON.stringify(value));
   const ALLOWED_SERIES_KEYS = new Set(["actualYTD", "planYTD", "prevYTD"]);
+  const SUMMARY_TABLE_SERIES = [
+    { key: "actual", label: "Real", color: "#1d4ed8", enabled: true },
+    { key: "plan", label: "Ppto.", color: "#60a5fa", enabled: true },
+    { key: "prev", label: "Real comparativo", color: "#94a3b8", enabled: true },
+    {
+      key: "varMonthPlan",
+      label: "B/(W)% vs. ppto.",
+      color: "#f59e0b",
+      enabled: true,
+    },
+    {
+      key: "varMonthPrev",
+      label: "B/(W)% vs. real comparativo",
+      color: "#f97316",
+      enabled: true,
+    },
+    { key: "actualYTD", label: "Real acumulado", color: "#0d47a1", enabled: true },
+    {
+      key: "planYTD",
+      label: "Ppto. acumulado",
+      color: "#60a5fa",
+      enabled: true,
+    },
+    {
+      key: "prevYTD",
+      label: "Real acumulado AA",
+      color: "#94a3b8",
+      enabled: true,
+    },
+    {
+      key: "varYTDPlan",
+      label: "B/(W)% vs. ppto. acumulado",
+      color: "#eab308",
+      enabled: true,
+    },
+    {
+      key: "varYTDPrev",
+      label: "B/(W)% vs. real acumulado AA",
+      color: "#fb923c",
+      enabled: true,
+    },
+  ];
 
   const normalizeSeriesMap = (defaultsMap, overrideMap) => {
     const result = {};
@@ -1376,6 +1427,63 @@
       }));
   };
 
+  const getCustomColumnDefs = (config) => {
+    const overrideMap = new Map(
+      (Array.isArray(config?.series) ? config.series : [])
+        .map((serie) => {
+          const key = String(serie?.key || "").trim();
+          if (!key) return null;
+          return [key, serie];
+        })
+        .filter(Boolean)
+    );
+    return SUMMARY_TABLE_SERIES.map((base) => {
+      const override = overrideMap.get(base.key) || {};
+      return {
+        key: base.key,
+        label:
+          (typeof override.label === "string" && override.label.trim()
+            ? override.label.trim()
+            : null) || base.label,
+        color:
+          (typeof override.color === "string" && override.color.trim()
+            ? override.color.trim()
+            : null) || base.color,
+        enabled:
+          typeof override.enabled === "boolean"
+            ? override.enabled
+            : base.enabled !== false,
+      };
+    });
+  };
+
+  const percentageDelta = (baseValue, compareValue) => {
+    const base = toNumber(baseValue);
+    const compare = toNumber(compareValue);
+    if (!Number.isFinite(base) || !Number.isFinite(compare) || compare === 0) {
+      return 0;
+    }
+    return ((base / compare) - 1) * 100;
+  };
+
+  const resolveSummarySeriesValue = (totals = {}, key = "") => {
+    const raw = toNumber(totals?.[key]);
+    if (Number.isFinite(raw) && raw !== 0) return raw;
+    if (key === "varMonthPlan") {
+      return percentageDelta(totals?.actual, totals?.plan);
+    }
+    if (key === "varMonthPrev") {
+      return percentageDelta(totals?.actual, totals?.prev);
+    }
+    if (key === "varYTDPlan") {
+      return percentageDelta(totals?.actualYTD, totals?.planYTD);
+    }
+    if (key === "varYTDPrev") {
+      return percentageDelta(totals?.actualYTD, totals?.prevYTD);
+    }
+    return Number.isFinite(raw) ? raw : 0;
+  };
+
   const filterSeriesByKeys = (seriesList = [], keys = []) => {
     if (!Array.isArray(keys) || keys.length === 0) return seriesList;
     const keySet = new Set(
@@ -1496,9 +1604,13 @@
       actual: 0,
       plan: 0,
       prev: 0,
+      varMonthPlan: 0,
+      varMonthPrev: 0,
       actualYTD: 0,
       planYTD: 0,
       prevYTD: 0,
+      varYTDPlan: 0,
+      varYTDPrev: 0,
     };
   };
 
@@ -1527,7 +1639,9 @@
     const labels = resolvedRows.map((row) => row.label || "-");
     const isPie = isPieType(chartType);
     const datasets = columnDefs.map((col) => {
-      const rawValues = resolvedRows.map((row) => toNumber(row.data[col.key]));
+      const rawValues = resolvedRows.map((row) =>
+        resolveSummarySeriesValue(row.data || {}, col.key)
+      );
       const data = isPie ? rawValues : rawValues.map((value) => ocultarCeros(value));
       const dataset = {
         label: col.label,
@@ -1583,7 +1697,10 @@
         const match = obtenerFilaIngreso(layout, variants);
         if (!match?.totals) return;
         columnDefs.forEach((col) => {
-          seriesData[col.key][idx] += toNumber(match.totals?.[col.key]);
+          seriesData[col.key][idx] += resolveSummarySeriesValue(
+            match.totals || {},
+            col.key
+          );
         });
       });
     });
@@ -1636,7 +1753,7 @@
     const currentModule = normalizeModuleKey(
       document.body?.dataset?.modulo || "RESUMEN"
     );
-    const baseColumnDefs = getColumnDefs(config);
+    const baseColumnDefs = getCustomColumnDefs(config);
     if (!baseColumnDefs.length) return;
 
     const baseChartType = config.chart?.type || "bar";
