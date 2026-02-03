@@ -24,6 +24,17 @@
     const numero = Number(valor);
     return Number.isFinite(numero) ? numero : 0;
   };
+  
+  // Helper para normalizar IDs de operaciones
+  const normalizeOperationId = (value) => {
+    return (value || "")
+      .toString()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-zA-Z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "")
+      .toUpperCase();
+  };
 
   const CHART_PALETTE = [
     "#2563eb",
@@ -3427,10 +3438,14 @@
           }
           // OPERACION LIBRE: fila calculada desde fórmula manual
           else if (blockType === "operation") {
+            // Usar el estilo visual personalizado si existe
+            const rowStyle = block.rowStyle || block.estilo_fila || "operation-row";
+            const rowClass = `${rowStyle} free-operation-row fw-semibold`;
+            
             const opRow = createResumenTotalsRow(block.totals || {}, {
               label: block.label || "",
               rowRole: "operation",
-              rowClass: "operation-row free-operation-row fw-semibold",
+              rowClass: rowClass,
               rowContext: {
                 label: block.label || "",
                 type: blockType,

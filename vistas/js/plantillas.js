@@ -254,6 +254,19 @@
     dom.btnPreview?.addEventListener("click", showPreview);
     dom.btnPrintPreview?.addEventListener("click", () => window.print());
     dom.btnRefreshOrder?.addEventListener("click", updateLayoutOrderPanel);
+    
+    // Importación/Exportación masiva
+    const btnDescargarPlantilla = document.getElementById("btnDescargarPlantilla");
+    const btnImportarExcel = document.getElementById("btnImportarExcel");
+    const fileImportInput = document.getElementById("fileImportInput");
+    
+    if (btnDescargarPlantilla) {
+      btnDescargarPlantilla.addEventListener("click", descargarPlantillaImportacion);
+    }
+    if (btnImportarExcel && fileImportInput) {
+      btnImportarExcel.addEventListener("click", () => fileImportInput.click());
+      fileImportInput.addEventListener("change", importarDesdeArchivo);
+    }
 
     // Search
     dom.searchInput?.addEventListener("input", handleSearch);
@@ -1007,6 +1020,19 @@
     const onChange = () => applyAparicionTooltip(select, helpEl);
     select.addEventListener("change", onChange);
     applyAparicionTooltip(select, helpEl);
+    
+    // Inicializar selector de estilo visual
+    const estiloSelect = container.querySelector('#editOperacionEstilo');
+    if (estiloSelect) {
+      const preview = container.querySelector('#estiloPreview > div');
+      estiloSelect.addEventListener('change', () => {
+        const selectedOption = estiloSelect.options[estiloSelect.selectedIndex];
+        const className = selectedOption?.dataset?.class || 'sum-row fw-semibold';
+        if (preview) {
+          preview.className = 'text-center ' + className;
+        }
+      });
+    }
   };
 
   const closeOffcanvasFallback = (panel) => {
@@ -1849,23 +1875,41 @@
     const renderedOpIds = new Set();
 
     sections.forEach((section) => {
-      // Agregar sección principal
-      rows.push({
-        type: "principal",
-        label: section.name,
-        visible: true,
-      });
+      // Agregar sección principal solo si no existe operación que la reemplace
+      const secOpId = `SECPRIN_${normalizeOperationId(section.name)}`;
+      const hasOperation = operaciones.some(op => 
+        getOperationId(op) === secOpId || 
+        (op.SECCION === section.name && op.tipo_operacion === 'seccion')
+      );
+      
+      if (!hasOperation) {
+        rows.push({
+          type: "principal",
+          label: section.name,
+          visible: true,
+        });
+      }
 
       // Agregar subsecciones
       section.subsections.forEach((subsection) => {
         // Solo mostrar subsección si tiene nombre diferente a la sección principal
+        // Y no existe una operación que la reemplace
         if (subsection.name && subsection.name !== section.name) {
-          rows.push({
-            type: "subsection",
-            label: subsection.name,
-            parentSection: section.name,
-            visible: true,
-          });
+          const subsecOpId = `SUBSEC_${normalizeOperationId(subsection.name)}`;
+          const hasOperation = operaciones.some(op => 
+            getOperationId(op) === subsecOpId || 
+            (op.SECCION === subsection.name && op.tipo_operacion === 'subseccion')
+          );
+          
+          // Solo agregar la fila de subsección si NO hay operación que la reemplace
+          if (!hasOperation) {
+            rows.push({
+              type: "subsection",
+              label: subsection.name,
+              parentSection: section.name,
+              visible: true,
+            });
+          }
         }
 
         // Agregar cuentas de la subsección
@@ -2898,7 +2942,43 @@
     const tipoSeleccionado = resolveOperationAparicionType(op);
     const tipoTooltip = getAparicionTooltip(tipoSeleccionado);
     const tipoOptions = buildAparicionOptions(tipoSeleccionado);
+    
+    // Estilos visuales de fila
+    const estiloActual = op?.rowStyle || op?.estilo_fila || "sum-row";
+    const estilosDisponibles = [
+      { value: "sum-row", label: "Suma Simple", class: "sum-row fw-semibold", desc: "Fila de suma básica" },
+      { value: "sum-row-principal", label: "Suma Principal", class: "sum-row-principal fw-bold", desc: "Sección principal (INCOME, EXPENSES)" },
+      { value: "highlight-primary", label: "Consolidado Primario", class: "highlight-primary fw-bold text-uppercase", desc: "CONSOLIDATED INCOME/EXPENSES" },
+      { value: "highlight-secondary", label: "Resultado Operativo", class: "highlight-secondary fw-bold", desc: "OPERATING RESULTS" },
+      { value: "highlight-bright", label: "Resultado Neto", class: "highlight-bright text-white fw-bold", desc: "NET RESULTS (máxima jerarquía)" },
+      { value: "subsection-row", label: "Subsección", class: "subsection-row bg-light fw-semibold", desc: "Encabezado de subsección" },
+      { value: "operation-row", label: "Operación Libre", class: "operation-row free-operation-row fw-semibold", desc: "Operación personalizada" },
+    ];
+    
+    const estiloOptionsHtml = estilosDisponibles.map(estilo => {
+      const selected = estilo.value === estiloActual ? 'selected' : '';
+      return `<option value="${escapeAttr(estilo.value)}" ${selected} data-class="${escapeAttr(estilo.class)}">${escapeHtml(estilo.label)} - ${escapeHtml(estilo.desc)}</option>`;
+    }).join('');
+    
     return `
+      <div class="mb-3">
+        <label class="form-label d-flex align-items-center gap-2">
+          <i class="bi bi-palette me-1"></i>
+          Diseño Visual de la Fila
+        </label>
+        <select class="form-select" id="editOperacionEstilo">
+          ${estiloOptionsHtml}
+        </select>
+        <div class="form-text">
+          Define cómo se verá esta operación en el RESUMEN.
+        </div>
+        <div id="estiloPreview" class="mt-2 p-2 border rounded" style="min-height: 40px;">
+          <div class="text-center ${escapeAttr(estilosDisponibles.find(e => e.value === estiloActual)?.class || 'sum-row fw-semibold')}">
+            Vista previa del estilo
+          </div>
+        </div>
+      </div>
+      
       <div class="mb-3">
         <label class="form-label d-flex align-items-center gap-2">
           Tipo de fila
@@ -2914,7 +2994,7 @@
           ${tipoOptions}
         </select>
         <div class="form-text">
-          Solo cambia la apariencia de la fila en la plantilla.
+          Define dónde aparece en la plantilla (posición lógica).
         </div>
       </div>
       <div class="mb-3">
@@ -2923,7 +3003,7 @@
           ${rowLabelsHtml}
         </div>
         <div class="form-text">
-          Define donde aparece esta operacion en la plantilla.
+          Define en qué columnas específicas aparece.
         </div>
       </div>
       <div class="form-check form-switch">
@@ -3312,7 +3392,7 @@
             showToast("Activa el modo edición para modificar secciones", "warning");
             return;
           }
-          editSection(section);
+          window.editSection(section);
         }
         return;
       }
@@ -3325,7 +3405,7 @@
             showToast("Activa el modo edición para modificar subsecciones", "warning");
             return;
           }
-          editSubsection(section, subsection);
+          window.editSubsection(section, subsection);
         }
       }
     });
@@ -3488,9 +3568,9 @@
   }
 
   /**
-   * Editar una sección principal
+   * Editar una sección principal (LEGACY - ya no se usa)
    */
-  function editSection(sectionName) {
+  function _editSectionInternalOld(sectionName) {
     if (!sectionName) return;
 
     if (!dom.operationEditorPanel) {
@@ -3602,9 +3682,9 @@
   }
 
   /**
-   * Editar una subsección
+   * Editar una subsección (LEGACY - ya no se usa)
    */
-  function editSubsection(sectionName, subsectionName) {
+  function _editSubsectionInternalOld(sectionName, subsectionName) {
     if (!subsectionName) return;
 
     if (!dom.operationEditorPanel) {
@@ -8988,6 +9068,58 @@
 
 window.editSection = function (name) {
     if (!requireEditMode()) return;
+    
+    // Buscar si existe una operación para esta sección
+    const secOpId = `SECPRIN_${normalizeOperationId(name)}`;
+    let operation = state.operaciones.find(op => 
+      getOperationId(op) === secOpId ||
+      (op.SECCION === name && op.tipo_operacion === 'seccion')
+    );
+    
+    // Si no existe, crear una operación automáticamente
+    if (!operation) {
+      // Obtener todas las subsecciones de esta sección
+      const subsecciones = [...new Set(
+        state.cuentas
+          .filter(c => (getAccountPrincipalName(c) || '') === name)
+          .map(c => getAccountSecondaryName(c))
+          .filter(Boolean)
+      )];
+      
+      const formulaTerms = subsecciones.map((subsec, idx) => ({
+        id: Date.now() + idx,
+        operator: '+',
+        type: 'section',
+        value: subsec,
+        parentSection: name
+      }));
+      
+      operation = {
+        OperacionId: secOpId,
+        Clase: name,
+        SECCION: name,
+        tipo_operacion: 'seccion',
+        visible: true,
+        formula_terms: formulaTerms,
+        formula_json: JSON.stringify(formulaTerms),
+        HOJA: state.modulo || 'RESUMEN',
+        CAPITULO: state.capitulo,
+        rowStyle: 'sum-row-principal'
+      };
+      
+      state.operaciones.push(operation);
+      state.unsavedChanges = true;
+    }
+    
+    // Usar el editor de operaciones estándar
+    if (typeof coreEditOperation === 'function') {
+      coreEditOperation(getOperationId(operation));
+    } else if (typeof window.editOperation === 'function') {
+      window.editOperation(getOperationId(operation));
+    }
+  };
+  
+  window._editSectionOriginal = function (name) {
     dom.formEditar.innerHTML = `
       <div class="mb-3">
         <label class="form-label">Nombre de la Sección</label>
@@ -9034,6 +9166,55 @@ window.editSection = function (name) {
 
   window.editSubsection = function (principal, name) {
     if (!requireEditMode()) return;
+    
+    // Buscar si existe una operación para esta subsección
+    const subsecOpId = `SUBSEC_${normalizeOperationId(name)}`;
+    let operation = state.operaciones.find(op => 
+      getOperationId(op) === subsecOpId ||
+      (op.SECCION === name && op.tipo_operacion === 'subseccion')
+    );
+    
+    // Si no existe, crear una operación automáticamente
+    if (!operation) {
+      // Obtener todas las cuentas de esta subsección
+      const cuentasSubsec = state.cuentas.filter(c => {
+        const sec = getAccountSecondaryName(c) || '';
+        return sec === name;
+      });
+      
+      const formulaTerms = cuentasSubsec.map((cuenta, idx) => ({
+        id: Date.now() + idx,
+        operator: '+',
+        type: 'account',
+        value: cuenta.CUENTA || cuenta.cuenta,
+      }));
+      
+      operation = {
+        OperacionId: subsecOpId,
+        Clase: name,
+        SECCION: name,
+        tipo_operacion: 'subseccion',
+        visible: true,
+        formula_terms: formulaTerms,
+        formula_json: JSON.stringify(formulaTerms),
+        HOJA: state.modulo || 'RESUMEN',
+        CAPITULO: state.capitulo,
+        rowStyle: 'subsection-row'
+      };
+      
+      state.operaciones.push(operation);
+      state.unsavedChanges = true;
+    }
+    
+    // Usar el editor de operaciones estándar
+    if (typeof coreEditOperation === 'function') {
+      coreEditOperation(getOperationId(operation));
+    } else if (typeof window.editOperation === 'function') {
+      window.editOperation(getOperationId(operation));
+    }
+  };
+  
+  window._editSubsectionOriginal = function (principal, name) {
     dom.formEditar.innerHTML = `
       <div class="mb-3">
         <label class="form-label">Sección Principal</label>
@@ -10399,6 +10580,13 @@ window.editSection = function (name) {
       const visibleInput = document.getElementById("editOperacionVisible");
       if (visibleInput) {
         op.visible = Boolean(visibleInput.checked);
+      }
+      
+      // Guardar estilo visual de la fila
+      const estiloFilaInput = document.getElementById("editOperacionEstilo");
+      if (estiloFilaInput?.value) {
+        op.rowStyle = estiloFilaInput.value;
+        op.estilo_fila = estiloFilaInput.value;
       }
 
       const formulaPanel = dom.operationEditorPanel;
@@ -12839,6 +13027,215 @@ window.editSection = function (name) {
     window.handleAnioChange = async function() {
       await originalHandleAnioChange();
       saveContextToURL();
+    }
+  }
+
+  // ==========================================
+  // IMPORTACIÓN/EXPORTACIÓN MASIVA
+  // ==========================================
+  
+  function descargarPlantillaImportacion() {
+    const plantilla = {
+      "_instrucciones": {
+        "descripcion": "Plantilla para importación masiva de elementos al Gestor de Plantillas",
+        "contexto": `${state.modulo} - ${state.anio} - ${state.capitulo}`,
+        "formato": "Llena las secciones, subsecciones, cuentas y operaciones, luego importa este archivo",
+        "campos_obligatorios": {
+          "secciones": ["nombre"],
+          "subsecciones": ["nombre", "seccion_principal"],
+          "cuentas": ["cuenta", "nombre", "seccion_principal", "seccion_secundaria"],
+          "operaciones": ["operacion_id", "clase", "formula"]
+        }
+      },
+      "secciones": extractSecciones(),
+      "subsecciones": extractSubsecciones(),
+      "cuentas": extractCuentas(),
+      "operaciones": extractOperaciones(),
+      "_notas": {
+        "formula_formato": "Ejemplos: '400-000-000-00 + 401-000-000-00' o 'OPERACION_1 - OPERACION_2'",
+        "estilo_fila_opciones": ["sum-row", "sum-row-principal", "highlight-primary", "highlight-secondary", "highlight-bright", "subsection-row", "operation-row"],
+        "tipo_operacion_opciones": ["libre", "seccion", "subseccion", "consolidacion"]
+      }
+    };
+    
+    const json = JSON.stringify(plantilla, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `plantilla_${state.modulo}_${state.anio}_${state.capitulo}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    showToast('✅ Plantilla descargada. Ábrela en Excel o editor de texto, llena los datos e importa.', 'success');
+  }
+  
+  function extractSecciones() {
+    const secciones = new Set();
+    state.cuentas.forEach(c => {
+      const seccion = getAccountPrincipalName(c);
+      if (seccion) secciones.add(seccion);
+    });
+    return Array.from(secciones).map(nombre => ({ nombre, descripcion: "" }));
+  }
+  
+  function extractSubsecciones() {
+    const subsecciones = [];
+    const seen = new Set();
+    state.cuentas.forEach(c => {
+      const principal = getAccountPrincipalName(c);
+      const secundaria = getAccountSecondaryName(c);
+      if (principal && secundaria) {
+        const key = `${principal}|${secundaria}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          subsecciones.push({
+            nombre: secundaria,
+            seccion_principal: principal,
+            descripcion: ""
+          });
+        }
+      }
+    });
+    return subsecciones;
+  }
+  
+  function extractCuentas() {
+    return state.cuentas.map(c => ({
+      cuenta: c.CUENTA || c.cuenta || "",
+      nombre: c.NOMBRE || c.nombre || "",
+      seccion_principal: getAccountPrincipalName(c) || "",
+      seccion_secundaria: getAccountSecondaryName(c) || "",
+      visible: c.visible !== false,
+      capturable: c.capturable !== false,
+      tipo_saldo: c.TIPO_SALDO || c.tipo_saldo || "Deudor"
+    }));
+  }
+  
+  function extractOperaciones() {
+    return (state.operaciones || []).map(op => {
+      const formulaTerms = extractFormulaTerms(op);
+      const formulaStr = formulaTerms.map(t => {
+        const prefix = t.operator === '-' ? '- ' : (t.operator === '+' ? '+ ' : '');
+        return prefix + t.value;
+      }).join(' ').trim();
+      
+      return {
+        operacion_id: getOperationId(op) || "",
+        clase: getOperationDisplayName(op) || "",
+        seccion: op.SECCION || "",
+        tipo_operacion: op.tipo_operacion || "libre",
+        formula: formulaStr,
+        estilo_fila: op.rowStyle || op.estilo_fila || "operation-row",
+        visible: op.visible !== false,
+        descripcion: ""
+      };
+    });
+  }
+  
+  async function importarDesdeArchivo(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      
+      if (!data.secciones && !data.subsecciones && !data.cuentas && !data.operaciones) {
+        showToast('⚠️ El archivo no tiene el formato correcto. Descarga la plantilla primero.', 'warning');
+        return;
+      }
+      
+      const confirmMsg = `¿Importar datos desde ${file.name}?\n\nSe agregarán:\n` +
+        `- ${(data.secciones || []).length} secciones\n` +
+        `- ${(data.subsecciones || []).length} subsecciones\n` +
+        `- ${(data.cuentas || []).length} cuentas\n` +
+        `- ${(data.operaciones || []).length} operaciones`;
+      
+      if (!confirm(confirmMsg)) {
+        event.target.value = '';
+        return;
+      }
+      
+      let importados = 0;
+      
+      // Importar cuentas
+      if (data.cuentas && Array.isArray(data.cuentas)) {
+        data.cuentas.forEach(c => {
+          if (!c.cuenta) return;
+          
+          // Verificar si ya existe
+          const existe = state.cuentas.some(existing => 
+            (existing.CUENTA || existing.cuenta) === c.cuenta
+          );
+          
+          if (!existe) {
+            state.cuentas.push({
+              CUENTA: c.cuenta,
+              cuenta: c.cuenta,
+              NOMBRE: c.nombre,
+              nombre: c.nombre,
+              'SECCION PRINCIPAL': c.seccion_principal,
+              'SECCION Secundaria': c.seccion_secundaria,
+              visible: c.visible !== false,
+              capturable: c.capturable !== false,
+              TIPO_SALDO: c.tipo_saldo || 'Deudor',
+              HOJA: state.modulo,
+              CAPITULO: state.capitulo
+            });
+            importados++;
+          }
+        });
+      }
+      
+      // Importar operaciones
+      if (data.operaciones && Array.isArray(data.operaciones)) {
+        data.operaciones.forEach(op => {
+          if (!op.operacion_id || !op.formula) return;
+          
+          // Verificar si ya existe
+          const existe = state.operaciones.some(existing => 
+            getOperationId(existing) === op.operacion_id
+          );
+          
+          if (!existe) {
+            // Parsear fórmula
+            const formulaTerms = parseFormulaText(op.formula);
+            
+            state.operaciones.push({
+              OperacionId: op.operacion_id,
+              Clase: op.clase || op.operacion_id,
+              SECCION: op.seccion || "",
+              tipo_operacion: op.tipo_operacion || "libre",
+              formula_terms: formulaTerms,
+              formula_json: JSON.stringify(formulaTerms),
+              rowStyle: op.estilo_fila || "operation-row",
+              estilo_fila: op.estilo_fila || "operation-row",
+              visible: op.visible !== false,
+              HOJA: state.modulo,
+              CAPITULO: state.capitulo
+            });
+            importados++;
+          }
+        });
+      }
+      
+      if (importados > 0) {
+        state.unsavedChanges = true;
+        renderLayout();
+        updateButtonStates();
+        showToast(`✅ Importados ${importados} elementos. Recuerda GUARDAR los cambios.`, 'success');
+      } else {
+        showToast('ℹ️ No se importó nada nuevo (todos los elementos ya existen)', 'info');
+      }
+      
+    } catch (error) {
+      console.error('Error al importar:', error);
+      showToast(`❌ Error al importar: ${error.message}`, 'error');
+    } finally {
+      event.target.value = '';
     }
   }
 

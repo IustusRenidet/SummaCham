@@ -1,0 +1,107 @@
+{
+  "_instrucciones": {
+    "descripcion": "Plantilla para importación masiva de elementos al Gestor de Plantillas",
+    "formato": "Exporta este JSON a Excel, llena las filas, importa el Excel de vuelta",
+    "campos_obligatorios": {
+      "secciones": ["nombre"],
+      "subsecciones": ["nombre", "seccion_principal"],
+      "cuentas": ["cuenta", "nombre", "seccion_principal", "seccion_secundaria"],
+      "operaciones": ["operacion_id", "clase", "formula"]
+    },
+    "campos_opcionales": {
+      "cuentas": ["visible", "capturable", "tipo_saldo"],
+      "operaciones": ["visible", "tipo_operacion", "estilo_fila", "seccion", "subseccion"]
+    }
+  },
+  "secciones": [
+    {
+      "nombre": "INCOME",
+      "descripcion": "Sección de ingresos (ejemplo)"
+    },
+    {
+      "nombre": "EXPENSES",
+      "descripcion": "Sección de egresos (ejemplo)"
+    }
+  ],
+  "subsecciones": [
+    {
+      "nombre": "Membership",
+      "seccion_principal": "INCOME",
+      "descripcion": "Subsección de membresías (ejemplo)"
+    },
+    {
+      "nombre": "Events",
+      "seccion_principal": "INCOME",
+      "descripcion": "Subsección de eventos (ejemplo)"
+    }
+  ],
+  "cuentas": [
+    {
+      "cuenta": "400-000-000-00",
+      "nombre": "Cuotas Netas",
+      "seccion_principal": "INCOME",
+      "seccion_secundaria": "Membership",
+      "visible": true,
+      "capturable": true,
+      "tipo_saldo": "Deudor"
+    },
+    {
+      "cuenta": "401-000-000-00",
+      "nombre": "Ingresos socios nuevos",
+      "seccion_principal": "INCOME",
+      "seccion_secundaria": "Membership",
+      "visible": true,
+      "capturable": true,
+      "tipo_saldo": "Deudor"
+    },
+    {
+      "cuenta": "405-000-000-00",
+      "nombre": "Eventos",
+      "seccion_principal": "INCOME",
+      "seccion_secundaria": "Events",
+      "visible": true,
+      "capturable": true,
+      "tipo_saldo": "Deudor"
+    }
+  ],
+  "operaciones": [
+    {
+      "operacion_id": "SUBSEC_MEMBERSHIP",
+      "clase": "Membership",
+      "seccion": "Membership",
+      "tipo_operacion": "subseccion",
+      "formula": "400-000-000-00 + 401-000-000-00",
+      "estilo_fila": "subsection-row",
+      "visible": true,
+      "descripcion": "Suma automática de cuentas de Membership"
+    },
+    {
+      "operacion_id": "SECPRIN_INCOME",
+      "clase": "INCOME",
+      "seccion": "INCOME",
+      "tipo_operacion": "seccion",
+      "formula": "SUBSEC_MEMBERSHIP + SUBSEC_EVENTS",
+      "estilo_fila": "sum-row-principal",
+      "visible": true,
+      "descripcion": "Suma de todas las subsecciones de ingresos"
+    }
+  ],
+  "_notas": {
+    "formula": "Formato de fórmula: '400-000-000-00 + 401-000-000-00' o 'OPERACION_1 - OPERACION_2'",
+    "estilo_fila_opciones": [
+      "sum-row",
+      "sum-row-principal",
+      "highlight-primary",
+      "highlight-secondary",
+      "highlight-bright",
+      "subsection-row",
+      "operation-row"
+    ],
+    "tipo_operacion_opciones": [
+      "libre",
+      "seccion",
+      "subseccion",
+      "consolidacion"
+    ]
+  }
+}

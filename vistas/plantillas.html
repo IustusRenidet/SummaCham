@@ -223,6 +223,24 @@
                 >
                   <i class="bi bi-copy me-1"></i> Copiar a otro año
                 </button>
+                <div class="btn-group" role="group">
+                  <button
+                    type="button"
+                    id="btnDescargarPlantilla"
+                    class="btn btn-outline-success"
+                    title="Descargar plantilla para importación masiva"
+                  >
+                    <i class="bi bi-download me-1"></i> Descargar Plantilla
+                  </button>
+                  <button
+                    type="button"
+                    id="btnImportarExcel"
+                    class="btn btn-outline-info"
+                    title="Importar desde archivo JSON/Excel"
+                  >
+                    <i class="bi bi-upload me-1"></i> Importar
+                  </button>
+                </div>
                 <button
                   type="button"
                   id="btnGuardar"
@@ -3952,6 +3970,9 @@
         });
       })();
     </script>
+    
+    <!-- Input oculto para importación de archivos -->
+    <input type="file" id="fileImportInput" accept=".json,.xlsx,.xls" style="display: none;" />
 
     <script src="js/plantillas-graficas.js"></script>
     <script src="js/plantillas.js?v=20260203005636"></script>

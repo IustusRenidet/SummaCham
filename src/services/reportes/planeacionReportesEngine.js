@@ -1081,6 +1081,17 @@ const combinarTotales = (a = {}, b = {}, factor = 1) => ({
       const tipo = normalizarTerminoTipo(term);
       const valor = term.value ?? term.cuenta ?? term.id ?? '';
       let origen = null;
+      const buildFromPlaneacion = (record) => {
+        if (!record) return null;
+        return {
+          actualMonth: Number(record.actualMonth ?? 0),
+          planMonth: Number(record.planMonth ?? 0),
+          prevMonth: Number(record.prevMonth ?? 0),
+          actualYTD: Number(record.actualYTD ?? 0),
+          planYTD: Number(record.planYTD ?? 0),
+          prevYTD: Number(record.prevYTD ?? 0)
+        };
+      };
 
       if (tipo === 'section' || tipo === 'seccion') {
         const parent = (term.parentSection || op?.parentSection || '').toString().trim();
@@ -1094,6 +1105,15 @@ const combinarTotales = (a = {}, b = {}, factor = 1) => ({
           normalizarCuentaCanonica(valor) || valor
         );
         origen = mapCuentas.get(claveCuenta) || null;
+        if (!origen) {
+          const canon = normalizarCuentaCanonica(valor);
+          const visible = canon ? cuentaVisibleDesdeCanonica(canon) : null;
+          const record =
+            mapPlaneacion.get(valor) ||
+            (visible ? mapPlaneacion.get(visible) : null) ||
+            (canon ? mapPlaneacion.get(canon) : null);
+          origen = buildFromPlaneacion(record);
+        }
       } else if (tipo === 'operation' || tipo === 'operacion') {
         origen = mapOperaciones.get(normalizarTexto(valor)) || null;
       } else if (tipo === 'constant') {
@@ -1114,6 +1134,15 @@ const combinarTotales = (a = {}, b = {}, factor = 1) => ({
             normalizarCuentaCanonica(valor) || valor
           );
           origen = mapCuentas.get(claveCuenta) || null;
+          if (!origen) {
+            const canon = normalizarCuentaCanonica(valor);
+            const visible = canon ? cuentaVisibleDesdeCanonica(canon) : null;
+            const record =
+              mapPlaneacion.get(valor) ||
+              (visible ? mapPlaneacion.get(visible) : null) ||
+              (canon ? mapPlaneacion.get(canon) : null);
+            origen = buildFromPlaneacion(record);
+          }
         }
       }
 
