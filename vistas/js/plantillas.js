@@ -7223,6 +7223,11 @@
     tempOp._bulkRow = row;
     tempOp._bulkFormulaInput = formulaInput;
 
+    // Importante: el botón Guardar del panel usa state.selectedElement.
+    // Para inserción masiva debe apuntar a esta operación temporal.
+    state.selectedElement = { type: "operation", op: tempOp };
+    updateSelectionInfo();
+
     // Obtener elementos disponibles
     const availableElements = buildAvailableElementsForFormula();
 
