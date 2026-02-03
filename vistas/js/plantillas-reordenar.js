@@ -1,209 +1,220 @@
 /**
  * plantillas-reordenar.js
- * Sistema de reordenamiento visual para el gestor de plantillas
+ * Modal de reordenamiento alineado con la misma distribución que usa la plantilla.
  */
 
 (() => {
   "use strict";
 
-  // ==========================================
-  // STATE
-  // ==========================================
+  const ROW_TYPES = new Set(["principal", "subsection", "account", "operation"]);
+
   const ordenState = {
-    elementos: [], // Copia de trabajo de todos los elementos
+    elementos: [],
     filtroActual: "all",
     draggedElement: null,
-    originalOrder: [], // Para resetear
+    originalOrder: [],
   };
 
-  // Prevenir event listeners duplicados
   let listenersReordenarAttached = false;
 
-  // ==========================================
-  // INITIALIZATION
-  // ==========================================
   function initReordenar() {
-    // Si ya se añadieron los listeners, no hacerlo de nuevo
     if (listenersReordenarAttached) return;
     listenersReordenarAttached = true;
 
     const btnReordenar = document.getElementById("btnReordenar");
     const btnConfirmarOrden = document.getElementById("btnConfirmarOrden");
     const btnResetOrden = document.getElementById("btnResetOrden");
-    const modalReordenar = document.getElementById("modalReordenar");
 
-    if (btnReordenar) {
-      btnReordenar.addEventListener("click", abrirModalReordenar);
-    }
+    btnReordenar?.addEventListener("click", abrirModalReordenar);
+    btnConfirmarOrden?.addEventListener("click", aplicarOrden);
+    btnResetOrden?.addEventListener("click", resetearOrden);
 
-    if (btnConfirmarOrden) {
-      btnConfirmarOrden.addEventListener("click", aplicarOrden);
-    }
-
-    if (btnResetOrden) {
-      btnResetOrden.addEventListener("click", resetearOrden);
-    }
-
-    // Filtros
     document.querySelectorAll(".filter-btn").forEach((btn) => {
-      btn.addEventListener("click", (e) => {
+      btn.addEventListener("click", (event) => {
         document
           .querySelectorAll(".filter-btn")
-          .forEach((b) => b.classList.remove("active"));
-        e.target.classList.add("active");
-        ordenState.filtroActual = e.target.dataset.filter;
+          .forEach((node) => node.classList.remove("active"));
+        event.currentTarget.classList.add("active");
+        ordenState.filtroActual = event.currentTarget.dataset.filter || "all";
         aplicarFiltro();
       });
     });
   }
 
-  // ==========================================
-  // ABRIR MODAL DE REORDENAMIENTO
-  // ==========================================
   function abrirModalReordenar() {
     if (!window.state || !window.state.layout) {
       showToast("Carga un layout primero", "warning");
       return;
     }
 
-    // Preparar elementos
     prepararElementos();
-
-    // Renderizar lista
     renderizarListaOrdenable();
 
-    // Mostrar modal
-    const modal = new bootstrap.Modal(
-      document.getElementById("modalReordenar")
-    );
+    const modalNode = document.getElementById("modalReordenar");
+    if (!modalNode) return;
+    const modal = new bootstrap.Modal(modalNode);
     modal.show();
   }
 
-  // ==========================================
-  // PREPARAR ELEMENTOS
-  // ==========================================
-  function prepararElementos() {
-    ordenState.elementos = [];
-    ordenState.originalOrder = [];
-
-    const { cuentas = [], operaciones = [] } = window.state;
-
-    // Agrupar cuentas por secciones
-    const secciones = new Map();
-
-    cuentas.forEach((cuenta) => {
-      const principal = cuenta.seccion_principal || "Sin Sección";
-      const secundaria = cuenta.seccion_secundaria || null;
-
-      if (!secciones.has(principal)) {
-        secciones.set(principal, {
-          tipo: "seccion",
-          nombre: principal,
-          subsecciones: new Map(),
-          cuentas: [],
-        });
+  function obtenerFilasTemplate() {
+    if (typeof window.getTemplateRowsForReorder === "function") {
+      const rows = window.getTemplateRowsForReorder();
+      if (Array.isArray(rows) && rows.length) {
+        return rows.filter((row) => ROW_TYPES.has(row?.type));
       }
+    }
 
-      const seccion = secciones.get(principal);
+    // Fallback mínimo para no bloquear si aún no está disponible la API del layout.
+    const fallback = [];
+    const cuentas = Array.isArray(window.state?.cuentas) ? window.state.cuentas : [];
+    const operaciones = Array.isArray(window.state?.operaciones)
+      ? window.state.operaciones
+      : [];
 
-      if (secundaria) {
-        if (!seccion.subsecciones.has(secundaria)) {
-          seccion.subsecciones.set(secundaria, {
-            tipo: "subseccion",
-            nombre: secundaria,
-            principal: principal,
-            cuentas: [],
-          });
-        }
-        seccion.subsecciones.get(secundaria).cuentas.push(cuenta);
-      } else {
-        seccion.cuentas.push(cuenta);
-      }
+    const cuentasOrdenadas = [...cuentas].sort((a, b) => {
+      const orderA = Number.isFinite(Number(a?.orden_presentacion))
+        ? Number(a.orden_presentacion)
+        : Number.isFinite(Number(a?.orden))
+        ? Number(a.orden)
+        : 0;
+      const orderB = Number.isFinite(Number(b?.orden_presentacion))
+        ? Number(b.orden_presentacion)
+        : Number.isFinite(Number(b?.orden))
+        ? Number(b.orden)
+        : 0;
+      return orderA - orderB;
     });
 
-    // Convertir a array plano con jerarquía
-    let orden = 0;
-    secciones.forEach((seccion) => {
-      // Agregar sección principal
-      ordenState.elementos.push({
-        id: `seccion-${seccion.nombre}`,
-        tipo: "seccion",
-        nombre: seccion.nombre,
-        orden: orden++,
-        nivel: 0,
-        data: seccion,
-      });
-
-      // Agregar subsecciones y sus cuentas
-      seccion.subsecciones.forEach((subseccion) => {
-        ordenState.elementos.push({
-          id: `subseccion-${subseccion.principal}-${subseccion.nombre}`,
-          tipo: "subseccion",
-          nombre: subseccion.nombre,
-          principal: subseccion.principal,
-          orden: orden++,
-          nivel: 1,
-          data: subseccion,
-        });
-
-        // Cuentas de la subsección
-        subseccion.cuentas.forEach((cuenta) => {
-          ordenState.elementos.push({
-            id: `cuenta-${cuenta.Cuenta}`,
-            tipo: "cuenta",
-            nombre: cuenta.Nombre,
-            codigo: cuenta.Cuenta,
-            principal: subseccion.principal,
-            subseccion: subseccion.nombre,
-            orden: orden++,
-            nivel: 2,
-            data: cuenta,
-          });
-        });
-      });
-
-      // Cuentas directas de la sección
-      seccion.cuentas.forEach((cuenta) => {
-        ordenState.elementos.push({
-          id: `cuenta-${cuenta.Cuenta}`,
-          tipo: "cuenta",
-          nombre: cuenta.Nombre,
-          codigo: cuenta.Cuenta,
-          principal: seccion.nombre,
-          orden: orden++,
-          nivel: 1,
-          data: cuenta,
-        });
+    cuentasOrdenadas.forEach((cuenta) => {
+      fallback.push({
+        type: "account",
+        cuenta: cuenta?.CUENTA || cuenta?.Cuenta || cuenta?.cuenta || "",
+        label: cuenta?.CUENTA || cuenta?.Cuenta || cuenta?.cuenta || "",
+        nombre: cuenta?.NOMBRE || cuenta?.Nombre || cuenta?.nombre || "",
+        parentSection:
+          cuenta?.["SECCION Principal"] ||
+          cuenta?.["SECCIàN Principal"] ||
+          cuenta?.SECCION ||
+          cuenta?.seccion_principal ||
+          "",
+        parentSubsection:
+          cuenta?.["SECCION Secundaria"] || cuenta?.seccion_secundaria || "",
       });
     });
 
-    // Agregar operaciones
-    operaciones.forEach((operacion) => {
-      ordenState.elementos.push({
-        id: `operacion-${operacion.Clase || operacion.id}`,
-        tipo: "operacion",
-        nombre: operacion.Clase || operacion.label || "Sin nombre",
-        formula: getFormulaDisplay(operacion),
-        orden: orden++,
-        nivel: 0,
-        data: operacion,
+    const operacionesOrdenadas = [...operaciones].sort((a, b) => {
+      const orderA = Number.isFinite(Number(a?.orden_presentacion))
+        ? Number(a.orden_presentacion)
+        : Number.isFinite(Number(a?.orden))
+        ? Number(a.orden)
+        : 0;
+      const orderB = Number.isFinite(Number(b?.orden_presentacion))
+        ? Number(b.orden_presentacion)
+        : Number.isFinite(Number(b?.orden))
+        ? Number(b.orden)
+        : 0;
+      return orderA - orderB;
+    });
+
+    operacionesOrdenadas.forEach((op) => {
+      fallback.push({
+        type: "operation",
+        label:
+          op?.Etiqueta ||
+          op?.operacion_etiqueta ||
+          op?.Clase ||
+          op?.clase ||
+          op?.OperacionId ||
+          "",
+        opId: op?.OperacionId || op?.operacion_id || op?.id || "",
+        parentSection: op?.parentSection || "",
+        parentSubsection: op?.parentSubsection || "",
       });
     });
 
-    // Guardar orden original
-    ordenState.originalOrder = JSON.parse(
-      JSON.stringify(ordenState.elementos)
-    );
+    return fallback;
   }
 
-  // ==========================================
-  // RENDERIZAR LISTA ORDENABLE
-  // ==========================================
+  function mapTipoFiltro(type = "") {
+    if (type === "principal" || type === "subsection") return "seccion";
+    if (type === "account") return "cuenta";
+    if (type === "operation") return "operacion";
+    return "otro";
+  }
+
+  function mapTipoBadge(type = "") {
+    if (type === "principal") return "seccion";
+    if (type === "subsection") return "subseccion";
+    if (type === "account") return "cuenta";
+    if (type === "operation") return "operacion";
+    return "fila";
+  }
+
+  function resolveLevel(row = {}) {
+    if (row.type === "principal") return 0;
+    if (row.type === "subsection") return 1;
+    if (row.type === "account") return 2;
+    if (row.type === "operation") {
+      return row.parentSubsection ? 2 : row.parentSection ? 1 : 0;
+    }
+    return 0;
+  }
+
+  function buildElementId(row = {}, idx = 0) {
+    if (row.type === "principal") {
+      return `principal:${(row.label || "").toString().trim()}:${idx}`;
+    }
+    if (row.type === "subsection") {
+      const parent = (row.parentSection || "").toString().trim();
+      const label = (row.label || "").toString().trim();
+      return `subsection:${parent}:${label}:${idx}`;
+    }
+    if (row.type === "account") {
+      const accountId = row.accountId || row.cuenta || row.label || "";
+      return `account:${accountId}:${idx}`;
+    }
+    if (row.type === "operation") {
+      const opId = row.opId || row.operationId || row.label || "";
+      return `operation:${opId}:${idx}`;
+    }
+    return `row:${idx}`;
+  }
+
+  function createElemento(row = {}, idx = 0) {
+    return {
+      id: buildElementId(row, idx),
+      tipo: mapTipoFiltro(row.type),
+      subtipo: mapTipoBadge(row.type),
+      nombre:
+        row.label ||
+        row.nombre ||
+        row.cuenta ||
+        row.opId ||
+        "Sin nombre",
+      codigo: row.cuenta || "",
+      opId: row.opId || row.operationId || "",
+      principal: row.parentSection || row.section || "",
+      subseccion: row.parentSubsection || row.subsection || "",
+      nivel: resolveLevel(row),
+      orden: idx,
+      row,
+    };
+  }
+
+  function prepararElementos() {
+    const rows = obtenerFilasTemplate();
+    ordenState.elementos = rows.map((row, idx) => createElemento(row, idx));
+    ordenState.originalOrder = ordenState.elementos.map((item) => ({
+      ...item,
+      row: { ...(item.row || {}) },
+    }));
+  }
+
   function renderizarListaOrdenable() {
     const container = document.getElementById("ordenContainer");
     if (!container) return;
 
-    if (ordenState.elementos.length === 0) {
+    if (!ordenState.elementos.length) {
       container.innerHTML = `
         <div class="empty-orden">
           <i class="bi bi-inbox"></i>
@@ -221,53 +232,56 @@
     `;
 
     container.innerHTML = html;
-
-    // Inicializar drag and drop
     inicializarDragDrop();
-
-    // Bind eventos de controles
     bindControlesOrden();
+    aplicarFiltro();
   }
 
-  // ==========================================
-  // RENDER ELEMENTO
-  // ==========================================
   function renderElemento(elem, idx) {
     const iconos = {
       seccion: "bi-folder2",
       subseccion: "bi-folder",
       cuenta: "bi-file-earmark-text",
       operacion: "bi-calculator",
+      fila: "bi-layout-text-window",
     };
 
     const indentClass = elem.nivel > 0 ? `indent-${elem.nivel}` : "";
+    const badgeClass = elem.subtipo || elem.tipo || "fila";
+    const iconKey =
+      elem.subtipo === "subseccion" ? "subseccion" : elem.subtipo || elem.tipo;
+    const icon = iconos[iconKey] || iconos.fila;
 
     let detalles = "";
-    if (elem.tipo === "cuenta") {
-      detalles = `<span class="item-code">${elem.codigo}</span>`;
-    } else if (elem.tipo === "operacion" && elem.formula) {
-      detalles = elem.formula;
-    } else if (elem.tipo === "subseccion") {
-      detalles = `Bajo: ${elem.principal}`;
+    if (elem.subtipo === "cuenta") {
+      const label = elem.codigo || elem.nombre || "";
+      detalles = `<span class="item-code">${label}</span>`;
+    } else if (elem.subtipo === "subseccion") {
+      detalles = `Bajo: ${elem.principal || "Sin sección"}`;
+    } else if (elem.subtipo === "operacion") {
+      const destino =
+        elem.subseccion || elem.principal || elem.opId || "Posición libre";
+      detalles = `Destino: ${destino}`;
     }
 
     const isFirst = idx === 0;
     const isLast = idx === ordenState.elementos.length - 1;
 
     return `
-      <li class="sortable-item ${indentClass}" 
-          data-id="${elem.id}" 
+      <li class="sortable-item ${indentClass}"
+          data-id="${elem.id}"
           data-tipo="${elem.tipo}"
+          data-filter-type="${elem.tipo}"
           data-index="${idx}"
           draggable="true">
         <div class="item-order">${idx + 1}</div>
-        <div class="item-icon ${elem.tipo}">
-          <i class="bi ${iconos[elem.tipo]}"></i>
+        <div class="item-icon ${badgeClass}">
+          <i class="bi ${icon}"></i>
         </div>
         <div class="item-content">
           <div class="item-label">
             ${elem.nombre}
-            <span class="item-type-badge ${elem.tipo}">${elem.tipo}</span>
+            <span class="item-type-badge ${badgeClass}">${elem.subtipo}</span>
           </div>
           ${detalles ? `<p class="item-details">${detalles}</p>` : ""}
         </div>
@@ -289,12 +303,8 @@
     `;
   }
 
-  // ==========================================
-  // DRAG AND DROP
-  // ==========================================
   function inicializarDragDrop() {
     const items = document.querySelectorAll(".sortable-item");
-
     items.forEach((item) => {
       item.addEventListener("dragstart", handleDragStart);
       item.addEventListener("dragend", handleDragEnd);
@@ -305,158 +315,135 @@
     });
   }
 
-  function handleDragStart(e) {
-    const item = e.target.closest(".sortable-item");
+  function handleDragStart(event) {
+    const item = event.target.closest(".sortable-item");
     if (!item) return;
-
     ordenState.draggedElement = item;
     item.classList.add("dragging");
-
-    e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/html", item.innerHTML);
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", item.dataset.id || "");
   }
 
-  function handleDragEnd(e) {
-    const item = e.target.closest(".sortable-item");
+  function handleDragEnd(event) {
+    const item = event.target.closest(".sortable-item");
     if (!item) return;
-
     item.classList.remove("dragging");
-    document.querySelectorAll(".drag-over").forEach((el) => {
-      el.classList.remove("drag-over");
+    document.querySelectorAll(".drag-over").forEach((node) => {
+      node.classList.remove("drag-over");
     });
-
     ordenState.draggedElement = null;
   }
 
-  function handleDragOver(e) {
-    if (e.preventDefault) {
-      e.preventDefault();
-    }
-    e.dataTransfer.dropEffect = "move";
-    return false;
+  function handleDragOver(event) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
   }
 
-  function handleDragEnter(e) {
-    const item = e.target.closest(".sortable-item");
+  function handleDragEnter(event) {
+    const item = event.target.closest(".sortable-item");
     if (item && item !== ordenState.draggedElement) {
       item.classList.add("drag-over");
     }
   }
 
-  function handleDragLeave(e) {
-    const item = e.target.closest(".sortable-item");
-    if (item) {
-      item.classList.remove("drag-over");
-    }
+  function handleDragLeave(event) {
+    const item = event.target.closest(".sortable-item");
+    if (item) item.classList.remove("drag-over");
   }
 
-  function handleDrop(e) {
-    if (e.stopPropagation) {
-      e.stopPropagation();
-    }
-
-    const targetItem = e.target.closest(".sortable-item");
-    if (!targetItem || !ordenState.draggedElement) return;
+  function handleDrop(event) {
+    event.stopPropagation();
+    const targetItem = event.target.closest(".sortable-item");
+    if (!targetItem || !ordenState.draggedElement) return false;
 
     if (ordenState.draggedElement !== targetItem) {
-      const draggedIndex = parseInt(
-        ordenState.draggedElement.dataset.index,
-        10
-      );
+      const draggedIndex = parseInt(ordenState.draggedElement.dataset.index, 10);
       const targetIndex = parseInt(targetItem.dataset.index, 10);
-
-      // Intercambiar elementos
       intercambiarElementos(draggedIndex, targetIndex);
-
-      // Re-renderizar
       renderizarListaOrdenable();
     }
 
     return false;
   }
 
-  // ==========================================
-  // CONTROLES DE ORDEN
-  // ==========================================
   function bindControlesOrden() {
     document.querySelectorAll(".btn-orden[data-action]").forEach((btn) => {
-      btn.addEventListener("click", (e) => {
-        const item = e.target.closest(".sortable-item");
-        const action = e.target.closest(".btn-orden").dataset.action;
-        const index = parseInt(item.dataset.index, 10);
+      btn.addEventListener("click", (event) => {
+        const item = event.target.closest(".sortable-item");
+        const action = event.target.closest(".btn-orden")?.dataset.action;
+        const index = parseInt(item?.dataset.index || "-1", 10);
+        if (!Number.isInteger(index) || index < 0) return;
 
-        switch (action) {
-          case "up":
-            if (index > 0) {
-              intercambiarElementos(index, index - 1);
-              renderizarListaOrdenable();
-            }
-            break;
-
-          case "down":
-            if (index < ordenState.elementos.length - 1) {
-              intercambiarElementos(index, index + 1);
-              renderizarListaOrdenable();
-            }
-            break;
-
-          case "edit":
-            editarElemento(ordenState.elementos[index]);
-            break;
+        if (action === "up" && index > 0) {
+          intercambiarElementos(index, index - 1);
+          renderizarListaOrdenable();
+          return;
+        }
+        if (action === "down" && index < ordenState.elementos.length - 1) {
+          intercambiarElementos(index, index + 1);
+          renderizarListaOrdenable();
+          return;
+        }
+        if (action === "edit") {
+          editarElemento(ordenState.elementos[index]);
         }
       });
     });
   }
 
-  // ==========================================
-  // INTERCAMBIAR ELEMENTOS
-  // ==========================================
   function intercambiarElementos(fromIndex, toIndex) {
     const temp = ordenState.elementos[fromIndex];
     ordenState.elementos[fromIndex] = ordenState.elementos[toIndex];
     ordenState.elementos[toIndex] = temp;
-
-    // Actualizar orden
     ordenState.elementos.forEach((elem, idx) => {
       elem.orden = idx;
     });
   }
 
-  // ==========================================
-  // EDITAR ELEMENTO
-  // ==========================================
   function editarElemento(elem) {
-    // Cerrar modal de reordenar
-    const modalReordenar = bootstrap.Modal.getInstance(
-      document.getElementById("modalReordenar")
-    );
-    if (modalReordenar) {
-      modalReordenar.hide();
-    }
+    if (!elem?.row) return;
+    cerrarModalReordenar();
 
-    // Abrir modal de edición con los datos del elemento
     setTimeout(() => {
-      if (typeof window.openEditModal === "function") {
-        window.openEditModal(elem.data, elem.tipo);
-      } else {
-        showToast(
-          "Función de edición no disponible. Usa el botón Editar en el layout.",
-          "warning"
-        );
+      const row = elem.row || {};
+      if (row.type === "account") {
+        const accountId = row.accountId || row.cuenta || row.label;
+        if (accountId && typeof window.editAccount === "function") {
+          window.editAccount(accountId);
+          return;
+        }
       }
-    }, 300);
+
+      if (row.type === "operation") {
+        const operationId = row.opId || row.operationId || row.label;
+        if (operationId && typeof window.editOperation === "function") {
+          window.editOperation(operationId);
+          return;
+        }
+      }
+
+      if (row.type === "principal" && typeof window.editSection === "function") {
+        window.editSection(row.label || "");
+        return;
+      }
+
+      if (row.type === "subsection" && typeof window.editSubsection === "function") {
+        window.editSubsection(row.parentSection || "", row.label || "");
+        return;
+      }
+
+      showToast(
+        "No se pudo abrir el editor para esta fila. Edita desde la tabla principal.",
+        "warning"
+      );
+    }, 250);
   }
 
-  // ==========================================
-  // FILTROS
-  // ==========================================
   function aplicarFiltro() {
     const items = document.querySelectorAll(".sortable-item");
-
     items.forEach((item) => {
-      const tipo = item.dataset.tipo;
-
-      if (ordenState.filtroActual === "all" || tipo === ordenState.filtroActual) {
+      const filterType = item.dataset.filterType || item.dataset.tipo || "";
+      if (ordenState.filtroActual === "all" || filterType === ordenState.filtroActual) {
         item.style.display = "";
       } else {
         item.style.display = "none";
@@ -464,101 +451,83 @@
     });
   }
 
-  // ==========================================
-  // APLICAR ORDEN
-  // ==========================================
-  function aplicarOrden() {
-    if (!window.state) return;
-
-    // Actualizar orden en el state global
-    const cuentasMap = new Map();
-    const operacionesMap = new Map();
-
-    // Crear mapas de elementos originales
-    window.state.cuentas.forEach((c) => {
-      cuentasMap.set(`cuenta-${c.Cuenta}`, c);
-    });
-
-    window.state.operaciones.forEach((op) => {
-      const key = `operacion-${op.Clase || op.id}`;
-      operacionesMap.set(key, op);
-    });
-
-    // Aplicar nuevo orden
-    const nuevasCuentas = [];
-    const nuevasOperaciones = [];
-
-    ordenState.elementos.forEach((elem, idx) => {
-      if (elem.tipo === "cuenta") {
-        const cuenta = cuentasMap.get(elem.id);
-        if (cuenta) {
-          cuenta.orden = idx;
-          nuevasCuentas.push(cuenta);
-        }
-      } else if (elem.tipo === "operacion") {
-        const operacion = operacionesMap.get(elem.id);
-        if (operacion) {
-          operacion.orden = idx;
-          nuevasOperaciones.push(operacion);
-        }
+  function aplicarOrdenFallback(rows = []) {
+    if (!window.state) return { success: false };
+    let cursor = 0;
+    rows.forEach((row) => {
+      if (row?.type === "account") {
+        const cuenta = (window.state.cuentas || []).find((item) => {
+          const code = item?.CUENTA || item?.Cuenta || item?.cuenta || "";
+          return code && code === (row.cuenta || row.label || "");
+        });
+        if (!cuenta) return;
+        cuenta.orden_presentacion = cursor;
+        cuenta.orden = cursor;
+        cursor += 1;
+        return;
+      }
+      if (row?.type === "operation") {
+        const target = row.opId || row.operationId || row.label || "";
+        const op = (window.state.operaciones || []).find((item) => {
+          const id = item?.OperacionId || item?.operacion_id || item?.id || "";
+          const label = item?.Etiqueta || item?.operacion_etiqueta || item?.Clase || "";
+          return id === target || label === target;
+        });
+        if (!op) return;
+        op.orden_presentacion = cursor;
+        op.orden = cursor;
+        cursor += 1;
       }
     });
-
-    // Actualizar state
-    window.state.cuentas = nuevasCuentas;
-    window.state.operaciones = nuevasOperaciones;
     window.state.unsavedChanges = true;
-
-    // Re-renderizar layout
-    if (typeof window.renderLayout === "function") {
-      window.renderLayout();
-    }
-
-    // Cerrar modal
-    const modal = bootstrap.Modal.getInstance(
-      document.getElementById("modalReordenar")
-    );
-    if (modal) {
-      modal.hide();
-    }
-
-    showToast("Orden aplicado correctamente. No olvides guardar.", "success");
+    if (typeof window.renderLayout === "function") window.renderLayout();
+    return { success: true };
   }
 
-  // ==========================================
-  // RESETEAR ORDEN
-  // ==========================================
+  function aplicarOrden() {
+    const orderedRows = ordenState.elementos.map((elem) => ({
+      ...(elem.row || {}),
+    }));
+
+    let resultado = null;
+    if (typeof window.applyTemplateRowsOrder === "function") {
+      resultado = window.applyTemplateRowsOrder(orderedRows);
+    } else {
+      resultado = aplicarOrdenFallback(orderedRows);
+    }
+
+    if (!resultado?.success) {
+      showToast(
+        resultado?.message || "No se pudo aplicar el orden seleccionado.",
+        "warning"
+      );
+      return;
+    }
+
+    cerrarModalReordenar();
+    showToast("Orden aplicado. No olvides guardar.", "success");
+  }
+
   function resetearOrden() {
     if (
-      confirm("¿Seguro que deseas resetear al orden original? Se perderán los cambios actuales.")
+      !confirm(
+        "¿Seguro que deseas resetear al orden original? Se perderán los cambios actuales."
+      )
     ) {
-      ordenState.elementos = JSON.parse(
-        JSON.stringify(ordenState.originalOrder)
-      );
-      renderizarListaOrdenable();
-      showToast("Orden reseteado", "info");
+      return;
     }
+    ordenState.elementos = ordenState.originalOrder.map((item) => ({
+      ...item,
+      row: { ...(item.row || {}) },
+    }));
+    renderizarListaOrdenable();
+    showToast("Orden reseteado", "info");
   }
 
-  // ==========================================
-  // HELPERS
-  // ==========================================
-  function getFormulaDisplay(operacion) {
-    if (operacion.formula_terms && operacion.formula_terms.length > 0) {
-      return operacion.formula_terms
-        .map((t) => `${t.operator || "+"} ${t.value}`)
-        .join(" ");
-    }
-
-    const parts = [];
-    for (let i = 1; i <= 10; i++) {
-      const key = `seccion_${i}`;
-      if (operacion[key]) {
-        const signo = operacion.signos?.[key] === -1 ? "-" : "+";
-        parts.push(`${signo} ${operacion[key]}`);
-      }
-    }
-    return parts.join(" ") || "Sin fórmula";
+  function cerrarModalReordenar() {
+    const modalNode = document.getElementById("modalReordenar");
+    const modal = modalNode ? bootstrap.Modal.getInstance(modalNode) : null;
+    modal?.hide();
   }
 
   function showToast(message, type = "info") {
@@ -569,13 +538,9 @@
     }
   }
 
-  // ==========================================
-  // EXPORT
-  // ==========================================
   window.initReordenar = initReordenar;
   window.abrirModalReordenar = abrirModalReordenar;
 
-  // Auto-init when DOM ready
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", initReordenar);
   } else {

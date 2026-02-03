@@ -1880,6 +1880,8 @@
           label: label || opId || "",
           opId: opId || label || "",
           kind: detectOperationType(op),
+          parentSection: op.parentSection || "",
+          parentSubsection: op.parentSubsection || "",
           visible: op.visible !== false,
         });
       });
@@ -1956,18 +1958,6 @@
         const realAccounts = (subsection.accounts || []).filter(
           (acc) => !isPlaceholderAccount(acc)
         );
-        realAccounts.forEach((cuenta) => {
-          rows.push({
-            type: "account",
-            cuenta: cuenta.CUENTA || cuenta.cuenta || "",
-            nombre: cuenta.NOMBRE || cuenta.nombre || "",
-            label: cuenta.CUENTA || cuenta.cuenta || "",
-            parentSection: section.name,
-            parentSubsection: subsection.name,
-            accountId: getAccountRowId(cuenta),
-            visible: cuenta.visible !== false,
-          });
-        });
 
         // Buscar operaciones de esta subsección
         const subsectionOps = operaciones.filter((op) => {
@@ -1995,18 +1985,60 @@
           }
           return false;
         });
+        const subsectionRows = [];
+        realAccounts.forEach((cuenta, idx) => {
+          subsectionRows.push({
+            type: "account",
+            cuenta: cuenta.CUENTA || cuenta.cuenta || "",
+            nombre: cuenta.NOMBRE || cuenta.nombre || "",
+            label: cuenta.CUENTA || cuenta.cuenta || "",
+            parentSection: section.name,
+            parentSubsection: subsection.name,
+            accountId: getAccountRowId(cuenta),
+            visible: cuenta.visible !== false,
+            __sortOrder: getAccountOrder(cuenta, idx),
+            __sortKind: 0,
+          });
+        });
 
-        subsectionOps.forEach((op) => {
+        subsectionOps.forEach((op, idx) => {
           const opId = getOperationId(op);
           renderedOpIds.add(opId);
-          rows.push({
+          subsectionRows.push({
             type: "operation",
             label: getOperationDisplayName(op),
             opId: opId,
             kind: detectOperationType(op),
+            parentSection: section.name,
+            parentSubsection: subsection.name,
             visible: op.visible !== false,
+            __sortOrder: getOperationOrder(op, idx),
+            __sortKind: 1,
           });
         });
+
+        subsectionRows
+          .sort((a, b) => {
+            const orderA = Number.isFinite(Number(a.__sortOrder))
+              ? Number(a.__sortOrder)
+              : 0;
+            const orderB = Number.isFinite(Number(b.__sortOrder))
+              ? Number(b.__sortOrder)
+              : 0;
+            if (orderA !== orderB) return orderA - orderB;
+            const kindA = Number.isFinite(Number(a.__sortKind))
+              ? Number(a.__sortKind)
+              : 0;
+            const kindB = Number.isFinite(Number(b.__sortKind))
+              ? Number(b.__sortKind)
+              : 0;
+            return kindA - kindB;
+          })
+          .forEach((item) => {
+            delete item.__sortOrder;
+            delete item.__sortKind;
+            rows.push(item);
+          });
       });
 
       // Buscar operaciones a nivel de sección (que no pertenecen a ninguna subsección específica)
@@ -2016,6 +2048,12 @@
 
         const clase = (getOperationLabel(op) || "").toLowerCase();
         const sectionLower = section.name.toLowerCase();
+        const parentSec = (op.parentSection || "").toLowerCase();
+        const parentSub = (op.parentSubsection || "").toLowerCase();
+
+        if (parentSec && parentSec === sectionLower && !parentSub) {
+          return true;
+        }
 
         // Operaciones que referencian esta sección
         if (clase.includes(sectionLower) || (op.SECCION || "").toLowerCase() === sectionLower) {
@@ -2035,6 +2073,8 @@
           label: getOperationDisplayName(op),
           opId: opId,
           kind: detectOperationType(op),
+          parentSection: section.name,
+          parentSubsection: "",
           visible: op.visible !== false,
         });
       });
@@ -2050,6 +2090,8 @@
         label: getOperationDisplayName(op),
         opId: opId,
         kind: detectOperationType(op),
+        parentSection: op.parentSection || "",
+        parentSubsection: op.parentSubsection || "",
         visible: op.visible !== false,
       });
     });
@@ -4248,6 +4290,227 @@
     neighbor.orden_presentacion = currentOrder;
     logChange("move", `Operacion "${getOperationDisplayName(op)}" reordenada`);
     renderLayout();
+  }
+
+  function setAccountPrincipalName(cuenta, value) {
+    if (!cuenta) return;
+    const clean = (value || "").toString().trim();
+    const targetKeys = [
+      "SECCION Principal",
+      "SECCIàN Principal",
+      "SECCIÓN Principal",
+      "SECCION PRINCIPAL",
+      "SECCION",
+      "SECCIÓN",
+      "seccion_principal",
+      "seccion",
+    ];
+    targetKeys.forEach((key) => {
+      if (Object.prototype.hasOwnProperty.call(cuenta, key)) {
+        cuenta[key] = clean;
+      }
+    });
+    cuenta["SECCION Principal"] = clean;
+    cuenta.SECCION = clean;
+    cuenta.seccion_principal = clean;
+  }
+
+  function setAccountSecondaryName(cuenta, value) {
+    if (!cuenta) return;
+    const clean = (value || "").toString().trim();
+    const targetKeys = [
+      "SECCION Secundaria",
+      "SECCION SECUNDARIA",
+      "SECCIÓN Secundaria",
+      "SECCIÓN SECUNDARIA",
+      "seccion_secundaria",
+      "SUBSECCION",
+      "SUBSECCIÓN",
+    ];
+    targetKeys.forEach((key) => {
+      if (Object.prototype.hasOwnProperty.call(cuenta, key)) {
+        cuenta[key] = clean;
+      }
+    });
+    cuenta["SECCION Secundaria"] = clean;
+    cuenta.seccion_secundaria = clean;
+  }
+
+  function findOperationForOrderedRow(row = {}) {
+    const candidates = [
+      row.opId,
+      row.operationId,
+      row.operationLabel,
+      row.label,
+    ]
+      .map((value) => (value || "").toString().trim())
+      .filter(Boolean);
+
+    for (const candidate of candidates) {
+      const direct = findOperationByIdOrLabel(candidate);
+      if (direct) return direct;
+    }
+
+    const byLabel = findOperationsByRowLabel(row.label || "", row.kind || "");
+    if (byLabel.operations?.length === 1) {
+      return byLabel.operations[0];
+    }
+    return null;
+  }
+
+  function getTemplateRowsForReorder() {
+    const rows = Array.isArray(buildPreviewRowsForEditor())
+      ? buildPreviewRowsForEditor()
+      : [];
+    return rows.filter((row) =>
+      ["principal", "subsection", "account", "operation"].includes(row?.type)
+    );
+  }
+
+  function applyTemplateRowsOrder(orderedRows = []) {
+    if (!Array.isArray(orderedRows) || !orderedRows.length) {
+      return { success: false, message: "Sin filas para aplicar." };
+    }
+
+    const rows = orderedRows.filter((row) =>
+      ["principal", "subsection", "account", "operation"].includes(row?.type)
+    );
+    if (!rows.length) {
+      return { success: false, message: "Sin filas válidas para aplicar." };
+    }
+
+    let currentSection = "";
+    let currentSubsection = "";
+    let cursor = 0;
+
+    const touchedAccounts = new Set();
+    const touchedOperations = new Set();
+
+    rows.forEach((row) => {
+      const type = row?.type || "";
+      if (type === "principal") {
+        currentSection = (row.label || row.section || "").toString().trim();
+        currentSubsection = "";
+        return;
+      }
+
+      if (type === "subsection") {
+        const parentSection = (
+          row.parentSection ||
+          row.section ||
+          currentSection ||
+          ""
+        )
+          .toString()
+          .trim();
+        const subsection = (row.label || row.subsection || "").toString().trim();
+        if (parentSection) currentSection = parentSection;
+        currentSubsection = subsection;
+        return;
+      }
+
+      if (type === "account") {
+        const accountId =
+          row.accountId || row.cuenta || row.label || row.codigo || "";
+        const account = resolveAccountByIdOrCode(accountId);
+        if (!account) return;
+
+        const targetSection = (
+          row.parentSection ||
+          row.section ||
+          currentSection ||
+          getAccountPrincipalName(account) ||
+          ""
+        )
+          .toString()
+          .trim();
+        const targetSubsection = (
+          row.parentSubsection ||
+          row.subsection ||
+          currentSubsection ||
+          getAccountSecondaryName(account) ||
+          ""
+        )
+          .toString()
+          .trim();
+
+        setAccountPrincipalName(account, targetSection);
+        setAccountSecondaryName(account, targetSubsection);
+        account.orden_presentacion = cursor;
+        account.orden = cursor;
+        touchedAccounts.add(getAccountRowId(account));
+        cursor += 1;
+        return;
+      }
+
+      if (type === "operation") {
+        const op = findOperationForOrderedRow(row);
+        if (!op) return;
+
+        const targetSection = (
+          row.parentSection ||
+          row.section ||
+          currentSection ||
+          ""
+        )
+          .toString()
+          .trim();
+        const targetSubsection = (
+          row.parentSubsection ||
+          row.subsection ||
+          currentSubsection ||
+          ""
+        )
+          .toString()
+          .trim();
+
+        op.orden_presentacion = cursor;
+        op.orden = cursor;
+        op.parentSection = targetSection;
+        op.parentSubsection = targetSubsection;
+
+        const opKey =
+          getOperationId(op) ||
+          getOperationLabel(op) ||
+          (row.opId || row.label || "").toString().trim();
+        if (opKey) {
+          touchedOperations.add(normalizeOperationMatch(opKey));
+        }
+        cursor += 1;
+      }
+    });
+
+    (state.cuentas || []).forEach((cuenta, idx) => {
+      const accountId = getAccountRowId(cuenta);
+      if (touchedAccounts.has(accountId)) return;
+      const fallbackOrder = rows.length + idx;
+      cuenta.orden_presentacion = fallbackOrder;
+      cuenta.orden = fallbackOrder;
+    });
+
+    (state.operaciones || []).forEach((op, idx) => {
+      const opKey = normalizeOperationMatch(
+        getOperationId(op) || getOperationLabel(op) || ""
+      );
+      if (opKey && touchedOperations.has(opKey)) return;
+      const fallbackOrder = rows.length + idx;
+      op.orden_presentacion = fallbackOrder;
+      op.orden = fallbackOrder;
+    });
+
+    state.cuentas = sortAccountsByOrder(state.cuentas || []);
+    state.operaciones = sortOperations(state.operaciones || []);
+    state.unsavedChanges = true;
+    updateButtonStates();
+    logChange("move", "Orden manual aplicado desde Reordenar");
+    renderLayout();
+    updateLayoutOrderPanel();
+
+    return {
+      success: true,
+      accounts: touchedAccounts.size,
+      operations: touchedOperations.size,
+    };
   }
 
   function bindColumnConfigEvents() {
@@ -6920,23 +7183,30 @@
     subseccionSelect.innerHTML = options;
   }
 
+  function buildAvailableElementsForFormula() {
+    if (typeof getAvailableElements === "function") {
+      return getAvailableElements();
+    }
+    return { sections: [], accounts: [], operations: [] };
+  }
+
   // Editor de fórmula visual para inserción masiva
   function openBulkFormulaEditor(row) {
     if (!row) return;
-    
+
     const tipoSelect = row.querySelector('select[data-field="tipo"]');
     const tipo = tipoSelect?.value || "cuenta";
-    
+
     if (tipo !== "operacion") {
       showToast("El editor de fórmula solo aplica a operaciones", "warning");
       return;
     }
-    
+
     const nombreInput = row.querySelector('input[data-field="nombre"]');
     const formulaInput = row.querySelector('input[data-field="formula"]');
     const nombreOperacion = nombreInput?.value || "Nueva Operación";
     const formulaActual = formulaInput?.value || "";
-    
+
     // Parsear fórmula actual para obtener términos
     let formulaTerms = [];
     if (formulaActual.trim()) {
@@ -6946,7 +7216,7 @@
         console.warn("No se pudo parsear fórmula:", formulaActual, e);
       }
     }
-    
+
     // Si no hay términos, crear uno vacío
     if (formulaTerms.length === 0) {
       formulaTerms = [{
@@ -6956,7 +7226,7 @@
         value: ""
       }];
     }
-    
+
     // Crear operación temporal para pasar al editor
     const tempOp = {
       OperacionId: "TEMP_BULK_" + Date.now(),
@@ -6964,14 +7234,14 @@
       formula_terms: formulaTerms,
       formula_json: JSON.stringify(formulaTerms)
     };
-    
+
     // Guardar referencia a la fila para actualizar después
     tempOp._bulkRow = row;
     tempOp._bulkFormulaInput = formulaInput;
-    
+
     // Obtener elementos disponibles
     const availableElements = buildAvailableElementsForFormula();
-    
+
     // Abrir panel de edición
     const panelOpened = openOperationEditorPanel(tempOp, availableElements);
     if (panelOpened) {
@@ -9104,6 +9374,8 @@
   window.moveSubsectionOrder = moveSubsectionOrder;
   window.moveAccountOrder = moveAccountOrder;
   window.moveOperationOrder = moveOperationOrder;
+  window.getTemplateRowsForReorder = getTemplateRowsForReorder;
+  window.applyTemplateRowsOrder = applyTemplateRowsOrder;
   window.editRowOperation = editRowOperation;
 
 window.editSection = function (name) {

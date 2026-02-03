@@ -1228,7 +1228,7 @@ const combinarTotales = (a = {}, b = {}, factor = 1) => ({
       tipo_operacion: op?.tipo_operacion
     };
     const target =
-      op.SECCION || op.seccion || op.parentSubsection || op.parentSection || '';
+      op.parentSubsection || op.parentSection || op.SECCION || op.seccion || '';
     insertarOperacionEnLayout(layoutFinal, opBlock, target);
   });
 
