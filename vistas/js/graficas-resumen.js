@@ -2427,6 +2427,13 @@
     if (ingresoConfig.enabled === false) {
       return;
     }
+    const capitulo = window.CapitulosModulos?.obtenerCapituloPorEmpresa?.(
+      empresaId
+    );
+    const rowsConfig = getRowsConfig(capitulo, graficasConfig);
+    if (!rowsConfig?.isCdmx) {
+      return;
+    }
 
     try {
       const series = await buildIngresoNacionalSeries(empresaId, anio);
@@ -2677,7 +2684,8 @@
       rowsConfig?.isCdmx &&
       graficasConfig?.charts?.consolidated?.enabled !== false,
     ingreso: graficasConfig?.ingreso?.enabled !== false,
-    ingresoNacional: graficasConfig?.ingresoNacional?.enabled !== false,
+    ingresoNacional:
+      rowsConfig?.isCdmx && graficasConfig?.ingresoNacional?.enabled !== false,
   });
 
   const resolveCanvasTitle = (canvas, fallback = '') => {

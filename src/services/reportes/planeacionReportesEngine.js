@@ -1205,12 +1205,27 @@ const combinarTotales = (a = {}, b = {}, factor = 1) => ({
       op?.OperacionId || op?.operacion_id || op?.id || label
     );
     if (opKey) mapOperaciones.set(opKey, totals);
+    const styleFromTipo = (() => {
+      const tipo = (op?.tipo_operacion || '').toString().trim().toLowerCase();
+      if (tipo === 'seccion') return 'sum-row-principal';
+      if (tipo === 'subseccion') return 'subsection-row';
+      if (tipo === 'consolidacion') return 'highlight-secondary';
+      return '';
+    })();
+    const rowStyle =
+      op?.rowStyle ||
+      op?.estilo_fila ||
+      styleFromTipo ||
+      undefined;
     const opBlock = {
       type: 'operation',
       label,
       order: obtenerOrden(op, idx),
       orderIndex: idx,
-      totals
+      totals,
+      rowStyle,
+      estilo_fila: rowStyle || op?.estilo_fila,
+      tipo_operacion: op?.tipo_operacion
     };
     const target =
       op.SECCION || op.seccion || op.parentSubsection || op.parentSection || '';

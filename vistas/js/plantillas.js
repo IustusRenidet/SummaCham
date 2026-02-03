@@ -707,9 +707,30 @@
 
       const data = await response.json();
       state.layout = data.layout || {};
-      state.cuentas = extractCuentas(state.layout);
+      console.log('[GESTOR DEBUG] Layout recibido:', state.layout);
+      console.log('[GESTOR DEBUG] Layout keys:', Object.keys(state.layout));
+      console.log('[GESTOR DEBUG] Layout.cuentas:', state.layout.cuentas);
+      console.log('[GESTOR DEBUG] Layout.cuentas[0]:', state.layout.cuentas?.[0]);
+      console.log('[GESTOR DEBUG] Layout.cuentas es array?:', Array.isArray(state.layout.cuentas));
+      console.log('[GESTOR DEBUG] Layout[modulo]:', state.layout[state.modulo]);
+      console.log('[GESTOR DEBUG] state.modulo actual:', state.modulo);
+      
+      // FORZAR extracción directa sin función
+      if (Array.isArray(state.layout.cuentas) && state.layout.cuentas.length > 0) {
+        state.cuentas = state.layout.cuentas;
+        console.log('[GESTOR DEBUG] ✅ Usando layout.cuentas directamente');
+      } else if (Array.isArray(state.layout[state.modulo]) && state.layout[state.modulo].length > 0) {
+        state.cuentas = state.layout[state.modulo];
+        console.log('[GESTOR DEBUG] ✅ Usando layout[modulo] directamente');
+      } else {
+        state.cuentas = [];
+        console.log('[GESTOR DEBUG] ❌ No hay cuentas disponibles');
+      }
+      
+      console.log('[GESTOR DEBUG] Cuentas extraídas:', state.cuentas?.length, state.cuentas);
       ensureAccountIds(state.cuentas);
       state.operaciones = sortOperations(state.layout.operaciones || []);
+      console.log('[GESTOR DEBUG] Operaciones extraídas:', state.operaciones?.length);
       if (isModuloPiloto()) {
         const extracted = extractColumnConfigFromOperations(state.operaciones);
         state.operaciones = extracted.operaciones;
@@ -782,8 +803,19 @@
   }
 
   function extractCuentas(layout) {
-    if (Array.isArray(layout.cuentas)) return layout.cuentas;
-    if (Array.isArray(layout[state.modulo])) return layout[state.modulo];
+    console.log('[extractCuentas] Input layout:', layout);
+    console.log('[extractCuentas] layout.cuentas:', layout?.cuentas);
+    console.log('[extractCuentas] layout[modulo]:', layout?.[state.modulo], 'modulo=', state.modulo);
+    
+    if (Array.isArray(layout.cuentas)) {
+      console.log('[extractCuentas] Retornando layout.cuentas:', layout.cuentas.length, 'elementos');
+      return layout.cuentas;
+    }
+    if (Array.isArray(layout[state.modulo])) {
+      console.log('[extractCuentas] Retornando layout[modulo]:', layout[state.modulo].length, 'elementos');
+      return layout[state.modulo];
+    }
+    console.log('[extractCuentas] No se encontraron cuentas, retornando array vacío');
     return [];
   }
 
@@ -1361,6 +1393,14 @@
     if (!label) return;
     const match = getRowOperationMatch(label, preferredField, parentSection);
     if (!match.operations.length) {
+      if (parentSection && typeof window.editSubsection === "function") {
+        window.editSubsection(parentSection, label);
+        return;
+      }
+      if (!parentSection && typeof window.editSection === "function") {
+        window.editSection(label);
+        return;
+      }
       openAddOperationForRow(label, parentSection);
       return;
     }
@@ -9075,6 +9115,9 @@ window.editSection = function (name) {
       getOperationId(op) === secOpId ||
       (op.SECCION === name && op.tipo_operacion === 'seccion')
     );
+    if (!operation) {
+      operation = findOperationBySectionName(name);
+    }
     
     // Si no existe, crear una operación automáticamente
     if (!operation) {
@@ -9173,6 +9216,9 @@ window.editSection = function (name) {
       getOperationId(op) === subsecOpId ||
       (op.SECCION === name && op.tipo_operacion === 'subseccion')
     );
+    if (!operation) {
+      operation = findOperationBySectionName(name, principal);
+    }
     
     // Si no existe, crear una operación automáticamente
     if (!operation) {

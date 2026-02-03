@@ -993,6 +993,21 @@
     };
   };
 
+  const resolveIsCdmx = (empresaId, graficasConfig) => {
+    const capitulo = obtenerCapituloEmpresa(empresaId) || "";
+    const rowsConfig = getSummaryRowsConfig(capitulo, graficasConfig);
+    const isCdmx = Boolean(rowsConfig?.isCdmx);
+    if (rowsConfig && typeof rowsConfig.isCdmx === "boolean") {
+      return rowsConfig.isCdmx;
+    }
+    const cap = normalizarLabelResumen(capitulo);
+    return (
+      cap.includes("CIUDAD DE MEXICO") ||
+      cap.includes("CDMX") ||
+      cap.includes("MEXICO")
+    );
+  };
+
   const buildCustomChartData = (snapshot, chart, seriesConfig, chartType) => {
     if (!snapshot?.filas || !Array.isArray(seriesConfig) || !seriesConfig.length) {
       return null;
@@ -1437,6 +1452,7 @@
       : leerAnioSeleccionado();
 
     if (resolvedEmpresaId && resolvedAnio) {
+      const isCdmx = resolveIsCdmx(resolvedEmpresaId, graficasConfig);
       const ingresoConfig =
         graficasConfig.ingreso || DEFAULT_GRAFICAS_CONFIG.ingreso || {};
       const ingresoNacionalConfig =
@@ -1449,7 +1465,7 @@
         obtenerIngresoNacionalSeries(resolvedEmpresaId, resolvedAnio),
       ]);
 
-      if (ingresoNacional) {
+      if (isCdmx && ingresoNacional) {
         const tituloRaw = (ingresoNacionalConfig.title || "").toString().trim();
         datos.push({
           ...ingresoNacional,
@@ -1519,6 +1535,8 @@
 
     const anio = leerAnioSeleccionado();
     const empresa = empresaActual || Sesion.obtenerEmpresaActiva();
+    const isCdmx = resolveIsCdmx(empresa?.id, graficasConfig);
+    if (!isCdmx) return false;
     if (!empresa?.id || !anio) return false;
 
     const data = await obtenerIngresoNacionalSeries(empresa.id, anio);
@@ -1618,7 +1636,8 @@
     const showOperating = graficasConfig.charts?.operating?.enabled !== false;
     const showNet = graficasConfig.charts?.net?.enabled !== false;
     const showConsolidated =
-      graficasConfig.charts?.consolidated?.enabled !== false;
+      graficasConfig.charts?.consolidated?.enabled !== false &&
+      resolveIsCdmx(empresaActual?.id, graficasConfig);
 
     if (showOperating && operating && chartCanvasOperating) {
       if (chartCardOperating) chartCardOperating.classList.remove("d-none");
@@ -1770,6 +1789,66 @@
     });
   };
 
+  const recalcularPrevLayoutDesdeCuentas = (layoutArr = []) => {
+    if (!Array.isArray(layoutArr) || !layoutArr.length) return;
+
+    // Recalcular prev en subsecciones usando las cuentas consecutivas
+    for (let i = 0; i < layoutArr.length; i += 1) {
+      const block = layoutArr[i];
+      const tipo = (block?.type || "").toLowerCase();
+      if (tipo !== "secundaria") continue;
+
+      let prevMonth = 0;
+      let prevYTD = 0;
+      let j = i + 1;
+      while (j < layoutArr.length) {
+        const next = layoutArr[j];
+        const nextTipo = (next?.type || "").toLowerCase();
+        if (nextTipo === "cuenta") {
+          const t = next.totals || {};
+          prevMonth += toNumber(t.prevMonth);
+          prevYTD += toNumber(t.prevYTD);
+          j += 1;
+          continue;
+        }
+        break;
+      }
+
+      if (!block.totals) block.totals = {};
+      block.totals.prevMonth = prevMonth;
+      block.totals.prevYTD = prevYTD;
+    }
+
+    // Recalcular prev en principales acumulando sus subsecciones
+    let principalActual = null;
+    let accPrevMonth = 0;
+    let accPrevYTD = 0;
+    const cerrarPrincipal = () => {
+      if (!principalActual) return;
+      if (!principalActual.totals) principalActual.totals = {};
+      principalActual.totals.prevMonth = accPrevMonth;
+      principalActual.totals.prevYTD = accPrevYTD;
+    };
+
+    layoutArr.forEach((block) => {
+      const tipo = (block?.type || "").toLowerCase();
+      if (tipo === "principal") {
+        cerrarPrincipal();
+        principalActual = block;
+        accPrevMonth = 0;
+        accPrevYTD = 0;
+        return;
+      }
+      if (!principalActual) return;
+      if (tipo === "secundaria") {
+        const t = block.totals || {};
+        accPrevMonth += toNumber(t.prevMonth);
+        accPrevYTD += toNumber(t.prevYTD);
+      }
+    });
+    cerrarPrincipal();
+  };
+
   const indexarComparativoCapitulo = (capitulo = {}) => {
     const cuentas = new Map();
     const secciones = new Map();
@@ -1864,6 +1943,7 @@
 
     if (Array.isArray(capituloBase.layout) && Array.isArray(capituloComp.layout)) {
       aplicarComparativoLayout(capituloBase.layout, capituloComp.layout);
+      recalcularPrevLayoutDesdeCuentas(capituloBase.layout);
     }
   };
 
@@ -4701,7 +4781,7 @@
       }
     }
 
-    if (chartsCfg.consolidated?.enabled !== false) {
+    if (isCdmx && chartsCfg.consolidated?.enabled !== false) {
       const consolidatedSources =
         graficasConfig.sources?.consolidated ||
         baseConfig.sources?.consolidated ||

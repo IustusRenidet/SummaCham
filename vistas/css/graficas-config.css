@@ -78,6 +78,37 @@ body {
   padding: 0.75rem 1rem;
 }
 
+.manual-only-hint {
+  color: #6b7280;
+}
+
+.manual-empty {
+  border: 1px dashed rgba(47, 84, 150, 0.25);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  background: rgba(47, 84, 150, 0.05);
+}
+
+.manual-chart-card {
+  border: 1px solid rgba(47, 84, 150, 0.16);
+  border-radius: 14px;
+  padding: 1rem;
+  background: #f9fbff;
+}
+
+.manual-chart-card .form-text {
+  color: #6b7280;
+}
+
+.manual-series-list .form-check {
+  margin-right: 0.75rem;
+}
+
+#graficasConfigForm[data-manual-only="true"] [data-auto-charts] {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
 .option-pill {
   background: rgba(47, 84, 150, 0.12);
   color: #2f5496;
