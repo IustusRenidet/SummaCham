@@ -1,8 +1,15 @@
 (() => {
   "use strict";
+  if (window.__OperativoSidebarInitialized) {
+    window.__OperativoSidebarReady = true;
+    return;
+  }
+  window.__OperativoSidebarInitialized = true;
 
   const TABLE_SELECTOR = "#tablaComparacion";
   const PANEL_SELECTOR = ".operativo-panel, .operativo-sidebar";
+  const PANEL_ID = "operativoPanel";
+  const TOGGLE_SELECTOR = '[data-operativo-toggle="panel"]';
   const CANVAS_COMBINED_ID = "operativoChartCombined";
   const charts = { combined: null, combinedType: null, custom: {} };
   const MIN_BAR_LENGTH = 18;
@@ -76,10 +83,14 @@
   const filterSeriesByKeys = (seriesList = [], keys = []) => {
     if (!Array.isArray(keys) || keys.length === 0) return seriesList;
     const keySet = new Set(
-      keys.map((key) => (key != null ? String(key).trim() : "")).filter(Boolean)
+      keys
+        .map((key) => normalizeSeriesSelectionKey(key))
+        .filter(Boolean)
     );
     if (!keySet.size) return seriesList;
-    const filtered = (seriesList || []).filter((serie) => keySet.has(serie?.key));
+    const filtered = (seriesList || []).filter((serie) =>
+      keySet.has(normalizeSeriesSelectionKey(serie?.key))
+    );
     return filtered.length ? filtered : seriesList;
   };
 
@@ -91,12 +102,12 @@
         .map((item) => {
           const key = item?.key != null ? String(item.key).trim() : "";
           if (!key) return null;
-          return [key, item];
+          return [normalizeSeriesSelectionKey(key), item];
         })
         .filter(Boolean)
     );
     return (seriesList || []).map((serie) => {
-      const override = overrideMap.get(serie?.key);
+      const override = overrideMap.get(normalizeSeriesSelectionKey(serie?.key));
       if (!override) return serie;
       return {
         ...serie,
@@ -151,6 +162,30 @@
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#39;");
 
+  const capitalizeLabel = (value = "") => {
+    const clean = String(value || "").trim();
+    if (!clean) return "";
+    return clean.charAt(0).toUpperCase() + clean.slice(1);
+  };
+
+  const getModuleLabel = () =>
+    (
+      document.body?.dataset?.moduloAlias ||
+      document.body?.dataset?.modulo ||
+      document.body?.dataset?.moduloId ||
+      "modulo"
+    )
+      .toString()
+      .trim();
+
+  const getDefaultOperativoLabel = () => {
+    const moduleLabel = getModuleLabel();
+    const normalized = normalizeKey(moduleLabel);
+    if (normalized === "GTOSCORPORATIVOS") return "gasto corporativo";
+    if (normalized === "SERVMEMBRESIA") return "servicio";
+    return moduleLabel ? moduleLabel.toLowerCase() : "modulo";
+  };
+
   const obtenerVariableCss = (nombre, fallback) => {
     if (!window.getComputedStyle) return fallback;
     const valor = getComputedStyle(document.documentElement)
@@ -199,6 +234,104 @@
     return `${enteroConComas}.${decimales}`;
   };
 
+  const ensureToggleButton = () => {
+    const existing = document.querySelector(TOGGLE_SELECTOR);
+    if (existing) return existing;
+    const toolbar = document.querySelector(
+      ".row.mb-3 .d-flex.flex-column.flex-md-row.gap-2"
+    );
+    if (!toolbar) return null;
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "btn btn-outline-primary btn-sm";
+    button.setAttribute("data-bs-toggle", "collapse");
+    button.setAttribute("data-bs-target", `#${PANEL_ID}`);
+    button.setAttribute("aria-expanded", "false");
+    button.setAttribute("aria-controls", PANEL_ID);
+    button.setAttribute("data-operativo-toggle", "panel");
+    button.innerHTML = '<i class="bi bi-bar-chart"></i> Graficas';
+
+    const excelBtn = document.getElementById("btnExportExcel");
+    if (excelBtn && excelBtn.parentElement === toolbar) {
+      toolbar.insertBefore(button, excelBtn);
+    } else {
+      toolbar.appendChild(button);
+    }
+    return button;
+  };
+
+  const ensureSidebarPanel = () => {
+    const existing = document.querySelector(PANEL_SELECTOR);
+    if (existing) return existing;
+    const table = document.querySelector(TABLE_SELECTOR);
+    if (!table) return null;
+
+    const parentRow =
+      table.closest(".row") ||
+      document.querySelector(".row.g-4.align-items-start") ||
+      null;
+    const host = parentRow?.parentElement;
+    if (!host) return null;
+
+    const row = document.createElement("div");
+    row.className = "row mb-3";
+    row.innerHTML = `
+      <div class="col-12">
+        <div class="collapse operativo-panel" id="${PANEL_ID}" data-operativo-label="${escapeHtml(
+          getDefaultOperativoLabel()
+        )}">
+          <div class="sidebar-card">
+            <div class="d-flex align-items-start justify-content-between gap-2 mb-3">
+              <div>
+                <h5 class="sidebar-title">Graficas manuales</h5>
+                <div class="sidebar-subtitle" data-operativo-subtitle>
+                  Por ${escapeHtml(getDefaultOperativoLabel())}
+                </div>
+              </div>
+              <div class="d-flex align-items-center gap-2">
+                <span class="badge text-bg-light border">Manual</span>
+                <button
+                  type="button"
+                  class="btn-close"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#${PANEL_ID}"
+                  aria-label="Cerrar"
+                ></button>
+              </div>
+            </div>
+            <div class="row g-3">
+              <div class="col-12">
+                <div class="chart-block">
+                  <div class="chart-title">Ppto. Acumulado vs Real + Presupuesto</div>
+                  <div class="chart-container" data-operativo-chart="combined">
+                    <div class="sidebar-empty" data-operativo-empty="combined">
+                      Sin datos de resultado operativo.
+                    </div>
+                    <canvas id="${CANVAS_COMBINED_ID}"></canvas>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    if (parentRow) {
+      parentRow.insertAdjacentElement("beforebegin", row);
+    } else {
+      host.appendChild(row);
+    }
+    return row.querySelector(PANEL_SELECTOR);
+  };
+
+  const ensureSidebarUi = () => {
+    const toggle = ensureToggleButton();
+    const sidebar = ensureSidebarPanel();
+    return { toggle, sidebar };
+  };
+
   const obtenerIndices = (tabla) => {
     const headerRow = tabla?.querySelector("thead tr");
     const headers = headerRow ? Array.from(headerRow.children) : [];
@@ -212,6 +345,100 @@
       realTotal: idxTotalReal,
       annual: idxBudgetAnnual,
     };
+  };
+
+  const MONTH_LABELS = {
+    ene: "Ene",
+    feb: "Feb",
+    mar: "Mar",
+    abr: "Abr",
+    may: "May",
+    jun: "Jun",
+    jul: "Jul",
+    ago: "Ago",
+    sep: "Sep",
+    oct: "Oct",
+    nov: "Nov",
+    dic: "Dic",
+  };
+
+  const normalizeSeriesSelectionKey = (value) => {
+    const normalized = normalizeKey(value);
+    if (!normalized) return "";
+    if (normalized === "BUDGET") return "TOTALBUDGET";
+    if (normalized === "REAL") return "TOTALREAL";
+    if (normalized === "ANNUAL") return "BUDGETANNUAL";
+    return normalized;
+  };
+
+  const buildColumnDefinitions = (tabla) => {
+    const headerRows = Array.from(tabla?.querySelectorAll("thead tr") || []);
+    if (!headerRows.length) return [];
+    const headerCells = Array.from(headerRows[headerRows.length - 1].cells || []);
+    const defs = [];
+    const seen = new Set();
+    const pushDef = (definition) => {
+      if (!definition || !Number.isInteger(definition.index) || definition.index < 0) {
+        return;
+      }
+      if (!definition.key || seen.has(definition.key)) return;
+      seen.add(definition.key);
+      defs.push(definition);
+    };
+
+    headerCells.forEach((cell, index) => {
+      const text = (cell?.textContent || "").replace(/\s+/g, " ").trim();
+      if (cell.classList.contains("budget-annual-column")) {
+        pushDef({
+          key: "budgetAnnual",
+          index,
+          label: text || "Presupuesto anual",
+          color: "#22c55e",
+        });
+        return;
+      }
+      if (cell.classList.contains("month-budget")) {
+        const month = ((cell.dataset?.mes || "").toString().trim() || `m${index}`).toLowerCase();
+        const monthLabel = MONTH_LABELS[month] || capitalizeLabel(month);
+        pushDef({
+          key: `monthBudget_${month}`,
+          index,
+          label: `${monthLabel} Ppto.`,
+          color: "#60a5fa",
+        });
+        return;
+      }
+      if (cell.classList.contains("month-real")) {
+        const month = ((cell.dataset?.mes || "").toString().trim() || `m${index}`).toLowerCase();
+        const monthLabel = MONTH_LABELS[month] || capitalizeLabel(month);
+        pushDef({
+          key: `monthReal_${month}`,
+          index,
+          label: `${monthLabel} Real`,
+          color: "#f59e0b",
+        });
+        return;
+      }
+      if (cell.classList.contains("total-budget-column")) {
+        pushDef({
+          key: "totalBudget",
+          index,
+          label: text || "Ppto. acumulado",
+          color: "#4472c4",
+        });
+        return;
+      }
+      if (cell.classList.contains("total-real-column")) {
+        pushDef({
+          key: "totalReal",
+          index,
+          label: text || "Real acumulado",
+          color: "#ffc000",
+        });
+      }
+    });
+
+    return defs.sort((a, b) => a.index - b.index);
   };
 
   const limpiarEtiqueta = (texto) => {
@@ -252,7 +479,7 @@
       .filter((item) => item.etiqueta);
   };
 
-  const obtenerDatosFilas = (tabla) => {
+  const obtenerDatosFilas = (tabla, columnDefs = []) => {
     const indices = obtenerIndices(tabla);
     if (
       indices.budgetTotal == null ||
@@ -265,19 +492,29 @@
     const filas = Array.from(tabla.querySelectorAll("tbody tr"));
     return filas
       .map((fila) => {
+        const cells = fila.cells || [];
         const etiqueta = limpiarEtiqueta(fila.cells?.[1]?.textContent || "");
         if (!etiqueta) return null;
-        const presupuesto = parseNumero(
-          fila.cells?.[indices.budgetTotal]?.textContent
-        );
-        const real = parseNumero(fila.cells?.[indices.realTotal]?.textContent);
-        const anual = parseNumero(fila.cells?.[annualIdx]?.textContent);
+        const values = {};
+        columnDefs.forEach((def) => {
+          values[def.key] = parseNumero(cells?.[def.index]?.textContent || "");
+        });
+        const presupuesto =
+          Number(values.totalBudget) ||
+          parseNumero(cells?.[indices.budgetTotal]?.textContent);
+        const real =
+          Number(values.totalReal) ||
+          parseNumero(cells?.[indices.realTotal]?.textContent);
+        const anual =
+          Number(values.budgetAnnual) ||
+          parseNumero(cells?.[annualIdx]?.textContent);
         return {
           etiqueta,
           key: normalizeKey(etiqueta),
           presupuesto,
           real,
           anual,
+          values,
         };
       })
       .filter(Boolean);
@@ -633,32 +870,17 @@
     const moduleKey = getCurrentModuleKey();
     if (!moduleKey) return 0;
 
-    const rowsData = obtenerDatosFilas(tabla);
+    const columnDefs = buildColumnDefinitions(tabla);
+    const rowsData = obtenerDatosFilas(tabla, columnDefs);
     if (!rowsData.length) return 0;
 
-    const baseDatasetDefs = [
-      {
-        key: "budget",
-        valueKey: "presupuesto",
-        label: labelsConfig.budget,
-        color: colors.budget,
-        enabled: enabledConfig.budget,
-      },
-      {
-        key: "real",
-        valueKey: "real",
-        label: labelsConfig.real,
-        color: colors.real,
-        enabled: enabledConfig.real,
-      },
-      {
-        key: "annual",
-        valueKey: "anual",
-        label: labelsConfig.annual,
-        color: colors.annual,
-        enabled: enabledConfig.annual,
-      },
-    ].filter((item) => item.enabled !== false);
+    const baseDatasetDefs = columnDefs.map((definition) => ({
+      key: definition.key,
+      valueKey: definition.key,
+      label: definition.label,
+      color: definition.color || "#0d47a1",
+      enabled: true,
+    }));
 
     if (!baseDatasetDefs.length) return 0;
 
@@ -674,8 +896,12 @@
 
       const chartType = resolveChartType(chart?.chartType, baseChartType);
       const isPie = isPieType(chartType);
+      const requestedSeriesKeys =
+        Array.isArray(chart?.seriesKeys) && chart.seriesKeys.length
+          ? chart.seriesKeys
+          : ["totalBudget", "totalReal", "budgetAnnual"];
       const datasetDefs = applyCustomSeriesOverrides(
-        filterSeriesByKeys(baseDatasetDefs, chart?.seriesKeys || []),
+        filterSeriesByKeys(baseDatasetDefs, requestedSeriesKeys),
         chart
       );
       if (!datasetDefs.length) return;
@@ -699,7 +925,7 @@
         const match = matchRowByVariants(rowsData, variants);
         labels.push(label);
         datasetDefs.forEach((def) => {
-          const value = match ? match[def.valueKey] : 0;
+          const value = match ? Number(match.values?.[def.valueKey]) || 0 : 0;
           seriesData[def.key].push(value);
         });
       });
@@ -848,6 +1074,7 @@
 
   const actualizarSidebar = () => {
     const sidebar = document.querySelector(PANEL_SELECTOR);
+    const toggleButton = document.querySelector(TOGGLE_SELECTOR);
     const tabla = document.querySelector(TABLE_SELECTOR);
     if (!sidebar || !tabla || typeof Chart === "undefined") return;
 
@@ -861,9 +1088,11 @@
     );
     if (!manualOnly && operativoConfig.enabled === false) {
       sidebar.style.display = "none";
+      if (toggleButton) toggleButton.style.display = "none";
       return;
     }
     sidebar.style.display = "";
+    if (toggleButton) toggleButton.style.display = "";
 
     const datos = obtenerDatos(tabla);
     const labels = datos.map((item) => item.etiqueta);
@@ -945,6 +1174,7 @@
         enabledConfig,
       });
       sidebar.style.display = renderedManual > 0 ? "" : "none";
+      if (toggleButton) toggleButton.style.display = renderedManual > 0 ? "" : "none";
       return;
     }
 
@@ -996,8 +1226,11 @@
   };
 
   const init = () => {
-    const sidebar = document.querySelector(PANEL_SELECTOR);
+    const { sidebar } = ensureSidebarUi();
     if (!sidebar) return;
+    if (!sidebar.dataset.operativoLabel) {
+      sidebar.dataset.operativoLabel = getDefaultOperativoLabel();
+    }
     const label = sidebar.dataset.operativoLabel;
     const subtitle = sidebar.querySelector("[data-operativo-subtitle]");
     if (label && subtitle) {
@@ -1016,5 +1249,10 @@
     initObserver();
   };
 
-  document.addEventListener("DOMContentLoaded", init);
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+  window.__OperativoSidebarReady = true;
 })();

@@ -3227,14 +3227,13 @@
             <h6 class="mb-3">Fuente de Datos</h6>
             <div class="mb-3">
               <label for="chartEditorSourceType" class="form-label"
-                >Origen de datos de la grafica</label
+                >Tipo de fuente</label
               >
               <select class="form-select" id="chartEditorSourceType">
-                <option value="snapshot">Tabla actual del modulo</option>
-                <option value="mensual">Historico mensual (Ene-Dic)</option>
+                <option value="snapshot">Manual (filas + columnas)</option>
               </select>
               <div class="form-text">
-                Tabla actual usa las columnas visibles del modulo. Historico mensual usa Ene-Dic.
+                Selecciona filas y columnas manualmente. Esto aplica para todos los modulos.
               </div>
             </div>
 
@@ -3292,6 +3291,8 @@
               </div>
             </div>
           </div>
+
+          <div id="chartEditorValidation" class="alert alert-warning py-2 px-3 small d-none" role="alert"></div>
         </form>
 
         <div class="editor-footer">
@@ -3372,6 +3373,9 @@
         const sourceTypeSelect = document.getElementById(
           "chartEditorSourceType",
         );
+        const snapshotSourceSection = document.getElementById(
+          "chartEditorSnapshotSource",
+        );
         const rowPicker = document.getElementById("chartEditorRowPicker");
         const addRowBtn = document.getElementById("chartEditorAddRow");
         const selectedRowsContainer = document.getElementById(
@@ -3391,6 +3395,7 @@
         );
         const saveBtn = document.getElementById("btnChartEditorSave");
         const deleteBtn = document.getElementById("btnChartEditorDelete");
+        const validationBox = document.getElementById("chartEditorValidation");
 
         let currentChart = null;
         let currentChartId = null;
@@ -3599,6 +3604,18 @@
           const sourceSelect = document.getElementById("moduloSelect");
           if (sourceSelect?.options?.length) {
             const opts = Array.from(sourceSelect.options)
+              .filter((option) => {
+                if (!option) return false;
+                if (option.disabled) return false;
+                if (option.hidden) return false;
+                if (
+                  option.style?.display &&
+                  option.style.display.toLowerCase() === "none"
+                ) {
+                  return false;
+                }
+                return true;
+              })
               .map((option) => ({
                 value: (option.value || "").toString().trim(),
                 label: (option.textContent || option.value || "")
@@ -3606,9 +3623,20 @@
                   .trim(),
               }))
               .filter((option) => option.value);
-            if (opts.length) return opts;
+            return opts;
           }
           return getModuleFallbackOptions();
+        };
+
+        const mapOperativoDatasetOverride = (datasets = {}) => {
+          const budgetCfg = datasets?.budget || {};
+          const realCfg = datasets?.real || {};
+          const annualCfg = datasets?.annual || {};
+          return {
+            totalBudget: budgetCfg,
+            totalReal: realCfg,
+            budgetAnnual: annualCfg,
+          };
         };
 
         const setModuleSelectValue = (selectedValue) => {
@@ -3634,9 +3662,24 @@
 
         const normalizeSourceType = (value) => {
           const clean = (value || "").toString().trim().toLowerCase();
-          if (clean === "mensual") return "mensual";
+          if (clean === "snapshot") return "snapshot";
           return "snapshot";
         };
+
+        const OPERATIVO_MONTHS = [
+          { key: "ene", label: "Ene" },
+          { key: "feb", label: "Feb" },
+          { key: "mar", label: "Mar" },
+          { key: "abr", label: "Abr" },
+          { key: "may", label: "May" },
+          { key: "jun", label: "Jun" },
+          { key: "jul", label: "Jul" },
+          { key: "ago", label: "Ago" },
+          { key: "sep", label: "Sep" },
+          { key: "oct", label: "Oct" },
+          { key: "nov", label: "Nov" },
+          { key: "dic", label: "Dic" },
+        ];
 
         const SUMMARY_TABLE_SERIES = [
           { key: "actual", label: "Real", color: "#1d4ed8", enabled: true },
@@ -3682,6 +3725,41 @@
             key: "varYTDPrev",
             label: "B/(W)% vs. real acumulado AA",
             color: "#fb923c",
+            enabled: true,
+          },
+        ];
+
+        const OPERATIVO_TABLE_SERIES = [
+          {
+            key: "budgetAnnual",
+            label: "Presupuesto anual",
+            color: "#22c55e",
+            enabled: true,
+          },
+          ...OPERATIVO_MONTHS.flatMap((month) => [
+            {
+              key: `monthBudget_${month.key}`,
+              label: `${month.label} Ppto.`,
+              color: "#60a5fa",
+              enabled: true,
+            },
+            {
+              key: `monthReal_${month.key}`,
+              label: `${month.label} Real`,
+              color: "#f59e0b",
+              enabled: true,
+            },
+          ]),
+          {
+            key: "totalBudget",
+            label: "Ppto. acumulado",
+            color: "#4472c4",
+            enabled: true,
+          },
+          {
+            key: "totalReal",
+            label: "Real acumulado",
+            color: "#ffc000",
             enabled: true,
           },
         ];
@@ -3758,13 +3836,25 @@
           const defaults = window.GraficasConfig.defaults || {};
           const operativoDatasets =
             config.operativo?.datasets || defaults.operativo?.datasets || {};
-          return Object.keys(operativoDatasets).map((key) => {
-            const serie = operativoDatasets[key] || {};
+          const overrides = mapOperativoDatasetOverride(operativoDatasets);
+          return OPERATIVO_TABLE_SERIES.map((base) => {
+            const override = overrides[base.key] || {};
             return {
-              key,
-              label: serie.label || key,
-              color: serie.color || "#0d47a1",
-              enabled: serie.enabled !== false,
+              key: base.key,
+              label:
+                (typeof override.label === "string" &&
+                override.label.trim()
+                  ? override.label.trim()
+                  : null) || base.label,
+              color:
+                (typeof override.color === "string" &&
+                override.color.trim()
+                  ? override.color.trim()
+                  : null) || base.color,
+              enabled:
+                typeof override.enabled === "boolean"
+                  ? override.enabled
+                  : base.enabled !== false,
             };
           });
         };
@@ -3787,6 +3877,7 @@
               enabledKeys.length === 0 || enabledKeys.includes(serie.key);
             checkbox.addEventListener("change", () => {
               renderSeriesConfigRows();
+              clearValidationState();
               updatePreview();
             });
 
@@ -3909,6 +4000,43 @@
             : "";
         };
 
+        const clearValidationState = () => {
+          if (validationBox) {
+            validationBox.classList.add("d-none");
+            validationBox.innerHTML = "";
+          }
+          titleInput?.classList.remove("is-invalid");
+          moduleSelectInput?.classList.remove("is-invalid");
+        };
+
+        const setValidationErrors = (messages = []) => {
+          const errors = Array.isArray(messages)
+            ? messages.filter(Boolean)
+            : [];
+          if (!errors.length) {
+            clearValidationState();
+            return;
+          }
+          if (!validationBox) {
+            alert(errors.join("\n"));
+            return;
+          }
+          validationBox.classList.remove("d-none");
+          validationBox.innerHTML = `
+            <div class="fw-semibold mb-1">Campos obligatorios para guardar:</div>
+            <ul class="mb-0 ps-3">
+              ${errors.map((msg) => `<li>${msg}</li>`).join("")}
+            </ul>
+          `;
+        };
+
+        const updateSourceTypeUI = () => {
+          const sourceType = normalizeSourceType(sourceTypeSelect?.value);
+          if (snapshotSourceSection) {
+            snapshotSourceSection.style.display = sourceType === "snapshot" ? "" : "none";
+          }
+        };
+
         const refreshSeriesForCurrentModule = (preferredKeys = []) => {
           availableSeries = getAvailableSeries(currentModule);
           const fallbackKeys =
@@ -3944,7 +4072,18 @@
         // Agregar fila seleccionada
         const addSelectedRow = () => {
           if (!rowPicker || !selectedRowsContainer) return;
-          const value = rowPicker.value;
+          let value = rowPicker.value;
+          if (!value) {
+            const hasOptions = Array.from(rowPicker.options || []).some(
+              (option) => (option?.value || "").toString().trim(),
+            );
+            if (!hasOptions) {
+              const manual = window.prompt(
+                "No hay filas detectadas. Escribe el nombre de la fila que quieres usar:",
+              );
+              value = (manual || "").trim();
+            }
+          }
           if (!value) return;
           const entry = buildRowEntry(value, [value]);
           if (!entry) return;
@@ -3957,6 +4096,7 @@
           selectedRows.push(entry);
           renderSelectedRows();
           updatePreview();
+          clearValidationState();
           rowPicker.value = "";
         };
 
@@ -4195,6 +4335,8 @@
               currentChart.sourceType || "snapshot",
             );
           }
+          clearValidationState();
+          updateSourceTypeUI();
 
           // Cargar filas seleccionadas
           selectedRows = [];
@@ -4250,6 +4392,14 @@
           addRowBtn.addEventListener("click", addSelectedRow);
         }
 
+        titleInput?.addEventListener("input", () => {
+          titleInput.classList.remove("is-invalid");
+          if (validationBox?.classList.contains("d-none")) return;
+          if (titleInput.value?.trim()) {
+            clearValidationState();
+          }
+        });
+
         if (rowPicker) {
           rowPicker.addEventListener("keydown", (e) => {
             if (e.key === "Enter") {
@@ -4264,7 +4414,11 @@
         }
 
         if (sourceTypeSelect) {
-          sourceTypeSelect.addEventListener("change", updatePreview);
+          sourceTypeSelect.addEventListener("change", () => {
+            updateSourceTypeUI();
+            clearValidationState();
+            updatePreview();
+          });
         }
 
         if (moduleSelectInput) {
@@ -4278,23 +4432,27 @@
             updateEditorSubtitle();
             loadRowPicker();
             refreshSeriesForCurrentModule(selectedKeys);
+            clearValidationState();
           });
         }
 
+        document.getElementById("capituloSelect")?.addEventListener("change", () => {
+          if (!panel.classList.contains("show")) return;
+          currentModule = setModuleSelectValue(currentModule);
+          updateEditorSubtitle();
+          loadRowPicker();
+          refreshSeriesForCurrentModule(getSelectedSeriesKeys());
+          clearValidationState();
+        });
+
         if (saveBtn) {
           saveBtn.addEventListener("click", () => {
-            // Validar formulario
             const title = titleInput?.value?.trim();
-            if (!title) {
-              alert("El título es obligatorio");
-              titleInput?.focus();
-              return;
-            }
-
-            if (selectedRows.length === 0) {
-              alert("Debes seleccionar al menos una fila para la gráfica");
-              return;
-            }
+            const selectedModule =
+              moduleSelectInput?.value ||
+              currentModule ||
+              document.getElementById("moduloSelect")?.value ||
+              "";
 
             const selectedSeries = Array.from(
               seriesChecksContainer?.querySelectorAll(
@@ -4302,10 +4460,32 @@
               ) || [],
             ).map((cb) => cb.value);
 
+            const errors = [];
+            clearValidationState();
+            if (!title) {
+              errors.push("Titulo de la grafica.");
+              titleInput?.classList.add("is-invalid");
+            }
+            if (!selectedModule) {
+              errors.push("Modulo donde se mostrará la grafica.");
+              moduleSelectInput?.classList.add("is-invalid");
+            }
+            if (selectedRows.length === 0) {
+              errors.push("Al menos una fila.");
+            }
             if (selectedSeries.length === 0) {
-              alert("Debes seleccionar al menos una serie");
+              errors.push("Al menos una columna.");
+            }
+            if (errors.length > 0) {
+              setValidationErrors(errors);
+              if (!title) {
+                titleInput?.focus();
+              } else if (!selectedModule) {
+                moduleSelectInput?.focus();
+              }
               return;
             }
+            setValidationErrors([]);
 
             const series = selectedSeries.map((key) => {
               const override = getSeriesOverride(key) || { key };
@@ -4329,11 +4509,7 @@
             // Construir objeto de gráfica
             const chartData = {
               id: currentChartId || `custom-${Date.now()}`,
-              module:
-                moduleSelectInput?.value ||
-                currentModule ||
-                document.getElementById("moduloSelect")?.value ||
-                "RESUMEN",
+              module: selectedModule || "RESUMEN",
               title: title,
               subtitle: subtitleInput?.value?.trim() || "",
               chartType: typeSelect?.value || "inherit",
@@ -4483,6 +4659,7 @@
             previewChartInstance.destroy();
             previewChartInstance = null;
           }
+          clearValidationState();
         });
       })();
     </script>

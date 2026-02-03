@@ -79,9 +79,40 @@
   };
 
   const clone = (value) => JSON.parse(JSON.stringify(value || {}));
+  const escapeAttr = (value) =>
+    String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
 
   const getModuloOptions = () => {
-    if (moduloSelect) return moduloSelect.innerHTML;
+    if (moduloSelect?.options?.length) {
+      const visibleOptions = Array.from(moduloSelect.options)
+        .filter((option) => {
+          if (!option) return false;
+          if (option.disabled) return false;
+          if (option.hidden) return false;
+          if (
+            option.style?.display &&
+            option.style.display.toLowerCase() === "none"
+          ) {
+            return false;
+          }
+          const value = (option.value || "").toString().trim();
+          return Boolean(value);
+        })
+        .map(
+          (option) =>
+            `<option value="${escapeAttr(option.value)}">${escapeAttr(
+              option.textContent || option.value || ""
+            ).trim()}</option>`
+        );
+      if (visibleOptions.length) {
+        return visibleOptions.join("");
+      }
+    }
     return [
       '<option value="RESUMEN">RESUMEN</option>',
       '<option value="Finanzas">Finanzas</option>',

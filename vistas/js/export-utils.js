@@ -29,6 +29,7 @@
         nombreHoja = "Datos",
         onSuccess,
         onError,
+        _skipAutoGraficas = false,
       } = options;
 
       try {
@@ -45,6 +46,25 @@
           throw new Error(
             "La librería XLSX no está disponible. Incluye xlsx-js-style para soporte de colores."
           );
+        }
+
+        if (!_skipAutoGraficas) {
+          const chartTargets = this._resolverGraficas(options.charts);
+          const hasChartContainers = Boolean(
+            document.querySelector(
+              "[data-operativo-chart], [data-gg-chart], [data-custom-chart], #resumenChartsPanel canvas"
+            )
+          );
+          if (chartTargets.length > 0 || hasChartContainers) {
+            this.exportarExcelConGraficas({
+              tabla: tablaElement,
+              nombreArchivo,
+              nombreHojaTabla: nombreHoja,
+              onSuccess,
+              onError,
+            });
+            return;
+          }
         }
 
         const metadata = this._obtenerMetadata();
@@ -127,7 +147,12 @@
             "Sin datos de resultado operativo. Exportando solo tabla.",
             "warning"
           );
-          this.exportarExcel({ tabla, nombreArchivo, nombreHoja: nombreHojaTabla });
+          this.exportarExcel({
+            tabla,
+            nombreArchivo,
+            nombreHoja: nombreHojaTabla,
+            _skipAutoGraficas: true,
+          });
           return;
         }
 
@@ -208,6 +233,7 @@
             tabla,
             nombreArchivo,
             nombreHoja: nombreHojaTabla,
+            _skipAutoGraficas: true,
           });
         } catch (fallbackError) {
           console.error("Error al exportar Excel (fallback):", fallbackError);

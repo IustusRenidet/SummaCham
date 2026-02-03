@@ -601,6 +601,72 @@ setupRecontaOverlayListener();
 
 window.prepararStickyHeaders = prepararStickyHeaders;
 
+const cargarScriptDinamico = (src, yaDisponible) =>
+  new Promise((resolve, reject) => {
+    try {
+      if (typeof yaDisponible === "function" && yaDisponible()) {
+        resolve();
+        return;
+      }
+
+      const absSrc = new URL(src, window.location.href).href;
+      const existentes = Array.from(document.scripts || []).find((script) => {
+        if (!script?.src) return false;
+        return script.src === absSrc || script.src.endsWith(src);
+      });
+
+      if (existentes) {
+        if (typeof yaDisponible === "function" && yaDisponible()) {
+          resolve();
+          return;
+        }
+        existentes.addEventListener("load", () => resolve(), { once: true });
+        existentes.addEventListener(
+          "error",
+          () => reject(new Error(`No se pudo cargar ${src}`)),
+          { once: true },
+        );
+        return;
+      }
+
+      const script = document.createElement("script");
+      script.src = src;
+      script.async = false;
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error(`No se pudo cargar ${src}`));
+      document.head.appendChild(script);
+    } catch (error) {
+      reject(error);
+    }
+  });
+
+const asegurarGraficasOperativas = async (moduloId = "") => {
+  const moduloClave = String(
+    moduloId || document.body?.dataset?.moduloId || "",
+  ).toLowerCase();
+  if (!moduloClave) return;
+  if (moduloClave === "resumen" || moduloClave === "gastosgenerales") return;
+  if (!document.querySelector("#tablaComparacion")) return;
+
+  try {
+    await cargarScriptDinamico(
+      "https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js",
+      () => typeof window.Chart !== "undefined",
+    );
+    await cargarScriptDinamico("js/graficas-config.js", () =>
+      Boolean(window.GraficasConfig?.load),
+    );
+    await cargarScriptDinamico("js/operativo-sidebar.js", () =>
+      Boolean(window.__OperativoSidebarReady),
+    );
+  } catch (error) {
+    console.warn(
+      `⚠️ No se pudieron inicializar graficas operativas para ${moduloClave}:`,
+      error,
+    );
+  }
+};
+
 window.initModuloPlaneacion = async function ({
   moduloId,
   moduloNombre,
@@ -663,6 +729,7 @@ window.initModuloPlaneacion = async function ({
     }
 
     prepararStickyHeaders(selectorTabla);
+    await asegurarGraficasOperativas(moduloId);
     // 4. Inicializar FlujoAutorizacion con callback completo
     if (typeof window.FlujoAutorizacion !== "undefined") {
       const opcionesFlujo = {
