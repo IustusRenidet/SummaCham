@@ -404,6 +404,23 @@
     return !CAMPOS_FILA_OPERACION.some((campo) => Boolean(op?.[campo]));
   };
 
+  const obtenerOrdenPresentacion = (
+    item,
+    fallback = Number.POSITIVE_INFINITY
+  ) => {
+    const candidatos = [
+      item?.orden_presentacion,
+      item?.orden,
+      item?.indice,
+      item?.index,
+    ];
+    for (const valor of candidatos) {
+      const numero = Number(valor);
+      if (Number.isFinite(numero)) return numero;
+    }
+    return fallback;
+  };
+
   const construirTerminosOperativoDesdeFormula = (op) => {
     const terms = extraerFormulaTermsOperacion(op);
     const terminos = [];
@@ -2975,13 +2992,30 @@
         .toString()
         .trim();
 
+    const obtenerOrdenOperacion = (op, fallback = Number.POSITIVE_INFINITY) =>
+      obtenerOrdenPresentacion(op, fallback);
+
+    const resolverClaveSeccionOperacion = (op) => {
+      const candidatos = [
+        op?.parentSection,
+        op?.SECCION,
+        op?.seccion,
+        op?.parentSubsection,
+      ]
+        .map((valor) => normalizarTexto(valor || ""))
+        .filter(Boolean);
+      if (!candidatos.length) return "";
+      const conSeccionValida = candidatos.find((clave) =>
+        seccionesDisponibles.has(clave)
+      );
+      return conSeccionValida || candidatos[0] || "";
+    };
+
     operacionesLayout.forEach((op) => {
       if (!op || op?.visible === false) return;
       if (esOperacionConfigColumnas(op)) return;
       const opId = obtenerOperacionId(op) || `op_${operacionesLayout.indexOf(op)}`;
-      const seccionOp =
-        op.SECCION || op.seccion || op.parentSection || op.parentSubsection || "";
-      const clave = normalizarTexto(seccionOp);
+      const clave = resolverClaveSeccionOperacion(op);
       if (!clave) {
         // Si no hay seccion, mostrar como operacion global (libre o con fila).
         libresSinSeccion.push(op);
@@ -3006,6 +3040,15 @@
       libresPorSeccion.get(clave).push(op);
     });
 
+    const insertarDespuesDeReferencia = (nodo, referencia) => {
+      if (!nodo) return;
+      if (referencia && referencia.parentNode) {
+        referencia.parentNode.insertBefore(nodo, referencia.nextSibling);
+      } else {
+        cuerpo.appendChild(nodo);
+      }
+    };
+
     secciones.forEach((lista, seccion) => {
       const seccionOriginal = esModuloNomina
         ? seccionOriginalPorClave.get(seccion) || seccion
@@ -3015,6 +3058,7 @@
         seccionOriginal || "SIN SECCION"
       );
       const filasCuenta = [];
+      const filasOrdenables = [];
       let headerRow = null;
       if (seccion && seccion !== "SIN SECCION") {
         const filaSeccion = document.createElement("tr");
@@ -3029,7 +3073,7 @@
         headerRow = filaSeccion;
       }
 
-      lista.forEach((item) => {
+      lista.forEach((item, idxItem) => {
         const fila = document.createElement("tr");
         fila.className = "fila-cuenta account-row";
         const celdaCuenta = document.createElement("td");
@@ -3057,10 +3101,12 @@
         const factorCuenta = Number.isFinite(Number(item.factor))
           ? Number(item.factor)
           : 1;
+        const ordenFilaCuenta = obtenerOrdenPresentacion(item, idxItem);
         fila.dataset.operacionFactor = String(factorCuenta);
         fila.dataset.cuenta = item.cuenta || "";
         fila.dataset.cuenta21 = cuenta21;
         fila.dataset.seccion = claveSeccion;
+        fila.dataset.layoutOrder = String(ordenFilaCuenta);
         for (let i = 0; i < placeholders; i += 1) {
           const celda = document.createElement("td");
           celda.className = "budget-value";
@@ -3069,6 +3115,7 @@
         }
         cuerpo.appendChild(fila);
         filasCuenta.push(fila);
+        filasOrdenables.push({ fila, orden: ordenFilaCuenta });
       });
 
       const sumasBase =
@@ -3571,6 +3618,17 @@
         if (metaSeccion.elementos.sumRow) {
           metaSeccion.elementos.sumRow.dataset.seccion = claveSeccion;
           metaSeccion.elementos.sumRow.dataset.sectionName = seccion;
+          const ordenBaseFila = filasOrdenables.length
+            ? Math.max(...filasOrdenables.map((item) => Number(item.orden) || 0))
+            : 0;
+          const ordenSumRow = Number.isFinite(Number(metaSeccion.ordenSumRow))
+            ? Number(metaSeccion.ordenSumRow)
+            : ordenBaseFila + 0.001;
+          metaSeccion.elementos.sumRow.dataset.layoutOrder = String(ordenSumRow);
+          filasOrdenables.push({
+            fila: metaSeccion.elementos.sumRow,
+            orden: ordenSumRow,
+          });
         }
         const registrarSumario = (texto, orden) => {
           if (!texto) return;
@@ -3623,20 +3681,37 @@
       const claveSeccionLibre = normalizarTexto(seccion || "");
       const libres = libresPorSeccion.get(claveSeccionLibre) || [];
       if (libres.length) {
-        const ordenar = (op, fallback) =>
-          Number.isFinite(Number(op?.orden_presentacion))
-            ? Number(op.orden_presentacion)
-            : Number.isFinite(Number(op?.orden))
-            ? Number(op.orden)
-            : fallback;
         const libresOrdenados = libres
           .slice()
-          .sort((a, b) => ordenar(a, 0) - ordenar(b, 0));
-        let referencia =
-          metaSeccion.elementos.sumRow ||
-          metaSeccion.filasCuenta[metaSeccion.filasCuenta.length - 1] ||
-          headerRow;
-        libresOrdenados.forEach((op, idxOp) => {
+          .map((op, idxOp) => ({
+            op,
+            idxOp,
+            orden: obtenerOrdenOperacion(op),
+          }))
+          .sort((a, b) => {
+            const ordenA = Number.isFinite(Number(a.orden))
+              ? Number(a.orden)
+              : Number.POSITIVE_INFINITY;
+            const ordenB = Number.isFinite(Number(b.orden))
+              ? Number(b.orden)
+              : Number.POSITIVE_INFINITY;
+            if (ordenA !== ordenB) return ordenA - ordenB;
+            return a.idxOp - b.idxOp;
+          });
+        const referenciasSeccion = filasOrdenables
+          .slice()
+          .filter((item) => item?.fila)
+          .map((item, idx) => ({
+            fila: item.fila,
+            orden: Number(item.orden),
+            idx,
+          }))
+          .filter((item) => Number.isFinite(item.orden))
+          .sort((a, b) => {
+            if (a.orden !== b.orden) return a.orden - b.orden;
+            return a.idx - b.idx;
+          });
+        libresOrdenados.forEach(({ op, idxOp, orden }) => {
           const texto = obtenerEtiquetaOperacionLibre(op);
           const filaLibre = agregarFilaResumen({
             texto,
@@ -3648,14 +3723,41 @@
           filaLibre.dataset.operationId =
             op?.OperacionId || op?.operacion_id || op?.id || "";
           filaLibre.dataset.operationLabel = texto;
-          if (referencia && referencia.parentNode) {
-            referencia.parentNode.insertBefore(
-              filaLibre,
-              referencia.nextSibling
+          let insertada = false;
+          if (Number.isFinite(Number(orden))) {
+            const destino = referenciasSeccion.find(
+              (item) =>
+                Number.isFinite(Number(item.orden)) &&
+                Number(orden) < Number(item.orden)
             );
+            if (destino?.fila?.parentNode) {
+              destino.fila.parentNode.insertBefore(filaLibre, destino.fila);
+              insertada = true;
+            }
           }
-          referencia = filaLibre;
-          operacionesLibres.push({ fila: filaLibre, op, idx: idxOp });
+          if (!insertada) {
+            const referenciaFinal = referenciasSeccion.length
+              ? referenciasSeccion[referenciasSeccion.length - 1].fila
+              : headerRow;
+            insertarDespuesDeReferencia(filaLibre, referenciaFinal);
+          }
+          const ordenFinal = Number.isFinite(Number(orden))
+            ? Number(orden)
+            : referenciasSeccion.length
+            ? Number(referenciasSeccion[referenciasSeccion.length - 1].orden) +
+              0.001
+            : idxOp;
+          filaLibre.dataset.layoutOrder = String(ordenFinal);
+          referenciasSeccion.push({
+            fila: filaLibre,
+            orden: ordenFinal,
+            idx: referenciasSeccion.length,
+          });
+          referenciasSeccion.sort((a, b) => {
+            if (a.orden !== b.orden) return a.orden - b.orden;
+            return a.idx - b.idx;
+          });
+          operacionesLibres.push({ fila: filaLibre, op, idx: idxOp, orden: ordenFinal });
         });
       }
       sumasSecciones.push(metaSeccion);
@@ -3673,8 +3775,35 @@
     }
 
     if (libresSinSeccion.length) {
-      let referenciaFinal = cuerpo.lastChild;
-      libresSinSeccion.forEach((op, idxOp) => {
+      const libresGlobalesOrdenados = libresSinSeccion
+        .slice()
+        .map((op, idxOp) => ({
+          op,
+          idxOp,
+          orden: obtenerOrdenOperacion(op),
+        }))
+        .sort((a, b) => {
+          const ordenA = Number.isFinite(Number(a.orden))
+            ? Number(a.orden)
+            : Number.POSITIVE_INFINITY;
+          const ordenB = Number.isFinite(Number(b.orden))
+            ? Number(b.orden)
+            : Number.POSITIVE_INFINITY;
+          if (ordenA !== ordenB) return ordenA - ordenB;
+          return a.idxOp - b.idxOp;
+        });
+      const referenciasGlobales = Array.from(cuerpo.querySelectorAll("tr"))
+        .map((fila, idx) => ({
+          fila,
+          orden: Number(fila?.dataset?.layoutOrder),
+          idx,
+        }))
+        .filter((item) => Number.isFinite(item.orden))
+        .sort((a, b) => {
+          if (a.orden !== b.orden) return a.orden - b.orden;
+          return a.idx - b.idx;
+        });
+      libresGlobalesOrdenados.forEach(({ op, idxOp, orden }) => {
         const texto = obtenerEtiquetaOperacionLibre(op);
         const filaLibre = agregarFilaResumen({
           texto,
@@ -3686,14 +3815,56 @@
         filaLibre.dataset.operationId =
           op?.OperacionId || op?.operacion_id || op?.id || "";
         filaLibre.dataset.operationLabel = texto;
-        if (referenciaFinal && referenciaFinal.parentNode) {
-          referenciaFinal.parentNode.insertBefore(
-            filaLibre,
-            referenciaFinal.nextSibling
+        let insertada = false;
+        if (Number.isFinite(Number(orden))) {
+          const destino = referenciasGlobales.find(
+            (item) =>
+              Number.isFinite(Number(item.orden)) &&
+              Number(orden) < Number(item.orden)
           );
+          if (destino?.fila?.parentNode) {
+            destino.fila.parentNode.insertBefore(filaLibre, destino.fila);
+            insertada = true;
+          }
         }
-        referenciaFinal = filaLibre;
-        operacionesLibres.push({ fila: filaLibre, op, idx: idxOp });
+        if (!insertada) {
+          const referenciaFinal = cuerpo.lastChild;
+          insertarDespuesDeReferencia(filaLibre, referenciaFinal);
+        }
+        const ordenFinal = Number.isFinite(Number(orden))
+          ? Number(orden)
+          : referenciasGlobales.length
+          ? Number(referenciasGlobales[referenciasGlobales.length - 1].orden) +
+            0.001
+          : idxOp;
+        filaLibre.dataset.layoutOrder = String(ordenFinal);
+        referenciasGlobales.push({
+          fila: filaLibre,
+          orden: ordenFinal,
+          idx: referenciasGlobales.length,
+        });
+        referenciasGlobales.sort((a, b) => {
+          if (a.orden !== b.orden) return a.orden - b.orden;
+          return a.idx - b.idx;
+        });
+        operacionesLibres.push({ fila: filaLibre, op, idx: idxOp, orden: ordenFinal });
+      });
+    }
+
+    if (operacionesLibres.length > 1) {
+      const indicesDom = new Map();
+      Array.from(cuerpo.querySelectorAll("tr")).forEach((fila, idx) => {
+        indicesDom.set(fila, idx);
+      });
+      operacionesLibres.sort((a, b) => {
+        const ordenA = Number(a?.fila?.dataset?.layoutOrder);
+        const ordenB = Number(b?.fila?.dataset?.layoutOrder);
+        if (Number.isFinite(ordenA) && Number.isFinite(ordenB) && ordenA !== ordenB) {
+          return ordenA - ordenB;
+        }
+        const idxA = indicesDom.get(a?.fila) ?? 0;
+        const idxB = indicesDom.get(b?.fila) ?? 0;
+        return idxA - idxB;
       });
     }
 
@@ -3848,37 +4019,48 @@
     if (Array.isArray(layout.cuentas)) {
       return layout.cuentas
         .filter((cuenta) => cuenta && cuenta.visible !== false)
-        .map((cuenta) => ({
-          capitulo,
-          seccion: obtenerSeccionPrincipal(cuenta) || "SIN SECCION",
-          cuenta: cuenta.CUENTA || cuenta.cuenta || "",
-          nombre: cuenta.NOMBRE || cuenta.nombre || "",
-          factor: Number.isFinite(
-            Number(
-              cuenta.factor ?? cuenta.operacion_factor ?? cuenta.operacionFactor
-            )
-          )
-            ? Number(
-                cuenta.factor ??
-                  cuenta.operacion_factor ??
-                  cuenta.operacionFactor
+        .map((cuenta, idx) => {
+          const orden = obtenerOrdenPresentacion(cuenta, idx);
+          return {
+            capitulo,
+            seccion: obtenerSeccionPrincipal(cuenta) || "SIN SECCION",
+            cuenta: cuenta.CUENTA || cuenta.cuenta || "",
+            nombre: cuenta.NOMBRE || cuenta.nombre || "",
+            factor: Number.isFinite(
+              Number(
+                cuenta.factor ?? cuenta.operacion_factor ?? cuenta.operacionFactor
               )
-            : 1,
-        }));
+            )
+              ? Number(
+                  cuenta.factor ??
+                    cuenta.operacion_factor ??
+                    cuenta.operacionFactor
+                )
+              : 1,
+            orden,
+            orden_presentacion: orden,
+          };
+        });
     }
     if (!Array.isArray(layout.secciones)) return [];
-    return layout.secciones.flatMap((seccion) => {
+    return layout.secciones.flatMap((seccion, idxSeccion) => {
       const titulo = seccion.titulo || seccion.seccion || seccion.nombre || "";
       if (!titulo || !Array.isArray(seccion.cuentas)) return [];
-      return seccion.cuentas.map((fila) => ({
-        capitulo,
-        seccion: titulo,
-        cuenta: fila.cuenta || "",
-        nombre: fila.nombre || "",
-        factor: Number.isFinite(Number(fila.factor ?? fila.operacionFactor))
-          ? Number(fila.factor ?? fila.operacionFactor)
-          : 1,
-      }));
+      return seccion.cuentas.map((fila, idxFila) => {
+        const fallbackOrden = idxSeccion * 1000 + idxFila;
+        const orden = obtenerOrdenPresentacion(fila, fallbackOrden);
+        return {
+          capitulo,
+          seccion: titulo,
+          cuenta: fila.cuenta || "",
+          nombre: fila.nombre || "",
+          factor: Number.isFinite(Number(fila.factor ?? fila.operacionFactor))
+            ? Number(fila.factor ?? fila.operacionFactor)
+            : 1,
+          orden,
+          orden_presentacion: orden,
+        };
+      });
     });
   };
 

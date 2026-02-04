@@ -522,9 +522,22 @@
     return null;
   };
 
+  const readUrlSearchParams = () => {
+    try {
+      return new URLSearchParams(window.location.search || "");
+    } catch {
+      return new URLSearchParams();
+    }
+  };
+
   const getPreviewYear = (snapshot) => {
-    const selected = Number(document.getElementById("anioSelect")?.value);
+    const anioSelect = document.getElementById("anioSelect");
+    const selected = Number(anioSelect?.value);
     if (Number.isInteger(selected)) return selected;
+    const firstOption = Number(anioSelect?.options?.[0]?.value);
+    if (Number.isInteger(firstOption)) return firstOption;
+    const yearFromUrl = Number(readUrlSearchParams().get("year"));
+    if (Number.isInteger(yearFromUrl)) return yearFromUrl;
     const snapYear = Number(snapshot?.anio);
     if (Number.isInteger(snapYear)) return snapYear;
     const ctxYear = Number(readPlaneacionContext()?.anio);
@@ -534,6 +547,9 @@
 
   const getPreviewEmpresaId = (snapshot) =>
     snapshot?.empresaId ||
+    readUrlSearchParams().get("empresa") ||
+    readPlaneacionContext()?.empresaId ||
+    readPlaneacionContext()?.empresa ||
     window.Sesion?.obtenerEmpresaActiva?.()?.id ||
     null;
 
@@ -2516,10 +2532,27 @@
     ) {
       return "Selecciona empresa y ano para ver datos.";
     }
+    if (
+      (definition.previewKind === "summary" ||
+        definition.previewKind === "consolidated") &&
+      !context?.snapshotMap &&
+      (!context?.empresaId || !context?.anio)
+    ) {
+      return "Selecciona empresa y ano para ver datos.";
+    }
     const isCustomMensual =
       definition.previewKind === "custom" &&
       (definition.sourceType || "").toString().toLowerCase() === "mensual";
     if (isCustomMensual && (!context?.empresaId || !context?.anio)) {
+      return "Selecciona empresa y ano para ver datos.";
+    }
+    const isCustomSnapshot =
+      definition.previewKind === "custom" && !isCustomMensual;
+    if (
+      isCustomSnapshot &&
+      !context?.snapshotMap &&
+      (!context?.empresaId || !context?.anio)
+    ) {
       return "Selecciona empresa y ano para ver datos.";
     }
     if (!context?.snapshotMap && !isCustomMensual) {
@@ -2934,7 +2967,13 @@
       });
     });
 
-    return defs;
+    const deletedIds = new Set(
+      normalizeDeletedChartIds(config?.deletedChartIds || [])
+    );
+    return defs.filter((definition) => {
+      const defId = canonicalizeChartId(definition?.chartId || definition?.id);
+      return !defId || !deletedIds.has(defId);
+    });
   };
 
   const updateDetailCard = (definition) => {
@@ -2981,7 +3020,8 @@
     }
     if (detailEditBtn) detailEditBtn.classList.remove("d-none");
     if (detailDeleteBtn) {
-      detailDeleteBtn.classList.toggle("d-none", !isCustomChartDefinition(definition));
+      const chartId = String(definition?.chartId || definition?.id || "").trim();
+      detailDeleteBtn.classList.toggle("d-none", !chartId);
     }
   };
 
@@ -3041,35 +3081,139 @@
     return id.startsWith("custom-") || chartId.startsWith("custom-");
   };
 
-  const removeCustomChartById = (chartId) => {
-    const targetId = String(chartId || "").trim();
+  const CHART_ID_ALIASES = Object.freeze({
+    ingreso: "ingreso-capitulo",
+    "ingreso-capitulo": "ingreso-capitulo",
+    operativo: "operativo-panel",
+    "operativo-panel": "operativo-panel",
+    "gastos-rendimientos": "gg-rendimientos",
+    "gg-rendimientos": "gg-rendimientos",
+    "gastos-plusvalia": "gg-plusvalia",
+    "gg-plusvalia": "gg-plusvalia",
+  });
+
+  const canonicalizeChartId = (value) => {
+    const id = String(value || "").trim();
+    if (!id) return "";
+    return CHART_ID_ALIASES[id] || id;
+  };
+
+  const normalizeDeletedChartIds = (values = []) =>
+    Array.from(
+      new Set(
+        (Array.isArray(values) ? values : [])
+          .map((value) => canonicalizeChartId(value))
+          .filter(Boolean)
+      )
+    );
+
+  const disableBuiltInChartById = (config, chartId) => {
+    const id = canonicalizeChartId(chartId);
+    if (!id || !config || typeof config !== "object") return;
+    switch (id) {
+      case "summary-operating":
+        config.charts = { ...(config.charts || {}) };
+        config.charts.operating = {
+          ...(config.charts.operating || {}),
+          enabled: false,
+        };
+        break;
+      case "summary-net":
+        config.charts = { ...(config.charts || {}) };
+        config.charts.net = {
+          ...(config.charts.net || {}),
+          enabled: false,
+        };
+        break;
+      case "summary-consolidated":
+        config.charts = { ...(config.charts || {}) };
+        config.charts.consolidated = {
+          ...(config.charts.consolidated || {}),
+          enabled: false,
+        };
+        break;
+      case "ingreso-capitulo":
+        config.ingreso = { ...(config.ingreso || {}), enabled: false };
+        break;
+      case "ingreso-nacional":
+        config.ingresoNacional = {
+          ...(config.ingresoNacional || {}),
+          enabled: false,
+        };
+        break;
+      case "operativo-panel":
+        config.operativo = { ...(config.operativo || {}), enabled: false };
+        break;
+      case "gg-rendimientos":
+        config.gastosGenerales = {
+          ...(config.gastosGenerales || {}),
+          charts: {
+            ...((config.gastosGenerales || {}).charts || {}),
+            rendimientos: {
+              ...(((config.gastosGenerales || {}).charts || {}).rendimientos || {}),
+              enabled: false,
+            },
+          },
+        };
+        break;
+      case "gg-plusvalia":
+        config.gastosGenerales = {
+          ...(config.gastosGenerales || {}),
+          charts: {
+            ...((config.gastosGenerales || {}).charts || {}),
+            plusvalia: {
+              ...(((config.gastosGenerales || {}).charts || {}).plusvalia || {}),
+              enabled: false,
+            },
+          },
+        };
+        break;
+      default:
+        break;
+    }
+  };
+
+  const deleteChartDefinition = (definition) => {
+    const targetId = canonicalizeChartId(definition?.chartId || definition?.id);
     if (!targetId) return false;
     const api = getGraficasConfigApi();
     if (!api || typeof api.load !== "function" || typeof api.save !== "function") {
       return false;
     }
     const current = api.load();
-    const currentCharts = Array.isArray(current?.customCharts)
-      ? current.customCharts
-      : [];
-    const filteredCharts = currentCharts.filter(
-      (chart) => String(chart?.id || "").trim() !== targetId
+    const nextConfig = clone(current || {});
+    nextConfig.deletedChartIds = normalizeDeletedChartIds(
+      nextConfig.deletedChartIds
     );
-    if (filteredCharts.length === currentCharts.length) return false;
-    const nextConfig = {
-      ...current,
-      customCharts: filteredCharts,
-    };
-    if (
-      nextConfig.manualOnly === true &&
-      !filteredCharts.some(
-        (chart) =>
-          chart?.enabled !== false &&
-          Array.isArray(chart?.rows) &&
-          chart.rows.length > 0
-      )
-    ) {
-      nextConfig.manualOnly = false;
+
+    if (isCustomChartDefinition(definition)) {
+      const currentCharts = Array.isArray(nextConfig.customCharts)
+        ? nextConfig.customCharts
+        : [];
+      const filteredCharts = currentCharts.filter(
+        (chart) => String(chart?.id || "").trim() !== targetId
+      );
+      if (filteredCharts.length === currentCharts.length) return false;
+      nextConfig.customCharts = filteredCharts;
+      nextConfig.deletedChartIds = nextConfig.deletedChartIds.filter(
+        (id) => id !== targetId
+      );
+      if (
+        nextConfig.manualOnly === true &&
+        !filteredCharts.some(
+          (chart) =>
+            chart?.enabled !== false &&
+            Array.isArray(chart?.rows) &&
+            chart.rows.length > 0
+        )
+      ) {
+        nextConfig.manualOnly = false;
+      }
+    } else {
+      if (!nextConfig.deletedChartIds.includes(targetId)) {
+        nextConfig.deletedChartIds.push(targetId);
+      }
+      disableBuiltInChartById(nextConfig, targetId);
     }
     api.save(nextConfig);
     return true;
@@ -3431,10 +3575,6 @@
       const selected = galleryState.selectedId;
       const item = selected ? galleryState.cards.get(selected) : null;
       if (!item?.definition) return;
-      if (!isCustomChartDefinition(item.definition)) {
-        setStatus("Solo se pueden eliminar graficas manuales.", "danger");
-        return;
-      }
       const chartId = String(
         item.definition.chartId || item.definition.id || ""
       ).trim();
@@ -3443,11 +3583,14 @@
         return;
       }
       const title = (item.definition.title || "esta grafica").toString().trim();
+      const customChart = isCustomChartDefinition(item.definition);
       const confirmed = window.confirm(
-        `Eliminar la grafica "${title}"? Esta accion no se puede deshacer.`
+        customChart
+          ? `Eliminar la grafica "${title}"? Esta accion no se puede deshacer.`
+          : `Eliminar la grafica "${title}" del gestor? Quedara oculta en panel/exportaciones. Puedes restaurarla con "Restaurar".`
       );
       if (!confirmed) return;
-      const removed = removeCustomChartById(chartId);
+      const removed = deleteChartDefinition(item.definition);
       if (!removed) {
         setStatus("No se pudo eliminar la grafica seleccionada.", "danger");
         return;
@@ -3491,6 +3634,30 @@
       scheduleGalleryUpdate();
     });
   }
+
+  const bindContextObserver = (select, onMutate) => {
+    if (!select || typeof MutationObserver === "undefined") return;
+    const observer = new MutationObserver(() => {
+      onMutate();
+    });
+    observer.observe(select, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["value", "selected"],
+    });
+  };
+
+  bindContextObserver(anioSelect, scheduleGalleryUpdate);
+  bindContextObserver(capituloSelect, () => {
+    updateSourcePickerOptions();
+    scheduleGalleryUpdate();
+  });
+  bindContextObserver(moduloSelect, scheduleGalleryUpdate);
+
+  // El contexto (anio/capitulo/modulo) puede llegar de forma asíncrona.
+  setTimeout(scheduleGalleryUpdate, 350);
+  setTimeout(scheduleGalleryUpdate, 1200);
 
   if (customAddBtn) {
     customAddBtn.addEventListener("click", () => {

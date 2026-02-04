@@ -191,10 +191,31 @@ try {
   exit 1
 }
 
+function Get-SeriesColumnsForHeaderRow {
+  param(
+    $Sheet,
+    [int]$RowNumber
+  )
+  if (-not $Sheet -or $RowNumber -lt 1) { return @() }
+  $lastCol = $Sheet.Cells.Item($RowNumber, $Sheet.Columns.Count).End(-4159).Column # xlToLeft
+  if ($lastCol -lt 2) { return @() }
+  $result = @()
+  for ($col = 2; $col -le $lastCol; $col++) {
+    $seriesName = ([string]$Sheet.Cells.Item($RowNumber, $col).Text).Trim()
+    if (-not $seriesName) { continue }
+    $result += [PSCustomObject]@{
+      Column = $col
+      Name = $seriesName
+    }
+  }
+  return @($result)
+}
+
 $headerRow = 1
-for ($i = 1; $i -le 30; $i++) {
+$maxHeaderScan = [Math]::Min(120, $wsData.Rows.Count)
+for ($i = 1; $i -le $maxHeaderScan; $i++) {
   $parts = @()
-  for ($c = 1; $c -le 8; $c++) {
+  for ($c = 1; $c -le 12; $c++) {
     $txt = [string]$wsData.Cells.Item($i, $c).Text
     if ($txt) { $parts += $txt.ToLowerInvariant() }
   }
@@ -205,25 +226,43 @@ for ($i = 1; $i -le 30; $i++) {
   }
 }
 
+$seriesColumns = Get-SeriesColumnsForHeaderRow -Sheet $wsData -RowNumber $headerRow
+if ($seriesColumns.Count -eq 0) {
+  $metadataRows = @("RESULTADOS OPERATIVOS", "CATEGORIA", "EMPRESA", "PERIODO", "FECHA EXPORTACION")
+  for ($candidate = 1; $candidate -le $maxHeaderScan; $candidate++) {
+    $candidateSeries = Get-SeriesColumnsForHeaderRow -Sheet $wsData -RowNumber $candidate
+    if ($candidateSeries.Count -eq 0) { continue }
+    $firstCellNorm = Normalize-Text ([string]$wsData.Cells.Item($candidate, 1).Text)
+    if (-not $firstCellNorm) { continue }
+    if ($metadataRows -contains $firstCellNorm) { continue }
+
+    $parts = @()
+    for ($c = 1; $c -le 12; $c++) {
+      $txt = [string]$wsData.Cells.Item($candidate, $c).Text
+      if ($txt) { $parts += $txt }
+    }
+    $candidateText = Normalize-Text ($parts -join " ")
+    $looksLikeHeader = $candidateText -match "PPTO|PRESUPUESTO|REAL|ACUM|BUDGET|ACTUAL|YTD|20[0-9]{2}"
+    $nextLabel = ([string]$wsData.Cells.Item($candidate + 1, 1).Text).Trim()
+    if (-not $looksLikeHeader -and -not $nextLabel) { continue }
+
+    $headerRow = $candidate
+    $seriesColumns = $candidateSeries
+    break
+  }
+}
+
 $dataStart = $headerRow + 1
 $lastRow = $wsData.Cells.Item($wsData.Rows.Count, 1).End(-4162).Row # xlUp
+while ($dataStart -le $lastRow -and -not ([string]$wsData.Cells.Item($dataStart, 1).Text).Trim()) {
+  $dataStart++
+}
 
 if ($lastRow -lt $dataStart) {
   Write-Error "No data rows found in $DataSheetName."
   $wb.Close($false)
   $excel.Quit()
   exit 1
-}
-
-$lastCol = $wsData.Cells.Item($headerRow, $wsData.Columns.Count).End(-4159).Column # xlToLeft
-$seriesColumns = @()
-for ($col = 2; $col -le $lastCol; $col++) {
-  $seriesName = ([string]$wsData.Cells.Item($headerRow, $col).Text).Trim()
-  if (-not $seriesName) { continue }
-  $seriesColumns += [PSCustomObject]@{
-    Column = $col
-    Name = $seriesName
-  }
 }
 
 if ($seriesColumns.Count -eq 0) {

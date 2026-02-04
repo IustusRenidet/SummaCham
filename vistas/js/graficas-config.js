@@ -267,6 +267,7 @@
     },
     manualOnly: false,
     customCharts: [],
+    deletedChartIds: [],
   };
 
   const clone = (value) => JSON.parse(JSON.stringify(value));
@@ -288,6 +289,32 @@
     if (clean === "custom") return "snapshot";
     return fallback;
   };
+
+  const CHART_ID_ALIASES = Object.freeze({
+    ingreso: "ingreso-capitulo",
+    "ingreso-capitulo": "ingreso-capitulo",
+    operativo: "operativo-panel",
+    "operativo-panel": "operativo-panel",
+    "gastos-rendimientos": "gg-rendimientos",
+    "gg-rendimientos": "gg-rendimientos",
+    "gastos-plusvalia": "gg-plusvalia",
+    "gg-plusvalia": "gg-plusvalia",
+  });
+
+  const canonicalizeChartId = (value) => {
+    const id = String(value || "").trim();
+    if (!id) return "";
+    return CHART_ID_ALIASES[id] || id;
+  };
+
+  const normalizeDeletedChartIds = (values = []) =>
+    Array.from(
+      new Set(
+        (Array.isArray(values) ? values : [])
+          .map((value) => canonicalizeChartId(value))
+          .filter(Boolean)
+      )
+    );
 
   const normalizeSeriesMap = (defaultsMap, overrideMap) => {
     const result = {};
@@ -731,6 +758,7 @@
     if (typeof config.manualOnly === "boolean") {
       base.manualOnly = config.manualOnly;
     }
+    base.deletedChartIds = normalizeDeletedChartIds(config.deletedChartIds);
 
     if (config.charts && typeof config.charts === "object") {
       ["operating", "net", "consolidated"].forEach((key) => {

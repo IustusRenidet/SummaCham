@@ -339,6 +339,39 @@
   const isManualOnly = (graficasConfig) =>
     graficasConfig?.manualOnly === true && hasEnabledManualCharts(graficasConfig);
 
+  const hasEnabledCustomChartsForResumen = (graficasConfig) =>
+    Array.isArray(graficasConfig?.customCharts) &&
+    graficasConfig.customCharts.some((chart) => {
+      if (chart?.enabled === false) return false;
+      if (!Array.isArray(chart?.rows) || chart.rows.length === 0) return false;
+      return normalizeModuleKey(chart?.module || "RESUMEN") === "RESUMEN";
+    });
+
+  const hasEnabledBuiltInResumenCharts = (graficasConfig) =>
+    graficasConfig?.charts?.operating?.enabled !== false ||
+    graficasConfig?.charts?.net?.enabled !== false ||
+    graficasConfig?.charts?.consolidated?.enabled !== false ||
+    graficasConfig?.ingreso?.enabled !== false ||
+    graficasConfig?.ingresoNacional?.enabled !== false;
+
+  const resolveRenderableGraficasConfig = (graficasConfig) => {
+    if (!graficasConfig || typeof graficasConfig !== "object") {
+      return DEFAULT_GRAFICAS_CONFIG;
+    }
+    const customEnabled = hasEnabledCustomChartsForResumen(graficasConfig);
+    const builtInEnabled = hasEnabledBuiltInResumenCharts(graficasConfig);
+    if (isManualOnly(graficasConfig) || customEnabled || builtInEnabled) {
+      return graficasConfig;
+    }
+    try {
+      const defaults =
+        window.GraficasConfig?.defaults || DEFAULT_GRAFICAS_CONFIG;
+      return JSON.parse(JSON.stringify(defaults));
+    } catch {
+      return DEFAULT_GRAFICAS_CONFIG;
+    }
+  };
+
   const aplicarStickyEncabezados = () => {
     const tabla = document.getElementById("tablaComparacion");
     if (!tabla?.tHead) return;
@@ -1381,11 +1414,33 @@
     });
   };
 
-  const renderCustomChartsPanel = (graficasConfig) => {
+  const buildSnapshotFromMensualResponses = (responses = []) => {
+    if (!Array.isArray(responses) || !responses.length) return null;
+    const preferredMonth = Number(leerMesSeleccionado());
+    const preferredIdx =
+      Number.isInteger(preferredMonth) && preferredMonth >= 1 && preferredMonth <= 12
+        ? preferredMonth - 1
+        : -1;
+    if (
+      preferredIdx >= 0 &&
+      Array.isArray(responses[preferredIdx]?.resumen?.[0]?.layout) &&
+      responses[preferredIdx].resumen[0].layout.length
+    ) {
+      return { filas: responses[preferredIdx].resumen[0].layout };
+    }
+    for (let i = responses.length - 1; i >= 0; i -= 1) {
+      const layout = responses[i]?.resumen?.[0]?.layout;
+      if (Array.isArray(layout) && layout.length) {
+        return { filas: layout };
+      }
+    }
+    return null;
+  };
+
+  const renderCustomChartsPanel = async (graficasConfig) => {
     clearCustomChartsPanel();
     if (!chartsGrid) return 0;
     const snapshot = window.RESUMEN_SNAPSHOT;
-    if (!snapshot?.filas) return 0;
 
     const customCharts = Array.isArray(graficasConfig.customCharts)
       ? graficasConfig.customCharts
@@ -1395,6 +1450,13 @@
     const moduleKey = normalizeModuleKey(
       document.body?.dataset?.modulo || "RESUMEN"
     );
+    const empresa = empresaActual || Sesion.obtenerEmpresaActiva?.();
+    const empresaId = empresa?.id || null;
+    const anio = leerAnioSeleccionado();
+    const canLoadMensual = Boolean(empresaId) && Number.isInteger(Number(anio));
+    let mensualResponses = null;
+    let fallbackSnapshot = snapshot?.filas ? snapshot : null;
+
     const baseChartType = graficasConfig.chart?.type || "bar";
     const baseSeriesConfig = getSummaryCustomSeriesConfig(graficasConfig);
     if (!baseSeriesConfig.length) return 0;
@@ -1405,18 +1467,51 @@
         .replace(/[^a-zA-Z0-9_-]/g, "");
 
     let rendered = 0;
-    customCharts.forEach((chart, index) => {
-      if (chart?.enabled === false) return;
+    for (let index = 0; index < customCharts.length; index += 1) {
+      const chart = customCharts[index];
+      if (chart?.enabled === false) continue;
       const chartModule = normalizeModuleKey(chart?.module || "RESUMEN");
-      if (chartModule !== moduleKey) return;
+      if (chartModule !== moduleKey) continue;
       const chartType = resolveChartType(chart?.chartType, baseChartType);
       const seriesConfig = applyCustomSeriesOverrides(
         filterSeriesByKeys(baseSeriesConfig, chart?.seriesKeys || []),
         chart
       );
-      if (!seriesConfig.length) return;
-      const data = buildCustomChartData(snapshot, chart, seriesConfig, chartType);
-      if (!data) return;
+      if (!seriesConfig.length) continue;
+      const sourceType = (chart?.sourceType || "snapshot").toString().toLowerCase();
+      let data = null;
+      if (sourceType === "mensual") {
+        if (!canLoadMensual) continue;
+        if (!mensualResponses) {
+          mensualResponses = await obtenerResumenMensual(empresaId, Number(anio));
+        }
+        data = buildCustomMensualChartData(
+          mensualResponses,
+          chart,
+          seriesConfig,
+          chartType
+        );
+      } else {
+        let chartSnapshot = fallbackSnapshot;
+        if (!chartSnapshot?.filas && canLoadMensual) {
+          if (!mensualResponses) {
+            mensualResponses = await obtenerResumenMensual(empresaId, Number(anio));
+          }
+          chartSnapshot = buildSnapshotFromMensualResponses(mensualResponses);
+          if (chartSnapshot?.filas) {
+            fallbackSnapshot = chartSnapshot;
+          }
+        }
+        if (chartSnapshot?.filas) {
+          data = buildCustomChartData(
+            chartSnapshot,
+            chart,
+            seriesConfig,
+            chartType
+          );
+        }
+      }
+      if (!data) continue;
 
       const safeId = sanitizeId(chart.id) || `custom-${index + 1}`;
       const canvasId = `resumenCustomChart-${safeId}`;
@@ -1440,7 +1535,7 @@
         renderGraficaPanel(`custom:${safeId}`, canvas, data, graficasConfig);
         rendered += 1;
       }
-    });
+    }
     return rendered;
   };
 
@@ -1900,10 +1995,11 @@
     }
   };
 
-  const actualizarPanelGraficas = () => {
+  const actualizarPanelGraficas = async () => {
     if (!chartsPanelState.open) return;
     actualizarPanelGraficasMeta();
-    const graficasConfig = getGraficasConfig();
+    const loadedGraficasConfig = getGraficasConfig();
+    const graficasConfig = resolveRenderableGraficasConfig(loadedGraficasConfig);
     actualizarPanelGraficasHeaders(graficasConfig);
     if (typeof Chart === "undefined") {
       mostrarGraficasVacias("Chart.js no esta disponible.");
@@ -1911,7 +2007,7 @@
     }
 
     if (isManualOnly(graficasConfig)) {
-      const customCount = renderCustomChartsPanel(graficasConfig);
+      const customCount = await renderCustomChartsPanel(graficasConfig);
       destruirGraficaPanel("operating");
       destruirGraficaPanel("net");
       destruirGraficaPanel("consolidated");
@@ -1934,7 +2030,7 @@
     }
 
     const datos = generarDatosGraficas(graficasConfig);
-    const customCount = renderCustomChartsPanel(graficasConfig);
+    const customCount = await renderCustomChartsPanel(graficasConfig);
     const hasSummaryData = Array.isArray(datos) && datos.some(Boolean);
     if (!hasSummaryData && customCount === 0) {
       destruirGraficaPanel("operating");
@@ -5349,9 +5445,25 @@
   };
 
   const generarDatosGraficas = (config) => {
-    const snapshot = window.RESUMEN_SNAPSHOT;
+    const empresaIdCtx =
+      empresaActual?.id || Sesion.obtenerEmpresaActiva?.()?.id || null;
+    const anioCtx = leerAnioSeleccionado();
+    const mesCtx = leerMesSeleccionado();
+    const capituloCtx =
+      obtenerCapituloEmpresa(empresaIdCtx) ||
+      obtenerEtiquetaEmpresa(empresaIdCtx) ||
+      "";
+
+    // Re-captura inmediata desde tabla para evitar depender de sincronía de snapshot.
+    let snapshot = capturarTablaResumen(empresaIdCtx, anioCtx, mesCtx, capituloCtx);
+    if (snapshot?.filas?.length) {
+      guardarSnapshotTabla(snapshot);
+    } else {
+      snapshot = window.RESUMEN_SNAPSHOT;
+    }
+
     if (!snapshot || !snapshot.filas) {
-      console.warn("📊 generarDatosGraficas: No hay RESUMEN_SNAPSHOT o filas");
+      console.warn("📊 generarDatosGraficas: Sin snapshot (tabla y cache vacios)");
       return [];
     }
 
@@ -5367,7 +5479,10 @@
 
     const enabledSeries = getEnabledSeriesConfig(graficasConfig);
     console.log("📊 generarDatosGraficas: enabledSeries =", enabledSeries.length);
-    if (!enabledSeries.length) {
+    const effectiveSeries = enabledSeries.length
+      ? enabledSeries
+      : getEnabledSeriesConfig(DEFAULT_GRAFICAS_CONFIG);
+    if (!effectiveSeries.length) {
       console.warn("📊 generarDatosGraficas: No hay series habilitadas");
       return [null, null, null];
     }
@@ -5409,6 +5524,7 @@
     };
 
     const empresa = Sesion.obtenerEmpresaActiva?.() || {};
+    const isCdmx = resolveIsCdmx(empresa?.id, graficasConfig);
     const capitulo = obtenerCapituloEmpresa(empresa?.id) || "";
     const rowsConfig = getSummaryRowsConfig(capitulo, graficasConfig);
     const etiqueta =
@@ -5421,7 +5537,7 @@
 
     const buildSeriesData = (rows) => {
       const labels = [];
-      const seriesData = enabledSeries.reduce((acc, serie) => {
+      const seriesData = effectiveSeries.reduce((acc, serie) => {
         acc[serie.key] = [];
         return acc;
       }, {});
@@ -5430,7 +5546,7 @@
         const fila = encontrarFila(row?.variants || []);
         if (!fila) return;
         labels.push(resolveLabel(row.label || row.alias || ""));
-        enabledSeries.forEach((serie) => {
+        effectiveSeries.forEach((serie) => {
           seriesData[serie.key].push(toNumber(fila.totals?.[serie.key]));
         });
       });
@@ -5438,10 +5554,40 @@
       return { labels, seriesData };
     };
 
+    const buildSeriesDataFallback = (keywords) => {
+      const keys = (Array.isArray(keywords) ? keywords : [keywords])
+        .map((keyword) => normalizarLabelResumen(keyword || ""))
+        .filter(Boolean);
+      if (!keys.length) return { labels: [], seriesData: {} };
+      const rows = (snapshot.filas || []).filter((fila) => {
+        const label = normalizarLabelResumen(fila?.label || "");
+        return (
+          keys.some((key) => label.includes(key)) &&
+          !label.includes("CONSOLIDATED") &&
+          !label.includes("CONSOLIDADO")
+        );
+      });
+      const limitedRows = rows.slice(0, 8);
+      const labels = limitedRows.map((fila) => (fila?.label || "").toString().trim());
+      const seriesData = effectiveSeries.reduce((acc, serie) => {
+        acc[serie.key] = limitedRows.map((fila) =>
+          toNumber(fila?.totals?.[serie.key])
+        );
+        return acc;
+      }, {});
+      return { labels, seriesData };
+    };
+
     const datos = [null, null, null];
 
     if (chartsCfg.operating?.enabled !== false) {
-      const operating = buildSeriesData(rowsConfig.operating);
+      let operating = buildSeriesData(rowsConfig.operating);
+      if (!operating.labels.length) {
+        operating = buildSeriesDataFallback([
+          "OPERATING RESULTS",
+          "RESULTADO OPERATIVO",
+        ]);
+      }
       if (operating.labels.length) {
         const operatingType = resolveType(chartsCfg.operating?.chartType);
         const chartTitle =
@@ -5451,7 +5597,7 @@
         datos[0] = {
           titulo: chartTitle,
           labels: operating.labels,
-          datasets: enabledSeries.map((serie) =>
+          datasets: effectiveSeries.map((serie) =>
             buildDataset(serie, operating.seriesData[serie.key], operatingType)
           ),
           type: operatingType,
@@ -5460,7 +5606,10 @@
     }
 
     if (chartsCfg.net?.enabled !== false) {
-      const net = buildSeriesData(rowsConfig.net);
+      let net = buildSeriesData(rowsConfig.net);
+      if (!net.labels.length) {
+        net = buildSeriesDataFallback(["NET RESULTS", "RESULTADO NETO"]);
+      }
       if (net.labels.length) {
         const netType = resolveType(chartsCfg.net?.chartType);
         const chartTitle =
@@ -5470,7 +5619,7 @@
         datos[1] = {
           titulo: chartTitle,
           labels: net.labels,
-          datasets: enabledSeries.map((serie) =>
+          datasets: effectiveSeries.map((serie) =>
             buildDataset(serie, net.seriesData[serie.key], netType)
           ),
           type: netType,
@@ -5483,20 +5632,33 @@
         graficasConfig.sources?.consolidated ||
         baseConfig.sources?.consolidated ||
         {};
-      const consolidatedOp = encontrarFila(
+      let consolidatedOp = encontrarFila(
         getConsolidatedVariants(
           consolidatedSources,
           "operating",
           baseConfig.sources?.consolidated || {}
         )
       );
-      const consolidatedNet = encontrarFila(
+      let consolidatedNet = encontrarFila(
         getConsolidatedVariants(
           consolidatedSources,
           "net",
           baseConfig.sources?.consolidated || {}
         )
       );
+
+      if (!consolidatedOp) {
+        consolidatedOp = encontrarFila([
+          "CONSOLIDATED OPERATING RESULTS",
+          "CONSOLIDATED OPERATING RESULT",
+        ]);
+      }
+      if (!consolidatedNet) {
+        consolidatedNet = encontrarFila([
+          "CONSOLIDATED NET RESULTS",
+          "CONSOLIDATED NET RESULT",
+        ]);
+      }
 
       if (consolidatedOp && consolidatedNet) {
         const consolidatedType = resolveType(chartsCfg.consolidated?.chartType);
@@ -5510,11 +5672,11 @@
           baseConfig.charts?.consolidated?.title ||
           "Consolidados Operativos vs Netos";
 
-        const labels = enabledSeries.map((serie) => serie.label);
-        const opData = enabledSeries.map((serie) =>
+        const labels = effectiveSeries.map((serie) => serie.label);
+        const opData = effectiveSeries.map((serie) =>
           toNumber(consolidatedOp.totals?.[serie.key])
         );
-        const netData = enabledSeries.map((serie) =>
+        const netData = effectiveSeries.map((serie) =>
           toNumber(consolidatedNet.totals?.[serie.key])
         );
 

@@ -2361,6 +2361,14 @@
       pushFromSelector("#resumenChartsPanel canvas, .charts-panel canvas", {
         allowHidden: true,
       });
+      document.querySelectorAll("canvas").forEach((canvas) => {
+        const chart =
+          typeof window.Chart?.getChart === "function"
+            ? window.Chart.getChart(canvas)
+            : null;
+        if (!chart) return;
+        pushCanvas(canvas, resolveTitle(canvas, ""), { allowHidden: true });
+      });
 
       if (!targets.length && window.Chart?.instances) {
         Object.values(window.Chart.instances).forEach((chart) => {
@@ -2509,67 +2517,6 @@
 
     _prepararChartCaptura(chart, config = {}) {
       if (!chart) return null;
-      const pluginsRef = Array.isArray(chart.config?.plugins)
-        ? chart.config.plugins
-        : null;
-      const prevPlugins = Array.isArray(pluginsRef) ? [...pluginsRef] : null;
-      const prevAnimation = chart.options?.animation;
-      const prevRatio = chart.options?.devicePixelRatio;
-      const prevMaintainAspectRatio = chart.options?.maintainAspectRatio;
-      const prevLayoutPadding = chart.options?.layout?.padding;
-      const prevXGrace = chart.options?.scales?.x?.grace;
-      let pluginAdded = null;
-      let pluginsAssigned = false;
-      if (config.withLabels) {
-        const plugin = this._crearPluginEtiquetasGrafica();
-        if (Array.isArray(pluginsRef)) {
-          const exists = pluginsRef.some((item) => item?.id === plugin.id);
-          if (!exists) {
-            pluginsRef.push(plugin);
-            pluginAdded = plugin.id;
-          }
-        } else {
-          try {
-            chart.config.plugins = [plugin];
-            pluginsAssigned = true;
-            pluginAdded = plugin.id;
-          } catch (error) {
-            console.warn(
-              "📊 _prepararChartCaptura: no se pudo asignar plugins al chart.",
-              error
-            );
-          }
-        }
-      }
-      if (chart.options) {
-        chart.options.animation = false;
-        chart.options.maintainAspectRatio = false;
-        if (config.pixelRatio) {
-          chart.options.devicePixelRatio = config.pixelRatio;
-        }
-        chart.options.layout = chart.options.layout || {};
-        const paddingRaw = chart.options.layout.padding;
-        const paddingValue =
-          typeof paddingRaw === "number"
-            ? { top: paddingRaw, right: paddingRaw, bottom: paddingRaw, left: paddingRaw }
-            : {
-                top: Number(paddingRaw?.top) || 0,
-                right: Number(paddingRaw?.right) || 0,
-                bottom: Number(paddingRaw?.bottom) || 0,
-                left: Number(paddingRaw?.left) || 0,
-              };
-        chart.options.layout.padding = {
-          top: Math.max(16, paddingValue.top),
-          right: Math.max(Number(config.labelPaddingRight) || 0, paddingValue.right),
-          bottom: Math.max(16, paddingValue.bottom),
-          left: Math.max(Number(config.labelPaddingLeft) || 0, paddingValue.left),
-        };
-        if ((chart.options.indexAxis || "x") === "y") {
-          chart.options.scales = chart.options.scales || {};
-          chart.options.scales.x = chart.options.scales.x || {};
-          chart.options.scales.x.grace = config.xGrace || "35%";
-        }
-      }
       if (typeof chart.resize === "function") {
         try {
           if (config.targetWidth || config.targetHeight) {
@@ -2590,53 +2537,6 @@
         console.warn("📊 _prepararChartCaptura: update falló.", error);
       }
       return () => {
-        if (pluginAdded) {
-          if (Array.isArray(pluginsRef) && !pluginsAssigned) {
-            const idx = pluginsRef.findIndex((item) => item?.id === pluginAdded);
-            if (idx >= 0) {
-              pluginsRef.splice(idx, 1);
-            }
-          } else if (pluginsAssigned) {
-            try {
-              chart.config.plugins = prevPlugins || [];
-            } catch (error) {
-              console.warn(
-                "📊 _prepararChartCaptura: no se pudo restaurar plugins.",
-                error
-              );
-            }
-          }
-        }
-        if (chart.options) {
-          if (prevAnimation === undefined) {
-            delete chart.options.animation;
-          } else {
-            chart.options.animation = prevAnimation;
-          }
-          if (prevRatio === undefined) {
-            delete chart.options.devicePixelRatio;
-          } else {
-            chart.options.devicePixelRatio = prevRatio;
-          }
-          if (prevMaintainAspectRatio === undefined) {
-            delete chart.options.maintainAspectRatio;
-          } else {
-            chart.options.maintainAspectRatio = prevMaintainAspectRatio;
-          }
-          chart.options.layout = chart.options.layout || {};
-          if (prevLayoutPadding === undefined) {
-            delete chart.options.layout.padding;
-          } else {
-            chart.options.layout.padding = prevLayoutPadding;
-          }
-          if (chart.options.scales?.x) {
-            if (prevXGrace === undefined) {
-              delete chart.options.scales.x.grace;
-            } else {
-              chart.options.scales.x.grace = prevXGrace;
-            }
-          }
-        }
         if (typeof chart.resize === "function") {
           try {
             chart.resize();
@@ -2650,6 +2550,109 @@
           console.warn("📊 _prepararChartCaptura: update restore falló.", error);
         }
       };
+    },
+
+    _cargarImagenDesdeDataUrl(dataUrl) {
+      return new Promise((resolve, reject) => {
+        if (!dataUrl) {
+          reject(new Error("DataURL vacío"));
+          return;
+        }
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error("No se pudo cargar la imagen de la gráfica"));
+        img.src = dataUrl;
+      });
+    },
+
+    async _agregarEtiquetasEnCaptura(chart, dataUrl) {
+      if (!chart || !dataUrl) return dataUrl;
+      try {
+        const imagen = await this._cargarImagenDesdeDataUrl(dataUrl);
+        const renderCanvas = document.createElement("canvas");
+        const width = Number(imagen.naturalWidth) || Number(imagen.width) || Number(chart.canvas?.width) || 0;
+        const height = Number(imagen.naturalHeight) || Number(imagen.height) || Number(chart.canvas?.height) || 0;
+        if (!width || !height) return dataUrl;
+        renderCanvas.width = width;
+        renderCanvas.height = height;
+        const ctx = renderCanvas.getContext("2d");
+        if (!ctx) return dataUrl;
+
+        ctx.drawImage(imagen, 0, 0, width, height);
+        const sourceWidth = Number(chart.canvas?.width) || Number(chart.width) || width;
+        const sourceHeight = Number(chart.canvas?.height) || Number(chart.height) || height;
+        const scaleX = sourceWidth > 0 ? width / sourceWidth : 1;
+        const scaleY = sourceHeight > 0 ? height / sourceHeight : 1;
+        const ratio = Math.max(1, Math.min(2.2, Math.max(scaleX, scaleY)));
+        const fontSize = Math.max(14, Math.round(11 * ratio));
+
+        ctx.save();
+        ctx.font = `600 ${fontSize}px Segoe UI, Arial, sans-serif`;
+        ctx.fillStyle = "#0f172a";
+        ctx.strokeStyle = "rgba(255,255,255,0.96)";
+        ctx.lineWidth = Math.max(2, Math.round(1.5 * ratio));
+        ctx.lineJoin = "round";
+
+        const indexAxis = chart.options?.indexAxis || "x";
+        const isHorizontal = indexAxis === "y";
+        const datasets = chart.data?.datasets || [];
+        const margin = 6 * ratio;
+        const offset = 8 * ratio;
+
+        datasets.forEach((dataset, datasetIndex) => {
+          const meta = chart.getDatasetMeta?.(datasetIndex);
+          if (!meta || meta.hidden) return;
+          const type = meta.type || dataset?.type;
+          if (type !== "bar" && type !== "line") return;
+          const values = Array.isArray(dataset?.data) ? dataset.data : [];
+
+          meta.data.forEach((element, index) => {
+            const value = Number(values[index]);
+            if (!Number.isFinite(value) || Math.abs(value) < 0.0001) return;
+            const label = this._formatearNumeroGrafica(value);
+            if (!label) return;
+            const props = element?.getProps
+              ? element.getProps(["x", "y"], true)
+              : { x: element?.x, y: element?.y };
+            if (!props) return;
+            let x = (Number(props.x) || 0) * scaleX;
+            let y = (Number(props.y) || 0) * scaleY;
+
+            if (type === "line") {
+              ctx.textAlign = "center";
+              ctx.textBaseline = value >= 0 ? "bottom" : "top";
+              y += value >= 0 ? -offset : offset;
+            } else if (isHorizontal) {
+              ctx.textBaseline = "middle";
+              ctx.textAlign = value >= 0 ? "left" : "right";
+              x += value >= 0 ? offset : -offset;
+            } else {
+              ctx.textAlign = "center";
+              ctx.textBaseline = value >= 0 ? "bottom" : "top";
+              y += value >= 0 ? -offset : offset;
+            }
+
+            const textWidth = ctx.measureText(label).width;
+            if (ctx.textAlign === "left" && x + textWidth > width - margin) {
+              x = Math.max(margin, width - margin - textWidth);
+            } else if (ctx.textAlign === "right" && x - textWidth < margin) {
+              x = Math.min(width - margin, margin + textWidth);
+            } else {
+              x = Math.max(margin, Math.min(width - margin, x));
+            }
+            y = Math.max(margin, Math.min(height - margin, y));
+
+            ctx.strokeText(label, x, y);
+            ctx.fillText(label, x, y);
+          });
+        });
+
+        ctx.restore();
+        return renderCanvas.toDataURL("image/png");
+      } catch (error) {
+        console.warn("📊 _agregarEtiquetasEnCaptura: no se pudo dibujar etiquetas.", error);
+        return dataUrl;
+      }
     },
 
     async _capturarGraficas(targets = []) {
@@ -2729,6 +2732,10 @@
               typeof chart.toBase64Image === "function"
                 ? chart.toBase64Image()
                 : canvas.toDataURL("image/png");
+          }
+
+          if (chart && captureConfig.withLabels && this._esDataUrlImagenValida(dataUrl)) {
+            dataUrl = await this._agregarEtiquetasEnCaptura(chart, dataUrl);
           }
 
           const dataUrlValida = this._esDataUrlImagenValida(dataUrl);
