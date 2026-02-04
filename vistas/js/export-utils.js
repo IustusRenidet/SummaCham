@@ -149,13 +149,15 @@
           "_"
         );
 
-        const chartMeta = this._resolverMetaGraficaOperativa(charts);
+        const chartBlocks = this._resolverBloquesGraficas(charts);
+        const chartMeta = this._resolverMetaGraficaOperativa(charts, chartBlocks);
         const chartMode = this._resolverModoGraficasExcel();
 
         const datos = this._obtenerDatosOperativo(tablaElement);
-        const chartRows = Array.isArray(chartMeta?.labels)
-          ? chartMeta.labels.length
-          : 0;
+        const chartRows = chartBlocks.reduce((maxRows, block) => {
+          const len = Array.isArray(block?.labels) ? block.labels.length : 0;
+          return Math.max(maxRows, len);
+        }, 0);
         if (!datos.length && !chartRows) {
           this._showToast(
             "Sin datos de resultado operativo. Exportando solo tabla.",
@@ -175,7 +177,12 @@
         const sheetTabla = this._tableToSheetWithStyles(tablaElement);
         XLSX.utils.book_append_sheet(libro, sheetTabla, nombreHojaTabla);
 
-        const sheetOperativo = this._operativoToSheet(tablaElement, metadata, chartMeta);
+        const sheetOperativo = this._operativoToSheet(
+          tablaElement,
+          metadata,
+          chartMeta,
+          chartBlocks
+        );
         XLSX.utils.book_append_sheet(libro, sheetOperativo, nombreHojaOperativo);
         const sheetGraficas = XLSX.utils.aoa_to_sheet([["Gráficas"]]);
         XLSX.utils.book_append_sheet(libro, sheetGraficas, nombreHojaGraficas);
@@ -201,16 +208,26 @@
         if (chartMode) {
           params.set("chartMode", chartMode);
         }
-        if (Array.isArray(chartMeta?.series) && chartMeta.series.length) {
+        const seriesMetaList = [];
+        const seriesMetaSeen = new Set();
+        chartBlocks.forEach((block) => {
+          (block?.series || []).forEach((serie) => {
+            const label = (serie?.label || "").toString().trim();
+            if (!label) return;
+            const key = label.toLowerCase();
+            if (seriesMetaSeen.has(key)) return;
+            seriesMetaSeen.add(key);
+            seriesMetaList.push({
+              label,
+              color: this._normalizarColorHex(serie?.color || "", "#4472C4"),
+              type: (serie?.type || "bar").toString().toLowerCase(),
+            });
+          });
+        });
+        if (seriesMetaList.length) {
           params.set(
             "seriesMeta",
-            JSON.stringify(
-              chartMeta.series.map((serie) => ({
-                label: serie?.label || "",
-                color: this._normalizarColorHex(serie?.color || "", "#4472C4"),
-                type: (serie?.type || "bar").toString().toLowerCase(),
-              }))
-            )
+            JSON.stringify(seriesMetaList)
           );
         }
 
@@ -1048,7 +1065,7 @@
       }
     },
 
-    _operativoToSheet(tabla, metadata = {}, chartMeta = null) {
+    _operativoToSheet(tabla, metadata = {}, chartMeta = null, chartBlocks = []) {
       const labelRaw = this._obtenerEtiquetaOperativo();
       const label = this._capitalizar(labelRaw || "Elemento");
       const datos = this._obtenerDatosOperativo(tabla);
@@ -1063,6 +1080,15 @@
         ? chartMeta.series.filter((serie) => Array.isArray(serie?.data))
         : [];
       const chartLabels = Array.isArray(chartMeta?.labels) ? chartMeta.labels : [];
+      const validChartBlocks = Array.isArray(chartBlocks)
+        ? chartBlocks.filter(
+            (block) =>
+              Array.isArray(block?.labels) &&
+              block.labels.length > 0 &&
+              Array.isArray(block?.series) &&
+              block.series.length > 0
+          )
+        : [];
       let header = [label || "Elemento", "Ppto Acumulado", "Real Acumulado"];
       let filas = datos.map((item) => [item.etiqueta, item.presupuesto, item.real]);
 
@@ -1111,6 +1137,36 @@
         header,
         ...filas,
       ];
+
+      if (validChartBlocks.length) {
+        aoa.push([]);
+        validChartBlocks.forEach((block, idx) => {
+          const title = (block?.title || `Grafica ${idx + 1}`).toString().trim();
+          const labels = Array.isArray(block?.labels) ? block.labels : [];
+          const series = Array.isArray(block?.series) ? block.series : [];
+          if (!labels.length || !series.length) return;
+          aoa.push(["CHART", title || `Grafica ${idx + 1}`]);
+          aoa.push([
+            label || "Categoria",
+            ...series.map((serie, sIdx) => {
+              const txt = (serie?.label || `Serie ${sIdx + 1}`).toString().trim();
+              return txt || `Serie ${sIdx + 1}`;
+            }),
+          ]);
+          labels.forEach((rawLabel, rowIdx) => {
+            const itemLabel = this._limpiarEtiquetaOperativo(
+              (rawLabel || "").toString().trim()
+            );
+            const row = [itemLabel || `Item ${rowIdx + 1}`];
+            series.forEach((serie) => {
+              const value = Array.isArray(serie?.data) ? serie.data[rowIdx] : 0;
+              row.push(this._toNumberSafe(value));
+            });
+            aoa.push(row);
+          });
+          aoa.push([]);
+        });
+      }
 
       const sheet = XLSX.utils.aoa_to_sheet(aoa);
       const cols = [{ wch: 42 }];
@@ -1176,47 +1232,74 @@
       return this._normalizarColorHex(color, fallback);
     },
 
-    _resolverMetaGraficaOperativa(charts = null) {
+    _resolverBloquesGraficas(charts = null) {
       const targets = this._resolverGraficas(charts);
-      if (!targets.length || typeof window.Chart?.getChart !== "function") return null;
-      const preferred =
-        targets.find((target) =>
-          target?.canvas?.closest?.('[data-operativo-chart="combined"]')
-        ) || targets[0];
-      const chart = window.Chart.getChart(preferred?.canvas);
-      if (!chart?.data) return null;
-
-      const labels = Array.isArray(chart.data.labels)
-        ? chart.data.labels
-            .map((label, idx) => {
+      if (!targets.length || typeof window.Chart?.getChart !== "function") return [];
+      const blocks = [];
+      targets.forEach((target, targetIndex) => {
+        const canvas = target?.canvas;
+        const chart = window.Chart.getChart(canvas);
+        if (!chart?.data) return;
+        const labels = Array.isArray(chart.data.labels)
+          ? chart.data.labels.map((label, idx) => {
               const clean = this._limpiarEtiquetaOperativo(
                 (label || "").toString().trim()
               );
               return clean || `Item ${idx + 1}`;
             })
-        : [];
-      if (!labels.length) return null;
+          : [];
+        if (!labels.length) return;
 
-      const datasets = Array.isArray(chart.data.datasets) ? chart.data.datasets : [];
-      const series = datasets
-        .map((dataset, idx) => {
-          const rawData = Array.isArray(dataset?.data) ? dataset.data : [];
-          const values = labels.map((_, labelIdx) =>
-            this._toNumberSafe(rawData[labelIdx] ?? 0)
-          );
-          const hasData = values.some((value) => Math.abs(value) > 0.000001);
-          if (!hasData) return null;
-          return {
-            label: (dataset?.label || `Serie ${idx + 1}`).toString().trim() || `Serie ${idx + 1}`,
-            color: this._resolverColorDataset(dataset, idx),
-            type: (dataset?.type || chart?.config?.type || "bar").toString().trim().toLowerCase(),
-            data: values,
-          };
-        })
-        .filter(Boolean);
+        const datasets = Array.isArray(chart.data.datasets) ? chart.data.datasets : [];
+        const series = datasets
+          .map((dataset, idx) => {
+            const rawData = Array.isArray(dataset?.data) ? dataset.data : [];
+            const values = labels.map((_, labelIdx) =>
+              this._toNumberSafe(rawData[labelIdx] ?? 0)
+            );
+            const hasNumeric = values.some((value) => Number.isFinite(value));
+            if (!hasNumeric) return null;
+            return {
+              label:
+                (dataset?.label || `Serie ${idx + 1}`).toString().trim() ||
+                `Serie ${idx + 1}`,
+              color: this._resolverColorDataset(dataset, idx),
+              type: (dataset?.type || chart?.config?.type || "bar")
+                .toString()
+                .trim()
+                .toLowerCase(),
+              data: values,
+            };
+          })
+          .filter(Boolean);
+        if (!series.length) return;
+        blocks.push({
+          title:
+            (target?.title || this._resolverTituloGrafica(canvas, `Grafica ${targetIndex + 1}`))
+              .toString()
+              .trim() || `Grafica ${targetIndex + 1}`,
+          labels,
+          series,
+          isCombined: this._esGraficaCombinada(canvas),
+        });
+      });
+      return blocks;
+    },
 
-      if (!series.length) return null;
-      return { labels, series };
+    _resolverMetaGraficaOperativa(charts = null, precomputedBlocks = null) {
+      const blocks = Array.isArray(precomputedBlocks)
+        ? precomputedBlocks
+        : this._resolverBloquesGraficas(charts);
+      if (!blocks.length) return null;
+      const preferred =
+        blocks.find((block) => block?.isCombined) ||
+        blocks.find((block) => block?.labels?.length && block?.series?.length) ||
+        null;
+      if (!preferred) return null;
+      return {
+        labels: Array.isArray(preferred.labels) ? preferred.labels : [],
+        series: Array.isArray(preferred.series) ? preferred.series : [],
+      };
     },
 
     _resolverEtiquetaFilaOperativa(fila) {

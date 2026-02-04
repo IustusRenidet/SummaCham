@@ -211,6 +211,59 @@ function Get-SeriesColumnsForHeaderRow {
   return @($result)
 }
 
+function Get-ChartBlocks {
+  param($Sheet)
+  if (-not $Sheet) { return @() }
+  $sheetLastRow = $Sheet.Cells.Item($Sheet.Rows.Count, 1).End(-4162).Row # xlUp
+  if ($sheetLastRow -lt 1) { return @() }
+  $blocks = @()
+  $row = 1
+  while ($row -le $sheetLastRow) {
+    $marker = ([string]$Sheet.Cells.Item($row, 1).Text).Trim().ToUpperInvariant()
+    if ($marker -ne "CHART") {
+      $row++
+      continue
+    }
+
+    $title = ([string]$Sheet.Cells.Item($row, 2).Text).Trim()
+    if (-not $title) { $title = "Grafica" }
+    $headerRow = $row + 1
+    if ($headerRow -gt $sheetLastRow) { break }
+
+    $seriesColumns = Get-SeriesColumnsForHeaderRow -Sheet $Sheet -RowNumber $headerRow
+    if ($seriesColumns.Count -eq 0) {
+      $row = $headerRow + 1
+      continue
+    }
+
+    $dataStart = $headerRow + 1
+    while ($dataStart -le $sheetLastRow -and -not ([string]$Sheet.Cells.Item($dataStart, 1).Text).Trim()) {
+      $dataStart++
+    }
+    if ($dataStart -gt $sheetLastRow) { break }
+
+    $dataEnd = $dataStart
+    while ($dataEnd -le $sheetLastRow -and ([string]$Sheet.Cells.Item($dataEnd, 1).Text).Trim()) {
+      $dataEnd++
+    }
+    $dataEnd -= 1
+
+    if ($dataEnd -ge $dataStart) {
+      $blocks += [PSCustomObject]@{
+        Title = $title
+        HeaderRow = $headerRow
+        DataStart = $dataStart
+        DataEnd = $dataEnd
+        SeriesColumns = $seriesColumns
+      }
+      $row = $dataEnd + 1
+      continue
+    }
+    $row = $headerRow + 1
+  }
+  return @($blocks)
+}
+
 $headerRow = 1
 $maxHeaderScan = [Math]::Min(120, $wsData.Rows.Count)
 for ($i = 1; $i -le $maxHeaderScan; $i++) {
@@ -265,7 +318,8 @@ if ($lastRow -lt $dataStart) {
   exit 1
 }
 
-if ($seriesColumns.Count -eq 0) {
+$chartBlocks = Get-ChartBlocks -Sheet $wsData
+if ($seriesColumns.Count -eq 0 -and $chartBlocks.Count -eq 0) {
   Write-Error "No series columns found in $DataSheetName."
   $wb.Close($false)
   $excel.Quit()
@@ -290,20 +344,61 @@ if ($ChartsSheetName -and $ChartsSheetName -ne $DataSheetName) {
   $wsCharts = $wsData
 }
 
-$rangeLabels = $wsData.Range("A$($dataStart):A$($lastRow)")
-
-$baseTop = 20
-if ($wsCharts -eq $wsData) {
-  $baseTop = $wsData.Rows.Item($lastRow + 2).Top
-}
-
 $chartModeNormalized = $ChartMode
 if (-not $chartModeNormalized) {
   $chartModeNormalized = "split"
 }
 $chartModeNormalized = $chartModeNormalized.ToString().Trim().ToLowerInvariant()
 
-if ($chartModeNormalized -eq "combined") {
+$baseTop = 20
+if ($wsCharts -eq $wsData) {
+  $baseTop = $wsData.Rows.Item($lastRow + 2).Top
+}
+
+if ($chartBlocks.Count -gt 0) {
+  $chartTop = $baseTop
+  for ($blockIdx = 0; $blockIdx -lt $chartBlocks.Count; $blockIdx++) {
+    $block = $chartBlocks[$blockIdx]
+    $rangeLabels = $wsData.Range("A$($block.DataStart):A$($block.DataEnd)")
+    $labelsCount = $block.DataEnd - $block.DataStart + 1
+    $chartHeight = [Math]::Max(320, [Math]::Min(700, 220 + ($labelsCount * 18)))
+    $chart = $wsCharts.ChartObjects().Add(20, $chartTop, 1120, $chartHeight)
+    $chart.Chart.ChartType = 58 # xlBarClustered
+    $chart.Chart.HasLegend = $block.SeriesColumns.Count -gt 1
+    try { $chart.Chart.Legend.Position = -4107 } catch {}
+    $chart.Chart.HasTitle = $true
+    $chart.Chart.ChartTitle.Text = if ($block.Title) { $block.Title } else { "Resultados operativos" }
+
+    for ($seriesIdx = 0; $seriesIdx -lt $block.SeriesColumns.Count; $seriesIdx++) {
+      $seriesInfo = $block.SeriesColumns[$seriesIdx]
+      $colLetter = Get-ColumnLetter $seriesInfo.Column
+      $rangeValues = $wsData.Range("$colLetter$($block.DataStart):$colLetter$($block.DataEnd)")
+
+      if ($seriesIdx -eq 0) {
+        $chart.Chart.SetSourceData($rangeValues)
+        $series = $chart.Chart.SeriesCollection(1)
+      } else {
+        $series = $chart.Chart.SeriesCollection().NewSeries()
+        $series.Values = $rangeValues
+      }
+
+      $series.XValues = $rangeLabels
+      $series.Name = $seriesInfo.Name
+
+      $seriesType = Resolve-SeriesType -MetaList $seriesMetaList -SeriesName $seriesInfo.Name -SeriesIndex $seriesIdx
+      $seriesColor = Resolve-SeriesColorHex -MetaList $seriesMetaList -SeriesName $seriesInfo.Name -SeriesIndex $seriesIdx
+      Apply-SeriesStyle -Series $series -HexColor $seriesColor -SeriesType $seriesType
+    }
+
+    try {
+      $valueAxis = $chart.Chart.Axes(1) # xlValue
+      $valueAxis.TickLabels.NumberFormat = "#,##0.00"
+    } catch {}
+
+    $chartTop += $chartHeight + 35
+  }
+} elseif ($chartModeNormalized -eq "combined") {
+  $rangeLabels = $wsData.Range("A$($dataStart):A$($lastRow)")
   $chart = $wsCharts.ChartObjects().Add(20, $baseTop, 1120, 420)
   $chart.Chart.ChartType = 58 # xlBarClustered
   $chart.Chart.HasLegend = $true
@@ -337,11 +432,8 @@ if ($chartModeNormalized -eq "combined") {
     $valueAxis.TickLabels.NumberFormat = "#,##0.00"
   } catch {}
 } else {
+  $rangeLabels = $wsData.Range("A$($dataStart):A$($lastRow)")
   $splitSeries = @($seriesColumns)
-  if ($splitSeries.Count -gt 2) {
-    $splitSeries = @($splitSeries[0], $splitSeries[1])
-  }
-
   for ($idx = 0; $idx -lt $splitSeries.Count; $idx++) {
     $seriesInfo = $splitSeries[$idx]
     $colLetter = Get-ColumnLetter $seriesInfo.Column

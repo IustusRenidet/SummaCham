@@ -5303,25 +5303,10 @@
         }
       }
 
-      // SIEMPRE insertar imágenes en el workbook si las hay (como fallback seguro)
-      if (graficaImages.length) {
-        insertarImagenesGraficasEnWorkbook(workbook, graficaImages, "Gráficas");
-        console.log("📊 EXPORT: imágenes insertadas en workbook");
-      }
-
-      // Si no hay datos de gráficas para el servidor, exportar directamente con imágenes
+      // Si no hay datos de gráficas para el servidor, exportar solo tabla/data (sin imágenes)
       if (graficaData.length === 0) {
-        if (graficaImages.length) {
-          const buffer = await workbook.xlsx.writeBuffer();
-          fallbackBuffer = buffer;
-          descargarBufferExcel(buffer, `${baseName}_Graficas.xlsx`);
-          if (typeof showToast === "function") {
-            showToast("Resumen exportado con gráficas (imagen).");
-          }
-          return;
-        }
         if (typeof showToast === "function") {
-          showToast("No hay datos de gráficas. Exportando solo tabla.", "text-bg-warning");
+          showToast("No hay datos de gráficas nativas. Exportando solo tabla.", "text-bg-warning");
         }
         const buffer = await workbook.xlsx.writeBuffer();
         fallbackBuffer = buffer;
@@ -5408,33 +5393,6 @@
       }
     } catch (error) {
       console.error("Error al exportar con gráficas:", error);
-      try {
-        if (workbook && graficaImages.length) {
-          const inserted = insertarImagenesGraficasEnWorkbook(
-            workbook,
-            graficaImages,
-            "Gráficas"
-          );
-          if (inserted) {
-            const localBuffer = await workbook.xlsx.writeBuffer();
-            fallbackBuffer = localBuffer;
-            descargarBufferExcel(
-              localBuffer,
-              `${fallbackName || "Resumen"}_Graficas.xlsx`
-            );
-            if (typeof showToast === "function") {
-              showToast(
-                "Resumen exportado con gráficas (modo compatibilidad).",
-                "text-bg-warning"
-              );
-            }
-            return;
-          }
-        }
-      } catch (fallbackError) {
-        console.error("Error en fallback de gráficas por imagen:", fallbackError);
-      }
-
       if (fallbackBuffer) {
         descargarBufferExcel(fallbackBuffer, `${fallbackName || "Resumen"}.xlsx`);
       }
