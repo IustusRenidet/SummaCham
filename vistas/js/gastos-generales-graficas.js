@@ -87,6 +87,18 @@
     return { gastosGenerales: DEFAULT_GASTOS_CONFIG };
   };
 
+  const hasEnabledManualCharts = (config) =>
+    Array.isArray(config?.customCharts) &&
+    config.customCharts.some(
+      (chart) =>
+        chart?.enabled !== false &&
+        Array.isArray(chart?.rows) &&
+        chart.rows.length > 0
+    );
+
+  const isManualOnlyEnabled = (config) =>
+    config?.manualOnly === true && hasEnabledManualCharts(config);
+
   const getGastosConfig = () => {
     const config = getGraficasConfig();
     return config.gastosGenerales || DEFAULT_GASTOS_CONFIG;
@@ -111,8 +123,22 @@
       .toUpperCase();
   };
 
-  const normalizarClaveModulo = (valor) =>
-    normalizarTexto(valor).replace(/[^A-Z0-9]/g, "");
+  const normalizarClaveModulo = (valor) => {
+    const clean = normalizarTexto(valor);
+    if (!clean) return "";
+    const withoutPath = clean.split(/[\\/]/).pop() || clean;
+    const withoutQuery = withoutPath.split("?")[0].split("#")[0];
+    const withoutExt = withoutQuery.replace(/\.[A-Z0-9]+$/, "");
+    let key = withoutExt.replace(/[^A-Z0-9]/g, "");
+    if (!key) return "";
+    if (key === "SUMMARY") return "RESUMEN";
+    if (key.endsWith("HTML")) {
+      const withoutHtml = key.slice(0, -4);
+      if (withoutHtml) key = withoutHtml;
+      if (key === "SUMMARY") return "RESUMEN";
+    }
+    return key;
+  };
 
   const getCurrentModuleKey = () =>
     normalizarClaveModulo(
@@ -221,9 +247,28 @@
 
   const getParsedValue = (context) => {
     if (!context) return 0;
-    if (typeof context.parsed === "number") return context.parsed;
-    if (typeof context.parsed?.y === "number") return context.parsed.y;
-    if (typeof context.raw === "number") return context.raw;
+    const parsed = context.parsed;
+    if (typeof parsed === "number" && Number.isFinite(parsed)) return parsed;
+    if (parsed && typeof parsed === "object") {
+      const parsedX = Number(parsed.x);
+      const parsedY = Number(parsed.y);
+      const hasX = Number.isFinite(parsedX);
+      const hasY = Number.isFinite(parsedY);
+      if (hasX && hasY) {
+        const isHorizontal = context?.chart?.options?.indexAxis === "y";
+        return isHorizontal ? parsedX : parsedY;
+      }
+      if (hasY) return parsedY;
+      if (hasX) return parsedX;
+    }
+    const raw = context?.raw;
+    if (typeof raw === "number" && Number.isFinite(raw)) return raw;
+    if (raw && typeof raw === "object") {
+      const rawY = Number(raw.y);
+      const rawX = Number(raw.x);
+      if (Number.isFinite(rawY)) return rawY;
+      if (Number.isFinite(rawX)) return rawX;
+    }
     return 0;
   };
 
@@ -1048,7 +1093,7 @@
     const panel = document.getElementById("gastosGeneralesChartsPanel");
     const gastosConfig = getGastosConfig();
     const graficasConfig = getGraficasConfig();
-    const manualOnly = graficasConfig?.manualOnly !== false;
+    const manualOnly = isManualOnlyEnabled(graficasConfig);
     const baseChartType = graficasConfig.chart?.type || "bar";
     if (panel) {
       if (gastosConfig.enabled === false) {

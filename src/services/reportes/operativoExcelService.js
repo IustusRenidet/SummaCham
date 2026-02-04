@@ -29,12 +29,19 @@ const crearHojaOperativo = ({ label, filas, metadata }) => {
   const anio = limpiarTexto(metadata.anio || "");
   const periodo = [mes, anio].filter(Boolean).join(" ").trim();
   const fecha = new Date().toISOString().slice(0, 10);
+  const annualLabel = anio ? `Presupuesto ${anio}` : "Presupuesto";
 
-  const header = [etiqueta || "Elemento", "Ppto Acumulado", "Real Acumulado"];
+  const header = [
+    etiqueta || "Elemento",
+    "Ppto Acumulado",
+    "Real Acumulado",
+    annualLabel,
+  ];
   const rows = (Array.isArray(filas) ? filas : []).map((fila) => [
     limpiarTexto(fila.etiqueta || ""),
     normalizarNumero(fila.presupuesto),
     normalizarNumero(fila.real),
+    normalizarNumero(fila.anual != null ? fila.anual : fila.presupuesto),
   ]);
 
   const aoa = [
@@ -49,7 +56,7 @@ const crearHojaOperativo = ({ label, filas, metadata }) => {
   ];
 
   const ws = XLSX.utils.aoa_to_sheet(aoa);
-  ws["!cols"] = [{ wch: 42 }, { wch: 18 }, { wch: 18 }];
+  ws["!cols"] = [{ wch: 42 }, { wch: 18 }, { wch: 18 }, { wch: 18 }];
   return ws;
 };
 
@@ -127,6 +134,7 @@ const generarOperativoExcel = async ({
   chartsSheetName,
   tableSheetName,
   chartMode,
+  seriesMeta,
 }) => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "operativo-"));
   const inputPath = path.join(tempDir, "operativo.xlsx");
@@ -156,7 +164,7 @@ const generarOperativoExcel = async ({
 
     escribirTempScript(scriptTemp);
 
-    await ejecutarPowerShell([
+    const psArgs = [
       "-File",
       scriptTemp,
       "-InputPath",
@@ -171,7 +179,12 @@ const generarOperativoExcel = async ({
       hojaTabla,
       "-ChartMode",
       modoGrafica,
-    ]);
+    ];
+    if (typeof seriesMeta === "string" && seriesMeta.trim()) {
+      psArgs.push("-SeriesMeta", seriesMeta.trim());
+    }
+
+    await ejecutarPowerShell(psArgs);
 
     const baseName = `${limpiarTexto(nombreArchivo || "Operativo")}_${limpiarTexto(
       empresa || "Reporte"

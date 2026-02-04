@@ -2000,13 +2000,17 @@
         subsectionOps.forEach((op, idx) => {
           const opId = getOperationId(op);
           renderedOpIds.add(opId);
+          const opParentSection = (op.parentSection || "").toString().trim();
+          const opParentSubsection = (op.parentSubsection || "")
+            .toString()
+            .trim();
           subsectionRows.push({
             type: "operation",
             label: getOperationDisplayName(op),
             opId: opId,
             kind: detectOperationType(op),
-            parentSection: section.name,
-            parentSubsection: subsection.name,
+            parentSection: opParentSection,
+            parentSubsection: opParentSubsection,
             visible: op.visible !== false,
             __sortOrder: getOperationOrder(op, idx),
             __sortKind: 1,
@@ -2064,13 +2068,17 @@
       sectionOps.forEach((op) => {
         const opId = getOperationId(op);
         renderedOpIds.add(opId);
+        const opParentSection = (op.parentSection || "").toString().trim();
+        const opParentSubsection = (op.parentSubsection || "")
+          .toString()
+          .trim();
         rows.push({
           type: "operation",
           label: getOperationDisplayName(op),
           opId: opId,
           kind: detectOperationType(op),
-          parentSection: section.name,
-          parentSubsection: "",
+          parentSection: opParentSection,
+          parentSubsection: opParentSubsection,
           visible: op.visible !== false,
         });
       });
@@ -4166,6 +4174,11 @@
       return;
     }
     if (rowType === "operation") {
+      const rowIndex = Number(row.dataset.rowIndex);
+      if (Number.isInteger(rowIndex)) {
+        moveTemplateRowOrder(rowIndex, direction);
+        return;
+      }
       moveOperationOrder(
         row.dataset.operationLabel,
         row.dataset.operationId,
@@ -4173,6 +4186,21 @@
         direction
       );
     }
+  }
+
+  function moveTemplateRowOrder(rowIndex, direction) {
+    const rows = getTemplateRowsForReorder();
+    if (!rows.length) return;
+    const currentIndex = Number(rowIndex);
+    if (!Number.isInteger(currentIndex)) return;
+    if (currentIndex < 0 || currentIndex >= rows.length) return;
+    const nextIndex = currentIndex + Number(direction || 0);
+    if (nextIndex < 0 || nextIndex >= rows.length) return;
+
+    const reordered = rows.slice();
+    const [moved] = reordered.splice(currentIndex, 1);
+    reordered.splice(nextIndex, 0, moved);
+    applyTemplateRowsOrder(reordered, { silent: false });
   }
 
   function moveSectionOrder(sectionName, direction) {
@@ -4458,17 +4486,15 @@
         if (!op) return;
 
         const targetSection = (
-          row.parentSection ||
-          row.section ||
-          currentSection ||
+          row.parentSection ??
+          row.section ??
           ""
         )
           .toString()
           .trim();
         const targetSubsection = (
-          row.parentSubsection ||
-          row.subsection ||
-          currentSubsection ||
+          row.parentSubsection ??
+          row.subsection ??
           ""
         )
           .toString()

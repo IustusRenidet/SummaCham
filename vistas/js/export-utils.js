@@ -12,6 +12,13 @@
     return `${window.location.origin.replace(/\/$/, "")}/api`;
   })();
 
+  // Extrae la parte base64 de un Data URL (ExcelJS requiere solo base64)
+  const extraerBase64DeDataUrl = (dataUrl) => {
+    if (!dataUrl || typeof dataUrl !== "string") return dataUrl;
+    const match = dataUrl.match(/^data:image\/[a-z]+;base64,(.+)$/i);
+    return match ? match[1] : dataUrl;
+  };
+
   const ExportUtils = {
     /**
      * Exportar tabla a Excel (XLSX)
@@ -142,25 +149,14 @@
           "_"
         );
 
-        const chartTargets = this._resolverGraficas(charts);
+        const chartMeta = this._resolverMetaGraficaOperativa(charts);
         const chartMode = this._resolverModoGraficasExcel();
 
         const datos = this._obtenerDatosOperativo(tablaElement);
-        if (!datos.length) {
-          if (chartTargets.length) {
-            const generated = await this._exportarExcelOperativoImagenes({
-              tabla: tablaElement,
-              nombreArchivo,
-              nombreHojaTabla,
-              nombreHojaOperativo,
-              chartTargets,
-            });
-            if (generated) {
-              if (onSuccess) onSuccess();
-              this._showToast("Excel con graficas generado.");
-              return;
-            }
-          }
+        const chartRows = Array.isArray(chartMeta?.labels)
+          ? chartMeta.labels.length
+          : 0;
+        if (!datos.length && !chartRows) {
           this._showToast(
             "Sin datos de resultado operativo. Exportando solo tabla.",
             "warning"
@@ -174,26 +170,12 @@
           return;
         }
 
-        if (chartTargets.length) {
-          const generated = await this._exportarExcelOperativoImagenes({
-            tabla: tablaElement,
-            nombreArchivo,
-            nombreHojaTabla,
-            nombreHojaOperativo,
-            chartTargets,
-          });
-          if (generated) {
-            if (onSuccess) onSuccess();
-            return;
-          }
-        }
-
         // Construir base con XLSX para preservar estilos
         const libro = XLSX.utils.book_new();
         const sheetTabla = this._tableToSheetWithStyles(tablaElement);
         XLSX.utils.book_append_sheet(libro, sheetTabla, nombreHojaTabla);
 
-        const sheetOperativo = this._operativoToSheet(tablaElement, metadata);
+        const sheetOperativo = this._operativoToSheet(tablaElement, metadata, chartMeta);
         XLSX.utils.book_append_sheet(libro, sheetOperativo, nombreHojaOperativo);
         const sheetGraficas = XLSX.utils.aoa_to_sheet([["Gráficas"]]);
         XLSX.utils.book_append_sheet(libro, sheetGraficas, nombreHojaGraficas);
@@ -218,6 +200,18 @@
         });
         if (chartMode) {
           params.set("chartMode", chartMode);
+        }
+        if (Array.isArray(chartMeta?.series) && chartMeta.series.length) {
+          params.set(
+            "seriesMeta",
+            JSON.stringify(
+              chartMeta.series.map((serie) => ({
+                label: serie?.label || "",
+                color: this._normalizarColorHex(serie?.color || "", "#4472C4"),
+                type: (serie?.type || "bar").toString().toLowerCase(),
+              }))
+            )
+          );
         }
 
         this._showToast("Generando Excel con gráficas...");
@@ -363,28 +357,21 @@
         const textoDetalle =
           detalle.length > 140 ? `${detalle.slice(0, 140)}...` : detalle;
         this._showToast(
-          `No se pudo generar graficas${textoDetalle ? ": " + textoDetalle : ""}.`,
+          `No se pudo generar grafica nativa${textoDetalle ? ": " + textoDetalle : ""}.`,
           "warning"
         );
-        const generado = await this._exportarExcelOperativoImagenes({
+        this._exportarExcelOperativoLocal({
           tabla,
           nombreArchivo,
+          nombreHojaTabla,
           nombreHojaOperativo,
+          incluirTabla,
         });
-        if (!generado) {
-          this._exportarExcelOperativoLocal({
-            tabla,
-            nombreArchivo,
-            nombreHojaTabla,
-            nombreHojaOperativo,
-            incluirTabla,
-          });
-        }
       }
     },
 
     async _exportarExcelOperativoImagenes(options = {}) {
-      if (typeof ExcelJS === "undefined" || typeof Chart === "undefined") {
+      if (typeof ExcelJS === "undefined") {
         return false;
       }
 
@@ -393,6 +380,7 @@
         nombreArchivo = "Exportacion",
         nombreHojaTabla = "Tabla",
         nombreHojaOperativo = "OperativoData",
+        nombreHojaGraficas = "Graficas",
         chartTargets = null,
         incluirTabla = true,
       } = options;
@@ -408,10 +396,9 @@
       }_${metadata.mesNombre || ""}_${metadata.anio || ""}`.replace(/\s+/g, "_");
 
       const datos = this._obtenerDatosOperativo(tablaElement);
-
-        const labels = datos.map((item) => item.etiqueta);
-        const presupuestos = datos.map((item) => item.presupuesto);
-        const reales = datos.map((item) => item.real);
+      const labels = datos.map((item) => item.etiqueta);
+      const presupuestos = datos.map((item) => item.presupuesto);
+      const reales = datos.map((item) => item.real);
 
       const workbook = new ExcelJS.Workbook();
       if (incluirTabla) {
@@ -439,6 +426,7 @@
         }
       }
       const ws = workbook.addWorksheet(nombreHojaOperativo);
+      const wsGraficas = workbook.addWorksheet(nombreHojaGraficas || "Graficas");
 
       const etiqueta = this._capitalizar(this._obtenerEtiquetaOperativo() || "Elemento");
       const periodo = [metadata.mesNombre, metadata.anio].filter(Boolean).join(" ").trim();
@@ -461,74 +449,89 @@
       }
 
       ws.columns = [{ width: 42 }, { width: 18 }, { width: 18 }];
+      wsGraficas.columns = [{ width: 4 }, { width: 48 }, { width: 48 }, { width: 8 }];
+      wsGraficas.addRow(["GRAFICAS OPERATIVAS"]);
+      wsGraficas.mergeCells("A1:C1");
+      wsGraficas.getCell("A1").font = { bold: true, size: 14 };
+      wsGraficas.getCell("A1").alignment = { horizontal: "left" };
+      wsGraficas.addRow([`Empresa: ${metadata.empresaTexto || ""}`]);
+      wsGraficas.mergeCells("A2:C2");
+      wsGraficas.addRow([`Periodo: ${periodo || ""}`]);
+      wsGraficas.mergeCells("A3:C3");
+      wsGraficas.addRow([]);
 
       const resolvedTargets =
         Array.isArray(chartTargets) && chartTargets.length
           ? chartTargets
           : this._resolverGraficas();
       const chartImages = await this._capturarGraficas(resolvedTargets);
-      let chartStart = ws.rowCount + 2;
+      let chartStart = wsGraficas.rowCount + 1;
       let insertedCharts = 0;
+
+      const insertarGraficaExcel = (img, titleFallback = "Grafica") => {
+        if (!img?.dataUrl || !this._esDataUrlImagenValida(img.dataUrl)) {
+          return false;
+        }
+        const ratioRaw =
+          img.width && img.height && Number(img.width) > 0
+            ? Number(img.height) / Number(img.width)
+            : 0.55;
+        const ratio = Math.max(0.35, Math.min(1.4, ratioRaw || 0.55));
+        const width = 1120;
+        const height = Math.max(380, Math.min(780, Math.round(width * ratio)));
+        const imgId = this._agregarImagenExcel(workbook, img.dataUrl);
+        if (!imgId) return false;
+
+        const title = (img.title || titleFallback || "Grafica").toString().trim();
+        const titleRow = Math.max(1, Math.floor(chartStart) + 1);
+        wsGraficas.getCell(`A${titleRow}`).value = title;
+        wsGraficas.mergeCells(`A${titleRow}:C${titleRow}`);
+        wsGraficas.getRow(titleRow).font = { bold: true, size: 11 };
+        wsGraficas.getRow(titleRow).height = 20;
+        const imageTop = titleRow + 0.2;
+
+        wsGraficas.addImage(imgId, {
+          tl: { col: 0.2, row: imageTop },
+          ext: { width, height },
+        });
+        chartStart = imageTop + Math.ceil(height / 20) + 3;
+        insertedCharts += 1;
+        return true;
+      };
 
       if (chartImages.length) {
         chartImages.forEach((img) => {
-          if (!img?.dataUrl || !this._esDataUrlImagenValida(img.dataUrl)) return;
-          const ratio = img.width && img.height ? img.height / img.width : 0.6;
-          const width = 820;
-          const height = Math.max(320, Math.round(width * ratio));
-          try {
-            const imgId = workbook.addImage({
-              base64: img.dataUrl,
-              extension: "png",
-            });
-            ws.addImage(imgId, {
-              tl: { col: 0, row: chartStart },
-              ext: { width, height },
-            });
-            chartStart += Math.ceil(height / 20) + 2;
-            insertedCharts += 1;
-          } catch (error) {
-            console.warn("No se pudo insertar grafica en Excel:", error);
-          }
+          insertarGraficaExcel(img);
         });
       }
 
       if (!insertedCharts && datos.length) {
-          const colorBudget = "#4472c4";
-          const colorReal = "#ffc000";
-          const imagenBudget = this._crearImagenGrafica({
-            labels,
-            data: presupuestos,
-            color: colorBudget,
-            titulo: "Ppto Acumulado",
-          });
-          const imagenReal = this._crearImagenGrafica({
-            labels,
-            data: reales,
-            color: colorReal,
-            titulo: "Real Acumulado",
-          });
-
-          if (!imagenBudget || !imagenReal) return false;
-
-          const imgBudgetId = workbook.addImage({
-            base64: imagenBudget,
-            extension: "png",
-          });
-          ws.addImage(imgBudgetId, {
-            tl: { col: 0, row: chartStart },
-            ext: { width: 820, height: 360 },
-          });
-
-          const imgRealId = workbook.addImage({
-            base64: imagenReal,
-            extension: "png",
-          });
-          ws.addImage(imgRealId, {
-            tl: { col: 0, row: chartStart + 20 },
-            ext: { width: 820, height: 360 },
-          });
-          insertedCharts += 2;
+        const colorBudget = "#4472c4";
+        const colorReal = "#ffc000";
+        const imagenBudget = this._crearImagenGrafica({
+          labels,
+          data: presupuestos,
+          color: colorBudget,
+          titulo: "Ppto Acumulado",
+        });
+        const imagenReal = this._crearImagenGrafica({
+          labels,
+          data: reales,
+          color: colorReal,
+          titulo: "Real Acumulado",
+        });
+        if (imagenBudget && this._esDataUrlImagenValida(imagenBudget)) {
+          insertarGraficaExcel(
+            { dataUrl: imagenBudget, title: "Ppto Acumulado", width: 1400, height: 620 },
+            "Ppto Acumulado"
+          );
+        }
+        if (imagenReal && this._esDataUrlImagenValida(imagenReal)) {
+          insertarGraficaExcel(
+            { dataUrl: imagenReal, title: "Real Acumulado", width: 1400, height: 620 },
+            "Real Acumulado"
+          );
+        }
       }
 
       if (!insertedCharts) {
@@ -546,11 +549,18 @@
 
     _construirGraficasFallbackOperativo(tablaElement) {
       const datos = this._obtenerDatosOperativo(tablaElement);
-      if (!datos.length) return [];
+      console.log("📊 _construirGraficasFallbackOperativo: datos obtenidos:", datos.length);
+      if (!datos.length) {
+        console.log("📊 _construirGraficasFallbackOperativo: No hay datos para construir gráficas");
+        return [];
+      }
       const labels = datos.map((item) => item.etiqueta);
       const presupuestos = datos.map((item) => item.presupuesto);
       const reales = datos.map((item) => item.real);
-      const height = Math.min(820, Math.max(360, labels.length * 28 + 180));
+      console.log("📊 _construirGraficasFallbackOperativo: labels:", labels);
+      console.log("📊 _construirGraficasFallbackOperativo: presupuestos:", presupuestos);
+      console.log("📊 _construirGraficasFallbackOperativo: reales:", reales);
+      const height = Math.min(1200, Math.max(520, labels.length * 34 + 220));
       const images = [];
 
       const budgetDataUrl = this._crearImagenGrafica({
@@ -559,7 +569,8 @@
         color: "#4472c4",
         titulo: "Ppto Acumulado",
       });
-      if (budgetDataUrl) {
+      console.log("📊 _construirGraficasFallbackOperativo: budgetDataUrl length:", budgetDataUrl?.length || 0);
+      if (budgetDataUrl && this._esDataUrlImagenValida(budgetDataUrl)) {
         images.push({
           title: "Ppto Acumulado",
           dataUrl: budgetDataUrl,
@@ -574,7 +585,8 @@
         color: "#ffc000",
         titulo: "Real Acumulado",
       });
-      if (realDataUrl) {
+      console.log("📊 _construirGraficasFallbackOperativo: realDataUrl length:", realDataUrl?.length || 0);
+      if (realDataUrl && this._esDataUrlImagenValida(realDataUrl)) {
         images.push({
           title: "Real Acumulado",
           dataUrl: realDataUrl,
@@ -583,18 +595,21 @@
         });
       }
 
+      console.log("📊 _construirGraficasFallbackOperativo: imágenes generadas:", images.length);
       return images;
     },
 
     _crearImagenGrafica({ labels, data, color, titulo }) {
       try {
         const canvas = document.createElement("canvas");
-        const altura = Math.min(820, Math.max(360, labels.length * 28 + 180));
+        const altura = Math.min(1200, Math.max(520, labels.length * 34 + 220));
         canvas.width = 1400;
         canvas.height = altura;
         const ctx = canvas.getContext("2d");
+        const labelsPlugin = this._crearPluginEtiquetasGrafica();
         const chart = new Chart(ctx, {
           type: "bar",
+          plugins: labelsPlugin ? [labelsPlugin] : [],
           data: {
             labels,
             datasets: [
@@ -613,10 +628,21 @@
             responsive: false,
             maintainAspectRatio: false,
             indexAxis: "y",
+            layout: {
+              padding: { top: 24, right: 220, bottom: 20, left: 28 },
+            },
             plugins: { legend: { display: false } },
             scales: {
-              x: { ticks: { font: { size: 11 } } },
-              y: { ticks: { font: { size: 12 } } },
+              x: {
+                grace: "40%",
+                ticks: {
+                  font: { size: 12 },
+                  callback: (value) => this._formatearNumeroGrafica(value),
+                },
+              },
+              y: {
+                ticks: { font: { size: 12 } },
+              },
             },
           },
         });
@@ -1022,7 +1048,7 @@
       }
     },
 
-    _operativoToSheet(tabla, metadata = {}) {
+    _operativoToSheet(tabla, metadata = {}, chartMeta = null) {
       const labelRaw = this._obtenerEtiquetaOperativo();
       const label = this._capitalizar(labelRaw || "Elemento");
       const datos = this._obtenerDatosOperativo(tabla);
@@ -1033,12 +1059,47 @@
         .join(" ")
         .trim();
 
-      const header = [label || "Elemento", "Ppto Acumulado", "Real Acumulado"];
-      const filas = datos.map((item) => [
-        item.etiqueta,
-        item.presupuesto,
-        item.real,
-      ]);
+      const chartSeries = Array.isArray(chartMeta?.series)
+        ? chartMeta.series.filter((serie) => Array.isArray(serie?.data))
+        : [];
+      const chartLabels = Array.isArray(chartMeta?.labels) ? chartMeta.labels : [];
+      let header = [label || "Elemento", "Ppto Acumulado", "Real Acumulado"];
+      let filas = datos.map((item) => [item.etiqueta, item.presupuesto, item.real]);
+
+      if (chartSeries.length && chartLabels.length) {
+        header = [
+          label || "Elemento",
+          ...chartSeries.map((serie, idx) => {
+            const txt = (serie?.label || `Serie ${idx + 1}`).toString().trim();
+            return txt || `Serie ${idx + 1}`;
+          }),
+        ];
+        filas = chartLabels.map((rawLabel, rowIdx) => {
+          const etiqueta = this._limpiarEtiquetaOperativo(
+            (rawLabel || "").toString().trim()
+          );
+          const row = [etiqueta];
+          chartSeries.forEach((serie) => {
+            const valor = Array.isArray(serie.data) ? serie.data[rowIdx] : 0;
+            row.push(this._toNumberSafe(valor));
+          });
+          return row;
+        });
+      } else {
+        const annualLabel = metadata?.anio
+          ? `Presupuesto ${metadata.anio}`
+          : "Presupuesto";
+        const includeAnnual = datos.some((item) => item?.anual != null);
+        if (includeAnnual) {
+          header = [label || "Elemento", "Ppto Acumulado", "Real Acumulado", annualLabel];
+          filas = datos.map((item) => [
+            item.etiqueta,
+            item.presupuesto,
+            item.real,
+            this._toNumberSafe(item.anual != null ? item.anual : item.presupuesto),
+          ]);
+        }
+      }
 
       const aoa = [
         ["RESULTADOS OPERATIVOS"],
@@ -1052,7 +1113,11 @@
       ];
 
       const sheet = XLSX.utils.aoa_to_sheet(aoa);
-      sheet["!cols"] = [{ wch: 42 }, { wch: 18 }, { wch: 18 }];
+      const cols = [{ wch: 42 }];
+      for (let idx = 1; idx < header.length; idx += 1) {
+        cols.push({ wch: 18 });
+      }
+      sheet["!cols"] = cols;
       return sheet;
     },
 
@@ -1065,6 +1130,93 @@
     _capitalizar(texto) {
       if (!texto) return texto;
       return texto.charAt(0).toUpperCase() + texto.slice(1);
+    },
+
+    _normalizarColorHex(valor, fallback = "#4472C4") {
+      const source = (valor || "").toString().trim();
+      if (!source) return fallback;
+      const hexMatch = source.match(/^#?([0-9a-f]{3}|[0-9a-f]{6})$/i);
+      if (hexMatch) {
+        let hex = hexMatch[1];
+        if (hex.length === 3) {
+          hex = hex
+            .split("")
+            .map((char) => `${char}${char}`)
+            .join("");
+        }
+        return `#${hex.toUpperCase()}`;
+      }
+      const rgbMatch = source.match(
+        /^rgba?\s*\(\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})/i
+      );
+      if (rgbMatch) {
+        const toHex = (n) =>
+          Math.max(0, Math.min(255, Number(n) || 0))
+            .toString(16)
+            .padStart(2, "0")
+            .toUpperCase();
+        return `#${toHex(rgbMatch[1])}${toHex(rgbMatch[2])}${toHex(rgbMatch[3])}`;
+      }
+      return fallback;
+    },
+
+    _resolverColorDataset(dataset, idx = 0) {
+      const palette = ["#4472C4", "#7F7F7F", "#2F5597", "#70AD47", "#ED7D31"];
+      const fallback = palette[idx % palette.length];
+      const pick = (value) => {
+        if (Array.isArray(value)) return value[0];
+        return value;
+      };
+      const color =
+        pick(dataset?.backgroundColor) ||
+        pick(dataset?.borderColor) ||
+        pick(dataset?.pointBackgroundColor) ||
+        pick(dataset?.pointBorderColor) ||
+        "";
+      return this._normalizarColorHex(color, fallback);
+    },
+
+    _resolverMetaGraficaOperativa(charts = null) {
+      const targets = this._resolverGraficas(charts);
+      if (!targets.length || typeof window.Chart?.getChart !== "function") return null;
+      const preferred =
+        targets.find((target) =>
+          target?.canvas?.closest?.('[data-operativo-chart="combined"]')
+        ) || targets[0];
+      const chart = window.Chart.getChart(preferred?.canvas);
+      if (!chart?.data) return null;
+
+      const labels = Array.isArray(chart.data.labels)
+        ? chart.data.labels
+            .map((label, idx) => {
+              const clean = this._limpiarEtiquetaOperativo(
+                (label || "").toString().trim()
+              );
+              return clean || `Item ${idx + 1}`;
+            })
+        : [];
+      if (!labels.length) return null;
+
+      const datasets = Array.isArray(chart.data.datasets) ? chart.data.datasets : [];
+      const series = datasets
+        .map((dataset, idx) => {
+          const rawData = Array.isArray(dataset?.data) ? dataset.data : [];
+          const values = labels.map((_, labelIdx) =>
+            this._toNumberSafe(rawData[labelIdx] ?? 0)
+          );
+          const hasData = values.some((value) => Math.abs(value) > 0.000001);
+          if (!hasData) return null;
+          return {
+            label: (dataset?.label || `Serie ${idx + 1}`).toString().trim() || `Serie ${idx + 1}`,
+            color: this._resolverColorDataset(dataset, idx),
+            type: (dataset?.type || chart?.config?.type || "bar").toString().trim().toLowerCase(),
+            data: values,
+          };
+        })
+        .filter(Boolean);
+
+      if (!series.length) return null;
+      return { labels, series };
     },
 
     _resolverEtiquetaFilaOperativa(fila) {
@@ -1163,7 +1315,12 @@
             const real = this._toNumberSafe(
               Array.isArray(realDataset?.data) ? realDataset.data[idx] : 0
             );
-            return { etiqueta, presupuesto, real };
+            const anual = this._toNumberSafe(
+              Array.isArray(annualDataset?.data)
+                ? annualDataset.data[idx]
+                : presupuesto
+            );
+            return { etiqueta, presupuesto, real, anual };
           })
           .filter(Boolean);
 
@@ -1178,6 +1335,10 @@
         return this._obtenerDatosOperativoDesdeGraficas(this._resolverGraficas());
       }
       const filas = this._obtenerFilasOperativas(tabla);
+      const annualIdx =
+        indices.annual != null && indices.annual >= 0
+          ? indices.annual
+          : indices.budget;
       const rows = filas
         .map((fila) => {
           const etiqueta = this._resolverEtiquetaFilaOperativa(fila);
@@ -1187,7 +1348,10 @@
           const real = this._parseNumeroTexto(
             fila.cells?.[indices.real]?.textContent || ""
           );
-          return { etiqueta, presupuesto, real };
+          const anual = this._parseNumeroTexto(
+            fila.cells?.[annualIdx]?.textContent || ""
+          );
+          return { etiqueta, presupuesto, real, anual };
         })
         .filter((item) => item.etiqueta);
 
@@ -1198,7 +1362,7 @@
     _obtenerIndicesOperativo(tabla) {
       const headerRows = Array.from(tabla?.querySelectorAll("thead tr") || []);
       if (!headerRows.length) {
-        return { budget: null, real: null };
+        return { budget: null, real: null, annual: null };
       }
       let idxTotalBudget = -1;
       let idxTotalReal = -1;
@@ -1257,6 +1421,7 @@
       return {
         budget: idxTotalBudget >= 0 ? idxTotalBudget : idxBudgetFallback,
         real: idxTotalReal >= 0 ? idxTotalReal : null,
+        annual: idxBudgetFallback >= 0 ? idxBudgetFallback : null,
       };
     },
 
@@ -1581,7 +1746,13 @@
         throw new Error("jsPDF no disponible");
       }
       const { jsPDF } = window.jspdf;
-      const doc = new jsPDF("l", "mm", "a4");
+      const doc = new jsPDF({
+        orientation: "landscape",
+        unit: "mm",
+        format: "a4",
+        compress: false,
+        precision: 16,
+      });
       const headerX = 15;
       const chartMargin = 15;
       const tableMargins = { left: 30, right: 30, top: 25, bottom: 25 };
@@ -1665,13 +1836,24 @@
       }
 
       const chartTargets = charts === false ? [] : this._resolverGraficas(charts);
+      console.log("📊 PDF: chartTargets encontrados:", chartTargets.length);
       let chartImages = await this._capturarGraficas(chartTargets);
+      console.log("📊 PDF: chartImages capturadas:", chartImages.length);
       if (!chartImages.length) {
+        console.log("📊 PDF: Usando fallback operativo...");
         chartImages = this._construirGraficasFallbackOperativo(tablaElement);
+        console.log("📊 PDF: chartImages de fallback:", chartImages.length);
       }
       if (chartImages.length) {
         chartImages.forEach((img) => {
-          if (!img?.dataUrl || !this._esDataUrlImagenValida(img.dataUrl)) return;
+          if (!img?.dataUrl) {
+            console.warn("📊 PDF: Imagen sin dataUrl:", img?.title);
+            return;
+          }
+          if (!this._esDataUrlImagenValida(img.dataUrl)) {
+            console.warn("📊 PDF: dataUrl inválido para:", img?.title, "longitud:", img.dataUrl?.length);
+            return;
+          }
           try {
             doc.addPage();
             let y = chartMargin;
@@ -1681,9 +1863,14 @@
             y += 10;
 
             const imgWidth = pageWidth - chartMargin * 2;
-            const ratio = img.width && img.height ? img.height / img.width : 0.6;
+            const ratioRaw = img.width && img.height ? img.height / img.width : 0.6;
+            const ratio = Math.max(0.35, Math.min(1.45, ratioRaw || 0.6));
             let imgHeight = imgWidth * ratio;
-            const maxHeight = pageHeight - chartMargin * 2 - 10;
+            const maxHeight = pageHeight - y - chartMargin;
+            const minHeight = Math.min(maxHeight, 120);
+            if (imgHeight < minHeight) {
+              imgHeight = minHeight;
+            }
             if (imgHeight > maxHeight) {
               imgHeight = maxHeight;
             }
@@ -1991,6 +2178,33 @@
       return combined ? "combined" : "";
     },
 
+    _agregarImagenExcel(workbook, dataUrl) {
+      if (!workbook || typeof workbook.addImage !== "function") return null;
+      if (!this._esDataUrlImagenValida(dataUrl)) return null;
+      const match = dataUrl.match(/^data:image\/(png|jpe?g|webp);base64,/i);
+      const rawExtension = (match?.[1] || "png").toLowerCase();
+      const extension =
+        rawExtension === "jpg"
+          ? "jpeg"
+          : rawExtension;
+      try {
+        return workbook.addImage({
+          base64: dataUrl,
+          extension,
+        });
+      } catch (firstError) {
+        try {
+          return workbook.addImage({
+            base64: extraerBase64DeDataUrl(dataUrl),
+            extension,
+          });
+        } catch (secondError) {
+          console.warn("No se pudo registrar imagen para Excel.", secondError || firstError);
+          return null;
+        }
+      }
+    },
+
     _esDataUrlImagenValida(dataUrl) {
       if (typeof dataUrl !== "string") return false;
       const value = dataUrl.trim();
@@ -2036,6 +2250,15 @@
     _resolverGraficas(charts) {
       const targets = [];
       const seen = new Set();
+      // Debug: Buscar todos los canvas para diagnóstico
+      const allCanvas = document.querySelectorAll("canvas");
+      const operativoCharts = document.querySelectorAll("[data-operativo-chart]");
+      console.log("📊 _resolverGraficas: Total canvas en DOM:", allCanvas.length);
+      console.log("📊 _resolverGraficas: Contenedores [data-operativo-chart]:", operativoCharts.length);
+      operativoCharts.forEach((el, i) => {
+        const canvas = el.querySelector("canvas") || (el.tagName === "CANVAS" ? el : null);
+        console.log(`📊 _resolverGraficas: [${i}] tag=${el.tagName}, canvas=${!!canvas}, id=${canvas?.id || el.id || "?"}`);
+      });
       const isHidden = (node) => {
         if (!node || !node.isConnected) return true;
         if (node.hidden || node.getAttribute?.("aria-hidden") === "true") {
@@ -2166,10 +2389,37 @@
     },
 
     _resolverConfigCapturaGrafica(canvas) {
-      const combined = this._esGraficaCombinada(canvas);
       const baseRatio = window.devicePixelRatio || 1;
-      const pixelRatio = Math.max(2, baseRatio);
-      return { withLabels: combined, pixelRatio };
+      const chart =
+        typeof window.Chart?.getChart === "function"
+          ? window.Chart.getChart(canvas)
+          : null;
+      const labelsCount = Array.isArray(chart?.data?.labels)
+        ? chart.data.labels.length
+        : 0;
+      const baseWidth = Math.max(
+        Number(canvas?.clientWidth) || 0,
+        Number(canvas?.width) || 0,
+        1400
+      );
+      const baseHeight = Math.max(
+        Number(canvas?.clientHeight) || 0,
+        Number(canvas?.height) || 0,
+        420
+      );
+      const byLabels = labelsCount > 0 ? labelsCount * 42 + 260 : 720;
+      const targetWidth = Math.min(2800, Math.max(1700, Math.round(baseWidth * 1.35)));
+      const targetHeight = Math.min(1900, Math.max(baseHeight, byLabels, 720));
+      const pixelRatio = Math.max(3, baseRatio * 2);
+      return {
+        withLabels: true,
+        pixelRatio,
+        targetWidth,
+        targetHeight,
+        labelPaddingLeft: 28,
+        labelPaddingRight: 220,
+        xGrace: "40%",
+      };
     },
 
     _formatearNumeroGrafica(valor) {
@@ -2196,10 +2446,17 @@
             chart._devicePixelRatio ||
             window.devicePixelRatio ||
             1;
-          const fontSize = Math.round(10 * ratio);
+          const fontSize = Math.max(13, Math.round(11 * ratio));
           ctx.save();
           ctx.font = `600 ${fontSize}px Segoe UI, Arial, sans-serif`;
           ctx.fillStyle = "#0f172a";
+          ctx.strokeStyle = "rgba(255,255,255,0.96)";
+          ctx.lineWidth = Math.max(2, Math.round(1.6 * ratio));
+          ctx.lineJoin = "round";
+          const drawLabel = (label, x, y) => {
+            ctx.strokeText(label, x, y);
+            ctx.fillText(label, x, y);
+          };
           const indexAxis = chart.options?.indexAxis || "x";
           const isHorizontal = indexAxis === "y";
           const datasets = chart.data?.datasets || [];
@@ -2221,25 +2478,25 @@
                 : { x: element.x, y: element.y };
               if (!props) return;
               if (type === "line") {
-                const offset = 6 * ratio;
+                const offset = 8 * ratio;
                 ctx.textAlign = "center";
                 ctx.textBaseline = value >= 0 ? "bottom" : "top";
                 const y = value >= 0 ? props.y - offset : props.y + offset;
-                ctx.fillText(label, props.x, y);
+                drawLabel(label, props.x, y);
                 return;
               }
               if (isHorizontal) {
-                const offset = 6 * ratio;
+                const offset = 8 * ratio;
                 ctx.textAlign = value >= 0 ? "left" : "right";
                 ctx.textBaseline = "middle";
                 const x = value >= 0 ? props.x + offset : props.x - offset;
-                ctx.fillText(label, x, props.y);
+                drawLabel(label, x, props.y);
               } else {
-                const offset = 6 * ratio;
+                const offset = 8 * ratio;
                 ctx.textAlign = "center";
                 ctx.textBaseline = value >= 0 ? "bottom" : "top";
                 const y = value >= 0 ? props.y - offset : props.y + offset;
-                ctx.fillText(label, props.x, y);
+                drawLabel(label, props.x, y);
               }
             });
           });
@@ -2252,35 +2509,103 @@
 
     _prepararChartCaptura(chart, config = {}) {
       if (!chart) return null;
-      const prevPlugins = Array.isArray(chart.config?.plugins)
-        ? [...chart.config.plugins]
+      const pluginsRef = Array.isArray(chart.config?.plugins)
+        ? chart.config.plugins
         : null;
+      const prevPlugins = Array.isArray(pluginsRef) ? [...pluginsRef] : null;
       const prevAnimation = chart.options?.animation;
       const prevRatio = chart.options?.devicePixelRatio;
-      const nextPlugins = prevPlugins ? [...prevPlugins] : [];
+      const prevMaintainAspectRatio = chart.options?.maintainAspectRatio;
+      const prevLayoutPadding = chart.options?.layout?.padding;
+      const prevXGrace = chart.options?.scales?.x?.grace;
+      let pluginAdded = null;
+      let pluginsAssigned = false;
       if (config.withLabels) {
         const plugin = this._crearPluginEtiquetasGrafica();
-        const exists = nextPlugins.some((item) => item?.id === plugin.id);
-        if (!exists) {
-          nextPlugins.push(plugin);
+        if (Array.isArray(pluginsRef)) {
+          const exists = pluginsRef.some((item) => item?.id === plugin.id);
+          if (!exists) {
+            pluginsRef.push(plugin);
+            pluginAdded = plugin.id;
+          }
+        } else {
+          try {
+            chart.config.plugins = [plugin];
+            pluginsAssigned = true;
+            pluginAdded = plugin.id;
+          } catch (error) {
+            console.warn(
+              "📊 _prepararChartCaptura: no se pudo asignar plugins al chart.",
+              error
+            );
+          }
         }
       }
-      chart.config.plugins = nextPlugins;
       if (chart.options) {
         chart.options.animation = false;
+        chart.options.maintainAspectRatio = false;
         if (config.pixelRatio) {
           chart.options.devicePixelRatio = config.pixelRatio;
         }
+        chart.options.layout = chart.options.layout || {};
+        const paddingRaw = chart.options.layout.padding;
+        const paddingValue =
+          typeof paddingRaw === "number"
+            ? { top: paddingRaw, right: paddingRaw, bottom: paddingRaw, left: paddingRaw }
+            : {
+                top: Number(paddingRaw?.top) || 0,
+                right: Number(paddingRaw?.right) || 0,
+                bottom: Number(paddingRaw?.bottom) || 0,
+                left: Number(paddingRaw?.left) || 0,
+              };
+        chart.options.layout.padding = {
+          top: Math.max(16, paddingValue.top),
+          right: Math.max(Number(config.labelPaddingRight) || 0, paddingValue.right),
+          bottom: Math.max(16, paddingValue.bottom),
+          left: Math.max(Number(config.labelPaddingLeft) || 0, paddingValue.left),
+        };
+        if ((chart.options.indexAxis || "x") === "y") {
+          chart.options.scales = chart.options.scales || {};
+          chart.options.scales.x = chart.options.scales.x || {};
+          chart.options.scales.x.grace = config.xGrace || "35%";
+        }
       }
       if (typeof chart.resize === "function") {
-        chart.resize();
+        try {
+          if (config.targetWidth || config.targetHeight) {
+            chart.resize(
+              Number(config.targetWidth) || undefined,
+              Number(config.targetHeight) || undefined
+            );
+          } else {
+            chart.resize();
+          }
+        } catch (error) {
+          console.warn("📊 _prepararChartCaptura: resize falló.", error);
+        }
       }
-      chart.update("none");
+      try {
+        chart.update("none");
+      } catch (error) {
+        console.warn("📊 _prepararChartCaptura: update falló.", error);
+      }
       return () => {
-        if (prevPlugins) {
-          chart.config.plugins = prevPlugins;
-        } else {
-          delete chart.config.plugins;
+        if (pluginAdded) {
+          if (Array.isArray(pluginsRef) && !pluginsAssigned) {
+            const idx = pluginsRef.findIndex((item) => item?.id === pluginAdded);
+            if (idx >= 0) {
+              pluginsRef.splice(idx, 1);
+            }
+          } else if (pluginsAssigned) {
+            try {
+              chart.config.plugins = prevPlugins || [];
+            } catch (error) {
+              console.warn(
+                "📊 _prepararChartCaptura: no se pudo restaurar plugins.",
+                error
+              );
+            }
+          }
         }
         if (chart.options) {
           if (prevAnimation === undefined) {
@@ -2293,37 +2618,83 @@
           } else {
             chart.options.devicePixelRatio = prevRatio;
           }
+          if (prevMaintainAspectRatio === undefined) {
+            delete chart.options.maintainAspectRatio;
+          } else {
+            chart.options.maintainAspectRatio = prevMaintainAspectRatio;
+          }
+          chart.options.layout = chart.options.layout || {};
+          if (prevLayoutPadding === undefined) {
+            delete chart.options.layout.padding;
+          } else {
+            chart.options.layout.padding = prevLayoutPadding;
+          }
+          if (chart.options.scales?.x) {
+            if (prevXGrace === undefined) {
+              delete chart.options.scales.x.grace;
+            } else {
+              chart.options.scales.x.grace = prevXGrace;
+            }
+          }
         }
         if (typeof chart.resize === "function") {
-          chart.resize();
+          try {
+            chart.resize();
+          } catch (error) {
+            console.warn("📊 _prepararChartCaptura: resize restore falló.", error);
+          }
         }
-        chart.update("none");
+        try {
+          chart.update("none");
+        } catch (error) {
+          console.warn("📊 _prepararChartCaptura: update restore falló.", error);
+        }
       };
     },
 
     async _capturarGraficas(targets = []) {
       const images = [];
-      if (!targets.length) return images;
+      if (!targets.length) {
+        console.log("📊 _capturarGraficas: No hay targets para capturar");
+        return images;
+      }
+      console.log("📊 _capturarGraficas: Procesando", targets.length, "targets");
       for (const target of targets) {
         const canvas = target?.canvas;
-        if (!canvas || typeof canvas.toDataURL !== "function") continue;
-        const chart =
-          typeof window.Chart?.getChart === "function"
-            ? window.Chart.getChart(canvas)
-            : null;
-        if (
-          !chart &&
-          (canvas.width || 0) <= 2 &&
-          (canvas.height || 0) <= 2 &&
-          (canvas.clientWidth || 0) <= 2 &&
-          (canvas.clientHeight || 0) <= 2
-        ) {
+        if (!canvas || typeof canvas.toDataURL !== "function") {
+          console.log("📊 _capturarGraficas: Canvas inválido para:", target?.title);
           continue;
         }
         let restore = null;
         let restoreChart = null;
         try {
+          // Revelar canvas ANTES de verificar dimensiones o chart
           restore = this._prepararCanvasCaptura(canvas);
+          // Esperar a que el DOM se actualice después de revelar
+          await new Promise((resolve) => setTimeout(resolve, 50));
+
+          const chart =
+            typeof window.Chart?.getChart === "function"
+              ? window.Chart.getChart(canvas)
+              : null;
+
+          console.log("📊 _capturarGraficas: Canvas", canvas.id || "?",
+            "- chart:", !!chart,
+            "- dims:", canvas.width, "x", canvas.height,
+            "- client:", canvas.clientWidth, "x", canvas.clientHeight);
+
+          // Verificar dimensiones DESPUÉS de revelar el canvas
+          if (
+            !chart &&
+            (canvas.width || 0) <= 2 &&
+            (canvas.height || 0) <= 2 &&
+            (canvas.clientWidth || 0) <= 2 &&
+            (canvas.clientHeight || 0) <= 2
+          ) {
+            console.log("📊 _capturarGraficas: Saltando canvas sin chart ni dimensiones:", canvas.id);
+            if (typeof restore === "function") restore();
+            continue;
+          }
           if (chart && typeof chart.resize === "function") {
             chart.resize();
           }
@@ -2360,10 +2731,20 @@
                 : canvas.toDataURL("image/png");
           }
 
-          if (!this._esDataUrlImagenValida(dataUrl) || !hasCanvasContent) continue;
+          const dataUrlValida = this._esDataUrlImagenValida(dataUrl);
+          const requiereContenido = Boolean(chart);
+          if (!dataUrlValida || (requiereContenido && !hasCanvasContent)) {
+            console.log("📊 _capturarGraficas: dataUrl inválido o canvas vacío para:", canvas.id,
+              "- válido:", dataUrlValida,
+              "- contenido:", hasCanvasContent,
+              "- longitud:", dataUrl?.length);
+            continue;
+          }
           if (dataUrl) {
+            const titulo = target?.title || this._resolverTituloGrafica(canvas, "Grafica");
+            console.log("📊 _capturarGraficas: ✅ Capturada:", titulo, "dataUrl length:", dataUrl.length);
             images.push({
-              title: target?.title || this._resolverTituloGrafica(canvas, "Grafica"),
+              title: titulo,
               dataUrl,
               width:
                 Number(canvas.width) ||
@@ -2376,7 +2757,7 @@
             });
           }
         } catch (error) {
-          console.warn("No se pudo capturar grafica:", error);
+          console.warn("📊 _capturarGraficas: Error capturando grafica:", error);
         } finally {
           if (typeof restoreChart === "function") {
             restoreChart();
@@ -2404,12 +2785,24 @@
         const esPanelChartsOculto =
           node.classList?.contains("charts-panel") &&
           !node.classList?.contains("open");
+        // Detectar panel operativo oculto (usado en módulos departamentales)
+        const esPanelOperativoOculto =
+          (node.classList?.contains("operativo-panel") ||
+           node.classList?.contains("operativo-sidebar")) &&
+          !node.classList?.contains("open") &&
+          !node.classList?.contains("show");
+        // Detectar contenedor de chart-block oculto
+        const esChartBlockOculto =
+          node.classList?.contains("chart-block") &&
+          (ocultoPorDisplay || ocultoPorVisibilidad);
 
         if (
           !ocultoPorDisplay &&
           !ocultoPorVisibilidad &&
           !esCollapseOculto &&
-          !esPanelChartsOculto
+          !esPanelChartsOculto &&
+          !esPanelOperativoOculto &&
+          !esChartBlockOculto
         ) {
           return;
         }
@@ -2423,8 +2816,9 @@
         if (esCollapseOculto) {
           node.classList.add("show");
         }
-        if (esPanelChartsOculto) {
+        if (esPanelChartsOculto || esPanelOperativoOculto) {
           node.classList.add("open");
+          node.classList.add("show");
         }
 
         node.style.display = "block";

@@ -141,9 +141,28 @@
 
   const getParsedValue = (context) => {
     if (!context) return 0;
-    if (typeof context.parsed === "number") return context.parsed;
-    if (typeof context.parsed?.y === "number") return context.parsed.y;
-    if (typeof context.raw === "number") return context.raw;
+    const parsed = context.parsed;
+    if (typeof parsed === "number" && Number.isFinite(parsed)) return parsed;
+    if (parsed && typeof parsed === "object") {
+      const parsedX = Number(parsed.x);
+      const parsedY = Number(parsed.y);
+      const hasX = Number.isFinite(parsedX);
+      const hasY = Number.isFinite(parsedY);
+      if (hasX && hasY) {
+        const isHorizontal = context?.chart?.options?.indexAxis === "y";
+        return isHorizontal ? parsedX : parsedY;
+      }
+      if (hasY) return parsedY;
+      if (hasX) return parsedX;
+    }
+    const raw = context?.raw;
+    if (typeof raw === "number" && Number.isFinite(raw)) return raw;
+    if (raw && typeof raw === "object") {
+      const rawY = Number(raw.y);
+      const rawX = Number(raw.x);
+      if (Number.isFinite(rawY)) return rawY;
+      if (Number.isFinite(rawX)) return rawX;
+    }
     return 0;
   };
 
@@ -155,8 +174,30 @@
       .replace(/[^a-zA-Z0-9]+/g, "")
       .toUpperCase();
 
+  const normalizeModuleKey = (value) => {
+    const clean = (value || "")
+      .toString()
+      .trim()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toUpperCase();
+    if (!clean) return "";
+    const withoutPath = clean.split(/[\\/]/).pop() || clean;
+    const withoutQuery = withoutPath.split("?")[0].split("#")[0];
+    const withoutExt = withoutQuery.replace(/\.[A-Z0-9]+$/, "");
+    let key = withoutExt.replace(/[^A-Z0-9]/g, "");
+    if (!key) return "";
+    if (key === "SUMMARY") return "RESUMEN";
+    if (key.endsWith("HTML")) {
+      const withoutHtml = key.slice(0, -4);
+      if (withoutHtml) key = withoutHtml;
+      if (key === "SUMMARY") return "RESUMEN";
+    }
+    return key;
+  };
+
   const getCurrentModuleKey = () =>
-    normalizeKey(
+    normalizeModuleKey(
       document.body?.dataset?.modulo ||
         document.body?.dataset?.moduloAlias ||
         document.body?.dataset?.moduloId ||
@@ -633,13 +674,50 @@
       const exact = rowsData.find((row) => row.key === key);
       if (exact) return exact;
     }
-    for (const key of keys) {
-      const partial = rowsData.find(
-        (row) => row.key.includes(key) || key.includes(row.key)
-      );
-      if (partial) return partial;
-    }
     return null;
+  };
+
+  const eliminarGraficaManual = (chartId) => {
+    const targetId = String(chartId || "").trim();
+    if (!targetId) return false;
+    const api = window.GraficasConfig;
+    if (
+      !api ||
+      typeof api.load !== "function" ||
+      typeof api.save !== "function"
+    ) {
+      return false;
+    }
+    try {
+      const current = api.load();
+      const currentCharts = Array.isArray(current?.customCharts)
+        ? current.customCharts
+        : [];
+      const filteredCharts = currentCharts.filter(
+        (chart) => String(chart?.id || "").trim() !== targetId
+      );
+      if (filteredCharts.length === currentCharts.length) {
+        return false;
+      }
+      const nextConfig = {
+        ...current,
+        customCharts: filteredCharts,
+      };
+      const hasEnabledCharts = filteredCharts.some(
+        (chart) =>
+          chart?.enabled !== false &&
+          Array.isArray(chart?.rows) &&
+          chart.rows.length > 0
+      );
+      if (!hasEnabledCharts) {
+        nextConfig.manualOnly = false;
+      }
+      api.save(nextConfig);
+      return true;
+    } catch (error) {
+      console.warn("No se pudo eliminar la grafica manual.", error);
+      return false;
+    }
   };
 
   const ajustarAltura = (contenedor, total) => {
@@ -993,7 +1071,7 @@
 
     customChartsList.forEach((chart, index) => {
       if (chart?.enabled === false) return;
-      const chartModuleKey = normalizeKey(chart?.module || "RESUMEN");
+      const chartModuleKey = normalizeModuleKey(chart?.module || "RESUMEN");
       if (chartModuleKey && chartModuleKey !== moduleKey) return;
       const rows = Array.isArray(chart?.rows) ? chart.rows : [];
       if (!rows.length) return;
@@ -1081,6 +1159,7 @@
         .replace(/[^a-zA-Z0-9_-]/g, "");
       const canvasId = `operativoChartCustom-${safeId || index + 1}`;
       const chartKey = `custom-${safeId || index + 1}`;
+      const chartIdRaw = String(chart?.id || "").trim();
       const titleTemplate = chart?.title || `Grafica personalizada ${index + 1}`;
       const titleText =
         applyTemplate(titleTemplate, templateValues || {}).trim() ||
@@ -1095,7 +1174,18 @@
       wrapper.setAttribute("data-operativo-custom", "true");
       wrapper.innerHTML = `
         <div class="chart-block">
-          <div class="chart-title">${escapeHtml(titleText)}</div>
+          <div class="d-flex align-items-center justify-content-between gap-2 mb-1">
+            <div class="chart-title mb-0">${escapeHtml(titleText)}</div>
+            ${
+              chartIdRaw
+                ? `<button type="button" class="btn btn-outline-danger btn-sm py-0 px-2" data-operativo-delete-chart data-chart-id="${escapeHtml(
+                    chartIdRaw
+                  )}" title="Eliminar grafica">
+                    <i class="bi bi-trash"></i>
+                  </button>`
+                : ""
+            }
+          </div>
           ${subtitleText ? `<div class="text-muted small mb-1">${escapeHtml(subtitleText)}</div>` : ""}
           <div class="chart-container" data-operativo-chart="${chartKey}">
             <div class="sidebar-empty" data-operativo-empty="${chartKey}">
@@ -1108,6 +1198,20 @@
 
       container.appendChild(wrapper);
       rendered += 1;
+
+      const deleteButton = wrapper.querySelector("[data-operativo-delete-chart]");
+      if (deleteButton) {
+        deleteButton.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          const chartId = deleteButton.getAttribute("data-chart-id") || "";
+          const confirmed = window.confirm(
+            "Esta grafica se eliminara del gestor. Deseas continuar?"
+          );
+          if (!confirmed) return;
+          eliminarGraficaManual(chartId);
+        });
+      }
 
       const canvas = wrapper.querySelector("canvas");
       const empty = wrapper.querySelector(`[data-operativo-empty="${chartKey}"]`);
@@ -1195,14 +1299,13 @@
     if (!sidebar || !tabla || typeof Chart === "undefined") return;
 
     const graficasConfig = getGraficasConfig();
-    const manualOnly = graficasConfig?.manualOnly !== false;
     const operativoConfig = graficasConfig.operativo || DEFAULT_OPERATIVO_CONFIG;
     const baseChartType = graficasConfig.chart?.type || "bar";
     const resolvedChartType = resolveChartType(
       operativoConfig.chartType,
       baseChartType
     );
-    if (!manualOnly && operativoConfig.enabled === false) {
+    if (operativoConfig.enabled === false) {
       sidebar.style.display = "none";
       if (toggleButton) toggleButton.style.display = "none";
       return;
@@ -1291,35 +1394,6 @@
       tituloEl.textContent = titleText;
     }
 
-    if (manualOnly) {
-      if (combinedBlock) combinedBlock.style.display = "none";
-      if (charts.combined) {
-        charts.combined.destroy();
-        charts.combined = null;
-        charts.combinedType = null;
-      }
-      const renderedManual = renderCustomCharts({
-        sidebar,
-        tabla,
-        graficasConfig,
-        labelsConfig: {
-          budget: budgetLabel,
-          real: realLabel,
-          annual: annualLabel,
-        },
-        colors: { budget: colorBudget, real: colorReal, annual: colorAnnual },
-        enabledConfig,
-        templateValues: {
-          year: headerYear,
-          prev: prevYear,
-          annual: annualLabel,
-        },
-      });
-      sidebar.style.display = renderedManual > 0 ? "" : "none";
-      if (toggleButton) toggleButton.style.display = renderedManual > 0 ? "" : "none";
-      return;
-    }
-
     if (combinedBlock) combinedBlock.style.display = "";
     actualizarChart({
       labels: effectiveLabels,
@@ -1360,6 +1434,19 @@
     updateTimer = setTimeout(actualizarSidebar, 120);
   };
 
+  const resizeChartIfPossible = (chart) => {
+    if (chart && typeof chart.resize === "function") {
+      chart.resize();
+    }
+  };
+
+  const resizeOperativoCharts = () => {
+    resizeChartIfPossible(charts.combined);
+    Object.values(charts.custom || {}).forEach((chart) =>
+      resizeChartIfPossible(chart)
+    );
+  };
+
   const initObserver = () => {
     const tabla = document.querySelector(TABLE_SELECTOR);
     const cuerpo = tabla?.querySelector("tbody");
@@ -1386,7 +1473,7 @@
     scheduleUpdate();
     sidebar.addEventListener("shown.bs.collapse", () => {
       scheduleUpdate();
-      Object.values(charts).forEach((chart) => chart?.resize());
+      resizeOperativoCharts();
     });
     window.addEventListener("modulo-planeacion:tabla-actualizada", scheduleUpdate);
     window.addEventListener("modulo-planeacion:presupuesto-editado", scheduleUpdate);

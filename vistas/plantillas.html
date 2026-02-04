@@ -502,6 +502,14 @@
                                       </button>
                                       <button
                                         type="button"
+                                        class="btn btn-outline-danger btn-sm d-none"
+                                        id="plantillasGraficasDetailDelete"
+                                      >
+                                        <i class="bi bi-trash me-1"></i>
+                                        Eliminar grafica
+                                      </button>
+                                      <button
+                                        type="button"
                                         class="btn btn-outline-primary btn-sm"
                                         id="plantillasGraficasDetailAdd"
                                       >
@@ -3161,9 +3169,46 @@
       </div>
       <div class="offcanvas-body">
         <form id="chartEditorForm">
+          <div class="alert alert-primary py-2 px-3 mb-3 small" role="alert">
+            <div class="fw-semibold mb-1">Uso rapido (3 pasos)</div>
+            <ol class="mb-0 ps-3">
+              <li>Elige el modulo donde se mostrara la grafica.</li>
+              <li>Selecciona filas y columnas de donde se tomaran los datos.</li>
+              <li>Revisa la vista previa y guarda.</li>
+            </ol>
+          </div>
+
+          <div class="border rounded-3 p-3 mb-4 bg-light">
+            <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+              <div class="fw-semibold small">Origen real de la informacion</div>
+              <span class="badge text-bg-light border" id="chartEditorSourceModuleBadge"
+                >Modulo: RESUMEN</span
+              >
+            </div>
+            <div class="small mb-1">
+              <strong>Tabla origen:</strong>
+              <span id="chartEditorSourceTableText"
+                >Tabla del modulo seleccionado</span
+              >
+            </div>
+            <div class="small mb-1">
+              <strong>Filas seleccionadas:</strong>
+              <span id="chartEditorSourceRowsCount">0</span>
+            </div>
+            <div class="small mb-1">
+              <strong>Columnas seleccionadas:</strong>
+              <span id="chartEditorSourceColsCount">0</span>
+            </div>
+            <div class="small text-muted" id="chartEditorSourceHint">
+              Aun no hay filas/columnas seleccionadas.
+            </div>
+            <div class="small mt-2" id="chartEditorSourceRowsPreview"></div>
+            <div class="small" id="chartEditorSourceColsPreview"></div>
+          </div>
+
           <!-- Datos Basicos -->
           <div class="mb-4">
-            <h6 class="mb-3">Datos Basicos</h6>
+            <h6 class="mb-3">Paso 1: Configuracion basica</h6>
             <div class="mb-3">
               <label for="chartEditorTitleInput" class="form-label"
                 >Titulo</label
@@ -3224,7 +3269,7 @@
 
           <!-- Fuente de Datos -->
           <div class="mb-4">
-            <h6 class="mb-3">Fuente de Datos</h6>
+            <h6 class="mb-3">Paso 2: Fuente de datos</h6>
             <div class="mb-3">
               <label for="chartEditorSourceType" class="form-label"
                 >Tipo de fuente</label
@@ -3252,6 +3297,9 @@
                   <i class="bi bi-plus-lg"></i>
                 </button>
               </div>
+              <div class="form-text mb-2" id="chartEditorRowsHelp">
+                Las filas se leen de la tabla del modulo seleccionado.
+              </div>
               <div id="chartEditorSelectedRows" class="list-group small"></div>
             </div>
 
@@ -3271,7 +3319,7 @@
 
           <!-- Preview -->
           <div class="mb-4">
-            <h6 class="mb-3">Vista Previa</h6>
+            <h6 class="mb-3">Paso 3: Vista previa</h6>
             <div
               class="border rounded p-3"
               style="height: 200px; position: relative; background: #f8f9fa"
@@ -3396,6 +3444,26 @@
         const saveBtn = document.getElementById("btnChartEditorSave");
         const deleteBtn = document.getElementById("btnChartEditorDelete");
         const validationBox = document.getElementById("chartEditorValidation");
+        const rowsHelpEl = document.getElementById("chartEditorRowsHelp");
+        const sourceModuleBadge = document.getElementById(
+          "chartEditorSourceModuleBadge",
+        );
+        const sourceTableText = document.getElementById(
+          "chartEditorSourceTableText",
+        );
+        const sourceRowsCount = document.getElementById(
+          "chartEditorSourceRowsCount",
+        );
+        const sourceColsCount = document.getElementById(
+          "chartEditorSourceColsCount",
+        );
+        const sourceHint = document.getElementById("chartEditorSourceHint");
+        const sourceRowsPreview = document.getElementById(
+          "chartEditorSourceRowsPreview",
+        );
+        const sourceColsPreview = document.getElementById(
+          "chartEditorSourceColsPreview",
+        );
 
         let currentChart = null;
         let currentChartId = null;
@@ -3891,6 +3959,7 @@
               renderSeriesConfigRows();
               clearValidationState();
               updatePreview();
+              updateExtractionSummary();
             });
 
             const label = document.createElement("label");
@@ -3909,6 +3978,7 @@
             empty.textContent = "No hay columnas configuradas para este modulo.";
             seriesChecksContainer.appendChild(empty);
           }
+          updateExtractionSummary();
         };
 
         const getSelectedSeriesKeys = () =>
@@ -4010,6 +4080,7 @@
           editorSubtitleEl.textContent = currentModule
             ? `Modulo: ${currentModule}`
             : "";
+          updateExtractionSummary();
         };
 
         const clearValidationState = () => {
@@ -4042,11 +4113,92 @@
           `;
         };
 
+        const formatSelectionPreview = (items = [], label = "") => {
+          const list = Array.from(
+            new Set(
+              (Array.isArray(items) ? items : [])
+                .map((value) => (value || "").toString().trim())
+                .filter(Boolean),
+            ),
+          );
+          if (!list.length) return "";
+          const head = list.slice(0, 4).join(", ");
+          const extra = list.length > 4 ? ` +${list.length - 4} mas` : "";
+          return `${label}${head}${extra}`;
+        };
+
+        const updateExtractionSummary = () => {
+          const selectedModule =
+            moduleSelectInput?.value ||
+            currentModule ||
+            document.getElementById("moduloSelect")?.value ||
+            "RESUMEN";
+          const moduleKey = normalizeModuleKey(selectedModule);
+          const activeModuleKey = normalizeModuleKey(
+            window.state?.modulo ||
+              document.getElementById("moduloSelect")?.value ||
+              "",
+          );
+          const selectedSeries = getSelectedSeriesKeys();
+          const selectedSeriesLabels = selectedSeries.map((key) => {
+            const serie = getSeriesOverride(key);
+            return (serie?.label || key || "").toString().trim();
+          });
+          const selectedRowAliases = selectedRows.map((row) => row?.alias || "");
+
+          if (sourceModuleBadge) {
+            sourceModuleBadge.textContent = `Modulo: ${selectedModule || "RESUMEN"}`;
+          }
+          if (sourceRowsCount) {
+            sourceRowsCount.textContent = String(selectedRowAliases.length);
+          }
+          if (sourceColsCount) {
+            sourceColsCount.textContent = String(selectedSeries.length);
+          }
+
+          if (sourceTableText) {
+            if (isSummaryModuleKey(moduleKey)) {
+              sourceTableText.textContent = "Snapshot de RESUMEN (tabla guardada)";
+            } else {
+              sourceTableText.textContent = "Tabla/layout activo del modulo";
+            }
+          }
+
+          if (sourceHint) {
+            if (
+              !isSummaryModuleKey(moduleKey) &&
+              activeModuleKey &&
+              activeModuleKey !== moduleKey
+            ) {
+              sourceHint.textContent =
+                "No se detectan filas porque arriba esta abierto otro modulo. Cambia el modulo superior para cargar filas correctas.";
+            } else if (!selectedRowAliases.length || !selectedSeries.length) {
+              sourceHint.textContent =
+                "Selecciona filas y columnas para definir exactamente que se exportara.";
+            } else {
+              sourceHint.textContent =
+                "La grafica leera exactamente las filas y columnas mostradas abajo.";
+            }
+          }
+
+          if (sourceRowsPreview) {
+            sourceRowsPreview.textContent =
+              formatSelectionPreview(selectedRowAliases, "Filas -> ") ||
+              "Filas -> (ninguna)";
+          }
+          if (sourceColsPreview) {
+            sourceColsPreview.textContent =
+              formatSelectionPreview(selectedSeriesLabels, "Columnas -> ") ||
+              "Columnas -> (ninguna)";
+          }
+        };
+
         const updateSourceTypeUI = () => {
           const sourceType = normalizeSourceType(sourceTypeSelect?.value);
           if (snapshotSourceSection) {
             snapshotSourceSection.style.display = sourceType === "snapshot" ? "" : "none";
           }
+          updateExtractionSummary();
         };
 
         const refreshSeriesForCurrentModule = (preferredKeys = []) => {
@@ -4060,6 +4212,7 @@
           renderSeriesChecks(fallbackKeys);
           renderSeriesConfigRows();
           updatePreview();
+          updateExtractionSummary();
         };
 
         // Cargar picker de filas
@@ -4068,6 +4221,9 @@
           const labels = getModuleRowOptions(currentModule);
           rowPicker.innerHTML =
             '<option value="">Selecciona una fila del modulo...</option>';
+          if (rowsHelpEl) {
+            rowsHelpEl.textContent = `Filas detectadas en este modulo: ${labels.length}`;
+          }
           if (!labels.length) {
             const moduleKey = normalizeModuleKey(currentModule || "RESUMEN");
             const activeModuleKey = normalizeModuleKey(
@@ -4082,10 +4238,19 @@
             ) {
               rowPicker.innerHTML =
                 '<option value="">Cambia el modulo superior al mismo modulo de la grafica para cargar filas</option>';
+              if (rowsHelpEl) {
+                rowsHelpEl.textContent =
+                  "No hay filas porque el modulo superior es distinto al de la grafica.";
+              }
             } else {
               rowPicker.innerHTML =
                 '<option value="">No hay filas disponibles en el modulo actual</option>';
+              if (rowsHelpEl) {
+                rowsHelpEl.textContent =
+                  "No se encontraron filas en la tabla/layout actual.";
+              }
             }
+            updateExtractionSummary();
             return;
           }
           labels.forEach((label) => {
@@ -4094,6 +4259,7 @@
             option.textContent = label;
             rowPicker.appendChild(option);
           });
+          updateExtractionSummary();
         };
 
         // Agregar fila seleccionada
@@ -4137,6 +4303,7 @@
             empty.className = "text-muted small text-center py-2";
             empty.textContent = "No hay filas seleccionadas";
             selectedRowsContainer.appendChild(empty);
+            updateExtractionSummary();
             return;
           }
 
@@ -4206,10 +4373,12 @@
             item.appendChild(actions);
             selectedRowsContainer.appendChild(item);
           });
+          updateExtractionSummary();
         };
 
         // Actualizar preview
         const updatePreview = () => {
+          updateExtractionSummary();
           if (!window.Chart || !previewCanvas) return;
 
           // Destruir chart anterior
@@ -4358,7 +4527,7 @@
 
         // Abrir editor con una gráfica
         window.openChartEditor = (chartId, chartData) => {
-          currentChartId = chartData?.id || chartId;
+          currentChartId = String(chartData?.id ?? chartId ?? "").trim();
           currentChart = chartData || {};
           currentModule = setModuleSelectValue(
             currentChart?.module ||
@@ -4422,6 +4591,7 @@
               : [],
           );
           renderSelectedRows();
+          updateExtractionSummary();
 
           // Abrir panel
           if (window.bootstrap?.Offcanvas) {
@@ -4581,7 +4751,9 @@
 
               // Buscar si ya existe para actualizar, sino agregar
               const existingIndex = config.customCharts.findIndex(
-                (c) => c.id === chartData.id,
+                (c) =>
+                  String(c?.id ?? "").trim() ===
+                  String(chartData?.id ?? "").trim(),
               );
               if (existingIndex >= 0) {
                 config.customCharts[existingIndex] = chartData;
@@ -4652,7 +4824,9 @@
 
               // Buscar y eliminar la gráfica
               const existingIndex = config.customCharts.findIndex(
-                (c) => c.id === currentChartId,
+                (c) =>
+                  String(c?.id ?? "").trim() ===
+                  String(currentChartId ?? "").trim(),
               );
               if (existingIndex >= 0) {
                 config.customCharts.splice(existingIndex, 1);

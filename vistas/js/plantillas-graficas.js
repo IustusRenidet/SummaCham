@@ -33,6 +33,7 @@
   const detailHint = document.getElementById("plantillasGraficasDetailHint");
   const detailMeta = document.getElementById("plantillasGraficasDetailMeta");
   const detailEditBtn = document.getElementById("plantillasGraficasDetailEdit");
+  const detailDeleteBtn = document.getElementById("plantillasGraficasDetailDelete");
   const detailAddBtn = document.getElementById("plantillasGraficasDetailAdd");
   const summarySourceSelect = document.getElementById(
     "plantillasSummarySourceSelect"
@@ -128,15 +129,24 @@
       '<option value="Gtos Corporativos">Gtos Corporativos</option>',
       '<option value="T&IC">T&IC</option>',
       '<option value="VPE">VPE</option>',
+      '<option value="Presupuestos">Presupuestos</option>',
     ].join("");
   };
 
   const applyModuloOptions = (select, value) => {
     if (!select) return;
     select.innerHTML = getModuloOptions();
-    if (value) {
-      select.value = value;
+    const normalizedValue = normalizeModuleValue(value, "RESUMEN");
+    const hasValue = Array.from(select.options).some(
+      (option) => option.value === normalizedValue
+    );
+    if (normalizedValue && !hasValue) {
+      const opt = document.createElement("option");
+      opt.value = normalizedValue;
+      opt.textContent = normalizedValue;
+      select.appendChild(opt);
     }
+    select.value = normalizedValue;
   };
 
   const buildCustomChartId = () =>
@@ -342,26 +352,71 @@
       .toUpperCase()
       .replace(/\s+/g, " ");
 
-  const normalizeModuleKey = (value = "") =>
-    value
+  const MODULE_VALUE_BY_KEY = new Map([
+    ["RESUMEN", "RESUMEN"],
+    ["SUMMARY", "RESUMEN"],
+    ["FINANZAS", "Finanzas"],
+    ["GASTOSGENERALES", "Gastos Generales"],
+    ["NOMINA", "Nomina"],
+    ["MEMBRESIA", "Membresia"],
+    ["SERVMEMBRESIA", "Serv Membresia"],
+    ["SERVICIOSALAMEMBRESIA", "Serv Membresia"],
+    ["RH", "RH"],
+    ["EVENTOS", "Eventos"],
+    ["COMITES", "Comites"],
+    ["COMITESINCOME", "Comites"],
+    ["COMUNICACION", "Comunicacion"],
+    ["DIRECCION", "Direccion"],
+    ["GTOSCORPORATIVOS", "Gtos Corporativos"],
+    ["TIC", "T&IC"],
+    ["TANDIC", "T&IC"],
+    ["VPE", "VPE"],
+    ["PRESUPUESTOS", "Presupuestos"],
+  ]);
+
+  const normalizeModuleRawKey = (value = "") => {
+    const clean = value
       .toString()
       .trim()
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
-      .toUpperCase()
-      .replace(/[^A-Z0-9]/g, "");
+      .toUpperCase();
+    if (!clean) return "";
+    const withoutPath = clean.split(/[\\/]/).pop() || clean;
+    const withoutQuery = withoutPath.split("?")[0].split("#")[0];
+    const withoutExt = withoutQuery.replace(/\.[A-Z0-9]+$/, "");
+    return withoutExt.replace(/[^A-Z0-9]/g, "");
+  };
 
-  const isSummaryModuleKey = (moduleKey = "") =>
-    moduleKey === "RESUMEN" || moduleKey === "SUMMARY";
+  const normalizeModuleKey = (value = "", fallback = "RESUMEN") => {
+    const resolve = (raw) => {
+      if (!raw) return "";
+      if (MODULE_VALUE_BY_KEY.has(raw)) return raw;
+      if (raw.endsWith("HTML")) {
+        const withoutHtml = raw.slice(0, -4);
+        if (MODULE_VALUE_BY_KEY.has(withoutHtml)) return withoutHtml;
+      }
+      return "";
+    };
+    const direct = resolve(normalizeModuleRawKey(value));
+    if (direct) return direct;
+    const fallbackKey = resolve(normalizeModuleRawKey(fallback));
+    if (fallbackKey) return fallbackKey;
+    return "RESUMEN";
+  };
+
+  const normalizeModuleValue = (value = "", fallback = "RESUMEN") =>
+    MODULE_VALUE_BY_KEY.get(normalizeModuleKey(value, fallback)) ||
+    MODULE_VALUE_BY_KEY.get(normalizeModuleKey(fallback, "RESUMEN")) ||
+    "RESUMEN";
+
+  const isSummaryModuleKey = (moduleKey = "") => moduleKey === "RESUMEN";
 
   const getCurrentModuleValue = () =>
-    (
-      moduloSelect?.value ||
-      document.body?.dataset?.modulo ||
+    normalizeModuleValue(
+      moduloSelect?.value || document.body?.dataset?.modulo || "RESUMEN",
       "RESUMEN"
-    )
-      .toString()
-      .trim();
+    );
 
   const getCurrentModuleKey = () =>
     normalizeModuleKey(getCurrentModuleValue());
@@ -640,16 +695,17 @@
     const moveDownBtn = node.querySelector("[data-custom-move-down]");
     const sourcePicker = node.querySelector("[data-custom-source-picker]");
     const addSourceBtn = node.querySelector("[data-custom-add-source]");
+    const moduleValue = normalizeModuleValue(chart.module || "RESUMEN", "RESUMEN");
 
     if (titleInput) titleInput.value = chart.title || "";
     if (subtitleInput) subtitleInput.value = chart.subtitle || "";
     if (moduleSelect) {
-      applyModuloOptions(moduleSelect, chart.module || "RESUMEN");
+      applyModuloOptions(moduleSelect, moduleValue);
     }
     if (typeSelect) typeSelect.value = chart.chartType || "inherit";
     if (rowsInput) rowsInput.value = formatCustomRows(chart.rows);
     if (enabledInput) enabledInput.checked = chart.enabled !== false;
-    setCustomSourceControlsState(chart.module || "RESUMEN", sourcePicker, addSourceBtn);
+    setCustomSourceControlsState(moduleValue, sourcePicker, addSourceBtn);
     if (addSourceBtn) {
       addSourceBtn.addEventListener("click", () => {
         if (!sourcePicker || !rowsInput) return;
@@ -1337,8 +1393,10 @@
         const title = item.querySelector("[data-custom-title]")?.value?.trim() || "";
         const subtitle =
           item.querySelector("[data-custom-subtitle]")?.value?.trim() || "";
-        const module =
-          item.querySelector("[data-custom-module]")?.value || "RESUMEN";
+        const module = normalizeModuleValue(
+          item.querySelector("[data-custom-module]")?.value || "RESUMEN",
+          "RESUMEN"
+        );
         const chartType =
           item.querySelector("[data-custom-type]")?.value || "inherit";
         const enabled =
@@ -2319,17 +2377,31 @@
           chartType,
         });
       }
-      if (!snapshotMap) return null;
       const rows = Array.isArray(definition.rows) ? definition.rows : [];
-      const data = buildDatasetsFromSnapshot({
-        rows,
-        snapshotMap,
-        seriesList: customSeriesList,
-        chartType,
-        capituloLabel,
-        looseMatch: true,
-      });
-      return data ? { chartType, ...data } : null;
+      const buildFromMap = (map) => {
+        if (!map) return null;
+        const data = buildDatasetsFromSnapshot({
+          rows,
+          snapshotMap: map,
+          seriesList: customSeriesList,
+          chartType,
+          capituloLabel,
+          looseMatch: true,
+        });
+        return data ? { chartType, ...data } : null;
+      };
+      if (snapshotMap) {
+        return buildFromMap(snapshotMap);
+      }
+      if (!empresaId || !anio) return null;
+      return loadResumenMensual(empresaId, anio, capituloLabel).then(
+        (responses) => {
+          const layout = pickLayoutFromResponses(responses);
+          if (!layout.length) return null;
+          const liveMap = buildSnapshotMapFromLayout(layout);
+          return buildFromMap(liveMap);
+        }
+      );
     }
     return null;
   };
@@ -2497,7 +2569,6 @@
 
   const buildCardDefinitions = (config) => {
     const baseType = config.chart?.type || "bar";
-    const manualOnly = config?.manualOnly !== false;
     const defaults = clone(getGraficasConfigApi()?.defaults || {});
     const baseSources = defaults.sources || {};
     const sources = config.sources || baseSources || {};
@@ -2653,8 +2724,7 @@
       });
     };
     const defs = [];
-    if (!manualOnly) {
-      defs.push(
+    defs.push(
       {
         id: "summary-operating",
         title:
@@ -2812,8 +2882,7 @@
           focusSelector: '[data-gg-chart-key="plusvalia"]',
         },
       },
-      );
-    }
+    );
 
     const customCharts = Array.isArray(config.customCharts)
       ? config.customCharts
@@ -2831,24 +2900,25 @@
         typeof chart?.module === "string" && chart.module.trim()
           ? chart.module.trim()
           : "RESUMEN";
+      const normalizedModule = normalizeModuleValue(rawModule, "RESUMEN");
       const customColumns = resolveCustomColumns(
-        rawModule,
+        normalizedModule,
         Array.isArray(chart?.seriesKeys) ? chart.seriesKeys : [],
         Array.isArray(chart?.series) ? chart.series : []
       );
       const customInfo = buildRowsColumnsInfo({
-        moduleValue: rawModule,
+        moduleValue: normalizedModule,
         rows: rowLabels,
         columns: customColumns,
       });
       defs.push({
         id: rawId,
         chartId: rawId,
-        module: rawModule,
+        module: normalizedModule,
         title: chart?.title || `Grafica personalizada ${index + 1}`,
         subtitle: chart?.subtitle || "",
-        category: `Personalizada (${rawModule})`,
-        viewLabel: `Personalizada (${rawModule})`,
+        category: `Personalizada (${normalizedModule})`,
+        viewLabel: `Personalizada (${normalizedModule})`,
         chartType,
         enabled: chart?.enabled !== false,
         previewKind: "custom",
@@ -2877,6 +2947,7 @@
       if (detailMeta) detailMeta.classList.add("d-none");
       if (detailHint) detailHint.classList.remove("d-none");
       if (detailEditBtn) detailEditBtn.classList.add("d-none");
+      if (detailDeleteBtn) detailDeleteBtn.classList.add("d-none");
       if (sourcesEl) {
         sourcesEl.textContent = "";
         sourcesEl.classList.add("d-none");
@@ -2909,6 +2980,9 @@
       sourcesEl.classList.toggle("d-none", !sourcesText);
     }
     if (detailEditBtn) detailEditBtn.classList.remove("d-none");
+    if (detailDeleteBtn) {
+      detailDeleteBtn.classList.toggle("d-none", !isCustomChartDefinition(definition));
+    }
   };
 
   const openConfigSection = (definition) => {
@@ -2959,6 +3033,48 @@
     return true;
   };
 
+  const isCustomChartDefinition = (definition) => {
+    if (!definition) return false;
+    if (definition.previewKind === "custom") return true;
+    const id = String(definition.id || "").trim();
+    const chartId = String(definition.chartId || "").trim();
+    return id.startsWith("custom-") || chartId.startsWith("custom-");
+  };
+
+  const removeCustomChartById = (chartId) => {
+    const targetId = String(chartId || "").trim();
+    if (!targetId) return false;
+    const api = getGraficasConfigApi();
+    if (!api || typeof api.load !== "function" || typeof api.save !== "function") {
+      return false;
+    }
+    const current = api.load();
+    const currentCharts = Array.isArray(current?.customCharts)
+      ? current.customCharts
+      : [];
+    const filteredCharts = currentCharts.filter(
+      (chart) => String(chart?.id || "").trim() !== targetId
+    );
+    if (filteredCharts.length === currentCharts.length) return false;
+    const nextConfig = {
+      ...current,
+      customCharts: filteredCharts,
+    };
+    if (
+      nextConfig.manualOnly === true &&
+      !filteredCharts.some(
+        (chart) =>
+          chart?.enabled !== false &&
+          Array.isArray(chart?.rows) &&
+          chart.rows.length > 0
+      )
+    ) {
+      nextConfig.manualOnly = false;
+    }
+    api.save(nextConfig);
+    return true;
+  };
+
   const renderGallery = (config) => {
     // Validar elementos requeridos
     if (!galleryEl) {
@@ -2993,9 +3109,7 @@
 
     const defaults = clone(getGraficasConfigApi()?.defaults || {});
     const previewContext = getPreviewContext();
-    definitions = Array.isArray(definitions)
-      ? filterDefinitionsByCapitulo(definitions, previewContext)
-      : [];
+    definitions = Array.isArray(definitions) ? definitions : [];
     const currentModuleKey = getCurrentModuleKey();
     definitions = definitions.slice().sort((a, b) => {
       const aCustom = a?.previewKind === "custom";
@@ -3312,6 +3426,42 @@
     });
   }
 
+  if (detailDeleteBtn) {
+    detailDeleteBtn.addEventListener("click", () => {
+      const selected = galleryState.selectedId;
+      const item = selected ? galleryState.cards.get(selected) : null;
+      if (!item?.definition) return;
+      if (!isCustomChartDefinition(item.definition)) {
+        setStatus("Solo se pueden eliminar graficas manuales.", "danger");
+        return;
+      }
+      const chartId = String(
+        item.definition.chartId || item.definition.id || ""
+      ).trim();
+      if (!chartId) {
+        setStatus("No se encontro el identificador de la grafica.", "danger");
+        return;
+      }
+      const title = (item.definition.title || "esta grafica").toString().trim();
+      const confirmed = window.confirm(
+        `Eliminar la grafica "${title}"? Esta accion no se puede deshacer.`
+      );
+      if (!confirmed) return;
+      const removed = removeCustomChartById(chartId);
+      if (!removed) {
+        setStatus("No se pudo eliminar la grafica seleccionada.", "danger");
+        return;
+      }
+      const api = getGraficasConfigApi();
+      const refreshed = api?.load ? api.load() : null;
+      if (refreshed) {
+        applyConfigToForm(refreshed);
+        renderGallery(refreshed);
+      }
+      setStatus("Grafica eliminada correctamente.", "success");
+    });
+  }
+
   if (detailAddBtn) {
     detailAddBtn.addEventListener("click", () => {
       if (openNewCustomChartEditor()) return;
@@ -3346,7 +3496,7 @@
     customAddBtn.addEventListener("click", () => {
       const chart = {
         id: buildCustomChartId(),
-        module: moduloSelect?.value || "RESUMEN",
+        module: getCurrentModuleValue(),
         chartType: "inherit",
         enabled: true,
         rows: [],

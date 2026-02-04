@@ -38,6 +38,13 @@
     window.location.protocol === "file:"
       ? "http://localhost:3005"
       : window.location.origin;
+
+  // Extrae la parte base64 de un Data URL (ExcelJS requiere solo base64)
+  const extraerBase64DeDataUrl = (dataUrl) => {
+    if (!dataUrl || typeof dataUrl !== "string") return dataUrl;
+    const match = dataUrl.match(/^data:image\/[a-z]+;base64,(.+)$/i);
+    return match ? match[1] : dataUrl;
+  };
   const API_ENDPOINT = `${base}/api/reportes/resumen`;
   const API_ANIOS = `${base}/api/saldos/anios`;
 
@@ -74,14 +81,27 @@
       .toUpperCase()
       .replace(/\s+/g, " ");
 
-  const normalizeModuleKey = (value = "") =>
-    value
+  const normalizeModuleKey = (value = "") => {
+    const clean = value
       .toString()
       .trim()
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
-      .toUpperCase()
-      .replace(/[^A-Z0-9]/g, "");
+      .toUpperCase();
+    if (!clean) return "";
+    const withoutPath = clean.split(/[\\/]/).pop() || clean;
+    const withoutQuery = withoutPath.split("?")[0].split("#")[0];
+    const withoutExt = withoutQuery.replace(/\.[A-Z0-9]+$/, "");
+    let key = withoutExt.replace(/[^A-Z0-9]/g, "");
+    if (!key) return "";
+    if (key === "SUMMARY") return "RESUMEN";
+    if (key.endsWith("HTML")) {
+      const withoutHtml = key.slice(0, -4);
+      if (withoutHtml) key = withoutHtml;
+      if (key === "SUMMARY") return "RESUMEN";
+    }
+    return key;
+  };
 
   const formatNumber = (n) =>
     new Intl.NumberFormat("es-MX", {
@@ -143,9 +163,28 @@
 
   const getParsedValue = (context) => {
     if (!context) return 0;
-    if (typeof context.parsed === "number") return context.parsed;
-    if (typeof context.parsed?.y === "number") return getParsedValue(context);
-    if (typeof context.raw === "number") return context.raw;
+    const parsed = context.parsed;
+    if (typeof parsed === "number" && Number.isFinite(parsed)) return parsed;
+    if (parsed && typeof parsed === "object") {
+      const parsedX = Number(parsed.x);
+      const parsedY = Number(parsed.y);
+      const hasX = Number.isFinite(parsedX);
+      const hasY = Number.isFinite(parsedY);
+      if (hasX && hasY) {
+        const isHorizontal = context?.chart?.options?.indexAxis === "y";
+        return isHorizontal ? parsedX : parsedY;
+      }
+      if (hasY) return parsedY;
+      if (hasX) return parsedX;
+    }
+    const raw = context?.raw;
+    if (typeof raw === "number" && Number.isFinite(raw)) return raw;
+    if (raw && typeof raw === "object") {
+      const rawY = Number(raw.y);
+      const rawX = Number(raw.x);
+      if (Number.isFinite(rawY)) return rawY;
+      if (Number.isFinite(rawX)) return rawX;
+    }
     return 0;
   };
 
@@ -1075,7 +1114,7 @@
         },
       },
     },
-    manualOnly: true,
+    manualOnly: false,
     customCharts: [],
   };
 
@@ -1229,6 +1268,18 @@
     });
   };
 
+  const hasEnabledManualCharts = (charts = []) =>
+    Array.isArray(charts) &&
+    charts.some(
+      (chart) =>
+        chart?.enabled !== false &&
+        Array.isArray(chart?.rows) &&
+        chart.rows.length > 0
+    );
+
+  const isManualOnlyEnabled = (config) =>
+    config?.manualOnly === true && hasEnabledManualCharts(config?.customCharts);
+
   const normalizeGraficasConfig = (config = {}) => {
     const base = clone(DEFAULT_GRAFICAS_CONFIG);
     if (!config || typeof config !== "object") {
@@ -1259,8 +1310,9 @@
       });
     }
 
-    // Flujo manual obligatorio.
-    base.manualOnly = true;
+    if (typeof config.manualOnly === "boolean") {
+      base.manualOnly = config.manualOnly;
+    }
 
     if (config.charts && typeof config.charts === "object") {
       ["operating", "net", "consolidated"].forEach((key) => {
@@ -1391,6 +1443,9 @@
 
     if (Array.isArray(config.customCharts)) {
       base.customCharts = normalizeCustomCharts(config.customCharts);
+    }
+    if (base.manualOnly === true && !hasEnabledManualCharts(base.customCharts)) {
+      base.manualOnly = false;
     }
 
     return base;
@@ -2029,7 +2084,7 @@
     }
 
     const graficasConfig = getGraficasConfig();
-    if (graficasConfig?.manualOnly === true) {
+    if (isManualOnlyEnabled(graficasConfig)) {
       hideAutoCharts();
       renderCustomCharts(snapshotMap, graficasConfig, context);
       return;
@@ -2615,7 +2670,7 @@
     clearChart("chartIngresoPorCapitulo");
 
     const graficasConfig = getGraficasConfig();
-    if (graficasConfig?.manualOnly === true) {
+    if (isManualOnlyEnabled(graficasConfig)) {
       return;
     }
     const ingresoConfig =
@@ -2698,7 +2753,7 @@
     clearChart("chartIngresoNacional");
 
     const graficasConfig = getGraficasConfig();
-    if (graficasConfig?.manualOnly === true) {
+    if (isManualOnlyEnabled(graficasConfig)) {
       return;
     }
     const ingresoConfig =
@@ -2840,7 +2895,7 @@
       });
       clearCustomCharts();
       const graficasConfig = getGraficasConfig();
-      if (graficasConfig?.manualOnly === true) {
+      if (isManualOnlyEnabled(graficasConfig)) {
         hideAutoCharts();
       }
       renderCustomCharts(null, graficasConfig, {
@@ -2962,25 +3017,14 @@
   // === EXPORTACIÓN A EXCEL Y PDF ===
 
   const resolveExportFlags = (graficasConfig, rowsConfig = {}) => ({
-    operating: graficasConfig?.manualOnly === true
-      ? false
-      : graficasConfig?.charts?.operating?.enabled !== false,
-    net: graficasConfig?.manualOnly === true
-      ? false
-      : graficasConfig?.charts?.net?.enabled !== false,
+    operating: graficasConfig?.charts?.operating?.enabled !== false,
+    net: graficasConfig?.charts?.net?.enabled !== false,
     consolidated:
-      graficasConfig?.manualOnly === true
-        ? false
-        : rowsConfig?.isCdmx &&
-          graficasConfig?.charts?.consolidated?.enabled !== false,
-    ingreso:
-      graficasConfig?.manualOnly === true
-        ? false
-        : graficasConfig?.ingreso?.enabled !== false,
+      rowsConfig?.isCdmx &&
+      graficasConfig?.charts?.consolidated?.enabled !== false,
+    ingreso: graficasConfig?.ingreso?.enabled !== false,
     ingresoNacional:
-      graficasConfig?.manualOnly === true
-        ? false
-        : rowsConfig?.isCdmx && graficasConfig?.ingresoNacional?.enabled !== false,
+      rowsConfig?.isCdmx && graficasConfig?.ingresoNacional?.enabled !== false,
   });
 
   const resolveCanvasTitle = (canvas, fallback = '') => {
@@ -2993,12 +3037,193 @@
     return title || fallback || 'Grafica';
   };
 
+  const waitForCapture = (ms = 120) =>
+    new Promise((resolve) => setTimeout(resolve, ms));
+
+  const isDataUrlImagenValida = (value) =>
+    typeof value === 'string' &&
+    /^data:image\/(png|jpe?g|webp);base64,/i.test(value.trim()) &&
+    value.trim().length > 128;
+
+  const buildFallbackSeriesFromRows = (rows = []) => {
+    if (!Array.isArray(rows) || !rows.length) return null;
+    const normalized = rows
+      .map((row) => ({
+        label: String(row?.concepto || '').trim(),
+        real: toNumber(row?.realAcumulado),
+        plan: toNumber(row?.pptoAcumulado),
+        prev: toNumber(row?.realAcumAA),
+      }))
+      .filter((row) => row.label);
+    if (!normalized.length) return null;
+    return {
+      labels: normalized.map((row) => row.label),
+      datasets: [
+        {
+          label: 'Ppto. Acumulado',
+          data: normalized.map((row) => row.plan),
+          backgroundColor: '#4472c4',
+          borderColor: '#4472c4',
+          borderWidth: 1,
+        },
+        {
+          label: 'Real Acumulado',
+          data: normalized.map((row) => row.real),
+          backgroundColor: '#ffc000',
+          borderColor: '#ffc000',
+          borderWidth: 1,
+        },
+        {
+          label: 'Real Acum. Año Anterior',
+          data: normalized.map((row) => row.prev),
+          backgroundColor: '#94a3b8',
+          borderColor: '#94a3b8',
+          borderWidth: 1,
+        },
+      ],
+    };
+  };
+
+  const renderFallbackChartDataUrl = async (data, chartType = 'bar') => {
+    if (!data || !Array.isArray(data.labels) || !data.labels.length) return null;
+    if (typeof Chart === 'undefined') return null;
+    const canvas = document.createElement('canvas');
+    canvas.width = 1600;
+    canvas.height = 900;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    let chart = null;
+    try {
+      const isPie = chartType === 'pie' || chartType === 'doughnut';
+      chart = new Chart(ctx, {
+        type: isPie ? chartType : 'bar',
+        data,
+        options: {
+          responsive: false,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: true, position: 'bottom' },
+            title: { display: false },
+          },
+          scales: isPie
+            ? {}
+            : {
+                y: {
+                  beginAtZero: false,
+                  ticks: {
+                    callback: (value) => formatNumber(value),
+                  },
+                },
+                x: {
+                  ticks: {
+                    autoSkip: false,
+                    maxRotation: 50,
+                    minRotation: 0,
+                  },
+                },
+              },
+        },
+      });
+      await waitForCapture(180);
+      const dataUrl = canvas.toDataURL('image/png');
+      return isDataUrlImagenValida(dataUrl) ? dataUrl : null;
+    } catch (error) {
+      console.warn('No fue posible renderizar grafica fallback para exportacion:', error);
+      return null;
+    } finally {
+      if (chart) chart.destroy();
+    }
+  };
+
+  const getChartByCanvas = (canvas) => {
+    if (!canvas || typeof window.Chart === 'undefined') return null;
+    if (typeof window.Chart.getChart === 'function') {
+      return window.Chart.getChart(canvas) || null;
+    }
+    return null;
+  };
+
+  const capturarCanvasComoImagen = async (canvas) => {
+    if (!canvas || typeof canvas.toDataURL !== 'function') return null;
+    const chart = getChartByCanvas(canvas);
+    let dataUrl = '';
+
+    try {
+      if (chart?.resize) chart.resize();
+      if (chart?.update) chart.update('none');
+      await waitForCapture(120);
+      dataUrl =
+        typeof chart?.toBase64Image === 'function'
+          ? chart.toBase64Image()
+          : canvas.toDataURL('image/png');
+      if (isDataUrlImagenValida(dataUrl)) {
+        return dataUrl;
+      }
+    } catch (error) {
+      console.warn('No fue posible capturar grafica desde canvas:', error);
+    }
+
+    if (typeof html2canvas === 'function') {
+      try {
+        const rendered = await html2canvas(canvas, {
+          backgroundColor: '#ffffff',
+          scale: 2,
+          useCORS: true,
+          logging: false,
+        });
+        dataUrl = rendered?.toDataURL?.('image/png') || '';
+        if (isDataUrlImagenValida(dataUrl)) {
+          return dataUrl;
+        }
+      } catch (error) {
+        console.warn('No fue posible capturar grafica con html2canvas:', error);
+      }
+    }
+
+    return null;
+  };
+
+  const agregarCanvasComoImagenExcel = async ({
+    workbook,
+    worksheet,
+    canvas,
+    row,
+    col = 0,
+    width = 800,
+    height = 400,
+    titulo = 'Grafica',
+    resolveFallbackDataUrl = null,
+  }) => {
+    if (!workbook || !worksheet) return false;
+    let dataUrl = await capturarCanvasComoImagen(canvas);
+    if (!isDataUrlImagenValida(dataUrl) && typeof resolveFallbackDataUrl === 'function') {
+      try {
+        dataUrl = await resolveFallbackDataUrl();
+      } catch (error) {
+        console.warn(`No se pudo construir fallback de grafica para Excel: ${titulo}`, error);
+      }
+    }
+    if (!isDataUrlImagenValida(dataUrl)) {
+      console.warn(`No se pudo capturar la grafica para Excel: ${titulo}`);
+      return false;
+    }
+    // ExcelJS requiere solo la cadena base64, no el Data URL completo
+    const imageId = workbook.addImage({
+      base64: extraerBase64DeDataUrl(dataUrl),
+      extension: 'png',
+    });
+    worksheet.addImage(imageId, {
+      tl: { col, row },
+      ext: { width, height },
+    });
+    return true;
+  };
+
   const getCustomChartsForExport = () => {
     if (!customChartsRow) return [];
     return Array.from(customChartsRow.querySelectorAll('canvas'))
       .map((canvas) => {
-        const chart = customCharts?.[canvas.id];
-        if (!chart) return null;
+        const chart = customCharts?.[canvas.id] || getChartByCanvas(canvas);
         return {
           canvas,
           chart,
@@ -3024,6 +3249,75 @@
     ]);
     return { header, rows };
   };
+
+  const buildCustomChartsForExport = async ({
+    graficasConfig,
+    empresaId,
+    anio,
+    snapshotMap,
+  }) => {
+    const customChartsList = Array.isArray(graficasConfig?.customCharts)
+      ? graficasConfig.customCharts
+      : [];
+    if (!customChartsList.length) return [];
+
+    const currentModule = normalizeModuleKey(
+      document.body?.dataset?.modulo || 'RESUMEN'
+    );
+    const baseColumnDefs = getCustomColumnDefs(graficasConfig);
+    if (!baseColumnDefs.length) return [];
+
+    const baseChartType = graficasConfig?.chart?.type || 'bar';
+    let mensualResponses = null;
+    const out = [];
+
+    for (let index = 0; index < customChartsList.length; index += 1) {
+      const chartCfg = customChartsList[index];
+      if (chartCfg?.enabled === false) continue;
+      if (getCustomModuleKey(chartCfg) !== currentModule) continue;
+
+      const rows = Array.isArray(chartCfg?.rows) ? chartCfg.rows : [];
+      if (!rows.length) continue;
+
+      const columnDefs = applyCustomSeriesOverrides(
+        filterSeriesByKeys(baseColumnDefs, chartCfg?.seriesKeys || []),
+        chartCfg
+      );
+      if (!columnDefs.length) continue;
+
+      const chartType =
+        chartCfg?.chartType && chartCfg.chartType !== 'inherit'
+          ? chartCfg.chartType
+          : baseChartType;
+      const sourceType = (chartCfg?.sourceType || 'snapshot').toString().toLowerCase();
+
+      let data = null;
+      if (sourceType === 'mensual') {
+        if (!empresaId || !anio) continue;
+        if (!mensualResponses) {
+          mensualResponses = await loadResumenMensual(empresaId, anio);
+        }
+        data = buildCustomMensualChartData(rows, mensualResponses, columnDefs, chartType);
+      } else {
+        data = buildCustomChartData(rows, snapshotMap, columnDefs, chartType);
+      }
+
+      if (!data || !Array.isArray(data.labels) || !data.labels.length) continue;
+
+      const safeId = sanitizeChartId(chartCfg?.id) || `customChart-${index + 1}`;
+      const canvasId = `customChart-${safeId}`;
+      const canvas = document.getElementById(canvasId);
+      out.push({
+        id: safeId,
+        title: chartCfg?.title || `Grafica personalizada ${index + 1}`,
+        chartType,
+        data,
+        canvas,
+      });
+    }
+
+    return out;
+  };
   
   /**
    * Obtiene los datos actuales de las gráficas para exportación
@@ -3047,10 +3341,12 @@
     // Preparar datos para exportación
     const datos = {
       empresa: empresa?.nombre || empresa?.id,
+      empresaId: empresa?.id || null,
       capitulo: capitulo,
       anio: anio,
       mes: mes,
       fecha: new Date().toLocaleString('es-MX'),
+      snapshotMap: snapshot.map,
       operativos: [],
       netos: [],
       consolidados: flags.consolidated ? [] : null,
@@ -3151,6 +3447,39 @@
     }
 
     try {
+      const safeResolve = async (factory, label) => {
+        try {
+          return await factory();
+        } catch (error) {
+          console.warn(`No se pudo preparar ${label} para exportacion:`, error);
+          return null;
+        }
+      };
+      const customChartDefs = await safeResolve(
+        () =>
+          buildCustomChartsForExport({
+            graficasConfig: datos.graficasConfig,
+            empresaId: datos.empresaId,
+            anio: datos.anio,
+            snapshotMap: datos.snapshotMap,
+          }),
+        'graficas personalizadas'
+      );
+      const ingresoFallbackSeries =
+        flags.ingreso !== false
+          ? await safeResolve(
+              () => buildIngresoPorCapituloSeries(datos.empresaId, datos.anio),
+              'ingreso por capitulo'
+            )
+          : null;
+      const ingresoNacionalFallbackSeries =
+        flags.ingresoNacional !== false
+          ? await safeResolve(
+              () => buildIngresoNacionalSeries(datos.empresaId, datos.anio),
+              'ingreso nacional'
+            )
+          : null;
+
       const workbook = new ExcelJS.Workbook();
       workbook.creator = 'SummaCham';
       workbook.created = new Date();
@@ -3191,16 +3520,18 @@
 
         // Agregar gráfica como imagen
         const chartOp = document.getElementById('chartOperatingSummaryByChapter');
-        if (chartOp) {
-          const imageId = workbook.addImage({
-            base64: chartOp.toDataURL('image/png'),
-            extension: 'png',
-          });
-          wsOperativos.addImage(imageId, {
-            tl: { col: 0, row: datos.operativos.length + 11 },
-            ext: { width: 800, height: 400 }
-          });
-        }
+        await agregarCanvasComoImagenExcel({
+          workbook,
+          worksheet: wsOperativos,
+          canvas: chartOp,
+          row: datos.operativos.length + 11,
+          col: 0,
+          width: 800,
+          height: 400,
+          titulo: 'Resultado Operativo por Capitulo',
+          resolveFallbackDataUrl: () =>
+            renderFallbackChartDataUrl(buildFallbackSeriesFromRows(datos.operativos)),
+        });
       }
 
       // === HOJA 2: Resultados Netos con Gráfica ===
@@ -3235,16 +3566,18 @@
 
         // Agregar gráfica
         const chartNet = document.getElementById('chartNetSummaryByChapter');
-        if (chartNet) {
-          const imageId = workbook.addImage({
-            base64: chartNet.toDataURL('image/png'),
-            extension: 'png',
-          });
-          wsNetos.addImage(imageId, {
-            tl: { col: 0, row: datos.netos.length + 11 },
-            ext: { width: 800, height: 400 }
-          });
-        }
+        await agregarCanvasComoImagenExcel({
+          workbook,
+          worksheet: wsNetos,
+          canvas: chartNet,
+          row: datos.netos.length + 11,
+          col: 0,
+          width: 800,
+          height: 400,
+          titulo: 'Resumen Neto por Capitulo',
+          resolveFallbackDataUrl: () =>
+            renderFallbackChartDataUrl(buildFallbackSeriesFromRows(datos.netos)),
+        });
       }
 
       // === HOJA 3: Consolidados (solo CDMX) ===
@@ -3279,16 +3612,18 @@
 
         // Agregar gráfica consolidada
         const chartCons = document.getElementById('chartConsolidatedResults');
-        if (chartCons) {
-          const imageId = workbook.addImage({
-            base64: chartCons.toDataURL('image/png'),
-            extension: 'png',
-          });
-          wsConsolidados.addImage(imageId, {
-            tl: { col: 0, row: datos.consolidados.length + 11 },
-            ext: { width: 800, height: 400 }
-          });
-        }
+        await agregarCanvasComoImagenExcel({
+          workbook,
+          worksheet: wsConsolidados,
+          canvas: chartCons,
+          row: datos.consolidados.length + 11,
+          col: 0,
+          width: 800,
+          height: 400,
+          titulo: 'Consolidados Operativos vs Netos',
+          resolveFallbackDataUrl: () =>
+            renderFallbackChartDataUrl(buildFallbackSeriesFromRows(datos.consolidados)),
+        });
       }
 
       if (flags.ingreso !== false) {
@@ -3303,16 +3638,18 @@
         wsIngreso.addRow([]);
         wsIngreso.addRow(['INGRESO POR CAPÍTULO']);
         const chartIngreso = document.getElementById('chartIngresoPorCapitulo');
-        if (chartIngreso) {
-          const imageId = workbook.addImage({
-            base64: chartIngreso.toDataURL('image/png'),
-            extension: 'png',
-          });
-          wsIngreso.addImage(imageId, {
-            tl: { col: 0, row: wsIngreso.rowCount + 1 },
-            ext: { width: 800, height: 400 }
-          });
-        }
+        await agregarCanvasComoImagenExcel({
+          workbook,
+          worksheet: wsIngreso,
+          canvas: chartIngreso,
+          row: wsIngreso.rowCount + 1,
+          col: 0,
+          width: 800,
+          height: 400,
+          titulo: 'Ingreso por Capitulo',
+          resolveFallbackDataUrl: () =>
+            renderFallbackChartDataUrl(ingresoFallbackSeries, datos.graficasConfig?.ingreso?.chartType),
+        });
       }
 
       if (flags.ingresoNacional !== false) {
@@ -3327,19 +3664,24 @@
         wsIngresoNacional.addRow([]);
         wsIngresoNacional.addRow(['INGRESO NACIONAL']);
         const chartIngresoNacional = document.getElementById('chartIngresoNacional');
-        if (chartIngresoNacional) {
-          const imageId = workbook.addImage({
-            base64: chartIngresoNacional.toDataURL('image/png'),
-            extension: 'png',
-          });
-          wsIngresoNacional.addImage(imageId, {
-            tl: { col: 0, row: wsIngresoNacional.rowCount + 1 },
-            ext: { width: 800, height: 400 }
-          });
-        }
+        await agregarCanvasComoImagenExcel({
+          workbook,
+          worksheet: wsIngresoNacional,
+          canvas: chartIngresoNacional,
+          row: wsIngresoNacional.rowCount + 1,
+          col: 0,
+          width: 800,
+          height: 400,
+          titulo: 'Ingreso nacional',
+          resolveFallbackDataUrl: () =>
+            renderFallbackChartDataUrl(
+              ingresoNacionalFallbackSeries,
+              datos.graficasConfig?.ingresoNacional?.chartType
+            ),
+        });
       }
 
-      if (customChartItems.length) {
+      if (customChartItems.length || (customChartDefs || []).length) {
         const wsCustom = workbook.addWorksheet('Graficas personalizadas');
         sheetCount += 1;
         wsCustom.addRow(['GRÁFICAS DE RESUMEN - DATOS ACUMULADOS']);
@@ -3350,22 +3692,55 @@
         wsCustom.addRow(['Fecha de exportación:', datos.fecha]);
         wsCustom.addRow([]);
 
+        const queue = [];
+        const seenCanvasIds = new Set();
+        (customChartDefs || []).forEach((def, index) => {
+          if (def?.canvas?.id) {
+            seenCanvasIds.add(def.canvas.id);
+          }
+          queue.push({
+            title: def?.title || `Grafica personalizada ${index + 1}`,
+            canvas: def?.canvas || null,
+            chartType: def?.chartType || 'bar',
+            data: def?.data || null,
+          });
+        });
         customChartItems.forEach((item, index) => {
+          const canvasId = item?.canvas?.id || '';
+          if (canvasId && seenCanvasIds.has(canvasId)) return;
+          queue.push({
+            title: item?.title || `Grafica personalizada ${index + 1}`,
+            canvas: item?.canvas || null,
+            chartType: 'bar',
+            data: null,
+          });
+        });
+
+        for (let index = 0; index < queue.length; index += 1) {
+          const item = queue[index];
           const title = item.title || `Grafica personalizada ${index + 1}`;
           wsCustom.addRow([title]);
-          const imageId = workbook.addImage({
-            base64: item.canvas.toDataURL('image/png'),
-            extension: 'png',
-          });
           const startRow = wsCustom.rowCount + 1;
-          wsCustom.addImage(imageId, {
-            tl: { col: 0, row: startRow },
-            ext: { width: 800, height: 400 }
+          const inserted = await agregarCanvasComoImagenExcel({
+            workbook,
+            worksheet: wsCustom,
+            canvas: item.canvas,
+            row: startRow,
+            col: 0,
+            width: 800,
+            height: 400,
+            titulo: title,
+            resolveFallbackDataUrl: item.data
+              ? () => renderFallbackChartDataUrl(item.data, item.chartType)
+              : null,
           });
+          if (!inserted) {
+            wsCustom.addRow([`No fue posible capturar la grafica: ${title}`]);
+          }
           for (let i = 0; i < 22; i += 1) {
             wsCustom.addRow([]);
           }
-        });
+        }
       }
 
       if (!sheetCount) {
@@ -3565,12 +3940,45 @@
     const customChartItems = getCustomChartsForExport();
     
     // Verificar que las librerías estén disponibles
-    if (typeof jspdf === 'undefined' || typeof html2canvas === 'undefined') {
-      alert('Las librerías de exportación no están disponibles.');
+    if (typeof jspdf === 'undefined') {
+      alert('La librería jsPDF no está disponible.');
       return;
     }
     
     try {
+      const safeResolve = async (factory, label) => {
+        try {
+          return await factory();
+        } catch (error) {
+          console.warn(`No se pudo preparar ${label} para PDF:`, error);
+          return null;
+        }
+      };
+      const customChartDefs = await safeResolve(
+        () =>
+          buildCustomChartsForExport({
+            graficasConfig: datos.graficasConfig,
+            empresaId: datos.empresaId,
+            anio: datos.anio,
+            snapshotMap: datos.snapshotMap,
+          }),
+        'graficas personalizadas'
+      );
+      const ingresoFallbackSeries =
+        flags.ingreso !== false
+          ? await safeResolve(
+              () => buildIngresoPorCapituloSeries(datos.empresaId, datos.anio),
+              'ingreso por capitulo'
+            )
+          : null;
+      const ingresoNacionalFallbackSeries =
+        flags.ingresoNacional !== false
+          ? await safeResolve(
+              () => buildIngresoNacionalSeries(datos.empresaId, datos.anio),
+              'ingreso nacional'
+            )
+          : null;
+
       const { jsPDF } = jspdf;
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pageWidth = pdf.internal.pageSize.getWidth();
@@ -3714,6 +4122,7 @@
           graficas.push({
             canvas,
             titulo: resolveCanvasTitle(canvas, 'Resultado Operativo por Capítulo'),
+            fallbackRows: datos.operativos,
           });
         }
         if (flags.net !== false) {
@@ -3721,6 +4130,7 @@
           graficas.push({
             canvas,
             titulo: resolveCanvasTitle(canvas, 'Resumen Neto por Capítulo'),
+            fallbackRows: datos.netos,
           });
         }
         if (flags.ingreso !== false) {
@@ -3728,6 +4138,8 @@
           graficas.push({
             canvas,
             titulo: resolveCanvasTitle(canvas, 'Ingreso por Capítulo'),
+            fallbackData: ingresoFallbackSeries,
+            fallbackType: datos.graficasConfig?.ingreso?.chartType || 'bar',
           });
         }
         if (flags.ingresoNacional !== false) {
@@ -3735,6 +4147,8 @@
           graficas.push({
             canvas,
             titulo: resolveCanvasTitle(canvas, 'Ingreso nacional'),
+            fallbackData: ingresoNacionalFallbackSeries,
+            fallbackType: datos.graficasConfig?.ingresoNacional?.chartType || 'bar',
           });
         }
         if (flags.consolidated && datos.consolidados) {
@@ -3742,16 +4156,30 @@
           graficas.push({
             canvas,
             titulo: resolveCanvasTitle(canvas, 'Consolidados Operativos vs Netos'),
+            fallbackRows: datos.consolidados,
           });
         }
+        const seenCanvasIds = new Set();
+        (customChartDefs || []).forEach((def, index) => {
+          if (def?.canvas?.id) {
+            seenCanvasIds.add(def.canvas.id);
+          }
+          graficas.push({
+            canvas: def?.canvas || null,
+            titulo: def?.title || `Grafica personalizada ${index + 1}`,
+            fallbackData: def?.data || null,
+            fallbackType: def?.chartType || 'bar',
+          });
+        });
         customChartItems.forEach((item) => {
           if (!item?.canvas) return;
+          if (item.canvas.id && seenCanvasIds.has(item.canvas.id)) return;
           graficas.push({
             canvas: item.canvas,
             titulo: item.title || 'Grafica personalizada',
           });
         });
-
+        
         if (!graficas.length) {
           pdf.setFontSize(11);
           pdf.setFont(undefined, 'normal');
@@ -3762,29 +4190,44 @@
         
         for (const grafica of graficas) {
           const canvas = grafica.canvas;
-          if (!canvas) continue;
-          if (!canvas.isConnected) continue;
-          if (canvas.getClientRects().length === 0) continue;
-          const imgData = await html2canvas(canvas, {
-            scale: 2,
-            backgroundColor: '#ffffff'
-          });
-          
-          const imgWidth = pageWidth - 2 * margin;
-          const imgHeight = (imgData.height * imgWidth) / imgData.width;
-          
-          if (yPosition + imgHeight > pageHeight - margin) {
-            pdf.addPage();
-            yPosition = margin;
+          try {
+            let imgDataUrl = await capturarCanvasComoImagen(canvas);
+            if (!isDataUrlImagenValida(imgDataUrl) && grafica?.fallbackData) {
+              imgDataUrl = await renderFallbackChartDataUrl(
+                grafica.fallbackData,
+                grafica.fallbackType || 'bar'
+              );
+            }
+            if (!isDataUrlImagenValida(imgDataUrl) && Array.isArray(grafica.fallbackRows)) {
+              const fallbackData = buildFallbackSeriesFromRows(grafica.fallbackRows);
+              imgDataUrl = await renderFallbackChartDataUrl(fallbackData);
+            }
+            if (!isDataUrlImagenValida(imgDataUrl)) continue;
+            
+            // Calcular dimensiones proporcionales
+            const baseWidth =
+              Number(canvas?.width) || Number(canvas?.clientWidth) || 1200;
+            const baseHeight =
+              Number(canvas?.height) || Number(canvas?.clientHeight) || 600;
+            const canvasAspectRatio = baseHeight / Math.max(baseWidth, 1);
+            const imgWidth = pageWidth - 2 * margin;
+            const imgHeight = imgWidth * (canvasAspectRatio > 0 ? canvasAspectRatio : 0.55);
+            
+            if (yPosition + imgHeight > pageHeight - margin) {
+              pdf.addPage();
+              yPosition = margin;
+            }
+            
+            pdf.setFontSize(10);
+            pdf.setFont(undefined, 'bold');
+            pdf.text(grafica.titulo, margin, yPosition);
+            yPosition += 5;
+            
+            pdf.addImage(imgDataUrl, 'PNG', margin, yPosition, imgWidth, imgHeight);
+            yPosition += imgHeight + 10;
+          } catch (err) {
+            console.error('Error al exportar grafica a PDF:', grafica.titulo, err);
           }
-          
-          pdf.setFontSize(10);
-          pdf.setFont(undefined, 'bold');
-          pdf.text(grafica.titulo, margin, yPosition);
-          yPosition += 5;
-          
-          pdf.addImage(imgData.toDataURL('image/png'), 'PNG', margin, yPosition, imgWidth, imgHeight);
-          yPosition += imgHeight + 10;
         }
       };
       

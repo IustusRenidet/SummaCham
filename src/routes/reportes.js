@@ -41,6 +41,7 @@ const esquemaOperativo = Joi.object({
         etiqueta: Joi.string().trim().required(),
         presupuesto: Joi.alternatives().try(Joi.number(), Joi.string()).optional(),
         real: Joi.alternatives().try(Joi.number(), Joi.string()).optional(),
+        anual: Joi.alternatives().try(Joi.number(), Joi.string()).optional(),
       })
     )
     .min(1)
@@ -204,6 +205,7 @@ router.post('/operativo-excel-native', rawExcelParser, async (req, res) => {
       chartsSheetName: leerQuery(req.query.chartsSheetName),
       tableSheetName: leerQuery(req.query.tableSheetName),
       chartMode: leerQuery(req.query.chartMode),
+      seriesMeta: leerQuery(req.query.seriesMeta),
     });
     res.setHeader(
       'Content-Type',

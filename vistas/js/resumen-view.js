@@ -36,14 +36,27 @@
       .toUpperCase();
   };
 
-  const normalizeModuleKey = (value) =>
-    (value || "")
+  const normalizeModuleKey = (value) => {
+    const clean = (value || "")
       .toString()
       .trim()
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
-      .toUpperCase()
-      .replace(/[^A-Z0-9]/g, "");
+      .toUpperCase();
+    if (!clean) return "";
+    const withoutPath = clean.split(/[\\/]/).pop() || clean;
+    const withoutQuery = withoutPath.split("?")[0].split("#")[0];
+    const withoutExt = withoutQuery.replace(/\.[A-Z0-9]+$/, "");
+    let key = withoutExt.replace(/[^A-Z0-9]/g, "");
+    if (!key) return "";
+    if (key === "SUMMARY") return "RESUMEN";
+    if (key.endsWith("HTML")) {
+      const withoutHtml = key.slice(0, -4);
+      if (withoutHtml) key = withoutHtml;
+      if (key === "SUMMARY") return "RESUMEN";
+    }
+    return key;
+  };
 
   const CHART_PALETTE = [
     "#2563eb",
@@ -82,9 +95,28 @@
 
   const getParsedValue = (context) => {
     if (!context) return 0;
-    if (typeof context.parsed === "number") return context.parsed;
-    if (typeof context.parsed?.y === "number") return context.parsed.y;
-    if (typeof context.raw === "number") return context.raw;
+    const parsed = context.parsed;
+    if (typeof parsed === "number" && Number.isFinite(parsed)) return parsed;
+    if (parsed && typeof parsed === "object") {
+      const parsedX = Number(parsed.x);
+      const parsedY = Number(parsed.y);
+      const hasX = Number.isFinite(parsedX);
+      const hasY = Number.isFinite(parsedY);
+      if (hasX && hasY) {
+        const isHorizontal = context?.chart?.options?.indexAxis === "y";
+        return isHorizontal ? parsedX : parsedY;
+      }
+      if (hasY) return parsedY;
+      if (hasX) return parsedX;
+    }
+    const raw = context?.raw;
+    if (typeof raw === "number" && Number.isFinite(raw)) return raw;
+    if (raw && typeof raw === "object") {
+      const rawY = Number(raw.y);
+      const rawX = Number(raw.x);
+      if (Number.isFinite(rawY)) return rawY;
+      if (Number.isFinite(rawX)) return rawX;
+    }
     return 0;
   };
 
@@ -283,7 +315,7 @@
           tic: ["T&IC", "T&IC (INCOME)", "T&IC INCOME"],
         },
       },
-      manualOnly: true,
+      manualOnly: false,
       customCharts: [],
     };
   })();
@@ -295,7 +327,17 @@
     return DEFAULT_GRAFICAS_CONFIG;
   };
 
-  const isManualOnly = (graficasConfig) => graficasConfig?.manualOnly !== false;
+  const hasEnabledManualCharts = (graficasConfig) =>
+    Array.isArray(graficasConfig?.customCharts) &&
+    graficasConfig.customCharts.some(
+      (chart) =>
+        chart?.enabled !== false &&
+        Array.isArray(chart?.rows) &&
+        chart.rows.length > 0
+    );
+
+  const isManualOnly = (graficasConfig) =>
+    graficasConfig?.manualOnly === true && hasEnabledManualCharts(graficasConfig);
 
   const aplicarStickyEncabezados = () => {
     const tabla = document.getElementById("tablaComparacion");
@@ -1220,6 +1262,112 @@
     };
   };
 
+  const resumenMensualCache = new Map();
+
+  const obtenerResumenMensual = async (empresaId, anio) => {
+    if (!empresaId || !anio) return [];
+    const cacheKey = `${empresaId || "sin"}:${anio || "sin"}`;
+    if (resumenMensualCache.has(cacheKey)) {
+      return resumenMensualCache.get(cacheKey);
+    }
+    const meses = MESES.map((m) => m.periodo);
+    const responses = await Promise.all(
+      meses.map(async (mes) => {
+        try {
+          const params = new URLSearchParams({
+            empresaId: empresaId || "",
+            anio: String(anio || ""),
+            mes: String(mes || ""),
+          });
+          const resp = await fetch(`${API_ENDPOINT}?${params.toString()}`, {
+            headers: Sesion.headersAutenticacion(),
+          });
+          if (!resp.ok) throw new Error("Sin respuesta");
+          return resp.json();
+        } catch (error) {
+          console.warn("📊 RESUMEN: Error cargando resumen mensual", mes, error);
+          return null;
+        }
+      })
+    );
+    resumenMensualCache.set(cacheKey, responses);
+    return responses;
+  };
+
+  const buildCustomMensualChartData = (
+    responses = [],
+    chart,
+    seriesConfig,
+    chartType
+  ) => {
+    if (!Array.isArray(responses) || !responses.length) return null;
+    if (!Array.isArray(seriesConfig) || !seriesConfig.length) return null;
+    const rows = Array.isArray(chart?.rows) ? chart.rows : [];
+    if (!rows.length) return null;
+
+    const valuesBySerie = seriesConfig.reduce((acc, serie) => {
+      acc[serie.key] = Array.from({ length: MESES.length }, () => 0);
+      return acc;
+    }, {});
+
+    responses.forEach((data, monthIndex) => {
+      const layout = data?.resumen?.[0]?.layout || [];
+      if (!Array.isArray(layout) || !layout.length) return;
+      rows.forEach((row) => {
+        const variants =
+          Array.isArray(row?.variants) && row.variants.length
+            ? row.variants
+            : row?.alias
+            ? [row.alias]
+            : [];
+        if (!variants.length) return;
+        const match = buscarFilaIngreso(layout, variants);
+        if (!match?.totals) return;
+        seriesConfig.forEach((serie) => {
+          valuesBySerie[serie.key][monthIndex] += resolveSummarySeriesValue(
+            match.totals,
+            serie.key
+          );
+        });
+      });
+    });
+
+    const hasData = seriesConfig.some((serie) =>
+      (valuesBySerie[serie.key] || []).some((value) => Number(value) !== 0)
+    );
+    if (!hasData) return null;
+
+    const datasets = seriesConfig.map((serie) => {
+      const data = valuesBySerie[serie.key] || [];
+      const dataset = {
+        label: serie.label,
+        data,
+        borderWidth: chartType === "line" ? 2 : 2,
+      };
+      if (isPieType(chartType)) {
+        dataset.backgroundColor = buildSlicePalette(data.length, serie.color);
+        dataset.borderColor = "#ffffff";
+        dataset.borderWidth = 1;
+        return dataset;
+      }
+      dataset.backgroundColor = serie.color;
+      dataset.borderColor = serie.color;
+      if (chartType === "line") {
+        dataset.fill = false;
+        dataset.tension = 0.32;
+        dataset.pointRadius = 3;
+        dataset.pointBackgroundColor = serie.color;
+      }
+      return dataset;
+    });
+
+    return {
+      labels: MESES.map((m) => m.etiqueta),
+      datasets,
+      type: chartType,
+    };
+  };
+
   const clearCustomChartsPanel = () => {
     if (!chartsGrid) return;
     chartsGrid.querySelectorAll("[data-custom-chart]").forEach((card) => {
@@ -1591,9 +1739,13 @@
     const { empresaId, anio } = options;
     const graficasConfig = getGraficasConfig();
     const manualOnly = isManualOnly(graficasConfig);
+    console.log("📊 obtenerGraficasExportacion: manualOnly =", manualOnly);
+    console.log("📊 obtenerGraficasExportacion: RESUMEN_SNAPSHOT existe =", !!window.RESUMEN_SNAPSHOT);
+    console.log("📊 obtenerGraficasExportacion: RESUMEN_SNAPSHOT.filas =", window.RESUMEN_SNAPSHOT?.filas?.length || 0);
     const datos = manualOnly
       ? []
       : (generarDatosGraficas(graficasConfig) || []).filter(Boolean);
+    console.log("📊 obtenerGraficasExportacion: datos generados =", datos.length);
 
     const resolvedEmpresaId =
       empresaId || empresaActual?.id || Sesion.obtenerEmpresaActiva?.()?.id;
@@ -1642,30 +1794,47 @@
     const baseChartType = graficasConfig.chart?.type || "bar";
     const baseSeriesConfig = getSummaryCustomSeriesConfig(graficasConfig);
 
-    if (snapshot?.filas && customCharts.length && baseSeriesConfig.length) {
-      customCharts.forEach((chart, index) => {
-        if (chart?.enabled === false) return;
+    if (customCharts.length && baseSeriesConfig.length) {
+      let mensualResponses = null;
+      for (let index = 0; index < customCharts.length; index += 1) {
+        const chart = customCharts[index];
+        if (chart?.enabled === false) continue;
         const chartModule = normalizeModuleKey(chart?.module || "RESUMEN");
-        if (chartModule !== moduleKey) return;
+        if (chartModule !== moduleKey) continue;
         const chartType = resolveChartType(chart?.chartType, baseChartType);
         const seriesConfig = applyCustomSeriesOverrides(
           filterSeriesByKeys(baseSeriesConfig, chart?.seriesKeys || []),
           chart
         );
-        if (!seriesConfig.length) return;
-        const data = buildCustomChartData(
-          snapshot,
-          chart,
-          seriesConfig,
-          chartType
-        );
-        if (!data) return;
+        if (!seriesConfig.length) continue;
+        const sourceType = (chart?.sourceType || "snapshot")
+          .toString()
+          .toLowerCase();
+        let data = null;
+        if (sourceType === "mensual") {
+          if (!resolvedEmpresaId || !resolvedAnio) continue;
+          if (!mensualResponses) {
+            mensualResponses = await obtenerResumenMensual(
+              resolvedEmpresaId,
+              resolvedAnio
+            );
+          }
+          data = buildCustomMensualChartData(
+            mensualResponses,
+            chart,
+            seriesConfig,
+            chartType
+          );
+        } else if (snapshot?.filas) {
+          data = buildCustomChartData(snapshot, chart, seriesConfig, chartType);
+        }
+        if (!data) continue;
         const tituloRaw = (chart?.title || "").toString().trim();
         datos.push({
           ...data,
           titulo: tituloRaw || `Grafica personalizada ${index + 1}`,
         });
-      });
+      }
     }
 
     return datos;
@@ -4407,7 +4576,36 @@
         empresaId: empresaActual?.id,
         anio,
       });
-      
+      console.log("📊 PDF: graficaData obtenidos:", graficaData.length);
+
+      // Si no hay datos, intentar capturar imágenes del panel
+      let pdfImages = [];
+      if (graficaData.length === 0) {
+        console.log("📊 PDF: No hay datos, intentando capturar del panel...");
+        pdfImages = await capturarGraficasResumenDesdePanel();
+        // Si no hay imágenes, forzar apertura del panel
+        if (!pdfImages.length) {
+          const panel = document.getElementById("resumenChartsPanel");
+          const wasHidden = panel && !panel.classList.contains("open");
+          if (wasHidden && panel) {
+            panel.classList.add("open");
+            panel.style.position = "absolute";
+            panel.style.left = "-10000px";
+            panel.style.visibility = "hidden";
+          }
+          await new Promise((r) => setTimeout(r, 500));
+          pdfImages = await capturarGraficasResumenDesdePanel();
+          if (wasHidden && panel) {
+            panel.classList.remove("open");
+            panel.style.position = "";
+            panel.style.left = "";
+            panel.style.visibility = "";
+          }
+        }
+        console.log("📊 PDF: imágenes capturadas del panel:", pdfImages.length);
+      }
+
+      // Renderizar gráficas desde datos
       if (graficaData.length > 0) {
         const canvas = document.createElement('canvas');
         canvas.width = 2400;  // Alta resolución igual que Excel
@@ -4518,6 +4716,19 @@
         }
 
         document.body.removeChild(canvas);
+      } else if (pdfImages.length > 0) {
+        // Insertar imágenes capturadas del panel si no hubo datos programáticos
+        console.log("📊 PDF: Insertando", pdfImages.length, "imágenes capturadas");
+        for (const img of pdfImages) {
+          if (!esDataUrlImagenValida(img?.dataUrl)) continue;
+          doc.addPage();
+          doc.setFontSize(16);
+          doc.setFont('helvetica', 'bold');
+          doc.text('GRÁFICAS DE ANÁLISIS', 15, 15);
+          doc.setFontSize(14);
+          doc.text(img.title || 'Gráfica', 15, 25);
+          doc.addImage(img.dataUrl, 'PNG', 15, 35, 270, 160);
+        }
       }
 
       // Guardar PDF
@@ -4553,9 +4764,15 @@
   };
 
   const renderizarImagenesGraficasResumen = async (graficas = []) => {
-    if (!Array.isArray(graficas) || !graficas.length || typeof Chart === "undefined") {
+    if (!Array.isArray(graficas) || !graficas.length) {
+      console.log("📊 renderizarImagenesGraficasResumen: No hay gráficas para renderizar");
       return [];
     }
+    if (typeof Chart === "undefined") {
+      console.warn("📊 renderizarImagenesGraficasResumen: Chart.js no está disponible");
+      return [];
+    }
+    console.log("📊 renderizarImagenesGraficasResumen: Renderizando", graficas.length, "gráficas");
     const images = [];
     const canvas = document.createElement("canvas");
     canvas.width = 2400;
@@ -4654,16 +4871,39 @@
         typeof window.ExportUtils._resolverGraficas !== "function" ||
         typeof window.ExportUtils._capturarGraficas !== "function"
       ) {
+        console.warn("📊 capturarGraficasResumenDesdePanel: ExportUtils no disponible");
         return [];
       }
       const targets = window.ExportUtils._resolverGraficas();
-      if (!Array.isArray(targets) || !targets.length) return [];
+      console.log("📊 capturarGraficasResumenDesdePanel: targets encontrados =", targets?.length || 0);
+      if (!Array.isArray(targets) || !targets.length) {
+        // Intentar buscar canvas directamente en el panel
+        const panelCanvas = document.querySelectorAll("#resumenChartsPanel canvas, .charts-panel canvas");
+        console.log("📊 capturarGraficasResumenDesdePanel: canvas en panel =", panelCanvas.length);
+        if (panelCanvas.length) {
+          const manualTargets = Array.from(panelCanvas).map((canvas) => ({
+            canvas,
+            title: canvas.closest(".charts-card")?.querySelector("h6")?.textContent?.trim() || "Grafica",
+          }));
+          const images = await window.ExportUtils._capturarGraficas(manualTargets);
+          return (images || []).filter((img) => esDataUrlImagenValida(img?.dataUrl));
+        }
+        return [];
+      }
       const images = await window.ExportUtils._capturarGraficas(targets);
+      console.log("📊 capturarGraficasResumenDesdePanel: imágenes capturadas =", images?.length || 0);
       return (images || []).filter((img) => esDataUrlImagenValida(img?.dataUrl));
     } catch (error) {
       console.warn("No fue posible capturar gráficas desde el panel:", error);
       return [];
     }
+  };
+
+  // Extrae la parte base64 de un Data URL
+  const extraerBase64DeDataUrl = (dataUrl) => {
+    if (!dataUrl || typeof dataUrl !== "string") return dataUrl;
+    const match = dataUrl.match(/^data:image\/[a-z]+;base64,(.+)$/i);
+    return match ? match[1] : dataUrl;
   };
 
   const insertarImagenesGraficasEnWorkbook = (workbook, images = [], hoja = "Gráficas") => {
@@ -4690,8 +4930,9 @@
       wsCharts.getCell(rowCursor, 2).value = img.title || `Grafica ${idx + 1}`;
       wsCharts.getCell(rowCursor, 2).font = { bold: true, color: { argb: "FF1E3A8A" } };
 
+      // ExcelJS espera solo la cadena base64, no el Data URL completo
       const imageId = workbook.addImage({
-        base64: img.dataUrl,
+        base64: extraerBase64DeDataUrl(img.dataUrl),
         extension: "png",
       });
       wsCharts.addImage(imageId, {
@@ -4925,18 +5166,56 @@
         ajustarAnchosWorksheet(wsResumen);
       }
 
+      // Obtener datos de gráficas para renderizado programático
       const graficaData = await obtenerGraficasExportacion({
         empresaId: empresaActual?.id,
         anio,
       });
+      console.log("📊 EXPORT: graficaData obtenidos:", graficaData.length);
+
+      // Intentar renderizar gráficas programáticamente
       graficaImages = await renderizarImagenesGraficasResumen(graficaData);
+      console.log("📊 EXPORT: imágenes renderizadas:", graficaImages.length);
+
+      // Si no hay imágenes, intentar capturar del panel de gráficas
       if (!graficaImages.length) {
+        console.log("📊 EXPORT: Intentando capturar desde panel...");
         graficaImages = await capturarGraficasResumenDesdePanel();
+        console.log("📊 EXPORT: imágenes capturadas del panel:", graficaImages.length);
       }
 
+      // Si aún no hay imágenes, abrir el panel, renderizar y capturar
+      if (!graficaImages.length) {
+        console.log("📊 EXPORT: Intentando forzar renderizado de panel...");
+        const panel = document.getElementById("resumenChartsPanel");
+        const wasHidden = panel && !panel.classList.contains("open");
+        if (wasHidden && panel) {
+          panel.classList.add("open");
+          panel.style.position = "absolute";
+          panel.style.left = "-10000px";
+          panel.style.visibility = "hidden";
+        }
+        // Esperar a que las gráficas se rendericen
+        await new Promise((r) => setTimeout(r, 500));
+        graficaImages = await capturarGraficasResumenDesdePanel();
+        console.log("📊 EXPORT: imágenes después de forzar panel:", graficaImages.length);
+        if (wasHidden && panel) {
+          panel.classList.remove("open");
+          panel.style.position = "";
+          panel.style.left = "";
+          panel.style.visibility = "";
+        }
+      }
+
+      // SIEMPRE insertar imágenes en el workbook si las hay (como fallback seguro)
+      if (graficaImages.length) {
+        insertarImagenesGraficasEnWorkbook(workbook, graficaImages, "Gráficas");
+        console.log("📊 EXPORT: imágenes insertadas en workbook");
+      }
+
+      // Si no hay datos de gráficas para el servidor, exportar directamente con imágenes
       if (graficaData.length === 0) {
         if (graficaImages.length) {
-          insertarImagenesGraficasEnWorkbook(workbook, graficaImages, "Gráficas");
           const buffer = await workbook.xlsx.writeBuffer();
           fallbackBuffer = buffer;
           descargarBufferExcel(buffer, `${baseName}_Graficas.xlsx`);
@@ -5071,17 +5350,25 @@
 
   const generarDatosGraficas = (config) => {
     const snapshot = window.RESUMEN_SNAPSHOT;
-    if (!snapshot || !snapshot.filas) return [];
+    if (!snapshot || !snapshot.filas) {
+      console.warn("📊 generarDatosGraficas: No hay RESUMEN_SNAPSHOT o filas");
+      return [];
+    }
 
     const graficasConfig = config || getGraficasConfig();
-    if (isManualOnly(graficasConfig)) return [];
+    if (isManualOnly(graficasConfig)) {
+      console.warn("📊 generarDatosGraficas: Modo manualOnly activo");
+      return [];
+    }
     const baseConfig = DEFAULT_GRAFICAS_CONFIG || {};
     const baseChartType = graficasConfig.chart?.type || "bar";
     const chartsCfg = graficasConfig.charts || {};
     const resolveType = (override) => resolveChartType(override, baseChartType);
 
     const enabledSeries = getEnabledSeriesConfig(graficasConfig);
+    console.log("📊 generarDatosGraficas: enabledSeries =", enabledSeries.length);
     if (!enabledSeries.length) {
+      console.warn("📊 generarDatosGraficas: No hay series habilitadas");
       return [null, null, null];
     }
 

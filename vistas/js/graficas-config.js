@@ -265,7 +265,7 @@
         },
       },
     },
-    manualOnly: true,
+    manualOnly: false,
     customCharts: [],
   };
 
@@ -313,14 +313,200 @@
     return result;
   };
 
+  const MODULE_CATALOG = [
+    { key: "RESUMEN", value: "RESUMEN", aliases: ["SUMMARY"] },
+    { key: "FINANZAS", value: "Finanzas" },
+    { key: "GASTOSGENERALES", value: "Gastos Generales" },
+    { key: "NOMINA", value: "Nomina" },
+    { key: "MEMBRESIA", value: "Membresia" },
+    {
+      key: "SERVMEMBRESIA",
+      value: "Serv Membresia",
+      aliases: ["SERVICIOSALAMEMBRESIA"],
+    },
+    { key: "RH", value: "RH" },
+    { key: "EVENTOS", value: "Eventos" },
+    { key: "COMITES", value: "Comites", aliases: ["COMITESINCOME"] },
+    { key: "COMUNICACION", value: "Comunicacion" },
+    { key: "DIRECCION", value: "Direccion" },
+    { key: "GTOSCORPORATIVOS", value: "Gtos Corporativos" },
+    { key: "TIC", value: "T&IC", aliases: ["TANDIC"] },
+    { key: "VPE", value: "VPE" },
+    { key: "PRESUPUESTOS", value: "Presupuestos" },
+  ];
+
+  const MODULE_VALUE_BY_KEY = new Map();
+  MODULE_CATALOG.forEach((item) => {
+    if (!item?.key || !item?.value) return;
+    MODULE_VALUE_BY_KEY.set(item.key, item.value);
+    (Array.isArray(item.aliases) ? item.aliases : []).forEach((alias) => {
+      if (!alias) return;
+      MODULE_VALUE_BY_KEY.set(alias, item.value);
+    });
+  });
+
+  const SUMMARY_SERIES_KEYS = new Set([
+    "actual",
+    "plan",
+    "prev",
+    "varMonthPlan",
+    "varMonthPrev",
+    "actualYTD",
+    "planYTD",
+    "prevYTD",
+    "varYTDPlan",
+    "varYTDPrev",
+  ]);
+
+  const normalizeSeriesSelectionKey = (value) =>
+    (value || "")
+      .toString()
+      .trim()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, "");
+
+  const normalizeModuleRawKey = (value = "") => {
+    const clean = value
+      .toString()
+      .trim()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toUpperCase();
+    if (!clean) return "";
+    const withoutPath = clean.split(/[\\/]/).pop() || clean;
+    const withoutQuery = withoutPath.split("?")[0].split("#")[0];
+    const withoutExt = withoutQuery.replace(/\.[A-Z0-9]+$/, "");
+    return withoutExt.replace(/[^A-Z0-9]/g, "");
+  };
+
+  const normalizeModuleKey = (value = "", fallback = "RESUMEN") => {
+    const rawKey = normalizeModuleRawKey(value);
+    const resolveAlias = (candidate) => {
+      if (!candidate) return "";
+      if (MODULE_VALUE_BY_KEY.has(candidate)) return candidate;
+      if (candidate.endsWith("HTML")) {
+        const withoutHtml = candidate.slice(0, -4);
+        if (MODULE_VALUE_BY_KEY.has(withoutHtml)) return withoutHtml;
+      }
+      return "";
+    };
+    const resolved = resolveAlias(rawKey);
+    if (resolved) return resolved;
+
+    const fallbackRaw = normalizeModuleRawKey(fallback || "RESUMEN");
+    const fallbackResolved = resolveAlias(fallbackRaw);
+    if (fallbackResolved) return fallbackResolved;
+    return "RESUMEN";
+  };
+
+  const normalizeModuleValue = (value = "", fallback = "RESUMEN") =>
+    MODULE_VALUE_BY_KEY.get(normalizeModuleKey(value, fallback)) ||
+    MODULE_VALUE_BY_KEY.get(normalizeModuleKey(fallback, "RESUMEN")) ||
+    "RESUMEN";
+
+  const normalizeSeriesKeyForModule = (key, moduleKey) => {
+    const clean = key != null ? String(key).trim() : "";
+    if (!clean) return "";
+    const normalized = normalizeSeriesSelectionKey(clean);
+
+    if (moduleKey === "RESUMEN") {
+      if (normalized === "BUDGET" || normalized === "TOTALBUDGET") {
+        return "planYTD";
+      }
+      if (normalized === "REAL" || normalized === "TOTALREAL") {
+        return "actualYTD";
+      }
+      if (normalized === "ANNUAL" || normalized === "BUDGETANNUAL") {
+        return "prevYTD";
+      }
+      if (normalized === "ACTUAL") return "actual";
+      if (normalized === "PLAN") return "plan";
+      if (normalized === "PREV") return "prev";
+      if (normalized === "VARMONTHPLAN") return "varMonthPlan";
+      if (normalized === "VARMONTHPREV") return "varMonthPrev";
+      if (normalized === "ACTUALYTD") return "actualYTD";
+      if (normalized === "PLANYTD") return "planYTD";
+      if (normalized === "PREVYTD") return "prevYTD";
+      if (normalized === "VARYTDPLAN") return "varYTDPlan";
+      if (normalized === "VARYTDPREV") return "varYTDPrev";
+      return clean;
+    }
+
+    if (
+      normalized === "BUDGET" ||
+      normalized === "TOTALBUDGET" ||
+      normalized === "PLAN" ||
+      normalized === "PLANYTD"
+    ) {
+      return "budget";
+    }
+    if (
+      normalized === "REAL" ||
+      normalized === "TOTALREAL" ||
+      normalized === "ACTUAL" ||
+      normalized === "ACTUALYTD"
+    ) {
+      return "real";
+    }
+    if (
+      normalized === "ANNUAL" ||
+      normalized === "BUDGETANNUAL" ||
+      normalized === "PREV" ||
+      normalized === "PREVYTD"
+    ) {
+      return "annual";
+    }
+
+    return clean;
+  };
+
+  const normalizeCustomChartRowDefinition = (row) => {
+    if (typeof row === "string") {
+      const line = row.trim();
+      if (!line) return null;
+      let alias = "";
+      let raw = line;
+      if (line.includes("=")) {
+        const parts = line.split(/=(.+)/);
+        alias = (parts[0] || "").trim();
+        raw = (parts[1] || "").trim();
+      }
+      const variants = raw
+        .split("|")
+        .map((item) => item.trim())
+        .filter(Boolean);
+      if (!variants.length) return null;
+      return { alias: alias || variants[0], variants };
+    }
+
+    const variants = Array.isArray(row?.variants)
+      ? row.variants
+      : Array.isArray(row?.labels)
+      ? row.labels
+      : typeof row?.label === "string"
+      ? [row.label]
+      : typeof row?.alias === "string"
+      ? [row.alias]
+      : [];
+    const cleaned = variants
+      .map((v) => (typeof v === "string" ? v.trim() : ""))
+      .filter(Boolean);
+    if (!cleaned.length) return null;
+    const alias =
+      typeof row?.alias === "string" && row.alias.trim()
+        ? row.alias.trim()
+        : cleaned[0];
+    return { alias, variants: cleaned };
+  };
+
   const normalizeCustomCharts = (charts = []) => {
     if (!Array.isArray(charts)) return [];
     return charts.map((chart, index) => {
       const id = chart?.id ? String(chart.id) : `custom-${index + 1}`;
-      const module =
-        typeof chart?.module === "string" && chart.module.trim()
-          ? chart.module.trim()
-          : "RESUMEN";
+      const module = normalizeModuleValue(chart?.module, "RESUMEN");
+      const moduleKey = normalizeModuleKey(module, "RESUMEN");
       const title =
         typeof chart?.title === "string" && chart.title.trim()
           ? chart.title.trim()
@@ -332,33 +518,17 @@
       const enabled = typeof chart?.enabled === "boolean" ? chart.enabled : true;
       const rows = Array.isArray(chart?.rows) ? chart.rows : [];
       const normalizedRows = rows
-        .map((row) => {
-          const variants = Array.isArray(row?.variants)
-            ? row.variants
-            : Array.isArray(row?.labels)
-            ? row.labels
-            : [];
-          const cleaned = variants
-            .map((v) => (typeof v === "string" ? v.trim() : ""))
-            .filter(Boolean);
-          if (!cleaned.length) return null;
-          const alias =
-            typeof row?.alias === "string" && row.alias.trim()
-              ? row.alias.trim()
-              : cleaned[0];
-          return { alias, variants: cleaned };
-        })
+        .map((row) => normalizeCustomChartRowDefinition(row))
         .filter(Boolean);
       const seriesKeys = Array.isArray(chart?.seriesKeys)
         ? chart.seriesKeys
-            .map((key) => (key != null ? String(key).trim() : ""))
+            .map((key) => normalizeSeriesKeyForModule(key, moduleKey))
             .filter(Boolean)
         : [];
       const series = Array.isArray(chart?.series)
         ? chart.series
             .map((serie) => {
-              const key =
-                serie?.key != null ? String(serie.key).trim() : "";
+              const key = normalizeSeriesKeyForModule(serie?.key, moduleKey);
               if (!key) return null;
               const label =
                 typeof serie?.label === "string" && serie.label.trim()
@@ -374,13 +544,41 @@
             })
             .filter(Boolean)
         : [];
-      const mergedSeriesKeys = Array.from(
-        new Set([
-          ...seriesKeys,
-          ...series.map((serie) => serie.key).filter(Boolean),
-        ])
-      );
+      const mergedSeriesKeys = [];
+      const pushSeriesKey = (key) => {
+        const normalized = normalizeSeriesSelectionKey(key);
+        if (!normalized) return;
+        if (
+          moduleKey === "RESUMEN" &&
+          !SUMMARY_SERIES_KEYS.has(key) &&
+          SUMMARY_SERIES_KEYS.has(
+            normalizeSeriesKeyForModule(key, moduleKey)
+          )
+        ) {
+          key = normalizeSeriesKeyForModule(key, moduleKey);
+        }
+        if (
+          mergedSeriesKeys.some(
+            (existing) =>
+              normalizeSeriesSelectionKey(existing) ===
+              normalizeSeriesSelectionKey(key)
+          )
+        ) {
+          return;
+        }
+        mergedSeriesKeys.push(key);
+      };
+      seriesKeys.forEach((key) => pushSeriesKey(key));
+      series.forEach((serie) => pushSeriesKey(serie.key));
       const sourceType = normalizeSourceType(chart?.sourceType, "snapshot");
+      const mergedSeries = [];
+      const seenSeries = new Set();
+      series.forEach((serie) => {
+        const seriesKey = normalizeSeriesSelectionKey(serie?.key);
+        if (!seriesKey || seenSeries.has(seriesKey)) return;
+        seenSeries.add(seriesKey);
+        mergedSeries.push(serie);
+      });
       return {
         id,
         module,
@@ -390,11 +588,20 @@
         enabled,
         sourceType,
         seriesKeys: mergedSeriesKeys,
-        series,
+        series: mergedSeries,
         rows: normalizedRows,
       };
     });
   };
+
+  const hasEnabledManualCharts = (charts = []) =>
+    Array.isArray(charts) &&
+    charts.some(
+      (chart) =>
+        chart?.enabled !== false &&
+        Array.isArray(chart?.rows) &&
+        chart.rows.length > 0
+    );
 
   const normalizeVariantsList = (values, fallback = []) => {
     if (!Array.isArray(values)) return fallback.slice();
@@ -521,8 +728,9 @@
       });
     }
 
-    // Flujo 100% manual: no se permite volver al modo automático.
-    base.manualOnly = true;
+    if (typeof config.manualOnly === "boolean") {
+      base.manualOnly = config.manualOnly;
+    }
 
     if (config.charts && typeof config.charts === "object") {
       ["operating", "net", "consolidated"].forEach((key) => {
@@ -685,6 +893,9 @@
     } else {
       base.customCharts = [];
     }
+    if (base.manualOnly === true && !hasEnabledManualCharts(base.customCharts)) {
+      base.manualOnly = false;
+    }
 
     return base;
   };
@@ -804,6 +1015,7 @@
     if (!cachedConfig) {
       const localConfig = loadLocalConfig();
       cachedConfig = localConfig ? clone(localConfig) : clone(DEFAULT_CONFIG);
+      persistLocalConfig(cachedConfig);
       hydrateConfigFromServer();
     }
     return clone(cachedConfig);
@@ -893,24 +1105,7 @@
     return window.Sesion.puedeAdministrarUsuarios();
   };
 
-  const MODULE_OPTIONS = [
-    "RESUMEN",
-    "SUMMARY",
-    "Finanzas",
-    "Gastos Generales",
-    "Nomina",
-    "Membresia",
-    "Serv Membresia",
-    "RH",
-    "Eventos",
-    "Comites",
-    "Comunicacion",
-    "Direccion",
-    "Gtos Corporativos",
-    "T&IC",
-    "VPE",
-    "Presupuestos",
-  ];
+  const MODULE_OPTIONS = MODULE_CATALOG.map((item) => item.value);
 
   const SUMMARY_TABLE_SERIES = [
     { key: "actual", label: "Real", color: "#1d4ed8", enabled: true },
@@ -971,18 +1166,17 @@
   const applyModuleOptions = (select, value) => {
     if (!select) return;
     select.innerHTML = getModuleOptionsHtml();
-    const hasValue =
-      value &&
-      Array.from(select.options).some((option) => option.value === value);
-    if (value && !hasValue) {
+    const normalizedValue = normalizeModuleValue(value, "RESUMEN");
+    const hasValue = Array.from(select.options).some(
+      (option) => option.value === normalizedValue
+    );
+    if (normalizedValue && !hasValue) {
       const customOption = document.createElement("option");
-      customOption.value = value;
-      customOption.textContent = value;
+      customOption.value = normalizedValue;
+      customOption.textContent = normalizedValue;
       select.appendChild(customOption);
     }
-    if (value) {
-      select.value = value;
-    }
+    select.value = normalizedValue;
   };
 
   const buildCustomChartId = () =>
@@ -1112,8 +1306,8 @@
   };
 
   const getSeriesOptionsForModule = (moduleValue) => {
-    const moduleKey = (moduleValue || "RESUMEN").toString().trim().toUpperCase();
-    if (moduleKey === "RESUMEN" || moduleKey === "SUMMARY") {
+    const moduleKey = normalizeModuleKey(moduleValue, "RESUMEN");
+    if (moduleKey === "RESUMEN") {
       return getSummarySeriesFromForm(DEFAULT_CONFIG);
     }
     const currentConfig = loadConfig();
@@ -1158,8 +1352,8 @@
 
   const updateManualOnlyState = (manualOnly) => {
     if (!form) return;
-    const forced = manualOnly !== false;
-    form.setAttribute("data-manual-only", forced ? "true" : "false");
+    const enabled = manualOnly === true;
+    form.setAttribute("data-manual-only", enabled ? "true" : "false");
   };
 
   const updateManualChartsEmptyState = () => {
@@ -1170,7 +1364,7 @@
 
   const buildManualChartCard = (chart, index) => {
     const chartId = chart?.id || buildCustomChartId();
-    const moduleValue = chart?.module || "RESUMEN";
+    const moduleValue = normalizeModuleValue(chart?.module, "RESUMEN");
     const title = chart?.title || `Grafica manual ${index + 1}`;
     const subtitle = chart?.subtitle || "";
     const chartType = chart?.chartType || "inherit";
@@ -1334,10 +1528,10 @@
     if (chartStackedToggle)
       chartStackedToggle.checked = Boolean(config.chart?.stacked);
     if (manualOnlyToggle) {
-      manualOnlyToggle.checked = true;
-      manualOnlyToggle.disabled = true;
+      manualOnlyToggle.checked = config.manualOnly === true;
+      manualOnlyToggle.disabled = false;
     }
-    updateManualOnlyState(true);
+    updateManualOnlyState(config.manualOnly === true);
     renderManualCharts(config);
   };
 
@@ -1409,7 +1603,9 @@
       type: chartTypeSelect ? chartTypeSelect.value : "bar",
       stacked: chartStackedToggle ? chartStackedToggle.checked : false,
     };
-    draft.manualOnly = true;
+    draft.manualOnly = manualOnlyToggle
+      ? manualOnlyToggle.checked
+      : baseConfig.manualOnly === true;
 
     const customCharts = [];
     if (manualChartsContainer) {
@@ -1439,7 +1635,10 @@
           .filter((input) => input.checked)
           .map((input) => input.getAttribute("data-series-key"))
           .filter(Boolean);
-        const moduleValue = moduleSelect?.value || "RESUMEN";
+        const moduleValue = normalizeModuleValue(
+          moduleSelect?.value,
+          "RESUMEN"
+        );
         const optionMap = new Map(
           getSeriesOptionsForModule(moduleValue)
             .map((item) => [String(item?.key || "").trim(), item])
@@ -1559,11 +1758,9 @@
   }
 
   if (manualOnlyToggle) {
-    manualOnlyToggle.checked = true;
-    manualOnlyToggle.disabled = true;
+    manualOnlyToggle.disabled = false;
     manualOnlyToggle.addEventListener("change", () => {
-      manualOnlyToggle.checked = true;
-      updateManualOnlyState(true);
+      updateManualOnlyState(manualOnlyToggle.checked);
     });
   }
 
