@@ -5569,15 +5569,57 @@
         ? meta.operacionesLibres
         : [];
       const valoresPorOperacion = new Map();
+      const normalizarOperador = (valor) => {
+        const raw = (valor || "+").toString().trim();
+        if (raw === "×") return "*";
+        if (raw === "÷") return "/";
+        return raw;
+      };
+      const numeroSeguro = (valor) => {
+        const num = Number(valor);
+        return Number.isFinite(num) ? num : 0;
+      };
+      const dividirSeguro = (numerador, denominador) => {
+        const den = numeroSeguro(denominador);
+        if (!den) return 0;
+        return numeroSeguro(numerador) / den;
+      };
+      const aplicarOperacion = (acumulado, termValues, operador) => {
+        const op = normalizarOperador(operador);
+        const base = Array.isArray(termValues)
+          ? termValues.map((v) => numeroSeguro(v))
+          : obtenerCeros();
+        if (!Array.isArray(acumulado)) {
+          if (op === "-") return base.map((v) => v * -1);
+          return base.slice();
+        }
+        switch (op) {
+          case "-":
+            return acumulado.map(
+              (valor, idx) => numeroSeguro(valor) - numeroSeguro(base[idx])
+            );
+          case "*":
+            return acumulado.map(
+              (valor, idx) => numeroSeguro(valor) * numeroSeguro(base[idx])
+            );
+          case "/":
+            return acumulado.map((valor, idx) =>
+              dividirSeguro(valor, base[idx])
+            );
+          default:
+            return acumulado.map(
+              (valor, idx) => numeroSeguro(valor) + numeroSeguro(base[idx])
+            );
+        }
+      };
       freeOps.forEach((item) => {
         const op = item?.op;
         const fila = item?.fila;
         if (!op || !fila || !fila.parentNode) return;
         const terms = extraerFormulaTermsOperacion(op);
-        let valores = obtenerCeros();
+        let valores = null;
         terms.forEach((term) => {
           if (!term) return;
-          const operador = (term.operator || "+").toString().trim() === "-" ? -1 : 1;
           const tipo = (term.type || "").toString().toLowerCase();
           const valorTerm = term.value ?? term.cuenta ?? term.id ?? "";
           let termValues = obtenerCeros();
@@ -5598,10 +5640,11 @@
             const valoresSeccion = obtenerValoresSeccion(valorTerm);
             termValues = valoresSeccion || obtenerValoresCuenta(valorTerm);
           }
-          valores = valores.map(
-            (valor, idx) => valor + operador * (Number(termValues[idx]) || 0)
-          );
+          valores = aplicarOperacion(valores, termValues, term.operator);
         });
+        if (!Array.isArray(valores)) {
+          valores = obtenerCeros();
+        }
 
         const signo = Number(op?.signo);
         if (Number.isFinite(signo) && signo !== 1) {

@@ -293,8 +293,24 @@
       .getElementById("btnEliminar")
       ?.addEventListener("click", deleteElement);
 
-    dom.btnEditorSave?.addEventListener("click", confirmEdit);
-    dom.btnEditorDelete?.addEventListener("click", deleteElement);
+    dom.btnEditorSave?.addEventListener("click", () => {
+      if (state.selectedElement?.type === "operation") {
+        saveOperationFromPanel();
+      } else {
+        confirmEdit();
+      }
+    });
+    dom.btnEditorDelete?.addEventListener("click", () => {
+      if (state.selectedElement?.type === "operation") {
+        const op = state.selectedElement.op;
+        if (op) {
+          const opId = getOperationId(op) || getOperationLabel(op);
+          if (opId) window.deleteOperation(opId);
+        }
+      } else {
+        deleteElement();
+      }
+    });
 
     // Element type selector
     document.querySelectorAll('input[name="tipoElemento"]').forEach((radio) => {
@@ -1395,7 +1411,7 @@
     const sumInput = document.getElementById(rowLabelAddInputId("sum-row"));
     if (sumCheck) sumCheck.checked = true;
     if (sumInput && !sumInput.value && label) {
-      sumInput.value = `Suma de ${label}`;
+      sumInput.value = label;
     }
 
     const valueCandidates = [];
@@ -2911,7 +2927,7 @@
         <textarea class="form-control font-monospace" id="operationFormulaManual" rows="4" placeholder="Ej: 401-000-000-00 + Membership - Gastos">${escapeHtml(
           formulaText
         )}</textarea>
-        <div class="form-text">Escribe cuentas, secciones u operaciones con + / -. Usa espacios alrededor del operador para evitar cortar cuentas con guiones.</div>
+        <div class="form-text">Escribe cuentas, secciones u operaciones con +, -, * o /. Usa espacios alrededor del operador para evitar cortar cuentas con guiones.</div>
       </div>
       <div data-formula-panel="layout" class="${initialMode === "layout" ? "" : "d-none"}">
         <div class="alert alert-info small mb-3">
@@ -7337,6 +7353,14 @@
     const terms = [];
     let buffer = "";
     let operator = "+";
+    const operatorMap = {
+      "+": "+",
+      "-": "-",
+      "*": "*",
+      "/": "/",
+      "×": "*",
+      "÷": "/",
+    };
 
     const flush = () => {
       const token = buffer.trim();
@@ -7363,9 +7387,10 @@
 
     for (let i = 0; i < raw.length; i += 1) {
       const ch = raw[i];
-      if (ch === "+" || ch === "-") {
+      const mapped = operatorMap[ch];
+      if (mapped) {
         if (i === 0) {
-          operator = ch;
+          operator = mapped;
           continue;
         }
         const prev = raw[i - 1];
@@ -7375,7 +7400,7 @@
         if (prevIsSpace && nextIsSpace) {
           flush();
           buffer = "";
-          operator = ch;
+          operator = mapped;
           continue;
         }
       }
@@ -8031,7 +8056,20 @@
     }
 
     bootstrap.Modal.getInstance(dom.modalAgregar)?.hide();
-    await saveLayout({ skipConfirmation: true, silent: true, source: "bulk-add" });
+    const saved = await saveLayout({
+      skipConfirmation: true,
+      silent: true,
+      source: "bulk-add",
+    });
+
+    if (!saved) {
+      showToast(
+        "No se pudieron guardar los cambios de la inserción masiva. Revisa la conexión o vuelve a intentar.",
+        "error"
+      );
+      return;
+    }
+
     await loadLayout();
     resetBulkInsertTable({ focus: true });
 
@@ -11210,6 +11248,114 @@ window.editSection = function (name) {
     bootstrap.Modal.getInstance(dom.modalEditar)?.hide();
     bootstrap?.Offcanvas?.getInstance(dom.operationEditorPanel)?.hide();
     showToast("Elemento eliminado", "success");
+  }
+
+  /**
+   * Guarda los cambios de una operación desde el panel lateral
+   */
+  function saveOperationFromPanel() {
+    if (!state.selectedElement || state.selectedElement.type !== "operation") return;
+    
+    const op = state.selectedElement.op;
+    if (!op) return;
+
+    // Leer valores del panel
+    const claseInput = document.getElementById("editClaseOp");
+    const idInput = document.getElementById("editOperacionId");
+    const newClase = claseInput?.value?.trim() || "";
+    const newIdInput = idInput?.value?.trim() || "";
+    
+    // Validación básica
+    if (!newClase && !newIdInput) {
+      showToast("Completa al menos el nombre visible o el ID interno.", "error");
+      return;
+    }
+
+    const oldId = getOperationId(op);
+    const oldLabel = getOperationLabel(op);
+    const desiredId = normalizeOperationId(newIdInput || oldId || newClase || oldLabel);
+
+    if (!desiredId) {
+      showToast("Identificador inválido", "error");
+      return;
+    }
+
+    // Verificar conflictos de ID
+    const idConflict = state.operaciones.some(
+      (o) => o !== op && normalizeOperationMatch(getOperationId(o)) === normalizeOperationMatch(desiredId)
+    );
+    if (idConflict) {
+      showToast("El identificador ya existe en otra operación", "error");
+      return;
+    }
+
+    // Actualizar datos básicos
+    if (newClase) op.Clase = newClase;
+    op.OperacionId = desiredId;
+
+    // Leer fórmula del panel
+    const formulaPanel = dom.operationEditorPanel;
+    const formulaMode = formulaPanel?.querySelector('input[name="operationFormulaMode"]:checked')?.value || "layout";
+    const manualText = formulaPanel?.querySelector("#operationFormulaManual")?.value || "";
+    const selectedTerms = formulaMode === "manual"
+      ? parseFormulaText(manualText)
+      : collectFormulaTermsFromLayout(formulaPanel);
+
+    // VALIDACIÓN: Las operaciones deben tener fórmula
+    if (!selectedTerms || selectedTerms.length === 0) {
+      showToast("⚠️ La operación debe tener una fórmula. Usa la pestaña 'Fórmula' para definirla.", "error");
+      setOperationEditorTab("editorTabFormula");
+      return;
+    }
+
+    // Guardar fórmula
+    op.formula_terms = normalizeFormulaTerms(selectedTerms);
+    op.formula_json = JSON.stringify(op.formula_terms);
+    
+    // Legacy format
+    op.signos = {};
+    for (let i = 1; i <= 20; i++) {
+      delete op[`seccion_${i}`];
+    }
+    
+    op.formula_terms.forEach((term, i) => {
+      const key = `seccion_${i + 1}`;
+      op[key] = term.value;
+      op.signos[key] = term.operator === "-" ? -1 : 1;
+    });
+
+    if (op.formula_terms.length === 1 && op.formula_terms[0].type === "section") {
+      op.SECCION = op.formula_terms[0].value;
+    }
+
+    // Visibilidad y estilo
+    const visibleInput = document.getElementById("editOperacionVisible");
+    if (visibleInput) {
+      op.visible = Boolean(visibleInput.checked);
+    }
+    
+    const estiloFilaInput = document.getElementById("editOperacionEstilo");
+    if (estiloFilaInput?.value) {
+      op.rowStyle = estiloFilaInput.value;
+      op.estilo_fila = estiloFilaInput.value;
+    }
+
+    // Marcar cambios y actualizar
+    state.unsavedChanges = true;
+    updateButtonStates();
+    renderLayout();
+    updateStats();
+    scheduleAutoSave("edit");
+    
+    bootstrap?.Offcanvas?.getInstance(dom.operationEditorPanel)?.hide();
+    showToast("✅ Operación guardada", "success");
+    
+    logChange("edit", `Operación "${newClase}" actualizada`, {
+      oldId,
+      newId: desiredId,
+      oldLabel,
+      newLabel: newClase
+    });
   }
 
   // ==========================================

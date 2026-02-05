@@ -1025,39 +1025,8 @@ const sembrarUsuariosDesdeJson = () => {
 };
 
 const limpiarPermisosResumenNoAutorizados = () => {
-  if (!db) return;
-  try {
-    const usuarios = db.prepare("SELECT id, usuario FROM usuarios").all();
-    if (!usuarios || !usuarios.length) return;
-    const eliminarPermiso = db.prepare(`
-      DELETE FROM permisos_modulo
-      WHERE usuario_id = ? AND modulo = ?
-    `);
-    const transaction = db.transaction((lista) => {
-      lista.forEach((registro) => {
-        const usuarioNormalizado = normalizarUsuario(registro.usuario);
-        if (esUsuarioPermitidoResumen(usuarioNormalizado)) {
-          return;
-        }
-        MODULOS_RESTRINGIDOS.forEach((modulo) => {
-          try {
-            eliminarPermiso.run(registro.id, modulo);
-          } catch (err) {
-            console.warn(
-              "No fue posible eliminar permiso restringido:",
-              err?.message || err
-            );
-          }
-        });
-      });
-    });
-    transaction(usuarios);
-  } catch (err) {
-    console.warn(
-      "No fue posible limpiar permisos restringidos:",
-      err?.message || err
-    );
-  }
+  // Función deshabilitada: ahora los permisos de RESUMEN/SUMMARY se gestionan manualmente
+  return;
 };
 
 const sembrarVistasPorCapitulo = () => {

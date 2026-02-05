@@ -401,8 +401,8 @@ router.post("/", asegurarPermisoGeneral("puedeAgregar"), (req, res) => {
 
   // Solo validar si no es admin global Y si tiene permisosGenerales denegados
   const tienePermisosGenerales = payload.permisosGenerales?.puedeAgregar ||
-                                  payload.permisosGenerales?.puedeModificar ||
-                                  payload.permisosGenerales?.puedeEliminar;
+    payload.permisosGenerales?.puedeModificar ||
+    payload.permisosGenerales?.puedeEliminar;
 
   if (!payload.esAdminGlobal && totalPermisos === 0 && !tienePermisosGenerales) {
     return res
@@ -418,10 +418,10 @@ router.post("/", asegurarPermisoGeneral("puedeAgregar"), (req, res) => {
   const permisosGenerales = payload.esAdminGlobal
     ? { puedeAgregar: 1, puedeModificar: 1, puedeEliminar: 1 }
     : {
-        puedeAgregar: payload.permisosGenerales?.puedeAgregar ? 1 : 0,
-        puedeModificar: payload.permisosGenerales?.puedeModificar ? 1 : 0,
-        puedeEliminar: payload.permisosGenerales?.puedeEliminar ? 1 : 0,
-      };
+      puedeAgregar: payload.permisosGenerales?.puedeAgregar ? 1 : 0,
+      puedeModificar: payload.permisosGenerales?.puedeModificar ? 1 : 0,
+      puedeEliminar: payload.permisosGenerales?.puedeEliminar ? 1 : 0,
+    };
 
   const insertar = db.prepare(`
     INSERT INTO usuarios (
@@ -533,8 +533,8 @@ router.put("/:id", asegurarPermisoGeneral("puedeModificar"), (req, res) => {
 
   // Solo validar si no es admin global Y si tiene permisosGenerales denegados
   const tienePermisosGenerales = payload.permisosGenerales?.puedeAgregar ||
-                                  payload.permisosGenerales?.puedeModificar ||
-                                  payload.permisosGenerales?.puedeEliminar;
+    payload.permisosGenerales?.puedeModificar ||
+    payload.permisosGenerales?.puedeEliminar;
 
   if (!payload.esAdminGlobal && totalPermisos === 0 && !tienePermisosGenerales) {
     return res
@@ -552,10 +552,10 @@ router.put("/:id", asegurarPermisoGeneral("puedeModificar"), (req, res) => {
   const permisosGenerales = payload.esAdminGlobal
     ? { puedeAgregar: 1, puedeModificar: 1, puedeEliminar: 1 }
     : {
-        puedeAgregar: payload.permisosGenerales?.puedeAgregar ? 1 : 0,
-        puedeModificar: payload.permisosGenerales?.puedeModificar ? 1 : 0,
-        puedeEliminar: payload.permisosGenerales?.puedeEliminar ? 1 : 0,
-      };
+      puedeAgregar: payload.permisosGenerales?.puedeAgregar ? 1 : 0,
+      puedeModificar: payload.permisosGenerales?.puedeModificar ? 1 : 0,
+      puedeEliminar: payload.permisosGenerales?.puedeEliminar ? 1 : 0,
+    };
 
   const apellidosCompletos = [payload.apellidoPrimero, payload.apellidoSegundo]
     .filter(Boolean)

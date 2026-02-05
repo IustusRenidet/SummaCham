@@ -677,6 +677,13 @@
               if (!activa) elemento.checked = false;
             }
           });
+        
+        // Sincronizar estado de "Ver" para todas las cards de esta empresa
+        contenedorEmpresas
+          .querySelectorAll(`.modulo-card[data-empresa="${empresaId}"]`)
+          .forEach((card) => {
+            sincronizarCheckboxVer(card);
+          });
       };
 
       const obtenerPermisosDelFormulario = () => {
@@ -739,6 +746,8 @@
               );
               if (checkbox) checkbox.checked = Boolean(valor);
             });
+            // Sincronizar el estado de "Ver" después de aplicar permisos
+            sincronizarCheckboxVer(card);
             // Ajusta el estado del select-all del modulo
             actualizarSelectAllDeCard(card);
           });
@@ -793,10 +802,17 @@
         ).filter((cb) => cb.getAttribute("data-accion") !== "Ver");
         if (!checkboxVer) return;
 
-        // Si cualquier otro checkbox está marcado, "Ver" debe estar marcado
+        // Si cualquier otro checkbox está marcado, "Ver" debe estar marcado y bloqueado
         const algunOtroMarcado = otrosCheckboxes.some((cb) => cb.checked);
-        if (algunOtroMarcado && !checkboxVer.checked) {
-          checkboxVer.checked = true;
+        if (algunOtroMarcado) {
+          if (!checkboxVer.checked) {
+            checkboxVer.checked = true;
+          }
+          // Deshabilitar "Ver" cuando hay otros permisos activos (debe estar siempre marcado)
+          checkboxVer.disabled = true;
+        } else {
+          // Si no hay otros permisos, "Ver" puede marcarse/desmarcarse libremente
+          checkboxVer.disabled = false;
         }
       };
 
@@ -868,6 +884,13 @@
           }
           checkbox.disabled = activo;
         });
+
+        // Sincronizar el estado de "Ver" para cada card
+        if (!activo) {
+          contenedorEmpresas.querySelectorAll(".modulo-card").forEach((card) => {
+            sincronizarCheckboxVer(card);
+          });
+        }
 
         contenedorEmpresas
           .querySelectorAll("input.select-all")

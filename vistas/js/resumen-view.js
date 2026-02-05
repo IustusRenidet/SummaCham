@@ -80,6 +80,13 @@
     return fallback;
   };
 
+  const normalizeSeriesMode = (value, fallback = "columns") => {
+    if (typeof value !== "string") return fallback;
+    const clean = value.trim().toLowerCase();
+    if (clean === "rows" || clean === "columns") return clean;
+    return fallback;
+  };
+
   const resolveChartType = (value, baseType) => {
     const normalized = normalizeChartType(value, "inherit");
     if (normalized === "inherit") return baseType || "bar";
@@ -315,8 +322,184 @@
           tic: ["T&IC", "T&IC (INCOME)", "T&IC INCOME"],
         },
       },
-      manualOnly: false,
-      customCharts: [],
+      manualOnly: true,
+      customCharts: [
+        {
+          id: "manual-operating",
+          module: "RESUMEN",
+          title: "Resultado Operativo por Capitulo",
+          subtitle: "Real Acum / Ppto. Acum / Real Acum AA",
+          chartType: "inherit",
+          sourceType: "snapshot",
+          seriesMode: "columns",
+          enabled: true,
+          seriesKeys: ["actualYTD", "planYTD", "prevYTD"],
+          rows: [
+            {
+              alias: "Ciudad de Mexico",
+              variants: ["OPERATING RESULTS MEXICO"],
+            },
+            {
+              alias: "Guadalajara",
+              variants: ["OPERATING RESULTS GUADALAJARA", "GDL OPERATING RESULTS"],
+            },
+            {
+              alias: "Monterrey",
+              variants: ["OPERATING RESULTS MONTERREY", "MTY OPERATING RESULTS"],
+            },
+            {
+              alias: "Noroeste",
+              variants: [
+                "OPERATING RESULTS NORTHWEST",
+                "OPERATING RESULTS NO",
+                "NO OPERATING RESULTS",
+              ],
+            },
+            {
+              alias: "{capitulo}",
+              variants: ["OPERATING RESULTS", "RESULTADO OPERATIVO"],
+            },
+          ],
+        },
+        {
+          id: "manual-net",
+          module: "RESUMEN",
+          title: "Resumen Neto por Capitulo",
+          subtitle: "Real Acum / Ppto. Acum / Real Acum AA",
+          chartType: "inherit",
+          sourceType: "snapshot",
+          seriesMode: "columns",
+          enabled: true,
+          seriesKeys: ["actualYTD", "planYTD", "prevYTD"],
+          rows: [
+            {
+              alias: "Ciudad de Mexico",
+              variants: ["NET RESULTS MEXICO"],
+            },
+            {
+              alias: "Guadalajara",
+              variants: ["NET RESULTS GUADALAJARA", "GDL NET RESULTS"],
+            },
+            {
+              alias: "Monterrey",
+              variants: ["NET RESULTS MONTERREY", "MTY NET RESULTS"],
+            },
+            {
+              alias: "Noroeste",
+              variants: [
+                "NET RESULTS NORTHWEST",
+                "NET RESULTS NO",
+                "NO NET RESULTS",
+              ],
+            },
+            {
+              alias: "{capitulo}",
+              variants: ["NET RESULTS", "RESULTADO NETO"],
+            },
+          ],
+        },
+        {
+          id: "manual-consolidated",
+          module: "RESUMEN",
+          title: "Consolidados Operativos vs Netos",
+          subtitle: "Real Acum / Ppto. Acum / Real Acum AA",
+          chartType: "inherit",
+          sourceType: "snapshot",
+          seriesMode: "rows",
+          enabled: true,
+          cdmxOnly: true,
+          seriesKeys: ["actualYTD", "planYTD", "prevYTD"],
+          rows: [
+            {
+              alias: "CONSOLIDATED OPERATING RESULTS",
+              variants: [
+                "CONSOLIDATED OPERATING RESULTS",
+                "CONSOLIDATED OPERATING RESULT",
+              ],
+            },
+            {
+              alias: "CONSOLIDATED NET RESULTS",
+              variants: ["CONSOLIDATED NET RESULTS", "CONSOLIDATED NET RESULT"],
+            },
+          ],
+        },
+        {
+          id: "manual-ingreso-capitulo",
+          module: "RESUMEN",
+          title: "Ingreso por capitulo",
+          subtitle: "Real acumulado por mes",
+          chartType: "inherit",
+          sourceType: "mensual",
+          seriesMode: "rows",
+          enabled: true,
+          seriesKeys: ["actualYTD"],
+          rows: [
+            {
+              alias: "CDMX",
+              variants: [
+                "CDMX INCOME",
+                "MEXICO INCOME",
+                "CIUDAD DE MEXICO INCOME",
+              ],
+            },
+            {
+              alias: "Guadalajara",
+              variants: ["GUADALAJARA INCOME", "GDL INCOME", "GUADALAJARA INCOMEA"],
+            },
+            {
+              alias: "Monterrey",
+              variants: ["MONTERREY INCOME", "MTY INCOME"],
+            },
+            {
+              alias: "Noroeste",
+              variants: [
+                "NORTHWEST INCOME",
+                "NW INCOME",
+                "NOROESTE INCOME",
+                "NO INCOME",
+              ],
+            },
+          ],
+        },
+        {
+          id: "manual-ingreso-nacional",
+          module: "RESUMEN",
+          title: "Ingreso nacional",
+          subtitle: "Real acumulado por mes",
+          chartType: "inherit",
+          sourceType: "mensual",
+          seriesMode: "rows",
+          enabled: true,
+          cdmxOnly: true,
+          seriesKeys: ["actualYTD"],
+          rows: [
+            {
+              alias: "Committees",
+              variants: ["COMMITTEES", "COMITES", "COMMITTEES (INCOME)"],
+            },
+            {
+              alias: "Membership",
+              variants: ["MEMBERSHIP", "MEMBERSHIP (INCOME)"],
+            },
+            {
+              alias: "Events",
+              variants: ["EVENTS", "EVENTS (INCOME)"],
+            },
+            {
+              alias: "Services to Members",
+              variants: [
+                "SERVICES TO MEMBERS",
+                "SERVICES MEMBERS",
+                "SERVICES TO MEMBERS (INCOME)",
+              ],
+            },
+            {
+              alias: "T&IC",
+              variants: ["T&IC", "T&IC (INCOME)", "T&IC INCOME"],
+            },
+          ],
+        },
+      ],
     };
   })();
 
@@ -1230,12 +1413,28 @@
     );
   };
 
-  const buildCustomChartData = (snapshot, chart, seriesConfig, chartType) => {
+  const resolveChartLabel = (value, context = {}) => {
+    const base =
+      context?.etiqueta ||
+      context?.capitulo ||
+      "Capitulo";
+    return String(value || "").replace(/\{capitulo\}/gi, base);
+  };
+
+  const buildCustomChartData = (
+    snapshot,
+    chart,
+    seriesConfig,
+    chartType,
+    seriesMode = "columns",
+    context = {}
+  ) => {
     if (!snapshot?.filas || !Array.isArray(seriesConfig) || !seriesConfig.length) {
       return null;
     }
     const rows = Array.isArray(chart?.rows) ? chart.rows : [];
     if (!rows.length) return null;
+    const usedLabels = new Set();
     const resolvedRows = rows
       .map((row) => {
         const variants =
@@ -1253,14 +1452,58 @@
           const label = normalizarLabelResumen(fila?.label || "");
           return normalizedVariants.some((v) => label.includes(v));
         });
+        const matchLabel = normalizarLabelResumen(match?.label || "");
+        if (!match?.totals) return null;
+        if (matchLabel && usedLabels.has(matchLabel)) return null;
+        if (matchLabel) usedLabels.add(matchLabel);
         return {
-          label: row?.alias || variants[0],
+          label: resolveChartLabel(row?.alias || variants[0], context),
           data: match?.totals || null,
         };
       })
       .filter(Boolean);
 
     if (!resolvedRows.length) return null;
+
+    const useRowsAsSeries = seriesMode === "rows";
+    const isPie = isPieType(chartType);
+
+    if (useRowsAsSeries) {
+      const labels = seriesConfig.map((serie) => serie.label || serie.key);
+      const datasets = resolvedRows.map((row, idx) => {
+        const rawValues = seriesConfig.map((serie) =>
+          resolveSummarySeriesValue(row.data || {}, serie.key)
+        );
+        const data = isPie ? rawValues : rawValues;
+        const color = CHART_PALETTE[idx % CHART_PALETTE.length];
+        const dataset = {
+          label: row.label || `Serie ${idx + 1}`,
+          data,
+          borderWidth: chartType === "line" ? 2 : 2,
+        };
+        if (isPieType(chartType)) {
+          dataset.backgroundColor = buildSlicePalette(data.length, color);
+          dataset.borderColor = "#ffffff";
+          dataset.borderWidth = 1;
+          return dataset;
+        }
+        dataset.backgroundColor = color;
+        dataset.borderColor = color;
+        if (chartType === "line") {
+          dataset.fill = false;
+          dataset.tension = 0.32;
+          dataset.pointRadius = 3;
+          dataset.pointBackgroundColor = color;
+        }
+        return dataset;
+      });
+
+      return {
+        labels,
+        datasets,
+        type: chartType,
+      };
+    }
 
     const datasets = seriesConfig.map((serie) => {
       const data = resolvedRows.map((row) =>
@@ -1331,12 +1574,88 @@
     responses = [],
     chart,
     seriesConfig,
-    chartType
+    chartType,
+    seriesMode = "columns",
+    context = {}
   ) => {
     if (!Array.isArray(responses) || !responses.length) return null;
     if (!Array.isArray(seriesConfig) || !seriesConfig.length) return null;
     const rows = Array.isArray(chart?.rows) ? chart.rows : [];
     if (!rows.length) return null;
+
+    const useRowsAsSeries = seriesMode === "rows";
+    if (useRowsAsSeries) {
+      const valueKey = seriesConfig[0]?.key || "actualYTD";
+      const resolvedRows = rows
+        .map((row) => {
+          const variants =
+            Array.isArray(row?.variants) && row.variants.length
+              ? row.variants
+              : row?.alias
+              ? [row.alias]
+              : [];
+          if (!variants.length) return null;
+          return {
+            label: resolveChartLabel(row?.alias || variants[0], context),
+            variants,
+          };
+        })
+        .filter(Boolean);
+      if (!resolvedRows.length) return null;
+
+      const valuesByRow = resolvedRows.map(() =>
+        Array.from({ length: MESES.length }, () => 0)
+      );
+
+      responses.forEach((data, monthIndex) => {
+        const layout = data?.resumen?.[0]?.layout || [];
+        if (!Array.isArray(layout) || !layout.length) return;
+        resolvedRows.forEach((row, rowIdx) => {
+          const match = buscarFilaIngreso(layout, row.variants);
+          if (!match?.totals) return;
+          valuesByRow[rowIdx][monthIndex] += resolveSummarySeriesValue(
+            match.totals,
+            valueKey
+          );
+        });
+      });
+
+      const hasData = valuesByRow.some((serie) =>
+        (serie || []).some((value) => Number(value) !== 0)
+      );
+      if (!hasData) return null;
+
+      const datasets = resolvedRows.map((row, idx) => {
+        const data = valuesByRow[idx] || [];
+        const color = CHART_PALETTE[idx % CHART_PALETTE.length];
+        const dataset = {
+          label: row.label || `Serie ${idx + 1}`,
+          data,
+          borderWidth: chartType === "line" ? 2 : 2,
+        };
+        if (isPieType(chartType)) {
+          dataset.backgroundColor = buildSlicePalette(data.length, color);
+          dataset.borderColor = "#ffffff";
+          dataset.borderWidth = 1;
+          return dataset;
+        }
+        dataset.backgroundColor = color;
+        dataset.borderColor = color;
+        if (chartType === "line") {
+          dataset.fill = false;
+          dataset.tension = 0.32;
+          dataset.pointRadius = 3;
+          dataset.pointBackgroundColor = color;
+        }
+        return dataset;
+      });
+
+      return {
+        labels: MESES.map((m) => m.etiqueta),
+        datasets,
+        type: chartType,
+      };
+    }
 
     const valuesBySerie = seriesConfig.reduce((acc, serie) => {
       acc[serie.key] = Array.from({ length: MESES.length }, () => 0);
@@ -1452,6 +1771,14 @@
     );
     const empresa = empresaActual || Sesion.obtenerEmpresaActiva?.();
     const empresaId = empresa?.id || null;
+    const capitulo = obtenerCapituloEmpresa(empresaId) || "";
+    const etiqueta =
+      window.CapitulosModulos?.obtenerConfigEmpresa?.(empresaId)?.etiqueta ||
+      empresa?.etiqueta ||
+      capitulo ||
+      "Capitulo";
+    const isCdmx = resolveIsCdmx(empresaId, graficasConfig);
+    const labelContext = { capitulo, etiqueta, isCdmx };
     const anio = leerAnioSeleccionado();
     const canLoadMensual = Boolean(empresaId) && Number.isInteger(Number(anio));
     let mensualResponses = null;
@@ -1472,7 +1799,9 @@
       if (chart?.enabled === false) continue;
       const chartModule = normalizeModuleKey(chart?.module || "RESUMEN");
       if (chartModule !== moduleKey) continue;
+      if (chart?.cdmxOnly === true && !labelContext.isCdmx) continue;
       const chartType = resolveChartType(chart?.chartType, baseChartType);
+      const seriesMode = normalizeSeriesMode(chart?.seriesMode, "columns");
       const seriesConfig = applyCustomSeriesOverrides(
         filterSeriesByKeys(baseSeriesConfig, chart?.seriesKeys || []),
         chart
@@ -1489,7 +1818,9 @@
           mensualResponses,
           chart,
           seriesConfig,
-          chartType
+          chartType,
+          seriesMode,
+          labelContext
         );
       } else {
         let chartSnapshot = fallbackSnapshot;
@@ -1507,7 +1838,9 @@
             chartSnapshot,
             chart,
             seriesConfig,
-            chartType
+            chartType,
+            seriesMode,
+            labelContext
           );
         }
       }
@@ -1847,9 +2180,20 @@
     const resolvedAnio = Number.isFinite(Number(anio))
       ? Number(anio)
       : leerAnioSeleccionado();
+    const resolvedCapitulo = obtenerCapituloEmpresa(resolvedEmpresaId) || "";
+    const resolvedEtiqueta =
+      window.CapitulosModulos?.obtenerConfigEmpresa?.(resolvedEmpresaId)?.etiqueta ||
+      empresaActual?.etiqueta ||
+      resolvedCapitulo ||
+      "Capitulo";
+    const resolvedIsCdmx = resolveIsCdmx(resolvedEmpresaId, graficasConfig);
+    const labelContext = {
+      capitulo: resolvedCapitulo,
+      etiqueta: resolvedEtiqueta,
+      isCdmx: resolvedIsCdmx,
+    };
 
     if (!manualOnly && resolvedEmpresaId && resolvedAnio) {
-      const isCdmx = resolveIsCdmx(resolvedEmpresaId, graficasConfig);
       const ingresoConfig =
         graficasConfig.ingreso || DEFAULT_GRAFICAS_CONFIG.ingreso || {};
       const ingresoNacionalConfig =
@@ -1862,7 +2206,7 @@
         obtenerIngresoNacionalSeries(resolvedEmpresaId, resolvedAnio),
       ]);
 
-      if (isCdmx && ingresoNacional) {
+      if (resolvedIsCdmx && ingresoNacional) {
         const tituloRaw = (ingresoNacionalConfig.title || "").toString().trim();
         datos.push({
           ...ingresoNacional,
@@ -1896,7 +2240,9 @@
         if (chart?.enabled === false) continue;
         const chartModule = normalizeModuleKey(chart?.module || "RESUMEN");
         if (chartModule !== moduleKey) continue;
+        if (chart?.cdmxOnly === true && !labelContext.isCdmx) continue;
         const chartType = resolveChartType(chart?.chartType, baseChartType);
+        const seriesMode = normalizeSeriesMode(chart?.seriesMode, "columns");
         const seriesConfig = applyCustomSeriesOverrides(
           filterSeriesByKeys(baseSeriesConfig, chart?.seriesKeys || []),
           chart
@@ -1918,10 +2264,19 @@
             mensualResponses,
             chart,
             seriesConfig,
-            chartType
+            chartType,
+            seriesMode,
+            labelContext
           );
         } else if (snapshot?.filas) {
-          data = buildCustomChartData(snapshot, chart, seriesConfig, chartType);
+          data = buildCustomChartData(
+            snapshot,
+            chart,
+            seriesConfig,
+            chartType,
+            seriesMode,
+            labelContext
+          );
         }
         if (!data) continue;
         const tituloRaw = (chart?.title || "").toString().trim();
@@ -3286,7 +3641,6 @@
     });
 
     const recalcularPrincipales = (layoutArr = []) => {
-      return;
       if (!Array.isArray(layoutArr) || !layoutArr.length) return;
       let principalActual = null;
       let acumulado = totalesCero();
@@ -3323,7 +3677,6 @@
     };
 
     const recalcularConsolidados = (layoutArr = [], capituloName = "") => {
-      return;
       if (!Array.isArray(layoutArr) || !layoutArr.length) return;
       const capituloNormalizado = normalizarLabel(capituloName);
       const esCapituloMexico = capituloNormalizado === "CIUDAD DE MEXICO";

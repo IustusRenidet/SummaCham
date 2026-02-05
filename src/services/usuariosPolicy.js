@@ -23,32 +23,13 @@ const esAdministradorHistorico = (usuario) =>
   ADMINISTRADORES_HISTORICOS.has(normalizarUsuario(usuario));
 
 const limpiarPermisosMapa = ({ permisos = {}, usuario }) => {
-  if (!permisos || esUsuarioPermitidoResumen(usuario)) {
-    return permisos || {};
-  }
-  const limpio = {};
-  Object.entries(permisos || {}).forEach(([empresaId, modulos]) => {
-    if (!modulos) return;
-    const permitidos = {};
-    Object.entries(modulos).forEach(([modulo, acciones]) => {
-      if (esModuloRestringido(modulo)) {
-        return;
-      }
-      permitidos[modulo] = acciones;
-    });
-    if (Object.keys(permitidos).length > 0) {
-      limpio[empresaId] = permitidos;
-    }
-  });
-  return limpio;
+  // Ya no filtramos módulos restringidos - los permisos ahora se controlan por usuario
+  return permisos || {};
 };
 
 const limpiarPermisosLista = ({ lista = [], usuario }) => {
-  const permisos = Array.isArray(lista) ? lista : [];
-  if (esUsuarioPermitidoResumen(usuario)) {
-    return permisos;
-  }
-  return permisos.filter((permiso) => !esModuloRestringido(permiso?.modulo));
+  // Ya no filtramos módulos restringidos - los permisos ahora se controlan por usuario
+  return Array.isArray(lista) ? lista : [];
 };
 
 const asegurarPermisosGeneralesAdmin = (usuario, permisosGenerales = {}) => {

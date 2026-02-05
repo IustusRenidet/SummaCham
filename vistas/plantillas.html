@@ -373,8 +373,8 @@
                         <div>
                           <h2 class="h5 mb-1">Graficas</h2>
                           <p class="small text-muted mb-0">
-                            Personaliza las graficas existentes en todos los
-                            modulos.
+                            Personaliza las graficas manuales y revisa su fuente
+                            (tabla, filas y columnas).
                           </p>
                         </div>
                         <div class="d-flex align-items-center gap-2">
@@ -406,175 +406,219 @@
                         editar la configuracion.
                       </div>
 
-                      <div class="mt-3">
-                        <ul
-                          class="nav nav-pills nav-fill gap-2 plantillas-graficas-tabs"
-                          id="plantillasGraficasTabs"
-                          role="tablist"
-                        >
-                          <li class="nav-item" role="presentation">
-                            <button
-                              class="nav-link active"
-                              id="plantillas-graficas-panel-tab"
-                              data-bs-toggle="tab"
-                              data-bs-target="#plantillasGraficasPanel"
-                              type="button"
-                              role="tab"
+                      <div class="plantillas-graficas-shell mt-3">
+                        <div class="plantillas-graficas-context">
+                          <div class="context-chip">
+                            <span class="context-label">Modulo</span>
+                            <span id="plantillasGraficasContextModulo">-</span>
+                          </div>
+                          <div class="context-chip">
+                            <span class="context-label">Año</span>
+                            <span id="plantillasGraficasContextAnio">-</span>
+                          </div>
+                          <div class="context-chip">
+                            <span class="context-label">Capitulo</span>
+                            <span id="plantillasGraficasContextCapitulo"
+                              >Sin capitulo</span
                             >
-                              Panel de graficas
-                            </button>
-                          </li>
-                          <li class="nav-item" role="presentation">
-                            <button
-                              class="nav-link"
-                              id="plantillas-graficas-config-tab"
-                              data-bs-toggle="tab"
-                              data-bs-target="#plantillasGraficasConfig"
-                              type="button"
-                              role="tab"
-                            >
-                              Configuracion
-                            </button>
-                          </li>
-                        </ul>
-                        <div
-                          class="tab-content mt-3"
-                          id="plantillasGraficasTabsContent"
-                        >
-                          <div
-                            class="tab-pane fade show active"
+                          </div>
+                          <div class="context-chip context-chip-accent">
+                            <span class="context-label">Modo</span>
+                            <span>Manual</span>
+                          </div>
+                        </div>
+
+                        <div class="plantillas-graficas-layout">
+                          <section
+                            class="plantillas-graficas-list"
                             id="plantillasGraficasPanel"
-                            role="tabpanel"
-                            aria-labelledby="plantillas-graficas-panel-tab"
                           >
-                            <div class="row g-3">
-                              <div class="col-12 col-xl-8">
-                                <div
-                                  class="plantillas-graficas-gallery"
-                                  id="plantillasGraficasGallery"
-                                ></div>
+                            <div class="plantillas-graficas-list-header">
+                              <div>
+                                <h3 class="h6 mb-1">Panel de graficas</h3>
+                                <p class="text-muted small mb-0">
+                                  Vista previa, fuente y estructura de datos.
+                                </p>
                               </div>
-                              <div class="col-12 col-xl-4">
-                                <div
-                                  class="card border-0 shadow-sm h-100"
-                                  id="plantillasGraficasDetailCard"
-                                >
-                                  <div class="card-body">
-                                    <h6 class="mb-2">
-                                      Personaliza una grafica
-                                    </h6>
-                                    <p
-                                      class="text-muted small mb-3"
-                                      id="plantillasGraficasDetailHint"
-                                    >
-                                      Selecciona una grafica para ajustar sus
-                                      fuentes, colores y titulos.
-                                    </p>
+                              <button
+                                type="button"
+                                class="btn btn-outline-primary btn-sm"
+                                id="plantillasGraficasDetailAdd"
+                              >
+                                <i class="bi bi-plus-circle me-1"></i>
+                                Nueva grafica manual
+                              </button>
+                            </div>
+                            <div
+                              class="plantillas-graficas-gallery"
+                              id="plantillasGraficasGallery"
+                            ></div>
+
+                            <template id="plantillasGraficasCardTemplate">
+                              <button
+                                type="button"
+                                class="plantillas-graficas-card"
+                                data-chart-card
+                              >
+                                <div class="plantillas-graficas-card-inner">
+                                  <div class="plantillas-graficas-preview">
+                                    <canvas data-chart-canvas></canvas>
+                                  </div>
+                                  <div class="plantillas-graficas-card-body">
                                     <div
-                                      class="mb-3 d-none"
-                                      id="plantillasGraficasDetailMeta"
+                                      class="d-flex justify-content-between align-items-start gap-2"
                                     >
-                                      <div
-                                        class="fw-semibold"
-                                        data-detail-title
-                                      ></div>
-                                      <div
-                                        class="text-muted small"
-                                        data-detail-subtitle
-                                      ></div>
-                                      <div
-                                        class="text-muted small"
-                                        data-detail-info
-                                      ></div>
-                                      <div
-                                        class="text-muted small d-none"
-                                        data-detail-sources
-                                      ></div>
+                                      <div>
+                                        <div
+                                          class="plantillas-graficas-card-title"
+                                          data-chart-title
+                                        ></div>
+                                        <div
+                                          class="text-muted small"
+                                          data-chart-subtitle
+                                        ></div>
+                                      </div>
+                                      <span
+                                        class="badge rounded-pill bg-light text-primary"
+                                        data-chart-status
+                                      >
+                                        Activa
+                                      </span>
                                     </div>
-                                    <div class="d-grid gap-2">
-                                      <button
-                                        type="button"
-                                        class="btn btn-primary btn-sm d-none"
-                                        id="plantillasGraficasDetailEdit"
+                                    <div class="plantillas-graficas-tags">
+                                      <span
+                                        class="plantillas-graficas-tag"
+                                        data-chart-category
+                                      ></span>
+                                      <span
+                                        class="plantillas-graficas-tag outline"
+                                        data-chart-module
+                                      ></span>
+                                    </div>
+                                    <div
+                                      class="plantillas-graficas-card-meta"
+                                      data-chart-meta
+                                    ></div>
+                                    <div
+                                      class="plantillas-graficas-card-source"
+                                      data-chart-source
+                                    ></div>
+                                  </div>
+                                </div>
+                              </button>
+                            </template>
+                          </section>
+
+                          <section class="plantillas-graficas-editor">
+                            <div
+                              class="card plantillas-graficas-focus"
+                              id="plantillasGraficasDetailCard"
+                            >
+                              <div class="card-body">
+                                <div class="plantillas-graficas-focus-header">
+                                  <div>
+                                    <div class="focus-eyebrow">Seleccion actual</div>
+                                    <div
+                                      class="plantillas-graficas-focus-title"
+                                      data-detail-title
+                                    ></div>
+                                    <div
+                                      class="text-muted small"
+                                      data-detail-subtitle
+                                    ></div>
+                                  </div>
+                                  <div class="plantillas-graficas-focus-actions">
+                                    <button
+                                      type="button"
+                                      class="btn btn-primary btn-sm d-none"
+                                      id="plantillasGraficasDetailEdit"
+                                    >
+                                      <i class="bi bi-sliders me-1"></i>
+                                      Editar
+                                    </button>
+                                    <button
+                                      type="button"
+                                      class="btn btn-outline-danger btn-sm d-none"
+                                      id="plantillasGraficasDetailDelete"
+                                    >
+                                      <i class="bi bi-trash me-1"></i>
+                                      Eliminar
+                                    </button>
+                                  </div>
+                                </div>
+                                <p
+                                  class="text-muted small mb-0"
+                                  id="plantillasGraficasDetailHint"
+                                >
+                                  Selecciona una grafica para ver su fuente exacta
+                                  y editarla.
+                                </p>
+                                <div
+                                  class="plantillas-graficas-focus-meta d-none"
+                                  id="plantillasGraficasDetailMeta"
+                                >
+                                  <div class="text-muted small" data-detail-info></div>
+                                  <div class="plantillas-graficas-focus-grid">
+                                    <div class="plantillas-graficas-focus-block">
+                                      <div
+                                        class="plantillas-graficas-focus-block-header"
                                       >
-                                        <i class="bi bi-sliders me-1"></i>
-                                        Personalizar
-                                      </button>
-                                      <button
-                                        type="button"
-                                        class="btn btn-outline-danger btn-sm d-none"
-                                        id="plantillasGraficasDetailDelete"
+                                        <div
+                                          class="plantillas-graficas-focus-block-title"
+                                        >
+                                          Filas (tabla)
+                                        </div>
+                                      </div>
+                                      <div class="plantillas-graficas-focus-block-body">
+                                        <label
+                                          class="form-label small fw-semibold d-none"
+                                          data-detail-series-label
+                                          >Serie (grafica)</label
+                                        >
+                                        <select
+                                          class="form-select form-select-sm mb-2 d-none"
+                                          data-detail-series-select
+                                        ></select>
+                                        <select
+                                          class="form-select form-select-sm"
+                                          data-detail-rows-select
+                                          multiple
+                                          size="6"
+                                        ></select>
+                                      </div>
+                                    </div>
+                                    <div class="plantillas-graficas-focus-block">
+                                      <div
+                                        class="plantillas-graficas-focus-block-header"
                                       >
-                                        <i class="bi bi-trash me-1"></i>
-                                        Eliminar grafica
-                                      </button>
-                                      <button
-                                        type="button"
-                                        class="btn btn-outline-primary btn-sm"
-                                        id="plantillasGraficasDetailAdd"
-                                      >
-                                        <i class="bi bi-plus-circle me-1"></i>
-                                        Nueva grafica manual
-                                      </button>
+                                        <div
+                                          class="plantillas-graficas-focus-block-title"
+                                        >
+                                          Columnas (tabla)
+                                        </div>
+                                      </div>
+                                      <div class="plantillas-graficas-focus-block-body">
+                                        <select
+                                          class="form-select form-select-sm"
+                                          data-detail-columns-select
+                                          multiple
+                                          size="6"
+                                        ></select>
+                                      </div>
                                     </div>
                                   </div>
                                 </div>
                               </div>
                             </div>
 
-                            <template id="plantillasGraficasCardTemplate">
-                              <button
-                                type="button"
-                                class="card plantillas-graficas-card"
-                                data-chart-card
-                              >
-                                <div class="card-body">
-                                  <div
-                                    class="d-flex justify-content-between align-items-start mb-2"
-                                  >
-                                    <div>
-                                      <h6 class="mb-1" data-chart-title></h6>
-                                      <p
-                                        class="text-muted small mb-0"
-                                        data-chart-subtitle
-                                      ></p>
-                                    </div>
-                                    <span
-                                      class="badge rounded-pill bg-light text-primary"
-                                      data-chart-status
-                                    >
-                                      Activa
-                                    </span>
-                                  </div>
-                                  <div class="plantillas-graficas-preview">
-                                    <canvas data-chart-canvas></canvas>
-                                  </div>
-                                  <div
-                                    class="d-flex justify-content-between align-items-center mt-2"
-                                  >
-                                    <span
-                                      class="text-muted small"
-                                      data-chart-meta
-                                    ></span>
-                                    <span class="text-muted small">
-                                      <i class="bi bi-sliders me-1"></i>
-                                      Personalizar
-                                    </span>
-                                  </div>
-                                </div>
-                              </button>
-                            </template>
-                          </div>
-                          <div
-                            class="tab-pane fade"
-                            id="plantillasGraficasConfig"
-                            role="tabpanel"
-                            aria-labelledby="plantillas-graficas-config-tab"
-                          >
                             <div
-                              class="accordion mt-0"
-                              id="plantillasGraficasAccordion"
+                              class="plantillas-graficas-config"
+                              id="plantillasGraficasConfig"
                             >
+                              <div
+                                class="accordion mt-0"
+                                id="plantillasGraficasAccordion"
+                              >
                               <div class="accordion-item">
                                 <h2
                                   class="accordion-header"
@@ -801,6 +845,10 @@
                                                   </option>
                                                 </select>
                                               </div>
+                                              <div
+                                                class="form-text mt-2 source-hint"
+                                                data-source-hint="operating"
+                                              ></div>
                                             </div>
                                           </div>
                                           <div class="col-12 col-lg-4">
@@ -879,6 +927,10 @@
                                                   </option>
                                                 </select>
                                               </div>
+                                              <div
+                                                class="form-text mt-2 source-hint"
+                                                data-source-hint="net"
+                                              ></div>
                                             </div>
                                           </div>
                                           <div class="col-12 col-lg-4">
@@ -957,6 +1009,10 @@
                                                   </option>
                                                 </select>
                                               </div>
+                                              <div
+                                                class="form-text mt-2 source-hint"
+                                                data-source-hint="consolidated"
+                                              ></div>
                                             </div>
                                           </div>
                                         </div>
@@ -1552,15 +1608,19 @@
                                         </select>
                                       </div>
                                     </div>
-                                    <div class="table-responsive mt-3">
-                                      <table
-                                        class="table table-sm align-middle mb-0"
-                                      >
+                                    <div
+                                      class="form-text mt-2 source-hint"
+                                      data-source-hint="ingreso"
+                                    ></div>
+                                      <div class="table-responsive mt-2">
+                                        <table
+                                          class="table table-sm align-middle mb-0"
+                                        >
                                         <thead>
                                           <tr>
-                                            <th>Serie</th>
+                                            <th>Columna (serie)</th>
                                             <th>Etiqueta</th>
-                                            <th>Variantes</th>
+                                            <th>Filas (variantes)</th>
                                             <th>Color</th>
                                             <th class="text-center">Activa</th>
                                           </tr>
@@ -1738,10 +1798,25 @@
                                       </table>
                                     </div>
                                     <div class="row g-2 align-items-end mt-2">
-                                      <div class="col-12 col-lg-4">
+                                      <div class="col-12 col-lg-3">
                                         <label
                                           class="form-label small fw-semibold"
-                                          >Serie destino</label
+                                          >Columna (tabla)</label
+                                        >
+                                        <select
+                                          class="form-select form-select-sm"
+                                          id="plantillasIngresoSourceColumn"
+                                          disabled
+                                        >
+                                          <option value="actualYTD">
+                                            Actual acumulado (actualYTD)
+                                          </option>
+                                        </select>
+                                      </div>
+                                      <div class="col-12 col-lg-3">
+                                        <label
+                                          class="form-label small fw-semibold"
+                                          >Serie (grafica)</label
                                         >
                                         <select
                                           class="form-select form-select-sm"
@@ -1755,10 +1830,10 @@
                                           <option value="nw">Noroeste</option>
                                         </select>
                                       </div>
-                                      <div class="col-12 col-lg-6">
+                                      <div class="col-12 col-lg-4">
                                         <label
                                           class="form-label small fw-semibold"
-                                          >Fila disponible</label
+                                          >Fila (tabla)</label
                                         >
                                         <select
                                           class="form-select form-select-sm"
@@ -1865,15 +1940,19 @@
                                         </select>
                                       </div>
                                     </div>
-                                    <div class="table-responsive mt-3">
+                                    <div
+                                      class="form-text mt-2 source-hint"
+                                      data-source-hint="ingreso-nacional"
+                                    ></div>
+                                    <div class="table-responsive mt-2">
                                       <table
                                         class="table table-sm align-middle mb-0"
                                       >
                                         <thead>
                                           <tr>
-                                            <th>Serie</th>
+                                            <th>Columna (serie)</th>
                                             <th>Etiqueta</th>
-                                            <th>Variantes</th>
+                                            <th>Filas (variantes)</th>
                                             <th>Color</th>
                                             <th class="text-center">Activa</th>
                                           </tr>
@@ -2093,10 +2172,25 @@
                                       </table>
                                     </div>
                                     <div class="row g-2 align-items-end mt-2">
-                                      <div class="col-12 col-lg-4">
+                                      <div class="col-12 col-lg-3">
                                         <label
                                           class="form-label small fw-semibold"
-                                          >Serie destino</label
+                                          >Columna (tabla)</label
+                                        >
+                                        <select
+                                          class="form-select form-select-sm"
+                                          id="plantillasIngresoNacionalSourceColumn"
+                                          disabled
+                                        >
+                                          <option value="actualYTD">
+                                            Actual acumulado (actualYTD)
+                                          </option>
+                                        </select>
+                                      </div>
+                                      <div class="col-12 col-lg-3">
+                                        <label
+                                          class="form-label small fw-semibold"
+                                          >Serie (grafica)</label
                                         >
                                         <select
                                           class="form-select form-select-sm"
@@ -2115,10 +2209,10 @@
                                           <option value="tic">T&IC</option>
                                         </select>
                                       </div>
-                                      <div class="col-12 col-lg-6">
+                                      <div class="col-12 col-lg-4">
                                         <label
                                           class="form-label small fw-semibold"
-                                          >Fila disponible</label
+                                          >Fila (tabla)</label
                                         >
                                         <select
                                           class="form-select form-select-sm"
@@ -2216,6 +2310,10 @@
                                         </select>
                                       </div>
                                     </div>
+                                    <div
+                                      class="form-text mt-2 source-hint"
+                                      data-source-hint="operativo"
+                                    ></div>
                                     <div class="table-responsive mt-3">
                                       <table
                                         class="table table-sm align-middle mb-0"
@@ -2449,6 +2547,10 @@
                                               </option>
                                             </select>
                                           </div>
+                                          <div
+                                            class="form-text mt-2 source-hint"
+                                            data-source-hint="gastos-rendimientos"
+                                          ></div>
                                           <div class="table-responsive">
                                             <table
                                               class="table table-sm align-middle mb-0"
@@ -2598,6 +2700,10 @@
                                               </option>
                                             </select>
                                           </div>
+                                          <div
+                                            class="form-text mt-2 source-hint"
+                                            data-source-hint="gastos-plusvalia"
+                                          ></div>
                                           <div class="table-responsive">
                                             <table
                                               class="table table-sm align-middle mb-0"
@@ -2704,7 +2810,9 @@
                             </div>
                           </div>
                         </div>
-                      </div>
+                    </section>
+                  </div>
+                </div>
                     </fieldset>
                   </form>
                 </div>
@@ -3268,19 +3376,8 @@
           </div>
 
           <!-- Fuente de Datos -->
-          <div class="mb-4">
+            <div class="mb-4">
             <h6 class="mb-3">Paso 2: Fuente de datos</h6>
-            <div class="mb-3">
-              <label for="chartEditorSourceType" class="form-label"
-                >Tipo de fuente</label
-              >
-              <select class="form-select" id="chartEditorSourceType">
-                <option value="snapshot">Manual (filas + columnas)</option>
-              </select>
-              <div class="form-text">
-                Selecciona filas y columnas manualmente. Esto aplica para todos los modulos.
-              </div>
-            </div>
 
             <!-- Selector de filas desde snapshot -->
             <div id="chartEditorSnapshotSource" class="mb-3">
@@ -3418,9 +3515,6 @@
         const typeSelect = document.getElementById("chartEditorTypeSelect");
         const enabledCheck = document.getElementById("chartEditorEnabledCheck");
         const editorSubtitleEl = document.getElementById("chartEditorSubtitle");
-        const sourceTypeSelect = document.getElementById(
-          "chartEditorSourceType",
-        );
         const snapshotSourceSection = document.getElementById(
           "chartEditorSnapshotSource",
         );
@@ -3738,12 +3832,6 @@
             moduleSelectInput.value = "RESUMEN";
           }
           return moduleSelectInput.value || preferred || "RESUMEN";
-        };
-
-        const normalizeSourceType = (value) => {
-          const clean = (value || "").toString().trim().toLowerCase();
-          if (clean === "snapshot") return "snapshot";
-          return "snapshot";
         };
 
         const OPERATIVO_MONTHS = [
@@ -4193,14 +4281,6 @@
           }
         };
 
-        const updateSourceTypeUI = () => {
-          const sourceType = normalizeSourceType(sourceTypeSelect?.value);
-          if (snapshotSourceSection) {
-            snapshotSourceSection.style.display = sourceType === "snapshot" ? "" : "none";
-          }
-          updateExtractionSummary();
-        };
-
         const refreshSeriesForCurrentModule = (preferredKeys = []) => {
           availableSeries = getAvailableSeries(currentModule);
           const fallbackKeys =
@@ -4387,40 +4467,10 @@
             previewChartInstance = null;
           }
 
-          const sourceType = sourceTypeSelect?.value || "snapshot";
-          if (sourceType === "mensual") {
-            previewCanvas.classList.add("d-none");
-            previewFallback.classList.remove("d-none");
-            previewFallback.textContent =
-              "Vista previa mensual disponible en la galería";
-            return;
-          }
-
           if (selectedRows.length === 0) {
             previewCanvas.classList.add("d-none");
             previewFallback.classList.remove("d-none");
             previewFallback.textContent = "Selecciona filas para ver preview";
-            return;
-          }
-
-          const moduleKey = normalizeModuleKey(currentModule || "RESUMEN");
-          const snapshot = getSnapshot();
-          const requiresSnapshot = isSummaryModuleKey(moduleKey);
-          if (!requiresSnapshot) {
-            previewCanvas.classList.add("d-none");
-            previewFallback.classList.remove("d-none");
-            previewFallback.textContent =
-              "Vista previa real disponible al abrir el modulo seleccionado";
-            return;
-          }
-          if (
-            requiresSnapshot &&
-            (!snapshot || !Array.isArray(snapshot.filas))
-          ) {
-            previewCanvas.classList.add("d-none");
-            previewFallback.classList.remove("d-none");
-            previewFallback.textContent =
-              "No hay snapshot disponible del modulo RESUMEN";
             return;
           }
 
@@ -4434,67 +4484,91 @@
             return;
           }
 
-          // Construir datasets
-          const snapshotMap = new Map();
-          if (snapshot && Array.isArray(snapshot.filas)) {
-            snapshot.filas.forEach((row) => {
-              const label = (row?.label || "").toString().trim().toUpperCase();
-              if (label) snapshotMap.set(label, row?.totals || {});
-            });
-          }
-
           const labels = selectedRows.map((row) => row.alias || "");
-          const datasets = [];
-
-          const getTotalsForVariants = (variants) => {
-            if (!variants || variants.length === 0) return {};
-            const normalized = variants.map(normalizeRowKey).filter(Boolean);
-            for (const key of normalized) {
-              const hit = snapshotMap.get(key);
-              if (hit) return hit;
+          const buildSampleValues = (count, start, drop) => {
+            const result = [];
+            let value = start;
+            for (let i = 0; i < count; i += 1) {
+              result.push(Math.max(0, Math.round(value)));
+              value -= drop;
             }
-            for (const [key, value] of snapshotMap.entries()) {
-              if (normalized.some((variant) => key.includes(variant))) {
-                return value;
-              }
-            }
-            return {};
+            return result;
           };
 
-          enabledSeries.forEach((serieKey) => {
-            const serie = getSeriesOverride(serieKey);
-            if (!serie) return;
+          const buildSampleDatasets = () =>
+            enabledSeries
+              .map((serieKey, index) => {
+                const serie = getSeriesOverride(serieKey);
+                if (!serie) return null;
+                return {
+                  label: serie.label,
+                  data: buildSampleValues(labels.length, 140 + index * 35, 12 + index * 2),
+                  backgroundColor: serie.color,
+                  borderColor: serie.color,
+                  borderWidth: 1,
+                };
+              })
+              .filter(Boolean);
 
-            const data = selectedRows.map((row) => {
-              const totals = getTotalsForVariants(row.variants || []);
-              const value = Number(totals[serieKey]);
-              if (Number.isFinite(value)) return value;
-              return 0;
-            });
+          const buildDatasetsFromSnapshot = (snapshot) => {
+            const snapshotMap = new Map();
+            if (snapshot && Array.isArray(snapshot.filas)) {
+              snapshot.filas.forEach((row) => {
+                const label = (row?.label || "").toString().trim().toUpperCase();
+                if (label) snapshotMap.set(label, row?.totals || {});
+              });
+            }
+            const getTotalsForVariants = (variants) => {
+              if (!variants || variants.length === 0) return {};
+              const normalized = variants.map(normalizeRowKey).filter(Boolean);
+              for (const key of normalized) {
+                const hit = snapshotMap.get(key);
+                if (hit) return hit;
+              }
+              for (const [key, value] of snapshotMap.entries()) {
+                if (normalized.some((variant) => key.includes(variant))) {
+                  return value;
+                }
+              }
+              return {};
+            };
+            return enabledSeries
+              .map((serieKey) => {
+                const serie = getSeriesOverride(serieKey);
+                if (!serie) return null;
+                const data = selectedRows.map((row) => {
+                  const totals = getTotalsForVariants(row.variants || []);
+                  const value = Number(totals[serieKey]);
+                  if (Number.isFinite(value)) return value;
+                  return 0;
+                });
+                return {
+                  label: serie.label,
+                  data: data,
+                  backgroundColor: serie.color,
+                  borderColor: serie.color,
+                  borderWidth: 1,
+                };
+              })
+              .filter(Boolean);
+          };
 
-            datasets.push({
-              label: serie.label,
-              data: data,
-              backgroundColor: serie.color,
-              borderColor: serie.color,
-              borderWidth: 1,
-            });
-          });
+          const moduleKey = normalizeModuleKey(currentModule || "RESUMEN");
+          const snapshot = getSnapshot();
+          const canUseSnapshot =
+            isSummaryModuleKey(moduleKey) && snapshot && Array.isArray(snapshot.filas);
+          let datasets = canUseSnapshot ? buildDatasetsFromSnapshot(snapshot) : [];
+          const hasRealData = datasets.some((dataset) =>
+            (dataset.data || []).some((value) => Number(value) !== 0),
+          );
+          if (!datasets.length || !hasRealData) {
+            datasets = buildSampleDatasets();
+          }
 
-          if (datasets.length === 0) {
+          if (!datasets.length) {
             previewCanvas.classList.add("d-none");
             previewFallback.classList.remove("d-none");
             previewFallback.textContent = "Sin datos";
-            return;
-          }
-          const hasData = datasets.some((dataset) =>
-            (dataset.data || []).some((value) => Number(value) !== 0),
-          );
-          if (!hasData) {
-            previewCanvas.classList.add("d-none");
-            previewFallback.classList.remove("d-none");
-            previewFallback.textContent =
-              "Sin datos para las filas y columnas seleccionadas";
             return;
           }
 
@@ -4543,13 +4617,7 @@
             typeSelect.value = currentChart.chartType || "inherit";
           if (enabledCheck)
             enabledCheck.checked = currentChart.enabled !== false;
-          if (sourceTypeSelect) {
-            sourceTypeSelect.value = normalizeSourceType(
-              currentChart.sourceType || "snapshot",
-            );
-          }
           clearValidationState();
-          updateSourceTypeUI();
 
           // Cargar filas seleccionadas
           selectedRows = [];
@@ -4625,14 +4693,6 @@
 
         if (typeSelect) {
           typeSelect.addEventListener("change", updatePreview);
-        }
-
-        if (sourceTypeSelect) {
-          sourceTypeSelect.addEventListener("change", () => {
-            updateSourceTypeUI();
-            clearValidationState();
-            updatePreview();
-          });
         }
 
         if (moduleSelectInput) {
@@ -4728,7 +4788,7 @@
               subtitle: subtitleInput?.value?.trim() || "",
               chartType: typeSelect?.value || "inherit",
               enabled: enabledCheck?.checked !== false,
-              sourceType: normalizeSourceType(sourceTypeSelect?.value),
+              sourceType: currentChart?.sourceType || "snapshot",
               seriesKeys: selectedSeries,
               series,
               rows: selectedRows.map((row) => ({

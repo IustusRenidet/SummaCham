@@ -759,9 +759,11 @@ const actualizarCuentasPadre = async (
   tablaPresup,
   presupuestosEditados = new Map(),
   manualBaseMap = null,
-  borradorId = null
+  borradorId = null,
+  opciones = {}
 ) => {
   const { ejecutarConsulta } = require("./firebirdService");
+  const { usarManual = true } = opciones || {};
   console.log(`\n📊 ============================================`);
   console.log(`📊 Actualizando cuentas padre en ${tablaPresup}...`);
   console.log(`📊 Empresa: ${empresaId}, Año: ${anio}`);
@@ -867,47 +869,52 @@ const actualizarCuentasPadre = async (
       }
     });
 
-    const manualEditado = presupuestosEditados instanceof Map
-      ? presupuestosEditados.get(numCta)
-      : (presupuestosEditados || {})[numCta];
+    if (usarManual) {
+      const manualEditado = presupuestosEditados instanceof Map
+        ? presupuestosEditados.get(numCta)
+        : (presupuestosEditados || {})[numCta];
 
-    const manualPrecalculado = manualBaseMap instanceof Map
-      ? manualBaseMap.get(numCta)
-      : null;
+      const manualPrecalculado = manualBaseMap instanceof Map
+        ? manualBaseMap.get(numCta)
+        : null;
 
-    let manualCalculado = manualPrecalculado;
+      let manualCalculado = manualPrecalculado;
 
-    if (!manualCalculado) {
-      // Obtener presupuesto actual del padre para conservar la parte manual
-      const queryPadrePresup = `
-        SELECT 
-          PRESUP01, PRESUP02, PRESUP03, PRESUP04, PRESUP05, PRESUP06,
-          PRESUP07, PRESUP08, PRESUP09, PRESUP10, PRESUP11, PRESUP12
-        FROM ${tablaPresup}
-        WHERE NUM_CTA = ? AND EJERCICIO = ?
-      `;
-      const padrePresupRows = await ejecutarConsulta(empresaId, queryPadrePresup, [numCta, anio]);
-      const padrePresup = padrePresupRows && padrePresupRows[0] ? padrePresupRows[0] : null;
+      if (!manualCalculado) {
+        // Obtener presupuesto actual del padre para conservar la parte manual
+        const queryPadrePresup = `
+          SELECT 
+            PRESUP01, PRESUP02, PRESUP03, PRESUP04, PRESUP05, PRESUP06,
+            PRESUP07, PRESUP08, PRESUP09, PRESUP10, PRESUP11, PRESUP12
+          FROM ${tablaPresup}
+          WHERE NUM_CTA = ? AND EJERCICIO = ?
+        `;
+        const padrePresupRows = await ejecutarConsulta(empresaId, queryPadrePresup, [numCta, anio]);
+        const padrePresup = padrePresupRows && padrePresupRows[0] ? padrePresupRows[0] : null;
 
-      manualCalculado = {};
+        manualCalculado = {};
+        Object.keys(sumasMensuales).forEach((col) => {
+          if (!padrePresup) {
+            manualCalculado[col] = 0;
+            return;
+          }
+          const actual = Number(padrePresup[col]) || 0;
+          manualCalculado[col] = actual - sumasMensuales[col];
+        });
+      }
+
       Object.keys(sumasMensuales).forEach((col) => {
-        if (!padrePresup) {
-          manualCalculado[col] = 0;
-          return;
-        }
-        const actual = Number(padrePresup[col]) || 0;
-        manualCalculado[col] = actual - sumasMensuales[col];
+        const valorManual = manualEditado && Object.prototype.hasOwnProperty.call(manualEditado, col)
+          ? Number(manualEditado[col]) || 0
+          : Number(manualCalculado[col]) || 0;
+        sumasMensuales[col] += valorManual;
       });
+      console.log(`     ➕ Presupuesto manual agregado a ${numCta}`);
+    
+    } else {
+      console.log(`     Presupuesto manual omitido para ${numCta}`);
     }
 
-    Object.keys(sumasMensuales).forEach((col) => {
-      const valorManual = manualEditado && Object.prototype.hasOwnProperty.call(manualEditado, col)
-        ? Number(manualEditado[col]) || 0
-        : Number(manualCalculado[col]) || 0;
-      sumasMensuales[col] += valorManual;
-    });
-    console.log(`     ➕ Presupuesto manual agregado a ${numCta}`);
-    
     // Verificar si hay valores para actualizar
     const tieneValores = Object.values(sumasMensuales).some((val) => val !== 0);
     
@@ -1340,7 +1347,8 @@ const recontabilizarTodasLasCuentas = async ({ empresaId, anio }) => {
     tablaPresup,
     new Map(), // Sin ediciones - solo suma de hijas
     manualBaseMap,
-    null // Sin borradorId
+    null, // Sin borradorId
+    { usarManual: false }
   );
 
   console.log(`\n✅ ==========================================`);

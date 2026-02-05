@@ -134,7 +134,7 @@ const tienePermisoEnEmpresa = (mapaPermisos, empresaId) => {
     return false;
   }
   return Object.values(permisos).some(
-    (acciones) => acciones.Lectura || acciones['Cargar y guardar'] || acciones.Revisar || acciones.Aprobar
+    (acciones) => acciones.Ver || acciones.Lectura || acciones['Cargar y guardar'] || acciones.Revisar || acciones.Aprobar
   );
 };
 
@@ -144,7 +144,7 @@ const tienePermisoEnModulo = (mapaPermisos, empresaId, modulo, accion) => {
     return false;
   }
   if (!accion) {
-    return Boolean(permisos.Lectura || permisos['Cargar y guardar'] || permisos.Revisar || permisos.Aprobar);
+    return Boolean(permisos.Ver || permisos.Lectura || permisos['Cargar y guardar'] || permisos.Revisar || permisos.Aprobar);
   }
   return Boolean(permisos[accion]);
 };

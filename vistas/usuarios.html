@@ -233,9 +233,14 @@
       alerta.textContent = '';
     };
 
+    const tieneAccionActiva = (acciones) =>
+      Object.values(acciones || {}).some((valor) => Boolean(valor));
+
     const representarEmpresas = (permisosPorEmpresa) => {
       return Object.entries(permisosPorEmpresa || {})
-        .filter(([_, modulos]) => Object.values(modulos || {}).some((acciones) => acciones['Cargar y guardar'] || acciones.Revisar || acciones.Aprobar))
+        .filter(([_, modulos]) =>
+          Object.values(modulos || {}).some(tieneAccionActiva)
+        )
         .map(([empresaId]) => {
           const etiqueta = empresaId.replace('empresa', 'E');
           return `<span class="company-badge mb-1"><span class="company-dot"></span>${etiqueta}</span>`;

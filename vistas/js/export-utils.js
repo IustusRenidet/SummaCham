@@ -141,6 +141,10 @@
           return;
         }
 
+        if (charts !== false) {
+          this.verificarGraficasExportables({ charts, mostrar: true });
+        }
+
         const metadata = this._obtenerMetadata();
         baseName = `${nombreArchivo}_${
           metadata.empresaTexto || "Reporte"
@@ -1919,6 +1923,9 @@
       }
 
       const chartTargets = charts === false ? [] : this._resolverGraficas(charts);
+      if (charts !== false) {
+        this.verificarGraficasExportables({ charts, mostrar: true });
+      }
       console.log("📊 PDF: chartTargets encontrados:", chartTargets.length);
       let chartImages = await this._capturarGraficas(chartTargets);
       console.log("📊 PDF: chartImages capturadas:", chartImages.length);
@@ -2461,6 +2468,79 @@
         });
       }
       return targets;
+    },
+
+    verificarGraficasExportables(options = {}) {
+      const { charts, mostrar = true, maxList = 3 } = options;
+      const targets = charts === false ? [] : this._resolverGraficas(charts);
+      const report = this._auditarGraficasExportacion(targets);
+      if (!mostrar) return report;
+      if (!report.total) {
+        this._showToast("No se detectaron gráficas para exportar.", "warning");
+        return report;
+      }
+      if (!report.omitidas.length) {
+        this._showToast(
+          `Exportación: ${report.exportables.length} gráficas listas.`,
+          "success"
+        );
+        return report;
+      }
+      const preview = report.omitidas
+        .slice(0, Math.max(1, maxList))
+        .map((item) => item.title)
+        .filter(Boolean)
+        .join(", ");
+      const extra =
+        report.omitidas.length > maxList
+          ? ` y ${report.omitidas.length - maxList} más`
+          : "";
+      this._showToast(
+        `Exportación: ${report.exportables.length} listas, ${report.omitidas.length} sin datos: ${preview}${extra}.`,
+        "warning"
+      );
+      if (console?.table) {
+        console.table(report.omitidas);
+      }
+      return report;
+    },
+
+    _auditarGraficasExportacion(targets = []) {
+      const report = { total: targets.length, exportables: [], omitidas: [] };
+      targets.forEach((target) => {
+        const canvas = target?.canvas;
+        const title =
+          (target?.title || this._resolverTituloGrafica(canvas, "Grafica"))
+            ?.toString()
+            .trim() || "Grafica";
+        if (!canvas || typeof canvas.getContext !== "function") {
+          report.omitidas.push({ title, reason: "Sin canvas" });
+          return;
+        }
+        const width =
+          Number(canvas.width) || Number(canvas.clientWidth) || 0;
+        const height =
+          Number(canvas.height) || Number(canvas.clientHeight) || 0;
+        if (width <= 2 && height <= 2) {
+          report.omitidas.push({ title, reason: "Sin tamaño" });
+          return;
+        }
+        const chart =
+          typeof window.Chart?.getChart === "function"
+            ? window.Chart.getChart(canvas)
+            : null;
+        const hasContent = this._canvasTieneContenido(canvas);
+        if (chart && !hasContent) {
+          report.omitidas.push({ title, reason: "Sin datos" });
+          return;
+        }
+        if (!chart && !hasContent) {
+          report.omitidas.push({ title, reason: "Sin render o sin datos" });
+          return;
+        }
+        report.exportables.push({ title });
+      });
+      return report;
     },
 
     _resolverTituloGrafica(canvas, fallback = "") {

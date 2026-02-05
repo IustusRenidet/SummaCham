@@ -204,6 +204,19 @@
         ""
     );
 
+  const hasEnabledCustomChartsForModule = (graficasConfig, moduleKey) => {
+    if (!moduleKey) return false;
+    return (
+      Array.isArray(graficasConfig?.customCharts) &&
+      graficasConfig.customCharts.some((chart) => {
+        if (chart?.enabled === false) return false;
+        if (!Array.isArray(chart?.rows) || chart.rows.length === 0) return false;
+        const chartModuleKey = normalizeModuleKey(chart?.module || "RESUMEN");
+        return chartModuleKey === moduleKey;
+      })
+    );
+  };
+
   const escapeHtml = (value) =>
     String(value ?? "")
       .replace(/&/g, "&amp;")
@@ -287,9 +300,11 @@
   const ensureToggleButton = () => {
     const existing = document.querySelector(TOGGLE_SELECTOR);
     if (existing) return existing;
-    const toolbar = document.querySelector(
-      ".row.mb-3 .d-flex.flex-column.flex-md-row.gap-2"
-    );
+    const toolbar =
+      document.querySelector(".row.mb-3 .d-flex.flex-column.flex-md-row.gap-2") ||
+      document.querySelector(".row.mb-3 .d-flex.flex-column.flex-md-row") ||
+      document.getElementById("btnExportExcel")?.parentElement ||
+      document.getElementById("btnPrintPDF")?.parentElement;
     if (!toolbar) return null;
 
     const existingToolbarToggle =
@@ -395,12 +410,16 @@
   const obtenerIndices = (tabla) => {
     const headerRows = Array.from(tabla?.querySelectorAll("thead tr") || []);
     if (!headerRows.length) {
+      console.log("📊 obtenerIndices: No se encontraron filas de encabezado");
       return { budgetTotal: -1, realTotal: -1, annual: -1 };
     }
 
     let idxTotalBudget = -1;
     let idxTotalReal = -1;
     let idxBudgetAnnual = -1;
+    
+    console.log("📊 obtenerIndices: Analizando", headerRows.length, "filas de encabezado");
+    
     const buscarPorTexto = (matcher) => {
       for (const row of headerRows) {
         const headers = Array.from(row.children || []);
@@ -410,7 +429,10 @@
             .trim()
             .toLowerCase();
           if (!text) continue;
-          if (matcher(text)) return idx;
+          if (matcher(text)) {
+            console.log(`📊 obtenerIndices: Encontrada columna en índice ${idx} con texto: "${text}"`);
+            return idx;
+          }
         }
       }
       return -1;
@@ -419,19 +441,26 @@
     headerRows.forEach((row) => {
       const headers = Array.from(row.children || []);
       headers.forEach((th, idx) => {
+        const classes = Array.from(th.classList || []);
+        const text = (th?.textContent || "").replace(/\s+/g, " ").trim();
+        
         if (idxTotalBudget < 0 && th.classList.contains("total-budget-column")) {
+          console.log(`📊 obtenerIndices: total-budget-column encontrada en índice ${idx}: "${text}"`);
           idxTotalBudget = idx;
         }
         if (idxTotalReal < 0 && th.classList.contains("total-real-column")) {
+          console.log(`📊 obtenerIndices: total-real-column encontrada en índice ${idx}: "${text}"`);
           idxTotalReal = idx;
         }
         if (idxBudgetAnnual < 0 && th.classList.contains("budget-annual-column")) {
+          console.log(`📊 obtenerIndices: budget-annual-column encontrada en índice ${idx}: "${text}"`);
           idxBudgetAnnual = idx;
         }
       });
     });
 
     if (idxTotalBudget < 0) {
+      console.log("📊 obtenerIndices: Buscando total-budget por texto...");
       idxTotalBudget = buscarPorTexto(
         (text) =>
           (text.includes("ppto") || text.includes("presupuesto")) &&
@@ -439,17 +468,31 @@
       );
     }
     if (idxTotalReal < 0) {
+      console.log("📊 obtenerIndices: Buscando total-real por texto...");
       idxTotalReal = buscarPorTexto(
         (text) => text.includes("real") && text.includes("acum")
       );
     }
     if (idxBudgetAnnual < 0) {
+      console.log("📊 obtenerIndices: Buscando budget-annual por texto (anual/annual)...");
+      // Buscar primero por "anual" o "annual"
+      idxBudgetAnnual = buscarPorTexto(
+        (text) =>
+          text.includes("anual") || text.includes("annual")
+      );
+    }
+    if (idxBudgetAnnual < 0) {
+      console.log("📊 obtenerIndices: Buscando budget-annual por texto (presupuesto sin acumulado)...");
+      // Si no encuentra, buscar por presupuesto sin acumulado
       idxBudgetAnnual = buscarPorTexto(
         (text) =>
           (text.includes("ppto") || text.includes("presupuesto")) &&
-          !text.includes("acum")
+          !text.includes("acum") &&
+          !text.includes("accumulated")
       );
     }
+
+    console.log("📊 obtenerIndices: budgetTotal =", idxTotalBudget, ", realTotal =", idxTotalReal, ", annual =", idxBudgetAnnual);
 
     return {
       budgetTotal: idxTotalBudget >= 0 ? idxTotalBudget : idxBudgetAnnual,
@@ -606,11 +649,14 @@
       indices.budgetTotal < 0 ||
       indices.realTotal < 0
     ) {
+      console.log("📊 obtenerDatos: Indices invalidos:", indices);
       return [];
     }
     const annualIdx = indices.annual >= 0 ? indices.annual : indices.budgetTotal;
+    console.log("📊 obtenerDatos: usando annualIdx =", annualIdx, ", indices.annual =", indices.annual);
+    
     const filas = obtenerFilasOperativas(tabla);
-    return filas
+    const datos = filas
       .map((fila) => {
         const etiqueta = resolverEtiquetaFila(fila);
         const presupuesto = parseNumero(
@@ -618,9 +664,17 @@
         );
         const real = parseNumero(fila.cells?.[indices.realTotal]?.textContent);
         const anual = parseNumero(fila.cells?.[annualIdx]?.textContent);
+        
+        if (etiqueta) {
+          console.log(`📊 obtenerDatos: ${etiqueta} - presupuesto: ${presupuesto}, real: ${real}, anual: ${anual}`);
+        }
+        
         return { etiqueta, presupuesto, real, anual };
       })
       .filter((item) => item.etiqueta);
+    
+    console.log("📊 obtenerDatos: Total filas obtenidas:", datos.length);
+    return datos;
   };
 
   const obtenerDatosFilas = (tabla, columnDefs = []) => {
@@ -643,15 +697,28 @@
         columnDefs.forEach((def) => {
           values[def.key] = parseNumero(cells?.[def.index]?.textContent || "");
         });
-        const presupuesto =
-          Number(values.totalBudget) ||
-          parseNumero(cells?.[indices.budgetTotal]?.textContent);
-        const real =
-          Number(values.totalReal) ||
-          parseNumero(cells?.[indices.realTotal]?.textContent);
-        const anual =
-          Number(values.budgetAnnual) ||
-          parseNumero(cells?.[annualIdx]?.textContent);
+        const totalBudgetValue = Number(values.totalBudget);
+        const totalRealValue = Number(values.totalReal);
+        const budgetAnnualValue = Number(values.budgetAnnual);
+        const presupuesto = Number.isFinite(totalBudgetValue)
+          ? totalBudgetValue
+          : parseNumero(cells?.[indices.budgetTotal]?.textContent);
+        const real = Number.isFinite(totalRealValue)
+          ? totalRealValue
+          : parseNumero(cells?.[indices.realTotal]?.textContent);
+        const anual = Number.isFinite(budgetAnnualValue)
+          ? budgetAnnualValue
+          : parseNumero(cells?.[annualIdx]?.textContent);
+
+        if (!Number.isFinite(totalBudgetValue)) {
+          values.totalBudget = presupuesto;
+        }
+        if (!Number.isFinite(totalRealValue)) {
+          values.totalReal = real;
+        }
+        if (!Number.isFinite(budgetAnnualValue)) {
+          values.budgetAnnual = anual;
+        }
         return {
           etiqueta,
           key: normalizeKey(etiqueta),
@@ -693,6 +760,12 @@
       const currentCharts = Array.isArray(current?.customCharts)
         ? current.customCharts
         : [];
+      const defaultCharts = Array.isArray(api.defaults?.customCharts)
+        ? api.defaults.customCharts
+        : [];
+      const isDefault = defaultCharts.some(
+        (chart) => String(chart?.id || "").trim() === targetId
+      );
       const filteredCharts = currentCharts.filter(
         (chart) => String(chart?.id || "").trim() !== targetId
       );
@@ -703,6 +776,15 @@
         ...current,
         customCharts: filteredCharts,
       };
+      if (isDefault) {
+        const deletedIds = Array.isArray(current?.deletedChartIds)
+          ? [...current.deletedChartIds]
+          : [];
+        if (!deletedIds.includes(targetId)) {
+          deletedIds.push(targetId);
+        }
+        nextConfig.deletedChartIds = deletedIds;
+      }
       const hasEnabledCharts = filteredCharts.some(
         (chart) =>
           chart?.enabled !== false &&
@@ -1064,6 +1146,16 @@
       enabled: true,
     }));
 
+    if (!baseDatasetDefs.some((def) => def.key === "budgetAnnual")) {
+      baseDatasetDefs.push({
+        key: "budgetAnnual",
+        valueKey: "budgetAnnual",
+        label: labelsConfig?.annual || "Presupuesto anual",
+        color: colors?.annual || "#22c55e",
+        enabled: true,
+      });
+    }
+
     if (!baseDatasetDefs.length) return 0;
 
     const baseChartType = graficasConfig.chart?.type || "bar";
@@ -1300,24 +1392,25 @@
 
     const graficasConfig = getGraficasConfig();
     const operativoConfig = graficasConfig.operativo || DEFAULT_OPERATIVO_CONFIG;
+    const moduleKey = getCurrentModuleKey();
+    const hasCustomCharts = hasEnabledCustomChartsForModule(
+      graficasConfig,
+      moduleKey
+    );
+    const showOperativo = operativoConfig.enabled !== false;
+    const shouldShowPanel = showOperativo || hasCustomCharts;
     const baseChartType = graficasConfig.chart?.type || "bar";
     const resolvedChartType = resolveChartType(
       operativoConfig.chartType,
       baseChartType
     );
-    if (operativoConfig.enabled === false) {
+    if (!shouldShowPanel) {
       sidebar.style.display = "none";
       if (toggleButton) toggleButton.style.display = "none";
       return;
     }
     sidebar.style.display = "";
     if (toggleButton) toggleButton.style.display = "";
-
-    const datos = obtenerDatos(tabla);
-    const labels = datos.map((item) => item.etiqueta);
-    const presupuestos = normalizarSerie(datos.map((item) => item.presupuesto));
-    const reales = normalizarSerie(datos.map((item) => item.real));
-    const anuales = normalizarSerie(datos.map((item) => item.anual));
 
     const contenedor = sidebar.querySelector(
       '[data-operativo-chart="combined"]'
@@ -1333,9 +1426,6 @@
       real: realCfg.enabled !== false,
       annual: annualCfg.enabled !== false,
     };
-    const hasEnabledDatasets = Object.values(enabledConfig).some(Boolean);
-    const effectiveLabels = hasEnabledDatasets ? labels : [];
-    ajustarAltura(contenedor, effectiveLabels.length);
 
     const colorBudget =
       budgetCfg.color || obtenerVariableCss("--color-budget", "#4472c4");
@@ -1382,7 +1472,7 @@
     const tituloEl = contenedor
       ?.closest(".chart-block")
       ?.querySelector(".chart-title");
-    if (tituloEl) {
+    if (tituloEl && showOperativo) {
       const titleTemplate = operativoConfig.title || DEFAULT_OPERATIVO_CONFIG.title;
       const titleText =
         applyTemplate(titleTemplate, {
@@ -1394,21 +1484,52 @@
       tituloEl.textContent = titleText;
     }
 
-    if (combinedBlock) combinedBlock.style.display = "";
-    actualizarChart({
-      labels: effectiveLabels,
-      presupuestos,
-      reales,
-      anuales,
-      colors: { budget: colorBudget, real: colorReal, annual: colorAnnual },
-      labelsConfig: {
-        budget: budgetLabel,
-        real: realLabel,
-        annual: annualLabel,
-      },
-      enabledConfig,
-      chartType: resolvedChartType,
-    });
+    if (showOperativo) {
+      console.log(
+        "📊 actualizarSidebar: Iniciando actualización de gráficas operativas"
+      );
+      const datos = obtenerDatos(tabla);
+      console.log("📊 actualizarSidebar: Datos obtenidos:", datos);
+
+      const labels = datos.map((item) => item.etiqueta);
+      const presupuestos = normalizarSerie(
+        datos.map((item) => item.presupuesto)
+      );
+      const reales = normalizarSerie(datos.map((item) => item.real));
+      const anuales = normalizarSerie(datos.map((item) => item.anual));
+
+      console.log("📊 actualizarSidebar: labels =", labels);
+      console.log("📊 actualizarSidebar: presupuestos =", presupuestos);
+      console.log("📊 actualizarSidebar: reales =", reales);
+      console.log("📊 actualizarSidebar: anuales =", anuales);
+
+      const hasEnabledDatasets = Object.values(enabledConfig).some(Boolean);
+      const effectiveLabels = hasEnabledDatasets ? labels : [];
+      ajustarAltura(contenedor, effectiveLabels.length);
+
+      if (combinedBlock) combinedBlock.style.display = "";
+      actualizarChart({
+        labels: effectiveLabels,
+        presupuestos,
+        reales,
+        anuales,
+        colors: { budget: colorBudget, real: colorReal, annual: colorAnnual },
+        labelsConfig: {
+          budget: budgetLabel,
+          real: realLabel,
+          annual: annualLabel,
+        },
+        enabledConfig,
+        chartType: resolvedChartType,
+      });
+    } else {
+      if (combinedBlock) combinedBlock.style.display = "none";
+      if (charts.combined) {
+        charts.combined.destroy();
+        charts.combined = null;
+        charts.combinedType = null;
+      }
+    }
 
     renderCustomCharts({
       sidebar,

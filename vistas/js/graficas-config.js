@@ -9,7 +9,7 @@
   const API_ENDPOINT = `${API_BASE}/graficas-config`;
   const EVENT_CONFIG_UPDATED = "graficas-config-updated";
   const DEFAULT_CONFIG = {
-    version: 4,
+    version: 5,
     series: [
       {
         key: "actualYTD",
@@ -265,12 +265,211 @@
         },
       },
     },
-    manualOnly: false,
-    customCharts: [],
+    manualOnly: true,
+    customCharts: [
+      {
+        id: "manual-operating",
+        module: "RESUMEN",
+        title: "Resultado Operativo por Capitulo",
+        subtitle: "Real Acum / Ppto. Acum / Real Acum AA",
+        chartType: "inherit",
+        sourceType: "snapshot",
+        seriesMode: "columns",
+        enabled: true,
+        seriesKeys: ["actualYTD", "planYTD", "prevYTD"],
+        rows: [
+          {
+            alias: "Ciudad de Mexico",
+            variants: ["OPERATING RESULTS MEXICO"],
+          },
+          {
+            alias: "Guadalajara",
+            variants: ["OPERATING RESULTS GUADALAJARA", "GDL OPERATING RESULTS"],
+          },
+          {
+            alias: "Monterrey",
+            variants: ["OPERATING RESULTS MONTERREY", "MTY OPERATING RESULTS"],
+          },
+          {
+            alias: "Noroeste",
+            variants: [
+              "OPERATING RESULTS NORTHWEST",
+              "OPERATING RESULTS NO",
+              "NO OPERATING RESULTS",
+            ],
+          },
+          {
+            alias: "{capitulo}",
+            variants: ["OPERATING RESULTS", "RESULTADO OPERATIVO"],
+          },
+        ],
+      },
+      {
+        id: "manual-net",
+        module: "RESUMEN",
+        title: "Resumen Neto por Capitulo",
+        subtitle: "Real Acum / Ppto. Acum / Real Acum AA",
+        chartType: "inherit",
+        sourceType: "snapshot",
+        seriesMode: "columns",
+        enabled: true,
+        seriesKeys: ["actualYTD", "planYTD", "prevYTD"],
+        rows: [
+          {
+            alias: "Ciudad de Mexico",
+            variants: ["NET RESULTS MEXICO"],
+          },
+          {
+            alias: "Guadalajara",
+            variants: ["NET RESULTS GUADALAJARA", "GDL NET RESULTS"],
+          },
+          {
+            alias: "Monterrey",
+            variants: ["NET RESULTS MONTERREY", "MTY NET RESULTS"],
+          },
+          {
+            alias: "Noroeste",
+            variants: [
+              "NET RESULTS NORTHWEST",
+              "NET RESULTS NO",
+              "NO NET RESULTS",
+            ],
+          },
+          {
+            alias: "{capitulo}",
+            variants: ["NET RESULTS", "RESULTADO NETO"],
+          },
+        ],
+      },
+      {
+        id: "manual-consolidated",
+        module: "RESUMEN",
+        title: "Consolidados Operativos vs Netos",
+        subtitle: "Real Acum / Ppto. Acum / Real Acum AA",
+        chartType: "inherit",
+        sourceType: "snapshot",
+        seriesMode: "rows",
+        enabled: true,
+        cdmxOnly: true,
+        seriesKeys: ["actualYTD", "planYTD", "prevYTD"],
+        rows: [
+          {
+            alias: "CONSOLIDATED OPERATING RESULTS",
+            variants: [
+              "CONSOLIDATED OPERATING RESULTS",
+              "CONSOLIDATED OPERATING RESULT",
+            ],
+          },
+          {
+            alias: "CONSOLIDATED NET RESULTS",
+            variants: ["CONSOLIDATED NET RESULTS", "CONSOLIDATED NET RESULT"],
+          },
+        ],
+      },
+      {
+        id: "manual-ingreso-capitulo",
+        module: "RESUMEN",
+        title: "Ingreso por capitulo",
+        subtitle: "Real acumulado por mes",
+        chartType: "inherit",
+        sourceType: "mensual",
+        seriesMode: "rows",
+        enabled: true,
+        seriesKeys: ["actualYTD"],
+        rows: [
+          {
+            alias: "CDMX",
+            variants: [
+              "CDMX INCOME",
+              "MEXICO INCOME",
+              "CIUDAD DE MEXICO INCOME",
+            ],
+          },
+          {
+            alias: "Guadalajara",
+            variants: ["GUADALAJARA INCOME", "GDL INCOME", "GUADALAJARA INCOMEA"],
+          },
+          {
+            alias: "Monterrey",
+            variants: ["MONTERREY INCOME", "MTY INCOME"],
+          },
+          {
+            alias: "Noroeste",
+            variants: [
+              "NORTHWEST INCOME",
+              "NW INCOME",
+              "NOROESTE INCOME",
+              "NO INCOME",
+            ],
+          },
+        ],
+      },
+      {
+        id: "manual-ingreso-nacional",
+        module: "RESUMEN",
+        title: "Ingreso nacional",
+        subtitle: "Real acumulado por mes",
+        chartType: "inherit",
+        sourceType: "mensual",
+        seriesMode: "rows",
+        enabled: true,
+        cdmxOnly: true,
+        seriesKeys: ["actualYTD"],
+        rows: [
+          {
+            alias: "Committees",
+            variants: ["COMMITTEES", "COMITES", "COMMITTEES (INCOME)"],
+          },
+          {
+            alias: "Membership",
+            variants: ["MEMBERSHIP", "MEMBERSHIP (INCOME)"],
+          },
+          {
+            alias: "Events",
+            variants: ["EVENTS", "EVENTS (INCOME)"],
+          },
+          {
+            alias: "Services to Members",
+            variants: [
+              "SERVICES TO MEMBERS",
+              "SERVICES MEMBERS",
+              "SERVICES TO MEMBERS (INCOME)",
+            ],
+          },
+          {
+            alias: "T&IC",
+            variants: ["T&IC", "T&IC (INCOME)", "T&IC INCOME"],
+          },
+        ],
+      },
+    ],
     deletedChartIds: [],
   };
 
   const clone = (value) => JSON.parse(JSON.stringify(value));
+
+  const mergeDefaultCustomCharts = (charts = [], deletedIds = []) => {
+    const deletedSet = new Set(
+      (Array.isArray(deletedIds) ? deletedIds : [])
+        .map((value) => canonicalizeChartId(value))
+        .filter(Boolean)
+    );
+    const merged = new Map();
+    (Array.isArray(DEFAULT_CONFIG.customCharts) ? DEFAULT_CONFIG.customCharts : [])
+      .forEach((chart) => {
+        if (!chart?.id) return;
+        const key = canonicalizeChartId(chart.id);
+        if (!key || deletedSet.has(key)) return;
+        merged.set(key, clone(chart));
+      });
+    (Array.isArray(charts) ? charts : []).forEach((chart) => {
+      if (!chart?.id) return;
+      const key = canonicalizeChartId(chart.id);
+      if (!key || deletedSet.has(key)) return;
+      merged.set(key, chart);
+    });
+    return Array.from(merged.values());
+  };
 
   const normalizeChartType = (value, fallback = "inherit") => {
     if (typeof value !== "string") return fallback;
@@ -287,6 +486,13 @@
     if (!clean) return fallback;
     if (clean === "snapshot" || clean === "mensual") return clean;
     if (clean === "custom") return "snapshot";
+    return fallback;
+  };
+
+  const normalizeSeriesMode = (value, fallback = "columns") => {
+    if (typeof value !== "string") return fallback;
+    const clean = value.trim().toLowerCase();
+    if (clean === "rows" || clean === "columns") return clean;
     return fallback;
   };
 
@@ -543,6 +749,8 @@
       const chartType =
         normalizeChartType(chart?.chartType, "inherit");
       const enabled = typeof chart?.enabled === "boolean" ? chart.enabled : true;
+      const seriesMode = normalizeSeriesMode(chart?.seriesMode, "columns");
+      const cdmxOnly = chart?.cdmxOnly === true;
       const rows = Array.isArray(chart?.rows) ? chart.rows : [];
       const normalizedRows = rows
         .map((row) => normalizeCustomChartRowDefinition(row))
@@ -613,6 +821,8 @@
         subtitle,
         chartType,
         enabled,
+        seriesMode,
+        cdmxOnly,
         sourceType,
         seriesKeys: mergedSeriesKeys,
         series: mergedSeries,
@@ -755,9 +965,7 @@
       });
     }
 
-    if (typeof config.manualOnly === "boolean") {
-      base.manualOnly = config.manualOnly;
-    }
+    base.manualOnly = true;
     base.deletedChartIds = normalizeDeletedChartIds(config.deletedChartIds);
 
     if (config.charts && typeof config.charts === "object") {
@@ -915,14 +1123,28 @@
       base.sources = normalizeSources(config.sources, base.sources);
     }
 
-    // Migración: al entrar a versión 4 se limpian gráficas anteriores.
-    if (!resetToManualFlow && Array.isArray(config.customCharts)) {
-      base.customCharts = normalizeCustomCharts(config.customCharts);
+    const normalizedCustomCharts = Array.isArray(config.customCharts)
+      ? normalizeCustomCharts(config.customCharts)
+      : [];
+    const deletedSet = new Set(base.deletedChartIds || []);
+    const filteredCustomCharts = normalizedCustomCharts.filter((chart) => {
+      const key = canonicalizeChartId(chart?.id);
+      if (!key) return false;
+      return !deletedSet.has(key);
+    });
+
+    // Migración: al entrar a versión 5 se convierten las gráficas base a manuales.
+    if (resetToManualFlow || filteredCustomCharts.length === 0) {
+      base.customCharts = mergeDefaultCustomCharts(
+        filteredCustomCharts,
+        base.deletedChartIds
+      );
     } else {
-      base.customCharts = [];
+      base.customCharts = filteredCustomCharts;
     }
-    if (base.manualOnly === true && !hasEnabledManualCharts(base.customCharts)) {
-      base.manualOnly = false;
+
+    if (!hasEnabledManualCharts(base.customCharts)) {
+      base.customCharts = mergeDefaultCustomCharts([], base.deletedChartIds);
     }
 
     return base;
@@ -1390,6 +1612,24 @@
     manualChartsEmpty.classList.toggle("d-none", hasCharts);
   };
 
+  const buildManualSourceHint = (moduleValue, sourceType) => {
+    const moduleLabel = normalizeModuleValue(moduleValue, "RESUMEN");
+    const cleanSource = normalizeSourceType(sourceType, "snapshot");
+    if (cleanSource === "mensual") {
+      return `Datos: resumen mensual (Ene-Dic) del modulo ${moduleLabel}. Edita ese resumen para cambiar valores.`;
+    }
+    return `Datos: tabla actual del modulo ${moduleLabel}. Edita esa tabla para cambiar valores.`;
+  };
+
+  const updateManualSourceHint = (card) => {
+    if (!card) return;
+    const hint = card.querySelector("[data-manual-source-hint]");
+    if (!hint) return;
+    const moduleValue = card.querySelector("[data-manual-module]")?.value;
+    const sourceValue = card.querySelector("[data-manual-source]")?.value;
+    hint.textContent = buildManualSourceHint(moduleValue, sourceValue);
+  };
+
   const buildManualChartCard = (chart, index) => {
     const chartId = chart?.id || buildCustomChartId();
     const moduleValue = normalizeModuleValue(chart?.module, "RESUMEN");
@@ -1398,6 +1638,8 @@
     const chartType = chart?.chartType || "inherit";
     const sourceType = chart?.sourceType || "snapshot";
     const enabled = chart?.enabled !== false;
+    const seriesMode = normalizeSeriesMode(chart?.seriesMode, "columns");
+    const cdmxOnly = chart?.cdmxOnly === true;
     const seriesKeys = Array.isArray(chart?.seriesKeys)
       ? chart.seriesKeys
       : Array.isArray(chart?.series)
@@ -1408,11 +1650,12 @@
     const wrapper = document.createElement("div");
     wrapper.className = "manual-chart-card";
     wrapper.setAttribute("data-manual-chart-id", chartId);
+    wrapper.setAttribute("data-manual-series-mode", seriesMode);
+    wrapper.setAttribute("data-manual-cdmx-only", cdmxOnly ? "true" : "false");
     wrapper.innerHTML = `
       <div class="d-flex flex-column flex-lg-row align-items-start justify-content-between gap-2 mb-3">
         <div>
           <h3 class="h6 mb-1">Grafica manual</h3>
-          <p class="text-muted small mb-0">Define modulo, filas y columnas.</p>
         </div>
         <button type="button" class="btn btn-outline-danger btn-sm" data-manual-remove>
           Eliminar
@@ -1424,14 +1667,12 @@
           <select class="form-select form-select-sm" data-manual-module></select>
         </div>
         <div class="col-12 col-lg-4">
-          <label class="form-label small fw-semibold">Origen de datos</label>
+          <label class="form-label small fw-semibold">Origen</label>
           <select class="form-select form-select-sm" data-manual-source>
-            <option value="snapshot">Tabla actual del modulo</option>
+            <option value="snapshot">Tabla actual</option>
             <option value="mensual">Historico mensual (Ene-Dic)</option>
           </select>
-          <div class="form-text">
-            Tabla actual usa filas/columnas de la tabla. Historico mensual usa Ene-Dic.
-          </div>
+          <div class="form-text" data-manual-source-hint></div>
         </div>
         <div class="col-12 col-lg-4">
           <label class="form-label small fw-semibold">Tipo</label>
@@ -1459,10 +1700,10 @@
         <div class="manual-series-list d-flex flex-wrap gap-2" data-manual-series></div>
       </div>
       <div class="mt-2">
-        <label class="form-label small fw-semibold">Filas (una por linea)</label>
+        <label class="form-label small fw-semibold">Filas</label>
         <textarea class="form-control form-control-sm" rows="4" data-manual-rows></textarea>
         <div class="form-text">
-          Usa formato: Alias=VAR1 | VAR2. Si no hay alias, usa solo VAR1 | VAR2.
+          Formato: Alias=VAR1 | VAR2. VAR = nombre de fila en la tabla origen.
         </div>
       </div>
       <div class="form-check form-switch mt-2">
@@ -1489,6 +1730,7 @@
     const seriesContainer = wrapper.querySelector("[data-manual-series]");
     const seriesOptions = getSeriesOptionsForModule(moduleValue);
     renderSeriesOptions(seriesContainer, seriesOptions, seriesKeys);
+    updateManualSourceHint(wrapper);
 
     return wrapper;
   };
@@ -1648,6 +1890,11 @@
       cards.forEach((card, index) => {
         const id =
           card.getAttribute("data-manual-chart-id") || buildCustomChartId();
+        const seriesMode = normalizeSeriesMode(
+          card.getAttribute("data-manual-series-mode"),
+          "columns"
+        );
+        const cdmxOnly = card.getAttribute("data-manual-cdmx-only") === "true";
         const moduleSelect = card.querySelector("[data-manual-module]");
         const titleInput = card.querySelector("[data-manual-title]");
         const subtitleInput = card.querySelector("[data-manual-subtitle]");
@@ -1716,6 +1963,8 @@
           chartType: normalizeChartType(typeSelect?.value, "inherit"),
           sourceType: normalizeSourceType(sourceSelect?.value, "snapshot"),
           enabled: Boolean(enabledInput?.checked),
+          seriesMode,
+          cdmxOnly,
           seriesKeys,
           series,
           rows,
@@ -1723,6 +1972,34 @@
       });
     }
     draft.customCharts = customCharts;
+
+    const defaultIds = new Set(
+      (Array.isArray(DEFAULT_CONFIG.customCharts)
+        ? DEFAULT_CONFIG.customCharts
+        : [])
+        .map((chart) => canonicalizeChartId(chart?.id))
+        .filter(Boolean)
+    );
+    const existingIds = new Set(
+      (Array.isArray(baseConfig.customCharts) ? baseConfig.customCharts : [])
+        .map((chart) => canonicalizeChartId(chart?.id))
+        .filter(Boolean)
+    );
+    const newIds = new Set(
+      customCharts.map((chart) => canonicalizeChartId(chart?.id)).filter(Boolean)
+    );
+    let deletedIds = Array.isArray(baseConfig.deletedChartIds)
+      ? [...baseConfig.deletedChartIds]
+      : [];
+    deletedIds = deletedIds.filter(
+      (id) => !newIds.has(canonicalizeChartId(id))
+    );
+    existingIds.forEach((id) => {
+      if (defaultIds.has(id) && !newIds.has(id)) {
+        deletedIds.push(id);
+      }
+    });
+    draft.deletedChartIds = normalizeDeletedChartIds(deletedIds);
     return draft;
   };
 
@@ -1842,6 +2119,13 @@
           .filter(Boolean);
         const options = getSeriesOptionsForModule(target.value);
         renderSeriesOptions(seriesContainer, options, selectedKeys);
+        updateManualSourceHint(card);
+        return;
+      }
+      if (target.matches("[data-manual-source]")) {
+        const card = target.closest("[data-manual-chart-id]");
+        if (!card) return;
+        updateManualSourceHint(card);
       }
     });
   }

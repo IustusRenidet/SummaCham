@@ -151,7 +151,7 @@ const tienePermisoRol = (permisos = {}, rol) => {
     case "guardar":
       return Boolean(permisos["Cargar y guardar"]);
     case "lectura":
-      return Boolean(permisos.Lectura);
+      return Boolean(permisos.Ver || permisos.Lectura);
     default:
       return false;
   }

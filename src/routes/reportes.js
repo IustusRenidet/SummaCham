@@ -3,8 +3,7 @@ const Joi = require('joi');
 const { generarSummary } = require('../services/engines/summaryEngine');
 const { generarResumenEjecutivo } = require('../services/engines/resumenEngine');
 const { obtenerEmpresaPorId } = require('../config/empresas');
-const { requireAuth, tienePermisoEmpresa } = require('../middleware/auth');
-const { esUsuarioPermitidoResumen } = require('../services/usuariosPolicy');
+const { requireAuth, tienePermisoEmpresa, tienePermisoModulo } = require('../middleware/auth');
 const { generarOperativoExcel } = require('../services/reportes/operativoExcelService');
 const { generarResumenExcel } = require('../services/reportes/resumenExcelService');
 
@@ -84,7 +83,12 @@ router.get('/summary', async (req, res) => {
   if (!req.esAdmin && !tienePermisoEmpresa(req.mapaPermisos, value.empresaId)) {
     return res.status(403).json({ mensaje: 'No cuentas con permisos para esta empresa.' });
   }
-  if (!req.esAdmin && !esUsuarioPermitidoResumen(req.usuarioActual?.usuario)) {
+  if (
+    !req.esAdmin &&
+    !tienePermisoModulo(req.mapaPermisos, value.empresaId, 'SUMMARY', null, {
+      ignorarUniversales: true
+    })
+  ) {
     return res.status(403).json({ mensaje: 'No cuentas con permisos para este reporte.' });
   }
   try {
@@ -108,7 +112,12 @@ router.get('/resumen', async (req, res) => {
   if (!req.esAdmin && !tienePermisoEmpresa(req.mapaPermisos, value.empresaId)) {
     return res.status(403).json({ mensaje: 'No cuentas con permisos para esta empresa.' });
   }
-  if (!req.esAdmin && !esUsuarioPermitidoResumen(req.usuarioActual?.usuario)) {
+  if (
+    !req.esAdmin &&
+    !tienePermisoModulo(req.mapaPermisos, value.empresaId, 'RESUMEN', null, {
+      ignorarUniversales: true
+    })
+  ) {
     return res.status(403).json({ mensaje: 'No cuentas con permisos para este reporte.' });
   }
   try {

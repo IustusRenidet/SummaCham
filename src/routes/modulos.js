@@ -3,7 +3,6 @@ const { listarModulos, obtenerDatosModulo } = require('../services/modulosServic
 const { obtenerResumen, listarAniosSALDOS } = require('../services/summaryService');
 const { obtenerPresupuestosMayor } = require('../services/presupuestosService');
 const { requireAuth, tienePermisoEmpresa } = require('../middleware/auth');
-const { esUsuarioPermitidoResumen } = require('../services/usuariosPolicy');
 
 const router = express.Router();
 
@@ -98,9 +97,7 @@ router.post('/summary-resumen-e', async (req, res) => {
     if (!req.esAdmin && !tienePermisoEmpresa(req.mapaPermisos, empresaId)) {
       return res.status(403).json({ mensaje: 'No cuentas con permisos para esta empresa.' });
     }
-    if (!req.esAdmin && !esUsuarioPermitidoResumen(req.usuarioActual?.usuario)) {
-      return res.status(403).json({ mensaje: 'No cuentas con permisos para este reporte.' });
-    }
+    // Permisos especiales de resumen controlados por la tabla permisos_modulo
 
     const resultado = await obtenerResumen({
       empresaId,
@@ -173,9 +170,7 @@ router.get('/summary-anios', async (req, res) => {
     if (!req.esAdmin && !tienePermisoEmpresa(req.mapaPermisos, empresaId)) {
       return res.status(403).json({ mensaje: 'No cuentas con permisos para esta empresa.' });
     }
-    if (!req.esAdmin && !esUsuarioPermitidoResumen(req.usuarioActual?.usuario)) {
-      return res.status(403).json({ mensaje: 'No cuentas con permisos para este reporte.' });
-    }
+    // Permisos especiales de resumen controlados por la tabla permisos_modulo
 
     const anios = await listarAniosSALDOS(empresaId);
     res.json({ anios });

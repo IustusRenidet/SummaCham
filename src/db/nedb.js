@@ -706,27 +706,8 @@ const sembrarUsuariosDesdeJson = async () => {
 };
 
 const limpiarPermisosResumenNoAutorizados = async () => {
-  try {
-    const usuarios = await stores.usuarios.find({});
-    if (!usuarios.length) return;
-    for (const registro of usuarios) {
-      const usuarioNormalizado = normalizarUsuario(registro.usuario);
-      if (esUsuarioPermitidoResumen(usuarioNormalizado)) {
-        continue;
-      }
-      for (const modulo of MODULOS_RESTRINGIDOS) {
-        await stores.permisos_modulo.remove(
-          { usuario_id: registro.id, modulo },
-          { multi: true }
-        );
-      }
-    }
-  } catch (err) {
-    console.warn(
-      "No fue posible limpiar permisos restringidos:",
-      err?.message || err
-    );
-  }
+  // Función deshabilitada: ya no eliminamos permisos restringidos automáticamente
+  return;
 };
 
 const sembrarVistasPorCapitulo = async () => {

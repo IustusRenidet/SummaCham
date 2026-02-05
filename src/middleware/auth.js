@@ -201,18 +201,18 @@ const tienePermisoEmpresa = (mapaPermisos, empresaId) => {
   const permisos = resolverPermisosEmpresa(mapaPermisos, empresaId);
   if (!permisos) return false;
   return Object.values(permisos).some(
-    (acciones) => acciones.Lectura || acciones['Cargar y guardar'] || acciones.Revisar || acciones.Aprobar
+    (acciones) => acciones.Ver || acciones.Lectura || acciones['Cargar y guardar'] || acciones.Revisar || acciones.Aprobar
   );
 };
 
-const tienePermisoModulo = (mapaPermisos, empresaId, modulo, accion) => {
+const tienePermisoModulo = (mapaPermisos, empresaId, modulo, accion, opciones = {}) => {
   if (!empresaId || !modulo) return false;
-  
+  const ignorarUniversales = Boolean(opciones?.ignorarUniversales);
   // Módulos con acceso universal (todos pueden ver)
   const modulosUniversales = ['SUMMARY', 'RESUMEN', 'PRESUPUESTOS'];
   const moduloNormalizado = normalizarClaveModulo(modulo);
   
-  if (modulosUniversales.includes(moduloNormalizado)) {
+  if (!ignorarUniversales && modulosUniversales.includes(moduloNormalizado)) {
     // Para módulos universales, siempre permitir lectura
     if (!accion || accion === 'Lectura') {
       return true;
@@ -224,7 +224,7 @@ const tienePermisoModulo = (mapaPermisos, empresaId, modulo, accion) => {
   const permisos = resolverPermisosModulo(permisosEmpresa, modulo);
   if (!permisos) return false;
   if (!accion) {
-    return Boolean(permisos.Lectura || permisos['Cargar y guardar'] || permisos.Revisar || permisos.Aprobar);
+    return Boolean(permisos.Ver || permisos.Lectura || permisos['Cargar y guardar'] || permisos.Revisar || permisos.Aprobar);
   }
   return Boolean(permisos[accion]);
 };

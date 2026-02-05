@@ -35,6 +35,13 @@
   const detailEditBtn = document.getElementById("plantillasGraficasDetailEdit");
   const detailDeleteBtn = document.getElementById("plantillasGraficasDetailDelete");
   const detailAddBtn = document.getElementById("plantillasGraficasDetailAdd");
+  const contextModuloEl = document.getElementById(
+    "plantillasGraficasContextModulo"
+  );
+  const contextAnioEl = document.getElementById("plantillasGraficasContextAnio");
+  const contextCapituloEl = document.getElementById(
+    "plantillasGraficasContextCapitulo"
+  );
   const summarySourceSelect = document.getElementById(
     "plantillasSummarySourceSelect"
   );
@@ -291,6 +298,25 @@
       document.getElementById("capituloLabel")?.textContent ||
       "";
     return value.toString().trim();
+  };
+
+  const getSelectedAnio = () => {
+    const select = document.getElementById("anioSelect");
+    const value =
+      select?.value || document.getElementById("anioLabel")?.textContent || "";
+    return value.toString().trim();
+  };
+
+  const updateContextChips = () => {
+    if (contextModuloEl) {
+      contextModuloEl.textContent = getCurrentModuleValue() || "-";
+    }
+    if (contextAnioEl) {
+      contextAnioEl.textContent = getSelectedAnio() || "-";
+    }
+    if (contextCapituloEl) {
+      contextCapituloEl.textContent = getSelectedCapitulo() || "Sin capitulo";
+    }
   };
 
   const readLatestSnapshot = (capitulo = "") => {
@@ -1580,6 +1606,12 @@
     doughnut: "Dona",
   };
 
+  const FLASH_CLASS = "plantillas-graficas-flash";
+  const detailState = {
+    seriesByChart: new Map(),
+  };
+  let detailUpdating = false;
+
   const filterSeriesByKeys = (seriesList = [], keys = []) => {
     if (!Array.isArray(keys) || keys.length === 0) return seriesList;
     const keySet = new Set(
@@ -1629,6 +1661,241 @@
     CHART_TYPE_LABELS[type] || CHART_TYPE_LABELS.bar;
 
   const uniqueList = (items) => Array.from(new Set((items || []).filter(Boolean)));
+
+  const formatKeyLabel = (key, label) => {
+    const cleanKey = (key || "").toString().trim();
+    const cleanLabel = (label || "").toString().trim();
+    if (!cleanKey && !cleanLabel) return "";
+    if (!cleanLabel || cleanLabel === cleanKey) return cleanKey || cleanLabel;
+    return `${cleanLabel} (${cleanKey})`;
+  };
+
+  const getSelectedValues = (select) =>
+    Array.from(select?.selectedOptions || [])
+      .map((option) => option.value)
+      .filter(Boolean);
+
+  const setSelectOptions = (
+    select,
+    options,
+    selectedValues = [],
+    { placeholder = "Sin opciones", disabled = false } = {}
+  ) => {
+    if (!select) return;
+    const selectedSet = new Set(
+      (Array.isArray(selectedValues) ? selectedValues : [])
+        .map((value) => (value || "").toString().trim())
+        .filter(Boolean)
+    );
+    const normalizedOptions = Array.isArray(options) ? options : [];
+    const values = normalizedOptions
+      .map((option) =>
+        typeof option === "string"
+          ? { value: option, label: option }
+          : option
+      )
+      .filter((option) => option && option.value);
+    const missingSelected = Array.from(selectedSet).filter(
+      (value) => !values.some((option) => option.value === value)
+    );
+    const finalOptions = [
+      ...values,
+      ...missingSelected.map((value) => ({ value, label: value })),
+    ];
+    select.innerHTML = "";
+    if (!finalOptions.length) {
+      const opt = document.createElement("option");
+      opt.value = "";
+      opt.textContent = placeholder;
+      opt.disabled = true;
+      opt.selected = true;
+      select.appendChild(opt);
+      select.disabled = true;
+      return;
+    }
+    finalOptions.forEach((option) => {
+      const node = document.createElement("option");
+      node.value = option.value;
+      node.textContent = option.label || option.value;
+      node.selected = selectedSet.has(option.value);
+      select.appendChild(node);
+    });
+    select.disabled = Boolean(disabled);
+  };
+
+  const collectRowsFromState = () => {
+    const labels = [];
+    const push = (value) => {
+      const clean = (value || "").toString().trim();
+      if (!clean) return;
+      labels.push(clean);
+    };
+    const cuentas = Array.isArray(window.state?.cuentas)
+      ? window.state.cuentas
+      : [];
+    cuentas.forEach((cuenta) => {
+      if (!cuenta) return;
+      push(cuenta.SECCION || cuenta.seccion || cuenta.PRINCIPAL || cuenta.principal);
+      push(
+        cuenta.SUBSECCION ||
+          cuenta.subseccion ||
+          cuenta.SECUNDARIA ||
+          cuenta.secundaria
+      );
+      push(cuenta.NOMBRE || cuenta.nombre);
+      push(cuenta.CUENTA || cuenta.cuenta);
+    });
+    const operaciones = Array.isArray(window.state?.operaciones)
+      ? window.state.operaciones
+      : [];
+    operaciones.forEach((op) => {
+      if (!op) return;
+      push(
+        op.Operacion ||
+          op.operacion ||
+          op.clase ||
+          op.label ||
+          op.NOMBRE ||
+          op.nombre
+      );
+    });
+    return uniqueList(labels);
+  };
+
+  const collectRowsFromLayoutPreview = () => {
+    const labels = [];
+    const push = (value) => {
+      const clean = (value || "").toString().trim();
+      if (!clean) return;
+      labels.push(clean);
+    };
+    const layoutPreview = document.getElementById("layoutPreview");
+    if (!layoutPreview) return [];
+    layoutPreview
+      .querySelectorAll(".template-list-view .list-item[data-row-type]")
+      .forEach((item) => {
+        const rowType = (item.dataset.rowType || "").toLowerCase();
+        if (rowType === "section") {
+          push(item.dataset.section);
+          return;
+        }
+        if (rowType === "subsection") {
+          push(item.dataset.subsection);
+          return;
+        }
+        if (rowType === "account") {
+          push(item.dataset.nombre);
+          push(item.dataset.cuenta);
+          return;
+        }
+        if (rowType === "operation") {
+          push(item.dataset.operationLabel || item.dataset.operationId);
+        }
+      });
+    layoutPreview
+      .querySelectorAll(".template-table tr[data-row-type]")
+      .forEach((row) => {
+        const rowType = (row.dataset.rowType || "").toLowerCase();
+        const cells = Array.from(row.querySelectorAll("td"));
+        if (!cells.length) return;
+        if (rowType === "section" || rowType === "subsection") {
+          push(cells[1]?.textContent || cells[0]?.textContent || "");
+          return;
+        }
+        if (rowType === "account") {
+          push(cells[1]?.textContent || "");
+          push(cells[0]?.textContent || "");
+          return;
+        }
+        if (rowType === "operation") {
+          push(cells[1]?.textContent || cells[0]?.textContent || "");
+        }
+      });
+    return uniqueList(labels);
+  };
+
+  const getModuleRowOptions = (moduleValue) => {
+    const moduleKey = normalizeModuleKey(moduleValue || "RESUMEN");
+    if (isSummaryModuleKey(moduleKey)) {
+      return refreshSnapshotLabelOptions();
+    }
+    const combined = [
+      ...collectRowsFromState(),
+      ...collectRowsFromLayoutPreview(),
+    ];
+    return uniqueList(combined).sort((a, b) => a.localeCompare(b));
+  };
+
+  const buildSummarySeriesList = (config, defaults) => {
+    const seriesSource =
+      Array.isArray(config?.series) && config.series.length
+        ? config.series
+        : defaults?.series || [];
+    const overrides = new Map(
+      seriesSource
+        .map((serie) => [String(serie?.key || "").trim(), serie])
+        .filter(([key]) => Boolean(key))
+    );
+    return SUMMARY_TABLE_SERIES.map((base) => {
+      const override = overrides.get(base.key) || {};
+      return {
+        key: base.key,
+        label:
+          (typeof override.label === "string" && override.label.trim()
+            ? override.label.trim()
+            : null) || base.label,
+        enabled:
+          typeof override.enabled === "boolean"
+            ? override.enabled
+            : base.enabled !== false,
+      };
+    });
+  };
+
+  const buildOperativoSeriesList = (config, defaults) =>
+    listFromMap(config?.operativo?.datasets || defaults?.operativo?.datasets || {})
+      .map((serie) => ({
+        key: serie.key,
+        label: serie.label || serie.key,
+        enabled: serie.enabled !== false,
+      }))
+      .filter((serie) => serie.key);
+
+  const buildGastosSeriesList = (config, defaults, chartKey) =>
+    listFromMap(
+      (config?.gastosGenerales?.charts || defaults?.gastosGenerales?.charts || {})?.[
+        chartKey
+      ]?.series || {}
+    )
+      .map((serie) => ({
+        key: serie.key,
+        label: serie.label || serie.key,
+        enabled: serie.enabled !== false,
+      }))
+      .filter((serie) => serie.key);
+
+  const getSummarySourceVariants = (summarySources, key, type) => {
+    const rows = summarySources?.[key]?.[type] || [];
+    const variants = [];
+    rows.forEach((row) => {
+      if (typeof row === "string") {
+        variants.push(row);
+        return;
+      }
+      if (Array.isArray(row?.variants)) {
+        variants.push(...row.variants);
+        return;
+      }
+      if (Array.isArray(row?.labels)) {
+        variants.push(...row.labels);
+        return;
+      }
+      if (row?.label || row?.alias) {
+        variants.push(row.label || row.alias);
+      }
+    });
+    return uniqueList(variants.map((item) => (item || "").toString().trim()).filter(Boolean));
+  };
 
   const formatListSummary = (items, limit = 4) => {
     const list = uniqueList(items);
@@ -1680,22 +1947,31 @@
         .filter(Boolean)
     );
 
-  const buildRowsColumnsInfo = ({ moduleValue, rows = [], columns = [] }) => {
+  const buildRowsColumnsInfo = ({
+    moduleValue,
+    rows = [],
+    columns = [],
+    tableLabel,
+  }) => {
     const moduleFile = resolveModuleFileName(moduleValue);
+    const tableName = tableLabel || moduleFile;
     const rowList = toDisplayList(rows);
     const columnList = toDisplayList(columns);
+    const fullRows = formatListSummary(rowList, 999) || "No definidas";
+    const fullColumns = formatListSummary(columnList, 999) || "No definidas";
     return {
       moduleFile,
+      tableLabel: tableName,
       rowList,
       columnList,
       sourcesText: [
-        `Modulo: ${moduleFile}`,
-        `Filas: ${formatListSummary(rowList, 6) || "No definidas"}`,
-        `Columnas: ${formatListSummary(columnList, 6) || "No definidas"}`,
-      ].join(" · "),
-      sourcesMeta: `Filas: ${formatListSummary(rowList, 2) || "No definidas"} - Columnas: ${
-        formatListSummary(columnList, 2) || "No definidas"
-      }`,
+        `Tabla: ${tableName}`,
+        `Filas: ${fullRows}`,
+        `Columnas: ${fullColumns}`,
+      ].join("\n"),
+      sourcesMeta: `Tabla: ${tableName} · Filas: ${
+        formatListSummary(rowList, 2) || "No definidas"
+      } · Columnas: ${formatListSummary(columnList, 2) || "No definidas"}`,
     };
   };
 
@@ -1722,7 +1998,7 @@
       const operating = Array.isArray(group.operating) ? group.operating : [];
       const net = Array.isArray(group.net) ? group.net : [];
       if (!operating.length && !net.length) return null;
-      return { operating, net, isCdmx: key === "cdmx" };
+      return { operating, net, isCdmx: key === "cdmx", sourceKey: key };
     };
 
     if (sources) {
@@ -1750,7 +2026,7 @@
       return resolveSummaryRows(capitulo, fallbackSources, null);
     }
 
-    return { operating: [], net: [], isCdmx: false };
+    return { operating: [], net: [], isCdmx: false, sourceKey: "generic" };
   };
 
   const buildSourceVariantsList = (sourceMap) => {
@@ -1821,6 +2097,19 @@
     });
   };
 
+  const buildSampleSummaryPreview = (rows, seriesList, chartType, capituloLabel) => {
+    let labels = (Array.isArray(rows) ? rows : [])
+      .map((row) => resolveRowLabel(row, capituloLabel))
+      .filter(Boolean);
+    if (!labels.length) {
+      const fallback = (capituloLabel || "").toString().trim();
+      labels = fallback ? [fallback] : ["Fila 1", "Fila 2", "Fila 3"];
+    }
+    const datasets = buildDatasetsFromList(seriesList, labels, chartType);
+    if (!datasets.length) return null;
+    return { chartType, labels, datasets };
+  };
+
   const toNumber = (value) => {
     const num = Number(value);
     return Number.isFinite(num) ? num : 0;
@@ -1843,6 +2132,19 @@
       return raw.toString().replace(/\{capitulo\}/gi, capituloLabel);
     }
     return raw.toString();
+  };
+
+  const buildCustomSamplePreview = (rows, seriesList, chartType, capituloLabel) => {
+    let labels = (Array.isArray(rows) ? rows : [])
+      .map((row) => resolveRowLabel(row, capituloLabel))
+      .filter(Boolean);
+    if (!labels.length) {
+      const fallback = (capituloLabel || "").toString().trim();
+      labels = fallback ? [fallback] : ["Fila 1", "Fila 2", "Fila 3"];
+    }
+    const datasets = buildDatasetsFromList(seriesList, labels, chartType);
+    if (!datasets.length) return null;
+    return { chartType, labels, datasets };
   };
 
   const percentageDelta = (baseValue, compareValue) => {
@@ -1963,6 +2265,189 @@
     return Array.isArray(fallbackVariants) ? fallbackVariants : [];
   };
 
+  const collectVariantsFromSourceMap = (sourceMap) => {
+    if (!sourceMap || typeof sourceMap !== "object") return [];
+    const list = [];
+    Object.values(sourceMap).forEach((entry) => {
+      if (Array.isArray(entry)) {
+        list.push(...entry);
+        return;
+      }
+      if (Array.isArray(entry?.variants)) {
+        list.push(...entry.variants);
+      }
+    });
+    return uniqueList(
+      list.map((item) => (item || "").toString().trim()).filter(Boolean)
+    );
+  };
+
+  const buildSourceHintText = ({
+    tableLabel,
+    rows = [],
+    columns = [],
+    extra = "",
+  }) => {
+    const formatFullList = (items) =>
+      uniqueList(items)
+        .map((item) => (item || "").toString().trim())
+        .filter(Boolean)
+        .join(", ");
+    const rowText = formatFullList(rows) || "No definidas";
+    const columnText = formatFullList(columns) || "No definidas";
+    const parts = [];
+    if (tableLabel) parts.push(`Tabla: ${tableLabel}`);
+    parts.push(`Filas: ${rowText}`);
+    parts.push(`Columnas: ${columnText}`);
+    if (extra) parts.push(extra);
+    return parts.join("\n");
+  };
+
+  const setSourceHint = (key, text) => {
+    if (!form) return;
+    const el = form.querySelector(`[data-source-hint="${key}"]`);
+    if (!el) return;
+    el.textContent = text || "";
+    el.classList.toggle("d-none", !text);
+  };
+
+  const updateSourceHints = (configInput) => {
+    if (!form) return;
+    const apiDefaults = clone(getGraficasConfigApi()?.defaults || {});
+    const config = configInput || readConfigFromForm();
+    if (!config) return;
+    const sources = config.sources || {};
+    const summarySources = sources.summary || apiDefaults.sources?.summary || {};
+    const selectedCapitulo = getSelectedCapitulo();
+    const rowsConfig = resolveSummaryRows(
+      selectedCapitulo,
+      summarySources,
+      apiDefaults.sources?.summary || {}
+    );
+    const summarySeries = Array.isArray(config.series) && config.series.length
+      ? config.series
+      : apiDefaults.series || [];
+    const summaryColumns = summarySeries
+      .filter((serie) => serie?.enabled !== false)
+      .map((serie) => formatKeyLabel(serie?.key, serie?.label))
+      .filter(Boolean);
+    const operatingRows = (rowsConfig.operating || [])
+      .map((row) => resolveRowLabel(row, selectedCapitulo))
+      .filter(Boolean);
+    const netRows = (rowsConfig.net || [])
+      .map((row) => resolveRowLabel(row, selectedCapitulo))
+      .filter(Boolean);
+    const consolidatedSources =
+      sources.consolidated || apiDefaults.sources?.consolidated || {};
+    const consolidatedRows = uniqueList([
+      ...getConsolidatedVariants(
+        consolidatedSources,
+        "operating",
+        apiDefaults.sources?.consolidated || {}
+      ),
+      ...getConsolidatedVariants(
+        consolidatedSources,
+        "net",
+        apiDefaults.sources?.consolidated || {}
+      ),
+    ]);
+    const ingresoRows = collectVariantsFromSourceMap(
+      sources.ingreso || apiDefaults.sources?.ingreso || {}
+    );
+    const ingresoNacionalRows = collectVariantsFromSourceMap(
+      sources.ingresoNacional || apiDefaults.sources?.ingresoNacional || {}
+    );
+
+    const operativoSeries = listFromMap(
+      config.operativo?.datasets || apiDefaults.operativo?.datasets || {}
+    )
+      .filter((serie) => serie?.enabled !== false)
+      .map((serie) => formatKeyLabel(serie?.key, serie?.label))
+      .filter(Boolean);
+
+    const ggCharts =
+      config.gastosGenerales?.charts || apiDefaults.gastosGenerales?.charts || {};
+    const ggRendimientosSeries = listFromMap(
+      ggCharts?.rendimientos?.series || {}
+    )
+      .filter((serie) => serie?.enabled !== false)
+      .map((serie) => formatKeyLabel(serie?.key, serie?.label))
+      .filter(Boolean);
+    const ggPlusvaliaSeries = listFromMap(ggCharts?.plusvalia?.series || {})
+      .filter((serie) => serie?.enabled !== false)
+      .map((serie) => formatKeyLabel(serie?.key, serie?.label))
+      .filter(Boolean);
+
+    const resumenFile = resolveModuleFileName("RESUMEN");
+    const gastosFile = resolveModuleFileName("Gastos Generales");
+    const operativoFile = resolveModuleFileName(getCurrentModuleValue() || "RESUMEN");
+
+    setSourceHint(
+      "operating",
+      buildSourceHintText({
+        tableLabel: `${resumenFile} (tabla actual)`,
+        rows: operatingRows,
+        columns: summaryColumns,
+      })
+    );
+    setSourceHint(
+      "net",
+      buildSourceHintText({
+        tableLabel: `${resumenFile} (tabla actual)`,
+        rows: netRows,
+        columns: summaryColumns,
+      })
+    );
+    setSourceHint(
+      "consolidated",
+      buildSourceHintText({
+        tableLabel: `${resumenFile} (tabla actual)`,
+        rows: consolidatedRows,
+        columns: summaryColumns,
+      })
+    );
+    setSourceHint(
+      "ingreso",
+      buildSourceHintText({
+        tableLabel: `${resumenFile} (resumen mensual Ene-Dic)`,
+        rows: ingresoRows,
+        columns: ["Actual acumulado (actualYTD)"],
+      })
+    );
+    setSourceHint(
+      "ingreso-nacional",
+      buildSourceHintText({
+        tableLabel: `${resumenFile} (resumen mensual Ene-Dic)`,
+        rows: ingresoNacionalRows,
+        columns: ["Actual acumulado (actualYTD)"],
+      })
+    );
+    setSourceHint(
+      "operativo",
+      buildSourceHintText({
+        tableLabel: `${operativoFile} (tabla actual)`,
+        rows: ["Filas visibles del modulo"],
+        columns: operativoSeries,
+      })
+    );
+    setSourceHint(
+      "gastos-rendimientos",
+      buildSourceHintText({
+        tableLabel: `${gastosFile} (resumen mensual Ene-Dic)`,
+        rows: ["Meses del ejercicio (Ene-Dic)"],
+        columns: ggRendimientosSeries,
+      })
+    );
+    setSourceHint(
+      "gastos-plusvalia",
+      buildSourceHintText({
+        tableLabel: `${gastosFile} (resumen mensual Ene-Dic)`,
+        rows: ["Meses del ejercicio (Ene-Dic)"],
+        columns: ggPlusvaliaSeries,
+      })
+    );
+  };
+
   const obtenerFilaIngreso = (layout = [], variants = []) => {
     if (!Array.isArray(layout) || !layout.length) return null;
     const candidates = Array.isArray(variants) ? variants : [variants];
@@ -1982,16 +2467,12 @@
   }) => {
     const empresaId = context?.empresaId;
     const anio = context?.anio;
-    if (!empresaId || !anio) return null;
     const capitulo =
       kind === "ingresoNacional" ? "" : (context?.capitulo || "").trim();
     const ingresoConfig = config?.[kind] || defaults?.[kind] || {};
     if (ingresoConfig.enabled === false) return null;
     const ingresoSources =
       config?.sources?.[kind] || defaults?.sources?.[kind] || {};
-    const responses = await loadResumenMensual(empresaId, anio, capitulo);
-    if (!responses || !responses.length) return null;
-
     const datasetsConfig = Object.entries(ingresoConfig.series || {})
       .map(([key, serie]) => ({
         key,
@@ -2005,7 +2486,32 @@
         ),
       }))
       .filter((serie) => serie.enabled && serie.variants.length);
-    if (!datasetsConfig.length) return null;
+    const fallbackSeries = Object.entries(ingresoConfig.series || {})
+      .map(([key, serie]) => ({
+        key,
+        label: serie?.label || key,
+        color: serie?.color || "#0d47a1",
+        enabled: serie?.enabled !== false,
+      }))
+      .filter((serie) => serie.enabled);
+
+    const buildSample = (seriesFallback = datasetsConfig) => {
+      const seriesToUse = Array.isArray(seriesFallback) && seriesFallback.length
+        ? seriesFallback
+        : fallbackSeries;
+      if (!seriesToUse.length) return null;
+      const datasets = buildDatasetsFromList(seriesToUse, MONTH_LABELS, chartType);
+      return datasets.length
+        ? { chartType, labels: MONTH_LABELS, datasets }
+        : null;
+    };
+
+    if (!empresaId || !anio) return buildSample(fallbackSeries);
+
+    if (!datasetsConfig.length) return buildSample(fallbackSeries);
+
+    const responses = await loadResumenMensual(empresaId, anio, capitulo);
+    if (!responses || !responses.length) return buildSample();
 
     const series = datasetsConfig.reduce((acc, item) => {
       acc[item.key] = [];
@@ -2140,7 +2646,7 @@
     const hasData = datasets.some((dataset) =>
       (dataset.data || []).some((value) => Number(value) !== 0 && value !== null)
     );
-    if (!hasData) return null;
+    if (!hasData) return buildSample();
 
     return {
       chartType,
@@ -2232,6 +2738,8 @@
       );
       const rows =
         definition.chartKey === "net" ? rowsConfig.net : rowsConfig.operating;
+      const samplePreview = () =>
+        buildSampleSummaryPreview(rows, summarySeriesList, chartType, capituloLabel);
       if (snapshotMap) {
       const data = buildDatasetsFromSnapshot({
         rows,
@@ -2241,15 +2749,15 @@
         capituloLabel,
         looseMatch: true,
       });
-        return data ? { chartType, ...data } : null;
+        return data ? { chartType, ...data } : samplePreview();
       }
-      if (!empresaId || !anio) return null;
+      if (!empresaId || !anio) return samplePreview();
       return loadResumenMensual(empresaId, anio, capituloLabel).then(
         (responses) => {
           const layout = pickLayoutFromResponses(responses);
-          if (!layout.length) return null;
+          if (!layout.length) return samplePreview();
           const liveMap = buildSnapshotMapFromLayout(layout);
-          if (!liveMap) return null;
+          if (!liveMap) return samplePreview();
           const data = buildDatasetsFromSnapshot({
             rows,
             snapshotMap: liveMap,
@@ -2258,7 +2766,7 @@
             capituloLabel,
             looseMatch: true,
           });
-          return data ? { chartType, ...data } : null;
+          return data ? { chartType, ...data } : samplePreview();
         }
       );
     }
@@ -2304,6 +2812,32 @@
           dataset.maxBarThickness = 18;
         }
         return dataset;
+      };
+      const buildSample = () => {
+        if (!labels.length) return null;
+        const opData = buildSampleValues(labels.length, 150, 12);
+        const netData = buildSampleValues(labels.length, 110, 9);
+        return {
+          chartType,
+          labels,
+          datasets: [
+            buildConsolidatedDataset(
+              {
+                label:
+                  operatingCfg.label || "CONSOLIDATED OPERATING RESULTS",
+                color: operatingCfg.color || "#0d47a1",
+              },
+              opData
+            ),
+            buildConsolidatedDataset(
+              {
+                label: netCfg.label || "CONSOLIDATED NET RESULTS",
+                color: netCfg.color || "#94a3b8",
+              },
+              netData
+            ),
+          ],
+        };
       };
       const resolveTotals = (map) => {
         const opTotals = getRowTotalsLoose(
@@ -2353,13 +2887,13 @@
       if (snapshotMap) {
         return resolveTotals(snapshotMap);
       }
-      if (!empresaId || !anio) return null;
+      if (!empresaId || !anio) return buildSample();
       return loadResumenMensual(empresaId, anio, capituloLabel).then(
         (responses) => {
           const layout = pickLayoutFromResponses(responses);
-          if (!layout.length) return null;
+          if (!layout.length) return buildSample();
           const liveMap = buildSnapshotMapFromLayout(layout);
-          if (!liveMap) return null;
+          if (!liveMap) return buildSample();
           return resolveTotals(liveMap);
         }
       );
@@ -2382,18 +2916,49 @@
         chartType,
       });
     }
+    if (definition.previewKind === "operativo") {
+      const labels = ["Fila 1", "Fila 2", "Fila 3"];
+      const datasets = buildDatasetsFromList(
+        operativoSeriesList,
+        labels,
+        chartType
+      );
+      return datasets.length ? { chartType, labels, datasets } : null;
+    }
+    if (definition.previewKind === "gastos") {
+      const ggCharts =
+        config.gastosGenerales?.charts || defaults.gastosGenerales?.charts || {};
+      const chartKey = definition.chartKey || "rendimientos";
+      const chartCfg = ggCharts?.[chartKey] || {};
+      const seriesList = listFromMap(chartCfg.series || {}).map((serie) => ({
+        key: serie.key,
+        label: serie.label || serie.key,
+        color: serie.color || "#0d47a1",
+        enabled: serie.enabled !== false,
+      }));
+      const datasets = buildDatasetsFromList(
+        seriesList,
+        MONTH_LABELS,
+        chartType
+      );
+      return datasets.length
+        ? { chartType, labels: MONTH_LABELS, datasets }
+        : null;
+    }
     if (definition.previewKind === "custom") {
-      if (!customIsSummaryModule) return null;
+      const rows = Array.isArray(definition.rows) ? definition.rows : [];
+      const samplePreview = () =>
+        buildCustomSamplePreview(rows, customSeriesList, chartType, capituloLabel);
+      if (!customIsSummaryModule) return samplePreview();
       const sourceType = (definition.sourceType || "snapshot").toString().toLowerCase();
       if (sourceType === "mensual") {
         return buildCustomMensualPreviewData({
-          rows: Array.isArray(definition.rows) ? definition.rows : [],
+          rows,
           seriesList: customSeriesList,
           context,
           chartType,
-        });
+        }).then((data) => data || samplePreview());
       }
-      const rows = Array.isArray(definition.rows) ? definition.rows : [];
       const buildFromMap = (map) => {
         if (!map) return null;
         const data = buildDatasetsFromSnapshot({
@@ -2407,15 +2972,15 @@
         return data ? { chartType, ...data } : null;
       };
       if (snapshotMap) {
-        return buildFromMap(snapshotMap);
+        return buildFromMap(snapshotMap) || samplePreview();
       }
-      if (!empresaId || !anio) return null;
+      if (!empresaId || !anio) return samplePreview();
       return loadResumenMensual(empresaId, anio, capituloLabel).then(
         (responses) => {
           const layout = pickLayoutFromResponses(responses);
-          if (!layout.length) return null;
+          if (!layout.length) return samplePreview();
           const liveMap = buildSnapshotMapFromLayout(layout);
-          return buildFromMap(liveMap);
+          return buildFromMap(liveMap) || samplePreview();
         }
       );
     }
@@ -2424,30 +2989,136 @@
 
   const renderPreviewFallback = (container, message) => {
     if (!container) return;
+    const existingCanvas = container.querySelector("canvas");
     container.innerHTML = "";
+    if (existingCanvas) {
+      existingCanvas.classList.add("d-none");
+      container.appendChild(existingCanvas);
+    }
     const text = document.createElement("div");
-    text.className = "text-muted small text-center p-3";
+    text.className = "text-muted small text-center p-3 preview-fallback";
     text.textContent = message || "Vista previa no disponible.";
     container.appendChild(text);
   };
 
+  const renderMiniPreview = (canvas, previewData) => {
+    if (!canvas || !previewData) return false;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return false;
+    const rect = canvas.getBoundingClientRect();
+    const width = Math.max(1, Math.floor(rect.width || 240));
+    const height = Math.max(1, Math.floor(rect.height || 120));
+    canvas.width = width;
+    canvas.height = height;
+    ctx.clearRect(0, 0, width, height);
+
+    const labels = Array.isArray(previewData.labels) ? previewData.labels : [];
+    const datasets = Array.isArray(previewData.datasets) ? previewData.datasets : [];
+    if (!labels.length || !datasets.length) return false;
+
+    const chartType = normalizeChartType(previewData.chartType, "bar");
+    const primary = datasets[0] || {};
+    const values = Array.isArray(primary.data) ? primary.data : [];
+    const numericValues = values.map((value) =>
+      Number.isFinite(Number(value)) ? Number(value) : 0
+    );
+    const maxValue = Math.max(1, ...numericValues);
+    const padding = 10;
+    const usableWidth = width - padding * 2;
+    const usableHeight = height - padding * 2;
+
+    const pickColor = (dataset, index) => {
+      if (Array.isArray(dataset?.backgroundColor)) {
+        return dataset.backgroundColor[index % dataset.backgroundColor.length];
+      }
+      return dataset?.backgroundColor || dataset?.borderColor || "#3b82f6";
+    };
+
+    if (chartType === "line") {
+      ctx.strokeStyle = pickColor(primary, 0);
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      numericValues.forEach((value, idx) => {
+        const x = padding + (usableWidth / Math.max(1, labels.length - 1)) * idx;
+        const y =
+          height - padding - (value / maxValue) * Math.max(1, usableHeight);
+        if (idx === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+      return true;
+    }
+
+    if (chartType === "pie" || chartType === "doughnut") {
+      const total = numericValues.reduce((acc, value) => acc + value, 0) || 1;
+      const centerX = width / 2;
+      const centerY = height / 2;
+      const radius = Math.min(usableWidth, usableHeight) / 2;
+      let startAngle = -Math.PI / 2;
+      numericValues.forEach((value, idx) => {
+        const slice = (value / total) * Math.PI * 2;
+        ctx.fillStyle = pickColor(primary, idx);
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.arc(centerX, centerY, radius, startAngle, startAngle + slice);
+        ctx.closePath();
+        ctx.fill();
+        startAngle += slice;
+      });
+      if (chartType === "doughnut") {
+        ctx.globalCompositeOperation = "destination-out";
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius * 0.55, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalCompositeOperation = "source-over";
+      }
+      return true;
+    }
+
+    const barWidth = usableWidth / Math.max(1, labels.length);
+    numericValues.forEach((value, idx) => {
+      const barHeight = (value / maxValue) * Math.max(1, usableHeight);
+      const x = padding + idx * barWidth;
+      const y = height - padding - barHeight;
+      ctx.fillStyle = pickColor(primary, idx);
+      ctx.fillRect(x + 2, y, Math.max(2, barWidth - 4), barHeight);
+    });
+    return true;
+  };
+
   const renderPreviewChart = (chartId, preview, canvas, previewData) => {
     if (
-      !window.Chart ||
       !previewData ||
       !canvas ||
       !preview ||
       !Array.isArray(previewData.datasets) ||
       previewData.datasets.length === 0
     ) {
-      renderPreviewFallback(
-        preview,
-        !window.Chart ? "Chart.js no disponible." : "Sin datos."
-      );
+      renderPreviewFallback(preview, "Sin datos.");
+      return;
+    }
+    if (!window.Chart) {
+      if (preview && canvas && !preview.contains(canvas)) {
+        preview.innerHTML = "";
+        preview.appendChild(canvas);
+      }
+      preview
+        ?.querySelectorAll?.(".preview-fallback")
+        ?.forEach?.((node) => node.remove());
+      canvas?.classList?.remove?.("d-none");
+      if (!renderMiniPreview(canvas, previewData)) {
+        renderPreviewFallback(preview, "Chart.js no disponible.");
+      }
       return;
     }
     if (typeof canvas.getContext !== "function") {
       renderPreviewFallback(preview, "Vista previa no disponible.");
+      return;
+    }
+    if (!canvas.ownerDocument?.defaultView?.getComputedStyle) {
+      if (!renderMiniPreview(canvas, previewData)) {
+        renderPreviewFallback(preview, "Vista previa no disponible.");
+      }
       return;
     }
     const resolvedType = normalizeChartType(previewData.chartType, "bar");
@@ -2480,6 +3151,17 @@
         data: padded,
       };
     });
+    if (preview && canvas) {
+      if (!preview.contains(canvas)) {
+        preview.innerHTML = "";
+        preview.appendChild(canvas);
+      }
+      preview
+        .querySelectorAll(".preview-fallback")
+        .forEach((node) => node.remove());
+      canvas.classList.remove("d-none");
+    }
+
     const current = galleryState.previews.get(chartId);
     if (current) {
       current.destroy();
@@ -2511,18 +3193,20 @@
         chartId,
         chartError
       );
-      renderPreviewFallback(preview, "Sin datos.");
+      if (!renderMiniPreview(canvas, previewData)) {
+        renderPreviewFallback(preview, "Sin datos.");
+      }
     }
   };
 
   const getPreviewFallbackMessage = (definition, context) => {
     if (definition.previewKind === "operativo" || definition.previewKind === "gastos") {
-      return "Vista previa disponible al abrir el modulo.";
+      return "Activa al menos una serie para ver la vista previa.";
     }
     if (definition.previewKind === "custom") {
       const chartModule = normalizeModuleKey(definition.module || "RESUMEN");
       if (!isSummaryModuleKey(chartModule)) {
-        return "Vista previa disponible al abrir el modulo.";
+        return "Agrega filas y columnas para ver la vista previa.";
       }
     }
     if (
@@ -2579,6 +3263,16 @@
     return list.filter((definition) => {
       if (!definition) return false;
       const kind = definition.previewKind || "";
+      const isGlobalKind =
+        kind === "summary" ||
+        kind === "consolidated" ||
+        kind === "ingreso" ||
+        kind === "ingreso-nacional";
+      const allowGlobal =
+        isGlobalKind &&
+        (kind !== "consolidated" && kind !== "ingreso-nacional"
+          ? true
+          : allowCdmxOnlyCharts);
 
       if (kind === "custom") {
         return true;
@@ -2593,10 +3287,10 @@
       }
 
       if (isGastosModule) {
-        return kind === "gastos";
+        return kind === "gastos" || allowGlobal;
       }
 
-      return kind === "operativo";
+      return kind === "operativo" || allowGlobal;
     });
   };
 
@@ -2611,15 +3305,20 @@
     const ingresoSources = sources.ingreso || baseSources.ingreso || {};
     const ingresoNacionalSources =
       sources.ingresoNacional || baseSources.ingresoNacional || {};
-    const ingresoSourceLabels = buildSourceVariantsList(ingresoSources);
-    const ingresoNacionalSourceLabels =
-      buildSourceVariantsList(ingresoNacionalSources);
+    const ingresoSourceLabels = collectVariantsFromSourceMap(ingresoSources);
+    const ingresoNacionalSourceLabels = collectVariantsFromSourceMap(
+      ingresoNacionalSources
+    );
     const selectedCapitulo = getSelectedCapitulo();
+    const resumenFile = resolveModuleFileName("RESUMEN");
+    const operativoFile = resolveModuleFileName(getCurrentModuleValue() || "RESUMEN");
+    const gastosFile = resolveModuleFileName("Gastos Generales");
     const summaryRowsConfig = resolveSummaryRows(
       selectedCapitulo,
       summarySources,
       baseSources.summary || {}
     );
+    const summarySourceKey = summaryRowsConfig.sourceKey || "generic";
     const summarySeriesMap = new Map(
       (Array.isArray(config.series) && config.series.length
         ? config.series
@@ -2648,7 +3347,8 @@
     });
     const summaryColumns = summarySeriesList
       .filter((serie) => serie?.enabled !== false)
-      .map((serie) => serie?.label || serie?.key);
+      .map((serie) => formatKeyLabel(serie?.key, serie?.label))
+      .filter(Boolean);
     const summaryOperatingRows = (summaryRowsConfig.operating || []).map((row) =>
       resolveRowLabel(row, selectedCapitulo || "")
     );
@@ -2656,22 +3356,25 @@
       resolveRowLabel(row, selectedCapitulo || "")
     );
     const consolidatedRows = uniqueList([
-      consolidatedSources?.operating?.label,
-      consolidatedSources?.net?.label,
+      ...getConsolidatedVariants(
+        consolidatedSources,
+        "operating",
+        baseSources.consolidated || {}
+      ),
+      ...getConsolidatedVariants(
+        consolidatedSources,
+        "net",
+        baseSources.consolidated || {}
+      ),
     ]);
-    const ingresoColumns = Object.values(config.ingreso?.series || {})
-      .filter((serie) => serie?.enabled !== false)
-      .map((serie) => serie?.label || "");
-    const ingresoNacionalColumns = Object.values(
-      config.ingresoNacional?.series || {}
-    )
-      .filter((serie) => serie?.enabled !== false)
-      .map((serie) => serie?.label || "");
+    const ingresoColumns = ["Actual acumulado (actualYTD)"];
+    const ingresoNacionalColumns = ["Actual acumulado (actualYTD)"];
     const operativoDatasets = config.operativo?.datasets || {};
     const operativoColumns = Object.keys(operativoDatasets)
       .map((key) => ({ key, ...(operativoDatasets[key] || {}) }))
       .filter((dataset) => dataset.enabled !== false)
-      .map((dataset) => dataset.label || dataset.key);
+      .map((dataset) => formatKeyLabel(dataset.key, dataset.label))
+      .filter(Boolean);
     const gastosRendimientosSeries =
       config.gastosGenerales?.charts?.rendimientos?.series || {};
     const gastosPlusvaliaSeries =
@@ -2679,50 +3382,60 @@
     const gastosRendimientosColumns = Object.keys(gastosRendimientosSeries)
       .map((key) => ({ key, ...(gastosRendimientosSeries[key] || {}) }))
       .filter((serie) => serie.enabled !== false)
-      .map((serie) => serie.label || serie.key);
+      .map((serie) => formatKeyLabel(serie.key, serie.label))
+      .filter(Boolean);
     const gastosPlusvaliaColumns = Object.keys(gastosPlusvaliaSeries)
       .map((key) => ({ key, ...(gastosPlusvaliaSeries[key] || {}) }))
       .filter((serie) => serie.enabled !== false)
-      .map((serie) => serie.label || serie.key);
+      .map((serie) => formatKeyLabel(serie.key, serie.label))
+      .filter(Boolean);
     const summaryOperatingInfo = buildRowsColumnsInfo({
       moduleValue: "RESUMEN",
       rows: summaryOperatingRows,
       columns: summaryColumns,
+      tableLabel: `${resumenFile} (tabla actual)`,
     });
     const summaryNetInfo = buildRowsColumnsInfo({
       moduleValue: "RESUMEN",
       rows: summaryNetRows,
       columns: summaryColumns,
+      tableLabel: `${resumenFile} (tabla actual)`,
     });
     const consolidatedInfo = buildRowsColumnsInfo({
       moduleValue: "RESUMEN",
       rows: consolidatedRows,
       columns: summaryColumns,
+      tableLabel: `${resumenFile} (tabla actual)`,
     });
     const ingresoInfo = buildRowsColumnsInfo({
       moduleValue: "RESUMEN",
       rows: ingresoSourceLabels,
       columns: ingresoColumns,
+      tableLabel: `${resumenFile} (resumen mensual Ene-Dic)`,
     });
     const ingresoNacionalInfo = buildRowsColumnsInfo({
       moduleValue: "RESUMEN",
       rows: ingresoNacionalSourceLabels,
       columns: ingresoNacionalColumns,
+      tableLabel: `${resumenFile} (resumen mensual Ene-Dic)`,
     });
     const operativoInfo = buildRowsColumnsInfo({
       moduleValue: getCurrentModuleValue() || "RESUMEN",
-      rows: ["Tabla del modulo"],
+      rows: ["Filas visibles del modulo"],
       columns: operativoColumns,
+      tableLabel: `${operativoFile} (tabla actual)`,
     });
     const ggRendimientosInfo = buildRowsColumnsInfo({
       moduleValue: "Gastos Generales",
       rows: ["Meses del ejercicio (Ene-Dic)"],
       columns: gastosRendimientosColumns,
+      tableLabel: `${gastosFile} (resumen mensual Ene-Dic)`,
     });
     const ggPlusvaliaInfo = buildRowsColumnsInfo({
       moduleValue: "Gastos Generales",
       rows: ["Meses del ejercicio (Ene-Dic)"],
       columns: gastosPlusvaliaColumns,
+      tableLabel: `${gastosFile} (resumen mensual Ene-Dic)`,
     });
     const enabledSummarySeries = summarySeriesList.filter(
       (serie) => serie?.enabled !== false
@@ -2773,6 +3486,8 @@
         enabled: config.charts?.operating?.enabled !== false,
         previewKind: "summary",
         chartKey: "operating",
+        summarySourceKey,
+        summaryType: "operating",
         ...summaryOperatingInfo,
         target: {
           collapseId: "plantillasGraficasResumenCollapse",
@@ -2790,6 +3505,8 @@
         enabled: config.charts?.net?.enabled !== false,
         previewKind: "summary",
         chartKey: "net",
+        summarySourceKey,
+        summaryType: "net",
         ...summaryNetInfo,
         target: {
           collapseId: "plantillasGraficasResumenCollapse",
@@ -2934,6 +3651,18 @@
           ? chart.module.trim()
           : "RESUMEN";
       const normalizedModule = normalizeModuleValue(rawModule, "RESUMEN");
+      const customModuleKey = normalizeModuleKey(normalizedModule, "RESUMEN");
+      const isCustomSummary = isSummaryModuleKey(customModuleKey);
+      const customSourceType = (chart?.sourceType || "snapshot")
+        .toString()
+        .toLowerCase();
+      const customTableLabel = isCustomSummary
+        ? `${resolveModuleFileName("RESUMEN")} (${
+            customSourceType === "mensual"
+              ? "resumen mensual Ene-Dic"
+              : "tabla actual"
+          })`
+        : `${resolveModuleFileName(normalizedModule)} (tabla actual)`;
       const customColumns = resolveCustomColumns(
         normalizedModule,
         Array.isArray(chart?.seriesKeys) ? chart.seriesKeys : [],
@@ -2943,6 +3672,7 @@
         moduleValue: normalizedModule,
         rows: rowLabels,
         columns: customColumns,
+        tableLabel: customTableLabel,
       });
       defs.push({
         id: rawId,
@@ -2972,8 +3702,416 @@
     );
     return defs.filter((definition) => {
       const defId = canonicalizeChartId(definition?.chartId || definition?.id);
-      return !defId || !deletedIds.has(defId);
+      if (!defId) return true;
+      const isCustom =
+        definition?.previewKind === "custom" || defId.startsWith("custom-");
+      if (!isCustom) return true;
+      return !deletedIds.has(defId);
     });
+  };
+
+  const openCustomEditorForDefinition = (definition) => {
+    if (!definition) return false;
+    if (typeof window.openChartEditor !== "function") {
+      openConfigSection(definition);
+      return false;
+    }
+    const chartData = {
+      id: definition.chartId || definition.id,
+      module: definition.module || "RESUMEN",
+      title: definition.title,
+      subtitle: definition.subtitle,
+      chartType: definition.chartType,
+      enabled: definition.enabled,
+      sourceType: definition.sourceType || "snapshot",
+      seriesKeys: Array.isArray(definition.seriesKeys) ? definition.seriesKeys : [],
+      series: Array.isArray(definition.series) ? definition.series : [],
+      rows: definition.rows || [],
+    };
+    window.openChartEditor(definition.chartId || definition.id, chartData);
+    return true;
+  };
+
+  const getDetailSeriesKey = (definition, seriesSelect, fallback = "") => {
+    if (!definition) return "";
+    const stored = detailState.seriesByChart.get(definition.id);
+    if (seriesSelect?.value) return seriesSelect.value;
+    if (stored) return stored;
+    return fallback;
+  };
+
+  const updateDetailSelects = (definition) => {
+    if (!detailCard) return;
+    const rowsSelect = detailCard.querySelector("[data-detail-rows-select]");
+    const columnsSelect = detailCard.querySelector("[data-detail-columns-select]");
+    const seriesSelect = detailCard.querySelector("[data-detail-series-select]");
+    const seriesLabel = detailCard.querySelector("[data-detail-series-label]");
+    if (!rowsSelect || !columnsSelect) return;
+
+    detailUpdating = true;
+
+    if (!definition) {
+      if (seriesSelect) seriesSelect.classList.add("d-none");
+      if (seriesLabel) seriesLabel.classList.add("d-none");
+      setSelectOptions(rowsSelect, [], []);
+      setSelectOptions(columnsSelect, [], []);
+      detailUpdating = false;
+      return;
+    }
+
+    const api = getGraficasConfigApi();
+    const defaults = clone(api?.defaults || {});
+    const config = readConfigFromForm();
+    const kind = definition.previewKind || "";
+
+    let seriesOptions = [];
+    let seriesKey = "";
+    const showSeries =
+      kind === "ingreso" ||
+      kind === "ingreso-nacional" ||
+      kind === "consolidated";
+
+    if (kind === "ingreso") {
+      seriesOptions = Object.entries(config.ingreso?.series || {}).map(
+        ([key, serie]) => ({
+          value: key,
+          label: formatKeyLabel(key, serie?.label),
+        })
+      );
+    } else if (kind === "ingreso-nacional") {
+      seriesOptions = Object.entries(config.ingresoNacional?.series || {}).map(
+        ([key, serie]) => ({
+          value: key,
+          label: formatKeyLabel(key, serie?.label),
+        })
+      );
+    } else if (kind === "consolidated") {
+      seriesOptions = [
+        { value: "operating", label: "Operativo" },
+        { value: "net", label: "Neto" },
+      ];
+    }
+
+    if (showSeries) {
+      const stored = detailState.seriesByChart.get(definition.id);
+      const candidate = stored && seriesOptions.some((opt) => opt.value === stored)
+        ? stored
+        : seriesOptions[0]?.value || "";
+      seriesKey = candidate;
+      detailState.seriesByChart.set(definition.id, candidate);
+      if (seriesSelect) {
+        seriesSelect.classList.remove("d-none");
+        setSelectOptions(seriesSelect, seriesOptions, [candidate], {
+          placeholder: "Sin series",
+        });
+      }
+      if (seriesLabel) seriesLabel.classList.remove("d-none");
+    } else {
+      if (seriesSelect) seriesSelect.classList.add("d-none");
+      if (seriesLabel) seriesLabel.classList.add("d-none");
+    }
+
+    const summarySources =
+      config.sources?.summary || defaults.sources?.summary || {};
+    const consolidatedSources =
+      config.sources?.consolidated || defaults.sources?.consolidated || {};
+    const ingresoSources = config.sources?.ingreso || defaults.sources?.ingreso || {};
+    const ingresoNacionalSources =
+      config.sources?.ingresoNacional || defaults.sources?.ingresoNacional || {};
+
+    let rowOptions = [];
+    let rowSelected = [];
+    let rowsDisabled = false;
+    if (kind === "summary") {
+      rowOptions = getModuleRowOptions("RESUMEN");
+      const summaryKey = definition.summarySourceKey || "generic";
+      const summaryType =
+        definition.summaryType || definition.chartKey || "operating";
+      rowSelected = getSummarySourceVariants(
+        summarySources,
+        summaryKey,
+        summaryType
+      );
+    } else if (kind === "consolidated") {
+      rowOptions = getModuleRowOptions("RESUMEN");
+      rowSelected = getConsolidatedVariants(
+        consolidatedSources,
+        seriesKey || "operating",
+        defaults.sources?.consolidated || {}
+      );
+    } else if (kind === "ingreso") {
+      rowOptions = getModuleRowOptions("RESUMEN");
+      rowSelected = getSourceVariants(
+        ingresoSources,
+        seriesKey,
+        defaults.sources?.ingreso || {}
+      );
+    } else if (kind === "ingreso-nacional") {
+      rowOptions = getModuleRowOptions("RESUMEN");
+      rowSelected = getSourceVariants(
+        ingresoNacionalSources,
+        seriesKey,
+        defaults.sources?.ingresoNacional || {}
+      );
+    } else if (kind === "gastos") {
+      rowOptions = MONTH_LABELS.slice();
+      rowSelected = MONTH_LABELS.slice();
+      rowsDisabled = true;
+    } else if (kind === "operativo") {
+      rowOptions = getModuleRowOptions(getCurrentModuleValue());
+      rowSelected = rowOptions.slice();
+      rowsDisabled = true;
+    } else if (kind === "custom") {
+      rowOptions = getModuleRowOptions(definition.module || "RESUMEN");
+      rowSelected = getCustomRowLabels(definition.rows || []);
+    } else {
+      rowOptions = definition.rowList || [];
+      rowSelected = definition.rowList || [];
+    }
+    setSelectOptions(rowsSelect, rowOptions, rowSelected, {
+      placeholder: "Sin filas",
+      disabled: rowsDisabled,
+    });
+
+    let columnOptions = [];
+    let columnSelected = [];
+    let columnsDisabled = false;
+    if (kind === "summary" || kind === "consolidated") {
+      const seriesList = buildSummarySeriesList(config, defaults);
+      columnOptions = seriesList.map((serie) => ({
+        value: serie.key,
+        label: formatKeyLabel(serie.key, serie.label),
+      }));
+      columnSelected = seriesList
+        .filter((serie) => serie.enabled !== false)
+        .map((serie) => serie.key);
+    } else if (kind === "operativo") {
+      const seriesList = buildOperativoSeriesList(config, defaults);
+      columnOptions = seriesList.map((serie) => ({
+        value: serie.key,
+        label: formatKeyLabel(serie.key, serie.label),
+      }));
+      columnSelected = seriesList
+        .filter((serie) => serie.enabled !== false)
+        .map((serie) => serie.key);
+    } else if (kind === "gastos") {
+      const seriesList = buildGastosSeriesList(
+        config,
+        defaults,
+        definition.chartKey || "rendimientos"
+      );
+      columnOptions = seriesList.map((serie) => ({
+        value: serie.key,
+        label: formatKeyLabel(serie.key, serie.label),
+      }));
+      columnSelected = seriesList
+        .filter((serie) => serie.enabled !== false)
+        .map((serie) => serie.key);
+    } else if (kind === "ingreso" || kind === "ingreso-nacional") {
+      columnOptions = [
+        { value: "actualYTD", label: "Actual acumulado (actualYTD)" },
+      ];
+      columnSelected = ["actualYTD"];
+      columnsDisabled = true;
+    } else if (kind === "custom") {
+      const moduleKey = normalizeModuleKey(definition.module || "RESUMEN");
+      const seriesList = isSummaryModuleKey(moduleKey)
+        ? buildSummarySeriesList(config, defaults)
+        : buildOperativoSeriesList(config, defaults);
+      columnOptions = seriesList.map((serie) => ({
+        value: serie.key,
+        label: formatKeyLabel(serie.key, serie.label),
+      }));
+      const preferred = Array.isArray(definition.seriesKeys)
+        ? definition.seriesKeys
+        : [];
+      columnSelected = preferred.length
+        ? preferred
+        : seriesList
+            .filter((serie) => serie.enabled !== false)
+            .map((serie) => serie.key);
+    } else {
+      columnOptions = (definition.columnList || []).map((value) => ({
+        value,
+        label: value,
+      }));
+      columnSelected = definition.columnList || [];
+    }
+    setSelectOptions(columnsSelect, columnOptions, columnSelected, {
+      placeholder: "Sin columnas",
+      disabled: columnsDisabled,
+    });
+
+    detailUpdating = false;
+  };
+
+  const updateCustomChartConfig = (definition, changes = {}) => {
+    if (!definition) return false;
+    const api = getGraficasConfigApi();
+    if (!api?.load || !api?.save) return false;
+    const current = api.load();
+    const nextConfig = clone(current || {});
+    const charts = Array.isArray(nextConfig.customCharts)
+      ? nextConfig.customCharts
+      : [];
+    const chartId = String(definition.chartId || definition.id || "").trim();
+    if (!chartId) return false;
+    const index = charts.findIndex((chart) => String(chart?.id || "") === chartId);
+    if (index === -1) return false;
+    charts[index] = { ...(charts[index] || {}), ...changes };
+    nextConfig.customCharts = charts;
+    api.save(nextConfig);
+    applyConfigToForm(nextConfig);
+    renderGallery(nextConfig);
+    updateSourceHints(nextConfig);
+    return true;
+  };
+
+  const applySeriesCheckboxSelection = (
+    rows,
+    keyAttr,
+    checkboxSelector,
+    selectedKeys
+  ) => {
+    const selectedSet = new Set(selectedKeys);
+    rows.forEach((row) => {
+      const key = row.getAttribute(keyAttr);
+      if (!key) return;
+      const checkbox = row.querySelector(checkboxSelector);
+      if (!checkbox) return;
+      checkbox.checked = selectedSet.has(key);
+      checkbox.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+  };
+
+  const handleDetailRowsChange = () => {
+    if (detailUpdating) return;
+    const selected = galleryState.selectedId;
+    const item = selected ? galleryState.cards.get(selected) : null;
+    if (!item?.definition || !detailCard) return;
+    const definition = item.definition;
+    const rowsSelect = detailCard.querySelector("[data-detail-rows-select]");
+    const seriesSelect = detailCard.querySelector("[data-detail-series-select]");
+    if (!rowsSelect) return;
+    const rows = getSelectedValues(rowsSelect);
+    const kind = definition.previewKind || "";
+    if (kind === "summary") {
+      const summaryKey = definition.summarySourceKey || "generic";
+      const summaryType =
+        definition.summaryType || definition.chartKey || "operating";
+      const input = findSummarySourceInput(summaryKey, summaryType);
+      if (input) {
+        const nextRows = rows.map((row) => ({
+          label: row,
+          variants: [row],
+        }));
+        input.value = formatSummaryRows(nextRows);
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+      return;
+    }
+    if (kind === "consolidated") {
+      const seriesKey = getDetailSeriesKey(definition, seriesSelect, "operating");
+      const input = form.querySelector(
+        `[data-consolidated-source][data-consolidated-source-key="${seriesKey}"]`
+      );
+      if (input) {
+        input.value = formatVariantsList(rows);
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+      return;
+    }
+    if (kind === "ingreso") {
+      const seriesKey = getDetailSeriesKey(definition, seriesSelect);
+      const input = form.querySelector(
+        `[data-ingreso-series-row][data-ingreso-series-key="${seriesKey}"] [data-ingreso-series-sources]`
+      );
+      if (input) {
+        input.value = formatVariantsList(rows);
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+      return;
+    }
+    if (kind === "ingreso-nacional") {
+      const seriesKey = getDetailSeriesKey(definition, seriesSelect);
+      const input = form.querySelector(
+        `[data-ingreso-nacional-series-row][data-ingreso-nacional-series-key="${seriesKey}"] [data-ingreso-nacional-series-sources]`
+      );
+      if (input) {
+        input.value = formatVariantsList(rows);
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+      return;
+    }
+    if (kind === "custom") {
+      const nextRows = rows.map((row) => ({
+        alias: row,
+        variants: [row],
+      }));
+      updateCustomChartConfig(definition, { rows: nextRows });
+    }
+  };
+
+  const handleDetailColumnsChange = () => {
+    if (detailUpdating) return;
+    const selected = galleryState.selectedId;
+    const item = selected ? galleryState.cards.get(selected) : null;
+    if (!item?.definition || !detailCard) return;
+    const definition = item.definition;
+    const columnsSelect = detailCard.querySelector(
+      "[data-detail-columns-select]"
+    );
+    if (!columnsSelect) return;
+    const selectedKeys = getSelectedValues(columnsSelect);
+    const kind = definition.previewKind || "";
+    if (kind === "summary" || kind === "consolidated") {
+      const rows = Array.from(form.querySelectorAll("[data-series-row]"));
+      applySeriesCheckboxSelection(
+        rows,
+        "data-series-key",
+        "[data-series-enabled]",
+        selectedKeys
+      );
+      return;
+    }
+    if (kind === "operativo") {
+      const rows = Array.from(form.querySelectorAll("[data-operativo-series-row]"));
+      applySeriesCheckboxSelection(
+        rows,
+        "data-operativo-series-key",
+        "[data-operativo-series-enabled]",
+        selectedKeys
+      );
+      return;
+    }
+    if (kind === "gastos") {
+      const rows = Array.from(
+        form.querySelectorAll(
+          `[data-gg-chart-key="${definition.chartKey || "rendimientos"}"] [data-gg-series-row]`
+        )
+      );
+      applySeriesCheckboxSelection(
+        rows,
+        "data-gg-series-key",
+        "[data-gg-series-enabled]",
+        selectedKeys
+      );
+      return;
+    }
+    if (kind === "custom") {
+      updateCustomChartConfig(definition, { seriesKeys: selectedKeys });
+    }
+  };
+
+  const handleDetailSeriesChange = () => {
+    if (detailUpdating) return;
+    const selected = galleryState.selectedId;
+    const item = selected ? galleryState.cards.get(selected) : null;
+    if (!item?.definition || !detailCard) return;
+    const seriesSelect = detailCard.querySelector("[data-detail-series-select]");
+    if (!seriesSelect) return;
+    detailState.seriesByChart.set(item.definition.id, seriesSelect.value || "");
+    updateDetailSelects(item.definition);
   };
 
   const updateDetailCard = (definition) => {
@@ -2991,6 +4129,7 @@
         sourcesEl.textContent = "";
         sourcesEl.classList.add("d-none");
       }
+      updateDetailSelects(null);
       return;
     }
     if (detailHint) detailHint.classList.add("d-none");
@@ -3004,20 +4143,19 @@
       );
     }
     if (infoEl) {
-      const moduleText = definition.moduleFile
-        ? ` · Modulo: ${definition.moduleFile}`
-        : "";
+      const tableLabel = definition.tableLabel || definition.moduleFile;
+      const tableText = tableLabel ? ` · Tabla: ${tableLabel}` : "";
       infoEl.textContent = `Vista: ${resolveViewLabel(
         definition
-      )} · ${formatChartTypeLabel(definition.chartType)}${moduleText}${
-        definition.enabled ? "" : " · Inactiva"
+      )} · ${formatChartTypeLabel(definition.chartType)}${tableText}${
+        definition.enabled === false ? " · Inactiva" : ""
       }`;
     }
     if (sourcesEl) {
-      const sourcesText = definition.sourcesText || "";
-      sourcesEl.textContent = sourcesText;
-      sourcesEl.classList.toggle("d-none", !sourcesText);
+      sourcesEl.textContent = "";
+      sourcesEl.classList.add("d-none");
     }
+    updateDetailSelects(definition);
     if (detailEditBtn) detailEditBtn.classList.remove("d-none");
     if (detailDeleteBtn) {
       const chartId = String(definition?.chartId || definition?.id || "").trim();
@@ -3254,6 +4392,7 @@
     const defaults = clone(getGraficasConfigApi()?.defaults || {});
     const previewContext = getPreviewContext();
     definitions = Array.isArray(definitions) ? definitions : [];
+    definitions = filterDefinitionsByCapitulo(definitions, previewContext);
     const currentModuleKey = getCurrentModuleKey();
     definitions = definitions.slice().sort((a, b) => {
       const aCustom = a?.previewKind === "custom";
@@ -3268,9 +4407,23 @@
     });
     const hasDefinitions = definitions.length > 0;
     if (!hasDefinitions) {
-      galleryEl.innerHTML =
-        '<div class="text-muted text-center p-4">No hay graficas configuradas.</div>';
+      galleryEl.innerHTML = "";
     }
+
+    const resolveCategoryGroup = (definition) => {
+      const raw = (definition?.category || "").toString().trim();
+      if (!raw) return "Otras";
+      if (raw.toLowerCase().startsWith("personalizada")) return "Personalizadas";
+      return raw;
+    };
+    const appendCategoryHeading = (label) => {
+      const heading = document.createElement("div");
+      heading.className = "plantillas-graficas-group";
+      heading.textContent = label;
+      galleryEl.appendChild(heading);
+    };
+    let currentGroup = null;
+    let cardIndex = 0;
 
     definitions.forEach((definition) => {
       try {
@@ -3284,9 +4437,19 @@
         const titleEl = node.querySelector("[data-chart-title]");
         const subtitleEl = node.querySelector("[data-chart-subtitle]");
         const statusEl = node.querySelector("[data-chart-status]");
+        const categoryEl = node.querySelector("[data-chart-category]");
+        const moduleEl = node.querySelector("[data-chart-module]");
         const metaEl = node.querySelector("[data-chart-meta]");
+        const sourceEl = node.querySelector("[data-chart-source]");
         const preview = node.querySelector(".plantillas-graficas-preview");
         const canvas = node.querySelector("[data-chart-canvas]");
+        const groupLabel = resolveCategoryGroup(definition);
+        if (groupLabel !== currentGroup) {
+          appendCategoryHeading(groupLabel);
+          currentGroup = groupLabel;
+        }
+        cardIndex += 1;
+        node.style.setProperty("--stagger", cardIndex.toString());
 
         if (titleEl) titleEl.textContent = definition.title || "";
         if (subtitleEl) subtitleEl.textContent = definition.subtitle || "";
@@ -3294,22 +4457,30 @@
           statusEl.textContent = definition.enabled ? "Activa" : "Inactiva";
           statusEl.classList.toggle("text-muted", !definition.enabled);
         }
+        if (categoryEl) {
+          categoryEl.textContent = definition.category || "Grafica";
+          categoryEl.classList.toggle("d-none", !definition.category);
+        }
+        if (moduleEl) {
+          moduleEl.textContent = definition.module || definition.moduleFile || "";
+          moduleEl.classList.toggle("d-none", !moduleEl.textContent.trim());
+        }
         if (metaEl) {
           const metaParts = [
             `Vista: ${resolveViewLabel(definition)}`,
             `Tipo: ${formatChartTypeLabel(definition.chartType)}`,
           ];
-          if (definition.moduleFile) {
-            metaParts.push(`Modulo: ${definition.moduleFile}`);
-          }
-          if (definition.sourcesMeta) {
-            metaParts.push(definition.sourcesMeta);
-          }
-          metaEl.textContent = metaParts.join(" - ");
+          if (definition.enabled === false) metaParts.push("Inactiva");
+          metaEl.textContent = metaParts.join(" · ");
         }
-        node.classList.toggle("is-disabled", !definition.enabled);
+        if (sourceEl) {
+          sourceEl.textContent = "";
+          sourceEl.classList.add("d-none");
+        }
+        node.classList.toggle("is-disabled", definition.enabled === false);
+        galleryEl.appendChild(node);
 
-        // Render preview con manejo de errores
+        // Render preview con manejo de errores (post-append)
         try {
           const previewData = buildPreviewData(
             definition,
@@ -3328,7 +4499,11 @@
             try {
               renderPreviewChart(definition.id, preview, canvas, data);
             } catch (chartError) {
-              console.warn("plantillas-graficas: Error rendering chart", definition.id, chartError);
+              console.warn(
+                "plantillas-graficas: Error rendering chart",
+                definition.id,
+                chartError
+              );
               renderPreviewFallback(
                 preview,
                 getPreviewFallbackMessage(definition, previewContext)
@@ -3343,7 +4518,11 @@
                 handlePreview(data);
               })
               .catch((err) => {
-                console.warn("plantillas-graficas: Error loading preview data", definition.id, err);
+                console.warn(
+                  "plantillas-graficas: Error loading preview data",
+                  definition.id,
+                  err
+                );
                 if (!node.isConnected) return;
                 renderPreviewFallback(
                   preview,
@@ -3354,7 +4533,11 @@
             handlePreview(previewData);
           }
         } catch (previewError) {
-          console.warn("plantillas-graficas: Error en preview", definition.id, previewError);
+          console.warn(
+            "plantillas-graficas: Error en preview",
+            definition.id,
+            previewError
+          );
           renderPreviewFallback(
             preview,
             getPreviewFallbackMessage(definition, previewContext)
@@ -3373,7 +4556,6 @@
         });
 
         galleryState.cards.set(definition.id, { node, definition });
-        galleryEl.appendChild(node);
       } catch (cardError) {
         console.error("plantillas-graficas: Error rendering card", definition?.id, cardError);
       }
@@ -3387,22 +4569,44 @@
       customAddBtn?.click();
     };
 
+    const customGroupLabel = "Personalizadas";
+    const ensureCustomGroup = () => {
+      if (currentGroup !== customGroupLabel) {
+        appendCategoryHeading(customGroupLabel);
+        currentGroup = customGroupLabel;
+      }
+    };
+
     if (galleryAddTemplate?.content?.firstElementChild) {
+      ensureCustomGroup();
       const addNode = galleryAddTemplate.content.firstElementChild.cloneNode(true);
       addNode.addEventListener("click", handleAddCustomChart);
+      cardIndex += 1;
+      addNode.style.setProperty("--stagger", cardIndex.toString());
       galleryEl.appendChild(addNode);
     } else {
+      ensureCustomGroup();
       const addNode = document.createElement("button");
       addNode.type = "button";
-      addNode.className = "card plantillas-graficas-card";
+      addNode.className = "plantillas-graficas-card plantillas-graficas-card-add";
       addNode.innerHTML = `
-        <div class="card-body text-center">
-          <div class="fs-3 mb-2 text-primary"><i class="bi bi-plus-circle"></i></div>
-          <div class="fw-semibold">Nueva grafica manual</div>
-          <div class="text-muted small">Selecciona modulo, filas y columnas</div>
+        <div class="plantillas-graficas-card-inner">
+          <div class="plantillas-graficas-preview d-flex align-items-center justify-content-center">
+            <div class="plantillas-graficas-add-icon">
+              <i class="bi bi-plus-circle"></i>
+            </div>
+          </div>
+          <div class="plantillas-graficas-card-body">
+            <div class="plantillas-graficas-card-title">Nueva grafica manual</div>
+            <div class="text-muted small">
+              Define modulo, filas y columnas exactas.
+            </div>
+          </div>
         </div>
       `;
       addNode.addEventListener("click", handleAddCustomChart);
+      cardIndex += 1;
+      addNode.style.setProperty("--stagger", cardIndex.toString());
       galleryEl.appendChild(addNode);
     }
 
@@ -3431,8 +4635,10 @@
       clearTimeout(galleryUpdateTimer);
     }
     galleryUpdateTimer = setTimeout(() => {
+      updateContextChips();
       const draft = readConfigFromForm();
       renderGallery(draft);
+      updateSourceHints(draft);
       galleryUpdateTimer = null;
     }, 250);
   };
@@ -3449,7 +4655,9 @@
     const api = getGraficasConfigApi();
     const saved = api?.save ? api.save(draft) : draft;
     applyConfigToForm(saved);
+    updateContextChips();
     renderGallery(saved);
+    updateSourceHints(saved);
     setStatus("Configuracion guardada. Recarga las vistas con graficas.", "success");
     if (saveBtn) saveBtn.disabled = false;
   };
@@ -3464,7 +4672,9 @@
     const fallback = restored || api?.load?.();
     applyConfigToForm(fallback || restored);
     if (fallback || restored) {
+      updateContextChips();
       renderGallery(fallback || restored);
+      updateSourceHints(fallback || restored);
     }
     setStatus("Configuracion restaurada a valores por defecto.", "success");
   };
@@ -3504,7 +4714,9 @@
 
   const configInicial = api.load();
   applyConfigToForm(configInicial);
+  updateContextChips();
   renderGallery(configInicial);
+  updateSourceHints(configInicial);
 
   // Verificar estado de la galeria despues de renderizar
   const cardCount = galleryState.cards.size;
@@ -3517,7 +4729,9 @@
     const nextConfig = event?.detail?.config;
     if (!nextConfig) return;
     applyConfigToForm(nextConfig);
+    updateContextChips();
     renderGallery(nextConfig);
+    updateSourceHints(nextConfig);
     if (adminAllowed) {
       setStatus("Configuracion sincronizada con el servidor.", "muted");
     }
@@ -3534,6 +4748,25 @@
   }
   initializeSourcePickers();
 
+  const detailRowsSelect = detailCard?.querySelector("[data-detail-rows-select]");
+  if (detailRowsSelect) {
+    detailRowsSelect.addEventListener("change", handleDetailRowsChange);
+  }
+
+  const detailColumnsSelect = detailCard?.querySelector(
+    "[data-detail-columns-select]"
+  );
+  if (detailColumnsSelect) {
+    detailColumnsSelect.addEventListener("change", handleDetailColumnsChange);
+  }
+
+  const detailSeriesSelect = detailCard?.querySelector(
+    "[data-detail-series-select]"
+  );
+  if (detailSeriesSelect) {
+    detailSeriesSelect.addEventListener("change", handleDetailSeriesChange);
+  }
+
   if (detailEditBtn) {
     detailEditBtn.addEventListener("click", () => {
       const selected = galleryState.selectedId;
@@ -3541,28 +4774,11 @@
       if (!item) return;
 
       // Si es una grafica personalizada o de tipo custom, abrir editor inline
-      if (item.definition.previewKind === 'custom' || item.definition.id.startsWith('custom-')) {
-        if (typeof window.openChartEditor === 'function') {
-          const chartData = {
-            id: item.definition.chartId || item.definition.id,
-            module: item.definition.module || "RESUMEN",
-            title: item.definition.title,
-            subtitle: item.definition.subtitle,
-            chartType: item.definition.chartType,
-            enabled: item.definition.enabled,
-            sourceType: item.definition.sourceType || "snapshot",
-            seriesKeys: Array.isArray(item.definition.seriesKeys)
-              ? item.definition.seriesKeys
-              : [],
-            series: Array.isArray(item.definition.series)
-              ? item.definition.series
-              : [],
-            rows: item.definition.rows || []
-          };
-          window.openChartEditor(item.definition.chartId || item.definition.id, chartData);
-        } else {
-          openConfigSection(item.definition);
-        }
+      if (
+        item.definition.previewKind === "custom" ||
+        item.definition.id.startsWith("custom-")
+      ) {
+        openCustomEditorForDefinition(item.definition);
       } else {
         // Para graficas predefinidas, abrir la seccion de configuracion
         openConfigSection(item.definition);

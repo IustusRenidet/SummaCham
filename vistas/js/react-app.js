@@ -821,13 +821,30 @@
       }
       setOpen(false);
     };
-    const renderFecha = (valor) => {
-      if (!valor) return "";
-      try {
-        return new Date(valor).toLocaleString("es-MX");
-      } catch (e) {
-        return valor;
+    const parsearFechaNotificacion = (valor) => {
+      if (!valor) return null;
+      if (valor instanceof Date) return valor;
+      const texto = String(valor).trim();
+      if (!texto) return null;
+      if (/Z$|[+-]\d{2}:\d{2}$/.test(texto)) {
+        const fecha = new Date(texto);
+        return Number.isNaN(fecha.getTime()) ? null : fecha;
       }
+      const match = texto.match(
+        /^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}:\d{2})(\.\d{1,3})?$/
+      );
+      if (match) {
+        const iso = `${match[1]}T${match[2]}${match[3] || ""}Z`;
+        const fecha = new Date(iso);
+        return Number.isNaN(fecha.getTime()) ? null : fecha;
+      }
+      const fecha = new Date(texto);
+      return Number.isNaN(fecha.getTime()) ? null : fecha;
+    };
+    const renderFecha = (valor) => {
+      const fecha = parsearFechaNotificacion(valor);
+      if (!fecha) return valor || "";
+      return fecha.toLocaleString("es-MX");
     };
     return /* @__PURE__ */ React.createElement(
       "div",
