@@ -439,6 +439,19 @@ const construirReporteResumen = (
   const netOrden = new Map();
   const finalOrden = new Map();
   const freeOpsOrden = new Map();
+  // Labels que generan filas agregadas (CONSOLIDATED/OPERATING/NET/FINAL).
+  // Permite overrides manuales creando una operación libre con el mismo nombre.
+  const aggLabelByKey = new Map();
+  const registrarAggLabel = (label) => {
+    if (!label) return;
+    const limpio = label.toString().trim();
+    if (!limpio) return;
+    const key = normalizarTexto(limpio);
+    if (!key) return;
+    if (!aggLabelByKey.has(key)) {
+      aggLabelByKey.set(key, limpio);
+    }
+  };
 
   const obtenerOrden = (item, fallback = 0) => {
     const raw =
@@ -479,7 +492,10 @@ const construirReporteResumen = (
       const registrarOrden = (mapa, label) => {
         if (!label) return;
         const existente = mapa.get(label);
-        if (existente == null || ordenConfig < existente) {
+        // Para filas agregadas (CONSOLIDATED/OPERATING/NET/FINAL) queremos que
+        // aparezcan al final del bloque que las alimenta. Por eso usamos el
+        // ÚLTIMO (máximo) orden visto, no el primero.
+        if (existente == null || ordenConfig > existente) {
           mapa.set(label, ordenConfig);
         }
       };
@@ -491,6 +507,15 @@ const construirReporteResumen = (
       registrarOrden(netOrden, netRow);
       registrarOrden(netOrden, netRowAdicional);
       registrarOrden(finalOrden, resultNetRow);
+
+      // Registrar labels agregados para permitir overrides manuales
+      registrarAggLabel(consolidado);
+      registrarAggLabel(operativo);
+      registrarAggLabel(operativoConsolidado);
+      registrarAggLabel(resultRow);
+      registrarAggLabel(netRow);
+      registrarAggLabel(netRowAdicional);
+      registrarAggLabel(resultNetRow);
 
       if (esOperacionLibre(cfg)) {
         const opKey = normalizarTexto(obtenerNombreOperacion(cfg));
@@ -1100,9 +1125,23 @@ const combinarTotales = (a = {}, b = {}, factor = 1) => ({
         const parsed = JSON.parse(op.formula_json);
         return Array.isArray(parsed) && parsed.length > 0;
       } catch (err) {
-        return false;
+        // continuar: puede venir fórmula legacy en seccion_1/signos
       }
     }
+
+    // Legacy: fórmula expresada en campos seccion_1, seccion_2, ... (y/o signos).
+    try {
+      const signos = op?.signos;
+      if (signos && typeof signos === 'object') {
+        const keys = Object.keys(signos).filter((k) => k && k.startsWith('seccion_'));
+        if (keys.some((k) => Boolean(op?.[k]))) return true;
+      }
+      const ownKeys = Object.keys(op || {});
+      if (ownKeys.some((k) => /^seccion_\d+$/i.test(k) && op?.[k])) return true;
+    } catch (_) {
+      /* ignore */
+    }
+
     return false;
   };
   const applyTotalsToSection = (sec, totals) => {
@@ -1114,6 +1153,7 @@ const combinarTotales = (a = {}, b = {}, factor = 1) => ({
     sec.totalPlanYTD = totals.planYTD;
     sec.totalPrevYTD = totals.prevYTD;
     sec.total = totals.actualYTD;
+    sec.__manualFormula = true;
   };
   const applyTotalsToPrincipal = (principal, totals) => {
     if (!principal || !totals) return;
@@ -1124,6 +1164,7 @@ const combinarTotales = (a = {}, b = {}, factor = 1) => ({
     principal.planYTD = totals.planYTD;
     principal.prevYTD = totals.prevYTD;
     principal.total = totals.actualYTD;
+    principal.__manualFormula = true;
   };
 
   // === Override de fórmulas en sum-row / sum-row-sumavarios (solo si se habilita) ===
@@ -1307,6 +1348,49 @@ const combinarTotales = (a = {}, b = {}, factor = 1) => ({
     rebuildMapSecciones();
   }
 
+  // === Overrides manuales para filas agregadas (CONSOLIDATED/OPERATING/NET/FINAL) ===
+  // Si existe una operación libre con fórmula cuyo nombre coincide con una fila agregada,
+  // se usa su fórmula para calcular esa fila y su orden de presentación.
+  const manualAggOverrides = new Map(); // key = normalizarTexto(label) -> { label, order, totals }
+  const manualAggOverrideOps = new Set(); // opKey para excluir del render como operación libre
+  if (aggLabelByKey.size) {
+    const anchors = (Array.isArray(configAgrupacion) ? configAgrupacion : [])
+      .filter((op) => NORMALIZAR_CAPITULO(op.CAPITULO) === capituloClave)
+      .filter((op) => !esOperacionConfigColumnas(op))
+      .filter((op) => esOperacionLibre(op))
+      .map((op, idx) => ({ op, idx, orden: obtenerOrden(op, idx) }))
+      .sort((a, b) => (a.orden - b.orden) || (a.idx - b.idx));
+
+    anchors.forEach(({ op, orden }) => {
+      const name = obtenerNombreOperacion(op);
+      const key = normalizarTexto(name);
+      const label = (key && aggLabelByKey.get(key)) || null;
+      if (!label) return;
+
+      // Siempre usamos la operación libre como "ancla" de orden (aunque no tenga fórmula).
+      // Si además trae fórmula manual, también sobreescribe los totales de la fila agregada.
+      if (hasManualFormula(op)) {
+        const totals = calcularTotalesOperacion(op);
+        if (!totals) return;
+        if (!manualAggOverrides.has(key)) {
+          manualAggOverrides.set(key, { label, order: orden, totals });
+        }
+      }
+
+      const opKey = getOperacionKey(op);
+      if (opKey) manualAggOverrideOps.add(opKey);
+
+      const overrideOrdenEnMapa = (mapa) => {
+        if (mapa && mapa.has(label)) mapa.set(label, orden);
+      };
+      overrideOrdenEnMapa(consolidadoOrden);
+      overrideOrdenEnMapa(operativoOrden);
+      overrideOrdenEnMapa(resultOrden);
+      overrideOrdenEnMapa(netOrden);
+      overrideOrdenEnMapa(finalOrden);
+    });
+  }
+
   const consolidatedMap = new Map();
   const operativoRowMap = new Map();
   const resultRowMap = new Map();
@@ -1412,6 +1496,25 @@ const combinarTotales = (a = {}, b = {}, factor = 1) => ({
     }
   });
 
+  // Aplicar overrides manuales a filas agregadas ya construidas.
+  const applyAggOverride = (row) => {
+    if (!row?.label) return;
+    const key = normalizarTexto(row.label);
+    if (!key) return;
+    const override = manualAggOverrides.get(key);
+    if (!override) return;
+    row.totals = override.totals;
+    row.manualFormula = true;
+    if (Number.isFinite(Number(override.order))) {
+      row.orden = Number(override.order);
+    }
+  };
+  Array.from(consolidatedMap.values()).forEach(applyAggOverride);
+  Array.from(operativoRowMap.values()).forEach(applyAggOverride);
+  Array.from(resultRowMap.values()).forEach(applyAggOverride);
+  Array.from(netRowMap.values()).forEach(applyAggOverride);
+  Array.from(finalRowMap.values()).forEach(applyAggOverride);
+
   const layout = [];
   const layoutOps = [];
 
@@ -1425,6 +1528,7 @@ const combinarTotales = (a = {}, b = {}, factor = 1) => ({
       label: principal.label,
       order: Number.isFinite(Number(principal.orden)) ? Number(principal.orden) : 0,
       orderIndex: principal.ordenIndex ?? 0,
+      manualFormula: Boolean(principal.__manualFormula),
       totals: {
         actualMonth: principal.actualMonth,
         planMonth: principal.planMonth,
@@ -1449,6 +1553,7 @@ const combinarTotales = (a = {}, b = {}, factor = 1) => ({
           ? Number(secundaria.orden)
           : Number.isFinite(Number(principal.orden)) ? Number(principal.orden) : 0,
         orderIndex: secundaria.ordenIndex ?? 0,
+        manualFormula: Boolean(secundaria.__manualFormula),
         totals: {
           actualMonth: secundaria.totalActualMonth,
           planMonth: secundaria.totalPlanMonth,
@@ -1494,6 +1599,7 @@ const combinarTotales = (a = {}, b = {}, factor = 1) => ({
       label: row.label,
       order: Number.isFinite(Number(row.orden)) ? Number(row.orden) : 0,
       orderIndex: Number.isFinite(Number(row.ordenIndex)) ? Number(row.ordenIndex) : 0,
+      manualFormula: Boolean(row.manualFormula),
       totals: row.totals,
       principals: row.principals || [],
       operaciones: row.operaciones || []
@@ -1528,12 +1634,16 @@ const combinarTotales = (a = {}, b = {}, factor = 1) => ({
   };
 
   layoutOps.sort(sortLayoutOps);
-  const layoutFinal = layout.concat(layoutOps);
+  let layoutFinal = layout.concat(layoutOps);
 
   // === Operaciones libres (sin fila) ===
   const operacionesLibres = (Array.isArray(configAgrupacion) ? configAgrupacion : [])
     .filter((op) => NORMALIZAR_CAPITULO(op.CAPITULO) === capituloClave)
     .filter((op) => esOperacionLibre(op))
+    .filter((op) => {
+      const opKey = getOperacionKey(op);
+      return !(opKey && manualAggOverrideOps.has(opKey));
+    })
     .filter((op) => !esOperacionConfigColumnas(op));
 
   const ordenarLibre = (op, idx) => obtenerOrden(op, idx);
@@ -1542,23 +1652,30 @@ const combinarTotales = (a = {}, b = {}, factor = 1) => ({
     .sort((a, b) => (a.orden - b.orden) || (a.idx - b.idx))
     .map((item) => item.op);
 
+  const toNumberOrNull = (value) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+  const compareByOrder = (a, b, idxA = 0, idxB = 0) => {
+    const orderA = toNumberOrNull(a?.order);
+    const orderB = toNumberOrNull(b?.order);
+    if (orderA != null && orderB != null && orderA !== orderB) {
+      return orderA - orderB;
+    }
+    if (orderA != null && orderB == null) return -1;
+    if (orderA == null && orderB != null) return 1;
+    const orderIdxA = toNumberOrNull(a?.orderIndex) ?? idxA;
+    const orderIdxB = toNumberOrNull(b?.orderIndex) ?? idxB;
+    if (orderIdxA !== orderIdxB) return orderIdxA - orderIdxB;
+    return idxA - idxB;
+  };
+  const ordenarLayoutGlobal = (items = []) =>
+    (Array.isArray(items) ? items : [])
+      .map((item, idx) => ({ item, idx }))
+      .sort((a, b) => compareByOrder(a.item, b.item, a.idx, b.idx))
+      .map(({ item }) => item);
+
   const insertarOperacionEnLayout = (layoutArr, opBlock, targetLabel) => {
-    const toNumberOrNull = (value) => {
-      const parsed = Number(value);
-      return Number.isFinite(parsed) ? parsed : null;
-    };
-    const compareByOrder = (a, b) => {
-      const orderA = toNumberOrNull(a?.order);
-      const orderB = toNumberOrNull(b?.order);
-      if (orderA != null && orderB != null && orderA !== orderB) {
-        return orderA - orderB;
-      }
-      if (orderA != null && orderB == null) return -1;
-      if (orderA == null && orderB != null) return 1;
-      const idxA = toNumberOrNull(a?.orderIndex) ?? 0;
-      const idxB = toNumberOrNull(b?.orderIndex) ?? 0;
-      return idxA - idxB;
-    };
     const targetKey = normalizarTexto(targetLabel);
     if (targetKey) {
       const findIndex = (type) =>
@@ -1601,7 +1718,7 @@ const combinarTotales = (a = {}, b = {}, factor = 1) => ({
     if (toNumberOrNull(opBlock?.order) != null) {
       let insertAt = layoutArr.length;
       for (let i = 0; i < layoutArr.length; i += 1) {
-        if (compareByOrder(opBlock, layoutArr[i]) < 0) {
+        if (compareByOrder(opBlock, layoutArr[i], 0, i) < 0) {
           insertAt = i;
           break;
         }
@@ -1612,6 +1729,9 @@ const combinarTotales = (a = {}, b = {}, factor = 1) => ({
 
     layoutArr.push(opBlock);
   };
+
+  const manualOrder = Boolean(opciones?.ordenManualTotal);
+  const opBlocks = [];
 
   operacionesLibresOrdenadas.forEach((op, idx) => {
     const totals = calcularTotalesOperacion(op);
@@ -1630,15 +1750,24 @@ const combinarTotales = (a = {}, b = {}, factor = 1) => ({
       label,
       order: obtenerOrden(op, idx),
       orderIndex: idx,
+      manualFormula: hasManualFormula(op),
       totals,
       rowStyle,
       estilo_fila: rowStyle || op?.estilo_fila,
       tipo_operacion: op?.tipo_operacion
     };
+    if (manualOrder) {
+      opBlocks.push(opBlock);
+      return;
+    }
     const target =
       op.parentSubsection || op.parentSection || op.SECCION || op.seccion || '';
     insertarOperacionEnLayout(layoutFinal, opBlock, target);
   });
+
+  if (manualOrder) {
+    layoutFinal = ordenarLayoutGlobal(layoutFinal.concat(opBlocks));
+  }
 
   return {
     principals: principalList,
@@ -1709,7 +1838,10 @@ async function generarReporte(tipoReporte, empresaId, anio, mesSeleccionado, cap
     configAgrupacion,
     capituloEncontrado?.etiqueta || capituloSeleccionado,
     planeacionData,
-    { permitirFormulaSecciones: tipoReporte === 'RESUMEN' }
+    {
+      permitirFormulaSecciones: tipoReporte === 'RESUMEN' || tipoReporte === 'SUMMARY',
+      ordenManualTotal: tipoReporte === 'RESUMEN' || tipoReporte === 'SUMMARY'
+    }
   );
 
   const nodoResumen = {

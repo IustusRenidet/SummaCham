@@ -1415,13 +1415,19 @@
             .map((v) => (typeof v === "string" ? v.trim() : ""))
             .filter(Boolean);
           if (!cleaned.length) return null;
-          const alias =
-            typeof row?.alias === "string" && row.alias.trim()
-              ? row.alias.trim()
-              : cleaned[0];
-          return { alias, variants: cleaned };
-        })
-        .filter(Boolean);
+           const alias =
+             typeof row?.alias === "string" && row.alias.trim()
+               ? row.alias.trim()
+               : cleaned[0];
+           const color =
+             typeof row?.color === "string" && row.color.trim()
+               ? row.color.trim()
+               : null;
+           const normalized = { alias, variants: cleaned };
+           if (color) normalized.color = color;
+           return normalized;
+         })
+         .filter(Boolean);
       const seriesKeys = Array.isArray(chart?.seriesKeys)
         ? chart.seriesKeys
             .map((key) => (key != null ? String(key).trim() : ""))
@@ -1932,6 +1938,7 @@
         return {
           label: resolveChartLabel(row?.alias || variants[0], context),
           data: match.data,
+          color: row?.color,
         };
       })
       .filter(Boolean);
@@ -1948,7 +1955,8 @@
           resolveSummarySeriesValue(row.data || {}, col.key)
         );
         const data = isPie ? rawValues : rawValues.map((value) => ocultarCeros(value));
-        const color = CHART_PALETTE[idx % CHART_PALETTE.length];
+        const color =
+          row?.color || CHART_PALETTE[idx % CHART_PALETTE.length];
         const dataset = {
           label: row.label || `Serie ${idx + 1}`,
           data,
@@ -2040,6 +2048,7 @@
           return {
             label: resolveChartLabel(row?.alias || variants[0], context),
             variants,
+            color: row?.color,
           };
         })
         .filter(Boolean);
@@ -2069,7 +2078,8 @@
 
       const datasets = resolvedRows.map((row, idx) => {
         const data = valuesByRow[idx] || [];
-        const color = CHART_PALETTE[idx % CHART_PALETTE.length];
+        const color =
+          row?.color || CHART_PALETTE[idx % CHART_PALETTE.length];
         const dataset = {
           label: row.label || `Serie ${idx + 1}`,
           data,

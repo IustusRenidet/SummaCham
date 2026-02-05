@@ -19,13 +19,13 @@
       },
       {
         key: "planYTD",
-        label: "Ppto. acumulado",
+        label: "Ppto acumulado",
         color: "#60a5fa",
         enabled: true,
       },
       {
         key: "prevYTD",
-        label: "Real acumulado AA",
+        label: "Real acumulado del anio anterior",
         color: "#94a3b8",
         enabled: true,
       },
@@ -34,19 +34,19 @@
       operating: {
         enabled: true,
         title: "Resultado Operativo por Capitulo",
-        subtitle: "Real Acum / Ppto. Acum / Real Acum AA",
+        subtitle: "Real acumulado / Ppto acumulado / Real acumulado del anio anterior",
         chartType: "inherit",
       },
       net: {
         enabled: true,
         title: "Resumen Neto por Capitulo",
-        subtitle: "Real Acum / Ppto. Acum / Real Acum AA",
+        subtitle: "Real acumulado / Ppto acumulado / Real acumulado del anio anterior",
         chartType: "inherit",
       },
       consolidated: {
         enabled: true,
         title: "Consolidados Operativos vs Netos",
-        subtitle: "Real Acum / Ppto. Acum / Real Acum AA",
+        subtitle: "Real acumulado / Ppto acumulado / Real acumulado del anio anterior",
         chartType: "inherit",
       },
     },
@@ -271,7 +271,7 @@
         id: "manual-operating",
         module: "RESUMEN",
         title: "Resultado Operativo por Capitulo",
-        subtitle: "Real Acum / Ppto. Acum / Real Acum AA",
+        subtitle: "Real acumulado / Ppto acumulado / Real acumulado del anio anterior",
         chartType: "inherit",
         sourceType: "snapshot",
         seriesMode: "columns",
@@ -308,7 +308,7 @@
         id: "manual-net",
         module: "RESUMEN",
         title: "Resumen Neto por Capitulo",
-        subtitle: "Real Acum / Ppto. Acum / Real Acum AA",
+        subtitle: "Real acumulado / Ppto acumulado / Real acumulado del anio anterior",
         chartType: "inherit",
         sourceType: "snapshot",
         seriesMode: "columns",
@@ -345,7 +345,7 @@
         id: "manual-consolidated",
         module: "RESUMEN",
         title: "Consolidados Operativos vs Netos",
-        subtitle: "Real Acum / Ppto. Acum / Real Acum AA",
+        subtitle: "Real acumulado / Ppto acumulado / Real acumulado del anio anterior",
         chartType: "inherit",
         sourceType: "snapshot",
         seriesMode: "rows",
@@ -355,6 +355,7 @@
         rows: [
           {
             alias: "CONSOLIDATED OPERATING RESULTS",
+            color: "#0d47a1",
             variants: [
               "CONSOLIDATED OPERATING RESULTS",
               "CONSOLIDATED OPERATING RESULT",
@@ -362,6 +363,7 @@
           },
           {
             alias: "CONSOLIDATED NET RESULTS",
+            color: "#94a3b8",
             variants: ["CONSOLIDATED NET RESULTS", "CONSOLIDATED NET RESULT"],
           },
         ],
@@ -379,6 +381,7 @@
         rows: [
           {
             alias: "CDMX",
+            color: "#0d47a1",
             variants: [
               "CDMX INCOME",
               "MEXICO INCOME",
@@ -387,14 +390,17 @@
           },
           {
             alias: "Guadalajara",
+            color: "#60a5fa",
             variants: ["GUADALAJARA INCOME", "GDL INCOME", "GUADALAJARA INCOMEA"],
           },
           {
             alias: "Monterrey",
+            color: "#22c55e",
             variants: ["MONTERREY INCOME", "MTY INCOME"],
           },
           {
             alias: "Noroeste",
+            color: "#f59e0b",
             variants: [
               "NORTHWEST INCOME",
               "NW INCOME",
@@ -418,18 +424,22 @@
         rows: [
           {
             alias: "Committees",
+            color: "#0d47a1",
             variants: ["COMMITTEES", "COMITES", "COMMITTEES (INCOME)"],
           },
           {
             alias: "Membership",
+            color: "#60a5fa",
             variants: ["MEMBERSHIP", "MEMBERSHIP (INCOME)"],
           },
           {
             alias: "Events",
+            color: "#22c55e",
             variants: ["EVENTS", "EVENTS (INCOME)"],
           },
           {
             alias: "Services to Members",
+            color: "#f59e0b",
             variants: [
               "SERVICES TO MEMBERS",
               "SERVICES MEMBERS",
@@ -438,6 +448,7 @@
           },
           {
             alias: "T&IC",
+            color: "#a855f7",
             variants: ["T&IC", "T&IC (INCOME)", "T&IC INCOME"],
           },
         ],
@@ -731,7 +742,11 @@
       typeof row?.alias === "string" && row.alias.trim()
         ? row.alias.trim()
         : cleaned[0];
-    return { alias, variants: cleaned };
+    const color =
+      typeof row?.color === "string" && row.color.trim() ? row.color.trim() : null;
+    const normalized = { alias, variants: cleaned };
+    if (color) normalized.color = color;
+    return normalized;
   };
 
   const normalizeCustomCharts = (charts = []) => {
@@ -1341,12 +1356,15 @@
   const manualChartsContainer = document.getElementById("manualChartsContainer");
   const manualChartsEmpty = document.getElementById("manualChartsEmpty");
   const manualAddBtn = document.getElementById("manualAddChartBtn");
+  const simpleChartsContainer = document.getElementById("simpleChartsContainer");
+  const simpleChartsEmpty = document.getElementById("simpleChartsEmpty");
 
   const setStatus = (message, tone = "muted") => {
     if (!statusEl) return;
     statusEl.textContent = message;
     statusEl.setAttribute("data-tone", tone);
   };
+
 
   const isAdmin = () => {
     if (!window.Sesion || typeof window.Sesion.puedeAdministrarUsuarios !== "function") {
@@ -1376,13 +1394,13 @@
     { key: "actualYTD", label: "Real acumulado", color: "#0d47a1", enabled: true },
     {
       key: "planYTD",
-      label: "Ppto. acumulado",
+      label: "Ppto acumulado",
       color: "#60a5fa",
       enabled: true,
     },
     {
       key: "prevYTD",
-      label: "Real acumulado AA",
+      label: "Real acumulado del anio anterior",
       color: "#94a3b8",
       enabled: true,
     },
@@ -1612,6 +1630,266 @@
     manualChartsEmpty.classList.toggle("d-none", hasCharts);
   };
 
+  const SIMPLE_ROW_COLORS = [
+    "#0d47a1",
+    "#60a5fa",
+    "#22c55e",
+    "#f59e0b",
+    "#94a3b8",
+    "#a855f7",
+    "#ef4444",
+    "#06b6d4",
+  ];
+
+  const getFallbackRowColor = (index) =>
+    SIMPLE_ROW_COLORS[index % SIMPLE_ROW_COLORS.length];
+
+  const updateSimpleChartsEmptyState = () => {
+    if (!simpleChartsEmpty || !simpleChartsContainer) return;
+    const hasCharts = simpleChartsContainer.children.length > 0;
+    simpleChartsEmpty.classList.toggle("d-none", hasCharts);
+  };
+
+  const resolveSeriesOptionMap = (moduleValue, chart = {}) => {
+    const baseOptions = getSeriesOptionsForModule(moduleValue);
+    const map = new Map(
+      (baseOptions || [])
+        .map((option) => {
+          const key = String(option?.key || "").trim();
+          if (!key) return null;
+          return [key, option];
+        })
+        .filter(Boolean)
+    );
+
+    const overrides = Array.isArray(chart?.series) ? chart.series : [];
+    overrides.forEach((override) => {
+      const key = String(override?.key || "").trim();
+      if (!key) return;
+      const existing = map.get(key) || { key, label: key, color: "#94a3b8" };
+      map.set(key, {
+        ...existing,
+        label:
+          typeof override.label === "string" && override.label.trim()
+            ? override.label.trim()
+            : existing.label,
+        color:
+          typeof override.color === "string" && override.color.trim()
+            ? override.color.trim()
+            : existing.color,
+        enabled:
+          typeof override.enabled === "boolean" ? override.enabled : existing.enabled,
+      });
+    });
+    return map;
+  };
+
+  const renderSimpleSeriesChips = (container, seriesKeys = [], optionMap) => {
+    if (!container) return;
+    container.innerHTML = "";
+    const keys = Array.isArray(seriesKeys) ? seriesKeys : [];
+    if (!keys.length) {
+      container.innerHTML =
+        '<span class="text-muted small">Sin columnas.</span>';
+      return;
+    }
+    keys.forEach((rawKey) => {
+      const key = String(rawKey || "").trim();
+      if (!key) return;
+      const def = optionMap?.get ? optionMap.get(key) : null;
+      const label = def?.label || key;
+      const color = def?.color || "#94a3b8";
+      const chip = document.createElement("span");
+      chip.className = "simple-chip";
+      chip.setAttribute("data-simple-series-chip", key);
+      chip.innerHTML = `
+        <span class="simple-dot" style="background:${escapeHtml(color)}"></span>
+        <span data-simple-chip-label>${escapeHtml(label)}</span>
+      `;
+      container.appendChild(chip);
+    });
+  };
+
+  const buildSimpleChartBadgesHtml = (chartMeta) => {
+    const badges = [];
+    const module = normalizeModuleValue(chartMeta?.module, "RESUMEN");
+    if (module) badges.push(module);
+    const sourceType = normalizeSourceType(chartMeta?.sourceType, "snapshot");
+    badges.push(sourceType === "mensual" ? "Mensual" : "Actual");
+    if (chartMeta?.cdmxOnly === true) badges.push("CDMX");
+    return badges
+      .map((badge) => `<span class="chart-badge">${escapeHtml(badge)}</span>`)
+      .join(" ");
+  };
+
+  const buildSimpleChartCard = (chart, index) => {
+    const chartId = chart?.id || buildCustomChartId();
+    const moduleValue = normalizeModuleValue(chart?.module, "RESUMEN");
+    const title =
+      typeof chart?.title === "string" && chart.title.trim()
+        ? chart.title.trim()
+        : `Grafica ${index + 1}`;
+    const subtitle = typeof chart?.subtitle === "string" ? chart.subtitle.trim() : "";
+    const enabled = chart?.enabled !== false;
+    const seriesMode = normalizeSeriesMode(chart?.seriesMode, "columns");
+    const showRowColors = seriesMode === "rows";
+    const seriesKeys = Array.isArray(chart?.seriesKeys)
+      ? chart.seriesKeys.map((key) => String(key || "").trim()).filter(Boolean)
+      : [];
+
+    const optionMap = resolveSeriesOptionMap(moduleValue, chart);
+    const effectiveSeriesKeys =
+      seriesKeys.length > 0
+        ? seriesKeys
+        : Array.from(optionMap.values())
+            .filter((opt) => opt?.enabled !== false)
+            .map((opt) => opt.key);
+
+    const rows = Array.isArray(chart?.rows) ? chart.rows : [];
+    const rowsHtml = rows.length
+      ? `
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Fila</th>
+                <th>Etiqueta</th>
+                ${showRowColors ? "<th>Color</th>" : ""}
+              </tr>
+            </thead>
+            <tbody>
+              ${rows
+                .map((row, rowIdx) => {
+                  const variants = Array.isArray(row?.variants) ? row.variants : [];
+                  const variantsText = variants
+                    .map((value) => (typeof value === "string" ? value.trim() : ""))
+                    .filter(Boolean)
+                    .join(" | ");
+                  const alias =
+                    typeof row?.alias === "string" && row.alias.trim()
+                      ? row.alias.trim()
+                      : variants?.[0] || "";
+                  const color =
+                    typeof row?.color === "string" && row.color.trim()
+                      ? row.color.trim()
+                      : getFallbackRowColor(rowIdx);
+                  return `
+                    <tr data-simple-row="true" data-simple-row-index="${rowIdx}">
+                      <td>
+                        <div class="simple-variants"><code>${escapeHtml(
+                          variantsText || "-"
+                        )}</code></div>
+                      </td>
+                      <td>
+                        <input type="text" class="form-control form-control-sm" data-simple-row-alias value="${escapeHtml(
+                          alias
+                        )}" />
+                      </td>
+                      ${
+                        showRowColors
+                          ? `<td>
+                              <input type="color" class="form-control form-control-color color-input" data-simple-row-color value="${escapeHtml(
+                                color
+                              )}" />
+                            </td>`
+                          : ""
+                      }
+                    </tr>
+                  `;
+                })
+                .join("")}
+            </tbody>
+          </table>
+        </div>
+      `
+      : '<div class="manual-empty text-muted small">Sin filas.</div>';
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "simple-chart-card mb-3";
+    wrapper.setAttribute("data-simple-chart-id", chartId);
+    wrapper.setAttribute("data-simple-module", moduleValue);
+    wrapper.setAttribute("data-simple-series-mode", seriesMode);
+    wrapper.setAttribute(
+      "data-simple-series-keys",
+      effectiveSeriesKeys.join("|")
+    );
+
+    wrapper.innerHTML = `
+      <div class="simple-chart-meta">
+        <div class="simple-chart-title">
+          ${buildSimpleChartBadgesHtml(chart)}
+          <span class="fw-bold" data-simple-title-preview>${escapeHtml(title)}</span>
+        </div>
+        <div class="form-check form-switch m-0">
+          <input class="form-check-input" type="checkbox" data-simple-enabled ${
+            enabled ? "checked" : ""
+          } />
+          <label class="form-check-label small">Activa</label>
+        </div>
+      </div>
+      <div class="text-muted small mt-1" data-simple-subtitle-preview>${escapeHtml(
+        subtitle
+      )}</div>
+
+      <div class="row g-2 mt-3">
+        <div class="col-12 col-lg-6">
+          <label class="form-label small fw-semibold mb-1">Titulo</label>
+          <input class="form-control form-control-sm" type="text" data-simple-title value="${escapeHtml(
+            title
+          )}" />
+        </div>
+        <div class="col-12 col-lg-6">
+          <label class="form-label small fw-semibold mb-1">Subtitulo</label>
+          <input class="form-control form-control-sm" type="text" data-simple-subtitle value="${escapeHtml(
+            subtitle
+          )}" />
+        </div>
+      </div>
+
+      <div class="mt-3">
+        <div class="simple-block-title mb-2">Columnas</div>
+        <div class="simple-chips" data-simple-columns></div>
+      </div>
+
+      <div class="mt-3">
+        <div class="simple-block-title mb-2">Filas</div>
+        ${rowsHtml}
+      </div>
+    `;
+
+    const chipsContainer = wrapper.querySelector("[data-simple-columns]");
+    renderSimpleSeriesChips(chipsContainer, effectiveSeriesKeys, optionMap);
+    return wrapper;
+  };
+
+  const renderSimpleCharts = (config) => {
+    if (!simpleChartsContainer) return;
+    simpleChartsContainer.innerHTML = "";
+    const list = Array.isArray(config?.customCharts) ? config.customCharts : [];
+    list.forEach((chart, index) => {
+      const card = buildSimpleChartCard(chart, index);
+      simpleChartsContainer.appendChild(card);
+    });
+    updateSimpleChartsEmptyState();
+  };
+
+  const refreshSimpleChartsColumns = () => {
+    if (!simpleChartsContainer) return;
+    const cards = Array.from(
+      simpleChartsContainer.querySelectorAll("[data-simple-chart-id]")
+    );
+    cards.forEach((card) => {
+      const moduleValue = card.getAttribute("data-simple-module") || "RESUMEN";
+      const seriesKeys = String(card.getAttribute("data-simple-series-keys") || "")
+        .split("|")
+        .map((value) => value.trim())
+        .filter(Boolean);
+      const optionMap = resolveSeriesOptionMap(moduleValue, {});
+      const chipsContainer = card.querySelector("[data-simple-columns]");
+      renderSimpleSeriesChips(chipsContainer, seriesKeys, optionMap);
+    });
+  };
+
   const buildManualSourceHint = (moduleValue, sourceType) => {
     const moduleLabel = normalizeModuleValue(moduleValue, "RESUMEN");
     const cleanSource = normalizeSourceType(sourceType, "snapshot");
@@ -1746,6 +2024,50 @@
     updateManualChartsEmptyState();
   };
 
+  const updatePreviewLabels = () => {
+    if (!form) return;
+    const seriesLabels = new Map();
+    const seriesRows = Array.from(form.querySelectorAll("[data-series-row]"));
+    seriesRows.forEach((row) => {
+      const key = row.getAttribute("data-series-key");
+      if (!key) return;
+      const input = row.querySelector("[data-series-label]");
+      const fallback =
+        (DEFAULT_CONFIG.series || []).find((item) => item.key === key) || {};
+      const value = input?.value?.trim() || fallback.label || key;
+      seriesLabels.set(key, value);
+    });
+
+    const consolidatedLabels = new Map();
+    const consolidatedRows = Array.from(
+      form.querySelectorAll("[data-consolidated-key]")
+    );
+    consolidatedRows.forEach((row) => {
+      const key = row.getAttribute("data-consolidated-key");
+      if (!key) return;
+      const input = row.querySelector("[data-consolidated-label]");
+      const fallback = (DEFAULT_CONFIG.consolidatedSeries || {})[key] || {};
+      const value = input?.value?.trim() || fallback.label || key;
+      consolidatedLabels.set(key, value);
+    });
+
+    const previewSeries = Array.from(
+      form.querySelectorAll("[data-preview-series]")
+    );
+    previewSeries.forEach((cell) => {
+      const key = cell.getAttribute("data-preview-series");
+      cell.textContent = key ? seriesLabels.get(key) || key : "";
+    });
+
+    const previewConsolidated = Array.from(
+      form.querySelectorAll("[data-preview-consolidated]")
+    );
+    previewConsolidated.forEach((cell) => {
+      const key = cell.getAttribute("data-preview-consolidated");
+      cell.textContent = key ? consolidatedLabels.get(key) || key : "";
+    });
+  };
+
   const applyConfigToForm = (config) => {
     const defaults = clone(DEFAULT_CONFIG);
 
@@ -1802,7 +2124,7 @@
       manualOnlyToggle.disabled = false;
     }
     updateManualOnlyState(config.manualOnly === true);
-    renderManualCharts(config);
+    renderSimpleCharts(config);
   };
 
   const readConfigFromForm = () => {
@@ -1844,6 +2166,9 @@
         ),
       };
     });
+    if (chartRows.length === 0) {
+      Object.assign(charts, clone(baseConfig.charts || defaults.charts || {}));
+    }
 
     const consolidatedSeries = {};
     const consolidatedRows = Array.from(
@@ -1860,6 +2185,12 @@
         color: colorInput?.value || fallback.color || "#0d47a1",
       };
     });
+    if (consolidatedRows.length === 0) {
+      Object.assign(
+        consolidatedSeries,
+        clone(baseConfig.consolidatedSeries || defaults.consolidatedSeries || {})
+      );
+    }
 
     draft.version = DEFAULT_CONFIG.version;
     draft.series = series;
@@ -1877,8 +2208,114 @@
       ? manualOnlyToggle.checked
       : baseConfig.manualOnly === true;
 
-    const customCharts = [];
-    if (manualChartsContainer) {
+    let customCharts = Array.isArray(baseConfig.customCharts)
+      ? clone(baseConfig.customCharts)
+      : [];
+
+    const seriesOverridesMap = new Map(
+      series
+        .map((serie) => {
+          const key = String(serie?.key || "").trim();
+          if (!key) return null;
+          return [key, serie];
+        })
+        .filter(Boolean)
+    );
+
+    const syncChartSeriesOverrides = (chartSeries = []) => {
+      if (!Array.isArray(chartSeries) || chartSeries.length === 0) return chartSeries;
+      return chartSeries
+        .map((serie) => {
+          const key = String(serie?.key || "").trim();
+          if (!key) return null;
+          const override = seriesOverridesMap.get(key);
+          if (!override) return serie;
+          return {
+            ...serie,
+            label: override.label || serie.label,
+            color: override.color || serie.color,
+            enabled:
+              typeof override.enabled === "boolean" ? override.enabled : serie.enabled,
+          };
+        })
+        .filter(Boolean);
+    };
+
+    if (simpleChartsContainer) {
+      customCharts = [];
+      const existingCustomMap = new Map(
+        (Array.isArray(baseConfig.customCharts) ? baseConfig.customCharts : [])
+          .filter((chart) => chart?.id)
+          .map((chart) => [String(chart.id), chart])
+      );
+      const cards = Array.from(
+        simpleChartsContainer.querySelectorAll("[data-simple-chart-id]")
+      );
+      cards.forEach((card, index) => {
+        const id =
+          card.getAttribute("data-simple-chart-id") || buildCustomChartId();
+        const baseChart = existingCustomMap.get(String(id)) || {};
+        const nextChart = clone(baseChart);
+
+        const titleInput = card.querySelector("[data-simple-title]");
+        const subtitleInput = card.querySelector("[data-simple-subtitle]");
+        const enabledInput = card.querySelector("[data-simple-enabled]");
+
+        nextChart.id = id;
+        nextChart.title =
+          titleInput?.value?.trim() ||
+          baseChart.title ||
+          `Grafica ${index + 1}`;
+        nextChart.subtitle = subtitleInput?.value?.trim() || baseChart.subtitle || "";
+        nextChart.enabled =
+          typeof enabledInput?.checked === "boolean"
+            ? enabledInput.checked
+            : baseChart.enabled !== false;
+
+        const seriesMode = normalizeSeriesMode(
+          baseChart?.seriesMode || card.getAttribute("data-simple-series-mode"),
+          "columns"
+        );
+        const showRowColors = seriesMode === "rows";
+        const baseRows = Array.isArray(baseChart?.rows) ? baseChart.rows : [];
+
+        const rowNodes = Array.from(card.querySelectorAll("[data-simple-row=\"true\"]"));
+        const rowNodeMap = new Map(
+          rowNodes
+            .map((node) => {
+              const idx = Number(node.getAttribute("data-simple-row-index"));
+              if (!Number.isFinite(idx)) return null;
+              return [idx, node];
+            })
+            .filter(Boolean)
+        );
+
+        nextChart.rows = baseRows.map((row, rowIdx) => {
+          const node = rowNodeMap.get(rowIdx);
+          const aliasInput = node?.querySelector("[data-simple-row-alias]");
+          const aliasValue = aliasInput?.value?.trim();
+          const nextRow = { ...row };
+          if (typeof aliasValue === "string" && aliasValue) {
+            nextRow.alias = aliasValue;
+          }
+          if (showRowColors) {
+            const colorInput = node?.querySelector("[data-simple-row-color]");
+            const colorValue = colorInput?.value;
+            if (typeof colorValue === "string" && colorValue.trim()) {
+              nextRow.color = colorValue.trim();
+            }
+          }
+          return nextRow;
+        });
+
+        if (Array.isArray(nextChart.series) && nextChart.series.length) {
+          nextChart.series = syncChartSeriesOverrides(nextChart.series);
+        }
+
+        customCharts.push(nextChart);
+      });
+    } else if (manualChartsContainer) {
+      customCharts = [];
       const existingCustomMap = new Map(
         (Array.isArray(baseConfig.customCharts) ? baseConfig.customCharts : [])
           .filter((chart) => chart?.id)
@@ -2054,6 +2491,35 @@
     event.preventDefault();
     handleSave();
   });
+
+  form.addEventListener("input", (event) => {
+    const target = event.target;
+    if (!target) return;
+    if (
+      target.matches("[data-series-label]") ||
+      target.matches("[data-series-color]") ||
+      target.matches("[data-series-enabled]")
+    ) {
+      refreshSimpleChartsColumns();
+    }
+  });
+
+  if (simpleChartsContainer) {
+    simpleChartsContainer.addEventListener("input", (event) => {
+      const target = event.target;
+      if (!target) return;
+      const card = target.closest("[data-simple-chart-id]");
+      if (!card) return;
+      if (target.matches("[data-simple-title]")) {
+        const preview = card.querySelector("[data-simple-title-preview]");
+        if (preview) preview.textContent = target.value?.trim() || "Grafica";
+      }
+      if (target.matches("[data-simple-subtitle]")) {
+        const preview = card.querySelector("[data-simple-subtitle-preview]");
+        if (preview) preview.textContent = target.value?.trim() || "";
+      }
+    });
+  }
 
   if (resetBtn) {
     resetBtn.addEventListener("click", (event) => {

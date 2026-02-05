@@ -735,6 +735,9 @@ window.initModuloPlaneacion = async function ({
       const opcionesFlujo = {
         tablaId: tablaBodyId,
         modulo: moduloNombre.toUpperCase(),
+        autoGuardarBorrador: true,
+        autoCargarBorrador: true,
+        autoGuardarDebounce: 1200,
         obtenerCambios: () => {
           // Capturar cambios de presupuesto (valores numericos)
           const cambiosPresupuesto = window.CuentasModulo?.getCambios?.() || {

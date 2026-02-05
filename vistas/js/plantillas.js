@@ -1391,7 +1391,7 @@
     return { field: "", operations: [] };
   }
 
-  function openAddOperationForRow(label, parentSection = "") {
+  function openAddOperationForRow(label, parentSection = "", preferredField = "sum-row") {
     if (!requireEditMode()) return;
     const radio = document.querySelector(
       'input[name="tipoElemento"][value="operacion"]'
@@ -1407,8 +1407,9 @@
       inputOperacionId.value = normalizeOperationId(label);
     }
 
-    const sumCheck = document.getElementById(rowLabelAddCheckId("sum-row"));
-    const sumInput = document.getElementById(rowLabelAddInputId("sum-row"));
+    const targetField = preferredField || "sum-row";
+    const sumCheck = document.getElementById(rowLabelAddCheckId(targetField));
+    const sumInput = document.getElementById(rowLabelAddInputId(targetField));
     if (sumCheck) sumCheck.checked = true;
     if (sumInput && !sumInput.value && label) {
       sumInput.value = label;
@@ -1432,7 +1433,7 @@
     if (!label) return;
     const match = getRowOperationMatch(label, preferredField, parentSection);
     if (!match.operations.length) {
-      openAddOperationForRow(label, parentSection);
+      openAddOperationForRow(label, parentSection, preferredField);
       return;
     }
     if (match.operations.length > 1) {
@@ -1941,179 +1942,74 @@
       }
     }
 
-    // Fallback: construir filas manualmente con secciones y subsecciones
-    const rows = [];
-    const sections = groupBySections(state.cuentas || []);
-    const operaciones = sortOperations(state.operaciones || []);
-    const renderedOpIds = new Set();
+    // Orden 100% manual: lista plana ordenada por orden_presentacion.
+    // Cuentas y operaciones se mezclan libremente sin agrupar por sección.
+    const allItems = [];
 
-    sections.forEach((section) => {
-      rows.push({
-        type: "principal",
-        label: section.name,
-        visible: true,
-      });
-
-      // Agregar subsecciones
-      section.subsections.forEach((subsection) => {
-        // Solo mostrar subsección si tiene nombre diferente a la sección principal.
-        if (subsection.name && subsection.name !== section.name) {
-          rows.push({
-            type: "subsection",
-            label: subsection.name,
-            parentSection: section.name,
-            visible: true,
-          });
-        }
-
-        // Agregar cuentas de la subsección
-        const realAccounts = (subsection.accounts || []).filter(
-          (acc) => !isPlaceholderAccount(acc)
-        );
-
-        // Buscar operaciones de esta subsección
-        const subsectionOps = operaciones.filter((op) => {
-          const opId = getOperationId(op);
-          if (renderedOpIds.has(opId)) return false;
-
-          const parentSub = op.parentSubsection || op.SECCION || "";
-          const parentSec = op.parentSection || "";
-
-          // Verificar si pertenece a esta subsección
-          if (parentSub.toLowerCase() === subsection.name.toLowerCase()) {
-            if (parentSec && parentSec.toLowerCase() !== section.name.toLowerCase()) {
-              return false;
-            }
-            return true;
-          }
-          if (operationMatchesRowLabel(op, subsection.name)) {
-            if (
-              parentSec &&
-              parentSec.toLowerCase() !== section.name.toLowerCase()
-            ) {
-              return false;
-            }
-            return true;
-          }
-          return false;
-        });
-        const subsectionRows = [];
-        realAccounts.forEach((cuenta, idx) => {
-          subsectionRows.push({
-            type: "account",
-            cuenta: cuenta.CUENTA || cuenta.cuenta || "",
-            nombre: cuenta.NOMBRE || cuenta.nombre || "",
-            label: cuenta.CUENTA || cuenta.cuenta || "",
-            parentSection: section.name,
-            parentSubsection: subsection.name,
-            accountId: getAccountRowId(cuenta),
-            visible: cuenta.visible !== false,
-            __sortOrder: getAccountOrder(cuenta, idx),
-            __sortKind: 0,
-          });
-        });
-
-        subsectionOps.forEach((op, idx) => {
-          const opId = getOperationId(op);
-          renderedOpIds.add(opId);
-          const opParentSection = (op.parentSection || "").toString().trim();
-          const opParentSubsection = (op.parentSubsection || "")
-            .toString()
-            .trim();
-          subsectionRows.push({
-            type: "operation",
-            label: getOperationDisplayName(op),
-            opId: opId,
-            kind: detectOperationType(op),
-            parentSection: opParentSection,
-            parentSubsection: opParentSubsection,
-            visible: op.visible !== false,
-            __sortOrder: getOperationOrder(op, idx),
-            __sortKind: 1,
-          });
-        });
-
-        subsectionRows
-          .sort((a, b) => {
-            const orderA = Number.isFinite(Number(a.__sortOrder))
-              ? Number(a.__sortOrder)
-              : 0;
-            const orderB = Number.isFinite(Number(b.__sortOrder))
-              ? Number(b.__sortOrder)
-              : 0;
-            if (orderA !== orderB) return orderA - orderB;
-            const kindA = Number.isFinite(Number(a.__sortKind))
-              ? Number(a.__sortKind)
-              : 0;
-            const kindB = Number.isFinite(Number(b.__sortKind))
-              ? Number(b.__sortKind)
-              : 0;
-            return kindA - kindB;
-          })
-          .forEach((item) => {
-            delete item.__sortOrder;
-            delete item.__sortKind;
-            rows.push(item);
-          });
-      });
-
-      // Buscar operaciones a nivel de sección (que no pertenecen a ninguna subsección específica)
-      const sectionOps = operaciones.filter((op) => {
-        const opId = getOperationId(op);
-        if (renderedOpIds.has(opId)) return false;
-
-        const clase = (getOperationLabel(op) || "").toLowerCase();
-        const sectionLower = section.name.toLowerCase();
-        const parentSec = (op.parentSection || "").toLowerCase();
-        const parentSub = (op.parentSubsection || "").toLowerCase();
-
-        if (parentSec && parentSec === sectionLower && !parentSub) {
-          return true;
-        }
-
-        // Operaciones que referencian esta sección
-        if (clase.includes(sectionLower) || (op.SECCION || "").toLowerCase() === sectionLower) {
-          return true;
-        }
-        if (operationMatchesRowLabel(op, section.name)) {
-          return true;
-        }
-        return false;
-      });
-
-      sectionOps.forEach((op) => {
-        const opId = getOperationId(op);
-        renderedOpIds.add(opId);
-        const opParentSection = (op.parentSection || "").toString().trim();
-        const opParentSubsection = (op.parentSubsection || "")
-          .toString()
-          .trim();
-        rows.push({
-          type: "operation",
-          label: getOperationDisplayName(op),
-          opId: opId,
-          kind: detectOperationType(op),
-          parentSection: opParentSection,
-          parentSubsection: opParentSubsection,
-          visible: op.visible !== false,
-        });
+    (state.cuentas || []).forEach((cuenta, idx) => {
+      if (isPlaceholderAccount(cuenta)) return;
+      allItems.push({
+        type: "account",
+        cuenta: cuenta.CUENTA || cuenta.cuenta || "",
+        nombre: cuenta.NOMBRE || cuenta.nombre || "",
+        label: cuenta.CUENTA || cuenta.cuenta || "",
+        parentSection: getAccountPrincipalName(cuenta) || "",
+        parentSubsection: getAccountSecondaryName(cuenta) || "",
+        accountId: getAccountRowId(cuenta),
+        visible: cuenta.visible !== false,
+        __orden: getAccountOrder(cuenta, idx),
       });
     });
 
-    // Agregar operaciones no renderizadas (operaciones globales/consolidadas)
-    operaciones.forEach((op) => {
-      const opId = getOperationId(op);
-      if (renderedOpIds.has(opId)) return;
-
-      rows.push({
+    const operaciones = sortOperations(state.operaciones || []);
+    operaciones.forEach((op, idx) => {
+      if (isColumnConfigOperation(op)) return;
+      allItems.push({
         type: "operation",
         label: getOperationDisplayName(op),
-        opId: opId,
+        opId: getOperationId(op) || getOperationDisplayName(op) || "",
         kind: detectOperationType(op),
         parentSection: op.parentSection || "",
         parentSubsection: op.parentSubsection || "",
         visible: op.visible !== false,
+        __orden: getOperationOrder(op, idx),
       });
+    });
+
+    // Ordenar TODO por orden_presentacion, sin distinción de tipo
+    allItems.sort((a, b) => {
+      const orderA = Number.isFinite(a.__orden) ? a.__orden : 1e9;
+      const orderB = Number.isFinite(b.__orden) ? b.__orden : 1e9;
+      return orderA - orderB;
+    });
+
+    // Insertar encabezados de sección/subsección en transiciones
+    const rows = [];
+    let prevPrincipal = null;
+    let prevSubsection = null;
+
+    allItems.forEach((item) => {
+      const principal = (item.parentSection || "").toString().trim();
+      const subsection = (item.parentSubsection || "").toString().trim();
+
+      if (principal && principal !== prevPrincipal) {
+        rows.push({ type: "principal", label: principal, visible: true });
+        prevPrincipal = principal;
+        prevSubsection = null;
+      }
+
+      if (subsection && subsection !== prevSubsection) {
+        rows.push({
+          type: "subsection",
+          label: subsection,
+          parentSection: principal || prevPrincipal || "",
+          visible: true,
+        });
+        prevSubsection = subsection;
+      }
+
+      delete item.__orden;
+      rows.push(item);
     });
 
     return appendMissingOperations(rows);
@@ -2320,7 +2216,7 @@
 
       if (row.type === 'principal') {
         const sectionName = row.label || '';
-        const sectionOpMatch = getRowOperationMatch(sectionName);
+        const sectionOpMatch = getRowOperationMatch(sectionName, "sum-row-sumavarios");
         const hasSectionOp = sectionOpMatch.operations.length > 0;
         const sectionOpBtnClass = hasSectionOp
           ? 'btn-outline-success'
@@ -2339,7 +2235,7 @@
               <div class="list-item-actions">
                 <button class="btn btn-sm ${sectionOpBtnClass}" onclick="event.stopPropagation(); editRowOperation('${escapeAttr(
                   sectionName
-                )}', '${escapeAttr(sectionOpMatch.field || "")}', '')" title="${sectionOpBtnTitle}" ${disabledAttr}>
+                )}', '${escapeAttr(sectionOpMatch.field || "sum-row-sumavarios")}', '')" title="${sectionOpBtnTitle}" ${disabledAttr}>
                   <i class="bi bi-calculator"></i>
                 </button>
                 <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); editSection('${escapeAttr(sectionName)}')" title="Editar" ${disabledAttr}>
@@ -2381,7 +2277,7 @@
               <div class="list-item-actions">
                 <button class="btn btn-sm ${subsectionOpBtnClass}" onclick="event.stopPropagation(); editRowOperation('${escapeAttr(
                   subsectionName
-                )}', '${escapeAttr(subsectionOpMatch.field || "")}', '${escapeAttr(
+                )}', '${escapeAttr(subsectionOpMatch.field || "sum-row")}', '${escapeAttr(
                   parentSection
                 )}')" title="${subsectionOpBtnTitle}" ${disabledAttr}>
                   <i class="bi bi-calculator"></i>
@@ -2428,7 +2324,9 @@
       }
 
       if (row.type === 'operation') {
-        const op = findOperationByIdOrLabel(row.label || row.opId || '');
+        // En modo manual, `row.label` puede ser el texto visible (p.ej. "CONSOLIDATED INCOME")
+        // que NO coincide con OperacionId/Clase. Usar `row.opId` primero para mantener el vínculo.
+        const op = findOperationByIdOrLabel(row.opId || row.label || '');
         const label = op ? getOperationDisplayName(op) : row.label || '';
         const opId = op ? getOperationId(op) : row.opId || '';
         const kind = row.kind || '';
@@ -2604,9 +2502,9 @@
         currentSubsection = "";
         const orderCell = showOrder ? renderInlineOrderCell(row, rowIndex) : "";
         bodyHtml += `
-          <tr class="section-header-row ${hiddenClass}" data-row-type="section" data-section="${escapeAttr(
-            currentSection
-          )}" data-generated="${row.generated ? "true" : "false"}">
+          <tr class="section-header-row ${hiddenClass}" data-row-type="section" data-row-index="${rowIndex}" data-section="${escapeAttr(
+             currentSection
+           )}" data-generated="${row.generated ? "true" : "false"}">
             ${orderCell}
             <td colspan="${showOrder ? colCount - 1 : colCount}">
               <strong>${escapeHtml(currentSection || "Seccion")}</strong>
@@ -2620,9 +2518,9 @@
         currentSubsection = row.label || "";
         const orderCell = showOrder ? renderInlineOrderCell(row, rowIndex) : "";
         bodyHtml += `
-          <tr class="subsection-row ${hiddenClass}" data-row-type="subsection" data-section="${escapeAttr(
-            currentSection
-          )}" data-subsection="${escapeAttr(currentSubsection)}">
+          <tr class="subsection-row ${hiddenClass}" data-row-type="subsection" data-row-index="${rowIndex}" data-section="${escapeAttr(
+             currentSection
+           )}" data-subsection="${escapeAttr(currentSubsection)}">
             ${orderCell}
             <td colspan="${showOrder ? colCount - 1 : colCount}">
               <em>${escapeHtml(currentSubsection || "Subseccion")}</em>
@@ -2635,6 +2533,7 @@
       if (row.type === "account") {
         const cuenta = row.cuenta || row.label || "";
         const nombre = row.nombre || "";
+        const accountId = row.accountId || row.accountID || row.rowId || cuenta;
         const cells = [];
         if (showOrder) {
           cells.push(renderInlineOrderCell(row, rowIndex));
@@ -2658,11 +2557,13 @@
           }
         }
         bodyHtml += `
-          <tr class="account-row ${hiddenClass}" data-row-type="account" data-cuenta="${escapeAttr(
-            cuenta
-          )}" data-nombre="${escapeAttr(nombre)}" data-section="${escapeAttr(
-            currentSection
-          )}" data-subsection="${escapeAttr(currentSubsection)}">
+          <tr class="account-row ${hiddenClass}" data-row-type="account" data-row-index="${rowIndex}" data-account-id="${escapeAttr(
+            accountId
+          )}" data-cuenta="${escapeAttr(
+             cuenta
+           )}" data-nombre="${escapeAttr(nombre)}" data-section="${escapeAttr(
+             currentSection
+           )}" data-subsection="${escapeAttr(currentSubsection)}">
             ${cells.join("")}
           </tr>
         `;
@@ -2670,9 +2571,10 @@
       }
 
       if (row.type === "operation") {
-        const op = findOperationByIdOrLabel(row.label || "");
+        // Ver comentario en la vista de lista: resolver por `opId` primero.
+        const op = findOperationByIdOrLabel(row.opId || row.label || "");
         const label = op ? getOperationDisplayName(op) : row.label || "";
-        const opId = op ? getOperationId(op) : "";
+        const opId = op ? getOperationId(op) : row.opId || "";
         const kind = row.kind || "";
         const kindMeta = getOperationKindMeta(kind);
         const formulaTerms = op ? extractFormulaTerms(op) : [];
@@ -2708,11 +2610,11 @@
           }
         }
         bodyHtml += `
-          <tr class="operation-row ${kind} ${kindMeta?.className || ""} ${hiddenClass}" data-row-type="operation" data-operation-id="${escapeAttr(
-            opId || label
-          )}" data-operation-label="${escapeAttr(label)}" data-operation-kind="${escapeAttr(
-            kind
-          )}" ${formula ? `title="${escapeAttr(formula)}"` : ""}>
+          <tr class="operation-row ${kind} ${kindMeta?.className || ""} ${hiddenClass}" data-row-type="operation" data-row-index="${rowIndex}" data-operation-id="${escapeAttr(
+             opId || label
+           )}" data-operation-label="${escapeAttr(label)}" data-operation-kind="${escapeAttr(
+             kind
+           )}" ${formula ? `title="${escapeAttr(formula)}"` : ""}>
             ${cells.join("")}
           </tr>
         `;
@@ -2758,12 +2660,19 @@
     const tipoFila = detectOperationType(op || {});
     const formulaPreview = formatFormula(op || {});
     return `
+      <div class="alert alert-info alert-sm mb-3">
+        <i class="bi bi-info-circle me-2"></i>
+        <strong>Modo 100% Manual:</strong> Cambia el nombre libremente. 
+        Los IDs se generan automáticamente si no los defines.
+      </div>
       <div class="mb-3">
-        <label class="form-label">Nombre visible <span class="text-danger">*</span></label>
-        <input type="text" class="form-control" id="editClaseOp" data-required="true" value="${escapeHtml(
-          opLabelInput || ""
-        )}" />
-        <div class="invalid-feedback">Este campo es obligatorio (o indica un ID interno).</div>
+        <label class="form-label">Nombre visible</label>
+        <input type="text" class="form-control" id="editClaseOp" 
+               value="${escapeHtml(opLabelInput || "")}" 
+               placeholder="Ej: Suma Gastos Financieros" />
+        <div class="form-text">
+          Puedes usar cualquier nombre. Si está vacío, se generará uno automático.
+        </div>
       </div>
       <div class="mb-3">
         <label class="form-label">Tipo de fila</label>
@@ -2774,21 +2683,20 @@
         </div>
       </div>
       <div class="mb-3">
-        <label class="form-label">Fórmula</label>
+        <label class="form-label">Fórmula actual</label>
         <div class="p-2 bg-light border rounded small" style="font-family: 'Courier New', monospace;">
-          ${escapeHtml(formulaPreview || "Sin fórmula")}
+          ${escapeHtml(formulaPreview || "Sin fórmula - Usa la pestaña Fórmula")}
         </div>
       </div>
       <details class="editor-advanced">
-        <summary>Avanzado</summary>
-        <div class="mt-2">
-          <label class="form-label">Identificador interno</label>
-          <input type="text" class="form-control" id="editOperacionId" value="${escapeHtml(
-            opId || ""
-          )}" />
-          <div class="invalid-feedback">Indica un ID si no hay nombre visible.</div>
+        <summary><i class="bi bi-gear me-1"></i> Configuración avanzada</summary>
+        <div class="mt-3">
+          <label class="form-label">Identificador interno (ID)</label>
+          <input type="text" class="form-control" id="editOperacionId" 
+                 value="${escapeHtml(opId || "")}" 
+                 placeholder="Se genera automáticamente" />
           <div class="form-text">
-            Obligatorio si el nombre visible está vacío.
+            Opcional. El sistema genera un ID único si no lo defines.
           </div>
         </div>
       </details>
@@ -3054,22 +2962,39 @@
     const tipoTooltip = getAparicionTooltip(tipoSeleccionado);
     const tipoOptions = buildAparicionOptions(tipoSeleccionado);
     
-    // Estilos visuales de fila
+    // Estilos visuales de fila - EXPANDIDOS CON MÁS OPCIONES
     const estiloActual = op?.rowStyle || op?.estilo_fila || "sum-row";
     const estilosDisponibles = [
+      // Estilos básicos
       { value: "sum-row", label: "Suma Simple", class: "sum-row fw-semibold", desc: "Fila de suma básica" },
+      { value: "operation-row", label: "Operación Libre", class: "operation-row free-operation-row fw-semibold", desc: "Operación personalizada" },
+      { value: "subsection-row", label: "Subsección", class: "subsection-row bg-light fw-semibold", desc: "Encabezado de subsección" },
+      
+      // Estilos principales (para totales importantes)
       { value: "sum-row-principal", label: "Suma Principal", class: "sum-row-principal fw-bold", desc: "Sección principal (INCOME, EXPENSES)" },
       { value: "highlight-primary", label: "Consolidado Primario", class: "highlight-primary fw-bold text-uppercase", desc: "CONSOLIDATED INCOME/EXPENSES" },
       { value: "highlight-secondary", label: "Resultado Operativo", class: "highlight-secondary fw-bold", desc: "OPERATING RESULTS" },
       { value: "highlight-bright", label: "Resultado Neto", class: "highlight-bright text-white fw-bold", desc: "NET RESULTS (máxima jerarquía)" },
-      { value: "subsection-row", label: "Subsección", class: "subsection-row bg-light fw-semibold", desc: "Encabezado de subsección" },
-      { value: "operation-row", label: "Operación Libre", class: "operation-row free-operation-row fw-semibold", desc: "Operación personalizada" },
+      
+      // Nuevos estilos - CON MÁS DISEÑOS
+      { value: "sum-row-success", label: "Suma Verde (Positivo)", class: "sum-row table-success fw-semibold", desc: "Para resultados positivos/ingresos" },
+      { value: "sum-row-danger", label: "Suma Roja (Negativo)", class: "sum-row table-danger fw-semibold", desc: "Para gastos/egresos importantes" },
+      { value: "sum-row-warning", label: "Suma Amarilla (Alerta)", class: "sum-row table-warning fw-semibold", desc: "Para indicadores de atención" },
+      { value: "sum-row-info", label: "Suma Azul (Info)", class: "sum-row table-info fw-semibold", desc: "Para información adicional" },
+      
+      // Estilos con bordes
+      { value: "border-top-bold", label: "Borde Superior", class: "sum-row fw-semibold border-top border-dark border-3", desc: "Con línea superior gruesa" },
+      { value: "border-bottom-bold", label: "Borde Inferior", class: "sum-row fw-semibold border-bottom border-dark border-3", desc: "Con línea inferior gruesa" }
     ];
     
-    const estiloOptionsHtml = estilosDisponibles.map(estilo => {
+    const estiloOptionsHtml = estilosDisponibles.map((estilo, idx) => {
       const selected = estilo.value === estiloActual ? 'selected' : '';
-      return `<option value="${escapeAttr(estilo.value)}" ${selected} data-class="${escapeAttr(estilo.class)}">${escapeHtml(estilo.label)} - ${escapeHtml(estilo.desc)}</option>`;
+      return `<option value="${escapeAttr(estilo.value)}" ${selected} data-class="${escapeAttr(estilo.class)}" data-style="${escapeAttr(estilo.style || '')}">${escapeHtml(estilo.label)} - ${escapeHtml(estilo.desc)}</option>`;
     }).join('');
+    
+    const previewStyle = estilosDisponibles.find(e => e.value === estiloActual);
+    const previewClass = previewStyle?.class || 'sum-row fw-semibold';
+    const previewInlineStyle = previewStyle?.style || '';
     
     return `
       <div class="mb-3">
@@ -4169,6 +4094,13 @@
   }
 
   function handleInlineOrderMove(row, direction) {
+    const rowIndex = Number(row.dataset.rowIndex);
+    if (Number.isInteger(rowIndex)) {
+      moveTemplateRowOrder(rowIndex, direction);
+      return;
+    }
+
+    // Fallback legacy (si alguna vista no expone rowIndex)
     const rowType = row.dataset.rowType;
     if (rowType === "section") {
       if (row.dataset.generated === "true") return;
@@ -4190,11 +4122,6 @@
       return;
     }
     if (rowType === "operation") {
-      const rowIndex = Number(row.dataset.rowIndex);
-      if (Number.isInteger(rowIndex)) {
-        moveTemplateRowOrder(rowIndex, direction);
-        return;
-      }
       moveOperationOrder(
         row.dataset.operationLabel,
         row.dataset.operationId,
@@ -4321,27 +4248,126 @@
       showToast("Operacion no encontrada para ordenar", "warning");
       return;
     }
-    if (targets.length > 1) {
-      showToast(
-        "Esta fila agrupa varias operaciones. Usa Reordenar.",
-        "warning"
-      );
-      return;
+
+    const directionValue = Number(direction || 0);
+    if (!Number.isFinite(directionValue) || directionValue === 0) return;
+
+    // Preferir reordenamiento global (filas de plantilla) para permitir mover sin restricciones por tipo.
+    try {
+      const templateRows = getTemplateRowsForReorder();
+      if (templateRows.length) {
+        const targetSet = new Set(targets);
+        const indices = [];
+        templateRows.forEach((rowItem, idx) => {
+          if (!rowItem || rowItem.type !== "operation") return;
+          const ops = findOperationsForOrderedRow(rowItem);
+          if (ops.some((op) => targetSet.has(op))) {
+            indices.push(idx);
+          }
+        });
+
+        if (indices.length === 1) {
+          moveTemplateRowOrder(indices[0], directionValue);
+          return;
+        }
+
+        if (indices.length > 1) {
+          const sorted = indices.slice().sort((a, b) => a - b);
+          const firstIndex = sorted[0];
+          const lastIndex = sorted[sorted.length - 1];
+          const indexSet = new Set(sorted);
+          const block = templateRows.filter((_, idx) => indexSet.has(idx));
+          const remaining = templateRows.filter((_, idx) => !indexSet.has(idx));
+
+          if (directionValue < 0) {
+            let ref = firstIndex - 1;
+            while (ref >= 0 && indexSet.has(ref)) ref -= 1;
+            if (ref < 0) return;
+            const before = templateRows[ref];
+            let insertAt = remaining.indexOf(before);
+            if (insertAt < 0) insertAt = 0;
+            const reordered = remaining.slice();
+            reordered.splice(insertAt, 0, ...block);
+            applyTemplateRowsOrder(reordered, { silent: false });
+            return;
+          }
+
+          if (directionValue > 0) {
+            let ref = lastIndex + 1;
+            while (ref < templateRows.length && indexSet.has(ref)) ref += 1;
+            if (ref >= templateRows.length) return;
+            const after = templateRows[ref];
+            let insertAt = remaining.indexOf(after);
+            if (insertAt < 0) insertAt = remaining.length;
+            insertAt += 1;
+            const reordered = remaining.slice();
+            reordered.splice(insertAt, 0, ...block);
+            applyTemplateRowsOrder(reordered, { silent: false });
+            return;
+          }
+        }
+      }
+    } catch (error) {
+      console.warn("No se pudo reordenar via filas de plantilla", error);
     }
 
     const ordered = sortOperations(state.operaciones || []);
-    const op = targets[0];
-    const index = ordered.findIndex((item) => item === op);
-    if (index === -1) return;
-    const nextIndex = index + direction;
-    if (nextIndex < 0 || nextIndex >= ordered.length) return;
-    const neighbor = ordered[nextIndex];
-    const currentOrder = getOperationOrder(op, index);
-    const neighborOrder = getOperationOrder(neighbor, nextIndex);
+    const targetSet = new Set(targets);
+    const indices = ordered
+      .map((item, idx) => (targetSet.has(item) ? idx : -1))
+      .filter((idx) => idx >= 0);
+    if (!indices.length) return;
 
-    op.orden_presentacion = neighborOrder;
-    neighbor.orden_presentacion = currentOrder;
-    logChange("move", `Operacion "${getOperationDisplayName(op)}" reordenada`);
+    if (indices.length === 1) {
+      const index = indices[0];
+      const nextIndex = index + directionValue;
+      if (nextIndex < 0 || nextIndex >= ordered.length) return;
+      const op = ordered[index];
+      const neighbor = ordered[nextIndex];
+      const currentOrder = getOperationOrder(op, index);
+      const neighborOrder = getOperationOrder(neighbor, nextIndex);
+
+      op.orden_presentacion = neighborOrder;
+      op.orden = neighborOrder;
+      neighbor.orden_presentacion = currentOrder;
+      neighbor.orden = currentOrder;
+      logChange("move", `Operacion "${getOperationDisplayName(op)}" reordenada`);
+      renderLayout();
+      return;
+    }
+
+    const firstIndex = Math.min(...indices);
+    const lastIndex = Math.max(...indices);
+    if (directionValue < 0) {
+      if (firstIndex === 0) return;
+    } else if (directionValue > 0) {
+      if (lastIndex >= ordered.length - 1) return;
+    } else {
+      return;
+    }
+
+    const block = ordered.filter((op) => targetSet.has(op));
+    const remaining = ordered.filter((op) => !targetSet.has(op));
+    let insertAt = 0;
+    if (directionValue < 0) {
+      const before = ordered[firstIndex - 1];
+      insertAt = remaining.indexOf(before);
+      if (insertAt < 0) insertAt = 0;
+    } else {
+      const after = ordered[lastIndex + 1];
+      insertAt = remaining.indexOf(after);
+      if (insertAt < 0) insertAt = remaining.length - 1;
+      insertAt += 1;
+    }
+
+    const reordered = remaining.slice();
+    reordered.splice(insertAt, 0, ...block);
+    reordered.forEach((op, idx) => {
+      if (!op) return;
+      op.orden_presentacion = idx;
+      op.orden = idx;
+    });
+    logChange("move", `Operacion "${targetLabel}" reordenada`);
     renderLayout();
   }
 
@@ -4389,7 +4415,7 @@
     cuenta.seccion_secundaria = clean;
   }
 
-  function findOperationForOrderedRow(row = {}) {
+  function findOperationsForOrderedRow(row = {}) {
     const candidates = [
       row.opId,
       row.operationId,
@@ -4401,14 +4427,19 @@
 
     for (const candidate of candidates) {
       const direct = findOperationByIdOrLabel(candidate);
-      if (direct) return direct;
+      if (direct) return [direct];
     }
 
     const byLabel = findOperationsByRowLabel(row.label || "", row.kind || "");
-    if (byLabel.operations?.length === 1) {
-      return byLabel.operations[0];
+    if (byLabel.operations?.length) {
+      const unique = new Set();
+      return byLabel.operations.filter((op) => {
+        if (!op || unique.has(op)) return false;
+        unique.add(op);
+        return true;
+      });
     }
-    return null;
+    return [];
   }
 
   function getTemplateRowsForReorder() {
@@ -4498,36 +4529,41 @@
       }
 
       if (type === "operation") {
-        const op = findOperationForOrderedRow(row);
-        if (!op) return;
+        const ops = findOperationsForOrderedRow(row);
+        if (!ops.length) return;
 
         const targetSection = (
-          row.parentSection ??
-          row.section ??
+          currentSection ||
+          row.parentSection ||
+          row.section ||
           ""
         )
           .toString()
           .trim();
         const targetSubsection = (
-          row.parentSubsection ??
-          row.subsection ??
+          currentSubsection ||
+          row.parentSubsection ||
+          row.subsection ||
           ""
         )
           .toString()
           .trim();
 
-        op.orden_presentacion = cursor;
-        op.orden = cursor;
-        op.parentSection = targetSection;
-        op.parentSubsection = targetSubsection;
+        ops.forEach((op) => {
+          if (!op) return;
+          op.orden_presentacion = cursor;
+          op.orden = cursor;
+          op.parentSection = targetSection;
+          op.parentSubsection = targetSubsection;
 
-        const opKey =
-          getOperationId(op) ||
-          getOperationLabel(op) ||
-          (row.opId || row.label || "").toString().trim();
-        if (opKey) {
-          touchedOperations.add(normalizeOperationMatch(opKey));
-        }
+          const opKey =
+            getOperationId(op) ||
+            getOperationLabel(op) ||
+            (row.opId || row.label || "").toString().trim();
+          if (opKey) {
+            touchedOperations.add(normalizeOperationMatch(opKey));
+          }
+        });
         cursor += 1;
       }
     });
@@ -6022,7 +6058,7 @@
     const { name: principal, subsections } = section;
     const canEdit = state.editMode !== false;
     const disabledAttr = canEdit ? "" : "disabled";
-    const sectionOpMatch = getRowOperationMatch(principal);
+    const sectionOpMatch = getRowOperationMatch(principal, "sum-row-sumavarios");
     const hasSectionOp = sectionOpMatch.operations.length > 0;
     const sectionOpBtnClass = hasSectionOp
       ? "btn-outline-success"
@@ -6067,7 +6103,7 @@
             </button>
             <button class="btn btn-sm ${sectionOpBtnClass}" onclick="event.stopPropagation(); editRowOperation('${escapeAttr(
               principal
-            )}', '${escapeAttr(sectionOpMatch.field || "")}', '')" title="${sectionOpBtnTitle}" ${disabledAttr}>
+            )}', '${escapeAttr(sectionOpMatch.field || "sum-row-sumavarios")}', '')" title="${sectionOpBtnTitle}" ${disabledAttr}>
               <i class="bi bi-calculator"></i>
             </button>
             <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); editSection('${escapeAttr(
@@ -6193,7 +6229,7 @@
             </button>
             <button class="btn btn-sm ${subsectionOpBtnClass}" onclick="event.stopPropagation(); editRowOperation('${escapeAttr(
               name
-            )}', '${escapeAttr(subsectionOpMatch.field || "")}', '${escapeAttr(
+            )}', '${escapeAttr(subsectionOpMatch.field || "sum-row")}', '${escapeAttr(
               principal
             )}')" title="${subsectionOpBtnTitle}" ${disabledAttr}>
               <i class="bi bi-calculator"></i>
@@ -11275,16 +11311,15 @@ window.editSection = function (name) {
       ? parseFormulaText(manualText)
       : collectFormulaTermsFromLayout(formulaPanel);
 
-    // VALIDACIÓN: Las operaciones deben tener fórmula
+    // VALIDACIÓN FLEXIBLE: Las operaciones pueden existir sin fórmula (modo 100% manual)
+    // Solo advertir, no bloquear
     if (!selectedTerms || selectedTerms.length === 0) {
-      showToast("⚠️ La operación debe tener una fórmula. Usa la pestaña 'Fórmula' para definirla.", "error");
-      setOperationEditorTab("editorTabFormula");
-      return;
+      console.warn("⚠️ Operación sin fórmula definida");
     }
 
     // Si es inserción masiva, solo aplicar fórmula a la fila y salir.
     if (isBulkOp) {
-      const normalized = normalizeFormulaTerms(selectedTerms);
+      const normalized = normalizeFormulaTerms(selectedTerms || []);
       op.formula_terms = normalized;
       op.formula_json = JSON.stringify(normalized);
 
@@ -11302,44 +11337,48 @@ window.editSection = function (name) {
       return;
     }
 
-    // Leer valores del panel
+    // Leer valores del panel - MODO FLEXIBLE
     const claseInput = document.getElementById("editClaseOp");
     const idInput = document.getElementById("editOperacionId");
     const newClase = claseInput?.value?.trim() || "";
     const newIdInput = idInput?.value?.trim() || "";
     
-    // Validación básica
-    if (!newClase && !newIdInput) {
-      showToast("Completa al menos el nombre visible o el ID interno.", "error");
-      return;
-    }
+    // VALIDACIÓN MÁS FLEXIBLE: Permitir nombres cortos o generar ID automático
+    // Si no hay nombre, usar el existente o generar uno
+    const fallbackName = `Operación ${Date.now() % 10000}`;
+    const effectiveClase = newClase || op.Clase || fallbackName;
+    const effectiveId = newIdInput || op.OperacionId || normalizeOperationId(effectiveClase);
 
     const oldId = getOperationId(op);
     const oldLabel = getOperationLabel(op);
     const oldDisplay = getOperationDisplayName(op);
-    const desiredId = normalizeOperationId(newIdInput || oldId || newClase || oldLabel);
 
+    // MODO 100% MANUAL: Permitir IDs duplicados resolviendo automáticamente
+    let desiredId = normalizeOperationId(effectiveId);
     if (!desiredId) {
-      showToast("Identificador inválido", "error");
-      return;
+      desiredId = `OP_${Date.now() % 100000}`;
     }
 
-    // Verificar conflictos de ID
-    const idConflict = state.operaciones.some(
-      (o) => o !== op && normalizeOperationMatch(getOperationId(o)) === normalizeOperationMatch(desiredId)
-    );
-    if (idConflict) {
-      showToast("El identificador ya existe en otra operación", "error");
-      return;
+    // Resolver conflictos de ID automáticamente (en lugar de bloquear)
+    let finalId = desiredId;
+    let counter = 1;
+    while (state.operaciones.some(
+      (o) => o !== op && normalizeOperationMatch(getOperationId(o)) === normalizeOperationMatch(finalId)
+    )) {
+      finalId = `${desiredId}_${counter}`;
+      counter++;
+      if (counter > 100) break; // Protección contra loops infinitos
     }
 
-    // Actualizar datos básicos
-    if (newClase) op.Clase = newClase;
-    op.OperacionId = desiredId;
-    if (newClase) {
-      op.operacion_etiqueta = newClase;
-      op.Etiqueta = newClase;
+    if (finalId !== desiredId) {
+      console.log(`🔄 ID ajustado de "${desiredId}" a "${finalId}" para evitar conflicto`);
     }
+
+    // Actualizar datos básicos - MODO FLEXIBLE
+    op.Clase = effectiveClase;
+    op.OperacionId = finalId;
+    op.operacion_etiqueta = effectiveClase;
+    op.Etiqueta = effectiveClase;
 
     // Actualizar etiquetas de filas según lo capturado en Aparición
     const tipoSelect = document.getElementById("editOperacionTipo");
@@ -11422,24 +11461,31 @@ window.editSection = function (name) {
       });
     }
 
-    // Guardar fórmula
-    op.formula_terms = normalizeFormulaTerms(selectedTerms);
-    op.formula_json = JSON.stringify(op.formula_terms);
-    
-    // Legacy format
-    op.signos = {};
-    for (let i = 1; i <= 20; i++) {
-      delete op[`seccion_${i}`];
-    }
-    
-    op.formula_terms.forEach((term, i) => {
-      const key = `seccion_${i + 1}`;
-      op[key] = term.value;
-      op.signos[key] = term.operator === "-" ? -1 : 1;
-    });
+    // Guardar fórmula - MODO FLEXIBLE (permitir operaciones sin fórmula)
+    if (selectedTerms && selectedTerms.length > 0) {
+      op.formula_terms = normalizeFormulaTerms(selectedTerms);
+      op.formula_json = JSON.stringify(op.formula_terms);
+      
+      // Legacy format
+      op.signos = {};
+      for (let i = 1; i <= 20; i++) {
+        delete op[`seccion_${i}`];
+      }
+      
+      op.formula_terms.forEach((term, i) => {
+        const key = `seccion_${i + 1}`;
+        op[key] = term.value;
+        op.signos[key] = term.operator === "-" ? -1 : 1;
+      });
 
-    if (op.formula_terms.length === 1 && op.formula_terms[0].type === "section") {
-      op.SECCION = op.formula_terms[0].value;
+      if (op.formula_terms.length === 1 && op.formula_terms[0].type === "section") {
+        op.SECCION = op.formula_terms[0].value;
+      }
+    } else {
+      // Sin fórmula: limpiar campos legacy pero mantener la operación
+      op.formula_terms = [];
+      op.formula_json = "[]";
+      op.signos = {};
     }
 
     // Visibilidad y estilo
@@ -11460,15 +11506,15 @@ window.editSection = function (name) {
     renderLayout();
     updateStats();
     scheduleAutoSave("edit");
-    
+
     bootstrap?.Offcanvas?.getInstance(dom.operationEditorPanel)?.hide();
     showToast("✅ Operación guardada", "success");
-    
-    logChange("edit", `Operación "${newClase}" actualizada`, {
+
+    logChange("edit", `Operación "${effectiveClase}" actualizada`, {
       oldId,
-      newId: desiredId,
+      newId: finalId,
       oldLabel,
-      newLabel: newClase
+      newLabel: effectiveClase,
     });
   }
 

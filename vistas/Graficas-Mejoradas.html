@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gráficas - PanelAMCHAM</title>
+  
+  <!-- Estilos -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/estilos.css">
+  <link rel="stylesheet" href="css/graficas-mejoradas.css">
+  <link rel="icon" type="image/x-icon" href="icono/icono.ico">
+</head>
+
+<body data-modulo="RESUMEN" data-modulo-id="RESUMEN">
+  <div class="container-fluid py-4">
+    
+    <!-- Header Moderno -->
+    <div class="header-modern">
+      <div class="header-content">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+          <div>
+            <h1>📊 Gráficas Interactivas</h1>
+            <p class="subtitle">Visualiza y exporta tu información financiera</p>
+          </div>
+          <button class="btn btn-icon btn-primary-gradient" onclick="ChartWizard.open()">
+            <i class="bi bi-stars"></i>
+            Asistente Guiado
+          </button>
+        </div>
+      </div>
+
+      <!-- Controles Compactos -->
+      <div class="controls-compact">
+        <div class="control-group">
+          <label for="grafYearSelect">Año</label>
+          <select id="grafYearSelect" class="form-select">
+            <option value="">Cargando...</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label for="grafMonthSelect">Mes</label>
+          <select id="grafMonthSelect" class="form-select">
+            <option value="1">Enero</option>
+            <option value="2">Febrero</option>
+            <option value="3">Marzo</option>
+            <option value="4">Abril</option>
+            <option value="5">Mayo</option>
+            <option value="6">Junio</option>
+            <option value="7">Julio</option>
+            <option value="8">Agosto</option>
+            <option value="9">Septiembre</option>
+            <option value="10">Octubre</option>
+            <option value="11">Noviembre</option>
+            <option value="12" selected>Diciembre</option>
+          </select>
+        </div>
+
+        <div class="badge-modern badge-info" id="empresaLabel">
+          <i class="bi bi-building"></i> Capítulo: <span id="empresaText">-</span>
+        </div>
+
+        <div class="action-buttons">
+          <button class="btn-icon btn-outline-custom" onclick="exportarGraficasExcel()" title="Exportar a Excel">
+            <i class="bi bi-file-earmark-spreadsheet"></i>
+            <span class="d-none d-md-inline">Excel</span>
+          </button>
+          <button class="btn-icon btn-outline-custom" onclick="exportarGraficasPDF()" title="Exportar a PDF">
+            <i class="bi bi-file-earmark-pdf"></i>
+            <span class="d-none d-md-inline">PDF</span>
+          </button>
+          <button class="btn-icon btn-outline-custom" onclick="imprimirGraficas()" title="Imprimir">
+            <i class="bi bi-printer"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Gráficas Personalizadas (dinámicas) -->
+    <div id="customChartsRow" class="custom-charts-container"></div>
+
+    <!-- Resultado Operativo -->
+    <div class="chart-card-modern" id="operatingCard">
+      <div class="chart-header">
+        <div class="chart-title-group">
+          <h5 id="operatingChartTitle">
+            <i class="bi bi-graph-up-arrow text-primary"></i>
+            Resultado Operativo por Capítulo
+          </h5>
+          <p class="chart-subtitle" id="operatingChartSubtitle">
+            Real Acum · Ppto. Acum · Real Acum AA
+          </p>
+        </div>
+        <div class="chart-meta">
+          <span class="badge-modern badge-info">
+            <i class="bi bi-bar-chart-fill"></i> Comparativo
+          </span>
+        </div>
+      </div>
+      <div class="chart-wrapper">
+        <canvas id="chartOperatingSummaryByChapter"></canvas>
+        <div class="chart-loading" id="loadingOperating" style="display: none;">
+          <div class="spinner-custom"></div>
+          <p class="mt-3">Cargando datos...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Resumen Neto -->
+    <div class="chart-card-modern" id="netCard">
+      <div class="chart-header">
+        <div class="chart-title-group">
+          <h5 id="netChartTitle">
+            <i class="bi bi-calculator text-success"></i>
+            Resumen Neto por Capítulo
+          </h5>
+          <p class="chart-subtitle" id="netChartSubtitle">
+            Real Acum · Ppto. Acum · Real Acum AA
+          </p>
+        </div>
+        <div class="chart-meta">
+          <span class="badge-modern badge-success">
+            <i class="bi bi-check-circle-fill"></i> Consolidado
+          </span>
+        </div>
+      </div>
+      <div class="chart-wrapper">
+        <canvas id="chartNetSummaryByChapter"></canvas>
+        <div class="chart-loading" id="loadingNet" style="display: none;">
+          <div class="spinner-custom"></div>
+          <p class="mt-3">Cargando datos...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Consolidados (opcional) -->
+    <div class="chart-card-modern" id="consolidatedCard" style="display: none;">
+      <div class="chart-header">
+        <div class="chart-title-group">
+          <h5 id="consolidatedChartTitle">
+            <i class="bi bi-graph-down text-info"></i>
+            Consolidados Operativos vs Netos
+          </h5>
+          <p class="chart-subtitle" id="consolidatedChartSubtitle">
+            Real Acum · Ppto. Acum · Real Acum AA
+          </p>
+        </div>
+        <div class="chart-meta">
+          <span class="badge-modern badge-info">
+            <i class="bi bi-layers-fill"></i> Comparativa
+          </span>
+        </div>
+      </div>
+      <div class="chart-wrapper">
+        <canvas id="chartConsolidatedResults"></canvas>
+      </div>
+    </div>
+
+    <!-- Ingreso por Capítulo -->
+    <div class="chart-card-modern" id="incomeByChapterCard">
+      <div class="chart-header">
+        <div class="chart-title-group">
+          <h5 id="incomeByChapterTitle">
+            <i class="bi bi-cash-stack text-warning"></i>
+            Ingreso por capítulo
+          </h5>
+          <p class="chart-subtitle" id="incomeByChapterSubtitle">
+            Real acumulado por mes
+          </p>
+        </div>
+        <div class="chart-meta">
+          <span class="badge-modern badge-info">
+            <i class="bi bi-calendar3"></i> Mensual
+          </span>
+        </div>
+      </div>
+      <div class="chart-wrapper">
+        <canvas id="chartIngresoPorCapitulo"></canvas>
+      </div>
+    </div>
+
+    <!-- Ingreso Nacional -->
+    <div class="chart-card-modern" id="incomeNationalCard">
+      <div class="chart-header">
+        <div class="chart-title-group">
+          <h5 id="incomeNationalTitle">
+            <i class="bi bi-globe text-primary"></i>
+            Ingreso nacional
+          </h5>
+          <p class="chart-subtitle" id="incomeNationalSubtitle">
+            Real acumulado por mes
+          </p>
+        </div>
+        <div class="chart-meta">
+          <span class="badge-modern badge-success">
+            <i class="bi bi-pie-chart-fill"></i> Nacional
+          </span>
+        </div>
+      </div>
+      <div class="chart-wrapper">
+        <canvas id="chartIngresoNacional"></canvas>
+      </div>
+    </div>
+
+    <!-- Estado vacío (si no hay datos) -->
+    <div class="empty-state" id="emptyState" style="display: none;">
+      <i class="bi bi-graph-up"></i>
+      <h6>No hay gráficas disponibles</h6>
+      <p>Selecciona un período válido o usa el asistente guiado</p>
+      <button class="btn btn-icon btn-primary-gradient mt-3" onclick="ChartWizard.open()">
+        <i class="bi bi-stars"></i>
+        Abrir Asistente
+      </button>
+    </div>
+
+  </div>
+
+  <!-- Scripts requeridos -->
+  <script src="js/sesion.js"></script>
+  <script src="js/verificar-sesion.js"></script>
+  <script src="js/capitulos-modulos.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  
+  <!-- Librerías de exportación -->
+  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+  <!-- Scripts propios -->
+  <script src="js/data-optimizer.js"></script>
+  <script src="js/chart-validator.js"></script>
+  <script src="js/chart-wizard.js"></script>
+  <script src="js/chart-editor-inline.js"></script>
+  <script src="js/graficas-config.js"></script>
+  <script src="js/graficas-resumen.js"></script>
+  
+  <script>
+    // Mejorar feedback visual durante carga de datos
+    document.addEventListener('DOMContentLoaded', () => {
+      // Interceptar cambios en selectores para mostrar loading
+      const yearSelect = document.getElementById('grafYearSelect');
+      const monthSelect = document.getElementById('grafMonthSelect');
+      
+      const showLoading = (chartId) => {
+        const loadingEl = document.getElementById(`loading${chartId}`);
+        if (loadingEl) {
+          loadingEl.style.display = 'flex';
+          setTimeout(() => {
+            loadingEl.style.display = 'none';
+          }, 1500);
+        }
+      };
+
+      if (yearSelect) {
+        yearSelect.addEventListener('change', () => {
+          showLoading('Operating');
+          showLoading('Net');
+        });
+      }
+
+      if (monthSelect) {
+        monthSelect.addEventListener('change', () => {
+          showLoading('Operating');
+          showLoading('Net');
+        });
+      }
+
+      // Actualizar label de empresa
+      const observeEmpresaLabel = () => {
+        const originalLabel = document.getElementById('empresaLabel');
+        if (originalLabel) {
+          const empresaTextEl = document.getElementById('empresaText');
+          if (empresaTextEl) {
+            const observer = new MutationObserver(() => {
+              const text = originalLabel.textContent || originalLabel.innerText;
+              const match = text.match(/Capítulo:\s*(.+)/i) || text.match(/Capitulo:\s*(.+)/i);
+              if (match && match[1]) {
+                empresaTextEl.textContent = match[1].trim();
+              }
+            });
+            observer.observe(originalLabel, { 
+              characterData: true, 
+              childList: true, 
+              subtree: true 
+            });
+          }
+        }
+      };
+
+      observeEmpresaLabel();
+
+      // Tour guiado mejorado
+      if (window.GuidedTour) {
+        window.GuidedTour.mount({
+          id: 'graficas-modernas',
+          buttonText: '💡 Tour',
+          buttonClass: 'btn-icon btn-outline-custom',
+          steps: [
+            {
+              selector: '.header-modern',
+              title: '¡Bienvenido!',
+              description: 'Esta es tu nueva interfaz de gráficas simplificada y potente.'
+            },
+            {
+              selector: '.btn-primary-gradient',
+              title: 'Asistente Guiado',
+              description: 'Usa este botón para crear gráficas en 4 pasos simples. ¡Pruébalo!'
+            },
+            {
+              selector: '.controls-compact',
+              title: 'Controles Rápidos',
+              description: 'Cambia el período y exporta en un solo lugar. Todo al alcance.'
+            },
+            {
+              selector: '#operatingCard',
+              title: 'Visualización Clara',
+              description: 'Cada gráfica tiene iconos y etiquetas para fácil identificación.'
+            },
+            {
+              selector: '.action-buttons',
+              title: 'Exportación Sencilla',
+              description: 'Exporta a Excel, PDF o imprime con un clic. Los datos están verificados.'
+            }
+          ]
+        });
+      }
+
+      // Añadir ayuda contextual con tooltips de Bootstrap
+      const tooltipTriggerList = [].slice.call(
+        document.querySelectorAll('[data-bs-toggle="tooltip"]')
+      );
+      tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+      });
+    });
+
+    // Función mejorada para verificar datos antes de exportar
+    function verificarDatosGraficas() {
+      const charts = document.querySelectorAll('canvas');
+      let chartsWithData = 0;
+      let chartsEmpty = 0;
+
+      charts.forEach(canvas => {
+        const chart = Chart.getChart(canvas);
+        if (chart && chart.data && chart.data.datasets && chart.data.datasets.length > 0) {
+          const hasData = chart.data.datasets.some(dataset => 
+            Array.isArray(dataset.data) && dataset.data.some(val => val !== null && val !== undefined && val !== 0)
+          );
+          if (hasData) {
+            chartsWithData++;
+          } else {
+            chartsEmpty++;
+          }
+        } else {
+          chartsEmpty++;
+        }
+      });
+
+      return {
+        total: charts.length,
+        withData: chartsWithData,
+        empty: chartsEmpty,
+        isValid: chartsWithData > 0
+      };
+    }
+
+    // Wrapper mejorado para exportación con validación
+    const originalExportExcel = window.exportarGraficasExcel;
+    if (originalExportExcel) {
+      window.exportarGraficasExcel = function() {
+        const verification = verificarDatosGraficas();
+        
+        if (!verification.isValid) {
+          if (confirm('No se detectaron gráficas con datos. ¿Deseas continuar de todas formas?')) {
+            return originalExportExcel.apply(this, arguments);
+          }
+          return;
+        }
+
+        console.log(`✅ Verificación: ${verification.withData} gráficas con datos de ${verification.total} totales`);
+        return originalExportExcel.apply(this, arguments);
+      };
+    }
+
+    const originalExportPDF = window.exportarGraficasPDF;
+    if (originalExportPDF) {
+      window.exportarGraficasPDF = function() {
+        const verification = verificarDatosGraficas();
+        
+        if (!verification.isValid) {
+          if (confirm('No se detectaron gráficas con datos. ¿Deseas continuar de todas formas?')) {
+            return originalExportPDF.apply(this, arguments);
+          }
+          return;
+        }
+
+        console.log(`✅ Verificación: ${verification.withData} gráficas con datos de ${verification.total} totales`);
+        return originalExportPDF.apply(this, arguments);
+      };
+    }
+  </script>
+</body>
+</html>

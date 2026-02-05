@@ -1459,6 +1459,7 @@
         return {
           label: resolveChartLabel(row?.alias || variants[0], context),
           data: match?.totals || null,
+          color: row?.color,
         };
       })
       .filter(Boolean);
@@ -1475,7 +1476,8 @@
           resolveSummarySeriesValue(row.data || {}, serie.key)
         );
         const data = isPie ? rawValues : rawValues;
-        const color = CHART_PALETTE[idx % CHART_PALETTE.length];
+        const color =
+          row?.color || CHART_PALETTE[idx % CHART_PALETTE.length];
         const dataset = {
           label: row.label || `Serie ${idx + 1}`,
           data,
@@ -1598,6 +1600,7 @@
           return {
             label: resolveChartLabel(row?.alias || variants[0], context),
             variants,
+            color: row?.color,
           };
         })
         .filter(Boolean);
@@ -1627,7 +1630,8 @@
 
       const datasets = resolvedRows.map((row, idx) => {
         const data = valuesByRow[idx] || [];
-        const color = CHART_PALETTE[idx % CHART_PALETTE.length];
+        const color =
+          row?.color || CHART_PALETTE[idx % CHART_PALETTE.length];
         const dataset = {
           label: row.label || `Serie ${idx + 1}`,
           data,
@@ -3644,10 +3648,11 @@
       if (!Array.isArray(layoutArr) || !layoutArr.length) return;
       let principalActual = null;
       let acumulado = totalesCero();
+      let principalManual = false;
       const applySign = (valor, signo = 1) =>
         Number.isFinite(signo) ? signo : 1;
       const asignarAcumulado = () => {
-        if (principalActual) {
+        if (principalActual && !principalManual) {
           principalActual.totals = { ...acumulado };
         }
       };
@@ -3657,11 +3662,13 @@
           // Cierra el anterior y abre uno nuevo
           asignarAcumulado();
           principalActual = block;
+          principalManual = Boolean(block?.manualFormula || block?.__manualFormula);
           acumulado = totalesCero();
           return;
         }
         if (!principalActual) return;
         if (tipo === "secundaria") {
+          if (principalManual) return;
           const sign = applySign(block.sign, 1);
           const t = block.totals || {};
           acumulado.actualMonth += toNumber(t.actualMonth) * sign;
@@ -3700,6 +3707,8 @@
         for (const lbl of labels) {
           const block = labelMap.get(normalizarLabel(lbl));
           if (block && totals) {
+            // Respetar fórmulas manuales: no sobreescribir totales si el backend marcó manualFormula
+            if (block.manualFormula || block.__manualFormula) continue;
             block.totals = totals;
             return block;
           }
@@ -3756,6 +3765,8 @@
       const asignar = (label, totals) => {
         const block = labelMap.get(normalizarLabel(label));
         if (block && totals) {
+          // Respetar fórmulas manuales
+          if (block.manualFormula || block.__manualFormula) return;
           block.totals = totals;
         }
       };

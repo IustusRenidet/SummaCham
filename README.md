@@ -38,6 +38,9 @@ Nota: los enlaces internos de esta sección pueden apuntar a archivos que fueron
 - ✅ Sistema de borradores y guardado automático
 - ✅ Visualización de datos con tablas interactivas
 - ✅ Toggle de redondeo de cifras en todas las tablas
+- ✅ **🆕 Sistema de gráficas mejorado con validación automática**
+- ✅ **🆕 Asistente guiado para creación de gráficas**
+- ✅ **🆕 Exportación verificada a Excel y PDF**
 - ✅ Exportación de reportes (próximamente)
 
 ---
@@ -160,5 +163,93 @@ Los nuevos endpoints consumen esos nodos y devuelven JSON listos para la vista:
 
 - `GET /api/reportes/summary?empresaId=<empresa>&anio=<ejercicio>` → `{ empresaId, reportKey: 'SUMMARY', anio, detalle, resumen }`
 - `GET /api/reportes/resumen?empresaId=<empresa>&anio=<ejercicio>` → `{ empresaId, reportKey: 'RESUMEN', anio, detalle, resumen }`
+
+---
+
+## 📊 Sistema de Gráficas Mejorado (NUEVO)
+
+### ✨ Características Principales
+
+El sistema de gráficas ha sido completamente rediseñado para ofrecer:
+
+1. **Interfaz Simplificada**
+   - Diseño minimalista con poco texto
+   - Iconos intuitivos y visuales claros
+   - Gradientes modernos y profesionales
+
+2. **Asistente Guiado (Wizard)**
+   - Crea gráficas en 4 pasos simples
+   - Validación progresiva en cada paso
+   - No requiere conocimientos técnicos
+
+3. **Validación Automática**
+   - Verifica datos antes de exportar
+   - Detecta gráficas vacías o incorrectas
+   - Reportes claros de cualquier problema
+
+4. **Exportación Verificada**
+   - Solo exporta datos correctos
+   - Alta resolución para impresión
+   - Formatos Excel, PDF e impresión directa
+
+### 🚀 Inicio Rápido
+
+```bash
+# 1. Abre la nueva interfaz
+vistas/Graficas-Mejoradas.html
+
+# 2. Usa el asistente guiado
+Click en "⭐ Asistente Guiado"
+
+# 3. Sigue los 4 pasos
+- Selecciona período (año/mes)
+- Elige tipo de datos
+- Selecciona tipo de gráfica
+- Confirma y genera
+
+# 4. Exporta con validación
+Click en "Excel" o "PDF"
+```
+
+### 📁 Archivos del Sistema
+
+**Vistas:**
+- `vistas/Graficas-Mejoradas.html` - Nueva interfaz mejorada
+- `vistas/graficas-config.html` - Configuración avanzada
+
+**Estilos:**
+- `vistas/css/graficas-mejoradas.css` - Diseño moderno
+
+**JavaScript:**
+- `vistas/js/chart-wizard.js` - Asistente guiado
+- `vistas/js/chart-validator.js` - Validación de datos
+- `vistas/js/data-optimizer.js` - Optimización visual
+
+**Documentación:**
+- `INICIO_RAPIDO_GRAFICAS.md` - Guía de 3 minutos
+- `GUIA_GRAFICAS_MEJORADAS.md` - Documentación completa
+- `RESUMEN_IMPLEMENTACION_GRAFICAS.md` - Detalles técnicos
+
+### 🔍 Validación en Consola
+
+```javascript
+// Validar todas las gráficas
+validarGraficas()
+
+// Ver reporte detallado
+ChartValidator.validateAll()
+
+// Optimizar números
+DataOptimizer.formatNumber(1234567, { compact: true })
+// Retorna: "1.2M"
+```
+
+### 📖 Más Información
+
+- **[Inicio Rápido](INICIO_RAPIDO_GRAFICAS.md)** - Aprende en 3 minutos
+- **[Guía Completa](GUIA_GRAFICAS_MEJORADAS.md)** - Documentación técnica
+- **[Resumen Técnico](RESUMEN_IMPLEMENTACION_GRAFICAS.md)** - Para desarrolladores
+
+---
 
 Las vistas `SUMMARY.html` y `RESUMEN.html` usan `js/summary-view.js` y `js/resumen-view.js` para renderizar esas secciones jerárquicas; de esta forma el usuario solo necesita diseñar capítulos/secciones en los archivos Excel/CSV (`CUENTAS SUMMARY y RESUMEN.xlsx` y `SUMAS CIUDAD DE MEXICO.csv`) para que el sistema agregue automáticamente los operativos como ingresos menos gastos y muestre el árbol completo.

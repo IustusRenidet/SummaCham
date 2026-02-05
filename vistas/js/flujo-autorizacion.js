@@ -707,6 +707,15 @@
       this._contextRetry = 0;
       this._modalConfirmacionActiva = false;
       this._modalEntradaActiva = false;
+      this.autoGuardarBorrador = options.autoGuardarBorrador === true;
+      this.autoCargarBorrador = options.autoCargarBorrador === true;
+      this.autoGuardarDebounce = Number.isFinite(options.autoGuardarDebounce)
+        ? options.autoGuardarDebounce
+        : 1200;
+      this._autoSaveTimer = null;
+      this._autoSaveInFlight = false;
+      this._autoSavePending = false;
+      this._autoLoadedBorradorId = null;
       this.callbacks = {
         onCancelEdit:
           typeof options.onCancelEdit === "function"
@@ -1002,6 +1011,13 @@
     _bindGlobalEvents() {
       window.addEventListener(EVENTO_EDICION, (ev) => {
         this.state.hayCambios = Boolean(ev?.detail?.hayCambios);
+        if (
+          this.autoGuardarBorrador &&
+          this.state.editMode &&
+          this.state.hayCambios
+        ) {
+          this._scheduleAutoSave();
+        }
       });
       window.addEventListener(EVENTO_CONTEXTO, (ev) => {
         const d = ev?.detail || {};
@@ -1114,6 +1130,7 @@
           FlujoAutorizacion.limpiarBorrador(this.tableElement);
         } else {
           this._sincronizarEdicion();
+          await this._autoCargarBorradorSiAplica();
         }
         this._notificarEstadoBorrador(this.state.borrador);
         this._renderInfo();
@@ -1173,6 +1190,87 @@
       return { ...(fuente || {}), presupuesto };
     }
 
+    _scheduleAutoSave() {
+      if (!this.autoGuardarBorrador) return;
+      if (this._autoSaveTimer) {
+        clearTimeout(this._autoSaveTimer);
+      }
+      this._autoSaveTimer = setTimeout(() => {
+        this._autoSaveTimer = null;
+        this._autoGuardarBorradorSilencioso();
+      }, this.autoGuardarDebounce);
+    }
+
+    async _autoGuardarBorradorSilencioso() {
+      if (!this.autoGuardarBorrador) return;
+      if (this._autoSaveInFlight) {
+        this._autoSavePending = true;
+        return;
+      }
+      if (!this.state.editMode || !this.state.hayCambios) return;
+      if (!this._contextoCompleto()) {
+        this._hydrateContext();
+        if (!this._contextoCompleto()) return;
+      }
+      const cambios = this._obtenerCambios();
+      const presupuesto = Array.isArray(cambios.presupuesto)
+        ? cambios.presupuesto
+        : [];
+      if (!presupuesto.length) return;
+
+      const moduloLimpio = this._sanitizarModulo(this.state.contexto.modulo);
+      const capitulo = this._extraerCapitulo(this.state.contexto.modulo);
+      const payload = {
+        modulo: moduloLimpio,
+        empresaId: this.state.contexto.empresaId,
+        anio: this.state.contexto.anio,
+        datos: { presupuesto },
+      };
+      if (capitulo) {
+        payload.capitulo = capitulo;
+      }
+
+      this._autoSaveInFlight = true;
+      try {
+        const resp = await fetch(`${API_BASE}/borradores/guardar`, {
+          method: "POST",
+          headers: this._construirHeaders(),
+          body: JSON.stringify(payload),
+        });
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok) {
+          throw new Error(
+            data.mensaje || "No fue posible auto-guardar el borrador."
+          );
+        }
+        this.state.borrador = data.borrador || this.state.borrador;
+        if (this.state.borrador?.id) {
+          this._autoLoadedBorradorId =
+            this._autoLoadedBorradorId || this.state.borrador.id;
+        }
+      } catch (error) {
+        console.warn("Auto-guardar borrador", error);
+      } finally {
+        this._autoSaveInFlight = false;
+        if (this._autoSavePending) {
+          this._autoSavePending = false;
+          this._scheduleAutoSave();
+        }
+      }
+    }
+
+    async _autoCargarBorradorSiAplica() {
+      if (!this.autoCargarBorrador) return;
+      const borrador = this.state.borrador;
+      if (!borrador || borrador.estado !== ESTADOS.EDITANDO) return;
+      if (!Array.isArray(borrador?.data?.presupuesto)) return;
+      if (!borrador.data.presupuesto.length) return;
+      const id = borrador.id || null;
+      if (!id || this._autoLoadedBorradorId === id) return;
+      this._autoLoadedBorradorId = id;
+      await this._cargarBorradorEnTabla({ silent: true });
+    }
+
     _esAutor() {
       if (!this.state.usuario || !this.state.borrador) return false;
       return (
@@ -1184,7 +1282,8 @@
      * Carga los datos del borrador en la tabla
      * Se ejecuta cuando existe un borrador EDITANDO y el usuario hace clic en "Cargar presupuesto"
      */
-    async _cargarBorradorEnTabla() {
+    async _cargarBorradorEnTabla(opciones = {}) {
+      const { silent = false } = opciones || {};
       const cambios = Array.isArray(this.state.borrador?.data?.presupuesto)
         ? this.state.borrador.data.presupuesto
         : [];
@@ -1202,7 +1301,12 @@
         if (typeof this.callbacks.cargarBorrador === "function") {
           await this.callbacks.cargarBorrador(cambios);
           console.log("? Borrador cargado usando callback personalizado");
-          this._toast("Borrador cargado. Puedes continuar editando.", "success");
+          if (!silent) {
+            this._toast(
+              "Borrador cargado. Puedes continuar editando.",
+              "success"
+            );
+          }
           return;
         }
 
@@ -1210,7 +1314,12 @@
         if (window.CuentasModulo?.cargarBorrador) {
           await window.CuentasModulo.cargarBorrador(cambios);
           console.log("? Borrador cargado usando CuentasModulo");
-          this._toast("Borrador cargado. Puedes continuar editando.", "success");
+          if (!silent) {
+            this._toast(
+              "Borrador cargado. Puedes continuar editando.",
+              "success"
+            );
+          }
           return;
         }
 
@@ -1223,13 +1332,17 @@
           console.warn("? No fue posible aplicar el borrador manualmente.");
         }
 
-        this._toast("Borrador cargado. Puedes continuar editando.", "success");
+        if (!silent) {
+          this._toast("Borrador cargado. Puedes continuar editando.", "success");
+        }
       } catch (error) {
         console.error("Error cargando borrador en tabla:", error);
-        this._toast(
-          "Advertencia: No se pudo cargar completamente el borrador",
-          "warning"
-        );
+        if (!silent) {
+          this._toast(
+            "Advertencia: No se pudo cargar completamente el borrador",
+            "warning"
+          );
+        }
       }
     }
 

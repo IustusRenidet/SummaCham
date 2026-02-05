@@ -806,7 +806,10 @@
     const planColumnKey = `budget-${claveMesRender}`;
 
     resumen.forEach((capitulo) => {
-      const layout = Array.isArray(capitulo.layout) ? capitulo.layout.slice().sort((a, b) => (a.order || 0) - (b.order || 0)) : null;
+      // Respetar el orden del backend (ya viene ordenado por ordenarLayoutGlobal)
+      const layout = Array.isArray(capitulo.layout)
+        ? capitulo.layout.slice()
+        : null;
       const principales = Array.isArray(capitulo.children) ? capitulo.children.slice() : [];
       const principalLookup = new Map(principales.map((principal) => [principal.label, principal]));
 

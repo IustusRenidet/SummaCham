@@ -817,17 +817,17 @@ const actualizarCuentasPadre = async (
     console.log(`     Nombre: ${nombre}`);
     console.log(`     Nivel: ${nivel}`);
     
-    // ✅ RESPETAR EDICIONES MANUALES EN CUENTAS ACUMULATIVAS
-    // Si esta cuenta padre fue editada manualmente, NO recalcular, respetar el valor editado
-    const fueEditadaManualmente = presupuestosEditados instanceof Map && presupuestosEditados.has(numCta);
+    // ✅ RESPETAR CAPTURA MANUAL EN CUENTAS PADRE (ADITIVO)
+    // Si el usuario capturó un valor manual en la cuenta padre, se interpreta como "manual adicional"
+    // y se SUMA a la suma de hijas (en vez de anular el recálculo).
+    // Esto garantiza: padre = SUM(hijas) + manual.
+    const fueEditadaManualmente =
+      presupuestosEditados instanceof Map && presupuestosEditados.has(numCta);
     if (fueEditadaManualmente) {
-      console.log(`     🔒 Cuenta editada manualmente - Se respeta el valor sin recalcular`);
       contadorEditadasManualmente++;
-      contadorProcesadas++;
-      actualizarProgresoRecontabilizacion(borradorId, {
-        actual: contadorProcesadas,
-      });
-      continue;
+      console.log(
+        `     🔒 Cuenta con captura manual - se conservará como manual adicional (se suma al recálculo)`
+      );
     }
     
     // Obtener todas las cuentas hijas directas (donde CTA_PAPA = numCta)
@@ -1363,7 +1363,7 @@ const recontabilizarTodasLasCuentas = async ({ empresaId, anio }) => {
     new Map(), // Sin ediciones - solo suma de hijas
     manualBaseMap,
     null, // Sin borradorId
-    { usarManual: false }
+    { usarManual: true }
   );
 
   console.log(`\n✅ ==========================================`);

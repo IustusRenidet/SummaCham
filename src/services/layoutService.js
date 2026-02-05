@@ -618,6 +618,21 @@ const obtenerLayout = ({
     .all(empresaConsulta, modulo, anioUsado, capituloObjetivo);
 
   const operacionesMap = {};
+  const tiposOperacionIgnorados = new Set([
+    // Estos pueden colarse si alguna versión anterior persistió metadatos
+    // como si fueran "operacion_tipo". Ignorarlos evita sobreescribir
+    // campos reales (orden_presentacion/visible) al reconstruir el objeto.
+    "orden_presentacion",
+    "ordenPresentacion",
+    "visible",
+    "operacion_tipo",
+    "operacionTipo",
+    "operacion_label",
+    "operacionLabel",
+    "orden",
+    "cuentas",
+    "secciones",
+  ]);
   operaciones.forEach((op, idx) => {
     const ordenPresentacion = normalizarOrden(op.orden_presentacion);
     const ordenBase = Number.isFinite(ordenPresentacion)
@@ -671,8 +686,11 @@ const obtenerLayout = ({
     ) {
       operacionesMap[mapKey].orden = ordenBase;
     }
-    operacionesMap[mapKey][op.operacion_tipo] = op.operacion_label;
-    operacionesMap[mapKey].signos[op.operacion_tipo] = op.signo ?? 1;
+    const tipo = (op.operacion_tipo || "").toString().trim();
+    if (tipo && !tiposOperacionIgnorados.has(tipo)) {
+      operacionesMap[mapKey][tipo] = op.operacion_label;
+      operacionesMap[mapKey].signos[tipo] = op.signo ?? 1;
+    }
     if (op.formula_json && !operacionesMap[mapKey].formula_json) {
       operacionesMap[mapKey].formula_json = op.formula_json;
     }
@@ -1167,6 +1185,10 @@ const guardarOperaciones = ({
         "OperacionId",
         "operacion_id",
         "operacion_etiqueta",
+        // Campos del modelo/BD que NO deben persistirse como operacion_tipo extra
+        // (ya existen como columnas o son metadatos internos).
+        "operacion_tipo",
+        "operacion_label",
         "Etiqueta",
         "etiqueta",
         "SECCION",
@@ -1176,6 +1198,10 @@ const guardarOperaciones = ({
         "signo",
         "signos",
         "orden",
+        "orden_presentacion",
+        "ordenPresentacion",
+        "visible",
+        "cuentas",
         "tipo",
         "secciones",
       ]);
@@ -1201,7 +1227,11 @@ const guardarOperaciones = ({
       let insertados = 0;
 
       tiposOperacion.forEach((tipo, tipoIndex) => {
-        if (op[tipo]) {
+        const rawValue = op?.[tipo];
+        // Persistimos solo labels string no vacíos. Evita insertar arrays/objetos/flags
+        // (p.ej. visible/orden_presentacion) como si fueran tipos de operación.
+        if (typeof rawValue === "string" && rawValue.trim()) {
+          const value = rawValue.trim();
           const signoDesdeMapa = op.signos?.[tipo];
           const signoConfigurado = Number.isFinite(Number(signoDesdeMapa))
             ? Number(signoDesdeMapa)
@@ -1241,7 +1271,7 @@ const guardarOperaciones = ({
               operacionEtiqueta,
               seccion,
               tipo,
-              op[tipo],
+              value,
               signo,
               baseOrden * 100 + tipoIndex,
               ordenPresentacion,

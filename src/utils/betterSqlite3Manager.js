@@ -83,6 +83,18 @@ const useVariant = (variant, { silent = false } = {}) => {
 
 const ensureActiveBinary = () => {
   const variant = process.versions?.electron ? "electron" : "node";
+  // Si el binario actual ya carga correctamente (incluyendo el addon nativo),
+  // NO intentamos sobrescribirlo. Esto evita romper instalaciones donde
+  // `native_modules/<variant>` está desfasado o el archivo está bloqueado (EBUSY).
+  try {
+    const Database = require(MODULE_NAME);
+    const db = new Database(":memory:");
+    db.close();
+    return;
+  } catch (_) {
+    // Continuar: intentaremos activar el binario respaldado.
+  }
+
   try {
     useVariant(variant, { silent: true });
   } catch (err) {

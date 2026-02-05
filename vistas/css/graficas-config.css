@@ -150,6 +150,140 @@ body {
   font-weight: 600;
 }
 
+.simple-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.simple-block-title {
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-secondary);
+  font-weight: 700;
+}
+
+.simple-chart-card {
+  border: 1px solid rgba(36, 64, 122, 0.14);
+  border-radius: 16px;
+  padding: 1rem;
+  background: #ffffff;
+}
+
+.simple-chart-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.simple-chart-title {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.simple-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.simple-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid rgba(36, 64, 122, 0.14);
+  background: rgba(36, 64, 122, 0.05);
+  color: #0f172a;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.simple-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(36, 64, 122, 0.6);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9);
+}
+
+.simple-variants {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-top: 0.25rem;
+  line-height: 1.2;
+}
+
+.simple-variants code {
+  color: #475569;
+}
+
+.matrix-preview {
+  border: 1px dashed rgba(36, 64, 122, 0.2);
+  border-radius: 14px;
+  padding: 0.75rem;
+  background: rgba(36, 64, 122, 0.04);
+  overflow-x: auto;
+}
+
+.matrix-title {
+  color: var(--color-secondary);
+}
+
+.matrix-grid {
+  display: grid;
+  grid-template-columns: 1.3fr repeat(3, 1fr);
+  gap: 0.5rem;
+  margin-top: 0.55rem;
+  min-width: 480px;
+}
+
+.matrix-cell {
+  background: #ffffff;
+  border: 1px solid rgba(36, 64, 122, 0.12);
+  border-radius: 10px;
+  padding: 0.55rem;
+  text-align: center;
+  font-size: 0.75rem;
+  color: #1f2937;
+}
+
+.matrix-cell.matrix-head {
+  background: rgba(36, 64, 122, 0.08);
+  font-weight: 700;
+}
+
+.matrix-cell.matrix-row {
+  text-align: left;
+  font-weight: 600;
+}
+
+.advanced-block {
+  border: 1px dashed rgba(36, 64, 122, 0.2);
+  border-radius: 16px;
+  padding: 0.75rem 1rem;
+  background: #f9fafc;
+}
+
+.advanced-block summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--color-primary);
+  list-style: none;
+}
+
+.advanced-block summary::-webkit-details-marker {
+  display: none;
+}
+
 @media (max-width: 768px) {
   .series-table thead {
     display: none;
@@ -177,4 +311,6 @@ body {
     color: var(--color-secondary);
     letter-spacing: 0.06em;
   }
+
+
 }
