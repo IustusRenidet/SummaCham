@@ -5488,9 +5488,13 @@
       valoresBase = ajustarPorPeriodo(valoresBase);
       return valoresBase.map((v) => Number(v) || 0);
     };
+    const seccionValuesMap = new Map();
     const obtenerValoresSeccion = (nombre) => {
       const clave = normalizarTexto(nombre || "");
       if (!clave) return obtenerCeros();
+      if (seccionValuesMap.has(clave)) {
+        return seccionValuesMap.get(clave);
+      }
       const seccion = secciones.find(
         (item) =>
           normalizarTexto(item?.seccion || item?.tituloVisible || "") === clave
@@ -5563,12 +5567,23 @@
     });
     if (errores.length) console.warn("ÔÜá´©Å Errores en recalcularSumas:", errores);
 
+    secciones.forEach((seccion) => {
+      if (!seccion || !Array.isArray(seccion.sumValues)) return;
+      const claveSeccion = normalizarTexto(seccion.seccion || "");
+      const claveTitulo = normalizarTexto(seccion.tituloVisible || "");
+      if (claveSeccion) seccionValuesMap.set(claveSeccion, seccion.sumValues);
+      if (claveTitulo && claveTitulo !== claveSeccion) {
+        seccionValuesMap.set(claveTitulo, seccion.sumValues);
+      }
+    });
+
     // PASO 1.5: Calcular operaciones libres basadas en fórmula
     try {
       const freeOps = Array.isArray(meta.operacionesLibres)
         ? meta.operacionesLibres
         : [];
       const valoresPorOperacion = new Map();
+      const valoresPorItem = new Map();
       const normalizarOperador = (valor) => {
         const raw = (valor || "+").toString().trim();
         if (raw === "×") return "*";
@@ -5612,10 +5627,29 @@
             );
         }
       };
-      freeOps.forEach((item) => {
+      const obtenerClaveOperacion = (op, fila) =>
+        normalizarOperacionLibreClave(
+          op?.OperacionId ||
+            op?.operacion_id ||
+            op?.id ||
+            op?.operacion_etiqueta ||
+            op?.Clase ||
+            ""
+        ) || normalizarOperacionLibreClave(fila?.dataset?.operationLabel || "");
+      const arraysEqual = (a, b) => {
+        if (!Array.isArray(a) || !Array.isArray(b)) return false;
+        if (a.length !== b.length) return false;
+        for (let i = 0; i < a.length; i += 1) {
+          if (numeroSeguro(a[i]) !== numeroSeguro(b[i])) return false;
+        }
+        return true;
+      };
+
+      const calcularOperacion = (item) => {
         const op = item?.op;
         const fila = item?.fila;
-        if (!op || !fila || !fila.parentNode) return;
+        if (!op || !fila) return obtenerCeros();
+        const claveOperacionActual = obtenerClaveOperacion(op, fila);
         const terms = extraerFormulaTermsOperacion(op);
         let valores = null;
         terms.forEach((term) => {
@@ -5629,7 +5663,20 @@
             termValues = obtenerValoresCuenta(valorTerm);
           } else if (tipo === "operation" || tipo === "operacion") {
             const claveOp = normalizarOperacionLibreClave(valorTerm);
-            termValues = valoresPorOperacion.get(claveOp) || obtenerCeros();
+            if (claveOp && claveOp === claveOperacionActual) {
+              termValues = obtenerCeros();
+            } else if (claveOp && valoresPorOperacion.has(claveOp)) {
+              termValues = valoresPorOperacion.get(claveOp);
+            } else {
+              const valoresSeccion = obtenerValoresSeccion(valorTerm);
+              if (Array.isArray(valoresSeccion)) {
+                termValues = valoresSeccion;
+              } else if (convertirCuenta21(valorTerm)) {
+                termValues = obtenerValoresCuenta(valorTerm);
+              } else {
+                termValues = obtenerCeros();
+              }
+            }
           } else if (tipo === "constant") {
             const numero =
               term.constant != null ? Number(term.constant) : Number(valorTerm);
@@ -5645,12 +5692,10 @@
         if (!Array.isArray(valores)) {
           valores = obtenerCeros();
         }
-
         const signo = Number(op?.signo);
         if (Number.isFinite(signo) && signo !== 1) {
           valores = valores.map((v) => (Number(v) || 0) * signo);
         }
-
         const idxTotalReal = clavesOrdenadas.indexOf("total-real");
         if (idxTotalReal >= 0) {
           const sumaReal = clavesOrdenadas.reduce((acc, clave, idx) => {
@@ -5659,18 +5704,33 @@
           }, 0);
           valores[idxTotalReal] = sumaReal;
         }
+        return valores;
+      };
 
+      const maxPasses = Math.max(1, freeOps.length);
+      for (let pass = 0; pass < maxPasses; pass += 1) {
+        let changed = false;
+        freeOps.forEach((item) => {
+          const op = item?.op;
+          const fila = item?.fila;
+          if (!op || !fila || !fila.parentNode) return;
+          const valores = calcularOperacion(item);
+          const prev = valoresPorItem.get(item);
+          if (!arraysEqual(prev, valores)) {
+            valoresPorItem.set(item, valores);
+            changed = true;
+          }
+          const claveOp = obtenerClaveOperacion(op, fila);
+          if (claveOp) valoresPorOperacion.set(claveOp, valores);
+        });
+        if (!changed) break;
+      }
+
+      freeOps.forEach((item) => {
+        const fila = item?.fila;
+        if (!fila || !fila.parentNode) return;
+        const valores = valoresPorItem.get(item) || obtenerCeros();
         asignarValoresNumericos(fila, valores);
-        const claveOp =
-          normalizarOperacionLibreClave(
-            op?.OperacionId ||
-              op?.operacion_id ||
-              op?.id ||
-              op?.operacion_etiqueta ||
-              op?.Clase ||
-              ""
-          ) || normalizarOperacionLibreClave(fila.dataset.operationLabel || "");
-        if (claveOp) valoresPorOperacion.set(claveOp, valores);
       });
     } catch (e) {
       console.warn("?? Error calculando operaciones libres:", e);
@@ -5976,6 +6036,299 @@
       });
     } catch (e) {
       console.warn("?? Error en fase resultado:", e);
+    }
+
+    // PASO FINAL: Aplicar fórmulas a TODAS las operaciones con fórmula (sin importar Aparición)
+    try {
+      const operacionesLayout = Array.isArray(estadoModulo.layoutOperaciones)
+        ? estadoModulo.layoutOperaciones
+        : [];
+      if (!operacionesLayout.length) {
+        return;
+      }
+
+      const rowByLabel = new Map();
+      const rowByOp = new Map();
+
+      // Mapear operaciones libres ya renderizadas
+      if (Array.isArray(meta.operacionesLibres)) {
+        meta.operacionesLibres.forEach((item) => {
+          if (item?.op && item?.fila) {
+            rowByOp.set(item.op, item.fila);
+            const label = item?.fila?.dataset?.operationLabel;
+            const key = normalizarOperacionLibreClave(label);
+            if (key && !rowByLabel.has(key)) {
+              rowByLabel.set(key, item.fila);
+            }
+          }
+        });
+      }
+
+      // Mapear sum-row por etiqueta visible en la fila
+      secciones.forEach((seccion) => {
+        const filaSum = seccion?.elementos?.sumRow;
+        const texto =
+          filaSum?.cells?.[1]?.textContent ||
+          filaSum?.dataset?.operationLabel ||
+          "";
+        const key = normalizarOperacionLibreClave(texto);
+        if (key && filaSum) {
+          rowByLabel.set(key, filaSum);
+        }
+      });
+
+      // Mapear sumavarios/result por etiqueta normalizada
+      meta.sumavariosRows?.forEach((fila, clave) => {
+        const key = normalizarOperacionLibreClave(clave);
+        if (key && fila) {
+          rowByLabel.set(key, fila);
+        }
+      });
+      meta.resultRows?.forEach((fila, clave) => {
+        const key = normalizarOperacionLibreClave(clave);
+        if (key && fila) {
+          rowByLabel.set(key, fila);
+        }
+      });
+
+      // Mapear resultado operativo por nombre (si existe)
+      if (estadoModulo.operacionesResultadoOperativo?.forEach) {
+        estadoModulo.operacionesResultadoOperativo.forEach((info, clave) => {
+          const key = normalizarOperacionLibreClave(clave);
+          if (key && info?.fila) {
+            rowByLabel.set(key, info.fila);
+          }
+        });
+      }
+
+      const items = [];
+      const rowsUsed = new Set();
+      const addItem = (op, fila) => {
+        if (!op || !fila || !fila.parentNode) return;
+        if (rowsUsed.has(fila)) return;
+        rowsUsed.add(fila);
+        items.push({ op, fila });
+      };
+
+      operacionesLayout.forEach((op) => {
+        const terms = extraerFormulaTermsOperacion(op);
+        if (!Array.isArray(terms) || terms.length === 0) return;
+
+        let fila = rowByOp.get(op) || null;
+        if (!fila) {
+          for (const campo of CAMPOS_FILA_OPERACION) {
+            const etiqueta = (op?.[campo] || "").toString().trim();
+            if (!etiqueta) continue;
+            const key = normalizarOperacionLibreClave(etiqueta);
+            const filaLabel = key ? rowByLabel.get(key) : null;
+            if (filaLabel) {
+              fila = filaLabel;
+              break;
+            }
+            if (campo === "sum-row") {
+              const claveSec = normalizarTexto(op.SECCION || "");
+              if (claveSec) {
+                const sec = secciones.find(
+                  (s) =>
+                    normalizarTexto(s?.seccion || s?.tituloVisible || "") ===
+                    claveSec
+                );
+                if (sec?.elementos?.sumRow) {
+                  fila = sec.elementos.sumRow;
+                  break;
+                }
+              }
+            }
+          }
+        }
+
+        if (fila) addItem(op, fila);
+      });
+
+      if (!items.length) {
+        return;
+      }
+
+      const valoresPorOperacion = new Map();
+      const valoresPorItem = new Map();
+      const normalizarOperador = (valor) => {
+        const raw = (valor || "+").toString().trim();
+        if (raw === "×") return "*";
+        if (raw === "÷") return "/";
+        return raw;
+      };
+      const numeroSeguro = (valor) => {
+        const num = Number(valor);
+        return Number.isFinite(num) ? num : 0;
+      };
+      const dividirSeguro = (numerador, denominador) => {
+        const den = numeroSeguro(denominador);
+        if (!den) return 0;
+        return numeroSeguro(numerador) / den;
+      };
+      const aplicarOperacion = (acumulado, termValues, operador) => {
+        const op = normalizarOperador(operador);
+        const base = Array.isArray(termValues)
+          ? termValues.map((v) => numeroSeguro(v))
+          : obtenerCeros();
+        if (!Array.isArray(acumulado)) {
+          if (op === "-") return base.map((v) => v * -1);
+          return base.slice();
+        }
+        switch (op) {
+          case "-":
+            return acumulado.map(
+              (valor, idx) => numeroSeguro(valor) - numeroSeguro(base[idx])
+            );
+          case "*":
+            return acumulado.map(
+              (valor, idx) => numeroSeguro(valor) * numeroSeguro(base[idx])
+            );
+          case "/":
+            return acumulado.map((valor, idx) =>
+              dividirSeguro(valor, base[idx])
+            );
+          default:
+            return acumulado.map(
+              (valor, idx) => numeroSeguro(valor) + numeroSeguro(base[idx])
+            );
+        }
+      };
+
+      const arraysEqual = (a, b) => {
+        if (!Array.isArray(a) || !Array.isArray(b)) return false;
+        if (a.length !== b.length) return false;
+        for (let i = 0; i < a.length; i += 1) {
+          if (numeroSeguro(a[i]) !== numeroSeguro(b[i])) return false;
+        }
+        return true;
+      };
+
+      const obtenerClavesOperacion = (op, fila) => {
+        const claves = new Set();
+        const push = (valor) => {
+          const key = normalizarOperacionLibreClave(valor);
+          if (key) claves.add(key);
+        };
+        push(op?.OperacionId);
+        push(op?.operacion_id);
+        push(op?.id);
+        push(op?.Clase);
+        push(op?.clase);
+        push(op?.operacion_etiqueta);
+        push(op?.Etiqueta);
+        CAMPOS_FILA_OPERACION.forEach((campo) => push(op?.[campo]));
+        const textoFila =
+          fila?.cells?.[1]?.textContent || fila?.dataset?.operationLabel || "";
+        push(textoFila);
+        return claves;
+      };
+
+      const obtenerValoresOperacion = (valor, clavesPropias) => {
+        const key = normalizarOperacionLibreClave(valor);
+        if (!key) return null;
+        if (clavesPropias?.has(key)) return obtenerCeros();
+        if (valoresPorOperacion.has(key)) return valoresPorOperacion.get(key);
+        return null;
+      };
+
+      const calcularOperacion = (item) => {
+        const op = item.op;
+        const fila = item.fila;
+        const terms = extraerFormulaTermsOperacion(op);
+        const clavesPropias = obtenerClavesOperacion(op, fila);
+        let valores = null;
+
+        (terms || []).forEach((term) => {
+          if (!term) return;
+          const tipo = (term.type || "").toString().toLowerCase();
+          const valorTerm = term.value ?? term.cuenta ?? term.id ?? "";
+          let termValues = obtenerCeros();
+
+          if (tipo === "section" || tipo === "seccion") {
+            termValues = obtenerValoresSeccion(valorTerm) || obtenerCeros();
+            if (!termValues || !Array.isArray(termValues)) {
+              const opValores = obtenerValoresOperacion(valorTerm, clavesPropias);
+              termValues = opValores || obtenerCeros();
+            }
+          } else if (tipo === "account" || tipo === "cuenta") {
+            termValues = obtenerValoresCuenta(valorTerm);
+          } else if (tipo === "operation" || tipo === "operacion") {
+            const opValores = obtenerValoresOperacion(valorTerm, clavesPropias);
+            if (opValores) {
+              termValues = opValores;
+            } else {
+              const valoresSeccion = obtenerValoresSeccion(valorTerm);
+              if (Array.isArray(valoresSeccion)) {
+                termValues = valoresSeccion;
+              } else if (convertirCuenta21(valorTerm)) {
+                termValues = obtenerValoresCuenta(valorTerm);
+              } else {
+                termValues = obtenerCeros();
+              }
+            }
+          } else if (tipo === "constant") {
+            const numero =
+              term.constant != null ? Number(term.constant) : Number(valorTerm);
+            termValues = obtenerCeros().map(() =>
+              Number.isFinite(numero) ? numero : 0
+            );
+          } else {
+            const valoresSeccion = obtenerValoresSeccion(valorTerm);
+            termValues = valoresSeccion || obtenerValoresCuenta(valorTerm);
+          }
+
+          valores = aplicarOperacion(valores, termValues, term.operator);
+        });
+
+        if (!Array.isArray(valores)) {
+          valores = obtenerCeros();
+        }
+
+        const signo = Number(op?.signo);
+        if (Number.isFinite(signo) && signo !== 1) {
+          valores = valores.map((v) => (Number(v) || 0) * signo);
+        }
+
+        const idxTotalReal = clavesOrdenadas.indexOf("total-real");
+        if (idxTotalReal >= 0) {
+          const sumaReal = clavesOrdenadas.reduce((acc, clave, idx) => {
+            if (!clave.startsWith("real-")) return acc;
+            return acc + (Number(valores[idx]) || 0);
+          }, 0);
+          valores[idxTotalReal] = sumaReal;
+        }
+
+        return { valores, clavesPropias };
+      };
+
+      const maxPasses = Math.max(1, items.length);
+      for (let pass = 0; pass < maxPasses; pass += 1) {
+        let changed = false;
+        items.forEach((item) => {
+          const resultado = calcularOperacion(item);
+          const valores = resultado.valores;
+          const prev = valoresPorItem.get(item);
+          if (!arraysEqual(prev, valores)) {
+            valoresPorItem.set(item, valores);
+            changed = true;
+          }
+          const claves = resultado.clavesPropias;
+          if (claves && claves.size) {
+            claves.forEach((key) => {
+              valoresPorOperacion.set(key, valores);
+            });
+          }
+        });
+        if (!changed) break;
+      }
+
+      items.forEach((item) => {
+        const valores = valoresPorItem.get(item) || obtenerCeros();
+        asignarValoresNumericos(item.fila, valores);
+      });
+    } catch (e) {
+      console.warn("?? Error aplicando fórmulas globales:", e);
     }
   };
 

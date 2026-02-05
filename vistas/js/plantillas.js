@@ -11258,6 +11258,44 @@ window.editSection = function (name) {
     
     const op = state.selectedElement.op;
     if (!op) return;
+    const isBulkOp = Boolean(op?._bulkFormulaInput || op?._bulkRow);
+
+    // Leer fórmula del panel (se usa tanto en modo normal como en inserción masiva)
+    const formulaPanel = dom.operationEditorPanel;
+    const formulaMode =
+      formulaPanel?.querySelector('input[name="operationFormulaMode"]:checked')
+        ?.value || "layout";
+    const manualText = formulaPanel?.querySelector("#operationFormulaManual")?.value || "";
+    const selectedTerms = formulaMode === "manual"
+      ? parseFormulaText(manualText)
+      : collectFormulaTermsFromLayout(formulaPanel);
+
+    // VALIDACIÓN: Las operaciones deben tener fórmula
+    if (!selectedTerms || selectedTerms.length === 0) {
+      showToast("⚠️ La operación debe tener una fórmula. Usa la pestaña 'Fórmula' para definirla.", "error");
+      setOperationEditorTab("editorTabFormula");
+      return;
+    }
+
+    // Si es inserción masiva, solo aplicar fórmula a la fila y salir.
+    if (isBulkOp) {
+      const normalized = normalizeFormulaTerms(selectedTerms);
+      op.formula_terms = normalized;
+      op.formula_json = JSON.stringify(normalized);
+
+      if (op._bulkFormulaInput) {
+        const bulkText = buildFormulaPreviewText(normalized);
+        op._bulkFormulaInput.value = bulkText === "Sin fórmula" ? "" : bulkText;
+        op._bulkFormulaInput.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+      if (typeof window._bulkFormulaEditorCallback === "function") {
+        window._bulkFormulaEditorCallback(normalized);
+        window._bulkFormulaEditorCallback = null;
+      }
+      bootstrap?.Offcanvas?.getInstance(dom.operationEditorPanel)?.hide();
+      showToast("Fórmula aplicada en la fila de inserción", "success");
+      return;
+    }
 
     // Leer valores del panel
     const claseInput = document.getElementById("editClaseOp");
@@ -11273,6 +11311,7 @@ window.editSection = function (name) {
 
     const oldId = getOperationId(op);
     const oldLabel = getOperationLabel(op);
+    const oldDisplay = getOperationDisplayName(op);
     const desiredId = normalizeOperationId(newIdInput || oldId || newClase || oldLabel);
 
     if (!desiredId) {
@@ -11292,20 +11331,69 @@ window.editSection = function (name) {
     // Actualizar datos básicos
     if (newClase) op.Clase = newClase;
     op.OperacionId = desiredId;
+    if (newClase) {
+      op.operacion_etiqueta = newClase;
+      op.Etiqueta = newClase;
+    }
 
-    // Leer fórmula del panel
-    const formulaPanel = dom.operationEditorPanel;
-    const formulaMode = formulaPanel?.querySelector('input[name="operationFormulaMode"]:checked')?.value || "layout";
-    const manualText = formulaPanel?.querySelector("#operationFormulaManual")?.value || "";
-    const selectedTerms = formulaMode === "manual"
-      ? parseFormulaText(manualText)
-      : collectFormulaTermsFromLayout(formulaPanel);
+    // Actualizar etiquetas de filas según lo capturado en Aparición
+    const tipoSelect = document.getElementById("editOperacionTipo");
+    const tipoSeleccionado = (tipoSelect?.value || "").trim();
+    const tipoInicial = (tipoSelect?.dataset.initialTipo || "").trim();
+    const tipoNorm = normalizeAparicionValue(tipoSeleccionado);
+    const tipoInicialNorm = normalizeAparicionValue(tipoInicial);
+    const tipoChanged =
+      Boolean(tipoSelect) && tipoNorm && tipoNorm !== tipoInicialNorm;
+    const selectedField =
+      tipoNorm && tipoNorm !== "libre" ? tipoSeleccionado : "";
+    const etiquetaFallback =
+      newClase ||
+      getOperationDisplayName(op) ||
+      getOperationLabel(op) ||
+      op.OperacionId ||
+      "Operacion";
+    const nameChanged =
+      newClase &&
+      normalizeOperationMatch(newClase) !==
+        normalizeOperationMatch(oldDisplay || oldLabel || "");
+    const normalizeRowLabelInput = (value) => {
+      const trimmed = (value || "").trim();
+      if (!trimmed) return "";
+      if (nameChanged) {
+        const normalized = normalizeOperationMatch(trimmed);
+        const oldDisplayKey = normalizeOperationMatch(oldDisplay || "");
+        const oldLabelKey = normalizeOperationMatch(oldLabel || "");
+        if (
+          normalized &&
+          (normalized === oldDisplayKey || normalized === oldLabelKey)
+        ) {
+          return "";
+        }
+      }
+      return trimmed;
+    };
 
-    // VALIDACIÓN: Las operaciones deben tener fórmula
-    if (!selectedTerms || selectedTerms.length === 0) {
-      showToast("⚠️ La operación debe tener una fórmula. Usa la pestaña 'Fórmula' para definirla.", "error");
-      setOperationEditorTab("editorTabFormula");
-      return;
+    if (tipoSelect && (tipoChanged || tipoNorm === "libre")) {
+      OP_ROW_FIELDS.forEach(({ field }) => {
+        const input = document.getElementById(rowLabelInputId(field));
+        const value = normalizeRowLabelInput(input?.value);
+        if (selectedField && field === selectedField) {
+          op[field] = value || etiquetaFallback;
+        } else if (op[field]) {
+          delete op[field];
+        }
+      });
+    } else {
+      OP_ROW_FIELDS.forEach(({ field }) => {
+        const input = document.getElementById(rowLabelInputId(field));
+        if (!input) return;
+        const value = normalizeRowLabelInput(input.value);
+        if (value) {
+          op[field] = value;
+        } else if (op[field]) {
+          delete op[field];
+        }
+      });
     }
 
     // Guardar fórmula
