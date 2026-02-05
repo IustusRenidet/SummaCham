@@ -10948,7 +10948,12 @@ window.editSection = function (name) {
         return;
       }
 
-      if (newClase) op.Clase = newClase;
+      if (newClase) {
+        op.Clase = newClase;
+        op.operacion_etiqueta = newClase;
+        op.Etiqueta = newClase;
+        op.etiqueta = newClase;
+      }
       op.OperacionId = desiredId;
 
       if (
@@ -11392,6 +11397,27 @@ window.editSection = function (name) {
           op[field] = value;
         } else if (op[field]) {
           delete op[field];
+        }
+      });
+    }
+
+    // Si cambió el nombre y la etiqueta visible sigue siendo la anterior,
+    // actualízala automáticamente para evitar que se quede "pegada".
+    if (newClase && nameChanged) {
+      const oldDisplayKey = normalizeOperationMatch(oldDisplay || "");
+      const oldLabelKey = normalizeOperationMatch(oldLabel || "");
+      OP_ROW_FIELDS.forEach(({ field }) => {
+        const input = document.getElementById(rowLabelInputId(field));
+        const rawInput = (input?.value || "").trim();
+        const inputKey = normalizeOperationMatch(rawInput);
+        const opValue = (op?.[field] || "").toString().trim();
+        const opKey = normalizeOperationMatch(opValue);
+        const inputMatchesOld =
+          !rawInput || inputKey === oldDisplayKey || inputKey === oldLabelKey;
+        const opMatchesOld =
+          opKey && (opKey === oldDisplayKey || opKey === oldLabelKey);
+        if (inputMatchesOld && opMatchesOld) {
+          op[field] = newClase;
         }
       });
     }

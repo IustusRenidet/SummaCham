@@ -343,17 +343,62 @@
 
   const extraerFormulaTermsOperacion = (op) => {
     if (!op) return [];
+    const esTerminoValido = (term) => {
+      const value = (term?.value || term?.cuenta || term?.id || "").toString();
+      if (!value) return false;
+      // Considerar válido si parece cuenta completa o sección con espacios
+      if (/\d{3,}.*-/.test(value)) return true;
+      if (value.length >= 5 && /[A-Z]/i.test(value)) return true;
+      if (value.length >= 5 && /\d/.test(value)) return true;
+      return false;
+    };
+    const esListaCorrupta = (terms) => {
+      if (!Array.isArray(terms) || !terms.length) return true;
+      return terms.every((t) => !esTerminoValido(t));
+    };
+    const parsearExpresionSimple = (raw) => {
+      const texto = (raw || "").toString().trim();
+      if (!texto) return [];
+      const tokens = texto.split(/\s+/).filter(Boolean);
+      const terms = [];
+      let operador = "+";
+      tokens.forEach((token) => {
+        if (token === "+" || token === "-" || token === "*" || token === "/") {
+          operador = token;
+          return;
+        }
+        terms.push({
+          operator: operador,
+          type: "account",
+          value: token,
+        });
+        operador = "+";
+      });
+      return terms;
+    };
+
     if (Array.isArray(op.formula_terms) && op.formula_terms.length) {
-      return op.formula_terms;
+      if (!esListaCorrupta(op.formula_terms)) {
+        return op.formula_terms;
+      }
     }
     if (op.formula_json) {
       try {
         const parsed = JSON.parse(op.formula_json);
-        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed) && !esListaCorrupta(parsed)) return parsed;
       } catch (err) {
         console.warn("No se pudo leer formula_json", err);
       }
     }
+
+    const expresion =
+      op.cuentas ||
+      op.expresion ||
+      op.formula ||
+      op.operacion_label ||
+      "";
+    const terms = parsearExpresionSimple(expresion);
+    if (terms.length) return terms;
     return [];
   };
 
@@ -1495,6 +1540,12 @@
       .replace(/,/g, "");
     const numero = parseFloat(limpio);
     return Number.isFinite(numero) ? numero : 0;
+  };
+
+  const normalizarFactorCuenta = (valor) => {
+    const numero = Number(valor);
+    if (!Number.isFinite(numero) || numero === 0) return 1;
+    return numero;
   };
 
   const formatearNumero = (valor) => {
@@ -3098,9 +3149,7 @@
           faltantesNombre.add(cuenta21);
         }
         fila.appendChild(celdaNombre);
-        const factorCuenta = Number.isFinite(Number(item.factor))
-          ? Number(item.factor)
-          : 1;
+        const factorCuenta = normalizarFactorCuenta(item.factor);
         const ordenFilaCuenta = obtenerOrdenPresentacion(item, idxItem);
         fila.dataset.operacionFactor = String(factorCuenta);
         fila.dataset.cuenta = item.cuenta || "";
@@ -3133,7 +3182,13 @@
           if (opId) operacionesUsadas.add(opId);
         });
       }
-      const permitirSumas = !manualOpsOnly || Boolean(sumasBase);
+      const esPresupuestos = moduloNormalizado === "presupuestos";
+      const esSeccionIngresos = /INGRESOS/i.test(seccion || "");
+      const esSeccionGastos = /GASTOS/i.test(seccion || "");
+      const permitirSumas =
+        !manualOpsOnly ||
+        Boolean(sumasBase) ||
+        (esPresupuestos && (esSeccionIngresos || esSeccionGastos));
       const tieneSumasBase = Boolean(sumasBase);
       let sumas =
         aplicarOperacionesPorModulo(moduloClave, seccion, sumasBase) ||
@@ -3184,6 +3239,18 @@
           } else if (/GASTOS/i.test(seccion)) {
             etiquetaSumRow = "SUMA GASTOS";
           }
+        }
+      }
+      if (
+        esPresupuestos &&
+        permitirSumas &&
+        !sumRowCustom &&
+        !etiquetaSumRow
+      ) {
+        if (esSeccionIngresos) {
+          etiquetaSumRow = "Suma de Ingresos";
+        } else if (esSeccionGastos) {
+          etiquetaSumRow = "Suma de Gastos";
         }
       }
       const seccionNormalizada = normalizarTexto(seccion);
@@ -4739,9 +4806,7 @@
     }
     fila.dataset.cuenta = datos.cuenta || "";
     fila.dataset.cuenta21 = datos.cuenta ? convertirCuenta21(datos.cuenta) : "";
-    const factorCuenta = Number.isFinite(Number(datos.factor))
-      ? Number(datos.factor)
-      : 1;
+    const factorCuenta = normalizarFactorCuenta(datos.factor);
     fila.dataset.operacionFactor = String(factorCuenta);
     return fila;
   };
@@ -5436,6 +5501,15 @@
       return;
     }
     const secciones = meta.secciones;
+    const cuentaRowMap = new Map();
+    try {
+      obtenerFilasCuenta().forEach((fila) => {
+        const cuenta = fila?.dataset?.cuenta21 || "";
+        if (cuenta) cuentaRowMap.set(cuenta, fila);
+      });
+    } catch (e) {
+      // fallback silencioso
+    }
 
     const errores = [];
     const moduloActual = (
@@ -5476,17 +5550,29 @@
     };
 
     const normalizarOperacionLibreClave = (valor) =>
-      normalizarTexto(valor || "");
+      normalizarTexto(valor || "").replace(/[^A-Z0-9]/g, "");
     const obtenerCeros = () => Array.from({ length: longitud }, () => 0);
+    const ajustarLongitud = (lista) => {
+      const base = Array.isArray(lista) ? lista.map((v) => Number(v) || 0) : [];
+      if (base.length < longitud) {
+        return base.concat(
+          Array.from({ length: longitud - base.length }, () => 0)
+        );
+      }
+      if (base.length > longitud) {
+        return base.slice(0, longitud);
+      }
+      return base;
+    };
     const obtenerValoresCuenta = (valor) => {
       const cuenta21 = convertirCuenta21(valor || "");
       if (!cuenta21) return obtenerCeros();
-      const almacenados = estadoModulo.valoresPorCuenta?.get(cuenta21);
-      let valoresBase = almacenados
-        ? clavesOrdenadas.map((clave) => almacenados[clave] ?? 0)
-        : obtenerCeros();
-      valoresBase = ajustarPorPeriodo(valoresBase);
-      return valoresBase.map((v) => Number(v) || 0);
+      const fila = cuentaRowMap.get(cuenta21);
+      if (!fila) return obtenerCeros();
+      const valoresDom = ajustarLongitud(
+        ajustarPorPeriodo(extraerValoresNumericos(fila))
+      );
+      return valoresDom.map((v) => Number(v) || 0);
     };
     const seccionValuesMap = new Map();
     const obtenerValoresSeccion = (nombre) => {
@@ -5516,16 +5602,11 @@
           if (!fila || !fila.dataset)
             return Array.from({ length: longitud }, () => 0);
           const cuenta = fila.dataset.cuenta21 || "";
-          const factorCuenta = Number.isFinite(
-            Number(fila.dataset.operacionFactor)
-          )
-            ? Number(fila.dataset.operacionFactor)
-            : 1;
-          const almacenados = estadoModulo.valoresPorCuenta?.get(cuenta);
-          let valoresBase = almacenados
-            ? clavesOrdenadas.map((clave) => almacenados[clave] ?? 0)
-            : extraerValoresNumericos(fila);
-          valoresBase = ajustarPorPeriodo(valoresBase);
+          const factorCuenta = normalizarFactorCuenta(
+            fila.dataset.operacionFactor
+          );
+          let valoresBase = extraerValoresNumericos(fila);
+          valoresBase = ajustarLongitud(ajustarPorPeriodo(valoresBase));
           const valoresAjustados =
             seccion.restarUtilidadCambiaria &&
             descripcionUtilidadCambiaria(fila)
@@ -5914,17 +5995,12 @@
         const operaciones = estadoModulo.operacionesResultadoOperativo;
         if (operaciones && operaciones.size) {
         const cacheValores = new Map();
-        const obtenerValoresCuenta = (cuenta21) => {
-          if (!cuenta21) return Array.from({ length: longitud }, () => 0);
+        const obtenerValoresCuentaDom = (cuenta21) => {
+          if (!cuenta21) return obtenerCeros();
           if (cacheValores.has(cuenta21)) return cacheValores.get(cuenta21);
-          const almacenados =
-            estadoModulo.valoresPorCuenta?.get(cuenta21) || {};
-          const valoresBase = clavesOrdenadas.map(
-            (clave) => almacenados[clave] ?? 0
-          );
-          const ajustados = ajustarPorPeriodo(valoresBase);
-          cacheValores.set(cuenta21, ajustados);
-          return ajustados;
+          const valores = obtenerValoresCuenta(cuenta21);
+          cacheValores.set(cuenta21, valores);
+          return valores;
         };
 
         operaciones.forEach((info) => {
@@ -5936,7 +6012,7 @@
             const cuenta21 = termino?.cuenta21 || "";
             const signo = Number(termino?.signo) || 0;
             if (!cuenta21 || !signo) return;
-            const valoresCuenta = obtenerValoresCuenta(cuenta21);
+            const valoresCuenta = obtenerValoresCuentaDom(cuenta21);
             valoresCuenta.forEach((valor, idx) => {
               acumulado[idx] += (Number(valor) || 0) * signo;
             });
@@ -6049,6 +6125,18 @@
 
       const rowByLabel = new Map();
       const rowByOp = new Map();
+      const rowByKey = new Map();
+      const registerRowKey = (raw, fila) => {
+        const key = normalizarOperacionLibreClave(raw);
+        if (!key || !fila) return;
+        if (!rowByKey.has(key)) rowByKey.set(key, fila);
+      };
+      const registerRow = (fila) => {
+        if (!fila) return;
+        registerRowKey(fila.dataset?.operationId, fila);
+        registerRowKey(fila.dataset?.operationLabel, fila);
+        registerRowKey(fila.cells?.[1]?.textContent, fila);
+      };
 
       // Mapear operaciones libres ya renderizadas
       if (Array.isArray(meta.operacionesLibres)) {
@@ -6060,6 +6148,7 @@
             if (key && !rowByLabel.has(key)) {
               rowByLabel.set(key, item.fila);
             }
+            registerRow(item.fila);
           }
         });
       }
@@ -6074,6 +6163,7 @@
         const key = normalizarOperacionLibreClave(texto);
         if (key && filaSum) {
           rowByLabel.set(key, filaSum);
+          registerRow(filaSum);
         }
       });
 
@@ -6082,24 +6172,28 @@
         const key = normalizarOperacionLibreClave(clave);
         if (key && fila) {
           rowByLabel.set(key, fila);
+          registerRow(fila);
         }
       });
       meta.resultRows?.forEach((fila, clave) => {
-        const key = normalizarOperacionLibreClave(clave);
+        const baseLabel = (clave || "").toString().split("::")[0];
+        const key = normalizarOperacionLibreClave(baseLabel);
         if (key && fila) {
           rowByLabel.set(key, fila);
+          registerRow(fila);
         }
       });
 
       // Mapear resultado operativo por nombre (si existe)
-      if (estadoModulo.operacionesResultadoOperativo?.forEach) {
-        estadoModulo.operacionesResultadoOperativo.forEach((info, clave) => {
-          const key = normalizarOperacionLibreClave(clave);
-          if (key && info?.fila) {
-            rowByLabel.set(key, info.fila);
-          }
-        });
-      }
+        if (estadoModulo.operacionesResultadoOperativo?.forEach) {
+          estadoModulo.operacionesResultadoOperativo.forEach((info, clave) => {
+            const key = normalizarOperacionLibreClave(clave);
+            if (key && info?.fila) {
+              rowByLabel.set(key, info.fila);
+              registerRow(info.fila);
+            }
+          });
+        }
 
       const items = [];
       const rowsUsed = new Set();
@@ -6111,9 +6205,6 @@
       };
 
       operacionesLayout.forEach((op) => {
-        const terms = extraerFormulaTermsOperacion(op);
-        if (!Array.isArray(terms) || terms.length === 0) return;
-
         let fila = rowByOp.get(op) || null;
         if (!fila) {
           for (const campo of CAMPOS_FILA_OPERACION) {
@@ -6142,6 +6233,14 @@
           }
         }
 
+        if (fila) {
+          registerRow(fila);
+          const claves = obtenerClavesOperacion(op, fila);
+          claves.forEach((key) => registerRowKey(key, fila));
+        }
+
+        const terms = extraerFormulaTermsOperacion(op);
+        if (!Array.isArray(terms) || terms.length === 0) return;
         if (fila) addItem(op, fila);
       });
 
@@ -6224,11 +6323,31 @@
         return claves;
       };
 
+      const obtenerValoresFila = (fila) => {
+        if (!fila) return null;
+        let valores = extraerValoresNumericos(fila);
+        if (!Array.isArray(valores)) return null;
+        if (valores.length < longitud) {
+          valores = valores.concat(
+            Array.from({ length: longitud - valores.length }, () => 0)
+          );
+        } else if (valores.length > longitud) {
+          valores = valores.slice(0, longitud);
+        }
+        valores = ajustarPorPeriodo(valores);
+        return valores.map((v) => Number(v) || 0);
+      };
+
       const obtenerValoresOperacion = (valor, clavesPropias) => {
         const key = normalizarOperacionLibreClave(valor);
         if (!key) return null;
         if (clavesPropias?.has(key)) return obtenerCeros();
         if (valoresPorOperacion.has(key)) return valoresPorOperacion.get(key);
+        const fila = rowByKey.get(key);
+        if (fila) {
+          const valoresFila = obtenerValoresFila(fila);
+          if (Array.isArray(valoresFila)) return valoresFila;
+        }
         return null;
       };
 

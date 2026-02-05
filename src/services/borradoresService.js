@@ -800,6 +800,7 @@ const actualizarCuentasPadre = async (
   let contadorSinHijas = 0;
   let contadorSinValores = 0;
   let contadorProcesadas = 0;
+  let contadorEditadasManualmente = 0;
   actualizarProgresoRecontabilizacion(borradorId, {
     estado: "recontabilizando",
     total: cuentasPadre.length,
@@ -815,6 +816,19 @@ const actualizarCuentasPadre = async (
     console.log(`\n  🔹 Procesando cuenta padre: ${numCta}`);
     console.log(`     Nombre: ${nombre}`);
     console.log(`     Nivel: ${nivel}`);
+    
+    // ✅ RESPETAR EDICIONES MANUALES EN CUENTAS ACUMULATIVAS
+    // Si esta cuenta padre fue editada manualmente, NO recalcular, respetar el valor editado
+    const fueEditadaManualmente = presupuestosEditados instanceof Map && presupuestosEditados.has(numCta);
+    if (fueEditadaManualmente) {
+      console.log(`     🔒 Cuenta editada manualmente - Se respeta el valor sin recalcular`);
+      contadorEditadasManualmente++;
+      contadorProcesadas++;
+      actualizarProgresoRecontabilizacion(borradorId, {
+        actual: contadorProcesadas,
+      });
+      continue;
+    }
     
     // Obtener todas las cuentas hijas directas (donde CTA_PAPA = numCta)
     const queryHijas = `
@@ -965,7 +979,8 @@ const actualizarCuentasPadre = async (
   
   console.log(`\n📊 ============================================`);
   console.log(`📊 RESUMEN DE ACTUALIZACIÓN:`);
-  console.log(`   ✅ Actualizadas: ${contadorActualizadas}`);
+  console.log(`   ✅ Actualizadas (recalculadas): ${contadorActualizadas}`);
+  console.log(`   🔒 Editadas manualmente (respetadas): ${contadorEditadasManualmente}`);
   console.log(`   ⚠️ Sin hijas: ${contadorSinHijas}`);
   console.log(`   ⚠️ Sin valores: ${contadorSinValores}`);
   console.log(`   📊 Total procesadas: ${cuentasPadre.length}`);
