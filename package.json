@@ -1,6 +1,6 @@
 {
   "name": "panel-amcham",
-  "version": "2.3.3",
+  "version": "2.3.4",
   "description": "Dashboard financiero PanelAMCHAM empaquetado como app de escritorio portable.",
   "main": "main.js",
   "author": "Iustus Renidet & J02V4N",
