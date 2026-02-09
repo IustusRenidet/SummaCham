@@ -153,6 +153,38 @@
     },
   ];
 
+  // ==========================================
+  // CONFIGURACIÓN DE RUTAS: Tours / Tutoriales
+  // ==========================================
+  // - Para desactivar TODO el overlay de tutorial: `enabled: false`
+  // - Para desactivar solo el auto-start del tour principal: `dashboard.autoStart: false`
+  const DEFAULT_TOURS_CONFIG = {
+    enabled: true,
+    dashboard: { enabled: true, autoStart: true },
+    comitesFlujo: { enabled: true, autoStart: false },
+  };
+
+  // Exponer configuración a los iframes (módulos) para que puedan desactivar tours
+  // desde esta misma configuración de rutas.
+  try {
+    window.PANELAMCHAM_ROUTE_CONFIG = window.PANELAMCHAM_ROUTE_CONFIG || {};
+    window.PANELAMCHAM_ROUTE_CONFIG.tours = {
+      ...DEFAULT_TOURS_CONFIG,
+      ...(window.PANELAMCHAM_ROUTE_CONFIG.tours || {}),
+      dashboard: {
+        ...DEFAULT_TOURS_CONFIG.dashboard,
+        ...(window.PANELAMCHAM_ROUTE_CONFIG.tours?.dashboard || {}),
+      },
+      comitesFlujo: {
+        ...DEFAULT_TOURS_CONFIG.comitesFlujo,
+        ...(window.PANELAMCHAM_ROUTE_CONFIG.tours?.presupuestosFlujo || {}),
+        ...(window.PANELAMCHAM_ROUTE_CONFIG.tours?.comitesFlujo || {}),
+      },
+    };
+  } catch (_) {
+    // ignore
+  }
+
   const MODULO_PERMISOS = {
     resumen: "RESUMEN",
     presupuestos: "Presupuestos",
@@ -274,23 +306,42 @@
     });
     return ids;
   };
-  const TOUR_ESTADO_KEY_BASE = "panelamcham.tour.dashboard.v1";
+  const TOUR_STORAGE_PREFIX = "panelamcham.tour.v2";
+  const TOUR_LEGACY_DASHBOARD_PREFIX = "panelamcham.tour.dashboard.v1";
   const TOUR_CARD_MAX_WIDTH = 360;
   const TOUR_CARD_MIN_HEIGHT = 212;
   const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
-  const construirClaveTourUsuario = (sesion) => {
-    const usuario = normalizarClaveModulo(sesion?.usuario?.usuario || "GENERAL");
-    return `${TOUR_ESTADO_KEY_BASE}.${usuario || "GENERAL"}`;
+  const construirClaveUsuarioTour = (sesion) => {
+    const id = sesion?.usuario?.id;
+    if (id != null && String(id).trim() !== "") {
+      return `ID${String(id).trim()}`;
+    }
+    return normalizarClaveModulo(sesion?.usuario?.usuario || "GENERAL") || "GENERAL";
   };
-  const leerEstadoTour = (storageKey) => {
-    if (!storageKey) return false;
+  const construirClaveTour = (sesion, tourId) => {
+    const id = normalizarClaveModulo(tourId || "dashboard") || "DASHBOARD";
+    return `${TOUR_STORAGE_PREFIX}.${id}.${construirClaveUsuarioTour(sesion)}`;
+  };
+  const construirClaveTourLegacyDashboard = (sesion) => {
+    const usuario = normalizarClaveModulo(sesion?.usuario?.usuario || "GENERAL");
+    return `${TOUR_LEGACY_DASHBOARD_PREFIX}.${usuario || "GENERAL"}`;
+  };
+  const leerEstadoTour = (sesion, tourId) => {
+    const storageKey = construirClaveTour(sesion, tourId);
     try {
-      return Boolean(localStorage.getItem(storageKey));
+      if (localStorage.getItem(storageKey)) return true;
+      const id = normalizarClaveModulo(tourId || "dashboard") || "DASHBOARD";
+      if (id === "DASHBOARD") {
+        const legacyKey = construirClaveTourLegacyDashboard(sesion);
+        if (legacyKey && localStorage.getItem(legacyKey)) return true;
+      }
+      return false;
     } catch (_) {
       return false;
     }
   };
-  const guardarEstadoTour = (storageKey, estado = "completado") => {
+  const guardarEstadoTour = (sesion, tourId, estado = "completado") => {
+    const storageKey = construirClaveTour(sesion, tourId);
     if (!storageKey) return;
     try {
       localStorage.setItem(
@@ -776,6 +827,7 @@
       {
         type: "button",
         className: "sidebar-link " + (activo ? "active" : ""),
+        "data-tour-module": module.id,
         onClick: () => onSelect(module),
       },
       /* @__PURE__ */ React.createElement("span", null, module.label),
@@ -1016,7 +1068,7 @@
         className: "guided-tour-overlay",
         role: "dialog",
         "aria-modal": "true",
-        "aria-label": "Tutorial guiado del panel",
+        "aria-label": "Tutorial guiado",
       },
       highlightRect &&
         /* @__PURE__ */ React.createElement("div", {
@@ -1177,11 +1229,132 @@
     const [gruposAbiertos, setGruposAbiertos] = useState(
       () => new Set(collectAllGroupIds(MODULE_GROUPS))
     );
-    const tourStorageKey = useMemo(
-      () => construirClaveTourUsuario(sesion),
-      [sesion]
+
+    const toursConfig = useMemo(() => {
+      try {
+        return window.PANELAMCHAM_ROUTE_CONFIG?.tours || DEFAULT_TOURS_CONFIG;
+      } catch (_) {
+        return DEFAULT_TOURS_CONFIG;
+      }
+    }, []);
+
+    const toursEnabled = toursConfig?.enabled !== false;
+    const dashboardTourEnabled =
+      toursEnabled && toursConfig?.dashboard?.enabled !== false;
+    const comitesFlujoTourEnabled =
+      toursEnabled &&
+      toursConfig?.comitesFlujo?.enabled !== false &&
+      modulosDisponibles.some((modulo) => modulo.id === "comites");
+    const dashboardAutoStart = toursConfig?.dashboard?.autoStart !== false;
+
+    const toSelectorList = useCallback((selector) => {
+      if (!selector) return [];
+      if (Array.isArray(selector)) return selector.filter(Boolean);
+      return [selector];
+    }, []);
+
+    const obtenerFrameModulo = useCallback(
+      () => document.querySelector('[data-tour="module-frame"]'),
+      []
     );
-    const tourSteps = useMemo(
+
+    const resolverElementoEnRoot = useCallback(
+      (root, selector) => {
+        if (!root) return null;
+        const lista = toSelectorList(selector);
+        for (let i = 0; i < lista.length; i += 1) {
+          const sel = lista[i];
+          if (typeof sel !== "string") continue;
+          const found = root.querySelector(sel);
+          if (found) return found;
+        }
+        return null;
+      },
+      [toSelectorList]
+    );
+
+    const resolverElementoTour = useCallback(
+      (selector, { inFrame = false } = {}) => {
+        if (inFrame) {
+          const frame = obtenerFrameModulo();
+          const doc = frame?.contentDocument || frame?.contentWindow?.document;
+          if (!doc) return null;
+          return resolverElementoEnRoot(doc, selector);
+        }
+        return resolverElementoEnRoot(document, selector);
+      },
+      [obtenerFrameModulo, resolverElementoEnRoot]
+    );
+
+    const clickTour = useCallback(
+      (selector, { inFrame = false } = {}) => {
+        const el = resolverElementoTour(selector, { inFrame });
+        if (!el) return false;
+        try {
+          el.click();
+          return true;
+        } catch (_) {
+          return false;
+        }
+      },
+      [resolverElementoTour]
+    );
+
+    const postMessageTour = useCallback(
+      (payload = {}) => {
+        const frame = obtenerFrameModulo();
+        const win = frame?.contentWindow || null;
+        if (!win || typeof win.postMessage !== "function") return false;
+        try {
+          win.postMessage({ __panelamchamTour: true, ...payload }, "*");
+          return true;
+        } catch (_) {
+          return false;
+        }
+      },
+      [obtenerFrameModulo]
+    );
+
+    const waitForTour = useCallback(
+      (selector, { inFrame = false, timeoutMs = 1600 } = {}) =>
+        new Promise((resolve) => {
+          const startedAt = Date.now();
+          const check = () => {
+            const found = resolverElementoTour(selector, { inFrame });
+            if (found) {
+              resolve(found);
+              return;
+            }
+            if (Date.now() - startedAt >= timeoutMs) {
+              resolve(null);
+              return;
+            }
+            window.setTimeout(check, 90);
+          };
+          check();
+        }),
+      [resolverElementoTour]
+    );
+
+    const asegurarGrupoAbierto = useCallback((groupId) => {
+      if (!groupId) return;
+      setGruposAbiertos((prev) => {
+        if (prev.has(groupId)) return prev;
+        const next = new Set(prev);
+        next.add(groupId);
+        return next;
+      });
+    }, []);
+
+    const seleccionarModuloTour = useCallback(
+      (moduloId) => {
+        if (!moduloId) return;
+        onSelectModule(moduloId);
+      },
+      [onSelectModule]
+    );
+
+    const tourStepsDashboard = useMemo(
       () => [
         {
           id: "sidebar-toggle",
@@ -1237,9 +1410,232 @@
       ],
       []
     );
+
+    const tourStepsComitesFlujo = useMemo(
+      () => [
+        {
+          id: "comites-modulo",
+          selector: '[data-tour-module="comites"]',
+          title: "Entrar a Comités",
+          description:
+            "Ejemplo (AC): entra al módulo Comités para capturar cambios.",
+          tip: "Si no ves el modulo, pide acceso en tu perfil de permisos.",
+          requiresSidebar: true,
+          beforeEnter: ({ api }) => {
+            api.ensureGroupOpen("modulos-planeacion");
+          },
+        },
+        {
+          id: "comites-empresa",
+          selector: '[data-tour="company-selector"]',
+          title: "Seleccionar empresa",
+          description:
+            "Ejemplo (DF): elige la empresa donde vas a subir el presupuesto.",
+        },
+        {
+          id: "comites-ejercicio",
+          selector: "#comitesYearSelect",
+          inFrame: true,
+          title: "Elegir ejercicio",
+          description:
+            "Ejemplo (AO): selecciona el año correcto antes de capturar cambios.",
+          beforeEnter: async ({ api, tourId }) => {
+            api.selectModule("comites");
+            await api.waitFor('[data-tour="module-frame"]', { timeoutMs: 2200 });
+            await api.waitFor("#comitesYearSelect", {
+              inFrame: true,
+              timeoutMs: 2500,
+            });
+            api.sendToFrame({ action: "start", tourId });
+            api.sendToFrame({ action: "stage", tourId, stage: "inicio" });
+          },
+        },
+        {
+          id: "comites-guardar-borrador",
+          selector: ["#btnGuardarBorrador", ".toolbar-actions"],
+          inFrame: true,
+          title: "Editar (simulado) + guardar borrador",
+          description:
+            "Ejemplo (BS): entra a edición, ajusta valores y presiona \"Guardar para más tarde\" para guardar tu borrador.",
+          tip: "Guardar borrador conserva tus cambios sin enviarlos a revisión.",
+          beforeEnter: async ({ api, tourId }) => {
+            api.selectModule("comites");
+            await api.waitFor("#btnGuardarBorrador", {
+              inFrame: true,
+              timeoutMs: 2500,
+            });
+            api.sendToFrame({ action: "stage", tourId, stage: "borrador" });
+          },
+        },
+        {
+          id: "comites-centro-borradores",
+          selector: [
+            "#btnVerBorrador",
+            "#workflowDraftsDrawer",
+            ".workflow-toggle",
+          ],
+          inFrame: true,
+          title: "Centro de borradores e historial",
+          description:
+            "Ejemplo (GL): consulta borradores activos e historial (quien hizo qué y cuándo).",
+          tip: "Úsalo como bitácora para auditoría y seguimiento.",
+          beforeEnter: async ({ api, tourId }) => {
+            api.selectModule("comites");
+            await api.waitFor("#btnVerBorrador", {
+              inFrame: true,
+              timeoutMs: 2500,
+            });
+            api.click("#btnVerBorrador", { inFrame: true });
+            await api.waitFor("#workflowDraftsDrawer", {
+              inFrame: true,
+              timeoutMs: 2500,
+            });
+            api.click("#history-tab", { inFrame: true });
+            api.sendToFrame({ action: "stage", tourId, stage: "historial" });
+          },
+        },
+        {
+          id: "comites-enviar",
+          selector: ["#btnEnviarCambios", ".toolbar-actions"],
+          inFrame: true,
+          title: "Enviar a revisión",
+          description:
+            "Ejemplo (MG): cuando tu borrador esté listo, presiona \"Enviar\" para pedir revisión.",
+          beforeEnter: async ({ api, tourId }) => {
+            api.selectModule("comites");
+            await api.waitFor('[data-tour="module-frame"]', { timeoutMs: 2200 });
+            api.sendToFrame({ action: "stage", tourId, stage: "enviar" });
+            await api.waitFor("#btnEnviarCambios", {
+              inFrame: true,
+              timeoutMs: 2500,
+            });
+          },
+        },
+        {
+          id: "comites-revisar",
+          selector: ["#btnMarcarRevisado", ".toolbar-actions"],
+          inFrame: true,
+          title: "Revisión (otro usuario)",
+          description:
+            "Ejemplo (AA): el revisor valida y marca como revisado para pasar a autorización.",
+          tip: "Solo usuarios con permiso \"Revisar\" verán este botón.",
+          beforeEnter: async ({ api, tourId }) => {
+            api.selectModule("comites");
+            await api.waitFor('[data-tour="module-frame"]', { timeoutMs: 2200 });
+            api.sendToFrame({ action: "stage", tourId, stage: "revisar" });
+            await api.waitFor("#btnMarcarRevisado", {
+              inFrame: true,
+              timeoutMs: 2500,
+            });
+          },
+        },
+        {
+          id: "comites-autorizar",
+          selector: ["#btnAutorizar", ".toolbar-actions"],
+          inFrame: true,
+          title: "Autorizar (aprobador)",
+          description:
+            "Ejemplo (AMB): el aprobador autoriza el presupuesto para permitir guardarlo en COI.",
+          tip: "Solo usuarios con permiso \"Aprobar\" pueden autorizar.",
+          beforeEnter: async ({ api, tourId }) => {
+            api.selectModule("comites");
+            await api.waitFor('[data-tour="module-frame"]', { timeoutMs: 2200 });
+            api.sendToFrame({ action: "stage", tourId, stage: "autorizar" });
+            await api.waitFor("#btnAutorizar", {
+              inFrame: true,
+              timeoutMs: 2500,
+            });
+          },
+        },
+        {
+          id: "comites-guardar-coi",
+          selector: ["#saveBudgetBtn", ".toolbar-actions"],
+          inFrame: true,
+          title: "Guardar en COI + espera estimada",
+          description:
+            "Ejemplo (PV): al guardar en COI, verás un overlay con el progreso y tiempo estimado (cola/recontabilización).",
+          beforeEnter: async ({ api, tourId }) => {
+            api.selectModule("comites");
+            await api.waitFor('[data-tour="module-frame"]', { timeoutMs: 2200 });
+            api.sendToFrame({ action: "stage", tourId, stage: "coi" });
+            await api.waitFor("#saveBudgetBtn", {
+              inFrame: true,
+              timeoutMs: 2500,
+            });
+          },
+        },
+      ],
+      [asegurarGrupoAbierto, seleccionarModuloTour, waitForTour]
+    );
+
+    const toursDisponibles = useMemo(() => {
+      const lista = [];
+      if (dashboardTourEnabled) {
+        lista.push({
+          id: "dashboard",
+          label: "Tour del panel",
+          steps: tourStepsDashboard,
+          autoStart: dashboardAutoStart,
+        });
+      }
+      if (comitesFlujoTourEnabled) {
+        lista.push({
+          id: "comitesFlujo",
+          label: "Tour: flujo de presupuesto (Comités)",
+          steps: tourStepsComitesFlujo,
+          autoStart: toursConfig?.comitesFlujo?.autoStart === true,
+        });
+      }
+      return lista;
+    }, [
+      dashboardAutoStart,
+      dashboardTourEnabled,
+      comitesFlujoTourEnabled,
+      tourStepsDashboard,
+      tourStepsComitesFlujo,
+      toursConfig?.comitesFlujo?.autoStart,
+    ]);
+
+    const toursPorId = useMemo(() => {
+      const mapa = new Map();
+      toursDisponibles.forEach((tour) => mapa.set(tour.id, tour));
+      return mapa;
+    }, [toursDisponibles]);
+
+    const tourDefaultId = useMemo(() => {
+      if (toursPorId.has("dashboard")) return "dashboard";
+      return toursDisponibles[0]?.id || null;
+    }, [toursDisponibles, toursPorId]);
+
+    const [tourMenuOpen, setTourMenuOpen] = useState(false);
+    const tourMenuRef = React.useRef(null);
+    useEffect(() => {
+      if (!tourMenuOpen) return;
+      const handleClick = (event) => {
+        if (
+          tourMenuRef.current &&
+          !tourMenuRef.current.contains(event.target)
+        ) {
+          setTourMenuOpen(false);
+        }
+      };
+      document.addEventListener("mousedown", handleClick);
+      return () => document.removeEventListener("mousedown", handleClick);
+    }, [tourMenuOpen]);
+
     const [tourActiva, setTourActiva] = useState(false);
+    const [tourIdActivo, setTourIdActivo] = useState("dashboard");
     const [tourPasoIndex, setTourPasoIndex] = useState(0);
     const [tourRect, setTourRect] = useState(null);
+
+    useEffect(() => {
+      if (!tourDefaultId) return;
+      if (!toursPorId.has(tourIdActivo)) {
+        setTourIdActivo(tourDefaultId);
+      }
+    }, [tourDefaultId, tourIdActivo, toursPorId]);
+
+    const tourSteps = toursPorId.get(tourIdActivo)?.steps || [];
     const tourPasoActual = tourSteps[tourPasoIndex] || null;
     useEffect(() => {
       setGruposAbiertos(new Set(collectAllGroupIds(gruposDisponibles)));
@@ -1292,31 +1688,49 @@
       empresaActiva,
     ]);
     useEffect(() => {
-      if (!tourStorageKey || modulosDisponibles.length === 0) {
+      if (!dashboardTourEnabled || !dashboardAutoStart) {
         return;
       }
-      if (leerEstadoTour(tourStorageKey)) {
+      if (modulosDisponibles.length === 0) {
+        return;
+      }
+      if (leerEstadoTour(sesion, "dashboard")) {
         return;
       }
       const timer = window.setTimeout(() => {
+        setTourMenuOpen(false);
+        setTourIdActivo("dashboard");
         setTourPasoIndex(0);
         setTourActiva(true);
       }, 900);
       return () => window.clearTimeout(timer);
-    }, [tourStorageKey, modulosDisponibles.length]);
+    }, [dashboardAutoStart, dashboardTourEnabled, modulosDisponibles.length, sesion]);
 
-    const iniciarTour = useCallback(() => {
-      setTourPasoIndex(0);
-      setTourActiva(true);
-    }, []);
+    const iniciarTour = useCallback(
+      (tourId = null) => {
+        if (!toursEnabled) return;
+        const id =
+          (tourId && toursPorId.has(tourId) && tourId) || tourDefaultId || null;
+        if (!id) return;
+        setTourMenuOpen(false);
+        setTourIdActivo(id);
+        setTourPasoIndex(0);
+        setTourActiva(true);
+      },
+      [tourDefaultId, toursEnabled, toursPorId]
+    );
+
     const cerrarTour = useCallback(
       (estado = "omitido") => {
+        if (tourIdActivo === "comitesFlujo") {
+          postMessageTour({ action: "stop", tourId: tourIdActivo });
+        }
         setTourActiva(false);
         setTourPasoIndex(0);
         setTourRect(null);
-        guardarEstadoTour(tourStorageKey, estado);
+        guardarEstadoTour(sesion, tourIdActivo, estado);
       },
-      [tourStorageKey]
+      [postMessageTour, sesion, tourIdActivo]
     );
     const anteriorPasoTour = useCallback(() => {
       setTourPasoIndex((prev) => Math.max(prev - 1, 0));
@@ -1331,14 +1745,17 @@
       if (!tourActiva || !tourPasoActual) {
         return;
       }
+      setTourRect(null);
       if (tourPasoActual.requiresSidebar && sidebarOculta) {
         setSidebarOculta(false);
       }
       let rafId = 0;
       let timerId = 0;
+      let cancelled = false;
       const actualizarRect = () => {
+        const inFrame = Boolean(tourPasoActual.inFrame);
         const objetivo = tourPasoActual.selector
-          ? document.querySelector(tourPasoActual.selector)
+          ? resolverElementoTour(tourPasoActual.selector, { inFrame })
           : null;
         if (!objetivo) {
           setTourRect(null);
@@ -1349,23 +1766,93 @@
           setTourRect(null);
           return;
         }
+        if (inFrame) {
+          const frame = obtenerFrameModulo();
+          const frameRect = frame?.getBoundingClientRect?.() || null;
+          if (frameRect) {
+            setTourRect(
+              normalizarRectTour({
+                top: frameRect.top + rect.top,
+                left: frameRect.left + rect.left,
+                width: rect.width,
+                height: rect.height,
+              })
+            );
+            return;
+          }
+        }
         setTourRect(normalizarRectTour(rect));
       };
       const schedule = () => {
         window.cancelAnimationFrame(rafId);
         rafId = window.requestAnimationFrame(actualizarRect);
       };
-      schedule();
-      timerId = window.setTimeout(schedule, 320);
+
+      const runBeforeEnter = async () => {
+        if (typeof tourPasoActual.beforeEnter !== "function") return;
+        try {
+          await Promise.resolve(
+            tourPasoActual.beforeEnter({
+              api: {
+                waitFor: waitForTour,
+                click: clickTour,
+                selectModule: seleccionarModuloTour,
+                ensureGroupOpen: asegurarGrupoAbierto,
+                sendToFrame: postMessageTour,
+              },
+              step: tourPasoActual,
+              index: tourPasoIndex,
+              tourId: tourIdActivo,
+            })
+          );
+        } catch (error) {
+          console.warn("[Tour] beforeEnter error:", error);
+        }
+      };
+
+      let frameWindow = null;
+
+      Promise.resolve()
+        .then(() => runBeforeEnter())
+        .then(() => {
+          if (cancelled) return;
+          const frame = obtenerFrameModulo();
+          frameWindow = frame?.contentWindow || null;
+          if (frameWindow) {
+            frameWindow.addEventListener("resize", schedule);
+            frameWindow.addEventListener("scroll", schedule, true);
+          }
+          schedule();
+          timerId = window.setTimeout(schedule, 320);
+        });
+
       window.addEventListener("resize", schedule);
       window.addEventListener("scroll", schedule, true);
       return () => {
+        cancelled = true;
         window.cancelAnimationFrame(rafId);
         window.clearTimeout(timerId);
         window.removeEventListener("resize", schedule);
         window.removeEventListener("scroll", schedule, true);
+        if (frameWindow) {
+          frameWindow.removeEventListener("resize", schedule);
+          frameWindow.removeEventListener("scroll", schedule, true);
+        }
       };
-    }, [tourActiva, tourPasoActual, sidebarOculta]);
+    }, [
+      asegurarGrupoAbierto,
+      clickTour,
+      obtenerFrameModulo,
+      postMessageTour,
+      resolverElementoTour,
+      seleccionarModuloTour,
+      sidebarOculta,
+      tourActiva,
+      tourIdActivo,
+      tourPasoActual,
+      tourPasoIndex,
+      waitForTour,
+    ]);
     useEffect(() => {
       if (!tourActiva) {
         return;
@@ -1543,15 +2030,61 @@
           /* @__PURE__ */ React.createElement(
             "div",
             { className: "top-bar-right d-flex align-items-center gap-3" },
-            /* @__PURE__ */ React.createElement(
-              "button",
-              {
-                type: "button",
-                className: "btn btn-outline-primary btn-sm tour-trigger-btn",
-                onClick: iniciarTour,
-              },
-              "Tour guiado"
-            ),
+            toursEnabled &&
+              toursDisponibles.length > 0 &&
+              /* @__PURE__ */ React.createElement(
+                "div",
+                { className: "btn-group", ref: tourMenuRef },
+                /* @__PURE__ */ React.createElement(
+                  "button",
+                  {
+                    type: "button",
+                    className: "btn btn-outline-primary btn-sm tour-trigger-btn",
+                    onClick: () => iniciarTour(tourDefaultId || "dashboard"),
+                  },
+                  "Tour guiado"
+                ),
+                toursDisponibles.length > 1 &&
+                  /* @__PURE__ */ React.createElement(
+                    React.Fragment,
+                    null,
+                    /* @__PURE__ */ React.createElement(
+                      "button",
+                      {
+                        type: "button",
+                        className:
+                          "btn btn-outline-primary btn-sm dropdown-toggle dropdown-toggle-split",
+                        "aria-expanded": tourMenuOpen,
+                        onClick: () => setTourMenuOpen((prev) => !prev),
+                      },
+                      /* @__PURE__ */ React.createElement(
+                        "span",
+                        { className: "visually-hidden" },
+                        "Opciones"
+                      )
+                    ),
+                    tourMenuOpen &&
+                      /* @__PURE__ */ React.createElement(
+                        "ul",
+                        { className: "dropdown-menu dropdown-menu-end show" },
+                        toursDisponibles.map((tour) =>
+                          /* @__PURE__ */ React.createElement(
+                            "li",
+                            { key: tour.id },
+                            /* @__PURE__ */ React.createElement(
+                              "button",
+                              {
+                                type: "button",
+                                className: "dropdown-item",
+                                onClick: () => iniciarTour(tour.id),
+                              },
+                              tour.label || tour.id
+                            )
+                          )
+                        )
+                      )
+                  )
+              ),
             /* @__PURE__ */ React.createElement(NotificationBell, {
               notifications,
               onRefresh: manejarActualizarNotificaciones,
@@ -1612,7 +2145,7 @@
           /* @__PURE__ */ React.createElement(
             "div",
             { className: "content-card", "data-tour": "module-content" },
-            moduloSeleccionado
+                moduloSeleccionado
               ? /* @__PURE__ */ React.createElement("iframe", {
                   key: `${moduloSeleccionado.id}-${
                     empresaActualId || "sin-empresa"
@@ -1620,6 +2153,7 @@
                   src: moduloSeleccionado.path,
                   title: moduloSeleccionado.label,
                   className: "content-iframe",
+                  "data-tour": "module-frame",
                   allow: "clipboard-read; clipboard-write",
                 })
               : /* @__PURE__ */ React.createElement("div", {

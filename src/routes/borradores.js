@@ -59,6 +59,14 @@ const tienePermisoEnModulo = (mapaPermisos, empresaId, modulo, accion) => {
   return Boolean(permisos[accion]);
 };
 
+const obtenerBloqueoGuardadoCoi = (borradorId) => {
+  if (!borradorId) return null;
+  const progreso = obtenerProgresoRecontabilizacion(borradorId);
+  if (!progreso) return null;
+  if (progreso.finalizadoEn) return null;
+  return progreso;
+};
+
 const esquemaContexto = Joi.object({
   empresaId: Joi.string().trim().required(),
   modulo: Joi.string().trim().required(),
@@ -343,7 +351,10 @@ router.get("/estado", (req, res) => {
       capitulo: value.capitulo || 'DEFAULT',
     });
 
-    return res.json({ borrador });
+    const progreso = borrador?.id
+      ? obtenerProgresoRecontabilizacion(borrador.id)
+      : null;
+    return res.json({ borrador, progreso });
   } catch (err) {
     console.error("Error en GET /api/borradores/estado:", err);
     return res.status(500).json({
@@ -452,6 +463,22 @@ router.post("/guardar", async (req, res) => {
 
   try {
     const capitulo = value.capitulo || 'DEFAULT';
+    const borradorExistente = obtenerBorrador({
+      empresaId: empresa.id,
+      modulo,
+      anio: value.anio,
+      capitulo,
+    });
+    const bloqueo = borradorExistente?.id
+      ? obtenerBloqueoGuardadoCoi(borradorExistente.id)
+      : null;
+    if (bloqueo) {
+      return res.status(409).json({
+        mensaje:
+          "Este presupuesto está en proceso de guardado en COI. Espera a que finalice para editarlo.",
+        progreso: bloqueo,
+      });
+    }
     const borrador = guardarBorrador(
       {
         empresaId: empresa.id,
@@ -485,6 +512,14 @@ router.post("/enviar", async (req, res) => {
   const borrador = obtenerBorradorPorId(value.borradorId);
   if (!borrador) {
     return res.status(404).json({ mensaje: "Borrador no encontrado." });
+  }
+  const bloqueo = obtenerBloqueoGuardadoCoi(borrador.id);
+  if (bloqueo) {
+    return res.status(409).json({
+      mensaje:
+        "Este presupuesto está en proceso de guardado en COI. Espera a que finalice para continuar con el flujo.",
+      progreso: bloqueo,
+    });
   }
   const empresa = obtenerEmpresaPorId(borrador.empresaId);
   if (!empresa) {
@@ -566,6 +601,14 @@ router.post("/autorizar", async (req, res) => {
   if (!borrador) {
     return res.status(404).json({ mensaje: "Borrador no encontrado." });
   }
+  const bloqueo = obtenerBloqueoGuardadoCoi(borrador.id);
+  if (bloqueo) {
+    return res.status(409).json({
+      mensaje:
+        "Este presupuesto está en proceso de guardado en COI. Espera a que finalice para continuar con el flujo.",
+      progreso: bloqueo,
+    });
+  }
   const empresa = obtenerEmpresaPorId(borrador.empresaId);
   if (!empresa) {
     return res
@@ -634,6 +677,14 @@ router.post("/rechazar", (req, res) => {
   const borrador = obtenerBorradorPorId(value.borradorId);
   if (!borrador) {
     return res.status(404).json({ mensaje: "Borrador no encontrado." });
+  }
+  const bloqueo = obtenerBloqueoGuardadoCoi(borrador.id);
+  if (bloqueo) {
+    return res.status(409).json({
+      mensaje:
+        "Este presupuesto está en proceso de guardado en COI. Espera a que finalice para continuar con el flujo.",
+      progreso: bloqueo,
+    });
   }
   const empresa = obtenerEmpresaPorId(borrador.empresaId);
   if (!empresa) {
@@ -704,6 +755,14 @@ router.post("/revisar", (req, res) => {
   const borrador = obtenerBorradorPorId(value.borradorId);
   if (!borrador) {
     return res.status(404).json({ mensaje: "Borrador no encontrado." });
+  }
+  const bloqueo = obtenerBloqueoGuardadoCoi(borrador.id);
+  if (bloqueo) {
+    return res.status(409).json({
+      mensaje:
+        "Este presupuesto está en proceso de guardado en COI. Espera a que finalice para continuar con el flujo.",
+      progreso: bloqueo,
+    });
   }
   const empresa = obtenerEmpresaPorId(borrador.empresaId);
   if (!empresa) {
@@ -801,6 +860,15 @@ router.post("/descartar", async (req, res) => {
 
     if (!borrador) {
       return res.status(404).json({ mensaje: "Borrador no encontrado." });
+    }
+
+    const bloqueo = obtenerBloqueoGuardadoCoi(borrador.id);
+    if (bloqueo) {
+      return res.status(409).json({
+        mensaje:
+          "Este presupuesto está en proceso de guardado en COI. Espera a que finalice antes de descartar.",
+        progreso: bloqueo,
+      });
     }
 
     const empresa = obtenerEmpresaPorId(borrador.empresaId);
@@ -917,7 +985,10 @@ router.post("/finalizar", async (req, res) => {
     console.error("Error al guardar borrador autorizado:", errorFinal);
     return res
       .status(500)
-      .json({ mensaje: "No fue posible guardar en la base de datos." });
+      .json({
+        mensaje:
+          errorFinal?.message || "No fue posible guardar en la base de datos.",
+      });
   }
 });
 

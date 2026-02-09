@@ -130,6 +130,139 @@ const ejecutarConsulta = (empresaId, consulta, parametros = []) => {
   });
 };
 
+const ejecutarLote = (
+  empresaId,
+  operaciones = [],
+  { isolation = Firebird.ISOLATION_READ_COMMITTED, usarTransaccion = true } = {},
+) => {
+  return new Promise((resolve, reject) => {
+    let opciones;
+    try {
+      opciones = crearOpciones(empresaId);
+    } catch (error) {
+      return reject(error);
+    }
+
+    const tiempoInicio = Date.now();
+    const esRemoto = esConexionRemota(opciones);
+
+    Firebird.attach(opciones, (errorConexion, conexion) => {
+      if (errorConexion) {
+        const tiempoTranscurrido = Date.now() - tiempoInicio;
+        console.error(
+          `❌ Error conexión ${
+            esRemoto ? "REMOTA" : "LOCAL"
+          } (${tiempoTranscurrido}ms):`,
+          errorConexion.message,
+        );
+        return reject(errorConexion);
+      }
+
+      const detachSeguro = (cb) => {
+        try {
+          conexion.detach(cb);
+        } catch (err) {
+          cb?.(err);
+        }
+      };
+
+      const ejecutarQuery = (runner, consulta, parametros) =>
+        new Promise((res, rej) => {
+          runner.query(consulta, parametros || [], (err, resultados) => {
+            if (err) return rej(err);
+            res(resultados);
+          });
+        });
+
+      const ejecutar = async () => {
+        if (!Array.isArray(operaciones) || operaciones.length === 0) {
+          return [];
+        }
+
+        if (!usarTransaccion) {
+          const resultados = [];
+          for (let i = 0; i < operaciones.length; i += 1) {
+            const op = operaciones[i] || {};
+            const consulta = op.consulta;
+            const parametros = op.parametros || [];
+            resultados.push(await ejecutarQuery(conexion, consulta, parametros));
+          }
+          return resultados;
+        }
+
+        const tx = await new Promise((res, rej) => {
+          conexion.transaction(isolation, (err, transaction) => {
+            if (err) return rej(err);
+            res(transaction);
+          });
+        });
+
+        try {
+          const resultados = [];
+          for (let i = 0; i < operaciones.length; i += 1) {
+            const op = operaciones[i] || {};
+            try {
+              resultados.push(
+                await ejecutarQuery(tx, op.consulta, op.parametros || []),
+              );
+            } catch (err) {
+              const meta = op.meta || {};
+              const cuenta = meta.cuenta ? ` (cuenta ${meta.cuenta})` : "";
+              const wrapped = new Error(
+                `Error ejecutando operación ${i + 1}/${operaciones.length}${cuenta}: ${err.message}`,
+              );
+              wrapped.cause = err;
+              throw wrapped;
+            }
+          }
+
+          await new Promise((res, rej) => {
+            tx.commit((err) => {
+              if (err) return rej(err);
+              res();
+            });
+          });
+
+          return resultados;
+        } catch (err) {
+          try {
+            await new Promise((res) => tx.rollback(() => res()));
+          } catch (_) {
+            // ignore rollback errors
+          }
+          throw err;
+        }
+      };
+
+      Promise.resolve()
+        .then(() => ejecutar())
+        .then((resultados) => {
+          const tiempoTotal = Date.now() - tiempoInicio;
+          detachSeguro(() => {
+            if (tiempoTotal > 2000) {
+              console.warn(
+                `⏱️ Lote Firebird ${esRemoto ? "REMOTO" : "LOCAL"}: ${tiempoTotal}ms (${operaciones.length} ops)`,
+              );
+            }
+            resolve(resultados);
+          });
+        })
+        .catch((errorConsulta) => {
+          const tiempoTotal = Date.now() - tiempoInicio;
+          detachSeguro(() => {
+            console.error(
+              `❌ Error lote ${
+                esRemoto ? "REMOTO" : "LOCAL"
+              } (${tiempoTotal}ms):`,
+              errorConsulta.message,
+            );
+            reject(errorConsulta);
+          });
+        });
+    });
+  });
+};
+
 const probarConexion = async (empresaId) => {
   try {
     await ejecutarConsulta(
@@ -144,5 +277,6 @@ const probarConexion = async (empresaId) => {
 
 module.exports = {
   ejecutarConsulta,
+  ejecutarLote,
   probarConexion,
 };

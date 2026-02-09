@@ -257,6 +257,22 @@
   const mount = (rawConfig = {}) => {
     ensureStyles();
 
+    // Permitir desactivar tours desde la configuración de rutas (shell / app.html).
+    // Útil para entornos donde no se desea mostrar overlays de tutorial.
+    try {
+      const toursEnabled =
+        window.top?.PANELAMCHAM_ROUTE_CONFIG?.tours?.enabled ?? true;
+      if (toursEnabled === false && rawConfig.forceEnable !== true) {
+        return {
+          start: () => {},
+          reset: () => {},
+          destroy: () => {},
+        };
+      }
+    } catch (_) {
+      // ignore cross-frame access errors
+    }
+
     const config = {
       id: "guided-tour",
       buttonText: "Tour guiado",
@@ -267,6 +283,8 @@
       startDelay: 850,
       storageScope: "user",
       userResolver: () =>
+        window.Sesion?.obtenerUsuarioId?.() ||
+        window.sesion?.usuario?.id ||
         window.Sesion?.obtener?.()?.usuario?.usuario ||
         window.__APP_SESSION__?.usuario?.usuario ||
         "GENERAL",
@@ -282,11 +300,8 @@
       };
     }
 
-    const storageKey = buildStorageKey(
-      config.id,
-      config.userResolver,
-      config.storageScope
-    );
+    const getStorageKey = () =>
+      buildStorageKey(config.id, config.userResolver, config.storageScope);
 
     const root = document.createElement("div");
     root.className = "guided-tour-root";
@@ -340,13 +355,13 @@
 
     const hasSeen = () => {
       if (!config.showOnce) return false;
-      const value = readStorage(storageKey);
+      const value = readStorage(getStorageKey());
       return Boolean(value?.status);
     };
 
     const recordState = (status) => {
       if (!config.showOnce) return;
-      writeStorage(storageKey, status);
+      writeStorage(getStorageKey(), status);
     };
 
     const resolveStepTarget = (step) => resolveTarget(step.selector);
@@ -404,7 +419,7 @@
       },
       reset() {
         try {
-          localStorage.removeItem(storageKey);
+          localStorage.removeItem(getStorageKey());
         } catch (_) {}
       },
       destroy() {
@@ -538,7 +553,7 @@
     window.addEventListener("scroll", handleReposition, true);
     document.addEventListener("keydown", handleKeys);
 
-    if (config.autoStart !== false && !hasSeen()) {
+    if (config.autoStart !== false) {
       const delay = Number.isFinite(config.startDelay) ? config.startDelay : 0;
       window.setTimeout(() => api.start(false), Math.max(0, delay));
     }

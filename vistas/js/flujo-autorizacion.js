@@ -7,6 +7,13 @@
   const EVENTO_CONTEXTO = "planeacion:contexto-actualizado";
   const EVENTO_EDICION = "modulo-planeacion:presupuesto-editado";
   const STYLE_ID = "flujo-autorizacion-style";
+  const SYSTEM_TIME_ZONE = (() => {
+    try {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone || null;
+    } catch (_) {
+      return null;
+    }
+  })();
   const FORMATTER_NUMEROS = new Intl.NumberFormat("es-MX", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
@@ -218,11 +225,44 @@
     document.head.appendChild(style);
   };
 
+  const parsearFechaUtc = (valor) => {
+    if (!valor) return null;
+    const str = valor.toString();
+    if (/Z|[+-]\d{2}:?\d{2}$/.test(str)) {
+      return new Date(str);
+    }
+    const isoLike = str.includes("T") ? str : str.replace(" ", "T");
+    return new Date(`${isoLike}Z`);
+  };
+
   const formatDateTime = (valor) => {
-    if (!valor) return "-";
-    const fecha = new Date(valor);
-    if (Number.isNaN(fecha.getTime())) return valor;
-    return fecha.toLocaleString("es-MX");
+    try {
+      const fecha = parsearFechaUtc(valor);
+      if (!fecha || Number.isNaN(fecha.getTime())) return valor || "-";
+      const options = {
+        dateStyle: "short",
+        timeStyle: "short",
+        hour12: false,
+      };
+      if (SYSTEM_TIME_ZONE) {
+        options.timeZone = SYSTEM_TIME_ZONE;
+      }
+      return new Intl.DateTimeFormat("es-MX", options).format(fecha);
+    } catch (_) {
+      return valor || "-";
+    }
+  };
+
+  const formatDuration = (ms) => {
+    const totalMs = Number(ms);
+    if (!Number.isFinite(totalMs) || totalMs < 0) return "-";
+    const totalSeconds = Math.floor(totalMs / 1000);
+    const segundos = totalSeconds % 60;
+    const minutos = Math.floor(totalSeconds / 60) % 60;
+    const horas = Math.floor(totalSeconds / 3600);
+    if (horas > 0) return `${horas}h ${minutos}m`;
+    if (minutos > 0) return `${minutos}m ${segundos}s`;
+    return `${segundos}s`;
   };
 
   const normalizarCuentaClave = (valor = "") =>
@@ -513,11 +553,12 @@
                     <th>Estado</th>
                     <th>Usuario</th>
                     <th>Fecha</th>
+                    <th>Comentarios</th>
                   </tr>
                 </thead>
                 <tbody id="draftsHistoryBody">
                   <tr>
-                    <td colspan="4" class="text-center text-muted py-4">Sin registros</td>
+                    <td colspan="5" class="text-center text-muted py-4">Sin registros</td>
                   </tr>
                 </tbody>
               </table>
@@ -528,48 +569,6 @@
     `;
 
     document.body.appendChild(drawer);
-
-    // Setup filtros de historial
-    const setupHistoryFilters = () => {
-      const searchInput = drawer.querySelector("#draftsHistorySearch");
-      const stateSelect = drawer.querySelector("#draftsHistoryState");
-      const actionSelect = drawer.querySelector("#draftsHistoryAction");
-      const fromInput = drawer.querySelector("#draftsHistoryFrom");
-      const toInput = drawer.querySelector("#draftsHistoryTo");
-      const clearBtn = drawer.querySelector("#draftsHistoryClear");
-
-      let debounceTimer = null;
-      const triggerHistoryRefresh = () => {
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => {
-          const event = new CustomEvent("draftsHistoryFilterChange");
-          drawer.dispatchEvent(event);
-        }, 300);
-      };
-
-      if (searchInput)
-        searchInput.addEventListener("input", triggerHistoryRefresh);
-      if (stateSelect)
-        stateSelect.addEventListener("change", triggerHistoryRefresh);
-      if (actionSelect)
-        actionSelect.addEventListener("change", triggerHistoryRefresh);
-      if (fromInput)
-        fromInput.addEventListener("change", triggerHistoryRefresh);
-      if (toInput) toInput.addEventListener("change", triggerHistoryRefresh);
-
-      if (clearBtn) {
-        clearBtn.addEventListener("click", () => {
-          if (searchInput) searchInput.value = "";
-          if (stateSelect) stateSelect.value = "";
-          if (actionSelect) actionSelect.value = "";
-          if (fromInput) fromInput.value = "";
-          if (toInput) toInput.value = "";
-          triggerHistoryRefresh();
-        });
-      }
-    };
-
-    setupHistoryFilters();
     return drawer;
   };
   const ensureWorkflowDrawer = () => {
@@ -691,6 +690,7 @@
       this.state = {
         contexto: { empresaId: null, anio: null, modulo: this.moduloDefault },
         borrador: null,
+        progreso: null,
         permisos: {
           cargar: false,
           revisar: false,
@@ -705,6 +705,8 @@
       this.tableElement = null;
       this.buttons = {};
       this._contextRetry = 0;
+      this._progresoPollingStop = null;
+      this._progresoPollingBorradorId = null;
       this._modalConfirmacionActiva = false;
       this._modalEntradaActiva = false;
       this.autoGuardarBorrador = options.autoGuardarBorrador === true;
@@ -810,9 +812,9 @@
      * Resuelve los permisos del usuario actual para el flujo de autorización
      *
      * Permisos disponibles:
-     * - cargar: Permiso "Cargar y guardar" - permite crear, editar y enviar presupuestos
+     * - cargar: Permiso "Cargar y guardar" - permite crear, editar, enviar y guardar en COI (una vez aprobado)
      * - revisar: Permiso "Revisar" - permite marcar como revisado o rechazar
-     * - aprobar: Permiso "Aprobar" - permite autorizar presupuestos revisados y guardar en COI
+     * - aprobar: Permiso "Aprobar" - permite autorizar presupuestos revisados
      * - leer: Permiso de solo lectura (todos los usuarios)
      * - admin: Administrador global (ICONET) - tiene todos los permisos
      *
@@ -841,7 +843,9 @@
         };
       }
       const empresa = sesion?.empresaActiva?.id || null;
-      const modulo = this.state.contexto.modulo || this.moduloDefault;
+      const modulo = this._sanitizarModulo(
+        this.state.contexto.modulo || this.moduloDefault
+      );
       const permisosModulo =
         typeof Sesion?.obtenerPermisosModulo === "function"
           ? Sesion.obtenerPermisosModulo(modulo, empresa, sesion)
@@ -1087,6 +1091,9 @@
       this._hydrateContext();
       if (!this._contextoCompleto()) {
         this.state.borrador = null;
+        this.state.progreso = null;
+        this._detenerPollingProgresoRecontabilizacion();
+        this._ocultarProgresoRecontabilizacion();
         this._exitEditMode(true);
         FlujoAutorizacion.limpiarBorrador(this.tableElement);
         this._notificarEstadoBorrador(null);
@@ -1125,7 +1132,10 @@
             data.mensaje || "No fue posible consultar el estado."
           );
         this.state.borrador = data.borrador || null;
+        this.state.progreso = data.progreso || null;
         if (!this.state.borrador) {
+          this._detenerPollingProgresoRecontabilizacion();
+          this._ocultarProgresoRecontabilizacion();
           this._exitEditMode(true);
           FlujoAutorizacion.limpiarBorrador(this.tableElement);
         } else {
@@ -1135,10 +1145,14 @@
         this._notificarEstadoBorrador(this.state.borrador);
         this._renderInfo();
         this._renderBotones();
+        this._sincronizarProgresoRecontabilizacion();
         window.__workflowRefreshTimeline?.();
       } catch (error) {
         console.error("Estado flujo", error);
         this.state.borrador = null;
+        this.state.progreso = null;
+        this._detenerPollingProgresoRecontabilizacion();
+        this._ocultarProgresoRecontabilizacion();
         this._exitEditMode(true);
         FlujoAutorizacion.limpiarBorrador(this.tableElement);
         this._notificarEstadoBorrador(null);
@@ -1453,12 +1467,20 @@
       return this.state.borrador?.estado || "SIN_CARGAR";
     }
 
+    _estaGuardandoEnCoi() {
+      const progreso = this.state?.progreso || null;
+      return Boolean(progreso && progreso.finalizadoEn == null);
+    }
+
     _puede({ accion, estadoOverride }) {
       const estado = estadoOverride || this._estadoSeguro();
       const esAutor = this._esAutor();
       const p = this.state.permisos;
       const ctxOk = this._contextoCompleto();
       if (!ctxOk) return false;
+      if (this._estaGuardandoEnCoi() && accion !== "verBorradores") {
+        return false;
+      }
       switch (accion) {
         case "cargar":
           return p.admin || p.cargar;
@@ -1490,7 +1512,7 @@
             )
           );
         case "guardarCoi":
-          return (p.admin || p.aprobar) && estado === ESTADOS.APROBADO;
+          return (p.admin || p.cargar) && estado === ESTADOS.APROBADO;
         case "verBorradores":
           return true;
         case "descartar":
@@ -1515,6 +1537,17 @@
         meta.textContent = fecha
           ? `Actualizado: ${fecha}${autor ? ` · ${autor}` : ""}`
           : "";
+        if (this._estaGuardandoEnCoi()) {
+          const progresoEstado = (this.state.progreso?.estado || "").toString();
+          const posicion = Number(this.state.progreso?.posicion) || null;
+          const leyenda =
+            progresoEstado === "en-cola" && posicion
+              ? `En cola (posición ${posicion})`
+              : "Guardando en COI...";
+          meta.textContent = meta.textContent
+            ? `${meta.textContent} · ${leyenda}`
+            : leyenda;
+        }
       }
     }
 
@@ -1576,10 +1609,35 @@
         );
       }
       if (this.buttons.guardarCOI) {
-        this.buttons.guardarCOI.classList.toggle(
-          "d-none",
-          !this._puede({ accion: "guardarCoi" })
-        );
+        const p = this.state.permisos;
+        const puedeGuardarCoiBase =
+          this._contextoCompleto() &&
+          (p.admin || p.cargar) &&
+          estado === ESTADOS.APROBADO;
+        this.buttons.guardarCOI.classList.toggle("d-none", !puedeGuardarCoiBase);
+
+        if (puedeGuardarCoiBase) {
+          const bloqueado = this._estaGuardandoEnCoi();
+          const span = this.buttons.guardarCOI.querySelector("span");
+          const progresoEstado = (this.state.progreso?.estado || "").toString();
+
+          this.buttons.guardarCOI.disabled = bloqueado;
+          this.buttons.guardarCOI.classList.toggle("disabled", bloqueado);
+
+          if (span) {
+            if (!bloqueado) {
+              span.textContent = "Guardar en COI";
+            } else if (progresoEstado === "en-cola") {
+              span.textContent = "En cola...";
+            } else if (progresoEstado === "guardando") {
+              span.textContent = "Guardando...";
+            } else if (progresoEstado === "recontabilizando") {
+              span.textContent = "Recontabilizando...";
+            } else {
+              span.textContent = "Procesando...";
+            }
+          }
+        }
       }
       if (this.buttons.verBorrador) {
         this.buttons.verBorrador.classList.remove("d-none");
@@ -1975,7 +2033,7 @@
      * - El usuario debe tener permiso "Aprobar"
      *
      * Una vez aprobado, el presupuesto puede ser guardado en la base de datos COI.
-     * Solo los usuarios con permiso "Aprobar" pueden guardar en COI.
+     * Solo los usuarios con permiso "Cargar y guardar" (o admin) pueden guardar en COI.
      */
     async _handleAutorizar() {
       if (!this._puede({ accion: "autorizar" })) {
@@ -2152,6 +2210,7 @@
       const meta = overlay.querySelector("#recontaMeta");
       const bar = overlay.querySelector("#recontaBar");
       const pct = overlay.querySelector("#recontaPct");
+      const estado = (progreso.estado || "").toString();
       const total = Number(progreso.total) || 0;
       const actual = Number(progreso.actual) || 0;
       const porcentaje = Number.isFinite(progreso.porcentaje)
@@ -2161,13 +2220,60 @@
         : 0;
 
       if (meta) {
-        if (progreso.estado === "en-cola") {
+        const transcurridoMs = Number(progreso.tiempoTranscurridoMs);
+        const restanteMs = Number(progreso.restanteEstimadoMs);
+        const tiempoEnColaMs = Number(progreso.tiempoEnColaMs);
+        const esperaRestanteMs = Number(progreso.esperaRestanteMs);
+        const esperaEstimadaMs = Number(progreso.esperaEstimadaMs);
+
+        if (estado === "en-cola") {
           const posicion = Number(progreso.posicion) || 1;
-          meta.textContent = `En cola de recontabilización (posición ${posicion})`;
+          const partes = [
+            `En cola de recontabilización (posición ${posicion})`,
+          ];
+          if (Number.isFinite(tiempoEnColaMs)) {
+            partes.push(`En cola: ${formatDuration(tiempoEnColaMs)}`);
+          }
+          const esperaMs = Number.isFinite(esperaRestanteMs)
+            ? esperaRestanteMs
+            : Number.isFinite(esperaEstimadaMs)
+            ? esperaEstimadaMs
+            : null;
+          if (Number.isFinite(esperaMs)) {
+            partes.push(`Espera est.: ~${formatDuration(esperaMs)}`);
+          }
+          meta.textContent = partes.join(" · ");
+        } else if (estado === "guardando") {
+          const partes = ["Guardando en COI..."];
+          if (Number.isFinite(transcurridoMs)) {
+            partes.push(`Transcurrido: ${formatDuration(transcurridoMs)}`);
+          }
+          if (Number.isFinite(restanteMs)) {
+            partes.push(`Restante est.: ~${formatDuration(restanteMs)}`);
+          }
+          meta.textContent = partes.join(" · ");
+        } else if (estado === "recontabilizando") {
+          const partes = [
+            total
+              ? `Recontabilizando ${actual}/${total} cuentas...`
+              : "Recontabilizando cuentas...",
+          ];
+          if (Number.isFinite(transcurridoMs)) {
+            partes.push(`Transcurrido: ${formatDuration(transcurridoMs)}`);
+          }
+          if (Number.isFinite(restanteMs)) {
+            partes.push(`Restante est.: ~${formatDuration(restanteMs)}`);
+          }
+          meta.textContent = partes.join(" · ");
+        } else if (estado === "error") {
+          const mensaje =
+            (progreso.errorMensaje || progreso.mensaje || "").toString().trim() ||
+            "No fue posible completar la operación.";
+          meta.textContent = `Error: ${mensaje}`;
+        } else if (estado === "completado" || estado === "sin-datos") {
+          meta.textContent = "Completado.";
         } else {
-          meta.textContent = total
-            ? `Recontabilizando ${actual}/${total} cuentas...`
-            : "Recontabilizando cuentas...";
+          meta.textContent = "Iniciando...";
         }
       }
       if (bar) {
@@ -2204,9 +2310,54 @@
       );
     }
 
+    _detenerPollingProgresoRecontabilizacion() {
+      if (typeof this._progresoPollingStop === "function") {
+        try {
+          this._progresoPollingStop();
+        } catch (_) {
+          /* ignore */
+        }
+      }
+      this._progresoPollingStop = null;
+      this._progresoPollingBorradorId = null;
+    }
+
+    _sincronizarProgresoRecontabilizacion() {
+      const borradorId = this.state.borrador?.id || null;
+      const progreso = this.state.progreso || null;
+
+      if (!borradorId || !progreso || progreso.finalizadoEn != null) {
+        this._detenerPollingProgresoRecontabilizacion();
+        this._ocultarProgresoRecontabilizacion();
+        return;
+      }
+
+      const overlay = this._ensureProgresoRecontabilizacion();
+      overlay.classList.add("show");
+      this._actualizarProgresoRecontabilizacionUI(progreso);
+
+      const idStr = String(borradorId);
+      if (this._progresoPollingStop && this._progresoPollingBorradorId === idStr) {
+        return;
+      }
+
+      this._detenerPollingProgresoRecontabilizacion();
+      this._progresoPollingBorradorId = idStr;
+      this._progresoPollingStop =
+        this._iniciarPollingProgresoRecontabilizacion(borradorId);
+    }
+
     _iniciarPollingProgresoRecontabilizacion(borradorId) {
       if (!borradorId) return () => {};
       let activo = true;
+      let timer = null;
+
+      const detener = () => {
+        if (!activo) return;
+        activo = false;
+        if (timer) clearInterval(timer);
+      };
+
       const actualizar = async () => {
         if (!activo) return;
         try {
@@ -2216,21 +2367,54 @@
               headers: this._construirHeaders(),
             }
           );
-          if (!resp.ok) return;
+          if (!activo) return;
+          if (this._manejarSesionExpirada(resp)) {
+            detener();
+            return;
+          }
+          if (!resp.ok) {
+            if (resp.status === 404) {
+              // El borrador pudo haber sido eliminado al finalizar el guardado.
+              this.state.progreso = null;
+              this._renderInfo();
+              this._renderBotones();
+              this._ocultarProgresoRecontabilizacion();
+              detener();
+              setTimeout(() => this._refreshEstado(), 300);
+            }
+            return;
+          }
           const data = await resp.json().catch(() => ({}));
           if (data?.progreso) {
+            const estabaBloqueado = this._estaGuardandoEnCoi();
+            this.state.progreso = data.progreso;
             this._actualizarProgresoRecontabilizacionUI(data.progreso);
+            const sigueBloqueado = this._estaGuardandoEnCoi();
+            if (estabaBloqueado !== sigueBloqueado) {
+              this._renderInfo();
+              this._renderBotones();
+            }
+            const estadoProg = (data.progreso.estado || "").toString();
+            const finalizado =
+              data.progreso.finalizadoEn != null ||
+              ["completado", "error", "sin-datos"].includes(estadoProg);
+            if (finalizado) {
+              this._renderInfo();
+              this._renderBotones();
+              detener();
+              setTimeout(() => {
+                this._ocultarProgresoRecontabilizacion();
+                this._refreshEstado();
+              }, 600);
+            }
           }
         } catch (err) {
           console.warn("No fue posible actualizar progreso:", err?.message);
         }
       };
       actualizar();
-      const timer = setInterval(actualizar, 800);
-      return () => {
-        activo = false;
-        clearInterval(timer);
-      };
+      timer = setInterval(actualizar, 800);
+      return detener;
     }
 
     async _handleGuardarCOI() {
@@ -2257,7 +2441,9 @@
       });
       if (!confirmado) return;
       this._mostrarProgresoRecontabilizacion();
-      const detenerProgreso = this._iniciarPollingProgresoRecontabilizacion(
+      this._detenerPollingProgresoRecontabilizacion();
+      this._progresoPollingBorradorId = String(this.state.borrador.id);
+      this._progresoPollingStop = this._iniciarPollingProgresoRecontabilizacion(
         this.state.borrador.id
       );
       let guardadoExitoso = false;
@@ -2270,24 +2456,37 @@
         const data = await resp.json().catch(() => ({}));
         if (!resp.ok)
           throw new Error(data.mensaje || "No fue posible guardar en COI.");
-        this.state.borrador = data.borrador || null;
-        this._renderInfo();
-        this._renderBotones();
         this._toast(data.mensaje || "Presupuesto guardado en COI.", "success");
         guardadoExitoso = true;
-        
+
+        // El backend elimina el borrador al guardar en COI; mantener el estado
+        // local consistente para que no sea necesario refrescar la app.
+        this._detenerPollingProgresoRecontabilizacion();
+        this.state.borrador = null;
+        this.state.progreso = null;
+        this._autoLoadedBorradorId = null;
+        this._exitEditMode(true);
+        FlujoAutorizacion.limpiarBorrador(this.tableElement);
+        this._notificarEstadoBorrador(null);
+        this._renderInfo();
+        this._renderBotones();
+        window.__workflowRefreshTimeline?.();
+         
         // Cerrar drawer de flujo al completar el guardado exitosamente
         setTimeout(() => {
           this._cerrarDrawerFlujo();
         }, 2000); // Esperar 2 segundos para que el usuario vea el mensaje
       } catch (error) {
         console.error("Guardar COI", error);
+        this.state.progreso = null;
+        this._renderInfo();
+        this._renderBotones();
         this._toast(
           error.message || "No fue posible guardar en COI.",
           "danger"
         );
       } finally {
-        if (detenerProgreso) detenerProgreso();
+        this._detenerPollingProgresoRecontabilizacion();
         if (guardadoExitoso) {
           this._actualizarProgresoRecontabilizacionUI({ porcentaje: 100 });
           setTimeout(() => {
@@ -2724,7 +2923,7 @@
         }
         if (body) {
           body.innerHTML =
-            '<tr><td colspan="5" class="text-center text-muted">Sin contexto seleccionado</td></tr>';
+            '<tr><td colspan="4" class="text-center text-muted">Sin contexto seleccionado</td></tr>';
         }
         return;
       }
@@ -2744,7 +2943,7 @@
       status.className = "alert alert-info";
       status.textContent = "Cargando borradores...";
       body.innerHTML =
-        '<tr><td colspan="5" class="text-center text-muted">Cargando...</td></tr>';
+        '<tr><td colspan="4" class="text-center text-muted">Cargando...</td></tr>';
       try {
         const moduloLimpio = this._sanitizarModulo(this.state.contexto.modulo);
         const capitulo = this._extraerCapitulo(this.state.contexto.modulo);
@@ -2776,7 +2975,7 @@
         status.textContent =
           error.message || "Error al consultar los borradores.";
         body.innerHTML =
-          '<tr><td colspan="5" class="text-center text-muted">Sin datos</td></tr>';
+          '<tr><td colspan="4" class="text-center text-muted">Sin datos</td></tr>';
       }
     }
 
@@ -3378,7 +3577,7 @@
 
     const vincularFiltros = (refsFiltros, filtros, onChange) => {
       if (!refsFiltros) return;
-      const { search, state, action, user, from, to } = refsFiltros;
+      const { search, state, action, user, from, to, clear } = refsFiltros;
       if (search)
         search.addEventListener("input", () => {
           filtros.buscar = search.value.trim();
@@ -3409,6 +3608,24 @@
           filtros.hasta = to.value;
           onChange();
         });
+      if (clear && clear.dataset.clearBound !== "1") {
+        clear.dataset.clearBound = "1";
+        clear.addEventListener("click", () => {
+          filtros.estado = "";
+          filtros.accion = "";
+          filtros.usuario = "";
+          filtros.buscar = "";
+          filtros.desde = "";
+          filtros.hasta = "";
+          if (search) search.value = "";
+          if (state) state.value = "";
+          if (action) action.value = "";
+          if (user) user.value = "";
+          if (from) from.value = "";
+          if (to) to.value = "";
+          onChange();
+        });
+      }
     };
 
     let workflowTimelineData = [];
@@ -3506,13 +3723,14 @@
           body: document.getElementById("draftsCenterBody"),
           history: {
             status: document.getElementById("draftsHistoryStatus"),
-            tbody: document.getElementById("draftHistoryTableBody"),
-            search: document.getElementById("draftHistorySearch"),
-            state: document.getElementById("draftHistoryState"),
-            action: document.getElementById("draftHistoryAction"),
-            user: document.getElementById("draftHistoryUser"),
-            from: document.getElementById("draftHistoryFrom"),
-            to: document.getElementById("draftHistoryTo"),
+            tbody: document.getElementById("draftsHistoryBody"),
+            search: document.getElementById("draftsHistorySearch"),
+            state: document.getElementById("draftsHistoryState"),
+            action: document.getElementById("draftsHistoryAction"),
+            user: null,
+            from: document.getElementById("draftsHistoryFrom"),
+            to: document.getElementById("draftsHistoryTo"),
+            clear: document.getElementById("draftsHistoryClear"),
           },
         };
         console.log('[DraftHistoryCenter] Referencias configuradas:', {
@@ -3533,6 +3751,14 @@
             );
           else cargarHistorial(refs.drafts.history, filtrosDraft);
         });
+
+        // Cargar historial al abrir el drawer (y evitar que el usuario tenga que refrescar).
+        if (draftsDrawer.dataset.historyRefreshBound !== "1") {
+          draftsDrawer.dataset.historyRefreshBound = "1";
+          draftsDrawer.addEventListener("show.bs.offcanvas", () => {
+            cargarHistorial(refs.drafts.history, filtrosDraft);
+          });
+        }
       }
 
       const workflowDrawer = document.getElementById("workflowDrawer");

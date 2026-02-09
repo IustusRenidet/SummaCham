@@ -44,6 +44,67 @@ const ETIQUETAS_ESTADO = {
 
 const progresoRecontabilizacion = new Map();
 const colaRecontabilizacion = new Map();
+const statsRecontabilizacion = new Map();
+const guardadoCoiEnCurso = new Map();
+
+const STATS_ALPHA = 0.25;
+const GLOBAL_STATS_KEY = "__GLOBAL__";
+
+const normalizarMs = (valor) => {
+  const ms = typeof valor === "number" ? valor : Date.parse(valor);
+  return Number.isFinite(ms) ? ms : null;
+};
+
+const actualizarStatsRecontabilizacion = (colaKey, muestra = {}) => {
+  const actualizarKey = (key) => {
+    if (!key) return;
+    const duracion = Number(muestra?.duracionMs);
+    if (!Number.isFinite(duracion) || duracion <= 0) return;
+
+    const previo = statsRecontabilizacion.get(key) || {
+      muestras: 0,
+      duracionPromedioMs: 0,
+      unidadesPromedio: 0,
+      msPorUnidadPromedio: 0,
+    };
+
+    const alpha = STATS_ALPHA;
+    const muestras = (previo.muestras || 0) + 1;
+    const duracionPromedioMs =
+      previo.muestras > 0
+        ? Math.round(previo.duracionPromedioMs * (1 - alpha) + duracion * alpha)
+        : Math.round(duracion);
+
+    let unidadesPromedio = previo.unidadesPromedio || 0;
+    let msPorUnidadPromedio = previo.msPorUnidadPromedio || 0;
+
+    const unidadesNum = Number(muestra?.unidades);
+    if (Number.isFinite(unidadesNum) && unidadesNum > 0) {
+      const msPorUnidad = duracion / unidadesNum;
+      unidadesPromedio =
+        previo.muestras > 0
+          ? Math.round(unidadesPromedio * (1 - alpha) + unidadesNum * alpha)
+          : Math.round(unidadesNum);
+      msPorUnidadPromedio =
+        previo.muestras > 0
+          ? Math.round(msPorUnidadPromedio * (1 - alpha) + msPorUnidad * alpha)
+          : Math.round(msPorUnidad);
+    }
+
+    statsRecontabilizacion.set(key, {
+      muestras,
+      duracionPromedioMs,
+      unidadesPromedio,
+      msPorUnidadPromedio,
+      actualizadoEn: new Date().toISOString(),
+    });
+  };
+
+  actualizarKey(colaKey);
+  if (colaKey !== GLOBAL_STATS_KEY) {
+    actualizarKey(GLOBAL_STATS_KEY);
+  }
+};
 
 const obtenerClaveCola = (empresaId, anio) =>
   `${empresaId || ""}-${Number(anio) || ""}`;
@@ -74,22 +135,40 @@ const encolarRecontabilizacion = ({ empresaId, anio, borradorId }, tarea) => {
   colaRecontabilizacion.set(clave, info);
 
   if (borradorId) {
+    const ahora = new Date().toISOString();
     actualizarProgresoRecontabilizacion(borradorId, {
       estado: "en-cola",
       posicion,
+      colaKey: clave,
+      empresaId: empresaId || null,
+      anio: Number(anio) || null,
+      enColaDesde: ahora,
     });
   }
 
   return { posicion, ejecucion };
 };
 
-const iniciarProgresoRecontabilizacion = (borradorId) => {
+const iniciarProgresoRecontabilizacion = (
+  borradorId,
+  { empresaId = null, anio = null } = {}
+) => {
   if (!borradorId) return;
+  const colaKey = empresaId && Number.isInteger(Number(anio))
+    ? obtenerClaveCola(empresaId, anio)
+    : null;
   progresoRecontabilizacion.set(String(borradorId), {
     estado: "iniciando",
     total: 0,
     actual: 0,
     porcentaje: 0,
+    colaKey,
+    empresaId: empresaId || null,
+    anio: Number.isInteger(Number(anio)) ? Number(anio) : null,
+    enColaDesde: null,
+    inicioTrabajo: null,
+    inicioRecontabilizacion: null,
+    finalizadoEn: null,
     actualizadoEn: new Date().toISOString(),
   });
 };
@@ -118,12 +197,128 @@ const actualizarProgresoRecontabilizacion = (borradorId, data = {}) => {
 
 const finalizarProgresoRecontabilizacion = (borradorId, estado = "completado") => {
   if (!borradorId) return;
-  actualizarProgresoRecontabilizacion(borradorId, { estado, porcentaje: 100 });
+  const clave = String(borradorId);
+  const previo = progresoRecontabilizacion.get(clave) || null;
+  const yaFinalizado = Boolean(previo?.finalizadoEn);
+  const finalizadoEn = new Date().toISOString();
+  actualizarProgresoRecontabilizacion(borradorId, {
+    estado,
+    porcentaje: 100,
+    finalizadoEn,
+  });
+
+  if (yaFinalizado || estado !== "completado") {
+    return;
+  }
+
+  const inicioTrabajoMs = normalizarMs(previo?.inicioTrabajo);
+  const finalizadoMs = normalizarMs(finalizadoEn);
+  const duracionMs =
+    inicioTrabajoMs != null && finalizadoMs != null
+      ? finalizadoMs - inicioTrabajoMs
+      : null;
+
+  if (
+    previo?.colaKey &&
+    Number.isFinite(duracionMs) &&
+    duracionMs > 0
+  ) {
+    actualizarStatsRecontabilizacion(previo.colaKey, {
+      duracionMs,
+      unidades: Number(previo.total) || null,
+    });
+  }
 };
 
 const obtenerProgresoRecontabilizacion = (borradorId) => {
   if (!borradorId) return null;
-  return progresoRecontabilizacion.get(String(borradorId)) || null;
+  const base = progresoRecontabilizacion.get(String(borradorId)) || null;
+  if (!base) return null;
+
+  const ahoraMs = Date.now();
+  const progreso = { ...base };
+  const colaKey =
+    progreso.colaKey ||
+    (progreso.empresaId && Number.isInteger(Number(progreso.anio))
+      ? obtenerClaveCola(progreso.empresaId, progreso.anio)
+      : null);
+  const stats =
+    (colaKey && statsRecontabilizacion.get(colaKey)) ||
+    statsRecontabilizacion.get(GLOBAL_STATS_KEY) ||
+    null;
+
+  if (progreso.estado === "en-cola") {
+    const enColaDesdeMs =
+      normalizarMs(progreso.enColaDesde) || normalizarMs(progreso.actualizadoEn);
+    if (enColaDesdeMs != null) {
+      progreso.tiempoEnColaMs = Math.max(0, ahoraMs - enColaDesdeMs);
+    }
+    const posicion = Number(progreso.posicion) || 1;
+    if (stats?.duracionPromedioMs && posicion > 1) {
+      progreso.esperaEstimadaMs = Math.max(
+        0,
+        Math.round((posicion - 1) * stats.duracionPromedioMs)
+      );
+      if (Number.isFinite(progreso.tiempoEnColaMs)) {
+        progreso.esperaRestanteMs = Math.max(
+          0,
+          progreso.esperaEstimadaMs - progreso.tiempoEnColaMs
+        );
+      }
+    }
+  }
+
+  if (progreso.estado === "guardando") {
+    const inicioMs =
+      normalizarMs(progreso.inicioTrabajo) || normalizarMs(progreso.actualizadoEn);
+    if (inicioMs != null) {
+      progreso.tiempoTranscurridoMs = Math.max(0, ahoraMs - inicioMs);
+    }
+    if (stats?.duracionPromedioMs && Number.isFinite(progreso.tiempoTranscurridoMs)) {
+      const restante = stats.duracionPromedioMs - progreso.tiempoTranscurridoMs;
+      progreso.restanteEstimadoMs = Math.max(0, Math.round(restante));
+    }
+  }
+
+  if (progreso.estado === "recontabilizando") {
+    const inicioMs =
+      normalizarMs(progreso.inicioRecontabilizacion) ||
+      normalizarMs(progreso.inicioTrabajo) ||
+      normalizarMs(progreso.actualizadoEn);
+    if (inicioMs != null) {
+      progreso.tiempoTranscurridoMs = Math.max(0, ahoraMs - inicioMs);
+    }
+    const total = Number(progreso.total) || 0;
+    const actual = Number(progreso.actual) || 0;
+    if (
+      total > 0 &&
+      actual > 0 &&
+      Number.isFinite(progreso.tiempoTranscurridoMs) &&
+      progreso.tiempoTranscurridoMs > 0
+    ) {
+      const msPorUnidad = progreso.tiempoTranscurridoMs / actual;
+      const restante = Math.max(0, total - actual) * msPorUnidad;
+      if (Number.isFinite(restante)) {
+        progreso.restanteEstimadoMs = Math.max(0, Math.round(restante));
+      }
+    } else if (total > 0 && actual === 0 && stats?.msPorUnidadPromedio) {
+      progreso.restanteEstimadoMs = Math.max(
+        0,
+        Math.round(total * stats.msPorUnidadPromedio)
+      );
+    }
+  }
+
+  if (stats) {
+    progreso.statsCola = {
+      muestras: stats.muestras,
+      duracionPromedioMs: stats.duracionPromedioMs,
+      unidadesPromedio: stats.unidadesPromedio,
+      msPorUnidadPromedio: stats.msPorUnidadPromedio,
+    };
+  }
+
+  return progreso;
 };
 
 const obtenerEtiquetaAccion = (clave) => {
@@ -184,6 +379,83 @@ const mapData = (texto) => {
   } catch (error) {
     return texto;
   }
+};
+
+const resumirCambiosBorrador = (datos) => {
+  let parsed = null;
+  try {
+    parsed = typeof datos === "string" ? JSON.parse(datos) : datos;
+  } catch (_) {
+    return "";
+  }
+
+  const presupuesto = Array.isArray(parsed?.presupuesto) ? parsed.presupuesto : [];
+  const tieneLayout = Boolean(parsed?.layout) || Array.isArray(parsed?.filas);
+
+  if (!presupuesto.length && !tieneLayout) {
+    return "";
+  }
+
+  let celdas = 0;
+  const meses = new Set();
+  const cuentasEjemplo = [];
+
+  for (const cambio of presupuesto) {
+    const cuenta = (cambio?.cuenta || "").toString().trim();
+    if (cuenta && cuentasEjemplo.length < 6 && !cuentasEjemplo.includes(cuenta)) {
+      cuentasEjemplo.push(cuenta);
+    }
+
+    const valores = cambio?.valores || {};
+    for (const clave of Object.keys(valores)) {
+      if (!clave.startsWith("budget-")) continue;
+      celdas += 1;
+      meses.add(clave.slice("budget-".length));
+    }
+  }
+
+  const ordenMeses = [
+    ["ene", "ENE"],
+    ["feb", "FEB"],
+    ["mar", "MAR"],
+    ["abr", "ABR"],
+    ["may", "MAY"],
+    ["jun", "JUN"],
+    ["jul", "JUL"],
+    ["ago", "AGO"],
+    ["sep", "SEP"],
+    ["oct", "OCT"],
+    ["nov", "NOV"],
+    ["dic", "DIC"],
+  ];
+  const mesesEtiqueta = ordenMeses
+    .filter(([mes]) => meses.has(mes))
+    .map(([, etiqueta]) => etiqueta);
+
+  const partes = [];
+  if (presupuesto.length) {
+    partes.push(
+      `${presupuesto.length} cuenta${presupuesto.length === 1 ? "" : "s"}`
+    );
+  }
+  if (celdas) {
+    partes.push(`${celdas} cambio${celdas === 1 ? "" : "s"}`);
+  }
+  if (mesesEtiqueta.length) {
+    partes.push(`meses: ${mesesEtiqueta.join(", ")}`);
+  }
+  if (tieneLayout) {
+    partes.push("layout");
+  }
+
+  let resumen = `Cambios: ${partes.join(" · ")}`;
+  if (cuentasEjemplo.length) {
+    resumen += ` · Ej.: ${cuentasEjemplo.join(", ")}${
+      presupuesto.length > cuentasEjemplo.length ? "…" : ""
+    }`;
+  }
+
+  return resumen.length > 900 ? `${resumen.slice(0, 900)}…` : resumen;
 };
 
 const normalizarContexto = (contexto) => {
@@ -469,21 +741,12 @@ const obtenerFiltrosHistorial = ({ empresaId, modulo, anio } = {}) => {
   return filtros;
 };
 
-const  persistirEnFirebird = async (borrador) => {
-  // 1. Guardar registro en SQLite (para historial)
-  registrarPresupuestoGuardado({
-    empresaId: borrador.empresaId,
-    modulo: borrador.modulo,
-    anio: borrador.anio,
-    datos: borrador.data,
-    guardadoPor: Number(borrador.usuarioId) || null,
-  });
+const persistirEnFirebird = async (borrador) => {
+  // 1. Guardar LAYOUT (estructura de tabla: cuentas/descripciones/filas) en layout_cuentas (SQLite)
+  const { guardarLayout } = require("./layoutsService");
 
-  // 2. Guardar LAYOUT (estructura de tabla: cuentas/descripciones/filas) en layout_cuentas (SQLite)
-  const { guardarLayout } = require('./layoutsService');
-  
-  // 3. Guardar en Firebird PRESUP table (solo valores numéricos)
-  const { ejecutarConsulta } = require("./firebirdService");
+  // 2. Guardar en Firebird PRESUP table (solo valores numéricos)
+  const { ejecutarLote } = require("./firebirdService");
 
   let datos;
   try {
@@ -551,7 +814,7 @@ const  persistirEnFirebird = async (borrador) => {
 
   // ✅ MEJORA: Registrar intent de guardar
   console.log(
-    `📝 Persistencia en Firebird: ${presupuesto.length} cuentas → ${tablaPresup} ` +
+    `📝 Persistencia en Firebird: ${presupuesto.length} cambios → ${tablaPresup} ` +
       `(empresa: ${borrador.empresaId}, módulo: ${borrador.modulo})`
   );
 
@@ -571,8 +834,7 @@ const  persistirEnFirebird = async (borrador) => {
     "budget-dic": "PRESUP12",
   };
 
-  let contadorExitosas = 0;
-  let contadorErrores = 0;
+  let contadorOmitidas = 0;
   const presupuestosEditados = new Map();
   let manualBaseMap = null;
 
@@ -594,7 +856,7 @@ const  persistirEnFirebird = async (borrador) => {
 
     if (!cuenta) {
       console.warn(`⚠️ Cambio sin número de cuenta, ignorando`);
-      contadorErrores++;
+      contadorOmitidas++;
       continue;
     }
 
@@ -618,7 +880,7 @@ const  persistirEnFirebird = async (borrador) => {
 
     if (!columnasVariables.length) {
       console.warn(`⚠️ Cuenta ${cuenta} sin valores numéricos`);
-      contadorErrores++;
+      contadorOmitidas++;
       continue;
     }
 
@@ -627,34 +889,77 @@ const  persistirEnFirebird = async (borrador) => {
       registroEditado[columna] = valoresVariables[index];
     });
     presupuestosEditados.set(cuenta, registroEditado);
-
-    const columnas = ["NUM_CTA", "EJERCICIO", ...columnasVariables];
-    const parametros = [cuenta, anio, ...valoresVariables];
-    const placeholders = columnas.map(() => "?").join(", ");
-
-    // Firebird permite UPSERT con MATCHING; no perdemos registros nuevos.
-    const upsertQuery = `
-      UPDATE OR INSERT INTO ${tablaPresup} (${columnas.join(", ")})
-      VALUES (${placeholders})
-      MATCHING (NUM_CTA, EJERCICIO)
-    `;
-
-    try {
-      await ejecutarConsulta(borrador.empresaId, upsertQuery, parametros);
-      contadorExitosas++;
-    } catch (error) {
-      console.error(
-        `❌ Error al guardar cuenta ${cuenta} en ${tablaPresup}:`,
-        error.message
-      );
-      contadorErrores++;
-      // No lanzar - continuar con otras cuentas para no perder todo
-    }
   }
 
+  const COLUMNAS_PRESUP = Object.values(MESES_COLUMNAS);
+  const ensureQuery = `
+    INSERT INTO ${tablaPresup} (NUM_CTA, EJERCICIO, ${COLUMNAS_PRESUP.join(", ")})
+    SELECT ?, ?, ${COLUMNAS_PRESUP.map(() => "0").join(", ")}
+    FROM RDB$DATABASE
+    WHERE NOT EXISTS (
+      SELECT 1
+      FROM ${tablaPresup}
+      WHERE NUM_CTA = ? AND EJERCICIO = ?
+    )
+  `;
+
+  const indiceOrden = new Map(COLUMNAS_PRESUP.map((col, idx) => [col, idx]));
+  const ordenarColumnas = (cols) =>
+    (cols || []).slice().sort((a, b) => {
+      const ia = indiceOrden.has(a) ? indiceOrden.get(a) : 999;
+      const ib = indiceOrden.has(b) ? indiceOrden.get(b) : 999;
+      if (ia !== ib) return ia - ib;
+      return String(a).localeCompare(String(b));
+    });
+
+  const operaciones = [];
+  for (const [cuenta, registroEditado] of presupuestosEditados.entries()) {
+    const columnas = ordenarColumnas(Object.keys(registroEditado || {}));
+    if (!columnas.length) continue;
+
+    operaciones.push({
+      consulta: ensureQuery,
+      parametros: [cuenta, anio, cuenta, anio],
+      meta: { cuenta },
+    });
+
+    const setClause = columnas.map((col) => `${col} = ?`).join(", ");
+    const updateQuery = `
+      UPDATE ${tablaPresup}
+      SET ${setClause}
+      WHERE NUM_CTA = ? AND EJERCICIO = ?
+    `;
+    const valoresUpdate = columnas.map((col) => registroEditado[col]);
+    operaciones.push({
+      consulta: updateQuery,
+      parametros: [...valoresUpdate, cuenta, anio],
+      meta: { cuenta },
+    });
+  }
+
+  if (!operaciones.length) {
+    console.warn(
+      `⚠️ No hay operaciones numéricas que persistir en ${tablaPresup} (borrador ${borrador.id})`
+    );
+    return;
+  }
+
+  await ejecutarLote(borrador.empresaId, operaciones);
+
   console.log(
-    `✅ Persistencia completada: ${contadorExitosas} cuentas exitosas, ${contadorErrores} errores`
+    `✅ Persistencia completada: ${presupuestosEditados.size} cuentas actualizadas${
+      contadorOmitidas ? `, ${contadorOmitidas} omitidas` : ""
+    }`
   );
+
+  // Guardar snapshot en SQLite SOLO si Firebird terminó correctamente
+  registrarPresupuestoGuardado({
+    empresaId: borrador.empresaId,
+    modulo: borrador.modulo,
+    anio: borrador.anio,
+    datos: borrador.data,
+    guardadoPor: Number(borrador.usuarioId) || null,
+  });
 
   // ✅ PASO 3: Actualizar cuentas padre (acumulativas) con la suma de sus cuentas hijas
   try {
@@ -805,6 +1110,7 @@ const actualizarCuentasPadre = async (
     estado: "recontabilizando",
     total: cuentasPadre.length,
     actual: 0,
+    inicioRecontabilizacion: new Date().toISOString(),
   });
   
   // Procesar de nivel más profundo a más superficial para calcular correctamente la jerarquía
@@ -1059,6 +1365,7 @@ const guardarBorrador = (contexto, datos) => {
   const cfg = normalizarContexto(contexto);
   const contenido =
     typeof datos === "string" ? datos : JSON.stringify(datos || {});
+  const resumenCambios = resumirCambiosBorrador(datos);
   const existente = db
     .prepare(
       `
@@ -1087,6 +1394,7 @@ const guardarBorrador = (contexto, datos) => {
       estado: actualizado.estado,
       accion: HISTORIAL_ACCIONES.GUARDAR_BORRADOR.clave,
       descripcion: "Guardó cambios para continuar editando",
+      comentarios: resumenCambios,
       usuarioId: cfg.usuarioId,
     });
     return actualizado;
@@ -1120,6 +1428,7 @@ const guardarBorrador = (contexto, datos) => {
     estado: nuevo.estado,
     accion: HISTORIAL_ACCIONES.GUARDAR_BORRADOR.clave,
     descripcion: "Creó un nuevo borrador",
+    comentarios: resumenCambios,
     usuarioId: cfg.usuarioId,
   });
   return nuevo;
@@ -1273,60 +1582,103 @@ const rechazarBorrador = (borradorId, motivo, usuarioId) => {
 };
 
 const guardarAutorizado = async (borradorId, usuarioId) => {
-  const borrador = obtenerBorradorPorId(borradorId);
-  if (!borrador) {
-    throw new Error("Borrador no encontrado.");
+  const key = String(borradorId);
+  const existente = guardadoCoiEnCurso.get(key);
+  if (existente) {
+    return await existente;
   }
-  if (borrador.estado !== ESTADOS.APROBADO) {
-    throw new Error("El borrador debe estar autorizado antes de guardar.");
-  }
-  iniciarProgresoRecontabilizacion(borradorId);
-  const finalizador = obtenerFinalizador(borrador.modulo);
-  const tarea = async () => {
-    actualizarProgresoRecontabilizacion(borradorId, { estado: "recontabilizando" });
-    try {
-      if (finalizador) {
-        await finalizador(borrador);
-      }
-      finalizarProgresoRecontabilizacion(borradorId, "completado");
-    } catch (error) {
-      finalizarProgresoRecontabilizacion(borradorId, "error");
-      throw error;
+
+  const operacion = (async () => {
+    const borrador = obtenerBorradorPorId(borradorId);
+    if (!borrador) {
+      throw new Error("Borrador no encontrado.");
     }
-  };
-  const { ejecucion } = encolarRecontabilizacion(
-    { empresaId: borrador.empresaId, anio: borrador.anio, borradorId },
-    tarea
-  );
-  await ejecucion;
-  db.prepare(
+    if (borrador.estado !== ESTADOS.APROBADO) {
+      throw new Error("El borrador debe estar autorizado antes de guardar.");
+    }
+    const resumenCambios = resumirCambiosBorrador(borrador.data);
+    iniciarProgresoRecontabilizacion(borradorId, {
+      empresaId: borrador.empresaId,
+      anio: borrador.anio,
+    });
+    const finalizador = obtenerFinalizador(borrador.modulo);
+    const tarea = async () => {
+      actualizarProgresoRecontabilizacion(borradorId, {
+        estado: "guardando",
+        inicioTrabajo: new Date().toISOString(),
+        total: 0,
+        actual: 0,
+        porcentaje: 0,
+      });
+      try {
+        if (finalizador) {
+          await finalizador(borrador);
+        }
+        finalizarProgresoRecontabilizacion(borradorId, "completado");
+      } catch (error) {
+        actualizarProgresoRecontabilizacion(borradorId, {
+          estado: "error",
+          errorMensaje:
+            error?.message || "No fue posible completar la operación.",
+        });
+        finalizarProgresoRecontabilizacion(borradorId, "error");
+        throw error;
+      }
+    };
+    const { ejecucion } = encolarRecontabilizacion(
+      { empresaId: borrador.empresaId, anio: borrador.anio, borradorId },
+      tarea
+    );
+    await ejecucion;
+    db.prepare(
+      `
+      UPDATE PLAN_BORRADORES
+      SET estado = ?, fechaEnvio = CURRENT_TIMESTAMP
+      WHERE id = ?
     `
-    UPDATE PLAN_BORRADORES
-    SET estado = ?, fechaEnvio = CURRENT_TIMESTAMP
-    WHERE id = ?
-  `
-  ).run(ESTADOS.GUARDADO, borradorId);
-  const actualizado = obtenerBorradorPorId(borradorId);
-  registrarEventoHistorial({
-    borradorId,
-    empresaId: actualizado.empresaId,
-    modulo: actualizado.modulo,
-    anio: actualizado.anio,
-    capitulo: actualizado.capitulo,
-    estado: actualizado.estado,
-    accion: HISTORIAL_ACCIONES.GUARDAR_COI.clave,
-    descripcion: "Guardó la versión autorizada en COI",
-    usuarioId,
-  });
-  // Remove the draft from the table as it was persisted in COI
+    ).run(ESTADOS.GUARDADO, borradorId);
+    const actualizado = obtenerBorradorPorId(borradorId);
+    if (actualizado) {
+      registrarEventoHistorial({
+        borradorId,
+        empresaId: actualizado.empresaId,
+        modulo: actualizado.modulo,
+        anio: actualizado.anio,
+        capitulo: actualizado.capitulo,
+        estado: actualizado.estado,
+        accion: HISTORIAL_ACCIONES.GUARDAR_COI.clave,
+        descripcion: "Guardó la versión autorizada en COI",
+        comentarios: resumenCambios,
+        usuarioId,
+      });
+    } else {
+      console.warn(
+        "No fue posible registrar historial tras guardado en COI: borrador ya no existe.",
+        { borradorId }
+      );
+    }
+    // Remove the draft from the table as it was persisted in COI
+    try {
+      db.prepare(`DELETE FROM PLAN_BORRADORES WHERE id = ?`).run(borradorId);
+    } catch (err) {
+      console.warn("No fue posible eliminar borrador tras guardado en COI:", err);
+    }
+    // Return a snapshot-like response to the client (the object with estado = GUARDADO)
+    const snapshot = {
+      ...(actualizado || { ...borrador, estado: ESTADOS.GUARDADO }),
+      eliminado: true,
+    };
+    return snapshot;
+  })();
+
+  guardadoCoiEnCurso.set(key, operacion);
   try {
-    db.prepare(`DELETE FROM PLAN_BORRADORES WHERE id = ?`).run(borradorId);
-  } catch (err) {
-    console.warn('No fue posible eliminar borrador tras guardado en COI:', err);
+    return await operacion;
+  } finally {
+    if (guardadoCoiEnCurso.get(key) === operacion) {
+      guardadoCoiEnCurso.delete(key);
+    }
   }
-  // Return a snapshot-like response to the client (the object with estado = GUARDADO)
-  const snapshot = { ...actualizado, eliminado: true };
-  return snapshot;
 };
 
 /**

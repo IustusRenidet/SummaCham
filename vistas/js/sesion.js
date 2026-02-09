@@ -1,4 +1,47 @@
 (() => {
+  try {
+    if (typeof window === 'undefined' || !window.console) return;
+    const consoleRef = window.console;
+    if (consoleRef.__panelamchamConsoleControl) return;
+    consoleRef.__panelamchamConsoleControl = true;
+
+    const params = new URLSearchParams(window.location.search || '');
+    const localDebug = (() => {
+      try {
+        const raw =
+          localStorage.getItem('panelamcham:debug') ||
+          localStorage.getItem('panelamcham_debug') ||
+          localStorage.getItem('PANELAMCHAM_DEBUG');
+        return raw === '1' || raw === 'true';
+      } catch (_) {
+        return false;
+      }
+    })();
+
+    const debugEnabled =
+      window.PANELAMCHAM_DEBUG === true ||
+      params.get('debug') === '1' ||
+      params.get('console') === 'debug' ||
+      localDebug;
+
+    if (debugEnabled) return;
+
+    consoleRef.__panelamchamOriginal = consoleRef.__panelamchamOriginal || {
+      log: consoleRef.log?.bind(consoleRef),
+      info: consoleRef.info?.bind(consoleRef),
+      debug: consoleRef.debug?.bind(consoleRef),
+    };
+
+    const noop = () => {};
+    consoleRef.log = noop;
+    consoleRef.info = noop;
+    consoleRef.debug = noop;
+  } catch (_) {
+    // ignore
+  }
+})();
+
+(() => {
   const STORAGE_KEY = 'sesionUsuario';
   const REDIRECCION_POR_DEFECTO = 'login.html';
   const ID_ENLACE_ADMIN = 'navAdministrarUsuarios';
