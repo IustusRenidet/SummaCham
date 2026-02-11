@@ -6,7 +6,8 @@
       "Bash(xargs basename:*)",
       "Read(//c/Users/**)",
       "Bash(wc:*)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(python scripts/generar-presentacion-expandida.py:*)"
     ]
   }
 }

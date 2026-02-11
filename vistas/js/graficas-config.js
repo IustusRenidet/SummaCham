@@ -1,5 +1,6 @@
 (() => {
-  const STORAGE_KEY = "graficas_config_v1";
+  const STORAGE_KEY_BASE = "graficas_config_v2";
+  const LEGACY_STORAGE_KEY = "graficas_config_v1";
   const API_BASE = (() => {
     if (window.location.protocol === "file:") {
       return "http://localhost:3005/api";
@@ -1172,42 +1173,127 @@
     return {};
   };
 
-  const dispatchConfigUpdate = (config, source) => {
+  const dispatchConfigUpdate = (config, source, meta = {}) => {
     if (typeof window === "undefined") return;
     window.dispatchEvent(
       new CustomEvent(EVENT_CONFIG_UPDATED, {
         detail: {
           config: clone(config),
           source,
+          empresaId: meta?.empresaId || null,
+          anio: meta?.anio ?? null,
         },
       })
     );
   };
 
-  let cachedConfig = null;
-  let loadedFromServer = false;
-  let loadingPromise = null;
-
-  const loadLocalConfig = () => {
+  const resolveEmpresaId = (override) => {
+    if (override) return String(override);
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return null;
-      return normalizeConfig(JSON.parse(raw));
-    } catch (error) {
-      return null;
+      const fromSesion = window.Sesion?.obtenerEmpresaActiva?.()?.id;
+      if (fromSesion) return String(fromSesion);
+    } catch (_) {
+      // ignore
     }
+    try {
+      const params = new URLSearchParams(window.location.search || "");
+      const fromUrl =
+        params.get("empresa") || params.get("empresaId") || params.get("empresa_id");
+      if (fromUrl) return String(fromUrl);
+    } catch (_) {
+      // ignore
+    }
+    return "EMPRESA01";
   };
 
-  const persistLocalConfig = (config) => {
+  const resolveAnio = (override) => {
+    const parsedOverride = Number(override);
+    if (Number.isInteger(parsedOverride)) return parsedOverride;
+
+    const select = document.getElementById("anioSelect");
+    const parsedSelect = Number(select?.value);
+    if (Number.isInteger(parsedSelect)) return parsedSelect;
+
+    const label = document.getElementById("anioLabel")?.textContent || "";
+    const parsedLabel = Number(label);
+    if (Number.isInteger(parsedLabel)) return parsedLabel;
+
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
-    } catch (error) {
+      const ctx = window.Sesion?.obtenerContextoPlaneacion?.() || {};
+      const ctxYear = Number(ctx?.anio);
+      if (Number.isInteger(ctxYear)) return ctxYear;
+    } catch (_) {
+      // ignore
+    }
+
+    try {
+      const params = new URLSearchParams(window.location.search || "");
+      const yearFromUrl = Number(params.get("year"));
+      if (Number.isInteger(yearFromUrl)) return yearFromUrl;
+    } catch (_) {
+      // ignore
+    }
+
+    return new Date().getFullYear();
+  };
+
+  const resolveContext = (overrides = {}) => {
+    const empresaId = resolveEmpresaId(overrides.empresaId || overrides.empresa);
+    const anio = resolveAnio(overrides.anio ?? overrides.year);
+    return { empresaId, anio };
+  };
+
+  const buildContextKey = (ctx) => `${ctx.empresaId}:${ctx.anio}`;
+  const buildStorageKey = (ctx) =>
+    `${STORAGE_KEY_BASE}:${ctx.empresaId}:${ctx.anio}`;
+
+  const loadLocalConfig = (ctx) => {
+    const storageKey = buildStorageKey(ctx);
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (raw) {
+        return normalizeConfig(JSON.parse(raw));
+      }
+    } catch (_) {
+      // ignore
+    }
+
+    // Migración: si existía el storage legacy sin año, úsalo como punto de partida.
+    try {
+      const legacyRaw = localStorage.getItem(LEGACY_STORAGE_KEY);
+      if (!legacyRaw) return null;
+      const parsed = normalizeConfig(JSON.parse(legacyRaw));
+      if (parsed) {
+        persistLocalConfig(ctx, parsed);
+        return parsed;
+      }
+    } catch (_) {
+      // ignore
+    }
+
+    return null;
+  };
+
+  const persistLocalConfig = (ctx, config) => {
+    const storageKey = buildStorageKey(ctx);
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(config));
+    } catch (_) {
       /* ignore */
     }
   };
 
-  const fetchServerConfig = async () => {
-    const response = await fetch(API_ENDPOINT, {
+  const buildEndpointUrl = (ctx) => {
+    const params = new URLSearchParams();
+    if (ctx?.anio != null) {
+      params.set("anio", String(ctx.anio));
+    }
+    const qs = params.toString();
+    return qs ? `${API_ENDPOINT}?${qs}` : API_ENDPOINT;
+  };
+
+  const fetchServerConfig = async (ctx) => {
+    const response = await fetch(buildEndpointUrl(ctx), {
       method: "GET",
       headers: obtenerHeadersAuth(),
       credentials: "include",
@@ -1223,15 +1309,15 @@
     return normalizeConfig(payload.config);
   };
 
-  const saveServerConfig = async (config) => {
-    const response = await fetch(API_ENDPOINT, {
+  const saveServerConfig = async (ctx, config) => {
+    const response = await fetch(buildEndpointUrl(ctx), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         ...obtenerHeadersAuth(),
       },
       credentials: "include",
-      body: JSON.stringify({ config }),
+      body: JSON.stringify({ config, anio: ctx?.anio }),
     });
     if (response.status === 404) {
       return null;
@@ -1244,8 +1330,8 @@
     return normalizeConfig(payload.config);
   };
 
-  const resetServerConfig = async () => {
-    const response = await fetch(API_ENDPOINT, {
+  const resetServerConfig = async (ctx) => {
+    const response = await fetch(buildEndpointUrl(ctx), {
       method: "DELETE",
       headers: obtenerHeadersAuth(),
       credentials: "include",
@@ -1258,86 +1344,115 @@
     }
   };
 
-  const hydrateConfigFromServer = () => {
-    if (loadedFromServer) return;
-    loadedFromServer = true;
-    loadingPromise = fetchServerConfig()
+  const contextState = new Map(); // contextKey -> { cachedConfig, loadedFromServer, loadingPromise }
+
+  const getContextEntry = (ctx) => {
+    const key = buildContextKey(ctx);
+    if (!contextState.has(key)) {
+      contextState.set(key, {
+        cachedConfig: null,
+        loadedFromServer: false,
+        loadingPromise: null,
+      });
+    }
+    return contextState.get(key);
+  };
+
+  const hydrateConfigFromServer = (ctx) => {
+    const entry = getContextEntry(ctx);
+    if (entry.loadedFromServer) return;
+    entry.loadedFromServer = true;
+    entry.loadingPromise = fetchServerConfig(ctx)
       .then((serverConfig) => {
         if (!serverConfig) return;
-        cachedConfig = clone(serverConfig);
-        persistLocalConfig(cachedConfig);
-        dispatchConfigUpdate(cachedConfig, "server");
+        entry.cachedConfig = clone(serverConfig);
+        persistLocalConfig(ctx, entry.cachedConfig);
+        dispatchConfigUpdate(entry.cachedConfig, "server", ctx);
       })
       .catch((error) => {
         console.warn("GraficasConfig: sin respuesta del servidor.", error);
       })
       .finally(() => {
-        loadingPromise = null;
+        entry.loadingPromise = null;
       });
   };
 
-  const loadConfig = () => {
-    if (!cachedConfig) {
-      const localConfig = loadLocalConfig();
-      cachedConfig = localConfig ? clone(localConfig) : clone(DEFAULT_CONFIG);
-      persistLocalConfig(cachedConfig);
-      hydrateConfigFromServer();
+  const loadConfig = (overrides = {}) => {
+    const ctx = resolveContext(overrides);
+    const entry = getContextEntry(ctx);
+    if (!entry.cachedConfig) {
+      const localConfig = loadLocalConfig(ctx);
+      entry.cachedConfig = localConfig ? clone(localConfig) : clone(DEFAULT_CONFIG);
+      persistLocalConfig(ctx, entry.cachedConfig);
+      hydrateConfigFromServer(ctx);
+    } else {
+      hydrateConfigFromServer(ctx);
     }
-    return clone(cachedConfig);
+    return clone(entry.cachedConfig);
   };
 
-  const saveConfig = (config) => {
+  const saveConfig = (config, overrides = {}) => {
+    const ctx = resolveContext(overrides);
+    const entry = getContextEntry(ctx);
     const normalized = normalizeConfig(config);
-    cachedConfig = clone(normalized);
-    persistLocalConfig(cachedConfig);
-    dispatchConfigUpdate(cachedConfig, "local");
-    saveServerConfig(normalized)
+    entry.cachedConfig = clone(normalized);
+    persistLocalConfig(ctx, entry.cachedConfig);
+    dispatchConfigUpdate(entry.cachedConfig, "local", ctx);
+
+    saveServerConfig(ctx, normalized)
       .then((serverConfig) => {
         if (!serverConfig) return;
-        cachedConfig = clone(serverConfig);
-        persistLocalConfig(cachedConfig);
-        dispatchConfigUpdate(cachedConfig, "server");
+        entry.cachedConfig = clone(serverConfig);
+        persistLocalConfig(ctx, entry.cachedConfig);
+        dispatchConfigUpdate(entry.cachedConfig, "server", ctx);
       })
       .catch((error) => {
         console.warn("GraficasConfig: no se pudo guardar en servidor.", error);
       });
-    return clone(cachedConfig);
+
+    return clone(entry.cachedConfig);
   };
 
-  const resetConfig = () => {
-    cachedConfig = clone(DEFAULT_CONFIG);
+  const resetConfig = (overrides = {}) => {
+    const ctx = resolveContext(overrides);
+    const entry = getContextEntry(ctx);
+    entry.cachedConfig = clone(DEFAULT_CONFIG);
     try {
-      localStorage.removeItem(STORAGE_KEY);
-    } catch (error) {
+      localStorage.removeItem(buildStorageKey(ctx));
+    } catch (_) {
       /* ignore */
     }
-    dispatchConfigUpdate(cachedConfig, "local");
-    resetServerConfig()
+    dispatchConfigUpdate(entry.cachedConfig, "local", ctx);
+    resetServerConfig(ctx)
       .then(() => {
-        dispatchConfigUpdate(cachedConfig, "server");
+        dispatchConfigUpdate(entry.cachedConfig, "server", ctx);
       })
       .catch((error) => {
         console.warn("GraficasConfig: no se pudo restaurar en servidor.", error);
       });
-    return clone(cachedConfig);
+    return clone(entry.cachedConfig);
   };
 
-  const hasSaved = () => {
+  const hasSaved = (overrides = {}) => {
+    const ctx = resolveContext(overrides);
     try {
-      return Boolean(localStorage.getItem(STORAGE_KEY));
-    } catch (error) {
+      return Boolean(localStorage.getItem(buildStorageKey(ctx)));
+    } catch (_) {
       return false;
     }
   };
 
   window.GraficasConfig = {
-    storageKey: STORAGE_KEY,
+    storageKey: STORAGE_KEY_BASE,
+    legacyStorageKey: LEGACY_STORAGE_KEY,
     defaults: clone(DEFAULT_CONFIG),
     load: loadConfig,
     save: saveConfig,
     reset: resetConfig,
     normalize: normalizeConfig,
     hasSaved,
+    resolveContext,
+    buildStorageKey: (overrides = {}) => buildStorageKey(resolveContext(overrides)),
   };
 
   const form = document.getElementById("graficasConfigForm");

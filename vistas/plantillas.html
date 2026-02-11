@@ -52,7 +52,7 @@
       </div>
 
       <!-- Selectores de Contexto -->
-      <div class="row mb-3">
+      <div class="row mb-3 plantillas-context-sticky" id="plantillasContextBar">
         <div class="col-md-3 col-sm-6 mb-2">
           <label
             for="moduloSelect"
@@ -104,7 +104,7 @@
       </div>
 
       <!-- Toolbar y Botones de Acción -->
-      <div class="row mb-3">
+      <div class="row mb-3 plantillas-actions-sticky" id="plantillasActionBar">
         <div class="col-12">
           <div class="card table-card fade-in">
             <div class="card-body p-3">
@@ -248,6 +248,15 @@
                   disabled
                 >
                   <i class="bi bi-save me-1"></i> Guardar
+                </button>
+                <button
+                  type="button"
+                  id="btnHistorialVersiones"
+                  class="btn btn-outline-secondary"
+                  disabled
+                  title="Historial de versiones (deshacer/restaurar)"
+                >
+                  <i class="bi bi-clock-history me-1"></i> Historial
                 </button>
               </div>
             </div>
@@ -3494,10 +3503,10 @@
     <script src="js/layout-controls.js"></script>
     <script src="js/operation-sync.js"></script>
     <script src="js/operation-debugger.js"></script>
-    <script src="js/plantillas-reordenar.js"></script>
+    <script src="js/plantillas-reordenar.js?v=20260210180000"></script>
     <script src="js/importar-estructura-resumen.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-    <script src="js/graficas-config.js"></script>
+    <script src="js/graficas-config.js?v=20260210180000"></script>
 
     <!-- Editor de Graficas Inline -->
     <script>
@@ -3813,6 +3822,29 @@
           };
         };
 
+        const normalizeModuleMatch = (value = "") =>
+          value
+            .toString()
+            .trim()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .toUpperCase();
+
+        const syncTopModuleSelect = (preferredValue) => {
+          const topSelect = document.getElementById("moduloSelect");
+          if (!topSelect?.options?.length) return;
+          const desiredKey = normalizeModuleMatch(preferredValue || "");
+          if (!desiredKey) return;
+          const currentKey = normalizeModuleMatch(topSelect.value || "");
+          if (desiredKey === currentKey) return;
+          const match = Array.from(topSelect.options).find(
+            (opt) => normalizeModuleMatch(opt?.value || "") === desiredKey,
+          );
+          if (!match) return;
+          topSelect.value = match.value;
+          topSelect.dispatchEvent(new Event("change", { bubbles: true }));
+        };
+
         const setModuleSelectValue = (selectedValue) => {
           if (!moduleSelectInput) return "";
           const options = getModuleOptions();
@@ -3824,7 +3856,18 @@
             moduleSelectInput.appendChild(node);
           });
           const preferred = (selectedValue || "").toString().trim();
-          if (preferred && options.some((option) => option.value === preferred)) {
+          const preferredKey = normalizeModuleMatch(preferred);
+          const normalizedMatch = preferredKey
+            ? options.find(
+                (option) =>
+                  normalizeModuleMatch(option.value) === preferredKey ||
+                  normalizeModuleMatch(option.label) === preferredKey,
+              )
+            : null;
+
+          if (normalizedMatch?.value) {
+            moduleSelectInput.value = normalizedMatch.value;
+          } else if (preferred && options.some((option) => option.value === preferred)) {
             moduleSelectInput.value = preferred;
           } else if (options.length) {
             moduleSelectInput.value = options[0].value;
@@ -4032,6 +4075,69 @@
           if (!seriesChecksContainer) return;
           seriesChecksContainer.innerHTML = "";
 
+          let bulkStatus = null;
+          let selectAllBtn = null;
+          let deselectAllBtn = null;
+
+          const getSeriesCheckboxes = () =>
+            Array.from(
+              seriesChecksContainer.querySelectorAll(
+                'input[type="checkbox"][data-series-checkbox="true"]',
+              ),
+            );
+
+          const updateBulkUi = () => {
+            if (!bulkStatus || !selectAllBtn || !deselectAllBtn) return;
+            const boxes = getSeriesCheckboxes();
+            const total = boxes.length;
+            const selected = boxes.filter((box) => box.checked).length;
+            bulkStatus.textContent = `${selected} / ${total} columnas seleccionadas`;
+            selectAllBtn.disabled = total === 0 || selected === total;
+            deselectAllBtn.disabled = total === 0 || selected === 0;
+          };
+
+          const applyBulk = (checked) => {
+            getSeriesCheckboxes().forEach((box) => {
+              box.checked = checked;
+            });
+            renderSeriesConfigRows();
+            clearValidationState();
+            updatePreview();
+            updateExtractionSummary();
+            updateBulkUi();
+          };
+
+          if (availableSeries.length > 0) {
+            const bulkRow = document.createElement("div");
+            bulkRow.className =
+              "d-flex align-items-center justify-content-between gap-2 mb-2 flex-wrap";
+
+            bulkStatus = document.createElement("div");
+            bulkStatus.className = "text-muted small";
+
+            const btnGroup = document.createElement("div");
+            btnGroup.className = "btn-group btn-group-sm";
+
+            selectAllBtn = document.createElement("button");
+            selectAllBtn.type = "button";
+            selectAllBtn.className = "btn btn-outline-primary";
+            selectAllBtn.textContent = "Seleccionar todo";
+            selectAllBtn.addEventListener("click", () => applyBulk(true));
+
+            deselectAllBtn = document.createElement("button");
+            deselectAllBtn.type = "button";
+            deselectAllBtn.className = "btn btn-outline-secondary";
+            deselectAllBtn.textContent = "Deseleccionar todo";
+            deselectAllBtn.addEventListener("click", () => applyBulk(false));
+
+            btnGroup.appendChild(selectAllBtn);
+            btnGroup.appendChild(deselectAllBtn);
+
+            bulkRow.appendChild(bulkStatus);
+            bulkRow.appendChild(btnGroup);
+            seriesChecksContainer.appendChild(bulkRow);
+          }
+
           availableSeries.forEach((serie) => {
             const wrapper = document.createElement("div");
             wrapper.className = "form-check";
@@ -4039,6 +4145,7 @@
             const checkbox = document.createElement("input");
             checkbox.className = "form-check-input";
             checkbox.type = "checkbox";
+            checkbox.setAttribute("data-series-checkbox", "true");
             checkbox.id = `chartEditorSerie_${serie.key}`;
             checkbox.value = serie.key;
             checkbox.checked =
@@ -4048,6 +4155,7 @@
               clearValidationState();
               updatePreview();
               updateExtractionSummary();
+              updateBulkUi();
             });
 
             const label = document.createElement("label");
@@ -4066,6 +4174,7 @@
             empty.textContent = "No hay columnas configuradas para este modulo.";
             seriesChecksContainer.appendChild(empty);
           }
+          updateBulkUi();
           updateExtractionSummary();
         };
 
@@ -4215,6 +4324,28 @@
           return `${label}${head}${extra}`;
         };
 
+        let lastModuleSyncKey = "";
+        const syncModuloSuperior = (desiredModule) => {
+          const desiredKey = normalizeModuleKey(desiredModule || "");
+          if (!desiredKey) return false;
+          const topSelect = document.getElementById("moduloSelect");
+          if (!topSelect) return false;
+          const currentKey = normalizeModuleKey(topSelect.value || "");
+          if (currentKey && currentKey === desiredKey) {
+            lastModuleSyncKey = "";
+            return false;
+          }
+          // Evitar loops si todavía no terminó de cargar el layout del módulo.
+          if (lastModuleSyncKey === desiredKey) return true;
+          lastModuleSyncKey = desiredKey;
+          const option = Array.from(topSelect.options || []).find(
+            (opt) => normalizeModuleKey(opt?.value || "") === desiredKey,
+          );
+          topSelect.value = option ? option.value : desiredModule;
+          topSelect.dispatchEvent(new Event("change", { bubbles: true }));
+          return true;
+        };
+
         const updateExtractionSummary = () => {
           const selectedModule =
             moduleSelectInput?.value ||
@@ -4258,8 +4389,10 @@
               activeModuleKey &&
               activeModuleKey !== moduleKey
             ) {
-              sourceHint.textContent =
-                "No se detectan filas porque arriba esta abierto otro modulo. Cambia el modulo superior para cargar filas correctas.";
+              const syncing = syncModuloSuperior(selectedModule);
+              sourceHint.textContent = syncing
+                ? "Sincronizando el modulo superior para cargar filas..."
+                : "No se detectan filas porque arriba esta abierto otro modulo.";
             } else if (!selectedRowAliases.length || !selectedSeries.length) {
               sourceHint.textContent =
                 "Selecciona filas y columnas para definir exactamente que se exportara.";
@@ -4316,11 +4449,12 @@
               activeModuleKey &&
               activeModuleKey !== moduleKey
             ) {
+              syncModuloSuperior(currentModule);
               rowPicker.innerHTML =
-                '<option value="">Cambia el modulo superior al mismo modulo de la grafica para cargar filas</option>';
+                '<option value="">Sincronizando modulo superior...</option>';
               if (rowsHelpEl) {
                 rowsHelpEl.textContent =
-                  "No hay filas porque el modulo superior es distinto al de la grafica.";
+                  "Cargando filas del modulo de la grafica...";
               }
             } else {
               rowPicker.innerHTML =
@@ -4608,6 +4742,8 @@
               document.getElementById("moduloSelect")?.value ||
               "RESUMEN",
           );
+          // Sincronizar el selector superior para que cargar filas/series sea automático.
+          syncTopModuleSelect(currentModule);
           updateEditorSubtitle();
 
           // Cargar datos al formulario
@@ -4703,6 +4839,7 @@
               ) || [],
             ).map((cb) => cb.value);
             currentModule = moduleSelectInput.value || currentModule || "RESUMEN";
+            syncTopModuleSelect(currentModule);
             updateEditorSubtitle();
             loadRowPicker();
             refreshSeriesForCurrentModule(selectedKeys);
@@ -4713,6 +4850,7 @@
         document.getElementById("capituloSelect")?.addEventListener("change", () => {
           if (!panel.classList.contains("show")) return;
           currentModule = setModuleSelectValue(currentModule);
+          syncTopModuleSelect(currentModule);
           updateEditorSubtitle();
           loadRowPicker();
           refreshSeriesForCurrentModule(getSelectedSeriesKeys());
@@ -4946,9 +5084,9 @@
     <input type="file" id="fileImportInput" accept=".json,.xlsx,.xls" style="display: none;" />
 
     <script src="js/guided-tour.js"></script>
-    <script src="js/plantillas-graficas.js"></script>
-    <script src="js/drag-and-drop-reorder.js"></script>
-    <script src="js/plantillas.js?v=20260203005636"></script>
+    <script src="js/plantillas-graficas.js?v=20260210180000"></script>
+    <script src="js/drag-and-drop-reorder.js?v=20260210180000"></script>
+    <script src="js/plantillas.js?v=20260210180000"></script>
     <script>
       document.addEventListener("DOMContentLoaded", () => {
         if (!window.GuidedTour) return;

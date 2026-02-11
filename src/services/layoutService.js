@@ -5,6 +5,7 @@
 
 const { EMPRESAS } = require("../config/empresas");
 const db = require("../db/sqlite").db;
+const crypto = require("crypto");
 
 const CANONICAL_EMPRESA_DEFAULT = "EMPRESA01";
 // Fallbacks desactivados: no autoclone ni herencia implícita de layouts.
@@ -15,6 +16,196 @@ const LAYOUT_EMPRESA_ALIAS = {
   EMPRESA10: "EMPRESA02",
   EMPRESA11: "EMPRESA03",
   EMPRESA12: "EMPRESA04",
+};
+
+// Normalización fuerte de claves para evitar duplicados por:
+// - tildes/diacríticos ("MÉXICO" vs "MEXICO")
+// - caracteres invisibles (zero-width/BOM) colados desde Excel/CSV
+// - múltiples espacios
+const LIMPIAR_CLAVE = (valor = "") =>
+  (valor || "")
+    .toString()
+    .replace(/\u0000/g, "")
+    .replace(/[\u200B-\u200D\uFEFF]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const NORMALIZAR_CLAVE = (valor = "") =>
+  LIMPIAR_CLAVE(valor)
+    .toUpperCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+const NORMALIZAR_CAPITULO = (valor = "") => NORMALIZAR_CLAVE(valor);
+
+const canonizarCapituloLabel = (capitulo = "") => {
+  const key = NORMALIZAR_CAPITULO(capitulo || "");
+  return key || "DEFAULT";
+};
+
+const listarCapitulosDb = ({ empresaId, modulo, anio }) => {
+  const anioNumero = Number(anio);
+  if (!empresaId || !modulo || !Number.isInteger(anioNumero)) return [];
+  const rows = db
+    .prepare(
+      `
+    SELECT DISTINCT capitulo
+    FROM (
+      SELECT capitulo FROM layout_cuentas WHERE empresa_id = ? AND modulo = ? AND anio = ?
+      UNION
+      SELECT capitulo FROM layout_operaciones WHERE empresa_id = ? AND modulo = ? AND anio = ?
+      UNION
+      SELECT capitulo FROM layout_secciones WHERE empresa_id = ? AND modulo = ? AND anio = ?
+    )
+    ORDER BY capitulo ASC
+  `
+    )
+    .all(
+      empresaId,
+      modulo,
+      anioNumero,
+      empresaId,
+      modulo,
+      anioNumero,
+      empresaId,
+      modulo,
+      anioNumero
+    );
+  return (rows || [])
+    .map((r) => (r?.capitulo || "").toString())
+    .map((c) => LIMPIAR_CLAVE(c))
+    .filter(Boolean);
+};
+
+const obtenerCapitulosEquivalentes = ({
+  empresaId,
+  modulo,
+  anio,
+  capitulo,
+}) => {
+  const original = LIMPIAR_CLAVE(capitulo || "DEFAULT") || "DEFAULT";
+  const key = NORMALIZAR_CAPITULO(original);
+  if (!key) return [original];
+
+  const existentes = listarCapitulosDb({ empresaId, modulo, anio });
+  const matches = existentes.filter((c) => NORMALIZAR_CAPITULO(c) === key);
+  const uniq = new Map();
+  [original, ...matches].forEach((c) => {
+    const clean = LIMPIAR_CLAVE(c);
+    if (!clean) return;
+    if (NORMALIZAR_CAPITULO(clean) !== key) return;
+    if (!uniq.has(clean)) uniq.set(clean, clean);
+  });
+  return Array.from(uniq.values());
+};
+
+const obtenerStatsCapituloDb = ({ empresaId, modulo, anio, capitulo }) => {
+  const anioNumero = Number(anio);
+  if (!empresaId || !modulo || !Number.isInteger(anioNumero) || !capitulo) {
+    return {
+      total: 0,
+      maxUpdated: "",
+      cuentas: { total: 0, maxUpdated: "" },
+      operaciones: { total: 0, maxUpdated: "" },
+      secciones: { total: 0, maxUpdated: "" },
+    };
+  }
+
+  const readStats = (tabla) => {
+    try {
+      const row = db
+        .prepare(
+          `
+        SELECT COUNT(*) as total, MAX(actualizado_en) as maxUpdated
+        FROM ${tabla}
+        WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ?
+      `
+        )
+        .get(empresaId, modulo, anioNumero, capitulo);
+      return {
+        total: Number(row?.total) || 0,
+        maxUpdated: (row?.maxUpdated || "").toString(),
+      };
+    } catch (err) {
+      // Si la tabla/columna no existe en alguna BD vieja, no reventar la lectura.
+      return { total: 0, maxUpdated: "" };
+    }
+  };
+
+  const cuentas = readStats("layout_cuentas");
+  const operaciones = readStats("layout_operaciones");
+  const secciones = readStats("layout_secciones");
+  const maxUpdated = [cuentas.maxUpdated, operaciones.maxUpdated, secciones.maxUpdated]
+    .filter(Boolean)
+    .sort()
+    .slice(-1)[0] || "";
+  return {
+    total: cuentas.total + operaciones.total + secciones.total,
+    maxUpdated,
+    cuentas,
+    operaciones,
+    secciones,
+  };
+};
+
+// Cuando existen capítulos duplicados por tildes/espacios invisibles (p.ej. "MÉXICO" vs "MEXICO"),
+// NO debemos leer "capitulo IN (...)" porque duplica filas. Elegimos una única fuente.
+const resolverCapituloConsulta = ({
+  empresaId,
+  modulo,
+  anio,
+  capituloSolicitado,
+  capituloCanonico,
+  candidatos = [],
+}) => {
+  const requested = LIMPIAR_CLAVE(capituloSolicitado || "DEFAULT") || "DEFAULT";
+  const canon = LIMPIAR_CLAVE(capituloCanonico || requested) || requested;
+
+  const uniq = new Map();
+  (Array.isArray(candidatos) ? candidatos : [])
+    .map((c) => LIMPIAR_CLAVE(c))
+    .filter(Boolean)
+    .forEach((c) => {
+      if (!uniq.has(c)) uniq.set(c, c);
+    });
+
+  const list = Array.from(uniq.values());
+  if (!list.length) return canon;
+  if (list.length === 1) return list[0];
+
+  const canonicalCandidate = list.find(
+    (c) => LIMPIAR_CLAVE(c).toUpperCase() === canon
+  );
+  const requestedCandidate = list.find((c) => c === requested);
+
+  const stats = list.map((cap) => ({
+    capitulo: cap,
+    ...obtenerStatsCapituloDb({ empresaId, modulo, anio, capitulo: cap }),
+  }));
+
+  stats.sort((a, b) => {
+    const byUpdated = (b.maxUpdated || "").localeCompare(a.maxUpdated || "");
+    if (byUpdated) return byUpdated;
+    const byTotal = (b.total || 0) - (a.total || 0);
+    if (byTotal) return byTotal;
+    // Preferir canónico sin tildes si existe.
+    if (canonicalCandidate && a.capitulo === canonicalCandidate) return -1;
+    if (canonicalCandidate && b.capitulo === canonicalCandidate) return 1;
+    // Si el usuario pidió exactamente una variante, preferirla.
+    if (requestedCandidate && a.capitulo === requestedCandidate) return -1;
+    if (requestedCandidate && b.capitulo === requestedCandidate) return 1;
+    return a.capitulo.localeCompare(b.capitulo);
+  });
+
+  const elegido = stats[0]?.capitulo || canon;
+  if (list.length > 1 && elegido) {
+    console.warn(
+      `[layoutService] Capitulos equivalentes detectados (${requested}): [${list.join(
+        ", "
+      )}] -> usando "${elegido}"`
+    );
+  }
+  return elegido;
 };
 
 const generarVariantesEmpresa = (empresaId = CANONICAL_EMPRESA_DEFAULT) => {
@@ -251,6 +442,18 @@ const eliminarLayoutCapitulo = ({
   if (!modulo || !Number.isInteger(anioNumero) || !capitulo) {
     return { success: false };
   }
+
+  const capituloSolicitado = LIMPIAR_CLAVE(capitulo || "DEFAULT") || "DEFAULT";
+  const capitulosEquivalentes = obtenerCapitulosEquivalentes({
+    empresaId: empresaCanonica,
+    modulo,
+    anio: anioNumero,
+    capitulo: capituloSolicitado,
+  });
+  const capitulosBorrar = capitulosEquivalentes.length
+    ? capitulosEquivalentes
+    : [capituloSolicitado];
+
   const deleteCuentas = db.prepare(`
     DELETE FROM layout_cuentas
     WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ?
@@ -265,9 +468,11 @@ const eliminarLayoutCapitulo = ({
   `);
 
   const transaction = db.transaction(() => {
-    deleteCuentas.run(empresaCanonica, modulo, anioNumero, capitulo);
-    deleteOperaciones.run(empresaCanonica, modulo, anioNumero, capitulo);
-    deleteSecciones.run(empresaCanonica, modulo, anioNumero, capitulo);
+    capitulosBorrar.forEach((cap) => {
+      deleteCuentas.run(empresaCanonica, modulo, anioNumero, cap);
+      deleteOperaciones.run(empresaCanonica, modulo, anioNumero, cap);
+      deleteSecciones.run(empresaCanonica, modulo, anioNumero, cap);
+    });
   });
 
   transaction();
@@ -476,7 +681,26 @@ const obtenerLayout = ({
 
   console.log(`[obtenerLayout] Empresa consulta: ${empresaConsulta}`);
 
-  const capituloObjetivo = capitulo || "DEFAULT";
+  // Capítulo: canonizar para evitar que existan dos variantes del mismo capítulo
+  // (p.ej. "CIUDAD DE MEXICO" vs "CIUDAD DE MÉXICO") y que el guardado/orden parezca "no aplicar".
+  const capituloSolicitado = LIMPIAR_CLAVE(capitulo || "DEFAULT") || "DEFAULT";
+  const capituloCanonico = canonizarCapituloLabel(capituloSolicitado);
+  const capitulosEquivalentes = obtenerCapitulosEquivalentes({
+    empresaId: empresaConsulta,
+    modulo,
+    anio: anioNumero,
+    capitulo: capituloSolicitado,
+  });
+  const capituloConsulta = resolverCapituloConsulta({
+    empresaId: empresaConsulta,
+    modulo,
+    anio: anioNumero,
+    capituloSolicitado,
+    capituloCanonico,
+    candidatos: capitulosEquivalentes,
+  });
+
+  const capituloObjetivo = capituloCanonico;
 
   const consultarCuentas = (anioObjetivo) =>
     db
@@ -497,7 +721,7 @@ const obtenerLayout = ({
     ORDER BY COALESCE(orden_presentacion, orden) ASC
   `
       )
-      .all(empresaConsulta, modulo, anioObjetivo, capituloObjetivo);
+      .all(empresaConsulta, modulo, anioObjetivo, capituloConsulta);
 
   const normalizarVisible = (value) => {
     if (value === null || value === undefined) return true;
@@ -505,7 +729,11 @@ const obtenerLayout = ({
     return Number(value) !== 0;
   };
 
+  // Importante: Number(null) y Number('') dan 0; aquí queremos tratar null/'' como "sin orden"
+  // para que el fallback a `orden` (o al índice) funcione y no colapse todo al orden 0.
   const normalizarOrden = (value) => {
+    if (value === null || value === undefined) return undefined;
+    if (typeof value === "string" && value.trim() === "") return undefined;
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : undefined;
   };
@@ -559,16 +787,16 @@ const obtenerLayout = ({
       seccion_principal as seccion_principal,
       seccion_secundaria as seccion_secundaria,
       tipo,
-      orden
+      orden,
+      orden_presentacion
     FROM layout_secciones
     WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ?
-    ORDER BY orden ASC, seccion_principal ASC, seccion_secundaria ASC
+    ORDER BY COALESCE(orden_presentacion, orden) ASC, orden ASC, seccion_principal ASC, seccion_secundaria ASC
   `
       )
-      .all(empresaConsulta, modulo, anioObjetivo, capituloObjetivo);
+      .all(empresaConsulta, modulo, anioObjetivo, capituloConsulta);
 
-  const normalizarClave = (valor) =>
-    (valor || "").toString().trim().toUpperCase();
+  const normalizarClave = (valor) => NORMALIZAR_CLAVE(valor);
 
   let cuentas = normalizarCuentas(consultarCuentas(anioNumero)).map(
     normalizarSeccionesCuenta
@@ -615,7 +843,7 @@ const obtenerLayout = ({
     ORDER BY COALESCE(orden_presentacion, orden) ASC, orden ASC
   `
     )
-    .all(empresaConsulta, modulo, anioUsado, capituloObjetivo);
+    .all(empresaConsulta, modulo, anioUsado, capituloConsulta);
 
   const operacionesMap = {};
   const tiposOperacionIgnorados = new Set([
@@ -740,11 +968,18 @@ const obtenerLayout = ({
         const secundariaRaw = (row.seccion_secundaria || "").toString().trim();
         const principalKey = normalizarClave(principalRaw);
         if (!principalKey) return;
-        const orden = Number.isFinite(Number(row.orden))
+        const ordenPresentacion = normalizarOrden(row.orden_presentacion);
+        const orden = Number.isFinite(ordenPresentacion)
+          ? Number(ordenPresentacion)
+          : Number.isFinite(Number(row.orden))
           ? Number(row.orden)
           : idx;
         if (!principalInfo.has(principalKey)) {
-          principalInfo.set(principalKey, { name: principalRaw, order: orden });
+          principalInfo.set(principalKey, {
+            name: principalRaw,
+            order: orden,
+            orderPresentacion: ordenPresentacion,
+          });
         }
         if (secundariaRaw) {
           const list = secondaryInfo.get(principalKey) || [];
@@ -752,6 +987,7 @@ const obtenerLayout = ({
             principalName: principalRaw,
             name: secundariaRaw,
             order: orden,
+            orderPresentacion: ordenPresentacion,
           });
           secondaryInfo.set(principalKey, list);
         }
@@ -786,7 +1022,9 @@ const obtenerLayout = ({
           if (!secundariaKey) return;
           const pairKey = `${principalKey}||${secundariaKey}`;
           if (secondarySet.has(pairKey)) return;
-          const orderHint = principalOrder * 1000 + (sec.order ?? 0);
+          const storedOrder = normalizarOrden(sec.orderPresentacion);
+          const orderHint =
+            Number.isFinite(storedOrder) ? storedOrder : principalOrder * 1000 + (sec.order ?? 0);
           placeholders.push(
             makePlaceholder({
               principal: principalName,
@@ -795,20 +1033,33 @@ const obtenerLayout = ({
               orderHint,
             })
           );
+          // Si viene `orden_presentacion` persistido, usarlo directamente para posicionar el placeholder.
+          if (Number.isFinite(storedOrder)) {
+            placeholders[placeholders.length - 1].orden = storedOrder;
+            placeholders[placeholders.length - 1].orden_presentacion = storedOrder;
+            placeholders[placeholders.length - 1].__placeholderOrder = storedOrder;
+          }
         });
       });
 
       principalInfo.forEach((meta, principalKey) => {
         if (secondaryInfo.has(principalKey)) return;
         if (principalSet.has(principalKey)) return;
+        const storedOrder = normalizarOrden(meta.orderPresentacion);
+        const orderHint = Number.isFinite(storedOrder) ? storedOrder : meta.order ?? 0;
         placeholders.push(
           makePlaceholder({
             principal: meta.name,
             secundaria: "",
             type: "principal",
-            orderHint: meta.order ?? 0,
+            orderHint,
           })
         );
+        if (Number.isFinite(storedOrder)) {
+          placeholders[placeholders.length - 1].orden = storedOrder;
+          placeholders[placeholders.length - 1].orden_presentacion = storedOrder;
+          placeholders[placeholders.length - 1].__placeholderOrder = storedOrder;
+        }
       });
 
       if (placeholders.length) {
@@ -823,6 +1074,13 @@ const obtenerLayout = ({
         placeholders
           .sort((a, b) => (a.__placeholderOrder ?? 0) - (b.__placeholderOrder ?? 0))
           .forEach((placeholder, idx) => {
+            // Si ya trae orden persistido (orden_presentacion), respetarlo.
+            const existingOrder = normalizarOrden(placeholder.orden_presentacion);
+            if (Number.isFinite(existingOrder)) {
+              placeholder.orden = existingOrder;
+              placeholder.orden_presentacion = existingOrder;
+              return;
+            }
             const ordenFinal = maxOrder + idx + 1;
             placeholder.orden = ordenFinal;
             placeholder.orden_presentacion = ordenFinal;
@@ -860,20 +1118,26 @@ const obtenerCapitulos = ({ empresaId = "EMPRESA01", modulo, anio }) => {
     anio: anioNumero,
   });
 
-  let capitulos = db
-    .prepare(
-      `
-    SELECT DISTINCT capitulo
-    FROM layout_cuentas
-    WHERE empresa_id = ? AND modulo = ? AND anio = ?
-    ORDER BY capitulo ASC
-  `
-    )
-    .all(empresaConsulta, modulo, anioNumero);
-
   // Sin fallback automático: devolver capítulos del año solicitado.
+  // Importante: deduplicar capítulos equivalentes (p.ej. "MÉXICO" vs "MEXICO")
+  // para que el usuario no edite un capítulo "duplicado" sin darse cuenta.
+  const capitulosRaw = listarCapitulosDb({
+    empresaId: empresaConsulta,
+    modulo,
+    anio: anioNumero,
+  });
+  const dedup = new Map(); // key -> canonical label
+  capitulosRaw.forEach((cap) => {
+    const key = NORMALIZAR_CAPITULO(cap);
+    if (!key) return;
+    if (!dedup.has(key)) {
+      dedup.set(key, canonizarCapituloLabel(cap));
+    }
+  });
 
-  return (capitulos || []).map((c) => ({ capitulo: c.capitulo }));
+  return Array.from(dedup.values())
+    .sort((a, b) => a.localeCompare(b))
+    .map((capitulo) => ({ capitulo }));
 };
 
 /**
@@ -907,7 +1171,22 @@ const guardarCuentas = ({
   capitulo,
   cuentas,
 }) => {
-  const empresaCanonica = obtenerEmpresaCanonica(empresaId);
+  // Usar el mismo "source" que lectura (alias comparativas EMPRESA09-12).
+  const empresaCanonica = resolverEmpresaLayoutSource(empresaId);
+  const anioNumero = Number(anio);
+
+  const capituloSolicitado = LIMPIAR_CLAVE(capitulo || "DEFAULT") || "DEFAULT";
+  const capituloCanonico = canonizarCapituloLabel(capituloSolicitado);
+  const capitulosEquivalentes = obtenerCapitulosEquivalentes({
+    empresaId: empresaCanonica,
+    modulo,
+    anio: anioNumero,
+    capitulo: capituloSolicitado,
+  });
+  const capitulosBorrar = capitulosEquivalentes.length
+    ? capitulosEquivalentes
+    : [capituloSolicitado];
+
   const insertCuenta = db.prepare(`
     INSERT OR REPLACE INTO layout_cuentas (
       empresa_id, modulo, anio, cuenta, nombre, capitulo, 
@@ -926,12 +1205,12 @@ const guardarCuentas = ({
   const insertSeccion = db.prepare(`
     INSERT OR REPLACE INTO layout_secciones (
       empresa_id, modulo, anio, capitulo, seccion_principal,
-      seccion_secundaria, tipo, orden, actualizado_en
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+      seccion_secundaria, tipo, orden, orden_presentacion, actualizado_en
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
   `);
 
-  const normalizarSeccion = (valor) =>
-    (valor || "").toString().trim();
+  const limpiarEtiqueta = (valor) => LIMPIAR_CLAVE(valor);
+  const claveEtiqueta = (valor) => NORMALIZAR_CLAVE(valor);
 
   const obtenerValorCampo = (obj, keys = []) => {
     for (const key of keys) {
@@ -976,38 +1255,58 @@ const guardarCuentas = ({
   };
 
   const transaction = db.transaction((cuentasArray) => {
-    const ordenPrincipal = new Map();
-    const ordenSecundaria = new Map();
-    let siguienteOrdenPrincipal = 0;
+    // Borrar TODAS las variantes equivalentes para evitar el bug "guardo pero no aplica".
+    capitulosBorrar.forEach((cap) => {
+      deleteCuentas.run(empresaCanonica, modulo, anioNumero, cap);
+      deleteSecciones.run(empresaCanonica, modulo, anioNumero, cap);
+    });
 
-    const registrarPrincipal = (principal) => {
-      const clave = normalizarSeccion(principal);
-      if (!clave) return null;
-      if (!ordenPrincipal.has(clave)) {
-        ordenPrincipal.set(clave, siguienteOrdenPrincipal);
-        siguienteOrdenPrincipal += 1;
+    // Metadatos de secciones/subsecciones con orden GLOBAL (manual).
+    // - orden_presentacion: posición real en el preview (incluye headers).
+    // - orden: fallback legacy (lo igualamos a orden_presentacion).
+    const principalMeta = new Map(); // principalKey -> { label, orden }
+    const secundariaMeta = new Map(); // principalKey -> Map(secKey -> { label, orden })
+
+    const registrarPrincipal = (principalRaw, ordenHint) => {
+      const clean = limpiarEtiqueta(principalRaw);
+      const key = claveEtiqueta(clean);
+      if (!key) return null;
+      const orden = Number.isFinite(Number(ordenHint)) ? Number(ordenHint) : 0;
+      const existente = principalMeta.get(key);
+      if (!existente) {
+        principalMeta.set(key, { label: clean, orden });
+      } else {
+        if (!existente.label && clean) existente.label = clean;
+        if (orden < existente.orden) existente.orden = orden;
       }
-      return clave;
+      return { key, label: principalMeta.get(key)?.label || clean };
     };
 
-    const registrarSecundaria = (principal, secundaria) => {
-      const principalClave = normalizarSeccion(principal);
-      const secundariaClave = normalizarSeccion(secundaria);
-      if (!principalClave || !secundariaClave) return null;
-      let mapa = ordenSecundaria.get(principalClave);
+    const registrarSecundaria = (principalInfo, secundariaRaw, ordenHint) => {
+      if (!principalInfo?.key) return null;
+      const clean = limpiarEtiqueta(secundariaRaw);
+      const secKey = claveEtiqueta(clean);
+      if (!secKey) return null;
+      const orden = Number.isFinite(Number(ordenHint)) ? Number(ordenHint) : 0;
+      let mapa = secundariaMeta.get(principalInfo.key);
       if (!mapa) {
         mapa = new Map();
-        ordenSecundaria.set(principalClave, mapa);
+        secundariaMeta.set(principalInfo.key, mapa);
       }
-      if (!mapa.has(secundariaClave)) {
-        mapa.set(secundariaClave, mapa.size);
+      const existente = mapa.get(secKey);
+      if (!existente) {
+        mapa.set(secKey, { label: clean, orden });
+      } else {
+        if (!existente.label && clean) existente.label = clean;
+        if (orden < existente.orden) existente.orden = orden;
       }
-      return { principalClave, secundariaClave, orden: mapa.get(secundariaClave) };
+      return {
+        principalKey: principalInfo.key,
+        principalLabel: principalInfo.label,
+        secundariaKey: secKey,
+        secundariaLabel: mapa.get(secKey)?.label || clean,
+      };
     };
-
-    const seccionesRegistradas = new Set();
-    deleteCuentas.run(empresaCanonica, modulo, anio, capitulo);
-    deleteSecciones.run(empresaCanonica, modulo, anio, capitulo);
 
     const cuentasOrdenadas = (cuentasArray || [])
       .map((cuenta, index) => ({
@@ -1019,56 +1318,28 @@ const guardarCuentas = ({
 
     cuentasOrdenadas.forEach(({ cuenta, index }) => {
       const cuentaCodigo = (obtenerCuentaCodigo(cuenta) || "").toString().trim();
-      let seccionPrincipal = obtenerSeccionPrincipal(cuenta);
-      let seccionSecundaria = obtenerSeccionSecundaria(cuenta) || null;
-      if (!seccionPrincipal && seccionSecundaria) {
-        seccionPrincipal = seccionSecundaria;
-        seccionSecundaria = null;
-      }
+      const seccionPrincipalRaw = obtenerSeccionPrincipal(cuenta);
+      const seccionSecundariaRaw = obtenerSeccionSecundaria(cuenta) || "";
+      const principalClean = limpiarEtiqueta(seccionPrincipalRaw);
+      const secundariaClean = limpiarEtiqueta(seccionSecundariaRaw);
+      const ordenPresentacion = obtenerOrden(cuenta, index);
+      const principalInfo = principalClean
+        ? registrarPrincipal(principalClean, ordenPresentacion)
+        : null;
+      const secundariaInfo =
+        principalInfo && secundariaClean
+          ? registrarSecundaria(principalInfo, secundariaClean, ordenPresentacion)
+          : null;
+
+      const seccionPrincipal = principalInfo?.label || "";
+      const seccionSecundaria = secundariaInfo?.secundariaLabel || null;
 
       if (!cuentaCodigo) {
+        // Placeholder (header de sección/subsección). Ya registró metadatos.
         if (!seccionPrincipal && !seccionSecundaria) {
           console.warn(
-            `[layoutService] Cuenta sin codigo en ${modulo}/${capitulo}, ignorando`
+            `[layoutService] Placeholder sin seccion en ${modulo}/${capitulo}, ignorando`
           );
-          return;
-        }
-        const principalClave = registrarPrincipal(seccionPrincipal);
-        if (principalClave) {
-          const keyPrincipal = `${principalClave}||`;
-          if (!seccionesRegistradas.has(keyPrincipal)) {
-            seccionesRegistradas.add(keyPrincipal);
-            insertSeccion.run(
-              empresaCanonica,
-              modulo,
-              anio,
-              capitulo,
-              principalClave,
-              "",
-              "principal",
-              ordenPrincipal.get(principalClave) ?? 0
-            );
-          }
-        }
-
-        if (seccionSecundaria) {
-          const info = registrarSecundaria(seccionPrincipal, seccionSecundaria);
-          if (info) {
-            const keySecundaria = `${info.principalClave}||${info.secundariaClave}`;
-            if (!seccionesRegistradas.has(keySecundaria)) {
-              seccionesRegistradas.add(keySecundaria);
-              insertSeccion.run(
-                empresaCanonica,
-                modulo,
-                anio,
-                capitulo,
-                info.principalClave,
-                info.secundariaClave,
-                "secundaria",
-                info.orden ?? 0
-              );
-            }
-          }
         }
         return;
       }
@@ -1084,16 +1355,15 @@ const guardarCuentas = ({
       const operacionFactorFinal = Number.isFinite(operacionFactor)
         ? operacionFactor
         : 1;
-      const ordenPresentacion = obtenerOrden(cuenta, index);
       const visible = cuenta.visible === false ? 0 : 1;
 
       insertCuenta.run(
         empresaCanonica,
         modulo,
-        anio,
+        anioNumero,
         cuentaCodigo,
         nombre,
-        capitulo,
+        capituloCanonico,
         seccionPrincipal,
         seccionSecundaria,
         operacionFactorFinal,
@@ -1101,49 +1371,46 @@ const guardarCuentas = ({
         ordenPresentacion,
         visible
       );
+    });
 
-      const principalClave = registrarPrincipal(seccionPrincipal);
-      if (principalClave) {
-        const keyPrincipal = `${principalClave}||`;
-        if (!seccionesRegistradas.has(keyPrincipal)) {
-          seccionesRegistradas.add(keyPrincipal);
-          insertSeccion.run(
-            empresaCanonica,
-            modulo,
-            anio,
-            capitulo,
-            principalClave,
-            "",
-            "principal",
-            ordenPrincipal.get(principalClave) ?? 0
-          );
-        }
-      }
+    // Persistir orden global de headers (layout_secciones).
+    // Esto es clave para poder reordenar secciones vacías y que el orden se conserve.
+    principalMeta.forEach((meta, principalKey) => {
+      const orden = Number.isFinite(Number(meta?.orden)) ? Number(meta.orden) : 0;
+      insertSeccion.run(
+        empresaCanonica,
+        modulo,
+        anioNumero,
+        capituloCanonico,
+        (meta?.label || "").toString(),
+        "",
+        "principal",
+        orden,
+        orden,
+      );
+    });
 
-      if (seccionSecundaria) {
-        const info = registrarSecundaria(seccionPrincipal, seccionSecundaria);
-        if (info) {
-          const keySecundaria = `${info.principalClave}||${info.secundariaClave}`;
-          if (!seccionesRegistradas.has(keySecundaria)) {
-            seccionesRegistradas.add(keySecundaria);
-            insertSeccion.run(
-              empresaCanonica,
-              modulo,
-              anio,
-              capitulo,
-              info.principalClave,
-              info.secundariaClave,
-              "secundaria",
-              info.orden ?? 0
-            );
-          }
-        }
-      }
+    secundariaMeta.forEach((mapa, principalKey) => {
+      const principalLabel = principalMeta.get(principalKey)?.label || "";
+      (mapa || new Map()).forEach((meta) => {
+        const orden = Number.isFinite(Number(meta?.orden)) ? Number(meta.orden) : 0;
+        insertSeccion.run(
+          empresaCanonica,
+          modulo,
+          anioNumero,
+          capituloCanonico,
+          principalLabel,
+          (meta?.label || "").toString(),
+          "secundaria",
+          orden,
+          orden,
+        );
+      });
     });
   });
 
   transaction(cuentas);
-  return { success: true, insertadas: cuentas.length };
+  return { success: true, insertadas: cuentas.length, capitulo: capituloCanonico };
 };
 
 /**
@@ -1156,7 +1423,8 @@ const guardarOperaciones = ({
   anio,
   operaciones,
 }) => {
-  const empresaCanonica = obtenerEmpresaCanonica(empresaId);
+  // Usar el mismo "source" que lectura (alias comparativas EMPRESA09-12).
+  const empresaCanonica = resolverEmpresaLayoutSource(empresaId);
   const insertOperacion = db.prepare(`
     INSERT OR REPLACE INTO layout_operaciones (
       empresa_id, modulo, anio, capitulo, clase, operacion_etiqueta, seccion,
@@ -1240,15 +1508,9 @@ const guardarOperaciones = ({
             Number.isFinite(signoConfigurado) && signoConfigurado !== 0
               ? signoConfigurado
               : 1;
-          if (
-            !Number.isFinite(signoConfigurado) &&
-            op.Clase &&
-            op.Clase.toLowerCase().includes("expense")
-          ) {
-            signo = -1;
-          }
 
-          const capitulo = op.CAPITULO || op.HOJA || "DEFAULT";
+          const capituloRaw = LIMPIAR_CLAVE(op.CAPITULO || "DEFAULT") || "DEFAULT";
+          const capituloCanonico = canonizarCapituloLabel(capituloRaw);
           const operacionId =
             op.OperacionId || op.operacion_id || op.id || op.clase || op.Clase;
           const operacionEtiqueta =
@@ -1266,7 +1528,7 @@ const guardarOperaciones = ({
               empresaCanonica,
               modulo,
               anio,
-              capitulo,
+              capituloCanonico,
               clase,
               operacionEtiqueta,
               seccion,
@@ -1289,7 +1551,8 @@ const guardarOperaciones = ({
       });
 
       if (insertados === 0) {
-        const capitulo = op.CAPITULO || op.HOJA || "DEFAULT";
+        const capituloRaw = LIMPIAR_CLAVE(op.CAPITULO || "DEFAULT") || "DEFAULT";
+        const capituloCanonico = canonizarCapituloLabel(capituloRaw);
         const operacionId =
           op.OperacionId || op.operacion_id || op.id || op.clase || op.Clase;
         const operacionEtiqueta =
@@ -1311,7 +1574,7 @@ const guardarOperaciones = ({
             empresaCanonica,
             modulo,
             anio,
-            capitulo,
+            capituloCanonico,
             clase,
             operacionEtiqueta,
             seccion,
@@ -1324,10 +1587,7 @@ const guardarOperaciones = ({
             formulaJson
           );
         } catch (err) {
-          console.error(
-            `Error inserting free operation ${clase}:`,
-            err.message
-          );
+          console.error(`Error inserting free operation ${clase}:`, err.message);
         }
       }
     });
@@ -1347,7 +1607,7 @@ const copiarLayout = ({
   anioOrigen,
   anioDestino,
 }) => {
-  const empresaCanonica = obtenerEmpresaCanonica(empresaId);
+  const empresaCanonica = resolverEmpresaLayoutSource(empresaId);
   const limpiarCuentas = db.prepare(`
     DELETE FROM layout_cuentas
     WHERE empresa_id = ? AND modulo = ? AND anio = ?
@@ -1363,11 +1623,11 @@ const copiarLayout = ({
   const copiarCuentas = db.prepare(`
     INSERT INTO layout_cuentas (
       empresa_id, modulo, anio, cuenta, nombre, capitulo,
-      seccion_principal, seccion_secundaria, orden, orden_presentacion, visible
+      seccion_principal, seccion_secundaria, operacion_factor, orden, orden_presentacion, visible
     )
     SELECT 
       empresa_id, modulo, ?, cuenta, nombre, capitulo,
-      seccion_principal, seccion_secundaria, orden, orden_presentacion, visible
+      seccion_principal, seccion_secundaria, operacion_factor, orden, orden_presentacion, visible
     FROM layout_cuentas
     WHERE empresa_id = ? AND modulo = ? AND anio = ?
   `);
@@ -1387,11 +1647,11 @@ const copiarLayout = ({
   const copiarSecciones = db.prepare(`
     INSERT INTO layout_secciones (
       empresa_id, modulo, anio, capitulo, seccion_principal,
-      seccion_secundaria, tipo, orden
+      seccion_secundaria, tipo, orden, orden_presentacion
     )
     SELECT 
       empresa_id, modulo, ?, capitulo, seccion_principal,
-      seccion_secundaria, tipo, orden
+      seccion_secundaria, tipo, orden, orden_presentacion
     FROM layout_secciones
     WHERE empresa_id = ? AND modulo = ? AND anio = ?
   `);
@@ -1417,7 +1677,7 @@ const copiarLayout = ({
  */
 
 const eliminarLayout = ({ empresaId = "EMPRESA01", modulo, anio }) => {
-  const empresaCanonica = obtenerEmpresaCanonica(empresaId);
+  const empresaCanonica = resolverEmpresaLayoutSource(empresaId);
   const deleteCuentas = db.prepare(`
     DELETE FROM layout_cuentas
     WHERE empresa_id = ? AND modulo = ? AND anio = ?
@@ -1448,7 +1708,7 @@ const eliminarLayout = ({ empresaId = "EMPRESA01", modulo, anio }) => {
  */
 
 const existeLayout = ({ empresaId = "EMPRESA01", modulo, anio }) => {
-  const empresaCanonica = obtenerEmpresaCanonica(empresaId);
+  const empresaCanonica = resolverEmpresaLayoutSource(empresaId);
   const resultado = db
     .prepare(
       `
@@ -1472,7 +1732,7 @@ const obtenerEstadisticasLayout = ({
   modulo,
   anio,
 }) => {
-  const empresaCanonica = obtenerEmpresaCanonica(empresaId);
+  const empresaCanonica = resolverEmpresaLayoutSource(empresaId);
   const stats = db
     .prepare(
       `
@@ -1513,7 +1773,7 @@ const actualizarCuenta = ({
   cuentaOriginal,
   datos,
 }) => {
-  const empresaCanonica = obtenerEmpresaCanonica(empresaId);
+  const empresaCanonica = resolverEmpresaLayoutSource(empresaId);
 
   const update = db.prepare(`
     UPDATE layout_cuentas
@@ -1562,7 +1822,7 @@ const eliminarCuenta = ({
   capitulo,
   cuenta,
 }) => {
-  const empresaCanonica = obtenerEmpresaCanonica(empresaId);
+  const empresaCanonica = resolverEmpresaLayoutSource(empresaId);
 
   const del = db.prepare(`
     DELETE FROM layout_cuentas
@@ -1583,7 +1843,7 @@ const reordenarCuentas = ({
   capitulo,
   orden,
 }) => {
-  const empresaCanonica = obtenerEmpresaCanonica(empresaId);
+  const empresaCanonica = resolverEmpresaLayoutSource(empresaId);
 
   const update = db.prepare(`
     UPDATE layout_cuentas
@@ -1623,6 +1883,15 @@ const actualizarOperacion = ({
   datos,
 }) => {
   const empresaCanonica = resolverEmpresaLayoutSource(empresaId);
+  const anioNumero = Number(anio);
+  if (!modulo || !Number.isInteger(anioNumero)) {
+    return { success: false, mensaje: "Parámetros inválidos" };
+  }
+  const empresaConsulta = resolverEmpresaConsulta({
+    empresaId: empresaCanonica,
+    modulo,
+    anio: anioNumero,
+  });
   const normalizarCapitulo = (value = "") =>
     value
       .toString()
@@ -1647,7 +1916,14 @@ const actualizarOperacion = ({
       WHERE empresa_id = ? AND modulo = ? AND anio = ?
       `
       )
-      .all(empresaConsulta, modulo, anioNumero, empresaConsulta, modulo, anioNumero);
+      .all(
+        empresaConsulta,
+        modulo,
+        anioNumero,
+        empresaConsulta,
+        modulo,
+        anioNumero
+      );
     const capitulos = (rows || [])
       .map((row) => row?.capitulo)
       .filter(Boolean);
@@ -1660,6 +1936,7 @@ const actualizarOperacion = ({
 
   capituloObjetivo = resolverCapituloCoincidente();
 
+  const empresaParaLectura = empresaConsulta || empresaCanonica;
   const existente = db
     .prepare(
       `
@@ -1670,9 +1947,9 @@ const actualizarOperacion = ({
     `
     )
     .get(
-      empresaCanonica,
+      empresaParaLectura,
       modulo,
-      anio,
+      anioNumero,
       capituloObjetivo,
       claseOriginal,
       claseOriginal
@@ -1683,14 +1960,18 @@ const actualizarOperacion = ({
     DELETE FROM layout_operaciones
     WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ? COLLATE NOCASE AND (clase = ? OR operacion_etiqueta = ?)
   `);
-  del.run(
-    empresaCanonica,
-    modulo,
-    anio,
-    capituloObjetivo,
-    claseOriginal,
-    claseOriginal
-  );
+  // Borrar tanto del origen real (por si venía con case/variante) como del destino canónico.
+  const empresasBorrar = new Set([empresaParaLectura, empresaCanonica].filter(Boolean));
+  empresasBorrar.forEach((empresaToDelete) => {
+    del.run(
+      empresaToDelete,
+      modulo,
+      anioNumero,
+      capituloObjetivo,
+      claseOriginal,
+      claseOriginal
+    );
+  });
 
   // Luego insertar la actualizada
   const insert = db.prepare(`
@@ -1733,15 +2014,15 @@ const actualizarOperacion = ({
   const visibleFinal =
     datos.visible === false ? 0 : existente?.visible === 0 ? 0 : 1;
   Object.entries(operaciones).forEach(([tipo, label]) => {
-    if (label) {
-      insert.run(
-        empresaCanonica,
-        modulo,
-        anio,
-        capituloObjetivo,
-        operacionId,
-        operacionEtiqueta,
-        datos.seccion || "",
+      if (label) {
+        insert.run(
+          empresaCanonica,
+          modulo,
+          anioNumero,
+          capituloObjetivo,
+          operacionId,
+          operacionEtiqueta,
+          datos.seccion || "",
         tipo,
         label,
         datos.signo || 1,
@@ -1794,16 +2075,21 @@ const eliminarOperacionesCapitulo = ({
   capitulo,
 }) => {
   const empresaCanonica = resolverEmpresaLayoutSource(empresaId);
+  const anioNumero = Number(anio);
+  const capituloSolicitado = LIMPIAR_CLAVE(capitulo || "DEFAULT") || "DEFAULT";
+  const capitulosEquivalentes = obtenerCapitulosEquivalentes({
+    empresaId: empresaCanonica,
+    modulo,
+    anio: anioNumero,
+    capitulo: capituloSolicitado,
+  });
+  const caps = capitulosEquivalentes.length ? capitulosEquivalentes : [capituloSolicitado];
+  const placeholders = caps.map(() => "?").join(", ");
   const del = db.prepare(`
     DELETE FROM layout_operaciones
-    WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ? COLLATE NOCASE
+    WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo IN (${placeholders})
   `);
-  const result = del.run(
-    empresaCanonica,
-    modulo,
-    anio,
-    capitulo || "DEFAULT"
-  );
+  const result = del.run(empresaCanonica, modulo, anioNumero, ...caps);
   return { success: true, changes: result.changes };
 };
 
@@ -1821,37 +2107,49 @@ const crearSeccion = ({
   orden,
 }) => {
   const empresaCanonica = resolverEmpresaLayoutSource(empresaId);
+  const anioNumero = Number(anio);
+  const capituloSolicitado = LIMPIAR_CLAVE(capitulo || "DEFAULT") || "DEFAULT";
+  const capituloCanonico = canonizarCapituloLabel(capituloSolicitado);
+  const tipoNorm = (tipo || "").toString().trim();
+  const ordenNumero = Number.isFinite(Number(orden)) ? Number(orden) : 0;
+  const nombreClean = LIMPIAR_CLAVE(nombre || "");
+  const principalClean = LIMPIAR_CLAVE(principal || "");
 
   const insert = db.prepare(`
-    INSERT OR REPLACE INTO layout_secciones (empresa_id, modulo, anio, capitulo, seccion_principal, seccion_secundaria, tipo, orden)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT OR REPLACE INTO layout_secciones (
+      empresa_id, modulo, anio, capitulo,
+      seccion_principal, seccion_secundaria, tipo, orden, orden_presentacion, actualizado_en
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
   `);
 
-  if (tipo === "principal") {
+  if (tipoNorm === "principal") {
     insert.run(
       empresaCanonica,
       modulo,
-      anio,
-      capitulo,
-      nombre,
+      anioNumero,
+      capituloCanonico,
+      nombreClean,
       "",
-      tipo,
-      orden
+      "principal",
+      ordenNumero,
+      ordenNumero
     );
   } else {
     insert.run(
       empresaCanonica,
       modulo,
-      anio,
-      capitulo,
-      principal || "",
-      nombre,
-      tipo,
-      orden
+      anioNumero,
+      capituloCanonico,
+      principalClean,
+      nombreClean,
+      tipoNorm || "secundaria",
+      ordenNumero,
+      ordenNumero
     );
   }
 
-  return { success: true };
+  return { success: true, capitulo: capituloCanonico };
 };
 
 /**
@@ -1866,77 +2164,668 @@ const renombrarSeccion = ({
   nuevoNombre,
   tipo,
 }) => {
-  const empresaCanonica = obtenerEmpresaCanonica(empresaId);
+  // Usar el mismo "source" que lectura/guardado (alias comparativas EMPRESA09-12).
+  const empresaCanonica = resolverEmpresaLayoutSource(empresaId);
+  const anioNumero = Number(anio);
+  const capituloSolicitado = LIMPIAR_CLAVE(capitulo || "DEFAULT") || "DEFAULT";
+  const capitulosEquivalentes = obtenerCapitulosEquivalentes({
+    empresaId: empresaCanonica,
+    modulo,
+    anio: anioNumero,
+    capitulo: capituloSolicitado,
+  });
+  const caps = capitulosEquivalentes.length ? capitulosEquivalentes : [capituloSolicitado];
+
+  const nombreOriginalClean = LIMPIAR_CLAVE(nombreOriginal || "");
+  const nuevoNombreClean = LIMPIAR_CLAVE(nuevoNombre || "");
 
   const transaction = db.transaction(() => {
-    if (tipo === "principal") {
-      // Update layout_cuentas
-      db.prepare(
+    const actualizarFormulaJson = (scope) => {
+      // Nota: no hacemos LIKE en SQL porque SQLite puede estar en modo case-sensitive;
+      // mejor iterar y reemplazar con normalización en JS.
+      const ops = db.prepare(
         `
-        UPDATE layout_cuentas
-        SET seccion_principal = ?
-        WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ? AND seccion_principal = ?
-      `
-      ).run(
-        nuevoNombre,
-        empresaCanonica,
-        modulo,
-        anio,
-        capitulo,
-        nombreOriginal
-      );
+          SELECT DISTINCT clase, formula_json
+          FROM layout_operaciones
+          WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ?
+            AND formula_json IS NOT NULL
+            AND TRIM(formula_json) != ''
+        `
+      ).all(...scope);
 
-      // Update layout_secciones
-      db.prepare(
-        `
-        UPDATE layout_secciones
-        SET seccion_principal = ?
-        WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ? AND seccion_principal = ?
-      `
-      ).run(
-        nuevoNombre,
-        empresaCanonica,
-        modulo,
-        anio,
-        capitulo,
-        nombreOriginal
-      );
-    } else {
-      // Update layout_cuentas for secundaria
-      db.prepare(
-        `
-        UPDATE layout_cuentas
-        SET seccion_secundaria = ?
-        WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ? AND seccion_secundaria = ?
-      `
-      ).run(
-        nuevoNombre,
-        empresaCanonica,
-        modulo,
-        anio,
-        capitulo,
-        nombreOriginal
-      );
+      ops.forEach((row) => {
+        const raw = (row?.formula_json || "").toString().trim();
+        if (!raw) return;
+        let parsed = null;
+        try {
+          parsed = JSON.parse(raw);
+        } catch {
+          return;
+        }
+        if (!Array.isArray(parsed) || !parsed.length) return;
 
-      // Update layout_secciones
+        let changed = false;
+        const updated = parsed.map((term) => {
+          if (!term || typeof term !== "object") return term;
+          const termType = (term.type || "").toString().toLowerCase();
+          const value = (term.value ?? term.cuenta ?? term.id ?? "").toString();
+          if (
+            (termType === "section" || termType === "seccion") &&
+            value.trim() === nombreOriginalClean
+          ) {
+            changed = true;
+            return { ...term, value: nuevoNombreClean };
+          }
+          return term;
+        });
+
+        if (!changed) return;
+        const newJson = JSON.stringify(updated);
+        db.prepare(
+          `
+            UPDATE layout_operaciones
+            SET formula_json = ?
+            WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ? AND clase = ?
+          `
+        ).run(newJson, ...scope, row.clase);
+      });
+
+      // Legacy: seccion_1, seccion_2... (guardadas como operacion_tipo)
       db.prepare(
         `
-        UPDATE layout_secciones
-        SET seccion_secundaria = ?
-        WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ? AND seccion_secundaria = ?
-      `
-      ).run(
-        nuevoNombre,
-        empresaCanonica,
-        modulo,
-        anio,
-        capitulo,
-        nombreOriginal
-      );
-    }
+          UPDATE layout_operaciones
+          SET operacion_label = ?
+          WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ?
+            AND operacion_tipo LIKE 'seccion_%'
+            AND operacion_label = ?
+        `
+      ).run(nuevoNombreClean, ...scope, nombreOriginalClean);
+    };
+
+    caps.forEach((cap) => {
+      const scope = [empresaCanonica, modulo, anioNumero, cap];
+
+      if (tipo === "principal") {
+        // Update layout_cuentas
+        db.prepare(
+          `
+          UPDATE layout_cuentas
+          SET seccion_principal = ?
+          WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ? AND seccion_principal = ?
+        `
+        ).run(
+          nuevoNombreClean,
+          empresaCanonica,
+          modulo,
+          anioNumero,
+          cap,
+          nombreOriginalClean
+        );
+
+        // Update layout_secciones
+        db.prepare(
+          `
+          UPDATE layout_secciones
+          SET seccion_principal = ?
+          WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ? AND seccion_principal = ?
+        `
+        ).run(
+          nuevoNombreClean,
+          empresaCanonica,
+          modulo,
+          anioNumero,
+          cap,
+          nombreOriginalClean
+        );
+
+        // Update operations placement + metadata
+        db.prepare(
+          `
+            UPDATE layout_operaciones
+            SET seccion = ?
+            WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ? AND seccion = ?
+          `
+        ).run(nuevoNombreClean, ...scope, nombreOriginalClean);
+
+        db.prepare(
+          `
+            UPDATE layout_operaciones
+            SET operacion_label = ?
+            WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ?
+              AND operacion_tipo IN ('parentSection', 'parent_section')
+              AND operacion_label = ?
+          `
+        ).run(nuevoNombreClean, ...scope, nombreOriginalClean);
+
+        actualizarFormulaJson(scope);
+      } else {
+        // Update layout_cuentas for secundaria
+        db.prepare(
+          `
+          UPDATE layout_cuentas
+          SET seccion_secundaria = ?
+          WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ? AND seccion_secundaria = ?
+        `
+        ).run(
+          nuevoNombreClean,
+          empresaCanonica,
+          modulo,
+          anioNumero,
+          cap,
+          nombreOriginalClean
+        );
+
+        // Update layout_secciones
+        db.prepare(
+          `
+          UPDATE layout_secciones
+          SET seccion_secundaria = ?
+          WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ? AND seccion_secundaria = ?
+        `
+        ).run(
+          nuevoNombreClean,
+          empresaCanonica,
+          modulo,
+          anioNumero,
+          cap,
+          nombreOriginalClean
+        );
+
+        // Update operations placement + metadata
+        db.prepare(
+          `
+            UPDATE layout_operaciones
+            SET seccion = ?
+            WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ? AND seccion = ?
+          `
+        ).run(nuevoNombreClean, ...scope, nombreOriginalClean);
+
+        db.prepare(
+          `
+            UPDATE layout_operaciones
+            SET operacion_label = ?
+            WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ?
+              AND operacion_tipo IN ('parentSubsection', 'parent_subsection')
+              AND operacion_label = ?
+          `
+        ).run(nuevoNombreClean, ...scope, nombreOriginalClean);
+
+        actualizarFormulaJson(scope);
+      }
+    });
   });
 
   transaction();
+  return { success: true };
+};
+
+// ============================
+// Version History (Undo/Restore)
+// ============================
+
+const crearLayoutVersion = ({
+  empresaId = "EMPRESA01",
+  modulo,
+  anio,
+  capitulo,
+  usuarioId = null,
+  source = null,
+  motivo = null,
+  maxVersions = 30,
+} = {}) => {
+  const empresaCanonica = resolverEmpresaLayoutSource(empresaId);
+  const anioNumero = Number(anio);
+  const capituloSolicitado = LIMPIAR_CLAVE(capitulo || "DEFAULT") || "DEFAULT";
+  const capituloCanonico = canonizarCapituloLabel(capituloSolicitado);
+  const capitulosEquivalentes = obtenerCapitulosEquivalentes({
+    empresaId: empresaCanonica,
+    modulo,
+    anio: anioNumero,
+    capitulo: capituloSolicitado,
+  });
+  const capituloConsulta = resolverCapituloConsulta({
+    empresaId: empresaCanonica,
+    modulo,
+    anio: anioNumero,
+    capituloSolicitado,
+    capituloCanonico,
+    candidatos: capitulosEquivalentes,
+  });
+  if (!empresaCanonica || !modulo || !Number.isInteger(anioNumero)) {
+    return { success: false, created: false, message: "Contexto inválido" };
+  }
+
+  const scopeQuery = [empresaCanonica, modulo, anioNumero, capituloConsulta];
+  const scopeVersion = [empresaCanonica, modulo, anioNumero, capituloCanonico];
+
+  const cuentasRaw = db
+    .prepare(
+      `
+      SELECT
+        cuenta,
+        nombre,
+        capitulo,
+        seccion_principal,
+        seccion_secundaria,
+        operacion_factor,
+        orden,
+        orden_presentacion,
+        visible
+      FROM layout_cuentas
+      WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ?
+      ORDER BY COALESCE(orden_presentacion, orden) ASC, id ASC
+    `,
+    )
+    .all(...scopeQuery);
+
+  const seccionesRaw = db
+    .prepare(
+      `
+      SELECT
+        seccion_principal,
+        seccion_secundaria,
+        tipo,
+        orden,
+        orden_presentacion
+      FROM layout_secciones
+      WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ?
+      ORDER BY COALESCE(orden_presentacion, orden) ASC, orden ASC, seccion_principal ASC, seccion_secundaria ASC
+    `,
+    )
+    .all(...scopeQuery);
+
+  const operacionesRaw = db
+    .prepare(
+      `
+      SELECT
+        capitulo,
+        clase,
+        operacion_etiqueta,
+        seccion,
+        operacion_tipo,
+        operacion_label,
+        signo,
+        orden,
+        orden_presentacion,
+        visible,
+        formula_json
+      FROM layout_operaciones
+      WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ?
+      ORDER BY COALESCE(orden_presentacion, orden) ASC, orden ASC, operacion_tipo ASC
+    `,
+    )
+    .all(...scopeQuery);
+
+  const snapshot = {
+    schema: 1,
+    empresa_id: empresaCanonica,
+    modulo,
+    anio: anioNumero,
+    capitulo: capituloCanonico,
+    cuentas: (cuentasRaw || []).map((row) => ({
+      cuenta: (row.cuenta ?? "").toString(),
+      nombre: (row.nombre ?? "").toString(),
+      capitulo: capituloCanonico,
+      seccion_principal: (row.seccion_principal ?? "").toString(),
+      seccion_secundaria: row.seccion_secundaria == null ? null : row.seccion_secundaria.toString(),
+      operacion_factor:
+        row.operacion_factor == null || row.operacion_factor === ""
+          ? 1
+          : Number(row.operacion_factor),
+      orden: Number.isFinite(Number(row.orden)) ? Number(row.orden) : 0,
+      orden_presentacion:
+        row.orden_presentacion == null || row.orden_presentacion === ""
+          ? null
+          : Number(row.orden_presentacion),
+      visible: row.visible == null ? 1 : Number(row.visible),
+    })),
+    secciones: (seccionesRaw || []).map((row) => ({
+      seccion_principal: (row.seccion_principal ?? "").toString(),
+      seccion_secundaria: row.seccion_secundaria == null ? null : row.seccion_secundaria.toString(),
+      tipo: (row.tipo ?? "").toString(),
+      orden: Number.isFinite(Number(row.orden)) ? Number(row.orden) : 0,
+      orden_presentacion:
+        row.orden_presentacion == null || row.orden_presentacion === ""
+          ? null
+          : Number(row.orden_presentacion),
+    })),
+    operaciones: (operacionesRaw || []).map((row) => ({
+      capitulo: capituloCanonico,
+      clase: (row.clase ?? "").toString(),
+      operacion_etiqueta: row.operacion_etiqueta == null ? null : row.operacion_etiqueta.toString(),
+      seccion: (row.seccion ?? "").toString(),
+      operacion_tipo: (row.operacion_tipo ?? "").toString(),
+      operacion_label: row.operacion_label == null ? null : row.operacion_label.toString(),
+      signo: Number.isFinite(Number(row.signo)) ? Number(row.signo) : 1,
+      orden: Number.isFinite(Number(row.orden)) ? Number(row.orden) : 0,
+      orden_presentacion:
+        row.orden_presentacion == null || row.orden_presentacion === ""
+          ? null
+          : Number(row.orden_presentacion),
+      visible: row.visible == null ? 1 : Number(row.visible),
+      formula_json: row.formula_json == null ? null : row.formula_json.toString(),
+    })),
+  };
+
+  const snapshotJson = JSON.stringify(snapshot);
+  const hash = crypto.createHash("sha256").update(snapshotJson).digest("hex");
+
+  const last = db
+    .prepare(
+      `
+      SELECT id, hash
+      FROM layout_versions
+      WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ?
+      ORDER BY id DESC
+      LIMIT 1
+    `,
+    )
+    .get(...scopeVersion);
+
+  if (last?.hash && last.hash === hash) {
+    return { success: true, created: false, duplicate: true, id: last.id, hash };
+  }
+
+  const insert = db.prepare(
+    `
+    INSERT INTO layout_versions (
+      empresa_id, modulo, anio, capitulo,
+      usuario_id, source, motivo, hash, snapshot_json
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `,
+  );
+
+  const run = insert.run(
+    empresaCanonica,
+    modulo,
+    anioNumero,
+    capituloCanonico,
+    usuarioId != null ? usuarioId : null,
+    source != null ? String(source) : null,
+    motivo != null ? String(motivo) : null,
+    hash,
+    snapshotJson,
+  );
+
+  const newId = run?.lastInsertRowid ? Number(run.lastInsertRowid) : null;
+
+  const keep = Number.isFinite(Number(maxVersions)) ? Math.max(1, Number(maxVersions)) : 30;
+  db.prepare(
+    `
+      DELETE FROM layout_versions
+      WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ?
+        AND id NOT IN (
+          SELECT id
+          FROM layout_versions
+          WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ?
+          ORDER BY id DESC
+          LIMIT ?
+        )
+    `,
+  ).run(...scopeVersion, ...scopeVersion, keep);
+
+  return { success: true, created: true, id: newId, hash };
+};
+
+const listarLayoutVersiones = ({
+  empresaId = "EMPRESA01",
+  modulo,
+  anio,
+  capitulo,
+  limit = 30,
+} = {}) => {
+  const empresaCanonica = resolverEmpresaLayoutSource(empresaId);
+  const anioNumero = Number(anio);
+  const capituloSolicitado = LIMPIAR_CLAVE(capitulo || "DEFAULT") || "DEFAULT";
+  const capituloCanonico = canonizarCapituloLabel(capituloSolicitado);
+  if (!empresaCanonica || !modulo || !Number.isInteger(anioNumero)) {
+    return [];
+  }
+  const take = Number.isFinite(Number(limit)) ? Math.max(1, Math.min(200, Number(limit))) : 30;
+
+  // Permitir listar versiones aunque antes se hayan guardado con variantes del capítulo
+  // (p.ej. con tildes o caracteres invisibles).
+  const key = NORMALIZAR_CAPITULO(capituloSolicitado);
+  const capitulosVersiones = db
+    .prepare(
+      `
+      SELECT DISTINCT capitulo
+      FROM layout_versions
+      WHERE empresa_id = ? AND modulo = ? AND anio = ?
+    `
+    )
+    .all(empresaCanonica, modulo, anioNumero)
+    .map((r) => LIMPIAR_CLAVE(r?.capitulo || ""))
+    .filter(Boolean)
+    .filter((c) => NORMALIZAR_CAPITULO(c) === key);
+  const caps = capitulosVersiones.length ? capitulosVersiones : [capituloCanonico];
+  const placeholders = caps.map(() => "?").join(", ");
+
+  return db
+    .prepare(
+      `
+      SELECT
+        v.id,
+        v.created_at,
+        v.usuario_id,
+        u.usuario as nombre_usuario,
+        v.source,
+        v.motivo,
+        v.hash
+      FROM layout_versions v
+      LEFT JOIN usuarios u ON v.usuario_id = u.id
+      WHERE v.empresa_id = ? AND v.modulo = ? AND v.anio = ? AND v.capitulo IN (${placeholders})
+      ORDER BY v.id DESC
+      LIMIT ?
+    `,
+    )
+    .all(empresaCanonica, modulo, anioNumero, ...caps, take);
+};
+
+const restaurarLayoutVersion = ({
+  empresaId = "EMPRESA01",
+  modulo,
+  anio,
+  capitulo,
+  versionId,
+  usuarioId = null,
+  source = "restore",
+  motivo = null,
+} = {}) => {
+  const empresaCanonica = resolverEmpresaLayoutSource(empresaId);
+  const anioNumero = Number(anio);
+  const capituloSolicitado = LIMPIAR_CLAVE(capitulo || "DEFAULT") || "DEFAULT";
+  const capituloCanonico = canonizarCapituloLabel(capituloSolicitado);
+  const idNumero = Number(versionId);
+  if (!empresaCanonica || !modulo || !Number.isInteger(anioNumero) || !Number.isInteger(idNumero)) {
+    return { success: false, message: "Contexto inválido" };
+  }
+
+  // Backup automático antes de restaurar (si cambia, se deduplica por hash).
+  crearLayoutVersion({
+    empresaId: empresaCanonica,
+    modulo,
+    anio: anioNumero,
+    capitulo: capituloCanonico,
+    usuarioId,
+    source: "pre-restore-backup",
+    motivo: `Backup antes de restaurar versión ${idNumero}`,
+  });
+
+  const version = db
+    .prepare(
+      `
+      SELECT capitulo, snapshot_json
+      FROM layout_versions
+      WHERE id = ? AND empresa_id = ? AND modulo = ? AND anio = ?
+      LIMIT 1
+    `,
+    )
+    .get(idNumero, empresaCanonica, modulo, anioNumero);
+
+  if (!version?.snapshot_json) {
+    return { success: false, message: "Versión no encontrada" };
+  }
+
+  // Validar que la versión pertenece al mismo capítulo "equivalente" (tildes/invisibles).
+  const requestedKey = NORMALIZAR_CAPITULO(capituloSolicitado);
+  const versionKey = NORMALIZAR_CAPITULO(version?.capitulo || "");
+  if (requestedKey && versionKey && requestedKey !== versionKey) {
+    return { success: false, message: "Versión no pertenece a este capítulo" };
+  }
+
+  let snapshot = null;
+  try {
+    snapshot = JSON.parse(version.snapshot_json);
+  } catch (err) {
+    return { success: false, message: "Snapshot inválido" };
+  }
+
+  if (!snapshot || snapshot.schema !== 1) {
+    return { success: false, message: "Snapshot incompatible" };
+  }
+
+  const cuentas = Array.isArray(snapshot.cuentas) ? snapshot.cuentas : [];
+  const secciones = Array.isArray(snapshot.secciones) ? snapshot.secciones : [];
+  const operaciones = Array.isArray(snapshot.operaciones) ? snapshot.operaciones : [];
+
+  const insertCuenta = db.prepare(
+    `
+      INSERT INTO layout_cuentas (
+        empresa_id, modulo, anio, cuenta, nombre, capitulo,
+        seccion_principal, seccion_secundaria, operacion_factor,
+        orden, orden_presentacion, visible, actualizado_en
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+    `,
+  );
+
+  const insertSeccion = db.prepare(
+    `
+      INSERT OR REPLACE INTO layout_secciones (
+        empresa_id, modulo, anio, capitulo,
+        seccion_principal, seccion_secundaria, tipo, orden, orden_presentacion, actualizado_en
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+    `,
+  );
+
+  const insertOperacion = db.prepare(
+    `
+      INSERT OR REPLACE INTO layout_operaciones (
+        empresa_id, modulo, anio, capitulo,
+        clase, operacion_etiqueta, seccion,
+        operacion_tipo, operacion_label, signo,
+        orden, orden_presentacion, visible, formula_json, actualizado_en
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+    `,
+  );
+
+  const delCuentas = db.prepare(
+    `
+      DELETE FROM layout_cuentas
+      WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ?
+    `,
+  );
+  const delSecciones = db.prepare(
+    `
+      DELETE FROM layout_secciones
+      WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ?
+    `,
+  );
+  const delOperaciones = db.prepare(
+    `
+      DELETE FROM layout_operaciones
+      WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ?
+    `,
+  );
+
+  const tx = db.transaction(() => {
+    const capitulosEquivalentes = obtenerCapitulosEquivalentes({
+      empresaId: empresaCanonica,
+      modulo,
+      anio: anioNumero,
+      capitulo: capituloSolicitado,
+    });
+    const capsToDelete = Array.from(
+      new Set([capituloCanonico, ...capitulosEquivalentes].filter(Boolean))
+    );
+
+    capsToDelete.forEach((cap) => {
+      delCuentas.run(empresaCanonica, modulo, anioNumero, cap);
+      delOperaciones.run(empresaCanonica, modulo, anioNumero, cap);
+      delSecciones.run(empresaCanonica, modulo, anioNumero, cap);
+    });
+
+    secciones.forEach((row) => {
+      insertSeccion.run(
+        empresaCanonica,
+        modulo,
+        anioNumero,
+        capituloCanonico,
+        (row.seccion_principal ?? "").toString(),
+        row.seccion_secundaria == null ? "" : row.seccion_secundaria.toString(),
+        (row.tipo ?? "").toString(),
+        Number.isFinite(Number(row.orden)) ? Number(row.orden) : 0,
+        row.orden_presentacion == null || row.orden_presentacion === ""
+          ? null
+          : Number(row.orden_presentacion),
+      );
+    });
+
+    cuentas.forEach((row) => {
+      insertCuenta.run(
+        empresaCanonica,
+        modulo,
+        anioNumero,
+        (row.cuenta ?? "").toString(),
+        (row.nombre ?? "").toString(),
+        capituloCanonico,
+        (row.seccion_principal ?? "").toString(),
+        row.seccion_secundaria == null ? null : row.seccion_secundaria.toString(),
+        row.operacion_factor == null || row.operacion_factor === ""
+          ? 1
+          : Number(row.operacion_factor),
+        Number.isFinite(Number(row.orden)) ? Number(row.orden) : 0,
+        row.orden_presentacion == null || row.orden_presentacion === ""
+          ? null
+          : Number(row.orden_presentacion),
+        row.visible == null ? 1 : Number(row.visible),
+      );
+    });
+
+    operaciones.forEach((row) => {
+      insertOperacion.run(
+        empresaCanonica,
+        modulo,
+        anioNumero,
+        capituloCanonico,
+        (row.clase ?? "").toString(),
+        row.operacion_etiqueta == null ? null : row.operacion_etiqueta.toString(),
+        (row.seccion ?? "").toString(),
+        (row.operacion_tipo ?? "").toString(),
+        row.operacion_label == null ? "" : row.operacion_label.toString(),
+        Number.isFinite(Number(row.signo)) ? Number(row.signo) : 1,
+        Number.isFinite(Number(row.orden)) ? Number(row.orden) : 0,
+        row.orden_presentacion == null || row.orden_presentacion === ""
+          ? null
+          : Number(row.orden_presentacion),
+        row.visible == null ? 1 : Number(row.visible),
+        row.formula_json == null ? null : row.formula_json.toString(),
+      );
+    });
+  });
+
+  tx();
+
+  crearLayoutVersion({
+    empresaId: empresaCanonica,
+    modulo,
+    anio: anioNumero,
+    capitulo: capituloCanonico,
+    usuarioId,
+    source: source || "restore",
+    motivo: motivo || `Restaurar versión ${idNumero}`,
+  });
+
   return { success: true };
 };
 
@@ -1961,4 +2850,7 @@ module.exports = {
   eliminarOperacionesCapitulo,
   crearSeccion,
   renombrarSeccion,
+  crearLayoutVersion,
+  listarLayoutVersiones,
+  restaurarLayoutVersion,
 };

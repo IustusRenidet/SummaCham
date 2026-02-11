@@ -601,6 +601,7 @@ const crearTablas = () => {
       seccion_secundaria TEXT,
       tipo TEXT NOT NULL,
       orden INTEGER DEFAULT 0,
+      orden_presentacion INTEGER,
       creado_en TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       actualizado_en TEXT,
       UNIQUE(empresa_id, modulo, anio, capitulo, seccion_principal, seccion_secundaria)
@@ -784,6 +785,19 @@ const crearTablas = () => {
     console.log("✅ Columna 'operacion_etiqueta' agregada a layout_operaciones");
   }
 
+  // Migración: orden global de presentación para headers vacíos (layout_secciones)
+  const columnasSecciones = db
+    .prepare("PRAGMA table_info(layout_secciones)")
+    .all()
+    .map((c) => c.name);
+
+  if (!columnasSecciones.includes("orden_presentacion")) {
+    db.prepare(
+      "ALTER TABLE layout_secciones ADD COLUMN orden_presentacion INTEGER"
+    ).run();
+    console.log("✅ Columna 'orden_presentacion' agregada a layout_secciones");
+  }
+
   // Tabla para permisos granulares por capítulo en el gestor de plantillas
   db.prepare(
     `
@@ -823,6 +837,40 @@ const crearTablas = () => {
   `
   ).run();
 
+  // Historial de versiones (snapshots) para deshacer/restaurar layouts
+  db.prepare(
+    `
+    CREATE TABLE IF NOT EXISTS layout_versions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      empresa_id TEXT NOT NULL,
+      modulo TEXT NOT NULL,
+      anio INTEGER NOT NULL,
+      capitulo TEXT NOT NULL,
+      usuario_id INTEGER,
+      source TEXT,
+      motivo TEXT,
+      hash TEXT NOT NULL,
+      snapshot_json TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(usuario_id) REFERENCES usuarios(id) ON DELETE SET NULL
+    )
+  `
+  ).run();
+
+  db.prepare(
+    `
+    CREATE INDEX IF NOT EXISTS idx_layout_versions_lookup
+    ON layout_versions(empresa_id, modulo, anio, capitulo, created_at)
+  `
+  ).run();
+
+  db.prepare(
+    `
+    CREATE INDEX IF NOT EXISTS idx_layout_versions_hash
+    ON layout_versions(empresa_id, modulo, anio, capitulo, hash)
+  `
+  ).run();
+
   db.prepare(
     `
     CREATE TABLE IF NOT EXISTS graficas_config (
@@ -832,6 +880,28 @@ const crearTablas = () => {
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       UNIQUE(empresa_id)
     )
+  `
+  ).run();
+
+  // Configuración de gráficas por año (custom charts + settings). Permite que cada año
+  // tenga su propio set de cards, y que al copiar layouts por año se copien también.
+  db.prepare(
+    `
+    CREATE TABLE IF NOT EXISTS graficas_config_anio (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      empresa_id TEXT NOT NULL,
+      anio INTEGER NOT NULL,
+      config_json TEXT NOT NULL,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(empresa_id, anio)
+    )
+  `
+  ).run();
+
+  db.prepare(
+    `
+    CREATE INDEX IF NOT EXISTS idx_graficas_config_anio_lookup
+    ON graficas_config_anio(empresa_id, anio, updated_at)
   `
   ).run();
 };

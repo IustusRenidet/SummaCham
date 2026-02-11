@@ -47,6 +47,22 @@
   const ID_ENLACE_ADMIN = 'navAdministrarUsuarios';
   const EVENTO_EMPRESA = 'sesion:empresa-cambiada';
   const CONTEXTO_KEY = 'planeacionContexto';
+  const PPT_CAPTURE_KEY = 'panelamcham:ppt_capture';
+
+  const esModoCapturaPpt = () => {
+    try {
+      if (window.location?.protocol !== 'file:') return false;
+      const params = new URLSearchParams(window.location.search || '');
+      if (params.get('ppt_capture') === '1') return true;
+      const raw =
+        localStorage.getItem(PPT_CAPTURE_KEY) ||
+        localStorage.getItem('panelamcham_ppt_capture') ||
+        localStorage.getItem('PANELAMCHAM_PPT_CAPTURE');
+      return raw === '1' || raw === 'true';
+    } catch (_) {
+      return false;
+    }
+  };
 
   const clonar = (valor) => {
     try {
@@ -226,6 +242,14 @@
 
   // Función auxiliar para redirigir, soportando contexto de iframe
   const redirigir = (destino, usarTop = false) => {
+    if (esModoCapturaPpt()) {
+      try {
+        console.info('[Sesion] Modo captura PPT: se omitió redirección a', destino);
+      } catch (_) {
+        // ignore
+      }
+      return;
+    }
     if (usarTop && window.top !== window.self) {
       // Estamos en un iframe y se pidió redirigir la ventana principal
       window.top.location.replace(destino);
@@ -344,6 +368,14 @@
 
   // Función para cerrar sesión y redirigir al login (soporta iframes)
   const cerrar = ({ redirectTo = REDIRECCION_POR_DEFECTO, usarTop = true } = {}) => {
+    if (esModoCapturaPpt()) {
+      try {
+        console.info('[Sesion] Modo captura PPT: se omitió cerrar sesión.');
+      } catch (_) {
+        // ignore
+      }
+      return;
+    }
     limpiar();
     redirigir(redirectTo, usarTop);
   };

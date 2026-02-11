@@ -82,7 +82,7 @@
   margin-bottom: 12px;
   padding: 16px;
   transition: all 0.2s ease;
-  cursor: move;
+  cursor: default;
   position: relative;
   display: flex;
   align-items: center;
@@ -106,20 +106,38 @@
   background: #f0fff4;
 }
 
-/* Indicador de orden (número) */
-.item-order {
+/* Indicador de orden (input numérico) */
+.item-order-input {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   font-weight: 700;
   font-size: 1.1rem;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  border: none;
+  text-align: center;
   flex-shrink: 0;
   box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+  padding: 0;
+}
+
+.item-order-input:focus {
+  outline: none;
+  box-shadow:
+    0 0 0 3px rgba(13, 110, 253, 0.25),
+    0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+/* Quitar spinners de number input */
+.item-order-input::-webkit-outer-spin-button,
+.item-order-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.item-order-input {
+  -moz-appearance: textfield;
 }
 
 /* Ícono del tipo de elemento */
@@ -368,7 +386,7 @@
   padding: 10px 14px;
 }
 
-.orden-container.compact .item-order,
+.orden-container.compact .item-order-input,
 .orden-container.compact .item-icon {
   width: 32px;
   height: 32px;
@@ -548,7 +566,7 @@
   }
 }
 
-.item-order.highlight {
+.item-order-input.highlight {
   animation: pulse 0.5s ease;
 }
 

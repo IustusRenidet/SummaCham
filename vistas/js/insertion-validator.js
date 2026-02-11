@@ -72,41 +72,32 @@
             severity: 'error'
           });
         }
-        if (tipo === 'cuenta' && (!context.secundaria || !context.principal)) {
+        // MODO MANUAL: permitir cuentas/operaciones a nivel principal o sin sección.
+        // Si el usuario selecciona una secundaria, entonces sí debe existir principal.
+        if (
+          (tipo === 'cuenta' || tipo === 'operacion_sumas') &&
+          context.secundaria &&
+          !context.principal
+        ) {
           errors.push({
-            field: 'jerarquia',
-            message: 'Una Cuenta debe estar dentro de una Secundaria (que está en una Principal)',
-            severity: 'error'
-          });
-        }
-        if (tipo === 'operacion_sumas' && (!context.secundaria || !context.principal)) {
-          errors.push({
-            field: 'jerarquia',
-            message: 'Una operación de sumas debe estar dentro de una Secundaria (que está en una Principal)',
+            field: 'principal',
+            message: 'Si seleccionas una Sección Secundaria, también debes seleccionar la Sección Principal',
             severity: 'error'
           });
         }
       }
 
       if (moduleType === 'RESUMEN') {
-        if (tipo === 'operacion' && (!context.secundaria || !context.principal)) {
+        // MODO MANUAL: permitir operaciones/cuentas fuera de secundarias/operaciones.
+        // Si el usuario selecciona una secundaria, entonces sí debe existir principal.
+        if (
+          (tipo === 'operacion' || tipo === 'operacion_sumas' || tipo === 'cuenta') &&
+          context.secundaria &&
+          !context.principal
+        ) {
           errors.push({
-            field: 'jerarquia',
-            message: 'Una Operación debe estar en una Secundaria (que está en una Principal)',
-            severity: 'error'
-          });
-        }
-        if (tipo === 'operacion_sumas' && (!context.secundaria || !context.principal)) {
-          errors.push({
-            field: 'jerarquia',
-            message: 'Una operación de sumas debe estar en una Secundaria (que está en una Principal)',
-            severity: 'error'
-          });
-        }
-        if (tipo === 'cuenta' && (!context.operacion || !context.secundaria || !context.principal)) {
-          errors.push({
-            field: 'jerarquia',
-            message: 'Una Cuenta debe estar en una Operación (dentro de Secundaria, dentro de Principal)',
+            field: 'principal',
+            message: 'Si seleccionas una Sección Secundaria, también debes seleccionar la Sección Principal',
             severity: 'error'
           });
         }
@@ -419,15 +410,18 @@
     getHierarchyRules(moduleType) {
       return {
         SUMMARY: {
-          cuenta: { hierarchy: ['capitulo', 'principal', 'secundaria'] },
-          operacion_sumas: { hierarchy: ['capitulo', 'principal', 'secundaria'] },
+          // MODO MANUAL: permitir insertar cuentas/operaciones sin amarrarlas a secciones.
+          // La sección secundaria sigue requiriendo principal.
+          cuenta: { hierarchy: ['capitulo'] },
+          operacion_sumas: { hierarchy: ['capitulo'] },
           secundaria: { hierarchy: ['capitulo', 'principal'] },
           principal: { hierarchy: ['capitulo'] }
         },
         RESUMEN: {
-          cuenta: { hierarchy: ['capitulo', 'principal', 'secundaria', 'operacion'] },
-          operacion: { hierarchy: ['capitulo', 'principal', 'secundaria'] },
-          operacion_sumas: { hierarchy: ['capitulo', 'principal', 'secundaria'] },
+          // MODO MANUAL: RESUMEN ya no requiere Operación como contenedor de cuentas.
+          cuenta: { hierarchy: ['capitulo'] },
+          operacion: { hierarchy: ['capitulo'] },
+          operacion_sumas: { hierarchy: ['capitulo'] },
           secundaria: { hierarchy: ['capitulo', 'principal'] },
           principal: { hierarchy: ['capitulo'] }
         },

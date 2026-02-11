@@ -5,6 +5,22 @@
   const STORAGE_PREFIX = "panelamcham.guidedtour.v2";
   const CARD_MAX_WIDTH = 360;
   const CARD_MIN_HEIGHT = 224;
+  const PPT_CAPTURE_KEY = "panelamcham:ppt_capture";
+
+  const isPptCaptureMode = () => {
+    try {
+      if (window.location?.protocol !== "file:") return false;
+      const params = new URLSearchParams(window.location.search || "");
+      if (params.get("ppt_capture") === "1") return true;
+      const raw =
+        localStorage.getItem(PPT_CAPTURE_KEY) ||
+        localStorage.getItem("panelamcham_ppt_capture") ||
+        localStorage.getItem("PANELAMCHAM_PPT_CAPTURE");
+      return raw === "1" || raw === "true";
+    } catch (_) {
+      return false;
+    }
+  };
 
   const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
@@ -255,6 +271,14 @@
   };
 
   const mount = (rawConfig = {}) => {
+    if (isPptCaptureMode() && rawConfig.forceEnable !== true) {
+      return {
+        start: () => {},
+        reset: () => {},
+        destroy: () => {},
+      };
+    }
+
     ensureStyles();
 
     // Permitir desactivar tours desde la configuración de rutas (shell / app.html).

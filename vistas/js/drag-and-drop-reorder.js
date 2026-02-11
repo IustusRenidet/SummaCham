@@ -181,53 +181,65 @@
 
     // Ruta preferida: delegar al reordenamiento global del Gestor (actualiza orden + jerarquía)
     if (typeof window.applyTemplateRowsOrder === 'function') {
-      let currentSection = '';
-      let currentSubsection = '';
-      const orderedRows = domRows.map((row) => {
-        const rowType = row.dataset.rowType;
+      const getAttr = (node, name) => {
+        if (!node || !node.getAttribute) return null;
+        return node.getAttribute(name);
+      };
 
-        if (rowType === 'section') {
-          currentSection = row.dataset.section || row.textContent.trim();
-          currentSubsection = '';
-          return { type: 'principal', label: currentSection };
-        }
+      const orderedRows = domRows
+        .map((row) => {
+          const rowType = row.dataset.rowType;
 
-        if (rowType === 'subsection') {
-          currentSubsection = row.dataset.subsection || row.textContent.trim();
-          return {
-            type: 'subsection',
-            label: currentSubsection,
-            parentSection: row.dataset.section || currentSection || ''
-          };
-        }
+          if (rowType === 'section') {
+            const label =
+              getAttr(row, 'data-section') ?? (row.textContent || '').trim();
+            return {
+              type: 'principal',
+              label,
+              placeholderAccountId: getAttr(row, 'data-placeholder-account-id') || ''
+            };
+          }
 
-        if (rowType === 'account') {
-          const cuenta = row.dataset.cuenta || '';
-          return {
-            type: 'account',
-            cuenta,
-            accountId: row.dataset.accountId || cuenta,
-            parentSection: row.dataset.section || currentSection || '',
-            parentSubsection: row.dataset.subsection || currentSubsection || ''
-          };
-        }
+          if (rowType === 'subsection') {
+            const label =
+              getAttr(row, 'data-subsection') ?? (row.textContent || '').trim();
+            return {
+              type: 'subsection',
+              label,
+              parentSection: getAttr(row, 'data-section') || '',
+              placeholderAccountId: getAttr(row, 'data-placeholder-account-id') || ''
+            };
+          }
 
-        if (rowType === 'operation') {
-          const opId = row.dataset.operationId || '';
-          const label = row.dataset.operationLabel || opId;
-          return {
-            type: 'operation',
-            label,
-            opId: opId || label,
-            operationId: opId || label,
-            kind: row.dataset.operationKind || '',
-            parentSection: row.dataset.section || currentSection || '',
-            parentSubsection: row.dataset.subsection || currentSubsection || ''
-          };
-        }
+          if (rowType === 'account') {
+            const cuenta = getAttr(row, 'data-cuenta') || '';
+            const accountId = getAttr(row, 'data-account-id') || cuenta;
+            return {
+              type: 'account',
+              cuenta,
+              accountId,
+              parentSection: getAttr(row, 'data-section') || '',
+              parentSubsection: getAttr(row, 'data-subsection') || ''
+            };
+          }
 
-        return null;
-      }).filter(Boolean);
+          if (rowType === 'operation') {
+            const opId = getAttr(row, 'data-operation-id') || '';
+            const label = getAttr(row, 'data-operation-label') || opId;
+            return {
+              type: 'operation',
+              label,
+              opId: opId || label,
+              operationId: opId || label,
+              kind: getAttr(row, 'data-operation-kind') || '',
+              parentSection: getAttr(row, 'data-section') || '',
+              parentSubsection: getAttr(row, 'data-subsection') || ''
+            };
+          }
+
+          return null;
+        })
+        .filter(Boolean);
 
       const result = window.applyTemplateRowsOrder(orderedRows, { silent: false });
       if (!result?.success) {

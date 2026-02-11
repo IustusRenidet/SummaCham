@@ -15,6 +15,14 @@
     originalOrder: [],
   };
 
+  const normalizeKey = (value) =>
+    (value || "")
+      .toString()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim()
+      .toLowerCase();
+
   let listenersReordenarAttached = false;
 
   function initReordenar() {
@@ -72,12 +80,21 @@
       : [];
 
     const cuentasOrdenadas = [...cuentas].sort((a, b) => {
-      const orderA = Number.isFinite(Number(a?.orden_presentacion))
+      const hasOrdenPresentacionA =
+        a?.orden_presentacion !== null &&
+        a?.orden_presentacion !== undefined &&
+        !(typeof a?.orden_presentacion === "string" && a.orden_presentacion.trim() === "");
+      const hasOrdenPresentacionB =
+        b?.orden_presentacion !== null &&
+        b?.orden_presentacion !== undefined &&
+        !(typeof b?.orden_presentacion === "string" && b.orden_presentacion.trim() === "");
+
+      const orderA = hasOrdenPresentacionA
         ? Number(a.orden_presentacion)
         : Number.isFinite(Number(a?.orden))
         ? Number(a.orden)
         : 0;
-      const orderB = Number.isFinite(Number(b?.orden_presentacion))
+      const orderB = hasOrdenPresentacionB
         ? Number(b.orden_presentacion)
         : Number.isFinite(Number(b?.orden))
         ? Number(b.orden)
@@ -103,12 +120,21 @@
     });
 
     const operacionesOrdenadas = [...operaciones].sort((a, b) => {
-      const orderA = Number.isFinite(Number(a?.orden_presentacion))
+      const hasOrdenPresentacionA =
+        a?.orden_presentacion !== null &&
+        a?.orden_presentacion !== undefined &&
+        !(typeof a?.orden_presentacion === "string" && a.orden_presentacion.trim() === "");
+      const hasOrdenPresentacionB =
+        b?.orden_presentacion !== null &&
+        b?.orden_presentacion !== undefined &&
+        !(typeof b?.orden_presentacion === "string" && b.orden_presentacion.trim() === "");
+
+      const orderA = hasOrdenPresentacionA
         ? Number(a.orden_presentacion)
         : Number.isFinite(Number(a?.orden))
         ? Number(a.orden)
         : 0;
-      const orderB = Number.isFinite(Number(b?.orden_presentacion))
+      const orderB = hasOrdenPresentacionB
         ? Number(b.orden_presentacion)
         : Number.isFinite(Number(b?.orden))
         ? Number(b.orden)
@@ -153,9 +179,19 @@
   function resolveLevel(row = {}) {
     if (row.type === "principal") return 0;
     if (row.type === "subsection") return 1;
-    if (row.type === "account") return 2;
+    if (row.type === "account") {
+      const parentSub = row.parentSubsection || row.subsection || "";
+      const parentSec = row.parentSection || row.section || "";
+      if (parentSub) return 2;
+      if (parentSec) return 1;
+      return 0;
+    }
     if (row.type === "operation") {
-      return row.parentSubsection ? 2 : row.parentSection ? 1 : 0;
+      const parentSub = row.parentSubsection || row.subsection || "";
+      const parentSec = row.parentSection || row.section || "";
+      if (parentSub) return 2;
+      if (parentSec) return 1;
+      return 0;
     }
     return 0;
   }
@@ -274,7 +310,15 @@
           data-filter-type="${elem.tipo}"
           data-index="${idx}"
           draggable="true">
-        <div class="item-order">${idx + 1}</div>
+        <input
+          type="number"
+          class="item-order-input"
+          value="${idx + 1}"
+          min="1"
+          max="${ordenState.elementos.length}"
+          inputmode="numeric"
+          title="Escribe la posición (Enter para aplicar)"
+        />
         <div class="item-icon ${badgeClass}">
           <i class="bi ${icon}"></i>
         </div>
@@ -318,6 +362,11 @@
   function handleDragStart(event) {
     const item = event.target.closest(".sortable-item");
     if (!item) return;
+    // Solo permitir drag desde el handle para no pelear con inputs/clicks.
+    if (!event.target.closest(".drag-handle")) {
+      event.preventDefault();
+      return;
+    }
     ordenState.draggedElement = item;
     item.classList.add("dragging");
     event.dataTransfer.effectAllowed = "move";
@@ -359,7 +408,7 @@
     if (ordenState.draggedElement !== targetItem) {
       const draggedIndex = parseInt(ordenState.draggedElement.dataset.index, 10);
       const targetIndex = parseInt(targetItem.dataset.index, 10);
-      intercambiarElementos(draggedIndex, targetIndex);
+      moverElementoAPosicion(draggedIndex, targetIndex);
       renderizarListaOrdenable();
     }
 
@@ -374,13 +423,13 @@
         const index = parseInt(item?.dataset.index || "-1", 10);
         if (!Number.isInteger(index) || index < 0) return;
 
-        if (action === "up" && index > 0) {
-          intercambiarElementos(index, index - 1);
+        if (action === "up") {
+          moverElementoPorPaso(index, -1);
           renderizarListaOrdenable();
           return;
         }
-        if (action === "down" && index < ordenState.elementos.length - 1) {
-          intercambiarElementos(index, index + 1);
+        if (action === "down") {
+          moverElementoPorPaso(index, 1);
           renderizarListaOrdenable();
           return;
         }
@@ -389,15 +438,221 @@
         }
       });
     });
+
+    document.querySelectorAll(".item-order-input").forEach((input) => {
+      input.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          event.currentTarget.blur();
+        }
+      });
+
+      input.addEventListener("blur", (event) => {
+        const node = event.currentTarget;
+        const item = node.closest(".sortable-item");
+        const index = parseInt(item?.dataset.index || "-1", 10);
+        if (!Number.isInteger(index) || index < 0) return;
+        const raw = parseInt(node.value, 10);
+        if (!Number.isInteger(raw) || raw < 1) {
+          node.value = String(index + 1);
+          return;
+        }
+        const desired = Math.max(0, Math.min(raw - 1, ordenState.elementos.length - 1));
+        if (desired === index) return;
+        moverElementoAPosicion(index, desired);
+        renderizarListaOrdenable();
+      });
+    });
   }
 
-  function intercambiarElementos(fromIndex, toIndex) {
-    const temp = ordenState.elementos[fromIndex];
-    ordenState.elementos[fromIndex] = ordenState.elementos[toIndex];
-    ordenState.elementos[toIndex] = temp;
+  function obtenerNivelElemento(elem) {
+    const nivel = Number(elem?.nivel);
+    return Number.isFinite(nivel) ? nivel : 0;
+  }
+
+  function obtenerRangoBloque(startIndex) {
+    const elem = ordenState.elementos[startIndex];
+    if (!elem) return { start: startIndex, end: startIndex };
+    const type = elem?.row?.type || "";
+    const level = obtenerNivelElemento(elem);
+
+    if (type === "principal") {
+      let end = startIndex;
+      for (let i = startIndex + 1; i < ordenState.elementos.length; i += 1) {
+        const next = ordenState.elementos[i];
+        if (obtenerNivelElemento(next) <= level) break;
+        end = i;
+      }
+      return { start: startIndex, end };
+    }
+
+    if (type === "subsection") {
+      let end = startIndex;
+      for (let i = startIndex + 1; i < ordenState.elementos.length; i += 1) {
+        const next = ordenState.elementos[i];
+        if (obtenerNivelElemento(next) <= level) break;
+        end = i;
+      }
+      return { start: startIndex, end };
+    }
+
+    return { start: startIndex, end: startIndex };
+  }
+
+  function normalizarIndiceInsercion(remaining, index, level) {
+    let idx = index;
+    while (idx < remaining.length && obtenerNivelElemento(remaining[idx]) > level) {
+      idx += 1;
+    }
+    return idx;
+  }
+
+  function moverElementoAPosicion(fromIndex, toIndex) {
+    if (!Number.isInteger(fromIndex) || fromIndex < 0) return;
+    if (!Number.isInteger(toIndex) || toIndex < 0) return;
+    if (fromIndex >= ordenState.elementos.length) return;
+
+    const rango = obtenerRangoBloque(fromIndex);
+    const level = obtenerNivelElemento(ordenState.elementos[rango.start]);
+    const rowType = ordenState.elementos[rango.start]?.row?.type || "";
+    const principalName = (ordenState.elementos[rango.start]?.principal || "").toString().trim();
+
+    const block = ordenState.elementos.slice(rango.start, rango.end + 1);
+    const remaining = [
+      ...ordenState.elementos.slice(0, rango.start),
+      ...ordenState.elementos.slice(rango.end + 1),
+    ];
+
+    let insertAt = Math.max(0, Math.min(toIndex, remaining.length));
+    // Si movemos hacia abajo, ajustar porque el bloque se removió antes de insertar.
+    if (insertAt > rango.start) {
+      insertAt = Math.max(0, insertAt - block.length);
+    }
+
+    // Sub-sección: no permitir salir de su sección principal.
+    if (rowType === "subsection" && principalName) {
+      const principalKey = normalizeKey(principalName);
+      const headerIndex = remaining.findIndex((elem) => {
+        if (elem?.row?.type !== "principal") return false;
+        return normalizeKey(elem?.row?.label || "") === principalKey;
+      });
+      if (headerIndex >= 0) {
+        let nextHeader = remaining.findIndex(
+          (elem, idx) => idx > headerIndex && elem?.row?.type === "principal"
+        );
+        if (nextHeader < 0) nextHeader = remaining.length;
+        const min = headerIndex + 1;
+        const max = nextHeader; // permite insert al final de esa sección
+        insertAt = Math.max(min, Math.min(insertAt, max));
+      }
+    }
+
+    // Cuenta/Operación ligadas: restringir el movimiento al rango de su sección/subsección.
+    // Esto evita el efecto "lo moví pero se regresó" cuando el elemento está ligado por metadata.
+    if ((rowType === "account" || rowType === "operation") && principalName) {
+      const principalKey = normalizeKey(principalName);
+      const subName = (ordenState.elementos[rango.start]?.subseccion || "").toString().trim();
+      const subKey = normalizeKey(subName);
+
+      // 1) Si está ligado a subsección: solo dentro del bloque de esa subsección.
+      if (subName) {
+        const headerIndex = remaining.findIndex((elem) => {
+          if (elem?.row?.type !== "subsection") return false;
+          if (normalizeKey(elem?.principal || "") !== principalKey) return false;
+          return normalizeKey(elem?.row?.label || elem?.row?.subsection || "") === subKey;
+        });
+        if (headerIndex >= 0) {
+          let end = remaining.length;
+          for (let i = headerIndex + 1; i < remaining.length; i += 1) {
+            if (obtenerNivelElemento(remaining[i]) <= 1) {
+              end = i;
+              break;
+            }
+          }
+          const min = Math.min(headerIndex + 1, remaining.length);
+          const max = Math.min(end, remaining.length); // permite insert al final del bloque
+          insertAt = Math.max(min, Math.min(insertAt, max));
+        }
+      } else {
+        // 2) Ligado solo a principal: solo dentro del bloque de ese principal.
+        const headerIndex = remaining.findIndex((elem) => {
+          if (elem?.row?.type !== "principal") return false;
+          return normalizeKey(elem?.row?.label || "") === principalKey;
+        });
+        if (headerIndex >= 0) {
+          let nextHeader = remaining.findIndex(
+            (elem, idx) => idx > headerIndex && elem?.row?.type === "principal"
+          );
+          if (nextHeader < 0) nextHeader = remaining.length;
+          const min = Math.min(headerIndex + 1, remaining.length);
+          const max = Math.min(nextHeader, remaining.length);
+          insertAt = Math.max(min, Math.min(insertAt, max));
+        }
+      }
+    }
+
+    insertAt = normalizarIndiceInsercion(remaining, insertAt, level);
+
+    ordenState.elementos = [
+      ...remaining.slice(0, insertAt),
+      ...block,
+      ...remaining.slice(insertAt),
+    ];
+
     ordenState.elementos.forEach((elem, idx) => {
       elem.orden = idx;
     });
+  }
+
+  function moverElementoPorPaso(index, direction) {
+    const dir = Number(direction || 0);
+    if (!Number.isFinite(dir) || dir === 0) return;
+    if (index < 0 || index >= ordenState.elementos.length) return;
+
+    const current = obtenerRangoBloque(index);
+    const level = obtenerNivelElemento(ordenState.elementos[current.start]);
+
+    if (dir > 0) {
+      let cursor = current.end + 1;
+      while (
+        cursor < ordenState.elementos.length &&
+        obtenerNivelElemento(ordenState.elementos[cursor]) > level
+      ) {
+        cursor += 1;
+      }
+      if (cursor >= ordenState.elementos.length) return;
+      if (obtenerNivelElemento(ordenState.elementos[cursor]) < level) return;
+      const next = obtenerRangoBloque(cursor);
+
+      const before = ordenState.elementos.slice(0, current.start);
+      const blockA = ordenState.elementos.slice(current.start, current.end + 1);
+      const between = ordenState.elementos.slice(current.end + 1, next.start);
+      const blockB = ordenState.elementos.slice(next.start, next.end + 1);
+      const after = ordenState.elementos.slice(next.end + 1);
+
+      ordenState.elementos = [...before, ...blockB, ...between, ...blockA, ...after];
+      ordenState.elementos.forEach((elem, idx) => (elem.orden = idx));
+      return;
+    }
+
+    if (dir < 0) {
+      let cursor = current.start - 1;
+      while (cursor >= 0 && obtenerNivelElemento(ordenState.elementos[cursor]) > level) {
+        cursor -= 1;
+      }
+      if (cursor < 0) return;
+      if (obtenerNivelElemento(ordenState.elementos[cursor]) < level) return;
+      const prev = obtenerRangoBloque(cursor);
+
+      const before = ordenState.elementos.slice(0, prev.start);
+      const blockA = ordenState.elementos.slice(prev.start, prev.end + 1);
+      const between = ordenState.elementos.slice(prev.end + 1, current.start);
+      const blockB = ordenState.elementos.slice(current.start, current.end + 1);
+      const after = ordenState.elementos.slice(current.end + 1);
+
+      ordenState.elementos = [...before, ...blockB, ...between, ...blockA, ...after];
+      ordenState.elementos.forEach((elem, idx) => (elem.orden = idx));
+    }
   }
 
   function editarElemento(elem) {

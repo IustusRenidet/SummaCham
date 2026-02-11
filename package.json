@@ -31,6 +31,8 @@
     "import:layouts-2025": "python scripts/import_summary_resumen_2025.py",
     "ppt:from-excel": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/export-excel-charts-to-ppt.ps1",
     "ppt:from-excel:ui": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/export-excel-charts-to-ppt-ui.ps1",
+    "ppt:backend": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/generate-backend-tech-ppt.ps1",
+    "ppt:backend:ui": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/generate-backend-tech-ppt-ui.ps1",
     "rebuild-native-node": "npm rebuild better-sqlite3 --build-from-source && npm run native:save-node && npm run native:use-node",
     "rebuild-native-electron": "npx @electron/rebuild -f -v 39.2.7 && npm run native:save-electron && npm run native:use-electron",
     "rebuild-native": "npm run rebuild-native-node && npm run rebuild-native-electron",
@@ -55,6 +57,8 @@
   "build": {
     "appId": "com.summa.cham.panelamcham",
     "productName": "PanelAMCHAM",
+    "npmRebuild": false,
+    "nodeGypRebuild": false,
     "publish": [
       {
         "provider": "github",

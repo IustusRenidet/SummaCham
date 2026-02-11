@@ -517,6 +517,25 @@ router.post("/:modulo/:anio/:capitulo", requireAuth, (req, res) => {
         })
       : { insertadas: 0 };
 
+    // Snapshot/version para permitir deshacer.
+    try {
+      const usuarioId = req.usuarioActual?.id ?? null;
+      layoutService.crearLayoutVersion({
+        empresaId,
+        modulo,
+        anio: anioNumero,
+        capitulo,
+        usuarioId,
+        source: "replace-layout",
+        motivo: "Reemplazar layout",
+      });
+    } catch (versionErr) {
+      console.warn(
+        "[layoutRoutes] No se pudo crear snapshot de layout (reemplazar):",
+        versionErr?.message || versionErr
+      );
+    }
+
     res.json({
       success: true,
       mensaje: "Layout reemplazado exitosamente",
@@ -563,6 +582,26 @@ router.post("/:modulo/:anio/:capitulo/cuentas", requireAuth, (req, res) => {
       capitulo,
       cuentas,
     });
+
+    // Snapshot/version (undo/restore). Guardar cuentas también debe generar versión,
+    // porque el orden manual vive principalmente en `orden_presentacion` de cuentas.
+    try {
+      const usuarioId = req.usuarioActual?.id ?? null;
+      layoutService.crearLayoutVersion({
+        empresaId,
+        modulo,
+        anio: parseInt(anio),
+        capitulo,
+        usuarioId,
+        source: "save-cuentas",
+        motivo: "Guardar cuentas",
+      });
+    } catch (versionErr) {
+      console.warn(
+        "[layoutRoutes] No se pudo crear snapshot de layout (cuentas):",
+        versionErr?.message || versionErr
+      );
+    }
 
     res.json({
       success: true,
@@ -629,6 +668,24 @@ router.post("/:modulo/:anio/operaciones", requireAuth, (req, res) => {
         })
       : { success: true, insertadas: 0 };
 
+    // Crear snapshot/version para permitir deshacer (evitar duplicados por hash).
+    try {
+      const usuarioId = req.usuarioActual?.id ?? null;
+      capitulosObjetivo.forEach((cap) => {
+        layoutService.crearLayoutVersion({
+          empresaId,
+          modulo,
+          anio: parseInt(anio),
+          capitulo: cap,
+          usuarioId,
+          source: "save-operaciones",
+          motivo: "Guardar layout",
+        });
+      });
+    } catch (versionErr) {
+      console.warn("[layoutRoutes] No se pudo crear snapshot de layout:", versionErr?.message || versionErr);
+    }
+
     res.json({
       success: true,
       mensaje: "Operaciones guardadas exitosamente",
@@ -639,6 +696,78 @@ router.post("/:modulo/:anio/operaciones", requireAuth, (req, res) => {
     res.status(500).json({
       success: false,
       mensaje: "Error al guardar operaciones",
+      error: error.message,
+    });
+  }
+});
+
+/**
+ * GET /api/layouts-config/:modulo/:anio/:capitulo/versions
+ * Historial de versiones (snapshots) para deshacer/restaurar.
+ */
+router.get("/:modulo/:anio/:capitulo/versions", requireAuth, (req, res) => {
+  try {
+    const { modulo, anio, capitulo } = req.params;
+    const { empresaId = "EMPRESA01", limit } = req.query;
+    const versions = layoutService.listarLayoutVersiones({
+      empresaId,
+      modulo,
+      anio: parseInt(anio),
+      capitulo: decodeURIComponent(capitulo),
+      limit: limit ? parseInt(limit) : 30,
+    });
+    res.json({ success: true, versions });
+  } catch (error) {
+    console.error("Error al listar versiones:", error);
+    res.status(500).json({
+      success: false,
+      mensaje: "Error al listar versiones",
+      error: error.message,
+    });
+  }
+});
+
+/**
+ * POST /api/layouts-config/:modulo/:anio/:capitulo/versions/:id/restore
+ * Restaurar un snapshot.
+ */
+router.post("/:modulo/:anio/:capitulo/versions/:id/restore", requireAuth, (req, res) => {
+  try {
+    const { modulo, anio, capitulo, id } = req.params;
+    const { empresaId = "EMPRESA01", motivo } = req.body || {};
+
+    if (!tienePermisoGuardar(req, empresaId, modulo, decodeURIComponent(capitulo))) {
+      return res.status(403).json({
+        success: false,
+        mensaje: "No cuentas con permisos para restaurar versiones",
+      });
+    }
+
+    const usuarioId = req.usuarioActual?.id ?? null;
+    const resultado = layoutService.restaurarLayoutVersion({
+      empresaId,
+      modulo,
+      anio: parseInt(anio),
+      capitulo: decodeURIComponent(capitulo),
+      versionId: parseInt(id),
+      usuarioId,
+      source: "restore",
+      motivo: motivo || `Restaurar versión ${id}`,
+    });
+
+    if (!resultado?.success) {
+      return res.status(400).json({
+        success: false,
+        mensaje: resultado?.message || "No fue posible restaurar la versión",
+      });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error al restaurar versión:", error);
+    res.status(500).json({
+      success: false,
+      mensaje: "Error al restaurar versión",
       error: error.message,
     });
   }
@@ -674,9 +803,57 @@ router.post("/:modulo/copiar", requireAuth, (req, res) => {
       anioDestino: parseInt(anioDestino),
     });
 
+    // Copiar gráficas por año (una sola vez por año destino).
+    // Regla: si el año destino YA tiene config, no sobrescribir.
+    // Origen: primero `graficas_config_anio(anioOrigen)`, fallback a `graficas_config` legacy.
+    let graficasCopiadas = false;
+    let graficasSource = null;
+    try {
+      const origen = parseInt(anioOrigen);
+      const destino = parseInt(anioDestino);
+      if (Number.isInteger(origen) && Number.isInteger(destino) && origen !== destino) {
+        const exists = db
+          .prepare(
+            "SELECT 1 as ok FROM graficas_config_anio WHERE empresa_id = ? AND anio = ? LIMIT 1"
+          )
+          .get(empresaId, destino);
+
+        if (!exists) {
+          const fromYear = db
+            .prepare(
+              "SELECT config_json FROM graficas_config_anio WHERE empresa_id = ? AND anio = ?"
+            )
+            .get(empresaId, origen);
+
+          const fromLegacy = !fromYear
+            ? db
+                .prepare("SELECT config_json FROM graficas_config WHERE empresa_id = ?")
+                .get(empresaId)
+            : null;
+
+          const payload = fromYear?.config_json || fromLegacy?.config_json || null;
+          if (payload) {
+            db.prepare(
+              `
+              INSERT INTO graficas_config_anio (empresa_id, anio, config_json, updated_at)
+              VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+              ON CONFLICT(empresa_id, anio) DO NOTHING
+            `
+            ).run(empresaId, destino, payload);
+            graficasCopiadas = true;
+            graficasSource = fromYear ? "anio" : "legacy";
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("[layoutRoutes] No se pudieron copiar gráficas:", err?.message || err);
+    }
+
     res.json({
       success: true,
       ...resultado,
+      graficasCopiadas,
+      graficasSource,
     });
   } catch (error) {
     console.error("Error al copiar layout:", error);

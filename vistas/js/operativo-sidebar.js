@@ -691,6 +691,9 @@
     return filas
       .map((fila) => {
         const cells = fila.cells || [];
+        const cuentaRaw = (cells?.[0]?.textContent || "")
+          .replace(/\s+/g, " ")
+          .trim();
         const etiqueta = resolverEtiquetaFila(fila);
         if (!etiqueta) return null;
         const values = {};
@@ -722,6 +725,7 @@
         return {
           etiqueta,
           key: normalizeKey(etiqueta),
+          accountKey: normalizeKey(cuentaRaw),
           presupuesto,
           real,
           anual,
@@ -738,8 +742,22 @@
       .filter(Boolean);
     if (!keys.length) return null;
     for (const key of keys) {
-      const exact = rowsData.find((row) => row.key === key);
+      const exact = rowsData.find(
+        (row) => row.key === key || row.accountKey === key
+      );
       if (exact) return exact;
+    }
+    const keysByLength = [...keys].sort((a, b) => b.length - a.length);
+    for (const key of keysByLength) {
+      if (key.length < 3) continue;
+      const partial = rowsData.find(
+        (row) =>
+          row.key.includes(key) ||
+          (row.accountKey && row.accountKey.includes(key)) ||
+          key.includes(row.key) ||
+          (row.accountKey && key.includes(row.accountKey))
+      );
+      if (partial) return partial;
     }
     return null;
   };
@@ -1193,13 +1211,14 @@
       }, {});
 
       rows.forEach((row, rowIndex) => {
-        const variants = Array.isArray(row?.variants)
-          ? row.variants
-          : row?.label
-          ? [row.label]
-          : row?.alias
-          ? [row.alias]
-          : [];
+        const variants =
+          Array.isArray(row?.variants) && row.variants.length
+            ? row.variants
+            : row?.label
+            ? [row.label]
+            : row?.alias
+            ? [row.alias]
+            : [];
         const label =
           row?.alias || row?.label || variants[0] || `Fila ${rowIndex + 1}`;
         const match = matchRowByVariants(rowsData, variants);

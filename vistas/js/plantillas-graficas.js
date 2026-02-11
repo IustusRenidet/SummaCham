@@ -533,7 +533,19 @@
 
   const readPlaneacionContext = () => {
     try {
-      return JSON.parse(localStorage.getItem("planeacion_contexto") || "{}");
+      if (window.Sesion && typeof window.Sesion.obtenerContextoPlaneacion === "function") {
+        return window.Sesion.obtenerContextoPlaneacion() || {};
+      }
+    } catch (_) {
+      // ignore
+    }
+
+    try {
+      const raw =
+        localStorage.getItem("planeacionContexto") ||
+        localStorage.getItem("planeacion_contexto") ||
+        "{}";
+      return JSON.parse(raw || "{}");
     } catch {
       return {};
     }
@@ -4395,28 +4407,48 @@
     definitions = filterDefinitionsByCapitulo(definitions, previewContext);
     const currentModuleKey = getCurrentModuleKey();
     definitions = definitions.slice().sort((a, b) => {
+      const aModuleKey = normalizeModuleKey(a?.module || a?.moduleFile || "RESUMEN");
+      const bModuleKey = normalizeModuleKey(b?.module || b?.moduleFile || "RESUMEN");
+      const aIsCurrent = aModuleKey === currentModuleKey;
+      const bIsCurrent = bModuleKey === currentModuleKey;
+      if (aIsCurrent !== bIsCurrent) return aIsCurrent ? -1 : 1;
+
+      const aGroup = normalizeModuleValue(a?.module || a?.moduleFile || "RESUMEN", "RESUMEN");
+      const bGroup = normalizeModuleValue(b?.module || b?.moduleFile || "RESUMEN", "RESUMEN");
+      if (aGroup !== bGroup) return aGroup.localeCompare(bGroup);
+
+      const aCategory = (a?.category || "").toString();
+      const bCategory = (b?.category || "").toString();
+      if (aCategory !== bCategory) return aCategory.localeCompare(bCategory);
+
       const aCustom = a?.previewKind === "custom";
       const bCustom = b?.previewKind === "custom";
-      if (!aCustom || !bCustom) return 0;
-      const aMatch =
-        normalizeModuleKey(a?.module || "RESUMEN") === currentModuleKey;
-      const bMatch =
-        normalizeModuleKey(b?.module || "RESUMEN") === currentModuleKey;
-      if (aMatch === bMatch) return 0;
-      return aMatch ? -1 : 1;
+      if (aCustom !== bCustom) return aCustom ? -1 : 1;
+
+      const aTitle = (a?.title || "").toString();
+      const bTitle = (b?.title || "").toString();
+      return aTitle.localeCompare(bTitle);
     });
     const hasDefinitions = definitions.length > 0;
     if (!hasDefinitions) {
       galleryEl.innerHTML = "";
     }
 
-    const resolveCategoryGroup = (definition) => {
-      const raw = (definition?.category || "").toString().trim();
-      if (!raw) return "Otras";
-      if (raw.toLowerCase().startsWith("personalizada")) return "Personalizadas";
-      return raw;
+    const handleAddCustomChart = () => {
+      if (openNewCustomChartEditor()) return;
+      openConfigSection({
+        target: { collapseId: "plantillasGraficasCustomCollapse" },
+      });
+      customAddBtn?.click();
     };
-    const appendCategoryHeading = (label) => {
+
+    const resolveModuleGroup = (definition) => {
+      const raw = (definition?.module || definition?.moduleFile || "")
+        .toString()
+        .trim();
+      return normalizeModuleValue(raw || "RESUMEN", "RESUMEN") || "RESUMEN";
+    };
+    const appendGroupHeading = (label) => {
       const heading = document.createElement("div");
       heading.className = "plantillas-graficas-group";
       heading.textContent = label;
@@ -4424,6 +4456,46 @@
     };
     let currentGroup = null;
     let cardIndex = 0;
+    const currentModuleGroup = normalizeModuleValue(getCurrentModuleValue() || "RESUMEN", "RESUMEN");
+    let addInserted = false;
+
+    const maybeInsertAddCard = () => {
+      if (!adminAllowed) return;
+      if (addInserted) return;
+      addInserted = true;
+
+      if (galleryAddTemplate?.content?.firstElementChild) {
+        const addNode = galleryAddTemplate.content.firstElementChild.cloneNode(true);
+        addNode.addEventListener("click", handleAddCustomChart);
+        cardIndex += 1;
+        addNode.style.setProperty("--stagger", cardIndex.toString());
+        galleryEl.appendChild(addNode);
+        return;
+      }
+
+      const addNode = document.createElement("button");
+      addNode.type = "button";
+      addNode.className = "plantillas-graficas-card plantillas-graficas-card-add";
+      addNode.innerHTML = `
+        <div class="plantillas-graficas-card-inner">
+          <div class="plantillas-graficas-preview d-flex align-items-center justify-content-center">
+            <div class="plantillas-graficas-add-icon">
+              <i class="bi bi-plus-circle"></i>
+            </div>
+          </div>
+          <div class="plantillas-graficas-card-body">
+            <div class="plantillas-graficas-card-title">Nueva grafica manual</div>
+            <div class="text-muted small">
+              Define modulo, filas y columnas exactas.
+            </div>
+          </div>
+        </div>
+      `;
+      addNode.addEventListener("click", handleAddCustomChart);
+      cardIndex += 1;
+      addNode.style.setProperty("--stagger", cardIndex.toString());
+      galleryEl.appendChild(addNode);
+    };
 
     definitions.forEach((definition) => {
       try {
@@ -4443,10 +4515,13 @@
         const sourceEl = node.querySelector("[data-chart-source]");
         const preview = node.querySelector(".plantillas-graficas-preview");
         const canvas = node.querySelector("[data-chart-canvas]");
-        const groupLabel = resolveCategoryGroup(definition);
+        const groupLabel = resolveModuleGroup(definition);
         if (groupLabel !== currentGroup) {
-          appendCategoryHeading(groupLabel);
+          appendGroupHeading(groupLabel);
           currentGroup = groupLabel;
+          if (groupLabel === currentModuleGroup) {
+            maybeInsertAddCard();
+          }
         }
         cardIndex += 1;
         node.style.setProperty("--stagger", cardIndex.toString());
@@ -4545,6 +4620,21 @@
         }
 
         node.addEventListener("click", () => {
+          // Si la grafica pertenece a otro modulo, sincronizar el selector superior.
+          try {
+            const desiredKey = normalizeModuleRawKey(definition?.module || definition?.moduleFile || "");
+            const currentKey = normalizeModuleRawKey(moduloSelect?.value || "");
+            if (desiredKey && desiredKey !== currentKey && moduloSelect?.options?.length) {
+              const option = Array.from(moduloSelect.options).find(
+                (opt) => normalizeModuleRawKey(opt?.value || "") === desiredKey
+              );
+              moduloSelect.value = option ? option.value : definition?.module || moduloSelect.value;
+              moduloSelect.dispatchEvent(new Event("change", { bubbles: true }));
+            }
+          } catch (_) {
+            // ignore
+          }
+
           const prev = galleryState.selectedId;
           if (prev && galleryState.cards.has(prev)) {
             galleryState.cards.get(prev).node.classList.remove("active");
@@ -4561,53 +4651,11 @@
       }
     });
 
-    const handleAddCustomChart = () => {
-      if (openNewCustomChartEditor()) return;
-      openConfigSection({
-        target: { collapseId: "plantillasGraficasCustomCollapse" },
-      });
-      customAddBtn?.click();
-    };
-
-    const customGroupLabel = "Personalizadas";
-    const ensureCustomGroup = () => {
-      if (currentGroup !== customGroupLabel) {
-        appendCategoryHeading(customGroupLabel);
-        currentGroup = customGroupLabel;
-      }
-    };
-
-    if (galleryAddTemplate?.content?.firstElementChild) {
-      ensureCustomGroup();
-      const addNode = galleryAddTemplate.content.firstElementChild.cloneNode(true);
-      addNode.addEventListener("click", handleAddCustomChart);
-      cardIndex += 1;
-      addNode.style.setProperty("--stagger", cardIndex.toString());
-      galleryEl.appendChild(addNode);
-    } else {
-      ensureCustomGroup();
-      const addNode = document.createElement("button");
-      addNode.type = "button";
-      addNode.className = "plantillas-graficas-card plantillas-graficas-card-add";
-      addNode.innerHTML = `
-        <div class="plantillas-graficas-card-inner">
-          <div class="plantillas-graficas-preview d-flex align-items-center justify-content-center">
-            <div class="plantillas-graficas-add-icon">
-              <i class="bi bi-plus-circle"></i>
-            </div>
-          </div>
-          <div class="plantillas-graficas-card-body">
-            <div class="plantillas-graficas-card-title">Nueva grafica manual</div>
-            <div class="text-muted small">
-              Define modulo, filas y columnas exactas.
-            </div>
-          </div>
-        </div>
-      `;
-      addNode.addEventListener("click", handleAddCustomChart);
-      cardIndex += 1;
-      addNode.style.setProperty("--stagger", cardIndex.toString());
-      galleryEl.appendChild(addNode);
+    // Si no hay grupo del modulo actual en la lista, agregarlo al final para insertar el botón.
+    if (adminAllowed && !addInserted) {
+      appendGroupHeading(currentModuleGroup || "RESUMEN");
+      currentGroup = currentModuleGroup || "RESUMEN";
+      maybeInsertAddCard();
     }
 
     if (prevSelected && galleryState.cards.has(prevSelected)) {
@@ -4728,6 +4776,24 @@
   window.addEventListener("graficas-config-updated", (event) => {
     const nextConfig = event?.detail?.config;
     if (!nextConfig) return;
+
+    // Si el update viene de otro año/empresa (por cargas asíncronas), ignorarlo.
+    const eventYear = Number(event?.detail?.anio);
+    const currentYear = Number(getSelectedAnio());
+    if (
+      Number.isInteger(eventYear) &&
+      Number.isInteger(currentYear) &&
+      eventYear !== currentYear
+    ) {
+      return;
+    }
+    const eventEmpresa = (event?.detail?.empresaId || "").toString().trim();
+    const currentEmpresa =
+      window.Sesion?.obtenerEmpresaActiva?.()?.id?.toString().trim() || "";
+    if (eventEmpresa && currentEmpresa && eventEmpresa !== currentEmpresa) {
+      return;
+    }
+
     applyConfigToForm(nextConfig);
     updateContextChips();
     renderGallery(nextConfig);
@@ -4834,9 +4900,23 @@
   if (form && galleryEl) {
     form.addEventListener("input", scheduleGalleryUpdate);
   }
+  const reloadConfigForContext = (reason = "") => {
+    const api = getGraficasConfigApi();
+    if (!api || typeof api.load !== "function") return;
+    const refreshed = api.load();
+    applyConfigToForm(refreshed);
+    updateContextChips();
+    renderGallery(refreshed);
+    updateSourceHints(refreshed);
+    if (adminAllowed && reason) {
+      setStatus(reason, "muted");
+    }
+  };
   const anioSelect = document.getElementById("anioSelect");
   if (anioSelect) {
-    anioSelect.addEventListener("change", scheduleGalleryUpdate);
+    anioSelect.addEventListener("change", () => {
+      reloadConfigForContext("Graficas cargadas para el año seleccionado.");
+    });
   }
   const capituloSelect = document.getElementById("capituloSelect");
   if (capituloSelect) {
@@ -4864,7 +4944,9 @@
     });
   };
 
-  bindContextObserver(anioSelect, scheduleGalleryUpdate);
+  bindContextObserver(anioSelect, () => {
+    reloadConfigForContext();
+  });
   bindContextObserver(capituloSelect, () => {
     updateSourcePickerOptions();
     scheduleGalleryUpdate();

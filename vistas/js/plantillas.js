@@ -146,13 +146,90 @@
   // ==========================================
   // INITIALIZATION
   // ==========================================
+  function readContextFromURLParams() {
+    try {
+      const params = new URLSearchParams(window.location.search || "");
+      return {
+        module: params.get("module"),
+        chapter: params.get("chapter"),
+        year: params.get("year"),
+        empresa: params.get("empresa") || params.get("empresaId"),
+      };
+    } catch (_) {
+      return {};
+    }
+  }
+
+  function restoreContextFromSessionAndURL() {
+    const urlCtx = readContextFromURLParams();
+    const sesionCtx =
+      typeof window.Sesion?.obtenerContextoPlaneacion === "function"
+        ? window.Sesion.obtenerContextoPlaneacion()
+        : {};
+
+    const moduloPreferido = urlCtx.module || sesionCtx?.modulo;
+    if (moduloPreferido && dom.moduloSelect) {
+      const desiredKey = normalizeOperationMatch(moduloPreferido);
+      const options = Array.from(dom.moduloSelect.options || []);
+      const match = options.find(
+        (opt) => normalizeOperationMatch(opt?.value || "") === desiredKey
+      );
+      dom.moduloSelect.value = match ? match.value : moduloPreferido;
+      state.modulo = dom.moduloSelect.value;
+    } else if (dom.moduloSelect?.value) {
+      state.modulo = dom.moduloSelect.value;
+    }
+
+    const yearPreferido = urlCtx.year ?? sesionCtx?.anio;
+    const parsedYear = Number(yearPreferido);
+    if (Number.isInteger(parsedYear)) {
+      state.anio = parsedYear;
+    }
+
+    if (urlCtx.chapter) {
+      state.capitulo = urlCtx.chapter;
+      if (dom.capituloSelect) {
+        dom.capituloSelect.value = urlCtx.chapter;
+      }
+    }
+
+    if (urlCtx.empresa) {
+      state.empresaId = resolverEmpresaConfigKey(urlCtx.empresa) || urlCtx.empresa;
+    }
+
+    updateHeaderLabels();
+  }
+
+  function updateStickyOffsets() {
+    try {
+      const contextBar = document.getElementById("plantillasContextBar");
+      if (!contextBar) return;
+      const rect = contextBar.getBoundingClientRect();
+      const styles = window.getComputedStyle(contextBar);
+      const marginBottom = parseFloat(styles.marginBottom || "0") || 0;
+      const offset = Math.max(0, Math.round(rect.height + marginBottom));
+      document.documentElement.style.setProperty(
+        "--plantillas-context-offset",
+        `${offset}px`
+      );
+    } catch (error) {
+      console.warn("No fue posible calcular offsets sticky", error);
+    }
+  }
+
   function init() {
     cacheDOMElements();
+    restoreContextFromSessionAndURL();
     bindEventListeners();
     filtrarModulosPorCapitulo(); // Filtrar módulos al inicio
     loadInitialData();
     checkAuthState();
     setInterval(checkAuthState, 3000);
+    updateStickyOffsets();
+    window.addEventListener("resize", updateStickyOffsets);
+    // Recalcular cuando el layout cambia (fonts/scrollbars pueden afectar altura)
+    setTimeout(updateStickyOffsets, 0);
+    setTimeout(updateStickyOffsets, 500);
   }
 
   function cacheDOMElements() {
@@ -169,6 +246,7 @@
     // Buttons
     dom.btnCargar = document.getElementById("btnCargar");
     dom.btnGuardar = document.getElementById("btnGuardar");
+    dom.btnHistorialVersiones = document.getElementById("btnHistorialVersiones");
     dom.btnAgregar = document.getElementById("btnAgregar");
     dom.btnCopiar = document.getElementById("btnCopiar");
     dom.btnExpandir = document.getElementById("btnExpandir");
@@ -247,6 +325,7 @@
     // Buttons
     dom.btnCargar.addEventListener("click", loadLayout);
     dom.btnGuardar.addEventListener("click", saveLayout);
+    dom.btnHistorialVersiones?.addEventListener("click", openVersionHistoryModal);
     dom.btnAgregar.addEventListener("click", openAddModal);
     dom.btnCopiar.addEventListener("click", openCopyModal);
     dom.btnExpandir?.addEventListener("click", expandAll);
@@ -562,6 +641,9 @@
     const canEdit = state.editMode && hasLayout;
 
     dom.btnGuardar.disabled = !canEdit || !state.unsavedChanges;
+    if (dom.btnHistorialVersiones) {
+      dom.btnHistorialVersiones.disabled = !canEdit;
+    }
     dom.btnAgregar.disabled = !canEdit;
     dom.btnCopiar.disabled = !state.editMode || !hasLayout;
 
@@ -614,21 +696,33 @@
       // Ordenar años descendente
       const sortedYears = years.sort((a, b) => b - a);
 
+      const preferredYear = (() => {
+        const parsed = Number(state.anio);
+        return Number.isInteger(parsed) ? parsed : null;
+      })();
+      const selectedYear = sortedYears.includes(preferredYear)
+        ? preferredYear
+        : sortedYears.includes(currentYear)
+        ? currentYear
+        : sortedYears[0] || null;
+
       dom.anioSelect.innerHTML = sortedYears.length
         ? sortedYears
             .map(
               (y) =>
                 `<option value="${y}" ${
-                  y === currentYear ? "selected" : ""
+                  y === selectedYear ? "selected" : ""
                 }>${y}</option>`
             )
             .join("")
         : '<option value="">Sin años disponibles</option>';
 
-      // Seleccionar año actual si existe, sino el más reciente
-      state.anio = sortedYears.includes(currentYear)
-        ? currentYear
-        : sortedYears[0] || null;
+      state.anio = selectedYear;
+      try {
+        window.Sesion?.guardarContextoPlaneacion?.({ anio: state.anio });
+      } catch (_) {
+        // ignore
+      }
     } catch (error) {
       console.error("Error loading years:", error);
       dom.anioSelect.innerHTML = '<option value="">Error al cargar</option>';
@@ -706,7 +800,11 @@
       const urlBase = agregarEmpresaIdQuery(
         `${API_BASE}/${encodeURIComponent(state.modulo)}/${state.anio}/${encodeURIComponent(state.capitulo)}`
       );
-      const url = `${urlBase}${urlBase.includes("?") ? "&" : "?"}includeSecciones=1`;
+      // MODO MANUAL: necesitamos placeholders de secciones/subsecciones VACÍAS (layout_secciones)
+      // para permitir crear/reordenar secciones antes de tener cuentas.
+      const url = isModuloPiloto()
+        ? `${urlBase}${urlBase.includes("?") ? "&" : "?"}includeSecciones=1`
+        : urlBase;
       const response = await fetch(url, { headers: getAuthHeaders() });
 
       if (response.status === 404) {
@@ -723,30 +821,26 @@
 
       const data = await response.json();
       state.layout = data.layout || {};
-      console.log('[GESTOR DEBUG] Layout recibido:', state.layout);
-      console.log('[GESTOR DEBUG] Layout keys:', Object.keys(state.layout));
-      console.log('[GESTOR DEBUG] Layout.cuentas:', state.layout.cuentas);
-      console.log('[GESTOR DEBUG] Layout.cuentas[0]:', state.layout.cuentas?.[0]);
-      console.log('[GESTOR DEBUG] Layout.cuentas es array?:', Array.isArray(state.layout.cuentas));
-      console.log('[GESTOR DEBUG] Layout[modulo]:', state.layout[state.modulo]);
-      console.log('[GESTOR DEBUG] state.modulo actual:', state.modulo);
-      
-      // FORZAR extracción directa sin función
+      // Si backend canoniza el capítulo (p.ej. quita tildes), sincronizar estado
+      // para que guardados/versions usen siempre una sola clave.
+      if (state.layout && typeof state.layout.capitulo === "string" && state.layout.capitulo.trim()) {
+        state.capitulo = state.layout.capitulo.trim();
+      }
+
+      // Extraer cuentas desde el formato nuevo (layout.cuentas) o legacy (layout[modulo]).
       if (Array.isArray(state.layout.cuentas) && state.layout.cuentas.length > 0) {
         state.cuentas = state.layout.cuentas;
-        console.log('[GESTOR DEBUG] ✅ Usando layout.cuentas directamente');
-      } else if (Array.isArray(state.layout[state.modulo]) && state.layout[state.modulo].length > 0) {
+      } else if (
+        Array.isArray(state.layout[state.modulo]) &&
+        state.layout[state.modulo].length > 0
+      ) {
         state.cuentas = state.layout[state.modulo];
-        console.log('[GESTOR DEBUG] ✅ Usando layout[modulo] directamente');
       } else {
         state.cuentas = [];
-        console.log('[GESTOR DEBUG] ❌ No hay cuentas disponibles');
       }
-      
-      console.log('[GESTOR DEBUG] Cuentas extraídas:', state.cuentas?.length, state.cuentas);
+
       ensureAccountIds(state.cuentas);
       state.operaciones = sortOperations(state.layout.operaciones || []);
-      console.log('[GESTOR DEBUG] Operaciones extraídas:', state.operaciones?.length);
       if (isModuloPiloto()) {
         const extracted = extractColumnConfigFromOperations(state.operaciones);
         state.operaciones = extracted.operaciones;
@@ -760,10 +854,10 @@
         state.columnasConfig = null;
         state.columnasConfigChanged = false;
       }
-      // MODO 100% MANUAL: desactivar funciones automáticas
-      // hydrateOperationsFromParents(); // No inferir ubicaciones
-      // hydrateOperationPlacement(); // No inferir placement
-      // dedupeOperations(); // No eliminar duplicados automáticamente
+
+      // En modo manual solo hidratamos ubicación (parentSection/parentSubsection) si faltan,
+      // para que las operaciones aparezcan bajo su sección/subsección al cargar.
+      hydrateOperationPlacement();
       ensureOperationIds(); // Solo asegurar IDs si faltan
       // normalizeOperationReferences(); // DESACTIVADO: modo 100% manual
       // normalizePresentationOrders(); // No recalcular órdenes
@@ -837,6 +931,10 @@
 
   function getAccountOrder(cuenta, fallback = 0) {
     const raw = cuenta?.orden_presentacion;
+    // Importante: Number(null) y Number('') dan 0, pero aquí queremos tratar
+    // null/'' como "sin orden" para usar el fallback (orden o índice).
+    if (raw === null || raw === undefined) return fallback;
+    if (typeof raw === "string" && raw.trim() === "") return fallback;
     const parsed = Number(raw);
     return Number.isFinite(parsed) ? parsed : fallback;
   }
@@ -870,11 +968,22 @@
   }
 
   function getNextAccountOrder() {
-    if (!Array.isArray(state.cuentas) || !state.cuentas.length) return 1;
-    const max = Math.max(
-      ...state.cuentas.map((cuenta, idx) => getAccountOrder(cuenta, idx))
-    );
-    return Number.isFinite(max) ? max + 1 : state.cuentas.length + 1;
+    return getNextGlobalOrder();
+  }
+
+  function getNextGlobalOrder() {
+    const orders = [];
+    (state.cuentas || []).forEach((cuenta, idx) => {
+      const o = getAccountOrder(cuenta, idx);
+      if (Number.isFinite(Number(o))) orders.push(Number(o));
+    });
+    (state.operaciones || []).forEach((op, idx) => {
+      if (!op || isColumnConfigOperation(op)) return;
+      const o = getOperationOrder(op, idx);
+      if (Number.isFinite(Number(o))) orders.push(Number(o));
+    });
+    const max = orders.length ? Math.max(...orders) : -1;
+    return Number.isFinite(max) ? max + 1 : (state.cuentas || []).length + 1;
   }
 
   let accountIdSeed = 0;
@@ -932,6 +1041,8 @@
 
   function getOperationOrder(op, fallback = 0) {
     const raw = op?.orden_presentacion;
+    if (raw === null || raw === undefined) return fallback;
+    if (typeof raw === "string" && raw.trim() === "") return fallback;
     const parsed = Number(raw);
     return Number.isFinite(parsed) ? parsed : fallback;
   }
@@ -1573,25 +1684,39 @@
     let changed = false;
     const cuentas = state.cuentas || [];
     if (cuentas.length) {
+      const readOrder = (cuenta, fallback) => {
+        const raw = cuenta?.orden_presentacion;
+        if (raw === null || raw === undefined) {
+          const fallbackRaw = cuenta?.orden;
+          const parsedFallback = Number(fallbackRaw);
+          return Number.isFinite(parsedFallback) ? parsedFallback : fallback;
+        }
+        if (typeof raw === "string" && raw.trim() === "") {
+          const fallbackRaw = cuenta?.orden;
+          const parsedFallback = Number(fallbackRaw);
+          return Number.isFinite(parsedFallback) ? parsedFallback : fallback;
+        }
+        const parsed = Number(raw);
+        return Number.isFinite(parsed) ? parsed : fallback;
+      };
+
       const ordered = (cuentas || [])
         .map((cuenta, idx) => ({ cuenta, idx }))
         .sort((a, b) => {
-          const orderA = Number.isFinite(Number(a.cuenta?.orden_presentacion))
-            ? Number(a.cuenta.orden_presentacion)
-            : Number.isFinite(Number(a.cuenta?.orden))
-            ? Number(a.cuenta.orden)
-            : a.idx;
-          const orderB = Number.isFinite(Number(b.cuenta?.orden_presentacion))
-            ? Number(b.cuenta.orden_presentacion)
-            : Number.isFinite(Number(b.cuenta?.orden))
-            ? Number(b.cuenta.orden)
-            : b.idx;
+          const orderA = readOrder(a.cuenta, a.idx);
+          const orderB = readOrder(b.cuenta, b.idx);
           if (orderA !== orderB) return orderA - orderB;
           return a.idx - b.idx;
         });
       ordered.forEach((item, idx) => {
         const cuenta = item.cuenta;
-        const current = Number(cuenta?.orden_presentacion);
+        const raw = cuenta?.orden_presentacion;
+        const current =
+          raw === null ||
+          raw === undefined ||
+          (typeof raw === "string" && raw.trim() === "")
+            ? null
+            : Number(raw);
         if (!Number.isFinite(current)) {
           cuenta.orden_presentacion = idx;
           changed = true;
@@ -1601,25 +1726,39 @@
 
     const ops = state.operaciones || [];
     if (ops.length) {
+      const readOrder = (op, fallback) => {
+        const raw = op?.orden_presentacion;
+        if (raw === null || raw === undefined) {
+          const fallbackRaw = op?.orden;
+          const parsedFallback = Number(fallbackRaw);
+          return Number.isFinite(parsedFallback) ? parsedFallback : fallback;
+        }
+        if (typeof raw === "string" && raw.trim() === "") {
+          const fallbackRaw = op?.orden;
+          const parsedFallback = Number(fallbackRaw);
+          return Number.isFinite(parsedFallback) ? parsedFallback : fallback;
+        }
+        const parsed = Number(raw);
+        return Number.isFinite(parsed) ? parsed : fallback;
+      };
+
       const orderedOps = (ops || [])
         .map((op, idx) => ({ op, idx }))
         .sort((a, b) => {
-          const orderA = Number.isFinite(Number(a.op?.orden_presentacion))
-            ? Number(a.op.orden_presentacion)
-            : Number.isFinite(Number(a.op?.orden))
-            ? Number(a.op.orden)
-            : a.idx;
-          const orderB = Number.isFinite(Number(b.op?.orden_presentacion))
-            ? Number(b.op.orden_presentacion)
-            : Number.isFinite(Number(b.op?.orden))
-            ? Number(b.op.orden)
-            : b.idx;
+          const orderA = readOrder(a.op, a.idx);
+          const orderB = readOrder(b.op, b.idx);
           if (orderA !== orderB) return orderA - orderB;
           return a.idx - b.idx;
         });
       orderedOps.forEach((item, idx) => {
         const op = item.op;
-        const current = Number(op?.orden_presentacion);
+        const raw = op?.orden_presentacion;
+        const current =
+          raw === null ||
+          raw === undefined ||
+          (typeof raw === "string" && raw.trim() === "")
+            ? null
+            : Number(raw);
         if (!Number.isFinite(current)) {
           op.orden_presentacion = idx;
           changed = true;
@@ -1638,11 +1777,7 @@
   }
 
   function nextOperationOrder() {
-    if (!state.operaciones.length) return 0;
-    const maxOrden = Math.max(
-      ...state.operaciones.map((op, idx) => getOperationOrder(op, idx))
-    );
-    return Number.isFinite(maxOrden) ? maxOrden + 1 : 0;
+    return getNextGlobalOrder();
   }
 
   // Detectar tipo de término basado en el valor
@@ -1942,74 +2077,318 @@
       }
     }
 
-    // Orden 100% manual: lista plana ordenada por orden_presentacion.
-    // Cuentas y operaciones se mezclan libremente sin agrupar por sección.
-    const allItems = [];
+    // Orden 100% manual (jerárquico y coherente):
+    // - Las secciones (principales) se muestran como bloques contiguos.
+    // - Las cuentas/operaciones ligadas solo viven dentro de su sección/subsección.
+    // - Los elementos SIN sección quedan a nivel raíz y pueden moverse libremente.
+    //
+    // Esto evita encabezados repetidos ("sección por cada cuenta") al mezclar elementos.
 
-    (state.cuentas || []).forEach((cuenta, idx) => {
-      if (isPlaceholderAccount(cuenta)) return;
-      allItems.push({
+    const normalizeLabelKey = (value) =>
+      (value || "")
+        .toString()
+        .replace(/\u0000/g, "")
+        .replace(/[\u200B-\u200D\uFEFF]/g, "")
+        .replace(/\s+/g, " ")
+        .trim()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase();
+
+    const cuentasRaw = Array.isArray(state.cuentas) ? state.cuentas : [];
+    const operacionesRaw = sortOperations(state.operaciones || []).filter(
+      (op) => op && !isColumnConfigOperation(op)
+    );
+
+    const placeholderDefs = [];
+    const cuentas = [];
+    cuentasRaw.forEach((cuenta, idx) => {
+      if (!cuenta) return;
+      if (isPlaceholderAccount(cuenta)) {
+        const principal = (getAccountPrincipalName(cuenta) || "").toString().trim();
+        const secundaria = (getAccountSecondaryName(cuenta) || "").toString().trim();
+        const hint = Number.isFinite(Number(cuenta.__placeholderOrder))
+          ? Number(cuenta.__placeholderOrder)
+          : getAccountOrder(cuenta, idx);
+        placeholderDefs.push({
+          principal,
+          secundaria,
+          accountId: getAccountRowId(cuenta),
+          hint,
+          placeholderType: (cuenta.__placeholderType || "").toString().toLowerCase(),
+        });
+        return;
+      }
+      cuentas.push({ cuenta, idx });
+    });
+
+    const rootItems = [];
+    const sectionsMap = new Map();
+
+    const ensureSection = (name) => {
+      const clean = (name || "").toString().trim();
+      if (!clean) return null;
+      const key = normalizeLabelKey(clean);
+      if (!key) return null;
+      if (!sectionsMap.has(key)) {
+        sectionsMap.set(key, {
+          key,
+          name: clean,
+          items: [],
+          subsectionMap: new Map(),
+          subsectionDefs: new Map(),
+          placeholderAccountId: "",
+          placeholderHint: null,
+        });
+      }
+      return sectionsMap.get(key);
+    };
+
+    const ensureSubsection = (sectionNode, subName) => {
+      if (!sectionNode) return null;
+      const clean = (subName || "").toString().trim();
+      if (!clean) return null;
+      const key = normalizeLabelKey(clean);
+      if (!key) return null;
+      if (!sectionNode.subsectionMap.has(key)) {
+        sectionNode.subsectionMap.set(key, {
+          key,
+          name: clean,
+          items: [],
+          placeholderAccountId: "",
+          placeholderHint: null,
+        });
+      }
+      return sectionNode.subsectionMap.get(key);
+    };
+
+    // 1) Registrar definiciones placeholder (secciones/subsecciones vacías).
+    placeholderDefs.forEach((def) => {
+      const principal = (def.principal || "").toString().trim();
+      const secundaria = (def.secundaria || "").toString().trim();
+      // En modo 100% manual NO promovemos secundaria->principal.
+      // Una subsección sin principal se considera huérfana y se ignora aquí.
+      if (!principal) return;
+      const sectionNode = ensureSection(principal);
+      if (!sectionNode) return;
+
+      // Guardar hint para ordenación de secciones vacías (si no hay items reales).
+      if (
+        def.placeholderType === "principal" ||
+        (!secundaria && !sectionNode.placeholderAccountId)
+      ) {
+        sectionNode.placeholderAccountId = def.accountId || sectionNode.placeholderAccountId;
+        if (Number.isFinite(def.hint)) {
+          sectionNode.placeholderHint =
+            sectionNode.placeholderHint == null ? def.hint : Math.min(sectionNode.placeholderHint, def.hint);
+        }
+      }
+
+      if (secundaria) {
+        const subNode = ensureSubsection(sectionNode, secundaria);
+        if (subNode) {
+          subNode.placeholderAccountId = def.accountId || subNode.placeholderAccountId;
+          if (Number.isFinite(def.hint)) {
+            subNode.placeholderHint =
+              subNode.placeholderHint == null ? def.hint : Math.min(subNode.placeholderHint, def.hint);
+          }
+        }
+      }
+    });
+
+    // 2) Cuentas reales.
+    cuentas.forEach(({ cuenta, idx }) => {
+      const principalRaw = (getAccountPrincipalName(cuenta) || "").toString().trim();
+      const secundariaRaw = (getAccountSecondaryName(cuenta) || "").toString().trim();
+      let principal = principalRaw;
+      let secundaria = secundariaRaw;
+      if (!principal) {
+        // En manual: no permitimos subsección sin principal (se trata como libre).
+        secundaria = "";
+      }
+
+      const accountRow = {
         type: "account",
         cuenta: cuenta.CUENTA || cuenta.cuenta || "",
         nombre: cuenta.NOMBRE || cuenta.nombre || "",
         label: cuenta.CUENTA || cuenta.cuenta || "",
-        parentSection: getAccountPrincipalName(cuenta) || "",
-        parentSubsection: getAccountSecondaryName(cuenta) || "",
+        parentSection: principal || "",
+        parentSubsection: secundaria || "",
         accountId: getAccountRowId(cuenta),
         visible: cuenta.visible !== false,
         __orden: getAccountOrder(cuenta, idx),
-      });
+      };
+
+      if (!principal) {
+        rootItems.push(accountRow);
+        return;
+      }
+
+      const sectionNode = ensureSection(principal);
+      if (!sectionNode) {
+        rootItems.push(accountRow);
+        return;
+      }
+
+      if (secundaria) {
+        const subNode = ensureSubsection(sectionNode, secundaria);
+        if (subNode) {
+          subNode.items.push(accountRow);
+        } else {
+          sectionNode.items.push(accountRow);
+        }
+      } else {
+        sectionNode.items.push(accountRow);
+      }
     });
 
-    const operaciones = sortOperations(state.operaciones || []);
-    operaciones.forEach((op, idx) => {
-      if (isColumnConfigOperation(op)) return;
-      allItems.push({
+    // 3) Operaciones.
+    operacionesRaw.forEach((op, idx) => {
+      let principal = (op.parentSection || "").toString().trim();
+      let secundaria = (op.parentSubsection || "").toString().trim();
+      if (!principal) {
+        // En manual: subsección sin principal no aplica; tratar como operación libre.
+        secundaria = "";
+      }
+      const label = getOperationDisplayName(op) || "";
+      const opId = getOperationId(op) || label || "";
+      if (!label && !opId) return;
+
+      const opRow = {
         type: "operation",
-        label: getOperationDisplayName(op),
-        opId: getOperationId(op) || getOperationDisplayName(op) || "",
+        label,
+        opId,
         kind: detectOperationType(op),
-        parentSection: op.parentSection || "",
-        parentSubsection: op.parentSubsection || "",
+        parentSection: principal || "",
+        parentSubsection: secundaria || "",
         visible: op.visible !== false,
         __orden: getOperationOrder(op, idx),
-      });
-    });
+      };
 
-    // Ordenar TODO por orden_presentacion, sin distinción de tipo
-    allItems.sort((a, b) => {
-      const orderA = Number.isFinite(a.__orden) ? a.__orden : 1e9;
-      const orderB = Number.isFinite(b.__orden) ? b.__orden : 1e9;
-      return orderA - orderB;
-    });
-
-    // Insertar encabezados de sección/subsección en transiciones
-    const rows = [];
-    let prevPrincipal = null;
-    let prevSubsection = null;
-
-    allItems.forEach((item) => {
-      const principal = (item.parentSection || "").toString().trim();
-      const subsection = (item.parentSubsection || "").toString().trim();
-
-      if (principal && principal !== prevPrincipal) {
-        rows.push({ type: "principal", label: principal, visible: true });
-        prevPrincipal = principal;
-        prevSubsection = null;
+      if (!principal) {
+        rootItems.push(opRow);
+        return;
       }
 
-      if (subsection && subsection !== prevSubsection) {
+      const sectionNode = ensureSection(principal);
+      if (!sectionNode) {
+        rootItems.push(opRow);
+        return;
+      }
+
+      if (secundaria) {
+        const subNode = ensureSubsection(sectionNode, secundaria);
+        if (subNode) {
+          subNode.items.push(opRow);
+        } else {
+          sectionNode.items.push(opRow);
+        }
+      } else {
+        sectionNode.items.push(opRow);
+      }
+    });
+
+    const safeOrder = (value, fallback) => {
+      const n = Number(value);
+      return Number.isFinite(n) ? n : fallback;
+    };
+
+    const sortByOrder = (a, b) => {
+      const orderA = safeOrder(a.__orden, 1e9);
+      const orderB = safeOrder(b.__orden, 1e9);
+      if (orderA !== orderB) return orderA - orderB;
+      const labelA = normalizeLabelKey(a.label || a.cuenta || a.opId || "");
+      const labelB = normalizeLabelKey(b.label || b.cuenta || b.opId || "");
+      if (labelA !== labelB) return labelA.localeCompare(labelB);
+      return 0;
+    };
+
+    const sectionNodes = Array.from(sectionsMap.values());
+
+    // Orden de secciones: por primera aparición (min orden de items), con fallback a hints placeholder.
+    const getSectionOrder = (sectionNode, idx) => {
+      const orders = [];
+      sectionNode.items.forEach((item) => orders.push(safeOrder(item.__orden, null)));
+      sectionNode.subsectionMap.forEach((sub) => {
+        sub.items.forEach((item) => orders.push(safeOrder(item.__orden, null)));
+      });
+      const valid = orders.filter((n) => Number.isFinite(n));
+      if (valid.length) return Math.min(...valid);
+      if (Number.isFinite(Number(sectionNode.placeholderHint))) return Number(sectionNode.placeholderHint);
+      return 1e9 + idx;
+    };
+
+    // Orden de items sin sección y secciones como bloques raíz por orden.
+    const rootBlocks = [];
+    rootItems.forEach((item, idx) => {
+      rootBlocks.push({ type: "item", order: safeOrder(item.__orden, 1e9 + idx), idx, item });
+    });
+    sectionNodes.forEach((sectionNode, idx) => {
+      rootBlocks.push({ type: "section", order: getSectionOrder(sectionNode, idx), idx, sectionNode });
+    });
+    rootBlocks.sort((a, b) => a.order - b.order || a.idx - b.idx);
+
+    const rows = [];
+
+    rootBlocks.forEach((block) => {
+      if (block.type === "item") {
+        const item = block.item;
+        delete item.__orden;
+        rows.push(item);
+        return;
+      }
+
+      const sectionNode = block.sectionNode;
+      rows.push({
+        type: "principal",
+        label: sectionNode.name,
+        visible: true,
+        placeholderAccountId: sectionNode.placeholderAccountId || "",
+      });
+
+      // Preparar children dentro de la sección: items a nivel sección + bloques de subsección.
+      const children = [];
+      (sectionNode.items || []).forEach((item, idx) => {
+        children.push({ type: "item", order: safeOrder(item.__orden, 1e9 + idx), idx, item });
+      });
+
+      const subsections = Array.from(sectionNode.subsectionMap.values());
+      const getSubOrder = (subNode, idx) => {
+        const valid = (subNode.items || [])
+          .map((it) => safeOrder(it.__orden, null))
+          .filter((n) => Number.isFinite(n));
+        if (valid.length) return Math.min(...valid);
+        if (Number.isFinite(Number(subNode.placeholderHint))) return Number(subNode.placeholderHint);
+        return 1e9 + idx;
+      };
+      subsections.forEach((subNode, idx) => {
+        children.push({ type: "subsection", order: getSubOrder(subNode, idx), idx, subNode });
+      });
+
+      children.sort((a, b) => a.order - b.order || a.idx - b.idx);
+
+      children.forEach((child) => {
+        if (child.type === "item") {
+          delete child.item.__orden;
+          rows.push(child.item);
+          return;
+        }
+
+        const subNode = child.subNode;
         rows.push({
           type: "subsection",
-          label: subsection,
-          parentSection: principal || prevPrincipal || "",
+          label: subNode.name,
+          parentSection: sectionNode.name,
           visible: true,
+          placeholderAccountId: subNode.placeholderAccountId || "",
         });
-        prevSubsection = subsection;
-      }
 
-      delete item.__orden;
-      rows.push(item);
+        const subItems = (subNode.items || []).slice().sort(sortByOrder);
+        subItems.forEach((item) => {
+          delete item.__orden;
+          rows.push(item);
+        });
+      });
     });
 
     return appendMissingOperations(rows);
@@ -2226,7 +2605,7 @@
           : 'Crear operación';
         html += `
           <div class="list-item section-principal ${hiddenClass}" data-row-type="section" data-section="${escapeAttr(sectionName)}" data-row-index="${rowIndex}">
-            ${showOrder ? renderInlineOrderButtons(rowIndex) : ''}
+            ${showOrder ? renderInlineOrderButtons(rowIndex, rows.length) : ''}
             <div class="list-item-content d-flex justify-content-between align-items-center flex-grow-1">
               <div class="d-flex align-items-center">
                 <i class="bi bi-folder2 me-2 text-primary"></i>
@@ -2268,7 +2647,7 @@
           : 'Crear operación';
         html += `
           <div class="list-item section-secondary ${hiddenClass}" data-row-type="subsection" data-section="${escapeAttr(parentSection)}" data-subsection="${escapeAttr(subsectionName)}" data-parent-section="${escapeAttr(parentSection)}" data-row-index="${rowIndex}">
-            ${showOrder ? renderInlineOrderButtons(rowIndex) : ''}
+            ${showOrder ? renderInlineOrderButtons(rowIndex, rows.length) : ''}
             <div class="list-item-content ps-4 d-flex justify-content-between align-items-center flex-grow-1">
               <div class="d-flex align-items-center">
                 <i class="bi bi-folder me-2 text-info"></i>
@@ -2301,10 +2680,15 @@
         const accountId = row.accountId || row.accountID || row.rowId || cuenta;
         const parentSection = row.parentSection || '';
         const parentSubsection = row.parentSubsection || '';
+        const paddingClass = parentSection
+          ? parentSubsection
+            ? 'ps-5'
+            : 'ps-4'
+          : '';
         html += `
           <div class="list-item item-account ${hiddenClass}" data-row-type="account" data-section="${escapeAttr(parentSection)}" data-subsection="${escapeAttr(parentSubsection)}" data-account-id="${escapeAttr(accountId)}" data-cuenta="${escapeAttr(cuenta)}" data-nombre="${escapeAttr(nombre)}" data-row-index="${rowIndex}">
-            ${showOrder ? renderInlineOrderButtons(rowIndex) : ''}
-            <div class="list-item-content ps-5 d-flex justify-content-between align-items-center flex-grow-1">
+            ${showOrder ? renderInlineOrderButtons(rowIndex, rows.length) : ''}
+            <div class="list-item-content ${paddingClass} d-flex justify-content-between align-items-center flex-grow-1">
               <div class="d-flex align-items-center">
                 <span class="badge bg-secondary me-2">${escapeHtml(cuenta)}</span>
                 <span>${escapeHtml(nombre || cuenta)}</span>
@@ -2333,11 +2717,18 @@
         const kindMeta = getOperationKindMeta(kind);
         const formulaTerms = op ? extractFormulaTerms(op) : [];
         const formula = formulaTerms.length ? formatFormula(op) : '';
+        const parentSection = (row.parentSection || op?.parentSection || '').toString().trim();
+        const parentSubsection = (row.parentSubsection || op?.parentSubsection || '').toString().trim();
+        const paddingClass = parentSection
+          ? parentSubsection
+            ? 'ps-5'
+            : 'ps-4'
+          : '';
 
         html += `
           <div class="list-item item-operation ${hiddenClass}" data-row-type="operation" data-operation-id="${escapeAttr(opId || label)}" data-operation-label="${escapeAttr(label)}" data-operation-kind="${escapeAttr(kind)}" data-row-index="${rowIndex}" ${formula ? `title="${escapeAttr(formula)}"` : ''} onclick="window.handleOperationRowClick(event, '${escapeAttr(opId || label)}')">
-            ${showOrder ? renderInlineOrderButtons(rowIndex) : ''}
-            <div class="list-item-content ps-5 d-flex justify-content-between align-items-center flex-grow-1">
+            ${showOrder ? renderInlineOrderButtons(rowIndex, rows.length) : ''}
+            <div class="list-item-content ${paddingClass} d-flex justify-content-between align-items-center flex-grow-1">
               <div>
                 <div class="d-flex align-items-center">
                   <i class="bi bi-calculator me-2 text-success"></i>
@@ -2424,6 +2815,13 @@
           font-size: 0.75rem;
           line-height: 1;
         }
+        .inline-order-input {
+          width: 56px;
+          padding: 2px 4px;
+          font-size: 0.75rem;
+          line-height: 1;
+          text-align: center;
+        }
         .list-item-actions {
           display: flex;
           gap: 4px;
@@ -2443,13 +2841,24 @@
     return html;
   }
 
-  function renderInlineOrderButtons(rowIndex) {
+  function renderInlineOrderButtons(rowIndex, maxRows = null) {
+    const maxAttr = Number.isFinite(Number(maxRows)) ? `max="${Number(maxRows)}"` : "";
     return `
       <div class="inline-order-buttons">
-        <button type="button" class="btn btn-sm btn-outline-secondary inline-order-btn" data-action="up" data-row-index="${rowIndex}">
+        <button type="button" class="btn btn-sm btn-outline-secondary inline-order-btn" data-action="up" data-row-index="${rowIndex}" title="Subir">
           <i class="bi bi-arrow-up"></i>
         </button>
-        <button type="button" class="btn btn-sm btn-outline-secondary inline-order-btn" data-action="down" data-row-index="${rowIndex}">
+        <input
+          type="number"
+          inputmode="numeric"
+          class="form-control form-control-sm inline-order-input"
+          value="${rowIndex + 1}"
+          min="1"
+          ${maxAttr}
+          data-row-index="${rowIndex}"
+          title="Mover a posición"
+        />
+        <button type="button" class="btn btn-sm btn-outline-secondary inline-order-btn" data-action="down" data-row-index="${rowIndex}" title="Bajar">
           <i class="bi bi-arrow-down"></i>
         </button>
       </div>
@@ -2504,7 +2913,9 @@
         bodyHtml += `
           <tr class="section-header-row ${hiddenClass}" data-row-type="section" data-row-index="${rowIndex}" data-section="${escapeAttr(
              currentSection
-           )}" data-generated="${row.generated ? "true" : "false"}">
+           )}" data-generated="${row.generated ? "true" : "false"}" data-placeholder-account-id="${escapeAttr(
+             row.placeholderAccountId || ""
+           )}">
             ${orderCell}
             <td colspan="${showOrder ? colCount - 1 : colCount}">
               <strong>${escapeHtml(currentSection || "Seccion")}</strong>
@@ -2520,7 +2931,9 @@
         bodyHtml += `
           <tr class="subsection-row ${hiddenClass}" data-row-type="subsection" data-row-index="${rowIndex}" data-section="${escapeAttr(
              currentSection
-           )}" data-subsection="${escapeAttr(currentSubsection)}">
+           )}" data-subsection="${escapeAttr(currentSubsection)}" data-placeholder-account-id="${escapeAttr(
+             row.placeholderAccountId || ""
+           )}">
             ${orderCell}
             <td colspan="${showOrder ? colCount - 1 : colCount}">
               <em>${escapeHtml(currentSubsection || "Subseccion")}</em>
@@ -2531,6 +2944,16 @@
       }
 
       if (row.type === "account") {
+        // Importante: no depender del "currentSubsection" (puede quedar pegado
+        // cuando hay items a nivel seccion DESPUES de una subseccion).
+        const parentSection = (row.parentSection || row.section || "")
+          .toString()
+          .trim();
+        const parentSubsection = (row.parentSubsection || row.subsection || "")
+          .toString()
+          .trim();
+        currentSection = parentSection;
+        currentSubsection = parentSubsection;
         const cuenta = row.cuenta || row.label || "";
         const nombre = row.nombre || "";
         const accountId = row.accountId || row.accountID || row.rowId || cuenta;
@@ -2562,8 +2985,8 @@
           )}" data-cuenta="${escapeAttr(
              cuenta
            )}" data-nombre="${escapeAttr(nombre)}" data-section="${escapeAttr(
-             currentSection
-           )}" data-subsection="${escapeAttr(currentSubsection)}">
+             parentSection
+           )}" data-subsection="${escapeAttr(parentSubsection)}">
             ${cells.join("")}
           </tr>
         `;
@@ -2571,6 +2994,16 @@
       }
 
       if (row.type === "operation") {
+        // Igual que en cuentas: fijar el contexto desde la propia fila, no por
+        // el último header visto.
+        const parentSection = (row.parentSection || row.section || "")
+          .toString()
+          .trim();
+        const parentSubsection = (row.parentSubsection || row.subsection || "")
+          .toString()
+          .trim();
+        currentSection = parentSection;
+        currentSubsection = parentSubsection;
         // Ver comentario en la vista de lista: resolver por `opId` primero.
         const op = findOperationByIdOrLabel(row.opId || row.label || "");
         const label = op ? getOperationDisplayName(op) : row.label || "";
@@ -2614,7 +3047,9 @@
              opId || label
            )}" data-operation-label="${escapeAttr(label)}" data-operation-kind="${escapeAttr(
              kind
-           )}" ${formula ? `title="${escapeAttr(formula)}"` : ""}>
+           )}" data-section="${escapeAttr(parentSection)}" data-subsection="${escapeAttr(
+          parentSubsection
+        )}" ${formula ? `title="${escapeAttr(formula)}"` : ""}>
             ${cells.join("")}
           </tr>
         `;
@@ -2659,6 +3094,63 @@
   function buildOperationEditorDataTab({ opId, opLabelInput, op }) {
     const tipoFila = detectOperationType(op || {});
     const formulaPreview = formatFormula(op || {});
+    const parentSection = (op?.parentSection || "").toString().trim();
+    const parentSubsection = (op?.parentSubsection || "").toString().trim();
+
+    const normalizeKey = (value) =>
+      (value || "")
+        .toString()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim()
+        .toLowerCase();
+
+    const principalNames = Array.from(
+      new Set(
+        (state.cuentas || [])
+          .map((c) => (getAccountPrincipalName(c) || "").toString().trim())
+          .filter(Boolean)
+      )
+    )
+      .sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
+
+    if (parentSection && !principalNames.some((n) => normalizeKey(n) === normalizeKey(parentSection))) {
+      principalNames.unshift(parentSection);
+    }
+
+    const principalOptions = principalNames
+      .map((name) => {
+        const selected = normalizeKey(name) === normalizeKey(parentSection) ? "selected" : "";
+        return `<option value="${escapeAttr(name)}" ${selected}>${escapeHtml(name)}</option>`;
+      })
+      .join("");
+
+    const subsectionsForParent = Array.from(
+      new Set(
+        (state.cuentas || [])
+          .filter(
+            (c) =>
+              normalizeKey(getAccountPrincipalName(c) || "") === normalizeKey(parentSection)
+          )
+          .map((c) => (getAccountSecondaryName(c) || "").toString().trim())
+          .filter(Boolean)
+      )
+    ).sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
+
+    if (
+      parentSubsection &&
+      !subsectionsForParent.some((n) => normalizeKey(n) === normalizeKey(parentSubsection))
+    ) {
+      subsectionsForParent.unshift(parentSubsection);
+    }
+
+    const subsectionOptions = subsectionsForParent
+      .map((name) => {
+        const selected = normalizeKey(name) === normalizeKey(parentSubsection) ? "selected" : "";
+        return `<option value="${escapeAttr(name)}" ${selected}>${escapeHtml(name)}</option>`;
+      })
+      .join("");
+
     return `
       <div class="alert alert-info alert-sm mb-3">
         <i class="bi bi-info-circle me-2"></i>
@@ -2672,6 +3164,28 @@
                placeholder="Ej: Suma Gastos Financieros" />
         <div class="form-text">
           Puedes usar cualquier nombre. Si está vacío, se generará uno automático.
+        </div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Ubicación en la plantilla</label>
+        <div class="row g-2">
+          <div class="col-md-6">
+            <label class="form-label small text-muted mb-1">Sección principal</label>
+            <select class="form-select" id="editOpParentSection" onchange="window.updateOperationPlacementSubsections && window.updateOperationPlacementSubsections()">
+              <option value="">Sin sección (libre)</option>
+              ${principalOptions}
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small text-muted mb-1">Subsección</label>
+            <select class="form-select" id="editOpParentSubsection">
+              <option value="">Sin subsección</option>
+              ${subsectionOptions}
+            </select>
+          </div>
+        </div>
+        <div class="form-text">
+          Esto controla dónde aparece la operación. La fórmula se edita en la pestaña <strong>Fórmula</strong>.
         </div>
       </div>
       <div class="mb-3">
@@ -3303,6 +3817,12 @@
         opLabelInput,
         op,
       });
+      // Asegurar estado inicial de los selects de ubicación (subsección deshabilitada si no hay sección).
+      try {
+        window.updateOperationPlacementSubsections?.();
+      } catch (_) {
+        /* ignore */
+      }
     }
     if (dom.editorTabFormula) {
       dom.editorTabFormula.innerHTML = buildOperationEditorFormulaTab(
@@ -3449,6 +3969,55 @@
         }
       }
     });
+
+    const applyInlineOrderJump = (input) => {
+      if (!input) return;
+      if (!state.inlineOrderMode || state.editMode === false) return;
+
+      const currentIndex = Number(input.dataset.rowIndex);
+      if (!Number.isInteger(currentIndex)) return;
+
+      const allRows = getTemplateRowsForReorder();
+      if (!allRows.length) return;
+
+      const desiredRaw = Number(input.value);
+      if (!Number.isFinite(desiredRaw)) return;
+      const desired = Math.min(
+        Math.max(Math.floor(desiredRaw), 1),
+        allRows.length
+      );
+      if (desired !== desiredRaw) {
+        input.value = String(desired);
+      }
+      const targetIndex = desired - 1;
+      if (targetIndex === currentIndex) return;
+
+      moveTemplateRowOrderToIndex(currentIndex, targetIndex);
+    };
+
+    container.addEventListener("keydown", (event) => {
+      const input = event.target?.closest?.(".inline-order-input");
+      if (!input) return;
+      if (event.key !== "Enter") return;
+      event.preventDefault();
+      event.stopPropagation();
+      input.dataset.skipBlur = "1";
+      applyInlineOrderJump(input);
+    });
+
+    container.addEventListener(
+      "blur",
+      (event) => {
+        const input = event.target?.closest?.(".inline-order-input");
+        if (!input) return;
+        if (input.dataset.skipBlur === "1") {
+          delete input.dataset.skipBlur;
+          return;
+        }
+        applyInlineOrderJump(input);
+      },
+      true
+    );
   }
 
   // ==========================================
@@ -4137,12 +4706,276 @@
     const currentIndex = Number(rowIndex);
     if (!Number.isInteger(currentIndex)) return;
     if (currentIndex < 0 || currentIndex >= rows.length) return;
-    const nextIndex = currentIndex + Number(direction || 0);
-    if (nextIndex < 0 || nextIndex >= rows.length) return;
 
-    const reordered = rows.slice();
-    const [moved] = reordered.splice(currentIndex, 1);
-    reordered.splice(nextIndex, 0, moved);
+    const directionValue = Number(direction || 0);
+    if (!Number.isFinite(directionValue) || directionValue === 0) return;
+
+    const resolveRowLevel = (row = {}) => {
+      const type = row?.type || "";
+      if (type === "principal") return 0;
+      if (type === "subsection") return 1;
+      if (type === "account") {
+        const parentSub = row.parentSubsection || row.subsection || row.parentSub || "";
+        const parentSec = row.parentSection || row.section || row.parent || "";
+        if (parentSub) return 2;
+        if (parentSec) return 1;
+        return 0;
+      }
+      if (type === "operation") {
+        const parentSub =
+          row.parentSubsection || row.subsection || row.parentSub || "";
+        const parentSec = row.parentSection || row.section || row.parent || "";
+        if (parentSub) return 2;
+        if (parentSec) return 1;
+        return 0;
+      }
+      return 0;
+    };
+
+    const resolveBlockRange = (startIdx) => {
+      const row = rows[startIdx] || {};
+      const type = row?.type || "";
+      if (type === "principal") {
+        let end = startIdx;
+        for (let i = startIdx + 1; i < rows.length; i += 1) {
+          if (resolveRowLevel(rows[i]) <= 0) break;
+          end = i;
+        }
+        return { start: startIdx, end };
+      }
+      if (type === "subsection") {
+        let end = startIdx;
+        for (let i = startIdx + 1; i < rows.length; i += 1) {
+          if (resolveRowLevel(rows[i]) <= 1) break;
+          end = i;
+        }
+        return { start: startIdx, end };
+      }
+      return { start: startIdx, end: startIdx };
+    };
+
+    const currentBlock = resolveBlockRange(currentIndex);
+    const level = resolveRowLevel(rows[currentBlock.start]);
+
+    const swapBlocks = (a, b) => {
+      const before = rows.slice(0, a.start);
+      const blockA = rows.slice(a.start, a.end + 1);
+      const between = rows.slice(a.end + 1, b.start);
+      const blockB = rows.slice(b.start, b.end + 1);
+      const after = rows.slice(b.end + 1);
+      const reordered = [...before, ...blockB, ...between, ...blockA, ...after];
+      applyTemplateRowsOrder(reordered, { silent: false });
+    };
+
+    if (directionValue > 0) {
+      let cursor = currentBlock.end + 1;
+      while (cursor < rows.length && resolveRowLevel(rows[cursor]) > level) {
+        cursor += 1;
+      }
+      if (cursor >= rows.length) return;
+      const candidateLevel = resolveRowLevel(rows[cursor]);
+      if (candidateLevel < level) {
+        if (level === 2) {
+          showToast(
+            "No puedes mover este elemento fuera de su subsección. Cambia su subsección para moverlo.",
+            "warning"
+          );
+        } else if (level === 1) {
+          showToast(
+            "No puedes mover este elemento fuera de su sección. Cambia su sección para moverlo.",
+            "warning"
+          );
+        }
+        return;
+      }
+      const nextBlock = resolveBlockRange(cursor);
+      swapBlocks(currentBlock, nextBlock);
+      return;
+    }
+
+    if (directionValue < 0) {
+      let cursor = currentBlock.start - 1;
+      while (cursor >= 0 && resolveRowLevel(rows[cursor]) > level) {
+        cursor -= 1;
+      }
+      if (cursor < 0) return;
+      const candidateLevel = resolveRowLevel(rows[cursor]);
+      if (candidateLevel < level) {
+        if (level === 2) {
+          showToast(
+            "No puedes mover este elemento fuera de su subsección. Cambia su subsección para moverlo.",
+            "warning"
+          );
+        } else if (level === 1) {
+          showToast(
+            "No puedes mover este elemento fuera de su sección. Cambia su sección para moverlo.",
+            "warning"
+          );
+        }
+        return;
+      }
+      const prevBlock = resolveBlockRange(cursor);
+      // Para mover hacia arriba, "a" debe ser el bloque anterior.
+      swapBlocks(prevBlock, currentBlock);
+    }
+  }
+
+  function moveTemplateRowOrderToIndex(rowIndex, targetIndex) {
+    const rows = getTemplateRowsForReorder();
+    if (!rows.length) return;
+    const currentIndex = Number(rowIndex);
+    if (!Number.isInteger(currentIndex)) return;
+    if (currentIndex < 0 || currentIndex >= rows.length) return;
+
+    const rawTarget = Number(targetIndex);
+    if (!Number.isFinite(rawTarget)) return;
+    let desired = Math.floor(rawTarget);
+    if (desired < 0) desired = 0;
+    if (desired >= rows.length) desired = rows.length - 1;
+    if (desired === currentIndex) return;
+
+    const resolveRowLevel = (row = {}) => {
+      const type = row?.type || "";
+      if (type === "principal") return 0;
+      if (type === "subsection") return 1;
+      if (type === "account") {
+        const parentSub = row.parentSubsection || row.subsection || row.parentSub || "";
+        const parentSec = row.parentSection || row.section || row.parent || "";
+        if (parentSub) return 2;
+        if (parentSec) return 1;
+        return 0;
+      }
+      if (type === "operation") {
+        const parentSub =
+          row.parentSubsection || row.subsection || row.parentSub || "";
+        const parentSec = row.parentSection || row.section || row.parent || "";
+        if (parentSub) return 2;
+        if (parentSec) return 1;
+        return 0;
+      }
+      return 0;
+    };
+
+    const resolveBlockRange = (startIdx) => {
+      const row = rows[startIdx] || {};
+      const type = row?.type || "";
+      if (type === "principal") {
+        let end = startIdx;
+        for (let i = startIdx + 1; i < rows.length; i += 1) {
+          if (resolveRowLevel(rows[i]) <= 0) break;
+          end = i;
+        }
+        return { start: startIdx, end };
+      }
+      if (type === "subsection") {
+        let end = startIdx;
+        for (let i = startIdx + 1; i < rows.length; i += 1) {
+          if (resolveRowLevel(rows[i]) <= 1) break;
+          end = i;
+        }
+        return { start: startIdx, end };
+      }
+      return { start: startIdx, end: startIdx };
+    };
+
+    const currentBlock = resolveBlockRange(currentIndex);
+    const level = resolveRowLevel(rows[currentBlock.start]);
+    const block = rows.slice(currentBlock.start, currentBlock.end + 1);
+    const blockLen = block.length;
+    const remaining = rows.filter(
+      (_, idx) => idx < currentBlock.start || idx > currentBlock.end
+    );
+
+    // Ajustar índice objetivo por la extracción del bloque si se mueve hacia abajo.
+    let insertHint = desired;
+    if (insertHint > currentBlock.start) insertHint -= blockLen;
+
+    // Rango permitido para mantener estructura:
+    // - Nivel 0: libre
+    // - Nivel 1: dentro del mismo principal
+    // - Nivel 2: dentro de la misma subsección (si existe), si no dentro del mismo principal
+    let groupStart = 0;
+    let groupEnd = remaining.length;
+
+    const findPrevInOriginal = (fromIdx, predicate) => {
+      for (let i = fromIdx; i >= 0; i -= 1) {
+        if (predicate(rows[i], i)) return i;
+      }
+      return -1;
+    };
+
+    if (level === 1 || level === 2) {
+      const principalIdx = findPrevInOriginal(
+        currentBlock.start,
+        (row) => resolveRowLevel(row) === 0
+      );
+      if (principalIdx >= 0) {
+        groupStart = principalIdx;
+        groupEnd = remaining.length;
+        for (let i = groupStart + 1; i < remaining.length; i += 1) {
+          if (resolveRowLevel(remaining[i]) === 0) {
+            groupEnd = i;
+            break;
+          }
+        }
+      }
+    }
+
+    if (level === 2) {
+      // Buscar la cabecera de subsección más cercana dentro del principal.
+      let subIdx = -1;
+      for (let i = currentBlock.start; i >= 0; i -= 1) {
+        const lvl = resolveRowLevel(rows[i]);
+        if (lvl === 0) break;
+        if (rows[i]?.type === "subsection") {
+          subIdx = i;
+          break;
+        }
+      }
+      if (subIdx >= 0) {
+        groupStart = subIdx;
+        groupEnd = remaining.length;
+        for (let i = groupStart + 1; i < remaining.length; i += 1) {
+          if (resolveRowLevel(remaining[i]) <= 1) {
+            groupEnd = i;
+            break;
+          }
+        }
+      }
+    }
+
+    const allowedMin = level === 0 ? 0 : Math.min(groupStart + 1, remaining.length);
+    const allowedMax = Math.min(groupEnd, remaining.length);
+    const originalInsertHint = insertHint;
+    if (insertHint < allowedMin) insertHint = allowedMin;
+    if (insertHint > allowedMax) insertHint = allowedMax;
+    if (originalInsertHint !== insertHint && level > 0) {
+      if (level === 2) {
+        showToast(
+          "Esa posición está fuera de la subsección. Se ajustó dentro del rango permitido.",
+          "warning"
+        );
+      } else if (level === 1) {
+        showToast(
+          "Esa posición está fuera de la sección. Se ajustó dentro del rango permitido.",
+          "warning"
+        );
+      }
+    }
+
+    const candidates = [];
+    for (let i = allowedMin; i < allowedMax; i += 1) {
+      if (resolveRowLevel(remaining[i]) === level) {
+        candidates.push(i);
+      }
+    }
+    candidates.push(allowedMax);
+    const positions = Array.from(new Set(candidates)).sort((a, b) => a - b);
+    let insertAt = positions.find((pos) => pos >= insertHint);
+    if (insertAt == null) insertAt = allowedMax;
+
+    const reordered = remaining.slice();
+    reordered.splice(insertAt, 0, ...block);
     applyTemplateRowsOrder(reordered, { silent: false });
   }
 
@@ -4451,6 +5284,91 @@
     );
   }
 
+  // ==============================
+  // MANUAL STRUCTURE (Pilot)
+  // ==============================
+  // Estructura de secciones/subsecciones basada en el ORDEN REAL del template (buildPreviewRowsForEditor).
+  // Esto evita "inventar" secciones a partir de campos legacy (secundaria->principal) y
+  // mantiene consistencia entre: UI, reordenar, fórmulas, y placement.
+  function buildManualSectionTree(rowsOverride = null) {
+    const rows = Array.isArray(rowsOverride) ? rowsOverride : getTemplateRowsForReorder();
+    const sections = [];
+    const sectionMap = new Map(); // key -> { name, subsections: [] }
+
+    const ensureSection = (name) => {
+      const clean = (name || "").toString().trim();
+      if (!clean) return null;
+      const key = normalizeOperationMatch(clean);
+      if (!key) return null;
+      if (!sectionMap.has(key)) {
+        const node = { name: clean, key, subsections: [], subsectionMap: new Map() };
+        sectionMap.set(key, node);
+        sections.push(node);
+      }
+      return sectionMap.get(key);
+    };
+
+    const ensureSubsection = (sectionNode, name) => {
+      if (!sectionNode) return null;
+      const clean = (name || "").toString().trim();
+      if (!clean) return null;
+      const key = normalizeOperationMatch(clean);
+      if (!key) return null;
+      if (!sectionNode.subsectionMap.has(key)) {
+        const node = { name: clean, key };
+        sectionNode.subsectionMap.set(key, node);
+        sectionNode.subsections.push(node);
+      }
+      return sectionNode.subsectionMap.get(key);
+    };
+
+    // 1) Preferimos cabeceras explícitas del preview (principal/subsection).
+    rows.forEach((row) => {
+      if (!row) return;
+      if (row.type === "principal") {
+        ensureSection(row.label || "");
+        return;
+      }
+      if (row.type === "subsection") {
+        const parent = (row.parentSection || "").toString().trim();
+        if (!parent) return;
+        const sectionNode = ensureSection(parent);
+        ensureSubsection(sectionNode, row.label || "");
+      }
+    });
+
+    // 2) Fallback: si por alguna razón no vinieron cabeceras, inferir por placement.
+    rows.forEach((row) => {
+      if (!row) return;
+      if (row.type !== "account" && row.type !== "operation") return;
+      const parentSection = (row.parentSection || row.section || "").toString().trim();
+      const parentSubsection = (row.parentSubsection || row.subsection || "").toString().trim();
+      if (!parentSection) return;
+      const sectionNode = ensureSection(parentSection);
+      if (parentSubsection) ensureSubsection(sectionNode, parentSubsection);
+    });
+
+    // Limpiar maps internas para no exponerlas fuera.
+    return sections.map((sec) => ({
+      name: sec.name,
+      key: sec.key,
+      subsections: (sec.subsections || []).map((sub) => ({ name: sub.name, key: sub.key })),
+    }));
+  }
+
+  function getManualSectionNames() {
+    return buildManualSectionTree().map((s) => s.name).filter(Boolean);
+  }
+
+  function getManualSubsectionNames(principal) {
+    const targetKey = normalizeOperationMatch(principal || "");
+    if (!targetKey) return [];
+    const tree = buildManualSectionTree();
+    const section = tree.find((s) => normalizeOperationMatch(s.name) === targetKey);
+    if (!section) return [];
+    return (section.subsections || []).map((s) => s.name).filter(Boolean);
+  }
+
   function applyTemplateRowsOrder(orderedRows = [], options = {}) {
     const silent = Boolean(options?.silent);
     if (!Array.isArray(orderedRows) || !orderedRows.length) {
@@ -4464,8 +5382,6 @@
       return { success: false, message: "Sin filas válidas para aplicar." };
     }
 
-    let currentSection = "";
-    let currentSubsection = "";
     let cursor = 0;
 
     const touchedAccounts = new Set();
@@ -4473,24 +5389,22 @@
 
     rows.forEach((row) => {
       const type = row?.type || "";
-      if (type === "principal") {
-        currentSection = (row.label || row.section || "").toString().trim();
-        currentSubsection = "";
-        return;
-      }
-
-      if (type === "subsection") {
-        const parentSection = (
-          row.parentSection ||
-          row.section ||
-          currentSection ||
-          ""
-        )
-          .toString()
-          .trim();
-        const subsection = (row.label || row.subsection || "").toString().trim();
-        if (parentSection) currentSection = parentSection;
-        currentSubsection = subsection;
+      if (type === "principal" || type === "subsection") {
+        const placeholderId = (row.placeholderAccountId || "").toString().trim();
+        if (placeholderId) {
+          const placeholder = resolveAccountByIdOrCode(placeholderId);
+          if (placeholder) {
+            placeholder.orden_presentacion = cursor;
+            placeholder.orden = cursor;
+            // Mantener un hint local para que el editor refleje el orden manual
+            // incluso antes de recargar desde layout_secciones.
+            if (isPlaceholderAccount(placeholder)) {
+              placeholder.__placeholderOrder = cursor;
+            }
+            touchedAccounts.add(getAccountRowId(placeholder));
+          }
+        }
+        cursor += 1;
         return;
       }
 
@@ -4499,28 +5413,6 @@
           row.accountId || row.cuenta || row.label || row.codigo || "";
         const account = resolveAccountByIdOrCode(accountId);
         if (!account) return;
-
-        const targetSection = (
-          row.parentSection ||
-          row.section ||
-          currentSection ||
-          getAccountPrincipalName(account) ||
-          ""
-        )
-          .toString()
-          .trim();
-        const targetSubsection = (
-          row.parentSubsection ||
-          row.subsection ||
-          currentSubsection ||
-          getAccountSecondaryName(account) ||
-          ""
-        )
-          .toString()
-          .trim();
-
-        setAccountPrincipalName(account, targetSection);
-        setAccountSecondaryName(account, targetSubsection);
         account.orden_presentacion = cursor;
         account.orden = cursor;
         touchedAccounts.add(getAccountRowId(account));
@@ -4531,21 +5423,10 @@
       if (type === "operation") {
         const ops = findOperationsForOrderedRow(row);
         if (!ops.length) return;
-
-        const targetSection = (
-          currentSection ||
-          row.parentSection ||
-          row.section ||
-          ""
-        )
+        const rowParentSection = (row.parentSection || row.section || "")
           .toString()
           .trim();
-        const targetSubsection = (
-          currentSubsection ||
-          row.parentSubsection ||
-          row.subsection ||
-          ""
-        )
+        const rowParentSubsection = (row.parentSubsection ?? row.subsection ?? "")
           .toString()
           .trim();
 
@@ -4553,8 +5434,24 @@
           if (!op) return;
           op.orden_presentacion = cursor;
           op.orden = cursor;
-          op.parentSection = targetSection;
-          op.parentSubsection = targetSubsection;
+          const targetSection = (rowParentSection || op.parentSection || "")
+            .toString()
+            .trim();
+          let targetSubsection = (rowParentSubsection || op.parentSubsection || "")
+            .toString()
+            .trim();
+          if (!targetSection) {
+            // Mantener operación "libre" si no tiene sección explícita.
+            targetSubsection = "";
+          }
+          op.parentSection = targetSection || null;
+          op.parentSubsection = targetSubsection || null;
+          const placement = (targetSubsection || targetSection || "")
+            .toString()
+            .trim();
+          op.SECCION = placement;
+          op.seccion = placement;
+          op.secciones = placement ? [placement] : [];
 
           const opKey =
             getOperationId(op) ||
@@ -4571,7 +5468,7 @@
     (state.cuentas || []).forEach((cuenta, idx) => {
       const accountId = getAccountRowId(cuenta);
       if (touchedAccounts.has(accountId)) return;
-      const fallbackOrder = rows.length + idx;
+      const fallbackOrder = cursor + idx;
       cuenta.orden_presentacion = fallbackOrder;
       cuenta.orden = fallbackOrder;
     });
@@ -4581,7 +5478,7 @@
         getOperationId(op) || getOperationLabel(op) || ""
       );
       if (opKey && touchedOperations.has(opKey)) return;
-      const fallbackOrder = rows.length + idx;
+      const fallbackOrder = cursor + idx;
       op.orden_presentacion = fallbackOrder;
       op.orden = fallbackOrder;
     });
@@ -4658,14 +5555,18 @@
       state.columnasConfig.length
     ) {
       const opColumn = buildColumnConfigOperation(state.columnasConfig);
-      if (opColumn) {
-        lista.push(opColumn);
-      }
+    if (opColumn) {
+      lista.push(opColumn);
     }
+  }
+    const capituloFinal = (state.capitulo || "").toString();
+    const hojaFinal = (state.modulo || "").toString();
     return lista.map((op) => ({
       ...op,
-      CAPITULO: op?.CAPITULO || state.capitulo || "",
-      HOJA: op?.HOJA || state.modulo || "",
+      // Forzar capítulo/hoja al contexto actual para evitar variantes ("MÉXICO" vs "MEXICO")
+      // y que el guardado parezca "no aplicar".
+      CAPITULO: capituloFinal,
+      HOJA: hojaFinal,
     }));
   }
 
@@ -6385,6 +7286,12 @@
   // ==========================================
   async function handleModuloChange() {
     state.modulo = dom.moduloSelect.value;
+    try {
+      window.Sesion?.guardarContextoPlaneacion?.({ modulo: state.modulo });
+    } catch (_) {
+      // ignore
+    }
+    saveContextToURL();
     updateHeaderLabels();
     await loadYears();
     await loadChapters();
@@ -6392,7 +7299,14 @@
   }
 
   async function handleAnioChange() {
-    state.anio = dom.anioSelect.value;
+    const parsed = Number(dom.anioSelect.value);
+    state.anio = Number.isInteger(parsed) ? parsed : dom.anioSelect.value;
+    try {
+      window.Sesion?.guardarContextoPlaneacion?.({ anio: state.anio });
+    } catch (_) {
+      // ignore
+    }
+    saveContextToURL();
     updateHeaderLabels();
     await loadChapters();
     await tryLoadLayout();
@@ -6402,6 +7316,7 @@
     state.capitulo = dom.capituloSelect.value;
     asegurarEmpresaIdContexto(state.capitulo, true);
     filtrarModulosPorCapitulo(); // Filtrar módulos cuando cambia el capítulo
+    saveContextToURL();
     updateHeaderLabels();
     await tryLoadLayout();
   }
@@ -7198,22 +8113,12 @@
   }
 
   function getBulkSectionNames() {
-    const sections = groupBySections(state.cuentas || []);
-    return sections.map((section) => section.name).filter(Boolean);
+    return getManualSectionNames();
   }
 
   function getBulkSubsectionNames(principal) {
     if (!principal) return [];
-    const sections = groupBySections(state.cuentas || []);
-    const target = normalizeBulkName(principal);
-    const match = sections.find(
-      (section) => normalizeBulkName(section.name) === target
-    );
-    if (!match || !Array.isArray(match.subsections)) return [];
-    const names = match.subsections
-      .map((sub) => sub.name)
-      .filter(Boolean);
-    return Array.from(new Set(names));
+    return getManualSubsectionNames(principal);
   }
 
   function buildBulkSelectOptions(items = [], selected = "", placeholder = "") {
@@ -7599,6 +8504,14 @@
     }
 
     dom.formElemento.innerHTML = formHtml;
+    if (tipo === "cuenta") {
+      // Asegurar que el combo de subsecciones arranque filtrado por la sección seleccionada.
+      try {
+        window.updateSubsectionOptions?.();
+      } catch (_) {
+        // ignore
+      }
+    }
     const claseInput = document.getElementById("inputClase");
     const idInput = document.getElementById("inputOperacionId");
     const clearInvalid = (input) => {
@@ -7610,41 +8523,23 @@
   }
 
   function getSectionOptions() {
-    const sections = groupBySections(state.cuentas);
-    if (!Array.isArray(sections) || sections.length === 0) {
-      return '<option value="">Sin secciones</option>';
-    }
-    return sections
-      .map((section) => section?.name)
-      .filter(Boolean)
-      .map(
+    const sectionNames = getManualSectionNames();
+    const options = [
+      '<option value="">Sin sección (Libre)</option>',
+      ...(sectionNames || []).map(
         (name) =>
           `<option value="${escapeAttr(name)}">${escapeHtml(name)}</option>`
-      )
-      .join("");
+      ),
+    ];
+    return options.join("");
   }
 
   function getSubsectionOptions() {
-    const sections = groupBySections(state.cuentas);
-    const options = [];
-
-    (sections || []).forEach((section) => {
-      (section.subsections || []).forEach((subsection) => {
-        if (subsection?.name) {
-          options.push(
-            `<option value="${escapeAttr(subsection.name)}">${escapeHtml(
-              subsection.name
-            )}</option>`
-          );
-        }
-      });
-    });
-
-    return options.join("") || '<option value="">Sin subsecciones</option>';
+    return '<option value="">Sin subsección</option>';
   }
 
   function getSectionCheckboxes() {
-    const sections = groupBySections(state.cuentas);
+    const sections = buildManualSectionTree();
     if (!Array.isArray(sections) || sections.length === 0) {
       return '<div class="text-muted small">Sin secciones disponibles</div>';
     }
@@ -7752,18 +8647,25 @@
       .getElementById("inputNombreSubseccion")
       ?.value?.trim();
 
+    if (!principal || !principal.toString().trim()) {
+      throw new Error("Selecciona una sección principal para la subsección");
+    }
     if (!nombre) throw new Error("Ingresa un nombre para la subsección");
     addSecondarySectionByName(principal, nombre);
   }
 
   async function addAccount() {
-    const principal = document.getElementById("selectPrincipal")?.value;
-    const secundaria = document.getElementById("selectSecundaria")?.value;
+    const principal = document.getElementById("selectPrincipal")?.value || "";
+    let secundaria = document.getElementById("selectSecundaria")?.value || "";
     const cuenta = document.getElementById("inputCuenta")?.value?.trim();
     const nombre = document.getElementById("inputNombre")?.value?.trim();
 
     if (!cuenta || !nombre)
       throw new Error("Completa el código y nombre de la cuenta");
+    if (!principal.toString().trim()) {
+      // Cuenta libre: no permitir que quede "subsección huérfana"
+      secundaria = "";
+    }
     addAccountEntry({ principal, secundaria, cuenta, nombre });
   }
 
@@ -7824,11 +8726,13 @@
     { principal, secundaria, cuenta, nombre, factor },
     { silent = false } = {}
   ) {
+    const principalClean = (principal || "").toString().trim();
+    const secundariaClean = principalClean ? (secundaria || "").toString().trim() : "";
     const order = getNextAccountOrder();
     const newAccount = {
-      "SECCIÓN Principal": principal,
-      "SECCION Secundaria": secundaria,
-      SECCION: principal,
+      "SECCIÓN Principal": principalClean,
+      "SECCION Secundaria": secundariaClean,
+      SECCION: principalClean,
       CUENTA: cuenta,
       NOMBRE: nombre,
       orden: order,
@@ -8164,12 +9068,21 @@
 
     const opsCreated = [];
     targetSelections.forEach((selection, idx) => {
-      const sectionName = selection.section || "";
-      const parentSection = selection.parent || null;
-      const parentSubsection = selection.parent ? sectionName : null;
+      const sectionName = (selection.section || "").toString().trim();
+      const parentFromSelection = (selection.parent || "").toString().trim();
+      const isSubsectionSelection = Boolean(parentFromSelection);
+
+      // Manual: si el usuario selecciona una sección PRINCIPAL, la operación queda ligada
+      // a esa sección (parentSection = sectionName). Solo si selecciona una subsección
+      // usamos parentSection + parentSubsection.
+      const parentSection = (isSubsectionSelection ? parentFromSelection : sectionName) || null;
+      const parentSubsection = isSubsectionSelection ? (sectionName || null) : null;
+      const placement = parentSection
+        ? (parentSubsection || parentSection).toString().trim()
+        : "";
       let op = null;
       if (sectionName) {
-        op = findOperationBySectionName(sectionName, parentSection);
+        op = findOperationBySectionName(sectionName, parentSection || "");
       }
 
       const isNew = !op;
@@ -8184,30 +9097,27 @@
           HOJA: state.modulo || "",
           OperacionId: buildUniqueOperationId(opIdBase),
           Clase: resolvedClase,
-          SECCION: sectionName || "",
+          SECCION: placement,
+          seccion: placement,
           tipo: tipo || "sum-sections",
           signos: {},
           orden: nextOperationOrder(),
-          secciones: sectionName ? [sectionName] : [],
+          secciones: placement ? [placement] : [],
           parentSubsection,
           parentSection,
         };
       } else {
-        if (sectionName && !op.SECCION) {
-          op.SECCION = sectionName;
-        }
+        op.SECCION = placement;
+        op.seccion = placement;
+        op.secciones = placement ? [placement] : [];
         if (!op.HOJA) {
           op.HOJA = state.modulo || "";
         }
         if (!op.CAPITULO) {
           op.CAPITULO = state.capitulo || "DEFAULT";
         }
-        if (parentSection) {
-          op.parentSection = parentSection;
-        }
-        if (sectionName && !op.parentSubsection) {
-          op.parentSubsection = sectionName;
-        }
+        op.parentSection = parentSection;
+        op.parentSubsection = parentSubsection;
       }
 
       // Aplicar etiquetas de aparición
@@ -8302,23 +9212,27 @@
   function buildSectionIndexes() {
     const primaryIndex = new Map();
     const subsectionIndex = new Map();
-    const sections = groupBySections(state.cuentas);
 
-    sections.forEach((section) => {
-      const primary = section?.name || "";
+    // En modo manual NO usamos groupBySections() aquí porque promueve
+    // secundaria -> principal ("sección por cada cuenta") en layouts viejos.
+    // Solo indexamos subsecciones válidas (con principal).
+    (state.cuentas || []).forEach((cuenta) => {
+      if (!cuenta) return;
+      const primary = (getAccountPrincipalName(cuenta) || "").toString().trim();
+      if (!primary) return;
       const primaryKey = normalizeKey(primary);
       if (primaryKey && !primaryIndex.has(primaryKey)) {
         primaryIndex.set(primaryKey, primary);
       }
-      (section.subsections || []).forEach((subsection) => {
-        const subName = subsection?.name || "";
-        const subKey = normalizeKey(subName);
-        if (!subKey) return;
-        if (!subsectionIndex.has(subKey)) {
-          subsectionIndex.set(subKey, new Set());
-        }
-        subsectionIndex.get(subKey).add(primary);
-      });
+
+      const subName = (getAccountSecondaryName(cuenta) || "").toString().trim();
+      if (!subName) return;
+      const subKey = normalizeKey(subName);
+      if (!subKey) return;
+      if (!subsectionIndex.has(subKey)) {
+        subsectionIndex.set(subKey, new Set());
+      }
+      subsectionIndex.get(subKey).add(primary);
     });
 
     return { primaryIndex, subsectionIndex };
@@ -8374,29 +9288,52 @@
 
   function hydrateOperationPlacement() {
     const indexes = buildSectionIndexes();
-    const primaryNames = Array.from(indexes.primaryIndex.values());
     const subsectionIndex = indexes.subsectionIndex || new Map();
 
     state.operaciones = (state.operaciones || []).map((op) => {
       if (!op) return op;
-      if (!op.parentSubsection && op.SECCION) {
-        op.parentSubsection = op.SECCION;
-      }
+      const seccionValue = (op.SECCION || op.seccion || "").toString().trim();
+      let parentSection = (op.parentSection || "").toString().trim();
+      let parentSubsection = (op.parentSubsection || "").toString().trim();
 
-      if (!op.parentSection) {
-        const subKey = normalizeOperationKey(op.parentSubsection || "");
+      const inferParentFromSubsection = (subName) => {
+        const subKey = normalizeKey(subName || "");
         const parents = subKey ? subsectionIndex.get(subKey) : null;
         if (parents && parents.size === 1) {
-          op.parentSection = Array.from(parents)[0];
+          return Array.from(parents)[0];
+        }
+        return "";
+      };
+
+      // 1) Si hay subsección pero no sección, inferir SOLO si es inequívoco.
+      if (!parentSection && parentSubsection) {
+        const inferred = inferParentFromSubsection(parentSubsection);
+        if (inferred) {
+          parentSection = inferred;
+        } else {
+          // Ambigua: tratar la operación como "libre" hasta que el usuario la asigne.
+          parentSubsection = "";
         }
       }
 
-      if (!op.parentSection) {
-        const inferred = inferParentSectionFromLabel(op, primaryNames);
-        if (inferred) {
-          op.parentSection = inferred;
+      // 2) Si no hay parent*, usar SECCION como fallback de ubicación:
+      // - Si coincide con una principal existente -> operación a nivel sección.
+      // - Si coincide con una subsección con padre único -> operación en esa subsección.
+      if (!parentSection && !parentSubsection && seccionValue) {
+        const seccionKey = normalizeKey(seccionValue);
+        if (seccionKey && indexes.primaryIndex?.has?.(seccionKey)) {
+          parentSection = indexes.primaryIndex.get(seccionKey);
+        } else {
+          const inferred = inferParentFromSubsection(seccionValue);
+          if (inferred) {
+            parentSection = inferred;
+            parentSubsection = seccionValue;
+          }
         }
       }
+
+      op.parentSection = parentSection || null;
+      op.parentSubsection = parentSubsection || null;
 
       return op;
     });
@@ -8667,6 +9604,7 @@
   let autoSaveTimer = null;
   let autoSaveInProgress = false;
   let autoSaveQueued = false;
+  let lastAutoSaveErrorAt = 0;
 
   function scheduleAutoSave(reason = "") {
     if (!state.autoSave || !state.editMode) return;
@@ -8686,7 +9624,23 @@
     }
     autoSaveInProgress = true;
     try {
-      await saveLayout({ skipConfirmation: true, silent: true, source: reason });
+      const ok = await saveLayout({
+        skipConfirmation: true,
+        silent: true,
+        source: reason,
+      });
+      if (!ok) {
+        const now = Date.now();
+        // Evitar spam si falla repetidamente.
+        if (now - lastAutoSaveErrorAt > 15000) {
+          lastAutoSaveErrorAt = now;
+          showToast(
+            "No se pudo guardar automáticamente. Revisa tu conexión e intenta Guardar.",
+            "error"
+          );
+        }
+        setStatus("Error en guardado automático");
+      }
     } finally {
       autoSaveInProgress = false;
       if (autoSaveQueued) {
@@ -8981,17 +9935,15 @@
       return false;
     }
 
-    // Antes de guardar, sincronizar orden real de la vista previa con orden_presentacion.
-    // Evita que operaciones queden "hasta abajo" por órdenes heredados/antiguos.
-    if (state.unsavedChanges === true) {
-      try {
-        const previewRows = getTemplateRowsForReorder();
-        if (previewRows.length) {
-          applyTemplateRowsOrder(previewRows, { silent: true });
-        }
-      } catch (orderSyncError) {
-        console.warn("[saveLayout] No se pudo sincronizar orden visual", orderSyncError);
+    // Antes de guardar, sincronizar SIEMPRE el orden real de la vista previa con orden_presentacion.
+    // Evita casos donde el usuario reordena visualmente pero el orden persistido no se actualiza.
+    try {
+      const previewRows = getTemplateRowsForReorder();
+      if (previewRows.length) {
+        applyTemplateRowsOrder(previewRows, { silent: true });
       }
+    } catch (orderSyncError) {
+      console.warn("[saveLayout] No se pudo sincronizar orden visual", orderSyncError);
     }
 
     // Generar resumen de cambios
@@ -9107,6 +10059,187 @@
       }
       return false;
     }
+  }
+
+  // ==========================================
+  // VERSION HISTORY (UNDO/RESTORE)
+  // ==========================================
+  function formatVersionTimestamp(value) {
+    if (!value) return "";
+    const raw = value.toString();
+    const date = new Date(raw);
+    if (Number.isFinite(date.getTime())) {
+      return date.toLocaleString();
+    }
+    return raw;
+  }
+
+  async function fetchLayoutVersions({ limit = 30 } = {}) {
+    const base = `${API_BASE}/${encodeURIComponent(state.modulo)}/${state.anio}/${encodeURIComponent(
+      state.capitulo
+    )}/versions`;
+    const url = agregarEmpresaIdQuery(`${base}?limit=${encodeURIComponent(limit)}`);
+    const response = await fetch(url, { headers: getAuthHeaders() });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.mensaje || "No se pudo cargar el historial");
+    }
+    const data = await response.json();
+    return Array.isArray(data.versions) ? data.versions : [];
+  }
+
+  async function restoreLayoutVersion(versionId, { motivo = "" } = {}) {
+    if (!versionId) return false;
+    const url = `${API_BASE}/${encodeURIComponent(state.modulo)}/${state.anio}/${encodeURIComponent(
+      state.capitulo
+    )}/versions/${encodeURIComponent(versionId)}/restore`;
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...getAuthHeaders(),
+      },
+      body: JSON.stringify({
+        empresaId: obtenerEmpresaIdApi(),
+        motivo: motivo || `Restaurar versión ${versionId}`,
+      }),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.mensaje || "No se pudo restaurar la versión");
+    }
+    return true;
+  }
+
+  async function openVersionHistoryModal() {
+    if (!state.editMode) {
+      showToast("Activa el modo edición para restaurar versiones", "warning");
+      return;
+    }
+    if (!state.modulo || !state.anio || !state.capitulo) {
+      showToast("Falta contexto (módulo/año/capítulo)", "warning");
+      return;
+    }
+
+    setStatus("Cargando historial...");
+    let versions = [];
+    try {
+      versions = await fetchLayoutVersions({ limit: 50 });
+    } catch (err) {
+      setStatus("Listo");
+      showToast(err.message, "error");
+      return;
+    }
+    setStatus("Listo");
+
+    const rowsHtml = versions.length
+      ? versions
+          .map((v) => {
+            const created = formatVersionTimestamp(v.created_at);
+            const user = (v.nombre_usuario || v.usuario || v.usuario_id || "").toString();
+            const source = (v.source || "").toString();
+            const motivo = (v.motivo || "").toString();
+            return `
+              <tr>
+                <td class="text-muted">${escapeHtml(String(v.id))}</td>
+                <td>${escapeHtml(created)}</td>
+                <td>${escapeHtml(user)}</td>
+                <td>${escapeHtml(source)}</td>
+                <td>${escapeHtml(motivo)}</td>
+                <td class="text-end">
+                  <button type="button" class="btn btn-sm btn-outline-primary" data-action="restore" data-version-id="${escapeAttr(
+                    String(v.id)
+                  )}">
+                    Restaurar
+                  </button>
+                </td>
+              </tr>
+            `;
+          })
+          .join("")
+      : `<tr><td colspan="6" class="text-muted text-center">Sin versiones</td></tr>`;
+
+    const modal = document.createElement("div");
+    modal.className = "modal fade";
+    modal.id = "modalHistorialVersiones";
+    modal.tabIndex = -1;
+    modal.innerHTML = `
+      <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">
+              Historial de versiones · ${escapeHtml(state.modulo)} ${escapeHtml(
+      String(state.anio)
+    )} · ${escapeHtml(state.capitulo)}
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <div class="alert alert-info py-2">
+              <strong>Tip:</strong> Cada guardado crea un snapshot. Al restaurar se hace un backup automático.
+            </div>
+            <div class="table-responsive">
+              <table class="table table-sm table-hover align-middle">
+                <thead class="table-light">
+                  <tr>
+                    <th>ID</th>
+                    <th>Fecha</th>
+                    <th>Usuario</th>
+                    <th>Source</th>
+                    <th>Motivo</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${rowsHtml}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+    const bsModal = new bootstrap.Modal(modal);
+    bsModal.show();
+
+    const handleClick = async (event) => {
+      const btn = event.target.closest("button[data-action]");
+      if (!btn) return;
+      const action = btn.dataset.action;
+      if (action !== "restore") return;
+      const versionId = btn.dataset.versionId;
+      if (!versionId) return;
+
+      const ok = confirm(
+        `¿Restaurar la versión ${versionId}?\\n\\nEsto reemplaza cuentas + operaciones del capítulo "${state.capitulo}".`
+      );
+      if (!ok) return;
+
+      btn.disabled = true;
+      btn.textContent = "Restaurando...";
+      try {
+        await restoreLayoutVersion(versionId, { motivo: `Restaurar versión ${versionId}` });
+        showToast("✅ Versión restaurada. Recargando...", "success");
+        bsModal.hide();
+        await loadLayout();
+      } catch (err) {
+        console.error(err);
+        showToast(err.message, "error");
+        btn.disabled = false;
+        btn.textContent = "Restaurar";
+      }
+    };
+
+    modal.addEventListener("click", handleClick);
+    modal.addEventListener("hidden.bs.modal", () => {
+      modal.removeEventListener("click", handleClick);
+      document.body.removeChild(modal);
+    });
   }
 
   // ==========================================
@@ -9535,57 +10668,13 @@
 
 window.editSection = function (name) {
     if (!requireEditMode()) return;
-    
-    // Buscar si existe una operación para esta sección
-    const secOpId = `SECPRIN_${normalizeOperationId(name)}`;
-    let operation = state.operaciones.find(op => 
-      getOperationId(op) === secOpId ||
-      (op.SECCION === name && op.tipo_operacion === 'seccion')
-    );
-    if (!operation) {
-      operation = findOperationBySectionName(name);
+    // En modo 100% manual: el lápiz renombra la sección (NO crea operaciones automáticas).
+    if (typeof window._editSectionOriginal === "function") {
+      window._editSectionOriginal(name);
+      return;
     }
-    
-    // Si no existe, crear una operación automáticamente
-    if (!operation) {
-      // Obtener todas las subsecciones de esta sección
-      const subsecciones = [...new Set(
-        state.cuentas
-          .filter(c => (getAccountPrincipalName(c) || '') === name)
-          .map(c => getAccountSecondaryName(c))
-          .filter(Boolean)
-      )];
-      
-      const formulaTerms = subsecciones.map((subsec, idx) => ({
-        id: Date.now() + idx,
-        operator: '+',
-        type: 'section',
-        value: subsec,
-        parentSection: name
-      }));
-      
-      operation = {
-        OperacionId: secOpId,
-        Clase: name,
-        SECCION: name,
-        tipo_operacion: 'seccion',
-        visible: true,
-        formula_terms: formulaTerms,
-        formula_json: JSON.stringify(formulaTerms),
-        HOJA: state.modulo || 'RESUMEN',
-        CAPITULO: state.capitulo,
-        rowStyle: 'sum-row-principal'
-      };
-      
-      state.operaciones.push(operation);
-      state.unsavedChanges = true;
-    }
-    
-    // Usar el editor de operaciones estándar
-    if (typeof coreEditOperation === 'function') {
-      coreEditOperation(getOperationId(operation));
-    } else if (typeof window.editOperation === 'function') {
-      window.editOperation(getOperationId(operation));
+    if (typeof _editSectionInternalOld === "function") {
+      _editSectionInternalOld(name);
     }
   };
   
@@ -9636,55 +10725,12 @@ window.editSection = function (name) {
 
   window.editSubsection = function (principal, name) {
     if (!requireEditMode()) return;
-    
-    // Buscar si existe una operación para esta subsección
-    const subsecOpId = `SUBSEC_${normalizeOperationId(name)}`;
-    let operation = state.operaciones.find(op => 
-      getOperationId(op) === subsecOpId ||
-      (op.SECCION === name && op.tipo_operacion === 'subseccion')
-    );
-    if (!operation) {
-      operation = findOperationBySectionName(name, principal);
+    // En modo 100% manual: el lápiz renombra la subsección (NO crea operaciones automáticas).
+    if (typeof window._editSubsectionOriginal === "function") {
+      window._editSubsectionOriginal(principal, name);
+      return;
     }
-    
-    // Si no existe, crear una operación automáticamente
-    if (!operation) {
-      // Obtener todas las cuentas de esta subsección
-      const cuentasSubsec = state.cuentas.filter(c => {
-        const sec = getAccountSecondaryName(c) || '';
-        return sec === name;
-      });
-      
-      const formulaTerms = cuentasSubsec.map((cuenta, idx) => ({
-        id: Date.now() + idx,
-        operator: '+',
-        type: 'account',
-        value: cuenta.CUENTA || cuenta.cuenta,
-      }));
-      
-      operation = {
-        OperacionId: subsecOpId,
-        Clase: name,
-        SECCION: name,
-        tipo_operacion: 'subseccion',
-        visible: true,
-        formula_terms: formulaTerms,
-        formula_json: JSON.stringify(formulaTerms),
-        HOJA: state.modulo || 'RESUMEN',
-        CAPITULO: state.capitulo,
-        rowStyle: 'subsection-row'
-      };
-      
-      state.operaciones.push(operation);
-      state.unsavedChanges = true;
-    }
-    
-    // Usar el editor de operaciones estándar
-    if (typeof coreEditOperation === 'function') {
-      coreEditOperation(getOperationId(operation));
-    } else if (typeof window.editOperation === 'function') {
-      window.editOperation(getOperationId(operation));
-    }
+    showToast("Editor de subsecciones no disponible", "warning");
   };
   
   window._editSubsectionOriginal = function (principal, name) {
@@ -9792,16 +10838,39 @@ window.editSection = function (name) {
       ? Number(factorRaw)
       : 1;
 
-    // Obtener todas las secciones disponibles para los selectores
-    const sections = groupBySections(state.cuentas || []);
-    const principalOptions = sections.map(s =>
-      `<option value="${escapeAttr(s.name)}" ${s.name === seccionPrincipal ? 'selected' : ''}>${escapeHtml(s.name)}</option>`
-    ).join('');
+    // Obtener secciones/subsecciones desde el ORDEN REAL del template (modo manual)
+    const normalizeKey = (value) => normalizeOperationMatch(value || "");
+    const principalNames = getManualSectionNames();
+    if (
+      seccionPrincipal &&
+      !principalNames.some((name) => normalizeKey(name) === normalizeKey(seccionPrincipal))
+    ) {
+      principalNames.unshift(seccionPrincipal);
+    }
+    const principalOptions = principalNames
+      .filter(Boolean)
+      .map((name) => {
+        const selected =
+          normalizeKey(name) === normalizeKey(seccionPrincipal) ? "selected" : "";
+        return `<option value="${escapeAttr(name)}" ${selected}>${escapeHtml(name)}</option>`;
+      })
+      .join("");
 
-    const currentSection = sections.find(s => s.name === seccionPrincipal);
-    const subsectionOptions = (currentSection?.subsections || []).map(sub =>
-      `<option value="${escapeAttr(sub.name)}" ${sub.name === seccionSecundaria ? 'selected' : ''}>${escapeHtml(sub.name)}</option>`
-    ).join('');
+    const subsectionNames = getManualSubsectionNames(seccionPrincipal);
+    if (
+      seccionSecundaria &&
+      !subsectionNames.some((name) => normalizeKey(name) === normalizeKey(seccionSecundaria))
+    ) {
+      subsectionNames.unshift(seccionSecundaria);
+    }
+    const subsectionOptions = subsectionNames
+      .filter(Boolean)
+      .map((name) => {
+        const selected =
+          normalizeKey(name) === normalizeKey(seccionSecundaria) ? "selected" : "";
+        return `<option value="${escapeAttr(name)}" ${selected}>${escapeHtml(name)}</option>`;
+      })
+      .join("");
 
     dom.formEditar.innerHTML = `
       <div class="mb-3">
@@ -9862,16 +10931,67 @@ window.editSection = function (name) {
     if (!principalSelect || !secondarySelect) return;
 
     const selectedPrincipal = principalSelect.value;
-    const sections = groupBySections(state.cuentas || []);
-    const currentSection = sections.find(s => s.name === selectedPrincipal);
+    const subs = getManualSubsectionNames(selectedPrincipal);
+    let options = '<option value="">Sin subsección</option>';
+    subs.forEach((name) => {
+      options += `<option value="${escapeAttr(name)}">${escapeHtml(name)}</option>`;
+    });
+    secondarySelect.innerHTML = options;
+  };
+
+  // Operaciones: actualizar opciones de subsección al cambiar la sección principal (panel lateral)
+  window.updateOperationPlacementSubsections = function () {
+    const principalSelect =
+      dom.operationEditorPanel?.querySelector?.("#editOpParentSection") ||
+      document.getElementById("editOpParentSection");
+    const secondarySelect =
+      dom.operationEditorPanel?.querySelector?.("#editOpParentSubsection") ||
+      document.getElementById("editOpParentSubsection");
+    if (!principalSelect || !secondarySelect) return;
+
+    const selectedPrincipal = (principalSelect.value || "").toString().trim();
+    const currentSub = (secondarySelect.value || "").toString().trim();
+
+    const normalizeKey = (value) =>
+      (value || "")
+        .toString()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim()
+        .toLowerCase();
+
+    if (!selectedPrincipal) {
+      secondarySelect.innerHTML = '<option value="">Sin subsección</option>';
+      secondarySelect.disabled = true;
+      return;
+    }
+
+    const subsections = Array.from(
+      new Set(
+        (state.cuentas || [])
+          .filter(
+            (c) =>
+              normalizeKey(getAccountPrincipalName(c) || "") ===
+              normalizeKey(selectedPrincipal)
+          )
+          .map((c) => (getAccountSecondaryName(c) || "").toString().trim())
+          .filter(Boolean)
+      )
+    ).sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
 
     let options = '<option value="">Sin subsección</option>';
-    if (currentSection && currentSection.subsections) {
-      currentSection.subsections.forEach(sub => {
-        options += `<option value="${escapeAttr(sub.name)}">${escapeHtml(sub.name)}</option>`;
-      });
-    }
+    subsections.forEach((name) => {
+      options += `<option value="${escapeAttr(name)}">${escapeHtml(name)}</option>`;
+    });
+    secondarySelect.disabled = false;
     secondarySelect.innerHTML = options;
+
+    if (
+      currentSub &&
+      subsections.some((name) => normalizeKey(name) === normalizeKey(currentSub))
+    ) {
+      secondarySelect.value = currentSub;
+    }
   };
 
   window.deleteAccount = function (codigo) {
@@ -10672,24 +11792,22 @@ window.editSection = function (name) {
     const selectS = document.getElementById("selectSecundaria");
     if (!selectS) return;
 
-    const sections = groupBySections(state.cuentas);
-    const section = sections.find((s) => s.name === principal);
-    const subs = section?.subsections || [];
+    const subs = getManualSubsectionNames(principal);
 
-    if (subs.length > 0) {
-      selectS.innerHTML =
-        subs
-          .filter((subsection) => subsection.name)
-          .map(
-            (subsection) =>
-              `<option value="${escapeAttr(subsection.name)}">${escapeHtml(
-                subsection.name
-              )}</option>`
-          )
-          .join("") || '<option value="">Sin subsecciones</option>';
-    } else {
-      selectS.innerHTML = '<option value="">Sin subsecciones</option>';
+    if (!subs.length) {
+      selectS.innerHTML = '<option value="">Sin subsección</option>';
+      return;
     }
+
+    selectS.innerHTML =
+      `<option value="">Sin subsección</option>` +
+      subs
+        .filter(Boolean)
+        .map(
+          (name) =>
+            `<option value="${escapeAttr(name)}">${escapeHtml(name)}</option>`
+        )
+        .join("");
   };
 
   function expandAll() {
@@ -10894,11 +12012,67 @@ window.editSection = function (name) {
           }
         });
 
-        // También actualizar en operaciones si la sección es referenciada
+        // También actualizar en operaciones si la sección es referenciada (placement + fórmulas)
+        const oldKey = normalizeOperationMatch(oldName || "");
         state.operaciones.forEach((op) => {
-          if (op.SECCION === oldName) op.SECCION = newName;
+          if (!op) return;
+
+          if (normalizeOperationMatch(op.parentSection || "") === oldKey) {
+            op.parentSection = newName;
+          }
+
+          if (normalizeOperationMatch(op.SECCION || "") === oldKey) {
+            op.SECCION = newName;
+            if (op.seccion !== undefined) op.seccion = newName;
+          }
+
+          if (Array.isArray(op.secciones) && op.secciones.length) {
+            op.secciones = op.secciones.map((value) =>
+              normalizeOperationMatch(value || "") === oldKey ? newName : value
+            );
+          }
+
+          // Legacy: seccion_n
           for (let i = 1; i <= 20; i++) {
-            if (op[`seccion_${i}`] === oldName) op[`seccion_${i}`] = newName;
+            const key = `seccion_${i}`;
+            if (normalizeOperationMatch(op[key] || "") === oldKey) {
+              op[key] = newName;
+            }
+          }
+
+          // Nueva fórmula: formula_terms
+          if (Array.isArray(op.formula_terms) && op.formula_terms.length) {
+            let changed = false;
+            op.formula_terms = op.formula_terms.map((term) => {
+              if (!term) return term;
+              let termChanged = false;
+              let value = term.value;
+              let parentSection = term.parentSection;
+
+              if (
+                term.type === "section" &&
+                normalizeOperationMatch(value || "") === oldKey
+              ) {
+                value = newName;
+                termChanged = true;
+              }
+              if (
+                parentSection &&
+                normalizeOperationMatch(parentSection || "") === oldKey
+              ) {
+                parentSection = newName;
+                termChanged = true;
+              }
+
+              if (!termChanged) return term;
+              changed = true;
+              return { ...term, value, parentSection };
+            });
+            if (changed) {
+              op.formula_json = JSON.stringify(
+                normalizeFormulaTerms(op.formula_terms)
+              );
+            }
           }
         });
 
@@ -10921,6 +12095,7 @@ window.editSection = function (name) {
         ?.value?.trim();
 
       if (newName && newName !== oldName) {
+        let affectedCount = 0;
         state.cuentas.forEach((c) => {
           const p =
             c["SECCIÓN Principal"] ||
@@ -10941,8 +12116,73 @@ window.editSection = function (name) {
               c["SECCIÓN Secundaria"] = newName;
             if (c.seccion_secondary !== undefined)
               c.seccion_secondary = newName;
+            affectedCount++;
           }
         });
+
+        // Actualizar en operaciones (placement y fórmulas) cuando referencian la subsección.
+        let affectedOps = 0;
+        let affectedFormula = 0;
+        const principalKey = normalizeOperationMatch(principal || "");
+        const oldKey = normalizeOperationMatch(oldName || "");
+        state.operaciones.forEach((op) => {
+          if (!op) return;
+          const opPrincipalKey = normalizeOperationMatch(op.parentSection || "");
+          const opSubKey = normalizeOperationMatch(op.parentSubsection || "");
+          if (opPrincipalKey === principalKey && opSubKey === oldKey) {
+            op.parentSubsection = newName;
+            // Mantener campos de placement consistentes (SECCION/secciones) si la operación vive en esta subsección.
+            if (normalizeOperationMatch(op.SECCION || "") === oldKey) {
+              op.SECCION = newName;
+              if (op.seccion !== undefined) op.seccion = newName;
+              if (Array.isArray(op.secciones) && op.secciones.length) {
+                op.secciones = op.secciones.map((value) =>
+                  normalizeOperationMatch(value || "") === oldKey ? newName : value
+                );
+              }
+            }
+            affectedOps++;
+          }
+
+          // Legacy: seccion_n (cuando almacena subsección como término)
+          for (let i = 1; i <= 20; i++) {
+            const key = `seccion_${i}`;
+            if (normalizeOperationMatch(op[key]) === oldKey) {
+              op[key] = newName;
+              affectedFormula++;
+            }
+          }
+
+          if (Array.isArray(op.formula_terms) && op.formula_terms.length) {
+            let changed = false;
+            op.formula_terms = op.formula_terms.map((term) => {
+              if (!term) return term;
+              if (term.type !== "section" || !term.value) return term;
+              const termKey = normalizeOperationMatch(term.value);
+              const termParentKey = normalizeOperationMatch(term.parentSection || "");
+              if (termKey !== oldKey) return term;
+              // Si hay parentSection, respetarlo para no renombrar homónimos en otras secciones.
+              if (term.parentSection && termParentKey !== principalKey) return term;
+              changed = true;
+              return { ...term, value: newName, parentSection: principal || term.parentSection };
+            });
+            if (changed) {
+              op.formula_json = JSON.stringify(normalizeFormulaTerms(op.formula_terms));
+              affectedFormula++;
+            }
+          }
+        });
+
+        logChange(
+          "rename",
+          `Subsección "${principal} / ${oldName}" → "${newName}" (${affectedCount} cuentas)`,
+          { principal, oldName, newName, affectedCount, affectedOps, affectedFormula }
+        );
+        renderLayout();
+        showToast(
+          `✅ Subsección renombrada (${affectedCount} cuentas actualizadas)`,
+          "success"
+        );
       }
     } else if (state.selectedElement.type === "operation") {
       const op = state.selectedElement.op;
@@ -11380,6 +12620,32 @@ window.editSection = function (name) {
     op.operacion_etiqueta = effectiveClase;
     op.Etiqueta = effectiveClase;
 
+    // Ubicación (manual): sección/subsección donde aparece la operación.
+    // Nota: La fórmula se guarda en `formula_json`; `SECCION` se usa como compat/placement.
+    const placementSectionEl = document.getElementById("editOpParentSection");
+    const placementSubsectionEl = document.getElementById("editOpParentSubsection");
+    if (placementSectionEl) {
+      const placementSection = (placementSectionEl.value || "").toString().trim();
+      const placementSubsection = placementSubsectionEl
+        ? (placementSubsectionEl.value || "").toString().trim()
+        : "";
+
+      if (placementSection) {
+        op.parentSection = placementSection;
+        op.parentSubsection = placementSubsection || null;
+      } else {
+        op.parentSection = null;
+        op.parentSubsection = null;
+      }
+
+      const placement = placementSection
+        ? (placementSubsection || placementSection).toString().trim()
+        : "";
+      op.SECCION = placement;
+      op.seccion = placement;
+      op.secciones = placement ? [placement] : [];
+    }
+
     // Actualizar etiquetas de filas según lo capturado en Aparición
     const tipoSelect = document.getElementById("editOperacionTipo");
     const tipoSeleccionado = (tipoSelect?.value || "").trim();
@@ -11477,10 +12743,6 @@ window.editSection = function (name) {
         op[key] = term.value;
         op.signos[key] = term.operator === "-" ? -1 : 1;
       });
-
-      if (op.formula_terms.length === 1 && op.formula_terms[0].type === "section") {
-        op.SECCION = op.formula_terms[0].value;
-      }
     } else {
       // Sin fórmula: limpiar campos legacy pero mantener la operación
       op.formula_terms = [];
@@ -11526,76 +12788,67 @@ window.editSection = function (name) {
   function buildFormulaTermsFromParent(parentName) {
     if (!parentName) return [];
 
-    // Primero intentar con subsecciones del layout actual
-    const sections = groupBySections(state.cuentas);
+    const sections = buildManualSectionTree();
     const parentKey = normalizeOperationMatch(parentName);
-    const section = sections.find(
-      (s) => normalizeOperationMatch(s.name) === parentKey
-    );
-    const subsections = section?.subsections || [];
+    if (!parentKey) return [];
 
-    if (subsections && subsections.length > 0) {
+    // 1) parentName coincide con una sección principal: sugerir sus subsecciones
+    const principalMatch = sections.find(
+      (s) => normalizeOperationMatch(s?.name || "") === parentKey
+    );
+    if (principalMatch && Array.isArray(principalMatch.subsections) && principalMatch.subsections.length) {
       const seen = new Set();
       const terms = [];
       let counter = 0;
-
-      subsections.forEach((subsection) => {
-        const secundaria = subsection.name;
-        const label = secundaria || parentName;
-        if (!label || seen.has(label)) return;
-        seen.add(label);
-
+      principalMatch.subsections.forEach((sub) => {
+        const label = (sub?.name || "").toString().trim();
+        if (!label) return;
+        const key = normalizeOperationMatch(label);
+        if (!key || seen.has(key)) return;
+        seen.add(key);
         terms.push({
           id: Date.now() + counter++,
           operator: "+",
           type: "section",
           value: label,
-          parentSection: parentName,
+          parentSection: principalMatch.name,
         });
       });
-
-      if (terms.length > 0) return terms;
+      if (terms.length) return terms;
     }
 
-    // Si parentName corresponde a una subsección, buscarla en todas las secciones
-    if (parentKey) {
-      const matches = [];
-      sections.forEach((sec) => {
-        (sec.subsections || []).forEach((subsection) => {
-          const secundaria = subsection?.name || "";
-          const secundariaKey = normalizeOperationMatch(secundaria);
-          if (!secundariaKey) return;
-          if (
-            secundariaKey === parentKey ||
-            secundariaKey.includes(parentKey) ||
-            parentKey.includes(secundariaKey)
-          ) {
-            matches.push({
-              parent: sec.name,
-              name: secundaria,
-            });
-          }
+    // 2) parentName coincide con una subsección: sugerir esa subsección en sus principales encontrados
+    const matches = [];
+    sections.forEach((sec) => {
+      const parent = (sec?.name || "").toString().trim();
+      if (!parent) return;
+      (sec.subsections || []).forEach((sub) => {
+        const subName = (sub?.name || "").toString().trim();
+        const subKey = normalizeOperationMatch(subName);
+        if (!subKey) return;
+        if (subKey === parentKey || subKey.includes(parentKey) || parentKey.includes(subKey)) {
+          matches.push({ parent, name: subName });
+        }
+      });
+    });
+
+    if (matches.length) {
+      const seen = new Set();
+      const terms = [];
+      let counter = 0;
+      matches.forEach((match) => {
+        const key = `${normalizeOperationMatch(match.parent)}|${normalizeOperationMatch(match.name)}`;
+        if (!match.name || seen.has(key)) return;
+        seen.add(key);
+        terms.push({
+          id: Date.now() + counter++,
+          operator: "+",
+          type: "section",
+          value: match.name,
+          parentSection: match.parent,
         });
       });
-
-      if (matches.length > 0) {
-        const seen = new Set();
-        const terms = [];
-        let counter = 0;
-        matches.forEach((match) => {
-          const key = `${normalizeOperationMatch(match.parent)}|${normalizeOperationMatch(match.name)}`;
-          if (!match.name || seen.has(key)) return;
-          seen.add(key);
-          terms.push({
-            id: Date.now() + counter++,
-            operator: "+",
-            type: "section",
-            value: match.name,
-            parentSection: match.parent,
-          });
-        });
-        if (terms.length > 0) return terms;
-      }
+      if (terms.length) return terms;
     }
 
     // Si no encontró subsecciones, buscar patrón de consolidación
@@ -11618,22 +12871,20 @@ window.editSection = function (name) {
 
       if (isIncome || isExpense) {
         // Buscar todas las secciones del tipo correspondiente
-        const matchingSections = new Set();
-
-        sections.forEach((_, seccionPrincipal) => {
-          const secLower = seccionPrincipal.toLowerCase();
-          if (
-            (isIncome && secLower.includes("income")) ||
-            (isExpense && secLower.includes("expense"))
-          ) {
-            matchingSections.add(seccionPrincipal);
+        const matchingSections = [];
+        sections.forEach((section) => {
+          const principal = (section?.name || "").toString().trim();
+          if (!principal) return;
+          const secLower = principal.toLowerCase();
+          if ((isIncome && secLower.includes("income")) || (isExpense && secLower.includes("expense"))) {
+            matchingSections.push(principal);
           }
         });
 
-        if (matchingSections.size > 0) {
-          return Array.from(matchingSections).map((sec, i) => ({
+        if (matchingSections.length > 0) {
+          return matchingSections.map((sec, i) => ({
             id: Date.now() + i,
-            operator: isExpense ? "-" : "+",
+            operator: "+",
             type: "section",
             value: sec,
           }));
@@ -11717,7 +12968,7 @@ window.editSection = function (name) {
             ) {
               terms.push({
                 id: Date.now() + counter++,
-                operator: nameLower.includes("expense") ? "-" : "+",
+                operator: "+",
                 type: "section",
                 value: principal,
               });
@@ -11885,25 +13136,37 @@ window.editSection = function (name) {
       );
     };
 
+    // Modo manual:
+    // - Si viene parentSectionName: sectionName es una SUBSECCIÓN (match por secundaria bajo ese principal)
+    // - Si NO viene parentSectionName: sectionName es SECCIÓN PRINCIPAL (match solo por principal)
     let accounts = state.cuentas.filter((c) => {
-      if (isPlaceholderAccount(c)) return false;
-      const secondaryKey = normalizeKey(getAccountSecondaryName(c));
+      if (!c || isPlaceholderAccount(c)) return false;
       const primaryKey = normalizeKey(getAccountPrincipalName(c));
+      if (!primaryKey) return false;
       if (!matchesParent(primaryKey)) return false;
-      return secondaryKey === sectionKey || primaryKey === sectionKey;
+
+      if (parentKey) {
+        const secondaryKey = normalizeKey(getAccountSecondaryName(c));
+        return secondaryKey === sectionKey;
+      }
+
+      return primaryKey === sectionKey;
     });
 
     // Try partial match if no exact match
     if (accounts.length === 0) {
       accounts = state.cuentas.filter((c) => {
-        if (isPlaceholderAccount(c)) return false;
-        const secondaryKey = normalizeKey(getAccountSecondaryName(c));
+        if (!c || isPlaceholderAccount(c)) return false;
         const primaryKey = normalizeKey(getAccountPrincipalName(c));
+        if (!primaryKey) return false;
         if (!matchesParent(primaryKey)) return false;
-        return (
-          secondaryKey.includes(sectionKey) ||
-          primaryKey.includes(sectionKey)
-        );
+
+        if (parentKey) {
+          const secondaryKey = normalizeKey(getAccountSecondaryName(c));
+          return secondaryKey && secondaryKey.includes(sectionKey);
+        }
+
+        return primaryKey.includes(sectionKey);
       });
     }
 
@@ -11917,22 +13180,17 @@ window.editSection = function (name) {
     const accounts = [];
     const seen = new Set();
 
-    const groupedSections = groupBySections(state.cuentas);
-    groupedSections.forEach((section) => {
-      (section.subsections || []).forEach((subsection) => {
-        (subsection.accounts || []).forEach((cuenta) => {
-          if (isPlaceholderAccount(cuenta)) return;
-          const code = cuenta.CUENTA || cuenta.cuenta || cuenta.num_cta;
-          const name = cuenta.NOMBRE || cuenta.nombre || "";
-          const key = normalizeOperationMatch(code);
-          if (!code || seen.has(key)) return;
-          seen.add(key);
-          accounts.push({
-            code: String(code).trim(),
-            name: String(name).trim(),
-            display: `${code}${name ? " - " + name : ""}`,
-          });
-        });
+    (state.cuentas || []).forEach((cuenta) => {
+      if (!cuenta || isPlaceholderAccount(cuenta)) return;
+      const code = cuenta.CUENTA || cuenta.cuenta || cuenta.num_cta;
+      const name = cuenta.NOMBRE || cuenta.nombre || "";
+      const key = normalizeOperationMatch(code);
+      if (!code || !key || seen.has(key)) return;
+      seen.add(key);
+      accounts.push({
+        code: String(code).trim(),
+        name: String(name).trim(),
+        display: `${code}${name ? " - " + name : ""}`,
       });
     });
 
@@ -11957,31 +13215,35 @@ window.editSection = function (name) {
     const subsectionIndex = new Map();
     const accountIndex = new Map();
 
-    const sections = groupBySections(state.cuentas || []);
-    sections.forEach((section, sectionIdx) => {
-      const sectionKey = normalizeKey(section.name);
-      const sectionOrder = Number.isFinite(Number(section.order))
-        ? Number(section.order)
-        : sectionIdx;
-      if (sectionKey && !sectionIndex.has(sectionKey)) {
-        sectionIndex.set(sectionKey, sectionOrder);
+    // Usar el ORDEN REAL del template (preview rows) para indexar secciones/subsecciones.
+    const rows = getTemplateRowsForReorder();
+    rows.forEach((row, idx) => {
+      if (!row) return;
+      if (row.type === "principal") {
+        const name = (row.label || "").toString().trim();
+        const key = normalizeKey(name);
+        if (key && !sectionIndex.has(key)) {
+          sectionIndex.set(key, idx);
+        }
+        return;
       }
-
-      (section.subsections || []).forEach((subsection, subsectionIdx) => {
-        const subName = subsection.name || "";
+      if (row.type === "subsection") {
+        const parent = (row.parentSection || "").toString().trim();
+        const subName = (row.label || "").toString().trim();
+        const parentKey = normalizeKey(parent);
         const subKey = normalizeKey(subName) || "__NO_SUB__";
-        const subOrder = Number.isFinite(Number(subsection.order))
-          ? Number(subsection.order)
-          : sectionOrder + subsectionIdx / 1000;
-        subsectionIndex.set(`${sectionKey}||${subKey}`, subOrder);
-
-        (subsection.accounts || []).forEach((cuenta, accountIdx) => {
-          const code = cuenta.CUENTA || cuenta.cuenta || cuenta.num_cta;
-          if (!code) return;
-          const order = getAccountOrder(cuenta, accountIdx);
-          accountIndex.set(normalizeKey(code), order);
-        });
-      });
+        if (parentKey) {
+          subsectionIndex.set(`${parentKey}||${subKey}`, idx);
+        }
+        return;
+      }
+      if (row.type === "account") {
+        const code = (row.cuenta || row.label || "").toString().trim();
+        const key = normalizeKey(code);
+        if (key && !accountIndex.has(key)) {
+          accountIndex.set(key, idx);
+        }
+      }
     });
 
     return { sectionIndex, subsectionIndex, accountIndex };
@@ -12040,10 +13302,8 @@ window.editSection = function (name) {
         (account && getAccountPrincipalName(account)) || "";
       const secondary =
         (account && getAccountSecondaryName(account)) || "";
-      const principalName = (principal || secondary || "Sin sección")
-        .toString()
-        .trim();
-      const secondaryName = secondary.toString().trim();
+      const principalName = (principal || "Sin sección").toString().trim();
+      const secondaryName = principal ? secondary.toString().trim() : "";
 
       const principalKey = normalizeKey(principalName);
       const secondaryKey = secondaryName ? normalizeKey(secondaryName) : "__NO_SUB__";
@@ -12437,32 +13697,28 @@ window.editSection = function (name) {
     const accounts = [];
     const operationsMap = new Map();
 
-    // Secciones y Cuentas - SOLO desde cuentas cargadas
-    const groupedSections = groupBySections(state.cuentas);
-    groupedSections.forEach((section) => {
-      // Agregar seccion principal
-      if (section.name) {
-        sections.add(section.name);
-      }
+    // Secciones/Subsecciones: desde el preview real (modo manual) para evitar
+    // "secciones fantasma" por compatibilidad legacy.
+    const tree = buildManualSectionTree();
+    tree.forEach((section) => {
+      if (section?.name) sections.add(section.name);
+      (section.subsections || []).forEach((sub) => {
+        if (sub?.name && sub.name !== section.name) {
+          sections.add(sub.name);
+        }
+      });
+    });
 
-      // Procesar subsecciones
-      if (section.subsections && Array.isArray(section.subsections)) {
-        section.subsections.forEach((subsection) => {
-          // Agregar subseccion
-          if (subsection.name && subsection.name !== section.name) {
-            sections.add(subsection.name);
-          }
-
-          // Procesar cuentas de la subseccion
-          if (subsection.accounts && Array.isArray(subsection.accounts)) {
-            subsection.accounts.forEach((c) => {
-              if (c.CUENTA) {
-                accounts.push({ code: c.CUENTA, name: c.NOMBRE || c.CUENTA });
-              }
-            });
-          }
-        });
-      }
+    // Cuentas (catálogo): desde cuentas reales (sin placeholders)
+    const seenAccounts = new Set();
+    (state.cuentas || []).forEach((c) => {
+      if (!c || isPlaceholderAccount(c)) return;
+      const code = (c.CUENTA || c.cuenta || c.num_cta || "").toString().trim();
+      if (!code) return;
+      const key = normalizeOperationMatch(code);
+      if (!key || seenAccounts.has(key)) return;
+      seenAccounts.add(key);
+      accounts.push({ code, name: (c.NOMBRE || c.nombre || code).toString().trim() });
     });
 
     // Operaciones - identificadores unicos (excepto la que se esta editando)
@@ -13199,8 +14455,6 @@ window.editSection = function (name) {
       predef.section || (predef.source === "sumas" ? predef.formula : "") || "";
     const parentSubsection = resolvedSection || null;
     const parentSection = predef.parentSection || null;
-    const existingSection = op.SECCION || op.seccion || "";
-    const canUpdateSection = !existingSection;
     const op = {
       CAPITULO: state.capitulo || "DEFAULT",
       OperacionId: opId,
@@ -13230,6 +14484,16 @@ window.editSection = function (name) {
     { force = false } = {}
   ) => {
     let changed = false;
+    const existingPlacement = (
+      op?.SECCION ||
+      op?.seccion ||
+      op?.parentSubsection ||
+      op?.parentSection ||
+      ""
+    )
+      .toString()
+      .trim();
+    const canUpdateSection = Boolean(force) || !existingPlacement;
     const orderValue = Number.isFinite(predef.orden)
       ? predef.orden
       : orderIndex;
@@ -13733,30 +14997,6 @@ window.editSection = function (name) {
     }
   }
 
-  // Guardar contexto cuando cambie (solo si no está ya envuelto)
-  if (!window.__plantillasContextWrapped) {
-    window.__plantillasContextWrapped = true;
-    
-    const originalHandleModuloChange = handleModuloChange;
-    const originalHandleCapituloChange = handleCapituloChange;
-    const originalHandleAnioChange = handleAnioChange;
-
-    window.handleModuloChange = async function() {
-      await originalHandleModuloChange();
-      saveContextToURL();
-    }
-
-    window.handleCapituloChange = async function() {
-      await originalHandleCapituloChange();
-      saveContextToURL();
-    }
-
-    window.handleAnioChange = async function() {
-      await originalHandleAnioChange();
-      saveContextToURL();
-    }
-  }
-
   // ==========================================
   // IMPORTACIÓN/EXPORTACIÓN MASIVA
   // ==========================================
@@ -13965,9 +15205,6 @@ window.editSection = function (name) {
       event.target.value = '';
     }
   }
-
-  // Cargar contexto al iniciar
-  loadContextFromURL();
 
   // Exponer API pública
   window.TemplateManager = {

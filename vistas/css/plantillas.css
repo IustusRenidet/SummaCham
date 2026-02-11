@@ -60,6 +60,35 @@ body {
   overflow: hidden;
 }
 
+/* ===== STICKY TOOLBARS (CONTEXTO + ACCIONES) ===== */
+:root {
+  --plantillas-sticky-top: 78px; /* body tiene padding-top: 70px */
+  --plantillas-context-offset: 0px; /* se setea por JS para apilar barras sticky */
+}
+
+.plantillas-context-sticky {
+  position: sticky;
+  top: var(--plantillas-sticky-top);
+  z-index: 1020;
+  background: rgba(242, 242, 242, 0.92);
+  backdrop-filter: blur(10px);
+}
+
+.plantillas-actions-sticky {
+  position: sticky;
+  top: calc(var(--plantillas-sticky-top) + var(--plantillas-context-offset));
+  z-index: 1015;
+}
+
+.plantillas-actions-sticky .table-card {
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+}
+
+.plantillas-actions-sticky .table-card .card-body {
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(10px);
+}
+
 /* ===== SEARCH INPUT ===== */
 .search-container {
   position: relative;
