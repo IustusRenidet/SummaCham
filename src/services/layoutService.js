@@ -1102,6 +1102,72 @@ const obtenerLayout = ({
 };
 
 /**
+ * Obtener metadatos de secciones/subsecciones (layout_secciones) para un módulo/año/capítulo.
+ * Útil para reproducir el orden manual de headers en reportes (RESUMEN/SUMMARY) y para
+ * renderizar secciones vacías en el Gestor.
+ */
+const obtenerSeccionesLayout = ({
+  empresaId = "EMPRESA01",
+  modulo,
+  anio,
+  capitulo,
+} = {}) => {
+  const anioNumero = Number(anio);
+  const empresaCanonica = resolverEmpresaLayoutSource(empresaId);
+
+  if (AUTO_LAYOUT_CLONE) {
+    asegurarLayoutAnio({ empresaId: empresaCanonica, modulo, anio: anioNumero });
+  }
+
+  const empresaConsulta = resolverEmpresaConsulta({
+    empresaId: empresaCanonica,
+    modulo,
+    anio: anioNumero,
+  });
+
+  const capituloSolicitado = LIMPIAR_CLAVE(capitulo || "DEFAULT") || "DEFAULT";
+  const capituloCanonico = canonizarCapituloLabel(capituloSolicitado);
+  const capitulosEquivalentes = obtenerCapitulosEquivalentes({
+    empresaId: empresaConsulta,
+    modulo,
+    anio: anioNumero,
+    capitulo: capituloSolicitado,
+  });
+  const capituloConsulta = resolverCapituloConsulta({
+    empresaId: empresaConsulta,
+    modulo,
+    anio: anioNumero,
+    capituloSolicitado,
+    capituloCanonico,
+    candidatos: capitulosEquivalentes,
+  });
+
+  const secciones = db
+    .prepare(
+      `
+      SELECT
+        seccion_principal as seccion_principal,
+        seccion_secundaria as seccion_secundaria,
+        tipo,
+        orden,
+        orden_presentacion
+      FROM layout_secciones
+      WHERE empresa_id = ? AND modulo = ? AND anio = ? AND capitulo = ?
+      ORDER BY COALESCE(orden_presentacion, orden) ASC, orden ASC, seccion_principal ASC, seccion_secundaria ASC
+    `,
+    )
+    .all(empresaConsulta, modulo, anioNumero, capituloConsulta);
+
+  return {
+    empresaId: empresaConsulta,
+    modulo,
+    anio: anioNumero,
+    capitulo: capituloCanonico,
+    secciones: Array.isArray(secciones) ? secciones : [],
+  };
+};
+
+/**
  * Obtener todos los capítulos disponibles para un módulo y año
  */
 
@@ -1461,6 +1527,15 @@ const guardarOperaciones = ({
         "etiqueta",
         "SECCION",
         "seccion",
+        // Metadatos de UI/placement (NO persistir como tipos).
+        "parentSection",
+        "parentSubsection",
+        "parent_section",
+        "parent_subsection",
+        "parentSeccion",
+        "parentSubseccion",
+        "parentSección",
+        "parentSubsección",
         "formula_json",
         "formula_terms",
         "signo",
@@ -1475,7 +1550,10 @@ const guardarOperaciones = ({
       ]);
       const tiposOperacionExtra = Object.keys(op || {})
         .filter((key) => key && !clavesReservadas.has(key))
-        .filter((key) => !tiposOperacionBase.includes(key));
+        .filter((key) => !tiposOperacionBase.includes(key))
+        // Campos legacy de fórmula (seccion_1/operacion_1, etc.) NO deben persistirse como "operacion_tipo".
+        // La fuente de verdad es `formula_json`.
+        .filter((key) => !/^(seccion|operacion)_\d+$/i.test(key));
       const tiposOperacion = [...tiposOperacionBase, ...tiposOperacionExtra];
       const formulaJson =
         op.formula_json ||
@@ -2831,6 +2909,7 @@ const restaurarLayoutVersion = ({
 
 module.exports = {
   obtenerLayout,
+  obtenerSeccionesLayout,
   obtenerCapitulos,
   obtenerAniosDisponibles,
   guardarCuentas,

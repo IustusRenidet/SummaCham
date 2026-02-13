@@ -32,11 +32,11 @@ function cargarDefinicionesModulo(modulo, empresaId = 'EMPRESA01', anio = new Da
         const capituloEtiqueta = (cap && typeof cap === 'object') ? cap.capitulo : cap;
         if (!capituloEtiqueta) continue;
 
-        const layout = layoutService.obtenerLayout({ 
-          empresaId, 
-          modulo, 
-          anio, 
-          capitulo: capituloEtiqueta 
+        const layout = layoutService.obtenerLayout({
+          empresaId,
+          modulo,
+          anio,
+          capitulo: capituloEtiqueta
         });
 
         const cuentasLayout = (layout && Array.isArray(layout.cuentas))
@@ -503,10 +503,33 @@ const construirReporteResumen = (
       const registrarOrden = (mapa, label) => {
         if (!label) return;
         const existente = mapa.get(label);
-        // Para filas agregadas (CONSOLIDATED/OPERATING/NET/FINAL) queremos que
-        // aparezcan al final del bloque que las alimenta. Por eso usamos el
-        // ÚLTIMO (máximo) orden visto, no el primero.
-        if (existente == null || ordenConfig > existente) {
+        // En modo manual (RESUMEN), el Gestor ordena por primera aparición del label
+        // consolidado. En modo legado, mantenemos comportamiento de "última aparición".
+        const preferirUltimaAparicion = !manualOrderRequested;
+        let debeActualizar = false;
+        if (preferirUltimaAparicion) {
+          debeActualizar = existente == null || ordenConfig > existente;
+        } else if (existente == null) {
+          debeActualizar = true;
+        } else {
+          const actual = Number(existente);
+          const nuevo = Number(ordenConfig);
+          if (!Number.isFinite(actual)) {
+            debeActualizar = true;
+          } else if (Number.isFinite(nuevo)) {
+            const actualEsCero = actual === 0;
+            const nuevoEsCero = nuevo === 0;
+            // Cuando existe ruido legacy (muchos 0), priorizar órdenes manuales > 0.
+            if (actualEsCero && !nuevoEsCero) {
+              debeActualizar = true;
+            } else if (!actualEsCero && nuevoEsCero) {
+              debeActualizar = false;
+            } else {
+              debeActualizar = nuevo < actual;
+            }
+          }
+        }
+        if (debeActualizar) {
           mapa.set(label, ordenConfig);
         }
       };
@@ -536,6 +559,10 @@ const construirReporteResumen = (
             freeOpsOrden.set(opKey, ordenConfig);
           }
         }
+        // Las operaciones libres no tienen campos de config (net-row, result-row, etc.)
+        // Si continúan, sobreescriben configPorSeccion con valores vacíos,
+        // destruyendo la config real de esa sección.
+        return;
       }
 
       if (!seccion) return;
@@ -576,14 +603,14 @@ const construirReporteResumen = (
 
   const definicionesOrdenadas = Array.isArray(definiciones)
     ? definiciones
-        .map((item, idx) => ({ item, idx }))
-        .sort((a, b) => {
-          const ordenA = obtenerOrden(a.item, a.idx);
-          const ordenB = obtenerOrden(b.item, b.idx);
-          if (ordenA !== ordenB) return ordenA - ordenB;
-          return a.idx - b.idx;
-        })
-        .map(({ item }) => item)
+      .map((item, idx) => ({ item, idx }))
+      .sort((a, b) => {
+        const ordenA = obtenerOrden(a.item, a.idx);
+        const ordenB = obtenerOrden(b.item, b.idx);
+        if (ordenA !== ordenB) return ordenA - ordenB;
+        return a.idx - b.idx;
+      })
+      .map(({ item }) => item)
     : [];
 
   // Procesar definiciones RESPETANDO el orden de presentación
@@ -604,7 +631,7 @@ const construirReporteResumen = (
       mapa.set(key, { orden: ordenNum, idx: idxNum });
     }
   };
-  
+
   definicionesOrdenadas.forEach((item, idx) => {
     const capReal = NORMALIZAR_CAPITULO(item.CAPITULO || '');
     if (capReal !== capituloClave) return;
@@ -669,7 +696,7 @@ const construirReporteResumen = (
       esVirtual: esCuentaVirtual,
       operacion_factor: factor
     });
-    
+
     // Registrar la primera aparición de cada Principal (orden mínimo)
     actualizarPrimeraAparicion(
       principalFirstAppearance,
@@ -704,7 +731,7 @@ const construirReporteResumen = (
     }
     const seccionKey = seccionLabel ? NORMALIZAR_CLAVE(seccionLabel) : '__SECTION_LEVEL__';
     const seccionOrderKey = `${principalKey}||${seccionKey}`;
-    
+
     // Registrar la primera aparición de cada Secundaria (orden mínimo)
     actualizarPrimeraAparicion(
       seccionFirstAppearance,
@@ -712,7 +739,7 @@ const construirReporteResumen = (
       cuentaOrden,
       idx
     );
-    
+
     if (config.consolidado && !principalNode.consolidadoLabel) {
       principalNode.consolidadoLabel = config.consolidado;
     }
@@ -743,7 +770,7 @@ const construirReporteResumen = (
         ordenIndex: seccionFirstAppearance.get(seccionOrderKey)?.idx ?? 0
       });
     }
-    
+
     // Las cuentas se agregan en el orden que aparecen en el JSON
     principalNode.secciones.get(seccionKey).cuentas.push(cuentaCanonica);
   });
@@ -772,8 +799,8 @@ const construirReporteResumen = (
     const ordenPrincipal = principalOrden.has(principalLabel)
       ? principalOrden.get(principalLabel)
       : ordenCfg != null
-      ? ordenCfg
-      : principalMap.size + principalOrden.size;
+        ? ordenCfg
+        : principalMap.size + principalOrden.size;
     const principal = {
       key: principalKey,
       label: principalLabel,
@@ -827,8 +854,8 @@ const construirReporteResumen = (
       const ordenSeccion = Number.isFinite(Number(cfg?.orden))
         ? Number(cfg.orden)
         : seccionOrden.has(seccionLabel)
-        ? seccionOrden.get(seccionLabel)
-        : principal.secciones.size;
+          ? seccionOrden.get(seccionLabel)
+          : principal.secciones.size;
       principal.secciones.set(seccionKey, {
         label: seccionLabel || '',
         cuentas: [],
@@ -937,8 +964,8 @@ const construirReporteResumen = (
           const principalNode = principalMap.get(NORMALIZAR_CLAVE(principalLabel));
           const hasSecInPrincipal = principalNode
             ? Array.from(principalNode.secciones.values()).some(
-                (sec) => normalizarTexto(sec?.label || '') === placementKey
-              )
+              (sec) => normalizarTexto(sec?.label || '') === placementKey
+            )
             : false;
           const candidates = principalPorSubseccion.get(placementKey);
           if (hasSecInPrincipal || (candidates && candidates.has(principalLabel))) {
@@ -952,13 +979,20 @@ const construirReporteResumen = (
       }
 
       const principalKey = NORMALIZAR_CLAVE(principalLabel);
-      actualizarPrimeraAparicion(principalFirstAppearance, principalKey, orden, idx);
+      // Solo operaciones libres deben influir en el orden de principales/secciones.
+      // Las operaciones de config (sum-row, result-row, etc.) tienen orden_presentacion=0
+      // y contaminan principalFirstAppearance haciendo que todos los principales tengan orden=0.
+      if (esOperacionLibre(op)) {
+        actualizarPrimeraAparicion(principalFirstAppearance, principalKey, orden, idx);
+      }
       const principalNode = ensurePrincipalNode(principalLabel);
 
       if (seccionLabel) {
         const seccionKey = NORMALIZAR_CLAVE(seccionLabel);
         const seccionOrderKey = `${principalKey}||${seccionKey}`;
-        actualizarPrimeraAparicion(seccionFirstAppearance, seccionOrderKey, orden, idx);
+        if (esOperacionLibre(op)) {
+          actualizarPrimeraAparicion(seccionFirstAppearance, seccionOrderKey, orden, idx);
+        }
         ensureSeccionNode(principalNode, seccionLabel);
       }
     });
@@ -998,9 +1032,9 @@ const construirReporteResumen = (
         .sort(
           (a, b) =>
             (definicionCuentas.get(a)?.orden ?? 0) -
-              (definicionCuentas.get(b)?.orden ?? 0) ||
+            (definicionCuentas.get(b)?.orden ?? 0) ||
             (definicionCuentas.get(a)?.ordenIndex ?? 0) -
-              (definicionCuentas.get(b)?.ordenIndex ?? 0)
+            (definicionCuentas.get(b)?.ordenIndex ?? 0)
         );
       return construirNodoSeccion({
         seccion: sec.label,
@@ -1085,22 +1119,22 @@ const construirReporteResumen = (
     };
   };
 
-const limpiarEtiqueta = (valor = '') => {
-  if (valor == null) return '';
-  return valor.toString().replace(/\s+/g, ' ').trim();
-};
-const claveEtiqueta = (valor = '') => NORMALIZAR_CLAVE(limpiarEtiqueta(valor));
-const etiquetaIncluye = (valor = '', texto = '') =>
-  claveEtiqueta(valor).includes(claveEtiqueta(texto));
+  const limpiarEtiqueta = (valor = '') => {
+    if (valor == null) return '';
+    return valor.toString().replace(/\s+/g, ' ').trim();
+  };
+  const claveEtiqueta = (valor = '') => NORMALIZAR_CLAVE(limpiarEtiqueta(valor));
+  const etiquetaIncluye = (valor = '', texto = '') =>
+    claveEtiqueta(valor).includes(claveEtiqueta(texto));
 
-const combinarTotales = (a = {}, b = {}, factor = 1) => ({
-  actualMonth: Number(a.actualMonth || 0) + factor * Number(b.actualMonth || 0),
-  planMonth: Number(a.planMonth || 0) + factor * Number(b.planMonth || 0),
-  prevMonth: Number(a.prevMonth || 0) + factor * Number(b.prevMonth || 0),
-  actualYTD: Number(a.actualYTD || 0) + factor * Number(b.actualYTD || 0),
-  planYTD: Number(a.planYTD || 0) + factor * Number(b.planYTD || 0),
-  prevYTD: Number(a.prevYTD || 0) + factor * Number(b.prevYTD || 0)
-});
+  const combinarTotales = (a = {}, b = {}, factor = 1) => ({
+    actualMonth: Number(a.actualMonth || 0) + factor * Number(b.actualMonth || 0),
+    planMonth: Number(a.planMonth || 0) + factor * Number(b.planMonth || 0),
+    prevMonth: Number(a.prevMonth || 0) + factor * Number(b.prevMonth || 0),
+    actualYTD: Number(a.actualYTD || 0) + factor * Number(b.actualYTD || 0),
+    planYTD: Number(a.planYTD || 0) + factor * Number(b.planYTD || 0),
+    prevYTD: Number(a.prevYTD || 0) + factor * Number(b.prevYTD || 0)
+  });
 
   // === Mapas base para fórmulas (secciones, cuentas, operaciones) ===
   const mapSecciones = new Map();
@@ -1285,14 +1319,14 @@ const combinarTotales = (a = {}, b = {}, factor = 1) => ({
   const getOperacionKey = (op) =>
     normalizarTexto(
       op?.OperacionId ||
-        op?.operacion_id ||
-        op?.id ||
-        op?.Clase ||
-        op?.clase ||
-        op?.operacion_etiqueta ||
-        op?.['sum-row-sumavarios'] ||
-        op?.['sum-row'] ||
-        ''
+      op?.operacion_id ||
+      op?.id ||
+      op?.Clase ||
+      op?.clase ||
+      op?.operacion_etiqueta ||
+      op?.['sum-row-sumavarios'] ||
+      op?.['sum-row'] ||
+      ''
     );
   const storeOperacionTotals = (op, totals) => {
     const opKey = getOperacionKey(op);
@@ -1540,6 +1574,34 @@ const combinarTotales = (a = {}, b = {}, factor = 1) => ({
   const manualAggOverrides = new Map(); // key = normalizarTexto(label) -> { label, order, totals }
   const manualAggOverrideOps = new Set(); // opKey para excluir del render como operación libre
   if (aggLabelByKey.size) {
+    const resolverAggLabelByNombreOperacion = (operationName = "") => {
+      const clean = (operationName || "").toString().trim();
+      if (!clean) return null;
+      const key = normalizarTexto(clean);
+      if (!key) return null;
+
+      const candidates = new Set([key]);
+      if (key.endsWith("S")) {
+        candidates.add(key.slice(0, -1));
+      } else {
+        candidates.add(`${key}S`);
+      }
+      if (key.includes("EXPENSES")) {
+        candidates.add(key.replace("EXPENSES", "EXPENSE"));
+      } else if (key.includes("EXPENSE")) {
+        candidates.add(key.replace("EXPENSE", "EXPENSES"));
+      }
+
+      for (const candidate of candidates) {
+        const label = aggLabelByKey.get(candidate);
+        if (label) return label;
+      }
+      return null;
+    };
+
+    // Evita que múltiples anchors explícitos del mismo label sobreescriban el primero.
+    const aggOrderAnchored = new Set();
+
     const anchors = (Array.isArray(configAgrupacion) ? configAgrupacion : [])
       .filter((op) => NORMALIZAR_CAPITULO(op.CAPITULO) === capituloClave)
       .filter((op) => !esOperacionConfigColumnas(op))
@@ -1547,42 +1609,39 @@ const combinarTotales = (a = {}, b = {}, factor = 1) => ({
       .sort((a, b) => (a.orden - b.orden) || (a.idx - b.idx));
 
     anchors.forEach(({ op, orden }) => {
-      const candidates = new Set();
-      const name = obtenerNombreOperacion(op);
-      if (name) candidates.add(name);
-      // También considerar labels de operación tipo-fila (sum-row, consolidated, net, etc.)
-      CAMPOS_FILA_OPERACION.forEach((campo) => {
-        const value = op?.[campo];
-        if (typeof value === "string" && value.trim()) {
-          candidates.add(value.trim());
-        }
-      });
+      const name = (obtenerNombreOperacion(op) || "").toString().trim();
+      const label = resolverAggLabelByNombreOperacion(name);
+      const labelKey = label ? normalizarTexto(label) : "";
+      const matchedAny = Boolean(label);
 
-      let matchedAny = false;
-      candidates.forEach((candidate) => {
-        const key = normalizarTexto(candidate);
-        const label = (key && aggLabelByKey.get(key)) || null;
-        if (!label) return;
-        matchedAny = true;
-
-        // Siempre usamos la operación como "ancla" de orden (aunque no tenga fórmula).
-        // Si además trae fórmula manual, también sobreescribe los totales de la fila agregada.
+      if (label) {
+        // Solo anclar por nombre/clase explícito de la operación.
+        // Usar también labels de fila (sum-row, consolidated, net, etc.) como ancla
+        // puede arrastrar múltiples filas agregadas cuando una operación define
+        // varios campos legacy, causando desorden global.
         if (hasManualFormula(op)) {
           const totals = calcularTotalesOperacion(op);
-          if (totals && !manualAggOverrides.has(key)) {
-            manualAggOverrides.set(key, { label, order: orden, totals });
+          if (totals) {
+            const prev = manualAggOverrides.get(labelKey);
+            if (!prev || Number(orden) < Number(prev.order)) {
+              manualAggOverrides.set(labelKey, { label, order: orden, totals });
+            }
           }
         }
 
-        const overrideOrdenEnMapa = (mapa) => {
-          if (mapa && mapa.has(label)) mapa.set(label, orden);
+        const overrideOrdenEnMapa = (mapa, mapName) => {
+          if (!mapa || !mapa.has(label)) return;
+          const marker = `${mapName}::${labelKey}`;
+          if (aggOrderAnchored.has(marker)) return;
+          mapa.set(label, orden);
+          aggOrderAnchored.add(marker);
         };
-        overrideOrdenEnMapa(consolidadoOrden);
-        overrideOrdenEnMapa(operativoOrden);
-        overrideOrdenEnMapa(resultOrden);
-        overrideOrdenEnMapa(netOrden);
-        overrideOrdenEnMapa(finalOrden);
-      });
+        overrideOrdenEnMapa(consolidadoOrden, "consolidado");
+        overrideOrdenEnMapa(operativoOrden, "operativo");
+        overrideOrdenEnMapa(resultOrden, "result");
+        overrideOrdenEnMapa(netOrden, "net");
+        overrideOrdenEnMapa(finalOrden, "final");
+      }
 
       if (matchedAny) {
         const opKey = getOperacionKey(op);
@@ -1715,6 +1774,51 @@ const combinarTotales = (a = {}, b = {}, factor = 1) => ({
   Array.from(netRowMap.values()).forEach(applyAggOverride);
   Array.from(finalRowMap.values()).forEach(applyAggOverride);
 
+  // === ASEGURAR que filas con anchors/overrides manuales existan ===
+  // Esto garantiza que las filas con fórmulas manuales aparezcan aunque no haya principals.
+  // Solo se crean si tienen un override manual (anchor con fórmula).
+  const asegurarFilasConOverride = (ordenMapa, agregadorMapa) => {
+    ordenMapa.forEach((orden, etiqueta) => {
+      const etiquetaLimpia = limpiarEtiqueta(etiqueta);
+      const clave = claveEtiqueta(etiquetaLimpia);
+      if (!clave || !etiquetaLimpia) return;
+
+      // Si ya existe, no hacer nada
+      if (agregadorMapa.has(clave)) return;
+
+      // Solo crear si hay un override manual con fórmula
+      const override = manualAggOverrides.get(clave);
+      if (!override || !override.totals) return;
+
+      // Crear la fila con el override
+      agregadorMapa.set(clave, {
+        label: etiquetaLimpia,
+        orden: Number.isFinite(Number(override.order)) ? Number(override.order) :
+          Number.isFinite(Number(orden)) ? Number(orden) : agregadorMapa.size,
+        ordenIndex: agregadorMapa.size,
+        totals: override.totals,
+        principals: [],
+        operaciones: [],
+        manualFormula: true,
+        esVacia: false
+      });
+    });
+  };
+
+  // Asegurar solo las filas con overrides manuales
+  asegurarFilasConOverride(consolidadoOrden, consolidatedMap);
+  asegurarFilasConOverride(operativoOrden, operativoRowMap);
+  asegurarFilasConOverride(resultOrden, resultRowMap);
+  asegurarFilasConOverride(netOrden, netRowMap);
+  asegurarFilasConOverride(finalOrden, finalRowMap);
+
+  // Aplicar overrides manuales a las filas recién creadas también
+  Array.from(consolidatedMap.values()).forEach(applyAggOverride);
+  Array.from(operativoRowMap.values()).forEach(applyAggOverride);
+  Array.from(resultRowMap.values()).forEach(applyAggOverride);
+  Array.from(netRowMap.values()).forEach(applyAggOverride);
+  Array.from(finalRowMap.values()).forEach(applyAggOverride);
+
   const layout = [];
   const layoutOps = [];
 
@@ -1748,7 +1852,7 @@ const combinarTotales = (a = {}, b = {}, factor = 1) => ({
         netRowAdicional: principal.netRowAdicional
       });
     }
-    
+
     (principal.children || []).forEach((secundaria) => {
       const secundariaLabel = (secundaria.label || '').toString().trim();
       const shouldRenderSecundaria = Boolean(secundariaLabel);
@@ -1772,13 +1876,13 @@ const combinarTotales = (a = {}, b = {}, factor = 1) => ({
           cuentas: secundaria.cuentas || []
         });
       }
-      
+
       (secundaria.cuentas || []).forEach((cuenta) => {
         const cuentaOrden = Number.isFinite(Number(cuenta.orden))
           ? Number(cuenta.orden)
           : Number.isFinite(Number(secundaria.orden))
-          ? Number(secundaria.orden)
-          : Number.isFinite(Number(principal.orden)) ? Number(principal.orden) : 0;
+            ? Number(secundaria.orden)
+            : Number.isFinite(Number(principal.orden)) ? Number(principal.orden) : 0;
         layout.push({
           type: 'cuenta',
           label: cuenta.label,
@@ -1977,8 +2081,46 @@ const combinarTotales = (a = {}, b = {}, factor = 1) => ({
   });
 
   if (manualOrder) {
-    layoutFinal = ordenarLayoutGlobal(layoutFinal.concat(opBlocks));
+    // En modo manual debemos respetar el orden global fila-a-fila del Gestor
+    // (incluyendo headers, cuentas, consolidados y operaciones libres).
+    // Reagrupar por principal puede mover operaciones fuera de su posición visual.
+    layoutFinal = ordenarLayoutGlobal(layout.concat(layoutOps, opBlocks));
   }
+
+  // DEBUG: diagnóstico net results
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const debugFile = path.join(require('os').homedir(), 'Desktop', 'debug-net-results.txt');
+    const lines = ['=== PRINCIPALS netRow ==='];
+    principalList.forEach((p) => {
+      lines.push(`  "${p.label}" netRow="${p.netRow}" resultRow="${p.resultRow}" consolidadoLabel="${p.consolidadoLabel}" resultNetRow="${p.resultNetRow}"`);
+    });
+    lines.push('', '=== configPorPrincipal ===');
+    configPorPrincipal.forEach((cfg, key) => {
+      lines.push(`  key="${key}" principal="${cfg.principal}" netRow="${cfg.netRow}" resultRow="${cfg.resultRow}" consolidado="${cfg.consolidado}"`);
+    });
+    lines.push('', '=== configPorSeccion (con net-row) ===');
+    configPorSeccion.forEach((cfg, key) => {
+      if (cfg.netRow || cfg.resultRow || cfg.resultNetRow) {
+        lines.push(`  key="${key}" principal="${cfg.principal}" seccion="${cfg.seccionLabel}" netRow="${cfg.netRow}" resultRow="${cfg.resultRow}" resultNetRow="${cfg.resultNetRow}"`);
+      }
+    });
+    lines.push('', '=== configAgrupacion entries con net-row ===');
+    (Array.isArray(configAgrupacion) ? configAgrupacion : []).forEach((cfg, idx) => {
+      const nr = normalizarConfigValor(cfg['net-row']);
+      const rr = normalizarConfigValor(cfg['result-row']);
+      const rnr = normalizarConfigValor(cfg['result-net-row']);
+      if (nr || rr || rnr) {
+        lines.push(`  [${idx}] SECCION="${cfg.SECCION}" parentSection="${cfg.parentSection}" sum-row-sumavarios="${cfg['sum-row-sumavarios']}" net-row="${nr}" result-row="${rr}" result-net-row="${rnr}" orden_presentacion=${cfg.orden_presentacion}`);
+      }
+    });
+    lines.push('', '=== principalMap netRow (raw) ===');
+    principalMap.forEach((p, key) => {
+      lines.push(`  key="${key}" label="${p.label}" netRow="${p.netRow}" resultRow="${p.resultRow}" consolidadoLabel="${p.consolidadoLabel}"`);
+    });
+    fs.writeFileSync(debugFile, lines.join('\n'), 'utf8');
+  } catch (e) { /* ignore */ }
 
   return {
     principals: principalList,
@@ -1991,11 +2133,11 @@ async function generarReporte(tipoReporte, empresaId, anio, mesSeleccionado, cap
   // Cargar definiciones desde SQLite (con fallback a JSON)
   const modulo = (tipoReporte === 'RESUMEN' || tipoReporte === 'SUMMARY') ? tipoReporte : 'MODULOS';
   const definiciones = cargarDefiniciones(modulo, empresaId, anio);
-  
+
   // Determinar el tipo real: RESUMEN usa las mismas cuentas que SUMMARY pero con diferente agrupación
   const tipoReal = (tipoReporte === 'RESUMEN') ? 'SUMMARY' : tipoReporte;
   const hojaConfig = tipoReporte; // Mantener el tipo original para filtrar configuración
-  
+
   // Para módulos con SQLite, las cuentas están agrupadas por capítulo
   let lista = [];
   if (definiciones && typeof definiciones === 'object' && !Array.isArray(definiciones)) {
@@ -2009,7 +2151,7 @@ async function generarReporte(tipoReporte, empresaId, anio, mesSeleccionado, cap
     // Es un array directo (formato legacy)
     lista = definiciones[tipoReal] || [];
   }
-  
+
   if (!Array.isArray(lista) || !lista.length) {
     throw new Error(`No hay definiciones para ${tipoReal}`);
   }
@@ -2023,7 +2165,7 @@ async function generarReporte(tipoReporte, empresaId, anio, mesSeleccionado, cap
   const capitulosDisponibles = extraerCapitulos(lista);
   const capituloClave = NORMALIZAR_CAPITULO(capituloSeleccionado || capitulosDisponibles[0]?.etiqueta || '');
   const capituloEncontrado = capitulosDisponibles.find(({ clave }) => clave === capituloClave);
-  
+
   // Filtrar definiciones por capítulo
   const listaFiltrada = capituloEncontrado
     ? lista.filter((item) => NORMALIZAR_CAPITULO(item.CAPITULO) === capituloClave)
@@ -2045,7 +2187,7 @@ async function generarReporte(tipoReporte, empresaId, anio, mesSeleccionado, cap
   });
 
   const { principals, layout } = construirReporteResumen(
-    listaFiltrada, 
+    listaFiltrada,
     configAgrupacion,
     capituloEncontrado?.etiqueta || capituloSeleccionado,
     planeacionData,

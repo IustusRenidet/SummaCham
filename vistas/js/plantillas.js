@@ -203,14 +203,26 @@
   function updateStickyOffsets() {
     try {
       const contextBar = document.getElementById("plantillasContextBar");
-      if (!contextBar) return;
-      const rect = contextBar.getBoundingClientRect();
-      const styles = window.getComputedStyle(contextBar);
-      const marginBottom = parseFloat(styles.marginBottom || "0") || 0;
-      const offset = Math.max(0, Math.round(rect.height + marginBottom));
+      const actionBar = document.getElementById("plantillasActionBar");
+
+      const measure = (element) => {
+        if (!element) return 0;
+        const rect = element.getBoundingClientRect();
+        const styles = window.getComputedStyle(element);
+        const marginBottom = parseFloat(styles.marginBottom || "0") || 0;
+        return Math.max(0, Math.round(rect.height + marginBottom));
+      };
+
+      const contextOffset = measure(contextBar);
+      const actionsOffset = measure(actionBar);
+
       document.documentElement.style.setProperty(
         "--plantillas-context-offset",
-        `${offset}px`
+        `${contextOffset}px`
+      );
+      document.documentElement.style.setProperty(
+        "--plantillas-actions-offset",
+        `${actionsOffset}px`
       );
     } catch (error) {
       console.warn("No fue posible calcular offsets sticky", error);
@@ -1402,6 +1414,15 @@
     );
   }
 
+  function findOperationByIdStrict(value) {
+    if (!value) return null;
+    const target = normalizeOperationMatch(value);
+    if (!target) return null;
+    return (
+      state.operaciones || []
+    ).find((op) => normalizeOperationMatch(getOperationId(op)) === target) || null;
+  }
+
   function findOperationsByRowLabel(label, preferredField = "") {
     if (!label) return { field: "", operations: [] };
     const target = normalizeOperationMatch(label);
@@ -1932,7 +1953,7 @@
       <div class="template-pilot">
         ${renderTemplateSummary(rows, [])}
         <div class="card mb-3">
-          <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2 template-items-sticky">
             <span>Elementos de la plantilla</span>
             <div class="template-table-actions">
               <div class="form-check form-switch m-0">
@@ -2680,13 +2701,12 @@
         const accountId = row.accountId || row.accountID || row.rowId || cuenta;
         const parentSection = row.parentSection || '';
         const parentSubsection = row.parentSubsection || '';
-        const paddingClass = parentSection
-          ? parentSubsection
-            ? 'ps-5'
-            : 'ps-4'
-          : '';
+        const depth = parentSection ? (parentSubsection ? 2 : 1) : 0;
+        const depthClass = depth ? `depth-${depth}` : '';
+        const paddingClass =
+          depth === 2 ? 'ps-3' : depth === 1 ? 'ps-4' : '';
         html += `
-          <div class="list-item item-account ${hiddenClass}" data-row-type="account" data-section="${escapeAttr(parentSection)}" data-subsection="${escapeAttr(parentSubsection)}" data-account-id="${escapeAttr(accountId)}" data-cuenta="${escapeAttr(cuenta)}" data-nombre="${escapeAttr(nombre)}" data-row-index="${rowIndex}">
+          <div class="list-item item-account ${hiddenClass} ${depthClass}" data-row-type="account" data-section="${escapeAttr(parentSection)}" data-subsection="${escapeAttr(parentSubsection)}" data-account-id="${escapeAttr(accountId)}" data-cuenta="${escapeAttr(cuenta)}" data-nombre="${escapeAttr(nombre)}" data-row-index="${rowIndex}">
             ${showOrder ? renderInlineOrderButtons(rowIndex, rows.length) : ''}
             <div class="list-item-content ${paddingClass} d-flex justify-content-between align-items-center flex-grow-1">
               <div class="d-flex align-items-center">
@@ -2719,14 +2739,13 @@
         const formula = formulaTerms.length ? formatFormula(op) : '';
         const parentSection = (row.parentSection || op?.parentSection || '').toString().trim();
         const parentSubsection = (row.parentSubsection || op?.parentSubsection || '').toString().trim();
-        const paddingClass = parentSection
-          ? parentSubsection
-            ? 'ps-5'
-            : 'ps-4'
-          : '';
+        const depth = parentSection ? (parentSubsection ? 2 : 1) : 0;
+        const depthClass = depth ? `depth-${depth}` : '';
+        const paddingClass =
+          depth === 2 ? 'ps-3' : depth === 1 ? 'ps-4' : '';
 
         html += `
-          <div class="list-item item-operation ${hiddenClass}" data-row-type="operation" data-operation-id="${escapeAttr(opId || label)}" data-operation-label="${escapeAttr(label)}" data-operation-kind="${escapeAttr(kind)}" data-row-index="${rowIndex}" ${formula ? `title="${escapeAttr(formula)}"` : ''} onclick="window.handleOperationRowClick(event, '${escapeAttr(opId || label)}')">
+          <div class="list-item item-operation ${hiddenClass} ${depthClass}" data-row-type="operation" data-operation-id="${escapeAttr(opId || label)}" data-operation-label="${escapeAttr(label)}" data-operation-kind="${escapeAttr(kind)}" data-row-index="${rowIndex}" ${formula ? `title="${escapeAttr(formula)}"` : ''} onclick="window.handleOperationRowClick(event, '${escapeAttr(opId || label)}')">
             ${showOrder ? renderInlineOrderButtons(rowIndex, rows.length) : ''}
             <div class="list-item-content ${paddingClass} d-flex justify-content-between align-items-center flex-grow-1">
               <div>
@@ -2791,6 +2810,12 @@
           background: #f0f9ff;
           border-left: 4px solid #0ea5e9;
           margin-left: 16px;
+        }
+        .list-item.depth-1 {
+          margin-left: 16px;
+        }
+        .list-item.depth-2 {
+          margin-left: 32px;
         }
         .item-account {
           background: #fafafa;
@@ -4774,13 +4799,12 @@
       }
       if (cursor >= rows.length) return;
       const candidateLevel = resolveRowLevel(rows[cursor]);
-      if (candidateLevel < level) {
-        if (level === 2) {
-          showToast(
-            "No puedes mover este elemento fuera de su subsección. Cambia su subsección para moverlo.",
-            "warning"
-          );
-        } else if (level === 1) {
+      // Permitir que cuentas/operaciones salgan de una subsección (nivel 2) para cambiar
+      // de subsección dentro de la MISMA sección. Solo bloquear cuando se intenta salir
+      // de la sección (nivel 0).
+      const allowExitSubsection = level === 2 && candidateLevel === 1;
+      if (candidateLevel < level && !allowExitSubsection) {
+        if (level === 2 || level === 1) {
           showToast(
             "No puedes mover este elemento fuera de su sección. Cambia su sección para moverlo.",
             "warning"
@@ -4800,13 +4824,9 @@
       }
       if (cursor < 0) return;
       const candidateLevel = resolveRowLevel(rows[cursor]);
-      if (candidateLevel < level) {
-        if (level === 2) {
-          showToast(
-            "No puedes mover este elemento fuera de su subsección. Cambia su subsección para moverlo.",
-            "warning"
-          );
-        } else if (level === 1) {
+      const allowExitSubsection = level === 2 && candidateLevel === 1;
+      if (candidateLevel < level && !allowExitSubsection) {
+        if (level === 2 || level === 1) {
           showToast(
             "No puedes mover este elemento fuera de su sección. Cambia su sección para moverlo.",
             "warning"
@@ -4921,41 +4941,13 @@
       }
     }
 
-    if (level === 2) {
-      // Buscar la cabecera de subsección más cercana dentro del principal.
-      let subIdx = -1;
-      for (let i = currentBlock.start; i >= 0; i -= 1) {
-        const lvl = resolveRowLevel(rows[i]);
-        if (lvl === 0) break;
-        if (rows[i]?.type === "subsection") {
-          subIdx = i;
-          break;
-        }
-      }
-      if (subIdx >= 0) {
-        groupStart = subIdx;
-        groupEnd = remaining.length;
-        for (let i = groupStart + 1; i < remaining.length; i += 1) {
-          if (resolveRowLevel(remaining[i]) <= 1) {
-            groupEnd = i;
-            break;
-          }
-        }
-      }
-    }
-
     const allowedMin = level === 0 ? 0 : Math.min(groupStart + 1, remaining.length);
     const allowedMax = Math.min(groupEnd, remaining.length);
     const originalInsertHint = insertHint;
     if (insertHint < allowedMin) insertHint = allowedMin;
     if (insertHint > allowedMax) insertHint = allowedMax;
     if (originalInsertHint !== insertHint && level > 0) {
-      if (level === 2) {
-        showToast(
-          "Esa posición está fuera de la subsección. Se ajustó dentro del rango permitido.",
-          "warning"
-        );
-      } else if (level === 1) {
+      if (level === 1 || level === 2) {
         showToast(
           "Esa posición está fuera de la sección. Se ajustó dentro del rango permitido.",
           "warning"
@@ -4963,16 +4955,19 @@
       }
     }
 
-    const candidates = [];
-    for (let i = allowedMin; i < allowedMax; i += 1) {
-      if (resolveRowLevel(remaining[i]) === level) {
-        candidates.push(i);
+    let insertAt = insertHint;
+    if (level !== 2) {
+      const candidates = [];
+      for (let i = allowedMin; i < allowedMax; i += 1) {
+        if (resolveRowLevel(remaining[i]) === level) {
+          candidates.push(i);
+        }
       }
+      candidates.push(allowedMax);
+      const positions = Array.from(new Set(candidates)).sort((a, b) => a - b);
+      insertAt = positions.find((pos) => pos >= insertHint);
+      if (insertAt == null) insertAt = allowedMax;
     }
-    candidates.push(allowedMax);
-    const positions = Array.from(new Set(candidates)).sort((a, b) => a - b);
-    let insertAt = positions.find((pos) => pos >= insertHint);
-    if (insertAt == null) insertAt = allowedMax;
 
     const reordered = remaining.slice();
     reordered.splice(insertAt, 0, ...block);
@@ -5249,28 +5244,79 @@
   }
 
   function findOperationsForOrderedRow(row = {}) {
-    const candidates = [
-      row.opId,
-      row.operationId,
-      row.operationLabel,
-      row.label,
-    ]
+    const idCandidates = [row.opId, row.operationId]
       .map((value) => (value || "").toString().trim())
       .filter(Boolean);
 
-    for (const candidate of candidates) {
-      const direct = findOperationByIdOrLabel(candidate);
-      if (direct) return [direct];
+    for (const candidate of idCandidates) {
+      const byId = findOperationByIdStrict(candidate);
+      if (byId) return [byId];
+    }
+
+    const labelCandidates = [row.operationLabel, row.label]
+      .map((value) => (value || "").toString().trim())
+      .filter(Boolean);
+    for (const candidate of labelCandidates) {
+      const key = normalizeOperationMatch(candidate);
+      if (!key) continue;
+      const byId = (state.operaciones || []).filter(
+        (op) => normalizeOperationMatch(getOperationId(op)) === key
+      );
+      if (byId.length === 1) return [byId[0]];
+      const byLabel = (state.operaciones || []).filter(
+        (op) => normalizeOperationMatch(getOperationLabel(op)) === key
+      );
+      if (byLabel.length === 1) return [byLabel[0]];
     }
 
     const byLabel = findOperationsByRowLabel(row.label || "", row.kind || "");
-    if (byLabel.operations?.length) {
-      const unique = new Set();
-      return byLabel.operations.filter((op) => {
-        if (!op || unique.has(op)) return false;
-        unique.add(op);
-        return true;
+    if (byLabel.operations?.length === 1) {
+      return [byLabel.operations[0]];
+    }
+
+    if (byLabel.operations?.length > 1) {
+      const parentSection = (row.parentSection || row.section || "")
+        .toString()
+        .trim();
+      const parentSubsection = (row.parentSubsection || row.subsection || "")
+        .toString()
+        .trim();
+
+      let narrowed = byLabel.operations.slice();
+      const sectionKey = normalizeOperationMatch(parentSection);
+      const subsectionKey = normalizeOperationMatch(parentSubsection);
+
+      if (sectionKey) {
+        const byParent = narrowed.filter((op) =>
+          getOperationParentCandidates(op).some(
+            (candidate) => normalizeOperationMatch(candidate) === sectionKey
+          )
+        );
+        if (byParent.length) narrowed = byParent;
+      }
+
+      if (subsectionKey) {
+        const byPlacement = narrowed.filter((op) =>
+          getOperationPlacementCandidates(op).some(
+            (candidate) => normalizeOperationMatch(candidate) === subsectionKey
+          )
+        );
+        if (byPlacement.length) narrowed = byPlacement;
+      }
+
+      const unique = [];
+      const seen = new Set();
+      narrowed.forEach((op) => {
+        const key = normalizeOperationMatch(
+          getOperationId(op) || getOperationLabel(op) || ""
+        );
+        if (!key || seen.has(key)) return;
+        seen.add(key);
+        unique.push(op);
       });
+
+      if (unique.length === 1) return unique;
+      return [];
     }
     return [];
   }
@@ -5387,23 +5433,38 @@
     const touchedAccounts = new Set();
     const touchedOperations = new Set();
 
+    let currentPrincipal = "";
+    let currentSubsection = "";
+
+    const applyPlaceholderOrder = (row) => {
+      const placeholderId = (row?.placeholderAccountId || "").toString().trim();
+      if (!placeholderId) return;
+      const placeholder = resolveAccountByIdOrCode(placeholderId);
+      if (!placeholder) return;
+      placeholder.orden_presentacion = cursor;
+      placeholder.orden = cursor;
+      // Mantener un hint local para que el editor refleje el orden manual
+      // incluso antes de recargar desde layout_secciones.
+      if (isPlaceholderAccount(placeholder)) {
+        placeholder.__placeholderOrder = cursor;
+      }
+      touchedAccounts.add(getAccountRowId(placeholder));
+    };
+
     rows.forEach((row) => {
       const type = row?.type || "";
-      if (type === "principal" || type === "subsection") {
-        const placeholderId = (row.placeholderAccountId || "").toString().trim();
-        if (placeholderId) {
-          const placeholder = resolveAccountByIdOrCode(placeholderId);
-          if (placeholder) {
-            placeholder.orden_presentacion = cursor;
-            placeholder.orden = cursor;
-            // Mantener un hint local para que el editor refleje el orden manual
-            // incluso antes de recargar desde layout_secciones.
-            if (isPlaceholderAccount(placeholder)) {
-              placeholder.__placeholderOrder = cursor;
-            }
-            touchedAccounts.add(getAccountRowId(placeholder));
-          }
-        }
+
+      if (type === "principal") {
+        currentPrincipal = (row.label || row.nombre || "").toString().trim();
+        currentSubsection = "";
+        applyPlaceholderOrder(row);
+        cursor += 1;
+        return;
+      }
+
+      if (type === "subsection") {
+        currentSubsection = (row.label || row.nombre || "").toString().trim();
+        applyPlaceholderOrder(row);
         cursor += 1;
         return;
       }
@@ -5413,6 +5474,50 @@
           row.accountId || row.cuenta || row.label || row.codigo || "";
         const account = resolveAccountByIdOrCode(accountId);
         if (!account) return;
+
+        const rowHasSection = Boolean(
+          (row.parentSection || row.section || "").toString().trim()
+        );
+
+        let targetSection = "";
+        let targetSubsection = "";
+
+        if (!rowHasSection) {
+          // Item raíz: corta contexto de sección/subsección.
+          currentPrincipal = "";
+          currentSubsection = "";
+        } else {
+          targetSection = (
+            currentPrincipal ||
+            (row.parentSection || row.section || row.parent || "")
+          )
+            .toString()
+            .trim();
+
+          const isSubRow = Boolean(
+            (row.parentSubsection ?? row.subsection ?? row.parentSub ?? "")
+              .toString()
+              .trim()
+          );
+          if (isSubRow) {
+            // Items nivel 2 siguen la subsección activa.
+            targetSubsection = (currentSubsection || "").toString().trim();
+          } else {
+            // Items nivel 1: salen de cualquier subsección.
+            targetSubsection = "";
+            currentSubsection = "";
+          }
+
+          if (!targetSection) {
+            targetSubsection = "";
+          }
+        }
+
+        setAccountPrincipalName(account, targetSection);
+        setAccountSecondaryName(account, targetSubsection);
+        row.parentSection = targetSection;
+        row.parentSubsection = targetSubsection;
+
         account.orden_presentacion = cursor;
         account.orden = cursor;
         touchedAccounts.add(getAccountRowId(account));
@@ -5421,46 +5526,86 @@
       }
 
       if (type === "operation") {
+        const rowHasSection = Boolean(
+          (row.parentSection || row.section || "").toString().trim()
+        );
+
+        let targetSection = "";
+        let targetSubsection = "";
+
+        if (!rowHasSection) {
+          currentPrincipal = "";
+          currentSubsection = "";
+        } else {
+          targetSection = (
+            currentPrincipal ||
+            (row.parentSection || row.section || row.parent || "")
+          )
+            .toString()
+            .trim();
+
+          const isSubRow = Boolean(
+            (row.parentSubsection ?? row.subsection ?? row.parentSub ?? "")
+              .toString()
+              .trim()
+          );
+          if (isSubRow) {
+            targetSubsection = (currentSubsection || "").toString().trim();
+          } else {
+            targetSubsection = "";
+            currentSubsection = "";
+          }
+
+          if (!targetSection) {
+            targetSubsection = "";
+          }
+        }
+
         const ops = findOperationsForOrderedRow(row);
-        if (!ops.length) return;
-        const rowParentSection = (row.parentSection || row.section || "")
-          .toString()
-          .trim();
-        const rowParentSubsection = (row.parentSubsection ?? row.subsection ?? "")
-          .toString()
-          .trim();
+        if (!ops.length) {
+          // Aun si no encontramos la operación, consumir un índice para que el orden no se descuadre.
+          cursor += 1;
+          return;
+        }
+
+        row.parentSection = targetSection;
+        row.parentSubsection = targetSubsection;
+
+        const aggregateKinds = new Set([
+          "sum-row",
+          "sum-row-sumavarios",
+          "sum-row-sumavarios2",
+          "sum-row-sumavarios-consolidado",
+          "sum-row-operativo",
+          "sum-row-operativo-consolidado",
+          "result-row",
+          "net-row",
+          "net-row-adicional",
+          "result-net-row",
+        ]);
+        const preservePlacement =
+          aggregateKinds.has((row.kind || "").toString().trim()) ||
+          ops.length !== 1;
 
         ops.forEach((op) => {
           if (!op) return;
           op.orden_presentacion = cursor;
           op.orden = cursor;
-          const targetSection = (rowParentSection || op.parentSection || "")
-            .toString()
-            .trim();
-          let targetSubsection = (rowParentSubsection || op.parentSubsection || "")
-            .toString()
-            .trim();
-          if (!targetSection) {
-            // Mantener operación "libre" si no tiene sección explícita.
-            targetSubsection = "";
-          }
-          op.parentSection = targetSection || null;
-          op.parentSubsection = targetSubsection || null;
-          const placement = (targetSubsection || targetSection || "")
-            .toString()
-            .trim();
-          op.SECCION = placement;
-          op.seccion = placement;
-          op.secciones = placement ? [placement] : [];
+          if (!preservePlacement) {
+            op.parentSection = targetSection || null;
+            op.parentSubsection = targetSubsection || null;
 
-          const opKey =
-            getOperationId(op) ||
-            getOperationLabel(op) ||
-            (row.opId || row.label || "").toString().trim();
-          if (opKey) {
-            touchedOperations.add(normalizeOperationMatch(opKey));
+            const placement = (targetSubsection || targetSection || "")
+              .toString()
+              .trim();
+            op.SECCION = placement;
+            op.seccion = placement;
+            op.secciones = placement ? [placement] : [];
           }
+
+          touchedOperations.add(op);
         });
+
         cursor += 1;
       }
     });
@@ -5474,10 +5619,7 @@
     });
 
     (state.operaciones || []).forEach((op, idx) => {
-      const opKey = normalizeOperationMatch(
-        getOperationId(op) || getOperationLabel(op) || ""
-      );
-      if (opKey && touchedOperations.has(opKey)) return;
+      if (touchedOperations.has(op)) return;
       const fallbackOrder = cursor + idx;
       op.orden_presentacion = fallbackOrder;
       op.orden = fallbackOrder;
@@ -5561,13 +5703,36 @@
   }
     const capituloFinal = (state.capitulo || "").toString();
     const hojaFinal = (state.modulo || "").toString();
-    return lista.map((op) => ({
-      ...op,
-      // Forzar capítulo/hoja al contexto actual para evitar variantes ("MÉXICO" vs "MEXICO")
-      // y que el guardado parezca "no aplicar".
-      CAPITULO: capituloFinal,
-      HOJA: hojaFinal,
-    }));
+    return lista.map((op) => {
+      // No persistir metadatos de UI/placement (evita crear "tipos" extra en BD).
+      const {
+        parentSection,
+        parentSubsection,
+        parent,
+        section,
+        subsection,
+        __orden,
+        __meta,
+        ...rest
+      } = op || {};
+
+      // Evitar persistir campos legacy de fórmula (seccion_1/operacion_1, etc.) como si fueran
+      // "operacion_tipo" en SQLite. La fuente de verdad es `formula_json`.
+      const sanitized = { ...rest };
+      Object.keys(sanitized).forEach((key) => {
+        if (/^(seccion|operacion)_\d+$/i.test(key)) {
+          delete sanitized[key];
+        }
+      });
+
+      return {
+        ...sanitized,
+        // Forzar capítulo/hoja al contexto actual para evitar variantes ("MÉXICO" vs "MEXICO")
+        // y que el guardado parezca "no aplicar".
+        CAPITULO: capituloFinal,
+        HOJA: hojaFinal,
+      };
+    });
   }
 
   function isColumnConfigOperation(op) {

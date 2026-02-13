@@ -64,6 +64,7 @@ body {
 :root {
   --plantillas-sticky-top: 78px; /* body tiene padding-top: 70px */
   --plantillas-context-offset: 0px; /* se setea por JS para apilar barras sticky */
+  --plantillas-actions-offset: 0px; /* se setea por JS para apilar el sticky de ordenar */
 }
 
 .plantillas-context-sticky {
@@ -85,6 +86,17 @@ body {
 }
 
 .plantillas-actions-sticky .table-card .card-body {
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(10px);
+}
+
+/* ===== STICKY "ORDENAR" (EN LISTA DE ELEMENTOS) ===== */
+.template-items-sticky {
+  position: sticky;
+  /* El scroll principal del editor es .layout-preview (overflow-y: auto),
+     así que el sticky debe "pegarse" al inicio de ese contenedor, no al viewport. */
+  top: 0;
+  z-index: 1010;
   background: rgba(255, 255, 255, 0.96);
   backdrop-filter: blur(10px);
 }

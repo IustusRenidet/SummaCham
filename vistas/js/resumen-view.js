@@ -3575,6 +3575,41 @@
       .map(({ item }) => item);
   };
 
+  const ordenarLayoutPorOrdenGlobal = (items = []) =>
+    (Array.isArray(items) ? items : [])
+      .map((item, idx) => ({ item, idx }))
+      .sort((a, b) => {
+        const orderA = Number.isFinite(Number(a.item?.order))
+          ? Number(a.item.order)
+          : Number.isFinite(Number(a.item?.orden_presentacion))
+          ? Number(a.item.orden_presentacion)
+          : Number.isFinite(Number(a.item?.orden))
+          ? Number(a.item.orden)
+          : a.idx;
+        const orderB = Number.isFinite(Number(b.item?.order))
+          ? Number(b.item.order)
+          : Number.isFinite(Number(b.item?.orden_presentacion))
+          ? Number(b.item.orden_presentacion)
+          : Number.isFinite(Number(b.item?.orden))
+          ? Number(b.item.orden)
+          : b.idx;
+        if (orderA !== orderB) return orderA - orderB;
+
+        const orderIdxA = Number.isFinite(Number(a.item?.orderIndex))
+          ? Number(a.item.orderIndex)
+          : Number.isFinite(Number(a.item?.ordenIndex))
+          ? Number(a.item.ordenIndex)
+          : a.idx;
+        const orderIdxB = Number.isFinite(Number(b.item?.orderIndex))
+          ? Number(b.item.orderIndex)
+          : Number.isFinite(Number(b.item?.ordenIndex))
+          ? Number(b.item.ordenIndex)
+          : b.idx;
+        if (orderIdxA !== orderIdxB) return orderIdxA - orderIdxB;
+        return a.idx - b.idx;
+      })
+      .map(({ item }) => item);
+
   /**
    * Renderiza/pinta la tabla de Resumen con jerarquía multi-nivel
    *
@@ -4060,7 +4095,7 @@
         .trim()
         .toUpperCase();
       const layout = Array.isArray(capitulo.layout)
-        ? capitulo.layout.slice()
+        ? ordenarLayoutPorOrdenGlobal(capitulo.layout)
         : null;
       const principales = Array.isArray(capitulo.children)
         ? capitulo.children.slice()

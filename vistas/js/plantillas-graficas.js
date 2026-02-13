@@ -4882,6 +4882,7 @@
       if (refreshed) {
         applyConfigToForm(refreshed);
         renderGallery(refreshed);
+        updateSourceHints(refreshed);
       }
       setStatus("Grafica eliminada correctamente.", "success");
     });

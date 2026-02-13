@@ -82,7 +82,9 @@
     { etiqueta: 'Diciembre', clave: 'dic', periodo: 12 }
   ];
 
-  const MODULO_CLAVE = (document.body?.dataset?.modulo || 'SUMMARY').toString().toUpperCase();
+  // SUMMARY es una vista del módulo RESUMEN; persistimos RESUMEN para que el
+  // Gestor de Plantillas y otras pantallas mantengan el mismo contexto.
+  const MODULO_CLAVE = 'RESUMEN';
 
   const leerContextoPersistido = () => {
     const ctx = typeof Sesion?.obtenerContextoPlaneacion === 'function'
@@ -414,6 +416,41 @@
       orden: extractor(item, idx)
     })).sort((a, b) => a.orden - b.orden).map(({ item }) => item);
   };
+
+  const ordenarLayoutPorOrdenGlobal = (items = []) =>
+    (Array.isArray(items) ? items : [])
+      .map((item, idx) => ({ item, idx }))
+      .sort((a, b) => {
+        const orderA = Number.isFinite(Number(a.item?.order))
+          ? Number(a.item.order)
+          : Number.isFinite(Number(a.item?.orden_presentacion))
+          ? Number(a.item.orden_presentacion)
+          : Number.isFinite(Number(a.item?.orden))
+          ? Number(a.item.orden)
+          : a.idx;
+        const orderB = Number.isFinite(Number(b.item?.order))
+          ? Number(b.item.order)
+          : Number.isFinite(Number(b.item?.orden_presentacion))
+          ? Number(b.item.orden_presentacion)
+          : Number.isFinite(Number(b.item?.orden))
+          ? Number(b.item.orden)
+          : b.idx;
+        if (orderA !== orderB) return orderA - orderB;
+
+        const orderIdxA = Number.isFinite(Number(a.item?.orderIndex))
+          ? Number(a.item.orderIndex)
+          : Number.isFinite(Number(a.item?.ordenIndex))
+          ? Number(a.item.ordenIndex)
+          : a.idx;
+        const orderIdxB = Number.isFinite(Number(b.item?.orderIndex))
+          ? Number(b.item.orderIndex)
+          : Number.isFinite(Number(b.item?.ordenIndex))
+          ? Number(b.item.ordenIndex)
+          : b.idx;
+        if (orderIdxA !== orderIdxB) return orderIdxA - orderIdxB;
+        return a.idx - b.idx;
+      })
+      .map(({ item }) => item);
 
   const actualizarEtiquetaCapitulo = (texto) => {
     if (!capituloLabel) return;
@@ -806,9 +843,8 @@
     const planColumnKey = `budget-${claveMesRender}`;
 
     resumen.forEach((capitulo) => {
-      // Respetar el orden del backend (ya viene ordenado por ordenarLayoutGlobal)
       const layout = Array.isArray(capitulo.layout)
-        ? capitulo.layout.slice()
+        ? ordenarLayoutPorOrdenGlobal(capitulo.layout)
         : null;
       const principales = Array.isArray(capitulo.children) ? capitulo.children.slice() : [];
       const principalLookup = new Map(principales.map((principal) => [principal.label, principal]));

@@ -143,7 +143,9 @@ const obtenerContextoPersistido = () => {
 
 const persistirContextoSeleccion = (anio, periodo) => {
   if (typeof Sesion?.guardarContextoPlaneacion === 'function') {
-    Sesion.guardarContextoPlaneacion({ anio, mes: periodo, modulo: 'SUMMARY' });
+    // SUMMARY es una vista del módulo RESUMEN; persistimos RESUMEN para mantener coherencia
+    // con el Gestor de Plantillas (y evitar que el selector quede en un módulo inexistente).
+    Sesion.guardarContextoPlaneacion({ anio, mes: periodo, modulo: 'RESUMEN' });
   }
 };
 
