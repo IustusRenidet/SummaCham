@@ -343,7 +343,7 @@
     <aside class="side">
       <div class="brand">
         <h1>SummaCham<br />Guía Desarrolladores</h1>
-        <p>Referencia técnica para onboarding y mantenimiento del codigo.</p>
+        <p>Referencia técnica para onboarding y mantenimiento del código.</p>
       </div>
       <nav class="toc" aria-label="Tabla de contenido">
         <a href="#objetivo">1. Objetivo</a>
@@ -351,7 +351,7 @@
         <a href="#conceptos">3. Conceptos desde cero</a>
         <a href="#arquitectura">4. Arquitectura</a>
         <a href="#estructura">5. Estructura de carpetas</a>
-        <a href="#librerias">6. Librerias y snippets</a>
+        <a href="#librerias">6. Librerías y snippets</a>
         <a href="#backend">7. Backend Express</a>
         <a href="#datos">8. Datos (SQLite + Firebird)</a>
         <a href="#funciones-clave">9. Funciones principales</a>
@@ -372,9 +372,9 @@
       <header class="hero">
         <h2>Guía completa para futuros desarrolladores</h2>
         <p>
-          Esta guía documenta la implementacion actual de <strong>SummaCham</strong> a nivel de
-          archivos, flujo funcional y puntos de extension. Fue escrita para que
-          cualquier desarrollador nuevo pueda entender rapidamente que toca cada capa.
+          Esta guía documenta la implementación actual de <strong>SummaCham</strong> a nivel de
+          archivos, flujo funcional y puntos de extensión. Fue escrita para que
+          cualquier desarrollador nuevo pueda entender rápidamente que toca cada capa.
         </p>
         <div class="badge-row">
           <span class="badge">Electron + Express</span>
@@ -388,20 +388,20 @@
         <h3>1) Objetivo y alcance</h3>
         <p>
           El sistema es una app de escritorio con Electron que levanta un servidor
-          Node/Express local y sirve un frontend de planeacion financiera.
-          La app sincroniza informacion de presupuestos/reportes desde Firebird y
+          Node/Express local y sirve un frontend de planeación financiera.
+          La app sincroniza información de presupuestos/reportes desde Firebird y
           guarda estado operativo, usuarios, layouts y sesiones en SQLite.
         </p>
         <h4>Entradas principales del runtime</h4>
         <ul>
           <li><code>main.js</code>: proceso principal de Electron (ventana, tray, updates, arranque backend).</li>
-          <li><code>src/server.js</code>: API Express + sesiones + rutas + estaticos.</li>
+          <li><code>src/server.js</code>: API Express + sesiones + rutas + estáticos.</li>
           <li><code>vistas/app.html</code>: shell del frontend (React + iframe para módulos).</li>
         </ul>
         <div class="simple">
           <strong>Ejemplo en lenguaje natural:</strong> imagina un restaurante.
           <code>main.js</code> es el local abierto al público, <code>server.js</code> es la cocina
-          donde se preparan las ordenes, y <code>app.html</code> es el menú que ve el cliente.
+          donde se preparan las órdenes, y <code>app.html</code> es el menú que ve el cliente.
         </div>
       </section>
 
@@ -430,7 +430,7 @@ npm run server
         </ul>
         <div class="glossary-term">
           <strong>Qué es una variable de entorno:</strong> es un dato de configuración
-          que el sistema lee al iniciar, sin escribirlo fijo en el codigo.
+          que el sistema lee al iniciar, sin escribirlo fijo en el código.
           <br />
           <strong>Ejemplo simple:</strong> <code>SERVER_PORT=3005</code> significa
           "arranca el servidor en el puerto 3005".
@@ -444,7 +444,7 @@ npm run server
         </div>
         <div class="simple">
           <strong>Ejemplo en lenguaje natural:</strong> si una variable de entorno fuera
-          una etiqueta en una caja, diria: "usar esta puerta", "usar este usuario", "usar este password".
+          una etiqueta en una caja, diría: "usar esta puerta", "usar este usuario", "usar este password".
           El programa lee esas etiquetas al arrancar.
         </div>
         <div class="warn">
@@ -457,19 +457,19 @@ npm run server
         <h3>3) Conceptos desde cero (si no sabes programar)</h3>
         <p>
           Esta sección traduce el proyecto a lenguaje simple. Si esta es tu primera vez
-          viendo codigo, aqui esta el mapa mental mínimo para no perderte.
+          viendo código, aquí está el mapa mental mínimo para no perderte.
         </p>
         <h4>Diccionario rápido</h4>
         <ul>
           <li><strong>Frontend:</strong> lo que ve el usuario (pantallas en <code>vistas/*.html</code>).</li>
           <li><strong>Backend:</strong> lógica en servidor (archivos en <code>src/routes</code> y <code>src/services</code>).</li>
           <li><strong>API / endpoint:</strong> URL que el frontend llama para pedir o guardar datos, por ejemplo <code>/api/auth/login</code>.</li>
-          <li><strong>Request:</strong> la petición que envia el frontend al backend.</li>
+          <li><strong>Request:</strong> la petición que envía el frontend al backend.</li>
           <li><strong>Response:</strong> la respuesta que regresa el backend (JSON, error, etc).</li>
           <li><strong>JSON:</strong> formato de datos (llaves/valores), por ejemplo <code>{ "usuario": "ICONET" }</code>.</li>
           <li><strong>Sesión:</strong> estado de usuario logueado para no pedir password cada click.</li>
           <li><strong>Token JWT:</strong> credencial firmada para autenticar requests.</li>
-          <li><strong>Base de datos:</strong> donde se guardan datos. Aqui hay dos:
+          <li><strong>Base de datos:</strong> donde se guardan datos. Aquí hay dos:
             <code>SQLite</code> (local) y <code>Firebird</code> (contable externo).</li>
         </ul>
         <h4>Conceptos técnicos adicionales (con ejemplo sencillo)</h4>
@@ -479,7 +479,7 @@ npm run server
           <strong>Ejemplo:</strong> un guardia en la entrada que valida si traes credencial.
         </div>
         <div class="glossary-term">
-          <strong>CORS:</strong> regla que define desde que origen (sitio/app) se permite llamar la API.
+          <strong>CORS:</strong> regla que define desde qué origen (sitio/app) se permite llamar la API.
           <br />
           <strong>Ejemplo:</strong> lista de invitados permitidos para entrar a una fiesta.
         </div>
@@ -489,24 +489,24 @@ npm run server
           <strong>Ejemplo:</strong> un sello en la mano para no volver a mostrar boleto.
         </div>
         <div class="glossary-term">
-          <strong>Hash:</strong> version irreconocible de una contrasena.
+          <strong>Hash:</strong> versión irreconocible de una contraseña.
           <br />
           <strong>Ejemplo:</strong> en vez de guardar la llave original, guardas su molde.
         </div>
         <div class="glossary-term">
-          <strong>Ruta API:</strong> direccion especifica de una acción del backend.
+          <strong>Ruta API:</strong> dirección específica de una acción del backend.
           <br />
           <strong>Ejemplo:</strong> <code>/api/auth/login</code> = "ventanilla para iniciar sesión".
         </div>
         <div class="glossary-term">
-          <strong>Payload:</strong> contenido util que viaja dentro del request o response.
+          <strong>Payload:</strong> contenido útil que viaja dentro del request o response.
           <br />
           <strong>Ejemplo:</strong> en login, el payload de entrada lleva <code>usuario</code> y <code>contrasena</code>.
         </div>
         <div class="glossary-term">
-          <strong>Status HTTP:</strong> codigo de resultado de una petición.
+          <strong>Status HTTP:</strong> código de resultado de una petición.
           <br />
-          <strong>Ejemplos:</strong> <code>200</code> (ok), <code>400</code> (dato invalido), <code>401</code> (no autenticado), <code>500</code> (error interno).
+          <strong>Ejemplos:</strong> <code>200</code> (ok), <code>400</code> (dato inválido), <code>401</code> (no autenticado), <code>500</code> (error interno).
         </div>
         <div class="glossary-term">
           <strong>Método HTTP:</strong> tipo de acción sobre la API.
@@ -523,13 +523,13 @@ npm run server
           <br />
           <strong>Ejemplo:</strong> convertir ingredientes sueltos en un producto final instalable.
         </div>
-        <h4>Ejemplo real: que pasa cuando haces login</h4>
+        <h4>Ejemplo real: qué pasa cuando haces login</h4>
         <ol>
           <li>Usuario escribe usuario/password en <code>vistas/login.html</code>.</li>
           <li>Frontend hace <code>POST /api/auth/login</code>.</li>
           <li><code>src/routes/auth.js</code> valida datos, busca usuario en SQLite y compara password.</li>
           <li>Si todo bien, backend crea sesión y tokens JWT.</li>
-          <li>Frontend guarda sesión en <code>localStorage</code> via <code>vistas/js/sesion.js</code>.</li>
+          <li>Frontend guarda sesión en <code>localStorage</code> vía <code>vistas/js/sesion.js</code>.</li>
           <li>Al abrir módulos, el frontend manda headers de autenticación automáticamente.</li>
           <li>Si el token expira o no hay sesión, redirige a <code>login.html</code>.</li>
         </ol>
@@ -593,7 +593,7 @@ Electron (main.js)
         <h3>5) Estructura de carpetas y archivos</h3>
         <p class="mini">
           Lee esta tabla como "mapa de ciudad": cada carpeta es una zona y cada archivo
-          clave es una oficina con funcion concreta.
+          clave es una oficina con función concreta.
         </p>
         <table>
           <thead>
@@ -631,7 +631,7 @@ Electron (main.js)
             </tr>
             <tr>
               <td><code>src/config</code></td>
-              <td>Catalogos y configuración de entorno/empresas/módulos.</td>
+              <td>Catálogos y configuración de entorno/empresas/módulos.</td>
               <td><code>modulos.js</code>, <code>empresas.js</code>, <code>env-config.js</code>.</td>
             </tr>
             <tr>
@@ -641,12 +641,12 @@ Electron (main.js)
             </tr>
             <tr>
               <td><code>vistas/js</code></td>
-              <td>Sesión, permisos UI, carga de módulos, tabla/edicion/gráficas.</td>
+              <td>Sesión, permisos UI, carga de módulos, tabla/edición/gráficas.</td>
               <td><code>sesion.js</code>, <code>react-app.js</code>, <code>planeacion-modulo-vista.js</code>.</td>
             </tr>
             <tr>
               <td><code>scripts</code></td>
-              <td>Utilidades de mantenimiento, migracion y exportaciones.</td>
+              <td>Utilidades de mantenimiento, migración y exportaciones.</td>
               <td><code>manage-native.js</code>, scripts de PPT/Excel/seed.</td>
             </tr>
             <tr>
@@ -673,15 +673,51 @@ Electron (main.js)
       </section>
 
       <section id="librerias" class="card">
-        <h3>6) Librerias importantes explicadas con snippets</h3>
+        <h3>6) Librerías importantes explicadas con snippets</h3>
         <p>
-          Todas estas librerias estan en <code>package.json</code>. Aqui se explica
-          para que sirven en este proyecto con ejemplos pequenos.
+          Todas estas Librerías están en <code>package.json</code>. Aquí se explica
+          para que sirven en este proyecto con ejemplos pequeños.
         </p>
         <div class="code-legend">
-          <strong>Leyenda de snippets:</strong> las lineas marcadas en verde son comentarios
-          explicativos del codigo. Las lineas normales son instrucciones que se ejecutan.
+          <strong>Leyenda de snippets:</strong> las líneas marcadas en verde son comentarios
+          explicativos del código. Las líneas normales son instrucciones que se ejecutan.
         </div>
+        <h4>6.1 Lista completa de librerías instaladas y su propósito</h4>
+        <p class="mini">
+          Esta lista corresponde a dependencias directas de <code>package.json</code>
+          (lo que se instala al ejecutar <code>npm install</code> en este proyecto).
+        </p>
+        <table>
+          <thead>
+            <tr>
+              <th>Librería</th>
+              <th>Tipo</th>
+              <th>Propósito en este proyecto</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td><code>auto-launch</code></td><td>runtime</td><td>Configura que la app se inicie automáticamente con Windows.</td></tr>
+            <tr><td><code>bcryptjs</code></td><td>runtime</td><td>Hashea y verifica contraseñas de usuarios.</td></tr>
+            <tr><td><code>better-sqlite3</code></td><td>runtime</td><td>Driver SQLite principal para persistencia local.</td></tr>
+            <tr><td><code>better-sqlite3-session-store</code></td><td>runtime</td><td>Guarda sesiones de Express en SQLite.</td></tr>
+            <tr><td><code>cookie-parser</code></td><td>runtime</td><td>Parsea cookies HTTP del request.</td></tr>
+            <tr><td><code>csv-parse</code></td><td>runtime</td><td>Lee/parsea archivos CSV usados en procesos de datos.</td></tr>
+            <tr><td><code>electron-updater</code></td><td>runtime</td><td>Gestiona actualización automática de la app Electron.</td></tr>
+            <tr><td><code>express</code></td><td>runtime</td><td>Servidor HTTP/API principal del backend.</td></tr>
+            <tr><td><code>express-session</code></td><td>runtime</td><td>Manejo de sesión autenticada del usuario.</td></tr>
+            <tr><td><code>helmet</code></td><td>runtime</td><td>Headers de seguridad HTTP para endurecer el backend.</td></tr>
+            <tr><td><code>joi</code></td><td>runtime</td><td>Validación de payloads de entrada (body/query/params).</td></tr>
+            <tr><td><code>jsonwebtoken</code></td><td>runtime</td><td>Firma y verificación de JWT (acceso/refresco).</td></tr>
+            <tr><td><code>node-firebird</code></td><td>runtime</td><td>Conexión y consultas a base Firebird contable.</td></tr>
+            <tr><td><code>nodemailer</code></td><td>runtime</td><td>Envío de correos (notificaciones/automatizaciones).</td></tr>
+            <tr><td><code>xlsx</code></td><td>runtime</td><td>Lectura/escritura de archivos Excel en flujos de import/export.</td></tr>
+            <tr><td><code>cross-env</code></td><td>desarrollo</td><td>Define variables de entorno multiplataforma en scripts npm.</td></tr>
+            <tr><td><code>electron</code></td><td>desarrollo</td><td>Runtime de escritorio para ejecutar la app.</td></tr>
+            <tr><td><code>electron-builder</code></td><td>desarrollo</td><td>Empaquetado y generación de instaladores/portables.</td></tr>
+            <tr><td><code>electron-rebuild</code></td><td>desarrollo</td><td>Recompila módulos nativos para la versión de Electron activa.</td></tr>
+            <tr><td><code>esbuild</code></td><td>desarrollo</td><td>Bundling/transpilación rápida en scripts de build o utilitarios.</td></tr>
+          </tbody>
+        </table>
 
         <h4>Express (servidor HTTP)</h4>
         <p>Crea la API y define rutas.</p>
@@ -695,9 +731,9 @@ app.get("/api/salud", (req, res) => {
   // Devuelve JSON al cliente con estado "ok"
   res.json({ estado: "ok" });
 }); // Cierra definicion de ruta</pre>
-        <p class="mini"><strong>Ejemplo natural:</strong> Express es la recepcion que decide a que ventanilla va cada solicitud.</p>
+        <p class="mini"><strong>Ejemplo natural:</strong> Express es la recepción que decide a qué ventanilla va cada solicitud.</p>
 
-        <h4>Joi (validacion de datos de entrada)</h4>
+        <h4>Joi (validación de datos de entrada)</h4>
         <p>
           Se usa para validar <code>req.body</code> o <code>req.query</code> antes de procesar.
           Evita errores y ataques por datos malformados.
@@ -724,7 +760,7 @@ if (error) {
         <h4>Helmet (headers de seguridad)</h4>
         <p>
           Agrega headers HTTP seguros para reducir vectores comunes de ataque.
-          En este proyecto se usa asi:
+          En este proyecto se usa así:
         </p>
         <pre>// Importa Helmet (headers de seguridad HTTP)
 const helmet = require("helmet");
@@ -738,7 +774,7 @@ app.use(helmet({ contentSecurityPolicy: false })); // CSP se deja desactivado po
 
         <h4>express-session + better-sqlite3-session-store</h4>
         <p>
-          Mantiene sesiones de usuario en SQLite para soportar multiples usuarios concurrentes.
+          Mantiene sesiones de usuario en SQLite para soportar múltiples usuarios concurrentes.
         </p>
         <pre>// Importa middleware de sesion
 const session = require("express-session");
@@ -769,7 +805,7 @@ const bcrypt = require("bcryptjs");
 const hash = bcrypt.hashSync(nuevaContrasena, 12);
 // Compara texto ingresado vs hash almacenado en base de datos
 const coincide = await bcrypt.compare(contrasenaActual, hashGuardado);</pre>
-        <p class="mini"><strong>Ejemplo natural:</strong> bcrypt guarda una huella, no la contrasena real.</p>
+        <p class="mini"><strong>Ejemplo natural:</strong> bcrypt guarda una huella, no la contraseña real.</p>
 
         <h4>jsonwebtoken (JWT)</h4>
         <p>Firma y valida tokens de acceso/refresco.</p>
@@ -780,7 +816,7 @@ const jwt = require("jsonwebtoken");
 const tokenAcceso = jwt.sign({ sub: usuarioId }, JWT_SECRET, { expiresIn: "1h" });
 // Verifica token recibido usando el mismo secreto de firma
 const payload = jwt.verify(tokenAcceso, JWT_SECRET);</pre>
-        <p class="mini"><strong>Ejemplo natural:</strong> JWT es un pase firmado: si la firma no coincide, el pase es invalido.</p>
+        <p class="mini"><strong>Ejemplo natural:</strong> JWT es un pase firmado: si la firma no coincide, el pase es inválido.</p>
 
         <h4>better-sqlite3 (BD local rapida)</h4>
         <p>Driver SQLite sincrono, usado para usuarios, permisos, layouts, bitacora, etc.</p>
@@ -792,7 +828,7 @@ const db = new Database("datos/panel.sqlite");
 db.pragma("journal_mode = WAL");
 // Si hay lock, espera hasta 5000 ms antes de fallar
 db.pragma("busy_timeout = 5000");</pre>
-        <p class="mini"><strong>Ejemplo natural:</strong> SQLite aqui funciona como una libreta local ordenada del sistema.</p>
+        <p class="mini"><strong>Ejemplo natural:</strong> SQLite aquí funciona como una libreta local ordenada del sistema.</p>
 
         <h4>node-firebird (conexión a contabilidad Firebird)</h4>
         <p>Consulta tablas contables por empresa/año.</p>
@@ -815,9 +851,9 @@ Firebird.attach(opciones, (errorConexion, conexion) => {
         <h4>electron-updater + auto-launch</h4>
         <p>
           <code>electron-updater</code> busca actualizaciones; <code>auto-launch</code>
-          configura arranque automatico de la app en el sistema.
+          configura arranque automático de la app en el sistema.
         </p>
-        <p class="mini"><strong>Ejemplo natural:</strong> uno revisa si hay version nueva; el otro hace que la app arranque sola al encender la PC.</p>
+        <p class="mini"><strong>Ejemplo natural:</strong> uno revisa si hay versión nueva; el otro hace que la app arranque sola al encender la PC.</p>
       </section>
 
       <section id="backend" class="card">
@@ -830,12 +866,12 @@ Firebird.attach(opciones, (errorConexion, conexion) => {
           <li><code>/api/cuentas-activas</code> consulta catálogo Firebird para autocompletar.</li>
         </ul>
         <div class="glossary-term">
-          <strong>Qué es un parser JSON:</strong> pieza que convierte texto JSON en objeto util para JavaScript.
+          <strong>Qué es un parser JSON:</strong> pieza que convierte texto JSON en objeto útil para JavaScript.
           <br />
-          <strong>Ejemplo:</strong> transforma <code>{ "anio": 2026 }</code> en datos que el codigo puede leer.
+          <strong>Ejemplo:</strong> transforma <code>{ "anio": 2026 }</code> en datos que el código puede leer.
         </div>
         <div class="simple">
-          <strong>Ejemplo en lenguaje natural:</strong> el backend es como un centro de atencion:
+          <strong>Ejemplo en lenguaje natural:</strong> el backend es como un centro de atención:
           recibe solicitudes, verifica identidad, consulta fuentes de datos y devuelve respuesta.
         </div>
         <h4>Rutas montadas (prefijos)</h4>
@@ -853,12 +889,12 @@ Firebird.attach(opciones, (errorConexion, conexion) => {
             <tr><td><code>/api/empresas</code></td><td><code>src/routes/empresas.js</code></td><td>Catálogo y conexión por empresa.</td></tr>
             <tr><td><code>/api/modulos</code></td><td><code>src/routes/modulos.js</code></td><td>Catálogo de módulos + summary legacy.</td></tr>
             <tr><td><code>/api/presupuestos</code></td><td><code>src/routes/presupuestos.js</code></td><td>Consulta/estado/transiciones ppto.</td></tr>
-            <tr><td><code>/api/planeacion</code></td><td><code>src/routes/planeacion.js</code></td><td>Datos de planeacion por cuentas.</td></tr>
-            <tr><td><code>/api/layouts</code></td><td><code>src/routes/layoutRoutes.js</code> + <code>layouts.js</code></td><td>Layouts por año/capitulo/versiones.</td></tr>
+            <tr><td><code>/api/planeacion</code></td><td><code>src/routes/planeacion.js</code></td><td>Datos de planeación por cuentas.</td></tr>
+            <tr><td><code>/api/layouts</code></td><td><code>src/routes/layoutRoutes.js</code> + <code>layouts.js</code></td><td>Layouts por año/capítulo/versiones.</td></tr>
             <tr><td><code>/api/layouts-config</code></td><td><code>src/routes/layoutRoutes.js</code></td><td>Alias histórico para gestor.</td></tr>
             <tr><td><code>/api/insercion</code></td><td><code>src/routes/insercion.js</code></td><td>Inserciones validadas de cuentas/secciones/ops.</td></tr>
             <tr><td><code>/api/reportes</code></td><td><code>src/routes/reportes.js</code></td><td>SUMMARY, RESUMEN, diagnostico, export Excel.</td></tr>
-            <tr><td><code>/api/borradores</code></td><td><code>src/routes/borradores.js</code></td><td>Workflow autorizacion y recontabilizacion.</td></tr>
+            <tr><td><code>/api/borradores</code></td><td><code>src/routes/borradores.js</code></td><td>Workflow autorización y recontabilización.</td></tr>
             <tr><td><code>/api/comentarios</code></td><td><code>src/routes/comentarios.js</code></td><td>Comentarios por celda.</td></tr>
             <tr><td><code>/api/notificaciones</code></td><td><code>src/routes/notificaciones.js</code></td><td>Bandeja y lectura.</td></tr>
             <tr><td><code>/api/perfil</code></td><td><code>src/routes/perfil.js</code></td><td>Perfil de usuario + cambio de password.</td></tr>
@@ -870,13 +906,13 @@ Firebird.attach(opciones, (errorConexion, conexion) => {
           </tbody>
         </table>
 
-        <h4>7.1 Origen y transformacion de Request/Response (explicado paso a paso)</h4>
+        <h4>7.1 Origen y transformación de Request/Response (explicado paso a paso)</h4>
         <div class="glossary-term">
-          <strong>Request:</strong> datos que el cliente envia al servidor.
+          <strong>Request:</strong> datos que el cliente envía al servidor.
           <br />
           <strong>Response:</strong> datos que el servidor devuelve al cliente.
           <br />
-          <strong>Transformacion:</strong> cambios que hace el backend entre entrada y salida
+          <strong>Transformación:</strong> cambios que hace el backend entre entrada y salida
           (validar, normalizar, enriquecer, filtrar permisos, etc.).
         </div>
         <h4>Diagrama general de request/response</h4>
@@ -914,7 +950,7 @@ fetch("/api/auth/login", {
   })
 });</pre>
 
-        <p><strong>Transformacion en backend:</strong> validacion + consulta + armado de sesión.</p>
+        <p><strong>Transformación en backend:</strong> validación + consulta + armado de sesión.</p>
         <pre>// 2) Router valida estructura con Joi
 const { error, value } = esquemaLogin.validate(req.body || {}, { abortEarly: false });
 if (error) return res.status(400).json({ mensaje: "Verifica los datos capturados." });
@@ -942,7 +978,7 @@ const tokens = emitirTokens({ id: registro.id, usuario: registro.usuario });</pr
   "tokenRefresco": "eyJ..."
 }</pre>
         <div class="simple">
-          <strong>Traduccion simple:</strong> entran 2 campos (usuario/password),
+          <strong>Traducción simple:</strong> entran 2 campos (usuario/password),
           salen datos completos de sesión para que la app sepa quien eres y que puedes hacer.
         </div>
         <h4>Diagrama login (secuencia)</h4>
@@ -974,7 +1010,7 @@ const tokens = emitirTokens({ id: registro.id, usuario: registro.usuario });</pr
         <p><strong>Origen del request:</strong> vista de reporte en frontend.</p>
         <pre>// Cliente pide reporte por empresa y anio
 GET /api/reportes/resumen?empresaId=EMPRESA01&amp;anio=2026&amp;mes=3</pre>
-        <p><strong>Transformacion en backend:</strong></p>
+        <p><strong>Transformación en backend:</strong></p>
         <ol>
           <li>Valida query con Joi (empresa/año/mes).</li>
           <li>Verifica que la empresa exista y que el usuario tenga permisos.</li>
@@ -991,7 +1027,7 @@ GET /api/reportes/resumen?empresaId=EMPRESA01&amp;anio=2026&amp;mes=3</pre>
   "resumen": [ ... ]
 }</pre>
         <div class="simple">
-          <strong>Traduccion simple:</strong> frontend pide "dame resumen 2026",
+          <strong>Traducción simple:</strong> frontend pide "dame resumen 2026",
           backend junta varias fuentes, calcula y devuelve un resultado ya ordenado para mostrar.
         </div>
         <h4>Diagrama reporte RESUMEN</h4>
@@ -1025,7 +1061,7 @@ GET /api/reportes/resumen?empresaId=EMPRESA01&amp;anio=2026&amp;mes=3</pre>
         <ul>
           <li><code>src/services/firebirdService.js</code> hace <code>attach/query/detach</code> por llamada.</li>
           <li>Rutas de base por empresa: <code>src/config/empresas.js</code>.</li>
-          <li>Overrides persistidos en <code>datos/firebird-connections.json</code> via <code>firebirdConfigService.js</code>.</li>
+          <li>Overrides persistidos en <code>datos/firebird-connections.json</code> vía <code>firebirdConfigService.js</code>.</li>
           <li>Soporta empresas base (1-4) y comparativas (9-12 con alias).</li>
         </ul>
         <div class="glossary-term">
@@ -1034,7 +1070,7 @@ GET /api/reportes/resumen?empresaId=EMPRESA01&amp;anio=2026&amp;mes=3</pre>
           <strong>Ejemplo:</strong> "dame los usuarios activos" en lugar de buscar manualmente en miles de filas.
         </div>
 
-        <h4>8.2 SQLite (estado local de aplicacion)</h4>
+        <h4>8.2 SQLite (estado local de aplicación)</h4>
         <p class="mini">Archivo principal: <code>datos/panel.sqlite</code> (o data dir equivalente en empaquetado).</p>
         <table>
           <thead>
@@ -1046,13 +1082,13 @@ GET /api/reportes/resumen?empresaId=EMPRESA01&amp;anio=2026&amp;mes=3</pre>
           <tbody>
             <tr><td><code>usuarios</code></td><td>Cuentas, hash de password, banderas de admin/permisos generales.</td></tr>
             <tr><td><code>permisos_modulo</code></td><td>Permisos por empresa/módulo (<code>leer/cargar/revisar/aprobar</code>).</td></tr>
-            <tr><td><code>presupuestos_estado</code> + <code>presupuestos_estado_historial</code></td><td>Workflow de estados por módulo/año/capitulo.</td></tr>
+            <tr><td><code>presupuestos_estado</code> + <code>presupuestos_estado_historial</code></td><td>Workflow de estados por módulo/año/capítulo.</td></tr>
             <tr><td><code>PLAN_BORRADORES</code> + <code>PLAN_BORRADORES_HISTORIAL</code></td><td>Borradores, transiciones y trazabilidad.</td></tr>
             <tr><td><code>comentarios_celdas</code></td><td>Comentarios y respuestas por celda.</td></tr>
             <tr><td><code>notificaciones</code></td><td>Notificaciones in-app por usuario.</td></tr>
-            <tr><td><code>layout_cuentas</code>, <code>layout_operaciones</code>, <code>layout_secciones</code></td><td>Definicion de layouts por empresa/módulo/año/capitulo.</td></tr>
-            <tr><td><code>layout_bitacora</code>, <code>layout_versions</code></td><td>Auditoria/versionado de layouts.</td></tr>
-            <tr><td><code>permisos_edicion_capitulo</code></td><td>Permiso granular de edicion por capitulo.</td></tr>
+            <tr><td><code>layout_cuentas</code>, <code>layout_operaciones</code>, <code>layout_secciones</code></td><td>Definicion de layouts por empresa/módulo/año/capítulo.</td></tr>
+            <tr><td><code>layout_bitacora</code>, <code>layout_versions</code></td><td>Auditoría/versionado de layouts.</td></tr>
+            <tr><td><code>permisos_edicion_capitulo</code></td><td>Permiso granular de edición por capítulo.</td></tr>
             <tr><td><code>graficas_config</code>, <code>graficas_config_anio</code></td><td>Configuración de gráficas global y por año.</td></tr>
             <tr><td><code>presupuestos_guardados</code>, <code>empresa_vistas</code></td><td>Persistencia complementaria.</td></tr>
           </tbody>
@@ -1063,7 +1099,7 @@ GET /api/reportes/resumen?empresaId=EMPRESA01&amp;anio=2026&amp;mes=3</pre>
         </div>
         <div class="simple">
           <strong>Ejemplo en lenguaje natural:</strong> Firebird es la fuente contable original;
-          SQLite es la memoria local de trabajo de la aplicacion.
+          SQLite es la memoria local de trabajo de la aplicación.
         </div>
         <h4>Diagrama de persistencia (SQLite + Firebird)</h4>
         <pre>
@@ -1089,8 +1125,8 @@ GET /api/reportes/resumen?empresaId=EMPRESA01&amp;anio=2026&amp;mes=3</pre>
       <section id="funciones-clave" class="card">
         <h3>9) Funciones principales del sistema (con ejemplos)</h3>
         <p>
-          Estas funciones son de las más importantes para entender como arranca y opera
-          toda la aplicacion.
+          Estas funciones son de las más importantes para entender cómo arranca y opera
+          toda la aplicación.
         </p>
 
         <h4>1) Arranque del servidor: <code>iniciarServidor()</code> en <code>src/server.js</code></h4>
@@ -1108,9 +1144,9 @@ const iniciarServidor = (puerto = 3005) => {
   return app.listen(puerto, "0.0.0.0");
 }; // Retorna instancia del servidor</pre>
         <p class="mini">
-          Si esta funcion falla, la app no puede servir frontend ni API.
+          Si esta función falla, la app no puede servir frontend ni API.
         </p>
-        <p class="mini"><strong>Ejemplo natural:</strong> si el servidor no arranca, es como abrir un call center sin prender telefonos.</p>
+        <p class="mini"><strong>Ejemplo natural:</strong> si el servidor no arranca, es como abrir un call center sin prender teléfonos.</p>
 
         <h4>2) Conexión SQLite: <code>crearConexion()</code> en <code>src/db/sqlite.js</code></h4>
         <pre>// Crea y configura conexion SQLite
@@ -1129,7 +1165,7 @@ const crearConexion = () => {
   return db;
 };</pre>
         <p class="mini">
-          Esta configuración permite mejor concurrencia cuando hay multiples usuarios activos.
+          Esta configuración permite mejor concurrencia cuando hay múltiples usuarios activos.
         </p>
         <p class="mini"><strong>Ejemplo natural:</strong> varios usuarios pueden trabajar sin bloquearse tanto entre si.</p>
 
@@ -1159,7 +1195,7 @@ const ejecutarConsulta = (empresaId, consulta, parametros = []) => {
         <p class="mini">
           Este patron (<code>attach -> query -> detach</code>) evita dejar conexiones abiertas.
         </p>
-        <p class="mini"><strong>Ejemplo natural:</strong> como usar una sala de juntas: entrar, hacer reunion, salir y cerrar.</p>
+        <p class="mini"><strong>Ejemplo natural:</strong> cómo usar una sala de juntas: entrar, hacer reunión, salir y cerrar.</p>
 
         <h4>4) Motor de reportes: <code>generarReporte()</code> en <code>planeacionReportesEngine.js</code></h4>
         <pre>// Genera reporte final (SUMMARY o RESUMEN)
@@ -1190,7 +1226,7 @@ const headersAutenticacion = () => {
         <p class="mini">
           Hace que cada request del cliente llegue con usuario autenticado y empresa activa.
         </p>
-        <p class="mini"><strong>Ejemplo natural:</strong> cada solicitud lleva "quien soy" y "en que empresa trabajo".</p>
+        <p class="mini"><strong>Ejemplo natural:</strong> cada solicitud lleva "quién soy" y "en qué empresa trabajo".</p>
       </section>
 
       <section id="frontend" class="card">
@@ -1210,13 +1246,13 @@ const headersAutenticacion = () => {
         <ul>
           <li><code>vistas/js/sesion.js</code> guarda/lee sesión en <code>localStorage</code> y construye headers auth.</li>
           <li><code>vistas/js/verificar-sesion.js</code> protege vistas de módulo (incluye soporte iframe).</li>
-          <li><code>vistas/js/capitulos-modulos.js</code> define disponibilidad de módulos por empresa/capitulo.</li>
+          <li><code>vistas/js/capitulos-modulos.js</code> define disponibilidad de módulos por empresa/capítulo.</li>
         </ul>
 
-        <h4>Paginas HTML por dominio</h4>
+        <h4>Páginas HTML por dominio</h4>
         <ul>
           <li><code>login.html</code>, <code>perfil.html</code>, <code>usuarios.html</code>, <code>crear_usuario.html</code>.</li>
-          <li>Módulos planeacion: <code>Finanzas.html</code>, <code>RH.html</code>, <code>Comites.html</code>, etc.</li>
+          <li>Módulos planeación: <code>Finanzas.html</code>, <code>RH.html</code>, <code>Comites.html</code>, etc.</li>
           <li>Reportes: <code>RESUMEN.html</code>, <code>Graficas.html</code>, <code>Graficas-Mejoradas.html</code>.</li>
           <li>Gestor de plantillas: <code>plantillas.html</code>.</li>
         </ul>
@@ -1226,7 +1262,7 @@ const headersAutenticacion = () => {
           <li><code>planeacion-modulo-vista.js</code>, <code>cuentas-modulo.js</code>, <code>modo-edicion-presupuesto.js</code>.</li>
           <li><code>insertion-wizard.js</code> y <code>context-menu-wizard.js</code> para inserciones guiadas.</li>
           <li><code>flujo-autorizacion.js</code> para estados y transiciones en UI.</li>
-          <li><code>resumen-view.js</code>, <code>summary-view.js</code> para tablas jerarquicas de reportes.</li>
+          <li><code>resumen-view.js</code>, <code>summary-view.js</code> para tablas jerárquicas de reportes.</li>
         </ul>
       </section>
 
@@ -1249,24 +1285,24 @@ const headersAutenticacion = () => {
           <li>La vista consume APIs con <code>Sesion.headersAutenticacion()</code>.</li>
         </ul>
         <div class="simple">
-          <strong>Ejemplo en lenguaje natural:</strong> dos usuarios pueden ver menus distintos segun su rol.</div>
+          <strong>Ejemplo en lenguaje natural:</strong> dos usuarios pueden ver menús distintos según su rol.</div>
 
         <h4>11.3 Reportes SUMMARY / RESUMEN</h4>
         <ul>
           <li>Router: <code>src/routes/reportes.js</code>.</li>
           <li>Engine: <code>src/services/reportes/planeacionReportesEngine.js</code> (unificado).</li>
-          <li>Definiciones de layout leidas desde SQLite por empresa/módulo/año/capitulo.</li>
+          <li>Definiciones de layout leídas desde SQLite por empresa/módulo/año/capítulo.</li>
           <li>Datos de saldos/presupuestos obtenidos de Firebird y agregados por secciones/operaciones.</li>
         </ul>
         <div class="simple">
-          <strong>Ejemplo en lenguaje natural:</strong> el layout dice "como se ordena la tabla"
-          y Firebird aporta "los numeros reales".</div>
+          <strong>Ejemplo en lenguaje natural:</strong> el layout dice "cómo se ordena la tabla"
+          y Firebird aporta "los números reales".</div>
 
-        <h4>11.4 Workflow de borradores/autorizacion</h4>
+        <h4>11.4 Workflow de borradores/autorización</h4>
         <ul>
           <li>Dominio principal en <code>src/routes/borradores.js</code> + <code>src/services/borradoresService.js</code>.</li>
           <li>Estados: <code>EDITANDO</code>, <code>REVISADO</code>, <code>APROBADO</code>, <code>RECHAZADO</code>, etc.</li>
-          <li>Incluye endpoint de recontabilizacion (<code>/api/borradores/recontabilizar</code>).</li>
+          <li>Incluye endpoint de recontabilización (<code>/api/borradores/recontabilizar</code>).</li>
         </ul>
       </section>
 
@@ -1282,7 +1318,7 @@ const headersAutenticacion = () => {
 
         <h4>B) Agregar módulo funcional nuevo</h4>
         <ul>
-          <li>Alta de nombre canonico en <code>src/config/modulos.js</code>.</li>
+          <li>Alta de nombre canónico en <code>src/config/modulos.js</code>.</li>
           <li>Mapeo de normalizacion en <code>MAPA_NORMALIZACION_MODULOS</code>.</li>
           <li>Disponibilidad por empresa en <code>vistas/js/capitulos-modulos.js</code>.</li>
           <li>Entrada de menú en <code>vistas/js/react-app.js</code>.</li>
@@ -1293,11 +1329,11 @@ const headersAutenticacion = () => {
         <ul>
           <li>API principal: <code>/api/layouts/*</code> en <code>layoutRoutes.js</code>.</li>
           <li>Persistencia: <code>layoutService.js</code> y tablas <code>layout_*</code>.</li>
-          <li>Datos fuente historicos: <code>PLANTILLAS 2026+</code> e <code>info IMPORTANTE</code>.</li>
+          <li>Datos fuente históricos: <code>PLANTILLAS 2026+</code> e <code>info IMPORTANTE</code>.</li>
         </ul>
 
         <div class="warn">
-          Si cambias nombres de módulos o capitulos, revisa normalizaciones en backend y frontend
+          Si cambias nombres de módulos o capítulos, revisa normalizaciones en backend y frontend
           (evitar duplicados por acentos o variantes como <code>EMPRESA01</code> vs <code>empresa1</code>).
         </div>
         <div class="simple">
@@ -1319,10 +1355,10 @@ const headersAutenticacion = () => {
         <h4>Pruebas incluidas</h4>
         <ul>
           <li><code>tests/summary-engine-core.test.js</code>: aritmetica y armado de filas SUMMARY.</li>
-          <li><code>tests/test-flujo-autorizacion.js</code>: validaciones del flujo de autorizacion en UI.</li>
+          <li><code>tests/test-flujo-autorizacion.js</code>: validaciones del flujo de autorización en UI.</li>
         </ul>
         <div class="simple">
-          <strong>Ejemplo en lenguaje natural:</strong> correr pruebas es como hacer checklist antes de despegar un avion.
+          <strong>Ejemplo en lenguaje natural:</strong> correr pruebas es como hacer checklist antes de despegar un avión.
         </div>
       </section>
 
@@ -1330,7 +1366,7 @@ const headersAutenticacion = () => {
         <h3>14) Checklist de debugging rápido</h3>
         <h4>Cuando no abre la app</h4>
         <ul>
-          <li>Verificar si <code>:3005</code> esta ocupado.</li>
+          <li>Verificar si <code>:3005</code> está ocupado.</li>
           <li>Probar <code>npm run server</code> por separado y revisar logs.</li>
           <li>Revisar módulo nativo SQLite con <code>npm run native:status</code>.</li>
         </ul>
@@ -1338,13 +1374,13 @@ const headersAutenticacion = () => {
         <ul>
           <li>Revisar <code>SESSION_SECRET</code> / JWT secrets.</li>
           <li>Confirmar existencia de usuario en tabla <code>usuarios</code>.</li>
-          <li>Validar que se este enviando cookie y/o header <code>Authorization</code>.</li>
+          <li>Validar que se esté enviando cookie y/o header <code>Authorization</code>.</li>
         </ul>
         <h4>Cuando un reporte sale en cero</h4>
         <ul>
           <li>Usar <code>/api/reportes/diagnostico-firebird</code>.</li>
-          <li>Confirmar año, tabla Firebird y codigos de cuenta esperados.</li>
-          <li>Verificar layouts del módulo/año/capitulo en <code>layout_*</code>.</li>
+          <li>Confirmar año, tabla Firebird y códigos de cuenta esperados.</li>
+          <li>Verificar layouts del módulo/año/capítulo en <code>layout_*</code>.</li>
         </ul>
         <div class="simple">
           <strong>Ejemplo en lenguaje natural:</strong> cuando algo falla, no adivines;
@@ -1357,9 +1393,9 @@ const headersAutenticacion = () => {
         <ul>
           <li>Backend: lógica de negocio en <code>src/services</code>, routers delgados.</li>
           <li>Permisos: cualquier endpoint sensible debe pasar por <code>requireAuth</code> + verificacion de permisos.</li>
-          <li>Nombres: mantener módulo canonico para evitar drift entre UI, API y BD.</li>
-          <li>Datos: evitar hardcode innecesario; usar catalogos/config cuando exista fuente central.</li>
-          <li>Cambios de esquema: hacer migracion defensiva (como en <code>src/db/sqlite.js</code>).</li>
+          <li>Nombres: mantener módulo canónico para evitar drift entre UI, API y BD.</li>
+          <li>Datos: evitar hardcode innecesario; usar catálogos/config cuando exista fuente central.</li>
+          <li>Cambios de esquema: hacer migración defensiva (como en <code>src/db/sqlite.js</code>).</li>
         </ul>
       </section>
 
@@ -1367,7 +1403,7 @@ const headersAutenticacion = () => {
         <h3>16) Tutorial guiado de 30 minutos (paso a paso)</h3>
         <p>
           Objetivo: levantar la app, iniciar sesión, navegar un módulo y correr una prueba básica.
-          Esta práctica esta pensada para alguien que nunca ha trabajado en este proyecto.
+          Esta práctica está pensada para alguien que nunca ha trabajado en este proyecto.
         </p>
 
         <h4>Bloque A (min 0-8): preparar entorno</h4>
@@ -1406,7 +1442,7 @@ npm run native:ensure</span></pre>
           </li>
         </ol>
 
-        <h4>Bloque C (min 14-19): verificar API minima</h4>
+        <h4>Bloque C (min 14-19): verificar API mínima</h4>
         <ol>
           <li>Abre DevTools (F12) en la ventana.</li>
           <li>En consola del navegador ejecuta:
@@ -1433,7 +1469,7 @@ fetch("/api/salud")
           <li>Opcional: prueba cambio de password y verifica mensaje de exito/error.</li>
         </ol>
 
-        <h4>Bloque E (min 24-28): correr pruebas automaticas</h4>
+        <h4>Bloque E (min 24-28): correr pruebas automáticas</h4>
         <ol>
           <li>En terminal nueva ejecuta:
             <pre><span class="shell">npm test</span></pre>
@@ -1441,7 +1477,7 @@ fetch("/api/salud")
           <li>Resultado esperado: tests de <code>tests/summary-engine-core.test.js</code> en verde.</li>
         </ol>
 
-        <h4>Bloque F (min 28-30): inspeccion rapida de base local</h4>
+        <h4>Bloque F (min 28-30): inspección rápida de base local</h4>
         <ol>
           <li>Ejecuta este comando para contar usuarios en SQLite:
             <pre><span class="shell"># Ejecuta Node inline sin crear archivo
@@ -1459,12 +1495,12 @@ node -e "
 
         <div class="ok">
           Si completaste estos pasos, ya tienes el flujo base dominado:
-          arranque, autenticación, navegación UI, API y validacion técnica minima.
+          arranque, autenticación, navegación UI, API y validación técnica mínima.
         </div>
       </section>
 
       <section id="graficas-exportacion" class="card">
-        <h3>17) Cómo se generan las gráficas y como se exportan (incluye Excel)</h3>
+        <h3>17) Cómo se generan las gráficas y cómo se exportan (incluye Excel)</h3>
         <p>
           Esta sección explica el flujo real en este repo para:
           generar gráficas en pantalla, exportarlas y crear archivos de Excel con gráficas.
@@ -1488,15 +1524,15 @@ node -e "
 
         <h4>17.1 Concepto clave: 2 tipos de grafica en Excel</h4>
         <div class="glossary-term">
-          <strong>Grafica como imagen:</strong> el sistema toma una "foto" del canvas
-          y la pega dentro del Excel (no se puede editar como grafica nativa de Excel).
+          <strong>Gráfica como imagen:</strong> el sistema toma una "foto" del canvas
+          y la pega dentro del Excel (no se puede editar como gráfica nativa de Excel).
           <br />
           <strong>Grafica nativa de Excel:</strong> el sistema crea un objeto grafico
           real de Excel (si se puede editar dentro de Excel: colores, tipo, ejes).
         </div>
         <div class="simple">
           <strong>Ejemplo en lenguaje natural:</strong> imagen = pegar screenshot en una hoja;
-          grafica nativa = insertar un chart de Excel que sigue conectado a celdas.
+          gráfica nativa = insertar un chart de Excel que sigue conectado a celdas.
         </div>
 
         <h4>17.2 Origen de datos para gráficas de RESUMEN</h4>
@@ -1571,9 +1607,9 @@ const valor = Number(row?.totals?.actualYTD || 0);</pre>
 
         <h4>17.4 Exportar gráficas desde Graficas.html (ExcelJS en cliente)</h4>
         <p>
-          El boton <code>Excel</code> de <code>vistas/Graficas.html</code> llama
+          El botón <code>Excel</code> de <code>vistas/Graficas.html</code> llama
           <code>window.exportarGraficasExcel()</code> en <code>vistas/js/graficas-resumen.js</code>.
-          Esta ruta exporta hojas con tablas y pega imagenes de los canvas.
+          Esta ruta exporta hojas con tablas y pega imágenes de los canvas.
         </p>
         <pre>// Handler global del boton "Excel" en Graficas.html
 window.exportarGraficasExcel = async () => {
@@ -1616,14 +1652,14 @@ window.exportarGraficasExcel = async () => {
   window.URL.revokeObjectURL(url);
 };</pre>
         <div class="warn">
-          Si <code>ExcelJS</code> no esta disponible, hay fallback con <code>SheetJS</code>
-          (tabla/hojas sin imagenes de gráficas).
+          Si <code>ExcelJS</code> no está disponible, hay fallback con <code>SheetJS</code>
+          (tabla/hojas sin imágenes de gráficas).
         </div>
         <div class="simple">
           <strong>Ejemplo en lenguaje natural:</strong> esta exportación arma el Excel directamente
           en el navegador y pega capturas de las gráficas que ves en pantalla.
         </div>
-        <h4>Diagrama exportación ExcelJS (grafica como imagen)</h4>
+        <h4>Diagrama exportación ExcelJS (gráfica como imagen)</h4>
         <pre>
 [Canvas Chart.js]
       |
@@ -1640,9 +1676,9 @@ window.exportarGraficasExcel = async () => {
 [Archivo .xlsx descargado]
         </pre>
 
-        <h4>17.5 Exportar Excel con grafica nativa (backend + PowerShell + Excel COM)</h4>
+        <h4>17.5 Exportar Excel con gráfica nativa (backend + PowerShell + Excel COM)</h4>
         <p>
-          Aqui se genera un archivo que incluye <strong>objetos de grafica nativos de Excel</strong>.
+          Aquí se genera un archivo que incluye <strong>objetos de gráfica nativos de Excel</strong>.
           Se usa en endpoints como:
           <code>/api/reportes/operativo-excel-native</code> y
           <code>/api/reportes/resumen-excel-native</code>.
@@ -1651,9 +1687,9 @@ window.exportarGraficasExcel = async () => {
         <h4>Flujo request/response de esta exportación</h4>
         <ol>
           <li>Frontend crea un libro base (tabla + hoja de datos de gráficas).</li>
-          <li>Frontend envia ese libro en binario (<code>application/octet-stream</code>) al backend.</li>
+          <li>Frontend envía ese libro en binario (<code>application/octet-stream</code>) al backend.</li>
           <li>Backend guarda temporalmente el archivo y ejecuta script PowerShell.</li>
-          <li>PowerShell abre Excel via COM, crea chart objects y guarda salida.</li>
+          <li>PowerShell abre Excel vía COM, crea chart objects y guarda salida.</li>
           <li>Backend devuelve el nuevo <code>.xlsx</code> como descarga HTTP.</li>
         </ol>
 
@@ -1743,7 +1779,7 @@ $chart.Chart.SetSourceData($rangeValues)
 $wb.SaveAs($OutputPath)</pre>
 
         <div class="warn">
-          Esta ruta requiere entorno Windows con Excel instalado (usa <code>Excel.Application</code> via COM).
+          Esta ruta requiere entorno Windows con Excel instalado (usa <code>Excel.Application</code> vía COM).
         </div>
         <div class="simple">
           <strong>Ejemplo en lenguaje natural:</strong> el frontend manda "materia prima" (xlsx base),
@@ -1773,11 +1809,11 @@ $wb.SaveAs($OutputPath)</pre>
 [Descarga final con graficas editables en Excel]
         </pre>
 
-        <h4>17.6 Cómo exportar en el dia a dia</h4>
+        <h4>17.6 Cómo exportar en el día a día</h4>
         <ol>
           <li>
-            <strong>Desde Graficas.html:</strong> usa boton Excel para exportar reporte visual
-            con imagenes de gráficas.
+            <strong>Desde Graficas.html:</strong> usa botón Excel para exportar reporte visual
+            con imágenes de gráficas.
           </li>
           <li>
             <strong>Desde módulos operativos:</strong> usa <code>ExportUtils.exportarExcelConGraficas()</code>
@@ -1793,7 +1829,7 @@ $wb.SaveAs($OutputPath)</pre>
       <section id="mermaid" class="card">
         <h3>18) Menú de diagramas Mermaid</h3>
         <p>
-          Aqui tienes un menú rápido para navegar diagramas más visuales.
+          Aquí tienes un menú rápido para navegar diagramas más visuales.
           Si algo no se entiende en texto, entra al diagrama correspondiente.
         </p>
 
@@ -1801,7 +1837,7 @@ $wb.SaveAs($OutputPath)</pre>
           <a href="#mm-arquitectura">Arquitectura general</a>
           <a href="#mm-request-response">Request/Response backend</a>
           <a href="#mm-datos">Persistencia SQLite + Firebird</a>
-          <a href="#mm-gráficas">Gráficas y exportaciones</a>
+          <a href="#mm-graficas">Gráficas y exportaciones</a>
           <a href="#mm-excel-native">Excel nativo (PowerShell + COM)</a>
         </nav>
 
@@ -1827,9 +1863,9 @@ sequenceDiagram
   participant S as Servicio
   participant D as DB (SQLite/Firebird)
   C->>R: Request (URL, headers, body)
-  R->>R: Validacion Joi + Auth
+  R->>R: Validación Joi + Auth
   R->>S: Datos normalizados
-  S->>D: Query/operacion
+  S->>D: Query/operación
   D-->>S: Datos crudos
   S-->>R: Datos transformados
   R-->>C: Response JSON + status
@@ -1849,7 +1885,7 @@ flowchart LR
           </div>
         </div>
 
-        <h4 id="mm-gráficas">18.4 Gráficas y exportaciones</h4>
+        <h4 id="mm-graficas">18.4 Gráficas y exportaciones</h4>
         <div class="mermaid-wrap">
           <div class="mermaid">
 flowchart TD
@@ -1888,7 +1924,7 @@ flowchart TD
           <li><code>DOCUMENTACION_TECNICA_ULTRA_DETALLADA.md</code></li>
         </ul>
         <p class="footer">
-          Recomendacion de onboarding: leer esta guía completa primero y despues abrir los
+          Recomendación de onboarding: leer esta guía completa primero y después abrir los
           documentos anteriores para profundizar por dominio.
         </p>
       </section>
@@ -1949,6 +1985,14 @@ flowchart TD
   </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
 
 
 
